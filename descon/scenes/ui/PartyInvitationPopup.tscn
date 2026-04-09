@@ -1,0 +1,68 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/PartyInvitationPopup.gd" id="1_invpopup"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_pop"]
+bg_color = Color(0.1, 0.1, 0.15, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.8, 1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_size = 20
+shadow_color = Color(0, 0, 0, 0.8)
+
+[node name="PartyInvitationPopup" type="PanelContainer"]
+custom_minimum_size = Vector2(300, 120)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -60.0
+offset_right = 150.0
+offset_bottom = 60.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_pop")
+script = ExtResource("1_invpopup")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="Title" type="Label" parent="VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "INVITACION DE ESCUADRON"
+horizontal_alignment = 1
+
+[node name="Text" type="Label" parent="VBox"]
+layout_mode = 2
+text = "Un piloto te ha invitado a su grupo."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Accept" type="Button" parent="VBox/HBox"]
+custom_minimum_size = Vector2(100, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 1, 0, 1)
+text = "ACEPTAR"
+
+[node name="Reject" type="Button" parent="VBox/HBox"]
+custom_minimum_size = Vector2(100, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+text = "RECHAZAR"

@@ -1,0 +1,22 @@
+# DEPENDENCIAS
+node_modules/
+package-lock.json
+
+# CONFIGURACIÓN Y SECRETOS
+.env
+config.json
+users.json
+
+# ARCHIVOS DE RESPALDO Y ANTIGUOS
+public/js/game_v5.js
+public/js/game_v4.js
+public/js/game_v3.js
+public/js/game_v2.js
+*.log
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+.gemini/

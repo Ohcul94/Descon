@@ -1,0 +1,16 @@
+# Node.js
+**/node_modules/
+**/npm-debug.log*
+**/.env
+
+# Godot
+**/export/
+**/.godot/
+**/.import/
+**/android/
+**/build/
+*.tmp
+
+# System
+.DS_Store
+Thumbs.db

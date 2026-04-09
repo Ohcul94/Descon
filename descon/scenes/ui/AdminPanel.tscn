@@ -1,0 +1,174 @@
+[gd_scene load_steps=3 format=3 uid="uid://d3m4r7v1y3m5"]
+
+[ext_resource type="Script" path="res://scripts/ui/AdminPanel.gd" id="1_admin_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_admin"]
+bg_color = Color(0.0588235, 0, 0.0588235, 0.95)
+border_width_left = 2
+border_width_top = 22
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.737255, 0.0745098, 0.996078, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+
+[node name="AdminPanel" type="Control"]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_admin_script")
+
+[node name="Window" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_admin")
+
+[node name="Title" type="Label" parent="Window"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 2.0
+offset_right = 300.0
+offset_bottom = 18.0
+theme_override_font_sizes/font_size = 11
+text = "DESCON UNIVERSE: CONTROL MAESTRO v69.34"
+
+[node name="TabContainer" type="TabContainer" parent="Window"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 30.0
+offset_right = -10.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 12
+
+[node name="NAVES" type="TabBar" parent="Window/TabContainer"]
+layout_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Window/TabContainer/NAVES"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="List" type="VBoxContainer" parent="Window/TabContainer/NAVES/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="ITEMS" type="TabBar" parent="Window/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Window/TabContainer/ITEMS"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="List" type="VBoxContainer" parent="Window/TabContainer/ITEMS/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ENEMIGOS" type="TabBar" parent="Window/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Window/TabContainer/ENEMIGOS"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="List" type="VBoxContainer" parent="Window/TabContainer/ENEMIGOS/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="UTILS" type="TabBar" parent="Window/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Window/TabContainer/UTILS"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Spawns" type="HBoxContainer" parent="Window/TabContainer/UTILS/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="T1" type="Button" parent="Window/TabContainer/UTILS/VBox/Spawns"]
+layout_mode = 2
+text = "SPAWN T1"
+
+[node name="T2" type="Button" parent="Window/TabContainer/UTILS/VBox/Spawns"]
+layout_mode = 2
+text = "SPAWN T2"
+
+[node name="BOSS" type="Button" parent="Window/TabContainer/UTILS/VBox/Spawns"]
+layout_mode = 2
+text = "SPAWN BOSS"
+
+[node name="Cheats" type="HBoxContainer" parent="Window/TabContainer/UTILS/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="HUBS" type="Button" parent="Window/TabContainer/UTILS/VBox/Cheats"]
+layout_mode = 2
+text = "+1000 HUBS"
+
+[node name="OHCU" type="Button" parent="Window/TabContainer/UTILS/VBox/Cheats"]
+layout_mode = 2
+text = "+100 OHCU"
+
+[node name="GodMode" type="CheckButton" parent="Window/TabContainer/UTILS/VBox"]
+layout_mode = 2
+text = "MODO DIOS (LOCAL)"
+alignment = 1
+
+[node name="Footer" type="HBoxContainer" parent="Window"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -50.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+alignment = 1
+
+[node name="SaveBtn" type="Button" parent="Window/Footer"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "GUARDAR CAMBIOS EN MONGODB"

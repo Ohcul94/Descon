@@ -1,0 +1,79 @@
+[gd_scene format=3 uid="uid://b8kan6x1y2k4"]
+
+[ext_resource type="Script" uid="uid://sa5i6usomy2h" path="res://scripts/systems/World.gd" id="1_world"]
+[ext_resource type="PackedScene" uid="uid://c6j8n6x1y2k3" path="res://scenes/entities/Ship.tscn" id="2_ship"]
+[ext_resource type="Script" uid="uid://b374kpj86kym2" path="res://scripts/entities/Player.gd" id="5_player"]
+[ext_resource type="PackedScene" uid="uid://c6j8n6x1y3l5" path="res://scenes/ui/LoginUI.tscn" id="6_login_ui"]
+[ext_resource type="PackedScene" uid="uid://b3c4n7v2y3m5" path="res://scenes/ui/MainHUD.tscn" id="8_hud"]
+[ext_resource type="PackedScene" uid="uid://e4r7v2y3m5l7" path="res://scenes/ui/Inventory.tscn" id="9_inv"]
+[ext_resource type="PackedScene" uid="uid://d3m4r7v1y3m5" path="res://scenes/ui/AdminPanel.tscn" id="10_admin"]
+[ext_resource type="PackedScene" uid="uid://e4r7v2y3m5l6" path="res://scenes/ui/ChatUI.tscn" id="11_chat"]
+[ext_resource type="Script" uid="uid://c81cexbe61c8n" path="res://scripts/systems/CombatSystem.gd" id="12_combat"]
+
+[node name="MainGame" type="Node2D" unique_id=1027512409]
+script = ExtResource("1_world")
+
+[node name="PlayerSpawn" type="Marker2D" parent="." unique_id=1050987461]
+position = Vector2(596, 339)
+
+[node name="Entities" type="Node2D" parent="." unique_id=18842428]
+
+
+[node name="CombatSystem" type="Node2D" parent="." unique_id=834330575]
+script = ExtResource("12_combat")
+
+[node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=1731233602]
+layer = -1
+
+[node name="SpaceBG" type="ColorRect" parent="BackgroundLayer" unique_id=936323649]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0156863, 0.0156863, 0.0156863, 1)
+
+[node name="StarsLayer1" type="GPUParticles2D" parent="BackgroundLayer" unique_id=371806232]
+position = Vector2(576, 324)
+amount = 400
+lifetime = 10.0
+
+[node name="StarsLayer2" type="GPUParticles2D" parent="BackgroundLayer" unique_id=1691375798]
+position = Vector2(576, 324)
+amount = 100
+lifetime = 5.0
+
+[node name="StarsLayer3" type="GPUParticles2D" parent="BackgroundLayer" unique_id=75311898]
+position = Vector2(576, 324)
+amount = 50
+lifetime = 2.0
+
+[node name="Player" parent="." unique_id=33465761 instance=ExtResource("2_ship")]
+position = Vector2(596, 339)
+script = ExtResource("5_player")
+speed = 300.0
+acceleration = 1200.0
+friction = 800.0
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1607871619]
+
+[node name="MainHUD" parent="HUD" unique_id=2046515387 instance=ExtResource("8_hud")]
+
+[node name="Inventory" parent="HUD" unique_id=1683379225 instance=ExtResource("9_inv")]
+visible = false
+
+[node name="AdminPanel" parent="HUD" unique_id=2077836879 instance=ExtResource("10_admin")]
+visible = false
+
+[node name="ChatUI" parent="HUD" unique_id=1107118506 instance=ExtResource("11_chat")]
+
+[node name="Status" type="Label" parent="HUD" unique_id=300766053]
+visible = false
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 260.0
+offset_bottom = 46.0
+text = "Conectando al Servidor..."
+
+[node name="LoginUI" parent="HUD" unique_id=2013206463 instance=ExtResource("6_login_ui")]

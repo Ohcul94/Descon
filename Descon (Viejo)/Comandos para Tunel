@@ -1,0 +1,5 @@
+cd "Descon (Viejo)\Descon"
+
+npx cloudflared tunnel --url http://localhost:3333
+
+npx localtunnel --port 3333
