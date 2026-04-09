@@ -18,7 +18,6 @@ position = Vector2(596, 339)
 
 [node name="Entities" type="Node2D" parent="." unique_id=18842428]
 
-
 [node name="CombatSystem" type="Node2D" parent="." unique_id=834330575]
 script = ExtResource("12_combat")
 

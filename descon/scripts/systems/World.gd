@@ -38,6 +38,9 @@ func _ready():
 	NetworkManager.enemy_dead.connect(_on_enemy_dead)
 	NetworkManager.enemy_damaged.connect(_on_enemy_damaged) # v167.60: Sincronía de daño total
 	
+	# v190.71: Sincronía en Caliente de Configuración Admin
+	NetworkManager.config_updated.connect(_on_admin_config_received)
+	
 	ui_hud.visible = false
 	ui_inventory.visible = false
 	ui_admin.visible = false
@@ -59,7 +62,6 @@ func _draw():
 
 func _process(delta):
 	queue_redraw()
-	if Input.is_key_pressed(KEY_F2): ui_admin.visible = !ui_admin.visible
 	save_timer += delta; if save_timer >= SAVE_INTERVAL: save_timer = 0.0; _save_game_progress()
 	if is_instance_valid(local_player) and local_player.is_dead:
 		respawn_timer += delta
@@ -68,6 +70,18 @@ func _process(delta):
 			_perform_local_respawn()
 	else: 
 		respawn_timer = 0.0
+
+func _input(event):
+	# v190.30: Sistema de Seguridad SuperAdmin (Acceso Exclusivo Caelli94)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F2:
+		if is_instance_valid(local_player):
+			var user_name = local_player.get("username")
+			if user_name and user_name == "Caelli94":
+				ui_admin.visible = !ui_admin.visible
+				if ui_admin.visible: ui_admin._refresh_ui()
+				get_viewport().set_input_as_handled() # Evitar propagación
+			else:
+				print("[SEGURIDAD] Intento de acceso denegado al Panel Admin.")
 
 func _perform_local_respawn():
 	if is_instance_valid(local_player) and local_player.has_method("respawn"):
@@ -194,3 +208,11 @@ func _on_remote_stat_sync(data: Dictionary):
 func _on_local_shoot(d): if combat_system: combat_system.handle_local_shoot(d)
 func _on_player_fired(d): if combat_system: combat_system.handle_remote_shoot(d)
 func _on_enemy_fired(d): if combat_system: combat_system.handle_enemy_shoot(d)
+func _on_admin_config_received(data: Dictionary):
+	# v190.72: Corrección de referencia a Autoload (GameConstants)
+	if GameConstants.has_method("update_from_server"):
+		GameConstants.update_from_server(data)
+		# Forzar refresco de UI si el Admin o Inventario están abiertos
+		if is_instance_valid(ui_admin) and ui_admin.visible: ui_admin._refresh_ui()
+		if is_instance_valid(ui_inventory) and ui_inventory.visible: ui_inventory._refresh_data()
+		print("[WORLD] Cambios globales aplicados correctamente.")

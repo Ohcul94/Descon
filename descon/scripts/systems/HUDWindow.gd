@@ -62,13 +62,19 @@ func toggle_minimize():
 func _save_position():
 	if window_id == "": return
 	
-	# v189.90: MODO MMO - No guardar en archivo local para permitir múltiples cuentas en el mismo PC
+	# v190.10: MODO RESPONSIVO - Guardar como porcentaje de la pantalla (0.0 a 1.0)
+	var screen_size = get_viewport_rect().size
+	var percent_pos = {
+		"x": global_position.x / screen_size.x,
+		"y": global_position.y / screen_size.y
+	}
+	
 	if NetworkManager and NetworkManager.network_connected:
 		NetworkManager.send_event("saveHUD", {
 			"id": window_id,
-			"pos": { "x": global_position.x, "y": global_position.y }
+			"pos": percent_pos
 		})
-		print("[HUD] Sincronizado con Servidor: ", window_id)
+		print("[HUD-TRANS] Enviando posición porcentual: ", percent_pos)
 
 func _load_position():
 	# v189.90: Ya no cargamos de disco. El MainHUD aplicará las posiciones desde el servidor

@@ -126,9 +126,17 @@ func _recalculate_stats():
 			elif type == "e" or type == "engine" or cat == "e": speed_bonus += bonus
 			elif type == "h" or type == "hp" or cat == "h": total_hp_bonus += bonus
 	
-	max_hp = 2000 + total_hp_bonus
-	max_shield = 1000 + total_sh_bonus
-	speed = 300 + speed_bonus
+	# v190.80: SINCRONÍA ABSOLUTA CON ADMIN CONSTANTS
+	# Ya no usamos 2000, 1000 o 300 fijos. Buscamos el modelo de nuestra nave actual.
+	var ship_base = { "hp": 2000, "shield": 1000, "speed": 300 }
+	for ship in GameConstants.SHIP_MODELS:
+		if ship.id == current_ship_id:
+			ship_base = ship
+			break
+			
+	max_hp = float(ship_base.get("hp", 2000)) + total_hp_bonus
+	max_shield = float(ship_base.get("shield", 1000)) + total_sh_bonus
+	speed = float(ship_base.get("speed", 300)) + speed_bonus
 	
 	# Notificar al servidor nuestros nuevos límites reales (Sincronía Crítica)
 	save_progress()
@@ -229,7 +237,7 @@ func _force_move_sync():
 		"id": entity_id, "x": global_position.x, "y": global_position.y,
 		"rotation": rotation, "hp": current_hp, "sh": current_shield,
 		"maxHp": max_hp, "maxSh": max_shield, "maxShield": max_shield,
-		"zone": current_zone # Enviar zona real para ruteo de paquetes
+		"zone": current_zone 
 	})
 
 func respawn():
@@ -273,6 +281,7 @@ func _on_login_success(p_in):
 			var lp = gd["lastPos"]
 			global_position = Vector2(lp.get("x", 2000), lp.get("y", 2000))
 			target_position = global_position
+		current_ship_id = int(gd.get("currentShipId", 1)) # v190.81: Recordar qué nave tenemos
 		current_zone = int(gd.get("zone", 1)) # Sincronizar zona inicial
 		_recalculate_stats()
 	_update_tags()

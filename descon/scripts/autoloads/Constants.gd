@@ -10,7 +10,7 @@ const GAME_CONFIG = {
 	"regenRate": 0.1
 }
 
-const SHIP_MODELS = [
+var SHIP_MODELS = [
 	{ "id": 1, "name": "Phoenix-L1", "hp": 2000, "shield": 1000, "speed": 300, "slots": { "w": 1, "s": 1, "e": 1, "x": 1 }, "prices": { "hubs": 0, "ohcu": 0 } },
 	{ "id": 2, "name": "Vulture-G2", "hp": 4500, "shield": 2500, "speed": 330, "slots": { "w": 2, "s": 2, "e": 2, "x": 2 }, "prices": { "hubs": 1000000, "ohcu": 1000 } },
 	{ "id": 3, "name": "Falcon-A3", "hp": 10000, "shield": 6000, "speed": 360, "slots": { "w": 4, "s": 4, "e": 4, "x": 3 }, "prices": { "hubs": 5000000, "ohcu": 5000 } },
@@ -19,13 +19,20 @@ const SHIP_MODELS = [
 	{ "id": 6, "name": "Galactus-Z6", "hp": 200000, "shield": 130000, "speed": 460, "slots": { "w": 16, "s": 16, "e": 16, "x": 6 }, "prices": { "hubs": 0, "ohcu": 200000 }, "premium": true }
 ]
 
-const AMMO_MULTIPLIERS = {
+var ENEMY_MODELS = {
+	"1": { "name": "Recon Drone", "hp": 500, "shield": 100, "bulletDamage": 40, "fireRate": 2000, "rewardHubs": 100, "rewardOhcu": 1, "rewardExp": 150 },
+	"2": { "name": "Interceptor", "hp": 1500, "shield": 800, "bulletDamage": 120, "fireRate": 1500, "rewardHubs": 500, "rewardOhcu": 5, "rewardExp": 400 },
+	"3": { "name": "Destroyer", "hp": 5000, "shield": 3000, "bulletDamage": 350, "fireRate": 1200, "rewardHubs": 2500, "rewardOhcu": 25, "rewardExp": 1200 },
+	"boss_1": { "name": "Sentinel Prime", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000 }
+}
+
+var AMMO_MULTIPLIERS = {
 	"laser": [1.0, 1.5, 2.5, 4, 8, 15],
 	"missile": [1, 2, 4, 8, 16, 30],
 	"mine": [1, 3, 7, 15, 40, 100]
 }
 
-const SHOP_ITEMS = {
+var SHOP_ITEMS = {
 	"weapons": [
 		{ "id": "las1", "name": "Láser LF-1", "desc": "Láser básico.", "stats": "Daño: 100", "base": 100, "prices": { "hubs": 10000, "ohcu": 10 }, "type": "w" },
 		{ "id": "las2", "name": "Láser LF-2", "desc": "Mejora en potencia.", "stats": "Daño: 250", "base": 250, "prices": { "hubs": 50000, "ohcu": 50 }, "type": "w" },
@@ -75,6 +82,15 @@ const SHOP_ITEMS = {
 	}
 }
 
-const FACTION_COLORS = {
+var faction_colors = {
 	"neutral": Color.WHITE, "allied": Color.CYAN, "enemy": Color.RED, "boss": Color.MAGENTA
 }
+
+# v190.70: MÉTODO DE ACTUALIZACIÓN EN CALIENTE (Hot-Reload)
+# Permite que los cambios del Super Admin impacten sin reiniciar el juego.
+func update_from_server(data: Dictionary):
+	if data.has("shipModels"): SHIP_MODELS = data["shipModels"]
+	if data.has("enemyModels"): ENEMY_MODELS = data["enemyModels"]
+	if data.has("shopItems"): SHOP_ITEMS = data["shopItems"]
+	if data.has("ammoMultipliers"): AMMO_MULTIPLIERS = data["ammoMultipliers"]
+	print("[CONSTANTS] Universo actualizado por el Super Admin.")

@@ -60,6 +60,9 @@ func _ready():
 		NetworkManager.login_success.connect(func(d): _on_inventory_received(d))
 		NetworkManager.auth_success.connect(func(d): _on_inventory_received(d))
 	
+	# v190.62: Sincronía Responsive
+	get_viewport().size_changed.connect(func(): queue_redraw())
+	
 	if PartyManager:
 		PartyManager.party_updated.connect(func(_d): _update_party_ui())
 	
@@ -109,13 +112,21 @@ func _on_player_stats_changed(p_data: Dictionary):
 	# Actualizar saldos locales para que el dibujo de _draw() sea correcto
 	if p_data.has("hubs"): hubs = int(p_data["hubs"])
 	if p_data.has("ohcu"): ohcu = int(p_data["ohcu"])
-	# Redibujar la cabecera del inventario
 	queue_redraw()
 
 func _draw():
 	if not visible: return
-	var sx = get_viewport_rect().size.x; var sy = get_viewport_rect().size.y
-	var r_size = Vector2(940, 600); var r_pos = Vector2((sx - r_size.x)/2, (sy - r_size.y)/2)
+	var screen_size = get_viewport_rect().size
+	var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
+	var r_pos = (screen_size - r_size) / 2.0
+	
+	# Actualizar ventana física (contenedor de pestañas)
+	var win = get_node_or_null("Window")
+	if win:
+		win.position = r_pos
+		win.custom_minimum_size = r_size
+		win.size = r_size
+	
 	draw_rect(Rect2(r_pos, r_size), Color(0.02, 0.02, 0.05, 0.98))
 	draw_rect(Rect2(r_pos, Vector2(r_size.x, 35)), Color(0, 0.08, 0.12, 1.0))
 	draw_rect(Rect2(r_pos, r_size), Color(0, 0.8, 1, 0.5), false, 1.5)
@@ -140,16 +151,26 @@ func _input(event):
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
 		toggle(); get_viewport().set_input_as_handled()
 	if event is InputEventMouseButton and event.pressed and visible:
-		var r_pos = (get_viewport_rect().size - Vector2(940,600)) / 2
-		var x_rect = Rect2(r_pos.x + 940 - 35, r_pos.y + 8, 25, 18)
+		var screen_size = get_viewport_rect().size
+		var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
+		var r_pos = (screen_size - r_size) / 2
+		var x_rect = Rect2(r_pos.x + r_size.x - 35, r_pos.y + 8, 25, 18)
 		if x_rect.has_point(event.position): toggle(); get_viewport().set_input_as_handled()
 
 func toggle():
-	is_open = !is_open; visible = is_open
+	is_open = !is_open
+	visible = is_open
+	
 	if is_open: 
 		_refresh_data()
-		# v164.92: Asegurar que el Hangar esté siempre por encima del Chat y otros paneles
-		get_parent().move_child(self, get_parent().get_child_count() - 1)
+		# v190.20: PRIORIDAD ABSOLUTA - Mover al frente de la jerarquía UI
+		if get_parent():
+			get_parent().move_child(self, get_parent().get_child_count() - 1)
+			# Si estamos dentro de un CanvasLayer, esto asegura el dibujo superior
+			z_index = 100 
+	else:
+		z_index = 0
+		
 	queue_redraw()
 
 func _refresh_data():

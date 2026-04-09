@@ -18,6 +18,8 @@ var last_combat_time: float = 0
 
 @onready var name_tag = get_node_or_null("NameTag")
 var _ui_wrapper: Node2D = null
+var sprite: Sprite2D = null
+var anim_player: AnimationPlayer = null
 
 func _ready():
 	add_to_group("entities")
@@ -35,6 +37,13 @@ func _ready():
 		_ui_wrapper.name = "HUD_Layer_Final"; _ui_wrapper.draw.connect(_draw_hud)
 		add_child(_ui_wrapper)
 	
+	# v190.90: SISTEMA DE RECORTE Y ANIMACIÓN NAVE-1 (Phoenix)
+	# Si somos una nave (no enemigo), configuramos el sprite.
+	if !is_in_group("enemies"):
+		_setup_ship_visuals()
+	else:
+		_setup_enemy_visuals()
+	
 	if name_tag:
 		if name_tag.get_parent() != _ui_wrapper: name_tag.reparent(_ui_wrapper)
 		name_tag.visible = true; name_tag.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
@@ -50,6 +59,8 @@ func _process(_delta):
 	
 	visible = true; show(); modulate.a = 1.0; queue_redraw()
 	if _ui_wrapper: _ui_wrapper.visible = true
+	
+	_update_animations()
 	
 	# v167.70: REGENERACIÓN POST-COMBATE (SÓLO PARA EL JUGADOR LOCAL)
 	# Los enemigos y otros pilotos son autoritativos del servidor, no deben regenerar aquí.
@@ -78,6 +89,9 @@ func _process(_delta):
 
 func _draw():
 	# v166.61: RENDERIZADO TACTICO (Glow & Visibility Fix)
+	# v190.91: Si hay sprite cargado, ya no dibujamos el polígono base
+	if is_instance_valid(sprite): return
+
 	var poly_color = Color(1, 0.4, 0)
 	var pts = PackedVector2Array()
 	
@@ -143,12 +157,30 @@ func update_stats(data):
 	# v164.94: Sincronía de Popups de Daño (Antes de pisar los valores)
 	var old_total = current_hp + current_shield
 	
-	if data.has("hp"): current_hp = float(data.hp)
-	if data.has("shield"): current_shield = float(data.shield)
-	elif data.has("sh"): current_shield = float(data.sh) # v164.61: Fix alias SH
-	if data.has("maxHp"): max_hp = float(data.maxHp)
-	if data.has("maxShield"): max_shield = float(data.maxShield)
-	elif data.has("maxSh"): max_shield = float(data.maxSh)
+	# v191.70: PREDICCIÓN DE CLIENTE ANTI-PARPADEO (Shield/HP Stability)
+	# Si somos el jugador local, ignoramos cambios minúsculos del server (Regen vs Latencia)
+	var is_local = is_in_group("player")
+	var threshold = 25.0 # Margen para ignorar el "ping-pong" de red
+	
+	if data.has("hp"):
+		var server_hp = float(data.hp)
+		if not is_local or abs(current_hp - server_hp) > threshold:
+			current_hp = server_hp
+			
+	if data.has("shield") or data.has("sh"):
+		var server_sh = float(data.get("shield", data.get("sh", 0)))
+		if not is_local or abs(current_shield - server_sh) > threshold:
+			current_shield = server_sh
+			
+	if data.has("maxHp") and not is_local: 
+		max_hp = float(data.maxHp)
+	if (data.has("maxShield") or data.has("maxSh")) and not is_local:
+		max_shield = float(data.get("maxShield", data.get("maxSh", 2000)))
+		
+	# v192.35: Corrección de Emergencia para Aliados (Si el actual es mayor al máximo)
+	if not is_local:
+		if current_shield > max_shield: max_shield = current_shield
+		if current_hp > max_hp: max_hp = current_hp
 	
 	# v186.16: Sincronía de Resurrección Crítica
 	if data.has("isDead"):
@@ -168,10 +200,12 @@ func update_stats(data):
 	current_shield = min(current_shield, max_shield)
 	
 	var new_total = current_hp + current_shield
-	if old_total > new_total and old_total > 0: 
-		reset_combat_timer() # v167.60: Bloquear regen por 5s ante daño de red
+	var damage_taken = old_total - new_total
+	
+	if damage_taken >= 1.0 and old_total > 0: 
+		reset_combat_timer() # v191.80: Restaurado nombre correcto
 		if not is_in_group("player"):
-			_spawn_damage_text(str(int(old_total - new_total)), Color.RED)
+			_spawn_damage_text(str(int(damage_taken)), Color.RED)
 	
 	var t = int(data.get("type", entity_type))
 	if t != entity_type: entity_type = t; _adjust_visuals(t)
@@ -262,3 +296,89 @@ func show_bubble(p_text: String):
 	tw.tween_interval(3.5)
 	tw.tween_property(bubble, "modulate:a", 0.0, 1.0)
 	tw.finished.connect(bubble.queue_free) # Conexión directa y segura
+
+func _setup_ship_visuals():
+	# v191.60: CARGA SEGURA CON FALLBACK (PNG -> JPEG)
+	var poly = get_node_or_null("Polygon2D")
+	if poly: poly.visible = false
+	
+	sprite = Sprite2D.new()
+	sprite.name = "ShipSprite"
+	
+	var path_png = "res://assets/player/Nave1.png"
+	var path_jpg = "res://assets/player/Nave1.jpeg"
+	
+	if ResourceLoader.exists(path_png):
+		sprite.texture = load(path_png)
+		sprite.hframes = 8
+		sprite.vframes = 4
+	elif ResourceLoader.exists(path_jpg):
+		# v191.61: Fallback a JPEG si el PNG no se importó aún
+		sprite.texture = load(path_jpg)
+		sprite.hframes = 8
+		sprite.vframes = 4
+	
+	sprite.scale = Vector2(0.5, 0.5)
+	sprite.rotation_degrees = 0
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	add_child(sprite)
+	
+	anim_player = AnimationPlayer.new()
+	add_child(anim_player)
+	var lib = AnimationLibrary.new()
+	anim_player.add_animation_library("", lib)
+	
+	# 1. IDLE (Bucle suave en fila 1)
+	var anim_idle = Animation.new()
+	var track_idx = anim_idle.add_track(Animation.TYPE_VALUE)
+	anim_idle.track_set_path(track_idx, "ShipSprite:frame")
+	for i in range(6): anim_idle.track_insert_key(track_idx, i * 0.15, i)
+	anim_idle.loop_mode = Animation.LOOP_LINEAR
+	lib.add_animation("idle", anim_idle)
+	
+	# 2. START_MOVE (Aceleración - Fila 2, frames 8-10)
+	var anim_start = Animation.new()
+	track_idx = anim_start.add_track(Animation.TYPE_VALUE)
+	anim_start.track_set_path(track_idx, "ShipSprite:frame")
+	for i in range(3): anim_start.track_insert_key(track_idx, i * 0.08, 8 + i)
+	lib.add_animation("start_move", anim_start)
+	
+	# 3. RUN (Vuelo - Fila 2, frames 11-13)
+	var anim_run = Animation.new()
+	track_idx = anim_run.add_track(Animation.TYPE_VALUE)
+	anim_run.track_set_path(track_idx, "ShipSprite:frame")
+	for i in range(3): anim_run.track_insert_key(track_idx, i * 0.1, 11 + i)
+	anim_run.loop_mode = Animation.LOOP_LINEAR
+	lib.add_animation("run", anim_run)
+
+	# 4. DEATH (Explosión - Fila 3 y 4)
+	var anim_death = Animation.new()
+	track_idx = anim_death.add_track(Animation.TYPE_VALUE)
+	anim_death.track_set_path(track_idx, "ShipSprite:frame")
+	for i in range(16): anim_death.track_insert_key(track_idx, i * 0.08, 16 + i)
+	lib.add_animation("death", anim_death)
+
+	anim_player.play("idle")
+
+func _setup_enemy_visuals(): pass
+
+func _update_animations():
+	if not anim_player or not is_instance_valid(sprite): return
+	if is_dead: return
+		
+	var vel_len = velocity.length()
+	
+	# v191.55: REPOSO ABSOLUTO (Frame 0 fijo)
+	if vel_len < 5.0:
+		if anim_player.is_playing(): anim_player.stop()
+		sprite.frame = 0
+		return
+
+	if vel_len > 40.0:
+		if not anim_player.is_playing() or anim_player.current_animation == "idle":
+			anim_player.play("start_move")
+			if anim_player.is_playing() and anim_player.current_animation == "start_move":
+				await anim_player.animation_finished
+			if velocity.length() > 40.0: anim_player.play("run")
+	else:
+		if anim_player.current_animation != "idle": anim_player.play("idle")

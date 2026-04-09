@@ -147,6 +147,27 @@ setInterval(() => {
             }
         });
     });
+
+    // v192.05: SISTEMA DE AUTOSAVE EN BATCH (Optimización Gemini)
+    // Reducimos las escrituras a MongoDB Atlas para no agotar los IOPS
+    setInterval(async () => {
+        const playerList = Object.values(players);
+        for (const p of playerList) {
+            try {
+                await User.updateOne(
+                    { _id: p.id },
+                    { $set: { 
+                        "gameData.lastPos.x": Math.floor(p.x),
+                        "gameData.lastPos.y": Math.floor(p.y),
+                        "gameData.hp": Math.ceil(p.hp),
+                        "gameData.shield": Math.ceil(p.shield),
+                        "gameData.zone": p.zone
+                    }}
+                );
+            } catch(e) {}
+        }
+        if (playerList.length > 0) console.log(`\x1b[34m[AUTOSAVE]\x1b[0m ${playerList.length} naves guardadas.`);
+    }, 60000);
     
     if (Object.keys(enemies).length > 0) {
         // Reducir carga de red enviando solo lo necesario para renderizado v85.20
@@ -187,16 +208,23 @@ setInterval(() => {
                 changed = true;
             }
 
-            if (changed && now - (p.lastRegenSync || 0) > 500) { // Sync cada 500ms para no saturar
-                p.lastRegenSync = now;
-                io.to(`zone_${p.zone}`).emit('playerStatSync', { 
-                    id: p.socketId, // v168.02: Usar ID de Red para sincronía visual en Godot
-                    hp: Math.ceil(p.hp), 
-                    shield: Math.ceil(p.shield), 
-                    maxHp: p.maxHp,
-                    maxShield: p.maxShield,
-                    isDead: false 
-                });
+            // v192.10: Sincronía Diferencial (Optimización de Ancho de Banda)
+            if (changed && now - (p.lastRegenSync || 0) > 1000) { 
+                const diffHp = Math.abs(p.hp - (p.lastSyncHp || 0));
+                const diffSh = Math.abs(p.shield - (p.lastSyncSh || 0));
+                
+                // Solo mandamos paquete si varió más del 1.5% (Evitar spam de red)
+                if (diffHp > (p.maxHp * 0.015) || diffSh > (p.maxShield * 0.015)) {
+                    p.lastRegenSync = now;
+                    p.lastSyncHp = p.hp;
+                    p.lastSyncSh = p.shield;
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+                        id: p.socketId,
+                        hp: Math.ceil(p.hp), 
+                        shield: Math.ceil(p.shield), 
+                        isDead: false 
+                    });
+                }
             }
         }
     });
@@ -274,20 +302,34 @@ io.on('connection', (socket) => {
                 console.log(`[REVIVE] Piloto ${username} regenerado por deslogueo/muerte.`);
             }
 
-            const dbId = user._id.toString(); // ID ÚNICO v123.10
-            socket.dbUser = user; // v189.95: Vincular usuario al socket para persistencia segura
+            const dbId = user._id.toString(); 
+            socket.dbUser = user; 
+
+            // v190.85: Sincronía de Stats Base desde Admin Config (server-side start)
+            let baseHp = 2000; let baseSh = 1000;
+            const shipId = user.gameData.currentShipId || 1;
+            try {
+                const config = await fs.readJson(CONFIG_FILE);
+                if (config && config.shipModels) {
+                    const model = config.shipModels.find(m => m.id === shipId);
+                    if (model) {
+                        baseHp = model.hp; baseSh = model.shield;
+                    }
+                }
+            } catch(e) {}
+
             players[socket.id] = {
-                id: dbId, // Identidad Inmutable de Combate
-                socketId: socket.id, // ID de Red Volátil
+                id: dbId,
+                socketId: socket.id,
                 num: nextPlayerNum++,
                 user: username,
                 x: user.gameData.lastPos.x, 
                 y: user.gameData.lastPos.y, 
                 rotation: 0,
-                hp: user.gameData.hp, 
-                maxHp: user.gameData.maxHp || 2000, 
-                shield: user.gameData.shield, 
-                maxShield: user.gameData.maxShield || 1000,
+                hp: user.gameData.hp || baseHp, 
+                maxHp: user.gameData.maxHp || baseHp, 
+                shield: user.gameData.shield || baseSh, 
+                maxShield: user.gameData.maxShield || baseSh,
                 ammo: user.gameData.ammo || {}, 
                 selectedAmmo: user.gameData.selectedAmmo || { laser: 0, missile: 0, mine: 0 },
                 zone: user.gameData.zone || 1,
@@ -315,8 +357,14 @@ io.on('connection', (socket) => {
             
             const currentPlayersInZone = {};
             Object.keys(players).forEach(pId => {
-                if (players[pId].zone === userZone) {
-                    currentPlayersInZone[pId] = { ...players[pId], id: pId };
+                const p = players[pId];
+                if (p.zone === userZone) {
+                    currentPlayersInZone[pId] = { 
+                        ...p, 
+                        id: pId,
+                        maxHp: p.maxHp || 2000,
+                        maxShield: p.maxShield || 1000
+                    };
                 }
             });
 
@@ -694,25 +742,10 @@ io.on('connection', (socket) => {
 
         socket.to(`zone_${players[socket.id].zone}`).emit('playerMoved', { ...players[socket.id], id: socket.id });
 
-        // Guardado de Posición Crítica (v67.4 Server-Side persistence)
-        // Reducido a 200ms para asegurar HP/Shield tras F5
-        const now = Date.now();
-        if (now - (socket.lastMoveSave || 0) > 200) {
-            socket.lastMoveSave = now;
-            try {
-                await User.updateOne(
-                    { _id: socket.dbUser._id },
-                    { 
-                        $set: { 
-                            "gameData.lastPos.x": Math.floor(movementData.x),
-                            "gameData.lastPos.y": Math.floor(movementData.y),
-                            "gameData.hp": Math.ceil(players[socket.id].hp),
-                            "gameData.shield": Math.ceil(players[socket.id].shield)
-                        } 
-                    }
-                );
-            } catch (e) { /* Error silencioso de red */ }
-        }
+        socket.to(`zone_${players[socket.id].zone}`).emit('playerMoved', { ...players[socket.id], id: socket.id });
+        
+        // PERSISTENCIA DE MOVIMIENTO ELIMINADA (Optimización de Escalado)
+        // El guardado ahora se maneja vía Batch cada 60s
     });
 
     socket.on('playerRespawn', (respawnData) => {
@@ -845,7 +878,7 @@ io.on('connection', (socket) => {
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
 
             io.to(`zone_${p.zone}`).emit('playerStatSync', { 
-                id: p.socketId, // v168.02: Usar ID de Red para sincronía visual en Godot
+                id: p.socketId, 
                 hp: p.hp, 
                 shield: p.shield, 
                 maxHp: p.maxHp,
