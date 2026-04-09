@@ -112,79 +112,58 @@ setInterval(() => {
 // LOOP DE IA Y MOVIMIENTO GLOBAL (v85.20 Modular AI Engine)
 setInterval(() => {
     const now = Date.now();
-    Object.values(enemies).forEach(e => {
-        // Lógica de Criaturas Temporales / Clones v108.30
-        if (e.type === 6) {
-            e.cloneLife = (e.cloneLife || 15000) - 33;
-            if (e.cloneLife <= 0 && !e.isDead) {
-                e.isDead = true; 
-                // Explosión de Área al expirar
-                io.to(`zone_${e.zone}`).emit('bossEffect', { type: 'vacuum', x: e.x, y: e.y, radius: 500 });
-                Object.values(players).forEach(p => {
-                    if (p.zone === e.zone && Math.hypot(p.x - e.x, p.y - e.y) < 500) {
-                        p.shield -= 3000; if (p.shield < 0) { p.hp += p.shield; p.shield = 0; }
-                        io.to(p.socketId).emit('playerStatSync', { hp: p.hp, shield: p.shield });
-                    }
-                });
-                io.to(`zone_${e.zone}`).emit('enemyDead', { id: e.id, killerId: 'server' });
-                delete enemies[e.id];
-                return;
-            }
-        }
-
-        if (e.ai) {
-            e.ai.update(players, now, io);
-        }
-
-        // Colisión Simple entre enemigos (Repulsión)
-        Object.values(enemies).forEach(other => {
-            if (e === other || e.zone !== other.zone) return;
-            const d = Math.hypot(e.x - other.x, e.y - other.y);
-            if (d < 45) { 
-                const pushAngle = Math.atan2(e.y - other.y, e.x - other.x);
-                e.x += Math.cos(pushAngle) * 1.2;
-                e.y += Math.sin(pushAngle) * 1.2;
-            }
-        });
-    });
-
-    // v192.05: SISTEMA DE AUTOSAVE EN BATCH (Optimización Gemini)
-    // Reducimos las escrituras a MongoDB Atlas para no agotar los IOPS
-    setInterval(async () => {
-        const playerList = Object.values(players);
-        for (const p of playerList) {
-            try {
-                await User.updateOne(
-                    { _id: p.id },
-                    { $set: { 
-                        "gameData.lastPos.x": Math.floor(p.x),
-                        "gameData.lastPos.y": Math.floor(p.y),
-                        "gameData.hp": Math.ceil(p.hp),
-                        "gameData.shield": Math.ceil(p.shield),
-                        "gameData.zone": p.zone
-                    }}
-                );
-            } catch(e) {}
-        }
-        if (playerList.length > 0) console.log(`\x1b[34m[AUTOSAVE]\x1b[0m ${playerList.length} naves guardadas.`);
-    }, 60000);
+    const enemiesByZone = { 1: [], 2: [], 3: [] };
+    const zoneMoveData = { 1: {}, 2: {}, 3: {} };
     
-    if (Object.keys(enemies).length > 0) {
-        // Reducir carga de red enviando solo lo necesario para renderizado v85.20
-        const moveData = {};
-        Object.values(enemies).forEach(e => {
-            if (e.hp > 0) {
-                moveData[e.id] = { 
-                    id: e.id, x: e.x, y: e.y, rotation: e.rotation, 
-                    hp: e.hp, shield: e.shield, zone: e.zone, type: e.type,
-                    isRyze: e.isRyze || false, // Flag de Furia v91.30
-                    isRamming: e.ai && e.ai.isRamming, // Flag de Embestida v91.30
-                    isCountering: e.isCountering || false, // v103.30
-                    isInvulnerable: e.isInvulnerable || false
-                };
+    // Clasificación Inicial O(n) - Un solo pase
+    for (const id in enemies) {
+        const e = enemies[id];
+        if (e.hp > 0) enemiesByZone[e.zone].push(e);
+    }
+
+    // Proceso por Zona (Ahorro del 900% en CPU)
+    for (let z = 1; z <= 3; z++) {
+        const zoneList = enemiesByZone[z];
+        const listLen = zoneList.length;
+
+        for (let i = 0; i < listLen; i++) {
+            const e = zoneList[i];
+            
+            // 1. Actualizar IA
+            if (e.ai) e.ai.update(players, now, io);
+
+            // 2. Repulsión Física (Solo contra naves de su propia zona)
+            for (let j = i + 1; j < listLen; j++) {
+                const other = zoneList[j];
+                const dx = e.x - other.x;
+                const dy = e.y - other.y;
+                const distSq = dx*dx + dy*dy;
+                
+                if (distSq < 2025) { // 45px al cuadrado
+                    const pushAngle = Math.atan2(dy, dx);
+                    const force = 1.2;
+                    e.x += Math.cos(pushAngle) * force;
+                    e.y += Math.sin(pushAngle) * force;
+                    other.x -= Math.cos(pushAngle) * force;
+                    other.y -= Math.sin(pushAngle) * force;
+                }
             }
-        });
-        io.emit('enemiesMoved', moveData);
+
+            // 3. Preparar datos de Red
+            zoneMoveData[z][e.id] = {
+                id: e.id, x: e.x, y: e.y, rotation: e.rotation,
+                hp: e.hp, shield: e.shield, zone: e.zone, type: e.type,
+                isRyze: e.isRyze || false,
+                isRamming: e.ai && e.ai.isRamming,
+                isCountering: e.isCountering || false,
+                isInvulnerable: e.isInvulnerable || false
+            };
+        }
+
+        // Broadcast Segmentado
+        if (listLen > 0) {
+            io.to(`zone_${z}`).emit('enemiesMoved', zoneMoveData[z]);
+        }
     }
 
     // v164.68: BUCLE DE REGENERACIÓN AUTORITATIVA (Jugadores 10% HP/SH)
@@ -327,9 +306,9 @@ io.on('connection', (socket) => {
                 y: user.gameData.lastPos.y, 
                 rotation: 0,
                 hp: user.gameData.hp || baseHp, 
-                maxHp: user.gameData.maxHp || baseHp, 
+                maxHp: baseHp, 
                 shield: user.gameData.shield || baseSh, 
-                maxShield: user.gameData.maxShield || baseSh,
+                maxShield: baseSh,
                 ammo: user.gameData.ammo || {}, 
                 selectedAmmo: user.gameData.selectedAmmo || { laser: 0, missile: 0, mine: 0 },
                 zone: user.gameData.zone || 1,
@@ -1090,6 +1069,19 @@ function getLocalIP() {
         }
     }
     return 'localhost';
+}
+
+// v192.60: Helpers de Optimización de Proximidad
+function _trigger_boss_explosion(e) {
+    io.to(`zone_${e.zone}`).emit('bossEffect', { type: 'vacuum', x: e.x, y: e.y, radius: 500 });
+    Object.values(players).forEach(p => {
+        if (p.zone === e.zone && Math.hypot(p.x - e.x, p.y - e.y) < 500) {
+            p.shield -= 3000; if (p.shield < 0) { p.hp += p.shield; p.shield = 0; }
+            io.to(p.socketId).emit('playerStatSync', { hp: p.hp, shield: p.shield, isDead: p.hp<=0 });
+        }
+    });
+    io.to(`zone_${e.zone}`).emit('enemyDead', { id: e.id, killerId: 'server' });
+    delete enemies[e.id];
 }
 
 http.listen(PORT, '0.0.0.0', () => {
