@@ -20,6 +20,7 @@ var _ammo_nodes = {}
 
 func _ready():
 	mouse_filter = Control.MOUSE_FILTER_PASS
+	print("[HUD] Sistema v189.80 inicializado. Esperando datos del servidor...")
 	
 	# v167.30: Inyectar Icono de Escuadrón (Identidad Visual Original)
 	var c_bar = get_node_or_null("ControlBar")
@@ -43,9 +44,9 @@ func _ready():
 	
 	# Configurar barra de control
 	for btn in $ControlBar.get_children():
-		var id = btn.name.replace("Icon", "")
+		var b_name = btn.name.replace("Icon", "")
 		if not btn.pressed.is_connected(_on_icon_pressed):
-			btn.pressed.connect(_on_icon_pressed.bind(id))
+			btn.pressed.connect(_on_icon_pressed.bind(b_name))
 	
 	# PROTOCOLO EXORCISMO (v164.55: Borrar títulos y botones redundantes de todos los hijos)
 	_aggressive_hide(self)
@@ -53,9 +54,8 @@ func _ready():
 	# Conectar ventanas a la lógica de minimización
 	for child in get_children():
 		if child.has_method("toggle_minimize"):
-			child.minimized.connect(_on_minimize_pressed)
-			# v164.54: Lógica de inyección de botones Header/Min ELIMINADA.
-			# Todo el control se centraliza en el ControlBar (Footer).
+			if not child.minimized.is_connected(_on_minimize_pressed):
+				child.minimized.connect(_on_minimize_pressed)
 	
 	_ammo_nodes["laser"] = get_node_or_null("Skills/LaserSlot/ammo-q")
 	_ammo_nodes["missile"] = get_node_or_null("Skills/MissileSlot/ammo-w")
@@ -121,8 +121,39 @@ func _ready():
 		if node:
 			_update_icon_state(id, node.visible)
 	
-	# Escuchar datos del servidor (v1.17 - Cloud HUD)
-	NetworkManager.login_success.connect(_on_server_data_received)
+	# Escuchar datos del servidor (v189.75 - Cloud Sync Robust)
+	if NetworkManager:
+		if not NetworkManager.login_success.is_connected(_on_server_data_received):
+			NetworkManager.login_success.connect(_on_server_data_received)
+
+func _on_server_data_received(p_data: Dictionary):
+	print("[HUD] Datos de Sesión recibidos. Sincronizando layout...")
+	if p_data.has("gameData"):
+		var gd = p_data.gameData
+		var layout = gd.get("hudPositions", gd.get("hud_layout", {}))
+		var config = gd.get("hudConfig", gd.get("hud_config", {}))
+		
+		if layout is Dictionary and not layout.is_empty():
+			_apply_hud_data(layout, config)
+		else:
+			print("[HUD-INFO] El perfil no tiene posiciones guardadas aún.")
+
+func _apply_hud_data(layout: Dictionary, config: Dictionary):
+	# Primero el layout para que se muevan a donde deben
+	for win_id in layout:
+		var pos_data = layout[win_id]
+		var node = _get_hud_node(win_id)
+		if node and typeof(pos_data) == TYPE_DICTIONARY:
+			# Asegurar que x e y sean floats válidos
+			var final_x = float(pos_data.get("x", node.global_position.x))
+			var final_y = float(pos_data.get("y", node.global_position.y))
+			node.global_position = Vector2(final_x, final_y)
+			print("[HUD-RESTORE] ", win_id, " -> ", node.global_position)
+	
+	# Luego la configuración de visibilidad
+	for win_id in config:
+		var node = _get_hud_node(win_id)
+		if node: node.visible = bool(config[win_id])
 
 func _process(_p_delta):
 	var p_node = get_tree().get_first_node_in_group("player")
@@ -266,17 +297,6 @@ func _update_icon_state(id: String, is_active: bool):
 		else:
 			icon.modulate = Color(0.4, 0.4, 0.4, 0.6) # Oscurecer si está minimizado
 
-func _on_server_data_received(p_data: Dictionary):
-	if p_data.has("gameData"):
-		var gd = p_data.gameData
-		if gd.has("hud_layout"):
-			var layout = gd.hud_layout
-			for win_id in layout:
-				var pos_data = layout[win_id]
-				var node = _get_hud_node(win_id)
-				if node:
-					node.global_position = Vector2(pos_data.x, pos_data.y)
-					print("[HUD] Cargado desde Servidor para: ", win_id)
 
 # v164.55: SISTEMA DE LIMPIEZA AGRESIVA (HUD Minimalista)
 func _aggressive_hide(node):

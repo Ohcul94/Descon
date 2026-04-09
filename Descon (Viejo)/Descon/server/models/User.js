@@ -47,20 +47,8 @@ const UserSchema = new mongoose.Schema({
             science: { type: [Number], default: [0, 0, 0, 0, 0, 0, 0, 0] }
         },
         zone: { type: Number, default: 1 }, // Registro de Sector v69.8
-        hudConfig: {
-            chat: { type: Boolean, default: false },
-            stats: { type: Boolean, default: false },
-            minimap: { type: Boolean, default: false },
-            skills: { type: Boolean, default: false },
-            party: { type: Boolean, default: false }
-        },
-        hudPositions: {
-            chat: { top: { type: String, default: "auto" }, left: { type: String, default: "20px" }, bottom: { type: String, default: "20px" }, right: { type: String, default: "auto" } },
-            stats: { top: { type: String, default: "20px" }, left: { type: String, default: "auto" }, bottom: { type: String, default: "auto" }, right: { type: String, default: "20px" } },
-            minimap: { top: { type: String, default: "auto" }, left: { type: String, default: "auto" }, bottom: { type: String, default: "20px" }, right: { type: String, default: "20px" } },
-            skills: { top: { type: String, default: "auto" }, left: { type: String, default: "50%" }, bottom: { type: String, default: "20px" }, right: { type: String, default: "auto" } },
-            party: { top: { type: String, default: "120px" }, left: { type: String, default: "20px" }, bottom: { type: String, default: "auto" }, right: { type: String, default: "auto" } }
-        }
+        hudConfig: { type: Object, default: {} },
+        hudPositions: { type: Object, default: {} }
     }
 });
 

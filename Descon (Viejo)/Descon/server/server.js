@@ -275,6 +275,7 @@ io.on('connection', (socket) => {
             }
 
             const dbId = user._id.toString(); // ID ÚNICO v123.10
+            socket.dbUser = user; // v189.95: Vincular usuario al socket para persistencia segura
             players[socket.id] = {
                 id: dbId, // Identidad Inmutable de Combate
                 socketId: socket.id, // ID de Red Volátil
@@ -289,7 +290,9 @@ io.on('connection', (socket) => {
                 maxShield: user.gameData.maxShield || 1000,
                 ammo: user.gameData.ammo || {}, 
                 selectedAmmo: user.gameData.selectedAmmo || { laser: 0, missile: 0, mine: 0 },
-                zone: user.gameData.zone || 1 
+                zone: user.gameData.zone || 1,
+                hudConfig: user.gameData.hudConfig || {},
+                hudPositions: user.gameData.hudPositions || {}
             };
 
             // Cargar Configuración Admin (v39.0 - Sincronizada con Login)
@@ -916,7 +919,9 @@ io.on('connection', (socket) => {
                                 "gameData.shield": Math.ceil(p.shield || 0),
                                 "gameData.zone": p.zone || 1,
                                 "gameData.ammo": p.ammo,
-                                "gameData.selectedAmmo": p.selectedAmmo
+                                "gameData.selectedAmmo": p.selectedAmmo,
+                                "gameData.hudConfig": p.hudConfig || {},
+                                "gameData.hudPositions": p.hudPositions || {}
                             } 
                         }
                     );
@@ -936,6 +941,32 @@ io.on('connection', (socket) => {
                     io.emit('chatMessage', { sender: 'SYSTEM', msg: `${username.toUpperCase()} OFFLINE.`, channel: 'team', senderId: 'server' });
                 }
             }
+        }
+    });
+
+    socket.on('saveHudLayout', (data) => {
+        if (players[socket.id]) {
+            players[socket.id].hudConfig = data.config;
+            players[socket.id].hudPositions = data.positions;
+            console.log(`[HUD] Config global guardada para ${players[socket.id].user}`);
+        }
+    });
+
+    socket.on('saveHUD', async (data) => {
+        if (players[socket.id] && socket.dbUser) {
+            try {
+                if (!players[socket.id].hudPositions) players[socket.id].hudPositions = {};
+                players[socket.id].hudPositions[data.id] = data.pos;
+                
+                // v189.96: PERSISTENCIA INSTANTÁNEA (DB Atlas Write)
+                const updatePath = `gameData.hudPositions.${data.id}`;
+                await User.updateOne(
+                    { _id: socket.dbUser._id },
+                    { $set: { [updatePath]: data.pos } }
+                );
+                
+                console.log(`[HUD-DB] Registro guardado: ${data.id} para ${players[socket.id].user}`);
+            } catch (e) { console.error("Error en persistencia HUD:", e); }
         }
     });
 

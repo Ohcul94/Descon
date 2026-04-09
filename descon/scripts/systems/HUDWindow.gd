@@ -14,6 +14,11 @@ signal minimized(id)
 
 func _ready():
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	# v189.70: Backup automático de ID si no se definió en el editor
+	if window_id == "": 
+		window_id = name
+		print("[HUD] ID Automático asignado a ventana: ", window_id)
+		
 	_load_position()
 
 func _input(event):
@@ -56,21 +61,16 @@ func toggle_minimize():
 
 func _save_position():
 	if window_id == "": return
-	var config = ConfigFile.new()
-	config.load("user://hud_layout.cfg")
-	config.set_value("positions", window_id, global_position)
-	config.save("user://hud_layout.cfg")
 	
+	# v189.90: MODO MMO - No guardar en archivo local para permitir múltiples cuentas en el mismo PC
 	if NetworkManager and NetworkManager.network_connected:
 		NetworkManager.send_event("saveHUD", {
 			"id": window_id,
 			"pos": { "x": global_position.x, "y": global_position.y }
 		})
+		print("[HUD] Sincronizado con Servidor: ", window_id)
 
 func _load_position():
-	if window_id == "": return
-	var config = ConfigFile.new()
-	var err = config.load("user://hud_layout.cfg")
-	if err != OK: return
-	if config.has_section_key("positions", window_id):
-		global_position = config.get_value("positions", window_id)
+	# v189.90: Ya no cargamos de disco. El MainHUD aplicará las posiciones desde el servidor
+	# al recibir el evento de login_success.
+	pass
