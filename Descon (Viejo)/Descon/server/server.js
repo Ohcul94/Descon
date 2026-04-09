@@ -436,8 +436,7 @@ io.on('connection', (socket) => {
         try {
             await fs.writeJson(CONFIG_FILE, config, { spaces: 4 });
             SERVER_CONFIG = config; // Actualizar memoria v47.0
-            io.emit('adminConfigUpdated', config); // Avisar a todos
-            console.log(`\x1b[35m[ADMIN]\x1b[0m Configuración guardada en disco.`);
+            console.log(`\x1b[35m[ADMIN]\x1b[0m Configuración guardada en disco por ${players[socket.id] ? players[socket.id].user : 'Admin'}.`);
         } catch (e) { console.error("Error guardando config:", e); }
     });
 

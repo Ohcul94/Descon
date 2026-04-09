@@ -3,3 +3,10 @@ cd "Descon (Viejo)\Descon"
 npx cloudflared tunnel --url http://localhost:3333
 
 npx localtunnel --port 3333
+
+
+Assets: (72 Pixeles por pulgada) SIempre dibujar mirando hacia la derecha
+Naves: 128z128
+Enemigos Pequeño: 64x64
+Enemigos Grande: 256x256
+Proyectiles 32x32 o 16x64

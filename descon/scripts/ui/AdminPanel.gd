@@ -83,6 +83,7 @@ func _build_ui():
 		"ships": _render_ships(content)
 		"enemies": _render_enemies(content)
 		"items": _render_items(content)
+		"ammo": _render_ammo(content)
 	
 	# 4. Botón de Guardado Maestro
 	var save_btn = Button.new(); save_btn.text = "GUARDAR CONFIGURACIÓN GLOBAL (SERVER)"; save_btn.modulate = Color.GREEN
@@ -93,11 +94,20 @@ func _render_ships(container):
 	for i in range(GameConstants.SHIP_MODELS.size()):
 		var ship = GameConstants.SHIP_MODELS[i]
 		var card = _create_card(container, "CHASIS: " + ship.name.to_upper())
-		var grid = _create_grid(card, 3)
+		var grid = _create_grid(card, 4)
 		
+		# Stats Base
 		_add_input(grid, "HP", str(int(ship.hp)), func(v): GameConstants.SHIP_MODELS[i].hp = int(float(v)))
 		_add_input(grid, "SH", str(int(ship.shield)), func(v): GameConstants.SHIP_MODELS[i].shield = int(float(v)))
 		_add_input(grid, "SPD", str(int(ship.speed)), func(v): GameConstants.SHIP_MODELS[i].speed = int(float(v)))
+		
+		# Slots
+		_add_input(grid, "W_SLOT", str(ship.slots.w), func(v): GameConstants.SHIP_MODELS[i].slots.w = int(v))
+		_add_input(grid, "S_SLOT", str(ship.slots.s), func(v): GameConstants.SHIP_MODELS[i].slots.s = int(v))
+		_add_input(grid, "E_SLOT", str(ship.slots.e), func(v): GameConstants.SHIP_MODELS[i].slots.e = int(v))
+		_add_input(grid, "X_SLOT", str(ship.slots.x), func(v): GameConstants.SHIP_MODELS[i].slots.x = int(v))
+		
+		# Economía
 		_add_input(grid, "HUBS", str(int(ship.prices.hubs)), func(v): GameConstants.SHIP_MODELS[i].prices.hubs = int(float(v)))
 		_add_input(grid, "OHCU", str(int(ship.prices.ohcu)), func(v): GameConstants.SHIP_MODELS[i].prices.ohcu = int(float(v)))
 
@@ -105,24 +115,41 @@ func _render_enemies(container):
 	for id in GameConstants.ENEMY_MODELS:
 		var enemy = GameConstants.ENEMY_MODELS[id]
 		var card = _create_card(container, "ENEMIGO: " + enemy.name.to_upper())
-		var grid = _create_grid(card, 3)
+		var grid = _create_grid(card, 4)
 		
 		_add_input(grid, "HP", str(enemy.hp), func(v): GameConstants.ENEMY_MODELS[id].hp = int(v))
 		_add_input(grid, "SH", str(enemy.shield), func(v): GameConstants.ENEMY_MODELS[id].shield = int(v))
 		_add_input(grid, "DMG", str(enemy.bulletDamage), func(v): GameConstants.ENEMY_MODELS[id].bulletDamage = int(v))
 		_add_input(grid, "RATE", str(enemy.fireRate), func(v): GameConstants.ENEMY_MODELS[id].fireRate = int(v))
-		_add_input(grid, "REWARD", str(enemy.rewardHubs), func(v): GameConstants.ENEMY_MODELS[id].rewardHubs = int(v))
+		_add_input(grid, "R_HUBS", str(enemy.rewardHubs), func(v): GameConstants.ENEMY_MODELS[id].rewardHubs = int(v))
+		_add_input(grid, "R_OHCU", str(enemy.get("rewardOhcu", 0)), func(v): GameConstants.ENEMY_MODELS[id].rewardOhcu = int(v))
+		_add_input(grid, "R_EXP", str(enemy.get("rewardExp", 100)), func(v): GameConstants.ENEMY_MODELS[id].rewardExp = int(v))
 
 func _render_items(container):
-	for cat in ["weapons", "shields", "engines"]:
+	for cat in ["weapons", "shields", "engines", "extras"]:
 		var label = Label.new(); label.text = "\nCATEGORÍA: " + cat.to_upper(); label.modulate = Color.GOLD; container.add_child(label)
 		var list = GameConstants.SHOP_ITEMS.get(cat, [])
 		for i in range(list.size()):
 			var item = list[i]
 			var card = _create_card(container, item.name.to_upper())
-			var grid = _create_grid(card, 2)
+			var grid = _create_grid(card, 3)
 			_add_input(grid, "BASE", str(item.get("base", 0)), func(v): GameConstants.SHOP_ITEMS[cat][i].base = int(v))
 			_add_input(grid, "HUBS", str(item.prices.hubs), func(v): GameConstants.SHOP_ITEMS[cat][i].prices.hubs = int(v))
+			_add_input(grid, "OHCU", str(item.prices.ohcu), func(v): GameConstants.SHOP_ITEMS[cat][i].prices.ohcu = int(v))
+
+func _render_ammo(container):
+	for cat in ["laser", "missile", "mine"]:
+		var label = Label.new(); label.text = "\nMUNICIÓN: " + cat.to_upper(); label.modulate = Color.GOLD; container.add_child(label)
+		var mults = GameConstants.AMMO_MULTIPLIERS.get(cat, [])
+		for i in range(mults.size()):
+			var card = _create_card(container, "TIER T" + str(i+1))
+			var grid = _create_grid(card, 3)
+			_add_input(grid, "MULT", str(mults[i]), func(v): GameConstants.AMMO_MULTIPLIERS[cat][i] = float(v))
+			
+			var shop_ammo = GameConstants.SHOP_ITEMS.ammo.get(cat, [])
+			if i < shop_ammo.size():
+				_add_input(grid, "P_HUBS", str(shop_ammo[i].prices.hubs), func(v): GameConstants.SHOP_ITEMS.ammo[cat][i].prices.hubs = int(v))
+				_add_input(grid, "P_OHCU", str(shop_ammo[i].prices.ohcu), func(v): GameConstants.SHOP_ITEMS.ammo[cat][i].prices.ohcu = int(v))
 
 # --- HELPERS UI ---
 func _create_card(parent, title):

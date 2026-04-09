@@ -32,7 +32,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	owner_id = str(p_data.get("id", p_data.get("senderId", p_data.get("entityId", ""))))
 	owner_type = p_data.get("owner_type", "player")
 	type = p_data.get("type", "laser")
-	damage = p_data.get("damage", 10.0)
+	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
 	
 	velocity = Vector2.RIGHT.rotated(p_angle) * speed
 	
