@@ -16,6 +16,9 @@ func _ready():
 	visible = true
 	_load_saved_user()
 	
+	# v187.01: Lógica de Auto-Login y Posicionamiento para Debugging
+	_handle_debug_args()
+	
 	# Conexión manual de señales de botones (blindaje contra escenas rotas)
 	if login_btn: login_btn.pressed.connect(_on_login_btn_pressed)
 	if register_btn: register_btn.pressed.connect(_on_register_btn_pressed)
@@ -24,6 +27,33 @@ func _ready():
 		NetworkManager.auth_success.connect(_on_auth_success)
 		NetworkManager.auth_error.connect(_on_auth_fail)
 		NetworkManager.login_success.connect(_on_auth_success)
+
+func _handle_debug_args():
+	var args = OS.get_cmdline_args()
+	var d_user = ""
+	var d_pass = ""
+	
+	for i in range(args.size()):
+		var arg = args[i]
+		if arg == "--user" and i + 1 < args.size():
+			d_user = args[i+1]
+		elif arg == "--pass" and i + 1 < args.size():
+			d_pass = args[i+1]
+		elif arg == "--win_pos" and i + 1 < args.size():
+			var pos_str = args[i+1].split(",")
+			if pos_str.size() == 2:
+				DisplayServer.window_set_position(Vector2i(int(pos_str[0]), int(pos_str[1])))
+		elif arg == "--win_size" and i + 1 < args.size():
+			var size_str = args[i+1].split(",")
+			if size_str.size() == 2:
+				DisplayServer.window_set_size(Vector2i(int(size_str[0]), int(size_str[1])))
+
+	if d_user != "" and d_pass != "":
+		print("[DEBUG] Auto-login detectado para: ", d_user)
+		if user_input: user_input.text = d_user
+		if pass_input: pass_input.text = d_pass
+		# Esperar un frame a que todo cargue antes de conectar
+		get_tree().process_frame.connect(_on_login_btn_pressed, CONNECT_ONE_SHOT)
 
 func _on_login_btn_pressed():
 	if not user_input or not pass_input: return
