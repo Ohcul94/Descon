@@ -251,16 +251,17 @@ io.on('connection', (socket) => {
                 return socket.emit('authError', 'Credenciales inválidas en la Galaxia.');
             }
 
-            // SEGURIDAD ANTI-MULTILOGIN v33.0: Desconectar sesión anterior
-            if (activeSessions.has(username)) {
-                const oldSocketId = activeSessions.get(username);
+            // SEGURIDAD ANTI-MULTILOGIN v33.0: Desconectar sesión anterior (Case Insensitive)
+            const lowName = username.toLowerCase();
+            if (activeSessions.has(lowName)) {
+                const oldSocketId = activeSessions.get(lowName);
                 const oldSocket = io.sockets.sockets.get(oldSocketId);
                 if (oldSocket) {
                     oldSocket.emit('authError', 'SESIÓN CERRADA: Se ha detectado un nuevo ingreso con esta cuenta.');
                     oldSocket.disconnect();
                 }
             }
-            activeSessions.set(username, socket.id);
+            activeSessions.set(lowName, socket.id);
 
             user.lastLogin = new Date();
             await user.save();
@@ -735,6 +736,10 @@ io.on('connection', (socket) => {
         });
     });
 
+    socket.on('ping_custom', () => {
+        socket.emit('pong_custom', {});
+    });
+
     socket.on('enemyHit', async (data) => {
         const { enemyId, damage, bulletId } = data; // bulletId para sincronización visual v73.90
         const enemy = enemies[enemyId];
@@ -919,6 +924,7 @@ io.on('connection', (socket) => {
             }
 
             delete players[socket.id];
+            if (username) activeSessions.delete(username.toLowerCase());
             io.emit('playerDisconnected', socket.id);
             
             // v138.10: No borrar de la party al desconectar (F5 Persistence)

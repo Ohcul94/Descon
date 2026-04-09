@@ -27,6 +27,11 @@ func _ready():
 		NetworkManager.auth_success.connect(_on_auth_success)
 		NetworkManager.auth_error.connect(_on_auth_fail)
 		NetworkManager.login_success.connect(_on_auth_success)
+		if not NetworkManager.connection_lost.is_connected(_on_connection_lost):
+			NetworkManager.connection_lost.connect(_on_connection_lost)
+
+func _on_connection_lost():
+	_on_auth_fail("CONEXIÓN TERMINADA.")
 
 func _handle_debug_args():
 	var args = OS.get_cmdline_args()
@@ -76,12 +81,38 @@ func _on_register_btn_pressed():
 
 func _on_auth_success(_data):
 	_show_status("Bienvenido!", Color.GREEN)
+	# Quitar cortina negra
+	var bg = get_node_or_null("FondoNegro")
+	if bg: bg.visible = false
+	
 	create_tween().tween_property(self, "modulate:a", 0.0, 0.5)
 	await get_tree().create_timer(0.6).timeout
 	visible = false
 
 func _on_auth_fail(msg):
-	_show_status("ERROR: " + str(msg), Color.RED)
+	# v189.50: LA CORTINA NEGRA (Simple y 100% Efectivo)
+	visible = true
+	modulate.a = 1.0
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	
+	# Asegurarnos de que el panel de login esté por encima de todo
+	show()
+	
+	# Crear u Ocultar con fondo negro total
+	var bg = get_node_or_null("FondoNegro")
+	if not bg:
+		bg = ColorRect.new()
+		bg.name = "FondoNegro"
+		bg.color = Color.BLACK
+		# Forzar que cubra toda la pantalla
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(bg)
+		move_child(bg, 0) # Ponerlo al fondo del Panel de Login
+	
+	bg.visible = true
+
+	_show_status("SESIÓN CERRADA: " + str(msg), Color.RED)
+	print("[NET] Desconexión: ", msg)
 
 func _show_status(txt, col):
 	if status_lbl:

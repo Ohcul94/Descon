@@ -135,6 +135,16 @@ func _on_player_disconnected(id):
 		remote_players[sid].queue_free()
 		remote_players.erase(sid)
 
+func clear_remote_players():
+	# v188.16: Limpieza masiva de red para evitar crashes al re-conectar
+	for id in remote_players:
+		if is_instance_valid(remote_players[id]): remote_players[id].queue_free()
+	remote_players.clear()
+	for id in enemies:
+		if is_instance_valid(enemies[id]): enemies[id].queue_free()
+	enemies.clear()
+	print("[NET] Universo limpiado correctamente.")
+
 func _on_enemy_dead(data: Dictionary):
 	var id = str(data.get("id", ""))
 	if id == "": return
