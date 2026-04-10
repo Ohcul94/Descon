@@ -53,6 +53,13 @@ func _ready():
 	add_child(cam)
 	cam.make_current()
 	
+	# v200.0: Inicializar Sistema de Esferas
+	var sm_script = load("res://scripts/systems/SpheresManager.gd")
+	if sm_script:
+		var sm = sm_script.new()
+		sm.name = "SpheresManager"
+		add_child(sm)
+	
 	if NetworkManager:
 		NetworkManager.login_success.connect(_on_login_success)
 		# NetworkManager.player_stat_sync.connect(update_stats) # ELIMINADO v168.12: Evita el ping-pong de stats (World.gd ya lo rutea)
@@ -86,6 +93,11 @@ func _handle_input():
 	if Input.is_action_just_pressed("fire_mine") and cooldowns["mine"] <= 0:
 		_shoot_skill("mine", mouse_angle)
 	
+	# v200.5: Habilidades de Esferas (ASD)
+	if Input.is_physical_key_pressed(KEY_A): _use_sphere_skill(0)
+	if Input.is_physical_key_pressed(KEY_S): _use_sphere_skill(1)
+	if Input.is_physical_key_pressed(KEY_D): _use_sphere_skill(2)
+	
 func _unhandled_input(event):
 	# v165.25: Movimiento solo si el clic NO fue capturado por el HUD
 	if event is InputEventMouseButton and event.pressed:
@@ -94,7 +106,7 @@ func _unhandled_input(event):
 			is_moving = true
 			autopilot_enabled = false
 
-var cooldowns = {"laser": 0.0, "missile": 0.0, "mine": 0.0}
+var cooldowns = {"laser": 0.0, "missile": 0.0, "mine": 0.0, "sphere_0": 0.0, "sphere_1": 0.0, "sphere_2": 0.0}
 func _handle_cooldowns(p_delta):
 	for s in cooldowns:
 		if cooldowns[s] > 0: cooldowns[s] -= p_delta
@@ -221,6 +233,26 @@ func _shoot_skill(p_type: String, p_angle: float):
 	shoot_fired.emit(final_payload)
 	NetworkManager.send_event("playerFire", final_payload)
 	_force_move_sync()
+
+func _use_sphere_skill(id: int):
+	var key = "sphere_" + str(id)
+	if cooldowns[key] > 0: return
+	
+	var sm = get_node_or_null("SpheresManager")
+	if not is_instance_valid(sm): return
+	
+	if sm.use_skill(id):
+		# v200.8: Sincronizar con el servidor para que la curación/escudo sea permanente
+		var skill = sm.spheres_data[id]["equipped"]
+		if skill:
+			NetworkManager.send_event("playerSphereSkill", {
+				"id": id, 
+				"skillName": skill.skill_name,
+				"powerValue": skill.power_value
+			})
+		
+		cooldowns[key] = 10.0
+		print("[SPHERES] Habilidad ejecutada y sincronizada con el servidor.")
 
 func _apply_movement():
 	if is_moving:

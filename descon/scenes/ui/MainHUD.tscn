@@ -168,9 +168,9 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -160.0
-offset_top = -120.0
-offset_right = 160.0
+offset_left = -260.0
+offset_top = -100.0
+offset_right = 260.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 0
@@ -183,7 +183,7 @@ header_height = 30
 
 [node name="LaserSlot" type="Panel" parent="Skills"]
 clip_children = 2
-custom_minimum_size = Vector2(80, 80)
+custom_minimum_size = Vector2(65, 65)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
 
@@ -242,7 +242,7 @@ horizontal_alignment = 2
 
 [node name="MissileSlot" type="Panel" parent="Skills"]
 clip_children = 2
-custom_minimum_size = Vector2(100, 100)
+custom_minimum_size = Vector2(65, 65)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
 
@@ -301,7 +301,7 @@ horizontal_alignment = 2
 
 [node name="MineSlot" type="Panel" parent="Skills"]
 clip_children = 2
-custom_minimum_size = Vector2(80, 80)
+custom_minimum_size = Vector2(65, 65)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
 
@@ -357,6 +357,138 @@ theme_override_colors/font_color = Color(0, 1, 0, 1)
 theme_override_font_sizes/font_size = 10
 text = "0"
 horizontal_alignment = 2
+
+[node name="Sphere1Slot" type="Panel" parent="Skills"]
+clip_children = 2
+custom_minimum_size = Vector2(65, 65)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
+
+[node name="Fill" type="ColorRect" parent="Skills/Sphere1Slot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 1, 0, 0.2)
+
+[node name="Label" type="Label" parent="Skills/Sphere1Slot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+text = "MOV"
+horizontal_alignment = 1
+
+[node name="Key" type="Label" parent="Skills/Sphere1Slot"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = -15.0
+offset_right = 45.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 8
+text = "A"
+
+[node name="Sphere2Slot" type="Panel" parent="Skills"]
+clip_children = 2
+custom_minimum_size = Vector2(65, 65)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
+
+[node name="Fill" type="ColorRect" parent="Skills/Sphere2Slot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 1, 1, 0.2)
+
+[node name="Label" type="Label" parent="Skills/Sphere2Slot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+text = "DEF"
+horizontal_alignment = 1
+
+[node name="Key" type="Label" parent="Skills/Sphere2Slot"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = -15.0
+offset_right = 45.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 8
+text = "S"
+
+[node name="Sphere3Slot" type="Panel" parent="Skills"]
+clip_children = 2
+custom_minimum_size = Vector2(65, 65)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
+
+[node name="Fill" type="ColorRect" parent="Skills/Sphere3Slot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 1, 0, 0.2)
+
+[node name="Label" type="Label" parent="Skills/Sphere3Slot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+text = "CUR"
+horizontal_alignment = 1
+
+[node name="Key" type="Label" parent="Skills/Sphere3Slot"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = -15.0
+offset_right = 45.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 8
+text = "D"
 
 [node name="RadarWindow" type="Panel" parent="."]
 layout_mode = 1

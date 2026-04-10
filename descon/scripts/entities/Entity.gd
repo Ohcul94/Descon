@@ -52,7 +52,16 @@ func _ready():
 	
 	_update_tags()
 
-func _process(_delta):
+var sync_lock_timer: float = 0.0
+
+func activate_sync_lock(duration: float = 2.5):
+	sync_lock_timer = duration
+	print("[NET] Bloqueo de Sincronía activado por ", duration, "s")
+
+func _process(delta):
+	if sync_lock_timer > 0:
+		sync_lock_timer -= delta
+	
 	if is_dead:
 		if _ui_wrapper: _ui_wrapper.visible = false
 		visible = false; return
@@ -63,15 +72,14 @@ func _process(_delta):
 	_update_animations()
 	
 	# v167.70: REGENERACIÓN POST-COMBATE (SÓLO PARA EL JUGADOR LOCAL)
-	# Los enemigos y otros pilotos son autoritativos del servidor, no deben regenerar aquí.
 	if is_in_group("player") and not is_dead:
 		var now = Time.get_ticks_msec()
 		if now - last_combat_time > 5000:
-			var regen_hp = (max_hp * 0.01) * _delta # 1% por seg
-			var regen_sh = (max_shield * 0.02) * _delta # 2% por seg
+			var regen_hp = (max_hp * 0.01) * delta
+			var regen_sh = (max_shield * 0.02) * delta
 			if current_hp < max_hp: current_hp = min(max_hp, current_hp + regen_hp)
 			if current_shield < max_shield: current_shield = min(max_shield, current_shield + regen_sh)
-			_update_tags() # v167.91: Refrescar números durante la curación
+			_update_tags()
 	
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.global_position = global_position
@@ -160,14 +168,15 @@ func update_stats(data):
 	# v191.70: PREDICCIÓN DE CLIENTE ANTI-PARPADEO (Shield/HP Stability)
 	# Si somos el jugador local, ignoramos cambios minúsculos del server (Regen vs Latencia)
 	var is_local = is_in_group("player")
-	var threshold = 25.0 # Margen para ignorar el "ping-pong" de red
+	var threshold = 25.0
+	var lock_active = (is_local and sync_lock_timer > 0)
 	
-	if data.has("hp"):
+	if data.has("hp") and not lock_active:
 		var server_hp = float(data.hp)
 		if not is_local or abs(current_hp - server_hp) > threshold:
 			current_hp = server_hp
 			
-	if data.has("shield") or data.has("sh"):
+	if (data.has("shield") or data.has("sh")) and not lock_active:
 		var server_sh = float(data.get("shield", data.get("sh", 0)))
 		if not is_local or abs(current_shield - server_sh) > threshold:
 			current_shield = server_sh

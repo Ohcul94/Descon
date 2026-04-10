@@ -515,6 +515,32 @@ io.on('connection', (socket) => {
         });
     });
 
+    // v200.12: SISTEMA DE HABILIDADES DE ESFERAS (Sincronía Autoritaria)
+    socket.on('playerSphereSkill', (data) => {
+        const p = players[socket.id];
+        if (!p) return;
+        
+        const healAmt = data.powerValue || 0;
+        if (data.skillName === "ESCUDO CELULAR") {
+            p.shield = Math.min((p.shield || 0) + healAmt, p.maxShield || 2000);
+        } else if (data.skillName === "AUTO-REPARACIÓN") {
+            p.hp = Math.min((p.hp || 0) + healAmt, p.maxHp || 3000);
+        }
+        
+        // v200.12: Sincronía Crítica - Forzar actualización inmediata para evitar rollback
+        p.lastSyncHp = p.hp;
+        p.lastSyncSh = p.shield;
+        
+        io.to(`zone_${p.zone}`).emit('playerStatSync', {
+            id: socket.id,
+            hp: Math.ceil(p.hp),
+            shield: Math.ceil(p.shield),
+            isDead: false
+        });
+        
+        console.log(`[SPHERES] Piloto ${p.user} usó ${data.skillName}. Sync HP/SH enviado.`);
+    });
+
     // ENVIAR CONFIG AL CONECTAR
     fs.readJson(CONFIG_FILE).then(config => {
         if (config) socket.emit('adminConfigLoaded', config);

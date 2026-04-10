@@ -52,6 +52,10 @@ theme_override_font_sizes/font_size = 13
 [node name="Hangar" type="Control" parent="Window/TabContainer"]
 layout_mode = 2
 
+[node name="Esferas" type="Control" parent="Window/TabContainer"]
+visible = false
+layout_mode = 2
+
 [node name="Tienda" type="Control" parent="Window/TabContainer"]
 visible = false
 layout_mode = 2

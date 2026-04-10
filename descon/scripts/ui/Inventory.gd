@@ -208,6 +208,7 @@ func _on_inventory_received(data: Dictionary):
 		elif p.has_method("_emit_stats"): p._emit_stats()
 
 	_update_hangar_ui()
+	_update_spheres_ui()
 	_update_talent_tree()
 	_update_shop_ui()
 	_update_party_ui()
@@ -307,6 +308,64 @@ func _create_item_row(it, parent):
 		NetworkManager.send_event("equipItem", {"category": it_type, "instanceId": it.get("instanceId", "")})
 	)
 	hb.add_child(b); parent.add_child(p)
+
+# --- ESFERAS ---
+func _update_spheres_ui():
+	var tab = get_node_or_null("Window/TabContainer/Esferas")
+	if not tab: return
+	for n in tab.get_children(): n.queue_free()
+	
+	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); tab.add_child(master_v)
+	
+	var title = Label.new(); title.text = "SISTEMA DE ESFERAS ORBITALES"; title.modulate = Color.CYAN; title.add_theme_font_size_override("font_size", 16); title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; master_v.add_child(title)
+	var desc = Label.new(); desc.text = "Equipa núcleos en tus esferas para obtener bonificaciones y habilidades activas."; desc.modulate = Color(0.7, 0.7, 0.7); desc.add_theme_font_size_override("font_size", 10); desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; master_v.add_child(desc)
+	
+	var spacer = Control.new(); spacer.custom_minimum_size = Vector2(0, 30); master_v.add_child(spacer)
+	
+	var spheres_h = HBoxContainer.new(); spheres_h.alignment = BoxContainer.ALIGNMENT_CENTER; spheres_h.add_theme_constant_override("separation", 50); master_v.add_child(spheres_h)
+	
+	var spheres_manager = null
+	var p = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(p):
+		spheres_manager = p.get_node_or_null("SpheresManager")
+	
+	var sphere_types = [
+		{"name": "ESFERA ALFA", "type": "Movimiento", "color": Color(1, 0.8, 0)},
+		{"name": "ESFERA BETA", "type": "Defensa", "color": Color.AQUA},
+		{"name": "ESFERA GAMMA", "type": "Curación", "color": Color.GREEN}
+	]
+	
+	# Si tenemos datos reales del manager, los usamos
+	var display_data = sphere_types
+	if is_instance_valid(spheres_manager) and spheres_manager.spheres_data.size() == 3:
+		display_data = spheres_manager.spheres_data
+
+	for i in range(3):
+		var s_data = display_data[i]
+		var v_box = VBoxContainer.new(); spheres_h.add_child(v_box)
+		
+		var s_label = Label.new(); s_label.text = s_data.get("name", sphere_types[i]["name"]); s_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v_box.add_child(s_label)
+		
+		var p_ui = PanelContainer.new(); p_ui.custom_minimum_size = Vector2(120, 120); v_box.add_child(p_ui)
+		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.5); sb.border_width_left = 2; sb.border_width_right = 2; sb.border_width_top = 2; sb.border_width_bottom = 2; sb.border_color = s_data["color"]; sb.corner_radius_top_left = 60; sb.corner_radius_top_right = 60; sb.corner_radius_bottom_left = 60; sb.corner_radius_bottom_right = 60; p_ui.add_theme_stylebox_override("panel", sb)
+		
+		var equipped = s_data.get("equipped")
+		var item_label = Label.new()
+		if not equipped:
+			item_label.text = "VACÍO"
+		elif equipped is SphereSkill:
+			item_label.text = equipped.skill_name.to_upper()
+		else:
+			item_label.text = equipped.get("name", "ITEM").to_upper()
+			
+		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		item_label.modulate.a = 0.3 if not equipped else 1.0
+		p_ui.add_child(item_label)
+		
+		var type_label = Label.new(); type_label.text = s_data["type"]; type_label.modulate = s_data["color"]; type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
+		
+		var b = Button.new(); b.text = "DESEQUIPAR" if equipped else "EQUIPAR"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
 
 # --- SHOP ---
 func _update_shop_ui():
@@ -468,7 +527,8 @@ func _update_talent_tree():
 			var bar_h = HBoxContainer.new(); item_v.add_child(bar_h); bar_h.add_theme_constant_override("separation", 5)
 			for b_idx in range(5):
 				var bar = ColorRect.new(); bar.custom_minimum_size = Vector2(25, 6); bar_h.add_child(bar)
-				bar.color = Color.GOLD if b_idx < lvl else Color(0.2, 0.2, 0.2, 0.5)
+				var val = lvl
+				bar.color = Color.GOLD if b_idx < val else Color(0.2, 0.2, 0.2, 0.5)
 			
 			var b_click = Button.new(); b_click.flat = true; node_p.add_child(b_click)
 			b_click.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -511,32 +571,58 @@ func _update_party_ui():
 		var no_party = Label.new(); no_party.text = "\nNo perteneces a ningún escuadrón."; no_party.modulate.a = 0.4; p_list.add_child(no_party)
 
 	# Columna Derecha: Jugadores Cercanos
-	var r_col = VBoxContainer.new(); r_col.size_flags_horizontal = 3; master_h.add_child(r_col)
-	var r_title = Label.new(); r_title.text = "PILOTOS EN LA ZONA"; r_title.modulate = Color.GOLD; r_title.add_theme_font_size_override("font_size", 11); r_col.add_child(r_title)
+	var r_col = VBoxContainer.new()
+	r_col.size_flags_horizontal = 3
+	master_h.add_child(r_col)
 	
-	var n_scroll = ScrollContainer.new(); n_scroll.size_flags_vertical = 3; r_col.add_child(n_scroll)
-	var n_list = VBoxContainer.new(); n_list.size_flags_horizontal = 3; n_scroll.add_child(n_list)
+	var r_title = Label.new()
+	r_title.text = "PILOTOS EN LA ZONA"
+	r_title.modulate = Color.GOLD
+	r_title.add_theme_font_size_override("font_size", 11)
+	r_col.add_child(r_title)
 	
-	# v164.93: Detección robusta del nodo Mundo para escaneo de pilotos
-	var world = get_tree().get_first_node_in_group("world_node")
-	if is_instance_valid(world):
-		var players = world.remote_players
+	var n_scroll = ScrollContainer.new()
+	n_scroll.size_flags_vertical = 3
+	r_col.add_child(n_scroll)
+	
+	var n_list = VBoxContainer.new()
+	n_list.size_flags_horizontal = 3
+	n_scroll.add_child(n_list)
+	
+	var world_node = get_tree().get_first_node_in_group("world_node")
+	if is_instance_valid(world_node):
+		var players = world_node.remote_players
 		if players.is_empty():
-			var lbl = Label.new(); lbl.text = "\nNo hay otros pilotos cerca."; lbl.modulate.a = 0.3; n_list.add_child(lbl)
+			var lbl = Label.new()
+			lbl.text = "\nNo hay otros pilotos cerca."
+			lbl.modulate.a = 0.3
+			n_list.add_child(lbl)
 		else:
 			for id in players:
 				var p = players[id]
 				if not is_instance_valid(p): continue
 				var hb = HBoxContainer.new()
-				var nl = Label.new(); nl.text = p.username if "username" in p else "Piloto"; nl.size_flags_horizontal = 3
-				var ib = Button.new(); ib.text = "INVITAR"; ib.add_theme_font_size_override("font_size", 10)
+				var nl = Label.new()
+				nl.text = p.username if "username" in p else "Piloto"
+				nl.size_flags_horizontal = 3
+				var ib = Button.new()
+				ib.text = "INVITAR"
+				ib.add_theme_font_size_override("font_size", 10)
 				ib.pressed.connect(func(): PartyManager.invite_player(nl.text))
-				hb.add_child(nl); hb.add_child(ib); n_list.add_child(hb)
+				hb.add_child(nl)
+				hb.add_child(ib)
+				n_list.add_child(hb)
 
 	# Seccion de Invitacion Manual
-	var inv_h = HBoxContainer.new(); r_col.add_child(inv_h)
-	var inp = LineEdit.new(); inp.placeholder_text = "Buscar por nombre..."; inp.size_flags_horizontal = 3; inv_h.add_child(inp)
-	var btn = Button.new(); btn.text = "INVITAR"; inv_h.add_child(btn)
+	var inv_h = HBoxContainer.new()
+	r_col.add_child(inv_h)
+	var inp = LineEdit.new()
+	inp.placeholder_text = "Buscar por nombre..."
+	inp.size_flags_horizontal = 3
+	inv_h.add_child(inp)
+	var btn = Button.new()
+	btn.text = "INVITAR"
+	inv_h.add_child(btn)
 	btn.pressed.connect(func(): 
 		if inp.text != "": 
 			PartyManager.invite_player(inp.text)

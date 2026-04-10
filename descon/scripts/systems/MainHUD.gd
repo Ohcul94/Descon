@@ -140,6 +140,10 @@ func _process(_delta):
 	_update_skill_ui("laser", p_node, get_node_or_null("Skills/LaserSlot"))
 	_update_skill_ui("missile", p_node, get_node_or_null("Skills/MissileSlot"))
 	_update_skill_ui("mine", p_node, get_node_or_null("Skills/MineSlot"))
+	
+	_update_sphere_ui(0, p_node, get_node_or_null("Skills/Sphere1Slot"))
+	_update_sphere_ui(1, p_node, get_node_or_null("Skills/Sphere2Slot"))
+	_update_sphere_ui(2, p_node, get_node_or_null("Skills/Sphere3Slot"))
 
 func _format_val(v):
 	var s = str(int(v))
@@ -185,6 +189,35 @@ func _update_skill_ui(type: String, ref, slot):
 		l_am.position = Vector2(40, 48) # ESQUINA INFERIOR DERECHA (Dentro del círculo pero visible)
 		l_am.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l_am.visible = true
+
+func _update_sphere_ui(id: int, ref, slot):
+	if not slot: return
+	var l_fill = slot.get_node_or_null("Fill")
+	
+	var key = "sphere_" + str(id)
+	var cds = ref.get("cooldowns")
+	if cds == null: cds = {}
+	var rv = cds.get(key, 0.0)
+	
+	if l_fill:
+		# Cooldown base de 10s para visualización
+		var pct = clamp(rv / 10.0, 0.0, 1.0)
+		l_fill.anchor_top = 1.0 - pct
+		l_fill.anchor_bottom = 1.0
+		l_fill.offset_top = 0
+		l_fill.offset_bottom = 0
+	
+	# Cambiar transparencia si está en CD o si no tiene nada equipado
+	var sm = ref.get_node_or_null("SpheresManager")
+	var equipped = false
+	if is_instance_valid(sm) and sm.spheres_data.size() > id:
+		equipped = sm.spheres_data[id]["equipped"] != null
+	
+	slot.modulate.a = 1.0 if equipped else 0.2
+	if rv > 0.05:
+		slot.modulate = Color(1, 0.2, 0.2) # Rojo si está en CD
+	else:
+		slot.modulate = Color.WHITE
 
 func _on_minimize_pressed(id: String):
 	var node = _get_hud_node(id)
