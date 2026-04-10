@@ -54,18 +54,18 @@ fs.readJson(CONFIG_FILE).then(config => {
 // Función para spawnear enemigos en el servidor (v107.10: Posición Dinámica)
 function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null) {
     if (!forceType && zone === 1 && Object.keys(enemies).filter(e => enemies[e].zone === 1).length >= 15) return;
-    const id = 'enemy_' + (zone === 2 || forceType === 4 ? 'titan_' : '') + Date.now() + Math.floor(Math.random()*1000);
+    const id = 'enemy_' + (zone === 2 || forceType === 4 ? 'titan_' : '') + Date.now() + Math.floor(Math.random() * 1000);
     const type = forceType || (zone === 2 ? 4 : (Math.floor(Math.random() * 3) + 1));
 
     const initialHp = (type === 5 ? 200000 : (type === 4 ? 100000 : (type * 2000)));
     const initialShield = (type === 5 ? 100000 : (type === 4 ? 50000 : (type * 1000)));
-    
+
     const e = {
         id, type, zone,
         x: posX || ((zone === 2 || zone === 3) ? (zone === 2 ? 1000 : 1250) : (Math.random() * 3400 + 300)),
         y: posY || ((zone === 2 || zone === 3) ? (zone === 2 ? 1000 : 1250) : (Math.random() * 3400 + 300)),
-        hp: initialHp, 
-        maxHp: initialHp, 
+        hp: initialHp,
+        maxHp: initialHp,
         shield: initialShield,
         maxShield: initialShield,
         rotation: 0,
@@ -83,7 +83,7 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null) 
     else e.ai = new OrbitAI(e, aiConfig);
 
     enemies[id] = e;
-    
+
     // Enviar solo datos de renderizado para evitar referencias circulares (v86.00)
     const { ai, ...spawnData } = e;
     io.emit('enemySpawn', spawnData);
@@ -91,7 +91,7 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null) 
 
 // Spawn inicial y periódico
 setInterval(serverSpawnEnemy, 5000);
-for(let i=0; i<10; i++) serverSpawnEnemy();
+for (let i = 0; i < 10; i++) serverSpawnEnemy();
 
 // GUARDIANÍA DE JEFES (Asegurar 1 BOSS siempre en su mapa v89.50 / v98.50)
 let lastTitanDeath = 0;
@@ -114,7 +114,7 @@ setInterval(() => {
     const now = Date.now();
     const enemiesByZone = { 1: [], 2: [], 3: [] };
     const zoneMoveData = { 1: {}, 2: {}, 3: {} };
-    
+
     // Clasificación Inicial O(n) - Un solo pase
     for (const id in enemies) {
         const e = enemies[id];
@@ -128,7 +128,7 @@ setInterval(() => {
 
         for (let i = 0; i < listLen; i++) {
             const e = zoneList[i];
-            
+
             // 1. Actualizar IA
             if (e.ai) e.ai.update(players, now, io);
 
@@ -137,8 +137,8 @@ setInterval(() => {
                 const other = zoneList[j];
                 const dx = e.x - other.x;
                 const dy = e.y - other.y;
-                const distSq = dx*dx + dy*dy;
-                
+                const distSq = dx * dx + dy * dy;
+
                 if (distSq < 2025) { // 45px al cuadrado
                     const pushAngle = Math.atan2(dy, dx);
                     const force = 1.2;
@@ -173,7 +173,7 @@ setInterval(() => {
             let changed = false;
             const regenAmountHp = p.maxHp * 0.01; // v164.87: 1% HP per second (Legacy Balance)
             const regenAmountSh = p.maxShield * 0.02; // v164.87: 2% SH per second (Legacy Balance)
-            
+
             // Regenerar Escudo (Prioridad 1)
             if (p.shield < p.maxShield) {
                 p.shield += (regenAmountSh / 30.0);
@@ -188,20 +188,20 @@ setInterval(() => {
             }
 
             // v192.10: Sincronía Diferencial (Optimización de Ancho de Banda)
-            if (changed && now - (p.lastRegenSync || 0) > 1000) { 
+            if (changed && now - (p.lastRegenSync || 0) > 1000) {
                 const diffHp = Math.abs(p.hp - (p.lastSyncHp || 0));
                 const diffSh = Math.abs(p.shield - (p.lastSyncSh || 0));
-                
+
                 // Solo mandamos paquete si varió más del 1.5% (Evitar spam de red)
                 if (diffHp > (p.maxHp * 0.015) || diffSh > (p.maxShield * 0.015)) {
                     p.lastRegenSync = now;
                     p.lastSyncHp = p.hp;
                     p.lastSyncSh = p.shield;
-                    io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', {
                         id: p.socketId,
-                        hp: Math.ceil(p.hp), 
-                        shield: Math.ceil(p.shield), 
-                        isDead: false 
+                        hp: Math.ceil(p.hp),
+                        shield: Math.ceil(p.shield),
+                        isDead: false
                     });
                 }
             }
@@ -212,14 +212,14 @@ setInterval(() => {
 io.on('connection', (socket) => {
     const clientIP = socket.handshake.address;
     console.log(`DESCON: Nueva conexión [${socket.id}] desde IP [${clientIP}]`);
-    socket.dbUser = null; 
+    socket.dbUser = null;
 
     // REGISTRO DE USUARIO (MongoDB)
     socket.on('register', async (data) => {
         try {
             const username = data.user;
             const existingUser = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
-            
+
             if (existingUser) {
                 return socket.emit('authError', 'Ese usuario ya existe.');
             }
@@ -281,8 +281,8 @@ io.on('connection', (socket) => {
                 console.log(`[REVIVE] Piloto ${username} regenerado por deslogueo/muerte.`);
             }
 
-            const dbId = user._id.toString(); 
-            socket.dbUser = user; 
+            const dbId = user._id.toString();
+            socket.dbUser = user;
 
             // v190.85: Sincronía de Stats Base desde Admin Config (server-side start)
             let baseHp = 2000; let baseSh = 1000;
@@ -295,51 +295,66 @@ io.on('connection', (socket) => {
                         baseHp = model.hp; baseSh = model.shield;
                     }
                 }
-            } catch(e) {}
+            } catch (e) { }
 
             players[socket.id] = {
                 id: dbId,
                 socketId: socket.id,
                 num: nextPlayerNum++,
                 user: username,
-                x: user.gameData.lastPos.x, 
-                y: user.gameData.lastPos.y, 
+                x: user.gameData.lastPos.x,
+                y: user.gameData.lastPos.y,
                 rotation: 0,
-                hp: user.gameData.hp || baseHp, 
-                maxHp: baseHp, 
-                shield: user.gameData.shield || baseSh, 
+                hp: user.gameData.hp || baseHp,
+                maxHp: baseHp,
+                shield: user.gameData.shield || baseSh,
                 maxShield: baseSh,
-                ammo: user.gameData.ammo || {}, 
+                level: user.gameData.level || 1,
+                skillPoints: user.gameData.skillPoints || 0,
+                skillTree: user.gameData.skillTree || {
+                    engineering: [0, 0, 0, 0, 0, 0, 0, 0],
+                    combat: [0, 0, 0, 0, 0, 0, 0, 0],
+                    science: [0, 0, 0, 0, 0, 0, 0, 0]
+                },
+                ammo: user.gameData.ammo || {},
                 selectedAmmo: user.gameData.selectedAmmo || { laser: 0, missile: 0, mine: 0 },
                 zone: user.gameData.zone || 1,
                 hudConfig: user.gameData.hudConfig || {},
                 hudPositions: user.gameData.hudPositions || {}
             };
 
-            // Cargar Configuración Admin (v39.0 - Sincronizada con Login)
-            let adminConfig = null;
-            try { adminConfig = await fs.readJson(CONFIG_FILE); } catch(e) {}
+            // v196.60: Recalcular Stats con Talentos al Login (Fix Relogueo)
+            const p_ref = players[socket.id];
+            const hpBonus = 1.0 + ((p_ref.skillTree.engineering[0] || 0) * 0.02);
+            const shBonus = 1.0 + ((p_ref.skillTree.engineering[1] || 0) * 0.02);
+            p_ref.maxHp = Math.ceil(baseHp * hpBonus);
+            p_ref.maxShield = Math.ceil(baseSh * shBonus);
 
-            socket.emit('loginSuccess', { 
+            // Cargar Configuración Admin (v39.0 - Sincronizada con Login)
+            // v196.00: Sincronía de Configuración Admin
+            let adminConfig = null;
+            try { adminConfig = await fs.readJson(CONFIG_FILE); } catch (e) { }
+
+            socket.emit('loginSuccess', {
                 id: dbId, // Identidad Galáctica v123.20
                 socketId: socket.id,
-                user: username, 
+                user: username,
                 gameData: user.gameData,
-                adminConfig: adminConfig 
+                adminConfig: adminConfig
             });
-            
+
             // Unirse a la 'room' de su zona actual para optimización v75.0
             const userZone = players[socket.id].zone || 1;
             socket.join(`zone_${userZone}`);
 
             console.log(`DESCON: Piloto [${username}] logueado. Zona: ${userZone}. Jugadores totales: ${Object.keys(players).length}`);
-            
+
             const currentPlayersInZone = {};
             Object.keys(players).forEach(pId => {
                 const p = players[pId];
                 if (p.zone === userZone) {
-                    currentPlayersInZone[pId] = { 
-                        ...p, 
+                    currentPlayersInZone[pId] = {
+                        ...p,
                         id: pId,
                         maxHp: p.maxHp || 2000,
                         maxShield: p.maxShield || 1000
@@ -357,16 +372,16 @@ io.on('connection', (socket) => {
 
             // v186.25: BROADCAST AGRESIVO - Usar io.emit global para asegurar visibilidad total
             const playerSpawnData = { ...players[socket.id], id: socket.id };
-            
+
             // Sincronía con delay mínimo para asegurar que el cliente procesó el loginSuccess
             setTimeout(() => {
                 socket.emit('currentPlayers', currentPlayersInZone);
                 socket.emit('currentEnemies', cleanEnemiesInZone);
-                io.emit('newPlayer', playerSpawnData); 
+                io.emit('newPlayer', playerSpawnData);
                 console.log(`[NET] Broadcast global de ${username} enviado.`);
-            }, 100);            
+            }, 100);
             console.log(`Usuario logueado: ${username}`);
-            
+
             // v135.30: Reconectar y NOTIFICAR a todos el regreso del aliado
             if (playerParty[dbId]) {
                 const pid = playerParty[dbId];
@@ -398,7 +413,7 @@ io.on('connection', (socket) => {
     });
 
     // GUARDAR PROGRESO (MongoDB)
-        socket.on('saveProgress', async (gameData) => {
+    socket.on('saveProgress', async (gameData) => {
         if (!socket.dbUser || !gameData) return;
         try {
             // v164.81: Sincronía en Caliente (RAM Update)
@@ -410,24 +425,30 @@ io.on('connection', (socket) => {
                 p.maxShield = gameData.maxShield !== undefined ? gameData.maxShield : p.maxShield;
                 p.selectedAmmo = gameData.selectedAmmo || p.selectedAmmo;
                 p.level = gameData.level || p.level;
+                p.hubs = gameData.hubs !== undefined ? gameData.hubs : p.hubs;
+                p.ohcu = gameData.ohcu !== undefined ? gameData.ohcu : p.ohcu;
+                p.skillPoints = gameData.skillPoints !== undefined ? gameData.skillPoints : p.skillPoints;
+                p.skillTree = gameData.skillTree || p.skillTree;
             }
 
-            // v164.75: Persistencia de Capacidad Máxima (Sync Hangar/Talents)
-            await User.updateOne(
-                { _id: socket.dbUser._id },
-                { 
-                    $set: { 
-                        "gameData.hp": gameData.hp,
-                        "gameData.shield": gameData.shield,
-                        "gameData.maxHp": gameData.maxHp,
-                        "gameData.maxShield": gameData.maxShield,
-                        "gameData.level": gameData.level,
-                        "gameData.exp": gameData.exp,
-                        "gameData.ammo": gameData.ammo,
-                        "gameData.selectedAmmo": gameData.selectedAmmo
-                    } 
+            // v196.90: Sistema de Guardado Dinámico (Anti-Overwrite Protection)
+            const updateFields = {};
+            const fields = [
+                "hp", "shield", "maxHp", "maxShield", "level", "exp", 
+                "ammo", "selectedAmmo", "hubs", "ohcu", "inventory", 
+                "equipped", "ownedShips", "currentShipId", "skillPoints", "skillTree",
+                "lastPos", "hudPositions"
+            ];
+
+            fields.forEach(field => {
+                if (gameData[field] !== undefined) {
+                    updateFields[`gameData.${field}`] = gameData[field];
                 }
-            );
+            });
+
+            if (Object.keys(updateFields).length > 0) {
+                await User.updateOne({ _id: socket.dbUser._id }, { $set: updateFields });
+            }
         } catch (e) { console.error("Error guardando progreso:", e); }
     });
 
@@ -449,7 +470,7 @@ io.on('connection', (socket) => {
         if (!players[socket.id]) return;
         const sender = players[socket.id].user;
         const msg = data.msg.substring(0, 50); // Límite de 50 caracteres (v60.0)
-        
+
         const responseData = {
             sender: sender,
             senderId: socket.id,
@@ -499,195 +520,265 @@ io.on('connection', (socket) => {
         if (config) socket.emit('adminConfigLoaded', config);
     }).catch(e => { /* Config por defecto en cliente */ });
 
-	// SISTEMA DE TIENDA Y ADQUISICIÓN v164.2 (Sync Godot/Phaser)
-	socket.on('buyItem', async (data) => {
-		if (!socket.dbUser || !players[socket.id]) return;
-		try {
-			const { category, itemId, currency, amount } = data;
-			const user = await User.findById(socket.dbUser._id);
-			if (!user) return;
- 
-			// Buscar el item en la config del servidor (v164.3 Fix: Godot/Phaser ID Sync)
-			let itemConfig = null;
-			if (category === 'ships') {
-				itemConfig = SERVER_CONFIG.shipModels.find(m => m.id == itemId || m.name.toLowerCase() == itemId.toString().toLowerCase());
-			} else if (category === 'ammo') {
-				const type = itemId.split('_')[1].substring(0, 1);
-				const fullType = type === 'l' ? 'laser' : (type === 'm' ? 'missile' : 'mine');
-				itemConfig = SERVER_CONFIG.shopItems.ammo[fullType].find(m => m.id === itemId);
-			} else {
-				// Buscar por ID exacto o por el ID que envía Godot (ej: las1, sh2, en3)
-				itemConfig = SERVER_CONFIG.shopItems[category].find(m => m.id == itemId);
-				if (!itemConfig) {
-					// Fallback: Si Godot envía el nombre o un ID transformado
-					itemConfig = SERVER_CONFIG.shopItems[category].find(m => m.name.toLowerCase() == itemId.toString().toLowerCase());
-				}
-			}
- 
-			if (!itemConfig) {
-				console.log(`[SHOP] Error: Item ${itemId} no encontrado en categoría ${category}`);
-				return socket.emit('authError', 'ITEM NO ENCONTRADO EN LA GALAXIA');
-			}
- 
-			const pricePerUnit = itemConfig.prices[currency];
-			const totalPrice = category === 'ammo' ? Math.floor((amount/100.0) * pricePerUnit) : pricePerUnit;
-			
-			if (user.gameData[currency] < totalPrice) {
-				return socket.emit('authError', `FONDOS INSUFICIENTES DE ${currency.toUpperCase()}`);
-			}
- 
-			// Deducción de Fondos
-			user.gameData[currency] -= totalPrice;
- 
-			// Entrega del Ítem (v164.3 Fix: Persistence delivery)
-			if (category === 'ships') {
-				const shipIdNum = parseInt(itemConfig.id);
-				if (!user.gameData.ownedShips.includes(shipIdNum)) {
-					user.gameData.ownedShips.push(shipIdNum);
-				}
-			} else if (category === 'ammo') {
-				const typeKey = itemId.split('_')[1].substring(0, 1) === 'l' ? 'laser' : (itemId.split('_')[1].substring(0, 1) === 'm' ? 'missile' : 'mine');
-				const tier = itemConfig.tier || 0;
-				if (!user.gameData.ammo) user.gameData.ammo = { laser: [0,0,0,0,0,0], missile: [0,0,0,0,0,0], mine: [0,0,0,0,0,0] };
-				user.gameData.ammo[typeKey][tier] = (user.gameData.ammo[typeKey][tier] || 0) + (amount || 1000);
-			} else {
-				// Crear instancia única con ID para el inventario
-				const newItem = { 
-					id: itemConfig.id,
-					name: itemConfig.name,
-					type: itemConfig.type || (category === 'weapons' ? 'w' : (category === 'shields' ? 's' : (category === 'engines' ? 'e' : 'x'))),
-					base: itemConfig.base,
-					instanceId: Date.now() + Math.random().toString(36).substr(2, 5) 
-				};
-				if (!user.gameData.inventory) user.gameData.inventory = [];
-				user.gameData.inventory.push(newItem);
-			}
- 
-			await user.save();
-			socket.dbUser = user;
-			
-			if (players[socket.id]) {
-				players[socket.id].hubs = user.gameData.hubs;
-				players[socket.id].ohcu = user.gameData.ohcu;
-				players[socket.id].ammo = user.gameData.ammo;
-			}
+    // SISTEMA DE TIENDA Y ADQUISICIÓN v164.2 (Sync Godot/Phaser)
+    socket.on('buyItem', async (data) => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        try {
+            const { category, itemId, currency, amount } = data;
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
 
-			// Notificar éxito y enviar inventario fresco (v164.7 Godot Sync Absolute)
-			const responseData = {
-				player: {
-					hubs: user.gameData.hubs,
-					ohcu: user.gameData.ohcu,
-					inventory: user.gameData.inventory,
-					items: user.gameData.inventory, 
-					equipped: user.gameData.equipped,
-					skillTree: user.gameData.skillTree,
-					skillPoints: user.gameData.skillPoints,
-					ownedShips: user.gameData.ownedShips,
-					currentShipId: user.gameData.currentShipId
-				}
-			};
-			socket.emit('inventoryData', responseData);
-			// socket.emit('loginSuccess', { id: user._id.toString(), user: user.username, gameData: user.gameData }); // ELIMINADO v164.11: Evita el reset de posición al comprar
-			
-			console.log(`[SHOP] Compra exitosa: ${user.username} compró ${itemId}`);
-		} catch (e) { 
-			console.error("Error en buyItem:", e); 
-			socket.emit('authError', 'ERROR EN LA COMPRA - REINTENTE');
-		}
-	});
- 
-	// SISTEMA DE DISTRIBUCIÓN DE TALENTOS v164.2
-	socket.on('investSkill', async (data) => {
-		if (!socket.dbUser) return;
-		try {
-			const { category, index } = data;
-			const user = await User.findById(socket.dbUser._id);
-			if (!user || user.gameData.skillPoints <= 0) return socket.emit('authError', 'SIN PUNTOS DE HABILIDAD');
- 
-			if (user.gameData.skillTree[category][index] < 5) {
-				user.gameData.skillTree[category][index]++;
-				user.gameData.skillPoints--;
-				await user.save();
-				socket.dbUser = user;
-				socket.emit('inventoryData', { player: user.gameData });
-			}
-		} catch (e) { console.error("Error en investSkill:", e); }
-	});
+            // Buscar el item en la config del servidor (v164.3 Fix: Godot/Phaser ID Sync)
+            let itemConfig = null;
+            if (category === 'ships') {
+                itemConfig = SERVER_CONFIG.shipModels.find(m => m.id == itemId || m.name.toLowerCase() == itemId.toString().toLowerCase());
+            } else if (category === 'ammo') {
+                const type = itemId.split('_')[1].substring(0, 1);
+                const fullType = type === 'l' ? 'laser' : (type === 'm' ? 'missile' : 'mine');
+                itemConfig = SERVER_CONFIG.shopItems.ammo[fullType].find(m => m.id === itemId);
+            } else {
+                // Buscar por ID exacto o por el ID que envía Godot (ej: las1, sh2, en3)
+                itemConfig = SERVER_CONFIG.shopItems[category].find(m => m.id == itemId);
+                if (!itemConfig) {
+                    // Fallback: Si Godot envía el nombre o un ID transformado
+                    itemConfig = SERVER_CONFIG.shopItems[category].find(m => m.name.toLowerCase() == itemId.toString().toLowerCase());
+                }
+            }
 
-	// SISTEMA DE EQUIPAMIENTO v164.8 (Persistence Sync)
-	socket.on('equipItem', async (data) => {
-		if (!socket.dbUser) return;
-		try {
-			const { instanceId, category } = data; // category es w, s, e, x
-			const user = await User.findById(socket.dbUser._id);
-			if (!user) return;
+            if (!itemConfig) {
+                console.log(`[SHOP] Error: Item ${itemId} no encontrado en categoría ${category}`);
+                return socket.emit('authError', 'ITEM NO ENCONTRADO EN LA GALAXIA');
+            }
 
-			const itemIdx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
-			if (itemIdx === -1) return socket.emit('authError', 'ÍTEM NO ENCONTRADO EN BODEGA');
+            const pricePerUnit = itemConfig.prices[currency];
+            const totalPrice = category === 'ammo' ? Math.floor((amount / 100.0) * pricePerUnit) : pricePerUnit;
 
-			const item = user.gameData.inventory[itemIdx];
-			const type = item.type; // w, s, e, x
-			
-			// Validar Slots de la nave actual
-			const currentShip = SERVER_CONFIG.shipModels.find(m => m.id === user.gameData.currentShipId);
-			const maxSlots = (currentShip && currentShip.slots) ? (currentShip.slots[type] || 0) : 0;
-			
-			if (!user.gameData.equipped[type]) user.gameData.equipped[type] = [];
-			if (user.gameData.equipped[type].length >= maxSlots) {
-				return socket.emit('authError', 'SLOTS DE EQUIPAMIENTO LLENOS');
-			}
+            if (user.gameData[currency] < totalPrice) {
+                return socket.emit('authError', `FONDOS INSUFICIENTES DE ${currency.toUpperCase()}`);
+            }
 
-			// Mover de inventario a equipado
-			user.gameData.equipped[type].push(item);
-			user.gameData.inventory.splice(itemIdx, 1);
-			
-			user.markModified('gameData.equipped');
-			user.markModified('gameData.inventory');
-			await user.save();
-			socket.dbUser = user;
+            // Deducción de Fondos
+            user.gameData[currency] -= totalPrice;
 
-			const responseData = { player: user.gameData };
-			socket.emit('inventoryData', responseData);
+            // Entrega del Ítem (v164.3 Fix: Persistence delivery)
+            if (category === 'ships') {
+                const shipIdNum = parseInt(itemConfig.id);
+                if (!user.gameData.ownedShips.includes(shipIdNum)) {
+                    user.gameData.ownedShips.push(shipIdNum);
+                }
+            } else if (category === 'ammo') {
+                const typeKey = itemId.split('_')[1].substring(0, 1) === 'l' ? 'laser' : (itemId.split('_')[1].substring(0, 1) === 'm' ? 'missile' : 'mine');
+                const tier = itemConfig.tier || 0;
+                if (!user.gameData.ammo) user.gameData.ammo = { laser: [0, 0, 0, 0, 0, 0], missile: [0, 0, 0, 0, 0, 0], mine: [0, 0, 0, 0, 0, 0] };
+                user.gameData.ammo[typeKey][tier] = (user.gameData.ammo[typeKey][tier] || 0) + (amount || 1000);
+            } else {
+                // Crear instancia única con ID para el inventario
+                const newItem = {
+                    id: itemConfig.id,
+                    name: itemConfig.name,
+                    type: itemConfig.type || (category === 'weapons' ? 'w' : (category === 'shields' ? 's' : (category === 'engines' ? 'e' : 'x'))),
+                    base: itemConfig.base,
+                    instanceId: Date.now() + Math.random().toString(36).substr(2, 5)
+                };
+                if (!user.gameData.inventory) user.gameData.inventory = [];
+                user.gameData.inventory.push(newItem);
+            }
 
-			// v164.80: Actualizar RAM del server INMEDIATAMENTE tras equipar
-			if (players[socket.id]) {
-				players[socket.id].inventory = user.gameData.inventory;
-				players[socket.id].equipped = user.gameData.equipped;
-				// Los máximos se actualizarán vía saveProgress desde el cliente en el próximo tick
-			}
-		} catch (e) { console.error("Error en equipItem:", e); }
-	});
+            await user.save();
+            socket.dbUser = user;
 
-	socket.on('unequipItem', async (data) => {
-		if (!socket.dbUser) return;
-		try {
-			const { category, index } = data;
-			const user = await User.findById(socket.dbUser._id);
-			if (!user) return;
+            if (players[socket.id]) {
+                players[socket.id].hubs = user.gameData.hubs;
+                players[socket.id].ohcu = user.gameData.ohcu;
+                players[socket.id].ammo = user.gameData.ammo;
+            }
 
-			if (!user.gameData.equipped[category] || !user.gameData.equipped[category][index]) return;
+            // Notificar éxito y enviar inventario fresco (v164.7 Godot Sync Absolute)
+            const responseData = {
+                player: {
+                    hubs: user.gameData.hubs,
+                    ohcu: user.gameData.ohcu,
+                    inventory: user.gameData.inventory,
+                    items: user.gameData.inventory,
+                    equipped: user.gameData.equipped,
+                    skillTree: user.gameData.skillTree,
+                    skillPoints: user.gameData.skillPoints,
+                    ownedShips: user.gameData.ownedShips,
+                    currentShipId: user.gameData.currentShipId
+                }
+            };
+            socket.emit('inventoryData', responseData);
+            // socket.emit('loginSuccess', { id: user._id.toString(), user: user.username, gameData: user.gameData }); // ELIMINADO v164.11: Evita el reset de posición al comprar
 
-			const item = user.gameData.equipped[category][index];
-			user.gameData.inventory.push(item);
-			user.gameData.equipped[category].splice(index, 1);
+            console.log(`[SHOP] Compra exitosa: ${user.username} compró ${itemId}`);
+        } catch (e) {
+            console.error("Error en buyItem:", e);
+            socket.emit('authError', 'ERROR EN LA COMPRA - REINTENTE');
+        }
+    });
 
-			user.markModified('gameData.equipped');
-			user.markModified('gameData.inventory');
-			await user.save();
-			socket.dbUser = user;
+    // SISTEMA DE DISTRIBUCIÓN DE TALENTOS v164.2
+    socket.on('investSkill', async (data) => {
+        if (!socket.dbUser) return;
+        try {
+            const { category, index } = data;
+            const user = await User.findById(socket.dbUser._id);
+            if (!user || user.gameData.skillPoints <= 0) return socket.emit('authError', 'SIN PUNTOS DE HABILIDAD');
 
-			const responseData = { player: user.gameData };
-			socket.emit('inventoryData', responseData);
-			
-			// v164.12: Actualizar RAM del server para evitar desvios
-			if (players[socket.id]) {
-				players[socket.id].inventory = user.gameData.inventory;
-				players[socket.id].equipped = user.gameData.equipped;
-			}
-		} catch (e) { console.error("Error en unequipItem:", e); }
-	});
- 
-	socket.on('latencyUpdate', (ms) => {
+            if (user.gameData.skillTree[category][index] < 5) {
+                user.gameData.skillTree[category][index]++;
+                user.gameData.skillPoints--;
+
+                // v196.40: FORZAR PERSISTENCIA EN MONGO (Fix F5 Bug)
+                user.markModified('gameData');
+                await user.save();
+
+                socket.dbUser = user;
+                // v196.25: ACTUALIZACIÓN INSTANTÁNEA EN RAM Y RED
+                if (players[socket.id]) {
+                    const p = players[socket.id];
+                    p.skillTree = user.gameData.skillTree;
+                    p.skillPoints = user.gameData.skillPoints;
+
+                    // Recalcular con los nuevos talentos (Unificado al 2% v196.80)
+                    const hpBonus = 1.0 + ((p.skillTree.engineering[0] || 0) * 0.02);
+                    const shBonus = 1.0 + ((p.skillTree.engineering[1] || 0) * 0.02);
+                    p.maxHp = Math.ceil(p.baseHp * hpBonus);
+                    p.maxShield = Math.ceil(p.baseShield * shBonus);
+
+                    // Emitir a Godot para que el HUD se mueva en el acto
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                        id: socket.id,
+                        hp: p.hp,
+                        shield: p.shield,
+                        maxHp: p.maxHp,
+                        maxShield: p.maxShield,
+                        isDead: false
+                    });
+                }
+
+                socket.emit('inventoryData', { player: user.gameData });
+                console.log(`[SKILLS] Clic Exitoso -> HP Max ahora es: ${players[socket.id].maxHp}`);
+            }
+        } catch (e) { console.error("Error en investSkill:", e); }
+    });
+
+    // v196.30: SISTEMA DE RESET DE TALENTOS (FIX)
+    socket.on('resetSkills', async () => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        try {
+            const p = players[socket.id];
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+
+            if (user.gameData.ohcu < 5000) return socket.emit('authError', 'OHCU INSUFICIENTE PARA RESET');
+
+            user.gameData.ohcu -= 5000;
+            user.gameData.skillPoints = (p.level || 1) - 1;
+            user.gameData.skillTree = {
+                engineering: [0, 0, 0, 0, 0, 0, 0, 0],
+                combat: [0, 0, 0, 0, 0, 0, 0, 0],
+                science: [0, 0, 0, 0, 0, 0, 0, 0]
+            };
+
+            user.markModified('gameData');
+            await user.save();
+            socket.dbUser = user;
+
+            // Actualizar RAM
+            p.ohcu = user.gameData.ohcu;
+            p.skillPoints = user.gameData.skillPoints;
+            p.skillTree = user.gameData.skillTree;
+            p.maxHp = p.baseHp || 2000;
+            p.maxShield = p.baseShield || 1000;
+
+            // Feedback Total
+            socket.emit('inventoryData', { player: user.gameData });
+            io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                id: socket.id,
+                hp: p.hp, shield: p.shield,
+                maxHp: p.maxHp, maxShield: p.maxShield,
+                isDead: false
+            });
+
+            console.log(`[SKILLS] Reset Exitoso para ${user.username}`);
+        } catch (e) { console.error("Error en resetSkills:", e); }
+    });
+
+    // SISTEMA DE EQUIPAMIENTO v164.8 (Persistence Sync)
+    socket.on('equipItem', async (data) => {
+        if (!socket.dbUser) return;
+        try {
+            const { instanceId, category } = data; // category es w, s, e, x
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+
+            const itemIdx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
+            if (itemIdx === -1) return socket.emit('authError', 'ÍTEM NO ENCONTRADO EN BODEGA');
+
+            const item = user.gameData.inventory[itemIdx];
+            const type = item.type; // w, s, e, x
+
+            // Validar Slots de la nave actual
+            const currentShip = SERVER_CONFIG.shipModels.find(m => m.id === user.gameData.currentShipId);
+            const maxSlots = (currentShip && currentShip.slots) ? (currentShip.slots[type] || 0) : 0;
+
+            if (!user.gameData.equipped[type]) user.gameData.equipped[type] = [];
+            if (user.gameData.equipped[type].length >= maxSlots) {
+                return socket.emit('authError', 'SLOTS DE EQUIPAMIENTO LLENOS');
+            }
+
+            // Mover de inventario a equipado
+            user.gameData.equipped[type].push(item);
+            user.gameData.inventory.splice(itemIdx, 1);
+
+            user.markModified('gameData.equipped');
+            user.markModified('gameData.inventory');
+            await user.save();
+            socket.dbUser = user;
+
+            const responseData = { player: user.gameData };
+            socket.emit('inventoryData', responseData);
+
+            // v164.80: Actualizar RAM del server INMEDIATAMENTE tras equipar
+            if (players[socket.id]) {
+                players[socket.id].inventory = user.gameData.inventory;
+                players[socket.id].equipped = user.gameData.equipped;
+                // Los máximos se actualizarán vía saveProgress desde el cliente en el próximo tick
+            }
+        } catch (e) { console.error("Error en equipItem:", e); }
+    });
+
+    socket.on('unequipItem', async (data) => {
+        if (!socket.dbUser) return;
+        try {
+            const { category, index } = data;
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+
+            if (!user.gameData.equipped[category] || !user.gameData.equipped[category][index]) return;
+
+            const item = user.gameData.equipped[category][index];
+            user.gameData.inventory.push(item);
+            user.gameData.equipped[category].splice(index, 1);
+
+            user.markModified('gameData.equipped');
+            user.markModified('gameData.inventory');
+            await user.save();
+            socket.dbUser = user;
+
+            const responseData = { player: user.gameData };
+            socket.emit('inventoryData', responseData);
+
+            // v164.12: Actualizar RAM del server para evitar desvios
+            if (players[socket.id]) {
+                players[socket.id].inventory = user.gameData.inventory;
+                players[socket.id].equipped = user.gameData.equipped;
+            }
+        } catch (e) { console.error("Error en unequipItem:", e); }
+    });
+
+    socket.on('latencyUpdate', (ms) => {
         if (players[socket.id]) {
             players[socket.id].latency = ms;
         }
@@ -696,7 +787,7 @@ io.on('connection', (socket) => {
     socket.on('playerMovement', async (movementData) => {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
-        
+
         players[socket.id].x = movementData.x;
         players[socket.id].y = movementData.y;
         players[socket.id].rotation = movementData.rotation;
@@ -712,7 +803,7 @@ io.on('connection', (socket) => {
             socket.to(`zone_${targetZone}`).emit('newPlayer', { ...players[socket.id], id: socket.id });
             console.log(`DESCON: Socket [${p.user}] auto-ruteado a Sector [${targetZone}]`);
         }
-        
+
         // Sincronizar selección de munición para deducción en server v68.3
         if (movementData.selectedAmmo) {
             players[socket.id].selectedAmmo = movementData.selectedAmmo;
@@ -721,7 +812,7 @@ io.on('connection', (socket) => {
         socket.to(`zone_${players[socket.id].zone}`).emit('playerMoved', { ...players[socket.id], id: socket.id });
 
         socket.to(`zone_${players[socket.id].zone}`).emit('playerMoved', { ...players[socket.id], id: socket.id });
-        
+
         // PERSISTENCIA DE MOVIMIENTO ELIMINADA (Optimización de Escalado)
         // El guardado ahora se maneja vía Batch cada 60s
     });
@@ -736,9 +827,9 @@ io.on('connection', (socket) => {
         p.y = respawnData.y || 2000;
         // v186.27: Sincronía de Resurrección Global (Evita "Otra Dimensión")
         if (respawnData.zone) p.zone = Number(respawnData.zone);
-        
+
         console.log(`DESCON: Piloto [${p.user}] ha reaparecido en Zona [${p.zone}]`);
-        
+
         const respawnPayload = { ...p, id: socket.id, isDead: false };
         // Broadcast global para asegurar que todos los clientes lo vean/recreen
         io.emit('newPlayer', respawnPayload);
@@ -768,7 +859,7 @@ io.on('connection', (socket) => {
                     p.shield -= damage;
                     if (p.shield < 0) { p.hp += p.shield; p.shield = 0; }
                 }
-                return; 
+                return;
             }
 
             if (enemy.shield >= damage) {
@@ -778,18 +869,18 @@ io.on('connection', (socket) => {
                 enemy.shield = 0;
             }
             enemy.lastHit = Date.now();
-            
+
             if (enemy.hp <= 0) {
                 // Obtener recompensas desde la config global con fallback robusto v48.0
                 const cfgModel = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[enemy.type] : null;
-                
+
                 const hubs = (cfgModel && cfgModel.rewardHubs !== undefined) ? cfgModel.rewardHubs : (enemy.type * 500);
                 const ohcu = (cfgModel && cfgModel.rewardOhcu !== undefined) ? cfgModel.rewardOhcu : (enemy.type * 10);
                 const exp = (cfgModel && cfgModel.rewardExp !== undefined) ? cfgModel.rewardExp : (enemy.type * 100);
 
                 const killerId = socket.id;
                 const partyId = playerParty[killerId];
-                
+
                 if (partyId && parties[partyId]) {
                     const party = parties[partyId];
                     const num = party.members.length;
@@ -804,7 +895,7 @@ io.on('connection', (socket) => {
                 } else {
                     io.to(`zone_${enemy.zone}`).emit('enemyDead', { id: enemyId, hubs, ohcu, exp, isShared: false, killer: killerId, bulletId });
                 }
-                
+
                 // v164.15: ACREDITACIÓN DE RECOMPENSAS (Persistence Sync)
                 if (players[killerId] && socket.dbUser) {
                     const p = players[killerId];
@@ -812,26 +903,26 @@ io.on('connection', (socket) => {
                     try {
                         await User.updateOne(
                             { _id: killerDbId },
-                            { 
-                                $inc: { 
+                            {
+                                $inc: {
                                     "gameData.hubs": hubs,
                                     "gameData.ohcu": ohcu,
                                     "gameData.exp": exp
-                                } 
+                                }
                             }
                         );
                         // Actualizar en memoria para que el cliente lo vea sin reloguear
                         p.hubs = (p.hubs || (socket.dbUser.gameData ? socket.dbUser.gameData.hubs : 0)) + hubs;
                         p.ohcu = (p.ohcu || (socket.dbUser.gameData ? socket.dbUser.gameData.ohcu : 0)) + ohcu;
                         p.exp = (p.exp || (socket.dbUser.gameData ? socket.dbUser.gameData.exp : 0)) + exp;
-                        
+
                         // Notificar al cliente específico para actualización de HUD
                         io.to(killerId).emit('rewardReceived', { hubs, ohcu, exp });
                         console.log(`[LOOT] ${p.user} recibió: ${hubs} HUBS, ${ohcu} OHCU, ${exp} EXP`);
                     } catch (e) { console.error("Error acreditando loot:", e); }
                 }
 
-                if (enemy.type === 4) lastTitanDeath = Date.now(); 
+                if (enemy.type === 4) lastTitanDeath = Date.now();
                 if (enemy.type === 5) lastAncientDeath = Date.now(); // Cronómetro Ancient 3s v98.50
                 delete enemies[enemyId];
             } else {
@@ -850,32 +941,32 @@ io.on('connection', (socket) => {
             if (p.shield >= dmg) p.shield -= dmg;
             else { p.hp -= (dmg - p.shield); p.shield = 0; }
             if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
-            
+
             // v164.86: Penalización de Regeneración Diferenciada
             p.lastCombatTime = Date.now();
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
 
-            io.to(`zone_${p.zone}`).emit('playerStatSync', { 
-                id: p.socketId, 
-                hp: p.hp, 
-                shield: p.shield, 
+            io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                id: p.socketId,
+                hp: p.hp,
+                shield: p.shield,
                 maxHp: p.maxHp,
                 maxShield: p.maxShield,
-                isDead: p.isDead 
+                isDead: p.isDead
             });
         }
     });
 
- 
+
 
     // Removido de aquí - ahora se envía en 'login' para evitar Race Conditions
 
     socket.on('changeZone', (zoneId) => {
         if (!players[socket.id]) return;
-        
+
         const oldZone = players[socket.id].zone || 1;
         const newSize = (zoneId === 1 ? 4000 : 2000);
-        
+
         // Gestión de Habitaciones v75.0 (Optimization)
         socket.leave(`zone_${oldZone}`);
         socket.join(`zone_${zoneId}`);
@@ -883,9 +974,9 @@ io.on('connection', (socket) => {
         players[socket.id].zone = zoneId;
         players[socket.id].x = newSize / 2;
         players[socket.id].y = newSize / 2;
-        
+
         console.log(`DESCON: Jugador [${socket.id}] cambió a Sector [${zoneId}]`);
-        
+
         // Avisar a la vieja zona que se fue y a la nueva que llegó
         socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
         socket.to(`zone_${zoneId}`).emit('newPlayer', players[socket.id]);
@@ -917,13 +1008,13 @@ io.on('connection', (socket) => {
             const p = players[socket.id];
             const username = p.user;
             console.log(`Desconectado: ${username}`);
-            
+
             if (socket.dbUser) {
                 try {
                     await User.updateOne(
                         { _id: socket.dbUser._id },
-                        { 
-                            $set: { 
+                        {
+                            $set: {
                                 "gameData.lastPos.x": Math.floor(p.x),
                                 "gameData.lastPos.y": Math.floor(p.y),
                                 "gameData.hp": Math.ceil(p.hp || 0),
@@ -931,9 +1022,17 @@ io.on('connection', (socket) => {
                                 "gameData.zone": p.zone || 1,
                                 "gameData.ammo": p.ammo,
                                 "gameData.selectedAmmo": p.selectedAmmo,
+                                "gameData.inventory": p.inventory,
+                                "gameData.equipped": p.equipped,
+                                "gameData.hubs": p.hubs,
+                                "gameData.ohcu": p.ohcu,
+                                "gameData.level": p.level,
+                                "gameData.exp": p.exp,
+                                "gameData.skillPoints": p.skillPoints,
+                                "gameData.skillTree": p.skillTree,
                                 "gameData.hudConfig": p.hudConfig || {},
                                 "gameData.hudPositions": p.hudPositions || {}
-                            } 
+                            }
                         }
                     );
                 } catch (e) { console.error("Error guardando estado final:", e); }
@@ -942,7 +1041,7 @@ io.on('connection', (socket) => {
             delete players[socket.id];
             if (username) activeSessions.delete(username.toLowerCase());
             io.emit('playerDisconnected', socket.id);
-            
+
             // v138.10: No borrar de la party al desconectar (F5 Persistence)
             const uid = socket.dbUser ? socket.dbUser._id.toString() : null;
             if (uid && playerParty[uid]) {
@@ -968,14 +1067,14 @@ io.on('connection', (socket) => {
             try {
                 if (!players[socket.id].hudPositions) players[socket.id].hudPositions = {};
                 players[socket.id].hudPositions[data.id] = data.pos;
-                
+
                 // v189.96: PERSISTENCIA INSTANTÁNEA (DB Atlas Write)
                 const updatePath = `gameData.hudPositions.${data.id}`;
                 await User.updateOne(
                     { _id: socket.dbUser._id },
                     { $set: { [updatePath]: data.pos } }
                 );
-                
+
                 console.log(`[HUD-DB] Registro guardado: ${data.id} para ${players[socket.id].user}`);
             } catch (e) { console.error("Error en persistencia HUD:", e); }
         }
@@ -986,7 +1085,7 @@ io.on('connection', (socket) => {
         try {
             if (!targetName || typeof targetName !== 'string') return;
             const targetSocket = [...io.sockets.sockets.values()].find(s => s.dbUser && s.dbUser.username === targetName.toLowerCase());
-            
+
             if (!targetSocket) return socket.emit('authError', 'PILOTO NO ENCONTRADO O FUERA DE LÍNEA');
             if (targetSocket.id === socket.id) return socket.emit('authError', 'NO PUEDES INVITARTE A TI MISMO');
             if (!players[socket.id]) return;
@@ -1002,10 +1101,10 @@ io.on('connection', (socket) => {
         try {
             const leaderSocket = io.sockets.sockets.get(leaderSid);
             if (!leaderSocket || !leaderSocket.dbUser || !socket.dbUser) return socket.emit('authError', 'PILOTO NO DISPONIBLE');
-            
+
             const leaderUid = leaderSocket.dbUser._id.toString();
             const myUid = socket.dbUser._id.toString();
-            
+
             let partyId = playerParty[leaderUid];
             if (!partyId) {
                 // Crear nueva party (v134.50 Persistence dbId Based)
@@ -1013,20 +1112,20 @@ io.on('connection', (socket) => {
                 parties[partyId] = { id: partyId, members: [leaderUid], names: [leaderSocket.dbUser.username.toUpperCase()] };
                 playerParty[leaderUid] = partyId;
             }
- 
+
             if (parties[partyId].members.includes(myUid)) return;
             if (parties[partyId].members.length >= 8) return socket.emit('authError', 'EL GRUPO ESTÁ LLENO (MAX 8)');
-            
+
             parties[partyId].members.push(myUid);
             parties[partyId].names.push(socket.dbUser.username.toUpperCase());
             playerParty[myUid] = partyId;
- 
+
             io.emit('partyUpdate', parties[partyId]);
-            io.emit('chatMessage', { 
-                sender: 'SYSTEM', msg: `${socket.dbUser.username.toUpperCase()} se ha unido al grupo.`, channel: 'team', senderId: 'server' 
+            io.emit('chatMessage', {
+                sender: 'SYSTEM', msg: `${socket.dbUser.username.toUpperCase()} se ha unido al grupo.`, channel: 'team', senderId: 'server'
             });
-        } catch (e) { 
-            console.error("Error en acceptParty:", e); 
+        } catch (e) {
+            console.error("Error en acceptParty:", e);
         }
     });
 
@@ -1036,11 +1135,11 @@ io.on('connection', (socket) => {
             const myUid = socket.dbUser._id.toString();
             const partyId = playerParty[myUid];
             if (!partyId || !parties[partyId]) return;
- 
+
             const name = socket.dbUser.username.toUpperCase();
             parties[partyId].members = parties[partyId].members.filter(m => m !== myUid);
             parties[partyId].names = parties[partyId].names.filter(n => n !== name);
- 
+
             if (parties[partyId].members.length <= 1) {
                 parties[partyId].members.forEach(m => delete playerParty[m]);
                 delete parties[partyId];
@@ -1050,8 +1149,8 @@ io.on('connection', (socket) => {
             }
             delete playerParty[myUid];
             socket.emit('partyUpdate', null);
-        } catch (e) { 
-            console.error("Error en leaveParty:", e); 
+        } catch (e) {
+            console.error("Error en leaveParty:", e);
         }
     });
 });
@@ -1076,7 +1175,7 @@ function _trigger_boss_explosion(e) {
     Object.values(players).forEach(p => {
         if (p.zone === e.zone && Math.hypot(p.x - e.x, p.y - e.y) < 500) {
             p.shield -= 3000; if (p.shield < 0) { p.hp += p.shield; p.shield = 0; }
-            io.to(p.socketId).emit('playerStatSync', { hp: p.hp, shield: p.shield, isDead: p.hp<=0 });
+            io.to(p.socketId).emit('playerStatSync', { hp: p.hp, shield: p.shield, isDead: p.hp <= 0 });
         }
     });
     io.to(`zone_${e.zone}`).emit('enemyDead', { id: e.id, killerId: 'server' });

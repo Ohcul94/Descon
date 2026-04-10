@@ -26,6 +26,8 @@ signal enemy_updated(data)
 signal enemy_fired(data)
 signal enemy_dead(data)
 signal reward_received(data)
+signal level_up(data)
+signal admin_config_updated(data)
 
 signal enemy_damaged(data)
 signal boss_effect(data)
@@ -155,7 +157,12 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"enemyDamaged": enemy_damaged.emit(e_data)
 		"enemyDead", "serverEnemyDead": enemy_dead.emit(e_data)
 		"bossEffect": boss_effect.emit(e_data)
-		"adminConfigUpdated", "adminConfigLoaded": config_updated.emit(e_data)
+		"adminConfigUpdated", "adminConfigLoaded": 
+			config_updated.emit(e_data)
+			admin_config_updated.emit(e_data)
+		"rewardReceived", "serverReward": reward_received.emit(e_data)
+		"levelUp", "serverLevelUp": level_up.emit(e_data)
+		"inventoryData", "inventorySync": inventory_data.emit(e_data)
 		"playerStatSync":
 			if str(e_data.get("id", "")) != my_socket_id:
 				_dispatch_single_player(e_data, "player_stat_sync")

@@ -10,3 +10,9 @@ Naves: 128z128
 Enemigos Pequeño: 64x64
 Enemigos Grande: 256x256
 Proyectiles 32x32 o 16x64
+
+
+
+Comandos para Reset y Pull
+git reset --hard HEAD
+git pull

@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://d3m4r7v1y3m5" path="res://scenes/ui/AdminPanel.tscn" id="10_admin"]
 [ext_resource type="PackedScene" uid="uid://e4r7v2y3m5l6" path="res://scenes/ui/ChatUI.tscn" id="11_chat"]
 [ext_resource type="Script" uid="uid://c81cexbe61c8n" path="res://scripts/systems/CombatSystem.gd" id="12_combat"]
+[ext_resource type="Script" path="res://scripts/systems/TalentSystem.gd" id="13_talents"]
 
 [node name="MainGame" type="Node2D" unique_id=1027512409]
 script = ExtResource("1_world")
@@ -20,6 +21,9 @@ position = Vector2(596, 339)
 
 [node name="CombatSystem" type="Node2D" parent="." unique_id=834330575]
 script = ExtResource("12_combat")
+
+[node name="TalentSystem" type="Node" parent="." unique_id=741330575]
+script = ExtResource("13_talents")
 
 [node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=1731233602]
 layer = -1

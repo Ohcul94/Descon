@@ -7,11 +7,11 @@ var inventory_items = []
 var owned_ships = []
 var current_ship_id = 1
 var equipped_data = {"w": [], "s": [], "e": [], "x": []}
-var skill_tree = {"engineering": [0,0,0,0,0,0,0,0], "combat": [0,0,0,0,0,0,0,0], "science": [0,0,0,0,0,0,0,0]}
-var skill_points = 0
 var hubs = 0
 var ohcu = 0
 var is_open = false
+
+var talent_system = null
 
 var shop_tab = "ships"
 var ammo_sub_tab = "laser"
@@ -81,6 +81,17 @@ func _ready():
 	party_timer.timeout.connect(_update_party_ui)
 	add_child(party_timer)
 	
+	# v164.95: Buscar y vincular TalentSystem
+	# Intentamos buscarlo en el grupo, si no, lo buscaremos bajo el nodo World
+	talent_system = get_tree().get_first_node_in_group("talent_system")
+	if not is_instance_valid(talent_system):
+		var world = get_tree().get_first_node_in_group("world_node")
+		if is_instance_valid(world) and world.has_node("TalentSystem"):
+			talent_system = world.get_node("TalentSystem")
+			
+	if is_instance_valid(talent_system):
+		talent_system.talents_updated.connect(_update_talent_tree)
+
 	await get_tree().create_timer(1.0).timeout
 	_refresh_data()
 
@@ -180,8 +191,7 @@ func _on_inventory_received(data: Dictionary):
 	if data.has("player"): data = data.player
 	inventory_items = data.get("inventory", data.get("items", []))
 	equipped_data = data.get("equipped", equipped_data)
-	skill_tree = data.get("skillTree", skill_tree)
-	skill_points = data.get("skillPoints", 0)
+	# Los talentos ahora se gestionan vía TalentSystem.gd, quien también escucha inventoryData
 	owned_ships = data.get("ownedShips", [])
 	current_ship_id = data.get("currentShipId", 1)
 	hubs = int(data.get("hubs", hubs))
@@ -415,28 +425,55 @@ func _show_result_modal(title, msg):
 
 # --- TALENTS ---
 func _update_talent_tree():
+	if not visible: return
 	var tab = get_node_or_null("Window/TabContainer/Talentos")
 	if not tab: return
+	if not is_instance_valid(talent_system): 
+		talent_system = get_tree().get_first_node_in_group("talent_system")
+		if not talent_system: return
+		
 	for n in tab.get_children(): n.queue_free()
 	
 	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); tab.add_child(master_v)
 	var hb = HBoxContainer.new(); master_v.add_child(hb)
-	var pts = Label.new(); pts.text = "PUNTOS DISPONIBLES: " + str(skill_points); pts.modulate = Color.GREEN; hb.add_child(pts)
-	var rb = Button.new(); rb.text = "RESETEAR ARBOL (5.000 OHCU)"; rb.size_flags_horizontal = 3; rb.alignment = HORIZONTAL_ALIGNMENT_RIGHT; rb.pressed.connect(func(): NetworkManager.send_event("resetSkills", {})); hb.add_child(rb)
+	var pts = Label.new(); pts.text = "PUNTOS DISPONIBLES: " + str(int(talent_system.skill_points)); pts.modulate = Color.GREEN; hb.add_child(pts)
+	var rb = Button.new(); rb.text = "RESETEAR ARBOL (5.000 OHCU)"; rb.size_flags_horizontal = 3; rb.alignment = HORIZONTAL_ALIGNMENT_RIGHT; rb.pressed.connect(func(): talent_system.reset_talents()); hb.add_child(rb)
 	
-	var grid = HBoxContainer.new(); grid.size_flags_vertical = 3; grid.add_theme_constant_override("separation", 20); master_v.add_child(grid)
+	var main_scroll = ScrollContainer.new(); main_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL; master_v.add_child(main_scroll)
+	var grid = HBoxContainer.new(); grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL; grid.size_flags_vertical = Control.SIZE_EXPAND_FILL; main_scroll.add_child(grid)
+	grid.add_theme_constant_override("separation", 25)
+
 	var cats = {"engineering": "INGENIERÍA", "combat": "COMBATE", "science": "CIENCIA"}
 	for ck in cats:
-		var v = VBoxContainer.new(); v.size_flags_horizontal = 3; grid.add_child(v)
-		var l = Label.new(); l.text = cats[ck]; l.horizontal_alignment = 1; l.modulate = Color.CYAN; v.add_child(l)
-		var sc = ScrollContainer.new(); sc.size_flags_vertical = 3; v.add_child(sc)
-		var li = VBoxContainer.new(); sc.add_child(li); var branch = skill_tree.get(ck, [0,0,0,0,0,0,0,0])
+		var v = VBoxContainer.new(); v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; grid.add_child(v)
+		var l = Label.new(); l.text = cats[ck]; l.horizontal_alignment = 1; l.modulate = Color.CYAN if ck == "engineering" else (Color.RED if ck == "combat" else Color.PURPLE)
+		l.add_theme_font_size_override("font_size", 14); v.add_child(l)
+		
+		var li = VBoxContainer.new(); v.add_child(li); li.add_theme_constant_override("separation", 10)
+		var branch = talent_system.skill_tree.get(ck, [0,0,0,0,0,0,0,0])
 		var skills = SKILL_DATA.filter(func(x): return x.cat == ck)
 		for i in range(skills.size()):
 			var s = skills[i]; var lvl = branch[i] if i < branch.size() else 0
-			var b = Button.new(); b.text = s.name + " (" + str(lvl) + "/5)"; b.tooltip_text = s.desc
-			if lvl >= 5: b.modulate = Color.GOLD
-			b.pressed.connect(func(): NetworkManager.send_event("investSkill", {"category": ck, "index": i})); li.add_child(b)
+			var node_p = PanelContainer.new(); li.add_child(node_p)
+			node_p.size_flags_horizontal = Control.SIZE_EXPAND_FILL; node_p.custom_minimum_size = Vector2(0, 75)
+			
+			var sb = StyleBoxFlat.new(); sb.bg_color = Color(1,1,1,0.03); sb.set_border_width_all(1); sb.border_color = Color(1,1,1,0.1)
+			if lvl > 0: sb.border_color = Color.CYAN if ck == "engineering" else (Color.RED if ck == "combat" else Color.PURPLE)
+			node_p.add_theme_stylebox_override("panel", sb)
+			
+			var item_v = VBoxContainer.new(); node_p.add_child(item_v); item_v.add_theme_constant_override("separation", 4); item_v.alignment = BoxContainer.ALIGNMENT_CENTER
+			var l_name = Label.new(); l_name.text = s.name.to_upper(); l_name.add_theme_font_size_override("font_size", 12); l_name.modulate = Color.WHITE; item_v.add_child(l_name)
+			var l_desc = Label.new(); l_desc.text = s.desc; l_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l_desc.add_theme_font_size_override("font_size", 10); l_desc.modulate = Color(0.8, 0.8, 0.8); item_v.add_child(l_desc)
+			
+			var bar_h = HBoxContainer.new(); item_v.add_child(bar_h); bar_h.add_theme_constant_override("separation", 5)
+			for b_idx in range(5):
+				var bar = ColorRect.new(); bar.custom_minimum_size = Vector2(25, 6); bar_h.add_child(bar)
+				bar.color = Color.GOLD if b_idx < lvl else Color(0.2, 0.2, 0.2, 0.5)
+			
+			var b_click = Button.new(); b_click.flat = true; node_p.add_child(b_click)
+			b_click.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			b_click.pressed.connect(func(): talent_system.invest_point(ck, i))
+
 
 # --- EQUIPO (PARTY) ---
 func _update_party_ui():

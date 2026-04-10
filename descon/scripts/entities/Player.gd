@@ -26,7 +26,7 @@ var is_autopilot_active: bool: # Alias para compatibilidad con el minimapa
 var hubs: int = 0
 var ohculianos: int = 0
 var inventory: Array = []
-var equipped: Dictionary = {"l": [], "s": [], "e": []}
+var equipped: Dictionary = {"w": [], "s": [], "e": [], "x": []}
 var owned_ships: Array = [1]
 var current_ship_id: int = 1
 var base_laser_damage: float = 100.0
@@ -59,6 +59,7 @@ func _ready():
 		NetworkManager.inventory_data.connect(_on_inventory_received)
 		NetworkManager.enemy_dead.connect(_on_enemy_dead)
 		NetworkManager.reward_received.connect(_on_reward_received)
+		NetworkManager.level_up.connect(_on_level_up)
 
 func _physics_process(p_delta):
 	if not NetworkManager.network_connected: return
@@ -99,10 +100,25 @@ func _handle_cooldowns(p_delta):
 		if cooldowns[s] > 0: cooldowns[s] -= p_delta
 
 func _on_inventory_received(p_data):
-	if typeof(p_data) == TYPE_ARRAY:
-		inventory = p_data
-	elif typeof(p_data) == TYPE_DICTIONARY and p_data.has("items"):
-		inventory = p_data["items"]
+	# v196.85: Unpack robusto de datos de progresión (Fix Overwrite Bug)
+	var gd = p_data
+	if typeof(p_data) == TYPE_DICTIONARY and p_data.has("player"):
+		gd = p_data["player"]
+		
+	if typeof(gd) == TYPE_DICTIONARY:
+		if gd.has("items"): inventory = gd["items"]
+		elif gd.has("inventory"): inventory = gd["inventory"]
+		
+		if gd.has("equipped"): equipped = gd["equipped"]
+		if gd.has("hubs"): hubs = int(gd["hubs"])
+		if gd.has("ohcu"): ohculianos = int(gd["ohcu"])
+		
+		# Sincronía de Talentos
+		if gd.has("skillTree"):
+			skill_tree = gd["skillTree"].duplicate()
+			if gd.has("skillPoints"):
+				skill_tree["skillPoints"] = int(gd["skillPoints"])
+	
 	_recalculate_stats()
 
 func _recalculate_stats():
@@ -134,9 +150,22 @@ func _recalculate_stats():
 			ship_base = ship
 			break
 			
-	max_hp = float(ship_base.get("hp", 2000)) + total_hp_bonus
-	max_shield = float(ship_base.get("shield", 1000)) + total_sh_bonus
-	speed = float(ship_base.get("speed", 300)) + speed_bonus
+	var base_hp_val = float(ship_base.get("hp", 2000)) + total_hp_bonus
+	var base_sh_val = float(ship_base.get("shield", 1000)) + total_sh_bonus
+	var base_speed_val = float(ship_base.get("speed", 300)) + speed_bonus
+	
+	# v196.50: Aplicar Bonificaciones de Talentos Reales
+	var talent_system = get_tree().get_first_node_in_group("talent_system")
+	if is_instance_valid(talent_system):
+		var bonuses = talent_system.get_bonuses()
+		max_hp = base_hp_val * (1.0 + bonuses["hp_pct"])
+		max_shield = base_sh_val * (1.0 + bonuses["sh_pct"])
+		speed = base_speed_val * (1.0 + bonuses["speed_pct"])
+		base_laser_damage *= (1.0 + bonuses["dmg_pct"])
+	else:
+		max_hp = base_hp_val
+		max_shield = base_sh_val
+		speed = base_speed_val
 	
 	# Notificar al servidor nuestros nuevos límites reales (Sincronía Crítica)
 	save_progress()
@@ -161,12 +190,13 @@ func _shoot_skill(p_type: String, p_angle: float):
 	if ammo.has(p_type) and t_idx < ammo[p_type].size():
 		current_ammo = ammo[p_type][t_idx]
 	
-	# Parche: Siempre permitir disparar Tier 1 (Infinity Ammo para pruebas)
-	if current_ammo > 0:
-		ammo[p_type][t_idx] -= 1
+	if current_ammo <= 0: 
+		# v194.40: Bloqueo de disparo sin recursos
+		return
 		
-	cooldowns[p_type] = 0.5 if p_type == "laser" else 2.0
+	ammo[p_type][t_idx] -= 1
 	AudioManager.play_sfx(p_type)
+	cooldowns[p_type] = 1.0 # RESTRICCIÓN DE DISPARO RÁPIDO - 1s COOLDOWN
 	
 	# v164.91: Al disparar cualquier arma detiene el movimiento automático 
 	# para evitar el conflicto de rotación.
@@ -263,7 +293,12 @@ func respawn():
 func save_progress():
 	NetworkManager.send_event("saveProgress", {
 		"hubs": hubs, "ohcu": ohculianos, "exp": current_exp,
+		"level": level, "skillPoints": skill_tree.get("skillPoints", 0),
+		"skillTree": skill_tree,
 		"inventory": inventory, "equipped": equipped,
+		"hp": current_hp, "shield": current_shield,
+		"maxHp": max_hp, "maxShield": max_shield,
+		"ownedShips": owned_ships, "currentShipId": current_ship_id,
 		"lastPos": {"x": global_position.x, "y": global_position.y}
 	})
 
@@ -277,33 +312,61 @@ func _on_login_success(p_in):
 		ohculianos = int(gd.get("ohcu", 0))
 		inventory = gd.get("inventory", [])
 		equipped = gd.get("equipped", equipped)
+		ammo = gd.get("ammo", ammo)
+		selected_ammo = gd.get("selected_ammo", selected_ammo)
 		if gd.has("lastPos"):
 			var lp = gd["lastPos"]
 			global_position = Vector2(lp.get("x", 2000), lp.get("y", 2000))
 			target_position = global_position
 		current_ship_id = int(gd.get("currentShipId", 1)) # v190.81: Recordar qué nave tenemos
 		current_zone = int(gd.get("zone", 1)) # Sincronizar zona inicial
+		
+		# v194.20: Sincronía Crítica de Progresión (Fix HUD Bug)
+		level = int(gd.get("level", 1))
+		current_exp = float(gd.get("exp", 0))
+		skill_tree = gd.get("skillTree", {"engineering":[0,0,0,0,0,0,0,0],"combat":[0,0,0,0,0,0,0,0],"science":[0,0,0,0,0,0,0,0]}).duplicate()
+		skill_tree["skillPoints"] = int(gd.get("skillPoints", 0))
+		
+		# v194.30: Persistencia de Barras Vitales al Login
+		current_hp = float(gd.get("hp", max_hp)) 
+		current_shield = float(gd.get("shield", max_shield))
+		
 		_recalculate_stats()
+		update_stats({})
 	_update_tags()
+	_emit_stats()
 	queue_redraw()
 
 func _on_enemy_dead(_data): pass
-func _on_reward_received(p_data):
+func _on_reward_received(p_data: Dictionary):
+	# p_data: {hubs, ohcu, exp}
 	hubs += int(p_data.get("hubs", 0))
 	ohculianos += int(p_data.get("ohcu", 0))
+	current_exp += float(p_data.get("exp", 0))
+	
 	_update_tags()
+	_emit_stats()
+	print("[LOOT] ", p_data)
+
+func _on_level_up(p_data: Dictionary):
+	# p_data: {level, skillPoints}
+	level = int(p_data.get("level", level + 1))
+	print("[LEVEL-UP] Ahora eres Nivel ", level)
 	_emit_stats()
 
 func _emit_stats():
 	stats_changed.emit({
 		"hp": current_hp, "maxHp": max_hp,
 		"sh": current_shield, "maxSh": max_shield,
-		"hubs": hubs, "ohcu": ohculianos
+		"hubs": hubs, "ohcu": ohculianos,
+		"level": level, "current_exp": current_exp, "next_level_exp": next_level_exp
 	})
 
 func update_stats(data: Dictionary):
 	# v167.92: Heredar Detección de Daño de Entity (Reset Combat Timer)
 	super.update_stats(data)
 	
-	# Sincronía adicional específica del Jugador (Stats locales y HUD)
+	# v196.10: Autoridad Total del Servidor
+	# El servidor ya calcula los bonus de talento en su maxHp/maxShield.
+	# El cliente solo debe emitir los cambios para el HUD.
 	_emit_stats()

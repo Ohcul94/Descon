@@ -111,11 +111,13 @@ func _process(_delta):
 	if is_instance_valid(lvl_label):
 		var p_exp = p_node.get("current_exp")
 		if p_exp == null: p_exp = 0.0
-		var next_exp = p_node.get("next_level_exp")
-		if next_exp == null or next_exp <= 0: next_exp = 1000.0
-		var pct = (p_exp / next_exp) * 100
 		var lvl = p_node.get("level")
-		lvl_label.text = "LEVEL " + str(lvl if lvl != null else 1) + " | EXP " + str(int(pct)) + "%"
+		if lvl == null: lvl = 1
+		
+		# v193.15: Meta Exponencial Sincronizada (Lvl^1.5 * 1000)
+		var next_exp = floor(1000.0 * pow(lvl, 1.5))
+		var pct = clamp((p_exp / next_exp) * 100, 0, 100)
+		lvl_label.text = "LEVEL " + str(lvl) + " | EXP " + str(int(pct)) + "%"
 		
 	if is_instance_valid(hubs_label): 
 		var val = p_node.get("hubs")
@@ -179,6 +181,10 @@ func _update_skill_ui(type: String, ref, slot):
 		var sel = sel_data.get(type, 0) if sel_data != null else 0
 		var a_count = a_list[sel] if a_list.size() > sel else 0
 		l_am.text = "T" + str(sel + 1) + ": " + _format_val(a_count)
+		l_am.modulate = Color(0, 1, 0.2) # VERDE NEÓN ORIGINAL
+		l_am.position = Vector2(40, 48) # ESQUINA INFERIOR DERECHA (Dentro del círculo pero visible)
+		l_am.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l_am.visible = true
 
 func _on_minimize_pressed(id: String):
 	var node = _get_hud_node(id)

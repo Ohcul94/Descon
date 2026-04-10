@@ -11,6 +11,7 @@ extends Node2D
 @onready var ui_admin = $HUD/AdminPanel
 @onready var local_player = $Player 
 @onready var combat_system = $CombatSystem
+var talent_system = null
 
 var remote_players = {}
 var enemies = {}
@@ -40,6 +41,8 @@ func _ready():
 	
 	# v190.71: Sincronía en Caliente de Configuración Admin
 	NetworkManager.config_updated.connect(_on_admin_config_received)
+	
+	talent_system = get_node_or_null("TalentSystem")
 	
 	ui_hud.visible = false
 	ui_inventory.visible = false
@@ -175,7 +178,20 @@ func _on_enemy_damaged(data: Dictionary):
 
 func _save_game_progress():
 	if not is_instance_valid(local_player): return
-	var d = { "hubs": local_player.hubs, "ohcu": local_player.ohculianos, "level": local_player.level, "exp": local_player.current_exp, "hp": local_player.current_hp, "shield": local_player.current_shield }
+	var d = { 
+		"hubs": local_player.hubs, 
+		"ohcu": local_player.ohculianos, 
+		"level": local_player.level, 
+		"exp": local_player.current_exp, 
+		"hp": local_player.current_hp, 
+		"shield": local_player.current_shield,
+		"maxHp": local_player.max_hp,
+		"maxShield": local_player.max_shield,
+		"inventory": local_player.inventory,
+		"equipped": local_player.equipped,
+		"skillPoints": local_player.skill_tree.get("skillPoints", 0) if local_player.skill_tree else 0,
+		"skillTree": local_player.skill_tree
+	}
 	NetworkManager.send_event("saveProgress", d)
 
 func route_chat_bubble(data: Dictionary):
