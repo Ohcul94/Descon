@@ -20,6 +20,14 @@ const UserSchema = new mongoose.Schema({
         ownedShips: { type: [Number], default: [1] },
         maxShips: { type: Number, default: 2 },
         currentShipId: { type: Number, default: 1 },
+        // v210.60: EQUIPAMIENTO ÚNICO POR NAVE
+        equippedByShip: { 
+            type: Map, 
+            of: Object, 
+            default: {
+                "1": { w: [], s: [], e: [], x: [] }
+            } 
+        },
         ammo: {
             laser: { type: [Number], default: [1000, 0, 0, 0, 0, 0] },
             missile: { type: [Number], default: [50, 0, 0, 0, 0, 0] },

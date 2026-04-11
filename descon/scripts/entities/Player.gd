@@ -28,7 +28,6 @@ var ohculianos: int = 0
 var inventory: Array = []
 var equipped: Dictionary = {"w": [], "s": [], "e": [], "x": []}
 var owned_ships: Array = [1]
-var current_ship_id: int = 1
 var base_laser_damage: float = 100.0
 var level: int = 1
 var current_exp: float = 0.0
@@ -297,6 +296,7 @@ func _on_login_success(p_in):
 			global_position = Vector2(lp.get("x", 2000), lp.get("y", 2000))
 			target_position = global_position
 		current_ship_id = int(gd.get("currentShipId", 1))
+		_setup_ship_visuals() # v210.20: Fuerza actualización visual tras recibir ID del servidor
 		current_zone = int(gd.get("zone", 1))
 		level = int(gd.get("level", 1))
 		current_exp = float(gd.get("exp", 0))

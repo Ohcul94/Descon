@@ -317,7 +317,8 @@ io.on('connection', (socket) => {
                     science: [0, 0, 0, 0, 0, 0, 0, 0]
                 },
                 ammo: user.gameData.ammo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
-                equipped: user.gameData.equipped || { w: [], s: [], e: [], x: [] },
+                // v210.80: Cargar equipo específico de esta nave al login (Clonado)
+                equipped: JSON.parse(JSON.stringify(user.gameData.equippedByShip?.get(user.gameData.currentShipId.toString()) || { w: [], s: [], e: [], x: [] })),
                 spheres: user.gameData.spheres || [
                     { "name": "Alfa", "type": "w", "color": "#ffe031", "equipped": null },
                     { "name": "Beta", "type": "s", "color": "#31dfff", "equipped": null },
@@ -339,11 +340,22 @@ io.on('connection', (socket) => {
             let adminConfig = null;
             try { adminConfig = await fs.readJson(CONFIG_FILE); } catch (e) { }
 
+
+            // v210.120: Serialización POJO para que Godot entienda el Mapa de Flota
+            const eByShipObj = {};
+            if (user.gameData.equippedByShip) {
+                user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+            }
+
             socket.emit('loginSuccess', {
                 id: dbId, // Identidad Galáctica v123.20
                 socketId: socket.id,
                 user: username,
-                gameData: user.gameData,
+                gameData: {
+                    ...user.gameData.toObject(),
+                    equippedByShip: eByShipObj,
+                    equipped: user.gameData.equipped // Asegurar sincronía de nave activa
+                },
                 adminConfig: adminConfig
             });
 
@@ -410,8 +422,20 @@ io.on('connection', (socket) => {
             const user = await User.findById(socket.dbUser._id);
             if (user) {
                 socket.dbUser = user;
-                socket.emit('inventoryData', { player: user.gameData });
-                console.log(`[SYNC] Inventario enviado a ${user.username} (${user.gameData.inventory.length} ítems)`);
+                // v210.121: Sincronía de Mapa para Godot
+                const eByShipObj = {};
+                if (user.gameData.equippedByShip) {
+                    user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+                }
+
+                socket.emit('inventoryData', { 
+                    player: {
+                        ...user.gameData.toObject(),
+                        equippedByShip: eByShipObj,
+                        equipped: user.gameData.equipped
+                    }
+                });
+                console.log(`[SYNC] Inventario enviado a ${user.username} (Flota Sincronizada)`);
             }
         } catch (e) { console.error("Error en getInventory:", e); }
     });
@@ -438,14 +462,21 @@ io.on('connection', (socket) => {
             const updateFields = {};
             const fields = [
                 "hp", "shield", "ammo", "selectedAmmo", "inventory", 
-                "equipped", "spheres", "ownedShips", "currentShipId", "skillTree",
+                "equipped", "spheres", "skillTree",
                 "lastPos", "hudPositions"
             ];
-            // REMOVIDOS de fields: hubs, ohcu, exp, level, skillPoints
+            // REMOVIDOS perlas: hubs, ohcu, exp, level, skillPoints, ownedShips, currentShipId
 
             fields.forEach(field => {
                 if (gameData[field] !== undefined) {
-                    updateFields[`gameData.${field}`] = gameData[field];
+                    // v210.81: El campo 'equipped' global ya NO se guarda directamente. 
+                    // Siempre debe ir al mapa per-ship.
+                    if (field === "equipped") {
+                        const shipId = socket.dbUser.gameData.currentShipId.toString();
+                        updateFields[`gameData.equippedByShip.${shipId}`] = gameData[field];
+                    } else {
+                        updateFields[`gameData.${field}`] = gameData[field];
+                    }
                 }
             });
 
@@ -677,17 +708,7 @@ io.on('connection', (socket) => {
 
             // Notificar éxito y enviar inventario fresco (v164.7 Godot Sync Absolute)
             const responseData = {
-                player: {
-                    hubs: user.gameData.hubs,
-                    ohcu: user.gameData.ohcu,
-                    inventory: user.gameData.inventory,
-                    items: user.gameData.inventory,
-                    equipped: user.gameData.equipped,
-                    skillTree: user.gameData.skillTree,
-                    skillPoints: user.gameData.skillPoints,
-                    ownedShips: user.gameData.ownedShips,
-                    currentShipId: user.gameData.currentShipId
-                }
+                player: user.gameData
             };
             socket.emit('inventoryData', responseData);
             // socket.emit('loginSuccess', { id: user._id.toString(), user: user.username, gameData: user.gameData }); // ELIMINADO v164.11: Evita el reset de posición al comprar
@@ -791,9 +812,12 @@ io.on('connection', (socket) => {
     socket.on('equipItem', async (data) => {
         if (!socket.dbUser) return;
         try {
-            const { instanceId, category } = data; // category es w, s, e, x
+            const { instanceId, category, shipId } = data; // v210.100: shipId opcional
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
+
+            const targetShipId = shipId ? parseInt(shipId) : user.gameData.currentShipId;
+            if (!user.gameData.ownedShips.includes(targetShipId)) return socket.emit('authError', 'NAVE NO POSEÍDA');
 
             const itemIdx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
             if (itemIdx === -1) return socket.emit('authError', 'ÍTEM NO ENCONTRADO EN BODEGA');
@@ -801,32 +825,51 @@ io.on('connection', (socket) => {
             const item = user.gameData.inventory[itemIdx];
             const type = item.type; // w, s, e, x
 
-            // Validar Slots de la nave actual
-            const currentShip = SERVER_CONFIG.shipModels.find(m => m.id === user.gameData.currentShipId);
+            // Validar Slots de la nave objetivo (v210.101)
+            const currentShip = SERVER_CONFIG.shipModels.find(m => m.id === targetShipId);
             const maxSlots = (currentShip && currentShip.slots) ? (currentShip.slots[type] || 0) : 0;
 
-            if (!user.gameData.equipped[type]) user.gameData.equipped[type] = [];
-            if (user.gameData.equipped[type].length >= maxSlots) {
-                return socket.emit('authError', 'SLOTS DE EQUIPAMIENTO LLENOS');
+            // Obtener el buffer de equipo de esa nave específica
+            if (!user.gameData.equippedByShip) user.gameData.equippedByShip = new Map();
+            let shipEquip = user.gameData.equippedByShip.get(targetShipId.toString()) || { w: [], s: [], e: [], x: [] };
+
+            if (!shipEquip[type]) shipEquip[type] = [];
+            if (shipEquip[type].length >= maxSlots) {
+                return socket.emit('authError', 'SLOTS DE EQUIPAMIENTO LLENOS EN ESTA NAVE');
             }
 
             // Mover de inventario a equipado
-            user.gameData.equipped[type].push(item);
+            shipEquip[type].push(item);
             user.gameData.inventory.splice(itemIdx, 1);
+            
+            // Actualizar mapa y campo global si es la nave activa
+            user.gameData.equippedByShip.set(targetShipId.toString(), JSON.parse(JSON.stringify(shipEquip)));
+            if (targetShipId === user.gameData.currentShipId) {
+                user.gameData.equipped = JSON.parse(JSON.stringify(shipEquip));
+                user.markModified('gameData.equipped');
+            }
 
-            user.markModified('gameData.equipped');
+            user.markModified('gameData.equippedByShip');
             user.markModified('gameData.inventory');
             await user.save();
             socket.dbUser = user;
 
-            const responseData = { player: user.gameData };
+            // v210.102: Serialización POJO para enviar al cliente
+            const eByShipObj = {};
+            user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+
+            const responseData = { 
+                player: { 
+                    ...user.gameData.toObject(), 
+                    equippedByShip: eByShipObj,
+                    equipped: user.gameData.equipped // Siempre enviar el de la nave activa para el Player.gd
+                } 
+            };
             socket.emit('inventoryData', responseData);
 
-            // v164.80: Actualizar RAM del server INMEDIATAMENTE tras equipar
-            if (players[socket.id]) {
+            if (players[socket.id] && targetShipId === user.gameData.currentShipId) {
                 players[socket.id].inventory = user.gameData.inventory;
-                players[socket.id].equipped = user.gameData.equipped;
-                // Los máximos se actualizarán vía saveProgress desde el cliente en el próximo tick
+                players[socket.id].equipped = JSON.parse(JSON.stringify(user.gameData.equipped));
             }
         } catch (e) { console.error("Error en equipItem:", e); }
     });
@@ -843,6 +886,13 @@ io.on('connection', (socket) => {
             const item = user.gameData.equipped[category][index];
             user.gameData.inventory.push(item);
             user.gameData.equipped[category].splice(index, 1);
+ 
+            // v210.71: Sincronía Per-Ship (Guardar cambio en el cajón)
+            const shipId = user.gameData.currentShipId.toString();
+            if (user.gameData.equippedByShip) {
+                user.gameData.equippedByShip.set(shipId, user.gameData.equipped);
+                user.markModified('gameData.equippedByShip');
+            }
 
             user.markModified('gameData.equipped');
             user.markModified('gameData.inventory');
@@ -864,6 +914,64 @@ io.on('connection', (socket) => {
         if (players[socket.id]) {
             players[socket.id].latency = ms;
         }
+    });
+
+    // v210.10: Cambiar Nave en el Hangar
+    socket.on('switchShip', async (data) => {
+        const p = players[socket.id];
+        if (!p || !socket.dbUser) return;
+        const shipId = parseInt(data.shipId);
+        
+        try {
+            const user = await User.findById(socket.dbUser._id);
+            if (user && user.gameData.ownedShips.includes(shipId)) {
+                // v210.11: Bloqueo en Combate (Safe Switch)
+                const now = Date.now();
+                if (p.lastHit && now - p.lastHit < 10000) {
+                     socket.emit('authError', 'ALERTA DE COMBATE: Espera 10s fuera de combate para cambiar de nave.');
+                     return;
+                }
+                
+                // v210.83: INTERCAMBIO DE EQUIPAMIENTO CON CLONADO (Aislamiento Total)
+                const oldShipId = user.gameData.currentShipId.toString();
+                const newShipId = shipId.toString();
+                
+                if (!user.gameData.equippedByShip) user.gameData.equippedByShip = new Map();
+                
+                // 1. Respaldar equipo de la nave vieja (Clonado profundo)
+                user.gameData.equippedByShip.set(oldShipId, JSON.parse(JSON.stringify(user.gameData.equipped)));
+                
+                // 2. Cargar equipo de la nave nueva (Si existe)
+                const newEquip = user.gameData.equippedByShip.get(newShipId);
+                if (newEquip) {
+                    user.gameData.equipped = JSON.parse(JSON.stringify(newEquip));
+                } else {
+                    user.gameData.equipped = { w: [], s: [], e: [], x: [] };
+                }
+
+                p.currentShipId = shipId;
+                p.equipped = JSON.parse(JSON.stringify(user.gameData.equipped));
+                user.gameData.currentShipId = shipId;
+                
+                user.markModified('gameData.equippedByShip');
+                await user.save();
+                socket.dbUser = user;
+                
+                // v210.91: Serialización POJO (Map -> Object) para Socket.io
+                const eByShipObj = {};
+                user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+
+                socket.emit('inventoryData', { 
+                    player: { 
+                        ...user.gameData.toObject(), 
+                        equipped: user.gameData.equipped,
+                        equippedByShip: eByShipObj
+                    } 
+                });
+                io.emit('playerShipChanged', { id: socket.id, shipId: shipId });
+                console.log(`[HANGAR] Piloto ${p.user} cambió de nave. ID: ${shipId}. Nuevo equipo w: ${user.gameData.equipped.w.length}`);
+            }
+        } catch (e) { console.error("Error selectShip:", e); }
     });
 
     socket.on('playerMovement', async (movementData) => {

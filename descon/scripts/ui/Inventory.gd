@@ -12,10 +12,12 @@ var ohcu = 0
 var is_open = false
 
 var talent_system = null
+var selected_hangar_ship_id = -1 # v210.15: Nave seleccionada para ver en Hangar
 
 var shop_tab = "ships"
 var ammo_sub_tab = "laser"
 var modal_active = false
+var equipped_by_ship = {} # v210.95: Cache local de equipos de toda la flota
 
 var SKILL_DATA = [
 	{ "id": "eng_1", "cat": "engineering", "name": "REFUERZO DE CASCO", "desc": "+2% HP por nivel", "max": 5 },
@@ -189,21 +191,34 @@ func _refresh_data():
 
 func _on_inventory_received(data: Dictionary):
 	if data.has("player"): data = data.player
-	inventory_items = data.get("inventory", data.get("items", []))
-	equipped_data = data.get("equipped", equipped_data)
-	# Los talentos ahora se gestionan vía TalentSystem.gd, quien también escucha inventoryData
-	owned_ships = data.get("ownedShips", [])
-	current_ship_id = data.get("currentShipId", 1)
-	hubs = int(data.get("hubs", hubs))
-	ohcu = int(data.get("ohcu", ohcu))
 	
-	# v164.11: Intentar sincronizar con el Player real si existe en escena
+	# v210.50: ACTUALIZACIÓN SEGURA (Detección de Datos Parciales)
+	if data.has("inventory") or data.has("items"):
+		inventory_items = data.get("inventory", data.get("items", []))
+	if data.has("equipped"):
+		equipped_data = data.equipped
+	if data.has("ownedShips"):
+		owned_ships = data.ownedShips
+	if data.has("currentShipId"):
+		current_ship_id = int(data.currentShipId)
+	if data.has("hubs"): hubs = int(data.hubs)
+	if data.has("ohcu"): ohcu = int(data.ohcu)
+	if data.has("equippedByShip"):
+		equipped_by_ship = data.equippedByShip
+	
+	# v164.11: Sincronizar con el Player y actualizar visual de nave instantáneamente!
 	var p = get_tree().get_first_node_in_group("player")
 	if p:
 		p.hubs = hubs
 		p.ohculianos = ohcu
-		p.inventory = inventory_items
-		p.equipped = equipped_data
+		if data.has("inventory") or data.has("items"): p.inventory = inventory_items
+		if data.has("equipped"): p.equipped = equipped_data
+		
+		# v210.51: CAMBIO DE NAVE EN VIVO (Sin relogueo)
+		if data.has("currentShipId"):
+			p.current_ship_id = current_ship_id
+			if p.has_method("_setup_ship_visuals"): p._setup_ship_visuals()
+			
 		if p.has_method("_recalculate_stats"): p._recalculate_stats()
 		elif p.has_method("_emit_stats"): p._emit_stats()
 
@@ -212,6 +227,9 @@ func _on_inventory_received(data: Dictionary):
 	_update_talent_tree()
 	_update_shop_ui()
 	_update_party_ui()
+	
+	# v210.16: Si no hay nave seleccionada en visor, poner la actual
+	if selected_hangar_ship_id == -1: selected_hangar_ship_id = current_ship_id
 
 # --- HANGAR ---
 func _update_hangar_ui():
@@ -228,20 +246,30 @@ func _update_hangar_ui():
 	for i in range(owned_ships.size(), 2): _create_empty_fleet_card(f_grid)
 	
 	var model = {}
+	var viewing_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
+	
 	for ship in GameConstants.SHIP_MODELS: 
-		if ship["id"] == current_ship_id: 
+		if ship["id"] == viewing_id: 
 			model = ship
 			break
 	
-	if model.is_empty(): # Fallback fail-safe v164.4
-		model = GameConstants.SHIP_MODELS[0]
+	if model.is_empty(): model = GameConstants.SHIP_MODELS[0]
 	
 	var h_box = HBoxContainer.new(); l_col.add_child(h_box)
 	var name_txt = model.get("name", "Nave Desconocida").to_upper()
 	var s_title = Label.new(); s_title.text = "\n" + name_txt; s_title.add_theme_font_size_override("font_size", 28); h_box.add_child(s_title)
 	
+	# v210.18: BOTÓN DE ACTIVACIÓN (Sólo si no es la activa)
+	if viewing_id != current_ship_id:
+		var btn_act = Button.new()
+		btn_act.text = "ACTIVAR MODELO"
+		btn_act.custom_minimum_size = Vector2(150, 40)
+		btn_act.modulate = Color.GREEN
+		btn_act.pressed.connect(func(): NetworkManager.send_event("switchShip", {"shipId": viewing_id}))
+		h_box.add_child(btn_act)
+
 	var slots = model.get("slots") if model.has("slots") else {"w":0, "s":0, "e":0, "x":0}
-	var s_mini = Label.new(); s_mini.text = "W:" + str(slots.get("w", 0)) + " S:" + str(slots.get("s", 0)) + " E:" + str(slots.get("e", 0)); s_mini.modulate.a = 0.3; s_mini.size_flags_horizontal = 3; s_mini.horizontal_alignment = 2; h_box.add_child(s_mini)
+	var s_mini = Label.new(); s_mini.text = "ESTADÍSTICAS DEL CHASIS"; s_mini.modulate.a = 0.3; s_mini.size_flags_horizontal = 3; s_mini.horizontal_alignment = 2; h_box.add_child(s_mini)
 	
 	var slots_v = VBoxContainer.new(); slots_v.add_theme_constant_override("separation", 12); l_col.add_child(slots_v)
 	_render_group(slots_v, "w", "BLOQUE DE ARMAMENTO", slots["w"])
@@ -271,11 +299,23 @@ func _create_fleet_card(sid, parent):
 	if model.is_empty(): return # Anti-crash v164.4
 	
 	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(140, 55)
-	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0, 1, 0, 0.05) if sid == current_ship_id else Color(0,0,0,0.5)
-	sb.border_width_left = 1; sb.border_color = Color.GREEN if sid == current_ship_id else Color(1,1,1,0.1); p.add_theme_stylebox_override("panel", sb)
-	var v = VBoxContainer.new(); p.add_child(v); var n = Label.new(); n.text = model["name"]; n.horizontal_alignment = 1; v.add_child(n)
-	var st = Label.new(); st.text = "NAVE ACTIVA" if sid == current_ship_id else "EN HANGAR"; st.horizontal_alignment = 1; st.modulate = Color.GREEN if sid == current_ship_id else Color.WHITE; st.add_theme_font_size_override("font_size", 8); v.add_child(st)
-	if sid != current_ship_id: p.gui_input.connect(func(ev): if ev is InputEventMouseButton and ev.pressed: NetworkManager.send_event("switchShip", {"shipId": sid}))
+	var is_active = (sid == current_ship_id)
+	var is_viewing = (sid == selected_hangar_ship_id)
+	
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0, 1, 0, 0.1) if is_active else (Color(0, 0.5, 1, 0.1) if is_viewing else Color(0,0,0,0.5))
+	sb.border_width_left = 2; sb.border_color = Color.GREEN if is_active else (Color.CYAN if is_viewing else Color(1,1,1,0.1))
+	p.add_theme_stylebox_override("panel", sb)
+	
+	var v = VBoxContainer.new(); p.add_child(v)
+	var n = Label.new(); n.text = model["name"]; n.horizontal_alignment = 1; v.add_child(n)
+	var st = Label.new(); st.text = "ACTIVA" if is_active else "DISPONIBLE"; st.horizontal_alignment = 1; st.modulate = Color.GREEN if is_active else Color.WHITE; st.add_theme_font_size_override("font_size", 8); v.add_child(st)
+	
+	p.gui_input.connect(func(ev): 
+		if ev is InputEventMouseButton and ev.pressed: 
+			selected_hangar_ship_id = sid
+			_update_hangar_ui()
+	)
 	parent.add_child(p)
 
 func _create_empty_fleet_card(parent):
@@ -285,7 +325,19 @@ func _create_empty_fleet_card(parent):
 func _render_group(parent, type, title, count):
 	var l = Label.new(); l.text = title; l.modulate.a = 0.4; l.add_theme_font_size_override("font_size", 9); parent.add_child(l)
 	var grid = GridContainer.new(); grid.columns = 10; parent.add_child(grid)
-	var eq = equipped_data.get(type, [])
+	
+	# v210.96: Usar caché per-ship si no es la nave activa
+	# v210.110: Unificar fuente de datos (Priorizar siempre el Mapa de la Flota para evitar bugs de desincronía)
+	var eq = []
+	var viewing_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
+	
+	if equipped_by_ship.has(str(viewing_id)):
+		var ship_e = equipped_by_ship.get(str(viewing_id), {})
+		if ship_e: eq = ship_e.get(type, [])
+	else:
+		# Fallback solo si el mapa no ha llegado aún
+		eq = equipped_data.get(type, [])
+		
 	for i in range(count):
 		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(40, 40); var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 1; sb.border_color = Color(1,1,1,0.1); p.add_theme_stylebox_override("panel", sb)
 		if i < eq.size():
@@ -302,10 +354,34 @@ func _create_item_row(it, parent):
 	var type_txt = str(it.get("type", "OBJ")).to_upper()
 	var t = Label.new(); t.text = "MODULO " + type_txt; t.add_theme_font_size_override("font_size", 8); t.modulate = Color.CYAN; v.add_child(t)
 	var b = Button.new(); b.text = "EQUIPAR"; b.add_theme_font_size_override("font_size", 9)
+	
 	b.pressed.connect(func(): 
 		var it_type = it.get("type", "w")
-		print("[INVENTARIO] Intentando equipar: ", it.get("instanceId", "nan"), " de tipo: ", it_type)
-		NetworkManager.send_event("equipItem", {"category": it_type, "instanceId": it.get("instanceId", "")})
+		var viewing_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
+		
+		# v210.105: Validación de Slots Local (Anti-Crash)
+		var ship_config = null
+		for s in GameConstants.SHIP_MODELS:
+			if s["id"] == viewing_id: ship_config = s; break
+		
+		if ship_config:
+			var max_s = ship_config["slots"].get(it_type, 0)
+			var current_e = []
+			if viewing_id == current_ship_id: current_e = equipped_data.get(it_type, [])
+			else: 
+				var ship_e = equipped_by_ship.get(str(viewing_id), {})
+				if ship_e: current_e = ship_e.get(it_type, [])
+			
+			if current_e.size() >= max_s:
+				_show_result_modal("CHASIS LLENO", "Esta nave no tiene más slots de tipo " + it_type.to_upper())
+				return
+
+		print("[HANGAR] Equipando item en nave ID: ", viewing_id)
+		NetworkManager.send_event("equipItem", {
+			"category": it_type, 
+			"instanceId": it.get("instanceId", ""),
+			"shipId": viewing_id
+		})
 	)
 	hb.add_child(b); parent.add_child(p)
 

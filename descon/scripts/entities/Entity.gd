@@ -11,6 +11,7 @@ var entity_type: int = 1
 var max_hp: float = 2000; var current_hp: float = 2000
 var max_shield: float = 1000; var current_shield: float = 1000
 var hp_regen: float = 5.0; var sh_regen: float = 15.0
+var current_ship_id: int = 1
 
 var is_dead: bool = false
 var is_god: bool = false
@@ -185,6 +186,12 @@ func update_stats(data):
 		max_hp = float(data.maxHp)
 	if (data.has("maxShield") or data.has("maxSh")) and not is_local:
 		max_shield = float(data.get("maxShield", data.get("maxSh", 2000)))
+	
+	if data.has("currentShipId"):
+		var sid = int(data.currentShipId)
+		if sid != current_ship_id:
+			current_ship_id = sid
+			_setup_ship_visuals() # Recargar visuales si cambia la nave
 		
 	# v192.35: Corrección de Emergencia para Aliados (Si el actual es mayor al máximo)
 	if not is_local:
@@ -304,70 +311,74 @@ func show_bubble(p_text: String):
 	tw.tween_property(bubble, "global_position:y", bubble.global_position.y - 20, 0.5) # Subida inicial suave
 	tw.tween_interval(3.5)
 	tw.tween_property(bubble, "modulate:a", 0.0, 1.0)
-	tw.finished.connect(bubble.queue_free) # Conexión directa y segura
+	tw.finished.connect(bubble.queue_free)
 
 func _setup_ship_visuals():
-	# v191.60: CARGA SEGURA CON FALLBACK (PNG -> JPEG)
+	# Limpieza de sprite anterior si existe
+	if is_instance_valid(sprite): sprite.queue_free()
+	if is_instance_valid(anim_player): anim_player.queue_free()
+	
 	var poly = get_node_or_null("Polygon2D")
 	if poly: poly.visible = false
 	
-	sprite = Sprite2D.new()
-	sprite.name = "ShipSprite"
+	sprite = Sprite2D.new(); sprite.name = "ShipSprite"
 	
-	var path_png = "res://assets/player/Nave1.png"
-	var path_jpg = "res://assets/player/Nave1.jpeg"
+	# v210.0: SELECCIÓN DE MODELO (Vulture-G2 support)
+	var path = "res://assets/player/Nave1.png"
+	var h_f = 8; var v_f = 4
 	
-	if ResourceLoader.exists(path_png):
-		sprite.texture = load(path_png)
-		sprite.hframes = 8
-		sprite.vframes = 4
-	elif ResourceLoader.exists(path_jpg):
-		# v191.61: Fallback a JPEG si el PNG no se importó aún
-		sprite.texture = load(path_jpg)
-		sprite.hframes = 8
-		sprite.vframes = 4
+	if current_ship_id == 2:
+		path = "res://assets/player/Nave2 (Transp).png"
+		h_f = 4; v_f = 4 # Rejilla 4x4 solicitada
 	
-	sprite.scale = Vector2(0.5, 0.5)
-	sprite.rotation_degrees = 0
+	if ResourceLoader.exists(path):
+		var tex = load(path)
+		sprite.texture = tex
+		sprite.hframes = h_f
+		sprite.vframes = v_f
+		
+		# v210.30: ESCALADO DINÁMICO (Target 128x128 por frame)
+		var frame_w = tex.get_width() / float(h_f)
+		var frame_h = tex.get_height() / float(v_f)
+		var target_size = 128.0
+		var s = target_size / max(frame_w, frame_h)
+		sprite.scale = Vector2(s, s)
+	
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	add_child(sprite)
 	
+	# v210.40: Jerarquía de Estabilidad Total (AnimPlayer como hijo del Sprite)
 	anim_player = AnimationPlayer.new()
-	add_child(anim_player)
+	sprite.add_child(anim_player) 
+	
+	# Definimos el root_node del Player como su padre (el Sprite) para usar rutas relativas "."
+	anim_player.root_node = NodePath(".")
+	
 	var lib = AnimationLibrary.new()
 	anim_player.add_animation_library("", lib)
 	
-	# 1. IDLE (Bucle suave en fila 1)
-	var anim_idle = Animation.new()
-	var track_idx = anim_idle.add_track(Animation.TYPE_VALUE)
-	anim_idle.track_set_path(track_idx, "ShipSprite:frame")
-	for i in range(6): anim_idle.track_insert_key(track_idx, i * 0.15, i)
-	anim_idle.loop_mode = Animation.LOOP_LINEAR
-	lib.add_animation("idle", anim_idle)
+	# Definición de Animaciones
+	if h_f == 4: # MODO 4x4 (Vulture-G2)
+		_create_anim(lib, "idle", 0, 4, 0.15, true)
+		_create_anim(lib, "start_move", 4, 4, 0.08, false) 
+		_create_anim(lib, "run", 8, 4, 0.1, true)      
+		_create_anim(lib, "death", 12, 4, 0.08, false) 
+	else:
+		_create_anim(lib, "idle", 0, 6, 0.15, true)
+		_create_anim(lib, "start_move", 8, 3, 0.08, false)
+		_create_anim(lib, "run", 11, 3, 0.1, true)
+		_create_anim(lib, "death", 16, 16, 0.08, false)
 	
-	# 2. START_MOVE (Aceleración - Fila 2, frames 8-10)
-	var anim_start = Animation.new()
-	track_idx = anim_start.add_track(Animation.TYPE_VALUE)
-	anim_start.track_set_path(track_idx, "ShipSprite:frame")
-	for i in range(3): anim_start.track_insert_key(track_idx, i * 0.08, 8 + i)
-	lib.add_animation("start_move", anim_start)
-	
-	# 3. RUN (Vuelo - Fila 2, frames 11-13)
-	var anim_run = Animation.new()
-	track_idx = anim_run.add_track(Animation.TYPE_VALUE)
-	anim_run.track_set_path(track_idx, "ShipSprite:frame")
-	for i in range(3): anim_run.track_insert_key(track_idx, i * 0.1, 11 + i)
-	anim_run.loop_mode = Animation.LOOP_LINEAR
-	lib.add_animation("run", anim_run)
-
-	# 4. DEATH (Explosión - Fila 3 y 4)
-	var anim_death = Animation.new()
-	track_idx = anim_death.add_track(Animation.TYPE_VALUE)
-	anim_death.track_set_path(track_idx, "ShipSprite:frame")
-	for i in range(16): anim_death.track_insert_key(track_idx, i * 0.08, 16 + i)
-	lib.add_animation("death", anim_death)
-
 	anim_player.play("idle")
+
+func _create_anim(lib: AnimationLibrary, a_name: String, start: int, count: int, step: float, loop: bool):
+	var anim = Animation.new()
+	var track = anim.add_track(Animation.TYPE_VALUE)
+	# v210.41: Ruta absoluta al frame del nodo raíz del AnimationPlayer
+	anim.track_set_path(track, NodePath(".:frame"))
+	for i in range(count): anim.track_insert_key(track, i * step, start + i)
+	if loop: anim.loop_mode = Animation.LOOP_LINEAR
+	lib.add_animation(a_name, anim)
 
 func _setup_enemy_visuals(): pass
 
