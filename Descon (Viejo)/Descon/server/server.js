@@ -297,13 +297,29 @@ io.on('connection', (socket) => {
                 }
             } catch (e) { }
 
+            // v214.120: Sincronía Maestra al Login (Garantizar que 'equipped' global no esté vacío)
+            const resolvedEquip = (function () {
+                const ebs = user.gameData.equippedByShip;
+                const sid = (user.gameData.currentShipId || 1).toString();
+                let raw = { w: [], s: [], e: [], x: [] };
+                if (ebs) {
+                    if (typeof ebs.get === 'function') { raw = ebs.get(sid) || raw; }
+                    else { raw = ebs[sid] || raw; }
+                }
+                // Si el de la nave está vacío pero el global tiene algo, rescatar el global (Fail-safe)
+                if ((!raw.w || raw.w.length == 0) && (user.gameData.equipped && user.gameData.equipped.w && user.gameData.equipped.w.length > 0)) {
+                    raw = user.gameData.equipped;
+                }
+                return JSON.parse(JSON.stringify(raw));
+            })();
+
             players[socket.id] = {
                 id: dbId,
                 socketId: socket.id,
                 num: nextPlayerNum++,
                 user: username,
-                x: user.gameData.lastPos.x,
-                y: user.gameData.lastPos.y,
+                x: user.gameData.lastPos?.x || 0,
+                y: user.gameData.lastPos?.y || 0,
                 rotation: 0,
                 hp: user.gameData.hp || baseHp,
                 maxHp: baseHp,
@@ -316,21 +332,10 @@ io.on('connection', (socket) => {
                     combat: [0, 0, 0, 0, 0, 0, 0, 0],
                     science: [0, 0, 0, 0, 0, 0, 0, 0]
                 },
-                baseHp: baseHp, // Almacenar bases para recalcular
+                baseHp: baseHp, 
                 baseShield: baseSh,
                 ammo: user.gameData.ammo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
-                // v210.220: CARGA ULTRA-SEGURA (Hangar Persistence Fix)
-                // Detectar si equippedByShip es un Map o un Object común y extraer el equipo de la nave actual.
-                equipped: (function () {
-                    const ebs = user.gameData.equippedByShip;
-                    const sid = user.gameData.currentShipId.toString();
-                    let raw = { w: [], s: [], e: [], x: [] };
-                    if (ebs) {
-                        if (typeof ebs.get === 'function') { raw = ebs.get(sid) || raw; }
-                        else { raw = ebs[sid] || raw; }
-                    }
-                    return JSON.parse(JSON.stringify(raw));
-                })(),
+                equipped: resolvedEquip,
                 spheres: user.gameData.spheres || [
                     { "name": "Alfa", "type": "w", "color": "#ffe031", "equipped": null },
                     { "name": "Beta", "type": "s", "color": "#31dfff", "equipped": null },
@@ -467,60 +472,53 @@ io.on('connection', (socket) => {
     socket.on('saveProgress', async (gameData) => {
         if (!socket.dbUser || !gameData) return;
         try {
-            // v210.0: BLOQUEO AUTORITATIVO (Ignorar riquezas del cliente)
-            if (players[socket.id]) {
-                const p = players[socket.id];
-                p.hp = gameData.hp !== undefined ? gameData.hp : p.hp;
-                p.shield = gameData.shield !== undefined ? gameData.shield : p.shield;
-                p.selectedAmmo = gameData.selectedAmmo || p.selectedAmmo;
-                p.ammo = gameData.ammo || p.ammo;
-                p.equipped = gameData.equipped || p.equipped;
-                p.spheres = gameData.spheres || p.spheres;
-                p.skillTree = gameData.skillTree || p.skillTree;
-                p.hudPositions = gameData.hudPositions || p.hudPositions;
-                // hubs, ohcu, exp, level NO se actualizan desde aquí (Autoritativo v138)
-            }
-
             const p = players[socket.id];
+            if (!p) return;
+
+            // v214.150: SINCRONÍA AUTORITATIVA TOTAL
+            if (gameData.inventory && gameData.inventory.length > 0) p.inventory = gameData.inventory;
+            if (gameData.spheres) p.spheres = gameData.spheres;
+            if (gameData.equipped) p.equipped = gameData.equipped;
+            if (gameData.skillTree) p.skillTree = gameData.skillTree;
+            if (gameData.lastPos) p.lastPos = gameData.lastPos;
+
             const updateFields = {};
-            const fields = [
-                "hp", "shield", "ammo", "selectedAmmo", "inventory",
-                "equipped", "spheres", "skillTree",
-                "lastPos", "hudPositions",
-                "hubs", "ohcu", "exp", "level", "skillPoints", "currentShipId"
-            ];
+            
+            // Campos de Red/Stat
+            updateFields["gameData.hp"] = gameData.hp !== undefined ? gameData.hp : p.hp;
+            updateFields["gameData.shield"] = gameData.shield !== undefined ? gameData.shield : p.shield;
+            updateFields["gameData.ammo"] = gameData.ammo || p.ammo;
+            updateFields["gameData.lastPos"] = p.lastPos;
+            
+            // Persistencia de Inventario y Flota
+            updateFields["gameData.inventory"] = p.inventory;
+            updateFields["gameData.spheres"] = p.spheres;
+            updateFields["gameData.skillTree"] = p.skillTree;
+            
+            const shipId = p.currentShipId.toString();
+            updateFields[`gameData.equippedByShip.${shipId}`] = p.equipped;
+            updateFields["gameData.equipped"] = p.equipped;
 
-            // v210.225: GUARDA ANTI-DESTRUCCIÓN. Si el inventario viene sospechosamente vacío, abortar guardado
-            if (gameData.inventory && gameData.inventory.length === 0 && p && p.inventory && p.inventory.length > 0) {
-                console.log("[SECURITY] Bloqueado guardado de inventario vacío accidental.");
-                const idx = fields.indexOf("inventory");
-                if (idx > -1) fields.splice(idx, 1);
-            }
-
-            fields.forEach(field => {
-                if (gameData[field] !== undefined) {
-                    if (field === "equipped") {
-                        const shipId = socket.dbUser.gameData.currentShipId.toString();
-                        updateFields[`gameData.equippedByShip.${shipId}`] = gameData[field];
-                        updateFields[`gameData.equipped`] = gameData[field];
-                    } else {
-                        updateFields[`gameData.${field}`] = gameData[field];
+            // v214.151: RECALCULO MATEMÁTICO DE PUNTOS (Fix Nivel vs Puntos)
+            let spent = 0;
+            if (p.skillTree) {
+                for (let cat in p.skillTree) {
+                    if (Array.isArray(p.skillTree[cat])) {
+                        p.skillTree[cat].forEach(v => spent += (v || 0));
                     }
                 }
-            });
-
-            // Forzar persistencia de valores autoritativos del server (RAM -> DB)
-            if (p) {
-                updateFields["gameData.hubs"] = p.hubs;
-                updateFields["gameData.ohcu"] = p.ohcu;
-                updateFields["gameData.exp"] = p.exp;
-                updateFields["gameData.level"] = p.level;
-                updateFields["gameData.skillPoints"] = p.skillPoints;
             }
+            p.skillPoints = Math.max(0, (p.level - 1) - spent);
+            
+            // Forzar Atómicos (Riqueza y Nivel)
+            updateFields["gameData.hubs"] = p.hubs;
+            updateFields["gameData.ohcu"] = p.ohcu;
+            updateFields["gameData.exp"] = p.exp;
+            updateFields["gameData.level"] = p.level;
+            updateFields["gameData.skillPoints"] = p.skillPoints;
 
-            if (Object.keys(updateFields).length > 0) {
-                await User.updateOne({ _id: socket.dbUser._id }, { $set: updateFields });
-            }
+            await User.updateOne({ _id: socket.dbUser._id }, { $set: updateFields });
+            console.log(`[SAVE] Progreso de ${p.user} blindado. Lvl: ${p.level}, Puntos: ${p.skillPoints}`);
         } catch (e) { console.error("Error guardando progreso:", e); }
     });
 
@@ -736,6 +734,8 @@ io.on('connection', (socket) => {
                 user.gameData.inventory.push(newItem);
             }
 
+            // v214.125: PERSISTENCIA TOTAL (Fuerza a Mongo a grabar arrays/objetos profundos)
+            user.markModified('gameData');
             await user.save();
             socket.dbUser = user;
 

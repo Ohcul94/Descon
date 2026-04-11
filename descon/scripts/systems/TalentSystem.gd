@@ -48,7 +48,9 @@ func invest_point(category: String, index: int):
 		NetworkManager.send_event("investSkill", {"category": category, "index": index})
 		# El servidor responderá con inventoryData, lo cual disparará _on_inventory_data aquí.
 	else:
-		print("[TALENTS] Nivel máximo alcanzado o índice inválido.")
+		# v214.160: Silenciado para evitar ruido durante actualizaciones automáticas del servidor
+		# print("[TALENTS] Nivel máximo alcanzado o índice inválido.")
+		pass
 
 func reset_talents():
 	# El costo es de 5000 OHCU, se valida en el servidor
@@ -56,21 +58,21 @@ func reset_talents():
 
 # v1.0.2: Helper para obtener bonificadores reales para el Player.gd
 func get_bonuses() -> Dictionary:
-	var bonuses = {
-		"hp_pct": 0.0,
-		"sh_pct": 0.0,
-		"dmg_pct": 0.0,
-		"speed_pct": 0.0
-	}
+	var bonuses = { "hp_pct": 0.0, "sh_pct": 0.0, "dmg_pct": 0.0, "speed_pct": 0.0 }
+	if typeof(skill_tree) != TYPE_DICTIONARY: return bonuses
 	
-	# INGENIERÍA
-	bonuses["hp_pct"] = (skill_tree["engineering"][0] * 0.02) # REFUERZO DE CASCO
-	bonuses["sh_pct"] = (skill_tree["engineering"][1] * 0.02) # ESCUDO DINÁMICO
+	# INGENIERÍA (Verificación de Seguridad v214.130)
+	if skill_tree.has("engineering") and typeof(skill_tree["engineering"]) == TYPE_ARRAY and skill_tree["engineering"].size() > 0:
+		bonuses["hp_pct"] = (skill_tree["engineering"][0] * 0.02) # REFUERZO DE CASCO
+		if skill_tree["engineering"].size() > 1:
+			bonuses["sh_pct"] = (skill_tree["engineering"][1] * 0.02) # ESCUDO DINÁMICO
 	
 	# COMBATE
-	bonuses["dmg_pct"] = (skill_tree["combat"][0] * 0.03) # LÁSER SOBRECARGA
+	if skill_tree.has("combat") and typeof(skill_tree["combat"]) == TYPE_ARRAY and skill_tree["combat"].size() > 0:
+		bonuses["dmg_pct"] = (skill_tree["combat"][0] * 0.03) # LÁSER SOBRECARGA
 	
 	# CIENCIA
-	bonuses["speed_pct"] = (skill_tree["science"][0] * 0.015) # MOTORES FUSIÓN
+	if skill_tree.has("science") and typeof(skill_tree["science"]) == TYPE_ARRAY and skill_tree["science"].size() > 0:
+		bonuses["speed_pct"] = (skill_tree["science"][0] * 0.015) # MOTORES FUSIÓN
 	
 	return bonuses
