@@ -221,6 +221,10 @@ func _on_inventory_received(data: Dictionary):
 			
 		if p.has_method("_recalculate_stats"): p._recalculate_stats()
 		elif p.has_method("_emit_stats"): p._emit_stats()
+		
+		# v210.132: Forzar actualización visual inmediata de la Entidad (Sprite/HUD)
+		if p.has_method("update_stats"): 
+			p.update_stats({"currentShipId": current_ship_id, "equipped": equipped_data})
 
 	_update_hangar_ui()
 	_update_spheres_ui()
@@ -265,7 +269,13 @@ func _update_hangar_ui():
 		btn_act.text = "ACTIVAR MODELO"
 		btn_act.custom_minimum_size = Vector2(150, 40)
 		btn_act.modulate = Color.GREEN
-		btn_act.pressed.connect(func(): NetworkManager.send_event("switchShip", {"shipId": viewing_id}))
+		btn_act.pressed.connect(func(): 
+			NetworkManager.send_event("switchShip", {"shipId": viewing_id})
+			# v210.170: Feedback visual instantáneo para evitar confusión
+			current_ship_id = viewing_id
+			selected_hangar_ship_id = viewing_id
+			_update_hangar_ui()
+		)
 		h_box.add_child(btn_act)
 
 	var slots = model.get("slots") if model.has("slots") else {"w":0, "s":0, "e":0, "x":0}
@@ -342,7 +352,16 @@ func _render_group(parent, type, title, count):
 		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(40, 40); var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 1; sb.border_color = Color(1,1,1,0.1); p.add_theme_stylebox_override("panel", sb)
 		if i < eq.size():
 			var it = Label.new(); it.text = "I"; it.horizontal_alignment = 1; p.add_child(it); sb.border_color = Color.CYAN
-			p.gui_input.connect(func(ev): if ev is InputEventMouseButton and ev.pressed: NetworkManager.send_event("unequipItem", {"category": type, "index": i}))
+			p.gui_input.connect(func(ev): 
+				if ev is InputEventMouseButton and ev.pressed: 
+					var v_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
+					print("[HANGAR] Desequipando item en nave ID: ", v_id)
+					NetworkManager.send_event("unequipItem", {
+						"category": type, 
+						"index": i,
+						"shipId": v_id
+					})
+			)
 		else: var c = Label.new(); c.text = "+"; c.horizontal_alignment = 1; c.modulate.a = 0.1; p.add_child(c)
 		grid.add_child(p)
 

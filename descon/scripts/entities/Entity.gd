@@ -191,9 +191,22 @@ func update_stats(data):
 		var sid = int(data.currentShipId)
 		if sid != current_ship_id:
 			current_ship_id = sid
-			_setup_ship_visuals() # Recargar visuales si cambia la nave
+			# v210.160: Limpieza RADICAL de equipo al cambiar de nave para evitar polución visual
+			_clear_all_equipment_visuals()
+			_setup_ship_visuals()
 		
-	# v192.35: Corrección de Emergencia para Aliados (Si el actual es mayor al máximo)
+	# v210.131: Sincronía de Equipamiento Visual (Reflejar en el sprite/HUD)
+	if data.has("equipped"):
+		var new_eq = data.equipped
+		if typeof(new_eq) == TYPE_DICTIONARY:
+			# Si somos el jugador local, ya tenemos 'equipped' vinculado, solo recalculamos
+			# Si somos remoto, actualizamos el diccionario local
+			if !is_in_group("player"):
+				if self.has_method("set"): self.set("equipped", new_eq)
+			
+			# Forzar recálculo de stats/visuales si corresponde
+			if self.has_method("_recalculate_stats"):
+				self.call("_recalculate_stats")
 	if not is_local:
 		if current_shield > max_shield: max_shield = current_shield
 		if current_hp > max_hp: max_hp = current_hp
@@ -394,7 +407,7 @@ func _update_animations():
 		sprite.frame = 0
 		return
 
-	if vel_len > 40.0:
+	if velocity.length() > 40.0:
 		if not anim_player.is_playing() or anim_player.current_animation == "idle":
 			anim_player.play("start_move")
 			if anim_player.is_playing() and anim_player.current_animation == "start_move":
@@ -402,3 +415,17 @@ func _update_animations():
 			if velocity.length() > 40.0: anim_player.play("run")
 	else:
 		if anim_player.current_animation != "idle": anim_player.play("idle")
+
+# v210.161: Helper para limpiar visuales de equipo (evita duplicidad)
+func _clear_all_equipment_visuals():
+	# Buscar nodos de equipo bajo esta entidad y eliminarlos
+	if is_instance_valid(sprite):
+		for child in sprite.get_children():
+			if child is Sprite2D or child is Node2D:
+				# Si el nodo es de equipamiento, lo volamos
+				if child.name.begins_with("Equip_") or child.is_in_group("ship_equipment"):
+					child.queue_free()
+	
+	# v210.162: Forzar redibujado de la capa de HUD local si aplica
+	if is_instance_valid(_ui_wrapper):
+		_ui_wrapper.queue_redraw()
