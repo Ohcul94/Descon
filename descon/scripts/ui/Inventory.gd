@@ -341,31 +341,62 @@ func _render_spheres_equipment(tab, sub_tabs):
 
 	for i in range(3):
 		var s_data = spheres_manager.spheres_data[i]
+		# v205.20: Saneamiento de Color HÍBRIDO (CSV + HEX)
+		var s_color = s_data["color"]
+		if typeof(s_color) == TYPE_STRING:
+			var c_str = s_color.replace("(","").replace(")","").replace(" ","")
+			if "," in c_str:
+				var parts = c_str.split(",")
+				if parts.size() >= 3:
+					var r_val = float(parts[0]); var g_val = float(parts[1]); var b_val = float(parts[2])
+					var a_val = float(parts[3]) if parts.size() > 3 else 1.0
+					s_color = Color(r_val, g_val, b_val, a_val)
+			else:
+				# Soporte para Hexadecimal (#ffffff)
+				s_color = Color(c_str)
 		var v_box = VBoxContainer.new(); spheres_h.add_child(v_box)
 		
-		var s_label = Label.new(); s_label.text = s_data["name"]; s_label.horizontal_alignment = 1; s_label.modulate = s_data["color"]; v_box.add_child(s_label)
+		var s_label = Label.new(); s_label.text = s_data["name"]; s_label.horizontal_alignment = 1; s_label.modulate = s_color; v_box.add_child(s_label)
 		
 		var p_ui = PanelContainer.new(); p_ui.custom_minimum_size = Vector2(140, 140); v_box.add_child(p_ui)
-		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 3; sb.border_width_right = 3; sb.border_width_top = 3; sb.border_width_bottom = 3; sb.border_color = s_data["color"]; sb.corner_radius_top_left = 70; sb.corner_radius_top_right = 70; sb.corner_radius_bottom_left = 70; sb.corner_radius_bottom_right = 70; p_ui.add_theme_stylebox_override("panel", sb)
+		p_ui.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; p_ui.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 3; sb.border_width_right = 3; sb.border_width_top = 3; sb.border_width_bottom = 3; sb.border_color = s_color; sb.corner_radius_top_left = 70; sb.corner_radius_top_right = 70; sb.corner_radius_bottom_left = 70; sb.corner_radius_bottom_right = 70; p_ui.add_theme_stylebox_override("panel", sb)
 		
 		# Efecto de brillo interior para esferas vacías
 		if not s_data["equipped"]:
-			sb.bg_color = s_data["color"]; sb.bg_color.a = 0.05
+			sb.bg_color = s_color; sb.bg_color.a = 0.05
 		
 		var equipped = s_data["equipped"]
 		var center = CenterContainer.new(); p_ui.add_child(center)
 		var info_v = VBoxContainer.new(); center.add_child(info_v)
 		
+		var s_name = "VACÍO"
+		if equipped:
+			# v206.10: Filtro ANTI-BASURA (Bloquea punteros RESOURCE del servidor)
+			var eq_str = str(equipped)
+			if eq_str.begins_with("():<RE"): 
+				s_name = "VACÍO"
+				equipped = null # Forzar reset local para visual limpia
+			elif typeof(equipped) == TYPE_DICTIONARY: 
+				s_name = str(equipped.get("skill_name", "SKILL"))
+			elif "skill_name" in equipped: 
+				s_name = str(equipped.skill_name)
+			else: 
+				s_name = eq_str
+		
 		var name_lbl = Label.new()
-		name_lbl.text = equipped.skill_name.to_upper() if equipped else "VACÍO"
+		name_lbl.text = s_name.to_upper()
 		name_lbl.horizontal_alignment = 1; name_lbl.add_theme_font_size_override("font_size", 11)
 		name_lbl.modulate.a = 1.0 if equipped else 0.3
 		info_v.add_child(name_lbl)
 		
 		if equipped:
-			var pwr = Label.new(); pwr.text = "POT: " + str(equipped.power_value); pwr.add_theme_font_size_override("font_size", 9); pwr.modulate = s_data["color"]; pwr.horizontal_alignment = 1; info_v.add_child(pwr)
+			var p_val = 0
+			if typeof(equipped) == TYPE_DICTIONARY: p_val = equipped.get("power_value", 0)
+			elif "power_value" in equipped: p_val = equipped.power_value
+			var pwr = Label.new(); pwr.text = "POT: " + str(p_val); pwr.add_theme_font_size_override("font_size", 9); pwr.modulate = s_color; pwr.horizontal_alignment = 1; info_v.add_child(pwr)
 		
-		var type_label = Label.new(); type_label.text = s_data["type"]; type_label.modulate = s_data["color"]; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
+		var type_label = Label.new(); type_label.text = s_data["type"]; type_label.modulate = s_color; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
 		
 		var b = Button.new(); b.text = "RECONFIGURAR" if equipped else "EQUIPAR NÚCLEO"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
 		b.pressed.connect(func(): if is_instance_valid(sub_tabs): sub_tabs.current_tab = 1) # Ir a la biblioteca
@@ -457,11 +488,12 @@ func _create_skill_card(skill: SphereSkill, color: Color, icon_text: String, par
 		var p_node = get_tree().get_first_node_in_group("player")
 		if p_node and p_node.has_node("SpheresManager"):
 			var sm = p_node.get_node("SpheresManager")
-			# Lógica simple: Equipar en el primer slot que coincida con el tipo
+			# Lógica v206.25: Usar la función oficial del manager para sincronía total
 			for i in range(3):
 				if sm.spheres_data[i]["type"] == skill.type:
-					sm.spheres_data[i]["equipped"] = skill
+					sm.equip_item(i, skill) # Usar tu lógica oficial
 					_update_spheres_ui()
+					if p_node.has_method("save_progress"): p_node.save_progress()
 					print("[SPHERES] Equipado ", skill.skill_name, " en Esfera ", i)
 					break
 	)

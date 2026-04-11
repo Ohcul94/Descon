@@ -1,7 +1,7 @@
 extends Entity
 
-# Player.gd (Controlador Maestro v69.40 - STABLE RECOVERY)
-# Saneado y corregido para evitar errores de sintaxis en línea 181.
+# Player.gd (Controlador Maestro v69.45 - FULL STABILITY RECOVERY)
+# Saneado y corregido para evitar errores de parseo y autodaño.
 
 @export var speed: float = 300.0
 @export var acceleration: float = 1200.0
@@ -19,7 +19,7 @@ signal shoot_fired(p_data)
 var target_position = Vector2.ZERO
 var is_moving = false
 var autopilot_enabled: bool = false
-var is_autopilot_active: bool: # Alias para compatibilidad con el minimapa
+var is_autopilot_active: bool: 
 	get: return autopilot_enabled
 	set(v): autopilot_enabled = v
 
@@ -36,10 +36,10 @@ var next_level_exp: float = 1000.0
 var skill_tree: Dictionary = {"combat": [], "engineering": []}
 var ammo: Dictionary = {"laser": [1000, 0, 0, 0, 0, 0], "missile": [100, 0, 0], "mine": [10, 0, 0]}
 var selected_ammo: Dictionary = {"laser": 0, "missile": 0, "mine": 0}
-var current_zone: int = 1 # v168.08: Tracking de zona para visibilidad de red
+var current_zone: int = 1
 
 func _ready():
-	super._ready() # v150: Ejecutar exorcismo de barras redundantes
+	super._ready() 
 	add_to_group("player")
 	target_position = global_position
 	
@@ -53,7 +53,6 @@ func _ready():
 	add_child(cam)
 	cam.make_current()
 	
-	# v200.0: Inicializar Sistema de Esferas
 	var sm_script = load("res://scripts/systems/SpheresManager.gd")
 	if sm_script:
 		var sm = sm_script.new()
@@ -62,7 +61,6 @@ func _ready():
 	
 	if NetworkManager:
 		NetworkManager.login_success.connect(_on_login_success)
-		# NetworkManager.player_stat_sync.connect(update_stats) # ELIMINADO v168.12: Evita el ping-pong de stats (World.gd ya lo rutea)
 		NetworkManager.inventory_data.connect(_on_inventory_received)
 		NetworkManager.enemy_dead.connect(_on_enemy_dead)
 		NetworkManager.reward_received.connect(_on_reward_received)
@@ -82,7 +80,6 @@ func _physics_process(p_delta):
 func _handle_input():
 	var mouse_angle = (get_global_mouse_position() - global_position).angle()
 
-	# Disparo: Apuntar al mouse al disparar. Bloqueo por Cooldown activado.
 	if Input.is_action_just_pressed("fire_laser") and cooldowns["laser"] <= 0:
 		_shoot_skill("laser", mouse_angle)
 	elif Input.is_action_pressed("fire_laser") and cooldowns["laser"] <= 0:
@@ -93,13 +90,11 @@ func _handle_input():
 	if Input.is_action_just_pressed("fire_mine") and cooldowns["mine"] <= 0:
 		_shoot_skill("mine", mouse_angle)
 	
-	# v200.5: Habilidades de Esferas (ASD)
 	if Input.is_physical_key_pressed(KEY_A): _use_sphere_skill(0)
 	if Input.is_physical_key_pressed(KEY_S): _use_sphere_skill(1)
 	if Input.is_physical_key_pressed(KEY_D): _use_sphere_skill(2)
 	
 func _unhandled_input(event):
-	# v165.25: Movimiento solo si el clic NO fue capturado por el HUD
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
 			target_position = get_global_mouse_position()
@@ -112,7 +107,6 @@ func _handle_cooldowns(p_delta):
 		if cooldowns[s] > 0: cooldowns[s] -= p_delta
 
 func _on_inventory_received(p_data):
-	# v196.85: Unpack robusto de datos de progresión (Fix Overwrite Bug)
 	var gd = p_data
 	if typeof(p_data) == TYPE_DICTIONARY and p_data.has("player"):
 		gd = p_data["player"]
@@ -120,12 +114,9 @@ func _on_inventory_received(p_data):
 	if typeof(gd) == TYPE_DICTIONARY:
 		if gd.has("items"): inventory = gd["items"]
 		elif gd.has("inventory"): inventory = gd["inventory"]
-		
 		if gd.has("equipped"): equipped = gd["equipped"]
 		if gd.has("hubs"): hubs = int(gd["hubs"])
 		if gd.has("ohcu"): ohculianos = int(gd["ohcu"])
-		
-		# Sincronía de Talentos
 		if gd.has("skillTree"):
 			skill_tree = gd["skillTree"].duplicate()
 			if gd.has("skillPoints"):
@@ -134,13 +125,11 @@ func _on_inventory_received(p_data):
 	_recalculate_stats()
 
 func _recalculate_stats():
-	# Reset stats a base
 	base_laser_damage = 100.0
 	var total_sh_bonus = 0.0
 	var total_hp_bonus = 0.0
 	var speed_bonus = 0.0
 	
-	# v167.05: Sincronía con Estructura del Servidor (Iterar sobre Equipped dict)
 	for cat in equipped:
 		var slot_list = equipped[cat]
 		if typeof(slot_list) != TYPE_ARRAY: continue
@@ -148,14 +137,11 @@ func _recalculate_stats():
 			if typeof(item) != TYPE_DICTIONARY: continue
 			var type = str(item.get("type", cat)).to_lower()
 			var bonus = float(item.get("base", 0))
-			
 			if type == "w" or type == "laser" or cat == "w": base_laser_damage += bonus
 			elif type == "s" or type == "shield" or cat == "s": total_sh_bonus += bonus
 			elif type == "e" or type == "engine" or cat == "e": speed_bonus += bonus
 			elif type == "h" or type == "hp" or cat == "h": total_hp_bonus += bonus
 	
-	# v190.80: SINCRONÍA ABSOLUTA CON ADMIN CONSTANTS
-	# Ya no usamos 2000, 1000 o 300 fijos. Buscamos el modelo de nuestra nave actual.
 	var ship_base = { "hp": 2000, "shield": 1000, "speed": 300 }
 	for ship in GameConstants.SHIP_MODELS:
 		if ship.id == current_ship_id:
@@ -166,7 +152,6 @@ func _recalculate_stats():
 	var base_sh_val = float(ship_base.get("shield", 1000)) + total_sh_bonus
 	var base_speed_val = float(ship_base.get("speed", 300)) + speed_bonus
 	
-	# v196.50: Aplicar Bonificaciones de Talentos Reales
 	var talent_system = get_tree().get_first_node_in_group("talent_system")
 	if is_instance_valid(talent_system):
 		var bonuses = talent_system.get_bonuses()
@@ -179,43 +164,34 @@ func _recalculate_stats():
 		max_shield = base_sh_val
 		speed = base_speed_val
 	
-	# Notificar al servidor nuestros nuevos límites reales (Sincronía Crítica)
 	save_progress()
-	
 	_update_tags()
 	_emit_stats()
 
 func take_damage(amt: float):
 	super.take_damage(amt)
-	# v166.98: Notificar al servidor para que detenga SU regeneración (5-sec rule sync)
 	if NetworkManager:
 		NetworkManager.send_event("playerHitByEnemy", { "damage": amt, "id": entity_id })
 
 func _shoot_skill(p_type: String, p_angle: float):
-	last_combat_time = Time.get_ticks_msec() # v166.92: Disparar también cuenta como combate
-	# v166.98: Notificar al servidor que estamos en combate
+	last_combat_time = Time.get_ticks_msec()
 	if NetworkManager:
-		NetworkManager.send_event("playerHitByEnemy", { "damage": 0, "id": entity_id })
+		NetworkManager.send_event("playerHitByEnemy", { "damage": 0, "id": entity_id, "attackerType": "combat_ping" })
 	
 	var t_idx = selected_ammo.get(p_type, 0)
 	var current_ammo = 0
 	if ammo.has(p_type) and t_idx < ammo[p_type].size():
 		current_ammo = ammo[p_type][t_idx]
 	
-	if current_ammo <= 0: 
-		# v194.40: Bloqueo de disparo sin recursos
-		return
+	if current_ammo <= 0: return
 		
 	ammo[p_type][t_idx] -= 1
 	AudioManager.play_sfx(p_type)
-	cooldowns[p_type] = 1.0 # RESTRICCIÓN DE DISPARO RÁPIDO - 1s COOLDOWN
+	cooldowns[p_type] = 1.0 
 	
-	# v164.91: Al disparar cualquier arma detiene el movimiento automático 
-	# para evitar el conflicto de rotación.
 	is_moving = false
 	autopilot_enabled = false
 	target_position = global_position
-	
 	rotation = p_angle 
 
 	var ammo_mult = 1.0
@@ -223,7 +199,6 @@ func _shoot_skill(p_type: String, p_angle: float):
 	if t_idx < mult_list.size(): ammo_mult = mult_list[t_idx]
 	
 	var final_damage = base_laser_damage * ammo_mult
-	
 	var final_payload = {
 		"id": entity_id, "x": global_position.x, "y": global_position.y,
 		"angle": p_angle, "rotation": rotation, "type": p_type, "ammoType": t_idx, 
@@ -237,22 +212,15 @@ func _shoot_skill(p_type: String, p_angle: float):
 func _use_sphere_skill(id: int):
 	var key = "sphere_" + str(id)
 	if cooldowns[key] > 0: return
-	
 	var sm = get_node_or_null("SpheresManager")
 	if not is_instance_valid(sm): return
-	
 	if sm.use_skill(id):
-		# v200.8: Sincronizar con el servidor para que la curación/escudo sea permanente
 		var skill = sm.spheres_data[id]["equipped"]
 		if skill:
 			NetworkManager.send_event("playerSphereSkill", {
-				"id": id, 
-				"skillName": skill.skill_name,
-				"powerValue": skill.power_value
+				"id": id, "skillName": skill.skill_name, "powerValue": skill.power_value
 			})
-		
 		cooldowns[key] = 10.0
-		print("[SPHERES] Habilidad ejecutada y sincronizada con el servidor.")
 
 func _apply_movement():
 	if is_moving:
@@ -260,11 +228,9 @@ func _apply_movement():
 		if dist > 15.0:
 			var target_angle = (target_position - global_position).angle()
 			rotation = lerp_angle(rotation, target_angle, 0.25)
-			
 			var dir = Vector2.RIGHT.rotated(rotation)
 			velocity = dir * speed
 			move_and_slide()
-			
 			var w_size = GameConstants.GAME_CONFIG.get("worldSize", 4000)
 			global_position.x = clamp(global_position.x, 10, w_size - 10)
 			global_position.y = clamp(global_position.y, 10, w_size - 10)
@@ -290,7 +256,6 @@ func change_ammo(p_type: String, p_tier: int):
 	if selected_ammo.has(p_type):
 		selected_ammo[p_type] = p_tier
 		_emit_stats()
-		print("[COMBAT] Munición de ", p_type, " cambiada a Tier ", p_tier + 1)
 
 func _force_move_sync():
 	last_sent_pos = global_position
@@ -306,36 +271,17 @@ func respawn():
 	is_dead = false
 	current_hp = max_hp
 	current_shield = max_shield
-	# v168.15: Posición de seguridad dinámica (evitar spawn kill)
 	global_position = Vector2(randf_range(1500, 2500), randf_range(1500, 2500))
 	target_position = global_position
-	
 	visible = true; modulate.a = 1.0; show()
 	set_physics_process(true); set_process(true)
 	_update_tags()
-	
-	# Sincronía Crítica con el Servidor
 	NetworkManager.send_event("playerRespawn", {
 		"id": entity_id, "hp": max_hp, "sh": max_shield,
-		"x": global_position.x, "y": global_position.y,
-		"zone": current_zone
-	})
-	print("[SYSTEM] Reaparecido en Zona ", current_zone)
-
-func save_progress():
-	NetworkManager.send_event("saveProgress", {
-		"hubs": hubs, "ohcu": ohculianos, "exp": current_exp,
-		"level": level, "skillPoints": skill_tree.get("skillPoints", 0),
-		"skillTree": skill_tree,
-		"inventory": inventory, "equipped": equipped,
-		"hp": current_hp, "shield": current_shield,
-		"maxHp": max_hp, "maxShield": max_shield,
-		"ownedShips": owned_ships, "currentShipId": current_ship_id,
-		"lastPos": {"x": global_position.x, "y": global_position.y}
+		"x": global_position.x, "y": global_position.y, "zone": current_zone
 	})
 
 func _on_login_success(p_in):
-	# v167.97: Normalización Crítica - Usar socketId para red (dbId interno)
 	self.entity_id = str(p_in.get("socketId", p_in.get("id", "")))
 	self.username = p_in.get("username", p_in.get("user", "Piloto"))
 	if p_in.has("gameData"):
@@ -350,40 +296,54 @@ func _on_login_success(p_in):
 			var lp = gd["lastPos"]
 			global_position = Vector2(lp.get("x", 2000), lp.get("y", 2000))
 			target_position = global_position
-		current_ship_id = int(gd.get("currentShipId", 1)) # v190.81: Recordar qué nave tenemos
-		current_zone = int(gd.get("zone", 1)) # Sincronizar zona inicial
-		
-		# v194.20: Sincronía Crítica de Progresión (Fix HUD Bug)
+		current_ship_id = int(gd.get("currentShipId", 1))
+		current_zone = int(gd.get("zone", 1))
 		level = int(gd.get("level", 1))
 		current_exp = float(gd.get("exp", 0))
 		skill_tree = gd.get("skillTree", {"engineering":[0,0,0,0,0,0,0,0],"combat":[0,0,0,0,0,0,0,0],"science":[0,0,0,0,0,0,0,0]}).duplicate()
 		skill_tree["skillPoints"] = int(gd.get("skillPoints", 0))
 		
-		# v194.30: Persistencia de Barras Vitales al Login
+		var sm = get_node_or_null("SpheresManager")
+		if sm and gd.has("spheres"):
+			var raw_spheres = gd["spheres"].duplicate()
+			# v206.0: Re-hidratación de tipos y HABILIDADES (JSON Safe)
+			for i in range(raw_spheres.size()):
+				var sph = raw_spheres[i]
+				if sph.has("color"):
+					var c_str = str(sph["color"]).replace("(","").replace(")","").replace(" ","")
+					if "," in c_str:
+						var parts = c_str.split(",")
+						if parts.size() >= 3:
+							var r_v = float(parts[0]); var g_v = float(parts[1]); var b_v = float(parts[2])
+							var a_v = float(parts[3]) if parts.size() > 3 else 1.0
+							sph["color"] = Color(r_v, g_v, b_v, a_v)
+					else: sph["color"] = Color(c_str)
+				
+				# Re-hidratar Habilidad (Si viene como Diccionario del Servidor)
+				if sph.has("equipped") and typeof(sph["equipped"]) == TYPE_DICTIONARY:
+					var eq = sph["equipped"]
+					if eq.has("skill_name"):
+						sph["equipped"] = _find_skill_by_name(eq["skill_name"])
+						if sph["equipped"] is Object:
+							for key in eq: sph["equipped"].set(key, eq[key])
+			sm.spheres_data = raw_spheres
+			sm.emit_signal("spheres_updated")
+
 		current_hp = float(gd.get("hp", max_hp)) 
 		current_shield = float(gd.get("shield", max_shield))
-		
 		_recalculate_stats()
 		update_stats({})
-	_update_tags()
-	_emit_stats()
-	queue_redraw()
+	_update_tags(); _emit_stats(); queue_redraw()
 
 func _on_enemy_dead(_data): pass
 func _on_reward_received(p_data: Dictionary):
-	# p_data: {hubs, ohcu, exp}
 	hubs += int(p_data.get("hubs", 0))
 	ohculianos += int(p_data.get("ohcu", 0))
 	current_exp += float(p_data.get("exp", 0))
-	
-	_update_tags()
-	_emit_stats()
-	print("[LOOT] ", p_data)
+	_update_tags(); _emit_stats()
 
 func _on_level_up(p_data: Dictionary):
-	# p_data: {level, skillPoints}
 	level = int(p_data.get("level", level + 1))
-	print("[LEVEL-UP] Ahora eres Nivel ", level)
 	_emit_stats()
 
 func _emit_stats():
@@ -394,11 +354,46 @@ func _emit_stats():
 		"level": level, "current_exp": current_exp, "next_level_exp": next_level_exp
 	})
 
-func update_stats(data: Dictionary):
-	# v167.92: Heredar Detección de Daño de Entity (Reset Combat Timer)
+func update_stats(data):
 	super.update_stats(data)
-	
-	# v196.10: Autoridad Total del Servidor
-	# El servidor ya calcula los bonus de talento en su maxHp/maxShield.
-	# El cliente solo debe emitir los cambios para el HUD.
 	_emit_stats()
+
+func save_progress():
+	var s_data = []
+	var sm = get_node_or_null("SpheresManager")
+	if sm: 
+		# v206.0: De-serialización de Habilidades para JSON Safe Saving
+		var raw = sm.spheres_data.duplicate(true)
+		for i in range(raw.size()):
+			var sph = raw[i]
+			if sph.has("color") and typeof(sph["color"]) == TYPE_COLOR:
+				sph["color"] = str(sph["color"])
+			
+			if sph.has("equipped") and sph["equipped"] is Object:
+				var skill = sph["equipped"]
+				sph["equipped"] = {
+					"skill_name": skill.skill_name if "skill_name" in skill else "SKILL",
+					"power_value": skill.power_value if "power_value" in skill else 0,
+					"type": skill.type if "type" in skill else "w"
+				}
+		s_data = raw
+		
+	NetworkManager.send_event("saveProgress", {
+		"hubs": hubs, "ohcu": ohculianos, "exp": current_exp,
+		"level": level, "skillPoints": skill_tree.get("skillPoints", 0),
+		"skillTree": skill_tree,
+		"inventory": inventory, "equipped": equipped,
+		"spheres": s_data,
+		"hp": current_hp, "shield": current_shield,
+		"maxHp": max_hp, "maxShield": max_shield,
+		"ownedShips": owned_ships, "currentShipId": current_ship_id,
+		"lastPos": {"x": global_position.x, "y": global_position.y}
+	})
+
+# Buscar clase de habilidad por nombre (v206.0 Internal Helper)
+func _find_skill_by_name(n: String):
+	var skills = [Skill_TurboImpulse, Skill_ShieldCell, Skill_RepairKit]
+	for s in skills:
+		var inst = s.new()
+		if inst.skill_name == n: return inst
+	return null

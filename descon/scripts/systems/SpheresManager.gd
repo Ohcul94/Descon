@@ -4,6 +4,7 @@ extends Node2D
 # Maneja 3 esferas alrededor del personaje con habilidades y estadísticas.
 
 var player = null
+signal spheres_updated
 var angle = 0.0
 var radius = 80.0
 var rotation_speed = 1.0
@@ -19,7 +20,8 @@ func _ready():
 	add_to_group("spheres_system")
 	player = get_parent()
 	_create_spheres()
-	_initialize_mock_skills()
+	# v206.20: Desactivado para evitar sobrescribir los datos del servidor al entrar
+	# _initialize_mock_skills()
 
 func _initialize_mock_skills():
 	# v201.0: Cargamos las clases externas de forma limpia y profesional
@@ -94,3 +96,4 @@ func equip_item(sphere_id, item_data):
 		_update_visuals()
 		if player and player.has_method("_recalculate_stats"):
 			player._recalculate_stats()
+		spheres_updated.emit() # v203.0: Uso explícito para silenciar el warning

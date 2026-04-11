@@ -316,9 +316,13 @@ io.on('connection', (socket) => {
                     combat: [0, 0, 0, 0, 0, 0, 0, 0],
                     science: [0, 0, 0, 0, 0, 0, 0, 0]
                 },
-                ammo: user.gameData.ammo || {},
-                selectedAmmo: user.gameData.selectedAmmo || { laser: 0, missile: 0, mine: 0 },
-                zone: user.gameData.zone || 1,
+                ammo: user.gameData.ammo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
+                equipped: user.gameData.equipped || { w: [], s: [], e: [], x: [] },
+                spheres: user.gameData.spheres || [
+                    { "name": "Alfa", "type": "w", "color": "#ffe031", "equipped": null },
+                    { "name": "Beta", "type": "s", "color": "#31dfff", "equipped": null },
+                    { "name": "Gamma", "type": "e", "color": "#3bff31", "equipped": null }
+                ],
                 hudConfig: user.gameData.hudConfig || {},
                 hudPositions: user.gameData.hudPositions || {}
             };
@@ -421,23 +425,22 @@ io.on('connection', (socket) => {
                 const p = players[socket.id];
                 p.hp = gameData.hp !== undefined ? gameData.hp : p.hp;
                 p.shield = gameData.shield !== undefined ? gameData.shield : p.shield;
-                p.maxHp = gameData.maxHp !== undefined ? gameData.maxHp : p.maxHp;
-                p.maxShield = gameData.maxShield !== undefined ? gameData.maxShield : p.maxShield;
+                // v200.40: BLOQUEO DE STATS (No aceptar HP/Shield Máximos del cliente ni nivel)
                 p.selectedAmmo = gameData.selectedAmmo || p.selectedAmmo;
-                p.level = gameData.level || p.level;
+                p.ammo = gameData.ammo || p.ammo;
+                p.equipped = gameData.equipped || p.equipped;
+                p.spheres = gameData.spheres || p.spheres;
                 p.hubs = gameData.hubs !== undefined ? gameData.hubs : p.hubs;
                 p.ohcu = gameData.ohcu !== undefined ? gameData.ohcu : p.ohcu;
-                p.skillPoints = gameData.skillPoints !== undefined ? gameData.skillPoints : p.skillPoints;
                 p.skillTree = gameData.skillTree || p.skillTree;
             }
 
             // v196.90: Sistema de Guardado Dinámico (Anti-Overwrite Protection)
             const updateFields = {};
             const fields = [
-                "hp", "shield", "maxHp", "maxShield", "level", "exp", 
-                "ammo", "selectedAmmo", "hubs", "ohcu", "inventory", 
-                "equipped", "ownedShips", "currentShipId", "skillPoints", "skillTree",
-                "lastPos", "hudPositions"
+                "hp", "shield", "ammo", "selectedAmmo", "hubs", "ohcu", "inventory", 
+                "equipped", "spheres", "ownedShips", "currentShipId", "skillPoints", "skillTree",
+                "lastPos", "hudPositions", "exp", "level"
             ];
 
             fields.forEach(field => {
@@ -495,20 +498,48 @@ io.on('connection', (socket) => {
     });
 
     // SISTEMA DE COMBATE MULTIPLAYER (v62.0)
+    // v200.20: SISTEMA DE DAÑO AUTORITATIVO (Anti-Cheat Server-Side)
     socket.on('playerFire', (fireData) => {
         const p = players[socket.id];
-        if (!p) return;
+        if (!p || !SERVER_CONFIG) return;
 
-        // Deducción Instantánea en el Servidor v68.2 (Anti-F5 Abuso de Munición)
-        const type = fireData.type || 'laser';
-        const tier = fireData.tier || 0;
-        if (p.ammo && p.ammo[type] && p.ammo[type][tier] !== undefined) {
-            if (p.ammo[type][tier] > 0) {
-                p.ammo[type][tier]--;
-            }
+        // v200.35: VALIDACIÓN DE CADENCIA (Anti-RapidFire Hack)
+        const now = Date.now();
+        const lastFire = p.lastFireTime || 0;
+        const cooldownMs = 800; // 1s teórico - 200ms de tolerancia por lag
+        if (now - lastFire < cooldownMs) {
+            // console.log(`[HACK] Cadencia de tiro sospechosa en ${p.user}`);
+            return; // Bloqueo de ráfagas ilegales
         }
+        p.lastFireTime = now;
 
-        // v164.94: Sincronización Godot (Ruteo exacto a NetworkManager.gd)
+        // 1. Validar Munición (Si no tiene en el servidor, el disparo es inválido)
+        const ammoType = fireData.type || 'laser';
+        const ammoTier = fireData.ammoType || 0;
+        if (!p.ammo || !p.ammo[ammoType] || p.ammo[ammoType][ammoTier] <= 0) {
+            return; // Bloqueo de disparo sin balas (Server level)
+        }
+        
+        // Descontar munición en el servidor
+        p.ammo[ammoType][ammoTier] -= 1;
+
+        // 2. Calcular Daño Legítimo (Ignorar lo que diga el cliente)
+        let baseDamage = 100;
+        if (p.equipped && p.equipped.w) {
+            baseDamage = 0;
+            p.equipped.w.forEach(item => {
+                const masterItem = SERVER_CONFIG.shopItems.weapons.find(w => w.id === item.id);
+                if (masterItem) baseDamage += (masterItem.base || 0);
+            });
+        }
+        if (baseDamage <= 0) baseDamage = 100;
+
+        const mults = SERVER_CONFIG.ammoMultipliers[ammoType] || [1];
+        const multiplier = mults[ammoTier] || 1;
+        const finalAuthorizedDamage = baseDamage * multiplier;
+
+        fireData.damageBoost = finalAuthorizedDamage;
+
         socket.to(`zone_${p.zone}`).emit('playerFire', {
             id: socket.id,
             ...fireData
@@ -518,9 +549,19 @@ io.on('connection', (socket) => {
     // v200.12: SISTEMA DE HABILIDADES DE ESFERAS (Sincronía Autoritaria)
     socket.on('playerSphereSkill', (data) => {
         const p = players[socket.id];
-        if (!p) return;
+        if (!p || !p.spheres) return;
         
-        const healAmt = data.powerValue || 0;
+        // v200.45: VALIDACIÓN DE PODER (Ignorar powerValue del cliente)
+        let healAmt = 0;
+        const sphereIdx = data.id !== undefined ? data.id : -1;
+        if (sphereIdx >= 0 && sphereIdx < 3) {
+            const sphere = p.spheres[sphereIdx];
+            if (sphere && sphere.equipped) {
+                healAmt = sphere.equipped.power_value || 0;
+            }
+        }
+        if (healAmt <= 0) return; // Hack detected or no skill equipped
+
         if (data.skillName === "ESCUDO CELULAR") {
             p.shield = Math.min((p.shield || 0) + healAmt, p.maxShield || 2000);
         } else if (data.skillName === "AUTO-REPARACIÓN") {
@@ -814,33 +855,35 @@ io.on('connection', (socket) => {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
 
-        players[socket.id].x = movementData.x;
-        players[socket.id].y = movementData.y;
-        players[socket.id].rotation = movementData.rotation;
-        const oldZone = Number(players[socket.id].zone || 1);
+        // v200.30: ANTI-SPEEDHACK (Validación de Distancia)
+        if (!p.speed && SERVER_CONFIG) {
+            const ship = SERVER_CONFIG.shipModels.find(s => s.id === p.currentShipId);
+            p.speed = ship ? ship.speed : 500;
+        }
+        const dx = movementData.x - p.x;
+        const dy = movementData.y - p.y;
+        const distance = Math.sqrt(dx*dx + dy*dy);
+        if (distance >= 2500) {
+            console.log(`[HACK] Teletransporte detectado en ${p.user}: ${distance}px`);
+            return;
+        }
+
+        p.x = movementData.x;
+        p.y = movementData.y;
+        p.rotation = movementData.rotation;
+        if (movementData.selectedAmmo) p.selectedAmmo = movementData.selectedAmmo;
+        
+        const oldZone = Number(p.zone || 1);
         const targetZone = Number(movementData.zone || 1);
-        players[socket.id].zone = targetZone;
+        p.zone = targetZone;
 
         if (oldZone !== targetZone) {
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${targetZone}`);
-            // v186.17: No emitir playerDisconnected aquí para evitar el bug de "1 online"
-            // La vieja zona simplemente dejará de recibir playerMoved
-            socket.to(`zone_${targetZone}`).emit('newPlayer', { ...players[socket.id], id: socket.id });
-            console.log(`DESCON: Socket [${p.user}] auto-ruteado a Sector [${targetZone}]`);
+            socket.to(`zone_${targetZone}`).emit('newPlayer', { ...p, id: socket.id });
         }
 
-        // Sincronizar selección de munición para deducción en server v68.3
-        if (movementData.selectedAmmo) {
-            players[socket.id].selectedAmmo = movementData.selectedAmmo;
-        }
-
-        socket.to(`zone_${players[socket.id].zone}`).emit('playerMoved', { ...players[socket.id], id: socket.id });
-
-        socket.to(`zone_${players[socket.id].zone}`).emit('playerMoved', { ...players[socket.id], id: socket.id });
-
-        // PERSISTENCIA DE MOVIMIENTO ELIMINADA (Optimización de Escalado)
-        // El guardado ahora se maneja vía Batch cada 60s
+        socket.to(`zone_${p.zone}`).emit('playerMoved', { ...p, id: socket.id });
     });
 
     socket.on('playerRespawn', (respawnData) => {
@@ -872,114 +915,73 @@ io.on('connection', (socket) => {
     });
 
     socket.on('enemyHit', async (data) => {
-        const { enemyId, damage, bulletId } = data; // bulletId para sincronización visual v73.90
+        const { enemyId, bulletId } = data;
         const enemy = enemies[enemyId];
-        const killerId = socket.id;
-        if (enemy) {
-            // Punto 7: Mecánicas Defensivas de Boss v102.10
-            if (enemy.ai && enemy.ai.isInvulnerable) return; // Inmune
-            if (enemy.ai && enemy.ai.isCountering) {
-                // Reflejar daño al atacante
-                const p = players[killerId];
-                if (p) {
-                    p.shield -= damage;
-                    if (p.shield < 0) { p.hp += p.shield; p.shield = 0; }
-                }
-                return;
-            }
+        const p = players[socket.id];
+        if (!enemy || !p || !SERVER_CONFIG) return;
+        
+        if (enemy.ai && enemy.ai.isInvulnerable) return;
 
-            if (enemy.shield >= damage) {
-                enemy.shield -= damage;
-            } else {
-                enemy.hp -= (damage - enemy.shield);
-                enemy.shield = 0;
-            }
-            enemy.lastHit = Date.now();
+        // v200.31: Daño Autoritativo
+        let baseDamage = 100;
+        if (p.equipped && p.equipped.w) {
+            baseDamage = 0;
+            p.equipped.w.forEach(it => {
+                const master = SERVER_CONFIG.shopItems.weapons.find(w => w.id === it.id);
+                if (master) baseDamage += (master.base || 0);
+            });
+        }
+        const tier = (p.selectedAmmo && p.selectedAmmo.laser) ? p.selectedAmmo.laser : 0;
+        const finalDamage = baseDamage * ((SERVER_CONFIG.ammoMultipliers["laser"] || [1])[tier] || 1);
 
-            if (enemy.hp <= 0) {
-                // Obtener recompensas desde la config global con fallback robusto v48.0
-                const cfgModel = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[enemy.type] : null;
+        if (enemy.shield >= finalDamage) {
+            enemy.shield -= finalDamage;
+        } else {
+            enemy.hp -= (finalDamage - enemy.shield);
+            enemy.shield = 0;
+        }
+        enemy.lastHit = Date.now();
 
-                const hubs = (cfgModel && cfgModel.rewardHubs !== undefined) ? cfgModel.rewardHubs : (enemy.type * 500);
-                const ohcu = (cfgModel && cfgModel.rewardOhcu !== undefined) ? cfgModel.rewardOhcu : (enemy.type * 10);
-                const exp = (cfgModel && cfgModel.rewardExp !== undefined) ? cfgModel.rewardExp : (enemy.type * 100);
+        if (enemy.hp <= 0) {
+            const cfg = SERVER_CONFIG.enemyModels[enemy.type] || {};
+            const hubs = cfg.rewardHubs || (enemy.type * 500);
+            const ohcu = cfg.rewardOhcu || (enemy.type * 10);
+            const exp = cfg.rewardExp || (enemy.type * 100);
 
-                const killerId = socket.id;
-                const partyId = playerParty[killerId];
+            io.to(`zone_${enemy.zone}`).emit('enemyDead', { id: enemyId, hubs, ohcu, exp, killer: socket.id, bulletId });
 
-                if (partyId && parties[partyId]) {
-                    const party = parties[partyId];
-                    const num = party.members.length;
-                    const sharedRewards = {
-                        hubs: Math.floor(hubs / num),
-                        ohcu: Math.floor(ohcu / num),
-                        exp: Math.floor(exp / num),
-                        isShared: true,
-                        members: party.members
-                    };
-                    io.to(`zone_${enemy.zone}`).emit('enemyDead', { id: enemyId, ...sharedRewards, killer: killerId, bulletId }); // Sincronía Room v75.0
-                } else {
-                    io.to(`zone_${enemy.zone}`).emit('enemyDead', { id: enemyId, hubs, ohcu, exp, isShared: false, killer: killerId, bulletId });
-                }
-
-                // v164.15: ACREDITACIÓN DE RECOMPENSAS (Persistence Sync)
-                if (players[killerId] && socket.dbUser) {
-                    const p = players[killerId];
-                    const killerDbId = p.id;
-                    try {
-                        await User.updateOne(
-                            { _id: killerDbId },
-                            {
-                                $inc: {
-                                    "gameData.hubs": hubs,
-                                    "gameData.ohcu": ohcu,
-                                    "gameData.exp": exp
-                                }
-                            }
-                        );
-                        // Actualizar en memoria para que el cliente lo vea sin reloguear
-                        p.hubs = (p.hubs || (socket.dbUser.gameData ? socket.dbUser.gameData.hubs : 0)) + hubs;
-                        p.ohcu = (p.ohcu || (socket.dbUser.gameData ? socket.dbUser.gameData.ohcu : 0)) + ohcu;
-                        p.exp = (p.exp || (socket.dbUser.gameData ? socket.dbUser.gameData.exp : 0)) + exp;
-
-                        // Notificar al cliente específico para actualización de HUD
-                        io.to(killerId).emit('rewardReceived', { hubs, ohcu, exp });
-                        console.log(`[LOOT] ${p.user} recibió: ${hubs} HUBS, ${ohcu} OHCU, ${exp} EXP`);
-                    } catch (e) { console.error("Error acreditando loot:", e); }
-                }
-
-                if (enemy.type === 4) lastTitanDeath = Date.now();
-                if (enemy.type === 5) lastAncientDeath = Date.now(); // Cronómetro Ancient 3s v98.50
-                delete enemies[enemyId];
-            } else {
-                io.to(`zone_${enemy.zone}`).emit('enemyDamaged', { id: enemyId, hp: enemy.hp, shield: enemy.shield, bulletId }); // Sincronía Room v75.0
-            }
+            try {
+                await User.updateOne({ _id: p.id }, { $inc: { "gameData.hubs": hubs, "gameData.ohcu": ohcu, "gameData.exp": exp } });
+                p.hubs = (p.hubs || 0) + hubs; p.ohcu = (p.ohcu || 0) + ohcu; p.exp = (p.exp || 0) + exp;
+                io.to(socket.id).emit('rewardReceived', { hubs, ohcu, exp });
+            } catch (e) { console.error("Error loot:", e); }
+            delete enemies[enemyId];
+        } else {
+            io.to(`zone_${enemy.zone}`).emit('enemyDamaged', { id: enemyId, hp: enemy.hp, shield: enemy.shield, bulletId });
         }
     });
 
     // SISTEMA DE DAÑO RECIBIDO SINCRONIZADO v125.31 (Identity Aware)
     socket.on('playerHitByEnemy', (data) => {
         const p = players[socket.id];
-        if (p && !p.isDead) {
-            const dmg = data.damage || 0;
+        if (p && !p.isDead && SERVER_CONFIG) {
+            const enemyType = data.enemyType || 1;
             const attackerType = data.attackerType || 'enemy';
-
+            let dmg = data.damage || 0;
+            
+            // v201.20: Validación de Atacante (Anti-Cheat vs Sincronía)
+            if (attackerType === 'enemy') {
+                const cfg = SERVER_CONFIG.enemyModels[enemyType];
+                dmg = cfg ? cfg.bulletDamage : 50;
+            } else if (attackerType === 'combat_ping') {
+                dmg = 0; // Es solo para resetear el delay de regeneración
+            }
             if (p.shield >= dmg) p.shield -= dmg;
             else { p.hp -= (dmg - p.shield); p.shield = 0; }
             if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
-
-            // v164.86: Penalización de Regeneración Diferenciada
             p.lastCombatTime = Date.now();
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
-
-            io.to(`zone_${p.zone}`).emit('playerStatSync', {
-                id: p.socketId,
-                hp: p.hp,
-                shield: p.shield,
-                maxHp: p.maxHp,
-                maxShield: p.maxShield,
-                isDead: p.isDead
-            });
+            io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead });
         }
     });
 
