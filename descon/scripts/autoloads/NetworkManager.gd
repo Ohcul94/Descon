@@ -187,6 +187,25 @@ func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_upda
 	if p_signal == "player_updated": player_updated.emit(p_data)
 	elif p_signal == "player_fired": player_fired.emit(p_data)
 	elif p_signal == "player_stat_sync": player_stat_sync.emit(p_data)
+	
+	# v214.99: SINCRONÍA VISUAL DE ESFERAS (Minimal Injection)
+	if p_data.has("id") and p_data.has("spheres"):
+		var pid = str(p_data.id)
+		var world = get_tree().root.find_child("World", true, false)
+		if world:
+			var rp = world.find_child(pid, true, false)
+			if rp:
+				var sm = rp.get_node_or_null("SpheresManager")
+				if not sm:
+					var sm_script = load("res://scripts/systems/SpheresManager.gd")
+					if sm_script:
+						sm = Node2D.new(); sm.set_script(sm_script)
+						sm.name = "SpheresManager"; rp.add_child(sm)
+				
+				if sm and sm.has_method("equip_item"):
+					var sps = p_data["spheres"]
+					if typeof(sps) == TYPE_ARRAY:
+						for i in range(sps.size()): sm.equip_item(i, sps[i])
 
 func send_event(p_ename: String, p_val: Variant):
 	if network_connected:

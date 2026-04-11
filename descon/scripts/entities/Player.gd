@@ -297,13 +297,17 @@ func _on_login_success(p_in):
 			var lp = gd["lastPos"]
 			global_position = Vector2(lp.get("x", 2000), lp.get("y", 2000))
 			target_position = global_position
+		# v210.190: Sincronización final de Visuales y Stats
 		current_ship_id = int(gd.get("currentShipId", 1))
-		_setup_ship_visuals() # v210.20: Fuerza actualización visual tras recibir ID del servidor
 		current_zone = int(gd.get("zone", 1))
 		level = int(gd.get("level", 1))
 		current_exp = float(gd.get("exp", 0))
 		skill_tree = gd.get("skillTree", {"engineering":[0,0,0,0,0,0,0,0],"combat":[0,0,0,0,0,0,0,0],"science":[0,0,0,0,0,0,0,0]}).duplicate()
 		skill_tree["skillPoints"] = int(gd.get("skillPoints", 0))
+
+		# v210.191: FORZAR REDRAW VISUAL (Fix: Asset Inconsistency)
+		_setup_ship_visuals() 
+		print("[CLIENT] Nave configurada ID: ", current_ship_id, " para ", username)
 		
 		var sm = get_node_or_null("SpheresManager")
 		if sm and gd.has("spheres"):

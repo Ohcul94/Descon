@@ -319,8 +319,18 @@ io.on('connection', (socket) => {
                 baseHp: baseHp, // Almacenar bases para recalcular
                 baseShield: baseSh,
                 ammo: user.gameData.ammo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
-                // v210.80: Cargar equipo específico de esta nave al login (Clonado Seguro)
-                equipped: JSON.parse(JSON.stringify(user.gameData.equippedByShip instanceof Map ? user.gameData.equippedByShip.get(user.gameData.currentShipId.toString()) : (user.gameData.equippedByShip?.[user.gameData.currentShipId.toString()] || { w: [], s: [], e: [], x: [] }))),
+                // v210.220: CARGA ULTRA-SEGURA (Hangar Persistence Fix)
+                // Detectar si equippedByShip es un Map o un Object común y extraer el equipo de la nave actual.
+                equipped: (function () {
+                    const ebs = user.gameData.equippedByShip;
+                    const sid = user.gameData.currentShipId.toString();
+                    let raw = { w: [], s: [], e: [], x: [] };
+                    if (ebs) {
+                        if (typeof ebs.get === 'function') { raw = ebs.get(sid) || raw; }
+                        else { raw = ebs[sid] || raw; }
+                    }
+                    return JSON.parse(JSON.stringify(raw));
+                })(),
                 spheres: user.gameData.spheres || [
                     { "name": "Alfa", "type": "w", "color": "#ffe031", "equipped": null },
                     { "name": "Beta", "type": "s", "color": "#31dfff", "equipped": null },
@@ -404,8 +414,10 @@ io.on('connection', (socket) => {
             setTimeout(() => {
                 socket.emit('currentPlayers', currentPlayersInZone);
                 socket.emit('currentEnemies', cleanEnemiesInZone);
-                io.emit('newPlayer', playerSpawnData);
-                console.log(`[NET] Broadcast global de ${username} enviado.`);
+                
+                // v214.110: BROADCAST SELECTIVO (Avisar a los demás, pero no a mí mismo, yo ya tengo loginSuccess)
+                socket.broadcast.emit('newPlayer', playerSpawnData);
+                console.log(`[NET] Piloto ${username} anunciado a la galaxia.`);
             }, 100);
             console.log(`Usuario logueado: ${username}`);
 
@@ -469,13 +481,21 @@ io.on('connection', (socket) => {
                 // hubs, ohcu, exp, level NO se actualizan desde aquí (Autoritativo v138)
             }
 
+            const p = players[socket.id];
             const updateFields = {};
             const fields = [
-                "hp", "shield", "ammo", "selectedAmmo", "inventory", 
+                "hp", "shield", "ammo", "selectedAmmo", "inventory",
                 "equipped", "spheres", "skillTree",
                 "lastPos", "hudPositions",
                 "hubs", "ohcu", "exp", "level", "skillPoints", "currentShipId"
             ];
+
+            // v210.225: GUARDA ANTI-DESTRUCCIÓN. Si el inventario viene sospechosamente vacío, abortar guardado
+            if (gameData.inventory && gameData.inventory.length === 0 && p && p.inventory && p.inventory.length > 0) {
+                console.log("[SECURITY] Bloqueado guardado de inventario vacío accidental.");
+                const idx = fields.indexOf("inventory");
+                if (idx > -1) fields.splice(idx, 1);
+            }
 
             fields.forEach(field => {
                 if (gameData[field] !== undefined) {
@@ -490,13 +510,12 @@ io.on('connection', (socket) => {
             });
 
             // Forzar persistencia de valores autoritativos del server (RAM -> DB)
-            const p_sync = players[socket.id];
-            if (p_sync) {
-                updateFields["gameData.hubs"] = p_sync.hubs;
-                updateFields["gameData.ohcu"] = p_sync.ohcu;
-                updateFields["gameData.exp"] = p_sync.exp;
-                updateFields["gameData.level"] = p_sync.level;
-                updateFields["gameData.skillPoints"] = p_sync.skillPoints;
+            if (p) {
+                updateFields["gameData.hubs"] = p.hubs;
+                updateFields["gameData.ohcu"] = p.ohcu;
+                updateFields["gameData.exp"] = p.exp;
+                updateFields["gameData.level"] = p.level;
+                updateFields["gameData.skillPoints"] = p.skillPoints;
             }
 
             if (Object.keys(updateFields).length > 0) {
@@ -745,7 +764,7 @@ io.on('connection', (socket) => {
         if (!socket.dbUser) return;
         try {
             const { category, index } = data;
-            if (index < 0 || index > 7) return; 
+            if (index < 0 || index > 7) return;
 
             const user = await User.findById(socket.dbUser._id);
             if (!user || user.gameData.skillPoints <= 0) return socket.emit('gameNotification', { msg: 'SIN PUNTOS DE HABILIDAD', type: 'warn' });
@@ -758,7 +777,7 @@ io.on('connection', (socket) => {
                 });
             }
             if (totalSpent >= user.gameData.level) {
-                 return socket.emit('gameNotification', { msg: 'LIMITE DE TALENTOS ALCANZADO POR NIVEL', type: 'warn' });
+                return socket.emit('gameNotification', { msg: 'LIMITE DE TALENTOS ALCANZADO POR NIVEL', type: 'warn' });
             }
 
             if (user.gameData.skillTree[category][index] < 5) {
@@ -977,17 +996,23 @@ io.on('connection', (socket) => {
                 }
 
                 // v210.83: INTERCAMBIO DE EQUIPAMIENTO CON CLONADO (Aislamiento Total)
+                // 1. Respaldar equipo de la nave vieja (Garantizar POJO)
                 const oldShipId = user.gameData.currentShipId.toString();
                 const newShipId = shipId.toString();
 
                 if (!user.gameData.equippedByShip) user.gameData.equippedByShip = new Map();
 
-                // 1. Respaldar equipo de la nave vieja (Clonado profundo)
-                user.gameData.equippedByShip.set(oldShipId, JSON.parse(JSON.stringify(user.gameData.equipped)));
+                // Normalizar entrada antes de guardar
+                let currentEquip = JSON.parse(JSON.stringify(user.gameData.equipped || { w: [], s: [], e: [], x: [] }));
+                user.gameData.equippedByShip.set(oldShipId, currentEquip);
 
-                // 2. Cargar equipo de la nave nueva (Si existe)
-                const newEquip = user.gameData.equippedByShip.get(newShipId);
-                if (newEquip) {
+                // 2. Cargar equipo de la nave nueva (Soporte Map/Obj)
+                let newEquip = null;
+                const ebs = user.gameData.equippedByShip;
+                if (typeof ebs.get === 'function') { newEquip = ebs.get(newShipId); }
+                else { newEquip = ebs[newShipId]; }
+
+                if (newEquip && (newEquip.w || newEquip.s || newEquip.e || newEquip.x)) {
                     user.gameData.equipped = JSON.parse(JSON.stringify(newEquip));
                 } else {
                     user.gameData.equipped = { w: [], s: [], e: [], x: [] };
@@ -997,13 +1022,25 @@ io.on('connection', (socket) => {
                 p.equipped = JSON.parse(JSON.stringify(user.gameData.equipped));
                 user.gameData.currentShipId = shipId;
 
+                // v210.200: Recalcular Stats de la Nave Nueva + Talentos
+                const newShipData = SERVER_CONFIG.shipModels.find(s => s.id === shipId) || { hp: 2000, shield: 1000 };
+                const hpBonus = 1.0 + ((p.skillTree?.engineering[0] || 0) * 0.02);
+                const shBonus = 1.0 + ((p.skillTree?.engineering[1] || 0) * 0.02);
+
+                p.maxHp = Math.ceil((newShipData.hp || 2000) * hpBonus);
+                p.maxShield = Math.ceil((newShipData.shield || 1000) * shBonus);
+                p.hp = p.maxHp; // Curación completa al cambiar de nave (Standard v6)
+                p.shield = p.maxShield;
+
                 user.markModified('gameData.equippedByShip');
                 await user.save();
                 socket.dbUser = user;
 
                 // v210.91: Serialización POJO (Map -> Object) para Socket.io
                 const eByShipObj = {};
-                user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+                if (user.gameData.equippedByShip) {
+                    user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+                }
 
                 socket.emit('inventoryData', {
                     player: {
@@ -1012,8 +1049,20 @@ io.on('connection', (socket) => {
                         equippedByShip: eByShipObj
                     }
                 });
-                io.emit('playerShipChanged', { id: socket.id, shipId: shipId });
-                console.log(`[HANGAR] Piloto ${p.user} cambió de nave. ID: ${shipId}. Nuevo equipo w: ${user.gameData.equipped.w.length}`);
+
+                // v210.201: BROADCAST SELECTIVO (Avisar a los aliados del cambio de nave/stats)
+                socket.broadcast.emit('playerShipChanged', { id: socket.id, shipId: shipId });
+                socket.broadcast.emit('playerStatSync', {
+                    id: socket.id,
+                    hp: p.hp,
+                    shield: p.shield,
+                    maxHp: p.maxHp,
+                    maxShield: p.maxShield,
+                    spheres: p.spheres,
+                    isDead: false
+                });
+
+                console.log(`[HANGAR] Piloto ${p.user} cambió a Nave ${shipId}. Stats Sync: ${p.maxHp} HP / ${p.maxShield} SH`);
             }
         } catch (e) { console.error("Error selectShip:", e); }
     });
@@ -1436,7 +1485,7 @@ async function _give_emergency_bonus() {
     } catch (e) { console.error("Error en bono:", e); }
 }
 // Ejecutar ahora para dar el bono
-// _give_emergency_bonus();
+//_give_emergency_bonus(); 
 
 http.listen(PORT, '0.0.0.0', () => {
     const ip = getLocalIP();
