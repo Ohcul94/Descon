@@ -316,6 +316,8 @@ io.on('connection', (socket) => {
                     combat: [0, 0, 0, 0, 0, 0, 0, 0],
                     science: [0, 0, 0, 0, 0, 0, 0, 0]
                 },
+                baseHp: baseHp, // Almacenar bases para recalcular
+                baseShield: baseSh,
                 ammo: user.gameData.ammo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
                 // v210.80: Cargar equipo específico de esta nave al login (Clonado Seguro)
                 equipped: JSON.parse(JSON.stringify(user.gameData.equippedByShip instanceof Map ? user.gameData.equippedByShip.get(user.gameData.currentShipId.toString()) : (user.gameData.equippedByShip?.[user.gameData.currentShipId.toString()] || { w: [], s: [], e: [], x: [] }))),
@@ -454,7 +456,6 @@ io.on('connection', (socket) => {
         if (!socket.dbUser || !gameData) return;
         try {
             // v210.0: BLOQUEO AUTORITATIVO (Ignorar riquezas del cliente)
-            // No permitimos que el cliente diga cuánto dinero o EXP tiene.
             if (players[socket.id]) {
                 const p = players[socket.id];
                 p.hp = gameData.hp !== undefined ? gameData.hp : p.hp;
@@ -465,17 +466,16 @@ io.on('connection', (socket) => {
                 p.spheres = gameData.spheres || p.spheres;
                 p.skillTree = gameData.skillTree || p.skillTree;
                 p.hudPositions = gameData.hudPositions || p.hudPositions;
-                // hubs, ohcu, exp, level NO se actualizan desde aquí.
+                // hubs, ohcu, exp, level NO se actualizan desde aquí (Autoritativo v138)
             }
 
             const updateFields = {};
             const fields = [
-                "hp", "shield", "ammo", "selectedAmmo", "inventory",
+                "hp", "shield", "ammo", "selectedAmmo", "inventory", 
                 "equipped", "spheres", "skillTree",
                 "lastPos", "hudPositions",
                 "hubs", "ohcu", "exp", "level", "skillPoints", "currentShipId"
             ];
-            // v210.150: Restaurados campos de progresión (hubs, ohcu, exp, etc)
 
             fields.forEach(field => {
                 if (gameData[field] !== undefined) {
@@ -488,6 +488,16 @@ io.on('connection', (socket) => {
                     }
                 }
             });
+
+            // Forzar persistencia de valores autoritativos del server (RAM -> DB)
+            const p_sync = players[socket.id];
+            if (p_sync) {
+                updateFields["gameData.hubs"] = p_sync.hubs;
+                updateFields["gameData.ohcu"] = p_sync.ohcu;
+                updateFields["gameData.exp"] = p_sync.exp;
+                updateFields["gameData.level"] = p_sync.level;
+                updateFields["gameData.skillPoints"] = p_sync.skillPoints;
+            }
 
             if (Object.keys(updateFields).length > 0) {
                 await User.updateOne({ _id: socket.dbUser._id }, { $set: updateFields });
@@ -730,53 +740,59 @@ io.on('connection', (socket) => {
         }
     });
 
-    // SISTEMA DE DISTRIBUCIÓN DE TALENTOS v164.2
+    // SISTEMA DE DISTRIBUCIÓN DE TALENTOS v164.2 (Clon commit 30671f + ANTI-HACK)
     socket.on('investSkill', async (data) => {
         if (!socket.dbUser) return;
         try {
             const { category, index } = data;
+            if (index < 0 || index > 7) return; 
+
             const user = await User.findById(socket.dbUser._id);
-            if (index < 0 || index > 7) return; // Índice fuera de rago (8 talentos por rama)
+            if (!user || user.gameData.skillPoints <= 0) return socket.emit('gameNotification', { msg: 'SIN PUNTOS DE HABILIDAD', type: 'warn' });
+
+            // v214.50: ANTI-HACK (Validar integridad del árbol)
+            let totalSpent = 0;
+            if (user.gameData.skillTree) {
+                Object.values(user.gameData.skillTree).forEach(branch => {
+                    if (Array.isArray(branch)) branch.forEach(val => totalSpent += val);
+                });
+            }
+            if (totalSpent >= user.gameData.level) {
+                 return socket.emit('gameNotification', { msg: 'LIMITE DE TALENTOS ALCANZADO POR NIVEL', type: 'warn' });
+            }
 
             if (user.gameData.skillTree[category][index] < 5) {
                 user.gameData.skillTree[category][index]++;
                 user.gameData.skillPoints--;
 
-                // v196.40: FORZAR PERSISTENCIA EN MONGO (Fix F5 Bug)
+                // Persistencia de Oro
+                user.markModified('gameData.skillTree');
                 user.markModified('gameData');
                 await user.save();
 
                 socket.dbUser = user;
-                // v196.25: ACTUALIZACIÓN INSTANTÁNEA EN RAM Y RED
                 if (players[socket.id]) {
                     const p = players[socket.id];
                     p.skillTree = user.gameData.skillTree;
                     p.skillPoints = user.gameData.skillPoints;
 
-                    // Recalcular con los nuevos talentos (Unificado al 2% v196.80)
+                    // Recalcular con bases reales
                     const hpBonus = 1.0 + ((p.skillTree.engineering[0] || 0) * 0.02);
                     const shBonus = 1.0 + ((p.skillTree.engineering[1] || 0) * 0.02);
-                    p.maxHp = Math.ceil(p.baseHp * hpBonus);
-                    p.maxShield = Math.ceil(p.baseShield * shBonus);
+                    p.maxHp = Math.ceil((p.baseHp || 2000) * hpBonus);
+                    p.maxShield = Math.ceil((p.baseShield || 1000) * shBonus);
 
-                    // Emitir a Godot para que el HUD se mueva en el acto
                     io.to(`zone_${p.zone}`).emit('playerStatSync', {
                         id: socket.id,
-                        hp: p.hp,
-                        shield: p.shield,
-                        maxHp: p.maxHp,
-                        maxShield: p.maxShield,
-                        isDead: false
+                        hp: p.hp, shield: p.shield,
+                        maxHp: p.maxHp, maxShield: p.maxShield, isDead: false
                     });
                 }
-
                 socket.emit('inventoryData', { player: user.gameData });
-                console.log(`[SKILLS] Clic Exitoso -> HP Max ahora es: ${players[socket.id].maxHp}`);
             }
-        } catch (e) { console.error("Error en investSkill:", e); }
+        } catch (e) { console.error("Error en investSkill seguro:", e); }
     });
 
-    // v196.30: SISTEMA DE RESET DE TALENTOS (FIX)
     socket.on('resetSkills', async () => {
         if (!socket.dbUser || !players[socket.id]) return;
         try {
@@ -798,23 +814,17 @@ io.on('connection', (socket) => {
             await user.save();
             socket.dbUser = user;
 
-            // Actualizar RAM
             p.ohcu = user.gameData.ohcu;
             p.skillPoints = user.gameData.skillPoints;
             p.skillTree = user.gameData.skillTree;
             p.maxHp = p.baseHp || 2000;
             p.maxShield = p.baseShield || 1000;
 
-            // Feedback Total
             socket.emit('inventoryData', { player: user.gameData });
             io.to(`zone_${p.zone}`).emit('playerStatSync', {
-                id: socket.id,
-                hp: p.hp, shield: p.shield,
-                maxHp: p.maxHp, maxShield: p.maxShield,
-                isDead: false
+                id: socket.id, hp: p.hp, shield: p.shield,
+                maxHp: p.maxHp, maxShield: p.maxShield, isDead: false
             });
-
-            console.log(`[SKILLS] Reset Exitoso para ${user.username}`);
         } catch (e) { console.error("Error en resetSkills:", e); }
     });
 
@@ -1426,7 +1436,7 @@ async function _give_emergency_bonus() {
     } catch (e) { console.error("Error en bono:", e); }
 }
 // Ejecutar ahora para dar el bono
-//_give_emergency_bonus();
+// _give_emergency_bonus();
 
 http.listen(PORT, '0.0.0.0', () => {
     const ip = getLocalIP();
