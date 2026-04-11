@@ -420,28 +420,28 @@ io.on('connection', (socket) => {
     socket.on('saveProgress', async (gameData) => {
         if (!socket.dbUser || !gameData) return;
         try {
-            // v164.81: Sincronía en Caliente (RAM Update)
+            // v210.0: BLOQUEO AUTORITATIVO (Ignorar riquezas del cliente)
+            // No permitimos que el cliente diga cuánto dinero o EXP tiene.
             if (players[socket.id]) {
                 const p = players[socket.id];
                 p.hp = gameData.hp !== undefined ? gameData.hp : p.hp;
                 p.shield = gameData.shield !== undefined ? gameData.shield : p.shield;
-                // v200.40: BLOQUEO DE STATS (No aceptar HP/Shield Máximos del cliente ni nivel)
                 p.selectedAmmo = gameData.selectedAmmo || p.selectedAmmo;
                 p.ammo = gameData.ammo || p.ammo;
                 p.equipped = gameData.equipped || p.equipped;
                 p.spheres = gameData.spheres || p.spheres;
-                p.hubs = gameData.hubs !== undefined ? gameData.hubs : p.hubs;
-                p.ohcu = gameData.ohcu !== undefined ? gameData.ohcu : p.ohcu;
                 p.skillTree = gameData.skillTree || p.skillTree;
+                p.hudPositions = gameData.hudPositions || p.hudPositions;
+                // hubs, ohcu, exp, level NO se actualizan desde aquí.
             }
 
-            // v196.90: Sistema de Guardado Dinámico (Anti-Overwrite Protection)
             const updateFields = {};
             const fields = [
-                "hp", "shield", "ammo", "selectedAmmo", "hubs", "ohcu", "inventory", 
-                "equipped", "spheres", "ownedShips", "currentShipId", "skillPoints", "skillTree",
-                "lastPos", "hudPositions", "exp", "level"
+                "hp", "shield", "ammo", "selectedAmmo", "inventory", 
+                "equipped", "spheres", "ownedShips", "currentShipId", "skillTree",
+                "lastPos", "hudPositions"
             ];
+            // REMOVIDOS de fields: hubs, ohcu, exp, level, skillPoints
 
             fields.forEach(field => {
                 if (gameData[field] !== undefined) {
@@ -551,16 +551,31 @@ io.on('connection', (socket) => {
         const p = players[socket.id];
         if (!p || !p.spheres) return;
         
+        const now = Date.now();
+        const sphereIdx = data.id !== undefined ? data.id : -1;
+        if (sphereIdx < 0 || sphereIdx >= 3) return;
+
+        // v210.5: VALIDACIÓN DE COOLDOWN (Anti-Skill Spam)
+        if (!p.sphereCooldowns) p.sphereCooldowns = [0, 0, 0];
+        const lastUsed = p.sphereCooldowns[sphereIdx];
+        const skillCooldown = 4800; // 5s oficiales - 200ms de gracia por lag
+        
+        if (now - lastUsed < skillCooldown) {
+            // console.log(`[SPHERES] Rechazando skill de ${p.user}: Cooldown pendiente.`);
+            return;
+        }
+        
         // v200.45: VALIDACIÓN DE PODER (Ignorar powerValue del cliente)
         let healAmt = 0;
-        const sphereIdx = data.id !== undefined ? data.id : -1;
-        if (sphereIdx >= 0 && sphereIdx < 3) {
-            const sphere = p.spheres[sphereIdx];
-            if (sphere && sphere.equipped) {
-                healAmt = sphere.equipped.power_value || 0;
-            }
+        const sphere = p.spheres[sphereIdx];
+        if (sphere && sphere.equipped) {
+            // Si es un objeto serializado (login de-serialized) o dict
+            healAmt = sphere.equipped.power_value || 0;
         }
+        
         if (healAmt <= 0) return; // Hack detected or no skill equipped
+        
+        p.sphereCooldowns[sphereIdx] = now; // Registrar uso legítimo
 
         if (data.skillName === "ESCUDO CELULAR") {
             p.shield = Math.min((p.shield || 0) + healAmt, p.maxShield || 2000);
@@ -579,7 +594,7 @@ io.on('connection', (socket) => {
             isDead: false
         });
         
-        console.log(`[SPHERES] Piloto ${p.user} usó ${data.skillName}. Sync HP/SH enviado.`);
+        console.log(`[SPHERES] Piloto ${p.user} usó ${data.skillName}. Cooldown iniciado.`);
     });
 
     // ENVIAR CONFIG AL CONECTAR
@@ -860,10 +875,11 @@ io.on('connection', (socket) => {
             const ship = SERVER_CONFIG.shipModels.find(s => s.id === p.currentShipId);
             p.speed = ship ? ship.speed : 500;
         }
+        // v210.0: ANTI-SPEEDHACK (Ajuste de Precisión)
         const dx = movementData.x - p.x;
         const dy = movementData.y - p.y;
         const distance = Math.sqrt(dx*dx + dy*dy);
-        if (distance >= 2500) {
+        if (distance >= 1100) { // Umbral realista para compensar lag y naves rápidas
             console.log(`[HACK] Teletransporte detectado en ${p.user}: ${distance}px`);
             return;
         }
