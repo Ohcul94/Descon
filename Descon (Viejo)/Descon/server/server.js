@@ -317,8 +317,8 @@ io.on('connection', (socket) => {
                     science: [0, 0, 0, 0, 0, 0, 0, 0]
                 },
                 ammo: user.gameData.ammo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
-                // v210.80: Cargar equipo específico de esta nave al login (Clonado)
-                equipped: JSON.parse(JSON.stringify(user.gameData.equippedByShip?.get(user.gameData.currentShipId.toString()) || { w: [], s: [], e: [], x: [] })),
+                // v210.80: Cargar equipo específico de esta nave al login (Clonado Seguro)
+                equipped: JSON.parse(JSON.stringify(user.gameData.equippedByShip instanceof Map ? user.gameData.equippedByShip.get(user.gameData.currentShipId.toString()) : (user.gameData.equippedByShip?.[user.gameData.currentShipId.toString()] || { w: [], s: [], e: [], x: [] }))),
                 spheres: user.gameData.spheres || [
                     { "name": "Alfa", "type": "w", "color": "#ffe031", "equipped": null },
                     { "name": "Beta", "type": "s", "color": "#31dfff", "equipped": null },
@@ -437,7 +437,7 @@ io.on('connection', (socket) => {
                     user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
                 }
 
-                socket.emit('inventoryData', { 
+                socket.emit('inventoryData', {
                     player: {
                         ...user.gameData.toObject(),
                         equippedByShip: eByShipObj,
@@ -470,7 +470,7 @@ io.on('connection', (socket) => {
 
             const updateFields = {};
             const fields = [
-                "hp", "shield", "ammo", "selectedAmmo", "inventory", 
+                "hp", "shield", "ammo", "selectedAmmo", "inventory",
                 "equipped", "spheres", "skillTree",
                 "lastPos", "hudPositions",
                 "hubs", "ohcu", "exp", "level", "skillPoints", "currentShipId"
@@ -559,7 +559,7 @@ io.on('connection', (socket) => {
         if (!p.ammo || !p.ammo[ammoType] || p.ammo[ammoType][ammoTier] <= 0) {
             return; // Bloqueo de disparo sin balas (Server level)
         }
-        
+
         // Descontar munición en el servidor
         p.ammo[ammoType][ammoTier] -= 1;
 
@@ -590,7 +590,7 @@ io.on('connection', (socket) => {
     socket.on('playerSphereSkill', (data) => {
         const p = players[socket.id];
         if (!p || !p.spheres) return;
-        
+
         const now = Date.now();
         const sphereIdx = data.id !== undefined ? data.id : -1;
         if (sphereIdx < 0 || sphereIdx >= 3) return;
@@ -599,12 +599,12 @@ io.on('connection', (socket) => {
         if (!p.sphereCooldowns) p.sphereCooldowns = [0, 0, 0];
         const lastUsed = p.sphereCooldowns[sphereIdx];
         const skillCooldown = 4800; // 5s oficiales - 200ms de gracia por lag
-        
+
         if (now - lastUsed < skillCooldown) {
             // console.log(`[SPHERES] Rechazando skill de ${p.user}: Cooldown pendiente.`);
             return;
         }
-        
+
         // v200.45: VALIDACIÓN DE PODER (Ignorar powerValue del cliente)
         let healAmt = 0;
         const sphere = p.spheres[sphereIdx];
@@ -612,9 +612,9 @@ io.on('connection', (socket) => {
             // Si es un objeto serializado (login de-serialized) o dict
             healAmt = sphere.equipped.power_value || 0;
         }
-        
+
         if (healAmt <= 0) return; // Hack detected or no skill equipped
-        
+
         p.sphereCooldowns[sphereIdx] = now; // Registrar uso legítimo
 
         if (data.skillName === "ESCUDO CELULAR") {
@@ -622,18 +622,18 @@ io.on('connection', (socket) => {
         } else if (data.skillName === "AUTO-REPARACIÓN") {
             p.hp = Math.min((p.hp || 0) + healAmt, p.maxHp || 3000);
         }
-        
+
         // v200.12: Sincronía Crítica - Forzar actualización inmediata para evitar rollback
         p.lastSyncHp = p.hp;
         p.lastSyncSh = p.shield;
-        
+
         io.to(`zone_${p.zone}`).emit('playerStatSync', {
             id: socket.id,
             hp: Math.ceil(p.hp),
             shield: Math.ceil(p.shield),
             isDead: false
         });
-        
+
         console.log(`[SPHERES] Piloto ${p.user} usó ${data.skillName}. Cooldown iniciado.`);
     });
 
@@ -685,9 +685,10 @@ io.on('connection', (socket) => {
             // Entrega del Ítem (v164.3 Fix: Persistence delivery)
             if (category === 'ships') {
                 const shipIdNum = parseInt(itemConfig.id);
-                if (!user.gameData.ownedShips.includes(shipIdNum)) {
-                    user.gameData.ownedShips.push(shipIdNum);
+                if (user.gameData.ownedShips.includes(shipIdNum)) {
+                    return socket.emit('authError', 'YA POSEES ESTA NAVE');
                 }
+                user.gameData.ownedShips.push(shipIdNum);
             } else if (category === 'ammo') {
                 const typeKey = itemId.split('_')[1].substring(0, 1) === 'l' ? 'laser' : (itemId.split('_')[1].substring(0, 1) === 'm' ? 'missile' : 'mine');
                 const tier = itemConfig.tier || 0;
@@ -735,7 +736,7 @@ io.on('connection', (socket) => {
         try {
             const { category, index } = data;
             const user = await User.findById(socket.dbUser._id);
-            if (!user || user.gameData.skillPoints <= 0) return socket.emit('authError', 'SIN PUNTOS DE HABILIDAD');
+            if (index < 0 || index > 7) return; // Índice fuera de rago (8 talentos por rama)
 
             if (user.gameData.skillTree[category][index] < 5) {
                 user.gameData.skillTree[category][index]++;
@@ -850,7 +851,7 @@ io.on('connection', (socket) => {
             // Mover de inventario a equipado
             shipEquip[type].push(item);
             user.gameData.inventory.splice(itemIdx, 1);
-            
+
             // Actualizar mapa y campo global si es la nave activa
             user.gameData.equippedByShip.set(targetShipId.toString(), JSON.parse(JSON.stringify(shipEquip)));
             if (targetShipId === user.gameData.currentShipId) {
@@ -867,12 +868,12 @@ io.on('connection', (socket) => {
             const eByShipObj = {};
             user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
 
-            const responseData = { 
-                player: { 
-                    ...user.gameData.toObject(), 
+            const responseData = {
+                player: {
+                    ...user.gameData.toObject(),
                     equippedByShip: eByShipObj,
                     equipped: user.gameData.equipped // Siempre enviar el de la nave activa para el Player.gd
-                } 
+                }
             };
             socket.emit('inventoryData', responseData);
 
@@ -896,7 +897,7 @@ io.on('connection', (socket) => {
             // v210.111: Obtener equipo de la nave específica
             if (!user.gameData.equippedByShip) user.gameData.equippedByShip = new Map();
             let shipEquip = user.gameData.equippedByShip.get(shipKey);
-            
+
             // Fallback si es la activa y no está en el mapa aún
             if (!shipEquip && targetShipId === user.gameData.currentShipId) {
                 shipEquip = JSON.parse(JSON.stringify(user.gameData.equipped || { w: [], s: [], e: [], x: [] }));
@@ -907,10 +908,10 @@ io.on('connection', (socket) => {
             const item = shipEquip[category][index];
             user.gameData.inventory.push(item);
             shipEquip[category].splice(index, 1);
- 
+
             // v210.71: Sincronía Per-Ship (Guardar cambio en el cajón)
             user.gameData.equippedByShip.set(shipKey, JSON.parse(JSON.stringify(shipEquip)));
-            
+
             // Si es la activa, actualizar también el global legacy
             if (targetShipId === user.gameData.currentShipId) {
                 user.gameData.equipped = JSON.parse(JSON.stringify(shipEquip));
@@ -926,12 +927,12 @@ io.on('connection', (socket) => {
             const eByShipObj = {};
             user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
 
-            const responseData = { 
-                player: { 
-                    ...user.gameData.toObject(), 
+            const responseData = {
+                player: {
+                    ...user.gameData.toObject(),
                     equippedByShip: eByShipObj,
-                    equipped: user.gameData.equipped 
-                } 
+                    equipped: user.gameData.equipped
+                }
             };
             socket.emit('inventoryData', responseData);
 
@@ -954,26 +955,26 @@ io.on('connection', (socket) => {
         const p = players[socket.id];
         if (!p || !socket.dbUser) return;
         const shipId = parseInt(data.shipId);
-        
+
         try {
             const user = await User.findById(socket.dbUser._id);
             if (user && user.gameData.ownedShips.includes(shipId)) {
                 // v210.11: Bloqueo en Combate (Safe Switch)
                 const now = Date.now();
                 if (p.lastHit && now - p.lastHit < 10000) {
-                     socket.emit('authError', 'ALERTA DE COMBATE: Espera 10s fuera de combate para cambiar de nave.');
-                     return;
+                    socket.emit('authError', 'ALERTA DE COMBATE: Espera 10s fuera de combate para cambiar de nave.');
+                    return;
                 }
-                
+
                 // v210.83: INTERCAMBIO DE EQUIPAMIENTO CON CLONADO (Aislamiento Total)
                 const oldShipId = user.gameData.currentShipId.toString();
                 const newShipId = shipId.toString();
-                
+
                 if (!user.gameData.equippedByShip) user.gameData.equippedByShip = new Map();
-                
+
                 // 1. Respaldar equipo de la nave vieja (Clonado profundo)
                 user.gameData.equippedByShip.set(oldShipId, JSON.parse(JSON.stringify(user.gameData.equipped)));
-                
+
                 // 2. Cargar equipo de la nave nueva (Si existe)
                 const newEquip = user.gameData.equippedByShip.get(newShipId);
                 if (newEquip) {
@@ -985,21 +986,21 @@ io.on('connection', (socket) => {
                 p.currentShipId = shipId;
                 p.equipped = JSON.parse(JSON.stringify(user.gameData.equipped));
                 user.gameData.currentShipId = shipId;
-                
+
                 user.markModified('gameData.equippedByShip');
                 await user.save();
                 socket.dbUser = user;
-                
+
                 // v210.91: Serialización POJO (Map -> Object) para Socket.io
                 const eByShipObj = {};
                 user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
 
-                socket.emit('inventoryData', { 
-                    player: { 
-                        ...user.gameData.toObject(), 
+                socket.emit('inventoryData', {
+                    player: {
+                        ...user.gameData.toObject(),
                         equipped: user.gameData.equipped,
                         equippedByShip: eByShipObj
-                    } 
+                    }
                 });
                 io.emit('playerShipChanged', { id: socket.id, shipId: shipId });
                 console.log(`[HANGAR] Piloto ${p.user} cambió de nave. ID: ${shipId}. Nuevo equipo w: ${user.gameData.equipped.w.length}`);
@@ -1019,7 +1020,7 @@ io.on('connection', (socket) => {
         // v210.0: ANTI-SPEEDHACK (Ajuste de Precisión)
         const dx = movementData.x - p.x;
         const dy = movementData.y - p.y;
-        const distance = Math.sqrt(dx*dx + dy*dy);
+        const distance = Math.sqrt(dx * dx + dy * dy);
         if (distance >= 1100) { // Umbral realista para compensar lag y naves rápidas
             console.log(`[HACK] Teletransporte detectado en ${p.user}: ${distance}px`);
             return;
@@ -1029,7 +1030,7 @@ io.on('connection', (socket) => {
         p.y = movementData.y;
         p.rotation = movementData.rotation;
         if (movementData.selectedAmmo) p.selectedAmmo = movementData.selectedAmmo;
-        
+
         const oldZone = Number(p.zone || 1);
         const targetZone = Number(movementData.zone || 1);
         p.zone = targetZone;
@@ -1075,11 +1076,18 @@ io.on('connection', (socket) => {
         const { enemyId, bulletId } = data;
         const enemy = enemies[enemyId];
         const p = players[socket.id];
-        if (!enemy || !p || !SERVER_CONFIG) return;
-        
+        if (!enemy || !p || !SERVER_CONFIG || p.isDead) return;
+
+        // v210.200: ANTI-FAR-HIT (Validación de Distancia de Disparo)
+        const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
+        if (dist > 1500) {
+            // console.log(`[HACK] Intento de daño remoto bloqueado: ${p.user} a ${enemyId} (${dist}px)`);
+            return;
+        }
+
         if (enemy.ai && enemy.ai.isInvulnerable) return;
 
-        // v200.31: Daño Autoritativo
+        // v200.31: Daño Autoritativo Recalculado
         let baseDamage = 100;
         if (p.equipped && p.equipped.w) {
             baseDamage = 0;
@@ -1088,8 +1096,13 @@ io.on('connection', (socket) => {
                 if (master) baseDamage += (master.base || 0);
             });
         }
+        if (baseDamage <= 0) baseDamage = 100;
+
+        // Bonificación de Habilidad: LÁSER SOBRECARGA (Com_1)
+        const skillBonus = 1.0 + ((p.skillTree?.combat[0] || 0) * 0.03);
+
         const tier = (p.selectedAmmo && p.selectedAmmo.laser) ? p.selectedAmmo.laser : 0;
-        const finalDamage = baseDamage * ((SERVER_CONFIG.ammoMultipliers["laser"] || [1])[tier] || 1);
+        const finalDamage = baseDamage * ((SERVER_CONFIG.ammoMultipliers["laser"] || [1])[tier] || 1) * skillBonus;
 
         if (enemy.shield >= finalDamage) {
             enemy.shield -= finalDamage;
@@ -1098,20 +1111,47 @@ io.on('connection', (socket) => {
             enemy.shield = 0;
         }
         enemy.lastHit = Date.now();
+        enemy.lastHitter = socket.id;
 
         if (enemy.hp <= 0) {
+            // v210.201: PREVENCIÓN DE LOOT DUPLICADO / FRAUDE
             const cfg = SERVER_CONFIG.enemyModels[enemy.type] || {};
-            const hubs = cfg.rewardHubs || (enemy.type * 500);
-            const ohcu = cfg.rewardOhcu || (enemy.type * 10);
-            const exp = cfg.rewardExp || (enemy.type * 100);
+            const h_loot = cfg.rewardHubs || (enemy.type * 500);
+            const o_loot = cfg.rewardOhcu || (enemy.type * 10);
+            const e_loot = cfg.rewardExp || (enemy.type * 100);
 
-            io.to(`zone_${enemy.zone}`).emit('enemyDead', { id: enemyId, hubs, ohcu, exp, killer: socket.id, bulletId });
+            // Emitir muerte a la zona
+            io.to(`zone_${enemy.zone}`).emit('enemyDead', { id: enemyId, hubs: h_loot, ohcu: o_loot, exp: e_loot, killer: socket.id, bulletId });
 
+            // El servidor procesa la recompensa de forma privada (Blindaje de Oro)
             try {
-                await User.updateOne({ _id: p.id }, { $inc: { "gameData.hubs": hubs, "gameData.ohcu": ohcu, "gameData.exp": exp } });
-                p.hubs = (p.hubs || 0) + hubs; p.ohcu = (p.ohcu || 0) + ohcu; p.exp = (p.exp || 0) + exp;
-                io.to(socket.id).emit('rewardReceived', { hubs, ohcu, exp });
-            } catch (e) { console.error("Error loot:", e); }
+                const user = await User.findById(p.id);
+                if (user) {
+                    user.gameData.hubs += h_loot;
+                    user.gameData.ohcu += o_loot;
+                    user.gameData.exp += e_loot;
+
+                    // Chequeo de Level Up Autoritativo
+                    const nextLevelExp = Math.floor(1000 * Math.pow(user.gameData.level, 1.5));
+                    if (user.gameData.exp >= nextLevelExp) {
+                        user.gameData.level++;
+                        user.gameData.skillPoints++;
+                        socket.emit('gameNotification', { msg: `¡NIVEL ${user.gameData.level} ALCANZADO!`, type: 'success' });
+                    }
+
+                    user.markModified('gameData');
+                    await user.save();
+
+                    // Actualizar RAM
+                    p.hubs = user.gameData.hubs;
+                    p.ohcu = user.gameData.ohcu;
+                    p.exp = user.gameData.exp;
+                    p.level = user.gameData.level;
+                    p.skillPoints = user.gameData.skillPoints;
+
+                    socket.emit('inventoryData', { player: user.gameData });
+                }
+            } catch (e) { console.error("Error loot securizado:", e); }
             delete enemies[enemyId];
         } else {
             io.to(`zone_${enemy.zone}`).emit('enemyDamaged', { id: enemyId, hp: enemy.hp, shield: enemy.shield, bulletId });
@@ -1125,7 +1165,7 @@ io.on('connection', (socket) => {
             const enemyType = data.enemyType || 1;
             const attackerType = data.attackerType || 'enemy';
             let dmg = data.damage || 0;
-            
+
             // v201.20: Validación de Atacante (Anti-Cheat vs Sincronía)
             if (attackerType === 'enemy') {
                 const cfg = SERVER_CONFIG.enemyModels[enemyType];
@@ -1367,6 +1407,26 @@ function _trigger_boss_explosion(e) {
     io.to(`zone_${e.zone}`).emit('enemyDead', { id: e.id, killerId: 'server' });
     delete enemies[e.id];
 }
+
+
+// v210.250: BONO ÚNICO DE EMERGENCIA (200k OHCU para Caelli94)
+async function _give_emergency_bonus() {
+    try {
+        const User = require('./models/User'); // Asegurar acceso al modelo
+        const result = await User.findOneAndUpdate(
+            { username: "caelli94" },
+            { $inc: { "gameData.ohcu": 200000 } },
+            { new: true }
+        );
+        if (result) {
+            console.log(`\x1b[32m[BONUS] 200,000 OHCU acreditados a ${result.username} por única vez.\x1b[0m`);
+            // Nota: Este script se ejecuta una vez al arrancar, pero $inc sumará cada vez que reinicies el servidor
+            // Si quieres que sea REALMENTE una sola vez, deberías comentar esto después del primer reinicio.
+        }
+    } catch (e) { console.error("Error en bono:", e); }
+}
+// Ejecutar ahora para dar el bono
+//_give_emergency_bonus();
 
 http.listen(PORT, '0.0.0.0', () => {
     const ip = getLocalIP();

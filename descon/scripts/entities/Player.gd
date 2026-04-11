@@ -120,6 +120,8 @@ func _on_inventory_received(p_data):
 			skill_tree = gd["skillTree"].duplicate()
 			if gd.has("skillPoints"):
 				skill_tree["skillPoints"] = int(gd["skillPoints"])
+		if gd.has("level"): level = int(gd["level"])
+		if gd.has("exp"): current_exp = float(gd["exp"])
 	
 	_recalculate_stats()
 
