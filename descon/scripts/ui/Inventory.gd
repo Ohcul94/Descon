@@ -311,61 +311,160 @@ func _create_item_row(it, parent):
 
 # --- ESFERAS ---
 func _update_spheres_ui():
-	var tab = get_node_or_null("Window/TabContainer/Esferas")
-	if not tab: return
-	for n in tab.get_children(): n.queue_free()
+	var root_tab = get_node_or_null("Window/TabContainer/Esferas")
+	if not root_tab: return
+	for n in root_tab.get_children(): n.queue_free()
 	
-	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); tab.add_child(master_v)
+	# v201.5: Creación de Sub-Pestañas para Esferas
+	var sub_tabs = TabContainer.new()
+	sub_tabs.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root_tab.add_child(sub_tabs)
 	
-	var title = Label.new(); title.text = "SISTEMA DE ESFERAS ORBITALES"; title.modulate = Color.CYAN; title.add_theme_font_size_override("font_size", 16); title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; master_v.add_child(title)
-	var desc = Label.new(); desc.text = "Equipa núcleos en tus esferas para obtener bonificaciones y habilidades activas."; desc.modulate = Color(0.7, 0.7, 0.7); desc.add_theme_font_size_override("font_size", 10); desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; master_v.add_child(desc)
+	var eq_tab = Control.new(); eq_tab.name = "SISTEMA ORBITAL"; sub_tabs.add_child(eq_tab)
+	var lib_tab = Control.new(); lib_tab.name = "BIBLIOTECA DE HABILIDADES"; sub_tabs.add_child(lib_tab)
 	
-	var spacer = Control.new(); spacer.custom_minimum_size = Vector2(0, 30); master_v.add_child(spacer)
+	_render_spheres_equipment(eq_tab, sub_tabs)
+	_render_spheres_library(lib_tab)
+
+func _render_spheres_equipment(tab, sub_tabs):
+	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); master_v.offset_top = 20; tab.add_child(master_v)
 	
-	var spheres_h = HBoxContainer.new(); spheres_h.alignment = BoxContainer.ALIGNMENT_CENTER; spheres_h.add_theme_constant_override("separation", 50); master_v.add_child(spheres_h)
+	var spheres_h = HBoxContainer.new(); spheres_h.alignment = BoxContainer.ALIGNMENT_CENTER; spheres_h.add_theme_constant_override("separation", 60); master_v.add_child(spheres_h)
 	
 	var spheres_manager = null
 	var p = get_tree().get_first_node_in_group("player")
-	if is_instance_valid(p):
-		spheres_manager = p.get_node_or_null("SpheresManager")
+	if is_instance_valid(p): spheres_manager = p.get_node_or_null("SpheresManager")
 	
-	var sphere_types = [
-		{"name": "ESFERA ALFA", "type": "Movimiento", "color": Color(1, 0.8, 0)},
-		{"name": "ESFERA BETA", "type": "Defensa", "color": Color.AQUA},
-		{"name": "ESFERA GAMMA", "type": "Curación", "color": Color.GREEN}
-	]
-	
-	# Si tenemos datos reales del manager, los usamos
-	var display_data = sphere_types
-	if is_instance_valid(spheres_manager) and spheres_manager.spheres_data.size() == 3:
-		display_data = spheres_manager.spheres_data
+	if not is_instance_valid(spheres_manager):
+		var err = Label.new(); err.text = "SISTEMA ORBITAL NO INICIALIZADO"; err.horizontal_alignment = 1; master_v.add_child(err)
+		return
 
 	for i in range(3):
-		var s_data = display_data[i]
+		var s_data = spheres_manager.spheres_data[i]
 		var v_box = VBoxContainer.new(); spheres_h.add_child(v_box)
 		
-		var s_label = Label.new(); s_label.text = s_data.get("name", sphere_types[i]["name"]); s_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; v_box.add_child(s_label)
+		var s_label = Label.new(); s_label.text = s_data["name"]; s_label.horizontal_alignment = 1; s_label.modulate = s_data["color"]; v_box.add_child(s_label)
 		
-		var p_ui = PanelContainer.new(); p_ui.custom_minimum_size = Vector2(120, 120); v_box.add_child(p_ui)
-		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.5); sb.border_width_left = 2; sb.border_width_right = 2; sb.border_width_top = 2; sb.border_width_bottom = 2; sb.border_color = s_data["color"]; sb.corner_radius_top_left = 60; sb.corner_radius_top_right = 60; sb.corner_radius_bottom_left = 60; sb.corner_radius_bottom_right = 60; p_ui.add_theme_stylebox_override("panel", sb)
+		var p_ui = PanelContainer.new(); p_ui.custom_minimum_size = Vector2(140, 140); v_box.add_child(p_ui)
+		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 3; sb.border_width_right = 3; sb.border_width_top = 3; sb.border_width_bottom = 3; sb.border_color = s_data["color"]; sb.corner_radius_top_left = 70; sb.corner_radius_top_right = 70; sb.corner_radius_bottom_left = 70; sb.corner_radius_bottom_right = 70; p_ui.add_theme_stylebox_override("panel", sb)
 		
-		var equipped = s_data.get("equipped")
-		var item_label = Label.new()
-		if not equipped:
-			item_label.text = "VACÍO"
-		elif equipped is SphereSkill:
-			item_label.text = equipped.skill_name.to_upper()
-		else:
-			item_label.text = equipped.get("name", "ITEM").to_upper()
-			
-		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		item_label.modulate.a = 0.3 if not equipped else 1.0
-		p_ui.add_child(item_label)
+		# Efecto de brillo interior para esferas vacías
+		if not s_data["equipped"]:
+			sb.bg_color = s_data["color"]; sb.bg_color.a = 0.05
 		
-		var type_label = Label.new(); type_label.text = s_data["type"]; type_label.modulate = s_data["color"]; type_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
+		var equipped = s_data["equipped"]
+		var center = CenterContainer.new(); p_ui.add_child(center)
+		var info_v = VBoxContainer.new(); center.add_child(info_v)
 		
-		var b = Button.new(); b.text = "DESEQUIPAR" if equipped else "EQUIPAR"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
+		var name_lbl = Label.new()
+		name_lbl.text = equipped.skill_name.to_upper() if equipped else "VACÍO"
+		name_lbl.horizontal_alignment = 1; name_lbl.add_theme_font_size_override("font_size", 11)
+		name_lbl.modulate.a = 1.0 if equipped else 0.3
+		info_v.add_child(name_lbl)
+		
+		if equipped:
+			var pwr = Label.new(); pwr.text = "POT: " + str(equipped.power_value); pwr.add_theme_font_size_override("font_size", 9); pwr.modulate = s_data["color"]; pwr.horizontal_alignment = 1; info_v.add_child(pwr)
+		
+		var type_label = Label.new(); type_label.text = s_data["type"]; type_label.modulate = s_data["color"]; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
+		
+		var b = Button.new(); b.text = "RECONFIGURAR" if equipped else "EQUIPAR NÚCLEO"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
+		b.pressed.connect(func(): if is_instance_valid(sub_tabs): sub_tabs.current_tab = 1) # Ir a la biblioteca
+
+func _render_spheres_library(tab):
+	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); main_v.offset_left = 20; main_v.offset_right = -20; main_v.offset_top = 20; tab.add_child(main_v)
+	
+	var grid = GridContainer.new(); grid.columns = 2; grid.size_flags_horizontal = 3; grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 20); main_v.add_child(grid)
+	
+	# v201.6: Catálogo de Habilidades Disponibles
+	var skills = [
+		{"class": Skill_TurboImpulse, "color": Color(1, 0.8, 0), "icon": "⚡"},
+		{"class": Skill_ShieldCell, "color": Color.AQUA, "icon": "🛡️"},
+		{"class": Skill_RepairKit, "color": Color.GREEN, "icon": "🔧"}
+	]
+	
+	for s_info in skills:
+		var s_inst = s_info["class"].new()
+		_create_skill_card(s_inst, s_info["color"], s_info["icon"], grid)
+
+func _create_skill_card(skill: SphereSkill, color: Color, icon_text: String, parent: Control):
+	var skill_card = PanelContainer.new()
+	skill_card.custom_minimum_size = Vector2(350, 120)
+	parent.add_child(skill_card)
+	
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0.05, 0.7)
+	sb.border_width_left = 4
+	sb.border_color = color
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_right = 8
+	skill_card.add_theme_stylebox_override("panel", sb)
+	
+	var hb = HBoxContainer.new()
+	hb.offset_left = 15
+	skill_card.add_child(hb)
+	
+	# Icono Placeholder
+	var icon_box = CenterContainer.new()
+	icon_box.custom_minimum_size = Vector2(60, 0)
+	hb.add_child(icon_box)
+	var ico = Label.new()
+	ico.text = icon_text
+	ico.add_theme_font_size_override("font_size", 30)
+	ico.modulate = color
+	icon_box.add_child(ico)
+	
+	var v_info = VBoxContainer.new()
+	v_info.size_flags_horizontal = 3
+	v_info.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_child(v_info)
+	
+	var name_l = Label.new()
+	name_l.text = skill.skill_name
+	name_l.add_theme_font_size_override("font_size", 14)
+	name_l.modulate = color
+	v_info.add_child(name_l)
+	
+	var desc_l = Label.new()
+	desc_l.text = skill.description
+	desc_l.add_theme_font_size_override("font_size", 10)
+	desc_l.modulate.a = 0.6
+	desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v_info.add_child(desc_l)
+	
+	var stats_h = HBoxContainer.new()
+	stats_h.add_theme_constant_override("separation", 15)
+	v_info.add_child(stats_h)
+	
+	var stat_p = Label.new()
+	stat_p.text = "POTENCIA: " + str(skill.power_value)
+	stat_p.add_theme_font_size_override("font_size", 9)
+	stat_p.modulate = color
+	stats_h.add_child(stat_p)
+	
+	var stat_c = Label.new()
+	stat_c.text = "CD: " + str(skill.cooldown) + "s"
+	stat_c.add_theme_font_size_override("font_size", 9)
+	stat_c.modulate.a = 0.5
+	stats_h.add_child(stat_c)
+	
+	var b_equip = Button.new()
+	b_equip.text = "EQUIPAR"
+	b_equip.custom_minimum_size = Vector2(80, 0)
+	b_equip.size_flags_vertical = 4
+	hb.add_child(b_equip)
+	
+	b_equip.pressed.connect(func():
+		var p_node = get_tree().get_first_node_in_group("player")
+		if p_node and p_node.has_node("SpheresManager"):
+			var sm = p_node.get_node("SpheresManager")
+			# Lógica simple: Equipar en el primer slot que coincida con el tipo
+			for i in range(3):
+				if sm.spheres_data[i]["type"] == skill.type:
+					sm.spheres_data[i]["equipped"] = skill
+					_update_spheres_ui()
+					print("[SPHERES] Equipado ", skill.skill_name, " en Esfera ", i)
+					break
+	)
 
 # --- SHOP ---
 func _update_shop_ui():
