@@ -19,8 +19,10 @@ var _ammo_nodes = {}
 var _ammo_menu: Control = null
 
 func _ready():
-	mouse_filter = Control.MOUSE_FILTER_PASS
 	print("[HUD] Sistema v190.40 inicializado.")
+	
+	# v210.190: Inyectar HUD Notifier (Paridad con Web)
+	_setup_notifier()
 	
 	# v167.30: Inyectar Icono de Escuadrón
 	var c_bar = get_node_or_null("ControlBar")
@@ -72,7 +74,8 @@ func _ready():
 	
 	if NetworkManager:
 		if not NetworkManager.login_success.is_connected(_on_server_data_received):
-			NetworkManager.login_success.connect(_on_server_data_received)
+			NetworkManager.auth_success.connect(func(d): _on_server_data_received(d))
+		NetworkManager.game_notification.connect(func(data): notify(data.get("msg", ""), data.get("type", "info")))
 
 func _on_server_data_received(p_data: Dictionary):
 	if p_data.has("gameData"):
@@ -284,3 +287,74 @@ func _on_ammo_slot_clicked(event: InputEvent, type: String, tier: int):
 	if event is InputEventMouseButton and event.pressed:
 		var p = get_tree().get_first_node_in_group("player")
 		if p and p.has_method("change_ammo"): p.change_ammo(type, tier)
+
+# --- SISTEMA HUD NOTIFIER v210.190 (Legacy Port) ---
+var _notifier_container: VBoxContainer = null
+
+func _setup_notifier():
+	_notifier_container = VBoxContainer.new()
+	_notifier_container.name = "HUD_Notifier"
+	_notifier_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Posición responsiva: Anclado a la derecha, creciendo hacia la izquierda
+	_notifier_container.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 30)
+	_notifier_container.offset_bottom = -150 # Arriba de las skills
+	_notifier_container.offset_right = -30  # Margen de seguridad desde el borde derecho
+	_notifier_container.grow_horizontal = Control.GROW_DIRECTION_BEGIN # Factor CRÍTICO: Crece hacia la IZQUIERDA
+	_notifier_container.grow_vertical = Control.GROW_DIRECTION_BEGIN   # Crece hacia ARRIBA
+	_notifier_container.alignment = BoxContainer.ALIGNMENT_END
+	add_child(_notifier_container)
+
+func notify(msg: String, type: String = "info"):
+	if not _notifier_container: return
+	
+	# Lógica de Agrupamiento Táctico (Evita spam)
+	var last = _notifier_container.get_child(_notifier_container.get_child_count() - 1) if _notifier_container.get_child_count() > 0 else null
+	if last and last.get_meta("raw_msg", "") == msg:
+		var count = last.get_meta("count", 1) + 1
+		last.set_meta("count", count)
+		last.text = msg + " x" + str(count)
+		_animate_notification(last, true)
+		return
+
+	var label = Label.new()
+	label.text = msg
+	label.set_meta("raw_msg", msg)
+	label.set_meta("count", 1)
+	label.add_theme_font_size_override("font_size", 10)
+	
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0, 0.8)
+	sb.border_width_right = 3
+	sb.content_margin_left = 15
+	sb.content_margin_right = 10
+	sb.content_margin_top = 5
+	sb.content_margin_bottom = 5
+	
+	match type:
+		"warn", "error": sb.border_color = Color.YELLOW
+		"success": sb.border_color = Color.GREEN
+		"info": sb.border_color = Color.CYAN
+		_: sb.border_color = Color.CYAN
+	
+	label.add_theme_stylebox_override("normal", sb)
+	label.modulate = sb.border_color
+	
+	_notifier_container.add_child(label)
+	_animate_notification(label)
+
+func _animate_notification(node: Label, is_update: bool = false):
+	var tw = create_tween().set_parallel(true)
+	if not is_update:
+		node.modulate.a = 0
+		node.position.x += 30
+		tw.tween_property(node, "modulate:a", 1.0, 0.2)
+		tw.tween_property(node, "position:x", node.position.x - 30, 0.2)
+	else:
+		tw.tween_property(node, "scale", Vector2(1.1, 1.1), 0.1)
+		tw.chain().tween_property(node, "scale", Vector2(1.0, 1.0), 0.1)
+	
+	# Auto-destrucción
+	var wait_tw = create_tween()
+	wait_tw.tween_interval(4.0)
+	wait_tw.tween_property(node, "modulate:a", 0.0, 0.5)
+	wait_tw.finished.connect(node.queue_free)

@@ -32,6 +32,7 @@ signal admin_config_updated(data)
 signal enemy_damaged(data)
 signal boss_effect(data)
 signal config_updated(data)
+signal game_notification(data)
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
@@ -157,6 +158,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"enemyDamaged": enemy_damaged.emit(e_data)
 		"enemyDead", "serverEnemyDead": enemy_dead.emit(e_data)
 		"bossEffect": boss_effect.emit(e_data)
+		"gameNotification": game_notification.emit(e_data)
 		"adminConfigUpdated", "adminConfigLoaded": 
 			config_updated.emit(e_data)
 			admin_config_updated.emit(e_data)

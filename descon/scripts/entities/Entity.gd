@@ -273,10 +273,18 @@ func _spawn_damage_text(txt: String, clr: Color):
 		get_tree().root.add_child(dt); if dt.has_method("setup"): dt.setup(txt, clr)
 
 func die():
-	is_dead = true; visible = false; queue_redraw()
+	is_dead = true
+	set_physics_process(false)
+	
+	# v210.180: Animación de Muerte Real
+	if is_instance_valid(anim_player) and anim_player.has_animation("death"):
+		anim_player.play("death")
+		await anim_player.animation_finished
+	
+	visible = false; queue_redraw()
 	if _ui_wrapper: _ui_wrapper.visible = false
-	set_physics_process(false); set_process(false)
-	# v186.26: No borrar naves de jugadores remotos al morir, solo ocultar (Sincronía Crítica)
+	set_process(false)
+	
 	if not is_in_group("player") and not is_in_group("remote_players"): 
 		queue_free()
 
@@ -401,20 +409,24 @@ func _update_animations():
 		
 	var vel_len = velocity.length()
 	
-	# v191.55: REPOSO ABSOLUTO (Frame 0 fijo)
-	if vel_len < 5.0:
-		if anim_player.is_playing(): anim_player.stop()
-		sprite.frame = 0
+	# v191.55: REPOSO (Idle en bucle)
+	if vel_len < 10.0:
+		if anim_player.current_animation != "idle":
+			anim_player.play("idle")
 		return
 
-	if velocity.length() > 40.0:
-		if not anim_player.is_playing() or anim_player.current_animation == "idle":
+	# v210.181: Transición Inteligente Aceleración -> Máxima
+	if vel_len > 10.0:
+		if anim_player.current_animation == "idle":
 			anim_player.play("start_move")
-			if anim_player.is_playing() and anim_player.current_animation == "start_move":
-				await anim_player.animation_finished
-			if velocity.length() > 40.0: anim_player.play("run")
-	else:
-		if anim_player.current_animation != "idle": anim_player.play("idle")
+		
+		# Si ya terminó de arrancar, pasamos a modo Crucero (Run)
+		if anim_player.current_animation == "start_move" and not anim_player.is_playing():
+			anim_player.play("run")
+		
+		# Si nos movemos y no hay nada sonando, forzamos Run
+		if anim_player.current_animation == "" or (not anim_player.is_playing() and vel_len > 100.0):
+			anim_player.play("run")
 
 # v210.161: Helper para limpiar visuales de equipo (evita duplicidad)
 func _clear_all_equipment_visuals():

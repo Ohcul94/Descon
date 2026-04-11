@@ -783,7 +783,7 @@ io.on('connection', (socket) => {
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
 
-            if (user.gameData.ohcu < 5000) return socket.emit('authError', 'OHCU INSUFICIENTE PARA RESET');
+            if (user.gameData.ohcu < 5000) return socket.emit('gameNotification', { msg: 'OHCU INSUFICIENTE PARA RESET', type: 'warn' });
 
             user.gameData.ohcu -= 5000;
             user.gameData.skillPoints = (p.level || 1) - 1;
