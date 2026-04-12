@@ -973,6 +973,48 @@ io.on('connection', (socket) => {
         } catch (e) { console.error("Error en unequipItem:", e); }
     });
 
+    // v214.190: Desequipar Esferas Orbitales
+    socket.on('unequipSphere', async (data) => {
+        if (!socket.dbUser) return;
+        const { sphereId } = data; // 0, 1 o 2
+        try {
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+
+            if (!user.gameData.spheres) user.gameData.spheres = [];
+            
+            // v214.191: Saneamiento de Desequipamiento (Asegurar que el slot existe antes de limpiar)
+            if (user.gameData.spheres[sphereId]) {
+                user.gameData.spheres[sphereId].equipped = null;
+                user.markModified('gameData.spheres');
+                await user.save();
+                socket.dbUser = user;
+
+                // Sync RAM local del servidor
+                if (players[socket.id]) {
+                    players[socket.id].spheres = user.gameData.spheres;
+                }
+
+                // Notificar al dueño del cambio
+                socket.emit('inventoryData', {
+                    player: {
+                        ...user.gameData.toObject(),
+                        equipped: user.gameData.equipped,
+                        spheres: user.gameData.spheres
+                    }
+                });
+                
+                // v214.192: BROADCAST CRÍTICO (Notificar a los aliados para que oculten la esfera)
+                socket.broadcast.emit('playerStatSync', {
+                    id: socket.id,
+                    spheres: user.gameData.spheres
+                });
+                
+                console.log(`[SPHERES] ${user.username} desequipó esfera ${sphereId}. Sincronía enviada.`);
+            }
+        } catch (e) { console.error("Error en unequipSphere:", e); }
+    });
+
     socket.on('latencyUpdate', (ms) => {
         if (players[socket.id]) {
             players[socket.id].latency = ms;

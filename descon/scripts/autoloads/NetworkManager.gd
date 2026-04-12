@@ -166,10 +166,12 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"levelUp", "serverLevelUp": level_up.emit(e_data)
 		"inventoryData", "inventorySync": inventory_data.emit(e_data)
 		"playerStatSync":
-			if str(e_data.get("id", "")) != my_socket_id:
-				_dispatch_single_player(e_data, "player_stat_sync")
-			else:
-				player_stat_sync.emit(e_data)
+			if typeof(e_data) == TYPE_DICTIONARY:
+				if str(e_data.get("id", "")) != my_socket_id:
+					# v214.170: Sincronizar visualmente al aliado con sus esferas nuevas
+					_dispatch_single_player(e_data, "player_stat_sync")
+				else:
+					player_stat_sync.emit(e_data)
 		"rewardReceived": reward_received.emit(e_data)
 		"inventoryData":
 			var final_data = e_data
@@ -188,24 +190,37 @@ func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_upda
 	elif p_signal == "player_fired": player_fired.emit(p_data)
 	elif p_signal == "player_stat_sync": player_stat_sync.emit(p_data)
 	
-	# v214.99: SINCRONÍA VISUAL DE ESFERAS (Minimal Injection)
+	# v214.99: SINCRONÍA VISUAL DE ESFERAS (Recuperación de Activos Aliados)
 	if p_data.has("id") and p_data.has("spheres"):
 		var pid = str(p_data.id)
-		var world = get_tree().root.find_child("World", true, false)
+		var world = get_tree().get_first_node_in_group("world_node")
 		if world:
-			var rp = world.find_child(pid, true, false)
-			if rp:
+			# Buscar la nave remota en la jerarquía del mundo
+			var rp = null
+			if world.has_method("get_node"):
+				# world -> Entities (Hijo de World) -> Nodo con nombre ID
+				var entities = world.get_node_or_null("Entities")
+				if entities: rp = entities.get_node_or_null(pid)
+			
+			if is_instance_valid(rp):
 				var sm = rp.get_node_or_null("SpheresManager")
-				if not sm:
+				if not is_instance_valid(sm):
+					# Inyectar Manager si no existe
 					var sm_script = load("res://scripts/systems/SpheresManager.gd")
 					if sm_script:
 						sm = Node2D.new(); sm.set_script(sm_script)
 						sm.name = "SpheresManager"; rp.add_child(sm)
+						print("[NET] SpheresManager inyectado en aliado: ", pid)
 				
-				if sm and sm.has_method("equip_item"):
+				if is_instance_valid(sm):
 					var sps = p_data["spheres"]
 					if typeof(sps) == TYPE_ARRAY:
-						for i in range(sps.size()): sm.equip_item(i, sps[i])
+						# Actualizar los datos (La esfera hará el resto en su _process)
+						for i in range(min(sps.size(), 3)):
+							var sph_in_data = sps[i]
+							if typeof(sph_in_data) == TYPE_DICTIONARY:
+								sm.equip_item(i, sph_in_data)
+						sm.emit_signal("spheres_updated")
 
 func send_event(p_ename: String, p_val: Variant):
 	if network_connected:

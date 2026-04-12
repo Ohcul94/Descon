@@ -495,6 +495,23 @@ func _render_spheres_equipment(tab, sub_tabs):
 		
 		var b = Button.new(); b.text = "RECONFIGURAR" if equipped else "EQUIPAR NÚCLEO"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
 		b.pressed.connect(func(): if is_instance_valid(sub_tabs): sub_tabs.current_tab = 1) # Ir a la biblioteca
+		
+		# v214.200: Botón explícito para DESEQUIPAR (v214.201 Feedback Fix)
+		if equipped:
+			var bu = Button.new(); bu.text = "DESEQUIPAR"; bu.add_theme_font_size_override("font_size", 9); bu.modulate = Color(1, 0.4, 0.4); v_box.add_child(bu)
+			bu.pressed.connect(func(): 
+				if NetworkManager: 
+					# v214.202: Feedback visual instantáneo para UX premium
+					if is_instance_valid(spheres_manager):
+						spheres_manager.spheres_data[i]["equipped"] = null
+						spheres_manager._update_visuals()
+					
+					NetworkManager.send_event("unequipSphere", {"sphereId": i})
+					
+					# Refrescar la pestaña actual después de un breve delay
+					await get_tree().create_timer(0.1).timeout
+					_update_spheres_ui()
+			)
 
 func _render_spheres_library(tab):
 	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); main_v.offset_left = 20; main_v.offset_right = -20; main_v.offset_top = 20; tab.add_child(main_v)

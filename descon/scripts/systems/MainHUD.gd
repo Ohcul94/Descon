@@ -55,8 +55,7 @@ func _ready():
 	_ammo_nodes["laser"] = get_node_or_null("Skills/LaserSlot/ammo-q")
 	_ammo_nodes["missile"] = get_node_or_null("Skills/MissileSlot/ammo-w")
 	_ammo_nodes["mine"] = get_node_or_null("Skills/MineSlot/ammo-e")
-	
-	if center_stats: 
+	if center_stats:
 		center_stats.visible = true
 		var vbox = center_stats.get_node_or_null("VBox")
 		if vbox:
@@ -64,13 +63,21 @@ func _ready():
 			vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 10)
 			vbox.add_theme_constant_override("separation", 10)
 			
-			if not speed_label:
+			if not is_instance_valid(speed_label):
 				speed_label = Label.new()
 				speed_label.name = "SpeedLabel"
 				speed_label.add_theme_font_size_override("font_size", 10)
 				speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 				speed_label.modulate = Color.YELLOW
 				vbox.add_child(speed_label)
+		
+	# v214.195: Conexión de slots de esferas para desequipar
+	var s1 = get_node_or_null("Skills/Sphere1Slot")
+	var s2 = get_node_or_null("Skills/Sphere2Slot")
+	var s3 = get_node_or_null("Skills/Sphere3Slot")
+	if s1: s1.gui_input.connect(_on_sphere_slot_gui_input.bind(0))
+	if s2: s2.gui_input.connect(_on_sphere_slot_gui_input.bind(1))
+	if s3: s3.gui_input.connect(_on_sphere_slot_gui_input.bind(2))
 	
 	if NetworkManager:
 		if not NetworkManager.login_success.is_connected(_on_server_data_received):
@@ -358,3 +365,10 @@ func _animate_notification(node: Label, is_update: bool = false):
 	wait_tw.tween_interval(4.0)
 	wait_tw.tween_property(node, "modulate:a", 0.0, 0.5)
 	wait_tw.finished.connect(node.queue_free)
+
+func _on_sphere_slot_gui_input(event: InputEvent, id: int):
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_RIGHT:
+			print("[HUD] Desequipar Esfera solicitada: ", id)
+			if NetworkManager:
+				NetworkManager.send_event("unequipSphere", {"sphereId": id})

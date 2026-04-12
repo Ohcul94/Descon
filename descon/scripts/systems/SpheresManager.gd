@@ -52,48 +52,60 @@ func _process(delta):
 	if not player: return
 	angle += rotation_speed * delta
 	for i in range(3):
-		var sphere_angle = angle + (i * TAU / 3.0)
-		var target_pos = Vector2(cos(sphere_angle), sin(sphere_angle)) * radius
-		spheres[i].position = target_pos
-		var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.005 + i) * 0.1
-		spheres[i].scale = Vector2(0.2, 0.2) * pulse
+		# v214.180: Solo mostrar si hay algo equipado
+		var is_equipped = spheres_data[i]["equipped"] != null
+		spheres[i].visible = is_equipped
+		
+		if is_equipped:
+			var sphere_angle = angle + (i * TAU / 3.0)
+			var target_pos = Vector2(cos(sphere_angle), sin(sphere_angle)) * radius
+			spheres[i].position = target_pos
+			var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.005 + i) * 0.1
+			spheres[i].scale = Vector2(0.2, 0.2) * pulse
 
 func use_skill(id: int):
 	if id < 0 or id >= spheres_data.size(): return
 	var skill = spheres_data[id]["equipped"]
-	if skill and skill is SphereSkill:
-		skill.activate(player)
-		# Notificar al HUD si es necesario (se maneja vía Player.gd cooldowns)
-		return true
+	if skill and (skill is SphereSkill or skill is Resource):
+		if skill.has_method("activate"):
+			skill.activate(player)
+			return true
 	return false
 
 func _update_visuals():
 	for i in range(spheres.size()):
 		var skill = spheres_data[i]["equipped"]
 		var icon_node = spheres[i].get_node("Icon")
-		if skill and skill is SphereSkill:
-			if skill.icon:
+		
+		# v214.181: Soporte para datos crudos del servidor
+		if skill:
+			if skill is Resource and skill.icon:
 				icon_node.texture = skill.icon
+				icon_node.visible = true
 			else:
-				# Placeholder visual si no hay icono (un puntito blanco)
-				icon_node.texture = load("res://icon.svg")
-			icon_node.visible = true
+				# Si hay skill pero no tenemos el recurso formal (ej: aliado), poner un efecto visual base
+				icon_node.visible = false
+				spheres[i].modulate = spheres_data[i]["color"]
 		else:
 			icon_node.visible = false
+			spheres[i].visible = false
 
 func equip_item(sphere_id, item_data):
 	if sphere_id >= 0 and sphere_id < 3:
-		# Convertir dict a Resource si es necesario
-		if item_data is Dictionary:
-			var res = SphereSkill.new()
-			res.skill_name = item_data.get("name", "Skill")
-			res.type = spheres_data[sphere_id]["type"]
-			# ... mapear resto de campos si vienen del servidor
-			spheres_data[sphere_id]["equipped"] = res
+		# Si viene null del servidor, desequipar
+		if item_data == null or (item_data is Dictionary and item_data.is_empty()):
+			spheres_data[sphere_id]["equipped"] = null
 		else:
-			spheres_data[sphere_id]["equipped"] = item_data
+			# Convertir dict a Resource si es necesario
+			if item_data is Dictionary:
+				var res = SphereSkill.new()
+				res.skill_name = item_data.get("name", "Skill")
+				res.type = spheres_data[sphere_id]["type"]
+				spheres_data[sphere_id]["equipped"] = res
+			else:
+				spheres_data[sphere_id]["equipped"] = item_data
 		
 		_update_visuals()
 		if player and player.has_method("_recalculate_stats"):
 			player._recalculate_stats()
-		spheres_updated.emit() # v203.0: Uso explícito para silenciar el warning
+		spheres_updated.emit()
