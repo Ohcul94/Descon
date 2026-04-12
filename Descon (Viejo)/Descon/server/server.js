@@ -400,7 +400,8 @@ io.on('connection', (socket) => {
                         ...p,
                         id: pId,
                         maxHp: p.maxHp || 2000,
-                        maxShield: p.maxShield || 1000
+                        maxShield: p.maxShield || 1000,
+                        spheres: p.spheres
                     };
                 }
             });
@@ -422,7 +423,7 @@ io.on('connection', (socket) => {
                 socket.emit('currentEnemies', cleanEnemiesInZone);
                 
                 // v214.110: BROADCAST SELECTIVO (Avisar a los demás, pero no a mí mismo, yo ya tengo loginSuccess)
-                socket.broadcast.emit('newPlayer', playerSpawnData);
+                socket.broadcast.emit('newPlayer', { ...playerSpawnData, spheres: p_ref.spheres });
                 console.log(`[NET] Piloto ${username} anunciado a la galaxia.`);
             }, 100);
             console.log(`Usuario logueado: ${username}`);
@@ -659,6 +660,7 @@ io.on('connection', (socket) => {
             id: socket.id,
             hp: Math.ceil(p.hp),
             shield: Math.ceil(p.shield),
+            spheres: p.spheres,
             isDead: false
         });
 
@@ -805,7 +807,9 @@ io.on('connection', (socket) => {
                     io.to(`zone_${p.zone}`).emit('playerStatSync', {
                         id: socket.id,
                         hp: p.hp, shield: p.shield,
-                        maxHp: p.maxHp, maxShield: p.maxShield, isDead: false
+                        maxHp: p.maxHp, maxShield: p.maxShield, 
+                        isDead: false,
+                        spheres: p.spheres
                     });
                 }
                 socket.emit('inventoryData', { player: user.gameData });
@@ -843,7 +847,8 @@ io.on('connection', (socket) => {
             socket.emit('inventoryData', { player: user.gameData });
             io.to(`zone_${p.zone}`).emit('playerStatSync', {
                 id: socket.id, hp: p.hp, shield: p.shield,
-                maxHp: p.maxHp, maxShield: p.maxShield, isDead: false
+                maxHp: p.maxHp, maxShield: p.maxShield, isDead: false,
+                spheres: p.spheres
             });
         } catch (e) { console.error("Error en resetSkills:", e); }
     });
@@ -1140,7 +1145,7 @@ io.on('connection', (socket) => {
         if (oldZone !== targetZone) {
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${targetZone}`);
-            socket.to(`zone_${targetZone}`).emit('newPlayer', { ...p, id: socket.id });
+            socket.to(`zone_${targetZone}`).emit('newPlayer', { ...p, id: socket.id, spheres: p.spheres });
         }
 
         socket.to(`zone_${p.zone}`).emit('playerMoved', { ...p, id: socket.id, spheres: p.spheres });
@@ -1166,7 +1171,8 @@ io.on('connection', (socket) => {
             id: socket.id,
             hp: p.hp,
             shield: p.shield,
-            isDead: false
+            isDead: false,
+            spheres: p.spheres
         });
     });
 
@@ -1343,7 +1349,7 @@ io.on('connection', (socket) => {
 
         // Avisar a la vieja zona que se fue y a la nueva que llegó
         socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
-        socket.to(`zone_${zoneId}`).emit('newPlayer', players[socket.id]);
+        socket.to(`zone_${zoneId}`).emit('newPlayer', { ...players[socket.id], spheres: players[socket.id].spheres });
 
         // Si entra a la zona 2 (Boss Titan), spawnearlo si no existe
         if (zoneId === 2) {

@@ -191,17 +191,14 @@ func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_upda
 	elif p_signal == "player_stat_sync": player_stat_sync.emit(p_data)
 	
 	# v214.99: SINCRONÍA VISUAL DE ESFERAS (Recuperación de Activos Aliados)
-	if p_data.has("id") and p_data.has("spheres"):
+	if p_data.has("id"):
 		var pid = str(p_data.id)
 		var world = get_tree().get_first_node_in_group("world_node")
 		if world:
-			# Buscar la nave remota en la jerarquía del mundo
+			# Buscar la nave remota en el diccionario del mundo (mucho más rápido y seguro)
 			var rp = null
-			if world.has_method("get_node"):
-				# world -> Entities (Hijo de World) -> Nodo con nombre ID
-				var entities = world.get_node_or_null("Entities")
-				if entities: rp = entities.get_node_or_null(pid)
-			
+			if "remote_players" in world and world.remote_players.has(pid):
+				rp = world.remote_players[pid]
 			if is_instance_valid(rp):
 				var sm = rp.get_node_or_null("SpheresManager")
 				if not is_instance_valid(sm):
@@ -213,7 +210,7 @@ func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_upda
 						print("[NET] SpheresManager inyectado en aliado: ", pid)
 				
 				if is_instance_valid(sm):
-					var sps = p_data["spheres"]
+					var sps = p_data.get("spheres")
 					if typeof(sps) == TYPE_ARRAY:
 						# Actualizar los datos (La esfera hará el resto en su _process)
 						for i in range(min(sps.size(), 3)):

@@ -92,18 +92,23 @@ func _update_visuals():
 
 func equip_item(sphere_id, item_data):
 	if sphere_id >= 0 and sphere_id < 3:
-		# Si viene null del servidor, desequipar
-		if item_data == null or (item_data is Dictionary and item_data.is_empty()):
+		# Extraer 'equipped' si viene toda la estructura de la esfera por red
+		var real_equipped = item_data
+		if typeof(item_data) == TYPE_DICTIONARY and item_data.has("equipped"):
+			real_equipped = item_data.get("equipped")
+
+		# Si viene null del servidor o diccionario vacío, desequipar visualmente
+		if real_equipped == null or (typeof(real_equipped) == TYPE_DICTIONARY and real_equipped.is_empty()):
 			spheres_data[sphere_id]["equipped"] = null
 		else:
 			# Convertir dict a Resource si es necesario
-			if item_data is Dictionary:
+			if typeof(real_equipped) == TYPE_DICTIONARY:
 				var res = SphereSkill.new()
-				res.skill_name = item_data.get("name", "Skill")
+				res.skill_name = real_equipped.get("name", "Skill")
 				res.type = spheres_data[sphere_id]["type"]
 				spheres_data[sphere_id]["equipped"] = res
 			else:
-				spheres_data[sphere_id]["equipped"] = item_data
+				spheres_data[sphere_id]["equipped"] = real_equipped
 		
 		_update_visuals()
 		if player and player.has_method("_recalculate_stats"):
