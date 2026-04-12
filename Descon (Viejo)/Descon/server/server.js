@@ -201,6 +201,7 @@ setInterval(() => {
                         id: p.socketId,
                         hp: Math.ceil(p.hp),
                         shield: Math.ceil(p.shield),
+                        spheres: p.spheres, // v214.195: Sincronía visual continua
                         isDead: false
                     });
                 }
@@ -1142,7 +1143,7 @@ io.on('connection', (socket) => {
             socket.to(`zone_${targetZone}`).emit('newPlayer', { ...p, id: socket.id });
         }
 
-        socket.to(`zone_${p.zone}`).emit('playerMoved', { ...p, id: socket.id });
+        socket.to(`zone_${p.zone}`).emit('playerMoved', { ...p, id: socket.id, spheres: p.spheres });
     });
 
     socket.on('playerRespawn', (respawnData) => {
@@ -1224,35 +1225,72 @@ io.on('connection', (socket) => {
             // Emitir muerte a la zona
             io.to(`zone_${enemy.zone}`).emit('enemyDead', { id: enemyId, hubs: h_loot, ohcu: o_loot, exp: e_loot, killer: socket.id, bulletId });
 
-            // El servidor procesa la recompensa de forma privada (Blindaje de Oro)
+            // v210.201: REPARTO DE LOOT COOPERATIVO (PARTY SYSTEM)
             try {
-                const user = await User.findById(p.id);
-                if (user) {
-                    user.gameData.hubs += h_loot;
-                    user.gameData.ohcu += o_loot;
-                    user.gameData.exp += e_loot;
+                const killerUid = socket.dbUser._id.toString();
+                const partyId = playerParty[killerUid];
+                let membersToReward = [socket]; // Por defecto solo el asesino
 
-                    // Chequeo de Level Up Autoritativo
-                    const nextLevelExp = Math.floor(1000 * Math.pow(user.gameData.level, 1.5));
-                    if (user.gameData.exp >= nextLevelExp) {
-                        user.gameData.level++;
-                        user.gameData.skillPoints++;
-                        socket.emit('gameNotification', { msg: `¡NIVEL ${user.gameData.level} ALCANZADO!`, type: 'success' });
-                    }
-
-                    user.markModified('gameData');
-                    await user.save();
-
-                    // Actualizar RAM
-                    p.hubs = user.gameData.hubs;
-                    p.ohcu = user.gameData.ohcu;
-                    p.exp = user.gameData.exp;
-                    p.level = user.gameData.level;
-                    p.skillPoints = user.gameData.skillPoints;
-
-                    socket.emit('inventoryData', { player: user.gameData });
+                if (partyId && parties[partyId]) {
+                    // Filtrar miembros de la party que estén online, en la misma zona y cerca (2000px)
+                    membersToReward = parties[partyId].members
+                        .map(uid => [...io.sockets.sockets.values()].find(s => s.dbUser && s.dbUser._id.toString() === uid))
+                        .filter(s => {
+                            if (!s || !players[s.id]) return false;
+                            const pMem = players[s.id];
+                            const distToEnemy = Math.hypot(pMem.x - enemy.x, pMem.y - enemy.y);
+                            return pMem.zone === enemy.zone && distToEnemy <= 2000;
+                        });
+                    
+                    // Asegurar que al menos el asesino sea incluido si por alguna razón el filtro falla
+                    if (membersToReward.length === 0) membersToReward = [socket];
                 }
-            } catch (e) { console.error("Error loot securizado:", e); }
+
+                const shareCount = membersToReward.length;
+                const shared_h = Math.floor(h_loot / shareCount);
+                const shared_o = Math.floor(o_loot / shareCount);
+                const shared_e = Math.floor(e_loot / shareCount);
+
+                for (const memberSocket of membersToReward) {
+                    const memP = players[memberSocket.id];
+                    const user = await User.findById(memP.id);
+                    if (user) {
+                        user.gameData.hubs += shared_h;
+                        user.gameData.ohcu += shared_o;
+                        user.gameData.exp += shared_e;
+
+                        // Chequeo de Level Up Autoritativo
+                        const nextLevelExp = Math.floor(1000 * Math.pow(user.gameData.level, 1.5));
+                        if (user.gameData.exp >= nextLevelExp) {
+                            user.gameData.level++;
+                            user.gameData.skillPoints++;
+                            memberSocket.emit('gameNotification', { msg: `¡NIVEL ${user.gameData.level} ALCANZADO!`, type: 'success' });
+                        }
+
+                        user.markModified('gameData');
+                        await user.save();
+
+                        // Actualizar RAM
+                        memP.hubs = user.gameData.hubs;
+                        memP.ohcu = user.gameData.ohcu;
+                        memP.exp = user.gameData.exp;
+                        memP.level = user.gameData.level;
+                        memP.skillPoints = user.gameData.skillPoints;
+
+                        memberSocket.emit('inventoryData', { player: user.gameData });
+
+                        // Feedback por chat si es party
+                        if (shareCount > 1) {
+                            memberSocket.emit('chatMessage', {
+                                sender: 'SISTEMA',
+                                msg: `Recibiste ${shared_e} EXP (Reparto de Grupo)`,
+                                channel: 'team',
+                                senderId: 'server'
+                            });
+                        }
+                    }
+                }
+            } catch (e) { console.error("Error loot cooperativo:", e); }
             delete enemies[enemyId];
         } else {
             io.to(`zone_${enemy.zone}`).emit('enemyDamaged', { id: enemyId, hp: enemy.hp, shield: enemy.shield, bulletId });
@@ -1279,7 +1317,7 @@ io.on('connection', (socket) => {
             if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
             p.lastCombatTime = Date.now();
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
-            io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead });
+            io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead, spheres: p.spheres });
         }
     });
 
