@@ -39,6 +39,7 @@ func _ready():
 	NetworkManager.enemy_dead.connect(_on_enemy_dead)
 	NetworkManager.enemy_damaged.connect(_on_enemy_damaged) # v167.60: Sincronía de daño total
 	NetworkManager.clear_zone_entities.connect(_on_clear_zone_entities)
+	NetworkManager.remote_skill_used.connect(_on_remote_skill_used)
 	
 	# v190.71: Sincronía en Caliente de Configuración Admin
 	NetworkManager.config_updated.connect(_on_admin_config_received)
@@ -264,3 +265,13 @@ func _on_clear_zone_entities(_zoneId):
 		radar.world_size = new_world_size
 		
 	print("[ZONE] Transición completa a zona: ", _zoneId, " | Tamaño: ", new_world_size)
+
+func _on_remote_skill_used(data):
+	if typeof(data) != TYPE_DICTIONARY: return
+	var e_id = str(data.get("id", ""))
+	if e_id == "" or (is_instance_valid(local_player) and local_player.entity_id == e_id): return
+	
+	if remote_players.has(e_id):
+		var node = remote_players[e_id]
+		if is_instance_valid(node) and node.has_method("play_skill_vfx"):
+			node.play_skill_vfx(data.get("skillName", ""), float(data.get("powerValue", 0.0)))

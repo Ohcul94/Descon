@@ -687,6 +687,12 @@ io.on('connection', (socket) => {
             spheres: p.spheres,
             isDead: false
         });
+        
+        io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', {
+            id: socket.id,
+            skillName: data.skillName,
+            powerValue: data.powerValue || healAmt || 0
+        });
 
         console.log(`[SPHERES] Piloto ${p.user} usó ${data.skillName}. Cooldown iniciado.`);
     });

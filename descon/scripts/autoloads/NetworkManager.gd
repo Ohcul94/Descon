@@ -28,6 +28,7 @@ signal enemy_dead(data)
 signal reward_received(data)
 signal level_up(data)
 signal admin_config_updated(data)
+signal remote_skill_used(data)
 
 signal enemy_damaged(data)
 signal boss_effect(data)
@@ -176,6 +177,9 @@ func _dispatch_event(e_name: String, e_data: Variant):
 					_dispatch_single_player(e_data, "player_stat_sync")
 				else:
 					player_stat_sync.emit(e_data)
+		"remotePlayerUsedSkill":
+			if typeof(e_data) == TYPE_DICTIONARY and str(e_data.get("id", "")) != my_socket_id:
+				remote_skill_used.emit(e_data)
 		"rewardReceived": reward_received.emit(e_data)
 		"inventoryData":
 			var final_data = e_data

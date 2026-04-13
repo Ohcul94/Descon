@@ -488,6 +488,53 @@ func _clear_all_equipment_visuals():
 				if child.name.begins_with("Equip_") or child.is_in_group("ship_equipment"):
 					child.queue_free()
 	
-	# v210.162: Forzar redibujado de la capa de HUD local si aplica
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.queue_redraw()
+
+func play_skill_vfx(skill_name: String, amount: float = 0.0):
+	# Mostrar siempre los números de retroalimentación
+	if has_method("_spawn_damage_text"):
+		if skill_name == "ESCUDO CELULAR": _spawn_damage_text("+" + str(int(amount)), Color.AQUA)
+		elif skill_name == "AUTO-REPARACIÓN": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
+		elif skill_name == "TURBO-IMPULSO": _spawn_damage_text("+" + str(int(amount)), Color.YELLOW)
+		
+	match skill_name:
+		"TURBO-IMPULSO":
+			var path = "res://assets/Efectos de Skills/Velocidad(Transp).png"
+			if ResourceLoader.exists(path):
+				var vfx = Sprite2D.new(); var t = load(path); vfx.texture = t
+				var s = 130.0 / max(t.get_width(), t.get_height())
+				vfx.scale = Vector2(s, s); vfx.rotation_degrees = 180
+				vfx.position = Vector2(-45, 0)
+				vfx.show_behind_parent = true # Mejor manera de ocultarse detrás del rig
+				var sp_node = get_node_or_null("ShipSprite")
+				if sp_node: sp_node.add_child(vfx)
+				else: add_child(vfx)
+				var tw = create_tween().set_loops()
+				tw.tween_property(vfx, "scale", Vector2(s*1.3, s*0.8), 0.1)
+				tw.tween_property(vfx, "scale", Vector2(s*0.8, s*1.3), 0.1)
+				get_tree().create_timer(2.0).timeout.connect(vfx.queue_free)
+		"ESCUDO CELULAR":
+			var path = "res://assets/Efectos de Skills/Escudo(Transp).png"
+			if ResourceLoader.exists(path):
+				var vfx = Sprite2D.new(); var t = load(path); vfx.texture = t
+				var s = 240.0 / max(t.get_width(), t.get_height())
+				vfx.scale = Vector2(s*1.5, s*1.5); vfx.modulate.a = 0.0; vfx.z_index = 2
+				add_child(vfx)
+				var tw = create_tween().set_parallel(true)
+				tw.tween_property(vfx, "modulate:a", 0.8, 0.2)
+				tw.tween_property(vfx, "scale", Vector2(s, s), 0.4).set_trans(Tween.TRANS_BACK)
+				tw.chain().tween_property(vfx, "modulate:a", 0.0, 0.4).set_delay(0.2)
+				tw.chain().tween_callback(vfx.queue_free)
+		"AUTO-REPARACIÓN":
+			var path = "res://assets/Efectos de Skills/Curacion(Transp).png"
+			if ResourceLoader.exists(path):
+				var vfx = Sprite2D.new(); var t = load(path); vfx.texture = t
+				var s = 180.0 / max(t.get_width(), t.get_height())
+				vfx.scale = Vector2(0.1, 0.1); vfx.modulate.a = 0.9
+				add_child(vfx)
+				var tw = create_tween().set_parallel(true)
+				tw.tween_property(vfx, "scale", Vector2(s, s), 0.5).set_trans(Tween.TRANS_ELASTIC)
+				tw.tween_property(vfx, "rotation", TAU, 0.6)
+				tw.tween_property(vfx, "modulate:a", 0.0, 0.4).set_delay(0.2)
+				tw.chain().tween_callback(vfx.queue_free)
