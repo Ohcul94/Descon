@@ -86,9 +86,9 @@ func _process(delta):
 		_ui_wrapper.global_position = global_position
 		_ui_wrapper.queue_redraw()
 		if name_tag: 
-			var y_offset = -90.0
+			var y_offset = -145.0
 			if is_in_group("player"): y_offset = -180.0
-			elif entity_type >= 4: y_offset = -200.0 # Bosses enormes
+			elif entity_type >= 4: y_offset = -200.0 # Bosses enormes (Revertido)
 			
 			name_tag.position.y = y_offset
 			if name_tag.size.x > 0:
@@ -152,9 +152,9 @@ func _draw_hud():
 	var sh_pct = clamp(current_shield / max_shield if max_shield > 0 else 0.0, 0, 1)
 	var hp_pct = clamp(current_hp / max_hp if max_hp > 0 else 0.0, 0, 1)
 	
-	var base_y = -35.0
+	var base_y = -70.0
 	if is_in_group("player"): base_y = -105.0
-	elif entity_type >= 4: base_y = -125.0 # Boss
+	elif entity_type >= 4: base_y = -125.0 # Boss (Revertido)
 	
 	for i in range(segments):
 		var x = -(bar_w / 2.0) + (i * (seg_w + gap))
@@ -248,8 +248,7 @@ func update_stats(data):
 	
 	if damage_taken >= 1.0 and old_total > 0: 
 		reset_combat_timer() # v191.80: Restaurado nombre correcto
-		if not is_in_group("player"):
-			_spawn_damage_text(str(int(damage_taken)), Color.RED)
+		_spawn_damage_text(str(int(damage_taken)), Color.RED)
 	
 	if data.has("type"):
 		var t = int(data.type)
@@ -276,11 +275,13 @@ func _update_tags():
 func take_damage(amt: float):
 	if is_god or is_dead: return
 	reset_combat_timer() # Bloqueo local de regen
-	if current_shield >= amt: current_shield -= amt
-	else:
-		var d = amt - current_shield
-		current_hp -= d; current_shield = 0
-	_spawn_damage_text(str(int(amt)), Color.RED)
+	
+	if not is_in_group("player"):
+		if current_shield >= amt: current_shield -= amt
+		else:
+			var d = amt - current_shield
+			current_hp -= d; current_shield = 0
+		_spawn_damage_text(str(int(amt)), Color.RED)
 	_update_tags()
 	if is_in_group("player") and has_method("_emit_stats"):
 		call("_emit_stats") # v164.72: Actualizar HUD local instantáneamente

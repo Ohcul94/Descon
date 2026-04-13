@@ -68,6 +68,7 @@ func _create_void_rift_effect(p_x: float, p_y: float, duration: float):
 	get_tree().root.add_child(rift)
 	
 	var tween = create_tween().set_loops()
+	tween.bind_node(rift)
 	tween.tween_property(rift, "scale", Vector2(1.2, 1.2), 0.5).set_trans(Tween.TRANS_SINE)
 	tween.tween_property(rift, "scale", Vector2(1.0, 1.0), 0.5).set_trans(Tween.TRANS_SINE)
 	
