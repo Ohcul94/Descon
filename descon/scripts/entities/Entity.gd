@@ -529,6 +529,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				vfx.z_index = -1
 				add_child(vfx)
 				var tw = create_tween().set_loops()
+				tw.bind_node(vfx)
 				tw.tween_property(vfx, "scale", Vector2(s*1.3, s*0.8), 0.1)
 				tw.tween_property(vfx, "scale", Vector2(s*0.8, s*1.3), 0.1)
 				get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(vfx): vfx.queue_free())
