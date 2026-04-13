@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dxi6nb8o05juc"
-path="res://.godot/imported/Nave1.jpeg-8aaf56a2be8ab0ff3600cea5b0c7494a.ctex"
+uid="uid://byk6bnnfae1yl"
+path="res://.godot/imported/Enemy7Map2.png-1ce9d912d1682b6eb2807422e2b45d7d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/player/Nave1.jpeg"
-dest_files=["res://.godot/imported/Nave1.jpeg-8aaf56a2be8ab0ff3600cea5b0c7494a.ctex"]
+source_file="res://assets/Enemigos/Enemy7Map2.png"
+dest_files=["res://.godot/imported/Enemy7Map2.png-1ce9d912d1682b6eb2807422e2b45d7d.ctex"]
 
 [params]
 

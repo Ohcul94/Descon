@@ -33,6 +33,7 @@ signal enemy_damaged(data)
 signal boss_effect(data)
 signal config_updated(data)
 signal game_notification(data)
+signal clear_zone_entities(zoneId)
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
@@ -134,6 +135,9 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			if typeof(e_data) == TYPE_DICTIONARY:
 				if str(e_data.get("id", "")) != my_socket_id:
 					_dispatch_single_player(e_data)
+		"changeZoneDone":
+			# Limpia enemigos/players viejos antes de cargar los de la nueva zona
+			clear_zone_entities.emit(e_data)
 		"enemiesMoved", "currentEnemies":
 			if typeof(e_data) == TYPE_DICTIONARY:
 				if e_data.has("id"):

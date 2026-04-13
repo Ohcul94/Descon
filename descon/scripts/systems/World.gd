@@ -38,6 +38,7 @@ func _ready():
 	NetworkManager.enemy_fired.connect(_on_enemy_fired)
 	NetworkManager.enemy_dead.connect(_on_enemy_dead)
 	NetworkManager.enemy_damaged.connect(_on_enemy_damaged) # v167.60: Sincronía de daño total
+	NetworkManager.clear_zone_entities.connect(_on_clear_zone_entities)
 	
 	# v190.71: Sincronía en Caliente de Configuración Admin
 	NetworkManager.config_updated.connect(_on_admin_config_received)
@@ -85,6 +86,11 @@ func _input(event):
 				get_viewport().set_input_as_handled() # Evitar propagación
 			else:
 				print("[SEGURIDAD] Intento de acceso denegado al Panel Admin.")
+				
+	# SISTEMA DE DUNGEON (Prueba)
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_0:
+		print("[DUNGEON] Solicitando ingreso a Dungeon Instanciada...")
+		NetworkManager.send_event("enterDungeon", {})
 
 func _perform_local_respawn():
 	if is_instance_valid(local_player) and local_player.has_method("respawn"):
@@ -232,3 +238,29 @@ func _on_admin_config_received(data: Dictionary):
 		if is_instance_valid(ui_admin) and ui_admin.visible: ui_admin._refresh_ui()
 		if is_instance_valid(ui_inventory) and ui_inventory.visible: ui_inventory._refresh_data()
 		print("[WORLD] Cambios globales aplicados correctamente.")
+
+func _on_clear_zone_entities(_zoneId):
+	# Limpiar enemigos visualmente
+	for id in enemies:
+		if is_instance_valid(enemies[id]): enemies[id].queue_free()
+	enemies.clear()
+	
+	# Limpiar jugadores viejos
+	for id in remote_players:
+		if is_instance_valid(remote_players[id]): remote_players[id].queue_free()
+	remote_players.clear()
+	
+	# Limpiar proyectiles huérfanos si existe el CombatSystem
+	if is_instance_valid(combat_system) and combat_system.has_method("clear_all_bullets"):
+		combat_system.clear_all_bullets()
+		
+	# Si la zona es Dungeon, ajustamos limites. Todo ID tipo texto (dungeon_123) es Dungeon.
+	var is_dungeon = str(_zoneId).begins_with("dungeon")
+	var new_world_size = 2000.0 if is_dungeon else 4000.0
+	
+	# Si existe _generar_fondo o similar, podríamos hacerlo pero el Minimap necesita saberlo.
+	var radar = ui_hud.get_node_or_null("MinimapUI") if is_instance_valid(ui_hud) else null
+	if radar and "world_size" in radar:
+		radar.world_size = new_world_size
+		
+	print("[ZONE] Transición completa a zona: ", _zoneId, " | Tamaño: ", new_world_size)

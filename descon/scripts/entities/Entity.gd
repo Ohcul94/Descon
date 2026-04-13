@@ -131,6 +131,9 @@ func _draw():
 		5: # T5 - ANCIENT BOSS (Cruz de Vindicación - Rojo Sangre)
 			poly_color = Color(1, 0, 0)
 			pts = PackedVector2Array([Vector2(35, 0), Vector2(8, -8), Vector2(0, -35), Vector2(-8, -8), Vector2(-35, 0), Vector2(-8, 8), Vector2(0, 35), Vector2(8, 8)])
+		6: # T6 - GUARDIÁN DE INSTANCIA (Boss Gigante - Púrpura Neón)
+			poly_color = Color(0.7, 0, 1)
+			pts = PackedVector2Array([Vector2(60, 0), Vector2(20, -50), Vector2(-40, -40), Vector2(-60, 0), Vector2(-40, 40), Vector2(20, 50)])
 		_: # Otros / Genéricos (Pentágono Cyan)
 			poly_color = Color(0, 1, 1)
 			pts = PackedVector2Array([Vector2(15, 0), Vector2(5, -15), Vector2(-15, -10), Vector2(-15, 10), Vector2(5, 15)])
@@ -236,8 +239,13 @@ func update_stats(data):
 		if not is_in_group("player"):
 			_spawn_damage_text(str(int(damage_taken)), Color.RED)
 	
-	var t = int(data.get("type", entity_type))
-	if t != entity_type: entity_type = t; _adjust_visuals(t)
+	if data.has("type"):
+		var t = int(data.type)
+		if t != entity_type: 
+			entity_type = t
+			_adjust_visuals(t)
+			
+	# Forzar regenerar el tag para enemigos si estamos en local y somos T1/T4 etc
 	_update_tags()
 
 func _update_tags():
@@ -288,7 +296,10 @@ func die():
 	if not is_in_group("player") and not is_in_group("remote_players"): 
 		queue_free()
 
-func _adjust_visuals(_type): pass
+func _adjust_visuals(_type): 
+	if is_in_group("enemies"):
+		_setup_enemy_visuals()
+		queue_redraw()
 
 # v165.80: Sistema de Burbujas Apiladas (Frame Stacking)
 func show_bubble(p_text: String):
@@ -345,11 +356,12 @@ func _setup_ship_visuals():
 	sprite = Sprite2D.new(); sprite.name = "ShipSprite"
 	
 	# v210.0: SELECCIÓN DE MODELO (Vulture-G2 support)
-	var path = "res://assets/player/Nave1.png"
-	var h_f = 8; var v_f = 4
+	# ¡NUEVA NAVE GLB RENDERIZADA INCORPORADA!
+	var path = "res://assets/Personajes/Assets 3D/Nave1 (Lista).png"
+	var h_f = 1; var v_f = 1
 	
 	if current_ship_id == 2:
-		path = "res://assets/player/Nave2 (Transp).png"
+		path = "res://assets/Personajes/Nave2 (Transp).png"
 		h_f = 4; v_f = 4 # Rejilla 4x4 solicitada
 	
 	if ResourceLoader.exists(path):
@@ -379,7 +391,12 @@ func _setup_ship_visuals():
 	anim_player.add_animation_library("", lib)
 	
 	# Definición de Animaciones
-	if h_f == 4: # MODO 4x4 (Vulture-G2)
+	if h_f == 1: # NUEVO SPRITE RENDERIZADO (1 solo frame de Blender sin animar)
+		_create_anim(lib, "idle", 0, 1, 0.15, true)
+		_create_anim(lib, "start_move", 0, 1, 0.08, false) 
+		_create_anim(lib, "run", 0, 1, 0.1, true)      
+		_create_anim(lib, "death", 0, 1, 0.08, false) 
+	elif h_f == 4: # MODO 4x4 (Vulture-G2)
 		_create_anim(lib, "idle", 0, 4, 0.15, true)
 		_create_anim(lib, "start_move", 4, 4, 0.08, false) 
 		_create_anim(lib, "run", 8, 4, 0.1, true)      
@@ -401,7 +418,40 @@ func _create_anim(lib: AnimationLibrary, a_name: String, start: int, count: int,
 	if loop: anim.loop_mode = Animation.LOOP_LINEAR
 	lib.add_animation(a_name, anim)
 
-func _setup_enemy_visuals(): pass
+func _setup_enemy_visuals():
+	# Limpieza de sprite anterior si existe
+	if is_instance_valid(sprite): sprite.queue_free()
+	if is_instance_valid(anim_player): anim_player.queue_free()
+	
+	var poly = get_node_or_null("Polygon2D")
+	if poly: poly.visible = false
+	
+	var path = ""
+	# Mapear el Tipo de Enemigo (Entity Type) al PNG del disco.
+	match entity_type:
+		2: path = "res://assets/Enemigos/Enemy2Map1.png" # T2
+		3: path = "res://assets/Enemigos/Enemy3Map1.png" # T3
+		4: path = "res://assets/Enemigos/Enemy3Map1.png" # Lord Titan momentaneo usa T3
+		5: path = "res://assets/Enemigos/Enemy3Map1.png" # Ancient usa T3
+		6: path = "res://assets/Enemigos/Enemy3Map1.png" # Guardian usa T3
+		_: path = "res://assets/Enemigos/Enemy1Map1.png" # T1 por Defecto
+	
+	if path != "" and ResourceLoader.exists(path):
+		sprite = Sprite2D.new(); sprite.name = "EnemySprite"
+		var tex = load(path)
+		sprite.texture = tex
+		
+		# Bloqueo total de tamaño a 160.0px (Para equiparar los assets correctamente con el T3)
+		var target_size = 160.0
+		
+		var s = target_size / max(tex.get_width(), tex.get_height())
+		sprite.scale = Vector2(s, s)
+		
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		add_child(sprite)
+	
+	# Asegurarnos de borrar toda geometria fea que este de fondo o recargar
+	queue_redraw()
 
 func _update_animations():
 	if not anim_player or not is_instance_valid(sprite): return

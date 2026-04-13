@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bp7qc2hi7s4nx"
-path="res://.godot/imported/Nave2.png-c762a239a9491142ca4e4b88aafacf75.ctex"
+uid="uid://7ea5mgasf6jb"
+path="res://.godot/imported/Nave1 (Propulsion).jpg-278f6e0d3e489df18993218f07fafa3e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/player/Nave2.png"
-dest_files=["res://.godot/imported/Nave2.png-c762a239a9491142ca4e4b88aafacf75.ctex"]
+source_file="res://assets/Personajes/MixboardNave/Nave1 (Propulsion).jpg"
+dest_files=["res://.godot/imported/Nave1 (Propulsion).jpg-278f6e0d3e489df18993218f07fafa3e.ctex"]
 
 [params]
 

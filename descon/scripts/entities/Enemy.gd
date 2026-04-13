@@ -16,15 +16,15 @@ func _ready():
 func _process(delta):
 	super._process(delta)
 	
-	# v2.3: Orientación Orgánica (Mover la punta hacia el destino)
-	# Calculamos el vector de movimiento real entre paquetes de red
 	var movement = global_position - _last_sync_pos
-	if movement.length() > 0.5:
+	
+	# Filtro draconiano (25.0 px) para matar hasta el más mínimo eco de lag del server y asegurar giro limpio
+	if movement.length() > 25.0:
 		_move_dir = movement.normalized()
 		_last_sync_pos = global_position
 	
-	# Lerp suave de rotación hacia la dirección de avance (igual que el player)
-	rotation = lerp_angle(rotation, _move_dir.angle(), 0.15)
+	# Restauramos la simulación súper lenta "tipo crucero" que mitiga los temblequeos visuales (0.015)
+	rotation = lerp_angle(rotation, _move_dir.angle(), 0.015)
 	
 	# Redibujar para asegurar que el cuerpo siga la rotación (v187)
 	queue_redraw()
@@ -34,14 +34,11 @@ func update_stats(data: Dictionary):
 	_ensure_correct_name()
 
 func _ensure_correct_name():
-	if username == "Unknown" or username == "Piloto" or username == "Enemigo":
-		match entity_type:
-			4: username = "LORD TITÁN"
-			5: username = "ANCIENT BOSS"
-			2: username = "Nave Renegada T2"
-			3: username = "Nave Renegada T3"
-			_: username = "Nave Renegada T1"
+	match entity_type:
+		6: username = "GUARDIÁN CIBERNÉTICO"
+		4: username = "LORD TITÁN"
+		5: username = "ANCIENT BOSS"
+		2: username = "Nave Renegada T2"
+		3: username = "Nave Renegada T3"
+		_: username = "Nave Renegada T1"
 	_update_tags()
-
-func _adjust_visuals(_type):
-	pass

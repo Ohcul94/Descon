@@ -16,6 +16,7 @@ const ChaseAI = require('./behaviors/ChaseAI');
 const OrbitAI = require('./behaviors/OrbitAI');
 const BossAI = require('./behaviors/BossAI');
 const AncientBossAI = require('./behaviors/AncientBossAI');
+const MechanicBossAI = require('./behaviors/MechanicBossAI'); // Nuevo Jefe Dungeon
 
 // Configuración
 const PORT = process.env.PORT || 3333;
@@ -57,8 +58,8 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null) 
     const id = 'enemy_' + (zone === 2 || forceType === 4 ? 'titan_' : '') + Date.now() + Math.floor(Math.random() * 1000);
     const type = forceType || (zone === 2 ? 4 : (Math.floor(Math.random() * 3) + 1));
 
-    const initialHp = (type === 5 ? 200000 : (type === 4 ? 100000 : (type * 2000)));
-    const initialShield = (type === 5 ? 100000 : (type === 4 ? 50000 : (type * 1000)));
+    const initialHp = (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 4 ? 100000 : (type * 2000))));
+    const initialShield = (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 4 ? 50000 : (type * 1000))));
 
     const e = {
         id, type, zone,
@@ -77,7 +78,8 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null) 
 
     // Asignar Inteligencia Artificial según Tipo (v85.20 / v87.20 / v98.50 Ancient / v102.10 Brain)
     const aiConfig = { bulletDamage: (type * 100), fireRate: 2000, speed: (type === 1 ? 4.5 : 3.5) };
-    if (type === 5) e.ai = new AncientBossAI(e, aiConfig); // NUEVO Cerebro Ancient v102.10
+    if (type === 6) e.ai = new MechanicBossAI(e, aiConfig); // Jefe de Dungeon v1.0
+    else if (type === 5) e.ai = new AncientBossAI(e, aiConfig); // NUEVO Cerebro Ancient v102.10
     else if (type === 4) e.ai = new BossAI(e, aiConfig); // Jefe Lord Titán v87.20
     else if (type === 1) e.ai = new ChaseAI(e, aiConfig);
     else e.ai = new OrbitAI(e, aiConfig);
@@ -89,9 +91,25 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null) 
     io.emit('enemySpawn', spawnData);
 }
 
-// Spawn inicial y periódico
-setInterval(serverSpawnEnemy, 5000);
-for (let i = 0; i < 10; i++) serverSpawnEnemy();
+// Spawn inicial antiguo (Deshabilitado)
+// setInterval(serverSpawnEnemy, 5000);
+// for (let i = 0; i < 10; i++) serverSpawnEnemy();
+
+// GUARDIANÍA DE SPAWN ZONA 1 (4x T1, 4x T2, 4x T3 con respawn de 2 segundos)
+setInterval(() => {
+    let t1Count = 0; let t2Count = 0; let t3Count = 0;
+    Object.values(enemies).forEach(e => {
+        if (e.zone === 1 && e.hp > 0) {
+            if (e.type === 1) t1Count++;
+            else if (e.type === 2) t2Count++;
+            else if (e.type === 3) t3Count++;
+        }
+    });
+
+    if (t1Count < 4) serverSpawnEnemy(1, 1);
+    if (t2Count < 4) serverSpawnEnemy(1, 2);
+    if (t3Count < 4) serverSpawnEnemy(1, 3);
+}, 2000);
 
 // GUARDIANÍA DE JEFES (Asegurar 1 BOSS siempre en su mapa v89.50 / v98.50)
 let lastTitanDeath = 0;
@@ -112,17 +130,23 @@ setInterval(() => {
 // LOOP DE IA Y MOVIMIENTO GLOBAL (v85.20 Modular AI Engine)
 setInterval(() => {
     const now = Date.now();
-    const enemiesByZone = { 1: [], 2: [], 3: [] };
-    const zoneMoveData = { 1: {}, 2: {}, 3: {} };
+    const enemiesByZone = {};
+    const zoneMoveData = {};
 
-    // Clasificación Inicial O(n) - Un solo pase
+    // Clasificación Inicial O(n) - Un solo pase (Soporte infinito de zonas)
     for (const id in enemies) {
         const e = enemies[id];
-        if (e.hp > 0) enemiesByZone[e.zone].push(e);
+        if (e.hp > 0) {
+            if (!enemiesByZone[e.zone]) {
+                enemiesByZone[e.zone] = [];
+                zoneMoveData[e.zone] = {};
+            }
+            enemiesByZone[e.zone].push(e);
+        }
     }
 
-    // Proceso por Zona (Ahorro del 900% en CPU)
-    for (let z = 1; z <= 3; z++) {
+    // Proceso por Zona (Dungeons incluidas)
+    for (const z in enemiesByZone) {
         const zoneList = enemiesByZone[z];
         const listLen = zoneList.length;
 
@@ -161,7 +185,7 @@ setInterval(() => {
         }
 
         // Broadcast Segmentado
-        if (listLen > 0) {
+        if (Object.keys(zoneMoveData[z]).length > 0) {
             io.to(`zone_${z}`).emit('enemiesMoved', zoneMoveData[z]);
         }
     }
@@ -1372,6 +1396,63 @@ io.on('connection', (socket) => {
             }
         });
         socket.emit('currentEnemies', zoneEnemies);
+    });
+
+    // SISTEMA DE DUNGEONS BLINDADAS (Instancias Privadas)
+    socket.on('enterDungeon', () => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const myUid = socket.dbUser._id.toString();
+        const p = players[socket.id];
+        
+        // Crear un ID de zona única para la Dungeon
+        const dungeonZoneId = `dungeon_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+        
+        // Chequear si el jugador está en Party
+        const partyId = playerParty[myUid];
+        let playersToMove = [socket]; // Solo él por defecto
+        
+        if (partyId && parties[partyId]) {
+            // Mover a todos los miembros de la party que estén online y en la misma zona actual
+            playersToMove = parties[partyId].members
+                .map(uid => [...io.sockets.sockets.values()].find(s => s.dbUser && s.dbUser._id.toString() === uid))
+                .filter(s => s && players[s.id] && players[s.id].zone === p.zone);
+        }
+        
+        // Spawnear al Boss en la instancia Privada (Center at 1000,1000 for 2000x2000 room)
+        serverSpawnEnemy(dungeonZoneId, 6, 1000, 1000);
+        
+        // Teletransportar a los elegidos a la Dungeon
+        playersToMove.forEach(s => {
+            const memP = players[s.id];
+            const oldZone = memP.zone;
+            
+            s.leave(`zone_${oldZone}`);
+            s.join(`zone_${dungeonZoneId}`);
+            memP.zone = dungeonZoneId;
+            memP.x = 500; // Aparecen un poco alejados del centro (Boss)
+            memP.y = 1000;
+            
+            s.to(`zone_${oldZone}`).emit('playerDisconnected', s.id);
+            s.to(`zone_${dungeonZoneId}`).emit('newPlayer', { ...memP, spheres: memP.spheres });
+            
+            // Forzar actualización total al cliente
+            s.emit('changeZoneDone', dungeonZoneId); // Opcional, por si el cliente lo necesita
+            
+            // Mandarle el estado de los enemigos (El Boss que acabamos de spawnear)
+            const zoneEnemies = {};
+            Object.keys(enemies).forEach(id => {
+                if (enemies[id].zone === dungeonZoneId) {
+                    const { ai, ...cleanData } = enemies[id];
+                    zoneEnemies[id] = cleanData;
+                }
+            });
+            s.emit('currentEnemies', zoneEnemies);
+            
+            // Mandar confirmación de entrada mediante chat o notificación
+            s.emit('gameNotification', { msg: 'Ingresando a Dungeon Privada...', type: 'alert' });
+        });
+        
+        console.log(`[DUNGEON] Party teleportada a instancia: ${dungeonZoneId} con ${playersToMove.length} miembros.`);
     });
     socket.on('disconnect', async () => {
         if (players[socket.id]) {

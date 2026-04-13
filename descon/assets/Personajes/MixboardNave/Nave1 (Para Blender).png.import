@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://x3mf65x8fvdh"
-path="res://.godot/imported/Nave2 (Transp).png-f615df03cae50f4e1579299ba85849dc.ctex"
+uid="uid://ceeoqgnl22yng"
+path="res://.godot/imported/Nave1 (Para Blender).png-e5f222cbd7773f1c425060e045de94c0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/player/Nave2 (Transp).png"
-dest_files=["res://.godot/imported/Nave2 (Transp).png-f615df03cae50f4e1579299ba85849dc.ctex"]
+source_file="res://assets/Personajes/MixboardNave/Nave1 (Para Blender).png"
+dest_files=["res://.godot/imported/Nave1 (Para Blender).png-e5f222cbd7773f1c425060e045de94c0.ctex"]
 
 [params]
 
