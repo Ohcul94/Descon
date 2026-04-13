@@ -669,12 +669,22 @@ io.on('connection', (socket) => {
         if (healAmt <= 0) return; // Hack detected or no skill equipped
 
         p.sphereCooldowns[sphereIdx] = now; // Registrar uso legítimo
+        
+        let actual_heal = 0;
 
         if (data.skillName === "ESCUDO CELULAR") {
-            p.shield = Math.min((p.shield || 0) + healAmt, p.maxShield || 2000);
+            const ms = p.maxShield || 2000;
+            actual_heal = Math.min(healAmt, ms - (p.shield || 0));
+            p.shield = Math.min((p.shield || 0) + healAmt, ms);
         } else if (data.skillName === "AUTO-REPARACIÓN") {
-            p.hp = Math.min((p.hp || 0) + healAmt, p.maxHp || 3000);
+            const mh = p.maxHp || 3000;
+            actual_heal = Math.min(healAmt, mh - (p.hp || 0));
+            p.hp = Math.min((p.hp || 0) + healAmt, mh);
+        } else {
+            actual_heal = healAmt || data.powerValue || 0;
         }
+        
+        actual_heal = Math.max(0, actual_heal);
 
         // v200.12: Sincronía Crítica - Forzar actualización inmediata para evitar rollback
         p.lastSyncHp = p.hp;
@@ -691,7 +701,7 @@ io.on('connection', (socket) => {
         io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', {
             id: socket.id,
             skillName: data.skillName,
-            powerValue: data.powerValue || healAmt || 0
+            powerValue: actual_heal
         });
 
         console.log(`[SPHERES] Piloto ${p.user} usó ${data.skillName}. Cooldown iniciado.`);

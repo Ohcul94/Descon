@@ -503,17 +503,15 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 			var path = "res://assets/Efectos de Skills/Velocidad(Transp).png"
 			if ResourceLoader.exists(path):
 				var vfx = Sprite2D.new(); var t = load(path); vfx.texture = t
-				var s = 130.0 / max(t.get_width(), t.get_height())
+				var s = 145.0 / max(t.get_width(), t.get_height())
 				vfx.scale = Vector2(s, s); vfx.rotation_degrees = 180
-				vfx.position = Vector2(-45, 0)
-				vfx.show_behind_parent = true # Mejor manera de ocultarse detrás del rig
-				var sp_node = get_node_or_null("ShipSprite")
-				if sp_node: sp_node.add_child(vfx)
-				else: add_child(vfx)
+				vfx.position = Vector2(-65, 0)
+				vfx.z_index = -1
+				add_child(vfx)
 				var tw = create_tween().set_loops()
 				tw.tween_property(vfx, "scale", Vector2(s*1.3, s*0.8), 0.1)
 				tw.tween_property(vfx, "scale", Vector2(s*0.8, s*1.3), 0.1)
-				get_tree().create_timer(2.0).timeout.connect(vfx.queue_free)
+				get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(vfx): vfx.queue_free())
 		"ESCUDO CELULAR":
 			var path = "res://assets/Efectos de Skills/Escudo(Transp).png"
 			if ResourceLoader.exists(path):
