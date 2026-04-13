@@ -86,7 +86,11 @@ func _process(delta):
 		_ui_wrapper.global_position = global_position
 		_ui_wrapper.queue_redraw()
 		if name_tag: 
-			name_tag.position = Vector2(-100, -90) 
+			var y_offset = -90.0
+			if is_in_group("player"): y_offset = -180.0
+			elif entity_type >= 4: y_offset = -200.0 # Bosses enormes
+			
+			name_tag.position.y = y_offset
 			if name_tag.size.x > 0:
 				name_tag.position.x = -(name_tag.size.x / 2.0)
 		
@@ -147,16 +151,24 @@ func _draw_hud():
 	var seg_w = (bar_w - (gap * (segments - 1.0))) / float(segments)
 	var sh_pct = clamp(current_shield / max_shield if max_shield > 0 else 0.0, 0, 1)
 	var hp_pct = clamp(current_hp / max_hp if max_hp > 0 else 0.0, 0, 1)
+	
+	var base_y = -35.0
+	if is_in_group("player"): base_y = -105.0
+	elif entity_type >= 4: base_y = -125.0 # Boss
+	
 	for i in range(segments):
 		var x = -(bar_w / 2.0) + (i * (seg_w + gap))
-		_ui_wrapper.draw_rect(Rect2(x, -25, seg_w, 4), Color(0, 1, 1, 0.25))
+		# Fondo (Escudo)
+		_ui_wrapper.draw_rect(Rect2(x, base_y - 10, seg_w, 4), Color(0, 1, 1, 0.25))
 		var f_sh = clamp((sh_pct * segments) - i, 0.0, 1.0)
-		if f_sh > 0: _ui_wrapper.draw_rect(Rect2(x, -25, seg_w * f_sh, 4), Color(0, 1, 1))
-		_ui_wrapper.draw_rect(Rect2(x, -18, seg_w, 4), Color(0, 1, 0, 0.25))
+		if f_sh > 0: _ui_wrapper.draw_rect(Rect2(x, base_y - 10, seg_w * f_sh, 4), Color(0, 1, 1))
+		
+		# Fondo (Hp)
+		_ui_wrapper.draw_rect(Rect2(x, base_y - 3, seg_w, 4), Color(0, 0.8, 0, 0.25))
 		var f_hp = clamp((hp_pct * segments) - i, 0.0, 1.0)
 		if f_hp > 0: 
-			var c = Color(0, 1, 0) if hp_pct > 0.3 else Color(1, 0, 0)
-			_ui_wrapper.draw_rect(Rect2(x, -18, seg_w * f_hp, 4), c)
+			var c = Color(0, 0.8, 0) if hp_pct > 0.3 else Color(1, 0, 0)
+			_ui_wrapper.draw_rect(Rect2(x, base_y - 3, seg_w * f_hp, 4), c)
 
 func reset_combat_timer():
 	last_combat_time = Time.get_ticks_msec()
@@ -370,12 +382,16 @@ func _setup_ship_visuals():
 		sprite.hframes = h_f
 		sprite.vframes = v_f
 		
-		# v210.30: ESCALADO DINÁMICO (Target 128x128 por frame)
+		# v210.30: ESCALADO DINÁMICO (Target 256x256 por frame)
 		var frame_w = tex.get_width() / float(h_f)
 		var frame_h = tex.get_height() / float(v_f)
-		var target_size = 128.0
+		var target_size = 256.0 # Doble del tamaño
 		var s = target_size / max(frame_w, frame_h)
 		sprite.scale = Vector2(s, s)
+		
+		# Escalar proporcionalmente Hitbox de nave general (aprox 35px original)
+		var col = get_node_or_null("CollisionPolygon2D")
+		if is_instance_valid(col): col.scale = Vector2((target_size * 0.85)/35.0, (target_size * 0.85)/35.0)
 	
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	add_child(sprite)
@@ -431,9 +447,7 @@ func _setup_enemy_visuals():
 	match entity_type:
 		2: path = "res://assets/Enemigos/Enemy2Map1.png" # T2
 		3: path = "res://assets/Enemigos/Enemy3Map1.png" # T3
-		4: path = "res://assets/Enemigos/Enemy3Map1.png" # Lord Titan momentaneo usa T3
-		5: path = "res://assets/Enemigos/Enemy3Map1.png" # Ancient usa T3
-		6: path = "res://assets/Enemigos/Enemy3Map1.png" # Guardian usa T3
+		4, 5, 6: path = "res://assets/Enemigos/Bosses/Boss1.png" # Bosses de Dungeon usan el nuevo asset
 		_: path = "res://assets/Enemigos/Enemy1Map1.png" # T1 por Defecto
 	
 	if path != "" and ResourceLoader.exists(path):
@@ -441,14 +455,20 @@ func _setup_enemy_visuals():
 		var tex = load(path)
 		sprite.texture = tex
 		
-		# Bloqueo total de tamaño a 160.0px (Para equiparar los assets correctamente con el T3)
-		var target_size = 160.0
+		# Bosses tienen escala monumental (320px), minions normales (160px)
+		var target_size = 320.0 if entity_type >= 4 else 160.0
 		
 		var s = target_size / max(tex.get_width(), tex.get_height())
 		sprite.scale = Vector2(s, s)
 		
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		add_child(sprite)
+		
+		# Ajustar el Hitbox base del objeto (que mide aprox 25px de largo originalmente)
+		var col = get_node_or_null("CollisionPolygon2D")
+		if is_instance_valid(col):
+			var factor = (target_size * 0.85) / 25.0
+			col.scale = Vector2(factor, factor)
 	
 	# Asegurarnos de borrar toda geometria fea que este de fondo o recargar
 	queue_redraw()
