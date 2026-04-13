@@ -34,9 +34,15 @@ func _initialize_mock_skills():
 func _create_spheres():
 	for i in range(3):
 		var s = Sprite2D.new()
-		s.texture = load("res://icon.svg")
-		s.scale = Vector2(0.2, 0.2)
-		s.modulate = spheres_data[i]["color"]
+		
+		var path = ""
+		if i == 0: path = "res://assets/Esferas/EsferaAmarilla.png"
+		elif i == 1: path = "res://assets/Esferas/EsferaAzul.png"
+		elif i == 2: path = "res://assets/Esferas/EsferaVerde.png"
+		
+		var tex = load(path) if ResourceLoader.exists(path) else load("res://icon.svg")
+		s.texture = tex
+		s.modulate = Color.WHITE
 		
 		# Contenedor para el icono de la habilidad
 		var icon_sprite = Sprite2D.new()
@@ -61,7 +67,11 @@ func _process(delta):
 			var target_pos = Vector2(cos(sphere_angle), sin(sphere_angle)) * radius
 			spheres[i].position = target_pos
 			var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.005 + i) * 0.1
-			spheres[i].scale = Vector2(0.2, 0.2) * pulse
+			var tex = spheres[i].texture
+			if tex:
+				var target_size = 42.0 # Escala ideal
+				var scale_factor = target_size / max(tex.get_width(), tex.get_height())
+				spheres[i].scale = Vector2(scale_factor, scale_factor) * pulse
 
 func use_skill(id: int):
 	if id < 0 or id >= spheres_data.size(): return
