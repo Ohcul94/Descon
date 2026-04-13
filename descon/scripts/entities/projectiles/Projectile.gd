@@ -11,6 +11,7 @@ class_name Projectile
 
 var owner_type: String = "player"
 var velocity: Vector2 = Vector2.ZERO
+var sprite: Sprite2D = null
 
 func _ready():
 	add_to_group("projectiles")
@@ -28,10 +29,15 @@ func _ready():
 func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	global_position = p_pos
 	rotation = p_angle
-	speed = p_data.get("speed", 1500.0)
+	type = p_data.get("type", "laser")
 	owner_id = str(p_data.get("id", p_data.get("senderId", p_data.get("entityId", ""))))
 	owner_type = p_data.get("owner_type", "player")
-	type = p_data.get("type", "laser")
+	
+	speed = p_data.get("speed", 1500.0)
+	if type == "missile":
+		speed = 450.0  # Mucho más lento siempre (Velocidad impuesta)
+	elif type == "mine":
+		speed = 400.0  # Impulso de eyección (Frenará por fricción)
 	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
 	
 	velocity = Vector2.RIGHT.rotated(p_angle) * speed
@@ -42,9 +48,38 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	else:
 		collision_mask = 1 # Impactar Jugadores
 	
+	_setup_visual_sprite()
 	queue_redraw()
 
+func _setup_visual_sprite():
+	if is_instance_valid(sprite): sprite.queue_free()
+	
+	var path = ""
+	match type:
+		"laser": path = "res://assets/Municiones/Laser1.png"
+		"missile": path = "res://assets/Municiones/Misil1.png"
+		"mine": path = "res://assets/Municiones/Mina1.png"
+	
+	if path != "" and ResourceLoader.exists(path):
+		sprite = Sprite2D.new()
+		var tex = load(path)
+		sprite.texture = tex
+		
+		# Tamaños ajustados para que las proporciones no sobrepasen las naves (160px)
+		var target_size = 48.0
+		if type == "mine": target_size = 64.0
+		elif type == "missile": target_size = 56.0
+		
+		var s = target_size / max(tex.get_width(), tex.get_height())
+		sprite.scale = Vector2(s, s)
+		
+		# Ajuste de orientación. Los renders "desde arriba" del usuario están a -90 grados respecto del este
+		sprite.rotation_degrees = 90
+		
+		add_child(sprite)
+
 func _draw():
+	if is_instance_valid(sprite): return
 	match type:
 		"laser":
 			draw_rect(Rect2(Vector2(-10, -2.5), Vector2(20, 5)), Color.WHITE)
@@ -56,6 +91,10 @@ func _draw():
 			draw_circle(Vector2.ZERO, 12, Color(1, 1, 1, 0.3), false, 3.0)
 
 func _physics_process(delta):
+	# Efecto de Fricción Fuerte para desplegar minas estáticas a corta distancia (recorren poco antes de anclarse)
+	if type == "mine":
+		velocity = velocity.lerp(Vector2.ZERO, 3.5 * delta)
+		
 	global_position += velocity * delta
 	if global_position.length() > 15000: 
 		queue_free()
