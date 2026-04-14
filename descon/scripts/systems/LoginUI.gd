@@ -29,6 +29,16 @@ func _ready():
 		NetworkManager.login_success.connect(_on_auth_success)
 		if not NetworkManager.connection_lost.is_connected(_on_connection_lost):
 			NetworkManager.connection_lost.connect(_on_connection_lost)
+			
+	# v214.200: FIX TÁCTIL PARA TABLETS (Forzar foco al tocar inputs)
+	if user_input: user_input.gui_input.connect(_on_input_gui_input.bind(user_input))
+	if pass_input: pass_input.gui_input.connect(_on_input_gui_input.bind(pass_input))
+
+func _on_input_gui_input(event: InputEvent, node: LineEdit):
+	if event is InputEventMouseButton and event.pressed:
+		node.grab_focus()
+		if OS.has_feature("mobile"): 
+			DisplayServer.virtual_keyboard_show(node.text)
 
 func _on_connection_lost():
 	_on_auth_fail("CONEXIÓN TERMINADA.")
@@ -73,8 +83,37 @@ func _on_login_btn_pressed():
 	_show_status("Conectando...", Color.CYAN)
 	_save_user_state()
 	
-	# Intentar conexión (v141.70 usa 127.0.0.1 por defecto para desarrollo local)
-	NetworkManager.connect_to_server("127.0.0.1", 3333, u, p)
+# Intentar conexión dinámica (v141.72: Fix Auto-Cloudflare para APK)
+	var target_ip = "mileage-cakes-teaches-personal.trycloudflare.com" # Cambiado de 127.0.0.1
+	var target_port = 443 # El puerto de los túneles HTTPS siempre es 443
+	
+	# Usar 127.0.0.1 solo si estamos en el editor de Godot testeando local
+	if OS.has_feature("editor"):
+		target_ip = "127.0.0.1"
+		target_port = 3333
+	
+	# 1. Prioridad: Argumentos de consola
+	var args = OS.get_cmdline_args()
+	for i in range(args.size()):
+		if args[i] == "--ip" and i + 1 < args.size():
+			target_ip = args[i+1]
+		elif args[i] == "--port" and i + 1 < args.size():
+			target_port = int(args[i+1])
+			
+	# 2. Prioridad: Archivo de configuración manual (al lado del .exe)
+	var exe_path = OS.get_executable_path().get_base_dir()
+	var config_file = exe_path + "/server_config.ini"
+	if FileAccess.file_exists(config_file):
+		var file = FileAccess.open(config_file, FileAccess.READ)
+		var content = file.get_as_text().strip_edges()
+		if content != "":
+			var lines = content.split("\n")
+			for line in lines:
+				if line.begins_with("ip="): target_ip = line.split("=")[1].strip_edges()
+				elif line.begins_with("port="): target_port = int(line.split("=")[1].strip_edges())
+		print("[NET] Configuración cargada desde archivo externo: ", target_ip)
+
+	NetworkManager.connect_to_server(target_ip, target_port, u, p)
 
 func _on_register_btn_pressed():
 	_show_status("Registro no implementado en esta versión local", Color.YELLOW)

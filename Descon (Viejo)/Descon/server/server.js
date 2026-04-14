@@ -33,6 +33,13 @@ mongoose.connect(process.env.MONGODB_URI)
 // Asegurar que archivos existan
 if (!fs.existsSync(CONFIG_FILE)) fs.writeJsonSync(CONFIG_FILE, null);
 
+// Middleware para que Godot Web funcione (SharedArrayBuffer support) v1.0
+app.use((req, res, next) => {
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+    next();
+});
+
 // Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, '../public')));
 

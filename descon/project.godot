@@ -23,6 +23,13 @@ GameConstants="*res://scripts/autoloads/Constants.gd"
 PartyManager="*res://scripts/systems/PartyManager.gd"
 VFXSystem="*res://scripts/systems/VFXManager.gd"
 
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=800
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
 [editor]
 
 run/main_run_args="Principal"
@@ -64,3 +71,4 @@ toggle_inventory={
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

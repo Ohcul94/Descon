@@ -55,7 +55,14 @@ func connect_to_server(ip: String, port: int, p_name: String, p_token: String = 
 		
 	login_name = p_name
 	auth_token = p_token
-	var url = "ws://" + str(ip) + ":" + str(port) + "/socket.io/?EIO=4&transport=websocket"
+	var url = ""
+	if ip.contains(".") and not ip.is_valid_ip_address():
+		# Es un dominio (ej. Cloudflare Tunnel), usamos WSS y omitimos el puerto manual si es estándar
+		url = "wss://" + ip + "/socket.io/?EIO=4&transport=websocket"
+	else:
+		# Es una IP clásica (ej. 127.0.0.1 o tu IP pública), usamos WS y el puerto
+		url = "ws://" + str(ip) + ":" + str(port) + "/socket.io/?EIO=4&transport=websocket"
+		
 	print("[NET] Conectando a ", url)
 	var err = socket.connect_to_url(url)
 	if err != OK:
