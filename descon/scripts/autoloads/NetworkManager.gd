@@ -29,15 +29,20 @@ signal reward_received(data)
 signal level_up(data)
 signal admin_config_updated(data)
 signal remote_skill_used(data)
+signal enemy_kill_session(data)
 
 signal enemy_damaged(data)
 signal boss_effect(data)
 signal config_updated(data)
 signal game_notification(data)
 signal clear_zone_entities(zoneId)
+signal clear_enemy_projectiles(data)
+signal online_count_updated(count)
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
+var online_count: int = 1 # v220.20: Conteo global persistente
+var was_manual_logout: bool = false # v221.21: Evitar bucle de login en debug
 var my_socket_id: String = "" # v168.04: ID Local para evitar self-cloning
 var auth_token: String = ""
 var login_name: String = ""
@@ -68,6 +73,15 @@ func connect_to_server(ip: String, port: int, p_name: String, p_token: String = 
 	if err != OK:
 		print("[NET-ERR] Error al iniciar socket: ", err)
 		network_connected = false
+
+func logout():
+	print("[NET] Cerrando sesión y limpiando estado...")
+	was_manual_logout = true
+	network_connected = false
+	auth_token = ""
+	login_name = ""
+	socket.close()
+	socket = WebSocketPeer.new()
 
 func _process(_delta):
 	socket.poll()
@@ -143,6 +157,13 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			if typeof(e_data) == TYPE_DICTIONARY:
 				if str(e_data.get("id", "")) != my_socket_id:
 					_dispatch_single_player(e_data)
+		"playerUpdated":
+			# v221.50: NO filtrar self - el jugador necesita recibir sus propios cambios de PvP
+			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("id"):
+				player_updated.emit(e_data)
+		"onlineCount":
+			online_count = int(e_data)
+			online_count_updated.emit(online_count)
 		"changeZoneDone":
 			# Limpia enemigos/players viejos antes de cargar los de la nueva zona
 			clear_zone_entities.emit(e_data)
@@ -169,8 +190,10 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"enemyFire", "serverEnemyFire": enemy_fired.emit(e_data)
 		"enemyDamaged": enemy_damaged.emit(e_data)
 		"enemyDead", "serverEnemyDead": enemy_dead.emit(e_data)
+		"enemyKillSession": enemy_kill_session.emit(e_data)
 		"bossEffect": boss_effect.emit(e_data)
 		"gameNotification": game_notification.emit(e_data)
+		"clearEnemyProjectiles": clear_enemy_projectiles.emit(e_data)
 		"adminConfigUpdated", "adminConfigLoaded": 
 			config_updated.emit(e_data)
 			admin_config_updated.emit(e_data)
@@ -228,7 +251,7 @@ func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_upda
 					var sps = p_data.get("spheres")
 					if typeof(sps) == TYPE_ARRAY:
 						# Actualizar los datos (La esfera hará el resto en su _process)
-						for i in range(min(sps.size(), 3)):
+						for i in range(min(sps.size(), 4)):
 							var sph_in_data = sps[i]
 							if typeof(sph_in_data) == TYPE_DICTIONARY:
 								sm.equip_item(i, sph_in_data)

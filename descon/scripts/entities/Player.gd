@@ -16,7 +16,6 @@ const SAVE_INTERVAL = 10.0
 signal stats_changed(p_data)
 signal shoot_fired(p_data)
 
-var target_position = Vector2.ZERO
 var is_moving = false
 var autopilot_enabled: bool = false
 var is_autopilot_active: bool: 
@@ -32,7 +31,9 @@ var base_laser_damage: float = 100.0
 var level: int = 1
 var current_exp: float = 0.0
 var next_level_exp: float = 1000.0
-var skill_tree: Dictionary = {"combat": [], "engineering": []}
+var skill_points: int = 0
+var skill_tree: Dictionary = {"combat": [], "engineering": [], "science": []}
+
 var ammo: Dictionary = {"laser": [1000, 0, 0, 0, 0, 0], "missile": [100, 0, 0], "mine": [10, 0, 0]}
 var selected_ammo: Dictionary = {"laser": 0, "missile": 0, "mine": 0}
 var current_zone: int = 1
@@ -49,21 +50,39 @@ func _ready():
 	var cam = Camera2D.new()
 	cam.position_smoothing_enabled = true
 	cam.position_smoothing_speed = 5.0
+	cam.zoom = Vector2(0.8, 0.8) # v217.10: Mayor visibilidad táctica
 	add_child(cam)
 	cam.make_current()
 	
-	var sm_script = load("res://scripts/systems/SpheresManager.gd")
-	if sm_script:
-		var sm = sm_script.new()
-		sm.name = "SpheresManager"
-		add_child(sm)
-	
 	if NetworkManager:
+
 		NetworkManager.login_success.connect(_on_login_success)
 		NetworkManager.inventory_data.connect(_on_inventory_received)
-		NetworkManager.enemy_dead.connect(_on_enemy_dead)
-		NetworkManager.reward_received.connect(_on_reward_received)
-		NetworkManager.level_up.connect(_on_level_up)
+
+func _unhandled_input(event):
+	# v226.50: Bloquear zoom si el mouse está sobre la UI (Evitar zoom al scrollear menús)
+	if event is InputEventMouseButton:
+		if get_viewport().gui_get_hovered_control() != null:
+			return
+			
+		var cam = get_viewport().get_camera_2d()
+		
+		# Procesar Movimiento (Click)
+		if event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
+				target_position = get_global_mouse_position()
+				is_moving = true; autopilot_enabled = false
+			
+			# Procesar Zoom (Rueda)
+			if is_instance_valid(cam):
+				var zoom_step = 0.1
+				var min_zoom = 0.3; var max_zoom = 2.0
+				if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+					var target_z = clamp(cam.zoom.x + zoom_step, min_zoom, max_zoom)
+					create_tween().set_trans(Tween.TRANS_SINE).tween_property(cam, "zoom", Vector2(target_z, target_z), 0.2)
+				elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+					var target_z = clamp(cam.zoom.x - zoom_step, min_zoom, max_zoom)
+					create_tween().set_trans(Tween.TRANS_SINE).tween_property(cam, "zoom", Vector2(target_z, target_z), 0.2)
 
 func _physics_process(p_delta):
 	if not NetworkManager.network_connected: return
@@ -92,15 +111,10 @@ func _handle_input():
 	if Input.is_physical_key_pressed(KEY_A): _use_sphere_skill(0)
 	if Input.is_physical_key_pressed(KEY_S): _use_sphere_skill(1)
 	if Input.is_physical_key_pressed(KEY_D): _use_sphere_skill(2)
-	
-func _unhandled_input(event):
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
-			target_position = get_global_mouse_position()
-			is_moving = true
-			autopilot_enabled = false
+	if Input.is_physical_key_pressed(KEY_F): _use_sphere_skill(3)
 
-var cooldowns = {"laser": 0.0, "missile": 0.0, "mine": 0.0, "sphere_0": 0.0, "sphere_1": 0.0, "sphere_2": 0.0}
+
+var cooldowns = {"laser": 0.0, "missile": 0.0, "mine": 0.0, "sphere_0": 0.0, "sphere_1": 0.0, "sphere_2": 0.0, "sphere_3": 0.0}
 func _handle_cooldowns(p_delta):
 	for s in cooldowns:
 		if cooldowns[s] > 0: cooldowns[s] -= p_delta
@@ -111,7 +125,11 @@ func _on_inventory_received(p_data):
 		gd = p_data["player"]
 		
 	if typeof(gd) == TYPE_DICTIONARY:
+		# v236.15: Extraer gameData si viene anidado (común en login_success)
+		if gd.has("gameData"): gd = gd["gameData"]
+		
 		if gd.has("items"): inventory = gd["items"]
+
 		elif gd.has("inventory"): inventory = gd["inventory"]
 		if gd.has("equipped"): equipped = gd["equipped"]
 		if gd.has("hubs"): hubs = int(gd["hubs"])
@@ -122,6 +140,26 @@ func _on_inventory_received(p_data):
 				skill_tree["skillPoints"] = int(gd["skillPoints"])
 		if gd.has("level"): level = int(gd["level"])
 		if gd.has("exp"): current_exp = float(gd["exp"])
+		
+		# v235.95: Persistencia de Esferas Orbitales
+		if gd.has("spheres"):
+			var sm = get_node_or_null("SpheresManager")
+			if sm:
+				var sph_data = gd["spheres"]
+				for i in range(min(sph_data.size(), 4)):
+					var s_raw = sph_data[i]
+					var eq = s_raw.get("equipped")
+					if eq:
+						var s_name = eq.get("skill_name", "")
+						var skill_obj = _find_skill_by_name(s_name)
+						if skill_obj:
+							sm.equip_item(i, skill_obj)
+						else:
+							# Fallback si no encontramos la clase pero el dict es válido
+							sm.equip_item(i, eq)
+					else:
+						sm.equip_item(i, null)
+
 	
 	_recalculate_stats()
 
@@ -169,8 +207,8 @@ func _recalculate_stats():
 	_update_tags()
 	_emit_stats()
 
-func take_damage(amt: float):
-	super.take_damage(amt)
+func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
+	super.take_damage(amt, attacker_pos, attacker_id)
 	if NetworkManager:
 		NetworkManager.send_event("playerHitByEnemy", { "damage": amt, "id": entity_id })
 
@@ -231,8 +269,19 @@ func _apply_movement():
 			rotation = lerp_angle(rotation, target_angle, 0.25)
 			var dir = Vector2.RIGHT.rotated(rotation)
 			velocity = dir * speed
-			move_and_slide()
+			if move_and_slide():
+				# v235.97: Resolución Activa de Atascamiento (Antiglue System)
+				for i in get_slide_collision_count():
+					var col = get_slide_collision(i)
+					var obj = col.get_collider()
+					if obj and (obj.is_in_group("enemies") or obj.is_in_group("remote_players")):
+						# Pequeño rebote de seguridad para separar geometrías
+						global_position += col.get_normal() * 2.0
+						velocity = velocity.bounce(col.get_normal()) * 0.5
+
+			
 			var w_size = GameConstants.GAME_CONFIG.get("worldSize", 4000)
+
 			global_position.x = clamp(global_position.x, 10, w_size - 10)
 			global_position.y = clamp(global_position.y, 10, w_size - 10)
 		else:
@@ -299,11 +348,17 @@ func _on_login_success(p_in):
 			target_position = global_position
 		# v210.190: Sincronización final de Visuales y Stats
 		current_ship_id = int(gd.get("currentShipId", 1))
-		current_zone = int(gd.get("zone", 1))
+		current_zone = int(gd.get("zone", 1)) # v238.45: Recuperación de sector
+
 		level = int(gd.get("level", 1))
+
 		current_exp = float(gd.get("exp", 0))
 		skill_tree = gd.get("skillTree", {"engineering":[0,0,0,0,0,0,0,0],"combat":[0,0,0,0,0,0,0,0],"science":[0,0,0,0,0,0,0,0]}).duplicate()
 		skill_tree["skillPoints"] = int(gd.get("skillPoints", 0))
+		
+		# v221.26: Cargar estado PvP persistente de la cuenta
+		if gd.has("pvpEnabled"):
+			self.pvp_status = !!gd["pvpEnabled"]
 
 		# v210.191: FORZAR REDRAW VISUAL (Fix: Asset Inconsistency)
 		_setup_ship_visuals() 
@@ -338,15 +393,16 @@ func _on_login_success(p_in):
 		current_hp = float(gd.get("hp", max_hp)) 
 		current_shield = float(gd.get("shield", max_shield))
 		_recalculate_stats()
-		update_stats({})
+		
+		# v221.35: Sincronía inicial con el HUD
+		if is_instance_valid(get_parent()) and get_parent().has_node("HUD/MainHUD"):
+			get_parent().get_node("HUD/MainHUD").set_pvp_status(pvp_status)
+		
+		update_stats({"pvpEnabled": pvp_status})
 	_update_tags(); _emit_stats(); queue_redraw()
 
 func _on_enemy_dead(_data): pass
-func _on_reward_received(p_data: Dictionary):
-	hubs += int(p_data.get("hubs", 0))
-	ohculianos += int(p_data.get("ohcu", 0))
-	current_exp += float(p_data.get("exp", 0))
-	_update_tags(); _emit_stats()
+func _on_reward_received(_data): pass
 
 func _on_level_up(p_data: Dictionary):
 	level = int(p_data.get("level", level + 1))
@@ -361,6 +417,10 @@ func _emit_stats():
 	})
 
 func update_stats(data):
+	# v221.40: Solo actualizar pvp_status si el servidor lo manda explícitamente
+	if data.has("pvpEnabled"): 
+		pvp_status = !!data.pvpEnabled
+	
 	super.update_stats(data)
 	_emit_stats()
 
@@ -388,7 +448,8 @@ func save_progress():
 		"hubs": hubs, "ohcu": ohculianos, "exp": current_exp,
 		"level": level, "skillPoints": skill_tree.get("skillPoints", 0),
 		"skillTree": skill_tree,
-		"inventory": inventory, "equipped": equipped,
+		# "inventory": inventory, # DESACTIVADO v215.30 FIX DUPEO
+		# "equipped": equipped,   # DESACTIVADO v215.30 FIX DUPEO
 		"spheres": s_data,
 		"hp": current_hp, "shield": current_shield,
 		"maxHp": max_hp, "maxShield": max_shield,
@@ -398,8 +459,13 @@ func save_progress():
 
 # Buscar clase de habilidad por nombre (v206.0 Internal Helper)
 func _find_skill_by_name(n: String):
-	var skills = [Skill_TurboImpulse, Skill_ShieldCell, Skill_RepairKit]
+	if n == "": return null
+	var target_n = n.to_upper().strip_edges()
+	var skills = [
+		Skill_TurboImpulse, Skill_ShieldCell, Skill_RepairKit, Skill_Reflect,
+		Skill_PlasmaBlast, Skill_Fortress, Skill_RegenPath, Skill_HyperDash
+	]
 	for s in skills:
 		var inst = s.new()
-		if inst.skill_name == n: return inst
+		if inst.skill_name.to_upper().strip_edges() == target_n: return inst
 	return null

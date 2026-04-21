@@ -1,7 +1,7 @@
 extends Node2D
 
 # SpheresManager.gd - Sistema de Esferas Orbitales
-# Maneja 3 esferas alrededor del personaje con habilidades y estadísticas.
+# Maneja 4 esferas alrededor del personaje con habilidades y estadísticas.
 
 var player = null
 signal spheres_updated
@@ -11,67 +11,49 @@ var rotation_speed = 1.0
 
 var spheres = []
 var spheres_data = [
-	{"name": "ESFERA ALFA", "type": "Movimiento", "color": Color(1, 0.8, 0), "equipped": null},
-	{"name": "ESFERA BETA", "type": "Defensa", "color": Color.AQUA, "equipped": null},
-	{"name": "ESFERA GAMMA", "type": "Curación", "color": Color.GREEN, "equipped": null}
+	{"name": "Slot 1", "type": "any", "color": Color.WHITE, "equipped": null},
+	{"name": "Slot 2", "type": "any", "color": Color.WHITE, "equipped": null},
+	{"name": "Slot 3", "type": "any", "color": Color.WHITE, "equipped": null},
+	{"name": "Slot 4", "type": "any", "color": Color.WHITE, "equipped": null}
 ]
+
 
 func _ready():
 	add_to_group("spheres_system")
 	player = get_parent()
 	_create_spheres()
-	# v206.20: Desactivado para evitar sobrescribir los datos del servidor al entrar
-	# _initialize_mock_skills()
-
-func _initialize_mock_skills():
-	# v201.0: Cargamos las clases externas de forma limpia y profesional
-	spheres_data[0]["equipped"] = Skill_TurboImpulse.new()
-	spheres_data[1]["equipped"] = Skill_ShieldCell.new()
-	spheres_data[2]["equipped"] = Skill_RepairKit.new()
-	
-	_update_visuals()
 
 func _create_spheres():
-	for i in range(3):
+	# Inicialización de nodos base para 4 esferas dinámicas
+	for i in range(4):
 		var s = Sprite2D.new()
+		s.visible = false
 		
-		var path = ""
-		if i == 0: path = "res://assets/Esferas/EsferaAmarilla.png"
-		elif i == 1: path = "res://assets/Esferas/EsferaAzul.png"
-		elif i == 2: path = "res://assets/Esferas/EsferaVerde.png"
-		
-		var tex = load(path) if ResourceLoader.exists(path) else load("res://icon.svg")
-		s.texture = tex
-		s.modulate = Color.WHITE
-		
-		# Contenedor para el icono de la habilidad
 		var icon_sprite = Sprite2D.new()
 		icon_sprite.name = "Icon"
 		icon_sprite.scale = Vector2(0.5, 0.5)
-		icon_sprite.modulate = Color(1, 1, 1, 0.8) # Un poco transparente
 		s.add_child(icon_sprite)
 		
 		add_child(s)
 		spheres.append(s)
 
+
 func _process(delta):
 	if not player: return
 	angle += rotation_speed * delta
-	for i in range(3):
-		# v214.180: Solo mostrar si hay algo equipado
-		var is_equipped = spheres_data[i]["equipped"] != null
-		spheres[i].visible = is_equipped
+	
+	var is_3d_mode = player.world_root_3d != null
+	
+	for i in range(spheres.size()):
+		if i >= spheres_data.size(): break
 		
+		var is_equipped = spheres_data[i]["equipped"] != null
+		var sphere_angle = angle + (i * TAU / float(spheres.size()))
+		
+		# Sincronización 2D (Sólo se ve si no hay 3D)
+		spheres[i].visible = is_equipped and not is_3d_mode
 		if is_equipped:
-			var sphere_angle = angle + (i * TAU / 3.0)
-			var target_pos = Vector2(cos(sphere_angle), sin(sphere_angle)) * radius
-			spheres[i].position = target_pos
-			var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.005 + i) * 0.1
-			var tex = spheres[i].texture
-			if tex:
-				var target_size = 42.0 # Escala ideal
-				var scale_factor = target_size / max(tex.get_width(), tex.get_height())
-				spheres[i].scale = Vector2(scale_factor, scale_factor) * pulse
+			spheres[i].position = Vector2(cos(sphere_angle), sin(sphere_angle)) * radius
 
 func use_skill(id: int):
 	if id < 0 or id >= spheres_data.size(): return
@@ -83,44 +65,73 @@ func use_skill(id: int):
 	return false
 
 func _update_visuals():
+	var is_3d_mode = player.get("world_root_3d") != null
 	for i in range(spheres.size()):
 		var skill = spheres_data[i]["equipped"]
-		var icon_node = spheres[i].get_node("Icon")
+		var sprite = spheres[i]
+		var icon_node = sprite.get_node("Icon")
 		
-		# v214.181: Soporte para datos crudos del servidor
 		if skill:
-			if skill is Resource and skill.icon:
+			# v235.40: Mapeo dinámico de textura según el tipo de habilidad
+			var s_path = "res://assets/Esferas/EsferaAmarilla.png"
+			var s_type = str(skill.type).to_lower()
+			
+			if s_type == "ataque": s_path = "res://assets/Esferas/EsferaRoja1.png"
+			elif s_type == "defensa": s_path = "res://assets/Esferas/EsferaAzul1.png"
+			elif s_type == "curación" or s_type == "curacion": s_path = "res://assets/Esferas/EsferaVerde.png"
+			
+			if ResourceLoader.exists(s_path):
+				sprite.texture = load(s_path)
+			
+			if skill is Resource and skill.get("icon"):
 				icon_node.texture = skill.icon
-				icon_node.visible = true
+				icon_node.visible = not is_3d_mode
 			else:
-				# Si hay skill pero no tenemos el recurso formal (ej: aliado), poner un efecto visual base
 				icon_node.visible = false
-				spheres[i].modulate = spheres_data[i]["color"]
+			
+			sprite.visible = not is_3d_mode
 		else:
 			icon_node.visible = false
-			spheres[i].visible = false
+			sprite.visible = false
+
 
 func equip_item(sphere_id, item_data):
-	if sphere_id >= 0 and sphere_id < 3:
+	if sphere_id >= 0 and sphere_id < 4:
 		# Extraer 'equipped' si viene toda la estructura de la esfera por red
 		var real_equipped = item_data
 		if typeof(item_data) == TYPE_DICTIONARY and item_data.has("equipped"):
 			real_equipped = item_data.get("equipped")
 
+		# v235.60: Saneamiento de Sincronía (Evitar recarga si es lo mismo)
+		var current = spheres_data[sphere_id]["equipped"]
+		var needs_update = false
+		
 		# Si viene null del servidor o diccionario vacío, desequipar visualmente
 		if real_equipped == null or (typeof(real_equipped) == TYPE_DICTIONARY and real_equipped.is_empty()):
-			spheres_data[sphere_id]["equipped"] = null
+			if current != null:
+				spheres_data[sphere_id]["equipped"] = null
+				needs_update = true
 		else:
-			# Convertir dict a Resource si es necesario
-			if typeof(real_equipped) == TYPE_DICTIONARY:
-				var res = SphereSkill.new()
-				res.skill_name = real_equipped.get("name", "Skill")
-				res.type = spheres_data[sphere_id]["type"]
-				spheres_data[sphere_id]["equipped"] = res
-			else:
-				spheres_data[sphere_id]["equipped"] = real_equipped
-		
-		_update_visuals()
-		if player and player.has_method("_recalculate_stats"):
-			player._recalculate_stats()
-		spheres_updated.emit()
+			# Comparación profunda simple para evitar spam
+			var is_matching = false
+			if typeof(real_equipped) == TYPE_DICTIONARY and current != null:
+				if real_equipped.get("skill_name") == current.get("skill_name"):
+					is_matching = true
+			
+			if not is_matching:
+
+				if typeof(real_equipped) == TYPE_DICTIONARY:
+					var res = SphereSkill.new()
+					res.skill_name = real_equipped.get("skill_name", "Skill")
+					res.power_value = real_equipped.get("power_value", 0)
+					res.type = real_equipped.get("type", "Ataque")
+					spheres_data[sphere_id]["equipped"] = res
+				else:
+					spheres_data[sphere_id]["equipped"] = real_equipped
+				needs_update = true
+
+		if needs_update:
+			_update_visuals()
+			if player and player.has_method("_recalculate_stats"):
+				player._recalculate_stats()
+			spheres_updated.emit()

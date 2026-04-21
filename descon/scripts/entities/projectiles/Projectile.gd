@@ -10,15 +10,17 @@ class_name Projectile
 @export var type: String = "laser" # laser, missile, mine
 
 var owner_type: String = "player"
+var enemy_type: int = 1 # v226.40: Atributo crítico para sincronía de daño
 var velocity: Vector2 = Vector2.ZERO
 var sprite: Sprite2D = null
+var _has_hit: bool = false # v222.60: Evitar procesos duplicados
 
 func _ready():
 	add_to_group("projectiles")
 	
 	var shape = CollisionShape2D.new()
 	var circle = CircleShape2D.new()
-	circle.radius = 5.0
+	circle.radius = 20.0 # v235.16: Radio aumentado masivamente para facilidad de impacto
 	shape.shape = circle
 	add_child(shape)
 	
@@ -30,8 +32,9 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	global_position = p_pos
 	rotation = p_angle
 	type = p_data.get("type", "laser")
-	owner_id = str(p_data.get("id", p_data.get("senderId", p_data.get("entityId", ""))))
+	owner_id = str(p_data.get("enemyId", p_data.get("id", p_data.get("senderId", p_data.get("entityId", "")))))
 	owner_type = p_data.get("owner_type", "player")
+	enemy_type = int(p_data.get("enemyType", 1))
 	
 	speed = p_data.get("speed", 1500.0)
 	if type == "missile":
@@ -44,9 +47,10 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	
 	collision_layer = 0
 	if owner_type == "player" or owner_type == "remote":
-		collision_mask = 2 # Impactar NPCs
+		# v220.82: Ahora los jugadores pueden impactar NPCs (2) y otros Players (1) para PvP
+		collision_mask = 1 | 2 
 	else:
-		collision_mask = 1 # Impactar Jugadores
+		collision_mask = 1 # Los enemigos solo pegan a Players
 	
 	_setup_visual_sprite()
 	queue_redraw()
@@ -100,23 +104,57 @@ func _physics_process(delta):
 		queue_free()
 
 func _on_body_entered(body):
+	if _has_hit: return
+	
 	if body.has_method("take_damage"):
 		var body_eid = ""
 		if "entity_id" in body: body_eid = str(body.entity_id)
-		if body_eid != owner_id:
-			# Aplicar daño local para feedback inmediato
-			body.take_damage(damage)
-			
-			# v167.80: NOTIFICAR AL SERVIDOR (Crucial para detener Regen)
-			if NetworkManager:
-				if owner_type == "player" and body.is_in_group("enemies"):
-					# Yo le pego a un enemigo
-					NetworkManager.send_event("enemyHit", {"enemyId": body.entity_id, "damage": damage})
-				elif (owner_type == "enemy" or owner_type == "remote") and body.is_in_group("player"):
-					# Un enemigo o bala remota me pega a MI
-					NetworkManager.send_event("playerHitByEnemy", {"damage": damage, "attackerType": owner_type})
-			
-			_explode()
+		
+		# No pegarse a sí mismo
+		if body_eid == owner_id: return
+		
+		# v221.45: Determinar si es combate PvP y si ambos consienten
+		var is_pvp_target = body.is_in_group("remote_players") or body.is_in_group("player")
+		
+		if is_pvp_target:
+			# v221.80: SÓLO chequear consentimiento si el atacante es OTRO JUGADOR (player o remote)
+			if owner_type == "player" or owner_type == "remote":
+				var attacker_has_pvp = false
+				var target_has_pvp = false
+				
+				if "pvp_status" in body: target_has_pvp = body.pvp_status
+				
+				# Buscar al dueño de la bala para verificar SU pvp_status actualizado
+				for entity in get_tree().get_nodes_in_group("entities"):
+					if str(entity.entity_id) == owner_id:
+						if "pvp_status" in entity: attacker_has_pvp = entity.pvp_status
+						break
+				
+				if not (attacker_has_pvp and target_has_pvp):
+					# v222.20: EFECTO FANTASMA - Si no hay mutuo acuerdo, solo atravesamos
+					return
+		
+		# SI LLEGAMOS AQUÍ: El impacto es válido (es NPC o es PvP legal)
+		_has_hit = true
+		if body.is_in_group("player"):
+			print("[PROJ-DEBUG] Impactando player con daño: ", damage, " de ", owner_id)
+		body.take_damage(damage, global_position, owner_id)
+
+		
+		# Notificar al servidor
+		if NetworkManager:
+			if (owner_type == "player" or owner_type == "remote") and body.is_in_group("enemies"):
+				NetworkManager.send_event("enemyHit", {"enemyId": body.entity_id, "damage": damage})
+			elif (owner_type == "player" or owner_type == "remote") and is_pvp_target:
+				NetworkManager.send_event("playerHitByPlayer", {"victimId": body.entity_id, "damage": damage})
+			elif owner_type == "enemy" and body.is_in_group("player"):
+				NetworkManager.send_event("playerHitByEnemy", {
+					"damage": damage, 
+					"attackerType": owner_type,
+					"enemyType": enemy_type # v226.41: Informar qué bicho pegó para validar daño
+				})
+		
+		_explode()
 	elif body.is_in_group("obstacles"):
 		_explode()
 

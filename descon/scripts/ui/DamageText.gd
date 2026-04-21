@@ -4,17 +4,22 @@ extends Marker2D
 # Muestra números de daño o burbujas de texto flotantes.
 
 @onready var label = Label.new()
-var velocity = Vector2(0, -60)
-var duration = 1.0
+var velocity = Vector2(0, -350) # Salto rápido v1.10
+var duration = 1.6 # Un poco más de tiempo de vida
 
 func _ready():
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 12)
-	label.add_theme_constant_override("outline_size", 3)
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_constant_override("outline_size", 6)
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
 	add_child(label)
 	
-	create_tween().tween_property(self, "modulate:a", 0.0, duration).set_delay(duration * 0.5)
+	# v1.11: Pop-out effect + Fade
+	scale = Vector2(0.5, 0.5)
+	var tw = create_tween().set_parallel(true)
+	tw.tween_property(self, "scale", Vector2(1.2, 1.2), 0.15).set_trans(Tween.TRANS_BACK)
+	tw.tween_property(self, "modulate:a", 0.0, 0.6).set_delay(duration - 0.6)
+	
 	create_tween().tween_callback(queue_free).set_delay(duration)
 
 func setup(p_text: String, p_color: Color = Color.WHITE):
@@ -23,4 +28,4 @@ func setup(p_text: String, p_color: Color = Color.WHITE):
 
 func _process(p_delta):
 	position += velocity * p_delta
-	velocity.y *= 0.95 # Frenado vertical suave
+	velocity.y *= 0.92 # Frenado más pronunciado para efecto flotante

@@ -9,7 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://d3m4r7v1y3m5" path="res://scenes/ui/AdminPanel.tscn" id="10_admin"]
 [ext_resource type="PackedScene" uid="uid://e4r7v2y3m5l6" path="res://scenes/ui/ChatUI.tscn" id="11_chat"]
 [ext_resource type="Script" uid="uid://c81cexbe61c8n" path="res://scripts/systems/CombatSystem.gd" id="12_combat"]
-[ext_resource type="Script" path="res://scripts/systems/TalentSystem.gd" id="13_talents"]
+[ext_resource type="Script" uid="uid://b1r2co7tcgg1y" path="res://scripts/systems/TalentSystem.gd" id="13_talents"]
 
 [node name="MainGame" type="Node2D" unique_id=1027512409]
 script = ExtResource("1_world")
@@ -25,10 +25,13 @@ script = ExtResource("12_combat")
 [node name="TalentSystem" type="Node" parent="." unique_id=741330575]
 script = ExtResource("13_talents")
 
-[node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=1731233602]
-layer = -1
+[node name="MapParallax" type="ParallaxBackground" parent="." unique_id=1731233602]
+layer = -10
 
-[node name="SpaceBG" type="ColorRect" parent="BackgroundLayer" unique_id=936323649]
+[node name="StaticLayer" type="CanvasLayer" parent="MapParallax" unique_id=1259085770]
+layer = -20
+
+[node name="SpaceBG" type="ColorRect" parent="MapParallax/StaticLayer" unique_id=936323649]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -37,17 +40,32 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.0156863, 0.0156863, 0.0156863, 1)
 
-[node name="StarsLayer1" type="GPUParticles2D" parent="BackgroundLayer" unique_id=371806232]
+[node name="MapWorldLayer" type="ParallaxLayer" parent="MapParallax" unique_id=107031726]
+
+[node name="MapBackground" type="TextureRect" parent="MapParallax/MapWorldLayer" unique_id=20883441]
+offset_left = -1000.0
+offset_top = -1000.0
+offset_right = 5000.0
+offset_bottom = 5000.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="ParticlesLayer" type="ParallaxLayer" parent="MapParallax" unique_id=1079258156]
+motion_scale = Vector2(0.4, 0.4)
+motion_mirroring = Vector2(1280, 800)
+
+[node name="StarsLayer1" type="GPUParticles2D" parent="MapParallax/ParticlesLayer" unique_id=371806232]
 position = Vector2(576, 324)
 amount = 400
 lifetime = 10.0
 
-[node name="StarsLayer2" type="GPUParticles2D" parent="BackgroundLayer" unique_id=1691375798]
+[node name="StarsLayer2" type="GPUParticles2D" parent="MapParallax/ParticlesLayer" unique_id=1691375798]
 position = Vector2(576, 324)
 amount = 100
 lifetime = 5.0
 
-[node name="StarsLayer3" type="GPUParticles2D" parent="BackgroundLayer" unique_id=75311898]
+[node name="StarsLayer3" type="GPUParticles2D" parent="MapParallax/ParticlesLayer" unique_id=75311898]
 position = Vector2(576, 324)
 amount = 50
 lifetime = 2.0

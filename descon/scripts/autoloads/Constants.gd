@@ -23,7 +23,10 @@ var ENEMY_MODELS = {
 	"1": { "name": "Recon Drone", "hp": 500, "shield": 100, "bulletDamage": 40, "fireRate": 2000, "rewardHubs": 100, "rewardOhcu": 1, "rewardExp": 150 },
 	"2": { "name": "Interceptor", "hp": 1500, "shield": 800, "bulletDamage": 120, "fireRate": 1500, "rewardHubs": 500, "rewardOhcu": 5, "rewardExp": 400 },
 	"3": { "name": "Destroyer", "hp": 5000, "shield": 3000, "bulletDamage": 350, "fireRate": 1200, "rewardHubs": 2500, "rewardOhcu": 25, "rewardExp": 1200 },
-	"boss_1": { "name": "Sentinel Prime", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000 }
+	"4": { "name": "Lord Titán", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000, "rageTimer": 20 },
+	"5": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20 },
+	"6": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20 }
+
 }
 
 var AMMO_MULTIPLIERS = {

@@ -3,15 +3,6 @@
 **/npm-debug.log*
 **/.env
 
-# Cloud Provider Keys
-OracleCloud/
-
-# Large binaries
-Ejecutable/
-Descon (Viejo)/
-*.pck
-*.exe
-
 # Godot
 **/export/
 **/.godot/
@@ -23,3 +14,6 @@ Descon (Viejo)/
 # System
 .DS_Store
 Thumbs.db
+
+# Cloud Provider Keys
+OracleCloud/

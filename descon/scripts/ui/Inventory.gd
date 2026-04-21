@@ -18,6 +18,11 @@ var shop_tab = "ships"
 var ammo_sub_tab = "laser"
 var modal_active = false
 var equipped_by_ship = {} # v210.95: Cache local de equipos de toda la flota
+var selected_sphere_slot = -1 # Slot siendo reconfigurado
+var selected_sphere_type_filter = "ANY" # Filtro de color para la biblioteca
+var spheres_manager = null # Referencia al gestor de esferas del jugador
+
+
 
 var SKILL_DATA = [
 	{ "id": "eng_1", "cat": "engineering", "name": "REFUERZO DE CASCO", "desc": "+2% HP por nivel", "max": 5 },
@@ -47,7 +52,7 @@ var SKILL_DATA = [
 ]
 
 func _ready():
-	visible = false
+	# visible = false # Removido para que el inventario lo controle
 	mouse_filter = Control.MOUSE_FILTER_PASS
 	
 	# PROTOCOLO EXORCISMO (v164.1: Ocultar todo nodo Label externo que diga LOGISTICA o similar)
@@ -72,6 +77,9 @@ func _ready():
 	if tabs:
 		tabs.offset_top = 40; tabs.offset_left = 15
 		tabs.offset_right = -15; tabs.offset_bottom = -15
+		# v219.61: Refresco selectivo al cambiar de pestaña
+		if not tabs.tab_changed.is_connected(_update_active_tab_ui):
+			tabs.tab_changed.connect(func(_idx): _update_active_tab_ui())
 	
 	# v164.2: Sincronía Táctica de Moneda (F2 -> F1 Sync)
 	_connect_to_player_stats()
@@ -161,8 +169,34 @@ func _format_val(v):
 	return r
 
 func _input(event):
+	# v222.98: No procesar shortcuts si el usuario está escribiendo (Chat, etc)
+	var focusNode = get_viewport().gui_get_focus_owner()
+	if focusNode is LineEdit or focusNode is TextEdit: return
+
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
 		toggle(); get_viewport().set_input_as_handled()
+	
+	if event is InputEventKey and event.pressed and event.keycode == KEY_M:
+		var tabs = get_node_or_null("Window/TabContainer")
+		var is_on_map = false
+		if tabs and is_open:
+			is_on_map = (tabs.get_child(tabs.current_tab).name == "Mapa")
+		
+		if is_open and is_on_map:
+			toggle()
+		else:
+			if not is_open: toggle()
+			if tabs:
+				for i in range(tabs.get_child_count()):
+					if tabs.get_child(i).name == "Mapa":
+						tabs.current_tab = i
+						break
+		get_viewport().set_input_as_handled()
+		
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if is_open:
+			toggle()
+			get_viewport().set_input_as_handled()
 	if event is InputEventMouseButton and event.pressed and visible:
 		var screen_size = get_viewport_rect().size
 		var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
@@ -206,99 +240,106 @@ func _on_inventory_received(data: Dictionary):
 	if data.has("equippedByShip"):
 		equipped_by_ship = data.equippedByShip
 	
-	# v164.11: Sincronizar con el Player y actualizar visual de nave instantáneamente!
+	# v164.11: Sincronizar con el Player (CRÍTICO PARA MMO SYNC)
+	# Siempre actualizamos los datos internos aunque la UI esté cerrada
 	var p = get_tree().get_first_node_in_group("player")
 	if p:
 		p.hubs = hubs
 		p.ohculianos = ohcu
 		if data.has("inventory") or data.has("items"): p.inventory = inventory_items
 		if data.has("equipped"): p.equipped = equipped_data
-		
-		# v210.51: CAMBIO DE NAVE EN VIVO (Sin relogueo)
 		if data.has("currentShipId"):
 			p.current_ship_id = current_ship_id
 			if p.has_method("_setup_ship_visuals"): p._setup_ship_visuals()
-			
 		if p.has_method("_recalculate_stats"): p._recalculate_stats()
 		elif p.has_method("_emit_stats"): p._emit_stats()
-		
-		# v210.132: Forzar actualización visual inmediata de la Entidad (Sprite/HUD)
 		if p.has_method("update_stats"): 
 			p.update_stats({"currentShipId": current_ship_id, "equipped": equipped_data})
 
-	_update_hangar_ui()
-	_update_spheres_ui()
-	_update_talent_tree()
-	_update_shop_ui()
-	_update_party_ui()
+	# v219.67: Asegurar creación de pestañas dinámicas (Fix desaparición Mapa)
+	if is_open:
+		_update_active_tab_ui()
+	elif not get_node_or_null("Window/TabContainer/Mapa"):
+		_update_map_ui() # Solo se llama una vez para crear la pestaña
 	
-	# v210.16: Si no hay nave seleccionada en visor, poner la actual
+	# v210.16: Conservar selección si es válida
 	if selected_hangar_ship_id == -1: selected_hangar_ship_id = current_ship_id
+
+func _update_active_tab_ui():
+	var tab_container = get_node_or_null("Window/TabContainer")
+	if not tab_container: return
+	
+	var active_tab_name = tab_container.get_child(tab_container.current_tab).name
+	match active_tab_name:
+		"Hangar": _update_hangar_ui()
+		"Esferas": _update_spheres_ui()
+		"Talentos": _update_talent_tree()
+		"Tienda": _update_shop_ui()
+		"Equipo": _update_party_ui()
+		"Mapa": _update_map_ui()
+	
+	queue_redraw()
 
 # --- HANGAR ---
 func _update_hangar_ui():
 	var h = get_node_or_null("Window/TabContainer/Hangar")
 	if not h: return
 	for n in h.get_children(): n.queue_free()
+
+	# v233.05: NUEVO LAYOUT HANGAR (FLOTA ARRIBA / INVENTARIO A LA DERECHA)
+	var main_v = VBoxContainer.new()
+	main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_v.add_theme_constant_override("separation", 20)
+	h.add_child(main_v)
 	
-	var m = HBoxContainer.new(); m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); m.add_theme_constant_override("separation", 25); h.add_child(m)
-	var l_col = VBoxContainer.new(); l_col.size_flags_horizontal = 3; l_col.size_flags_stretch_ratio = 2.4; m.add_child(l_col)
+	# --- SECCIÓN 1: FLOTA (ARRIBA INTERIOR) ---
+	var fleet_v = VBoxContainer.new()
+	main_v.add_child(fleet_v)
+	var f_lbl = Label.new(); f_lbl.text = "FLOTA DE COMBATE Y MODELOS ACTIVOS"; f_lbl.modulate = Color.CYAN; f_lbl.add_theme_font_size_override("font_size", 10); f_lbl.modulate.a = 0.6; fleet_v.add_child(f_lbl)
 	
-	var f_lbl = Label.new(); f_lbl.text = "FLOTA DE COMBATE"; f_lbl.modulate = Color.CYAN; f_lbl.add_theme_font_size_override("font_size", 11); l_col.add_child(f_lbl)
-	var f_grid = HBoxContainer.new(); f_grid.add_theme_constant_override("separation", 10); l_col.add_child(f_grid)
+	var f_scroll = ScrollContainer.new(); f_scroll.custom_minimum_size = Vector2(0, 75); f_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; fleet_v.add_child(f_scroll)
+	var f_grid = HBoxContainer.new(); f_grid.add_theme_constant_override("separation", 12); f_scroll.add_child(f_grid)
 	for sid in owned_ships: _create_fleet_card(sid, f_grid)
-	for i in range(owned_ships.size(), 2): _create_empty_fleet_card(f_grid)
+	
+	# --- SECCIÓN 2: CUERPO (EQUIPO IZQ / INVENTARIO DER) ---
+	var body_h = HBoxContainer.new(); body_h.size_flags_vertical = 3; body_h.add_theme_constant_override("separation", 30); main_v.add_child(body_h)
+	
+	# COLUMNA IZQUIERDA: GESTIÓN DE LA NAVE
+	var left_v = VBoxContainer.new(); left_v.size_flags_horizontal = 3; left_v.size_flags_stretch_ratio = 1.3; body_h.add_child(left_v)
 	
 	var model = {}
 	var viewing_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
-	
 	for ship in GameConstants.SHIP_MODELS: 
-		if ship["id"] == viewing_id: 
-			model = ship
-			break
-	
+		if ship["id"] == viewing_id: model = ship; break
 	if model.is_empty(): model = GameConstants.SHIP_MODELS[0]
 	
-	var h_box = HBoxContainer.new(); l_col.add_child(h_box)
-	var name_txt = model.get("name", "Nave Desconocida").to_upper()
-	var s_title = Label.new(); s_title.text = "\n" + name_txt; s_title.add_theme_font_size_override("font_size", 28); h_box.add_child(s_title)
+	var name_h = HBoxContainer.new(); left_v.add_child(name_h)
+	var s_title = Label.new(); s_title.text = model.get("name", "Nave").to_upper(); s_title.add_theme_font_size_override("font_size", 24); name_h.add_child(s_title)
 	
-	# v210.18: BOTÓN DE ACTIVACIÓN (Sólo si no es la activa)
 	if viewing_id != current_ship_id:
-		var btn_act = Button.new()
-		btn_act.text = "ACTIVAR MODELO"
-		btn_act.custom_minimum_size = Vector2(150, 40)
-		btn_act.modulate = Color.GREEN
-		btn_act.pressed.connect(func(): 
+		var btn_act = Button.new(); btn_act.text = " ACTIVAR MODELO "; btn_act.custom_minimum_size = Vector2(140, 35); btn_act.modulate = Color.GREEN; btn_act.pressed.connect(func(): 
 			NetworkManager.send_event("switchShip", {"shipId": viewing_id})
-			# v210.170: Feedback visual instantáneo para evitar confusión
-			current_ship_id = viewing_id
-			selected_hangar_ship_id = viewing_id
-			_update_hangar_ui()
-		)
-		h_box.add_child(btn_act)
+			current_ship_id = viewing_id; selected_hangar_ship_id = viewing_id; _update_hangar_ui())
+		name_h.add_child(btn_act)
 
-	var slots = model.get("slots") if model.has("slots") else {"w":0, "s":0, "e":0, "x":0}
-	var s_mini = Label.new(); s_mini.text = "ESTADÍSTICAS DEL CHASIS"; s_mini.modulate.a = 0.3; s_mini.size_flags_horizontal = 3; s_mini.horizontal_alignment = 2; h_box.add_child(s_mini)
-	
-	var slots_v = VBoxContainer.new(); slots_v.add_theme_constant_override("separation", 12); l_col.add_child(slots_v)
-	_render_group(slots_v, "w", "BLOQUE DE ARMAMENTO", slots["w"])
-	_render_group(slots_v, "s", "GENERADORES DE ESCUDO", slots["s"])
-	_render_group(slots_v, "e", "SISTEMAS DE IMPULSIÓN", slots["e"])
-	_render_group(slots_v, "x", "MÓDULOS EXTRAS / CPU", slots.get("x", 1))
+	var slots_v = VBoxContainer.new(); slots_v.add_theme_constant_override("separation", 15); left_v.add_child(slots_v)
+	var slots = model.get("slots") if model.has("slots") else {"w":0, "s":0, "e":0, "x":1}
+	_render_group(slots_v, "w", "MODULOS DE ATAQUE (LASER/MISIL)", slots["w"])
+	_render_group(slots_v, "s", "DEFENSA Y ESCUDOS", slots["s"])
+	_render_group(slots_v, "e", "MOTORES Y PROPULSION", slots["e"])
+	_render_group(slots_v, "x", "EXTRAS Y CPU", slots.get("x", 1))
 
-	var r_col = VBoxContainer.new(); r_col.size_flags_horizontal = 3; r_col.size_flags_stretch_ratio = 1.0; m.add_child(r_col)
-	var b_lbl = Label.new(); b_lbl.text = "INVENTARIO"; b_lbl.modulate = Color.CYAN; b_lbl.add_theme_font_size_override("font_size", 11); r_col.add_child(b_lbl)
-	var b_vbox = VBoxContainer.new(); b_vbox.size_flags_horizontal = 3; r_col.add_child(b_vbox)
+	# COLUMNA DERECHA: BODEGA DE MATERIALES (TU MARCA AZUL)
+	var right_v = VBoxContainer.new(); right_v.size_flags_horizontal = 3; right_v.size_flags_stretch_ratio = 1.0; body_h.add_child(right_v)
+	var inv_lbl = Label.new(); inv_lbl.text = "BODEGA DE CARGA / INVENTARIO"; inv_lbl.modulate = Color.CYAN; inv_lbl.add_theme_font_size_override("font_size", 10); inv_lbl.modulate.a = 0.6; right_v.add_child(inv_lbl)
 	
-	# v164.10: Limpieza Absoluta del Contenedor antes de poblar
-	for n in b_vbox.get_children(): n.queue_free()
+	var inv_scroll = ScrollContainer.new(); inv_scroll.size_flags_vertical = 3; right_v.add_child(inv_scroll)
+	var inv_vbox = VBoxContainer.new(); inv_vbox.size_flags_horizontal = 3; inv_scroll.add_child(inv_vbox)
 	
 	if inventory_items.is_empty(): 
-		var no = Label.new(); no.text = "\nINVENTARIO VACÍO"; no.horizontal_alignment = 1; no.modulate.a = 0.2; b_vbox.add_child(no)
+		var no = Label.new(); no.text = "\nBODEGA VACÍA"; no.horizontal_alignment = 1; no.modulate.a = 0.2; inv_vbox.add_child(no)
 	else: 
-		# Pequeña pausa para asegurar que queue_free procesó los nodos anteriores
-		for item in inventory_items: _create_item_row(item, b_vbox)
+		for item in inventory_items: _create_item_row(item, inv_vbox)
 
 func _create_fleet_card(sid, parent):
 	var model = {}
@@ -426,7 +467,8 @@ func _render_spheres_equipment(tab, sub_tabs):
 	
 	var spheres_h = HBoxContainer.new(); spheres_h.alignment = BoxContainer.ALIGNMENT_CENTER; spheres_h.add_theme_constant_override("separation", 60); master_v.add_child(spheres_h)
 	
-	var spheres_manager = null
+	spheres_manager = null
+
 	var p = get_tree().get_first_node_in_group("player")
 	if is_instance_valid(p): spheres_manager = p.get_node_or_null("SpheresManager")
 	
@@ -434,7 +476,8 @@ func _render_spheres_equipment(tab, sub_tabs):
 		var err = Label.new(); err.text = "SISTEMA ORBITAL NO INICIALIZADO"; err.horizontal_alignment = 1; master_v.add_child(err)
 		return
 
-	for i in range(3):
+	for i in range(4):
+		if i >= spheres_manager.spheres_data.size(): break
 		var s_data = spheres_manager.spheres_data[i]
 		# v205.20: Saneamiento de Color HÍBRIDO (CSV + HEX)
 		var s_color = s_data["color"]
@@ -491,10 +534,44 @@ func _render_spheres_equipment(tab, sub_tabs):
 			elif "power_value" in equipped: p_val = equipped.power_value
 			var pwr = Label.new(); pwr.text = "POT: " + str(p_val); pwr.add_theme_font_size_override("font_size", 9); pwr.modulate = s_color; pwr.horizontal_alignment = 1; info_v.add_child(pwr)
 		
-		var type_label = Label.new(); type_label.text = s_data["type"]; type_label.modulate = s_color; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
+		var type_txt = s_data["type"]
+		var final_color = Color.SLATE_GRAY
+		if equipped:
+			final_color = s_color
+			var raw_type = "Ataque"
+			if typeof(equipped) == TYPE_DICTIONARY: raw_type = equipped.get("type", "Ataque")
+			else: raw_type = equipped.get("type") if equipped.get("type") else "Ataque"
+			type_txt = str(raw_type).to_upper()
+
+			# Mapeo visual de colores para los slots equipados
+			if type_txt == "ATAQUE": final_color = Color.RED
+			elif type_txt == "DEFENSA": final_color = Color.AQUA
+			elif type_txt == "CURACIÓN" or type_txt == "CURACION": final_color = Color.GREEN
+			elif type_txt == "MOVIMIENTO": final_color = Color.YELLOW
+		else:
+			type_txt = "NINGUNO"
+
 		
+		# Aplicar color al borde del slot
+		sb.border_color = final_color
+		if not equipped: sb.bg_color = Color.DIM_GRAY; sb.bg_color.a = 0.1
+
+		
+		var type_label = Label.new(); type_label.text = type_txt; type_label.modulate = final_color; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
 		var b = Button.new(); b.text = "RECONFIGURAR" if equipped else "EQUIPAR NÚCLEO"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
-		b.pressed.connect(func(): if is_instance_valid(sub_tabs): sub_tabs.current_tab = 1) # Ir a la biblioteca
+
+		var idx = i
+		b.pressed.connect(func(): 
+			selected_sphere_slot = idx
+			# Si está vacío, permitimos todos (ANY), si ya tiene tipo, filtramos por ese tipo
+			selected_sphere_type_filter = "ANY"
+			if equipped:
+				selected_sphere_type_filter = type_txt
+			
+			if is_instance_valid(sub_tabs): 
+				sub_tabs.current_tab = 1
+		)
+
 		
 		# v214.200: Botón explícito para DESEQUIPAR (v214.201 Feedback Fix)
 		if equipped:
@@ -516,20 +593,59 @@ func _render_spheres_equipment(tab, sub_tabs):
 func _render_spheres_library(tab):
 	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); main_v.offset_left = 20; main_v.offset_right = -20; main_v.offset_top = 20; tab.add_child(main_v)
 	
-	var grid = GridContainer.new(); grid.columns = 2; grid.size_flags_horizontal = 3; grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 20); main_v.add_child(grid)
+	# v235.65: Barra de Filtros de Color
+	var filter_h = HBoxContainer.new(); filter_h.alignment = BoxContainer.ALIGNMENT_CENTER; filter_h.add_theme_constant_override("separation", 15); main_v.add_child(filter_h)
+	var filters = ["ANY", "ATAQUE", "DEFENSA", "CURACIÓN", "MOVIMIENTO"]
+	for f in filters:
+		var fb = Button.new(); fb.text = " " + f + " "; fb.flat = (selected_sphere_type_filter != f)
+		fb.add_theme_font_size_override("font_size", 10)
+		if f == "ATAQUE": fb.modulate = Color.RED
+		elif f == "DEFENSA": fb.modulate = Color.AQUA
+		elif f == "CURACIÓN": fb.modulate = Color.GREEN
+		elif f == "MOVIMIENTO": fb.modulate = Color.YELLOW
+		fb.pressed.connect(func(): selected_sphere_type_filter = f; _update_spheres_ui())
+		filter_h.add_child(fb)
 	
-	# v201.6: Catálogo de Habilidades Disponibles
-	var skills = [
-		{"class": Skill_TurboImpulse, "color": Color(1, 0.8, 0), "icon": "⚡"},
-		{"class": Skill_ShieldCell, "color": Color.AQUA, "icon": "🛡️"},
-		{"class": Skill_RepairKit, "color": Color.GREEN, "icon": "🔧"}
+	main_v.add_child(HSeparator.new())
+	
+	var scroll = ScrollContainer.new(); scroll.size_flags_vertical = 3; main_v.add_child(scroll)
+	var grid = GridContainer.new(); grid.columns = 2; grid.size_flags_horizontal = 3; grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 20); scroll.add_child(grid)
+	
+	# v235.66: Catálogo de Habilidades Expandido (2 por color)
+	var all_skills = [
+		{"class": Skill_TurboImpulse, "color": Color.YELLOW, "icon": "⚡", "type": "MOVIMIENTO"},
+		{"class": Skill_HyperDash, "color": Color.YELLOW, "icon": "💨", "type": "MOVIMIENTO"},
+		
+		{"class": Skill_ShieldCell, "color": Color.AQUA, "icon": "🛡️", "type": "DEFENSA"},
+		{"class": Skill_Fortress, "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},
+		
+		{"class": Skill_RepairKit, "color": Color.GREEN, "icon": "🔧", "type": "CURACIÓN"},
+		{"class": Skill_RegenPath, "color": Color.GREEN, "icon": "🧪", "type": "CURACIÓN"},
+		
+		{"class": Skill_Reflect, "color": Color.RED, "icon": "🛡️", "type": "ATAQUE"},
+		{"class": Skill_PlasmaBlast, "color": Color.RED, "icon": "💥", "type": "ATAQUE"}
 	]
 	
-	for s_info in skills:
-		var s_inst = s_info["class"].new()
-		_create_skill_card(s_inst, s_info["color"], s_info["icon"], grid)
+	# v235.75: Recolectar lista de habilidades ya equipadas (Evitar duplicados)
+	var currently_equipped = []
+	if is_instance_valid(spheres_manager):
+		for s in spheres_manager.spheres_data:
+			var eq = s.get("equipped")
+			if eq:
+				var e_name = eq.get("skill_name", "") if typeof(eq) == TYPE_DICTIONARY else eq.get("skill_name")
+				currently_equipped.append(e_name)
 
-func _create_skill_card(skill: SphereSkill, color: Color, icon_text: String, parent: Control):
+	for s_info in all_skills:
+		# Aplicar filtro si no es ANY
+		if selected_sphere_type_filter != "ANY" and s_info["type"] != selected_sphere_type_filter:
+			continue
+			
+		var s_inst = s_info["class"].new()
+		var is_already_on = s_inst.skill_name in currently_equipped
+		_create_skill_card(s_inst, s_info["color"], s_info["icon"], grid, is_already_on)
+
+func _create_skill_card(skill: SphereSkill, color: Color, icon_text: String, parent: Control, is_equipped: bool = false):
+
 	var skill_card = PanelContainer.new()
 	skill_card.custom_minimum_size = Vector2(350, 120)
 	parent.add_child(skill_card)
@@ -591,24 +707,44 @@ func _create_skill_card(skill: SphereSkill, color: Color, icon_text: String, par
 	stats_h.add_child(stat_c)
 	
 	var b_equip = Button.new()
-	b_equip.text = "EQUIPAR"
+	b_equip.text = "YA EQUIPADA" if is_equipped else "EQUIPAR"
+	b_equip.disabled = is_equipped
 	b_equip.custom_minimum_size = Vector2(80, 0)
 	b_equip.size_flags_vertical = 4
 	hb.add_child(b_equip)
 	
+	if is_equipped:
+		skill_card.modulate.a = 0.5
+	
 	b_equip.pressed.connect(func():
+
 		var p_node = get_tree().get_first_node_in_group("player")
 		if p_node and p_node.has_node("SpheresManager"):
 			var sm = p_node.get_node("SpheresManager")
-			# Lógica v206.25: Usar la función oficial del manager para sincronía total
-			for i in range(3):
-				if sm.spheres_data[i]["type"] == skill.type:
-					sm.equip_item(i, skill) # Usar tu lógica oficial
-					_update_spheres_ui()
-					if p_node.has_method("save_progress"): p_node.save_progress()
-					print("[SPHERES] Equipado ", skill.skill_name, " en Esfera ", i)
-					break
+			
+			# v235.68: Usar el slot seleccionado o buscar el primero libre si es ANY
+			var target_idx = selected_sphere_slot
+			if target_idx == -1:
+				for i in range(4):
+					if sm.spheres_data[i]["equipped"] == null:
+						target_idx = i; break
+			
+			if target_idx != -1:
+				NetworkManager.send_event("equipSphere", {
+					"sphereId": target_idx,
+					"skill": {
+						"skill_name": skill.skill_name,
+						"power_value": skill.power_value,
+						"type": skill.type
+					}
+				})
+				
+				# Update local visual (feedback inmediato)
+				sm.equip_item(target_idx, skill)
+				_update_spheres_ui()
+				print("[SPHERES] Equipando en slot ", target_idx, ": ", skill.skill_name)
 	)
+
 
 # --- SHOP ---
 func _update_shop_ui():
@@ -703,27 +839,45 @@ func _show_ammo_modal(it, cur):
 
 func _show_modal(title, msg, on_confirm, custom_node = null):
 	modal_active = true
-	var overlay = ColorRect.new(); overlay.color = Color(0,0,0,0.7); overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(overlay)
-	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(400, 200); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
-	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0.01, 0.05, 0.1, 1); sb.border_width_top = 2; sb.border_color = Color.CYAN; p.add_theme_stylebox_override("panel", sb)
-	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 15); p.add_child(v)
+	# v227.60: CENTRADO MATEMÁTICO (Forzar tamaño al Viewport)
+	var overlay = ColorRect.new()
+	overlay.color = Color(0,0,0,0.85)
+	overlay.top_level = true
+	overlay.z_index = 1000
+	add_child(overlay)
 	
-	var tl = Label.new(); tl.text = title; tl.horizontal_alignment = 1; tl.modulate = Color.CYAN; v.add_child(tl)
+	# v227.61: Sincronizar tamaño con la pantalla real
+	overlay.size = get_viewport_rect().size
+	overlay.global_position = Vector2.ZERO
+	
+	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(420, 220); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
+	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0.01, 0.04, 0.08, 1); sb.border_width_top = 3; sb.border_color = Color.CYAN; p.add_theme_stylebox_override("panel", sb)
+	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 20); p.add_child(v)
+	
+	var tl = Label.new(); tl.text = title; tl.horizontal_alignment = 1; tl.modulate = Color.CYAN; tl.add_theme_font_size_override("font_size", 14); v.add_child(tl)
 	var rt = RichTextLabel.new(); rt.bbcode_enabled = true; rt.text = "[center]" + msg + "[/center]"; rt.fit_content = true; v.add_child(rt)
 	
 	if custom_node: v.add_child(custom_node)
 	
-	var hb = HBoxContainer.new(); hb.alignment = BoxContainer.ALIGNMENT_CENTER; v.add_child(hb)
-	var bc = Button.new(); bc.text = "CONFIRMAR"; bc.pressed.connect(func(): on_confirm.call(); overlay.queue_free(); modal_active = false); hb.add_child(bc)
-	var bx = Button.new(); bx.text = "CANCELAR"; bx.pressed.connect(func(): overlay.queue_free(); modal_active = false); hb.add_child(bx)
+	var hb = HBoxContainer.new(); hb.alignment = BoxContainer.ALIGNMENT_CENTER; hb.add_theme_constant_override("separation", 20); v.add_child(hb)
+	var bc = Button.new(); bc.text = "  CONFIRMAR  "; bc.custom_minimum_size = Vector2(120, 40); bc.pressed.connect(func(): on_confirm.call(); overlay.queue_free(); modal_active = false); hb.add_child(bc)
+	var bx = Button.new(); bx.text = "   CANCELAR   "; bx.custom_minimum_size = Vector2(120, 40); bx.pressed.connect(func(): overlay.queue_free(); modal_active = false); hb.add_child(bx)
 
 func _show_result_modal(title, msg):
-	var overlay = ColorRect.new(); overlay.color = Color(0,0,0,0.6); overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(overlay)
-	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(350, 150); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
-	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0.1,0.05, 1); sb.border_width_top = 1; sb.border_color = Color.GREEN; p.add_theme_stylebox_override("panel", sb)
-	var v = VBoxContainer.new(); p.add_child(v); var tl = Label.new(); tl.text = title; tl.modulate = Color.GREEN; tl.horizontal_alignment = 1; v.add_child(tl)
+	var overlay = ColorRect.new()
+	overlay.color = Color(0,0,0,0.85)
+	overlay.top_level = true
+	overlay.z_index = 1001
+	add_child(overlay)
+	
+	overlay.size = get_viewport_rect().size
+	overlay.global_position = Vector2.ZERO
+	
+	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(380, 160); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
+	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0.08,0.04, 1); sb.border_width_top = 2; sb.border_color = Color.GREEN; p.add_theme_stylebox_override("panel", sb)
+	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 15); p.add_child(v); var tl = Label.new(); tl.text = title; tl.modulate = Color.GREEN; tl.horizontal_alignment = 1; v.add_child(tl)
 	var m = Label.new(); m.text = msg; m.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; m.horizontal_alignment = 1; v.add_child(m)
-	var b = Button.new(); b.text = "ENTENDIDO"; b.pressed.connect(func(): overlay.queue_free()); v.add_child(b)
+	var b = Button.new(); b.text = "ENTENDIDO"; b.custom_minimum_size = Vector2(100, 35); b.pressed.connect(func(): overlay.queue_free()); v.add_child(b)
 
 # --- TALENTS ---
 func _update_talent_tree():
@@ -739,7 +893,16 @@ func _update_talent_tree():
 	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); tab.add_child(master_v)
 	var hb = HBoxContainer.new(); master_v.add_child(hb)
 	var pts = Label.new(); pts.text = "PUNTOS DISPONIBLES: " + str(int(talent_system.skill_points)); pts.modulate = Color.GREEN; hb.add_child(pts)
-	var rb = Button.new(); rb.text = "RESETEAR ARBOL (5.000 OHCU)"; rb.size_flags_horizontal = 3; rb.alignment = HORIZONTAL_ALIGNMENT_RIGHT; rb.pressed.connect(func(): talent_system.reset_talents()); hb.add_child(rb)
+	var rb = Button.new()
+	rb.text = "RESETEAR ARBOL (5.000 OHCU)"
+	rb.size_flags_horizontal = 3
+	rb.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rb.pressed.connect(func(): 
+		var m = "¿Confirmas el reseteo total de habilidades?\nCosto: [color=yellow]5.000 OHCU[/color]"
+		_show_modal("CONFIRMAR RESET", m, func(): talent_system.reset_talents())
+	)
+	hb.add_child(rb)
+
 	
 	var main_scroll = ScrollContainer.new(); main_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL; master_v.add_child(main_scroll)
 	var grid = HBoxContainer.new(); grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL; grid.size_flags_vertical = Control.SIZE_EXPAND_FILL; main_scroll.add_child(grid)
@@ -871,3 +1034,134 @@ func _update_party_ui():
 			PartyManager.invite_player(inp.text)
 			inp.text = ""
 	)
+
+# --- MAPA GALÁCTICO ---
+func _update_map_ui():
+	var tabs = get_node_or_null("Window/TabContainer")
+	if not tabs: return
+	
+	var tab = tabs.get_node_or_null("Mapa")
+	if not tab:
+		tab = Control.new()
+		tab.name = "Mapa"
+		tabs.add_child(tab)
+	
+	for n in tab.get_children(): n.queue_free()
+	
+	var master_h = HBoxContainer.new(); master_h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); master_h.add_theme_constant_override("separation", 20); tab.add_child(master_h)
+	
+	# Columna Izquierda: Lista de Sectores
+	var l_col = VBoxContainer.new(); l_col.custom_minimum_size.x = 220; master_h.add_child(l_col)
+	var l_title = Label.new(); l_title.text = "SECTORES CONOCIDOS"; l_title.modulate = Color.CYAN; l_title.add_theme_font_size_override("font_size", 11); l_col.add_child(l_title)
+	
+	var s_scroll = ScrollContainer.new(); s_scroll.size_flags_vertical = 3; l_col.add_child(s_scroll)
+	var s_list = VBoxContainer.new(); s_list.size_flags_horizontal = 3; s_scroll.add_child(s_list)
+	
+	var sectors = [
+		{"id": 1, "name": "MAPA 1", "desc": "Sector de inicio y entrenamiento.", "status": "SEGURO", "color": Color.CYAN},
+		{"id": 2, "name": "MAPA 2", "desc": "Zona de exploración profunda.", "status": "EXPLORACIÓN", "color": Color.GOLD},
+		{"id": 3, "name": "MAPA 3", "desc": "Sector de anomalías espaciales.", "status": "PELIGRO", "color": Color.ORANGE},
+		{"id": 4, "name": "MAPA 4", "desc": "Antigua base de suministros.", "status": "SEGURO", "color": Color.CYAN},
+		{"id": 5, "name": "MAPA 5", "desc": "Cinturón de radiación estelar.", "status": "PELIGRO", "color": Color.RED},
+		{"id": 6, "name": "MAPA 6", "desc": "Sistemas de defensa remotos.", "status": "EXPLORACIÓN", "color": Color.SKY_BLUE},
+		{"id": 7, "name": "MAPA 7", "desc": "Vacío intergaláctico.", "status": "DESCONOCIDO", "color": Color.MAGENTA},
+		{"id": 8, "name": "MAPA 8", "desc": "Confines del universo conocido.", "status": "LEY SIN LEY", "color": Color.SILVER}
+	]
+	
+	# Detectar zona actual del jugador
+	var current_zone_id = 1
+	var p_node = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(p_node) and "current_zone" in p_node:
+		current_zone_id = p_node.current_zone
+	
+	var current_zone_name = "MAPA 1"
+
+	for s in sectors:
+		var is_current = (s.id == current_zone_id)
+		if is_current: current_zone_name = s.name
+
+		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(0, 65); s_list.add_child(p)
+		
+		# v216.10: Estilo dinámico para resaltar sector actual
+		var sb = StyleBoxFlat.new()
+		if is_current:
+			sb.bg_color = Color(1, 0.8, 0, 0.15) # Fondo dorado suave
+			sb.border_width_left = 5
+			sb.border_color = Color.GOLD
+			sb.shadow_color = Color(1, 0.8, 0, 0.2)
+			sb.shadow_size = 4
+		else:
+			sb.bg_color = Color(0,1,1,0.05)
+			sb.border_width_left = 3
+			sb.border_color = s.color
+			
+		p.add_theme_stylebox_override("panel", sb)
+		var hb = HBoxContainer.new(); p.add_child(hb)
+		
+		var v = VBoxContainer.new(); v.size_flags_horizontal = 3; hb.add_child(v); v.offset_left = 10; v.alignment = BoxContainer.ALIGNMENT_CENTER
+		var n = Label.new(); n.text = s.name; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
+		if is_current: n.modulate = Color.GOLD # Resaltar texto también
+		
+		var st = Label.new(); st.text = "ESTÁS AQUÍ" if is_current else s.status
+		st.modulate = Color.GOLD if is_current else s.color
+		st.add_theme_font_size_override("font_size", 8); v.add_child(st)
+		
+		var btn_travel = Button.new()
+		btn_travel.text = "VIAJAR\n(10 OHCU)"
+		btn_travel.add_theme_font_size_override("font_size", 9)
+		btn_travel.custom_minimum_size = Vector2(80, 0)
+		btn_travel.disabled = is_current # No puedes viajar a donde ya estás
+		hb.add_child(btn_travel)
+		
+		if not is_current:
+			btn_travel.pressed.connect(func():
+				if ohcu < 10:
+					_show_result_modal("FONDOS INSUFICIENTES", "Necesitas 10 OHCU para saltar a este sector.")
+					return
+				
+				var msg = "¿Confirmas salto hiperespacial a [color=cyan]" + s.name + "[/color]?\nCosto: [color=yellow]10 OHCU[/color]"
+				_show_modal("CONFIRMAR SALTO", msg, func():
+					NetworkManager.send_event("changeZone", s.id)
+					# v227.20: Removido modal de éxito innecesario por petición de UX
+					toggle()
+				)
+			)
+	
+	# Columna Derecha: El Mapa Interactivo
+	var r_col = VBoxContainer.new(); r_col.size_flags_horizontal = 3; master_h.add_child(r_col)
+	
+	var map_container = PanelContainer.new(); map_container.size_flags_vertical = 3; r_col.add_child(map_container)
+	var msb = StyleBoxFlat.new(); msb.bg_color = Color(0,0,0,0.8); msb.set_border_width_all(1); msb.border_color = Color(0,1,1,0.2); map_container.add_theme_stylebox_override("panel", msb)
+	
+	# Inyectar el script del Mapa Táctico como un componente visual
+	var map_logic = Control.new()
+	map_logic.name = "MapLogic"
+	map_logic.size_flags_horizontal = 3
+	map_logic.size_flags_vertical = 3
+	
+	# Usamos una versión simplificada de AdminMap para los usuarios
+	map_logic.set_script(load("res://scripts/ui/AdminMap.gd"))
+	map_logic.is_embedded = true # v215.40: Evitar creación de Header
+	map_logic.r_pos = Vector2(0, 0)
+	map_logic.r_margin = Vector2(5, 5)
+	map_container.add_child(map_logic)
+	
+	# v215.12: Usar referencia directa para evitar errores de conversión de parámetros
+	call_deferred("_setup_map_logic", current_zone_name)
+
+func _setup_map_logic(zone_name = "MAPA 1"):
+	var tabs = get_node_or_null("Window/TabContainer")
+	if not tabs: return
+	var tab = tabs.get_node_or_null("Mapa")
+	if not tab: return
+	
+	# Búsqueda recursiva para encontrar el nodo entre los contenedores
+	var logic_node = tab.find_child("MapLogic", true, false)
+	
+	if is_instance_valid(logic_node):
+		logic_node.current_sector_name = zone_name # Actualizar nombre del sector
+		logic_node.visible = true
+		logic_node.custom_minimum_size = Vector2(400, 400)
+		logic_node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		logic_node.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		logic_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

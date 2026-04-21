@@ -71,3 +71,19 @@ func _on_local_player_hit(p, b):
 	var dmg = b.get("damage") if b.get("damage") else 100.0
 	p.take_damage(dmg)
 	if NetworkManager: NetworkManager.send_event("playerHitByEnemy", {"damage": dmg, "attackerType": b.get("owner_type")})
+
+func clear_boss_bullets(boss_id: String):
+	var bullets = get_tree().get_nodes_in_group("projectiles")
+	var count = 0
+	for b in bullets:
+		if is_instance_valid(b) and str(b.get("owner_id")) == boss_id:
+			b.queue_free()
+			count += 1
+	if count > 0:
+		print("[COMBAT] Limpieza selectiva: ", count, " proyectiles de ", boss_id, " eliminados.")
+
+func clear_all_bullets():
+	var bullets = get_tree().get_nodes_in_group("projectiles")
+	for b in bullets:
+		if is_instance_valid(b): b.queue_free()
+	print("[COMBAT] Limpieza total de munición del sector completada.")

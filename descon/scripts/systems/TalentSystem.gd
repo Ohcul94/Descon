@@ -34,8 +34,9 @@ func _on_inventory_data(data: Dictionary):
 	var p = get_tree().get_first_node_in_group("player")
 	if is_instance_valid(p) and p.has_method("_recalculate_stats"):
 		p.skill_tree = skill_tree
-		p.skill_tree["skillPoints"] = skill_points
+		p.skill_points = skill_points
 		p._recalculate_stats()
+
 
 func invest_point(category: String, index: int):
 	if skill_points <= 0:
