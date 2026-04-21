@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://c3m7n2y3k4l5"]
+
+[ext_resource type="Script" path="res://scripts/entities/Bullet.gd" id="1_bullet_script"]
+
+[node name="Bullet" type="Area2D"]
+script = ExtResource("1_bullet_script")
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+color = Color(1, 1, 0, 1) # Amarillo por defecto
+polygon = PackedVector2Array(10, 0, -10, -2, -10, 2)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(10, 0, -10, -2, -10, 2)

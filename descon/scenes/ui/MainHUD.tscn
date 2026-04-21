@@ -1,0 +1,595 @@
+[gd_scene load_steps=7 format=3 uid="uid://b3c4n7v2y3m5"]
+
+[ext_resource type="Script" path="res://scripts/systems/MainHUD.gd" id="1_hud_script"]
+[ext_resource type="Script" path="res://scripts/systems/HUDWindow.gd" id="2_window_script"]
+[ext_resource type="PackedScene" uid="uid://b5m4r7v1y3m5x" path="res://scenes/ui/Minimap.tscn" id="3_minimap"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PartyHUD.tscn" id="4_partyhud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PartyInvitationPopup.tscn" id="6_partypopup"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_window"]
+bg_color = Color(0, 0, 0, 0.8)
+border_width_left = 1
+border_width_top = 20
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.8, 0.8, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stats_window"]
+bg_color = Color(0, 0, 0, 0.8)
+border_width_left = 1
+border_width_top = 20
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 1, 0, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_skill_circle"]
+bg_color = Color(0, 0, 0, 0.5)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0.8, 1, 1)
+corner_radius_top_left = 50
+corner_radius_top_right = 50
+corner_radius_bottom_right = 50
+corner_radius_bottom_left = 50
+
+[node name="MainHUD" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud_script")
+
+[node name="TopLeft" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 150.0
+offset_bottom = 100.0
+script = ExtResource("2_window_script")
+window_id = "TopLeft"
+header_height = 30
+
+[node name="FPS" type="Label" parent="TopLeft"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "FPS: 60"
+
+[node name="MS" type="Label" parent="TopLeft"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "MS: 30"
+
+[node name="ONLINE" type="Label" parent="TopLeft"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 1, 0, 1)
+theme_override_font_sizes/font_size = 14
+text = "ONLINE: 1"
+
+[node name="CenterStats" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_top = 20.0
+offset_right = 100.0
+offset_bottom = 200.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_stats_window")
+script = ExtResource("2_window_script")
+window_id = "CenterStats"
+
+[node name="Header" type="Control" parent="CenterStats"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 20.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="CenterStats/Header"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 2.0
+offset_right = 105.0
+offset_bottom = 18.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "SISTEMA INTEGRADO"
+
+[node name="Min" type="Button" parent="CenterStats/Header"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -22.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 18.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 8
+text = "_"
+
+[node name="VBox" type="VBoxContainer" parent="CenterStats"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 115.0
+offset_right = -10.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 5
+
+[node name="LevelInfo" type="HBoxContainer" parent="CenterStats/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="LVL" type="Label" parent="CenterStats/VBox/LevelInfo"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 1, 0, 1)
+theme_override_font_sizes/font_size = 12
+text = "LEVEL 1 | EXP 0%"
+
+[node name="Currency" type="HBoxContainer" parent="CenterStats/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="HUBS" type="Label" parent="CenterStats/VBox/Currency"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "HUBS: 0"
+
+[node name="OHCU" type="Label" parent="CenterStats/VBox/Currency"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "OHCU: 0"
+
+[node name="Skills" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -100.0
+offset_right = 260.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 20
+adjustment_mode = 1
+alignment = 1
+script = ExtResource("2_window_script")
+window_id = "Skills"
+header_height = 30
+
+[node name="LaserSlot" type="Panel" parent="Skills"]
+clip_children = 2
+custom_minimum_size = Vector2(65, 65)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
+
+[node name="Fill" type="ColorRect" parent="Skills/LaserSlot"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0, 1, 1, 0.3)
+
+[node name="Label" type="Label" parent="Skills/LaserSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 11
+text = "LÁSER"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CD" type="Label" parent="Skills/LaserSlot"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+text = "0.5"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ammo-q" type="Label" parent="Skills/LaserSlot"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -30.0
+offset_top = -18.0
+offset_right = -5.0
+offset_bottom = -2.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0, 1, 0, 1)
+theme_override_font_sizes/font_size = 10
+text = "0"
+horizontal_alignment = 2
+
+[node name="MissileSlot" type="Panel" parent="Skills"]
+clip_children = 2
+custom_minimum_size = Vector2(65, 65)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
+
+[node name="Fill" type="ColorRect" parent="Skills/MissileSlot"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(1, 0.4, 0, 0.3)
+
+[node name="Label" type="Label" parent="Skills/MissileSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 11
+text = "MISIL"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CD" type="Label" parent="Skills/MissileSlot"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+text = "2.0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ammo-w" type="Label" parent="Skills/MissileSlot"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -30.0
+offset_top = -18.0
+offset_right = -5.0
+offset_bottom = -2.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0, 1, 0, 1)
+theme_override_font_sizes/font_size = 10
+text = "0"
+horizontal_alignment = 2
+
+[node name="MineSlot" type="Panel" parent="Skills"]
+clip_children = 2
+custom_minimum_size = Vector2(65, 65)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
+
+[node name="Fill" type="ColorRect" parent="Skills/MineSlot"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.7, 0, 1, 0.3)
+
+[node name="Label" type="Label" parent="Skills/MineSlot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 11
+text = "MINA"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CD" type="Label" parent="Skills/MineSlot"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+text = "5.0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ammo-e" type="Label" parent="Skills/MineSlot"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -30.0
+offset_top = -18.0
+offset_right = -5.0
+offset_bottom = -2.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0, 1, 0, 1)
+theme_override_font_sizes/font_size = 10
+text = "0"
+horizontal_alignment = 2
+
+[node name="Sphere1Slot" type="Panel" parent="Skills"]
+clip_children = 2
+custom_minimum_size = Vector2(65, 65)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
+
+[node name="Fill" type="ColorRect" parent="Skills/Sphere1Slot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 1, 0, 0.2)
+
+[node name="Label" type="Label" parent="Skills/Sphere1Slot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+text = "MOV"
+horizontal_alignment = 1
+
+[node name="Key" type="Label" parent="Skills/Sphere1Slot"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = -15.0
+offset_right = 45.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 8
+text = "A"
+
+[node name="Sphere2Slot" type="Panel" parent="Skills"]
+clip_children = 2
+custom_minimum_size = Vector2(65, 65)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
+
+[node name="Fill" type="ColorRect" parent="Skills/Sphere2Slot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 1, 1, 0.2)
+
+[node name="Label" type="Label" parent="Skills/Sphere2Slot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+text = "DEF"
+horizontal_alignment = 1
+
+[node name="Key" type="Label" parent="Skills/Sphere2Slot"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = -15.0
+offset_right = 45.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 8
+text = "S"
+
+[node name="Sphere3Slot" type="Panel" parent="Skills"]
+clip_children = 2
+custom_minimum_size = Vector2(65, 65)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_skill_circle")
+
+[node name="Fill" type="ColorRect" parent="Skills/Sphere3Slot"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 1, 0, 0.2)
+
+[node name="Label" type="Label" parent="Skills/Sphere3Slot"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+text = "CUR"
+horizontal_alignment = 1
+
+[node name="Key" type="Label" parent="Skills/Sphere3Slot"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = -15.0
+offset_right = 45.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 8
+text = "D"
+
+[node name="RadarWindow" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_top = -240.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_window")
+script = ExtResource("2_window_script")
+window_id = "RadarWindow"
+
+[node name="Header" type="Control" parent="RadarWindow"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 20.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="Min" type="Button" parent="RadarWindow/Header"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -22.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 18.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 8
+text = "_"
+
+[node name="Label" type="Label" parent="RadarWindow"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 2.0
+offset_right = 105.0
+offset_bottom = 18.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "SISTEMA RECON"
+
+[node name="Minimap" parent="RadarWindow" instance=ExtResource("3_minimap")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ControlBar" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -250.0
+offset_top = -40.0
+offset_right = -20.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 10
+alignment = 2
+
+[node name="IconChat" type="Button" parent="ControlBar"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+tooltip_text = "CHAT"
+text = "💬"
+
+[node name="IconStats" type="Button" parent="ControlBar"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+tooltip_text = "STATS"
+text = "🧬"
+
+[node name="IconRadarWindow" type="Button" parent="ControlBar"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+tooltip_text = "RADAR"
+text = "🛰️"
+
+[node name="IconSkills" type="Button" parent="ControlBar"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+tooltip_text = "SKILLS"
+text = "🔥"
+
+[node name="PartyHUD" parent="." instance=ExtResource("4_partyhud")]
+layout_mode = 1
+
+[node name="PartyInvitationPopup" parent="." instance=ExtResource("6_partypopup")]
+visible = false
+layout_mode = 1

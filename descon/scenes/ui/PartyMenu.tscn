@@ -1,0 +1,116 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/PartyMenu.gd" id="1_partymenu"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
+bg_color = Color(0.05, 0.05, 0.08, 0.95)
+border_width_left = 1
+border_width_top = 24
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0, 0.4, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_size = 10
+shadow_color = Color(0, 0, 0, 0.5)
+
+[node name="PartyMenu" type="PanelContainer"]
+custom_minimum_size = Vector2(250, 350)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -125.0
+offset_top = -175.0
+offset_right = 125.0
+offset_bottom = 175.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
+script = ExtResource("1_partymenu")
+window_id = "Party"
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(0, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "CENTRO DE ESCUADRON"
+horizontal_alignment = 1
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="ControlSpacing" type="Control" parent="VBox"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+
+[node name="InviteSection" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="VBox/InviteSection"]
+layout_mode = 2
+
+[node name="LineEdit" type="LineEdit" parent="VBox/InviteSection/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Nombre de piloto..."
+flat = true
+
+[node name="InviteBtn" type="Button" parent="VBox/InviteSection/HBox"]
+layout_mode = 2
+text = "INVITAR"
+
+[node name="HSeparator" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="PartySection" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="VBox/PartySection"]
+layout_mode = 2
+text = "MIEMBROS ACTUALES"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="VBox/PartySection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="VBox/PartySection/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LeaveBtn" type="Button" parent="VBox/PartySection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+text = "ABANDONAR GRUPO"
+
+[node name="HSeparator2" type="HSeparator" parent="VBox"]
+layout_mode = 2
+
+[node name="NearbySection" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="VBox/NearbySection"]
+layout_mode = 2
+text = "PILOTOS CERCANOS"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="VBox/NearbySection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="VBox/NearbySection/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="DragHandler" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 1

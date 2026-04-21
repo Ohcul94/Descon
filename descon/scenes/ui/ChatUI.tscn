@@ -1,0 +1,85 @@
+[gd_scene format=3 uid="uid://e4r7v2y3m5l6"]
+
+[ext_resource type="Script" path="res://scripts/ui/ChatUI.gd" id="1_chat_script"]
+[ext_resource type="Script" path="res://scripts/systems/HUDWindow.gd" id="2_window_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chat"]
+bg_color = Color(0, 0, 0, 0.6)
+border_width_left = 1
+border_width_top = 20
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0, 0.6, 1, 1) # Azul Chat
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+
+[node name="ChatUI" type="Control"]
+layout_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -210.0
+offset_right = 210.0
+offset_bottom = -10.0
+grow_vertical = 0
+script = ExtResource("1_chat_script")
+window_id = "ChatUI"
+header_height = 25
+
+[node name="Window" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_chat")
+
+
+[node name="Title" type="Label" parent="Window"]
+layout_mode = 0
+offset_left = 5.0
+offset_top = 2.0
+offset_right = 105.0
+offset_bottom = 18.0
+theme_override_font_sizes/font_size = 10
+text = "CHAT GLOBAL"
+
+[node name="VBox" type="VBoxContainer" parent="Window"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = 25.0
+offset_right = -5.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Window/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Messages" type="VBoxContainer" parent="Window/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="HBox" type="HBoxContainer" parent="Window/VBox"]
+layout_mode = 2
+
+[node name="Input" type="LineEdit" parent="Window/VBox/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 11
+placeholder_text = "Escribí un mensaje..."
+flat = true
+
+[node name="Send" type="Button" parent="Window/VBox/HBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "ENVIAR"

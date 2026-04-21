@@ -1,0 +1,25 @@
+# Node.js
+**/node_modules/
+**/npm-debug.log*
+**/.env
+
+# Godot
+**/export/
+**/.godot/
+**/.import/
+# Large binary folders (Never push these to GitHub)
+Ejecutable/
+Ejecutable Android/
+Ejecutable Web/
+Descon (Viejo)/
+*.pck
+*.exe
+*.apk
+*.zip
+
+# System
+.DS_Store
+Thumbs.db
+
+# Cloud Provider Keys
+OracleCloud/

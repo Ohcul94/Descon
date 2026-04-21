@@ -1,0 +1,54 @@
+[gd_scene format=3 uid="uid://d1c4m7n2y3k4"]
+
+[ext_resource type="Script" path="res://scripts/entities/Enemy.gd" id="1_enemy_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hp"]
+bg_color = Color(0.6, 0.1, 0.1, 1) # Rojo para enemigos
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_sh"]
+bg_color = Color(0.129412, 0.129412, 0.690196, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="Enemy" type="CharacterBody2D"]
+script = ExtResource("1_enemy_script")
+
+[node name="Polygon2D" type="Polygon2D" parent="."]
+color = Color(1, 0.4, 0, 1) # Naranja por defecto
+polygon = PackedVector2Array(15, 0, -10, -10, -5, 0, -10, 10)
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(15, 0, -10, -10, -5, 0, -10, 10)
+
+[node name="NameTag" type="Label" parent="."]
+offset_left = -50.0
+offset_top = -45.0
+offset_right = 50.0
+offset_bottom = -22.0
+text = "Enemigo"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+offset_left = -20.0
+offset_top = -25.0
+offset_right = 20.0
+offset_bottom = -21.0
+theme_override_styles/fill = SubResource("StyleBoxFlat_hp")
+value = 100.0
+show_percentage = false
+
+[node name="ShieldBar" type="ProgressBar" parent="."]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = -16.0
+theme_override_styles/fill = SubResource("StyleBoxFlat_sh")
+value = 100.0
+show_percentage = false
