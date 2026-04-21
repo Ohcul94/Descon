@@ -83,9 +83,9 @@ func _on_login_btn_pressed():
 	_show_status("Conectando...", Color.CYAN)
 	_save_user_state()
 	
-# Intentar conexión dinámica (v141.72: Fix Auto-Cloudflare para APK)
-	var target_ip = "mileage-cakes-teaches-personal.trycloudflare.com" # Cambiado de 127.0.0.1
-	var target_port = 443 # El puerto de los túneles HTTPS siempre es 443
+	# Intentar conexión dinámica (v142.0: Oracle Cloud Live)
+	var target_ip = "138.2.241.76" # IP Pública de Oracle
+	var target_port = 3333 # Puerto del servidor MMO
 	
 	# Usar 127.0.0.1 solo si estamos en el editor de Godot testeando local
 	if OS.has_feature("editor"):
