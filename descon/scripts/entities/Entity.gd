@@ -667,7 +667,7 @@ func _setup_ship_visuals():
 		5: glb_path = "res://assets/Personajes/3D/Nave5/Nave5.glb"
 		6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
 
-	if glb_path != "" and FileAccess.file_exists(glb_path):
+	if glb_path != "" and ResourceLoader.exists(glb_path):
 		_setup_3d_visuals(glb_path)
 		
 		# --- PARCHES DE ORIENTACIÓN SEGÚN EL ASSET ---
@@ -1028,22 +1028,18 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	sun.rotation = Vector3.ZERO 
 	sun.light_energy = 2.0 # Volver al original suave
 	sun.light_specular = 0.1 # Muy bajo para evitar manchas blancas
-	
-	# 5. Conectar al Sprite2D existente
+	# 5. Conectar al Sprite2D existente (Transparencia Pro)
 	if is_instance_valid(sprite):
 		sprite.texture = viewport.get_texture()
 		sprite.scale = Vector2(1.0, 1.0)
 		sprite.rotation_degrees = 0
 		sprite.flip_v = false 
 		
-		# v235.41: Carga Dinámica de Esferas
 		if is_in_group("player") or is_in_group("remote_players"):
-			_update_3d_spheres()
 			var sm = get_node_or_null("SpheresManager")
 			if sm and not sm.spheres_updated.is_connected(_update_3d_spheres):
 				sm.spheres_updated.connect(_update_3d_spheres)
-				_update_3d_spheres() # v235.72: Carga inicial forzada
-
+			_update_3d_spheres()
 	
 	print("[3D] Visualizacion configurada correctamente.")
 
