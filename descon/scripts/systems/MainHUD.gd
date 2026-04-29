@@ -113,6 +113,10 @@ func _ready():
 			NetworkManager.auth_success.connect(func(d): _on_server_data_received(d))
 		NetworkManager.player_updated.connect(_on_server_player_updated)
 		NetworkManager.enemy_kill_session.connect(_on_enemy_kill_reward)
+		
+		# v240.50: Sincronizar Errores de Autorización (Bloqueo de Cambio de Nave, etc)
+		if not NetworkManager.auth_error.is_connected(notify):
+			NetworkManager.auth_error.connect(func(msg): notify(str(msg), "warn"))
 
 func _on_server_data_received(p_data: Dictionary):
 	if p_data.has("gameData"):

@@ -461,7 +461,8 @@ io.on('connection', (socket) => {
                 zone: user.gameData.zone || 1,
                 pvpEnabled: !!user.gameData.pvpEnabled,
                 lastPos: { x: user.gameData.lastPos?.x || 2000, y: user.gameData.lastPos?.y || 2000 },
-                lastPvpCombatTime: 0
+                lastPvpCombatTime: 0,
+                lastCombatTime: 0 // v240.30: Inicializar para evitar bypass de cooldown (NaN check)
             };
 
             // v196.60: Recalcular Stats con Talentos al Login (Fix Relogueo)
@@ -769,7 +770,9 @@ io.on('connection', (socket) => {
     socket.on('playerSphereSkill', (data) => {
         const p = players[socket.id];
         if (!p || !p.spheres) return;
-
+        
+        p.lastCombatTime = Date.now(); // v240.62: Habilidades resetean contador de cambio de nave
+        
         const now = Date.now();
         const sphereIdx = data.id !== undefined ? data.id : -1;
         if (sphereIdx < 0 || sphereIdx >= 4) return;
@@ -814,6 +817,7 @@ io.on('connection', (socket) => {
         }
 
         actual_heal = Math.max(0, actual_heal);
+        p.lastCombatTime = now; // v240.23: Habilidades de esfera cuentan como combate
 
         // v200.12: Sincron├¡a Cr├¡tica - Forzar actualizaci├│n inmediata para evitar rollback
         p.lastSyncHp = p.hp;
@@ -1297,10 +1301,17 @@ io.on('connection', (socket) => {
         try {
             const user = await User.findById(socket.dbUser._id);
             if (user && user.gameData.ownedShips.includes(shipId)) {
-                // v210.11: Bloqueo en Combate (Safe Switch)
+                // v240.40: Bloqueo en Combate de 1 Minuto (Revisión de Seguridad)
                 const now = Date.now();
-                if (p.lastHit && now - p.lastHit < 10000) {
-                    socket.emit('authError', 'ALERTA DE COMBATE: Espera 10s fuera de combate para cambiar de nave.');
+                const combatCooldown = 60000;
+                const lastCombat = p.lastCombatTime || 0;
+                
+                // Debug log (v240.41)
+                require('fs').appendFileSync('combat_debug.log', `[SWITCH] User: ${p.user}, now: ${now}, lastCombat: ${lastCombat}, diff: ${now - lastCombat}\n`);
+
+                if (lastCombat > 0 && (now - lastCombat) < combatCooldown) {
+                    const remaining = Math.ceil((combatCooldown - (now - lastCombat)) / 1000);
+                    socket.emit('authError', `ALERTA DE COMBATE: Espera ${remaining}s fuera de combate para cambiar de nave.`);
                     return;
                 }
 
@@ -1332,14 +1343,21 @@ io.on('connection', (socket) => {
                 user.gameData.currentShipId = shipId;
 
                 // v210.200: Recalcular Stats de la Nave Nueva + Talentos
-                const newShipData = SERVER_CONFIG.shipModels.find(s => s.id === shipId) || { hp: 2000, shield: 1000 };
+                const newShipData = SERVER_CONFIG.shipModels.find(s => s.id === shipId) || { hp: 3000, shield: 1000 };
+                
+                // v240.31: ACTUALIZAR STATS BASE (Crucial para el bucle de regen v239.12)
+                p.baseHp = newShipData.hp || 3000;
+                p.baseShield = newShipData.shield || 1000;
+
                 const hpBonus = 1.0 + ((p.skillTree?.engineering[0] || 0) * 0.02);
                 const shBonus = 1.0 + ((p.skillTree?.engineering[1] || 0) * 0.02);
 
-                p.maxHp = Math.ceil((newShipData.hp || 2000) * hpBonus);
-                p.maxShield = Math.ceil((newShipData.shield || 1000) * shBonus);
-                p.hp = p.maxHp; // Curaci├│n completa al cambiar de nave (Standard v6)
-                p.shield = p.maxShield;
+                p.maxHp = Math.ceil(p.baseHp * hpBonus);
+                p.maxShield = Math.ceil(p.baseShield * shBonus);
+                
+                // v240.21: Persistencia de Vida/Escudo (No recargar al 100%)
+                p.hp = Math.min(p.hp, p.maxHp);
+                p.shield = Math.min(p.shield, p.maxShield);
 
                 user.markModified('gameData.equippedByShip');
                 await user.save();
@@ -1495,6 +1513,7 @@ io.on('connection', (socket) => {
         }
         enemy.lastHit = Date.now();
         enemy.lastHitter = socket.id;
+        p.lastCombatTime = Date.now(); // v240.22: Marcar combate al acertar objetivo
 
         // v226.10: SIEMPRE enviar se├▒al de da├▒o antes de evaluar muerte para que el cliente vea el pop-up
         io.to(`zone_${enemy.zone}`).emit('enemyDamaged', { id: enemyId, hp: Math.max(0, enemy.hp), shield: enemy.shield, bulletId });
@@ -1622,6 +1641,7 @@ io.on('connection', (socket) => {
 
     // SISTEMA DE DA├æO RECIBIDO SINCRONIZADO v125.31 (Identity Aware)
     socket.on('playerHitByEnemy', (data) => {
+        require('fs').appendFileSync('combat_debug.log', `[EVENT_RAW] playerHitByEnemy received for socket ${socket.id}, data: ${JSON.stringify(data)}\n`);
         const p = players[socket.id];
         if (p && !p.isDead && SERVER_CONFIG) {
             const attackerType = data.attackerType || 'enemy';
@@ -1647,6 +1667,7 @@ io.on('connection', (socket) => {
             else { p.hp -= (dmg - p.shield); p.shield = 0; }
             if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
             p.lastCombatTime = Date.now();
+            require('fs').appendFileSync('combat_debug.log', `[HIT] User: ${p.user}, lastCombatTime set to: ${p.lastCombatTime}\n`);
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
             const syncData = { 
                 id: socket.id, 
@@ -1667,12 +1688,12 @@ io.on('connection', (socket) => {
         const attacker = players[socket.id];
         
         if (victim && attacker && !victim.isDead && !attacker.isDead) {
-            // v221.30: Consentimiento Mutuo + Notificaci├│n
+            // v221.30: Consentimiento Mutuo + Notificación
             if (victim.pvpEnabled && attacker.pvpEnabled) {
                 const now = Date.now();
                 let dmg = data.damage || 50;
                 
-                // L├│gica de mitigaci├│n (Escudo primero)
+                // Lógica de mitigación (Escudo primero)
                 if (victim.shield >= dmg) {
                     victim.shield -= dmg;
                 } else {
@@ -1685,8 +1706,8 @@ io.on('connection', (socket) => {
                     victim.isDead = true;
                 }
                 
-                victim.lastCombatTime = now;
-                attacker.lastCombatTime = now;
+                victim.lastCombatTime = Date.now(); // v240.61: Recibir daño de jugador resetea timer
+                attacker.lastCombatTime = Date.now(); // v240.61: Atacar a jugador resetea timer
                 victim.lastPvpCombatTime = now; // v222.41: Exclusivo PvP
                 attacker.lastPvpCombatTime = now; // v222.41: Exclusivo PvP
                 

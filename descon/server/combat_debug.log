@@ -1,0 +1,61 @@
+[SWITCH] User: Caelli94, now: 1777485852517, lastCombat: 0, diff: 1777485852517
+[SWITCH] User: Caelli94, now: 1777485854735, lastCombat: 0, diff: 1777485854735
+[SWITCH] User: Caelli94, now: 1777485870020, lastCombat: 0, diff: 1777485870020
+[EVENT_RAW] playerHitByEnemy received for socket o5sFu77vPRobY9aEAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"o5sFu77vPRobY9aEAAAB"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777486614570
+[EVENT_RAW] playerHitByEnemy received for socket o5sFu77vPRobY9aEAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"o5sFu77vPRobY9aEAAAB"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777486615672
+[EVENT_RAW] playerHitByEnemy received for socket o5sFu77vPRobY9aEAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"o5sFu77vPRobY9aEAAAB"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777486616672
+[EVENT_RAW] playerHitByEnemy received for socket o5sFu77vPRobY9aEAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"o5sFu77vPRobY9aEAAAB"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777486617673
+[SWITCH] User: Caelli94, now: 1777486624563, lastCombat: 1777486617990, diff: 6573
+[SWITCH] User: Caelli94, now: 1777486629516, lastCombat: 1777486617990, diff: 11526
+[SWITCH] User: Caelli94, now: 1777486632587, lastCombat: 1777486617990, diff: 14597
+[SWITCH] User: Caelli94, now: 1777486635873, lastCombat: 1777486617990, diff: 17883
+[SWITCH] User: Caelli94, now: 1777486678800, lastCombat: 1777486617990, diff: 60810
+[EVENT_RAW] playerHitByEnemy received for socket o5sFu77vPRobY9aEAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"o5sFu77vPRobY9aEAAAB"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777486686943
+[EVENT_RAW] playerHitByEnemy received for socket 8rLtDrJ77QnNy861AAAB, data: {"attackerType":"combat_ping","damage":0,"id":"8rLtDrJ77QnNy861AAAB"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777486979771
+[SWITCH] User: Caelli94, now: 1777486988229, lastCombat: 1777486979771, diff: 8458
+[SWITCH] User: Caelli94, now: 1777486995569, lastCombat: 1777486979771, diff: 15798
+[SWITCH] User: Caelli94, now: 1777487015756, lastCombat: 1777486979771, diff: 35985
+[SWITCH] User: Caelli94, now: 1777487020445, lastCombat: 1777486979771, diff: 40674
+[SWITCH] User: Caelli94, now: 1777487030388, lastCombat: 1777486979771, diff: 50617
+[SWITCH] User: Caelli94, now: 1777487033725, lastCombat: 1777486979771, diff: 53954
+[SWITCH] User: Caelli94, now: 1777487044585, lastCombat: 1777486979771, diff: 64814
+[SWITCH] User: Caelli94, now: 1777487048656, lastCombat: 1777486979771, diff: 68885
+[SWITCH] User: Caelli94, now: 1777487051914, lastCombat: 1777486979771, diff: 72143
+[SWITCH] User: Caelli94, now: 1777487055845, lastCombat: 1777486979771, diff: 76074
+[SWITCH] User: Caelli94, now: 1777487061518, lastCombat: 1777486979771, diff: 81747
+[EVENT_RAW] playerHitByEnemy received for socket 8rLtDrJ77QnNy861AAAB, data: {"attackerType":"combat_ping","damage":0,"id":"8rLtDrJ77QnNy861AAAB"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487063756
+[EVENT_RAW] playerHitByEnemy received for socket 8rLtDrJ77QnNy861AAAB, data: {"attackerType":"combat_ping","damage":0,"id":"8rLtDrJ77QnNy861AAAB"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487064573
+[SWITCH] User: Caelli94, now: 1777487079821, lastCombat: 1777487064573, diff: 15248
+[SWITCH] User: Caelli94, now: 1777487093918, lastCombat: 1777487064573, diff: 29345
+[SWITCH] User: Caelli94, now: 1777487099090, lastCombat: 1777487064573, diff: 34517
+[SWITCH] User: Caelli94, now: 1777487408566, lastCombat: 0, diff: 1777487408566
+[SWITCH] User: Caelli94, now: 1777487413353, lastCombat: 0, diff: 1777487413353
+[SWITCH] User: Caelli94, now: 1777487528587, lastCombat: 0, diff: 1777487528587
+[SWITCH] User: Caelli94, now: 1777487558450, lastCombat: 0, diff: 1777487558450
+[SWITCH] User: Caelli94, now: 1777487566292, lastCombat: 0, diff: 1777487566292
+[EVENT_RAW] playerHitByEnemy received for socket IA80SPjOFm3v3hb5AAAF, data: {"damage":3500,"id":"IA80SPjOFm3v3hb5AAAF"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487569531
+[EVENT_RAW] playerHitByEnemy received for socket IA80SPjOFm3v3hb5AAAF, data: {"attackerType":"enemy","damage":3500,"enemyType":1}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487569532
+[EVENT_RAW] playerHitByEnemy received for socket IA80SPjOFm3v3hb5AAAF, data: {"damage":3500,"id":"IA80SPjOFm3v3hb5AAAF"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487571283
+[EVENT_RAW] playerHitByEnemy received for socket IA80SPjOFm3v3hb5AAAF, data: {"attackerType":"enemy","damage":3500,"enemyType":1}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487571284
+[SWITCH] User: Caelli94, now: 1777487571682, lastCombat: 1777487571284, diff: 398
+[EVENT_RAW] playerHitByEnemy received for socket IA80SPjOFm3v3hb5AAAF, data: {"damage":3500,"id":"IA80SPjOFm3v3hb5AAAF"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487572034
+[EVENT_RAW] playerHitByEnemy received for socket IA80SPjOFm3v3hb5AAAF, data: {"attackerType":"enemy","damage":3500,"enemyType":1}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487572034
+[EVENT_RAW] playerHitByEnemy received for socket IA80SPjOFm3v3hb5AAAF, data: {"damage":3500,"id":"IA80SPjOFm3v3hb5AAAF"}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487573018
+[EVENT_RAW] playerHitByEnemy received for socket IA80SPjOFm3v3hb5AAAF, data: {"attackerType":"enemy","damage":3500,"enemyType":1}
+[HIT] User: Caelli94, lastCombatTime set to: 1777487573019
+[SWITCH] User: Caelli94, now: 1777487574034, lastCombat: 1777487573019, diff: 1015

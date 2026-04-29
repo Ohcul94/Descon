@@ -167,3 +167,12 @@ func is_typing() -> bool:
 
 func release_chat_focus():
 	if chat_input: chat_input.release_focus()
+
+func add_system_message(msg: String):
+	var label_msg = RichTextLabel.new()
+	label_msg.bbcode_enabled = true
+	label_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label_msg.fit_content = true
+	label_msg.add_theme_font_size_override("normal_font_size", 10)
+	label_msg.text = "[outline_size=1][outline_color=black][color=#ffcc00][SISTEMA][/color] " + msg + "[/outline_color][/outline_size]"
+	_render_message(label_msg)
