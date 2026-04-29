@@ -259,7 +259,7 @@ func _update_skill_ui(type: String, ref, slot):
 		var sel_data = ref.get("selected_ammo")
 		var sel = sel_data.get(type, 0) if sel_data != null else 0
 		var a_count = a_list[sel] if a_list.size() > sel else 0
-		l_am.text = "T" + str(sel + 1) + ": " + _format_val(a_count)
+		l_am.text = "T" + str(int(sel + 1)) + ": " + _format_val(a_count)
 		l_am.modulate = Color(1.0, 1.0, 0.0) 
 		l_am.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 		l_am.offset_bottom = -5 

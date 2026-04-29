@@ -203,7 +203,15 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			admin_config_updated.emit(e_data)
 		"rewardReceived", "serverReward": reward_received.emit(e_data)
 		"levelUp", "serverLevelUp": level_up.emit(e_data)
-		"inventoryData", "inventorySync": inventory_data.emit(e_data)
+		"inventoryData", "inventorySync": 
+			# v241.10: Unificación de Sincronía (Soporta Player, Items o Raw)
+			var final_data = e_data
+			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("player"):
+				final_data = e_data["player"]
+			elif typeof(e_data) == TYPE_DICTIONARY and e_data.has("items"):
+				final_data = e_data["items"]
+			
+			inventory_data.emit(final_data)
 		"playerStatSync":
 			if typeof(e_data) == TYPE_DICTIONARY:
 				if str(e_data.get("id", "")) != my_socket_id:
@@ -215,11 +223,6 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			if typeof(e_data) == TYPE_DICTIONARY and str(e_data.get("id", "")) != my_socket_id:
 				remote_skill_used.emit(e_data)
 		"rewardReceived": reward_received.emit(e_data)
-		"inventoryData":
-			var final_data = e_data
-			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("items"):
-				final_data = e_data["items"]
-			inventory_data.emit(final_data)
 		"playerDisconnected":
 			player_disconnected.emit(str(e_data))
 		"pong_custom":

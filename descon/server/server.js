@@ -929,8 +929,8 @@ io.on('connection', (socket) => {
                 players[socket.id].ammo = user.gameData.ammo;
             }
 
-            // 5. RESPUESTA AL CLIENTE
-            socket.emit('inventoryData', { player: user.gameData });
+            // 5. RESPUESTA AL CLIENTE (v241.20: Usar toObject para garantizar arrays limpios)
+            socket.emit('inventoryData', { player: user.gameData.toObject() });
             console.log(`[SHOP] ${user.username} compr├│ ${itemId} (${qty} unidades)`);
 
         } catch (e) {

@@ -248,6 +248,8 @@ func _on_inventory_received(data: Dictionary):
 		p.ohculianos = ohcu
 		if data.has("inventory") or data.has("items"): p.inventory = inventory_items
 		if data.has("equipped"): p.equipped = equipped_data
+		if data.has("ammo"): p.ammo = data.ammo.duplicate()
+		if data.has("selectedAmmo"): p.selected_ammo = data.selectedAmmo.duplicate()
 		if data.has("currentShipId"):
 			p.current_ship_id = current_ship_id
 			if p.has_method("_setup_ship_visuals"): p._setup_ship_visuals()

@@ -102,3 +102,525 @@
 [SWITCH] User: Caelli94, now: 1777490551898, lastCombat: 1777490536454, diff: 15444
 [SWITCH] User: Caelli94, now: 1777490561120, lastCombat: 1777490536454, diff: 24666
 [SWITCH] User: Caelli94, now: 1777490570730, lastCombat: 1777490563165, diff: 7565
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492029101
+[BOSS-HIT] User: Caelli94, Damage: 5500, Source: Boss2 (enemy_boss_1777491348170929) en [1948,2007], Time: 2026-04-29T19:47:22.927Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492042998
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492043999
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044015
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044032
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044049
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044065
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044082
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044099
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044116
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044132
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044149
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044166
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044183
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044199
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044216
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044233
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044249
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044266
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044283
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044299
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044317
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044333
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044349
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044366
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044383
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044400
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044416
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044433
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044450
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044466
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044483
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044500
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044516
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044533
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044549
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044566
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044583
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044599
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044616
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1862,1943], Time: 2026-04-29T19:47:24.728Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044733
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044750
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044767
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1860,1942], Time: 2026-04-29T19:47:24.767Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044783
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044800
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1858,1941], Time: 2026-04-29T19:47:24.804Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044816
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044833
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044850
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1855,1940], Time: 2026-04-29T19:47:24.850Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044866
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044883
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1853,1939], Time: 2026-04-29T19:47:24.883Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044900
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044916
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1851,1937], Time: 2026-04-29T19:47:24.917Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044933
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044950
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1849,1936], Time: 2026-04-29T19:47:24.950Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492044966
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1847,1935], Time: 2026-04-29T19:47:24.990Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1844,1934], Time: 2026-04-29T19:47:25.035Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1842,1933], Time: 2026-04-29T19:47:25.081Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1840,1931], Time: 2026-04-29T19:47:25.127Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1838,1930], Time: 2026-04-29T19:47:25.174Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1836,1929], Time: 2026-04-29T19:47:25.220Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045234
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045250
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1833,1928], Time: 2026-04-29T19:47:25.265Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045267
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045283
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045300
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1831,1927], Time: 2026-04-29T19:47:25.300Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045317
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045334
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1829,1926], Time: 2026-04-29T19:47:25.334Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045351
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045367
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1827,1924], Time: 2026-04-29T19:47:25.368Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045384
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045401
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1825,1923], Time: 2026-04-29T19:47:25.401Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045417
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045434
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1822,1922], Time: 2026-04-29T19:47:25.434Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045450
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045467
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1820,1921], Time: 2026-04-29T19:47:25.467Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045484
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045501
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1818,1920], Time: 2026-04-29T19:47:25.501Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045518
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045534
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1816,1919], Time: 2026-04-29T19:47:25.534Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045551
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492045568
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1813,1917], Time: 2026-04-29T19:47:25.568Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1811,1916], Time: 2026-04-29T19:47:25.608Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1809,1915], Time: 2026-04-29T19:47:25.654Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1807,1914], Time: 2026-04-29T19:47:25.701Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1805,1913], Time: 2026-04-29T19:47:25.748Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1802,1912], Time: 2026-04-29T19:47:25.795Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1800,1911], Time: 2026-04-29T19:47:25.841Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1798,1909], Time: 2026-04-29T19:47:25.887Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1796,1908], Time: 2026-04-29T19:47:25.933Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1793,1907], Time: 2026-04-29T19:47:25.979Z
+[BOSS-HIT] User: Caelli94, Damage: 450, Source: Boss2 (enemy_boss_1777491348170929) en [1791,1906], Time: 2026-04-29T19:47:26.026Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046585
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046602
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046618
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046635
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046652
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046668
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046685
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046702
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046719
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046735
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046752
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046769
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046785
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046802
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046819
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046836
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046852
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046869
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492046886
+[BOSS-HIT] User: Caelli94, Damage: 12000, Source: Boss2 (enemy_boss_1777491348170929) en [1726,1926], Time: 2026-04-29T19:47:27.137Z
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051306
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051323
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051340
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051357
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051373
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051389
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051406
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051423
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051440
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051456
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492051473
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066706
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066722
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066739
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066756
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066772
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066789
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066806
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066822
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066838
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066855
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066872
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066889
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066905
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066922
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066939
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066956
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066972
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492066989
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492067006
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492067022
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492067039
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492067056
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492067072
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492067089
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068374
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068390
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068407
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068423
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068441
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068457
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068474
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068491
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068507
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068524
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068540
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068557
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068574
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068591
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068608
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068624
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068642
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068657
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068674
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068690
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068707
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068724
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068740
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068757
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492068774
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069242
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069258
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069275
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069291
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069308
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069325
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069341
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069358
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069375
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069392
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069408
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069425
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069442
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069458
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069475
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069492
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069508
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069525
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069542
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069558
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069575
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069592
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069608
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069624
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492069641
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070492
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070509
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070526
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070543
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070559
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070576
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070593
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070609
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070626
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070643
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070659
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070676
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070693
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070709
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070726
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070743
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070759
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070776
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070793
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070809
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070826
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070843
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070860
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070876
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070893
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070910
+[EVENT_RAW] playerHitByEnemy received for socket CxTgf0eK0VoSCheOAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"CxTgf0eK0VoSCheOAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492070926
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492401075
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492402627
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492430438
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492431205
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492432073
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492432874
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492433441
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492433791
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492433974
+[EVENT_RAW] playerHitByEnemy received for socket xOfVOKMv8tRMK68cAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"xOfVOKMv8tRMK68cAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492434158
+[EVENT_RAW] playerHitByEnemy received for socket 28Fv5jT4siXxLhUnAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"28Fv5jT4siXxLhUnAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492762472
+[EVENT_RAW] playerHitByEnemy received for socket 28Fv5jT4siXxLhUnAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"28Fv5jT4siXxLhUnAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492764657
+[EVENT_RAW] playerHitByEnemy received for socket 28Fv5jT4siXxLhUnAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"28Fv5jT4siXxLhUnAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492765791
+[EVENT_RAW] playerHitByEnemy received for socket 28Fv5jT4siXxLhUnAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"28Fv5jT4siXxLhUnAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492766742
+[EVENT_RAW] playerHitByEnemy received for socket 28Fv5jT4siXxLhUnAAAB, data: {"attackerType":"combat_ping","damage":0,"id":"28Fv5jT4siXxLhUnAAAB"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777492784677
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493035913
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493036914
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493038049
+[BOSS-HIT] User: Caelli94, Damage: 5500, Source: Boss2 (enemy_boss_1777492580942309) en [2017,2000], Time: 2026-04-29T20:04:00.297Z
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493042904
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493044088
+[BOSS-HIT] User: Caelli94, Damage: 12000, Source: Boss2 (enemy_boss_1777492580942309) en [2329,2122], Time: 2026-04-29T20:04:04.699Z
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493045089
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493046124
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493049427
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493050428
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493051429
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493052646
+[BOSS-HIT] User: Caelli94, Damage: 5500, Source: Boss2 CLONE (enemy_boss_1777493056243840) en [3434,2520], Time: 2026-04-29T20:04:17.095Z
+[BOSS-HIT] User: Caelli94, Damage: 5500, Source: Boss2 (enemy_boss_1777492580942309) en [3168,2253], Time: 2026-04-29T20:04:19.573Z
+[BOSS-HIT] User: Caelli94, Damage: 12000, Source: Boss2 CLONE (enemy_boss_1777493056243840) en [3537,2488], Time: 2026-04-29T20:04:21.318Z
+[BOSS-HIT] User: Caelli94, Damage: 12000, Source: Boss2 (enemy_boss_1777492580942309) en [2954,2263], Time: 2026-04-29T20:04:23.773Z
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493071632
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493072917
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493074252
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493075469
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493076537
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493077538
+[EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493082743
+[BOSS-HIT] User: Caelli94, Damage: 5500, Source: Boss2 (enemy_boss_1777492580942309) en [2908,2295], Time: 2026-04-29T20:14:33.418Z

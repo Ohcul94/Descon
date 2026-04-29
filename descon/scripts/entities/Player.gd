@@ -141,6 +141,12 @@ func _on_inventory_received(p_data):
 		if gd.has("level"): level = int(gd["level"])
 		if gd.has("exp"): current_exp = float(gd["exp"])
 		
+		# v240.95: Sincronía de Munición en Tiempo Real (Fix Shop Update)
+		if gd.has("ammo"):
+			ammo = gd["ammo"].duplicate()
+		if gd.has("selectedAmmo"):
+			selected_ammo = gd["selectedAmmo"].duplicate()
+		
 		# v235.95: Persistencia de Esferas Orbitales
 		if gd.has("spheres"):
 			var sm = get_node_or_null("SpheresManager")
@@ -390,6 +396,8 @@ func _on_login_success(p_in):
 							for key in eq: sph["equipped"].set(key, eq[key])
 			sm.spheres_data = raw_spheres
 			sm.emit_signal("spheres_updated")
+			if sm.has_method("_update_visuals"):
+				sm._update_visuals()
 
 		current_hp = float(gd.get("hp", max_hp)) 
 		current_shield = float(gd.get("shield", max_shield))
@@ -451,7 +459,7 @@ func save_progress():
 		"skillTree": skill_tree,
 		# "inventory": inventory, # DESACTIVADO v215.30 FIX DUPEO
 		# "equipped": equipped,   # DESACTIVADO v215.30 FIX DUPEO
-		"spheres": s_data,
+		# "spheres": s_data,      # DESACTIVADO v241.30 FIX DATA LOSS (El server ya maneja equipSphere/unequipSphere)
 		"hp": current_hp, "shield": current_shield,
 		"maxHp": max_hp, "maxShield": max_shield,
 		"ownedShips": owned_ships, "currentShipId": current_ship_id,
