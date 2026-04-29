@@ -8,11 +8,11 @@ var entity_id: String = ""
 var username: String = "Unknown"
 var entity_type: int = 1
 
-var max_hp: float = 2000; var is_rage: bool = false # v238.70: Modo Furia (ex-Ryze)
+var max_hp: float = 3000; var is_rage: bool = false # v238.70: Modo Furia (ex-Ryze)
 
-var current_hp: float = 2000
+var current_hp: float = 3000
 var max_shield: float = 1000; var current_shield: float = 1000
-var _display_hp: float = 2000 # v190.85: Interpolación visual de vida
+var _display_hp: float = 3000 # v190.85: Interpolación visual de vida
 var _display_shield: float = 1000 # v190.85: Interpolación visual de escudo
 var hp_regen: float = 5.0; var sh_regen: float = 15.0
 var current_ship_id: int = 1

@@ -1400,6 +1400,14 @@ io.on('connection', (socket) => {
         p.y = movementData.y;
         p.lastPos = { x: p.x, y: p.y }; // v221.60: Sincron├¡a constante de posici├│n
         p.rotation = movementData.rotation;
+
+        // v240.10: Sincron├¡a de Stats en Movimiento (Evita Reset al Disparar)
+        if (movementData.hp !== undefined) p.hp = parseFloat(movementData.hp);
+        if (movementData.sh !== undefined) p.shield = parseFloat(movementData.sh);
+        if (movementData.maxHp !== undefined) p.maxHp = parseFloat(movementData.maxHp);
+        if (movementData.maxSh !== undefined) p.maxShield = parseFloat(movementData.maxSh);
+        else if (movementData.maxShield !== undefined) p.maxShield = parseFloat(movementData.maxShield);
+
         if (movementData.selectedAmmo) p.selectedAmmo = movementData.selectedAmmo;
 
         const oldZone = Number(p.zone || 1);

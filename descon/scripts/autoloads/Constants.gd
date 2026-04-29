@@ -11,7 +11,7 @@ const GAME_CONFIG = {
 }
 
 var SHIP_MODELS = [
-	{ "id": 1, "name": "Phoenix-L1", "hp": 2000, "shield": 1000, "speed": 300, "slots": { "w": 1, "s": 1, "e": 1, "x": 1 }, "prices": { "hubs": 0, "ohcu": 0 } },
+	{ "id": 1, "name": "Phoenix-L1", "hp": 3000, "shield": 1000, "speed": 300, "slots": { "w": 1, "s": 1, "e": 1, "x": 1 }, "prices": { "hubs": 0, "ohcu": 0 } },
 	{ "id": 2, "name": "Vulture-G2", "hp": 4500, "shield": 2500, "speed": 330, "slots": { "w": 2, "s": 2, "e": 2, "x": 2 }, "prices": { "hubs": 1000000, "ohcu": 1000 } },
 	{ "id": 3, "name": "Falcon-A3", "hp": 10000, "shield": 6000, "speed": 360, "slots": { "w": 4, "s": 4, "e": 4, "x": 3 }, "prices": { "hubs": 5000000, "ohcu": 5000 } },
 	{ "id": 4, "name": "Titan-S4", "hp": 25000, "shield": 15000, "speed": 390, "slots": { "w": 8, "s": 8, "e": 8, "x": 4 }, "prices": { "hubs": 20000000, "ohcu": 15000 } },

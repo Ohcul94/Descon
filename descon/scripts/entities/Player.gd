@@ -181,13 +181,13 @@ func _recalculate_stats():
 			elif type == "e" or type == "engine" or cat == "e": speed_bonus += bonus
 			elif type == "h" or type == "hp" or cat == "h": total_hp_bonus += bonus
 	
-	var ship_base = { "hp": 2000, "shield": 1000, "speed": 300 }
+	var ship_base = { "hp": 3000, "shield": 1000, "speed": 300 }
 	for ship in GameConstants.SHIP_MODELS:
 		if ship.id == current_ship_id:
 			ship_base = ship
 			break
 			
-	var base_hp_val = float(ship_base.get("hp", 2000)) + total_hp_bonus
+	var base_hp_val = float(ship_base.get("hp", 3000)) + total_hp_bonus
 	var base_sh_val = float(ship_base.get("shield", 1000)) + total_sh_bonus
 	var base_speed_val = float(ship_base.get("speed", 300)) + speed_bonus
 	
