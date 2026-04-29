@@ -6,6 +6,7 @@ extends "res://scripts/systems/HUDWindow.gd"
 var current_tab = "ships"
 
 func _ready():
+	add_to_group("admin_panel_ui") # v244.86: Coordinación global
 	window_id = "AdminPanel"
 	header_height = 30
 	z_index = 200 # Por encima de todo

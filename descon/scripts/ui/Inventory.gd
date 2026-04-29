@@ -23,6 +23,8 @@ var selected_sphere_type_filter = "ANY" # Filtro de color para la biblioteca
 var spheres_manager = null # Referencia al gestor de esferas del jugador
 var clan_data = null # v242.35: Cache de datos de la Flota (Clan)
 var last_clan_subtab = 0 # v244.55: Preservar pestaña al refrescar
+var pending_clans = [] # v244.90: Solicitudes que el usuario envió y están pendientes
+var received_invites = [] # v244.95: Invitaciones que el usuario recibió de clanes
 
 
 
@@ -54,8 +56,11 @@ var SKILL_DATA = [
 ]
 
 func _ready():
-	# visible = false # Removido para que el inventario lo controle
+	add_to_group("inventory_ui") # v244.70: Coordinación global de UI
 	mouse_filter = Control.MOUSE_FILTER_PASS
+	
+	var win = get_node_or_null("Window")
+	if win: win.mouse_filter = Control.MOUSE_FILTER_STOP # v244.71: Bloquear click-through
 	
 	# PROTOCOLO EXORCISMO (v164.1: Ocultar todo nodo Label externo que diga LOGISTICA o similar)
 	_aggressive_hide(self)
@@ -156,6 +161,15 @@ func _draw():
 		win.position = r_pos
 		win.custom_minimum_size = r_size
 		win.size = r_size
+		win.mouse_filter = Control.MOUSE_FILTER_STOP # v244.71: Bloquear click-through
+	
+	# v244.72: Refuerzo de bloqueo (Invisible Panel que consume eventos)
+	var blocker = get_node_or_null("ClickBlocker")
+	if not blocker:
+		blocker = Control.new(); blocker.name = "ClickBlocker"
+		add_child(blocker); move_child(blocker, 0)
+	blocker.position = r_pos; blocker.size = r_size
+	blocker.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	draw_rect(Rect2(r_pos, r_size), Color(0.02, 0.02, 0.05, 0.98))
 	draw_rect(Rect2(r_pos, Vector2(r_size.x, 35)), Color(0, 0.08, 0.12, 1.0))
@@ -178,7 +192,24 @@ func _format_val(v):
 	return r
 
 func _input(event):
-	# v222.98: No procesar shortcuts si el usuario está escribiendo (Chat, etc)
+	# v244.75: Las funciones de cerrado de menú (ESC y Botón X) deben funcionar SIEMPRE, incluso si estás escribiendo
+	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if is_open:
+			toggle()
+			get_viewport().set_input_as_handled()
+			return
+
+	if event is InputEventMouseButton and event.pressed and visible:
+		var screen_size = get_viewport_rect().size
+		var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
+		var r_pos = (screen_size - r_size) / 2
+		var x_rect = Rect2(r_pos.x + r_size.x - 35, r_pos.y + 8, 25, 18)
+		if x_rect.has_point(event.position): 
+			toggle()
+			get_viewport().set_input_as_handled()
+			return
+
+	# v222.98: Bloquear shortcuts de juego (M, F1, etc) si el usuario está escribiendo (Chat, etc)
 	var focusNode = get_viewport().gui_get_focus_owner()
 	if focusNode is LineEdit or focusNode is TextEdit: return
 
@@ -204,17 +235,6 @@ func _input(event):
 						tabs.current_tab = i
 						break
 		get_viewport().set_input_as_handled()
-		
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		if is_open:
-			toggle()
-			get_viewport().set_input_as_handled()
-	if event is InputEventMouseButton and event.pressed and visible:
-		var screen_size = get_viewport_rect().size
-		var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
-		var r_pos = (screen_size - r_size) / 2
-		var x_rect = Rect2(r_pos.x + r_size.x - 35, r_pos.y + 8, 25, 18)
-		if x_rect.has_point(event.position): toggle(); get_viewport().set_input_as_handled()
 
 func toggle():
 	is_open = !is_open
@@ -249,8 +269,19 @@ func _on_inventory_received(data: Dictionary):
 		current_ship_id = int(data.currentShipId)
 	if data.has("hubs"): hubs = int(data.hubs)
 	if data.has("ohcu"): ohcu = int(data.ohcu)
+	if data.has("pendingClanRequests"):
+		pending_clans = data.pendingClanRequests
+	if data.has("gameData") and data.gameData.has("pendingClanRequests"):
+		pending_clans = data.gameData.pendingClanRequests
+	if data.has("receivedClanInvites"):
+		received_invites = data.receivedClanInvites
+	if data.has("gameData") and data.gameData.has("receivedClanInvites"):
+		received_invites = data.gameData.receivedClanInvites
+		
 	if data.has("equippedByShip"):
 		equipped_by_ship = data.equippedByShip
+	
+	if is_open: _update_clan_ui() # v244.96: Refresco instantáneo de solis e invitaciones
 	
 	# v164.11: Sincronizar con el Player (CRÍTICO PARA MMO SYNC)
 	# Siempre actualizamos los datos internos aunque la UI esté cerrada
@@ -1224,6 +1255,35 @@ func _update_clan_ui():
 		b_unir.pressed.connect(func():
 			if i_search.text != "": NetworkManager.send_event("joinClan", {"tag": i_search.text})
 		)
+		
+		# v244.90: Visualización de Solicitudes Pendientes (Applicant Side)
+		if pending_clans.size() > 0 or received_invites.size() > 0:
+			master_v.add_child(HSeparator.new())
+			
+			if received_invites.size() > 0:
+				var t_inv = Label.new(); t_inv.text = "INVITACIONES RECIBIDAS"; t_inv.modulate = Color.CYAN; master_v.add_child(t_inv)
+				var i_grid = GridContainer.new(); i_grid.columns = 1; master_v.add_child(i_grid)
+				for inv in received_invites:
+					var hb = HBoxContainer.new(); i_grid.add_child(hb)
+					var l = Label.new(); l.text = "[" + str(inv.get("tag", "")) + "] " + str(inv.get("name", "")); l.size_flags_horizontal = 3; hb.add_child(l)
+					
+					var b_acc = Button.new(); b_acc.text = "ACEPTAR"; b_acc.modulate = Color.GREEN; hb.add_child(b_acc)
+					b_acc.pressed.connect(func(): NetworkManager.send_event("handleClanInvite", {"clanId": inv.id, "action": "accept"}))
+					
+					var b_den = Button.new(); b_den.text = "RECHAZAR"; b_den.modulate = Color.RED; hb.add_child(b_den)
+					b_den.pressed.connect(func(): NetworkManager.send_event("handleClanInvite", {"clanId": inv.id, "action": "deny"}))
+				
+				master_v.add_child(HSeparator.new())
+
+			if pending_clans.size() > 0:
+				var t_pend = Label.new(); t_pend.text = "SOLICITUDES ENVIADAS (" + str(pending_clans.size()) + "/3)"; t_pend.modulate = Color.GOLD; master_v.add_child(t_pend)
+				var p_grid = GridContainer.new(); p_grid.columns = 3; master_v.add_child(p_grid)
+				for p_clan in pending_clans:
+					var c_label = Label.new()
+					c_label.text = "[" + str(p_clan.get("tag", "")) + "] " + str(p_clan.get("name", ""))
+					c_label.add_theme_font_size_override("font_size", 10)
+					c_label.modulate = Color.CYAN
+					p_grid.add_child(c_label)
 	else:
 		var head = HBoxContainer.new(); master_v.add_child(head)
 		var tag_str = str(clan_data.get("tag", "TAG"))
@@ -1255,7 +1315,9 @@ func _update_clan_ui():
 		_render_clan_members_tab(m_tab, is_leader, p_node)
 		
 		# 2. SOLICITUDES (Solo Líder/Oficial)
-		var s_tab = Control.new(); s_tab.name = "Solicitudes"; sub_tabs.add_child(s_tab)
+		var s_count = clan_data.get("requests", []).size()
+		var s_tab = Control.new(); s_tab.name = "Solicitudes (" + str(s_count) + ")" if s_count > 0 else "Solicitudes"
+		sub_tabs.add_child(s_tab)
 		_render_clan_requests_tab(s_tab, is_leader)
 		
 		# 3. CONFIGURACIÓN
@@ -1323,24 +1385,35 @@ func _render_clan_requests_tab(parent, is_leader):
 	if not is_leader:
 		var lbl = Label.new(); lbl.text = "Solo el líder puede ver las solicitudes."; lbl.modulate.a = 0.5; main_v.add_child(lbl)
 		return
+	
+	# v244.97: Sección de Invitación Directa (Pedido del Usuario)
+	var inv_h = HBoxContainer.new(); main_v.add_child(inv_h)
+	var i_name = LineEdit.new(); i_name.placeholder_text = "Ingresar TAG del piloto a invitar..."; i_name.size_flags_horizontal = 3; inv_h.add_child(i_name)
+	var b_inv = Button.new(); b_inv.text = "ENVIAR INVITACIÓN"; b_inv.modulate = Color.CYAN; inv_h.add_child(b_inv)
+	b_inv.pressed.connect(func():
+		if i_name.text != "":
+			NetworkManager.send_event("inviteToClan", {"username": i_name.text})
+			i_name.text = ""
+	)
+	
+	main_v.add_child(HSeparator.new())
 		
 	var reqs = clan_data.get("requests", [])
 	if reqs.is_empty():
-		var lbl = Label.new(); lbl.text = "No hay solicitudes pendientes."; lbl.modulate.a = 0.5; main_v.add_child(lbl)
-		return
+		var lbl = Label.new(); lbl.text = "No hay solicitudes de ingreso pendientes."; lbl.modulate.a = 0.5; main_v.add_child(lbl)
+	else:
+		var scroll = ScrollContainer.new(); scroll.size_flags_vertical = 3; main_v.add_child(scroll)
+		var list = VBoxContainer.new(); list.size_flags_horizontal = 3; scroll.add_child(list)
 		
-	var scroll = ScrollContainer.new(); scroll.size_flags_vertical = 3; main_v.add_child(scroll)
-	var list = VBoxContainer.new(); list.size_flags_horizontal = 3; scroll.add_child(list)
-	
-	for r in reqs:
-		var hb = HBoxContainer.new(); hb.custom_minimum_size.y = 40; list.add_child(hb)
-		var nl = Label.new(); nl.text = str(r.get("username", "Piloto")) + " (Lvl " + str(r.get("level", 1)) + ")"; nl.size_flags_horizontal = 3; hb.add_child(nl)
-		
-		var b_acc = Button.new(); b_acc.text = "ACEPTAR"; b_acc.modulate = Color.GREEN; hb.add_child(b_acc)
-		b_acc.pressed.connect(func(): NetworkManager.send_event("handleClanRequest", {"username": r.username, "action": "accept"}))
-		
-		var b_den = Button.new(); b_den.text = "RECHAZAR"; b_den.modulate = Color.RED; hb.add_child(b_den)
-		b_den.pressed.connect(func(): NetworkManager.send_event("handleClanRequest", {"username": r.username, "action": "deny"}))
+		for r in reqs:
+			var hb = HBoxContainer.new(); hb.custom_minimum_size.y = 40; list.add_child(hb)
+			var nl = Label.new(); nl.text = str(r.get("username", "Piloto")) + " (Lvl " + str(r.get("level", 1)) + ")"; nl.size_flags_horizontal = 3; hb.add_child(nl)
+			
+			var b_acc = Button.new(); b_acc.text = "ACEPTAR"; b_acc.modulate = Color.GREEN; hb.add_child(b_acc)
+			b_acc.pressed.connect(func(): NetworkManager.send_event("handleClanRequest", {"username": r.username, "action": "accept"}))
+			
+			var b_den = Button.new(); b_den.text = "RECHAZAR"; b_den.modulate = Color.RED; hb.add_child(b_den)
+			b_den.pressed.connect(func(): NetworkManager.send_event("handleClanRequest", {"username": r.username, "action": "deny"}))
 
 func _render_clan_config_tab(parent, is_leader, tag_str):
 	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

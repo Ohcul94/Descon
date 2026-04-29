@@ -139,6 +139,10 @@ func _on_server_data_received(p_data: Dictionary):
 func _input(event: InputEvent):
 	# v244.60: Bloquear menú de sistema en el login
 	if not NetworkManager or not NetworkManager.is_logged_in: return
+	
+	# v244.70: Prioridad a menues abiertos (Si el F1 está abierto, Escape debe cerrarlo a él, no abrir este)
+	var inv = get_tree().get_first_node_in_group("inventory_ui")
+	if inv and inv.is_open: return
 
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_ESCAPE:

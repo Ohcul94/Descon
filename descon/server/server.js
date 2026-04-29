@@ -857,6 +857,22 @@ io.on('connection', (socket) => {
             // Remover de solicitudes
             clan.requests = clan.requests.filter(r => r.toString() !== targetUser._id.toString());
 
+            // v244.92: Limpiar solicitud en el usuario (Garantizar consistencia)
+            if (targetUser.gameData && targetUser.gameData.pendingClanRequests) {
+                targetUser.gameData.pendingClanRequests = targetUser.gameData.pendingClanRequests.filter(
+                    req => req.id.toString() !== clan._id.toString()
+                );
+                targetUser.markModified('gameData.pendingClanRequests');
+                await targetUser.save();
+                
+                // v244.94: Sincronía Instantánea con el Aplicante (Limpiar su lista de pendientes)
+                const targetSocketId = activeSessions.get(username.toLowerCase());
+                if (targetSocketId) {
+                    const targetSocket = io.sockets.sockets.get(targetSocketId);
+                    if (targetSocket) targetSocket.emit('inventoryData', { gameData: targetUser.gameData });
+                }
+            }
+
             if (action === 'accept') {
                 if (clan.members.length >= clan.maxMembers) {
                     return socket.emit('gameNotification', { msg: 'CLAN LLENO', type: 'error' });
@@ -865,6 +881,13 @@ io.on('connection', (socket) => {
                     clan.members.push(targetUser._id);
                     targetUser.gameData.clanId = clan._id;
                     targetUser.gameData.clanRole = 'member';
+                    
+                    // v244.98: Limpiar todo rastro de reclutamiento al unirse
+                    targetUser.gameData.pendingClanRequests = [];
+                    targetUser.gameData.receivedClanInvites = [];
+                    targetUser.markModified('gameData.pendingClanRequests');
+                    targetUser.markModified('gameData.receivedClanInvites');
+                    
                     await targetUser.save();
                     
                     const targetSocketId = activeSessions.get(username.toLowerCase());
@@ -905,6 +928,13 @@ io.on('connection', (socket) => {
 
             user.gameData.clanId = newClan._id;
             user.gameData.clanRole = 'leader'; // v243.11: Fundador es Líder
+            
+            // v244.98: Limpiar reclutamiento al fundar
+            user.gameData.pendingClanRequests = [];
+            user.gameData.receivedClanInvites = [];
+            user.markModified('gameData.pendingClanRequests');
+            user.markModified('gameData.receivedClanInvites');
+            
             user.markModified('gameData.clanId');
             user.markModified('gameData.clanRole');
             await user.save();
@@ -918,6 +948,99 @@ io.on('connection', (socket) => {
             socket.emit('gameNotification', { msg: `FLOTA [${tag}] FUNDADA CON ÉXITO`, type: 'success' });
             console.log(`[CLAN] ${user.username} fundó ${name} [${tag}]`);
         } catch (e) { console.error("Error createClan:", e); }
+    });
+
+    socket.on('inviteToClan', async (data) => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const { username } = data;
+        if (!username) return;
+
+        try {
+            const clan = await Clan.findOne({ leader: socket.dbUser._id });
+            if (!clan) return socket.emit('gameNotification', { msg: 'SOLO EL LÍDER PUEDE INVITAR', type: 'error' });
+
+            if (clan.members.length >= (clan.maxMembers || 20)) {
+                return socket.emit('gameNotification', { msg: 'FLOTA LLENA', type: 'error' });
+            }
+
+            const targetUser = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+            if (!targetUser) return socket.emit('gameNotification', { msg: 'PILOTO NO ENCONTRADO', type: 'error' });
+
+            if (targetUser.gameData.clanId) {
+                return socket.emit('gameNotification', { msg: 'EL PILOTO YA PERTENECE A UNA FLOTA', type: 'error' });
+            }
+
+            // v244.95: Evitar duplicados en invitaciones recibidas
+            if (!targetUser.gameData.receivedClanInvites) targetUser.gameData.receivedClanInvites = [];
+            if (targetUser.gameData.receivedClanInvites.some(inv => inv.id.toString() === clan._id.toString())) {
+                return socket.emit('gameNotification', { msg: 'YA ENVIASTE UNA INVITACIÓN A ESTE PILOTO', type: 'info' });
+            }
+
+            targetUser.gameData.receivedClanInvites.push({ id: clan._id, tag: clan.tag, name: clan.name });
+            targetUser.markModified('gameData.receivedClanInvites');
+            await targetUser.save();
+
+            // Notificar al invitado si está online
+            const targetSocketId = activeSessions.get(username.toLowerCase());
+            if (targetSocketId) {
+                const targetSocket = io.sockets.sockets.get(targetSocketId);
+                if (targetSocket) {
+                    targetSocket.emit('inventoryData', { gameData: targetUser.gameData });
+                    targetSocket.emit('gameNotification', { msg: `¡HAS SIDO INVITADO A LA FLOTA [${clan.tag}]!`, type: 'info' });
+                }
+            }
+
+            socket.emit('gameNotification', { msg: `INVITACIÓN ENVIADA A ${username.toUpperCase()}`, type: 'success' });
+        } catch (e) { console.error("Error inviteToClan:", e); }
+    });
+
+    socket.on('handleClanInvite', async (data) => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const { clanId, action } = data; // action: 'accept' or 'deny'
+        if (!clanId || !action) return;
+
+        try {
+            const user = await User.findById(socket.dbUser._id);
+            if (!user.gameData.receivedClanInvites) return;
+
+            // Remover la invitación respondida
+            user.gameData.receivedClanInvites = user.gameData.receivedClanInvites.filter(inv => inv.id.toString() !== clanId.toString());
+            user.markModified('gameData.receivedClanInvites');
+
+            if (action === 'accept') {
+                if (user.gameData.clanId) return socket.emit('gameNotification', { msg: 'YA PERTENECES A UNA FLOTA', type: 'error' });
+                
+                const clan = await Clan.findById(clanId);
+                if (!clan) return socket.emit('gameNotification', { msg: 'LA FLOTA YA NO EXISTE', type: 'error' });
+
+                if (clan.members.length >= (clan.maxMembers || 20)) {
+                    return socket.emit('gameNotification', { msg: 'LA FLOTA ESTÁ LLENA', type: 'error' });
+                }
+
+                if (!clan.members.includes(user._id)) {
+                    clan.members.push(user._id);
+                    await clan.save();
+                }
+
+                user.gameData.clanId = clan._id;
+                user.gameData.clanRole = 'member';
+                
+                // Si acepta una, limpiar todas sus solicitudes enviadas a otros clanes
+                user.gameData.pendingClanRequests = [];
+                user.markModified('gameData.pendingClanRequests');
+                
+                players[socket.id].clanId = clan._id;
+                socket.join(`clan_${clan._id}`);
+
+                const payload = await getClanDataPayload(clan._id);
+                io.to(`clan_${clan._id}`).emit('clanData', payload);
+                socket.emit('gameNotification', { msg: `¡BIENVENIDO A [${clan.tag}]!`, type: 'success' });
+            }
+
+            await user.save();
+            // Actualizar UI del usuario (Limpiar listas de invitaciones/pendientes)
+            socket.emit('inventoryData', { gameData: user.gameData });
+        } catch (e) { console.error("Error handleClanInvite:", e); }
     });
 
     socket.on('getClanData', async () => {
@@ -947,13 +1070,33 @@ io.on('connection', (socket) => {
             }
 
             if (clan.joinType === 'invite') {
-                // v243.76: Sistema de Solicitudes (A futuro: Aceptar en Panel de Líder)
+                // v243.76: Sistema de Solicitudes
                 if (!clan.requests) clan.requests = [];
-                if (clan.requests.includes(user._id)) {
+                if (clan.requests.some(r => r.toString() === user._id.toString())) {
                     return socket.emit('gameNotification', { msg: 'YA ENVIASTE UNA SOLICITUD', type: 'info' });
                 }
+
+                // v244.90: Limitar solicitudes (Máx 3)
+                if (!user.gameData.pendingClanRequests) user.gameData.pendingClanRequests = [];
+                if (user.gameData.pendingClanRequests.length >= 3) {
+                    return socket.emit('gameNotification', { msg: 'MÁXIMO 3 SOLICITUDES PENDIENTES', type: 'error' });
+                }
+
                 clan.requests.push(user._id);
                 await clan.save();
+
+                // Registrar en el usuario para que sepa a quién le envió
+                user.gameData.pendingClanRequests.push({ id: clan._id, tag: clan.tag, name: clan.name });
+                user.markModified('gameData.pendingClanRequests');
+                await user.save();
+
+                // v244.93: Notificar al aplicante para que vea su lista actualizada de inmediato
+                socket.emit('inventoryData', { gameData: user.gameData });
+
+                // v244.91: Sincronía Instantánea con el Clan (Líder verá la solicitud al toque)
+                const payload = await getClanDataPayload(clan._id);
+                io.to(`clan_${clan._id}`).emit('clanData', payload);
+
                 return socket.emit('gameNotification', { msg: 'SOLICITUD ENVIADA AL LÍDER', type: 'success' });
             }
 
@@ -962,6 +1105,13 @@ io.on('connection', (socket) => {
 
             user.gameData.clanId = clan._id;
             user.gameData.clanRole = 'member'; // v243.12: Ingresa como miembro raso
+            
+            // v244.98: Limpiar reclutamiento al unirse (Auto-Join)
+            user.gameData.pendingClanRequests = [];
+            user.gameData.receivedClanInvites = [];
+            user.markModified('gameData.pendingClanRequests');
+            user.markModified('gameData.receivedClanInvites');
+            
             user.markModified('gameData.clanId');
             user.markModified('gameData.clanRole');
             await user.save();

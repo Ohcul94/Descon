@@ -62,6 +62,17 @@ func _ready():
 func _unhandled_input(event):
 	# v226.50: Bloquear zoom si el mouse está sobre la UI (Evitar zoom al scrollear menús)
 	if event is InputEventMouseButton:
+		# v244.75: Bloqueo de SEGURIDAD para evitar click-through al menue de F1 o F2
+		var inv = get_tree().get_first_node_in_group("inventory_ui")
+		var adm = get_tree().get_first_node_in_group("admin_panel_ui")
+		if (inv and inv.visible) or (adm and adm.visible):
+			var mouse_pos = get_viewport().get_mouse_position()
+			var screen_size = get_viewport().get_visible_rect().size
+			var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
+			var r_pos = (screen_size - r_size) / 2.0
+			if Rect2(r_pos, r_size).has_point(mouse_pos):
+				return # El click está sobre el panel, ignorar para movimiento
+
 		if get_viewport().gui_get_hovered_control() != null:
 			return
 			
@@ -89,7 +100,10 @@ func _physics_process(p_delta):
 	_handle_cooldowns(p_delta)
 	
 	var chat = get_tree().get_first_node_in_group("chat_ui")
-	if not (chat and chat.has_method("is_typing") and chat.is_typing()):
+	var focus_node = get_viewport().gui_get_focus_owner()
+	var is_typing = (chat and chat.has_method("is_typing") and chat.is_typing()) or (focus_node is LineEdit or focus_node is TextEdit)
+	
+	if not is_typing:
 		_handle_input()
 		
 	_apply_movement()

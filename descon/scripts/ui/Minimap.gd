@@ -10,6 +10,18 @@ var world_size: float
 func _input(event):
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
+			# v244.85: Bloqueo inteligente si hay menús superpuestos (F1 / F2)
+			var screen_size = get_viewport().get_visible_rect().size
+			var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
+			var r_pos = (screen_size - r_size) / 2.0
+			var menu_rect = Rect2(r_pos, r_size)
+			
+			if menu_rect.has_point(event.position):
+				var inv = get_tree().get_first_node_in_group("inventory_ui")
+				var admin = get_tree().get_first_node_in_group("admin_panel_ui")
+				if (inv and inv.visible) or (admin and admin.visible):
+					return # Ignorar clic, cae en el área de un menú abierto
+
 			# v165.60: Detección global para evitar que la ventana bloquee el radar
 			var global_m_pos = get_global_mouse_position()
 			if get_global_rect().has_point(global_m_pos):
