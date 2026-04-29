@@ -83,6 +83,9 @@ func _input(event):
 	var focusNode = get_viewport().gui_get_focus_owner()
 	if focusNode is LineEdit or focusNode is TextEdit: return
 	
+	# v244.60: Bloquear interacciones si no hay sesión
+	if not NetworkManager or not NetworkManager.is_logged_in: return
+	
 	# v190.30: Sistema de Seguridad SuperAdmin (Acceso Exclusivo Caelli94)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F2:
 		if is_instance_valid(local_player):
@@ -138,6 +141,8 @@ func _on_login_success(data):
 	ui_chat.visible = true
 
 func _unhandled_input(event):
+	if not NetworkManager or not NetworkManager.is_logged_in: return
+	
 	if event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
 		if is_instance_valid(ui_hud) and ui_hud.has_method("toggle_esc_menu"):
 			ui_hud.toggle_esc_menu()

@@ -61,6 +61,9 @@ func _input(event):
 
 
 	if event is InputEventKey and event.pressed:
+		# v244.60: Bloquear panel admin en el login
+		if not NetworkManager or not NetworkManager.is_logged_in: return
+
 		if event.keycode == KEY_F2:
 			toggle()
 			get_viewport().set_input_as_handled()

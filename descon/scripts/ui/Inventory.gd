@@ -22,6 +22,7 @@ var selected_sphere_slot = -1 # Slot siendo reconfigurado
 var selected_sphere_type_filter = "ANY" # Filtro de color para la biblioteca
 var spheres_manager = null # Referencia al gestor de esferas del jugador
 var clan_data = null # v242.35: Cache de datos de la Flota (Clan)
+var last_clan_subtab = 0 # v244.55: Preservar pestaña al refrescar
 
 
 
@@ -180,6 +181,9 @@ func _input(event):
 	# v222.98: No procesar shortcuts si el usuario está escribiendo (Chat, etc)
 	var focusNode = get_viewport().gui_get_focus_owner()
 	if focusNode is LineEdit or focusNode is TextEdit: return
+
+	# v244.60: No permitir abrir menues si no estamos logueados
+	if not NetworkManager.is_logged_in: return
 
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
 		toggle(); get_viewport().set_input_as_handled()
@@ -962,96 +966,82 @@ func _update_talent_tree():
 # --- EQUIPO (PARTY) ---
 func _update_party_ui():
 	if not visible: return # Ahorrar recursos si el Hangar está cerrado
-	
 	var tab = get_node_or_null("Window/TabContainer/Equipo")
 	if not tab: return
-	for n in tab.get_children(): n.queue_free()
 	
-	var master_h = HBoxContainer.new(); master_h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); master_h.add_theme_constant_override("separation", 30); tab.add_child(master_h)
-	
-	# Columna Izquierda: Miembros del Grupo
-	var l_col = VBoxContainer.new(); l_col.size_flags_horizontal = 3; master_h.add_child(l_col)
-	var l_title = Label.new(); l_title.text = "MIEMBROS DEL ESCUADRÓN"; l_title.modulate = Color.CYAN; l_title.add_theme_font_size_override("font_size", 11); l_col.add_child(l_title)
-	
-	var p_scroll = ScrollContainer.new(); p_scroll.size_flags_vertical = 3; l_col.add_child(p_scroll)
-	var p_list = VBoxContainer.new(); p_list.size_flags_horizontal = 3; p_scroll.add_child(p_list)
-	
-	var data = PartyManager.current_party
-	if data:
-		var members = data.get("members", [])
-		var names = data.get("names", [])
-		for i in range(members.size()):
-			var hb = HBoxContainer.new(); hb.custom_minimum_size = Vector2(0, 40)
-			var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,1,1,0.05); sb.border_width_left = 2; sb.border_color = Color.CYAN if i == 0 else Color.WHITE
-			var pc = PanelContainer.new(); pc.add_theme_stylebox_override("panel", sb); pc.size_flags_horizontal = 3; hb.add_child(pc)
-			
-			var name_lbl = Label.new(); name_lbl.text = ("Lider: " if i == 0 else "Piloto: ") + str(names[i]); pc.add_child(name_lbl)
-			p_list.add_child(hb)
+	# v244.62: Estructura Persistente para evitar perder el foco del buscador
+	var master_h = tab.get_node_or_null("MasterH")
+	if not master_h:
+		for n in tab.get_children(): n.queue_free()
+		master_h = HBoxContainer.new(); master_h.name = "MasterH"; master_h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		master_h.add_theme_constant_override("separation", 30); tab.add_child(master_h)
 		
-		var leave_btn = Button.new(); leave_btn.text = "ABANDONAR GRUPO"; leave_btn.modulate = Color.RED
-		leave_btn.pressed.connect(func(): PartyManager.leave_party())
-		l_col.add_child(leave_btn)
-	else:
-		var no_party = Label.new(); no_party.text = "\nNo perteneces a ningún escuadrón."; no_party.modulate.a = 0.4; p_list.add_child(no_party)
+		# Columna Izquierda: Miembros del Grupo
+		var l_col = VBoxContainer.new(); l_col.name = "LCol"; l_col.size_flags_horizontal = 3; master_h.add_child(l_col)
+		var l_title = Label.new(); l_title.text = "MIEMBROS DEL ESCUADRÓN"; l_title.modulate = Color.CYAN; l_title.add_theme_font_size_override("font_size", 11); l_col.add_child(l_title)
+		var p_scroll = ScrollContainer.new(); p_scroll.name = "PScroll"; p_scroll.size_flags_vertical = 3; l_col.add_child(p_scroll)
+		var _p_list = VBoxContainer.new(); _p_list.name = "PList"; _p_list.size_flags_horizontal = 3; p_scroll.add_child(_p_list)
+		var _leave_box = VBoxContainer.new(); _leave_box.name = "LeaveBox"; l_col.add_child(_leave_box)
+		
+		# Columna Derecha: Jugadores Cercanos
+		var r_col = VBoxContainer.new(); r_col.name = "RCol"; r_col.size_flags_horizontal = 3; master_h.add_child(r_col)
+		var r_title = Label.new(); r_title.text = "PILOTOS EN LA ZONA"; r_title.modulate = Color.GOLD; r_title.add_theme_font_size_override("font_size", 11); r_col.add_child(r_title)
+		var n_scroll = ScrollContainer.new(); n_scroll.name = "NScroll"; n_scroll.size_flags_vertical = 3; r_col.add_child(n_scroll)
+		var _n_list = VBoxContainer.new(); _n_list.name = "NList"; _n_list.size_flags_horizontal = 3; n_scroll.add_child(_n_list)
+		
+		# Seccion de Invitacion Manual (PERSISTENTE)
+		var inv_h = HBoxContainer.new(); inv_h.name = "InvH"; r_col.add_child(inv_h)
+		var inp = LineEdit.new(); inp.name = "ManualInput"; inp.placeholder_text = "Buscar por nombre..."
+		inp.size_flags_horizontal = 3; inv_h.add_child(inp)
+		var btn = Button.new(); btn.text = "INVITAR"; inv_h.add_child(btn)
+		btn.pressed.connect(func(): 
+			var name_to_inv = inp.text.strip_edges()
+			if name_to_inv != "": 
+				PartyManager.invite_player(name_to_inv)
+				inp.text = ""
+		)
 
-	# Columna Derecha: Jugadores Cercanos
-	var r_col = VBoxContainer.new()
-	r_col.size_flags_horizontal = 3
-	master_h.add_child(r_col)
-	
-	var r_title = Label.new()
-	r_title.text = "PILOTOS EN LA ZONA"
-	r_title.modulate = Color.GOLD
-	r_title.add_theme_font_size_override("font_size", 11)
-	r_col.add_child(r_title)
-	
-	var n_scroll = ScrollContainer.new()
-	n_scroll.size_flags_vertical = 3
-	r_col.add_child(n_scroll)
-	
-	var n_list = VBoxContainer.new()
-	n_list.size_flags_horizontal = 3
-	n_scroll.add_child(n_list)
-	
-	var world_node = get_tree().get_first_node_in_group("world_node")
-	if is_instance_valid(world_node):
-		var players = world_node.remote_players
-		if players.is_empty():
-			var lbl = Label.new()
-			lbl.text = "\nNo hay otros pilotos cerca."
-			lbl.modulate.a = 0.3
-			n_list.add_child(lbl)
+	# --- ACTUALIZACIÓN DE LISTAS DINÁMICAS ---
+	var p_list = tab.get_node_or_null("MasterH/LCol/PScroll/PList")
+	var leave_box = tab.get_node_or_null("MasterH/LCol/LeaveBox")
+	if p_list:
+		for n in p_list.get_children(): n.queue_free()
+		for n in leave_box.get_children(): n.queue_free()
+		
+		var data = PartyManager.current_party
+		if data:
+			var members = data.get("members", [])
+			var names = data.get("names", [])
+			for i in range(members.size()):
+				var hb = HBoxContainer.new(); hb.custom_minimum_size = Vector2(0, 40)
+				var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,1,1,0.05); sb.border_width_left = 2; sb.border_color = Color.CYAN if i == 0 else Color.WHITE
+				var pc = PanelContainer.new(); pc.add_theme_stylebox_override("panel", sb); pc.size_flags_horizontal = 3; hb.add_child(pc)
+				var name_lbl = Label.new(); name_lbl.text = ("Lider: " if i == 0 else "Piloto: ") + str(names[i]); pc.add_child(name_lbl)
+				p_list.add_child(hb)
+			
+			var leave_btn = Button.new(); leave_btn.text = "ABANDONAR GRUPO"; leave_btn.modulate = Color.RED
+			leave_btn.pressed.connect(func(): PartyManager.leave_party())
+			leave_box.add_child(leave_btn)
 		else:
-			for id in players:
-				var p = players[id]
-				if not is_instance_valid(p): continue
-				var hb = HBoxContainer.new()
-				var nl = Label.new()
-				nl.text = p.username if "username" in p else "Piloto"
-				nl.size_flags_horizontal = 3
-				var ib = Button.new()
-				ib.text = "INVITAR"
-				ib.add_theme_font_size_override("font_size", 10)
-				ib.pressed.connect(func(): PartyManager.invite_player(nl.text))
-				hb.add_child(nl)
-				hb.add_child(ib)
-				n_list.add_child(hb)
+			var no_party = Label.new(); no_party.text = "\nNo perteneces a ningún escuadrón."; no_party.modulate.a = 0.4; p_list.add_child(no_party)
 
-	# Seccion de Invitacion Manual
-	var inv_h = HBoxContainer.new()
-	r_col.add_child(inv_h)
-	var inp = LineEdit.new()
-	inp.placeholder_text = "Buscar por nombre..."
-	inp.size_flags_horizontal = 3
-	inv_h.add_child(inp)
-	var btn = Button.new()
-	btn.text = "INVITAR"
-	inv_h.add_child(btn)
-	btn.pressed.connect(func(): 
-		if inp.text != "": 
-			PartyManager.invite_player(inp.text)
-			inp.text = ""
-	)
+	var n_list = tab.get_node_or_null("MasterH/RCol/NScroll/NList")
+	if n_list:
+		for n in n_list.get_children(): n.queue_free()
+		var world_node = get_tree().get_first_node_in_group("world_node")
+		if is_instance_valid(world_node):
+			var players = world_node.remote_players
+			if players.is_empty():
+				var lbl = Label.new(); lbl.text = "\nNo hay otros pilotos cerca."; lbl.modulate.a = 0.3; n_list.add_child(lbl)
+			else:
+				for id in players:
+					var p = players[id]
+					if not is_instance_valid(p): continue
+					var hb = HBoxContainer.new()
+					var nl = Label.new(); nl.text = p.username if "username" in p else "Piloto"; nl.size_flags_horizontal = 3
+					var ib = Button.new(); ib.text = "INVITAR"; ib.add_theme_font_size_override("font_size", 10)
+					ib.pressed.connect(func(): PartyManager.invite_player(nl.text))
+					hb.add_child(nl); hb.add_child(ib); n_list.add_child(hb)
 
 # --- MAPA GALÁCTICO ---
 func _update_map_ui():
@@ -1253,68 +1243,142 @@ func _update_clan_ui():
 			, inp)
 		)
 		
-		if is_leader:
-			var b_disband = Button.new(); b_disband.text = "DISOLVER"; b_disband.modulate = Color.ORANGE_RED; head.add_child(b_disband)
-			b_disband.pressed.connect(func():
-				var inp = LineEdit.new(); inp.placeholder_text = "Escribe " + tag_str + " para DISOLVER..."; inp.alignment = HORIZONTAL_ALIGNMENT_CENTER
-				_show_modal("DISOLVER FLOTA", "[color=red]¡ATENCIÓN![/color]\nEsto eliminará el clan.\nEscribe [color=yellow]" + tag_str + "[/color] para confirmar.", func():
-					if inp.text.to_upper() == tag_str.to_upper(): NetworkManager.send_event("disbandClan", {})
-					else: _show_result_modal("ERROR", "El TAG ingresado no es correcto.")
-				, inp)
-			)
+		# Botón DISOLVER removido de aquí (ya está en Configuración)
 		
 		master_v.add_child(HSeparator.new())
-		var body_h = HBoxContainer.new(); body_h.size_flags_vertical = 3; master_v.add_child(body_h)
 		
-		var m_v = VBoxContainer.new(); m_v.size_flags_horizontal = 3; body_h.add_child(m_v)
-		var m_lbl = Label.new(); m_lbl.text = "PILOTOS DEL CLAN"; m_lbl.modulate.a = 0.5; m_v.add_child(m_lbl)
-		var m_scroll = ScrollContainer.new(); m_scroll.size_flags_vertical = 3; m_v.add_child(m_scroll)
-		var m_list = VBoxContainer.new(); m_list.size_flags_horizontal = 3; m_scroll.add_child(m_list)
+		# v244.50: Sistema de Sub-Tabs de Clan
+		var sub_tabs = TabContainer.new(); sub_tabs.size_flags_vertical = 3; master_v.add_child(sub_tabs)
 		
-		var members = clan_data.get("members", [])
-		for m in members:
-			if typeof(m) != TYPE_DICTIONARY: continue
-			var hb = HBoxContainer.new(); m_list.add_child(hb)
-			var is_m_online = m.get("online", false)
-			var status = Label.new(); status.text = " ● "; status.modulate = Color.GREEN if is_m_online else Color.GRAY; hb.add_child(status)
-			
-			var role = m.get("role", "member")
-			if role == "leader":
-				var l_ico = Label.new(); l_ico.text = " [LÍDER] "; l_ico.modulate = Color.GOLD; l_ico.add_theme_font_size_override("font_size", 10); hb.add_child(l_ico)
-			
-			var nl = Label.new(); nl.text = str(m.get("username", "Piloto")) + " (Lvl " + str(m.get("level", 1)) + ")"; nl.size_flags_horizontal = 3; hb.add_child(nl)
-			if not is_m_online: nl.modulate.a = 0.5
-			
-			var rl = Label.new(); rl.custom_minimum_size.x = 80; rl.add_theme_font_size_override("font_size", 9); hb.add_child(rl)
-			rl.text = "LÍDER" if role == "leader" else ("OFICIAL" if role == "officer" else "PILOTO")
-			rl.modulate = Color.GOLD if role == "leader" else (Color.CYAN if role == "officer" else Color.WHITE)
-			
-			if is_m_online and is_instance_valid(p_node):
-				var m_username = str(m.get("username", ""))
-				var m_name = m_username.to_lower()
-				var p_name = str(p_node.get("username")).to_lower() if p_node.get("username") else ""
+		# 1. MIEMBROS
+		var m_tab = Control.new(); m_tab.name = "Miembros"; sub_tabs.add_child(m_tab)
+		_render_clan_members_tab(m_tab, is_leader, p_node)
+		
+		# 2. SOLICITUDES (Solo Líder/Oficial)
+		var s_tab = Control.new(); s_tab.name = "Solicitudes"; sub_tabs.add_child(s_tab)
+		_render_clan_requests_tab(s_tab, is_leader)
+		
+		# 3. CONFIGURACIÓN
+		var c_tab = Control.new(); c_tab.name = "Configuración"; sub_tabs.add_child(c_tab)
+		_render_clan_config_tab(c_tab, is_leader, tag_str)
+		
+		# Resturar pestaña previa
+		sub_tabs.current_tab = last_clan_subtab
+		sub_tabs.tab_changed.connect(func(idx): last_clan_subtab = idx)
+
+func _render_clan_members_tab(parent, is_leader, p_node):
+	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_v.offset_left = 10; main_v.offset_right = -10; main_v.offset_top = 10; parent.add_child(main_v)
+	
+	var scroll = ScrollContainer.new(); scroll.size_flags_vertical = 3; main_v.add_child(scroll)
+	var list = VBoxContainer.new(); list.size_flags_horizontal = 3; scroll.add_child(list)
+	
+	var members = clan_data.get("members", [])
+	for m in members:
+		if typeof(m) != TYPE_DICTIONARY: continue
+		var hb = HBoxContainer.new(); hb.custom_minimum_size.y = 35; list.add_child(hb)
+		
+		var is_m_online = m.get("online", false)
+		var status = Label.new(); status.text = " ● "; status.modulate = Color.GREEN if is_m_online else Color.GRAY; hb.add_child(status)
+		
+		var role = m.get("role", "member")
+		if role == "leader":
+			var l_ico = Label.new(); l_ico.text = " [LÍDER] "; l_ico.modulate = Color.GOLD; l_ico.add_theme_font_size_override("font_size", 10); hb.add_child(l_ico)
+		
+		var nl = Label.new(); nl.text = str(m.get("username", "Piloto")) + " (Lvl " + str(m.get("level", 1)) + ")"; nl.size_flags_horizontal = 3; hb.add_child(nl)
+		if not is_m_online: nl.modulate.a = 0.5
+		
+		var rl = Label.new(); rl.custom_minimum_size.x = 80; rl.add_theme_font_size_override("font_size", 9)
+		rl.text = "LÍDER" if role == "leader" else ("OFICIAL" if role == "officer" else "PILOTO")
+		rl.modulate = Color.GOLD if role == "leader" else (Color.CYAN if role == "officer" else Color.WHITE)
+		hb.add_child(rl)
+		
+		var m_username = str(m.get("username", ""))
+		var m_name = m_username.to_lower()
+		var p_name = str(p_node.get("username")).to_lower() if is_instance_valid(p_node) and p_node.get("username") else ""
+		
+		if m_name != "" and m_name != p_name:
+			if is_m_online:
 				var in_party = false
 				if PartyManager.current_party and PartyManager.current_party.has("members"):
 					for pm in PartyManager.current_party["members"]:
 						if typeof(pm) == TYPE_DICTIONARY and str(pm.get("username", "")).to_lower() == m_name: in_party = true; break
 				
-				if m_name != "" and m_name != p_name and not in_party:
+				if not in_party:
 					var bi = Button.new(); bi.text = "PARTY"; bi.add_theme_font_size_override("font_size", 10); hb.add_child(bi)
 					bi.pressed.connect(func(): PartyManager.invite_player(m_username))
+			
+			if is_leader:
+				var bk = Button.new(); bk.text = "X"; bk.modulate = Color.RED; bk.tooltip_text = "Expulsar de la Flota"; hb.add_child(bk)
+				bk.pressed.connect(func():
+					_show_modal("EXPULSAR MIEMBRO", "¿Seguro que quieres expulsar a " + m_username + " de la flota?", func():
+						NetworkManager.send_event("kickClanMember", {"username": m_username})
+					)
+				)
+
+func _render_clan_requests_tab(parent, is_leader):
+	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_v.offset_left = 10; main_v.offset_right = -10; main_v.offset_top = 10; parent.add_child(main_v)
+	
+	if not is_leader:
+		var lbl = Label.new(); lbl.text = "Solo el líder puede ver las solicitudes."; lbl.modulate.a = 0.5; main_v.add_child(lbl)
+		return
 		
-		var r_v = VBoxContainer.new(); r_v.custom_minimum_size.x = 200; body_h.add_child(r_v)
-		var r_lbl = Label.new(); r_lbl.text = "ESTADÍSTICAS"; r_lbl.modulate.a = 0.5; r_v.add_child(r_lbl)
-		var stats_p = PanelContainer.new(); r_v.add_child(stats_p)
-		var stats_v = VBoxContainer.new(); stats_p.add_child(stats_v)
-		var s_mem = Label.new(); s_mem.text = "Miembros: " + str(members.size()) + "/20"; stats_v.add_child(s_mem)
+	var reqs = clan_data.get("requests", [])
+	if reqs.is_empty():
+		var lbl = Label.new(); lbl.text = "No hay solicitudes pendientes."; lbl.modulate.a = 0.5; main_v.add_child(lbl)
+		return
 		
-		if is_leader:
-			r_v.add_child(HSeparator.new())
-			var cfg_lbl = Label.new(); cfg_lbl.text = "CONFIGURACIÓN"; cfg_lbl.modulate.a = 0.5; r_v.add_child(cfg_lbl)
-			var jt = clan_data.get("settings", {}).get("joinType", "open")
-			var btn_jt = Button.new(); btn_jt.text = "INGRESO: " + ("ABIERTO" if jt == "open" else "SOLICITUD"); btn_jt.modulate = Color.GREEN if jt == "open" else Color.YELLOW
-			btn_jt.pressed.connect(func():
-				var next = "invite" if jt == "open" else "open"
-				NetworkManager.send_event("setClanJoinType", {"type": next})
-			)
-			r_v.add_child(btn_jt)
+	var scroll = ScrollContainer.new(); scroll.size_flags_vertical = 3; main_v.add_child(scroll)
+	var list = VBoxContainer.new(); list.size_flags_horizontal = 3; scroll.add_child(list)
+	
+	for r in reqs:
+		var hb = HBoxContainer.new(); hb.custom_minimum_size.y = 40; list.add_child(hb)
+		var nl = Label.new(); nl.text = str(r.get("username", "Piloto")) + " (Lvl " + str(r.get("level", 1)) + ")"; nl.size_flags_horizontal = 3; hb.add_child(nl)
+		
+		var b_acc = Button.new(); b_acc.text = "ACEPTAR"; b_acc.modulate = Color.GREEN; hb.add_child(b_acc)
+		b_acc.pressed.connect(func(): NetworkManager.send_event("handleClanRequest", {"username": r.username, "action": "accept"}))
+		
+		var b_den = Button.new(); b_den.text = "RECHAZAR"; b_den.modulate = Color.RED; hb.add_child(b_den)
+		b_den.pressed.connect(func(): NetworkManager.send_event("handleClanRequest", {"username": r.username, "action": "deny"}))
+
+func _render_clan_config_tab(parent, is_leader, tag_str):
+	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_v.offset_left = 10; main_v.offset_right = -10; main_v.offset_top = 10; parent.add_child(main_v)
+	
+	var grid = GridContainer.new(); grid.columns = 2; grid.add_theme_constant_override("h_separation", 20); main_v.add_child(grid)
+	
+	# Info General
+	grid.add_child(Label.new()); grid.get_child(-1).text = "Nombre:"
+	var l_name = Label.new(); l_name.text = clan_data.get("name", ""); l_name.modulate = Color.GOLD; grid.add_child(l_name)
+	
+	grid.add_child(Label.new()); grid.get_child(-1).text = "TAG:"
+	var l_tag = Label.new(); l_tag.text = clan_data.get("tag", ""); l_tag.modulate = Color.GOLD; grid.add_child(l_tag)
+	
+	grid.add_child(HSeparator.new()); grid.add_child(HSeparator.new())
+	
+	# Ajustes de Liderazgo
+	if is_leader:
+		grid.add_child(Label.new()); grid.get_child(-1).text = "Modo de Ingreso:"
+		var jt = clan_data.get("joinType", "open")
+		var btn_jt = Button.new(); btn_jt.text = "ABIERTO" if jt == "open" else "SOLICITUD"
+		btn_jt.modulate = Color.GREEN if jt == "open" else Color.YELLOW
+		grid.add_child(btn_jt)
+		btn_jt.pressed.connect(func():
+			var next = "invite" if jt == "open" else "open"
+			NetworkManager.send_event("setClanJoinType", {"type": next})
+		)
+		
+		main_v.add_child(HSeparator.new())
+		var t_danger = Label.new(); t_danger.text = "ZONA DE PELIGRO"; t_danger.modulate = Color.RED; main_v.add_child(t_danger)
+		
+		var b_disband = Button.new(); b_disband.text = "DISOLVER FLOTA"; b_disband.modulate = Color.ORANGE_RED; main_v.add_child(b_disband)
+		b_disband.pressed.connect(func():
+			var inp = LineEdit.new(); inp.placeholder_text = "Escribe " + tag_str + " para DISOLVER..."; inp.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_show_modal("DISOLVER FLOTA", "[color=red]¡ATENCIÓN![/color]\nEsto eliminará el clan.\nEscribe [color=yellow]" + tag_str + "[/color] para confirmar.", func():
+				if inp.text.to_upper() == tag_str.to_upper(): NetworkManager.send_event("disbandClan", {})
+				else: _show_result_modal("ERROR", "El TAG ingresado no es correcto.")
+			, inp)
+		)
+	else:
+		var lbl = Label.new(); lbl.text = "Solo el líder puede modificar la configuración."; lbl.modulate.a = 0.5; main_v.add_child(lbl)

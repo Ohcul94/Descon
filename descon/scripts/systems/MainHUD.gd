@@ -137,6 +137,9 @@ func _on_server_data_received(p_data: Dictionary):
 		_apply_hud_data(layout, config)
 
 func _input(event: InputEvent):
+	# v244.60: Bloquear menú de sistema en el login
+	if not NetworkManager or not NetworkManager.is_logged_in: return
+
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_ESCAPE:
 			toggle_esc_menu()

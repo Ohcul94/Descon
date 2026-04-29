@@ -48,13 +48,18 @@ var was_manual_logout: bool = false # v221.21: Evitar bucle de login en debug
 var my_socket_id: String = "" # v168.04: ID Local para evitar self-cloning
 var auth_token: String = ""
 var login_name: String = ""
+var is_logged_in: bool = false # v244.60: Control global de estado de sesión
 var ping_start_time: int = 0
 var current_ms: int = 0
+var is_registering: bool = false # v244.10: Soporte para creación de cuenta
+
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
 
-func connect_to_server(ip: String, port: int, p_name: String, p_token: String = ""):
+func connect_to_server(ip: String, port: int, p_name: String, p_token: String = "", registering: bool = false):
+	is_registering = registering
+
 	var state = socket.get_ready_state()
 	if state != WebSocketPeer.STATE_CLOSED and state != WebSocketPeer.STATE_CLOSING:
 		print("[NET] Reintento de conexión abortado: Socket ya está en uso.")
@@ -117,7 +122,10 @@ func _handle_packet(p_string: String):
 		network_connected = true
 		connection_established.emit()
 		_start_ping_loop()
-		send_event("login", {"user": login_name, "password": auth_token})
+		if is_registering:
+			send_event("register", {"user": login_name, "password": auth_token})
+		else:
+			send_event("login", {"user": login_name, "password": auth_token})
 		return
 		
 	if p_string.begins_with("42"):
@@ -132,6 +140,7 @@ func _handle_packet(p_string: String):
 func _dispatch_event(e_name: String, e_data: Variant):
 	match e_name:
 		"loginSuccess", "authSuccess":
+			is_logged_in = true
 			my_socket_id = str(e_data.get("socketId", ""))
 			auth_success.emit(e_data)
 			login_success.emit(e_data)

@@ -70,10 +70,24 @@ func _handle_debug_args():
 	var args = OS.get_cmdline_args()
 	var d_user = ""
 	var d_pass = ""
+	var d_pos = ""
+	var d_size = ""
 	for i in range(args.size()):
 		var arg = args[i]
 		if arg == "--user" and i + 1 < args.size(): d_user = args[i+1]
 		elif arg == "--pass" and i + 1 < args.size(): d_pass = args[i+1]
+		elif arg == "--win_pos" and i + 1 < args.size(): d_pos = args[i+1]
+		elif arg == "--win_size" and i + 1 < args.size(): d_size = args[i+1]
+
+	if d_pos != "":
+		var p = d_pos.split(",")
+		if p.size() == 2:
+			DisplayServer.window_set_position(Vector2i(int(p[0]), int(p[1])))
+	
+	if d_size != "":
+		var s = d_size.split(",")
+		if s.size() == 2:
+			DisplayServer.window_set_size(Vector2i(int(s[0]), int(s[1])))
 
 	if d_user != "" and d_pass != "":
 		if not NetworkManager.was_manual_logout:
@@ -103,7 +117,20 @@ func _on_login_btn_pressed():
 	NetworkManager.connect_to_server(target_ip, target_port, u, p)
 
 func _on_register_btn_pressed():
-	_show_status("Registro no implementado", Color.YELLOW)
+	if not user_input or not pass_input: return
+	var u = user_input.text.strip_edges()
+	var p = pass_input.text.strip_edges()
+	if u == "" or p == "":
+		_show_status("Ingresa usuario y contraseña para registrar", Color.YELLOW)
+		return
+	_show_status("Registrando identidad...", Color.CYAN)
+	
+	# v244.11: Configuración de Conexión para Registro
+	var target_ip = "138.2.241.76" # IP de Oracle 
+	var target_port = 3333
+	if OS.has_feature("editor"): target_ip = "127.0.0.1" 
+
+	NetworkManager.connect_to_server(target_ip, target_port, u, p, true)
 
 func _on_auth_success(_data):
 	_show_status("Bienvenido!", Color.GREEN)

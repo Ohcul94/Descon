@@ -654,3 +654,326 @@
 [HIT] User: Player3, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777497092570
 [EVENT_RAW] playerHitByEnemy received for socket RzSXY6-upkV--GQRAAAP, data: {"attackerType":"combat_ping","damage":0,"id":"RzSXY6-upkV--GQRAAAP"}
 [HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777497097508
+[EVENT_RAW] playerHitByEnemy received for socket GuhW4OUTF2eknIMkAAAP, data: {"attackerType":"combat_ping","damage":0,"id":""}
+[EVENT_RAW] playerHitByEnemy received for socket GuhW4OUTF2eknIMkAAAP, data: {"attackerType":"combat_ping","damage":0,"id":""}
+[EVENT_RAW] playerHitByEnemy received for socket GuhW4OUTF2eknIMkAAAP, data: {"attackerType":"combat_ping","damage":0,"id":""}
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500879338
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500879418
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500879419
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500881406
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500881578
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500881770
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500883999
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500884180
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500884371
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500886695
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"combat_ping","damage":0,"id":"iIMMzYZuNJKmLBJKAAAK"}
+[HIT] User: Player5, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777500886696
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500886861
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500887003
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player5, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500889376
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player5, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500889507
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player5, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500889627
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player5, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500890883
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500918850
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500918926
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500919018
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500919295
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500919514
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500919540
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":120,"enemyType":2}
+[HIT] User: Player3, Damage: 120, Source: enemy (Type: 2), New lastCombatTime: 1777500920440
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":120,"enemyType":2}
+[HIT] User: Player3, Damage: 120, Source: enemy (Type: 2), New lastCombatTime: 1777500920624
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500922401
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500922895
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500922925
+[EVENT_RAW] playerHitByEnemy received for socket z-4szIK1UyKcd-zgAAAL, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Caelli94, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500922996
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500924968
+[EVENT_RAW] playerHitByEnemy received for socket z-4szIK1UyKcd-zgAAAL, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Caelli94, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500925408
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500925533
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500925540
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500925663
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500926014
+[EVENT_RAW] playerHitByEnemy received for socket z-4szIK1UyKcd-zgAAAL, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Caelli94, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500926113
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500926472
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500926682
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500926723
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500927023
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500927024
+[EVENT_RAW] playerHitByEnemy received for socket z-4szIK1UyKcd-zgAAAL, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Caelli94, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500927051
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500927578
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500927789
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500927946
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500928199
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500928407
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500928625
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500928625
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500928638
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500928754
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500928899
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500929145
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500929375
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500930336
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500930488
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500930671
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500930992
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500931200
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500931420
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500931523
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500931619
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500931843
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500932010
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500932177
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500932467
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500932471
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500932491
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500932693
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500932724
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500932813
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500932906
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933093
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933093
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933136
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933311
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933332
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933515
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933663
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933788
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933788
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933789
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500933789
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500934033
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500934254
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500934463
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500934760
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500934931
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935009
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935064
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935064
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935168
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935196
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935343
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935368
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935388
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935388
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935389
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935767
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500935985
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500936205
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500936431
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500937054
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500938043
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500938062
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500938253
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500939190
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500939480
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500939686
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500942148
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500942285
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500942415
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500942540
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500942555
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500942732
+[EVENT_RAW] playerHitByEnemy received for socket z-4szIK1UyKcd-zgAAAL, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Caelli94, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500942824
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500943001
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500943137
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500943160
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500943339
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500943563
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500943780
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500943951
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944073
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944194
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944196
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":40,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944230
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944323
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944399
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944627
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944830
+[EVENT_RAW] playerHitByEnemy received for socket z-4szIK1UyKcd-zgAAAL, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Caelli94, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944895
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500944965
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500945001
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":5250,"enemyType":1}
+[HIT] User: Player3, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500945145
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500945683
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500945799
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500945860
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500945949
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500945951
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500945952
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500945993
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500946123
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500946194
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500947492
+[EVENT_RAW] playerHitByEnemy received for socket Vc-xZFZQdDCO8azGAAAN, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777500947664
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500948077
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500948078
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500948278
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500949213
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500949236
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500949708
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player5, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500949708
+[EVENT_RAW] playerHitByEnemy received for socket D9WOJErog3hDsTg2AAAM, data: {"attackerType":"enemy","damage":8750,"enemyType":1}
+[HIT] User: Player1, Damage: 40, Source: enemy (Type: 1), New lastCombatTime: 1777500949940
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"combat_ping","damage":0,"id":"iIMMzYZuNJKmLBJKAAAK"}
+[HIT] User: Player5, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777500981003
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"combat_ping","damage":0,"id":"iIMMzYZuNJKmLBJKAAAK"}
+[HIT] User: Player5, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777501002157
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"combat_ping","damage":0,"id":"iIMMzYZuNJKmLBJKAAAK"}
+[HIT] User: Player5, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777501003467
+[EVENT_RAW] playerHitByEnemy received for socket iIMMzYZuNJKmLBJKAAAK, data: {"attackerType":"combat_ping","damage":0,"id":"iIMMzYZuNJKmLBJKAAAK"}
+[HIT] User: Player5, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777501004396
+[EVENT_RAW] playerHitByEnemy received for socket VVh-tCinVK1K2uHPAAAF, data: {"attackerType":"combat_ping","damage":0,"id":"VVh-tCinVK1K2uHPAAAF"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777502459545
+[EVENT_RAW] playerHitByEnemy received for socket VVh-tCinVK1K2uHPAAAF, data: {"attackerType":"combat_ping","damage":0,"id":"VVh-tCinVK1K2uHPAAAF"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777502464366

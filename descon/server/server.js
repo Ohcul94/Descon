@@ -52,6 +52,247 @@ let SERVER_CONFIG = null; // Memoria de configuraci├│n global v47.0
 let parties = {}; // dbId -> { members: [dbIds], names: [strings] }
 let playerParty = {}; // dbId -> leaderDbId
 
+// v243.15: Helper para serializar datos de clan con roles y estados
+async function getClanDataPayload(clanId) {
+    try {
+        const clan = await Clan.findById(clanId)
+            .populate('members', 'username gameData.level gameData.clanRole')
+            .populate('requests', 'username gameData.level');
+        if (!clan) return null;
+
+        const membersWithStatus = clan.members.map(m => {
+            const isOnline = Array.from(activeSessions.keys()).includes(m.username.toLowerCase());
+            
+            // v243.30: Identificación robusta del Líder (Prioridad ID sobre campo opcional clanRole)
+            let role = m.gameData?.clanRole || 'member';
+            if (clan.leader && m._id.toString() === clan.leader.toString()) {
+                role = 'leader';
+            }
+            
+            return {
+                id: m._id,
+                username: m.username,
+                level: m.gameData?.level || 1,
+                role: role,
+                online: isOnline
+            };
+        });
+
+        const requestsData = (clan.requests || []).map(r => ({
+            id: r._id,
+            username: r.username,
+            level: r.gameData?.level || 1
+        }));
+
+        // v244.30: Ordenar: Líder > Oficial > Miembro
+        membersWithStatus.sort((a, b) => {
+            const weights = { 'leader': 0, 'officer': 1, 'member': 2 };
+            return weights[a.role] - weights[b.role];
+        });
+
+        return {
+            id: clan._id,
+            name: clan.name,
+            tag: clan.tag,
+            leader: clan.leader,
+            members: membersWithStatus,
+            requests: requestsData, // v244.50: Soporte para gestión de ingresos
+            joinType: clan.joinType || 'open',
+            maxMembers: clan.maxMembers || 20
+        };
+    } catch (e) {
+        console.error("Error obteniendo datos de clan:", e);
+        return null;
+    }
+}
+
+// v244.20: Función Maestra de Inicialización de Sesión (Login/Register)
+const handleUserLogin = async (socket, user, username) => {
+    // SEGURIDAD ANTI-MULTILOGIN v33.0: Desconectar sesión anterior (Case Insensitive)
+    const lowName = username.toLowerCase();
+    if (activeSessions.has(lowName)) {
+        const oldSocketId = activeSessions.get(lowName);
+        const oldSocket = io.sockets.sockets.get(oldSocketId);
+        if (oldSocket) {
+            oldSocket.emit('authError', 'SESIÓN CERRADA: Se ha detectado un nuevo ingreso con esta cuenta.');
+            oldSocket.disconnect();
+        }
+    }
+    activeSessions.set(lowName, socket.id);
+
+    user.lastLogin = new Date();
+    await user.save();
+
+    socket.dbUser = user;
+    // Sanity Check: Si el jugador estaba muerto o sin vida, revivirlo v67.0
+    if (!user.gameData.hp || user.gameData.hp <= 0) {
+        user.gameData.hp = user.gameData.maxHp || 2000;
+        user.gameData.shield = user.gameData.maxShield || 1000;
+        console.log(`[REVIVE] Piloto ${username} regenerado por deslogueo/muerte.`);
+    }
+
+    const dbId = user._id.toString();
+
+    // v190.85: Sincronía de Stats Base desde Admin Config (server-side start)
+    let baseHp = 2000; let baseSh = 1000;
+    const shipId = user.gameData.currentShipId || 1;
+    try {
+        const config = await fs.readJson(CONFIG_FILE);
+        if (config && config.shipModels) {
+            const model = config.shipModels.find(m => m.id === shipId);
+            if (model) {
+                baseHp = model.hp; baseSh = model.shield;
+            }
+        }
+    } catch (e) { }
+
+    // v214.120: Sincronía Maestra al Login (Garantizar que 'equipped' global no esté vacío)
+    const resolvedEquip = (function () {
+        const ebs = user.gameData.equippedByShip;
+        const sid = (user.gameData.currentShipId || 1).toString();
+        let raw = { w: [], s: [], e: [], x: [] };
+        if (ebs) {
+            if (typeof ebs.get === 'function') { raw = ebs.get(sid) || raw; }
+            else { raw = ebs[sid] || raw; }
+        }
+        if ((!raw.w || raw.w.length == 0) && (user.gameData.equipped && user.gameData.equipped.w && user.gameData.equipped.w.length > 0)) {
+            raw = user.gameData.equipped;
+        }
+        return JSON.parse(JSON.stringify(raw));
+    })();
+
+    // v235.50: Migración Híbrida de Slots (Garantizar 4 slots para todos)
+    if (!user.gameData.spheres || user.gameData.spheres.length < 4) {
+        if (!user.gameData.spheres) user.gameData.spheres = [];
+        while (user.gameData.spheres.length < 4) {
+            const idx = user.gameData.spheres.length + 1;
+            user.gameData.spheres.push({ "name": `Slot ${idx}`, "type": "any", "color": "#ffffff", "equipped": null });
+        }
+        user.markModified('gameData.spheres');
+        await user.save();
+    }
+
+    players[socket.id] = {
+        id: dbId,
+        socketId: socket.id,
+        num: nextPlayerNum++,
+        user: username,
+        x: user.gameData.lastPos?.x || 2000,
+        y: user.gameData.lastPos?.y || 2000,
+        rotation: 0,
+        hp: user.gameData.hp || baseHp,
+        maxHp: baseHp,
+        shield: user.gameData.shield || baseSh,
+        maxShield: baseSh,
+        level: user.gameData.level || 1,
+        skillPoints: user.gameData.skillPoints || 0,
+        skillTree: user.gameData.skillTree || {
+            engineering: [0, 0, 0, 0, 0, 0, 0, 0],
+            combat: [0, 0, 0, 0, 0, 0, 0, 0],
+            science: [0, 0, 0, 0, 0, 0, 0, 0]
+        },
+        baseHp: baseHp,
+        baseShield: baseSh,
+        ammo: user.gameData.ammo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
+        equipped: resolvedEquip,
+        spheres: user.gameData.spheres,
+        hudConfig: user.gameData.hudConfig || {},
+        hudPositions: user.gameData.hudPositions || {},
+        hubs: user.gameData.hubs || 0,
+        ohcu: user.gameData.ohcu || 0,
+        exp: user.gameData.exp || 0,
+        currentShipId: user.gameData.currentShipId || 1,
+        zone: user.gameData.zone || 1,
+        pvpEnabled: !!user.gameData.pvpEnabled,
+        lastPos: { x: user.gameData.lastPos?.x || 2000, y: user.gameData.lastPos?.y || 2000 },
+        lastPvpCombatTime: 0,
+        lastCombatTime: 0,
+        clanId: user.gameData.clanId
+    };
+
+    const p_ref = players[socket.id];
+    const hpBonus = 1.0 + ((p_ref.skillTree.engineering[0] || 0) * 0.02);
+    const shBonus = 1.0 + ((p_ref.skillTree.engineering[1] || 0) * 0.02);
+    p_ref.maxHp = Math.ceil(baseHp * hpBonus);
+    p_ref.maxShield = Math.ceil(baseSh * shBonus);
+
+    let adminConfig = null;
+    try { adminConfig = await fs.readJson(CONFIG_FILE); } catch (e) { }
+
+    const eByShipObj = {};
+    if (user.gameData.equippedByShip) {
+        if (user.gameData.equippedByShip instanceof Map) {
+            user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+        } else {
+            Object.assign(eByShipObj, user.gameData.equippedByShip);
+        }
+    }
+
+    socket.emit('loginSuccess', {
+        id: dbId,
+        socketId: socket.id,
+        user: username,
+        gameData: {
+            ...user.gameData.toObject(),
+            equippedByShip: eByShipObj,
+            equipped: user.gameData.equipped
+        },
+        adminConfig: adminConfig
+    });
+
+    if (user.gameData.clanId) {
+        socket.join(`clan_${user.gameData.clanId}`);
+        getClanDataPayload(user.gameData.clanId).then(clanData => {
+            if (clanData) socket.emit('clanData', clanData);
+        });
+        io.to(`clan_${user.gameData.clanId}`).emit('clanMemberStatus', { user: username, online: true });
+    }
+
+    const userZone = p_ref.zone || 1;
+    socket.join(`zone_${userZone}`);
+
+    const currentPlayersInZone = {};
+    Object.keys(players).forEach(pId => {
+        const p = players[pId];
+        if (p.zone === userZone) {
+            currentPlayersInZone[pId] = {
+                ...p,
+                id: pId,
+                maxHp: p.maxHp || 2000,
+                maxShield: p.maxShield || 1000,
+                spheres: p.spheres
+            };
+        }
+    });
+
+    const cleanEnemiesInZone = {};
+    Object.values(enemies).forEach(e => {
+        if (e.zone === userZone) {
+            const { ai, ...data } = e;
+            cleanEnemiesInZone[e.id] = data;
+        }
+    });
+
+    const playerSpawnData = { ...players[socket.id], id: socket.id };
+    setTimeout(() => {
+        socket.emit('currentPlayers', currentPlayersInZone);
+        socket.emit('currentEnemies', cleanEnemiesInZone);
+        socket.broadcast.to(`zone_${userZone}`).emit('newPlayer', { ...playerSpawnData, spheres: p_ref.spheres });
+        io.emit('onlineCount', Object.keys(players).length);
+    }, 100);
+
+    if (playerParty[dbId]) {
+        const pid = playerParty[dbId];
+        if (parties[pid]) {
+            setTimeout(() => {
+                io.emit('partyUpdate', parties[pid]);
+                io.emit('chatMessage', { sender: 'SYSTEM', msg: `${username.toUpperCase()} ha vuelto a la flota.`, channel: 'team', senderId: 'server' });
+            }, 500);
+        }
+    }
+    console.log(`[AUTH] Piloto [${username}] inicializado con éxito.`);
+};
+
 // v239.01: Exportar globales para IAs complejas (v239.03 Fix Init Order)
 global.enemies = enemies;
 global.serverDespawnClones = (zone) => {
@@ -353,9 +594,9 @@ io.on('connection', (socket) => {
             });
 
             await newUser.save();
-            socket.dbUser = newUser;
-            socket.emit('authSuccess', { user: username, msg: '┬íIdentidad blindada y grabada en la Galaxia!' });
-            console.log(`Usuario registrado (Cifrado): ${username}`);
+            socket.emit('authSuccess', { user: username, msg: '¡Identidad blindada y grabada en la Galaxia!' });
+            await handleUserLogin(socket, newUser, username);
+            console.log(`Usuario registrado y logueado: ${username}`);
         } catch (e) {
             console.error("Error en registro:", e);
             socket.emit('authError', 'Error interno del servidor.');
@@ -378,212 +619,7 @@ io.on('connection', (socket) => {
                 return socket.emit('authError', 'Credenciales inv├ílidas en la Galaxia.');
             }
 
-            // SEGURIDAD ANTI-MULTILOGIN v33.0: Desconectar sesi├│n anterior (Case Insensitive)
-            const lowName = username.toLowerCase();
-            if (activeSessions.has(lowName)) {
-                const oldSocketId = activeSessions.get(lowName);
-                const oldSocket = io.sockets.sockets.get(oldSocketId);
-                if (oldSocket) {
-                    oldSocket.emit('authError', 'SESI├ôN CERRADA: Se ha detectado un nuevo ingreso con esta cuenta.');
-                    oldSocket.disconnect();
-                }
-            }
-            activeSessions.set(lowName, socket.id);
-
-            user.lastLogin = new Date();
-            await user.save();
-
-            socket.dbUser = user;
-            // Sanity Check: Si el jugador estaba muerto o sin vida, revivirlo v67.0
-            if (!user.gameData.hp || user.gameData.hp <= 0) {
-                user.gameData.hp = user.gameData.maxHp || 2000;
-                user.gameData.shield = user.gameData.maxShield || 1000;
-                console.log(`[REVIVE] Piloto ${username} regenerado por deslogueo/muerte.`);
-            }
-
-            const dbId = user._id.toString();
-            socket.dbUser = user;
-
-            // v190.85: Sincron├¡a de Stats Base desde Admin Config (server-side start)
-            let baseHp = 2000; let baseSh = 1000;
-            const shipId = user.gameData.currentShipId || 1;
-            try {
-                const config = await fs.readJson(CONFIG_FILE);
-                if (config && config.shipModels) {
-                    const model = config.shipModels.find(m => m.id === shipId);
-                    if (model) {
-                        baseHp = model.hp; baseSh = model.shield;
-                    }
-                }
-            } catch (e) { }
-
-            // v214.120: Sincron├¡a Maestra al Login (Garantizar que 'equipped' global no est├® vac├¡o)
-            const resolvedEquip = (function () {
-                const ebs = user.gameData.equippedByShip;
-                const sid = (user.gameData.currentShipId || 1).toString();
-                let raw = { w: [], s: [], e: [], x: [] };
-                if (ebs) {
-                    if (typeof ebs.get === 'function') { raw = ebs.get(sid) || raw; }
-                    else { raw = ebs[sid] || raw; }
-                }
-                // Si el de la nave est├í vac├¡o pero el global tiene algo, rescatar el global (Fail-safe)
-                if ((!raw.w || raw.w.length == 0) && (user.gameData.equipped && user.gameData.equipped.w && user.gameData.equipped.w.length > 0)) {
-                    raw = user.gameData.equipped;
-                }
-                return JSON.parse(JSON.stringify(raw));
-            })();
-
-            // v235.50: Migración Híbrida de Slots (Garantizar 4 slots para todos)
-            if (!user.gameData.spheres || user.gameData.spheres.length < 4) {
-                if (!user.gameData.spheres) user.gameData.spheres = [];
-                while (user.gameData.spheres.length < 4) {
-                    const idx = user.gameData.spheres.length + 1;
-                    user.gameData.spheres.push({ "name": `Slot ${idx}`, "type": "any", "color": "#ffffff", "equipped": null });
-                }
-                user.markModified('gameData.spheres');
-                await user.save();
-            }
-
-            players[socket.id] = {
-                id: dbId,
-                socketId: socket.id,
-                num: nextPlayerNum++,
-                user: username,
-                x: user.gameData.lastPos?.x || 0,
-                y: user.gameData.lastPos?.y || 0,
-                rotation: 0,
-                hp: user.gameData.hp || baseHp,
-                maxHp: baseHp,
-                shield: user.gameData.shield || baseSh,
-                maxShield: baseSh,
-                level: user.gameData.level || 1,
-                skillPoints: user.gameData.skillPoints || 0,
-                skillTree: user.gameData.skillTree || {
-                    engineering: [0, 0, 0, 0, 0, 0, 0, 0],
-                    combat: [0, 0, 0, 0, 0, 0, 0, 0],
-                    science: [0, 0, 0, 0, 0, 0, 0, 0]
-                },
-                baseHp: baseHp,
-                baseShield: baseSh,
-                ammo: user.gameData.ammo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
-                equipped: resolvedEquip,
-                spheres: user.gameData.spheres,
-
-                hudConfig: user.gameData.hudConfig || {},
-                hudPositions: user.gameData.hudPositions || {},
-                hubs: user.gameData.hubs || 0,
-                ohcu: user.gameData.ohcu || 0,
-                exp: user.gameData.exp || 0,
-                currentShipId: user.gameData.currentShipId || 1,
-                zone: user.gameData.zone || 1,
-                pvpEnabled: !!user.gameData.pvpEnabled,
-                lastPos: { x: user.gameData.lastPos?.x || 2000, y: user.gameData.lastPos?.y || 2000 },
-                lastPvpCombatTime: 0,
-                lastCombatTime: 0, // v240.30: Inicializar para evitar bypass de cooldown (NaN check)
-                clanId: user.gameData.clanId // v242.11: Referencia de Flota en RAM
-            };
-
-            // v196.60: Recalcular Stats con Talentos al Login (Fix Relogueo)
-            const p_ref = players[socket.id];
-            const hpBonus = 1.0 + ((p_ref.skillTree.engineering[0] || 0) * 0.02);
-            const shBonus = 1.0 + ((p_ref.skillTree.engineering[1] || 0) * 0.02);
-            p_ref.maxHp = Math.ceil(baseHp * hpBonus);
-            p_ref.maxShield = Math.ceil(baseSh * shBonus);
-
-            // Cargar Configuraci├│n Admin (v39.0 - Sincronizada con Login)
-            // v196.00: Sincron├¡a de Configuraci├│n Admin
-            let adminConfig = null;
-            try { adminConfig = await fs.readJson(CONFIG_FILE); } catch (e) { }
-
-
-            // v210.120: Serializaci├│n POJO para que Godot entienda el Mapa de Flota (v210.122: Asegurar POJO)
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip) {
-                if (user.gameData.equippedByShip instanceof Map) {
-                    user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-                } else {
-                    Object.assign(eByShipObj, user.gameData.equippedByShip);
-                }
-            }
-
-            socket.emit('loginSuccess', {
-                id: dbId, // Identidad Gal├íctica v123.20
-                socketId: socket.id,
-                user: username,
-                gameData: {
-                    ...user.gameData.toObject(),
-                    equippedByShip: eByShipObj,
-                    equipped: user.gameData.equipped // Asegurar sincron├¡a de nave activa
-                },
-                adminConfig: adminConfig
-            });
-
-            // v242.15: Unirse a la sala de su clan si existe
-            if (user.gameData.clanId) {
-                socket.join(`clan_${user.gameData.clanId}`);
-                // v243.70: Sincronía inicial de clan al loguear (Fix Miembros Invisibles)
-                getClanDataPayload(user.gameData.clanId).then(clanData => {
-                    if (clanData) socket.emit('clanData', clanData);
-                });
-                // Notificar a la flota que entró un piloto
-                io.to(`clan_${user.gameData.clanId}`).emit('clanMemberStatus', { user: username, online: true });
-            }
-
-            // Unirse a la 'room' de su zona actual para optimizaci├│n v75.0
-            const userZone = players[socket.id].zone || 1;
-            socket.join(`zone_${userZone}`);
-
-            console.log(`DESCON: Piloto [${username}] logueado. Zona: ${userZone}. Jugadores totales: ${Object.keys(players).length}`);
-
-            const currentPlayersInZone = {};
-            Object.keys(players).forEach(pId => {
-                const p = players[pId];
-                if (p.zone === userZone) {
-                    currentPlayersInZone[pId] = {
-                        ...p,
-                        id: pId,
-                        maxHp: p.maxHp || 2000,
-                        maxShield: p.maxShield || 1000,
-                        spheres: p.spheres
-                    };
-                }
-            });
-
-            const cleanEnemiesInZone = {};
-            Object.values(enemies).forEach(e => {
-                if (e.zone === userZone) {
-                    const { ai, ...data } = e;
-                    cleanEnemiesInZone[e.id] = data;
-                }
-            });
-
-            // v186.25: BROADCAST AGRESIVO - Usar io.emit global para asegurar visibilidad total
-            const playerSpawnData = { ...players[socket.id], id: socket.id };
-
-            // Sincron├¡a con delay m├¡nimo para asegurar que el cliente proces├│ el loginSuccess
-            setTimeout(() => {
-                socket.emit('currentPlayers', currentPlayersInZone);
-                socket.emit('currentEnemies', cleanEnemiesInZone);
-
-                // v214.110: BROADCAST SEGMENTADO (Avisar solo a los de mi zona)
-                socket.broadcast.to(`zone_${userZone}`).emit('newPlayer', { ...playerSpawnData, spheres: p_ref.spheres });
-                
-                // v220.12: ACTUALIZACI├ôN GLOBAL DE ONLINE AL ENTRAR
-                io.emit('onlineCount', Object.keys(players).length);
-            }, 100);
-            console.log(`Usuario logueado: ${username}`);
-
-            // v135.30: Reconectar y NOTIFICAR a todos el regreso del aliado
-            if (playerParty[dbId]) {
-                const pid = playerParty[dbId];
-                if (parties[pid]) {
-                    // Notificar a todos que el grupo est├í completo de nuevo
-                    setTimeout(() => {
-                        io.emit('partyUpdate', parties[pid]);
-                        io.emit('chatMessage', { sender: 'SYSTEM', msg: `${username.toUpperCase()} ha vuelto a la flota.`, channel: 'team', senderId: 'server' });
-                    }, 500);
-                }
-            }
+            await handleUserLogin(socket, user, username);
         } catch (e) {
             console.error("Error en login:", e);
             socket.emit('authError', 'Error interno del servidor.');
@@ -662,49 +698,6 @@ io.on('connection', (socket) => {
     });
 
     // v243.15: Helper para serializar datos de clan con roles y estados
-    async function getClanDataPayload(clanId) {
-        try {
-            const clan = await Clan.findById(clanId).populate('members', 'username gameData.level gameData.clanRole');
-            if (!clan) return null;
-
-            const membersWithStatus = clan.members.map(m => {
-                const isOnline = Array.from(activeSessions.keys()).includes(m.username.toLowerCase());
-                
-                // v243.30: Identificación robusta del Líder (Prioridad ID sobre campo opcional clanRole)
-                let role = m.gameData?.clanRole || 'member';
-                if (clan.leader && m._id.toString() === clan.leader.toString()) {
-                    role = 'leader';
-                }
-                
-                return {
-                    username: m.username,
-                    level: m.gameData?.level || 1,
-                    role: role,
-                    online: isOnline
-                };
-            });
-
-            // Ordenar: Líder > Oficial > Miembro
-            membersWithStatus.sort((a, b) => {
-                const weights = { 'leader': 0, 'officer': 1, 'member': 2 };
-                return weights[a.role] - weights[b.role];
-            });
-
-            return {
-                name: clan.name,
-                tag: clan.tag,
-                members: membersWithStatus,
-                leader: clan.leader,
-                settings: {
-                    joinType: clan.joinType || 'open',
-                    maxMembers: clan.maxMembers || 20
-                }
-            };
-        } catch (e) {
-            console.error("Error getClanDataPayload:", e);
-            return null;
-        }
-    }
 
     // v242.20: GESTIÓN DE CLANES (FLOTAS)
     socket.on('leaveClan', async () => {
@@ -807,6 +800,89 @@ io.on('connection', (socket) => {
             io.to(`clan_${clan._id}`).emit('clanData', payload);
             socket.emit('gameNotification', { msg: `MODO DE INGRESO: ${type.toUpperCase()}`, type: 'success' });
         } catch (e) { console.error("Error setClanJoinType:", e); }
+    });
+
+    socket.on('kickClanMember', async (data) => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const { username } = data;
+        if (!username) return;
+
+        try {
+            const clan = await Clan.findOne({ leader: socket.dbUser._id });
+            if (!clan) return socket.emit('gameNotification', { msg: 'SOLO EL LÍDER PUEDE EXPULSAR', type: 'error' });
+
+            const targetUser = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+            if (!targetUser) return;
+
+            if (targetUser._id.toString() === clan.leader.toString()) return;
+
+            // Remover de la lista de miembros
+            clan.members = clan.members.filter(m => m.toString() !== targetUser._id.toString());
+            await clan.save();
+
+            // Limpiar data del usuario
+            targetUser.gameData.clanId = null;
+            targetUser.gameData.clanRole = 'member';
+            await targetUser.save();
+
+            // Notificar al expulsado si está online
+            const targetSocketId = activeSessions.get(username.toLowerCase());
+            if (targetSocketId) {
+                const targetSocket = io.sockets.sockets.get(targetSocketId);
+                if (targetSocket) {
+                    targetSocket.leave(`clan_${clan._id}`);
+                    targetSocket.emit('clanData', null);
+                    targetSocket.emit('gameNotification', { msg: 'HAS SIDO EXPULSADO DE LA FLOTA', type: 'warning' });
+                }
+            }
+
+            const payload = await getClanDataPayload(clan._id);
+            io.to(`clan_${clan._id}`).emit('clanData', payload);
+            socket.emit('gameNotification', { msg: `MIEMBRO EXPULSADO: ${username.toUpperCase()}`, type: 'success' });
+        } catch (e) { console.error("Error kickClanMember:", e); }
+    });
+
+    socket.on('handleClanRequest', async (data) => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const { username, action } = data; // action: 'accept' or 'deny'
+        if (!username || !action) return;
+
+        try {
+            const clan = await Clan.findOne({ leader: socket.dbUser._id });
+            if (!clan) return socket.emit('gameNotification', { msg: 'SOLO EL LÍDER PUEDE GESTIONAR SOLICITUDES', type: 'error' });
+
+            const targetUser = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+            if (!targetUser) return;
+
+            // Remover de solicitudes
+            clan.requests = clan.requests.filter(r => r.toString() !== targetUser._id.toString());
+
+            if (action === 'accept') {
+                if (clan.members.length >= clan.maxMembers) {
+                    return socket.emit('gameNotification', { msg: 'CLAN LLENO', type: 'error' });
+                }
+                if (!clan.members.includes(targetUser._id)) {
+                    clan.members.push(targetUser._id);
+                    targetUser.gameData.clanId = clan._id;
+                    targetUser.gameData.clanRole = 'member';
+                    await targetUser.save();
+                    
+                    const targetSocketId = activeSessions.get(username.toLowerCase());
+                    if (targetSocketId) {
+                        const targetSocket = io.sockets.sockets.get(targetSocketId);
+                        if (targetSocket) {
+                            targetSocket.join(`clan_${clan._id}`);
+                            targetSocket.emit('gameNotification', { msg: `¡HAS SIDO ACEPTADO EN [${clan.tag}]!`, type: 'success' });
+                        }
+                    }
+                }
+            }
+
+            await clan.save();
+            const payload = await getClanDataPayload(clan._id);
+            io.to(`clan_${clan._id}`).emit('clanData', payload);
+            socket.emit('gameNotification', { msg: `SOLICITUD ${action === 'accept' ? 'ACEPTADA' : 'RECHAZADA'}: ${username.toUpperCase()}`, type: 'success' });
+        } catch (e) { console.error("Error handleClanRequest:", e); }
     });
 
     socket.on('createClan', async (data) => {
