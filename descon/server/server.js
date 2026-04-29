@@ -7,9 +7,10 @@ const path = require('path');
 const fs = require('fs-extra');
 const mongoose = require('mongoose');
 
-// Modelos y M├│dulos de Seguridad
+// Modelos y Módulos de Seguridad
 const User = require('./models/User');
-const bcrypt = require('bcrypt'); // Criptograf├¡a Pro v35.0
+const Clan = require('./models/Clan'); // v242.10: Gestión de Flotas
+const bcrypt = require('bcrypt'); // Criptografía Pro v35.0
 
 // Importaci├│n de Cerebros de IA (v85.20 Professional Architecture)
 const ChaseAI = require('./behaviors/ChaseAI');
@@ -478,7 +479,8 @@ io.on('connection', (socket) => {
                 pvpEnabled: !!user.gameData.pvpEnabled,
                 lastPos: { x: user.gameData.lastPos?.x || 2000, y: user.gameData.lastPos?.y || 2000 },
                 lastPvpCombatTime: 0,
-                lastCombatTime: 0 // v240.30: Inicializar para evitar bypass de cooldown (NaN check)
+                lastCombatTime: 0, // v240.30: Inicializar para evitar bypass de cooldown (NaN check)
+                clanId: user.gameData.clanId // v242.11: Referencia de Flota en RAM
             };
 
             // v196.60: Recalcular Stats con Talentos al Login (Fix Relogueo)
@@ -515,6 +517,17 @@ io.on('connection', (socket) => {
                 },
                 adminConfig: adminConfig
             });
+
+            // v242.15: Unirse a la sala de su clan si existe
+            if (user.gameData.clanId) {
+                socket.join(`clan_${user.gameData.clanId}`);
+                // v243.70: Sincronía inicial de clan al loguear (Fix Miembros Invisibles)
+                getClanDataPayload(user.gameData.clanId).then(clanData => {
+                    if (clanData) socket.emit('clanData', clanData);
+                });
+                // Notificar a la flota que entró un piloto
+                io.to(`clan_${user.gameData.clanId}`).emit('clanMemberStatus', { user: username, online: true });
+            }
 
             // Unirse a la 'room' de su zona actual para optimizaci├│n v75.0
             const userZone = players[socket.id].zone || 1;
@@ -648,7 +661,245 @@ io.on('connection', (socket) => {
         } catch (e) { console.error("Error guardando progreso:", e); }
     });
 
-    // SISTEMA ADMIN: GUARDAR CONFIGURACI├ôN GLOBAL
+    // v243.15: Helper para serializar datos de clan con roles y estados
+    async function getClanDataPayload(clanId) {
+        try {
+            const clan = await Clan.findById(clanId).populate('members', 'username gameData.level gameData.clanRole');
+            if (!clan) return null;
+
+            const membersWithStatus = clan.members.map(m => {
+                const isOnline = Array.from(activeSessions.keys()).includes(m.username.toLowerCase());
+                
+                // v243.30: Identificación robusta del Líder (Prioridad ID sobre campo opcional clanRole)
+                let role = m.gameData?.clanRole || 'member';
+                if (clan.leader && m._id.toString() === clan.leader.toString()) {
+                    role = 'leader';
+                }
+                
+                return {
+                    username: m.username,
+                    level: m.gameData?.level || 1,
+                    role: role,
+                    online: isOnline
+                };
+            });
+
+            // Ordenar: Líder > Oficial > Miembro
+            membersWithStatus.sort((a, b) => {
+                const weights = { 'leader': 0, 'officer': 1, 'member': 2 };
+                return weights[a.role] - weights[b.role];
+            });
+
+            return {
+                name: clan.name,
+                tag: clan.tag,
+                members: membersWithStatus,
+                leader: clan.leader,
+                settings: {
+                    joinType: clan.joinType || 'open',
+                    maxMembers: clan.maxMembers || 20
+                }
+            };
+        } catch (e) {
+            console.error("Error getClanDataPayload:", e);
+            return null;
+        }
+    }
+
+    // v242.20: GESTIÓN DE CLANES (FLOTAS)
+    socket.on('leaveClan', async () => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const p = players[socket.id];
+        if (!p.clanId) return;
+
+        try {
+            const user = await User.findById(socket.dbUser._id);
+            const clan = await Clan.findById(p.clanId);
+            if (!clan) return;
+
+            // Remover miembro
+            clan.members.pull(user._id);
+            
+            // v243.98: Lógica de Herencia/Disolución Automática
+            if (clan.members.length === 0) {
+                await Clan.deleteOne({ _id: clan._id });
+                console.log(`[CLAN] Flota ${clan.name} eliminada (sin miembros).`);
+            } else {
+                // Si el que se va es el líder, pasar la corona al siguiente
+                if (clan.leader.toString() === user._id.toString()) {
+                    clan.leader = clan.members[0];
+                    const newLeader = await User.findById(clan.leader);
+                    if (newLeader) {
+                        newLeader.gameData.clanRole = 'leader';
+                        await newLeader.save();
+                    }
+                }
+                await clan.save();
+                
+                // Notificar a los que quedan
+                const payload = await getClanDataPayload(clan._id);
+                io.to(`clan_${clan._id}`).emit('clanData', payload);
+                io.to(`clan_${clan._id}`).emit('clanMemberStatus', { user: user.username, online: false });
+            }
+
+            user.gameData.clanId = null;
+            user.gameData.clanRole = null;
+            await user.save();
+
+            socket.leave(`clan_${p.clanId}`);
+            p.clanId = null;
+            socket.emit('clanData', null);
+            socket.emit('gameNotification', { msg: 'HAS ABANDONADO LA FLOTA', type: 'info' });
+
+        } catch (e) { console.error("Error leaveClan:", e); }
+    });
+
+    socket.on('disbandClan', async () => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const p = players[socket.id];
+        if (!p.clanId) return;
+
+        try {
+            const clan = await Clan.findById(p.clanId);
+            if (!clan) return;
+
+            if (clan.leader.toString() !== socket.dbUser._id.toString()) {
+                return socket.emit('gameNotification', { msg: 'SOLO EL LÍDER PUEDE DISOLVER LA FLOTA', type: 'error' });
+            }
+
+            // Notificar a todos y sacarlos
+            io.to(`clan_${clan._id}`).emit('clanData', null);
+            io.to(`clan_${clan._id}`).emit('gameNotification', { msg: 'LA FLOTA HA SIDO DISUELTA POR EL LÍDER', type: 'info' });
+
+            // Limpiar usuarios en DB
+            await User.updateMany({ "gameData.clanId": clan._id }, { $set: { "gameData.clanId": null, "gameData.clanRole": null } });
+
+            // Limpiar en RAM y Rooms
+            const roomName = `clan_${clan._id}`;
+            const room = io.sockets.adapter.rooms.get(roomName);
+            if (room) {
+                const sids = Array.from(room);
+                sids.forEach(sid => {
+                    if (players[sid]) players[sid].clanId = null;
+                    const s = io.sockets.sockets.get(sid);
+                    if (s) s.leave(roomName);
+                });
+            }
+
+            await Clan.deleteOne({ _id: clan._id });
+            console.log(`[CLAN] Flota ${clan.name} disuelta por ${socket.dbUser.username}`);
+        } catch (e) { console.error("Error disbandClan:", e); }
+    });
+
+    socket.on('setClanJoinType', async (data) => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const { type } = data; // 'open' or 'invite'
+        if (type !== 'open' && type !== 'invite') return;
+
+        try {
+            const clan = await Clan.findOne({ leader: socket.dbUser._id });
+            if (!clan) return socket.emit('gameNotification', { msg: 'SOLO EL LÍDER PUEDE CAMBIAR ESTO', type: 'error' });
+
+            clan.joinType = type;
+            await clan.save();
+            
+            const payload = await getClanDataPayload(clan._id);
+            io.to(`clan_${clan._id}`).emit('clanData', payload);
+            socket.emit('gameNotification', { msg: `MODO DE INGRESO: ${type.toUpperCase()}`, type: 'success' });
+        } catch (e) { console.error("Error setClanJoinType:", e); }
+    });
+
+    socket.on('createClan', async (data) => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const { name, tag } = data;
+        try {
+            const existing = await Clan.findOne({ $or: [{ name }, { tag: tag.toUpperCase() }] });
+            if (existing) return socket.emit('gameNotification', { msg: 'NOMBRE O TAG YA REGISTRADO', type: 'error' });
+
+            const user = await User.findById(socket.dbUser._id);
+            if (user.gameData.clanId) return socket.emit('gameNotification', { msg: 'YA PERTENECES A UNA FLOTA', type: 'error' });
+
+            const newClan = new Clan({
+                name,
+                tag: tag.toUpperCase(),
+                leader: user._id,
+                members: [user._id]
+            });
+            await newClan.save();
+
+            user.gameData.clanId = newClan._id;
+            user.gameData.clanRole = 'leader'; // v243.11: Fundador es Líder
+            user.markModified('gameData.clanId');
+            user.markModified('gameData.clanRole');
+            await user.save();
+
+            players[socket.id].clanId = newClan._id;
+            socket.join(`clan_${newClan._id}`);
+            
+            // Refrescar datos
+            const clanData = await getClanDataPayload(newClan._id);
+            socket.emit('clanData', clanData);
+            socket.emit('gameNotification', { msg: `FLOTA [${tag}] FUNDADA CON ÉXITO`, type: 'success' });
+            console.log(`[CLAN] ${user.username} fundó ${name} [${tag}]`);
+        } catch (e) { console.error("Error createClan:", e); }
+    });
+
+    socket.on('getClanData', async () => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const p = players[socket.id];
+        if (!p.clanId) return socket.emit('clanData', null);
+
+        try {
+            const payload = await getClanDataPayload(p.clanId);
+            socket.emit('clanData', payload);
+        } catch (e) { console.error("Error getClanData:", e); }
+    });
+
+    socket.on('joinClan', async (data) => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        const { tag } = data;
+        try {
+            const clan = await Clan.findOne({ tag: tag.toUpperCase() });
+            if (!clan) return socket.emit('gameNotification', { msg: 'FLOTA NO ENCONTRADA', type: 'error' });
+
+            const user = await User.findById(socket.dbUser._id);
+            if (user.gameData.clanId) return socket.emit('gameNotification', { msg: 'YA PERTENECES A UNA FLOTA', type: 'error' });
+
+            // v243.75: Validación de Límites y Tipo de Ingreso
+            if (clan.members.length >= (clan.maxMembers || 20)) {
+                return socket.emit('gameNotification', { msg: 'LA FLOTA ESTÁ LLENA (MÁX 20)', type: 'error' });
+            }
+
+            if (clan.joinType === 'invite') {
+                // v243.76: Sistema de Solicitudes (A futuro: Aceptar en Panel de Líder)
+                if (!clan.requests) clan.requests = [];
+                if (clan.requests.includes(user._id)) {
+                    return socket.emit('gameNotification', { msg: 'YA ENVIASTE UNA SOLICITUD', type: 'info' });
+                }
+                clan.requests.push(user._id);
+                await clan.save();
+                return socket.emit('gameNotification', { msg: 'SOLICITUD ENVIADA AL LÍDER', type: 'success' });
+            }
+
+            clan.members.push(user._id);
+            await clan.save();
+
+            user.gameData.clanId = clan._id;
+            user.gameData.clanRole = 'member'; // v243.12: Ingresa como miembro raso
+            user.markModified('gameData.clanId');
+            user.markModified('gameData.clanRole');
+            await user.save();
+
+            players[socket.id].clanId = clan._id;
+            socket.join(`clan_${clan._id}`);
+            
+            const payload = await getClanDataPayload(clan._id);
+            io.to(`clan_${clan._id}`).emit('clanData', payload);
+            io.to(`clan_${clan._id}`).emit('clanMemberStatus', { user: user.username, online: true });
+        } catch (e) { console.error("Error joinClan:", e); }
+    });
+
+    // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL
     socket.on('saveAdminConfig', async (config) => {
         try {
             await fs.writeJson(CONFIG_FILE, config, { spaces: 4 });
@@ -1926,6 +2177,11 @@ io.on('connection', (socket) => {
             delete players[socket.id];
             if (username) activeSessions.delete(username.toLowerCase());
             io.emit('playerDisconnected', socket.id);
+            
+            // v242.16: Notificar a la flota la desconexión del piloto
+            if (p.clanId) {
+                io.to(`clan_${p.clanId}`).emit('clanMemberStatus', { user: username, online: false });
+            }
             
             // v220.11: ACTUALIZACI├ôN GLOBAL DE ONLINE AL SALIR
             io.emit('onlineCount', Object.keys(players).length);

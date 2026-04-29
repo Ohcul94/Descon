@@ -624,3 +624,33 @@
 [EVENT_RAW] playerHitByEnemy received for socket WdchITyGHkR5l27xAAAD, data: {"attackerType":"combat_ping","damage":0,"id":"WdchITyGHkR5l27xAAAD"}
 [HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777493082743
 [BOSS-HIT] User: Caelli94, Damage: 5500, Source: Boss2 (enemy_boss_1777492580942309) en [2908,2295], Time: 2026-04-29T20:14:33.418Z
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495505341
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495505342
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495505465
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495505644
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495505794
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495505966
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495506559
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495506718
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495506939
+[EVENT_RAW] playerHitByEnemy received for socket cY8QcG_-PgTNXDzjAAAJ, data: {"attackerType":"enemy","damage":350,"enemyType":3}
+[HIT] User: Player3, Damage: 350, Source: enemy (Type: 3), New lastCombatTime: 1777495508590
+[EVENT_RAW] playerHitByEnemy received for socket aAwTQY4UlROJXTVZAAAD, data: {"attackerType":"enemy","damage":120,"enemyType":2}
+[HIT] User: Player3, Damage: 120, Source: enemy (Type: 2), New lastCombatTime: 1777496121394
+[EVENT_RAW] playerHitByEnemy received for socket aAwTQY4UlROJXTVZAAAD, data: {"attackerType":"enemy","damage":120,"enemyType":2}
+[HIT] User: Player3, Damage: 120, Source: enemy (Type: 2), New lastCombatTime: 1777496121559
+[EVENT_RAW] playerHitByEnemy received for socket aAwTQY4UlROJXTVZAAAD, data: {"attackerType":"enemy","damage":120,"enemyType":2}
+[HIT] User: Player3, Damage: 120, Source: enemy (Type: 2), New lastCombatTime: 1777496121743
+[EVENT_RAW] playerHitByEnemy received for socket zUUv-gP6c1BBwb78AAAO, data: {"attackerType":"combat_ping","damage":0,"id":"zUUv-gP6c1BBwb78AAAO"}
+[HIT] User: Player3, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777497092570
+[EVENT_RAW] playerHitByEnemy received for socket RzSXY6-upkV--GQRAAAP, data: {"attackerType":"combat_ping","damage":0,"id":"RzSXY6-upkV--GQRAAAP"}
+[HIT] User: Caelli94, Damage: 0, Source: combat_ping (Type: 1), New lastCombatTime: 1777497097508

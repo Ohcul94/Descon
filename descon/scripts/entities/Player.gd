@@ -339,7 +339,8 @@ func respawn():
 	})
 
 func _on_login_success(p_in):
-	self.entity_id = str(p_in.get("socketId", p_in.get("id", "")))
+	self.entity_id = str(p_in.get("socketId", ""))
+	self.db_id = str(p_in.get("id", ""))
 	self.username = p_in.get("username", p_in.get("user", "Piloto"))
 	if p_in.has("gameData"):
 		var gd = p_in.gameData
@@ -434,25 +435,9 @@ func update_stats(data):
 	_emit_stats()
 
 func save_progress():
-	var s_data = []
-	var sm = get_node_or_null("SpheresManager")
-	if sm: 
-		# v206.0: De-serialización de Habilidades para JSON Safe Saving
-		var raw = sm.spheres_data.duplicate(true)
-		for i in range(raw.size()):
-			var sph = raw[i]
-			if sph.has("color") and typeof(sph["color"]) == TYPE_COLOR:
-				sph["color"] = str(sph["color"])
-			
-			if sph.has("equipped") and sph["equipped"] is Object:
-				var skill = sph["equipped"]
-				sph["equipped"] = {
-					"skill_name": skill.skill_name if "skill_name" in skill else "SKILL",
-					"power_value": skill.power_value if "power_value" in skill else 0,
-					"type": skill.type if "type" in skill else "w"
-				}
-		s_data = raw
-		
+	# v242.45: Lógica de esferas desactivada en saveProgress para evitar data-loss
+	# El servidor ahora gestiona las esferas de forma independiente.
+	
 	NetworkManager.send_event("saveProgress", {
 		"hubs": hubs, "ohcu": ohculianos, "exp": current_exp,
 		"level": level, "skillPoints": skill_tree.get("skillPoints", 0),

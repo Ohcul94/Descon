@@ -38,6 +38,8 @@ signal game_notification(data)
 signal clear_zone_entities(zoneId)
 signal clear_enemy_projectiles(data)
 signal online_count_updated(count)
+signal clan_data(data) # v242.30: Sincronía de Flota
+signal clan_member_status(data) # v242.31: Estado online de miembros de flota
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
@@ -225,6 +227,8 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"rewardReceived": reward_received.emit(e_data)
 		"playerDisconnected":
 			player_disconnected.emit(str(e_data))
+		"clanData": clan_data.emit(e_data)
+		"clanMemberStatus": clan_member_status.emit(e_data)
 		"pong_custom":
 			current_ms = int(Time.get_ticks_msec() - ping_start_time)
 			send_event("latencyUpdate", current_ms)

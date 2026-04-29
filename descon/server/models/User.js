@@ -62,7 +62,9 @@ const UserSchema = new mongoose.Schema({
             { "name": "Beta", "type": "s", "color": "#31dfff", "equipped": null },
             { "name": "Gamma", "type": "e", "color": "#3bff31", "equipped": null }
         ]},
-        pvpEnabled: { type: Boolean, default: false } // v220.95: Persistencia de combate
+        pvpEnabled: { type: Boolean, default: false }, // v220.95: Persistencia de combate
+        clanId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clan', default: null }, // v242.10: Integración de Clanes
+        clanRole: { type: String, enum: ['leader', 'officer', 'member'], default: 'member' } // v243.10: Rangos de Flota
     }
 });
 

@@ -40,6 +40,7 @@ func _ready():
 	NetworkManager.enemy_dead.connect(_on_enemy_dead)
 	NetworkManager.enemy_damaged.connect(_on_enemy_damaged) # v167.60: Sincronía de daño total
 	NetworkManager.clear_zone_entities.connect(_on_clear_zone_entities)
+	NetworkManager.clear_zone_entities.connect(_update_hud_map_name) # v243.63: Sincronía HUD
 	NetworkManager.clear_enemy_projectiles.connect(_on_clear_enemy_projectiles)
 	NetworkManager.remote_skill_used.connect(_on_remote_skill_used)
 	
@@ -98,6 +99,25 @@ func _input(event):
 		print("[DUNGEON] Solicitando ingreso a Dungeon Instanciada...")
 		NetworkManager.send_event("enterDungeon", {})
 
+func _update_hud_map_name(zone_id):
+	var z_id = int(zone_id)
+	var z_name = "SECTOR 01"
+	
+	match z_id:
+		1: z_name = "SECTOR ALPHA 1"
+		2: z_name = "PUERTO DE COMERCIO"
+		3: z_name = "CINTURÓN DE ASTEROIDES"
+		4: z_name = "BASE ABANDONADA"
+		5: z_name = "NEBULOSA ROJA"
+		6: z_name = "SISTEMA BINARIO"
+		7: z_name = "ABISMO ESPACIAL"
+		_: 
+			if z_id >= 500: z_name = "INSTANCIA PRIVADA"
+			else: z_name = "SECTOR " + str(z_id).pad_zeros(2)
+	
+	if is_instance_valid(ui_hud) and ui_hud.has_method("set_map_name"):
+		ui_hud.set_map_name(z_name)
+
 func _perform_local_respawn():
 	if is_instance_valid(local_player) and local_player.has_method("respawn"):
 		local_player.respawn()
@@ -112,6 +132,7 @@ func _on_login_success(data):
 	# v219.10: Forzar carga de fondo inicial post-login
 	if "current_zone" in local_player:
 		_update_background(local_player.current_zone)
+		_update_hud_map_name(local_player.current_zone) # v243.64: Sincronía HUD inicial
 		
 	ui_hud.visible = true
 	ui_chat.visible = true
@@ -160,7 +181,9 @@ func _on_player_updated(data):
 	if not remote_players.has(id):
 		# No usamos set_script si el .tscn ya tiene la referencia del script original (v73.31)
 		var rp = load("res://scenes/entities/Ship.tscn").instantiate()
-		rp.entity_id = id; rp.add_to_group("remote_players")
+		rp.entity_id = id
+		rp.db_id = str(data.get("id", "")) # v243.88: Sincronía de identidad persistente
+		rp.add_to_group("remote_players")
 		remote_players[id] = rp; entities_node.add_child(rp)
 	
 	var p = remote_players[id]

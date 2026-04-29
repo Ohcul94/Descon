@@ -15,6 +15,8 @@ extends Control
 @onready var radar_window = $RadarWindow
 @onready var skills_hud = $Skills
 
+var radar_title: Label = null # v243.60: Titulo del Minimapa (Nombre del Sector)
+
 var _ammo_nodes = {} # Etiquetas de texto de munición
 var _ammo_menus = {} # v226.70: Menús anclados a cada botón
 var _esc_menu: PanelContainer = null
@@ -216,6 +218,19 @@ func _format_val(v):
 			c = 0
 	return r
 
+func set_map_name(p_name: String):
+	if is_instance_valid(radar_title):
+		radar_title.text = p_name.to_upper()
+	elif is_instance_valid(radar_window):
+		# Fallback: Buscarlo si no se capturó en el primer scan
+		for child in radar_window.get_children():
+			if child is Label:
+				var t = child.text.to_upper()
+				if "SISTEMA" in t or "RECON" in t or "LOCALIZANDO" in t:
+					radar_title = child
+					child.text = p_name.to_upper()
+					break
+
 var _max_cds = {} # v190.42: Aprendizaje dinmico de CDs reales
 
 func _update_skill_ui(type: String, ref, slot):
@@ -398,7 +413,9 @@ func _aggressive_hide(node):
 		if child is Label:
 			var t = child.text.to_upper()
 			if "SISTEMA" in t or "RECON" in t:
-				child.text = ""; child.visible = false; child.queue_free()
+				radar_title = child
+				child.text = "LOCALIZANDO..."
+				# child.visible = false; child.queue_free() # v243.61: Ya no borramos, ahora lo usamos para el Mapa
 
 func _handle_ammo_selector():
 	var is_ctrl = Input.is_key_pressed(KEY_CTRL)

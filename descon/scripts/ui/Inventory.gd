@@ -21,6 +21,7 @@ var equipped_by_ship = {} # v210.95: Cache local de equipos de toda la flota
 var selected_sphere_slot = -1 # Slot siendo reconfigurado
 var selected_sphere_type_filter = "ANY" # Filtro de color para la biblioteca
 var spheres_manager = null # Referencia al gestor de esferas del jugador
+var clan_data = null # v242.35: Cache de datos de la Flota (Clan)
 
 
 
@@ -66,12 +67,19 @@ func _ready():
 		NetworkManager.inventory_data.connect(_on_inventory_received)
 		NetworkManager.login_success.connect(func(d): _on_inventory_received(d))
 		NetworkManager.auth_success.connect(func(d): _on_inventory_received(d))
+		
+		# v242.36: Sincronía de Flota
+		NetworkManager.clan_data.connect(_on_clan_data_received)
+		NetworkManager.clan_member_status.connect(_on_clan_member_status)
 	
 	# v190.62: Sincronía Responsive
 	get_viewport().size_changed.connect(func(): queue_redraw())
 	
 	if PartyManager:
-		PartyManager.party_updated.connect(func(_d): _update_party_ui())
+		PartyManager.party_updated.connect(func(_d): 
+			_update_party_ui()
+			if is_open: _update_clan_ui()
+		)
 	
 	var tabs = get_node_or_null("Window/TabContainer")
 	if tabs:
@@ -264,6 +272,9 @@ func _on_inventory_received(data: Dictionary):
 	elif not get_node_or_null("Window/TabContainer/Mapa"):
 		_update_map_ui() # Solo se llama una vez para crear la pestaña
 	
+	if not get_node_or_null("Window/TabContainer/Clan"):
+		_update_clan_ui() # Asegurar que la pestaña de Clan exista v242.50
+	
 	# v210.16: Conservar selección si es válida
 	if selected_hangar_ship_id == -1: selected_hangar_ship_id = current_ship_id
 
@@ -279,6 +290,7 @@ func _update_active_tab_ui():
 		"Tienda": _update_shop_ui()
 		"Equipo": _update_party_ui()
 		"Mapa": _update_map_ui()
+		"Clan": _update_clan_ui()
 	
 	queue_redraw()
 
@@ -1171,3 +1183,138 @@ func _setup_map_logic(zone_name = "MAPA 1"):
 		logic_node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		logic_node.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		logic_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+# --- SISTEMA DE CLANES (FLOTAS) ---
+func _on_clan_data_received(data):
+	clan_data = data
+	if is_open: _update_clan_ui()
+
+func _on_clan_member_status(data):
+	if clan_data and clan_data.has("members"):
+		var target_user = str(data.get("user", "")).to_lower()
+		for m in clan_data["members"]:
+			if str(m.get("username", "")).to_lower() == target_user:
+				m["online"] = data["online"]
+				break
+	if is_open: _update_clan_ui()
+
+func _update_clan_ui():
+	var tabs = get_node_or_null("Window/TabContainer")
+	if not tabs: return
+	
+	var tab = tabs.get_node_or_null("Clan")
+	if not tab:
+		tab = Control.new(); tab.name = "Clan"; tabs.add_child(tab)
+		NetworkManager.send_event("getClanData", {})
+	
+	for n in tab.get_children(): n.queue_free()
+	
+	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	master_v.offset_left = 20; master_v.offset_right = -20; master_v.offset_top = 20; tab.add_child(master_v)
+
+	if clan_data == null or typeof(clan_data) != TYPE_DICTIONARY:
+		var title = Label.new(); title.text = "CENTRO DE COMANDO DE CLANES"; title.add_theme_font_size_override("font_size", 18); title.modulate = Color.CYAN; master_v.add_child(title)
+		master_v.add_child(HSeparator.new())
+		var grid = GridContainer.new(); grid.columns = 2; grid.add_theme_constant_override("h_separation", 40); master_v.add_child(grid)
+		
+		var v_crear = VBoxContainer.new(); grid.add_child(v_crear)
+		var t_crear = Label.new(); t_crear.text = "FUNDAR NUEVO CLAN"; t_crear.modulate = Color.GOLD; v_crear.add_child(t_crear)
+		var i_name = LineEdit.new(); i_name.placeholder_text = "Nombre del Clan..."; v_crear.add_child(i_name)
+		var i_tag = LineEdit.new(); i_tag.placeholder_text = "TAG (Máx 4 letras)..."; i_tag.max_length = 4; v_crear.add_child(i_tag)
+		var b_crear = Button.new(); b_crear.text = "CREAR CLAN (5000 OHCU)"; v_crear.add_child(b_crear)
+		b_crear.pressed.connect(func():
+			if i_name.text.length() < 3 or i_tag.text.length() < 2: return
+			NetworkManager.send_event("createClan", {"name": i_name.text, "tag": i_tag.text})
+		)
+		
+		var v_unir = VBoxContainer.new(); grid.add_child(v_unir)
+		var t_unir = Label.new(); t_unir.text = "UNIRSE A CLAN EXISTENTE"; t_unir.modulate = Color.CYAN; v_unir.add_child(t_unir)
+		var i_search = LineEdit.new(); i_search.placeholder_text = "Ingresar TAG del Clan..."; i_search.max_length = 4; v_unir.add_child(i_search)
+		var b_unir = Button.new(); b_unir.text = "SOLICITAR INGRESO"; v_unir.add_child(b_unir)
+		b_unir.pressed.connect(func():
+			if i_search.text != "": NetworkManager.send_event("joinClan", {"tag": i_search.text})
+		)
+	else:
+		var head = HBoxContainer.new(); master_v.add_child(head)
+		var tag_str = str(clan_data.get("tag", "TAG"))
+		var name_str = str(clan_data.get("name", "Clan"))
+		var title = Label.new(); title.text = "[" + tag_str + "] " + name_str; title.add_theme_font_size_override("font_size", 22); title.modulate = Color.GOLD; title.size_flags_horizontal = 3; head.add_child(title)
+		
+		var p_node = get_tree().get_first_node_in_group("player")
+		var my_id = str(p_node.get("db_id")) if is_instance_valid(p_node) and "db_id" in p_node else ""
+		var is_leader = str(clan_data.get("leader", "")) == my_id
+		
+		var b_leave = Button.new(); b_leave.text = "ABANDONAR"; b_leave.modulate = Color.RED; head.add_child(b_leave)
+		b_leave.pressed.connect(func():
+			var inp = LineEdit.new(); inp.placeholder_text = "Escribe " + tag_str + " para confirmar..."; inp.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_show_modal("ABANDONAR FLOTA", "¿Confirmas que deseas abandonar?\nEscribe [color=yellow]" + tag_str + "[/color] para proceder.", func():
+				if inp.text.to_upper() == tag_str.to_upper(): NetworkManager.send_event("leaveClan", {})
+				else: _show_result_modal("ERROR", "El TAG ingresado no es correcto.")
+			, inp)
+		)
+		
+		if is_leader:
+			var b_disband = Button.new(); b_disband.text = "DISOLVER"; b_disband.modulate = Color.ORANGE_RED; head.add_child(b_disband)
+			b_disband.pressed.connect(func():
+				var inp = LineEdit.new(); inp.placeholder_text = "Escribe " + tag_str + " para DISOLVER..."; inp.alignment = HORIZONTAL_ALIGNMENT_CENTER
+				_show_modal("DISOLVER FLOTA", "[color=red]¡ATENCIÓN![/color]\nEsto eliminará el clan.\nEscribe [color=yellow]" + tag_str + "[/color] para confirmar.", func():
+					if inp.text.to_upper() == tag_str.to_upper(): NetworkManager.send_event("disbandClan", {})
+					else: _show_result_modal("ERROR", "El TAG ingresado no es correcto.")
+				, inp)
+			)
+		
+		master_v.add_child(HSeparator.new())
+		var body_h = HBoxContainer.new(); body_h.size_flags_vertical = 3; master_v.add_child(body_h)
+		
+		var m_v = VBoxContainer.new(); m_v.size_flags_horizontal = 3; body_h.add_child(m_v)
+		var m_lbl = Label.new(); m_lbl.text = "PILOTOS DEL CLAN"; m_lbl.modulate.a = 0.5; m_v.add_child(m_lbl)
+		var m_scroll = ScrollContainer.new(); m_scroll.size_flags_vertical = 3; m_v.add_child(m_scroll)
+		var m_list = VBoxContainer.new(); m_list.size_flags_horizontal = 3; m_scroll.add_child(m_list)
+		
+		var members = clan_data.get("members", [])
+		for m in members:
+			if typeof(m) != TYPE_DICTIONARY: continue
+			var hb = HBoxContainer.new(); m_list.add_child(hb)
+			var is_m_online = m.get("online", false)
+			var status = Label.new(); status.text = " ● "; status.modulate = Color.GREEN if is_m_online else Color.GRAY; hb.add_child(status)
+			
+			var role = m.get("role", "member")
+			if role == "leader":
+				var l_ico = Label.new(); l_ico.text = " [LÍDER] "; l_ico.modulate = Color.GOLD; l_ico.add_theme_font_size_override("font_size", 10); hb.add_child(l_ico)
+			
+			var nl = Label.new(); nl.text = str(m.get("username", "Piloto")) + " (Lvl " + str(m.get("level", 1)) + ")"; nl.size_flags_horizontal = 3; hb.add_child(nl)
+			if not is_m_online: nl.modulate.a = 0.5
+			
+			var rl = Label.new(); rl.custom_minimum_size.x = 80; rl.add_theme_font_size_override("font_size", 9); hb.add_child(rl)
+			rl.text = "LÍDER" if role == "leader" else ("OFICIAL" if role == "officer" else "PILOTO")
+			rl.modulate = Color.GOLD if role == "leader" else (Color.CYAN if role == "officer" else Color.WHITE)
+			
+			if is_m_online and is_instance_valid(p_node):
+				var m_username = str(m.get("username", ""))
+				var m_name = m_username.to_lower()
+				var p_name = str(p_node.get("username")).to_lower() if p_node.get("username") else ""
+				var in_party = false
+				if PartyManager.current_party and PartyManager.current_party.has("members"):
+					for pm in PartyManager.current_party["members"]:
+						if typeof(pm) == TYPE_DICTIONARY and str(pm.get("username", "")).to_lower() == m_name: in_party = true; break
+				
+				if m_name != "" and m_name != p_name and not in_party:
+					var bi = Button.new(); bi.text = "PARTY"; bi.add_theme_font_size_override("font_size", 10); hb.add_child(bi)
+					bi.pressed.connect(func(): PartyManager.invite_player(m_username))
+		
+		var r_v = VBoxContainer.new(); r_v.custom_minimum_size.x = 200; body_h.add_child(r_v)
+		var r_lbl = Label.new(); r_lbl.text = "ESTADÍSTICAS"; r_lbl.modulate.a = 0.5; r_v.add_child(r_lbl)
+		var stats_p = PanelContainer.new(); r_v.add_child(stats_p)
+		var stats_v = VBoxContainer.new(); stats_p.add_child(stats_v)
+		var s_mem = Label.new(); s_mem.text = "Miembros: " + str(members.size()) + "/20"; stats_v.add_child(s_mem)
+		
+		if is_leader:
+			r_v.add_child(HSeparator.new())
+			var cfg_lbl = Label.new(); cfg_lbl.text = "CONFIGURACIÓN"; cfg_lbl.modulate.a = 0.5; r_v.add_child(cfg_lbl)
+			var jt = clan_data.get("settings", {}).get("joinType", "open")
+			var btn_jt = Button.new(); btn_jt.text = "INGRESO: " + ("ABIERTO" if jt == "open" else "SOLICITUD"); btn_jt.modulate = Color.GREEN if jt == "open" else Color.YELLOW
+			btn_jt.pressed.connect(func():
+				var next = "invite" if jt == "open" else "open"
+				NetworkManager.send_event("setClanJoinType", {"type": next})
+			)
+			r_v.add_child(btn_jt)

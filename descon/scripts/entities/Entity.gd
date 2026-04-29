@@ -5,6 +5,7 @@ class_name Entity
 # Eliminación Absoluta de Triángulos en Enemigos. Siluetas Geométricas Puras.
 
 var entity_id: String = ""
+var db_id: String = "" # v243.80: Identidad persistente (MongoDB ID)
 var username: String = "Unknown"
 var entity_type: int = 1
 
@@ -242,8 +243,6 @@ func _process(delta):
 			if is_in_group("player"): y_offset = -180.0
 			elif entity_type >= 4: y_offset = -300.0 # Bosses (v238.80: Espacio para 3 líneas de texto)
 
-
-			
 			name_tag.position.y = y_offset
 			if name_tag.size.x > 0:
 				name_tag.position.x = -(name_tag.size.x / 2.0)
