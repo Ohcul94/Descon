@@ -261,6 +261,14 @@ setInterval(() => {
             p.maxHp = Math.ceil((p.baseHp || 2000) * hpBonus);
             p.maxShield = Math.ceil((p.baseShield || 1000) * shBonus);
 
+            // v240.67: DEPURACIÓN AGRESIVA DE DAÑO FANTASMA
+            if (!p._lastHpDebug) p._lastHpDebug = p.hp;
+            if (p.hp < p._lastHpDebug - 0.01) { // Pequeño margen para errores de punto flotante
+                const diff = p._lastHpDebug - p.hp;
+                require('fs').appendFileSync('bleeding_debug.log', `[BLEED] ${p.user}: -${diff.toFixed(2)} HP. Now: ${p.hp.toFixed(2)}. Max: ${p.maxHp}. Time: ${new Date().toISOString()}\n`);
+            }
+            p._lastHpDebug = p.hp;
+
             if (!p.isDead && (now - (p.lastCombatTime || 0)) > delay) {
                 let changed = false;
                 const regenAmountHp = p.maxHp * 0.01; 
@@ -303,7 +311,9 @@ setInterval(() => {
                         id: p.socketId,
                         hp: Math.ceil(p.hp),
                         shield: Math.ceil(p.shield),
-                        spheres: p.spheres, // v214.195: Sincron├¡a visual continua
+                        maxHp: p.maxHp, // v240.66: Enviar siempre máximos para evitar caps en cliente
+                        maxShield: p.maxShield,
+                        spheres: p.spheres, 
                         isDead: false
                     });
                 }
@@ -1377,10 +1387,10 @@ io.on('connection', (socket) => {
                     }
                 });
 
-                // v210.201: BROADCAST SEGMENTADO (Solo zona local)
+                // v240.65: BROADCAST GLOBAL (Usar io.to para incluir al sender)
                 const zoneRoom = `zone_${p.zone}`;
-                socket.to(zoneRoom).emit('playerShipChanged', { id: socket.id, shipId: shipId });
-                socket.to(zoneRoom).emit('playerStatSync', {
+                io.to(zoneRoom).emit('playerShipChanged', { id: socket.id, shipId: shipId });
+                io.to(zoneRoom).emit('playerStatSync', {
                     id: socket.id,
                     hp: p.hp,
                     shield: p.shield,
@@ -1420,11 +1430,13 @@ io.on('connection', (socket) => {
         p.rotation = movementData.rotation;
 
         // v240.10: Sincron├¡a de Stats en Movimiento (Evita Reset al Disparar)
-        if (movementData.hp !== undefined) p.hp = parseFloat(movementData.hp);
-        if (movementData.sh !== undefined) p.shield = parseFloat(movementData.sh);
-        if (movementData.maxHp !== undefined) p.maxHp = parseFloat(movementData.maxHp);
-        if (movementData.maxSh !== undefined) p.maxShield = parseFloat(movementData.maxSh);
-        else if (movementData.maxShield !== undefined) p.maxShield = parseFloat(movementData.maxShield);
+        // v240.65: Sincronía de Stats DESACTIVADA (El Servidor es Autoridad para evitar Ghost Bleeding)
+        // if (movementData.hp !== undefined) p.hp = parseFloat(movementData.hp);
+        // if (movementData.sh !== undefined) p.shield = parseFloat(movementData.sh);
+        // v240.68: Bloqueo de Máximos desde el cliente (Autoridad Total del Servidor)
+        // if (movementData.maxHp !== undefined) p.maxHp = parseFloat(movementData.maxHp);
+        // if (movementData.maxSh !== undefined) p.maxShield = parseFloat(movementData.maxSh);
+        // else if (movementData.maxShield !== undefined) p.maxShield = parseFloat(movementData.maxShield);
 
         if (movementData.selectedAmmo) p.selectedAmmo = movementData.selectedAmmo;
 

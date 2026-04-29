@@ -209,8 +209,9 @@ func _recalculate_stats():
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
 	super.take_damage(amt, attacker_pos, attacker_id)
-	if NetworkManager:
-		NetworkManager.send_event("playerHitByEnemy", { "damage": amt, "id": entity_id })
+	# v240.69: Eliminado envío duplicado al servidor. Projectile.gd ya se encarga de notificar 
+	# el daño exacto con el enemyType correcto. Hacerlo aquí duplicaba el daño (1 hit = 2 hits) 
+	# y enviaba eventos "fantasma" que reiniciaban contadores de combate.
 
 func _shoot_skill(p_type: String, p_angle: float):
 	last_combat_time = Time.get_ticks_msec()

@@ -317,9 +317,13 @@ func _update_hangar_ui():
 	var s_title = Label.new(); s_title.text = model.get("name", "Nave").to_upper(); s_title.add_theme_font_size_override("font_size", 24); name_h.add_child(s_title)
 	
 	if viewing_id != current_ship_id:
-		var btn_act = Button.new(); btn_act.text = " ACTIVAR MODELO "; btn_act.custom_minimum_size = Vector2(140, 35); btn_act.modulate = Color.GREEN; btn_act.pressed.connect(func(): 
+		var btn_act = Button.new(); btn_act.text = " ACTIVAR MODELO "; btn_act.custom_minimum_size = Vector2(140, 35); btn_act.modulate = Color.GREEN; 
+		btn_act.pressed.connect(func(): 
+			btn_act.text = " ESPERANDO... "
+			btn_act.disabled = true
+			btn_act.modulate = Color.GRAY
 			NetworkManager.send_event("switchShip", {"shipId": viewing_id})
-			current_ship_id = viewing_id; selected_hangar_ship_id = viewing_id; _update_hangar_ui())
+		)
 		name_h.add_child(btn_act)
 
 	var slots_v = VBoxContainer.new(); slots_v.add_theme_constant_override("separation", 15); left_v.add_child(slots_v)

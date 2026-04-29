@@ -344,8 +344,9 @@ func update_stats(data):
 	
 	# v191.70: PREDICCIÓN DE CLIENTE ANTI-PARPADEO (Shield/HP Stability)
 	# Si somos el jugador local, ignoramos cambios minúsculos del server (Regen vs Latencia)
+	# Si somos el jugador local, ignoramos cambios minúsculos del server (Regen vs Latencia)
 	var is_local = is_in_group("player")
-	var threshold = 25.0
+	var threshold = max(25.0, max_hp * 0.02) # v240.69: Umbral dinámico para naves de alto HP
 	var lock_active = (is_local and sync_lock_timer > 0)
 	
 	if data.has("hp") and not lock_active:
@@ -407,8 +408,9 @@ func update_stats(data):
 	var new_total = current_hp + current_shield
 	var damage_taken = old_total - new_total
 	
-	if damage_taken >= 1.0 and old_total > 0: 
-		reset_combat_timer() # v191.80: Restaurado nombre correcto
+	# v240.69: Solo emitir daño visual en el sync si es un daño no predicho GRANDE (Evitar falsos sangrados por regen)
+	if damage_taken >= max(10.0, max_hp * 0.05) and old_total > 0: 
+		# No reseteamos el combat_timer aquí porque el ataque real ya lo reseteó en take_damage
 		_spawn_damage_text(str(int(damage_taken)), Color.RED)
 	
 	if data.has("spheres"):
