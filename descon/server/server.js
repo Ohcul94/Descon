@@ -253,19 +253,25 @@ setInterval(() => {
 
     // v164.68: BUCLE DE REGENERACI├ôN AUTORITATIVA (Jugadores 10% HP/SH)
     Object.values(players).forEach(p => {
-            const delay = p.regenDelay || 5000;
+            // v240.80: REGEN DELAY DE 60 SEGUNDOS (Solicitado por Usuario)
+            const delay = 60000; 
             
             // v239.12: RECALCULADO DINÁMICO EN CADA TICK (Garantía de Sincronía Total)
+            // v240.81: Protección contra desincronía de baseHp
+            const baseHp = p.baseHp || (p.currentShipConfig ? p.currentShipConfig.hp : 2000);
+            const baseShield = p.baseShield || (p.currentShipConfig ? p.currentShipConfig.shield : 1000);
+            
             const hpBonus = 1.0 + ((p.skillTree?.engineering[0] || 0) * 0.02);
             const shBonus = 1.0 + ((p.skillTree?.engineering[1] || 0) * 0.02);
-            p.maxHp = Math.ceil((p.baseHp || 2000) * hpBonus);
-            p.maxShield = Math.ceil((p.baseShield || 1000) * shBonus);
+            p.maxHp = Math.ceil(baseHp * hpBonus);
+            p.maxShield = Math.ceil(baseShield * shBonus);
 
             // v240.67: DEPURACIÓN AGRESIVA DE DAÑO FANTASMA
             if (!p._lastHpDebug) p._lastHpDebug = p.hp;
-            if (p.hp < p._lastHpDebug - 0.01) { // Pequeño margen para errores de punto flotante
+            if (p.hp < p._lastHpDebug - 0.01) { 
                 const diff = p._lastHpDebug - p.hp;
-                require('fs').appendFileSync('bleeding_debug.log', `[BLEED] ${p.user}: -${diff.toFixed(2)} HP. Now: ${p.hp.toFixed(2)}. Max: ${p.maxHp}. Time: ${new Date().toISOString()}\n`);
+                // v240.86: Log con posición para cazar rifts fantasmas
+                require('fs').appendFileSync('bleeding_debug.log', `[BLEED] ${p.user}: -${diff.toFixed(2)} HP. Now: ${p.hp.toFixed(2)}. Max: ${p.maxHp}. Pos: [${Math.floor(p.x)},${Math.floor(p.y)}]. Time: ${new Date().toISOString()}\n`);
             }
             p._lastHpDebug = p.hp;
 
@@ -813,12 +819,12 @@ io.on('connection', (socket) => {
 
         if (data.skillName === "ESCUDO CELULAR") {
             const ms = p.maxShield || 2000;
-            actual_heal = Math.min(healAmt, ms - (p.shield || 0));
             p.shield = Math.min((p.shield || 0) + healAmt, ms);
+            actual_heal = healAmt; 
         } else if (data.skillName === "AUTO-REPARACIÓN") {
             const mh = p.maxHp || 3000;
-            actual_heal = Math.min(healAmt, mh - (p.hp || 0));
             p.hp = Math.min((p.hp || 0) + healAmt, mh);
+            actual_heal = healAmt;
         } else if (data.skillName === "ATAQUE_ESFERA" || data.skillName === "REFLECT-Ω" || data.skillName === "REFLECT-O") {
             // v235.00: Lógica de Ataque (El cliente procesa visual, server autoriza valor)
             actual_heal = healAmt;
@@ -1311,17 +1317,19 @@ io.on('connection', (socket) => {
         try {
             const user = await User.findById(socket.dbUser._id);
             if (user && user.gameData.ownedShips.includes(shipId)) {
-                // v240.40: Bloqueo en Combate de 1 Minuto (Revisión de Seguridad)
+                // v240.85: Bloqueo de Combate Estricto (60s)
                 const now = Date.now();
-                const combatCooldown = 60000;
+                const COMBAT_DELAY = 60000;
                 const lastCombat = p.lastCombatTime || 0;
-                
-                // Debug log (v240.41)
-                require('fs').appendFileSync('combat_debug.log', `[SWITCH] User: ${p.user}, now: ${now}, lastCombat: ${lastCombat}, diff: ${now - lastCombat}\n`);
+                const diff = now - lastCombat;
 
-                if (lastCombat > 0 && (now - lastCombat) < combatCooldown) {
-                    const remaining = Math.ceil((combatCooldown - (now - lastCombat)) / 1000);
-                    socket.emit('authError', `ALERTA DE COMBATE: Espera ${remaining}s fuera de combate para cambiar de nave.`);
+                if (diff < COMBAT_DELAY) {
+                    const remaining = Math.ceil((COMBAT_DELAY - diff) / 1000);
+                    socket.emit('gameNotification', { 
+                        msg: `ERROR: Sistemas de armas calientes. Espera ${remaining}s fuera de combate para cambiar.`, 
+                        type: 'error' 
+                    });
+                    console.log(`[HANGAR] Cambio bloqueado para ${p.user}. Faltan ${remaining}s.`);
                     return;
                 }
 
@@ -1679,7 +1687,7 @@ io.on('connection', (socket) => {
             else { p.hp -= (dmg - p.shield); p.shield = 0; }
             if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
             p.lastCombatTime = Date.now();
-            require('fs').appendFileSync('combat_debug.log', `[HIT] User: ${p.user}, lastCombatTime set to: ${p.lastCombatTime}\n`);
+            require('fs').appendFileSync('combat_debug.log', `[HIT] User: ${p.user}, Damage: ${dmg}, Source: ${attackerType} (Type: ${enemyType}), New lastCombatTime: ${p.lastCombatTime}\n`);
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
             const syncData = { 
                 id: socket.id, 

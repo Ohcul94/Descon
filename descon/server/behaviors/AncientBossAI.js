@@ -30,7 +30,7 @@ module.exports = class AncientBossAI extends BaseAI {
                     this.isRage = false;
                     this.enemy.isRage = false;
                     this.combatStartTime = 0;
-                    this.activeRifts = [];
+                    this.activeRifts = []; // Limpieza inmediata
                     this.abilityIndex = 0;
                     this.nextAbilityTime = 0;
                     
@@ -44,6 +44,12 @@ module.exports = class AncientBossAI extends BaseAI {
                     if (global.serverClearProjectiles) global.serverClearProjectiles(this.enemy.zone, this.enemy.id);
                 }
                 this.noAggroStartTime = 0;
+            } else {
+                // v240.75: Limpieza agresiva de rifts si no hay aggro (Evitar Daño Fantasma)
+                if (this.activeRifts.length > 0) {
+                    this.activeRifts = [];
+                    io.to(`zone_${this.enemy.zone}`).emit('clearEnemyProjectiles', { bossId: this.enemy.id });
+                }
             }
             return;
         }
@@ -109,19 +115,27 @@ module.exports = class AncientBossAI extends BaseAI {
 
     applyDamage(player, amount, now, io) {
         if (player.isDead) return;
+        
+        // v240.70: Registro en log de combate y reset de cooldown
+        if (player.user) {
+            const fs = require('fs');
+            // Log mejorado con ID y posición para cazar "fantasmas"
+            fs.appendFileSync('combat_debug.log', `[BOSS-HIT] User: ${player.user}, Damage: ${amount}, Source: ${this.enemy.name} (${this.enemy.id}) en [${Math.floor(this.enemy.x)},${Math.floor(this.enemy.y)}], Time: ${new Date().toISOString()}\n`);
+            player.lastCombatTime = now; // v240.70: MARCAR COMBATE (Bloquea ship-swap y REGEN)
+        }
+
         player.shield -= amount;
         if (player.shield < 0) { player.hp += player.shield; player.shield = 0; }
         
-        // v115.20: ENTRAR EN COMBATE (Bloqueo de recarga)
         player.lastHit = now;
 
         if (player.hp <= 0) {
             player.hp = 0; player.isDead = true;
-            if (io) io.to(player.socketId).emit('playerStatSync', { hp: 0, shield: 0, isDead: true, lastHit: now });
+            if (io) io.to(`zone_${player.zone}`).emit('playerStatSync', { id: player.socketId, hp: 0, shield: 0, isDead: true, lastHit: now });
             return;
         }
 
-        if (io) io.to(player.socketId).emit('playerStatSync', { hp: player.hp, shield: player.shield, lastHit: now });
+        if (io) io.to(`zone_${player.zone}`).emit('playerStatSync', { id: player.socketId, hp: player.hp, shield: player.shield, lastHit: now });
     }
 
     runRotation(players, target, now, io) {

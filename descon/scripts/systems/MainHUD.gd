@@ -117,6 +117,15 @@ func _ready():
 		# v240.50: Sincronizar Errores de Autorización (Bloqueo de Cambio de Nave, etc)
 		if not NetworkManager.auth_error.is_connected(notify):
 			NetworkManager.auth_error.connect(func(msg): notify(str(msg), "warn"))
+		
+		# v240.90: Sincronía de Mensajes del Servidor (Combat Logs, Info de Juego)
+		if not NetworkManager.game_notification.is_connected(_on_game_notification):
+			NetworkManager.game_notification.connect(_on_game_notification)
+
+func _on_game_notification(data: Dictionary):
+	var msg = data.get("msg", "")
+	var type = data.get("type", "info")
+	notify(msg, type)
 
 func _on_server_data_received(p_data: Dictionary):
 	if p_data.has("gameData"):

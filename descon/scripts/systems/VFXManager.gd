@@ -41,7 +41,11 @@ func _create_nova_effect(p_x: float, p_y: float, radius: float):
 	ring.points = pts
 	
 	ring.global_position = Vector2(p_x, p_y)
-	get_tree().root.add_child(ring)
+	
+	# v240.71: Buscar el nodo World para que el efecto no se desplace con la camara
+	var world = get_tree().get_first_node_in_group("world")
+	if world: world.add_child(ring)
+	else: get_tree().root.add_child(ring)
 	
 	var tween = create_tween().set_parallel(true)
 	var duration = 1.5
@@ -65,7 +69,9 @@ func _create_void_rift_effect(p_x: float, p_y: float, duration: float):
 	rift.modulate.a = 0.2
 	
 	rift.global_position = Vector2(p_x, p_y)
-	get_tree().root.add_child(rift)
+	var world = get_tree().get_first_node_in_group("world")
+	if world: world.add_child(rift)
+	else: get_tree().root.add_child(rift)
 	
 	var tween = create_tween().set_loops()
 	tween.bind_node(rift)
