@@ -253,7 +253,7 @@ const handleUserLogin = async (socket, user, username) => {
         user: username,
         clanTag: clanTag, // v244.110: Siglas para el NameTag local
         gameData: {
-            ...user.gameData.toObject(),
+            ...JSON.parse(JSON.stringify(user.gameData)),
             equippedByShip: eByShipObj,
             equipped: user.gameData.equipped
         },
