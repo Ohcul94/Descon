@@ -2,15 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dv0ea5e2dh1fg"
+uid="uid://cs5f63bd6ah6x"
 path.s3tc="res://.godot/imported/EsferaAmarilla_EsferaAmarilla_rm.jpg-faea4d82c2e21078ac8e9c2d1463c206.s3tc.ctex"
 path.etc2="res://.godot/imported/EsferaAmarilla_EsferaAmarilla_rm.jpg-faea4d82c2e21078ac8e9c2d1463c206.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
-}
-generator_parameters={
-"md5": "9b583f151eb8a733a15f8a495c6db6ce"
 }
 
 [deps]

@@ -2,15 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bhqqhnuyvvll8"
+uid="uid://degrfhfre2ivm"
 path.s3tc="res://.godot/imported/Nave5_Nave5_rm.jpg-e301d385fb9e2ca617b26fed32bfb447.s3tc.ctex"
 path.etc2="res://.godot/imported/Nave5_Nave5_rm.jpg-e301d385fb9e2ca617b26fed32bfb447.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
-}
-generator_parameters={
-"md5": "f70fbbbd1ae3ce0d129c8357b4c577b5"
 }
 
 [deps]

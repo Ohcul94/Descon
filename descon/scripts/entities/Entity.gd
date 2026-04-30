@@ -8,6 +8,7 @@ var entity_id: String = ""
 var db_id: String = "" # v243.80: Identidad persistente (MongoDB ID)
 var username: String = "Unknown"
 var entity_type: int = 1
+var clan_tag: String = "" # v244.110: Siglas de Flota
 
 var max_hp: float = 3000; var is_rage: bool = false # v238.70: Modo Furia (ex-Ryze)
 
@@ -332,6 +333,9 @@ func update_stats(data):
 	var raw = data.get("username", data.get("user", data.get("name", null)))
 	if raw != null and str(raw) != "" and str(raw) != "Unknown": 
 		username = str(raw)
+	
+	if data.has("clanTag"):
+		clan_tag = str(data.clanTag)
 
 	
 	if data.has("pvpEnabled") and name_tag:
@@ -456,14 +460,23 @@ func _update_tags():
 			name_tag.bbcode_enabled = true
 			var n_color = "#bf00ff" if is_rage else ("#ff3333" if pvp_status else "#ffffff")
 			var txt = "[center]"
-			if is_rage: txt += "[b][wave amp=50 freq=2][color=" + n_color + "]" + username + "[/color][/wave][/b]\n"
-			else: txt += "[b][color=" + n_color + "]" + username + "[/color][/b]\n"
+			
+			# v244.110: Mostrar TAG de Flota si existe
+			var name_str = username
+			if clan_tag != "":
+				name_str = "[b][color=#ffff00][" + clan_tag + "][/color][/b] " + username
+			
+			if is_rage: txt += "[b][wave amp=50 freq=2][color=" + n_color + "]" + name_str + "[/color][/wave][/b]\n"
+			else: txt += "[b][color=" + n_color + "]" + name_str + "[/color][/b]\n"
+			
 			txt += "[color=#00ffff][font_size=10]SH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "[/font_size][/color]\n"
 			txt += "[color=#00ff00][font_size=10]HP: " + str(int(current_hp)) + " / " + str(int(max_hp)) + "[/font_size][/color][/center]"
 			name_tag.text = txt
 		else: 
-			# Caso Label normal: No permite multiculor, usamos contorno como resplandor
-			name_tag.text = username + "\nSH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "\nHP: " + str(int(current_hp)) + " / " + str(int(max_hp))
+			# Caso Label normal: No permite multicolor, usamos contorno como resplandor
+			var name_str = username
+			if clan_tag != "": name_str = "[" + clan_tag + "] " + username
+			name_tag.text = name_str + "\nSH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "\nHP: " + str(int(current_hp)) + " / " + str(int(max_hp))
 			if is_rage:
 				name_tag.add_theme_color_override("font_outline_color", Color(0.75, 0, 1)) # Borde Violeta
 				name_tag.add_theme_constant_override("outline_size", 10) # Borde grueso para que se vea

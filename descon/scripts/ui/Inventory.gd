@@ -77,6 +77,8 @@ func _ready():
 		# v242.36: Sincronía de Flota
 		NetworkManager.clan_data.connect(_on_clan_data_received)
 		NetworkManager.clan_member_status.connect(_on_clan_member_status)
+		# v244.101: Escuchar errores globales para mostrar modales explícitos
+		NetworkManager.game_notification.connect(_on_game_notification)
 	
 	# v190.62: Sincronía Responsive
 	get_viewport().size_changed.connect(func(): queue_redraw())
@@ -269,14 +271,13 @@ func _on_inventory_received(data: Dictionary):
 		current_ship_id = int(data.currentShipId)
 	if data.has("hubs"): hubs = int(data.hubs)
 	if data.has("ohcu"): ohcu = int(data.ohcu)
-	if data.has("pendingClanRequests"):
-		pending_clans = data.pendingClanRequests
-	if data.has("gameData") and data.gameData.has("pendingClanRequests"):
-		pending_clans = data.gameData.pendingClanRequests
-	if data.has("receivedClanInvites"):
-		received_invites = data.receivedClanInvites
-	if data.has("gameData") and data.gameData.has("receivedClanInvites"):
-		received_invites = data.gameData.receivedClanInvites
+	if data.has("gameData"):
+		var gd = data.gameData
+		if gd.has("pendingClanRequests"): pending_clans = gd.pendingClanRequests
+		if gd.has("receivedClanInvites"): received_invites = gd.receivedClanInvites
+	
+	if data.has("pendingClanRequests"): pending_clans = data.pendingClanRequests
+	if data.has("receivedClanInvites"): received_invites = data.receivedClanInvites
 		
 	if data.has("equippedByShip"):
 		equipped_by_ship = data.equippedByShip
@@ -1234,56 +1235,20 @@ func _update_clan_ui():
 	master_v.offset_left = 20; master_v.offset_right = -20; master_v.offset_top = 20; tab.add_child(master_v)
 
 	if clan_data == null or typeof(clan_data) != TYPE_DICTIONARY:
-		var title = Label.new(); title.text = "CENTRO DE COMANDO DE CLANES"; title.add_theme_font_size_override("font_size", 18); title.modulate = Color.CYAN; master_v.add_child(title)
-		master_v.add_child(HSeparator.new())
-		var grid = GridContainer.new(); grid.columns = 2; grid.add_theme_constant_override("h_separation", 40); master_v.add_child(grid)
+		var sub_tabs = TabContainer.new(); sub_tabs.size_flags_vertical = 3; master_v.add_child(sub_tabs)
 		
-		var v_crear = VBoxContainer.new(); grid.add_child(v_crear)
-		var t_crear = Label.new(); t_crear.text = "FUNDAR NUEVO CLAN"; t_crear.modulate = Color.GOLD; v_crear.add_child(t_crear)
-		var i_name = LineEdit.new(); i_name.placeholder_text = "Nombre del Clan..."; v_crear.add_child(i_name)
-		var i_tag = LineEdit.new(); i_tag.placeholder_text = "TAG (Máx 4 letras)..."; i_tag.max_length = 4; v_crear.add_child(i_tag)
-		var b_crear = Button.new(); b_crear.text = "CREAR CLAN (5000 OHCU)"; v_crear.add_child(b_crear)
-		b_crear.pressed.connect(func():
-			if i_name.text.length() < 3 or i_tag.text.length() < 2: return
-			NetworkManager.send_event("createClan", {"name": i_name.text, "tag": i_tag.text})
-		)
+		# 1. GESTIÓN
+		var g_tab = Control.new(); g_tab.name = "Gestión"; sub_tabs.add_child(g_tab)
+		_render_no_clan_main_tab(g_tab)
 		
-		var v_unir = VBoxContainer.new(); grid.add_child(v_unir)
-		var t_unir = Label.new(); t_unir.text = "UNIRSE A CLAN EXISTENTE"; t_unir.modulate = Color.CYAN; v_unir.add_child(t_unir)
-		var i_search = LineEdit.new(); i_search.placeholder_text = "Ingresar TAG del Clan..."; i_search.max_length = 4; v_unir.add_child(i_search)
-		var b_unir = Button.new(); b_unir.text = "SOLICITAR INGRESO"; v_unir.add_child(b_unir)
-		b_unir.pressed.connect(func():
-			if i_search.text != "": NetworkManager.send_event("joinClan", {"tag": i_search.text})
-		)
+		# 2. SOLICITUDES
+		var total_reqs = pending_clans.size() + received_invites.size()
+		var s_tab = Control.new(); s_tab.name = "Solicitudes (" + str(total_reqs) + ")" if total_reqs > 0 else "Solicitudes"
+		sub_tabs.add_child(s_tab)
+		_render_no_clan_requests_tab(s_tab)
 		
-		# v244.90: Visualización de Solicitudes Pendientes (Applicant Side)
-		if pending_clans.size() > 0 or received_invites.size() > 0:
-			master_v.add_child(HSeparator.new())
-			
-			if received_invites.size() > 0:
-				var t_inv = Label.new(); t_inv.text = "INVITACIONES RECIBIDAS"; t_inv.modulate = Color.CYAN; master_v.add_child(t_inv)
-				var i_grid = GridContainer.new(); i_grid.columns = 1; master_v.add_child(i_grid)
-				for inv in received_invites:
-					var hb = HBoxContainer.new(); i_grid.add_child(hb)
-					var l = Label.new(); l.text = "[" + str(inv.get("tag", "")) + "] " + str(inv.get("name", "")); l.size_flags_horizontal = 3; hb.add_child(l)
-					
-					var b_acc = Button.new(); b_acc.text = "ACEPTAR"; b_acc.modulate = Color.GREEN; hb.add_child(b_acc)
-					b_acc.pressed.connect(func(): NetworkManager.send_event("handleClanInvite", {"clanId": inv.id, "action": "accept"}))
-					
-					var b_den = Button.new(); b_den.text = "RECHAZAR"; b_den.modulate = Color.RED; hb.add_child(b_den)
-					b_den.pressed.connect(func(): NetworkManager.send_event("handleClanInvite", {"clanId": inv.id, "action": "deny"}))
-				
-				master_v.add_child(HSeparator.new())
-
-			if pending_clans.size() > 0:
-				var t_pend = Label.new(); t_pend.text = "SOLICITUDES ENVIADAS (" + str(pending_clans.size()) + "/3)"; t_pend.modulate = Color.GOLD; master_v.add_child(t_pend)
-				var p_grid = GridContainer.new(); p_grid.columns = 3; master_v.add_child(p_grid)
-				for p_clan in pending_clans:
-					var c_label = Label.new()
-					c_label.text = "[" + str(p_clan.get("tag", "")) + "] " + str(p_clan.get("name", ""))
-					c_label.add_theme_font_size_override("font_size", 10)
-					c_label.modulate = Color.CYAN
-					p_grid.add_child(c_label)
+		sub_tabs.current_tab = last_clan_subtab
+		sub_tabs.tab_changed.connect(func(idx): last_clan_subtab = idx)
 	else:
 		var head = HBoxContainer.new(); master_v.add_child(head)
 		var tag_str = str(clan_data.get("tag", "TAG"))
@@ -1414,6 +1379,22 @@ func _render_clan_requests_tab(parent, is_leader):
 			
 			var b_den = Button.new(); b_den.text = "RECHAZAR"; b_den.modulate = Color.RED; hb.add_child(b_den)
 			b_den.pressed.connect(func(): NetworkManager.send_event("handleClanRequest", {"username": r.username, "action": "deny"}))
+			
+	# v244.99: Mostrar también invitaciones enviadas por el Líder
+	var sent = clan_data.get("sentInvites", [])
+	if not sent.is_empty():
+		main_v.add_child(HSeparator.new())
+		var t_sent = Label.new(); t_sent.text = "INVITACIONES ENVIADAS POR LA FLOTA"; t_sent.modulate = Color.CYAN; main_v.add_child(t_sent)
+		var s_list = VBoxContainer.new(); main_v.add_child(s_list)
+		for s in sent:
+			var shb = HBoxContainer.new(); s_list.add_child(shb)
+			var sl = Label.new(); sl.text = "[INV] " + str(s.get("username", "Piloto")) + " (Lvl " + str(s.get("level", 1)) + ")"; sl.size_flags_horizontal = 3; shb.add_child(sl)
+			sl.modulate.a = 0.7
+			
+			var b_can = Button.new(); b_can.text = "CANCELAR"; b_can.modulate = Color.ORANGE; b_can.add_theme_font_size_override("font_size", 9)
+			shb.add_child(b_can)
+			var s_username = str(s.get("username", ""))
+			b_can.pressed.connect(func(): NetworkManager.send_event("cancelClanInvite", {"username": s_username}))
 
 func _render_clan_config_tab(parent, is_leader, tag_str):
 	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1455,3 +1436,77 @@ func _render_clan_config_tab(parent, is_leader, tag_str):
 		)
 	else:
 		var lbl = Label.new(); lbl.text = "Solo el líder puede modificar la configuración."; lbl.modulate.a = 0.5; main_v.add_child(lbl)
+
+func _render_no_clan_main_tab(parent):
+	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_v.offset_left = 10; main_v.offset_right = -10; main_v.offset_top = 10; parent.add_child(main_v)
+	
+	var title = Label.new(); title.text = "CENTRO DE COMANDO DE CLANES"; title.add_theme_font_size_override("font_size", 18); title.modulate = Color.CYAN; main_v.add_child(title)
+	main_v.add_child(HSeparator.new())
+	
+	var grid = GridContainer.new(); grid.columns = 2; grid.add_theme_constant_override("h_separation", 40); main_v.add_child(grid)
+	
+	var v_crear = VBoxContainer.new(); grid.add_child(v_crear)
+	var t_crear = Label.new(); t_crear.text = "FUNDAR NUEVO CLAN"; t_crear.modulate = Color.GOLD; v_crear.add_child(t_crear)
+	var i_name = LineEdit.new(); i_name.placeholder_text = "Nombre del Clan..."; v_crear.add_child(i_name)
+	var i_tag = LineEdit.new(); i_tag.placeholder_text = "TAG (Máx 4 letras)..."; i_tag.max_length = 4; v_crear.add_child(i_tag)
+	var b_crear = Button.new(); b_crear.text = "CREAR CLAN (5000 OHCU)"; v_crear.add_child(b_crear)
+	b_crear.pressed.connect(func():
+		if i_name.text.length() < 3 or i_tag.text.length() < 2: return
+		NetworkManager.send_event("createClan", {"name": i_name.text, "tag": i_tag.text})
+	)
+	
+	var v_unir = VBoxContainer.new(); grid.add_child(v_unir)
+	var t_unir = Label.new(); t_unir.text = "UNIRSE A CLAN EXISTENTE"; t_unir.modulate = Color.CYAN; v_unir.add_child(t_unir)
+	var i_search = LineEdit.new(); i_search.placeholder_text = "Ingresar TAG del Clan..."; i_search.max_length = 4; v_unir.add_child(i_search)
+	var b_unir = Button.new(); b_unir.text = "SOLICITAR INGRESO"; v_unir.add_child(b_unir)
+	b_unir.pressed.connect(func():
+		if i_search.text != "": NetworkManager.send_event("joinClan", {"tag": i_search.text})
+	)
+
+func _render_no_clan_requests_tab(parent):
+	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_v.offset_left = 10; main_v.offset_right = -10; main_v.offset_top = 10; parent.add_child(main_v)
+	
+	var scroll = ScrollContainer.new(); scroll.size_flags_vertical = 3; main_v.add_child(scroll)
+	var list = VBoxContainer.new(); list.size_flags_horizontal = 3; scroll.add_child(list)
+	
+	if received_invites.is_empty() and pending_clans.is_empty():
+		var empty = Label.new(); empty.text = "No tienes solicitudes ni invitaciones pendientes."; empty.modulate.a = 0.5; list.add_child(empty)
+		return
+
+	if not received_invites.is_empty():
+		var t_inv = Label.new(); t_inv.text = "INVITACIONES RECIBIDAS (De Clanes)"; t_inv.modulate = Color.CYAN; list.add_child(t_inv)
+		for inv in received_invites:
+			var hb = HBoxContainer.new(); hb.custom_minimum_size.y = 35; list.add_child(hb)
+			var l = Label.new(); l.text = "[INV] [" + str(inv.get("tag", "")) + "] " + str(inv.get("name", "")); l.size_flags_horizontal = 3; hb.add_child(l)
+			
+			var b_acc = Button.new(); b_acc.text = "ACEPTAR"; b_acc.modulate = Color.GREEN; hb.add_child(b_acc)
+			b_acc.pressed.connect(func(): NetworkManager.send_event("handleClanInvite", {"clanId": inv.id, "action": "accept"}))
+			
+			var b_den = Button.new(); b_den.text = "RECHAZAR"; b_den.modulate = Color.RED; hb.add_child(b_den)
+			b_den.pressed.connect(func(): NetworkManager.send_event("handleClanInvite", {"clanId": inv.id, "action": "deny"}))
+		list.add_child(HSeparator.new())
+
+	if not pending_clans.is_empty():
+		var t_pend = Label.new(); t_pend.text = "SOLICITUDES ENVIADAS (" + str(pending_clans.size()) + "/3)"; t_pend.modulate = Color.GOLD; list.add_child(t_pend)
+		for p_clan in pending_clans:
+			var hb = HBoxContainer.new(); hb.custom_minimum_size.y = 35; list.add_child(hb)
+			var l = Label.new(); l.text = "[SOL] [" + str(p_clan.get("tag", "")) + "] " + str(p_clan.get("name", "")); l.size_flags_horizontal = 3; hb.add_child(l)
+			l.modulate = Color.CYAN; l.add_theme_font_size_override("font_size", 11)
+			
+			var b_can = Button.new(); b_can.text = "CANCELAR"; b_can.modulate = Color.ORANGE; b_can.add_theme_font_size_override("font_size", 9)
+			hb.add_child(b_can)
+			var clan_tag = str(p_clan.get("tag", ""))
+			b_can.pressed.connect(func(): NetworkManager.send_event("cancelClanRequest", {"tag": clan_tag}))
+
+func _on_game_notification(data: Dictionary):
+	if not is_open: return
+	var msg = str(data.get("msg", ""))
+	var type = str(data.get("type", "info"))
+	
+	# v244.101: Si el inventario está abierto y hay un error de flota/piloto, mostrar modal explícito
+	if type == "error":
+		var m_upper = msg.to_upper()
+		if "FLOTA" in m_upper or "PILOTO" in m_upper or "CLAN" in m_upper or "SOLICITUD" in m_upper or "LÍDER" in m_upper or "TAG" in m_upper:
+			_show_result_modal("CENTRO DE COMANDO: ERROR", msg)

@@ -2,15 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c0by417vuf5kh"
+uid="uid://dp02c33ohdw1b"
 path.s3tc="res://.godot/imported/EsferaAmarilla_EsferaAmarilla_normal.jpg-6ab465acca584229bbc20c89ff0dc6b1.s3tc.ctex"
 path.etc2="res://.godot/imported/EsferaAmarilla_EsferaAmarilla_normal.jpg-6ab465acca584229bbc20c89ff0dc6b1.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
-}
-generator_parameters={
-"md5": "825d764b3ee040e7aca6c32dad6657dd"
 }
 
 [deps]
@@ -31,7 +28,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://assets/Esferas/3D/EsferaAmarilla_EsferaAmarilla_normal.jpg"
+roughness/src_normal="res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla_EsferaAmarilla_normal.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

@@ -356,6 +356,7 @@ func _on_login_success(p_in):
 	self.entity_id = str(p_in.get("socketId", ""))
 	self.db_id = str(p_in.get("id", ""))
 	self.username = p_in.get("username", p_in.get("user", "Piloto"))
+	self.clan_tag = str(p_in.get("clanTag", "")) # v244.110
 	if p_in.has("gameData"):
 		var gd = p_in.gameData
 		hubs = int(gd.get("hubs", 0))

@@ -2,15 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c27hduvcue4gw"
+uid="uid://byo18jnim43rg"
 path.s3tc="res://.godot/imported/futuristic+jet+3d+model_futuristicjet3dmodel_basecolor.jpg-47e4faf60684d418727dc47c05829d1a.s3tc.ctex"
 path.etc2="res://.godot/imported/futuristic+jet+3d+model_futuristicjet3dmodel_basecolor.jpg-47e4faf60684d418727dc47c05829d1a.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
-}
-generator_parameters={
-"md5": "cb7fe08e54ffbfa7d4c748687b2c525a"
 }
 
 [deps]
