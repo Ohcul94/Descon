@@ -5,13 +5,18 @@ module.exports = class ChaseAI extends BaseAI {
     applyMovementLogic(target, dist, angle, now) {
         let speed = this.config.speed || 4.5;
         
-        // Efecto Kamikaze: Acelerar cuando está cerca
+        // Efecto Kamikaze: Eliminado para evitar efecto "imán" y sincronizar con velocidad del jugador
         const targetDist = 150;
-        if (dist < targetDist) speed *= 1.5;
+        // if (dist < targetDist) speed *= 1.5; 
 
-        if (dist > 50) {
+        const stopDist = 80;
+        if (dist > stopDist) {
             this.enemy.x += Math.cos(angle) * speed;
             this.enemy.y += Math.sin(angle) * speed;
+        } else if (dist < stopDist - 20) {
+            // Repulsión para no quedarse "encimado"
+            this.enemy.x -= Math.cos(angle) * (speed * 0.4);
+            this.enemy.y -= Math.sin(angle) * (speed * 0.4);
         }
 
         this.enemy.rotation = angle + Math.PI / 2;

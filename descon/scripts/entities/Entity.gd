@@ -271,24 +271,27 @@ func _draw():
 
 	# ENEMIGOS: Siluetas Geométricas Distintas (No-Triángulos)
 	match entity_type:
-		1: # T1 - Estructura Cuadrada Táctica (Naranja)
+		1: # Enemigo 1
 			poly_color = Color(1, 0.45, 0) 
 			pts = PackedVector2Array([Vector2(12, 12), Vector2(-12, 12), Vector2(-12, -12), Vector2(12, -12)])
-		2: # T2 - Rombo de Combate Ligero (Verde Lima)
-			poly_color = Color(0.5, 1, 0)
-			pts = PackedVector2Array([Vector2(18, 0), Vector2(0, -18), Vector2(-18, 0), Vector2(0, 18)])
-		3: # T3 - Hexágono Blindado (Dorado)
+		6: # Enemigo 6 (Vórtice)
+			poly_color = Color(0, 0.5, 1)
+			pts = PackedVector2Array([Vector2(20, 0), Vector2(14, -14), Vector2(0, -20), Vector2(-14, -14), Vector2(-20, 0), Vector2(-14, 14), Vector2(0, 20), Vector2(14, 14)])
+		8: # Enemigo 8 (Charger)
 			poly_color = Color(1, 0.8, 0)
 			pts = PackedVector2Array([Vector2(15, -8), Vector2(15, 8), Vector2(0, 18), Vector2(-15, 8), Vector2(-15, -8), Vector2(0, -18)])
-		4: # T4 - LORD TITÁN (Octógono Fortificado - Magenta)
+		4: # Lord Titán
 			poly_color = Color(1, 0, 0.5)
 			pts = PackedVector2Array([Vector2(25, -12), Vector2(25, 12), Vector2(12, 25), Vector2(-12, 25), Vector2(-25, 12), Vector2(-25, -12), Vector2(-12, -25), Vector2(12, -25)])
-		5: # T5 - ANCIENT BOSS (Cruz de Vindicación - Rojo Sangre)
+		10: # Ancient Boss
 			poly_color = Color(1, 0, 0)
 			pts = PackedVector2Array([Vector2(35, 0), Vector2(8, -8), Vector2(0, -35), Vector2(-8, -8), Vector2(-35, 0), Vector2(-8, 8), Vector2(0, 35), Vector2(8, 8)])
-		6: # T6 - GUARDIÁN DE INSTANCIA (Boss Gigante - Púrpura Neón)
+		11: # Mechanic Boss
 			poly_color = Color(0.7, 0, 1)
 			pts = PackedVector2Array([Vector2(60, 0), Vector2(20, -50), Vector2(-40, -40), Vector2(-60, 0), Vector2(-40, 40), Vector2(20, 50)])
+		5: # Enemigo 5
+			poly_color = Color(0.5, 1, 0)
+			pts = PackedVector2Array([Vector2(18, 0), Vector2(0, -18), Vector2(-18, 0), Vector2(0, 18)])
 		_: # Otros / Genéricos (Pentágono Cyan)
 			poly_color = Color(0, 1, 1)
 			pts = PackedVector2Array([Vector2(15, 0), Vector2(5, -15), Vector2(-15, -10), Vector2(-15, 10), Vector2(5, 15)])
@@ -788,31 +791,26 @@ func _setup_enemy_visuals():
 	var enemy_rot_offset = 0.0
 	var path = ""
 	
-	if entity_type == 4:
-		glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
-		enemy_rot_offset = 90.0
-	elif entity_type == 5:
-		glb_path = "res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"
-		enemy_rot_offset = 90.0
-
-	elif entity_type == 6:
-		glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
-		enemy_rot_offset = 180.0
-	elif entity_type == 1:
-		glb_path = "res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb"
-		enemy_rot_offset = 90.0
-	elif entity_type == 2:
-		glb_path = "res://assets/Enemigos/3D/Enemigo5/Enemigo5.glb"
-	elif entity_type == 3:
-		glb_path = "res://assets/Enemigos/3D/Enemigo8/Enemigo8.glb"
-	elif username.to_upper().contains("TITAN") or username.to_upper().contains("TITÁN") or username.to_upper().contains("BOSS1") or username.to_upper().contains("BOSS2"):
-		if username.to_upper().contains("BOSS2"):
-			glb_path = "res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"
+	# v252.10: MAPEADO UNIVERSAL 1:1 CON ASSETS
+	match entity_type:
+		1: 
+			glb_path = "res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb"
 			enemy_rot_offset = 90.0
-
-		else:
+		5: 
+			glb_path = "res://assets/Enemigos/3D/Enemigo5/Enemigo5.glb"
+		6: 
+			glb_path = "res://assets/Enemigos/3D/Enemigo6/Enemigo6.glb"
+		8: 
+			glb_path = "res://assets/Enemigos/3D/Enemigo8/Enemigo8.glb"
+		4: 
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
 			enemy_rot_offset = 90.0
+		10: 
+			glb_path = "res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"
+			enemy_rot_offset = 90.0
+		11: 
+			glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
+			enemy_rot_offset = 180.0
 
 
 
@@ -841,8 +839,7 @@ func _setup_enemy_visuals():
 		
 		_setup_3d_visuals(glb_path, enemy_rot_offset)
 		if is_instance_valid(_3d_model):
-			var is_titan = username.to_upper().contains("TITAN") or username.to_upper().contains("TITÁN")
-			var s_factor = 8.5 if (entity_type >= 4 or is_titan) else 2.5
+			var s_factor = 3.0 
 			_3d_model.scale = Vector3(s_factor, s_factor, s_factor)
 			return
 		else:
@@ -852,11 +849,12 @@ func _setup_enemy_visuals():
 	# Fallback a 2D (v223.1: Rutas Corregidas 2D)
 	match entity_type:
 		1: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png"
-		2: path = "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png"
-		3: path = "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png"
+		5: path = "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png"
+		8: path = "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png"
 		4: path = "res://assets/Enemigos/2D/Bosses/Boss1/Boss1.png"
-		5: path = "res://assets/Enemigos/2D/Bosses/Boss2/Boss2.png"
-		6: path = "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png"
+		10: path = "res://assets/Enemigos/2D/Bosses/Boss2/Boss2.png"
+		11: path = "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png"
+		6: path = "res://assets/Enemigos/2D/Enemigo6/Enemigo6.png"
 	
 	if path == "": path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png"
 	

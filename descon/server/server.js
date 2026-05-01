@@ -21,6 +21,7 @@ const MechanicBossAI = require('./behaviors/MechanicBossAI'); // Nuevo Jefe Dung
 const HordeManager = require('./events/HordeManager'); // v245.01: Gestor de Eventos
 const SniperAI = require('./behaviors/SniperAI'); // v248.01: Tipo 2
 const ChargerAI = require('./behaviors/ChargerAI'); // v248.01: Tipo 3
+const GravityAI = require('./behaviors/GravityAI'); // v251.01: Tipo 7 (Elite CC)
 
 // Configuraci├│n
 const PORT = process.env.PORT || 3333;
@@ -382,6 +383,7 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, 
         rotation: 0,
         lastHit: 0,
         lastDash: 0,
+        isHorde: (zone === 6), // v253.10: Visión global si estamos en mapa de hordas
         shotsInBurst: 0,
         nextShotTime: 0
     };
@@ -393,12 +395,13 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, 
     // v250.01: IMPORTANTE - Clonar el config y sobreescribir la velocidad con la procesada
     const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
     
-    if (type === 6) e.ai = new MechanicBossAI(e, aiConfig); 
-    else if (type === 5) e.ai = new AncientBossAI(e, aiConfig); 
+    if (type === 11) e.ai = new MechanicBossAI(e, aiConfig); 
+    else if (type === 10) e.ai = new AncientBossAI(e, aiConfig); 
     else if (type === 4) e.ai = new BossAI(e, aiConfig); 
-    else if (type === 3) e.ai = new ChargerAI(e, aiConfig); // v248.10
-    else if (type === 2) e.ai = new SniperAI(e, aiConfig); // v248.10
-    else if (type === 1) e.ai = new ChaseAI(e, aiConfig);
+    else if (type === 8) e.ai = new ChargerAI(e, aiConfig); // v252.10 (Carpeta Enemigo8)
+    else if (type === 6) e.ai = new GravityAI(e, aiConfig); // v252.10 (Carpeta Enemigo6)
+    else if (type === 5) e.ai = new SniperAI(e, aiConfig);  // v252.10 (Carpeta Enemigo5)
+    else if (type === 1) e.ai = new ChaseAI(e, aiConfig);   // v252.10 (Carpeta Enemigo1)
     else e.ai = new OrbitAI(e, aiConfig);
 
     enemies[id] = e;
@@ -543,8 +546,7 @@ setInterval(() => {
             if (!p._lastHpDebug) p._lastHpDebug = p.hp;
             if (p.hp < p._lastHpDebug - 0.01) { 
                 const diff = p._lastHpDebug - p.hp;
-                // v240.86: Log con posición para cazar rifts fantasmas
-                require('fs').appendFileSync('bleeding_debug.log', `[BLEED] ${p.user}: -${diff.toFixed(2)} HP. Now: ${p.hp.toFixed(2)}. Max: ${p.maxHp}. Pos: [${Math.floor(p.x)},${Math.floor(p.y)}]. Time: ${new Date().toISOString()}\n`);
+                // v240.86: Log de depuración eliminado para producción
             }
             p._lastHpDebug = p.hp;
 
@@ -2304,7 +2306,6 @@ io.on('connection', (socket) => {
 
     // SISTEMA DE DA├æO RECIBIDO SINCRONIZADO v125.31 (Identity Aware)
     socket.on('playerHitByEnemy', (data) => {
-        require('fs').appendFileSync('combat_debug.log', `[EVENT_RAW] playerHitByEnemy received for socket ${socket.id}, data: ${JSON.stringify(data)}\n`);
         const p = players[socket.id];
         if (p && !p.isDead && SERVER_CONFIG) {
             const attackerType = data.attackerType || 'enemy';
@@ -2330,7 +2331,6 @@ io.on('connection', (socket) => {
             else { p.hp -= (dmg - p.shield); p.shield = 0; }
             if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
             p.lastCombatTime = Date.now();
-            require('fs').appendFileSync('combat_debug.log', `[HIT] User: ${p.user}, Damage: ${dmg}, Source: ${attackerType} (Type: ${enemyType}), New lastCombatTime: ${p.lastCombatTime}\n`);
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
             const syncData = { 
                 id: socket.id, 

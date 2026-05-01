@@ -1,115 +1,95 @@
 extends Node
-# Constants.gd (v142.0 - FULL DATABASE RESTORE)
-# Recuperación de ítems, naves y multiplicadores desde JS original.
 
-const GAME_CONFIG = {
-	"worldSize": 4000.0,
-	"vignette_intensity": 0.5,
-	"camera_shake": true,
-	"regenDelay": 5000,
-	"regenRate": 0.1
+# Constants.gd (v252.18 - RESTAURACIÓN TOTAL DE MUNICIÓN Y ESCALAS)
+
+var GAME_CONFIG = {
+	"worldSize": 10000.0,
+	"version": "2.5.2-Elite"
+}
+
+var HORDES_CONFIG = {
+	"active": true,
+	"currentWaveIndex": 0,
+	"map": 6,
+	"timeBetweenWaves": 5,
+	"waves": [
+		{ "enemies": [ { "count": 3, "type": "1" } ], "name": "Fase 1: Reconocimiento", "rewardMultiplier": 1 },
+		{ "enemies": [ { "count": 5, "type": "1" }, { "count": 5, "type": "5" } ], "name": "Fase 2: Asalto", "rewardMultiplier": 1.5 }
+	]
 }
 
 var SHIP_MODELS = [
-	{ "id": 1, "name": "Phoenix-L1", "hp": 3000, "shield": 1000, "speed": 300, "slots": { "w": 1, "s": 1, "e": 1, "x": 1 }, "prices": { "hubs": 0, "ohcu": 0 } },
-	{ "id": 2, "name": "Vulture-G2", "hp": 4500, "shield": 2500, "speed": 330, "slots": { "w": 2, "s": 2, "e": 2, "x": 2 }, "prices": { "hubs": 1000000, "ohcu": 1000 } },
-	{ "id": 3, "name": "Falcon-A3", "hp": 10000, "shield": 6000, "speed": 360, "slots": { "w": 4, "s": 4, "e": 4, "x": 3 }, "prices": { "hubs": 5000000, "ohcu": 5000 } },
-	{ "id": 4, "name": "Titan-S4", "hp": 25000, "shield": 15000, "speed": 390, "slots": { "w": 8, "s": 8, "e": 8, "x": 4 }, "prices": { "hubs": 20000000, "ohcu": 15000 } },
-	{ "id": 5, "name": "Wraith-X5", "hp": 70000, "shield": 45000, "speed": 420, "slots": { "w": 12, "s": 12, "e": 12, "x": 5 }, "prices": { "hubs": 0, "ohcu": 50000 }, "premium": true },
-	{ "id": 6, "name": "Galactus-Z6", "hp": 200000, "shield": 130000, "speed": 460, "slots": { "w": 16, "s": 16, "e": 16, "x": 6 }, "prices": { "hubs": 0, "ohcu": 200000 }, "premium": true }
+	{ "id": 1, "name": "Phoenix-L1", "hp": 3000, "shield": 1000, "speed": 500, "slots": { "e": 1, "s": 2, "w": 3, "x": 1 }, "prices": { "hubs": 0, "ohcu": 0 } },
+	{ "id": 2, "name": "Vulture-G2", "hp": 4500, "shield": 2500, "speed": 330, "slots": { "e": 2, "s": 2, "w": 2, "x": 2 }, "prices": { "hubs": 1000000, "ohcu": 1000 } },
+	{ "id": 3, "name": "Falcon-A3", "hp": 10000, "shield": 6000, "speed": 360, "slots": { "e": 4, "s": 4, "w": 4, "x": 3 }, "prices": { "hubs": 5000000, "ohcu": 5000 } },
+	{ "id": 4, "name": "Titan-S4", "hp": 25000, "shield": 15000, "speed": 390, "slots": { "e": 8, "s": 8, "w": 8, "x": 4 }, "prices": { "hubs": 20000000, "ohcu": 15000 } },
+	{ "id": 5, "name": "Wraith-X5", "hp": 70000, "shield": 45000, "speed": 420, "slots": { "e": 12, "s": 12, "w": 12, "x": 5 }, "prices": { "hubs": 0, "ohcu": 50000 } },
+	{ "id": 6, "name": "Galactus-Z6", "hp": 200000, "shield": 130000, "speed": 460, "slots": { "e": 16, "s": 16, "w": 16, "x": 6 }, "prices": { "hubs": 0, "ohcu": 200000 } }
 ]
 
+var SHOP_ITEMS = {
+	"ammo": {
+		"laser": [
+			{ "id": "am_l1", "name": "Láser T1", "prices": { "hubs": 1000, "ohcu": 10 } },
+			{ "id": "am_l2", "name": "Láser T2", "prices": { "hubs": 2000, "ohcu": 2 } },
+			{ "id": "am_l3", "name": "Láser T3", "prices": { "hubs": 3000, "ohcu": 4 } },
+			{ "id": "am_l4", "name": "Láser T4", "prices": { "hubs": 4000, "ohcu": 6 } },
+			{ "id": "am_l5", "name": "Láser T5", "prices": { "hubs": 0, "ohcu": 10 } },
+			{ "id": "am_l6", "name": "Láser T6", "prices": { "hubs": 0, "ohcu": 20 } }
+		],
+		"mine": [
+			{ "id": "am_n1", "name": "Mina T1", "prices": { "hubs": 10000, "ohcu": 1 } },
+			{ "id": "am_n2", "name": "Mina T2", "prices": { "hubs": 20000, "ohcu": 20 } },
+			{ "id": "am_n3", "name": "Mina T3", "prices": { "hubs": 30000, "ohcu": 30 } },
+			{ "id": "am_n4", "name": "Mina T4", "prices": { "hubs": 40000, "ohcu": 40 } },
+			{ "id": "am_n5", "name": "Mina T5", "prices": { "hubs": 0, "ohcu": 100 } },
+			{ "id": "am_n6", "name": "Mina T6", "prices": { "hubs": 0, "ohcu": 200 } }
+		],
+		"missile": [
+			{ "id": "am_m1", "name": "Misil T1", "prices": { "hubs": 5000, "ohcu": 1 } },
+			{ "id": "am_m2", "name": "Misil T2", "prices": { "hubs": 10000, "ohcu": 10 } },
+			{ "id": "am_m3", "name": "Misil T3", "prices": { "hubs": 15000, "ohcu": 15 } },
+			{ "id": "am_m4", "name": "Misil T4", "prices": { "hubs": 20000, "ohcu": 20 } },
+			{ "id": "am_m5", "name": "Misil T5", "prices": { "hubs": 0, "ohcu": 50 } },
+			{ "id": "am_m6", "name": "Misil T6", "prices": { "hubs": 0, "ohcu": 100 } }
+		]
+	},
+	"engines": [
+		{ "id": "en1", "name": "Motor M1", "prices": { "hubs": 5000, "ohcu": 5 }, "base": 20 },
+		{ "id": "en2", "name": "Motor M2", "prices": { "hubs": 50000, "ohcu": 50 }, "base": 50 },
+		{ "id": "en3", "name": "Motor M3", "prices": { "hubs": 300000, "ohcu": 300 }, "base": 100 }
+	],
+	"shields": [
+		{ "id": "sh1", "name": "Escudo S1", "prices": { "hubs": 10000, "ohcu": 10 }, "base": 1000 },
+		{ "id": "sh2", "name": "Escudo S2", "prices": { "hubs": 100000, "ohcu": 100 }, "base": 5000 },
+		{ "id": "sh3", "name": "Escudo SG3", "prices": { "hubs": 500000, "ohcu": 500 }, "base": 15000 }
+	],
+	"weapons": [
+		{ "id": "las1", "name": "Láser LF-1", "prices": { "hubs": 10000, "ohcu": 10 }, "base": 100 },
+		{ "id": "las2", "name": "Láser LF-2", "prices": { "hubs": 50000, "ohcu": 50 }, "base": 250 },
+		{ "id": "las3", "name": "Láser LF-3", "prices": { "hubs": 200000, "ohcu": 200 }, "base": 600 }
+	]
+}
+
 var ENEMY_MODELS = {
-	"1": { "name": "Recon Drone", "hp": 500, "shield": 100, "bulletDamage": 40, "fireRate": 2000, "rewardHubs": 100, "rewardOhcu": 1, "rewardExp": 150, "speed": 450, "bulletSpeed": 800 },
-	"2": { "name": "Interceptor", "hp": 1500, "shield": 800, "bulletDamage": 120, "fireRate": 1500, "rewardHubs": 500, "rewardOhcu": 5, "rewardExp": 400, "speed": 350, "bulletSpeed": 800 },
-	"3": { "name": "Destroyer", "hp": 5000, "shield": 3000, "bulletDamage": 350, "fireRate": 1200, "rewardHubs": 2500, "rewardOhcu": 25, "rewardExp": 1200, "speed": 300, "bulletSpeed": 800 },
+	"1": { "name": "Enemigo 1", "hp": 500, "shield": 100, "bulletDamage": 40, "fireRate": 1000, "rewardHubs": 100, "rewardOhcu": 1, "rewardExp": 150, "speed": 450, "bulletSpeed": 800 },
+	"5": { "name": "Enemigo 5", "hp": 1500, "shield": 800, "bulletDamage": 120, "fireRate": 1500, "rewardHubs": 500, "rewardOhcu": 5, "rewardExp": 400, "speed": 350, "bulletSpeed": 800 },
+	"6": { "name": "Enemigo 6", "hp": 15000, "shield": 5000, "bulletDamage": 200, "fireRate": 2500, "rewardHubs": 5000, "rewardOhcu": 50, "rewardExp": 250, "speed": 250, "bulletSpeed": 600 },
+	"8": { "name": "Enemigo 8", "hp": 5000, "shield": 3000, "bulletDamage": 350, "fireRate": 1200, "rewardHubs": 2500, "rewardOhcu": 25, "rewardExp": 1200, "speed": 300, "bulletSpeed": 800 },
 	"4": { "name": "Lord Titán", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000, "rageTimer": 20, "speed": 250, "bulletSpeed": 900 },
-	"5": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20, "speed": 220, "bulletSpeed": 1000 },
-	"6": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20, "speed": 280, "bulletSpeed": 1100 }
+	"10": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20, "speed": 220, "bulletSpeed": 1000 },
+	"11": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20, "speed": 280, "bulletSpeed": 1100 }
 }
 
 var AMMO_MULTIPLIERS = {
-	"laser": [1.0, 1.5, 2.5, 4, 8, 15],
+	"laser": [1, 2, 3, 4, 5, 15],
 	"missile": [1, 2, 4, 8, 16, 30],
 	"mine": [1, 3, 7, 15, 40, 100]
 }
 
-var SHOP_ITEMS = {
-	"weapons": [
-		{ "id": "las1", "name": "Láser LF-1", "desc": "Láser básico.", "stats": "Daño: 100", "base": 100, "prices": { "hubs": 10000, "ohcu": 10 }, "type": "w" },
-		{ "id": "las2", "name": "Láser LF-2", "desc": "Mejora en potencia.", "stats": "Daño: 250", "base": 250, "prices": { "hubs": 50000, "ohcu": 50 }, "type": "w" },
-		{ "id": "las3", "name": "Láser LF-3", "desc": "Estándar militar.", "stats": "Daño: 600", "base": 600, "prices": { "hubs": 200000, "ohcu": 200 }, "type": "w" },
-		{ "id": "las4", "name": "Láser LF-4", "desc": "Vanguardia.", "stats": "Daño: 1500", "base": 1500, "prices": { "hubs": 1000000, "ohcu": 1000 }, "type": "w" },
-		{ "id": "las5", "name": "Láser Prometheus", "desc": "Solar.", "stats": "Daño: 5000", "base": 5000, "prices": { "hubs": 0, "ohcu": 5000 }, "type": "w", "premium": true },
-		{ "id": "las6", "name": "Cañón Hyper", "desc": "Disruptor.", "stats": "Daño: 15000", "base": 15000, "prices": { "hubs": 0, "ohcu": 15000 }, "type": "w", "premium": true }
-	],
-	"shields": [
-		{ "id": "sh1", "name": "Escudo S1", "desc": "Mínima.", "stats": "+1000", "base": 1000, "prices": { "hubs": 10000, "ohcu": 10 }, "type": "s" },
-		{ "id": "sh2", "name": "Escudo S2", "desc": "Reforzado.", "stats": "+5000", "base": 5000, "prices": { "hubs": 100000, "ohcu": 100 }, "type": "s" },
-		{ "id": "sh3", "name": "Escudo SG3", "desc": "Gravitacional.", "stats": "+15000", "base": 15000, "prices": { "hubs": 500000, "ohcu": 500 }, "type": "s" },
-		{ "id": "sh4", "name": "Escudo NX", "desc": "Nanobots.", "stats": "+40000", "base": 40000, "prices": { "hubs": 2000000, "ohcu": 2000 }, "type": "s" },
-		{ "id": "sh5", "name": "Escudo Fusion", "desc": "Alienígena.", "stats": "+100000", "base": 100000, "prices": { "hubs": 0, "ohcu": 10000 }, "type": "s", "premium": true },
-		{ "id": "sh6", "name": "Generador Z+", "desc": "Invulnerabilidad.", "stats": "+250000", "base": 250000, "prices": { "hubs": 0, "ohcu": 25000 }, "type": "s", "premium": true }
-	],
-	"engines": [
-		{ "id": "en1", "name": "Motor M1", "desc": "Químico.", "stats": "+20", "base": 20, "prices": { "hubs": 5000, "ohcu": 5 }, "type": "e" },
-		{ "id": "en2", "name": "Motor M2", "desc": "Estándar.", "stats": "+50", "base": 50, "prices": { "hubs": 50000, "ohcu": 50 }, "type": "e" },
-		{ "id": "en3", "name": "Motor M3", "desc": "Iónico.", "stats": "+100", "base": 100, "prices": { "hubs": 300000, "ohcu": 300 }, "type": "e" }
-	],
-	"ammo": {
-		"laser": [
-			{"id": "am_l1", "name": "Láser T1", "tier": 0, "prices": {"hubs": 1000, "ohcu": 0}},
-			{"id": "am_l2", "name": "Láser T2", "tier": 1, "prices": {"hubs": 2000, "ohcu": 2}},
-			{"id": "am_l3", "name": "Láser T3", "tier": 2, "prices": {"hubs": 3000, "ohcu": 4}},
-			{"id": "am_l4", "name": "Láser T4", "tier": 3, "prices": {"hubs": 4000, "ohcu": 6}},
-			{"id": "am_l5", "name": "Láser T5", "tier": 4, "prices": {"hubs": 0, "ohcu": 10}},
-			{"id": "am_l6", "name": "Láser T6", "tier": 5, "prices": {"hubs": 0, "ohcu": 20}}
-		],
-		"missile": [
-			{"id": "am_m1", "name": "Misil T1", "tier": 0, "prices": {"hubs": 5000, "ohcu": 5}},
-			{"id": "am_m2", "name": "Misil T2", "tier": 1, "prices": {"hubs": 10000, "ohcu": 10}},
-			{"id": "am_m3", "name": "Misil T3", "tier": 2, "prices": {"hubs": 15000, "ohcu": 15}},
-			{"id": "am_m4", "name": "Misil T4", "tier": 3, "prices": {"hubs": 20000, "ohcu": 20}},
-			{"id": "am_m5", "name": "Misil T5", "tier": 4, "prices": {"hubs": 0, "ohcu": 50}},
-			{"id": "am_m6", "name": "Misil T6", "tier": 5, "prices": {"hubs": 0, "ohcu": 100}}
-		],
-		"mine": [
-			{"id": "am_n1", "name": "Mina T1", "tier": 0, "prices": {"hubs": 10000, "ohcu": 10}},
-			{"id": "am_n2", "name": "Mina T2", "tier": 1, "prices": {"hubs": 20000, "ohcu": 20}},
-			{"id": "am_n3", "name": "Mina T3", "tier": 2, "prices": {"hubs": 30000, "ohcu": 30}},
-			{"id": "am_n4", "name": "Mina T4", "tier": 3, "prices": {"hubs": 40000, "ohcu": 40}},
-			{"id": "am_n5", "name": "Mina T5", "tier": 4, "prices": {"hubs": 0, "ohcu": 100}},
-			{"id": "am_n6", "name": "Mina T6", "tier": 5, "prices": {"hubs": 0, "ohcu": 200}}
-		]
-	}
+var SKILLS_DATA = {
+	"ESCUDO CELULAR": { "type": "Defensa", "desc": "Regenera escudo instantáneamente." },
+	"AUTO-REPARACIÓN": { "type": "Curación", "desc": "Repara la integridad de la nave." },
+	"TURBO-IMPULSO": { "type": "Ataque", "desc": "Aumenta la velocidad temporalmente." },
+	"REFLECT-Ω": { "type": "Defensa", "desc": "Devuelve el daño recibido." }
 }
-
-var faction_colors = {
-	"neutral": Color.WHITE, "allied": Color.CYAN, "enemy": Color.RED, "boss": Color.MAGENTA
-}
-
-var HORDES_CONFIG = {
-	"active": false,
-	"map": 6,
-	"currentWaveIndex": 0,
-	"timeBetweenWaves": 10,
-	"waves": [
-		{
-			"name": "Oleada Inicial",
-			"enemies": [
-				{"type": "1", "count": 5}
-			],
-			"rewardMultiplier": 1.0
-		}
-	]
-}
-
-# v190.70: MÉTODO DE ACTUALIZACIÓN EN CALIENTE (Hot-Reload)
-# Permite que los cambios del Super Admin impacten sin reiniciar el juego.
-func update_from_server(data: Dictionary):
-	if data.has("shipModels"): SHIP_MODELS = data["shipModels"]
-	if data.has("enemyModels"): ENEMY_MODELS = data["enemyModels"]
-	if data.has("shopItems"): SHOP_ITEMS = data["shopItems"]
-	if data.has("ammoMultipliers"): AMMO_MULTIPLIERS = data["ammoMultipliers"]
-	if data.has("hordeConfig"): HORDES_CONFIG = data["hordeConfig"]
-	print("[CONSTANTS] Universo actualizado por el Super Admin.")

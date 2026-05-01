@@ -35,17 +35,20 @@ module.exports = class BaseAI {
     }
 
     applyCombatLogic(target, dist, angle, now, io) {
-        if (dist > 600) return; // Fuera de rango de fuego
+        if (dist > 1000) return; // Rango aumentado para hordas
 
         if (now > (this.enemy.nextShotTime || 0)) {
             if ((this.enemy.shotsInBurst || 0) < 3) {
-                const bSpeed = this.config.bulletSpeed || 800; // v249.01
+                // Recalcular ángulo exacto al disparar para evitar "disparar a la nada"
+                const currentAngle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
+                const bSpeed = this.config.bulletSpeed || 800; 
+
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
                     targetId: target.id,
                     enemyType: this.enemy.type,
-                    x: this.enemy.x, y: this.enemy.y, angle: angle,
-                    bulletSpeed: bSpeed, // v249.02
+                    x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
+                    bulletSpeed: bSpeed, 
                     damage: (this.config && this.config.bulletDamage) ? this.config.bulletDamage : (this.enemy.type * 100)
                 });
                 this.enemy.shotsInBurst = (this.enemy.shotsInBurst || 0) + 1;
@@ -58,11 +61,20 @@ module.exports = class BaseAI {
     }
 
     applyMovementLogic(target, dist, angle, now) {
-        // Por defecto: Chase (Persecución)
-        if (dist > 50) {
-            this.enemy.x += Math.cos(angle) * 3.5;
-            this.enemy.y += Math.sin(angle) * 3.5;
+        // v250.10: Suavizado de proximidad para evitar efecto "imán"
+        const speed = this.config.speed || 3.5;
+        const stopDist = 120; // Distancia de seguridad aumentada
+        
+        if (dist > stopDist) {
+            // Si está lejos, se acerca normal
+            this.enemy.x += Math.cos(angle) * speed;
+            this.enemy.y += Math.sin(angle) * speed;
+        } else if (dist < stopDist - 20) {
+            // Si se pegó demasiado, retrocede un poquito (Repulsión natural)
+            this.enemy.x -= Math.cos(angle) * (speed * 0.5);
+            this.enemy.y -= Math.sin(angle) * (speed * 0.5);
         }
+        
         this.enemy.rotation = angle + Math.PI / 2;
     }
 };
