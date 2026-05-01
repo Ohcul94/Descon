@@ -107,7 +107,7 @@ func _build_ui():
 	var tab_bar = HBoxContainer.new(); main_v.add_child(tab_bar)
 	tab_bar.add_theme_constant_override("separation", 5)
 	
-	var tabs = {"ships": "NAVES", "enemies": "ENEMIGOS", "map": "MONITOR", "items": "ITEMS", "ammo": "MUNICIÓN"}
+	var tabs = {"ships": "NAVES", "enemies": "ENEMIGOS", "hordes": "HORDAS", "map": "MONITOR", "items": "ITEMS", "ammo": "MUNICIÓN"}
 	for k in tabs:
 		var b = Button.new(); b.text = tabs[k]; b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.flat = true
 		
@@ -135,6 +135,7 @@ func _build_ui():
 	match current_tab:
 		"ships": _render_ships(content)
 		"enemies": _render_enemies(content)
+		"hordes": _render_hordes(content)
 		"map": _render_map_selection(content)
 		"items": _render_items(content)
 		"ammo": _render_ammo(content)
@@ -186,6 +187,8 @@ func _render_enemies(container):
 		_add_input(grid, "R_HUBS", str(enemy.rewardHubs), func(v): GameConstants.ENEMY_MODELS[id].rewardHubs = int(v))
 		_add_input(grid, "R_OHCU", str(enemy.get("rewardOhcu", 0)), func(v): GameConstants.ENEMY_MODELS[id].rewardOhcu = int(v))
 		_add_input(grid, "R_EXP", str(enemy.get("rewardExp", 100)), func(v): GameConstants.ENEMY_MODELS[id].rewardExp = int(v))
+		_add_input(grid, "SPD", str(enemy.get("speed", 3.0)), func(v): GameConstants.ENEMY_MODELS[id].speed = float(v))
+		_add_input(grid, "B_SPD", str(enemy.get("bulletSpeed", 800)), func(v): GameConstants.ENEMY_MODELS[id].bulletSpeed = int(v))
 		_add_input(grid, "RAGETIME", str(enemy.get("rageTimer", 20)), func(v): GameConstants.ENEMY_MODELS[id].rageTimer = int(v))
 
 func _render_items(container):
@@ -259,6 +262,126 @@ func _render_map_selection(container):
 
 	container.add_child(btn_view)
 
+func _render_hordes(container):
+	var lbl = Label.new(); lbl.text = "EDITOR DINÁMICO DE EVENTOS POR OLEADAS"; lbl.modulate = Color.GOLD; container.add_child(lbl)
+	
+	var config = GameConstants.HORDES_CONFIG
+	
+	# --- SECCIÓN 1: CONFIGURACIÓN GLOBAL ---
+	var card_global = _create_card(container, "AJUSTES GLOBALES DEL EVENTO")
+	var grid_global = _create_grid(card_global, 4)
+	
+	var btn_status = Button.new()
+	btn_status.text = "EVENTO: ACTIVO" if config.active else "EVENTO: INACTIVO"
+	btn_status.modulate = Color.GREEN if config.active else Color.RED
+	btn_status.pressed.connect(func(): 
+		GameConstants.HORDES_CONFIG.active = !GameConstants.HORDES_CONFIG.active
+		_build_ui()
+	)
+	grid_global.add_child(btn_status)
+	
+	_add_input(grid_global, "MAPA OBJETIVO", str(config.map), func(v): GameConstants.HORDES_CONFIG.map = int(v))
+	_add_input(grid_global, "TIEMPO ENTRE OLEADAS (S)", str(config.timeBetweenWaves), func(v): GameConstants.HORDES_CONFIG.timeBetweenWaves = int(v))
+	_add_input(grid_global, "ÍNDICE ACTUAL", str(config.currentWaveIndex), func(v): GameConstants.HORDES_CONFIG.currentWaveIndex = int(v))
+
+	# --- SECCIÓN 2: LISTADO DE OLEADAS ---
+	container.add_child(HSeparator.new())
+	var lbl_waves = Label.new(); lbl_waves.text = "ESTRUCTURA DE OLEADAS (SECUENCIAL)"; lbl_waves.modulate = Color.CYAN; container.add_child(lbl_waves)
+	
+	for i in range(config.waves.size()):
+		var wave = config.waves[i]
+		var wave_panel = _create_card(container, "OLEADA #" + str(i+1) + ": " + wave.name.to_upper())
+		wave_panel.modulate = Color(1, 1, 1, 0.9)
+		
+		var hb_wave_top = HBoxContainer.new(); wave_panel.add_child(hb_wave_top)
+		_add_input(hb_wave_top, "NOMBRE DE OLEADA", wave.name, func(v): GameConstants.HORDES_CONFIG.waves[i].name = v, true)
+		_add_input(hb_wave_top, "MULT. RECOMPENSA", str(wave.rewardMultiplier), func(v): GameConstants.HORDES_CONFIG.waves[i].rewardMultiplier = float(v))
+		
+		var btn_del_wave = Button.new(); btn_del_wave.text = " ELIMINAR OLEADA "; btn_del_wave.modulate = Color.RED
+		btn_del_wave.pressed.connect(func(): 
+			GameConstants.HORDES_CONFIG.waves.remove_at(i)
+			_build_ui()
+		)
+		hb_wave_top.add_child(btn_del_wave)
+		
+		# --- SUB-SECCIÓN: ENEMIGOS EN ESTA OLEADA ---
+		var lbl_en = Label.new(); lbl_en.text = "ENEMIGOS EN ESTA FASE:"; lbl_en.add_theme_font_size_override("font_size", 9); lbl_en.modulate.a = 0.7; wave_panel.add_child(lbl_en)
+		
+		for j in range(wave.enemies.size()):
+			var enemy_cfg = wave.enemies[j]
+			var hb_enemy = HBoxContainer.new(); hb_enemy.add_theme_constant_override("separation", 10); wave_panel.add_child(hb_enemy)
+			
+			# --- BUSCADOR Y SELECTOR DE ENEMIGO (v246.00) ---
+			var search_box = LineEdit.new(); search_box.placeholder_text = "Filtrar..."; search_box.custom_minimum_size.x = 80; hb_enemy.add_child(search_box)
+			var opt = OptionButton.new(); opt.custom_minimum_size.x = 180; hb_enemy.add_child(opt)
+			
+			# Función anidada para refrescar el OptionButton basado en el filtro
+			var _populate_opt = func(filter_text: String):
+				opt.clear()
+				var f = filter_text.to_lower()
+				var found_current = false
+				for eid in GameConstants.ENEMY_MODELS:
+					var e_name = GameConstants.ENEMY_MODELS[eid].name
+					if f == "" or f in e_name.to_lower() or f in str(eid):
+						opt.add_item(e_name + " [" + str(eid) + "]", int(eid))
+						if str(eid) == str(enemy_cfg.type): 
+							opt.selected = opt.get_item_count() - 1
+							found_current = true
+				
+				# Si el enemigo actual no está en el filtro, lo añadimos igual para no romper la UI
+				if not found_current and GameConstants.ENEMY_MODELS.has(str(enemy_cfg.type)):
+					var e_data = GameConstants.ENEMY_MODELS[str(enemy_cfg.type)]
+					opt.add_item("(*) " + e_data.name + " [" + str(enemy_cfg.type) + "]", int(enemy_cfg.type))
+					opt.selected = opt.get_item_count() - 1
+
+			# Inicializar y conectar
+			_populate_opt.call("")
+			search_box.text_changed.connect(_populate_opt)
+			
+			opt.item_selected.connect(func(index):
+				var selected_id = str(opt.get_item_id(index))
+				GameConstants.HORDES_CONFIG.waves[i].enemies[j].type = selected_id
+			)
+			
+			_add_input(hb_enemy, "CANTIDAD", str(enemy_cfg.count), func(v): GameConstants.HORDES_CONFIG.waves[i].enemies[j].count = int(v))
+			
+			var btn_del_en = Button.new(); btn_del_en.text = "X"; btn_del_en.modulate = Color.ORANGE
+			btn_del_en.pressed.connect(func(): 
+				GameConstants.HORDES_CONFIG.waves[i].enemies.remove_at(j)
+				_build_ui()
+			)
+			hb_enemy.add_child(btn_del_en)
+		
+		var btn_add_en = Button.new(); btn_add_en.text = " + AÑADIR TIPO DE ENEMIGO "; btn_add_en.flat = true; btn_add_en.modulate = Color.GREEN
+		btn_add_en.pressed.connect(func(): 
+			GameConstants.HORDES_CONFIG.waves[i].enemies.append({"type": "1", "count": 5})
+			_build_ui()
+		)
+		wave_panel.add_child(btn_add_en)
+
+	# --- SECCIÓN 3: ACCIONES FINALES ---
+	var btn_add_wave = Button.new(); btn_add_wave.text = " [+] AÑADIR NUEVA OLEADA AL FINAL "; btn_add_wave.custom_minimum_size.y = 40
+	btn_add_wave.pressed.connect(func(): 
+		GameConstants.HORDES_CONFIG.waves.append({
+			"name": "Nueva Oleada",
+			"enemies": [{"type": "1", "count": 10}],
+			"rewardMultiplier": 1.0
+		})
+		_build_ui()
+	)
+	container.add_child(btn_add_wave)
+	
+	container.add_child(HSeparator.new())
+	var hb_ctrls = HBoxContainer.new(); container.add_child(hb_ctrls)
+	
+	var btn_start = Button.new(); btn_start.text = "REINICIAR E INICIAR EVENTO"; btn_start.size_flags_horizontal = Control.SIZE_EXPAND_FILL; btn_start.modulate = Color.CYAN
+	btn_start.pressed.connect(func(): NetworkManager.send_event("startHordeEvent", {}))
+	hb_ctrls.add_child(btn_start)
+	
+	var btn_stop = Button.new(); btn_stop.text = "DETENER Y LIMPIAR"; btn_stop.size_flags_horizontal = Control.SIZE_EXPAND_FILL; btn_stop.modulate = Color.ORANGE
+	btn_stop.pressed.connect(func(): NetworkManager.send_event("stopHordeEvent", {}))
+	hb_ctrls.add_child(btn_stop)
+
 
 func _on_open_map_pressed():
 	var world = get_tree().get_first_node_in_group("world_node")
@@ -320,7 +443,8 @@ func _on_save_global_pressed():
 		"shipModels": GameConstants.SHIP_MODELS,
 		"enemyModels": GameConstants.ENEMY_MODELS,
 		"shopItems": GameConstants.SHOP_ITEMS,
-		"ammoMultipliers": GameConstants.AMMO_MULTIPLIERS
+		"ammoMultipliers": GameConstants.AMMO_MULTIPLIERS,
+		"hordeConfig": GameConstants.HORDES_CONFIG
 	}
 	NetworkManager.send_event("saveAdminConfig", config)
 	print("[ADMIN] Configuración Global enviada al servidor.")

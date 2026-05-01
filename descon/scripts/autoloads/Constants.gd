@@ -20,13 +20,12 @@ var SHIP_MODELS = [
 ]
 
 var ENEMY_MODELS = {
-	"1": { "name": "Recon Drone", "hp": 500, "shield": 100, "bulletDamage": 40, "fireRate": 2000, "rewardHubs": 100, "rewardOhcu": 1, "rewardExp": 150 },
-	"2": { "name": "Interceptor", "hp": 1500, "shield": 800, "bulletDamage": 120, "fireRate": 1500, "rewardHubs": 500, "rewardOhcu": 5, "rewardExp": 400 },
-	"3": { "name": "Destroyer", "hp": 5000, "shield": 3000, "bulletDamage": 350, "fireRate": 1200, "rewardHubs": 2500, "rewardOhcu": 25, "rewardExp": 1200 },
-	"4": { "name": "Lord Titán", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000, "rageTimer": 20 },
-	"5": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20 },
-	"6": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20 }
-
+	"1": { "name": "Recon Drone", "hp": 500, "shield": 100, "bulletDamage": 40, "fireRate": 2000, "rewardHubs": 100, "rewardOhcu": 1, "rewardExp": 150, "speed": 450, "bulletSpeed": 800 },
+	"2": { "name": "Interceptor", "hp": 1500, "shield": 800, "bulletDamage": 120, "fireRate": 1500, "rewardHubs": 500, "rewardOhcu": 5, "rewardExp": 400, "speed": 350, "bulletSpeed": 800 },
+	"3": { "name": "Destroyer", "hp": 5000, "shield": 3000, "bulletDamage": 350, "fireRate": 1200, "rewardHubs": 2500, "rewardOhcu": 25, "rewardExp": 1200, "speed": 300, "bulletSpeed": 800 },
+	"4": { "name": "Lord Titán", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000, "rageTimer": 20, "speed": 250, "bulletSpeed": 900 },
+	"5": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20, "speed": 220, "bulletSpeed": 1000 },
+	"6": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20, "speed": 280, "bulletSpeed": 1100 }
 }
 
 var AMMO_MULTIPLIERS = {
@@ -89,6 +88,22 @@ var faction_colors = {
 	"neutral": Color.WHITE, "allied": Color.CYAN, "enemy": Color.RED, "boss": Color.MAGENTA
 }
 
+var HORDES_CONFIG = {
+	"active": false,
+	"map": 6,
+	"currentWaveIndex": 0,
+	"timeBetweenWaves": 10,
+	"waves": [
+		{
+			"name": "Oleada Inicial",
+			"enemies": [
+				{"type": "1", "count": 5}
+			],
+			"rewardMultiplier": 1.0
+		}
+	]
+}
+
 # v190.70: MÉTODO DE ACTUALIZACIÓN EN CALIENTE (Hot-Reload)
 # Permite que los cambios del Super Admin impacten sin reiniciar el juego.
 func update_from_server(data: Dictionary):
@@ -96,4 +111,5 @@ func update_from_server(data: Dictionary):
 	if data.has("enemyModels"): ENEMY_MODELS = data["enemyModels"]
 	if data.has("shopItems"): SHOP_ITEMS = data["shopItems"]
 	if data.has("ammoMultipliers"): AMMO_MULTIPLIERS = data["ammoMultipliers"]
+	if data.has("hordeConfig"): HORDES_CONFIG = data["hordeConfig"]
 	print("[CONSTANTS] Universo actualizado por el Super Admin.")

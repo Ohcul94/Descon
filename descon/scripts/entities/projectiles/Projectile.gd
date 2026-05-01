@@ -36,7 +36,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	owner_type = p_data.get("owner_type", "player")
 	enemy_type = int(p_data.get("enemyType", 1))
 	
-	speed = p_data.get("speed", 1500.0)
+	speed = p_data.get("bulletSpeed", p_data.get("speed", 800.0))
 	if type == "missile":
 		speed = 450.0  # Mucho más lento siempre (Velocidad impuesta)
 	elif type == "mine":

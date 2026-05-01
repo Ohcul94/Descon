@@ -18,6 +18,9 @@ const OrbitAI = require('./behaviors/OrbitAI');
 const BossAI = require('./behaviors/BossAI');
 const AncientBossAI = require('./behaviors/AncientBossAI');
 const MechanicBossAI = require('./behaviors/MechanicBossAI'); // Nuevo Jefe Dungeon
+const HordeManager = require('./events/HordeManager'); // v245.01: Gestor de Eventos
+const SniperAI = require('./behaviors/SniperAI'); // v248.01: Tipo 2
+const ChargerAI = require('./behaviors/ChargerAI'); // v248.01: Tipo 3
 
 // Configuraci├│n
 const PORT = process.env.PORT || 3333;
@@ -51,6 +54,7 @@ let nextPlayerNum = 1;
 let SERVER_CONFIG = null; // Memoria de configuraci├│n global v47.0
 let parties = {}; // dbId -> { members: [dbIds], names: [strings] }
 let playerParty = {}; // dbId -> leaderDbId
+const hordeManager = new HordeManager(io, serverSpawnEnemy, enemies); // v245.02: Instancia global
 
 // v243.15: Helper para serializar datos de clan con roles y estados
 async function getClanDataPayload(clanId) {
@@ -332,15 +336,18 @@ global.serverClearProjectiles = (zone, bossId) => {
 fs.readJson(CONFIG_FILE).then(config => {
     SERVER_CONFIG = config;
     console.log('\x1b[35m[SERVER]\x1b[0m Configuraci├│n maestro cargada.');
+    if (SERVER_CONFIG && SERVER_CONFIG.hordeConfig) hordeManager.updateConfig(SERVER_CONFIG.hordeConfig);
 }).catch(() => {
     console.log('\x1b[33m[SERVER]\x1b[0m Usando configuraci├│n por defecto (config.json no encontrado).');
 });
 
 // Funci├│n para spawnear enemigos en el servidor (v107.10: Posici├│n Din├ímica)
 // Función para spawnear enemigos en el servidor (v107.10: Posición Dinámica)
-function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, forceName = null) {
-    // v236.20: Permitir Zona 1, Zona 7 (Boss2) y Zona 8 (Testing Boss)
-    if (zone != 1 && zone != 8 && zone != 7) {
+function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, forceName = null, isHorde = false) {
+    // v245.05: Permitir spawn en cualquier zona si el evento de hordas está activo en esa zona
+    const isHordeZone = hordeManager && hordeManager.config.active && hordeManager.config.map === zone;
+    
+    if (zone != 1 && zone != 8 && zone != 7 && !isHordeZone) {
         console.log(`[SPAWN] Bloqueado intento en Zona ${zone}`);
         return null;
     }
@@ -365,6 +372,7 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, 
 
     const e = {
         id, type, zone, name,
+        isHorde, // v247.01: Identificador para IA agresiva
         x: finalX,
         y: finalY,
         hp: initialHp,
@@ -380,13 +388,16 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, 
 
     const bulletDmg = cfg ? cfg.bulletDamage : (type * 100);
     const fireR = cfg ? cfg.fireRate : 2000;
-    const movSpeed = (type === 1 ? 4.5 : 3.5);
+    const movSpeed = cfg ? (cfg.speed * 0.033) : (type === 1 ? 4.5 : 3.5);
 
-    const aiConfig = cfg ? cfg : { bulletDamage: (type * 100), fireRate: 2000, speed: (type === 1 ? 4.5 : 3.5) };
+    // v250.01: IMPORTANTE - Clonar el config y sobreescribir la velocidad con la procesada
+    const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
     
     if (type === 6) e.ai = new MechanicBossAI(e, aiConfig); 
     else if (type === 5) e.ai = new AncientBossAI(e, aiConfig); 
     else if (type === 4) e.ai = new BossAI(e, aiConfig); 
+    else if (type === 3) e.ai = new ChargerAI(e, aiConfig); // v248.10
+    else if (type === 2) e.ai = new SniperAI(e, aiConfig); // v248.10
     else if (type === 1) e.ai = new ChaseAI(e, aiConfig);
     else e.ai = new OrbitAI(e, aiConfig);
 
@@ -1263,10 +1274,13 @@ io.on('connection', (socket) => {
     socket.on('saveAdminConfig', async (config) => {
         try {
             await fs.writeJson(CONFIG_FILE, config, { spaces: 4 });
-            SERVER_CONFIG = config; 
             if (config.enemyModels && config.enemyModels["4"]) {
                 console.log(`[ADMIN] Guardando RageTimer para Boss1: ${config.enemyModels["4"].rageTimer}s`);
             }
+            
+            // v245.10: Sincronizar configuración de hordas con el gestor
+            if (config.hordeConfig) hordeManager.updateConfig(config.hordeConfig);
+            
             console.log(`\x1b[35m[ADMIN]\x1b[0m Configuraci├│n guardada en disco por ${players[socket.id] ? players[socket.id].user : 'Admin'}.`);
             
             // v226.30: PURGA DE ENTIDADES PARA EVITAR FANTASMAS (Sincron├¡a Limpia)
@@ -1308,6 +1322,24 @@ io.on('connection', (socket) => {
         socket.emit('changeZoneDone', newZone);
         socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
         io.to(`zone_${newZone}`).emit('newPlayer', { ...p, id: socket.id });
+    });
+
+    // v245.20: LISTENERS DE EVENTOS DE HORDAS
+    socket.on('startHordeEvent', () => {
+        if (!players[socket.id] || players[socket.id].user !== "Caelli94") return;
+        if (SERVER_CONFIG && SERVER_CONFIG.hordeConfig) {
+            SERVER_CONFIG.hordeConfig.active = true;
+            hordeManager.updateConfig(SERVER_CONFIG.hordeConfig);
+            console.log("[ADMIN] Evento de Hordas iniciado manualmente.");
+            socket.emit('gameNotification', { msg: 'EVENTO DE HORDAS INICIADO', type: 'success' });
+        }
+    });
+
+    socket.on('stopHordeEvent', () => {
+        if (!players[socket.id] || players[socket.id].user !== "Caelli94") return;
+        hordeManager.stopEvent();
+        if (SERVER_CONFIG && SERVER_CONFIG.hordeConfig) SERVER_CONFIG.hordeConfig.active = false;
+        socket.emit('gameNotification', { msg: 'EVENTO DETENIDO Y ZONA LIMPIADA', type: 'warning' });
     });
 
     socket.on('ping_custom', () => {

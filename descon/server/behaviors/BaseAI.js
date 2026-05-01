@@ -25,7 +25,7 @@ module.exports = class BaseAI {
 
     getNearestPlayer(players) {
         let closest = null;
-        let minDist = 800; // Rango de visión táctica
+        let minDist = this.enemy.isHorde ? 10000 : 800; // v247.10: Visión global para Hordas
         Object.values(players).forEach(p => {
             if (p.zone !== this.enemy.zone) return;
             const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
@@ -39,11 +39,13 @@ module.exports = class BaseAI {
 
         if (now > (this.enemy.nextShotTime || 0)) {
             if ((this.enemy.shotsInBurst || 0) < 3) {
+                const bSpeed = this.config.bulletSpeed || 800; // v249.01
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
                     targetId: target.id,
                     enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, angle: angle,
+                    bulletSpeed: bSpeed, // v249.02
                     damage: (this.config && this.config.bulletDamage) ? this.config.bulletDamage : (this.enemy.type * 100)
                 });
                 this.enemy.shotsInBurst = (this.enemy.shotsInBurst || 0) + 1;

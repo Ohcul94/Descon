@@ -28,17 +28,20 @@
     "enemyModels": {
         "1": {
             "bulletDamage": 40,
-            "fireRate": 2000,
+            "bulletSpeed": 800,
+            "fireRate": 1000,
             "hp": 500,
             "name": "Enemigo1",
             "rageTimer": 0,
             "rewardExp": 150,
             "rewardHubs": 100,
             "rewardOhcu": 1,
-            "shield": 100
+            "shield": 100,
+            "speed": 400
         },
         "2": {
             "bulletDamage": 120,
+            "bulletSpeed": 800,
             "fireRate": 1500,
             "hp": 1500,
             "name": "Enemigo2",
@@ -46,10 +49,12 @@
             "rewardExp": 400,
             "rewardHubs": 500,
             "rewardOhcu": 5,
-            "shield": 800
+            "shield": 800,
+            "speed": 350
         },
         "3": {
             "bulletDamage": 350,
+            "bulletSpeed": 800,
             "fireRate": 1200,
             "hp": 5000,
             "name": "Enemigo3",
@@ -57,10 +62,12 @@
             "rewardExp": 1200,
             "rewardHubs": 2500,
             "rewardOhcu": 25,
-            "shield": 3000
+            "shield": 3000,
+            "speed": 100
         },
         "4": {
             "bulletDamage": 3500,
+            "bulletSpeed": 900,
             "fireRate": 800,
             "hp": 500000,
             "name": "Boss1",
@@ -68,10 +75,12 @@
             "rewardExp": 25000,
             "rewardHubs": 100000,
             "rewardOhcu": 1000,
-            "shield": 250000
+            "shield": 250000,
+            "speed": 100
         },
         "5": {
             "bulletDamage": 5000,
+            "bulletSpeed": 1000,
             "fireRate": 1000,
             "hp": 200000,
             "name": "Boss2",
@@ -79,18 +88,53 @@
             "rewardExp": 25000,
             "rewardHubs": 0,
             "rewardOhcu": 1000,
-            "shield": 100000
+            "shield": 100000,
+            "speed": 100
         },
         "6": {
             "bulletDamage": 3000,
+            "bulletSpeed": 1100,
             "fireRate": 600,
             "hp": 150000,
             "name": "Boss3",
             "rewardExp": 50000,
             "rewardHubs": 200000,
             "rewardOhcu": 200,
-            "shield": 75000
+            "shield": 75000,
+            "speed": 100
         }
+    },
+    "hordeConfig": {
+        "active": true,
+        "currentWaveIndex": 0,
+        "map": 6,
+        "timeBetweenWaves": 5,
+        "waves": [
+            {
+                "enemies": [
+                    {
+                        "count": 3,
+                        "type": "1"
+                    }
+                ],
+                "name": "Fase 1: Reconocimiento",
+                "rewardMultiplier": 1
+            },
+            {
+                "enemies": [
+                    {
+                        "count": 5,
+                        "type": "1"
+                    },
+                    {
+                        "count": 5,
+                        "type": "2"
+                    }
+                ],
+                "name": "Fase 2: Asalto",
+                "rewardMultiplier": 1.5
+            }
+        ]
     },
     "shipModels": [
         {
