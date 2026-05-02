@@ -38,6 +38,10 @@ var ammo: Dictionary = {"laser": [1000, 0, 0, 0, 0, 0], "missile": [100, 0, 0], 
 var selected_ammo: Dictionary = {"laser": 0, "missile": 0, "mine": 0}
 var current_zone: int = 1
 
+var _shake_amount: float = 0.0
+var _shake_decay: float = 0.9
+var _cam_node: Camera2D = null
+
 func _ready():
 	super._ready() 
 	add_to_group("player")
@@ -53,6 +57,7 @@ func _ready():
 	cam.zoom = Vector2(0.8, 0.8) # v217.10: Mayor visibilidad táctica
 	add_child(cam)
 	cam.make_current()
+	_cam_node = cam
 	
 	if NetworkManager:
 
@@ -103,10 +108,10 @@ func _physics_process(p_delta):
 	var focus_node = get_viewport().gui_get_focus_owner()
 	var is_typing = (chat and chat.has_method("is_typing") and chat.is_typing()) or (focus_node is LineEdit or focus_node is TextEdit)
 	
-	if not is_typing:
-		_handle_input()
+	_handle_input()
 		
 	_apply_movement()
+	_update_shake(p_delta)
 	_sync_with_server(p_delta)
 
 func _handle_input():
@@ -229,6 +234,7 @@ func _recalculate_stats():
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
 	super.take_damage(amt, attacker_pos, attacker_id)
+	apply_shake(amt * 0.05) # v260: Shake leve
 	# v240.69: Eliminado envío duplicado al servidor. Projectile.gd ya se encarga de notificar 
 	# el daño exacto con el enemyType correcto. Hacerlo aquí duplicaba el daño (1 hit = 2 hits) 
 	# y enviaba eventos "fantasma" que reiniciaban contadores de combate.
@@ -267,6 +273,7 @@ func _shoot_skill(p_type: String, p_angle: float):
 	
 	shoot_fired.emit(final_payload)
 	NetworkManager.send_event("playerFire", final_payload)
+	apply_shake(0.8) # v260: Shake muy leve al disparar
 	_force_move_sync()
 
 func _use_sphere_skill(id: int):
@@ -478,3 +485,17 @@ func _find_skill_by_name(n: String):
 		var inst = s.new()
 		if inst.skill_name.to_upper().strip_edges() == target_n: return inst
 	return null
+
+func apply_shake(amount: float):
+	_shake_amount += amount
+	_shake_amount = min(_shake_amount, 10.0)
+
+func _update_shake(delta):
+	if _shake_amount > 0.1:
+		if is_instance_valid(_cam_node):
+			_cam_node.offset = Vector2(randf_range(-_shake_amount, _shake_amount), randf_range(-_shake_amount, _shake_amount))
+		_shake_amount *= _shake_decay
+	else:
+		if is_instance_valid(_cam_node):
+			_cam_node.offset = Vector2.ZERO
+		_shake_amount = 0.0

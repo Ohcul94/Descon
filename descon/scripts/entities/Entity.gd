@@ -43,6 +43,8 @@ var _ship_rot_mem: Dictionary = {}
 var pvp_status: bool = false
 var reflect_timer: float = 0.0
 var _reflect_aura: Sprite2D = null
+var _hit_flash_material: ShaderMaterial = null
+var _hit_flash_material_3d: StandardMaterial3D = null
 
 func _ready():
 	add_to_group("entities")
@@ -118,6 +120,7 @@ func _process(delta):
 		sync_lock_timer -= delta
 	
 	_update_reflect_aura(delta)
+	_update_hit_flash(delta)
 	
 	if is_dead:
 		if _ui_wrapper: _ui_wrapper.visible = false
@@ -537,6 +540,7 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 		current_hp -= d; current_shield = 0
 
 	_spawn_damage_text(str(int(amt)), Color.RED)
+	_trigger_hit_flash()
 
 	_update_tags()
 	if is_in_group("player") and has_method("_emit_stats"):
@@ -592,6 +596,7 @@ func _spawn_damage_text(txt: String, clr: Color):
 func die():
 	is_dead = true
 	set_physics_process(false)
+	_spawn_death_vfx()
 	
 	# v210.180: Animación de Muerte Real
 	if is_instance_valid(anim_player) and anim_player.has_animation("death"):
@@ -1162,3 +1167,48 @@ func _update_3d_spheres():
 			s_scene.scale = Vector3(3.0, 3.0, 3.0) 
 			
 			print("[FIX] Esfera cargada sin luces extra.")
+
+func _ensure_flash_material():
+	if not _hit_flash_material:
+		_hit_flash_material = ShaderMaterial.new()
+		_hit_flash_material.shader = load("res://resources/shaders/hit_flash.gdshader")
+	if not _hit_flash_material_3d:
+		_hit_flash_material_3d = StandardMaterial3D.new()
+		_hit_flash_material_3d.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+		_hit_flash_material_3d.transparency = StandardMaterial3D.TRANSPARENCY_ALPHA
+		_hit_flash_material_3d.albedo_color = Color(1, 1, 1, 0.0)
+	if is_instance_valid(sprite) and not is_instance_valid(_3d_model):
+		sprite.material = _hit_flash_material
+	else:
+		if is_instance_valid(sprite): sprite.material = null
+
+var _flash_timer: float = 0.0
+func _trigger_hit_flash():
+	_flash_timer = 0.15
+	_ensure_flash_material()
+	_update_flash_visuals(1.0)
+
+func _update_hit_flash(delta):
+	if _flash_timer > 0:
+		_flash_timer -= delta
+		var intensity = clamp(_flash_timer / 0.15, 0.0, 1.0)
+		_update_flash_visuals(intensity)
+		if _flash_timer <= 0:
+			_update_flash_visuals(0.0)
+
+func _update_flash_visuals(p_intensity: float):
+	if _hit_flash_material: _hit_flash_material.set_shader_parameter("hit_opacity", p_intensity)
+	if is_instance_valid(_3d_model) and _hit_flash_material_3d:
+		_hit_flash_material_3d.albedo_color.a = p_intensity * 0.4
+		_apply_flash_recursive(_3d_model, _hit_flash_material_3d)
+
+func _apply_flash_recursive(p_node, p_mat):
+	if p_node is MeshInstance3D: p_node.material_overlay = p_mat
+	for child in p_node.get_children(): _apply_flash_recursive(child, p_mat)
+
+func _spawn_death_vfx():
+	var vfx_script = load("res://scripts/vfx/ImpactVFX.gd")
+	if vfx_script:
+		var vfx = vfx_script.new()
+		get_parent().add_child(vfx)
+		vfx.global_position = global_position
