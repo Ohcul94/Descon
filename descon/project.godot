@@ -22,6 +22,7 @@ AudioManager="*res://scripts/autoloads/AudioManager.gd"
 GameConstants="*res://scripts/autoloads/Constants.gd"
 PartyManager="*res://scripts/systems/PartyManager.gd"
 VFXSystem="*res://scripts/systems/VFXManager.gd"
+SettingsManager="*res://scripts/autoloads/SettingsManager.gd"
 
 [display]
 

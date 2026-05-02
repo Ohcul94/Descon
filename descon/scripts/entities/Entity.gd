@@ -43,6 +43,7 @@ var _ship_rot_mem: Dictionary = {}
 var pvp_status: bool = false
 var reflect_timer: float = 0.0
 var _reflect_aura: Sprite2D = null
+var _collision_shape: CollisionShape2D = null
 var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
 
@@ -66,11 +67,11 @@ func _ready():
 	target_position = global_position
 	target_rotation = rotation
 	
-	var shape = CollisionShape2D.new()
+	_collision_shape = CollisionShape2D.new()
 	var circle = CircleShape2D.new()
-	circle.radius = 25.0 # v235.98: Radio balanceado para evitar atascamientos
-	shape.shape = circle
-	add_child(shape)
+	circle.radius = 25.0 
+	_collision_shape.shape = circle
+	add_child(_collision_shape)
 	
 	print("[BATTLE] Colisión normalizada: ", name)
 
@@ -905,6 +906,7 @@ func _setup_enemy_visuals():
 			col.scale = Vector2(factor, factor)
 	
 	# Asegurarnos de borrar toda geometria fea que este de fondo o recargar
+	_update_collision_size()
 	queue_redraw()
 
 func _update_animations():
@@ -1212,3 +1214,15 @@ func _spawn_death_vfx():
 		var vfx = vfx_script.new()
 		get_parent().add_child(vfx)
 		vfx.global_position = global_position
+
+func _update_collision_size():
+	if not _collision_shape or not _collision_shape.shape is CircleShape2D: return
+
+	var base_size = 160.0
+	if is_in_group("enemies"):
+		if entity_type >= 4: base_size = 320.0
+		else: base_size = 160.0
+
+	# v260.50: Hitbox de alta precisión (40% del tamaño visual para cubrir el modelo)
+	_collision_shape.shape.radius = base_size * 0.4
+	print("[HITBOX] Colisión ajustada para ", name, " r=", _collision_shape.shape.radius)

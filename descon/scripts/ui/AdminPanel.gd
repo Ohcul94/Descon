@@ -107,7 +107,7 @@ func _build_ui():
 	var tab_bar = HBoxContainer.new(); main_v.add_child(tab_bar)
 	tab_bar.add_theme_constant_override("separation", 5)
 	
-	var tabs = {"ships": "NAVES", "enemies": "ENEMIGOS", "hordes": "HORDAS", "map": "MONITOR", "items": "ITEMS", "ammo": "MUNICIÓN"}
+	var tabs = {"ships": "NAVES", "enemies": "ENEMIGOS", "hordes": "HORDAS", "map": "MONITOR", "items": "ITEMS", "ammo": "MUNICIÓN", "spheres": "ESFERAS"}
 	for k in tabs:
 		var b = Button.new(); b.text = tabs[k]; b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.flat = true
 		
@@ -139,6 +139,7 @@ func _build_ui():
 		"map": _render_map_selection(content)
 		"items": _render_items(content)
 		"ammo": _render_ammo(content)
+		"spheres": _render_spheres(content)
 	
 	# 4. Botón de Guardado Maestro Mejorado
 	var save_p = PanelContainer.new(); main_v.add_child(save_p)
@@ -222,6 +223,24 @@ func _render_ammo(container):
 				_add_input(grid, "MULT", str(mults[i]), func(v): GameConstants.AMMO_MULTIPLIERS[cat][i] = float(v))
 				_add_input(grid, "P_HUBS", str(shop_ammo[i].prices.hubs), func(v): GameConstants.SHOP_ITEMS.ammo[cat][i].prices.hubs = int(v))
 				_add_input(grid, "P_OHCU", str(shop_ammo[i].prices.ohcu), func(v): GameConstants.SHOP_ITEMS.ammo[cat][i].prices.ohcu = int(v))
+
+func _render_spheres(container):
+	var lbl = Label.new(); lbl.text = "CONFIGURACIÓN DE HABILIDADES DE ESFERAS"; lbl.modulate = Color.GOLD; container.add_child(lbl)
+	for s_name in GameConstants.SKILLS_DATA:
+		var skill = GameConstants.SKILLS_DATA[s_name]
+		var card = _create_card(container, "ESFERA: " + s_name.to_upper())
+		var grid = _create_grid(card, 4)
+		
+		_add_input(grid, "TIPO", skill.type, func(v): GameConstants.SKILLS_DATA[s_name].type = v, true)
+		_add_input(grid, "COOLDOWN (S)", str(skill.get("cd", 10.0)), func(v): GameConstants.SKILLS_DATA[s_name].cd = float(v))
+		_add_input(grid, "RANGO", str(skill.get("range", 0)), func(v): GameConstants.SKILLS_DATA[s_name].range = float(v))
+		
+		if skill.has("amount"):
+			_add_input(grid, "CURACIÓN/ESCUDO", str(skill.amount), func(v): GameConstants.SKILLS_DATA[s_name].amount = int(v))
+		if skill.has("speed"):
+			_add_input(grid, "VELOCIDAD", str(skill.speed), func(v): GameConstants.SKILLS_DATA[s_name].speed = float(v))
+		if skill.has("reflect_mult"):
+			_add_input(grid, "MULT. DAÑO", str(skill.reflect_mult), func(v): GameConstants.SKILLS_DATA[s_name].reflect_mult = float(v))
 
 func _render_map_selection(container):
 	var lbl = Label.new(); lbl.text = "SISTEMA DE VISUALIZACIÓN Y NAVEGACIÓN"; lbl.modulate = Color.GOLD; container.add_child(lbl)
@@ -444,7 +463,8 @@ func _on_save_global_pressed():
 		"enemyModels": GameConstants.ENEMY_MODELS,
 		"shopItems": GameConstants.SHOP_ITEMS,
 		"ammoMultipliers": GameConstants.AMMO_MULTIPLIERS,
-		"hordeConfig": GameConstants.HORDES_CONFIG
+		"hordeConfig": GameConstants.HORDES_CONFIG,
+		"skillsData": GameConstants.SKILLS_DATA
 	}
 	NetworkManager.send_event("saveAdminConfig", config)
 	print("[ADMIN] Configuración Global enviada al servidor.")

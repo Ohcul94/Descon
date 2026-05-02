@@ -20,6 +20,7 @@ var radar_title: Label = null # v243.60: Titulo del Minimapa (Nombre del Sector)
 var _ammo_nodes = {} # Etiquetas de texto de munición
 var _ammo_menus = {} # v226.70: Menús anclados a cada botón
 var _esc_menu: PanelContainer = null
+var _settings_menu: PanelContainer = null
 var _pvp_status: bool = false
 
 func _ready():
@@ -210,8 +211,64 @@ func _process(_delta):
 	
 	_update_sphere_ui(0, p_node, get_node_or_null("Skills/Sphere1Slot"))
 	_update_sphere_ui(1, p_node, get_node_or_null("Skills/Sphere2Slot"))
-	_update_sphere_ui(2, p_node, get_node_or_null("Skills/Sphere3Slot"))
 	_update_sphere_ui(3, p_node, get_node_or_null("Skills/Sphere4Slot"))
+	
+	# v260.95: Sincronizar Etiquetas de Teclas (Slots 1-7)
+	_sync_hud_keys()
+
+func _sync_hud_keys():
+	var skills_container = get_node_or_null("Skills")
+	if not is_instance_valid(skills_container): return
+
+	var all_slots = []
+	for child in skills_container.get_children():
+		if "Slot" in child.name:
+			all_slots.append(child)
+	
+	all_slots.sort_custom(func(a, b): return a.global_position.x < b.global_position.x)
+
+	for i in range(min(all_slots.size(), 7)):
+		var slot = all_slots[i]
+		var action = "slot_" + str(i + 1)
+		
+		var lbl = slot.get_node_or_null("BindingLabel")
+		if not is_instance_valid(lbl):
+			lbl = Label.new()
+			lbl.name = "BindingLabel"
+			lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+			lbl.grow_horizontal = Control.GROW_DIRECTION_BOTH
+			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lbl.offset_top = 8 
+			lbl.add_theme_font_size_override("font_size", 12)
+			lbl.add_theme_color_override("font_color", Color.CYAN)
+			lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+			lbl.add_theme_constant_override("outline_size", 4)
+			slot.add_child(lbl)
+			
+		if is_instance_valid(lbl):
+			var evs = InputMap.action_get_events(action)
+			if evs.size() > 0:
+				var txt = evs[0].as_text().replace(" (Physical)", "").replace(" - Physical", "")
+				if txt.begins_with("Mouse Button"): txt = "M" + txt.replace("Mouse Button ", "")
+				lbl.text = txt.to_upper()
+			else:
+				lbl.text = "-"
+			
+			slot.move_child(lbl, slot.get_child_count() - 1)
+			lbl.visible = true
+		
+		for child in slot.get_children():
+			if child is Label and child.name != "BindingLabel" and child.name != "CD":
+				# v266.20: Ocultar si se llama "Key" (el bindeo viejo estático)
+				if child.name == "Key":
+					child.visible = false
+					continue
+					
+				child.visible = true
+				if child.name != "ammo-q" and child.name != "ammo-w" and child.name != "ammo-e":
+					child.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+					child.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+					child.grow_horizontal = Control.GROW_DIRECTION_BOTH
 
 func _format_val(v):
 	var s = str(int(v))
@@ -325,7 +382,7 @@ func _update_sphere_ui(id: int, ref, slot):
 		l_cd.text = str(snapped(rv, 0.1)) + "s"
 		l_cd.modulate = Color.RED
 	
-	var base_color = Color.WHITE
+	var type_color = Color.WHITE
 	var sm = ref.get_node_or_null("SpheresManager")
 	var equipped = false
 	
@@ -337,22 +394,21 @@ func _update_sphere_ui(id: int, ref, slot):
 			if typeof(skill) == TYPE_DICTIONARY: raw_type = str(skill.get("type", "ataque")).to_lower()
 			else: raw_type = str(skill.get("type")).to_lower() if skill.get("type") else "ataque"
 			
-			if "ataque" in raw_type: base_color = Color.RED
-			elif "defensa" in raw_type: base_color = Color.AQUA
-			elif "curación" in raw_type or "curacion" in raw_type: base_color = Color.GREEN
-			elif "movimiento" in raw_type: base_color = Color.YELLOW
-			else: base_color = Color.WHITE
+			if "ataque" in raw_type: type_color = Color.RED
+			elif "defensa" in raw_type: type_color = Color.AQUA
+			elif "curación" in raw_type or "curacion" in raw_type: type_color = Color.GREEN
+			elif "movimiento" in raw_type: type_color = Color.YELLOW
+			else: type_color = Color.WHITE
 	
-	var final_color = Color.RED if rv > 0.05 else base_color
-	slot.modulate = Color.WHITE # Reset modulate to avoid double tinting with stylebox
+	var final_text_color = Color.RED if rv > 0.05 else type_color
+	slot.modulate = Color.WHITE 
 	
-	# v235.90: Rediseño Agresivo de Borde (Paridad con Municiones)
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0, 0, 0, 0.6) if equipped else Color(0, 0, 0, 0.2)
 	sb.draw_center = true
-	sb.border_width_left = 4; sb.border_width_right = 4; sb.border_width_top = 4; sb.border_width_bottom = 4
-	sb.border_color = base_color if equipped else Color(0.2, 0.2, 0.2, 0.5)
-	sb.set_corner_radius_all(p_size.x) # Círculo perfecto
+	sb.border_width_left = 2; sb.border_width_right = 2; sb.border_width_top = 2; sb.border_width_bottom = 2
+	sb.border_color = Color.AQUA if equipped else Color(0.2, 0.2, 0.2, 0.5)
+	sb.set_corner_radius_all(p_size.x) 
 	sb.set_content_margin_all(2)
 	sb.anti_aliasing = true
 	
@@ -367,10 +423,10 @@ func _update_sphere_ui(id: int, ref, slot):
 	# v235.91: Sincronía de Etiquetas Internas
 	var short_txt = "VACÍO"
 	if equipped:
-		if base_color == Color.RED: short_txt = "ATQ"
-		elif base_color == Color.AQUA: short_txt = "DEF"
-		elif base_color == Color.GREEN: short_txt = "CUR"
-		elif base_color == Color.YELLOW: short_txt = "MOV"
+		if type_color == Color.RED: short_txt = "ATQ"
+		elif type_color == Color.AQUA: short_txt = "DEF"
+		elif type_color == Color.GREEN: short_txt = "CUR"
+		elif type_color == Color.YELLOW: short_txt = "MOV"
 
 	for child in slot.get_children():
 		if child is Label:
@@ -381,7 +437,7 @@ func _update_sphere_ui(id: int, ref, slot):
 				pass
 			else:
 				child.text = short_txt
-				child.add_theme_color_override("font_color", final_color) 
+				child.add_theme_color_override("font_color", final_text_color) 
 				child.modulate.a = 1.0 if equipped else 0.3
 
 
@@ -695,6 +751,14 @@ func _create_esc_menu():
 	)
 	vbox.add_child(pvp_btn)
 	
+	var config_btn = Button.new()
+	config_btn.text = "CONFIGURACIONES"
+	config_btn.pressed.connect(func():
+		_esc_menu.visible = false
+		_open_settings()
+	)
+	vbox.add_child(config_btn)
+	
 	var logout_btn = Button.new()
 	logout_btn.text = "CERRAR SESIÓN"
 	logout_btn.pressed.connect(func():
@@ -791,3 +855,14 @@ func _setup_touch_buttons():
 		btn.pressed.connect(_on_icon_pressed.bind(data.id))
 		c_bar.add_child(btn)
 		print("[HUD] Botón táctil inyectado: ", data.id)
+
+func _open_settings():
+	if not _settings_menu:
+		var s_script = load("res://scripts/systems/SettingsUI.gd")
+		if s_script:
+			_settings_menu = s_script.new()
+			add_child(_settings_menu)
+			_settings_menu.closed.connect(func(): toggle_esc_menu())
+
+	if _settings_menu:
+		_settings_menu.open()

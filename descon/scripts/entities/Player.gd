@@ -37,6 +37,7 @@ var skill_tree: Dictionary = {"combat": [], "engineering": [], "science": []}
 var ammo: Dictionary = {"laser": [1000, 0, 0, 0, 0, 0], "missile": [100, 0, 0], "mine": [10, 0, 0]}
 var selected_ammo: Dictionary = {"laser": 0, "missile": 0, "mine": 0}
 var current_zone: int = 1
+var _skill_controller: Node2D = null
 
 var _shake_amount: float = 0.0
 var _shake_decay: float = 0.9
@@ -63,6 +64,14 @@ func _ready():
 
 		NetworkManager.login_success.connect(_on_login_success)
 		NetworkManager.inventory_data.connect(_on_inventory_received)
+	
+	_setup_skill_controller()
+
+func _setup_skill_controller():
+	var sc_script = load("res://scripts/systems/SkillController.gd")
+	if sc_script:
+		_skill_controller = sc_script.new()
+		add_child(_skill_controller)
 
 func _unhandled_input(event):
 	# v226.50: Bloquear zoom si el mouse está sobre la UI (Evitar zoom al scrollear menús)
@@ -107,30 +116,56 @@ func _physics_process(p_delta):
 	var chat = get_tree().get_first_node_in_group("chat_ui")
 	var focus_node = get_viewport().gui_get_focus_owner()
 	var is_typing = (chat and chat.has_method("is_typing") and chat.is_typing()) or (focus_node is LineEdit or focus_node is TextEdit)
-	
-	_handle_input()
+	if not is_typing:
+		_handle_input()
 		
 	_apply_movement()
 	_update_shake(p_delta)
 	_sync_with_server(p_delta)
 
-func _handle_input():
-	var mouse_angle = (get_global_mouse_position() - global_position).angle()
+enum Skill_Type { DIRECTIONAL, POINT_CLICK, AREA }
 
-	if Input.is_action_just_pressed("fire_laser") and cooldowns["laser"] <= 0:
-		_shoot_skill("laser", mouse_angle)
-	elif Input.is_action_pressed("fire_laser") and cooldowns["laser"] <= 0:
-		_shoot_skill("laser", mouse_angle)
-		
-	if Input.is_action_just_pressed("fire_missile") and cooldowns["missile"] <= 0:
-		_shoot_skill("missile", mouse_angle)
-	if Input.is_action_just_pressed("fire_mine") and cooldowns["mine"] <= 0:
-		_shoot_skill("mine", mouse_angle)
+func _handle_input():
+	# v260.90: Sistema de 7 Slots Unificados (Láser, Misil, Mina + 4 Esferas)
+	_handle_slot_input("slot_1", "laser", Skill_Type.DIRECTIONAL)
+	_handle_slot_input("slot_2", "missile", Skill_Type.DIRECTIONAL)
+	_handle_slot_input("slot_3", "mine", Skill_Type.DIRECTIONAL)
 	
-	if Input.is_physical_key_pressed(KEY_A): _use_sphere_skill(0)
-	if Input.is_physical_key_pressed(KEY_S): _use_sphere_skill(1)
-	if Input.is_physical_key_pressed(KEY_D): _use_sphere_skill(2)
-	if Input.is_physical_key_pressed(KEY_F): _use_sphere_skill(3)
+	# Esferas (Slots 4 al 7)
+	_handle_slot_input("slot_4", "sphere_0", Skill_Type.DIRECTIONAL)
+	_handle_slot_input("slot_5", "sphere_1", Skill_Type.POINT_CLICK)
+	_handle_slot_input("slot_6", "sphere_2", Skill_Type.DIRECTIONAL)
+	_handle_slot_input("slot_7", "sphere_3", Skill_Type.DIRECTIONAL)
+
+func _handle_slot_input(action: String, skill_id: String, type: int):
+	# Auto-crear acción si no existe para evitar errores
+	if not InputMap.has_action(action): 
+		InputMap.add_action(action)
+		return
+
+	if Input.is_action_just_pressed(action):
+		var cd = cooldowns.get(skill_id, 0.0)
+		if cd <= 0:
+			_skill_controller.start_aiming({"id": skill_id, "type": type, "range": 600.0})
+	
+	if Input.is_action_just_released(action):
+		if _skill_controller.is_aiming and _skill_controller.current_skill.id == skill_id:
+			if _skill_controller.config.cast_mode == 1: # ON_RELEASE
+				_skill_controller.execute_skill()
+
+func _on_skill_executed(p_data: Dictionary):
+	var id = p_data.skill_id
+	if id == "laser" or id == "missile" or id == "mine":
+		_shoot_skill(id, p_data.angle)
+	elif id.begins_with("sphere_"):
+		var s_idx = int(id.replace("sphere_", ""))
+		_use_sphere_skill(s_idx, p_data) # v260.91: Integración con lógica de esferas y targeting
+
+func _use_heal_skill(p_target):
+	if p_target:
+		print("[SKILL] Curando a: ", p_target.username)
+		# Enviar al servidor...
+		NetworkManager.send_event("playerHeal", {"targetId": p_target.entity_id, "amount": 500})
 
 
 var cooldowns = {"laser": 0.0, "missile": 0.0, "mine": 0.0, "sphere_0": 0.0, "sphere_1": 0.0, "sphere_2": 0.0, "sphere_3": 0.0}
@@ -276,7 +311,7 @@ func _shoot_skill(p_type: String, p_angle: float):
 	apply_shake(0.8) # v260: Shake muy leve al disparar
 	_force_move_sync()
 
-func _use_sphere_skill(id: int):
+func _use_sphere_skill(id: int, p_data: Dictionary):
 	var key = "sphere_" + str(id)
 	if cooldowns[key] > 0: return
 	var sm = get_node_or_null("SpheresManager")
@@ -284,8 +319,15 @@ func _use_sphere_skill(id: int):
 	if sm.use_skill(id):
 		var skill = sm.spheres_data[id]["equipped"]
 		if skill:
+			var target_id = null
+			if is_instance_valid(p_data.target):
+				if "entity_id" in p_data.target: target_id = p_data.target.entity_id
+				elif p_data.target.has_method("get_id"): target_id = p_data.target.get_id()
+				else: target_id = p_data.target.name
+			
 			NetworkManager.send_event("playerSphereSkill", {
-				"id": id, "skillName": skill.skill_name, "powerValue": skill.power_value
+				"id": id, "skillName": skill.skill_name, "powerValue": skill.power_value,
+				"targetId": target_id, "posX": p_data.pos.x, "posY": p_data.pos.y
 			})
 		cooldowns[key] = 10.0
 
@@ -490,7 +532,7 @@ func apply_shake(amount: float):
 	_shake_amount += amount
 	_shake_amount = min(_shake_amount, 10.0)
 
-func _update_shake(delta):
+func _update_shake(_delta):
 	if _shake_amount > 0.1:
 		if is_instance_valid(_cam_node):
 			_cam_node.offset = Vector2(randf_range(-_shake_amount, _shake_amount), randf_range(-_shake_amount, _shake_amount))

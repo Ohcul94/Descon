@@ -94,8 +94,9 @@ var AMMO_MULTIPLIERS = {
 }
 
 var SKILLS_DATA = {
-	"ESCUDO CELULAR": { "type": "Defensa", "desc": "Regenera escudo instantáneamente." },
-	"AUTO-REPARACIÓN": { "type": "Curación", "desc": "Repara la integridad de la nave." },
-	"TURBO-IMPULSO": { "type": "Ataque", "desc": "Aumenta la velocidad temporalmente." },
-	"REFLECT-Ω": { "type": "Defensa", "desc": "Devuelve el daño recibido." }
+	"ESCUDO CELULAR": { "type": "Defensa", "desc": "Regenera escudo instantáneamente.", "amount": 5000, "cd": 15.0, "range": 0 },
+	"AUTO-REPARACIÓN": { "type": "Curación", "desc": "Repara la integridad de la nave.", "amount": 2500, "cd": 20.0, "range": 500 },
+	"TURBO-IMPULSO": { "type": "Movimiento", "desc": "Aumenta la velocidad temporalmente.", "speed": 800, "cd": 10.0, "range": 0 },
+	"REFLECT-Ω": { "type": "Defensa", "desc": "Devuelve el daño recibido.", "reflect_mult": 1.5, "cd": 30.0, "range": 0 }
 }
+
