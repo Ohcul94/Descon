@@ -156,7 +156,7 @@ func _process(delta):
 		_bank_target = clamp(rot_diff * 25.0, -0.7, 0.7)
 		_bank_current = lerp(_bank_current, _bank_target, 0.1)
 		
-		# 3. ROTACIÓN DE LA NAVE
+		# 3. ROTACIÓN DE LA NAVE (v254.60: Revertido a original por pedido del usuario)
 		var target_yaw = -rotation
 		_3d_model.rotation.y = lerp_angle(_3d_model.rotation.y, target_yaw, 0.2)
 		_3d_model.rotation.x = abs(_bank_current) * 0.12
@@ -789,49 +789,67 @@ func _create_anim(lib: AnimationLibrary, a_name: String, start: int, count: int,
 func _setup_enemy_visuals():
 	var glb_path = ""
 	var enemy_rot_offset = 0.0
-	var path = ""
+	var enemy_scale = 3.0 
+	var path = "" # v252.16: Declaración restaurada para fallback 2D
 	
-	# v252.10: MAPEADO UNIVERSAL 1:1 CON ASSETS
+	# v252.15: CONFIGURACIÓN INDIVIDUALIZADA (Manual de Activos)
 	match entity_type:
 		1: 
 			glb_path = "res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb"
 			enemy_rot_offset = 90.0
+		2: 
+			glb_path = "res://assets/Enemigos/3D/Enemigo2/Enemigo2.glb"
+			enemy_rot_offset = 90.0 # v252.15: Re-calibrando
+		3: 
+			glb_path = "res://assets/Enemigos/3D/Enemigo3/Enemigo3.glb"
+			enemy_rot_offset = 90.0
 		5: 
 			glb_path = "res://assets/Enemigos/3D/Enemigo5/Enemigo5.glb"
+			enemy_rot_offset = 90.0 # v252.15: Restaurado (Estaba perfecto antes)
 		6: 
 			glb_path = "res://assets/Enemigos/3D/Enemigo6/Enemigo6.glb"
+			enemy_rot_offset = 0.0
+		7: 
+			glb_path = "res://assets/Enemigos/3D/Enemigo7/Enemigo7.glb"
+			enemy_rot_offset = 180.0 # v252.18: Inversión total para disparo frontal
 		8: 
 			glb_path = "res://assets/Enemigos/3D/Enemigo8/Enemigo8.glb"
-		4: 
+			enemy_rot_offset = 0.0
+		9: # Asset Enemigo4
+			glb_path = "res://assets/Enemigos/3D/Enemigo4/Enemigo4.glb"
+			enemy_rot_offset = 90.0
+		4: # Lord Titán (Boss1)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
 			enemy_rot_offset = 90.0
-		10: 
+			enemy_scale = 6.0
+		10: # Ancient Titán (Boss2)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"
 			enemy_rot_offset = 90.0
-		11: 
+			enemy_scale = 6.0
+		11: # Mechanic Boss (Boss3)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
 			enemy_rot_offset = 180.0
-
-
+			enemy_scale = 6.0
 
 	if glb_path != "":
-		print("[CORE] Intentando cargar Boss 3D: ", glb_path, " para ", username)
+		print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)
 	
-	# v225.40: SALTO INTELIGENTE (Solo si el modelo es el mismo)
+	# v225.40: SALTO INTELIGENTE
 	if glb_path != "" and is_instance_valid(_3d_model) and is_instance_valid(sprite):
 		if sprite.texture != null and get_meta("current_glb", "") == glb_path: 
+			# Asegurar escala correcta incluso si el modelo se recicla
+			_3d_model.scale = Vector3(enemy_scale, enemy_scale, enemy_scale)
 			return
 
 	set_meta("current_glb", glb_path)
 
-
-	# 2. Limpieza de visuales antiguos (Solo si hay cambio real)
+	# Limpieza
 	if is_instance_valid(sprite): sprite.queue_free(); sprite = null
 	if is_instance_valid(anim_player): anim_player.queue_free()
 	var poly_node = get_node_or_null("Polygon2D")
 	if poly_node: poly_node.visible = false
 
-	# 3. Carga de Visual 3D
+	# Carga de Visual 3D
 	if glb_path != "":
 		for c in get_children():
 			if "Viewport" in c.name or c is Sprite2D or c is Polygon2D:
@@ -839,8 +857,7 @@ func _setup_enemy_visuals():
 		
 		_setup_3d_visuals(glb_path, enemy_rot_offset)
 		if is_instance_valid(_3d_model):
-			var s_factor = 3.0 
-			_3d_model.scale = Vector3(s_factor, s_factor, s_factor)
+			_3d_model.scale = Vector3(enemy_scale, enemy_scale, enemy_scale)
 			return
 		else:
 			print("[VISUAL-WARN] Falló carga 3D para ", username, ". Usando fallback 2D.")
@@ -849,8 +866,12 @@ func _setup_enemy_visuals():
 	# Fallback a 2D (v223.1: Rutas Corregidas 2D)
 	match entity_type:
 		1: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png"
+		2: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png" # Fallback a E1
+		3: path = "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png" # Fallback a E2
 		5: path = "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png"
 		8: path = "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png"
+		7: path = "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png" # Fallback a E3
+		9: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png" # Fallback a E1
 		4: path = "res://assets/Enemigos/2D/Bosses/Boss1/Boss1.png"
 		10: path = "res://assets/Enemigos/2D/Bosses/Boss2/Boss2.png"
 		11: path = "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png"

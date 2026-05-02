@@ -27,7 +27,7 @@ module.exports = class BaseAI {
         let closest = null;
         let minDist = this.enemy.isHorde ? 10000 : 800; // v247.10: Visión global para Hordas
         Object.values(players).forEach(p => {
-            if (p.zone !== this.enemy.zone) return;
+            if (p.zone !== this.enemy.zone || p.isDead) return;
             const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
             if (d < minDist) { minDist = d; closest = p; }
         });

@@ -38,6 +38,8 @@ class HordeManager {
     }
 
     startNextWave() {
+        if (this.isWaitingNextWave) return; // v254.10: Bloqueo estricto de concurrencia
+        
         if (!this.config.waves || this.config.waves.length === 0) {
             console.log("[HORDE] Error: No hay oleadas configuradas.");
             this.config.active = false;

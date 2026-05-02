@@ -398,10 +398,10 @@ function serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, 
     if (type === 11) e.ai = new MechanicBossAI(e, aiConfig); 
     else if (type === 10) e.ai = new AncientBossAI(e, aiConfig); 
     else if (type === 4) e.ai = new BossAI(e, aiConfig); 
-    else if (type === 8) e.ai = new ChargerAI(e, aiConfig); // v252.10 (Carpeta Enemigo8)
-    else if (type === 6) e.ai = new GravityAI(e, aiConfig); // v252.10 (Carpeta Enemigo6)
-    else if (type === 5) e.ai = new SniperAI(e, aiConfig);  // v252.10 (Carpeta Enemigo5)
-    else if (type === 1) e.ai = new ChaseAI(e, aiConfig);   // v252.10 (Carpeta Enemigo1)
+    else if (type === 8 || type === 3) e.ai = new ChargerAI(e, aiConfig); // v252.12: Tipos 3 y 8
+    else if (type === 6 || type === 7) e.ai = new GravityAI(e, aiConfig); // v252.12: Tipos 6 y 7
+    else if (type === 5 || type === 2) e.ai = new SniperAI(e, aiConfig);  // v252.12: Tipos 2 y 5
+    else if (type === 1 || type === 9) e.ai = new ChaseAI(e, aiConfig);   // v252.12: Tipos 1 y 9
     else e.ai = new OrbitAI(e, aiConfig);
 
     enemies[id] = e;
@@ -416,15 +416,20 @@ setInterval(() => {
     Object.values(enemies).forEach(e => {
         if (e.zone === 1 && e.hp > 0) {
             if (e.type === 1) t1Count++;
-            else if (e.type === 2) t2Count++;
-            else if (e.type === 3) t3Count++;
+            else if (e.type === 5) t2Count++; // v254: Usando IDs sincronizados
+            else if (e.type === 8) t3Count++;
         }
     });
 
     if (t1Count < 4) serverSpawnEnemy(1, 1);
-    if (t2Count < 4) serverSpawnEnemy(1, 2);
-    if (t3Count < 4) serverSpawnEnemy(1, 3);
-}, 2000);
+    if (t2Count < 4) serverSpawnEnemy(1, 5);
+    if (t3Count < 4) serverSpawnEnemy(1, 8);
+}, 5000);
+
+// v254.20: Bloqueo de Respawn Automático en Zona de Hordas
+setInterval(() => {
+    // No hacer nada en Zona 6, el HordeManager se encarga de todo.
+}, 5000);
 
 // GUARDIANÍA DE JEFES (Asegurar 1 BOSS siempre en su mapa)
 let lastTitanDeath = 0;
@@ -2147,20 +2152,22 @@ io.on('connection', (socket) => {
 
         if (enemy.ai && enemy.ai.isInvulnerable) return;
 
-        // v222.11: VALIDACI├ôN DE DA├æO (Confiar pero verificar)
+        // v254.40: VALIDACIÓN DE DAÑO RELAJADA (Evita Desync en Hordas)
         let finalDamage = parseFloat(damage) || 100;
         
-        // Anti-Cheat b├ísico: Recalcular m├íximo posible para este jugador
-        let maxAllowed = 200; 
+        // Anti-Cheat: Subimos el base de 200 a 5000 para no romper el juego avanzado
+        let maxAllowed = 5000; 
         if (p.equipped && p.equipped.w) {
             let weaponsBase = 0;
             p.equipped.w.forEach(it => {
+                // Buscamos en toda la tienda (weapons, pero también fallback por si cambió el ID)
                 const master = SERVER_CONFIG.shopItems.weapons.find(w => w.id === it.id);
                 if (master) weaponsBase += (master.base || 0);
+                else weaponsBase += 500; // v254.41: Fallback generoso para no capar daño
             });
             if (weaponsBase > 0) {
-                // Multiplicador m├íximo: Munici├│n T6 (15x) + Talento Full (1.3x aprox)
-                maxAllowed = weaponsBase * 20; 
+                // Multiplicador: Munici├│n T6 (15x) + Críticos + Habilidades
+                maxAllowed = weaponsBase * 40; 
             }
         }
         
