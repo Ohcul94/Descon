@@ -547,13 +547,53 @@ func _setup_notifier():
 func notify(msg: String, type: String = "info"):
 	if not _notifier_container: return
 	
-	var last = _notifier_container.get_child(_notifier_container.get_child_count() - 1) if _notifier_container.get_child_count() > 0 else null
-	if last and last.get_meta("raw_msg", "") == msg:
-		var count = last.get_meta("count", 1) + 1
-		last.set_meta("count", count)
-		last.text = msg + " x" + str(count)
-		_animate_notification(last, true)
+	# v252.20: Sistema de Acumulación Inteligente (Evitar Spam)
+	var existing = null
+	for child in _notifier_container.get_children():
+		if child.get_meta("raw_msg", "") == msg:
+			existing = child; break
+		
+		# Agrupación por tipo de recompensa (Ej: RECOMPENSA: +100 EXP)
+		if "RECOMPENSA" in msg and "RECOMPENSA" in child.get_meta("raw_msg", ""):
+			var units = ["EXP", "HUBS", "OHCU"]
+			for u in units:
+				if u in msg and u in child.get_meta("raw_msg", ""):
+					existing = child; break
+			if existing: break
+
+	if existing:
+		var old_msg = existing.get_meta("raw_msg", "")
+		if "RECOMPENSA" in msg and "RECOMPENSA" in old_msg:
+			# Sumar valores numéricos
+			var regex = RegEx.new()
+			regex.compile("\\+([\\d\\.]+)")
+			var m1 = regex.search(old_msg)
+			var m2 = regex.search(msg)
+			if m1 and m2:
+				var val1 = float(m1.get_string(1).replace(".", ""))
+				var val2 = float(m2.get_string(1).replace(".", ""))
+				var unit = "EXP"
+				if "HUBS" in msg: unit = "HUBS"
+				elif "OHCU" in msg: unit = "OHCU"
+				
+				var new_total = val1 + val2
+				var new_msg = "RECOMPENSA: +" + _format_val(new_total) + " " + unit
+				existing.text = new_msg
+				existing.set_meta("raw_msg", new_msg)
+				_animate_notification(existing, true)
+				return
+		
+		# Para mensajes genéricos, usar contador x2, x3...
+		var count = existing.get_meta("count", 1) + 1
+		existing.set_meta("count", count)
+		existing.text = msg + " x" + str(count)
+		_animate_notification(existing, true)
 		return
+
+	# Limitar a 5 notificaciones máximas para no tapar la pantalla
+	if _notifier_container.get_child_count() >= 5:
+		var first = _notifier_container.get_child(0)
+		if is_instance_valid(first): first.queue_free()
 
 	var label = Label.new()
 	label.text = msg
@@ -562,12 +602,12 @@ func notify(msg: String, type: String = "info"):
 	label.add_theme_font_size_override("font_size", 10)
 	
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0, 0, 0, 0.8)
+	sb.bg_color = Color(0, 0, 0, 0.7) # Más transparente
 	sb.border_width_right = 3
-	sb.content_margin_left = 15
-	sb.content_margin_right = 10
-	sb.content_margin_top = 5
-	sb.content_margin_bottom = 5
+	sb.content_margin_left = 12
+	sb.content_margin_right = 8
+	sb.content_margin_top = 3
+	sb.content_margin_bottom = 3
 	
 	match type:
 		"warn", "error": sb.border_color = Color.YELLOW

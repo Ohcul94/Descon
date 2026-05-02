@@ -148,7 +148,9 @@ module.exports = class BossAI extends BaseAI {
 
     phaseHomingMissiles(players, dist, angle, now, io) {
         if (now > (this.nextMissileTime || 0)) {
-            const nearbyPlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone);
+            const nearbyPlayers = Object.values(players || {}).filter(p => 
+                p.zone === this.enemy.zone && !p.isDead && p.user && typeof p.x === 'number'
+            );
             nearbyPlayers.forEach(p => {
                 const pAngle = Math.atan2(p.y - this.enemy.y, p.x - this.enemy.x);
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {

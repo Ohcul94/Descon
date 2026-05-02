@@ -91,7 +91,9 @@ module.exports = class AncientBossAI extends BaseAI {
     }
 
     handleAreaDamage(players, now, io) {
-        const nearby = Object.values(players).filter(p => p.zone === this.enemy.zone);
+        const nearby = Object.values(players).filter(p => 
+            p.zone === this.enemy.zone && !p.isDead && p.user && typeof p.x === 'number'
+        );
         
         // 1. Vórtices: DAÑO PRECIOSO v115.20 (Rando 90px para visual de 80px)
         this.activeRifts = this.activeRifts.filter(r => r.expiry > now);
@@ -157,7 +159,7 @@ module.exports = class AncientBossAI extends BaseAI {
         io.to(`zone_${this.enemy.zone}`).emit('bossEffect', { type: 'vacuum', x: this.enemy.x, y: this.enemy.y, radius: 1200 });
         setTimeout(() => {
             Object.values(players).forEach(p => {
-                if (p.zone === this.enemy.zone && Math.hypot(p.x-this.enemy.x, p.y-this.enemy.y) < 1200) {
+                if (p.zone === this.enemy.zone && !p.isDead && p.user && Math.hypot(p.x-this.enemy.x, p.y-this.enemy.y) < 1200) {
                     this.applyDamage(p, 5500, now, io);
                 }
             });

@@ -25,12 +25,22 @@ module.exports = class BaseAI {
 
     getNearestPlayer(players) {
         let closest = null;
-        let minDist = this.enemy.isHorde ? 10000 : 800; // v247.10: Visión global para Hordas
-        Object.values(players).forEach(p => {
-            if (p.zone !== this.enemy.zone || p.isDead) return;
+        let minDist = this.enemy.isHorde ? 10000 : 800; 
+        
+        for (const id in players) {
+            const p = players[id];
+            if (!p || p.isDead || p.zone !== this.enemy.zone) continue;
+            
+            // v252.22: Validación de Integridad del Target
+            if (typeof p.x !== 'number' || typeof p.y !== 'number') continue;
+            if (!p.user) continue; 
+
             const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
-            if (d < minDist) { minDist = d; closest = p; }
-        });
+            if (d < minDist) {
+                minDist = d;
+                closest = p;
+            }
+        }
         return closest;
     }
 

@@ -817,7 +817,7 @@ func _setup_enemy_visuals():
 			enemy_rot_offset = 0.0
 		9: # Asset Enemigo4
 			glb_path = "res://assets/Enemigos/3D/Enemigo4/Enemigo4.glb"
-			enemy_rot_offset = 90.0
+			enemy_rot_offset = 180.0 # v252.21: Calibración disparo frontal
 		4: # Lord Titán (Boss1)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
 			enemy_rot_offset = 90.0
@@ -1041,9 +1041,33 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		node3d.add_child(control_node)
 		control_node.add_child(model)
 		
+		# v252.23: INSPECTOR Y ACTIVADOR DE ANIMACIONES
+		var anim_player_3d = null
+		if model.has_node("AnimationPlayer"):
+			anim_player_3d = model.get_node("AnimationPlayer")
+		else:
+			# Búsqueda recursiva simple si no está en la raíz
+			for child in model.get_children():
+				if child is AnimationPlayer:
+					anim_player_3d = child; break
+		
+		if anim_player_3d:
+			var anim_list = anim_player_3d.get_animation_list()
+			print("[3D-ANIM] ", entity_type, " tiene ", anim_list.size(), " animaciones: ", anim_list)
+			if anim_list.size() > 0:
+				var target_anim = anim_list[0]
+				# Priorizar nombres comunes
+				for a in anim_list:
+					var low = a.to_lower()
+					if "idle" in low or "fly" in low or "walk" in low or "move" in low:
+						target_anim = a; break
+				
+				anim_player_3d.play(target_anim)
+				print("[3D-ANIM] Reproduciendo: ", target_anim, " en ", entity_type)
+		
 		_3d_model = control_node 
-		control_node.scale = Vector3(3.0, 3.0, 3.0) # v238.20: RESTORED FROM 1f65223
-		model.rotation_degrees.y = rot_offset # v221.82: Corrección de orientación por Asset
+		control_node.scale = Vector3(3.0, 3.0, 3.0) 
+		model.rotation_degrees.y = rot_offset 
 	
 	# 4. Cámara de Perspectiva con ZOOM 50% (Punto 0)
 	var cam_pivot = Node3D.new()
