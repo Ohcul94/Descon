@@ -18,9 +18,11 @@ signal shoot_fired(p_data)
 
 var is_moving = false
 var autopilot_enabled: bool = false
-var is_autopilot_active: bool: 
-	get: return autopilot_enabled
-	set(v): autopilot_enabled = v
+var is_autopilot_active: bool:
+	get:
+		return autopilot_enabled
+	set(v):
+		autopilot_enabled = v
 
 var hubs: int = 0
 var ohculianos: int = 0
@@ -76,16 +78,16 @@ func _setup_skill_controller():
 func _unhandled_input(event):
 	# v226.50: Bloquear zoom si el mouse está sobre la UI (Evitar zoom al scrollear menús)
 	if event is InputEventMouseButton:
-		# v244.75: Bloqueo de SEGURIDAD para evitar click-through al menue de F1 o F2
-		var inv = get_tree().get_first_node_in_group("inventory_ui")
-		var adm = get_tree().get_first_node_in_group("admin_panel_ui")
-		if (inv and inv.visible) or (adm and adm.visible):
-			var mouse_pos = get_viewport().get_mouse_position()
-			var screen_size = get_viewport().get_visible_rect().size
-			var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
-			var r_pos = (screen_size - r_size) / 2.0
-			if Rect2(r_pos, r_size).has_point(mouse_pos):
-				return # El click está sobre el panel, ignorar para movimiento
+		# v2.6: Bloqueo de SEGURIDAD para evitar click-through a cualquier menú abierto
+		var ui_blocking = false
+		for group in ["inventory_ui", "admin_panel_ui"]:
+			for node in get_tree().get_nodes_in_group(group):
+				if node.visible:
+					# v2.7: Si el menú está visible y bloquea mouse, impedimos movimiento
+					if node.mouse_filter == Control.MOUSE_FILTER_STOP:
+						ui_blocking = true; break
+		
+		if ui_blocking: return
 
 		if get_viewport().gui_get_hovered_control() != null:
 			return
@@ -182,9 +184,10 @@ func _on_inventory_received(p_data):
 		# v236.15: Extraer gameData si viene anidado (común en login_success)
 		if gd.has("gameData"): gd = gd["gameData"]
 		
-		if gd.has("items"): inventory = gd["items"]
-
-		elif gd.has("inventory"): inventory = gd["inventory"]
+		if gd.has("items"): 
+			inventory = gd["items"]
+		elif gd.has("inventory"): 
+			inventory = gd["inventory"]
 		if gd.has("equipped"): equipped = gd["equipped"]
 		if gd.has("hubs"): hubs = int(gd["hubs"])
 		if gd.has("ohcu"): ohculianos = int(gd["ohcu"])
@@ -334,7 +337,11 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 func _apply_movement():
 	if is_moving:
 		var dist = global_position.distance_to(target_position)
-		if dist > 15.0:
+		var threshold = 15.0
+		if get_node_or_null("/root/SettingsManager"):
+			threshold = 15.0 / max(0.1, SettingsManager.click_sensitivity)
+			
+		if dist > threshold:
 			var target_angle = (target_position - global_position).angle()
 			rotation = lerp_angle(rotation, target_angle, 0.25)
 			var dir = Vector2.RIGHT.rotated(rotation)
@@ -529,6 +536,10 @@ func _find_skill_by_name(n: String):
 	return null
 
 func apply_shake(amount: float):
+	if get_node_or_null("/root/SettingsManager"):
+		if not SettingsManager.camera_shake_enabled: return
+		amount *= SettingsManager.camera_shake_intensity
+		
 	_shake_amount += amount
 	_shake_amount = min(_shake_amount, 10.0)
 

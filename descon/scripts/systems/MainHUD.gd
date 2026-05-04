@@ -19,8 +19,8 @@ var radar_title: Label = null # v243.60: Titulo del Minimapa (Nombre del Sector)
 
 var _ammo_nodes = {} # Etiquetas de texto de munición
 var _ammo_menus = {} # v226.70: Menús anclados a cada botón
-var _esc_menu: PanelContainer = null
-var _settings_menu: PanelContainer = null
+var _esc_menu: Control = null
+var _settings_menu: Control = null
 var _pvp_status: bool = false
 
 func _ready():
@@ -52,12 +52,8 @@ func _ready():
 
 
 	
-	for btn in $ControlBar.get_children():
-		var b_name = btn.name.replace("Icon", "")
-		if not btn.pressed.is_connected(_on_icon_pressed):
-			btn.pressed.connect(_on_icon_pressed.bind(b_name))
-	
 	_aggressive_hide(self)
+	_update_icon_tooltips()
 	
 	for child in get_children():
 		if child.has_method("toggle_minimize"):
@@ -141,14 +137,25 @@ func _input(event: InputEvent):
 	# v244.60: Bloquear menú de sistema en el login
 	if not NetworkManager or not NetworkManager.is_logged_in: return
 	
-	# v244.70: Prioridad a menues abiertos (Si el F1 está abierto, Escape debe cerrarlo a él, no abrir este)
-	var inv = get_tree().get_first_node_in_group("inventory_ui")
-	if inv and inv.is_open: return
+	# v2.7: Bloqueo de seguridad para ESC (Si hay algún menú de UI abierto)
+	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
+	for ui in ui_nodes:
+		if ui.visible: return
 
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_ESCAPE:
-			toggle_esc_menu()
-			get_viewport().set_input_as_handled()
+
+	if event.is_action_pressed("ui_menu"):
+		toggle_esc_menu()
+		get_viewport().set_input_as_handled()
+	
+	if event.is_action_pressed("ui_party"):
+		_on_icon_pressed("Party")
+		get_viewport().set_input_as_handled()
+
+	if event.is_action_pressed("ui_pvp_toggle"):
+		var requested_status = !_pvp_status
+		if NetworkManager:
+			NetworkManager.send_event("togglePvP", requested_status)
+		get_viewport().set_input_as_handled()
 
 func _apply_hud_data(layout: Dictionary, config: Dictionary):
 	var screen_size = get_viewport_rect().size
@@ -842,7 +849,6 @@ func _setup_touch_buttons():
 		var btn = Button.new()
 		btn.name = "Icon" + data.id
 		btn.text = data.icon
-		btn.tooltip_text = data.tip
 		btn.custom_minimum_size = Vector2(36, 36)
 		
 		var sb = StyleBoxFlat.new()
@@ -852,17 +858,89 @@ func _setup_touch_buttons():
 		var h_sb = sb.duplicate(); h_sb.bg_color = Color(0.3, 0.5, 0.6, 0.8); h_sb.border_width_bottom = 2; h_sb.border_color = Color.CYAN
 		btn.add_theme_stylebox_override("hover", h_sb)
 		
-		btn.pressed.connect(_on_icon_pressed.bind(data.id))
 		c_bar.add_child(btn)
+		_update_icon_tooltips() # Aplicar nombres tras añadir al padre
 		print("[HUD] Botón táctil inyectado: ", data.id)
+
+func _update_icon_tooltips():
+	var c_bar = get_node_or_null("ControlBar")
+	if not c_bar: return
+	
+	# v2.9.1: Crear el Label flotante si no existe
+	var tooltip_lbl = get_node_or_null("ControlBar/TooltipAnchor/Label")
+	if not tooltip_lbl:
+		var anchor = Control.new()
+		anchor.name = "TooltipAnchor"
+		anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		c_bar.add_child(anchor)
+		c_bar.move_child(anchor, 0)
+		anchor.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		anchor.position.y = -30 # Posición arriba del bar
+		
+		tooltip_lbl = Label.new()
+		tooltip_lbl.name = "Label"
+		tooltip_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tooltip_lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		tooltip_lbl.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		tooltip_lbl.add_theme_font_size_override("font_size", 12)
+		tooltip_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		tooltip_lbl.add_theme_constant_override("outline_size", 4)
+		anchor.add_child(tooltip_lbl)
+		tooltip_lbl.visible = false
+
+	var names = {
+		"Inventory": "Inventario", "AdminPanel": "Admin", "Admin": "Admin",
+		"Squad": "Equipo", "Party": "Equipo", "Chat": "Chat",
+		"Stats": "Estadísticas", "Map": "Mapa", "Radar": "Minimapa", "RadarWindow": "Minimapa",
+		"PvP": "Modo combate", "Talents": "Talentos", "Skills": "Habilidades"
+	}
+	
+	for btn in c_bar.get_children():
+		if btn.name == "TooltipAnchor": continue
+		
+		var b_name = btn.name.replace("Icon", "")
+		var final_name = names.get(b_name, b_name)
+		
+		# Limpiar tooltip nativo para usar el nuestro
+		btn.tooltip_text = ""
+		
+		if not btn.mouse_entered.is_connected(_on_icon_hover.bind(btn, final_name)):
+			btn.mouse_entered.connect(_on_icon_hover.bind(btn, final_name))
+			btn.mouse_exited.connect(_on_icon_unhover)
+		
+		if not btn.pressed.is_connected(_on_icon_pressed.bind(b_name)):
+			btn.pressed.connect(_on_icon_pressed.bind(b_name))
+
+func _on_icon_hover(btn: Button, txt: String):
+	var lbl = get_node_or_null("ControlBar/TooltipAnchor/Label")
+	if lbl:
+		lbl.text = txt.capitalize() # v2.9.2: Camel Keys (Primera mayúscula, resto minúscula)
+		lbl.visible = true
+		# Centrar el label sobre el botón específico
+		lbl.global_position.x = btn.global_position.x + (btn.size.x / 2) - (lbl.size.x / 2)
+		lbl.global_position.y = btn.global_position.y - 25
+
+func _on_icon_unhover():
+	var lbl = get_node_or_null("ControlBar/TooltipAnchor/Label")
+	if lbl: lbl.visible = false
 
 func _open_settings():
 	if not _settings_menu:
 		var s_script = load("res://scripts/systems/SettingsUI.gd")
 		if s_script:
+			# v2.5: Capa de profundidad aislada (CanvasLayer)
+			var canvas = CanvasLayer.new()
+			canvas.name = "SettingsLayer"
+			canvas.layer = 150 # Arriba del chat y minimapa
+			add_child(canvas)
+			
 			_settings_menu = s_script.new()
-			add_child(_settings_menu)
+			canvas.add_child(_settings_menu)
 			_settings_menu.closed.connect(func(): toggle_esc_menu())
 
 	if _settings_menu:
 		_settings_menu.open()
+		# Mover al frente si ya existía el canvas
+		var canvas = _settings_menu.get_parent()
+		if canvas is CanvasLayer:
+			canvas.visible = true

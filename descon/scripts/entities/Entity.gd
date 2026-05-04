@@ -1232,7 +1232,9 @@ func _ensure_flash_material():
 
 var _flash_timer: float = 0.0
 func _trigger_hit_flash():
-	_flash_timer = 0.15
+	if get_node_or_null("/root/SettingsManager"):
+		if not SettingsManager.hit_flash_enabled: return
+		_flash_timer = 0.15
 	_ensure_flash_material()
 	_update_flash_visuals(1.0)
 

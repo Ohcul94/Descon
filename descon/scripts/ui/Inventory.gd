@@ -218,7 +218,7 @@ func _input(event):
 	# v244.60: No permitir abrir menues si no estamos logueados
 	if not NetworkManager.is_logged_in: return
 
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F1:
+	if event.is_action_pressed("ui_inventory"):
 		toggle(); get_viewport().set_input_as_handled()
 	
 	if event is InputEventKey and event.pressed and event.keycode == KEY_M:

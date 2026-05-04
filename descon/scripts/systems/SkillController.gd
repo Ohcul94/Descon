@@ -47,6 +47,8 @@ func _find_target_under_mouse() -> Node2D:
 	var entities = get_tree().get_nodes_in_group("entities")
 	var closest = null
 	var min_dist = 60.0
+	if get_node_or_null("/root/SettingsManager"):
+		min_dist = 60.0 * SettingsManager.skill_magnetism
 	
 	for e in entities:
 		if e == get_parent(): continue

@@ -9,16 +9,20 @@ var config_file = ConfigFile.new()
 
 # v264.10: Mapeo por defecto (Q-W-E-R-A-S-D)
 var default_keys = {
-	"slot_1": KEY_Q,
-	"slot_2": KEY_W,
-	"slot_3": KEY_E,
-	"slot_4": KEY_R,
-	"slot_5": KEY_A,
-	"slot_6": KEY_S,
-	"slot_7": KEY_D
+	"slot_1": KEY_Q, "slot_2": KEY_W, "slot_3": KEY_E, "slot_4": KEY_R,
+	"slot_5": KEY_A, "slot_6": KEY_S, "slot_7": KEY_D,
+	"ui_inventory": KEY_F1, "ui_menu": KEY_ESCAPE,
+	"ui_map": KEY_M, "ui_party": KEY_P, "ui_pvp_toggle": KEY_C
 }
 var cast_mode_cache: int = 1 # v267.10: Cache local del modo de casteo
 var graphics_quality: int = 1 # 0: Baja, 1: Media, 2: Alta
+var hit_flash_enabled: bool = true
+var camera_shake_enabled: bool = true
+var camera_shake_intensity: float = 1.0
+var click_sensitivity: float = 1.0 
+var skill_magnetism: float = 1.0   
+var mouse_sensitivity: float = 1.0 # Velocidad del cursor virtual
+var skill_aim_speed: float = 1.0   # Suavizado de apuntado de habilidades
 func _ready():
 	load_settings()
 
@@ -33,6 +37,13 @@ func reset_to_factory():
 		player._skill_controller.config.cast_mode = 1 # ON_RELEASE
 	
 	graphics_quality = 1 # Restaurar a Media
+	hit_flash_enabled = true
+	camera_shake_enabled = true
+	camera_shake_intensity = 1.0
+	click_sensitivity = 1.0
+	skill_magnetism = 1.0
+	mouse_sensitivity = 1.0
+	skill_aim_speed = 1.0
 	
 	save_settings()
 	# Forzar actualización de HUD
@@ -46,6 +57,13 @@ func save_settings():
 		
 	config_file.set_value("combat", "cast_mode", cast_mode_cache)
 	config_file.set_value("graphics", "quality", graphics_quality)
+	config_file.set_value("accessibility", "hit_flash", hit_flash_enabled)
+	config_file.set_value("accessibility", "camera_shake", camera_shake_enabled)
+	config_file.set_value("accessibility", "camera_shake_intensity", camera_shake_intensity)
+	config_file.set_value("accessibility", "click_sensitivity", click_sensitivity)
+	config_file.set_value("accessibility", "skill_magnetism", skill_magnetism)
+	config_file.set_value("accessibility", "mouse_sensitivity", mouse_sensitivity)
+	config_file.set_value("accessibility", "skill_aim_speed", skill_aim_speed)
 	
 	for i in range(1, 8):
 		var action = "slot_" + str(i)
@@ -62,21 +80,33 @@ func save_settings():
 func load_settings():
 	var err = config_file.load(SETTINGS_PATH)
 	
-	# Aplicar cada slot, usando el default si no existe en el archivo
-	for i in range(1, 8):
-		var action = "slot_" + str(i)
-		var default_val = default_keys.get(action, KEY_0)
+	# Aplicar todas las teclas del mapeo, usando el default si no existe en el archivo
+	for action in default_keys:
+		var default_val = default_keys[action]
 		var val = config_file.get_value("keys", action, default_val)
-		
 		_apply_key_to_inputmap(action, val)
 	
 	if err == OK:
 		cast_mode_cache = config_file.get_value("combat", "cast_mode", 1)
 		graphics_quality = config_file.get_value("graphics", "quality", 1)
-		print("[SETTINGS] Configuración cargada. Modo Cast: ", cast_mode_cache, " | Calidad Gráfica: ", graphics_quality)
+		hit_flash_enabled = config_file.get_value("accessibility", "hit_flash", true)
+		camera_shake_enabled = config_file.get_value("accessibility", "camera_shake", true)
+		camera_shake_intensity = config_file.get_value("accessibility", "camera_shake_intensity", 1.0)
+		click_sensitivity = config_file.get_value("accessibility", "click_sensitivity", 1.0)
+		skill_magnetism = config_file.get_value("accessibility", "skill_magnetism", 1.0)
+		mouse_sensitivity = config_file.get_value("accessibility", "mouse_sensitivity", 1.0)
+		skill_aim_speed = config_file.get_value("accessibility", "skill_aim_speed", 1.0)
+		print("[SETTINGS] Configuración cargada.")
 	else:
 		cast_mode_cache = 1
 		graphics_quality = 1
+		hit_flash_enabled = true
+		camera_shake_enabled = true
+		camera_shake_intensity = 1.0
+		click_sensitivity = 1.0
+		skill_magnetism = 1.0
+		mouse_sensitivity = 1.0
+		skill_aim_speed = 1.0
 		print("[SETTINGS] Usando configuración por defecto.")
 
 func _apply_key_to_inputmap(action: String, val):
