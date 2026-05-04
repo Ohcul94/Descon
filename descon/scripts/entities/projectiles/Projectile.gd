@@ -13,7 +13,9 @@ var owner_type: String = "player"
 var enemy_type: int = 1 # v226.40: Atributo crítico para sincronía de daño
 var velocity: Vector2 = Vector2.ZERO
 var sprite: Sprite2D = null
-var _has_hit: bool = false # v222.60: Evitar procesos duplicados
+var _has_hit: bool = false
+var max_range: float = 0.0
+var _start_pos: Vector2 = Vector2.ZERO
 
 func _ready():
 	add_to_group("projectiles")
@@ -37,11 +39,16 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	enemy_type = int(p_data.get("enemyType", 1))
 	
 	speed = p_data.get("bulletSpeed", p_data.get("speed", 800.0))
+	max_range = float(p_data.get("range", 0.0))
+	
 	if type == "missile":
-		speed = 450.0  # Mucho más lento siempre (Velocidad impuesta)
-	elif type == "mine":
-		speed = 400.0  # Impulso de eyección (Frenará por fricción)
+		speed = 450.0 
+	elif type == "mine" and max_range > 0:
+		# v3.6: Lógica de Precisión - Velocidad calculada para frenar EXACTO en el rango
+		speed = max_range * 3.5
+	
 	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
+	_start_pos = p_pos
 	
 	velocity = Vector2.RIGHT.rotated(p_angle) * speed
 	
@@ -100,6 +107,13 @@ func _physics_process(delta):
 		velocity = velocity.lerp(Vector2.ZERO, 3.5 * delta)
 		
 	global_position += velocity * delta
+	
+	# v3.5: Límite de Rango (Auto-destrucción)
+	if max_range > 0:
+		var dist = global_position.distance_to(_start_pos)
+		if dist >= max_range:
+			queue_free()
+	
 	if global_position.length() > 15000: 
 		queue_free()
 

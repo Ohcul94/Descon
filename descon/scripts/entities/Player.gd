@@ -148,7 +148,26 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 	if Input.is_action_just_pressed(action):
 		var cd = cooldowns.get(skill_id, 0.0)
 		if cd <= 0:
-			_skill_controller.start_aiming({"id": skill_id, "type": type, "range": 600.0})
+			var r_val = 600.0 # Default
+			
+			if skill_id.begins_with("sphere_"):
+				var s_idx = int(skill_id.replace("sphere_", ""))
+				var sm = get_node_or_null("SpheresManager")
+				if sm:
+					var sph = sm.get_equipped_skill(s_idx)
+					if sph:
+						# v3.6: Corregir llamada a get (Resources solo aceptan 1 arg)
+						var s_name = sph.get("skill_name")
+						if s_name != null and GameConstants.SKILLS_DATA.has(s_name):
+							r_val = GameConstants.SKILLS_DATA[s_name].get("range", 0)
+			elif skill_id == "laser" or skill_id == "missile" or skill_id == "mine":
+				var t_idx = selected_ammo.get(skill_id, 0)
+				var ammo_list = GameConstants.SHOP_ITEMS.ammo.get(skill_id, [])
+				if t_idx < ammo_list.size():
+					r_val = ammo_list[t_idx].get("range", 600.0)
+			
+			# v3.5: Rango 0 = Global (Sin límite visible)
+			_skill_controller.start_aiming({"id": skill_id, "type": type, "range": r_val})
 	
 	if Input.is_action_just_released(action):
 		if _skill_controller.is_aiming and _skill_controller.current_skill.id == skill_id:
@@ -302,11 +321,16 @@ func _shoot_skill(p_type: String, p_angle: float):
 	var mult_list = GameConstants.AMMO_MULTIPLIERS.get(p_type, [1.0])
 	if t_idx < mult_list.size(): ammo_mult = mult_list[t_idx]
 	
+	var r_val = 600.0
+	var ammo_list = GameConstants.SHOP_ITEMS.ammo.get(p_type, [])
+	if t_idx < ammo_list.size():
+		r_val = ammo_list[t_idx].get("range", 600.0)
+
 	var final_damage = base_laser_damage * ammo_mult
 	var final_payload = {
 		"id": entity_id, "x": global_position.x, "y": global_position.y,
 		"angle": p_angle, "rotation": rotation, "type": p_type, "ammoType": t_idx, 
-		"senderId": entity_id, "damageBoost": final_damage
+		"senderId": entity_id, "damageBoost": final_damage, "range": r_val
 	}
 	
 	shoot_fired.emit(final_payload)

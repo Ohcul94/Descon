@@ -29,6 +29,7 @@
         "1": {
             "bulletDamage": 40,
             "bulletSpeed": 800,
+            "fireRange": 600,
             "fireRate": 1000,
             "hp": 500,
             "name": "Enemigo 1",
@@ -41,6 +42,7 @@
         "2": {
             "bulletDamage": 60,
             "bulletSpeed": 800,
+            "fireRange": 650,
             "fireRate": 1200,
             "hp": 800,
             "name": "Enemigo 2",
@@ -53,6 +55,7 @@
         "3": {
             "bulletDamage": 80,
             "bulletSpeed": 850,
+            "fireRange": 700,
             "fireRate": 1100,
             "hp": 1200,
             "name": "Enemigo 3",
@@ -65,6 +68,7 @@
         "4": {
             "bulletDamage": 2000,
             "bulletSpeed": 900,
+            "fireRange": 1200,
             "fireRate": 800,
             "hp": 100000,
             "name": "Lord Titán",
@@ -78,6 +82,7 @@
         "5": {
             "bulletDamage": 120,
             "bulletSpeed": 800,
+            "fireRange": 750,
             "fireRate": 1500,
             "hp": 1500,
             "name": "Enemigo 5",
@@ -90,6 +95,7 @@
         "6": {
             "bulletDamage": 200,
             "bulletSpeed": 600,
+            "fireRange": 800,
             "fireRate": 2500,
             "hp": 15000,
             "name": "Enemigo 6",
@@ -102,6 +108,7 @@
         "7": {
             "bulletDamage": 160,
             "bulletSpeed": 800,
+            "fireRange": 700,
             "fireRate": 1300,
             "hp": 3000,
             "name": "Enemigo 7",
@@ -114,6 +121,7 @@
         "8": {
             "bulletDamage": 350,
             "bulletSpeed": 800,
+            "fireRange": 900,
             "fireRate": 1200,
             "hp": 5000,
             "name": "Enemigo 8",
@@ -126,6 +134,7 @@
         "9": {
             "bulletDamage": 250,
             "bulletSpeed": 850,
+            "fireRange": 1000,
             "fireRate": 1000,
             "hp": 8000,
             "name": "Enemigo 4",
@@ -138,6 +147,7 @@
         "10": {
             "bulletDamage": 5000,
             "bulletSpeed": 1000,
+            "fireRange": 1500,
             "fireRate": 1000,
             "hp": 200000,
             "name": "Ancient Titán",
@@ -151,6 +161,7 @@
         "11": {
             "bulletDamage": 3000,
             "bulletSpeed": 1100,
+            "fireRange": 1300,
             "fireRate": 600,
             "hp": 150000,
             "name": "Mechanic Boss",
@@ -347,7 +358,8 @@
                     "prices": {
                         "hubs": 1000,
                         "ohcu": 10
-                    }
+                    },
+                    "range": 500
                 },
                 {
                     "id": "am_l2",
@@ -355,7 +367,8 @@
                     "prices": {
                         "hubs": 2000,
                         "ohcu": 2
-                    }
+                    },
+                    "range": 650
                 },
                 {
                     "id": "am_l3",
@@ -363,7 +376,8 @@
                     "prices": {
                         "hubs": 3000,
                         "ohcu": 4
-                    }
+                    },
+                    "range": 700
                 },
                 {
                     "id": "am_l4",
@@ -371,7 +385,8 @@
                     "prices": {
                         "hubs": 4000,
                         "ohcu": 6
-                    }
+                    },
+                    "range": 750
                 },
                 {
                     "id": "am_l5",
@@ -379,7 +394,8 @@
                     "prices": {
                         "hubs": 0,
                         "ohcu": 10
-                    }
+                    },
+                    "range": 800
                 },
                 {
                     "id": "am_l6",
@@ -387,7 +403,8 @@
                     "prices": {
                         "hubs": 0,
                         "ohcu": 20
-                    }
+                    },
+                    "range": 1000
                 }
             ],
             "mine": [
@@ -397,7 +414,8 @@
                     "prices": {
                         "hubs": 10000,
                         "ohcu": 1
-                    }
+                    },
+                    "range": 300
                 },
                 {
                     "id": "am_n2",
@@ -405,7 +423,8 @@
                     "prices": {
                         "hubs": 20000,
                         "ohcu": 20
-                    }
+                    },
+                    "range": 350
                 },
                 {
                     "id": "am_n3",
@@ -413,7 +432,8 @@
                     "prices": {
                         "hubs": 30000,
                         "ohcu": 30
-                    }
+                    },
+                    "range": 400
                 },
                 {
                     "id": "am_n4",
@@ -421,7 +441,8 @@
                     "prices": {
                         "hubs": 40000,
                         "ohcu": 40
-                    }
+                    },
+                    "range": 450
                 },
                 {
                     "id": "am_n5",
@@ -429,7 +450,8 @@
                     "prices": {
                         "hubs": 0,
                         "ohcu": 100
-                    }
+                    },
+                    "range": 500
                 },
                 {
                     "id": "am_n6",
@@ -437,7 +459,8 @@
                     "prices": {
                         "hubs": 0,
                         "ohcu": 200
-                    }
+                    },
+                    "range": 600
                 }
             ],
             "missile": [
@@ -447,7 +470,8 @@
                     "prices": {
                         "hubs": 5000,
                         "ohcu": 1
-                    }
+                    },
+                    "range": 800
                 },
                 {
                     "id": "am_m2",
@@ -455,7 +479,8 @@
                     "prices": {
                         "hubs": 10000,
                         "ohcu": 10
-                    }
+                    },
+                    "range": 900
                 },
                 {
                     "id": "am_m3",
@@ -463,7 +488,8 @@
                     "prices": {
                         "hubs": 15000,
                         "ohcu": 15
-                    }
+                    },
+                    "range": 1000
                 },
                 {
                     "id": "am_m4",
@@ -471,7 +497,8 @@
                     "prices": {
                         "hubs": 20000,
                         "ohcu": 20
-                    }
+                    },
+                    "range": 1100
                 },
                 {
                     "id": "am_m5",
@@ -479,7 +506,8 @@
                     "prices": {
                         "hubs": 0,
                         "ohcu": 50
-                    }
+                    },
+                    "range": 1200
                 },
                 {
                     "id": "am_m6",
@@ -487,7 +515,8 @@
                     "prices": {
                         "hubs": 0,
                         "ohcu": 100
-                    }
+                    },
+                    "range": 1500
                 }
             ]
         },
@@ -578,5 +607,64 @@
                 }
             }
         ]
+    },
+    "skillsData": {
+        "AUTO-REPARACIÓN": {
+            "amount": 400,
+            "cd": 5,
+            "desc": "Drones de reparación restauran la integridad del casco.",
+            "range": 500,
+            "type": "Curación"
+        },
+        "ESCUDO CELULAR": {
+            "amount": 600,
+            "cd": 5,
+            "desc": "Inyecta plasma en los generadores para restaurar el escudo.",
+            "range": 0,
+            "type": "Defensa"
+        },
+        "FORTALEZA-X": {
+            "amount": 1200,
+            "cd": 15,
+            "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.",
+            "range": 0,
+            "type": "Defensa"
+        },
+        "HYPER-DASH": {
+            "cd": 5,
+            "desc": "Propulsión instantánea hacia adelante para evasión rápida.",
+            "range": 0,
+            "speed": 1000,
+            "type": "Movimiento"
+        },
+        "NANO-REGENERACIÓN": {
+            "amount": 300,
+            "cd": 12,
+            "desc": "Inyecta nanobots que reparan el casco de forma continua.",
+            "range": 0,
+            "type": "Curación"
+        },
+        "PLASMA BLAST": {
+            "amount": 850,
+            "cd": 8,
+            "desc": "Disparo concentrado de plasma con alta potencia destructiva.",
+            "range": 600,
+            "type": "Ataque"
+        },
+        "REFLECT-Ω": {
+            "amount": 500,
+            "cd": 5,
+            "desc": "Crea un campo de resonancia que refleja daño hostil.",
+            "range": 0,
+            "reflect_mult": 1.5,
+            "type": "Ataque"
+        },
+        "TURBO-IMPULSO": {
+            "cd": 5,
+            "desc": "Aumenta la velocidad de los motores temporalmente.",
+            "range": 0,
+            "speed": 150,
+            "type": "Movimiento"
+        }
     }
 }

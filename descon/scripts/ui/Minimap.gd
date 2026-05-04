@@ -49,12 +49,8 @@ func _ready():
 		bg.show_behind_parent = true
 		add_child(bg)
 
-var _minimap_timer: float = 0.0
-func _process(delta):
-	if not visible: return
-	_minimap_timer += delta
-	if _minimap_timer >= 0.1: # Redibujar solo 10 veces/seg (suficiente para un radar)
-		_minimap_timer = 0.0
+func _process(_delta):
+	if visible:
 		queue_redraw()
 
 func _draw():
@@ -89,13 +85,13 @@ func _draw():
 	
 	# 2. Dibujar Jugadores Remotos (Celeste Neón)
 	for ent in get_tree().get_nodes_in_group("remote_players"):
-		if is_instance_valid(ent):
+		if is_instance_valid(ent) and not ent.get("is_dead"):
 			var pos = ent.global_position * map_scale
 			draw_circle(pos, 2.5, Color(0, 1, 1)) # #00ffff
 
 	# 3. Dibujar Enemigos (Naranja JS v13.1.3)
 	for ent in get_tree().get_nodes_in_group("enemies"):
-		if is_instance_valid(ent):
+		if is_instance_valid(ent) and not ent.get("is_dead"):
 			var pos = ent.global_position * map_scale
 			draw_circle(pos, 2.0, Color(1, 0.4, 0)) # #ff6600
 

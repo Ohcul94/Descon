@@ -135,3 +135,8 @@ func equip_item(sphere_id, item_data):
 			if player and player.has_method("_recalculate_stats"):
 				player._recalculate_stats()
 			spheres_updated.emit()
+
+func get_equipped_skill(id: int):
+	if id >= 0 and id < spheres_data.size():
+		return spheres_data[id]["equipped"]
+	return null

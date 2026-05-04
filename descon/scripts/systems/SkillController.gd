@@ -99,15 +99,15 @@ func _draw():
 	var color = config.indicator_color
 	var mouse_local = get_local_mouse_position()
 	
-	# 1. Dibujar Rango (Círculo)
-	if config.show_range:
+	# 1. Dibujar Rango (Círculo) - v3.5: Ocultar si es Global (0)
+	if config.show_range and range_val > 0:
 		draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 1.5)
 	
 	# 2. Dibujar Indicador
 	if current_skill.get("type") == SkillType.DIRECTIONAL:
 		var dist = mouse_local.length()
 		var end_point = mouse_local
-		if dist > range_val:
+		if range_val > 0 and dist > range_val:
 			end_point = mouse_local.normalized() * range_val
 		
 		draw_line(Vector2.ZERO, end_point, Color(color.r, color.g, color.b, 0.6), 3.0)

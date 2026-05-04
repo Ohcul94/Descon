@@ -190,6 +190,7 @@ func _render_enemies(container):
 		_add_input(grid, "R_EXP", str(enemy.get("rewardExp", 100)), func(v): GameConstants.ENEMY_MODELS[id].rewardExp = int(v))
 		_add_input(grid, "SPD", str(enemy.get("speed", 3.0)), func(v): GameConstants.ENEMY_MODELS[id].speed = float(v))
 		_add_input(grid, "B_SPD", str(enemy.get("bulletSpeed", 800)), func(v): GameConstants.ENEMY_MODELS[id].bulletSpeed = int(v))
+		_add_input(grid, "RANGE", str(enemy.get("fireRange", 600)), func(v): GameConstants.ENEMY_MODELS[id].fireRange = int(v))
 		_add_input(grid, "RAGETIME", str(enemy.get("rageTimer", 20)), func(v): GameConstants.ENEMY_MODELS[id].rageTimer = int(v))
 
 func _render_items(container):
@@ -221,26 +222,110 @@ func _render_ammo(container):
 			if i < shop_ammo.size():
 				_add_input(grid, "NOMBRE", shop_ammo[i].name, func(v): GameConstants.SHOP_ITEMS.ammo[cat][i].name = v, true)
 				_add_input(grid, "MULT", str(mults[i]), func(v): GameConstants.AMMO_MULTIPLIERS[cat][i] = float(v))
+				_add_input(grid, "RANGO", str(shop_ammo[i].get("range", 600)), func(v): GameConstants.SHOP_ITEMS.ammo[cat][i].range = int(v))
 				_add_input(grid, "P_HUBS", str(shop_ammo[i].prices.hubs), func(v): GameConstants.SHOP_ITEMS.ammo[cat][i].prices.hubs = int(v))
 				_add_input(grid, "P_OHCU", str(shop_ammo[i].prices.ohcu), func(v): GameConstants.SHOP_ITEMS.ammo[cat][i].prices.ohcu = int(v))
 
 func _render_spheres(container):
 	var lbl = Label.new(); lbl.text = "CONFIGURACIÓN DE HABILIDADES DE ESFERAS"; lbl.modulate = Color.GOLD; container.add_child(lbl)
+	
+	# v3.1: Agrupación por Colores (Azul, Verde, Rojo, etc.)
+	var sphere_tabs = TabContainer.new()
+	sphere_tabs.custom_minimum_size.y = 450
+	container.add_child(sphere_tabs)
+	
+	var categories = {
+		"AZUL (Defensa)": ["Defensa", "Escudo"],
+		"VERDE (Curación)": ["Curación", "Reparación"],
+		"ROJO (Ataque)": ["Ataque", "Combat", "Daño"],
+		"AMARILLO (Movimiento)": ["Movimiento", "Velocidad"]
+	}
+	
+	var tab_nodes = {}
+	for cat_name in categories:
+		var scroll = ScrollContainer.new()
+		scroll.name = cat_name
+		sphere_tabs.add_child(scroll)
+		
+		var vbox = VBoxContainer.new()
+		vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		vbox.add_theme_constant_override("separation", 10)
+		scroll.add_child(vbox)
+		tab_nodes[cat_name] = vbox
+
+	# v3.1: Renderizar cada habilidad en su pestaña correspondiente
 	for s_name in GameConstants.SKILLS_DATA:
 		var skill = GameConstants.SKILLS_DATA[s_name]
-		var card = _create_card(container, "ESFERA: " + s_name.to_upper())
-		var grid = _create_grid(card, 4)
+		var target_cat = ""
 		
-		_add_input(grid, "TIPO", skill.type, func(v): GameConstants.SKILLS_DATA[s_name].type = v, true)
-		_add_input(grid, "COOLDOWN (S)", str(skill.get("cd", 10.0)), func(v): GameConstants.SKILLS_DATA[s_name].cd = float(v))
-		_add_input(grid, "RANGO", str(skill.get("range", 0)), func(v): GameConstants.SKILLS_DATA[s_name].range = float(v))
+		for cat_name in categories:
+			if skill.type in categories[cat_name]:
+				target_cat = cat_name; break
+		
+		if target_cat == "": continue # Ignorar si no tiene categoría válida
+		
+		var card = _create_card(tab_nodes[target_cat], "ESFERA: " + s_name.to_upper())
+		
+		# v3.3: Cabecera con botón de eliminar
+		var header_hb = HBoxContainer.new()
+		card.add_child(header_hb)
+		card.move_child(header_hb, 0) # Poner arriba del grid
+		
+		# v3.5: Usar referencia para evitar error de captura en lambdas
+		var k_ref = {"name": s_name}
+		var grid = _create_grid(card, 5)
+		
+		# v3.4: Input de NOMBRE más ancho
+		var name_hb = VBoxContainer.new(); grid.add_child(name_hb)
+		var name_l = Label.new(); name_l.text = "NOMBRE"; name_l.add_theme_font_size_override("font_size", 9); name_l.modulate.a = 0.5; name_hb.add_child(name_l)
+		var name_inp = LineEdit.new(); name_inp.text = s_name; name_inp.custom_minimum_size.x = 200; name_hb.add_child(name_inp)
+		name_inp.text_changed.connect(func(v):
+			if v == "" or v == k_ref.name: return
+			var data = GameConstants.SKILLS_DATA[k_ref.name]
+			GameConstants.SKILLS_DATA.erase(k_ref.name)
+			GameConstants.SKILLS_DATA[v] = data
+			k_ref.name = v
+		)
+		
+		# v3.4: Selector de TIPO (OptionButton)
+		var type_hb = VBoxContainer.new(); grid.add_child(type_hb)
+		var type_l = Label.new(); type_l.text = "TIPO"; type_l.add_theme_font_size_override("font_size", 9); type_l.modulate.a = 0.5; type_hb.add_child(type_l)
+		var type_opt = OptionButton.new(); type_hb.add_child(type_opt)
+		var types = ["Defensa", "Curación", "Ataque", "Movimiento"]
+		for t in types:
+			type_opt.add_item(t)
+			if t == skill.type: type_opt.selected = type_opt.get_item_count() - 1
+		
+		type_opt.item_selected.connect(func(idx):
+			GameConstants.SKILLS_DATA[k_ref.name].type = type_opt.get_item_text(idx)
+		)
+
+		_add_input(grid, "COOLDOWN (S)", str(skill.get("cd", 10.0)), func(v): GameConstants.SKILLS_DATA[k_ref.name].cd = float(v))
+		_add_input(grid, "RANGO", str(skill.get("range", 0)), func(v): GameConstants.SKILLS_DATA[k_ref.name].range = float(v))
+
+		# Botón de eliminar (v3.3)
+		var btn_del = Button.new(); btn_del.text = " ELIMINAR ESFERA "; btn_del.modulate = Color.RED; btn_del.size_flags_horizontal = Control.SIZE_SHRINK_END
+		btn_del.pressed.connect(func():
+			GameConstants.SKILLS_DATA.erase(k_ref.name)
+			_build_ui()
+		)
+		grid.add_child(btn_del)
 		
 		if skill.has("amount"):
-			_add_input(grid, "CURACIÓN/ESCUDO", str(skill.amount), func(v): GameConstants.SKILLS_DATA[s_name].amount = int(v))
+			_add_input(grid, "VALOR (HP/SH)", str(skill.amount), func(v): GameConstants.SKILLS_DATA[k_ref.name].amount = int(v))
 		if skill.has("speed"):
-			_add_input(grid, "VELOCIDAD", str(skill.speed), func(v): GameConstants.SKILLS_DATA[s_name].speed = float(v))
+			_add_input(grid, "VELOCIDAD", str(skill.speed), func(v): GameConstants.SKILLS_DATA[k_ref.name].speed = float(v))
 		if skill.has("reflect_mult"):
-			_add_input(grid, "MULT. DAÑO", str(skill.reflect_mult), func(v): GameConstants.SKILLS_DATA[s_name].reflect_mult = float(v))
+			_add_input(grid, "MULT. DAÑO", str(skill.reflect_mult), func(v): GameConstants.SKILLS_DATA[k_ref.name].reflect_mult = float(v))
+
+	# Botón para añadir nuevas (v3.1)
+	var add_btn = Button.new(); add_btn.text = " [+] AÑADIR NUEVA HABILIDAD / ESFERA "; add_btn.modulate = Color.CYAN
+	add_btn.pressed.connect(func():
+		var new_name = "NUEVA_ESFERA_" + str(GameConstants.SKILLS_DATA.size() + 1)
+		GameConstants.SKILLS_DATA[new_name] = { "type": "Defensa", "cd": 15.0, "range": 0, "amount": 1000 }
+		_build_ui()
+	)
+	container.add_child(add_btn)
 
 func _render_map_selection(container):
 	var lbl = Label.new(); lbl.text = "SISTEMA DE VISUALIZACIÓN Y NAVEGACIÓN"; lbl.modulate = Color.GOLD; container.add_child(lbl)
