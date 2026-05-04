@@ -1543,10 +1543,14 @@ io.on('connection', (socket) => {
         // Aplicar Efectos (v3.8.5: Soporte Polimórfico)
         if (data.skillName === "ESCUDO CELULAR" || data.skillName === "FORTALEZA-X") {
             const ms = target.maxShield || 2000;
-            target.shield = Math.min((target.shield || 0) + powerValue, ms);
+            const oldS = target.shield || 0;
+            target.shield = Math.min(oldS + powerValue, ms);
+            actual_val = target.shield - oldS;
         } else if (data.skillName === "AUTO-REPARACIÓN" || data.skillName === "NANO-REGENERACIÓN") {
             const mh = target.maxHp || 3000;
-            target.hp = Math.min((target.hp || 0) + powerValue, mh);
+            const oldH = target.hp || 0;
+            target.hp = Math.min(oldH + powerValue, mh);
+            actual_val = target.hp - oldH;
         } else if (data.skillName === "PLASMA BLAST") {
             // Daño directo a enemigo/jugador hostil
             if (target !== p) {
