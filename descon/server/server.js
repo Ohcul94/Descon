@@ -1288,7 +1288,10 @@ io.on('connection', (socket) => {
             // v245.10: Sincronizar configuración de hordas con el gestor
             if (config.hordeConfig) hordeManager.updateConfig(config.hordeConfig);
             
-            console.log(`\x1b[35m[ADMIN]\x1b[0m Configuraci├│n guardada en disco por ${players[socket.id] ? players[socket.id].user : 'Admin'}.`);
+            // v3.9: Sincronía en Caliente (Update global memory)
+            SERVER_CONFIG = config;
+            
+            console.log(`\x1b[35m[ADMIN]\x1b[0m Configuración guardada en disco y RAM.`);
             
             // v226.30: PURGA DE ENTIDADES PARA EVITAR FANTASMAS (Sincron├¡a Limpia)
             // Notificar a todos los clientes que limpien su zona
@@ -1449,61 +1452,134 @@ io.on('connection', (socket) => {
         const skillCooldown = 4800; // 5s oficiales - 200ms de gracia por lag
 
         if (now - lastUsed < skillCooldown) {
-            // console.log(`[SPHERES] Rechazando skill de ${p.user}: Cooldown pendiente.`);
             return;
         }
 
-        // v200.45: VALIDACI├ôN DE PODER (Ignorar powerValue del cliente)
-        let healAmt = 0;
+        // v200.45: VALIDACIÓN DE PODER (Ignorar powerValue del cliente)
+        let powerValue = 0;
         const sphere = p.spheres[sphereIdx];
         if (sphere && sphere.equipped) {
-            // Si es un objeto serializado (login de-serialized) o dict
-            healAmt = sphere.equipped.power_value || 0;
+            powerValue = sphere.equipped.power_value || 0;
         }
 
-        if (healAmt <= 0) return; // Hack detected or no skill equipped
+        if (powerValue <= 0) return; // Hack detected or no skill equipped
 
-        p.sphereCooldowns[sphereIdx] = now; // Registrar uso leg├¡timo
-
-        let actual_heal = 0;
-
-        if (data.skillName === "ESCUDO CELULAR") {
-            const ms = p.maxShield || 2000;
-            p.shield = Math.min((p.shield || 0) + healAmt, ms);
-            actual_heal = healAmt; 
-        } else if (data.skillName === "AUTO-REPARACIÓN") {
-            const mh = p.maxHp || 3000;
-            p.hp = Math.min((p.hp || 0) + healAmt, mh);
-            actual_heal = healAmt;
-        } else if (data.skillName === "ATAQUE_ESFERA" || data.skillName === "REFLECT-Ω" || data.skillName === "REFLECT-O") {
-            // v235.00: Lógica de Ataque (El cliente procesa visual, server autoriza valor)
-            actual_heal = healAmt;
-        } else {
-            actual_heal = healAmt || data.powerValue || 0;
+        // v3.8: SOPORTE PARA OBJETIVOS REMOTOS (Aliados/Enemigos) v262.10
+        let skillConfig = (SERVER_CONFIG && SERVER_CONFIG.skillsData) ? SERVER_CONFIG.skillsData[data.skillName] : null;
+        
+        // v4.9.1: Sobrescribir siempre con el fallback para evitar que un caché antiguo con canTargetOthers=false rompa el servidor
+        const fallbacks = {
+            "ESCUDO CELULAR": { canTargetOthers: true, targetFilters: { allies: true, enemies: false, bosses: false, players: true } },
+            "AUTO-REPARACIÓN": { canTargetOthers: true, targetFilters: { allies: true, enemies: false, bosses: false, players: true } },
+            "NANO-REGENERACIÓN": { canTargetOthers: true, targetFilters: { allies: true, enemies: false, bosses: false, players: true } },
+            "TURBO-IMPULSO": { canTargetOthers: true, targetFilters: { allies: true, enemies: false, bosses: false, players: true } },
+            "PLASMA BLAST": { canTargetOthers: true, targetFilters: { allies: false, enemies: true, bosses: true, players: true } }
+        };
+        
+        if (fallbacks[data.skillName]) {
+            if (!skillConfig) skillConfig = {};
+            skillConfig.canTargetOthers = fallbacks[data.skillName].canTargetOthers;
+            skillConfig.targetFilters = fallbacks[data.skillName].targetFilters;
         }
 
-        actual_heal = Math.max(0, actual_heal);
-        p.lastCombatTime = now; // v240.23: Habilidades de esfera cuentan como combate
+        let target = p; // Por defecto el usuario
+        let isRemote = false;
 
-        // v200.12: Sincron├¡a Cr├¡tica - Forzar actualizaci├│n inmediata para evitar rollback
-        p.lastSyncHp = p.hp;
-        p.lastSyncSh = p.shield;
+        if (skillConfig && skillConfig.canTargetOthers) {
+            // v4.4: Si es una habilidad dirigida y no hay targetId o es inválido, abortar
+            if (!data.targetId) return;
 
-        io.to(`zone_${p.zone}`).emit('playerStatSync', {
-            id: socket.id,
-            hp: Math.ceil(p.hp),
-            shield: Math.ceil(p.shield),
-            spheres: p.spheres,
-            isDead: false
-        });
+            const targetPlayer = players[data.targetId];
+            const targetEnemy = enemies[data.targetId];
+            const potentialTarget = targetPlayer || targetEnemy;
 
+            if (!potentialTarget || potentialTarget.hp <= 0) return;
+
+            // v4.8: Validación de rango en el servidor
+            if (data.targetId !== socket.id && skillConfig.range && skillConfig.range > 0) {
+                const dx = p.x - potentialTarget.x;
+                const dy = p.y - potentialTarget.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > skillConfig.range + 50) {
+                    console.log(`[SPHERES] Rango excedido: ${dist} > ${skillConfig.range}`);
+                    return; // Abortar si está fuera de rango (con 50px de tolerancia)
+                }
+            }
+
+            // Si el objetivo es uno mismo, siempre es válido (v3.9.1)
+            if (data.targetId === socket.id) {
+                target = p;
+            } else {
+                // Validar Filtros
+                const filters = skillConfig.targetFilters || { allies: true, enemies: false, bosses: false, players: true };
+                let isValid = false;
+
+                if (targetPlayer) {
+                    const sameClan = (p.clanId && targetPlayer.clanId && p.clanId.toString() === targetPlayer.clanId.toString());
+                    const isAlly = sameClan || (!p.pvpEnabled && !targetPlayer.pvpEnabled);
+                    const isEnemy = !sameClan && (p.pvpEnabled || targetPlayer.pvpEnabled);
+                    
+                    if (isAlly && filters.allies) isValid = true;
+                    else if (isEnemy && (filters.enemies || filters.players)) isValid = true;
+                    else if (!isAlly && !isEnemy && filters.players) isValid = true;
+                } else if (targetEnemy) {
+                    const isBoss = targetEnemy.type === 4 || targetEnemy.type === 10 || targetEnemy.type === 11;
+                    if (isBoss && filters.bosses) isValid = true;
+                    else if (!isBoss && filters.enemies) isValid = true;
+                }
+
+                if (isValid) {
+                    target = potentialTarget;
+                    isRemote = true;
+                } else {
+                    return; // Filtros no coinciden, abortar
+                }
+            }
+        }
+
+        p.sphereCooldowns[sphereIdx] = now; // Registrar uso legítimo
+        let actual_val = powerValue;
+
+        // Aplicar Efectos (v3.8.5: Soporte Polimórfico)
+        if (data.skillName === "ESCUDO CELULAR" || data.skillName === "FORTALEZA-X") {
+            const ms = target.maxShield || 2000;
+            target.shield = Math.min((target.shield || 0) + powerValue, ms);
+        } else if (data.skillName === "AUTO-REPARACIÓN" || data.skillName === "NANO-REGENERACIÓN") {
+            const mh = target.maxHp || 3000;
+            target.hp = Math.min((target.hp || 0) + powerValue, mh);
+        } else if (data.skillName === "PLASMA BLAST") {
+            // Daño directo a enemigo/jugador hostil
+            if (target !== p) {
+                const oldH = target.hp || 0;
+                target.hp -= powerValue;
+                if (target.hp < 0) target.hp = 0;
+                actual_val = oldH - target.hp; // Valor positivo de daño
+            }
+        }
+
+        // Sincronizar stats si el objetivo es un jugador
+        if (target.socketId) {
+            target.lastSyncHp = target.hp;
+            target.lastSyncSh = target.shield;
+
+            io.to(`zone_${target.zone}`).emit('playerStatSync', {
+                id: target.socketId,
+                hp: Math.ceil(target.hp),
+                shield: Math.ceil(target.shield),
+                spheres: target.spheres,
+                isDead: target.hp <= 0
+            });
+        }
+
+        // Notificar visualmente a la zona
         io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', {
             id: socket.id,
             skillName: data.skillName,
-            powerValue: actual_heal
+            powerValue: actual_val,
+            targetId: isRemote ? data.targetId : socket.id
         });
 
-        console.log(`[SPHERES] Piloto ${p.user} us├│ ${data.skillName}. Cooldown iniciado.`);
+        console.log(`[SPHERES] Piloto ${p.user} usó ${data.skillName} (Target: ${isRemote ? (target.user || target.name) : 'Self'}).`);
     });
 
     // ENVIAR CONFIG AL CONECTAR
@@ -1898,20 +1974,6 @@ io.on('connection', (socket) => {
                 console.log(`[SPHERES] ${user.username} desequip├│ esfera ${sphereId}. Sincron├¡a enviada.`);
             }
         } catch (e) { console.error("Error en unequipSphere:", e); }
-    });
-
-    // v235.35: Sincronizaci├│n de Habilidades Activas (Visuales para Aliados)
-    socket.on('playerSphereSkill', (data) => {
-        const p = players[socket.id];
-        if (p) {
-            // Broadcast a la zona para que otros clientes activen los visuales
-            socket.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', {
-                id: socket.id,
-                skillName: data.skillName,
-                powerValue: data.powerValue
-            });
-            console.log(`[SKILL-SYNC] ${p.user} activ├│ ${data.skillName} - Retransmitiendo a zona ${p.zone}`);
-        }
     });
 
     // v220.81: TOGGLE PVP CONSENSUADO

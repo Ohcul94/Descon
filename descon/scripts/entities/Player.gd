@@ -125,7 +125,7 @@ func _physics_process(p_delta):
 	_update_shake(p_delta)
 	_sync_with_server(p_delta)
 
-enum Skill_Type { DIRECTIONAL, POINT_CLICK, AREA }
+enum Skill_Type { DIRECTIONAL, POINT_CLICK, AREA, INSTANT }
 
 func _handle_input():
 	# v260.90: Sistema de 7 Slots Unificados (Láser, Misil, Mina + 4 Esferas)
@@ -133,11 +133,25 @@ func _handle_input():
 	_handle_slot_input("slot_2", "missile", Skill_Type.DIRECTIONAL)
 	_handle_slot_input("slot_3", "mine", Skill_Type.DIRECTIONAL)
 	
-	# Esferas (Slots 4 al 7)
-	_handle_slot_input("slot_4", "sphere_0", Skill_Type.DIRECTIONAL)
-	_handle_slot_input("slot_5", "sphere_1", Skill_Type.POINT_CLICK)
-	_handle_slot_input("slot_6", "sphere_2", Skill_Type.DIRECTIONAL)
-	_handle_slot_input("slot_7", "sphere_3", Skill_Type.DIRECTIONAL)
+	# Esferas (Slots 4 al 7) - v3.9: Tipo Dinámico (Directional vs PointClick vs Instant)
+	for i in range(4):
+		var slot_name = "slot_" + str(i + 4)
+		var s_id = "sphere_" + str(i)
+		var s_type = Skill_Type.INSTANT # v4.5: Default ahora es INSTANT para esferas
+		
+		var sm = get_node_or_null("SpheresManager")
+		if sm:
+			var sph = sm.get_equipped_skill(i)
+			if sph:
+				var s_name = sph.get("skill_name")
+				if s_name and GameConstants.SKILLS_DATA.has(s_name):
+					var s_data = GameConstants.SKILLS_DATA[s_name]
+					if s_data.get("canTargetOthers", false):
+						s_type = Skill_Type.POINT_CLICK
+					elif s_data.get("range", 0) > 0:
+						s_type = Skill_Type.DIRECTIONAL
+		
+		_handle_slot_input(slot_name, s_id, s_type)
 
 func _handle_slot_input(action: String, skill_id: String, type: int):
 	# Auto-crear acción si no existe para evitar errores
@@ -149,6 +163,7 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 		var cd = cooldowns.get(skill_id, 0.0)
 		if cd <= 0:
 			var r_val = 600.0 # Default
+			var filters = {}
 			
 			if skill_id.begins_with("sphere_"):
 				var s_idx = int(skill_id.replace("sphere_", ""))
@@ -156,18 +171,35 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 				if sm:
 					var sph = sm.get_equipped_skill(s_idx)
 					if sph:
-						# v3.6: Corregir llamada a get (Resources solo aceptan 1 arg)
 						var s_name = sph.get("skill_name")
 						if s_name != null and GameConstants.SKILLS_DATA.has(s_name):
-							r_val = GameConstants.SKILLS_DATA[s_name].get("range", 0)
+							var s_data = GameConstants.SKILLS_DATA[s_name]
+							r_val = s_data.get("range", 0)
+							filters = s_data.get("targetFilters", {})
 			elif skill_id == "laser" or skill_id == "missile" or skill_id == "mine":
 				var t_idx = selected_ammo.get(skill_id, 0)
 				var ammo_list = GameConstants.SHOP_ITEMS.ammo.get(skill_id, [])
 				if t_idx < ammo_list.size():
 					r_val = ammo_list[t_idx].get("range", 600.0)
 			
-			# v3.5: Rango 0 = Global (Sin límite visible)
-			_skill_controller.start_aiming({"id": skill_id, "type": type, "range": r_val})
+			# v4.9: Auto-target self si se mantiene presionada la tecla (Alt por defecto)
+			if not InputMap.has_action("auto_target_self"):
+				InputMap.add_action("auto_target_self")
+				var ev = InputEventKey.new()
+				ev.keycode = KEY_ALT
+				InputMap.action_add_event("auto_target_self", ev)
+				
+			if Input.is_action_pressed("auto_target_self") and skill_id.begins_with("sphere_"):
+				_on_skill_executed({
+					"skill_id": skill_id,
+					"angle": 0.0,
+					"target": self,
+					"pos": global_position
+				})
+				return
+			
+			# v3.9.8: Inyección de Filtros Dinámicos
+			_skill_controller.start_aiming({"id": skill_id, "type": type, "range": r_val, "filters": filters})
 	
 	if Input.is_action_just_released(action):
 		if _skill_controller.is_aiming and _skill_controller.current_skill.id == skill_id:
@@ -343,20 +375,57 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 	if cooldowns[key] > 0: return
 	var sm = get_node_or_null("SpheresManager")
 	if not is_instance_valid(sm): return
-	if sm.use_skill(id):
-		var skill = sm.spheres_data[id]["equipped"]
-		if skill:
-			var target_id = null
-			if is_instance_valid(p_data.target):
-				if "entity_id" in p_data.target: target_id = p_data.target.entity_id
-				elif p_data.target.has_method("get_id"): target_id = p_data.target.get_id()
-				else: target_id = p_data.target.name
-			
-			NetworkManager.send_event("playerSphereSkill", {
-				"id": id, "skillName": skill.skill_name, "powerValue": skill.power_value,
-				"targetId": target_id, "posX": p_data.pos.x, "posY": p_data.pos.y
-			})
-		cooldowns[key] = 10.0
+	
+	var skill = sm.get_equipped_skill(id)
+	if not skill: return
+	
+	var target_id = null
+	if is_instance_valid(p_data.target):
+		if "entity_id" in p_data.target: target_id = p_data.target.entity_id
+		elif p_data.target.has_method("get_id"): target_id = p_data.target.get_id()
+		else: target_id = str(p_data.target.name)
+		
+	var is_targeted = false
+	var skill_range = 0.0
+	if GameConstants.SKILLS_DATA.has(skill.skill_name):
+		var s_data = GameConstants.SKILLS_DATA[skill.skill_name]
+		is_targeted = s_data.get("canTargetOthers", false)
+		skill_range = s_data.get("range", 0.0)
+		
+	if is_targeted and target_id == null:
+		# Cancelar lanzamiento (No cooldown, no uso)
+		return
+		
+	# v4.8: Validación de rango en cliente
+	if is_targeted and target_id != entity_id and skill_range > 0:
+		var target_node = null
+		if is_instance_valid(p_data.target):
+			target_node = p_data.target
+		if is_instance_valid(target_node):
+			var dist = global_position.distance_to(target_node.global_position)
+			if dist > skill_range + 50.0:
+				print("[SKILL] Cancelado: Objetivo fuera de rango.")
+				return
+		
+	# v4.2: Evitar autodaño/autocura si el objetivo es otro
+	var is_self = (target_id == null or target_id == entity_id)
+	
+	if is_self:
+		# Auto-lanzamiento: Activar efectos locales inmediatos
+		if not sm.use_skill(id): return
+	else:
+		# Lanzamiento a otros: NO activar localmente (el servidor lo hará para el target)
+		# Solo activamos el cooldown visual en el HUD
+		pass
+		
+	# Enviar al servidor para que procese y broadcastee a todos
+	NetworkManager.send_event("playerSphereSkill", {
+		"id": id, "skillName": skill.skill_name, "powerValue": skill.power_value,
+		"targetId": target_id, "posX": p_data.pos.x, "posY": p_data.pos.y
+	})
+	
+	# Cooldown persistente
+	cooldowns[key] = skill.cooldown if "cooldown" in skill else 5.0
 
 func _apply_movement():
 	if is_moving:

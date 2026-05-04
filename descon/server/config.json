@@ -359,7 +359,7 @@
                         "hubs": 1000,
                         "ohcu": 10
                     },
-                    "range": 500
+                    "range": 600
                 },
                 {
                     "id": "am_l2",
@@ -611,37 +611,65 @@
     "skillsData": {
         "AUTO-REPARACIÓN": {
             "amount": 400,
+            "canTargetOthers": true,
             "cd": 5,
             "desc": "Drones de reparación restauran la integridad del casco.",
             "range": 500,
+            "targetFilters": {
+                "allies": true,
+                "bosses": false,
+                "enemies": false,
+                "players": true
+            },
             "type": "Curación"
         },
         "ESCUDO CELULAR": {
             "amount": 600,
+            "canTargetOthers": true,
             "cd": 5,
             "desc": "Inyecta plasma en los generadores para restaurar el escudo.",
-            "range": 0,
+            "range": 500,
+            "targetFilters": {
+                "allies": true,
+                "bosses": false,
+                "enemies": false,
+                "players": true
+            },
             "type": "Defensa"
         },
         "FORTALEZA-X": {
             "amount": 1200,
             "cd": 15,
             "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.",
-            "range": 0,
+            "range": 500,
             "type": "Defensa"
         },
         "HYPER-DASH": {
+            "canTargetOthers": true,
             "cd": 5,
             "desc": "Propulsión instantánea hacia adelante para evasión rápida.",
             "range": 0,
             "speed": 1000,
+            "targetFilters": {
+                "allies": true,
+                "bosses": false,
+                "enemies": false,
+                "players": true
+            },
             "type": "Movimiento"
         },
         "NANO-REGENERACIÓN": {
             "amount": 300,
+            "canTargetOthers": true,
             "cd": 12,
             "desc": "Inyecta nanobots que reparan el casco de forma continua.",
-            "range": 0,
+            "range": 500,
+            "targetFilters": {
+                "allies": true,
+                "bosses": false,
+                "enemies": false,
+                "players": true
+            },
             "type": "Curación"
         },
         "PLASMA BLAST": {
@@ -660,10 +688,17 @@
             "type": "Ataque"
         },
         "TURBO-IMPULSO": {
+            "canTargetOthers": true,
             "cd": 5,
             "desc": "Aumenta la velocidad de los motores temporalmente.",
             "range": 0,
             "speed": 150,
+            "targetFilters": {
+                "allies": true,
+                "bosses": false,
+                "enemies": false,
+                "players": true
+            },
             "type": "Movimiento"
         }
     }

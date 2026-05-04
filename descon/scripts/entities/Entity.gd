@@ -971,9 +971,16 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 		if skill_name == "ESCUDO CELULAR": _spawn_damage_text("+" + str(int(amount)), Color.AQUA)
 		elif skill_name == "AUTO-REPARACIÓN": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
 		elif skill_name == "TURBO-IMPULSO": _spawn_damage_text("+" + str(int(amount)), Color.YELLOW)
-		
 	match skill_name:
 		"TURBO-IMPULSO":
+			# v4.1: Aplicar velocidad real si es un jugador (Aliado o Local)
+			if "speed" in self:
+				var bonus = amount
+				self.speed += bonus
+				get_tree().create_timer(2.0).timeout.connect(func(): 
+					if is_instance_valid(self): self.speed -= bonus
+				)
+				
 			var path = "res://assets/Efectos de Skills/Velocidad(Transp).png"
 			if ResourceLoader.exists(path):
 				var vfx = Sprite2D.new(); var t = load(path); vfx.texture = t

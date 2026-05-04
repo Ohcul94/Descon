@@ -94,13 +94,25 @@ var AMMO_MULTIPLIERS = {
 }
 
 var SKILLS_DATA = {
-	"ESCUDO CELULAR": { "type": "Defensa", "desc": "Inyecta plasma en los generadores para restaurar el escudo.", "amount": 600, "cd": 5.0, "range": 0 },
-	"FORTALEZA-X": { "type": "Defensa", "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.", "amount": 1200, "cd": 15.0, "range": 0 },
-	"AUTO-REPARACIÓN": { "type": "Curación", "desc": "Drones de reparación restauran la integridad del casco.", "amount": 400, "cd": 5.0, "range": 500 },
-	"NANO-REGENERACIÓN": { "type": "Curación", "desc": "Inyecta nanobots que reparan el casco de forma continua.", "amount": 300, "cd": 12.0, "range": 0 },
-	"TURBO-IMPULSO": { "type": "Movimiento", "desc": "Aumenta la velocidad de los motores temporalmente.", "speed": 150, "cd": 5.0, "range": 0 },
-	"HYPER-DASH": { "type": "Movimiento", "desc": "Propulsión instantánea hacia adelante para evasión rápida.", "speed": 1000, "cd": 5.0, "range": 0 },
-	"REFLECT-Ω": { "type": "Ataque", "desc": "Crea un campo de resonancia que refleja daño hostil.", "reflect_mult": 1.5, "amount": 500, "cd": 5.0, "range": 0 },
-	"PLASMA BLAST": { "type": "Ataque", "desc": "Disparo concentrado de plasma con alta potencia destructiva.", "amount": 850, "cd": 8.0, "range": 600 }
+	"ESCUDO CELULAR": { "type": "Defensa", "desc": "Inyecta plasma en los generadores para restaurar el escudo.", "amount": 600, "cd": 5.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
+	"FORTALEZA-X": { "type": "Defensa", "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.", "amount": 1200, "cd": 15.0, "range": 0, "canTargetOthers": false },
+	"AUTO-REPARACIÓN": { "type": "Curación", "desc": "Drones de reparación restauran la integridad del casco.", "amount": 400, "cd": 5.0, "range": 500, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
+	"NANO-REGENERACIÓN": { "type": "Curación", "desc": "Inyecta nanobots que reparan el casco de forma continua.", "amount": 300, "cd": 12.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
+	"TURBO-IMPULSO": { "type": "Movimiento", "desc": "Aumenta la velocidad de los motores temporalmente.", "speed": 150, "cd": 5.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
+	"HYPER-DASH": { "type": "Movimiento", "desc": "Propulsión instantánea hacia adelante para evasión rápida.", "speed": 1000, "cd": 5.0, "range": 0, "canTargetOthers": false },
+	"REFLECT-Ω": { "type": "Ataque", "desc": "Crea un campo de resonancia que refleja daño hostil.", "reflect_mult": 1.5, "amount": 500, "cd": 5.0, "range": 0, "canTargetOthers": false },
+	"PLASMA BLAST": { "type": "Ataque", "desc": "Disparo concentrado de plasma con alta potencia destructiva.", "amount": 850, "cd": 8.0, "range": 600, "canTargetOthers": true, "targetFilters": { "allies": false, "enemies": true, "bosses": true, "players": true } }
 }
+func _ready():
+	if NetworkManager:
+		NetworkManager.config_updated.connect(update_from_server)
 
+func update_from_server(data: Dictionary):
+	if data.has("gameConfig"): GAME_CONFIG = data.gameConfig
+	if data.has("hordeConfig"): HORDES_CONFIG = data.hordeConfig
+	if data.has("shipModels"): SHIP_MODELS = data.shipModels
+	if data.has("shopItems"): SHOP_ITEMS = data.shopItems
+	if data.has("enemyModels"): ENEMY_MODELS = data.enemyModels
+	if data.has("ammoMultipliers"): AMMO_MULTIPLIERS = data.ammoMultipliers
+	if data.has("skillsData"): SKILLS_DATA = data.skillsData
+	print("[CONSTANTS] Configuración sincronizada con el servidor.")

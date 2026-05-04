@@ -440,13 +440,27 @@ func _update_background(zone_id):
 
 func _on_remote_skill_used(data):
 	if typeof(data) != TYPE_DICTIONARY: return
-	var e_id = str(data.get("id", ""))
-	if e_id == "" or (is_instance_valid(local_player) and local_player.entity_id == e_id): return
 	
-	if remote_players.has(e_id):
-		var node = remote_players[e_id]
-		if is_instance_valid(node) and node.has_method("play_skill_vfx"):
-			node.play_skill_vfx(data.get("skillName", ""), float(data.get("powerValue", 0.0)))
+	# v4.0: Sincronía Visual de Objetivos (NUEVO)
+	var sender_id = str(data.get("id", ""))
+	var target_id = str(data.get("targetId", sender_id)) # Por defecto al emisor
+	
+	var target_node = null
+	
+	# 1. Buscar el objetivo en el universo
+	if is_instance_valid(local_player) and local_player.entity_id == target_id:
+		# v4.3: Evitar doble VFX si el jugador se lanza la habilidad a sí mismo (ya se reprodujo localmente)
+		if sender_id == target_id: return
+		target_node = local_player
+	elif remote_players.has(target_id):
+		target_node = remote_players[target_id]
+	elif enemies.has(target_id):
+		target_node = enemies[target_id]
+	
+	# 2. Reproducir efectos si el objetivo es válido
+	if is_instance_valid(target_node) and target_node.has_method("play_skill_vfx"):
+		target_node.play_skill_vfx(data.get("skillName", ""), float(data.get("powerValue", 0.0)))
+		# print("[VFX] Aplicando ", data.skillName, " sobre ", target_node.name)
 
 func _on_clear_enemy_projectiles(data: Dictionary):
 	var boss_id = str(data.get("bossId", ""))

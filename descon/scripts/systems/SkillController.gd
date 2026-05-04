@@ -4,7 +4,7 @@ extends Node2D
 # Maneja el apuntado, indicadores y modos de disparo (Quick Cast / On Release / Cancelar)
 
 enum CastMode { QUICK_CAST, ON_RELEASE, NORMAL_CAST }
-enum SkillType { DIRECTIONAL, POINT_CLICK, AREA }
+enum SkillType { DIRECTIONAL, POINT_CLICK, AREA, INSTANT }
 
 var current_skill: Dictionary = {}
 var is_aiming: bool = false
@@ -45,18 +45,53 @@ func _update_targeting():
 func _find_target_under_mouse() -> Node2D:
 	var mouse_pos = get_global_mouse_position()
 	var entities = get_tree().get_nodes_in_group("entities")
-	var closest = null
-	var min_dist = 60.0
+	var closest_remote = null
+	var me = get_parent()
+	
+	var max_dist = 60.0
 	if get_node_or_null("/root/SettingsManager"):
-		min_dist = 60.0 * SettingsManager.skill_magnetism
+		max_dist = 60.0 * SettingsManager.skill_magnetism
+	
+	var min_dist_remote = max_dist
+	var filters = current_skill.get("filters", {"allies": true, "enemies": false, "bosses": false, "players": true})
 	
 	for e in entities:
-		if e == get_parent(): continue
+		if e == me: continue
+		
+		# v3.9.5: Validación de Filtros en Tiempo Real
+		var is_valid = false
+		var is_remote_player = e.is_in_group("player") or e.is_in_group("remote_players")
+		var is_enemy = e.is_in_group("enemies")
+		
+		if is_remote_player:
+			var my_tag = me.get("clan_tag")
+			var target_tag = e.get("clan_tag")
+			var same_clan = (my_tag != "" and target_tag != "" and my_tag == target_tag)
+			
+			# Lógica permisiva (v3.9.8)
+			if same_clan and filters.get("allies", true): is_valid = true
+			elif filters.get("players", true): is_valid = true
+		elif is_enemy:
+			var e_type = e.get("entity_type")
+			var is_boss = (e_type == 4 or e_type == 10 or e_type == 11)
+			if is_boss and filters.get("bosses", false): is_valid = true
+			elif not is_boss and filters.get("enemies", false): is_valid = true
+			
+		if not is_valid: continue
+
 		var d = e.global_position.distance_to(mouse_pos)
-		if d < min_dist:
-			min_dist = d
-			closest = e
-	return closest
+		if d < min_dist_remote:
+			min_dist_remote = d
+			closest_remote = e
+			
+	# v3.9.9: Prioridad Absoluta a Objetivos Externos
+	if closest_remote: return closest_remote
+	
+	# Solo si no hay nadie cerca, verificamos si el mouse está sobre nosotros
+	if me.global_position.distance_to(mouse_pos) < max_dist:
+		return me
+		
+	return null
 
 func start_aiming(skill_data: Dictionary):
 	current_skill = skill_data
@@ -94,6 +129,7 @@ func cancel_aiming():
 
 func _draw():
 	if not is_aiming: return
+	if current_skill.get("type") == SkillType.INSTANT: return
 	
 	var range_val = current_skill.get("range", 500.0)
 	var color = config.indicator_color

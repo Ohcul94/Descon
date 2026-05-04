@@ -303,6 +303,39 @@ func _render_spheres(container):
 		_add_input(grid, "COOLDOWN (S)", str(skill.get("cd", 10.0)), func(v): GameConstants.SKILLS_DATA[k_ref.name].cd = float(v))
 		_add_input(grid, "RANGO", str(skill.get("range", 0)), func(v): GameConstants.SKILLS_DATA[k_ref.name].range = float(v))
 
+		# v3.7: Sistema de Selección de Objetivos (NUEVO)
+		var target_hb = VBoxContainer.new(); grid.add_child(target_hb)
+		var target_l = Label.new(); target_l.text = "PUEDE LANZARSE A OTROS"; target_l.add_theme_font_size_override("font_size", 9); target_l.modulate.a = 0.5; target_hb.add_child(target_l)
+		var target_sw = CheckButton.new(); target_sw.text = "ACTIVADO"; target_sw.button_pressed = skill.get("canTargetOthers", false); target_hb.add_child(target_sw)
+		
+		# Filtros de Objetivo
+		var filters_vb = VBoxContainer.new()
+		filters_vb.visible = target_sw.button_pressed
+		grid.add_child(filters_vb)
+		
+		var filters_l = Label.new(); filters_l.text = "FILTROS DE OBJETIVO:"; filters_l.add_theme_font_size_override("font_size", 9); filters_l.modulate.a = 0.5; filters_vb.add_child(filters_l)
+		var filters_grid = GridContainer.new(); filters_grid.columns = 2; filters_vb.add_child(filters_grid)
+		
+		var f_data = skill.get("targetFilters", {"allies": true, "enemies": false, "bosses": false, "players": true})
+		var filter_labels = {"allies": "ALIADOS", "enemies": "ENEMIGOS", "bosses": "BOSSES", "players": "JUGADORES"}
+		
+		for f_key in filter_labels:
+			var cb = CheckBox.new(); cb.text = filter_labels[f_key]; cb.button_pressed = f_data.get(f_key, false)
+			cb.add_theme_font_size_override("font_size", 9)
+			filters_grid.add_child(cb)
+			cb.toggled.connect(func(v):
+				if not GameConstants.SKILLS_DATA[k_ref.name].has("targetFilters"):
+					GameConstants.SKILLS_DATA[k_ref.name]["targetFilters"] = {"allies": false, "enemies": false, "bosses": false, "players": false}
+				GameConstants.SKILLS_DATA[k_ref.name]["targetFilters"][f_key] = v
+			)
+		
+		target_sw.toggled.connect(func(v):
+			GameConstants.SKILLS_DATA[k_ref.name].canTargetOthers = v
+			filters_vb.visible = v
+			if v and not GameConstants.SKILLS_DATA[k_ref.name].has("targetFilters"):
+				GameConstants.SKILLS_DATA[k_ref.name]["targetFilters"] = {"allies": true, "enemies": false, "bosses": false, "players": true}
+		)
+
 		# Botón de eliminar (v3.3)
 		var btn_del = Button.new(); btn_del.text = " ELIMINAR ESFERA "; btn_del.modulate = Color.RED; btn_del.size_flags_horizontal = Control.SIZE_SHRINK_END
 		btn_del.pressed.connect(func():

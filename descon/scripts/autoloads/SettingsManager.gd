@@ -12,7 +12,8 @@ var default_keys = {
 	"slot_1": KEY_Q, "slot_2": KEY_W, "slot_3": KEY_E, "slot_4": KEY_R,
 	"slot_5": KEY_A, "slot_6": KEY_S, "slot_7": KEY_D,
 	"ui_inventory": KEY_F1, "ui_menu": KEY_ESCAPE,
-	"ui_map": KEY_M, "ui_party": KEY_P, "ui_pvp_toggle": KEY_C
+	"ui_map": KEY_M, "ui_party": KEY_P, "ui_pvp_toggle": KEY_C,
+	"auto_target_self": KEY_ALT # v4.9: Atajo para auto-casteo
 }
 var cast_mode_cache: int = 1 # v267.10: Cache local del modo de casteo
 var graphics_quality: int = 1 # 0: Baja, 1: Media, 2: Alta
