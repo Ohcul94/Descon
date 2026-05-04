@@ -16,14 +16,14 @@ var talent_system = null
 
 var remote_players = {}
 var enemies = {}
+var enemy_pool = []
+const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
 var save_timer = 0.0
 const SAVE_INTERVAL = 10.0
 var respawn_timer = 0.0
 
-# 650 Estrellas Procesales (v73.31)
-var stars_far = []
-var stars_mid = []
-var stars_near = []
+# 650 Estrellas Procesales (v73.31) - PRE-BAKED para rendimiento
+var _star_sprites: Array = [] # [far, mid, near] Sprite2Ds
 const WORLD_DRAW_SIZE = 4000.0
 
 func _ready():
@@ -57,19 +57,44 @@ func _ready():
 	_generate_stellar_data()
 
 func _generate_stellar_data():
-	for i in range(400): stars_far.append(Vector2(randf()*WORLD_DRAW_SIZE, randf()*WORLD_DRAW_SIZE))
-	for i in range(200): stars_mid.append(Vector2(randf()*WORLD_DRAW_SIZE, randf()*WORLD_DRAW_SIZE))
-	for i in range(50): stars_near.append(Vector2(randf()*WORLD_DRAW_SIZE, randf()*WORLD_DRAW_SIZE))
+	# Pre-renderizar estrellas a texturas estáticas (evita 650 draw_circle por frame)
+	var layers = [
+		{"count": 400, "radius": 1, "alpha": 0.2, "parallax": 0.1},
+		{"count": 200, "radius": 2, "alpha": 0.4, "parallax": 0.3},
+		{"count": 50, "radius": 3, "alpha": 0.8, "parallax": 0.6}
+	]
+	var tex_size = int(WORLD_DRAW_SIZE)
+	for layer in layers:
+		var img = Image.create(tex_size, tex_size, false, Image.FORMAT_RGBA8)
+		img.fill(Color(0, 0, 0, 0))
+		var r = layer.radius
+		var c = Color(1, 1, 1, layer.alpha)
+		for i in range(layer.count):
+			var sx = randi_range(r, tex_size - r - 1)
+			var sy = randi_range(r, tex_size - r - 1)
+			for dx in range(-r, r + 1):
+				for dy in range(-r, r + 1):
+					if dx*dx + dy*dy <= r*r:
+						img.set_pixel(sx + dx, sy + dy, c)
+		var spr = Sprite2D.new()
+		spr.texture = ImageTexture.create_from_image(img)
+		spr.centered = false
+		spr.z_index = -10
+		spr.set_meta("parallax_factor", layer.parallax)
+		add_child(spr)
+		_star_sprites.append(spr)
 
 func _draw():
-	var cam_pos = Vector2.ZERO
-	if is_instance_valid(local_player): cam_pos = local_player.global_position
-	for s in stars_far: draw_circle(s + (cam_pos * 0.1), 0.5, Color(1,1,1,0.2))
-	for s in stars_mid: draw_circle(s + (cam_pos * 0.3), 0.8, Color(1,1,1,0.4))
-	for s in stars_near: draw_circle(s + (cam_pos * 0.6), 1.2, Color(1,1,1,0.8))
+	pass # Estrellas ahora son sprites pre-renderizados, no necesitan _draw()
 
 func _process(delta):
-	queue_redraw()
+	# Parallax de estrellas (solo mover posición, sin redibujar)
+	var cam_pos = Vector2.ZERO
+	if is_instance_valid(local_player): cam_pos = local_player.global_position
+	for spr in _star_sprites:
+		if is_instance_valid(spr):
+			spr.position = cam_pos * spr.get_meta("parallax_factor")
+	
 	save_timer += delta; if save_timer >= SAVE_INTERVAL: save_timer = 0.0; _save_game_progress()
 	if is_instance_valid(local_player) and local_player.is_dead:
 		respawn_timer += delta
@@ -197,6 +222,24 @@ func _on_player_updated(data):
 		p.target_rotation = data.get("rotation", p.rotation)
 		p.update_stats(data)
 
+func _get_enemy_from_pool() -> Node:
+	for en in enemy_pool:
+		if is_instance_valid(en) and en.get_meta("is_pooled", false):
+			en.set_meta("is_pooled", false)
+			en.is_dead = false
+			en.visible = true
+			en.set_process(true)
+			en.set_physics_process(true)
+			if en.get("_collision_shape"):
+				en.get("_collision_shape").set_deferred("disabled", false)
+			if en.get("_ui_wrapper"): en.get("_ui_wrapper").visible = true
+			return en
+			
+	var en = ENEMY_SCENE.instantiate()
+	enemy_pool.append(en)
+	entities_node.add_child(en)
+	return en
+
 func _on_enemy_updated(data):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return
 	var id = str(data.id)
@@ -214,14 +257,16 @@ func _on_enemy_updated(data):
 			# Si ya lo tenemos registrado pero cambió de zona (o es un leak), lo borramos
 			if enemies.has(id):
 				var old_en = enemies[id]
-				if is_instance_valid(old_en): old_en.queue_free()
+				if is_instance_valid(old_en): 
+					old_en.set_meta("is_pooled", true); old_en.visible = false; old_en.set_process(false); old_en.set_physics_process(false)
 				enemies.erase(id)
 			return
 
 	if not enemies.has(id):
-		var en = load("res://scenes/entities/Enemy.tscn").instantiate()
-		en.entity_id = id; en.add_to_group("enemies")
-		enemies[id] = en; entities_node.add_child(en)
+		var en = _get_enemy_from_pool()
+		en.entity_id = id
+		if not en.is_in_group("enemies"): en.add_to_group("enemies")
+		enemies[id] = en
 	var eref = enemies[id]
 	if is_instance_valid(eref):
 		if data.has("x"): eref.target_position = Vector2(data.x, data.get("y", 0))
@@ -242,7 +287,8 @@ func clear_remote_players():
 		if is_instance_valid(remote_players[id]): remote_players[id].queue_free()
 	remote_players.clear()
 	for id in enemies:
-		if is_instance_valid(enemies[id]): enemies[id].queue_free()
+		if is_instance_valid(enemies[id]): 
+			enemies[id].set_meta("is_pooled", true); enemies[id].visible = false; enemies[id].set_process(false); enemies[id].set_physics_process(false)
 	enemies.clear()
 	print("[NET] Universo limpiado correctamente.")
 
@@ -324,7 +370,8 @@ func _on_admin_config_received(data: Dictionary):
 func _on_clear_zone_entities(_zoneId):
 	# Limpiar enemigos visualmente
 	for id in enemies:
-		if is_instance_valid(enemies[id]): enemies[id].queue_free()
+		if is_instance_valid(enemies[id]): 
+			enemies[id].set_meta("is_pooled", true); enemies[id].visible = false; enemies[id].set_process(false); enemies[id].set_physics_process(false)
 	enemies.clear()
 	
 	# Limpiar jugadores viejos

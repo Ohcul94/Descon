@@ -64,6 +64,24 @@ func _setup_ui():
 	
 	vbox.add_child(HSeparator.new())
 	
+	# --- CALIDAD GRÁFICA (3D) ---
+	var gfx_label = Label.new()
+	gfx_label.text = "CALIDAD GRÁFICA (MODELOS 3D):"
+	vbox.add_child(gfx_label)
+	
+	var gfx_option = OptionButton.new()
+	gfx_option.add_item("Baja (Rendimiento / Celulares)", 0)
+	gfx_option.add_item("Media (Equilibrado / Recomendado)", 1)
+	gfx_option.add_item("Alta (PCs de Gama Alta)", 2)
+	
+	if get_node_or_null("/root/SettingsManager"):
+		gfx_option.selected = SettingsManager.get_graphics_quality()
+	
+	gfx_option.item_selected.connect(_on_graphics_quality_changed)
+	vbox.add_child(gfx_option)
+	
+	vbox.add_child(HSeparator.new())
+	
 	# --- CONTROLES (7 SLOTS UNIFICADOS) ---
 	var keys_label = Label.new()
 	keys_label.text = "ASIGNACIÓN DE SLOTS DE HABILIDAD:"
@@ -162,6 +180,22 @@ func _on_cast_mode_changed(idx: int):
 	if get_node_or_null("/root/SettingsManager"):
 		SettingsManager.cast_mode_cache = idx
 		SettingsManager.save_settings()
+
+func _on_graphics_quality_changed(idx: int):
+	if get_node_or_null("/root/SettingsManager"):
+		SettingsManager.graphics_quality = idx
+		SettingsManager.save_settings()
+		print("[SETTINGS] Calidad gráfica cambiada a: ", idx)
+		
+		# Forzar actualización en vivo de las naves y enemigos existentes
+		for ent in get_tree().get_nodes_in_group("entities"):
+			if ent.has_method("_setup_3d_visuals"):
+				# Limpiar metadata para forzar regeneración sin usar la caché
+				ent.set_meta("current_glb", "")
+				if ent.is_in_group("enemies") and ent.has_method("_setup_enemy_visuals"):
+					ent._setup_enemy_visuals()
+				elif (ent.is_in_group("player") or ent.is_in_group("remote_players")) and ent.has_method("_setup_ship_visuals"):
+					ent._setup_ship_visuals()
 
 func open():
 	visible = true

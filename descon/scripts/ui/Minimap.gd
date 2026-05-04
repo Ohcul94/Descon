@@ -49,10 +49,13 @@ func _ready():
 		bg.show_behind_parent = true
 		add_child(bg)
 
-func _process(_delta):
+var _minimap_timer: float = 0.0
+func _process(delta):
 	if not visible: return
-	# v141.80: Usamos queue_redraw() para eficiencia, no instanciamos nodos.
-	queue_redraw()
+	_minimap_timer += delta
+	if _minimap_timer >= 0.1: # Redibujar solo 10 veces/seg (suficiente para un radar)
+		_minimap_timer = 0.0
+		queue_redraw()
 
 func _draw():
 	var player = get_tree().get_first_node_in_group("player")

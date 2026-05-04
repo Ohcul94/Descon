@@ -46,6 +46,7 @@ var _reflect_aura: Sprite2D = null
 var _collision_shape: CollisionShape2D = null
 var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
+var _cached_viewport: SubViewport = null # Cache para frustum culling
 
 func _ready():
 	add_to_group("entities")
@@ -149,6 +150,22 @@ func _process(delta):
 		rotation = lerp_angle(rotation, target_rotation, 0.2)
 	
 	_update_animations()
+
+	# OPTIMIZACIÓN: Pausar SubViewport de entidades fuera de pantalla
+	if _cached_viewport:
+		var cam = get_viewport().get_camera_2d()
+		var screen_visible = true
+		if cam:
+			var screen_size = get_viewport_rect().size
+			var cam_pos = cam.global_position
+			var margin = 600.0
+			var diff = global_position - cam_pos
+			if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
+				screen_visible = false
+		if screen_visible:
+			_cached_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		else:
+			_cached_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 
 	# v219.98: FÍSICAS 3D DINÁMICAS (BANKING + BOBBING + ÓRBITA)
 	if is_instance_valid(_3d_model):
@@ -374,7 +391,7 @@ func update_stats(data):
 	if (data.has("maxShield") or data.has("maxSh")) and not is_local:
 		max_shield = float(data.get("maxShield", data.get("maxSh", 2000)))
 	
-	if data.has("currentShipId"):
+	if data.has("currentShipId") and not is_in_group("enemies"):
 		var sid = int(data.currentShipId)
 		if sid != current_ship_id:
 			current_ship_id = sid
@@ -609,7 +626,8 @@ func die():
 	set_process(false)
 	
 	if not is_in_group("player") and not is_in_group("remote_players"): 
-		queue_free()
+		set_meta("is_pooled", true)
+		if _collision_shape: _collision_shape.set_deferred("disabled", true)
 
 func _adjust_visuals(_type): 
 	if is_in_group("enemies"):
@@ -858,7 +876,7 @@ func _setup_enemy_visuals():
 	# Carga de Visual 3D
 	if glb_path != "":
 		for c in get_children():
-			if "Viewport" in c.name or c is Sprite2D or c is Polygon2D:
+			if "Viewport" in c.name or c is Sprite2D or c is Polygon2D or c.name == "Ship3DRender":
 				c.queue_free()
 		
 		_setup_3d_visuals(glb_path, enemy_rot_offset)
@@ -999,12 +1017,37 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	print("[3D] Inicializando renderizado para: ", glb_path)
 	
 	# 1. Crear el contenedor del Viewport con su propio mundo 3D
+	# Resolucion dinamica segun calidad grafica (SettingsManager)
+	var quality = 1
+	if get_node_or_null("/root/SettingsManager"):
+		quality = SettingsManager.get_graphics_quality()
+		
+	var res = 256 # Calidad media por defecto
+	if is_in_group("player") or (is_in_group("enemies") and entity_type >= 4):
+		res = 512
+		
+	match quality:
+		0: # Baja (Celulares)
+			res = 128 if not is_in_group("player") else 256
+		1: # Media (Recomendado)
+			res = 256 if not is_in_group("player") else 512
+		2: # Alta (Gama Alta - Calidad Original Máxima)
+			res = 1024
+			
 	var viewport = SubViewport.new()
-	viewport.size = Vector2i(1024, 1024)
+	viewport.size = Vector2i(res, res)
 	viewport.transparent_bg = true
 	viewport.own_world_3d = true 
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	
+	# OPTIMIZACION MASIVA: Apagar cálculos innecesarios del motor 3D
+	viewport.positional_shadow_atlas_size = 0
+	if "use_hdr_3d" in viewport: viewport.use_hdr_3d = false
+	if "msaa_3d" in viewport: viewport.msaa_3d = Viewport.MSAA_DISABLED
+	if "screen_space_aa" in viewport: viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	
 	add_child(viewport)
+	_cached_viewport = viewport # Cache para frustum culling
 	
 	# Asegurar que el sprite principal esté en la escena y configurado
 	if is_instance_valid(sprite):
@@ -1091,11 +1134,14 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	cam.add_child(sun)
 	sun.rotation = Vector3.ZERO 
 	sun.light_energy = 2.0 # Volver al original suave
-	sun.light_specular = 0.1 # Muy bajo para evitar manchas blancas
+	sun.light_specular = 0.0 # Reducido a 0 para no calcular brillos especulares
+	sun.shadow_enabled = false # Desactivar sombras direccionales obligatoriamente
 	# 5. Conectar al Sprite2D existente (Transparencia Pro)
 	if is_instance_valid(sprite):
 		sprite.texture = viewport.get_texture()
-		sprite.scale = Vector2(1.0, 1.0)
+		# Compensacion: si la resolucion bajó, agrandamos el sprite para mantener el tamaño real
+		var scale_factor = 1024.0 / float(res)
+		sprite.scale = Vector2(scale_factor, scale_factor)
 		sprite.rotation_degrees = 0
 		sprite.flip_v = false 
 		

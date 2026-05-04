@@ -18,7 +18,7 @@ var default_keys = {
 	"slot_7": KEY_D
 }
 var cast_mode_cache: int = 1 # v267.10: Cache local del modo de casteo
-
+var graphics_quality: int = 1 # 0: Baja, 1: Media, 2: Alta
 func _ready():
 	load_settings()
 
@@ -32,6 +32,8 @@ func reset_to_factory():
 	if player and player.get("_skill_controller"):
 		player._skill_controller.config.cast_mode = 1 # ON_RELEASE
 	
+	graphics_quality = 1 # Restaurar a Media
+	
 	save_settings()
 	# Forzar actualización de HUD
 	var hud = get_tree().get_first_node_in_group("main_hud")
@@ -43,6 +45,7 @@ func save_settings():
 		cast_mode_cache = player._skill_controller.config.cast_mode
 		
 	config_file.set_value("combat", "cast_mode", cast_mode_cache)
+	config_file.set_value("graphics", "quality", graphics_quality)
 	
 	for i in range(1, 8):
 		var action = "slot_" + str(i)
@@ -69,9 +72,11 @@ func load_settings():
 	
 	if err == OK:
 		cast_mode_cache = config_file.get_value("combat", "cast_mode", 1)
-		print("[SETTINGS] Configuración cargada. Modo Cast: ", cast_mode_cache)
+		graphics_quality = config_file.get_value("graphics", "quality", 1)
+		print("[SETTINGS] Configuración cargada. Modo Cast: ", cast_mode_cache, " | Calidad Gráfica: ", graphics_quality)
 	else:
 		cast_mode_cache = 1
+		graphics_quality = 1
 		print("[SETTINGS] Usando configuración por defecto.")
 
 func _apply_key_to_inputmap(action: String, val):
@@ -91,3 +96,6 @@ func _apply_key_to_inputmap(action: String, val):
 
 func get_cast_mode() -> int:
 	return cast_mode_cache
+
+func get_graphics_quality() -> int:
+	return graphics_quality
