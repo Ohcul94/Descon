@@ -209,7 +209,7 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 func _on_skill_executed(p_data: Dictionary):
 	var id = p_data.skill_id
 	if id == "laser" or id == "missile" or id == "mine":
-		_shoot_skill(id, p_data.angle)
+		_shoot_skill(id, p_data.angle, p_data.get("pos", Vector2.ZERO))
 	elif id.begins_with("sphere_"):
 		var s_idx = int(id.replace("sphere_", ""))
 		_use_sphere_skill(s_idx, p_data) # v260.91: Integración con lógica de esferas y targeting
@@ -328,7 +328,7 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	# el daño exacto con el enemyType correcto. Hacerlo aquí duplicaba el daño (1 hit = 2 hits) 
 	# y enviaba eventos "fantasma" que reiniciaban contadores de combate.
 
-func _shoot_skill(p_type: String, p_angle: float):
+func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector2.ZERO):
 	last_combat_time = Time.get_ticks_msec()
 	if NetworkManager:
 		NetworkManager.send_event("playerHitByEnemy", { "damage": 0, "id": entity_id, "attackerType": "combat_ping" })
@@ -357,6 +357,11 @@ func _shoot_skill(p_type: String, p_angle: float):
 	var ammo_list = GameConstants.SHOP_ITEMS.ammo.get(p_type, [])
 	if t_idx < ammo_list.size():
 		r_val = ammo_list[t_idx].get("range", 600.0)
+	
+	# v260.95: Lógica de Minas de Precisión (Despliegue en cursor si está en rango)
+	if p_type == "mine" and p_target_pos != Vector2.ZERO:
+		var dist = global_position.distance_to(p_target_pos)
+		r_val = min(r_val, dist)
 
 	var final_damage = base_laser_damage * ammo_mult
 	var final_payload = {

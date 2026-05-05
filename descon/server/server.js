@@ -51,6 +51,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 let players = {};
 let activeSessions = new Map(); // username (lower) -> socket.id v33.0
 let enemies = {};
+let activeAreas = {}; // v260.50: Zonas de efecto persistentes (Humo, Minas, etc)
+let nextAreaId = 1;
 let nextPlayerNum = 1;
 let SERVER_CONFIG = null; // Memoria de configuraci├│n global v47.0
 let parties = {}; // dbId -> { members: [dbIds], names: [strings] }
@@ -231,7 +233,8 @@ const handleUserLogin = async (socket, user, username) => {
         lastPos: { x: user.gameData.lastPos?.x || 2000, y: user.gameData.lastPos?.y || 2000 },
         lastPvpCombatTime: 0,
         lastCombatTime: 0,
-        clanId: user.gameData.clanId
+        clanId: user.gameData.clanId,
+        isInvulnerable: false
     };
 
     const p_ref = players[socket.id];
@@ -597,6 +600,7 @@ setInterval(() => {
                         id: p.socketId,
                         hp: Math.ceil(p.hp),
                         shield: Math.ceil(p.shield),
+                        isInvulnerable: p.isInvulnerable || false,
                         maxHp: p.maxHp, // v240.66: Enviar siempre máximos para evitar caps en cliente
                         maxShield: p.maxShield,
                         spheres: p.spheres, 
@@ -608,9 +612,73 @@ setInterval(() => {
     });
 }, 33);
 
+// v260.70: BUCLE DE ÁREAS Y ESTADOS (Humo, Silencio, Ceguera)
+setInterval(() => {
+    const now = Date.now();
+    
+    // Reset temporal de flags (v2.1: Más agresivo para respuesta instantánea)
+    Object.values(players).forEach(p => {
+        if (now - (p.lastSilenceTime || 0) > 200) p.isSilenced = false;
+        
+        const wasBlinded = p.isBlinded;
+        if (now - (p.lastBlindTime || 0) > 200) p.isBlinded = false;
+        
+        if (wasBlinded && !p.isBlinded) {
+            io.to(p.socketId).emit('blindState', { active: false });
+        }
+    });
+    
+    Object.values(enemies).forEach(e => {
+        if (now - (e.lastSilenceTime || 0) > 200) e.isSilenced = false;
+    });
+
+    const areasToDelete = [];
+    for (const id in activeAreas) {
+        const area = activeAreas[id];
+        if (now > area.endTime) {
+            areasToDelete.push(id);
+            io.to(`zone_${area.zone}`).emit('removeArea', { id });
+            continue;
+        }
+
+        // Efectos a Jugadores
+        Object.values(players).forEach(p => {
+            if (p.zone === area.zone && !p.isDead && p.socketId !== area.ownerId) {
+                const dx = p.x - area.x;
+                const dy = p.y - area.y;
+                const distSq = dx * dx + dy * dy;
+                if (distSq < (area.radius * area.radius)) {
+                    p.isSilenced = true;
+                    p.lastSilenceTime = now;
+                    
+                    if (!p.isBlinded) {
+                        p.isBlinded = true;
+                        io.to(p.socketId).emit('blindState', { active: true });
+                    }
+                    p.lastBlindTime = now;
+                }
+            }
+        });
+
+        // Efectos a Enemigos
+        Object.values(enemies).forEach(e => {
+            if (e.zone === area.zone && e.hp > 0) {
+                const dx = e.x - area.x;
+                const dy = e.y - area.y;
+                const distSq = dx * dx + dy * dy;
+                if (distSq < (area.radius * area.radius)) {
+                    e.isSilenced = true;
+                    e.lastSilenceTime = now;
+                }
+            }
+        });
+    }
+    areasToDelete.forEach(id => delete activeAreas[id]);
+}, 100);
+
 io.on('connection', (socket) => {
     const clientIP = socket.handshake.address;
-    console.log(`DESCON: Nueva conexi├│n [${socket.id}] desde IP [${clientIP}]`);
+    console.log(`DESCON: Nueva conexión [${socket.id}] desde IP [${clientIP}]`);
     socket.dbUser = null;
 
     // REGISTRO DE USUARIO (MongoDB)
@@ -623,7 +691,7 @@ io.on('connection', (socket) => {
                 return socket.emit('authError', 'Ese usuario ya existe.');
             }
 
-            // ENCRIPTACI├ôN DE CONTRASE├æA (v35.0)
+            // ENCRIPTACIÓN DE CONTRASEÑA (v35.0)
             const hashedPassword = await bcrypt.hash(data.password, 10);
 
             const newUser = new User({
@@ -648,13 +716,13 @@ io.on('connection', (socket) => {
             const user = await User.findOne({ username });
 
             if (!user) {
-                return socket.emit('authError', 'Usuario o contrase├▒a incorrectos.');
+                return socket.emit('authError', 'Usuario o contraseña incorrectos.');
             }
 
-            // COMPARACI├ôN CRIPTOGR├üFICA (v35.0)
+            // COMPARACIÓN CRIPTOGRÁFICA (v35.0)
             const isMatch = await bcrypt.compare(data.password, user.password);
             if (!isMatch) {
-                return socket.emit('authError', 'Credenciales inv├ílidas en la Galaxia.');
+                return socket.emit('authError', 'Credenciales inválidas en la Galaxia.');
             }
 
             await handleUserLogin(socket, user, username);
@@ -664,14 +732,14 @@ io.on('connection', (socket) => {
         }
     });
 
-    // v164.10: CONSULTA DE INVENTARIO (Sincron├¡a Godot F1)
+    // v164.10: CONSULTA DE INVENTARIO (Sincronía Godot F1)
     socket.on('getInventory', async () => {
         if (!socket.dbUser) return;
         try {
             const user = await User.findById(socket.dbUser._id);
             if (user) {
                 socket.dbUser = user;
-                // v210.121: Sincron├¡a de Mapa para Godot
+                // v210.121: Sincronía de Mapa para Godot
                 const eByShipObj = {};
                 if (user.gameData.equippedByShip) {
                     user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
@@ -696,7 +764,7 @@ io.on('connection', (socket) => {
             const p = players[socket.id];
             if (!p) return;
 
-            // v214.150: SINCRON├ìA AUTORITATIVA TOTAL
+            // v214.150: SINCRONÍA AUTORITATIVA TOTAL
             if (gameData.inventory && gameData.inventory.length > 0) p.inventory = gameData.inventory;
             if (gameData.spheres) p.spheres = gameData.spheres;
             if (gameData.equipped) p.equipped = gameData.equipped;
@@ -1293,14 +1361,14 @@ io.on('connection', (socket) => {
             
             console.log(`\x1b[35m[ADMIN]\x1b[0m Configuración guardada en disco y RAM.`);
             
-            // v226.30: PURGA DE ENTIDADES PARA EVITAR FANTASMAS (Sincron├¡a Limpia)
+            // v226.30: PURGA DE ENTIDADES PARA EVITAR FANTASMAS (Sincronía Limpia)
             // Notificar a todos los clientes que limpien su zona
             io.emit('adminConfigUpdated', config);
             io.emit('changeZoneDone', 1); // Forzar limpieza visual en clientes (Zona dummy para disparar el signal)
             
             // Vaciar enemigos en RAM para que el respawn los recree con nuevos datos
             Object.keys(enemies).forEach(id => delete enemies[id]);
-            console.log(`[ADMIN] Purgados ${Object.keys(enemies).length} enemigos antiguos para re-sincronizaci├│n.`);
+            console.log(`[ADMIN] Purgados ${Object.keys(enemies).length} enemigos antiguos para re-sincronización.`);
             
         } catch (e) { console.error("Error guardando config:", e); }
     });
@@ -1361,7 +1429,7 @@ io.on('connection', (socket) => {
     socket.on('chatMessage', (data) => {
         if (!players[socket.id]) return;
         const sender = players[socket.id].user;
-        const msg = data.msg.substring(0, 50); // L├¡mite de 50 caracteres (v60.0)
+        const msg = data.msg.substring(0, 50); // Límite de 50 caracteres (v60.0)
 
         const responseData = {
             sender: sender,
@@ -1382,37 +1450,40 @@ io.on('connection', (socket) => {
             });
         } else if (data.channel === 'team') {
             // v164.33: Quitar redundancia de [EQUIPO] (el cliente ya pone el tag)
-            socket.emit('chatMessage', { ...responseData, msg: `${msg} (Sin compa├▒eros activos)` });
+            socket.emit('chatMessage', { ...responseData, msg: `${msg} (Sin compañeros activos)` });
         }
     });
 
     // SISTEMA DE COMBATE MULTIPLAYER (v62.0)
-    // v200.20: SISTEMA DE DA├æO AUTORITATIVO (Anti-Cheat Server-Side)
+    // v200.20: SISTEMA DE DAÑO AUTORITATIVO (Anti-Cheat Server-Side)
     socket.on('playerFire', (fireData) => {
         const p = players[socket.id];
         if (!p || !SERVER_CONFIG) return;
 
-        // v200.35: VALIDACI├ôN DE CADENCIA (Anti-RapidFire Hack)
+        // v260.66: BLOQUEO POR SILENCIO
+        if (p.isSilenced) return;
+
+        // v200.35: VALIDACIÓN DE CADENCIA (Anti-RapidFire Hack)
         const now = Date.now();
         const lastFire = p.lastFireTime || 0;
-        const cooldownMs = 800; // 1s te├│rico - 200ms de tolerancia por lag
+        const cooldownMs = 800; // 1s teórico - 200ms de tolerancia por lag
         if (now - lastFire < cooldownMs) {
             // console.log(`[HACK] Cadencia de tiro sospechosa en ${p.user}`);
-            return; // Bloqueo de r├ífagas ilegales
+            return; // Bloqueo de ráfagas ilegales
         }
         p.lastFireTime = now;
 
-        // 1. Validar Munici├│n (Si no tiene en el servidor, el disparo es inv├ílido)
+        // 1. Validar Munición (Si no tiene en el servidor, el disparo es inválido)
         const ammoType = fireData.type || 'laser';
         const ammoTier = fireData.ammoType || 0;
         if (!p.ammo || !p.ammo[ammoType] || p.ammo[ammoType][ammoTier] <= 0) {
             return; // Bloqueo de disparo sin balas (Server level)
         }
 
-        // Descontar munici├│n en el servidor
+        // Descontar munición en el servidor
         p.ammo[ammoType][ammoTier] -= 1;
 
-        // 2. Calcular Da├▒o Leg├¡timo (Ignorar lo que diga el cliente)
+        // 2. Calcular Daño Legítimo (Ignorar lo que diga el cliente)
         let baseDamage = 100;
         if (p.equipped && p.equipped.w) {
             baseDamage = 0;
@@ -1435,10 +1506,15 @@ io.on('connection', (socket) => {
         });
     });
 
-    // v200.12: SISTEMA DE HABILIDADES DE ESFERAS (Sincron├¡a Autoritaria)
+    // v200.12: SISTEMA DE HABILIDADES DE ESFERAS (Sincronía Autoritaria)
     socket.on('playerSphereSkill', (data) => {
         const p = players[socket.id];
         if (!p || !p.spheres) return;
+        
+        // v260.65: BLOQUEO POR SILENCIO
+        if (p.isSilenced) {
+            return socket.emit('gameNotification', { msg: "¡ESTÁS SILENCIADO!", type: "error" });
+        }
         
         p.lastCombatTime = Date.now(); // v240.62: Habilidades resetean contador de cambio de nave
         
@@ -1559,6 +1635,23 @@ io.on('connection', (socket) => {
                 if (target.hp < 0) target.hp = 0;
                 actual_val = oldH - target.hp; // Valor positivo de daño
             }
+        } else if (data.skillName === "SMOKE-BOMB") {
+            const areaId = `area_${nextAreaId++}`;
+            const config = (SERVER_CONFIG && SERVER_CONFIG.skillsData) ? SERVER_CONFIG.skillsData["SMOKE-BOMB"] : { duration: 6, radius: 180 };
+            
+            activeAreas[areaId] = {
+                id: areaId,
+                x: p.x,
+                y: p.y,
+                radius: config.radius || 180,
+                type: 'SMOKE',
+                ownerId: socket.id,
+                endTime: Date.now() + (config.duration * 1000),
+                zone: p.zone
+            };
+            
+            io.to(`zone_${p.zone}`).emit('spawnArea', activeAreas[areaId]);
+            console.log(`[SKILL] ${p.user} lanzó BOMBA DE HUMO en Zona ${p.zone}`);
         }
 
         // Sincronizar stats si el objetivo es un jugador
@@ -1583,6 +1676,27 @@ io.on('connection', (socket) => {
             targetId: isRemote ? data.targetId : socket.id
         });
 
+        if (data.skillName === "INVULNERABILIDAD") {
+            p.isInvulnerable = true;
+            console.log(`[SKILL] ${p.user} es ahora INVULNERABLE`);
+            
+            // v2.7: Sync inmediato para feedback instantáneo
+            const syncData = { 
+                id: socket.id, 
+                hp: Math.ceil(p.hp), 
+                shield: Math.ceil(p.shield), 
+                isInvulnerable: true 
+            };
+            io.to(`zone_${p.zone}`).emit('playerStatSync', syncData);
+
+            setTimeout(() => {
+                p.isInvulnerable = false;
+                console.log(`[SKILL] ${p.user} ya no es invulnerable`);
+                const endSync = { id: socket.id, isInvulnerable: false };
+                io.to(`zone_${p.zone}`).emit('playerStatSync', endSync);
+            }, 2000);
+        }
+
         console.log(`[SPHERES] Piloto ${p.user} usó ${data.skillName} (Target: ${isRemote ? (target.user || target.name) : 'Self'}).`);
     });
 
@@ -1591,7 +1705,7 @@ io.on('connection', (socket) => {
         if (config) socket.emit('adminConfigLoaded', config);
     }).catch(e => { /* Config por defecto en cliente */ });
 
-    // SISTEMA DE TIENDA Y ADQUISICI├ôN v164.2 (Sync Godot/Phaser)
+    // SISTEMA DE TIENDA Y ADQUISICIÓN v164.2 (Sync Godot/Phaser)
     socket.on('buyItem', async (data) => {
         if (!socket.dbUser || !players[socket.id]) return;
         try {
@@ -1648,7 +1762,7 @@ io.on('connection', (socket) => {
                 const newItem = {
                     id: itemConfig.id,
                     name: itemConfig.name,
-                    type: itemConfig.type || (category === 'weapons' ? 'w' : (category === 'shields' ? 's' : (category === 'engines' ? 'e' : 'x'))),
+                    "type": "Utility",
                     base: itemConfig.base,
                     instanceId: Date.now() + Math.random().toString(36).substr(2, 5)
                 };
@@ -2408,6 +2522,10 @@ io.on('connection', (socket) => {
             } else if (attackerType === 'combat_ping') {
                 dmg = 0;
             }
+            if (p.isInvulnerable) {
+                // v2.6: Forzar daño 0 pero seguir flujo para feedback (0 en rojo)
+                dmg = 0;
+            }
             if (p.shield >= dmg) p.shield -= dmg;
             else { p.hp -= (dmg - p.shield); p.shield = 0; }
             if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
@@ -2420,7 +2538,8 @@ io.on('connection', (socket) => {
                 maxHp: p.maxHp, 
                 maxShield: p.maxShield, 
                 isDead: p.isDead,
-                spheres: p.spheres || [] // v239.12: Garantizar flujo de esferas
+                isInvulnerable: p.isInvulnerable,
+                spheres: p.spheres || [] 
             };
             io.to(`zone_${p.zone}`).emit('playerStatSync', syncData);
         }
@@ -2434,6 +2553,7 @@ io.on('connection', (socket) => {
         if (victim && attacker && !victim.isDead && !attacker.isDead) {
             // v221.30: Consentimiento Mutuo + Notificación
             if (victim.pvpEnabled && attacker.pvpEnabled) {
+                if (victim.isInvulnerable) return; // Inmunidad total v2.6
                 const now = Date.now();
                 let dmg = data.damage || 50;
                 

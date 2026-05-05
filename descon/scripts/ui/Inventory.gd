@@ -649,14 +649,14 @@ func _render_spheres_library(tab):
 	
 	# v235.65: Barra de Filtros de Color
 	var filter_h = HBoxContainer.new(); filter_h.alignment = BoxContainer.ALIGNMENT_CENTER; filter_h.add_theme_constant_override("separation", 15); main_v.add_child(filter_h)
-	var filters = ["ANY", "ATAQUE", "DEFENSA", "CURACIÓN", "MOVIMIENTO"]
+	var filters = ["ANY", "ATAQUE", "DEFENSA", "CURACIÓN", "UTILIDAD"]
 	for f in filters:
 		var fb = Button.new(); fb.text = " " + f + " "; fb.flat = (selected_sphere_type_filter != f)
 		fb.add_theme_font_size_override("font_size", 10)
 		if f == "ATAQUE": fb.modulate = Color.RED
 		elif f == "DEFENSA": fb.modulate = Color.AQUA
 		elif f == "CURACIÓN": fb.modulate = Color.GREEN
-		elif f == "MOVIMIENTO": fb.modulate = Color.YELLOW
+		elif f == "UTILIDAD": fb.modulate = Color.YELLOW
 		fb.pressed.connect(func(): selected_sphere_type_filter = f; _update_spheres_ui())
 		filter_h.add_child(fb)
 	
@@ -667,11 +667,13 @@ func _render_spheres_library(tab):
 	
 	# v235.66: Catálogo de Habilidades Expandido (2 por color)
 	var all_skills = [
-		{"class": Skill_TurboImpulse, "color": Color.YELLOW, "icon": "⚡", "type": "MOVIMIENTO"},
-		{"class": Skill_HyperDash, "color": Color.YELLOW, "icon": "💨", "type": "MOVIMIENTO"},
+		{"class": Skill_TurboImpulse, "color": Color.YELLOW, "icon": "⚡", "type": "UTILIDAD"},
+		{"class": Skill_HyperDash, "color": Color.YELLOW, "icon": "💨", "type": "UTILIDAD"},
+		{"class": Skill_Invulnerability, "color": Color.YELLOW, "icon": "🛡️", "type": "UTILIDAD"},
 		
 		{"class": Skill_ShieldCell, "color": Color.AQUA, "icon": "🛡️", "type": "DEFENSA"},
 		{"class": Skill_Fortress, "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},
+		{"class": Skill_SmokeBomb, "color": Color.AQUA, "icon": "☁️", "type": "DEFENSA"},
 		
 		{"class": Skill_RepairKit, "color": Color.GREEN, "icon": "🔧", "type": "CURACIÓN"},
 		{"class": Skill_RegenPath, "color": Color.GREEN, "icon": "🧪", "type": "CURACIÓN"},

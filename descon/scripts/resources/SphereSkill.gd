@@ -1,10 +1,11 @@
 extends Resource
 class_name SphereSkill
 
+@export var skill_id: String = "" # Identificador único para evitar crisis de identidad
 @export var skill_name: String = "Habilidad"
 @export_multiline var description: String = ""
 @export var icon: Texture2D
-@export var type: String = "Movimiento" # Movimiento, Defensa, Curación
+@export var type: String = "Utilidad" # Utilidad, Defensa, Curación
 @export var cooldown: float = 5.0
 @export var power_value: float = 10.0 # Cantidad de curación, velocidad, etc.
 
@@ -13,19 +14,22 @@ func activate(player: CharacterBody2D):
 	print("[SKILL] Activando: ", skill_name)
 	# La lógica específica se implementará en las subclases o se manejará por tipo
 	match type:
-		"Movimiento":
-			_apply_movement(player)
+		"Utilidad":
+			_apply_utility(player)
 		"Defensa":
 			_apply_defense(player)
 		"Curación":
 			_apply_healing(player)
 
-func _apply_movement(player):
-	if player.has_method("_apply_dash"):
-		player._apply_dash(power_value)
-	elif player.has_method("play_skill_vfx"):
-		# v4.6: Delegar incremento de velocidad a play_skill_vfx para evitar duplicados
-		player.play_skill_vfx("TURBO-IMPULSO", power_value)
+func _apply_utility(player):
+	if skill_name == "TURBO-IMPULSO" or skill_name == "HYPER-DASH":
+		if player.has_method("_apply_dash") and skill_name == "HYPER-DASH":
+			player._apply_dash(power_value)
+		elif player.has_method("play_skill_vfx"):
+			player.play_skill_vfx(skill_name, power_value)
+	elif skill_name == "INVULNERABILIDAD":
+		if player.has_method("play_skill_vfx"):
+			player.play_skill_vfx("INVULNERABILIDAD", 2.0)
 
 func _apply_defense(player):
 	if "current_shield" in player:
@@ -40,7 +44,7 @@ func _apply_defense(player):
 			if player.has_method("_emit_stats"): player._emit_stats()
 		
 		if player.has_method("play_skill_vfx"): 
-			player.play_skill_vfx("ESCUDO CELULAR", actual_heal)
+			player.play_skill_vfx(skill_name, actual_heal)
 
 func _apply_healing(player):
 	if "current_hp" in player:
@@ -55,4 +59,4 @@ func _apply_healing(player):
 			if player.has_method("_emit_stats"): player._emit_stats()
 			
 		if player.has_method("play_skill_vfx"): 
-			player.play_skill_vfx("AUTO-REPARACIÓN", actual_heal)
+			player.play_skill_vfx(skill_name, actual_heal)

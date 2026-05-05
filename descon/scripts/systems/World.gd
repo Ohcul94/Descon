@@ -21,6 +21,8 @@ const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
 var save_timer = 0.0
 const SAVE_INTERVAL = 10.0
 var respawn_timer = 0.0
+var active_areas = {} # v260.80: Cache de zonas de efecto (Humo, etc)
+
 
 # 650 Estrellas Procesales (v73.31) - PRE-BAKED para rendimiento
 var _star_sprites: Array = [] # [far, mid, near] Sprite2Ds
@@ -43,6 +45,9 @@ func _ready():
 	NetworkManager.clear_zone_entities.connect(_update_hud_map_name) # v243.63: Sincronía HUD
 	NetworkManager.clear_enemy_projectiles.connect(_on_clear_enemy_projectiles)
 	NetworkManager.remote_skill_used.connect(_on_remote_skill_used)
+	NetworkManager.spawn_area.connect(_on_spawn_area)
+	NetworkManager.remove_area.connect(_on_remove_area)
+
 	
 	# v190.71: Sincronía en Caliente de Configuración Admin
 	NetworkManager.config_updated.connect(_on_admin_config_received)
@@ -342,6 +347,72 @@ func route_chat_bubble(data: Dictionary):
 				target = p; break
 				
 	if target: target.show_bubble(txt)
+
+func _on_spawn_area(data: Dictionary):
+	var type = data.get("type", "SMOKE")
+	var id = data.get("id", "")
+	if type == "SMOKE":
+		_spawn_smoke_cloud(id, Vector2(data.x, data.y), data.radius)
+
+func _on_remove_area(data: Dictionary):
+	var id = data.get("id", "")
+	if active_areas.has(id):
+		var area = active_areas[id]
+		var tw = create_tween()
+		tw.tween_property(area, "modulate:a", 0.0, 1.0)
+		tw.tween_callback(area.queue_free)
+		active_areas.erase(id)
+
+func _spawn_smoke_cloud(id, pos, radius):
+	if active_areas.has(id): return
+	
+	# v260.85: Renderizado de Humo 3D Autorizativo
+	var wrapper = Node2D.new()
+	wrapper.name = id
+	wrapper.global_position = pos
+	wrapper.z_index = -1 # Debajo de las naves
+	entities_node.add_child(wrapper)
+	active_areas[id] = wrapper
+	
+	var view_size = int(radius * 2.5)
+	var vp = SubViewport.new()
+	vp.size = Vector2i(view_size, view_size)
+	vp.transparent_bg = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	wrapper.add_child(vp)
+	
+	var node3d = Node3D.new()
+	vp.add_child(node3d)
+	
+	var cam = Camera3D.new()
+	cam.position = Vector3(0, 0, 10)
+	cam.look_at(Vector3.ZERO)
+	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	cam.size = 2.0 # El PlaneMesh es 2x2, así que 2.0 lo llena perfectamente
+	node3d.add_child(cam)
+	
+	var mesh_inst = MeshInstance3D.new()
+	var plane = PlaneMesh.new()
+	plane.size = Vector2(2, 2)
+	mesh_inst.mesh = plane
+	mesh_inst.rotation_degrees.x = 90 # Rotar para que el plano mire a la cámara (XY plane)
+	
+	var mat = ShaderMaterial.new()
+	mat.shader = load("res://resources/shaders/smoke_cloud.gdshader")
+	mesh_inst.material_override = mat
+	node3d.add_child(mesh_inst)
+	
+	# Vincular 3D a 2D
+	var sprite = Sprite2D.new()
+	sprite.texture = vp.get_texture()
+	wrapper.add_child(sprite)
+	
+	# Animación de Entrada (v2.0: Mucho más rápida)
+	wrapper.modulate.a = 0.0
+	wrapper.scale = Vector2(0.5, 0.5)
+	var tw = create_tween().set_parallel(true)
+	tw.tween_property(wrapper, "modulate:a", 1.0, 0.2)
+	tw.tween_property(wrapper, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 
 func _on_remote_stat_sync(data: Dictionary):
 	if typeof(data) != TYPE_DICTIONARY: return

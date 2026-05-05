@@ -2,9 +2,10 @@ extends SphereSkill
 class_name Skill_TurboImpulse
 
 func _init():
+	skill_id = "SK-UTIL-01"
 	skill_name = "TURBO-IMPULSO"
 	description = "Aumenta la velocidad de los motores temporalmente."
-	type = "Movimiento"
+	type = "Utilidad"
 	power_value = 150.0
 
 func activate(player: CharacterBody2D):

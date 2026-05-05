@@ -94,14 +94,16 @@ var AMMO_MULTIPLIERS = {
 }
 
 var SKILLS_DATA = {
-	"ESCUDO CELULAR": { "type": "Defensa", "desc": "Inyecta plasma en los generadores para restaurar el escudo.", "amount": 600, "cd": 5.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
-	"FORTALEZA-X": { "type": "Defensa", "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.", "amount": 1200, "cd": 15.0, "range": 0, "canTargetOthers": false },
-	"AUTO-REPARACIÓN": { "type": "Curación", "desc": "Drones de reparación restauran la integridad del casco.", "amount": 400, "cd": 5.0, "range": 500, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
-	"NANO-REGENERACIÓN": { "type": "Curación", "desc": "Inyecta nanobots que reparan el casco de forma continua.", "amount": 300, "cd": 12.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
-	"TURBO-IMPULSO": { "type": "Movimiento", "desc": "Aumenta la velocidad de los motores temporalmente.", "speed": 150, "cd": 5.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
-	"HYPER-DASH": { "type": "Movimiento", "desc": "Propulsión instantánea hacia adelante para evasión rápida.", "speed": 1000, "cd": 5.0, "range": 0, "canTargetOthers": false },
-	"REFLECT-Ω": { "type": "Ataque", "desc": "Crea un campo de resonancia que refleja daño hostil.", "reflect_mult": 1.5, "amount": 500, "cd": 5.0, "range": 0, "canTargetOthers": false },
-	"PLASMA BLAST": { "type": "Ataque", "desc": "Disparo concentrado de plasma con alta potencia destructiva.", "amount": 850, "cd": 8.0, "range": 600, "canTargetOthers": true, "targetFilters": { "allies": false, "enemies": true, "bosses": true, "players": true } }
+	"ESCUDO CELULAR": { "id": "SK-DEF-01", "type": "Defensa", "desc": "Inyecta plasma en los generadores para restaurar el escudo.", "amount": 600, "cd": 5.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
+	"FORTALEZA-X": { "id": "SK-DEF-02", "type": "Defensa", "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.", "amount": 1200, "cd": 15.0, "range": 0, "canTargetOthers": false },
+	"AUTO-REPARACIÓN": { "id": "SK-HEAL-01", "type": "Curación", "desc": "Drones de reparación restauran la integridad del casco.", "amount": 400, "cd": 5.0, "range": 500, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
+	"NANO-REGENERACIÓN": { "id": "SK-HEAL-02", "type": "Curación", "desc": "Inyecta nanobots que reparan el casco de forma continua.", "amount": 300, "cd": 12.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
+	"TURBO-IMPULSO": { "id": "SK-UTIL-01", "type": "Utilidad", "desc": "Aumenta la velocidad de los motores temporalmente.", "speed": 150, "cd": 5.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
+	"HYPER-DASH": { "id": "SK-UTIL-02", "type": "Utilidad", "desc": "Propulsión instantánea hacia adelante para evasión rápida.", "speed": 1000, "cd": 5.0, "range": 0, "canTargetOthers": false },
+	"INVULNERABILIDAD": { "id": "SK-UTIL-03", "type": "Utilidad", "desc": "Te vuelve inmune a todo daño durante 2 segundos.", "duration": 2.0, "cd": 30.0, "range": 0, "canTargetOthers": false },
+	"REFLECT-Ω": { "id": "SK-ATK-01", "type": "Ataque", "desc": "Crea un campo de resonancia que refleja daño hostil.", "reflect_mult": 1.5, "amount": 500, "cd": 5.0, "range": 0, "canTargetOthers": false },
+	"PLASMA BLAST": { "id": "SK-ATK-02", "type": "Ataque", "desc": "Disparo concentrado de plasma con alta potencia destructiva.", "amount": 850, "cd": 8.0, "range": 600, "canTargetOthers": true, "targetFilters": { "allies": false, "enemies": true, "bosses": true, "players": true } },
+	"SMOKE-BOMB": { "id": "SK-DEF-03", "type": "Defensa", "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.", "duration": 6, "radius": 180, "cd": 12.0, "range": 0, "canTargetOthers": false }
 }
 func _ready():
 	if NetworkManager:

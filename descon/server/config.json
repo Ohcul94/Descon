@@ -656,7 +656,7 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Movimiento"
+            "type": "Utilidad"
         },
         "NANO-REGENERACIÓN": {
             "amount": 300,
@@ -699,7 +699,24 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Movimiento"
+            "type": "Utilidad"
+        },
+        "SMOKE-BOMB": {
+            "canTargetOthers": false,
+            "cd": 12,
+            "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.",
+            "range": 0,
+            "duration": 6,
+            "radius": 180,
+            "type": "Defensa"
+        },
+        "INVULNERABILIDAD": {
+            "canTargetOthers": false,
+            "cd": 30,
+            "desc": "Te vuelve inmune a todo daño durante 2 segundos.",
+            "range": 0,
+            "duration": 2,
+            "type": "Utilidad"
         }
     }
 }

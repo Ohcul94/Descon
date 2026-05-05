@@ -22,6 +22,8 @@ var _ammo_menus = {} # v226.70: Menús anclados a cada botón
 var _esc_menu: Control = null
 var _settings_menu: Control = null
 var _pvp_status: bool = false
+var _blind_overlay: ColorRect = null # v260.90: Efecto de Ceguera (Humo)
+
 
 func _ready():
 	print("[HUD] Sistema v190.41 inicializado.")
@@ -120,6 +122,12 @@ func _ready():
 		# v240.90: Sincronía de Mensajes del Servidor (Combat Logs, Info de Juego)
 		if not NetworkManager.game_notification.is_connected(_on_game_notification):
 			NetworkManager.game_notification.connect(_on_game_notification)
+		
+		# v260.91: Conexión de Ceguera
+		if not NetworkManager.blind_state.is_connected(_on_blind_state):
+			NetworkManager.blind_state.connect(_on_blind_state)
+		
+		_setup_blind_overlay()
 
 func _on_game_notification(data: Dictionary):
 	var msg = data.get("msg", "")
@@ -409,7 +417,7 @@ func _update_sphere_ui(id: int, ref, slot):
 			if "ataque" in raw_type: type_color = Color.RED
 			elif "defensa" in raw_type: type_color = Color.AQUA
 			elif "curación" in raw_type or "curacion" in raw_type: type_color = Color.GREEN
-			elif "movimiento" in raw_type: type_color = Color.YELLOW
+			elif "utilidad" in raw_type or "movimiento" in raw_type: type_color = Color.YELLOW
 			else: type_color = Color.WHITE
 	
 	var final_text_color = Color.RED if rv > 0.05 else type_color
@@ -438,7 +446,7 @@ func _update_sphere_ui(id: int, ref, slot):
 		if type_color == Color.RED: short_txt = "ATQ"
 		elif type_color == Color.AQUA: short_txt = "DEF"
 		elif type_color == Color.GREEN: short_txt = "CUR"
-		elif type_color == Color.YELLOW: short_txt = "MOV"
+		elif type_color == Color.YELLOW: short_txt = "UTIL"
 
 	for child in slot.get_children():
 		if child is Label:
@@ -949,3 +957,20 @@ func _open_settings():
 		var canvas = _settings_menu.get_parent()
 		if canvas is CanvasLayer:
 			canvas.visible = true
+func _setup_blind_overlay():
+	if _blind_overlay: return
+	_blind_overlay = ColorRect.new()
+	_blind_overlay.name = "BlindOverlay"
+	_blind_overlay.color = Color(0, 0, 0, 0)
+	_blind_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_blind_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_blind_overlay.z_index = 200 # Por encima de todo el HUD
+	add_child(_blind_overlay)
+
+func _on_blind_state(data: Dictionary):
+	var active = data.get("active", false)
+	var tw = create_tween()
+	if active:
+		tw.tween_property(_blind_overlay, "color:a", 1.0, 0.05) # Casi instantáneo
+	else:
+		tw.tween_property(_blind_overlay, "color:a", 0.0, 0.1) # Recuperación rápida

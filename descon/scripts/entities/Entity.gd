@@ -44,6 +44,9 @@ var pvp_status: bool = false
 var reflect_timer: float = 0.0
 var shield_visual_timer: float = 0.0
 var heal_visual_timer: float = 0.0
+var invulnerable_timer: float = 0.0
+var is_invulnerable: bool = false # v2.7: Sincronía autoritativa
+ # v2.5: Visual de Invulnerabilidad (Amarillo)
 var _reflect_aura: Sprite2D = null
 var _3d_shield_mesh: MeshInstance3D = null
 var _collision_shape: CollisionShape2D = null
@@ -380,6 +383,10 @@ func update_stats(data):
 	var threshold = max(25.0, max_hp * 0.02) # v240.69: Umbral dinámico para naves de alto HP
 	var lock_active = (is_local and sync_lock_timer > 0)
 	
+	if data.has("isInvulnerable"):
+		is_invulnerable = bool(data.isInvulnerable)
+		if is_invulnerable: invulnerable_timer = 2.0
+	
 	if data.has("hp") and not lock_active:
 		var server_hp = float(data.hp)
 		if not is_local or abs(current_hp - server_hp) > threshold:
@@ -519,6 +526,9 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	# v235.23: DEBUG LOGS (Para diagnosticar daño 0)
 	if is_in_group("player"):
 		print("[BATTLE-IN] Recibiendo: ", amt, " de ", attacker_id if attacker_id != "" else "Desconocido")
+	
+	if invulnerable_timer > 0:
+		amt = 0 # v2.6: Feedback visual de daño bloqueado (0 en rojo)
 	
 	# v235.20: REFLEJO TOTAL (Prioridad absoluta sobre invulnerabildiad)
 	if reflect_timer > 0:
@@ -1005,6 +1015,13 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 		"AUTO-REPARACIÓN":
 			heal_visual_timer = 2.0 # Activar visual 3D pro de curación
 			# v260.30: Se eliminó el Sprite2D de curación en favor del efecto 3D
+		
+		"SMOKE-BOMB":
+			pass # La visual es gestionada por World.gd de forma global
+		
+		"INVULNERABILIDAD":
+			invulnerable_timer = 2.0 # Activar visual 3D amarilla
+			print("[SKILL] Activando visual de INVULNERABILIDAD para: ", username)
 
 
 # v219.70: SISTEMA DE RENDERIZADO 3D SOBRE 2D (EXPERIMENTAL)
@@ -1172,24 +1189,30 @@ func _on_remote_skill_used(data: Dictionary):
 	# v235.37: Registro de uso de habilidad remota para sincron├¡a visual
 	if str(data.get("id")) == entity_id:
 		var s_name = str(data.get("skillName", ""))
-		if "REFLECT" in s_name:
+		if s_name == "REFLECT-Ω" or s_name == "REFLECT":
 			reflect_timer = 3.0
 			print("[SKILL-SYNC] Activando visual de REFLECT para aliado: ", username)
-		elif "ESCUDO" in s_name:
+		elif s_name == "ESCUDO CELULAR" or s_name == "FORTALEZA-X":
 			shield_visual_timer = 2.0
 			print("[SKILL-SYNC] Activando visual de ESCUDO para aliado: ", username)
-		elif "REPAR" in s_name or "CURA" in s_name or "REGEN" in s_name:
+		elif s_name == "AUTO-REPARACIÓN" or s_name == "NANO-REGENERACIÓN":
 			heal_visual_timer = 2.0
 			print("[SKILL-SYNC] Activando visual de CURACION para aliado: ", username)
+		elif "SMOKE" in s_name or "BOMBA" in s_name:
+			pass # Ignorar visuales locales para bomba de humo
+		elif s_name == "INVULNERABILIDAD":
+			invulnerable_timer = 2.0
+			print("[SKILL-SYNC] Activando visual de INVULNERABILIDAD para aliado: ", username)
 
 func _update_3d_shield(delta: float):
 	if shield_visual_timer > 0: shield_visual_timer -= delta
 	if heal_visual_timer > 0: heal_visual_timer -= delta
+	if invulnerable_timer > 0: invulnerable_timer -= delta
 	
 	if not _3d_shield_mesh: return
 	
-	# v260.15: Lógica de Visibilidad Híbrida (Reflect, Escudo o Cura Activa)
-	var is_active = shield_visual_timer > 0 or reflect_timer > 0 or heal_visual_timer > 0
+	# v260.15: Lógica de Visibilidad Híbrida (Reflect, Escudo, Cura o Inmunidad)
+	var is_active = shield_visual_timer > 0 or reflect_timer > 0 or heal_visual_timer > 0 or invulnerable_timer > 0 or is_invulnerable
 	_3d_shield_mesh.visible = is_active
 	
 	if is_active:
@@ -1200,6 +1223,8 @@ func _update_3d_shield(delta: float):
 			
 			if reflect_timer > 0:
 				color = Color(1.0, 0.2, 0.1, 1.0) # Rojo (Reflect)
+			elif invulnerable_timer > 0 or is_invulnerable:
+				color = Color(1.0, 0.9, 0.1, 1.0) # Amarillo (Invulnerabilidad)
 			elif is_healing:
 				color = Color(0.1, 1.0, 0.3, 1.0) # Verde (Cura)
 			
