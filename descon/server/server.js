@@ -1601,20 +1601,30 @@ io.on('connection', (socket) => {
 
             if (!user.gameData[currency] && user.gameData[currency] !== 0) return socket.emit('authError', 'MONEDA INVALIDA');
 
-            // 1. LOCALIZAR ITEM CONFIG (v222.85: B├║squeda unificada y limpia)
+            // 1. LOCALIZAR ITEM CONFIG (v222.85: Búsqueda unificada y limpia)
             let itemConfig = null;
             if (category === 'ammo') {
                 for (const type in SERVER_CONFIG.shopItems.ammo) {
                     const found = SERVER_CONFIG.shopItems.ammo[type].find(i => i.id === itemId);
                     if (found) { itemConfig = found; break; }
                 }
+            } else if (category === 'ships') {
+                itemConfig = SERVER_CONFIG.shipModels.find(s => s.id === itemId);
             } else if (SERVER_CONFIG.shopItems[category]) {
                 itemConfig = SERVER_CONFIG.shopItems[category].find(i => i.id === itemId);
             }
 
             if (!itemConfig) return socket.emit('authError', 'ITEM NO ENCONTRADO EN LA GALAXIA');
 
-            // 2. CALCULO DE PRECIOS Y VALIDACI├ôN
+            // 2. VALIDACIONES PREVIAS (Para no descontar moneda si no procede)
+            if (category === 'ships') {
+                const shipIdNum = parseInt(itemConfig.id);
+                if (user.gameData.ownedShips.includes(shipIdNum)) {
+                    return socket.emit('authError', 'YA POSEES ESTA NAVE');
+                }
+            }
+
+            // 3. CALCULO DE PRECIOS Y VALIDACIÓN DE FONDOS
             const pricePerUnit = itemConfig.prices[currency];
             const qty = parseInt(amount) || 1000;
             const totalPrice = category === 'ammo' ? Math.floor((qty / 100.0) * pricePerUnit) : pricePerUnit;
@@ -1623,14 +1633,12 @@ io.on('connection', (socket) => {
                 return socket.emit('authError', `FONDOS INSUFICIENTES DE ${currency.toUpperCase()}`);
             }
 
-            // 3. PROCESAR TRANSACCI├ôN
+            // 4. PROCESAR TRANSACCIÓN
             user.gameData[currency] -= totalPrice;
 
             if (category === 'ships') {
                 const shipIdNum = parseInt(itemConfig.id);
-                if (!user.gameData.ownedShips.includes(shipIdNum)) {
-                    user.gameData.ownedShips.push(shipIdNum);
-                }
+                user.gameData.ownedShips.push(shipIdNum);
             } else if (category === 'ammo') {
                 const typeKey = itemId.split('_')[1].substring(0, 1) === 'l' ? 'laser' : (itemId.split('_')[1].substring(0, 1) === 'm' ? 'missile' : 'mine');
                 const tier = itemConfig.tier || 0;

@@ -218,6 +218,7 @@ func _process(_delta):
 	
 	_update_sphere_ui(0, p_node, get_node_or_null("Skills/Sphere1Slot"))
 	_update_sphere_ui(1, p_node, get_node_or_null("Skills/Sphere2Slot"))
+	_update_sphere_ui(2, p_node, get_node_or_null("Skills/Sphere3Slot"))
 	_update_sphere_ui(3, p_node, get_node_or_null("Skills/Sphere4Slot"))
 	
 	# v260.95: Sincronizar Etiquetas de Teclas (Slots 1-7)
