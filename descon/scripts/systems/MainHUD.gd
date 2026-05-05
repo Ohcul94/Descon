@@ -366,8 +366,12 @@ func _update_sphere_ui(id: int, ref, slot):
 	var rv = cds.get(key, 0.0)
 	
 	if l_fill:
-		var pct = clamp(rv / 10.0, 0.0, 1.0)
-
+		# --- SISTEMA DE PORCENTAJE AUTO-ADAPTATIVO (v190.42) ---
+		if not _max_cds.has(key) or rv > _max_cds[key]:
+			_max_cds[key] = max(rv, 1.0)
+		
+		var max_cd = _max_cds[key]
+		var pct = clamp(rv / max_cd, 0.0, 1.0)
 		
 		l_fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		l_fill.size = Vector2(p_size.x, p_size.y * pct)

@@ -42,7 +42,10 @@ var _bank_current: float = 0.0
 var _ship_rot_mem: Dictionary = {}
 var pvp_status: bool = false
 var reflect_timer: float = 0.0
+var shield_visual_timer: float = 0.0
+var heal_visual_timer: float = 0.0
 var _reflect_aura: Sprite2D = null
+var _3d_shield_mesh: MeshInstance3D = null
 var _collision_shape: CollisionShape2D = null
 var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
@@ -122,6 +125,7 @@ func _process(delta):
 		sync_lock_timer -= delta
 	
 	_update_reflect_aura(delta)
+	_update_3d_shield(delta)
 	_update_hit_flash(delta)
 	
 	if is_dead:
@@ -995,29 +999,13 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				tw.tween_property(vfx, "scale", Vector2(s*0.8, s*1.3), 0.1)
 				get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(vfx): vfx.queue_free())
 		"ESCUDO CELULAR":
-			var path = "res://assets/Efectos de Skills/Escudo(Transp).png"
-			if ResourceLoader.exists(path):
-				var vfx = Sprite2D.new(); var t = load(path); vfx.texture = t
-				var s = 240.0 / max(t.get_width(), t.get_height())
-				vfx.scale = Vector2(s*1.5, s*1.5); vfx.modulate.a = 0.0; vfx.z_index = 2
-				add_child(vfx)
-				var tw = create_tween().set_parallel(true)
-				tw.tween_property(vfx, "modulate:a", 0.8, 0.2)
-				tw.tween_property(vfx, "scale", Vector2(s, s), 0.4).set_trans(Tween.TRANS_BACK)
-				tw.chain().tween_property(vfx, "modulate:a", 0.0, 0.4).set_delay(0.2)
-				tw.chain().tween_callback(vfx.queue_free)
+			shield_visual_timer = 2.0 # Activar visual 3D pro
+			# v260.20: Se eliminó el Sprite2D viejo para limpiar la visual 3D
+
 		"AUTO-REPARACIÓN":
-			var path = "res://assets/Efectos de Skills/Curacion(Transp).png"
-			if ResourceLoader.exists(path):
-				var vfx = Sprite2D.new(); var t = load(path); vfx.texture = t
-				var s = 180.0 / max(t.get_width(), t.get_height())
-				vfx.scale = Vector2(0.1, 0.1); vfx.modulate.a = 0.9
-				add_child(vfx)
-				var tw = create_tween().set_parallel(true)
-				tw.tween_property(vfx, "scale", Vector2(s, s), 0.5).set_trans(Tween.TRANS_ELASTIC)
-				tw.tween_property(vfx, "rotation", TAU, 0.6)
-				tw.tween_property(vfx, "modulate:a", 0.0, 0.4).set_delay(0.2)
-				tw.chain().tween_callback(vfx.queue_free)
+			heal_visual_timer = 2.0 # Activar visual 3D pro de curación
+			# v260.30: Se eliminó el Sprite2D de curación en favor del efecto 3D
+
 
 # v219.70: SISTEMA DE RENDERIZADO 3D SOBRE 2D (EXPERIMENTAL)
 func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
@@ -1125,6 +1113,20 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		_3d_model = control_node 
 		control_node.scale = Vector3(3.0, 3.0, 3.0) 
 		model.rotation_degrees.y = rot_offset 
+
+		# v260.10: Inyectar Escudo de Energía 3D (Procedural)
+		_3d_shield_mesh = MeshInstance3D.new()
+		_3d_shield_mesh.name = "EnergyShield"
+		var sphere = SphereMesh.new()
+		sphere.radius = 0.55 # Ajustado para ser apenas mayor que la nave (escala 1.0 relativa al control_node)
+		sphere.height = 1.1
+		_3d_shield_mesh.mesh = sphere
+		
+		var mat = ShaderMaterial.new()
+		mat.shader = load("res://resources/shaders/energy_shield.gdshader")
+		_3d_shield_mesh.material_override = mat
+		_3d_shield_mesh.visible = false 
+		control_node.add_child(_3d_shield_mesh) # Ahora rota y escala CON la nave
 	
 	# 4. Cámara de Perspectiva con ZOOM 50% (Punto 0)
 	var cam_pivot = Node3D.new()
@@ -1160,36 +1162,49 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	
 	print("[3D] Visualizacion configurada correctamente.")
 
-func _update_reflect_aura(delta: float):
-	if reflect_timer <= 0:
-		if _reflect_aura: _reflect_aura.visible = false
-		return
-	
-	if not _reflect_aura:
-		_reflect_aura = Sprite2D.new()
-		var path = "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png"
-		if ResourceLoader.exists(path):
-			_reflect_aura.texture = load(path)
-			_reflect_aura.top_level = true # v235.26: Independencia visual
-			_reflect_aura.z_index = 0 # Debajo de la nave (z_index 1)
-			_reflect_aura.modulate = Color(1.2, 1.2, 1.2, 0.7) # Un toque de glow
-			# v235.25: Tamaño un poco más grande que la nave
-			_reflect_aura.scale = Vector2(0.18, 0.18)
-			add_child(_reflect_aura)
-			print("[BATTLE] Aura de reflejo instancializada.")
-	
+func _update_reflect_aura(_delta: float):
+	# v260.20: Aura 2D desactivada en favor del sistema de Escudo de Energía 3D
 	if _reflect_aura:
-		_reflect_aura.visible = true
-		_reflect_aura.global_position = global_position
-		_reflect_aura.rotation += delta * 1.5 # Rotaci├│n suave premium
+		_reflect_aura.visible = false
+	return
 	
 func _on_remote_skill_used(data: Dictionary):
 	# v235.37: Registro de uso de habilidad remota para sincron├¡a visual
 	if str(data.get("id")) == entity_id:
 		var s_name = str(data.get("skillName", ""))
-		if s_name == "REFLECT-Ω":
+		if "REFLECT" in s_name:
 			reflect_timer = 3.0
 			print("[SKILL-SYNC] Activando visual de REFLECT para aliado: ", username)
+		elif "ESCUDO" in s_name:
+			shield_visual_timer = 2.0
+			print("[SKILL-SYNC] Activando visual de ESCUDO para aliado: ", username)
+		elif "REPAR" in s_name or "CURA" in s_name or "REGEN" in s_name:
+			heal_visual_timer = 2.0
+			print("[SKILL-SYNC] Activando visual de CURACION para aliado: ", username)
+
+func _update_3d_shield(delta: float):
+	if shield_visual_timer > 0: shield_visual_timer -= delta
+	if heal_visual_timer > 0: heal_visual_timer -= delta
+	
+	if not _3d_shield_mesh: return
+	
+	# v260.15: Lógica de Visibilidad Híbrida (Reflect, Escudo o Cura Activa)
+	var is_active = shield_visual_timer > 0 or reflect_timer > 0 or heal_visual_timer > 0
+	_3d_shield_mesh.visible = is_active
+	
+	if is_active:
+		var mat = _3d_shield_mesh.material_override as ShaderMaterial
+		if mat:
+			var color = Color(0.1, 0.5, 1.0, 1.0) # Azul (Escudo)
+			var is_healing = heal_visual_timer > 0
+			
+			if reflect_timer > 0:
+				color = Color(1.0, 0.2, 0.1, 1.0) # Rojo (Reflect)
+			elif is_healing:
+				color = Color(0.1, 1.0, 0.3, 1.0) # Verde (Cura)
+			
+			mat.set_shader_parameter("color_escudo", color)
+			mat.set_shader_parameter("modo_curacion", is_healing)
 
 func _update_3d_spheres():
 	var sm = get_node_or_null("SpheresManager")
