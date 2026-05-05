@@ -623,6 +623,14 @@
             },
             "type": "Curación"
         },
+        "BLINK": {
+            "canTargetOthers": false,
+            "cd": 2,
+            "desc": "Teletransportación instantánea al punto seleccionado.",
+            "id": "SK-UTIL-04",
+            "range": 450,
+            "type": "Utilidad"
+        },
         "ESCUDO CELULAR": {
             "amount": 600,
             "canTargetOthers": true,
@@ -658,6 +666,14 @@
             },
             "type": "Utilidad"
         },
+        "INVULNERABILIDAD": {
+            "canTargetOthers": false,
+            "cd": 30,
+            "desc": "Te vuelve inmune a todo daño durante 2 segundos.",
+            "duration": 2,
+            "range": 0,
+            "type": "Utilidad"
+        },
         "NANO-REGENERACIÓN": {
             "amount": 300,
             "canTargetOthers": true,
@@ -687,6 +703,15 @@
             "reflect_mult": 1.5,
             "type": "Ataque"
         },
+        "SMOKE-BOMB": {
+            "canTargetOthers": false,
+            "cd": 12,
+            "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.",
+            "duration": 6,
+            "radius": 180,
+            "range": 0,
+            "type": "Defensa"
+        },
         "TURBO-IMPULSO": {
             "canTargetOthers": true,
             "cd": 5,
@@ -699,23 +724,6 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Utilidad"
-        },
-        "SMOKE-BOMB": {
-            "canTargetOthers": false,
-            "cd": 12,
-            "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.",
-            "range": 0,
-            "duration": 6,
-            "radius": 180,
-            "type": "Defensa"
-        },
-        "INVULNERABILIDAD": {
-            "canTargetOthers": false,
-            "cd": 30,
-            "desc": "Te vuelve inmune a todo daño durante 2 segundos.",
-            "range": 0,
-            "duration": 2,
             "type": "Utilidad"
         }
     }

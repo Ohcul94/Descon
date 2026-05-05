@@ -6,8 +6,24 @@ class_name SphereSkill
 @export_multiline var description: String = ""
 @export var icon: Texture2D
 @export var type: String = "Utilidad" # Utilidad, Defensa, Curación
-@export var cooldown: float = 5.0
-@export var power_value: float = 10.0 # Cantidad de curación, velocidad, etc.
+# v2.9: Propiedades dinámicas que priorizan el catálogo de Constants.gd (Admin Sync)
+var cooldown: float:
+	get:
+		if GameConstants.SKILLS_DATA.has(skill_name):
+			return GameConstants.SKILLS_DATA[skill_name].get("cd", _cooldown)
+		return _cooldown
+	set(v): _cooldown = v
+
+var power_value: float:
+	get:
+		if GameConstants.SKILLS_DATA.has(skill_name):
+			var data = GameConstants.SKILLS_DATA[skill_name]
+			return data.get("amount", data.get("speed", data.get("range", data.get("duration", _power_value))))
+		return _power_value
+	set(v): _power_value = v
+
+var _cooldown: float = 5.0
+var _power_value: float = 10.0
 
 # v200.7: Esta función será llamada por el SpheresManager
 func activate(player: CharacterBody2D):

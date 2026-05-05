@@ -164,6 +164,7 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 		if cd <= 0:
 			var r_val = 600.0 # Default
 			var filters = {}
+			var s_name = skill_id # Fallback para armas base (laser, missile, mine)
 			
 			if skill_id.begins_with("sphere_"):
 				var s_idx = int(skill_id.replace("sphere_", ""))
@@ -171,8 +172,9 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 				if sm:
 					var sph = sm.get_equipped_skill(s_idx)
 					if sph:
-						var s_name = sph.get("skill_name")
-						if s_name != null and GameConstants.SKILLS_DATA.has(s_name):
+						s_name = sph.get("skill_name")
+						if s_name == null: s_name = ""
+						if s_name != "" and GameConstants.SKILLS_DATA.has(s_name):
 							var s_data = GameConstants.SKILLS_DATA[s_name]
 							r_val = s_data.get("range", 0)
 							filters = s_data.get("targetFilters", {})
@@ -198,8 +200,8 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 				})
 				return
 			
-			# v3.9.8: Inyección de Filtros Dinámicos
-			_skill_controller.start_aiming({"id": skill_id, "type": type, "range": r_val, "filters": filters})
+			# v3.9.8: Inyección de Filtros Dinámicos y Nombre para Visuales
+			_skill_controller.start_aiming({"id": skill_id, "type": type, "range": r_val, "filters": filters, "skill_name": s_name})
 	
 	if Input.is_action_just_released(action):
 		if _skill_controller.is_aiming and _skill_controller.current_skill.id == skill_id:
@@ -626,7 +628,8 @@ func _find_skill_by_name(n: String):
 	var target_n = n.to_upper().strip_edges()
 	var skills = [
 		Skill_TurboImpulse, Skill_ShieldCell, Skill_RepairKit, Skill_Reflect,
-		Skill_PlasmaBlast, Skill_Fortress, Skill_RegenPath, Skill_HyperDash
+		Skill_PlasmaBlast, Skill_Fortress, Skill_RegenPath, Skill_HyperDash,
+		Skill_Invulnerability, Skill_Blink, Skill_SmokeBomb
 	]
 	for s in skills:
 		var inst = s.new()

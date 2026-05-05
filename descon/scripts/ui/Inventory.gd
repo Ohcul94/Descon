@@ -503,6 +503,14 @@ func _create_item_row(it, parent):
 func _update_spheres_ui():
 	var root_tab = get_node_or_null("Window/TabContainer/Esferas")
 	if not root_tab: return
+	
+	# v2.8: Persistencia de Sub-Pestaña (Evitar saltos al filtrar)
+	var prev_idx = 0
+	for child in root_tab.get_children():
+		if child is TabContainer:
+			prev_idx = child.current_tab
+			break
+
 	for n in root_tab.get_children(): n.queue_free()
 	
 	# v201.5: Creación de Sub-Pestañas para Esferas
@@ -515,6 +523,9 @@ func _update_spheres_ui():
 	
 	_render_spheres_equipment(eq_tab, sub_tabs)
 	_render_spheres_library(lib_tab)
+	
+	# Restaurar la pestaña donde estábamos (v2.8 Fix)
+	sub_tabs.current_tab = prev_idx
 
 func _render_spheres_equipment(tab, sub_tabs):
 	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); master_v.offset_top = 20; tab.add_child(master_v)
@@ -670,6 +681,7 @@ func _render_spheres_library(tab):
 		{"class": Skill_TurboImpulse, "color": Color.YELLOW, "icon": "⚡", "type": "UTILIDAD"},
 		{"class": Skill_HyperDash, "color": Color.YELLOW, "icon": "💨", "type": "UTILIDAD"},
 		{"class": Skill_Invulnerability, "color": Color.YELLOW, "icon": "🛡️", "type": "UTILIDAD"},
+		{"class": Skill_Blink, "color": Color.YELLOW, "icon": "✨", "type": "UTILIDAD"},
 		
 		{"class": Skill_ShieldCell, "color": Color.AQUA, "icon": "🛡️", "type": "DEFENSA"},
 		{"class": Skill_Fortress, "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},

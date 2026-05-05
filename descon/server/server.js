@@ -1676,6 +1676,8 @@ io.on('connection', (socket) => {
             targetId: isRemote ? data.targetId : socket.id
         });
 
+        const s_data = (SERVER_CONFIG && SERVER_CONFIG.skillsData) ? SERVER_CONFIG.skillsData[data.skillName] || {} : {};
+        
         if (data.skillName === "INVULNERABILIDAD") {
             p.isInvulnerable = true;
             console.log(`[SKILL] ${p.user} es ahora INVULNERABLE`);
@@ -1689,12 +1691,22 @@ io.on('connection', (socket) => {
             };
             io.to(`zone_${p.zone}`).emit('playerStatSync', syncData);
 
+            const duration = (s_data.duration || 2) * 1000;
             setTimeout(() => {
                 p.isInvulnerable = false;
                 console.log(`[SKILL] ${p.user} ya no es invulnerable`);
                 const endSync = { id: socket.id, isInvulnerable: false };
                 io.to(`zone_${p.zone}`).emit('playerStatSync', endSync);
-            }, 2000);
+            }, duration);
+        } else if (data.skillName === "BLINK") {
+            // v2.9: Sincronía autoritativa de Teletransporte
+            if (data.pos) {
+                p.x = data.pos.x;
+                p.y = data.pos.y;
+                console.log(`[SKILL] ${p.user} se teletransportó a ${p.x}, ${p.y}`);
+                // Forzar broadcast de posición
+                io.to(`zone_${p.zone}`).emit('playerMoveSync', { id: socket.id, x: p.x, y: p.y, rot: p.rot });
+            }
         }
 
         console.log(`[SPHERES] Piloto ${p.user} usó ${data.skillName} (Target: ${isRemote ? (target.user || target.name) : 'Self'}).`);

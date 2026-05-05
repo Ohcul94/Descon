@@ -101,6 +101,7 @@ var SKILLS_DATA = {
 	"TURBO-IMPULSO": { "id": "SK-UTIL-01", "type": "Utilidad", "desc": "Aumenta la velocidad de los motores temporalmente.", "speed": 150, "cd": 5.0, "range": 0, "canTargetOthers": true, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } },
 	"HYPER-DASH": { "id": "SK-UTIL-02", "type": "Utilidad", "desc": "Propulsión instantánea hacia adelante para evasión rápida.", "speed": 1000, "cd": 5.0, "range": 0, "canTargetOthers": false },
 	"INVULNERABILIDAD": { "id": "SK-UTIL-03", "type": "Utilidad", "desc": "Te vuelve inmune a todo daño durante 2 segundos.", "duration": 2.0, "cd": 30.0, "range": 0, "canTargetOthers": false },
+	"BLINK": { "id": "SK-UTIL-04", "type": "Utilidad", "desc": "Teletransportación instantánea al punto seleccionado.", "range": 450, "cd": 15.0, "canTargetOthers": false },
 	"REFLECT-Ω": { "id": "SK-ATK-01", "type": "Ataque", "desc": "Crea un campo de resonancia que refleja daño hostil.", "reflect_mult": 1.5, "amount": 500, "cd": 5.0, "range": 0, "canTargetOthers": false },
 	"PLASMA BLAST": { "id": "SK-ATK-02", "type": "Ataque", "desc": "Disparo concentrado de plasma con alta potencia destructiva.", "amount": 850, "cd": 8.0, "range": 600, "canTargetOthers": true, "targetFilters": { "allies": false, "enemies": true, "bosses": true, "players": true } },
 	"SMOKE-BOMB": { "id": "SK-DEF-03", "type": "Defensa", "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.", "duration": 6, "radius": 180, "cd": 12.0, "range": 0, "canTargetOthers": false }

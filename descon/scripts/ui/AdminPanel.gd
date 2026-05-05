@@ -238,7 +238,7 @@ func _render_spheres(container):
 		"AZUL (Defensa)": ["Defensa", "Escudo"],
 		"VERDE (Curación)": ["Curación", "Reparación"],
 		"ROJO (Ataque)": ["Ataque", "Combat", "Daño"],
-		"AMARILLO (Movimiento)": ["Movimiento", "Velocidad"]
+		"AMARILLO (Utilidad)": ["Utilidad", "Movimiento", "Velocidad"]
 	}
 	
 	var tab_nodes = {}
@@ -291,7 +291,7 @@ func _render_spheres(container):
 		var type_hb = VBoxContainer.new(); grid.add_child(type_hb)
 		var type_l = Label.new(); type_l.text = "TIPO"; type_l.add_theme_font_size_override("font_size", 9); type_l.modulate.a = 0.5; type_hb.add_child(type_l)
 		var type_opt = OptionButton.new(); type_hb.add_child(type_opt)
-		var types = ["Defensa", "Curación", "Ataque", "Movimiento"]
+		var types = ["Defensa", "Curación", "Ataque", "Utilidad"]
 		for t in types:
 			type_opt.add_item(t)
 			if t == skill.type: type_opt.selected = type_opt.get_item_count() - 1

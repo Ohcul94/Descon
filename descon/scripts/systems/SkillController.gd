@@ -96,6 +96,7 @@ func _find_target_under_mouse() -> Node2D:
 func start_aiming(skill_data: Dictionary):
 	current_skill = skill_data
 	is_aiming = true
+	queue_redraw()
 	
 	if config.cast_mode == CastMode.QUICK_CAST:
 		execute_skill()
@@ -136,8 +137,8 @@ func _draw():
 	var mouse_local = get_local_mouse_position()
 	
 	# 1. Dibujar Rango (Círculo) - v3.5: Ocultar si es Global (0)
-	if config.show_range and range_val > 0:
-		draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 1.5)
+	if range_val > 0:
+		draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 2.0)
 	
 	# 2. Dibujar Indicador
 	if current_skill.get("type") == SkillType.DIRECTIONAL:
@@ -146,7 +147,11 @@ func _draw():
 		if range_val > 0 and dist > range_val:
 			end_point = mouse_local.normalized() * range_val
 		
-		draw_line(Vector2.ZERO, end_point, Color(color.r, color.g, color.b, 0.6), 3.0)
+		# v2.9: Ocultar línea para habilidades de teletransporte o minas (Solo queremos el punto)
+		var s_name = current_skill.get("skill_name", "")
+		if s_name != "BLINK" and current_skill.id != "mine":
+			draw_line(Vector2.ZERO, end_point, Color(color.r, color.g, color.b, 0.6), 3.0)
+		
 		draw_circle(end_point, 8.0, color)
 		
 	elif current_skill.get("type") == SkillType.POINT_CLICK:

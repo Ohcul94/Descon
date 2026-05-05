@@ -1022,6 +1022,15 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 		"INVULNERABILIDAD":
 			invulnerable_timer = 2.0 # Activar visual 3D amarilla
 			print("[SKILL] Activando visual de INVULNERABILIDAD para: ", username)
+		"BLINK_OUT":
+			var tw = create_tween()
+			tw.tween_property(self, "scale", Vector2.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+			tw.tween_callback(func(): modulate.a = 0.0)
+		"BLINK_IN":
+			modulate.a = 1.0
+			scale = Vector2.ZERO
+			var tw = create_tween()
+			tw.tween_property(self, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 # v219.70: SISTEMA DE RENDERIZADO 3D SOBRE 2D (EXPERIMENTAL)
