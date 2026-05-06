@@ -12,6 +12,14 @@ func spawn_explosion(pos: Vector2, p_scale: float = 1.0): # Renombrado scale a p
 	print("[VFX] Generando Explosión en ", pos, " (Escala: ", p_scale, ")")
 	_create_nova_effect(pos.x, pos.y, p_scale * 100.0)
 
+# v3.1: Generador de efectos rápidos (Teletransporte, impactos, etc)
+func create_simple_vfx(pos: Vector2, type: String = "warp_exit", radius: float = 50.0):
+	match type:
+		"warp_exit", "warp_entry":
+			_create_nova_effect(pos.x, pos.y, radius)
+		_:
+			_create_nova_effect(pos.x, pos.y, radius)
+
 func handle_boss_effect(data: Dictionary):
 	var type = data.get("type", "")
 	var p_x = data.get("x", 0.0)

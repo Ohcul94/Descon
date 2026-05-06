@@ -35,10 +35,9 @@ func activate(player: CharacterBody2D):
 	if "target_position" in player:
 		player.target_position = target_pos
 	
-	# 3. VFX Reaparecer
+	# 3. VFX Reaparecer (Con un pequeño delay de 2 frames para asegurar que el motor lo oculte en el origen)
 	if player.has_method("play_skill_vfx"):
-		# Breve delay para que se note la desaparición antes de la reaparición
-		player.get_tree().create_timer(0.05).timeout.connect(func():
+		player.get_tree().create_timer(0.03).timeout.connect(func():
 			if is_instance_valid(player):
 				player.play_skill_vfx("BLINK_IN", 0.0)
 		)

@@ -349,9 +349,11 @@ func route_chat_bubble(data: Dictionary):
 	if target: target.show_bubble(txt)
 
 func _on_spawn_area(data: Dictionary):
+	print("[SMOKE-DEBUG] _on_spawn_area RECIBIDO: ", data)
 	var type = data.get("type", "SMOKE")
 	var id = data.get("id", "")
 	if type == "SMOKE":
+		print("[SMOKE-DEBUG] Tipo es SMOKE, llamando _spawn_smoke_cloud con id=", id, " radius=", data.radius)
 		_spawn_smoke_cloud(id, Vector2(data.x, data.y), data.radius)
 
 func _on_remove_area(data: Dictionary):
@@ -364,19 +366,24 @@ func _on_remove_area(data: Dictionary):
 		active_areas.erase(id)
 
 func _spawn_smoke_cloud(id, pos, radius):
-	if active_areas.has(id): return
+	print("[SMOKE-DEBUG] _spawn_smoke_cloud: id=", id, " pos=", pos, " radius=", radius)
+	if active_areas.has(id):
+		print("[SMOKE-DEBUG] ABORTADO: id ya existe en active_areas")
+		return
 	
 	# v260.85: Renderizado de Humo 3D Autorizativo
 	var wrapper = Node2D.new()
 	wrapper.name = id
 	wrapper.global_position = pos
-	wrapper.z_index = -1 # Debajo de las naves
+	wrapper.z_index = -1 # v2.0 Original: Debajo de las naves
 	entities_node.add_child(wrapper)
 	active_areas[id] = wrapper
 	
+	# v2.0: Generar Nube 3D via Viewport (Look MMO Premium)
 	var view_size = int(radius * 2.5)
 	var vp = SubViewport.new()
 	vp.size = Vector2i(view_size, view_size)
+
 	vp.transparent_bg = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	wrapper.add_child(vp)
@@ -388,14 +395,14 @@ func _spawn_smoke_cloud(id, pos, radius):
 	cam.position = Vector3(0, 0, 10)
 	cam.look_at(Vector3.ZERO)
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = 2.0 # El PlaneMesh es 2x2, así que 2.0 lo llena perfectamente
+	cam.size = 2.0 
 	node3d.add_child(cam)
 	
 	var mesh_inst = MeshInstance3D.new()
 	var plane = PlaneMesh.new()
 	plane.size = Vector2(2, 2)
 	mesh_inst.mesh = plane
-	mesh_inst.rotation_degrees.x = 90 # Rotar para que el plano mire a la cámara (XY plane)
+	mesh_inst.rotation_degrees.x = 90 # Restaurado a 90 según commit funcional
 	
 	var mat = ShaderMaterial.new()
 	mat.shader = load("res://resources/shaders/smoke_cloud.gdshader")
@@ -407,12 +414,13 @@ func _spawn_smoke_cloud(id, pos, radius):
 	sprite.texture = vp.get_texture()
 	wrapper.add_child(sprite)
 	
-	# Animación de Entrada (v2.0: Mucho más rápida)
+	# Animación de Entrada Original
 	wrapper.modulate.a = 0.0
-	wrapper.scale = Vector2(0.5, 0.5)
+	wrapper.scale = Vector2(0.5, 0.5) # Original: Empieza pequeño
 	var tw = create_tween().set_parallel(true)
 	tw.tween_property(wrapper, "modulate:a", 1.0, 0.2)
 	tw.tween_property(wrapper, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+
 
 func _on_remote_stat_sync(data: Dictionary):
 	if typeof(data) != TYPE_DICTIONARY: return
@@ -528,10 +536,17 @@ func _on_remote_skill_used(data):
 	elif enemies.has(target_id):
 		target_node = enemies[target_id]
 	
-	# 2. Reproducir efectos si el objetivo es válido
-	if is_instance_valid(target_node) and target_node.has_method("play_skill_vfx"):
-		target_node.play_skill_vfx(data.get("skillName", ""), float(data.get("powerValue", 0.0)))
-		# print("[VFX] Aplicando ", data.skillName, " sobre ", target_node.name)
+	# 2. Reproducir efectos y teletransportar si es necesario
+	if is_instance_valid(target_node):
+		var skill_name = data.get("skillName", "")
+		
+		# v3.2: BLINK: teletransportar PRIMERO (oculta el nodo), luego VFX de llegada
+		if skill_name == "BLINK" and data.has("pos") and target_node.has_method("teleport_to"):
+			var new_pos = Vector2(data.pos.x, data.pos.y)
+			target_node.teleport_to(new_pos)
+			# El BLINK_IN se dispara después del delay interno de teleport_to (0.05s)
+		elif target_node.has_method("play_skill_vfx"):
+			target_node.play_skill_vfx(skill_name, float(data.get("powerValue", 0.0)))
 
 func _on_clear_enemy_projectiles(data: Dictionary):
 	var boss_id = str(data.get("bossId", ""))

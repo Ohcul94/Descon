@@ -705,7 +705,7 @@
         },
         "SMOKE-BOMB": {
             "canTargetOthers": false,
-            "cd": 12,
+            "cd": 1,
             "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.",
             "duration": 6,
             "radius": 180,

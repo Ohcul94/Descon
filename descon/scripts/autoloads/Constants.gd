@@ -104,7 +104,8 @@ var SKILLS_DATA = {
 	"BLINK": { "id": "SK-UTIL-04", "type": "Utilidad", "desc": "Teletransportación instantánea al punto seleccionado.", "range": 450, "cd": 15.0, "canTargetOthers": false },
 	"REFLECT-Ω": { "id": "SK-ATK-01", "type": "Ataque", "desc": "Crea un campo de resonancia que refleja daño hostil.", "reflect_mult": 1.5, "amount": 500, "cd": 5.0, "range": 0, "canTargetOthers": false },
 	"PLASMA BLAST": { "id": "SK-ATK-02", "type": "Ataque", "desc": "Disparo concentrado de plasma con alta potencia destructiva.", "amount": 850, "cd": 8.0, "range": 600, "canTargetOthers": true, "targetFilters": { "allies": false, "enemies": true, "bosses": true, "players": true } },
-	"SMOKE-BOMB": { "id": "SK-DEF-03", "type": "Defensa", "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.", "duration": 6, "radius": 180, "cd": 12.0, "range": 0, "canTargetOthers": false }
+	"SMOKE-BOMB": { "id": "SK-DEF-03", "type": "Defensa", "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.", "duration": 6, "radius": 180, "cd": 12.0, "range": 0, "amount": 1, "canTargetOthers": false }
+
 }
 func _ready():
 	if NetworkManager:

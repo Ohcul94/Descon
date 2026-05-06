@@ -1538,7 +1538,7 @@ io.on('connection', (socket) => {
             powerValue = sphere.equipped.power_value || 0;
         }
 
-        if (powerValue <= 0) return; // Hack detected or no skill equipped
+        if (powerValue <= 0 && data.skillName !== "SMOKE-BOMB") return; // Hack detected or no skill equipped (Excluir SMOKE-BOMB que usa radio)
 
         // v3.8: SOPORTE PARA OBJETIVOS REMOTOS (Aliados/Enemigos) v262.10
         let skillConfig = (SERVER_CONFIG && SERVER_CONFIG.skillsData) ? SERVER_CONFIG.skillsData[data.skillName] : null;
@@ -1699,13 +1699,19 @@ io.on('connection', (socket) => {
                 io.to(`zone_${p.zone}`).emit('playerStatSync', endSync);
             }, duration);
         } else if (data.skillName === "BLINK") {
-            // v2.9: Sincronía autoritativa de Teletransporte
+            // v3.1: Sincronía autoritativa de Teletransporte Unificada
             if (data.pos) {
                 p.x = data.pos.x;
                 p.y = data.pos.y;
                 console.log(`[SKILL] ${p.user} se teletransportó a ${p.x}, ${p.y}`);
-                // Forzar broadcast de posición
-                io.to(`zone_${p.zone}`).emit('playerMoveSync', { id: socket.id, x: p.x, y: p.y, rot: p.rot });
+                
+                // v3.1: Emitir el uso de skill con posición para que los clientes teletransporten al actor
+                io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', { 
+                    id: socket.id, 
+                    skillName: data.skillName, 
+                    pos: { x: p.x, y: p.y },
+                    targetId: socket.id 
+                });
             }
         }
 

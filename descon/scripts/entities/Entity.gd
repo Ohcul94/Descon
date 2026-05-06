@@ -115,10 +115,32 @@ func _ready():
 var last_draw_hp: float = -1.0
 var last_draw_sh: float = -1.0
 var sync_lock_timer: float = 0.0
+var is_teleporting: bool = false # v3.1: Bloquear interpolación en saltos instantáos
 
 func activate_sync_lock(duration: float = 2.5):
 	sync_lock_timer = duration
 	print("[NET] Bloqueo de Sincronía activado por ", duration, "s")
+
+# v3.2: Teletransporte Autoritativo Instantáneo (Anti-Lerp)
+func teleport_to(new_pos: Vector2):
+	is_teleporting = true
+	# 1. Ocultar ANTES de mover para que no se vea ningún frame de tránsito
+	modulate.a = 0.0
+	if is_instance_valid(_3d_model): _3d_model.visible = false
+	if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
+	# 2. Teletransporte instantáneo (ambos valores)
+	global_position = new_pos
+	target_position = new_pos
+	# 3. Re-aparecer después de 2 frames (tiempo suficiente para que el render procese)
+	get_tree().create_timer(0.05).timeout.connect(func():
+		if not is_instance_valid(self): return
+		modulate.a = 1.0
+		if is_instance_valid(_3d_model): _3d_model.visible = true
+		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
+		get_tree().create_timer(0.45).timeout.connect(func(): 
+			if is_instance_valid(self): is_teleporting = false
+		)
+	)
 
 func _process(delta):
 	if reflect_timer > 0:
@@ -136,7 +158,7 @@ func _process(delta):
 		if _reflect_aura: _reflect_aura.visible = false
 		visible = false; return
 	
-	visible = true; show(); modulate.a = 1.0
+	visible = true; show()
 	if _ui_wrapper: _ui_wrapper.visible = true
 	
 	# v219.65: Redibujado Inteligente (Interpolación v190.85)
@@ -150,7 +172,7 @@ func _process(delta):
 		last_draw_sh = _display_shield
 	
 	# v220.30: INTERPOLACIÓN DE MOVIMIENTO (Para fluidez en naves remotas/enemigos)
-	if not is_in_group("player"):
+	if not is_in_group("player") and not is_teleporting:
 		# Deslizamiento suave de posición (Lerp 20% por frame)
 		global_position = global_position.lerp(target_position, 0.2)
 		# Suavizado de rotación (Lerp_angle evita saltos de 0 a 360)
@@ -1018,19 +1040,25 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 		
 		"SMOKE-BOMB":
 			pass # La visual es gestionada por World.gd de forma global
+
 		
 		"INVULNERABILIDAD":
 			invulnerable_timer = 2.0 # Activar visual 3D amarilla
 			print("[SKILL] Activando visual de INVULNERABILIDAD para: ", username)
 		"BLINK_OUT":
-			var tw = create_tween()
-			tw.tween_property(self, "scale", Vector2.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
-			tw.tween_callback(func(): modulate.a = 0.0)
+			# v3.2: Desaparición TOTAL e INSTANTÁNEA (sin VFX expansivo)
+			modulate.a = 0.0
+			if is_instance_valid(_3d_model): _3d_model.visible = false
+			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
 		"BLINK_IN":
+			# v3.2: Reaparición con destello puntual (sin nova expansiva)
 			modulate.a = 1.0
-			scale = Vector2.ZERO
+			if is_instance_valid(_3d_model): _3d_model.visible = true
+			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
+			# Destello blanco puntual en el destino (no expansivo)
 			var tw = create_tween()
-			tw.tween_property(self, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			tw.tween_property(self, "modulate", Color(3.0, 3.0, 3.0, 1.0), 0.0)
+			tw.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.15)
 
 
 # v219.70: SISTEMA DE RENDERIZADO 3D SOBRE 2D (EXPERIMENTAL)
