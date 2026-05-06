@@ -682,6 +682,7 @@ func _render_spheres_library(tab):
 		{"class": Skill_HyperDash, "color": Color.YELLOW, "icon": "💨", "type": "UTILIDAD"},
 		{"class": Skill_Invulnerability, "color": Color.YELLOW, "icon": "🛡️", "type": "UTILIDAD"},
 		{"class": Skill_Blink, "color": Color.YELLOW, "icon": "✨", "type": "UTILIDAD"},
+		{"class": Skill_Stealth, "color": Color.YELLOW, "icon": "👻", "type": "UTILIDAD"},
 		
 		{"class": Skill_ShieldCell, "color": Color.AQUA, "icon": "🛡️", "type": "DEFENSA"},
 		{"class": Skill_Fortress, "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},

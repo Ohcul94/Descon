@@ -629,7 +629,7 @@ func _find_skill_by_name(n: String):
 	var skills = [
 		Skill_TurboImpulse, Skill_ShieldCell, Skill_RepairKit, Skill_Reflect,
 		Skill_PlasmaBlast, Skill_Fortress, Skill_RegenPath, Skill_HyperDash,
-		Skill_Invulnerability, Skill_Blink, Skill_SmokeBomb
+		Skill_Invulnerability, Skill_Blink, Skill_SmokeBomb, Skill_Stealth
 	]
 	for s in skills:
 		var inst = s.new()

@@ -240,6 +240,12 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"remotePlayerUsedSkill":
 			if typeof(e_data) == TYPE_DICTIONARY:
 				remote_skill_used.emit(e_data)
+		"remoteStatSync":
+			if typeof(e_data) == TYPE_DICTIONARY:
+				if str(e_data.get("id", "")) != my_socket_id:
+					_dispatch_single_player(e_data, "player_stat_sync")
+				else:
+					player_stat_sync.emit(e_data)
 		"rewardReceived": reward_received.emit(e_data)
 		"playerDisconnected":
 			player_disconnected.emit(str(e_data))

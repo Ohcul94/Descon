@@ -29,7 +29,7 @@ module.exports = class BaseAI {
         
         for (const id in players) {
             const p = players[id];
-            if (!p || p.isDead || p.zone !== this.enemy.zone) continue;
+            if (!p || p.isDead || p.zone !== this.enemy.zone || p.isInvisible) continue;
             
             // v252.22: Validación de Integridad del Target
             if (typeof p.x !== 'number' || typeof p.y !== 'number') continue;

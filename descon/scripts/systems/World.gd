@@ -393,10 +393,12 @@ func _spawn_smoke_cloud(id, pos, radius):
 	
 	var cam = Camera3D.new()
 	cam.position = Vector3(0, 0, 10)
-	cam.look_at(Vector3.ZERO)
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
 	cam.size = 2.0 
 	node3d.add_child(cam)
+	
+	# v260.98: look_at requiere que el nodo esté en el árbol (Fix: Node not inside tree)
+	cam.look_at(Vector3.ZERO)
 	
 	var mesh_inst = MeshInstance3D.new()
 	var plane = PlaneMesh.new()

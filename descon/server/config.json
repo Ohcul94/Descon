@@ -712,6 +712,14 @@
             "range": 0,
             "type": "Defensa"
         },
+        "STEALTH": {
+            "canTargetOthers": false,
+            "cd": 2,
+            "desc": "Te vuelve invisible para enemigos y jugadores fuera de tu grupo.",
+            "duration": 8,
+            "range": 0,
+            "type": "Utilidad"
+        },
         "TURBO-IMPULSO": {
             "canTargetOthers": true,
             "cd": 5,

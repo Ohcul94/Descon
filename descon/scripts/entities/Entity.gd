@@ -441,9 +441,13 @@ func update_stats(data):
 			if !is_in_group("player"):
 				if self.has_method("set"): self.set("equipped", new_eq)
 			
-			# Forzar recálculo de stats/visuales si corresponde
 			if self.has_method("_recalculate_stats"):
 				self.call("_recalculate_stats")
+
+	# v3.5: Sincronía de Invisibilidad (STEALTH)
+	if data.has("isInvisible"):
+		_update_invisibility_visuals(bool(data.isInvisible))
+
 	if not is_local:
 		if current_shield > max_shield: max_shield = current_shield
 		if current_hp > max_hp: max_hp = current_hp
@@ -1355,6 +1359,54 @@ func _update_collision_size():
 		if entity_type >= 4: base_size = 320.0
 		else: base_size = 160.0
 
-	# v260.50: Hitbox de alta precisión (40% del tamaño visual para cubrir el modelo)
 	_collision_shape.shape.radius = base_size * 0.4
-	print("[HITBOX] Colisión ajustada para ", name, " r=", _collision_shape.shape.radius)
+
+func _update_invisibility_visuals(invisible: bool):
+	var is_local = is_in_group("player")
+	var in_party = false
+	var same_clan = false
+	
+	# v3.5: Verificar si somos del mismo grupo usando PartyManager
+	var pm = get_node_or_null("/root/PartyManager")
+	if pm and pm.current_party and pm.current_party.has("members"):
+		for m in pm.current_party["members"]:
+			if str(m.get("id", "")) == entity_id or str(m.get("socketId", "")) == entity_id:
+				in_party = true
+				break
+				
+	# v3.6: Verificar si somos del mismo clan (SOLO si ambos tienen clan válido)
+	var local_player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(local_player):
+		var my_tag = local_player.clan_tag.strip_edges()
+		var target_tag = clan_tag.strip_edges()
+		if my_tag != "" and target_tag != "" and my_tag == target_tag:
+			same_clan = true
+
+	if invisible:
+		var is_ally = (is_local or in_party or same_clan)
+		
+		# Nave: Para aliados transparente (0.3), para el resto invisible (0.0)
+		visible = true
+		modulate = Color(0.5, 0.8, 1.0, 0.3) if is_ally else Color(1, 1, 1, 0)
+		
+		if is_instance_valid(sprite): 
+			sprite.visible = true
+			sprite.modulate.a = 0.5 if is_ally else 0.0
+			
+		# HUD y Textos: SOLO para aliados
+		if is_instance_valid(name_tag): name_tag.visible = is_ally
+		if is_instance_valid(_ui_wrapper): 
+			_ui_wrapper.visible = is_ally
+			_ui_wrapper.modulate.a = 0.7 if is_ally else 0.0
+	else:
+		# Estado normal
+		visible = true
+		modulate = Color(1.0, 1.0, 1.0, 1.0)
+		if is_instance_valid(_3d_model): _3d_model.visible = true
+		if is_instance_valid(sprite): 
+			sprite.visible = true
+			sprite.modulate.a = 1.0
+		if is_instance_valid(name_tag): name_tag.visible = true
+		if is_instance_valid(_ui_wrapper): 
+			_ui_wrapper.visible = true
+			_ui_wrapper.modulate.a = 1.0

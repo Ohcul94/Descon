@@ -1538,7 +1538,7 @@ io.on('connection', (socket) => {
             powerValue = sphere.equipped.power_value || 0;
         }
 
-        if (powerValue <= 0 && data.skillName !== "SMOKE-BOMB") return; // Hack detected or no skill equipped (Excluir SMOKE-BOMB que usa radio)
+        if (powerValue <= 0 && data.skillName !== "SMOKE-BOMB" && data.skillName !== "STEALTH") return; 
 
         // v3.8: SOPORTE PARA OBJETIVOS REMOTOS (Aliados/Enemigos) v262.10
         let skillConfig = (SERVER_CONFIG && SERVER_CONFIG.skillsData) ? SERVER_CONFIG.skillsData[data.skillName] : null;
@@ -1652,7 +1652,33 @@ io.on('connection', (socket) => {
             
             io.to(`zone_${p.zone}`).emit('spawnArea', activeAreas[areaId]);
             console.log(`[SKILL] ${p.user} lanzó BOMBA DE HUMO en Zona ${p.zone}`);
+        } else if (data.skillName === "STEALTH") {
+            const config = (SERVER_CONFIG && SERVER_CONFIG.skillsData) ? SERVER_CONFIG.skillsData["STEALTH"] : { duration: 8 };
+            const duration = (config.duration || 8) * 1000;
+            
+            p.isInvisible = true;
+            socket.emit('gameNotification', { msg: "¡SIGILO ACTIVADO!", type: "info" });
+            
+            const timerId = setTimeout(() => {
+                const currentPlayer = players[socket.id];
+                if (currentPlayer) {
+                    currentPlayer.isInvisible = false;
+                    io.to(`zone_${currentPlayer.zone}`).emit('remoteStatSync', {
+                        id: socket.id,
+                        isInvisible: false
+                    });
+                }
+            }, duration);
+            
+            p.hasStealthTimer = true; 
+
+            // Sincronía inicial (para que otros dejen de verlo)
+            io.to(`zone_${p.zone}`).emit('remoteStatSync', {
+                id: socket.id,
+                isInvisible: true
+            });
         }
+
 
         // Sincronizar stats si el objetivo es un jugador
         if (target.socketId) {
