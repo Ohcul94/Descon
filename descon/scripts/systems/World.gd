@@ -349,12 +349,44 @@ func route_chat_bubble(data: Dictionary):
 	if target: target.show_bubble(txt)
 
 func _on_spawn_area(data: Dictionary):
-	print("[SMOKE-DEBUG] _on_spawn_area RECIBIDO: ", data)
 	var type = data.get("type", "SMOKE")
 	var id = data.get("id", "")
 	if type == "SMOKE":
-		print("[SMOKE-DEBUG] Tipo es SMOKE, llamando _spawn_smoke_cloud con id=", id, " radius=", data.radius)
 		_spawn_smoke_cloud(id, Vector2(data.x, data.y), data.radius)
+	elif type == "ICE":
+		_spawn_ice_trail(id, Vector2(data.x, data.y), data.radius)
+
+func _spawn_ice_trail(id, pos, _radius):
+	if active_areas.has(id): return
+	
+	var container = Node2D.new()
+	container.name = id
+	entities_node.add_child(container)
+	active_areas[id] = container
+	
+	# v6.0: Ráfaga de partículas (Efecto Ventisca Premium)
+	for i in range(3):
+		var ice = Sprite2D.new()
+		ice.texture = load("res://assets/VFX/frost_trail.png")
+		if not ice.texture: ice.texture = load("res://assets/Esferas/EsferaAzul1.png")
+		
+		# Offset aleatorio pequeño para que no sea un solo punto
+		var offset = Vector2(randf_range(-15, 15), randf_range(-15, 15))
+		ice.global_position = pos + offset
+		ice.z_index = -2
+		
+		ice.modulate = Color(0.8, 0.95, 1.0, 0.6)
+		ice.scale = Vector2(0.2, 0.2) # Muy chiquitos
+		ice.rotation = randf() * TAU
+		container.add_child(ice)
+		
+		# Animación individual para cada cristal
+		ice.modulate.a = 0.0
+		var tw = create_tween().set_parallel(true)
+		tw.tween_property(ice, "modulate:a", 0.6, 0.15)
+		tw.tween_property(ice, "scale", Vector2(0.4, 0.4), 1.5).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(ice, "rotation", ice.rotation + randf_range(-1, 1), 2.0)
+		tw.tween_property(ice, "modulate:a", 0.0, 1.5).set_delay(1.0)
 
 func _on_remove_area(data: Dictionary):
 	var id = data.get("id", "")

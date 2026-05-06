@@ -227,6 +227,7 @@ const handleUserLogin = async (socket, user, username) => {
         hubs: user.gameData.hubs || 0,
         ohcu: user.gameData.ohcu || 0,
         exp: user.gameData.exp || 0,
+        clanId: user.gameData.clanId, // v244.110: Mantener referencia para filtros de combate
         currentShipId: user.gameData.currentShipId || 1,
         zone: user.gameData.zone || 1,
         pvpEnabled: !!user.gameData.pvpEnabled,
@@ -339,7 +340,22 @@ global.serverClearProjectiles = (zone, bossId) => {
 // Cargar configuraci├│n inicial
 fs.readJson(CONFIG_FILE).then(config => {
     SERVER_CONFIG = config;
-    console.log('\x1b[35m[SERVER]\x1b[0m Configuraci├│n maestro cargada.');
+    
+    // v8.0: Inyección de Habilidades Nativas (Asegurar persistencia tras reinicio)
+    if (!SERVER_CONFIG.skillsData) SERVER_CONFIG.skillsData = {};
+    if (!SERVER_CONFIG.skillsData["FROST-TRAIL"]) {
+        SERVER_CONFIG.skillsData["FROST-TRAIL"] = {
+            "name": "FROST-TRAIL",
+            "type": "Defensa",
+            "cd": 15,
+            "duration": 5,
+            "slow_amount": 0.5, // 50 Puntos de slow
+            "radius": 40,
+            "canTargetOthers": false
+        };
+    }
+    
+    console.log('\x1b[35m[SERVER]\x1b[0m Configuración maestro cargada y habilidades inyectadas.');
     if (SERVER_CONFIG && SERVER_CONFIG.hordeConfig) hordeManager.updateConfig(SERVER_CONFIG.hordeConfig);
 }).catch(() => {
     console.log('\x1b[33m[SERVER]\x1b[0m Usando configuraci├│n por defecto (config.json no encontrado).');
@@ -617,19 +633,30 @@ setInterval(() => {
     const now = Date.now();
     
     // Reset temporal de flags (v2.1: Más agresivo para respuesta instantánea)
-    Object.values(players).forEach(p => {
+    Object.entries(players).forEach(([pSocketId, p]) => {
         if (now - (p.lastSilenceTime || 0) > 200) p.isSilenced = false;
         
         const wasBlinded = p.isBlinded;
         if (now - (p.lastBlindTime || 0) > 200) p.isBlinded = false;
-        
-        if (wasBlinded && !p.isBlinded) {
-            io.to(p.socketId).emit('blindState', { active: false });
+        if (wasBlinded && !p.isBlinded) io.to(pSocketId).emit('blindState', { active: false });
+
+        const wasSlowed = p.isSlowed;
+        // v8.1: Tolerancia de 400ms para estelas segmentadas
+        if (now - (p.lastSlowTime || 0) > 400) {
+            p.isSlowed = false;
+            p.slowPoints = 0;
+        }
+        if (wasSlowed !== p.isSlowed) {
+            io.to(pSocketId).emit('slowState', { active: p.isSlowed, amount: p.slowPoints });
         }
     });
     
     Object.values(enemies).forEach(e => {
         if (now - (e.lastSilenceTime || 0) > 200) e.isSilenced = false;
+        if (now - (e.lastSlowTime || 0) > 200) {
+            e.isSlowed = false;
+            e.slowMultiplier = 1.0;
+        }
     });
 
     const areasToDelete = [];
@@ -642,20 +669,44 @@ setInterval(() => {
         }
 
         // Efectos a Jugadores
-        Object.values(players).forEach(p => {
-            if (p.zone === area.zone && !p.isDead && p.socketId !== area.ownerId) {
+        Object.entries(players).forEach(([pSocketId, p]) => {
+            if (p.zone === area.zone && !p.isDead) {
                 const dx = p.x - area.x;
                 const dy = p.y - area.y;
                 const distSq = dx * dx + dy * dy;
                 if (distSq < (area.radius * area.radius)) {
-                    p.isSilenced = true;
-                    p.lastSilenceTime = now;
-                    
-                    if (!p.isBlinded) {
-                        p.isBlinded = true;
-                        io.to(p.socketId).emit('blindState', { active: true });
+                    if (area.type === 'SMOKE' && pSocketId !== area.ownerId) {
+                        p.isSilenced = true;
+                        p.lastSilenceTime = now;
+                        if (!p.isBlinded) {
+                            p.isBlinded = true;
+                            io.to(pSocketId).emit('blindState', { active: true });
+                        }
+                        p.lastBlindTime = now;
+                    } else if (area.type === 'ICE') {
+                        // v3.7: Ralentización por Hielo (Solo si no es aliado)
+                        const owner = players[area.ownerId];
+                        let is_ally = (pSocketId === area.ownerId);
+                        if (owner && !is_ally) {
+                            if (p.clanId != null && owner.clanId != null && p.clanId == owner.clanId) is_ally = true;
+                        }
+                        
+                        if (!is_ally) {
+                            const prevSlow = p.isSlowed;
+                            p.isSlowed = true;
+                            p.lastSlowTime = now;
+                            
+                            // v10.0: Usar valor plano (KM/H) en lugar de multiplicador
+                            // area.slowAmount viene del admin (ej: 0.5 si puso 50 en el anterior)
+                            // Pero como ahora queremos enteros, el admin manda float(v)/100.
+                            // Re-calculamos a puntos reales:
+                            p.slowPoints = (area.slowAmount || 0.5) * 100; 
+                            
+                            if (!prevSlow) {
+                                io.to(pSocketId).emit('slowState', { active: true, amount: p.slowPoints });
+                            }
+                        }
                     }
-                    p.lastBlindTime = now;
                 }
             }
         });
@@ -667,8 +718,14 @@ setInterval(() => {
                 const dy = e.y - area.y;
                 const distSq = dx * dx + dy * dy;
                 if (distSq < (area.radius * area.radius)) {
-                    e.isSilenced = true;
-                    e.lastSilenceTime = now;
+                    if (area.type === 'SMOKE') {
+                        e.isSilenced = true;
+                        e.lastSilenceTime = now;
+                    } else if (area.type === 'ICE') {
+                        e.isSlowed = true;
+                        e.lastSlowTime = now;
+                        e.slowMultiplier = area.slowAmount || 0.5;
+                    }
                 }
             }
         });
@@ -1538,7 +1595,7 @@ io.on('connection', (socket) => {
             powerValue = sphere.equipped.power_value || 0;
         }
 
-        if (powerValue <= 0 && data.skillName !== "SMOKE-BOMB" && data.skillName !== "STEALTH") return; 
+        if (powerValue <= 0 && data.skillName !== "SMOKE-BOMB" && data.skillName !== "STEALTH" && data.skillName !== "FROST-TRAIL") return; 
 
         // v3.8: SOPORTE PARA OBJETIVOS REMOTOS (Aliados/Enemigos) v262.10
         let skillConfig = (SERVER_CONFIG && SERVER_CONFIG.skillsData) ? SERVER_CONFIG.skillsData[data.skillName] : null;
@@ -1677,6 +1734,36 @@ io.on('connection', (socket) => {
                 id: socket.id,
                 isInvisible: true
             });
+        } else if (data.skillName === "FROST-TRAIL") {
+            const config = (SERVER_CONFIG && SERVER_CONFIG.skillsData) ? SERVER_CONFIG.skillsData["FROST-TRAIL"] : { duration: 6, radius: 120 };
+            const duration = (config.duration || 6) * 1000;
+            
+            socket.emit('gameNotification', { msg: "¡ESTELA DE HIELO ACTIVADA!", type: "info" });
+            
+            let trailTime = 0;
+            const trailInterval = setInterval(() => {
+                const currentPlayer = players[socket.id];
+                if (!currentPlayer || trailTime >= duration) {
+                    clearInterval(trailInterval);
+                    return;
+                }
+                
+                const areaId = `frost_${nextAreaId++}`;
+                activeAreas[areaId] = {
+                    id: areaId,
+                    x: currentPlayer.x,
+                    y: currentPlayer.y,
+                    radius: 40, // Radio pequeño para que sea una estela
+                    type: 'ICE',
+                    ownerId: socket.id,
+                    slowAmount: config.slow_amount || 0.5,
+                    endTime: Date.now() + 2500, 
+                    zone: currentPlayer.zone
+                };
+                
+                io.to(`zone_${currentPlayer.zone}`).emit('spawnArea', activeAreas[areaId]);
+                trailTime += 150;
+            }, 150);
         }
 
 

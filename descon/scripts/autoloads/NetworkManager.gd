@@ -33,16 +33,17 @@ signal enemy_kill_session(data)
 
 signal enemy_damaged(data)
 signal boss_effect(data)
+signal blind_state(data)
+signal slow_state(data)
 signal config_updated(data)
 signal game_notification(data)
 signal clear_zone_entities(zoneId)
 signal clear_enemy_projectiles(data)
 signal online_count_updated(count)
-signal clan_data(data) # v242.30: Sincronía de Flota
-signal clan_member_status(data) # v242.31: Estado online de miembros de flota
-signal spawn_area(data) # v260.75: Zonas de efecto (Humo, etc)
+signal clan_data(data)
+signal clan_member_status(data)
+signal spawn_area(data)
 signal remove_area(data)
-signal blind_state(data)
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
@@ -214,6 +215,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"spawnArea": spawn_area.emit(e_data)
 		"removeArea": remove_area.emit(e_data)
 		"blindState": blind_state.emit(e_data)
+		"slowState": slow_state.emit(e_data)
 		"gameNotification": game_notification.emit(e_data)
 		"clearEnemyProjectiles": clear_enemy_projectiles.emit(e_data)
 		"adminConfigUpdated", "adminConfigLoaded": 

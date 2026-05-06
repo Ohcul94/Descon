@@ -22,6 +22,12 @@ func _ready():
 	add_to_group("spheres_system")
 	player = get_parent()
 	_create_spheres()
+	
+	# v6.2: Retraso de cortesía para asegurar que el HUD esté listo al loguear
+	get_tree().create_timer(1.5).timeout.connect(func():
+		_update_visuals()
+		spheres_updated.emit()
+	)
 
 func _create_spheres():
 	# Inicialización de nodos base para 4 esferas dinámicas
@@ -119,12 +125,33 @@ func equip_item(sphere_id, item_data):
 					is_matching = true
 			
 			if not is_matching:
-
 				if typeof(real_equipped) == TYPE_DICTIONARY:
-					var res = SphereSkill.new()
-					res.skill_name = real_equipped.get("skill_name", "Skill")
+					var s_name = real_equipped.get("skill_name", "")
+					var s_class = null
+					
+					# v3.9: Mapeo manual para asegurar persistencia al reloguear
+					var skill_classes = {
+						"STEALTH": Skill_Stealth,
+						"FROST-TRAIL": Skill_FrostTrail,
+						"SMOKE-BOMB": Skill_SmokeBomb,
+						"BLINK": Skill_Blink,
+						"HYPER-DASH": Skill_HyperDash,
+						"TURBO-IMPULSO": Skill_TurboImpulse,
+						"INVULNERABILIDAD": Skill_Invulnerability
+					}
+					
+					if skill_classes.has(s_name):
+						s_class = skill_classes[s_name]
+					
+					var res
+					if s_class:
+						res = s_class.new()
+					else:
+						res = SphereSkill.new()
+						res.skill_name = s_name
+						res.type = real_equipped.get("type", "Ataque")
+						
 					res.power_value = real_equipped.get("power_value", 0)
-					res.type = real_equipped.get("type", "Ataque")
 					spheres_data[sphere_id]["equipped"] = res
 				else:
 					spheres_data[sphere_id]["equipped"] = real_equipped
@@ -135,6 +162,11 @@ func equip_item(sphere_id, item_data):
 			if player and player.has_method("_recalculate_stats"):
 				player._recalculate_stats()
 			spheres_updated.emit()
+			
+			# v6.1: Forzar actualización del HUD global si existe
+			var hud = get_tree().get_first_node_in_group("hud_main")
+			if is_instance_valid(hud) and hud.has_method("update_skill_slots"):
+				hud.update_skill_slots()
 
 func get_equipped_skill(id: int):
 	if id >= 0 and id < spheres_data.size():

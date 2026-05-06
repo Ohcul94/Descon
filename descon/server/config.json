@@ -652,6 +652,22 @@
             "range": 500,
             "type": "Defensa"
         },
+        "FROST-TRAIL": {
+            "canTargetOthers": true,
+            "cd": 2,
+            "desc": "Deja un rastro de escarcha que ralentiza a los enemigos.",
+            "duration": 6,
+            "radius": 120,
+            "range": 0,
+            "slow_amount": 0.5,
+            "targetFilters": {
+                "allies": true,
+                "bosses": true,
+                "enemies": true,
+                "players": true
+            },
+            "type": "Defensa"
+        },
         "HYPER-DASH": {
             "canTargetOthers": true,
             "cd": 5,

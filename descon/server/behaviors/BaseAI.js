@@ -72,7 +72,10 @@ module.exports = class BaseAI {
 
     applyMovementLogic(target, dist, angle, now) {
         // v250.10: Suavizado de proximidad para evitar efecto "imán"
-        const speed = this.config.speed || 3.5;
+        const baseSpeed = this.config.speed || 3.5;
+        const slowMult = this.enemy.slowMultiplier || 1.0;
+        const speed = baseSpeed * slowMult;
+        
         const stopDist = 120; // Distancia de seguridad aumentada
         
         if (dist > stopDist) {

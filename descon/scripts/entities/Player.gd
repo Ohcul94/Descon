@@ -44,6 +44,7 @@ var _skill_controller: Node2D = null
 var _shake_amount: float = 0.0
 var _shake_decay: float = 0.9
 var _cam_node: Camera2D = null
+var slow_points: float = 0.0
 
 func _ready():
 	super._ready() 
@@ -63,11 +64,18 @@ func _ready():
 	_cam_node = cam
 	
 	if NetworkManager:
-
 		NetworkManager.login_success.connect(_on_login_success)
 		NetworkManager.inventory_data.connect(_on_inventory_received)
+		NetworkManager.slow_state.connect(_on_slow_state)
 	
 	_setup_skill_controller()
+
+func _on_slow_state(data: Dictionary):
+	if data.has("active"):
+		if data.active:
+			slow_points = data.get("amount", 50.0)
+		else:
+			slow_points = 0.0
 
 func _setup_skill_controller():
 	var sc_script = load("res://scripts/systems/SkillController.gd")
@@ -146,9 +154,9 @@ func _handle_input():
 				var s_name = sph.get("skill_name")
 				if s_name and GameConstants.SKILLS_DATA.has(s_name):
 					var s_data = GameConstants.SKILLS_DATA[s_name]
-					if s_data.get("canTargetOthers", false):
+					if s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL":
 						s_type = Skill_Type.POINT_CLICK
-					elif s_data.get("range", 0) > 0:
+					elif s_data.get("range", 0) > 0 and s_name != "FROST-TRAIL":
 						s_type = Skill_Type.DIRECTIONAL
 		
 		_handle_slot_input(slot_name, s_id, s_type)
@@ -386,11 +394,15 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 	var skill = sm.get_equipped_skill(id)
 	if not skill: return
 	
+	# v5.0: Auto-target local si no hay objetivo (Especial para INSTANT skills como FROST-TRAIL)
+	var final_target = p_data.target
+	if not is_instance_valid(final_target): final_target = self
+	
 	var target_id = null
-	if is_instance_valid(p_data.target):
-		if "entity_id" in p_data.target: target_id = p_data.target.entity_id
-		elif p_data.target.has_method("get_id"): target_id = p_data.target.get_id()
-		else: target_id = str(p_data.target.name)
+	if is_instance_valid(final_target):
+		if "entity_id" in final_target: target_id = final_target.entity_id
+		elif final_target.has_method("get_id"): target_id = final_target.get_id()
+		else: target_id = str(final_target.name)
 		
 	var is_targeted = false
 	var skill_range = 0.0
@@ -400,14 +412,11 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 		skill_range = s_data.get("range", 0.0)
 		
 	if is_targeted and target_id == null:
-		# Cancelar lanzamiento (No cooldown, no uso)
 		return
 		
 	# v4.8: Validación de rango en cliente
 	if is_targeted and target_id != entity_id and skill_range > 0:
-		var target_node = null
-		if is_instance_valid(p_data.target):
-			target_node = p_data.target
+		var target_node = final_target
 		if is_instance_valid(target_node):
 			var dist = global_position.distance_to(target_node.global_position)
 			if dist > skill_range + 50.0:
@@ -445,7 +454,16 @@ func _apply_movement():
 			var target_angle = (target_position - global_position).angle()
 			rotation = lerp_angle(rotation, target_angle, 0.25)
 			var dir = Vector2.RIGHT.rotated(rotation)
-			velocity = dir * speed
+			# v10.0: Aplicar resta de puntos planos (Igual que Turbo)
+			var final_speed = max(10.0, speed - slow_points)
+			velocity = dir * final_speed
+			
+			# v7.0: Feedback Visual de Congelamiento (Igual que ceguera)
+			if slow_points > 1.0:
+				modulate = modulate.lerp(Color(0.4, 0.7, 1.0, 1.0), 0.1) # Tinte azulado
+			else:
+				modulate = modulate.lerp(Color.WHITE, 0.1)
+				
 			if move_and_slide():
 				# v235.97: Resolución Activa de Atascamiento (Antiglue System)
 				for i in get_slide_collision_count():

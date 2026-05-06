@@ -352,6 +352,8 @@ func _render_spheres(container):
 			_add_input(grid, "MULT. DAÑO", str(skill.reflect_mult), func(v): GameConstants.SKILLS_DATA[k_ref.name].reflect_mult = float(v))
 		if skill.has("duration"):
 			_add_input(grid, "DURACIÓN (S)", str(skill.duration), func(v): GameConstants.SKILLS_DATA[k_ref.name].duration = float(v))
+		if skill.has("slow_amount"):
+			_add_input(grid, "PUNTOS DE SLOW (KM/H)", str(int(skill.slow_amount * 100)), func(v): GameConstants.SKILLS_DATA[k_ref.name].slow_amount = float(v) / 100.0)
 
 	# Botón para añadir nuevas (v3.1)
 	var add_btn = Button.new(); add_btn.text = " [+] AÑADIR NUEVA HABILIDAD / ESFERA "; add_btn.modulate = Color.CYAN

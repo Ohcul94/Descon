@@ -105,9 +105,8 @@ var SKILLS_DATA = {
 	"REFLECT-Ω": { "id": "SK-ATK-01", "type": "Ataque", "desc": "Crea un campo de resonancia que refleja daño hostil.", "reflect_mult": 1.5, "amount": 500, "cd": 5.0, "range": 0, "canTargetOthers": false },
 	"PLASMA BLAST": { "id": "SK-ATK-02", "type": "Ataque", "desc": "Disparo concentrado de plasma con alta potencia destructiva.", "amount": 850, "cd": 8.0, "range": 600, "canTargetOthers": true, "targetFilters": { "allies": false, "enemies": true, "bosses": true, "players": true } },
 	"SMOKE-BOMB": { "id": "SK-DEF-03", "type": "Defensa", "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.", "duration": 6, "radius": 180, "cd": 12.0, "range": 0, "amount": 1, "canTargetOthers": false },
-	"STEALTH": { "id": "SK-UTIL-05", "type": "Utilidad", "desc": "Te vuelve invisible para enemigos y jugadores fuera de tu grupo.", "duration": 8, "cd": 25.0, "range": 0, "canTargetOthers": false }
-
-
+	"STEALTH": { "id": "SK-UTIL-05", "type": "Utilidad", "desc": "Te vuelve invisible para enemigos y jugadores fuera de tu grupo.", "duration": 8, "cd": 25.0, "range": 0, "canTargetOthers": false },
+	"FROST-TRAIL": { "id": "SK-DEF-04", "type": "Defensa", "desc": "Deja un rastro de escarcha que ralentiza a los enemigos.", "duration": 6, "slow_amount": 0.5, "radius": 120, "cd": 18.0, "range": 0, "canTargetOthers": false }
 }
 func _ready():
 	if NetworkManager:

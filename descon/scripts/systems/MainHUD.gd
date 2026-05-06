@@ -213,7 +213,14 @@ func _process(_delta):
 
 	if is_instance_valid(speed_label):
 		var val = p_node.get("speed")
-		speed_label.text = "SPEED: " + str(int(val if val != null else 0.0)) + " KM/H"
+		var s_pts = p_node.get("slow_points")
+		if s_pts == null: s_pts = 0.0
+		var final_speed = max(0.0, (val if val != null else 0.0) - s_pts)
+		speed_label.text = "SPEED: " + str(int(final_speed)) + " KM/H"
+		
+		# v9.0: Feedback de color si hay slow
+		if s_pts > 1.0: speed_label.modulate = Color.CYAN
+		else: speed_label.modulate = Color.YELLOW
 
 	if fps_label: fps_label.text = "FPS: " + str(Engine.get_frames_per_second())
 	if ms_label: ms_label.text = "MS: " + str(NetworkManager.current_ms)

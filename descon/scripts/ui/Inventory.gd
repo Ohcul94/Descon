@@ -686,6 +686,7 @@ func _render_spheres_library(tab):
 		
 		{"class": Skill_ShieldCell, "color": Color.AQUA, "icon": "🛡️", "type": "DEFENSA"},
 		{"class": Skill_Fortress, "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},
+		{"class": Skill_FrostTrail, "color": Color.AQUA, "icon": "❄️", "type": "DEFENSA"},
 		{"class": Skill_SmokeBomb, "color": Color.AQUA, "icon": "☁️", "type": "DEFENSA"},
 		
 		{"class": Skill_RepairKit, "color": Color.GREEN, "icon": "🔧", "type": "CURACIÓN"},
