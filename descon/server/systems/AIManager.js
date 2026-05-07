@@ -1,0 +1,108 @@
+const ChaseAI = require('../behaviors/ChaseAI');
+const OrbitAI = require('../behaviors/OrbitAI');
+const BossAI = require('../behaviors/BossAI');
+const AncientBossAI = require('../behaviors/AncientBossAI');
+const MechanicBossAI = require('../behaviors/MechanicBossAI');
+const SniperAI = require('../behaviors/SniperAI');
+const ChargerAI = require('../behaviors/ChargerAI');
+const GravityAI = require('../behaviors/GravityAI');
+
+/**
+ * AIManager
+ * Gestiona el spawn y la lógica de los enemigos.
+ */
+class AIManager {
+    constructor(io, state, hordeManager) {
+        this.io = io;
+        this.state = state;
+        this.hordeManager = hordeManager;
+    }
+
+    serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, forceName = null, isHorde = false) {
+        const { enemies, SERVER_CONFIG } = this.state;
+        
+        const isHordeZone = this.hordeManager && this.hordeManager.config.active && this.hordeManager.config.map === zone;
+        
+        if (zone != 1 && zone != 8 && zone != 7 && !isHordeZone) {
+            return null;
+        }
+
+        if (!forceType && zone === 1 && Object.keys(enemies).filter(e => enemies[e].zone === 1).length >= 15) return;
+        
+        const id = 'enemy_' + (zone >= 2 ? 'boss_' : '') + Date.now() + Math.floor(Math.random() * 1000);
+        const type = forceType || (Math.floor(Math.random() * 3) + 1);
+
+        const cfg = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[type.toString()] : null;
+        const name = forceName || (cfg ? cfg.name : (type === 4 ? "Boss1" : (type === 5 ? "Boss2" : (type === 6 ? "Boss3" : "Enemigo"))));
+
+        const initialHp = cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 4 ? 100000 : (type * 2000))));
+        const initialShield = cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 4 ? 50000 : (type * 1000))));
+
+        const finalX = posX || (zone === 8 ? 2000 : (Math.random() * 3400 + 300));
+        const finalY = posY || (zone === 8 ? 2000 : (Math.random() * 3400 + 300));
+
+        const e = {
+            id, type, zone, name,
+            isHorde,
+            x: finalX,
+            y: finalY,
+            hp: initialHp,
+            maxHp: initialHp,
+            shield: initialShield,
+            maxShield: initialShield,
+            rotation: 0,
+            lastHit: 0,
+            lastDash: 0,
+            shotsInBurst: 0,
+            nextShotTime: 0
+        };
+
+        const movSpeed = cfg ? (cfg.speed * 0.033) : (type === 1 ? 4.5 : 3.5);
+        const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
+        
+        if (type === 11) e.ai = new MechanicBossAI(e, aiConfig); 
+        else if (type === 10) e.ai = new AncientBossAI(e, aiConfig); 
+        else if (type === 4) e.ai = new BossAI(e, aiConfig); 
+        else if (type === 8 || type === 3) e.ai = new ChargerAI(e, aiConfig);
+        else if (type === 6 || type === 7) e.ai = new GravityAI(e, aiConfig);
+        else if (type === 5 || type === 2) e.ai = new SniperAI(e, aiConfig); 
+        else if (type === 1 || type === 9) e.ai = new ChaseAI(e, aiConfig); 
+        else e.ai = new OrbitAI(e, aiConfig);
+
+        enemies[id] = e;
+
+        const { ai, ...spawnData } = e;
+        this.io.to(`zone_${zone}`).emit('enemySpawn', spawnData);
+        return e;
+    }
+
+    runGuardians() {
+        // Guardián Zona 1
+        let tCounts = { 1: 0, 5: 0, 8: 0 };
+        Object.values(this.state.enemies).forEach(e => {
+            if (e.zone === 1 && e.hp > 0 && tCounts[e.type] !== undefined) {
+                tCounts[e.type]++;
+            }
+        });
+
+        if (tCounts[1] < 4) this.serverSpawnEnemy(1, 1);
+        if (tCounts[5] < 4) this.serverSpawnEnemy(1, 5);
+        if (tCounts[8] < 4) this.serverSpawnEnemy(1, 8);
+
+        // Guardián Jefes
+        const hasTitanZ1 = Object.values(this.state.enemies).some(e => e.type === 4 && e.zone === 1);
+        if (!hasTitanZ1 && Date.now() - this.state.lastTitanDeath > 10000) {
+            this.serverSpawnEnemy(1, 4);
+        }
+        
+        const boss8 = Object.values(this.state.enemies).find(e => e.type === 4 && e.zone === 8);
+        if (!boss8) this.serverSpawnEnemy(8, 4, 2000, 2000);
+
+        const boss7s = Object.values(this.state.enemies).filter(e => e.type === 5 && e.zone === 7 && e.name === "Boss2");
+        if (boss7s.length === 0) {
+            this.serverSpawnEnemy(7, 5, 2000, 2000, "Boss2");
+        }
+    }
+}
+
+module.exports = AIManager;

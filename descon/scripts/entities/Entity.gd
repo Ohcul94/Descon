@@ -389,6 +389,8 @@ func update_stats(data):
 	
 	if data.has("clanTag"):
 		clan_tag = str(data.clanTag)
+	if data.has("clanId"):
+		set("clanId", data.clanId) # v245.92: Mantener ID para filtros de Minimap
 
 	
 	if data.has("pvpEnabled") and name_tag:

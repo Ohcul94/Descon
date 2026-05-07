@@ -86,8 +86,19 @@ func _draw():
 	# 2. Dibujar Jugadores Remotos (Celeste Neón)
 	for ent in get_tree().get_nodes_in_group("remote_players"):
 		if is_instance_valid(ent) and not ent.get("is_dead"):
+			# v245.90: Filtro de Sigilo (Invisibilidad)
+			if ent.get("isInvisible"):
+				# Solo mostrar si es aliado (Clan o Party)
+				var is_ally = false
+				if is_instance_valid(player):
+					var my_clan = player.get("clanId")
+					var remote_clan = ent.get("clanId")
+					if my_clan and remote_clan and str(my_clan) == str(remote_clan): is_ally = true
+				
+				if not is_ally: continue # Invisibilidad total para enemigos
+				
 			var pos = ent.global_position * map_scale
-			draw_circle(pos, 2.5, Color(0, 1, 1)) # #00ffff
+			draw_circle(pos, 2.5, Color(0, 1, 1, 0.4 if ent.get("isInvisible") else 1.0))
 
 	# 3. Dibujar Enemigos (Naranja JS v13.1.3)
 	for ent in get_tree().get_nodes_in_group("enemies"):

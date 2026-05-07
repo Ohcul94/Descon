@@ -364,29 +364,48 @@ func _spawn_ice_trail(id, pos, _radius):
 	entities_node.add_child(container)
 	active_areas[id] = container
 	
-	# v6.0: Ráfaga de partículas (Efecto Ventisca Premium)
-	for i in range(3):
+	# v7.0: EFECTO VENTISCA ESPIRAL (Premium Visuals)
+	# Usamos un material aditivo para que el negro sea transparente y el blanco brille
+	var add_mat = CanvasItemMaterial.new()
+	add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	
+	var tex = load("res://assets/VFX/frost_trail.png")
+	if not tex: tex = load("res://assets/Esferas/EsferaAzul1.png")
+	
+	for i in range(12): # Más densidad para el efecto espiral
 		var ice = Sprite2D.new()
-		ice.texture = load("res://assets/VFX/frost_trail.png")
-		if not ice.texture: ice.texture = load("res://assets/Esferas/EsferaAzul1.png")
+		ice.texture = tex
+		ice.material = add_mat # CRÍTICO: Elimina el cuadro negro
 		
-		# Offset aleatorio pequeño para que no sea un solo punto
-		var offset = Vector2(randf_range(-15, 15), randf_range(-15, 15))
-		ice.global_position = pos + offset
-		ice.z_index = -2
+		# Distribución inicial en círculo pequeño
+		var angle = (i / 12.0) * TAU
+		var start_offset = Vector2(cos(angle), sin(angle)) * randf_range(5, 15)
+		ice.global_position = pos + start_offset
+		ice.z_index = 5 # Por encima de las naves para que brille
 		
-		ice.modulate = Color(0.8, 0.95, 1.0, 0.6)
-		ice.scale = Vector2(0.2, 0.2) # Muy chiquitos
-		ice.rotation = randf() * TAU
+		# Configuración visual
+		ice.modulate = Color(0.7, 0.9, 1.0, 0.0) 
+		ice.scale = Vector2(0.05, 0.05) # Empiezan muy chiquitos
+		ice.rotation = angle + PI/2
 		container.add_child(ice)
 		
-		# Animación individual para cada cristal
-		ice.modulate.a = 0.0
+		# Animación de Espiral hacia afuera (Más estrecho por pedido del usuario)
+		var duration = randf_range(0.6, 1.0)
+		var final_dist = randf_range(15, 35) # Reducido a la mitad (antes 40-80)
+		var spiral_angle = angle + randf_range(1.0, 2.0) 
+		
 		var tw = create_tween().set_parallel(true)
-		tw.tween_property(ice, "modulate:a", 0.6, 0.15)
-		tw.tween_property(ice, "scale", Vector2(0.4, 0.4), 1.5).set_trans(Tween.TRANS_SINE)
-		tw.tween_property(ice, "rotation", ice.rotation + randf_range(-1, 1), 2.0)
-		tw.tween_property(ice, "modulate:a", 0.0, 1.5).set_delay(1.0)
+		tw.tween_property(ice, "modulate:a", 0.7, 0.1)
+		tw.tween_property(ice, "scale", Vector2(0.18, 0.18), duration).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+		
+		# El movimiento espiral:
+		var target_pos = pos + Vector2(cos(spiral_angle), sin(spiral_angle)) * final_dist
+		tw.tween_property(ice, "global_position", target_pos, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw.tween_property(ice, "rotation", ice.rotation + 4.0, duration) # Rotación rápida
+		
+		# Desvanecimiento y muerte
+		tw.chain().tween_property(ice, "modulate:a", 0.0, 0.5)
+		tw.tween_property(ice, "scale", Vector2(0.0, 0.0), 0.5)
 
 func _on_remove_area(data: Dictionary):
 	var id = data.get("id", "")

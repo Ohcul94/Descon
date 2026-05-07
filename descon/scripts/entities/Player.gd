@@ -458,11 +458,14 @@ func _apply_movement():
 			var final_speed = max(10.0, speed - slow_points)
 			velocity = dir * final_speed
 			
-			# v7.0: Feedback Visual de Congelamiento (Igual que ceguera)
+			# v7.0: Feedback Visual de Congelamiento (v245.95: Respetar canal Alpha de Sigilo)
+			var target_color = Color.WHITE
 			if slow_points > 1.0:
-				modulate = modulate.lerp(Color(0.4, 0.7, 1.0, 1.0), 0.1) # Tinte azulado
-			else:
-				modulate = modulate.lerp(Color.WHITE, 0.1)
+				target_color = Color(0.4, 0.7, 1.0, 1.0) # Tinte azulado
+			
+			# Mantener el alpha actual definido por Entity.gd (_update_invisibility_visuals)
+			target_color.a = modulate.a 
+			modulate = modulate.lerp(target_color, 0.1)
 				
 			if move_and_slide():
 				# v235.97: Resolución Activa de Atascamiento (Antiglue System)

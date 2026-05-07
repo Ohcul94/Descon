@@ -2,12 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3clc4m5egeh1"
+uid="uid://btlrmvjnbruhm"
 valid=false
 
 [deps]
 
-source_file="res://assets/VFX/frost_trail.png"
+source_file="res://assets/VFX/frost_trail_old.png"
 
 [params]
 
