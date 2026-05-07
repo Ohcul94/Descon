@@ -632,7 +632,7 @@ io.on('connection', (socket) => {
         if (movementData.selectedAmmo) p.selectedAmmo = movementData.selectedAmmo;
 
         const oldZone = Number(p.zone || 1);
-        const targetZone = Number(movementData.zone || 1);
+        const targetZone = (movementData.zone !== undefined) ? Number(movementData.zone) : oldZone;
         p.zone = targetZone;
 
         if (oldZone !== targetZone) {
@@ -646,11 +646,12 @@ io.on('connection', (socket) => {
             });
         }
 
-        socket.to(`zone_${p.zone}`).emit('playerMoved', { 
+        // v262.45: Usando broadcast.to para evitar ecos al emisor
+        socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', { 
             ...p, 
             id: socket.id, 
             spheres: p.spheres,
-            isInvisible: p.isInvisible // v245.88: Sincronía de Sigilo en movimiento
+            isInvisible: p.isInvisible 
         });
     });
 

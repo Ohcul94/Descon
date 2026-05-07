@@ -1,10 +1,7 @@
-/**
- * state.js
- * Gestor de Estado Global para el Servidor Descon
- * v1.0 - Modularización Inicial
- */
+const GridManager = require('./systems/GridManager');
 
 module.exports = {
+    grid: new GridManager(500),
     players: {},
     activeSessions: new Map(),
     enemies: {},

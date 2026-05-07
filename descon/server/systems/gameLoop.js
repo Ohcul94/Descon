@@ -1,11 +1,9 @@
-const GridManager = require('./GridManager');
-
 /**
  * GameLoop
  * El corazón del servidor. Maneja los intervalos de tiempo para IA, regeneración y limpieza.
  */
 function startGameLoop(io, state, aiManager) {
-    const grid = new GridManager(500);
+    const grid = state.grid;
     
     // 1. LOOP DE IA Y MOVIMIENTO (33ms ~ 30fps para suavidad)
     setInterval(() => {
@@ -23,8 +21,14 @@ function startGameLoop(io, state, aiManager) {
             const e = enemies[id];
             if (e.hp <= 0) continue;
 
-            // Actualizar IA (v247.11: Pasando grid optimizado)
-            if (e.ai) e.ai.update(grid, players, now, io);
+            // v262.35: IA Inteligente (LOD - Level of Detail)
+            // Solo procesar IA si hay jugadores cerca o cada 1 segundo (ahorro masivo de CPU)
+            const { players: nearbyPs } = grid.getNearbyEntities(e.x, e.y);
+            const isNearPlayer = nearbyPs.some(p => p.zone === e.zone);
+            
+            if (isNearPlayer || (now % 1000 < 33)) {
+                if (e.ai) e.ai.update(grid, players, now, io);
+            }
 
             // v247.12: Repulsión física optimizada vía Grid
             const { enemies: nearbyEnemies } = grid.getNearbyEntities(e.x, e.y);
@@ -40,19 +44,42 @@ function startGameLoop(io, state, aiManager) {
                     }
                 }
             });
-
-            if (!zoneMoveData[e.zone]) zoneMoveData[e.zone] = {};
-            zoneMoveData[e.zone][e.id] = {
-                id: e.id, x: e.x, y: e.y, rotation: e.rotation,
-                hp: e.hp, shield: e.shield, zone: e.zone, type: e.type,
-                name: e.name, isRage: e.isRage, isRamming: e.ai && e.ai.isRamming
-            };
         }
 
-        // Broadcast por zona
-        for (const z in zoneMoveData) {
-            io.to(`zone_${z}`).emit('enemiesMoved', zoneMoveData[z]);
-        }
+        // v262.30: Broadcast por AOI (Area of Interest) - 5x5 Celdas (2500px x 2500px)
+        Object.values(players).forEach(p => {
+            if (!p.zone) return;
+            
+            const aoiData = {};
+            let count = 0;
+
+            // Rango de 2 celdas a la redonda (total 5x5) para cubrir pantallas 4K/Ultra-wide
+            const cx = Math.floor(p.x / 500);
+            const cy = Math.floor(p.y / 500);
+
+            for (let dx = -2; dx <= 2; dx++) {
+                for (let dy = -2; dy <= 2; dy++) {
+                    const key = `${cx + dx},${cy + dy}`;
+                    const cell = grid.grid.get(key);
+                    if (cell) {
+                        cell.enemies.forEach(e => {
+                            if (e.zone === p.zone) {
+                                aoiData[e.id] = {
+                                    id: e.id, x: e.x, y: e.y, rotation: e.rotation,
+                                    hp: e.hp, shield: e.shield, zone: e.zone, type: e.type,
+                                    name: e.name, isRage: e.isRage, isRamming: e.ai && e.ai.isRamming
+                                };
+                                count++;
+                            }
+                        });
+                    }
+                }
+            }
+
+            if (count > 0) {
+                io.to(p.socketId).emit('enemiesMoved', aoiData);
+            }
+        });
     }, 33);
 
     // 2. LOOP DE REGENERACIÓN (1s)

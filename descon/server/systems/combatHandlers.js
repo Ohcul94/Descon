@@ -7,6 +7,7 @@ const SmokeBombSkill = require('./skills/SmokeBombSkill');
 const InvulnerabilitySkill = require('./skills/InvulnerabilitySkill');
 const HealSkill = require('./skills/HealSkill');
 const DamageSkill = require('./skills/DamageSkill');
+const BuffSkill = require('./skills/BuffSkill');
 
 // v247.20: Registro de Habilidades Modulares
 SkillManager.registerSkill(new StealthSkill());
@@ -24,6 +25,11 @@ SkillManager.registerSkill(new HealSkill("NANO-REGENERACIÓN"));
 // Habilidades Ofensivas
 SkillManager.registerSkill(new DamageSkill("PLASMA BLAST"));
 
+// Habilidades de Estado/Buffs
+SkillManager.registerSkill(new BuffSkill("REFLECT-Ω"));
+SkillManager.registerSkill(new BuffSkill("TURBO-IMPULSO"));
+SkillManager.registerSkill(new BuffSkill("HYPER-DASH"));
+
 /**
  * registerCombatHandlers
  * Maneja toda la lógica de combate: disparos, habilidades y daño.
@@ -37,8 +43,10 @@ function registerCombatHandlers(socket, io, state) {
 
         if (p.isSilenced) return;
 
-        const ammoType = fireData.ammoType || 'laser';
-        const ammoTier = fireData.ammoTier || 0;
+        // v262.55: Mapeo corregido según Player.gd
+        // Cliente envía "type" para el nombre (laser/missile) y "ammoType" para el nivel (0,1,2)
+        const ammoType = fireData.type || 'laser';
+        const ammoTier = (fireData.ammoType !== undefined) ? fireData.ammoType : 0;
         const typeKey = (ammoType === 'laser') ? 'laser' : (ammoType === 'missile' ? 'missile' : 'mine');
 
         if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][ammoTier] || 0) <= 0) {
@@ -66,13 +74,14 @@ function registerCombatHandlers(socket, io, state) {
             damage: finalAuthorizedDamage,
             x: fireData.x,
             y: fireData.y,
+            angle: fireData.angle,
             rotation: fireData.rotation,
-            ammoType: ammoType,
-            ammoTier: ammoTier,
+            type: ammoType,
+            ammoType: ammoTier,
             targetId: fireData.targetId
         };
 
-        socket.to(`zone_${p.zone}`).emit('remotePlayerFired', pData);
+        socket.to(`zone_${p.zone}`).emit('playerFire', pData);
     });
 
     // SISTEMA DE HABILIDADES DE ESFERAS (Soporte Polimórfico v262.10)

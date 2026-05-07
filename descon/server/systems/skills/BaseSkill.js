@@ -78,14 +78,19 @@ class BaseSkill {
      * Sincronización visual para otros jugadores.
      */
     broadcastUsage(p, data, { io, socket }, powerValue = 0) {
-        io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', {
+        const payload = {
             id: socket.id,
             skillName: this.name,
             targetId: data.targetId || socket.id,
-            powerValue: powerValue,
-            posX: data.posX,
-            posY: data.posY
-        });
+            powerValue: powerValue
+        };
+
+        // v247.25: Soporte especial para coordenadas (BLINK)
+        if (this.name === "BLINK") {
+            payload.pos = { x: p.x, y: p.y };
+        }
+
+        io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', payload);
     }
 }
 
