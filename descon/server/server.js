@@ -193,15 +193,51 @@ const handleUserLogin = async (socket, user, username) => {
         }
     }
 
+    // v262.210: MIGRACIÓN Y CATEGORIZACIÓN (Fix de ítems viejos y Admin Panel)
+    const { getCategorizedInventory } = require('./systems/inventoryHandlers');
+    if (!user.gameData.inventory) user.gameData.inventory = [];
+    
+    let modified = false;
+    user.gameData.inventory.forEach(item => {
+        if (!item.instanceId) {
+            item.instanceId = Date.now() + Math.random().toString(36).substr(2, 5);
+            modified = true;
+        }
+        // Sincronizar con Admin Panel (Color, Rareza y TIPO correcto)
+        const allShopItems = [
+            ...(state.SERVER_CONFIG.shopItems.weapons || []),
+            ...(state.SERVER_CONFIG.shopItems.modules || []),
+            ...(state.SERVER_CONFIG.shopItems.extra || [])
+        ];
+        const master = allShopItems.find(w => w.id === item.id);
+        if (master) {
+            // v262.240: Reparación de tipo para láseres "perdidos"
+            item.name = master.name || item.name || "ÍTEM RECUPERADO";
+            item.type = master.type || item.type || "Utility";
+            item.color = master.color || item.color || "#ffffff";
+            item.rarity = master.rarity || item.rarity || 0;
+            item.description = master.description || item.description || "";
+            if (!item.icon) item.icon = master.icon || "res://assets/items/placeholder.png";
+            modified = true; 
+        }
+    });
+    if (modified) {
+        user.markModified('gameData.inventory');
+        await user.save();
+    }
+
+    const categorized = getCategorizedInventory(user.gameData.inventory);
+
     socket.emit('loginSuccess', {
         id: dbId,
         socketId: socket.id,
         user: username,
-        clanTag: clanTag, // v244.110: Siglas para el NameTag local
+        clanTag: clanTag,
         gameData: {
             ...JSON.parse(JSON.stringify(user.gameData)),
             equippedByShip: eByShipObj,
-            equipped: user.gameData.equipped
+            equipped: user.gameData.equipped,
+            inventoryByCategory: categorized
         },
         adminConfig: adminConfig
     });
@@ -362,69 +398,83 @@ io.on('connection', (socket) => {
             const user = await User.findById(socket.dbUser._id);
             if (user) {
                 socket.dbUser = user;
-                // v210.121: Sincronía de Mapa para Godot
+                const { getCategorizedInventory } = require('./systems/inventoryHandlers');
+                
                 const eByShipObj = {};
-                if (user.gameData.equippedByShip) {
+                if (user.gameData.equippedByShip instanceof Map) {
                     user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+                } else {
+                    Object.assign(eByShipObj, user.gameData.equippedByShip);
                 }
 
                 socket.emit('inventoryData', {
                     player: {
-                        ...user.gameData.toObject(),
+                        ...JSON.parse(JSON.stringify(user.gameData)),
                         equippedByShip: eByShipObj,
-                        equipped: user.gameData.equipped
+                        inventoryByCategory: getCategorizedInventory(user.gameData.inventory)
                     }
                 });
-                console.log(`[SYNC] Inventario enviado a ${user.username} (Flota Sincronizada)`);
+                console.log(`[SYNC] Inventario sincronizado para ${user.username}`);
             }
         } catch (e) { console.error("Error en getInventory:", e); }
     });
 
-    // GUARDAR PROGRESO (MongoDB)
-    socket.on('saveProgress', async (gameData) => {
-        if (!socket.dbUser || !gameData) return;
+    // v262.100: FUNCIÓN MAESTRA DE PERSISTENCIA (Autoridad del Servidor)
+    const savePlayerToDB = async (socketId) => {
+        const p = players[socketId];
+        const socket = io.sockets.sockets.get(socketId);
+        if (!p || !socket || !socket.dbUser) return;
+
         try {
-            const p = players[socket.id];
-            if (!p) return;
+            await User.updateOne(
+                { _id: socket.dbUser._id },
+                {
+                    $set: {
+                        "gameData.lastPos.x": Math.floor(p.x),
+                        "gameData.lastPos.y": Math.floor(p.y),
+                        "gameData.hp": Math.ceil(p.hp || 0),
+                        "gameData.shield": Math.ceil(p.shield || 0),
+                        "gameData.zone": p.zone || 1,
+                        "gameData.ammo": p.ammo,
+                        "gameData.selectedAmmo": p.selectedAmmo,
+                        "gameData.inventory": p.inventory,
+                        "gameData.equipped": p.equipped,
+                        "gameData.spheres": p.spheres,
+                        "gameData.hubs": p.hubs,
+                        "gameData.ohcu": p.ohcu,
+                        "gameData.level": p.level,
+                        "gameData.exp": p.exp,
+                        "gameData.skillPoints": p.skillPoints,
+                        "gameData.skillTree": p.skillTree,
+                        "gameData.hudConfig": p.hudConfig || {},
+                        "gameData.hudPositions": p.hudPositions || {},
+                        "gameData.currentShipId": p.currentShipId || 1
+                    }
+                }
+            );
+            // console.log(`[DB-SAFE] Perfil de ${p.user} actualizado.`);
+        } catch (e) {
+            console.error(`Error crítico guardando a ${p.user}:`, e);
+        }
+    };
 
-            // v214.150: SINCRONÍA AUTORITATIVA TOTAL
-            if (gameData.inventory && gameData.inventory.length > 0) p.inventory = gameData.inventory;
-            if (gameData.spheres) p.spheres = gameData.spheres;
-            if (gameData.equipped) p.equipped = gameData.equipped;
-            if (gameData.skillTree) p.skillTree = gameData.skillTree;
-            if (gameData.lastPos) p.lastPos = gameData.lastPos;
-
-            const updateFields = {};
-
-            // Campos de Red/Stat
-            updateFields["gameData.hp"] = gameData.hp !== undefined ? gameData.hp : p.hp;
-            updateFields["gameData.shield"] = gameData.shield !== undefined ? gameData.shield : p.shield;
-            updateFields["gameData.ammo"] = gameData.ammo || p.ammo;
-            updateFields["gameData.lastPos"] = p.lastPos;
-
-            // Persistencia de Inventario y Flota
-            updateFields["gameData.inventory"] = p.inventory;
-            updateFields["gameData.spheres"] = p.spheres;
-            updateFields["gameData.skillTree"] = p.skillTree;
-
-            const shipId = p.currentShipId.toString();
-            updateFields[`gameData.equippedByShip.${shipId}`] = p.equipped;
-            updateFields["gameData.equipped"] = p.equipped;
-            updateFields["gameData.zone"] = p.zone || 1; // v238.40: Persistencia de Mapa
-
-
-            // v214.152: Persistencia Atómica de nivel y puntos (Sin recálculo destructivo)
-            updateFields["gameData.hubs"] = p.hubs;
-            updateFields["gameData.ohcu"] = p.ohcu;
-            updateFields["gameData.exp"] = p.exp;
-            updateFields["gameData.level"] = p.level;
-            updateFields["gameData.skillPoints"] = p.skillPoints !== undefined ? p.skillPoints : (user.gameData.skillPoints || 0);
-
-            const result = await User.updateOne({ _id: socket.dbUser._id }, { $set: updateFields });
-            console.log(`[SAVE] Progreso de ${p.user} guardado. Lvl: ${p.level}, Puntos: ${p.skillPoints}`);
-
-        } catch (e) { console.error("Error guardando progreso:", e); }
+    // GUARDAR PROGRESO (Sincronía Autoritativa)
+    socket.on('saveProgress', async () => {
+        await savePlayerToDB(socket.id);
     });
+
+    // v262.120: AUTO-SAVE GLOBAL (Cada 5 minutos)
+    setInterval(async () => {
+        const socketIds = Object.keys(players);
+        console.log(`[AUTO-SAVE] Iniciando guardado masivo de ${socketIds.length} pilotos...`);
+        
+        for (let i = 0; i < socketIds.length; i++) {
+            // Distribuimos el guardado (uno cada 50ms) para no saturar el event loop
+            await new Promise(resolve => setTimeout(resolve, 50));
+            await savePlayerToDB(socketIds[i]);
+        }
+        console.log(`[AUTO-SAVE] Guardado masivo completado.`);
+    }, 5 * 60 * 1000); // 5 Minutos
 
     // v243.15: Helper para serializar datos de clan con roles y estados
 
@@ -823,36 +873,8 @@ io.on('connection', (socket) => {
             const username = p.user;
             console.log(`Desconectado: ${username}`);
 
-            if (socket.dbUser) {
-                try {
-                    await User.updateOne(
-                        { _id: socket.dbUser._id },
-                        {
-                            $set: {
-                                "gameData.lastPos.x": Math.floor(p.x),
-                                "gameData.lastPos.y": Math.floor(p.y),
-                                "gameData.hp": Math.ceil(p.hp || 0),
-                                "gameData.shield": Math.ceil(p.shield || 0),
-                                "gameData.zone": p.zone || 1,
-                                "gameData.ammo": p.ammo,
-                                "gameData.selectedAmmo": p.selectedAmmo,
-                                "gameData.inventory": p.inventory,
-                                "gameData.equipped": p.equipped,
-                                "gameData.spheres": p.spheres,
-                                "gameData.hubs": p.hubs,
-                                "gameData.ohcu": p.ohcu,
-                                "gameData.level": p.level,
-                                "gameData.exp": p.exp,
-                                "gameData.skillPoints": p.skillPoints,
-                                "gameData.skillTree": p.skillTree,
-                                "gameData.hudConfig": p.hudConfig || {},
-                                "gameData.hudPositions": p.hudPositions || {},
-                                "gameData.currentShipId": p.currentShipId || 1
-                            }
-                        }
-                    );
-                } catch (e) { console.error("Error guardando estado final:", e); }
-            }
+            // v262.110: Guardado Autoritativo Final
+            await savePlayerToDB(socket.id);
 
             delete players[socket.id];
             if (username) activeSessions.delete(username.toLowerCase());

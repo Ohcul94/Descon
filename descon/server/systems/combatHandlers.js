@@ -200,6 +200,7 @@ function registerCombatHandlers(socket, io, state) {
 
                         memberSocket.emit('enemyKillSession', { hubs: shared_h, ohcu: shared_o, exp: shared_e, killer: socket.id });
 
+                        // v262.135: Subida de Nivel (Autoridad del Servidor)
                         let nextLevelExp = Math.floor(1000 * Math.pow(user.gameData.level, 1.5));
                         while (user.gameData.exp >= nextLevelExp && user.gameData.level < 100) {
                             user.gameData.exp -= nextLevelExp;
@@ -209,19 +210,12 @@ function registerCombatHandlers(socket, io, state) {
                             nextLevelExp = Math.floor(1000 * Math.pow(user.gameData.level, 1.5));
                         }
 
-                        user.markModified('gameData');
-                        await user.save();
-
+                        // Actualizar RAM (players) - El Auto-Save usará estos datos
                         memP.hubs = user.gameData.hubs;
                         memP.ohcu = user.gameData.ohcu;
                         memP.exp = user.gameData.exp;
                         memP.level = user.gameData.level;
                         memP.skillPoints = user.gameData.skillPoints;
-
-                        const hpBonus = 1.0 + ((memP.skillTree.engineering[0] || 0) * 0.02);
-                        const shBonus = 1.0 + ((memP.skillTree.engineering[1] || 0) * 0.02);
-                        memP.maxHp = Math.ceil((memP.baseHp || 2000) * hpBonus);
-                        memP.maxShield = Math.ceil((memP.baseShield || 1000) * shBonus);
 
                         memberSocket.emit('inventoryData', { player: user.gameData });
                     }
@@ -244,6 +238,9 @@ function registerCombatHandlers(socket, io, state) {
             if (attackerType === 'enemy') {
                 const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
                 const baseDmg = cfg ? cfg.bulletDamage : 50;
+                
+                // v262.140: Parche Anti-Inmortalidad
+                // Si el cliente manda daño 0 o sospechosamente bajo, aplicamos daño base
                 if (dmg <= 0 || dmg > baseDmg) dmg = baseDmg;
             }
             if (p.isInvulnerable) dmg = 0;
