@@ -431,73 +431,104 @@ func _render_group(parent, type, title, count):
 	var l = Label.new(); l.text = title; l.modulate.a = 0.4; l.add_theme_font_size_override("font_size", 9); parent.add_child(l)
 	var grid = GridContainer.new(); grid.columns = 10; parent.add_child(grid)
 	
-	# v210.96: Usar caché per-ship si no es la nave activa
-	# v210.110: Unificar fuente de datos (Priorizar siempre el Mapa de la Flota para evitar bugs de desincronía)
 	var eq = []
 	var viewing_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
 	
 	if equipped_by_ship.has(str(viewing_id)):
 		var ship_e = equipped_by_ship.get(str(viewing_id), {})
 		if ship_e: eq = ship_e.get(type, [])
-	else:
-		# Fallback solo si el mapa no ha llegado aún
+	elif viewing_id == current_ship_id:
+		# Solo mostrar equipped_data si estamos viendo la nave ACTIVA
 		eq = equipped_data.get(type, [])
+	# Si es otra nave sin datos → eq queda vacío (slots vacíos, correcto)
 		
 	for i in range(count):
 		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(40, 40); var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 1; sb.border_color = Color(1,1,1,0.1); p.add_theme_stylebox_override("panel", sb)
 		if i < eq.size():
+			var item_data = eq[i]
 			var it = Label.new(); it.text = "I"; it.horizontal_alignment = 1; p.add_child(it); sb.border_color = Color.CYAN
+			
+			# v262.620: Soporte para DESEQUIPAR con Doble Click
 			p.gui_input.connect(func(ev): 
 				if ev is InputEventMouseButton and ev.pressed: 
-					var v_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
-					print("[HANGAR] Desequipando item en nave ID: ", v_id)
-					NetworkManager.send_event("unequipItem", {
-						"category": type, 
-						"index": i,
-						"shipId": v_id
-					})
+					if ev.double_click:
+						var v_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
+						NetworkManager.send_event("unequipItem", {
+							"category": type, 
+							"instanceId": item_data.get("instanceId", ""),
+							"shipId": v_id
+						})
 			)
 		else: var c = Label.new(); c.text = "+"; c.horizontal_alignment = 1; c.modulate.a = 0.1; p.add_child(c)
 		grid.add_child(p)
 
 func _create_item_row(it, parent):
-	if not it or not it.has("name"): return # Anti-crash v164.4
+	if not it or not it.has("name"): return 
 	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(0, 45); var sb = StyleBoxFlat.new(); sb.bg_color = Color(1,1,1,0.03); sb.border_width_left = 2; sb.border_color = Color.CYAN; p.add_theme_stylebox_override("panel", sb)
 	var hb = HBoxContainer.new(); hb.offset_left = 8; p.add_child(hb); var v = VBoxContainer.new(); v.size_flags_horizontal = 3; hb.add_child(v)
-	var n = Label.new(); n.text = str(it.get("name", "ITEM")).to_upper(); n.add_theme_font_size_override("font_size", 10); v.add_child(n)
-	var type_txt = str(it.get("type", "OBJ")).to_upper()
-	var t = Label.new(); t.text = "MODULO " + type_txt; t.add_theme_font_size_override("font_size", 8); t.modulate = Color.CYAN; v.add_child(t)
-	var b = Button.new(); b.text = "EQUIPAR"; b.add_theme_font_size_override("font_size", 9)
 	
-	b.pressed.connect(func(): 
-		var it_type = it.get("type", "w")
+	var item_id = str(it.get("id", "")).to_lower()
+	var item_slot = _get_slot_from_id(item_id)
+	var slot_color = Color.CYAN
+	var slot_label = "MÓDULO"
+	if item_slot == "w": slot_color = Color.RED; slot_label = "ARMA"
+	elif item_slot == "s": slot_color = Color.AQUA; slot_label = "ESCUDO"
+	elif item_slot == "e": slot_color = Color.YELLOW; slot_label = "MOTOR"
+	elif item_slot == "x": slot_color = Color.MEDIUM_PURPLE; slot_label = "EXTRA"
+	
+	var n = Label.new(); n.text = str(it.get("name", "ITEM")).to_upper(); n.add_theme_font_size_override("font_size", 10); n.modulate = slot_color; v.add_child(n)
+	var t = Label.new(); t.text = slot_label; t.add_theme_font_size_override("font_size", 8); t.modulate = slot_color; t.modulate.a = 0.6; v.add_child(t)
+	
+	var icon_rect = TextureRect.new(); icon_rect.custom_minimum_size = Vector2(32, 32); icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; hb.add_child(icon_rect)
+	hb.move_child(icon_rect, 0)
+	sb.border_color = slot_color
+	
+	# v262.630: Botones de Acción (Equipar y Vender)
+	var actions_h = HBoxContainer.new(); hb.add_child(actions_h)
+	
+	var b_sell = Button.new(); b_sell.text = " VENDER "; b_sell.modulate = Color(1, 0.3, 0.3); b_sell.add_theme_font_size_override("font_size", 9)
+	b_sell.pressed.connect(func(): NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", "")}))
+	actions_h.add_child(b_sell)
+
+	var b = Button.new(); b.text = "EQUIPAR"; b.add_theme_font_size_override("font_size", 9)
+	actions_h.add_child(b)
+
+	# Función de Equipado Centralizada
+	var equip_func = func():
+		var slot_key = _get_slot_from_id(str(it.get("id", "")).to_lower())
 		var viewing_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
-		
-		# v210.105: Validación de Slots Local (Anti-Crash)
 		var ship_config = null
-		for s in GameConstants.SHIP_MODELS:
-			if s["id"] == viewing_id: ship_config = s; break
-		
+		for s in GameConstants.SHIP_MODELS: if s["id"] == viewing_id: ship_config = s; break
 		if ship_config:
-			var max_s = ship_config["slots"].get(it_type, 0)
+			var max_s = ship_config["slots"].get(slot_key, 0)
 			var current_e = []
-			if viewing_id == current_ship_id: current_e = equipped_data.get(it_type, [])
+			if viewing_id == current_ship_id: current_e = equipped_data.get(slot_key, [])
 			else: 
 				var ship_e = equipped_by_ship.get(str(viewing_id), {})
-				if ship_e: current_e = ship_e.get(it_type, [])
-			
+				if ship_e: current_e = ship_e.get(slot_key, [])
 			if current_e.size() >= max_s:
-				_show_result_modal("CHASIS LLENO", "Esta nave no tiene más slots de tipo " + it_type.to_upper())
+				_show_result_modal("CHASIS LLENO", "Esta nave no tiene más espacio en " + slot_key.to_upper())
 				return
+		NetworkManager.send_event("equipItem", {"instanceId": it.get("instanceId", ""), "shipId": viewing_id})
 
-		print("[HANGAR] Equipando item en nave ID: ", viewing_id)
-		NetworkManager.send_event("equipItem", {
-			"category": it_type, 
-			"instanceId": it.get("instanceId", ""),
-			"shipId": viewing_id
-		})
+	b.pressed.connect(equip_func)
+	
+	# v262.640: Soporte para EQUIPAR con Doble Click
+	p.gui_input.connect(func(ev):
+		if ev is InputEventMouseButton and ev.pressed and ev.double_click:
+			equip_func.call()
 	)
-	hb.add_child(b); parent.add_child(p)
+	
+	parent.add_child(p)
+
+
+# v262.520: Traductor de ID de ítem → código de slot (w/s/e/x)
+# Esta es la ÚNICA fuente de verdad. Si el ID empieza con 'las' → arma, etc.
+func _get_slot_from_id(item_id: String) -> String:
+	if item_id.begins_with("las") or item_id.begins_with("w"): return "w"
+	elif item_id.begins_with("sh") or item_id.begins_with("s"): return "s"
+	elif item_id.begins_with("en") or item_id.begins_with("e"): return "e"
+	else: return "x"
 
 # --- ESFERAS ---
 func _update_spheres_ui():

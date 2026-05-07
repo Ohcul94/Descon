@@ -204,16 +204,18 @@ const handleUserLogin = async (socket, user, username) => {
             modified = true;
         }
         // Sincronizar con Admin Panel (Color, Rareza y TIPO correcto)
+        // v262.530: Buscar en TODAS las categorías REALES del config.json
         const allShopItems = [
             ...(state.SERVER_CONFIG.shopItems.weapons || []),
-            ...(state.SERVER_CONFIG.shopItems.modules || []),
+            ...(state.SERVER_CONFIG.shopItems.shields || []),
+            ...(state.SERVER_CONFIG.shopItems.engines || []),
             ...(state.SERVER_CONFIG.shopItems.extra || [])
         ];
         const master = allShopItems.find(w => w.id === item.id);
         if (master) {
-            // v262.240: Reparación de tipo para láseres "perdidos"
+            // v262.460: Forzado de tipos en minúsculas para Godot (weapon, shield, engine)
             item.name = master.name || item.name || "ÍTEM RECUPERADO";
-            item.type = master.type || item.type || "Utility";
+            item.type = (master.type || item.type || "utility").toLowerCase();
             item.color = master.color || item.color || "#ffffff";
             item.rarity = master.rarity || item.rarity || 0;
             item.description = master.description || item.description || "";

@@ -1,8 +1,7 @@
 const User = require('../models/User');
 
 /**
- * v262.350: HELPER DE CATEGORIZACIÓN ULTRA-SEGURO
- * Fuerza los tipos para que Godot no tire errores de 'Utility'
+ * v262.450: HELPER DE CATEGORIZACIÓN ESTÁNDAR (Minúsculas para Godot)
  */
 function getCategorizedInventory(inventory) {
     const categories = { weapons: [], modules: [], resources: [], others: [] };
@@ -11,17 +10,19 @@ function getCategorizedInventory(inventory) {
     inventory.forEach(item => {
         const id = (item.id || "").toLowerCase();
         
-        // CORRECCIÓN DINÁMICA: Si el ID dice que es un láser, lo tratamos como Weapon
+        // Sincronización estricta con los tipos de Godot (lowercase)
         if (id.startsWith('las') || id.startsWith('w')) {
-            item.type = "Weapon";
+            item.type = "weapon"; 
             categories.weapons.push(item);
         } else if (id.startsWith('sh') || id.startsWith('s')) {
-            item.type = "Shield";
+            item.type = "shield";
             categories.modules.push(item);
-        } else if (id.startsWith('en') || id.startsWith('e') || id.startsWith('m')) {
-            item.type = "Engine";
+        } else if (id.startsWith('en') || id.startsWith('e')) {
+            item.type = "engine";
             categories.modules.push(item);
         } else {
+            if (!item.type) item.type = "utility";
+            item.type = item.type.toLowerCase();
             categories.others.push(item);
         }
     });
@@ -41,7 +42,7 @@ function getShipEquip(user, shipKey) {
 
 function registerInventoryHandlers(socket, io, state) {
     
-    // TIENDA
+    // COMPRA DE ÍTEMS
     socket.on('buyItem', async (data) => {
         if (!socket.dbUser) return;
         try {
@@ -69,10 +70,16 @@ function registerInventoryHandlers(socket, io, state) {
             user.gameData[currency] -= totalPrice;
 
             if (category !== 'ammo') {
+                let type = (itemConfig.type || "utility").toLowerCase();
+                const id = itemConfig.id.toLowerCase();
+                if (id.startsWith('las') || id.startsWith('w')) type = "weapon";
+                else if (id.startsWith('sh') || id.startsWith('s')) type = "shield";
+                else if (id.startsWith('en') || id.startsWith('e')) type = "engine";
+
                 user.gameData.inventory.push({
                     id: itemConfig.id,
                     name: itemConfig.name,
-                    type: itemConfig.type || "Utility",
+                    type: type,
                     base: itemConfig.base || 0,
                     instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
                     rarity: itemConfig.rarity || 0,
@@ -95,14 +102,13 @@ function registerInventoryHandlers(socket, io, state) {
         } catch (e) { console.error(e); }
     });
 
-    // EQUIPAR
+    // EQUIPAR ÍTEM
     socket.on('equipItem', async (raw_data) => {
         if (!socket.dbUser) return;
         try {
-            // v262.360: Extraer ID si mandan un objeto de Godot
             const data = (typeof raw_data === 'object' && raw_data.instanceId) ? raw_data : raw_data;
             const instanceId = data.instanceId;
-            const shipId = (typeof data.shipId === 'object') ? data.shipId.id : data.shipId;
+            const shipId = (typeof data.shipId === 'object') ? (data.shipId.id || data.shipId.shipId) : data.shipId;
 
             const user = await User.findById(socket.dbUser._id);
             const idx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
@@ -123,7 +129,9 @@ function registerInventoryHandlers(socket, io, state) {
             const shipModel = state.SERVER_CONFIG.shipModels.find(s => s.id === targetId);
             const max = (shipModel && shipModel.slots) ? (shipModel.slots[slot] || 1) : 1;
 
-            if (shipEquip[slot].length >= max) return socket.emit('authError', 'BODEGA LLENA');
+            if (shipEquip[slot].length >= max) {
+                return socket.emit('authError', `BODEGA LLENA: No hay más espacio para ${slot.toUpperCase()}`);
+            }
 
             user.gameData.inventory.splice(idx, 1);
             shipEquip[slot].push(item);
@@ -151,8 +159,6 @@ function registerInventoryHandlers(socket, io, state) {
     socket.on('switchShip', async (raw_shipId) => {
         if (!socket.dbUser || !state.players[socket.id]) return;
         const p = state.players[socket.id];
-        
-        // v240.85: Bloqueo de Combate Estricto (60s) - Restaurado desde Commit e58e470
         const now = Date.now();
         const COMBAT_DELAY = 60000;
         const lastCombat = p.lastCombatTime || 0;
@@ -160,22 +166,17 @@ function registerInventoryHandlers(socket, io, state) {
 
         if (diff < COMBAT_DELAY) {
             const remaining = Math.ceil((COMBAT_DELAY - diff) / 1000);
-            socket.emit('gameNotification', { 
+            return socket.emit('gameNotification', { 
                 msg: `ERROR: Sistemas de armas calientes. Espera ${remaining}s fuera de combate para cambiar.`, 
                 type: 'error' 
             });
-            console.log(`\x1b[33m[HANGAR]\x1b[0m Cambio bloqueado para ${p.user}. Faltan ${remaining}s.`);
-            return;
         }
 
         try {
-            // v262.360: Extraer ID si mandan un objeto de Godot [object Object]
             let shipId = raw_shipId;
             if (typeof raw_shipId === 'object' && raw_shipId !== null) {
                 shipId = raw_shipId.shipId || raw_shipId.id || 1;
             }
-            
-            console.log(`[SHIP] Procesando cambio a nave: ${shipId} (Raw: ${JSON.stringify(raw_shipId)})`);
             
             const user = await User.findById(socket.dbUser._id);
             const targetId = parseInt(shipId);
@@ -187,41 +188,28 @@ function registerInventoryHandlers(socket, io, state) {
 
             user.gameData.equipped = JSON.parse(JSON.stringify(equip));
             
-            // v262.380: Marcado de modificación ultra-preciso para evitar reversión
             user.markModified('gameData.currentShipId');
             user.markModified('gameData.equipped');
             user.markModified('gameData'); 
 
             await user.save();
             socket.dbUser = user;
-            console.log(`[SHIP] Persistencia confirmada para ${user.username} en nave ${targetId}`);
 
-            const p = state.players[socket.id];
             const model = state.SERVER_CONFIG.shipModels.find(s => s.id === targetId);
             if (model && p) {
                 p.type = targetId;
-                p.currentShipId = targetId; // v262.390: Sincronía con Auto-Save
+                p.currentShipId = targetId;
                 p.baseHp = model.hp || 2000; 
                 p.baseShield = model.shield || 1000;
-
-                // v262.370: Cálculos ultra-seguros para evitar NaN en Godot
                 const eng = p.skillTree?.engineering || [0, 0];
                 const bonusHp = 1.0 + ((eng[0] || 0) * 0.02);
                 const bonusSh = 1.0 + ((eng[1] || 0) * 0.02);
-
                 p.maxHp = Math.ceil(p.baseHp * bonusHp);
                 p.maxShield = Math.ceil(p.baseShield * bonusSh);
-                p.hp = p.maxHp; 
-                p.shield = p.maxShield;
+                p.hp = p.maxHp; p.shield = p.maxShield;
                 p.equipped = user.gameData.equipped;
 
-                io.to(`zone_${p.zone}`).emit('playerStatSync', { 
-                    id: socket.id, 
-                    hp: p.hp, 
-                    shield: p.shield, 
-                    maxHp: p.maxHp, 
-                    maxShield: p.maxShield 
-                });
+                io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield });
                 io.emit('playerUpdated', { id: socket.id, type: p.type });
             }
 
@@ -242,18 +230,76 @@ function registerInventoryHandlers(socket, io, state) {
             const targetId = data.shipId ? parseInt(data.shipId) : user.gameData.currentShipId;
             const shipKey = targetId.toString();
             let shipEquip = getShipEquip(user, shipKey);
+            
             const idx = shipEquip[data.category].findIndex(it => it.instanceId === data.instanceId);
             if (idx === -1) return;
-            user.gameData.inventory.push(shipEquip[data.category].splice(idx, 1)[0]);
+            
+            const item = shipEquip[data.category].splice(idx, 1)[0];
+            user.gameData.inventory.push(item);
+            
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.set(shipKey, shipEquip);
             else user.gameData.equippedByShip[shipKey] = shipEquip;
+            
             if (targetId === user.gameData.currentShipId) user.gameData.equipped = shipEquip;
-            user.markModified('gameData'); await user.save();
+            
+            user.markModified('gameData');
+            await user.save();
+            socket.dbUser = user;
+
             const eByShipObj = {};
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
             else Object.assign(eByShipObj, user.gameData.equippedByShip);
-            socket.emit('inventoryData', { player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) } });
-        } catch (e) { }
+
+            socket.emit('inventoryData', { 
+                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) } 
+            });
+        } catch (e) { console.error(e); }
+    });
+
+    // v262.600: SISTEMA DE VENTA (Reciclaje al 50% de HUBS)
+    socket.on('sellItem', async (data) => {
+        if (!socket.dbUser) return;
+        try {
+            const { instanceId } = data;
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+
+            const idx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
+            if (idx === -1) return;
+
+            const item = user.gameData.inventory[idx];
+            
+            let originalPrice = 0;
+            const allItems = [
+                ...(state.SERVER_CONFIG.shopItems.weapons || []),
+                ...(state.SERVER_CONFIG.shopItems.shields || []),
+                ...(state.SERVER_CONFIG.shopItems.engines || []),
+                ...(state.SERVER_CONFIG.shopItems.extra || [])
+            ];
+            
+            const configItem = allItems.find(i => i.id === item.id);
+            if (configItem && configItem.prices && configItem.prices.hubs) {
+                originalPrice = configItem.prices.hubs;
+            }
+
+            const refund = Math.floor(originalPrice / 2);
+            user.gameData.inventory.splice(idx, 1);
+            user.gameData.hubs += refund;
+
+            user.markModified('gameData');
+            await user.save();
+            socket.dbUser = user;
+
+            const eByShipObj = {};
+            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+            else Object.assign(eByShipObj, user.gameData.equippedByShip);
+
+            socket.emit('inventoryData', {
+                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
+            });
+
+            socket.emit('gameNotification', { msg: `VENDIDO POR ${refund} HUBS`, type: 'success' });
+        } catch (e) { console.error(e); }
     });
 }
 
