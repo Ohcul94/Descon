@@ -3,11 +3,26 @@ const SkillManager = require('./skills/SkillManager');
 const StealthSkill = require('./skills/StealthSkill');
 const BlinkSkill = require('./skills/BlinkSkill');
 const FrostTrailSkill = require('./skills/FrostTrailSkill');
+const SmokeBombSkill = require('./skills/SmokeBombSkill');
+const InvulnerabilitySkill = require('./skills/InvulnerabilitySkill');
+const HealSkill = require('./skills/HealSkill');
+const DamageSkill = require('./skills/DamageSkill');
 
 // v247.20: Registro de Habilidades Modulares
 SkillManager.registerSkill(new StealthSkill());
 SkillManager.registerSkill(new BlinkSkill());
 SkillManager.registerSkill(new FrostTrailSkill());
+SkillManager.registerSkill(new SmokeBombSkill());
+SkillManager.registerSkill(new InvulnerabilitySkill());
+
+// Habilidades de Curación/Soporte
+SkillManager.registerSkill(new HealSkill("ESCUDO CELULAR"));
+SkillManager.registerSkill(new HealSkill("FORTALEZA-X"));
+SkillManager.registerSkill(new HealSkill("AUTO-REPARACIÓN"));
+SkillManager.registerSkill(new HealSkill("NANO-REGENERACIÓN"));
+
+// Habilidades Ofensivas
+SkillManager.registerSkill(new DamageSkill("PLASMA BLAST"));
 
 /**
  * registerCombatHandlers
@@ -80,144 +95,9 @@ function registerCombatHandlers(socket, io, state) {
 
         // v247.20: Sistema Modular de Habilidades (Prioridad)
         const handled = SkillManager.useSkill(data.skillName, p, data, { io, state, socket });
-        if (handled) return;
-
-        // --- FALLBACK: Sistema Antiguo (Para habilidades no migradas) ---
-        const powerValue = data.powerValue || 0;
-        if (powerValue <= 0 && data.skillName !== "SMOKE-BOMB") return; 
-
-        let skillConfig = (state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData[data.skillName] : null;
-        
-        const fallbacks = {
-            "ESCUDO CELULAR": { canTargetOthers: true, targetFilters: { allies: true, enemies: false, bosses: false, players: true } },
-            "FORTALEZA-X": { canTargetOthers: true, targetFilters: { allies: true, enemies: false, bosses: false, players: true } },
-            "AUTO-REPARACIÓN": { canTargetOthers: true, targetFilters: { allies: true, enemies: false, bosses: false, players: true } },
-            "NANO-REGENERACIÓN": { canTargetOthers: true, targetFilters: { allies: true, enemies: false, bosses: false, players: true } },
-            "TURBO-IMPULSO": { canTargetOthers: true, targetFilters: { allies: true, enemies: false, bosses: false, players: true } },
-            "PLASMA BLAST": { canTargetOthers: true, targetFilters: { allies: false, enemies: true, bosses: true, players: true } }
-        };
-        
-        if (fallbacks[data.skillName]) {
-            if (!skillConfig) skillConfig = {};
-            skillConfig.canTargetOthers = fallbacks[data.skillName].canTargetOthers;
-            skillConfig.targetFilters = fallbacks[data.skillName].targetFilters;
+        if (!handled) {
+            console.warn(`[SKILL] Habilidad no reconocida o no migrada: ${data.skillName}`);
         }
-
-        let target = p; 
-        let isRemote = false;
-
-        if (skillConfig && skillConfig.canTargetOthers) {
-            if (!data.targetId) return;
-
-            const targetPlayer = state.players[data.targetId];
-            const targetEnemy = state.enemies[data.targetId];
-            const potentialTarget = targetPlayer || targetEnemy;
-
-            if (!potentialTarget || potentialTarget.hp <= 0) return;
-
-            if (data.targetId !== socket.id && skillConfig.range && skillConfig.range > 0) {
-                const dx = p.x - potentialTarget.x;
-                const dy = p.y - potentialTarget.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > skillConfig.range + 50) {
-                    return; 
-                }
-            }
-
-            if (data.targetId === socket.id) {
-                target = p;
-            } else {
-                const filters = skillConfig.targetFilters || { allies: true, enemies: false, bosses: false, players: true };
-                let isValid = false;
-
-                if (targetPlayer) {
-                    const sameClan = (p.clanId && targetPlayer.clanId && p.clanId.toString() === targetPlayer.clanId.toString());
-                    const isAlly = sameClan || (!p.pvpEnabled && !targetPlayer.pvpEnabled);
-                    const isEnemy = !sameClan && (p.pvpEnabled || targetPlayer.pvpEnabled);
-                    
-                    if (isAlly && filters.allies) isValid = true;
-                    else if (isEnemy && (filters.enemies || filters.players)) isValid = true;
-                    else if (!isAlly && !isEnemy && filters.players) isValid = true;
-                } else if (targetEnemy) {
-                    const isBoss = targetEnemy.type === 4 || targetEnemy.type === 10 || targetEnemy.type === 11;
-                    if (isBoss && filters.bosses) isValid = true;
-                    else if (!isBoss && filters.enemies) isValid = true;
-                }
-
-                if (isValid) {
-                    target = potentialTarget;
-                    isRemote = true;
-                } else {
-                    return; 
-                }
-            }
-        }
-
-        let actual_val = powerValue;
-
-        if (data.skillName === "ESCUDO CELULAR" || data.skillName === "FORTALEZA-X") {
-            const ms = target.maxShield || 2000;
-            const oldS = target.shield || 0;
-            target.shield = Math.min(oldS + powerValue, ms);
-            actual_val = target.shield - oldS;
-        } else if (data.skillName === "AUTO-REPARACIÓN" || data.skillName === "NANO-REGENERACIÓN") {
-            const mh = target.maxHp || 3000;
-            const oldH = target.hp || 0;
-            target.hp = Math.min(oldH + powerValue, mh);
-            actual_val = target.hp - oldH;
-        } else if (data.skillName === "PLASMA BLAST") {
-            if (target !== p) {
-                const oldH = target.hp || 0;
-                target.hp -= powerValue;
-                if (target.hp < 0) target.hp = 0;
-                actual_val = oldH - target.hp;
-            }
-        } else if (data.skillName === "SMOKE-BOMB") {
-            const areaId = `area_${state.nextAreaId++}`;
-            const config = (state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData["SMOKE-BOMB"] : { duration: 6, radius: 180 };
-            
-            state.activeAreas[areaId] = {
-                id: areaId,
-                x: p.x,
-                y: p.y,
-                radius: config.radius || 180,
-                type: 'SMOKE',
-                ownerId: socket.id,
-                endTime: Date.now() + (config.duration * 1000),
-                zone: p.zone
-            };
-            
-            io.to(`zone_${p.zone}`).emit('spawnArea', state.activeAreas[areaId]);
-        } else if (data.skillName === "INVULNERABILIDAD") {
-            p.isInvulnerable = true;
-            const syncData = { id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), isInvulnerable: true };
-            io.to(`zone_${p.zone}`).emit('playerStatSync', syncData);
-
-            const duration = (skillConfig && skillConfig.duration || 2) * 1000;
-            setTimeout(() => {
-                p.isInvulnerable = false;
-                io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, isInvulnerable: false });
-            }, duration);
-        }
-
-        if (target && target.socketId) {
-            target.lastSyncHp = target.hp;
-            target.lastSyncSh = target.shield;
-
-            io.to(`zone_${target.zone}`).emit('playerStatSync', {
-                id: target.socketId,
-                hp: Math.ceil(target.hp),
-                shield: Math.ceil(target.shield),
-                isDead: target.hp <= 0
-            });
-        }
-
-        io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', {
-            id: socket.id,
-            skillName: data.skillName,
-            powerValue: actual_val,
-            targetId: isRemote ? data.targetId : socket.id
-        });
     });
 
     // IMPACTO EN ENEMIGO
