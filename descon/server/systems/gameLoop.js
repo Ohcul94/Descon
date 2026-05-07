@@ -1,33 +1,42 @@
+const GridManager = require('./GridManager');
+
 /**
  * GameLoop
  * El corazón del servidor. Maneja los intervalos de tiempo para IA, regeneración y limpieza.
  */
 function startGameLoop(io, state, aiManager) {
+    const grid = new GridManager(500);
     
     // 1. LOOP DE IA Y MOVIMIENTO (33ms ~ 30fps para suavidad)
     setInterval(() => {
         const now = Date.now();
         const { enemies, players } = state;
+
+        // v247.11: Actualizar grid para IA y Colisiones (Frecuencia 30fps)
+        grid.clear();
+        Object.values(players).forEach(p => grid.insert(p, 'player'));
+        Object.values(enemies).forEach(e => { if (e.hp > 0) grid.insert(e, 'enemy'); });
+
         const zoneMoveData = {};
 
         for (const id in enemies) {
             const e = enemies[id];
             if (e.hp <= 0) continue;
 
-            // Actualizar IA
-            if (e.ai) e.ai.update(players, now, io);
+            // Actualizar IA (v247.11: Pasando grid optimizado)
+            if (e.ai) e.ai.update(grid, players, now, io);
 
-            // Repulsión física entre enemigos
-            Object.values(enemies).forEach(other => {
-                if (e.id !== other.id && e.zone === other.zone && other.hp > 0) {
+            // v247.12: Repulsión física optimizada vía Grid
+            const { enemies: nearbyEnemies } = grid.getNearbyEntities(e.x, e.y);
+            nearbyEnemies.forEach(other => {
+                if (e.id !== other.id && e.zone === other.zone) {
                     const dx = e.x - other.x;
                     const dy = e.y - other.y;
-                    const distSq = dx * dx + dy * dy;
-                    if (distSq < 2025) {
-                        const pushAngle = Math.atan2(dy, dx);
-                        const force = 0.8;
-                        e.x += Math.cos(pushAngle) * force;
-                        e.y += Math.sin(pushAngle) * force;
+                    const d = Math.hypot(dx, dy);
+                    if (d < 45) { // Distancia de repulsión
+                        const force = (45 - d) * 0.05;
+                        e.x += (dx / d) * force;
+                        e.y += (dy / d) * force;
                     }
                 }
             });
@@ -95,13 +104,18 @@ function startGameLoop(io, state, aiManager) {
         const now = Date.now();
         const { players, enemies, activeAreas } = state;
 
+        // v247.1: Re-poblar el grid espacial cada 100ms (Optimización v6)
+        grid.clear();
+        Object.values(players).forEach(p => grid.insert(p, 'player'));
+        Object.values(enemies).forEach(e => grid.insert(e, 'enemy'));
+
         // A. Reset temporal de flags para Jugadores
-        Object.entries(players).forEach(([pSocketId, p]) => {
+        Object.values(players).forEach(p => {
             if (now - (p.lastSilenceTime || 0) > 200) p.isSilenced = false;
             
             const wasBlinded = p.isBlinded;
             if (now - (p.lastBlindTime || 0) > 200) p.isBlinded = false;
-            if (wasBlinded && !p.isBlinded) io.to(pSocketId).emit('blindState', { active: false });
+            if (wasBlinded && !p.isBlinded) io.to(p.socketId).emit('blindState', { active: false });
 
             const wasSlowed = p.isSlowed;
             if (now - (p.lastSlowTime || 0) > 400) {
@@ -109,7 +123,7 @@ function startGameLoop(io, state, aiManager) {
                 p.slowPoints = 0;
             }
             if (wasSlowed !== p.isSlowed) {
-                io.to(pSocketId).emit('slowState', { active: p.isSlowed, amount: p.slowPoints });
+                io.to(p.socketId).emit('slowState', { active: p.isSlowed, amount: p.slowPoints });
             }
         });
 
@@ -126,8 +140,11 @@ function startGameLoop(io, state, aiManager) {
         for (const id in activeAreas) {
             const area = activeAreas[id];
             
+            // v247.2: Solo procesar entidades en celdas adyacentes (Spatial Hashing)
+            const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(area.x, area.y);
+
             // Efectos a Jugadores
-            Object.entries(players).forEach(([pSocketId, p]) => {
+            nearbyPlayers.forEach(p => {
                 if (p.zone === area.zone && !p.isDead) {
                     const dx = p.x - area.x;
                     const dy = p.y - area.y;
@@ -135,12 +152,10 @@ function startGameLoop(io, state, aiManager) {
                     
                     if (distSq < (area.radius * area.radius)) {
                         const owner = players[area.ownerId];
-                        let is_ally = (pSocketId === area.ownerId);
+                        let is_ally = (p.socketId === area.ownerId);
                         if (owner && !is_ally) {
-                            // v245.96: Alianza por Clan (Comparación de String robusta)
                             if (p.clanId && owner.clanId && String(p.clanId) === String(owner.clanId)) is_ally = true;
                             
-                            // v245.97: Alianza por Grupo (Party)
                             const pUid = p.id ? p.id.toString() : null;
                             const oUid = owner.id ? owner.id.toString() : null;
                             if (pUid && oUid && state.playerParty[pUid] && state.playerParty[pUid] === state.playerParty[oUid]) {
@@ -153,7 +168,7 @@ function startGameLoop(io, state, aiManager) {
                             p.lastSilenceTime = now;
                             if (!p.isBlinded) {
                                 p.isBlinded = true;
-                                io.to(pSocketId).emit('blindState', { active: true });
+                                io.to(p.socketId).emit('blindState', { active: true });
                             }
                             p.lastBlindTime = now;
                         } else if (area.type === 'ICE' && !is_ally) {
@@ -163,7 +178,7 @@ function startGameLoop(io, state, aiManager) {
                             p.slowPoints = (area.slowAmount || 0.5) * 100;
                             
                             if (!prevSlow) {
-                                io.to(pSocketId).emit('slowState', { active: true, amount: p.slowPoints });
+                                io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints });
                             }
                         }
                     }
@@ -171,7 +186,7 @@ function startGameLoop(io, state, aiManager) {
             });
 
             // Efectos a Enemigos
-            Object.values(enemies).forEach(e => {
+            nearbyEnemies.forEach(e => {
                 if (e.zone === area.zone && e.hp > 0) {
                     const dx = e.x - area.x;
                     const dy = e.y - area.y;

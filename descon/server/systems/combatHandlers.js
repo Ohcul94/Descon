@@ -1,4 +1,13 @@
 const User = require('../models/User');
+const SkillManager = require('./skills/SkillManager');
+const StealthSkill = require('./skills/StealthSkill');
+const BlinkSkill = require('./skills/BlinkSkill');
+const FrostTrailSkill = require('./skills/FrostTrailSkill');
+
+// v247.20: Registro de Habilidades Modulares
+SkillManager.registerSkill(new StealthSkill());
+SkillManager.registerSkill(new BlinkSkill());
+SkillManager.registerSkill(new FrostTrailSkill());
 
 /**
  * registerCombatHandlers
@@ -52,12 +61,12 @@ function registerCombatHandlers(socket, io, state) {
     });
 
     // SISTEMA DE HABILIDADES DE ESFERAS (Soporte Polimórfico v262.10)
-    socket.on('playerSphereSkill', (data) => {
+    socket.on('playerSphereSkill', async (data) => {
         const p = state.players[socket.id];
         if (!p || p.isDead || !state.SERVER_CONFIG) return;
 
-        const sphereIdx = data.sphereIdx;
-        if (sphereIdx < 0 || sphereIdx > 3) return;
+        const sphereIdx = (data.id !== undefined) ? data.id : data.sphereIdx;
+        if (sphereIdx === undefined || sphereIdx < 0 || sphereIdx > 3) return;
 
         const now = Date.now();
         if (!p.sphereCooldowns) p.sphereCooldowns = [0, 0, 0, 0];
@@ -66,8 +75,16 @@ function registerCombatHandlers(socket, io, state) {
         const cd_sec = (state.SERVER_CONFIG.skillsData && state.SERVER_CONFIG.skillsData[data.skillName]) ? state.SERVER_CONFIG.skillsData[data.skillName].cd : 10;
         if (now - lastUse < (cd_sec * 1000)) return;
 
+        // Actualizar cooldown antes de ejecutar para evitar spam
+        p.sphereCooldowns[sphereIdx] = now;
+
+        // v247.20: Sistema Modular de Habilidades (Prioridad)
+        const handled = SkillManager.useSkill(data.skillName, p, data, { io, state, socket });
+        if (handled) return;
+
+        // --- FALLBACK: Sistema Antiguo (Para habilidades no migradas) ---
         const powerValue = data.powerValue || 0;
-        if (powerValue <= 0 && data.skillName !== "SMOKE-BOMB" && data.skillName !== "STEALTH" && data.skillName !== "FROST-TRAIL") return; 
+        if (powerValue <= 0 && data.skillName !== "SMOKE-BOMB") return; 
 
         let skillConfig = (state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData[data.skillName] : null;
         
@@ -136,7 +153,6 @@ function registerCombatHandlers(socket, io, state) {
             }
         }
 
-        p.sphereCooldowns[sphereIdx] = now; 
         let actual_val = powerValue;
 
         if (data.skillName === "ESCUDO CELULAR" || data.skillName === "FORTALEZA-X") {
@@ -172,66 +188,19 @@ function registerCombatHandlers(socket, io, state) {
             };
             
             io.to(`zone_${p.zone}`).emit('spawnArea', state.activeAreas[areaId]);
-        } else if (data.skillName === "STEALTH") {
-            const config = (state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData["STEALTH"] : { duration: 8 };
-            const duration = (config.duration || 8) * 1000;
-            
-            p.isInvisible = true;
-            socket.emit('gameNotification', { msg: "┬íSIGILO ACTIVADO!", type: "info" });
-            
-            setTimeout(() => {
-                const currentPlayer = state.players[socket.id];
-                if (currentPlayer) {
-                    currentPlayer.isInvisible = false;
-                    io.to(`zone_${currentPlayer.zone}`).emit('remoteStatSync', {
-                        id: socket.id,
-                        isInvisible: false
-                    });
-                }
-            }, duration);
-            
-            p.hasStealthTimer = true; 
-            io.to(`zone_${p.zone}`).emit('remoteStatSync', { id: socket.id, isInvisible: true });
-        } else if (data.skillName === "FROST-TRAIL") {
-            const config = (state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData["FROST-TRAIL"] : { duration: 6, radius: 120, cd: 12 };
-            const duration = (config.duration || 6) * 1000;
-            const skillEndTime = Date.now() + duration; 
-            
-            socket.emit('gameNotification', { msg: "¡ESTELA DE HIELO ACTIVADA!", type: "info" });
-            
-            let lastX = -9999; // Forzar el primer spawn
-            let lastY = -9999;
+        } else if (data.skillName === "INVULNERABILIDAD") {
+            p.isInvulnerable = true;
+            const syncData = { id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), isInvulnerable: true };
+            io.to(`zone_${p.zone}`).emit('playerStatSync', syncData);
 
-            const trailInterval = setInterval(() => {
-                const currentPlayer = state.players[socket.id];
-                if (!currentPlayer || Date.now() >= skillEndTime) {
-                    clearInterval(trailInterval);
-                    return;
-                }
-                
-                const dist = Math.hypot(currentPlayer.x - lastX, currentPlayer.y - lastY);
-                if (dist > 25) {
-                    const areaId = `frost_${state.nextAreaId++}`;
-                    state.activeAreas[areaId] = {
-                        id: areaId,
-                        x: currentPlayer.x,
-                        y: currentPlayer.y,
-                        radius: 35, 
-                        type: 'ICE',
-                        ownerId: socket.id,
-                        slowAmount: config.slow_amount || 0.6,
-                        endTime: skillEndTime, // v246.5: Todo el rastro desaparece al terminar el skill
-                        zone: currentPlayer.zone
-                    };
-                    
-                    io.to(`zone_${currentPlayer.zone}`).emit('spawnArea', state.activeAreas[areaId]);
-                    lastX = currentPlayer.x;
-                    lastY = currentPlayer.y;
-                }
-            }, 100);
+            const duration = (skillConfig && skillConfig.duration || 2) * 1000;
+            setTimeout(() => {
+                p.isInvulnerable = false;
+                io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, isInvulnerable: false });
+            }, duration);
         }
 
-        if (target.socketId) {
+        if (target && target.socketId) {
             target.lastSyncHp = target.hp;
             target.lastSyncSh = target.shield;
 
@@ -239,7 +208,6 @@ function registerCombatHandlers(socket, io, state) {
                 id: target.socketId,
                 hp: Math.ceil(target.hp),
                 shield: Math.ceil(target.shield),
-                spheres: target.spheres,
                 isDead: target.hp <= 0
             });
         }
@@ -250,31 +218,6 @@ function registerCombatHandlers(socket, io, state) {
             powerValue: actual_val,
             targetId: isRemote ? data.targetId : socket.id
         });
-
-        const s_data = (state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData[data.skillName] || {} : {};
-        
-        if (data.skillName === "INVULNERABILIDAD") {
-            p.isInvulnerable = true;
-            const syncData = { id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), isInvulnerable: true };
-            io.to(`zone_${p.zone}`).emit('playerStatSync', syncData);
-
-            const duration = (s_data.duration || 2) * 1000;
-            setTimeout(() => {
-                p.isInvulnerable = false;
-                io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, isInvulnerable: false });
-            }, duration);
-        } else if (data.skillName === "BLINK") {
-            if (data.pos) {
-                p.x = data.pos.x;
-                p.y = data.pos.y;
-                io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', { 
-                    id: socket.id, 
-                    skillName: data.skillName, 
-                    pos: { x: p.x, y: p.y },
-                    targetId: socket.id 
-                });
-            }
-        }
     });
 
     // IMPACTO EN ENEMIGO

@@ -6,9 +6,9 @@ module.exports = class BaseAI {
         this.lastAction = 0;
     }
 
-    update(players, now, io) {
-        // Encontrar objetivo más cercano
-        let target = this.getNearestPlayer(players);
+    update(grid, players, now, io) {
+        // v247.10: Optimización de búsqueda de objetivos vía Grid
+        let target = this.getNearestPlayer(grid, players);
         if (!target) return;
 
         const dist = Math.hypot(target.x - this.enemy.x, target.y - this.enemy.y);
@@ -23,12 +23,14 @@ module.exports = class BaseAI {
         }
     }
 
-    getNearestPlayer(players) {
+    getNearestPlayer(grid, players) {
         let closest = null;
         let minDist = this.enemy.isHorde ? 10000 : 800; 
         
-        for (const id in players) {
-            const p = players[id];
+        // v247.10: Si hay grid, limitamos la búsqueda a celdas adyacentes
+        const targets = (grid && !this.enemy.isHorde) ? grid.getNearbyEntities(this.enemy.x, this.enemy.y).players : Object.values(players);
+
+        for (const p of targets) {
             if (!p || p.isDead || p.zone !== this.enemy.zone || p.isInvisible) continue;
             
             // v252.22: Validación de Integridad del Target
