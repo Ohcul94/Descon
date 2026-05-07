@@ -364,48 +364,66 @@ func _spawn_ice_trail(id, pos, _radius):
 	entities_node.add_child(container)
 	active_areas[id] = container
 	
-	# v7.0: EFECTO VENTISCA ESPIRAL (Premium Visuals)
-	# Usamos un material aditivo para que el negro sea transparente y el blanco brille
-	var add_mat = CanvasItemMaterial.new()
-	add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	# v246.3: EFECTO VENTISCA 100% PROCEDURAL (Sin assets externos)
+	# Partículas nativas de Godot = 0 errores de carga
+	var particles = CPUParticles2D.new()
+	particles.emitting = true
+	particles.amount = 20
+	particles.lifetime = 1.5
+	particles.one_shot = false
+	particles.explosiveness = 0.0
+	particles.z_index = 5
 	
-	var tex = load("res://assets/VFX/frost_trail.png")
-	if not tex: tex = load("res://assets/Esferas/EsferaAzul1.png")
+	# Forma de emisión circular
+	particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	particles.emission_sphere_radius = 18.0
 	
-	for i in range(12): # Más densidad para el efecto espiral
-		var ice = Sprite2D.new()
-		ice.texture = tex
-		ice.material = add_mat # CRÍTICO: Elimina el cuadro negro
+	# Movimiento de las partículas
+	particles.direction = Vector2(0, -1)
+	particles.spread = 180.0
+	particles.initial_velocity_min = 8.0
+	particles.initial_velocity_max = 25.0
+	particles.gravity = Vector2.ZERO
+	particles.damping_min = 5.0
+	particles.damping_max = 10.0
+	
+	# Tamaño con variación
+	particles.scale_amount_min = 2.0
+	particles.scale_amount_max = 5.0
+	
+	# Color: degradado de blanco/cian brillante a transparente
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color(0.8, 0.95, 1.0, 0.8))
+	gradient.add_point(0.5, Color(0.4, 0.75, 1.0, 0.6))
+	gradient.set_color(1, Color(0.3, 0.6, 1.0, 0.0))
+	particles.color_ramp = gradient
+	
+	# Rotación aleatoria para variedad visual
+	particles.angle_min = 0.0
+	particles.angle_max = 360.0
+	particles.angular_velocity_min = -90.0
+	particles.angular_velocity_max = 90.0
+	
+	particles.global_position = pos
+	container.add_child(particles)
+	
+	# Resplandor central estático (aura de hielo)
+	var glow = Sprite2D.new()
+	var glow_tex = load("res://assets/Esferas/EsferaAzul1.png")
+	if glow_tex:
+		glow.texture = glow_tex
+		var glow_mat = CanvasItemMaterial.new()
+		glow_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		glow.material = glow_mat
+		glow.modulate = Color(0.5, 0.8, 1.0, 0.35)
+		glow.scale = Vector2(0.15, 0.15)
+		glow.z_index = 4
+		glow.global_position = pos
+		container.add_child(glow)
 		
-		# Distribución inicial en círculo pequeño
-		var angle = (i / 12.0) * TAU
-		var start_offset = Vector2(cos(angle), sin(angle)) * randf_range(5, 15)
-		ice.global_position = pos + start_offset
-		ice.z_index = 5 # Por encima de las naves para que brille
-		
-		# Configuración visual
-		ice.modulate = Color(0.7, 0.9, 1.0, 0.0) 
-		ice.scale = Vector2(0.05, 0.05) # Empiezan muy chiquitos
-		ice.rotation = angle + PI/2
-		container.add_child(ice)
-		
-		# Animación de Espiral hacia afuera (Más estrecho por pedido del usuario)
-		var duration = randf_range(0.6, 1.0)
-		var final_dist = randf_range(15, 35) # Reducido a la mitad (antes 40-80)
-		var spiral_angle = angle + randf_range(1.0, 2.0) 
-		
-		var tw = create_tween().set_parallel(true)
-		tw.tween_property(ice, "modulate:a", 0.7, 0.1)
-		tw.tween_property(ice, "scale", Vector2(0.18, 0.18), duration).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-		
-		# El movimiento espiral:
-		var target_pos = pos + Vector2(cos(spiral_angle), sin(spiral_angle)) * final_dist
-		tw.tween_property(ice, "global_position", target_pos, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		tw.tween_property(ice, "rotation", ice.rotation + 4.0, duration) # Rotación rápida
-		
-		# Desvanecimiento y muerte
-		tw.chain().tween_property(ice, "modulate:a", 0.0, 0.5)
-		tw.tween_property(ice, "scale", Vector2(0.0, 0.0), 0.5)
+		# Animación de aparición suave del resplandor
+		var tw = create_tween()
+		tw.tween_property(glow, "modulate:a", 0.35, 0.3).set_trans(Tween.TRANS_SINE)
 
 func _on_remove_area(data: Dictionary):
 	var id = data.get("id", "")

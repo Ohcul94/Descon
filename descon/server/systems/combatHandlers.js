@@ -193,35 +193,42 @@ function registerCombatHandlers(socket, io, state) {
             p.hasStealthTimer = true; 
             io.to(`zone_${p.zone}`).emit('remoteStatSync', { id: socket.id, isInvisible: true });
         } else if (data.skillName === "FROST-TRAIL") {
-            const config = (state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData["FROST-TRAIL"] : { duration: 6, radius: 120 };
+            const config = (state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData) ? state.SERVER_CONFIG.skillsData["FROST-TRAIL"] : { duration: 6, radius: 120, cd: 12 };
             const duration = (config.duration || 6) * 1000;
+            const skillEndTime = Date.now() + duration; 
             
-            socket.emit('gameNotification', { msg: "┬íESTELA DE HIELO ACTIVADA!", type: "info" });
+            socket.emit('gameNotification', { msg: "¡ESTELA DE HIELO ACTIVADA!", type: "info" });
             
-            let trailTime = 0;
+            let lastX = -9999; // Forzar el primer spawn
+            let lastY = -9999;
+
             const trailInterval = setInterval(() => {
                 const currentPlayer = state.players[socket.id];
-                if (!currentPlayer || trailTime >= duration) {
+                if (!currentPlayer || Date.now() >= skillEndTime) {
                     clearInterval(trailInterval);
                     return;
                 }
                 
-                const areaId = `frost_${state.nextAreaId++}`;
-                state.activeAreas[areaId] = {
-                    id: areaId,
-                    x: currentPlayer.x,
-                    y: currentPlayer.y,
-                    radius: 20,
-                    type: 'ICE',
-                    ownerId: socket.id,
-                    slowAmount: config.slow_amount || 0.5,
-                    endTime: Date.now() + 2500, 
-                    zone: currentPlayer.zone
-                };
-                
-                io.to(`zone_${currentPlayer.zone}`).emit('spawnArea', state.activeAreas[areaId]);
-                trailTime += 150;
-            }, 150);
+                const dist = Math.hypot(currentPlayer.x - lastX, currentPlayer.y - lastY);
+                if (dist > 25) {
+                    const areaId = `frost_${state.nextAreaId++}`;
+                    state.activeAreas[areaId] = {
+                        id: areaId,
+                        x: currentPlayer.x,
+                        y: currentPlayer.y,
+                        radius: 35, 
+                        type: 'ICE',
+                        ownerId: socket.id,
+                        slowAmount: config.slow_amount || 0.6,
+                        endTime: skillEndTime, // v246.5: Todo el rastro desaparece al terminar el skill
+                        zone: currentPlayer.zone
+                    };
+                    
+                    io.to(`zone_${currentPlayer.zone}`).emit('spawnArea', state.activeAreas[areaId]);
+                    lastX = currentPlayer.x;
+                    lastY = currentPlayer.y;
+                }
+            }, 100);
         }
 
         if (target.socketId) {

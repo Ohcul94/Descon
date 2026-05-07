@@ -567,28 +567,10 @@ func _on_login_success(p_in):
 		var sm = get_node_or_null("SpheresManager")
 		if sm and gd.has("spheres"):
 			var raw_spheres = gd["spheres"].duplicate()
-			# v206.0: Re-hidratación de tipos y HABILIDADES (JSON Safe)
-			for i in range(raw_spheres.size()):
-				var sph = raw_spheres[i]
-				if sph.has("color"):
-					var c_str = str(sph["color"]).replace("(","").replace(")","").replace(" ","")
-					if "," in c_str:
-						var parts = c_str.split(",")
-						if parts.size() >= 3:
-							var r_v = float(parts[0]); var g_v = float(parts[1]); var b_v = float(parts[2])
-							var a_v = float(parts[3]) if parts.size() > 3 else 1.0
-							sph["color"] = Color(r_v, g_v, b_v, a_v)
-					else: sph["color"] = Color(c_str)
-				
-				# Re-hidratar Habilidad (Si viene como Diccionario del Servidor)
-				if sph.has("equipped") and typeof(sph["equipped"]) == TYPE_DICTIONARY:
-					var eq = sph["equipped"]
-					if eq.has("skill_name"):
-						sph["equipped"] = _find_skill_by_name(eq["skill_name"])
-						if sph["equipped"] is Object:
-							for key in eq: sph["equipped"].set(key, eq[key])
-			sm.spheres_data = raw_spheres
-			sm.emit_signal("spheres_updated")
+			# v246.2: Delegar la hidratación al SpheresManager para evitar desincronizaciones de clases
+			for i in range(min(raw_spheres.size(), 4)):
+				sm.equip_item(i, raw_spheres[i])
+			
 			if sm.has_method("_update_visuals"):
 				sm._update_visuals()
 

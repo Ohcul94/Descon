@@ -137,7 +137,15 @@ function startGameLoop(io, state, aiManager) {
                         const owner = players[area.ownerId];
                         let is_ally = (pSocketId === area.ownerId);
                         if (owner && !is_ally) {
-                            if (p.clanId != null && owner.clanId != null && p.clanId == owner.clanId) is_ally = true;
+                            // v245.96: Alianza por Clan (Comparación de String robusta)
+                            if (p.clanId && owner.clanId && String(p.clanId) === String(owner.clanId)) is_ally = true;
+                            
+                            // v245.97: Alianza por Grupo (Party)
+                            const pUid = p.id ? p.id.toString() : null;
+                            const oUid = owner.id ? owner.id.toString() : null;
+                            if (pUid && oUid && state.playerParty[pUid] && state.playerParty[pUid] === state.playerParty[oUid]) {
+                                is_ally = true;
+                            }
                         }
 
                         if (area.type === 'SMOKE' && !is_ally) {
