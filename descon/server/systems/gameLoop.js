@@ -5,9 +5,15 @@
 function startGameLoop(io, state, aiManager) {
     const grid = state.grid;
     
+    // v262.70: Monitor de Performance (Profiling)
+    let lastTickTime = Date.now();
+    let tickCount = 0;
+    let totalTickTime = 0;
+
     // 1. LOOP DE IA Y MOVIMIENTO (33ms ~ 30fps para suavidad)
     setInterval(() => {
-        const now = Date.now();
+        const start = Date.now();
+        const now = start;
         const { enemies, players } = state;
 
         // v247.11: Actualizar grid para IA y Colisiones (Frecuencia 30fps)
@@ -80,6 +86,25 @@ function startGameLoop(io, state, aiManager) {
                 io.to(p.socketId).emit('enemiesMoved', aoiData);
             }
         });
+
+        // v262.70: Métricas de Ciclo
+        const end = Date.now();
+        const duration = end - start;
+        totalTickTime += duration;
+        tickCount++;
+
+        if (duration > 33) {
+            console.warn(`\x1b[33m[PERF-WARNING]\x1b[0m Tick lento: ${duration}ms (Presión en CPU o Red)`);
+        }
+
+        // Loguear promedio cada 10 segundos (300 ticks aprox)
+        if (tickCount >= 300) {
+            const avg = (totalTickTime / tickCount).toFixed(2);
+            const memory = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
+            console.log(`\x1b[36m[SERVER-STATS]\x1b[0m Avg Tick: ${avg}ms | RAM: ${memory}MB | Online: ${Object.keys(players).length}`);
+            tickCount = 0;
+            totalTickTime = 0;
+        }
     }, 33);
 
     // 2. LOOP DE REGENERACIÓN (1s)

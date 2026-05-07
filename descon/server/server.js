@@ -606,11 +606,12 @@ io.on('connection', (socket) => {
             const ship = state.SERVER_CONFIG.shipModels.find(s => s.id === p.currentShipId);
             p.speed = ship ? ship.speed : 500;
         }
-        // v210.0: ANTI-SPEEDHACK (Ajuste de Precisi├│n)
+
+        // v210.0: ANTI-SPEEDHACK (Ajuste de Precisión)
         const dx = movementData.x - p.x;
         const dy = movementData.y - p.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance >= 1100) { // Umbral realista para compensar lag y naves r├ípidas
+        if (distance >= 1100) { 
             console.log(`[HACK] Teletransporte detectado en ${p.user}: ${distance}px`);
             return;
         }
@@ -646,7 +647,7 @@ io.on('connection', (socket) => {
             });
         }
 
-        // v262.45: Usando broadcast.to para evitar ecos al emisor
+        // v262.97: Restaurando Visibilidad Total (Fix Minimapa y Sincronía)
         socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', { 
             ...p, 
             id: socket.id, 
