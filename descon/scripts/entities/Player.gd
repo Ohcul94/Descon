@@ -186,8 +186,10 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 						# v266.60: Auto-detección de tipo si no se especificó (o es -1)
 						if s_type == -1:
 							s_type = 3 # Instant por defecto
-							if s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL": s_type = 1 # PointClick
-							elif s_data.get("range", 0) > 0 and s_name != "FROST-TRAIL": s_type = 0 # Directional
+							if Constants.SKILLS_DATA.has(s_name):
+								var s_data_master = Constants.SKILLS_DATA[s_name]
+								if s_data_master.get("canTargetOthers", false) and s_name != "FROST-TRAIL": s_type = 1 # PointClick
+								elif s_data_master.get("range", 0) > 0 and s_name != "FROST-TRAIL": s_type = 0 # Directional
 		elif s_type == -1:
 			s_type = 0 # Laser/Missile/Mine son Directional
 			var t_idx = selected_ammo.get(skill_id, 0)

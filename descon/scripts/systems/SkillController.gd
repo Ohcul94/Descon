@@ -126,6 +126,7 @@ func start_aiming(skill_data: Dictionary):
 		execute_skill()
 
 func execute_skill():
+	# v266.70: No retornar si es un trigger de release y ya se estaba apuntando
 	if not is_aiming: return
 	
 	var mouse_pos = get_global_mouse_position()
