@@ -74,6 +74,10 @@ func _ready():
 		NetworkManager.login_success.connect(func(d): _on_inventory_received(d))
 		NetworkManager.auth_success.connect(func(d): _on_inventory_received(d))
 		
+		# v263.010: Recibir datos de equipamiento de nave específica
+		if NetworkManager.has_signal("ship_equip_data"):
+			NetworkManager.ship_equip_data.connect(_on_ship_equip_data)
+		
 		# v242.36: Sincronía de Flota
 		NetworkManager.clan_data.connect(_on_clan_data_received)
 		NetworkManager.clan_member_status.connect(_on_clan_member_status)
@@ -144,6 +148,17 @@ func _connect_to_player_stats():
 		if not p.stats_changed.is_connected(_on_player_stats_changed):
 			p.stats_changed.connect(_on_player_stats_changed)
 			print("[INVENTARIO] Enlace de estadísticas establecido con el Piloto.")
+
+func _on_ship_equip_data(data: Dictionary):
+	# v263.010: Recibir equipamiento de nave específica y re-renderizar
+	var sid = str(data.get("shipId", -1))
+	var equip = data.get("equip", {})
+	if sid == "-1" or not equip: return
+	equipped_by_ship[sid] = equip
+	print("[SHIP-EQUIP] Datos recibidos para nave ", sid, ": w=", equip.get("w",[]).size(), " s=", equip.get("s",[]).size(), " e=", equip.get("e",[]).size())
+	# Re-renderizar solo si esta nave está seleccionada actualmente
+	if str(selected_hangar_ship_id) == sid or str(current_ship_id) == sid:
+		_update_hangar_ui()
 
 func _on_player_stats_changed(p_data: Dictionary):
 	# Actualizar saldos locales para que el dibujo de _draw() sea correcto
@@ -280,7 +295,18 @@ func _on_inventory_received(data: Dictionary):
 	if data.has("receivedClanInvites"): received_invites = data.receivedClanInvites
 		
 	if data.has("equippedByShip"):
-		equipped_by_ship = data.equippedByShip
+		# v262.999: Normalizar TODAS las claves a string + diagnóstico
+		var raw = data.equippedByShip
+		equipped_by_ship = {}
+		for key in raw.keys():
+			equipped_by_ship[str(key)] = raw[key]
+		print("[HANGAR-SYNC] equippedByShip recibido. Claves: ", equipped_by_ship.keys(), " | Naves con datos: ", equipped_by_ship.size())
+		for k in equipped_by_ship.keys():
+			var e = equipped_by_ship[k]
+			if e is Dictionary:
+				print("  Nave ", k, ": w=", e.get("w", []).size(), " s=", e.get("s", []).size(), " e=", e.get("e", []).size())
+	else:
+		print("[HANGAR-SYNC] WARNING: inventoryData NO trajo equippedByShip. Keys: ", data.keys())
 	
 	if is_open: _update_clan_ui() # v244.96: Refresco instantáneo de solis e invitaciones
 	
@@ -365,16 +391,6 @@ func _update_hangar_ui():
 	
 	var name_h = HBoxContainer.new(); left_v.add_child(name_h)
 	var s_title = Label.new(); s_title.text = model.get("name", "Nave").to_upper(); s_title.add_theme_font_size_override("font_size", 24); name_h.add_child(s_title)
-	
-	if viewing_id != current_ship_id:
-		var btn_act = Button.new(); btn_act.text = " ACTIVAR MODELO "; btn_act.custom_minimum_size = Vector2(140, 35); btn_act.modulate = Color.GREEN; 
-		btn_act.pressed.connect(func(): 
-			btn_act.text = " ESPERANDO... "
-			btn_act.disabled = true
-			btn_act.modulate = Color.GRAY
-			NetworkManager.send_event("switchShip", {"shipId": viewing_id})
-		)
-		name_h.add_child(btn_act)
 
 	var slots_v = VBoxContainer.new(); slots_v.add_theme_constant_override("separation", 15); left_v.add_child(slots_v)
 	var slots = model.get("slots") if model.has("slots") else {"w":0, "s":0, "e":0, "x":1}
@@ -403,22 +419,56 @@ func _create_fleet_card(sid, parent):
 			break
 	if model.is_empty(): return # Anti-crash v164.4
 	
-	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(140, 55)
+	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(150, 105)
 	var is_active = (sid == current_ship_id)
 	var is_viewing = (sid == selected_hangar_ship_id)
 	
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0, 1, 0, 0.1) if is_active else (Color(0, 0.5, 1, 0.1) if is_viewing else Color(0,0,0,0.5))
-	sb.border_width_left = 2; sb.border_color = Color.GREEN if is_active else (Color.CYAN if is_viewing else Color(1,1,1,0.1))
-	p.add_theme_stylebox_override("panel", sb)
+	sb.bg_color = Color(0, 1, 0, 0.05) if is_active else (Color(0, 0.5, 1, 0.05) if is_viewing else Color(0,0,0,0.6))
+	sb.border_width_left = 3; sb.border_color = Color.GREEN if is_active else (Color.CYAN if is_viewing else Color(1,1,1,0.1))
+	sb.corner_radius_top_right = 4; sb.corner_radius_bottom_right = 4; p.add_theme_stylebox_override("panel", sb)
 	
-	var v = VBoxContainer.new(); p.add_child(v)
-	var n = Label.new(); n.text = model["name"]; n.horizontal_alignment = 1; v.add_child(n)
-	var st = Label.new(); st.text = "ACTIVA" if is_active else "DISPONIBLE"; st.horizontal_alignment = 1; st.modulate = Color.GREEN if is_active else Color.WHITE; st.add_theme_font_size_override("font_size", 8); v.add_child(st)
+	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 2); p.add_child(v)
+	var n = Label.new(); n.text = model["name"]; n.horizontal_alignment = 1; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
+	
+	# --- CÁLCULO DE STATS + BONOS (v262.990) ---
+	var bonus_w = 0; var bonus_s = 0; var bonus_e = 0
+	var ship_e = _find_ship_equip(sid)
+	if ship_e:
+		for it in ship_e.get("w", []): bonus_w += int(it.get("base", 0))
+		for it in ship_e.get("s", []): bonus_s += int(it.get("base", 0))
+		for it in ship_e.get("e", []): bonus_e += int(it.get("base", 0))
+	
+	var stats_grid = GridContainer.new(); stats_grid.columns = 2; stats_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; v.add_child(stats_grid)
+	
+	var create_stat = func(txt: String, base_val: int, bonus: int, label_color: Color):
+		var lbl = Label.new(); lbl.text = txt; lbl.add_theme_font_size_override("font_size", 8); lbl.modulate = label_color; lbl.modulate.a = 0.7; stats_grid.add_child(lbl)
+		var h_val = HBoxContainer.new(); h_val.add_theme_constant_override("separation", 2); stats_grid.add_child(h_val)
+		var base_lbl = Label.new(); base_lbl.text = str(base_val); base_lbl.add_theme_font_size_override("font_size", 8); base_lbl.modulate = Color.WHITE; h_val.add_child(base_lbl)
+		if bonus > 0:
+			var b_lbl = Label.new(); b_lbl.text = "+" + str(bonus); b_lbl.add_theme_font_size_override("font_size", 7); b_lbl.modulate = Color.GREEN; h_val.add_child(b_lbl)
+	
+	create_stat.call("HP:", int(model.get("hp", 0)), 0, Color.GREEN)
+	create_stat.call("SH:", int(model.get("shield", 0)), int(bonus_s), Color.AQUA)
+	create_stat.call("VEL:", int(model.get("speed", 0)), int(bonus_e), Color.YELLOW)
+	create_stat.call("ATK:", int(model.get("attack", 100)), int(bonus_w), Color.RED)
+
+	v.add_spacer(false)
+
+	if is_active:
+		var st = Label.new(); st.text = "ACTIVA"; st.horizontal_alignment = 1; st.modulate = Color.GREEN; st.add_theme_font_size_override("font_size", 9); v.add_child(st)
+	else:
+		var btn_mini = Button.new(); btn_mini.text = "ACTIVAR"; btn_mini.add_theme_font_size_override("font_size", 8); btn_mini.custom_minimum_size = Vector2(0, 20); v.add_child(btn_mini)
+		btn_mini.pressed.connect(func():
+			btn_mini.text = "..."; btn_mini.disabled = true
+			NetworkManager.send_event("switchShip", {"shipId": sid})
+		)
 	
 	p.gui_input.connect(func(ev): 
 		if ev is InputEventMouseButton and ev.pressed: 
 			selected_hangar_ship_id = sid
+			# v263.010: Pedir datos al servidor SIEMPRE al seleccionar una nave
+			NetworkManager.send_event("getShipEquip", sid)
 			_update_hangar_ui()
 	)
 	parent.add_child(p)
@@ -427,6 +477,30 @@ func _create_empty_fleet_card(parent):
 	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(140, 55); var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.3); sb.border_width_left = 1; sb.border_color = Color(1,1,1,0.05); p.add_theme_stylebox_override("panel", sb)
 	var v = VBoxContainer.new(); p.add_child(v); var n = Label.new(); n.text = "SLOT VACÍO"; n.horizontal_alignment = 1; v.add_child(n); parent.add_child(p)
 
+# v262.995: Helper universal - busca equipo por ID inmune a tipo de clave (int/string)
+func _find_ship_equip(ship_id) -> Dictionary:
+	# Intentar con string
+	if equipped_by_ship.has(str(ship_id)):
+		var d = equipped_by_ship[str(ship_id)]
+		if d and d is Dictionary: return d
+	# Intentar con int
+	if equipped_by_ship.has(int(ship_id)):
+		var d = equipped_by_ship[int(ship_id)]
+		if d and d is Dictionary: return d
+	# Intentar con float (Godot JSON quirk)
+	if equipped_by_ship.has(float(ship_id)):
+		var d = equipped_by_ship[float(ship_id)]
+		if d and d is Dictionary: return d
+	# Búsqueda bruta por si las claves vinieron con otro formato
+	for key in equipped_by_ship.keys():
+		if str(key) == str(ship_id):
+			var d = equipped_by_ship[key]
+			if d and d is Dictionary: return d
+	# Fallback: si es la nave activa, usar equipped_data
+	if int(ship_id) == current_ship_id:
+		return equipped_data
+	return {}
+
 func _render_group(parent, type, title, count):
 	var l = Label.new(); l.text = title; l.modulate.a = 0.4; l.add_theme_font_size_override("font_size", 9); parent.add_child(l)
 	var grid = GridContainer.new(); grid.columns = 10; parent.add_child(grid)
@@ -434,14 +508,11 @@ func _render_group(parent, type, title, count):
 	var eq = []
 	var viewing_id = selected_hangar_ship_id if selected_hangar_ship_id != -1 else current_ship_id
 	
-	if equipped_by_ship.has(str(viewing_id)):
-		var ship_e = equipped_by_ship.get(str(viewing_id), {})
-		if ship_e: eq = ship_e.get(type, [])
-	elif viewing_id == current_ship_id:
-		# Solo mostrar equipped_data si estamos viendo la nave ACTIVA
-		eq = equipped_data.get(type, [])
-	# Si es otra nave sin datos → eq queda vacío (slots vacíos, correcto)
-		
+	# v262.995: Usar helper universal para buscar equipo
+	var ship_equip = _find_ship_equip(viewing_id)
+	eq = ship_equip.get(type, [])
+	
+	
 	for i in range(count):
 		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(40, 40); var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 1; sb.border_color = Color(1,1,1,0.1); p.add_theme_stylebox_override("panel", sb)
 		if i < eq.size():
@@ -477,6 +548,16 @@ func _create_item_row(it, parent):
 	elif item_slot == "x": slot_color = Color.MEDIUM_PURPLE; slot_label = "EXTRA"
 	
 	var n = Label.new(); n.text = str(it.get("name", "ITEM")).to_upper(); n.add_theme_font_size_override("font_size", 10); n.modulate = slot_color; v.add_child(n)
+	
+	# v262.850: Mostrar Estadística Base (Daño/Escudo/Vel)
+	var base_val = it.get("base", 0)
+	var stat_text = ""
+	if item_slot == "w": stat_text = "DAÑO: " + str(base_val)
+	elif item_slot == "s": stat_text = "ESCUDO: " + str(base_val)
+	elif item_slot == "e": stat_text = "VELOCIDAD: +" + str(base_val)
+	
+	var st = Label.new(); st.text = stat_text; st.add_theme_font_size_override("font_size", 8); st.modulate = Color.WHITE; st.modulate.a = 0.8; v.add_child(st)
+	
 	var t = Label.new(); t.text = slot_label; t.add_theme_font_size_override("font_size", 8); t.modulate = slot_color; t.modulate.a = 0.6; v.add_child(t)
 	
 	var icon_rect = TextureRect.new(); icon_rect.custom_minimum_size = Vector2(32, 32); icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; hb.add_child(icon_rect)
@@ -501,11 +582,7 @@ func _create_item_row(it, parent):
 		for s in GameConstants.SHIP_MODELS: if s["id"] == viewing_id: ship_config = s; break
 		if ship_config:
 			var max_s = ship_config["slots"].get(slot_key, 0)
-			var current_e = []
-			if viewing_id == current_ship_id: current_e = equipped_data.get(slot_key, [])
-			else: 
-				var ship_e = equipped_by_ship.get(str(viewing_id), {})
-				if ship_e: current_e = ship_e.get(slot_key, [])
+			var current_e = _find_ship_equip(viewing_id).get(slot_key, [])
 			if current_e.size() >= max_s:
 				_show_result_modal("CHASIS LLENO", "Esta nave no tiene más espacio en " + slot_key.to_upper())
 				return
@@ -639,11 +716,11 @@ func _render_spheres_equipment(tab, sub_tabs):
 			else: raw_type = equipped.get("type") if equipped.get("type") else "Ataque"
 			type_txt = str(raw_type).to_upper()
 
-			# Mapeo visual de colores para los slots equipados
+			# Mapeo visual de colores para los slots equipados (v262.800)
 			if type_txt == "ATAQUE": final_color = Color.RED
 			elif type_txt == "DEFENSA": final_color = Color.AQUA
 			elif type_txt == "CURACIÓN" or type_txt == "CURACION": final_color = Color.GREEN
-			elif type_txt == "MOVIMIENTO": final_color = Color.YELLOW
+			elif type_txt == "MOVIMIENTO" or type_txt == "UTILIDAD": final_color = Color.YELLOW
 		else:
 			type_txt = "NINGUNO"
 
@@ -879,6 +956,15 @@ func _create_shop_card(it, cat, parent):
 	var v = VBoxContainer.new(); v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); v.offset_left = 10; v.offset_right = -10; p.add_child(v)
 	
 	var n = Label.new(); n.text = it["name"].to_upper(); n.horizontal_alignment = 1; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
+	
+	# v262.860: Mostrar Stats en la Tienda (Sincronizado con Admin)
+	var base_val = it.get("base", 0)
+	var stat_label = Label.new(); stat_label.horizontal_alignment = 1; stat_label.add_theme_font_size_override("font_size", 9); stat_label.modulate = Color.GOLD
+	if cat == "weapons": stat_label.text = "POTENCIA DE FUEGO: " + str(base_val)
+	elif cat == "shields": stat_label.text = "CAPACIDAD DE ESCUDO: " + str(base_val)
+	elif cat == "engines": stat_label.text = "EMPUJE DE MOTOR: +" + str(base_val)
+	if stat_label.text != "": v.add_child(stat_label)
+
 	var d = Label.new(); d.text = it.get("desc", ""); d.horizontal_alignment = 1; d.modulate.a = 0.5; d.add_theme_font_size_override("font_size", 8); v.add_child(d)
 	
 	var is_owned = (cat == "ships" and owned_ships.has(it["id"]))

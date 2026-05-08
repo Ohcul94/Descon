@@ -401,13 +401,53 @@ io.on('connection', (socket) => {
             if (user) {
                 socket.dbUser = user;
                 const { getCategorizedInventory } = require('./systems/inventoryHandlers');
+
+                // v263.000: MIGRACIÓN AUTOMÁTICA - Sincronizar equipped → equippedByShip
+                // Garantiza que la nave activa siempre tenga sus datos en el mapa por nave
+                const currentKey = String(user.gameData.currentShipId || 1);
+                const currentEquipped = user.gameData.equipped || { w: [], s: [], e: [], x: [] };
                 
+                let needsSave = false;
+                if (!user.gameData.equippedByShip) {
+                    user.gameData.equippedByShip = {};
+                    needsSave = true;
+                }
+                
+                // Leer el mapa (Map o Object)
                 const eByShipObj = {};
                 if (user.gameData.equippedByShip instanceof Map) {
                     user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
                 } else {
                     Object.assign(eByShipObj, user.gameData.equippedByShip);
                 }
+
+                // Si la nave activa no tiene datos en el mapa, copiarlos desde equipped
+                const activeInMap = eByShipObj[currentKey];
+                const activeHasItems = currentEquipped && (
+                    (currentEquipped.w && currentEquipped.w.length > 0) ||
+                    (currentEquipped.s && currentEquipped.s.length > 0) ||
+                    (currentEquipped.e && currentEquipped.e.length > 0)
+                );
+                const mapEmpty = !activeInMap || (
+                    (!activeInMap.w || activeInMap.w.length === 0) &&
+                    (!activeInMap.s || activeInMap.s.length === 0) &&
+                    (!activeInMap.e || activeInMap.e.length === 0)
+                );
+
+                if (activeHasItems && mapEmpty) {
+                    eByShipObj[currentKey] = JSON.parse(JSON.stringify(currentEquipped));
+                    // Persistir en DB para que no se repita
+                    if (user.gameData.equippedByShip instanceof Map) {
+                        user.gameData.equippedByShip.set(currentKey, eByShipObj[currentKey]);
+                    } else {
+                        user.gameData.equippedByShip[currentKey] = eByShipObj[currentKey];
+                    }
+                    user.markModified('gameData.equippedByShip');
+                    needsSave = true;
+                    console.log(`[MIGRACIÓN] Nave ${currentKey} de ${user.username}: equipamiento sincronizado al mapa.`);
+                }
+
+                if (needsSave) await user.save();
 
                 socket.emit('inventoryData', {
                     player: {
@@ -416,7 +456,7 @@ io.on('connection', (socket) => {
                         inventoryByCategory: getCategorizedInventory(user.gameData.inventory)
                     }
                 });
-                console.log(`[SYNC] Inventario sincronizado para ${user.username}`);
+                console.log(`[SYNC] Inventario sincronizado para ${user.username}. Naves en mapa: ${Object.keys(eByShipObj).join(', ')}`);
             }
         } catch (e) { console.error("Error en getInventory:", e); }
     });

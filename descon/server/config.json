@@ -255,6 +255,7 @@
                 "ohcu": 0
             },
             "shield": 1000,
+            "attack": 100,
             "slots": {
                 "e": 1,
                 "s": 2,
@@ -272,6 +273,7 @@
                 "ohcu": 1000
             },
             "shield": 2500,
+            "attack": 120,
             "slots": {
                 "e": 2,
                 "s": 2,
@@ -289,6 +291,7 @@
                 "ohcu": 5000
             },
             "shield": 6000,
+            "attack": 150,
             "slots": {
                 "e": 4,
                 "s": 4,
@@ -306,6 +309,7 @@
                 "ohcu": 15000
             },
             "shield": 15000,
+            "attack": 250,
             "slots": {
                 "e": 8,
                 "s": 8,
@@ -323,6 +327,7 @@
                 "ohcu": 50000
             },
             "shield": 45000,
+            "attack": 500,
             "slots": {
                 "e": 12,
                 "s": 12,
@@ -340,6 +345,7 @@
                 "ohcu": 200000
             },
             "shield": 130000,
+            "attack": 1000,
             "slots": {
                 "e": 16,
                 "s": 16,
@@ -547,6 +553,33 @@
                     "hubs": 300000,
                     "ohcu": 300
                 }
+            },
+            {
+                "base": 180,
+                "id": "en4",
+                "name": "Motor M4",
+                "prices": {
+                    "hubs": 1000000,
+                    "ohcu": 1000
+                }
+            },
+            {
+                "base": 300,
+                "id": "en5",
+                "name": "Motor M5",
+                "prices": {
+                    "hubs": 5000000,
+                    "ohcu": 5000
+                }
+            },
+            {
+                "base": 500,
+                "id": "en6",
+                "name": "Motor M6",
+                "prices": {
+                    "hubs": 20000000,
+                    "ohcu": 25000
+                }
             }
         ],
         "shields": [
@@ -576,6 +609,33 @@
                     "hubs": 500000,
                     "ohcu": 500
                 }
+            },
+            {
+                "base": 40000,
+                "id": "sh4",
+                "name": "Escudo SG4",
+                "prices": {
+                    "hubs": 2000000,
+                    "ohcu": 2000
+                }
+            },
+            {
+                "base": 100000,
+                "id": "sh5",
+                "name": "Escudo SG5",
+                "prices": {
+                    "hubs": 10000000,
+                    "ohcu": 10000
+                }
+            },
+            {
+                "base": 250000,
+                "id": "sh6",
+                "name": "Escudo SG6",
+                "prices": {
+                    "hubs": 50000000,
+                    "ohcu": 50000
+                }
             }
         ],
         "weapons": [
@@ -604,6 +664,33 @@
                 "prices": {
                     "hubs": 200000,
                     "ohcu": 200
+                }
+            },
+            {
+                "base": 1500,
+                "id": "las4",
+                "name": "Láser LF-4",
+                "prices": {
+                    "hubs": 1500000,
+                    "ohcu": 1500
+                }
+            },
+            {
+                "base": 4500,
+                "id": "las5",
+                "name": "Láser LF-5",
+                "prices": {
+                    "hubs": 10000000,
+                    "ohcu": 10000
+                }
+            },
+            {
+                "base": 15000,
+                "id": "las6",
+                "name": "Láser LF-6",
+                "prices": {
+                    "hubs": 50000000,
+                    "ohcu": 50000
                 }
             }
         ]

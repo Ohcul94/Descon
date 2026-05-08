@@ -44,6 +44,7 @@ signal clan_data(data)
 signal clan_member_status(data)
 signal spawn_area(data)
 signal remove_area(data)
+signal ship_equip_data(data)
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
@@ -217,6 +218,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"blindState": blind_state.emit(e_data)
 		"slowState": slow_state.emit(e_data)
 		"gameNotification": game_notification.emit(e_data)
+		"shipEquipData": ship_equip_data.emit(e_data)
 		"clearEnemyProjectiles": clear_enemy_projectiles.emit(e_data)
 		"adminConfigUpdated", "adminConfigLoaded": 
 			config_updated.emit(e_data)

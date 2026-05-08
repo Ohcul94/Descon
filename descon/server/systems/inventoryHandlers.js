@@ -10,7 +10,6 @@ function getCategorizedInventory(inventory) {
     inventory.forEach(item => {
         const id = (item.id || "").toLowerCase();
         
-        // Sincronización estricta con los tipos de Godot (lowercase)
         if (id.startsWith('las') || id.startsWith('w')) {
             item.type = "weapon"; 
             categories.weapons.push(item);
@@ -40,8 +39,51 @@ function getShipEquip(user, shipKey) {
     return data || { w: [], s: [], e: [], x: [] };
 }
 
+// v262.700: Helper Global de Validación de Combate
+function checkCombatLock(p) {
+    const now = Date.now();
+    const COMBAT_DELAY = 60000;
+    const lastCombat = p.lastCombatTime || 0;
+    const diff = now - lastCombat;
+    if (diff < COMBAT_DELAY) {
+        return { 
+            locked: true, 
+            remaining: Math.ceil((COMBAT_DELAY - diff) / 1000) 
+        };
+    }
+    return { locked: false };
+}
+
 function registerInventoryHandlers(socket, io, state) {
-    
+
+    // v263.010: CONSULTA DE EQUIPAMIENTO POR NAVE (sin necesidad de activarla)
+    socket.on('getShipEquip', async (shipId) => {
+        if (!socket.dbUser) return;
+        try {
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+
+            const targetId = parseInt(shipId);
+            const key = String(targetId);
+            let equip = { w: [], s: [], e: [], x: [] };
+
+            // Si es la nave activa, usar equipped (fuente de verdad)
+            if (targetId === user.gameData.currentShipId) {
+                equip = user.gameData.equipped || equip;
+            } else {
+                // Intentar desde equippedByShip (Map o Object)
+                if (user.gameData.equippedByShip instanceof Map) {
+                    equip = user.gameData.equippedByShip.get(key) || equip;
+                } else if (user.gameData.equippedByShip) {
+                    equip = user.gameData.equippedByShip[key] || equip;
+                }
+            }
+
+            console.log(`[SHIP-EQUIP] ${user.username} consultó nave ${key}: w=${equip.w?.length||0} s=${equip.s?.length||0} e=${equip.e?.length||0}`);
+            socket.emit('shipEquipData', { shipId: targetId, equip });
+        } catch (e) { console.error('[SHIP-EQUIP ERROR]', e); }
+    });
+
     // COMPRA DE ÍTEMS
     socket.on('buyItem', async (data) => {
         if (!socket.dbUser) return;
@@ -104,7 +146,17 @@ function registerInventoryHandlers(socket, io, state) {
 
     // EQUIPAR ÍTEM
     socket.on('equipItem', async (raw_data) => {
-        if (!socket.dbUser) return;
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+        
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            return socket.emit('gameNotification', { 
+                msg: `ERROR: Sistemas calientes. Espera ${lock.remaining}s para equipar.`, 
+                type: 'error' 
+            });
+        }
+
         try {
             const data = (typeof raw_data === 'object' && raw_data.instanceId) ? raw_data : raw_data;
             const instanceId = data.instanceId;
@@ -159,15 +211,11 @@ function registerInventoryHandlers(socket, io, state) {
     socket.on('switchShip', async (raw_shipId) => {
         if (!socket.dbUser || !state.players[socket.id]) return;
         const p = state.players[socket.id];
-        const now = Date.now();
-        const COMBAT_DELAY = 60000;
-        const lastCombat = p.lastCombatTime || 0;
-        const diff = now - lastCombat;
-
-        if (diff < COMBAT_DELAY) {
-            const remaining = Math.ceil((COMBAT_DELAY - diff) / 1000);
+        
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
             return socket.emit('gameNotification', { 
-                msg: `ERROR: Sistemas de armas calientes. Espera ${remaining}s fuera de combate para cambiar.`, 
+                msg: `ERROR: Sistemas de armas calientes. Espera ${lock.remaining}s fuera de combate para cambiar.`, 
                 type: 'error' 
             });
         }
@@ -224,7 +272,17 @@ function registerInventoryHandlers(socket, io, state) {
     });
 
     socket.on('unequipItem', async (data) => {
-        if (!socket.dbUser) return;
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+        
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            return socket.emit('gameNotification', { 
+                msg: `ERROR: Sistemas calientes. Espera ${lock.remaining}s para desequipar.`, 
+                type: 'error' 
+            });
+        }
+
         try {
             const user = await User.findById(socket.dbUser._id);
             const targetId = data.shipId ? parseInt(data.shipId) : user.gameData.currentShipId;
@@ -256,9 +314,19 @@ function registerInventoryHandlers(socket, io, state) {
         } catch (e) { console.error(e); }
     });
 
-    // v262.600: SISTEMA DE VENTA (Reciclaje al 50% de HUBS)
     socket.on('sellItem', async (data) => {
-        if (!socket.dbUser) return;
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+
+        // v262.720: Candado de Combate también para Venta
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            return socket.emit('gameNotification', { 
+                msg: `ERROR: Sistemas calientes. No puedes vender mientras estás en combate.`, 
+                type: 'error' 
+            });
+        }
+
         try {
             const { instanceId } = data;
             const user = await User.findById(socket.dbUser._id);
@@ -301,6 +369,85 @@ function registerInventoryHandlers(socket, io, state) {
             socket.emit('gameNotification', { msg: `VENDIDO POR ${refund} HUBS`, type: 'success' });
         } catch (e) { console.error(e); }
     });
+
+    // v262.730: GESTIÓN DE ESFERAS AUTORITATIVA + BLOQUEO DE COMBATE
+    socket.on('equipSphere', async (data) => {
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            return socket.emit('gameNotification', { 
+                msg: `ERROR: Esferas calientes. Espera ${lock.remaining}s para cambiar habilidades.`, 
+                type: 'error' 
+            });
+        }
+
+        try {
+            const { sphereId, skill } = data;
+            if (sphereId < 0 || sphereId > 3) return;
+
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+
+            if (!user.gameData.spheres) user.gameData.spheres = [];
+            
+            // v262.735: Blindaje de datos. Si el slot no existe, lo creamos.
+            while (user.gameData.spheres.length <= sphereId) {
+                user.gameData.spheres.push({ name: `Slot ${user.gameData.spheres.length + 1}`, type: "any", color: "#ffffff", equipped: null });
+            }
+
+            user.gameData.spheres[sphereId].equipped = skill;
+            user.markModified('gameData.spheres');
+            await user.save();
+
+            socket.dbUser = user;
+            p.spheres = user.gameData.spheres; // Sincronizar RAM
+
+            const eByShipObj = {};
+            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+            else Object.assign(eByShipObj, user.gameData.equippedByShip);
+
+            socket.emit('inventoryData', {
+                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
+            });
+            console.log(`[SPHERE] ${user.username} equipó ${skill.skill_name} en slot ${sphereId}`);
+        } catch (e) { console.error("[SPHERE-ERROR]", e); }
+    });
+
+    socket.on('unequipSphere', async (data) => {
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            return socket.emit('gameNotification', { 
+                msg: `ERROR: Esferas bloqueadas en combate.`, 
+                type: 'error' 
+            });
+        }
+
+        try {
+            const { sphereId } = data;
+            const user = await User.findById(socket.dbUser._id);
+            if (!user || !user.gameData.spheres || !user.gameData.spheres[sphereId]) return;
+
+            user.gameData.spheres[sphereId].equipped = null;
+            user.markModified('gameData.spheres');
+            await user.save();
+
+            socket.dbUser = user;
+            p.spheres = user.gameData.spheres;
+
+            const eByShipObj = {};
+            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+            else Object.assign(eByShipObj, user.gameData.equippedByShip);
+
+            socket.emit('inventoryData', {
+                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
+            });
+        } catch (e) { console.error("[SPHERE-UNEQUIP-ERROR]", e); }
+    });
 }
 
-module.exports = { registerInventoryHandlers, getCategorizedInventory };
+module.exports = { registerInventoryHandlers, getCategorizedInventory, checkCombatLock };
