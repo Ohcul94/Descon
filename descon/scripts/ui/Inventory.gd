@@ -517,7 +517,36 @@ func _render_group(parent, type, title, count):
 		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(40, 40); var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 1; sb.border_color = Color(1,1,1,0.1); p.add_theme_stylebox_override("panel", sb)
 		if i < eq.size():
 			var item_data = eq[i]
-			var it = Label.new(); it.text = "I"; it.horizontal_alignment = 1; p.add_child(it); sb.border_color = Color.CYAN
+			
+			# v263.020: Etiqueta visual del slot (ej: L2, M1, S3)
+			var item_id = str(item_data.get("id", "")).to_lower()
+			var slot_abbrev = "?"
+			var slot_text_color = Color.WHITE
+			if item_id.begins_with("las"):
+				slot_abbrev = "L" + item_id.replace("las", "")
+				slot_text_color = Color.RED
+				sb.border_color = Color(1, 0.2, 0.2, 0.8)
+			elif item_id.begins_with("en"):
+				slot_abbrev = "M" + item_id.replace("en", "")
+				slot_text_color = Color.YELLOW
+				sb.border_color = Color(1, 1, 0, 0.8)
+			elif item_id.begins_with("sh"):
+				slot_abbrev = "S" + item_id.replace("sh", "")
+				slot_text_color = Color.CYAN
+				sb.border_color = Color(0, 1, 1, 0.8)
+			else:
+				slot_abbrev = item_id.left(2).to_upper()
+				slot_text_color = Color.MEDIUM_PURPLE
+				sb.border_color = Color(0.7, 0.3, 1, 0.8)
+			
+			var it = Label.new()
+			it.text = slot_abbrev
+			it.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			it.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			it.add_theme_font_size_override("font_size", 9)
+			it.modulate = slot_text_color
+			it.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			p.add_child(it)
 			
 			# v262.620: Soporte para DESEQUIPAR con Doble Click
 			p.gui_input.connect(func(ev): 
