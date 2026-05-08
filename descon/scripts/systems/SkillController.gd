@@ -36,13 +36,18 @@ func _unhandled_input(event):
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 			var mode = config.cast_mode
 			
-			# v266.40: Lógica de Disparo respetando el Cast Mode
+			# v266.50: Bloquear movimiento mientras se apunta y manejar disparos
 			if mode == CastMode.ON_RELEASE:
-				if not event.pressed: # Al soltar
+				if event.pressed:
+					# Consumimos el press para que no se mueva la nave, pero no disparamos aún
+					get_viewport().set_input_as_handled()
+				else:
+					# Disparamos al soltar
 					execute_skill()
 					get_viewport().set_input_as_handled()
 			else:
-				if event.pressed: # Al presionar (Quick Cast / Normal)
+				if event.pressed:
+					# Disparo inmediato (Quick Cast / Normal)
 					execute_skill()
 					get_viewport().set_input_as_handled()
 			

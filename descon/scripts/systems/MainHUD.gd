@@ -754,7 +754,7 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 					p.trigger_skill_by_id(s_id, s_type)
 				else:
 					# v266.45: Soporte para disparar al SOLTAR si está en ON_RELEASE
-					var sc = p.get_node_or_null("SkillController")
+					var sc = p._skill_controller
 					if is_instance_valid(sc) and sc.is_aiming:
 						if sc.config.get("cast_mode") == 1: # ON_RELEASE
 							sc.execute_skill()
@@ -767,7 +767,7 @@ func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
 				p.trigger_skill_by_id(skill_id, 0) # Base skills are Directional (0)
 			else:
 				# v266.45: Soporte para disparar al SOLTAR si está en ON_RELEASE
-				var sc = p.get_node_or_null("SkillController")
+				var sc = p._skill_controller
 				if is_instance_valid(sc) and sc.is_aiming:
 					if sc.config.get("cast_mode") == 1: # ON_RELEASE
 						sc.execute_skill()
