@@ -737,26 +737,40 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 			# v266.30: Disparar con Click Izquierdo (Móviles)
 			var p = get_tree().get_first_node_in_group("player")
 			if is_instance_valid(p) and p.has_method("trigger_skill_by_id"):
-				var s_id = "sphere_" + str(id)
-				# Detectar tipo dinámico (0=Dir, 1=Point, 3=Instant)
-				var s_type = 3 # Instant por defecto
-				var sm = p.get_node_or_null("SpheresManager")
-				if sm:
-					var sph = sm.get_equipped_skill(id)
-					if sph:
-						var s_name = sph.get("skill_name")
-						if GameConstants.SKILLS_DATA.has(s_name):
-							var s_data = GameConstants.SKILLS_DATA[s_name]
-							if s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL": s_type = 1
-							elif s_data.get("range", 0) > 0 and s_name != "FROST-TRAIL": s_type = 0
-				
-				p.trigger_skill_by_id(s_id, s_type)
+				if event.pressed:
+					var s_id = "sphere_" + str(id)
+					# Detectar tipo dinámico (0=Dir, 1=Point, 3=Instant)
+					var s_type = 3 # Instant por defecto
+					var sm = p.get_node_or_null("SpheresManager")
+					if sm:
+						var sph = sm.get_equipped_skill(id)
+						if sph:
+							var s_name = sph.get("skill_name")
+							if GameConstants.SKILLS_DATA.has(s_name):
+								var s_data = GameConstants.SKILLS_DATA[s_name]
+								if s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL": s_type = 1
+								elif s_data.get("range", 0) > 0 and s_name != "FROST-TRAIL": s_type = 0
+					
+					p.trigger_skill_by_id(s_id, s_type)
+				else:
+					# v266.45: Soporte para disparar al SOLTAR si está en ON_RELEASE
+					var sc = p.get_node_or_null("SkillController")
+					if is_instance_valid(sc) and sc.is_aiming:
+						if sc.config.get("cast_mode") == 1: # ON_RELEASE
+							sc.execute_skill()
 
 func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var p = get_tree().get_first_node_in_group("player")
 		if is_instance_valid(p) and p.has_method("trigger_skill_by_id"):
-			p.trigger_skill_by_id(skill_id, 0) # Base skills are Directional (0)
+			if event.pressed:
+				p.trigger_skill_by_id(skill_id, 0) # Base skills are Directional (0)
+			else:
+				# v266.45: Soporte para disparar al SOLTAR si está en ON_RELEASE
+				var sc = p.get_node_or_null("SkillController")
+				if is_instance_valid(sc) and sc.is_aiming:
+					if sc.config.get("cast_mode") == 1: # ON_RELEASE
+						sc.execute_skill()
 
 # --- MENÚ ESC v220.85 ---
 func toggle_esc_menu():
