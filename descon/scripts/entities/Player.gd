@@ -534,6 +534,11 @@ func _on_login_success(p_in):
 	self.db_id = str(p_in.get("id", ""))
 	self.username = p_in.get("username", p_in.get("user", "Piloto"))
 	self.clan_tag = str(p_in.get("clanTag", "")) # v244.110
+	
+	# v263.030: Refrescar tags de todas las entidades al conocer nuestro propio clan
+	if clan_tag != "":
+		call_deferred("_refresh_all_entity_tags")
+	
 	if p_in.has("gameData"):
 		var gd = p_in.gameData
 		hubs = int(gd.get("hubs", 0))
@@ -656,3 +661,9 @@ func _update_shake(_delta):
 		if is_instance_valid(_cam_node):
 			_cam_node.offset = Vector2.ZERO
 		_shake_amount = 0.0
+
+# v263.030: Refrescar etiquetas de clan en todas las entidades remotas
+func _refresh_all_entity_tags():
+	for entity in get_tree().get_nodes_in_group("remote_players"):
+		if is_instance_valid(entity) and entity.has_method("_update_tags"):
+			entity._update_tags()

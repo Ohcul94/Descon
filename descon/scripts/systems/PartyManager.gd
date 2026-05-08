@@ -30,6 +30,11 @@ func leave_party():
 		party_updated.emit(null)
 		print("[PARTY] ABANDONASTE EL GRUPO")
 
+func kick_player(target_id: String):
+	if NetworkManager and target_id != "":
+		NetworkManager.send_event("kickFromParty", target_id)
+		print("[PARTY] EXPULSANDO MIEMBRO ID: " + target_id)
+
 func _on_invitation_received(data):
 	var f_name = data.get("from", "Piloto")
 	var f_id = data.get("fromId", "")

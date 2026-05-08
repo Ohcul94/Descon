@@ -83,33 +83,63 @@ func _draw():
 		# Punto de destino
 		draw_circle(end_pos, 3, Color(0, 1, 0, 0.8))
 	
-	# 2. Dibujar Jugadores Remotos (Celeste Neón)
+	# 2. Dibujar Jugadores Remotos (Verde=Clan, Celeste=Party, Naranja=Otros)
+	var pm = get_node_or_null("/root/PartyManager")
 	for ent in get_tree().get_nodes_in_group("remote_players"):
 		if is_instance_valid(ent) and not ent.get("is_dead"):
-			# v245.90: Filtro de Sigilo (Invisibilidad)
-			if ent.get("isInvisible"):
-				# Solo mostrar si es aliado (Clan o Party)
-				var is_ally = false
-				if is_instance_valid(player):
+			var is_clan = false
+			var is_party = false
+			
+			if is_instance_valid(player):
+				var ent_name = str(ent.get("username")).to_upper()
+				
+				# 1. PRIORIDAD: Equipo/Party (Celeste) - Comparar por nombre
+				if pm and pm.current_party:
+					var names = pm.current_party.get("names", [])
+					if names is Array:
+						for n in names:
+							if str(n).to_upper() == ent_name:
+								is_party = true
+								break
+				
+				# 2. Clan (Verde) - Solo si no es party (Prevalece Celeste)
+				if not is_party:
 					var my_clan = player.get("clanId")
 					var remote_clan = ent.get("clanId")
-					if my_clan and remote_clan and str(my_clan) == str(remote_clan): is_ally = true
-				
-				if not is_ally: continue # Invisibilidad total para enemigos
+					if my_clan != null and str(my_clan) != "" and str(my_clan) != "0":
+						if str(my_clan) == str(remote_clan): is_clan = true
+					
+					if not is_clan:
+						var my_tag_raw = player.get("clan_tag")
+						var remote_tag_raw = ent.get("clan_tag")
+						var my_tag = str(my_tag_raw).strip_edges().to_lower() if my_tag_raw != null else ""
+						var remote_tag = str(remote_tag_raw).strip_edges().to_lower() if remote_tag_raw != null else ""
+						if my_tag != "" and my_tag == remote_tag:
+							is_clan = true
+			
+			# v245.90: Filtro de Sigilo (Invisibilidad)
+			if ent.get("isInvisible"):
+				if not (is_clan or is_party): continue # Invisibilidad total para enemigos
 				
 			var pos = ent.global_position * map_scale
-			draw_circle(pos, 2.5, Color(0, 1, 1, 0.4 if ent.get("isInvisible") else 1.0))
+			var dot_color = Color(1, 1, 0) # Amarillo por defecto (Otros Jugadores)
+			if is_clan: dot_color = Color(0, 1, 0) # Verde
+			elif is_party: dot_color = Color(0, 1, 1) # Celeste
+			
+			if ent.get("isInvisible"): dot_color.a = 0.4
+			draw_circle(pos, 2.5, dot_color)
 
-	# 3. Dibujar Enemigos (Naranja JS v13.1.3)
+	# 3. Dibujar Enemigos NPC (Naranja JS v13.1.3)
 	for ent in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(ent) and not ent.get("is_dead"):
 			var pos = ent.global_position * map_scale
 			draw_circle(pos, 2.0, Color(1, 0.4, 0)) # #ff6600
 
-	# 4. Jugador Local (Punto Verde + Cuadrito de barrido)
+	# 4. Jugador Local (Punto Blanco Puro)
 	var local_pos = player.global_position * map_scale
-	draw_circle(local_pos, 3.0, Color(0, 1, 0))
-	draw_rect(Rect2(local_pos - Vector2(5, 5), Vector2(10, 10)), Color(0, 1, 0, 0.2), false, 1.0)
+	draw_circle(local_pos, 3.5, Color.WHITE)
+	# Eliminado el recuadro de barrido para evitar confusiones cromáticas
+
 
 	# Borde del radar
 	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0, 1, 1, 0.1), false, 1.0)

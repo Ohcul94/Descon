@@ -1041,6 +1041,40 @@ io.on('connection', (socket) => {
             console.error("Error en leaveParty:", e);
         }
     });
+
+    socket.on('kickFromParty', (targetUid) => {
+        try {
+            if (!socket.dbUser) return;
+            const myUid = socket.dbUser._id.toString();
+            const partyId = playerParty[myUid];
+            
+            // Solo el líder puede kickear (id de la party == líderUid)
+            if (!partyId || partyId !== myUid || !parties[partyId]) return;
+            if (targetUid === myUid) return; // No se puede kickear a sí mismo
+
+            const targetIndex = parties[partyId].members.indexOf(targetUid);
+            if (targetIndex === -1) return;
+
+            parties[partyId].members.splice(targetIndex, 1);
+            parties[partyId].names.splice(targetIndex, 1);
+            delete playerParty[targetUid];
+
+            if (parties[partyId].members.length <= 1) {
+                parties[partyId].members.forEach(m => delete playerParty[m]);
+                delete parties[partyId];
+                io.emit('partyUpdate', null);
+            } else {
+                io.emit('partyUpdate', parties[partyId]);
+            }
+            
+            // Avisar específicamente al expulsado
+            const targetSocketId = Object.keys(players).find(sid => players[sid].dbId === targetUid);
+            if (targetSocketId) io.to(targetSocketId).emit('partyUpdate', null);
+            
+        } catch (e) {
+            console.error("Error en kickFromParty:", e);
+        }
+    });
 });
 
 // v1.6: Helpers de Sistema

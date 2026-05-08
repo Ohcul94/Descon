@@ -98,6 +98,7 @@ function startGameLoop(io, state, aiManager) {
         }
 
         // Loguear promedio cada 10 segundos (300 ticks aprox)
+        /*
         if (tickCount >= 300) {
             const avg = (totalTickTime / tickCount).toFixed(2);
             const memory = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
@@ -105,6 +106,7 @@ function startGameLoop(io, state, aiManager) {
             tickCount = 0;
             totalTickTime = 0;
         }
+        */
     }, 33);
 
     // 2. LOOP DE REGENERACIÓN (1s)

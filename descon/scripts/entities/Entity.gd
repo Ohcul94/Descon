@@ -515,8 +515,28 @@ func update_stats(data):
 	_update_tags()
 
 func _update_tags():
+	if name_tag and not name_tag is RichTextLabel:
+		var rtl = RichTextLabel.new()
+		rtl.name = name_tag.name
+		rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rtl.bbcode_enabled = true
+		rtl.scroll_active = false
+		rtl.clip_contents = false
+		rtl.fit_content = true
+		rtl.autowrap_mode = TextServer.AUTOWRAP_OFF
+		
+		var parent = name_tag.get_parent()
+		if parent:
+			parent.add_child(rtl)
+			rtl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			rtl.grow_horizontal = Control.GROW_DIRECTION_BOTH
+			rtl.grow_vertical = Control.GROW_DIRECTION_BOTH
+			name_tag.queue_free()
+			name_tag = rtl
+
 	if name_tag:
-		name_tag.add_theme_font_size_override("font_size", 13)
+		name_tag.add_theme_font_size_override("normal_font_size", 13)
+		name_tag.add_theme_font_size_override("bold_font_size", 13)
 		name_tag.add_theme_color_override("font_outline_color", Color.BLACK)
 		name_tag.add_theme_constant_override("outline_size", 4)
 		if name_tag is RichTextLabel:
@@ -524,10 +544,20 @@ func _update_tags():
 			var n_color = "#bf00ff" if is_rage else ("#ff3333" if pvp_status else "#ffffff")
 			var txt = "[center]"
 			
-			# v244.110: Mostrar TAG de Flota si existe
+			# v244.110: Mostrar TAG de Flota con color según relación
 			var name_str = username
 			if clan_tag != "":
-				name_str = "[b][color=#ffff00][" + clan_tag + "][/color][/b] " + username
+				var local_player = get_tree().get_first_node_in_group("player")
+				var my_tag = ""
+				if is_instance_valid(local_player) and "clan_tag" in local_player:
+					my_tag = local_player.clan_tag.strip_edges()
+				
+				var tag_color = "#ffff00" # Amarillo = neutral/desconocido
+				if my_tag != "" and my_tag.to_lower() == clan_tag.strip_edges().to_lower():
+					tag_color = "#00ff44" # Verde = aliado (mismo clan)
+				# Futuro: elif is_enemy_clan(clan_tag): tag_color = "#ff3333"
+				
+				name_str = "[b][color=" + tag_color + "][" + clan_tag + "][/color][/b] " + username
 			
 			if is_rage: txt += "[b][wave amp=50 freq=2][color=" + n_color + "]" + name_str + "[/color][/wave][/b]\n"
 			else: txt += "[b][color=" + n_color + "]" + name_str + "[/color][/b]\n"
@@ -536,7 +566,7 @@ func _update_tags():
 			txt += "[color=#00ff00][font_size=10]HP: " + str(int(current_hp)) + " / " + str(int(max_hp)) + "[/font_size][/color][/center]"
 			name_tag.text = txt
 		else: 
-			# Caso Label normal: No permite multicolor, usamos contorno como resplandor
+			# Caso Label normal: sin BBCode, color plano
 			var name_str = username
 			if clan_tag != "": name_str = "[" + clan_tag + "] " + username
 			name_tag.text = name_str + "\nSH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "\nHP: " + str(int(current_hp)) + " / " + str(int(max_hp))
