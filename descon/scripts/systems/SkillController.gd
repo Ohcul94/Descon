@@ -33,8 +33,13 @@ func _process(_delta):
 
 func _unhandled_input(event):
 	if is_aiming:
+		# v266.35: Disparar con Click Izquierdo (Para Celulares y Mouse-Only players)
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			execute_skill()
+			get_viewport().set_input_as_handled()
+			
 		# v260.99: Cancelar con Click Derecho
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			cancel_aiming()
 			get_viewport().set_input_as_handled()
 

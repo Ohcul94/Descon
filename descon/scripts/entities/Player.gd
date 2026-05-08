@@ -168,53 +168,50 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 		return
 
 	if Input.is_action_just_pressed(action):
-		var cd = cooldowns.get(skill_id, 0.0)
-		if cd <= 0:
-			var r_val = 600.0 # Default
-			var filters = {}
-			var s_name = skill_id # Fallback para armas base (laser, missile, mine)
-			
-			if skill_id.begins_with("sphere_"):
-				var s_idx = int(skill_id.replace("sphere_", ""))
-				var sm = get_node_or_null("SpheresManager")
-				if sm:
-					var sph = sm.get_equipped_skill(s_idx)
-					if sph:
-						s_name = sph.get("skill_name")
-						if s_name == null: s_name = ""
-						if s_name != "" and GameConstants.SKILLS_DATA.has(s_name):
-							var s_data = GameConstants.SKILLS_DATA[s_name]
-							r_val = s_data.get("range", 0)
-							filters = s_data.get("targetFilters", {})
-			elif skill_id == "laser" or skill_id == "missile" or skill_id == "mine":
-				var t_idx = selected_ammo.get(skill_id, 0)
-				var ammo_list = GameConstants.SHOP_ITEMS.ammo.get(skill_id, [])
-				if t_idx < ammo_list.size():
-					r_val = ammo_list[t_idx].get("range", 600.0)
-			
-			# v4.9: Auto-target self si se mantiene presionada la tecla (Alt por defecto)
-			if not InputMap.has_action("auto_target_self"):
-				InputMap.add_action("auto_target_self")
-				var ev = InputEventKey.new()
-				ev.keycode = KEY_ALT
-				InputMap.action_add_event("auto_target_self", ev)
-				
-			if Input.is_action_pressed("auto_target_self") and skill_id.begins_with("sphere_"):
-				_on_skill_executed({
-					"skill_id": skill_id,
-					"angle": 0.0,
-					"target": self,
-					"pos": global_position
-				})
-				return
-			
-			# v3.9.8: Inyección de Filtros Dinámicos y Nombre para Visuales
-			_skill_controller.start_aiming({"id": skill_id, "type": type, "range": r_val, "filters": filters, "skill_name": s_name})
+		trigger_skill_by_id(skill_id, type)
 	
 	if Input.is_action_just_released(action):
 		if _skill_controller.is_aiming and _skill_controller.current_skill.id == skill_id:
 			if _skill_controller.config.cast_mode == 1: # ON_RELEASE
 				_skill_controller.execute_skill()
+
+# v266.30: Método público para disparar desde el HUD (Celulares/Mouse)
+func trigger_skill_by_id(skill_id: String, type: int):
+	var cd = cooldowns.get(skill_id, 0.0)
+	if cd <= 0:
+		var r_val = 600.0 # Default
+		var filters = {}
+		var s_name = skill_id # Fallback para armas base (laser, missile, mine)
+		
+		if skill_id.begins_with("sphere_"):
+			var s_idx = int(skill_id.replace("sphere_", ""))
+			var sm = get_node_or_null("SpheresManager")
+			if sm:
+				var sph = sm.get_equipped_skill(s_idx)
+				if sph:
+					s_name = sph.get("skill_name")
+					if s_name == null: s_name = ""
+					if s_name != "" and GameConstants.SKILLS_DATA.has(s_name):
+						var s_data = GameConstants.SKILLS_DATA[s_name]
+						r_val = s_data.get("range", 0)
+						filters = s_data.get("targetFilters", {})
+		elif skill_id == "laser" or skill_id == "missile" or skill_id == "mine":
+			var t_idx = selected_ammo.get(skill_id, 0)
+			var ammo_list = GameConstants.SHOP_ITEMS.ammo.get(skill_id, [])
+			if t_idx < ammo_list.size():
+				r_val = ammo_list[t_idx].get("range", 600.0)
+		
+		# Auto-target self logic moved here
+		if Input.is_action_pressed("auto_target_self") and skill_id.begins_with("sphere_"):
+			_on_skill_executed({
+				"skill_id": skill_id,
+				"angle": 0.0,
+				"target": self,
+				"pos": global_position
+			})
+			return
+		
+		_skill_controller.start_aiming({"id": skill_id, "type": type, "range": r_val, "filters": filters, "skill_name": s_name})
 
 func _on_skill_executed(p_data: Dictionary):
 	var id = p_data.skill_id
