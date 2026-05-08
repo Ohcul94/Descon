@@ -176,12 +176,13 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 				_skill_controller.execute_skill()
 
 # v266.30: Método público para disparar desde el HUD (Celulares/Mouse)
-func trigger_skill_by_id(skill_id: String, type: int):
+func trigger_skill_by_id(skill_id: String, type: int = -1):
 	var cd = cooldowns.get(skill_id, 0.0)
 	if cd <= 0:
 		var r_val = 600.0 # Default
 		var filters = {}
 		var s_name = skill_id # Fallback para armas base (laser, missile, mine)
+		var s_type = type
 		
 		if skill_id.begins_with("sphere_"):
 			var s_idx = int(skill_id.replace("sphere_", ""))
@@ -195,13 +196,20 @@ func trigger_skill_by_id(skill_id: String, type: int):
 						var s_data = GameConstants.SKILLS_DATA[s_name]
 						r_val = s_data.get("range", 0)
 						filters = s_data.get("targetFilters", {})
-		elif skill_id == "laser" or skill_id == "missile" or skill_id == "mine":
+						
+						# v266.60: Auto-detección de tipo si no se especificó (o es -1)
+						if s_type == -1:
+							s_type = 3 # Instant por defecto
+							if s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL": s_type = 1 # PointClick
+							elif s_data.get("range", 0) > 0 and s_name != "FROST-TRAIL": s_type = 0 # Directional
+		elif s_type == -1:
+			s_type = 0 # Laser/Missile/Mine son Directional
 			var t_idx = selected_ammo.get(skill_id, 0)
 			var ammo_list = GameConstants.SHOP_ITEMS.ammo.get(skill_id, [])
 			if t_idx < ammo_list.size():
 				r_val = ammo_list[t_idx].get("range", 600.0)
 		
-		# Auto-target self logic moved here
+		# Auto-target self logic
 		if Input.is_action_pressed("auto_target_self") and skill_id.begins_with("sphere_"):
 			_on_skill_executed({
 				"skill_id": skill_id,
@@ -211,7 +219,7 @@ func trigger_skill_by_id(skill_id: String, type: int):
 			})
 			return
 		
-		_skill_controller.start_aiming({"id": skill_id, "type": type, "range": r_val, "filters": filters, "skill_name": s_name})
+		_skill_controller.start_aiming({"id": skill_id, "type": s_type, "range": r_val, "filters": filters, "skill_name": s_name})
 
 func _on_skill_executed(p_data: Dictionary):
 	var id = p_data.skill_id
