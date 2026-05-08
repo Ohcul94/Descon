@@ -33,10 +33,18 @@ func _process(_delta):
 
 func _unhandled_input(event):
 	if is_aiming:
-		# v266.35: Disparar con Click Izquierdo (Para Celulares y Mouse-Only players)
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			execute_skill()
-			get_viewport().set_input_as_handled()
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			var mode = config.cast_mode
+			
+			# v266.40: Lógica de Disparo respetando el Cast Mode
+			if mode == CastMode.ON_RELEASE:
+				if not event.pressed: # Al soltar
+					execute_skill()
+					get_viewport().set_input_as_handled()
+			else:
+				if event.pressed: # Al presionar (Quick Cast / Normal)
+					execute_skill()
+					get_viewport().set_input_as_handled()
 			
 		# v260.99: Cancelar con Click Derecho
 		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
