@@ -137,29 +137,15 @@ enum Skill_Type { DIRECTIONAL, POINT_CLICK, AREA, INSTANT }
 
 func _handle_input():
 	# v260.90: Sistema de 7 Slots Unificados (Láser, Misil, Mina + 4 Esferas)
-	_handle_slot_input("slot_1", "laser", Skill_Type.DIRECTIONAL)
-	_handle_slot_input("slot_2", "missile", Skill_Type.DIRECTIONAL)
-	_handle_slot_input("slot_3", "mine", Skill_Type.DIRECTIONAL)
+	_handle_slot_input("slot_1", "laser", -1)
+	_handle_slot_input("slot_2", "missile", -1)
+	_handle_slot_input("slot_3", "mine", -1)
 	
-	# Esferas (Slots 4 al 7) - v3.9: Tipo Dinámico (Directional vs PointClick vs Instant)
+	# Esferas (Slots 4 al 7) - v266.65: Auto-detección centralizada
 	for i in range(4):
 		var slot_name = "slot_" + str(i + 4)
 		var s_id = "sphere_" + str(i)
-		var s_type = Skill_Type.INSTANT # v4.5: Default ahora es INSTANT para esferas
-		
-		var sm = get_node_or_null("SpheresManager")
-		if sm:
-			var sph = sm.get_equipped_skill(i)
-			if sph:
-				var s_name = sph.get("skill_name")
-				if s_name and GameConstants.SKILLS_DATA.has(s_name):
-					var s_data = GameConstants.SKILLS_DATA[s_name]
-					if s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL":
-						s_type = Skill_Type.POINT_CLICK
-					elif s_data.get("range", 0) > 0 and s_name != "FROST-TRAIL":
-						s_type = Skill_Type.DIRECTIONAL
-		
-		_handle_slot_input(slot_name, s_id, s_type)
+		_handle_slot_input(slot_name, s_id, -1)
 
 func _handle_slot_input(action: String, skill_id: String, type: int):
 	# Auto-crear acción si no existe para evitar errores
