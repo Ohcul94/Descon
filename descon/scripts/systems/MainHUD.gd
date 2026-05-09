@@ -23,6 +23,7 @@ var _esc_menu: Control = null
 var _settings_menu: Control = null
 var _pvp_status: bool = false
 var _blind_overlay: ColorRect = null # v260.90: Efecto de Ceguera (Humo)
+var is_editing_layout: bool = false
 
 
 func _ready():
@@ -494,7 +495,13 @@ func _get_hud_node(id: String):
 	if id == "Chat": real_id = "ChatUI"
 	if id == "Stats": real_id = "CenterStats"
 	if id == "Squad" or id == "Party": real_id = "PartyHUD"
+	if id == "SkillsContainer": real_id = "Skills"
+	
 	var node = get_node_or_null(real_id)
+	if not node:
+		var sc = get_node_or_null("Skills")
+		if sc: node = sc.get_node_or_null(id) # Probar con el ID original (e.g. LaserSlot)
+		
 	if not node: node = get_parent().get_node_or_null(real_id)
 	return node
 
@@ -805,6 +812,7 @@ func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
 func toggle_esc_menu():
 	if _esc_menu and _esc_menu.visible:
 		_esc_menu.visible = false
+		if is_editing_layout: toggle_hud_editing() # v266.90: Guardar y salir al cerrar el menú
 		return
 	
 	if not _esc_menu:
@@ -841,6 +849,12 @@ func _create_esc_menu():
 	title.text = "MENÚ DE SISTEMA"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
+	
+	# v266.90: Botón de Edición de HUD
+	var edit_btn = Button.new()
+	edit_btn.text = "EDITAR LAYOUT HUD"
+	edit_btn.pressed.connect(toggle_hud_editing)
+	vbox.add_child(edit_btn)
 	
 	var pvp_btn = Button.new()
 	pvp_btn.name = "PvPButton"
@@ -1055,3 +1069,76 @@ func _on_blind_state(data: Dictionary):
 		tw.tween_property(_blind_overlay, "color:a", 1.0, 0.05) # Casi instantáneo
 	else:
 		tw.tween_property(_blind_overlay, "color:a", 0.0, 0.1) # Recuperación rápida
+
+# --- SISTEMA DE EDICIÓN DE HUD v266.90 ---
+func toggle_hud_editing():
+	is_editing_layout = !is_editing_layout
+	print("[HUD] Modo Edición Layout: ", is_editing_layout)
+	
+	# Si cerramos, guardamos
+	if not is_editing_layout:
+		_save_hud_positions()
+	
+	_esc_menu.visible = false # Cerrar menú al editar
+	
+	# Hacer que todo sea movible
+	var skills_container = get_node_or_null("Skills")
+	if is_instance_valid(skills_container):
+		_make_node_draggable(skills_container, "SkillsContainer")
+		for child in skills_container.get_children():
+			_make_node_draggable(child, child.name)
+
+func _make_node_draggable(node: Control, hud_id: String):
+	if not node: return
+	
+	var overlay = node.get_node_or_null("DragOverlay")
+	if is_editing_layout:
+		if not overlay:
+			overlay = ColorRect.new()
+			overlay.name = "DragOverlay"
+			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			overlay.color = Color(0, 1, 1, 0.3)
+			overlay.mouse_filter = Control.MOUSE_FILTER_PASS
+			
+			var border = ReferenceRect.new()
+			border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			border.border_color = Color.CYAN
+			border.border_width = 2
+			border.editor_only = false
+			overlay.add_child(border)
+			
+			node.add_child(overlay)
+			
+			# Conectar lógica de arrastre
+			overlay.gui_input.connect(_on_drag_input.bind(node, hud_id))
+		overlay.visible = true
+	elif overlay:
+		overlay.visible = false
+
+var _dragging_node: Control = null
+var _drag_offset: Vector2 = Vector2.ZERO
+
+func _on_drag_input(event: InputEvent, node: Control, hud_id: String):
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				_dragging_node = node
+				_drag_offset = node.global_position - get_global_mouse_position()
+			else:
+				_dragging_node = null
+	
+	if event is InputEventMouseMotion and _dragging_node == node:
+		node.global_position = get_global_mouse_position() + _drag_offset
+
+func _save_hud_positions():
+	var layout = {}
+	var skills_container = get_node_or_null("Skills")
+	if skills_container:
+		layout["SkillsContainer"] = { "x": skills_container.global_position.x, "y": skills_container.global_position.y }
+		for child in skills_container.get_children():
+			if child.name == "DragOverlay": continue
+			layout[child.name] = { "x": child.global_position.x, "y": child.global_position.y }
+	
+	if NetworkManager:
+		NetworkManager.send_event("saveHUDLayout", { "positions": layout })
+		print("[HUD] Layout global guardado en el servidor.")
