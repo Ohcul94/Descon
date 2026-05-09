@@ -539,6 +539,10 @@ func _on_minimize_pressed(id: String):
 		_update_icon_state(id, false)
 
 func _on_icon_pressed(id: String):
+	if id == "EscMenu":
+		toggle_esc_menu()
+		return
+		
 	# Normalizar ID para el sistema de Squad
 	var node = _get_hud_node(id)
 	if node:
@@ -877,6 +881,24 @@ func toggle_esc_menu():
 	_esc_menu.reset_size() # v229.35: Forzar que Godot recalcule el tamaño antes de centrar
 	_esc_menu.global_position = (get_viewport_rect().size - _esc_menu.size) / 2.0
 
+func _restore_default_layout():
+	if NetworkManager:
+		NetworkManager.send_event("saveHUDLayout", { "positions": {} })
+	
+	var skills_container = get_node_or_null("Skills")
+	if skills_container:
+		skills_container.top_level = false
+		for child in skills_container.get_children():
+			if child is Control and child.name != "DragOverlay":
+				child.top_level = false
+	
+	var edit_lbl = get_node_or_null("EditModeLabel")
+	if edit_lbl: edit_lbl.visible = false
+	is_editing_layout = false
+	
+	print("[HUD] Layout restaurado de fábrica.")
+	toggle_esc_menu()
+
 func _create_esc_menu():
 	var canvas = CanvasLayer.new()
 	canvas.name = "EscCanvas"
@@ -910,6 +932,12 @@ func _create_esc_menu():
 	edit_btn.text = "EDITAR LAYOUT HUD"
 	edit_btn.pressed.connect(toggle_hud_editing)
 	vbox.add_child(edit_btn)
+	
+	# v266.100: Botón Restaurar
+	var reset_btn = Button.new()
+	reset_btn.text = "RESTAURAR DE FÁBRICA"
+	reset_btn.pressed.connect(_restore_default_layout)
+	vbox.add_child(reset_btn)
 	
 	var pvp_btn = Button.new()
 	pvp_btn.name = "PvPButton"
@@ -1002,7 +1030,10 @@ func _setup_touch_buttons():
 	var user_name = player.get("username")
 	var is_admin = (user_name == "Caelli94")
 	
-	var touch_btns = [{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"}]
+	var touch_btns = [
+		{"id": "EscMenu", "icon": "⚙️", "tip": "Sistema (ESC)"},
+		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"}
+	]
 	if is_admin:
 		touch_btns.append({"id": "AdminPanel", "icon": "🛠️", "tip": "Admin (F2)"})
 	
@@ -1020,6 +1051,8 @@ func _setup_touch_buttons():
 		
 		var h_sb = sb.duplicate(); h_sb.bg_color = Color(0.3, 0.5, 0.6, 0.8); h_sb.border_width_bottom = 2; h_sb.border_color = Color.CYAN
 		btn.add_theme_stylebox_override("hover", h_sb)
+		
+		btn.pressed.connect(_on_icon_pressed.bind(data.id)) # v266.100: Conectar el botón
 		
 		c_bar.add_child(btn)
 		_update_icon_tooltips() # Aplicar nombres tras añadir al padre
@@ -1130,8 +1163,23 @@ func toggle_hud_editing():
 	is_editing_layout = !is_editing_layout
 	print("[HUD] Modo Edición Layout: ", is_editing_layout)
 	
-	# Si cerramos, guardamos
-	if not is_editing_layout:
+	# v266.100: Indicador visual de modo edición
+	var edit_lbl = get_node_or_null("EditModeLabel")
+	if is_editing_layout:
+		if not edit_lbl:
+			edit_lbl = Label.new()
+			edit_lbl.name = "EditModeLabel"
+			edit_lbl.text = "MODO EDICIÓN ACTIVADO\nArrástre la manija (::) o los botones para moverlos.\nToque el icono ⚙️ para guardar y salir."
+			edit_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			edit_lbl.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+			edit_lbl.add_theme_color_override("font_color", Color.CYAN)
+			edit_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+			edit_lbl.add_theme_constant_override("outline_size", 4)
+			edit_lbl.position.y = 120
+			add_child(edit_lbl)
+		edit_lbl.visible = true
+	else:
+		if edit_lbl: edit_lbl.visible = false
 		_save_hud_positions()
 	
 	_esc_menu.visible = false # Cerrar menú al editar
