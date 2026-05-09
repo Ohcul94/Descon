@@ -42,7 +42,8 @@ func _setup_ui():
 	main_panel.add_theme_stylebox_override("panel", style)
 	
 	_update_size()
-	get_viewport().size_changed.connect(_update_size)
+	if not get_viewport().size_changed.is_connected(_update_size):
+		get_viewport().size_changed.connect(_update_size)
 	
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 20)

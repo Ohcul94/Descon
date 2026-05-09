@@ -1299,4 +1299,4 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				if slot_name != "": _hud_layouts[slot_index].name = slot_name
 		
 		NetworkManager.send_event("saveHudLayout", payload)
-		print("[HUD] Layout enviado al servidor. Slot: ", slot_index if slot_index >= 0 else "Global")
+		print("[HUD] Layout enviado al servidor. Slot: ", str(slot_index) if slot_index >= 0 else "Global")
