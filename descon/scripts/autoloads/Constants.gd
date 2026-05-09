@@ -1,22 +1,35 @@
 extends Node
 
-# Constants.gd (v252.18 - RESTAURACIÓN TOTAL DE MUNICIÓN Y ESCALAS)
+# Constants.gd (v255.20 - REESTRUCTURACIÓN TOTAL DE ENTIDADES Y IDS)
+# Mapa de IDs normalizado: 1-99 Enemigos Regulares, 100+ Bosses.
 
 var GAME_CONFIG = {
 	"worldSize": 10000.0,
-	"version": "2.5.2-Elite"
+	"version": "2.5.5-Elite"
+}
+
+var MAPS_CONFIG = {
+	"1": { "name": "Loby", "desc": "Zona segura de reunión y comercio.", "color": "#ffffff", "warpCost": 0, "minLevel": 1 },
+	"2": { "name": "Mapa 1", "desc": "Zona de entrenamiento básico y recolección.", "color": "#00ff00", "warpCost": 0, "minLevel": 1 },
+	"3": { "name": "Mapa 2", "desc": "Sector hostil con recursos de nivel medio.", "color": "#ffff00", "warpCost": 10, "minLevel": 5 },
+	"4": { "name": "Mapa 3", "desc": "Nebulosa densa con piratas espaciales.", "color": "#ffaa00", "warpCost": 25, "minLevel": 10 },
+	"5": { "name": "Mapa 4", "desc": "Zona de asteroides inestables.", "color": "#ff5500", "warpCost": 50, "minLevel": 15 },
+	"6": { "name": "Mapa 5", "desc": "Borde exterior: Peligro extremo.", "color": "#ff0000", "warpCost": 100, "minLevel": 20 },
+	"7": { "name": "Mapa 6", "desc": "Sector de invasión: Hordas detectadas.", "color": "#aa0000", "warpCost": 200, "minLevel": 25 },
+	"8": { "name": "Mapa 7", "desc": "Guarida de Jefes: Requiere escolta.", "color": "#550000", "warpCost": 500, "minLevel": 30 },
+	"9": { "name": "Mapa 8", "desc": "Zona de Pruebas Tácticas (Showcase).", "color": "#aa00ff", "warpCost": 1000, "minLevel": 35 }
 }
 
 var HORDES_CONFIG = {
 	"active": true,
 	"currentWaveIndex": 0,
-	"map": 6,
+	"map": 7,
 	"timeBetweenWaves": 5,
 	"waves": [
 		{ "enemies": [ { "count": 3, "type": "1" } ], "name": "Fase 1: Reconocimiento", "rewardMultiplier": 1 },
 		{ "enemies": [ { "count": 5, "type": "1" }, { "count": 3, "type": "2" }, { "count": 5, "type": "5" } ], "name": "Fase 2: Asalto", "rewardMultiplier": 1.5 },
 		{ "enemies": [ { "count": 8, "type": "3" }, { "count": 4, "type": "7" }, { "count": 2, "type": "8" } ], "name": "Fase 3: Incursión Pesada", "rewardMultiplier": 2 },
-		{ "enemies": [ { "count": 10, "type": "9" }, { "count": 5, "type": "6" }, { "count": 1, "type": "4" } ], "name": "Fase 4: El Gran Juicio", "rewardMultiplier": 3 }
+		{ "enemies": [ { "count": 10, "type": "4" }, { "count": 5, "type": "6" }, { "count": 1, "type": "101" } ], "name": "Fase 4: El Gran Juicio", "rewardMultiplier": 3 }
 	]
 }
 
@@ -68,7 +81,7 @@ var SHOP_ITEMS = {
 	],
 	"weapons": [
 		{ "id": "las1", "name": "Láser LF-1", "prices": { "hubs": 10000, "ohcu": 10 }, "base": 100 },
-		{ "id": "las2", "name": "Láser LF-2", "prices": { "hubs": 50000, "ohcu": 50 }, "base": 250 },
+		{ "id": "las2", "name": "Láser LF-2", "prices": { "hubs": 5000, "ohcu": 50 }, "base": 250 },
 		{ "id": "las3", "name": "Láser LF-3", "prices": { "hubs": 200000, "ohcu": 200 }, "base": 600 }
 	]
 }
@@ -77,19 +90,20 @@ var ENEMY_MODELS = {
 	"1": { "name": "Enemigo 1", "hp": 500, "shield": 100, "bulletDamage": 40, "fireRate": 1000, "rewardHubs": 100, "rewardOhcu": 1, "rewardExp": 150, "speed": 450, "bulletSpeed": 800, "fireRange": 600 },
 	"2": { "name": "Enemigo 2", "hp": 800, "shield": 300, "bulletDamage": 60, "fireRate": 1200, "rewardHubs": 200, "rewardOhcu": 2, "rewardExp": 200, "speed": 420, "bulletSpeed": 800, "fireRange": 650 },
 	"3": { "name": "Enemigo 3", "hp": 1200, "shield": 600, "bulletDamage": 80, "fireRate": 1100, "rewardHubs": 350, "rewardOhcu": 3, "rewardExp": 300, "speed": 400, "bulletSpeed": 850, "fireRange": 700 },
+	"4": { "name": "Enemigo 4", "hp": 8000, "shield": 4500, "bulletDamage": 250, "fireRate": 1000, "rewardHubs": 3500, "rewardOhcu": 35, "rewardExp": 1500, "speed": 280, "bulletSpeed": 850, "fireRange": 1000 },
 	"5": { "name": "Enemigo 5", "hp": 1500, "shield": 800, "bulletDamage": 120, "fireRate": 1500, "rewardHubs": 500, "rewardOhcu": 5, "rewardExp": 400, "speed": 350, "bulletSpeed": 800, "fireRange": 750 },
 	"6": { "name": "Enemigo 6", "hp": 15000, "shield": 5000, "bulletDamage": 200, "fireRate": 2500, "rewardHubs": 5000, "rewardOhcu": 50, "rewardExp": 250, "speed": 250, "bulletSpeed": 600, "fireRange": 800 },
 	"7": { "name": "Enemigo 7", "hp": 3000, "shield": 1500, "bulletDamage": 160, "fireRate": 1300, "rewardHubs": 1000, "rewardOhcu": 10, "rewardExp": 600, "speed": 320, "bulletSpeed": 800, "fireRange": 700 },
 	"8": { "name": "Enemigo 8", "hp": 5000, "shield": 3000, "bulletDamage": 350, "fireRate": 1200, "rewardHubs": 2500, "rewardOhcu": 25, "rewardExp": 1200, "speed": 300, "bulletSpeed": 800, "fireRange": 900 },
-	"9": { "name": "Enemigo 4", "hp": 8000, "shield": 4500, "bulletDamage": 250, "fireRate": 1000, "rewardHubs": 3500, "rewardOhcu": 35, "rewardExp": 1500, "speed": 280, "bulletSpeed": 850, "fireRange": 1000 },
-	"4": { "name": "Lord Titán", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000, "rageTimer": 20, "speed": 250, "bulletSpeed": 900, "fireRange": 1200 },
-	"10": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20, "speed": 220, "bulletSpeed": 1000, "fireRange": 1500 },
-	"11": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20, "speed": 280, "bulletSpeed": 1100, "fireRange": 1300 },
+	"9": { "name": "Enemigo 9", "hp": 9000, "shield": 4000, "bulletDamage": 280, "fireRate": 950, "rewardHubs": 3800, "rewardOhcu": 38, "rewardExp": 1800, "speed": 310, "bulletSpeed": 880, "fireRange": 1050 },
+	"10": { "name": "Enemigo 10", "hp": 11000, "shield": 5500, "bulletDamage": 320, "fireRate": 880, "rewardHubs": 4200, "rewardOhcu": 42, "rewardExp": 2200, "speed": 305, "bulletSpeed": 920, "fireRange": 1150 },
+	"11": { "name": "Enemigo 11", "hp": 13000, "shield": 6500, "bulletDamage": 380, "fireRate": 820, "rewardHubs": 4800, "rewardOhcu": 48, "rewardExp": 2800, "speed": 285, "bulletSpeed": 980, "fireRange": 1250 },
 	"12": { "name": "Enemigo 12", "hp": 10000, "shield": 5000, "bulletDamage": 300, "fireRate": 900, "rewardHubs": 4000, "rewardOhcu": 40, "rewardExp": 2000, "speed": 300, "bulletSpeed": 900, "fireRange": 1100 },
 	"13": { "name": "Enemigo 13", "hp": 12000, "shield": 6000, "bulletDamage": 350, "fireRate": 850, "rewardHubs": 4500, "rewardOhcu": 45, "rewardExp": 2500, "speed": 290, "bulletSpeed": 950, "fireRange": 1200 },
-	"14": { "name": "Enemigo 9", "hp": 9000, "shield": 4000, "bulletDamage": 280, "fireRate": 950, "rewardHubs": 3800, "rewardOhcu": 38, "rewardExp": 1800, "speed": 310, "bulletSpeed": 880, "fireRange": 1050 },
-	"15": { "name": "Enemigo 10", "hp": 11000, "shield": 5500, "bulletDamage": 320, "fireRate": 880, "rewardHubs": 4200, "rewardOhcu": 42, "rewardExp": 2200, "speed": 305, "bulletSpeed": 920, "fireRange": 1150 },
-	"16": { "name": "Enemigo 11", "hp": 13000, "shield": 6500, "bulletDamage": 380, "fireRate": 820, "rewardHubs": 4800, "rewardOhcu": 48, "rewardExp": 2800, "speed": 285, "bulletSpeed": 980, "fireRange": 1250 }
+	
+	"101": { "name": "Lord Titán", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000, "rageTimer": 20, "speed": 250, "bulletSpeed": 900, "fireRange": 1200, "isBoss": true },
+	"102": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20, "speed": 220, "bulletSpeed": 1000, "fireRange": 1500, "isBoss": true },
+	"103": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20, "speed": 280, "bulletSpeed": 1100, "fireRange": 1300, "isBoss": true }
 }
 
 var AMMO_MULTIPLIERS = {
@@ -113,30 +127,3 @@ var SKILLS_DATA = {
 	"STEALTH": { "id": "SK-UTIL-05", "type": "Utilidad", "desc": "Te vuelve invisible para enemigos y jugadores fuera de tu grupo.", "duration": 8, "cd": 25.0, "range": 0, "canTargetOthers": false },
 	"FROST-TRAIL": { "id": "SK-DEF-04", "type": "Defensa", "desc": "Deja un rastro de escarcha que ralentiza a los enemigos.", "duration": 6, "slow_amount": 0.5, "radius": 120, "cd": 18.0, "range": 0, "canTargetOthers": false }
 }
-
-var MAPS_CONFIG = {
-	"1": { "name": "LOBY", "desc": "Puerto seguro central de comercio.", "color": "#ffffff", "warpCost": 0, "minLevel": 1 },
-	"2": { "name": "MAPA 1", "desc": "Sector de inicio y entrenamiento.", "color": "#00ffff", "warpCost": 0, "minLevel": 1 },
-	"3": { "name": "MAPA 2", "desc": "Zona de exploración profunda.", "color": "#ffd700", "warpCost": 10, "minLevel": 2 },
-	"4": { "name": "MAPA 3", "desc": "Sector de anomalías espaciales.", "color": "#ffa500", "warpCost": 10, "minLevel": 3 },
-	"5": { "name": "MAPA 4", "desc": "Antigua base de suministros.", "color": "#00ffff", "warpCost": 10, "minLevel": 4 },
-	"6": { "name": "MAPA 5", "desc": "Cinturón de radiación estelar.", "color": "#ff0000", "warpCost": 10, "minLevel": 5 },
-	"7": { "name": "MAPA 6", "desc": "Sistemas de defensa remotos.", "color": "#87ceeb", "warpCost": 10, "minLevel": 6 },
-	"8": { "name": "MAPA 7", "desc": "Vacío intergaláctico.", "color": "#ff00ff", "warpCost": 10, "minLevel": 7 },
-	"9": { "name": "MAPA 8", "desc": "Confines del universo conocido.", "color": "#c0c0c0", "warpCost": 10, "minLevel": 8 }
-}
-
-func _ready():
-	if NetworkManager:
-		NetworkManager.config_updated.connect(update_from_server)
-
-func update_from_server(data: Dictionary):
-	if data.has("gameConfig"): GAME_CONFIG = data.gameConfig
-	if data.has("hordeConfig"): HORDES_CONFIG = data.hordeConfig
-	if data.has("shipModels"): SHIP_MODELS = data.shipModels
-	if data.has("shopItems"): SHOP_ITEMS = data.shopItems
-	if data.has("enemyModels"): ENEMY_MODELS = data.enemyModels
-	if data.has("ammoMultipliers"): AMMO_MULTIPLIERS = data.ammoMultipliers
-	if data.has("skillsData"): SKILLS_DATA = data.skillsData
-	if data.has("mapsConfig"): MAPS_CONFIG = data.mapsConfig
-	print("[CONSTANTS] Configuración sincronizada con el servidor.")

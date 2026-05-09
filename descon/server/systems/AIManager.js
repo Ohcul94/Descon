@@ -23,7 +23,7 @@ class AIManager {
         
         const isHordeZone = this.hordeManager && this.hordeManager.config.active && this.hordeManager.config.map === zone;
         
-        if (zone != 2 && zone != 9 && zone != 8 && !isHordeZone) {
+        if (zone === 1 && !isHordeZone) {
             return null;
         }
 
@@ -60,13 +60,13 @@ class AIManager {
         const movSpeed = cfg ? (cfg.speed * 0.033) : (type === 1 ? 4.5 : 3.5);
         const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
         
-        if (type === 11) e.ai = new MechanicBossAI(e, aiConfig); 
-        else if (type === 10) e.ai = new AncientBossAI(e, aiConfig); 
-        else if (type === 4) e.ai = new BossAI(e, aiConfig); 
+        if (type === 103) e.ai = new MechanicBossAI(e, aiConfig); 
+        else if (type === 102) e.ai = new AncientBossAI(e, aiConfig); 
+        else if (type === 101) e.ai = new BossAI(e, aiConfig); 
         else if (type === 8 || type === 3) e.ai = new ChargerAI(e, aiConfig);
         else if (type === 6 || type === 7) e.ai = new GravityAI(e, aiConfig);
-        else if (type === 5 || type === 2) e.ai = new SniperAI(e, aiConfig); 
-        else if (type === 1 || type === 9) e.ai = new ChaseAI(e, aiConfig); 
+        else if (type === 5 || type === 2 || type === 12) e.ai = new SniperAI(e, aiConfig); 
+        else if (type === 1 || type === 9 || type === 13 || type === 4) e.ai = new ChaseAI(e, aiConfig); 
         else e.ai = new OrbitAI(e, aiConfig);
 
         enemies[id] = e;
@@ -95,15 +95,11 @@ class AIManager {
             this.serverSpawnEnemy(2, 4);
         }
         
-        const boss9 = Object.values(this.state.enemies).find(e => e.type === 4 && e.zone === 9);
-        if (!boss9) this.serverSpawnEnemy(9, 4, 2000, 2000);
-
         // v266.150: SHOWCASE DE ENEMIGOS EN ZONA 9 (Testeo Visual)
-        const regularEnemyTypes = [1, 2, 3, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16];
+        const regularEnemyTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
         regularEnemyTypes.forEach((type, index) => {
             const exists = Object.values(this.state.enemies).some(e => e.type == type && e.zone === 9);
             if (!exists) {
-                // Spawneamos en círculo alrededor del centro para que se vean bien
                 const angle = (index / regularEnemyTypes.length) * Math.PI * 2;
                 const radius = 800;
                 const px = 2000 + Math.cos(angle) * radius;
@@ -112,9 +108,18 @@ class AIManager {
             }
         });
 
-        const boss8s = Object.values(this.state.enemies).filter(e => e.type === 5 && e.zone === 8 && e.name === "Boss2");
-        if (boss8s.length === 0) {
-            this.serverSpawnEnemy(8, 5, 2000, 2000, "Boss2");
+        // v266.155: GUARDIANES DE BOSSES (Nuevos IDs)
+        const boss101 = Object.values(this.state.enemies).find(e => e.type === 101 && e.zone === 9);
+        if (!boss101) this.serverSpawnEnemy(9, 101, 2000, 2000);
+
+        const boss102s = Object.values(this.state.enemies).filter(e => e.type === 102 && e.zone === 8);
+        if (boss102s.length === 0) {
+            this.serverSpawnEnemy(8, 102, 2000, 2000);
+        }
+
+        const boss103s = Object.values(this.state.enemies).filter(e => e.type === 103 && e.zone === 7);
+        if (boss103s.length === 0) {
+            this.serverSpawnEnemy(7, 103, 2000, 2000);
         }
     }
 }

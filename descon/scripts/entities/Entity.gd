@@ -888,59 +888,27 @@ func _setup_enemy_visuals():
 	var enemy_scale = 3.0 
 	var path = "" # v252.16: Declaración restaurada para fallback 2D
 	
-	# v252.15: CONFIGURACIÓN INDIVIDUALIZADA (Manual de Activos)
+	# v255.15: CONFIGURACIÓN NORMALIZADA (Manual de Activos)
 	match entity_type:
-		1: 
-			glb_path = "res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb"
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13:
+			glb_path = "res://assets/Enemigos/3D/Enemigo" + str(entity_type) + "/Enemigo" + str(entity_type) + ".glb"
 			enemy_rot_offset = 90.0
-		2: 
-			glb_path = "res://assets/Enemigos/3D/Enemigo2/Enemigo2.glb"
-			enemy_rot_offset = 90.0 # v252.15: Re-calibrando
-		3: 
-			glb_path = "res://assets/Enemigos/3D/Enemigo3/Enemigo3.glb"
-			enemy_rot_offset = 90.0
-		5: 
-			glb_path = "res://assets/Enemigos/3D/Enemigo5/Enemigo5.glb"
-			enemy_rot_offset = 90.0 # v252.15: Restaurado (Estaba perfecto antes)
-		6: 
-			glb_path = "res://assets/Enemigos/3D/Enemigo6/Enemigo6.glb"
-			enemy_rot_offset = 0.0
-		7: 
-			glb_path = "res://assets/Enemigos/3D/Enemigo7/Enemigo7.glb"
-			enemy_rot_offset = 180.0 # v252.18: Inversión total para disparo frontal
-		8: 
-			glb_path = "res://assets/Enemigos/3D/Enemigo8/Enemigo8.glb"
-			enemy_rot_offset = 0.0
-		9: # Asset Enemigo4
-			glb_path = "res://assets/Enemigos/3D/Enemigo4/Enemigo4.glb"
-			enemy_rot_offset = 180.0 # v252.21: Calibración disparo frontal
-		4: # Lord Titán (Boss1)
+			# Excepciones de rotación específicas detectadas en pruebas
+			if entity_type == 7 or entity_type == 4: enemy_rot_offset = 180.0
+			if entity_type == 6 or entity_type == 8: enemy_rot_offset = 0.0
+			
+		101: # Lord Titán (Boss1)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
 			enemy_rot_offset = 90.0
 			enemy_scale = 6.0
-		10: # Ancient Titán (Boss2)
+		102: # Ancient Titán (Boss2)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"
 			enemy_rot_offset = 90.0
 			enemy_scale = 6.0
-		11: # Mechanic Boss (Boss3)
+		103: # Mechanic Boss (Boss3)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
 			enemy_rot_offset = 180.0
 			enemy_scale = 6.0
-		12: # Enemigo 12
-			glb_path = "res://assets/Enemigos/3D/Enemigo12/Enemigo12.glb"
-			enemy_rot_offset = 90.0
-		13: # Enemigo 13
-			glb_path = "res://assets/Enemigos/3D/Enemigo13/Enemigo13.glb"
-			enemy_rot_offset = 90.0
-		14: # Enemigo 9
-			glb_path = "res://assets/Enemigos/3D/Enemigo9/Enemigo9.glb"
-			enemy_rot_offset = 90.0
-		15: # Enemigo 10
-			glb_path = "res://assets/Enemigos/3D/Enemigo10/Enemigo10.glb"
-			enemy_rot_offset = 90.0
-		16: # Enemigo 11
-			glb_path = "res://assets/Enemigos/3D/Enemigo11/Enemigo11.glb"
-			enemy_rot_offset = 90.0
 
 	if glb_path != "":
 		print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)

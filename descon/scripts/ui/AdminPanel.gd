@@ -176,9 +176,27 @@ func _render_ships(container):
 		_add_input(grid, "OHCU", str(int(ship.prices.ohcu)), func(v): GameConstants.SHIP_MODELS[i].prices.ohcu = int(float(v)))
 
 func _render_enemies(container):
-	for id in GameConstants.ENEMY_MODELS:
+	var entity_tabs = TabContainer.new()
+	entity_tabs.custom_minimum_size.y = 500
+	container.add_child(entity_tabs)
+	
+	# Sub-pestaña 1: ENEMIGOS REGULARES
+	var enemies_scroll = ScrollContainer.new(); enemies_scroll.name = "ENEMIGOS"; entity_tabs.add_child(enemies_scroll)
+	var enemies_v = VBoxContainer.new(); enemies_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; enemies_scroll.add_child(enemies_v)
+	
+	# Sub-pestaña 2: BOSSES
+	var bosses_scroll = ScrollContainer.new(); bosses_scroll.name = "BOSSES"; entity_tabs.add_child(bosses_scroll)
+	var bosses_v = VBoxContainer.new(); bosses_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; bosses_scroll.add_child(bosses_v)
+
+	# Obtener IDs ordenados numéricamente
+	var sorted_ids = GameConstants.ENEMY_MODELS.keys()
+	sorted_ids.sort_custom(func(a, b): return int(a) < int(b))
+
+	for id in sorted_ids:
 		var enemy = GameConstants.ENEMY_MODELS[id]
-		var card = _create_card(container, "ENTIDAD [" + str(id) + "] - " + enemy.name.to_upper())
+		var target_v = bosses_v if enemy.get("isBoss", false) else enemies_v
+		
+		var card = _create_card(target_v, "ENTIDAD [" + str(id) + "] - " + enemy.name.to_upper())
 		var grid = _create_grid(card, 4)
 		
 		_add_input(grid, "NOMBRE", enemy.name, func(v): GameConstants.ENEMY_MODELS[id].name = v, true)
