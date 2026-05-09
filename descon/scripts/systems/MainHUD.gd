@@ -1086,7 +1086,23 @@ func toggle_hud_editing():
 	# Hacer que todo sea movible
 	var skills_container = get_node_or_null("Skills")
 	if is_instance_valid(skills_container):
-		_make_node_draggable(skills_container, "SkillsContainer")
+		# v266.98: No poner overlay al contenedor (bloquea a los hijos)
+		# En su lugar, crear una "manija" maestra al costado
+		var handle = get_node_or_null("SkillsMasterHandle")
+		if is_editing_layout:
+			if not handle:
+				handle = Button.new()
+				handle.name = "SkillsMasterHandle"
+				handle.text = "::" # Símbolo de arrastre
+				handle.custom_minimum_size = Vector2(30, 60)
+				add_child(handle)
+				handle.gui_input.connect(_on_drag_input.bind(skills_container, "SkillsContainer"))
+			
+			handle.visible = true
+			handle.global_position = skills_container.global_position + Vector2(-35, 0)
+		elif handle:
+			handle.visible = false
+			
 		for child in skills_container.get_children():
 			if child is Control and child.name != "DragOverlay":
 				if is_editing_layout:
@@ -1139,11 +1155,24 @@ func _on_drag_input(event: InputEvent, node: Control, _hud_id: String):
 			if event.pressed:
 				_dragging_node = node
 				_drag_offset = node.global_position - get_global_mouse_position()
+				get_viewport().set_input_as_handled()
 			else:
 				_dragging_node = null
-	
-	if event is InputEventMouseMotion and _dragging_node == node:
-		node.global_position = get_global_mouse_position() + _drag_offset
+
+func _input(event: InputEvent):
+	# v266.97: Manejo de arrastre global para máxima suavidad y compatibilidad
+	if is_editing_layout and _dragging_node:
+		if event is InputEventMouseMotion or event is InputEventScreenDrag:
+			_dragging_node.global_position = get_global_mouse_position() + _drag_offset
+			
+			# v266.99: Si movimos el contenedor, mover también la manija
+			if _dragging_node.name == "Skills":
+				var handle = get_node_or_null("SkillsMasterHandle")
+				if handle: handle.global_position = _dragging_node.global_position + Vector2(-35, 0)
+				
+			get_viewport().set_input_as_handled()
+		elif event is InputEventMouseButton and not event.pressed:
+			_dragging_node = null
 
 func _save_hud_positions():
 	var layout = {}
