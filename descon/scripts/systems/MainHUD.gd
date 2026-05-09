@@ -182,8 +182,10 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			var rx = float(pos_data.get("x", 0.0))
 			var ry = float(pos_data.get("y", 0.0))
 			if rx <= 2.0 and ry <= 2.0:
+				node.top_level = true # v266.96: Asegurar que ignore el contenedor al cargar
 				node.global_position = Vector2(rx * screen_size.x, ry * screen_size.y)
 			else:
+				node.top_level = true
 				node.global_position = Vector2(rx, ry)
 	
 	for win_id in config:
@@ -1086,7 +1088,12 @@ func toggle_hud_editing():
 	if is_instance_valid(skills_container):
 		_make_node_draggable(skills_container, "SkillsContainer")
 		for child in skills_container.get_children():
-			_make_node_draggable(child, child.name)
+			if child is Control and child.name != "DragOverlay":
+				if is_editing_layout:
+					var gp = child.global_position
+					child.top_level = true # v266.95: Liberar del contenedor para mover libremente
+					child.global_position = gp
+				_make_node_draggable(child, child.name)
 
 func _make_node_draggable(node: Control, hud_id: String):
 	if not node: return
@@ -1097,13 +1104,13 @@ func _make_node_draggable(node: Control, hud_id: String):
 			overlay = ColorRect.new()
 			overlay.name = "DragOverlay"
 			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			overlay.color = Color(0, 1, 1, 0.3)
-			overlay.mouse_filter = Control.MOUSE_FILTER_PASS
+			overlay.color = Color(0, 1, 1, 0.4) # Más visible
+			overlay.mouse_filter = Control.MOUSE_FILTER_STOP # Capturar el clic
 			
 			var border = ReferenceRect.new()
 			border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			border.border_color = Color.CYAN
-			border.border_width = 2
+			border.border_width = 3
 			border.editor_only = false
 			overlay.add_child(border)
 			
@@ -1111,9 +1118,17 @@ func _make_node_draggable(node: Control, hud_id: String):
 			
 			# Conectar lógica de arrastre
 			overlay.gui_input.connect(_on_drag_input.bind(node, hud_id))
+		
 		overlay.visible = true
+		node.move_child(overlay, node.get_child_count() - 1) # Asegurar que esté ARRIBA
+		
+		# Desactivar botones táctiles para que no interfieran con el drag
+		var t_btn = node.get_node_or_null("TouchButton")
+		if t_btn: t_btn.disabled = true
 	elif overlay:
 		overlay.visible = false
+		var t_btn = node.get_node_or_null("TouchButton")
+		if t_btn: t_btn.disabled = false
 
 var _dragging_node: Control = null
 var _drag_offset: Vector2 = Vector2.ZERO
