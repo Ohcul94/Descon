@@ -901,9 +901,9 @@ func _restore_default_layout():
 				child.top_level = false
 				child.reset_size()
 				
-		skills_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_KEEP_SIZE)
-		skills_container.position = Vector2.ZERO
-		skills_container.offset_bottom = -20
+		skills_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 20)
+		# Forzar que el contenedor no se estire hacia arriba
+		skills_container.grow_vertical = Control.GROW_DIRECTION_BEGIN
 		skills_container.queue_sort()
 	
 	print("[HUD] Layout restaurado de fábrica.")
@@ -1253,8 +1253,6 @@ func _make_node_draggable(node: Control, _hud_id: String):
 			border.border_color = Color.CYAN
 			border.border_width = 3
 			border.editor_only = false
-			overlay.add_child(border)
-			
 			overlay.add_child(border)
 			node.add_child(overlay)
 		
