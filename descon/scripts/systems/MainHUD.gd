@@ -790,6 +790,11 @@ func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		var p = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(p):
+			if event.pressed:
+				p.trigger_skill_by_id(skill_id)
+			else:
 				# v266.45: Soporte para disparar al SOLTAR si está en ON_RELEASE
 				var sc = p._skill_controller
 				if is_instance_valid(sc) and sc.is_aiming:
