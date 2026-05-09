@@ -1118,7 +1118,7 @@ func _make_node_draggable(node: Control, hud_id: String):
 var _dragging_node: Control = null
 var _drag_offset: Vector2 = Vector2.ZERO
 
-func _on_drag_input(event: InputEvent, node: Control, hud_id: String):
+func _on_drag_input(event: InputEvent, node: Control, _hud_id: String):
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
