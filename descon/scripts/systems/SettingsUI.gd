@@ -14,7 +14,9 @@ func _ready():
 	visible = false
 
 func _setup_ui():
-	for child in get_children(): child.queue_free()
+	for child in get_children():
+		remove_child(child)
+		child.queue_free()
 	
 	# v2.3: Capa de bloqueo total (Click-through prevention)
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -472,10 +474,13 @@ func close():
 	closed.emit()
 
 func open():
-	_setup_ui() # v266.130: Refrescar datos de layouts al abrir
+	_setup_ui()
 	visible = true
 	if get_parent() is CanvasLayer:
 		get_parent().visible = true
+	
+	# v266.131: Esperar un frame para que Godot calcule el nuevo tamaño mínimo
+	await get_tree().process_frame
 	_update_size()
 
 func _update_size():
