@@ -19,6 +19,7 @@ const { registerInventoryHandlers } = require('./systems/inventoryHandlers');
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
 const HordeManager = require('./events/HordeManager');
+const { calculateFinalStats } = require('./systems/statCalculator'); // v266.135: Sistema de Stats Dinámicos
 
 // Configuraci├│n
 const PORT = process.env.PORT || 3333;
@@ -188,10 +189,9 @@ const handleUserLogin = async (socket, user, username) => {
     };
 
     const p_ref = players[socket.id];
-    const hpBonus = 1.0 + ((p_ref.skillTree.engineering[0] || 0) * 0.02);
-    const shBonus = 1.0 + ((p_ref.skillTree.engineering[1] || 0) * 0.02);
-    p_ref.maxHp = Math.ceil(baseHp * hpBonus);
-    p_ref.maxShield = Math.ceil(baseSh * shBonus);
+    
+    // v266.135: Cálculo Maestro de Stats (Base + Ítems + Skills)
+    calculateFinalStats(p_ref, state.SERVER_CONFIG);
 
     let adminConfig = null;
     try { adminConfig = await fs.readJson(CONFIG_FILE); } catch (e) { }
@@ -209,34 +209,54 @@ const handleUserLogin = async (socket, user, username) => {
     const { getCategorizedInventory } = require('./systems/inventoryHandlers');
     if (!user.gameData.inventory) user.gameData.inventory = [];
     
+    // v266.140: Sincronización PROFUNDA (Inventory + Equipped)
+    const allShopItems = [
+        ...(state.SERVER_CONFIG.shopItems.weapons || []),
+        ...(state.SERVER_CONFIG.shopItems.shields || []),
+        ...(state.SERVER_CONFIG.shopItems.engines || []),
+        ...(state.SERVER_CONFIG.shopItems.extra || [])
+    ];
+
     let modified = false;
+    const syncItem = (item) => {
+        const master = allShopItems.find(w => w.id === item.id);
+        if (master) {
+            item.name = master.name || item.name;
+            item.type = (master.type || item.type || "utility").toLowerCase();
+            item.base = master.base || item.base || 0;
+            item.color = master.color || item.color;
+            item.rarity = master.rarity || item.rarity || 0;
+            if (!item.icon) item.icon = master.icon;
+            return true;
+        }
+        return false;
+    };
+
     user.gameData.inventory.forEach(item => {
         if (!item.instanceId) {
             item.instanceId = Date.now() + Math.random().toString(36).substr(2, 5);
             modified = true;
         }
-        // Sincronizar con Admin Panel (Color, Rareza y TIPO correcto)
-        // v262.530: Buscar en TODAS las categorías REALES del config.json
-        const allShopItems = [
-            ...(state.SERVER_CONFIG.shopItems.weapons || []),
-            ...(state.SERVER_CONFIG.shopItems.shields || []),
-            ...(state.SERVER_CONFIG.shopItems.engines || []),
-            ...(state.SERVER_CONFIG.shopItems.extra || [])
-        ];
-        const master = allShopItems.find(w => w.id === item.id);
-        if (master) {
-            // v262.460: Forzado de tipos en minúsculas para Godot (weapon, shield, engine)
-            item.name = master.name || item.name || "ÍTEM RECUPERADO";
-            item.type = (master.type || item.type || "utility").toLowerCase();
-            item.color = master.color || item.color || "#ffffff";
-            item.rarity = master.rarity || item.rarity || 0;
-            item.description = master.description || item.description || "";
-            if (!item.icon) item.icon = master.icon || "res://assets/items/placeholder.png";
-            modified = true; 
-        }
+        if (syncItem(item)) modified = true;
     });
+
+    // Sincronizar también ítems ya equipados en el mapa de naves
+    if (user.gameData.equippedByShip) {
+        const ebs = user.gameData.equippedByShip;
+        const keys = (ebs instanceof Map) ? Array.from(ebs.keys()) : Object.keys(ebs);
+        keys.forEach(k => {
+            const shipEquip = (ebs instanceof Map) ? ebs.get(k) : ebs[k];
+            ['w', 's', 'e', 'x'].forEach(slot => {
+                if (shipEquip[slot]) shipEquip[slot].forEach(item => {
+                    if (syncItem(item)) modified = true;
+                });
+            });
+        });
+    }
+
     if (modified) {
         user.markModified('gameData.inventory');
+        user.markModified('gameData.equippedByShip');
         await user.save();
     }
 

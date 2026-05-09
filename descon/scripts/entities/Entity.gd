@@ -412,19 +412,19 @@ func update_stats(data):
 		if is_invulnerable: invulnerable_timer = 2.0
 	
 	if data.has("hp") and not lock_active:
-		var server_hp = float(data.hp)
+		var server_hp = float(data.get("hp", current_hp))
 		if not is_local or abs(current_hp - server_hp) > threshold:
 			current_hp = server_hp
 			
 	if (data.has("shield") or data.has("sh")) and not lock_active:
-		var server_sh = float(data.get("shield", data.get("sh", 0)))
+		var server_sh = float(data.get("shield", data.get("sh", current_shield)))
 		if not is_local or abs(current_shield - server_sh) > threshold:
 			current_shield = server_sh
 			
-	if data.has("maxHp") and not is_local: 
-		max_hp = float(data.maxHp)
-	if (data.has("maxShield") or data.has("maxSh")) and not is_local:
-		max_shield = float(data.get("maxShield", data.get("maxSh", 2000)))
+	if data.has("maxHp"): 
+		max_hp = float(data.get("maxHp", max_hp))
+	if (data.has("maxShield") or data.has("maxSh")):
+		max_shield = float(data.get("maxShield", data.get("maxSh", max_shield)))
 	
 	if data.has("currentShipId") and not is_in_group("enemies"):
 		var sid = int(data.currentShipId)

@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { calculateFinalStats } = require('./statCalculator'); // v266.135: Recalcular al equipar
 
 /**
  * v262.450: HELPER DE CATEGORIZACIÓN ESTÁNDAR (Minúsculas para Godot)
@@ -197,6 +198,15 @@ function registerInventoryHandlers(socket, io, state) {
             await user.save();
             socket.dbUser = user;
 
+            // v266.135: Recalcular Stats en RAM e informar al cliente
+            p.equipped = shipEquip;
+            calculateFinalStats(p, state.SERVER_CONFIG);
+            io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+                id: socket.id, 
+                hp: p.hp, shield: p.shield, 
+                maxHp: p.maxHp, maxShield: p.maxShield 
+            });
+
             const eByShipObj = {};
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
             else Object.assign(eByShipObj, user.gameData.equippedByShip);
@@ -247,15 +257,11 @@ function registerInventoryHandlers(socket, io, state) {
             if (model && p) {
                 p.type = targetId;
                 p.currentShipId = targetId;
-                p.baseHp = model.hp || 2000; 
-                p.baseShield = model.shield || 1000;
-                const eng = p.skillTree?.engineering || [0, 0];
-                const bonusHp = 1.0 + ((eng[0] || 0) * 0.02);
-                const bonusSh = 1.0 + ((eng[1] || 0) * 0.02);
-                p.maxHp = Math.ceil(p.baseHp * bonusHp);
-                p.maxShield = Math.ceil(p.baseShield * bonusSh);
-                p.hp = p.maxHp; p.shield = p.maxShield;
                 p.equipped = user.gameData.equipped;
+
+                // v266.135: Usar el calculador centralizado
+                calculateFinalStats(p, state.SERVER_CONFIG);
+                p.hp = p.maxHp; p.shield = p.maxShield;
 
                 io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield });
                 io.emit('playerUpdated', { id: socket.id, type: p.type });
@@ -303,6 +309,15 @@ function registerInventoryHandlers(socket, io, state) {
             user.markModified('gameData');
             await user.save();
             socket.dbUser = user;
+            
+            // v266.135: Recalcular Stats tras desequipar
+            p.equipped = shipEquip;
+            calculateFinalStats(p, state.SERVER_CONFIG);
+            io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+                id: socket.id, 
+                hp: p.hp, shield: p.shield, 
+                maxHp: p.maxHp, maxShield: p.maxShield 
+            });
 
             const eByShipObj = {};
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
