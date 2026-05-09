@@ -27,6 +27,7 @@ var is_editing_layout: bool = false
 
 
 func _ready():
+	add_to_group("hud")
 	print("[HUD] Sistema v190.41 inicializado.")
 	
 	# v210.190: Inyectar HUD Notifier (Paridad con Web)
