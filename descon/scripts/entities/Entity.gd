@@ -926,6 +926,21 @@ func _setup_enemy_visuals():
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
 			enemy_rot_offset = 180.0
 			enemy_scale = 6.0
+		12: # Enemigo 12
+			glb_path = "res://assets/Enemigos/3D/Enemigo12/Enemigo12.glb"
+			enemy_rot_offset = 90.0
+		13: # Enemigo 13
+			glb_path = "res://assets/Enemigos/3D/Enemigo13/Enemigo13.glb"
+			enemy_rot_offset = 90.0
+		14: # Enemigo 9
+			glb_path = "res://assets/Enemigos/3D/Enemigo9/Enemigo9.glb"
+			enemy_rot_offset = 90.0
+		15: # Enemigo 10
+			glb_path = "res://assets/Enemigos/3D/Enemigo10/Enemigo10.glb"
+			enemy_rot_offset = 90.0
+		16: # Enemigo 11
+			glb_path = "res://assets/Enemigos/3D/Enemigo11/Enemigo11.glb"
+			enemy_rot_offset = 90.0
 
 	if glb_path != "":
 		print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)

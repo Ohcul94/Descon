@@ -245,8 +245,74 @@
             }
         ]
     },
+    "mapsConfig": {
+        "1": {
+            "color": "#ffffff",
+            "desc": "Puerto seguro central de comercio.",
+            "minLevel": 1,
+            "name": "LOBY",
+            "warpCost": 0
+        },
+        "2": {
+            "color": "#00ffff",
+            "desc": "Sector de inicio y entrenamiento.",
+            "minLevel": 1,
+            "name": "MAPA 2",
+            "warpCost": 0
+        },
+        "3": {
+            "color": "#ffd700",
+            "desc": "Zona de exploración profunda.",
+            "minLevel": 2,
+            "name": "MAPA 3",
+            "warpCost": 10
+        },
+        "4": {
+            "color": "#ffa500",
+            "desc": "Sector de anomalías espaciales.",
+            "minLevel": 3,
+            "name": "MAPA 4",
+            "warpCost": 10
+        },
+        "5": {
+            "color": "#00ffff",
+            "desc": "Antigua base de suministros.",
+            "minLevel": 4,
+            "name": "MAPA 5",
+            "warpCost": 10
+        },
+        "6": {
+            "color": "#ff0000",
+            "desc": "Cinturón de radiación estelar.",
+            "minLevel": 5,
+            "name": "MAPA 6",
+            "warpCost": 10
+        },
+        "7": {
+            "color": "#87ceeb",
+            "desc": "Sistemas de defensa remotos.",
+            "minLevel": 6,
+            "name": "MAPA 7",
+            "warpCost": 10
+        },
+        "8": {
+            "color": "#ff00ff",
+            "desc": "Vacío intergaláctico.",
+            "minLevel": 7,
+            "name": "MAPA 8",
+            "warpCost": 10
+        },
+        "9": {
+            "color": "#c0c0c0",
+            "desc": "Confines del universo conocido.",
+            "minLevel": 8,
+            "name": "MAPA 9",
+            "warpCost": 10
+        }
+    },
     "shipModels": [
         {
+            "attack": 100,
             "hp": 3000,
             "id": 1,
             "name": "Phoenix-L1",
@@ -255,7 +321,6 @@
                 "ohcu": 0
             },
             "shield": 1000,
-            "attack": 100,
             "slots": {
                 "e": 1,
                 "s": 2,
@@ -265,6 +330,7 @@
             "speed": 500
         },
         {
+            "attack": 120,
             "hp": 4500,
             "id": 2,
             "name": "Vulture-G2",
@@ -273,7 +339,6 @@
                 "ohcu": 1000
             },
             "shield": 2500,
-            "attack": 120,
             "slots": {
                 "e": 2,
                 "s": 2,
@@ -283,6 +348,7 @@
             "speed": 330
         },
         {
+            "attack": 150,
             "hp": 10000,
             "id": 3,
             "name": "Falcon-A3",
@@ -291,7 +357,6 @@
                 "ohcu": 5000
             },
             "shield": 6000,
-            "attack": 150,
             "slots": {
                 "e": 4,
                 "s": 4,
@@ -301,6 +366,7 @@
             "speed": 360
         },
         {
+            "attack": 250,
             "hp": 25000,
             "id": 4,
             "name": "Titan-S4",
@@ -309,7 +375,6 @@
                 "ohcu": 15000
             },
             "shield": 15000,
-            "attack": 250,
             "slots": {
                 "e": 8,
                 "s": 8,
@@ -319,6 +384,7 @@
             "speed": 390
         },
         {
+            "attack": 500,
             "hp": 70000,
             "id": 5,
             "name": "Wraith-X5",
@@ -327,7 +393,6 @@
                 "ohcu": 50000
             },
             "shield": 45000,
-            "attack": 500,
             "slots": {
                 "e": 12,
                 "s": 12,
@@ -337,6 +402,7 @@
             "speed": 420
         },
         {
+            "attack": 1000,
             "hp": 200000,
             "id": 6,
             "name": "Galactus-Z6",
@@ -345,7 +411,6 @@
                 "ohcu": 200000
             },
             "shield": 130000,
-            "attack": 1000,
             "slots": {
                 "e": 16,
                 "s": 16,

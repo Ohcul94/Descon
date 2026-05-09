@@ -84,7 +84,12 @@ var ENEMY_MODELS = {
 	"9": { "name": "Enemigo 4", "hp": 8000, "shield": 4500, "bulletDamage": 250, "fireRate": 1000, "rewardHubs": 3500, "rewardOhcu": 35, "rewardExp": 1500, "speed": 280, "bulletSpeed": 850, "fireRange": 1000 },
 	"4": { "name": "Lord Titán", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000, "rageTimer": 20, "speed": 250, "bulletSpeed": 900, "fireRange": 1200 },
 	"10": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20, "speed": 220, "bulletSpeed": 1000, "fireRange": 1500 },
-	"11": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20, "speed": 280, "bulletSpeed": 1100, "fireRange": 1300 }
+	"11": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20, "speed": 280, "bulletSpeed": 1100, "fireRange": 1300 },
+	"12": { "name": "Enemigo 12", "hp": 10000, "shield": 5000, "bulletDamage": 300, "fireRate": 900, "rewardHubs": 4000, "rewardOhcu": 40, "rewardExp": 2000, "speed": 300, "bulletSpeed": 900, "fireRange": 1100 },
+	"13": { "name": "Enemigo 13", "hp": 12000, "shield": 6000, "bulletDamage": 350, "fireRate": 850, "rewardHubs": 4500, "rewardOhcu": 45, "rewardExp": 2500, "speed": 290, "bulletSpeed": 950, "fireRange": 1200 },
+	"14": { "name": "Enemigo 9", "hp": 9000, "shield": 4000, "bulletDamage": 280, "fireRate": 950, "rewardHubs": 3800, "rewardOhcu": 38, "rewardExp": 1800, "speed": 310, "bulletSpeed": 880, "fireRange": 1050 },
+	"15": { "name": "Enemigo 10", "hp": 11000, "shield": 5500, "bulletDamage": 320, "fireRate": 880, "rewardHubs": 4200, "rewardOhcu": 42, "rewardExp": 2200, "speed": 305, "bulletSpeed": 920, "fireRange": 1150 },
+	"16": { "name": "Enemigo 11", "hp": 13000, "shield": 6500, "bulletDamage": 380, "fireRate": 820, "rewardHubs": 4800, "rewardOhcu": 48, "rewardExp": 2800, "speed": 285, "bulletSpeed": 980, "fireRange": 1250 }
 }
 
 var AMMO_MULTIPLIERS = {

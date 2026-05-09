@@ -98,6 +98,20 @@ class AIManager {
         const boss9 = Object.values(this.state.enemies).find(e => e.type === 4 && e.zone === 9);
         if (!boss9) this.serverSpawnEnemy(9, 4, 2000, 2000);
 
+        // v266.150: SHOWCASE DE ENEMIGOS EN ZONA 9 (Testeo Visual)
+        const regularEnemyTypes = [1, 2, 3, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16];
+        regularEnemyTypes.forEach((type, index) => {
+            const exists = Object.values(this.state.enemies).some(e => e.type == type && e.zone === 9);
+            if (!exists) {
+                // Spawneamos en círculo alrededor del centro para que se vean bien
+                const angle = (index / regularEnemyTypes.length) * Math.PI * 2;
+                const radius = 800;
+                const px = 2000 + Math.cos(angle) * radius;
+                const py = 2000 + Math.sin(angle) * radius;
+                this.serverSpawnEnemy(9, type, px, py);
+            }
+        });
+
         const boss8s = Object.values(this.state.enemies).filter(e => e.type === 5 && e.zone === 8 && e.name === "Boss2");
         if (boss8s.length === 0) {
             this.serverSpawnEnemy(8, 5, 2000, 2000, "Boss2");
