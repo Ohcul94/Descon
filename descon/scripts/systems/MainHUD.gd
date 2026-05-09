@@ -888,16 +888,21 @@ func _restore_default_layout():
 	var skills_container = get_node_or_null("Skills")
 	if skills_container:
 		skills_container.top_level = false
+		
 		for child in skills_container.get_children():
 			if child is Control and child.name != "DragOverlay":
 				child.top_level = false
-	
-	var edit_lbl = get_node_or_null("EditModeLabel")
-	if edit_lbl: edit_lbl.visible = false
-	is_editing_layout = false
+				child.reset_size()
+				
+		skills_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		skills_container.reset_size()
+		skills_container.position.x = (get_viewport_rect().size.x - skills_container.size.x) / 2
+		skills_container.position.y = get_viewport_rect().size.y - skills_container.size.y - 20
+		skills_container.queue_sort()
 	
 	print("[HUD] Layout restaurado de fábrica.")
-	toggle_esc_menu()
+	if is_editing_layout:
+		toggle_hud_editing()
 
 func _create_esc_menu():
 	var canvas = CanvasLayer.new()
@@ -926,18 +931,6 @@ func _create_esc_menu():
 	title.text = "MENÚ DE SISTEMA"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
-	
-	# v266.90: Botón de Edición de HUD
-	var edit_btn = Button.new()
-	edit_btn.text = "EDITAR LAYOUT HUD"
-	edit_btn.pressed.connect(toggle_hud_editing)
-	vbox.add_child(edit_btn)
-	
-	# v266.100: Botón Restaurar
-	var reset_btn = Button.new()
-	reset_btn.text = "RESTAURAR DE FÁBRICA"
-	reset_btn.pressed.connect(_restore_default_layout)
-	vbox.add_child(reset_btn)
 	
 	var pvp_btn = Button.new()
 	pvp_btn.name = "PvPButton"
@@ -1163,23 +1156,38 @@ func toggle_hud_editing():
 	is_editing_layout = !is_editing_layout
 	print("[HUD] Modo Edición Layout: ", is_editing_layout)
 	
-	# v266.100: Indicador visual de modo edición
-	var edit_lbl = get_node_or_null("EditModeLabel")
+	# v266.110: UI Consolidada de Modo Edición
+	var edit_container = get_node_or_null("EditLayoutUI")
 	if is_editing_layout:
-		if not edit_lbl:
-			edit_lbl = Label.new()
-			edit_lbl.name = "EditModeLabel"
+		if not edit_container:
+			edit_container = VBoxContainer.new()
+			edit_container.name = "EditLayoutUI"
+			edit_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+			edit_container.position.y = 80
+			edit_container.add_theme_constant_override("separation", 15)
+			
+			var edit_lbl = Label.new()
 			edit_lbl.text = "MODO EDICIÓN ACTIVADO\nArrástre la manija (::) o los botones para moverlos.\nToque el icono ⚙️ para guardar y salir."
 			edit_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			edit_lbl.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 			edit_lbl.add_theme_color_override("font_color", Color.CYAN)
 			edit_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
 			edit_lbl.add_theme_constant_override("outline_size", 4)
-			edit_lbl.position.y = 120
-			add_child(edit_lbl)
-		edit_lbl.visible = true
+			edit_container.add_child(edit_lbl)
+			
+			var center_hbox = CenterContainer.new()
+			edit_container.add_child(center_hbox)
+			
+			var restore_btn = Button.new()
+			restore_btn.text = " RESTAURAR DE FÁBRICA "
+			restore_btn.custom_minimum_size.y = 40
+			restore_btn.modulate = Color(1.0, 0.4, 0.4)
+			restore_btn.pressed.connect(_restore_default_layout)
+			center_hbox.add_child(restore_btn)
+			
+			add_child(edit_container)
+		edit_container.visible = true
 	else:
-		if edit_lbl: edit_lbl.visible = false
+		if edit_container: edit_container.visible = false
 		_save_hud_positions()
 	
 	_esc_menu.visible = false # Cerrar menú al editar

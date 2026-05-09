@@ -151,6 +151,26 @@ func _setup_ui():
 		
 	game_vbox.add_child(HSeparator.new())
 	
+	# v266.110: Botón de Edición de HUD dentro de Configuraciones
+	var layout_lbl = Label.new()
+	layout_lbl.text = "PERSONALIZACIÓN DE INTERFAZ:"
+	layout_lbl.add_theme_color_override("font_color", Color.CYAN)
+	game_vbox.add_child(layout_lbl)
+	
+	var edit_hud_btn = Button.new()
+	edit_hud_btn.text = "EDITAR LAYOUT HUD (MOVER BOTONES)"
+	edit_hud_btn.custom_minimum_size.y = 40
+	edit_hud_btn.modulate = Color(0.5, 1.0, 1.0)
+	edit_hud_btn.pressed.connect(func():
+		close()
+		var hud = get_tree().get_first_node_in_group("hud")
+		if hud and hud.has_method("toggle_hud_editing"):
+			hud.toggle_hud_editing()
+	)
+	game_vbox.add_child(edit_hud_btn)
+	
+	game_vbox.add_child(HSeparator.new())
+	
 	# --- AJUSTES DE CONTROL (v2.1) ---
 	var sens_label = Label.new()
 	sens_label.text = "AJUSTES DE PRECISIÓN Y CONTROL:"
