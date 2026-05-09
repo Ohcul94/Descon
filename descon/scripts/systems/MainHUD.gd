@@ -150,17 +150,57 @@ func _on_server_data_received(p_data: Dictionary):
 		_apply_hud_data(layout, config)
 
 func _input(event: InputEvent):
-	# v266.97: Manejo de arrastre global para máxima suavidad y compatibilidad
-	if is_editing_layout and _dragging_node:
-		if event is InputEventMouseMotion or event is InputEventScreenDrag:
-			_dragging_node.global_position = get_global_mouse_position() + _drag_offset
+	# v266.99: Sistema Absoluto de Arrastre por Geometría
+	if is_editing_layout:
+		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+			if event.pressed:
+				var clicked_node = null
+				var handle = get_node_or_null("SkillsMasterHandle")
+				
+				# 1. Chequear manija maestra
+				if handle and handle.visible and handle.get_global_rect().has_point(event.position):
+					clicked_node = get_node_or_null("Skills")
+				
+				# 2. Chequear slots individuales (en orden inverso)
+				if not clicked_node:
+					var sc = get_node_or_null("Skills")
+					if sc:
+						for i in range(sc.get_child_count() - 1, -1, -1):
+							var child = sc.get_child(i)
+							if child is Control and child.name != "DragOverlay" and child.visible:
+								if child.get_global_rect().has_point(event.position):
+									clicked_node = child
+									break
+				
+				if clicked_node:
+					_dragging_node = clicked_node
+					_drag_offset = event.position
+					_node_start_positions.clear()
+					_node_start_positions[clicked_node] = clicked_node.global_position
+					
+					# Si movemos el contenedor, también movemos los hijos porque son top_level
+					if clicked_node.name == "Skills":
+						for child in clicked_node.get_children():
+							if child is Control and child.name != "DragOverlay":
+								_node_start_positions[child] = child.global_position
+								
+					get_viewport().set_input_as_handled()
+					return
+			else:
+				_dragging_node = null
+				
+		elif (event is InputEventMouseMotion or event is InputEventScreenDrag) and _dragging_node:
+			var delta = event.position - _drag_offset
+			
+			for node in _node_start_positions.keys():
+				if is_instance_valid(node):
+					node.global_position = _node_start_positions[node] + delta
+			
 			if _dragging_node.name == "Skills":
 				var handle = get_node_or_null("SkillsMasterHandle")
-				if handle: handle.global_position = _dragging_node.global_position + Vector2(-35, 0)
+				if handle: handle.global_position = _node_start_positions[_dragging_node] + delta + Vector2(-35, 0)
+				
 			get_viewport().set_input_as_handled()
-			return
-		elif event is InputEventMouseButton and not event.pressed:
-			_dragging_node = null
 			return
 
 	# v244.60: Bloquear menú de sistema en el login
@@ -1109,7 +1149,6 @@ func toggle_hud_editing():
 				handle.text = "::" # Símbolo de arrastre
 				handle.custom_minimum_size = Vector2(30, 60)
 				add_child(handle)
-				handle.gui_input.connect(_on_drag_input.bind(skills_container, "SkillsContainer"))
 			
 			handle.visible = true
 			handle.global_position = skills_container.global_position + Vector2(-35, 0)
@@ -1143,10 +1182,8 @@ func _make_node_draggable(node: Control, hud_id: String):
 			border.editor_only = false
 			overlay.add_child(border)
 			
+			overlay.add_child(border)
 			node.add_child(overlay)
-			
-			# Conectar lógica de arrastre
-			overlay.gui_input.connect(_on_drag_input.bind(node, hud_id))
 		
 		overlay.visible = true
 		node.move_child(overlay, node.get_child_count() - 1) # Asegurar que esté ARRIBA
@@ -1161,17 +1198,7 @@ func _make_node_draggable(node: Control, hud_id: String):
 
 var _dragging_node: Control = null
 var _drag_offset: Vector2 = Vector2.ZERO
-
-func _on_drag_input(event: InputEvent, node: Control, _hud_id: String):
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
-				_dragging_node = node
-				_drag_offset = node.global_position - get_global_mouse_position()
-				get_viewport().set_input_as_handled()
-			else:
-				_dragging_node = null
-
+var _node_start_positions: Dictionary = {}
 
 func _save_hud_positions():
 	var layout = {}
