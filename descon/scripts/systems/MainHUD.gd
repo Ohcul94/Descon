@@ -24,6 +24,7 @@ var _settings_menu: Control = null
 var _pvp_status: bool = false
 var _blind_overlay: ColorRect = null # v260.90: Efecto de Ceguera (Humo)
 var is_editing_layout: bool = false
+var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
 
 
 func _ready():
@@ -148,6 +149,7 @@ func _on_server_data_received(p_data: Dictionary):
 		var gd = p_data.gameData
 		var layout = gd.get("hudPositions", gd.get("hud_layout", {}))
 		var config = gd.get("hudConfig", gd.get("hud_config", {}))
+		_hud_layouts = gd.get("hudLayouts", []) # v266.130
 		_apply_hud_data(layout, config)
 
 func _input(event: InputEvent):
@@ -1271,7 +1273,14 @@ var _dragging_node: Control = null
 var _drag_offset: Vector2 = Vector2.ZERO
 var _node_start_positions: Dictionary = {}
 
-func _save_hud_positions():
+func apply_layout_slot(index: int):
+	if index < 0 or index >= _hud_layouts.size(): return
+	var slot = _hud_layouts[index]
+	if slot and slot.has("positions"):
+		_apply_hud_data(slot.positions, {})
+		print("[HUD] Aplicado slot: ", slot.name)
+
+func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 	var layout = {}
 	var skills_container = get_node_or_null("Skills")
 	if skills_container:
@@ -1281,5 +1290,13 @@ func _save_hud_positions():
 			layout[child.name] = { "x": child.global_position.x, "y": child.global_position.y }
 	
 	if NetworkManager:
-		NetworkManager.send_event("saveHudLayout", { "positions": layout })
-		print("[HUD] Layout global enviado al servidor.")
+		var payload = { "positions": layout }
+		if slot_index >= 0:
+			payload["slotIndex"] = slot_index
+			payload["name"] = slot_name
+			if slot_index < _hud_layouts.size():
+				_hud_layouts[slot_index].positions = layout
+				if slot_name != "": _hud_layouts[slot_index].name = slot_name
+		
+		NetworkManager.send_event("saveHudLayout", payload)
+		print("[HUD] Layout enviado al servidor. Slot: ", slot_index if slot_index >= 0 else "Global")

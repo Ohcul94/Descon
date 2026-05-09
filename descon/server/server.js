@@ -125,6 +125,17 @@ const handleUserLogin = async (socket, user, username) => {
         await user.save();
     }
 
+    // v266.130: Inicialización de Slots de Layout del HUD (Máx 4)
+    if (!user.gameData.hudLayouts || user.gameData.hudLayouts.length < 4) {
+        if (!user.gameData.hudLayouts) user.gameData.hudLayouts = [];
+        while (user.gameData.hudLayouts.length < 4) {
+            const idx = user.gameData.hudLayouts.length + 1;
+            user.gameData.hudLayouts.push({ "id": idx, "name": `Layout ${idx}`, "positions": {} });
+        }
+        user.markModified('gameData.hudLayouts');
+        await user.save();
+    }
+
     // v244.110: Obtener Siglas del Clan para visualización in-game
     let clanTag = "";
     if (user.gameData.clanId) {
@@ -161,6 +172,7 @@ const handleUserLogin = async (socket, user, username) => {
         spheres: user.gameData.spheres,
         hudConfig: user.gameData.hudConfig || {},
         hudPositions: user.gameData.hudPositions || {},
+        hudLayouts: user.gameData.hudLayouts || [], // v266.130: Slots múltiples
         hubs: user.gameData.hubs || 0,
         ohcu: user.gameData.ohcu || 0,
         exp: user.gameData.exp || 0,
@@ -944,6 +956,32 @@ io.on('connection', (socket) => {
 
     socket.on('saveHudLayout', async (data) => {
         if (players[socket.id]) {
+            // v266.130: Guardado en slot específico
+            if (data.slotIndex !== undefined && data.slotIndex >= 0 && data.slotIndex < 4) {
+                if (!players[socket.id].hudLayouts) players[socket.id].hudLayouts = [];
+                
+                const slot = players[socket.id].hudLayouts[data.slotIndex];
+                if (slot) {
+                    if (data.name) slot.name = data.name;
+                    if (data.positions) slot.positions = data.positions;
+                    console.log(`[HUD] Guardado Slot ${data.slotIndex} para ${players[socket.id].user}`);
+                }
+                
+                // Sincronizar el layout activo
+                players[socket.id].hudPositions = data.positions || players[socket.id].hudPositions;
+                
+                if (socket.dbUser) {
+                    try {
+                        const updatePath = `gameData.hudLayouts.${data.slotIndex}`;
+                        const updateObj = { [updatePath]: slot };
+                        updateObj["gameData.hudPositions"] = players[socket.id].hudPositions;
+                        
+                        await User.updateOne({ _id: socket.dbUser._id }, { $set: updateObj });
+                    } catch (e) { console.error("[HUD-SLOT-SAVE] Error DB:", e); }
+                }
+                return;
+            }
+
             if (data.config !== undefined) players[socket.id].hudConfig = data.config;
             if (data.positions !== undefined) players[socket.id].hudPositions = data.positions;
             console.log(`[HUD] Config global recibida de ${players[socket.id].user}`);

@@ -325,6 +325,54 @@ func _setup_ui():
 	hud_desc.autowrap_mode = TextServer.AUTOWRAP_WORD
 	hud_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 	hud_vbox.add_child(hud_desc)
+	
+	hud_vbox.add_child(HSeparator.new())
+	
+	# v266.130: GESTIÓN DE SLOTS
+	var slots_lbl = Label.new()
+	slots_lbl.text = "MIS LAYOUTS GUARDADOS (MÁX 4):"
+	slots_lbl.add_theme_color_override("font_color", Color.CYAN)
+	hud_vbox.add_child(slots_lbl)
+	
+	var hud_ref = get_tree().get_first_node_in_group("hud")
+	var layouts_data = []
+	if hud_ref and hud_ref.get("_hud_layouts"):
+		layouts_data = hud_ref._hud_layouts
+	
+	for i in range(4):
+		var slot_data = {"name": "Slot %d" % (i+1)}
+		if i < layouts_data.size(): slot_data = layouts_data[i]
+		
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		hud_vbox.add_child(row)
+		
+		var name_edit = LineEdit.new()
+		name_edit.text = slot_data.name
+		name_edit.placeholder_text = "Nombre del Layout"
+		name_edit.custom_minimum_size.x = 150
+		row.add_child(name_edit)
+		
+		var apply_btn = Button.new()
+		apply_btn.text = "APLICAR"
+		apply_btn.modulate = Color.GREEN
+		apply_btn.pressed.connect(func():
+			if hud_ref: hud_ref.apply_layout_slot(i)
+		)
+		row.add_child(apply_btn)
+		
+		var save_here_btn = Button.new()
+		save_here_btn.text = "GUARDAR ACTUAL AQUÍ"
+		save_here_btn.modulate = Color.YELLOW
+		save_here_btn.pressed.connect(func():
+			if hud_ref:
+				hud_ref._save_hud_positions(i, name_edit.text)
+				# v266.130: Feedback visual
+				save_here_btn.text = "¡GUARDADO!"
+				await get_tree().create_timer(1.0).timeout
+				save_here_btn.text = "GUARDAR ACTUAL AQUÍ"
+		)
+		row.add_child(save_here_btn)
 
 	# ========================== PIE DE PÁGINA (BOTONES COMUNES) ==========================
 
@@ -423,6 +471,7 @@ func close():
 	closed.emit()
 
 func open():
+	_setup_ui() # v266.130: Refrescar datos de layouts al abrir
 	visible = true
 	if get_parent() is CanvasLayer:
 		get_parent().visible = true

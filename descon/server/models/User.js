@@ -57,6 +57,7 @@ const UserSchema = new mongoose.Schema({
         zone: { type: Number, default: 1 }, // Registro de Sector v69.8
         hudConfig: { type: Object, default: {} },
         hudPositions: { type: Object, default: {} },
+        hudLayouts: { type: Array, default: [] }, // v266.130: Soporte para múltiples slots (máx 4)
         spheres: { type: Array, default: [
             { "name": "Alfa", "type": "w", "color": "#ffe031", "equipped": null },
             { "name": "Beta", "type": "s", "color": "#31dfff", "equipped": null },
