@@ -150,6 +150,19 @@ func _on_server_data_received(p_data: Dictionary):
 		_apply_hud_data(layout, config)
 
 func _input(event: InputEvent):
+	# v266.97: Manejo de arrastre global para máxima suavidad y compatibilidad
+	if is_editing_layout and _dragging_node:
+		if event is InputEventMouseMotion or event is InputEventScreenDrag:
+			_dragging_node.global_position = get_global_mouse_position() + _drag_offset
+			if _dragging_node.name == "Skills":
+				var handle = get_node_or_null("SkillsMasterHandle")
+				if handle: handle.global_position = _dragging_node.global_position + Vector2(-35, 0)
+			get_viewport().set_input_as_handled()
+			return
+		elif event is InputEventMouseButton and not event.pressed:
+			_dragging_node = null
+			return
+
 	# v244.60: Bloquear menú de sistema en el login
 	if not NetworkManager or not NetworkManager.is_logged_in: return
 	
@@ -1159,20 +1172,6 @@ func _on_drag_input(event: InputEvent, node: Control, _hud_id: String):
 			else:
 				_dragging_node = null
 
-func _input(event: InputEvent):
-	# v266.97: Manejo de arrastre global para máxima suavidad y compatibilidad
-	if is_editing_layout and _dragging_node:
-		if event is InputEventMouseMotion or event is InputEventScreenDrag:
-			_dragging_node.global_position = get_global_mouse_position() + _drag_offset
-			
-			# v266.99: Si movimos el contenedor, mover también la manija
-			if _dragging_node.name == "Skills":
-				var handle = get_node_or_null("SkillsMasterHandle")
-				if handle: handle.global_position = _dragging_node.global_position + Vector2(-35, 0)
-				
-			get_viewport().set_input_as_handled()
-		elif event is InputEventMouseButton and not event.pressed:
-			_dragging_node = null
 
 func _save_hud_positions():
 	var layout = {}
