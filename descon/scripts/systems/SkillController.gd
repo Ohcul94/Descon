@@ -115,8 +115,9 @@ func start_aiming(skill_data: Dictionary):
 	current_skill = skill_data
 	
 	if current_skill.get("type") == SkillType.INSTANT:
-		is_aiming = true # Necesario para que execute_skill pase el guard
-		execute_skill()
+		is_aiming = true
+		if config.cast_mode != CastMode.ON_RELEASE:
+			execute_skill()
 		return
 
 	is_aiming = true

@@ -818,24 +818,20 @@ func _make_clickable(node: Control, callback: Callable):
 		node.move_child(btn, 0)
 	
 	# Usamos señales de botón que son más fiables en móvil
-	if not btn.button_down.is_connected(func(): callback.call()):
-		btn.button_down.connect(func(): callback.call())
+	# Limpiar conexiones previas para evitar disparos dobles v266.132
+	for sig in [btn.button_down, btn.button_up]:
+		for conn in sig.get_connections():
+			sig.disconnect(conn.callable)
 	
-	if not btn.button_up.is_connected(func(): 
-		# Simular el evento de release para ON_RELEASE
+	btn.button_down.connect(func(): callback.call())
+	
+	btn.button_up.connect(func():
 		var p = get_tree().get_first_node_in_group("player")
 		if is_instance_valid(p) and p._skill_controller:
 			var sc = p._skill_controller
 			if sc.is_aiming and sc.config.get("cast_mode") == 1:
 				sc.execute_skill()
-	):
-		btn.button_up.connect(func():
-			var p = get_tree().get_first_node_in_group("player")
-			if is_instance_valid(p) and p._skill_controller:
-				var sc = p._skill_controller
-				if sc.is_aiming and sc.config.get("cast_mode") == 1:
-					sc.execute_skill()
-		)
+	)
 
 func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 	# Fallback para mouse/clics directos si el botón invisible no lo atrapa

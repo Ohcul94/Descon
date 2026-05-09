@@ -158,7 +158,7 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 	
 	if Input.is_action_just_released(action):
 		if _skill_controller.is_aiming and _skill_controller.current_skill.id == skill_id:
-			if _skill_controller.config.cast_mode == 1: # ON_RELEASE
+			if _skill_controller.config.get("cast_mode") == 1: # ON_RELEASE
 				_skill_controller.execute_skill()
 
 # v266.30: Método público para disparar desde el HUD (Celulares/Mouse)
