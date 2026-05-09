@@ -151,26 +151,7 @@ func _setup_ui():
 		
 	game_vbox.add_child(HSeparator.new())
 	
-	# v266.110: Botón de Edición de HUD dentro de Configuraciones
-	var layout_lbl = Label.new()
-	layout_lbl.text = "PERSONALIZACIÓN DE INTERFAZ:"
-	layout_lbl.add_theme_color_override("font_color", Color.CYAN)
-	game_vbox.add_child(layout_lbl)
-	
-	var edit_hud_btn = Button.new()
-	edit_hud_btn.text = "EDITAR LAYOUT HUD (MOVER BOTONES)"
-	edit_hud_btn.custom_minimum_size.y = 40
-	edit_hud_btn.modulate = Color(0.5, 1.0, 1.0)
-	edit_hud_btn.pressed.connect(func():
-		close()
-		var hud = get_tree().get_first_node_in_group("hud")
-		if hud and hud.has_method("toggle_hud_editing"):
-			hud.toggle_hud_editing()
-	)
-	game_vbox.add_child(edit_hud_btn)
-	
-	game_vbox.add_child(HSeparator.new())
-	
+
 	# --- AJUSTES DE CONTROL (v2.1) ---
 	var sens_label = Label.new()
 	sens_label.text = "AJUSTES DE PRECISIÓN Y CONTROL:"
@@ -304,6 +285,46 @@ func _setup_ui():
 	audio_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	audio_msg.modulate.a = 0.5
 	audio_vbox.add_child(audio_msg)
+
+	# ========================== TAB 4: INTERFAZ Y LAYOUT ==========================
+	var scroll_hud = ScrollContainer.new()
+	scroll_hud.name = "INTERFAZ Y LAYOUT"
+	tabs.add_child(scroll_hud)
+	
+	var margin_hud = MarginContainer.new()
+	margin_hud.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin_hud.add_theme_constant_override("margin_left", 20)
+	margin_hud.add_theme_constant_override("margin_right", 20)
+	margin_hud.add_theme_constant_override("margin_top", 20)
+	scroll_hud.add_child(margin_hud)
+	
+	var hud_vbox = VBoxContainer.new()
+	hud_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hud_vbox.add_theme_constant_override("separation", 15)
+	margin_hud.add_child(hud_vbox)
+	
+	var layout_lbl = Label.new()
+	layout_lbl.text = "PERSONALIZACIÓN DE INTERFAZ:"
+	layout_lbl.add_theme_color_override("font_color", Color.CYAN)
+	hud_vbox.add_child(layout_lbl)
+	
+	var edit_hud_btn = Button.new()
+	edit_hud_btn.text = "EDITAR LAYOUT HUD (MOVER BOTONES)"
+	edit_hud_btn.custom_minimum_size.y = 40
+	edit_hud_btn.modulate = Color(0.5, 1.0, 1.0)
+	edit_hud_btn.pressed.connect(func():
+		close()
+		var hud = get_tree().get_first_node_in_group("hud")
+		if hud and hud.has_method("toggle_hud_editing"):
+			hud.toggle_hud_editing()
+	)
+	hud_vbox.add_child(edit_hud_btn)
+	
+	var hud_desc = Label.new()
+	hud_desc.text = "Al activar esta opción, podrás arrastrar libremente los slots de habilidades en tu pantalla.\nUna vez en Modo Edición, verás el botón 'Restaurar de Fábrica' por si quieres volver a la formación original."
+	hud_desc.autowrap_mode = TextServer.AUTOWRAP_WORD
+	hud_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	hud_vbox.add_child(hud_desc)
 
 	# ========================== PIE DE PÁGINA (BOTONES COMUNES) ==========================
 

@@ -1219,7 +1219,7 @@ func toggle_hud_editing():
 					child.global_position = gp
 				_make_node_draggable(child, child.name)
 
-func _make_node_draggable(node: Control, hud_id: String):
+func _make_node_draggable(node: Control, _hud_id: String):
 	if not node: return
 	
 	var overlay = node.get_node_or_null("DragOverlay")
