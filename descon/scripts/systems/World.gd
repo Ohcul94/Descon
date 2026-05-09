@@ -11,8 +11,8 @@ extends Node2D
 @onready var ui_admin = $HUD/AdminPanel
 @onready var local_player = $Player 
 @onready var combat_system = $CombatSystem
-@onready var map_background = $MapParallax/MapWorldLayer/MapBackground
 var talent_system = null
+var current_map_node = null # Referencia al mapa cargado actualmente
 
 var remote_players = {}
 var enemies = {}
@@ -134,19 +134,15 @@ func _input(event):
 
 func _update_hud_map_name(zone_id):
 	var z_id = int(zone_id)
-	var z_name = "SECTOR 01"
+	var z_name = "SECTOR DESCONOCIDO"
+	var z_id_str = str(z_id)
 	
-	match z_id:
-		1: z_name = "SECTOR ALPHA 1"
-		2: z_name = "PUERTO DE COMERCIO"
-		3: z_name = "CINTURÓN DE ASTEROIDES"
-		4: z_name = "BASE ABANDONADA"
-		5: z_name = "NEBULOSA ROJA"
-		6: z_name = "SISTEMA BINARIO"
-		7: z_name = "ABISMO ESPACIAL"
-		_: 
-			if z_id >= 500: z_name = "INSTANCIA PRIVADA"
-			else: z_name = "SECTOR " + str(z_id).pad_zeros(2)
+	if z_id_str in GameConstants.MAPS_CONFIG:
+		z_name = GameConstants.MAPS_CONFIG[z_id_str].name
+	elif z_id >= 500: 
+		z_name = "INSTANCIA PRIVADA"
+	else: 
+		z_name = "SECTOR " + str(z_id).pad_zeros(2)
 	
 	if is_instance_valid(ui_hud) and ui_hud.has_method("set_map_name"):
 		ui_hud.set_map_name(z_name)
@@ -535,7 +531,7 @@ func _on_clear_zone_entities(_zoneId):
 		
 	# Si la zona es Dungeon, ajustamos limites. Todo ID tipo texto (dungeon_123) es Dungeon.
 	var is_dungeon = str(_zoneId).begins_with("dungeon")
-	var new_world_size = 2000.0 if (is_dungeon or int(_zoneId) > 1) else 4000.0
+	var new_world_size = 2000.0 if (is_dungeon or int(_zoneId) > 2 or int(_zoneId) == 1) else 4000.0
 	
 	# v215.60: REPOSICIONAR JUGADOR LOCAL (Fix: Escena trabada)
 	if is_instance_valid(local_player):
@@ -555,38 +551,24 @@ func _on_clear_zone_entities(_zoneId):
 	print("[ZONE] Transición completa a zona: ", _zoneId, " | Nueva Posición: ", local_player.global_position if is_instance_valid(local_player) else "N/A")
 
 func _update_background(zone_id):
-	if not is_instance_valid(map_background): return
-	
 	var zid = int(zone_id)
-	var texture_path = ""
+	var scene_path = "res://scenes/maps/Map_Default.tscn"
 	
-	match zid:
-		1: texture_path = "res://assets/Base de Mapas/mixboard-image.png"
-		2: texture_path = "res://assets/Base de Mapas/mixboard-image (1).png"
-		3: texture_path = "res://assets/Base de Mapas/mixboard-image (2).png"
-		4: texture_path = "res://assets/Base de Mapas/mixboard-image (3).png"
-		5: texture_path = "res://assets/Base de Mapas/mixboard-image (4).png"
-		6: texture_path = "res://assets/Base de Mapas/mixboard-image (5).png"
-		7: texture_path = "res://assets/Base de Mapas/mixboard-image (1).png"
-		8: texture_path = "res://assets/Base de Mapas/mixboard-image (4).png"
-	
-	if texture_path != "":
-		# v227.35: OPTIMIZACIÓN DE FONDO (Escalado Masivo para evitar bordes negros)
-		var new_tex = load(texture_path)
-		if map_background.texture != new_tex:
-			map_background.texture = new_tex
-			# v227.55: Escalado Total (16000px para cobertura garantizada en 4K/Zoom)
-			map_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			map_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			map_background.size = Vector2(16000, 16000)
-			map_background.position = Vector2(-8000, -8000) 
-			map_background.modulate.a = 0
-			map_background.show()
-			var tween = create_tween()
-			tween.tween_property(map_background, "modulate:a", 0.7, 1.5).set_trans(Tween.TRANS_SINE)
-	else:
-		map_background.hide()
-		map_background.texture = null
+	if zid == 1:
+		scene_path = "res://scenes/maps/Map_Loby.tscn"
+		
+	if is_instance_valid(current_map_node):
+		current_map_node.queue_free()
+		
+	var map_scene = load(scene_path)
+	if map_scene:
+		current_map_node = map_scene.instantiate()
+		add_child(current_map_node)
+		move_child(current_map_node, 0) # Asegurar que quede detrás de las entidades
+		
+		# Si la escena tiene setup_map, lo ejecutamos
+		if current_map_node.has_method("setup_map"):
+			current_map_node.setup_map()
 
 func _on_remote_skill_used(data):
 	if typeof(data) != TYPE_DICTIONARY: return

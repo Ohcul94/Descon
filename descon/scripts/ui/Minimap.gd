@@ -86,7 +86,7 @@ func _draw():
 	# 2. Dibujar Jugadores Remotos (Verde=Clan, Celeste=Party, Naranja=Otros)
 	var pm = get_node_or_null("/root/PartyManager")
 	for ent in get_tree().get_nodes_in_group("remote_players"):
-		if is_instance_valid(ent) and not ent.get("is_dead"):
+		if is_instance_valid(ent) and not ent.get("is_dead") and ent.visible:
 			var is_clan = false
 			var is_party = false
 			
@@ -131,7 +131,7 @@ func _draw():
 
 	# 3. Dibujar Enemigos NPC (Naranja JS v13.1.3)
 	for ent in get_tree().get_nodes_in_group("enemies"):
-		if is_instance_valid(ent) and not ent.get("is_dead"):
+		if is_instance_valid(ent) and not ent.get("is_dead") and ent.visible:
 			var pos = ent.global_position * map_scale
 			draw_circle(pos, 2.0, Color(1, 0.4, 0)) # #ff6600
 

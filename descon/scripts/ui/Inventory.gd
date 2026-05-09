@@ -1259,16 +1259,17 @@ func _update_map_ui():
 	var s_scroll = ScrollContainer.new(); s_scroll.size_flags_vertical = 3; l_col.add_child(s_scroll)
 	var s_list = VBoxContainer.new(); s_list.size_flags_horizontal = 3; s_scroll.add_child(s_list)
 	
-	var sectors = [
-		{"id": 1, "name": "MAPA 1", "desc": "Sector de inicio y entrenamiento.", "status": "SEGURO", "color": Color.CYAN},
-		{"id": 2, "name": "MAPA 2", "desc": "Zona de exploración profunda.", "status": "EXPLORACIÓN", "color": Color.GOLD},
-		{"id": 3, "name": "MAPA 3", "desc": "Sector de anomalías espaciales.", "status": "PELIGRO", "color": Color.ORANGE},
-		{"id": 4, "name": "MAPA 4", "desc": "Antigua base de suministros.", "status": "SEGURO", "color": Color.CYAN},
-		{"id": 5, "name": "MAPA 5", "desc": "Cinturón de radiación estelar.", "status": "PELIGRO", "color": Color.RED},
-		{"id": 6, "name": "MAPA 6", "desc": "Sistemas de defensa remotos.", "status": "EXPLORACIÓN", "color": Color.SKY_BLUE},
-		{"id": 7, "name": "MAPA 7", "desc": "Vacío intergaláctico.", "status": "DESCONOCIDO", "color": Color.MAGENTA},
-		{"id": 8, "name": "MAPA 8", "desc": "Confines del universo conocido.", "status": "LEY SIN LEY", "color": Color.SILVER}
-	]
+	var sectors = []
+	for z_id in GameConstants.MAPS_CONFIG:
+		var zone_data = GameConstants.MAPS_CONFIG[z_id]
+		# Clonar para agregar ID real
+		var sd = zone_data.duplicate()
+		sd["id"] = int(z_id)
+		if not sd.has("color"): sd["color"] = "#ffffff"
+		sectors.append(sd)
+		
+	# Ordenar numéricamente por ID
+	sectors.sort_custom(func(a, b): return a.id < b.id)
 	
 	# Detectar zona actual del jugador
 	var current_zone_id = 1
@@ -1304,27 +1305,42 @@ func _update_map_ui():
 		var n = Label.new(); n.text = s.name; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
 		if is_current: n.modulate = Color.GOLD # Resaltar texto también
 		
-		var st = Label.new(); st.text = "ESTÁS AQUÍ" if is_current else s.status
-		st.modulate = Color.GOLD if is_current else s.color
-		st.add_theme_font_size_override("font_size", 8); v.add_child(st)
+		var d = Label.new(); d.text = s.get("desc", ""); d.add_theme_font_size_override("font_size", 8); d.modulate.a = 0.6; v.add_child(d)
 		
+		if is_current:
+			var st = Label.new(); st.text = "ESTÁS AQUÍ"
+			st.modulate = Color.GOLD
+			st.add_theme_font_size_override("font_size", 8); v.add_child(st)
+		
+		
+		var cost = int(s.get("warpCost", 10))
+		var min_level = int(s.get("minLevel", 1))
+		var current_level = int(p_node.level) if is_instance_valid(p_node) and "level" in p_node else 1
+		var can_enter = current_level >= min_level
 		var btn_travel = Button.new()
-		btn_travel.text = "VIAJAR\n(10 OHCU)"
+		if not can_enter:
+			btn_travel.text = "NIVEL " + str(min_level) + " REQ."
+			btn_travel.modulate = Color.RED
+			btn_travel.disabled = true
+		else:
+			btn_travel.text = "VIAJAR\n(" + str(cost) + " OHCU)" if cost > 0 else "VIAJAR\n(GRATIS)"
+			btn_travel.disabled = is_current # No puedes viajar a donde ya estás
+
 		btn_travel.add_theme_font_size_override("font_size", 9)
 		btn_travel.custom_minimum_size = Vector2(80, 0)
-		btn_travel.disabled = is_current # No puedes viajar a donde ya estás
 		hb.add_child(btn_travel)
 		
-		if not is_current:
+		if not is_current and can_enter:
 			btn_travel.pressed.connect(func():
-				if ohcu < 10:
-					_show_result_modal("FONDOS INSUFICIENTES", "Necesitas 10 OHCU para saltar a este sector.")
+				if ohcu < cost:
+					_show_result_modal("FONDOS INSUFICIENTES", "Necesitas " + str(cost) + " OHCU para saltar a este sector.")
 					return
 				
-				var msg = "¿Confirmas salto hiperespacial a [color=cyan]" + s.name + "[/color]?\nCosto: [color=yellow]10 OHCU[/color]"
+				var msg = "¿Confirmas salto hiperespacial a [color=cyan]" + s.name + "[/color]?"
+				if cost > 0: msg += "\nCosto: [color=yellow]" + str(cost) + " OHCU[/color]"
+				
 				_show_modal("CONFIRMAR SALTO", msg, func():
 					NetworkManager.send_event("changeZone", s.id)
-					# v227.20: Removido modal de éxito innecesario por petición de UX
 					toggle()
 				)
 			)

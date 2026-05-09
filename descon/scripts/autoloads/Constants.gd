@@ -108,6 +108,19 @@ var SKILLS_DATA = {
 	"STEALTH": { "id": "SK-UTIL-05", "type": "Utilidad", "desc": "Te vuelve invisible para enemigos y jugadores fuera de tu grupo.", "duration": 8, "cd": 25.0, "range": 0, "canTargetOthers": false },
 	"FROST-TRAIL": { "id": "SK-DEF-04", "type": "Defensa", "desc": "Deja un rastro de escarcha que ralentiza a los enemigos.", "duration": 6, "slow_amount": 0.5, "radius": 120, "cd": 18.0, "range": 0, "canTargetOthers": false }
 }
+
+var MAPS_CONFIG = {
+	"1": { "name": "LOBY", "desc": "Puerto seguro central de comercio.", "color": "#ffffff", "warpCost": 0, "minLevel": 1 },
+	"2": { "name": "MAPA 1", "desc": "Sector de inicio y entrenamiento.", "color": "#00ffff", "warpCost": 0, "minLevel": 1 },
+	"3": { "name": "MAPA 2", "desc": "Zona de exploración profunda.", "color": "#ffd700", "warpCost": 10, "minLevel": 2 },
+	"4": { "name": "MAPA 3", "desc": "Sector de anomalías espaciales.", "color": "#ffa500", "warpCost": 10, "minLevel": 3 },
+	"5": { "name": "MAPA 4", "desc": "Antigua base de suministros.", "color": "#00ffff", "warpCost": 10, "minLevel": 4 },
+	"6": { "name": "MAPA 5", "desc": "Cinturón de radiación estelar.", "color": "#ff0000", "warpCost": 10, "minLevel": 5 },
+	"7": { "name": "MAPA 6", "desc": "Sistemas de defensa remotos.", "color": "#87ceeb", "warpCost": 10, "minLevel": 6 },
+	"8": { "name": "MAPA 7", "desc": "Vacío intergaláctico.", "color": "#ff00ff", "warpCost": 10, "minLevel": 7 },
+	"9": { "name": "MAPA 8", "desc": "Confines del universo conocido.", "color": "#c0c0c0", "warpCost": 10, "minLevel": 8 }
+}
+
 func _ready():
 	if NetworkManager:
 		NetworkManager.config_updated.connect(update_from_server)
@@ -120,4 +133,5 @@ func update_from_server(data: Dictionary):
 	if data.has("enemyModels"): ENEMY_MODELS = data.enemyModels
 	if data.has("ammoMultipliers"): AMMO_MULTIPLIERS = data.ammoMultipliers
 	if data.has("skillsData"): SKILLS_DATA = data.skillsData
+	if data.has("mapsConfig"): MAPS_CONFIG = data.mapsConfig
 	print("[CONSTANTS] Configuración sincronizada con el servidor.")

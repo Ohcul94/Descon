@@ -23,11 +23,11 @@ class AIManager {
         
         const isHordeZone = this.hordeManager && this.hordeManager.config.active && this.hordeManager.config.map === zone;
         
-        if (zone != 1 && zone != 8 && zone != 7 && !isHordeZone) {
+        if (zone != 2 && zone != 9 && zone != 8 && !isHordeZone) {
             return null;
         }
 
-        if (!forceType && zone === 1 && Object.keys(enemies).filter(e => enemies[e].zone === 1).length >= 15) return;
+        if (!forceType && zone === 2 && Object.keys(enemies).filter(e => enemies[e].zone === 2).length >= 15) return;
         
         const id = 'enemy_' + (zone >= 2 ? 'boss_' : '') + Date.now() + Math.floor(Math.random() * 1000);
         const type = forceType || (Math.floor(Math.random() * 3) + 1);
@@ -38,8 +38,8 @@ class AIManager {
         const initialHp = cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 4 ? 100000 : (type * 2000))));
         const initialShield = cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 4 ? 50000 : (type * 1000))));
 
-        const finalX = posX || (zone === 8 ? 2000 : (Math.random() * 3400 + 300));
-        const finalY = posY || (zone === 8 ? 2000 : (Math.random() * 3400 + 300));
+        const finalX = posX || (zone === 9 ? 2000 : (Math.random() * 3400 + 300));
+        const finalY = posY || (zone === 9 ? 2000 : (Math.random() * 3400 + 300));
 
         const e = {
             id, type, zone, name,
@@ -77,30 +77,30 @@ class AIManager {
     }
 
     runGuardians() {
-        // Guardián Zona 1
+        // Guardián Zona 2 (Mapa 1)
         let tCounts = { 1: 0, 5: 0, 8: 0 };
         Object.values(this.state.enemies).forEach(e => {
-            if (e.zone === 1 && e.hp > 0 && tCounts[e.type] !== undefined) {
+            if (e.zone === 2 && e.hp > 0 && tCounts[e.type] !== undefined) {
                 tCounts[e.type]++;
             }
         });
 
-        if (tCounts[1] < 4) this.serverSpawnEnemy(1, 1);
-        if (tCounts[5] < 4) this.serverSpawnEnemy(1, 5);
-        if (tCounts[8] < 4) this.serverSpawnEnemy(1, 8);
+        if (tCounts[1] < 4) this.serverSpawnEnemy(2, 1);
+        if (tCounts[5] < 4) this.serverSpawnEnemy(2, 5);
+        if (tCounts[8] < 4) this.serverSpawnEnemy(2, 8);
 
         // Guardián Jefes
-        const hasTitanZ1 = Object.values(this.state.enemies).some(e => e.type === 4 && e.zone === 1);
-        if (!hasTitanZ1 && Date.now() - this.state.lastTitanDeath > 10000) {
-            this.serverSpawnEnemy(1, 4);
+        const hasTitanZ2 = Object.values(this.state.enemies).some(e => e.type === 4 && e.zone === 2);
+        if (!hasTitanZ2 && Date.now() - this.state.lastTitanDeath > 10000) {
+            this.serverSpawnEnemy(2, 4);
         }
         
-        const boss8 = Object.values(this.state.enemies).find(e => e.type === 4 && e.zone === 8);
-        if (!boss8) this.serverSpawnEnemy(8, 4, 2000, 2000);
+        const boss9 = Object.values(this.state.enemies).find(e => e.type === 4 && e.zone === 9);
+        if (!boss9) this.serverSpawnEnemy(9, 4, 2000, 2000);
 
-        const boss7s = Object.values(this.state.enemies).filter(e => e.type === 5 && e.zone === 7 && e.name === "Boss2");
-        if (boss7s.length === 0) {
-            this.serverSpawnEnemy(7, 5, 2000, 2000, "Boss2");
+        const boss8s = Object.values(this.state.enemies).filter(e => e.type === 5 && e.zone === 8 && e.name === "Boss2");
+        if (boss8s.length === 0) {
+            this.serverSpawnEnemy(8, 5, 2000, 2000, "Boss2");
         }
     }
 }

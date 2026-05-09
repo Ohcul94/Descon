@@ -176,7 +176,7 @@
     "hordeConfig": {
         "active": true,
         "currentWaveIndex": 0,
-        "map": 6,
+        "map": 7,
         "timeBetweenWaves": 5,
         "waves": [
             {

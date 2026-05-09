@@ -107,7 +107,7 @@ func _build_ui():
 	var tab_bar = HBoxContainer.new(); main_v.add_child(tab_bar)
 	tab_bar.add_theme_constant_override("separation", 5)
 	
-	var tabs = {"ships": "NAVES", "enemies": "ENEMIGOS", "hordes": "HORDAS", "map": "MONITOR", "items": "ITEMS", "ammo": "MUNICIÓN", "spheres": "ESFERAS"}
+	var tabs = {"ships": "NAVES", "enemies": "ENEMIGOS", "modes": "MODOS", "zones": "ZONAS (MAPAS)", "map": "MONITOR", "items": "ITEMS", "ammo": "MUNICIÓN", "spheres": "ESFERAS"}
 	for k in tabs:
 		var b = Button.new(); b.text = tabs[k]; b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.flat = true
 		
@@ -135,7 +135,8 @@ func _build_ui():
 	match current_tab:
 		"ships": _render_ships(content)
 		"enemies": _render_enemies(content)
-		"hordes": _render_hordes(content)
+		"modes": _render_modes(content)
+		"zones": _render_zones(content)
 		"map": _render_map_selection(content)
 		"items": _render_items(content)
 		"ammo": _render_ammo(content)
@@ -364,6 +365,23 @@ func _render_spheres(container):
 	)
 	container.add_child(add_btn)
 
+func _render_zones(container):
+	var lbl = Label.new(); lbl.text = "CONFIGURACIÓN DE ZONAS (MAPAS)"; lbl.modulate = Color.GOLD; container.add_child(lbl)
+	
+	for z_id in GameConstants.MAPS_CONFIG:
+		var zone = GameConstants.MAPS_CONFIG[z_id]
+		var card = _create_card(container, "ZONA " + str(z_id) + " - " + zone.name.to_upper())
+		var grid = _create_grid(card, 5)
+		
+		# Referencia para diccionarios
+		var z_ref = {"id": z_id}
+		
+		_add_input(grid, "NOMBRE", zone.name, func(v): GameConstants.MAPS_CONFIG[z_ref.id].name = v, true)
+		_add_input(grid, "DESCRIPCIÓN", zone.desc, func(v): GameConstants.MAPS_CONFIG[z_ref.id].desc = v, true)
+		_add_color_input(grid, "COLOR", zone.get("color", "#ffffff"), func(v): GameConstants.MAPS_CONFIG[z_ref.id].color = v.to_html())
+		_add_input(grid, "COSTO DE WARP", str(zone.get("warpCost", 10)), func(v): GameConstants.MAPS_CONFIG[z_ref.id].warpCost = int(v))
+		_add_input(grid, "NIVEL MÍNIMO", str(zone.get("minLevel", 1)), func(v): GameConstants.MAPS_CONFIG[z_ref.id].minLevel = int(v))
+
 func _render_map_selection(container):
 	var lbl = Label.new(); lbl.text = "SISTEMA DE VISUALIZACIÓN Y NAVEGACIÓN"; lbl.modulate = Color.GOLD; container.add_child(lbl)
 	
@@ -379,9 +397,14 @@ func _render_map_selection(container):
 	var warp_l = Label.new(); warp_l.text = "TELETRANSPORTE POR SECTOR (WARP INTERNO)"; warp_l.modulate = Color.CYAN; container.add_child(warp_l)
 	
 	var warp_h = HBoxContainer.new(); warp_h.add_theme_constant_override("separation", 10); container.add_child(warp_h)
-	for i in range(1, 9):
-		var b = Button.new(); b.text = " SECTOR " + str(i) + " "; b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if i == 8: b.modulate = Color.RED; b.text = "[ BOSS 1 MAP ]"
+	for i in range(1, 10):
+		var b = Button.new(); b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if i == 1:
+			b.text = " [ LOBY ] "; b.modulate = Color.WHITE
+		elif i == 9: 
+			b.text = "[ BOSS 1 MAP ]"; b.modulate = Color.RED
+		else:
+			b.text = " SECTOR " + str(i-1) + " "
 		
 		b.pressed.connect(func(): 
 			NetworkManager.send_event("warpToZone", {"zone": i})
@@ -403,7 +426,29 @@ func _render_map_selection(container):
 
 	container.add_child(btn_view)
 
-func _render_hordes(container):
+func _render_modes(container):
+	var lbl = Label.new(); lbl.text = "GESTIÓN DE MODOS DE JUEGO"; lbl.modulate = Color.GOLD; container.add_child(lbl)
+	
+	var mode_tabs = TabContainer.new()
+	mode_tabs.custom_minimum_size.y = 500
+	container.add_child(mode_tabs)
+	
+	# Sub-pestaña 1: HORDAS
+	var horde_scroll = ScrollContainer.new(); horde_scroll.name = "HORDAS"; mode_tabs.add_child(horde_scroll)
+	var horde_v = VBoxContainer.new(); horde_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; horde_scroll.add_child(horde_v)
+	_render_hordes_tab(horde_v)
+	
+	# Sub-pestaña 2: EXTRACCIÓN
+	var extr_scroll = ScrollContainer.new(); extr_scroll.name = "EXTRACCIÓN"; mode_tabs.add_child(extr_scroll)
+	var extr_v = VBoxContainer.new(); extr_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; extr_scroll.add_child(extr_v)
+	var extr_l = Label.new(); extr_l.text = "\nMODO EXTRACCIÓN: PRÓXIMAMENTE"; extr_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; extr_v.add_child(extr_l)
+	
+	# Sub-pestaña 3: CAZA
+	var hunt_scroll = ScrollContainer.new(); hunt_scroll.name = "CAZA"; mode_tabs.add_child(hunt_scroll)
+	var hunt_v = VBoxContainer.new(); hunt_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hunt_scroll.add_child(hunt_v)
+	var hunt_l = Label.new(); hunt_l.text = "\nMODO CAZA: PRÓXIMAMENTE"; hunt_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; hunt_v.add_child(hunt_l)
+
+func _render_hordes_tab(container):
 	var lbl = Label.new(); lbl.text = "EDITOR DINÁMICO DE EVENTOS POR OLEADAS"; lbl.modulate = Color.GOLD; container.add_child(lbl)
 	
 	var config = GameConstants.HORDES_CONFIG
@@ -576,6 +621,16 @@ func _add_input(parent, label, val, on_change, is_text = false):
 	var inp = LineEdit.new(); inp.text = str(display_val); inp.custom_minimum_size = Vector2(100, 0); hb.add_child(inp)
 	inp.text_changed.connect(on_change)
 
+func _add_color_input(parent, label, val, on_change):
+	var hb = VBoxContainer.new(); parent.add_child(hb)
+	var l = Label.new(); l.text = label; l.add_theme_font_size_override("font_size", 9); l.modulate.a = 0.5; hb.add_child(l)
+	
+	var cp = ColorPickerButton.new()
+	cp.color = Color(val)
+	cp.custom_minimum_size = Vector2(100, 30)
+	hb.add_child(cp)
+	cp.color_changed.connect(on_change)
+
 func _refresh_ui(): _build_ui()
 
 func _on_save_global_pressed():
@@ -586,7 +641,8 @@ func _on_save_global_pressed():
 		"shopItems": GameConstants.SHOP_ITEMS,
 		"ammoMultipliers": GameConstants.AMMO_MULTIPLIERS,
 		"hordeConfig": GameConstants.HORDES_CONFIG,
-		"skillsData": GameConstants.SKILLS_DATA
+		"skillsData": GameConstants.SKILLS_DATA,
+		"mapsConfig": GameConstants.MAPS_CONFIG
 	}
 	NetworkManager.send_event("saveAdminConfig", config)
 	print("[ADMIN] Configuración Global enviada al servidor.")

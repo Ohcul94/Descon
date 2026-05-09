@@ -152,8 +152,8 @@ const handleUserLogin = async (socket, user, username) => {
         num: state.nextPlayerNum++,
         user: username,
         clanTag: clanTag, // v244.110: Siglas para el NameTag
-        x: user.gameData.lastPos?.x || 2000,
-        y: user.gameData.lastPos?.y || 2000,
+        x: user.gameData.lastPos?.x || (user.gameData.zone === 1 ? 1000 : 2000),
+        y: user.gameData.lastPos?.y || (user.gameData.zone === 1 ? 1000 : 2000),
         rotation: 0,
         hp: user.gameData.hp || baseHp,
         maxHp: baseHp,
@@ -508,7 +508,7 @@ io.on('connection', (socket) => {
                         "gameData.lastPos.y": Math.floor(p.y),
                         "gameData.hp": Math.ceil(p.hp || 0),
                         "gameData.shield": Math.ceil(p.shield || 0),
-                        "gameData.zone": p.zone || 1,
+                        "gameData.zone": (p.zone !== undefined ? p.zone : 1),
                         "gameData.ammo": p.ammo,
                         "gameData.selectedAmmo": p.selectedAmmo,
                         "gameData.inventory": p.inventory,
@@ -756,7 +756,7 @@ io.on('connection', (socket) => {
 
         if (movementData.selectedAmmo) p.selectedAmmo = movementData.selectedAmmo;
 
-        const oldZone = Number(p.zone || 1);
+        const oldZone = Number(p.zone !== undefined ? p.zone : 1);
         const targetZone = (movementData.zone !== undefined) ? Number(movementData.zone) : oldZone;
         p.zone = targetZone;
 
@@ -815,7 +815,7 @@ io.on('connection', (socket) => {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
 
-        const oldZone = p.zone || 1;
+        const oldZone = (p.zone !== undefined ? p.zone : 1);
         if (Number(oldZone) === Number(zoneId)) return; // Evitar cobro si ya est├í ah├¡
 
         try {
@@ -823,8 +823,22 @@ io.on('connection', (socket) => {
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
 
-            // v215.50: Cobro por Salto de Sector
-            const COST = 10;
+            // Leer configuración de mapas (si existe)
+            let COST = (Number(zoneId) > 2) ? 10 : 0;
+            let minLevel = 1;
+            
+            if (state.SERVER_CONFIG.mapsConfig && state.SERVER_CONFIG.mapsConfig[zoneId]) {
+                COST = state.SERVER_CONFIG.mapsConfig[zoneId].warpCost || 0;
+                minLevel = state.SERVER_CONFIG.mapsConfig[zoneId].minLevel || 1;
+            }
+
+            // Validar Nivel
+            if (user.gameData.level < minLevel) {
+                socket.emit('authError', `REQUIERES NIVEL ${minLevel} PARA ENTRAR A ESTE SECTOR`);
+                return;
+            }
+
+            // v215.50: Cobro dinámico por Salto de Sector
             if (user.gameData.ohcu < COST) {
                 socket.emit('authError', 'OHCU INSUFICIENTES PARA EL SALTO');
                 return;

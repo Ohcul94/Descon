@@ -54,7 +54,7 @@ const UserSchema = new mongoose.Schema({
             combat: { type: [Number], default: [0, 0, 0, 0, 0, 0, 0, 0] },
             science: { type: [Number], default: [0, 0, 0, 0, 0, 0, 0, 0] }
         },
-        zone: { type: Number, default: 1 }, // Registro de Sector v69.8
+        zone: { type: Number, default: 1 },
         hudConfig: { type: Object, default: {} },
         hudPositions: { type: Object, default: {} },
         hudLayouts: { type: Array, default: [] }, // v266.130: Soporte para múltiples slots (máx 4)
