@@ -151,6 +151,12 @@ func _on_server_data_received(p_data: Dictionary):
 		_apply_hud_data(layout, config)
 
 func _input(event: InputEvent):
+	# v266.120: Atajo de teclado para cerrar edición
+	if is_editing_layout and event.is_action_pressed("ui_menu"):
+		toggle_hud_editing()
+		get_viewport().set_input_as_handled()
+		return
+		
 	# v266.99: Sistema Absoluto de Arrastre por Geometría
 	if is_editing_layout:
 		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -884,7 +890,7 @@ func toggle_esc_menu():
 
 func _restore_default_layout():
 	if NetworkManager:
-		NetworkManager.send_event("saveHUDLayout", { "positions": {} })
+		NetworkManager.send_event("saveHudLayout", { "positions": {} })
 	
 	var skills_container = get_node_or_null("Skills")
 	if skills_container:
@@ -895,10 +901,9 @@ func _restore_default_layout():
 				child.top_level = false
 				child.reset_size()
 				
-		skills_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-		skills_container.reset_size()
-		skills_container.position.x = (get_viewport_rect().size.x - skills_container.size.x) / 2
-		skills_container.position.y = get_viewport_rect().size.y - skills_container.size.y - 20
+		skills_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_KEEP_SIZE)
+		skills_container.position = Vector2.ZERO
+		skills_container.offset_bottom = -20
 		skills_container.queue_sort()
 	
 	print("[HUD] Layout restaurado de fábrica.")
@@ -1178,12 +1183,23 @@ func toggle_hud_editing():
 			var center_hbox = CenterContainer.new()
 			edit_container.add_child(center_hbox)
 			
+			var btns_hbox = HBoxContainer.new()
+			btns_hbox.add_theme_constant_override("separation", 20)
+			center_hbox.add_child(btns_hbox)
+			
 			var restore_btn = Button.new()
 			restore_btn.text = " RESTAURAR DE FÁBRICA "
 			restore_btn.custom_minimum_size.y = 40
 			restore_btn.modulate = Color(1.0, 0.4, 0.4)
 			restore_btn.pressed.connect(_restore_default_layout)
-			center_hbox.add_child(restore_btn)
+			btns_hbox.add_child(restore_btn)
+			
+			var close_btn = Button.new()
+			close_btn.text = " [X] CERRAR EDICIÓN (ESC) "
+			close_btn.custom_minimum_size.y = 40
+			close_btn.modulate = Color(0.4, 1.0, 0.4)
+			close_btn.pressed.connect(toggle_hud_editing)
+			btns_hbox.add_child(close_btn)
 			
 			add_child(edit_container)
 		edit_container.visible = true
@@ -1267,5 +1283,5 @@ func _save_hud_positions():
 			layout[child.name] = { "x": child.global_position.x, "y": child.global_position.y }
 	
 	if NetworkManager:
-		NetworkManager.send_event("saveHUDLayout", { "positions": layout })
-		print("[HUD] Layout global guardado en el servidor.")
+		NetworkManager.send_event("saveHudLayout", { "positions": layout })
+		print("[HUD] Layout global enviado al servidor.")

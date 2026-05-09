@@ -942,11 +942,26 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('saveHudLayout', (data) => {
+    socket.on('saveHudLayout', async (data) => {
         if (players[socket.id]) {
-            players[socket.id].hudConfig = data.config;
-            players[socket.id].hudPositions = data.positions;
-            console.log(`[HUD] Config global guardada para ${players[socket.id].user}`);
+            if (data.config !== undefined) players[socket.id].hudConfig = data.config;
+            if (data.positions !== undefined) players[socket.id].hudPositions = data.positions;
+            console.log(`[HUD] Config global recibida de ${players[socket.id].user}`);
+            
+            if (socket.dbUser) {
+                try {
+                    const updateObj = {};
+                    if (data.config !== undefined) updateObj["gameData.hudConfig"] = data.config;
+                    if (data.positions !== undefined) updateObj["gameData.hudPositions"] = data.positions;
+                    
+                    if (Object.keys(updateObj).length > 0) {
+                        await User.updateOne({ _id: socket.dbUser._id }, { $set: updateObj });
+                        console.log(`[HUD] Config global persistida en DB para ${players[socket.id].user}`);
+                    }
+                } catch (e) {
+                    console.error("[HUD-SAVE] Error DB:", e);
+                }
+            }
         }
     });
 
