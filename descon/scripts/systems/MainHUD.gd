@@ -104,17 +104,17 @@ func _ready():
 				child.text = "F"
 		print("[HUD] Sphere4Slot inyectado dinámicamente.")
 
-	if s1: s1.gui_input.connect(_on_sphere_slot_gui_input.bind(0))
-	if s2: s2.gui_input.connect(_on_sphere_slot_gui_input.bind(1))
-	if s3: s3.gui_input.connect(_on_sphere_slot_gui_input.bind(2))
-	if s4: s4.gui_input.connect(_on_sphere_slot_gui_input.bind(3))
+	if s1: _make_clickable(s1, _on_sphere_slot_gui_input.bind(null, 0))
+	if s2: _make_clickable(s2, _on_sphere_slot_gui_input.bind(null, 1))
+	if s3: _make_clickable(s3, _on_sphere_slot_gui_input.bind(null, 2))
+	if s4: _make_clickable(s4, _on_sphere_slot_gui_input.bind(null, 3))
 	
 	var sl = get_node_or_null("Skills/LaserSlot")
 	var smi = get_node_or_null("Skills/MissileSlot")
 	var sei = get_node_or_null("Skills/MineSlot")
-	if sl: sl.gui_input.connect(_on_base_slot_gui_input.bind("laser"))
-	if smi: smi.gui_input.connect(_on_base_slot_gui_input.bind("missile"))
-	if sei: sei.gui_input.connect(_on_base_slot_gui_input.bind("mine"))
+	if sl: _make_clickable(sl, _on_base_slot_gui_input.bind(null, "laser"))
+	if smi: _make_clickable(smi, _on_base_slot_gui_input.bind(null, "missile"))
+	if sei: _make_clickable(sei, _on_base_slot_gui_input.bind(null, "mine"))
 	
 	if NetworkManager:
 		if not NetworkManager.login_success.is_connected(_on_server_data_received):
@@ -727,13 +727,49 @@ func _animate_notification(node: Label, is_update: bool = false):
 	wait_tw.tween_property(node, "modulate:a", 0.0, 0.5)
 	wait_tw.finished.connect(node.queue_free)
 
+func _make_clickable(node: Control, callback: Callable):
+	if not node: return
+	node.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	# v266.80: Inyectar un Botón invisible para máxima compatibilidad táctil
+	var btn = node.get_node_or_null("TouchButton")
+	if not btn:
+		btn = Button.new()
+		btn.name = "TouchButton"
+		btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		btn.modulate.a = 0 # Invisible
+		btn.mouse_filter = Control.MOUSE_FILTER_STOP
+		node.add_child(btn)
+		node.move_child(btn, 0)
+	
+	# Usamos señales de botón que son más fiables en móvil
+	if not btn.button_down.is_connected(func(): callback.call()):
+		btn.button_down.connect(func(): callback.call())
+	
+	if not btn.button_up.is_connected(func(): 
+		# Simular el evento de release para ON_RELEASE
+		var p = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(p) and p._skill_controller:
+			var sc = p._skill_controller
+			if sc.is_aiming and sc.config.get("cast_mode") == 1:
+				sc.execute_skill()
+	):
+		btn.button_up.connect(func():
+			var p = get_tree().get_first_node_in_group("player")
+			if is_instance_valid(p) and p._skill_controller:
+				var sc = p._skill_controller
+				if sc.is_aiming and sc.config.get("cast_mode") == 1:
+					sc.execute_skill()
+		)
+
 func _on_sphere_slot_gui_input(event: InputEvent, id: int):
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_RIGHT:
-			print("[HUD] Desequipar Esfera solicitada: ", id)
-			if NetworkManager:
-				NetworkManager.send_event("unequipSphere", {"sphereId": id})
-		elif event.button_index == MOUSE_BUTTON_LEFT:
+	# Fallback para mouse/clics directos si el botón invisible no lo atrapa
+	if event == null: # Viene del TouchButton
+		var p = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(p): p.trigger_skill_by_id("sphere_" + str(id))
+		return
+		
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 			# v266.30: Disparar con Click Izquierdo (Móviles)
 			var p = get_tree().get_first_node_in_group("player")
 			if is_instance_valid(p) and p.has_method("trigger_skill_by_id"):
@@ -748,12 +784,12 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 							sc.execute_skill()
 
 func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+	if event == null: # Viene del TouchButton
 		var p = get_tree().get_first_node_in_group("player")
-		if is_instance_valid(p) and p.has_method("trigger_skill_by_id"):
-			if event.pressed:
-				p.trigger_skill_by_id(skill_id) # v266.60: Auto-detección
-			else:
+		if is_instance_valid(p): p.trigger_skill_by_id(skill_id)
+		return
+
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 				# v266.45: Soporte para disparar al SOLTAR si está en ON_RELEASE
 				var sc = p._skill_controller
 				if is_instance_valid(sc) and sc.is_aiming:
