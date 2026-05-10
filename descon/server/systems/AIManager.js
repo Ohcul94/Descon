@@ -29,10 +29,12 @@ class AIManager {
 
         if (!forceType && zone === 2 && Object.keys(enemies).filter(e => enemies[e].zone === 2).length >= 15) return;
         
-        const id = 'enemy_' + (zone >= 2 ? 'boss_' : '') + Date.now() + Math.floor(Math.random() * 1000);
         const type = forceType || (Math.floor(Math.random() * 3) + 1);
-
         const cfg = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[type.toString()] : null;
+        
+        const isBoss = (type >= 101) || (cfg && cfg.isBoss);
+        const id = 'enemy_' + (isBoss ? 'boss_' : '') + Date.now() + Math.floor(Math.random() * 1000);
+        
         const name = forceName || (cfg ? cfg.name : (type === 4 ? "Boss1" : (type === 5 ? "Boss2" : (type === 6 ? "Boss3" : "Enemigo"))));
 
         const initialHp = cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 4 ? 100000 : (type * 2000))));
@@ -60,14 +62,33 @@ class AIManager {
         const movSpeed = cfg ? (cfg.speed * 0.033) : (type === 1 ? 4.5 : 3.5);
         const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
         
-        if (type === 103) e.ai = new MechanicBossAI(e, aiConfig); 
-        else if (type === 102) e.ai = new AncientBossAI(e, aiConfig); 
-        else if (type === 101) e.ai = new BossAI(e, aiConfig); 
-        else if (type === 8 || type === 3) e.ai = new ChargerAI(e, aiConfig);
-        else if (type === 6 || type === 7) e.ai = new GravityAI(e, aiConfig);
-        else if (type === 5 || type === 2 || type === 12) e.ai = new SniperAI(e, aiConfig); 
-        else if (type === 1 || type === 9 || type === 13 || type === 4) e.ai = new ChaseAI(e, aiConfig); 
-        else e.ai = new OrbitAI(e, aiConfig);
+        // v266.230: Asignación Dinámica de Cerebros basada en Configuración
+        const movementType = cfg ? cfg.movementAI : null;
+
+        const AI_MAP = {
+            "chase": ChaseAI,
+            "sniper": SniperAI,
+            "orbit": OrbitAI,
+            "charger": ChargerAI,
+            "gravity": GravityAI,
+            "boss": BossAI,
+            "ancient": AncientBossAI,
+            "mechanic": MechanicBossAI
+        };
+
+        if (movementType && AI_MAP[movementType]) {
+            e.ai = new AI_MAP[movementType](e, aiConfig);
+        } else {
+            // Fallback para tipos hardcodeados antiguos si no hay config
+            if (type === 103) e.ai = new MechanicBossAI(e, aiConfig); 
+            else if (type === 102) e.ai = new AncientBossAI(e, aiConfig); 
+            else if (type === 101) e.ai = new BossAI(e, aiConfig); 
+            else if (type === 8 || type === 3) e.ai = new ChargerAI(e, aiConfig);
+            else if (type === 6 || type === 7) e.ai = new GravityAI(e, aiConfig);
+            else if (type === 5 || type === 2 || type === 12) e.ai = new SniperAI(e, aiConfig); 
+            else if (type === 1 || type === 9 || type === 13 || type === 4) e.ai = new ChaseAI(e, aiConfig); 
+            else e.ai = new OrbitAI(e, aiConfig);
+        }
 
         enemies[id] = e;
 

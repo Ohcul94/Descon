@@ -47,30 +47,62 @@ module.exports = class BaseAI {
     }
 
     applyCombatLogic(target, dist, angle, now, io) {
-        if (dist > 1000) return; // Rango aumentado para hordas
+        // v266.220: Sistema de Rotación de Mecánicas Modulares
+        if (!this.enemy.spawnTime) this.enemy.spawnTime = now;
+        if (!this.enemy.mechState) this.enemy.mechState = {};
 
-        if (now > (this.enemy.nextShotTime || 0)) {
-            if ((this.enemy.shotsInBurst || 0) < 3) {
-                // Recalcular ángulo exacto al disparar para evitar "disparar a la nada"
+        const mechanics = this.config.mechanics || [];
+        
+        // Si no hay mecánicas nuevas, usar el fallback del config raíz (compatibilidad)
+        if (mechanics.length === 0) {
+            this._executeMechanic(this.config, "default", target, dist, angle, now, io);
+            return;
+        }
+
+        mechanics.forEach((mech, idx) => {
+            const mId = `mech_${idx}`;
+            // v266.225: Verificar Retraso de Inicio (Start Delay)
+            const timeSinceSpawn = now - this.enemy.spawnTime;
+            if (timeSinceSpawn < (mech.startDelay || 0)) return;
+
+            this._executeMechanic(mech, mId, target, dist, angle, now, io);
+        });
+    }
+
+    _executeMechanic(mech, mId, target, dist, angle, now, io) {
+        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0 };
+        const fireRange = mech.fireRange || 800;
+
+        if (dist > fireRange) return;
+
+        if (now > state.nextShotTime) {
+            const burstLimit = (mech.type === "laser") ? 3 : 1; 
+            if (state.shotsInBurst < burstLimit) {
                 const currentAngle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
-                const bSpeed = this.config.bulletSpeed || 800; 
+                
+                // v266.240: Compatibilidad de tipos para el cliente Godot
 
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
                     targetId: target.id,
                     enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
-                    bulletSpeed: bSpeed, 
-                    bulletType: this.config.bulletType || "laser",
-                    damage: (this.config && this.config.bulletDamage) ? this.config.bulletDamage : (this.enemy.type * 100)
+                    bulletSpeed: mech.bulletSpeed || 800, 
+                    bulletType: mech.type || "laser",
+                    damage: mech.bulletDamage || (this.enemy.type * 100),
+                    // v266.220: Pasar datos extra de la mecánica (Slow, etc)
+                    slowAmount: mech.slowAmount || 0,
+                    slowDuration: mech.slowDuration || 0
                 });
-                this.enemy.shotsInBurst = (this.enemy.shotsInBurst || 0) + 1;
-                this.enemy.nextShotTime = now + 150;
+
+                state.shotsInBurst++;
+                state.nextShotTime = now + 150;
             } else {
-                this.enemy.shotsInBurst = 0;
-                this.enemy.nextShotTime = now + (this.config.fireRate || 2000);
+                state.shotsInBurst = 0;
+                state.nextShotTime = now + (mech.fireRate || 2000);
             }
         }
+        this.enemy.mechState[mId] = state;
     }
 
     applyMovementLogic(target, dist, angle, now) {

@@ -113,6 +113,8 @@
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
+            overflow-y: auto;
+            max-height: calc(100vh - 80px);
         }
 
         .nav-link {
@@ -388,8 +390,14 @@
             <div class="nav-group">
                 <div class="nav-folder" onclick="toggleFolder('folder-enemies')">👾 Amenazas (IA) <span class="chevron">▼</span></div>
                 <div id="folder-enemies" class="folder-content show">
-                    <div class="nav-link sub" onclick="setEnemySubTab('regular'); showTab('enemies')">├ Enemigos</div>
-                    <div class="nav-link sub" onclick="setEnemySubTab('boss'); showTab('enemies')">└ Bosses</div>
+                    <div class="nav-link sub" onclick="toggleFolder('subfolder-regulars')">├ Enemigos <span class="chevron">▶</span></div>
+                    <div id="subfolder-regulars" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
+                        <div id="sidebar-enemies-list"></div>
+                    </div>
+                    <div class="nav-link sub" onclick="toggleFolder('subfolder-bosses')">└ Bosses <span class="chevron">▶</span></div>
+                    <div id="subfolder-bosses" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
+                        <div id="sidebar-bosses-list"></div>
+                    </div>
                 </div>
             </div>
 
@@ -405,6 +413,11 @@
 
             <div class="nav-group">
                 <div class="nav-link" onclick="showTab('skills')">🌀 Habilidades</div>
+                <div class="nav-folder" onclick="toggleFolder('folder-mechanics')">⚙️ Mecánicas <span class="chevron">▼</span></div>
+                <div id="folder-mechanics" class="folder-content">
+                    <div class="nav-link sub" onclick="setMechTab('attack'); showTab('mechanics')">⚔️ Ataque</div>
+                    <div class="nav-link sub" onclick="setMechTab('movement'); showTab('mechanics')">🏃 Movimiento</div>
+                </div>
                 <div class="nav-link" onclick="showTab('maps')">🗺️ Cartografía</div>
                 <div class="nav-link" onclick="showTab('json')">📦 Núcleo JSON</div>
             </div>
@@ -419,6 +432,11 @@
             <div id="view-enemies" class="view">
                 <div class="section-header"><h2>Gestión de Amenazas</h2></div>
                 <div id="enemies-grid" class="grid"></div>
+            </div>
+
+            <div id="view-enemy-detail" class="view">
+                <div class="section-header"><button class="btn btn-secondary" onclick="showTab('enemies')" style="margin-right:1rem;">← Volver</button></div>
+                <div id="enemy-detail-container" style="width: 100%;"></div>
             </div>
 
             <div id="view-ammo" class="view">
@@ -444,6 +462,11 @@
             <div id="view-skills" class="view">
                 <div class="section-header"><h2>Protocolos de Combate</h2><button class="btn btn-secondary btn-sm" onclick="addNewSkill()">+ Nueva Habilidad</button></div>
                 <div id="skills-grid" class="grid"></div>
+            </div>
+
+            <div id="view-mechanics" class="view">
+                <div class="section-header"><h2>Librería de Mecánicas</h2></div>
+                <div id="mechanics-lib-grid" class="grid"></div>
             </div>
 
             <div id="view-maps" class="view">
@@ -546,6 +569,7 @@
             renderShips();
             renderEnemies();
             renderSkills();
+            renderMechanicsLib(); // v266.220
             renderMaps();
             renderAmmo();
             renderWeapons();
@@ -645,43 +669,303 @@
         }
 
         let currentEnemySubTab = 'regular';
+        let currentMechTab = 'attack';
+        let selectedEnemyId = null;
 
         function setEnemySubTab(tab) {
             currentEnemySubTab = tab;
-            // v266.215: Se eliminan referencias a botones de sub-tab inexistentes
             renderEnemies();
         }
 
+        function setMechTab(tab) {
+            currentMechTab = tab;
+            renderMechanicsLib();
+        }
+
+        function selectEnemy(id) {
+            selectedEnemyId = id;
+            showTab('enemy-detail');
+            renderEnemyDetail();
+        }
+
+        function updateSidebar() {
+            const enemyList = document.getElementById('sidebar-enemies-list');
+            const bossList = document.getElementById('sidebar-bosses-list');
+            if(!enemyList || !bossList) return;
+            
+            enemyList.innerHTML = '';
+            bossList.innerHTML = '';
+
+            for(let id in config.enemyModels) {
+                const en = config.enemyModels[id];
+                const link = document.createElement('div');
+                link.className = 'nav-link sub';
+                link.innerText = `├ ${en.name || 'Enemigo '+id}`;
+                link.onclick = () => selectEnemy(id);
+                
+                if (parseInt(id) < 100) enemyList.appendChild(link);
+                else bossList.appendChild(link);
+            }
+        }
+
+        // v266.220: Definición de Mecánicas de Ataque
+        let MECHANICS_LIB = {
+            "laser": { label: "Láser Estándar", icon: "🔫", desc: "Ataque lineal básico.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "startDelay"] },
+            "missile": { label: "Misil Rastreador", icon: "🚀", desc: "Proyectil autoguiado.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "startDelay"] },
+            "ice_missile": { label: "Misil de Hielo", icon: "❄️", desc: "Ralentiza al objetivo.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "slowAmount", "slowDuration", "startDelay"] },
+            "mine": { label: "Mina de Proximidad", icon: "💣", desc: "Explosivo estático.", fields: ["bulletDamage", "fireRange", "fireRate", "startDelay"] }
+        };
+
+        // v266.230: Definición de Mecánicas de Movimiento (Cerebros)
+        let MOVEMENT_LIB = {
+            "chase": { label: "Persecución Directa", icon: "🏃", desc: "Persigue al jugador hasta una distancia fija.", fields: ["speed", "stopDist"] },
+            "sniper": { label: "Francotirador (Kiting)", icon: "🎯", desc: "Mantiene una distancia segura alejándose si te acercas.", fields: ["speed", "idealDist"] },
+            "orbit": { label: "Órbita Circular", icon: "🔄", desc: "Gira alrededor del jugador constantemente.", fields: ["speed", "orbitRadius"] },
+            "charger": { label: "Embestida (Dash)", icon: "⚡", desc: "Se acerca y lanza ataques de alta velocidad.", fields: ["speed", "chargeCooldown"] }
+        };
+
         function renderEnemies() {
+            if (config.mechanicsLib) MECHANICS_LIB = config.mechanicsLib;
+            else config.mechanicsLib = MECHANICS_LIB;
+
+            if (config.movementLib) MOVEMENT_LIB = config.movementLib;
+            else config.movementLib = MOVEMENT_LIB;
+
+            updateSidebar(); // Actualizar lista lateral
+
             const grid = document.getElementById('enemies-grid');
             grid.innerHTML = '';
             for(let id in config.enemyModels) {
                 const en = config.enemyModels[id];
                 const eid = parseInt(id);
-                
-                // Filtrado por Sub-Tab: Regulares (1-99) vs Bosses (100+)
                 if (currentEnemySubTab === 'regular' && eid >= 100) continue;
                 if (currentEnemySubTab === 'boss' && eid < 100) continue;
 
                 const card = document.createElement('div'); card.className = 'card';
+                card.style.cursor = 'pointer';
+                card.onclick = () => selectEnemy(id);
+                
                 card.innerHTML = `
                     <div class="card-tag">#ID ${id}</div>
-                    <div class="field full"><label>Identificador</label><input type="text" value="${en.name}" onchange="config.enemyModels['${id}'].name = this.value"></div>
-                    <div class="form-grid" style="margin-top:1rem;">
-                        <div class="field"><label>HP</label><input type="number" value="${en.hp}" onchange="config.enemyModels['${id}'].hp = parseInt(this.value)"></div>
-                        <div class="field"><label>Escudo</label><input type="number" value="${en.shield}" onchange="config.enemyModels['${id}'].shield = parseInt(this.value)"></div>
-                        <div class="field"><label>Daño Bala</label><input type="number" value="${en.bulletDamage}" onchange="config.enemyModels['${id}'].bulletDamage = parseInt(this.value)"></div>
-                        <div class="field"><label>Cadencia (ms)</label><input type="number" value="${en.fireRate}" onchange="config.enemyModels['${id}'].fireRate = parseInt(this.value)"></div>
-                        <div class="field"><label>V. Proyectil</label><input type="number" value="${en.bulletSpeed || 800}" onchange="config.enemyModels['${id}'].bulletSpeed = parseInt(this.value)"></div>
-                        <div class="field"><label>Rango Fuego</label><input type="number" value="${en.fireRange || 600}" onchange="config.enemyModels['${id}'].fireRange = parseInt(this.value)"></div>
-                    </div>
-                    <div class="price-group">
-                        <div class="field"><label>Exp</label><input type="number" value="${en.rewardExp}" onchange="config.enemyModels['${id}'].rewardExp = parseInt(this.value)"></div>
-                        <div class="field"><label>Hubs</label><input type="number" value="${en.rewardHubs}" onchange="config.enemyModels['${id}'].rewardHubs = parseInt(this.value)"></div>
-                        <div class="field"><label>Ohcu</label><input type="number" value="${en.rewardOhcu}" onchange="config.enemyModels['${id}'].rewardOhcu = parseInt(this.value)"></div>
-                    </div>
+                    <h3>${en.name}</h3>
+                    <p style="font-size:0.8rem; opacity:0.6;">Cerebro: ${en.movementAI || 'chase'}</p>
+                    <div style="margin-top:1rem; color:var(--accent); font-weight:bold; font-size:0.7rem;">Haga clic para configurar detalles...</div>
                 `;
                 grid.appendChild(card);
+            }
+        }
+
+        function renderEnemyDetail() {
+            const container = document.getElementById('enemy-detail-container');
+            const en = config.enemyModels[selectedEnemyId];
+            if(!en) return;
+
+            // v266.220: Compatibilidad con múltiples mecánicas
+            if (!en.mechanics) {
+                en.mechanics = [{ type: "laser", bulletDamage: 10, bulletSpeed: 800, fireRange: 600, fireRate: 1000, startDelay: 0 }];
+            }
+            if (!en.movementPhases) {
+                en.movementPhases = [{ type: en.movementAI || "chase", speed: en.speed || 3.5, stopDist: en.stopDist || 150, startDelay: 0 }];
+            }
+
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+                    <!-- COLUMNA IZQUIERDA: BASE Y MOVIMIENTO -->
+                    <div class="col">
+                        <div class="card" style="width:100%; margin-bottom: 2rem;">
+                            <div class="field full"><label>NOMBRE DE LA ENTIDAD (#ID ${selectedEnemyId})</label><input type="text" value="${en.name}" style="font-size: 1.5rem; color:var(--accent);" onchange="config.enemyModels['${selectedEnemyId}'].name = this.value; updateSidebar();"></div>
+                            
+                            <div class="form-grid" style="margin-top:1rem; padding-bottom: 1rem; border-bottom: 1px solid #333;">
+                                <div class="field"><label>HP</label><input type="number" value="${en.hp}" onchange="config.enemyModels['${selectedEnemyId}'].hp = parseInt(this.value)"></div>
+                                <div class="field"><label>Escudo</label><input type="number" value="${en.shield}" onchange="config.enemyModels['${selectedEnemyId}'].shield = parseInt(this.value)"></div>
+                            </div>
+
+                            <div class="price-group" style="margin-top:1rem;">
+                                <div class="field"><label>Exp</label><input type="number" value="${en.rewardExp}" onchange="config.enemyModels['${selectedEnemyId}'].rewardExp = parseInt(this.value)"></div>
+                                <div class="field"><label>Hubs</label><input type="number" value="${en.rewardHubs}" onchange="config.enemyModels['${selectedEnemyId}'].rewardHubs = parseInt(this.value)"></div>
+                            </div>
+                        </div>
+
+                        <!-- Movimiento Modular -->
+                        <div style="margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center;">
+                            <label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">🏃 CICLO DE MOVIMIENTO</label>
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addMovementPhase('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR FASE</button>
+                        </div>
+                        <div id="move-list-${selectedEnemyId}">
+                            ${en.movementPhases.map((m, idx) => `
+                                <div class="card" style="margin-bottom:1rem; position:relative; padding: 1rem; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2);">
+                                    <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
+                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">▲</button>
+                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">▼</button>
+                                        <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeMovementPhase('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
+                                    </div>
+                                    <div class="field full">
+                                        <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateMovementPhaseType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
+                                            ${Object.keys(MOVEMENT_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MOVEMENT_LIB[type].icon} ${MOVEMENT_LIB[type].label}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="form-grid" style="margin-top:1rem;">
+                                        <div class="field"><label>Retraso Inicio (ms)</label><input type="number" value="${m.startDelay || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].startDelay = parseInt(this.value)"></div>
+                                        ${MOVEMENT_LIB[m.type || 'chase'].fields.map(f => {
+                                            const moveLabels = { speed:"Velocidad", stopDist:"Frenado", idealDist:"Rango Seguro", orbitRadius:"Radio Órbita", chargeCooldown: "Recarga Dash" };
+                                            return `<div class="field"><label>${moveLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].${f} = parseFloat(this.value)"></div>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- COLUMNA DERECHA: ATAQUE -->
+                    <div class="col">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">⚔️ MECÁNICAS DE ATAQUE ACTIVAS</label>
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addMechanic('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR ARMA</button>
+                        </div>
+                        
+                        <div id="mech-list-${selectedEnemyId}">
+                            ${en.mechanics.map((m, idx) => `
+                                <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem;">
+                                    <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
+                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">▲</button>
+                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">▼</button>
+                                        <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeMechanic('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
+                                    </div>
+                                    
+                                    <div class="field full">
+                                        <select style="background:#0f172a; border:none; color:var(--accent); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateMechanicType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
+                                            ${Object.keys(MECHANICS_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MECHANICS_LIB[type].icon} ${MECHANICS_LIB[type].label}</option>`).join('')}
+                                        </select>
+                                    </div>
+
+                                    <div class="form-grid" style="margin-top:1rem;">
+                                        ${MECHANICS_LIB[m.type || 'laser'].fields.map(f => {
+                                            const fieldLabelsMap = { bulletDamage:"Daño", bulletSpeed:"Vel. Bala", fireRange:"Alcance", fireRate:"Cadencia", slowAmount:"Slow Pts", slowDuration:"Slow Dur", startDelay:"Delay Inicio" };
+                                            return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseInt(this.value)"></div>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addMovementPhase(id) {
+            if(!config.enemyModels[id].movementPhases) config.enemyModels[id].movementPhases = [];
+            config.enemyModels[id].movementPhases.push({ type: "chase", speed: 3.5, stopDist: 150, startDelay: 2000 });
+        }
+
+        function removeMovementPhase(id, idx) {
+            config.enemyModels[id].movementPhases.splice(idx, 1);
+        }
+
+        function updateMovementPhaseType(id, idx, type) {
+            config.enemyModels[id].movementPhases[idx].type = type;
+            // Inicializar campos default
+            const m = MOVEMENT_LIB[type];
+            m.fields.forEach(f => {
+                if(config.enemyModels[id].movementPhases[idx][f] === undefined) {
+                    config.enemyModels[id].movementPhases[idx][f] = (f==='speed'?3.5:150);
+                }
+            });
+        }
+
+        function moveMovementPhase(id, idx, dir) {
+            const arr = config.enemyModels[id].movementPhases;
+            const newIdx = idx + dir;
+            if(newIdx < 0 || newIdx >= arr.length) return;
+            [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+        }
+
+        function addMechanic(enemyId) {
+            if (!config.enemyModels[enemyId].mechanics) config.enemyModels[enemyId].mechanics = [];
+            config.enemyModels[enemyId].mechanics.push({
+                type: "laser",
+                bulletDamage: 10,
+                bulletSpeed: 800,
+                fireRange: 600,
+                fireRate: 1000
+            });
+            renderEnemies();
+        }
+
+        function removeMechanic(enemyId, idx) {
+            if (config.enemyModels[enemyId].mechanics.length <= 1) {
+                alert("El enemigo debe tener al menos una mecánica.");
+                return;
+            }
+            config.enemyModels[enemyId].mechanics.splice(idx, 1);
+            renderEnemies();
+        }
+
+        function updateMechanicType(enemyId, idx, newType) {
+            config.enemyModels[enemyId].mechanics[idx].type = newType;
+            renderEnemies();
+        }
+
+        function moveMechanic(enemyId, idx, dir) {
+            const list = config.enemyModels[enemyId].mechanics;
+            if (dir === -1 && idx > 0) {
+                [list[idx-1], list[idx]] = [list[idx], list[idx-1]];
+            } else if (dir === 1 && idx < list.length - 1) {
+                [list[idx+1], list[idx]] = [list[idx], list[idx+1]];
+            }
+            renderEnemies();
+        }
+
+        function renderMechanicsLib() {
+            if (config.mechanicsLib) MECHANICS_LIB = config.mechanicsLib;
+            const grid = document.getElementById('mechanics-lib-grid');
+            if(!grid) return;
+            grid.innerHTML = '';
+
+            const fieldLabels = {
+                "bulletDamage": "Daño",
+                "bulletSpeed": "Velocidad Proyectil",
+                "fireRange": "Alcance (Rango)",
+                "fireRate": "Cadencia (ms)",
+                "startDelay": "Retraso Inicial (ms)",
+                "slowAmount": "Potencia de Slow",
+                "slowDuration": "Duración de Slow (ms)"
+            };
+
+            if (currentMechTab === 'attack') {
+                grid.innerHTML = '<h2 style="grid-column:1/-1; color:var(--accent); margin-bottom:1rem; border-bottom:1px solid #333; padding-bottom:0.5rem;">⚔️ Librería de Ataque</h2>';
+                for(let type in MECHANICS_LIB) {
+                    const m = MECHANICS_LIB[type];
+                    const card = document.createElement('div'); card.className = 'card';
+                    card.innerHTML = `
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div>
+                        <div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.mechanicsLib['${type}'].label = this.value; renderAll();"></div>
+                        <div class="field full" style="margin-top:0.5rem;"><label>Descripción Técnica</label><input type="text" value="${m.desc || ''}" onchange="config.mechanicsLib['${type}'].desc = this.value"></div>
+                        <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;">
+                            <strong style="color:var(--accent);">CAMPOS ACTIVOS EN DOCKING:</strong><br>
+                            ${m.fields.map(f => fieldLabels[f] || f).join(' • ')}
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                }
+            } else {
+                grid.innerHTML = '<h2 style="grid-column:1/-1; color:var(--accent); margin-bottom:1rem; border-bottom:1px solid #333; padding-bottom:0.5rem;">🏃 Librería de Movimiento</h2>';
+                for(let type in MOVEMENT_LIB) {
+                    const m = MOVEMENT_LIB[type];
+                    const card = document.createElement('div'); card.className = 'card';
+                    
+                    const moveLabels = { speed:"Velocidad", stopDist:"Frenado", idealDist:"Rango Seguro", orbitRadius:"Radio Órbita", chargeCooldown: "Recarga Dash" };
+
+                    card.innerHTML = `
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div>
+                        <div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.movementLib['${type}'].label = this.value; renderAll();"></div>
+                        <div class="field full" style="margin-top:0.5rem;"><label>Descripción Técnica</label><input type="text" value="${m.desc || ''}" onchange="config.movementLib['${type}'].desc = this.value"></div>
+                        <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;">
+                            <strong style="color:var(--accent);">CAMPOS DE NAVEGACIÓN:</strong><br>
+                            ${m.fields.map(f => moveLabels[f] || f).join(' • ')}
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                }
             }
         }
 

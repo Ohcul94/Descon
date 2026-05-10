@@ -9,13 +9,14 @@ module.exports = class SniperAI extends BaseAI {
 
     applyMovementLogic(target, dist, angle, now) {
         const speed = this.config.speed || 3.0;
+        const idealDist = this.config.idealDist || 450;
         
         // Lógica de Mantenimiento de Distancia (Kiting)
-        if (dist > this.idealDist + 50) {
+        if (dist > idealDist + 50) {
             // Demasiado lejos, acercarse un poco
             this.enemy.x += Math.cos(angle) * speed;
             this.enemy.y += Math.sin(angle) * speed;
-        } else if (dist < this.idealDist - 50) {
+        } else if (dist < idealDist - 50) {
             // Demasiado cerca, alejarse (Retirada táctica)
             this.enemy.x -= Math.cos(angle) * (speed * 1.2);
             this.enemy.y -= Math.sin(angle) * (speed * 1.2);
@@ -27,40 +28,5 @@ module.exports = class SniperAI extends BaseAI {
         }
 
         this.enemy.rotation = angle + Math.PI / 2;
-    }
-
-    applyCombatLogic(target, dist, angle, now, io) {
-        if (dist > 1000) return;
-
-        if (now > (this.enemy.nextShotTime || 0)) {
-            const isIceSniper = (this.enemy.type == 2);
-            const burstLimit = isIceSniper ? 1 : 3; 
-
-            if ((this.enemy.shotsInBurst || 0) < burstLimit) {
-                const currentAngle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
-                // v266.215: Respetar la configuración del Admin Dashboard si existe
-                const bSpeed = this.config.bulletSpeed || (isIceSniper ? 500 : 800); 
-                const bType = this.config.bulletType || (isIceSniper ? "ice_missile" : "laser");
-
-                if (isIceSniper && now % 5000 < 33) {
-                    console.log(`[DEBUG-ICE] Enemigo ${this.enemy.id} disparando hielo a ${target.user}`);
-                }
-
-                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
-                    enemyId: this.enemy.id,
-                    targetId: target.id,
-                    enemyType: this.enemy.type,
-                    x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
-                    bulletSpeed: bSpeed, 
-                    bulletType: bType,
-                    damage: (this.config && this.config.bulletDamage) ? this.config.bulletDamage : (this.enemy.type * 100)
-                });
-                this.enemy.shotsInBurst = (this.enemy.shotsInBurst || 0) + 1;
-                this.enemy.nextShotTime = now + (isIceSniper ? 2000 : 150);
-            } else {
-                this.enemy.shotsInBurst = 0;
-                this.enemy.nextShotTime = now + (this.config.fireRate || 2000);
-            }
-        }
     }
 }

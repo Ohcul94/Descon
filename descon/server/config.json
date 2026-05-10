@@ -37,7 +37,33 @@
             "rewardHubs": 100,
             "rewardOhcu": 1,
             "shield": 100,
-            "speed": 450
+            "speed": 450,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 40,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 450,
+                    "stopDist": 150,
+                    "startDelay": 0
+                },
+                {
+                    "type": "sniper",
+                    "speed": 3.5,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "idealDist": 150
+                }
+            ]
         },
         "2": {
             "bulletDamage": 600,
@@ -50,7 +76,35 @@
             "rewardHubs": 200,
             "rewardOhcu": 2,
             "shield": 300,
-            "speed": 420
+            "speed": 420,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 650,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "ice_missile",
+                    "bulletDamage": 40,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 50,
+                    "slowDuration": 2
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 420,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ]
         },
         "3": {
             "bulletDamage": 80,
@@ -63,7 +117,18 @@
             "rewardHubs": 350,
             "rewardOhcu": 3,
             "shield": 600,
-            "speed": 400
+            "speed": 400,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 80,
+                    "bulletSpeed": 850,
+                    "fireRange": 700,
+                    "fireRate": 1100,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "4": {
             "bulletDamage": 250,
@@ -76,7 +141,18 @@
             "rewardHubs": 3500,
             "rewardOhcu": 35,
             "shield": 4500,
-            "speed": 280
+            "speed": 280,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 250,
+                    "bulletSpeed": 850,
+                    "fireRange": 1000,
+                    "fireRate": 1000,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "5": {
             "bulletDamage": 120,
@@ -89,7 +165,18 @@
             "rewardHubs": 500,
             "rewardOhcu": 5,
             "shield": 800,
-            "speed": 350
+            "speed": 350,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 120,
+                    "bulletSpeed": 800,
+                    "fireRange": 750,
+                    "fireRate": 1500,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "6": {
             "bulletDamage": 200,
@@ -102,7 +189,18 @@
             "rewardHubs": 5000,
             "rewardOhcu": 50,
             "shield": 5000,
-            "speed": 250
+            "speed": 250,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 200,
+                    "bulletSpeed": 600,
+                    "fireRange": 800,
+                    "fireRate": 2500,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "7": {
             "bulletDamage": 160,
@@ -115,7 +213,18 @@
             "rewardHubs": 1000,
             "rewardOhcu": 10,
             "shield": 1500,
-            "speed": 320
+            "speed": 320,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 160,
+                    "bulletSpeed": 800,
+                    "fireRange": 700,
+                    "fireRate": 1300,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "8": {
             "bulletDamage": 350,
@@ -128,7 +237,18 @@
             "rewardHubs": 2500,
             "rewardOhcu": 25,
             "shield": 3000,
-            "speed": 300
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 350,
+                    "bulletSpeed": 800,
+                    "fireRange": 900,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "9": {
             "bulletDamage": 280,
@@ -141,7 +261,18 @@
             "rewardHubs": 3800,
             "rewardOhcu": 38,
             "shield": 4000,
-            "speed": 310
+            "speed": 310,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 280,
+                    "bulletSpeed": 880,
+                    "fireRange": 1050,
+                    "fireRate": 950,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "10": {
             "bulletDamage": 320,
@@ -154,7 +285,18 @@
             "rewardHubs": 4200,
             "rewardOhcu": 42,
             "shield": 5500,
-            "speed": 305
+            "speed": 305,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 320,
+                    "bulletSpeed": 920,
+                    "fireRange": 1150,
+                    "fireRate": 880,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "11": {
             "bulletDamage": 380,
@@ -167,7 +309,18 @@
             "rewardHubs": 4800,
             "rewardOhcu": 48,
             "shield": 6500,
-            "speed": 285
+            "speed": 285,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 380,
+                    "bulletSpeed": 980,
+                    "fireRange": 1250,
+                    "fireRate": 820,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "12": {
             "bulletDamage": 300,
@@ -180,7 +333,18 @@
             "rewardHubs": 4000,
             "rewardOhcu": 40,
             "shield": 5000,
-            "speed": 300
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 300,
+                    "bulletSpeed": 900,
+                    "fireRange": 1100,
+                    "fireRate": 900,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "13": {
             "bulletDamage": 350,
@@ -193,7 +357,18 @@
             "rewardHubs": 4500,
             "rewardOhcu": 45,
             "shield": 6000,
-            "speed": 290
+            "speed": 290,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 350,
+                    "bulletSpeed": 950,
+                    "fireRange": 1200,
+                    "fireRate": 850,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
         },
         "101": {
             "bulletDamage": 2000,
@@ -985,6 +1160,95 @@
                 "players": true
             },
             "type": "Utilidad"
+        }
+    },
+    "mechanicsLib": {
+        "laser": {
+            "label": "Láser Estándar",
+            "icon": "🔫",
+            "desc": "Ataque lineal básico de alta cadencia.",
+            "fields": [
+                "bulletDamage",
+                "bulletSpeed",
+                "fireRange",
+                "fireRate",
+                "startDelay"
+            ]
+        },
+        "missile": {
+            "label": "Misil Rastreador",
+            "icon": "🚀",
+            "desc": "Proyectil autoguiado de medio alcance.",
+            "fields": [
+                "bulletDamage",
+                "bulletSpeed",
+                "fireRange",
+                "fireRate",
+                "startDelay"
+            ]
+        },
+        "ice_missile": {
+            "label": "Misil de Hielo",
+            "icon": "❄️",
+            "desc": "Ralentiza al objetivo al impactar.",
+            "fields": [
+                "bulletDamage",
+                "bulletSpeed",
+                "fireRange",
+                "fireRate",
+                "slowAmount",
+                "slowDuration",
+                "startDelay"
+            ]
+        },
+        "mine": {
+            "label": "Mina de Proximidad",
+            "icon": "💣",
+            "desc": "Explosivo estático que se activa por cercanía.",
+            "fields": [
+                "bulletDamage",
+                "fireRange",
+                "fireRate",
+                "startDelay"
+            ]
+        }
+    },
+    "movementLib": {
+        "chase": {
+            "label": "Persecución Directa",
+            "icon": "🏃",
+            "desc": "Persigue al jugador hasta una distancia fija.",
+            "fields": [
+                "speed",
+                "stopDist"
+            ]
+        },
+        "sniper": {
+            "label": "Francotirador (Kiting)",
+            "icon": "🎯",
+            "desc": "Mantiene una distancia segura alejándose si te acercas.",
+            "fields": [
+                "speed",
+                "idealDist"
+            ]
+        },
+        "orbit": {
+            "label": "Órbita Circular",
+            "icon": "🔄",
+            "desc": "Gira alrededor del jugador constantemente.",
+            "fields": [
+                "speed",
+                "orbitRadius"
+            ]
+        },
+        "charger": {
+            "label": "Embestida (Dash)",
+            "icon": "⚡",
+            "desc": "Se acerca y lanza ataques de alta velocidad.",
+            "fields": [
+                "speed",
+                "chargeCooldown"
+            ]
         }
     }
 }

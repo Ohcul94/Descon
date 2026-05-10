@@ -243,13 +243,30 @@ function registerCombatHandlers(socket, io, state) {
                 // Si el cliente manda daño 0 o sospechosamente bajo, aplicamos daño base
                 if (dmg <= 0 || dmg > baseDmg) dmg = baseDmg;
 
-                // v266.180: Mecánica de Hielo (Slow de 10 pts por 3 segundos)
-                if (data.bulletType === "ice_missile") {
-                    p.isSlowed = true;
-                    p.slowPoints = 10;
-                    p.lastSlowTime = Date.now();
-                    p.slowEndTime = Date.now() + 3000;
-                    io.to(p.socketId).emit('slowState', { active: true, amount: 10 });
+                // v266.245: Búsqueda exhaustiva de Slow en Mecánicas Modulares
+                if (cfg) {
+                    let sAmount = cfg.slowAmount || 0;
+                    let sDuration = cfg.slowDuration || 3000;
+
+                    // Si no está en la raíz, buscar en el Arsenal Modular
+                    if (sAmount === 0 && cfg.mechanics) {
+                        const iceMech = cfg.mechanics.find(m => m.type === "ice_missile");
+                        if (iceMech) {
+                            sAmount = iceMech.slowAmount || 10;
+                            sDuration = (iceMech.slowDuration || 3) * 1000; // Convertir a ms si es necesario
+                        }
+                    }
+
+                    if (sAmount > 0 || data.bulletType === "ice_missile") {
+                        if (sAmount === 0) sAmount = 10; // Fallback final
+
+                        p.isSlowed = true;
+                        p.slowPoints = sAmount;
+                        p.lastSlowTime = Date.now();
+                        p.slowEndTime = Date.now() + sDuration;
+                        
+                        io.to(p.socketId).emit('slowState', { active: true, amount: sAmount });
+                    }
                 }
             }
             if (p.isInvulnerable) dmg = 0;
