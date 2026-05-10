@@ -28,4 +28,38 @@ module.exports = class SniperAI extends BaseAI {
 
         this.enemy.rotation = angle + Math.PI / 2;
     }
-};
+
+    applyCombatLogic(target, dist, angle, now, io) {
+        if (dist > 1000) return;
+
+        if (now > (this.enemy.nextShotTime || 0)) {
+            const isIceSniper = (this.enemy.type == 2);
+            const burstLimit = isIceSniper ? 1 : 3; 
+
+            if ((this.enemy.shotsInBurst || 0) < burstLimit) {
+                const currentAngle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
+                const bSpeed = isIceSniper ? 500 : (this.config.bulletSpeed || 800); 
+                const bType = isIceSniper ? "ice_missile" : "laser";
+
+                if (isIceSniper && now % 5000 < 33) {
+                    console.log(`[DEBUG-ICE] Enemigo ${this.enemy.id} disparando hielo a ${target.user}`);
+                }
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
+                    enemyId: this.enemy.id,
+                    targetId: target.id,
+                    enemyType: this.enemy.type,
+                    x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
+                    bulletSpeed: bSpeed, 
+                    bulletType: bType,
+                    damage: (this.config && this.config.bulletDamage) ? this.config.bulletDamage : (this.enemy.type * 100)
+                });
+                this.enemy.shotsInBurst = (this.enemy.shotsInBurst || 0) + 1;
+                this.enemy.nextShotTime = now + (isIceSniper ? 2000 : 150);
+            } else {
+                this.enemy.shotsInBurst = 0;
+                this.enemy.nextShotTime = now + (this.config.fireRate || 2000);
+            }
+        }
+    }
+}

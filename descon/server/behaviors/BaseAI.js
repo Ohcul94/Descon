@@ -61,6 +61,7 @@ module.exports = class BaseAI {
                     enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
                     bulletSpeed: bSpeed, 
+                    bulletType: this.config.bulletType || "laser",
                     damage: (this.config && this.config.bulletDamage) ? this.config.bulletDamage : (this.enemy.type * 100)
                 });
                 this.enemy.shotsInBurst = (this.enemy.shotsInBurst || 0) + 1;

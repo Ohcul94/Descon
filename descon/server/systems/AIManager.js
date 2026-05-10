@@ -121,6 +121,12 @@ class AIManager {
         if (boss103s.length === 0) {
             this.serverSpawnEnemy(7, 103, 2000, 2000);
         }
+
+        // v266.185: Spawning Enemigo 2 (Hielo) en Mapa 6 para testeo
+        const iceEnemiesZ6 = Object.values(this.state.enemies).filter(e => e.type === 2 && e.zone === 6);
+        if (iceEnemiesZ6.length < 5) {
+            this.serverSpawnEnemy(6, 2);
+        }
     }
 }
 

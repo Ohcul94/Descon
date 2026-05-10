@@ -152,6 +152,10 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			auth_success.emit(e_data)
 			login_success.emit(e_data)
 			player_auth_success.emit(e_data)
+			
+			if e_data.has("adminConfig"):
+				config_updated.emit(e_data.adminConfig)
+				admin_config_updated.emit(e_data.adminConfig)
 		"authError":
 			auth_error.emit(e_data)
 		"spawnEntity", "enemySpawn":

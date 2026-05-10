@@ -3,6 +3,24 @@ extends Node
 # Constants.gd (v255.20 - REESTRUCTURACIÓN TOTAL DE ENTIDADES Y IDS)
 # Mapa de IDs normalizado: 1-99 Enemigos Regulares, 100+ Bosses.
 
+func _ready():
+	if NetworkManager:
+		NetworkManager.admin_config_updated.connect(_on_config_updated)
+		NetworkManager.config_updated.connect(_on_config_updated)
+
+func _on_config_updated(config):
+	if typeof(config) != TYPE_DICTIONARY: return
+	
+	if config.has("shipModels"): SHIP_MODELS = config.shipModels
+	if config.has("enemyModels"): ENEMY_MODELS = config.enemyModels
+	if config.has("shopItems"): SHOP_ITEMS = config.shopItems
+	if config.has("ammoMultipliers"): AMMO_MULTIPLIERS = config.ammoMultipliers
+	if config.has("hordeConfig"): HORDES_CONFIG = config.hordeConfig
+	if config.has("skillsData"): SKILLS_DATA = config.skillsData
+	if config.has("mapsConfig"): MAPS_CONFIG = config.mapsConfig
+	
+	print("[CONSTANTS] Configuración sincronizada con el servidor.")
+
 var GAME_CONFIG = {
 	"worldSize": 10000.0,
 	"version": "2.5.5-Elite"

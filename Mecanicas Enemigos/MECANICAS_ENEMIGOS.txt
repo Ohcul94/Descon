@@ -1,0 +1,89 @@
+🛸 MANUAL DE MECÁNICAS DE ENEMIGOS - DESCON
+==========================================
+
+Este archivo sirve para llevar el registro de qué hace cada enemigo y qué tipo de movimiento tiene asignado.
+
+-----------------------------------------------------------
+🧠 TIPOS DE MOVIMIENTO (IA)
+-----------------------------------------------------------
+
+CHASE (ChaseAI):
+- Qué hace: Persigue al jugador directamente (Kamikaze). 
+- Habilidad: Si tiene poca vida (<15%), hace pequeños dashes laterales para que no le pegues tan fácil.
+
+SNIPER (SniperAI):
+- Qué hace: Mantiene la distancia (Francotirador). Se queda a unos 450px de ti. 
+- Habilidad: Si te acercas, se aleja. Si te alejas mucho, te busca para entrar en rango.
+
+CHARGER (ChargerAI):
+- Qué hace: Persecución agresiva.
+- Habilidad: EMBESTIDA. Cada 4-6 segundos mete un "nitro" y sale disparado hacia donde estás tú.
+
+GRAVITY (GravityAI):
+- Qué hace: Se mantiene a distancia media.
+- Habilidad: VÓRTICE. Activa una succión que te arrastra hacia él, dificultando tu escape.
+
+ORBIT (OrbitAI):
+- Qué hace: Da vueltas alrededor tuyo.
+- Habilidad: Ninguna especial, es para hostigamiento constante.
+
+-----------------------------------------------------------
+👾 CATÁLOGO DE ENEMIGOS Y SUS MECÁNICAS
+-----------------------------------------------------------
+
+ENEMIGO 1:
+- Movimiento: CHASE.
+- Habilidad: Ninguna (Básico).
+
+ENEMIGO 2:
+- Movimiento: SNIPER.
+- MECÁNICA ESPECIAL: DISPARO DE HIELO. 
+- Detalle: Dispara misiles celestes que te dan un SLOW de 10 puntos por 3 segundos.
+
+ENEMIGO 3:
+- Movimiento: CHARGER.
+- Habilidad: Embestida física (Dash).
+
+ENEMIGO 4:
+- Movimiento: CHASE.
+- Detalle: Es un bicho pesado (mucha vida).
+
+ENEMIGO 5:
+- Movimiento: SNIPER.
+
+ENEMIGO 6:
+- Movimiento: GRAVITY.
+- Habilidad: Vórtice de succión (Azul).
+
+ENEMIGO 7:
+- Movimiento: GRAVITY.
+
+ENEMIGO 8:
+- Movimiento: CHARGER.
+
+ENEMIGO 9:
+- Movimiento: CHASE.
+
+ENEMIGO 10:
+- Movimiento: ORBIT.
+
+ENEMIGO 11:
+- Movimiento: ORBIT.
+
+ENEMIGO 12:
+- Movimiento: SNIPER.
+
+ENEMIGO 13:
+- Movimiento: CHASE.
+
+-----------------------------------------------------------
+🔥 JEFES (BOSSES)
+-----------------------------------------------------------
+
+ID 101 - LORD TITÁN: IA de Boss básica.
+ID 102 - ANCIENT TITÁN: IA de Boss pesada.
+ID 103 - MECHANIC BOSS: Tiene fases. Al 50% de vida tira un escudo y dispara en ráfagas de 8 balas (círculo).
+
+-----------------------------------------------------------
+Última actualización: 10/05/2026
+Cambios: Se agregó la mecánica de misiles de hielo al Enemigo 2.

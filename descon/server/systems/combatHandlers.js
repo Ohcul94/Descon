@@ -242,6 +242,15 @@ function registerCombatHandlers(socket, io, state) {
                 // v262.140: Parche Anti-Inmortalidad
                 // Si el cliente manda daño 0 o sospechosamente bajo, aplicamos daño base
                 if (dmg <= 0 || dmg > baseDmg) dmg = baseDmg;
+
+                // v266.180: Mecánica de Hielo (Slow de 10 pts por 3 segundos)
+                if (data.bulletType === "ice_missile") {
+                    p.isSlowed = true;
+                    p.slowPoints = 10;
+                    p.lastSlowTime = Date.now();
+                    p.slowEndTime = Date.now() + 3000;
+                    io.to(p.socketId).emit('slowState', { active: true, amount: 10 });
+                }
             }
             if (p.isInvulnerable) dmg = 0;
 

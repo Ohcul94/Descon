@@ -33,7 +33,7 @@ func _ready():
 func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	global_position = p_pos
 	rotation = p_angle
-	type = p_data.get("type", "laser")
+	type = p_data.get("bulletType", p_data.get("type", "laser"))
 	owner_id = str(p_data.get("enemyId", p_data.get("id", p_data.get("senderId", p_data.get("entityId", "")))))
 	owner_type = p_data.get("owner_type", "player")
 	enemy_type = int(p_data.get("enemyType", 1))
@@ -41,7 +41,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	speed = p_data.get("bulletSpeed", p_data.get("speed", 800.0))
 	max_range = float(p_data.get("range", 0.0))
 	
-	if type == "missile":
+	if type == "missile" or type == "ice_missile":
 		speed = 450.0 
 	elif type == "mine" and max_range > 0:
 		# v3.6: Lógica de Precisión - Velocidad calculada para frenar EXACTO en el rango
@@ -69,6 +69,7 @@ func _setup_visual_sprite():
 	match type:
 		"laser": path = "res://assets/Municiones/Laser1.png"
 		"missile": path = "res://assets/Municiones/Misil1.png"
+		"ice_missile": path = "res://assets/Municiones/Misil1.png" # Reusamos textura pero pintaremos
 		"mine": path = "res://assets/Municiones/Mina1.png"
 	
 	if path != "" and ResourceLoader.exists(path):
@@ -87,16 +88,28 @@ func _setup_visual_sprite():
 		# Ajuste de orientación. Los renders "desde arriba" del usuario están a -90 grados respecto del este
 		sprite.rotation_degrees = 90
 		
+		if type == "ice_missile":
+			sprite.modulate = Color(0.4, 0.7, 1.0) # Celeste Hielo
+		elif owner_type == "enemy":
+			sprite.modulate = Color(1.0, 0.3, 0.3) # Rojo para enemigos
+		else:
+			sprite.modulate = Color(0.3, 1.0, 1.0) # Cyan para jugadores
+		
 		add_child(sprite)
 
 func _draw():
 	if is_instance_valid(sprite): return
+	var color = Color.WHITE
+	if type == "ice_missile": color = Color(0.4, 0.7, 1.0)
+	elif owner_type == "enemy": color = Color(1.0, 0.3, 0.3)
+	else: color = Color(0.3, 1.0, 1.0)
+
 	match type:
 		"laser":
-			draw_rect(Rect2(Vector2(-10, -2.5), Vector2(20, 5)), Color.WHITE)
-		"missile":
-			draw_line(Vector2(-10, 0), Vector2(10, 0), Color.WHITE, 6.0)
-			draw_circle(Vector2(10, 0), 4, Color.WHITE)
+			draw_rect(Rect2(Vector2(-10, -2.5), Vector2(20, 5)), color)
+		"missile", "ice_missile":
+			draw_line(Vector2(-10, 0), Vector2(10, 0), color, 6.0)
+			draw_circle(Vector2(10, 0), 4, color)
 		"mine":
 			draw_circle(Vector2.ZERO, 10, Color.WHITE)
 			draw_circle(Vector2.ZERO, 12, Color(1, 1, 1, 0.3), false, 3.0)
@@ -165,7 +178,8 @@ func _on_body_entered(body):
 				NetworkManager.send_event("playerHitByEnemy", {
 					"damage": damage, 
 					"attackerType": owner_type,
-					"enemyType": enemy_type # v226.41: Informar qué bicho pegó para validar daño
+					"enemyType": enemy_type, # v226.41: Informar qué bicho pegó para validar daño
+					"bulletType": type # v266.182: Informar si es hielo o especial
 				})
 		
 		_explode()

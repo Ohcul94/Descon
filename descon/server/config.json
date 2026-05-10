@@ -325,56 +325,56 @@
             "color": "#00ff00",
             "desc": "Zona de entrenamiento básico y recolección.",
             "minLevel": 1,
-            "name": "Mapa 1",
+            "name": "Mapa 2",
             "warpCost": 0
         },
         "3": {
             "color": "#ffff00",
             "desc": "Sector hostil con recursos de nivel medio.",
-            "minLevel": 1,
-            "name": "Mapa 2",
+            "minLevel": 5,
+            "name": "Mapa 3",
             "warpCost": 10
         },
         "4": {
             "color": "#ffaa00",
             "desc": "Nebulosa densa con piratas espaciales.",
-            "minLevel": 1,
-            "name": "Mapa 3",
+            "minLevel": 10,
+            "name": "Mapa 4",
             "warpCost": 25
         },
         "5": {
             "color": "#ff5500",
             "desc": "Zona de asteroides inestables.",
-            "minLevel": 1,
-            "name": "Mapa 4",
+            "minLevel": 15,
+            "name": "Mapa 5",
             "warpCost": 50
         },
         "6": {
             "color": "#ff0000",
             "desc": "Borde exterior: Peligro extremo.",
-            "minLevel": 1,
-            "name": "Mapa 5",
+            "minLevel": 20,
+            "name": "Mapa 6",
             "warpCost": 100
         },
         "7": {
             "color": "#aa0000",
             "desc": "Sector de invasión: Hordas detectadas.",
-            "minLevel": 1,
-            "name": "Mapa 6",
+            "minLevel": 25,
+            "name": "Mapa 7",
             "warpCost": 200
         },
         "8": {
             "color": "#550000",
             "desc": "Guarida de Jefes: Requiere escolta.",
-            "minLevel": 1,
-            "name": "Mapa 7",
+            "minLevel": 30,
+            "name": "Mapa 8",
             "warpCost": 500
         },
         "9": {
             "color": "#aa00ff",
             "desc": "Zona de Pruebas Tácticas (Showcase).",
-            "minLevel": 1,
-            "name": "Mapa 8",
+            "minLevel": 35,
+            "name": "Mapa 9",
             "warpCost": 1000
         }
     },
@@ -656,6 +656,7 @@
         "engines": [
             {
                 "base": 20,
+                "desc": "Propulsión química.",
                 "id": "en1",
                 "name": "Motor M1",
                 "prices": {
@@ -665,6 +666,7 @@
             },
             {
                 "base": 50,
+                "desc": "Estándar iónico.",
                 "id": "en2",
                 "name": "Motor M2",
                 "prices": {
@@ -674,6 +676,7 @@
             },
             {
                 "base": 100,
+                "desc": "Núcleo de plasma.",
                 "id": "en3",
                 "name": "Motor M3",
                 "prices": {
@@ -682,9 +685,30 @@
                 }
             }
         ],
+        "extras": [
+            {
+                "desc": "Optimiza el salto hiperespacial.",
+                "id": "ext1",
+                "name": "CPU de Salto",
+                "prices": {
+                    "hubs": 50000,
+                    "ohcu": 50
+                }
+            },
+            {
+                "desc": "Mayor alcance de escaneo.",
+                "id": "ext2",
+                "name": "Radar Táctico",
+                "prices": {
+                    "hubs": 100000,
+                    "ohcu": 100
+                }
+            }
+        ],
         "shields": [
             {
                 "base": 1000,
+                "desc": "Protección básica.",
                 "id": "sh1",
                 "name": "Escudo S1",
                 "prices": {
@@ -694,6 +718,7 @@
             },
             {
                 "base": 5000,
+                "desc": "Reforzado con titanio.",
                 "id": "sh2",
                 "name": "Escudo S2",
                 "prices": {
@@ -703,17 +728,51 @@
             },
             {
                 "base": 15000,
+                "desc": "Campo gravitacional.",
                 "id": "sh3",
                 "name": "Escudo SG3",
                 "prices": {
                     "hubs": 500000,
                     "ohcu": 500
                 }
+            },
+            {
+                "base": 40000,
+                "desc": "Reparación por nanobots.",
+                "id": "sh4",
+                "name": "Escudo NX",
+                "prices": {
+                    "hubs": 2000000,
+                    "ohcu": 2000
+                }
+            },
+            {
+                "base": 100000,
+                "desc": "Tecnología alienígena.",
+                "id": "sh5",
+                "name": "Escudo Fusion",
+                "premium": true,
+                "prices": {
+                    "hubs": 0,
+                    "ohcu": 10000
+                }
+            },
+            {
+                "base": 250000,
+                "desc": "Casi invulnerable.",
+                "id": "sh6",
+                "name": "Generador Z+",
+                "premium": true,
+                "prices": {
+                    "hubs": 0,
+                    "ohcu": 25000
+                }
             }
         ],
         "weapons": [
             {
                 "base": 100,
+                "desc": "Láser básico.",
                 "id": "las1",
                 "name": "Láser LF-1",
                 "prices": {
@@ -723,20 +782,54 @@
             },
             {
                 "base": 250,
+                "desc": "Mejora en potencia.",
                 "id": "las2",
                 "name": "Láser LF-2",
                 "prices": {
-                    "hubs": 5000,
+                    "hubs": 50000,
                     "ohcu": 50
                 }
             },
             {
                 "base": 600,
+                "desc": "Estándar militar.",
                 "id": "las3",
                 "name": "Láser LF-3",
                 "prices": {
                     "hubs": 200000,
                     "ohcu": 200
+                }
+            },
+            {
+                "base": 1500,
+                "desc": "Vanguardia tecnológica.",
+                "id": "las4",
+                "name": "Láser LF-4",
+                "prices": {
+                    "hubs": 1000000,
+                    "ohcu": 1000
+                }
+            },
+            {
+                "base": 5000,
+                "desc": "Poder solar concentrado.",
+                "id": "las5",
+                "name": "Láser Prometheus",
+                "premium": true,
+                "prices": {
+                    "hubs": 0,
+                    "ohcu": 5000
+                }
+            },
+            {
+                "base": 15000,
+                "desc": "Disruptor de materia.",
+                "id": "las6",
+                "name": "Cañón Hyper",
+                "premium": true,
+                "prices": {
+                    "hubs": 0,
+                    "ohcu": 15000
                 }
             }
         ]

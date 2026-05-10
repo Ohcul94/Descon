@@ -55,11 +55,8 @@ func _spawn_projectile(data, o_type):
 	if p.has_method("setup"):
 		p.setup(p.global_position, p.rotation, spawn_data)
 	
-	# Ajustes extra de equipo/render
-	if o_type == "enemy" or o_type == "server":
-		p.modulate = Color(1.0, 0.3, 0.3) # Rojo Vivo
-	else:
-		p.modulate = Color(0.3, 1.0, 1.0) # Cyan Brillante
+	# v266.190: Eliminado override de color forzado. 
+	# Projectile.gd ahora gestiona sus propios colores según el bulletType.
 
 func _on_enemy_hit(enemy, b):
 	var dmg = b.get("damage") if b.get("damage") else 100.0

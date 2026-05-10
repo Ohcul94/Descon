@@ -172,7 +172,7 @@ function startGameLoop(io, state, aiManager) {
             if (wasBlinded && !p.isBlinded) io.to(p.socketId).emit('blindState', { active: false });
 
             const wasSlowed = p.isSlowed;
-            if (now - (p.lastSlowTime || 0) > 400) {
+            if (now - (p.lastSlowTime || 0) > 400 && (!p.slowEndTime || now > p.slowEndTime)) {
                 p.isSlowed = false;
                 p.slowPoints = 0;
             }
