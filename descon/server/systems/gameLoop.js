@@ -117,21 +117,7 @@ function startGameLoop(io, state, aiManager) {
         Object.values(players).forEach(p => {
             if (p.hp <= 0) return;
 
-            // v266.350: Procesar Mecánicas de Ambiente (Hazards)
-            const mapConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[p.zone] : null;
-            if (mapConfig && mapConfig.ambience) {
-                mapConfig.ambience.forEach(hazard => {
-                    if (hazard.type === 'radiation' && hazard.damagePerSecond) {
-                        p.hp = Math.max(0, p.hp - (hazard.damagePerSecond / 1)); // daño cada tick de 1s
-                        p.lastCombatTime = now; // La radiación cuenta como combate para evitar regen
-                    }
-                    if (hazard.type === 'nebula' && hazard.slowPercentage) {
-                        p.isSlowed = true;
-                        p.lastSlowTime = now;
-                        p.slowPoints = hazard.slowPercentage;
-                    }
-                });
-            }
+            let changed = false;
 
             const timeSinceCombat = now - (p.lastCombatTime || 0);
             if (timeSinceCombat > 10000) { // 10s fuera de combate
@@ -140,20 +126,26 @@ function startGameLoop(io, state, aiManager) {
 
                 if (p.hp < p.maxHp) {
                     p.hp = Math.min(p.maxHp, p.hp + regenAmount);
+                    changed = true;
                 }
                 if (p.shield < p.maxShield) {
                     p.shield = Math.min(p.maxShield, p.shield + shieldRegen);
+                    changed = true;
                 }
             }
 
-            // Sync obligatorio si hubo cambios por ambiente o regen
-            io.to(`zone_${p.zone}`).emit('playerStatSync', {
-                id: p.socketId, 
-                hp: Math.ceil(p.hp), 
-                shield: Math.ceil(p.shield),
-                isInvisible: p.isInvisible,
-                isSlowed: p.isSlowed // v266.351
-            });
+            // Sync obligatorio solo si hubo cambios por ambiente o regen
+            if (changed) {
+                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                    id: p.socketId, 
+                    hp: Math.ceil(p.hp), 
+                    shield: Math.ceil(p.shield),
+                    maxHp: p.maxHp, // v270.0: Enviar máximos para evitar bugs visuales de 65k
+                    maxShield: p.maxShield,
+                    isInvisible: p.isInvisible,
+                    isSlowed: p.isSlowed // v266.351
+                });
+            }
         });
     }, 1000);
 
@@ -194,6 +186,52 @@ function startGameLoop(io, state, aiManager) {
                 p.isSlowed = false;
                 p.slowPoints = 0;
             }
+            
+            // v266.350: Procesar Mecánicas de Ambiente (Hazards) con precisión de 100ms
+            const mapConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[p.zone] : null;
+            if (mapConfig && mapConfig.ambience && p.hp > 0) {
+                mapConfig.ambience.forEach((hazard, idx) => {
+                    // Compatibilidad retroactiva: si existe damagePerSecond, lo convertimos a damage e interval 1000ms
+                    const dmg = hazard.damage || hazard.damagePerSecond || 0;
+                    const interval = hazard.intervalMs || 1000;
+                    
+                    if (hazard.type === 'radiation' && dmg > 0) {
+                        if (!p.hazardCooldowns) p.hazardCooldowns = {};
+                        const hKey = `rad_${idx}`;
+                        const lastHit = p.hazardCooldowns[hKey] || 0;
+                        
+                        if (now - lastHit >= interval) {
+                            p.hazardCooldowns[hKey] = now;
+                            p.lastCombatTime = now; // Mantiene estado de combate (previene cambio de nave y regen)
+                            
+                            // Golpear escudo primero
+                            if (p.shield >= dmg) p.shield -= dmg;
+                            else { p.hp -= (dmg - p.shield); p.shield = 0; }
+                            
+                            if (p.hp < 0) p.hp = 0;
+                            
+                            io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                            
+                            // Emitimos el Sync para que el cliente actualice barras y números inmediatamente
+                            io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                id: p.socketId, 
+                                hp: Math.ceil(p.hp), 
+                                shield: Math.ceil(p.shield),
+                                maxHp: p.maxHp, 
+                                maxShield: p.maxShield,
+                                isInvisible: p.isInvisible,
+                                isSlowed: p.isSlowed
+                            });
+                        }
+                    }
+                    else if (hazard.type === 'nebula' && hazard.slowPercentage) {
+                        p.isSlowed = true;
+                        p.lastSlowTime = now;
+                        p.slowPoints = hazard.slowPercentage;
+                    }
+                });
+            }
+            
             if (wasSlowed !== p.isSlowed) {
                 io.to(p.socketId).emit('slowState', { active: p.isSlowed, amount: p.slowPoints });
             }

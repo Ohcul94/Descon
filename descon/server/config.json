@@ -516,7 +516,9 @@
             "ambience": [
                 {
                     "type": "radiation",
-                    "damagePerSecond": 10
+                    "damagePerSecond": 10,
+                    "damage": 20,
+                    "intervalMs": 3000
                 },
                 {
                     "type": "nebula",

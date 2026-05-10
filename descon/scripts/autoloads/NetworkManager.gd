@@ -45,6 +45,7 @@ signal clan_member_status(data)
 signal spawn_area(data)
 signal remove_area(data)
 signal ship_equip_data(data)
+signal environment_damaged(data) # v266.350: Daño Ambiental
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
@@ -218,6 +219,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"enemyDead", "serverEnemyDead": enemy_dead.emit(e_data)
 		"enemyKillSession": enemy_kill_session.emit(e_data)
 		"bossEffect": boss_effect.emit(e_data)
+		"environmentDamage": environment_damaged.emit(e_data)
 		"clanMemberStatus": clan_member_status.emit(e_data)
 		"spawnArea": spawn_area.emit(e_data)
 		"removeArea": remove_area.emit(e_data)

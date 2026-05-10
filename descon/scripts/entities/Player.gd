@@ -67,8 +67,32 @@ func _ready():
 		NetworkManager.login_success.connect(_on_login_success)
 		NetworkManager.inventory_data.connect(_on_inventory_received)
 		NetworkManager.slow_state.connect(_on_slow_state)
+		NetworkManager.environment_damaged.connect(_on_environment_damaged)
 	
 	_setup_skill_controller()
+
+func _on_environment_damaged(data: Dictionary):
+	var dmg = float(data.get("damage", 0.0))
+	if dmg > 0:
+		# Detenemos la falsa regeneración local avisando a Godot que estamos en combate
+		last_combat_time = Time.get_ticks_msec() 
+		
+		# Aplicamos el daño visualmente para que las barras bajen al instante 
+		# (Evita el salto brusco cuando llega el Sync del servidor)
+		if current_shield >= dmg:
+			current_shield -= dmg
+		else:
+			current_hp -= (dmg - current_shield)
+			current_shield = 0
+		
+		if current_hp < 0: current_hp = 0
+		
+		# Llama directamente a la función base de Entity para dibujar el texto
+		_spawn_damage_text(str(int(dmg)), Color.RED)
+		
+		# Feedback visual extra de la cámara temblando levemente
+		if _cam_node:
+			_shake_amount = min(5.0, _shake_amount + 2.0)
 
 func _on_slow_state(data: Dictionary):
 	if data.has("active"):

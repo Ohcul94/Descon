@@ -1207,7 +1207,7 @@
                                     </div>
                                     <div class="form-grid" style="margin-top:1rem;">
                                         ${AMBIENCE_LIB[a.type || 'radiation'].fields.map(f => {
-                                            const labels = { damagePerSecond: "Daño (pts/s)", slowPercentage: "Slow (%)", visibility: "Visibilidad (px)", dashPenalty: "Penalidad Dash (%)" };
+                                            const labels = { damage: "Daño (pts)", intervalMs: "Intervalo (ms)", slowPercentage: "Slow (%)", visibility: "Visibilidad (px)", dashPenalty: "Penalidad Dash (%)" };
                                             return `<div class="field"><label>${labels[f] || f}</label><input type="number" value="${a[f] || 0}" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseInt(this.value)"></div>`;
                                         }).join('')}
                                     </div>
@@ -1221,7 +1221,7 @@
 
         function addAmbience(id) {
             if(!config.mapsConfig[id].ambience) config.mapsConfig[id].ambience = [];
-            config.mapsConfig[id].ambience.push({ type: "radiation", damagePerSecond: 10 });
+            config.mapsConfig[id].ambience.push({ type: "radiation", damage: 10, intervalMs: 300 });
         }
 
         function renderSkills() {
@@ -1263,7 +1263,7 @@
         };
 
         let AMBIENCE_LIB = {
-            "radiation": { label: "Radiación", icon: "☢️", desc: "Daño constante por segundo.", fields: ["damagePerSecond"] },
+            "radiation": { label: "Radiación", icon: "☢️", desc: "Daño constante por intervalos de tiempo.", fields: ["damage", "intervalMs"] },
             "nebula": { label: "Nebulosa", icon: "🌫️", desc: "Efecto de slow ambiental.", fields: ["slowPercentage", "visibility"] },
             "gravity": { label: "Gravedad Alta", icon: "🪐", desc: "Reduce la velocidad de dash.", fields: ["dashPenalty"] }
         };
