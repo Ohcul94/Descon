@@ -130,6 +130,11 @@ func _ready():
 		hangar_node.set_script(load("res://scripts/ui/inventory/HangarTab.gd"))
 		if hangar_node.has_method("setup"): hangar_node.setup(self)
 	
+	var spheres_node = get_node_or_null("Window/TabContainer/Esferas")
+	if spheres_node:
+		spheres_node.set_script(load("res://scripts/ui/inventory/SpheresTab.gd"))
+		if spheres_node.has_method("setup"): spheres_node.setup(self)
+	
 	_refresh_data()
 
 func _aggressive_hide(node):
@@ -291,8 +296,16 @@ func _on_inventory_received(data: Dictionary):
 		owned_ships = data.ownedShips
 	if data.has("currentShipId"):
 		current_ship_id = int(data.currentShipId)
-	if data.has("hubs"): hubs = int(data.hubs)
 	if data.has("ohcu"): ohcu = int(data.ohcu)
+	
+	# v300.05: Sincronizar Gestor de Esferas (Esencial para la nueva arquitectura)
+	if spheres_manager == null:
+		var player_node = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(player_node): spheres_manager = player_node.get_node_or_null("SpheresManager")
+	
+	# v300.06: NOTIFICAR A MÓDULOS (Refresco de UI en tiempo real)
+	_update_active_tab_ui()
+	queue_redraw()
 	if data.has("gameData"):
 		var gd = data.gameData
 		if gd.has("pendingClanRequests"): pending_clans = gd.pendingClanRequests
@@ -356,7 +369,9 @@ func _update_active_tab_ui():
 		"Hangar": 
 			var h = tab_container.get_node_or_null("Hangar")
 			if h and h.has_method("update_ui"): h.update_ui()
-		"Esferas": _update_spheres_ui()
+		"Esferas": 
+			var s = tab_container.get_node_or_null("Esferas")
+			if s and s.has_method("update_ui"): s.update_ui()
 		"Talentos": _update_talent_tree()
 		"Tienda": _update_shop_ui()
 		"Equipo": _update_party_ui()
@@ -369,323 +384,6 @@ func _update_active_tab_ui():
 func _update_hangar_ui():
 	var h = get_node_or_null("Window/TabContainer/Hangar")
 	if h and h.has_method("update_ui"): h.update_ui()
-
-# --- ESFERAS ---
-func _update_spheres_ui():
-	var root_tab = get_node_or_null("Window/TabContainer/Esferas")
-	if not root_tab: return
-	
-	# v2.8: Persistencia de Sub-Pestaña (Evitar saltos al filtrar)
-	var prev_idx = 0
-	for child in root_tab.get_children():
-		if child is TabContainer:
-			prev_idx = child.current_tab
-			break
-
-	for n in root_tab.get_children(): n.queue_free()
-	
-	# v201.5: Creación de Sub-Pestañas para Esferas
-	var sub_tabs = TabContainer.new()
-	sub_tabs.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root_tab.add_child(sub_tabs)
-	
-	var eq_tab = Control.new(); eq_tab.name = "SISTEMA ORBITAL"; sub_tabs.add_child(eq_tab)
-	var lib_tab = Control.new(); lib_tab.name = "BIBLIOTECA DE HABILIDADES"; sub_tabs.add_child(lib_tab)
-	
-	_render_spheres_equipment(eq_tab, sub_tabs)
-	_render_spheres_library(lib_tab)
-	
-	# Restaurar la pestaña donde estábamos (v2.8 Fix)
-	sub_tabs.current_tab = prev_idx
-
-func _render_spheres_equipment(tab, sub_tabs):
-	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); master_v.offset_top = 20; tab.add_child(master_v)
-	
-	var spheres_h = HBoxContainer.new(); spheres_h.alignment = BoxContainer.ALIGNMENT_CENTER; spheres_h.add_theme_constant_override("separation", 60); master_v.add_child(spheres_h)
-	
-	spheres_manager = null
-
-	var p = get_tree().get_first_node_in_group("player")
-	if is_instance_valid(p): spheres_manager = p.get_node_or_null("SpheresManager")
-	
-	if not is_instance_valid(spheres_manager):
-		var err = Label.new(); err.text = "SISTEMA ORBITAL NO INICIALIZADO"; err.horizontal_alignment = 1; master_v.add_child(err)
-		return
-
-	for i in range(4):
-		if i >= spheres_manager.spheres_data.size(): break
-		var s_data = spheres_manager.spheres_data[i]
-		# v205.20: Saneamiento de Color HÍBRIDO (CSV + HEX)
-		var s_color = s_data["color"]
-		if typeof(s_color) == TYPE_STRING:
-			var c_str = s_color.replace("(","").replace(")","").replace(" ","")
-			if "," in c_str:
-				var parts = c_str.split(",")
-				if parts.size() >= 3:
-					var r_val = float(parts[0]); var g_val = float(parts[1]); var b_val = float(parts[2])
-					var a_val = float(parts[3]) if parts.size() > 3 else 1.0
-					s_color = Color(r_val, g_val, b_val, a_val)
-			else:
-				# Soporte para Hexadecimal (#ffffff)
-				s_color = Color(c_str)
-		var v_box = VBoxContainer.new(); spheres_h.add_child(v_box)
-		
-		var s_label = Label.new(); s_label.text = s_data["name"]; s_label.horizontal_alignment = 1; s_label.modulate = s_color; v_box.add_child(s_label)
-		
-		var p_ui = PanelContainer.new(); p_ui.custom_minimum_size = Vector2(140, 140); v_box.add_child(p_ui)
-		p_ui.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; p_ui.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 3; sb.border_width_right = 3; sb.border_width_top = 3; sb.border_width_bottom = 3; sb.border_color = s_color; sb.corner_radius_top_left = 70; sb.corner_radius_top_right = 70; sb.corner_radius_bottom_left = 70; sb.corner_radius_bottom_right = 70; p_ui.add_theme_stylebox_override("panel", sb)
-		
-		# Efecto de brillo interior para esferas vacías
-		if not s_data["equipped"]:
-			sb.bg_color = s_color; sb.bg_color.a = 0.05
-		
-		var equipped = s_data["equipped"]
-		var center = CenterContainer.new(); p_ui.add_child(center)
-		var info_v = VBoxContainer.new(); center.add_child(info_v)
-		
-		var s_name = "VACÍO"
-		if equipped:
-			# v206.10: Filtro ANTI-BASURA (Bloquea punteros RESOURCE del servidor)
-			var eq_str = str(equipped)
-			if eq_str.begins_with("():<RE"): 
-				s_name = "VACÍO"
-				equipped = null # Forzar reset local para visual limpia
-			elif typeof(equipped) == TYPE_DICTIONARY: 
-				s_name = str(equipped.get("skill_name", "SKILL"))
-			elif "skill_name" in equipped: 
-				s_name = str(equipped.skill_name)
-			else: 
-				s_name = eq_str
-		
-		var name_lbl = Label.new()
-		name_lbl.text = s_name.to_upper()
-		name_lbl.horizontal_alignment = 1; name_lbl.add_theme_font_size_override("font_size", 11)
-		name_lbl.modulate.a = 1.0 if equipped else 0.3
-		info_v.add_child(name_lbl)
-		
-		if equipped:
-			var p_val = 0
-			if typeof(equipped) == TYPE_DICTIONARY: p_val = equipped.get("power_value", 0)
-			elif "power_value" in equipped: p_val = equipped.power_value
-			var pwr = Label.new(); pwr.text = "POT: " + str(p_val); pwr.add_theme_font_size_override("font_size", 9); pwr.modulate = s_color; pwr.horizontal_alignment = 1; info_v.add_child(pwr)
-		
-		var type_txt = s_data["type"]
-		var final_color = Color.SLATE_GRAY
-		if equipped:
-			final_color = s_color
-			var raw_type = "Ataque"
-			if typeof(equipped) == TYPE_DICTIONARY: raw_type = equipped.get("type", "Ataque")
-			else: raw_type = equipped.get("type") if equipped.get("type") else "Ataque"
-			type_txt = str(raw_type).to_upper()
-
-			# Mapeo visual de colores para los slots equipados (v262.800)
-			if type_txt == "ATAQUE": final_color = Color.RED
-			elif type_txt == "DEFENSA": final_color = Color.AQUA
-			elif type_txt == "CURACIÓN" or type_txt == "CURACION": final_color = Color.GREEN
-			elif type_txt == "MOVIMIENTO" or type_txt == "UTILIDAD": final_color = Color.YELLOW
-		else:
-			type_txt = "NINGUNO"
-
-		
-		# Aplicar color al borde del slot
-		sb.border_color = final_color
-		if not equipped: sb.bg_color = Color.DIM_GRAY; sb.bg_color.a = 0.1
-
-		
-		var type_label = Label.new(); type_label.text = type_txt; type_label.modulate = final_color; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
-		var b = Button.new(); b.text = "RECONFIGURAR" if equipped else "EQUIPAR NÚCLEO"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
-
-		var idx = i
-		b.pressed.connect(func(): 
-			selected_sphere_slot = idx
-			# Si está vacío, permitimos todos (ANY), si ya tiene tipo, filtramos por ese tipo
-			selected_sphere_type_filter = "ANY"
-			if equipped:
-				selected_sphere_type_filter = type_txt
-			
-			if is_instance_valid(sub_tabs): 
-				sub_tabs.current_tab = 1
-		)
-
-		
-		# v214.200: Botón explícito para DESEQUIPAR (v214.201 Feedback Fix)
-		if equipped:
-			var bu = Button.new(); bu.text = "DESEQUIPAR"; bu.add_theme_font_size_override("font_size", 9); bu.modulate = Color(1, 0.4, 0.4); v_box.add_child(bu)
-			bu.pressed.connect(func(): 
-				if NetworkManager: 
-					# v214.202: Feedback visual instantáneo para UX premium
-					if is_instance_valid(spheres_manager):
-						spheres_manager.spheres_data[i]["equipped"] = null
-						spheres_manager._update_visuals()
-					
-					NetworkManager.send_event("unequipSphere", {"sphereId": i})
-					
-					# Refrescar la pestaña actual después de un breve delay
-					await get_tree().create_timer(0.1).timeout
-					_update_spheres_ui()
-			)
-
-func _render_spheres_library(tab):
-	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); main_v.offset_left = 20; main_v.offset_right = -20; main_v.offset_top = 20; tab.add_child(main_v)
-	
-	# v235.65: Barra de Filtros de Color
-	var filter_h = HBoxContainer.new(); filter_h.alignment = BoxContainer.ALIGNMENT_CENTER; filter_h.add_theme_constant_override("separation", 15); main_v.add_child(filter_h)
-	var filters = ["ANY", "ATAQUE", "DEFENSA", "CURACIÓN", "UTILIDAD"]
-	for f in filters:
-		var fb = Button.new(); fb.text = " " + f + " "; fb.flat = (selected_sphere_type_filter != f)
-		fb.add_theme_font_size_override("font_size", 10)
-		if f == "ATAQUE": fb.modulate = Color.RED
-		elif f == "DEFENSA": fb.modulate = Color.AQUA
-		elif f == "CURACIÓN": fb.modulate = Color.GREEN
-		elif f == "UTILIDAD": fb.modulate = Color.YELLOW
-		fb.pressed.connect(func(): selected_sphere_type_filter = f; _update_spheres_ui())
-		filter_h.add_child(fb)
-	
-	main_v.add_child(HSeparator.new())
-	
-	var scroll = ScrollContainer.new(); scroll.size_flags_vertical = 3; main_v.add_child(scroll)
-	var grid = GridContainer.new(); grid.columns = 2; grid.size_flags_horizontal = 3; grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 20); scroll.add_child(grid)
-	
-	# v235.66: Catálogo de Habilidades Expandido (2 por color)
-	var all_skills = [
-		{"class": Skill_TurboImpulse, "color": Color.YELLOW, "icon": "⚡", "type": "UTILIDAD"},
-		{"class": Skill_HyperDash, "color": Color.YELLOW, "icon": "💨", "type": "UTILIDAD"},
-		{"class": Skill_Invulnerability, "color": Color.YELLOW, "icon": "🛡️", "type": "UTILIDAD"},
-		{"class": Skill_Blink, "color": Color.YELLOW, "icon": "✨", "type": "UTILIDAD"},
-		{"class": Skill_Stealth, "color": Color.YELLOW, "icon": "👻", "type": "UTILIDAD"},
-		
-		{"class": Skill_ShieldCell, "color": Color.AQUA, "icon": "🛡️", "type": "DEFENSA"},
-		{"class": Skill_Fortress, "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},
-		{"class": Skill_FrostTrail, "color": Color.AQUA, "icon": "❄️", "type": "DEFENSA"},
-		{"class": Skill_SmokeBomb, "color": Color.AQUA, "icon": "☁️", "type": "DEFENSA"},
-		
-		{"class": Skill_RepairKit, "color": Color.GREEN, "icon": "🔧", "type": "CURACIÓN"},
-		{"class": Skill_RegenPath, "color": Color.GREEN, "icon": "🧪", "type": "CURACIÓN"},
-		
-		{"class": Skill_Reflect, "color": Color.RED, "icon": "🛡️", "type": "ATAQUE"},
-		{"class": Skill_PlasmaBlast, "color": Color.RED, "icon": "💥", "type": "ATAQUE"}
-	]
-	
-	# v235.75: Recolectar lista de habilidades ya equipadas (Evitar duplicados)
-	var currently_equipped = []
-	if is_instance_valid(spheres_manager):
-		for s in spheres_manager.spheres_data:
-			var eq = s.get("equipped")
-			if eq:
-				var e_name = eq.get("skill_name", "") if typeof(eq) == TYPE_DICTIONARY else eq.get("skill_name")
-				currently_equipped.append(e_name)
-
-	for s_info in all_skills:
-		# Aplicar filtro si no es ANY
-		if selected_sphere_type_filter != "ANY" and s_info["type"] != selected_sphere_type_filter:
-			continue
-			
-		var s_inst = s_info["class"].new()
-		var is_already_on = s_inst.skill_name in currently_equipped
-		_create_skill_card(s_inst, s_info["color"], s_info["icon"], grid, is_already_on)
-
-func _create_skill_card(skill: SphereSkill, color: Color, icon_text: String, parent: Control, is_equipped: bool = false):
-
-	var skill_card = PanelContainer.new()
-	skill_card.custom_minimum_size = Vector2(350, 120)
-	parent.add_child(skill_card)
-	
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0, 0, 0.05, 0.7)
-	sb.border_width_left = 4
-	sb.border_color = color
-	sb.corner_radius_top_right = 8
-	sb.corner_radius_bottom_right = 8
-	skill_card.add_theme_stylebox_override("panel", sb)
-	
-	var hb = HBoxContainer.new()
-	hb.offset_left = 15
-	skill_card.add_child(hb)
-	
-	# Icono Placeholder
-	var icon_box = CenterContainer.new()
-	icon_box.custom_minimum_size = Vector2(60, 0)
-	hb.add_child(icon_box)
-	var ico = Label.new()
-	ico.text = icon_text
-	ico.add_theme_font_size_override("font_size", 30)
-	ico.modulate = color
-	icon_box.add_child(ico)
-	
-	var v_info = VBoxContainer.new()
-	v_info.size_flags_horizontal = 3
-	v_info.alignment = BoxContainer.ALIGNMENT_CENTER
-	hb.add_child(v_info)
-	
-	var name_l = Label.new()
-	name_l.text = skill.skill_name
-	name_l.add_theme_font_size_override("font_size", 14)
-	name_l.modulate = color
-	v_info.add_child(name_l)
-	
-	var desc_l = Label.new()
-	desc_l.text = skill.description
-	desc_l.add_theme_font_size_override("font_size", 10)
-	desc_l.modulate.a = 0.6
-	desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v_info.add_child(desc_l)
-	
-	var stats_h = HBoxContainer.new()
-	stats_h.add_theme_constant_override("separation", 15)
-	v_info.add_child(stats_h)
-	
-	var stat_p = Label.new()
-	stat_p.text = "POTENCIA: " + str(skill.power_value)
-	stat_p.add_theme_font_size_override("font_size", 9)
-	stat_p.modulate = color
-	stats_h.add_child(stat_p)
-	
-	var stat_c = Label.new()
-	stat_c.text = "CD: " + str(skill.cooldown) + "s"
-	stat_c.add_theme_font_size_override("font_size", 9)
-	stat_c.modulate.a = 0.5
-	stats_h.add_child(stat_c)
-	
-	var b_equip = Button.new()
-	b_equip.text = "YA EQUIPADA" if is_equipped else "EQUIPAR"
-	b_equip.disabled = is_equipped
-	b_equip.custom_minimum_size = Vector2(80, 0)
-	b_equip.size_flags_vertical = 4
-	hb.add_child(b_equip)
-	
-	if is_equipped:
-		skill_card.modulate.a = 0.5
-	
-	b_equip.pressed.connect(func():
-
-		var p_node = get_tree().get_first_node_in_group("player")
-		if p_node and p_node.has_node("SpheresManager"):
-			var sm = p_node.get_node("SpheresManager")
-			
-			# v235.68: Usar el slot seleccionado o buscar el primero libre si es ANY
-			var target_idx = selected_sphere_slot
-			if target_idx == -1:
-				for i in range(4):
-					if sm.spheres_data[i]["equipped"] == null:
-						target_idx = i; break
-			
-			if target_idx != -1:
-				NetworkManager.send_event("equipSphere", {
-					"sphereId": target_idx,
-					"skill": {
-						"skill_name": skill.skill_name,
-						"power_value": skill.power_value,
-						"type": skill.type
-					}
-				})
-				
-				# Update local visual (feedback inmediato)
-				sm.equip_item(target_idx, skill)
-				_update_spheres_ui()
-				print("[SPHERES] Equipando en slot ", target_idx, ": ", skill.skill_name)
-	)
-
 
 # --- SHOP ---
 func _update_shop_ui():
