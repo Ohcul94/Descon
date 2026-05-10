@@ -21,15 +21,14 @@ func update_ui():
 	
 	# --- BARRA DE CATEGORÍAS ---
 	var bar = HBoxContainer.new(); bar.add_theme_constant_override("separation", 15); main_v.add_child(bar)
-	var lbats = {"ships": "NAVES", "weapons": "ARMAS", "shields": "ESCUDOS", "engines": "MOTORES", "ammo": "MUNICIONES"}
+	var lbats = {"ships": "NAVES", "weapons": "ARMAS", "shields": "ESCUDOS", "engines": "MOTORES", "ammo": "MUNICIONES", "extras": "EXTRAS"}
 	for k in lbats:
 		var b = Button.new(); b.text = lbats[k]; b.flat = true
 		b.modulate = Color.CYAN if shop_tab == k else Color.WHITE
 		b.pressed.connect(func(): shop_tab = k; update_ui())
 		bar.add_child(b)
 	
-	# v300.52: Eliminado subtítulo innecesario por pedido del usuario
-	var spacer = Control.new(); spacer.custom_minimum_size.y = 10; main_v.add_child(spacer)
+	# v262.530: Subtítulo eliminado por pedido del usuario
 	
 	var scr = ScrollContainer.new(); scr.size_flags_vertical = 3; main_v.add_child(scr)
 	var grid = GridContainer.new(); grid.columns = 3; grid.size_flags_horizontal = 3; grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 20); scr.add_child(grid)
@@ -46,9 +45,11 @@ func _create_shop_card(it, cat, parent):
 	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(280, 110)
 	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0.02,0.1, 0.4); sb.border_width_top = 1; sb.border_color = Color(0,1,1,0.1); p.add_theme_stylebox_override("panel", sb)
 	var v = VBoxContainer.new(); v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); v.offset_left = 10; v.offset_right = -10; p.add_child(v)
+	v.add_theme_constant_override("separation", 4) # Espaciado original
 	
-	var n = Label.new(); n.text = it["name"].to_upper(); n.horizontal_alignment = 1; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
+	var n = Label.new(); n.text = it["name"]; n.horizontal_alignment = 1; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
 	
+	# v262.860: Mostrar Stats (Sincronizado con Admin)
 	var base_val = it.get("base", 0)
 	var stat_label = Label.new(); stat_label.horizontal_alignment = 1; stat_label.add_theme_font_size_override("font_size", 9); stat_label.modulate = Color.GOLD
 	if cat == "weapons": stat_label.text = "POTENCIA DE FUEGO: " + str(base_val)
@@ -58,7 +59,6 @@ func _create_shop_card(it, cat, parent):
 
 	var d = Label.new(); d.text = it.get("desc", ""); d.horizontal_alignment = 1; d.modulate.a = 0.5; d.add_theme_font_size_override("font_size", 8); v.add_child(d)
 	
-	# v300.53: CORRECCIÓN DE DETECCIÓN (Fuerza comparación numérica)
 	var is_owned = false
 	if cat == "ships":
 		var target_id = int(it["id"])
@@ -70,12 +70,13 @@ func _create_shop_card(it, cat, parent):
 		var l = Label.new(); l.text = "\nNAVE ADQUIRIDA"; l.modulate = Color.GREEN; l.horizontal_alignment = 1; v.add_child(l)
 	else:
 		var pr = it["prices"]
-		if pr["hubs"] > 0:
+		if pr.get("hubs", 0) > 0:
 			var b1 = Button.new(); b1.text = inv_main._format_val(pr["hubs"]) + " HUBS"; v.add_child(b1)
 			b1.pressed.connect(func(): _buy_request(cat, it, "hubs"))
-		if pr["ohcu"] > 0:
+		if pr.get("ohcu", 0) > 0:
 			var b2 = Button.new(); b2.text = inv_main._format_val(pr["ohcu"]) + " OHCU"; v.add_child(b2)
 			b2.pressed.connect(func(): _buy_request(cat, it, "ohcu"))
+	
 	parent.add_child(p)
 
 func _render_ammo_shop(parent, grid):

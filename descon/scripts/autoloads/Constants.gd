@@ -69,20 +69,30 @@ var SHOP_ITEMS = {
 			{ "id": "am_m6", "name": "Misil T6", "prices": { "hubs": 0, "ohcu": 100 }, "range": 1500 }
 		]
 	},
-	"engines": [
-		{ "id": "en1", "name": "Motor M1", "prices": { "hubs": 5000, "ohcu": 5 }, "base": 20 },
-		{ "id": "en2", "name": "Motor M2", "prices": { "hubs": 50000, "ohcu": 50 }, "base": 50 },
-		{ "id": "en3", "name": "Motor M3", "prices": { "hubs": 300000, "ohcu": 300 }, "base": 100 }
+	"weapons": [
+		{ "id": "las1", "name": "Láser LF-1", "desc": "Láser básico.", "base": 100, "prices": { "hubs": 10000, "ohcu": 10 } },
+		{ "id": "las2", "name": "Láser LF-2", "desc": "Mejora en potencia.", "base": 250, "prices": { "hubs": 50000, "ohcu": 50 } },
+		{ "id": "las3", "name": "Láser LF-3", "desc": "Estándar militar.", "base": 600, "prices": { "hubs": 200000, "ohcu": 200 } },
+		{ "id": "las4", "name": "Láser LF-4", "desc": "Vanguardia tecnológica.", "base": 1500, "prices": { "hubs": 1000000, "ohcu": 1000 } },
+		{ "id": "las5", "name": "Láser Prometheus", "desc": "Poder solar concentrado.", "base": 5000, "prices": { "hubs": 0, "ohcu": 5000 }, "premium": true },
+		{ "id": "las6", "name": "Cañón Hyper", "desc": "Disruptor de materia.", "base": 15000, "prices": { "hubs": 0, "ohcu": 15000 }, "premium": true }
 	],
 	"shields": [
-		{ "id": "sh1", "name": "Escudo S1", "prices": { "hubs": 10000, "ohcu": 10 }, "base": 1000 },
-		{ "id": "sh2", "name": "Escudo S2", "prices": { "hubs": 100000, "ohcu": 100 }, "base": 5000 },
-		{ "id": "sh3", "name": "Escudo SG3", "prices": { "hubs": 500000, "ohcu": 500 }, "base": 15000 }
+		{ "id": "sh1", "name": "Escudo S1", "desc": "Protección básica.", "base": 1000, "prices": { "hubs": 10000, "ohcu": 10 } },
+		{ "id": "sh2", "name": "Escudo S2", "desc": "Reforzado con titanio.", "base": 5000, "prices": { "hubs": 100000, "ohcu": 100 } },
+		{ "id": "sh3", "name": "Escudo SG3", "desc": "Campo gravitacional.", "base": 15000, "prices": { "hubs": 500000, "ohcu": 500 } },
+		{ "id": "sh4", "name": "Escudo NX", "desc": "Reparación por nanobots.", "base": 40000, "prices": { "hubs": 2000000, "ohcu": 2000 } },
+		{ "id": "sh5", "name": "Escudo Fusion", "desc": "Tecnología alienígena.", "base": 100000, "prices": { "hubs": 0, "ohcu": 10000 }, "premium": true },
+		{ "id": "sh6", "name": "Generador Z+", "desc": "Casi invulnerable.", "base": 250000, "prices": { "hubs": 0, "ohcu": 25000 }, "premium": true }
 	],
-	"weapons": [
-		{ "id": "las1", "name": "Láser LF-1", "prices": { "hubs": 10000, "ohcu": 10 }, "base": 100 },
-		{ "id": "las2", "name": "Láser LF-2", "prices": { "hubs": 5000, "ohcu": 50 }, "base": 250 },
-		{ "id": "las3", "name": "Láser LF-3", "prices": { "hubs": 200000, "ohcu": 200 }, "base": 600 }
+	"engines": [
+		{ "id": "en1", "name": "Motor M1", "desc": "Propulsión química.", "base": 20, "prices": { "hubs": 5000, "ohcu": 5 } },
+		{ "id": "en2", "name": "Motor M2", "desc": "Estándar iónico.", "base": 50, "prices": { "hubs": 50000, "ohcu": 50 } },
+		{ "id": "en3", "name": "Motor M3", "desc": "Núcleo de plasma.", "base": 100, "prices": { "hubs": 300000, "ohcu": 300 } }
+	],
+	"extras": [
+		{ "id": "ext1", "name": "CPU de Salto", "desc": "Optimiza el salto hiperespacial.", "prices": { "hubs": 50000, "ohcu": 50 } },
+		{ "id": "ext2", "name": "Radar Táctico", "desc": "Mayor alcance de escaneo.", "prices": { "hubs": 100000, "ohcu": 100 } }
 	]
 }
 
