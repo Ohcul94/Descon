@@ -591,6 +591,19 @@ func _create_item_row(it, parent):
 	
 	var icon_rect = TextureRect.new(); icon_rect.custom_minimum_size = Vector2(32, 32); icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED; hb.add_child(icon_rect)
 	hb.move_child(icon_rect, 0)
+	
+	# v262.860: Asignar icono según ID de ítem
+	var icon_path = ""
+	if item_id.begins_with("las"): icon_path = "res://assets/Municiones/Laser1.png"
+	elif item_id.begins_with("am_l"): icon_path = "res://assets/Municiones/Laser1.png"
+	elif item_id.begins_with("am_m"): icon_path = "res://assets/Municiones/Misil1.png"
+	elif item_id.begins_with("am_n"): icon_path = "res://assets/Municiones/Mina1.png"
+	elif item_id.begins_with("en"): icon_path = "res://assets/Esferas/EsferaAmarilla1.png" # Fallback a esfera
+	elif item_id.begins_with("sh"): icon_path = "res://assets/Esferas/EsferaAzul1.png" # Fallback a esfera
+	
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		icon_rect.texture = load(icon_path)
+	
 	sb.border_color = slot_color
 	
 	# v262.630: Botones de Acción (Equipar y Vender)

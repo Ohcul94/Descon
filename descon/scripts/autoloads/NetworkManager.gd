@@ -57,6 +57,7 @@ var is_logged_in: bool = false # v244.60: Control global de estado de sesión
 var ping_start_time: int = 0
 var current_ms: int = 0
 var is_registering: bool = false # v244.10: Soporte para creación de cuenta
+var current_user_data: Dictionary = {} 
 
 
 func _ready():
@@ -147,6 +148,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"loginSuccess", "authSuccess":
 			is_logged_in = true
 			my_socket_id = str(e_data.get("socketId", ""))
+			current_user_data = e_data
 			auth_success.emit(e_data)
 			login_success.emit(e_data)
 			player_auth_success.emit(e_data)

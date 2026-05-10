@@ -66,18 +66,17 @@
             "speed": 400
         },
         "4": {
-            "bulletDamage": 2000,
-            "bulletSpeed": 900,
-            "fireRange": 1200,
-            "fireRate": 800,
-            "hp": 100000,
-            "name": "Lord Titán",
-            "rageTimer": 20,
-            "rewardExp": 10000,
-            "rewardHubs": 50000,
-            "rewardOhcu": 500,
-            "shield": 50000,
-            "speed": 250
+            "bulletDamage": 250,
+            "bulletSpeed": 850,
+            "fireRange": 1000,
+            "fireRate": 1000,
+            "hp": 8000,
+            "name": "Enemigo 4",
+            "rewardExp": 1500,
+            "rewardHubs": 3500,
+            "rewardOhcu": 35,
+            "shield": 4500,
+            "speed": 280
         },
         "5": {
             "bulletDamage": 120,
@@ -132,24 +131,92 @@
             "speed": 300
         },
         "9": {
-            "bulletDamage": 250,
-            "bulletSpeed": 850,
-            "fireRange": 1000,
-            "fireRate": 1000,
-            "hp": 8000,
-            "name": "Enemigo 4",
-            "rewardExp": 1500,
-            "rewardHubs": 3500,
-            "rewardOhcu": 35,
-            "shield": 4500,
-            "speed": 280
+            "bulletDamage": 280,
+            "bulletSpeed": 880,
+            "fireRange": 1050,
+            "fireRate": 950,
+            "hp": 9000,
+            "name": "Enemigo 9",
+            "rewardExp": 1800,
+            "rewardHubs": 3800,
+            "rewardOhcu": 38,
+            "shield": 4000,
+            "speed": 310
         },
         "10": {
+            "bulletDamage": 320,
+            "bulletSpeed": 920,
+            "fireRange": 1150,
+            "fireRate": 880,
+            "hp": 11000,
+            "name": "Enemigo 10",
+            "rewardExp": 2200,
+            "rewardHubs": 4200,
+            "rewardOhcu": 42,
+            "shield": 5500,
+            "speed": 305
+        },
+        "11": {
+            "bulletDamage": 380,
+            "bulletSpeed": 980,
+            "fireRange": 1250,
+            "fireRate": 820,
+            "hp": 13000,
+            "name": "Enemigo 11",
+            "rewardExp": 2800,
+            "rewardHubs": 4800,
+            "rewardOhcu": 48,
+            "shield": 6500,
+            "speed": 285
+        },
+        "12": {
+            "bulletDamage": 300,
+            "bulletSpeed": 900,
+            "fireRange": 1100,
+            "fireRate": 900,
+            "hp": 10000,
+            "name": "Enemigo 12",
+            "rewardExp": 2000,
+            "rewardHubs": 4000,
+            "rewardOhcu": 40,
+            "shield": 5000,
+            "speed": 300
+        },
+        "13": {
+            "bulletDamage": 350,
+            "bulletSpeed": 950,
+            "fireRange": 1200,
+            "fireRate": 850,
+            "hp": 12000,
+            "name": "Enemigo 13",
+            "rewardExp": 2500,
+            "rewardHubs": 4500,
+            "rewardOhcu": 45,
+            "shield": 6000,
+            "speed": 290
+        },
+        "101": {
+            "bulletDamage": 2000,
+            "bulletSpeed": 900,
+            "fireRange": 1200,
+            "fireRate": 800,
+            "hp": 100000,
+            "isBoss": true,
+            "name": "Lord Titán",
+            "rageTimer": 20,
+            "rewardExp": 10000,
+            "rewardHubs": 50000,
+            "rewardOhcu": 500,
+            "shield": 50000,
+            "speed": 250
+        },
+        "102": {
             "bulletDamage": 5000,
             "bulletSpeed": 1000,
             "fireRange": 1500,
             "fireRate": 1000,
             "hp": 200000,
+            "isBoss": true,
             "name": "Ancient Titán",
             "rageTimer": 20,
             "rewardExp": 25000,
@@ -158,12 +225,13 @@
             "shield": 100000,
             "speed": 220
         },
-        "11": {
+        "103": {
             "bulletDamage": 3000,
             "bulletSpeed": 1100,
             "fireRange": 1300,
             "fireRate": 600,
             "hp": 150000,
+            "isBoss": true,
             "name": "Mechanic Boss",
             "rageTimer": 20,
             "rewardExp": 50000,
@@ -229,7 +297,7 @@
                 "enemies": [
                     {
                         "count": 10,
-                        "type": "9"
+                        "type": "4"
                     },
                     {
                         "count": 5,
@@ -237,7 +305,7 @@
                     },
                     {
                         "count": 1,
-                        "type": "4"
+                        "type": "101"
                     }
                 ],
                 "name": "Fase 4: El Gran Juicio",
@@ -248,71 +316,70 @@
     "mapsConfig": {
         "1": {
             "color": "#ffffff",
-            "desc": "Puerto seguro central de comercio.",
+            "desc": "Zona segura de reunión y comercio.",
             "minLevel": 1,
-            "name": "LOBY",
+            "name": "Loby",
             "warpCost": 0
         },
         "2": {
-            "color": "#00ffff",
-            "desc": "Sector de inicio y entrenamiento.",
+            "color": "#00ff00",
+            "desc": "Zona de entrenamiento básico y recolección.",
             "minLevel": 1,
-            "name": "MAPA 2",
+            "name": "Mapa 1",
             "warpCost": 0
         },
         "3": {
-            "color": "#ffd700",
-            "desc": "Zona de exploración profunda.",
-            "minLevel": 2,
-            "name": "MAPA 3",
+            "color": "#ffff00",
+            "desc": "Sector hostil con recursos de nivel medio.",
+            "minLevel": 1,
+            "name": "Mapa 2",
             "warpCost": 10
         },
         "4": {
-            "color": "#ffa500",
-            "desc": "Sector de anomalías espaciales.",
-            "minLevel": 3,
-            "name": "MAPA 4",
-            "warpCost": 10
+            "color": "#ffaa00",
+            "desc": "Nebulosa densa con piratas espaciales.",
+            "minLevel": 1,
+            "name": "Mapa 3",
+            "warpCost": 25
         },
         "5": {
-            "color": "#00ffff",
-            "desc": "Antigua base de suministros.",
-            "minLevel": 4,
-            "name": "MAPA 5",
-            "warpCost": 10
+            "color": "#ff5500",
+            "desc": "Zona de asteroides inestables.",
+            "minLevel": 1,
+            "name": "Mapa 4",
+            "warpCost": 50
         },
         "6": {
             "color": "#ff0000",
-            "desc": "Cinturón de radiación estelar.",
-            "minLevel": 5,
-            "name": "MAPA 6",
-            "warpCost": 10
+            "desc": "Borde exterior: Peligro extremo.",
+            "minLevel": 1,
+            "name": "Mapa 5",
+            "warpCost": 100
         },
         "7": {
-            "color": "#87ceeb",
-            "desc": "Sistemas de defensa remotos.",
-            "minLevel": 6,
-            "name": "MAPA 7",
-            "warpCost": 10
+            "color": "#aa0000",
+            "desc": "Sector de invasión: Hordas detectadas.",
+            "minLevel": 1,
+            "name": "Mapa 6",
+            "warpCost": 200
         },
         "8": {
-            "color": "#ff00ff",
-            "desc": "Vacío intergaláctico.",
-            "minLevel": 7,
-            "name": "MAPA 8",
-            "warpCost": 10
+            "color": "#550000",
+            "desc": "Guarida de Jefes: Requiere escolta.",
+            "minLevel": 1,
+            "name": "Mapa 7",
+            "warpCost": 500
         },
         "9": {
-            "color": "#c0c0c0",
-            "desc": "Confines del universo conocido.",
-            "minLevel": 8,
-            "name": "MAPA 9",
-            "warpCost": 10
+            "color": "#aa00ff",
+            "desc": "Zona de Pruebas Tácticas (Showcase).",
+            "minLevel": 1,
+            "name": "Mapa 8",
+            "warpCost": 1000
         }
     },
     "shipModels": [
         {
-            "attack": 100,
             "hp": 3000,
             "id": 1,
             "name": "Phoenix-L1",
@@ -330,7 +397,6 @@
             "speed": 500
         },
         {
-            "attack": 120,
             "hp": 4500,
             "id": 2,
             "name": "Vulture-G2",
@@ -348,7 +414,6 @@
             "speed": 330
         },
         {
-            "attack": 150,
             "hp": 10000,
             "id": 3,
             "name": "Falcon-A3",
@@ -366,7 +431,6 @@
             "speed": 360
         },
         {
-            "attack": 250,
             "hp": 25000,
             "id": 4,
             "name": "Titan-S4",
@@ -384,7 +448,6 @@
             "speed": 390
         },
         {
-            "attack": 500,
             "hp": 70000,
             "id": 5,
             "name": "Wraith-X5",
@@ -402,7 +465,6 @@
             "speed": 420
         },
         {
-            "attack": 1000,
             "hp": 200000,
             "id": 6,
             "name": "Galactus-Z6",
@@ -618,33 +680,6 @@
                     "hubs": 300000,
                     "ohcu": 300
                 }
-            },
-            {
-                "base": 180,
-                "id": "en4",
-                "name": "Motor M4",
-                "prices": {
-                    "hubs": 1000000,
-                    "ohcu": 1000
-                }
-            },
-            {
-                "base": 300,
-                "id": "en5",
-                "name": "Motor M5",
-                "prices": {
-                    "hubs": 5000000,
-                    "ohcu": 5000
-                }
-            },
-            {
-                "base": 500,
-                "id": "en6",
-                "name": "Motor M6",
-                "prices": {
-                    "hubs": 20000000,
-                    "ohcu": 25000
-                }
             }
         ],
         "shields": [
@@ -674,33 +709,6 @@
                     "hubs": 500000,
                     "ohcu": 500
                 }
-            },
-            {
-                "base": 40000,
-                "id": "sh4",
-                "name": "Escudo SG4",
-                "prices": {
-                    "hubs": 2000000,
-                    "ohcu": 2000
-                }
-            },
-            {
-                "base": 100000,
-                "id": "sh5",
-                "name": "Escudo SG5",
-                "prices": {
-                    "hubs": 10000000,
-                    "ohcu": 10000
-                }
-            },
-            {
-                "base": 250000,
-                "id": "sh6",
-                "name": "Escudo SG6",
-                "prices": {
-                    "hubs": 50000000,
-                    "ohcu": 50000
-                }
             }
         ],
         "weapons": [
@@ -718,7 +726,7 @@
                 "id": "las2",
                 "name": "Láser LF-2",
                 "prices": {
-                    "hubs": 50000,
+                    "hubs": 5000,
                     "ohcu": 50
                 }
             },
@@ -730,33 +738,6 @@
                     "hubs": 200000,
                     "ohcu": 200
                 }
-            },
-            {
-                "base": 1500,
-                "id": "las4",
-                "name": "Láser LF-4",
-                "prices": {
-                    "hubs": 1500000,
-                    "ohcu": 1500
-                }
-            },
-            {
-                "base": 4500,
-                "id": "las5",
-                "name": "Láser LF-5",
-                "prices": {
-                    "hubs": 10000000,
-                    "ohcu": 10000
-                }
-            },
-            {
-                "base": 15000,
-                "id": "las6",
-                "name": "Láser LF-6",
-                "prices": {
-                    "hubs": 50000000,
-                    "ohcu": 50000
-                }
             }
         ]
     },
@@ -766,6 +747,7 @@
             "canTargetOthers": true,
             "cd": 5,
             "desc": "Drones de reparación restauran la integridad del casco.",
+            "id": "SK-HEAL-01",
             "range": 500,
             "targetFilters": {
                 "allies": true,
@@ -777,7 +759,7 @@
         },
         "BLINK": {
             "canTargetOthers": false,
-            "cd": 2,
+            "cd": 15,
             "desc": "Teletransportación instantánea al punto seleccionado.",
             "id": "SK-UTIL-04",
             "range": 450,
@@ -788,7 +770,8 @@
             "canTargetOthers": true,
             "cd": 5,
             "desc": "Inyecta plasma en los generadores para restaurar el escudo.",
-            "range": 500,
+            "id": "SK-DEF-01",
+            "range": 0,
             "targetFilters": {
                 "allies": true,
                 "bosses": false,
@@ -799,39 +782,31 @@
         },
         "FORTALEZA-X": {
             "amount": 1200,
+            "canTargetOthers": false,
             "cd": 15,
             "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.",
-            "range": 500,
+            "id": "SK-DEF-02",
+            "range": 0,
             "type": "Defensa"
         },
         "FROST-TRAIL": {
-            "canTargetOthers": true,
-            "cd": 2,
+            "canTargetOthers": false,
+            "cd": 18,
             "desc": "Deja un rastro de escarcha que ralentiza a los enemigos.",
             "duration": 6,
+            "id": "SK-DEF-04",
             "radius": 120,
             "range": 0,
             "slow_amount": 0.5,
-            "targetFilters": {
-                "allies": true,
-                "bosses": true,
-                "enemies": true,
-                "players": true
-            },
             "type": "Defensa"
         },
         "HYPER-DASH": {
-            "canTargetOthers": true,
+            "canTargetOthers": false,
             "cd": 5,
             "desc": "Propulsión instantánea hacia adelante para evasión rápida.",
+            "id": "SK-UTIL-02",
             "range": 0,
             "speed": 1000,
-            "targetFilters": {
-                "allies": true,
-                "bosses": false,
-                "enemies": false,
-                "players": true
-            },
             "type": "Utilidad"
         },
         "INVULNERABILIDAD": {
@@ -839,6 +814,7 @@
             "cd": 30,
             "desc": "Te vuelve inmune a todo daño durante 2 segundos.",
             "duration": 2,
+            "id": "SK-UTIL-03",
             "range": 0,
             "type": "Utilidad"
         },
@@ -847,7 +823,8 @@
             "canTargetOthers": true,
             "cd": 12,
             "desc": "Inyecta nanobots que reparan el casco de forma continua.",
-            "range": 500,
+            "id": "SK-HEAL-02",
+            "range": 0,
             "targetFilters": {
                 "allies": true,
                 "bosses": false,
@@ -858,33 +835,46 @@
         },
         "PLASMA BLAST": {
             "amount": 850,
+            "canTargetOthers": true,
             "cd": 8,
             "desc": "Disparo concentrado de plasma con alta potencia destructiva.",
+            "id": "SK-ATK-02",
             "range": 600,
+            "targetFilters": {
+                "allies": false,
+                "bosses": true,
+                "enemies": true,
+                "players": true
+            },
             "type": "Ataque"
         },
         "REFLECT-Ω": {
             "amount": 500,
+            "canTargetOthers": false,
             "cd": 5,
             "desc": "Crea un campo de resonancia que refleja daño hostil.",
+            "id": "SK-ATK-01",
             "range": 0,
             "reflect_mult": 1.5,
             "type": "Ataque"
         },
         "SMOKE-BOMB": {
+            "amount": 1,
             "canTargetOthers": false,
-            "cd": 1,
+            "cd": 12,
             "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.",
             "duration": 6,
+            "id": "SK-DEF-03",
             "radius": 180,
             "range": 0,
             "type": "Defensa"
         },
         "STEALTH": {
             "canTargetOthers": false,
-            "cd": 2,
+            "cd": 25,
             "desc": "Te vuelve invisible para enemigos y jugadores fuera de tu grupo.",
             "duration": 8,
+            "id": "SK-UTIL-05",
             "range": 0,
             "type": "Utilidad"
         },
@@ -892,6 +882,7 @@
             "canTargetOthers": true,
             "cd": 5,
             "desc": "Aumenta la velocidad de los motores temporalmente.",
+            "id": "SK-UTIL-01",
             "range": 0,
             "speed": 150,
             "targetFilters": {

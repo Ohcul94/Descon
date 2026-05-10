@@ -54,6 +54,9 @@ func _ready():
 			btn.pressed.connect(_on_icon_pressed.bind("Squad"))
 			c_bar.add_child(btn)
 			c_bar.move_child(btn, 0)
+			
+	# v266.155: Soporte para cambio de resolución en tiempo real
+	get_viewport().size_changed.connect(_on_viewport_resize)
 
 
 	
@@ -243,16 +246,37 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 		if node and typeof(pos_data) == TYPE_DICTIONARY:
 			var rx = float(pos_data.get("x", 0.0))
 			var ry = float(pos_data.get("y", 0.0))
+			
+			var final_pos = Vector2.ZERO
 			if rx <= 2.0 and ry <= 2.0:
-				node.top_level = true # v266.96: Asegurar que ignore el contenedor al cargar
-				node.global_position = Vector2(rx * screen_size.x, ry * screen_size.y)
+				# Posicionamiento porcentual (0.0 - 1.0)
+				final_pos = Vector2(rx * screen_size.x, ry * screen_size.y)
 			else:
-				node.top_level = true
-				node.global_position = Vector2(rx, ry)
+				# Posicionamiento absoluto (Pixeles)
+				# v266.150: Adaptar posición absoluta a nueva resolución si es necesario
+				# Asumimos que el layout original era para 1280x800 (base del proyecto)
+				var scale_x = screen_size.x / 1280.0
+				var scale_y = screen_size.y / 800.0
+				final_pos = Vector2(rx * scale_x, ry * scale_y)
+			
+			node.top_level = true
+			# Clampear para que no se salga de la pantalla
+			var node_size = node.size if node.size.x > 0 else Vector2(100, 100)
+			final_pos.x = clamp(final_pos.x, 0, screen_size.x - node_size.x)
+			final_pos.y = clamp(final_pos.y, 0, screen_size.y - node_size.y)
+			node.global_position = final_pos
 	
+	# v266.157: Restaurar el bucle de visibilidad que se movió por error
 	for win_id in config:
 		var node = _get_hud_node(win_id)
 		if node: node.visible = bool(config[win_id])
+
+func _on_viewport_resize():
+	# v266.156: Re-aplicar layout al cambiar el tamaño de la ventana
+	if not is_instance_valid(NetworkManager): return
+	var data = NetworkManager.current_user_data
+	if typeof(data) == TYPE_DICTIONARY and data.has("hud_layout"):
+		_apply_hud_data(data["hud_layout"], data.get("hud_config", {}))
 
 func _process(_delta):
 	var p_node = get_tree().get_first_node_in_group("player")
