@@ -223,6 +223,9 @@ func _input(event: InputEvent):
 	for ui in ui_nodes:
 		if ui.visible: return
 
+	# v266.160: Bloquear shortcuts si el usuario está escribiendo (Chat, etc)
+	var focus_node = get_viewport().gui_get_focus_owner()
+	if focus_node is LineEdit or focus_node is TextEdit: return
 
 	if event.is_action_pressed("ui_menu"):
 		toggle_esc_menu()
@@ -614,6 +617,10 @@ func _aggressive_hide(node):
 				# child.visible = false; child.queue_free() # v243.61: Ya no borramos, ahora lo usamos para el Mapa
 
 func _handle_ammo_selector():
+	# v266.161: Bloquear selector si hay foco en un campo de texto
+	var focus_node = get_viewport().gui_get_focus_owner()
+	if focus_node is LineEdit or focus_node is TextEdit: return
+
 	var is_ctrl = Input.is_key_pressed(KEY_CTRL)
 	
 	if is_ctrl:
