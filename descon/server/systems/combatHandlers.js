@@ -146,9 +146,9 @@ function registerCombatHandlers(socket, io, state) {
         if (enemy.hp <= 0 && !enemy.isDying) {
             enemy.isDying = true;
             const cfg = state.SERVER_CONFIG.enemyModels[enemy.type] || {};
-            let h_loot = cfg.rewardHubs || (enemy.type * 500);
-            let o_loot = cfg.rewardOhcu || (enemy.type * 10);
-            let e_loot = cfg.rewardExp || (enemy.type * 100);
+            let h_loot = (cfg.rewardHubs !== undefined) ? cfg.rewardHubs : (enemy.type * 500);
+            let o_loot = (cfg.rewardOhcu !== undefined) ? cfg.rewardOhcu : (enemy.type * 10);
+            let e_loot = (cfg.rewardExp !== undefined) ? cfg.rewardExp : (enemy.type * 100);
 
             if (enemy.name && enemy.name.toUpperCase().includes("CLONE")) {
                 h_loot = 0; o_loot = 0; e_loot = 0;

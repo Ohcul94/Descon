@@ -244,6 +244,24 @@
             gap: 0.75rem;
         }
 
+        .nav-folder {
+            padding: 0.75rem 1rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: color 0.2s;
+        }
+        .nav-folder:hover { color: white; }
+        .folder-content { display: none; margin-left: 0.5rem; border-left: 1px solid rgba(255,255,255,0.05); }
+        .folder-content.show { display: block; }
+        .nav-link.sub { padding-left: 2rem; font-size: 0.85rem; }
+
+        .field.full { grid-column: 1 / -1; }
+        .field.full input, .field.full textarea { width: 100% !important; }
+
         .btn-primary { background: var(--accent); color: var(--bg); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3); }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(6, 182, 212, 0.4); }
         
@@ -252,6 +270,27 @@
 
         .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
         .btn-danger:hover { background: var(--danger); color: white; }
+
+        .btn-subtab {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 6px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-subtab.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+        .btn-subtab:hover:not(.active) {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
 
         /* --- TOAST / MODAL --- */
         #toast-overlay {
@@ -341,12 +380,34 @@
     </header>
 
     <main>
-        <nav>
-            <div class="nav-link active" onclick="showTab('ships')">🚀 Naves Estelares</div>
-            <div class="nav-link" onclick="showTab('enemies')">👾 Amenazas (IA)</div>
-            <div class="nav-link" onclick="showTab('skills')">🌀 Habilidades</div>
-            <div class="nav-link" onclick="showTab('maps')">🗺️ Cartografía</div>
-            <div class="nav-link" onclick="showTab('json')">📦 Núcleo JSON</div>
+        <nav id="sidebar">
+            <div class="nav-group">
+                <div class="nav-link active" onclick="showTab('ships')">🚀 Naves Estelares</div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-folder" onclick="toggleFolder('folder-enemies')">👾 Amenazas (IA) <span class="chevron">▼</span></div>
+                <div id="folder-enemies" class="folder-content show">
+                    <div class="nav-link sub" onclick="setEnemySubTab('regular'); showTab('enemies')">├ Enemigos</div>
+                    <div class="nav-link sub" onclick="setEnemySubTab('boss'); showTab('enemies')">└ Bosses</div>
+                </div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-folder" onclick="toggleFolder('folder-market')">💎 Mercado <span class="chevron">▼</span></div>
+                <div id="folder-market" class="folder-content">
+                    <div class="nav-link sub" onclick="showTab('ammo')">├ Municiones</div>
+                    <div class="nav-link sub" onclick="showTab('weapons')">├ Armamento</div>
+                    <div class="nav-link sub" onclick="showTab('shields')">├ Escudos</div>
+                    <div class="nav-link sub" onclick="showTab('engines')">└ Motores</div>
+                </div>
+            </div>
+
+            <div class="nav-group">
+                <div class="nav-link" onclick="showTab('skills')">🌀 Habilidades</div>
+                <div class="nav-link" onclick="showTab('maps')">🗺️ Cartografía</div>
+                <div class="nav-link" onclick="showTab('json')">📦 Núcleo JSON</div>
+            </div>
         </nav>
 
         <section class="content">
@@ -356,8 +417,28 @@
             </div>
 
             <div id="view-enemies" class="view">
-                <div class="section-header"><h2>Gestión de Enemigos</h2></div>
+                <div class="section-header"><h2>Gestión de Amenazas</h2></div>
                 <div id="enemies-grid" class="grid"></div>
+            </div>
+
+            <div id="view-ammo" class="view">
+                <div class="section-header"><h2>Multiplicadores de Daño</h2></div>
+                <div id="ammo-grid" class="grid"></div>
+            </div>
+
+            <div id="view-weapons" class="view">
+                <div class="section-header"><h2>Arsenal de Combate (Armas)</h2></div>
+                <div id="weapons-grid" class="grid"></div>
+            </div>
+
+            <div id="view-shields" class="view">
+                <div class="section-header"><h2>Sistemas de Defensa (Escudos)</h2></div>
+                <div id="shields-grid" class="grid"></div>
+            </div>
+
+            <div id="view-engines" class="view">
+                <div class="section-header"><h2>Propulsión (Motores)</h2></div>
+                <div id="engines-grid" class="grid"></div>
             </div>
 
             <div id="view-skills" class="view">
@@ -390,9 +471,19 @@
         function showTab(tabId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
-            document.getElementById('view-' + tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            const view = document.getElementById('view-' + tabId);
+            if(view) view.classList.add('active');
+            if(event && event.currentTarget && event.currentTarget.classList.contains('nav-link')) {
+                event.currentTarget.classList.add('active');
+            }
             if(tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
+        }
+
+        function toggleFolder(id) {
+            const el = document.getElementById(id);
+            el.classList.toggle('show');
+            const chevron = el.previousElementSibling.querySelector('.chevron');
+            chevron.innerText = el.classList.contains('show') ? '▼' : '▶';
         }
 
         window.onload = () => {
@@ -456,6 +547,77 @@
             renderEnemies();
             renderSkills();
             renderMaps();
+            renderAmmo();
+            renderWeapons();
+            renderShields();
+            renderEngines();
+        }
+
+        function renderAmmo() {
+            const grid = document.getElementById('ammo-grid');
+            grid.innerHTML = '';
+            for(let type in config.ammoMultipliers) {
+                const card = document.createElement('div'); card.className = 'card';
+                let tiersHtml = config.ammoMultipliers[type].map((m, i) => `
+                    <div class="field"><label>Tier ${i+1}</label><input type="number" step="0.1" value="${m}" onchange="config.ammoMultipliers['${type}'][${i}] = parseFloat(this.value)"></div>
+                `).join('');
+                card.innerHTML = `<h3>Multiplicador: ${type.toUpperCase()}</h3><div class="form-grid">${tiersHtml}</div>`;
+                grid.appendChild(card);
+            }
+        }
+
+        function renderWeapons() {
+            const grid = document.getElementById('weapons-grid');
+            grid.innerHTML = '';
+            config.shopItems.weapons.forEach((w, i) => {
+                const card = document.createElement('div'); card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-tag">ID: ${w.id}</div>
+                    <div class="field full"><label>Nombre del Arma</label><input type="text" value="${w.name}" onchange="config.shopItems.weapons[${i}].name = this.value"></div>
+                    <div class="form-grid" style="margin-top:1rem;">
+                        <div class="field"><label>Daño Base</label><input type="number" value="${w.base}" onchange="config.shopItems.weapons[${i}].base = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Hubs</label><input type="number" value="${w.prices.hubs}" onchange="config.shopItems.weapons[${i}].prices.hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Ohcu</label><input type="number" value="${w.prices.ohcu}" onchange="config.shopItems.weapons[${i}].prices.ohcu = parseInt(this.value)"></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderShields() {
+            const grid = document.getElementById('shields-grid');
+            grid.innerHTML = '';
+            config.shopItems.shields.forEach((s, i) => {
+                const card = document.createElement('div'); card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-tag">ID: ${s.id}</div>
+                    <div class="field full"><label>Nombre del Escudo</label><input type="text" value="${s.name}" onchange="config.shopItems.shields[${i}].name = this.value"></div>
+                    <div class="form-grid" style="margin-top:1rem;">
+                        <div class="field"><label>Escudo Base</label><input type="number" value="${s.base}" onchange="config.shopItems.shields[${i}].base = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Hubs</label><input type="number" value="${s.prices.hubs}" onchange="config.shopItems.shields[${i}].prices.hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Ohcu</label><input type="number" value="${s.prices.ohcu}" onchange="config.shopItems.shields[${i}].prices.ohcu = parseInt(this.value)"></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderEngines() {
+            const grid = document.getElementById('engines-grid');
+            grid.innerHTML = '';
+            config.shopItems.engines.forEach((e, i) => {
+                const card = document.createElement('div'); card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-tag">ID: ${e.id}</div>
+                    <div class="field full"><label>Nombre del Motor</label><input type="text" value="${e.name}" onchange="config.shopItems.engines[${i}].name = this.value"></div>
+                    <div class="form-grid" style="margin-top:1rem;">
+                        <div class="field"><label>Empuje Base</label><input type="number" value="${e.base}" onchange="config.shopItems.engines[${i}].base = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Hubs</label><input type="number" value="${e.prices.hubs}" onchange="config.shopItems.engines[${i}].prices.hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Ohcu</label><input type="number" value="${e.prices.ohcu}" onchange="config.shopItems.engines[${i}].prices.ohcu = parseInt(this.value)"></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
         }
 
         function renderShips() {
@@ -482,11 +644,27 @@
             });
         }
 
+        let currentEnemySubTab = 'regular';
+
+        function setEnemySubTab(tab) {
+            currentEnemySubTab = tab;
+            document.querySelectorAll('.btn-subtab').forEach(b => b.classList.remove('active'));
+            if(tab === 'regular') document.getElementById('btn-sub-enemies').classList.add('active');
+            else document.getElementById('btn-sub-bosses').classList.add('active');
+            renderEnemies();
+        }
+
         function renderEnemies() {
             const grid = document.getElementById('enemies-grid');
             grid.innerHTML = '';
             for(let id in config.enemyModels) {
                 const en = config.enemyModels[id];
+                const eid = parseInt(id);
+                
+                // Filtrado por Sub-Tab: Regulares (1-99) vs Bosses (100+)
+                if (currentEnemySubTab === 'regular' && eid >= 100) continue;
+                if (currentEnemySubTab === 'boss' && eid < 100) continue;
+
                 const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
                     <div class="card-tag">#ID ${id}</div>
@@ -502,6 +680,7 @@
                     <div class="price-group">
                         <div class="field"><label>Exp</label><input type="number" value="${en.rewardExp}" onchange="config.enemyModels['${id}'].rewardExp = parseInt(this.value)"></div>
                         <div class="field"><label>Hubs</label><input type="number" value="${en.rewardHubs}" onchange="config.enemyModels['${id}'].rewardHubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Ohcu</label><input type="number" value="${en.rewardOhcu}" onchange="config.enemyModels['${id}'].rewardOhcu = parseInt(this.value)"></div>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -515,7 +694,14 @@
                 const s = config.skillsData[name];
                 const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
-                    <div class="card-header"><h3>${name}</h3><button class="btn-danger" style="padding: 0.2rem 0.5rem; border-radius: 4px;" onclick="deleteSkill('${name}')">X</button></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                        <input type="text" value="${s.name || name}" style="background:transparent; border:none; color:var(--accent); font-weight:bold; font-size:1.1rem; width:80%; outline:none;" onchange="config.skillsData['${name}'].name = this.value; renderAll();">
+                        <button class="btn btn-danger" style="padding: 2px 8px; font-size:0.8rem;" onclick="deleteSkill('${name}')">X</button>
+                    </div>
+                    <div class="field full" style="margin-bottom:1rem;">
+                        <label>Descripción del Protocolo</label>
+                        <input type="text" value="${s.description || ''}" placeholder="Ej: Genera un pulso de reparación..." onchange="config.skillsData['${name}'].description = this.value">
+                    </div>
                     <div class="form-grid">
                         <div class="field"><label>Tipo</label><select onchange="config.skillsData['${name}'].type = this.value">
                             <option value="Defensa" ${s.type==='Defensa'?'selected':''}>Defensa</option>
