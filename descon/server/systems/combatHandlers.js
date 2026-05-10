@@ -243,23 +243,27 @@ function registerCombatHandlers(socket, io, state) {
                 // Si el cliente manda daño 0 o sospechosamente bajo, aplicamos daño base
                 if (dmg <= 0 || dmg > baseDmg) dmg = baseDmg;
 
-                // v266.245: Búsqueda exhaustiva de Slow en Mecánicas Modulares
+                // v266.250: Verificación de Tipo de Bala (Solo aplica slow si la bala coincide)
                 if (cfg) {
-                    let sAmount = cfg.slowAmount || 0;
-                    let sDuration = cfg.slowDuration || 3000;
+                    let sAmount = 0;
+                    let sDuration = 0;
 
-                    // Si no está en la raíz, buscar en el Arsenal Modular
-                    if (sAmount === 0 && cfg.mechanics) {
-                        const iceMech = cfg.mechanics.find(m => m.type === "ice_missile");
-                        if (iceMech) {
-                            sAmount = iceMech.slowAmount || 10;
-                            sDuration = (iceMech.slowDuration || 3) * 1000; // Convertir a ms si es necesario
+                    // Buscar la mecánica específica que corresponde a la bala que impactó
+                    if (cfg.mechanics) {
+                        const matchingMech = cfg.mechanics.find(m => m.type === data.bulletType);
+                        if (matchingMech) {
+                            sAmount = matchingMech.slowAmount || 0;
+                            sDuration = matchingMech.slowDuration || 0;
                         }
                     }
 
-                    if (sAmount > 0 || data.bulletType === "ice_missile") {
-                        if (sAmount === 0) sAmount = 10; // Fallback final
+                    // Fallback a la raíz si no hay mecánicas modulares (retrocompatibilidad)
+                    if (sAmount === 0 && cfg.slowAmount > 0) {
+                        sAmount = cfg.slowAmount;
+                        sDuration = cfg.slowDuration || 3000;
+                    }
 
+                    if (sAmount > 0) {
                         p.isSlowed = true;
                         p.slowPoints = sAmount;
                         p.lastSlowTime = Date.now();

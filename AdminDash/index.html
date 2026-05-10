@@ -383,12 +383,17 @@
 
     <main>
         <nav id="sidebar">
+            <div style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <input type="text" id="sidebar-search" placeholder="🔍 Buscar entidad o ID..." 
+                       style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; width:100%; padding:10px; color:white; font-size:0.85rem;"
+                       oninput="updateSidebar()">
+            </div>
             <div class="nav-group">
                 <div class="nav-link active" onclick="showTab('ships')">🚀 Naves Estelares</div>
             </div>
 
             <div class="nav-group">
-                <div class="nav-folder" onclick="toggleFolder('folder-enemies')">👾 Amenazas (IA) <span class="chevron">▼</span></div>
+                <div class="nav-folder" onclick="toggleFolder('folder-enemies'); showTab('enemies')">👾 Amenazas (IA) <span class="chevron">▼</span></div>
                 <div id="folder-enemies" class="folder-content show">
                     <div class="nav-link sub" onclick="toggleFolder('subfolder-regulars')">├ Enemigos <span class="chevron">▶</span></div>
                     <div id="subfolder-regulars" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
@@ -402,7 +407,7 @@
             </div>
 
             <div class="nav-group">
-                <div class="nav-folder" onclick="toggleFolder('folder-market')">💎 Mercado <span class="chevron">▼</span></div>
+                <div class="nav-folder" onclick="toggleFolder('folder-market'); showTab('ammo')">💎 Mercado <span class="chevron">▼</span></div>
                 <div id="folder-market" class="folder-content">
                     <div class="nav-link sub" onclick="showTab('ammo')">├ Municiones</div>
                     <div class="nav-link sub" onclick="showTab('weapons')">├ Armamento</div>
@@ -412,8 +417,8 @@
             </div>
 
             <div class="nav-group">
-                <div class="nav-link" onclick="showTab('skills')">🌀 Habilidades</div>
-                <div class="nav-folder" onclick="toggleFolder('folder-mechanics')">⚙️ Mecánicas <span class="chevron">▼</span></div>
+                <div class="nav-link" id="nav-skills" onclick="showTab('skills')">🌀 Habilidades</div>
+                <div class="nav-folder" onclick="toggleFolder('folder-mechanics'); showTab('mechanics')">⚙️ Mecánicas <span class="chevron">▼</span></div>
                 <div id="folder-mechanics" class="folder-content">
                     <div class="nav-link sub" onclick="setMechTab('attack'); showTab('mechanics')">⚔️ Ataque</div>
                     <div class="nav-link sub" onclick="setMechTab('movement'); showTab('mechanics')">🏃 Movimiento</div>
@@ -424,8 +429,16 @@
         </nav>
 
         <section class="content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2.5rem;">
+                <h2 id="current-view-title" style="font-size:2rem; font-weight:700;">Configuración</h2>
+                <div style="position:relative;">
+                    <input type="text" id="global-filter" placeholder="🔍 Filtrar por nombre, ID o atributo (ej: slow)..." 
+                           style="background:var(--surface); border:1px solid rgba(255,255,255,0.1); border-radius:100px; padding:12px 25px 12px 45px; color:white; min-width:400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); outline:none; transition:all 0.3s;"
+                           oninput="refreshCurrentTab()">
+                </div>
+            </div>
+
             <div id="view-ships" class="view active">
-                <div class="section-header"><h2>Configuración de Naves</h2></div>
                 <div id="ships-grid" class="grid"></div>
             </div>
 
@@ -496,10 +509,23 @@
             document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
             const view = document.getElementById('view-' + tabId);
             if(view) view.classList.add('active');
+            
+            // Actualizar título dinámico
+            const titles = { 
+                'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas', 
+                'ammo': 'Mercado: Municiones', 'weapons': 'Mercado: Armamento',
+                'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión',
+                'skills': 'Protocolos de Combate', 'mechanics': 'Librería de Mecánicas',
+                'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema'
+            };
+            document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
+            document.getElementById('global-filter').value = ''; // Limpiar filtro al cambiar
+            
             if(event && event.currentTarget && event.currentTarget.classList.contains('nav-link')) {
                 event.currentTarget.classList.add('active');
             }
             if(tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
+            refreshCurrentTab();
         }
 
         function toggleFolder(id) {
@@ -564,26 +590,34 @@
             });
         }
 
+        function getFilter() { return (document.getElementById('global-filter')?.value || '').toLowerCase(); }
+
+        function refreshCurrentTab() {
+            const active = document.querySelector('.view.active');
+            if(!active) return;
+            const tabId = active.id.replace('view-', '');
+            const renderMap = {
+                'ships': renderShips, 'enemies': renderEnemies, 'ammo': renderAmmo, 'weapons': renderWeapons, 
+                'shields': renderShields, 'engines': renderEngines, 'skills': renderSkills, 
+                'mechanics': renderMechanicsLib, 'maps': renderMaps
+            };
+            if(renderMap[tabId]) renderMap[tabId]();
+        }
+
         function renderAll() {
             if(!config) return;
-            renderShips();
-            renderEnemies();
-            renderSkills();
-            renderMechanicsLib(); // v266.220
-            renderMaps();
-            renderAmmo();
-            renderWeapons();
-            renderShields();
-            renderEngines();
+            renderShips(); renderEnemies(); renderSkills(); renderMechanicsLib();
+            renderMaps(); renderAmmo(); renderWeapons(); renderShields(); renderEngines();
         }
 
         function renderAmmo() {
-            const grid = document.getElementById('ammo-grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('ammo-grid'); grid.innerHTML = '';
+            const f = getFilter();
             for(let type in config.ammoMultipliers) {
+                if(f && !type.toLowerCase().includes(f)) continue;
                 const card = document.createElement('div'); card.className = 'card';
                 let tiersHtml = config.ammoMultipliers[type].map((m, i) => `
-                    <div class="field"><label>Tier ${i+1}</label><input type="number" step="0.1" value="${m}" onchange="config.ammoMultipliers['${type}'][${i}] = parseFloat(this.value)"></div>
+                    <div class="field"><label>Tier ${i+1} (x)</label><input type="number" step="0.1" value="${m}" onchange="config.ammoMultipliers['${type}'][${i}] = parseFloat(this.value)"></div>
                 `).join('');
                 card.innerHTML = `<h3>Multiplicador: ${type.toUpperCase()}</h3><div class="form-grid">${tiersHtml}</div>`;
                 grid.appendChild(card);
@@ -591,17 +625,18 @@
         }
 
         function renderWeapons() {
-            const grid = document.getElementById('weapons-grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('weapons-grid'); grid.innerHTML = '';
+            const f = getFilter();
             config.shopItems.weapons.forEach((w, i) => {
+                if(f && !w.name.toLowerCase().includes(f) && !w.id.toLowerCase().includes(f)) return;
                 const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
                     <div class="card-tag">ID: ${w.id}</div>
                     <div class="field full"><label>Nombre del Arma</label><input type="text" value="${w.name}" onchange="config.shopItems.weapons[${i}].name = this.value"></div>
                     <div class="form-grid" style="margin-top:1rem;">
-                        <div class="field"><label>Daño Base</label><input type="number" value="${w.base}" onchange="config.shopItems.weapons[${i}].base = parseInt(this.value)"></div>
-                        <div class="field"><label>Precio Hubs</label><input type="number" value="${w.prices.hubs}" onchange="config.shopItems.weapons[${i}].prices.hubs = parseInt(this.value)"></div>
-                        <div class="field"><label>Precio Ohcu</label><input type="number" value="${w.prices.ohcu}" onchange="config.shopItems.weapons[${i}].prices.ohcu = parseInt(this.value)"></div>
+                        <div class="field"><label>Daño Base (pts)</label><input type="number" value="${w.base}" onchange="config.shopItems.weapons[${i}].base = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${w.prices.hubs}" onchange="config.shopItems.weapons[${i}].prices.hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${w.prices.ohcu}" onchange="config.shopItems.weapons[${i}].prices.ohcu = parseInt(this.value)"></div>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -609,17 +644,18 @@
         }
 
         function renderShields() {
-            const grid = document.getElementById('shields-grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('shields-grid'); grid.innerHTML = '';
+            const f = getFilter();
             config.shopItems.shields.forEach((s, i) => {
+                if(f && !s.name.toLowerCase().includes(f) && !s.id.toLowerCase().includes(f) && !JSON.stringify(s).toLowerCase().includes(f)) return;
                 const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
                     <div class="card-tag">ID: ${s.id}</div>
                     <div class="field full"><label>Nombre del Escudo</label><input type="text" value="${s.name}" onchange="config.shopItems.shields[${i}].name = this.value"></div>
                     <div class="form-grid" style="margin-top:1rem;">
-                        <div class="field"><label>Escudo Base</label><input type="number" value="${s.base}" onchange="config.shopItems.shields[${i}].base = parseInt(this.value)"></div>
-                        <div class="field"><label>Precio Hubs</label><input type="number" value="${s.prices.hubs}" onchange="config.shopItems.shields[${i}].prices.hubs = parseInt(this.value)"></div>
-                        <div class="field"><label>Precio Ohcu</label><input type="number" value="${s.prices.ohcu}" onchange="config.shopItems.shields[${i}].prices.ohcu = parseInt(this.value)"></div>
+                        <div class="field"><label>Escudo Base (pts)</label><input type="number" value="${s.base}" onchange="config.shopItems.shields[${i}].base = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${s.prices.hubs}" onchange="config.shopItems.shields[${i}].prices.hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${s.prices.ohcu}" onchange="config.shopItems.shields[${i}].prices.ohcu = parseInt(this.value)"></div>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -627,17 +663,18 @@
         }
 
         function renderEngines() {
-            const grid = document.getElementById('engines-grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('engines-grid'); grid.innerHTML = '';
+            const f = getFilter();
             config.shopItems.engines.forEach((e, i) => {
+                if(f && !e.name.toLowerCase().includes(f) && !e.id.toLowerCase().includes(f) && !JSON.stringify(e).toLowerCase().includes(f)) return;
                 const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
                     <div class="card-tag">ID: ${e.id}</div>
                     <div class="field full"><label>Nombre del Motor</label><input type="text" value="${e.name}" onchange="config.shopItems.engines[${i}].name = this.value"></div>
                     <div class="form-grid" style="margin-top:1rem;">
-                        <div class="field"><label>Empuje Base</label><input type="number" value="${e.base}" onchange="config.shopItems.engines[${i}].base = parseInt(this.value)"></div>
-                        <div class="field"><label>Precio Hubs</label><input type="number" value="${e.prices.hubs}" onchange="config.shopItems.engines[${i}].prices.hubs = parseInt(this.value)"></div>
-                        <div class="field"><label>Precio Ohcu</label><input type="number" value="${e.prices.ohcu}" onchange="config.shopItems.engines[${i}].prices.ohcu = parseInt(this.value)"></div>
+                        <div class="field"><label>Empuje Base (px/s)</label><input type="number" value="${e.base}" onchange="config.shopItems.engines[${i}].base = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${e.prices.hubs}" onchange="config.shopItems.engines[${i}].prices.hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${e.prices.ohcu}" onchange="config.shopItems.engines[${i}].prices.ohcu = parseInt(this.value)"></div>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -645,23 +682,28 @@
         }
 
         function renderShips() {
-            const grid = document.getElementById('ships-grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('ships-grid'); grid.innerHTML = '';
+            const f = getFilter();
             config.shipModels.forEach((ship, idx) => {
-                const card = document.createElement('div');
-                card.className = 'card';
+                if(f && !ship.name.toLowerCase().includes(f) && !ship.id.toString().includes(f)) return;
+                const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
                     <div class="card-tag">#ID ${ship.id}</div>
                     <div class="field full"><label>Nombre de la Nave</label><input type="text" value="${ship.name}" onchange="config.shipModels[${idx}].name = this.value"></div>
                     <div class="form-grid" style="margin-top: 1.5rem;">
-                        <div class="field"><label>HP Total</label><input type="number" value="${ship.hp}" onchange="config.shipModels[${idx}].hp = parseInt(this.value)"></div>
-                        <div class="field"><label>Escudo Total</label><input type="number" value="${ship.shield}" onchange="config.shipModels[${idx}].shield = parseInt(this.value)"></div>
-                        <div class="field"><label>Velocidad (KM/H)</label><input type="number" value="${ship.speed}" onchange="config.shipModels[${idx}].speed = parseInt(this.value)"></div>
-                        <div class="field"><label>Slots Exp (X)</label><input type="number" value="${ship.slots.x || 1}" onchange="config.shipModels[${idx}].slots.x = parseInt(this.value)"></div>
+                        <div class="field"><label>HP Total (pts)</label><input type="number" value="${ship.hp}" onchange="config.shipModels[${idx}].hp = parseInt(this.value)"></div>
+                        <div class="field"><label>Escudo Total (pts)</label><input type="number" value="${ship.shield}" onchange="config.shipModels[${idx}].shield = parseInt(this.value)"></div>
+                        <div class="field"><label>Velocidad (px/s)</label><input type="number" value="${ship.speed}" onchange="config.shipModels[${idx}].speed = parseInt(this.value)"></div>
+                    </div>
+                    <div class="form-grid" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333;">
+                        <div class="field"><label>Slots Armas (W)</label><input type="number" value="${ship.slots.w || 0}" onchange="config.shipModels[${idx}].slots.w = parseInt(this.value)"></div>
+                        <div class="field"><label>Slots Escudos (S)</label><input type="number" value="${ship.slots.s || 0}" onchange="config.shipModels[${idx}].slots.s = parseInt(this.value)"></div>
+                        <div class="field"><label>Slots Motores (E)</label><input type="number" value="${ship.slots.e || 0}" onchange="config.shipModels[${idx}].slots.e = parseInt(this.value)"></div>
+                        <div class="field"><label>Slots Extras (X)</label><input type="number" value="${ship.slots.x || 0}" onchange="config.shipModels[${idx}].slots.x = parseInt(this.value)"></div>
                     </div>
                     <div class="price-group">
-                        <div class="field"><label>Precio Hubs</label><input type="number" value="${ship.prices.hubs}" onchange="config.shipModels[${idx}].prices.hubs = parseInt(this.value)"></div>
-                        <div class="field"><label>Precio Ohcu</label><input type="number" value="${ship.prices.ohcu}" onchange="config.shipModels[${idx}].prices.ohcu = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${ship.prices.hubs}" onchange="config.shipModels[${idx}].prices.hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${ship.prices.ohcu}" onchange="config.shipModels[${idx}].prices.ohcu = parseInt(this.value)"></div>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -693,13 +735,17 @@
             const bossList = document.getElementById('sidebar-bosses-list');
             if(!enemyList || !bossList) return;
             
+            const searchTerm = (document.getElementById('sidebar-search')?.value || '').toLowerCase();
             enemyList.innerHTML = '';
             bossList.innerHTML = '';
 
             for(let id in config.enemyModels) {
                 const en = config.enemyModels[id];
+                const matches = en.name.toLowerCase().includes(searchTerm) || id.includes(searchTerm);
+                if (!matches) continue;
+
                 const link = document.createElement('div');
-                link.className = 'nav-link sub';
+                link.className = 'nav-link sub ' + (selectedEnemyId === id ? 'active' : '');
                 link.innerText = `├ ${en.name || 'Enemigo '+id}`;
                 link.onclick = () => selectEnemy(id);
                 
@@ -726,30 +772,29 @@
 
         function renderEnemies() {
             if (config.mechanicsLib) MECHANICS_LIB = config.mechanicsLib;
-            else config.mechanicsLib = MECHANICS_LIB;
-
             if (config.movementLib) MOVEMENT_LIB = config.movementLib;
-            else config.movementLib = MOVEMENT_LIB;
 
-            updateSidebar(); // Actualizar lista lateral
+            updateSidebar();
+            const grid = document.getElementById('enemies-grid'); grid.innerHTML = '';
+            const f = getFilter();
 
-            const grid = document.getElementById('enemies-grid');
-            grid.innerHTML = '';
             for(let id in config.enemyModels) {
                 const en = config.enemyModels[id];
                 const eid = parseInt(id);
                 if (currentEnemySubTab === 'regular' && eid >= 100) continue;
                 if (currentEnemySubTab === 'boss' && eid < 100) continue;
+                
+                const matches = en.name.toLowerCase().includes(f) || id.includes(f) || JSON.stringify(en).toLowerCase().includes(f);
+                if (f && !matches) continue;
 
                 const card = document.createElement('div'); card.className = 'card';
                 card.style.cursor = 'pointer';
                 card.onclick = () => selectEnemy(id);
-                
                 card.innerHTML = `
                     <div class="card-tag">#ID ${id}</div>
                     <h3>${en.name}</h3>
-                    <p style="font-size:0.8rem; opacity:0.6;">Cerebro: ${en.movementAI || 'chase'}</p>
-                    <div style="margin-top:1rem; color:var(--accent); font-weight:bold; font-size:0.7rem;">Haga clic para configurar detalles...</div>
+                    <p style="font-size:0.8rem; opacity:0.6;">IA: ${en.movementAI || 'chase'}</p>
+                    <div style="margin-top:1rem; color:var(--accent); font-weight:bold; font-size:0.7rem;">Configurar Detalles →</div>
                 `;
                 grid.appendChild(card);
             }
@@ -776,13 +821,13 @@
                             <div class="field full"><label>NOMBRE DE LA ENTIDAD (#ID ${selectedEnemyId})</label><input type="text" value="${en.name}" style="font-size: 1.5rem; color:var(--accent);" onchange="config.enemyModels['${selectedEnemyId}'].name = this.value; updateSidebar();"></div>
                             
                             <div class="form-grid" style="margin-top:1rem; padding-bottom: 1rem; border-bottom: 1px solid #333;">
-                                <div class="field"><label>HP</label><input type="number" value="${en.hp}" onchange="config.enemyModels['${selectedEnemyId}'].hp = parseInt(this.value)"></div>
-                                <div class="field"><label>Escudo</label><input type="number" value="${en.shield}" onchange="config.enemyModels['${selectedEnemyId}'].shield = parseInt(this.value)"></div>
+                                <div class="field"><label>HP (pts)</label><input type="number" value="${en.hp}" onchange="config.enemyModels['${selectedEnemyId}'].hp = parseInt(this.value)"></div>
+                                <div class="field"><label>Escudo (pts)</label><input type="number" value="${en.shield}" onchange="config.enemyModels['${selectedEnemyId}'].shield = parseInt(this.value)"></div>
                             </div>
 
                             <div class="price-group" style="margin-top:1rem;">
-                                <div class="field"><label>Exp</label><input type="number" value="${en.rewardExp}" onchange="config.enemyModels['${selectedEnemyId}'].rewardExp = parseInt(this.value)"></div>
-                                <div class="field"><label>Hubs</label><input type="number" value="${en.rewardHubs}" onchange="config.enemyModels['${selectedEnemyId}'].rewardHubs = parseInt(this.value)"></div>
+                                <div class="field"><label>Exp (pts)</label><input type="number" value="${en.rewardExp}" onchange="config.enemyModels['${selectedEnemyId}'].rewardExp = parseInt(this.value)"></div>
+                                <div class="field"><label>Hubs (pts)</label><input type="number" value="${en.rewardHubs}" onchange="config.enemyModels['${selectedEnemyId}'].rewardHubs = parseInt(this.value)"></div>
                             </div>
                         </div>
 
@@ -807,7 +852,7 @@
                                     <div class="form-grid" style="margin-top:1rem;">
                                         <div class="field"><label>Retraso Inicio (ms)</label><input type="number" value="${m.startDelay || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].startDelay = parseInt(this.value)"></div>
                                         ${MOVEMENT_LIB[m.type || 'chase'].fields.map(f => {
-                                            const moveLabels = { speed:"Velocidad", stopDist:"Frenado", idealDist:"Rango Seguro", orbitRadius:"Radio Órbita", chargeCooldown: "Recarga Dash" };
+                                            const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)" };
                                             return `<div class="field"><label>${moveLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].${f} = parseFloat(this.value)"></div>`;
                                         }).join('')}
                                     </div>
@@ -840,7 +885,15 @@
 
                                     <div class="form-grid" style="margin-top:1rem;">
                                         ${MECHANICS_LIB[m.type || 'laser'].fields.map(f => {
-                                            const fieldLabelsMap = { bulletDamage:"Daño", bulletSpeed:"Vel. Bala", fireRange:"Alcance", fireRate:"Cadencia", slowAmount:"Slow Pts", slowDuration:"Slow Dur", startDelay:"Delay Inicio" };
+                                            const fieldLabelsMap = { 
+                                                bulletDamage: "Daño (pts)", 
+                                                bulletSpeed: "Vel. Bala (px/s)", 
+                                                fireRange: "Alcance (px)", 
+                                                fireRate: "Cadencia (ms)", 
+                                                slowAmount: "Slow (pts)", 
+                                                slowDuration: "Slow Dur. (ms)", 
+                                                startDelay: "Delay Inicio (ms)" 
+                                            };
                                             return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseInt(this.value)"></div>`;
                                         }).join('')}
                                     </div>
@@ -917,51 +970,38 @@
 
         function renderMechanicsLib() {
             if (config.mechanicsLib) MECHANICS_LIB = config.mechanicsLib;
-            const grid = document.getElementById('mechanics-lib-grid');
-            if(!grid) return;
+            const grid = document.getElementById('mechanics-lib-grid'); if(!grid) return;
             grid.innerHTML = '';
+            const f = getFilter();
 
-            const fieldLabels = {
-                "bulletDamage": "Daño",
-                "bulletSpeed": "Velocidad Proyectil",
-                "fireRange": "Alcance (Rango)",
-                "fireRate": "Cadencia (ms)",
-                "startDelay": "Retraso Inicial (ms)",
-                "slowAmount": "Potencia de Slow",
-                "slowDuration": "Duración de Slow (ms)"
-            };
+            const fieldLabels = { "bulletDamage": "Daño", "bulletSpeed": "Velocidad", "fireRange": "Alcance", "fireRate": "Cadencia", "startDelay": "Delay", "slowAmount": "Slow Pts", "slowDuration": "Slow Dur" };
 
             if (currentMechTab === 'attack') {
-                grid.innerHTML = '<h2 style="grid-column:1/-1; color:var(--accent); margin-bottom:1rem; border-bottom:1px solid #333; padding-bottom:0.5rem;">⚔️ Librería de Ataque</h2>';
                 for(let type in MECHANICS_LIB) {
                     const m = MECHANICS_LIB[type];
+                    if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f) && !JSON.stringify(m).toLowerCase().includes(f)) continue;
                     const card = document.createElement('div'); card.className = 'card';
                     card.innerHTML = `
                         <div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div>
                         <div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.mechanicsLib['${type}'].label = this.value; renderAll();"></div>
-                        <div class="field full" style="margin-top:0.5rem;"><label>Descripción Técnica</label><input type="text" value="${m.desc || ''}" onchange="config.mechanicsLib['${type}'].desc = this.value"></div>
+                        <div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><input type="text" value="${m.desc || ''}" onchange="config.mechanicsLib['${type}'].desc = this.value"></div>
                         <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;">
-                            <strong style="color:var(--accent);">CAMPOS ACTIVOS EN DOCKING:</strong><br>
-                            ${m.fields.map(f => fieldLabels[f] || f).join(' • ')}
+                            <strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => fieldLabels[fl] || fl).join(' • ')}
                         </div>
                     `;
                     grid.appendChild(card);
                 }
             } else {
-                grid.innerHTML = '<h2 style="grid-column:1/-1; color:var(--accent); margin-bottom:1rem; border-bottom:1px solid #333; padding-bottom:0.5rem;">🏃 Librería de Movimiento</h2>';
                 for(let type in MOVEMENT_LIB) {
                     const m = MOVEMENT_LIB[type];
+                    if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f)) continue;
                     const card = document.createElement('div'); card.className = 'card';
-                    
-                    const moveLabels = { speed:"Velocidad", stopDist:"Frenado", idealDist:"Rango Seguro", orbitRadius:"Radio Órbita", chargeCooldown: "Recarga Dash" };
-
+                    const ml = { speed:"Velocidad", stopDist:"Frenado", idealDist:"Rango", orbitRadius:"Órbita", chargeCooldown: "Dash" };
                     card.innerHTML = `
                         <div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div>
                         <div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.movementLib['${type}'].label = this.value; renderAll();"></div>
-                        <div class="field full" style="margin-top:0.5rem;"><label>Descripción Técnica</label><input type="text" value="${m.desc || ''}" onchange="config.movementLib['${type}'].desc = this.value"></div>
                         <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;">
-                            <strong style="color:var(--accent);">CAMPOS DE NAVEGACIÓN:</strong><br>
-                            ${m.fields.map(f => moveLabels[f] || f).join(' • ')}
+                            <strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => ml[fl] || fl).join(' • ')}
                         </div>
                     `;
                     grid.appendChild(card);
@@ -970,22 +1010,19 @@
         }
 
         function renderSkills() {
-            const grid = document.getElementById('skills-grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('skills-grid'); grid.innerHTML = '';
+            const f = getFilter();
             for(let name in config.skillsData) {
                 const s = config.skillsData[name];
+                if (f && !name.toLowerCase().includes(f) && !JSON.stringify(s).toLowerCase().includes(f)) continue;
                 const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                         <div class="field" style="flex-grow:1; margin-right:1rem;">
-                            <label>Nombre del Protocolo</label>
+                            <label>Protocolo</label>
                             <input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold;" onchange="config.skillsData['${name}'].name = this.value; renderAll();">
                         </div>
                         <button class="btn btn-danger" style="height:40px; width:40px; margin-top:15px;" onclick="deleteSkill('${name}')">X</button>
-                    </div>
-                    <div class="field full" style="margin-bottom:1rem;">
-                        <label>Descripción</label>
-                        <input type="text" value="${s.description || ''}" placeholder="Ej: Genera un pulso de reparación..." onchange="config.skillsData['${name}'].description = this.value">
                     </div>
                     <div class="form-grid">
                         <div class="field"><label>Tipo</label><select onchange="config.skillsData['${name}'].type = this.value">
@@ -994,10 +1031,9 @@
                             <option value="Ataque" ${s.type==='Ataque'?'selected':''}>Ataque</option>
                             <option value="Utilidad" ${s.type==='Utilidad'?'selected':''}>Utilidad</option>
                         </select></div>
-                        <div class="field"><label>Cooldown (S)</label><input type="number" step="0.1" value="${s.cd}" onchange="config.skillsData['${name}'].cd = parseFloat(this.value)"></div>
-                        <div class="field"><label>Cantidad</label><input type="number" value="${s.amount || 0}" onchange="config.skillsData['${name}'].amount = parseInt(this.value)"></div>
-                        <div class="field"><label>Rango</label><input type="number" value="${s.range || 0}" onchange="config.skillsData['${name}'].range = parseInt(this.value)"></div>
-                        <div class="field"><label>Duración (S)</label><input type="number" step="0.1" value="${s.duration || 0}" onchange="config.skillsData['${name}'].duration = parseFloat(this.value)"></div>
+                        <div class="field"><label>Cooldown (ms)</label><input type="number" value="${s.cd}" onchange="config.skillsData['${name}'].cd = parseInt(this.value)"></div>
+                        <div class="field"><label>Puntos (pts)</label><input type="number" value="${s.amount || 0}" onchange="config.skillsData['${name}'].amount = parseInt(this.value)"></div>
+                        <div class="field"><label>Rango (px)</label><input type="number" value="${s.range || 0}" onchange="config.skillsData['${name}'].range = parseInt(this.value)"></div>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -1012,11 +1048,11 @@
                 const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
                     <div class="card-tag">#ZONA ${id}</div>
-                    <div class="field full"><label>Nombre</label><input type="text" value="${m.name}" onchange="config.mapsConfig['${id}'].name = this.value"></div>
+                    <div class="field full"><label>Nombre del Mapa</label><input type="text" value="${m.name}" onchange="config.mapsConfig['${id}'].name = this.value"></div>
                     <div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><textarea onchange="config.mapsConfig['${id}'].desc = this.value">${m.desc}</textarea></div>
                     <div class="form-grid" style="margin-top:1rem;">
-                        <div class="field"><label>Costo Warp</label><input type="number" value="${m.warpCost}" onchange="config.mapsConfig['${id}'].warpCost = parseInt(this.value)"></div>
-                        <div class="field"><label>Nivel Mín.</label><input type="number" value="${m.minLevel}" onchange="config.mapsConfig['${id}'].minLevel = parseInt(this.value)"></div>
+                        <div class="field"><label>Costo Warp (Hubs)</label><input type="number" value="${m.warpCost}" onchange="config.mapsConfig['${id}'].warpCost = parseInt(this.value)"></div>
+                        <div class="field"><label>Nivel Mín. (lvl)</label><input type="number" value="${m.minLevel}" onchange="config.mapsConfig['${id}'].minLevel = parseInt(this.value)"></div>
                         <div class="field"><label>Color Radar</label><input type="color" value="${m.color}" onchange="config.mapsConfig['${id}'].color = this.value" style="height:40px;"></div>
                     </div>
                 `;

@@ -93,8 +93,8 @@
                     "bulletSpeed": 800,
                     "fireRange": 600,
                     "fireRate": 1000,
-                    "slowAmount": 50,
-                    "slowDuration": 2
+                    "slowAmount": 500,
+                    "slowDuration": 200
                 }
             ],
             "movementPhases": [
@@ -383,7 +383,25 @@
             "rewardHubs": 50000,
             "rewardOhcu": 500,
             "shield": 50000,
-            "speed": 250
+            "speed": 250,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 250,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ]
         },
         "102": {
             "bulletDamage": 5000,
