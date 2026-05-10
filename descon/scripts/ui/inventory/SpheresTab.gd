@@ -1,7 +1,7 @@
 extends Control
 
-# SpheresTab.gd - RESTAURACIÓN PREMIUM (v263.050)
-# Estética orbital original restaurada con soporte modular.
+# SpheresTab.gd - RESTAURACIÓN ESTÉTICA PREMIUM (v301.3)
+# Recuperada la estética orbital original con corrección de carga de habilidades.
 
 var inv_main = null
 
@@ -46,7 +46,6 @@ func _render_spheres_equipment(tab, _sub_tabs):
 		var s_data = sm.spheres_data[i]
 		var s_color = s_data.get("color", Color.WHITE)
 		
-		# Saneamiento de color (HEX/CSV)
 		if typeof(s_color) == TYPE_STRING:
 			var c_str = s_color.replace("(","").replace(")","").replace(" ","")
 			if "," in c_str:
@@ -104,8 +103,7 @@ func _render_spheres_equipment(tab, _sub_tabs):
 			inv_main.selected_sphere_slot = i
 			inv_main.selected_sphere_type_filter = "ANY"
 			if equipped: inv_main.selected_sphere_type_filter = type_txt
-			# Si fuera necesario cambiar a la pestaña 1 (Biblioteca)
-			# _sub_tabs.current_tab = 1
+			_sub_tabs.current_tab = 1
 		)
 		
 		if equipped:
@@ -136,22 +134,29 @@ func _render_spheres_library(tab):
 	var scroll = ScrollContainer.new(); scroll.size_flags_vertical = 3; main_v.add_child(scroll)
 	var grid = GridContainer.new(); grid.columns = 2; grid.size_flags_horizontal = 3; grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 20); scroll.add_child(grid)
 	
-	var all_skills = [
-		{"class": Skill_TurboImpulse, "color": Color.YELLOW, "icon": "⚡", "type": "UTILIDAD"},
-		{"class": Skill_HyperDash, "color": Color.YELLOW, "icon": "💨", "type": "UTILIDAD"},
-		{"class": Skill_Invulnerability, "color": Color.YELLOW, "icon": "🛡️", "type": "UTILIDAD"},
-		{"class": Skill_Blink, "color": Color.YELLOW, "icon": "✨", "type": "UTILIDAD"},
-		{"class": Skill_Stealth, "color": Color.YELLOW, "icon": "👻", "type": "UTILIDAD"},
-		{"class": Skill_ShieldCell, "color": Color.AQUA, "icon": "🛡️", "type": "DEFENSA"},
-		{"class": Skill_Fortress, "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},
-		{"class": Skill_FrostTrail, "color": Color.AQUA, "icon": "❄️", "type": "DEFENSA"},
-		{"class": Skill_SmokeBomb, "color": Color.AQUA, "icon": "☁️", "type": "DEFENSA"},
-		{"class": Skill_RepairKit, "color": Color.GREEN, "icon": "🔧", "type": "CURACIÓN"},
-		{"class": Skill_RegenPath, "color": Color.GREEN, "icon": "🧪", "type": "CURACIÓN"},
-		{"class": Skill_Reflect, "color": Color.RED, "icon": "🛡️", "type": "ATAQUE"},
-		{"class": Skill_PlasmaBlast, "color": Color.RED, "icon": "💥", "type": "ATAQUE"}
+	# v301.3: Carga segura de habilidades para evitar Parse Error
+	var all_skills = []
+	var skill_configs = [
+		{"path": "res://scripts/skills/Utilidad/TurboImpulse.gd", "color": Color.YELLOW, "icon": "⚡", "type": "UTILIDAD"},
+		{"path": "res://scripts/skills/Utilidad/HyperDash.gd", "color": Color.YELLOW, "icon": "💨", "type": "UTILIDAD"},
+		{"path": "res://scripts/skills/Utilidad/Invulnerability.gd", "color": Color.YELLOW, "icon": "🛡️", "type": "UTILIDAD"},
+		{"path": "res://scripts/skills/Utilidad/Blink.gd", "color": Color.YELLOW, "icon": "✨", "type": "UTILIDAD"},
+		{"path": "res://scripts/skills/Utilidad/Stealth.gd", "color": Color.YELLOW, "icon": "👻", "type": "UTILIDAD"},
+		{"path": "res://scripts/skills/Defensivas/ShieldCell.gd", "color": Color.AQUA, "icon": "🛡️", "type": "DEFENSA"},
+		{"path": "res://scripts/skills/Defensivas/Fortress.gd", "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},
+		{"path": "res://scripts/skills/Defensivas/FrostTrail.gd", "color": Color.AQUA, "icon": "❄️", "type": "DEFENSA"},
+		{"path": "res://scripts/skills/Defensivas/SmokeBomb.gd", "color": Color.AQUA, "icon": "☁️", "type": "DEFENSA"},
+		{"path": "res://scripts/skills/Curativas/RepairKit.gd", "color": Color.GREEN, "icon": "🔧", "type": "CURACIÓN"},
+		{"path": "res://scripts/skills/Curativas/RegenPath.gd", "color": Color.GREEN, "icon": "🧪", "type": "CURACIÓN"},
+		{"path": "res://scripts/skills/Ataque/Reflect.gd", "color": Color.RED, "icon": "🛡️", "type": "ATAQUE"},
+		{"path": "res://scripts/skills/Ataque/PlasmaBlast.gd", "color": Color.RED, "icon": "💥", "type": "ATAQUE"}
 	]
 	
+	for cfg in skill_configs:
+		if FileAccess.file_exists(cfg["path"]):
+			var script = load(cfg["path"])
+			if script: all_skills.append({"class": script, "color": cfg["color"], "icon": cfg["icon"], "type": cfg["type"]})
+
 	var currently_equipped = []
 	if is_instance_valid(inv_main.spheres_manager):
 		for s in inv_main.spheres_manager.spheres_data:

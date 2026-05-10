@@ -87,7 +87,7 @@ func _create_fleet_card(sid, parent):
 		for it in ship_e.get("e", []): bonus_e += int(it.get("base", 0))
 	
 	var stats_grid = GridContainer.new(); stats_grid.columns = 2; stats_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; v.add_child(stats_grid)
-	var create_stat = func(txt: String, base_val: int, bonus: int, label_color: Color):
+	var create_stat = func(txt, base_val, bonus, label_color):
 		var lbl = Label.new(); lbl.text = txt; lbl.add_theme_font_size_override("font_size", 8); lbl.modulate = label_color; lbl.modulate.a = 0.7; stats_grid.add_child(lbl)
 		var h_val = HBoxContainer.new(); h_val.add_theme_constant_override("separation", 2); stats_grid.add_child(h_val)
 		var base_lbl = Label.new(); base_lbl.text = str(base_val); base_lbl.add_theme_font_size_override("font_size", 8); base_lbl.modulate = Color.WHITE; h_val.add_child(base_lbl)
