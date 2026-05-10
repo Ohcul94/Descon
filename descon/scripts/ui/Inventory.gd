@@ -165,6 +165,10 @@ func _on_ship_equip_data(data: Dictionary):
 	if str(selected_hangar_ship_id) == sid or str(current_ship_id) == sid:
 		_update_hangar_ui()
 
+func _update_hangar_ui():
+	var h = get_node_or_null("Window/TabContainer/Hangar")
+	if h and h.has_method("update_ui"): h.update_ui()
+
 func _on_player_stats_changed(p_data: Dictionary):
 	# Actualizar saldos locales para que el dibujo de _draw() sea correcto
 	if p_data.has("hubs"): hubs = int(p_data["hubs"])
@@ -383,161 +387,33 @@ func _update_active_tab_ui():
 	
 	queue_redraw()
 
-# --- HANGAR (DELEGADO A HangarTab.gd) ---
-func _update_hangar_ui():
-	var h = get_node_or_null("Window/TabContainer/Hangar")
-	if h and h.has_method("update_ui"): h.update_ui()
+# v300.10: Limpieza de código muerto tras modularización total.
+# Las funciones de UI ahora residen en sus respectivos módulos bajo /inventory/
 
-# --- SHOP ---
-func _update_shop_ui():
-	var h = get_node_or_null("Window/TabContainer/Tienda")
-	if not h: return
-	for n in h.get_children(): n.queue_free()
-	
-	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); h.add_child(main_v)
-	var bar = HBoxContainer.new(); bar.add_theme_constant_override("separation", 15); main_v.add_child(bar)
-	var lbats = {"ships": "NAVES", "weapons": "ARMAS", "shields": "ESCUDOS", "engines": "MOTORES", "ammo": "MUNICIONES", "extras": "EXTRAS"}
-	for k in lbats:
-		var b = Button.new(); b.text = lbats[k]; b.flat = true; b.modulate = Color.CYAN if shop_tab == k else Color.WHITE
-		b.pressed.connect(func(): shop_tab = k; _update_shop_ui())
-		bar.add_child(b)
-	
-	var s_lbl = Label.new(); s_lbl.text = "\n" + lbats[shop_tab] + " (MERCADO INTERESTELAR)\n"; s_lbl.add_theme_font_size_override("font_size", 12); main_v.add_child(s_lbl)
-	var scr = ScrollContainer.new(); scr.size_flags_vertical = 3; main_v.add_child(scr)
-	var grid = GridContainer.new(); grid.columns = 3; grid.size_flags_horizontal = 3; grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 20); scr.add_child(grid)
-	
-	if shop_tab == "ships":
-		for ship in GameConstants.SHIP_MODELS: _create_shop_card(ship, "ships", grid)
-	elif shop_tab == "ammo":
-		_render_ammo_shop(main_v, grid)
-	else:
-		var items = GameConstants.SHOP_ITEMS.get(shop_tab, [])
-		for it in items: _create_shop_card(it, shop_tab, grid)
+func _on_clan_data_received(data):
+	clan_data = data
+	_update_clan_ui()
 
-func _create_shop_card(it, cat, parent):
-	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(280, 110)
-	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0.02,0.1, 0.4); sb.border_width_top = 1; sb.border_color = Color(0,1,1,0.1); p.add_theme_stylebox_override("panel", sb)
-	var v = VBoxContainer.new(); v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); v.offset_left = 10; v.offset_right = -10; p.add_child(v)
-	
-	var n = Label.new(); n.text = it["name"].to_upper(); n.horizontal_alignment = 1; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
-	
-	# v262.860: Mostrar Stats en la Tienda (Sincronizado con Admin)
-	var base_val = it.get("base", 0)
-	var stat_label = Label.new(); stat_label.horizontal_alignment = 1; stat_label.add_theme_font_size_override("font_size", 9); stat_label.modulate = Color.GOLD
-	if cat == "weapons": stat_label.text = "POTENCIA DE FUEGO: " + str(base_val)
-	elif cat == "shields": stat_label.text = "CAPACIDAD DE ESCUDO: " + str(base_val)
-	elif cat == "engines": stat_label.text = "EMPUJE DE MOTOR: +" + str(base_val)
-	if stat_label.text != "": v.add_child(stat_label)
+func _on_clan_member_status(data):
+	if clan_data and clan_data.has("members"):
+		var target_user = str(data.get("user", "")).to_lower()
+		for m in clan_data["members"]:
+			if str(m.get("username", "")).to_lower() == target_user:
+				m["online"] = data["online"]
+				break
+	_update_clan_ui()
 
-	var d = Label.new(); d.text = it.get("desc", ""); d.horizontal_alignment = 1; d.modulate.a = 0.5; d.add_theme_font_size_override("font_size", 8); v.add_child(d)
+func _update_clan_ui():
+	var ct = get_node_or_null("Window/TabContainer/Clan")
+	if not ct:
+		var tabs = get_node_or_null("Window/TabContainer")
+		if tabs:
+			ct = Control.new(); ct.name = "Clan"; tabs.add_child(ct)
+			ct.set_script(load("res://scripts/ui/inventory/ClanTab.gd"))
+			if ct.has_method("setup"): ct.setup(self)
+			if NetworkManager: NetworkManager.send_event("getClanData", {})
 	
-	var is_owned = (cat == "ships" and owned_ships.has(it["id"]))
-	if is_owned:
-		var l = Label.new(); l.text = "\nNAVE ADQUIRIDA"; l.modulate = Color.GREEN; l.horizontal_alignment = 1; v.add_child(l)
-	else:
-		var pr = it["prices"]
-		if pr["hubs"] > 0:
-			var b1 = Button.new(); b1.text = _format_val(pr["hubs"]) + " HUBS"; v.add_child(b1)
-			b1.pressed.connect(func(): _buy_request(cat, it, "hubs"))
-		if pr["ohcu"] > 0:
-			var b2 = Button.new(); b2.text = _format_val(pr["ohcu"]) + " OHCU"; v.add_child(b2)
-			b2.pressed.connect(func(): _buy_request(cat, it, "ohcu"))
-	parent.add_child(p)
-
-func _render_ammo_shop(parent, grid):
-	var bar = HBoxContainer.new(); bar.add_theme_constant_override("separation", 10); parent.add_child(bar); parent.move_child(bar, 2)
-	for t in ["laser", "missile", "mine"]:
-		var b = Button.new(); b.text = t.to_upper(); b.flat = true; b.modulate = Color.GOLD if ammo_sub_tab == t else Color.WHITE
-		b.pressed.connect(func(): ammo_sub_tab = t; _update_shop_ui())
-		bar.add_child(b)
-	var ammo_base = GameConstants.SHOP_ITEMS.get("ammo", {})
-	var items = ammo_base.get(ammo_sub_tab, [])
-	for it in items: _create_shop_card(it, "ammo", grid)
-
-func _buy_request(cat, it, cur):
-	var price = it["prices"][cur]; var wallet = hubs if cur == "hubs" else ohcu
-	if wallet < price: 
-		_show_result_modal("FONDOS INSUFICIENTES", "No tienes suficientes " + cur.to_upper() + " para esta operación.")
-		return
-	
-	if cat == "ammo":
-		_show_ammo_modal(it, cur)
-		return
-
-	var msg = "¿Deseas adquirir [color=cyan]" + it["name"] + "[/color] por [color=yellow]" + _format_val(price) + " " + cur.to_upper() + "[/color]?"
-	_show_modal("CONFIRMAR ADQUISICIÓN", msg, func():
-		NetworkManager.send_event("buyItem", {"category": cat, "itemId": it["id"], "currency": cur})
-		_show_result_modal("¡COMPRA EXITOSA!", "El ítem " + it["name"] + " ha sido enviado a tu bodega.")
-	)
-
-func _show_ammo_modal(it, cur):
-	var unit_price = it["prices"][cur]
-	var dial_v = VBoxContainer.new()
-	var lq = Label.new(); lq.text = "CANTIDAD DE RECARGA:"; lq.horizontal_alignment = 1; dial_v.add_child(lq)
-	var slider = HSlider.new(); slider.min_value = 100; slider.max_value = 50000; slider.step = 100; slider.value = 1000; dial_v.add_child(slider)
-	var total_lbl = Label.new(); total_lbl.text = "1.000 unidades = " + _format_val(unit_price * 10) + " " + cur.to_upper(); total_lbl.horizontal_alignment = 1; dial_v.add_child(total_lbl)
-	slider.value_changed.connect(func(v): total_lbl.text = _format_val(v) + " unidades = " + _format_val(v * (unit_price/100.0)) + " " + cur.to_upper())
-	
-	_show_modal("SUMINISTROS TÁCTICOS", "Ajusta la cantidad de [color=cyan]" + it["name"] + "[/color] a comprar:", func():
-		var qty = int(slider.value)
-		var total = int(qty * (unit_price/100.0))
-		if (hubs if cur == "hubs" else ohcu) >= total:
-			NetworkManager.send_event("buyItem", {"category": "ammo", "itemId": it["id"], "currency": cur, "amount": qty})
-			_show_result_modal("SUMINISTROS RECIBIDOS", "Se han acreditado " + _format_val(qty) + " unidades.")
-		else:
-			_show_result_modal("ERROR", "No tienes fondos para esta cantidad.")
-	, dial_v)
-
-func _show_modal(title, msg, on_confirm, custom_node = null):
-	modal_active = true
-	# v227.60: CENTRADO MATEMÁTICO (Forzar tamaño al Viewport)
-	var overlay = ColorRect.new()
-	overlay.color = Color(0,0,0,0.85)
-	overlay.top_level = true
-	overlay.z_index = 1000
-	add_child(overlay)
-	
-	# v227.61: Sincronizar tamaño con la pantalla real
-	overlay.size = get_viewport_rect().size
-	overlay.global_position = Vector2.ZERO
-	
-	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(420, 220); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
-	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0.01, 0.04, 0.08, 1); sb.border_width_top = 3; sb.border_color = Color.CYAN; p.add_theme_stylebox_override("panel", sb)
-	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 20); p.add_child(v)
-	
-	var tl = Label.new(); tl.text = title; tl.horizontal_alignment = 1; tl.modulate = Color.CYAN; tl.add_theme_font_size_override("font_size", 14); v.add_child(tl)
-	var rt = RichTextLabel.new(); rt.bbcode_enabled = true; rt.text = "[center]" + msg + "[/center]"; rt.fit_content = true; v.add_child(rt)
-	
-	if custom_node: v.add_child(custom_node)
-	
-	var hb = HBoxContainer.new(); hb.alignment = BoxContainer.ALIGNMENT_CENTER; hb.add_theme_constant_override("separation", 20); v.add_child(hb)
-	var bc = Button.new(); bc.text = "  CONFIRMAR  "; bc.custom_minimum_size = Vector2(120, 40); bc.pressed.connect(func(): on_confirm.call(); overlay.queue_free(); modal_active = false); hb.add_child(bc)
-	var bx = Button.new(); bx.text = "   CANCELAR   "; bx.custom_minimum_size = Vector2(120, 40); bx.pressed.connect(func(): overlay.queue_free(); modal_active = false); hb.add_child(bx)
-
-func _show_result_modal(title, msg):
-	var overlay = ColorRect.new()
-	overlay.color = Color(0,0,0,0.85)
-	overlay.top_level = true
-	overlay.z_index = 1001
-	add_child(overlay)
-	
-	overlay.size = get_viewport_rect().size
-	overlay.global_position = Vector2.ZERO
-	
-	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(380, 160); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
-	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0.08,0.04, 1); sb.border_width_top = 2; sb.border_color = Color.GREEN; p.add_theme_stylebox_override("panel", sb)
-	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 15); p.add_child(v); var tl = Label.new(); tl.text = title; tl.modulate = Color.GREEN; tl.horizontal_alignment = 1; v.add_child(tl)
-	var m = Label.new(); m.text = msg; m.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; m.horizontal_alignment = 1; v.add_child(m)
-	var b = Button.new(); b.text = "ENTENDIDO"; b.custom_minimum_size = Vector2(100, 35); b.pressed.connect(func(): overlay.queue_free()); v.add_child(b)
-
-# v262.520: Traductor de ID de ítem → código de slot (w/s/e/x) (Copia para Shop/Inventory)
-func _get_slot_from_id(item_id: String) -> String:
-	if item_id.begins_with("las") or item_id.begins_with("w"): return "w"
-	elif item_id.begins_with("sh") or item_id.begins_with("s"): return "s"
-	elif item_id.begins_with("en") or item_id.begins_with("e"): return "e"
-	else: return "x"
-
-
+	if ct and ct.has_method("update_ui"): ct.update_ui()
 
 func _update_map_ui():
 	var mt = get_node_or_null("Window/TabContainer/Mapa")
@@ -550,32 +426,12 @@ func _update_map_ui():
 	
 	if mt and mt.has_method("update_ui"): mt.update_ui()
 
-
-# --- SISTEMA DE CLANES (FLOTAS) ---
-func _on_clan_data_received(data):
-	clan_data = data
-	if is_open: _update_clan_ui()
-
-func _on_clan_member_status(data):
-	if clan_data and clan_data.has("members"):
-		var target_user = str(data.get("user", "")).to_lower()
-		for m in clan_data["members"]:
-			if str(m.get("username", "")).to_lower() == target_user:
-				m["online"] = data["online"]
-				break
-	if is_open: _update_clan_ui()
-
-func _update_clan_ui():
-	var ct = get_node_or_null("Window/TabContainer/Clan")
-	if not ct:
-		var tabs = get_node_or_null("Window/TabContainer")
-		if tabs:
-			ct = Control.new(); ct.name = "Clan"; tabs.add_child(ct)
-			ct.set_script(load("res://scripts/ui/inventory/ClanTab.gd"))
-			if ct.has_method("setup"): ct.setup(self)
-			NetworkManager.send_event("getClanData", {})
-	
-	if ct and ct.has_method("update_ui"): ct.update_ui()
+# v262.520: Traductor de ID de ítem → código de slot (w/s/e/x)
+func _get_slot_from_id(item_id: String) -> String:
+	if item_id.begins_with("las") or item_id.begins_with("w"): return "w"
+	elif item_id.begins_with("sh") or item_id.begins_with("s"): return "s"
+	elif item_id.begins_with("en") or item_id.begins_with("e"): return "e"
+	else: return "x"
 
 func _on_game_notification(data: Dictionary):
 	if not is_open: return
@@ -587,3 +443,27 @@ func _on_game_notification(data: Dictionary):
 		var m_upper = msg.to_upper()
 		if "FLOTA" in m_upper or "PILOTO" in m_upper or "CLAN" in m_upper or "SOLICITUD" in m_upper or "LÍDER" in m_upper or "TAG" in m_upper:
 			_show_result_modal("CENTRO DE COMANDO: ERROR", msg)
+
+func _show_modal(title, msg, on_confirm, custom_node = null):
+	modal_active = true
+	var overlay = ColorRect.new(); overlay.color = Color(0,0,0,0.85); overlay.top_level = true; overlay.z_index = 1000; add_child(overlay)
+	overlay.size = get_viewport_rect().size; overlay.global_position = Vector2.ZERO
+	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(420, 220); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
+	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0.01, 0.04, 0.08, 1); sb.border_width_top = 3; sb.border_color = Color.CYAN; p.add_theme_stylebox_override("panel", sb)
+	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 20); p.add_child(v)
+	var tl = Label.new(); tl.text = title; tl.horizontal_alignment = 1; tl.modulate = Color.CYAN; tl.add_theme_font_size_override("font_size", 14); v.add_child(tl)
+	var rt = RichTextLabel.new(); rt.bbcode_enabled = true; rt.text = "[center]" + msg + "[/center]"; rt.fit_content = true; v.add_child(rt)
+	if custom_node: v.add_child(custom_node)
+	var hb = HBoxContainer.new(); hb.alignment = BoxContainer.ALIGNMENT_CENTER; hb.add_theme_constant_override("separation", 20); v.add_child(hb)
+	var bc = Button.new(); bc.text = "  CONFIRMAR  "; bc.custom_minimum_size = Vector2(120, 40); bc.pressed.connect(func(): on_confirm.call(); overlay.queue_free(); modal_active = false); hb.add_child(bc)
+	var bx = Button.new(); bx.text = "   CANCELAR   "; bx.custom_minimum_size = Vector2(120, 40); bx.pressed.connect(func(): overlay.queue_free(); modal_active = false); hb.add_child(bx)
+
+func _show_result_modal(title, msg):
+	var overlay = ColorRect.new(); overlay.color = Color(0,0,0,0.85); overlay.top_level = true; overlay.z_index = 1001; add_child(overlay)
+	overlay.size = get_viewport_rect().size; overlay.global_position = Vector2.ZERO
+	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(380, 160); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
+	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0.08,0.04, 1); sb.border_width_top = 2; sb.border_color = Color.GREEN; p.add_theme_stylebox_override("panel", sb)
+	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 15); p.add_child(v)
+	var tl = Label.new(); tl.text = title; tl.modulate = Color.GREEN; tl.horizontal_alignment = 1; v.add_child(tl)
+	var m = Label.new(); m.text = msg; m.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; m.horizontal_alignment = 1; v.add_child(m)
+	var b = Button.new(); b.text = "ENTENDIDO"; b.custom_minimum_size = Vector2(100, 35); b.pressed.connect(func(): overlay.queue_free()); v.add_child(b)

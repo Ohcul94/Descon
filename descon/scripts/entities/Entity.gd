@@ -88,9 +88,14 @@ func _ready():
 		if n: n.visible = false; n.queue_free()
 	
 	if not _ui_wrapper:
-		_ui_wrapper = Node2D.new(); _ui_wrapper.top_level = true
-		_ui_wrapper.name = "HUD_Layer_Final"; _ui_wrapper.draw.connect(_draw_hud)
-		add_child(_ui_wrapper)
+		# v300.30: El HUD ahora es un componente independiente (EntityHUD.gd)
+		var hud_script = load("res://scripts/entities/EntityHUD.gd")
+		if hud_script:
+			_ui_wrapper = hud_script.new()
+			_ui_wrapper.setup(self)
+			_ui_wrapper.top_level = true
+			_ui_wrapper.name = "HUD_Layer_Final"
+			add_child(_ui_wrapper)
 	
 	# v190.90: SISTEMA DE RECORTE Y ANIMACIÓN NAVE-1 (Phoenix)
 	# Si somos una nave (no enemigo), configuramos el sprite.
@@ -349,34 +354,10 @@ func _draw():
 	draw_colored_polygon(pts, poly_color)
 	draw_polyline(pts + PackedVector2Array([pts[0]]), Color.BLACK, 1.8)
 
-func _draw_hud():
-	if is_dead: return
-	var bar_w = 44.0; var gap = 2.0; var segments = 4
-	var seg_w = (bar_w - (gap * (segments - 1.0))) / float(segments)
-	
-	# v190.85: Usar valores interpolados para el dibujo
-	var sh_pct = clamp(_display_shield / max_shield if max_shield > 0 else 0.0, 0, 1)
-	var hp_pct = clamp(_display_hp / max_hp if max_hp > 0 else 0.0, 0, 1)
-	
-	var base_y = -70.0
-	if is_in_group("player"): base_y = -105.0
-	elif entity_type >= 4: base_y = -220.0 # Boss (v238.81: Alejar de la cabeza del modelo)
+# v300.30: HUD delegado a EntityHUD.gd
 
 
 	
-	for i in range(segments):
-		var x = -(bar_w / 2.0) + (i * (seg_w + gap))
-		# Fondo (Escudo)
-		_ui_wrapper.draw_rect(Rect2(x, base_y - 10, seg_w, 4), Color(0, 1, 1, 0.25))
-		var f_sh = clamp((sh_pct * segments) - i, 0.0, 1.0)
-		if f_sh > 0: _ui_wrapper.draw_rect(Rect2(x, base_y - 10, seg_w * f_sh, 4), Color(0, 1, 1))
-		
-		# Fondo (Hp)
-		_ui_wrapper.draw_rect(Rect2(x, base_y - 3, seg_w, 4), Color(0, 0.8, 0, 0.25))
-		var f_hp = clamp((hp_pct * segments) - i, 0.0, 1.0)
-		if f_hp > 0: 
-			var c = Color(0, 0.8, 0) if hp_pct > 0.3 else Color(1, 0, 0)
-			_ui_wrapper.draw_rect(Rect2(x, base_y - 3, seg_w * f_hp, 4), c)
 
 func reset_combat_timer():
 	last_combat_time = Time.get_ticks_msec()
