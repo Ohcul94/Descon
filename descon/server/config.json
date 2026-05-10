@@ -510,9 +510,20 @@
         "1": {
             "color": "#ffffff",
             "desc": "Zona segura de reunión y comercio.",
-            "minLevel": 1,
+            "minLevel": 10,
             "name": "Loby",
-            "warpCost": 0
+            "warpCost": null,
+            "ambience": [
+                {
+                    "type": "radiation",
+                    "damagePerSecond": 10
+                },
+                {
+                    "type": "nebula",
+                    "damagePerSecond": 10,
+                    "slowPercentage": 10
+                }
+            ]
         },
         "2": {
             "color": "#00ff00",

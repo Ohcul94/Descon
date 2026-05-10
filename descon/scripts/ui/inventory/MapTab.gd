@@ -77,9 +77,16 @@ func update_ui():
 			st.modulate = Color.GOLD
 			st.add_theme_font_size_override("font_size", 8); v.add_child(st)
 		
-		var cost = int(s.get("warpCost", 10))
-		var min_level = int(s.get("minLevel", 1))
-		var current_level = int(p_node.level) if is_instance_valid(p_node) and "level" in p_node else 1
+		var raw_cost = s.get("warpCost")
+		var cost = int(raw_cost) if raw_cost != null and (typeof(raw_cost) == TYPE_INT or typeof(raw_cost) == TYPE_FLOAT or (typeof(raw_cost) == TYPE_STRING and raw_cost.is_valid_int())) else 10
+		
+		var raw_min = s.get("minLevel")
+		var min_level = int(raw_min) if raw_min != null and (typeof(raw_min) == TYPE_INT or typeof(raw_min) == TYPE_FLOAT or (typeof(raw_min) == TYPE_STRING and raw_min.is_valid_int())) else 1
+		
+		var current_level = 1
+		if is_instance_valid(p_node) and "level" in p_node:
+			current_level = int(p_node.level)
+		
 		var can_enter = current_level >= min_level
 		var btn_travel = Button.new()
 		

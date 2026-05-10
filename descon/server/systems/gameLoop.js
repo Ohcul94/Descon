@@ -117,6 +117,22 @@ function startGameLoop(io, state, aiManager) {
         Object.values(players).forEach(p => {
             if (p.hp <= 0) return;
 
+            // v266.350: Procesar Mecánicas de Ambiente (Hazards)
+            const mapConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[p.zone] : null;
+            if (mapConfig && mapConfig.ambience) {
+                mapConfig.ambience.forEach(hazard => {
+                    if (hazard.type === 'radiation' && hazard.damagePerSecond) {
+                        p.hp = Math.max(0, p.hp - (hazard.damagePerSecond / 1)); // daño cada tick de 1s
+                        p.lastCombatTime = now; // La radiación cuenta como combate para evitar regen
+                    }
+                    if (hazard.type === 'nebula' && hazard.slowPercentage) {
+                        p.isSlowed = true;
+                        p.lastSlowTime = now;
+                        p.slowPoints = hazard.slowPercentage;
+                    }
+                });
+            }
+
             const timeSinceCombat = now - (p.lastCombatTime || 0);
             if (timeSinceCombat > 10000) { // 10s fuera de combate
                 const regenAmount = p.maxHp * 0.05;
@@ -128,14 +144,16 @@ function startGameLoop(io, state, aiManager) {
                 if (p.shield < p.maxShield) {
                     p.shield = Math.min(p.maxShield, p.shield + shieldRegen);
                 }
-
-                io.to(`zone_${p.zone}`).emit('playerStatSync', {
-                    id: p.socketId, 
-                    hp: Math.ceil(p.hp), 
-                    shield: Math.ceil(p.shield),
-                    isInvisible: p.isInvisible // v245.89: Persistencia de Sigilo en Loop
-                });
             }
+
+            // Sync obligatorio si hubo cambios por ambiente o regen
+            io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                id: p.socketId, 
+                hp: Math.ceil(p.hp), 
+                shield: Math.ceil(p.shield),
+                isInvisible: p.isInvisible,
+                isSlowed: p.isSlowed // v266.351
+            });
         });
     }, 1000);
 

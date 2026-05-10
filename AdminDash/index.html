@@ -109,13 +109,43 @@
             width: 280px;
             background: rgba(0,0,0,0.2);
             border-right: 1px solid rgba(255,255,255,0.05);
-            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #sidebar-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.5rem;
+        }
+
+        /* Scrollbar finita y elegante */
+        #sidebar-scroll::-webkit-scrollbar { width: 4px; }
+        #sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+        #sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        .nav-group {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
-            overflow-y: auto;
-            max-height: calc(100vh - 80px);
+            margin-bottom: 1.5rem;
         }
+
+        select {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 10px;
+            color: white;
+            width: 100%;
+            cursor: pointer;
+            outline: none;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+        }
+        select::-ms-expand { display: none; }
+        select:focus { border-color: var(--accent); background: rgba(6, 182, 212, 0.1); }
 
         .nav-link {
             padding: 1rem 1.25rem;
@@ -383,23 +413,25 @@
 
     <main>
         <nav id="sidebar">
-            <div style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            <div style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
                 <input type="text" id="sidebar-search" placeholder="🔍 Buscar entidad o ID..." 
                        style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; width:100%; padding:10px; color:white; font-size:0.85rem;"
                        oninput="updateSidebar()">
             </div>
-            <div class="nav-group">
-                <div class="nav-link active" onclick="showTab('ships')">🚀 Naves Estelares</div>
-            </div>
+            
+            <div id="sidebar-scroll">
+                <div class="nav-group">
+                    <div class="nav-link active" onclick="showTab('ships')">🚀 Naves Estelares</div>
+                </div>
 
-            <div class="nav-group">
-                <div class="nav-folder" onclick="toggleFolder('folder-enemies'); showTab('enemies')">👾 Amenazas (IA) <span class="chevron">▼</span></div>
-                <div id="folder-enemies" class="folder-content show">
-                    <div class="nav-link sub" onclick="toggleFolder('subfolder-regulars')">├ Enemigos <span class="chevron">▶</span></div>
+                <div class="nav-group">
+                    <div class="nav-folder" onclick="toggleFolder('folder-enemies'); showTab('enemies')">👾 Amenazas (IA) <span class="chevron">▼</span></div>
+                    <div id="folder-enemies" class="folder-content show">
+                    <div class="nav-link sub" onclick="toggleFolder('subfolder-regulars')">Enemigos <span class="chevron">▶</span></div>
                     <div id="subfolder-regulars" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
                         <div id="sidebar-enemies-list"></div>
                     </div>
-                    <div class="nav-link sub" onclick="toggleFolder('subfolder-bosses')">└ Bosses <span class="chevron">▶</span></div>
+                    <div class="nav-link sub" onclick="toggleFolder('subfolder-bosses')">Bosses <span class="chevron">▶</span></div>
                     <div id="subfolder-bosses" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
                         <div id="sidebar-bosses-list"></div>
                     </div>
@@ -409,10 +441,10 @@
             <div class="nav-group">
                 <div class="nav-folder" onclick="toggleFolder('folder-market'); showTab('ammo')">💎 Mercado <span class="chevron">▼</span></div>
                 <div id="folder-market" class="folder-content">
-                    <div class="nav-link sub" onclick="showTab('ammo')">├ Municiones</div>
-                    <div class="nav-link sub" onclick="showTab('weapons')">├ Armamento</div>
-                    <div class="nav-link sub" onclick="showTab('shields')">├ Escudos</div>
-                    <div class="nav-link sub" onclick="showTab('engines')">└ Motores</div>
+                    <div class="nav-link sub" onclick="showTab('ammo')">Municiones</div>
+                    <div class="nav-link sub" onclick="showTab('weapons')">Armamento</div>
+                    <div class="nav-link sub" onclick="showTab('shields')">Escudos</div>
+                    <div class="nav-link sub" onclick="showTab('engines')">Motores</div>
                 </div>
             </div>
 
@@ -422,9 +454,16 @@
                 <div id="folder-mechanics" class="folder-content">
                     <div class="nav-link sub" onclick="setMechTab('attack'); showTab('mechanics')">⚔️ Ataque</div>
                     <div class="nav-link sub" onclick="setMechTab('movement'); showTab('mechanics')">🏃 Movimiento</div>
+                    <div class="nav-link sub" onclick="setMechTab('ambience'); showTab('mechanics')">🌍 Ambiente</div>
                 </div>
-                <div class="nav-link" onclick="showTab('maps')">🗺️ Cartografía</div>
+                
+                <div class="nav-folder" onclick="toggleFolder('folder-maps'); showTab('maps')">🗺️ Cartografía <span class="chevron">▼</span></div>
+                <div id="folder-maps" class="folder-content show">
+                    <div id="sidebar-maps-list"></div>
+                </div>
+
                 <div class="nav-link" onclick="showTab('json')">📦 Núcleo JSON</div>
+            </div>
             </div>
         </nav>
 
@@ -443,52 +482,48 @@
             </div>
 
             <div id="view-enemies" class="view">
-                <div class="section-header"><h2>Gestión de Amenazas</h2></div>
                 <div id="enemies-grid" class="grid"></div>
             </div>
 
             <div id="view-enemy-detail" class="view">
-                <div class="section-header"><button class="btn btn-secondary" onclick="showTab('enemies')" style="margin-right:1rem;">← Volver</button></div>
+                <div class="section-header"><button class="btn btn-secondary" onclick="showTab('enemies')" style="margin-right:1rem;">Volver</button></div>
                 <div id="enemy-detail-container" style="width: 100%;"></div>
             </div>
 
             <div id="view-ammo" class="view">
-                <div class="section-header"><h2>Multiplicadores de Daño</h2></div>
                 <div id="ammo-grid" class="grid"></div>
             </div>
 
             <div id="view-weapons" class="view">
-                <div class="section-header"><h2>Arsenal de Combate (Armas)</h2></div>
                 <div id="weapons-grid" class="grid"></div>
             </div>
 
             <div id="view-shields" class="view">
-                <div class="section-header"><h2>Sistemas de Defensa (Escudos)</h2></div>
                 <div id="shields-grid" class="grid"></div>
             </div>
 
             <div id="view-engines" class="view">
-                <div class="section-header"><h2>Propulsión (Motores)</h2></div>
                 <div id="engines-grid" class="grid"></div>
             </div>
 
             <div id="view-skills" class="view">
-                <div class="section-header"><h2>Protocolos de Combate</h2><button class="btn btn-secondary btn-sm" onclick="addNewSkill()">+ Nueva Habilidad</button></div>
                 <div id="skills-grid" class="grid"></div>
             </div>
 
             <div id="view-mechanics" class="view">
-                <div class="section-header"><h2>Librería de Mecánicas</h2></div>
                 <div id="mechanics-lib-grid" class="grid"></div>
             </div>
 
             <div id="view-maps" class="view">
-                <div class="section-header"><h2>Zonas del Universo</h2></div>
                 <div id="maps-grid" class="grid"></div>
             </div>
 
+            <div id="view-map-detail" class="view">
+                <div class="section-header"><button class="btn btn-secondary" onclick="showTab('maps')" style="margin-right:1rem;">Volver a Cartografía</button></div>
+                <div id="map-detail-container" style="width: 100%;"></div>
+            </div>
+
             <div id="view-json" class="view">
-                <div class="section-header"><h2>Editor de Configuración Crítica</h2></div>
                 <textarea id="json-editor" style="width: 100%; height: 65vh; background: #000; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); color: #0f0; font-family: 'JetBrains Mono', monospace; padding: 2rem;"></textarea>
             </div>
         </section>
@@ -516,7 +551,8 @@
                 'ammo': 'Mercado: Municiones', 'weapons': 'Mercado: Armamento',
                 'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión',
                 'skills': 'Protocolos de Combate', 'mechanics': 'Librería de Mecánicas',
-                'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema'
+                'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema',
+                'enemy-detail': 'Editor de Entidad', 'map-detail': 'Configuración de Zona'
             };
             document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
             document.getElementById('global-filter').value = ''; // Limpiar filtro al cambiar
@@ -713,6 +749,13 @@
         let currentEnemySubTab = 'regular';
         let currentMechTab = 'attack';
         let selectedEnemyId = null;
+        let selectedMapId = null;
+
+        function selectMap(id) {
+            selectedMapId = id;
+            showTab('map-detail');
+            renderMapDetail();
+        }
 
         function setEnemySubTab(tab) {
             currentEnemySubTab = tab;
@@ -733,12 +776,24 @@
         function updateSidebar() {
             const enemyList = document.getElementById('sidebar-enemies-list');
             const bossList = document.getElementById('sidebar-bosses-list');
-            if(!enemyList || !bossList) return;
+            const mapList = document.getElementById('sidebar-maps-list');
+            if(!enemyList || !bossList || !mapList) return;
             
             const searchTerm = (document.getElementById('sidebar-search')?.value || '').toLowerCase();
-            enemyList.innerHTML = '';
-            bossList.innerHTML = '';
+            enemyList.innerHTML = ''; bossList.innerHTML = ''; mapList.innerHTML = '';
 
+            // Mapas
+            for(let id in config.mapsConfig) {
+                const m = config.mapsConfig[id];
+                if(searchTerm && !m.name.toLowerCase().includes(searchTerm)) continue;
+                const link = document.createElement('div');
+                link.className = 'nav-link sub ' + (selectedMapId === id ? 'active' : '');
+                link.innerHTML = `<span style="color:${m.color}">■</span> ${m.name}`;
+                link.onclick = () => selectMap(id);
+                mapList.appendChild(link);
+            }
+
+            // Enemigos
             for(let id in config.enemyModels) {
                 const en = config.enemyModels[id];
                 const matches = en.name.toLowerCase().includes(searchTerm) || id.includes(searchTerm);
@@ -746,7 +801,7 @@
 
                 const link = document.createElement('div');
                 link.className = 'nav-link sub ' + (selectedEnemyId === id ? 'active' : '');
-                link.innerText = `├ ${en.name || 'Enemigo '+id}`;
+                link.innerText = `${en.name || 'Enemigo '+id}`;
                 link.onclick = () => selectEnemy(id);
                 
                 if (parseInt(id) < 100) enemyList.appendChild(link);
@@ -794,7 +849,7 @@
                     <div class="card-tag">#ID ${id}</div>
                     <h3>${en.name}</h3>
                     <p style="font-size:0.8rem; opacity:0.6;">IA: ${en.movementAI || 'chase'}</p>
-                    <div style="margin-top:1rem; color:var(--accent); font-weight:bold; font-size:0.7rem;">Configurar Detalles →</div>
+                    <div style="margin-top:1rem; color:var(--accent); font-weight:bold; font-size:0.7rem;">Configurar Detalles</div>
                 `;
                 grid.appendChild(card);
             }
@@ -840,8 +895,8 @@
                             ${en.movementPhases.map((m, idx) => `
                                 <div class="card" style="margin-bottom:1rem; position:relative; padding: 1rem; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2);">
                                     <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
-                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">▲</button>
-                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">▼</button>
+                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:bold;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
+                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:bold;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
                                         <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeMovementPhase('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
                                     </div>
                                     <div class="field full">
@@ -872,8 +927,8 @@
                             ${en.mechanics.map((m, idx) => `
                                 <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem;">
                                     <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
-                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">▲</button>
-                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">▼</button>
+                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
+                                        <button style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
                                         <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeMechanic('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
                                     </div>
                                     
@@ -991,6 +1046,21 @@
                     `;
                     grid.appendChild(card);
                 }
+            } else if (currentMechTab === 'ambience') {
+                for(let type in AMBIENCE_LIB) {
+                    const m = AMBIENCE_LIB[type];
+                    if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f)) continue;
+                    const card = document.createElement('div'); card.className = 'card';
+                    const al = { damagePerSecond: "Daño/Seg", slowPercentage: "Slow Ambient", visibility: "Visibilidad", dashPenalty: "Penalidad Dash" };
+                    card.innerHTML = `
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div>
+                        <div class="field full"><label>Efecto de Ambiente</label><input type="text" value="${m.label}" onchange="AMBIENCE_LIB['${type}'].label = this.value; renderAll();"></div>
+                        <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;">
+                            <strong style="color:var(--accent);">PARÁMETROS AFECTADOS:</strong> ${m.fields.map(fl => al[fl] || fl).join(' • ')}
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                }
             } else {
                 for(let type in MOVEMENT_LIB) {
                     const m = MOVEMENT_LIB[type];
@@ -1009,6 +1079,62 @@
             }
         }
 
+        function renderMapDetail() {
+            const container = document.getElementById('map-detail-container');
+            const m = config.mapsConfig[selectedMapId];
+            if(!m) return;
+
+            if(!m.ambience) m.ambience = [];
+
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+                    <div class="col">
+                        <div class="card" style="width:100%;">
+                            <div class="field full"><label>NOMBRE DE LA ZONA</label><input type="text" value="${m.name}" style="font-size: 1.5rem; color:var(--accent);" onchange="config.mapsConfig['${selectedMapId}'].name = this.value; updateSidebar();"></div>
+                            <div class="field full" style="margin-top:1rem;"><label>DESCRIPCIÓN DE HISTORIA</label><textarea onchange="config.mapsConfig['${selectedMapId}'].desc = this.value" style="height:100px; width:100%; background:rgba(0,0,0,0.2); border:1px solid #333; color:white; padding:10px; border-radius:8px;">${m.desc || ''}</textarea></div>
+                            <div class="form-grid" style="margin-top:1rem;">
+                                <div class="field"><label>Nivel Mín. (lvl)</label><input type="number" value="${m.minLevel}" onchange="config.mapsConfig['${selectedMapId}'].minLevel = parseInt(this.value)"></div>
+                                <div class="field"><label>Costo Warp (Hubs)</label><input type="number" value="${m.warpCost}" onchange="config.mapsConfig['${selectedMapId}'].warpCost = parseInt(this.value)"></div>
+                                <div class="field"><label>Color de Radar</label><input type="color" value="${m.color}" onchange="config.mapsConfig['${selectedMapId}'].color = this.value; updateSidebar();" style="height:40px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">☢️ MECÁNICAS DE AMBIENTE (HAZARDS)</label>
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addAmbience('${selectedMapId}'); renderMapDetail();">+ AGREGAR EFECTO</button>
+                        </div>
+                        <div id="ambience-list">
+                            ${m.ambience.map((a, idx) => `
+                                <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative;">
+                                    <div style="position:absolute; top:8px; right:8px;">
+                                        <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].ambience.splice(${idx},1); renderMapDetail();">✕</button>
+                                    </div>
+                                    <div class="field full">
+                                        <select style="background:#0f172a; border:none; color:var(--accent); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].type = this.value; renderMapDetail();">
+                                            ${Object.keys(AMBIENCE_LIB).map(type => `<option value="${type}" ${a.type === type ? 'selected' : ''}>${AMBIENCE_LIB[type].icon} ${AMBIENCE_LIB[type].label}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div class="form-grid" style="margin-top:1rem;">
+                                        ${AMBIENCE_LIB[a.type || 'radiation'].fields.map(f => {
+                                            const labels = { damagePerSecond: "Daño (pts/s)", slowPercentage: "Slow (%)", visibility: "Visibilidad (px)", dashPenalty: "Penalidad Dash (%)" };
+                                            return `<div class="field"><label>${labels[f] || f}</label><input type="number" value="${a[f] || 0}" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseInt(this.value)"></div>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addAmbience(id) {
+            if(!config.mapsConfig[id].ambience) config.mapsConfig[id].ambience = [];
+            config.mapsConfig[id].ambience.push({ type: "radiation", damagePerSecond: 10 });
+        }
+
         function renderSkills() {
             const grid = document.getElementById('skills-grid'); grid.innerHTML = '';
             const f = getFilter();
@@ -1018,11 +1144,10 @@
                 const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                        <div class="field" style="flex-grow:1; margin-right:1rem;">
+                        <div class="field" style="flex-grow:1;">
                             <label>Protocolo</label>
-                            <input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold;" onchange="config.skillsData['${name}'].name = this.value; renderAll();">
+                            <input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold; background:transparent; border:none;" readonly>
                         </div>
-                        <button class="btn btn-danger" style="height:40px; width:40px; margin-top:15px;" onclick="deleteSkill('${name}')">X</button>
                     </div>
                     <div class="form-grid">
                         <div class="field"><label>Tipo</label><select onchange="config.skillsData['${name}'].type = this.value">
@@ -1040,21 +1165,30 @@
             }
         }
 
+        // v266.300: Definición de Mecánicas de Ambiente (Hazards)
+        let AMBIENCE_LIB = {
+            "radiation": { label: "Radiación", icon: "☢️", desc: "Daño constante por segundo.", fields: ["damagePerSecond"] },
+            "nebula": { label: "Nebulosa", icon: "🌫️", desc: "Efecto de slow ambiental.", fields: ["slowPercentage", "visibility"] },
+            "gravity": { label: "Gravedad Alta", icon: "🪐", desc: "Reduce la velocidad de dash.", fields: ["dashPenalty"] }
+        };
+
         function renderMaps() {
-            const grid = document.getElementById('maps-grid');
-            grid.innerHTML = '';
+            const grid = document.getElementById('maps-grid'); grid.innerHTML = '';
+            const f = getFilter();
+
             for(let id in config.mapsConfig) {
                 const m = config.mapsConfig[id];
+                if (f && !m.name.toLowerCase().includes(f)) continue;
+
                 const card = document.createElement('div'); card.className = 'card';
+                card.style.cursor = 'pointer';
+                card.onclick = () => selectMap(id);
                 card.innerHTML = `
-                    <div class="card-tag">#ZONA ${id}</div>
-                    <div class="field full"><label>Nombre del Mapa</label><input type="text" value="${m.name}" onchange="config.mapsConfig['${id}'].name = this.value"></div>
-                    <div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><textarea onchange="config.mapsConfig['${id}'].desc = this.value">${m.desc}</textarea></div>
-                    <div class="form-grid" style="margin-top:1rem;">
-                        <div class="field"><label>Costo Warp (Hubs)</label><input type="number" value="${m.warpCost}" onchange="config.mapsConfig['${id}'].warpCost = parseInt(this.value)"></div>
-                        <div class="field"><label>Nivel Mín. (lvl)</label><input type="number" value="${m.minLevel}" onchange="config.mapsConfig['${id}'].minLevel = parseInt(this.value)"></div>
-                        <div class="field"><label>Color Radar</label><input type="color" value="${m.color}" onchange="config.mapsConfig['${id}'].color = this.value" style="height:40px;"></div>
-                    </div>
+                    <div class="card-tag">#ID ${id}</div>
+                    <div style="width:100%; height:4px; background:${m.color}; margin-bottom:1rem; border-radius:2px;"></div>
+                    <h3>${m.name}</h3>
+                    <p style="font-size:0.8rem; opacity:0.6;">${m.desc || 'Sin descripción'}</p>
+                    <div style="margin-top:1rem; color:var(--accent); font-weight:bold; font-size:0.7rem;">Configurar Zona</div>
                 `;
                 grid.appendChild(card);
             }
@@ -1085,14 +1219,6 @@
             showToast("Sincronización de Galaxia Completada.");
         }
 
-        function addNewSkill() {
-            const name = prompt("Nombre de la nueva habilidad:");
-            if(name) { config.skillsData[name] = { type: "Defensa", cd: 10, amount: 500, range: 0 }; renderSkills(); }
-        }
-
-        function deleteSkill(name) {
-            if(confirm("¿Eliminar " + name + "?")) { delete config.skillsData[name]; renderSkills(); }
-        }
     </script>
 </body>
 </html>
