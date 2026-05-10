@@ -38,8 +38,9 @@ module.exports = class SniperAI extends BaseAI {
 
             if ((this.enemy.shotsInBurst || 0) < burstLimit) {
                 const currentAngle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
-                const bSpeed = isIceSniper ? 500 : (this.config.bulletSpeed || 800); 
-                const bType = isIceSniper ? "ice_missile" : "laser";
+                // v266.215: Respetar la configuración del Admin Dashboard si existe
+                const bSpeed = this.config.bulletSpeed || (isIceSniper ? 500 : 800); 
+                const bType = this.config.bulletType || (isIceSniper ? "ice_missile" : "laser");
 
                 if (isIceSniper && now % 5000 < 33) {
                     console.log(`[DEBUG-ICE] Enemigo ${this.enemy.id} disparando hielo a ${target.user}`);

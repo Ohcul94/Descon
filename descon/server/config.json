@@ -40,7 +40,7 @@
             "speed": 450
         },
         "2": {
-            "bulletDamage": 60,
+            "bulletDamage": 600,
             "bulletSpeed": 800,
             "fireRange": 650,
             "fireRate": 1200,

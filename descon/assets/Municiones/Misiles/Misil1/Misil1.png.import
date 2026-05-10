@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dqe2kry1mlmbj"
-path="res://.godot/imported/Mina1.png-c69b8db8c867477a5a9ba3980caed3d1.ctex"
+uid="uid://bmelse82d1hin"
+path="res://.godot/imported/Misil1.png-25ea6e5237ecc75cbb397663e41ee9b2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Municiones/Mina1.png"
-dest_files=["res://.godot/imported/Mina1.png-c69b8db8c867477a5a9ba3980caed3d1.ctex"]
+source_file="res://assets/Municiones/Misiles/Misil1/Misil1.png"
+dest_files=["res://.godot/imported/Misil1.png-25ea6e5237ecc75cbb397663e41ee9b2.ctex"]
 
 [params]
 

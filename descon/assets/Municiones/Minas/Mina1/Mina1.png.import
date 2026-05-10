@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b34uihmbsy8d0"
-path="res://.godot/imported/Laser1.png-dae871640d7793111cb724e8a92f7127.ctex"
+uid="uid://dqe2kry1mlmbj"
+path="res://.godot/imported/Mina1.png-167997d300b6bb17f012bf76983d6517.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Municiones/Laser1.png"
-dest_files=["res://.godot/imported/Laser1.png-dae871640d7793111cb724e8a92f7127.ctex"]
+source_file="res://assets/Municiones/Minas/Mina1/Mina1.png"
+dest_files=["res://.godot/imported/Mina1.png-167997d300b6bb17f012bf76983d6517.ctex"]
 
 [params]
 

@@ -38,14 +38,16 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	owner_type = p_data.get("owner_type", "player")
 	enemy_type = int(p_data.get("enemyType", 1))
 	
-	speed = p_data.get("bulletSpeed", p_data.get("speed", 800.0))
+	speed = float(p_data.get("bulletSpeed", p_data.get("speed", 800.0)))
 	max_range = float(p_data.get("range", 0.0))
 	
-	if type == "missile" or type == "ice_missile":
-		speed = 450.0 
-	elif type == "mine" and max_range > 0:
-		# v3.6: Lógica de Precisión - Velocidad calculada para frenar EXACTO en el rango
-		speed = max_range * 3.5
+	# v266.215: Solo aplicar overrides si no se especificó una velocidad custom (0 o null)
+	var custom_speed = p_data.get("bulletSpeed", 0)
+	if custom_speed == 0:
+		if type == "missile" or type == "ice_missile":
+			speed = 450.0 
+		elif type == "mine" and max_range > 0:
+			speed = max_range * 3.5
 	
 	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
 	_start_pos = p_pos
@@ -67,10 +69,10 @@ func _setup_visual_sprite():
 	
 	var path = ""
 	match type:
-		"laser": path = "res://assets/Municiones/Laser1.png"
-		"missile": path = "res://assets/Municiones/Misil1.png"
-		"ice_missile": path = "res://assets/Municiones/Misil1.png" # Reusamos textura pero pintaremos
-		"mine": path = "res://assets/Municiones/Mina1.png"
+		"laser": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
+		"missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
+		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
+		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 	
 	if path != "" and ResourceLoader.exists(path):
 		sprite = Sprite2D.new()
