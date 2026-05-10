@@ -696,7 +696,10 @@
                         "hubs": 1000,
                         "ohcu": 10
                     },
-                    "range": 600
+                    "range": 600,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_l2",
@@ -705,7 +708,10 @@
                         "hubs": 2000,
                         "ohcu": 2
                     },
-                    "range": 650
+                    "range": 650,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_l3",
@@ -714,7 +720,10 @@
                         "hubs": 3000,
                         "ohcu": 4
                     },
-                    "range": 700
+                    "range": 700,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_l4",
@@ -723,7 +732,10 @@
                         "hubs": 4000,
                         "ohcu": 6
                     },
-                    "range": 750
+                    "range": 750,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_l5",
@@ -732,7 +744,10 @@
                         "hubs": 0,
                         "ohcu": 10
                     },
-                    "range": 800
+                    "range": 800,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_l6",
@@ -741,7 +756,10 @@
                         "hubs": 0,
                         "ohcu": 20
                     },
-                    "range": 1000
+                    "range": 1000,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 }
             ],
             "mine": [
@@ -752,7 +770,10 @@
                         "hubs": 10000,
                         "ohcu": 1
                     },
-                    "range": 300
+                    "range": 300,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_n2",
@@ -761,7 +782,10 @@
                         "hubs": 20000,
                         "ohcu": 20
                     },
-                    "range": 350
+                    "range": 350,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_n3",
@@ -770,7 +794,10 @@
                         "hubs": 30000,
                         "ohcu": 30
                     },
-                    "range": 400
+                    "range": 400,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_n4",
@@ -779,7 +806,10 @@
                         "hubs": 40000,
                         "ohcu": 40
                     },
-                    "range": 450
+                    "range": 450,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_n5",
@@ -788,7 +818,10 @@
                         "hubs": 0,
                         "ohcu": 100
                     },
-                    "range": 500
+                    "range": 500,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_n6",
@@ -797,7 +830,10 @@
                         "hubs": 0,
                         "ohcu": 200
                     },
-                    "range": 600
+                    "range": 600,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 }
             ],
             "missile": [
@@ -808,7 +844,10 @@
                         "hubs": 5000,
                         "ohcu": 1
                     },
-                    "range": 800
+                    "range": 800,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_m2",
@@ -817,7 +856,10 @@
                         "hubs": 10000,
                         "ohcu": 10
                     },
-                    "range": 900
+                    "range": 900,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_m3",
@@ -826,7 +868,10 @@
                         "hubs": 15000,
                         "ohcu": 15
                     },
-                    "range": 1000
+                    "range": 1000,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_m4",
@@ -835,7 +880,10 @@
                         "hubs": 20000,
                         "ohcu": 20
                     },
-                    "range": 1100
+                    "range": 1100,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_m5",
@@ -844,7 +892,10 @@
                         "hubs": 0,
                         "ohcu": 50
                     },
-                    "range": 1200
+                    "range": 1200,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 },
                 {
                     "id": "am_m6",
@@ -853,7 +904,10 @@
                         "hubs": 0,
                         "ohcu": 100
                     },
-                    "range": 1500
+                    "range": 1500,
+                    "cooldown": 1000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
                 }
             ]
         },

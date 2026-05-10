@@ -134,18 +134,23 @@
         select {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+            color: var(--text);
+            padding: 8px 15px;
             border-radius: 8px;
-            padding: 10px;
-            color: white;
-            width: 100%;
+            font-family: inherit;
+            font-size: 0.85rem;
             cursor: pointer;
             outline: none;
-            appearance: none !important;
-            -webkit-appearance: none !important;
-            -moz-appearance: none !important;
+            width: 100%;
         }
-        select::-ms-expand { display: none; }
         select:focus { border-color: var(--accent); background: rgba(6, 182, 212, 0.1); }
+        select option { background: #0f172a; color: white; }
+        select::-ms-expand { display: none; }
 
         .nav-link {
             padding: 1rem 1.25rem;
@@ -427,42 +432,50 @@
                 <div class="nav-group">
                     <div class="nav-folder" onclick="toggleFolder('folder-enemies'); showTab('enemies')">👾 Amenazas (IA) <span class="chevron">▼</span></div>
                     <div id="folder-enemies" class="folder-content show">
-                    <div class="nav-link sub" onclick="toggleFolder('subfolder-regulars')">Enemigos <span class="chevron">▶</span></div>
-                    <div id="subfolder-regulars" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
-                        <div id="sidebar-enemies-list"></div>
-                    </div>
-                    <div class="nav-link sub" onclick="toggleFolder('subfolder-bosses')">Bosses <span class="chevron">▶</span></div>
-                    <div id="subfolder-bosses" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
-                        <div id="sidebar-bosses-list"></div>
+                        <div class="nav-link sub" onclick="toggleFolder('subfolder-regulars')">Enemigos <span class="chevron">▶</span></div>
+                        <div id="subfolder-regulars" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
+                            <div id="sidebar-enemies-list"></div>
+                        </div>
+                        <div class="nav-link sub" onclick="toggleFolder('subfolder-bosses')">Bosses <span class="chevron">▶</span></div>
+                        <div id="subfolder-bosses" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
+                            <div id="sidebar-bosses-list"></div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="nav-group">
-                <div class="nav-folder" onclick="toggleFolder('folder-market'); showTab('ammo')">💎 Mercado <span class="chevron">▼</span></div>
-                <div id="folder-market" class="folder-content">
-                    <div class="nav-link sub" onclick="showTab('ammo')">Municiones</div>
-                    <div class="nav-link sub" onclick="showTab('weapons')">Armamento</div>
-                    <div class="nav-link sub" onclick="showTab('shields')">Escudos</div>
-                    <div class="nav-link sub" onclick="showTab('engines')">Motores</div>
+                <div class="nav-group">
+                    <div class="nav-folder" onclick="toggleFolder('folder-market'); showTab('ammo')">💎 Mercado <span class="chevron">▼</span></div>
+                    <div id="folder-market" class="folder-content">
+                        <div class="nav-link sub" onclick="toggleFolder('subfolder-ammo'); setAmmoTab('laser'); showTab('ammo')">📦 Municiones <span class="chevron">▶</span></div>
+                        <div id="subfolder-ammo" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
+                            <div class="nav-link sub" onclick="setAmmoTab('laser'); showTab('ammo')">🔫 Láseres</div>
+                            <div class="nav-link sub" onclick="setAmmoTab('mine'); showTab('ammo')">💣 Minas</div>
+                            <div class="nav-link sub" onclick="setAmmoTab('missile'); showTab('ammo')">🚀 Misiles</div>
+                        </div>
+                        <div class="nav-link sub" onclick="showTab('weapons')">⚔️ Armamento</div>
+                        <div class="nav-link sub" onclick="showTab('shields')">🛡️ Escudos</div>
+                        <div class="nav-link sub" onclick="showTab('engines')">🚀 Motores</div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="nav-group">
-                <div class="nav-link" id="nav-skills" onclick="showTab('skills')">🌀 Habilidades</div>
-                <div class="nav-folder" onclick="toggleFolder('folder-mechanics'); showTab('mechanics')">⚙️ Mecánicas <span class="chevron">▼</span></div>
-                <div id="folder-mechanics" class="folder-content">
-                    <div class="nav-link sub" onclick="setMechTab('attack'); showTab('mechanics')">⚔️ Ataque</div>
-                    <div class="nav-link sub" onclick="setMechTab('movement'); showTab('mechanics')">🏃 Movimiento</div>
-                    <div class="nav-link sub" onclick="setMechTab('ambience'); showTab('mechanics')">🌍 Ambiente</div>
+                <div class="nav-group">
+                    <div class="nav-link" id="nav-skills" onclick="showTab('skills')">🌀 Habilidades</div>
+                    <div class="nav-folder" onclick="toggleFolder('folder-mechanics'); showTab('mechanics')">⚙️ Mecánicas <span class="chevron">▼</span></div>
+                    <div id="folder-mechanics" class="folder-content">
+                        <div class="nav-link sub" onclick="setMechTab('attack'); showTab('mechanics')">⚔️ Ataque</div>
+                        <div class="nav-link sub" onclick="setMechTab('movement'); showTab('mechanics')">🏃 Movimiento</div>
+                        <div class="nav-link sub" onclick="setMechTab('ammo'); showTab('mechanics')">📦 Municiones</div>
+                        <div class="nav-link sub" onclick="setMechTab('ambience'); showTab('mechanics')">🌍 Ambiente</div>
+                    </div>
                 </div>
                 
-                <div class="nav-folder" onclick="toggleFolder('folder-maps'); showTab('maps')">🗺️ Cartografía <span class="chevron">▼</span></div>
-                <div id="folder-maps" class="folder-content show">
-                    <div id="sidebar-maps-list"></div>
+                <div class="nav-group">
+                    <div class="nav-folder" onclick="toggleFolder('folder-maps'); showTab('maps')">🗺️ Cartografía <span class="chevron">▼</span></div>
+                    <div id="folder-maps" class="folder-content show">
+                        <div id="sidebar-maps-list"></div>
+                    </div>
+                    <div class="nav-link" onclick="showTab('json')">📦 Núcleo JSON</div>
                 </div>
-
-                <div class="nav-link" onclick="showTab('json')">📦 Núcleo JSON</div>
             </div>
             </div>
         </nav>
@@ -649,15 +662,66 @@
         function renderAmmo() {
             const grid = document.getElementById('ammo-grid'); grid.innerHTML = '';
             const f = getFilter();
-            for(let type in config.ammoMultipliers) {
-                if(f && !type.toLowerCase().includes(f)) continue;
+            
+            const type = currentAmmoTab;
+            const multipliers = config.ammoMultipliers[type] || [];
+            const shopItems = (config.shopItems.ammo && config.shopItems.ammo[type]) ? config.shopItems.ammo[type] : [];
+
+            multipliers.forEach((m, i) => {
+                const item = shopItems[i] || { name: `Tier ${i+1}`, range: 0, cooldown: 1000, prices: { hubs:0, ohcu:0 } };
+                if(item.cooldown === undefined) item.cooldown = 1000;
+                if(item.bulletSpeed === undefined) item.bulletSpeed = 800;
+                if(!item.mechanics) item.mechanics = [];
+                
+                if(f && !item.name.toLowerCase().includes(f) && !JSON.stringify(item).toLowerCase().includes(f)) return;
+
                 const card = document.createElement('div'); card.className = 'card';
-                let tiersHtml = config.ammoMultipliers[type].map((m, i) => `
-                    <div class="field"><label>Tier ${i+1} (x)</label><input type="number" step="0.1" value="${m}" onchange="config.ammoMultipliers['${type}'][${i}] = parseFloat(this.value)"></div>
-                `).join('');
-                card.innerHTML = `<h3>Multiplicador: ${type.toUpperCase()}</h3><div class="form-grid">${tiersHtml}</div>`;
+                card.innerHTML = `
+                    <div class="card-tag">TIER ${i+1}</div>
+                    <div class="field full"><label>Nombre Comercial</label><input type="text" value="${item.name}" onchange="config.shopItems.ammo['${type}'][${i}].name = this.value"></div>
+                    
+                    <div class="form-grid" style="margin-top:1.5rem;">
+                        <div class="field"><label>Mult. Daño (x)</label><input type="number" step="0.1" value="${m}" style="color:var(--accent); font-weight:bold;" onchange="config.ammoMultipliers['${type}'][${i}] = parseFloat(this.value)"></div>
+                        <div class="field"><label>Alcance (px)</label><input type="number" value="${item.range || 0}" onchange="config.shopItems.ammo['${type}'][${i}].range = parseInt(this.value)"></div>
+                        <div class="field"><label>Vel. Bala (px/s)</label><input type="number" value="${item.bulletSpeed}" onchange="config.shopItems.ammo['${type}'][${i}].bulletSpeed = parseInt(this.value)"></div>
+                        <div class="field"><label>Cooldown (ms)</label><input type="number" value="${item.cooldown}" onchange="config.shopItems.ammo['${type}'][${i}].cooldown = parseInt(this.value)"></div>
+                    </div>
+                    
+                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #333;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <label style="color:var(--accent); font-size: 0.7rem; font-weight:bold;">✨ EFECTOS DE IMPACTO</label>
+                            <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.6rem;" onclick="addAmmoMechanic('${type}', ${i})">+ EFECTO</button>
+                        </div>
+                        <div id="ammo-mech-${type}-${i}">
+                            ${item.mechanics.map((me, midx) => `
+                                <div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(255,255,255,0.05); position:relative;">
+                                    <button style="position:absolute; top:4px; right:4px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:10px;" onclick="config.shopItems.ammo['${type}'][${i}].mechanics.splice(${midx},1); renderAmmo();">✕</button>
+                                    <select style="background:transparent; border:none; color:var(--accent); font-size:0.7rem; font-weight:bold; cursor:pointer;" onchange="config.shopItems.ammo['${type}'][${i}].mechanics[${midx}].type = this.value; renderAmmo();">
+                                        ${Object.keys(AMMO_MECH_LIB).map(mt => `<option value="${mt}" ${me.type===mt?'selected':''}>${AMMO_MECH_LIB[mt].icon} ${AMMO_MECH_LIB[mt].label}</option>`).join('')}
+                                    </select>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-top:5px;">
+                                        ${AMMO_MECH_LIB[me.type || 'bleed'].fields.map(fld => `
+                                            <div class="field" style="margin:0;"><label style="font-size:9px;">${fld}</label><input type="number" value="${me[fld] || 0}" style="font-size:10px; height:20px;" onchange="config.shopItems.ammo['${type}'][${i}].mechanics[${midx}].${fld} = parseInt(this.value)"></div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="price-group" style="margin-top:1rem; border-top:1px solid #333; padding-top:1rem;">
+                        <div class="field"><label>Hubs (qty)</label><input type="number" value="${item.prices.hubs}" onchange="config.shopItems.ammo['${type}'][${i}].prices.hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Ohcu (qty)</label><input type="number" value="${item.prices.ohcu}" onchange="config.shopItems.ammo['${type}'][${i}].prices.ohcu = parseInt(this.value)"></div>
+                    </div>
+                `;
                 grid.appendChild(card);
-            }
+            });
+        }
+
+        function addAmmoMechanic(type, idx) {
+            if(!config.shopItems.ammo[type][idx].mechanics) config.shopItems.ammo[type][idx].mechanics = [];
+            config.shopItems.ammo[type][idx].mechanics.push({ type: "bleed", damagePerSecond: 5, duration: 3000 });
+            renderAmmo();
         }
 
         function renderWeapons() {
@@ -746,6 +810,7 @@
             });
         }
 
+        let currentAmmoTab = 'laser';
         let currentEnemySubTab = 'regular';
         let currentMechTab = 'attack';
         let selectedEnemyId = null;
@@ -755,6 +820,15 @@
             selectedMapId = id;
             showTab('map-detail');
             renderMapDetail();
+        }
+
+        function setAmmoTab(tab, btn) {
+            currentAmmoTab = tab;
+            if (btn) {
+                btn.parentElement.querySelectorAll('.btn-subtab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+            renderAmmo();
         }
 
         function setEnemySubTab(tab) {
@@ -1046,6 +1120,21 @@
                     `;
                     grid.appendChild(card);
                 }
+            } else if (currentMechTab === 'ammo') {
+                const AL = { damagePerSecond: "Daño/Seg", duration: "Duración (ms)", chance: "Probabilidad (%)", radius: "Radio Explosión (px)" };
+                for(let type in AMMO_MECH_LIB) {
+                    const m = AMMO_MECH_LIB[type];
+                    if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f)) continue;
+                    const card = document.createElement('div'); card.className = 'card';
+                    card.innerHTML = `
+                        <div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div>
+                        <div class="field full"><label>Efecto Proyectil</label><input type="text" value="${m.label}" onchange="AMMO_MECH_LIB['${type}'].label = this.value; renderAll();"></div>
+                        <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;">
+                            <strong style="color:var(--accent);">PARÁMETROS AFECTADOS:</strong> ${m.fields.map(fl => AL[fl] || fl).join(' • ')}
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                }
             } else if (currentMechTab === 'ambience') {
                 for(let type in AMBIENCE_LIB) {
                     const m = AMBIENCE_LIB[type];
@@ -1166,6 +1255,13 @@
         }
 
         // v266.300: Definición de Mecánicas de Ambiente (Hazards)
+        let AMMO_MECH_LIB = {
+            "bleed": { label: "Sangrado", icon: "🩸", desc: "Daño por segundo durante un tiempo.", fields: ["damagePerSecond", "duration"] },
+            "stun": { label: "Parálisis", icon: "⚡", desc: "Inmoviliza al objetivo.", fields: ["duration", "chance"] },
+            "area": { label: "Daño de Área", icon: "💥", desc: "Explota al impactar.", fields: ["damagePerSecond", "radius"] },
+            "critical": { label: "Golpe Crítico", icon: "💎", desc: "Probabilidad de daño extra.", fields: ["chance"] }
+        };
+
         let AMBIENCE_LIB = {
             "radiation": { label: "Radiación", icon: "☢️", desc: "Daño constante por segundo.", fields: ["damagePerSecond"] },
             "nebula": { label: "Nebulosa", icon: "🌫️", desc: "Efecto de slow ambiental.", fields: ["slowPercentage", "visibility"] },
