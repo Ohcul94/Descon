@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descon | Master Command Center</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #020617;
+            --surface: #0f172a;
+            --glass: rgba(15, 23, 42, 0.8);
+            --accent: #06b6d4;
+            --accent-glow: rgba(6, 182, 212, 0.4);
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- LOGIN --- */
+        #login-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-card {
+            width: 450px;
+            padding: 3.5rem;
+            background: var(--surface);
+            border-radius: 32px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .login-card h1 { font-size: 2rem; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+        .login-card p { color: var(--text-dim); margin-bottom: 2.5rem; font-size: 0.9rem; }
+
+        /* --- HEADER --- */
+        header {
+            padding: 1rem 2.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            z-index: 100;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-box {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            border-radius: 8px;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .status-badge {
+            padding: 0.4rem 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+        .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
+
+        /* --- LAYOUT --- */
+        main { display: flex; flex: 1; overflow: hidden; }
+
+        nav {
+            width: 280px;
+            background: rgba(0,0,0,0.2);
+            border-right: 1px solid rgba(255,255,255,0.05);
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-link {
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid transparent;
+        }
+
+        .nav-link:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+        .nav-link.active {
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--accent);
+            border-color: rgba(6, 182, 212, 0.2);
+        }
+
+        .content { flex: 1; padding: 3rem; overflow-y: auto; background: rgba(0,0,0,0.1); }
+
+        .view { display: none; animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .view.active { display: block; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* --- CARDS & FORMS --- */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        h2 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 1.75rem;
+            border: 1px solid rgba(255,255,255,0.05);
+            position: relative;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+
+        .card:hover { border-color: rgba(6, 182, 212, 0.3); transform: translateY(-4px); }
+
+        .card-tag {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        .card h3 { margin-bottom: 1.25rem; font-size: 1.1rem; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .field { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
+        .field.full { grid-column: span 2; }
+
+        label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; }
+        
+        input, select, textarea {
+            width: 100%;
+            background: #020617;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1); }
+
+        .price-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            background: rgba(0,0,0,0.2);
+            padding: 1.25rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+        }
+
+        /* --- FOOTER ACTIONS --- */
+        .footer {
+            padding: 1.5rem 3rem;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.85rem 2rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-primary { background: var(--accent); color: var(--bg); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(6, 182, 212, 0.4); }
+        
+        .btn-secondary { background: rgba(255,255,255,0.05); color: var(--text); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-danger:hover { background: var(--danger); color: white; }
+
+        /* --- TOAST / MODAL --- */
+        #toast-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .toast-card {
+            background: var(--surface);
+            border: 1px solid var(--accent);
+            padding: 2.5rem;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 0 40px var(--accent-glow);
+            max-width: 400px;
+            transform: scale(0.9);
+            animation: popIn 0.3s cubic-bezier(0.17, 0.89, 0.32, 1.27) forwards;
+        }
+
+        @keyframes popIn { to { transform: scale(1); } }
+
+        .toast-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            margin: 0 auto 1.5rem;
+        }
+
+        .toast-title { font-weight: 700; font-size: 1.25rem; margin-bottom: 0.5rem; }
+        .toast-msg { color: var(--text-dim); margin-bottom: 2rem; font-size: 0.95rem; }
+
+    </style>
+</head>
+<body>
+
+    <div id="toast-overlay">
+        <div class="toast-card">
+            <div class="toast-icon">✓</div>
+            <div class="toast-title">OPERACIÓN EXITOSA</div>
+            <div class="toast-msg" id="toast-msg">La galaxia ha sido actualizada.</div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="hideToast()">CONTINUAR</button>
+        </div>
+    </div>
+
+    <div id="login-overlay">
+        <div class="login-card">
+            <div class="logo" style="justify-content: center; font-size: 2.2rem; margin-bottom: 1rem;">
+                <div class="logo-box"></div> DESCON ADMIN
+            </div>
+            <p>Acceso de Nivel Maestro</p>
+            <div class="field" style="text-align: left; margin-bottom: 1.5rem;">
+                <label>Usuario</label>
+                <input type="text" id="admin-user" placeholder="Caelli94">
+            </div>
+            <div class="field" style="text-align: left; margin-bottom: 1.5rem;">
+                <label>Contraseña</label>
+                <input type="password" id="admin-pass" placeholder="••••••••••••">
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 2rem; justify-content: flex-start;">
+                <input type="checkbox" id="remember-me" style="width: auto; cursor: pointer;">
+                <label for="remember-me" style="margin-bottom: 0; cursor: pointer;">Recordar credenciales</label>
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="connect()">Verificar Identidad</button>
+            <p id="login-error" style="color: var(--danger); margin-top: 1.5rem; display: none;"></p>
+        </div>
+    </div>
+
+    <header>
+        <div class="logo"><div class="logo-box"></div> DESCON MASTER DASHBOARD</div>
+        <div class="status-badge">
+            <div id="conn-dot" class="status-dot"></div>
+            <span id="conn-text">DISCONNECTED</span>
+        </div>
+    </header>
+
+    <main>
+        <nav>
+            <div class="nav-link active" onclick="showTab('ships')">🚀 Naves Estelares</div>
+            <div class="nav-link" onclick="showTab('enemies')">👾 Amenazas (IA)</div>
+            <div class="nav-link" onclick="showTab('skills')">🌀 Habilidades</div>
+            <div class="nav-link" onclick="showTab('maps')">🗺️ Cartografía</div>
+            <div class="nav-link" onclick="showTab('json')">📦 Núcleo JSON</div>
+        </nav>
+
+        <section class="content">
+            <div id="view-ships" class="view active">
+                <div class="section-header"><h2>Configuración de Naves</h2></div>
+                <div id="ships-grid" class="grid"></div>
+            </div>
+
+            <div id="view-enemies" class="view">
+                <div class="section-header"><h2>Gestión de Enemigos</h2></div>
+                <div id="enemies-grid" class="grid"></div>
+            </div>
+
+            <div id="view-skills" class="view">
+                <div class="section-header"><h2>Protocolos de Combate</h2><button class="btn btn-secondary btn-sm" onclick="addNewSkill()">+ Nueva Habilidad</button></div>
+                <div id="skills-grid" class="grid"></div>
+            </div>
+
+            <div id="view-maps" class="view">
+                <div class="section-header"><h2>Zonas del Universo</h2></div>
+                <div id="maps-grid" class="grid"></div>
+            </div>
+
+            <div id="view-json" class="view">
+                <div class="section-header"><h2>Editor de Configuración Crítica</h2></div>
+                <textarea id="json-editor" style="width: 100%; height: 65vh; background: #000; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); color: #0f0; font-family: 'JetBrains Mono', monospace; padding: 2rem;"></textarea>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <button class="btn btn-secondary" onclick="location.reload()">Revertir Cambios</button>
+        <button class="btn btn-primary" onclick="saveConfig()">Sincronizar Universo</button>
+    </footer>
+
+    <script>
+        let socket;
+        let config = {};
+        const SERVER_URL = "http://127.0.0.1:3333";
+
+        function showTab(tabId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if(tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
+        }
+
+        window.onload = () => {
+            const savedUser = localStorage.getItem('admin_user');
+            const savedPass = localStorage.getItem('admin_pass');
+            if(savedUser && savedPass) {
+                document.getElementById('admin-user').value = savedUser;
+                document.getElementById('admin-pass').value = savedPass;
+                document.getElementById('remember-me').checked = true;
+                connect(); // Auto-login
+            }
+        };
+
+        function connect() {
+            const user = document.getElementById('admin-user').value;
+            const pass = document.getElementById('admin-pass').value;
+            const remember = document.getElementById('remember-me').checked;
+            const btn = document.querySelector('#login-overlay button');
+            const err = document.getElementById('login-error');
+
+            btn.innerText = "ESTABLECIENDO ENLACE...";
+            socket = io(SERVER_URL);
+
+            socket.on('connect', () => socket.emit('login', { user, password: pass, isAdmin: true }));
+
+            socket.on('adminConfigUpdated', (data) => {
+                config = data;
+                renderAll();
+            });
+
+            socket.on('loginSuccess', (data) => {
+                if(remember) {
+                    localStorage.setItem('admin_user', user);
+                    localStorage.setItem('admin_pass', pass);
+                } else {
+                    localStorage.removeItem('admin_user');
+                    localStorage.removeItem('admin_pass');
+                }
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('conn-dot').classList.add('online');
+                document.getElementById('conn-text').innerText = "ONLINE: " + user.toUpperCase();
+                if(data.adminConfig) { config = data.adminConfig; renderAll(); }
+            });
+
+            socket.on('connect_error', (e) => {
+                err.innerText = "ERROR DE CONEXIÓN: Verifica el servidor.";
+                err.style.display = 'block';
+                btn.innerText = "REINTENTAR";
+            });
+
+            socket.on('authError', (msg) => {
+                err.innerText = msg;
+                err.style.display = 'block';
+                btn.innerText = "REINTENTAR";
+            });
+        }
+
+        function renderAll() {
+            if(!config) return;
+            renderShips();
+            renderEnemies();
+            renderSkills();
+            renderMaps();
+        }
+
+        function renderShips() {
+            const grid = document.getElementById('ships-grid');
+            grid.innerHTML = '';
+            config.shipModels.forEach((ship, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-tag">#ID ${ship.id}</div>
+                    <div class="field full"><label>Nombre de la Nave</label><input type="text" value="${ship.name}" onchange="config.shipModels[${idx}].name = this.value"></div>
+                    <div class="form-grid" style="margin-top: 1.5rem;">
+                        <div class="field"><label>HP Total</label><input type="number" value="${ship.hp}" onchange="config.shipModels[${idx}].hp = parseInt(this.value)"></div>
+                        <div class="field"><label>Escudo Total</label><input type="number" value="${ship.shield}" onchange="config.shipModels[${idx}].shield = parseInt(this.value)"></div>
+                        <div class="field"><label>Velocidad (KM/H)</label><input type="number" value="${ship.speed}" onchange="config.shipModels[${idx}].speed = parseInt(this.value)"></div>
+                        <div class="field"><label>Slots Exp (X)</label><input type="number" value="${ship.slots.x || 1}" onchange="config.shipModels[${idx}].slots.x = parseInt(this.value)"></div>
+                    </div>
+                    <div class="price-group">
+                        <div class="field"><label>Precio Hubs</label><input type="number" value="${ship.prices.hubs}" onchange="config.shipModels[${idx}].prices.hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Precio Ohcu</label><input type="number" value="${ship.prices.ohcu}" onchange="config.shipModels[${idx}].prices.ohcu = parseInt(this.value)"></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderEnemies() {
+            const grid = document.getElementById('enemies-grid');
+            grid.innerHTML = '';
+            for(let id in config.enemyModels) {
+                const en = config.enemyModels[id];
+                const card = document.createElement('div'); card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-tag">#ID ${id}</div>
+                    <div class="field full"><label>Identificador</label><input type="text" value="${en.name}" onchange="config.enemyModels['${id}'].name = this.value"></div>
+                    <div class="form-grid" style="margin-top:1rem;">
+                        <div class="field"><label>HP</label><input type="number" value="${en.hp}" onchange="config.enemyModels['${id}'].hp = parseInt(this.value)"></div>
+                        <div class="field"><label>Escudo</label><input type="number" value="${en.shield}" onchange="config.enemyModels['${id}'].shield = parseInt(this.value)"></div>
+                        <div class="field"><label>Daño Bala</label><input type="number" value="${en.bulletDamage}" onchange="config.enemyModels['${id}'].bulletDamage = parseInt(this.value)"></div>
+                        <div class="field"><label>Cadencia (ms)</label><input type="number" value="${en.fireRate}" onchange="config.enemyModels['${id}'].fireRate = parseInt(this.value)"></div>
+                        <div class="field"><label>V. Proyectil</label><input type="number" value="${en.bulletSpeed || 800}" onchange="config.enemyModels['${id}'].bulletSpeed = parseInt(this.value)"></div>
+                        <div class="field"><label>Rango Fuego</label><input type="number" value="${en.fireRange || 600}" onchange="config.enemyModels['${id}'].fireRange = parseInt(this.value)"></div>
+                    </div>
+                    <div class="price-group">
+                        <div class="field"><label>Exp</label><input type="number" value="${en.rewardExp}" onchange="config.enemyModels['${id}'].rewardExp = parseInt(this.value)"></div>
+                        <div class="field"><label>Hubs</label><input type="number" value="${en.rewardHubs}" onchange="config.enemyModels['${id}'].rewardHubs = parseInt(this.value)"></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        function renderSkills() {
+            const grid = document.getElementById('skills-grid');
+            grid.innerHTML = '';
+            for(let name in config.skillsData) {
+                const s = config.skillsData[name];
+                const card = document.createElement('div'); card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header"><h3>${name}</h3><button class="btn-danger" style="padding: 0.2rem 0.5rem; border-radius: 4px;" onclick="deleteSkill('${name}')">X</button></div>
+                    <div class="form-grid">
+                        <div class="field"><label>Tipo</label><select onchange="config.skillsData['${name}'].type = this.value">
+                            <option value="Defensa" ${s.type==='Defensa'?'selected':''}>Defensa</option>
+                            <option value="Curación" ${s.type==='Curación'?'selected':''}>Curación</option>
+                            <option value="Ataque" ${s.type==='Ataque'?'selected':''}>Ataque</option>
+                            <option value="Utilidad" ${s.type==='Utilidad'?'selected':''}>Utilidad</option>
+                        </select></div>
+                        <div class="field"><label>Cooldown (S)</label><input type="number" step="0.1" value="${s.cd}" onchange="config.skillsData['${name}'].cd = parseFloat(this.value)"></div>
+                        <div class="field"><label>Cantidad</label><input type="number" value="${s.amount || 0}" onchange="config.skillsData['${name}'].amount = parseInt(this.value)"></div>
+                        <div class="field"><label>Rango</label><input type="number" value="${s.range || 0}" onchange="config.skillsData['${name}'].range = parseInt(this.value)"></div>
+                        <div class="field"><label>Duración (S)</label><input type="number" step="0.1" value="${s.duration || 0}" onchange="config.skillsData['${name}'].duration = parseFloat(this.value)"></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        function renderMaps() {
+            const grid = document.getElementById('maps-grid');
+            grid.innerHTML = '';
+            for(let id in config.mapsConfig) {
+                const m = config.mapsConfig[id];
+                const card = document.createElement('div'); card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-tag">#ZONA ${id}</div>
+                    <div class="field full"><label>Nombre</label><input type="text" value="${m.name}" onchange="config.mapsConfig['${id}'].name = this.value"></div>
+                    <div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><textarea onchange="config.mapsConfig['${id}'].desc = this.value">${m.desc}</textarea></div>
+                    <div class="form-grid" style="margin-top:1rem;">
+                        <div class="field"><label>Costo Warp</label><input type="number" value="${m.warpCost}" onchange="config.mapsConfig['${id}'].warpCost = parseInt(this.value)"></div>
+                        <div class="field"><label>Nivel Mín.</label><input type="number" value="${m.minLevel}" onchange="config.mapsConfig['${id}'].minLevel = parseInt(this.value)"></div>
+                        <div class="field"><label>Color Radar</label><input type="color" value="${m.color}" onchange="config.mapsConfig['${id}'].color = this.value" style="height:40px;"></div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            }
+        }
+
+        function showToast(msg) {
+            document.getElementById('toast-msg').innerText = msg;
+            document.getElementById('toast-overlay').style.display = 'flex';
+        }
+
+        function hideToast() {
+            document.getElementById('toast-overlay').style.display = 'none';
+        }
+
+        function saveConfig() {
+            if(!socket || !socket.connected) {
+                showToast("ERROR: No hay conexión con el servidor cósmico.");
+                return;
+            }
+
+            if(document.getElementById('view-json').classList.contains('active')) {
+                try { config = JSON.parse(document.getElementById('json-editor').value); } 
+                catch(e) { showToast("ERROR JSON: " + e.message); return; }
+            }
+            
+            console.log("Enviando configuración al servidor...", config);
+            socket.emit('saveAdminConfig', config);
+            showToast("Sincronización de Galaxia Completada.");
+        }
+
+        function addNewSkill() {
+            const name = prompt("Nombre de la nueva habilidad:");
+            if(name) { config.skillsData[name] = { type: "Defensa", cd: 10, amount: 500, range: 0 }; renderSkills(); }
+        }
+
+        function deleteSkill(name) {
+            if(confirm("¿Eliminar " + name + "?")) { delete config.skillsData[name]; renderSkills(); }
+        }
+    </script>
+</body>
+</html>

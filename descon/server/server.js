@@ -2,7 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const cors = require('cors');
+app.use(cors());
+const io = require('socket.io')(http, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
 const path = require('path');
 const fs = require('fs-extra');
 const mongoose = require('mongoose');
@@ -406,7 +413,7 @@ io.on('connection', (socket) => {
     socket.on('login', async (data) => {
         try {
             const username = data.user;
-            const user = await User.findOne({ username });
+            const user = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
 
             if (!user) {
                 return socket.emit('authError', 'Usuario o contraseña incorrectos.');
@@ -416,6 +423,22 @@ io.on('connection', (socket) => {
             const isMatch = await bcrypt.compare(data.password, user.password);
             if (!isMatch) {
                 return socket.emit('authError', 'Credenciales inválidas en la Galaxia.');
+            }
+
+            // v266.210: Gestión de Login Administrativo (Sin spawn de nave)
+            if (data.isAdmin) {
+                socket.dbUser = user;
+                console.log(`[DEBUG-AUTH] Verificando Admin: ${user.username} (Input: ${username})`);
+                if (user.username.toLowerCase() !== "caelli94") {
+                    console.warn(`[DEBUG-AUTH] Denegado: ${user.username.toLowerCase()} no es caelli94`);
+                    return socket.emit('authError', 'No tienes permisos de Gran Maestro.');
+                }
+                const adminConfig = await fs.readJson(CONFIG_FILE);
+                console.log(`[ADMIN-AUTH] Gran Maestro ${username} conectado desde el Command Center.`);
+                return socket.emit('loginSuccess', {
+                    user: username,
+                    adminConfig: adminConfig
+                });
             }
 
             await handleUserLogin(socket, user, username);
@@ -555,10 +578,17 @@ io.on('connection', (socket) => {
     // v242.20: GESTIÓN DE CLANES (FLOTAS) - Modularizado en events/clanHandlers.js
     registerClanHandlers(socket, io, state);
 
-    // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL
+    // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL (PROTEGIDO)
     socket.on('saveAdminConfig', async (config) => {
+        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") {
+            console.warn(`[SECURITY-ALERT] Intento de guardado de config no autorizado de: ${socket.id}`);
+            return socket.emit('gameNotification', { msg: 'ACCESO DENEGADO: No tienes permisos de Gran Maestro.', type: 'error' });
+        }
+        
+        console.log(`[ADMIN-SAVE] Recibida nueva configuración de: ${socket.dbUser.username}`);
         try {
             await fs.writeJson(CONFIG_FILE, config, { spaces: 4 });
+            console.log(`[ADMIN-SAVE] Archivo ${CONFIG_FILE} guardado con éxito.`);
             if (config.enemyModels && config.enemyModels["4"]) {
                 console.log(`[ADMIN] Guardando RageTimer para Boss1: ${config.enemyModels["4"].rageTimer}s`);
             }

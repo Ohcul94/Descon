@@ -1055,15 +1055,15 @@ func _setup_touch_buttons():
 	var player = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(player): return
 	
-	var user_name = player.get("username")
-	var is_admin = (user_name == "Caelli94")
+	# v238.25: Botón Admin removido - Usar Command Center (HTML)
 	
 	var touch_btns = [
 		{"id": "EscMenu", "icon": "⚙️", "tip": "Sistema (ESC)"},
 		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"}
 	]
-	if is_admin:
-		touch_btns.append({"id": "AdminPanel", "icon": "🛠️", "tip": "Admin (F2)"})
+	# v266.200: Botón Admin removido - Usar Command Center (HTML)
+	# if is_admin:
+	# 	touch_btns.append({"id": "AdminPanel", "icon": "🛠️", "tip": "Admin (F2)"})
 	
 	for data in touch_btns:
 		if c_bar.has_node("Icon" + data.id): continue

@@ -116,16 +116,16 @@ func _input(event):
 	# v244.60: Bloquear interacciones si no hay sesión
 	if not NetworkManager or not NetworkManager.is_logged_in: return
 	
-	# v190.30: Sistema de Seguridad SuperAdmin (Acceso Exclusivo Caelli94)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F2:
-		if is_instance_valid(local_player):
-			var user_name = local_player.get("username")
-			if user_name and user_name == "Caelli94":
-				ui_admin.visible = !ui_admin.visible
-				if ui_admin.visible: ui_admin._refresh_ui()
-				get_viewport().set_input_as_handled() # Evitar propagación
-			else:
-				print("[SEGURIDAD] Intento de acceso denegado al Panel Admin.")
+	# v266.200: Panel Admin interno desactivado - Usar Command Center (HTML)
+	# if event is InputEventKey and event.pressed and event.keycode == KEY_F2:
+	# 	if is_instance_valid(local_player):
+	# 		var user_name = local_player.get("username")
+	# 		if user_name and user_name == "Caelli94":
+	# 			ui_admin.visible = !ui_admin.visible
+	# 			if ui_admin.visible: ui_admin._refresh_ui()
+	# 			get_viewport().set_input_as_handled()
+	# 		else:
+	# 			print("[SEGURIDAD] Intento de acceso denegado al Panel Admin.")
 				
 	# SISTEMA DE DUNGEON (Prueba)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_0:
