@@ -694,12 +694,15 @@
                 const s = config.skillsData[name];
                 const card = document.createElement('div'); card.className = 'card';
                 card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                        <input type="text" value="${s.name || name}" style="background:transparent; border:none; color:var(--accent); font-weight:bold; font-size:1.1rem; width:80%; outline:none;" onchange="config.skillsData['${name}'].name = this.value; renderAll();">
-                        <button class="btn btn-danger" style="padding: 2px 8px; font-size:0.8rem;" onclick="deleteSkill('${name}')">X</button>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <div class="field" style="flex-grow:1; margin-right:1rem;">
+                            <label>Nombre del Protocolo</label>
+                            <input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold;" onchange="config.skillsData['${name}'].name = this.value; renderAll();">
+                        </div>
+                        <button class="btn btn-danger" style="height:40px; width:40px; margin-top:15px;" onclick="deleteSkill('${name}')">X</button>
                     </div>
                     <div class="field full" style="margin-bottom:1rem;">
-                        <label>Descripción del Protocolo</label>
+                        <label>Descripción</label>
                         <input type="text" value="${s.description || ''}" placeholder="Ej: Genera un pulso de reparación..." onchange="config.skillsData['${name}'].description = this.value">
                     </div>
                     <div class="form-grid">
