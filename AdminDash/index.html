@@ -258,15 +258,35 @@
         }
 
         /* --- FOOTER ACTIONS --- */
-        .footer {
-            padding: 1.5rem 3rem;
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255,255,255,0.05);
+        /* --- FLOATING ACTION BUTTON --- */
+        .btn-sync-float {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 500;
+            padding: 0.8rem 1.8rem;
+            border-radius: 50px;
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: var(--bg);
+            font-weight: 800;
+            font-size: 0.8rem;
+            box-shadow: 0 10px 30px var(--accent-glow);
+            border: 1px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
-            justify-content: flex-end;
-            gap: 1.5rem;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
         }
+        .btn-sync-float:hover {
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 20px 60px var(--accent-glow);
+            filter: brightness(1.1);
+        }
+        .btn-sync-float:active { transform: scale(0.95); }
+        .btn-sync-float i { font-size: 1.2rem; }
 
         .btn {
             padding: 0.85rem 2rem;
@@ -542,10 +562,9 @@
         </section>
     </main>
 
-    <footer class="footer">
-        <button class="btn btn-secondary" onclick="location.reload()">Revertir Cambios</button>
-        <button class="btn btn-primary" onclick="saveConfig()">Sincronizar Universo</button>
-    </footer>
+    <button class="btn-sync-float" onclick="saveConfig()">
+        <span>SINCRONIZAR</span>
+    </button>
 
     <script>
         let socket;
@@ -990,6 +1009,56 @@
                         </div>
                     </div>
 
+                        <div class="card" style="margin-top:2rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                                <h3 style="margin:0; color:var(--accent);">🤖 COMPORTAMIENTO IA</h3>
+                            </div>
+                            
+                            <div class="field full" style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; border-left: 4px solid var(--accent);">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div>
+                                        <label style="margin:0; font-size:1rem;">Modo Agresivo</label>
+                                        <p style="font-size:0.7rem; opacity:0.6; margin:0.2rem 0 0 0;">Si está desactivado, solo atacará si lo atacas primero.</p>
+                                    </div>
+                                    <input type="checkbox" ${config.enemyModels[selectedEnemyId].aggressive !== false ? 'checked' : ''} 
+                                        style="width:24px; height:24px; cursor:pointer;"
+                                        onchange="config.enemyModels['${selectedEnemyId}'].aggressive = this.checked; renderEnemyDetail();">
+                                </div>
+                            </div>
+
+                            ${config.enemyModels[selectedEnemyId].aggressive !== false ? `
+                                <div style="margin-top:1.5rem; padding:1rem; background:rgba(0,0,0,0.2); border-radius:8px; border:1px dashed #444;">
+                                    <label style="color:var(--accent); font-size:0.7rem; font-weight:bold; letter-spacing:1px;">REGLAS DE RETIRADA / PERSISTENCIA</label>
+                                    
+                                    <div class="form-grid" style="margin-top:1rem;">
+                                        <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;">
+                                            <input type="checkbox" ${config.enemyModels[selectedEnemyId].stopOnOutOfSight !== false ? 'checked' : ''} 
+                                                onchange="config.enemyModels['${selectedEnemyId}'].stopOnOutOfSight = this.checked">
+                                            <label style="margin:0;">Perder visión (rango)</label>
+                                        </div>
+                                        <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;">
+                                            <input type="checkbox" ${config.enemyModels[selectedEnemyId].chaseUntilDeath ? 'checked' : ''} 
+                                                onchange="config.enemyModels['${selectedEnemyId}'].chaseUntilDeath = this.checked">
+                                            <label style="margin:0; color:var(--danger);">Persecución a muerte</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-grid" style="margin-top:1rem;">
+                                        <div class="field">
+                                            <label>Abandono si no me acierta (ms)</label>
+                                            <input type="number" value="${config.enemyModels[selectedEnemyId].chaseMissTimeout || 0}" 
+                                                onchange="config.enemyModels['${selectedEnemyId}'].chaseMissTimeout = parseInt(this.value)">
+                                        </div>
+                                        <div class="field">
+                                            <label>Abandono si no lo ataco (ms)</label>
+                                            <input type="number" value="${config.enemyModels[selectedEnemyId].chaseIdleTimeout || 0}" 
+                                                onchange="config.enemyModels['${selectedEnemyId}'].chaseIdleTimeout = parseInt(this.value)">
+                                        </div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+
                     <!-- COLUMNA DERECHA: ATAQUE -->
                     <div class="col">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
@@ -1021,7 +1090,9 @@
                                                 fireRate: "Cadencia (ms)", 
                                                 slowAmount: "Slow (pts)", 
                                                 slowDuration: "Slow Dur. (ms)", 
-                                                startDelay: "Delay Inicio (ms)" 
+                                                startDelay: "Delay Inicio (ms)",
+                                                lifetimeMs: "Combustible (ms)",
+                                                turnSpeed: "Agilidad de Giro (rad/s)"
                                             };
                                             return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseInt(this.value)"></div>`;
                                         }).join('')}
@@ -1130,7 +1201,10 @@
                         <div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div>
                         <div class="field full"><label>Efecto Proyectil</label><input type="text" value="${m.label}" onchange="AMMO_MECH_LIB['${type}'].label = this.value; renderAll();"></div>
                         <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;">
-                            <strong style="color:var(--accent);">PARÁMETROS AFECTADOS:</strong> ${m.fields.map(fl => AL[fl] || fl).join(' • ')}
+                            <strong style="color:var(--accent);">PARÁMETROS AFECTADOS:</strong> ${m.fields.map(fl => {
+                                const labels = { bulletDamage: "Daño", bulletSpeed: "Velocidad", fireRange: "Rango", fireRate: "Cadencia", startDelay: "Retraso", lifetimeMs: "Combustible (ms)", slowAmount: "Ralentización", slowDuration: "Duración Slow (ms)", turnSpeed: "Agilidad de Giro (rad/s)" };
+                                return labels[fl] || fl;
+                            }).join(' • ')}
                         </div>
                     `;
                     grid.appendChild(card);
@@ -1194,7 +1268,7 @@
                             <label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">☢️ MECÁNICAS DE AMBIENTE (HAZARDS)</label>
                             <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addAmbience('${selectedMapId}'); renderMapDetail();">+ AGREGAR EFECTO</button>
                         </div>
-                        <div id="ambience-list">
+                        <div id="ambience-list" style="margin-bottom: 2rem;">
                             ${m.ambience.map((a, idx) => `
                                 <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative;">
                                     <div style="position:absolute; top:8px; right:8px;">
@@ -1207,9 +1281,33 @@
                                     </div>
                                     <div class="form-grid" style="margin-top:1rem;">
                                         ${AMBIENCE_LIB[a.type || 'radiation'].fields.map(f => {
-                                            const labels = { damage: "Daño (pts)", intervalMs: "Intervalo (ms)", slowPercentage: "Slow (%)", visibility: "Visibilidad (px)", dashPenalty: "Penalidad Dash (%)" };
+                                            const labels = { damage: "Daño (pts)", intervalMs: "Intervalo (ms)", slowPercentage: "Slow (%)", visibility: "Visibilidad (px)", dashPenalty: "Penalidad Dash (%)", lifetimeMs: "Combustible (ms)" };
                                             return `<div class="field"><label>${labels[f] || f}</label><input type="number" value="${a[f] || 0}" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseInt(this.value)"></div>`;
                                         }).join('')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <label style="color:var(--success); font-size: 0.8rem; font-weight:bold;">👾 ECOSISTEMA DE ENEMIGOS</label>
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--success);" onclick="addMapSpawn('${selectedMapId}'); renderMapDetail();">+ AÑADIR ESPECIE</button>
+                        </div>
+                        <div id="spawns-list">
+                            ${(m.spawns || []).map((s, idx) => `
+                                <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative; border-color: rgba(16, 185, 129, 0.2);">
+                                    <div style="position:absolute; top:8px; right:8px;">
+                                        <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].spawns.splice(${idx},1); renderMapDetail();">✕</button>
+                                    </div>
+                                    <div class="form-grid">
+                                        <div class="field" style="grid-column: span 2;">
+                                            <label>Tipo de Enemigo</label>
+                                            <select style="background:#0f172a; color:var(--success); font-weight:bold;" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].type = this.value">
+                                                ${Object.keys(config.enemyModels).map(id => `<option value="${id}" ${s.type == id ? 'selected' : ''}>[ID ${id}] ${config.enemyModels[id].name}</option>`).join('')}
+                                            </select>
+                                        </div>
+                                        <div class="field"><label>Cant. Máx</label><input type="number" value="${s.count}" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].count = parseInt(this.value)"></div>
+                                        <div class="field"><label>Intervalo (ms)</label><input type="number" value="${s.intervalMs}" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].intervalMs = parseInt(this.value)"></div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -1222,6 +1320,11 @@
         function addAmbience(id) {
             if(!config.mapsConfig[id].ambience) config.mapsConfig[id].ambience = [];
             config.mapsConfig[id].ambience.push({ type: "radiation", damage: 10, intervalMs: 300 });
+        }
+
+        function addMapSpawn(id) {
+            if(!config.mapsConfig[id].spawns) config.mapsConfig[id].spawns = [];
+            config.mapsConfig[id].spawns.push({ type: "1", count: 5, intervalMs: 5000 });
         }
 
         function renderSkills() {
@@ -1267,6 +1370,19 @@
             "nebula": { label: "Nebulosa", icon: "🌫️", desc: "Efecto de slow ambiental.", fields: ["slowPercentage", "visibility"] },
             "gravity": { label: "Gravedad Alta", icon: "🪐", desc: "Reduce la velocidad de dash.", fields: ["dashPenalty"] }
         };
+
+        // v266.500: Inyectar lifetimeMs y turnSpeed en la librería de mecánicas del servidor
+        function patchMechanicsLib() {
+            if (config.mechanicsLib && config.mechanicsLib.missile) {
+                if (!config.mechanicsLib.missile.fields.includes("lifetimeMs")) config.mechanicsLib.missile.fields.push("lifetimeMs");
+                if (!config.mechanicsLib.missile.fields.includes("turnSpeed")) config.mechanicsLib.missile.fields.push("turnSpeed");
+            }
+            if (config.mechanicsLib && config.mechanicsLib.ice_missile) {
+                if (!config.mechanicsLib.ice_missile.fields.includes("lifetimeMs")) config.mechanicsLib.ice_missile.fields.push("lifetimeMs");
+                if (!config.mechanicsLib.ice_missile.fields.includes("turnSpeed")) config.mechanicsLib.ice_missile.fields.push("turnSpeed");
+            }
+        }
+        setTimeout(patchMechanicsLib, 1000);
 
         function renderMaps() {
             const grid = document.getElementById('maps-grid'); grid.innerHTML = '';

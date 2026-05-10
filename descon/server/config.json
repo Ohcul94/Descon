@@ -63,7 +63,10 @@
                     "startDelay": 2000,
                     "idealDist": 150
                 }
-            ]
+            ],
+            "stopOnOutOfSight": true,
+            "chaseUntilDeath": false,
+            "aggressive": false
         },
         "2": {
             "bulletDamage": 600,
@@ -121,14 +124,33 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 80,
-                    "bulletSpeed": 850,
-                    "fireRange": 700,
-                    "fireRate": 1100,
-                    "slowAmount": 0,
-                    "slowDuration": 0
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
+                },
+                {
+                    "type": "missile",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 600,
+                    "fireRange": 600,
+                    "fireRate": 2000,
+                    "lifetimeMs": 3000,
+                    "turnSpeed": 2,
+                    "startDelay": 2000
                 }
-            ]
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 400,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "chaseMissTimeout": 0,
+            "chaseIdleTimeout": 0,
+            "aggressive": true
         },
         "4": {
             "bulletDamage": 250,
@@ -151,6 +173,14 @@
                     "fireRate": 1000,
                     "slowAmount": 0,
                     "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 280,
+                    "stopDist": 150,
+                    "startDelay": 0
                 }
             ]
         },
@@ -525,7 +555,8 @@
                     "damagePerSecond": 10,
                     "slowPercentage": 10
                 }
-            ]
+            ],
+            "spawns": []
         },
         "2": {
             "color": "#00ff00",
@@ -560,7 +591,15 @@
             "desc": "Borde exterior: Peligro extremo.",
             "minLevel": 20,
             "name": "Mapa 6",
-            "warpCost": 100
+            "warpCost": 100,
+            "ambience": [],
+            "spawns": [
+                {
+                    "type": "4",
+                    "count": 5,
+                    "intervalMs": 5000
+                }
+            ]
         },
         "7": {
             "color": "#aa0000",
@@ -1269,7 +1308,9 @@
                 "bulletSpeed",
                 "fireRange",
                 "fireRate",
-                "startDelay"
+                "startDelay",
+                "lifetimeMs",
+                "turnSpeed"
             ]
         },
         "ice_missile": {
@@ -1283,7 +1324,9 @@
                 "fireRate",
                 "slowAmount",
                 "slowDuration",
-                "startDelay"
+                "startDelay",
+                "lifetimeMs",
+                "turnSpeed"
             ]
         },
         "mine": {

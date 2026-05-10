@@ -98,17 +98,30 @@ class AIManager {
     }
 
     runGuardians() {
-        // Guardián Zona 2 (Mapa 1)
-        let tCounts = { 1: 0, 5: 0, 8: 0 };
-        Object.values(this.state.enemies).forEach(e => {
-            if (e.zone === 2 && e.hp > 0 && tCounts[e.type] !== undefined) {
-                tCounts[e.type]++;
-            }
-        });
-
-        if (tCounts[1] < 4) this.serverSpawnEnemy(2, 1);
-        if (tCounts[5] < 4) this.serverSpawnEnemy(2, 5);
-        if (tCounts[8] < 4) this.serverSpawnEnemy(2, 8);
+        // v266.400: Ecosistema Dinámico Basado en Cartografía
+        if (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig) {
+            const maps = this.state.SERVER_CONFIG.mapsConfig;
+            Object.keys(maps).forEach(mapId => {
+                const mCfg = maps[mapId];
+                if (mCfg.spawns && mCfg.spawns.length > 0) {
+                    mCfg.spawns.forEach((s, idx) => {
+                        const count = Object.values(this.state.enemies).filter(e => e.zone == mapId && e.type == s.type && e.hp > 0).length;
+                        if (count < s.count) {
+                            // Gestión de cooldown de spawn por especie/mapa
+                            if (!this.spawnCooldowns) this.spawnCooldowns = {};
+                            const sKey = `map_${mapId}_type_${s.type}`;
+                            const lastSpawn = this.spawnCooldowns[sKey] || 0;
+                            const now = Date.now();
+                            
+                            if (now - lastSpawn >= (s.intervalMs || 5000)) {
+                                this.spawnCooldowns[sKey] = now;
+                                this.serverSpawnEnemy(parseInt(mapId), s.type);
+                            }
+                        }
+                    });
+                }
+            });
+        }
 
         // Guardián Jefes
         const hasTitanZ2 = Object.values(this.state.enemies).some(e => e.type === 4 && e.zone === 2);
@@ -143,11 +156,7 @@ class AIManager {
             this.serverSpawnEnemy(7, 103, 2000, 2000);
         }
 
-        // v266.185: Spawning Enemigo 2 (Hielo) en Mapa 6 para testeo
-        const iceEnemiesZ6 = Object.values(this.state.enemies).filter(e => e.type === 2 && e.zone === 6);
-        if (iceEnemiesZ6.length < 5) {
-            this.serverSpawnEnemy(6, 2);
-        }
+        // (Eliminadas las reglas hardcodeadas de Mapa 6 y otros ya que ahora son dinámicas)
     }
 }
 

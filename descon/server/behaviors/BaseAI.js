@@ -7,17 +7,64 @@ module.exports = class BaseAI {
     }
 
     update(grid, players, now, io) {
-        // v247.10: Optimización de búsqueda de objetivos vía Grid
-        let target = this.getNearestPlayer(grid, players);
-        if (!target) return;
-
-        const dist = Math.hypot(target.x - this.enemy.x, target.y - this.enemy.y);
-        const angle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
-
-        this.applyCombatLogic(target, dist, angle, now, io);
-        this.applyMovementLogic(target, dist, angle, now);
+        const cfg = this.config;
+        const isAggressive = cfg.aggressive !== false;
         
-        // Regeneración pasiva standard v82.10
+        // v266.580: Inicialización de seguridad para nuevos enemigos
+        if (!this.enemy.lastSuccessHit) this.enemy.lastSuccessHit = now;
+        if (!this.enemy.lastHit) this.enemy.lastHit = 0;
+
+        // v266.550: Búsqueda de objetivo potencial (Visión Pasiva)
+        let potentialTarget = this.getNearestPlayer(grid, players);
+        
+        // v266.560: Lógica de AGRO (Quién tiene la atención del bicho)
+        let activeTarget = null;
+        let isRevenge = false;
+
+        if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
+            const idleTime = now - (this.enemy.lastHit || 0);
+            const idleLimit = cfg.chaseIdleTimeout || 0; // 0 = Desactivado
+            
+            if (idleLimit === 0 || idleTime < idleLimit) {
+                activeTarget = players[this.enemy.lastHitter];
+                isRevenge = true;
+            } else {
+                this.enemy.lastHitter = null; 
+            }
+        }
+
+        // Si no está en modo venganza (o se le pasó el enojo) y es agresivo, busca al más cercano
+        if (!activeTarget && isAggressive) {
+            activeTarget = potentialTarget;
+        }
+
+        if (!activeTarget || activeTarget.isDead || activeTarget.isInvisible) return;
+
+        // v266.570: REGLAS DE RETIRADA (Chase Rules)
+        if (!cfg.chaseUntilDeath) {
+            const dist = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
+            
+            // 1. Fuera de Visión (venga de donde venga)
+            const visionLimit = (cfg.fireRange || 800) * 1.5;
+            if (cfg.stopOnOutOfSight !== false && dist > visionLimit) {
+                this.enemy.lastHitter = null;
+                return;
+            }
+
+            // 2. Tiempo sin acertar (Frustración) - Solo aplica si es > 0
+            if (cfg.chaseMissTimeout > 0 && !isRevenge) {
+                const missTime = now - (this.enemy.lastSuccessHit || 0);
+                if (missTime > cfg.chaseMissTimeout) return;
+            }
+        }
+
+        const dist = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
+        const angle = Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x);
+
+        this.applyCombatLogic(activeTarget, dist, angle, now, io);
+        this.applyMovementLogic(activeTarget, dist, angle, now);
+        
+        // Regeneración pasiva standard
         if (now - (this.enemy.lastHit || 0) > 5000 && this.enemy.shield < this.enemy.maxShield) {
             this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * 0.01));
         }
@@ -90,9 +137,11 @@ module.exports = class BaseAI {
                     bulletSpeed: mech.bulletSpeed || 800, 
                     bulletType: mech.type || "laser",
                     damage: mech.bulletDamage || (this.enemy.type * 100),
-                    // v266.220: Pasar datos extra de la mecánica (Slow, etc)
+                    // v266.220: Pasar datos extra de la mecánica (Slow, Combustible, Giro)
                     slowAmount: mech.slowAmount || 0,
-                    slowDuration: mech.slowDuration || 0
+                    slowDuration: mech.slowDuration || 0,
+                    lifetimeMs: mech.lifetimeMs || 0,
+                    turnSpeed: mech.turnSpeed || 2.5
                 });
 
                 state.shotsInBurst++;

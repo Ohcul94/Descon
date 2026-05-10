@@ -239,6 +239,11 @@ function registerCombatHandlers(socket, io, state) {
                 const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
                 const baseDmg = cfg ? cfg.bulletDamage : 50;
                 
+                // v266.550: Registrar éxito del enemigo para reglas de persecución
+                if (data.attackerId && state.enemies[data.attackerId]) {
+                    state.enemies[data.attackerId].lastSuccessHit = Date.now();
+                }
+
                 // v262.140: Parche Anti-Inmortalidad
                 // Si el cliente manda daño 0 o sospechosamente bajo, aplicamos daño base
                 if (dmg <= 0 || dmg > baseDmg) dmg = baseDmg;

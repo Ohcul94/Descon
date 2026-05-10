@@ -16,6 +16,11 @@ var sprite: Sprite2D = null
 var _has_hit: bool = false
 var max_range: float = 0.0
 var _start_pos: Vector2 = Vector2.ZERO
+var target_id: String = "" # v266.450: Soporte para Homing (Rastreo)
+var _target_node: Node2D = null
+var lifetime: float = 6.0 # v266.460: Tiempo de vida máximo del misil
+var _current_lifetime: float = 0.0
+var turn_speed: float = 2.5 # v266.505: Velocidad de rotación angular (Agilidad)
 
 func _ready():
 	add_to_group("projectiles")
@@ -39,15 +44,18 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	enemy_type = int(p_data.get("enemyType", 1))
 	
 	speed = float(p_data.get("bulletSpeed", p_data.get("speed", 800.0)))
+	if speed <= 0 and (type == "missile" or type == "ice_missile"):
+		speed = 450.0 # v266.520: Velocidad de crucero segura si no hay config
+		
 	max_range = float(p_data.get("range", 0.0))
+	target_id = str(p_data.get("targetId", ""))
 	
-	# v266.215: Solo aplicar overrides si no se especificó una velocidad custom (0 o null)
-	var custom_speed = p_data.get("bulletSpeed", 0)
-	if custom_speed == 0:
-		if type == "missile" or type == "ice_missile":
-			speed = 450.0 
-		elif type == "mine" and max_range > 0:
-			speed = max_range * 3.5
+	# v266.510: Localizar nodo objetivo (Reforzado v3)
+	_find_target()
+	
+	# v266.500: Configuración Dinámica (Combustible y Agilidad)
+	lifetime = float(p_data.get("lifetimeMs", 0.0)) / 1000.0
+	turn_speed = float(p_data.get("turnSpeed", 2.5))
 	
 	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
 	_start_pos = p_pos
@@ -117,8 +125,26 @@ func _draw():
 			draw_circle(Vector2.ZERO, 12, Color(1, 1, 1, 0.3), false, 3.0)
 
 func _physics_process(delta):
-	# Efecto de Fricción Fuerte para desplegar minas estáticas a corta distancia (recorren poco antes de anclarse)
-	if type == "mine":
+	if lifetime > 0:
+		_current_lifetime += delta
+		if _current_lifetime >= lifetime:
+			queue_free()
+			return
+
+	# v266.510: Re-intentar búsqueda si el objetivo se perdió o no se encontró al nacer
+	if target_id != "" and not is_instance_valid(_target_node):
+		_find_target()
+
+	# v266.505: Lógica de RASTREO (Homing) v2 - Basada en Rotación Angular
+	if (type == "missile" or type == "ice_missile") and is_instance_valid(_target_node):
+		var target_angle = (_target_node.global_position - global_position).angle()
+		
+		# rotate_toward garantiza que gire a una velocidad constante (turn_speed en radianes por segundo)
+		rotation = rotate_toward(rotation, target_angle, turn_speed * delta)
+		velocity = Vector2.RIGHT.rotated(rotation) * speed
+	
+	# Efecto de Fricción Fuerte para desplegar minas estáticas a corta distancia
+	elif type == "mine":
 		velocity = velocity.lerp(Vector2.ZERO, 3.5 * delta)
 		
 	global_position += velocity * delta
@@ -181,7 +207,8 @@ func _on_body_entered(body):
 					"damage": damage, 
 					"attackerType": owner_type,
 					"enemyType": enemy_type, # v226.41: Informar qué bicho pegó para validar daño
-					"bulletType": type # v266.182: Informar si es hielo o especial
+					"bulletType": type, # v266.182: Informar si es hielo o especial
+					"attackerId": owner_id
 				})
 		
 		_explode()
@@ -190,3 +217,22 @@ func _on_body_entered(body):
 
 func _explode():
 	queue_free()
+
+func _find_target():
+	if target_id == "": return
+	
+	# 1. ¿Soy yo?
+	if NetworkManager and target_id == str(NetworkManager.my_socket_id):
+		_target_node = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(_target_node): return
+
+	# 2. Buscar en entidades por ID
+	var entities = get_tree().get_nodes_in_group("entities")
+	for e in entities:
+		if e.has_method("get") and str(e.get("entity_id")) == target_id:
+			_target_node = e
+			return
+			
+	# 3. Fallback: Si soy el único jugador en el mapa, yo debo ser el blanco
+	if _target_node == null:
+		_target_node = get_tree().get_first_node_in_group("player")
