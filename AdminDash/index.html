@@ -648,9 +648,7 @@
 
         function setEnemySubTab(tab) {
             currentEnemySubTab = tab;
-            document.querySelectorAll('.btn-subtab').forEach(b => b.classList.remove('active'));
-            if(tab === 'regular') document.getElementById('btn-sub-enemies').classList.add('active');
-            else document.getElementById('btn-sub-bosses').classList.add('active');
+            // v266.215: Se eliminan referencias a botones de sub-tab inexistentes
             renderEnemies();
         }
 

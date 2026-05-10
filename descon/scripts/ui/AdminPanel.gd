@@ -65,9 +65,10 @@ func _input(event):
 		# v244.60: Bloquear panel admin en el login
 		if not NetworkManager or not NetworkManager.is_logged_in: return
 
-		if event.keycode == KEY_F2:
-			toggle()
-			get_viewport().set_input_as_handled()
+		# v266.215: Panel Admin interno desactivado - Usar Command Center (HTML)
+		# if event.keycode == KEY_F2:
+		# 	toggle()
+		# 	get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_ESCAPE and visible:
 			toggle()
 			get_viewport().set_input_as_handled()
