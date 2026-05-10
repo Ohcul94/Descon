@@ -34,7 +34,7 @@ var level: int = 1
 var current_exp: float = 0.0
 var next_level_exp: float = 1000.0
 var skill_points: int = 0
-var skill_tree: Dictionary = {"combat": [], "engineering": [], "science": []}
+# v300.80: skill_tree delegado totalmente al TalentSystem.gd
 
 var ammo: Dictionary = {"laser": [1000, 0, 0, 0, 0, 0], "missile": [100, 0, 0], "mine": [10, 0, 0]}
 var selected_ammo: Dictionary = {"laser": 0, "missile": 0, "mine": 0}
@@ -243,12 +243,11 @@ func _on_inventory_received(p_data):
 		if gd.has("equipped"): equipped = gd["equipped"]
 		if gd.has("hubs"): hubs = int(gd["hubs"])
 		if gd.has("ohcu"): ohculianos = int(gd["ohcu"])
-		if gd.has("skillTree"):
-			skill_tree = gd["skillTree"].duplicate()
-			if gd.has("skillPoints"):
-				skill_tree["skillPoints"] = int(gd["skillPoints"])
 		if gd.has("level"): level = int(gd["level"])
 		if gd.has("exp"): current_exp = float(gd["exp"])
+		
+		# v300.81: Los talentos ahora se sincronizan SOLO a través del TalentSystem.gd
+		# Evitamos duplicidad de datos en Player.gd
 		
 		# v240.95: Sincronía de Munición en Tiempo Real (Fix Shop Update)
 		if gd.has("ammo"):
@@ -547,10 +546,9 @@ func _on_login_success(p_in):
 		current_zone = int(gd.get("zone", 1)) # v238.45: Recuperación de sector
 
 		level = int(gd.get("level", 1))
-
 		current_exp = float(gd.get("exp", 0))
-		skill_tree = gd.get("skillTree", {"engineering":[0,0,0,0,0,0,0,0],"combat":[0,0,0,0,0,0,0,0],"science":[0,0,0,0,0,0,0,0]}).duplicate()
-		skill_tree["skillPoints"] = int(gd.get("skillPoints", 0))
+		# Sincronía de puntos para UI base
+		skill_points = int(gd.get("skillPoints", 0))
 		
 		# v221.26: Cargar estado PvP persistente de la cuenta
 		if gd.has("pvpEnabled"):
@@ -610,11 +608,8 @@ func save_progress():
 	
 	NetworkManager.send_event("saveProgress", {
 		"hubs": hubs, "ohcu": ohculianos, "exp": current_exp,
-		"level": level, "skillPoints": skill_tree.get("skillPoints", 0),
-		"skillTree": skill_tree,
-		# "inventory": inventory, # DESACTIVADO v215.30 FIX DUPEO
-		# "equipped": equipped,   # DESACTIVADO v215.30 FIX DUPEO
-		# "spheres": s_data,      # DESACTIVADO v241.30 FIX DATA LOSS (El server ya maneja equipSphere/unequipSphere)
+		"level": level,
+		# v300.82: ELIMINADO skillTree de aquí. El servidor es la única autoridad.
 		"hp": current_hp, "shield": current_shield,
 		"maxHp": max_hp, "maxShield": max_shield,
 		"ownedShips": owned_ships, "currentShipId": current_ship_id,

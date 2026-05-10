@@ -28,32 +28,6 @@ var received_invites = [] # v244.95: Invitaciones que el usuario recibió de cla
 
 
 
-var SKILL_DATA = [
-	{ "id": "eng_1", "cat": "engineering", "name": "REFUERZO DE CASCO", "desc": "+2% HP por nivel", "max": 5 },
-	{ "id": "eng_2", "cat": "engineering", "name": "ESCUDO DINÁMICO", "desc": "+2% Escudo por nivel", "max": 5 },
-	{ "id": "eng_3", "cat": "engineering", "name": "REGEN EMERGENGIA", "desc": "+5% HP Reparación", "max": 5 },
-	{ "id": "eng_4", "cat": "engineering", "name": "CAPACITOR OHCU", "desc": "+5% Shield Regen", "max": 5 },
-	{ "id": "eng_5", "cat": "engineering", "name": "PLACAS NANOBOTS", "desc": "+1% Armadura total", "max": 5 },
-	{ "id": "eng_6", "cat": "engineering", "name": "REACTOR FUSIÓN", "desc": "+3% Eficiencia Energía", "max": 5 },
-	{ "id": "eng_7", "cat": "engineering", "name": "MANTE GALÁCTICO", "desc": "-5% Costo Reparación", "max": 5 },
-	{ "id": "eng_8", "cat": "engineering", "name": "ESTABL FLOTANTE", "desc": "+1% Estabilidad (Vel)", "max": 5 },
-	{ "id": "com_1", "cat": "combat", "name": "LÁSER SOBRECARGA", "desc": "+3% Daño Láser", "max": 5 },
-	{ "id": "com_2", "cat": "combat", "name": "MIRILLA TÁCTICA", "desc": "+2% Prob. Crítico", "max": 5 },
-	{ "id": "com_3", "cat": "combat", "name": "FURIA DEL PILOTO", "desc": "+5% Daño Crítico", "max": 5 },
-	{ "id": "com_4", "cat": "combat", "name": "CARGA PROYECTIL", "desc": "+5% Bonus Munición", "max": 5 },
-	{ "id": "com_5", "cat": "combat", "name": "DISPARO PRECISIÓN", "desc": "+2% Puntería", "max": 5 },
-	{ "id": "com_6", "cat": "combat", "name": "PERFORACIÓN TÉRM", "desc": "+3% Ignorar Escudo", "max": 5 },
-	{ "id": "com_7", "cat": "combat", "name": "CADENCIA MILITAR", "desc": "-2% CD de Disparo", "max": 5 },
-	{ "id": "com_8", "cat": "combat", "name": "BLINDAJE ATAQUE", "desc": "+1% Evasión en Combate", "max": 5 },
-	{ "id": "sci_1", "cat": "science", "name": "MOTORES FUSIÓN", "desc": "+1.5% Velocidad Base", "max": 5 },
-	{ "id": "sci_2", "cat": "science", "name": "ESCÁNER TÁCTICO", "desc": "+10% Rango Minimapa", "max": 5 },
-	{ "id": "sci_3", "cat": "science", "name": "MINERÍA OHCU", "desc": "+5% OHCU de Kills", "max": 5 },
-	{ "id": "sci_4", "cat": "science", "name": "MERCADO GALÁXIA", "desc": "-2% Descuento Tienda", "max": 5 },
-	{ "id": "sci_5", "cat": "science", "name": "ENFRIAMIENTO RÁP", "desc": "-3% CD Habilidades", "max": 5 },
-	{ "id": "sci_6", "cat": "science", "name": "SINCRONÍA TACT", "desc": "+1% Bonus en Grupo", "max": 5 },
-	{ "id": "sci_7", "cat": "science", "name": "SENSORES PRECI", "desc": "+5% Loot de Bosses", "max": 5 },
-	{ "id": "sci_8", "cat": "science", "name": "SALTO HIPERESP", "desc": "+10% Distancia Dash", "max": 5 }
-]
 
 func _ready():
 	add_to_group("inventory_ui") # v244.70: Coordinación global de UI
@@ -120,7 +94,7 @@ func _ready():
 			talent_system = world.get_node("TalentSystem")
 			
 	if is_instance_valid(talent_system):
-		talent_system.talents_updated.connect(_update_talent_tree)
+		talent_system.talents_updated.connect(_update_active_tab_ui)
 
 	await get_tree().create_timer(1.0).timeout
 	
@@ -134,6 +108,16 @@ func _ready():
 	if spheres_node:
 		spheres_node.set_script(load("res://scripts/ui/inventory/SpheresTab.gd"))
 		if spheres_node.has_method("setup"): spheres_node.setup(self)
+
+	var shop_node = get_node_or_null("Window/TabContainer/Tienda")
+	if shop_node:
+		shop_node.set_script(load("res://scripts/ui/inventory/ShopTab.gd"))
+		if shop_node.has_method("setup"): shop_node.setup(self)
+
+	var talents_node = get_node_or_null("Window/TabContainer/Talentos")
+	if talents_node:
+		talents_node.set_script(load("res://scripts/ui/inventory/TalentsTab.gd"))
+		if talents_node.has_method("setup"): talents_node.setup(self)
 	
 	_refresh_data()
 
@@ -372,8 +356,12 @@ func _update_active_tab_ui():
 		"Esferas": 
 			var s = tab_container.get_node_or_null("Esferas")
 			if s and s.has_method("update_ui"): s.update_ui()
-		"Talentos": _update_talent_tree()
-		"Tienda": _update_shop_ui()
+		"Talentos":
+			var tl = tab_container.get_node_or_null("Talentos")
+			if tl and tl.has_method("update_ui"): tl.update_ui()
+		"Tienda":
+			var t = tab_container.get_node_or_null("Tienda")
+			if t and t.has_method("update_ui"): t.update_ui()
 		"Equipo": _update_party_ui()
 		"Mapa": _update_map_ui()
 		"Clan": _update_clan_ui()
@@ -534,66 +522,6 @@ func _get_slot_from_id(item_id: String) -> String:
 	elif item_id.begins_with("en") or item_id.begins_with("e"): return "e"
 	else: return "x"
 
-# --- TALENTS ---
-func _update_talent_tree():
-	if not visible: return
-	var tab = get_node_or_null("Window/TabContainer/Talentos")
-	if not tab: return
-	if not is_instance_valid(talent_system): 
-		talent_system = get_tree().get_first_node_in_group("talent_system")
-		if not talent_system: return
-		
-	for n in tab.get_children(): n.queue_free()
-	
-	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); tab.add_child(master_v)
-	var hb = HBoxContainer.new(); master_v.add_child(hb)
-	var pts = Label.new(); pts.text = "PUNTOS DISPONIBLES: " + str(int(talent_system.skill_points)); pts.modulate = Color.GREEN; hb.add_child(pts)
-	var rb = Button.new()
-	rb.text = "RESETEAR ARBOL (5.000 OHCU)"
-	rb.size_flags_horizontal = 3
-	rb.alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	rb.pressed.connect(func(): 
-		var m = "¿Confirmas el reseteo total de habilidades?\nCosto: [color=yellow]5.000 OHCU[/color]"
-		_show_modal("CONFIRMAR RESET", m, func(): talent_system.reset_talents())
-	)
-	hb.add_child(rb)
-
-	
-	var main_scroll = ScrollContainer.new(); main_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL; master_v.add_child(main_scroll)
-	var grid = HBoxContainer.new(); grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL; grid.size_flags_vertical = Control.SIZE_EXPAND_FILL; main_scroll.add_child(grid)
-	grid.add_theme_constant_override("separation", 25)
-
-	var cats = {"engineering": "INGENIERÍA", "combat": "COMBATE", "science": "CIENCIA"}
-	for ck in cats:
-		var v = VBoxContainer.new(); v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; grid.add_child(v)
-		var l = Label.new(); l.text = cats[ck]; l.horizontal_alignment = 1; l.modulate = Color.CYAN if ck == "engineering" else (Color.RED if ck == "combat" else Color.PURPLE)
-		l.add_theme_font_size_override("font_size", 14); v.add_child(l)
-		
-		var li = VBoxContainer.new(); v.add_child(li); li.add_theme_constant_override("separation", 10)
-		var branch = talent_system.skill_tree.get(ck, [0,0,0,0,0,0,0,0])
-		var skills = SKILL_DATA.filter(func(x): return x.cat == ck)
-		for i in range(skills.size()):
-			var s = skills[i]; var lvl = branch[i] if i < branch.size() else 0
-			var node_p = PanelContainer.new(); li.add_child(node_p)
-			node_p.size_flags_horizontal = Control.SIZE_EXPAND_FILL; node_p.custom_minimum_size = Vector2(0, 75)
-			
-			var sb = StyleBoxFlat.new(); sb.bg_color = Color(1,1,1,0.03); sb.set_border_width_all(1); sb.border_color = Color(1,1,1,0.1)
-			if lvl > 0: sb.border_color = Color.CYAN if ck == "engineering" else (Color.RED if ck == "combat" else Color.PURPLE)
-			node_p.add_theme_stylebox_override("panel", sb)
-			
-			var item_v = VBoxContainer.new(); node_p.add_child(item_v); item_v.add_theme_constant_override("separation", 4); item_v.alignment = BoxContainer.ALIGNMENT_CENTER
-			var l_name = Label.new(); l_name.text = s.name.to_upper(); l_name.add_theme_font_size_override("font_size", 12); l_name.modulate = Color.WHITE; item_v.add_child(l_name)
-			var l_desc = Label.new(); l_desc.text = s.desc; l_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l_desc.add_theme_font_size_override("font_size", 10); l_desc.modulate = Color(0.8, 0.8, 0.8); item_v.add_child(l_desc)
-			
-			var bar_h = HBoxContainer.new(); item_v.add_child(bar_h); bar_h.add_theme_constant_override("separation", 5)
-			for b_idx in range(5):
-				var bar = ColorRect.new(); bar.custom_minimum_size = Vector2(25, 6); bar_h.add_child(bar)
-				var val = lvl
-				bar.color = Color.GOLD if b_idx < val else Color(0.2, 0.2, 0.2, 0.5)
-			
-			var b_click = Button.new(); b_click.flat = true; node_p.add_child(b_click)
-			b_click.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			b_click.pressed.connect(func(): talent_system.invest_point(ck, i))
 
 
 # --- EQUIPO (PARTY) ---

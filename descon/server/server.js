@@ -899,6 +899,106 @@ io.on('connection', (socket) => {
         }
     });
 
+    // SISTEMA DE TALENTOS (v300.70)
+    socket.on('investSkill', async (data) => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        try {
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+            
+            let pts = user.gameData.skillPoints || 0;
+            if (pts <= 0) return;
+            
+            const cat = data.category;
+            const idx = data.index;
+            if (!user.gameData.skillTree) user.gameData.skillTree = { engineering: [0,0,0,0,0,0,0,0], combat: [0,0,0,0,0,0,0,0], science: [0,0,0,0,0,0,0,0] };
+            
+            const branch = user.gameData.skillTree[cat] || [];
+            
+            // Autocompletado del array para evitar errores de índice out-of-bounds
+            while (branch.length <= idx) branch.push(0);
+            
+            if (branch[idx] >= 5) return;
+            
+            branch[idx] += 1;
+            user.gameData.skillTree[cat] = branch;
+            user.gameData.skillPoints = pts - 1;
+            
+            // v300.75: Triple validación de guardado
+            user.markModified('gameData.skillTree');
+            user.markModified('gameData.skillPoints');
+            user.markModified('gameData');
+            
+            // v300.90: ¡ACTUALIZAR RAM! (El bug mortal de sobreescritura)
+            players[socket.id].skillTree = user.gameData.skillTree;
+            players[socket.id].skillPoints = user.gameData.skillPoints;
+            
+            await user.save();
+            console.log(`[DATABASE] Talento '${cat}' [${idx}] guardado para ${user.username}. Restantes: ${user.gameData.skillPoints}`);
+            
+            socket.dbUser = user;
+            
+            const eByShipObj = {};
+            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+            else Object.assign(eByShipObj, user.gameData.equippedByShip || {});
+            
+            socket.emit('inventoryData', {
+                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj }
+            });
+        } catch(e) { console.error('[TALENT_ERROR]', e); }
+    });
+
+    socket.on('resetSkills', async () => {
+        if (!socket.dbUser || !players[socket.id]) return;
+        try {
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+            
+            const RESET_COST = 5000;
+            if ((user.gameData.ohcu || 0) < RESET_COST) {
+                return socket.emit('gameNotification', { msg: 'OHCU INSUFICIENTE PARA RESETEAR', type: 'error' });
+            }
+            
+            let spent = 0;
+            const tree = user.gameData.skillTree || { engineering: [], combat: [], science: [] };
+            
+            ['engineering', 'combat', 'science'].forEach(cat => {
+                if (tree[cat] && Array.isArray(tree[cat])) {
+                    tree[cat].forEach(lvl => { spent += lvl; });
+                }
+                tree[cat] = [0,0,0,0,0,0,0,0];
+            });
+            
+            if (spent === 0) return socket.emit('gameNotification', { msg: 'NO HAY HABILIDADES PARA RESETEAR', type: 'error' });
+            
+            user.gameData.ohcu -= RESET_COST;
+            user.gameData.skillPoints = (user.gameData.skillPoints || 0) + spent;
+            user.gameData.skillTree = tree;
+            
+            user.markModified('gameData');
+            
+            // v300.90: ¡ACTUALIZAR RAM! 
+            players[socket.id].skillTree = user.gameData.skillTree;
+            players[socket.id].skillPoints = user.gameData.skillPoints;
+            players[socket.id].ohcu = user.gameData.ohcu;
+            
+            await user.save();
+            console.log(`[DATABASE] Árbol de habilidades reseteado para ${user.username}. Puntos devueltos: ${spent}`);
+            
+            socket.dbUser = user;
+            
+            const eByShipObj = {};
+            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+            else Object.assign(eByShipObj, user.gameData.equippedByShip || {});
+            
+            socket.emit('inventoryData', {
+                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj }
+            });
+            socket.emit('gameNotification', { msg: 'ÁRBOL DE HABILIDADES RESETEADO', type: 'success' });
+            
+        } catch(e) { console.error('[RESET_SKILL_ERROR]', e); }
+    });
+
     // SISTEMA DE DUNGEONS BLINDADAS (Instancias Privadas)
     socket.on('enterDungeon', () => {
         if (!socket.dbUser || !players[socket.id]) return;

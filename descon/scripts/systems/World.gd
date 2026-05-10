@@ -322,10 +322,6 @@ func _save_game_progress():
 		"shield": local_player.current_shield,
 		"maxHp": local_player.max_hp,
 		"maxShield": local_player.max_shield,
-		# "inventory": local_player.inventory, # ELIMINADO para evitar Dupeo v215.20
-		# "equipped": local_player.equipped,   # ELIMINADO para evitar Dupeo v215.20
-		"skillPoints": local_player.skill_tree.skillPoints if local_player.skill_tree and "skillPoints" in local_player.skill_tree else 0,
-		"skillTree": local_player.skill_tree
 	}
 	NetworkManager.send_event("saveProgress", d)
 
