@@ -311,37 +311,15 @@ func _setup_ui():
 	layout_lbl.add_theme_color_override("font_color", Color.CYAN)
 	hud_vbox.add_child(layout_lbl)
 	
-	var edit_hud_btn = Button.new()
-	edit_hud_btn.text = "EDITAR LAYOUT HUD (MOVER BOTONES)"
-	edit_hud_btn.custom_minimum_size.y = 40
-	edit_hud_btn.modulate = Color(0.5, 1.0, 1.0)
-	edit_hud_btn.pressed.connect(func():
-		close()
-		var hud = get_tree().get_first_node_in_group("hud")
-		if hud and hud.has_method("toggle_hud_editing"):
-			hud.toggle_hud_editing()
-	)
-	hud_vbox.add_child(edit_hud_btn)
-	
-	var hud_desc = Label.new()
-	hud_desc.text = "Al activar esta opción, podrás arrastrar libremente los slots de habilidades en tu pantalla.\nUna vez en Modo Edición, verás el botón 'Restaurar de Fábrica' por si quieres volver a la formación original."
-	hud_desc.autowrap_mode = TextServer.AUTOWRAP_WORD
-	hud_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-	hud_vbox.add_child(hud_desc)
-	
-	hud_vbox.add_child(HSeparator.new())
-	
-	# v266.130: GESTIÓN DE SLOTS
-	var slots_lbl = Label.new()
-	slots_lbl.text = "MIS LAYOUTS GUARDADOS (MÁX 4):"
-	slots_lbl.add_theme_color_override("font_color", Color.CYAN)
-	hud_vbox.add_child(slots_lbl)
-	
 	var hud_ref = get_tree().get_first_node_in_group("hud")
 	var layouts_data = []
 	if hud_ref and hud_ref.get("_hud_layouts"):
 		layouts_data = hud_ref._hud_layouts
-	
+		
+	var active_idx = -1
+	if hud_ref and hud_ref.get("active_slot_index") != null:
+		active_idx = hud_ref.active_slot_index
+
 	for i in range(4):
 		var slot_data = {"name": "Slot %d" % (i+1)}
 		if i < layouts_data.size(): slot_data = layouts_data[i]
@@ -350,32 +328,36 @@ func _setup_ui():
 		row.add_theme_constant_override("separation", 10)
 		hud_vbox.add_child(row)
 		
+		# v266.300: Indicador de Slot Activo
+		var active_indicator = Label.new()
+		active_indicator.text = " ▶ " if i == active_idx else "   "
+		active_indicator.add_theme_color_override("font_color", Color.YELLOW)
+		row.add_child(active_indicator)
+		
 		var name_edit = LineEdit.new()
 		name_edit.text = slot_data.name
 		name_edit.placeholder_text = "Nombre del Layout"
-		name_edit.custom_minimum_size.x = 150
+		name_edit.custom_minimum_size.x = 130
+		if i == active_idx: name_edit.add_theme_color_override("font_color", Color.YELLOW)
 		row.add_child(name_edit)
 		
 		var apply_btn = Button.new()
-		apply_btn.text = "APLICAR"
+		apply_btn.text = "USAR"
+		apply_btn.custom_minimum_size.x = 60
 		apply_btn.modulate = Color.GREEN
 		apply_btn.pressed.connect(func():
 			if hud_ref: hud_ref.apply_layout_slot(i)
+			refresh_ui() # Refrescar para ver el indicador sin perder el tab
 		)
 		row.add_child(apply_btn)
 		
-		var save_here_btn = Button.new()
-		save_here_btn.text = "GUARDAR ACTUAL AQUÍ"
-		save_here_btn.modulate = Color.YELLOW
-		save_here_btn.pressed.connect(func():
-			if hud_ref:
-				hud_ref._save_hud_positions(i, name_edit.text)
-				# v266.130: Feedback visual
-				save_here_btn.text = "¡GUARDADO!"
-				await get_tree().create_timer(1.0).timeout
-				save_here_btn.text = "GUARDAR ACTUAL AQUÍ"
+		var edit_btn = Button.new()
+		edit_btn.text = "EDITAR"
+		edit_btn.modulate = Color.CYAN
+		edit_btn.pressed.connect(func():
+			if hud_ref: hud_ref.toggle_hud_editing(i)
 		)
-		row.add_child(save_here_btn)
+		row.add_child(edit_btn)
 
 	# ========================== PIE DE PÁGINA (BOTONES COMUNES) ==========================
 
@@ -482,6 +464,17 @@ func open():
 	# v266.131: Esperar un frame para que Godot calcule el nuevo tamaño mínimo
 	await get_tree().process_frame
 	_update_size()
+
+# v266.310: Refrescar la UI manteniendo el Tab actual
+func refresh_ui():
+	var current_tab = 0
+	var tabs = find_child("*TabContainer*", true, false)
+	if tabs: current_tab = tabs.current_tab
+	
+	_setup_ui()
+	
+	tabs = find_child("*TabContainer*", true, false)
+	if tabs: tabs.current_tab = current_tab
 
 func _update_size():
 	var screen_size = get_viewport_rect().size

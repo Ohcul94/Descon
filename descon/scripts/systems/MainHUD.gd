@@ -24,6 +24,9 @@ var _settings_menu: Control = null
 var _pvp_status: bool = false
 var _blind_overlay: ColorRect = null # v260.90: Efecto de Ceguera (Humo)
 var is_editing_layout: bool = false
+var _editing_slot_index: int = -1 # v266.300: Slot que se está editando
+var _layout_backup: Dictionary = {} # Para cancelar cambios
+var active_slot_index: int = 0 # v266.300: Para mostrar cuál está en uso
 var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
 
 
@@ -154,6 +157,23 @@ func _on_server_data_received(p_data: Dictionary):
 		var config = gd.get("hudConfig", gd.get("hud_config", {}))
 		_hud_layouts = gd.get("hudLayouts", []) # v266.130
 		_apply_hud_data(layout, config)
+		
+		# v266.300: Determinar slot activo (comparación de posiciones)
+		_update_active_slot_index(layout)
+
+func _update_active_slot_index(current_layout: Dictionary):
+	if _hud_layouts.is_empty(): 
+		active_slot_index = -1
+		return
+		
+	# Comparar el layout actual con los slots para ver cuál coincide mejor
+	for i in range(_hud_layouts.size()):
+		var slot = _hud_layouts[i]
+		if slot and slot.has("positions"):
+			if str(slot.positions) == str(current_layout):
+				active_slot_index = i
+				return
+	active_slot_index = -1 # No coincide con ninguno (modificado manual)
 
 func _input(event: InputEvent):
 	# v266.120: Atajo de teclado para cerrar edición
@@ -183,6 +203,14 @@ func _input(event: InputEvent):
 								if child.get_global_rect().has_point(event.position):
 									clicked_node = child
 									break
+				
+				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat)
+				if not clicked_node:
+					for win_id in ["CenterStats", "RadarWindow", "ChatUI"]:
+						var win = _get_hud_node(win_id)
+						if win and win.visible and win.get_global_rect().has_point(event.position):
+							clicked_node = win
+							break
 				
 				if clicked_node:
 					_dragging_node = clicked_node
@@ -591,13 +619,26 @@ func _get_hud_node(id: String):
 	if id == "Stats": real_id = "CenterStats"
 	if id == "Squad" or id == "Party": real_id = "PartyHUD"
 	if id == "SkillsContainer": real_id = "Skills"
+	if id == "RadarWindow": real_id = "RadarWindow"
 	
+	# 1. Buscar como hijo directo
 	var node = get_node_or_null(real_id)
+	
+	# 2. Buscar dentro de Skills si es un slot
 	if not node:
 		var sc = get_node_or_null("Skills")
-		if sc: node = sc.get_node_or_null(id) # Probar con el ID original (e.g. LaserSlot)
+		if sc: node = sc.get_node_or_null(id)
+	
+	# 3. Buscar en el padre (v266.235: Mayor alcance para ChatUI)
+	if not node and get_parent():
+		node = get_parent().get_node_or_null(real_id)
 		
-	if not node: node = get_parent().get_node_or_null(real_id)
+	# 4. Búsqueda recursiva por nombre en todo el árbol de UI si falla lo anterior
+	if not node:
+		var all_hud = get_tree().get_nodes_in_group("hud")
+		if all_hud.size() > 0:
+			node = all_hud[0].find_child(real_id, true, false)
+			
 	return node
 
 func _update_icon_state(id: String, is_active: bool):
@@ -918,26 +959,57 @@ func toggle_esc_menu():
 	_esc_menu.global_position = (get_viewport_rect().size - _esc_menu.size) / 2.0
 
 func _restore_default_layout():
-	if NetworkManager:
-		NetworkManager.send_event("saveHudLayout", { "positions": {} })
+	# v266.350: Restauración Integral (Skills + Stats + Mapa + Chat)
+	if not is_editing_layout:
+		active_slot_index = -1 # Solo resetear slot si estamos fuera del editor
+		if NetworkManager:
+			NetworkManager.send_event("saveHudLayout", { "positions": {} })
 	
+	# 1. Skills
 	var skills_container = get_node_or_null("Skills")
 	if skills_container:
 		skills_container.top_level = false
-		
 		for child in skills_container.get_children():
 			if child is Control and child.name != "DragOverlay":
 				child.top_level = false
-				child.reset_size()
-				
 		skills_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 20)
-		# Forzar que el contenedor no se estire hacia arriba
 		skills_container.grow_vertical = Control.GROW_DIRECTION_BEGIN
-		skills_container.queue_sort()
 	
-	print("[HUD] Layout restaurado de fábrica.")
+	# 2. Ventanas Mayores
+	var win_presets = {
+		"CenterStats": Control.PRESET_CENTER_TOP,
+		"RadarWindow": Control.PRESET_TOP_LEFT,
+		"ChatUI": Control.PRESET_BOTTOM_LEFT
+	}
+	
+	for win_id in win_presets.keys():
+		var win = _get_hud_node(win_id)
+		if win:
+			win.top_level = false
+			win.set_anchors_and_offsets_preset(win_presets[win_id], Control.PRESET_MODE_MINSIZE, 20)
+	
+	print("[HUD] Layout restaurado de fábrica visualmente.")
+	
+	# v266.355: Si estamos editando, re-liberar para que el DragOverlay funcione
 	if is_editing_layout:
-		toggle_hud_editing()
+		await get_tree().process_frame # Esperar a que los anchors reposicionen
+		for win_id in ["Skills", "CenterStats", "RadarWindow", "ChatUI"]:
+			var win = _get_hud_node(win_id)
+			if win:
+				var gp = win.global_position
+				win.top_level = true
+				win.global_position = gp
+				if win.name == "Skills":
+					for child in win.get_children():
+						if child is Control and child.name != "DragOverlay":
+							var cgp = child.global_position
+							child.top_level = true
+							child.global_position = cgp
+		
+		# Reposicionar manija
+		var handle = get_node_or_null("SkillsMasterHandle")
+		if handle and skills_container:
+			handle.global_position = skills_container.global_position + Vector2(-35, 0)
 
 func _create_esc_menu():
 	var canvas = CanvasLayer.new()
@@ -1186,57 +1258,94 @@ func _on_blind_state(data: Dictionary):
 	else:
 		tw.tween_property(_blind_overlay, "color:a", 0.0, 0.1) # Recuperación rápida
 
-# --- SISTEMA DE EDICIÓN DE HUD v266.90 ---
-func toggle_hud_editing():
-	is_editing_layout = !is_editing_layout
-	print("[HUD] Modo Edición Layout: ", is_editing_layout)
+# --- SISTEMA DE EDICIÓN DE HUD v266.300 ---
+func toggle_hud_editing(slot_index: int = -1):
+	if is_editing_layout and slot_index != -1: return # Ya estamos editando
 	
-	# v266.110: UI Consolidada de Modo Edición
+	is_editing_layout = !is_editing_layout
+	
+	# v266.300: UI Consolidada de Modo Edición
 	var edit_container = get_node_or_null("EditLayoutUI")
 	if is_editing_layout:
+		_editing_slot_index = slot_index
+		_backup_layout() # Guardar estado previo para poder cancelar
+		
 		if not edit_container:
-			edit_container = VBoxContainer.new()
+			edit_container = PanelContainer.new()
 			edit_container.name = "EditLayoutUI"
+			
+			var style = StyleBoxFlat.new()
+			style.bg_color = Color(0, 0, 0, 0.8)
+			style.border_width_top = 2; style.border_color = Color.CYAN
+			edit_container.add_theme_stylebox_override("panel", style)
+			
 			edit_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-			edit_container.position.y = 80
-			edit_container.add_theme_constant_override("separation", 15)
+			edit_container.custom_minimum_size.y = 100
 			
-			var edit_lbl = Label.new()
-			edit_lbl.text = "MODO EDICIÓN ACTIVADO\nArrástre la manija (::) o los botones para moverlos.\nToque el icono ⚙️ para guardar y salir."
-			edit_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			edit_lbl.add_theme_color_override("font_color", Color.CYAN)
-			edit_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-			edit_lbl.add_theme_constant_override("outline_size", 4)
-			edit_container.add_child(edit_lbl)
+			var margin = MarginContainer.new()
+			margin.add_theme_constant_override("margin_top", 10)
+			edit_container.add_child(margin)
 			
-			var center_hbox = CenterContainer.new()
-			edit_container.add_child(center_hbox)
+			var vbox = VBoxContainer.new()
+			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+			margin.add_child(vbox)
+			
+			var title_lbl = Label.new()
+			title_lbl.name = "TitleLabel"
+			var s_name = "Manual"
+			if _editing_slot_index >= 0 and _editing_slot_index < _hud_layouts.size():
+				s_name = _hud_layouts[_editing_slot_index].name
+			title_lbl.text = "EDITANDO LAYOUT: " + s_name.to_upper()
+			title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			title_lbl.add_theme_color_override("font_color", Color.CYAN)
+			vbox.add_child(title_lbl)
 			
 			var btns_hbox = HBoxContainer.new()
+			btns_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 			btns_hbox.add_theme_constant_override("separation", 20)
-			center_hbox.add_child(btns_hbox)
+			vbox.add_child(btns_hbox)
+			
+			var save_btn = Button.new()
+			save_btn.text = " ✔ GUARDAR CAMBIOS "
+			save_btn.modulate = Color.GREEN
+			save_btn.pressed.connect(func():
+				_save_hud_positions(_editing_slot_index)
+				toggle_hud_editing()
+			)
+			btns_hbox.add_child(save_btn)
+			
+			var cancel_btn = Button.new()
+			cancel_btn.text = " ✖ SALIR SIN GUARDAR "
+			cancel_btn.modulate = Color.ORANGE
+			cancel_btn.pressed.connect(func():
+				_restore_layout_backup()
+				is_editing_layout = false # Forzar cierre sin guardar
+				toggle_hud_editing()
+			)
+			btns_hbox.add_child(cancel_btn)
 			
 			var restore_btn = Button.new()
-			restore_btn.text = " RESTAURAR DE FÁBRICA "
-			restore_btn.custom_minimum_size.y = 40
-			restore_btn.modulate = Color(1.0, 0.4, 0.4)
+			restore_btn.text = " ↺ VALORES DE FÁBRICA "
+			restore_btn.modulate = Color.RED
 			restore_btn.pressed.connect(_restore_default_layout)
 			btns_hbox.add_child(restore_btn)
 			
-			var close_btn = Button.new()
-			close_btn.text = " [X] CERRAR EDICIÓN (ESC) "
-			close_btn.custom_minimum_size.y = 40
-			close_btn.modulate = Color(0.4, 1.0, 0.4)
-			close_btn.pressed.connect(toggle_hud_editing)
-			btns_hbox.add_child(close_btn)
-			
 			add_child(edit_container)
+		
+		# Actualizar titulo si cambió el slot
+		var s_name = "Manual"
+		if _editing_slot_index >= 0 and _editing_slot_index < _hud_layouts.size():
+			s_name = _hud_layouts[_editing_slot_index].name
+		
+		var t_lbl = edit_container.find_child("TitleLabel", true, false)
+		if t_lbl: t_lbl.text = "EDITANDO LAYOUT: " + s_name.to_upper()
 		edit_container.visible = true
 	else:
 		if edit_container: edit_container.visible = false
-		_save_hud_positions()
+		_editing_slot_index = -1
 	
-	_esc_menu.visible = false # Cerrar menú al editar
+	if is_instance_valid(_settings_menu): _settings_menu.close()
+	if is_instance_valid(_esc_menu): _esc_menu.visible = false
 	
 	# Hacer que todo sea movible
 	var skills_container = get_node_or_null("Skills")
@@ -1301,11 +1410,32 @@ var _drag_offset: Vector2 = Vector2.ZERO
 var _node_start_positions: Dictionary = {}
 
 func apply_layout_slot(index: int):
-	if index < 0 or index >= _hud_layouts.size(): return
-	var slot = _hud_layouts[index]
-	if slot and slot.has("positions"):
+	if index < 0: return
+	
+	var slot = null
+	if index < _hud_layouts.size():
+		slot = _hud_layouts[index]
+	
+	if slot and slot.has("positions") and not slot.positions.is_empty():
 		_apply_hud_data(slot.positions, {})
 		print("[HUD] Aplicado slot: ", slot.name)
+		
+		# v266.310: Actualizar indicador de slot activo
+		active_slot_index = index
+		
+		# v266.216: Sincronizar Caché Local para evitar reversión en resize
+		if NetworkManager:
+			NetworkManager.current_user_data["hudPositions"] = slot.positions
+			NetworkManager.current_user_data["hud_layout"] = slot.positions
+			
+			# Persistir al servidor
+			var payload = { "positions": slot.positions }
+			NetworkManager.send_event("saveHudLayout", payload)
+	else:
+		# Si el slot está vacío, restaurar default
+		print("[HUD] Slot vacío, restaurando layout de fábrica.")
+		active_slot_index = -1
+		_restore_default_layout()
 
 func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 	var layout = {}
@@ -1316,7 +1446,20 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			if child.name == "DragOverlay": continue
 			layout[child.name] = { "x": child.global_position.x, "y": child.global_position.y }
 	
+	# v266.220: Guardar también posiciones de ventanas principales
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI"]:
+		var win = _get_hud_node(win_id)
+		if win:
+			layout[win_id] = { "x": win.global_position.x, "y": win.global_position.y }
+	
 	if NetworkManager:
+		# v266.216: Actualizar caché local
+		NetworkManager.current_user_data["hudPositions"] = layout
+		NetworkManager.current_user_data["hud_layout"] = layout
+		
+		# v266.300: Actualizar indicador de slot activo
+		_update_active_slot_index(layout)
+		
 		var payload = { "positions": layout }
 		if slot_index >= 0:
 			payload["slotIndex"] = slot_index
@@ -1325,5 +1468,30 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				_hud_layouts[slot_index].positions = layout
 				if slot_name != "": _hud_layouts[slot_index].name = slot_name
 		
+		# v266.310: Actualizar indicador de slot activo tras guardar
+		active_slot_index = slot_index
+		
 		NetworkManager.send_event("saveHudLayout", payload)
 		print("[HUD] Layout enviado al servidor. Slot: ", str(slot_index) if slot_index >= 0 else "Global")
+
+func _backup_layout():
+	_layout_backup.clear()
+	# Guardar SkillsContainer
+	var sc = get_node_or_null("Skills")
+	if sc:
+		_layout_backup["SkillsContainer"] = { "x": sc.global_position.x, "y": sc.global_position.y }
+		for child in sc.get_children():
+			if child is Control and child.name != "DragOverlay":
+				_layout_backup[child.name] = { "x": child.global_position.x, "y": child.global_position.y }
+	
+	# Guardar Ventanas principales
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI"]:
+		var win = _get_hud_node(win_id)
+		if win:
+			_layout_backup[win_id] = { "x": win.global_position.x, "y": win.global_position.y }
+	print("[HUD] Backup de layout creado.")
+
+func _restore_layout_backup():
+	if _layout_backup.is_empty(): return
+	_apply_hud_data(_layout_backup, {})
+	print("[HUD] Layout restaurado desde backup.")

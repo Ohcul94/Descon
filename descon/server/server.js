@@ -1128,23 +1128,28 @@ io.on('connection', (socket) => {
             if (data.slotIndex !== undefined && data.slotIndex >= 0 && data.slotIndex < 4) {
                 if (!players[socket.id].hudLayouts) players[socket.id].hudLayouts = [];
                 
-                const slot = players[socket.id].hudLayouts[data.slotIndex];
-                if (slot) {
-                    if (data.name) slot.name = data.name;
-                    if (data.positions) slot.positions = data.positions;
-                    console.log(`[HUD] Guardado Slot ${data.slotIndex} para ${players[socket.id].user}`);
+                // Asegurar que el slot exista
+                if (!players[socket.id].hudLayouts[data.slotIndex]) {
+                    players[socket.id].hudLayouts[data.slotIndex] = { name: data.name || `Layout ${data.slotIndex + 1}`, positions: {} };
                 }
                 
-                // Sincronizar el layout activo
+                const slot = players[socket.id].hudLayouts[data.slotIndex];
+                if (data.name) slot.name = data.name;
+                if (data.positions) slot.positions = data.positions;
+                
+                // Sincronizar el layout activo para persistencia global
                 players[socket.id].hudPositions = data.positions || players[socket.id].hudPositions;
                 
+                console.log(`[HUD] Guardado Slot ${data.slotIndex} para ${players[socket.id].user}`);
+
                 if (socket.dbUser) {
                     try {
                         const updatePath = `gameData.hudLayouts.${data.slotIndex}`;
-                        const updateObj = { [updatePath]: slot };
+                        const updateObj = { [updatePath]: players[socket.id].hudLayouts[data.slotIndex] };
                         updateObj["gameData.hudPositions"] = players[socket.id].hudPositions;
                         
                         await User.updateOne({ _id: socket.dbUser._id }, { $set: updateObj });
+                        console.log(`[HUD-SLOT] Persistencia exitosa en DB para slot ${data.slotIndex}`);
                     } catch (e) { console.error("[HUD-SLOT-SAVE] Error DB:", e); }
                 }
                 return;

@@ -21,38 +21,13 @@ func _ready():
 		
 	_load_position()
 
-func _input(event):
-	if is_dragging and event is InputEventMouseMotion:
-		var target = self
-		if name == "DragHandler": target = get_parent()
-		target.global_position = get_global_mouse_position() - drag_offset
-		accept_event()
-	
-	if is_dragging and event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-			is_dragging = false
-			modulate.a = 1.0
-			_save_position()
+func _input(_event):
+	# v266.230: Dragging centralizado en MainHUD.gd (Edit Mode)
+	pass
 
-func _gui_input(event):
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			# v165.50: Arrastre inteligente. 
-			# Se permite arrastrar desde arriba (header_height) o si es el chat.
-			if event.position.y <= header_height:
-				is_dragging = true
-				drag_offset = event.position
-				modulate.a = 0.7
-				
-				var target = self
-				if name == "DragHandler": target = get_parent()
-				
-				# Traer al frente
-				if target.get_parent():
-					target.get_parent().move_child(target, target.get_parent().get_child_count() - 1)
-				
-				accept_event()
-				print("[HUD] ARRASTRE INICIADO: ", window_id)
+func _gui_input(_event):
+	# v266.230: Dragging centralizado en MainHUD.gd (Edit Mode)
+	pass
 
 func toggle_minimize():
 	visible = !visible
