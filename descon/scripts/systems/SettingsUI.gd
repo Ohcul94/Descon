@@ -1,6 +1,6 @@
 extends Control
 
-# SettingsUI.gd (v1.1 - 7 Slots Unificados)
+# SettingsUI.gd (v1.1 - 7 Slots Unificados) 
 
 signal closed
 
@@ -100,10 +100,16 @@ func _setup_ui():
 	game_vbox.add_theme_constant_override("separation", 10)
 	margin_game.add_child(game_vbox)
 	
-	# MODO DE DISPARO
+	var cast_hbox = HBoxContainer.new()
+	cast_hbox.add_theme_constant_override("separation", 20)
+	game_vbox.add_child(cast_hbox)
+	
+	var cast_vbox = VBoxContainer.new()
+	cast_hbox.add_child(cast_vbox)
+	
 	var cast_label = Label.new()
 	cast_label.text = "MODO DE LANZAMIENTO (CAST):"
-	game_vbox.add_child(cast_label)
+	cast_vbox.add_child(cast_label)
 	
 	var cast_option = OptionButton.new()
 	cast_option.add_item("Quick Cast (Instantáneo)", 0)
@@ -114,10 +120,30 @@ func _setup_ui():
 	if player and player.get("_skill_controller"):
 		cast_option.selected = player._skill_controller.config.cast_mode
 	elif get_node_or_null("/root/SettingsManager"):
-		cast_option.selected = SettingsManager.get_cast_mode()
+		cast_option.selected = SettingsManager.cast_mode_cache
 	
 	cast_option.item_selected.connect(_on_cast_mode_changed)
-	game_vbox.add_child(cast_option)
+	cast_vbox.add_child(cast_option)
+	
+	# v266.400: JOYSTICK VIRTUAL
+	var joy_vbox = VBoxContainer.new()
+	cast_hbox.add_child(joy_vbox)
+	
+	var joy_lbl = Label.new()
+	joy_lbl.text = "JOYSTICK VIRTUAL:"
+	joy_vbox.add_child(joy_lbl)
+	
+	var joy_check = CheckButton.new()
+	joy_check.text = "ACTIVAR PARA MÓVILES"
+	joy_check.button_pressed = SettingsManager.joystick_enabled
+	joy_check.toggled.connect(func(v):
+		SettingsManager.joystick_enabled = v
+		SettingsManager.save_settings()
+		var hud = get_tree().get_first_node_in_group("hud")
+		if hud and hud.has_method("_update_joystick_visibility"):
+			hud._update_joystick_visibility()
+	)
+	joy_vbox.add_child(joy_check)
 	
 	game_vbox.add_child(HSeparator.new())
 	

@@ -45,6 +45,7 @@ var _shake_amount: float = 0.0
 var _shake_decay: float = 0.9
 var _cam_node: Camera2D = null
 var slow_points: float = 0.0
+var joystick_direction: Vector2 = Vector2.ZERO # v266.400
 
 func _ready():
 	super._ready() 
@@ -456,8 +457,20 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 	# Cooldown persistente
 	cooldowns[key] = skill.cooldown if "cooldown" in skill else 5.0
 
+func set_joystick_direction(dir: Vector2):
+	joystick_direction = dir
+	if dir != Vector2.ZERO:
+		is_moving = false
+		autopilot_enabled = false
+
 func _apply_movement():
-	if is_moving:
+	if joystick_direction != Vector2.ZERO:
+		var target_angle = joystick_direction.angle()
+		rotation = lerp_angle(rotation, target_angle, 0.25)
+		var dir = Vector2.RIGHT.rotated(rotation)
+		var final_speed = max(10.0, speed - slow_points)
+		velocity = dir * final_speed
+	elif is_moving:
 		var dist = global_position.distance_to(target_position)
 		var threshold = 15.0
 		if get_node_or_null("/root/SettingsManager"):
@@ -467,38 +480,35 @@ func _apply_movement():
 			var target_angle = (target_position - global_position).angle()
 			rotation = lerp_angle(rotation, target_angle, 0.25)
 			var dir = Vector2.RIGHT.rotated(rotation)
-			# v10.0: Aplicar resta de puntos planos (Igual que Turbo)
 			var final_speed = max(10.0, speed - slow_points)
 			velocity = dir * final_speed
-			
-			# v7.0: Feedback Visual de Congelamiento (v245.95: Respetar canal Alpha de Sigilo)
-			var target_color = Color.WHITE
-			if slow_points > 1.0:
-				target_color = Color(0.4, 0.7, 1.0, 1.0) # Tinte azulado
-			
-			# Mantener el alpha actual definido por Entity.gd (_update_invisibility_visuals)
-			target_color.a = modulate.a 
-			modulate = modulate.lerp(target_color, 0.1)
-				
-			if move_and_slide():
-				# v235.97: Resolución Activa de Atascamiento (Antiglue System)
-				for i in get_slide_collision_count():
-					var col = get_slide_collision(i)
-					var obj = col.get_collider()
-					if obj and (obj.is_in_group("enemies") or obj.is_in_group("remote_players")):
-						# Pequeño rebote de seguridad para separar geometrías
-						global_position += col.get_normal() * 2.0
-						velocity = velocity.bounce(col.get_normal()) * 0.5
-
-			
-			var w_size = GameConstants.GAME_CONFIG.get("worldSize", 4000)
-
-			global_position.x = clamp(global_position.x, 10, w_size - 10)
-			global_position.y = clamp(global_position.y, 10, w_size - 10)
 		else:
 			is_moving = false
 			autopilot_enabled = false
 			velocity = Vector2.ZERO
+	else:
+		velocity = Vector2.ZERO
+
+	# Feedback Visual
+	if velocity != Vector2.ZERO or slow_points > 1.0:
+		var target_color = Color.WHITE
+		if slow_points > 1.0:
+			target_color = Color(0.4, 0.7, 1.0, 1.0)
+		target_color.a = modulate.a 
+		modulate = modulate.lerp(target_color, 0.1)
+
+	if velocity != Vector2.ZERO:
+		if move_and_slide():
+			for i in get_slide_collision_count():
+				var col = get_slide_collision(i)
+				var obj = col.get_collider()
+				if obj and (obj.is_in_group("enemies") or obj.is_in_group("remote_players")):
+					global_position += col.get_normal() * 2.0
+					velocity = velocity.bounce(col.get_normal()) * 0.5
+
+		var w_size = GameConstants.GAME_CONFIG.get("worldSize", 4000)
+		global_position.x = clamp(global_position.x, 10, w_size - 10)
+		global_position.y = clamp(global_position.y, 10, w_size - 10)
 
 func set_autopilot(p_dest: Vector2):
 	target_position = p_dest

@@ -14,6 +14,7 @@ extends Control
 @onready var center_stats = $CenterStats
 @onready var radar_window = $RadarWindow
 @onready var skills_hud = $Skills
+@onready var virtual_joystick = null # v266.400
 
 var radar_title: Label = null # v243.60: Titulo del Minimapa (Nombre del Sector)
 
@@ -23,6 +24,7 @@ var _esc_menu: Control = null
 var _settings_menu: Control = null
 var _pvp_status: bool = false
 var _blind_overlay: ColorRect = null # v260.90: Efecto de Ceguera (Humo)
+var _selected_node_for_editing: Control = null # v266.530: Persistencia de selección para sliders
 var is_editing_layout: bool = false
 var _editing_slot_index: int = -1 # v266.300: Slot que se está editando
 var _layout_backup: Dictionary = {} # Para cancelar cambios
@@ -33,6 +35,10 @@ var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
 func _ready():
 	add_to_group("hud")
 	print("[HUD] Sistema v190.41 inicializado.")
+	
+	# v266.400: Inyectar Joystick Virtual (Soporte Móvil)
+	_setup_joystick()
+	_update_joystick_visibility() # v266.570: Ocultar si está desactivado de entrada
 	
 	# v210.190: Inyectar HUD Notifier (Paridad con Web)
 	_setup_notifier()
@@ -145,6 +151,25 @@ func _ready():
 		
 		_setup_blind_overlay()
 
+func _setup_joystick():
+	if virtual_joystick: return
+	var joy_script = load("res://scripts/ui/VirtualJoystick.gd")
+	if joy_script:
+		virtual_joystick = joy_script.new()
+		virtual_joystick.name = "VirtualJoystick"
+		add_child(virtual_joystick)
+		virtual_joystick.joystick_updated.connect(_on_joystick_updated)
+		print("[HUD] Joystick Virtual inyectado.")
+
+func _on_joystick_updated(dir: Vector2):
+	var p = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(p) and p.has_method("set_joystick_direction"):
+		p.set_joystick_direction(dir)
+
+func _update_joystick_visibility():
+	if virtual_joystick:
+		virtual_joystick.visible = SettingsManager.joystick_enabled if SettingsManager else false
+
 func _on_game_notification(data: Dictionary):
 	var msg = data.get("msg", "")
 	var type = data.get("type", "info")
@@ -206,7 +231,7 @@ func _input(event: InputEvent):
 				
 				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat)
 				if not clicked_node:
-					for win_id in ["CenterStats", "RadarWindow", "ChatUI"]:
+					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick"]:
 						var win = _get_hud_node(win_id)
 						if win and win.visible and win.get_global_rect().has_point(event.position):
 							clicked_node = win
@@ -218,11 +243,37 @@ func _input(event: InputEvent):
 					_node_start_positions.clear()
 					_node_start_positions[clicked_node] = clicked_node.global_position
 					
+					# v266.500: Mostrar y actualizar Panel de Propiedades
+					var edit_ui = get_node_or_null("EditLayoutUI")
+					if edit_ui:
+						_selected_node_for_editing = clicked_node # Marcar para los sliders
+						var pp = edit_ui.find_child("PropertyPanel", true, false)
+						if pp:
+							pp.visible = true
+							var t_name = pp.find_child("TargetName", true, false)
+							if t_name: t_name.text = clicked_node.name.to_upper()
+							
+							var s_slider = pp.find_child("ScaleSlider", true, false)
+							if s_slider: s_slider.value = clicked_node.scale.x / 2.0
+							
+							var a_slider = pp.find_child("AlphaSlider", true, false)
+							if a_slider: a_slider.value = clicked_node.modulate.a
+							
+							# Actualizar los labels de % iniciales
+							var s_val = pp.find_child("ScaleVal", true, false)
+							if s_val: s_val.text = str(int(clicked_node.scale.x * 100)) + "%"
+							var a_val = pp.find_child("AlphaVal", true, false)
+							if a_val: a_val.text = str(int(clicked_node.modulate.a * 100)) + "%"
+					
 					# Si movemos el contenedor, también movemos los hijos porque son top_level
 					if clicked_node.name == "Skills":
+						clicked_node.top_level = true
 						for child in clicked_node.get_children():
 							if child is Control and child.name != "DragOverlay":
+								child.top_level = true
 								_node_start_positions[child] = child.global_position
+					else:
+						clicked_node.top_level = true
 								
 					get_viewport().set_input_as_handled()
 					return
@@ -239,7 +290,7 @@ func _input(event: InputEvent):
 			if _dragging_node.name == "Skills":
 				var handle = get_node_or_null("SkillsMasterHandle")
 				if handle: handle.global_position = _node_start_positions[_dragging_node] + delta + Vector2(-35, 0)
-				
+			
 			get_viewport().set_input_as_handled()
 			return
 
@@ -275,6 +326,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 		var pos_data = layout[win_id]
 		var node = _get_hud_node(win_id)
 		if node and typeof(pos_data) == TYPE_DICTIONARY:
+			node.top_level = true
 			var rx = float(pos_data.get("x", 0.0))
 			var ry = float(pos_data.get("y", 0.0))
 			
@@ -290,9 +342,14 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				var scale_y = screen_size.y / 800.0
 				final_pos = Vector2(rx * scale_x, ry * scale_y)
 			
-			node.top_level = true
+			# v266.510: Ajuste de Escala (0.5 = 100% original)
+			var sc_val = float(pos_data.get("scale", 0.5))
+			var final_sc = sc_val * 2.0
+			node.scale = Vector2(final_sc, final_sc)
+			node.modulate.a = float(pos_data.get("alpha", 1.0))
+
 			# Clampear para que no se salga de la pantalla
-			var node_size = node.size if node.size.x > 0 else Vector2(100, 100)
+			var node_size = node.size * node.scale if node.size.x > 0 else Vector2(100, 100) * final_sc
 			final_pos.x = clamp(final_pos.x, 0, screen_size.x - node_size.x)
 			final_pos.y = clamp(final_pos.y, 0, screen_size.y - node_size.y)
 			node.global_position = final_pos
@@ -620,6 +677,7 @@ func _get_hud_node(id: String):
 	if id == "Squad" or id == "Party": real_id = "PartyHUD"
 	if id == "SkillsContainer": real_id = "Skills"
 	if id == "RadarWindow": real_id = "RadarWindow"
+	if id == "VirtualJoystick": real_id = "VirtualJoystick"
 	
 	# 1. Buscar como hijo directo
 	var node = get_node_or_null(real_id)
@@ -975,19 +1033,48 @@ func _restore_default_layout():
 		skills_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 20)
 		skills_container.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	
-	# 2. Ventanas Mayores
+	
+	# 2. Ventanas Mayores (Restaurado a versión b684cd0)
 	var win_presets = {
 		"CenterStats": Control.PRESET_CENTER_TOP,
 		"RadarWindow": Control.PRESET_TOP_LEFT,
-		"ChatUI": Control.PRESET_BOTTOM_LEFT
+		"ChatUI": Control.PRESET_BOTTOM_LEFT,
+		"VirtualJoystick": Control.PRESET_BOTTOM_LEFT
 	}
 	
 	for win_id in win_presets.keys():
 		var win = _get_hud_node(win_id)
 		if win:
 			win.top_level = false
+			# v266.590: Restaurar sistema original de presets (b684cd0)
 			win.set_anchors_and_offsets_preset(win_presets[win_id], Control.PRESET_MODE_MINSIZE, 20)
+			
+			# v266.520: Resetear también escala y alpha a fábrica (100% Visual / 50% Slider)
+			win.scale = Vector2(1.0, 1.0)
+			win.modulate.a = 1.0
+			
+			# Ocultar joystick si está desactivado en settings
+			if win_id == "VirtualJoystick":
+				win.visible = SettingsManager.joystick_enabled if SettingsManager else false
 	
+	if skills_container:
+		skills_container.scale = Vector2(1.0, 1.0)
+		skills_container.modulate.a = 1.0
+		for child in skills_container.get_children():
+			if child is Control and child.name != "DragOverlay":
+				child.scale = Vector2(1.0, 1.0)
+				child.modulate.a = 1.0
+	
+	# v266.521: Resetear Sliders si están visibles
+	var editor_ui = get_node_or_null("EditLayoutUI")
+	if editor_ui:
+		var pp = editor_ui.find_child("PropertyPanel", true, false)
+		if pp:
+			var s_slider = pp.find_child("ScaleSlider", true, false)
+			if s_slider: s_slider.value = 0.5
+			var a_slider = pp.find_child("AlphaSlider", true, false)
+			if a_slider: a_slider.value = 1.0
+
 	print("[HUD] Layout restaurado de fábrica visualmente.")
 	
 	# v266.355: Si estamos editando, re-liberar para que el DragOverlay funcione
@@ -1271,24 +1358,133 @@ func toggle_hud_editing(slot_index: int = -1):
 		_backup_layout() # Guardar estado previo para poder cancelar
 		
 		if not edit_container:
-			edit_container = PanelContainer.new()
+			edit_container = CanvasLayer.new()
 			edit_container.name = "EditLayoutUI"
+			edit_container.layer = 110 # Por encima de todo
+			
+			# v266.580: Fondo de Cuadrícula para alineación (Shader)
+			var grid = ColorRect.new()
+			grid.name = "AlignmentGrid"
+			grid.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			grid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			edit_container.add_child(grid)
+			
+			var mat = ShaderMaterial.new()
+			var sh = Shader.new()
+			sh.code = "shader_type canvas_item;
+				void fragment() {
+					vec2 grid = fract(SCREEN_UV * vec2(20.0, 15.0));
+					float line = step(0.98, grid.x) + step(0.98, grid.y);
+					COLOR = vec4(0.0, 1.0, 1.0, line * 0.1);
+				}"
+			mat.shader = sh
+			grid.material = mat
+			
+			var panel = PanelContainer.new()
+			panel.name = "TopBar"
+			edit_container.add_child(panel)
 			
 			var style = StyleBoxFlat.new()
 			style.bg_color = Color(0, 0, 0, 0.8)
 			style.border_width_top = 2; style.border_color = Color.CYAN
-			edit_container.add_theme_stylebox_override("panel", style)
-			
-			edit_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-			edit_container.custom_minimum_size.y = 100
+			panel.add_theme_stylebox_override("panel", style)
+			panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+			panel.custom_minimum_size.y = 100
 			
 			var margin = MarginContainer.new()
-			margin.add_theme_constant_override("margin_top", 10)
-			edit_container.add_child(margin)
+			margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			panel.add_child(margin)
 			
 			var vbox = VBoxContainer.new()
 			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 			margin.add_child(vbox)
+			
+			# Panel de Propiedades (Contextual) - v266.500
+			var prop_panel = PanelContainer.new()
+			prop_panel.name = "PropertyPanel"
+			prop_panel.visible = false
+			prop_panel.custom_minimum_size = Vector2(250, 120)
+			
+			# v266.525: Posicionamiento Robusto en el lateral derecho
+			edit_container.add_child(prop_panel)
+			prop_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+			prop_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+			prop_panel.offset_right = -20
+			prop_panel.offset_top = -60
+			
+			var prop_style = StyleBoxFlat.new()
+			prop_style.bg_color = Color(0, 0, 0, 0.85)
+			prop_style.border_width_left = 2; prop_style.border_color = Color.CYAN
+			prop_panel.add_theme_stylebox_override("panel", prop_style)
+			
+			var prop_vbox = VBoxContainer.new()
+			prop_vbox.add_theme_constant_override("separation", 10)
+			prop_panel.add_child(prop_vbox)
+			
+			var prop_title = Label.new()
+			prop_title.name = "TargetName"
+			prop_title.text = "PROPIEDADES"
+			prop_title.add_theme_color_override("font_color", Color.YELLOW)
+			prop_vbox.add_child(prop_title)
+			
+			# Escala
+			var scale_row = HBoxContainer.new()
+			prop_vbox.add_child(scale_row)
+			var scale_lbl = Label.new()
+			scale_lbl.text = "ESC:"
+			scale_lbl.custom_minimum_size.x = 40
+			scale_row.add_child(scale_lbl)
+			
+			var scale_slider = HSlider.new()
+			scale_slider.name = "ScaleSlider"
+			scale_slider.min_value = 0.05; scale_slider.max_value = 1.0; scale_slider.step = 0.01
+			scale_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			
+			var scale_val_lbl = Label.new()
+			scale_val_lbl.name = "ScaleVal"
+			scale_val_lbl.text = "100%"
+			scale_val_lbl.custom_minimum_size.x = 45
+			
+			scale_slider.value_changed.connect(func(v):
+				if _selected_node_for_editing: 
+					var final_v = v * 2.0
+					_selected_node_for_editing.scale = Vector2(final_v, final_v)
+					scale_val_lbl.text = str(int(final_v * 100)) + "%"
+					# Si es SkillsContainer, forzar manija
+					if _selected_node_for_editing.name == "Skills":
+						var handle = get_node_or_null("SkillsMasterHandle")
+						if handle: handle.global_position = _selected_node_for_editing.global_position + Vector2(-35, 0)
+			)
+			scale_row.add_child(scale_slider)
+			scale_row.add_child(scale_val_lbl)
+			
+			# Transparencia
+			var alpha_row = HBoxContainer.new()
+			prop_vbox.add_child(alpha_row)
+			var alpha_lbl = Label.new()
+			alpha_lbl.text = "OPA:"
+			alpha_lbl.custom_minimum_size.x = 40
+			alpha_row.add_child(alpha_lbl)
+			
+			var alpha_slider = HSlider.new()
+			alpha_slider.name = "AlphaSlider"
+			alpha_slider.min_value = 0.01; alpha_slider.max_value = 1.0; alpha_slider.step = 0.01
+			alpha_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			
+			var alpha_val_lbl = Label.new()
+			alpha_val_lbl.name = "AlphaVal"
+			alpha_val_lbl.text = "100%"
+			alpha_val_lbl.custom_minimum_size.x = 45
+			
+			alpha_slider.value_changed.connect(func(v):
+				if _selected_node_for_editing: 
+					_selected_node_for_editing.modulate.a = v
+					alpha_val_lbl.text = str(int(v * 100)) + "%"
+			)
+			alpha_row.add_child(alpha_slider)
+			alpha_row.add_child(alpha_val_lbl)
+			
+			# --- Botones del Editor ---
 			
 			var title_lbl = Label.new()
 			title_lbl.name = "TitleLabel"
@@ -1315,12 +1511,13 @@ func toggle_hud_editing(slot_index: int = -1):
 			btns_hbox.add_child(save_btn)
 			
 			var cancel_btn = Button.new()
-			cancel_btn.text = " ✖ SALIR SIN GUARDAR "
+			cancel_btn.text = " ✕ SALIR SIN GUARDAR "
 			cancel_btn.modulate = Color.ORANGE
 			cancel_btn.pressed.connect(func():
 				_restore_layout_backup()
-				is_editing_layout = false # Forzar cierre sin guardar
-				toggle_hud_editing()
+				# v266.585: Toggle seguro para cerrar
+				if is_editing_layout:
+					toggle_hud_editing(-1) 
 			)
 			btns_hbox.add_child(cancel_btn)
 			
@@ -1333,15 +1530,18 @@ func toggle_hud_editing(slot_index: int = -1):
 			add_child(edit_container)
 		
 		# Actualizar titulo si cambió el slot
-		var s_name = "Manual"
+		var current_slot_name = "Manual"
 		if _editing_slot_index >= 0 and _editing_slot_index < _hud_layouts.size():
-			s_name = _hud_layouts[_editing_slot_index].name
+			current_slot_name = _hud_layouts[_editing_slot_index].name
 		
 		var t_lbl = edit_container.find_child("TitleLabel", true, false)
-		if t_lbl: t_lbl.text = "EDITANDO LAYOUT: " + s_name.to_upper()
+		if t_lbl: t_lbl.text = "EDITANDO LAYOUT: " + current_slot_name.to_upper()
 		edit_container.visible = true
 	else:
-		if edit_container: edit_container.visible = false
+		if edit_container: 
+			var pp = edit_container.find_child("PropertyPanel", true, false)
+			if pp: pp.visible = false
+			edit_container.visible = false
 		_editing_slot_index = -1
 	
 	if is_instance_valid(_settings_menu): _settings_menu.close()
@@ -1373,6 +1573,16 @@ func toggle_hud_editing(slot_index: int = -1):
 					child.top_level = true # v266.95: Liberar del contenedor para mover libremente
 					child.global_position = gp
 				_make_node_draggable(child, child.name)
+		
+	# 2. Ventanas Mayores (v266.560: Solo mostrar joystick si está activo)
+	var wins = ["CenterStats", "RadarWindow", "ChatUI"]
+	if SettingsManager and SettingsManager.joystick_enabled:
+		wins.append("VirtualJoystick")
+		
+	for win_id in wins:
+		var win = _get_hud_node(win_id)
+		if win:
+			_make_node_draggable(win, win_id)
 
 func _make_node_draggable(node: Control, _hud_id: String):
 	if not node: return
@@ -1441,16 +1651,31 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 	var layout = {}
 	var skills_container = get_node_or_null("Skills")
 	if skills_container:
-		layout["SkillsContainer"] = { "x": skills_container.global_position.x, "y": skills_container.global_position.y }
+		layout["SkillsContainer"] = { 
+			"x": skills_container.global_position.x, 
+			"y": skills_container.global_position.y,
+			"scale": skills_container.scale.x / 2.0,
+			"alpha": skills_container.modulate.a
+		}
 		for child in skills_container.get_children():
 			if child.name == "DragOverlay": continue
-			layout[child.name] = { "x": child.global_position.x, "y": child.global_position.y }
+			layout[child.name] = { 
+				"x": child.global_position.x, 
+				"y": child.global_position.y,
+				"scale": child.scale.x / 2.0,
+				"alpha": child.modulate.a
+			}
 	
 	# v266.220: Guardar también posiciones de ventanas principales
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick"]:
 		var win = _get_hud_node(win_id)
 		if win:
-			layout[win_id] = { "x": win.global_position.x, "y": win.global_position.y }
+			layout[win_id] = { 
+				"x": win.global_position.x, 
+				"y": win.global_position.y,
+				"scale": win.scale.x / 2.0,
+				"alpha": win.modulate.a
+			}
 	
 	if NetworkManager:
 		# v266.216: Actualizar caché local
@@ -1485,7 +1710,7 @@ func _backup_layout():
 				_layout_backup[child.name] = { "x": child.global_position.x, "y": child.global_position.y }
 	
 	# Guardar Ventanas principales
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			_layout_backup[win_id] = { "x": win.global_position.x, "y": win.global_position.y }

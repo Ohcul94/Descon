@@ -24,6 +24,7 @@ var click_sensitivity: float = 1.0
 var skill_magnetism: float = 1.0   
 var mouse_sensitivity: float = 1.0 # Velocidad del cursor virtual
 var skill_aim_speed: float = 1.0   # Suavizado de apuntado de habilidades
+var joystick_enabled: bool = false # v266.400: Soporte para móviles
 func _ready():
 	load_settings()
 
@@ -45,6 +46,7 @@ func reset_to_factory():
 	skill_magnetism = 1.0
 	mouse_sensitivity = 1.0
 	skill_aim_speed = 1.0
+	joystick_enabled = false
 	
 	save_settings()
 	# Forzar actualización de HUD
@@ -65,6 +67,7 @@ func save_settings():
 	config_file.set_value("accessibility", "skill_magnetism", skill_magnetism)
 	config_file.set_value("accessibility", "mouse_sensitivity", mouse_sensitivity)
 	config_file.set_value("accessibility", "skill_aim_speed", skill_aim_speed)
+	config_file.set_value("accessibility", "joystick_enabled", joystick_enabled)
 	
 	for i in range(1, 8):
 		var action = "slot_" + str(i)
@@ -97,6 +100,7 @@ func load_settings():
 		skill_magnetism = config_file.get_value("accessibility", "skill_magnetism", 1.0)
 		mouse_sensitivity = config_file.get_value("accessibility", "mouse_sensitivity", 1.0)
 		skill_aim_speed = config_file.get_value("accessibility", "skill_aim_speed", 1.0)
+		joystick_enabled = config_file.get_value("accessibility", "joystick_enabled", false)
 		print("[SETTINGS] Configuración cargada.")
 	else:
 		cast_mode_cache = 1
