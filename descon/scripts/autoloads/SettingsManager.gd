@@ -112,6 +112,7 @@ func load_settings():
 		skill_magnetism = 1.0
 		mouse_sensitivity = 1.0
 		skill_aim_speed = 1.0
+		joystick_enabled = false # v266.630: Asegurar que venga desactivado para jugadores nuevos
 		print("[SETTINGS] Usando configuración por defecto.")
 
 func _apply_key_to_inputmap(action: String, val):

@@ -1,7 +1,7 @@
 extends Control
 
-# VirtualJoystick.gd (v1.0 - Mobile Control)
-# Un joystick virtual minimalista para movimiento de naves.
+# VirtualJoystick.gd (v1.1 - Dead Zone Fix)
+# Joystick virtual para móviles. No interfiere con el click-to-move de PC.
 
 signal joystick_updated(direction: Vector2)
 
@@ -13,29 +13,35 @@ var stick_pos: Vector2 = Vector2.ZERO
 var max_dist: float = 50.0
 
 func _ready():
-	custom_minimum_size = Vector2(120, 120)
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	_update_joystick_visibility()
+	# v266.610: Tamaño justo para el círculo visual (2 * max_dist = 100px)
+	custom_minimum_size = Vector2(100, 100)
+	size = Vector2(100, 100)
+	apply_visibility()
+
+func apply_visibility():
+	# v266.610: Centralizamos aquí tanto visible como mouse_filter juntos
+	# para que _process no pueda deshacer lo que MainHUD hace
+	var enabled = false
+	if get_node_or_null("/root/SettingsManager"):
+		enabled = SettingsManager.joystick_enabled
+	
+	visible = enabled
+	if enabled:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+	else:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _update_joystick_visibility():
-	if get_node_or_null("/root/SettingsManager"):
-		visible = SettingsManager.joystick_enabled
-	else:
-		visible = false
+	apply_visibility()
 
 func _draw():
 	if not visible: return
-	
-	# Dibujar base
-	draw_circle(size / 2, max_dist, border_color)
-	draw_arc(size / 2, max_dist, 0, TAU, 64, border_color, 2.0)
-	
-	# Dibujar stick
 	var center = size / 2
+	draw_circle(center, max_dist, border_color)
+	draw_arc(center, max_dist, 0, TAU, 64, border_color, 2.0)
 	draw_circle(center + stick_pos, 20, stick_color)
 
 func _gui_input(event):
-	# v266.400: Bloquear input si estamos editando el layout (MainHUD lo manejará)
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud and hud.get("is_editing_layout"): return
 	
@@ -53,19 +59,20 @@ func _gui_input(event):
 		var center = size / 2
 		var diff = event.position - center
 		stick_pos = diff.limit_length(max_dist)
-		
-		var dir = stick_pos / max_dist
-		joystick_updated.emit(dir)
+		joystick_updated.emit(stick_pos / max_dist)
 		queue_redraw()
 
 func _process(_delta):
-	# v266.400: Asegurar visibilidad en tiempo real
 	var hud = get_tree().get_first_node_in_group("hud")
 	var is_edit = hud and hud.get("is_editing_layout")
 	
 	if is_edit:
-		visible = true # Siempre visible en edición para posicionar
+		# En modo edición: siempre visible y con stop para poder arrastrarlo
+		if not visible: visible = true
+		if mouse_filter != Control.MOUSE_FILTER_STOP:
+			mouse_filter = Control.MOUSE_FILTER_STOP
 	else:
-		_update_joystick_visibility()
+		# Fuera del editor: respetar la configuración del usuario
+		apply_visibility()
 	
 	queue_redraw()

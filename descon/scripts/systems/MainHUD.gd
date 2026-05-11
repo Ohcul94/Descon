@@ -168,7 +168,22 @@ func _on_joystick_updated(dir: Vector2):
 
 func _update_joystick_visibility():
 	if virtual_joystick:
-		virtual_joystick.visible = SettingsManager.joystick_enabled if SettingsManager else false
+		var enabled = SettingsManager.joystick_enabled if SettingsManager else false
+		virtual_joystick.visible = enabled
+		# v266.600: Asegurar que no bloquee clicks si está desactivado
+		if enabled:
+			virtual_joystick.mouse_filter = Control.MOUSE_FILTER_STOP
+			# Restaurar posición si está habilitado
+			if NetworkManager and NetworkManager.current_user_data.has("hudPositions"):
+				var data = NetworkManager.current_user_data["hudPositions"]
+				if data.has("VirtualJoystick"):
+					_apply_hud_data({"VirtualJoystick": data["VirtualJoystick"]}, {})
+				else:
+					# Si no hay guardado, poner default
+					virtual_joystick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 20)
+		else:
+			virtual_joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			virtual_joystick.global_position = Vector2(-2000, -2000) # Mover fuera por seguridad
 
 func _on_game_notification(data: Dictionary):
 	var msg = data.get("msg", "")
@@ -181,7 +196,12 @@ func _on_server_data_received(p_data: Dictionary):
 		var layout = gd.get("hudPositions", gd.get("hud_layout", {}))
 		var config = gd.get("hudConfig", gd.get("hud_config", {}))
 		_hud_layouts = gd.get("hudLayouts", []) # v266.130
-		_apply_hud_data(layout, config)
+		
+		# v266.640: Si el layout está vacío (jugador nuevo), aplicar el default de fábrica
+		if layout.is_empty():
+			_restore_default_layout()
+		else:
+			_apply_hud_data(layout, config)
 		
 		# v266.300: Determinar slot activo (comparación de posiciones)
 		_update_active_slot_index(layout)
@@ -1017,55 +1037,44 @@ func toggle_esc_menu():
 	_esc_menu.global_position = (get_viewport_rect().size - _esc_menu.size) / 2.0
 
 func _restore_default_layout():
-	# v266.350: Restauración Integral (Skills + Stats + Mapa + Chat)
+	# v266.650: Layout de fábrica = Layout "PC" de Caelli94 (valores exactos de la DB)
+	# Resolución base: 1280x800
 	if not is_editing_layout:
-		active_slot_index = -1 # Solo resetear slot si estamos fuera del editor
+		active_slot_index = -1
 		if NetworkManager:
 			NetworkManager.send_event("saveHudLayout", { "positions": {} })
 	
-	# 1. Skills
-	var skills_container = get_node_or_null("Skills")
-	if skills_container:
-		skills_container.top_level = false
-		for child in skills_container.get_children():
-			if child is Control and child.name != "DragOverlay":
-				child.top_level = false
-		skills_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM, Control.PRESET_MODE_MINSIZE, 20)
-		skills_container.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	
-	
-	# 2. Ventanas Mayores (Restaurado a versión b684cd0)
-	var win_presets = {
-		"CenterStats": Control.PRESET_CENTER_TOP,
-		"RadarWindow": Control.PRESET_TOP_LEFT,
-		"ChatUI": Control.PRESET_BOTTOM_LEFT,
-		"VirtualJoystick": Control.PRESET_BOTTOM_LEFT
+	# Layout exacto extraído de MongoDB (Caelli94 - Slot "PC")
+	var default_layout = {
+		"CenterStats":     { "x": 1063,  "y": 21,    "scale": 0.5, "alpha": 1.0 },
+		"ChatUI":          { "x": 12,    "y": 545,   "scale": 0.5, "alpha": 1.0 },
+		"RadarWindow":     { "x": 1066,  "y": 564,   "scale": 0.5, "alpha": 1.0 },
+		"SkillsContainer": { "x": 101,   "y": 684,   "scale": 0.5, "alpha": 1.0 },
+		"LaserSlot":       { "x": 364.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
+		"MissileSlot":     { "x": 449.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
+		"MineSlot":        { "x": 534.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
+		"Sphere1Slot":     { "x": 619.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
+		"Sphere2Slot":     { "x": 704.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
+		"Sphere3Slot":     { "x": 789.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
+		"Sphere4Slot":     { "x": 874.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 	}
 	
-	for win_id in win_presets.keys():
-		var win = _get_hud_node(win_id)
-		if win:
-			win.top_level = false
-			# v266.590: Restaurar sistema original de presets (b684cd0)
-			win.set_anchors_and_offsets_preset(win_presets[win_id], Control.PRESET_MODE_MINSIZE, 20)
-			
-			# v266.520: Resetear también escala y alpha a fábrica (100% Visual / 50% Slider)
-			win.scale = Vector2(1.0, 1.0)
-			win.modulate.a = 1.0
-			
-			# Ocultar joystick si está desactivado en settings
-			if win_id == "VirtualJoystick":
-				win.visible = SettingsManager.joystick_enabled if SettingsManager else false
+	# Aplicar el layout usando el mismo sistema que usa al cargar del servidor
+	_apply_hud_data(default_layout, {})
 	
-	if skills_container:
-		skills_container.scale = Vector2(1.0, 1.0)
-		skills_container.modulate.a = 1.0
-		for child in skills_container.get_children():
-			if child is Control and child.name != "DragOverlay":
-				child.scale = Vector2(1.0, 1.0)
-				child.modulate.a = 1.0
+	# Joystick: solo visible si está habilitado, si no -> fuera de pantalla
+	var joy = _get_hud_node("VirtualJoystick")
+	if joy:
+		var joy_enabled = SettingsManager.joystick_enabled if SettingsManager else false
+		joy.visible = joy_enabled
+		if joy_enabled:
+			joy.mouse_filter = Control.MOUSE_FILTER_STOP
+			joy.global_position = Vector2(20, 680)
+		else:
+			joy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			joy.global_position = Vector2(-2000, -2000)
 	
-	# v266.521: Resetear Sliders si están visibles
+	# Resetear sliders si están visibles
 	var editor_ui = get_node_or_null("EditLayoutUI")
 	if editor_ui:
 		var pp = editor_ui.find_child("PropertyPanel", true, false)
@@ -1075,7 +1084,8 @@ func _restore_default_layout():
 			var a_slider = pp.find_child("AlphaSlider", true, false)
 			if a_slider: a_slider.value = 1.0
 
-	print("[HUD] Layout restaurado de fábrica visualmente.")
+	print("[HUD] Layout restaurado de fábrica (Layout PC de referencia).")
+
 	
 	# v266.355: Si estamos editando, re-liberar para que el DragOverlay funcione
 	if is_editing_layout:
@@ -1095,8 +1105,9 @@ func _restore_default_layout():
 		
 		# Reposicionar manija
 		var handle = get_node_or_null("SkillsMasterHandle")
-		if handle and skills_container:
-			handle.global_position = skills_container.global_position + Vector2(-35, 0)
+		var skills_node = get_node_or_null("Skills")
+		if handle and skills_node:
+			handle.global_position = skills_node.global_position + Vector2(-35, 0)
 
 func _create_esc_menu():
 	var canvas = CanvasLayer.new()
