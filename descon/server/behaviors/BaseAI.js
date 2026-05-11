@@ -209,6 +209,11 @@ module.exports = class BaseAI {
             
             this.enemy.mechState[mId] = state;
 
+            // v266.930: Seguimiento de rotación DURANTE la carga
+            if (state.isCharging) {
+                this.enemy.rotation = angle + Math.PI / 2;
+            }
+
             // v266.695: Inmovilidad durante BLOQUEO y DISPARO
             if (state.isLocked || state.isFiring) {
                 this.enemy.rotation = state.lockedAngle + Math.PI / 2;

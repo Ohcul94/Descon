@@ -130,19 +130,19 @@ func _process(delta):
 			
 			if is_instance_valid(target_node) and not data.get("is_fixed", false):
 				var target_angle = (target_node.global_position - en.global_position).angle()
-				
-				# v266.910: Seguir posición pero usar ángulo directo al target (independiente de la nave)
 				indicator.global_position = en.global_position
-				indicator.global_rotation = target_angle
+				
+				# v266.940: Interpolación suave del apuntado (Homing Style)
+				# 4.0 * delta proporciona un giro orgánico y esquivable
+				indicator.global_rotation = lerp_angle(indicator.global_rotation, target_angle, 4.0 * delta)
 				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			elif data.get("is_fixed", false):
-				# Fase Locked: Mantenemos la posición pero el ángulo queda fijo al disparar
 				indicator.global_position = en.global_position
 				indicator.global_rotation = data.get("fixed_angle", 0.0)
 				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			else:
-				# Si el target murió o se fue, dejamos de trackear
-				active_laser_tracking.erase(eid)
+				# Si el target no es válido pero no es fijo, al menos seguimos la posición de la nave
+				indicator.global_position = en.global_position
 		else:
 			active_laser_tracking.erase(eid)
 
@@ -305,11 +305,13 @@ func _on_enemy_action(data: Dictionary):
 			indicator.default_color = Color(1, 0, 0, 0.4) 
 			indicator.z_index = -1 
 			
+			indicator.top_level = true # v266.950: Desacoplar rotación del padre
+			en.add_child(indicator) # Primero agregamos, después transformamos
+			
 			# v266.910: Usar el ángulo directo del servidor (hacia el player)
 			indicator.global_position = en.global_position
 			indicator.global_rotation = angle
 			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
-			en.add_child(indicator)
 			
 			# v266.735: Registrar para seguimiento en tiempo real
 			if t_id != "":
@@ -332,12 +334,14 @@ func _on_enemy_action(data: Dictionary):
 			indicator.default_color = Color(1, 0, 0, 0.8)
 			indicator.z_index = -1
 			
+			indicator.top_level = true # Independiente
+			en.add_child(indicator)
+			
 			# v266.910: Clavar ángulo de disparo (Independiente de la nave)
 			var fixed_shoot_angle = angle
 			indicator.global_position = en.global_position
 			indicator.global_rotation = fixed_shoot_angle
 			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
-			en.add_child(indicator)
 			
 			# v266.880: También trackear posición en fase locked para que no "flote"
 			active_laser_tracking[enemy_id] = {
