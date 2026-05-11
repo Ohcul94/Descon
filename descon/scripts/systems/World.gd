@@ -128,10 +128,17 @@ func _process(delta):
 			elif remote_players.has(t_id):
 				target_node = remote_players[t_id]
 			
-			if is_instance_valid(target_node):
-				var dir = (target_node.global_position - en.global_position).angle()
-				# v266.750: Usar rotación GLOBAL para evitar desvíos por offsets del asset 3D
-				indicator.global_rotation = dir
+			if is_instance_valid(target_node) and not data.get("is_fixed", false):
+				var target_angle = (target_node.global_position - en.global_position).angle()
+				
+				# v266.910: Seguir posición pero usar ángulo directo al target (independiente de la nave)
+				indicator.global_position = en.global_position
+				indicator.global_rotation = target_angle
+				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
+			elif data.get("is_fixed", false):
+				# Fase Locked: Mantenemos la posición pero el ángulo queda fijo al disparar
+				indicator.global_position = en.global_position
+				indicator.global_rotation = data.get("fixed_angle", 0.0)
 				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			else:
 				# Si el target murió o se fue, dejamos de trackear
@@ -298,7 +305,8 @@ func _on_enemy_action(data: Dictionary):
 			indicator.default_color = Color(1, 0, 0, 0.4) 
 			indicator.z_index = -1 
 			
-			# v266.750: Alineación Global Absoluta
+			# v266.910: Usar el ángulo directo del servidor (hacia el player)
+			indicator.global_position = en.global_position
 			indicator.global_rotation = angle
 			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			en.add_child(indicator)
@@ -308,7 +316,8 @@ func _on_enemy_action(data: Dictionary):
 				active_laser_tracking[enemy_id] = {
 					"indicator": indicator,
 					"targetId": t_id,
-					"range": length
+					"range": length,
+					"is_fixed": false 
 				}
 			
 			var tw = create_tween()
@@ -323,10 +332,21 @@ func _on_enemy_action(data: Dictionary):
 			indicator.default_color = Color(1, 0, 0, 0.8)
 			indicator.z_index = -1
 			
-			# v266.750: Alineación Global Absoluta
-			indicator.global_rotation = angle
+			# v266.910: Clavar ángulo de disparo (Independiente de la nave)
+			var fixed_shoot_angle = angle
+			indicator.global_position = en.global_position
+			indicator.global_rotation = fixed_shoot_angle
 			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			en.add_child(indicator)
+			
+			# v266.880: También trackear posición en fase locked para que no "flote"
+			active_laser_tracking[enemy_id] = {
+				"indicator": indicator,
+				"targetId": "", 
+				"fixed_angle": fixed_shoot_angle,
+				"range": length,
+				"is_fixed": true
+			}
 			
 			en.set_meta("is_locked", true)
 			await get_tree().create_timer(duration).timeout

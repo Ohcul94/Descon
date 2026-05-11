@@ -81,7 +81,8 @@ module.exports = class BaseAI {
             this.enemy.rotation += Math.sign(diff) * step;
         }
 
-        if (this.applyCombatLogic(activeTarget, dist, this.enemy.rotation, now, io)) {
+        // v266.920: Pasar el targetAngle PURO para disparos precisos, ignorando la rotación visual 3D
+        if (this.applyCombatLogic(activeTarget, dist, targetAngle, now, io)) {
             return; // v266.696: Bloqueo de movimiento por estado de disparo/carga
         }
         this.applyMovementLogic(activeTarget, dist, targetAngle, now); // v266.690: Movimiento directo al target, rotación gradual visual
