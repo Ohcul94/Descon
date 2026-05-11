@@ -97,7 +97,8 @@
                     "fireRange": 600,
                     "fireRate": 1000,
                     "slowAmount": 500,
-                    "slowDuration": 200
+                    "slowDuration": 200,
+                    "isHoming": false
                 }
             ],
             "movementPhases": [
@@ -137,6 +138,7 @@
                     "fireRate": 2000,
                     "lifetimeMs": 3000,
                     "turnSpeed": 2,
+                    "isHoming": true,
                     "startDelay": 2000
                 }
             ],
@@ -1331,7 +1333,9 @@
                 "bulletSpeed",
                 "fireRange",
                 "fireRate",
-                "startDelay"
+                "startDelay",
+                "isHoming",
+                "turnSpeed"
             ]
         },
         "missile": {
@@ -1345,7 +1349,8 @@
                 "fireRate",
                 "startDelay",
                 "lifetimeMs",
-                "turnSpeed"
+                "turnSpeed",
+                "isHoming"
             ]
         },
         "ice_missile": {
@@ -1361,7 +1366,8 @@
                 "slowDuration",
                 "startDelay",
                 "lifetimeMs",
-                "turnSpeed"
+                "turnSpeed",
+                "isHoming"
             ]
         },
         "mine": {
@@ -1388,7 +1394,8 @@
                 "startDelay",
                 "lifetimeMs",
                 "turnSpeed",
-                "lockTimeMs"
+                "lockTimeMs",
+                "isHoming"
             ]
         }
     },

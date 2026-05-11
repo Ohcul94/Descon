@@ -235,7 +235,9 @@ module.exports = class BaseAI {
                     slowAmount: mech.slowAmount || 0,
                     slowDuration: mech.slowDuration || 0,
                     lifetimeMs: mech.lifetimeMs || 0,
-                    turnSpeed: mech.turnSpeed || 2.5
+                    turnSpeed: mech.turnSpeed || 2.5,
+                    isHoming: !!mech.isHoming,
+                    range: mech.fireRange || 800
                 });
 
                 state.shotsInBurst++;

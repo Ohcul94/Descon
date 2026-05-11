@@ -21,6 +21,7 @@ var _target_node: Node2D = null
 var lifetime: float = 6.0 # v266.460: Tiempo de vida máximo del misil
 var _current_lifetime: float = 0.0
 var turn_speed: float = 2.5 # v266.505: Velocidad de rotación angular (Agilidad)
+var is_homing: bool = false # v266.800: Switch de rastreo dinámico
 
 func _ready():
 	add_to_group("projectiles")
@@ -49,6 +50,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	# v266.500: Configuración Dinámica (Combustible y Agilidad)
 	lifetime = float(p_data.get("lifetimeMs", 0.0)) / 1000.0
 	turn_speed = float(p_data.get("turnSpeed", 2.5))
+	is_homing = bool(p_data.get("isHoming", false))
 	
 	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
 	_start_pos = p_pos
@@ -166,8 +168,8 @@ func _physics_process(delta):
 	if target_id != "" and not is_instance_valid(_target_node):
 		_find_target()
 
-	# v266.505: Lógica de RASTREO (Homing) v2 - Basada en Rotación Angular
-	if (type == "missile") and is_instance_valid(_target_node):
+	# v266.800: Lógica de RASTREO (Homing) v3 - Ahora depende del switch is_homing
+	if is_homing and is_instance_valid(_target_node):
 		var target_angle = (_target_node.global_position - global_position).angle()
 		
 		# rotate_toward garantiza que gire a una velocidad constante (turn_speed en radianes por segundo)
