@@ -27,6 +27,8 @@ module.exports = class OrbitAI extends BaseAI {
         const orbitAngle = angle + (Math.PI / 2 * this.orbitDir);
         this.enemy.x += Math.cos(orbitAngle) * speed * 0.8;
         this.enemy.y += Math.sin(orbitAngle) * speed * 0.8;
+
+        this.enemy.rotation = angle + Math.PI / 2;
         
         // Mecánica de Evasión Integrada (v82.0)
         if (this.enemy.hp < this.enemy.maxHp * 0.25 && now - (this.enemy.lastDash || 0) > 10000) {

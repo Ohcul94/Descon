@@ -26,5 +26,7 @@ module.exports = class SniperAI extends BaseAI {
             this.enemy.x += Math.cos(orbitAngle) * (speed * 0.5);
             this.enemy.y += Math.sin(orbitAngle) * (speed * 0.5);
         }
+
+        this.enemy.rotation = angle + Math.PI / 2;
     }
 }

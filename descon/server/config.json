@@ -574,7 +574,30 @@
             "desc": "Zona de entrenamiento básico y recolección.",
             "minLevel": 1,
             "name": "Mapa 2",
-            "warpCost": 0
+            "warpCost": 0,
+            "ambience": [],
+            "spawns": [
+                {
+                    "type": "1",
+                    "count": 1,
+                    "intervalMs": 5000
+                },
+                {
+                    "type": "2",
+                    "count": 1,
+                    "intervalMs": 5000
+                },
+                {
+                    "type": "3",
+                    "count": 1,
+                    "intervalMs": 5000
+                },
+                {
+                    "type": "4",
+                    "count": 1,
+                    "intervalMs": 5000
+                }
+            ]
         },
         "3": {
             "color": "#ffff00",
@@ -604,16 +627,10 @@
             "minLevel": 20,
             "name": "Mapa 6",
             "warpCost": 100,
-            "ambience": [
-                {
-                    "type": "radiation",
-                    "damage": 20,
-                    "intervalMs": 300
-                }
-            ],
+            "ambience": [],
             "spawns": [
                 {
-                    "type": "4",
+                    "type": "5",
                     "count": 5,
                     "intervalMs": 5000
                 }

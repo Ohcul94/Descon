@@ -875,7 +875,7 @@ func _setup_enemy_visuals():
 			glb_path = "res://assets/Enemigos/3D/Enemigo" + str(entity_type) + "/Enemigo" + str(entity_type) + ".glb"
 			enemy_rot_offset = 90.0
 			# Excepciones de rotación específicas detectadas en pruebas
-			if entity_type == 7: enemy_rot_offset = 180.0
+			if entity_type == 7 or entity_type == 4: enemy_rot_offset = 180.0
 			if entity_type == 6 or entity_type == 8: enemy_rot_offset = 0.0
 			
 		101: # Lord Titán (Boss1)
