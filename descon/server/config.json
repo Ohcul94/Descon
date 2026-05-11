@@ -173,6 +173,17 @@
                     "fireRate": 1000,
                     "slowAmount": 0,
                     "slowDuration": 0
+                },
+                {
+                    "type": "mega_laser",
+                    "bulletDamage": 1000,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "chargeTimeMs": 1000,
+                    "lifetimeMs": 1000,
+                    "turnSpeed": 1,
+                    "lockTimeMs": 800
                 }
             ],
             "movementPhases": [
@@ -1338,6 +1349,22 @@
                 "fireRange",
                 "fireRate",
                 "startDelay"
+            ]
+        },
+        "mega_laser": {
+            "label": "Mega Láser (Lux)",
+            "icon": "🔆",
+            "desc": "Rayo grueso que requiere precarga.",
+            "fields": [
+                "bulletDamage",
+                "bulletSpeed",
+                "fireRange",
+                "fireRate",
+                "chargeTimeMs",
+                "startDelay",
+                "lifetimeMs",
+                "turnSpeed",
+                "lockTimeMs"
             ]
         }
     },

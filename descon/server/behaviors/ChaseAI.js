@@ -18,8 +18,7 @@ module.exports = class ChaseAI extends BaseAI {
             this.enemy.x -= Math.cos(angle) * (speed * 0.4);
             this.enemy.y -= Math.sin(angle) * (speed * 0.4);
         }
-
-        this.enemy.rotation = angle + Math.PI / 2;
+        
         
         // Evasión Lateral Táctica
         if (this.enemy.hp < this.enemy.maxHp * 0.15 && now - (this.enemy.lastDash || 0) > 8000) {

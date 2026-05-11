@@ -30,6 +30,7 @@ signal level_up(data)
 signal admin_config_updated(data)
 signal remote_skill_used(data)
 signal enemy_kill_session(data)
+signal enemy_action(data)
 
 signal enemy_damaged(data)
 signal boss_effect(data)
@@ -215,6 +216,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			if str(e_data.get("id", "")) != my_socket_id:
 				_dispatch_single_player(e_data, "player_fired")
 		"enemyFire", "serverEnemyFire": enemy_fired.emit(e_data)
+		"serverEnemyAction": enemy_action.emit(e_data)
 		"enemyDamaged": enemy_damaged.emit(e_data)
 		"enemyDead", "serverEnemyDead": enemy_dead.emit(e_data)
 		"enemyKillSession": enemy_kill_session.emit(e_data)

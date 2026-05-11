@@ -35,10 +35,10 @@ class AIManager {
         const isBoss = (type >= 101) || (cfg && cfg.isBoss);
         const id = 'enemy_' + (isBoss ? 'boss_' : '') + Date.now() + Math.floor(Math.random() * 1000);
         
-        const name = forceName || (cfg ? cfg.name : (type === 4 ? "Boss1" : (type === 5 ? "Boss2" : (type === 6 ? "Boss3" : "Enemigo"))));
+        const name = forceName || (cfg ? cfg.name : (type === 101 ? "Lord Titán" : (type === 4 ? "Enemigo 4" : (type === 5 ? "Boss2" : (type === 6 ? "Boss3" : "Enemigo")))));
 
-        const initialHp = cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 4 ? 100000 : (type * 2000))));
-        const initialShield = cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 4 ? 50000 : (type * 1000))));
+        const initialHp = cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 101 ? 100000 : (type * 2000))));
+        const initialShield = cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 101 ? 50000 : (type * 1000))));
 
         const finalX = posX || (zone === 9 ? 2000 : (Math.random() * 3400 + 300));
         const finalY = posY || (zone === 9 ? 2000 : (Math.random() * 3400 + 300));

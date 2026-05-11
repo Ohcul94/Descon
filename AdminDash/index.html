@@ -1092,9 +1092,11 @@
                                                 slowDuration: "Slow Dur. (ms)", 
                                                 startDelay: "Delay Inicio (ms)",
                                                 lifetimeMs: "Combustible (ms)",
-                                                turnSpeed: "Agilidad de Giro (rad/s)"
+                                                turnSpeed: "Agilidad de Giro (rad/s)",
+                                                chargeTimeMs: "Tiempo de Carga (ms)",
+                                                lockTimeMs: "Tiempo de Bloqueo (ms)"
                                             };
-                                            return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseInt(this.value)"></div>`;
+                                            return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
                                         }).join('')}
                                     </div>
                                 </div>
@@ -1202,7 +1204,7 @@
                         <div class="field full"><label>Efecto Proyectil</label><input type="text" value="${m.label}" onchange="AMMO_MECH_LIB['${type}'].label = this.value; renderAll();"></div>
                         <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;">
                             <strong style="color:var(--accent);">PARÁMETROS AFECTADOS:</strong> ${m.fields.map(fl => {
-                                const labels = { bulletDamage: "Daño", bulletSpeed: "Velocidad", fireRange: "Rango", fireRate: "Cadencia", startDelay: "Retraso", lifetimeMs: "Combustible (ms)", slowAmount: "Ralentización", slowDuration: "Duración Slow (ms)", turnSpeed: "Agilidad de Giro (rad/s)" };
+                                const labels = { bulletDamage: "Daño", bulletSpeed: "Velocidad", fireRange: "Rango", fireRate: "Cadencia", startDelay: "Retraso", lifetimeMs: "Combustible (ms)", slowAmount: "Ralentización", slowDuration: "Duración Slow (ms)", turnSpeed: "Agilidad de Giro (rad/s)", chargeTimeMs: "Tiempo Carga (ms)" };
                                 return labels[fl] || fl;
                             }).join(' • ')}
                         </div>
@@ -1380,6 +1382,19 @@
             if (config.mechanicsLib && config.mechanicsLib.ice_missile) {
                 if (!config.mechanicsLib.ice_missile.fields.includes("lifetimeMs")) config.mechanicsLib.ice_missile.fields.push("lifetimeMs");
                 if (!config.mechanicsLib.ice_missile.fields.includes("turnSpeed")) config.mechanicsLib.ice_missile.fields.push("turnSpeed");
+            }
+            if (config.mechanicsLib && config.mechanicsLib.mega_laser) {
+                const ml = config.mechanicsLib.mega_laser;
+                if (!ml.fields.includes("lifetimeMs")) ml.fields.push("lifetimeMs");
+                if (!ml.fields.includes("turnSpeed")) ml.fields.push("turnSpeed");
+                if (!ml.fields.includes("lockTimeMs")) ml.fields.push("lockTimeMs");
+            } else if (config.mechanicsLib) {
+                config.mechanicsLib.mega_laser = {
+                    label: "Mega Láser (Lux)",
+                    icon: "🔆",
+                    desc: "Rayo grueso que requiere precarga.",
+                    fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "chargeTimeMs", "lockTimeMs", "lifetimeMs", "turnSpeed", "startDelay"]
+                };
             }
         }
         setTimeout(patchMechanicsLib, 1000);

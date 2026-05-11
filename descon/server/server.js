@@ -192,7 +192,8 @@ const handleUserLogin = async (socket, user, username) => {
         lastPvpCombatTime: 0,
         lastCombatTime: 0,
         clanId: user.gameData.clanId,
-        isInvulnerable: false
+        isInvulnerable: false,
+        isAdmin: (user.username.toLowerCase() === "caelli94") // v266.700: Bypass Maestro
     };
 
     const p_ref = players[socket.id];
@@ -765,10 +766,13 @@ io.on('connection', (socket) => {
         const dx = movementData.x - p.x;
         const dy = movementData.y - p.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance >= 1100) { 
+        
+        if (distance >= 1100 && !p.justBlinked && !p.isAdmin) { 
             console.log(`[HACK] Teletransporte detectado en ${p.user}: ${distance}px`);
             return;
         }
+        
+        if (p.justBlinked) p.justBlinked = false; // Reset tras el bypass
 
         p.x = movementData.x;
         p.y = movementData.y;

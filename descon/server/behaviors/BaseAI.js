@@ -59,10 +59,32 @@ module.exports = class BaseAI {
         }
 
         const dist = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
-        const angle = Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x);
+        const targetAngle = Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x);
+        
+        // v266.650: Apuntado Gradual (Aim Speed)
+        if (this.enemy.rotation === undefined) this.enemy.rotation = targetAngle;
+        
+        // Obtenemos la agilidad de giro de la primera mecánica disponible (o 5.0 por defecto)
+        const firstMech = cfg.mechanics ? cfg.mechanics[0] : null;
+        const turnSpeed = firstMech ? (firstMech.turnSpeed || 5.0) : 5.0;
+        
+        // Simular rotación (delta de tiempo aproximado 100ms por ciclo de IA)
+        const delta = 0.1; 
+        let diff = targetAngle - this.enemy.rotation;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        
+        const step = turnSpeed * delta;
+        if (Math.abs(diff) < step) {
+            this.enemy.rotation = targetAngle;
+        } else {
+            this.enemy.rotation += Math.sign(diff) * step;
+        }
 
-        this.applyCombatLogic(activeTarget, dist, angle, now, io);
-        this.applyMovementLogic(activeTarget, dist, angle, now);
+        if (this.applyCombatLogic(activeTarget, dist, this.enemy.rotation, now, io)) {
+            return; // v266.696: Bloqueo de movimiento por estado de disparo/carga
+        }
+        this.applyMovementLogic(activeTarget, dist, targetAngle, now); // v266.690: Movimiento directo al target, rotación gradual visual
         
         // Regeneración pasiva standard
         if (now - (this.enemy.lastHit || 0) > 5000 && this.enemy.shield < this.enemy.maxShield) {
@@ -99,11 +121,11 @@ module.exports = class BaseAI {
         if (!this.enemy.mechState) this.enemy.mechState = {};
 
         const mechanics = this.config.mechanics || [];
+        let isBusy = false;
         
         // Si no hay mecánicas nuevas, usar el fallback del config raíz (compatibilidad)
         if (mechanics.length === 0) {
-            this._executeMechanic(this.config, "default", target, dist, angle, now, io);
-            return;
+            return this._executeMechanic(this.config, "default", target, dist, angle, now, io);
         }
 
         mechanics.forEach((mech, idx) => {
@@ -112,15 +134,87 @@ module.exports = class BaseAI {
             const timeSinceSpawn = now - this.enemy.spawnTime;
             if (timeSinceSpawn < (mech.startDelay || 0)) return;
 
-            this._executeMechanic(mech, mId, target, dist, angle, now, io);
+            if (this._executeMechanic(mech, mId, target, dist, angle, now, io)) {
+                isBusy = true;
+            }
         });
+        return isBusy;
     }
 
     _executeMechanic(mech, mId, target, dist, angle, now, io) {
-        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0 };
+        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false };
         const fireRange = mech.fireRange || 800;
 
-        if (dist > fireRange) return;
+        if (dist > fireRange && !state.isCharging) return false;
+
+        // v266.600: Lógica de Precarga para Mega Láser
+        if (mech.type === "mega_laser") {
+            const chargeTime = (mech.chargeTimeMs !== undefined) ? mech.chargeTimeMs : 2000;
+            const lockTime = (mech.lockTimeMs !== undefined) ? mech.lockTimeMs : 500;
+            const lifetime = (mech.lifetimeMs !== undefined) ? mech.lifetimeMs : 1000;
+
+            if (!state.isCharging && !state.isLocked && !state.isFiring && now > state.nextShotTime) {
+                // FASE 1: CARGA (Te sigue apuntando y moviéndose)
+                state.isCharging = true;
+                state.chargeEndTime = now + chargeTime;
+                
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "charging",
+                    type: "mega_laser",
+                    duration: chargeTime + lockTime, 
+                    angle: angle,
+                    range: mech.fireRange || 800,
+                    targetId: target.id // v266.730: Tracking en tiempo real
+                });
+            } else if (state.isCharging && now > state.chargeEndTime) {
+                // FASE 2: BLOQUEO (Se detiene el apuntado, ventana de esquiva)
+                state.isCharging = false;
+                state.isLocked = true;
+                state.lockedAngle = angle; // Fijamos la mira AQUÍ
+                state.lockEndTime = now + lockTime; 
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "locked",
+                    type: "mega_laser",
+                    duration: lockTime, 
+                    angle: state.lockedAngle,
+                    range: mech.fireRange || 800,
+                    targetId: target.id
+                });
+            } else if (state.isLocked && now > state.lockEndTime) {
+                // FASE 3: DISPARO (Sale el rayo)
+                state.isLocked = false;
+                state.isFiring = true;
+                state.fireEndTime = now + lifetime;
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
+                    enemyId: this.enemy.id,
+                    targetId: target.id,
+                    enemyType: this.enemy.type,
+                    x: this.enemy.x, y: this.enemy.y, 
+                    angle: state.lockedAngle,
+                    bulletSpeed: mech.bulletSpeed || 2000, 
+                    bulletType: "mega_laser",
+                    damage: mech.bulletDamage || 500,
+                    lifetimeMs: lifetime,
+                    range: mech.fireRange || 800 // v266.715: Sincronía de Rango para el Proyectil
+                });
+            } else if (state.isFiring && now > state.fireEndTime) {
+                state.isFiring = false;
+                state.nextShotTime = now + (mech.fireRate || 5000);
+            }
+            
+            this.enemy.mechState[mId] = state;
+
+            // v266.695: Inmovilidad durante BLOQUEO y DISPARO
+            if (state.isLocked || state.isFiring) {
+                this.enemy.rotation = state.lockedAngle;
+                return true; 
+            }
+            return false; 
+        }
 
         if (now > state.nextShotTime) {
             const burstLimit = (mech.type === "laser") ? 3 : 1; 

@@ -11,6 +11,7 @@ class BlinkSkill extends BaseSkill {
 
         p.x = targetX;
         p.y = targetY;
+        p.justBlinked = true; // v266.700: Bypass anti-cheat
         
         // Sincronización inmediata para que los demás vean el salto
         io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', { 

@@ -22,6 +22,7 @@ var save_timer = 0.0
 const SAVE_INTERVAL = 10.0
 var respawn_timer = 0.0
 var active_areas = {} # v260.80: Cache de zonas de efecto (Humo, etc)
+var active_laser_tracking = {} # v266.730: Indicadores que siguen al jugador {enemy_id: {indicator, target_id}}
 
 
 # 650 Estrellas Procesales (v73.31) - PRE-BAKED para rendimiento
@@ -40,7 +41,8 @@ func _ready():
 	NetworkManager.player_fired.connect(_on_player_fired)
 	NetworkManager.enemy_fired.connect(_on_enemy_fired)
 	NetworkManager.enemy_dead.connect(_on_enemy_dead)
-	NetworkManager.enemy_damaged.connect(_on_enemy_damaged) # v167.60: Sincronía de daño total
+	NetworkManager.enemy_damaged.connect(_on_enemy_damaged) 
+	NetworkManager.enemy_action.connect(_on_enemy_action) # v266.620: Mega Láser Indicator
 	NetworkManager.clear_zone_entities.connect(_on_clear_zone_entities)
 	NetworkManager.clear_zone_entities.connect(_update_hud_map_name) # v243.63: Sincronía HUD
 	NetworkManager.clear_enemy_projectiles.connect(_on_clear_enemy_projectiles)
@@ -108,6 +110,33 @@ func _process(delta):
 			_perform_local_respawn()
 	else: 
 		respawn_timer = 0.0
+
+	# v266.730: ACTUALIZACIÓN DE SEGUIMIENTO MAESTRO (Mega Láser)
+	for eid in active_laser_tracking.keys():
+		var data = active_laser_tracking[eid]
+		var indicator = data.get("indicator")
+		var t_id = data.get("targetId")
+		var length = data.get("range", 1000.0)
+		
+		if is_instance_valid(indicator) and indicator.get_parent():
+			var en = indicator.get_parent()
+			var target_node = null
+			
+			# Buscar el nodo del objetivo (Local o Remoto)
+			if is_instance_valid(local_player) and str(local_player.get("entity_id")) == t_id:
+				target_node = local_player
+			elif remote_players.has(t_id):
+				target_node = remote_players[t_id]
+			
+			if is_instance_valid(target_node):
+				var dir = (target_node.global_position - en.global_position).angle()
+				# Actualizar puntos del Line2D (Local al enemigo)
+				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT.rotated(dir - en.rotation) * length])
+			else:
+				# Si el target murió o se fue, dejamos de trackear
+				active_laser_tracking.erase(eid)
+		else:
+			active_laser_tracking.erase(eid)
 
 func _input(event):
 	var focusNode = get_viewport().gui_get_focus_owner()
@@ -240,6 +269,65 @@ func _get_enemy_from_pool() -> Node:
 	enemy_pool.append(en)
 	entities_node.add_child(en)
 	return en
+
+
+func _on_enemy_action(data: Dictionary):
+	var action = data.get("action", "")
+	var enemy_id = str(data.get("id", ""))
+	
+	if enemies.has(enemy_id):
+		var en = enemies[enemy_id]
+		var duration = float(data.get("duration", 2000.0)) / 1000.0
+		var angle = float(data.get("angle", 0.0))
+		var length = float(data.get("range", 1500.0))
+		var t_id = str(data.get("targetId", ""))
+		
+		# v266.720: Limpieza de indicadores previos (INSTANTÁNEA v2)
+		active_laser_tracking.erase(enemy_id)
+		for child in en.get_children():
+			if child.has_meta("is_laser_indicator"):
+				en.remove_child(child)
+				child.queue_free()
+		
+		if action == "charging":
+			# v266.625: Indicador de Lux (Pre-fuego) - Seguimiento Activo
+			var indicator = Line2D.new()
+			indicator.set_meta("is_laser_indicator", true)
+			indicator.width = 2.0
+			indicator.default_color = Color(1, 0, 0, 0.4) 
+			indicator.z_index = -1 
+			
+			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT.rotated(angle - en.rotation) * length])
+			en.add_child(indicator)
+			
+			# v266.735: Registrar para seguimiento en tiempo real
+			if t_id != "":
+				active_laser_tracking[enemy_id] = {
+					"indicator": indicator,
+					"targetId": t_id,
+					"range": length
+				}
+			
+			var tw = create_tween()
+			tw.tween_property(indicator, "default_color:a", 0.8, duration)
+			tw.finished.connect(indicator.queue_free)
+			
+		elif action == "locked":
+			# v266.696: Fase de BLOQUEO - La mira se clava, es el momento de esquivar
+			var indicator = Line2D.new()
+			indicator.set_meta("is_laser_indicator", true)
+			indicator.width = 4.0
+			indicator.default_color = Color(1, 0, 0, 0.8)
+			indicator.z_index = -1
+			
+			# No agregamos a active_laser_tracking para que se quede fija en 'angle'
+			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT.rotated(angle - en.rotation) * length])
+			en.add_child(indicator)
+			
+			en.set_meta("is_locked", true)
+			await get_tree().create_timer(duration).timeout
+			if is_instance_valid(en): en.set_meta("is_locked", false)
+			if is_instance_valid(indicator): indicator.queue_free()
 
 func _on_enemy_updated(data):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return

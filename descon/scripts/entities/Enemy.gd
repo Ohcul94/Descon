@@ -22,8 +22,12 @@ func _process(delta):
 		_move_dir = movement.normalized()
 		_last_sync_pos = global_position
 	
-	rotation = lerp_angle(rotation, _move_dir.angle(), 0.015)
-	if not is_instance_valid(sprite): queue_redraw() # Solo redibujar si no hay modelo 3D
+	# v266.680: Sincronía de Mirada Autorizativa (Mirar al Objetivo)
+	# Bloqueamos rotación si está bloqueado (ventana de esquiva) o disparando
+	if not get_meta("is_locked", false) and not get_meta("is_firing", false):
+		rotation = lerp_angle(rotation, target_rotation, 0.1)
+		
+	if not is_instance_valid(sprite): queue_redraw() 
 
 func update_stats(data: Dictionary):
 	super.update_stats(data)

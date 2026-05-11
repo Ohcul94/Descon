@@ -112,7 +112,7 @@ func _ready():
 	
 	_update_tags()
 	
-	# v235.36: Sincron├¡a Visual de Habilidades
+	# v235.36: Sincronía Visual de Habilidades
 	if NetworkManager.has_signal("remote_skill_used"):
 		NetworkManager.remote_skill_used.connect(_on_remote_skill_used)
 
@@ -120,7 +120,7 @@ func _ready():
 var last_draw_hp: float = -1.0
 var last_draw_sh: float = -1.0
 var sync_lock_timer: float = 0.0
-var is_teleporting: bool = false # v3.1: Bloquear interpolación en saltos instantáos
+var is_teleporting: bool = false # v3.1: Bloquear interpolación en saltos instantáneos
 
 func activate_sync_lock(duration: float = 2.5):
 	sync_lock_timer = duration
@@ -329,7 +329,7 @@ func _draw():
 		1: # Enemigo 1
 			poly_color = Color(1, 0.45, 0) 
 			pts = PackedVector2Array([Vector2(12, 12), Vector2(-12, 12), Vector2(-12, -12), Vector2(12, -12)])
-		6: # Enemigo 6 (Vórtice)
+		6: # Enemigo 6 (Vértice)
 			poly_color = Color(0, 0.5, 1)
 			pts = PackedVector2Array([Vector2(20, 0), Vector2(14, -14), Vector2(0, -20), Vector2(-14, -14), Vector2(-20, 0), Vector2(-14, 14), Vector2(0, 20), Vector2(14, 14)])
 		8: # Enemigo 8 (Charger)
@@ -481,7 +481,7 @@ func update_stats(data):
 						
 					if needs_update:
 						sm.equip_item(i, new_skill)
-
+		
 	if data.has("isRage") or data.has("isRyze"):
 		is_rage = bool(data.get("isRage", data.get("isRyze", false)))
 		
@@ -514,7 +514,7 @@ func _update_tags():
 			rtl.grow_vertical = Control.GROW_DIRECTION_BOTH
 			name_tag.queue_free()
 			name_tag = rtl
-
+			
 	if name_tag:
 		name_tag.add_theme_font_size_override("normal_font_size", 13)
 		name_tag.add_theme_font_size_override("bold_font_size", 13)
@@ -585,7 +585,7 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 		if visual_target == Vector2.ZERO and target_node: visual_target = target_node.global_position
 		_trigger_reflect_visual(visual_target if visual_target != Vector2.ZERO else global_position + Vector2.UP)
 
-		# 2. DA├æO: Notificaci├│n Red (Obligatorio) + Aplicaci├│n Local (Si existe el nodo)
+		# 2. DAÑO: Notificación Red (Obligatorio) + Aplicación Local (Si existe el nodo)
 		if is_in_group("player") and attacker_id != "" and attacker_id != entity_id:
 			# Siempre notificar al servidor
 			if NetworkManager:
@@ -627,7 +627,7 @@ func _trigger_reflect_visual(p_dest: Vector2):
 		spr.top_level = true
 		spr.z_index = 101
 		
-		# v235.11: Direcci├│n del rebote
+		# v235.11: Dirección del rebote
 		var dir_to_target = (p_dest - global_position).normalized()
 		if dir_to_target.length() < 0.1: dir_to_target = Vector2.UP
 		
@@ -875,7 +875,7 @@ func _setup_enemy_visuals():
 			glb_path = "res://assets/Enemigos/3D/Enemigo" + str(entity_type) + "/Enemigo" + str(entity_type) + ".glb"
 			enemy_rot_offset = 90.0
 			# Excepciones de rotación específicas detectadas en pruebas
-			if entity_type == 7 or entity_type == 4: enemy_rot_offset = 180.0
+			if entity_type == 7: enemy_rot_offset = 180.0
 			if entity_type == 6 or entity_type == 8: enemy_rot_offset = 0.0
 			
 		101: # Lord Titán (Boss1)
@@ -1223,7 +1223,7 @@ func _update_reflect_aura(_delta: float):
 	return
 	
 func _on_remote_skill_used(data: Dictionary):
-	# v235.37: Registro de uso de habilidad remota para sincron├¡a visual
+	# v235.37: Registro de uso de habilidad remota para sincronía visual
 	if str(data.get("id")) == entity_id:
 		var s_name = str(data.get("skillName", ""))
 		if s_name == "REFLECT-Ω" or s_name == "REFLECT":

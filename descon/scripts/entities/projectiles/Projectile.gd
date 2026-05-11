@@ -24,13 +24,6 @@ var turn_speed: float = 2.5 # v266.505: Velocidad de rotación angular (Agilidad
 
 func _ready():
 	add_to_group("projectiles")
-	
-	var shape = CollisionShape2D.new()
-	var circle = CircleShape2D.new()
-	circle.radius = 20.0 # v235.16: Radio aumentado masivamente para facilidad de impacto
-	shape.shape = circle
-	add_child(shape)
-	
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 	queue_redraw()
@@ -60,7 +53,23 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
 	_start_pos = p_pos
 	
-	velocity = Vector2.RIGHT.rotated(p_angle) * speed
+	if type == "mega_laser":
+		velocity = Vector2.ZERO
+		speed = 0.0
+	else:
+		velocity = Vector2.RIGHT.rotated(p_angle) * speed
+	
+	# v266.610: Configuración de Colisión Dinámica en setup()
+	var shape = CollisionShape2D.new()
+	if type == "mega_laser":
+		var rect = RectangleShape2D.new()
+		# El tamaño se ajustará en _setup_visual_sprite
+		shape.shape = rect
+	else:
+		var circle = CircleShape2D.new()
+		circle.radius = 20.0 
+		shape.shape = circle
+	add_child(shape)
 	
 	collision_layer = 0
 	if owner_type == "player" or owner_type == "remote":
@@ -81,6 +90,28 @@ func _setup_visual_sprite():
 		"missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
+		"mega_laser":
+			var beam = Line2D.new()
+			beam.width = 40.0
+			beam.default_color = Color(1, 0.2, 0.2, 0.8) # Rojo Lux
+			var length = max_range if max_range > 0.0 else 1000.0
+			beam.points = PackedVector2Array([Vector2.ZERO, Vector2(length, 0)])
+			
+			# Efecto de brillo (Glow)
+			var glow = Line2D.new()
+			glow.width = 15.0
+			glow.default_color = Color(1, 1, 1, 0.9) # Centro blanco
+			glow.points = beam.points
+			beam.add_child(glow)
+			
+			add_child(beam)
+			
+			# Ajustar colisión al tamaño del rayo
+			for child in get_children():
+				if child is CollisionShape2D and child.shape is RectangleShape2D:
+					child.shape.size = Vector2(length, 40.0)
+					child.position.x = child.shape.size.x / 2.0
+			return
 	
 	if path != "" and ResourceLoader.exists(path):
 		sprite = Sprite2D.new()
