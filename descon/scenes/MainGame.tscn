@@ -70,10 +70,11 @@ friction = 800.0
 
 [node name="MainHUD" parent="HUD" unique_id=2046515387 instance=ExtResource("8_hud")]
 
-[node name="Inventory" parent="HUD" unique_id=1683379225 instance=ExtResource("9_inv")]
+[node name="AdminPanel" parent="HUD/MainHUD" unique_id=2077836879 instance=ExtResource("10_admin")]
 visible = false
+layout_mode = 1
 
-[node name="AdminPanel" parent="HUD" unique_id=2077836879 instance=ExtResource("10_admin")]
+[node name="Inventory" parent="HUD" unique_id=1683379225 instance=ExtResource("9_inv")]
 visible = false
 
 [node name="ChatUI" parent="HUD" unique_id=1107118506 instance=ExtResource("11_chat")]

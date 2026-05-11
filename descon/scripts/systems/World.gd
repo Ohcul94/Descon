@@ -5,10 +5,10 @@ extends Node2D
 
 @onready var player_spawn = $PlayerSpawn
 @onready var entities_node = $Entities
-@onready var ui_hud = $HUD/MainHUD
-@onready var ui_chat = $HUD/ChatUI
-@onready var ui_inventory = $HUD/Inventory
-@onready var ui_admin = $HUD/AdminPanel
+@onready var ui_hud = get_node_or_null("HUD/MainHUD")
+@onready var ui_chat = get_node_or_null("HUD/ChatUI")
+@onready var ui_inventory = get_node_or_null("HUD/Inventory")
+@onready var ui_admin = get_node_or_null("HUD/MainHUD/AdminPanel")
 @onready var local_player = $Player 
 @onready var combat_system = $CombatSystem
 var talent_system = null
@@ -56,10 +56,10 @@ func _ready():
 	
 	talent_system = get_node_or_null("TalentSystem")
 	
-	ui_hud.visible = false
-	ui_inventory.visible = false
-	ui_admin.visible = false
-	ui_chat.visible = false
+	if ui_hud: ui_hud.visible = false
+	if ui_inventory: ui_inventory.visible = false
+	if ui_admin: ui_admin.visible = false
+	if ui_chat: ui_chat.visible = false
 	
 	_generate_stellar_data()
 
@@ -204,8 +204,8 @@ func _on_login_success(data):
 		_update_background(local_player.current_zone)
 		_update_hud_map_name(local_player.current_zone) # v243.64: Sincronía HUD inicial
 		
-	ui_hud.visible = true
-	ui_chat.visible = true
+	if ui_hud: ui_hud.visible = true
+	if ui_chat: ui_chat.visible = true
 
 func _unhandled_input(event):
 	if not NetworkManager or not NetworkManager.is_logged_in: return
