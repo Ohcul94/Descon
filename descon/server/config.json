@@ -588,7 +588,8 @@
             "desc": "Nebulosa densa con piratas espaciales.",
             "minLevel": 10,
             "name": "Mapa 4",
-            "warpCost": 25
+            "warpCost": 25,
+            "ambience": []
         },
         "5": {
             "color": "#ff5500",
@@ -603,7 +604,13 @@
             "minLevel": 20,
             "name": "Mapa 6",
             "warpCost": 100,
-            "ambience": [],
+            "ambience": [
+                {
+                    "type": "radiation",
+                    "damage": 20,
+                    "intervalMs": 300
+                }
+            ],
             "spawns": [
                 {
                     "type": "4",

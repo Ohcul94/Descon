@@ -91,8 +91,7 @@ func _on_environment_damaged(data: Dictionary):
 		_spawn_damage_text(str(int(dmg)), Color.RED)
 		
 		# Feedback visual extra de la cámara temblando levemente
-		if _cam_node:
-			_shake_amount = min(5.0, _shake_amount + 2.0)
+		apply_shake(2.0)
 
 func _on_slow_state(data: Dictionary):
 	if data.has("active"):
