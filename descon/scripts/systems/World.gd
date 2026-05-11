@@ -128,6 +128,10 @@ func _process(delta):
 			elif remote_players.has(t_id):
 				target_node = remote_players[t_id]
 			
+			# v266.970: Fallback Crítico - Si no coincide el ID, asumimos que somos el target
+			if target_node == null and is_instance_valid(local_player):
+				target_node = local_player
+			
 			if is_instance_valid(target_node) and not data.get("is_fixed", false):
 				var target_angle = (target_node.global_position - en.global_position).angle()
 				indicator.global_position = en.global_position
