@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { handleEnemyDeath } = require('./enemyLogic');
 const SkillManager = require('./skills/SkillManager');
 const StealthSkill = require('./skills/StealthSkill');
 const BlinkSkill = require('./skills/BlinkSkill');
@@ -143,85 +144,8 @@ function registerCombatHandlers(socket, io, state) {
 
         io.to(`zone_${enemy.zone}`).emit('enemyDamaged', { id: enemyId, hp: Math.max(0, enemy.hp), shield: enemy.shield, bulletId });
 
-        if (enemy.hp <= 0 && !enemy.isDying) {
-            enemy.isDying = true;
-            const cfg = state.SERVER_CONFIG.enemyModels[enemy.type] || {};
-            let h_loot = (cfg.rewardHubs !== undefined) ? cfg.rewardHubs : (enemy.type * 500);
-            let o_loot = (cfg.rewardOhcu !== undefined) ? cfg.rewardOhcu : (enemy.type * 10);
-            let e_loot = (cfg.rewardExp !== undefined) ? cfg.rewardExp : (enemy.type * 100);
-
-            if (enemy.name && enemy.name.toUpperCase().includes("CLONE")) {
-                h_loot = 0; o_loot = 0; e_loot = 0;
-            }
-
-            io.to(`zone_${enemy.zone}`).emit('enemyDead', { id: enemyId, killer: socket.id, bulletId, finalDamage: finalDamage });
-
-            // REPARTO DE LOOT COOPERATIVO
-            try {
-                const killerUid = socket.dbUser?._id.toString();
-                if (!killerUid) return;
-
-                let membersToReward = [socket]; 
-                const partyId = state.playerParty[killerUid];
-
-                if (partyId && state.parties[partyId]) {
-                    const onlinePartyMembers = [];
-                    for (const mUid of state.parties[partyId].members) {
-                        const mUidStr = mUid.toString();
-                        if (mUidStr === killerUid) continue; 
-                        
-                        let sid = state.activeSessions.get(mUidStr);
-                        if (sid) {
-                            const s = io.sockets.sockets.get(sid);
-                            if (s && state.players[s.id]) {
-                                const pM = state.players[s.id];
-                                const distToE = Math.hypot(pM.x - enemy.x, pM.y - enemy.y);
-                                if (pM.zone === enemy.zone && distToE <= 2500) onlinePartyMembers.push(s);
-                            }
-                        }
-                    }
-                    membersToReward = membersToReward.concat(onlinePartyMembers);
-                }
-
-                const shareCount = membersToReward.length;
-                const shared_h = Math.floor(h_loot / shareCount);
-                const shared_o = Math.floor(o_loot / shareCount);
-                const shared_e = Math.floor(e_loot / shareCount);
-
-                for (const memberSocket of membersToReward) {
-                    if (!memberSocket || !memberSocket.dbUser) continue;
-                    const memP = state.players[memberSocket.id];
-                    const user = await User.findById(memberSocket.dbUser._id.toString());
-                    
-                    if (user && memP) {
-                        user.gameData.hubs += shared_h;
-                        user.gameData.ohcu += shared_o;
-                        user.gameData.exp += shared_e;
-
-                        memberSocket.emit('enemyKillSession', { hubs: shared_h, ohcu: shared_o, exp: shared_e, killer: socket.id });
-
-                        // v262.135: Subida de Nivel (Autoridad del Servidor)
-                        let nextLevelExp = Math.floor(1000 * Math.pow(user.gameData.level, 1.5));
-                        while (user.gameData.exp >= nextLevelExp && user.gameData.level < 100) {
-                            user.gameData.exp -= nextLevelExp;
-                            user.gameData.level++;
-                            user.gameData.skillPoints++;
-                            memberSocket.emit('gameNotification', { msg: `NIVEL ${user.gameData.level} ALCANZADO!`, type: 'success' });
-                            nextLevelExp = Math.floor(1000 * Math.pow(user.gameData.level, 1.5));
-                        }
-
-                        // Actualizar RAM (players) - El Auto-Save usará estos datos
-                        memP.hubs = user.gameData.hubs;
-                        memP.ohcu = user.gameData.ohcu;
-                        memP.exp = user.gameData.exp;
-                        memP.level = user.gameData.level;
-                        memP.skillPoints = user.gameData.skillPoints;
-
-                        memberSocket.emit('inventoryData', { player: user.gameData });
-                    }
-                }
-            } catch (e) { console.error("Error loot cooperativo:", e); }
-            delete state.enemies[enemyId];
+        if (enemy.hp <= 0 && !enemy.isDeadProcessed) {
+            handleEnemyDeath(enemyId, io, state, socket.id);
         }
     });
 
@@ -328,6 +252,70 @@ function registerCombatHandlers(socket, io, state) {
                     socket.emit('gameNotification', { msg: "PVP BLOQUEADO: Tu modo combate est├í SEGURO", type: "warning" });
                 } else if (!victim.pvpEnabled) {
                     socket.emit('gameNotification', { msg: "PVP BLOQUEADO: El objetivo est├í en modo SEGURO", type: "warning" });
+                }
+            }
+        }
+    });
+
+    // DAÑO POR ENEMIGO
+    socket.on('playerHitByEnemy', (data) => {
+        const p = state.players[socket.id];
+        if (p && !p.isDead && state.SERVER_CONFIG) {
+            const attackerType = data.attackerType || 'enemy';
+            if (attackerType === 'remote' || attackerType === 'player') return;
+            
+            const enemyType = data.enemyType || 1;
+            let dmg = data.damage || 0;
+
+            if (attackerType === 'enemy') {
+                const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
+                const baseDmg = cfg ? cfg.bulletDamage : 50;
+                if (dmg > (baseDmg * 2)) dmg = baseDmg;
+            }
+
+            if (p.shield >= dmg) p.shield -= dmg;
+            else { p.hp -= (dmg - p.shield); p.shield = 0; }
+            
+            if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
+            
+            p.lastCombatTime = Date.now();
+            io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead });
+        }
+    });
+
+    // PVP: DAÑO ENTRE JUGADORES
+    socket.on('playerHitByPlayer', (data) => {
+        const victim = state.players[data.victimId];
+        const attacker = state.players[socket.id];
+        
+        if (victim && attacker && !victim.isDead && !attacker.isDead) {
+            if (victim.pvpEnabled && attacker.pvpEnabled) {
+                if (victim.isInvulnerable) return;
+                const now = Date.now();
+                let dmg = data.damage || 50;
+                
+                if (victim.shield >= dmg) victim.shield -= dmg;
+                else { victim.hp -= (dmg - victim.shield); victim.shield = 0; }
+                
+                if (victim.hp <= 0) { victim.hp = 0; victim.isDead = true; }
+                
+                victim.lastCombatTime = now;
+                attacker.lastCombatTime = now;
+                victim.lastPvpCombatTime = now;
+                attacker.lastPvpCombatTime = now;
+                victim.regenDelay = 15000;
+                
+                io.to(`zone_${victim.zone}`).emit('playerStatSync', { 
+                    id: data.victimId, hp: victim.hp, shield: victim.shield, 
+                    maxHp: victim.maxHp, maxShield: victim.maxShield, isDead: victim.isDead,
+                    isInvisible: victim.isInvisible,
+                    spheres: victim.spheres
+                });
+            } else {
+                if (!attacker.pvpEnabled) {
+                    socket.emit('gameNotification', { msg: "PVP BLOQUEADO: Tu modo combate está SEGURO", type: "warning" });
+                } else if (!victim.pvpEnabled) {
+                    socket.emit('gameNotification', { msg: "PVP BLOQUEADO: El objetivo está en modo SEGURO", type: "warning" });
                 }
             }
         }

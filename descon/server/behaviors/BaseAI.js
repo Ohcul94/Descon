@@ -14,6 +14,23 @@ module.exports = class BaseAI {
         if (!this.enemy.lastSuccessHit) this.enemy.lastSuccessHit = now;
         if (!this.enemy.lastHit) this.enemy.lastHit = 0;
 
+        // v266.970: Lógica de Fases de Movimiento (Kamikaze Check)
+        const phases = cfg.movementPhases || [];
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+        const kamikazePhase = phases.find(p => p.type === 'kamikaze');
+
+        if (kamikazePhase && hpPercent <= (kamikazePhase.activationHP || 30)) {
+            if (!this.enemy.isKamikazeActive) {
+                this.enemy.isKamikazeActive = true;
+                this.enemy.kamikazeStartTime = now;
+                this.enemy.isRamming = true;
+                
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id, action: "kamikaze_start", duration: kamikazePhase.duration || 5000
+                });
+            }
+        }
+
         // v266.550: Búsqueda de objetivo potencial (Visión Pasiva)
         let potentialTarget = this.getNearestPlayer(grid, players);
         
@@ -60,6 +77,24 @@ module.exports = class BaseAI {
 
         const dist = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
         const targetAngle = Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x);
+
+        // v266.975: Ejecución del Estado Kamikaze
+        if (this.enemy.isKamikazeActive) {
+            const kP = (cfg.movementPhases || []).find(p => p.type === 'kamikaze') || {};
+            let speed = (kP.speed !== undefined) ? (kP.speed * 0.033) : (cfg.speed || 3.5) * 1.5;
+            const duration = kP.duration || 5000;
+
+            if (now - this.enemy.kamikazeStartTime > duration || dist < 60) {
+                this.enemy.hp = 0;
+                this.enemy.forceExplosion = true;
+                return;
+            }
+
+            this.enemy.x += Math.cos(targetAngle) * speed;
+            this.enemy.y += Math.sin(targetAngle) * speed;
+            this.enemy.rotation = targetAngle + Math.PI / 2;
+            return; // Bloquear disparos y movimiento normal
+        }
         
         // v266.650: Apuntado Gradual (Aim Speed)
         if (this.enemy.rotation === undefined) this.enemy.rotation = targetAngle;

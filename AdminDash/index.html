@@ -915,7 +915,8 @@
             "chase": { label: "Persecución Directa", icon: "🏃", desc: "Persigue al jugador hasta una distancia fija.", fields: ["speed", "stopDist"] },
             "sniper": { label: "Francotirador (Kiting)", icon: "🎯", desc: "Mantiene una distancia segura alejándose si te acercas.", fields: ["speed", "idealDist"] },
             "orbit": { label: "Órbita Circular", icon: "🔄", desc: "Gira alrededor del jugador constantemente.", fields: ["speed", "orbitRadius"] },
-            "charger": { label: "Embestida (Dash)", icon: "⚡", desc: "Se acerca y lanza ataques de alta velocidad.", fields: ["speed", "chargeCooldown"] }
+            "charger": { label: "Embestida (Dash)", icon: "⚡", desc: "Se acerca y lanza ataques de alta velocidad.", fields: ["speed", "chargeCooldown"] },
+            "kamikaze": { label: "Kamikaze", icon: "💣", desc: "Se lanza hacia vos al bajar de HP y explota.", fields: ["activationHP", "speed", "explosionDamage", "duration", "explodeOnDeath"] }
         };
 
         function renderEnemies() {
@@ -1000,7 +1001,28 @@
                                     <div class="form-grid" style="margin-top:1rem;">
                                         <div class="field"><label>Retraso Inicio (ms)</label><input type="number" value="${m.startDelay || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].startDelay = parseInt(this.value)"></div>
                                         ${MOVEMENT_LIB[m.type || 'chase'].fields.map(f => {
-                                            const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)" };
+                                            const moveLabels = { 
+                                                speed:"Velocidad (px/s)", 
+                                                stopDist:"Frenado (px)", 
+                                                idealDist:"Rango Seguro (px)", 
+                                                orbitRadius:"Radio Órbita (px)", 
+                                                chargeCooldown: "Recarga Dash (ms)",
+                                                activationHP: "Activación HP (%)",
+                                                explosionDamage: "Daño Explosión",
+                                                duration: "Duración Máxima (ms)",
+                                                explodeOnDeath: "Explotar al morir"
+                                            };
+                                            
+                                            if (f === 'explodeOnDeath') {
+                                                return `
+                                                    <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;">
+                                                        <input type="checkbox" ${m[f] ? 'checked' : ''} 
+                                                            onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].explodeOnDeath = this.checked">
+                                                        <label style="margin:0;">${moveLabels[f]}</label>
+                                                    </div>
+                                                `;
+                                            }
+
                                             return `<div class="field"><label>${moveLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].${f} = parseFloat(this.value)"></div>`;
                                         }).join('')}
                                     </div>
@@ -1257,7 +1279,17 @@
                     const m = MOVEMENT_LIB[type];
                     if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f)) continue;
                     const card = document.createElement('div'); card.className = 'card';
-                    const ml = { speed:"Velocidad", stopDist:"Frenado", idealDist:"Rango", orbitRadius:"Órbita", chargeCooldown: "Dash" };
+                    const ml = { 
+                        speed:"Velocidad", 
+                        stopDist:"Frenado", 
+                        idealDist:"Rango", 
+                        orbitRadius:"Órbita", 
+                        chargeCooldown: "Dash",
+                        activationHP: "Activación HP (%)",
+                        explosionDamage: "Daño Explosión",
+                        duration: "Duración",
+                        explodeOnDeath: "Auto-Detonar"
+                    };
                     card.innerHTML = `
                         <div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div>
                         <div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.movementLib['${type}'].label = this.value; renderAll();"></div>
@@ -1428,6 +1460,9 @@
                     desc: "Rayo grueso que requiere precarga.",
                     fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "chargeTimeMs", "lockTimeMs", "lifetimeMs", "turnSpeed", "startDelay"]
                 };
+            }
+            if (config.movementLib && !config.movementLib.kamikaze) {
+                config.movementLib.kamikaze = MOVEMENT_LIB.kamikaze;
             }
         }
         setTimeout(patchMechanicsLib, 1000);

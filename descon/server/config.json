@@ -217,6 +217,16 @@
                     "speed": 350,
                     "stopDist": 150,
                     "startDelay": 0
+                },
+                {
+                    "type": "kamikaze",
+                    "speed": 500,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "activationHP": 30,
+                    "explosionDamage": 150,
+                    "duration": 3000,
+                    "explodeOnDeath": 150
                 }
             ]
         },
@@ -632,8 +642,8 @@
             "ambience": [],
             "spawns": [
                 {
-                    "type": "4",
-                    "count": 5,
+                    "type": "5",
+                    "count": 2,
                     "intervalMs": 5000
                 }
             ]
@@ -1434,6 +1444,18 @@
             "fields": [
                 "speed",
                 "chargeCooldown"
+            ]
+        },
+        "kamikaze": {
+            "label": "Kamikaze",
+            "icon": "💣",
+            "desc": "Se lanza hacia vos al bajar de HP y explota.",
+            "fields": [
+                "activationHP",
+                "speed",
+                "explosionDamage",
+                "duration",
+                "explodeOnDeath"
             ]
         }
     }

@@ -2,6 +2,8 @@
  * GameLoop
  * El corazón del servidor. Maneja los intervalos de tiempo para IA, regeneración y limpieza.
  */
+const { handleEnemyDeath } = require('./enemyLogic');
+
 function startGameLoop(io, state, aiManager) {
     const grid = state.grid;
     
@@ -25,7 +27,10 @@ function startGameLoop(io, state, aiManager) {
 
         for (const id in enemies) {
             const e = enemies[id];
-            if (e.hp <= 0) continue;
+            if (e.hp <= 0) {
+                if (!e.isDeadProcessed) handleEnemyDeath(id, io, state);
+                continue;
+            }
 
             // v262.35: IA Inteligente (LOD - Level of Detail)
             // Solo procesar IA si hay jugadores cerca o cada 1 segundo (ahorro masivo de CPU)
