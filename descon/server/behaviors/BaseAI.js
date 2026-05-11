@@ -210,7 +210,7 @@ module.exports = class BaseAI {
 
             // v266.695: Inmovilidad durante BLOQUEO y DISPARO
             if (state.isLocked || state.isFiring) {
-                this.enemy.rotation = state.lockedAngle;
+                this.enemy.rotation = state.lockedAngle + Math.PI / 2;
                 return true; 
             }
             return false; 
