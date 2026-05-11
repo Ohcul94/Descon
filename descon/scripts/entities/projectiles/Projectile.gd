@@ -167,7 +167,7 @@ func _physics_process(delta):
 		_find_target()
 
 	# v266.505: Lógica de RASTREO (Homing) v2 - Basada en Rotación Angular
-	if (type == "missile" or type == "ice_missile") and is_instance_valid(_target_node):
+	if (type == "missile") and is_instance_valid(_target_node):
 		var target_angle = (_target_node.global_position - global_position).angle()
 		
 		# rotate_toward garantiza que gire a una velocidad constante (turn_speed en radianes por segundo)

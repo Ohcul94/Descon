@@ -130,8 +130,9 @@ func _process(delta):
 			
 			if is_instance_valid(target_node):
 				var dir = (target_node.global_position - en.global_position).angle()
-				# Actualizar puntos del Line2D (Local al enemigo)
-				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT.rotated(dir - en.rotation) * length])
+				# v266.750: Usar rotación GLOBAL para evitar desvíos por offsets del asset 3D
+				indicator.global_rotation = dir
+				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			else:
 				# Si el target murió o se fue, dejamos de trackear
 				active_laser_tracking.erase(eid)
@@ -297,7 +298,9 @@ func _on_enemy_action(data: Dictionary):
 			indicator.default_color = Color(1, 0, 0, 0.4) 
 			indicator.z_index = -1 
 			
-			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT.rotated(angle - en.rotation) * length])
+			# v266.750: Alineación Global Absoluta
+			indicator.global_rotation = angle
+			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			en.add_child(indicator)
 			
 			# v266.735: Registrar para seguimiento en tiempo real
@@ -320,8 +323,9 @@ func _on_enemy_action(data: Dictionary):
 			indicator.default_color = Color(1, 0, 0, 0.8)
 			indicator.z_index = -1
 			
-			# No agregamos a active_laser_tracking para que se quede fija en 'angle'
-			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT.rotated(angle - en.rotation) * length])
+			# v266.750: Alineación Global Absoluta
+			indicator.global_rotation = angle
+			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			en.add_child(indicator)
 			
 			en.set_meta("is_locked", true)
