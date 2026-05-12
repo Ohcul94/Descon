@@ -10,8 +10,21 @@ func _init():
 	cooldown = 15.0
 
 func activate(player: CharacterBody2D):
-	# Intentar obtener la posición del mouse del controlador de habilidades
-	var target_pos = player.get_global_mouse_position()
+	# v266.850: Leer el vector de apuntado del SkillController (Modo Celu)
+	# En lugar de hardcodear el mouse, respetamos el apuntado por arrastre.
+	var target_pos: Vector2
+	var sc = player.get_node_or_null("SkillController")
+	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
+	
+	if is_mobile and sc and sc.external_aim_vector != Vector2.ZERO:
+		# Modo Celular con arrastre: usar el vector de apuntado
+		target_pos = player.global_position + sc.external_aim_vector
+	elif is_mobile and sc:
+		# Modo Celular sin arrastre: ir hacia adelante de la nave
+		target_pos = player.global_position + Vector2.RIGHT.rotated(player.rotation) * min(power_value, 200.0)
+	else:
+		# Modo PC: comportamiento clásico con mouse
+		target_pos = player.get_global_mouse_position()
 	
 	var dist = player.global_position.distance_to(target_pos)
 	

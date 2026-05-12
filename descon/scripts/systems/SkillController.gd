@@ -129,14 +129,16 @@ func execute_skill():
 		payload.pos = mouse_pos
 		payload.target = selected_target
 	
-	# Limpiar estado
+	# Limpiar estado (excepto external_aim_vector, que se necesita en activate())
 	is_aiming = false
 	selected_target = null
-	external_aim_vector = Vector2.ZERO
 	queue_redraw()
 	
 	if get_parent().has_method("_on_skill_executed"):
 		get_parent()._on_skill_executed(payload)
+	
+	# Limpiar el vector DESPUÉS de ejecutar la skill (Blink lo necesita en activate())
+	external_aim_vector = Vector2.ZERO
 
 func cancel_aiming():
 	is_aiming = false
