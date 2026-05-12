@@ -64,16 +64,17 @@ func _unhandled_input(event):
 				active_touch_index = event.index
 				is_dragging = true
 				_update_stick_pos(event_pos)
-				get_viewport().set_input_as_handled()
+				# NO marcamos como handled en el press: los botones de habilidad
+				# también necesitan recibir sus propios eventos de toque.
 		else:
 			if event.index == active_touch_index:
 				_reset_joystick()
-				get_viewport().set_input_as_handled()
+				# NO marcamos como handled en el release por la misma razón.
 				
 	elif event is InputEventScreenDrag:
 		if event.index == active_touch_index:
 			_update_stick_pos(event_pos)
-			get_viewport().set_input_as_handled()
+			get_viewport().set_input_as_handled() # Solo el drag es exclusivo del joystick
 
 	# Failsafe para PC
 	elif event is InputEventMouseButton:
