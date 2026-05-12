@@ -1106,13 +1106,13 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 		if event.index != stored_index: return
 	
 	# v266.740: Usar delta RELATIVO acumulado para evitar desfasajes de coordenadas
-	# event.relative = movimiento del dedo en este frame (siempre en la misma escala)
+	# Acumular tanto ScreenDrag como MouseMotion (Godot emula mouse desde touch)
 	var prev_drag = node.get_meta("accumulated_drag", Vector2.ZERO)
 	var current_drag = prev_drag
-	if event is InputEventScreenDrag:
+	if event is InputEventScreenDrag or event is InputEventMouseMotion:
 		current_drag = prev_drag + event.relative
 		node.set_meta("accumulated_drag", current_drag)
-	var diff = current_drag  # siempre relativo al punto de inicio = Vector2.ZERO del botón
+	var diff = current_drag  # relativo al primer toque, siempre en escala de pantalla
 	
 	# Convertir píxeles de pantalla → unidades de mundo
 	var cam = get_viewport().get_camera_2d()
