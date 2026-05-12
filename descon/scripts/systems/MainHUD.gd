@@ -1089,9 +1089,14 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 		if aim: aim.visible = false
 		if aim_bg: aim_bg.visible = false
 		
-		if sc.is_aiming and sc.config.get("cast_mode") == 1:
-			sc.execute_skill()
-			
+		# CRÍTICO: Ejecutar ANTES de limpiar el vector
+		# En Celular: siempre ejecutar al soltar (sin importar cast_mode)
+		# En PC: solo si cast_mode == ON_RELEASE (1)
+		if sc.is_aiming:
+			if is_mobile or sc.config.get("cast_mode") == 1:
+				sc.execute_skill()
+		
+		# Limpiar DESPUÉS de ejecutar
 		sc.external_aim_vector = Vector2.ZERO
 		node.remove_meta("touch_index")
 		node.remove_meta("touch_origin_global")
