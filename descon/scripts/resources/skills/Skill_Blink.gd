@@ -14,7 +14,7 @@ func activate(player: CharacterBody2D):
 	# En lugar de hardcodear el mouse, respetamos el apuntado por arrastre.
 	var target_pos: Vector2
 	var sc = player.get_node_or_null("SkillController")
-	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
+	var is_mobile = player.get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	
 	if is_mobile and sc and sc.external_aim_vector != Vector2.ZERO:
 		# Modo Celular con arrastre: usar el vector de apuntado
