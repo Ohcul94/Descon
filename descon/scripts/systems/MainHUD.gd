@@ -1062,8 +1062,8 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			# Registrar punto de inicio para apuntado relativo
-			node.set_meta("touch_start", event.position)
 			node.set_meta("touch_index", event.index)
+			node.set_meta("accumulated_drag", Vector2.ZERO)  # v266.740: acumular delta relativo
 			
 			# Activar la habilidad (equivalente a button_down)
 			callback.call()
@@ -1105,9 +1105,14 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 		var stored_index = node.get_meta("touch_index", -1)
 		if event.index != stored_index: return
 	
-	# Calcular diff relativo al punto de primer toque
-	var touch_start = node.get_meta("touch_start", node.size / 2)
-	var diff = event.position - touch_start  # píxeles de pantalla
+	# v266.740: Usar delta RELATIVO acumulado para evitar desfasajes de coordenadas
+	# event.relative = movimiento del dedo en este frame (siempre en la misma escala)
+	var prev_drag = node.get_meta("accumulated_drag", Vector2.ZERO)
+	var current_drag = prev_drag
+	if event is InputEventScreenDrag:
+		current_drag = prev_drag + event.relative
+		node.set_meta("accumulated_drag", current_drag)
+	var diff = current_drag  # siempre relativo al punto de inicio = Vector2.ZERO del botón
 	
 	# Convertir píxeles de pantalla → unidades de mundo
 	var cam = get_viewport().get_camera_2d()
