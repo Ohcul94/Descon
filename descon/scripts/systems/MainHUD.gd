@@ -30,6 +30,7 @@ var _editing_slot_index: int = -1 # v266.300: Slot que se está editando
 var _layout_backup: Dictionary = {} # Para cancelar cambios
 var active_slot_index: int = 0 # v266.300: Para mostrar cuál está en uso
 var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
+var _touch_registry: Dictionary = {} # v266.900: Registro para bypass de multitouch
 
 
 func _ready():
@@ -224,6 +225,41 @@ func _update_active_slot_index(current_layout: Dictionary):
 	active_slot_index = -1 # No coincide con ninguno (modificado manual)
 
 func _input(event: InputEvent):
+	# v266.901: Bloqueo de seguridad - No procesar inputs de juego si no estamos logueados
+	if not NetworkManager or not NetworkManager.is_logged_in: return
+
+	# v266.900: SISTEMA DE PRIORIDAD MULTI-TOUCH (Bypass de Foco GUI)
+	# Permite que las habilidades funcionen aunque el dedo 0 esté en el joystick.
+	if not is_editing_layout and (event is InputEventScreenTouch or event is InputEventScreenDrag or \
+	   event is InputEventMouseButton or event is InputEventMouseMotion):
+		
+		var ev_pos = event.position
+		
+		# v266.905: Prioridad de UI - Si tocamos un menú o minimapa, ignorar bypass de combate
+		if _is_pos_over_priority_ui(ev_pos):
+			return 
+		
+		var ev_index = event.index if "index" in event else 0
+		
+		# 1. ¿Este dedo ya está operando un botón? (Para arrastre/soltado)
+		for node in _touch_registry.keys():
+			if is_instance_valid(node) and node.get_meta("touch_index", -1) == ev_index:
+				_on_touch_button_input(event, node, _touch_registry[node])
+				return # Consumido
+		
+		# 2. ¿Es un nuevo toque sobre un botón?
+		var is_press = (event is InputEventScreenTouch and event.pressed) or \
+					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+		
+		if is_press:
+			# Recorrer botones en orden inverso (los que están "encima" visualmente tienen prioridad)
+			var nodes = _touch_registry.keys()
+			nodes.reverse()
+			for node in nodes:
+				if is_instance_valid(node) and node.visible and node.get_global_rect().has_point(ev_pos):
+					_on_touch_button_input(event, node, _touch_registry[node])
+					return # Consumido
+
 	# v266.120: Atajo de teclado para cerrar edición
 	if is_editing_layout and event.is_action_pressed("ui_menu"):
 		toggle_hud_editing()
@@ -317,9 +353,6 @@ func _input(event: InputEvent):
 			get_viewport().set_input_as_handled()
 			return
 
-	# v244.60: Bloquear menú de sistema en el login
-	if not NetworkManager or not NetworkManager.is_logged_in: return
-	
 	# v2.7: Bloqueo de seguridad para ESC (Si hay algún menú de UI abierto)
 	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
 	for ui in ui_nodes:
@@ -1003,6 +1036,9 @@ func _make_clickable(node: Control, callback: Callable):
 	# v266.82: Usamos ÚNICAMENTE gui_input para manejar todo el ciclo (Press, Drag, Release)
 	# Esto evita disparos dobles y permite un control total del multitouch.
 	btn.gui_input.connect(_on_touch_button_input.bind(node, callback))
+	
+	# v266.900: Registrar para el bypass de _input manual
+	_touch_registry[node] = callback
 
 func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 	# Fallback para mouse/clics directos si el botón invisible no lo atrapa
@@ -1037,7 +1073,7 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 				   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
 	
 	if is_press:
-		var g_pos = event.global_position
+		var g_pos = event.position
 		node.set_meta("touch_index", event.index if event is InputEventScreenTouch else 0)
 		node.set_meta("touch_origin_global", g_pos)
 		callback.call()
@@ -1089,8 +1125,8 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 		if event.index != node.get_meta("touch_index", -1): return
 	
 	# CALCULO WILD RIFT: Desplazamiento global puro
-	var g_origin = node.get_meta("touch_origin_global", event.global_position)
-	var diff_global = event.global_position - g_origin
+	var g_origin = node.get_meta("touch_origin_global", event.position)
+	var diff_global = event.position - g_origin
 	
 	# Convertir a unidades del mundo (escala de cámara)
 	var cam = get_viewport().get_camera_2d()
@@ -1111,7 +1147,7 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	# Indicador visual (Stick)
 	if aim:
 		aim.visible = true
-		aim.global_position = event.global_position - (aim.size / 2)
+		aim.global_position = event.position - (aim.size / 2)
 	if aim_bg:
 		aim_bg.visible = true
 		aim_bg.global_position = g_origin - (aim_bg.size / 2)
@@ -1453,6 +1489,28 @@ func _open_settings():
 		var canvas = _settings_menu.get_parent()
 		if canvas is CanvasLayer:
 			canvas.visible = true
+
+# v266.905: Detector de prioridad para evitar bloqueos de clicks en menús
+func _is_pos_over_priority_ui(p: Vector2) -> bool:
+	# 1. Minimapa siempre tiene prioridad
+	if radar_window and radar_window.visible:
+		if radar_window.get_global_rect().has_point(p): return true
+	
+	# 2. Menús abiertos (Inventario, Config, etc)
+	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
+	for ui in ui_nodes:
+		if ui is Control and ui.visible:
+			if ui.get_global_rect().has_point(p): return true
+			
+	# 3. Menú ESC
+	if _esc_menu and _esc_menu.visible:
+		if _esc_menu.get_global_rect().has_point(p): return true
+		
+	# 4. Settings
+	if _settings_menu and _settings_menu.visible:
+		if _settings_menu.get_global_rect().has_point(p): return true
+		
+	return false
 func _setup_blind_overlay():
 	if _blind_overlay: return
 	_blind_overlay = ColorRect.new()
