@@ -125,19 +125,19 @@ func _setup_ui():
 	cast_option.item_selected.connect(_on_cast_mode_changed)
 	cast_vbox.add_child(cast_option)
 	
-	# v266.400: JOYSTICK VIRTUAL
+	# v266.670: MODO CELULAR (TIPO MOBA)
 	var joy_vbox = VBoxContainer.new()
 	cast_hbox.add_child(joy_vbox)
 	
 	var joy_lbl = Label.new()
-	joy_lbl.text = "JOYSTICK VIRTUAL:"
+	joy_lbl.text = "INTERFAZ MÓVIL (TIPO MOBA):"
 	joy_vbox.add_child(joy_lbl)
 	
 	var joy_check = CheckButton.new()
-	joy_check.text = "ACTIVAR PARA MÓVILES"
-	joy_check.button_pressed = SettingsManager.joystick_enabled
+	joy_check.text = "MODO CELULAR ACTIVO"
+	joy_check.button_pressed = SettingsManager.mobile_mode
 	joy_check.toggled.connect(func(v):
-		SettingsManager.joystick_enabled = v
+		SettingsManager.mobile_mode = v
 		SettingsManager.save_settings()
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud and hud.has_method("_update_joystick_visibility"):

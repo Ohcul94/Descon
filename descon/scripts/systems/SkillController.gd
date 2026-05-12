@@ -26,6 +26,8 @@ func _ready():
 	if get_node_or_null("/root/SettingsManager"):
 		config.cast_mode = SettingsManager.get_cast_mode()
 
+var external_aim_vector: Vector2 = Vector2.ZERO # v266.680: Para apuntado MOBA desde HUD
+
 func _process(_delta):
 	if is_aiming:
 		queue_redraw()
@@ -125,8 +127,9 @@ func execute_skill():
 	# v266.70: No retornar si es un trigger de release y ya se estaba apuntando
 	if not is_aiming: return
 	
-	var mouse_pos = get_global_mouse_position()
-	var angle = (mouse_pos - global_position).angle()
+	# v266.680: Prioridad al apuntado MOBA (HUD)
+	if external_aim_vector != Vector2.ZERO:
+		angle = external_aim_vector.angle()
 	
 	var payload = {
 		"skill_id": current_skill.id,
@@ -138,6 +141,7 @@ func execute_skill():
 	# v261.10: Limpiar estado ANTES de ejecutar para evitar que se quede pegado
 	is_aiming = false
 	selected_target = null
+	external_aim_vector = Vector2.ZERO # v266.682: Limpiar vector MOBA
 	queue_redraw()
 	
 	if get_parent().has_method("_on_skill_executed"):
@@ -155,18 +159,20 @@ func _draw():
 	
 	var range_val = current_skill.get("range", 500.0)
 	var color = config.indicator_color
-	var mouse_local = get_local_mouse_position()
-	
-	# 1. Dibujar Rango (Círculo) - v3.5: Ocultar si es Global (0)
 	if range_val > 0:
 		draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 2.0)
 	
+	# v266.680: Preparar vector de apuntado final (Mouse o HUD)
+	var aim_vec = get_local_mouse_position()
+	if external_aim_vector != Vector2.ZERO:
+		aim_vec = external_aim_vector.normalized() * (range_val if range_val > 0 else 300.0)
+	
 	# 2. Dibujar Indicador
 	if current_skill.get("type") == SkillType.DIRECTIONAL:
-		var dist = mouse_local.length()
-		var end_point = mouse_local
+		var dist = aim_vec.length()
+		var end_point = aim_vec
 		if range_val > 0 and dist > range_val:
-			end_point = mouse_local.normalized() * range_val
+			end_point = aim_vec.normalized() * range_val
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas (Solo queremos el punto)
 		var s_name = current_skill.get("skill_name", "")
@@ -180,4 +186,4 @@ func _draw():
 			var t_pos = to_local(selected_target.global_position)
 			draw_arc(t_pos, 40.0, 0, TAU, 32, Color.YELLOW, 3.0)
 		else:
-			draw_circle(mouse_local, 15.0, Color(1, 1, 1, 0.2))
+			draw_circle(aim_vec, 15.0, Color(1, 1, 1, 0.2))

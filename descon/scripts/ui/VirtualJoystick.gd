@@ -19,17 +19,14 @@ func _ready():
 	apply_visibility()
 
 func apply_visibility():
-	# v266.610: Centralizamos aquí tanto visible como mouse_filter juntos
-	# para que _process no pueda deshacer lo que MainHUD hace
 	var enabled = false
 	if get_node_or_null("/root/SettingsManager"):
-		enabled = SettingsManager.joystick_enabled
+		enabled = SettingsManager.mobile_mode
 	
 	visible = enabled
-	if enabled:
-		mouse_filter = Control.MOUSE_FILTER_STOP
-	else:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# v266.675: Cambiamos a IGNORE porque ahora procesamos en _input manualmente
+	# para evitar bloqueos fantasma de multi-touch
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _update_joystick_visibility():
 	apply_visibility()
@@ -43,37 +40,47 @@ func _draw():
 
 var active_touch_index: int = -1
 
-func _gui_input(event):
+func _input(event):
+	if not visible: return
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud and hud.get("is_editing_layout"): return
 	
-	# v266.660: Soporte Multi-Touch Real
-	# Usamos ScreenTouch/Drag con index para no bloquear otros dedos (habilidades)
+	# v266.675: Detección Manual de Área para evitar Bloqueo Global
+	var local_pos = to_local(event.position if "position" in event else Vector2.ZERO)
+	var is_inside = local_pos.length() < max_dist * 2.5 # Área de activación generosa
 	
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			if active_touch_index == -1: # Solo capturar el primer dedo que toque el área
+			if is_inside and active_touch_index == -1:
 				active_touch_index = event.index
 				is_dragging = true
 				_update_stick_pos(event.position)
+				get_viewport().set_input_as_handled()
 		else:
 			if event.index == active_touch_index:
 				_reset_joystick()
+				get_viewport().set_input_as_handled()
 				
 	elif event is InputEventScreenDrag:
 		if event.index == active_touch_index:
 			_update_stick_pos(event.position)
+			get_viewport().set_input_as_handled()
 
-	# Failsafe para PC (Mouse Emulation)
+	# Failsafe para PC
 	elif event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
-				is_dragging = true
-				_update_stick_pos(event.position)
+				if is_inside:
+					is_dragging = true
+					_update_stick_pos(event.position)
+					get_viewport().set_input_as_handled()
 			else:
-				_reset_joystick()
+				if is_dragging:
+					_reset_joystick()
+					get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and is_dragging:
 		_update_stick_pos(event.position)
+		get_viewport().set_input_as_handled()
 
 func _update_stick_pos(input_pos: Vector2):
 	var center = size / 2

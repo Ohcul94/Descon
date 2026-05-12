@@ -975,10 +975,14 @@ func _make_clickable(node: Control, callback: Callable):
 	
 	btn.button_down.connect(func(): callback.call())
 	
+	# v266.680: Lógica de Apuntado MOBA (Drag)
+	btn.gui_input.connect(_on_touch_button_input.bind(node))
+	
 	btn.button_up.connect(func():
 		var p = get_tree().get_first_node_in_group("player")
 		if is_instance_valid(p) and p._skill_controller:
 			var sc = p._skill_controller
+			sc.external_aim_vector = Vector2.ZERO # Limpiar al soltar
 			if sc.is_aiming and sc.config.get("cast_mode") == 1:
 				sc.execute_skill()
 	)
@@ -1003,6 +1007,21 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 					if is_instance_valid(sc) and sc.is_aiming:
 						if sc.config.get("cast_mode") == 1: # ON_RELEASE
 							sc.execute_skill()
+
+func _on_touch_button_input(event: InputEvent, node: Control):
+	if not get_node_or_null("/root/SettingsManager") or not SettingsManager.mobile_mode: return
+	
+	if event is InputEventScreenDrag or (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
+		var p = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(p) and p._skill_controller:
+			var sc = p._skill_controller
+			if sc.is_aiming:
+				# Calcular vector desde el centro del botón
+				var center = node.size / 2
+				var diff = event.position - center
+				
+				# v266.680: Amplificar el vector para que sea cómodo apuntar
+				sc.external_aim_vector = diff.normalized() * 500.0 
 
 func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
 	if event == null: # Viene del TouchButton
