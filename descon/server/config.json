@@ -649,7 +649,14 @@
             "minLevel": 5,
             "name": "Mapa 3",
             "warpCost": 10,
-            "ambience": []
+            "ambience": [],
+            "spawns": [
+                {
+                    "type": "104",
+                    "count": 1,
+                    "intervalMs": 5000
+                }
+            ]
         },
         "4": {
             "color": "#ffaa00",
