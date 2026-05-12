@@ -1046,29 +1046,41 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 							sc.execute_skill()
 
 func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable):
-	# v266.730: Manejo COMPLETO de touch para modo celular
-	# Este handler procesa ScreenTouch directamente para que funcione con multi-touch
-	# (touch index 1+ no genera mouse events, así que Button.pressed no funciona)
-	
 	var p = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(p) or not p._skill_controller: return
 	var sc = p._skill_controller
 	var aim = node.get_node_or_null("AimIndicator")
 	var aim_bg = node.get_node_or_null("AimIndicatorBG")
-	
 	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	
-	# --- MANEJO DE SCREEN TOUCH (multi-touch directo) ---
+	# ── PRESS (ScreenTouch) ──────────────────────────────────────────────────
 	if event is InputEventScreenTouch:
 		if event.pressed:
-			# Registrar punto de inicio para apuntado relativo
 			node.set_meta("touch_index", event.index)
-			node.set_meta("accumulated_drag", Vector2.ZERO)  # v266.740: acumular delta relativo
-			
-			# Activar la habilidad (equivalente a button_down)
+			node.set_meta("touch_origin", event.position)  # coords locales al btn
 			callback.call()
-			
-			# Mostrar indicadores MOBA (Joystick flotante dentro del botón)
+			if is_mobile:
+				if aim_bg:
+					aim_bg.visible = true
+					aim_bg.position = event.position - (aim_bg.size / 2)  # centro en el dedo
+				if aim:
+					aim.visible = true
+					aim.position = event.position - (aim.size / 2)  # empieza en el dedo
+		else:  # release
+			if event.index != node.get_meta("touch_index", -1): return
+			if aim: aim.visible = false
+			if aim_bg: aim_bg.visible = false
+			if sc.is_aiming and sc.config.get("cast_mode") == 1:
+				sc.execute_skill()
+			sc.external_aim_vector = Vector2.ZERO
+			node.remove_meta("touch_index")
+		return
+	
+	# ── PRESS (Mouse – PC / emulación) ───────────────────────────────────────
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			node.set_meta("touch_origin", event.position)
+			callback.call()
 			if is_mobile:
 				if aim_bg:
 					aim_bg.visible = true
@@ -1077,22 +1089,14 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 					aim.visible = true
 					aim.position = event.position - (aim.size / 2)
 		else:
-			# Solo procesar release del mismo dedo
-			var stored_index = node.get_meta("touch_index", -1)
-			if event.index != stored_index: return
-			
-			# Ocultar indicadores
 			if aim: aim.visible = false
 			if aim_bg: aim_bg.visible = false
-			
-			# v266.730: PRIMERO disparar con el vector intacto, DESPUÉS limpiar
 			if sc.is_aiming and sc.config.get("cast_mode") == 1:
 				sc.execute_skill()
 			sc.external_aim_vector = Vector2.ZERO
-			node.remove_meta("touch_index")
 		return
 	
-	# --- MANEJO DE DRAG (apuntado MOBA) ---
+	# ── DRAG ─────────────────────────────────────────────────────────────────
 	if not is_mobile: return
 	if not sc.is_aiming: return
 	
@@ -1100,21 +1104,16 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 				  (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
 	if not is_drag: return
 	
-	# Solo procesar drag del dedo correcto
 	if event is InputEventScreenDrag:
-		var stored_index = node.get_meta("touch_index", -1)
-		if event.index != stored_index: return
+		if event.index != node.get_meta("touch_index", -1): return
 	
-	# v266.740: Usar delta RELATIVO acumulado para evitar desfasajes de coordenadas
-	# Acumular tanto ScreenDrag como MouseMotion (Godot emula mouse desde touch)
-	var prev_drag = node.get_meta("accumulated_drag", Vector2.ZERO)
-	var current_drag = prev_drag
-	if event is InputEventScreenDrag or event is InputEventMouseMotion:
-		current_drag = prev_drag + event.relative
-		node.set_meta("accumulated_drag", current_drag)
-	var diff = current_drag  # relativo al primer toque, siempre en escala de pantalla
+	# MISMA LOGICA QUE EL VIRTUAL JOYSTICK:
+	# origen = donde tocó el dedo al principio (coords locales del btn)
+	# diff   = posición actual - origen = desplazamiento puro desde el toque inicial
+	var origin = node.get_meta("touch_origin", node.size / 2)
+	var diff = event.position - origin  # píxeles de pantalla, relativo al primer toque
 	
-	# Convertir píxeles de pantalla → unidades de mundo
+	# Convertir a unidades del mundo (dividir por zoom de cámara)
 	var cam = get_viewport().get_camera_2d()
 	var zoom_val = cam.zoom.x if cam else 1.0
 	var world_diff = diff / zoom_val
@@ -1129,14 +1128,12 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 		var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
 		sc.external_aim_vector = world_diff.normalized() * mapped_range if world_diff.length() > 5 else Vector2.ZERO
 	
-	# El indicador visual sigue al dedo (stick)
+	# Indicador visual: el stick sigue el dedo desde su origen
 	if aim:
 		aim.visible = true
-		aim.position = event.position - (aim.size / 2)
-	
+		aim.position = origin + diff - (aim.size / 2)
 	if aim_bg:
 		aim_bg.visible = true
-		# Opcional: el fondo se queda quieto donde fue el primer toque
 
 
 
