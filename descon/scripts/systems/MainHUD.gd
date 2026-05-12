@@ -978,7 +978,7 @@ func _make_clickable(node: Control, callback: Callable):
 		
 		var style_bg = StyleBoxFlat.new()
 		style_bg.bg_color = Color(0, 0.5, 1, 0.1)
-		style_bg.border_width_all = 2; style_bg.border_color = Color(0, 0.5, 1, 0.3)
+		style_bg.set_border_width_all(2); style_bg.border_color = Color(0, 0.5, 1, 0.3)
 		style_bg.set_corner_radius_all(80)
 		aim_bg.add_theme_stylebox_override("panel", style_bg)
 		node.add_child(aim_bg)
@@ -992,7 +992,7 @@ func _make_clickable(node: Control, callback: Callable):
 		
 		var style_aim = StyleBoxFlat.new()
 		style_aim.bg_color = Color(0, 0.8, 1, 0.4)
-		style_aim.border_width_all = 2; style_aim.border_color = Color(0, 0.8, 1, 0.9)
+		style_aim.set_border_width_all(2); style_aim.border_color = Color(0, 0.8, 1, 0.9)
 		style_aim.set_corner_radius_all(20)
 		aim.add_theme_stylebox_override("panel", style_aim)
 		node.add_child(aim)
