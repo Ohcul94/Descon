@@ -200,8 +200,9 @@ func _setup_ui():
 	game_vbox.add_child(keys_vbox)
 	
 	var slots = {
-		"slot_1": "SLOT 1 (LÁSER)", "slot_2": "SLOT 2 (MISIL)", "slot_3": "SLOT 3 (MINA)",
-		"slot_4": "SLOT 4", "slot_5": "SLOT 5", "slot_6": "SLOT 6", "slot_7": "SLOT 7",
+		"slot_1": "SLOT 1 (HABILIDAD)", "slot_2": "SLOT 2 (HABILIDAD)", "slot_3": "SLOT 3 (HABILIDAD)",
+		"slot_4": "SLOT 4 (HABILIDAD)", "slot_5": "SLOT 5 (MINA)", "slot_6": "SLOT 6 (MISIL)", 
+		"slot_7": "SLOT 7 (LÁSER)",
 		"ui_menu": "MENÚ DE SISTEMA (ESC)", "ui_inventory": "INVENTARIO (F1)",
 		"ui_map": "MAPA (M)", "ui_party": "EQUIPO (P)", "ui_pvp_toggle": "MODO COMBATE (C)"
 	}

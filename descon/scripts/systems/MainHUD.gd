@@ -1044,11 +1044,10 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 	var sc = p._skill_controller
 	if not sc.is_aiming: return
 	
-	# v266.700: Apuntado con profundidad real (dirección + distancia)
-	# El centro del botón es el origen, igual que PC usa la nave como origen.
-	var btn_center = node.global_position + node.size / 2
-	var drag_end = event.position if "position" in event else btn_center
-	var diff = drag_end - btn_center
+	# v266.710: Apuntado con profundidad real (dirección + distancia)
+	# IMPORTANTE: En gui_input, event.position es LOCAL al nodo.
+	var center = node.size / 2
+	var diff = event.position - center
 	
 	# La distancia del drag (0-80px aprox) se mapea al rango de la habilidad
 	# sensitivity controla cuánto rango se obtiene por px de arrastre
@@ -1069,9 +1068,7 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 	var aim = node.get_node_or_null("AimIndicator")
 	if aim:
 		aim.visible = true
-		# Centrar el indicador en la posición del dedo (relativo al botón)
-		var local_diff = drag_end - node.global_position
-		aim.position = local_diff - (aim.size / 2)
+		aim.position = event.position - (aim.size / 2)
 
 
 func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
