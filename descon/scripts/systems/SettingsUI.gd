@@ -267,15 +267,6 @@ func _setup_ui():
 	click_slider.value_changed.connect(func(val): SettingsManager.click_sensitivity = val; SettingsManager.save_settings())
 	pc_config.add_child(click_slider)
 
-	var mag_lbl = Label.new()
-	mag_lbl.text = "MAGNETISMO DE HABILIDADES (AUTO-APUNTADO):"
-	pc_config.add_child(mag_lbl)
-	var mag_slider = HSlider.new()
-	mag_slider.min_value = 0.5; mag_slider.max_value = 3.0; mag_slider.step = 0.1
-	if get_node_or_null("/root/SettingsManager"): mag_slider.value = SettingsManager.skill_magnetism
-	mag_slider.value_changed.connect(func(val): SettingsManager.skill_magnetism = val; SettingsManager.save_settings())
-	pc_config.add_child(mag_slider)
-
 	# ========================== TAB 2: GRÁFICOS Y ACCESIBILIDAD ==========================
 	var scroll_gfx = ScrollContainer.new()
 	scroll_gfx.name = "GRÁFICOS"

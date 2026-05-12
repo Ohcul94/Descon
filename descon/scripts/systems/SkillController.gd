@@ -98,23 +98,21 @@ func execute_skill():
 	var angle = (mouse_pos - global_position).angle()
 	var target_pos = mouse_pos
 	
-	# v266.790: Blindaje Total Móvil
-	if is_mobile:
-		# En móvil, el "mouse_pos" es donde están los dedos. Ignorarlo SIEMPRE para las skills.
+	# v266.820: Blindaje Total contra Clics en HUD
+	# Si disparamos desde la HUD (Celular o PC con Mouse en botones), ignoramos el mouse global.
+	if is_mobile or external_aim_vector != Vector2.ZERO:
 		if external_aim_vector != Vector2.ZERO:
 			angle = external_aim_vector.angle()
 			target_pos = global_position + external_aim_vector
 		else:
-			# Si no hay drag, apuntar hacia donde mira la nave (evita el "salto" al botón)
+			# Tap simple en botón: disparar hacia adelante de la nave
 			angle = get_parent().rotation
 			target_pos = global_position + Vector2.RIGHT.rotated(angle) * 100.0
 		selected_target = null
 	else:
-		# Modo PC: Lógica clásica de mouse
-		if external_aim_vector != Vector2.ZERO:
-			angle = external_aim_vector.angle()
-			target_pos = global_position + external_aim_vector
-			selected_target = null
+		# Modo PC Clásico (Teclado): Usar Mouse
+		angle = (mouse_pos - global_position).angle()
+		target_pos = mouse_pos
 	
 	var payload = {
 		"skill_id": current_skill.id,
