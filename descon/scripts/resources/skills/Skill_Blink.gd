@@ -13,7 +13,10 @@ func activate(player: CharacterBody2D):
 	# v266.850: Leer el vector de apuntado del SkillController (Modo Celu)
 	# En lugar de hardcodear el mouse, respetamos el apuntado por arrastre.
 	var target_pos: Vector2
-	var sc = player.get_node_or_null("SkillController")
+	var sc = player.get("_skill_controller")
+	if not sc:
+		sc = player.get_node_or_null("SkillController")
+	
 	var is_mobile = player.get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	
 	if is_mobile and sc and sc.external_aim_vector != Vector2.ZERO:

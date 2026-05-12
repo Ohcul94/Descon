@@ -105,6 +105,7 @@ func _setup_skill_controller():
 	var sc_script = load("res://scripts/systems/SkillController.gd")
 	if sc_script:
 		_skill_controller = sc_script.new()
+		_skill_controller.name = "SkillController"
 		add_child(_skill_controller)
 
 func _unhandled_input(event):
