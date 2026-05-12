@@ -58,54 +58,19 @@ func _update_targeting():
 		selected_target = _find_target_under_mouse()
 
 func _find_target_under_mouse() -> Node2D:
+	# v266.790: Magnetismo eliminado por pedido del usuario.
+	# Esta función ahora solo busca si hay algo EXACTAMENTE bajo el puntero (PC).
+	if get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode:
+		return null # En móvil no hay target bajo mouse
+		
 	var mouse_pos = get_global_mouse_position()
 	var entities = get_tree().get_nodes_in_group("entities")
-	var closest_remote = null
 	var me = get_parent()
-	
-	var max_dist = 60.0
-	if get_node_or_null("/root/SettingsManager"):
-		max_dist = 60.0 * SettingsManager.skill_magnetism
-	
-	var min_dist_remote = max_dist
-	var filters = current_skill.get("filters", {"allies": true, "enemies": false, "bosses": false, "players": true})
 	
 	for e in entities:
 		if e == me: continue
-		
-		# v3.9.5: Validación de Filtros en Tiempo Real
-		var is_valid = false
-		var is_remote_player = e.is_in_group("player") or e.is_in_group("remote_players")
-		var is_enemy = e.is_in_group("enemies")
-		
-		if is_remote_player:
-			var my_tag = me.get("clan_tag")
-			var target_tag = e.get("clan_tag")
-			var same_clan = (my_tag != "" and target_tag != "" and my_tag == target_tag)
-			
-			# Lógica permisiva (v3.9.8)
-			if same_clan and filters.get("allies", true): is_valid = true
-			elif filters.get("players", true): is_valid = true
-		elif is_enemy:
-			var e_type = e.get("entity_type")
-			var is_boss = (e_type == 4 or e_type == 10 or e_type == 11)
-			if is_boss and filters.get("bosses", false): is_valid = true
-			elif not is_boss and filters.get("enemies", false): is_valid = true
-			
-		if not is_valid: continue
-
-		var d = e.global_position.distance_to(mouse_pos)
-		if d < min_dist_remote:
-			min_dist_remote = d
-			closest_remote = e
-			
-	# v3.9.9: Prioridad Absoluta a Objetivos Externos
-	if closest_remote: return closest_remote
-	
-	# Solo si no hay nadie cerca, verificamos si el mouse está sobre nosotros
-	if me.global_position.distance_to(mouse_pos) < max_dist:
-		return me
-		
+		if e.global_position.distance_to(mouse_pos) < 40.0:
+			return e
 	return null
 
 func start_aiming(skill_data: Dictionary):
@@ -127,16 +92,29 @@ func execute_skill():
 	# v266.70: No retornar si es un trigger de release y ya se estaba apuntando
 	if not is_aiming: return
 	
+	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
+	
 	var mouse_pos = get_global_mouse_position()
 	var angle = (mouse_pos - global_position).angle()
-	var target_pos = mouse_pos  # Posición del objetivo en el mundo
+	var target_pos = mouse_pos
 	
-	# v266.780: Prioridad ABSOLUTA al arrastre manual en Celular
-	# Si el jugador está usando el joystick de skill, ignoramos cualquier objetivo magnetizado
-	if external_aim_vector != Vector2.ZERO:
-		angle = external_aim_vector.angle()
-		target_pos = global_position + external_aim_vector
-		selected_target = null # <--- FIX: Evita que el magnetismo lo mande al revés
+	# v266.790: Blindaje Total Móvil
+	if is_mobile:
+		# En móvil, el "mouse_pos" es donde están los dedos. Ignorarlo SIEMPRE para las skills.
+		if external_aim_vector != Vector2.ZERO:
+			angle = external_aim_vector.angle()
+			target_pos = global_position + external_aim_vector
+		else:
+			# Si no hay drag, apuntar hacia donde mira la nave (evita el "salto" al botón)
+			angle = get_parent().rotation
+			target_pos = global_position + Vector2.RIGHT.rotated(angle) * 100.0
+		selected_target = null
+	else:
+		# Modo PC: Lógica clásica de mouse
+		if external_aim_vector != Vector2.ZERO:
+			angle = external_aim_vector.angle()
+			target_pos = global_position + external_aim_vector
+			selected_target = null
 	
 	var payload = {
 		"skill_id": current_skill.id,

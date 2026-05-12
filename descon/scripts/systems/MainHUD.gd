@@ -1056,52 +1056,47 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	var aim_bg = node.get_node_or_null("AimIndicatorBG")
 	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	
-	# ── PRESS (ScreenTouch) ──────────────────────────────────────────────────
-	if event is InputEventScreenTouch:
-		if event.pressed:
-			node.set_meta("touch_index", event.index)
-			node.set_meta("touch_origin", event.position)  # coords locales al btn
-			callback.call()
-			if is_mobile:
-				if aim_bg:
-					aim_bg.visible = true
-					aim_bg.position = event.position - (aim_bg.size / 2)  # centro en el dedo
-				if aim:
-					aim.visible = true
-					aim.position = event.position - (aim.size / 2)  # empieza en el dedo
-		else:  # release
-			if event.index != node.get_meta("touch_index", -1): return
-			if aim: aim.visible = false
-			if aim_bg: aim_bg.visible = false
-			if sc.is_aiming and sc.config.get("cast_mode") == 1:
-				sc.execute_skill()
-			sc.external_aim_vector = Vector2.ZERO
-			node.remove_meta("touch_index")
-		return
+	# ── PRESS (ScreenTouch / Mouse) ──────────────────────────────────────────
+	var is_press = (event is InputEventScreenTouch and event.pressed) or \
+				   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
 	
-	# ── PRESS (Mouse – PC / emulación) ───────────────────────────────────────
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			node.set_meta("touch_origin", event.position)
-			callback.call()
-			if is_mobile:
-				if aim_bg:
-					aim_bg.visible = true
-					aim_bg.position = event.position - (aim_bg.size / 2)
-				if aim:
-					aim.visible = true
-					aim.position = event.position - (aim.size / 2)
-		else:
-			if aim: aim.visible = false
-			if aim_bg: aim_bg.visible = false
-			if sc.is_aiming and sc.config.get("cast_mode") == 1:
-				sc.execute_skill()
-			sc.external_aim_vector = Vector2.ZERO
+	if is_press:
+		var g_pos = event.global_position
+		node.set_meta("touch_index", event.index if event is InputEventScreenTouch else 0)
+		node.set_meta("touch_origin_global", g_pos) # v266.800: ORIGEN GLOBAL (Wild Rift Style)
+		callback.call()
+		
+		if is_mobile:
+			# El fondo del indicador se centra donde tocaste (Joystick Flotante)
+			if aim_bg:
+				aim_bg.visible = true
+				aim_bg.global_position = g_pos - (aim_bg.size / 2)
+			if aim:
+				aim.visible = true
+				aim.global_position = g_pos - (aim.size / 2)
 		return
+
+	# ── RELEASE ─────────────────────────────────────────────────────────────
+	var is_release = (event is InputEventScreenTouch and not event.pressed) or \
+					 (event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
 	
-	# ── DRAG ─────────────────────────────────────────────────────────────────
-	if not is_mobile: return
-	if not sc.is_aiming: return
+	if is_release:
+		var stored_index = node.get_meta("touch_index", -1)
+		if event is InputEventScreenTouch and event.index != stored_index: return
+		
+		if aim: aim.visible = false
+		if aim_bg: aim_bg.visible = false
+		
+		if sc.is_aiming and sc.config.get("cast_mode") == 1:
+			sc.execute_skill()
+			
+		sc.external_aim_vector = Vector2.ZERO
+		node.remove_meta("touch_index")
+		node.remove_meta("touch_origin_global")
+		return
+
+	# ── DRAG (Apuntado MOBA Profesional) ─────────────────────────────────────
+	if not is_mobile or not sc.is_aiming: return
 	
 	var is_drag = (event is InputEventScreenDrag) or \
 				  (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
@@ -1110,39 +1105,33 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	if event is InputEventScreenDrag:
 		if event.index != node.get_meta("touch_index", -1): return
 	
-	# origen = donde tocó el dedo al principio (coords locales del btn)
-	# diff   = posición actual - origen = desplazamiento puro desde el toque inicial
-	var origin = node.get_meta("touch_origin", node.size / 2)
-	var diff = event.position - origin  
+	# CALCULO WILD RIFT: Desplazamiento global puro
+	var g_origin = node.get_meta("touch_origin_global", event.global_position)
+	var diff_global = event.global_position - g_origin
 	
-	# v266.770: Sincronización total: el indicador SIGUE al dedo 1:1
-	# No invertimos el diff aquí para que el AimIndicator no se aleje del dedo.
-	
-	# v266.750: Mapeo Directo 1:1 con el Mundo
-	# Pantalla Y+ (abajo) -> Mundo Y+ (abajo)
-	# Pantalla X+ (derecha) -> Mundo X+ (derecha)
+	# Convertir a unidades del mundo (escala de cámara)
 	var cam = get_viewport().get_camera_2d()
 	var zoom_val = cam.zoom.x if cam else 1.0
-	var world_diff = diff / zoom_val
+	var world_diff = diff_global / zoom_val
 	
 	var max_range = sc.current_skill.get("range", 500.0)
 	var sensitivity = SettingsManager.mobile_aim_sensitivity
 	
 	if max_range <= 0:
-		# Habilidades sin rango (ej: laser): solo dirección
 		sc.external_aim_vector = world_diff.normalized() * 300.0 if world_diff.length() > 5 else Vector2.ZERO
 	else:
-		# Habilidades con profundidad (ej: minas, blink)
-		var px_for_max = (80.0 / zoom_val) / sensitivity
+		# 80px de arrastre en pantalla = Rango máximo de la habilidad
+		var px_for_max = 80.0 / sensitivity
 		var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
 		sc.external_aim_vector = world_diff.normalized() * mapped_range if world_diff.length() > 5 else Vector2.ZERO
 	
-	# Indicador visual: el stick sigue el dedo desde su origen
+	# Indicador visual (Stick)
 	if aim:
 		aim.visible = true
-		aim.position = origin + diff - (aim.size / 2)
+		aim.global_position = event.global_position - (aim.size / 2)
 	if aim_bg:
 		aim_bg.visible = true
+		aim_bg.global_position = g_origin - (aim_bg.size / 2)
 
 
 
