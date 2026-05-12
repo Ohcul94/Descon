@@ -1107,13 +1107,14 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	if event is InputEventScreenDrag:
 		if event.index != node.get_meta("touch_index", -1): return
 	
-	# MISMA LOGICA QUE EL VIRTUAL JOYSTICK:
 	# origen = donde tocó el dedo al principio (coords locales del btn)
 	# diff   = posición actual - origen = desplazamiento puro desde el toque inicial
 	var origin = node.get_meta("touch_origin", node.size / 2)
-	var diff = event.position - origin  # píxeles de pantalla, relativo al primer toque
+	var diff = event.position - origin  
 	
-	# Convertir a unidades del mundo (dividir por zoom de cámara)
+	# v266.750: Mapeo Directo 1:1 con el Mundo
+	# Pantalla Y+ (abajo) -> Mundo Y+ (abajo)
+	# Pantalla X+ (derecha) -> Mundo X+ (derecha)
 	var cam = get_viewport().get_camera_2d()
 	var zoom_val = cam.zoom.x if cam else 1.0
 	var world_diff = diff / zoom_val
@@ -1122,8 +1123,10 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	var sensitivity = SettingsManager.mobile_aim_sensitivity
 	
 	if max_range <= 0:
+		# Habilidades sin rango (ej: laser): solo dirección
 		sc.external_aim_vector = world_diff.normalized() * 300.0 if world_diff.length() > 5 else Vector2.ZERO
 	else:
+		# Habilidades con profundidad (ej: minas, blink)
 		var px_for_max = (80.0 / zoom_val) / sensitivity
 		var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
 		sc.external_aim_vector = world_diff.normalized() * mapped_range if world_diff.length() > 5 else Vector2.ZERO

@@ -100,6 +100,19 @@ func _setup_ui():
 	game_vbox.add_theme_constant_override("separation", 10)
 	margin_game.add_child(game_vbox)
 	
+	# --- SECCIÓN PC ---
+	var pc_header = Label.new()
+	pc_header.text = "🖥️ CONFIGURACIÓN MODO PC"
+	pc_header.add_theme_font_size_override("font_size", 14)
+	pc_header.add_theme_color_override("font_color", Color.CYAN)
+	game_vbox.add_child(pc_header)
+	
+	var pc_desc = Label.new()
+	pc_desc.text = "Control clásico con Mouse y Teclado. El disparo va hacia el cursor."
+	pc_desc.add_theme_font_size_override("font_size", 10)
+	pc_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
+	game_vbox.add_child(pc_desc)
+
 	var cast_hbox = HBoxContainer.new()
 	cast_hbox.add_theme_constant_override("separation", 20)
 	game_vbox.add_child(cast_hbox)
@@ -108,7 +121,7 @@ func _setup_ui():
 	cast_hbox.add_child(cast_vbox)
 	
 	var cast_label = Label.new()
-	cast_label.text = "MODO DE LANZAMIENTO (CAST):"
+	cast_label.text = "MODO DE LANZAMIENTO (PC/GENERAL):"
 	cast_vbox.add_child(cast_label)
 	
 	var cast_option = OptionButton.new()
@@ -125,60 +138,54 @@ func _setup_ui():
 	cast_option.item_selected.connect(_on_cast_mode_changed)
 	cast_vbox.add_child(cast_option)
 	
-	# v266.700: MODO CELULAR (TIPO MOBA)
+	game_vbox.add_child(HSeparator.new())
+
+	# --- SECCIÓN MÓVIL ---
+	var mob_header = Label.new()
+	mob_header.text = "📱 CONFIGURACIÓN MODO CELULAR"
+	mob_header.add_theme_font_size_override("font_size", 14)
+	mob_header.add_theme_color_override("font_color", Color(1.0, 0.7, 0.3)) # Naranja/Oro
+	game_vbox.add_child(mob_header)
+	
 	var joy_vbox = VBoxContainer.new()
 	joy_vbox.add_theme_constant_override("separation", 8)
-	cast_hbox.add_child(joy_vbox)
-	
-	var joy_lbl = Label.new()
-	joy_lbl.text = "INTERFAZ MÓVIL (TIPO MOBA):"
-	joy_lbl.add_theme_color_override("font_color", Color.CYAN)
-	joy_vbox.add_child(joy_lbl)
-	
-	var joy_desc = Label.new()
-	joy_desc.text = "Joystick de movimiento + apuntado\npor arrastre en botones de skills."
-	joy_desc.add_theme_font_size_override("font_size", 10)
-	joy_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
-	joy_vbox.add_child(joy_desc)
+	game_vbox.add_child(joy_vbox)
 	
 	var joy_check = CheckButton.new()
-	joy_check.text = "MODO CELULAR ACTIVO"
+	joy_check.text = "ACTIVAR INTERFAZ TIPO MOBA"
 	joy_check.button_pressed = SettingsManager.mobile_mode
 	joy_vbox.add_child(joy_check)
 	
-	# Panel de configuración que aparece al activar
 	var mobile_config = VBoxContainer.new()
 	mobile_config.name = "MobileConfig"
 	mobile_config.visible = SettingsManager.mobile_mode
-	mobile_config.add_theme_constant_override("separation", 5)
+	mobile_config.add_theme_constant_override("separation", 10)
+	mobile_config.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	joy_vbox.add_child(mobile_config)
 	
-	var sep_m = HSeparator.new(); mobile_config.add_child(sep_m)
+	var sens_vbox = VBoxContainer.new()
+	mobile_config.add_child(sens_vbox)
 	
 	var sens_lbl = Label.new()
-	sens_lbl.text = "SENSIBILIDAD DE APUNTADO:"
-	mobile_config.add_child(sens_lbl)
+	sens_lbl.text = "SENSIBILIDAD DE APUNTADO (DRAG):"
+	sens_vbox.add_child(sens_lbl)
 	
 	var sens_slider = HSlider.new()
-	sens_slider.name = "AimSensSlider"
-	sens_slider.min_value = 0.2
-	sens_slider.max_value = 3.0
-	sens_slider.step = 0.1
+	sens_slider.min_value = 0.2; sens_slider.max_value = 3.0; sens_slider.step = 0.1
 	sens_slider.value = SettingsManager.mobile_aim_sensitivity
-	sens_slider.custom_minimum_size.x = 150
 	sens_slider.value_changed.connect(func(val):
 		SettingsManager.mobile_aim_sensitivity = val
 		SettingsManager.save_settings()
 	)
-	mobile_config.add_child(sens_slider)
+	sens_vbox.add_child(sens_slider)
 	
 	var sens_hint = Label.new()
-	sens_hint.text = "Controla el alcance del arrastre.\nMás = apunta más lejos con menos movimiento."
+	sens_hint.text = "Ajusta qué tan lejos llega la mira al arrastrar el dedo."
 	sens_hint.add_theme_font_size_override("font_size", 10)
 	sens_hint.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
-	mobile_config.add_child(sens_hint)
+	sens_vbox.add_child(sens_hint)
 	
-	# Conectar toggle al final (referencia mobile_config)
+	# Conectar toggle principal
 	joy_check.toggled.connect(func(v):
 		SettingsManager.mobile_mode = v
 		SettingsManager.save_settings()
