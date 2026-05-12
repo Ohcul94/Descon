@@ -1000,34 +1000,8 @@ func _make_clickable(node: Control, callback: Callable):
 		aim.add_theme_stylebox_override("panel", style_aim)
 		node.add_child(aim)
 	
-	# Usamos señales de botón que son más fiables en móvil
-	# Limpiar conexiones previas para evitar disparos dobles v266.132
-	for sig in [btn.button_down, btn.button_up]:
-		for conn in sig.get_connections():
-			sig.disconnect(conn.callable)
-	
-	btn.button_down.connect(func(): callback.call())
-	
-	btn.button_up.connect(func():
-		var p = get_tree().get_first_node_in_group("player")
-		if is_instance_valid(p) and p._skill_controller:
-			var sc = p._skill_controller
-			
-			# v266.730: Ocultar indicadores
-			var aim_ind = node.get_node_or_null("AimIndicator")
-			if aim_ind: aim_ind.visible = false
-			var aim_bg_ind = node.get_node_or_null("AimIndicatorBG")
-			if aim_bg_ind: aim_bg_ind.visible = false
-			
-			# En Celular: siempre ejecutar al soltar (da tiempo para el arrastre)
-			# En PC: respetar cast_mode (1 = ON_RELEASE)
-			var is_mobile_btn = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
-			if sc.is_aiming and (is_mobile_btn or sc.config.get("cast_mode") == 1):
-				sc.execute_skill()
-			sc.external_aim_vector = Vector2.ZERO
-	)
-	
-	# v266.730: Manejar touch directo para multi-touch (gui_input recibe ScreenTouch)
+	# v266.82: Usamos ÚNICAMENTE gui_input para manejar todo el ciclo (Press, Drag, Release)
+	# Esto evita disparos dobles y permite un control total del multitouch.
 	btn.gui_input.connect(_on_touch_button_input.bind(node, callback))
 
 func _on_sphere_slot_gui_input(event: InputEvent, id: int):
@@ -1065,7 +1039,7 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	if is_press:
 		var g_pos = event.global_position
 		node.set_meta("touch_index", event.index if event is InputEventScreenTouch else 0)
-		node.set_meta("touch_origin_global", g_pos) # v266.800: ORIGEN GLOBAL (Wild Rift Style)
+		node.set_meta("touch_origin_global", g_pos)
 		callback.call()
 		
 		if is_mobile:
@@ -1076,6 +1050,8 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 			if aim:
 				aim.visible = true
 				aim.global_position = g_pos - (aim.size / 2)
+		
+		get_viewport().set_input_as_handled() # v266.83: Bloquear propagación
 		return
 
 	# ── RELEASE ─────────────────────────────────────────────────────────────

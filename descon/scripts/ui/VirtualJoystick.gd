@@ -36,42 +36,48 @@ func _draw():
 	# Dibujar stick
 	draw_circle(center + stick_pos, 25, stick_color)
 
-func _unhandled_input(event):
-	# Si no estamos en modo móvil, ignorar todo
+func _input(event):
 	if not is_mobile_enabled: return
 	
-	var ev_pos = Vector2.ZERO
-	var ev_index = -1
+	# v1.8: Filtrado Multi-Touch Profesional
+	# Priorizamos ScreenTouch/Drag. El mouse solo se usa si no hay toques activos (para testing en PC).
+	var is_touch = event is InputEventScreenTouch or event is InputEventScreenDrag
+	var is_mouse = event is InputEventMouseButton or event is InputEventMouseMotion
 	
-	if event is InputEventScreenTouch or event is InputEventScreenDrag:
-		ev_pos = event.position
-		ev_index = event.index
-	elif event is InputEventMouseButton or event is InputEventMouseMotion:
-		ev_pos = event.position
-		ev_index = 0
-	else:
-		return
-		
-	var is_left_zone = ev_pos.x < get_viewport_rect().size.x / 2
+	if not (is_touch or is_mouse): return
 	
-	# --- TOQUE INICIAL (Solo si es en la izquierda) ---
+	var ev_pos = event.position
+	var ev_index = event.index if is_touch else 0
+	var screen_width = get_viewport_rect().size.x
+	var is_left_zone = ev_pos.x < screen_width / 2
+	
+	# --- 1. TOQUE INICIAL ---
 	if (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed):
+		# Solo activamos si es en la zona izquierda y no tenemos un toque ya capturado
 		if is_left_zone and active_touch_index == -1:
 			active_touch_index = ev_index
 			is_dragging = true
 			visible = true
+			
+			# Posicionar el joystick donde se tocó (Joystick Flotante)
 			global_position = ev_pos - (size / 2)
 			_update_pos(ev_pos)
 			
-	# --- TOQUE FINAL ---
+			# IMPORTANTE: Marcamos como manejado para que el Player.gd no intente moverse por click
+			get_viewport().set_input_as_handled()
+			
+	# --- 2. TOQUE FINAL (Release) ---
 	elif (event is InputEventScreenTouch and not event.pressed) or (event is InputEventMouseButton and not event.pressed):
 		if ev_index == active_touch_index:
 			_reset_joystick()
+			# No marcamos como manejado aquí para permitir que otros sistemas limpien estados si lo necesitan
 			
-	# --- MOVIMIENTO ---
+	# --- 3. MOVIMIENTO (Drag) ---
 	elif event is InputEventScreenDrag or event is InputEventMouseMotion:
 		if is_dragging and ev_index == active_touch_index:
 			_update_pos(ev_pos)
+			# Marcamos como manejado mientras arrastramos el joystick
+			get_viewport().set_input_as_handled()
 
 func _update_pos(p: Vector2):
 	var center = global_position + (size / 2)
