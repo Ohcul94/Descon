@@ -168,7 +168,7 @@ func _draw():
 	# v266.680: Preparar vector de apuntado final (Mouse o HUD)
 	var aim_vec = get_local_mouse_position()
 	if external_aim_vector != Vector2.ZERO:
-		aim_vec = external_aim_vector.normalized() * (range_val if range_val > 0 else 300.0)
+		aim_vec = external_aim_vector # v266.710: Usar el vector tal cual para permitir profundidad
 	
 	# 2. Dibujar Indicador
 	if current_skill.get("type") == SkillType.DIRECTIONAL:

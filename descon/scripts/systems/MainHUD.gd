@@ -447,16 +447,17 @@ func _sync_hud_keys():
 	var skills_container = get_node_or_null("Skills")
 	if not is_instance_valid(skills_container): return
 
-	var all_slots = []
-	for child in skills_container.get_children():
-		if "Slot" in child.name:
-			all_slots.append(child)
+	var all_slots = skills_container.find_children("*Slot", "Control", true, false)
 	
-	all_slots.sort_custom(func(a, b): return a.global_position.x < b.global_position.x)
+	var slot_to_action = {
+		"Sphere1Slot": "slot_1", "Sphere2Slot": "slot_2", 
+		"Sphere3Slot": "slot_3", "Sphere4Slot": "slot_4",
+		"LaserSlot": "slot_7", "MissileSlot": "slot_6", "MineSlot": "slot_5"
+	}
 
-	for i in range(min(all_slots.size(), 7)):
-		var slot = all_slots[i]
-		var action = "slot_" + str(i + 1)
+	for slot in all_slots:
+		var action = slot_to_action.get(slot.name, "")
+		if action == "": continue
 		
 		var lbl = slot.get_node_or_null("BindingLabel")
 		if not is_instance_valid(lbl):
@@ -966,6 +967,24 @@ func _make_clickable(node: Control, callback: Callable):
 		btn.mouse_filter = Control.MOUSE_FILTER_STOP
 		node.add_child(btn)
 		node.move_child(btn, 0)
+		
+		# v266.710: Indicador visual de apuntado MOBA
+		var aim = ColorRect.new()
+		aim.name = "AimIndicator"
+		aim.size = Vector2(40, 40)
+		aim.position = (node.size / 2) - Vector2(20, 20)
+		aim.visible = false
+		aim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		# Estilo círculo azul
+		var style = StyleBoxFlat.new()
+		style.bg_color = Color(0, 0.8, 1, 0.3)
+		style.border_width_left = 2; style.border_color = Color(0, 0.8, 1, 0.8)
+		style.set_corner_radius_all(20)
+		aim.add_theme_stylebox_override("panel", style) # ColorRect no usa stylebox, pero lo guardamos
+		
+		# Usar un shader o simplemente un círculo dibujado
+		node.add_child(aim)
 	
 	# Usamos señales de botón que son más fiables en móvil
 	# Limpiar conexiones previas para evitar disparos dobles v266.132
@@ -983,6 +1002,11 @@ func _make_clickable(node: Control, callback: Callable):
 		if is_instance_valid(p) and p._skill_controller:
 			var sc = p._skill_controller
 			sc.external_aim_vector = Vector2.ZERO # Limpiar al soltar
+			
+			# v266.710: Ocultar indicador visual
+			var aim = node.get_node_or_null("AimIndicator")
+			if aim: aim.visible = false
+			
 			if sc.is_aiming and sc.config.get("cast_mode") == 1:
 				sc.execute_skill()
 	)
@@ -1031,14 +1055,23 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 	var sensitivity = SettingsManager.mobile_aim_sensitivity
 	var max_range = sc.current_skill.get("range", 500.0)
 	
+	var drag_length = diff.length()
+	var mapped_range = clamp(drag_length * sensitivity * (max_range / 80.0), 10.0, max_range)
+	
 	if max_range <= 0:
 		# Habilidades globales (range=0): solo necesitamos el ángulo
-		sc.external_aim_vector = diff.normalized() * 300.0 if diff.length() > 5 else Vector2.ZERO
+		sc.external_aim_vector = diff.normalized() * 300.0 if drag_length > 5 else Vector2.ZERO
 	else:
 		# Habilidades con rango: el arrastre mapea 0..80px a 0..max_range
-		var drag_length = diff.length()
-		var mapped_range = clamp(drag_length * sensitivity * (max_range / 80.0), 10.0, max_range)
 		sc.external_aim_vector = diff.normalized() * mapped_range if drag_length > 5 else Vector2.ZERO
+
+	# v266.710: Actualizar indicador visual en el botón
+	var aim = node.get_node_or_null("AimIndicator")
+	if aim:
+		aim.visible = true
+		# Centrar el indicador en la posición del dedo (relativo al botón)
+		var local_diff = drag_end - node.global_position
+		aim.position = local_diff - (aim.size / 2)
 
 
 func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
