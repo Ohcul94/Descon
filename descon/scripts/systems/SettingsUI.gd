@@ -189,7 +189,7 @@ func _setup_ui():
 	sens_hint.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
 	sens_vbox.add_child(sens_hint)
 	
-	mobile_config.add_child(HSeparator.new())
+	mob_config_root.add_child(HSeparator.new())
 	
 	var inv_check = CheckButton.new()
 	inv_check.text = "INVERTIR EJE Y (APUNTADO)"
@@ -198,7 +198,7 @@ func _setup_ui():
 		SettingsManager.mobile_invert_y = v
 		SettingsManager.save_settings()
 	)
-	mobile_config.add_child(inv_check)
+	mob_config_root.add_child(inv_check)
 
 	# CONECTAR SELECTOR
 	plat_option.item_selected.connect(func(idx):
