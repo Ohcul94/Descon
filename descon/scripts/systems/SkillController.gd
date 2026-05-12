@@ -27,11 +27,25 @@ func _ready():
 		config.cast_mode = SettingsManager.get_cast_mode()
 
 var external_aim_vector: Vector2 = Vector2.ZERO # v266.680: Para apuntado MOBA desde HUD
+var buffered_skill_data: Dictionary = {} # v266.920: Input Buffering
+var buffer_timer: float = 0.0
+const BUFFER_WINDOW: float = 0.5 # Segundos que vive un input en la cola
 
-func _process(_delta):
+func _process(delta):
 	if is_aiming:
 		queue_redraw()
 		_update_targeting()
+	
+	# v266.920: Procesar buffer de entrada
+	if buffer_timer > 0:
+		buffer_timer -= delta
+		if not is_aiming and not buffered_skill_data.is_empty():
+			var data = buffered_skill_data.duplicate()
+			buffered_skill_data = {}
+			buffer_timer = 0.0
+			start_aiming(data)
+	elif not buffered_skill_data.is_empty():
+		buffered_skill_data = {}
 
 func _unhandled_input(event):
 	if is_aiming:
@@ -74,6 +88,12 @@ func _find_target_under_mouse() -> Node2D:
 	return null
 
 func start_aiming(skill_data: Dictionary):
+	# v266.920: Si ya estamos apuntando OTRA cosa, guardamos esta en el buffer
+	if is_aiming and current_skill.get("id") != skill_data.id:
+		buffered_skill_data = skill_data
+		buffer_timer = BUFFER_WINDOW
+		return
+
 	current_skill = skill_data
 	is_aiming = true
 	queue_redraw()
