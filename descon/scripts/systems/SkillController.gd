@@ -131,10 +131,12 @@ func execute_skill():
 	var angle = (mouse_pos - global_position).angle()
 	var target_pos = mouse_pos  # Posición del objetivo en el mundo
 	
-	# v266.730: Si hay apuntado MOBA, usarlo tanto para el ángulo como para la posición
+	# v266.780: Prioridad ABSOLUTA al arrastre manual en Celular
+	# Si el jugador está usando el joystick de skill, ignoramos cualquier objetivo magnetizado
 	if external_aim_vector != Vector2.ZERO:
 		angle = external_aim_vector.angle()
 		target_pos = global_position + external_aim_vector
+		selected_target = null # <--- FIX: Evita que el magnetismo lo mande al revés
 	
 	var payload = {
 		"skill_id": current_skill.id,

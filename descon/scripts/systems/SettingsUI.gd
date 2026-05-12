@@ -252,31 +252,29 @@ func _setup_ui():
 	game_vbox.add_child(HSeparator.new())
 	
 
-	# --- AJUSTES DE CONTROL (v2.1) ---
-	var sens_label = Label.new()
-	sens_label.text = "AJUSTES DE PRECISIÓN Y CONTROL:"
-	sens_label.add_theme_color_override("font_color", Color.CYAN)
-	game_vbox.add_child(sens_label)
+	# --- AJUSTES DE CONTROL PC ---
+	var sens_pc_label = Label.new()
+	sens_pc_label.text = "AJUSTES DE PRECISIÓN (PC):"
+	sens_pc_label.add_theme_color_override("font_color", Color.CYAN)
+	pc_config.add_child(sens_pc_label)
 	
-	# SENSIBILIDAD DE CLICK (MOVIMIENTO)
 	var click_lbl = Label.new()
-	click_lbl.text = "SENSIBILIDAD DE CLICK (RESPUESTA AL MOVERTE):"
-	game_vbox.add_child(click_lbl)
+	click_lbl.text = "SENSIBILIDAD DE CLICK (MOVIMIENTO):"
+	pc_config.add_child(click_lbl)
 	var click_slider = HSlider.new()
 	click_slider.min_value = 0.5; click_slider.max_value = 2.0; click_slider.step = 0.1
 	if get_node_or_null("/root/SettingsManager"): click_slider.value = SettingsManager.click_sensitivity
 	click_slider.value_changed.connect(func(val): SettingsManager.click_sensitivity = val; SettingsManager.save_settings())
-	game_vbox.add_child(click_slider)
+	pc_config.add_child(click_slider)
 
-	# MAGNETISMO DE HABILIDADES
 	var mag_lbl = Label.new()
 	mag_lbl.text = "MAGNETISMO DE HABILIDADES (AUTO-APUNTADO):"
-	game_vbox.add_child(mag_lbl)
+	pc_config.add_child(mag_lbl)
 	var mag_slider = HSlider.new()
 	mag_slider.min_value = 0.5; mag_slider.max_value = 3.0; mag_slider.step = 0.1
 	if get_node_or_null("/root/SettingsManager"): mag_slider.value = SettingsManager.skill_magnetism
 	mag_slider.value_changed.connect(func(val): SettingsManager.skill_magnetism = val; SettingsManager.save_settings())
-	game_vbox.add_child(mag_slider)
+	pc_config.add_child(mag_slider)
 
 	# ========================== TAB 2: GRÁFICOS Y ACCESIBILIDAD ==========================
 	var scroll_gfx = ScrollContainer.new()
