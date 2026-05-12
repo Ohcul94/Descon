@@ -88,42 +88,47 @@ func start_aiming(skill_data: Dictionary):
 	if config.cast_mode == CastMode.QUICK_CAST:
 		execute_skill()
 
-func execute_skill(from_hud: bool = false):
-	# v266.830: Blindaje Total -from_hud- 
-	# Si disparamos desde la HUD, ignoramos el mouse global siempre.
+func execute_skill():
+	# v266.840: Separación Drástica PC vs CELU
 	if not is_aiming: return
 	
-	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
-	var mouse_pos = get_global_mouse_position()
-	var angle: float
-	var target_pos: Vector2
-	
-	if from_hud or is_mobile or external_aim_vector != Vector2.ZERO:
-		if external_aim_vector != Vector2.ZERO:
-			angle = external_aim_vector.angle()
-			target_pos = global_position + external_aim_vector
-		else:
-			# Disparo desde HUD sin drag (tap): disparar hacia adelante
-			angle = get_parent().rotation
-			target_pos = global_position + Vector2.RIGHT.rotated(angle) * 100.0
-		selected_target = null
-	else:
-		# Disparo desde Teclado (PC): Usar Mouse
-		angle = (mouse_pos - global_position).angle()
-		target_pos = mouse_pos
+	var is_mobile = false
+	if get_node_or_null("/root/SettingsManager"):
+		is_mobile = SettingsManager.mobile_mode
 	
 	var payload = {
 		"skill_id": current_skill.id,
-		"angle": angle,
-		"target": selected_target,
-		"pos": target_pos
+		"angle": 0.0,
+		"target": null,
+		"pos": Vector2.ZERO
 	}
 	
-	# v261.10: Limpiar estado ANTES de ejecutar para evitar que se quede pegado
+	if is_mobile:
+		# --- MODO CELULAR: Solo Arrastre o Frente ---
+		if external_aim_vector != Vector2.ZERO:
+			payload.angle = external_aim_vector.angle()
+			payload.pos = global_position + external_aim_vector
+		else:
+			# Tap simple: Disparo hacia adelante de la nave
+			payload.angle = get_parent().rotation
+			payload.pos = global_position + Vector2.RIGHT.rotated(payload.angle) * 100.0
+		payload.target = null
+	else:
+		# --- MODO PC: Mouse Clásico ---
+		var mouse_pos = get_global_mouse_position()
+		payload.angle = (mouse_pos - global_position).angle()
+		payload.pos = mouse_pos
+		payload.target = selected_target
+	
+	# Limpiar estado
 	is_aiming = false
 	selected_target = null
-	external_aim_vector = Vector2.ZERO # v266.682: Limpiar vector MOBA
+	external_aim_vector = Vector2.ZERO
 	queue_redraw()
+	
+	# Enviar al servidor
+	if NetworkManager:
+		NetworkManager.send_skill_use(payload)
 	
 	if get_parent().has_method("_on_skill_executed"):
 		get_parent()._on_skill_executed(payload)

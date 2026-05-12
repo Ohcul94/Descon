@@ -1198,7 +1198,7 @@
         },
         "BLINK": {
             "canTargetOthers": false,
-            "cd": 15,
+            "cd": 2,
             "desc": "Teletransportación instantánea al punto seleccionado.",
             "id": "SK-UTIL-04",
             "range": 450,
