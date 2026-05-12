@@ -75,15 +75,24 @@ func _find_target_under_mouse() -> Node2D:
 
 func start_aiming(skill_data: Dictionary):
 	current_skill = skill_data
+	is_aiming = true
+	queue_redraw()
 	
+	var is_mobile = false
+	if get_node_or_null("/root/SettingsManager"):
+		is_mobile = SettingsManager.mobile_mode
+	
+	# En MODO CELULAR: Nunca dispara al presionar.
+	# El HUD siempre llama execute_skill() al soltar el dedo (on_release).
+	# Así el jugador puede arrastrar para apuntar antes de soltar.
+	if is_mobile:
+		return
+	
+	# MODO PC: Comportamiento clásico según cast_mode configurado
 	if current_skill.get("type") == SkillType.INSTANT:
-		is_aiming = true
 		if config.cast_mode != CastMode.ON_RELEASE:
 			execute_skill()
 		return
-
-	is_aiming = true
-	queue_redraw()
 	
 	if config.cast_mode == CastMode.QUICK_CAST:
 		execute_skill()

@@ -1019,8 +1019,10 @@ func _make_clickable(node: Control, callback: Callable):
 			var aim_bg_ind = node.get_node_or_null("AimIndicatorBG")
 			if aim_bg_ind: aim_bg_ind.visible = false
 			
-			# v266.730: PRIMERO disparar, DESPUÉS limpiar el vector
-			if sc.is_aiming and sc.config.get("cast_mode") == 1:
+			# En Celular: siempre ejecutar al soltar (da tiempo para el arrastre)
+			# En PC: respetar cast_mode (1 = ON_RELEASE)
+			var is_mobile_btn = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
+			if sc.is_aiming and (is_mobile_btn or sc.config.get("cast_mode") == 1):
 				sc.execute_skill()
 			sc.external_aim_vector = Vector2.ZERO
 	)
