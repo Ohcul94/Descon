@@ -100,28 +100,51 @@ func _setup_ui():
 	game_vbox.add_theme_constant_override("separation", 10)
 	margin_game.add_child(game_vbox)
 	
-	# --- SECCIÓN PC ---
+	# --- SELECTOR DE PLATAFORMA ---
+	var plat_label = Label.new()
+	plat_label.text = "🎮 SELECCIONAR PLATAFORMA DE CONTROL:"
+	plat_label.add_theme_font_size_override("font_size", 14)
+	plat_label.add_theme_color_override("font_color", Color.YELLOW)
+	game_vbox.add_child(plat_label)
+	
+	var plat_option = OptionButton.new()
+	plat_option.add_item("MODO PC (Mouse & Teclado)", 0)
+	plat_option.add_item("MODO CELULAR (Joystick & MOBA)", 1)
+	plat_option.selected = 1 if SettingsManager.mobile_mode else 0
+	game_vbox.add_child(plat_option)
+	
+	game_vbox.add_child(HSeparator.new())
+
+	# --- CONTENEDORES DE CONFIGURACIÓN ---
+	var pc_config = VBoxContainer.new()
+	pc_config.visible = not SettingsManager.mobile_mode
+	game_vbox.add_child(pc_config)
+	
+	var mob_config_root = VBoxContainer.new()
+	mob_config_root.visible = SettingsManager.mobile_mode
+	game_vbox.add_child(mob_config_root)
+
+	# --- DETALLE PC ---
 	var pc_header = Label.new()
-	pc_header.text = "🖥️ CONFIGURACIÓN MODO PC"
-	pc_header.add_theme_font_size_override("font_size", 14)
+	pc_header.text = "🖥️ AJUSTES MODO PC"
 	pc_header.add_theme_color_override("font_color", Color.CYAN)
-	game_vbox.add_child(pc_header)
+	pc_config.add_child(pc_header)
 	
 	var pc_desc = Label.new()
-	pc_desc.text = "Control clásico con Mouse y Teclado. El disparo va hacia el cursor."
+	pc_desc.text = "Control clásico. El disparo va hacia el cursor del mouse."
 	pc_desc.add_theme_font_size_override("font_size", 10)
 	pc_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
-	game_vbox.add_child(pc_desc)
-
+	pc_config.add_child(pc_desc)
+	
 	var cast_hbox = HBoxContainer.new()
 	cast_hbox.add_theme_constant_override("separation", 20)
-	game_vbox.add_child(cast_hbox)
+	pc_config.add_child(cast_hbox)
 	
 	var cast_vbox = VBoxContainer.new()
 	cast_hbox.add_child(cast_vbox)
 	
 	var cast_label = Label.new()
-	cast_label.text = "MODO DE LANZAMIENTO (PC/GENERAL):"
+	cast_label.text = "MODO DE LANZAMIENTO (PC):"
 	cast_vbox.add_child(cast_label)
 	
 	var cast_option = OptionButton.new()
@@ -129,7 +152,6 @@ func _setup_ui():
 	cast_option.add_item("On Release (Al soltar)", 1)
 	cast_option.add_item("Normal Cast (Aim & Click)", 2)
 	
-	var player = get_tree().get_first_node_in_group("player")
 	if player and player.get("_skill_controller"):
 		cast_option.selected = player._skill_controller.config.cast_mode
 	elif get_node_or_null("/root/SettingsManager"):
@@ -137,34 +159,15 @@ func _setup_ui():
 	
 	cast_option.item_selected.connect(_on_cast_mode_changed)
 	cast_vbox.add_child(cast_option)
-	
-	game_vbox.add_child(HSeparator.new())
 
-	# --- SECCIÓN MÓVIL ---
+	# --- DETALLE MÓVIL ---
 	var mob_header = Label.new()
-	mob_header.text = "📱 CONFIGURACIÓN MODO CELULAR"
-	mob_header.add_theme_font_size_override("font_size", 14)
-	mob_header.add_theme_color_override("font_color", Color(1.0, 0.7, 0.3)) # Naranja/Oro
-	game_vbox.add_child(mob_header)
-	
-	var joy_vbox = VBoxContainer.new()
-	joy_vbox.add_theme_constant_override("separation", 8)
-	game_vbox.add_child(joy_vbox)
-	
-	var joy_check = CheckButton.new()
-	joy_check.text = "ACTIVAR INTERFAZ TIPO MOBA"
-	joy_check.button_pressed = SettingsManager.mobile_mode
-	joy_vbox.add_child(joy_check)
-	
-	var mobile_config = VBoxContainer.new()
-	mobile_config.name = "MobileConfig"
-	mobile_config.visible = SettingsManager.mobile_mode
-	mobile_config.add_theme_constant_override("separation", 10)
-	mobile_config.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	joy_vbox.add_child(mobile_config)
-	
+	mob_header.text = "📱 AJUSTES MODO CELULAR"
+	mob_header.add_theme_color_override("font_color", Color(1.0, 0.7, 0.3))
+	mob_config_root.add_child(mob_header)
+
 	var sens_vbox = VBoxContainer.new()
-	mobile_config.add_child(sens_vbox)
+	mob_config_root.add_child(sens_vbox)
 	
 	var sens_lbl = Label.new()
 	sens_lbl.text = "SENSIBILIDAD DE APUNTADO (DRAG):"
@@ -184,12 +187,16 @@ func _setup_ui():
 	sens_hint.add_theme_font_size_override("font_size", 10)
 	sens_hint.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
 	sens_vbox.add_child(sens_hint)
-	
-	# Conectar toggle principal
-	joy_check.toggled.connect(func(v):
-		SettingsManager.mobile_mode = v
+
+	# CONECTAR SELECTOR
+	plat_option.item_selected.connect(func(idx):
+		var is_mob = (idx == 1)
+		SettingsManager.mobile_mode = is_mob
 		SettingsManager.save_settings()
-		mobile_config.visible = v
+		
+		pc_config.visible = not is_mob
+		mob_config_root.visible = is_mob
+		
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud and hud.has_method("_update_joystick_visibility"):
 			hud._update_joystick_visibility()
