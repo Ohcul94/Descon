@@ -167,10 +167,16 @@ func _draw():
 	if range_val > 0:
 		draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 2.0)
 	
-	# v266.680: Preparar vector de apuntado final (Mouse o HUD)
-	var aim_vec = get_local_mouse_position()
-	if external_aim_vector != Vector2.ZERO:
-		aim_vec = external_aim_vector # v266.710: Usar el vector tal cual para permitir profundidad
+	# v266.730: Preparar vector de apuntado final
+	# En móvil: si no hay drag aún, apunta a la posición 0 (la nave), no al mouse
+	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
+	var aim_vec: Vector2
+	if is_mobile:
+		aim_vec = external_aim_vector  # En ZERO = nave, en drag = dirección del dedo
+	else:
+		aim_vec = get_local_mouse_position()
+		if external_aim_vector != Vector2.ZERO:
+			aim_vec = external_aim_vector
 	
 	# 2. Dibujar Indicador
 	if current_skill.get("type") == SkillType.DIRECTIONAL:
