@@ -151,6 +151,7 @@ func _draw():
 	# El external_aim_vector viene en espacio de mundo (absoluto).
 	# Como este nodo es hijo de la nave, _draw() ocurre en espacio local rotado.
 	# Debemos des-rotar el vector para que visualmente apunte a donde dice el dedo.
+	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	var aim_vec: Vector2
 	if external_aim_vector != Vector2.ZERO:
 		aim_vec = external_aim_vector.rotated(-get_parent().rotation)
