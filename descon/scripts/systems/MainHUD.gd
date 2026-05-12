@@ -1005,24 +1005,25 @@ func _make_clickable(node: Control, callback: Callable):
 	
 	btn.button_down.connect(func(): callback.call())
 	
-	# v266.680: Lógica de Apuntado MOBA (Drag)
-	btn.gui_input.connect(_on_touch_button_input.bind(node))
-	
 	btn.button_up.connect(func():
 		var p = get_tree().get_first_node_in_group("player")
 		if is_instance_valid(p) and p._skill_controller:
 			var sc = p._skill_controller
-			sc.external_aim_vector = Vector2.ZERO # Limpiar al soltar
 			
-			# v266.710: Ocultar indicadores
-			var aim = node.get_node_or_null("AimIndicator")
-			if aim: aim.visible = false
-			var aim_bg = node.get_node_or_null("AimIndicatorBG")
-			if aim_bg: aim_bg.visible = false
+			# v266.730: Ocultar indicadores
+			var aim_ind = node.get_node_or_null("AimIndicator")
+			if aim_ind: aim_ind.visible = false
+			var aim_bg_ind = node.get_node_or_null("AimIndicatorBG")
+			if aim_bg_ind: aim_bg_ind.visible = false
 			
+			# v266.730: PRIMERO disparar, DESPUÉS limpiar el vector
 			if sc.is_aiming and sc.config.get("cast_mode") == 1:
 				sc.execute_skill()
+			sc.external_aim_vector = Vector2.ZERO
 	)
+	
+	# v266.730: Manejar touch directo para multi-touch (gui_input recibe ScreenTouch)
+	btn.gui_input.connect(_on_touch_button_input.bind(node, callback))
 
 func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 	# Fallback para mouse/clics directos si el botón invisible no lo atrapa
@@ -1037,16 +1038,17 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 			if is_instance_valid(p) and p.has_method("trigger_skill_by_id"):
 				if event.pressed:
 					var s_id = "sphere_" + str(id)
-					p.trigger_skill_by_id(s_id) # v266.60: Auto-detección en el Player
+					p.trigger_skill_by_id(s_id)
 				else:
-					# v266.45: Soporte para disparar al SOLTAR si está en ON_RELEASE
 					var sc = p._skill_controller
 					if is_instance_valid(sc) and sc.is_aiming:
-						if sc.config.get("cast_mode") == 1: # ON_RELEASE
+						if sc.config.get("cast_mode") == 1:
 							sc.execute_skill()
 
-func _on_touch_button_input(event: InputEvent, node: Control):
-	if not get_node_or_null("/root/SettingsManager") or not SettingsManager.mobile_mode: return
+func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable):
+	# v266.730: Manejo COMPLETO de touch para modo celular
+	# Este handler procesa ScreenTouch directamente para que funcione con multi-touch
+	# (touch index 1+ no genera mouse events, así que Button.pressed no funciona)
 	
 	var p = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(p) or not p._skill_controller: return
@@ -1054,53 +1056,79 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 	var aim = node.get_node_or_null("AimIndicator")
 	var aim_bg = node.get_node_or_null("AimIndicatorBG")
 	
-	# v266.720: Compensación de punto de toque inicial para evitar desfasajes
-	# Guardamos dónde empezó el toque para que sea el "centro virtual"
-	if event is InputEventScreenTouch or (event is InputEventMouseButton and event.pressed):
+	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
+	
+	# --- MANEJO DE SCREEN TOUCH (multi-touch directo) ---
+	if event is InputEventScreenTouch:
 		if event.pressed:
+			# Registrar punto de inicio para apuntado relativo
 			node.set_meta("touch_start", event.position)
-			# Al tocar, reseteamos el indicador al centro visual del botón
-			aim = node.get_node_or_null("AimIndicator")
-			if aim: 
-				aim.visible = true
-				aim.position = (node.size / 2) - (aim.size / 2)
-			aim_bg = node.get_node_or_null("AimIndicatorBG")
-			if aim_bg: aim_bg.visible = true
+			node.set_meta("touch_index", event.index)
+			
+			# Activar la habilidad (equivalente a button_down)
+			callback.call()
+			
+			# Mostrar indicadores MOBA
+			if is_mobile:
+				if aim:
+					aim.visible = true
+					aim.position = (node.size / 2) - (aim.size / 2)
+				if aim_bg: aim_bg.visible = true
+		else:
+			# Solo procesar release del mismo dedo
+			var stored_index = node.get_meta("touch_index", -1)
+			if event.index != stored_index: return
+			
+			# Ocultar indicadores
+			if aim: aim.visible = false
+			if aim_bg: aim_bg.visible = false
+			
+			# v266.730: PRIMERO disparar con el vector intacto, DESPUÉS limpiar
+			if sc.is_aiming and sc.config.get("cast_mode") == 1:
+				sc.execute_skill()
+			sc.external_aim_vector = Vector2.ZERO
+			node.remove_meta("touch_index")
 		return
-
+	
+	# --- MANEJO DE DRAG (apuntado MOBA) ---
+	if not is_mobile: return
 	if not sc.is_aiming: return
 	
 	var is_drag = (event is InputEventScreenDrag) or \
 				  (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
 	if not is_drag: return
 	
-	# v266.730: Calcular diff relativo al primer toque
+	# Solo procesar drag del dedo correcto
+	if event is InputEventScreenDrag:
+		var stored_index = node.get_meta("touch_index", -1)
+		if event.index != stored_index: return
+	
+	# Calcular diff relativo al punto de primer toque
 	var touch_start = node.get_meta("touch_start", node.size / 2)
 	var diff = event.position - touch_start  # píxeles de pantalla
 	
-	# Convertir píxeles de pantalla → unidades de mundo (dividir por zoom de cámara)
+	# Convertir píxeles de pantalla → unidades de mundo
 	var cam = get_viewport().get_camera_2d()
-	var zoom = cam.zoom.x if cam else 1.0
-	var world_diff = diff / zoom  # ahora en coordenadas del mundo
+	var zoom_val = cam.zoom.x if cam else 1.0
+	var world_diff = diff / zoom_val
 	
 	var max_range = sc.current_skill.get("range", 500.0)
 	var sensitivity = SettingsManager.mobile_aim_sensitivity
 	
 	if max_range <= 0:
-		# Habilidades globales: solo dirección, sin rango
 		sc.external_aim_vector = world_diff.normalized() * 300.0 if world_diff.length() > 5 else Vector2.ZERO
 	else:
-		# 80px de arrastre en pantalla = max_range en mundo (ajustado por sensitivity)
-		var px_for_max = (80.0 / zoom) / sensitivity
+		var px_for_max = (80.0 / zoom_val) / sensitivity
 		var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
 		sc.external_aim_vector = world_diff.normalized() * mapped_range if world_diff.length() > 5 else Vector2.ZERO
 	
-	# El indicador visual usa coords de pantalla (relativo al botón)
+	# El indicador visual sigue al dedo (en coords de pantalla)
 	if aim:
 		aim.visible = true
 		aim.position = (node.size / 2) + diff - (aim.size / 2)
 	if aim_bg:
 		aim_bg.visible = true
+
 
 
 func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
