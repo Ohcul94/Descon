@@ -41,26 +41,53 @@ func _draw():
 	draw_arc(center, max_dist, 0, TAU, 64, border_color, 2.0)
 	draw_circle(center + stick_pos, 20, stick_color)
 
+var active_touch_index: int = -1
+
 func _gui_input(event):
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud and hud.get("is_editing_layout"): return
 	
-	if event is InputEventMouseButton:
+	# v266.660: Soporte Multi-Touch Real
+	# Usamos ScreenTouch/Drag con index para no bloquear otros dedos (habilidades)
+	
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			if active_touch_index == -1: # Solo capturar el primer dedo que toque el área
+				active_touch_index = event.index
+				is_dragging = true
+				_update_stick_pos(event.position)
+		else:
+			if event.index == active_touch_index:
+				_reset_joystick()
+				
+	elif event is InputEventScreenDrag:
+		if event.index == active_touch_index:
+			_update_stick_pos(event.position)
+
+	# Failsafe para PC (Mouse Emulation)
+	elif event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				is_dragging = true
+				_update_stick_pos(event.position)
 			else:
-				is_dragging = false
-				stick_pos = Vector2.ZERO
-				joystick_updated.emit(Vector2.ZERO)
-				queue_redraw()
-				
+				_reset_joystick()
 	elif event is InputEventMouseMotion and is_dragging:
-		var center = size / 2
-		var diff = event.position - center
-		stick_pos = diff.limit_length(max_dist)
-		joystick_updated.emit(stick_pos / max_dist)
-		queue_redraw()
+		_update_stick_pos(event.position)
+
+func _update_stick_pos(input_pos: Vector2):
+	var center = size / 2
+	var diff = input_pos - center
+	stick_pos = diff.limit_length(max_dist)
+	joystick_updated.emit(stick_pos / max_dist)
+	queue_redraw()
+
+func _reset_joystick():
+	is_dragging = false
+	active_touch_index = -1
+	stick_pos = Vector2.ZERO
+	joystick_updated.emit(Vector2.ZERO)
+	queue_redraw()
 
 func _process(_delta):
 	var hud = get_tree().get_first_node_in_group("hud")
