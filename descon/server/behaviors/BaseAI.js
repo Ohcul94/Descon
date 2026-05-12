@@ -1,14 +1,38 @@
 // BaseAI.js (Cerebro General v85.10)
 module.exports = class BaseAI {
-    constructor(enemy, config) {
+    constructor(enemy, config, state) {
         this.enemy = enemy;
         this.config = config;
+        this.state = state;
         this.lastAction = 0;
     }
 
     update(grid, players, now, io) {
         const cfg = this.config;
-        const isAggressive = cfg.aggressive !== false;
+        
+        // v266.999: Detección de Agresividad Extrema Ambiental (Blindado Total)
+        const zoneId = this.enemy.zone;
+        const currentConfig = (this.state && this.state.SERVER_CONFIG) ? this.state.SERVER_CONFIG : {};
+        const maps = currentConfig.mapsConfig || {};
+        const mapCfg = maps[zoneId] || maps[zoneId.toString()];
+        const extremeAggro = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
+        
+        this.ambienceBoost = extremeAggro || null;
+        
+        // Log de Diagnóstico (Solo cuando hay cambio de estado o detección inicial)
+        if (this.ambienceBoost && !this._lastAmbienceLog) {
+            console.log(`[EXTREME-AGGRO] Activado en Zona ${zoneId}. Mults -> Daño: ${this.ambienceBoost.damageMult}, Velocidad: ${this.ambienceBoost.speedMult}, Vida: ${this.ambienceBoost.healthMult}`);
+            this._lastAmbienceLog = true;
+        }
+
+        // v266.999: Si hay ambiente extremo, el bicho ES agresivo por definición
+        const isAggressive = (this.ambienceBoost) ? true : (cfg.aggressive !== false);
+        this.enemy.isAggressive = isAggressive; // Restaurar propiedad para otros sistemas
+
+        // v266.999: Inyectar velocidad ambiental dinámicamente
+        if (!this._baseSpeed) this._baseSpeed = cfg.speed || 3.5;
+        const speedMult = this.ambienceBoost ? (parseFloat(this.ambienceBoost.speedMult) || 1) : 1;
+        cfg.speed = this._baseSpeed * speedMult;
         
         // v266.580: Inicialización de seguridad para nuevos enemigos
         if (!this.enemy.lastSuccessHit) this.enemy.lastSuccessHit = now;
@@ -55,10 +79,11 @@ module.exports = class BaseAI {
             activeTarget = potentialTarget;
         }
 
-        // v266.999: Si hay mecánicas activas, NO PODEMOS salir de la función, tenemos que terminar.
+        // v266.999: Si hay mecánicas activas O es Agresividad Extrema, NO PODEMOS soltar el flujo
         const hasActiveMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isActive);
+        const isExtreme = !!this.ambienceBoost;
         
-        if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech) return;
+        if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme) return;
 
         // v266.999: Valores seguros si el target desapareció pero el ataque sigue
         const dist = activeTarget ? Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y) : 99999;
@@ -113,13 +138,17 @@ module.exports = class BaseAI {
 
     getNearestPlayer(grid, players) {
         let closest = null;
-        let minDist = this.enemy.isHorde ? 10000 : 800; 
+        // v266.999: Si hay Agresividad Extrema, el rango de visión es GLOBAL y exhaustivo
+        const visionRange = this.ambienceBoost ? 50000 : (this.enemy.isHorde ? 10000 : 800);
+        let minDist = visionRange; 
         
-        // v247.10: Si hay grid, limitamos la búsqueda a celdas adyacentes
-        const targets = (grid && !this.enemy.isHorde) ? grid.getNearbyEntities(this.enemy.x, this.enemy.y).players : Object.values(players);
+        // v266.999: Si es extremo, buscamos en todos los jugadores del servidor, no solo los "cercanos"
+        const targets = (grid && !this.ambienceBoost && !this.enemy.isHorde) ? grid.getNearbyEntities(this.enemy.x, this.enemy.y).players : Object.values(players);
 
         for (const p of targets) {
-            if (!p || p.isDead || p.zone !== this.enemy.zone || p.isInvisible) continue;
+            // v266.999: Si hay Agresividad Extrema, ignoramos la invisibilidad. El bicho TE HUELE.
+            if (!p || p.isDead || p.zone !== this.enemy.zone) continue;
+            if (p.isInvisible && !this.ambienceBoost) continue; 
             
             // v252.22: Validación de Integridad del Target
             if (typeof p.x !== 'number' || typeof p.y !== 'number') continue;
@@ -268,7 +297,7 @@ module.exports = class BaseAI {
                     x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
                     bulletSpeed: mech.bulletSpeed || 800, 
                     bulletType: mech.type || "laser",
-                    damage: mech.bulletDamage || (this.enemy.type * 100),
+                    damage: (mech.bulletDamage || (this.enemy.type * 100)) * (this.ambienceBoost ? (parseFloat(this.ambienceBoost.damageMult) || 1) : 1),
                     // v266.220: Pasar datos extra de la mecánica (Slow, Combustible, Giro)
                     slowAmount: mech.slowAmount || 0,
                     slowDuration: mech.slowDuration || 0,
@@ -290,7 +319,9 @@ module.exports = class BaseAI {
 
     applyMovementLogic(target, dist, angle, now) {
         // v250.10: Suavizado de proximidad para evitar efecto "imán"
-        const baseSpeed = this.config.speed || 3.5;
+        // v266.999: Multiplicador de Velocidad Ambiental
+        const speedMult = this.ambienceBoost ? (this.ambienceBoost.speedMult || 1) : 1;
+        const baseSpeed = (this.config.speed || 3.5) * speedMult;
         const slowMult = this.enemy.slowMultiplier || 1.0;
         const speed = baseSpeed * slowMult;
         
@@ -336,7 +367,7 @@ module.exports = class BaseAI {
                     bulletSpeed: mech.bulletSpeed || 1200, 
                     bulletType: "orbital_mine",
                     strikeId: strikeId, 
-                    damage: mech.bulletDamage || 100, 
+                    damage: (mech.bulletDamage || 100) * (this.ambienceBoost ? (parseFloat(this.ambienceBoost.damageMult) || 1) : 1), 
                     range: mech.fireRange || 1000,
                     isOrbiting: true,
                     orbitRadius: radius,

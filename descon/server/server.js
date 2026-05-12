@@ -1054,7 +1054,7 @@ io.on('connection', (socket) => {
         }
 
         // Spawnear al Boss en la instancia Privada (Center at 1000,1000 for 2000x2000 room)
-        serverSpawnEnemy(dungeonZoneId, 6, 1000, 1000);
+        aiManager.serverSpawnEnemy(dungeonZoneId, 6, 1000, 1000);
 
         // Teletransportar a los elegidos a la Dungeon
         playersToMove.forEach(s => {

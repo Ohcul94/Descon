@@ -27,5 +27,11 @@ let AMMO_MECH_LIB = {
 let AMBIENCE_LIB = {
     "radiation": { label: "Radiación", icon: "☢️", desc: "Daño constante por intervalos de tiempo.", fields: ["damage", "intervalMs"] },
     "nebula": { label: "Nebulosa", icon: "🌫️", desc: "Efecto de slow ambiental.", fields: ["slowPercentage", "visibility"] },
-    "gravity": { label: "Gravedad Alta", icon: "🪐", desc: "Reduce la velocidad de dash.", fields: ["dashPenalty"] }
+    "gravity": { label: "Gravedad Alta", icon: "🪐", desc: "Reduce la velocidad de dash.", fields: ["dashPenalty"] },
+    "extreme_aggression": { 
+        label: "Agresividad Extrema", 
+        icon: "👹", 
+        desc: "Enemigos acechan a toda distancia y con stats potenciados.", 
+        fields: ["damageMult", "speedMult", "healthMult"] 
+    }
 };

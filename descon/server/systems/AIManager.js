@@ -32,13 +32,18 @@ class AIManager {
         const type = forceType || (Math.floor(Math.random() * 3) + 1);
         const cfg = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[type.toString()] : null;
         
+        const maps = (this.state && this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig) ? this.state.SERVER_CONFIG.mapsConfig : {};
+        const mapCfg = maps[zone] || maps[zone.toString()];
+        const extremeAggro = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
+        const hpMult = extremeAggro ? (parseFloat(extremeAggro.healthMult) || 1) : 1;
+
         const isBoss = (type >= 101) || (cfg && cfg.isBoss);
         const id = 'enemy_' + (isBoss ? 'boss_' : '') + Date.now() + Math.floor(Math.random() * 1000);
         
         const name = forceName || (cfg ? cfg.name : (type === 101 ? "Lord Titán" : (type === 4 ? "Enemigo 4" : (type === 5 ? "Boss2" : (type === 6 ? "Boss3" : "Enemigo")))));
 
-        const initialHp = cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 101 ? 100000 : (type * 2000))));
-        const initialShield = cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 101 ? 50000 : (type * 1000))));
+        const initialHp = (cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 101 ? 100000 : (type * 2000))))) * hpMult;
+        const initialShield = (cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 101 ? 50000 : (type * 1000))))) * hpMult;
 
         const finalX = posX || (zone === 9 ? 2000 : (Math.random() * 3400 + 300));
         const finalY = posY || (zone === 9 ? 2000 : (Math.random() * 3400 + 300));
@@ -77,17 +82,17 @@ class AIManager {
         };
 
         if (movementType && AI_MAP[movementType]) {
-            e.ai = new AI_MAP[movementType](e, aiConfig);
+            e.ai = new AI_MAP[movementType](e, aiConfig, this.state);
         } else {
             // Fallback para tipos hardcodeados antiguos si no hay config
-            if (type === 103) e.ai = new MechanicBossAI(e, aiConfig); 
-            else if (type === 102) e.ai = new AncientBossAI(e, aiConfig); 
-            else if (type === 101) e.ai = new BossAI(e, aiConfig); 
-            else if (type === 8 || type === 3) e.ai = new ChargerAI(e, aiConfig);
-            else if (type === 6 || type === 7) e.ai = new GravityAI(e, aiConfig);
-            else if (type === 5 || type === 2 || type === 12) e.ai = new SniperAI(e, aiConfig); 
-            else if (type === 1 || type === 9 || type === 13 || type === 4) e.ai = new ChaseAI(e, aiConfig); 
-            else e.ai = new OrbitAI(e, aiConfig);
+            if (type === 103) e.ai = new MechanicBossAI(e, aiConfig, this.state); 
+            else if (type === 102) e.ai = new AncientBossAI(e, aiConfig, this.state); 
+            else if (type === 101) e.ai = new BossAI(e, aiConfig, this.state); 
+            else if (type === 8 || type === 3) e.ai = new ChargerAI(e, aiConfig, this.state);
+            else if (type === 6 || type === 7) e.ai = new GravityAI(e, aiConfig, this.state);
+            else if (type === 5 || type === 2 || type === 12) e.ai = new SniperAI(e, aiConfig, this.state); 
+            else if (type === 1 || type === 9 || type === 13 || type === 4) e.ai = new ChaseAI(e, aiConfig, this.state); 
+            else e.ai = new OrbitAI(e, aiConfig, this.state);
         }
 
         enemies[id] = e;

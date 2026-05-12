@@ -611,19 +611,7 @@
             "minLevel": 10,
             "name": "Loby",
             "warpCost": null,
-            "ambience": [
-                {
-                    "type": "radiation",
-                    "damagePerSecond": 10,
-                    "damage": 20,
-                    "intervalMs": 3000
-                },
-                {
-                    "type": "nebula",
-                    "damagePerSecond": 10,
-                    "slowPercentage": 10
-                }
-            ],
+            "ambience": [],
             "spawns": []
         },
         "2": {
@@ -632,26 +620,45 @@
             "minLevel": 1,
             "name": "Mapa 2",
             "warpCost": 0,
-            "ambience": [],
+            "ambience": [
+                {
+                    "type": "extreme_aggression",
+                    "damage": 10,
+                    "intervalMs": 300,
+                    "damageMult": 2,
+                    "speedMult": 2,
+                    "healthMult": 2
+                },
+                {
+                    "type": "radiation",
+                    "damage": 10,
+                    "intervalMs": 5000
+                }
+            ],
             "spawns": [
                 {
                     "type": "1",
-                    "count": 1,
+                    "count": 5,
                     "intervalMs": 5000
                 },
                 {
                     "type": "2",
-                    "count": 1,
+                    "count": 5,
                     "intervalMs": 5000
                 },
                 {
                     "type": "3",
-                    "count": 1,
+                    "count": 5,
                     "intervalMs": 5000
                 },
                 {
                     "type": "4",
-                    "count": 1,
+                    "count": 5,
+                    "intervalMs": 5000
+                },
+                {
+                    "type": "5",
+                    "count": 5,
                     "intervalMs": 5000
                 }
             ]
