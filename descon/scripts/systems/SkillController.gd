@@ -126,10 +126,6 @@ func execute_skill():
 	external_aim_vector = Vector2.ZERO
 	queue_redraw()
 	
-	# Enviar al servidor
-	if NetworkManager:
-		NetworkManager.send_skill_use(payload)
-	
 	if get_parent().has_method("_on_skill_executed"):
 		get_parent()._on_skill_executed(payload)
 
