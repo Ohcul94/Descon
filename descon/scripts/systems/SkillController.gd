@@ -147,16 +147,18 @@ func _draw():
 	if range_val > 0:
 		draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 2.0)
 	
-	# v266.730: Preparar vector de apuntado final
-	# En móvil: si no hay drag aún, apunta a la posición 0 (la nave), no al mouse
-	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
+	# v266.810: FIX Visual - Compensar rotación de la nave
+	# El external_aim_vector viene en espacio de mundo (absoluto).
+	# Como este nodo es hijo de la nave, _draw() ocurre en espacio local rotado.
+	# Debemos des-rotar el vector para que visualmente apunte a donde dice el dedo.
 	var aim_vec: Vector2
-	if is_mobile:
-		aim_vec = external_aim_vector  # En ZERO = nave, en drag = dirección del dedo
+	if external_aim_vector != Vector2.ZERO:
+		aim_vec = external_aim_vector.rotated(-get_parent().rotation)
 	else:
-		aim_vec = get_local_mouse_position()
-		if external_aim_vector != Vector2.ZERO:
-			aim_vec = external_aim_vector
+		if is_mobile:
+			aim_vec = Vector2.ZERO # Sin drag = en la nave
+		else:
+			aim_vec = get_local_mouse_position()
 	
 	# 2. Dibujar Indicador
 	if current_skill.get("type") == SkillType.DIRECTIONAL:
