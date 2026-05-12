@@ -1074,29 +1074,30 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 				  (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
 	if not is_drag: return
 	
-	# v266.720: Calcular diff relativo al punto de inicio del toque
+	# v266.730: Calcular diff relativo al primer toque
 	var touch_start = node.get_meta("touch_start", node.size / 2)
-	var diff = event.position - touch_start
+	var diff = event.position - touch_start  # píxeles de pantalla
 	
-	# La distancia del drag (0-80px aprox) se mapea al rango de la habilidad
-	# sensitivity controla cuánto rango se obtiene por px de arrastre
-	var sensitivity = SettingsManager.mobile_aim_sensitivity
+	# Convertir píxeles de pantalla → unidades de mundo (dividir por zoom de cámara)
+	var cam = get_viewport().get_camera_2d()
+	var zoom = cam.zoom.x if cam else 1.0
+	var world_diff = diff / zoom  # ahora en coordenadas del mundo
+	
 	var max_range = sc.current_skill.get("range", 500.0)
-	
-	var drag_length = diff.length()
-	var mapped_range = clamp(drag_length * sensitivity * (max_range / 80.0), 10.0, max_range)
+	var sensitivity = SettingsManager.mobile_aim_sensitivity
 	
 	if max_range <= 0:
-		# Habilidades globales (range=0): solo necesitamos el ángulo
-		sc.external_aim_vector = diff.normalized() * 300.0 if drag_length > 5 else Vector2.ZERO
+		# Habilidades globales: solo dirección, sin rango
+		sc.external_aim_vector = world_diff.normalized() * 300.0 if world_diff.length() > 5 else Vector2.ZERO
 	else:
-		# Habilidades con rango: el arrastre mapea 0..80px a 0..max_range
-		sc.external_aim_vector = diff.normalized() * mapped_range if drag_length > 5 else Vector2.ZERO
-
-	# v266.720: El indicador sigue al dedo, pero el origen es el centro visual
+		# 80px de arrastre en pantalla = max_range en mundo (ajustado por sensitivity)
+		var px_for_max = (80.0 / zoom) / sensitivity
+		var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
+		sc.external_aim_vector = world_diff.normalized() * mapped_range if world_diff.length() > 5 else Vector2.ZERO
+	
+	# El indicador visual usa coords de pantalla (relativo al botón)
 	if aim:
 		aim.visible = true
-		# Mostramos el stick relativo al centro del botón para que sea intuitivo
 		aim.position = (node.size / 2) + diff - (aim.size / 2)
 	if aim_bg:
 		aim_bg.visible = true

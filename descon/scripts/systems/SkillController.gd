@@ -129,16 +129,18 @@ func execute_skill():
 	
 	var mouse_pos = get_global_mouse_position()
 	var angle = (mouse_pos - global_position).angle()
+	var target_pos = mouse_pos  # Posición del objetivo en el mundo
 	
-	# v266.680: Prioridad al apuntado MOBA (HUD)
+	# v266.730: Si hay apuntado MOBA, usarlo tanto para el ángulo como para la posición
 	if external_aim_vector != Vector2.ZERO:
 		angle = external_aim_vector.angle()
+		target_pos = global_position + external_aim_vector
 	
 	var payload = {
 		"skill_id": current_skill.id,
 		"angle": angle,
 		"target": selected_target,
-		"pos": mouse_pos
+		"pos": target_pos
 	}
 	
 	# v261.10: Limpiar estado ANTES de ejecutar para evitar que se quede pegado
