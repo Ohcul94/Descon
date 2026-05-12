@@ -245,20 +245,21 @@ func _input(event: InputEvent):
 		for node in _touch_registry.keys():
 			if is_instance_valid(node) and node.get_meta("touch_index", -1) == ev_index:
 				_on_touch_button_input(event, node, _touch_registry[node])
-				return # Consumido
+				get_viewport().set_input_as_handled() # v266.910: Consumo TOTAL para evitar interferencias
+				return 
 		
 		# 2. ¿Es un nuevo toque sobre un botón?
-		var is_press = (event is InputEventScreenTouch and event.pressed) or \
-					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+		var is_new_press = (event is InputEventScreenTouch and event.pressed) or \
+						   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
 		
-		if is_press:
-			# Recorrer botones en orden inverso (los que están "encima" visualmente tienen prioridad)
+		if is_new_press:
 			var nodes = _touch_registry.keys()
 			nodes.reverse()
 			for node in nodes:
 				if is_instance_valid(node) and node.visible and node.get_global_rect().has_point(ev_pos):
 					_on_touch_button_input(event, node, _touch_registry[node])
-					return # Consumido
+					get_viewport().set_input_as_handled() # v266.910: Consumo TOTAL
+					return 
 
 	# v266.120: Atajo de teclado para cerrar edición
 	if is_editing_layout and event.is_action_pressed("ui_menu"):
@@ -1151,6 +1152,9 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	if aim_bg:
 		aim_bg.visible = true
 		aim_bg.global_position = g_origin - (aim_bg.size / 2)
+	
+	# v266.910: Importante - Consumir el drag para que no lo hereden otros botones bajo el dedo
+	get_viewport().set_input_as_handled()
 
 
 
