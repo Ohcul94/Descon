@@ -168,11 +168,11 @@ func _on_joystick_updated(dir: Vector2):
 
 func _update_joystick_visibility():
 	if virtual_joystick:
-		var enabled = SettingsManager.joystick_enabled if SettingsManager else false
+		var enabled = SettingsManager.mobile_mode if SettingsManager else false
 		virtual_joystick.visible = enabled
-		# v266.600: Asegurar que no bloquee clicks si está desactivado
+		# v266.690: Siempre IGNORE. El joystick usa _input() manual.
+		virtual_joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if enabled:
-			virtual_joystick.mouse_filter = Control.MOUSE_FILTER_STOP
 			# Restaurar posición si está habilitado
 			if NetworkManager and NetworkManager.current_user_data.has("hudPositions"):
 				var data = NetworkManager.current_user_data["hudPositions"]
@@ -182,8 +182,8 @@ func _update_joystick_visibility():
 					# Si no hay guardado, poner default
 					virtual_joystick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 20)
 		else:
-			virtual_joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			virtual_joystick.global_position = Vector2(-2000, -2000) # Mover fuera por seguridad
+
 
 func _on_game_notification(data: Dictionary):
 	var msg = data.get("msg", "")
@@ -1084,14 +1084,15 @@ func _restore_default_layout():
 	# Joystick: solo visible si está habilitado, si no -> fuera de pantalla
 	var joy = _get_hud_node("VirtualJoystick")
 	if joy:
-		var joy_enabled = SettingsManager.joystick_enabled if SettingsManager else false
+		var joy_enabled = SettingsManager.mobile_mode if SettingsManager else false
 		joy.visible = joy_enabled
+		# v266.690: Siempre IGNORE. El joystick usa _input() manual, no necesita capturar via GUI.
+		joy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if joy_enabled:
-			joy.mouse_filter = Control.MOUSE_FILTER_STOP
 			joy.global_position = Vector2(20, 680)
 		else:
-			joy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			joy.global_position = Vector2(-2000, -2000)
+
 	
 	# Resetear sliders si están visibles
 	var editor_ui = get_node_or_null("EditLayoutUI")
@@ -1606,7 +1607,7 @@ func toggle_hud_editing(slot_index: int = -1):
 		
 	# 2. Ventanas Mayores (v266.560: Solo mostrar joystick si está activo)
 	var wins = ["CenterStats", "RadarWindow", "ChatUI"]
-	if SettingsManager and SettingsManager.joystick_enabled:
+	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
 	for win_id in wins:

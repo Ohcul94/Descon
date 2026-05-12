@@ -127,6 +127,9 @@ func execute_skill():
 	# v266.70: No retornar si es un trigger de release y ya se estaba apuntando
 	if not is_aiming: return
 	
+	var mouse_pos = get_global_mouse_position()
+	var angle = (mouse_pos - global_position).angle()
+	
 	# v266.680: Prioridad al apuntado MOBA (HUD)
 	if external_aim_vector != Vector2.ZERO:
 		angle = external_aim_vector.angle()

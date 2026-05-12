@@ -45,16 +45,25 @@ func _input(event):
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud and hud.get("is_editing_layout"): return
 	
-	# v266.675: Detección Manual de Área para evitar Bloqueo Global
-	var local_pos = to_local(event.position if "position" in event else Vector2.ZERO)
-	var is_inside = local_pos.length() < max_dist * 2.5 # Área de activación generosa
+	# Obtener posición del evento (pantalla)
+	var event_pos = Vector2.ZERO
+	if "position" in event:
+		event_pos = event.position
+	else:
+		return
+	
+	# v266.690: Detección de área usando rect global del Control
+	var rect = get_global_rect()
+	# Área generosa para facilitar el toque
+	var expanded_rect = Rect2(rect.position - Vector2(20, 20), rect.size + Vector2(40, 40))
+	var is_inside = expanded_rect.has_point(event_pos)
 	
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			if is_inside and active_touch_index == -1:
 				active_touch_index = event.index
 				is_dragging = true
-				_update_stick_pos(event.position)
+				_update_stick_pos(event_pos)
 				get_viewport().set_input_as_handled()
 		else:
 			if event.index == active_touch_index:
@@ -63,7 +72,7 @@ func _input(event):
 				
 	elif event is InputEventScreenDrag:
 		if event.index == active_touch_index:
-			_update_stick_pos(event.position)
+			_update_stick_pos(event_pos)
 			get_viewport().set_input_as_handled()
 
 	# Failsafe para PC
@@ -72,22 +81,25 @@ func _input(event):
 			if event.pressed:
 				if is_inside:
 					is_dragging = true
-					_update_stick_pos(event.position)
+					_update_stick_pos(event_pos)
 					get_viewport().set_input_as_handled()
 			else:
 				if is_dragging:
 					_reset_joystick()
 					get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and is_dragging:
-		_update_stick_pos(event.position)
+		_update_stick_pos(event_pos)
 		get_viewport().set_input_as_handled()
 
-func _update_stick_pos(input_pos: Vector2):
+func _update_stick_pos(screen_pos: Vector2):
+	# Convertir posición de pantalla a coordenada local del Control
+	var local_pos = screen_pos - global_position
 	var center = size / 2
-	var diff = input_pos - center
+	var diff = local_pos - center
 	stick_pos = diff.limit_length(max_dist)
 	joystick_updated.emit(stick_pos / max_dist)
 	queue_redraw()
+
 
 func _reset_joystick():
 	is_dragging = false
