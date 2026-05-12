@@ -3,7 +3,8 @@ let MECHANICS_LIB = {
     "laser": { label: "Láser Estándar", icon: "🔫", desc: "Ataque lineal básico.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "startDelay"] },
     "missile": { label: "Misil Rastreador", icon: "🚀", desc: "Proyectil autoguiado.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "startDelay"] },
     "ice_missile": { label: "Misil de Hielo", icon: "❄️", desc: "Ralentiza al objetivo.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "slowAmount", "slowDuration", "startDelay"] },
-    "mine": { label: "Mina de Proximidad", icon: "💣", desc: "Explosivo estático.", fields: ["bulletDamage", "fireRange", "fireRate", "startDelay"] }
+    "mine": { label: "Mina de Proximidad", icon: "💣", desc: "Explosivo estático.", fields: ["bulletDamage", "fireRange", "fireRate", "startDelay"] },
+    "orbital_strike": { label: "Ataque Orbital", icon: "🌀", desc: "Círculos que giran y luego se disparan.", fields: ["bulletDamage", "orbitSpeed", "circleCount", "orbitRadius", "orbitDuration", "staticTime", "fireRate", "fireRange", "startDelay"] }
 };
 
 // v266.230: Definición de Mecánicas de Movimiento (Cerebros)

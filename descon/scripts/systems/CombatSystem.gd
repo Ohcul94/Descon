@@ -39,8 +39,10 @@ func _spawn_projectile(data, o_type):
 	var spawn_data = data.duplicate()
 	spawn_data["owner_type"] = o_type
 	
-	p.global_position = Vector2(data.x, data.y)
-	p.rotation = data.get("angle", 0.0)
+	var px = str(data.get("x", 0.0)).to_float()
+	var py = str(data.get("y", 0.0)).to_float()
+	p.global_position = Vector2(px, py)
+	p.rotation = str(data.get("angle", 0.0)).to_float()
 	
 	# v168.13: Asegurar visibilidad (Z-Index alto) y organización
 	p.z_index = 5 

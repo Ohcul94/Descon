@@ -209,6 +209,19 @@
                     "fireRate": 1500,
                     "slowAmount": 0,
                     "slowDuration": 0
+                },
+                {
+                    "type": "orbital_strike",
+                    "bulletDamage": 400,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "circleCount": 5,
+                    "orbitDuration": 3000,
+                    "orbitRadius": 100,
+                    "staticTime": 500,
+                    "startDelay": 1000,
+                    "orbitSpeed": 2
                 }
             ],
             "movementPhases": [
@@ -1446,6 +1459,22 @@
                 "turnSpeed",
                 "lockTimeMs",
                 "isHoming"
+            ]
+        },
+        "orbital_strike": {
+            "label": "Ataque Orbital",
+            "icon": "🌀",
+            "desc": "Círculos que giran y luego se disparan.",
+            "fields": [
+                "bulletDamage",
+                "orbitSpeed",
+                "circleCount",
+                "orbitRadius",
+                "orbitDuration",
+                "staticTime",
+                "fireRate",
+                "fireRange",
+                "startDelay"
             ]
         }
     },

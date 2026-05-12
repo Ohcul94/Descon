@@ -302,7 +302,25 @@ function renderEnemyDetail() {
                             </div>
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${MECHANICS_LIB[m.type || 'laser'].fields.map(f => {
-                                    const fieldLabelsMap = { bulletDamage: "Daño (pts)", bulletSpeed: "Vel. Bala (px/s)", fireRange: "Alcance (px)", fireRate: "Cadencia (ms)", slowAmount: "Slow (pts)", slowDuration: "Slow Dur. (ms)", startDelay: "Delay Inicio (ms)", lifetimeMs: "Combustible (ms)", turnSpeed: "Agilidad de Giro (rad/s)", chargeTimeMs: "Tiempo de Carga (ms)", lockTimeMs: "Tiempo de Bloqueo (ms)", isHoming: "Seguimiento (Homing)" };
+                                    const fieldLabelsMap = { 
+                                        bulletDamage: "Daño (pts)", 
+                                        bulletSpeed: "Vel. Bala (px/s)", 
+                                        fireRange: "Alcance (px)", 
+                                        fireRate: "Cadencia (ms)", 
+                                        slowAmount: "Slow (pts)", 
+                                        slowDuration: "Slow Dur. (ms)", 
+                                        startDelay: "Delay Inicio (ms)", 
+                                        lifetimeMs: "Combustible (ms)", 
+                                        turnSpeed: "Agilidad de Giro (rad/s)", 
+                                        chargeTimeMs: "Tiempo de Carga (ms)", 
+                                        lockTimeMs: "Tiempo de Bloqueo (ms)", 
+                                        isHoming: "Seguimiento (Homing)",
+                                        orbitSpeed: "Vel. de Giro (rad/s)",
+                                        circleCount: "Cant. de Círculos (uds)",
+                                        orbitRadius: "Radio de Órbita (px)",
+                                        orbitDuration: "Tiempo de Giro (ms)",
+                                        staticTime: "Tiempo Estático (ms)"
+                                    };
                                     if (f === 'isHoming') return `<div class="field" style="grid-column: 1 / -1; background: rgba(6, 182, 212, 0.05); padding: 10px; border-radius: 8px; flex-direction: column; gap: 12px; border: 1px solid rgba(6, 182, 212, 0.2);"><div style="display:flex; align-items:center; gap:12px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isHoming = this.checked; renderEnemyDetail();"><label style="margin:0; font-size: 0.85rem; color: var(--accent); cursor:pointer;">ACTIVAR SEGUIMIENTO AL OBJETIVO</label></div>${m.isHoming ? `<div style="padding-top: 10px; border-top: 1px solid rgba(6, 182, 212, 0.2);"><label style="font-size: 0.65rem; color: var(--text-dim);">AGILIDAD DE GIRO (RAD/S)</label><input type="number" step="0.1" value="${m.turnSpeed || 2.5}" style="background:rgba(0,0,0,0.3); margin-top:5px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].turnSpeed = parseFloat(this.value)"></div>` : ''}</div>`;
                                     if (f === 'turnSpeed') return '';
                                     return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
@@ -321,7 +339,20 @@ function renderMechanicsLib() {
     const grid = document.getElementById('mechanics-lib-grid'); if(!grid) return;
     grid.innerHTML = '';
     const f = getFilter();
-    const fieldLabels = { "bulletDamage": "Daño", "bulletSpeed": "Velocidad", "fireRange": "Alcance", "fireRate": "Cadencia", "startDelay": "Delay", "slowAmount": "Slow Pts", "slowDuration": "Slow Dur" };
+    const fieldLabels = { 
+        "bulletDamage": "Daño", 
+        "bulletSpeed": "Velocidad", 
+        "fireRange": "Alcance", 
+        "fireRate": "Cadencia", 
+        "startDelay": "Delay", 
+        "slowAmount": "Ralentización", 
+        "slowDuration": "Duración Slow",
+        "orbitSpeed": "Vel. Giro",
+        "circleCount": "Cant. Círculos",
+        "orbitRadius": "Radio Órbita",
+        "orbitDuration": "Tiempo Giro",
+        "staticTime": "Tiempo Estático"
+    };
 
     if (currentMechTab === 'attack') {
         for(let type in MECHANICS_LIB) {

@@ -32,12 +32,11 @@ function startGameLoop(io, state, aiManager) {
                 continue;
             }
 
-            // v262.35: IA Inteligente (LOD - Level of Detail)
-            // Solo procesar IA si hay jugadores cerca o cada 1 segundo (ahorro masivo de CPU)
+            // v262.35: IA Inteligente (LOD) - Forzar actualización si hay mecánicas activas
             const { players: nearbyPs } = grid.getNearbyEntities(e.x, e.y);
             const isNearPlayer = nearbyPs.some(p => p.zone === e.zone);
-            
-            if (isNearPlayer || (now % 1000 < 33)) {
+            const hasActiveMech = e.mechState && Object.values(e.mechState).some(m => m.isActive);
+            if (isNearPlayer || hasActiveMech || (now % 1000 < 33)) {
                 if (e.ai) e.ai.update(grid, players, now, io);
             }
 

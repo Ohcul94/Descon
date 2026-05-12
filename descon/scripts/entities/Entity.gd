@@ -115,6 +115,10 @@ func _ready():
 	# v235.36: Sincronía Visual de Habilidades
 	if NetworkManager.has_signal("remote_skill_used"):
 		NetworkManager.remote_skill_used.connect(_on_remote_skill_used)
+	
+	# v266.985: Suscripción a acciones especiales de enemigos
+	if NetworkManager.has_signal("enemy_action"):
+		NetworkManager.enemy_action.connect(_on_enemy_action)
 
 
 var last_draw_hp: float = -1.0
@@ -305,6 +309,8 @@ func _process(delta):
 		
 		# v165.75: Las burbujas ahora son hijos de _ui_wrapper, por lo que siguen 
 		# la posición global automáticamente sin heredar rotación.
+
+
 
 func _draw():
 	# v166.61: RENDERIZADO TACTICO (Glow & Visibility Fix)
@@ -681,6 +687,30 @@ func die():
 	if not is_in_group("player") and not is_in_group("remote_players"): 
 		set_meta("is_pooled", true)
 		if _collision_shape: _collision_shape.set_deferred("disabled", true)
+
+# ---------------------------------------------------------
+# v266.985: Mecánicas de Ataque Orbital (Pedido del Usuario)
+# Ahora gestionadas por Projectile.gd directamente para consistencia de asset
+var _is_orbital_active: bool = false
+
+func _on_enemy_action(data):
+	if str(data.id) != entity_id: return
+	
+	match data.action:
+		"orbital_strike_start": 
+			_is_orbital_active = true
+		"orbital_strike_fire": 
+			_is_orbital_active = false
+			_fire_orbital_strike()
+
+func _fire_orbital_strike():
+	# v266.992: Buscar los proyectiles que ya están orbitando y soltarlos
+	var projs = get_tree().get_nodes_in_group("projectiles")
+	for p in projs:
+		if is_instance_valid(p) and str(p.get("owner_id")) == entity_id:
+			if p.has_method("release_orbit"):
+				p.release_orbit()
+
 
 func _adjust_visuals(_type): 
 	if is_in_group("enemies"):

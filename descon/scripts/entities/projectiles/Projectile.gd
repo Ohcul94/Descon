@@ -22,6 +22,12 @@ var lifetime: float = 6.0 # v266.460: Tiempo de vida máximo del misil
 var _current_lifetime: float = 0.0
 var turn_speed: float = 2.5 # v266.505: Velocidad de rotación angular (Agilidad)
 var is_homing: bool = false # v266.800: Switch de rastreo dinámico
+var orbit_target: Node2D = null # v266.992: Objetivo al que orbitamos
+var orbit_radius: float = 150.0
+var orbit_speed: float = 2.0
+var orbit_angle_offset: float = 0.0
+var orbit_start_time: float = 0.0
+var strike_id: String = "" # v266.995: ID único de ráfaga para evitar colisiones lógicas
 
 func _ready():
 	add_to_group("projectiles")
@@ -51,6 +57,23 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	lifetime = float(p_data.get("lifetimeMs", 0.0)) / 1000.0
 	turn_speed = float(p_data.get("turnSpeed", 2.5))
 	is_homing = bool(p_data.get("isHoming", false))
+	
+	# v266.992: Soporte para Órbita inicial
+	if p_data.get("isOrbiting", false):
+		var world = get_tree().get_first_node_in_group("world_node")
+		if is_instance_valid(world):
+			var ent_node = world.get("entities_node")
+			if ent_node:
+				for e in ent_node.get_children():
+					if str(e.get("entity_id")) == owner_id:
+						orbit_target = e
+						break
+		orbit_radius = float(p_data.get("orbitRadius", 150.0))
+		orbit_speed = float(p_data.get("orbitSpeed", 2.0))
+		orbit_angle_offset = float(p_data.get("orbitAngleOffset", 0.0))
+		orbit_start_time = Time.get_ticks_msec() / 1000.0
+	
+	strike_id = str(p_data.get("strikeId", ""))
 	
 	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
 	_start_pos = p_pos
@@ -92,6 +115,7 @@ func _setup_visual_sprite():
 		"missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
+		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
 		"mega_laser":
 			var beam = Line2D.new()
 			beam.width = 40.0
@@ -122,10 +146,11 @@ func _setup_visual_sprite():
 		
 		# Tamaños ajustados para que las proporciones no sobrepasen las naves (160px)
 		var target_size = 48.0
-		if type == "mine": target_size = 64.0
+		if type == "mine" or type == "orbital_mine": target_size = 64.0
 		elif type == "missile": target_size = 56.0
 		
 		var s = target_size / max(tex.get_width(), tex.get_height())
+		if type == "orbital_mine": s = 0.08 # Mantener escala de captura aprobada
 		sprite.scale = Vector2(s, s)
 		
 		# Ajuste de orientación. Los renders "desde arriba" del usuario están a -90 grados respecto del este
@@ -134,7 +159,8 @@ func _setup_visual_sprite():
 		if type == "ice_missile":
 			sprite.modulate = Color(0.4, 0.7, 1.0) # Celeste Hielo
 		elif owner_type == "enemy":
-			sprite.modulate = Color(1.0, 0.3, 0.3) # Rojo para enemigos
+			if type == "orbital_mine": sprite.modulate = Color(1.2, 1.2, 1.2) # Blanco brillante neón
+			else: sprite.modulate = Color(1.0, 0.3, 0.3) # Rojo para enemigos
 		else:
 			sprite.modulate = Color(0.3, 1.0, 1.0) # Cyan para jugadores
 		
@@ -152,12 +178,24 @@ func _draw():
 			draw_rect(Rect2(Vector2(-10, -2.5), Vector2(20, 5)), color)
 		"missile", "ice_missile":
 			draw_line(Vector2(-10, 0), Vector2(10, 0), color, 6.0)
-			draw_circle(Vector2(10, 0), 4, color)
 		"mine":
 			draw_circle(Vector2.ZERO, 10, Color.WHITE)
 			draw_circle(Vector2.ZERO, 12, Color(1, 1, 1, 0.3), false, 3.0)
 
+func release_orbit():
+	orbit_target = null
+	# v266.992: Al poner orbit_target en null, empezará a moverse linealmente
+
 func _physics_process(delta):
+	# v266.992: Lógica de Órbita (Seguir al enemigo antes de disparar)
+	if is_instance_valid(orbit_target):
+		var time = (Time.get_ticks_msec() / 1000.0) - orbit_start_time
+		var angle = time * orbit_speed + orbit_angle_offset
+		global_position = orbit_target.global_position + Vector2(cos(angle), sin(angle)) * orbit_radius
+		rotation = angle
+		velocity = Vector2.RIGHT.rotated(rotation) * speed # Preparar velocidad para cuando suelte
+		return
+
 	if lifetime > 0:
 		_current_lifetime += delta
 		if _current_lifetime >= lifetime:
@@ -197,6 +235,11 @@ func _on_body_entered(body):
 	if body.has_method("take_damage"):
 		var body_eid = ""
 		if "entity_id" in body: body_eid = str(body.entity_id)
+		
+		# v266.996: Margen de seguridad para evitar que exploten por sacudidas de otros impactos
+		if type == "orbital_mine":
+			var age = (Time.get_ticks_msec() / 1000.0) - orbit_start_time
+			if age < 0.3: return # No explotar en los primeros 300ms de vida
 		
 		# No pegarse a sí mismo
 		if body_eid == owner_id: return

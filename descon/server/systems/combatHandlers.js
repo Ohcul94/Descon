@@ -257,69 +257,7 @@ function registerCombatHandlers(socket, io, state) {
         }
     });
 
-    // DAÑO POR ENEMIGO
-    socket.on('playerHitByEnemy', (data) => {
-        const p = state.players[socket.id];
-        if (p && !p.isDead && state.SERVER_CONFIG) {
-            const attackerType = data.attackerType || 'enemy';
-            if (attackerType === 'remote' || attackerType === 'player') return;
-            
-            const enemyType = data.enemyType || 1;
-            let dmg = data.damage || 0;
 
-            if (attackerType === 'enemy') {
-                const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
-                const baseDmg = cfg ? cfg.bulletDamage : 50;
-                if (dmg > (baseDmg * 2)) dmg = baseDmg;
-            }
-
-            if (p.shield >= dmg) p.shield -= dmg;
-            else { p.hp -= (dmg - p.shield); p.shield = 0; }
-            
-            if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
-            
-            p.lastCombatTime = Date.now();
-            io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead });
-        }
-    });
-
-    // PVP: DAÑO ENTRE JUGADORES
-    socket.on('playerHitByPlayer', (data) => {
-        const victim = state.players[data.victimId];
-        const attacker = state.players[socket.id];
-        
-        if (victim && attacker && !victim.isDead && !attacker.isDead) {
-            if (victim.pvpEnabled && attacker.pvpEnabled) {
-                if (victim.isInvulnerable) return;
-                const now = Date.now();
-                let dmg = data.damage || 50;
-                
-                if (victim.shield >= dmg) victim.shield -= dmg;
-                else { victim.hp -= (dmg - victim.shield); victim.shield = 0; }
-                
-                if (victim.hp <= 0) { victim.hp = 0; victim.isDead = true; }
-                
-                victim.lastCombatTime = now;
-                attacker.lastCombatTime = now;
-                victim.lastPvpCombatTime = now;
-                attacker.lastPvpCombatTime = now;
-                victim.regenDelay = 15000;
-                
-                io.to(`zone_${victim.zone}`).emit('playerStatSync', { 
-                    id: data.victimId, hp: victim.hp, shield: victim.shield, 
-                    maxHp: victim.maxHp, maxShield: victim.maxShield, isDead: victim.isDead,
-                    isInvisible: victim.isInvisible,
-                    spheres: victim.spheres
-                });
-            } else {
-                if (!attacker.pvpEnabled) {
-                    socket.emit('gameNotification', { msg: "PVP BLOQUEADO: Tu modo combate está SEGURO", type: "warning" });
-                } else if (!victim.pvpEnabled) {
-                    socket.emit('gameNotification', { msg: "PVP BLOQUEADO: El objetivo está en modo SEGURO", type: "warning" });
-                }
-            }
-        }
-    });
 }
 
 module.exports = {

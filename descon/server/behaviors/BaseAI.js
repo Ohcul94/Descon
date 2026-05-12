@@ -55,36 +55,22 @@ module.exports = class BaseAI {
             activeTarget = potentialTarget;
         }
 
-        if (!activeTarget || activeTarget.isDead || activeTarget.isInvisible) return;
+        // v266.999: Si hay mecánicas activas, NO PODEMOS salir de la función, tenemos que terminar.
+        const hasActiveMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isActive);
+        
+        if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech) return;
 
-        // v266.570: REGLAS DE RETIRADA (Chase Rules)
-        if (!cfg.chaseUntilDeath) {
-            const dist = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
-            
-            // 1. Fuera de Visión (venga de donde venga)
-            const visionLimit = (cfg.fireRange || 800) * 1.5;
-            if (cfg.stopOnOutOfSight !== false && dist > visionLimit) {
-                this.enemy.lastHitter = null;
-                return;
-            }
+        // v266.999: Valores seguros si el target desapareció pero el ataque sigue
+        const dist = activeTarget ? Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y) : 99999;
+        const targetAngle = activeTarget ? Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x) : this.enemy.rotation;
 
-            // 2. Tiempo sin acertar (Frustración) - Solo aplica si es > 0
-            if (cfg.chaseMissTimeout > 0 && !isRevenge) {
-                const missTime = now - (this.enemy.lastSuccessHit || 0);
-                if (missTime > cfg.chaseMissTimeout) return;
-            }
-        }
-
-        const dist = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
-        const targetAngle = Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x);
-
-        // v266.975: Ejecución del Estado Kamikaze
+        // v266.975: Ejecución del Estado Kamikaze (Prioridad sobre combate normal)
         if (this.enemy.isKamikazeActive) {
             const kP = (cfg.movementPhases || []).find(p => p.type === 'kamikaze') || {};
             let speed = (kP.speed !== undefined) ? (kP.speed * 0.033) : (cfg.speed || 3.5) * 1.5;
             const duration = kP.duration || 5000;
 
-            if (now - this.enemy.kamikazeStartTime > duration || dist < 60) {
+            if (now - this.enemy.kamikazeStartTime > duration || (activeTarget && dist < 60)) {
                 this.enemy.hp = 0;
                 this.enemy.forceExplosion = true;
                 return;
@@ -93,17 +79,13 @@ module.exports = class BaseAI {
             this.enemy.x += Math.cos(targetAngle) * speed;
             this.enemy.y += Math.sin(targetAngle) * speed;
             this.enemy.rotation = targetAngle + Math.PI / 2;
-            return; // Bloquear disparos y movimiento normal
+            return; 
         }
         
-        // v266.650: Apuntado Gradual (Aim Speed)
+        // v266.999: Simular rotación (delta de tiempo aproximado 100ms por ciclo de IA)
         if (this.enemy.rotation === undefined) this.enemy.rotation = targetAngle;
-        
-        // Obtenemos la agilidad de giro de la primera mecánica disponible (o 5.0 por defecto)
         const firstMech = cfg.mechanics ? cfg.mechanics[0] : null;
         const turnSpeed = firstMech ? (firstMech.turnSpeed || 5.0) : 5.0;
-        
-        // Simular rotación (delta de tiempo aproximado 100ms por ciclo de IA)
         const delta = 0.1; 
         let diff = targetAngle - this.enemy.rotation;
         while (diff < -Math.PI) diff += Math.PI * 2;
@@ -116,11 +98,12 @@ module.exports = class BaseAI {
             this.enemy.rotation += Math.sign(diff) * step;
         }
 
-        // v266.920: Pasar el targetAngle PURO para disparos precisos, ignorando la rotación visual 3D
-        if (this.applyCombatLogic(activeTarget, dist, targetAngle, now, io)) {
-            return; // v266.696: Bloqueo de movimiento por estado de disparo/carga
+        // v266.920: Procesar combate pero NO bloquear movimiento (salvo que la mecánica sea estática por diseño)
+        this.applyCombatLogic(activeTarget, dist, targetAngle, now, io);
+        
+        if (activeTarget) {
+            this.applyMovementLogic(activeTarget, dist, targetAngle, now);
         }
-        this.applyMovementLogic(activeTarget, dist, targetAngle, now); // v266.690: Movimiento directo al target, rotación gradual visual
         
         // Regeneración pasiva standard
         if (now - (this.enemy.lastHit || 0) > 5000 && this.enemy.shield < this.enemy.maxShield) {
@@ -166,7 +149,6 @@ module.exports = class BaseAI {
 
         mechanics.forEach((mech, idx) => {
             const mId = `mech_${idx}`;
-            // v266.225: Verificar Retraso de Inicio (Start Delay)
             const timeSinceSpawn = now - this.enemy.spawnTime;
             if (timeSinceSpawn < (mech.startDelay || 0)) return;
 
@@ -178,10 +160,25 @@ module.exports = class BaseAI {
     }
 
     _executeMechanic(mech, mId, target, dist, angle, now, io) {
-        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false };
+        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
         const fireRange = mech.fireRange || 800;
 
+        // v266.998: PRIORIDAD ATÓMICA - Si ya empezó, TERMINA
+        if (state.isActive) {
+            this._handleOrbitalStrikeLogic(mech, state, mId, now, io);
+            this.enemy.mechState[mId] = state;
+            return true;
+        }
+
         if (dist > fireRange && !state.isCharging) return false;
+
+        if (mech.type === "orbital_strike") {
+            if (now > state.nextShotTime) {
+                this._handleOrbitalStrikeLogic(mech, state, mId, now, io);
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+        }
 
         // v266.600: Lógica de Precarga para Mega Láser
         if (mech.type === "mega_laser") {
@@ -310,5 +307,70 @@ module.exports = class BaseAI {
         }
         
         this.enemy.rotation = angle + Math.PI / 2;
+    }
+
+    _handleOrbitalStrikeLogic(mech, state, mId, now, io) {
+        const orbitDuration = mech.orbitDuration || 3000;
+        const staticTime = mech.staticTime || 1000;
+        const fireRate = mech.fireRate || 5000;
+        const radius = mech.orbitRadius || 180;
+        const speed = mech.orbitSpeed || 2.0;
+        const count = mech.circleCount || 4;
+
+        if (!state.isActive) {
+            // FASE 1: INICIO
+            state.isActive = true;
+            state.isOrbiting = true;
+            state.orbitStartTime = now;
+            state.orbitEndTime = now + orbitDuration;
+            
+            const strikeId = Date.now().toString();
+            state.strikeId = strikeId;
+
+            for (let i = 0; i < count; i++) {
+                const angleOffset = (i * Math.PI * 2 / count);
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
+                    enemyId: this.enemy.id, 
+                    x: this.enemy.x, y: this.enemy.y, 
+                    angle: angleOffset,
+                    bulletSpeed: mech.bulletSpeed || 1200, 
+                    bulletType: "orbital_mine",
+                    strikeId: strikeId, 
+                    damage: mech.bulletDamage || 100, 
+                    range: mech.fireRange || 1000,
+                    isOrbiting: true,
+                    orbitRadius: radius,
+                    orbitSpeed: speed,
+                    orbitAngleOffset: angleOffset
+                });
+            }
+
+            io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                id: this.enemy.id, action: "orbital_strike_start", strikeId: strikeId
+            });
+        } else {
+            // PROCESAR FASES EXISTENTES
+            if (state.isOrbiting && now > state.orbitEndTime) {
+                state.isOrbiting = false;
+                state.isStatic = true;
+                state.staticEndTime = now + staticTime;
+                
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id, action: "orbital_strike_static", duration: staticTime
+                });
+            } else if (state.isStatic && now > state.staticEndTime) {
+                state.isStatic = false;
+                state.isFiring = true;
+                state.fireEndTime = now + 500; 
+                state.nextShotTime = now + fireRate;
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id, action: "orbital_strike_fire"
+                });
+            } else if (state.isFiring && now > state.fireEndTime) {
+                state.isFiring = false;
+                state.isActive = false; // FIN DEL CICLO
+            }
+        }
     }
 };
