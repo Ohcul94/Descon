@@ -88,29 +88,27 @@ func start_aiming(skill_data: Dictionary):
 	if config.cast_mode == CastMode.QUICK_CAST:
 		execute_skill()
 
-func execute_skill():
-	# v266.70: No retornar si es un trigger de release y ya se estaba apuntando
+func execute_skill(from_hud: bool = false):
+	# v266.830: Blindaje Total -from_hud- 
+	# Si disparamos desde la HUD, ignoramos el mouse global siempre.
 	if not is_aiming: return
 	
 	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
-	
 	var mouse_pos = get_global_mouse_position()
-	var angle = (mouse_pos - global_position).angle()
-	var target_pos = mouse_pos
+	var angle: float
+	var target_pos: Vector2
 	
-	# v266.820: Blindaje Total contra Clics en HUD
-	# Si disparamos desde la HUD (Celular o PC con Mouse en botones), ignoramos el mouse global.
-	if is_mobile or external_aim_vector != Vector2.ZERO:
+	if from_hud or is_mobile or external_aim_vector != Vector2.ZERO:
 		if external_aim_vector != Vector2.ZERO:
 			angle = external_aim_vector.angle()
 			target_pos = global_position + external_aim_vector
 		else:
-			# Tap simple en botón: disparar hacia adelante de la nave
+			# Disparo desde HUD sin drag (tap): disparar hacia adelante
 			angle = get_parent().rotation
 			target_pos = global_position + Vector2.RIGHT.rotated(angle) * 100.0
 		selected_target = null
 	else:
-		# Modo PC Clásico (Teclado): Usar Mouse
+		# Disparo desde Teclado (PC): Usar Mouse
 		angle = (mouse_pos - global_position).angle()
 		target_pos = mouse_pos
 	

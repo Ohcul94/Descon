@@ -1021,7 +1021,7 @@ func _make_clickable(node: Control, callback: Callable):
 			
 			# v266.730: PRIMERO disparar, DESPUÉS limpiar el vector
 			if sc.is_aiming and sc.config.get("cast_mode") == 1:
-				sc.execute_skill()
+				sc.execute_skill(true)
 			sc.external_aim_vector = Vector2.ZERO
 	)
 	
@@ -1046,7 +1046,7 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 					var sc = p._skill_controller
 					if is_instance_valid(sc) and sc.is_aiming:
 						if sc.config.get("cast_mode") == 1:
-							sc.execute_skill()
+							sc.execute_skill(true)
 
 func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable):
 	var p = get_tree().get_first_node_in_group("player")
@@ -1088,7 +1088,7 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 		if aim_bg: aim_bg.visible = false
 		
 		if sc.is_aiming and sc.config.get("cast_mode") == 1:
-			sc.execute_skill()
+			sc.execute_skill(true)
 			
 		sc.external_aim_vector = Vector2.ZERO
 		node.remove_meta("touch_index")
