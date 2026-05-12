@@ -1051,6 +1051,8 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 	var p = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(p) or not p._skill_controller: return
 	var sc = p._skill_controller
+	var aim = node.get_node_or_null("AimIndicator")
+	var aim_bg = node.get_node_or_null("AimIndicatorBG")
 	
 	# v266.720: Compensación de punto de toque inicial para evitar desfasajes
 	# Guardamos dónde empezó el toque para que sea el "centro virtual"
@@ -1058,11 +1060,11 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 		if event.pressed:
 			node.set_meta("touch_start", event.position)
 			# Al tocar, reseteamos el indicador al centro visual del botón
-			var aim = node.get_node_or_null("AimIndicator")
+			aim = node.get_node_or_null("AimIndicator")
 			if aim: 
 				aim.visible = true
 				aim.position = (node.size / 2) - (aim.size / 2)
-			var aim_bg = node.get_node_or_null("AimIndicatorBG")
+			aim_bg = node.get_node_or_null("AimIndicatorBG")
 			if aim_bg: aim_bg.visible = true
 		return
 
@@ -1092,8 +1094,6 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 		sc.external_aim_vector = diff.normalized() * mapped_range if drag_length > 5 else Vector2.ZERO
 
 	# v266.720: El indicador sigue al dedo, pero el origen es el centro visual
-	var aim = node.get_node_or_null("AimIndicator")
-	var aim_bg = node.get_node_or_null("AimIndicatorBG")
 	if aim:
 		aim.visible = true
 		# Mostramos el stick relativo al centro del botón para que sea intuitivo
