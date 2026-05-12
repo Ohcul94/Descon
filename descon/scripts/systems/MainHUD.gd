@@ -1068,12 +1068,14 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 			# Activar la habilidad (equivalente a button_down)
 			callback.call()
 			
-			# Mostrar indicadores MOBA
+			# Mostrar indicadores MOBA (Joystick flotante dentro del botón)
 			if is_mobile:
+				if aim_bg:
+					aim_bg.visible = true
+					aim_bg.position = event.position - (aim_bg.size / 2)
 				if aim:
 					aim.visible = true
-					aim.position = (node.size / 2) - (aim.size / 2)
-				if aim_bg: aim_bg.visible = true
+					aim.position = event.position - (aim.size / 2)
 		else:
 			# Solo procesar release del mismo dedo
 			var stored_index = node.get_meta("touch_index", -1)
@@ -1122,12 +1124,14 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 		var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
 		sc.external_aim_vector = world_diff.normalized() * mapped_range if world_diff.length() > 5 else Vector2.ZERO
 	
-	# El indicador visual sigue al dedo (en coords de pantalla)
+	# El indicador visual sigue al dedo (stick)
 	if aim:
 		aim.visible = true
-		aim.position = (node.size / 2) + diff - (aim.size / 2)
+		aim.position = event.position - (aim.size / 2)
+	
 	if aim_bg:
 		aim_bg.visible = true
+		# Opcional: el fondo se queda quieto donde fue el primer toque
 
 
 
