@@ -26,6 +26,7 @@ var mouse_sensitivity: float = 1.0 # Velocidad del cursor virtual
 var skill_aim_speed: float = 1.0   # Suavizado de apuntado de habilidades
 var mobile_mode: bool = false           # v266.670: Modo Celular MOBA
 var mobile_aim_sensitivity: float = 1.0 # v266.700: Sensibilidad de apuntado MOBA (profundidad)
+var mobile_invert_y: bool = true        # v266.760: Invertir eje Y en apuntado movil
 func _ready():
 	load_settings()
 
@@ -49,6 +50,7 @@ func reset_to_factory():
 	skill_aim_speed = 1.0
 	mobile_mode = false
 	mobile_aim_sensitivity = 1.0
+	mobile_invert_y = true
 	
 	save_settings()
 	# Forzar actualización de HUD
@@ -71,6 +73,7 @@ func save_settings():
 	config_file.set_value("accessibility", "skill_aim_speed", skill_aim_speed)
 	config_file.set_value("accessibility", "mobile_mode", mobile_mode)
 	config_file.set_value("accessibility", "mobile_aim_sensitivity", mobile_aim_sensitivity)
+	config_file.set_value("accessibility", "mobile_invert_y", mobile_invert_y)
 	
 	for i in range(1, 8):
 		var action = "slot_" + str(i)
@@ -105,6 +108,7 @@ func load_settings():
 		skill_aim_speed = config_file.get_value("accessibility", "skill_aim_speed", 1.0)
 		mobile_mode = config_file.get_value("accessibility", "mobile_mode", false)
 		mobile_aim_sensitivity = config_file.get_value("accessibility", "mobile_aim_sensitivity", 1.0)
+		mobile_invert_y = config_file.get_value("accessibility", "mobile_invert_y", true)
 		print("[SETTINGS] Configuración cargada.")
 	else:
 		cast_mode_cache = 1
@@ -118,6 +122,7 @@ func load_settings():
 		skill_aim_speed = 1.0
 		mobile_mode = false
 		mobile_aim_sensitivity = 1.0
+		mobile_invert_y = true
 		print("[SETTINGS] Usando configuración por defecto.")
 
 func _apply_key_to_inputmap(action: String, val):

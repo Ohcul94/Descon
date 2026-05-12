@@ -182,7 +182,10 @@ func _update_joystick_visibility():
 					# Si no hay guardado, poner default
 					virtual_joystick.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT, Control.PRESET_MODE_MINSIZE, 20)
 		else:
-			virtual_joystick.global_position = Vector2(-2000, -2000) # Mover fuera por seguridad
+			# v266.760: No lo mandamos al limbo, solo lo ocultamos. 
+			# Si lo mandamos al limbo, hay que restaurarlo bien al habilitar.
+			virtual_joystick.visible = false
+			virtual_joystick.global_position = Vector2(-2000, -2000) 
 
 
 func _on_game_notification(data: Dictionary):
@@ -1111,6 +1114,9 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	# diff   = posición actual - origen = desplazamiento puro desde el toque inicial
 	var origin = node.get_meta("touch_origin", node.size / 2)
 	var diff = event.position - origin  
+	
+	# v266.770: Sincronización total: el indicador SIGUE al dedo 1:1
+	# No invertimos el diff aquí para que el AimIndicator no se aleje del dedo.
 	
 	# v266.750: Mapeo Directo 1:1 con el Mundo
 	# Pantalla Y+ (abajo) -> Mundo Y+ (abajo)
