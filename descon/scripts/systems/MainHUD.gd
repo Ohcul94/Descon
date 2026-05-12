@@ -1011,17 +1011,35 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 func _on_touch_button_input(event: InputEvent, node: Control):
 	if not get_node_or_null("/root/SettingsManager") or not SettingsManager.mobile_mode: return
 	
-	if event is InputEventScreenDrag or (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
-		var p = get_tree().get_first_node_in_group("player")
-		if is_instance_valid(p) and p._skill_controller:
-			var sc = p._skill_controller
-			if sc.is_aiming:
-				# Calcular vector desde el centro del botón
-				var center = node.size / 2
-				var diff = event.position - center
-				
-				# v266.680: Amplificar el vector para que sea cómodo apuntar
-				sc.external_aim_vector = diff.normalized() * 500.0 
+	var is_drag = (event is InputEventScreenDrag) or \
+				  (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
+	if not is_drag: return
+	
+	var p = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(p) or not p._skill_controller: return
+	var sc = p._skill_controller
+	if not sc.is_aiming: return
+	
+	# v266.700: Apuntado con profundidad real (dirección + distancia)
+	# El centro del botón es el origen, igual que PC usa la nave como origen.
+	var btn_center = node.global_position + node.size / 2
+	var drag_end = event.position if "position" in event else btn_center
+	var diff = drag_end - btn_center
+	
+	# La distancia del drag (0-80px aprox) se mapea al rango de la habilidad
+	# sensitivity controla cuánto rango se obtiene por px de arrastre
+	var sensitivity = SettingsManager.mobile_aim_sensitivity
+	var max_range = sc.current_skill.get("range", 500.0)
+	
+	if max_range <= 0:
+		# Habilidades globales (range=0): solo necesitamos el ángulo
+		sc.external_aim_vector = diff.normalized() * 300.0 if diff.length() > 5 else Vector2.ZERO
+	else:
+		# Habilidades con rango: el arrastre mapea 0..80px a 0..max_range
+		var drag_length = diff.length()
+		var mapped_range = clamp(drag_length * sensitivity * (max_range / 80.0), 10.0, max_range)
+		sc.external_aim_vector = diff.normalized() * mapped_range if drag_length > 5 else Vector2.ZERO
+
 
 func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
 	if event == null: # Viene del TouchButton

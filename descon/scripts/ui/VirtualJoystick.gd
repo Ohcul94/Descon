@@ -40,7 +40,7 @@ func _draw():
 
 var active_touch_index: int = -1
 
-func _input(event):
+func _unhandled_input(event):
 	if not visible: return
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud and hud.get("is_editing_layout"): return

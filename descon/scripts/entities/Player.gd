@@ -126,9 +126,11 @@ func _unhandled_input(event):
 			
 		var cam = get_viewport().get_camera_2d()
 		
-		# Procesar Movimiento (Click)
+		# Procesar Movimiento (Click) - v266.700: Bloqueado en modo celular
 		if event.pressed:
-			if event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT:
+			# En modo celular solo mueve el joystick virtual, no el click
+			var is_mobile = SettingsManager and SettingsManager.mobile_mode
+			if not is_mobile and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
 				target_position = get_global_mouse_position()
 				is_moving = true; autopilot_enabled = false
 			
