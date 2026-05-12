@@ -136,6 +136,7 @@ func _setup_ui():
 	pc_desc.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
 	pc_config.add_child(pc_desc)
 	
+	var player = get_tree().get_first_node_in_group("player")
 	var cast_hbox = HBoxContainer.new()
 	cast_hbox.add_theme_constant_override("separation", 20)
 	pc_config.add_child(cast_hbox)
