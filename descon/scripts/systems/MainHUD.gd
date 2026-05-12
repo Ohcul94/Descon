@@ -1048,19 +1048,33 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 func _on_touch_button_input(event: InputEvent, node: Control):
 	if not get_node_or_null("/root/SettingsManager") or not SettingsManager.mobile_mode: return
 	
+	var p = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(p) or not p._skill_controller: return
+	var sc = p._skill_controller
+	
+	# v266.720: Compensación de punto de toque inicial para evitar desfasajes
+	# Guardamos dónde empezó el toque para que sea el "centro virtual"
+	if event is InputEventScreenTouch or (event is InputEventMouseButton and event.pressed):
+		if event.pressed:
+			node.set_meta("touch_start", event.position)
+			# Al tocar, reseteamos el indicador al centro visual del botón
+			var aim = node.get_node_or_null("AimIndicator")
+			if aim: 
+				aim.visible = true
+				aim.position = (node.size / 2) - (aim.size / 2)
+			var aim_bg = node.get_node_or_null("AimIndicatorBG")
+			if aim_bg: aim_bg.visible = true
+		return
+
+	if not sc.is_aiming: return
+	
 	var is_drag = (event is InputEventScreenDrag) or \
 				  (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT))
 	if not is_drag: return
 	
-	var p = get_tree().get_first_node_in_group("player")
-	if not is_instance_valid(p) or not p._skill_controller: return
-	var sc = p._skill_controller
-	if not sc.is_aiming: return
-	
-	# v266.710: Apuntado con profundidad real (dirección + distancia)
-	# IMPORTANTE: En gui_input, event.position es LOCAL al nodo.
-	var center = node.size / 2
-	var diff = event.position - center
+	# v266.720: Calcular diff relativo al punto de inicio del toque
+	var touch_start = node.get_meta("touch_start", node.size / 2)
+	var diff = event.position - touch_start
 	
 	# La distancia del drag (0-80px aprox) se mapea al rango de la habilidad
 	# sensitivity controla cuánto rango se obtiene por px de arrastre
@@ -1077,12 +1091,13 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 		# Habilidades con rango: el arrastre mapea 0..80px a 0..max_range
 		sc.external_aim_vector = diff.normalized() * mapped_range if drag_length > 5 else Vector2.ZERO
 
-	# v266.710: Actualizar indicador visual en el botón
+	# v266.720: El indicador sigue al dedo, pero el origen es el centro visual
 	var aim = node.get_node_or_null("AimIndicator")
 	var aim_bg = node.get_node_or_null("AimIndicatorBG")
 	if aim:
 		aim.visible = true
-		aim.position = event.position - (aim.size / 2)
+		# Mostramos el stick relativo al centro del botón para que sea intuitivo
+		aim.position = (node.size / 2) + diff - (aim.size / 2)
 	if aim_bg:
 		aim_bg.visible = true
 
