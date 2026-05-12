@@ -15,18 +15,17 @@ var initial_pos: Vector2 = Vector2.ZERO
 var active_touch_index: int = -1
 
 func _ready():
-	# v266.930: No forzar tamaño fijo para respetar el Scale del Layout Editor
-	if custom_minimum_size == Vector2.ZERO:
-		custom_minimum_size = Vector2(100, 100)
-	
+	# v266.950: Tamaño base estándar
+	custom_minimum_size = Vector2(100, 100)
+	size = Vector2(100, 100)
 	apply_visibility()
 	
-	# Esperar a que el sistema de Layout del MainHUD termine de posicionarnos
+	# Capturar posición del Layout (Damos 2 frames para que el HUD asiente)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	initial_pos = global_position
 	
-	# Failsafe: Si el layout nos dejó en 0,0, ir abajo izq
+	# Failsafe: Si el HUD no nos posicionó, ir abajo izq
 	if initial_pos.length() < 10:
 		var screen = get_viewport_rect().size
 		initial_pos = Vector2(120, screen.y - 120)
@@ -39,30 +38,25 @@ func apply_visibility():
 	if get_node_or_null("/root/SettingsManager"):
 		is_mobile_enabled = SettingsManager.mobile_mode
 	
-	# v266.930: En modo edición siempre visible. En juego, invisible hasta tocar.
-	var hud = get_tree().get_first_node_in_group("hud")
-	var is_edit = hud and hud.get("is_editing_layout")
-	
-	visible = is_edit
+	# v266.950: Desconexión total en modo PC
+	visible = false
+	set_process_unhandled_input(is_mobile_enabled)
+	set_process(is_mobile_enabled)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _draw():
-	# v266.930: No retornar si es invisible porque queremos verlo en el Editor
-	# Godot ya maneja si dibuja o no segun visible.
+	# Godot solo dibuja si visible = true
 	var center = size / 2
 	draw_circle(center, max_dist, border_color)
-	draw_arc(center, max_dist, 0, TAU, 64, border_color, 3.0) # Arco más grueso
-	draw_circle(center + stick_pos, 25, stick_color) # Stick un poco más grande
+	draw_arc(center, max_dist, 0, TAU, 64, border_color, 3.0)
+	draw_circle(center + stick_pos, 25, stick_color)
 
 func _unhandled_input(event):
-	if not is_mobile_enabled: return
-	
-	var event_pos = Vector2.ZERO
-	if "position" in event:
-		event_pos = event.position
-	else:
+	# Solo procesar toques reales (ignora mouse de PC totalmente)
+	if not (event is InputEventScreenTouch or event is InputEventScreenDrag):
 		return
 	
+	var event_pos = event.position
 	var screen_width = get_viewport_rect().size.x
 	var is_in_joystick_zone = event_pos.x < screen_width / 2
 	
@@ -71,7 +65,7 @@ func _unhandled_input(event):
 			if is_in_joystick_zone and active_touch_index == -1:
 				active_touch_index = event.index
 				is_dragging = true
-				visible = true # MOSTRAR
+				visible = true
 				global_position = event_pos - (size / 2)
 				_update_stick_pos(event_pos)
 		else:
@@ -81,22 +75,6 @@ func _unhandled_input(event):
 	elif event is InputEventScreenDrag:
 		if event.index == active_touch_index:
 			_update_stick_pos(event_pos)
-			get_viewport().set_input_as_handled()
-
-	# Failsafe PC
-	elif event is InputEventMouseButton and active_touch_index == -1:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
-				if is_in_joystick_zone:
-					is_dragging = true
-					visible = true
-					global_position = event_pos - (size / 2)
-					_update_stick_pos(event_pos)
-			else:
-				if is_dragging:
-					_reset_joystick()
-	elif event is InputEventMouseMotion and is_dragging and active_touch_index == -1:
-		_update_stick_pos(event_pos)
 
 func _update_stick_pos(screen_pos: Vector2):
 	var local_pos = (screen_pos - global_position) 
@@ -112,9 +90,7 @@ func _reset_joystick():
 	stick_pos = Vector2.ZERO
 	joystick_updated.emit(Vector2.ZERO)
 	
-	# v266.930: NO mover el nodo de vuelta a initial_pos si el usuario lo soltó.
-	# Simplemente se hace invisible y se queda ahí para la próxima.
-	# Excepto si el modo edición está activo.
+	# Si no estamos editando, esconder
 	var hud = get_tree().get_first_node_in_group("hud")
 	if not (hud and hud.get("is_editing_layout")):
 		visible = false
@@ -122,7 +98,6 @@ func _reset_joystick():
 	queue_redraw()
 
 func _process(_delta):
-	# v266.930: Respetar configuración de Layout
 	var hud = get_tree().get_first_node_in_group("hud")
 	var is_edit = hud and hud.get("is_editing_layout")
 	
