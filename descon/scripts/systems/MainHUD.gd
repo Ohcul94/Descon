@@ -450,9 +450,9 @@ func _sync_hud_keys():
 	var all_slots = skills_container.find_children("*Slot", "Control", true, false)
 	
 	var slot_to_action = {
-		"Sphere1Slot": "slot_1", "Sphere2Slot": "slot_2", 
-		"Sphere3Slot": "slot_3", "Sphere4Slot": "slot_4",
-		"LaserSlot": "slot_7", "MissileSlot": "slot_6", "MineSlot": "slot_5"
+		"LaserSlot": "slot_1", "MissileSlot": "slot_2", "MineSlot": "slot_3",
+		"Sphere1Slot": "slot_4", "Sphere2Slot": "slot_5", 
+		"Sphere3Slot": "slot_6", "Sphere4Slot": "slot_7"
 	}
 
 	for slot in all_slots:
@@ -968,22 +968,33 @@ func _make_clickable(node: Control, callback: Callable):
 		node.add_child(btn)
 		node.move_child(btn, 0)
 		
-		# v266.710: Indicador visual de apuntado MOBA
-		var aim = ColorRect.new()
+		# v266.710: Indicador visual de apuntado MOBA (Joystick de Skill)
+		var aim_bg = Panel.new()
+		aim_bg.name = "AimIndicatorBG"
+		aim_bg.size = Vector2(160, 160) # Área de arrastre visual
+		aim_bg.position = (node.size / 2) - Vector2(80, 80)
+		aim_bg.visible = false
+		aim_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		var style_bg = StyleBoxFlat.new()
+		style_bg.bg_color = Color(0, 0.5, 1, 0.1)
+		style_bg.border_width_all = 2; style_bg.border_color = Color(0, 0.5, 1, 0.3)
+		style_bg.set_corner_radius_all(80)
+		aim_bg.add_theme_stylebox_override("panel", style_bg)
+		node.add_child(aim_bg)
+		
+		var aim = Panel.new()
 		aim.name = "AimIndicator"
 		aim.size = Vector2(40, 40)
 		aim.position = (node.size / 2) - Vector2(20, 20)
 		aim.visible = false
 		aim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		
-		# Estilo círculo azul
-		var style = StyleBoxFlat.new()
-		style.bg_color = Color(0, 0.8, 1, 0.3)
-		style.border_width_left = 2; style.border_color = Color(0, 0.8, 1, 0.8)
-		style.set_corner_radius_all(20)
-		aim.add_theme_stylebox_override("panel", style) # ColorRect no usa stylebox, pero lo guardamos
-		
-		# Usar un shader o simplemente un círculo dibujado
+		var style_aim = StyleBoxFlat.new()
+		style_aim.bg_color = Color(0, 0.8, 1, 0.4)
+		style_aim.border_width_all = 2; style_aim.border_color = Color(0, 0.8, 1, 0.9)
+		style_aim.set_corner_radius_all(20)
+		aim.add_theme_stylebox_override("panel", style_aim)
 		node.add_child(aim)
 	
 	# Usamos señales de botón que son más fiables en móvil
@@ -1003,9 +1014,11 @@ func _make_clickable(node: Control, callback: Callable):
 			var sc = p._skill_controller
 			sc.external_aim_vector = Vector2.ZERO # Limpiar al soltar
 			
-			# v266.710: Ocultar indicador visual
+			# v266.710: Ocultar indicadores
 			var aim = node.get_node_or_null("AimIndicator")
 			if aim: aim.visible = false
+			var aim_bg = node.get_node_or_null("AimIndicatorBG")
+			if aim_bg: aim_bg.visible = false
 			
 			if sc.is_aiming and sc.config.get("cast_mode") == 1:
 				sc.execute_skill()
@@ -1066,9 +1079,12 @@ func _on_touch_button_input(event: InputEvent, node: Control):
 
 	# v266.710: Actualizar indicador visual en el botón
 	var aim = node.get_node_or_null("AimIndicator")
+	var aim_bg = node.get_node_or_null("AimIndicatorBG")
 	if aim:
 		aim.visible = true
 		aim.position = event.position - (aim.size / 2)
+	if aim_bg:
+		aim_bg.visible = true
 
 
 func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
