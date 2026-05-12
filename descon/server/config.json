@@ -484,6 +484,39 @@
             "rewardOhcu": 2000,
             "shield": 75000,
             "speed": 280
+        },
+        "104": {
+            "bulletDamage": 8000,
+            "bulletSpeed": 1200,
+            "fireRange": 1400,
+            "fireRate": 1200,
+            "hp": 300000,
+            "isBoss": true,
+            "name": "Stellar Guardian",
+            "rageTimer": 20,
+            "rewardExp": 100000,
+            "rewardHubs": 500000,
+            "rewardOhcu": 5000,
+            "shield": 150000,
+            "speed": 260,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 200,
+                    "bulletSpeed": 900,
+                    "fireRange": 1200,
+                    "fireRate": 800,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "orbit",
+                    "speed": 260,
+                    "orbitRadius": 300,
+                    "startDelay": 0
+                }
+            ]
         }
     },
     "hordeConfig": {

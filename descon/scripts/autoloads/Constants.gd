@@ -131,7 +131,8 @@ var ENEMY_MODELS = {
 	
 	"101": { "name": "Lord Titán", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000, "rageTimer": 20, "speed": 250, "bulletSpeed": 900, "fireRange": 1200, "isBoss": true },
 	"102": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20, "speed": 220, "bulletSpeed": 1000, "fireRange": 1500, "isBoss": true },
-	"103": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20, "speed": 280, "bulletSpeed": 1100, "fireRange": 1300, "isBoss": true }
+	"103": { "name": "Mechanic Boss", "hp": 150000, "shield": 75000, "bulletDamage": 3000, "fireRate": 600, "rewardHubs": 200000, "rewardOhcu": 2000, "rewardExp": 50000, "rageTimer": 20, "speed": 280, "bulletSpeed": 1100, "fireRange": 1300, "isBoss": true },
+	"104": { "name": "Stellar Guardian", "hp": 300000, "shield": 150000, "bulletDamage": 8000, "fireRate": 1200, "rewardHubs": 500000, "rewardOhcu": 5000, "rewardExp": 100000, "rageTimer": 20, "speed": 260, "bulletSpeed": 1200, "fireRange": 1400, "isBoss": true }
 }
 
 var AMMO_MULTIPLIERS = {

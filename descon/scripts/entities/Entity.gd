@@ -890,6 +890,10 @@ func _setup_enemy_visuals():
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
 			enemy_rot_offset = 180.0
 			enemy_scale = 6.0
+		104: # Stellar Guardian (Boss4)
+			glb_path = "res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb"
+			enemy_rot_offset = 0.0
+			enemy_scale = 8.0
 
 	if glb_path != "":
 		print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)
