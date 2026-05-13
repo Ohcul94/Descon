@@ -32,8 +32,12 @@ class AIManager {
         const type = forceType || (Math.floor(Math.random() * 3) + 1);
         const cfg = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[type.toString()] : null;
         
-        const maps = (this.state && this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig) ? this.state.SERVER_CONFIG.mapsConfig : {};
-        const mapCfg = maps[zone] || maps[zone.toString()];
+        const maps = (this.state && this.state.SERVER_CONFIG) ? (this.state.SERVER_CONFIG.mapsConfig || this.state.SERVER_CONFIG.maps || this.state.SERVER_CONFIG.mapData || {}) : {};
+        let mapCfg = maps[zone] || maps[zone.toString()];
+        if (!mapCfg) {
+            mapCfg = Object.values(maps).find(m => m.name === zone || m.name === `Mapa ${zone}` || m.name === zone.toString());
+        }
+        
         const extremeAggro = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
         const hpMult = extremeAggro ? (parseFloat(extremeAggro.healthMult) || 1) : 1;
 
@@ -118,7 +122,13 @@ class AIManager {
                             const lastSpawn = this.spawnCooldowns[sKey] || 0;
                             const now = Date.now();
                             
-                            if (now - lastSpawn >= (s.intervalMs || 5000)) {
+                            // v266.999: Aceleración de Respawn Profesional (Bonus %)
+                            const extremeAggro = (mCfg.ambience && Array.isArray(mCfg.ambience)) ? mCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
+                            const respawnBonus = extremeAggro ? (parseFloat(extremeAggro.respawnSpeedBonus) || 0) : 0;
+                            const intervalMult = 1 + (respawnBonus / 100);
+                            const actualInterval = (s.intervalMs || 5000) / intervalMult;
+
+                            if (now - lastSpawn >= actualInterval) {
                                 this.spawnCooldowns[sKey] = now;
                                 this.serverSpawnEnemy(parseInt(mapId), s.type);
                             }

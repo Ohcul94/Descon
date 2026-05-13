@@ -2,8 +2,8 @@
 const BaseAI = require('./BaseAI');
 
 module.exports = class SniperAI extends BaseAI {
-    constructor(enemy, config) {
-        super(enemy, config);
+    constructor(enemy, config, state) {
+        super(enemy, config, state);
         this.idealDist = 450; // Distancia preferida del francotirador
     }
 

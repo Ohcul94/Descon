@@ -2,8 +2,8 @@
 const BaseAI = require('./BaseAI');
 
 module.exports = class GravityAI extends BaseAI {
-    constructor(enemy, config) {
-        super(enemy, config);
+    constructor(enemy, config, state) {
+        super(enemy, config, state);
         this.vortexCooldown = 6000;
         this.lastVortexTime = 0;
         this.vortexDuration = 2500;

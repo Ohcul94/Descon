@@ -2,8 +2,8 @@
 const BaseAI = require('./BaseAI');
 
 module.exports = class BossAI extends BaseAI {
-    constructor(enemy, config) {
-        super(enemy, config);
+    constructor(enemy, config, state) {
+        super(enemy, config, state);
         this.currentPhase = 1; // 1: Laser, 2: Ram/Teleport, 3: Missiles
         this.phaseTimer = 0;
         this.nextPhaseTime = Date.now() + 5000;
@@ -18,8 +18,12 @@ module.exports = class BossAI extends BaseAI {
         this.nextRamTime = 0;
     }
 
-    update(players, now, io) {
-        let target = this.getNearestPlayer(players);
+    update(grid, players, now, io) {
+        // v266.999: Forzar ciclo base para detectar Agresividad Extrema y Agro Global
+        super.update(grid, players, now, io);
+        
+        // El bicho hereda el target de la lógica base
+        let target = this.getNearestPlayer(grid, players);
         if (!target) {
             if (this.noAggroStartTime === 0) this.noAggroStartTime = now;
             

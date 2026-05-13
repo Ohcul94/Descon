@@ -10,21 +10,21 @@ module.exports = class BaseAI {
     update(grid, players, now, io) {
         const cfg = this.config;
         
-        // v266.999: Detección de Agresividad Extrema Ambiental (Blindado Total)
+        // v266.999: Detección de Agresividad Extrema Ambiental (Búsqueda Ultra-Robusta)
         const zoneId = this.enemy.zone;
         const currentConfig = (this.state && this.state.SERVER_CONFIG) ? this.state.SERVER_CONFIG : {};
-        const maps = currentConfig.mapsConfig || {};
-        const mapCfg = maps[zoneId] || maps[zoneId.toString()];
+        const maps = currentConfig.mapsConfig || currentConfig.maps || currentConfig.mapData || {};
+        
+        // Intentar encontrar el mapa por ID (2), String ("2") o Nombre ("Mapa 2")
+        let mapCfg = maps[zoneId] || maps[zoneId.toString()];
+        if (!mapCfg) {
+            mapCfg = Object.values(maps).find(m => m.name === zoneId || m.name === `Mapa ${zoneId}` || m.name === zoneId.toString());
+        }
+
         const extremeAggro = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
         
         this.ambienceBoost = extremeAggro || null;
         
-        // Log de Diagnóstico (Solo cuando hay cambio de estado o detección inicial)
-        if (this.ambienceBoost && !this._lastAmbienceLog) {
-            console.log(`[EXTREME-AGGRO] Activado en Zona ${zoneId}. Mults -> Daño: ${this.ambienceBoost.damageMult}, Velocidad: ${this.ambienceBoost.speedMult}, Vida: ${this.ambienceBoost.healthMult}`);
-            this._lastAmbienceLog = true;
-        }
-
         // v266.999: Si hay ambiente extremo, el bicho ES agresivo por definición
         const isAggressive = (this.ambienceBoost) ? true : (cfg.aggressive !== false);
         this.enemy.isAggressive = isAggressive; // Restaurar propiedad para otros sistemas
@@ -62,11 +62,12 @@ module.exports = class BaseAI {
         let activeTarget = null;
         let isRevenge = false;
 
+        // 1. REPRESALIA: Prioridad al que me pegó (Si el idleLimit no expiró)
         if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
             const idleTime = now - (this.enemy.lastHit || 0);
-            const idleLimit = cfg.chaseIdleTimeout || 0; // 0 = Desactivado
+            const idleLimit = (this.ambienceBoost) ? 30000 : (cfg.chaseIdleTimeout || 10000); 
             
-            if (idleLimit === 0 || idleTime < idleLimit) {
+            if (idleTime < idleLimit) {
                 activeTarget = players[this.enemy.lastHitter];
                 isRevenge = true;
             } else {
@@ -74,7 +75,7 @@ module.exports = class BaseAI {
             }
         }
 
-        // Si no está en modo venganza (o se le pasó el enojo) y es agresivo, busca al más cercano
+        // 2. PROXIMIDAD: Si soy agresivo y no tengo venganza pendiente, busco al más cercano
         if (!activeTarget && isAggressive) {
             activeTarget = potentialTarget;
         }
@@ -83,11 +84,23 @@ module.exports = class BaseAI {
         const hasActiveMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isActive);
         const isExtreme = !!this.ambienceBoost;
         
-        if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme) return;
+        if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme) {
+            this.enemy.isMoving = false;
+            return;
+        }
+        
+        this.enemy.isMoving = true;
 
         // v266.999: Valores seguros si el target desapareció pero el ataque sigue
         const dist = activeTarget ? Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y) : 99999;
         const targetAngle = activeTarget ? Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x) : this.enemy.rotation;
+
+        // v266.999: Lógica de Persistencia (Basada en Dashboard)
+        const canSee = activeTarget && dist < (cfg.fireRange || 1000) * 1.5;
+        if (!isExtreme && !cfg.chaseUntilDeath && cfg.stopOnOutOfSight && !canSee && !isRevenge) {
+            this.enemy.isMoving = false;
+            return;
+        }
 
         // v266.975: Ejecución del Estado Kamikaze (Prioridad sobre combate normal)
         if (this.enemy.isKamikazeActive) {
@@ -107,10 +120,9 @@ module.exports = class BaseAI {
             return; 
         }
         
-        // v266.999: Simular rotación (delta de tiempo aproximado 100ms por ciclo de IA)
+        // v266.999: Rotación de Cuerpo - Mirar SIEMPRE al objetivo (v266.999)
         if (this.enemy.rotation === undefined) this.enemy.rotation = targetAngle;
-        const firstMech = cfg.mechanics ? cfg.mechanics[0] : null;
-        const turnSpeed = firstMech ? (firstMech.turnSpeed || 5.0) : 5.0;
+        const turnSpeed = 5.0; // Velocidad de giro del cuerpo
         const delta = 0.1; 
         let diff = targetAngle - this.enemy.rotation;
         while (diff < -Math.PI) diff += Math.PI * 2;
@@ -136,23 +148,46 @@ module.exports = class BaseAI {
         }
     }
 
+    applyMovementLogic(target, dist, angle, now) {
+        // v266.999: Lógica de Persecución Base (Fallback)
+        // Si el bicho no tiene una clase de movimiento específica, al menos que te siga
+        let speed = this.config.speed || 3.5;
+        const stopDist = 80;
+
+        if (dist > stopDist) {
+            this.enemy.x += Math.cos(angle) * (speed * 1);
+            this.enemy.y += Math.sin(angle) * (speed * 1);
+        }
+        
+        this.enemy.rotation = angle + Math.PI / 2;
+    }
+
     getNearestPlayer(grid, players) {
         let closest = null;
-        // v266.999: Si hay Agresividad Extrema, el rango de visión es GLOBAL y exhaustivo
+        // v266.999: Si hay Agresividad Extrema, el rango de visión es GLOBAL (50k px)
         const visionRange = this.ambienceBoost ? 50000 : (this.enemy.isHorde ? 10000 : 800);
         let minDist = visionRange; 
         
-        // v266.999: Si es extremo, buscamos en todos los jugadores del servidor, no solo los "cercanos"
-        const targets = (grid && !this.ambienceBoost && !this.enemy.isHorde) ? grid.getNearbyEntities(this.enemy.x, this.enemy.y).players : Object.values(players);
-
-        for (const p of targets) {
-            // v266.999: Si hay Agresividad Extrema, ignoramos la invisibilidad. El bicho TE HUELE.
-            if (!p || p.isDead || p.zone !== this.enemy.zone) continue;
-            if (p.isInvisible && !this.ambienceBoost) continue; 
+        // v266.999: Búsqueda exhaustiva sin Grid si es extremo
+        const targetList = Object.values(players || {});
+        const maps = (this.state && this.state.SERVER_CONFIG) ? (this.state.SERVER_CONFIG.mapsConfig || this.state.SERVER_CONFIG.maps || this.state.SERVER_CONFIG.mapData || {}) : {};
+        
+        for (const p of targetList) {
+            // v266.999: Búsqueda Global (Si el jugador está en una zona extrema, el bicho lo detecta)
+            const pZone = parseInt(p.zone);
+            const eZone = parseInt(this.enemy.zone);
             
-            // v252.22: Validación de Integridad del Target
-            if (typeof p.x !== 'number' || typeof p.y !== 'number') continue;
-            if (!p.user) continue; 
+            // Verificamos si la zona del JUGADOR es extrema
+            const pMapCfg = maps[pZone] || maps[pZone.toString()];
+            const pIsExtreme = (pMapCfg && pMapCfg.ambience && pMapCfg.ambience.some(a => a.type === 'extreme_aggression'));
+
+            if (!p || p.isDead) continue;
+            
+            // Invisibilidad: Respeto absoluto solicitado por el usuario (v266.999)
+            if (p.isInvisible) continue; 
+            
+            // Si no estamos en la misma zona y la zona del jugador NO es extrema, ignoramos
+            if (pZone !== eZone && !pIsExtreme) continue;
 
             const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
             if (d < minDist) {
@@ -189,6 +224,10 @@ module.exports = class BaseAI {
     }
 
     _executeMechanic(mech, mId, target, dist, angle, now, io) {
+        if (!target || !io) return; // Seguridad v266.999
+        
+        const zoneStr = `zone_${this.enemy.zone}`;
+        const type = mech.type || 'orbital';
         const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
         const fireRange = mech.fireRange || 800;
 

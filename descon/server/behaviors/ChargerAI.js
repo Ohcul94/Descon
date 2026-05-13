@@ -2,8 +2,8 @@
 const BaseAI = require('./BaseAI');
 
 module.exports = class ChargerAI extends BaseAI {
-    constructor(enemy, config) {
-        super(enemy, config);
+    constructor(enemy, config, state) {
+        super(enemy, config, state);
         this.isCharging = false;
         this.chargeStartTime = 0;
         this.chargeCooldown = 4000 + Math.random() * 2000;

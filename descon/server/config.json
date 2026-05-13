@@ -626,8 +626,8 @@
                     "damage": 10,
                     "intervalMs": 300,
                     "damageMult": 2,
-                    "speedMult": 2,
-                    "healthMult": 2
+                    "speedMult": 1,
+                    "healthMult": 1
                 },
                 {
                     "type": "radiation",
@@ -638,27 +638,27 @@
             "spawns": [
                 {
                     "type": "1",
-                    "count": 5,
+                    "count": 10,
                     "intervalMs": 5000
                 },
                 {
                     "type": "2",
-                    "count": 5,
+                    "count": 10,
                     "intervalMs": 5000
                 },
                 {
                     "type": "3",
-                    "count": 5,
+                    "count": 10,
                     "intervalMs": 5000
                 },
                 {
                     "type": "4",
-                    "count": 5,
+                    "count": 10,
                     "intervalMs": 5000
                 },
                 {
                     "type": "5",
-                    "count": 5,
+                    "count": 10,
                     "intervalMs": 5000
                 }
             ]

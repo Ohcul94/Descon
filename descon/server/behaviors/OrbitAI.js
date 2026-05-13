@@ -2,8 +2,8 @@
 const BaseAI = require('./BaseAI');
 
 module.exports = class OrbitAI extends BaseAI {
-    constructor(enemy, config) {
-        super(enemy, config);
+    constructor(enemy, config, state) {
+        super(enemy, config, state);
         this.orbitRadius = config.orbitRadius || 250;
         this.orbitDir = Math.random() > 0.5 ? 1 : -1;
     }

@@ -2,8 +2,8 @@
 const BaseAI = require('./BaseAI');
 
 module.exports = class AncientBossAI extends BaseAI {
-    constructor(enemy, config) {
-        super(enemy, config);
+    constructor(enemy, config, state) {
+        super(enemy, config, state);
         this.timers = { nova: 0, rifts: 0, leech: 0, mines: 0, pulses: 0, shield: 0, clones: 0 };
         this.activeRifts = [];
         this.abilityIndex = 0;
@@ -11,8 +11,9 @@ module.exports = class AncientBossAI extends BaseAI {
         this.combatStartTime = 0;
     }
 
-    update(players, now, io) {
-        let target = this.getNearestPlayer(players);
+    update(grid, players, now, io) {
+        super.update(grid, players, now, io);
+        let target = this.getNearestPlayer(grid, players);
         if (!target) {
             if (this.noAggroStartTime === undefined) this.noAggroStartTime = 0;
             if (this.noAggroStartTime === 0) this.noAggroStartTime = now;
@@ -92,10 +93,10 @@ module.exports = class AncientBossAI extends BaseAI {
 
     handleAreaDamage(players, now, io) {
         const nearby = Object.values(players).filter(p => 
-            p.zone === this.enemy.zone && !p.isDead && p.user && typeof p.x === 'number'
+            parseInt(p.zone) === parseInt(this.enemy.zone) && !p.isDead && p.user && typeof p.x === 'number'
         );
         
-        // 1. Vórtices: DAÑO PRECIOSO v115.20 (Rando 90px para visual de 80px)
+        // 1. Vórtices: DAÑO PRECIOSO v115.20
         this.activeRifts = this.activeRifts.filter(r => r.expiry > now);
         this.activeRifts.forEach(r => {
             nearby.forEach(p => {
@@ -106,38 +107,35 @@ module.exports = class AncientBossAI extends BaseAI {
                     p.x += Math.cos(angle) * force;
                     p.y += Math.sin(angle) * force;
                     
-                    // DAÑO MILIMÉTRICO (Solo si está en el círculo violeta de 80-90px)
+                    // DAÑO MILIMÉTRICO (Solo si está en el círculo violeta)
                     if (dist < 90) this.applyDamage(p, 450, now, io);
                     
-                    io.to(p.socketId).emit('playerStatSync', { x: p.x, y: p.y, hp: p.hp, shield: p.shield, lastHit: now });
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', { id: p.socketId, x: p.x, y: p.y, hp: p.hp, shield: p.shield, lastHit: now });
                 }
             });
         });
     }
 
     applyDamage(player, amount, now, io) {
-        if (player.isDead) return;
+        if (!player || player.isDead || player.isInvulnerable) return;
         
-        // v240.70: Registro en log de combate y reset de cooldown
-        if (player.user) {
-            const fs = require('fs');
-            // Log mejorado con ID y posición para cazar "fantasmas"
-            fs.appendFileSync('combat_debug.log', `[BOSS-HIT] User: ${player.user}, Damage: ${amount}, Source: ${this.enemy.name} (${this.enemy.id}) en [${Math.floor(this.enemy.x)},${Math.floor(this.enemy.y)}], Time: ${new Date().toISOString()}\n`);
-            player.lastCombatTime = now; // v240.70: MARCAR COMBATE (Bloquea ship-swap y REGEN)
-        }
-
-        player.shield -= amount;
-        if (player.shield < 0) { player.hp += player.shield; player.shield = 0; }
+        let dmg = amount;
+        if (player.shield >= dmg) player.shield -= dmg;
+        else { player.hp -= (dmg - player.shield); player.shield = 0; }
         
-        player.lastHit = now;
-
         if (player.hp <= 0) {
             player.hp = 0; player.isDead = true;
-            if (io) io.to(`zone_${player.zone}`).emit('playerStatSync', { id: player.socketId, hp: 0, shield: 0, isDead: true, lastHit: now });
-            return;
         }
+        
+        player.lastHit = now;
+        player.lastCombatTime = now;
 
-        if (io) io.to(`zone_${player.zone}`).emit('playerStatSync', { id: player.socketId, hp: player.hp, shield: player.shield, lastHit: now });
+        if (io) {
+            io.to(`zone_${player.zone}`).emit('playerStatSync', { 
+                id: player.socketId, hp: Math.ceil(player.hp), shield: Math.ceil(player.shield), 
+                maxHp: player.maxHp, maxShield: player.maxShield, isDead: player.isDead 
+            });
+        }
     }
 
     runRotation(players, target, now, io) {

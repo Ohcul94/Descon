@@ -168,9 +168,16 @@ function registerCombatHandlers(socket, io, state) {
                     state.enemies[data.attackerId].lastSuccessHit = Date.now();
                 }
 
-                // v262.140: Parche Anti-Inmortalidad
-                // Si el cliente manda daño 0 o sospechosamente bajo, aplicamos daño base
-                if (dmg <= 0 || dmg > baseDmg) dmg = baseDmg;
+                // v266.999: Blindaje de Daño Ambiental (Permitir daño x2, x3 si el mapa es extremo)
+                const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+                const mapCfg = maps[p.zone] || maps[p.zone.toString()];
+                const extremeAggro = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
+                const damageMult = extremeAggro ? (parseFloat(extremeAggro.damageMult) || 1) : 1;
+                
+                const authorizedMaxDmg = baseDmg * damageMult;
+
+                // Si el cliente manda daño 0 o sospechosamente alto (más que el autorizado por el mapa), normalizamos
+                if (dmg <= 0 || dmg > (authorizedMaxDmg + 5)) dmg = authorizedMaxDmg;
 
                 // v266.250: Verificación de Tipo de Bala (Solo aplica slow si la bala coincide)
                 if (cfg) {

@@ -32,6 +32,6 @@ let AMBIENCE_LIB = {
         label: "Agresividad Extrema", 
         icon: "👹", 
         desc: "Enemigos acechan a toda distancia y con stats potenciados.", 
-        fields: ["damageMult", "speedMult", "healthMult"] 
+        fields: ["damageMult", "speedMult", "healthMult", "respawnSpeedBonus"] 
     }
 };

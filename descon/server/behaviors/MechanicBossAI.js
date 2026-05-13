@@ -31,34 +31,34 @@ module.exports = class MechanicBossAI extends BaseAI {
         this.enemy.rotation = angle + Math.PI / 2;
     }
 
-    applyFiringLogic(io, zoneStr) {
-        const now = Date.now();
+    applyCombatLogic(target, dist, angle, now, io) {
+        const zoneStr = `zone_${this.enemy.zone}`;
         // Activa escudo visual si HP < 50%
         this.isInvulnerable = false; // Aquí puedes encender invulnerabilidad mecánica
         
         // Fase 2: Disparo en Anillo (Burst multidireccional)
         if (this.enemy.hp < this.enemy.maxHp * 0.5) {
-            if (now - this.enemy.nextShotTime > 0) {
+            if (now - (this.enemy.nextShotTime || 0) > 0) {
                 // Dispara balas en 8 direcciones
                 for(let i=0; i<8; i++) {
                     const fireAngle = (Math.PI / 4) * i;
                     const dmg = this.config.bulletDamage * 0.5; // Menos daño pero muchas balas
                     io.to(zoneStr).emit('serverEnemyFire', {
-                        id: this.enemy.id,
+                        enemyId: this.enemy.id,
                         x: this.enemy.x, y: this.enemy.y,
-                        rotation: fireAngle, dmg: dmg
+                        angle: fireAngle, damage: dmg
                     });
                 }
                 this.enemy.nextShotTime = now + 4000; // Cadencia pesada
             }
         } else {
-            // Disparo normal hacia el objetivo (heredado pero modificado)
-            if (now - this.enemy.nextShotTime > 0) {
+            // Disparo normal hacia el objetivo
+            if (now - (this.enemy.nextShotTime || 0) > 0) {
                 io.to(zoneStr).emit('serverEnemyFire', {
-                    id: this.enemy.id,
+                    enemyId: this.enemy.id,
                     x: this.enemy.x, y: this.enemy.y,
-                    rotation: this.enemy.rotation,
-                    dmg: this.config.bulletDamage
+                    angle: this.enemy.rotation - Math.PI / 2,
+                    damage: this.config.bulletDamage
                 });
                 this.enemy.nextShotTime = now + 1500;
             }

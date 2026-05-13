@@ -203,6 +203,21 @@ function renderEnemies() {
 
     updateSidebar();
     const grid = document.getElementById('enemies-grid'); grid.innerHTML = '';
+    
+    // Botón de Purga Total
+    const purgeBtn = document.createElement('button');
+    purgeBtn.className = 'btn';
+    purgeBtn.style.background = '#ff4444';
+    purgeBtn.style.marginBottom = '1rem';
+    purgeBtn.style.width = '100%';
+    purgeBtn.innerText = '🔥 PURGAR TODOS LOS ENEMIGOS DEL SERVIDOR';
+    purgeBtn.onclick = () => {
+        if(confirm('¿Estás seguro? Esto eliminará a todos los bichos de todos los mapas.')) {
+            socket.emit('adminPurgeEnemies');
+        }
+    };
+    grid.appendChild(purgeBtn);
+
     const f = getFilter();
 
     for(let id in config.enemyModels) {
@@ -251,6 +266,24 @@ function renderEnemyDetail() {
                     <div class="price-group" style="margin-top:1rem;">
                         <div class="field"><label>Exp (pts)</label><input type="number" value="${en.rewardExp}" onchange="config.enemyModels['${selectedEnemyId}'].rewardExp = parseInt(this.value)"></div>
                         <div class="field"><label>Hubs (pts)</label><input type="number" value="${en.rewardHubs}" onchange="config.enemyModels['${selectedEnemyId}'].rewardHubs = parseInt(this.value)"></div>
+                    </div>
+                </div>
+                <div class="card" style="width:100%; margin-bottom: 2rem; border-color: var(--accent); background: rgba(6, 182, 212, 0.1);">
+                    <label style="color:var(--accent); font-size: 0.7rem; font-weight:bold; margin-bottom:1rem; display:block;">🧠 COMPORTAMIENTO GLOBAL</label>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div class="field" style="display:flex; align-items:center; gap:10px; background:transparent; border:none;">
+                            <input type="checkbox" ${en.aggressive ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].aggressive = this.checked">
+                            <label style="margin:0;">Agresivo (Ataca al ver)</label>
+                        </div>
+                        <div class="field" style="display:flex; align-items:center; gap:10px; background:transparent; border:none;">
+                            <input type="checkbox" ${en.chaseUntilDeath ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].chaseUntilDeath = this.checked">
+                            <label style="margin:0;">Persistir hasta morir</label>
+                        </div>
+                        <div class="field" style="display:flex; align-items:center; gap:10px; background:transparent; border:none;">
+                            <input type="checkbox" ${en.stopOnOutOfSight ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].stopOnOutOfSight = this.checked">
+                            <label style="margin:0;">Parar si no hay visión</label>
+                        </div>
+                        <div class="field"><label>Timeout Abandono (ms)</label><input type="number" value="${en.chaseIdleTimeout || 0}" onchange="config.enemyModels['${selectedEnemyId}'].chaseIdleTimeout = parseInt(this.value)"></div>
                     </div>
                 </div>
                 <div style="margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center;">
@@ -375,8 +408,11 @@ function renderMechanicsLib() {
             const m = AMBIENCE_LIB[type];
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';
-            const al = { damagePerSecond: "Daño/Seg", slowPercentage: "Slow Ambient", visibility: "Visibilidad", dashPenalty: "Penalidad Dash", damageMult: "Mult. Daño", speedMult: "Mult. Velocidad", healthMult: "Mult. Vida" };
-            card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Efecto de Ambiente</label><input type="text" value="${m.label}" onchange="AMBIENCE_LIB['${type}'].label = this.value; renderAll();"></div><div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">PARÁMETROS AFECTADOS:</strong> ${m.fields.map(fl => al[fl] || fl).join(' • ')}</div>`;
+            const al = { damagePerSecond: "Daño/Seg", slowPercentage: "Slow Ambient", visibility: "Visibilidad", dashPenalty: "Penalidad Dash", damageMult: "Mult. Daño", speedMult: "Mult. Velocidad", healthMult: "Mult. Vida", respawnSpeedBonus: "Velocidad Respawn (%)" };
+            card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Efecto de Ambiente</label><input type="text" value="${m.label}" onchange="AMBIENCE_LIB['${type}'].label = this.value; renderAll();"></div><div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">PARÁMETROS AFECTADOS:</strong> ${m.fields.map(fl => {
+                const labels = { damage: "Daño (pts)", intervalMs: "Intervalo (ms)", slowPercentage: "Slow (%)", visibility: "Visibilidad (px)", dashPenalty: "Penalidad Dash (%)", lifetimeMs: "Combustible (ms)", damageMult: "Mult. Daño (x)", speedMult: "Mult. Velocidad (x)", healthMult: "Mult. Vida/Escudo (x)", respawnSpeedBonus: "Velocidad Respawn (%)" };
+                return labels[fl] || fl;
+            }).join(' • ')}</div>`;
             grid.appendChild(card);
         }
     } else {
@@ -412,9 +448,9 @@ function renderMapDetail() {
             </div>
             <div class="col">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">☢️ MECÁNICAS DE AMBIENTE (HAZARDS)</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addAmbience('${selectedMapId}'); renderMapDetail();">+ AGREGAR EFECTO</button></div>
-                <div id="ambience-list" style="margin-bottom: 2rem;">
+                        <div id="ambience-list" style="margin-bottom: 2rem;">
                     ${m.ambience.map((a, idx) => `
-                        <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative;"><div style="position:absolute; top:8px; right:8px;"><button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].ambience.splice(${idx},1); renderMapDetail();">✕</button></div><div class="field full"><select style="background:#0f172a; border:none; color:var(--accent); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].type = this.value; renderMapDetail();">${Object.keys(AMBIENCE_LIB).map(type => `<option value="${type}" ${a.type === type ? 'selected' : ''}>${AMBIENCE_LIB[type].icon} ${AMBIENCE_LIB[type].label}</option>`).join('')}</select></div><div class="form-grid" style="margin-top:1rem;">${AMBIENCE_LIB[a.type || 'radiation'].fields.map(f => { const labels = { damage: "Daño (pts)", intervalMs: "Intervalo (ms)", slowPercentage: "Slow (%)", visibility: "Visibilidad (px)", dashPenalty: "Penalidad Dash (%)", lifetimeMs: "Combustible (ms)", damageMult: "Mult. Daño (x)", speedMult: "Mult. Velocidad (x)", healthMult: "Mult. Vida/Escudo (x)" }; return `<div class="field"><label>${labels[f] || f}</label><input type="number" step="0.1" value="${a[f] || 1}" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value)"></div>`; }).join('')}</div></div>
+                        <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative;"><div style="position:absolute; top:8px; right:8px;"><button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].ambience.splice(${idx},1); renderMapDetail();">✕</button></div><div class="field full"><select style="background:#0f172a; border:none; color:var(--accent); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].type = this.value; renderMapDetail();">${Object.keys(AMBIENCE_LIB).map(type => `<option value="${type}" ${a.type === type ? 'selected' : ''}>${AMBIENCE_LIB[type].icon} ${AMBIENCE_LIB[type].label}</option>`).join('')}</select></div><div class="form-grid" style="margin-top:1rem;">${AMBIENCE_LIB[a.type || 'radiation'].fields.map(f => { const labels = { damage: "Daño (pts)", intervalMs: "Intervalo (ms)", slowPercentage: "Slow (%)", visibility: "Visibilidad (px)", dashPenalty: "Penalidad Dash (%)", lifetimeMs: "Combustible (ms)", damageMult: "Mult. Daño (x)", speedMult: "Mult. Velocidad (x)", healthMult: "Mult. Vida/Escudo (x)", respawnSpeedBonus: "Velocidad Respawn (%)" }; return `<div class="field"><label>${labels[f] || f}</label><input type="number" step="0.1" value="${a[f] || (f.includes('Mult') ? 1 : 0)}" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value)"></div>`; }).join('')}</div></div>
                     `).join('')}
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--success); font-size: 0.8rem; font-weight:bold;">👾 ECOSISTEMA DE ENEMIGOS</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--success);" onclick="addMapSpawn('${selectedMapId}'); renderMapDetail();">+ AÑADIR ESPECIE</button></div>

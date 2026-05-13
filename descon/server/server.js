@@ -613,6 +613,15 @@ io.on('connection', (socket) => {
             
         } catch (e) { console.error("Error guardando config:", e); }
     });
+    
+    // v266.999: Purga Administrativa de Enemigos (Botón de Pánico)
+    socket.on('adminPurgeEnemies', () => {
+        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        const count = Object.keys(enemies).length;
+        Object.keys(enemies).forEach(id => delete enemies[id]);
+        console.log(`[ADMIN] Purga manual ejecutada por Caelli94. ${count} enemigos eliminados.`);
+        io.emit('gameNotification', { msg: `PURGA COMPLETADA: ${count} enemigos eliminados.`, type: 'success' });
+    });
 
     // v236.40: WARP ADMINISTRATIVO (Teletransporte Instantáneo)
     socket.on('warpToZone', async (data) => {

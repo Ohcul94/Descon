@@ -32,11 +32,17 @@ function startGameLoop(io, state, aiManager) {
                 continue;
             }
 
-            // v262.35: IA Inteligente (LOD) - Forzar actualización si hay mecánicas activas
+            // v262.35: IA Inteligente (LOD) - Forzar actualización si hay mecánicas activas o Agresividad Extrema
             const { players: nearbyPs } = grid.getNearbyEntities(e.x, e.y);
             const isNearPlayer = nearbyPs.some(p => p.zone === e.zone);
             const hasActiveMech = e.mechState && Object.values(e.mechState).some(m => m.isActive);
-            if (isNearPlayer || hasActiveMech || (now % 1000 < 33)) {
+            
+            // v266.999: Detección de Agresividad Extrema para Bypass de LOD
+            const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+            const mapCfg = maps[e.zone] || maps[e.zone.toString()];
+            const isExtreme = mapCfg && mapCfg.ambience && mapCfg.ambience.some(a => a.type === 'extreme_aggression');
+
+            if (isNearPlayer || hasActiveMech || isExtreme || (now % 1000 < 33)) {
                 if (e.ai) e.ai.update(grid, players, now, io);
             }
 
@@ -153,7 +159,7 @@ function startGameLoop(io, state, aiManager) {
         });
     }, 1000);
 
-    // 3. LOOP DE GUARDIANÍA (5s)
+    // 3. LOOP DE GUARDIANÍA (1s para Respawn Dinámico v266.999)
     setInterval(() => {
         aiManager.runGuardians();
         
@@ -165,7 +171,7 @@ function startGameLoop(io, state, aiManager) {
                 delete state.activeAreas[aid];
             }
         }
-    }, 5000);
+    }, 1000);
     
     // 4. LOOP DE EFECTOS DE ÁREA (100ms)
     setInterval(() => {
