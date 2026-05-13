@@ -198,13 +198,14 @@ function startGameLoop(io, state, aiManager) {
                     mapConfig.ambience.forEach((hazard, idx) => {
                         if (hazard.type === 'vortex_hazard') {
                             const tKey = `vortex_${zoneId}_${idx}`;
-                            const lastSpawn = state.mapTimers[tKey] || 0;
+                            const lastSpawnEnd = state.mapTimers[tKey] || 0; 
                             const interval = hazard.spawnInterval || 10000;
 
-                            if (now - lastSpawn >= interval) {
-                                state.mapTimers[tKey] = now;
+                            if (now - lastSpawnEnd >= interval) {
+                                const duration = hazard.duration || 8000;
+                                state.mapTimers[tKey] = now + duration; // El próximo intervalo cuenta desde el fin
                                 
-                                // v267.500: Spawnear debajo de CADA jugador en esta zona al mismo tiempo
+                                // v267.500: Spawnear debajo de CADA jugador
                                 Object.values(players).forEach(p => {
                                     if (String(p.zone) === String(zoneId) && p.hp > 0) {
                                         const areaId = `vortex_${zoneId}_${p.user}_${Date.now()}`;
@@ -218,13 +219,13 @@ function startGameLoop(io, state, aiManager) {
                                             pullForce: hazard.pullForce || 8,
                                             damage: hazard.damage || 500,
                                             damageInterval: hazard.damageInterval || 1000,
-                                            endTime: now + (hazard.duration || 8000),
+                                            endTime: now + duration,
                                             ownerId: 'environment'
                                         };
                                         io.to(`zone_${zoneId}`).emit('spawnArea', state.activeAreas[areaId]);
                                     }
                                 });
-                                console.log(`[MAP-EVENT] Vórtices Sincronizados en Zona ${zoneId}`);
+                                console.log(`[MAP-EVENT] Vórtices Sincronizados (Nueva Cadencia: ${interval}ms post-evento)`);
                             }
                         }
                     });
@@ -331,10 +332,13 @@ function startGameLoop(io, state, aiManager) {
                             p.slowPoints = (area.slowAmount || 0.5) * 100;
                             if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints });
                         } 
-                        // v267.000: EFECTO FÍSICO DEL VÓRTICE AMBIENTAL
-                        else if (area.type === 'VORTEX_HAZARD') {
-                            // 1. Succión hacia el centro
-                            const pull = area.pullForce || 5;
+                        // v267.600: EFECTO FÍSICO DEL VÓRTICE AMBIENTAL REFORZADO
+                        if (area.type === 'VORTEX_HAZARD') {
+                            // 1. Succión Exponencial (Más fuerte cuanto más cerca del centro)
+                            const pullBase = (area.pullForce || 8) * 1.5;
+                            const proximityMult = 1.0 + (1.0 - dist / area.radius); // De 1.0 a 2.0
+                            const pull = pullBase * proximityMult;
+                            
                             const angle = Math.atan2(area.y - p.y, area.x - p.x);
                             p.x += Math.cos(angle) * pull;
                             p.y += Math.sin(angle) * pull;

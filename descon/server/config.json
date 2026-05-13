@@ -672,13 +672,13 @@
             "ambience": [
                 {
                     "type": "vortex_hazard",
-                    "damage": 300,
+                    "damage": 30,
                     "intervalMs": 300,
                     "spawnInterval": 5000,
                     "duration": 3000,
-                    "pullForce": 10,
+                    "pullForce": 1000,
                     "damageInterval": 300,
-                    "radius": 100,
+                    "radius": 250,
                     "initialDelay": 5000
                 }
             ],
