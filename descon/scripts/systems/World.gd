@@ -102,18 +102,25 @@ func _setup_blindness_overlay():
 func _on_blindness_event(data):
 	var duration = data.get("duration", 5000.0) / 1000.0
 	var radius_px = data.get("radius", 150.0)
+	print("[VORTEX-DEBUG] Ceguera Iniciada: ", duration, "s | Radio: ", radius_px)
 	
-	var overlay = get_node("BlindnessLayer/Darkness")
+	var overlay = get_node_or_null("BlindnessLayer/Darkness")
 	if overlay:
+		# Asegurar que cubra TODA la pantalla actual
+		overlay.size = get_viewport().get_visible_rect().size
 		overlay.set_meta("radius_px", radius_px)
 		overlay.visible = true
-		# Animación de entrada
+		
+		# Animación de entrada: Rápida pero no brusca (EASE_OUT)
 		var tw = create_tween()
-		tw.tween_property(overlay, "modulate:a", 1.0, 0.3).from(0.0)
+		overlay.modulate.a = 0.0
+		tw.tween_property(overlay, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		
 		await get_tree().create_timer(duration).timeout
-		# Animación de salida
+		
+		# Animación de salida: Desvanecimiento suave
 		var tw_out = create_tween()
-		tw_out.tween_property(overlay, "modulate:a", 0.0, 0.5)
+		tw_out.tween_property(overlay, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
 		await tw_out.finished
 		overlay.visible = false
 
