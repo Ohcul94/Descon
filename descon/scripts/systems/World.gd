@@ -503,12 +503,12 @@ func _spawn_vortex_vfx(id, pos, radius):
 	container.add_child(line)
 	
 	# Animación de "latido" y rotación para que parezca vivo
-	var tw = create_tween().set_loops().set_parallel(true)
-	tw.tween_property(poly, "scale", Vector2(1.05, 1.05), 0.8).set_trans(Tween.TRANS_SINE)
-	tw.chain().tween_property(poly, "scale", Vector2(1.0, 1.0), 0.8).set_trans(Tween.TRANS_SINE)
+	var tw = create_tween().set_loops()
+	tw.tween_property(poly, "scale", Vector2(1.1, 1.1), 0.8).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(poly, "scale", Vector2(1.0, 1.0), 0.8).set_trans(Tween.TRANS_SINE)
 	
 	var tw_rot = create_tween().set_loops()
-	tw_rot.tween_property(container, "rotation", TAU, 5.0)
+	tw_rot.tween_property(container, "rotation", TAU, 10.0)
 
 func _spawn_ice_trail(id, pos, _radius):
 	if active_areas.has(id): return

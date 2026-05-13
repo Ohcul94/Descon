@@ -305,7 +305,7 @@ function startGameLoop(io, state, aiManager) {
 
             // Efectos a Jugadores
             nearbyPlayers.forEach(p => {
-                if (p.zone === area.zone && !p.isDead) {
+                if (String(p.zone) === String(area.zone) && !p.isDead) {
                     const dx = p.x - area.x;
                     const dy = p.y - area.y;
                     const distSq = dx * dx + dy * dy;
