@@ -491,7 +491,13 @@ function renderMapDetail() {
                                         pullForce: "Fuerza Atracción (px/s)",
                                         damageInterval: "Intervalo Daño (ms)",
                                         shakeIntensity: "Potencia Temblor Cámara",
-                                        staticIntensity: "Fuerza Rayas Pantalla"
+                                        staticIntensity: "Fuerza Rayas Pantalla",
+                                        slowPercentage: "Reducción por % (0-100)",
+                                        slowFixed: "Reducción Fija (PX/S)",
+                                        damageMult: "Multiplicador de Daño (x)",
+                                        speedMult: "Multiplicador de Velocidad (x)",
+                                        healthMult: "Multiplicador de Vida (x)",
+                                        respawnSpeedBonus: "Bono de Respawn (ms)"
                                     };
                                     let val = a[f];
                                     if (val === undefined) {

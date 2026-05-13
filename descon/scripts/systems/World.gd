@@ -69,9 +69,45 @@ func _ready():
 	
 	# v267.900: Inicializar Overlays de Ambiente
 	_setup_blindness_overlay()
-	_setup_interference_overlay() # v268.30
+	_setup_interference_overlay() 
+	_setup_freeze_overlay() # v268.40
 	NetworkManager.blindness_event.connect(_on_blindness_event)
-	NetworkManager.interference_event.connect(_on_interference_event) # v268.30
+	NetworkManager.interference_event.connect(_on_interference_event)
+	NetworkManager.freeze_event.connect(_on_freeze_event) # v268.40
+
+func _setup_freeze_overlay():
+	var canvas = CanvasLayer.new()
+	canvas.name = "FreezeLayer"
+	canvas.layer = 89 # Por debajo de la ceguera
+	add_child(canvas)
+	
+	var overlay = ColorRect.new()
+	overlay.name = "Frost"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.8, 0.9, 1.0, 0.2) # Blanco/Celeste Hielo
+	overlay.visible = false
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(overlay)
+
+func _on_freeze_event(data):
+	var duration = data.get("duration", 6000.0) / 1000.0
+	var overlay = get_node_or_null("FreezeLayer/Frost")
+	if overlay:
+		overlay.visible = true
+		var tw = create_tween()
+		overlay.modulate.a = 0.0
+		tw.tween_property(overlay, "modulate:a", 1.0, 0.5)
+		
+		# Aplicar Slow al jugador
+		if is_instance_valid(local_player) and local_player.has_method("apply_freeze_slow"):
+			local_player.apply_freeze_slow(data)
+			
+		await get_tree().create_timer(duration).timeout
+		
+		var tw_out = create_tween()
+		tw_out.tween_property(overlay, "modulate:a", 0.0, 1.0)
+		await tw_out.finished
+		overlay.visible = false
 
 func _setup_blindness_overlay():
 	var canvas = CanvasLayer.new()

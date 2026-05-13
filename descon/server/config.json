@@ -698,9 +698,21 @@
             "warpCost": 0,
             "ambience": [
                 {
-                    "type": "interferencia_hazard",
+                    "type": "freeze_hazard",
                     "spawnInterval": 4000,
                     "duration": 3000,
+                    "slowPercentage": 10,
+                    "slowFixed": 250
+                },
+                {
+                    "type": "radiation",
+                    "damage": 10,
+                    "intervalMs": 3000
+                },
+                {
+                    "type": "interferencia_hazard",
+                    "spawnInterval": 15000,
+                    "duration": 5000,
                     "shakeIntensity": 10,
                     "staticIntensity": 0.3
                 }

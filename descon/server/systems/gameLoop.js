@@ -262,6 +262,23 @@ function startGameLoop(io, state, aiManager) {
                                 console.log(`[MAP-EVENT] 📡 INTERFERENCIA activada en Zona ${zoneId} por ${duration}ms`);
                             }
                         }
+                        else if (hazard.type === 'freeze_hazard') {
+                            const tKey = `freeze_${zoneId}_${idx}`;
+                            const lastEnd = state.mapTimers[tKey] || 0;
+                            const interval = hazard.spawnInterval || 25000;
+
+                            if (now - lastEnd >= interval) {
+                                const duration = hazard.duration || 6000;
+                                state.mapTimers[tKey] = now + duration;
+                                
+                                io.to(`zone_${zoneId}`).emit('freezeEvent', {
+                                    duration: duration,
+                                    slowPercentage: hazard.slowPercentage || 0,
+                                    slowFixed: hazard.slowFixed || 0
+                                });
+                                console.log(`[MAP-EVENT] ❄️ CONGELACIÓN activada en Zona ${zoneId} por ${duration}ms`);
+                            }
+                        }
                     });
                 }
             });

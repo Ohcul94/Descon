@@ -478,11 +478,14 @@ func _process(_delta):
 		var val = p_node.get("speed")
 		var s_pts = p_node.get("slow_points")
 		if s_pts == null: s_pts = 0.0
-		var final_speed = max(0.0, (val if val != null else 0.0) - s_pts)
-		speed_label.text = "SPEED: " + str(int(final_speed)) + " KM/H"
+		var f_slow = p_node.get("_freeze_slow_val")
+		if f_slow == null: f_slow = 0.0
 		
-		# v9.0: Feedback de color si hay slow
-		if s_pts > 1.0: speed_label.modulate = Color.CYAN
+		var final_speed = max(0.0, (val if val != null else 0.0) - s_pts - f_slow)
+		speed_label.text = "Vel.: " + str(int(final_speed))
+		
+		# v9.0: Feedback de color si hay slow (común o ambiental)
+		if s_pts > 1.0 or f_slow > 1.0: speed_label.modulate = Color.CYAN
 		else: speed_label.modulate = Color.YELLOW
 
 	if fps_label: fps_label.text = "FPS: " + str(Engine.get_frames_per_second())

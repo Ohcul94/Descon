@@ -245,6 +245,8 @@ function updateAmbienceType(mapId, idx, newType) {
         else if (f === 'radius') newHazard[f] = 300;
         else if (f === 'shakeIntensity') newHazard[f] = 10;
         else if (f === 'staticIntensity') newHazard[f] = 0.3;
+        else if (f === 'slowPercentage') newHazard[f] = 30;
+        else if (f === 'slowFixed') newHazard[f] = 0;
         else if (f === 'damage') newHazard[f] = 10;
         else if (f === 'intervalMs') newHazard[f] = 500;
         else newHazard[f] = 0;

@@ -51,5 +51,11 @@ let AMBIENCE_LIB = {
         icon: "📡",
         desc: "Bloquea los slots de combate y genera estática visual.",
         fields: ["spawnInterval", "duration", "shakeIntensity", "staticIntensity"]
+    },
+    "freeze_hazard": {
+        label: "Congelación de Vacío",
+        icon: "❄️",
+        desc: "Ralentiza a los jugadores y tiñe el mapa de blanco.",
+        fields: ["spawnInterval", "duration", "slowPercentage", "slowFixed"]
     }
 };

@@ -101,6 +101,26 @@ func _on_slow_state(data: Dictionary):
 		else:
 			slow_points = 0.0
 
+var _freeze_slow_val: float = 0.0 # v268.40: Ralentización ambiental independiente
+
+func apply_freeze_slow(data: Dictionary):
+	var duration = data.get("duration", 6000.0) / 1000.0
+	var pct = float(data.get("slowPercentage", 0.0)) / 100.0
+	var fixed = float(data.get("slowFixed", 0.0))
+	
+	# v268.45: Debug para verificar que los datos llegan bien
+	print("[FREEZE] Activado: Pct=", pct, " Fixed=", fixed, " Dur=", duration)
+	
+	# Calcular cuánto restamos (Basado en la velocidad actual para que el % sea real)
+	var total_to_reduce = (speed * pct) + fixed
+	_freeze_slow_val = total_to_reduce
+	
+	await get_tree().create_timer(duration).timeout
+	
+	# Recuperar velocidad suavemente
+	var tw = create_tween()
+	tw.tween_property(self, "_freeze_slow_val", 0.0, 1.5).set_trans(Tween.TRANS_SINE)
+
 func _setup_skill_controller():
 	var sc_script = load("res://scripts/systems/SkillController.gd")
 	if sc_script:
@@ -475,7 +495,7 @@ func _apply_movement():
 		var target_angle = joystick_direction.angle()
 		rotation = lerp_angle(rotation, target_angle, 0.25)
 		var dir = Vector2.RIGHT.rotated(rotation)
-		var final_speed = max(10.0, speed - slow_points)
+		var final_speed = max(10.0, speed - slow_points - _freeze_slow_val) # v268.40
 		velocity = dir * final_speed
 	elif is_moving:
 		var dist = global_position.distance_to(target_position)
@@ -487,7 +507,7 @@ func _apply_movement():
 			var target_angle = (target_position - global_position).angle()
 			rotation = lerp_angle(rotation, target_angle, 0.25)
 			var dir = Vector2.RIGHT.rotated(rotation)
-			var final_speed = max(10.0, speed - slow_points)
+			var final_speed = max(10.0, speed - slow_points - _freeze_slow_val) # v268.40
 			velocity = dir * final_speed
 		else:
 			is_moving = false
