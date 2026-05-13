@@ -917,13 +917,18 @@ func _on_clear_zone_entities(_zoneId):
 	var is_dungeon = str(_zoneId).begins_with("dungeon")
 	var new_world_size = 2000.0 if (is_dungeon or int(_zoneId) > 2 or int(_zoneId) == 1) else 4000.0
 	
+	# v268.55: ACTUALIZAR ZONA INMEDIATAMENTE (Fix Sincronía Crítica)
+	# Esto evita que el filtro de _on_player_updated ignore a los jugadores del nuevo mapa
+	var zone_int = int(_zoneId) if typeof(_zoneId) != TYPE_STRING or not _zoneId.begins_with("dungeon") else 99
+	if is_instance_valid(local_player):
+		local_player.set("current_zone", zone_int)
+		print("[ZONE] Sincronía Preventiva: Zona actualizada a ", zone_int)
+
 	# v215.60: REPOSICIONAR JUGADOR LOCAL (Fix: Escena trabada)
 	if is_instance_valid(local_player):
 		local_player.global_position = Vector2(new_world_size / 2, new_world_size / 2)
 		local_player.target_position = local_player.global_position
 		local_player.is_moving = false
-		if "current_zone" in local_player:
-			local_player.current_zone = int(_zoneId) if not is_dungeon else 99
 	
 	# Si existe _generar_fondo o similar, podríamos hacerlo pero el Minimap necesita saberlo.
 	var radar = ui_hud.get_node_or_null("MinimapUI") if is_instance_valid(ui_hud) else null

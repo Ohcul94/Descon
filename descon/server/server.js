@@ -806,12 +806,50 @@ io.on('connection', (socket) => {
         if (oldZone !== targetZone) {
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${targetZone}`);
+            
+            // Notificar a los que ya estaban que llegamos nosotros
             socket.to(`zone_${targetZone}`).emit('newPlayer', { 
                 ...p, 
                 id: socket.id, 
                 spheres: p.spheres,
-                isInvisible: p.isInvisible // v245.88: Sincronía de Sigilo en cambio de mapa
+                isInvisible: p.isInvisible 
             });
+
+            // v268.55: FIX DE VISIBILIDAD - Delay para dar tiempo al cliente de procesar
+            // changeZoneDone (que llega por el canal de warp) y actualizar su zona local
+            // antes de recibir la lista de jugadores actuales.
+            console.log(`[ZONE-SYNC] ${p.user} entró a zona ${targetZone}. Enviando estado en 350ms...`);
+            setTimeout(() => {
+                const currentPlayersInZone = {};
+                Object.keys(players).forEach(pId => {
+                    const otherP = players[pId];
+                    if (otherP.zone === targetZone && pId !== socket.id) {
+                        currentPlayersInZone[pId] = {
+                            ...otherP,
+                            id: pId,
+                            zone: targetZone,
+                            maxHp: otherP.maxHp || 2000,
+                            maxShield: otherP.maxShield || 1000,
+                            spheres: otherP.spheres
+                        };
+                    }
+                });
+
+                const cleanEnemiesInZone = {};
+                Object.values(enemies).forEach(e => {
+                    if (e.zone === targetZone) {
+                        const { ai, ...data } = e;
+                        cleanEnemiesInZone[e.id] = data;
+                    }
+                });
+
+                const playerCount = Object.keys(currentPlayersInZone).length;
+                const enemyCount = Object.keys(cleanEnemiesInZone).length;
+                console.log(`[ZONE-SYNC] Enviando a ${p.user}: ${playerCount} jugadores, ${enemyCount} enemigos en zona ${targetZone}`);
+                
+                socket.emit('currentPlayers', currentPlayersInZone);
+                socket.emit('currentEnemies', cleanEnemiesInZone);
+            }, 350);
         }
 
         // v262.97: Restaurando Visibilidad Total (Fix Minimapa y Sincronía)
@@ -926,7 +964,34 @@ io.on('connection', (socket) => {
                 console.log(`[CLEANUP] Zona ${zoneId} purgada al entrar jugador.`);
             }
 
-            // Sincronizar enemigos locales
+            // v268.60: FIX DEFINITIVO - Sincronizar jugadores actuales en la zona destino
+            // Este es el canal real de cambio de mapa, aquí va el fix de visibilidad.
+            const currentPlayersInZone = {};
+            Object.keys(players).forEach(pId => {
+                const otherP = players[pId];
+                if (Number(otherP.zone) === Number(zoneId) && pId !== socket.id) {
+                    const { ai, ...cleanP } = otherP; // Evitar referencias circulares
+                    currentPlayersInZone[pId] = {
+                        ...cleanP,
+                        id: pId,
+                        zone: Number(zoneId), // Asegurar que la zona es la correcta
+                        maxHp: otherP.maxHp || 2000,
+                        maxShield: otherP.maxShield || 1000,
+                        spheres: otherP.spheres || []
+                    };
+                }
+            });
+            
+            const playerCount = Object.keys(currentPlayersInZone).length;
+            console.log(`[ZONE-SYNC] ${p.user} llegó a zona ${zoneId}. Enviando ${playerCount} pilotos en 500ms...`);
+            
+            // Delay para que el cliente termine de procesar changeZoneDone antes de recibir jugadores
+            setTimeout(() => {
+                socket.emit('currentPlayers', currentPlayersInZone);
+                console.log(`[ZONE-SYNC] currentPlayers enviado a ${p.user}: ${playerCount} pilotos.`);
+            }, 500);
+
+            // Sincronizar enemigos de la zona (inmediato, el cliente ya sabe manejarlos)
             const zoneEnemies = {};
             Object.keys(enemies).forEach(id => {
                 if (enemies[id].zone === zoneId) {
