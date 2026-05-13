@@ -477,56 +477,38 @@ func _spawn_vortex_vfx(id, pos, radius):
 	var container = Node2D.new()
 	container.name = id
 	container.global_position = pos
-	container.z_index = 10 # v267.300: Forzar por encima del fondo
+	container.z_index = 5 # v267.400: Nivel de suelo peligroso
 	entities_node.add_child(container)
 	active_areas[id] = container
 	
-	# v267.300: EFECTO VÓRTICE REFORZADO
-	var particles = CPUParticles2D.new()
-	particles.amount = 60
-	particles.lifetime = 1.5
-	particles.emitting = true # FORZAR EMISIÓN
-	particles.one_shot = false
-	particles.preprocess = 1.0 # Empezar ya girando
-	
-	particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-	particles.emission_sphere_radius = radius * 0.7
-	particles.gravity = Vector2.ZERO
-	
-	# Movimiento orbital agresivo
-	particles.orbit_velocity_min = 1.0
-	particles.orbit_velocity_max = 2.0
-	particles.radial_accel_min = -50.0
-	particles.radial_accel_max = -100.0
-	
-	particles.scale_amount_min = 3.0
-	particles.scale_amount_max = 6.0
-	
-	var gradient = Gradient.new()
-	gradient.set_color(0, Color(1.0, 0.2, 1.0, 0.8)) # Magenta brillante
-	gradient.add_point(0.7, Color(0.3, 0.0, 0.6, 0.4)) # Púrpura oscuro
-	gradient.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
-	particles.color_ramp = gradient
-	
-	particles.position = Vector2.ZERO # Local al container
-	container.add_child(particles)
-	
-	# Anillo de advertencia con más grosor
-	var ring = Line2D.new()
+	# v267.400: DIBUJO GARANTIZADO (Polygon2D)
+	# Esto crea un círculo sólido de 32 lados
+	var poly = Polygon2D.new()
 	var pts = []
 	for i in range(33):
 		var ang = (i / 32.0) * TAU
 		pts.append(Vector2(cos(ang), sin(ang)) * radius)
-	ring.points = PackedVector2Array(pts)
-	ring.width = 4.0
-	ring.default_color = Color(1.0, 0.0, 0.5, 0.6)
-	ring.position = Vector2.ZERO
-	container.add_child(ring)
 	
-	# Animación de latido
-	var tw = create_tween().set_loops()
-	tw.tween_property(ring, "width", 4.0, 0.5)
-	tw.tween_property(ring, "width", 2.0, 0.5)
+	poly.polygon = PackedVector2Array(pts)
+	# Color tipo Agujero Negro / Vórtice de Vacío
+	poly.color = Color(0.1, 0.0, 0.2, 0.6) 
+	
+	# Borde brillante (Neon Style)
+	var line = Line2D.new()
+	line.points = poly.polygon
+	line.width = 3.0
+	line.default_color = Color(0.8, 0.0, 1.0, 0.9) # Magenta neón
+	
+	container.add_child(poly)
+	container.add_child(line)
+	
+	# Animación de "latido" y rotación para que parezca vivo
+	var tw = create_tween().set_loops().set_parallel(true)
+	tw.tween_property(poly, "scale", Vector2(1.05, 1.05), 0.8).set_trans(Tween.TRANS_SINE)
+	tw.chain().tween_property(poly, "scale", Vector2(1.0, 1.0), 0.8).set_trans(Tween.TRANS_SINE)
+	
+	var tw_rot = create_tween().set_loops()
+	tw_rot.tween_property(container, "rotation", TAU, 5.0)
 
 func _spawn_ice_trail(id, pos, _radius):
 	if active_areas.has(id): return

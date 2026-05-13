@@ -197,7 +197,57 @@ function startGameLoop(io, state, aiManager) {
                 p.slowPoints = 0;
             }
             
-            // v266.350: Procesar Mecánicas de Ambiente (Hazards) con precisión de 100ms
+        // v267.400: PROCESAR MECÁNICAS GLOBALES DE MAPA (Vórtices Aleatorios)
+        if (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) {
+            if (!state.mapTimers) state.mapTimers = {};
+            
+            Object.keys(state.SERVER_CONFIG.mapsConfig).forEach(zoneId => {
+                const mapConfig = state.SERVER_CONFIG.mapsConfig[zoneId];
+                if (mapConfig.ambience) {
+                    mapConfig.ambience.forEach((hazard, idx) => {
+                        if (hazard.type === 'vortex_hazard') {
+                            const tKey = `vortex_${zoneId}_${idx}`;
+                            const lastSpawn = state.mapTimers[tKey] || 0;
+                            const interval = hazard.spawnInterval || 10000;
+
+                            if (now - lastSpawn >= interval) {
+                                state.mapTimers[tKey] = now;
+                                
+                                // Determinar tamaño del mapa (default 2000)
+                                const mapSize = (Number(zoneId) === 1 ? 4000 : 2000);
+                                
+                                // Crear un Área Activa en posición aleatoria
+                                const areaId = `vortex_global_${zoneId}_${Date.now()}`;
+                                state.activeAreas[areaId] = {
+                                    id: areaId,
+                                    zone: zoneId,
+                                    type: 'VORTEX_HAZARD',
+                                    x: Math.random() * mapSize,
+                                    y: Math.random() * mapSize,
+                                    radius: hazard.radius || 300,
+                                    pullForce: hazard.pullForce || 8,
+                                    damage: hazard.damage || 500,
+                                    damageInterval: hazard.damageInterval || 1000,
+                                    endTime: now + (hazard.duration || 8000),
+                                    ownerId: 'environment'
+                                };
+
+                                // Notificar a todos en la zona
+                                console.log(`[MAP-EVENT] Vórtice Global en Zona ${zoneId} -> pos(${Math.floor(state.activeAreas[areaId].x)}, ${Math.floor(state.activeAreas[areaId].y)})`);
+                                io.to(`zone_${zoneId}`).emit('spawnArea', state.activeAreas[areaId]);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // B. Procesar Jugadores (Daño/Ambiente local)
+        Object.values(players).forEach(p => {
+            const wasSlowed = p.isSlowed;
+            p.isSlowed = false;
+            p.slowPoints = 0;
+
             const mapConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[p.zone] : null;
             if (mapConfig && mapConfig.ambience && p.hp > 0) {
                 mapConfig.ambience.forEach((hazard, idx) => {
@@ -225,41 +275,6 @@ function startGameLoop(io, state, aiManager) {
                         p.isSlowed = true;
                         p.lastSlowTime = now;
                         p.slowPoints = hazard.slowPercentage;
-                    }
-                    // v267.000: NUEVA MECÁNICA - Vórtices de Acecho
-                    else if (hazard.type === 'vortex_hazard') {
-                        // v267.100: Chequear Delay Inicial antes de actuar
-                        const entryTime = p.entryTime || 0;
-                        const delaySec = hazard.initialDelay || 0;
-                        if (now - entryTime < delaySec * 1000) return;
-
-                        if (!p.hazardCooldowns) p.hazardCooldowns = {};
-                        const vKey = `vortex_spawn_${idx}`;
-                        const lastSpawn = p.hazardCooldowns[vKey] || 0;
-                        const spawnInterval = hazard.spawnInterval || 10000;
-
-                        if (now - lastSpawn >= spawnInterval) {
-                            p.hazardCooldowns[vKey] = now;
-                            // Crear un Área Activa de tipo VORTEX debajo del jugador
-                            const areaId = `vortex_${Date.now()}_${Math.floor(Math.random()*1000)}`;
-                            state.activeAreas[areaId] = {
-                                id: areaId,
-                                zone: p.zone,
-                                type: 'VORTEX_HAZARD',
-                                x: p.x,
-                                y: p.y,
-                                radius: hazard.radius || 200,
-                                pullForce: hazard.pullForce || 5,
-                                damage: hazard.damage || 500,
-                                damageInterval: hazard.damageInterval || 1000,
-                                endTime: now + (hazard.duration || 5000),
-                                ownerId: 'environment'
-                            };
-
-                            // v267.300: Notificar visualmente a la zona
-                            console.log(`[VORTEX] Spawning vortex ${areaId} for player ${p.user} in zone ${p.zone}`);
-                            io.to(`zone_${p.zone}`).emit('spawnArea', state.activeAreas[areaId]);
-                        }
                     }
                 });
             }
