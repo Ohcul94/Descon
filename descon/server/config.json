@@ -66,7 +66,7 @@
             ],
             "stopOnOutOfSight": true,
             "chaseUntilDeath": false,
-            "aggressive": false
+            "aggressive": true
         },
         "2": {
             "bulletDamage": 600,
@@ -696,7 +696,21 @@
             "minLevel": 10,
             "name": "Mapa 4",
             "warpCost": 25,
-            "ambience": []
+            "ambience": [
+                {
+                    "type": "blindness_hazard",
+                    "spawnInterval": 5000,
+                    "duration": 3000,
+                    "radius": 200
+                }
+            ],
+            "spawns": [
+                {
+                    "type": "1",
+                    "count": 5,
+                    "intervalMs": 5000
+                }
+            ]
         },
         "5": {
             "color": "#ff5500",

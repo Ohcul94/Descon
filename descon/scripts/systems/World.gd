@@ -70,7 +70,7 @@ func _ready():
 func _setup_blindness_overlay():
 	var canvas = CanvasLayer.new()
 	canvas.name = "BlindnessLayer"
-	canvas.layer = 90 # Por debajo del HUD principal pero arriba del mundo
+	canvas.layer = 90
 	add_child(canvas)
 	
 	var overlay = ColorRect.new()
@@ -78,25 +78,35 @@ func _setup_blindness_overlay():
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.color = Color(0, 0, 0, 1)
 	overlay.visible = false
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(overlay)
 	
-	# Shader para el "agujero" de visión
 	var mat = ShaderMaterial.new()
-	mat.shader = Shader.new()
-	mat.shader.code = """
+	var shader = Shader.new()
+	shader.code = """
 		shader_type canvas_item;
-		uniform vec2 player_pos;
-		uniform float radius;
+		uniform vec2 player_world_pos;
+		uniform float world_radius;
+		uniform vec2 view_top_left;
+		uniform vec2 view_size;
+		uniform float softness = 40.0; // Suavidad en unidades de mundo
+
 		void fragment() {
-			float d = distance(UV, player_pos);
-			if (d < radius) {
-				discard;
-			}
-			COLOR = vec4(0.0, 0.0, 0.0, 1.0);
+			// v268.25: Calcular la posición de MUNDO de este píxel
+			vec2 pixel_world_pos = view_top_left + (UV * view_size);
+			
+			float dist = distance(pixel_world_pos, player_world_pos);
+			
+			// Pulsación sutil en unidades de mundo
+			float pulse = sin(TIME * 1.5) * 5.0;
+			float final_radius = world_radius + pulse;
+			
+			// Ceguera basada en distancia real en el MAPA
+			float alpha = smoothstep(final_radius, final_radius + softness, dist);
+			COLOR = vec4(0.0, 0.0, 0.0, alpha);
 		}
 	"""
-	# Nota: Usaremos una versión más simple o CanvasModulate si el shader se complica, 
-	# pero por ahora un ColorRect negro opaco con discard es lo más limpio.
+	mat.shader = shader
 	overlay.material = mat
 
 func _on_blindness_event(data):
@@ -166,13 +176,15 @@ func _process(delta):
 	# v267.900: Actualizar Agujero de Visión en Ceguera
 	var overlay = get_node_or_null("BlindnessLayer/Darkness")
 	if overlay and overlay.visible and is_instance_valid(local_player):
-		var screen_pos = local_player.get_global_transform_with_canvas().get_origin()
-		var screen_size = get_viewport().get_visible_rect().size
-		var uv_pos = screen_pos / screen_size
-		overlay.material.set_shader_parameter("player_pos", uv_pos)
-		# Ajustar radio basado en la resolución (proporcional al ancho)
-		var rad_norm = (overlay.get_meta("radius_px", 150.0) / screen_size.x)
-		overlay.material.set_shader_parameter("radius", rad_norm)
+		# v268.25: Calcular límites de visión en el MUNDO real
+		var canvas_transform = get_viewport().get_canvas_transform()
+		var view_top_left = -canvas_transform.get_origin() / canvas_transform.get_scale()
+		var view_size = get_viewport().get_visible_rect().size / canvas_transform.get_scale()
+		
+		overlay.material.set_shader_parameter("player_world_pos", local_player.global_position)
+		overlay.material.set_shader_parameter("world_radius", overlay.get_meta("radius_px", 150.0))
+		overlay.material.set_shader_parameter("view_top_left", view_top_left)
+		overlay.material.set_shader_parameter("view_size", view_size)
 	
 	save_timer += delta; if save_timer >= SAVE_INTERVAL: save_timer = 0.0; _save_game_progress()
 	if is_instance_valid(local_player) and local_player.is_dead:

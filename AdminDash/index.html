@@ -20,6 +20,19 @@
         </div>
     </div>
 
+    <!-- v268.01: Modal de Confirmación Premium -->
+    <div id="confirm-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center;">
+        <div class="card" style="max-width: 450px; border: 1px solid rgba(0,210,255,0.2); box-shadow: 0 20px 50px rgba(0,0,0,0.5); text-align: center; padding: 2.5rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+            <div class="toast-title" id="confirm-title" style="margin-bottom: 1rem; color: var(--primary);">CONFIRMACIÓN DE DESPLIEGUE</div>
+            <p id="confirm-msg" style="color: #aaa; line-height: 1.6; margin-bottom: 2rem;"></p>
+            <div style="display: flex; gap: 15px;">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeConfirm(false)">ABORTAR</button>
+                <button class="btn btn-primary" id="confirm-ok-btn" style="flex: 1;">PROCEDER</button>
+            </div>
+        </div>
+    </div>
+
     <div id="login-overlay">
         <div class="login-card">
             <div class="logo" style="justify-content: center; font-size: 2.2rem; margin-bottom: 1rem;">
@@ -42,12 +55,14 @@
             <p id="login-error" style="color: var(--danger); margin-top: 1.5rem; display: none;"></p>
         </div>
     </div>
-
-    <header>
+        <header>
         <div class="logo"><div class="logo-box"></div> DESCON MASTER DASHBOARD</div>
-        <div class="status-badge">
-            <div id="conn-dot" class="status-dot"></div>
-            <span id="conn-text">DISCONNECTED</span>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-primary" onclick="deployToCloud()" style="background: var(--primary); border: none; box-shadow: 0 0 15px rgba(0,210,255,0.3);">🚀 DESPLEGAR A NUBE</button>
+            <div class="status-badge" style="margin-left: 10px;">
+                <div id="conn-dot" class="status-dot"></div>
+                <span id="conn-text">OFFLINE</span>
+            </div>
         </div>
     </header>
 
@@ -184,7 +199,7 @@
     </main>
 
     <button class="btn-sync-float" onclick="saveConfig()">
-        <span>SINCRONIZAR</span>
+        <span>SINCRONIZAR LOCAL</span>
     </button>
 
     <!-- Scripts Modularizados -->

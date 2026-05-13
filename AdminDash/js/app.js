@@ -1,6 +1,5 @@
 let socket;
 let config = {};
-const SERVER_URL = "http://127.0.0.1:3333";
 
 let currentAmmoTab = 'laser';
 let currentEnemySubTab = 'regular';
@@ -9,11 +8,17 @@ let selectedEnemyId = null;
 let selectedMapId = null;
 
 function showTab(tabId) {
-    localStorage.setItem('admin_last_tab', tabId); // v267.200: Persistencia F5
+    localStorage.setItem('admin_last_tab', tabId);
+    
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+    
     const view = document.getElementById('view-' + tabId);
     if(view) view.classList.add('active');
+    
+    // v267.950: Sincronizar Sidebar (aunque se llame por código)
+    const sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('${tabId}')"]`);
+    if(sidebarLink) sidebarLink.classList.add('active');
     
     const titles = { 
         'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas', 
@@ -24,11 +29,7 @@ function showTab(tabId) {
         'enemy-detail': 'Editor de Entidad', 'map-detail': 'Configuración de Zona'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
-    document.getElementById('global-filter').value = '';
     
-    if(event && event.currentTarget && event.currentTarget.classList.contains('nav-link')) {
-        event.currentTarget.classList.add('active');
-    }
     if(tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
     refreshCurrentTab();
 }
@@ -58,8 +59,11 @@ function connect() {
     const btn = document.querySelector('#login-overlay button');
     const err = document.getElementById('login-error');
 
-    btn.innerText = "ESTABLECIENDO ENLACE...";
-    socket = io(SERVER_URL);
+    // Siempre conectar LOCAL para desarrollo
+    const targetUrl = "http://127.0.0.1:3333";
+    
+    btn.innerText = "CONECTANDO A LOCAL...";
+    socket = io(targetUrl);
 
     socket.on('connect', () => socket.emit('login', { user, password: pass, isAdmin: true }));
 
@@ -113,7 +117,8 @@ function getFilter() { return (document.getElementById('global-filter')?.value |
 
 function selectMap(id) {
     selectedMapId = id;
-    localStorage.setItem('admin_last_map', id); // v267.200
+    localStorage.setItem('admin_last_map', id);
+    localStorage.setItem('admin_last_tab', 'map-detail');
     showTab('map-detail');
     renderMapDetail();
 }
@@ -139,7 +144,8 @@ function setMechTab(tab) {
 
 function selectEnemy(id) {
     selectedEnemyId = id;
-    localStorage.setItem('admin_last_enemy', id); // v267.200
+    localStorage.setItem('admin_last_enemy', id);
+    localStorage.setItem('admin_last_tab', 'enemy-detail');
     showTab('enemy-detail');
     renderEnemyDetail();
 }
@@ -224,6 +230,28 @@ function addAmbience(id) {
     config.mapsConfig[id].ambience.push({ type: "radiation", damage: 10, intervalMs: 300 });
 }
 
+function updateAmbienceType(mapId, idx, newType) {
+    const hazard = config.mapsConfig[mapId].ambience[idx];
+    hazard.type = newType;
+    
+    // Limpiar campos específicos del tipo anterior para evitar basura
+    const lib = AMBIENCE_LIB[newType];
+    const newHazard = { type: newType };
+    
+    // Inicializar campos requeridos con valores por defecto
+    lib.fields.forEach(f => {
+        if (f === 'spawnInterval') newHazard[f] = 10000;
+        else if (f === 'duration') newHazard[f] = 5000;
+        else if (f === 'radius') newHazard[f] = 300;
+        else if (f === 'damage') newHazard[f] = 10;
+        else if (f === 'intervalMs') newHazard[f] = 500;
+        else newHazard[f] = 0;
+    });
+    
+    config.mapsConfig[mapId].ambience[idx] = newHazard;
+    renderMapDetail();
+}
+
 function addMapSpawn(id) {
     if(!config.mapsConfig[id].spawns) config.mapsConfig[id].spawns = [];
     config.mapsConfig[id].spawns.push({ type: "1", count: 5, intervalMs: 5000 });
@@ -286,5 +314,67 @@ function saveConfig() {
     
     console.log("Enviando configuración al servidor...", config);
     socket.emit('saveAdminConfig', config);
-    showToast("Sincronización de Galaxia Completada.");
+    showToast("Configuración Local Sincronizada.");
+}
+
+function openConfirm(msg, title = "CONFIRMACIÓN") {
+    return new Promise((resolve) => {
+        document.getElementById('confirm-title').innerText = title;
+        document.getElementById('confirm-msg').innerText = msg;
+        document.getElementById('confirm-overlay').style.display = 'flex';
+        
+        const okBtn = document.getElementById('confirm-ok-btn');
+        const newOkBtn = okBtn.cloneNode(true); // Limpiar listeners viejos
+        okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+        
+        newOkBtn.onclick = () => {
+            document.getElementById('confirm-overlay').style.display = 'none';
+            resolve(true);
+        };
+    });
+}
+
+function closeConfirm(val) {
+    document.getElementById('confirm-overlay').style.display = 'none';
+    // Nota: El resolve se maneja en el onclick del botón OK. 
+    // Si es falso, simplemente cerramos y no resolvemos (o resolvemos false si fuera necesario)
+}
+
+async function deployToCloud() {
+    if (!config) return;
+    const user = document.getElementById('admin-user').value;
+    const pass = document.getElementById('admin-pass').value;
+
+    const confirmed = await openConfirm(
+        "¿Estás seguro de desplegar TODA la configuración local al Servidor de Producción (Oracle)?\n\nEsto afectará a todos los jugadores activos.",
+        "🚀 DESPLIEGUE A NUBE"
+    );
+    
+    if (!confirmed) return;
+
+    showToast("🚀 INICIANDO DESPLIEGUE A NUBE...");
+    
+    // Crear conexión temporal a Oracle
+    const cloudSocket = io("http://138.2.241.76:3333");
+    
+    cloudSocket.on('connect', () => {
+        cloudSocket.emit('login', { user, password: pass, isAdmin: true });
+    });
+
+    cloudSocket.on('loginSuccess', () => {
+        console.log("[CLOUD-DEPLOY] Login exitoso. Enviando config...");
+        cloudSocket.emit('saveAdminConfig', config);
+        showToast("✅ DESPLIEGUE EXITOSO: La nube ha sido actualizada.");
+        setTimeout(() => { cloudSocket.disconnect(); }, 1000);
+    });
+
+    cloudSocket.on('authError', (msg) => {
+        showToast("❌ ERROR DE AUTENTICACIÓN EN NUBE: " + msg);
+        cloudSocket.disconnect();
+    });
+
+    cloudSocket.on('connect_error', () => {
+        showToast("❌ ERROR: No se pudo alcanzar el servidor de Oracle.");
+        cloudSocket.disconnect();
+    });
 }

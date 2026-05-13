@@ -465,25 +465,50 @@ function renderMapDetail() {
             <div class="col">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">☢️ MECÁNICAS DE AMBIENTE (HAZARDS)</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addAmbience('${selectedMapId}'); renderMapDetail();">+ AGREGAR EFECTO</button></div>
                         <div id="ambience-list" style="margin-bottom: 2rem;">
-                    ${m.ambience.map((a, idx) => `
-                        <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative;"><div style="position:absolute; top:8px; right:8px;"><button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].ambience.splice(${idx},1); renderMapDetail();">✕</button></div><div class="field full"><select style="background:#0f172a; border:none; color:var(--accent); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].type = this.value; renderMapDetail();">${Object.keys(AMBIENCE_LIB).map(type => `<option value="${type}" ${a.type === type ? 'selected' : ''}>${AMBIENCE_LIB[type].icon} ${AMBIENCE_LIB[type].label}</option>`).join('')}</select></div><div class="form-grid" style="margin-top:1rem;">${AMBIENCE_LIB[a.type || 'radiation'].fields.map(f => { const labels = { 
-                            damage: "Daño (pts)", 
-                            intervalMs: "Intervalo (ms)", 
-                            slowPercentage: "Slow (%)", 
-                            visibility: "Visibilidad (px)", 
-                            dashPenalty: "Penalidad Dash (%)", 
-                            lifetimeMs: "Combustible (ms)", 
-                            damageMult: "Mult. Daño (x)", 
-                            speedMult: "Mult. Velocidad (x)", 
-                            healthMult: "Mult. Vida/Escudo (x)", 
-                            respawnSpeedBonus: "Velocidad Respawn (%)",
-                            spawnInterval: "Frecuencia/Cadencia (ms)",
-                            duration: "Duración Efecto (ms)",
-                            pullForce: "Fuerza Atracción (px/s)",
-                            damageInterval: "Intervalo Daño (ms)",
-                            radius: "Radio Acción/Visión (px)"
-                        }; return `<div class="field"><label>${labels[f] || f}</label><input type="number" step="0.1" value="${a[f] || (f.includes('Mult') ? 1 : 0)}" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value)"></div>`; }).join('')}</div></div>
-                    `).join('')}
+                    ${m.ambience.map((a, idx) => {
+                        const lib = AMBIENCE_LIB[a.type || 'radiation'];
+                        return `
+                        <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative;">
+                            <div style="position:absolute; top:8px; right:8px;">
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].ambience.splice(${idx},1); renderMapDetail();">✕</button>
+                            </div>
+                            <div class="field full">
+                                <label style="font-size: 0.6rem; color: #888;">TIPO DE EFECTO</label>
+                                <select style="background:#0f172a; border:none; color:var(--accent); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" 
+                                        onchange="updateAmbienceType('${selectedMapId}', ${idx}, this.value)">
+                                    ${Object.keys(AMBIENCE_LIB).map(type => `<option value="${type}" ${a.type === type ? 'selected' : ''}>${AMBIENCE_LIB[type].icon} ${AMBIENCE_LIB[type].label}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-grid" style="margin-top:1rem;">
+                                ${lib.fields.map(f => {
+                                    const isBlind = a.type === 'blindness_hazard';
+                                    const labels = { 
+                                        damage: "Daño (HP)", intervalMs: "Intervalo (ms)", 
+                                        spawnInterval: "Cadencia Aparición (ms)", 
+                                        duration: isBlind ? "Duración Ceguera (ms)" : "Duración Vórtice (ms)", 
+                                        radius: isBlind ? "Radio Visión (px)" : "Tamaño Vórtice (px)", 
+                                        pullForce: "Fuerza Atracción (px/s)",
+                                        damageInterval: "Intervalo Daño (ms)"
+                                    };
+                                    let val = a[f];
+                                    if (val === undefined) {
+                                        // Inicializar si no existe
+                                        if (f === 'spawnInterval') val = 10000;
+                                        else if (f === 'duration') val = 5000;
+                                        else if (f === 'radius') val = 250;
+                                        else val = 0;
+                                        config.mapsConfig[selectedMapId].ambience[idx][f] = val;
+                                    }
+                                    return `
+                                    <div class="field">
+                                        <label>${labels[f] || f}</label>
+                                        <input type="number" step="0.1" value="${val}" 
+                                               onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value)">
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                    }).join('')}
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--success); font-size: 0.8rem; font-weight:bold;">👾 ECOSISTEMA DE ENEMIGOS</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--success);" onclick="addMapSpawn('${selectedMapId}'); renderMapDetail();">+ AÑADIR ESPECIE</button></div>
                 <div id="spawns-list">
