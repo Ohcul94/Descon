@@ -140,11 +140,12 @@ func _process(delta):
 					# (El servidor enviaba 8-12 por defecto)
 					var proximity = 1.0 + (1.0 - dist / radius)
 					
-					# v267.800: Aplicar fuerza real (multiplicamos por delta para que sea independiente de los FPS)
-					var force = dist_vec.normalized() * pull_strength * proximity * (delta * 60.0)
+					# v267.800: Aplicar fuerza real en PX/S (multiplicamos por delta para que sea literal)
+					# Si pones 10 en el panel, son 10 pixeles por segundo.
+					var force = dist_vec.normalized() * (pull_strength * proximity) * delta
 					
 					player.global_position += force
-					if player.has_method("apply_shake"): player.apply_shake(0.4)
+					if player.has_method("apply_shake"): player.apply_shake(0.3)
 
 	# v266.730: ACTUALIZACIÓN DE SEGUIMIENTO MAESTRO (Mega Láser)
 	for eid in active_laser_tracking.keys():

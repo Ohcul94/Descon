@@ -331,16 +331,18 @@ function startGameLoop(io, state, aiManager) {
                             p.slowPoints = (area.slowAmount || 0.5) * 100;
                             if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints });
                         } 
-                        // v267.600: EFECTO FÍSICO DEL VÓRTICE AMBIENTAL REFORZADO
+                        // v267.800: EFECTO FÍSICO DEL VÓRTICE AMBIENTAL SINCRO 1:1
                         if (area.type === 'VORTEX_HAZARD') {
-                            // 1. Succión Exponencial (Más fuerte cuanto más cerca del centro)
-                            const pullBase = (area.pullForce || 8) * 1.5;
-                            const proximityMult = 1.0 + (1.0 - dist / area.radius); // De 1.0 a 2.0
-                            const pull = pullBase * proximityMult;
+                            // 1. Succión Literal (Fuerza en PX/S)
+                            const pullBase = (area.pullForce || 400); 
+                            const proximityMult = 1.0 + (1.0 - dist / area.radius);
+                            
+                            // El servidor corre a 10fps (100ms), así que dividimos por 10
+                            const pullPerTick = (pullBase * proximityMult) / 10;
                             
                             const angle = Math.atan2(area.y - p.y, area.x - p.x);
-                            p.x += Math.cos(angle) * pull;
-                            p.y += Math.sin(angle) * pull;
+                            p.x += Math.cos(angle) * pullPerTick;
+                            p.y += Math.sin(angle) * pullPerTick;
 
                             // 2. Daño periódico
                             if (!p.hazardCooldowns) p.hazardCooldowns = {};
