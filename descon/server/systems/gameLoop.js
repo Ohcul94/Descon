@@ -194,7 +194,8 @@ function startGameLoop(io, state, aiManager) {
             
             Object.keys(state.SERVER_CONFIG.mapsConfig).forEach(zoneId => {
                 const mapConfig = state.SERVER_CONFIG.mapsConfig[zoneId];
-                if (mapConfig.ambience) {
+                if (mapConfig.ambience && mapConfig.ambience.length > 0) {
+                    // console.log(`[DEBUG-AMB] Procesando ${mapConfig.ambience.length} efectos en zona ${zoneId}`);
                     mapConfig.ambience.forEach((hazard, idx) => {
                         if (hazard.type === 'vortex_hazard') {
                             const tKey = `vortex_${zoneId}_${idx}`;
@@ -233,6 +234,7 @@ function startGameLoop(io, state, aiManager) {
                             const interval = hazard.spawnInterval || 15000;
 
                             if (now - lastEnd >= interval) {
+                                console.log(`[DEBUG-AMB] Disparando Ceguera en zona ${zoneId} (Intervalo: ${interval}ms)`);
                                 const duration = hazard.duration || 5000;
                                 state.mapTimers[tKey] = now + duration;
                                 
