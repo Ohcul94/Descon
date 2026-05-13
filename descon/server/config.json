@@ -676,7 +676,7 @@
                     "intervalMs": 300,
                     "spawnInterval": 5000,
                     "duration": 3000,
-                    "pullForce": 10,
+                    "pullForce": 300,
                     "damageInterval": 300,
                     "radius": 250,
                     "initialDelay": 5000
