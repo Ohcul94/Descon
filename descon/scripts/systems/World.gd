@@ -133,11 +133,18 @@ func _process(delta):
 				var radius = area.get_meta("radius")
 				
 				if dist < radius:
-					var pull_strength = 15.0 # Base fuerte
-					var proximity = 1.0 + (1.0 - dist / radius) # De 1 a 2
+					# Fuerza de succión basada en el input del Admin Panel
+					var pull_strength = area.get_meta("pull_force")
+					
+					# Normalizar para que valores como "10" o "20" sean razonables
+					# (El servidor enviaba 8-12 por defecto)
+					var proximity = 1.0 + (1.0 - dist / radius)
+					
+					# v267.800: Aplicar fuerza real (multiplicamos por delta para que sea independiente de los FPS)
 					var force = dist_vec.normalized() * pull_strength * proximity * (delta * 60.0)
+					
 					player.global_position += force
-					if player.has_method("apply_shake"): player.apply_shake(0.5)
+					if player.has_method("apply_shake"): player.apply_shake(0.4)
 
 	# v266.730: ACTUALIZACIÓN DE SEGUIMIENTO MAESTRO (Mega Láser)
 	for eid in active_laser_tracking.keys():
@@ -497,9 +504,9 @@ func _on_spawn_area(data: Dictionary):
 		_spawn_ice_trail(id, Vector2(data.x, data.y), data.radius)
 	elif type == "VORTEX_HAZARD":
 		print("[VORTEX-DEBUG] Recibido Vórtice ID: ", id, " en pos: ", Vector2(data.x, data.y))
-		_spawn_vortex_vfx(id, Vector2(data.x, data.y), data.radius)
+		_spawn_vortex_vfx(id, Vector2(data.x, data.y), data.radius, data)
 
-func _spawn_vortex_vfx(id, pos, radius):
+func _spawn_vortex_vfx(id, pos, radius, data):
 	if active_areas.has(id): return
 	
 	var container = Node2D.new()
@@ -511,6 +518,7 @@ func _spawn_vortex_vfx(id, pos, radius):
 	
 	# Almacenar datos para la succión local
 	container.set_meta("radius", radius)
+	container.set_meta("pull_force", data.get("pullForce", 8.0)) # v267.800: Sincronía Real
 	container.set_meta("type", "vortex")
 	container.set_meta("time", 0.0) # Para la animación manual
 	
