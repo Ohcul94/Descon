@@ -111,6 +111,34 @@ func _process(delta):
 	else: 
 		respawn_timer = 0.0
 
+	# v267.700: PROCESAR ANIMACIONES Y FÍSICA LOCAL DE VÓRTICES
+	for id in active_areas.keys():
+		var area = active_areas[id]
+		if not is_instance_valid(area): continue
+		
+		if area.has_meta("type") and area.get_meta("type") == "vortex":
+			# 1. Animación Manual (Sin Tweens para evitar el error de loop)
+			var time = area.get_meta("time") + delta
+			area.set_meta("time", time)
+			var pulse = 1.0 + (sin(time * 4.0) * 0.05)
+			var visual = area.get_node_or_null("Visual")
+			if visual: visual.scale = Vector2(pulse, pulse)
+			area.rotation += delta * 0.5
+			
+			# 2. SUCCIÓN LOCAL (Fuerza Física Real)
+			var player = get_tree().get_first_node_in_group("player")
+			if player and is_instance_valid(player):
+				var dist_vec = area.global_position - player.global_position
+				var dist = dist_vec.length()
+				var radius = area.get_meta("radius")
+				
+				if dist < radius:
+					var pull_strength = 15.0 # Base fuerte
+					var proximity = 1.0 + (1.0 - dist / radius) # De 1 a 2
+					var force = dist_vec.normalized() * pull_strength * proximity * (delta * 60.0)
+					player.global_position += force
+					if player.has_method("apply_shake"): player.apply_shake(0.5)
+
 	# v266.730: ACTUALIZACIÓN DE SEGUIMIENTO MAESTRO (Mega Láser)
 	for eid in active_laser_tracking.keys():
 		var data = active_laser_tracking[eid]
@@ -504,41 +532,6 @@ func _spawn_vortex_vfx(id, pos, radius):
 	container.add_child(poly)
 	container.add_child(line)
 
-func _process(delta):
-	# v267.700: PROCESAR ANIMACIONES Y FÍSICA LOCAL DE VÓRTICES
-	for id in active_areas.keys():
-		var area = active_areas[id]
-		if not is_instance_valid(area): continue
-		
-		if area.has_meta("type") and area.get_meta("type") == "vortex":
-			# 1. Animación Manual (Sin Tweens para evitar el error de loop)
-			var time = area.get_meta("time") + delta
-			area.set_meta("time", time)
-			var pulse = 1.0 + (sin(time * 4.0) * 0.05)
-			var visual = area.get_node_or_null("Visual")
-			if visual: visual.scale = Vector2(pulse, pulse)
-			area.rotation += delta * 0.5
-			
-			# 2. SUCCIÓN LOCAL (Fuerza Física Real)
-			var player = get_tree().get_first_node_in_group("player")
-			if player and is_instance_valid(player):
-				var dist_vec = area.global_position - player.global_position
-				var dist = dist_vec.length()
-				var radius = area.get_meta("radius")
-				
-				if dist < radius:
-					# Fuerza de succión (Sincronizada con el servidor)
-					# Usamos una fuerza que escala con la cercanía
-					var pull_strength = 15.0 # Base fuerte
-					var proximity = 1.0 + (1.0 - dist / radius) # De 1 a 2
-					var force = dist_vec.normalized() * pull_strength * proximity * (delta * 60.0)
-					
-					# Aplicar a la posición del jugador local
-					player.global_position += force
-					
-					# Si el jugador tiene una cámara con shake, podemos agitarla un poco
-					if player.has_method("apply_shake"):
-						player.apply_shake(0.5)
 
 func _spawn_ice_trail(id, pos, _radius):
 	if active_areas.has(id): return
