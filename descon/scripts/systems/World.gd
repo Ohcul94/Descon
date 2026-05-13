@@ -92,7 +92,7 @@ func _setup_blindness_overlay():
 			if (d < radius) {
 				discard;
 			}
-			COLOR = vec2(0.0, 0.0, 0.0, 1.0);
+			COLOR = vec4(0.0, 0.0, 0.0, 1.0);
 		}
 	"""
 	# Nota: Usaremos una versión más simple o CanvasModulate si el shader se complica, 
