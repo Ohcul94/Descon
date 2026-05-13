@@ -1506,6 +1506,17 @@ func _is_pos_over_priority_ui(p: Vector2) -> bool:
 		if ui is Control and ui.visible:
 			if ui.get_global_rect().has_point(p): return true
 			
+	# 2.1. Chat (Evitar que el joystick se active al tocar el chat)
+	var chat_nodes = get_tree().get_nodes_in_group("chat_ui")
+	for chat in chat_nodes:
+		if chat is Control and chat.visible:
+			if chat.get_global_rect().has_point(p): return true
+
+	# 2.2. Barra de Control (Mini iconos de abajo a la izquierda)
+	var c_bar = get_node_or_null("ControlBar")
+	if c_bar and c_bar.visible:
+		if c_bar.get_global_rect().has_point(p): return true
+
 	# 3. Menú ESC
 	if _esc_menu and _esc_menu.visible:
 		if _esc_menu.get_global_rect().has_point(p): return true
