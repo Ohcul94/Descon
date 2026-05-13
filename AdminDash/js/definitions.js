@@ -39,5 +39,11 @@ let AMBIENCE_LIB = {
         icon: "🌪️",
         desc: "Crea vórtices debajo de los jugadores que los succionan y dañan.",
         fields: ["spawnInterval", "duration", "pullForce", "damage", "damageInterval", "radius"]
+    },
+    "blindness_hazard": {
+        label: "Ceguera de Vacío",
+        icon: "👁️‍🗨️",
+        desc: "Oscurece la pantalla de todos los jugadores periódicamente.",
+        fields: ["spawnInterval", "duration", "radius"]
     }
 };

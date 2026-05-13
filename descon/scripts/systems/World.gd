@@ -62,6 +62,60 @@ func _ready():
 	if ui_chat: ui_chat.visible = false
 	
 	_generate_stellar_data()
+	
+	# v267.900: Inicializar Overlay de Ceguera
+	_setup_blindness_overlay()
+	NetworkManager.blindness_event.connect(_on_blindness_event)
+
+func _setup_blindness_overlay():
+	var canvas = CanvasLayer.new()
+	canvas.name = "BlindnessLayer"
+	canvas.layer = 90 # Por debajo del HUD principal pero arriba del mundo
+	add_child(canvas)
+	
+	var overlay = ColorRect.new()
+	overlay.name = "Darkness"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0, 0, 0, 1)
+	overlay.visible = false
+	canvas.add_child(overlay)
+	
+	# Shader para el "agujero" de visión
+	var mat = ShaderMaterial.new()
+	mat.shader = Shader.new()
+	mat.shader.code = """
+		shader_type canvas_item;
+		uniform vec2 player_pos;
+		uniform float radius;
+		void fragment() {
+			float d = distance(UV, player_pos);
+			if (d < radius) {
+				discard;
+			}
+			COLOR = vec2(0.0, 0.0, 0.0, 1.0);
+		}
+	"""
+	# Nota: Usaremos una versión más simple o CanvasModulate si el shader se complica, 
+	# pero por ahora un ColorRect negro opaco con discard es lo más limpio.
+	overlay.material = mat
+
+func _on_blindness_event(data):
+	var duration = data.get("duration", 5000.0) / 1000.0
+	var radius_px = data.get("radius", 150.0)
+	
+	var overlay = get_node("BlindnessLayer/Darkness")
+	if overlay:
+		overlay.set_meta("radius_px", radius_px)
+		overlay.visible = true
+		# Animación de entrada
+		var tw = create_tween()
+		tw.tween_property(overlay, "modulate:a", 1.0, 0.3).from(0.0)
+		await get_tree().create_timer(duration).timeout
+		# Animación de salida
+		var tw_out = create_tween()
+		tw_out.tween_property(overlay, "modulate:a", 0.0, 0.5)
+		await tw_out.finished
+		overlay.visible = false
 
 func _generate_stellar_data():
 	# Pre-renderizar estrellas a texturas estáticas (evita 650 draw_circle por frame)
@@ -101,6 +155,17 @@ func _process(delta):
 	for spr in _star_sprites:
 		if is_instance_valid(spr):
 			spr.position = cam_pos * spr.get_meta("parallax_factor")
+	
+	# v267.900: Actualizar Agujero de Visión en Ceguera
+	var overlay = get_node_or_null("BlindnessLayer/Darkness")
+	if overlay and overlay.visible and is_instance_valid(local_player):
+		var screen_pos = local_player.get_global_transform_with_canvas().get_origin()
+		var screen_size = get_viewport().get_visible_rect().size
+		var uv_pos = screen_pos / screen_size
+		overlay.material.set_shader_parameter("player_pos", uv_pos)
+		# Ajustar radio basado en la resolución (proporcional al ancho)
+		var rad_norm = (overlay.get_meta("radius_px", 150.0) / screen_size.x)
+		overlay.material.set_shader_parameter("radius", rad_norm)
 	
 	save_timer += delta; if save_timer >= SAVE_INTERVAL: save_timer = 0.0; _save_game_progress()
 	if is_instance_valid(local_player) and local_player.is_dead:

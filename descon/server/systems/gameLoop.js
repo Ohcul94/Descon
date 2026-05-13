@@ -227,6 +227,23 @@ function startGameLoop(io, state, aiManager) {
                                 });
                             }
                         }
+                        else if (hazard.type === 'blindness_hazard') {
+                            const tKey = `blind_${zoneId}_${idx}`;
+                            const lastEnd = state.mapTimers[tKey] || 0;
+                            const interval = hazard.spawnInterval || 15000;
+
+                            if (now - lastEnd >= interval) {
+                                const duration = hazard.duration || 5000;
+                                state.mapTimers[tKey] = now + duration;
+                                
+                                // v267.900: Emitir evento de ceguera sincronizado a toda la zona
+                                io.to(`zone_${zoneId}`).emit('blindnessEvent', {
+                                    duration: duration,
+                                    radius: hazard.radius || 150
+                                });
+                                console.log(`[MAP-EVENT] Ceguera de Vacío activada en Zona ${zoneId} por ${duration}ms`);
+                            }
+                        }
                     });
                 }
             });

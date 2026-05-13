@@ -421,11 +421,11 @@ function renderMechanicsLib() {
                     speedMult: "Mult. Velocidad (x)", 
                     healthMult: "Mult. Vida/Escudo (x)", 
                     respawnSpeedBonus: "Velocidad Respawn (%)",
-                    spawnInterval: "Cadencia Aparición (ms)",
-                    duration: "Duración Vórtice (ms)",
+                    spawnInterval: "Frecuencia/Cadencia (ms)",
+                    duration: "Duración Efecto (ms)",
                     pullForce: "Fuerza Atracción (px/s)",
                     damageInterval: "Intervalo Daño (ms)",
-                    radius: "Tamaño Vórtice (px)"
+                    radius: "Radio Acción/Visión (px)"
                 };
                 return labels[fl] || fl;
             }).join(' • ')}</div>`;
@@ -477,11 +477,11 @@ function renderMapDetail() {
                             speedMult: "Mult. Velocidad (x)", 
                             healthMult: "Mult. Vida/Escudo (x)", 
                             respawnSpeedBonus: "Velocidad Respawn (%)",
-                            spawnInterval: "Cadencia Aparición (ms)",
-                            duration: "Duración Vórtice (ms)",
+                            spawnInterval: "Frecuencia/Cadencia (ms)",
+                            duration: "Duración Efecto (ms)",
                             pullForce: "Fuerza Atracción (px/s)",
                             damageInterval: "Intervalo Daño (ms)",
-                            radius: "Tamaño Vórtice (px)"
+                            radius: "Radio Acción/Visión (px)"
                         }; return `<div class="field"><label>${labels[f] || f}</label><input type="number" step="0.1" value="${a[f] || (f.includes('Mult') ? 1 : 0)}" onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value)"></div>`; }).join('')}</div></div>
                     `).join('')}
                 </div>

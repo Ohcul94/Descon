@@ -45,6 +45,7 @@ signal clan_data(data)
 signal clan_member_status(data)
 signal spawn_area(data)
 signal remove_area(data)
+signal blindness_event(data)
 signal ship_equip_data(data)
 signal environment_damaged(data) # v266.350: Daño Ambiental
 
@@ -226,6 +227,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"spawnArea": spawn_area.emit(e_data)
 		"removeArea": remove_area.emit(e_data)
 		"blindState": blind_state.emit(e_data)
+		"blindnessEvent": blindness_event.emit(e_data)
 		"slowState": slow_state.emit(e_data)
 		"gameNotification": game_notification.emit(e_data)
 		"shipEquipData": ship_equip_data.emit(e_data)
