@@ -31,6 +31,7 @@ var _layout_backup: Dictionary = {} # Para cancelar cambios
 var active_slot_index: int = 0 # v266.300: Para mostrar cuál está en uso
 var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
 var _touch_registry: Dictionary = {} # v266.900: Registro para bypass de multitouch
+var _is_interference_ui_active: bool = false # v268.35
 
 
 func _ready():
@@ -151,6 +152,27 @@ func _ready():
 			NetworkManager.blind_state.connect(_on_blind_state)
 		
 		_setup_blind_overlay()
+		
+		# v268.35: Conexión de Interferencia
+		if not NetworkManager.interference_event.is_connected(_on_interference_event):
+			NetworkManager.interference_event.connect(_on_interference_event)
+
+func _on_interference_event(data: Dictionary):
+	var duration = data.get("duration", 4000.0) / 1000.0
+	set_interference_mode(true)
+	await get_tree().create_timer(duration).timeout
+	set_interference_mode(false)
+
+func set_interference_mode(p_active: bool):
+	_is_interference_ui_active = p_active
+	var sc = get_node_or_null("Skills")
+	if not sc: return
+	
+	for slot in sc.find_children("*Slot", "Control", true, false):
+		if p_active:
+			slot.modulate = Color(1.0, 0.3, 0.3, 0.8) # Rojo Interferencia
+		else:
+			slot.modulate = Color.WHITE
 
 func _setup_joystick():
 	if virtual_joystick: return
@@ -479,6 +501,28 @@ func _process(_delta):
 	
 	# v260.95: Sincronizar Etiquetas de Teclas (Slots 1-7)
 	_sync_hud_keys()
+	
+	# v268.35: Efecto Glitch en slots si hay interferencia
+	if _is_interference_ui_active:
+		var sc = get_node_or_null("Skills")
+		if sc:
+			for slot in sc.find_children("*Slot", "Control", true, false):
+				# v268.36: Guardar posición original para evitar que el slot se escape
+				if not slot.has_meta("orig_pos"): slot.set_meta("orig_pos", slot.position)
+				var op = slot.get_meta("orig_pos")
+				
+				# Micro-vibración y parpadeo sutil
+				slot.position = op + Vector2(randf_range(-1.5, 1.5), randf_range(-1.5, 1.5))
+				slot.modulate.a = randf_range(0.6, 0.9)
+	else:
+		# Restaurar posiciones originales al terminar la interferencia
+		var sc = get_node_or_null("Skills")
+		if sc:
+			for slot in sc.find_children("*Slot", "Control", true, false):
+				if slot.has_meta("orig_pos"):
+					slot.position = slot.get_meta("orig_pos")
+					slot.modulate.a = 1.0
+					slot.remove_meta("orig_pos")
 
 func _sync_hud_keys():
 	var skills_container = get_node_or_null("Skills")

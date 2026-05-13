@@ -693,15 +693,16 @@
         "4": {
             "color": "#ffaa00",
             "desc": "Nebulosa densa con piratas espaciales.",
-            "minLevel": 10,
+            "minLevel": 1,
             "name": "Mapa 4",
-            "warpCost": 25,
+            "warpCost": 0,
             "ambience": [
                 {
-                    "type": "blindness_hazard",
-                    "spawnInterval": 5000,
+                    "type": "interferencia_hazard",
+                    "spawnInterval": 4000,
                     "duration": 3000,
-                    "radius": 200
+                    "shakeIntensity": 10,
+                    "staticIntensity": 0.3
                 }
             ],
             "spawns": [

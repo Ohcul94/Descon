@@ -24,6 +24,10 @@ var respawn_timer = 0.0
 var active_areas = {} # v260.80: Cache de zonas de efecto (Humo, etc)
 var active_laser_tracking = {} # v266.730: Indicadores que siguen al jugador {enemy_id: {indicator, target_id}}
 
+# v268.30: Variables para Interferencia
+var _shake_strength = 0.0
+var _is_interference_active = false
+
 
 # 650 Estrellas Procesales (v73.31) - PRE-BAKED para rendimiento
 var _star_sprites: Array = [] # [far, mid, near] Sprite2Ds
@@ -63,9 +67,11 @@ func _ready():
 	
 	_generate_stellar_data()
 	
-	# v267.900: Inicializar Overlay de Ceguera
+	# v267.900: Inicializar Overlays de Ambiente
 	_setup_blindness_overlay()
+	_setup_interference_overlay() # v268.30
 	NetworkManager.blindness_event.connect(_on_blindness_event)
+	NetworkManager.interference_event.connect(_on_interference_event) # v268.30
 
 func _setup_blindness_overlay():
 	var canvas = CanvasLayer.new()
@@ -108,6 +114,65 @@ func _setup_blindness_overlay():
 	"""
 	mat.shader = shader
 	overlay.material = mat
+
+func _setup_interference_overlay():
+	var canvas = CanvasLayer.new()
+	canvas.name = "InterferenceLayer"
+	canvas.layer = 91 # Un poquito arriba de la ceguera
+	add_child(canvas)
+	
+	var overlay = ColorRect.new()
+	overlay.name = "Static"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.visible = false
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(overlay)
+	
+	var mat = ShaderMaterial.new()
+	var shader = Shader.new()
+	shader.code = """
+		shader_type canvas_item;
+		uniform float strength = 0.0;
+		uniform float time_speed = 10.0;
+
+		float random(vec2 uv) {
+			return fract(sin(dot(uv.xy, vec2(12.9898,78.233))) * 43758.5453123);
+		}
+
+		void fragment() {
+			vec2 uv = UV;
+			float noise = random(uv + TIME * time_speed);
+			float stripes = sin(uv.y * 50.0 + TIME * 20.0);
+			float final_noise = mix(0.0, noise * 0.5 + stripes * 0.2, strength);
+			COLOR = vec4(0.5, 0.7, 1.0, final_noise * 0.4);
+		}
+	"""
+	mat.shader = shader
+	overlay.material = mat
+
+func _on_interference_event(data):
+	var duration = data.get("duration", 4000.0) / 1000.0
+	_shake_strength = data.get("shakeIntensity", 10.0)
+	var static_str = data.get("staticIntensity", 0.4)
+	
+	var overlay = get_node_or_null("InterferenceLayer/Static")
+	if overlay:
+		overlay.visible = true
+		overlay.material.set_shader_parameter("strength", static_str)
+		_is_interference_active = true
+		
+		# Bloquear habilidades en el jugador local
+		if is_instance_valid(local_player):
+			local_player.set_meta("skills_blocked", true)
+			if local_player.has_method("apply_shake"): local_player.apply_shake(1.0) # Shake inicial fuerte
+		
+		await get_tree().create_timer(duration).timeout
+		
+		_is_interference_active = false
+		_shake_strength = 0.0
+		overlay.visible = false
+		if is_instance_valid(local_player):
+			local_player.set_meta("skills_blocked", false)
 
 func _on_blindness_event(data):
 	var duration = data.get("duration", 5000.0) / 1000.0
@@ -172,6 +237,15 @@ func _process(delta):
 	for spr in _star_sprites:
 		if is_instance_valid(spr):
 			spr.position = cam_pos * spr.get_meta("parallax_factor")
+	
+	# v268.30: Aplicar Temblor de Cámara si hay interferencia
+	if _is_interference_active:
+		var cam = get_viewport().get_camera_2d()
+		if cam:
+			cam.offset = Vector2(randf_range(-_shake_strength, _shake_strength), randf_range(-_shake_strength, _shake_strength))
+	else:
+		var cam = get_viewport().get_camera_2d()
+		if cam: cam.offset = Vector2.ZERO
 	
 	# v267.900: Actualizar Agujero de Visión en Ceguera
 	var overlay = get_node_or_null("BlindnessLayer/Darkness")

@@ -245,6 +245,23 @@ function startGameLoop(io, state, aiManager) {
                                 console.log(`[MAP-EVENT] Ceguera de Vacío activada en Zona ${zoneId} por ${duration}ms`);
                             }
                         }
+                        else if (hazard.type === 'interferencia_hazard') {
+                            const tKey = `inter_${zoneId}_${idx}`;
+                            const lastEnd = state.mapTimers[tKey] || 0;
+                            const interval = hazard.spawnInterval || 20000;
+
+                            if (now - lastEnd >= interval) {
+                                const duration = hazard.duration || 4000;
+                                state.mapTimers[tKey] = now + duration;
+                                
+                                io.to(`zone_${zoneId}`).emit('interferenceEvent', {
+                                    duration: duration,
+                                    shakeIntensity: hazard.shakeIntensity || 10.0,
+                                    staticIntensity: hazard.staticIntensity || 0.4
+                                });
+                                console.log(`[MAP-EVENT] 📡 INTERFERENCIA activada en Zona ${zoneId} por ${duration}ms`);
+                            }
+                        }
                     });
                 }
             });

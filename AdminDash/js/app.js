@@ -240,9 +240,11 @@ function updateAmbienceType(mapId, idx, newType) {
     
     // Inicializar campos requeridos con valores por defecto
     lib.fields.forEach(f => {
-        if (f === 'spawnInterval') newHazard[f] = 10000;
+        if (f === 'spawnInterval') newHazard[f] = 15000;
         else if (f === 'duration') newHazard[f] = 5000;
         else if (f === 'radius') newHazard[f] = 300;
+        else if (f === 'shakeIntensity') newHazard[f] = 10;
+        else if (f === 'staticIntensity') newHazard[f] = 0.3;
         else if (f === 'damage') newHazard[f] = 10;
         else if (f === 'intervalMs') newHazard[f] = 500;
         else newHazard[f] = 0;

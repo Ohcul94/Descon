@@ -482,13 +482,16 @@ function renderMapDetail() {
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${lib.fields.map(f => {
                                     const isBlind = a.type === 'blindness_hazard';
+                                    const isInter = a.type === 'interferencia_hazard';
                                     const labels = { 
                                         damage: "Daño (HP)", intervalMs: "Intervalo (ms)", 
-                                        spawnInterval: "Cadencia Aparición (ms)", 
-                                        duration: isBlind ? "Duración Ceguera (ms)" : "Duración Vórtice (ms)", 
+                                        spawnInterval: "Cadencia (ms)", 
+                                        duration: isBlind ? "Duración Ceguera (ms)" : "Duración Efecto (ms)", 
                                         radius: isBlind ? "Radio Visión (px)" : "Tamaño Vórtice (px)", 
                                         pullForce: "Fuerza Atracción (px/s)",
-                                        damageInterval: "Intervalo Daño (ms)"
+                                        damageInterval: "Intervalo Daño (ms)",
+                                        shakeIntensity: "Potencia Temblor Cámara",
+                                        staticIntensity: "Fuerza Rayas Pantalla"
                                     };
                                     let val = a[f];
                                     if (val === undefined) {

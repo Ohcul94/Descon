@@ -45,5 +45,11 @@ let AMBIENCE_LIB = {
         icon: "👁️‍🗨️",
         desc: "Oscurece la pantalla de todos los jugadores periódicamente.",
         fields: ["spawnInterval", "duration", "radius"]
+    },
+    "interferencia_hazard": {
+        label: "Interferencia de Vacío",
+        icon: "📡",
+        desc: "Bloquea los slots de combate y genera estática visual.",
+        fields: ["spawnInterval", "duration", "shakeIntensity", "staticIntensity"]
     }
 };

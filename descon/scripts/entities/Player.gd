@@ -190,6 +190,10 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 
 # v266.30: Método público para disparar desde el HUD (Celulares/Mouse)
 func trigger_skill_by_id(skill_id: String, type: int = -1):
+	# v268.30: Bloqueo por Interferencia Ambiental
+	if get_meta("skills_blocked", false):
+		return
+		
 	var cd = cooldowns.get(skill_id, 0.0)
 	if cd <= 0:
 		var r_val = 600.0 # Default
