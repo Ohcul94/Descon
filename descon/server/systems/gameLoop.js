@@ -225,7 +225,6 @@ function startGameLoop(io, state, aiManager) {
                                         io.to(`zone_${zoneId}`).emit('spawnArea', state.activeAreas[areaId]);
                                     }
                                 });
-                                console.log(`[MAP-EVENT] Vórtices Sincronizados (Nueva Cadencia: ${interval}ms post-evento)`);
                             }
                         }
                     });
