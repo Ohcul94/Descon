@@ -186,18 +186,9 @@ function startGameLoop(io, state, aiManager) {
         // A. Reset temporal de flags para Jugadores
         Object.values(players).forEach(p => {
             if (now - (p.lastSilenceTime || 0) > 200) p.isSilenced = false;
+        });
             
-            const wasBlinded = p.isBlinded;
-            if (now - (p.lastBlindTime || 0) > 200) p.isBlinded = false;
-            if (wasBlinded && !p.isBlinded) io.to(p.socketId).emit('blindState', { active: false });
-
-            const wasSlowed = p.isSlowed;
-            if (now - (p.lastSlowTime || 0) > 400 && (!p.slowEndTime || now > p.slowEndTime)) {
-                p.isSlowed = false;
-                p.slowPoints = 0;
-            }
-            
-        // v267.400: PROCESAR MECÁNICAS GLOBALES DE MAPA (Vórtices Aleatorios)
+        // v267.500: PROCESAR MECÁNICAS GLOBALES DE MAPA (Sincronizadas)
         if (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) {
             if (!state.mapTimers) state.mapTimers = {};
             
@@ -213,28 +204,27 @@ function startGameLoop(io, state, aiManager) {
                             if (now - lastSpawn >= interval) {
                                 state.mapTimers[tKey] = now;
                                 
-                                // Determinar tamaño del mapa (default 2000)
-                                const mapSize = (Number(zoneId) === 1 ? 4000 : 2000);
-                                
-                                // Crear un Área Activa en posición aleatoria
-                                const areaId = `vortex_global_${zoneId}_${Date.now()}`;
-                                state.activeAreas[areaId] = {
-                                    id: areaId,
-                                    zone: zoneId,
-                                    type: 'VORTEX_HAZARD',
-                                    x: Math.random() * mapSize,
-                                    y: Math.random() * mapSize,
-                                    radius: hazard.radius || 300,
-                                    pullForce: hazard.pullForce || 8,
-                                    damage: hazard.damage || 500,
-                                    damageInterval: hazard.damageInterval || 1000,
-                                    endTime: now + (hazard.duration || 8000),
-                                    ownerId: 'environment'
-                                };
-
-                                // Notificar a todos en la zona
-                                console.log(`[MAP-EVENT] Vórtice Global en Zona ${zoneId} -> pos(${Math.floor(state.activeAreas[areaId].x)}, ${Math.floor(state.activeAreas[areaId].y)})`);
-                                io.to(`zone_${zoneId}`).emit('spawnArea', state.activeAreas[areaId]);
+                                // v267.500: Spawnear debajo de CADA jugador en esta zona al mismo tiempo
+                                Object.values(players).forEach(p => {
+                                    if (String(p.zone) === String(zoneId) && p.hp > 0) {
+                                        const areaId = `vortex_${zoneId}_${p.user}_${Date.now()}`;
+                                        state.activeAreas[areaId] = {
+                                            id: areaId,
+                                            zone: zoneId,
+                                            type: 'VORTEX_HAZARD',
+                                            x: p.x,
+                                            y: p.y,
+                                            radius: hazard.radius || 300,
+                                            pullForce: hazard.pullForce || 8,
+                                            damage: hazard.damage || 500,
+                                            damageInterval: hazard.damageInterval || 1000,
+                                            endTime: now + (hazard.duration || 8000),
+                                            ownerId: 'environment'
+                                        };
+                                        io.to(`zone_${zoneId}`).emit('spawnArea', state.activeAreas[areaId]);
+                                    }
+                                });
+                                console.log(`[MAP-EVENT] Vórtices Sincronizados en Zona ${zoneId}`);
                             }
                         }
                     });
@@ -244,9 +234,15 @@ function startGameLoop(io, state, aiManager) {
 
         // B. Procesar Jugadores (Daño/Ambiente local)
         Object.values(players).forEach(p => {
+            const wasBlinded = p.isBlinded;
+            if (now - (p.lastBlindTime || 0) > 200) p.isBlinded = false;
+            if (wasBlinded && !p.isBlinded) io.to(p.socketId).emit('blindState', { active: false });
+
             const wasSlowed = p.isSlowed;
-            p.isSlowed = false;
-            p.slowPoints = 0;
+            if (now - (p.lastSlowTime || 0) > 400 && (!p.slowEndTime || now > p.slowEndTime)) {
+                p.isSlowed = false;
+                p.slowPoints = 0;
+            }
 
             const mapConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[p.zone] : null;
             if (mapConfig && mapConfig.ambience && p.hp > 0) {
