@@ -9,6 +9,7 @@ let selectedEnemyId = null;
 let selectedMapId = null;
 
 function showTab(tabId) {
+    localStorage.setItem('admin_last_tab', tabId); // v267.200: Persistencia F5
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
     const view = document.getElementById('view-' + tabId);
@@ -79,6 +80,20 @@ function connect() {
         document.getElementById('conn-dot').classList.add('online');
         document.getElementById('conn-text').innerText = "ONLINE: " + user.toUpperCase();
         if(data.adminConfig) { config = data.adminConfig; renderAll(); }
+        
+        // v267.200: Restaurar última vista tras login
+        const lastTab = localStorage.getItem('admin_last_tab') || 'ships';
+        const lastMap = localStorage.getItem('admin_last_map');
+        const lastEnemy = localStorage.getItem('admin_last_enemy');
+        
+        if (lastTab === 'map-detail' && lastMap) selectMap(lastMap);
+        else if (lastTab === 'enemy-detail' && lastEnemy) selectEnemy(lastEnemy);
+        else showTab(lastTab);
+    });
+
+    socket.on('disconnect', () => {
+        document.getElementById('conn-dot').classList.remove('online');
+        document.getElementById('conn-text').innerText = "OFFLINE";
     });
 
     socket.on('connect_error', (e) => {
@@ -98,6 +113,7 @@ function getFilter() { return (document.getElementById('global-filter')?.value |
 
 function selectMap(id) {
     selectedMapId = id;
+    localStorage.setItem('admin_last_map', id); // v267.200
     showTab('map-detail');
     renderMapDetail();
 }
@@ -123,8 +139,16 @@ function setMechTab(tab) {
 
 function selectEnemy(id) {
     selectedEnemyId = id;
+    localStorage.setItem('admin_last_enemy', id); // v267.200
     showTab('enemy-detail');
     renderEnemyDetail();
+}
+
+function logout() {
+    localStorage.removeItem('admin_user');
+    localStorage.removeItem('admin_pass');
+    localStorage.removeItem('admin_last_tab');
+    location.reload();
 }
 
 function addAmmoMechanic(type, idx) {

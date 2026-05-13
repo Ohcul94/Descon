@@ -256,8 +256,8 @@ function startGameLoop(io, state, aiManager) {
                                 ownerId: 'environment'
                             };
 
-                            // Notificar visualmente a la zona
-                            io.to(`zone_${p.zone}`).emit('newArea', state.activeAreas[areaId]);
+                            // Notificar visualmente a la zona (Sincronizado con spawnArea de NetworkManager.gd)
+                            io.to(`zone_${p.zone}`).emit('spawnArea', state.activeAreas[areaId]);
                         }
                     }
                 });
