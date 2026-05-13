@@ -38,6 +38,6 @@ let AMBIENCE_LIB = {
         label: "Vórtices de Acecho",
         icon: "🌪️",
         desc: "Crea vórtices debajo de los jugadores que los succionan y dañan.",
-        fields: ["spawnInterval", "duration", "pullForce", "damage", "damageInterval", "radius"]
+        fields: ["initialDelay", "spawnInterval", "duration", "pullForce", "damage", "damageInterval", "radius"]
     }
 };

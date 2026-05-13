@@ -467,6 +467,59 @@ func _on_spawn_area(data: Dictionary):
 		_spawn_smoke_cloud(id, Vector2(data.x, data.y), data.radius)
 	elif type == "ICE":
 		_spawn_ice_trail(id, Vector2(data.x, data.y), data.radius)
+	elif type == "VORTEX_HAZARD":
+		_spawn_vortex_vfx(id, Vector2(data.x, data.y), data.radius)
+
+func _spawn_vortex_vfx(id, pos, radius):
+	if active_areas.has(id): return
+	
+	var container = Node2D.new()
+	container.name = id
+	entities_node.add_child(container)
+	active_areas[id] = container
+	
+	# v267.100: EFECTO VÓRTICE PROCEDURAL (Swirl)
+	var particles = CPUParticles2D.new()
+	particles.amount = 50
+	particles.lifetime = 2.0
+	particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	particles.emission_sphere_radius = radius * 0.8
+	particles.gravity = Vector2.ZERO
+	
+	# Movimiento orbital para simular el remolino
+	particles.orbit_velocity_min = 0.5
+	particles.orbit_velocity_max = 1.0
+	particles.radial_accel_min = -20.0 # Succión visual hacia el centro
+	particles.radial_accel_max = -40.0
+	
+	particles.scale_amount_min = 2.0
+	particles.scale_amount_max = 4.0
+	
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color(0.2, 0.0, 0.4, 0.0)) # Centro oscuro
+	gradient.add_point(0.5, Color(0.5, 0.0, 1.0, 0.6)) # Púrpura brillante
+	gradient.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+	particles.color_ramp = gradient
+	
+	particles.global_position = pos
+	container.add_child(particles)
+	
+	# Círculo de advertencia en el suelo
+	var ring = Line2D.new()
+	var pts = []
+	for i in range(33):
+		var ang = (i / 32.0) * TAU
+		pts.append(Vector2(cos(ang), sin(ang)) * radius)
+	ring.points = PackedVector2Array(pts)
+	ring.width = 2.0
+	ring.default_color = Color(0.5, 0.0, 1.0, 0.4)
+	ring.global_position = pos
+	container.add_child(ring)
+	
+	# Animación de latido
+	var tw = create_tween().set_loops()
+	tw.tween_property(ring, "width", 4.0, 0.5)
+	tw.tween_property(ring, "width", 2.0, 0.5)
 
 func _spawn_ice_trail(id, pos, _radius):
 	if active_areas.has(id): return

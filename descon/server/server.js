@@ -318,6 +318,7 @@ const handleUserLogin = async (socket, user, username) => {
     });
 
     const playerSpawnData = { ...players[socket.id], id: socket.id };
+    players[socket.id].entryTime = Date.now(); // v267.100: Registro de entrada
     setTimeout(() => {
         socket.emit('currentPlayers', currentPlayersInZone);
         socket.emit('currentEnemies', cleanEnemiesInZone);
@@ -909,6 +910,7 @@ io.on('connection', (socket) => {
             p.zone = zoneId;
             p.x = newSize / 2;
             p.y = newSize / 2;
+            p.entryTime = Date.now(); // v267.100: Reset cronómetro al saltar
 
             console.log(`DESCON: Jugador [${p.user}] salt├│ al Sector [${zoneId}] - Costo: ${COST} OHCU`);
 

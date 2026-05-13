@@ -228,6 +228,11 @@ function startGameLoop(io, state, aiManager) {
                     }
                     // v267.000: NUEVA MECÁNICA - Vórtices de Acecho
                     else if (hazard.type === 'vortex_hazard') {
+                        // v267.100: Chequear Delay Inicial antes de actuar
+                        const entryTime = p.entryTime || 0;
+                        const delaySec = hazard.initialDelay || 0;
+                        if (now - entryTime < delaySec * 1000) return;
+
                         if (!p.hazardCooldowns) p.hazardCooldowns = {};
                         const vKey = `vortex_spawn_${idx}`;
                         const lastSpawn = p.hazardCooldowns[vKey] || 0;
