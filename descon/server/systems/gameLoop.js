@@ -256,7 +256,8 @@ function startGameLoop(io, state, aiManager) {
                                 ownerId: 'environment'
                             };
 
-                            // Notificar visualmente a la zona (Sincronizado con spawnArea de NetworkManager.gd)
+                            // v267.300: Notificar visualmente a la zona
+                            console.log(`[VORTEX] Spawning vortex ${areaId} for player ${p.user} in zone ${p.zone}`);
                             io.to(`zone_${p.zone}`).emit('spawnArea', state.activeAreas[areaId]);
                         }
                     }
@@ -277,9 +278,18 @@ function startGameLoop(io, state, aiManager) {
             }
         });
 
-        // C. Procesar Áreas Activas
+        // C. Procesar Áreas Activas y Limpieza
         for (const id in activeAreas) {
             const area = activeAreas[id];
+
+            // v267.300: Limpieza de Áreas Expiradas
+            if (now >= (area.endTime || 0)) {
+                io.to(`zone_${area.zone}`).emit('removeArea', { id });
+                delete activeAreas[id];
+                console.log(`[VORTEX] Area ${id} expired and removed.`);
+                continue;
+            }
+
             const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(area.x, area.y);
 
             // Efectos a Jugadores
