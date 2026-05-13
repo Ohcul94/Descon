@@ -201,7 +201,6 @@ function startGameLoop(io, state, aiManager) {
             const mapConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[p.zone] : null;
             if (mapConfig && mapConfig.ambience && p.hp > 0) {
                 mapConfig.ambience.forEach((hazard, idx) => {
-                    // Compatibilidad retroactiva: si existe damagePerSecond, lo convertimos a damage e interval 1000ms
                     const dmg = hazard.damage || hazard.damagePerSecond || 0;
                     const interval = hazard.intervalMs || 1000;
                     
@@ -209,28 +208,16 @@ function startGameLoop(io, state, aiManager) {
                         if (!p.hazardCooldowns) p.hazardCooldowns = {};
                         const hKey = `rad_${idx}`;
                         const lastHit = p.hazardCooldowns[hKey] || 0;
-                        
                         if (now - lastHit >= interval) {
                             p.hazardCooldowns[hKey] = now;
-                            p.lastCombatTime = now; // Mantiene estado de combate (previene cambio de nave y regen)
-                            
-                            // Golpear escudo primero
+                            p.lastCombatTime = now;
                             if (p.shield >= dmg) p.shield -= dmg;
                             else { p.hp -= (dmg - p.shield); p.shield = 0; }
-                            
                             if (p.hp < 0) p.hp = 0;
-                            
                             io.to(p.socketId).emit('environmentDamage', { damage: dmg });
-                            
-                            // Emitimos el Sync para que el cliente actualice barras y números inmediatamente
                             io.to(`zone_${p.zone}`).emit('playerStatSync', {
-                                id: p.socketId, 
-                                hp: Math.ceil(p.hp), 
-                                shield: Math.ceil(p.shield),
-                                maxHp: p.maxHp, 
-                                maxShield: p.maxShield,
-                                isInvisible: p.isInvisible,
-                                isSlowed: p.isSlowed
+                                id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield),
+                                maxHp: p.maxHp, maxShield: p.maxShield, isInvisible: p.isInvisible, isSlowed: p.isSlowed
                             });
                         }
                     }
@@ -238,6 +225,35 @@ function startGameLoop(io, state, aiManager) {
                         p.isSlowed = true;
                         p.lastSlowTime = now;
                         p.slowPoints = hazard.slowPercentage;
+                    }
+                    // v267.000: NUEVA MECÁNICA - Vórtices de Acecho
+                    else if (hazard.type === 'vortex_hazard') {
+                        if (!p.hazardCooldowns) p.hazardCooldowns = {};
+                        const vKey = `vortex_spawn_${idx}`;
+                        const lastSpawn = p.hazardCooldowns[vKey] || 0;
+                        const spawnInterval = hazard.spawnInterval || 10000;
+
+                        if (now - lastSpawn >= spawnInterval) {
+                            p.hazardCooldowns[vKey] = now;
+                            // Crear un Área Activa de tipo VORTEX debajo del jugador
+                            const areaId = `vortex_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+                            state.activeAreas[areaId] = {
+                                id: areaId,
+                                zone: p.zone,
+                                type: 'VORTEX_HAZARD',
+                                x: p.x,
+                                y: p.y,
+                                radius: hazard.radius || 200,
+                                pullForce: hazard.pullForce || 5,
+                                damage: hazard.damage || 500,
+                                damageInterval: hazard.damageInterval || 1000,
+                                endTime: now + (hazard.duration || 5000),
+                                ownerId: 'environment'
+                            };
+
+                            // Notificar visualmente a la zona
+                            io.to(`zone_${p.zone}`).emit('newArea', state.activeAreas[areaId]);
+                        }
                     }
                 });
             }
@@ -259,8 +275,6 @@ function startGameLoop(io, state, aiManager) {
         // C. Procesar Áreas Activas
         for (const id in activeAreas) {
             const area = activeAreas[id];
-            
-            // v247.2: Solo procesar entidades en celdas adyacentes (Spatial Hashing)
             const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(area.x, area.y);
 
             // Efectos a Jugadores
@@ -269,37 +283,59 @@ function startGameLoop(io, state, aiManager) {
                     const dx = p.x - area.x;
                     const dy = p.y - area.y;
                     const distSq = dx * dx + dy * dy;
+                    const dist = Math.sqrt(distSq);
                     
-                    if (distSq < (area.radius * area.radius)) {
+                    if (dist < area.radius) {
                         const owner = players[area.ownerId];
                         let is_ally = (p.socketId === area.ownerId);
                         if (owner && !is_ally) {
                             if (p.clanId && owner.clanId && String(p.clanId) === String(owner.clanId)) is_ally = true;
-                            
                             const pUid = p.id ? p.id.toString() : null;
                             const oUid = owner.id ? owner.id.toString() : null;
-                            if (pUid && oUid && state.playerParty[pUid] && state.playerParty[pUid] === state.playerParty[oUid]) {
-                                is_ally = true;
-                            }
+                            if (pUid && oUid && state.playerParty[pUid] && state.playerParty[pUid] === state.playerParty[oUid]) is_ally = true;
                         }
 
                         if (area.type === 'SMOKE' && !is_ally) {
-                            p.isSilenced = true;
-                            p.lastSilenceTime = now;
-                            if (!p.isBlinded) {
-                                p.isBlinded = true;
-                                io.to(p.socketId).emit('blindState', { active: true });
-                            }
+                            p.isSilenced = true; p.lastSilenceTime = now;
+                            if (!p.isBlinded) { p.isBlinded = true; io.to(p.socketId).emit('blindState', { active: true }); }
                             p.lastBlindTime = now;
                         } else if (area.type === 'ICE' && !is_ally) {
                             const prevSlow = p.isSlowed;
-                            p.isSlowed = true;
-                            p.lastSlowTime = now;
+                            p.isSlowed = true; p.lastSlowTime = now;
                             p.slowPoints = (area.slowAmount || 0.5) * 100;
-                            
-                            if (!prevSlow) {
-                                io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints });
+                            if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints });
+                        } 
+                        // v267.000: EFECTO FÍSICO DEL VÓRTICE AMBIENTAL
+                        else if (area.type === 'VORTEX_HAZARD') {
+                            // 1. Succión hacia el centro
+                            const pull = area.pullForce || 5;
+                            const angle = Math.atan2(area.y - p.y, area.x - p.x);
+                            p.x += Math.cos(angle) * pull;
+                            p.y += Math.sin(angle) * pull;
+
+                            // 2. Daño periódico
+                            if (!p.hazardCooldowns) p.hazardCooldowns = {};
+                            const dmgKey = `vortex_dmg_${area.id}`;
+                            const lastDmg = p.hazardCooldowns[dmgKey] || 0;
+                            const dmgInterval = area.damageInterval || 1000;
+
+                            if (now - lastDmg >= dmgInterval) {
+                                p.hazardCooldowns[dmgKey] = now;
+                                const dmg = area.damage || 500;
+                                p.lastCombatTime = now;
+                                if (p.shield >= dmg) p.shield -= dmg;
+                                else { p.hp -= (dmg - p.shield); p.shield = 0; }
+                                if (p.hp < 0) p.hp = 0;
+
+                                io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                    id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield),
+                                    maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.hp <= 0
+                                });
                             }
+
+                            // Sincronizar posición forzada por succión
+                            io.to(p.socketId).emit('playerStatSync', { id: p.socketId, x: p.x, y: p.y });
                         }
                     }
                 }

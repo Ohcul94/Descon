@@ -33,5 +33,11 @@ let AMBIENCE_LIB = {
         icon: "👹", 
         desc: "Enemigos acechan a toda distancia y con stats potenciados.", 
         fields: ["damageMult", "speedMult", "healthMult", "respawnSpeedBonus"] 
+    },
+    "vortex_hazard": {
+        label: "Vórtices de Acecho",
+        icon: "🌪️",
+        desc: "Crea vórtices debajo de los jugadores que los succionan y dañan.",
+        fields: ["spawnInterval", "duration", "pullForce", "damage", "damageInterval", "radius"]
     }
 };
