@@ -3,6 +3,7 @@
  * El corazón del servidor. Maneja los intervalos de tiempo para IA, regeneración y limpieza.
  */
 const { handleEnemyDeath } = require('./enemyLogic');
+const Logger = require('../utils/logger');
 
 function startGameLoop(io, state, aiManager) {
     const grid = state.grid;
@@ -104,7 +105,7 @@ function startGameLoop(io, state, aiManager) {
         tickCount++;
 
         if (duration > 33) {
-            console.warn(`\x1b[33m[PERF-WARNING]\x1b[0m Tick lento: ${duration}ms (Presión en CPU o Red)`);
+            Logger.warn('PERF', `Tick lento: ${duration}ms (Presión en CPU o Red)`);
         }
 
         // Loguear promedio cada 10 segundos (300 ticks aprox)
@@ -233,7 +234,7 @@ function startGameLoop(io, state, aiManager) {
                             const interval = hazard.spawnInterval || 15000;
 
                             if (now - lastEnd >= interval) {
-                                console.log(`[DEBUG-AMB] Disparando Ceguera en zona ${zoneId} (Intervalo: ${interval}ms)`);
+                                Logger.debug('AMB', `Disparando Ceguera en zona ${zoneId} (Intervalo: ${interval}ms)`);
                                 const duration = hazard.duration || 5000;
                                 state.mapTimers[tKey] = now + duration;
                                 
@@ -349,7 +350,7 @@ function startGameLoop(io, state, aiManager) {
             if (now >= (area.endTime || 0)) {
                 io.to(`zone_${area.zone}`).emit('removeArea', { id });
                 delete activeAreas[id];
-                console.log(`[VORTEX] Area ${id} expired and removed.`);
+                Logger.debug('VORTEX', `Area ${id} expired and removed.`);
                 continue;
             }
 

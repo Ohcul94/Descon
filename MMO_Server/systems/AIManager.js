@@ -6,6 +6,7 @@ const MechanicBossAI = require('../behaviors/MechanicBossAI');
 const SniperAI = require('../behaviors/SniperAI');
 const ChargerAI = require('../behaviors/ChargerAI');
 const GravityAI = require('../behaviors/GravityAI');
+const Logger = require('../utils/logger');
 
 /**
  * AIManager
@@ -102,6 +103,7 @@ class AIManager {
         enemies[id] = e;
 
         const { ai, ...spawnData } = e;
+        Logger.debug('SPAWN', `Enemigo ${name} [${type}] creado en Zona ${zone} (x:${Math.floor(finalX)}, y:${Math.floor(finalY)})`);
         this.io.to(`zone_${zone}`).emit('enemySpawn', spawnData);
         return e;
     }

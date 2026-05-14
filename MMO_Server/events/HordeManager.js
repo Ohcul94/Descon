@@ -1,3 +1,5 @@
+const Logger = require('../utils/logger');
+
 class HordeManager {
     constructor(io, serverSpawnEnemy, enemies) {
         this.io = io;
@@ -22,7 +24,7 @@ class HordeManager {
     updateConfig(newConfig) {
         if (!newConfig) return;
         this.config = { ...this.config, ...newConfig };
-        // console.log("[HORDE] Configuración actualizada desde el Admin Panel.");
+        Logger.debug('HORDE', 'Configuración actualizada desde el Admin Panel.');
     }
 
     update() {
@@ -41,7 +43,7 @@ class HordeManager {
         if (this.isWaitingNextWave) return; // v254.10: Bloqueo estricto de concurrencia
         
         if (!this.config.waves || this.config.waves.length === 0) {
-            // console.log("[HORDE] Error: No hay oleadas configuradas.");
+            Logger.warn('HORDE', 'Error: No hay oleadas configuradas.');
             this.config.active = false;
             return;
         }
@@ -60,7 +62,7 @@ class HordeManager {
         this.isWaitingNextWave = true;
         const waveData = this.config.waves[this.config.currentWaveIndex];
         
-        // console.log(`[HORDE] Preparando Oleada: ${waveData.name} (${this.config.currentWaveIndex + 1}/${this.config.waves.length})`);
+        Logger.info('HORDE', `Preparando Oleada: ${waveData.name} (${this.config.currentWaveIndex + 1}/${this.config.waves.length})`);
         
         this.io.to(`zone_${this.config.map}`).emit('gameNotification', { 
             msg: `¡${waveData.name.toUpperCase()} COMPLETADA! Próxima en ${this.config.timeBetweenWaves} segundos...`, 
@@ -82,7 +84,7 @@ class HordeManager {
         const waveData = this.config.waves[this.config.currentWaveIndex];
         if (!waveData) return;
 
-        // console.log(`[HORDE] Spawneando Oleada: ${waveData.name}`);
+        Logger.info('HORDE', `Spawneando Oleada: ${waveData.name}`);
         
         waveData.enemies.forEach(enCfg => {
             const type = parseInt(enCfg.type);
@@ -115,7 +117,7 @@ class HordeManager {
                 count++;
             }
         }
-        // console.log(`[HORDE] Evento finalizado. ${count} entidades purgadas del sector ${this.config.map}.`);
+        Logger.info('HORDE', `Evento finalizado. ${count} entidades purgadas del sector ${this.config.map}.`);
     }
 }
 

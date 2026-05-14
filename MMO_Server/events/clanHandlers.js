@@ -1,5 +1,6 @@
 const Clan = require('../models/Clan');
 const User = require('../models/User');
+const Logger = require('../utils/logger');
 
 /**
  * Helper para obtener los datos completos de un clan
@@ -59,7 +60,7 @@ async function getClanDataPayload(clanId, state) {
             maxMembers: clan.maxMembers || 20
         };
     } catch (e) {
-        console.error("Error obteniendo datos de clan:", e);
+        Logger.error('CLAN', `Error obteniendo datos: ${e.message}`);
         return null;
     }
 }
@@ -83,7 +84,7 @@ function registerClanHandlers(socket, io, state) {
             
             if (clan.members.length === 0) {
                 await Clan.deleteOne({ _id: clan._id });
-                console.log(`[CLAN] Flota ${clan.name} eliminada (sin miembros).`);
+                Logger.info('CLAN', `Flota ${clan.name} eliminada (sin miembros).`);
             } else {
                 if (clan.leader.toString() === user._id.toString()) {
                     clan.leader = clan.members[0];
@@ -111,7 +112,7 @@ function registerClanHandlers(socket, io, state) {
             socket.emit('clanData', null);
             socket.emit('gameNotification', { msg: 'HAS ABANDONADO LA FLOTA', type: 'info' });
 
-        } catch (e) { console.error("Error leaveClan:", e); }
+        } catch (e) { Logger.error('CLAN-LEAVE', e.message); }
     });
 
     // DISOLVER CLAN
@@ -149,8 +150,8 @@ function registerClanHandlers(socket, io, state) {
             }
 
             await Clan.deleteOne({ _id: clan._id });
-            console.log(`[CLAN] Flota ${clan.name} disuelta por ${socket.dbUser.username}`);
-        } catch (e) { console.error("Error disbandClan:", e); }
+            Logger.info('CLAN', `Flota ${clan.name} disuelta por ${socket.dbUser.username}`);
+        } catch (e) { Logger.error('CLAN-DISBAND', e.message); }
     });
 
     // CAMBIAR TIPO DE INGRESO
@@ -169,7 +170,7 @@ function registerClanHandlers(socket, io, state) {
             const payload = await getClanDataPayload(clan._id, state);
             io.to(`clan_${clan._id}`).emit('clanData', payload);
             socket.emit('gameNotification', { msg: `MODO DE INGRESO: ${type.toUpperCase()}`, type: 'success' });
-        } catch (e) { console.error("Error setClanJoinType:", e); }
+        } catch (e) { Logger.error('CLAN-TYPE', e.message); }
     });
 
     // EXPULSAR MIEMBRO
@@ -212,7 +213,7 @@ function registerClanHandlers(socket, io, state) {
             const payload = await getClanDataPayload(clan._id, state);
             io.to(`clan_${clan._id}`).emit('clanData', payload);
             socket.emit('gameNotification', { msg: `MIEMBRO EXPULSADO: ${username.toUpperCase()}`, type: 'success' });
-        } catch (e) { console.error("Error kickClanMember:", e); }
+        } catch (e) { Logger.error('CLAN-KICK', e.message); }
     });
 
     // GESTIONAR SOLICITUD
@@ -280,7 +281,7 @@ function registerClanHandlers(socket, io, state) {
             const payload = await getClanDataPayload(clan._id, state);
             io.to(`clan_${clan._id}`).emit('clanData', payload);
             socket.emit('gameNotification', { msg: `SOLICITUD ${action === 'accept' ? 'ACEPTADA' : 'RECHAZADA'}: ${username.toUpperCase()}`, type: 'success' });
-        } catch (e) { console.error("Error handleClanRequest:", e); }
+        } catch (e) { Logger.error('CLAN-REQ', e.message); }
     });
 
     // CREAR CLAN
@@ -321,9 +322,9 @@ function registerClanHandlers(socket, io, state) {
             
             const clanData = await getClanDataPayload(newClan._id, state);
             socket.emit('clanData', clanData);
-            socket.emit('gameNotification', { msg: `FLOTA [${tag}] FUNDADA CON ├ëXITO`, type: 'success' });
-            console.log(`[CLAN] ${user.username} fund├│ ${name} [${tag}]`);
-        } catch (e) { console.error("Error createClan:", e); }
+            socket.emit('gameNotification', { msg: `FLOTA [${tag}] FUNDADA CON ÉXITO`, type: 'success' });
+            Logger.info('CLAN', `${user.username} fundó ${name} [${tag}]`);
+        } catch (e) { Logger.error('CLAN-CREATE', e.message); }
     });
 
     // INVITAR AL CLAN
@@ -376,7 +377,7 @@ function registerClanHandlers(socket, io, state) {
             
             const leaderPayload = await getClanDataPayload(clan._id, state);
             socket.emit('clanData', leaderPayload);
-        } catch (e) { console.error("Error inviteToClan:", e); }
+        } catch (e) { Logger.error('CLAN-INVITE', e.message); }
     });
 
     // CANCELAR INVITACIÓN
@@ -412,7 +413,7 @@ function registerClanHandlers(socket, io, state) {
             const payload = await getClanDataPayload(clan._id, state);
             socket.emit('clanData', payload);
             socket.emit('gameNotification', { msg: `INVITACI├ôN CANCELADA: ${username.toUpperCase()}`, type: 'warning' });
-        } catch (e) { console.error("Error cancelClanInvite:", e); }
+        } catch (e) { Logger.error('CLAN-INVITE-CANCEL', e.message); }
     });
 
     // RESPONDER INVITACIÓN
@@ -464,7 +465,7 @@ function registerClanHandlers(socket, io, state) {
 
             await user.save();
             socket.emit('inventoryData', { gameData: user.gameData });
-        } catch (e) { console.error("Error handleClanInvite:", e); }
+        } catch (e) { Logger.error('CLAN-INVITE-HANDLE', e.message); }
     });
 
     // OBTENER DATOS DE CLAN
@@ -476,7 +477,7 @@ function registerClanHandlers(socket, io, state) {
         try {
             const payload = await getClanDataPayload(p.clanId, state);
             socket.emit('clanData', payload);
-        } catch (e) { console.error("Error getClanData:", e); }
+        } catch (e) { Logger.error('CLAN-GET', e.message); }
     });
 
     // UNIRSE AL CLAN (Auto-Join o Solicitud)
@@ -544,7 +545,7 @@ function registerClanHandlers(socket, io, state) {
             const payload = await getClanDataPayload(clan._id, state);
             io.to(`clan_${clan._id}`).emit('clanData', payload);
             io.to(`clan_${clan._id}`).emit('clanMemberStatus', { user: user.username, online: true });
-        } catch (e) { console.error("Error joinClan:", e); }
+        } catch (e) { Logger.error('CLAN-JOIN', e.message); }
     });
 
     // CANCELAR SOLICITUD
@@ -578,7 +579,7 @@ function registerClanHandlers(socket, io, state) {
             }
 
             socket.emit('gameNotification', { msg: `SOLICITUD CANCELADA: [${tag.toUpperCase()}]`, type: 'warning' });
-        } catch (e) { console.error("Error cancelClanRequest:", e); }
+        } catch (e) { Logger.error('CLAN-REQ-CANCEL', e.message); }
     });
 }
 

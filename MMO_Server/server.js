@@ -13,6 +13,7 @@ const io = require('socket.io')(http, {
 const path = require('path');
 const fs = require('fs-extra');
 const mongoose = require('mongoose');
+const Logger = require('./utils/logger');
 
 // Modelos y Módulos de Seguridad
 const User = require('./models/User');
@@ -35,10 +36,10 @@ const CONFIG_FILE = path.join(__dirname, 'config.json');
 
 // Conexi├│n a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log('\x1b[32m[DB]\x1b[0m Conectado a MongoDB Atlas'))
+    .then(() => Logger.success('DB', 'Conectado a MongoDB Atlas'))
     .catch(err => {
-        console.error('\x1b[31m[DB]\x1b[0m Error de conexi├│n:', err.message);
-        console.log('Asegurate de que MongoDB est├® corriendo o que el URI en .env sea correcto.');
+        Logger.error('DB', `Error de conexión: ${err.message}`);
+        console.log('Asegurate de que MongoDB esté corriendo o que el URI en .env sea correcto.');
     });
 
 // Asegurar que archivos existan
@@ -90,7 +91,7 @@ const handleUserLogin = async (socket, user, username) => {
     if (!user.gameData.hp || user.gameData.hp <= 0) {
         user.gameData.hp = user.gameData.maxHp || 2000;
         user.gameData.shield = user.gameData.maxShield || 1000;
-        console.log(`[REVIVE] Piloto ${username} regenerado por deslogueo/muerte.`);
+        Logger.debug('REVIVE', `Piloto ${username} regenerado por deslogueo/muerte.`);
     }
 
     // v305.1: Actualizar última conexión
@@ -339,7 +340,7 @@ const handleUserLogin = async (socket, user, username) => {
             }, 500);
         }
     }
-    console.log(`[AUTH] Piloto [${username}] inicializado con éxito.`);
+    Logger.success('AUTH', `Piloto [${username}] inicializado con éxito.`);
 
     // v302.9: Registro de Sesión Profesional
     try {
@@ -392,13 +393,13 @@ fs.readJson(CONFIG_FILE).then(config => {
     console.log('\x1b[35m[SERVER]\x1b[0m Configuración maestro cargada y habilidades inyectadas.');
     if (state.SERVER_CONFIG && state.SERVER_CONFIG.hordeConfig) hordeManager.updateConfig(state.SERVER_CONFIG.hordeConfig);
 }).catch(() => {
-    console.log('\x1b[33m[SERVER]\x1b[0m Usando configuraci├│n por defecto (config.json no encontrado).');
+    Logger.warn('SERVER', 'Usando configuración por defecto (config.json no encontrado).');
 });
 
 
 io.on('connection', (socket) => {
     const clientIP = socket.handshake.address;
-    console.log(`DESCON: Nueva conexión [${socket.id}] desde IP [${clientIP}]`);
+    Logger.info('CONN', `Nueva conexión [${socket.id}] desde IP [${clientIP}]`);
     socket.dbUser = null;
 
     // REGISTRO DE USUARIO (MongoDB)
@@ -448,13 +449,13 @@ io.on('connection', (socket) => {
             // v266.210: Gestión de Login Administrativo (Sin spawn de nave)
             if (data.isAdmin) {
                 socket.dbUser = user;
-                console.log(`[DEBUG-AUTH] Verificando Admin: ${user.username} (Input: ${username})`);
+                Logger.debug('AUTH', `Verificando Admin: ${user.username} (Input: ${username})`);
                 if (user.username.toLowerCase() !== "caelli94") {
-                    console.warn(`[DEBUG-AUTH] Denegado: ${user.username.toLowerCase()} no es caelli94`);
+                    Logger.warn('SECURITY', `Denegado: ${user.username.toLowerCase()} no es caelli94`);
                     return socket.emit('authError', 'No tienes permisos de Gran Maestro.');
                 }
                 const adminConfig = await fs.readJson(CONFIG_FILE);
-                console.log(`[ADMIN-AUTH] Gran Maestro ${username} conectado desde el Command Center.`);
+                Logger.success('ADMIN', `Gran Maestro ${username} conectado desde el Command Center.`);
                 return socket.emit('loginSuccess', {
                     user: username,
                     adminConfig: adminConfig
@@ -519,7 +520,7 @@ io.on('connection', (socket) => {
                     }
                     user.markModified('gameData.equippedByShip');
                     needsSave = true;
-                    console.log(`[MIGRACIÓN] Nave ${currentKey} de ${user.username}: equipamiento sincronizado al mapa.`);
+                    Logger.debug('MIGRACIÓN', `Nave ${currentKey} de ${user.username}: equipamiento sincronizado al mapa.`);
                 }
 
                 if (needsSave) await user.save();
@@ -531,7 +532,7 @@ io.on('connection', (socket) => {
                         inventoryByCategory: getCategorizedInventory(user.gameData.inventory)
                     }
                 });
-                console.log(`[SYNC] Inventario sincronizado para ${user.username}. Naves en mapa: ${Object.keys(eByShipObj).join(', ')}`);
+                Logger.debug('SYNC', `Inventario sincronizado para ${user.username}. Naves en mapa: ${Object.keys(eByShipObj).join(', ')}`);
             }
         } catch (e) { console.error("Error en getInventory:", e); }
     });
@@ -926,10 +927,9 @@ io.on('connection', (socket) => {
                 isInvisible: p.isInvisible 
             });
 
-            // v268.55: FIX DE VISIBILIDAD - Delay para dar tiempo al cliente de procesar
             // changeZoneDone (que llega por el canal de warp) y actualizar su zona local
             // antes de recibir la lista de jugadores actuales.
-            console.log(`[ZONE-SYNC] ${p.user} entró a zona ${targetZone}. Enviando estado en 350ms...`);
+            Logger.debug('ZONE-SYNC', `${p.user} entró a zona ${targetZone}. Enviando estado en 350ms...`);
             setTimeout(() => {
                 const currentPlayersInZone = {};
                 Object.keys(players).forEach(pId => {
@@ -956,7 +956,7 @@ io.on('connection', (socket) => {
 
                 const playerCount = Object.keys(currentPlayersInZone).length;
                 const enemyCount = Object.keys(cleanEnemiesInZone).length;
-                console.log(`[ZONE-SYNC] Enviando a ${p.user}: ${playerCount} jugadores, ${enemyCount} enemigos en zona ${targetZone}`);
+                Logger.debug('ZONE-SYNC', `Enviando a ${p.user}: ${playerCount} jugadores, ${enemyCount} enemigos en zona ${targetZone}`);
                 
                 socket.emit('currentPlayers', currentPlayersInZone);
                 socket.emit('currentEnemies', cleanEnemiesInZone);
@@ -1059,7 +1059,7 @@ io.on('connection', (socket) => {
             p.x = newSize / 2;
             p.y = newSize / 2;
 
-            console.log(`DESCON: Jugador [${p.user}] salt├│ al Sector [${zoneId}] - Costo: ${COST} OHCU`);
+            Logger.info('ZONE', `Jugador [${p.user}] saltó al Sector [${zoneId}] - Costo: ${COST} OHCU`);
 
             // Avisar a la vieja zona que se fue y a la nueva que lleg├│
             socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
@@ -1067,12 +1067,17 @@ io.on('connection', (socket) => {
 
             // v225.50: Configuraci├│n de Jefes deshabilitada por ahora en zonas superiores
             
-            // v225.70: LIMPIEZA DE RESIDUOS - Asegurar que no hay enemigos en mapas 2-8
+            // v225.70: LIMPIEZA DE RESIDUOS - Solo borrar si están muertos o corruptos (Evita resetear bichos vivos)
             if (Number(zoneId) >= 2) {
+                let purgeCount = 0;
                 Object.keys(enemies).forEach(eid => {
-                    if (enemies[eid].zone === zoneId) delete enemies[eid];
+                    const e = enemies[eid];
+                    if (e && e.zone === zoneId && (e.hp <= 0 || !e.ai)) {
+                        delete enemies[eid];
+                        purgeCount++;
+                    }
                 });
-                console.log(`[CLEANUP] Zona ${zoneId} purgada al entrar jugador.`);
+                if (purgeCount > 0) Logger.debug('CLEANUP', `Zona ${zoneId}: ${purgeCount} residuos purgados.`);
             }
 
             // v268.60: FIX DEFINITIVO - Sincronizar jugadores actuales en la zona destino
@@ -1094,12 +1099,12 @@ io.on('connection', (socket) => {
             });
             
             const playerCount = Object.keys(currentPlayersInZone).length;
-            console.log(`[ZONE-SYNC] ${p.user} llegó a zona ${zoneId}. Enviando ${playerCount} pilotos en 500ms...`);
+            Logger.debug('ZONE-SYNC', `${p.user} llegó a zona ${zoneId}. Enviando ${playerCount} pilotos en 500ms...`);
             
             // Delay para que el cliente termine de procesar changeZoneDone antes de recibir jugadores
             setTimeout(() => {
                 socket.emit('currentPlayers', currentPlayersInZone);
-                console.log(`[ZONE-SYNC] currentPlayers enviado a ${p.user}: ${playerCount} pilotos.`);
+                Logger.debug('ZONE-SYNC', `currentPlayers enviado a ${p.user}: ${playerCount} pilotos.`);
             }, 500);
 
             // Sincronizar enemigos de la zona (inmediato, el cliente ya sabe manejarlos)
@@ -1153,7 +1158,7 @@ io.on('connection', (socket) => {
             players[socket.id].skillPoints = user.gameData.skillPoints;
             
             await user.save();
-            console.log(`[DATABASE] Talento '${cat}' [${idx}] guardado para ${user.username}. Restantes: ${user.gameData.skillPoints}`);
+            Logger.debug('DATABASE', `Talento '${cat}' [${idx}] guardado para ${user.username}. Restantes: ${user.gameData.skillPoints}`);
             
             socket.dbUser = user;
             
@@ -1164,7 +1169,7 @@ io.on('connection', (socket) => {
             socket.emit('inventoryData', {
                 player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj }
             });
-        } catch(e) { console.error('[TALENT_ERROR]', e); }
+        } catch(e) { Logger.error('TALENT', e.message); }
     });
 
     socket.on('resetSkills', async () => {
@@ -1202,7 +1207,7 @@ io.on('connection', (socket) => {
             players[socket.id].ohcu = user.gameData.ohcu;
             
             await user.save();
-            console.log(`[DATABASE] Árbol de habilidades reseteado para ${user.username}. Puntos devueltos: ${spent}`);
+            Logger.debug('DATABASE', `Árbol de habilidades reseteado para ${user.username}. Puntos devueltos: ${spent}`);
             
             socket.dbUser = user;
             
@@ -1215,7 +1220,7 @@ io.on('connection', (socket) => {
             });
             socket.emit('gameNotification', { msg: 'ÁRBOL DE HABILIDADES RESETEADO', type: 'success' });
             
-        } catch(e) { console.error('[RESET_SKILL_ERROR]', e); }
+        } catch(e) { Logger.error('SKILL-RESET', e.message); }
     });
 
     // SISTEMA DE DUNGEONS BLINDADAS (Instancias Privadas)
@@ -1268,17 +1273,17 @@ io.on('connection', (socket) => {
             });
             s.emit('currentEnemies', zoneEnemies);
 
-            // Mandar confirmaci├│n de entrada mediante chat o notificaci├│n
+            // Mandar confirmación de entrada mediante chat o notificación
             s.emit('gameNotification', { msg: 'Ingresando a Dungeon Privada...', type: 'alert' });
         });
 
-        console.log(`[DUNGEON] Party teleportada a instancia: ${dungeonZoneId} con ${playersToMove.length} miembros.`);
+        Logger.info('DUNGEON', `Party teleportada a instancia: ${dungeonZoneId} con ${playersToMove.length} miembros.`);
     });
     
     socket.on('disconnect', async () => {
         const p = players[socket.id];
         if (p) {
-            console.log(`DESCON: Conexión perdida con [${p.user}] - ID: ${socket.id}`);
+            Logger.info('CONN', `Conexión perdida con [${p.user}] - ID: ${socket.id}`);
             
             // v303.0: Finalizar Auditoría de Sesión
             if (socket.currentSessionId) {
@@ -1293,7 +1298,7 @@ io.on('connection', (socket) => {
                         session.levelAtLogout = p.level || 1;
                         await session.save();
                     }
-                } catch (e) { console.error("[SESSION-ERR] Error al cerrar sesión:", e); }
+                } catch (e) { Logger.error('SESSION', `Error al cerrar sesión: ${e.message}`); }
             }
 
             // Avisar a su clan que se fue
@@ -1337,7 +1342,7 @@ io.on('connection', (socket) => {
                 // Sincronizar el layout activo para persistencia global
                 players[socket.id].hudPositions = data.positions || players[socket.id].hudPositions;
                 
-                console.log(`[HUD] Guardado Slot ${data.slotIndex} para ${players[socket.id].user}`);
+                Logger.debug('HUD', `Guardado Slot ${data.slotIndex} para ${players[socket.id].user}`);
 
                 if (socket.dbUser) {
                     try {
@@ -1346,15 +1351,15 @@ io.on('connection', (socket) => {
                         updateObj["gameData.hudPositions"] = players[socket.id].hudPositions;
                         
                         await User.updateOne({ _id: socket.dbUser._id }, { $set: updateObj });
-                        console.log(`[HUD-SLOT] Persistencia exitosa en DB para slot ${data.slotIndex}`);
-                    } catch (e) { console.error("[HUD-SLOT-SAVE] Error DB:", e); }
+                        Logger.debug('HUD-SLOT', `Persistencia exitosa en DB para slot ${data.slotIndex}`);
+                    } catch (e) { Logger.error('HUD-SAVE', e.message); }
                 }
                 return;
             }
 
             if (data.config !== undefined) players[socket.id].hudConfig = data.config;
             if (data.positions !== undefined) players[socket.id].hudPositions = data.positions;
-            console.log(`[HUD] Config global recibida de ${players[socket.id].user}`);
+            Logger.debug('HUD', `Config global recibida de ${players[socket.id].user}`);
             
             if (socket.dbUser) {
                 try {
@@ -1364,10 +1369,10 @@ io.on('connection', (socket) => {
                     
                     if (Object.keys(updateObj).length > 0) {
                         await User.updateOne({ _id: socket.dbUser._id }, { $set: updateObj });
-                        console.log(`[HUD] Config global persistida en DB para ${players[socket.id].user}`);
+                        Logger.debug('HUD', `Config global persistida en DB para ${players[socket.id].user}`);
                     }
                 } catch (e) {
-                    console.error("[HUD-SAVE] Error DB:", e);
+                    Logger.error('HUD-SAVE', e.message);
                 }
             }
         }
@@ -1379,15 +1384,15 @@ io.on('connection', (socket) => {
                 if (!players[socket.id].hudPositions) players[socket.id].hudPositions = {};
                 players[socket.id].hudPositions[data.id] = data.pos;
 
-                // v189.96: PERSISTENCIA INSTANT├üNEA (DB Atlas Write)
+                // v189.96: PERSISTENCIA INSTANTÁNEA (DB Atlas Write)
                 const updatePath = `gameData.hudPositions.${data.id}`;
                 await User.updateOne(
                     { _id: socket.dbUser._id },
                     { $set: { [updatePath]: data.pos } }
                 );
 
-                console.log(`[HUD-DB] Registro guardado: ${data.id} para ${players[socket.id].user}`);
-            } catch (e) { console.error("Error en persistencia HUD:", e); }
+                Logger.debug('HUD-DB', `Registro guardado: ${data.id} para ${players[socket.id].user}`);
+            } catch (e) { Logger.error('HUD-PERSIST', e.message); }
         }
     });
 
@@ -1514,8 +1519,8 @@ function getLocalIP() {
 
 http.listen(PORT, '0.0.0.0', () => {
     const ip = getLocalIP();
-    console.log(`\x1b[36m+----------------------------------------------+`);
-    console.log(`|  DESCON v6 - SERVIDOR MULTIPLAYER ACTIVO     |`);
-    console.log(`|  IP: http://${ip}:${PORT}                    |`);
-    console.log(`+----------------------------------------------+\x1b[0m\n`);
+    Logger.system(`+----------------------------------------------+`);
+    Logger.system(`|  DESCON v6 - SERVIDOR MULTIPLAYER ACTIVO     |`);
+    Logger.system(`|  IP: http://${ip}:${PORT}                    |`);
+    Logger.system(`+----------------------------------------------+`);
 });
