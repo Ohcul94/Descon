@@ -47,7 +47,9 @@ func update_ui():
 		var p = get_tree().get_first_node_in_group("player")
 		if p: talent_system = p.get_node_or_null("TalentSystem")
 
-	for n in get_children(): n.queue_free()
+	for n in get_children(): 
+		remove_child(n)
+		n.queue_free()
 	
 	if not is_instance_valid(talent_system):
 		var err = Label.new()

@@ -23,7 +23,9 @@ func update_ui():
 	# Estructura Persistente para evitar perder el foco del buscador
 	var master_h = tab.get_node_or_null("MasterH")
 	if not master_h:
-		for n in tab.get_children(): n.queue_free()
+		for n in tab.get_children(): 
+			tab.remove_child(n)
+			n.queue_free()
 		master_h = HBoxContainer.new(); master_h.name = "MasterH"; master_h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		master_h.add_theme_constant_override("separation", 30); tab.add_child(master_h)
 		
@@ -56,8 +58,12 @@ func update_ui():
 	var p_list = tab.get_node_or_null("MasterH/LCol/PScroll/PList")
 	var leave_box = tab.get_node_or_null("MasterH/LCol/LeaveBox")
 	if p_list:
-		for n in p_list.get_children(): n.queue_free()
-		for n in leave_box.get_children(): n.queue_free()
+		for n in p_list.get_children(): 
+			p_list.remove_child(n)
+			n.queue_free()
+		for n in leave_box.get_children(): 
+			leave_box.remove_child(n)
+			n.queue_free()
 		
 		var data = PartyManager.current_party
 		if data:
@@ -78,7 +84,9 @@ func update_ui():
 
 	var n_list = tab.get_node_or_null("MasterH/RCol/NScroll/NList")
 	if n_list:
-		for n in n_list.get_children(): n.queue_free()
+		for n in n_list.get_children(): 
+			n_list.remove_child(n)
+			n.queue_free()
 		var world_node = get_tree().get_first_node_in_group("world_node")
 		if is_instance_valid(world_node):
 			var players = world_node.remote_players

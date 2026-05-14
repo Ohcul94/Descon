@@ -11,7 +11,9 @@ func setup(p_inv_main):
 func update_ui():
 	if not inv_main: return
 	var h = self
-	for n in h.get_children(): n.queue_free()
+	for n in h.get_children(): 
+		h.remove_child(n)
+		n.queue_free()
 
 	var main_v = VBoxContainer.new()
 	main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

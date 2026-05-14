@@ -18,7 +18,9 @@ func update_ui():
 			prev_idx = child.current_tab
 			break
 
-	for n in root_tab.get_children(): n.queue_free()
+	for n in root_tab.get_children(): 
+		root_tab.remove_child(n)
+		n.queue_free()
 	
 	var sub_tabs = TabContainer.new()
 	sub_tabs.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

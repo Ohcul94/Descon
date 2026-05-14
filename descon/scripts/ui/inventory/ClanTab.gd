@@ -18,7 +18,9 @@ func update_ui():
 	var received_invites = inv_main.received_invites
 	var last_clan_subtab = inv_main.last_clan_subtab
 	
-	for n in tab.get_children(): n.queue_free()
+	for n in tab.get_children(): 
+		tab.remove_child(n)
+		n.queue_free()
 	
 	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	master_v.offset_left = 20; master_v.offset_right = -20; master_v.offset_top = 20; tab.add_child(master_v)

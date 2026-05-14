@@ -11,7 +11,9 @@ func setup(p_inv_main):
 func update_ui():
 	if not inv_main: return
 	var tab = self
-	for n in tab.get_children(): n.queue_free()
+	for n in tab.get_children(): 
+		tab.remove_child(n)
+		n.queue_free()
 	
 	var master_h = HBoxContainer.new(); master_h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); master_h.add_theme_constant_override("separation", 20); tab.add_child(master_h)
 	
