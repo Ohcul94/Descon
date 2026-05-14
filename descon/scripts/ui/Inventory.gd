@@ -324,8 +324,7 @@ func _on_inventory_received(data: Dictionary):
 		if is_instance_valid(player_node): spheres_manager = player_node.get_node_or_null("SpheresManager")
 	
 	# v300.06: NOTIFICAR A MÓDULOS (Refresco de UI en tiempo real)
-	_update_active_tab_ui()
-	queue_redraw()
+	# v300.06: El refresco se movió al final para asegurar que todos los datos (incluyendo equippedByShip) estén listos.
 	if data.has("gameData"):
 		var gd = data.gameData
 		if gd.has("pendingClanRequests"): pending_clans = gd.pendingClanRequests
@@ -368,14 +367,9 @@ func _on_inventory_received(data: Dictionary):
 		if p.has_method("update_stats"): 
 			p.update_stats({"currentShipId": current_ship_id, "equipped": equipped_data})
 
-	# v219.67: Asegurar creación de pestañas dinámicas (Fix desaparición Mapa)
-	if is_open:
-		_update_active_tab_ui()
-	elif not get_node_or_null("Window/TabContainer/Mapa"):
-		_update_map_ui() # Solo se llama una vez para crear la pestaña
-	
-	if not get_node_or_null("Window/TabContainer/Clan"):
-		_update_clan_ui() # Asegurar que la pestaña de Clan exista v242.50
+	# v302.9: Refresco Final Garantizado (Ahora que equippedByShip ya está poblado)
+	_update_active_tab_ui()
+	queue_redraw()
 	
 	# v210.16: Conservar selección si es válida
 	if selected_hangar_ship_id == -1: selected_hangar_ship_id = current_ship_id
