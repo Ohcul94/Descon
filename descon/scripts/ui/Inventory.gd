@@ -377,8 +377,10 @@ func _on_inventory_received(data: Dictionary):
 		if p.has_method("update_stats"): 
 			p.update_stats({"currentShipId": current_ship_id, "equipped": equipped_data})
 
-	# v302.9: Refresco Final Garantizado (Ahora que equippedByShip ya está poblado)
-	_update_active_tab_ui()
+	# v303.16: Refresco Diferido (CRÍTICO para Android)
+	# Usar call_deferred asegura que el redibujado ocurra en el siguiente frame libre,
+	# evitando que la UI se quede "congelada" con los datos viejos.
+	call_deferred("_update_active_tab_ui")
 	queue_redraw()
 	
 	# v210.16: Conservar selección si es válida

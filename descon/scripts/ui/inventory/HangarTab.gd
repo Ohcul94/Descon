@@ -15,15 +15,17 @@ func update_ui():
 		h.remove_child(n)
 		n.queue_free()
 
-	# v303.10: Estado de Carga para evitar renderizar UI incompleta y colapsos de layout en móviles
-	if inv_main.equipped_by_ship.is_empty():
-		var loading_lbl = Label.new()
-		loading_lbl.text = "SINCRONIZANDO DATOS DE LA FLOTA..."
+	# v303.15: Renderizado inmediato (Paridad con Talentos y Esferas)
+	# Eliminado el bloqueo is_empty() para evitar estados de "congelamiento" visual.
+	var loading_lbl = null
+	if inv_main.equipped_by_ship.is_empty() and inv_main.owned_ships.is_empty():
+		loading_lbl = Label.new()
+		loading_lbl.text = "SINCRONIZANDO CON LA RED OHCULIANA..."
 		loading_lbl.modulate = Color.CYAN
 		loading_lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 		loading_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		h.add_child(loading_lbl)
-		return
+		# No retornamos, permitimos que se cree la estructura base si es necesario
 
 
 	var main_v = VBoxContainer.new()
