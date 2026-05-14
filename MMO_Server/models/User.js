@@ -67,7 +67,8 @@ const UserSchema = new mongoose.Schema({
         clanId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clan', default: null }, // v242.10: Integración de Clanes
         clanRole: { type: String, enum: ['leader', 'officer', 'member'], default: 'member' }, // v243.10: Rangos de Flota
         pendingClanRequests: { type: Array, default: [] }, // v244.102: Persistencia de solicitudes
-        receivedClanInvites: { type: Array, default: [] } // v244.102: Persistencia de invitaciones
+        receivedClanInvites: { type: Array, default: [] }, // v244.102: Persistencia de invitaciones
+        isPremium: { type: Boolean, default: false } // v305.0: Estatus de Piloto de Elite
     }
 });
 

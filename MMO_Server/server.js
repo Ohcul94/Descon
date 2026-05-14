@@ -16,6 +16,7 @@ const mongoose = require('mongoose');
 
 // Modelos y Módulos de Seguridad
 const User = require('./models/User');
+const Session = require('./models/Session'); // v302.8: Auditoría de Sesiones
 const Clan = require('./models/Clan'); // v242.10: Gestión de Flotas
 const bcrypt = require('bcrypt'); // Criptografía Pro v35.0
 
@@ -91,6 +92,10 @@ const handleUserLogin = async (socket, user, username) => {
         user.gameData.shield = user.gameData.maxShield || 1000;
         console.log(`[REVIVE] Piloto ${username} regenerado por deslogueo/muerte.`);
     }
+
+    // v305.1: Actualizar última conexión
+    user.lastLogin = new Date();
+    await user.save();
 
     const dbId = user._id.toString();
 
@@ -335,6 +340,20 @@ const handleUserLogin = async (socket, user, username) => {
         }
     }
     console.log(`[AUTH] Piloto [${username}] inicializado con éxito.`);
+
+    // v302.9: Registro de Sesión Profesional
+    try {
+        const newSession = new Session({
+            userId: user._id,
+            username: username,
+            ip: socket.handshake.address || "0.0.0.0",
+            loginAt: new Date()
+        });
+        const savedSession = await newSession.save();
+        socket.currentSessionId = savedSession._id;
+    } catch (e) {
+        console.error("[SESSION-ERR] No se pudo registrar el inicio de sesión:", e);
+    }
 };
 
 // v239.01: Exportar globales para IAs complejas (v239.03 Fix Init Order)
@@ -564,7 +583,7 @@ io.on('connection', (socket) => {
     // v262.120: AUTO-SAVE GLOBAL (Cada 5 minutos)
     setInterval(async () => {
         const socketIds = Object.keys(players);
-        console.log(`[AUTO-SAVE] Iniciando guardado masivo de ${socketIds.length} pilotos...`);
+        // console.log(`[AUTO-SAVE] Iniciando guardado masivo de ${socketIds.length} pilotos...`);
         
         for (let i = 0; i < socketIds.length; i++) {
             // Distribuimos el guardado (uno cada 50ms) para no saturar el event loop
@@ -621,6 +640,98 @@ io.on('connection', (socket) => {
         Object.keys(enemies).forEach(id => delete enemies[id]);
         console.log(`[ADMIN] Purga manual ejecutada por Caelli94. ${count} enemigos eliminados.`);
         io.emit('gameNotification', { msg: `PURGA COMPLETADA: ${count} enemigos eliminados.`, type: 'success' });
+    });
+
+    // v304.0: Auditoría Agrupada por Piloto (Bitácora Maestra)
+    socket.on('getSessions', async (data) => {
+        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        try {
+            const page = data && data.page ? parseInt(data.page) : 0;
+            const limit = 50;
+
+            // Pipeline para agrupar por usuario y obtener su última sesión
+            const agg = [
+                { $sort: { loginAt: -1 } },
+                { $group: {
+                    _id: "$username",
+                    lastSession: { $first: "$$ROOT" },
+                    totalSessions: { $sum: 1 },
+                    avgDuration: { $avg: "$durationMinutes" }
+                }},
+                { $sort: { "lastSession.loginAt": -1 } },
+                { $skip: page * limit },
+                { $limit: limit }
+            ];
+
+            const groupedSessions = await Session.aggregate(agg);
+            const totalCountArr = await Session.aggregate([{ $group: { _id: "$username" } }, { $count: "count" }]);
+            const total = totalCountArr[0] ? totalCountArr[0].count : 0;
+
+            socket.emit('sessionsHistory', { sessions: groupedSessions, total, page });
+        } catch (e) {
+            console.error("[ADMIN-SESSIONS] Error en agregación:", e);
+        }
+    });
+
+    // v304.1: Historial Detallado de un Piloto Específico (para Modal)
+    socket.on('getPlayerSessions', async (data) => {
+        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        if (!data || !data.username) return;
+        try {
+            const page = data.page || 0;
+            const limit = 30;
+            const sessions = await Session.find({ username: data.username })
+                .sort({ loginAt: -1 })
+                .skip(page * limit)
+                .limit(limit);
+            
+            const total = await Session.countDocuments({ username: data.username });
+            socket.emit('playerSessionsDetail', { username: data.username, sessions, total, page });
+        } catch (e) {
+            console.error("[ADMIN-PLAYER-SESSIONS] Error:", e);
+        }
+    });
+
+    // v303.2: Monitor de Jugadores Online en Tiempo Real
+    socket.on('getOnlinePlayers', () => {
+        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        const onlineList = Object.keys(players).map(id => {
+            const p = players[id];
+            const s = io.sockets.sockets.get(id);
+            return {
+                socketId: id,
+                username: p.user,
+                ip: s ? s.handshake.address : "0.0.0.0",
+                zone: p.zone,
+                level: p.level,
+                latency: p.latency || 0,
+                loginAt: s ? (s.loginAt || Date.now()) : Date.now()
+            };
+        });
+        socket.emit('onlinePlayersList', onlineList);
+    });
+
+    // v305.2: Gestión de Pilotos Registrados
+    socket.on('getRegisteredUsers', async () => {
+        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        try {
+            const users = await User.find({}, 'username lastLogin gameData.level gameData.ohcu gameData.hubs gameData.isPremium gameData.zone')
+                .sort({ lastLogin: -1 });
+            
+            const list = users.map(u => ({
+                username: u.username,
+                lastLogin: u.lastLogin,
+                level: u.gameData.level || 1,
+                ohcu: u.gameData.ohcu || 0,
+                hubs: u.gameData.hubs || 0,
+                zone: u.gameData.zone || 1,
+                isPremium: !!u.gameData.isPremium
+            }));
+            
+            socket.emit('registeredUsersList', list);
+        } catch (e) {
+            console.error("[ADMIN-USERS] Error al obtener lista:", e);
+        }
     });
 
     // v236.40: WARP ADMINISTRATIVO (Teletransporte Instantáneo)
@@ -1163,27 +1274,39 @@ io.on('connection', (socket) => {
 
         console.log(`[DUNGEON] Party teleportada a instancia: ${dungeonZoneId} con ${playersToMove.length} miembros.`);
     });
+    
     socket.on('disconnect', async () => {
-        if (players[socket.id]) {
-            const p = players[socket.id];
-            const username = p.user;
-            console.log(`Desconectado: ${username}`);
-
-            // v262.110: Guardado Autoritativo Final
-            await savePlayerToDB(socket.id);
-
-            delete players[socket.id];
-            if (username) activeSessions.delete(username.toLowerCase());
-            io.emit('playerDisconnected', socket.id);
+        const p = players[socket.id];
+        if (p) {
+            console.log(`DESCON: Conexión perdida con [${p.user}] - ID: ${socket.id}`);
             
-            // v242.16: Notificar a la flota la desconexión del piloto
+            // v303.0: Finalizar Auditoría de Sesión
+            if (socket.currentSessionId) {
+                try {
+                    const logoutTime = new Date();
+                    const session = await Session.findById(socket.currentSessionId);
+                    if (session) {
+                        const diffMs = logoutTime - session.loginAt;
+                        session.logoutAt = logoutTime;
+                        session.durationMinutes = Math.floor(diffMs / 60000);
+                        session.zoneAtLogout = p.zone || 1;
+                        session.levelAtLogout = p.level || 1;
+                        await session.save();
+                    }
+                } catch (e) { console.error("[SESSION-ERR] Error al cerrar sesión:", e); }
+            }
+
+            // Avisar a su clan que se fue
             if (p.clanId) {
-                io.to(`clan_${p.clanId}`).emit('clanMemberStatus', { user: username, online: false });
+                io.to(`clan_${p.clanId}`).emit('clanMemberStatus', { user: p.user, online: false });
             }
             
-            // v220.11: ACTUALIZACI├ôN GLOBAL DE ONLINE AL SALIR
+            await savePlayerToDB(socket.id);
+            socket.broadcast.emit('playerDisconnected', socket.id);
+            delete players[socket.id];
+            
+            if (p.user) activeSessions.delete(p.user.toLowerCase());
             io.emit('onlineCount', Object.keys(players).length);
-
             // v138.10: No borrar de la party al desconectar (F5 Persistence)
             const uid = socket.dbUser ? socket.dbUser._id.toString() : null;
             if (uid && playerParty[uid]) {

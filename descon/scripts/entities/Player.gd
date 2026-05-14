@@ -109,7 +109,6 @@ func apply_freeze_slow(data: Dictionary):
 	var fixed = float(data.get("slowFixed", 0.0))
 	
 	# v268.45: Debug para verificar que los datos llegan bien
-	print("[FREEZE] Activado: Pct=", pct, " Fixed=", fixed, " Dur=", duration)
 	
 	# Calcular cuánto restamos (Basado en la velocidad actual para que el % sea real)
 	var total_to_reduce = (speed * pct) + fixed
@@ -268,7 +267,6 @@ func _on_skill_executed(p_data: Dictionary):
 
 func _use_heal_skill(p_target):
 	if p_target:
-		print("[SKILL] Curando a: ", p_target.username)
 		# Enviar al servidor...
 		NetworkManager.send_event("playerHeal", {"targetId": p_target.entity_id, "amount": 500})
 
@@ -457,7 +455,7 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 		# v301.7: Bloquear lanzamiento al vacío para habilidades dirigidas (Cura, Escudo, etc)
 		# s_data.get("range") > 0 suele indicar que no es instantánea sobre el player
 		if s_data.get("range", 0) > 0 or s_data.get("canTargetOthers", false):
-			print("[SKILL] Cancelado: Se requiere un objetivo válido.")
+			# print("[SKILL] Cancelado: Se requiere un objetivo válido.")
 			return
 		
 	# v4.8: Validación de rango en cliente

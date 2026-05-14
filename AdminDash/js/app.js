@@ -7,6 +7,14 @@ let currentMechTab = 'attack';
 let selectedEnemyId = null;
 let selectedMapId = null;
 
+let currentSessionSubTab = 'online';
+let currentSessionPage = 0;
+let lastSessionsTotal = 0;
+
+let selectedDetailPlayer = null;
+let currentDetailPage = 0;
+let lastDetailTotal = 0;
+
 function showTab(tabId) {
     localStorage.setItem('admin_last_tab', tabId);
     
@@ -26,19 +34,19 @@ function showTab(tabId) {
         'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión',
         'skills': 'Protocolos de Combate', 'mechanics': 'Librería de Mecánicas',
         'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema',
+        'sessions': 'Auditoría de Sesiones Estelares',
+        'users': 'Gestión de Pilotos Registrados',
         'enemy-detail': 'Editor de Entidad', 'map-detail': 'Configuración de Zona'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
     
     if(tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
+    if(tabId === 'sessions' || tabId === 'users') {
+        if (currentSessionSubTab === 'online') socket.emit('getOnlinePlayers');
+        else if (currentSessionSubTab === 'history') socket.emit('getSessions', { page: currentSessionPage });
+        else if (currentSessionSubTab === 'users') socket.emit('getRegisteredUsers');
+    }
     refreshCurrentTab();
-}
-
-function toggleFolder(id) {
-    const el = document.getElementById(id);
-    el.classList.toggle('show');
-    const chevron = el.previousElementSibling.querySelector('.chevron');
-    chevron.innerText = el.classList.contains('show') ? '▼' : '▶';
 }
 
 window.onload = () => {
@@ -72,6 +80,27 @@ function connect() {
         renderAll();
     });
 
+    socket.on('sessionsHistory', (data) => {
+        lastSessionsTotal = data.total;
+        currentSessionPage = data.page;
+        renderSessions(data.sessions);
+        document.getElementById('page-indicator').innerText = `PÁGINA ${currentSessionPage + 1} de ${Math.ceil(lastSessionsTotal/50)}`;
+    });
+
+    socket.on('playerSessionsDetail', (data) => {
+        lastDetailTotal = data.total;
+        currentDetailPage = data.page;
+        renderPlayerSessionsModal(data);
+    });
+
+    socket.on('onlinePlayersList', (data) => {
+        renderOnlinePlayers(data);
+    });
+
+    socket.on('registeredUsersList', (data) => {
+        renderRegisteredUsers(data);
+    });
+
     socket.on('loginSuccess', (data) => {
         if(remember) {
             localStorage.setItem('admin_user', user);
@@ -89,9 +118,14 @@ function connect() {
         const lastTab = localStorage.getItem('admin_last_tab') || 'ships';
         const lastMap = localStorage.getItem('admin_last_map');
         const lastEnemy = localStorage.getItem('admin_last_enemy');
+        const lastSessionTab = localStorage.getItem('admin_last_session_tab');
         
         if (lastTab === 'map-detail' && lastMap) selectMap(lastMap);
         else if (lastTab === 'enemy-detail' && lastEnemy) selectEnemy(lastEnemy);
+        else if (lastTab === 'sessions' || lastTab === 'users') {
+            if (lastSessionTab) setSessionSubTab(lastSessionTab);
+            else showTab(lastTab);
+        }
         else showTab(lastTab);
     });
 
@@ -113,7 +147,26 @@ function connect() {
     });
 }
 
-function getFilter() { return (document.getElementById('global-filter')?.value || '').toLowerCase(); }
+function getFilter() { 
+    return (document.getElementById('global-filter')?.value || '').toLowerCase(); 
+}
+
+function toggleFolder(id, event) {
+    if (event) event.stopPropagation();
+    const el = document.getElementById(id);
+    if (!el) return;
+    
+    el.classList.toggle('show');
+    
+    // Buscar el chevron en el elemento que disparó el click
+    const header = document.querySelector(`[onclick*="${id}"]`);
+    if (header) {
+        const chevron = header.querySelector('.chevron');
+        if (chevron) {
+            chevron.innerText = el.classList.contains('show') ? '▼' : '▶';
+        }
+    }
+}
 
 function selectMap(id) {
     selectedMapId = id;
@@ -148,6 +201,62 @@ function selectEnemy(id) {
     localStorage.setItem('admin_last_tab', 'enemy-detail');
     showTab('enemy-detail');
     renderEnemyDetail();
+}
+
+function setSessionSubTab(tab) {
+    currentSessionSubTab = tab;
+    localStorage.setItem('admin_last_session_tab', tab);
+    if (tab === 'users') showTab('users');
+    else showTab('sessions');
+    
+    // Actualizar estados visuales en el sidebar
+    document.querySelectorAll('#folder-audit .nav-link').forEach(b => b.classList.remove('active'));
+    document.getElementById('nav-sessions-' + tab).classList.add('active');
+    
+    if (tab === 'online') {
+        socket.emit('getOnlinePlayers');
+        document.getElementById('pagination-controls').style.display = 'none';
+        document.getElementById('th-session-extra').innerText = 'LATENCIA';
+        document.getElementById('th-session-ip-total').innerText = 'DIRECCIÓN IP';
+    } else if (tab === 'history') {
+        currentSessionPage = 0;
+        socket.emit('getSessions', { page: currentSessionPage });
+        document.getElementById('pagination-controls').style.display = 'flex';
+        document.getElementById('th-session-extra').innerText = 'ÚLTIMA SALIDA';
+        document.getElementById('th-session-ip-total').innerText = 'TOTAL SESIONES';
+    } else if (tab === 'users') {
+        socket.emit('getRegisteredUsers');
+    }
+}
+
+function openPlayerSessionsModal(username) {
+    selectedDetailPlayer = username;
+    currentDetailPage = 0;
+    socket.emit('getPlayerSessions', { username: username, page: 0 });
+    document.getElementById('player-sessions-overlay').style.display = 'flex';
+    document.getElementById('modal-player-name').innerText = `HISTORIAL: ${username.toUpperCase()}`;
+}
+
+function closePlayerSessionsModal() {
+    document.getElementById('player-sessions-overlay').style.display = 'none';
+}
+
+function changePlayerDetailPage(dir) {
+    const newPage = currentDetailPage + dir;
+    if (newPage < 0) return;
+    if (newPage >= Math.ceil(lastDetailTotal / 30)) return;
+    
+    currentDetailPage = newPage;
+    socket.emit('getPlayerSessions', { username: selectedDetailPlayer, page: newPage });
+}
+
+function changeSessionPage(dir) {
+    const newPage = currentSessionPage + dir;
+    if (newPage < 0) return;
+    if (newPage >= Math.ceil(lastSessionsTotal / 50)) return;
+    
+    currentSessionPage = newPage;
+    socket.emit('getSessions', { page: currentSessionPage });
 }
 
 function logout() {
@@ -381,4 +490,20 @@ async function deployToCloud() {
         showToast("❌ ERROR: No se pudo alcanzar el servidor de Oracle.");
         cloudSocket.disconnect();
     });
+}
+
+function toggleSidebar() {
+    const nav = document.getElementById('sidebar');
+    nav.classList.toggle('collapsed');
+    
+    const btn = document.getElementById('sidebar-toggle');
+    if (nav.classList.contains('collapsed')) {
+        btn.innerHTML = '⮕';
+        btn.style.color = 'var(--accent)';
+        btn.style.background = 'rgba(6, 182, 212, 0.1)';
+    } else {
+        btn.innerHTML = '☰';
+        btn.style.color = 'var(--text-dim)';
+        btn.style.background = 'rgba(255, 255, 255, 0.05)';
+    }
 }

@@ -5,7 +5,8 @@ function refreshCurrentTab() {
     const renderMap = {
         'ships': renderShips, 'enemies': renderEnemies, 'ammo': renderAmmo, 'weapons': renderWeapons, 
         'shields': renderShields, 'engines': renderEngines, 'skills': renderSkills, 
-        'mechanics': renderMechanicsLib, 'maps': renderMaps
+        'mechanics': renderMechanicsLib, 'maps': renderMaps, 'users': renderRegisteredUsers,
+        'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions())
     };
     if(renderMap[tabId]) renderMap[tabId]();
 }
@@ -585,4 +586,187 @@ function renderSkills() {
         `;
         grid.appendChild(card);
     }
+}
+let lastSessionsData = [];
+let lastOnlineData = [];
+function renderOnlinePlayers(data) {
+    if (data) lastOnlineData = data;
+    const list = document.getElementById('sessions-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const f = getFilter();
+
+    lastOnlineData.forEach(p => {
+        if (f && !p.username.toLowerCase().includes(f) && !p.ip.includes(f)) return;
+
+        const row = document.createElement('tr');
+        row.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const loginTime = new Date(p.loginAt);
+        const fecha = loginTime.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+        const hora = loginTime.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12: false });
+        
+        const diffMs = Date.now() - loginTime;
+        const durMin = Math.floor(diffMs / 60000);
+        
+        const latColor = p.latency < 100 ? 'var(--success)' : (p.latency < 250 ? 'var(--warning)' : 'var(--danger)');
+
+        row.innerHTML = `
+            <td style="padding: 1.5rem; font-weight: bold; color: var(--primary);">${p.username.toUpperCase()}</td>
+            <td style="padding: 1.5rem; opacity: 0.7;">${p.ip}</td>
+            <td style="padding: 1.5rem;">
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-weight:600;">${fecha}</span>
+                    <span style="font-size:0.75rem; opacity:0.6;">${hora}hs</span>
+                </div>
+            </td>
+            <td style="padding: 1.5rem; font-weight: bold; color: ${latColor}; font-family: 'JetBrains Mono';">${p.latency}ms</td>
+            <td style="padding: 1.5rem;"><span class="card-tag" style="position:static; background:rgba(0,210,255,0.1); color:var(--primary);">${durMin} min</span></td>
+            <td style="padding: 1.5rem;">
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-size:0.7rem; color:var(--accent); font-weight:bold;">LVL: ${p.level || '--'}</span>
+                    <span style="font-size:0.7rem; opacity:0.6;">ZONA: ${p.zone || '--'}</span>
+                </div>
+            </td>
+        `;
+        list.appendChild(row);
+    });
+}
+
+function renderSessions(data) {
+    if (data) lastSessionsData = data;
+    const list = document.getElementById('sessions-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const f = getFilter();
+
+    lastSessionsData.forEach(item => {
+        const s = item.lastSession;
+        if (!s) return;
+        if (f && !s.username.toLowerCase().includes(f) && !s.ip.includes(f)) return;
+
+        const row = document.createElement('tr');
+        row.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const formatDate = (date) => {
+            if (!date) return null;
+            const d = new Date(date);
+            const fecha = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+            const hora = d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12: false });
+            return `<div style="display:flex; flex-direction:column;">
+                        <span style="font-weight:600;">${fecha}</span>
+                        <span style="font-size:0.75rem; opacity:0.6;">${hora}hs</span>
+                    </div>`;
+        };
+
+        const loginHtml = formatDate(s.loginAt);
+        const logoutHtml = s.logoutAt ? formatDate(s.logoutAt) : '<span style="color:var(--success); font-weight:bold; font-size:0.75rem;">🛰️ EN ÓRBITA</span>';
+        
+        row.innerHTML = `
+            <td style="padding: 1.5rem;">
+                <button class="btn-link" style="color: var(--primary); font-weight: bold; border:none; background:none; cursor:pointer; font-size: 0.9rem; padding:0; text-align:left;" onclick="openPlayerSessionsModal('${s.username}')">
+                    ${s.username.toUpperCase()}
+                </button>
+            </td>
+            <td style="padding: 1.5rem; font-weight: bold; font-family: 'JetBrains Mono';">${item.totalSessions} SESIONES</td>
+            <td style="padding: 1.5rem;">${loginHtml}</td>
+            <td style="padding: 1.5rem;">${logoutHtml}</td>
+            <td style="padding: 1.5rem;"><span class="card-tag" style="position:static; background:rgba(0,210,255,0.1); color:var(--primary); font-family:'JetBrains Mono'">${s.durationMinutes || 0} min</span></td>
+            <td style="padding: 1.5rem;">
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-size:0.7rem; color:var(--accent); font-weight:bold;">LVL: ${s.levelAtLogout || '--'}</span>
+                    <span style="font-size:0.7rem; opacity:0.6;">ZONA: ${s.zoneAtLogout || '--'}</span>
+                </div>
+            </td>
+        `;
+        list.appendChild(row);
+    });
+}
+
+function renderPlayerSessionsModal(data) {
+    const list = document.getElementById('modal-sessions-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    document.getElementById('modal-page-indicator').innerText = `PÁGINA ${data.page + 1} de ${Math.ceil(data.total / 30)}`;
+
+    data.sessions.forEach(s => {
+        const row = document.createElement('tr');
+        row.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const formatDate = (date) => {
+            if (!date) return null;
+            const d = new Date(date);
+            const fecha = d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+            const hora = d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', hour12: false });
+            return `<div style="display:flex; flex-direction:column;">
+                        <span style="font-weight:600;">${fecha}</span>
+                        <span style="font-size:0.75rem; opacity:0.6;">${hora}hs</span>
+                    </div>`;
+        };
+
+        const loginHtml = formatDate(s.loginAt);
+        const logoutHtml = s.logoutAt ? formatDate(s.logoutAt) : '<span style="color:var(--success); font-weight:bold; font-size:0.7rem;">EN ÓRBITA</span>';
+
+        row.innerHTML = `
+            <td style="padding: 1.2rem; font-family: 'JetBrains Mono'; opacity: 0.8;">${s.ip}</td>
+            <td style="padding: 1.2rem;">${loginHtml}</td>
+            <td style="padding: 1.2rem;">${logoutHtml}</td>
+            <td style="padding: 1.2rem;"><span class="card-tag" style="position:static; background:rgba(0,210,255,0.05); color:var(--primary); font-size:0.7rem;">${s.durationMinutes || 0} min</span></td>
+            <td style="padding: 1.2rem;">
+                <div style="display:flex; flex-direction:column; gap:1px;">
+                    <span style="font-size:0.65rem; color:var(--accent);">LVL: ${s.levelAtLogout || '--'}</span>
+                    <span style="font-size:0.65rem; opacity:0.6;">ZONA: ${s.zoneAtLogout || '--'}</span>
+                </div>
+            </td>
+        `;
+        list.appendChild(row);
+    });
+}
+
+let lastUsersData = [];
+function renderRegisteredUsers(data) {
+    if (data) lastUsersData = data;
+    const list = document.getElementById('users-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const f = getFilter();
+
+    lastUsersData.forEach(u => {
+        if (f && !u.username.toLowerCase().includes(f)) return;
+
+        const row = document.createElement('tr');
+        row.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        // Calcular inactividad
+        const last = new Date(u.lastLogin);
+        const diffMs = Date.now() - last;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        let inactividadText = "";
+        let inactividadColor = "var(--success)";
+        
+        if (diffDays === 0) inactividadText = "Hoy mismo";
+        else if (diffDays === 1) inactividadText = "Ayer";
+        else {
+            inactividadText = `Hace ${diffDays} días`;
+            if (diffDays > 7) inactividadColor = "var(--warning)";
+            if (diffDays > 30) inactividadColor = "var(--danger)";
+        }
+
+        const premiumBadge = u.isPremium 
+            ? '<span class="card-tag" style="position:static; background:rgba(255,215,0,0.1); color:#ffd700; border:1px solid rgba(255,215,0,0.2);">💎 PREMIUM</span>' 
+            : '<span class="card-tag" style="position:static; background:rgba(255,255,255,0.05); color:#666;">BÁSICO</span>';
+
+        row.innerHTML = `
+            <td style="padding: 1.5rem; font-weight: bold; color: var(--primary);">${u.username.toUpperCase()}</td>
+            <td style="padding: 1.5rem; color: ${inactividadColor}; font-weight: 500;">${inactividadText}</td>
+            <td style="padding: 1.5rem;">${premiumBadge}</td>
+            <td style="padding: 1.5rem; font-family: 'JetBrains Mono'; font-weight: bold; color: var(--accent);">LVL ${u.level}</td>
+            <td style="padding: 1.5rem; font-family: 'JetBrains Mono'; opacity: 0.9;">${u.ohcu.toLocaleString()} OHCUL</td>
+            <td style="padding: 1.5rem; font-family: 'JetBrains Mono'; color: #3bff31;">${u.hubs.toLocaleString()} HUBS</td>
+            <td style="padding: 1.5rem; opacity: 0.8;">Sector ${u.zone} sector</td>
+        `;
+        list.appendChild(row);
+    });
 }

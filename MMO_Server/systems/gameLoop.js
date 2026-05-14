@@ -112,7 +112,7 @@ function startGameLoop(io, state, aiManager) {
         if (tickCount >= 300) {
             const avg = (totalTickTime / tickCount).toFixed(2);
             const memory = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
-            console.log(`\x1b[36m[SERVER-STATS]\x1b[0m Avg Tick: ${avg}ms | RAM: ${memory}MB | Online: ${Object.keys(players).length}`);
+            // console.log(`\x1b[36m[SERVER-STATS]\x1b[0m Avg Tick: ${avg}ms | RAM: ${memory}MB | Online: ${Object.keys(players).length}`);
             tickCount = 0;
             totalTickTime = 0;
         }
@@ -242,7 +242,7 @@ function startGameLoop(io, state, aiManager) {
                                     duration: duration,
                                     radius: hazard.radius || 150
                                 });
-                                console.log(`[MAP-EVENT] Ceguera de Vacío activada en Zona ${zoneId} por ${duration}ms`);
+                                // console.log(`[MAP-EVENT] Ceguera de Vacío activada en Zona ${zoneId} por ${duration}ms`);
                             }
                         }
                         else if (hazard.type === 'interferencia_hazard') {
@@ -259,7 +259,7 @@ function startGameLoop(io, state, aiManager) {
                                     shakeIntensity: hazard.shakeIntensity || 10.0,
                                     staticIntensity: hazard.staticIntensity || 0.4
                                 });
-                                console.log(`[MAP-EVENT] 📡 INTERFERENCIA activada en Zona ${zoneId} por ${duration}ms`);
+                                // console.log(`[MAP-EVENT] 📡 INTERFERENCIA activada en Zona ${zoneId} por ${duration}ms`);
                             }
                         }
                         else if (hazard.type === 'freeze_hazard') {
@@ -276,7 +276,7 @@ function startGameLoop(io, state, aiManager) {
                                     slowPercentage: hazard.slowPercentage || 0,
                                     slowFixed: hazard.slowFixed || 0
                                 });
-                                console.log(`[MAP-EVENT] ❄️ CONGELACIÓN activada en Zona ${zoneId} por ${duration}ms`);
+                                // console.log(`[MAP-EVENT] ❄️ CONGELACIÓN activada en Zona ${zoneId} por ${duration}ms`);
                             }
                         }
                     });

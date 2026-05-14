@@ -9,6 +9,7 @@
     --danger: #ef4444;
     --success: #10b981;
     --warning: #f59e0b;
+    --sidebar-width: 280px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -97,11 +98,17 @@ header {
 main { display: flex; flex: 1; overflow: hidden; }
 
 nav {
-    width: 280px;
+    width: var(--sidebar-width);
     background: rgba(0,0,0,0.2);
     border-right: 1px solid rgba(255,255,255,0.05);
     display: flex;
     flex-direction: column;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-x: hidden;
+}
+
+nav.collapsed {
+    --sidebar-width: 80px !important;
 }
 
 #sidebar-scroll {
