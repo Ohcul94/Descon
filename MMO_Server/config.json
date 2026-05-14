@@ -669,22 +669,10 @@
             "minLevel": 5,
             "name": "Mapa 3",
             "warpCost": 10,
-            "ambience": [
-                {
-                    "type": "vortex_hazard",
-                    "damage": 30,
-                    "intervalMs": 300,
-                    "spawnInterval": 5000,
-                    "duration": 3000,
-                    "pullForce": 300,
-                    "damageInterval": 300,
-                    "radius": 250,
-                    "initialDelay": 5000
-                }
-            ],
+            "ambience": [],
             "spawns": [
                 {
-                    "type": "104",
+                    "type": "101",
                     "count": 1,
                     "intervalMs": 5000
                 }
