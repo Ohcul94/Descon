@@ -25,6 +25,7 @@ var clan_data = null # v242.35: Cache de datos de la Flota (Clan)
 var last_clan_subtab = 0 # v244.55: Preservar pestaña al refrescar
 var pending_clans = [] # v244.90: Solicitudes que el usuario envió y están pendientes
 var received_invites = [] # v244.95: Invitaciones que el usuario recibió de clanes
+var pending_skill_to_equip = null # v301.5: Habilidad esperando selección de slot
 
 
 
@@ -220,6 +221,20 @@ func _format_val(v):
 func _input(event):
 	# v244.75: Las funciones de cerrado de menú (ESC y Botón X) deben funcionar SIEMPRE, incluso si estás escribiendo
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		if pending_skill_to_equip != null:
+			# v301.5: Cancelar equipamiento y volver a la biblioteca
+			pending_skill_to_equip = null
+			var st = get_node_or_null("Window/TabContainer/Esferas")
+			if st and st.has_method("update_ui"):
+				# Forzar el subtab de biblioteca (el tab 1 del TabContainer interno de SpheresTab)
+				for child in st.get_children():
+					if child is TabContainer:
+						child.current_tab = 1
+						break
+				st.update_ui()
+			get_viewport().set_input_as_handled()
+			return
+			
 		if is_open:
 			toggle()
 			get_viewport().set_input_as_handled()

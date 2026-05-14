@@ -103,16 +103,34 @@ func _render_spheres_equipment(tab, _sub_tabs):
 			inv_main.selected_sphere_slot = i
 			inv_main.selected_sphere_type_filter = "ANY"
 			if equipped: inv_main.selected_sphere_type_filter = type_txt
-			_sub_tabs.current_tab = 1
+			var st = get_parent()
+			if st is TabContainer: st.current_tab = 1
 		)
 		
 		if equipped:
 			var bu = Button.new(); bu.text = "DESEQUIPAR"; bu.add_theme_font_size_override("font_size", 9); bu.modulate = Color(1, 0.4, 0.4); v_box.add_child(bu)
 			bu.pressed.connect(func(): NetworkManager.send_event("unequipSphere", {"sphereId": i}))
 		
+		# v301.5: Interacción de equipamiento (Click en el slot para confirmar)
 		p_ui.gui_input.connect(func(ev): 
-			if ev is InputEventMouseButton and ev.pressed: inv_main.selected_sphere_slot = i; update_ui()
+			if ev is InputEventMouseButton and ev.pressed:
+				if inv_main.get("pending_skill_to_equip") != null:
+					# Confirmar equipamiento
+					var skill = inv_main.pending_skill_to_equip
+					NetworkManager.send_event("equipSphere", {"sphereId": i, "skill": {"skill_name": skill.skill_name, "power_value": skill.power_value, "type": skill.type}})
+					if is_instance_valid(inv_main.spheres_manager): inv_main.spheres_manager.equip_item(i, skill)
+					inv_main.pending_skill_to_equip = null
+					update_ui()
+				else:
+					inv_main.selected_sphere_slot = i; update_ui()
 		)
+		
+		# v301.5: Efecto visual de "Esperando Selección"
+		if inv_main.get("pending_skill_to_equip") != null:
+			var tween = create_tween().set_loops()
+			tween.tween_property(sb, "border_color", Color.WHITE, 0.4)
+			tween.tween_property(sb, "border_color", final_color, 0.4)
+
 
 func _render_spheres_library(tab):
 	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); main_v.offset_left = 20; main_v.offset_right = -20; main_v.offset_top = 20; tab.add_child(main_v)
@@ -185,12 +203,14 @@ func _create_skill_card(skill, color, icon_text, parent, is_equipped):
 	if is_equipped: skill_card.modulate.a = 0.5
 	
 	b_equip.pressed.connect(func():
-		var target_idx = inv_main.selected_sphere_slot
-		if target_idx == -1 and is_instance_valid(inv_main.spheres_manager):
-			for i in range(4):
-				if inv_main.spheres_manager.spheres_data[i]["equipped"] == null: target_idx = i; break
-		if target_idx != -1:
-			NetworkManager.send_event("equipSphere", {"sphereId": target_idx, "skill": {"skill_name": skill.skill_name, "power_value": skill.power_value, "type": skill.type}})
-			if is_instance_valid(inv_main.spheres_manager): inv_main.spheres_manager.equip_item(target_idx, skill)
-			update_ui()
+		# v301.5: Flujo de selección manual de slot
+		inv_main.pending_skill_to_equip = skill
+		inv_main.selected_sphere_type_filter = skill.type
+		
+		# v301.6: Búsqueda segura del TabContainer (Evitar error de scope)
+		for child in get_children():
+			if child is TabContainer:
+				child.current_tab = 0
+				break
+		update_ui()
 	)
