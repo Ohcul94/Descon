@@ -73,8 +73,10 @@ func connect_to_server(ip: String, port: int, p_name: String, p_token: String = 
 
 	var state = socket.get_ready_state()
 	if state != WebSocketPeer.STATE_CLOSED and state != WebSocketPeer.STATE_CLOSING:
-		print("[NET] Reintento de conexión abortado: Socket ya está en uso.")
-		return
+		print("[NET] Socket activo detectado. Cerrando para nueva conexión...")
+		socket.close()
+		socket = WebSocketPeer.new()
+		network_connected = false
 		
 	login_name = p_name
 	auth_token = p_token

@@ -28,7 +28,24 @@ var mobile_mode: bool = false           # v266.670: Modo Celular MOBA
 var mobile_aim_sensitivity: float = 1.0 # v266.700: Sensibilidad de apuntado MOBA (profundidad)
 var mobile_invert_y: bool = true        # v266.760: Invertir eje Y en apuntado movil
 func _ready():
+	# v303.01: Soporte para argumentos de lanzamiento (--mobile)
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--mobile":
+			mobile_mode = true
+			print("[SETTINGS] Forzando Modo Celular vía comando.")
+	
 	load_settings()
+	
+	# v303.02: Si iniciamos en modo celular, ajustar ventana inmediatamente
+	if mobile_mode:
+		call_deferred("_apply_mobile_window_size")
+
+func _apply_mobile_window_size():
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	DisplayServer.window_set_size(Vector2i(450, 800))
+	# Centrar ventana
+	var screen_res = DisplayServer.screen_get_size()
+	DisplayServer.window_set_position(screen_res / 2 - Vector2i(225, 400))
 
 func reset_to_factory():
 	print("[SETTINGS] Reseteando a configuración de fábrica...")

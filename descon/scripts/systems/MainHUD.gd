@@ -38,6 +38,9 @@ func _ready():
 	add_to_group("hud")
 	print("[HUD] Sistema v190.41 inicializado.")
 	
+	# v302.99: Atajo de Desarrollador para simular móvil en PC
+	set_process_input(true)
+	
 	# v266.400: Inyectar Joystick Virtual (Soporte Móvil)
 	_setup_joystick()
 	_update_joystick_visibility() # v266.570: Ocultar si está desactivado de entrada
@@ -247,6 +250,24 @@ func _update_active_slot_index(current_layout: Dictionary):
 	active_slot_index = -1 # No coincide con ninguno (modificado manual)
 
 func _input(event: InputEvent):
+	# v302.99: SIMULADOR DE MÓVIL PARA PC (Atajo F10)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F10:
+		if SettingsManager:
+			SettingsManager.mobile_mode = !SettingsManager.mobile_mode
+			SettingsManager.save_settings()
+			
+			# v303.05: Usar el nuevo método centralizado de redimensionado
+			if SettingsManager.has_method("_apply_mobile_window_size"):
+				SettingsManager._apply_mobile_window_size()
+			
+			# v303.06: Limpieza de Red Crítica antes de recargar escena
+			# Evita el error de "Socket ya está en uso" al volver al login
+			if NetworkManager:
+				NetworkManager.logout()
+				
+			get_tree().reload_current_scene()
+			return
+
 	# v266.901: Bloqueo de seguridad - No procesar inputs de juego si no estamos logueados
 	if not NetworkManager or not NetworkManager.is_logged_in: return
 
