@@ -16,6 +16,11 @@ let MOVEMENT_LIB = {
     "kamikaze": { label: "Kamikaze", icon: "💣", desc: "Se lanza hacia vos al bajar de HP y explota.", fields: ["activationHP", "speed", "explosionDamage", "duration", "explodeOnDeath"] }
 };
 
+// v266.300: Definición de Mecánicas de Defensa
+let DEFENSE_LIB = {
+    "basic_defense": { label: "Defensa Estándar", icon: "🛡️", desc: "Mecánica de mitigación de daño y regeneración.", fields: ["reductionPercentage", "shieldRegen", "duration", "cooldown", "startDelay"] }
+};
+
 // v266.300: Definición de Mecánicas de Ambiente (Hazards)
 let AMMO_MECH_LIB = {
     "bleed": { label: "Sangrado", icon: "🩸", desc: "Daño por segundo durante un tiempo.", fields: ["damagePerSecond", "duration"] },

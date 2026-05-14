@@ -254,6 +254,7 @@ function renderEnemyDetail() {
     if (!en.movementPhases) {
         en.movementPhases = [{ type: en.movementAI || "chase", speed: en.speed || 3.5, stopDist: en.stopDist || 150, startDelay: 0 }];
     }
+    if (!en.defenseMechanics) en.defenseMechanics = [];
 
     container.innerHTML = `
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
@@ -288,15 +289,15 @@ function renderEnemyDetail() {
                     </div>
                 </div>
                 <div style="margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center;">
-                    <label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">🏃 CICLO DE MOVIMIENTO</label>
-                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addMovementPhase('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR FASE</button>
+                    <label style="color:#eab308; font-size: 0.8rem; font-weight:bold;">🏃 CICLO DE MOVIMIENTO</label>
+                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#eab308; box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);" onclick="addMovementPhase('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR FASE</button>
                 </div>
                 <div id="move-list-${selectedEnemyId}">
                     ${en.movementPhases.map((m, idx) => `
-                        <div class="card" style="margin-bottom:1rem; position:relative; padding: 1rem; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2);">
+                        <div class="card" style="margin-bottom:1rem; position:relative; padding: 1rem; background: rgba(234, 179, 8, 0.05); border: 1px solid rgba(234, 179, 8, 0.2);">
                             <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
-                                <button style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:bold;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
-                                <button style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:bold;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
+                                <button style="background:none; border:none; color:#eab308; cursor:pointer; font-weight:bold;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
+                                <button style="background:none; border:none; color:#eab308; cursor:pointer; font-weight:bold;" onclick="moveMovementPhase('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
                                 <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeMovementPhase('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
                             </div>
                             <div class="field full">
@@ -318,19 +319,19 @@ function renderEnemyDetail() {
             </div>
             <div class="col">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                    <label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">⚔️ MECÁNICAS DE ATAQUE ACTIVAS</label>
-                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addMechanic('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR ARMA</button>
+                    <label style="color:#ef4444; font-size: 0.8rem; font-weight:bold;">⚔️ MECÁNICAS DE ATAQUE ACTIVAS</label>
+                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);" onclick="addMechanic('${selectedEnemyId}'); renderEnemyDetail();">+ AGREGAR ARMA</button>
                 </div>
                 <div id="mech-list-${selectedEnemyId}">
                     ${en.mechanics.map((m, idx) => `
-                        <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem;">
+                        <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2);">
                             <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
-                                <button style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
-                                <button style="background:none; border:none; color:var(--accent); cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
+                                <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
+                                <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
                                 <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeMechanic('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
                             </div>
                             <div class="field full">
-                                <select style="background:#0f172a; border:none; color:var(--accent); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateMechanicType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
+                                <select style="background:#0f172a; border:none; color:#ef4444; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateMechanicType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
                                     ${Object.keys(MECHANICS_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MECHANICS_LIB[type].icon} ${MECHANICS_LIB[type].label}</option>`).join('')}
                                 </select>
                             </div>
@@ -355,9 +356,42 @@ function renderEnemyDetail() {
                                         orbitDuration: "Tiempo de Giro (ms)",
                                         staticTime: "Tiempo Estático (ms)"
                                     };
-                                    if (f === 'isHoming') return `<div class="field" style="grid-column: 1 / -1; background: rgba(6, 182, 212, 0.05); padding: 10px; border-radius: 8px; flex-direction: column; gap: 12px; border: 1px solid rgba(6, 182, 212, 0.2);"><div style="display:flex; align-items:center; gap:12px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isHoming = this.checked; renderEnemyDetail();"><label style="margin:0; font-size: 0.85rem; color: var(--accent); cursor:pointer;">ACTIVAR SEGUIMIENTO AL OBJETIVO</label></div>${m.isHoming ? `<div style="padding-top: 10px; border-top: 1px solid rgba(6, 182, 212, 0.2);"><label style="font-size: 0.65rem; color: var(--text-dim);">AGILIDAD DE GIRO (RAD/S)</label><input type="number" step="0.1" value="${m.turnSpeed || 2.5}" style="background:rgba(0,0,0,0.3); margin-top:5px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].turnSpeed = parseFloat(this.value)"></div>` : ''}</div>`;
+                                    if (f === 'isHoming') return `<div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.05); padding: 10px; border-radius: 8px; flex-direction: column; gap: 12px; border: 1px solid rgba(239, 68, 68, 0.2);"><div style="display:flex; align-items:center; gap:12px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isHoming = this.checked; renderEnemyDetail();"><label style="margin:0; font-size: 0.85rem; color: #ef4444; cursor:pointer;">ACTIVAR SEGUIMIENTO AL OBJETIVO</label></div>${m.isHoming ? `<div style="padding-top: 10px; border-top: 1px solid rgba(239, 68, 68, 0.2);"><label style="font-size: 0.65rem; color: var(--text-dim);">AGILIDAD DE GIRO (RAD/S)</label><input type="number" step="0.1" value="${m.turnSpeed || 2.5}" style="background:rgba(0,0,0,0.3); margin-top:5px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].turnSpeed = parseFloat(this.value)"></div>` : ''}</div>`;
                                     if (f === 'turnSpeed') return '';
                                     return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2rem; margin-bottom:1rem;">
+                    <label style="color:#3b82f6; font-size: 0.8rem; font-weight:bold;">🛡️ MECÁNICAS DE DEFENSA ACTIVAS</label>
+                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background: #3b82f6; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);" onclick="addDefenseMechanic('${selectedEnemyId}')">+ AGREGAR DEFENSA</button>
+                </div>
+                <div id="defense-mech-list-${selectedEnemyId}">
+                    ${en.defenseMechanics.map((m, idx) => `
+                        <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2);">
+                            <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
+                                <button style="background:none; border:none; color:#3b82f6; cursor:pointer; font-weight:bold;" onclick="moveDefenseMechanic('${selectedEnemyId}', ${idx}, -1)">SUBIR</button>
+                                <button style="background:none; border:none; color:#3b82f6; cursor:pointer; font-weight:bold;" onclick="moveDefenseMechanic('${selectedEnemyId}', ${idx}, 1)">BAJAR</button>
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeDefenseMechanic('${selectedEnemyId}', ${idx})">✕</button>
+                            </div>
+                            <div class="field full">
+                                <select style="background:#0f172a; border:none; color:#3b82f6; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateDefenseMechanicType('${selectedEnemyId}', ${idx}, this.value)">
+                                    ${Object.keys(DEFENSE_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${DEFENSE_LIB[type].icon} ${DEFENSE_LIB[type].label}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-grid" style="margin-top:1rem;">
+                                ${DEFENSE_LIB[m.type || 'basic_defense'].fields.map(f => {
+                                    const defLabels = { 
+                                        reductionPercentage: "Reducción (%)", 
+                                        shieldRegen: "Regen. Escudo (pts/s)", 
+                                        duration: "Duración (ms)", 
+                                        cooldown: "Recarga (ms)", 
+                                        startDelay: "Delay Inicio (ms)"
+                                    };
+                                    return `<div class="field"><label>${defLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}
                             </div>
                         </div>
@@ -385,7 +419,11 @@ function renderMechanicsLib() {
         "circleCount": "Cant. Círculos",
         "orbitRadius": "Radio Órbita",
         "orbitDuration": "Tiempo Giro",
-        "staticTime": "Tiempo Estático"
+        "staticTime": "Tiempo Estático",
+        "reductionPercentage": "Reducción Daño",
+        "shieldRegen": "Regen. Escudo",
+        "duration": "Duración",
+        "cooldown": "Recarga"
     };
 
     if (currentMechTab === 'attack') {
@@ -394,6 +432,15 @@ function renderMechanicsLib() {
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f) && !JSON.stringify(m).toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';
             card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.mechanicsLib['${type}'].label = this.value; renderAll();"></div><div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><input type="text" value="${m.desc || ''}" onchange="config.mechanicsLib['${type}'].desc = this.value"></div><div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => fieldLabels[fl] || fl).join(' • ')}</div>`;
+            grid.appendChild(card);
+        }
+    } else if (currentMechTab === 'defense') {
+        if (config.defenseLib) DEFENSE_LIB = config.defenseLib;
+        for(let type in DEFENSE_LIB) {
+            const m = DEFENSE_LIB[type];
+            if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f) && !JSON.stringify(m).toLowerCase().includes(f)) continue;
+            const card = document.createElement('div'); card.className = 'card';
+            card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.defenseLib['${type}'].label = this.value; renderAll();"></div><div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><input type="text" value="${m.desc || ''}" onchange="config.defenseLib['${type}'].desc = this.value"></div><div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => fieldLabels[fl] || fl).join(' • ')}</div>`;
             grid.appendChild(card);
         }
     } else if (currentMechTab === 'ammo') {

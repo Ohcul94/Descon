@@ -319,6 +319,50 @@ function removeMechanic(enemyId, idx) {
     renderEnemies();
 }
 
+function addDefenseMechanic(enemyId) {
+    if (!config.enemyModels[enemyId].defenseMechanics) config.enemyModels[enemyId].defenseMechanics = [];
+    config.enemyModels[enemyId].defenseMechanics.push({
+        type: "basic_defense",
+        reductionPercentage: 10,
+        shieldRegen: 5,
+        duration: 5000,
+        cooldown: 10000,
+        startDelay: 0
+    });
+    renderEnemyDetail();
+}
+
+function removeDefenseMechanic(enemyId, idx) {
+    config.enemyModels[enemyId].defenseMechanics.splice(idx, 1);
+    renderEnemyDetail();
+}
+
+function updateDefenseMechanicType(enemyId, idx, newType) {
+    const mech = config.enemyModels[enemyId].defenseMechanics[idx];
+    mech.type = newType;
+    
+    // Inicializar campos según la LIB
+    const lib = DEFENSE_LIB[newType];
+    lib.fields.forEach(f => {
+        if (mech[f] === undefined) {
+            if (f === 'reductionPercentage') mech[f] = 10;
+            else if (f === 'shieldRegen') mech[f] = 5;
+            else if (f === 'duration') mech[f] = 5000;
+            else if (f === 'cooldown') mech[f] = 10000;
+            else mech[f] = 0;
+        }
+    });
+    renderEnemyDetail();
+}
+
+function moveDefenseMechanic(enemyId, idx, dir) {
+    const list = config.enemyModels[enemyId].defenseMechanics;
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= list.length) return;
+    [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
+    renderEnemyDetail();
+}
+
 function updateMechanicType(enemyId, idx, newType) {
     config.enemyModels[enemyId].mechanics[idx].type = newType;
     renderEnemies();
@@ -401,6 +445,9 @@ function patchMechanicsLib() {
     }
     if (config.movementLib && !config.movementLib.kamikaze) {
         config.movementLib.kamikaze = MOVEMENT_LIB.kamikaze;
+    }
+    if (!config.defenseLib) {
+        config.defenseLib = DEFENSE_LIB;
     }
 }
 setTimeout(patchMechanicsLib, 1000);
