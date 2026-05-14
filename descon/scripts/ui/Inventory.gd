@@ -91,7 +91,8 @@ func _ready():
 	if is_instance_valid(talent_system):
 		talent_system.talents_updated.connect(_update_active_tab_ui)
 
-	await get_tree().create_timer(1.0).timeout
+	# v302.6: Inicialización inmediata (Eliminado await 1.0s que causaba lag en carga de Hangar)
+	await get_tree().process_frame
 	
 	# v300.01: Inicialización de Módulos (Refactorización Modular)
 	var hangar_node = get_node_or_null("Window/TabContainer/Hangar")
@@ -130,6 +131,10 @@ func _ready():
 		if map_node.has_method("setup"): map_node.setup(self)
 	
 	_refresh_data()
+	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
+	if is_open:
+		_update_active_tab_ui()
+	
 
 func _aggressive_hide(node):
 	for child in node.get_children():
@@ -283,6 +288,9 @@ func toggle():
 	
 	if is_open: 
 		_refresh_data()
+	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
+	if is_open:
+		_update_active_tab_ui()
 		# v190.20: PRIORIDAD ABSOLUTA - Mover al frente de la jerarquía UI
 		if get_parent():
 			get_parent().move_child(self, get_parent().get_child_count() - 1)

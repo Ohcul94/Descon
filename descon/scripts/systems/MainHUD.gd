@@ -1185,7 +1185,11 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	var sensitivity = SettingsManager.mobile_aim_sensitivity
 	
 	if max_range <= 0:
-		sc.external_aim_vector = world_diff.normalized() * 300.0 if world_diff.length() > 5 else Vector2.ZERO
+		# v302.8: Para habilidades sin rango (Self/Free), permitir un radio dinámico de hasta 600px
+		var default_max = 600.0
+		var px_for_max = 80.0 / sensitivity
+		var mapped_range = clamp(world_diff.length() * default_max / px_for_max, 10.0, default_max)
+		sc.external_aim_vector = world_diff.normalized() * mapped_range if world_diff.length() > 5 else Vector2.ZERO
 	else:
 		# 80px de arrastre en pantalla = Rango máximo de la habilidad
 		var px_for_max = 80.0 / sensitivity

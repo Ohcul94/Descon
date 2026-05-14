@@ -174,7 +174,7 @@ func _render_spheres_library(tab):
 	]
 	
 	for cfg in skill_configs:
-		if FileAccess.file_exists(cfg["path"]):
+		if ResourceLoader.exists(cfg["path"]):
 			var script = load(cfg["path"])
 			if script: all_skills.append({"class": script, "color": cfg["color"], "icon": cfg["icon"], "type": cfg["type"]})
 
@@ -202,24 +202,6 @@ func _create_skill_card(skill, color, icon_text, parent, is_equipped):
 	var name_l = Label.new(); name_l.text = skill.skill_name; name_l.add_theme_font_size_override("font_size", 14); name_l.modulate = color; v_info.add_child(name_l)
 	var desc_l = Label.new(); desc_l.text = skill.description; desc_l.add_theme_font_size_override("font_size", 10); desc_l.modulate.a = 0.6; desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v_info.add_child(desc_l)
 	
-	# v301.8: FILTROS DE OBJETIVO DINÁMICOS
-	var filter_h = HBoxContainer.new(); filter_h.add_theme_constant_override("separation", 10); v_info.add_child(filter_h)
-	var f_labels = {"allies": "ALI", "enemies": "ENE", "bosses": "BOSS", "players": "PLY"}
-	
-	# Asegurar que existan los filtros en el objeto global
-	if not GameConstants.SKILLS_DATA.has(skill.skill_name):
-		GameConstants.SKILLS_DATA[skill.skill_name] = {"targetFilters": {"allies": true, "enemies": false, "bosses": false, "players": true}}
-	
-	var current_filters = GameConstants.SKILLS_DATA[skill.skill_name].get("targetFilters", {"allies": true, "enemies": false, "bosses": false, "players": true})
-	
-	for f_key in f_labels:
-		var cb = CheckBox.new(); cb.text = f_labels[f_key]; cb.button_pressed = current_filters.get(f_key, false); cb.add_theme_font_size_override("font_size", 8); filter_h.add_child(cb)
-		cb.toggled.connect(func(v):
-			if not GameConstants.SKILLS_DATA[skill.skill_name].has("targetFilters"):
-				GameConstants.SKILLS_DATA[skill.skill_name]["targetFilters"] = {"allies": false, "enemies": false, "bosses": false, "players": false}
-			GameConstants.SKILLS_DATA[skill.skill_name]["targetFilters"][f_key] = v
-			print("[SKILL-CONFIG] ", skill.skill_name, " filtro ", f_key, " seteado en ", v)
-		)
 	
 	var b_equip = Button.new(); b_equip.text = "YA EQUIPADA" if is_equipped else "EQUIPAR"; b_equip.disabled = is_equipped; b_equip.custom_minimum_size = Vector2(80, 0); b_equip.size_flags_vertical = 4; hb.add_child(b_equip)
 	if is_equipped: skill_card.modulate.a = 0.5

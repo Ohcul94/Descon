@@ -72,7 +72,13 @@ func _update_targeting():
 	get_tree().call_group("entities", "set", "is_hovered", false)
 	
 	# v302.4: Siempre buscar bajo el mouse para el Highlight visual (incluso si no estamos apuntando skill)
-	var target = _find_target_under_mouse()
+	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
+	var check_pos = get_global_mouse_position()
+	
+	if is_mobile and external_aim_vector != Vector2.ZERO:
+		check_pos = global_position + external_aim_vector
+	
+	var target = _find_target_at_pos(check_pos)
 	if is_instance_valid(target):
 		target.is_hovered = true
 		if target.has_node("HUD_Layer_Final"): target.get_node("HUD_Layer_Final").queue_redraw()
@@ -80,28 +86,18 @@ func _update_targeting():
 	if current_skill.get("type") == SkillType.POINT_CLICK:
 		selected_target = target
 
-func _find_target_under_mouse() -> Node2D:
-	# v266.790: Magnetismo eliminado por pedido del usuario.
-	# Esta función ahora solo busca si hay algo EXACTAMENTE bajo el puntero (PC).
-	if get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode:
-		return null # En móvil no hay target bajo mouse
-		
-	var mouse_pos = get_global_mouse_position()
+func _find_target_at_pos(pos: Vector2) -> Node2D:
+	# v302.7: Detección genérica por posición (Funciona en PC y Móvil)
 	var entities = get_tree().get_nodes_in_group("entities")
-	
-	# v301.9: Hitbox Inteligente (Estilo MOBA)
-	# Buscamos la entidad más cercana al mouse en un radio generoso (60px)
 	var best_target = null
-	var min_dist = 60.0 # Radio de detección aumentado para clickear el asset fácil
+	var min_dist = 60.0 # Radio de detección estilo MOBA
 	
 	for e in entities:
-		# v301.9: Hitbox Inteligente (Estilo MOBA)
-		# Consideramos la posición base y un punto superior (el asset real)
 		var base_pos = e.global_position
 		var asset_pos = base_pos + Vector2(0, -45) 
 		
-		var dist_base = base_pos.distance_to(mouse_pos)
-		var dist_asset = asset_pos.distance_to(mouse_pos)
+		var dist_base = base_pos.distance_to(pos)
+		var dist_asset = asset_pos.distance_to(pos)
 		var final_dist = min(dist_base, dist_asset)
 		
 		if final_dist < min_dist:
@@ -109,6 +105,10 @@ func _find_target_under_mouse() -> Node2D:
 			best_target = e
 			
 	return best_target
+
+func _find_target_under_mouse() -> Node2D:
+	# Fallback para compatibilidad, ahora usa la función genérica
+	return _find_target_at_pos(get_global_mouse_position())
 
 func start_aiming(skill_data: Dictionary):
 	# v266.920: Si ya estamos apuntando OTRA cosa, guardamos esta en el buffer
@@ -160,11 +160,17 @@ func execute_skill():
 		if external_aim_vector != Vector2.ZERO:
 			payload.angle = external_aim_vector.angle()
 			payload.pos = global_position + external_aim_vector
+			payload.target = selected_target
 		else:
 			# Tap simple: Disparo hacia adelante de la nave
 			payload.angle = get_parent().rotation
 			payload.pos = global_position + Vector2.RIGHT.rotated(payload.angle) * 100.0
-		payload.target = null
+			
+			# v302.5: Auto-Target Self para habilidades de apoyo (Cura/Escudo) en Tap
+			var filters = current_skill.get("filters", {})
+			if filters.get("allies", false) and not filters.get("enemies", false):
+				payload.target = get_parent()
+				# print("[SKILL-MOBILE] Auto-target friendly skill to self")
 	else:
 		# --- MODO PC: Mouse Clásico ---
 		var mouse_pos = get_global_mouse_position()
