@@ -1262,8 +1262,20 @@ func _update_reflect_aura(_delta: float):
 	return
 	
 func _on_remote_skill_used(data: Dictionary):
-	# v235.37: Registro de uso de habilidad remota para sincronía visual
-	if str(data.get("id")) == entity_id:
+	# v235.38: Filtrar visuales por OBJETIVO (targetId) y no por EMISOR (id)
+	# 'targetId' es a quién le llega el efecto. 'id' es quién lo tiró.
+	var my_id = entity_id
+	var target_id = str(data.get("targetId", ""))
+	
+	# Si no hay targetId en el paquete, el servidor asume que es un skill de área o auto-target
+	# En ese caso comparamos con el 'id' (el emisor)
+	var final_match = false
+	if target_id != "":
+		final_match = (target_id == my_id)
+	else:
+		final_match = (str(data.get("id")) == my_id)
+
+	if final_match:
 		var s_name = str(data.get("skillName", ""))
 		if s_name == "REFLECT-Ω" or s_name == "REFLECT":
 			reflect_timer = 3.0
