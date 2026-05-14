@@ -15,6 +15,17 @@ func update_ui():
 		h.remove_child(n)
 		n.queue_free()
 
+	# v303.10: Estado de Carga para evitar renderizar UI incompleta y colapsos de layout en móviles
+	if inv_main.equipped_by_ship.is_empty():
+		var loading_lbl = Label.new()
+		loading_lbl.text = "SINCRONIZANDO DATOS DE LA FLOTA..."
+		loading_lbl.modulate = Color.CYAN
+		loading_lbl.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		loading_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		h.add_child(loading_lbl)
+		return
+
+
 	var main_v = VBoxContainer.new()
 	main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	main_v.add_theme_constant_override("separation", 20)

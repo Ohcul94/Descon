@@ -294,9 +294,11 @@ func toggle():
 		# v190.20: PRIORIDAD ABSOLUTA - Mover al frente de la jerarquía UI
 		if get_parent():
 			get_parent().move_child(self, get_parent().get_child_count() - 1)
-			# Si estamos dentro de un CanvasLayer, esto asegura el dibujo superior
+			# v303.11: Usar top_level para garantizar que se dibuje sobre paneles flotantes (como el Chat)
+			top_level = true
 			z_index = 100 
 	else:
+		top_level = false
 		z_index = 0
 		
 	queue_redraw()
