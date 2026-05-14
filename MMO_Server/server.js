@@ -590,7 +590,7 @@ io.on('connection', (socket) => {
             await new Promise(resolve => setTimeout(resolve, 50));
             await savePlayerToDB(socketIds[i]);
         }
-        console.log(`[AUTO-SAVE] Guardado masivo completado.`);
+        // console.log(`[AUTO-SAVE] Guardado masivo completado.`);
     }, 5 * 60 * 1000); // 5 Minutos
 
     // v243.15: Helper para serializar datos de clan con roles y estados
@@ -888,7 +888,7 @@ io.on('connection', (socket) => {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance >= 1100 && !p.justBlinked && !p.isAdmin) { 
-            console.log(`[HACK] Teletransporte detectado en ${p.user}: ${distance}px`);
+            // console.log(`[HACK] Teletransporte detectado en ${p.user}: ${distance}px`);
             return;
         }
         
@@ -983,7 +983,7 @@ io.on('connection', (socket) => {
         // v186.27: Sincron├¡a de Resurrecci├│n Global (Evita "Otra Dimensi├│n")
         if (respawnData.zone) p.zone = Number(respawnData.zone);
 
-        console.log(`DESCON: Piloto [${p.user}] ha reaparecido en Zona [${p.zone}]`);
+        // console.log(`DESCON: Piloto [${p.user}] ha reaparecido en Zona [${p.zone}]`);
 
         const respawnPayload = { ...p, id: socket.id, isDead: false };
         // v186.27: Sincron├¡a de Resurrecci├│n SEGMENTADA

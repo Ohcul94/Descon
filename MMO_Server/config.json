@@ -767,14 +767,14 @@
     },
     "shipModels": [
         {
-            "hp": 3000,
+            "hp": 100,
             "id": 1,
             "name": "Phoenix-L1",
             "prices": {
                 "hubs": 0,
                 "ohcu": 0
             },
-            "shield": 1000,
+            "shield": 100,
             "slots": {
                 "e": 1,
                 "s": 2,

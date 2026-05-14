@@ -1392,11 +1392,41 @@ func _apply_flash_recursive(p_node, p_mat):
 	for child in p_node.get_children(): _apply_flash_recursive(child, p_mat)
 
 func _spawn_death_vfx():
-	var vfx_script = load("res://scripts/vfx/ImpactVFX.gd")
+	var vfx_script = load("res://scripts/vfx/SpaceExplosion.gd")
 	if vfx_script:
-		var vfx = vfx_script.new()
-		get_parent().add_child(vfx)
-		vfx.global_position = global_position
+		var explosion_3d = vfx_script.new()
+		
+		# Wrapper 2D para posicionar la explosión en el mundo
+		var wrapper = Node2D.new()
+		wrapper.global_position = global_position
+		
+		var world = get_tree().get_first_node_in_group("world_node")
+		if world: world.add_child(wrapper)
+		else: get_parent().add_child(wrapper)
+		
+		# Configuración del Viewport 3D (Escala Controlada)
+		var vp = SubViewport.new()
+		vp.size = Vector2i(256, 256) # Resolución optimizada
+		vp.transparent_bg = true
+		wrapper.add_child(vp)
+		
+		var view_3d = Node3D.new()
+		vp.add_child(view_3d)
+		
+		var cam = Camera3D.new()
+		cam.position = Vector3(0, 0, 10)
+		cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+		cam.size = 6.0 # v4.8: Escala mucho más pequeña y táctica
+		view_3d.add_child(cam)
+		
+		view_3d.add_child(explosion_3d)
+		
+		var explosion_sprite = Sprite2D.new()
+		explosion_sprite.texture = vp.get_texture()
+		wrapper.add_child(explosion_sprite)
+		
+		# Limpieza automática
+		get_tree().create_timer(2.0).timeout.connect(wrapper.queue_free)
 
 func _update_collision_size():
 	if not _collision_shape or not _collision_shape.shape is CircleShape2D: return
