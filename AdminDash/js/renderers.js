@@ -199,8 +199,8 @@ function updateSidebar() {
 }
 
 function renderEnemies() {
-    if (config.mechanicsLib) MECHANICS_LIB = config.mechanicsLib;
-    if (config.movementLib) MOVEMENT_LIB = config.movementLib;
+    const MECHANICS_LIB = config.mechanicsLib || DEFAULT_MECHANICS_LIB;
+    const MOVEMENT_LIB = config.movementLib || DEFAULT_MOVEMENT_LIB;
 
     updateSidebar();
     const grid = document.getElementById('enemies-grid'); grid.innerHTML = '';
@@ -244,6 +244,10 @@ function renderEnemies() {
 }
 
 function renderEnemyDetail() {
+    const MECHANICS_LIB = config.mechanicsLib || DEFAULT_MECHANICS_LIB;
+    const MOVEMENT_LIB = config.movementLib || DEFAULT_MOVEMENT_LIB;
+    const DEFENSE_LIB = config.defenseLib || DEFAULT_DEFENSE_LIB;
+
     const container = document.getElementById('enemy-detail-container');
     const en = config.enemyModels[selectedEnemyId];
     if(!en) return;
@@ -306,10 +310,9 @@ function renderEnemyDetail() {
                                 </select>
                             </div>
                             <div class="form-grid" style="margin-top:1rem;">
-                                <div class="field"><label>Retraso Inicio (ms)</label><input type="number" value="${m.startDelay || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].startDelay = parseInt(this.value)"></div>
                                 ${MOVEMENT_LIB[m.type || 'chase'].fields.map(f => {
-                                    const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración Máxima (ms)", explodeOnDeath: "Explotar al morir" };
-                                    if (f === 'explodeOnDeath') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${m[f] ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].explodeOnDeath = this.checked"><label style="margin:0;">${moveLabels[f]}</label></div>`;
+                                    const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración (ms)", cooldown: "Recarga (ms)", startDelay: "Retraso Inicio (ms)", explodeOnDeath: "Explotar al morir", radius: "Radio del Aura (px)", speedBonus: "Bono de Velocidad (px/s)", intervalMs: "Intervalo de Tick (ms)", affectsEnemies: "Afectar a otros Enemigos", affectsBosses: "Afectar a Bosses" };
+                                    if (['explodeOnDeath', 'affectsEnemies', 'affectsBosses'].includes(f)) return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${m[f] ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].${f} = this.checked"><label style="margin:0;">${moveLabels[f]}</label></div>`;
                                     return `<div class="field"><label>${moveLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}
                             </div>
@@ -354,7 +357,14 @@ function renderEnemyDetail() {
                                         circleCount: "Cant. de Círculos (uds)",
                                         orbitRadius: "Radio de Órbita (px)",
                                         orbitDuration: "Tiempo de Giro (ms)",
-                                        staticTime: "Tiempo Estático (ms)"
+                                        staticTime: "Tiempo Estático (ms)",
+                                        radius: "Radio del Aura (px)",
+                                        damage: "Daño por Pulso (pts)",
+                                        intervalMs: "Intervalo de Tick (ms)",
+                                        duration: "Duración Total (ms)",
+                                        cooldown: "Recarga (ms)",
+                                        startDelay: "Retraso Inicio (ms)",
+                                        activationHP: "Activación por HP (%)"
                                     };
                                     if (f === 'isHoming') return `<div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.05); padding: 10px; border-radius: 8px; flex-direction: column; gap: 12px; border: 1px solid rgba(239, 68, 68, 0.2);"><div style="display:flex; align-items:center; gap:12px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isHoming = this.checked; renderEnemyDetail();"><label style="margin:0; font-size: 0.85rem; color: #ef4444; cursor:pointer;">ACTIVAR SEGUIMIENTO AL OBJETIVO</label></div>${m.isHoming ? `<div style="padding-top: 10px; border-top: 1px solid rgba(239, 68, 68, 0.2);"><label style="font-size: 0.65rem; color: var(--text-dim);">AGILIDAD DE GIRO (RAD/S)</label><input type="number" step="0.1" value="${m.turnSpeed || 2.5}" style="background:rgba(0,0,0,0.3); margin-top:5px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].turnSpeed = parseFloat(this.value)"></div>` : ''}</div>`;
                                     if (f === 'turnSpeed') return '';
@@ -389,8 +399,16 @@ function renderEnemyDetail() {
                                         shieldRegen: "Regen. Escudo (pts/s)", 
                                         duration: "Duración (ms)", 
                                         cooldown: "Recarga (ms)", 
-                                        startDelay: "Delay Inicio (ms)"
+                                        startDelay: "Retraso Inicio (ms)",
+                                        radius: "Radio del Aura (px)",
+                                        healAmount: "Cura por Pulso (pts)",
+                                        intervalMs: "Intervalo de Tick (ms)",
+                                        activationHP: "Activación por HP (%)",
+                                        affectsEnemies: "Afectar a otros Enemigos", 
+                                        affectsBosses: "Afectar a Bosses",
+                                        activationHP: "Activación por HP (%)"
                                     };
+                                    if (['affectsEnemies', 'affectsBosses'].includes(f)) return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${m[f] ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.checked"><label style="margin:0;">${defLabels[f]}</label></div>`;
                                     return `<div class="field"><label>${defLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}
                             </div>
@@ -403,7 +421,10 @@ function renderEnemyDetail() {
 }
 
 function renderMechanicsLib() {
-    if (config.mechanicsLib) MECHANICS_LIB = config.mechanicsLib;
+    const MECHANICS_LIB = config.mechanicsLib || DEFAULT_MECHANICS_LIB;
+    const MOVEMENT_LIB = config.movementLib || DEFAULT_MOVEMENT_LIB;
+    const DEFENSE_LIB = config.defenseLib || DEFAULT_DEFENSE_LIB;
+
     const grid = document.getElementById('mechanics-lib-grid'); if(!grid) return;
     grid.innerHTML = '';
     const f = getFilter();
@@ -412,18 +433,16 @@ function renderMechanicsLib() {
         "bulletSpeed": "Velocidad", 
         "fireRange": "Alcance", 
         "fireRate": "Cadencia", 
-        "startDelay": "Delay", 
-        "slowAmount": "Ralentización", 
-        "slowDuration": "Duración Slow",
-        "orbitSpeed": "Vel. Giro",
-        "circleCount": "Cant. Círculos",
-        "orbitRadius": "Radio Órbita",
-        "orbitDuration": "Tiempo Giro",
         "staticTime": "Tiempo Estático",
         "reductionPercentage": "Reducción Daño",
         "shieldRegen": "Regen. Escudo",
-        "duration": "Duración",
-        "cooldown": "Recarga"
+        "duration": "Duración (ms)",
+        "cooldown": "Recarga (ms)",
+        "radius": "Radio de Acción (px)",
+        "damage": "Daño por Pulso (pts)",
+        "healAmount": "Cura por Pulso (pts)",
+        "speedBonus": "Bono Velocidad (px/s)",
+        "intervalMs": "Intervalo (ms)"
     };
 
     if (currentMechTab === 'attack') {
@@ -435,7 +454,6 @@ function renderMechanicsLib() {
             grid.appendChild(card);
         }
     } else if (currentMechTab === 'defense') {
-        if (config.defenseLib) DEFENSE_LIB = config.defenseLib;
         for(let type in DEFENSE_LIB) {
             const m = DEFENSE_LIB[type];
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f) && !JSON.stringify(m).toLowerCase().includes(f)) continue;

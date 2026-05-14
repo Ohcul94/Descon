@@ -24,9 +24,12 @@ class AIManager {
         
         const isHordeZone = this.hordeManager && this.hordeManager.config.active && this.hordeManager.config.map === zone;
         
+        // v268.700: Permitir spawn en Zona 1 (Lobby) si el administrador lo configuró
+        /*
         if (zone === 1 && !isHordeZone) {
             return null;
         }
+        */
 
         if (!forceType && zone === 2 && Object.keys(enemies).filter(e => enemies[e].zone === 2).length >= 15) return;
         
@@ -69,7 +72,19 @@ class AIManager {
             nextShotTime: 0
         };
 
-        const movSpeed = cfg ? (cfg.speed * 0.033) : (type === 1 ? 4.5 : 3.5);
+        // v268.850: Soporte para Fases de Movimiento (Priorizar velocidad de la fase 0)
+        let rawSpeed = 3.5;
+        if (cfg) {
+            if (cfg.movementPhases && cfg.movementPhases.length > 0) {
+                rawSpeed = cfg.movementPhases[0].speed || cfg.speed || 3.5;
+            } else {
+                rawSpeed = cfg.speed || 3.5;
+            }
+        } else {
+            rawSpeed = (type === 1 ? 4.5 : 3.5);
+        }
+
+        const movSpeed = rawSpeed * 0.033;
         const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
         
         // v266.230: Asignación Dinámica de Cerebros basada en Configuración

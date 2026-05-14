@@ -46,6 +46,7 @@ func _ready():
 	NetworkManager.enemy_fired.connect(_on_enemy_fired)
 	NetworkManager.enemy_dead.connect(_on_enemy_dead)
 	NetworkManager.enemy_damaged.connect(_on_enemy_damaged) 
+	NetworkManager.enemy_healed.connect(_on_enemy_healed)
 	NetworkManager.enemy_action.connect(_on_enemy_action) # v266.620: Mega Láser Indicator
 	NetworkManager.clear_zone_entities.connect(_on_clear_zone_entities)
 	NetworkManager.clear_zone_entities.connect(_update_hud_map_name) # v243.63: Sincronía HUD
@@ -660,6 +661,18 @@ func _on_enemy_damaged(data: Dictionary):
 			en.update_stats(data)
 		if en.has_method("reset_combat_timer"):
 			en.reset_combat_timer()
+
+func _on_enemy_healed(data: Dictionary):
+	var id = str(data.get("id", ""))
+	if id == "" or not enemies.has(id): return
+	var en = enemies[id]
+	if is_instance_valid(en):
+		if en.has_method("update_stats"):
+			en.update_stats(data)
+		# Mostrar número verde de curación
+		var amount = data.get("amount", 0)
+		if en.has_method("_spawn_damage_text"):
+			en._spawn_damage_text("+" + str(int(amount)), Color.GREEN)
 
 func _save_game_progress():
 	if not is_instance_valid(local_player): return

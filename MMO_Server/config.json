@@ -193,7 +193,8 @@
                     "stopDist": 150,
                     "startDelay": 0
                 }
-            ]
+            ],
+            "defenseMechanics": []
         },
         "5": {
             "bulletDamage": 120,
@@ -260,7 +261,7 @@
             "rewardExp": 250,
             "rewardHubs": 5000,
             "rewardOhcu": 50,
-            "shield": 5000,
+            "shield": 10,
             "speed": 250,
             "mechanics": [
                 {
@@ -270,9 +271,27 @@
                     "fireRange": 800,
                     "fireRate": 2500,
                     "slowAmount": 0,
-                    "slowDuration": 0
+                    "slowDuration": 0,
+                    "radius": 300,
+                    "damage": 200,
+                    "intervalMs": 400,
+                    "duration": 3000,
+                    "startDelay": 3500,
+                    "cooldown": 15000,
+                    "isHoming": 0,
+                    "turnSpeed": 0
                 }
-            ]
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 100,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true
         },
         "7": {
             "bulletDamage": 160,
@@ -288,15 +307,28 @@
             "speed": 320,
             "mechanics": [
                 {
-                    "type": "laser",
-                    "bulletDamage": 160,
+                    "type": "aura_damage",
+                    "bulletDamage": 10,
                     "bulletSpeed": 800,
-                    "fireRange": 700,
-                    "fireRate": 1300,
-                    "slowAmount": 0,
-                    "slowDuration": 0
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "radius": 500,
+                    "damage": 100,
+                    "intervalMs": 300,
+                    "duration": 3000,
+                    "cooldown": 5000,
+                    "startDelay": 0
                 }
-            ]
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 320,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
         },
         "8": {
             "bulletDamage": 350,
@@ -308,17 +340,40 @@
             "rewardExp": 1200,
             "rewardHubs": 2500,
             "rewardOhcu": 25,
-            "shield": 3000,
+            "shield": 10,
             "speed": 300,
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 350,
+                    "bulletDamage": 100,
                     "bulletSpeed": 800,
                     "fireRange": 900,
                     "fireRate": 1200,
                     "slowAmount": 0,
                     "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 300,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "aura_heal",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 4000,
+                    "cooldown": 2000,
+                    "startDelay": 0,
+                    "radius": 300,
+                    "healAmount": 100,
+                    "intervalMs": 400,
+                    "affectsEnemies": true,
+                    "affectsBosses": false
                 }
             ]
         },
@@ -619,7 +674,18 @@
             "name": "Loby",
             "warpCost": 0,
             "ambience": [],
-            "spawns": []
+            "spawns": [
+                {
+                    "type": "8",
+                    "count": 1,
+                    "intervalMs": 5000
+                },
+                {
+                    "type": "6",
+                    "count": 1,
+                    "intervalMs": 5000
+                }
+            ]
         },
         "2": {
             "color": "#00ff00",
@@ -1566,6 +1632,20 @@
                 "fireRange",
                 "startDelay"
             ]
+        },
+        "aura_damage": {
+            "label": "Aura de Vacío (Daño)",
+            "icon": "🔥",
+            "desc": "Daña a los jugadores cercanos continuamente.",
+            "fields": [
+                "activationHP",
+                "radius",
+                "damage",
+                "intervalMs",
+                "duration",
+                "cooldown",
+                "startDelay"
+            ]
         }
     },
     "movementLib": {
@@ -1615,6 +1695,51 @@
                 "explosionDamage",
                 "duration",
                 "explodeOnDeath"
+            ]
+        },
+        "aura_speed": {
+            "label": "Aura de Impulso",
+            "icon": "🌬️",
+            "desc": "Aumenta la velocidad en un área circular.",
+            "fields": [
+                "activationHP",
+                "radius",
+                "speedBonus",
+                "duration",
+                "cooldown",
+                "startDelay",
+                "affectsEnemies",
+                "affectsBosses"
+            ]
+        }
+    },
+    "defenseLib": {
+        "basic_defense": {
+            "label": "Defensa Estándar",
+            "icon": "🛡️",
+            "desc": "Mecánica de mitigación de daño y regeneración.",
+            "fields": [
+                "reductionPercentage",
+                "shieldRegen",
+                "duration",
+                "cooldown",
+                "startDelay"
+            ]
+        },
+        "aura_heal": {
+            "label": "Aura Curativa",
+            "icon": "✨",
+            "desc": "Cura a los aliados cercanos continuamente.",
+            "fields": [
+                "activationHP",
+                "radius",
+                "healAmount",
+                "intervalMs",
+                "duration",
+                "cooldown",
+                "startDelay",
+                "affectsEnemies",
+                "affectsBosses"
             ]
         }
     }

@@ -77,6 +77,7 @@ function connect() {
 
     socket.on('adminConfigUpdated', (data) => {
         config = data;
+        patchMechanicsLib();
         renderAll();
     });
 
@@ -112,7 +113,11 @@ function connect() {
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('conn-dot').classList.add('online');
         document.getElementById('conn-text').innerText = "ONLINE: " + user.toUpperCase();
-        if(data.adminConfig) { config = data.adminConfig; renderAll(); }
+        if(data.adminConfig) { 
+            config = data.adminConfig; 
+            patchMechanicsLib();
+            renderAll(); 
+        }
         
         // v267.200: Restaurar última vista tras login
         const lastTab = localStorage.getItem('admin_last_tab') || 'ships';
@@ -283,10 +288,18 @@ function removeMovementPhase(id, idx) {
 
 function updateMovementPhaseType(id, idx, type) {
     config.enemyModels[id].movementPhases[idx].type = type;
-    const m = MOVEMENT_LIB[type];
-    m.fields.forEach(f => {
+    const lib = (config.movementLib && config.movementLib[type]) ? config.movementLib[type] : DEFAULT_MOVEMENT_LIB[type];
+    lib.fields.forEach(f => {
         if(config.enemyModels[id].movementPhases[idx][f] === undefined) {
-            config.enemyModels[id].movementPhases[idx][f] = (f==='speed'?3.5:150);
+            if (f === 'speed') config.enemyModels[id].movementPhases[idx][f] = 3.5;
+            else if (f === 'radius') config.enemyModels[id].movementPhases[idx][f] = 200;
+            else if (f === 'speedBonus') config.enemyModels[id].movementPhases[idx][f] = 50;
+            else if (f === 'intervalMs') config.enemyModels[id].movementPhases[idx][f] = 500;
+            else if (f === 'duration') config.enemyModels[id].movementPhases[idx][f] = 5000;
+            else if (f === 'cooldown') config.enemyModels[id].movementPhases[idx][f] = 10000;
+            else if (f === 'affectsEnemies') config.enemyModels[id].movementPhases[idx][f] = false;
+            else if (f === 'affectsBosses') config.enemyModels[id].movementPhases[idx][f] = false;
+            else config.enemyModels[id].movementPhases[idx][f] = 150;
         }
     });
 }
@@ -342,13 +355,18 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
     mech.type = newType;
     
     // Inicializar campos según la LIB
-    const lib = DEFENSE_LIB[newType];
+    const lib = (config.defenseLib && config.defenseLib[newType]) ? config.defenseLib[newType] : DEFAULT_DEFENSE_LIB[newType];
     lib.fields.forEach(f => {
         if (mech[f] === undefined) {
             if (f === 'reductionPercentage') mech[f] = 10;
             else if (f === 'shieldRegen') mech[f] = 5;
+            else if (f === 'radius') mech[f] = 300;
+            else if (f === 'healAmount') mech[f] = 20;
+            else if (f === 'intervalMs') mech[f] = 500;
             else if (f === 'duration') mech[f] = 5000;
             else if (f === 'cooldown') mech[f] = 10000;
+            else if (f === 'affectsEnemies') mech[f] = false;
+            else if (f === 'affectsBosses') mech[f] = false;
             else mech[f] = 0;
         }
     });
@@ -364,8 +382,24 @@ function moveDefenseMechanic(enemyId, idx, dir) {
 }
 
 function updateMechanicType(enemyId, idx, newType) {
-    config.enemyModels[enemyId].mechanics[idx].type = newType;
-    renderEnemies();
+    const mech = config.enemyModels[enemyId].mechanics[idx];
+    mech.type = newType;
+    const lib = (config.mechanicsLib && config.mechanicsLib[newType]) ? config.mechanicsLib[newType] : DEFAULT_MECHANICS_LIB[newType];
+    lib.fields.forEach(f => {
+        if (mech[f] === undefined) {
+            if (f === 'radius') mech[f] = 250;
+            else if (f === 'damage') mech[f] = 15;
+            else if (f === 'intervalMs') mech[f] = 1000;
+            else if (f === 'duration') mech[f] = 5000;
+            else if (f === 'cooldown') mech[f] = 10000;
+            else if (f === 'bulletDamage') mech[f] = 10;
+            else if (f === 'bulletSpeed') mech[f] = 800;
+            else if (f === 'fireRange') mech[f] = 600;
+            else if (f === 'fireRate') mech[f] = 1000;
+            else mech[f] = 0;
+        }
+    });
+    renderEnemyDetail();
 }
 
 function moveMechanic(enemyId, idx, dir) {
@@ -415,6 +449,33 @@ function addMapSpawn(id) {
 }
 
 function patchMechanicsLib() {
+    if (!config) return;
+
+    // v268.600: Sincronización automática usando constantes BASE para evitar sobrescritura
+    const libsMap = [
+        { configKey: 'mechanicsLib', base: DEFAULT_MECHANICS_LIB },
+        { configKey: 'movementLib', base: DEFAULT_MOVEMENT_LIB },
+        { configKey: 'defenseLib', base: DEFAULT_DEFENSE_LIB }
+    ];
+
+    libsMap.forEach(item => {
+        if (!config[item.configKey]) {
+            config[item.configKey] = JSON.parse(JSON.stringify(item.base));
+        } else {
+            for (let type in item.base) {
+                if (!config[item.configKey][type]) {
+                    config[item.configKey][type] = JSON.parse(JSON.stringify(item.base[type]));
+                } else {
+                    // v268.620: Forzar sincronización de la estructura de campos
+                    config[item.configKey][type].fields = [...item.base[type].fields];
+                    config[item.configKey][type].label = item.base[type].label;
+                    config[item.configKey][type].icon = item.base[type].icon;
+                }
+            }
+        }
+    });
+
+    // Parches específicos de campos (retrocompatibilidad)
     if (config.mechanicsLib && config.mechanicsLib.laser) {
         if (!config.mechanicsLib.laser.fields.includes("isHoming")) config.mechanicsLib.laser.fields.push("isHoming");
         if (!config.mechanicsLib.laser.fields.includes("turnSpeed")) config.mechanicsLib.laser.fields.push("turnSpeed");
@@ -435,22 +496,9 @@ function patchMechanicsLib() {
         if (!ml.fields.includes("turnSpeed")) ml.fields.push("turnSpeed");
         if (!ml.fields.includes("lockTimeMs")) ml.fields.push("lockTimeMs");
         if (!ml.fields.includes("isHoming")) ml.fields.push("isHoming");
-    } else if (config.mechanicsLib) {
-        config.mechanicsLib.mega_laser = {
-            label: "Mega Láser (Lux)",
-            icon: "🔆",
-            desc: "Rayo grueso que requiere precarga.",
-            fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "chargeTimeMs", "lockTimeMs", "lifetimeMs", "turnSpeed", "startDelay"]
-        };
     }
-    if (config.movementLib && !config.movementLib.kamikaze) {
-        config.movementLib.kamikaze = MOVEMENT_LIB.kamikaze;
-    }
-    if (!config.defenseLib) {
-        config.defenseLib = DEFENSE_LIB;
-    }
+    renderAll();
 }
-setTimeout(patchMechanicsLib, 1000);
 
 function showToast(msg) {
     document.getElementById('toast-msg').innerText = msg;

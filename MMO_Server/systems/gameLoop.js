@@ -25,6 +25,9 @@ function startGameLoop(io, state, aiManager) {
         Object.values(enemies).forEach(e => { if (e.hp > 0) grid.insert(e, 'enemy'); });
 
         const zoneMoveData = {};
+        
+        // v268.820: Resetear bonos de aura acumulativos antes de procesar IAs
+        Object.values(enemies).forEach(e => { e.auraSpeedBonus = 0; });
 
         for (const id in enemies) {
             const e = enemies[id];

@@ -135,8 +135,8 @@ module.exports = class BaseAI {
             this.enemy.rotation += Math.sign(diff) * step;
         }
 
-        // v266.920: Procesar combate pero NO bloquear movimiento (salvo que la mecánica sea estática por diseño)
-        this.applyCombatLogic(activeTarget, dist, targetAngle, now, io);
+        // v268.810: Procesar combate y movimiento
+        this.applyCombatLogic(activeTarget, dist, targetAngle, now, io, grid, players);
         
         if (activeTarget) {
             this.applyMovementLogic(activeTarget, dist, targetAngle, now);
@@ -198,7 +198,7 @@ module.exports = class BaseAI {
         return closest;
     }
 
-    applyCombatLogic(target, dist, angle, now, io) {
+    applyCombatLogic(target, dist, angle, now, io, grid, players) {
         // v266.220: Sistema de Rotación de Mecánicas Modulares
         if (!this.enemy.spawnTime) this.enemy.spawnTime = now;
         if (!this.enemy.mechState) this.enemy.mechState = {};
@@ -216,11 +216,146 @@ module.exports = class BaseAI {
             const timeSinceSpawn = now - this.enemy.spawnTime;
             if (timeSinceSpawn < (mech.startDelay || 0)) return;
 
-            if (this._executeMechanic(mech, mId, target, dist, angle, now, io)) {
+            if (mech.type && mech.type.startsWith("aura_")) {
+                this._handleAuraLogic(mech, mId, now, io, grid, players);
+            } else if (this._executeMechanic(mech, mId, target, dist, angle, now, io)) {
                 isBusy = true;
             }
         });
+
+        // v268.800: Procesar mecánicas de Defensa y Movimiento (Auras)
+        const defMechanics = this.config.defenseMechanics || [];
+        defMechanics.forEach((mech, idx) => {
+            const mId = `def_${idx}`;
+            if (mech.type && mech.type.startsWith("aura_")) {
+                this._handleAuraLogic(mech, mId, now, io, grid, players);
+            }
+        });
+
+        const movPhases = this.config.movementPhases || [];
+        movPhases.forEach((mech, idx) => {
+            const mId = `mov_${idx}`;
+            if (mech.type && mech.type.startsWith("aura_")) {
+                this._handleAuraLogic(mech, mId, now, io, grid, players);
+            }
+        });
+
         return isBusy;
+    }
+
+    _handleAuraLogic(mech, mId, now, io, grid, players) {
+        if (!this.enemy.auraState) this.enemy.auraState = {};
+        const state = this.enemy.auraState[mId] || { nextStartTime: now + (mech.startDelay || 0), isActive: false, endTime: 0, lastTickTime: 0 };
+
+        // 1. Gestión de Ciclo (Activar/Desactivar)
+        const threshold = mech.activationHP || 100;
+        const currentHPPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+        const hpMet = currentHPPercent <= threshold;
+
+        if (!state.isActive && now >= state.nextStartTime && hpMet) {
+            state.isActive = true;
+            state.endTime = now + (mech.duration || 5000);
+            state.lastTickTime = 0;
+            
+            io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAura', {
+                id: this.enemy.id, mId: mId, type: mech.type, radius: mech.radius || 200, duration: mech.duration || 5000, active: true
+            });
+        } else if (state.isActive && now >= state.endTime) {
+            state.isActive = false;
+            state.nextStartTime = now + (mech.cooldown || 10000);
+            
+            io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAura', {
+                id: this.enemy.id, mId: mId, active: false
+            });
+        }
+
+        // 2. Ejecución de Efecto (Ticks para Daño/Cura, Constante para Velocidad)
+        if (state.isActive) {
+            if (mech.type === "aura_speed") {
+                this._applyAuraEffect(mech, grid, players, io);
+            } else {
+                const interval = mech.intervalMs || 1000;
+                if (now - state.lastTickTime >= interval) {
+                    state.lastTickTime = now;
+                    this._applyAuraEffect(mech, grid, players, io);
+                }
+            }
+        }
+        this.enemy.auraState[mId] = state;
+    }
+
+    _applyAuraEffect(mech, grid, players, io) {
+        const radius = mech.radius || 200;
+        const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(this.enemy.x, this.enemy.y);
+
+        if (mech.type === "aura_damage") {
+            nearbyPlayers.forEach(p => {
+                if (p.zone === this.enemy.zone && !p.isDead) {
+                    const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                    if (d <= radius) {
+                        const dmg = mech.damage || 100;
+                        p.lastCombatTime = Date.now();
+                        if (p.shield >= dmg) p.shield -= dmg;
+                        else { p.hp -= (dmg - p.shield); p.shield = 0; }
+                        if (p.hp < 0) p.hp = 0;
+                        
+                        io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                        io.to(`zone_${p.zone}`).emit('playerStatSync', { id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield) });
+                    }
+                }
+            });
+        } else if (mech.type === "aura_heal") {
+            const heal = mech.healAmount || 500;
+            const affectsEnemies = !!mech.affectsEnemies;
+            const affectsBosses = !!mech.affectsBosses;
+
+            // Primero a sí mismo siempre (es el dueño)
+            const oldHpOwner = this.enemy.hp;
+            this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + heal);
+            io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
+                id: this.enemy.id, 
+                hp: this.enemy.hp, 
+                amount: Math.max(0, this.enemy.hp - oldHpOwner) 
+            });
+
+            // A otros cercanos
+            nearbyEnemies.forEach(e => {
+                if (e.id !== this.enemy.id && e.zone === this.enemy.zone && e.hp > 0) {
+                    const d = Math.hypot(e.x - this.enemy.x, e.y - this.enemy.y);
+                    if (d <= radius) {
+                        const isBoss = e.type >= 101;
+                        if ((isBoss && affectsBosses) || (!isBoss && affectsEnemies)) {
+                            const oldHp = e.hp;
+                            e.hp = Math.min(e.maxHp, e.hp + heal);
+                            io.to(`zone_${e.zone}`).emit('enemyHealed', { 
+                                id: e.id, 
+                                hp: e.hp, 
+                                amount: Math.max(0, e.hp - oldHp) 
+                            });
+                        }
+                    }
+                }
+            });
+        } else if (mech.type === "aura_speed") {
+            const speedBonus = mech.speedBonus || 2.0;
+            const affectsEnemies = !!mech.affectsEnemies;
+            const affectsBosses = !!mech.affectsBosses;
+
+            // El dueño siempre recibe el bono
+            this.enemy.auraSpeedBonus = (this.enemy.auraSpeedBonus || 0) + speedBonus;
+
+            nearbyEnemies.forEach(e => {
+                if (e.id !== this.enemy.id && e.zone === this.enemy.zone && e.hp > 0) {
+                    const d = Math.hypot(e.x - this.enemy.x, e.y - this.enemy.y);
+                    if (d <= radius) {
+                        const isBoss = e.type >= 101;
+                        if ((isBoss && affectsBosses) || (!isBoss && affectsEnemies)) {
+                            e.auraSpeedBonus = (e.auraSpeedBonus || 0) + speedBonus;
+                        }
+                    }
+                }
+            });
+        }
     }
 
     _executeMechanic(mech, mId, target, dist, angle, now, io) {
@@ -356,22 +491,25 @@ module.exports = class BaseAI {
         this.enemy.mechState[mId] = state;
     }
 
-    applyMovementLogic(target, dist, angle, now) {
-        // v250.10: Suavizado de proximidad para evitar efecto "imán"
-        // v266.999: Multiplicador de Velocidad Ambiental
+    getSpeed() {
         const speedMult = this.ambienceBoost ? (this.ambienceBoost.speedMult || 1) : 1;
         const baseSpeed = (this.config.speed || 3.5) * speedMult;
         const slowMult = this.enemy.slowMultiplier || 1.0;
-        const speed = baseSpeed * slowMult;
         
-        const stopDist = 120; // Distancia de seguridad aumentada
+        // v268.830: El bono viene en px/s del panel, convertir a px/tick (* 0.033)
+        const auraBonus = (this.enemy.auraSpeedBonus || 0) * 0.033;
+        
+        return (baseSpeed + auraBonus) * slowMult;
+    }
+
+    applyMovementLogic(target, dist, angle, now) {
+        const speed = this.getSpeed();
+        const stopDist = 120; 
         
         if (dist > stopDist) {
-            // Si está lejos, se acerca normal
             this.enemy.x += Math.cos(angle) * speed;
             this.enemy.y += Math.sin(angle) * speed;
         } else if (dist < stopDist - 20) {
-            // Si se pegó demasiado, retrocede un poquito (Repulsión natural)
             this.enemy.x -= Math.cos(angle) * (speed * 0.5);
             this.enemy.y -= Math.sin(angle) * (speed * 0.5);
         }

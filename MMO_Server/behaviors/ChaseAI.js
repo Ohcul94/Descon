@@ -3,7 +3,7 @@ const BaseAI = require('./BaseAI');
 
 module.exports = class ChaseAI extends BaseAI {
     applyMovementLogic(target, dist, angle, now) {
-        let speed = this.config.speed || 4.5;
+        let speed = this.getSpeed();
         
         // Efecto Kamikaze: Eliminado para evitar efecto "imán" y sincronizar con velocidad del jugador
         const targetDist = 150;

@@ -123,8 +123,9 @@ module.exports = class BossAI extends BaseAI {
         }
         if (!this.isRage) {
             const orbit = angle + Math.PI / 2;
-            this.enemy.x += Math.cos(orbit) * 2;
-            this.enemy.y += Math.sin(orbit) * 2;
+            const speed = this.getSpeed();
+            this.enemy.x += Math.cos(orbit) * (speed * 0.5);
+            this.enemy.y += Math.sin(orbit) * (speed * 0.5);
         }
     }
 
@@ -137,8 +138,10 @@ module.exports = class BossAI extends BaseAI {
         const ramDuration = this.isRage ? 600 : 1000;
         if (this.isRamming) {
             if (now < this.ramStartTime + ramDuration) {
-                this.enemy.x += Math.cos(angle) * (this.isRage ? 20 : 15);
-                this.enemy.y += Math.sin(angle) * (this.isRage ? 20 : 15);
+                const speed = this.getSpeed();
+                const multiplier = this.isRage ? 5.0 : 3.5;
+                this.enemy.x += Math.cos(angle) * (speed * multiplier);
+                this.enemy.y += Math.sin(angle) * (speed * multiplier);
             } else {
                 const sideAngle = Math.random() * Math.PI * 2;
                 this.enemy.x = target.x + Math.cos(sideAngle) * (this.isRage ? 300 : 400);

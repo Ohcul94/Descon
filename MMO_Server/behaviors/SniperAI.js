@@ -8,7 +8,7 @@ module.exports = class SniperAI extends BaseAI {
     }
 
     applyMovementLogic(target, dist, angle, now) {
-        const speed = this.config.speed || 3.0;
+        const speed = this.getSpeed();
         const idealDist = this.config.idealDist || 450;
         
         // Lógica de Mantenimiento de Distancia (Kiting)

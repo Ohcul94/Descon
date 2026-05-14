@@ -1,24 +1,27 @@
 // v266.220: Definición de Mecánicas de Ataque
-let MECHANICS_LIB = {
+const DEFAULT_MECHANICS_LIB = {
     "laser": { label: "Láser Estándar", icon: "🔫", desc: "Ataque lineal básico.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "startDelay"] },
     "missile": { label: "Misil Rastreador", icon: "🚀", desc: "Proyectil autoguiado.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "startDelay"] },
     "ice_missile": { label: "Misil de Hielo", icon: "❄️", desc: "Ralentiza al objetivo.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "slowAmount", "slowDuration", "startDelay"] },
     "mine": { label: "Mina de Proximidad", icon: "💣", desc: "Explosivo estático.", fields: ["bulletDamage", "fireRange", "fireRate", "startDelay"] },
-    "orbital_strike": { label: "Ataque Orbital", icon: "🌀", desc: "Círculos que giran y luego se disparan.", fields: ["bulletDamage", "orbitSpeed", "circleCount", "orbitRadius", "orbitDuration", "staticTime", "fireRate", "fireRange", "startDelay"] }
+    "orbital_strike": { label: "Ataque Orbital", icon: "🌀", desc: "Círculos que giran y luego se disparan.", fields: ["bulletDamage", "orbitSpeed", "circleCount", "orbitRadius", "orbitDuration", "staticTime", "fireRate", "fireRange", "startDelay"] },
+    "aura_damage": { label: "Aura de Vacío (Daño)", icon: "🔥", desc: "Daña a los jugadores cercanos continuamente.", fields: ["activationHP", "radius", "damage", "intervalMs", "duration", "cooldown", "startDelay"] }
 };
 
 // v266.230: Definición de Mecánicas de Movimiento (Cerebros)
-let MOVEMENT_LIB = {
+const DEFAULT_MOVEMENT_LIB = {
     "chase": { label: "Persecución Directa", icon: "🏃", desc: "Persigue al jugador hasta una distancia fija.", fields: ["speed", "stopDist"] },
     "sniper": { label: "Francotirador (Kiting)", icon: "🎯", desc: "Mantiene una distancia segura alejándose si te acercas.", fields: ["speed", "idealDist"] },
     "orbit": { label: "Órbita Circular", icon: "🔄", desc: "Gira alrededor del jugador constantemente.", fields: ["speed", "orbitRadius"] },
     "charger": { label: "Embestida (Dash)", icon: "⚡", desc: "Se acerca y lanza ataques de alta velocidad.", fields: ["speed", "chargeCooldown"] },
-    "kamikaze": { label: "Kamikaze", icon: "💣", desc: "Se lanza hacia vos al bajar de HP y explota.", fields: ["activationHP", "speed", "explosionDamage", "duration", "explodeOnDeath"] }
+    "kamikaze": { label: "Kamikaze", icon: "💣", desc: "Se lanza hacia vos al bajar de HP y explota.", fields: ["activationHP", "speed", "explosionDamage", "duration", "explodeOnDeath"] },
+    "aura_speed": { label: "Aura de Impulso", icon: "🌬️", desc: "Aumenta la velocidad en un área circular.", fields: ["activationHP", "radius", "speedBonus", "duration", "cooldown", "startDelay", "affectsEnemies", "affectsBosses"] }
 };
 
 // v266.300: Definición de Mecánicas de Defensa
-let DEFENSE_LIB = {
-    "basic_defense": { label: "Defensa Estándar", icon: "🛡️", desc: "Mecánica de mitigación de daño y regeneración.", fields: ["reductionPercentage", "shieldRegen", "duration", "cooldown", "startDelay"] }
+const DEFAULT_DEFENSE_LIB = {
+    "basic_defense": { label: "Defensa Estándar", icon: "🛡️", desc: "Mecánica de mitigación de daño y regeneración.", fields: ["reductionPercentage", "shieldRegen", "duration", "cooldown", "startDelay"] },
+    "aura_heal": { label: "Aura Curativa", icon: "✨", desc: "Cura a los aliados cercanos continuamente.", fields: ["activationHP", "radius", "healAmount", "intervalMs", "duration", "cooldown", "startDelay", "affectsEnemies", "affectsBosses"] }
 };
 
 // v266.300: Definición de Mecánicas de Ambiente (Hazards)

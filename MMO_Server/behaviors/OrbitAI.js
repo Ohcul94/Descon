@@ -11,7 +11,7 @@ module.exports = class OrbitAI extends BaseAI {
     applyMovementLogic(target, dist, angle, now) {
         // Táctica: Rodear al objetivo (Swarm Tactic)
         const targetDist = this.orbitRadius;
-        const speed = this.config.speed || 3.0; // Los que rodean suelen ser un poco más lentos que los kamikaze
+        const speed = this.getSpeed();
 
         if (dist > targetDist + 50) {
             // Acercarse

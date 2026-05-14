@@ -11,7 +11,7 @@ module.exports = class GravityAI extends BaseAI {
     }
 
     applyMovementLogic(target, dist, angle, now) {
-        const speed = this.config.speed || 2.0;
+        const speed = this.getSpeed();
 
         // Mantener una distancia media (no quiere chocar, quiere atraerte)
         if (dist > 400) {

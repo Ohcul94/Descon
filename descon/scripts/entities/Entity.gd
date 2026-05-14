@@ -120,6 +120,12 @@ func _ready():
 	# v266.985: Suscripción a acciones especiales de enemigos
 	if NetworkManager.has_signal("enemy_action"):
 		NetworkManager.enemy_action.connect(_on_enemy_action)
+	
+	# v268.800: Sincronía visual de AURAS
+	if NetworkManager.has_signal("enemy_aura"):
+		NetworkManager.enemy_aura.connect(_on_enemy_aura)
+
+var active_auras: Dictionary = {} # v268.800: { mId: Sprite2D }
 
 
 var last_draw_hp: float = -1.0
@@ -189,6 +195,7 @@ func _process(delta):
 		rotation = lerp_angle(rotation, target_rotation, 0.2)
 	
 	_update_animations()
+	_update_auras(delta)
 
 	# OPTIMIZACIÓN: Pausar SubViewport de entidades fuera de pantalla
 	if _cached_viewport:
@@ -716,6 +723,53 @@ func _fire_orbital_strike():
 			if p.has_method("release_orbit"):
 				p.release_orbit()
 
+
+func _on_enemy_aura(data):
+	if str(data.id) != entity_id: return
+
+	var mId = data.mId
+	if data.active:
+		if active_auras.has(mId): return
+		
+		var spr = Sprite2D.new()
+		var tex_path = "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png"
+		if ResourceLoader.exists(tex_path):
+			spr.texture = load(tex_path)
+		
+		spr.modulate = Color(1, 0, 0, 0.4) # Default rojo (daño)
+		if data.type == "aura_heal": spr.modulate = Color(0, 1, 0.4, 0.4)
+		elif data.type == "aura_speed": spr.modulate = Color(1, 0.8, 0, 0.4)
+		
+		# v268.800: Escalar según el radio del aura (textura base es ~512px)
+		var radius = data.get("radius", 200)
+		var target_scale = (float(radius) * 2.0) / 512.0
+		spr.scale = Vector2.ZERO
+		
+		add_child(spr)
+		active_auras[mId] = {"node": spr, "target_scale": target_scale, "type": data.type}
+		
+		var tw = create_tween()
+		tw.tween_property(spr, "scale", Vector2(target_scale, target_scale), 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	else:
+		if active_auras.has(mId):
+			var a_data = active_auras[mId]
+			var spr = a_data.node
+			active_auras.erase(mId)
+			
+			var tw = create_tween()
+			tw.tween_property(spr, "scale", Vector2.ZERO, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+			tw.finished.connect(spr.queue_free)
+
+func _update_auras(delta):
+	for mId in active_auras:
+		var a_data = active_auras[mId]
+		var spr = a_data.node
+		if is_instance_valid(spr):
+			# Efecto de pulso y rotación suave
+			var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.004) * 0.05
+			var s = a_data.target_scale * pulse
+			spr.scale = Vector2(s, s)
+			spr.rotate(delta * 0.5)
 
 func _adjust_visuals(_type): 
 	if is_in_group("enemies"):

@@ -3,7 +3,7 @@ const BaseAI = require('./BaseAI');
 
 module.exports = class MechanicBossAI extends BaseAI {
     applyMovementLogic(target, dist, angle, now) {
-        let speed = this.config.speed || 3.0;
+        let speed = this.getSpeed();
 
         // Fase 1: Movimiento Base
         if (this.enemy.hp > this.enemy.maxHp * 0.5) {
@@ -31,7 +31,8 @@ module.exports = class MechanicBossAI extends BaseAI {
         this.enemy.rotation = angle + Math.PI / 2;
     }
 
-    applyCombatLogic(target, dist, angle, now, io) {
+    applyCombatLogic(target, dist, angle, now, io, grid, players) {
+        super.applyCombatLogic(target, dist, angle, now, io, grid, players);
         const zoneStr = `zone_${this.enemy.zone}`;
         // Activa escudo visual si HP < 50%
         this.isInvulnerable = false; // Aquí puedes encender invulnerabilidad mecánica

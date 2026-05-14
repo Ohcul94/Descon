@@ -12,7 +12,7 @@ module.exports = class ChargerAI extends BaseAI {
     }
 
     applyMovementLogic(target, dist, angle, now) {
-        let speed = this.config.speed || 3.5;
+        let speed = this.getSpeed();
 
         // Si ya está embistiendo
         if (this.isCharging) {
