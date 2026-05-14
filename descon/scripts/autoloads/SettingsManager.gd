@@ -45,7 +45,7 @@ func _apply_mobile_window_size():
 	DisplayServer.window_set_size(Vector2i(450, 800))
 	# Centrar ventana
 	var screen_res = DisplayServer.screen_get_size()
-	DisplayServer.window_set_position(screen_res / 2 - Vector2i(225, 400))
+	DisplayServer.window_set_position(Vector2i(Vector2(screen_res) / 2.0) - Vector2i(225, 400))
 
 func reset_to_factory():
 	print("[SETTINGS] Reseteando a configuración de fábrica...")
