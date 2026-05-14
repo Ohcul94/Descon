@@ -224,6 +224,14 @@ func _format_val(v):
 	return r
 
 func _input(event):
+	# v303.12: Soporte para toques nativos de Android (InputEventScreenTouch) 
+	# Evita la pérdida de eventos cuando se emulan clics de mouse.
+	var is_click = false
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		is_click = true
+	elif event is InputEventScreenTouch and event.pressed:
+		is_click = true
+		
 	# v244.75: Las funciones de cerrado de menú (ESC y Botón X) deben funcionar SIEMPRE, incluso si estás escribiendo
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		if pending_skill_to_equip != null:
@@ -245,7 +253,7 @@ func _input(event):
 			get_viewport().set_input_as_handled()
 			return
 
-	if event is InputEventMouseButton and event.pressed and visible:
+	if is_click and visible:
 		var screen_size = get_viewport_rect().size
 		var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
 		var r_pos = (screen_size - r_size) / 2
