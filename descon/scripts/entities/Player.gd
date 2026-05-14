@@ -435,9 +435,8 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 	var skill = sm.get_equipped_skill(id)
 	if not skill: return
 	
-	# v5.0: Auto-target local si no hay objetivo (Especial para INSTANT skills como FROST-TRAIL)
-	var final_target = p_data.target
-	if not is_instance_valid(final_target): final_target = self
+	# v5.1: Objetivo explícito (Fix Auto-Self en modo PC)
+	var final_target = p_data.get("target")
 	
 	var target_id = null
 	if is_instance_valid(final_target):
@@ -447,13 +446,19 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 		
 	var is_targeted = false
 	var skill_range = 0.0
+	var s_data = {}
+	
 	if GameConstants.SKILLS_DATA.has(skill.skill_name):
-		var s_data = GameConstants.SKILLS_DATA[skill.skill_name]
+		s_data = GameConstants.SKILLS_DATA[skill.skill_name]
 		is_targeted = s_data.get("canTargetOthers", false)
 		skill_range = s_data.get("range", 0.0)
 		
 	if is_targeted and target_id == null:
-		return
+		# v301.7: Bloquear lanzamiento al vacío para habilidades dirigidas (Cura, Escudo, etc)
+		# s_data.get("range") > 0 suele indicar que no es instantánea sobre el player
+		if s_data.get("range", 0) > 0 or s_data.get("canTargetOthers", false):
+			print("[SKILL] Cancelado: Se requiere un objetivo válido.")
+			return
 		
 	# v4.8: Validación de rango en cliente
 	if is_targeted and target_id != entity_id and skill_range > 0:

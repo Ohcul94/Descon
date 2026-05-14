@@ -46,12 +46,13 @@ var shield_visual_timer: float = 0.0
 var heal_visual_timer: float = 0.0
 var invulnerable_timer: float = 0.0
 var is_invulnerable: bool = false # v2.7: Sincronía autoritativa
- # v2.5: Visual de Invulnerabilidad (Amarillo)
+var is_hovered: bool = false # v302.1: Feedback de apuntado
 var _reflect_aura: Sprite2D = null
 var _3d_shield_mesh: MeshInstance3D = null
 var _collision_shape: CollisionShape2D = null
 var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
+var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo LoL
 var _cached_viewport: SubViewport = null # Cache para frustum culling
 
 func _ready():
@@ -204,6 +205,10 @@ func _process(delta):
 			_cached_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 		else:
 			_cached_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+
+	# v302.2: Actualización visual de Outline y reset para el siguiente frame
+	_update_hover_visuals(is_hovered)
+	is_hovered = false 
 
 	# v219.98: FÍSICAS 3D DINÁMICAS (BANKING + BOBBING + ÓRBITA)
 	if is_instance_valid(_3d_model):
@@ -1440,3 +1445,27 @@ func _update_invisibility_visuals(invisible: bool):
 		if is_instance_valid(_ui_wrapper): 
 			_ui_wrapper.visible = true
 			_ui_wrapper.modulate.a = 1.0
+func _update_hover_visuals(active: bool):
+	if not is_instance_valid(_3d_model): return
+	
+	if active:
+		if not _hover_outline_material:
+			_hover_outline_material = StandardMaterial3D.new()
+			_hover_outline_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+			_hover_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
+			# v302.6: Color más suave y armónico (Cian/Blanco con transparencia)
+			_hover_outline_material.albedo_color = Color(0, 1, 1, 0.4) 
+			_hover_outline_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			_hover_outline_material.grow = true
+			_hover_outline_material.grow_amount = 0.03 # Un poco más fino
+			_hover_outline_material.render_priority = 10
+		_apply_material_recursive(_3d_model, _hover_outline_material, true)
+	else:
+		_apply_material_recursive(_3d_model, null, true)
+
+func _apply_material_recursive(p_node, p_mat, is_overlay: bool):
+	if p_node is MeshInstance3D:
+		if is_overlay: p_node.material_overlay = p_mat
+		else: p_node.material_override = p_mat
+	for child in p_node.get_children():
+		_apply_material_recursive(child, p_mat, is_overlay)

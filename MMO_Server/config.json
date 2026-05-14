@@ -47,6 +47,13 @@
                     "fireRate": 1000,
                     "slowAmount": 0,
                     "slowDuration": 0
+                },
+                {
+                    "type": "laser",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
                 }
             ],
             "movementPhases": [
@@ -608,9 +615,9 @@
         "1": {
             "color": "#ffffff",
             "desc": "Zona segura de reunión y comercio.",
-            "minLevel": 10,
+            "minLevel": 1,
             "name": "Loby",
-            "warpCost": null,
+            "warpCost": 0,
             "ambience": [],
             "spawns": []
         },
@@ -627,7 +634,8 @@
                     "intervalMs": 300,
                     "damageMult": 2,
                     "speedMult": 1,
-                    "healthMult": 1
+                    "healthMult": 1,
+                    "respawnSpeedBonus": 0
                 },
                 {
                     "type": "radiation",
@@ -672,9 +680,9 @@
             "ambience": [],
             "spawns": [
                 {
-                    "type": "101",
+                    "type": "6",
                     "count": 1,
-                    "intervalMs": 5000
+                    "intervalMs": 100
                 }
             ]
         },
@@ -1289,7 +1297,13 @@
             "desc": "Teletransportación instantánea al punto seleccionado.",
             "id": "SK-UTIL-04",
             "range": 450,
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
         },
         "ESCUDO CELULAR": {
             "amount": 600,
@@ -1313,7 +1327,13 @@
             "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.",
             "id": "SK-DEF-02",
             "range": 0,
-            "type": "Defensa"
+            "type": "Defensa",
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
         },
         "FROST-TRAIL": {
             "canTargetOthers": false,
@@ -1324,7 +1344,13 @@
             "radius": 120,
             "range": 0,
             "slow_amount": 0.5,
-            "type": "Defensa"
+            "type": "Defensa",
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
         },
         "HYPER-DASH": {
             "canTargetOthers": false,
@@ -1333,7 +1359,13 @@
             "id": "SK-UTIL-02",
             "range": 0,
             "speed": 1000,
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
         },
         "INVULNERABILIDAD": {
             "canTargetOthers": false,
@@ -1342,7 +1374,13 @@
             "duration": 2,
             "id": "SK-UTIL-03",
             "range": 0,
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
         },
         "NANO-REGENERACIÓN": {
             "amount": 300,
@@ -1382,7 +1420,13 @@
             "id": "SK-ATK-01",
             "range": 0,
             "reflect_mult": 1.5,
-            "type": "Ataque"
+            "type": "Ataque",
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
         },
         "SMOKE-BOMB": {
             "amount": 1,
@@ -1393,7 +1437,13 @@
             "id": "SK-DEF-03",
             "radius": 180,
             "range": 0,
-            "type": "Defensa"
+            "type": "Defensa",
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
         },
         "STEALTH": {
             "canTargetOthers": false,
@@ -1402,7 +1452,13 @@
             "duration": 8,
             "id": "SK-UTIL-05",
             "range": 0,
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
         },
         "TURBO-IMPULSO": {
             "canTargetOthers": true,

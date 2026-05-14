@@ -68,8 +68,17 @@ func _unhandled_input(event):
 			get_viewport().set_input_as_handled()
 
 func _update_targeting():
+	# v302.2: Reset de hover global antes de buscar el nuevo
+	get_tree().call_group("entities", "set", "is_hovered", false)
+	
+	# v302.4: Siempre buscar bajo el mouse para el Highlight visual (incluso si no estamos apuntando skill)
+	var target = _find_target_under_mouse()
+	if is_instance_valid(target):
+		target.is_hovered = true
+		if target.has_node("HUD_Layer_Final"): target.get_node("HUD_Layer_Final").queue_redraw()
+	
 	if current_skill.get("type") == SkillType.POINT_CLICK:
-		selected_target = _find_target_under_mouse()
+		selected_target = target
 
 func _find_target_under_mouse() -> Node2D:
 	# v266.790: Magnetismo eliminado por pedido del usuario.
@@ -79,13 +88,27 @@ func _find_target_under_mouse() -> Node2D:
 		
 	var mouse_pos = get_global_mouse_position()
 	var entities = get_tree().get_nodes_in_group("entities")
-	var me = get_parent()
+	
+	# v301.9: Hitbox Inteligente (Estilo MOBA)
+	# Buscamos la entidad más cercana al mouse en un radio generoso (60px)
+	var best_target = null
+	var min_dist = 60.0 # Radio de detección aumentado para clickear el asset fácil
 	
 	for e in entities:
-		if e == me: continue
-		if e.global_position.distance_to(mouse_pos) < 40.0:
-			return e
-	return null
+		# v301.9: Hitbox Inteligente (Estilo MOBA)
+		# Consideramos la posición base y un punto superior (el asset real)
+		var base_pos = e.global_position
+		var asset_pos = base_pos + Vector2(0, -45) 
+		
+		var dist_base = base_pos.distance_to(mouse_pos)
+		var dist_asset = asset_pos.distance_to(mouse_pos)
+		var final_dist = min(dist_base, dist_asset)
+		
+		if final_dist < min_dist:
+			min_dist = final_dist
+			best_target = e
+			
+	return best_target
 
 func start_aiming(skill_data: Dictionary):
 	# v266.920: Si ya estamos apuntando OTRA cosa, guardamos esta en el buffer

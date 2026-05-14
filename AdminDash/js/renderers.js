@@ -548,7 +548,41 @@ function renderSkills() {
         const s = config.skillsData[name];
         if (f && !name.toLowerCase().includes(f) && !JSON.stringify(s).toLowerCase().includes(f)) continue;
         const card = document.createElement('div'); card.className = 'card';
-        card.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><div class="field" style="flex-grow:1;"><label>Protocolo</label><input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold; background:transparent; border:none;" readonly></div></div><div class="form-grid"><div class="field"><label>Tipo</label><select onchange="config.skillsData['${name}'].type = this.value"><option value="Defensa" ${s.type==='Defensa'?'selected':''}>Defensa</option><option value="Curación" ${s.type==='Curación'?'selected':''}>Curación</option><option value="Ataque" ${s.type==='Ataque'?'selected':''}>Ataque</option><option value="Utilidad" ${s.type==='Utilidad'?'selected':''}>Utilidad</option></select></div><div class="field"><label>Cooldown (ms)</label><input type="number" value="${s.cd}" onchange="config.skillsData['${name}'].cd = parseInt(this.value)"></div><div class="field"><label>Puntos (pts)</label><input type="number" value="${s.amount || 0}" onchange="config.skillsData['${name}'].amount = parseInt(this.value)"></div><div class="field"><label>Rango (px)</label><input type="number" value="${s.range || 0}" onchange="config.skillsData['${name}'].range = parseInt(this.value)"></div></div>`;
+        if(!s.targetFilters) s.targetFilters = { allies: true, enemies: false, bosses: false, players: true };
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                <div class="field" style="flex-grow:1;"><label>Protocolo</label><input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold; background:transparent; border:none;" readonly></div>
+            </div>
+            <div class="form-grid">
+                <div class="field"><label>Tipo</label><select onchange="config.skillsData['${name}'].type = this.value"><option value="Defensa" ${s.type==='Defensa'?'selected':''}>Defensa</option><option value="Curación" ${s.type==='Curación'?'selected':''}>Curación</option><option value="Ataque" ${s.type==='Ataque'?'selected':''}>Ataque</option><option value="Utilidad" ${s.type==='Utilidad'?'selected':''}>Utilidad</option></select></div>
+                <div class="field"><label>Cooldown (ms)</label><input type="number" value="${s.cd}" onchange="config.skillsData['${name}'].cd = parseInt(this.value)"></div>
+                <div class="field"><label>Puntos (pts)</label><input type="number" value="${s.amount || 0}" onchange="config.skillsData['${name}'].amount = parseInt(this.value)"></div>
+                <div class="field"><label>Rango (px)</label><input type="number" value="${s.range || 0}" onchange="config.skillsData['${name}'].range = parseInt(this.value)"></div>
+            </div>
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.1); border-radius: 8px; padding: 12px;">
+                <label style="color:var(--accent); font-size: 0.6rem; font-weight:bold; display:flex; align-items:center; gap:5px; margin-bottom:1rem; letter-spacing: 1px; opacity: 0.8;">
+                    <span style="font-size:10px;">🎯</span> PROTOCOLOS DE FILTRADO
+                </label>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="this.querySelector('input').click()">
+                        <input type="checkbox" style="width:14px; height:14px; cursor:pointer; accent-color:var(--accent);" ${s.targetFilters.allies?'checked':''} onchange="config.skillsData['${name}'].targetFilters.allies = this.checked" onclick="event.stopPropagation()">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:500;">Aliados</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="this.querySelector('input').click()">
+                        <input type="checkbox" style="width:14px; height:14px; cursor:pointer; accent-color:var(--accent);" ${s.targetFilters.enemies?'checked':''} onchange="config.skillsData['${name}'].targetFilters.enemies = this.checked" onclick="event.stopPropagation()">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:500;">Enemigos</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="this.querySelector('input').click()">
+                        <input type="checkbox" style="width:14px; height:14px; cursor:pointer; accent-color:var(--accent);" ${s.targetFilters.bosses?'checked':''} onchange="config.skillsData['${name}'].targetFilters.bosses = this.checked" onclick="event.stopPropagation()">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:500;">Bosses</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="this.querySelector('input').click()">
+                        <input type="checkbox" style="width:14px; height:14px; cursor:pointer; accent-color:var(--accent);" ${s.targetFilters.players?'checked':''} onchange="config.skillsData['${name}'].targetFilters.players = this.checked" onclick="event.stopPropagation()">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:500;">Jugadores</span>
+                    </div>
+                </div>
+            </div>
+        `;
         grid.appendChild(card);
     }
 }
