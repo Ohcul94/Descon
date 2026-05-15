@@ -393,9 +393,9 @@
                 {
                     "type": "hook",
                     "bulletDamage": 100,
-                    "bulletSpeed": 800,
+                    "bulletSpeed": 1500,
                     "fireRange": 600,
-                    "fireRate": 2000,
+                    "fireRate": 3000,
                     "stunDuration": 2000,
                     "isHoming": 0,
                     "turnSpeed": 0,
@@ -722,27 +722,27 @@
             "spawns": [
                 {
                     "type": "1",
-                    "count": 10,
+                    "count": 5,
                     "intervalMs": 5000
                 },
                 {
                     "type": "2",
-                    "count": 10,
+                    "count": 5,
                     "intervalMs": 5000
                 },
                 {
                     "type": "3",
-                    "count": 10,
+                    "count": 5,
                     "intervalMs": 5000
                 },
                 {
                     "type": "4",
-                    "count": 10,
+                    "count": 5,
                     "intervalMs": 5000
                 },
                 {
                     "type": "5",
-                    "count": 10,
+                    "count": 5,
                     "intervalMs": 5000
                 }
             ]

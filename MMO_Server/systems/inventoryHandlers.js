@@ -462,7 +462,7 @@ function registerInventoryHandlers(socket, io, state) {
             await user.save();
 
             socket.dbUser = user;
-            p.spheres = user.gameData.spheres; // Sincronizar RAM
+            p.spheres = JSON.parse(JSON.stringify(user.gameData.spheres)); // Sincronizar RAM (Safe Copy)
 
             const eByShipObj = {};
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
@@ -497,7 +497,7 @@ function registerInventoryHandlers(socket, io, state) {
             await user.save();
 
             socket.dbUser = user;
-            p.spheres = user.gameData.spheres;
+            p.spheres = JSON.parse(JSON.stringify(user.gameData.spheres));
 
             const eByShipObj = {};
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });

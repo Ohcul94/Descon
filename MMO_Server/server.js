@@ -36,7 +36,10 @@ const CONFIG_FILE = path.join(__dirname, 'config.json');
 
 // Conexi├│n a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => Logger.success('DB', 'Conectado a MongoDB Atlas'))
+    .then(() => {
+        Logger.success('DB', 'Conectado a MongoDB Atlas');
+        startServer();
+    })
     .catch(err => {
         Logger.error('DB', `Error de conexión: ${err.message}`);
         console.log('Asegurate de que MongoDB esté corriendo o que el URI en .env sea correcto.');
@@ -84,19 +87,9 @@ const handleUserLogin = async (socket, user, username) => {
     activeSessions.set(lowName, socket.id);
 
     user.lastLogin = new Date();
-    await user.save();
-
+    // v305.1: Actualizar última conexión (Eliminado guardado redundante aquí para consolidar abajo)
+    
     socket.dbUser = user;
-    // Sanity Check: Si el jugador estaba muerto o sin vida, revivirlo v67.0
-    if (!user.gameData.hp || user.gameData.hp <= 0) {
-        user.gameData.hp = user.gameData.maxHp || 2000;
-        user.gameData.shield = user.gameData.maxShield || 1000;
-        Logger.debug('REVIVE', `Piloto ${username} regenerado por deslogueo/muerte.`);
-    }
-
-    // v305.1: Actualizar última conexión
-    user.lastLogin = new Date();
-    await user.save();
 
     const dbId = user._id.toString();
 
@@ -1517,10 +1510,12 @@ function getLocalIP() {
     return 'localhost';
 }
 
-http.listen(PORT, '0.0.0.0', () => {
-    const ip = getLocalIP();
-    Logger.system(`+----------------------------------------------+`);
-    Logger.system(`|  DESCON v6 - SERVIDOR MULTIPLAYER ACTIVO     |`);
-    Logger.system(`|  IP: http://${ip}:${PORT}                    |`);
-    Logger.system(`+----------------------------------------------+`);
-});
+function startServer() {
+    http.listen(PORT, '0.0.0.0', () => {
+        const ip = getLocalIP();
+        Logger.system(`+----------------------------------------------+`);
+        Logger.system(`|  DESCON v6 - SERVIDOR MULTIPLAYER ACTIVO     |`);
+        Logger.system(`|  IP: http://${ip}:${PORT}                    |`);
+        Logger.system(`+----------------------------------------------+`);
+    });
+}

@@ -168,8 +168,8 @@ module.exports = class BaseAI {
         const maps = (this.state && this.state.SERVER_CONFIG) ? (this.state.SERVER_CONFIG.mapsConfig || this.state.SERVER_CONFIG.maps || this.state.SERVER_CONFIG.mapData || {}) : {};
         
         for (const p of targetList) {
-            // v269.71: Ignorar jugadores si no soy agresivo y no estoy en combate
-            if (!this.config.aggressive && !this._inCombat) continue;
+            // v269.71: Ignorar jugadores si no soy agresivo (considerando ambiente extremo) y no estoy en combate
+            if (!this.enemy.isAggressive && !this._inCombat) continue;
             
             // v266.999: Búsqueda Global (Si el jugador está en una zona extrema, el bicho lo detecta)
             const pZone = parseInt(p.zone);
