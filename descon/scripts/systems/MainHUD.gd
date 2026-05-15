@@ -175,7 +175,8 @@ func set_interference_mode(p_active: bool):
 		if p_active:
 			slot.modulate = Color(1.0, 0.3, 0.3, 0.8) # Rojo Interferencia
 		else:
-			slot.modulate = Color.WHITE
+			# v269.160: Restaurar color pero RESPETAR el alpha del layout
+			slot.modulate = Color(1, 1, 1, slot.modulate.a)
 
 func _setup_joystick():
 	if virtual_joystick: return
@@ -304,15 +305,18 @@ func _input(event: InputEvent):
 					get_viewport().set_input_as_handled() # v266.910: Consumo TOTAL
 					return 
 
-	# v266.120: Atajo de teclado para cerrar edición
+	# v266.120: Atajo de teclado para cerrar edición (REVERTIR si se usa ESC)
 	if is_editing_layout and event.is_action_pressed("ui_menu"):
+		_restore_layout_backup() # v269.155: Revertir si se sale con ESC
 		toggle_hud_editing()
 		get_viewport().set_input_as_handled()
 		return
 		
 	# v266.99: Sistema Absoluto de Arrastre por Geometría
 	if is_editing_layout:
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT) or event is InputEventScreenTouch:
+			if _is_pos_over_priority_ui(event.position, true): return # v269.150: No targetear HUD bajo el MENÚ del editor
+			
 			if event.pressed:
 				var clicked_node = null
 				var handle = get_node_or_null("SkillsMasterHandle")
@@ -364,9 +368,9 @@ func _input(event: InputEvent):
 							
 							# Actualizar los labels de % iniciales
 							var s_val = pp.find_child("ScaleVal", true, false)
-							if s_val: s_val.text = str(int(clicked_node.scale.x * 100)) + "%"
+							if s_val: s_val.text = str(int(clicked_node.scale.x * 100))
 							var a_val = pp.find_child("AlphaVal", true, false)
-							if a_val: a_val.text = str(int(clicked_node.modulate.a * 100)) + "%"
+							if a_val: a_val.text = str(int(clicked_node.modulate.a * 100))
 					
 					# Si movemos el contenedor, también movemos los hijos porque son top_level
 					if clicked_node.name == "Skills":
@@ -738,7 +742,8 @@ func _update_sphere_ui(id: int, ref, slot):
 			else: type_color = Color.WHITE
 	
 	var final_text_color = Color.RED if rv > 0.05 else type_color
-	slot.modulate = Color.WHITE 
+	# v269.160: Resetear color pero MANTENER el alpha del layout
+	slot.modulate = Color(1, 1, 1, slot.modulate.a) 
 	
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0, 0, 0, 0.6) if equipped else Color(0, 0, 0, 0.2)
@@ -1564,24 +1569,26 @@ func _open_settings():
 			canvas.visible = true
 
 # v266.905: Detector de prioridad para evitar bloqueos de clicks en menús
-func _is_pos_over_priority_ui(p: Vector2) -> bool:
-	# 1. Minimapa siempre tiene prioridad
-	if radar_window and radar_window.visible:
-		if radar_window.get_global_rect().has_point(p): return true
-	
-	# 2. Menús abiertos (Inventario, Config, etc)
+# v266.905: Detector de prioridad para evitar bloqueos de clicks en menús
+func _is_pos_over_priority_ui(p: Vector2, ignore_editable: bool = false) -> bool:
+	if not ignore_editable:
+		# 1. Minimapa siempre tiene prioridad en juego normal
+		if radar_window and radar_window.visible:
+			if radar_window.get_global_rect().has_point(p): return true
+		
+		# 2.1. Chat
+		var chat_nodes = get_tree().get_nodes_in_group("chat_ui")
+		for chat in chat_nodes:
+			if chat is Control and chat.visible:
+				if chat.get_global_rect().has_point(p): return true
+
+	# 2. Menús abiertos (Inventario, Config, etc) - SIEMPRE BLOQUEAN
 	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
 	for ui in ui_nodes:
 		if ui is Control and ui.visible:
 			if ui.get_global_rect().has_point(p): return true
 			
-	# 2.1. Chat (Evitar que el joystick se active al tocar el chat)
-	var chat_nodes = get_tree().get_nodes_in_group("chat_ui")
-	for chat in chat_nodes:
-		if chat is Control and chat.visible:
-			if chat.get_global_rect().has_point(p): return true
-
-	# 2.2. Barra de Control (Mini iconos de abajo a la izquierda)
+	# 2.2. Barra de Control
 	var c_bar = get_node_or_null("ControlBar")
 	if c_bar and c_bar.visible:
 		if c_bar.get_global_rect().has_point(p): return true
@@ -1593,6 +1600,14 @@ func _is_pos_over_priority_ui(p: Vector2) -> bool:
 	# 4. Settings
 	if _settings_menu and _settings_menu.visible:
 		if _settings_menu.get_global_rect().has_point(p): return true
+
+	# 5. v269.150: Editor de Layout (Prioridad absoluta sobre los elementos editables)
+	var edit_ui = get_node_or_null("EditLayoutUI")
+	if edit_ui and edit_ui.visible:
+		var top_bar = edit_ui.find_child("TopBar", true, false)
+		if top_bar and top_bar.visible and top_bar.get_global_rect().has_point(p): return true
+		var prop_panel = edit_ui.find_child("PropertyPanel", true, false)
+		if prop_panel and prop_panel.visible and prop_panel.get_global_rect().has_point(p): return true
 		
 	return false
 func _setup_blind_overlay():
@@ -1625,6 +1640,12 @@ func toggle_hud_editing(slot_index: int = -1):
 		_editing_slot_index = slot_index
 		_backup_layout() # Guardar estado previo para poder cancelar
 		
+		# v269.150: Si estamos editando un slot específico, cargar sus datos
+		if _editing_slot_index >= 0 and _editing_slot_index < _hud_layouts.size():
+			var slot = _hud_layouts[_editing_slot_index]
+			if slot.has("positions") and not slot.positions.is_empty():
+				_apply_hud_data(slot.positions, {})
+		
 		if not edit_container:
 			edit_container = CanvasLayer.new()
 			edit_container.name = "EditLayoutUI"
@@ -1648,24 +1669,19 @@ func toggle_hud_editing(slot_index: int = -1):
 			mat.shader = sh
 			grid.material = mat
 			
-			var panel = PanelContainer.new()
+			var panel = HBoxContainer.new()
 			panel.name = "TopBar"
 			edit_container.add_child(panel)
 			
-			var style = StyleBoxFlat.new()
-			style.bg_color = Color(0, 0, 0, 0.8)
-			style.border_width_top = 2; style.border_color = Color.CYAN
-			panel.add_theme_stylebox_override("panel", style)
 			panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-			panel.custom_minimum_size.y = 100
+			panel.custom_minimum_size.y = 80
+			panel.alignment = BoxContainer.ALIGNMENT_CENTER
+			panel.add_theme_constant_override("separation", 30)
 			
-			var margin = MarginContainer.new()
-			margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			panel.add_child(margin)
-			
+			# Contenedor para el título y botones
 			var vbox = VBoxContainer.new()
 			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-			margin.add_child(vbox)
+			panel.add_child(vbox)
 			
 			# Panel de Propiedades (Contextual) - v266.500
 			var prop_panel = PanelContainer.new()
@@ -1708,23 +1724,30 @@ func toggle_hud_editing(slot_index: int = -1):
 			scale_slider.min_value = 0.05; scale_slider.max_value = 1.0; scale_slider.step = 0.01
 			scale_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			
-			var scale_val_lbl = Label.new()
-			scale_val_lbl.name = "ScaleVal"
-			scale_val_lbl.text = "100%"
-			scale_val_lbl.custom_minimum_size.x = 45
+			var scale_val_edit = LineEdit.new()
+			scale_val_edit.name = "ScaleVal"
+			scale_val_edit.text = "100"
+			scale_val_edit.custom_minimum_size.x = 45
+			scale_val_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
 			
 			scale_slider.value_changed.connect(func(v):
 				if _selected_node_for_editing: 
 					var final_v = v * 2.0
 					_selected_node_for_editing.scale = Vector2(final_v, final_v)
-					scale_val_lbl.text = str(int(final_v * 100)) + "%"
-					# Si es SkillsContainer, forzar manija
+					scale_val_edit.text = str(int(final_v * 100))
 					if _selected_node_for_editing.name == "Skills":
 						var handle = get_node_or_null("SkillsMasterHandle")
 						if handle: handle.global_position = _selected_node_for_editing.global_position + Vector2(-35, 0)
 			)
+			
+			scale_val_edit.text_submitted.connect(func(new_text):
+				var val = float(new_text) / 100.0
+				scale_slider.value = val / 2.0
+				scale_val_edit.release_focus()
+			)
+			
 			scale_row.add_child(scale_slider)
-			scale_row.add_child(scale_val_lbl)
+			scale_row.add_child(scale_val_edit)
 			
 			# Transparencia
 			var alpha_row = HBoxContainer.new()
@@ -1739,18 +1762,26 @@ func toggle_hud_editing(slot_index: int = -1):
 			alpha_slider.min_value = 0.01; alpha_slider.max_value = 1.0; alpha_slider.step = 0.01
 			alpha_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			
-			var alpha_val_lbl = Label.new()
-			alpha_val_lbl.name = "AlphaVal"
-			alpha_val_lbl.text = "100%"
-			alpha_val_lbl.custom_minimum_size.x = 45
+			var alpha_val_edit = LineEdit.new()
+			alpha_val_edit.name = "AlphaVal"
+			alpha_val_edit.text = "100"
+			alpha_val_edit.custom_minimum_size.x = 45
+			alpha_val_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
 			
 			alpha_slider.value_changed.connect(func(v):
 				if _selected_node_for_editing: 
 					_selected_node_for_editing.modulate.a = v
-					alpha_val_lbl.text = str(int(v * 100)) + "%"
+					alpha_val_edit.text = str(int(v * 100))
 			)
+			
+			alpha_val_edit.text_submitted.connect(func(new_text):
+				var val = float(new_text) / 100.0
+				alpha_slider.value = val
+				alpha_val_edit.release_focus()
+			)
+			
 			alpha_row.add_child(alpha_slider)
-			alpha_row.add_child(alpha_val_lbl)
+			alpha_row.add_child(alpha_val_edit)
 			
 			# --- Botones del Editor ---
 			
@@ -1972,17 +2003,26 @@ func _backup_layout():
 	# Guardar SkillsContainer
 	var sc = get_node_or_null("Skills")
 	if sc:
-		_layout_backup["SkillsContainer"] = { "x": sc.global_position.x, "y": sc.global_position.y }
+		_layout_backup["SkillsContainer"] = { 
+			"x": sc.global_position.x, "y": sc.global_position.y,
+			"scale": sc.scale.x / 2.0, "alpha": sc.modulate.a
+		}
 		for child in sc.get_children():
 			if child is Control and child.name != "DragOverlay":
-				_layout_backup[child.name] = { "x": child.global_position.x, "y": child.global_position.y }
+				_layout_backup[child.name] = { 
+					"x": child.global_position.x, "y": child.global_position.y,
+					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
+				}
 	
 	# Guardar Ventanas principales
 	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick"]:
 		var win = _get_hud_node(win_id)
 		if win:
-			_layout_backup[win_id] = { "x": win.global_position.x, "y": win.global_position.y }
-	print("[HUD] Backup de layout creado.")
+			_layout_backup[win_id] = { 
+				"x": win.global_position.x, "y": win.global_position.y,
+				"scale": win.scale.x / 2.0, "alpha": win.modulate.a
+			}
+	print("[HUD] Backup de layout creado (Posición, Escala y Alpha).")
 
 func _restore_layout_backup():
 	if _layout_backup.is_empty(): return

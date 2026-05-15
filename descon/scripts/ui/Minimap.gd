@@ -9,6 +9,10 @@ var world_size: float
 
 func _input(event):
 	if event is InputEventMouseButton and event.pressed:
+		# v269.150: Bloqueo de navegación durante edición de HUD
+		var hud = get_tree().get_first_node_in_group("hud")
+		if hud and hud.get("is_editing_layout"): return
+
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			# v244.85: Bloqueo inteligente si hay menús superpuestos (F1 / F2)
 			var screen_size = get_viewport().get_visible_rect().size

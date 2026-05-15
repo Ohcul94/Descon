@@ -65,6 +65,11 @@ func _on_visibility_changed():
 
 func _input(ev):
 	super._input(ev) # v165.41: Mantener Drag and Drop funcionando
+	
+	# v269.150: No abrir el chat si estamos editando el layout
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and hud.get("is_editing_layout"): return
+	
 	if ev.is_action_pressed("ui_accept"):
 		if chat_input:
 			if not chat_input.has_focus():

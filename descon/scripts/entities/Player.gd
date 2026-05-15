@@ -38,6 +38,7 @@ var skill_points: int = 0
 
 var ammo: Dictionary = {"laser": [1000, 0, 0, 0, 0, 0], "missile": [100, 0, 0], "mine": [10, 0, 0]}
 var selected_ammo: Dictionary = {"laser": 0, "missile": 0, "mine": 0}
+var _is_initializing: bool = false # v269.170: Bloqueo de guardado durante login
 var current_zone: int = 1
 var _skill_controller: Node2D = null
 
@@ -610,6 +611,7 @@ func respawn():
 	})
 
 func _on_login_success(p_in):
+	_is_initializing = true # v269.170: Silenciar save_progress redundante
 	self.entity_id = str(p_in.get("socketId", ""))
 	self.db_id = str(p_in.get("id", ""))
 	self.username = p_in.get("username", p_in.get("user", "Piloto"))
@@ -668,6 +670,7 @@ func _on_login_success(p_in):
 		
 		update_stats({"pvpEnabled": pvp_status})
 	_update_tags(); _emit_stats(); queue_redraw()
+	_is_initializing = false # v269.170: Restaurar guardado normal
 
 func _on_enemy_dead(_data): pass
 func _on_reward_received(_data): pass
@@ -693,8 +696,8 @@ func update_stats(data):
 	_emit_stats()
 
 func save_progress():
-	# v242.45: Lógica de esferas desactivada en saveProgress para evitar data-loss
-	# El servidor ahora gestiona las esferas de forma independiente.
+	# v269.170: Seguridad absoluta - No guardar si estamos cargando o el socket no está listo
+	if _is_initializing or not NetworkManager or not NetworkManager.network_connected: return
 	
 	NetworkManager.send_event("saveProgress", {
 		"hubs": hubs, "ohcu": ohculianos, "exp": current_exp,
