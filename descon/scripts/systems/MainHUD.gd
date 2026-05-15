@@ -172,6 +172,13 @@ func _ready():
 	var control_bar = get_node_or_null("ControlBar")
 	if control_bar: _apply_sci_fi_frame(control_bar, true)
 	
+	# v306.50: Unificar Slots de Habilidades
+	var skills_container = get_node_or_null("Skills")
+	if skills_container:
+		for slot in skills_container.get_children():
+			if slot is Control and "Slot" in slot.name:
+				_apply_sci_fi_frame(slot, false, false, true) # Sin brillo, con remaches
+	
 	# v305.95: El chat puede tardar un frame en instanciarse o estar en grupo
 	get_tree().process_frame.connect(func():
 		var chats = get_tree().get_nodes_in_group("chat_ui")
@@ -2077,7 +2084,7 @@ func _restore_layout_backup():
 	print("[HUD] Layout restaurado desde backup.")
 
 # --- v305.95: SISTEMA DE MARCOS DINÁMICOS ---
-func _apply_sci_fi_frame(node: Control, invisible: bool = false):
+func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool = true, show_rivets: bool = true):
 	if not node: return
 	
 	# v306.40: LIMPIEZA Y ENCAPSULAMIENTO
@@ -2091,10 +2098,14 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false):
 				child.visible = false
 			
 			if child is VBoxContainer or child.name == "Minimap" or child.name == "VBox" or child.name == "Scroll":
+				var margin = 25
+				# v306.50: Margen reducido para slots pequeños (65x65)
+				if target.name.contains("Slot"): margin = 5
+				
 				child.anchor_left = 0; child.anchor_top = 0
 				child.anchor_right = 1; child.anchor_bottom = 1
-				child.offset_left = 25; child.offset_top = 25
-				child.offset_right = -25; child.offset_bottom = -25
+				child.offset_left = margin; child.offset_top = margin
+				child.offset_right = -margin; child.offset_bottom = -margin
 				
 			if child is PanelContainer or child is Panel:
 				child.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
@@ -2110,7 +2121,15 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false):
 		elif node.name == "RadarWindow": node.custom_minimum_size = Vector2(220, 220)
 		elif "Chat" in node.name: node.custom_minimum_size = Vector2(320, 200)
 		elif "Party" in node.name: node.custom_minimum_size = Vector2(200, 80)
-		elif "ControlBar" in node.name: node.custom_minimum_size = Vector2(280, 45) # v306.45: Área de agarre
+		elif "ControlBar" in node.name: node.custom_minimum_size = Vector2(280, 45)
+		elif "Slot" in node.name: 
+			# v306.50: Mantener tamaño original pero forzar estilo vacío
+			node.custom_minimum_size = Vector2(65, 65)
+			node.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+			if node is Button: 
+				node.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+				node.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+				node.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
 	
 	clean_node.call(node, clean_node)
 	
@@ -2120,6 +2139,8 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false):
 	var frame_script = load("res://scripts/ui/HUDFrame.gd")
 	if not frame_script: return
 	var frame = Control.new(); frame.set_script(frame_script); frame.name = "SciFiFrame"
+	if "show_glow" in frame: frame.set("show_glow", show_glow)
+	if "show_rivets" in frame: frame.set("show_rivets", show_rivets)
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	# v306.30: Soporte para Contenedores (HBox/VBox) sin romper el layout

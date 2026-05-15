@@ -10,6 +10,8 @@ class_name HUDFrame
 @export var border_thickness: float = 10.0
 @export var corner_radius: float = 18.0
 @export var chamfer_size: float = 16.0 
+@export var show_glow: bool = true   # v1.3: Controlar el brillo rojo interno
+@export var show_rivets: bool = true # v1.3: Controlar los remaches metálicos
 
 func _ready():
 	show_behind_parent = true
@@ -29,11 +31,13 @@ func _draw():
 	# 2. Marco Exterior Oscuro (Redondeado)
 	_draw_rounded_frame(r, frame_color, border_thickness)
 	
-	# 3. Línea de Brillo Roja (Biselada / Chamfered)
-	_draw_chamfered_glow(r, glow_color)
-	
-	# 4. Remaches Estéticos
-	_draw_rivets(r, frame_color.lightened(0.15))
+	if show_glow:
+		# 3. Línea de Brillo Roja (Biselada / Chamfered)
+		_draw_chamfered_glow(r, glow_color)
+		
+	if show_rivets:
+		# 4. Remaches Estéticos
+		_draw_rivets(r, frame_color.lightened(0.15))
 
 func _draw_rounded_frame(rect: Rect2, color: Color, thickness: float):
 	var points = _get_rounded_points(rect, corner_radius)
