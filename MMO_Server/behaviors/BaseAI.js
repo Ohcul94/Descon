@@ -5,10 +5,24 @@ module.exports = class BaseAI {
         this.config = config;
         this.state = state;
         this.lastAction = 0;
+        this._isDefenseSkillActive = false; // v269.195: Flag interno único para IA
     }
 
     update(grid, players, now, io) {
         const cfg = this.config;
+        
+        if (!cfg) return;
+        
+        // v269.195: PROCESAR DEFENSAS (Usar '|| 100' para manejar ceros del dashboard como 'siempre activo')
+        const defMechanics = cfg.defenseMechanics || [];
+        defMechanics.forEach((mech, idx) => {
+            const mId = `def_${idx}`;
+            if (mech.type === "invulnerability") {
+                this._handleInvulnerabilityLogic(mech, mId, now, io);
+            } else if (mech.type && mech.type.startsWith("aura_")) {
+                this._handleAuraLogic(mech, mId, now, io, grid, players);
+            }
+        });
         
         // v266.999: Detección de Agresividad Extrema Ambiental (Búsqueda Ultra-Robusta)
         const zoneId = this.enemy.zone;
@@ -221,15 +235,7 @@ module.exports = class BaseAI {
             }
         });
 
-        // v268.800: Procesar mecánicas de Defensa y Movimiento (Auras)
-        const defMechanics = this.config.defenseMechanics || [];
-        defMechanics.forEach((mech, idx) => {
-            const mId = `def_${idx}`;
-            if (mech.type && mech.type.startsWith("aura_")) {
-                this._handleAuraLogic(mech, mId, now, io, grid, players);
-            }
-        });
-
+        // v268.800: Procesar mecánicas de Movimiento (Auras)
         const movPhases = this.config.movementPhases || [];
         movPhases.forEach((mech, idx) => {
             const mId = `mov_${idx}`;
@@ -590,6 +596,45 @@ module.exports = class BaseAI {
                 state.isFiring = false;
                 state.isActive = false; // FIN DEL CICLO
             }
+        }
+    }
+
+    // v269.180: Lógica de Invulnerabilidad (NPC/Boss)
+    _handleInvulnerabilityLogic(mech, mId, now, io) {
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || { 
+            nextReadyTime: now + (mech.startDelay || 0), 
+            isActive: false, 
+            endTime: 0 
+        };
+        this.enemy.defState[mId] = state;
+
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        // 1. Terminar si ya pasó el tiempo
+        if (state.isActive && now >= state.endTime) {
+            state.isActive = false;
+            this._isDefenseSkillActive = false;
+            this.enemy.isInvulnerable = false; // Sincronía para el cliente
+            io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { id: this.enemy.id, active: false });
+        }
+
+        // 2. Activar si cumple condiciones (v269.195: Fallback a 100 si es 0/null)
+        const triggerHP = mech.activationHP || 100;
+        if (!state.isActive && now >= state.nextReadyTime && hpPercent <= triggerHP) {
+            state.isActive = true;
+            this._isDefenseSkillActive = true;
+            this.enemy.isInvulnerable = true; // Sincronía para el cliente
+            
+            state.endTime = now + (mech.duration || 3000);
+            state.nextReadyTime = now + (mech.duration || 3000) + (mech.cooldown || 10000);
+            
+            io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { 
+                id: this.enemy.id, 
+                active: true, 
+                duration: mech.duration || 3000 
+            });
+            console.log(`[AI] ${this.enemy.id} activó Invulnerabilidad (${mech.duration}ms)`);
         }
     }
 };

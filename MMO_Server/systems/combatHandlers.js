@@ -119,7 +119,7 @@ function registerCombatHandlers(socket, io, state) {
 
         const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
         if (dist > 1800) return;
-        if (enemy.ai && enemy.ai.isInvulnerable) return;
+        if (enemy.isInvulnerable || (enemy.ai && enemy.ai._isDefenseSkillActive)) return;
 
         let finalDamage = parseFloat(damage) || 100;
         let maxAllowed = 5000; 

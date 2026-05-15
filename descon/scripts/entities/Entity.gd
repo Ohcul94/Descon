@@ -408,7 +408,7 @@ func update_stats(data):
 	
 	if data.has("isInvulnerable"):
 		is_invulnerable = bool(data.isInvulnerable)
-		if is_invulnerable: invulnerable_timer = 2.0
+		# v269.182: Eliminado timer de 2s para sincronizar con la duración real del skill
 	
 	if data.has("hp") and not lock_active:
 		var server_hp = float(data.get("hp", current_hp))
@@ -584,8 +584,8 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	if is_in_group("player"):
 		print("[BATTLE-IN] Recibiendo: ", amt, " de ", attacker_id if attacker_id != "" else "Desconocido")
 	
-	if invulnerable_timer > 0:
-		amt = 0 # v2.6: Feedback visual de daño bloqueado (0 en rojo)
+	if invulnerable_timer > 0 or is_invulnerable:
+		amt = 0 # v269.185: Bloqueo visual total de daño (0 en rojo para feedback)
 	
 	# v235.20: REFLEJO TOTAL (Prioridad absoluta sobre invulnerabildiad)
 	if reflect_timer > 0:
@@ -1265,8 +1265,8 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		_3d_shield_mesh = MeshInstance3D.new()
 		_3d_shield_mesh.name = "EnergyShield"
 		var sphere = SphereMesh.new()
-		sphere.radius = 0.55 # Ajustado para ser apenas mayor que la nave (escala 1.0 relativa al control_node)
-		sphere.height = 1.1
+		sphere.radius = 0.70 # v269.182: Aura más grande y épica
+		sphere.height = 1.40
 		_3d_shield_mesh.mesh = sphere
 		
 		var mat = ShaderMaterial.new()

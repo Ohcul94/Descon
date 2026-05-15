@@ -368,7 +368,12 @@ function renderEnemyDetail() {
                                         postHookWaitMs: "Espera Post-Gancho (ms)",
                                         hookMissWaitMs: "Espera por Fallo (ms)",
                                         startDelay: "Retraso Inicio (ms)",
-                                        activationHP: "Activación por HP (%)"
+                                        activationHP: "Activación por HP (%)",
+                                        reductionPercentage: "Reducción de Daño (%)",
+                                        shieldRegen: "Regen. de Escudo (pts/s)",
+                                        healAmount: "Curación por Pulso (pts)",
+                                        speedBonus: "Bono de Velocidad (px/s)",
+                                        explosionDamage: "Daño de Explosión (pts)"
                                     };
                                     if (f === 'isHoming') return `<div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.05); padding: 10px; border-radius: 8px; flex-direction: column; gap: 12px; border: 1px solid rgba(239, 68, 68, 0.2);"><div style="display:flex; align-items:center; gap:12px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isHoming = this.checked; renderEnemyDetail();"><label style="margin:0; font-size: 0.85rem; color: #ef4444; cursor:pointer;">ACTIVAR SEGUIMIENTO AL OBJETIVO</label></div>${m.isHoming ? `<div style="padding-top: 10px; border-top: 1px solid rgba(239, 68, 68, 0.2);"><label style="font-size: 0.65rem; color: var(--text-dim);">AGILIDAD DE GIRO (RAD/S)</label><input type="number" step="0.1" value="${m.turnSpeed || 2.5}" style="background:rgba(0,0,0,0.3); margin-top:5px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].turnSpeed = parseFloat(this.value)"></div>` : ''}</div>`;
                                     if (f === 'turnSpeed') return '';

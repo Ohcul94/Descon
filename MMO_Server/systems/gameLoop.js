@@ -87,7 +87,8 @@ function startGameLoop(io, state, aiManager) {
                                 aoiData[e.id] = {
                                     id: e.id, x: e.x, y: e.y, rotation: e.rotation,
                                     hp: e.hp, shield: e.shield, zone: e.zone, type: e.type,
-                                    name: e.name, isRage: e.isRage, isRamming: e.ai && e.ai.isRamming
+                                    name: e.name, isRage: e.isRage, isRamming: e.ai && e.ai.isRamming,
+                                    isInvulnerable: e.isInvulnerable // v269.180: Sincronía visual
                                 };
                                 count++;
                             }

@@ -438,7 +438,27 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 305,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "invulnerability",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 5000,
+                    "cooldown": 4000,
+                    "startDelay": 0,
+                    "activationHP": 0
+                }
+            ],
+            "aggressive": true
         },
         "11": {
             "bulletDamage": 380,
@@ -691,7 +711,7 @@
             "ambience": [],
             "spawns": [
                 {
-                    "type": "9",
+                    "type": "10",
                     "count": 1,
                     "intervalMs": 5000
                 }
@@ -1768,6 +1788,17 @@
                 "startDelay",
                 "affectsEnemies",
                 "affectsBosses"
+            ]
+        },
+        "invulnerability": {
+            "label": "Invulnerabilidad Temporal",
+            "icon": "💎",
+            "desc": "Se vuelve inmune a todo daño por un tiempo.",
+            "fields": [
+                "activationHP",
+                "duration",
+                "cooldown",
+                "startDelay"
             ]
         }
     }

@@ -35,7 +35,7 @@ module.exports = class MechanicBossAI extends BaseAI {
         super.applyCombatLogic(target, dist, angle, now, io, grid, players);
         const zoneStr = `zone_${this.enemy.zone}`;
         // Activa escudo visual si HP < 50%
-        this.isInvulnerable = false; // Aquí puedes encender invulnerabilidad mecánica
+        // v269.185: Eliminada anulación manual para permitir mecánicas de defensa de BaseAI
         
         // Fase 2: Disparo en Anillo (Burst multidireccional)
         if (this.enemy.hp < this.enemy.maxHp * 0.5) {

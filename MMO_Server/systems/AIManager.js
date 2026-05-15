@@ -69,7 +69,8 @@ class AIManager {
             lastHit: 0,
             lastDash: 0,
             shotsInBurst: 0,
-            nextShotTime: 0
+            nextShotTime: 0,
+            isInvulnerable: false
         };
 
         // v268.850: Soporte para Fases de Movimiento (Priorizar velocidad de la fase 0)
