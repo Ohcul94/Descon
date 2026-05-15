@@ -26,7 +26,7 @@ module.exports = class BaseAI {
         this.ambienceBoost = extremeAggro || null;
         
         // v266.999: Si hay ambiente extremo, el bicho ES agresivo por definición
-        const isAggressive = (this.ambienceBoost) ? true : (cfg.aggressive !== false);
+        const isAggressive = (this.ambienceBoost) ? true : (cfg.aggressive === true);
         this.enemy.isAggressive = isAggressive; // Restaurar propiedad para otros sistemas
 
         // v266.999: Inyectar velocidad ambiental dinámicamente
@@ -104,6 +104,7 @@ module.exports = class BaseAI {
 
         // v266.975: Ejecución del Estado Kamikaze (Prioridad sobre combate normal)
         if (this.enemy.isKamikazeActive) {
+            if (this.enemy.isHooking) return;
             const kP = (cfg.movementPhases || []).find(p => p.type === 'kamikaze') || {};
             let speed = (kP.speed !== undefined) ? (kP.speed * 0.033) : (cfg.speed || 3.5) * 1.5;
             const duration = kP.duration || 5000;
@@ -148,19 +149,6 @@ module.exports = class BaseAI {
         }
     }
 
-    applyMovementLogic(target, dist, angle, now) {
-        // v266.999: Lógica de Persecución Base (Fallback)
-        // Si el bicho no tiene una clase de movimiento específica, al menos que te siga
-        let speed = this.config.speed || 3.5;
-        const stopDist = 80;
-
-        if (dist > stopDist) {
-            this.enemy.x += Math.cos(angle) * (speed * 1);
-            this.enemy.y += Math.sin(angle) * (speed * 1);
-        }
-        
-        this.enemy.rotation = angle + Math.PI / 2;
-    }
 
     getNearestPlayer(grid, players) {
         let closest = null;
@@ -173,6 +161,9 @@ module.exports = class BaseAI {
         const maps = (this.state && this.state.SERVER_CONFIG) ? (this.state.SERVER_CONFIG.mapsConfig || this.state.SERVER_CONFIG.maps || this.state.SERVER_CONFIG.mapData || {}) : {};
         
         for (const p of targetList) {
+            // v269.71: Ignorar jugadores si no soy agresivo y no estoy en combate
+            if (!this.config.aggressive && !this._inCombat) continue;
+            
             // v266.999: Búsqueda Global (Si el jugador está en una zona extrema, el bicho lo detecta)
             const pZone = parseInt(p.zone);
             const eZone = parseInt(this.enemy.zone);
@@ -449,8 +440,8 @@ module.exports = class BaseAI {
                 this.enemy.rotation = angle + Math.PI / 2;
             }
 
-            // v266.695: Inmovilidad durante BLOQUEO y DISPARO
-            if (state.isLocked || state.isFiring) {
+            // v266.695: Inmovilidad durante BLOQUEO, DISPARO y LANZAMIENTO DE GANCHO
+            if (state.isLocked || state.isFiring || this.enemy.isHooking) {
                 this.enemy.rotation = state.lockedAngle + Math.PI / 2;
                 return true; 
             }
@@ -478,6 +469,7 @@ module.exports = class BaseAI {
                     lifetimeMs: mech.lifetimeMs || 0,
                     turnSpeed: mech.turnSpeed || 2.5,
                     isHoming: !!mech.isHoming,
+                    stunDuration: mech.stunDuration || 0,
                     range: mech.fireRange || 800
                 });
 
@@ -503,6 +495,7 @@ module.exports = class BaseAI {
     }
 
     applyMovementLogic(target, dist, angle, now) {
+        if (this.enemy.isHooking) return;
         const speed = this.getSpeed();
         const stopDist = 120; 
         

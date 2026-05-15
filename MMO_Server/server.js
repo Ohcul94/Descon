@@ -610,8 +610,8 @@ io.on('connection', (socket) => {
         try {
             await fs.writeJson(CONFIG_FILE, config, { spaces: 4 });
             console.log(`[ADMIN-SAVE] Archivo ${CONFIG_FILE} guardado con éxito.`);
-            if (config.enemyModels && config.enemyModels["4"]) {
-                console.log(`[ADMIN] Guardando RageTimer para Boss1: ${config.enemyModels["4"].rageTimer}s`);
+            if (config.enemyModels && config.enemyModels["101"]) {
+                console.log(`[ADMIN] Guardando RageTimer para Lord Titán: ${config.enemyModels["101"].rageTimer}s`);
             }
             
             // v245.10: Sincronizar configuración de hordas con el gestor

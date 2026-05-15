@@ -130,6 +130,10 @@ func _ready():
 		map_node.set_script(load("res://scripts/ui/inventory/MapTab.gd"))
 		if map_node.has_method("setup"): map_node.setup(self)
 	
+	# v219.67: Asegurar creación de pestañas dinámicas (Fix desaparición Mapa/Clan)
+	_update_map_ui()
+	_update_clan_ui()
+	
 	_refresh_data()
 	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
 	if is_open:
@@ -326,7 +330,8 @@ func _on_inventory_received(data: Dictionary):
 		owned_ships = data.ownedShips
 	if data.has("currentShipId"):
 		current_ship_id = int(data.currentShipId)
-	if data.has("ohcu"): ohcu = int(data.ohcu)
+	if (data.has("ohcu")): ohcu = int(data.ohcu)
+	if (data.has("hubs")): hubs = int(data.hubs)
 	
 	# v300.05: Sincronizar Gestor de Esferas (Esencial para la nueva arquitectura)
 	if spheres_manager == null:

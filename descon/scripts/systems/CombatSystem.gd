@@ -69,7 +69,13 @@ func _on_local_player_hit(p, b):
 	if p.get("is_god") or p.get("is_dead"): return
 	var dmg = b.get("damage") if b.get("damage") else 100.0
 	p.take_damage(dmg)
-	if NetworkManager: NetworkManager.send_event("playerHitByEnemy", {"damage": dmg, "attackerType": b.get("owner_type")})
+	if NetworkManager: 
+		NetworkManager.send_event("playerHitByEnemy", {
+			"damage": dmg, 
+			"attackerType": b.get("owner_type"),
+			"attackerId": b.get("owner_id"),
+			"bulletType": b.get("type")
+		})
 
 func clear_boss_bullets(boss_id: String):
 	var bullets = get_tree().get_nodes_in_group("projectiles")

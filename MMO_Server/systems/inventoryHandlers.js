@@ -93,6 +93,9 @@ function registerInventoryHandlers(socket, io, state) {
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
 
+            console.log(`[SHOP-DEBUG] Iniciando compra: User=${user.username}, Cat=${category}, Item=${itemId}, Amount=${amount}, Currency=${currency}`);
+            console.log(`[SHOP-DEBUG] Fondos actuales: Hubs=${user.gameData.hubs}, Ohcu=${user.gameData.ohcu}`);
+
             let itemConfig = null;
             if (category === 'ammo') {
                 for (const type in state.SERVER_CONFIG.shopItems.ammo) {
@@ -103,12 +106,19 @@ function registerInventoryHandlers(socket, io, state) {
                 itemConfig = state.SERVER_CONFIG.shopItems[category].find(i => i.id === itemId);
             }
 
-            if (!itemConfig) return socket.emit('authError', 'ITEM NO ENCONTRADO');
+            if (!itemConfig) {
+                console.log(`[SHOP-DEBUG] Error: Item ${itemId} no encontrado en config.`);
+                return socket.emit('authError', 'ITEM NO ENCONTRADO');
+            }
 
             const price = itemConfig.prices[currency] || 0;
             const totalPrice = category === 'ammo' ? Math.floor((parseInt(amount)/100)*price) : price;
+            console.log(`[SHOP-DEBUG] Precio calculado: ${totalPrice} ${currency}`);
 
-            if ((user.gameData[currency] || 0) < totalPrice) return socket.emit('authError', 'FONDOS INSUFICIENTES');
+            if ((user.gameData[currency] || 0) < totalPrice) {
+                console.log(`[SHOP-DEBUG] Error: Fondos insuficientes (${user.gameData[currency]} < ${totalPrice})`);
+                return socket.emit('authError', 'FONDOS INSUFICIENTES');
+            }
 
             user.gameData[currency] -= totalPrice;
 
@@ -129,11 +139,45 @@ function registerInventoryHandlers(socket, io, state) {
                     color: itemConfig.color || "#ffffff",
                     icon: itemConfig.icon || "res://assets/items/placeholder.png"
                 });
+                console.log(`[SHOP-DEBUG] Item normal añadido al inventario: ${itemConfig.name}`);
+            } else {
+                const ammoType = itemId.startsWith("am_l") ? "laser" : (itemId.startsWith("am_m") ? "missile" : "mine");
+                const tierIndex = parseInt(itemId.slice(-1)) - 1;
+                
+                if (!user.gameData.ammo) {
+                    user.gameData.ammo = { laser: [0,0,0,0,0,0], missile: [0,0,0,0,0,0], mine: [0,0,0,0,0,0] };
+                }
+                if (!user.gameData.ammo[ammoType]) user.gameData.ammo[ammoType] = [0,0,0,0,0,0];
+
+                const oldAmmo = user.gameData.ammo[ammoType][tierIndex] || 0;
+                // v269.90: Mongoose Array Tracking Fix
+                const newArr = [...user.gameData.ammo[ammoType]];
+                newArr[tierIndex] = oldAmmo + parseInt(amount || 0);
+                user.gameData.ammo[ammoType] = newArr;
+
+                console.log(`[SHOP-DEBUG] Munición ${ammoType}[${tierIndex}] actualizada: ${oldAmmo} -> ${newArr[tierIndex]}`);
+                user.markModified(`gameData.ammo.${ammoType}`);
+                user.markModified('gameData.ammo');
             }
 
+            user.markModified('gameData.hubs');
+            user.markModified('gameData.ohcu');
             user.markModified('gameData');
+            
+            console.log(`[SHOP-DEBUG] Intentando guardar en DB...`);
             await user.save();
+            console.log(`[SHOP-DEBUG] ¡Guardado exitoso!`);
             socket.dbUser = user;
+
+            // v269.100: Sincronización crítica RAM <-> DB
+            const p = state.players[socket.id];
+            if (p) {
+                p.ammo = JSON.parse(JSON.stringify(user.gameData.ammo));
+                p.hubs = user.gameData.hubs;
+                p.ohcu = user.gameData.ohcu;
+                p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+                console.log(`[SHOP-DEBUG] RAM sincronizada para ${user.username}`);
+            }
 
             const eByShipObj = {};
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
@@ -142,6 +186,7 @@ function registerInventoryHandlers(socket, io, state) {
             socket.emit('inventoryData', {
                 player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
             });
+            console.log(`[SHOP-DEBUG] Evento inventoryData enviado al cliente.`);
         } catch (e) { console.error(e); }
     });
 

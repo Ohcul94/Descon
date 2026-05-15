@@ -391,15 +391,29 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "laser",
-                    "bulletDamage": 280,
-                    "bulletSpeed": 880,
-                    "fireRange": 1050,
-                    "fireRate": 950,
-                    "slowAmount": 0,
-                    "slowDuration": 0
+                    "type": "hook",
+                    "bulletDamage": 100,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 2000,
+                    "stunDuration": 2000,
+                    "isHoming": 0,
+                    "turnSpeed": 0,
+                    "startDelay": 0,
+                    "pullSpeed": 200,
+                    "postHookWaitMs": 500
                 }
-            ]
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 310,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true
         },
         "10": {
             "bulletDamage": 320,
@@ -676,12 +690,7 @@
             "ambience": [],
             "spawns": [
                 {
-                    "type": "8",
-                    "count": 1,
-                    "intervalMs": 5000
-                },
-                {
-                    "type": "6",
+                    "type": "9",
                     "count": 1,
                     "intervalMs": 5000
                 }
@@ -1644,6 +1653,23 @@
                 "intervalMs",
                 "duration",
                 "cooldown",
+                "startDelay"
+            ]
+        },
+        "hook": {
+            "label": "Gancho Abisal",
+            "icon": "⚓",
+            "desc": "Atrae al objetivo, lo daña y lo paraliza.",
+            "fields": [
+                "bulletDamage",
+                "bulletSpeed",
+                "fireRange",
+                "fireRate",
+                "stunDuration",
+                "pullSpeed",
+                "postHookWaitMs",
+                "isHoming",
+                "turnSpeed",
                 "startDelay"
             ]
         }

@@ -75,6 +75,7 @@ func _ready():
 	NetworkManager.blindness_event.connect(_on_blindness_event)
 	NetworkManager.interference_event.connect(_on_interference_event)
 	NetworkManager.freeze_event.connect(_on_freeze_event) # v268.40
+	NetworkManager.hook_pulled.connect(_on_hook_pulled)
 
 func _setup_freeze_overlay():
 	var canvas = CanvasLayer.new()
@@ -418,6 +419,9 @@ func _update_hud_map_name(zone_id):
 	
 	if is_instance_valid(ui_hud) and ui_hud.has_method("set_map_name"):
 		ui_hud.set_map_name(z_name)
+	
+	if is_instance_valid(local_player):
+		local_player.current_zone = z_id
 
 func _perform_local_respawn():
 	if is_instance_valid(local_player) and local_player.has_method("respawn"):
@@ -673,6 +677,46 @@ func _on_enemy_healed(data: Dictionary):
 		var amount = data.get("amount", 0)
 		if en.has_method("_spawn_damage_text"):
 			en._spawn_damage_text("+" + str(int(amount)), Color.GREEN)
+
+func _on_hook_pulled(data: Dictionary):
+	var attacker_id = str(data.get("attackerId", ""))
+	var victim_id = str(data.get("victimId", ""))
+	
+	var attacker_node = enemies.get(attacker_id)
+	var victim_node = null
+	
+	if is_instance_valid(local_player) and local_player.entity_id == victim_id:
+		victim_node = local_player
+	elif remote_players.has(victim_id):
+		victim_node = remote_players[victim_id]
+	
+	if is_instance_valid(attacker_node) and is_instance_valid(victim_node):
+		# Crear una línea visual (cadena)
+		var chain = Line2D.new()
+		chain.width = 4.0
+		chain.default_color = Color(0.7, 0.7, 0.7, 0.8) # Gris metálico
+		chain.z_index = 4
+		entities_node.add_child(chain)
+		
+		# v268.950: Animación de la cadena
+		var start_pos = attacker_node.global_position
+		var end_pos = victim_node.global_position
+		chain.points = PackedVector2Array([start_pos, end_pos])
+		
+		var tw = create_tween()
+		tw.tween_property(chain, "modulate:a", 0.0, 0.5)
+		tw.finished.connect(chain.queue_free)
+		
+		# v269.50: ATRACCIÓN SUAVE (Tween)
+		var angle = (victim_node.global_position - attacker_node.global_position).angle()
+		var target_pos = attacker_node.global_position + Vector2.RIGHT.rotated(angle) * 100.0
+		
+		var pull_speed = float(data.get("pullSpeed", 1500.0))
+		var dist = victim_node.global_position.distance_to(target_pos)
+		var duration = clamp(dist / pull_speed, 0.1, 0.8) # Duración basada en velocidad
+		
+		var tw_pull = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw_pull.tween_property(victim_node, "global_position", target_pos, duration)
 
 func _save_game_progress():
 	if not is_instance_valid(local_player): return

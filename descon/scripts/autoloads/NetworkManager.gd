@@ -38,6 +38,8 @@ signal enemy_healed(data)
 signal boss_effect(data)
 signal blind_state(data)
 signal slow_state(data)
+signal stun_state(data)
+signal hook_pulled(data)
 signal config_updated(data)
 signal game_notification(data)
 signal clear_zone_entities(zoneId)
@@ -239,6 +241,8 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"interferenceEvent": interference_event.emit(e_data) # v268.30
 		"freezeEvent": freeze_event.emit(e_data) # v268.40
 		"slowState": slow_state.emit(e_data)
+		"stunState": stun_state.emit(e_data)
+		"hookPulled": hook_pulled.emit(e_data)
 		"gameNotification": game_notification.emit(e_data)
 		"shipEquipData": ship_equip_data.emit(e_data)
 		"clearEnemyProjectiles": clear_enemy_projectiles.emit(e_data)

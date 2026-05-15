@@ -363,6 +363,9 @@ function renderEnemyDetail() {
                                         intervalMs: "Intervalo de Tick (ms)",
                                         duration: "Duración Total (ms)",
                                         cooldown: "Recarga (ms)",
+                                        pullSpeed: "Vel. Atracción (px/s)",
+                                        stunDuration: "Duración Stun (ms)",
+                                        postHookWaitMs: "Espera Post-Gancho (ms)",
                                         startDelay: "Retraso Inicio (ms)",
                                         activationHP: "Activación por HP (%)"
                                     };

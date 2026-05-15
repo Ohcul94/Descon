@@ -18,6 +18,8 @@ var max_range: float = 0.0
 var _start_pos: Vector2 = Vector2.ZERO
 var target_id: String = "" # v266.450: Soporte para Homing (Rastreo)
 var _target_node: Node2D = null
+var _owner_node: Node2D = null
+var _chain_visual: Line2D = null
 var lifetime: float = 6.0 # v266.460: Tiempo de vida máximo del misil
 var _current_lifetime: float = 0.0
 var turn_speed: float = 2.5 # v266.505: Velocidad de rotación angular (Agilidad)
@@ -58,9 +60,10 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	turn_speed = float(p_data.get("turnSpeed", 2.5))
 	is_homing = bool(p_data.get("isHoming", false))
 	
+	var world = get_tree().get_first_node_in_group("world_node")
+	
 	# v266.992: Soporte para Órbita inicial
 	if p_data.get("isOrbiting", false):
-		var world = get_tree().get_first_node_in_group("world_node")
 		if is_instance_valid(world):
 			var ent_node = world.get("entities_node")
 			if ent_node:
@@ -74,6 +77,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		orbit_start_time = Time.get_ticks_msec() / 1000.0
 	
 	strike_id = str(p_data.get("strikeId", ""))
+	if p_data.has("stunDuration"): set_meta("stunDuration", p_data.stunDuration)
 	
 	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
 	_start_pos = p_pos
@@ -97,6 +101,23 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	add_child(shape)
 	
 	collision_layer = 0
+	
+	# v269.30: Búsqueda de Dueño para efectos visuales (Cadena de Gancho)
+	if is_instance_valid(world):
+		var ent_node = world.get("entities_node")
+		if ent_node:
+			for e in ent_node.get_children():
+				if str(e.get("entity_id")) == owner_id:
+					_owner_node = e
+					break
+	
+	if type == "hook":
+		_chain_visual = Line2D.new()
+		_chain_visual.width = 2.0
+		_chain_visual.default_color = Color(0.6, 0.6, 0.6, 0.6)
+		_chain_visual.z_index = -1
+		_chain_visual.top_level = true
+		add_child(_chain_visual)
 	if owner_type == "player" or owner_type == "remote":
 		# v220.82: Ahora los jugadores pueden impactar NPCs (2) y otros Players (1) para PvP
 		collision_mask = 1 | 2 
@@ -116,6 +137,9 @@ func _setup_visual_sprite():
 		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
+		"hook": 
+			path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
+			modulate = Color(0, 1, 1) # v269.40: Cian Neón para diferenciar del láser rojo
 		"mega_laser":
 			var beam = Line2D.new()
 			beam.width = 40.0
@@ -181,6 +205,10 @@ func _draw():
 		"mine":
 			draw_circle(Vector2.ZERO, 10, Color.WHITE)
 			draw_circle(Vector2.ZERO, 12, Color(1, 1, 1, 0.3), false, 3.0)
+		"hook":
+			# Dibujar un gancho procedural si no hay asset
+			draw_line(Vector2(0, 0), Vector2(-20, 0), Color.GRAY, 2.0)
+			draw_arc(Vector2(5, 0), 10, -PI/2, PI/2, 8, Color.GRAY, 3.0)
 
 func release_orbit():
 	orbit_target = null
@@ -195,6 +223,10 @@ func _physics_process(delta):
 		rotation = angle
 		velocity = Vector2.RIGHT.rotated(rotation) * speed # Preparar velocidad para cuando suelte
 		return
+
+	# v269.35: Actualizar visual de la cadena del Gancho
+	if is_instance_valid(_chain_visual) and is_instance_valid(_owner_node):
+		_chain_visual.points = PackedVector2Array([_owner_node.global_position, global_position])
 
 	if lifetime > 0:
 		_current_lifetime += delta
@@ -220,11 +252,16 @@ func _physics_process(delta):
 		
 	global_position += velocity * delta
 	
-	# v3.5: Límite de Rango (Auto-destrucción)
+	# v3.5: Límite de Rango (Auto-destrucción) - Ignorar para minas (ellas solo se frenan)
 	if max_range > 0:
 		var dist = global_position.distance_to(_start_pos)
 		if dist >= max_range:
-			queue_free()
+			if type == "mine":
+				# v269.10: Posicionamiento de Precisión - Clavar la mina en el punto exacto
+				global_position = _start_pos + (_start_pos.direction_to(global_position) * max_range)
+				velocity = Vector2.ZERO
+			else:
+				queue_free()
 	
 	if global_position.length() > 15000: 
 		queue_free()
@@ -284,7 +321,8 @@ func _on_body_entered(body):
 					"attackerType": owner_type,
 					"enemyType": enemy_type, # v226.41: Informar qué bicho pegó para validar daño
 					"bulletType": type, # v266.182: Informar si es hielo o especial
-					"attackerId": owner_id
+					"attackerId": owner_id,
+					"stunDuration": float(get_meta("stunDuration", 0)) if has_meta("stunDuration") else 0.0
 				})
 		
 		_explode()

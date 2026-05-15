@@ -164,8 +164,9 @@ function registerCombatHandlers(socket, io, state) {
                 const baseDmg = cfg ? cfg.bulletDamage : 50;
                 
                 // v266.550: Registrar éxito del enemigo para reglas de persecución
-                if (data.attackerId && state.enemies[data.attackerId]) {
-                    state.enemies[data.attackerId].lastSuccessHit = Date.now();
+                const attackerId = data.attackerId || data.enemyId || data.senderId;
+                if (attackerId && state.enemies[attackerId]) {
+                    state.enemies[attackerId].lastSuccessHit = Date.now();
                 }
 
                 // v266.999: Blindaje de Daño Ambiental (Permitir daño x2, x3 si el mapa es extremo)
@@ -183,6 +184,7 @@ function registerCombatHandlers(socket, io, state) {
                 if (cfg) {
                     let sAmount = 0;
                     let sDuration = 0;
+                    let stunDuration = 0;
 
                     // Buscar la mecánica específica que corresponde a la bala que impactó
                     if (cfg.mechanics) {
@@ -190,6 +192,7 @@ function registerCombatHandlers(socket, io, state) {
                         if (matchingMech) {
                             sAmount = matchingMech.slowAmount || 0;
                             sDuration = matchingMech.slowDuration || 0;
+                            stunDuration = matchingMech.stunDuration || 0;
                         }
                     }
 
@@ -206,6 +209,51 @@ function registerCombatHandlers(socket, io, state) {
                         p.slowEndTime = Date.now() + sDuration;
                         
                         io.to(p.socketId).emit('slowState', { active: true, amount: sAmount });
+                    }
+                }
+
+                // v268.900: Lógica de Gancho (Hook)
+                if (data.bulletType === "hook") {
+                    const attackerId = data.attackerId || data.enemyId || data.senderId;
+                    const attacker = state.enemies[attackerId];
+                    if (attacker) {
+                        const mech = cfg.mechanics ? cfg.mechanics.find(m => m.type === "hook") : null;
+                        const pullSpeed = (mech?.pullSpeed || 1500);
+                        
+                        // v266.695: Inmovilidad TOTAL durante el lanzamiento
+                        attacker.isHooking = true;
+                        
+                        // Calcular tiempo de viaje estimado (en ms)
+                        const dist = Math.sqrt(Math.pow(attacker.x - p.x, 2) + Math.pow(attacker.y - p.y, 2));
+                        const pullDurationMs = Math.min(1000, Math.max(100, (dist / pullSpeed) * 1000));
+                        
+                        // Emitir el tirón inmediatamente para el cliente
+                        io.to(`zone_${p.zone}`).emit('hookPulled', { 
+                            victimId: p.socketId, 
+                            attackerId: attacker.id,
+                            pullSpeed: pullSpeed
+                        });
+
+                        // Programar el fin del tirón y el inicio del Stun
+                        setTimeout(() => {
+                            // 1. ATRAER FÍSICAMENTE en el servidor (al final del pull)
+                            const angleToAttacker = Math.atan2(attacker.y - p.y, attacker.x - p.x);
+                            p.x = attacker.x - Math.cos(angleToAttacker) * 100;
+                            p.y = attacker.y - Math.sin(angleToAttacker) * 100;
+                            
+                            // 2. STUN: Paralizar al jugador DESPUÉS de llegar al bicho
+                            const stunDur = data.stunDuration || 2000;
+                            p.isStunned = true;
+                            p.stunEndTime = Date.now() + stunDur;
+                            
+                            // v269.65: Espera configurable antes de recuperar el movimiento
+                            const postWait = mech?.postHookWaitMs || 500;
+                            setTimeout(() => {
+                                attacker.isHooking = false; // Recién ahora el bicho puede moverse
+                            }, postWait);
+                            
+                            io.to(p.socketId).emit('stunState', { active: true, duration: stunDur });
+                        }, pullDurationMs);
                     }
                 }
             }

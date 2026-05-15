@@ -45,6 +45,8 @@ var _shake_amount: float = 0.0
 var _shake_decay: float = 0.9
 var _cam_node: Camera2D = null
 var slow_points: float = 0.0
+var is_stunned: bool = false
+var stun_timer: float = 0.0
 var joystick_direction: Vector2 = Vector2.ZERO # v266.400
 
 func _ready():
@@ -68,6 +70,7 @@ func _ready():
 		NetworkManager.login_success.connect(_on_login_success)
 		NetworkManager.inventory_data.connect(_on_inventory_received)
 		NetworkManager.slow_state.connect(_on_slow_state)
+		NetworkManager.stun_state.connect(_on_stun_state)
 		NetworkManager.environment_damaged.connect(_on_environment_damaged)
 	
 	_setup_skill_controller()
@@ -100,6 +103,22 @@ func _on_slow_state(data: Dictionary):
 			slow_points = data.get("amount", 50.0)
 		else:
 			slow_points = 0.0
+
+func _on_stun_state(data: Dictionary):
+	if data.has("active") and data.active:
+		is_stunned = true
+		stun_timer = float(data.get("duration", 2000.0)) / 1000.0
+		is_moving = false
+		target_position = global_position
+		velocity = Vector2.ZERO
+		apply_shake(5.0)
+		# Feedback visual: Azulado/Gris
+		var tw = create_tween()
+		tw.tween_property(self, "modulate", Color(0.7, 0.7, 1.0, 1.0), 0.2)
+	else:
+		is_stunned = false
+		stun_timer = 0.0
+		modulate = Color.WHITE
 
 var _freeze_slow_val: float = 0.0 # v268.40: Ralentización ambiental independiente
 
@@ -168,6 +187,13 @@ func _unhandled_input(event):
 func _physics_process(p_delta):
 	if not NetworkManager.network_connected: return
 	_handle_cooldowns(p_delta)
+	
+	if is_stunned:
+		stun_timer -= p_delta
+		if stun_timer <= 0:
+			is_stunned = false
+			modulate = Color.WHITE
+		return # Bloquear TODO el proceso si está stuneado
 	
 	var chat = get_tree().get_first_node_in_group("chat_ui")
 	var focus_node = get_viewport().gui_get_focus_owner()
@@ -294,6 +320,7 @@ func _on_inventory_received(p_data):
 		if gd.has("ohcu"): ohculianos = int(gd["ohcu"])
 		if gd.has("level"): level = int(gd["level"])
 		if gd.has("exp"): current_exp = float(gd["exp"])
+		if gd.has("zone"): current_zone = int(gd["zone"])
 		
 		# v300.81: Los talentos ahora se sincronizan SOLO a través del TalentSystem.gd
 		# Evitamos duplicidad de datos en Player.gd
