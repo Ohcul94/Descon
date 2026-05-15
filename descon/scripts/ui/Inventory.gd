@@ -32,7 +32,7 @@ var pending_skill_to_equip = null # v301.5: Habilidad esperando selección de sl
 
 func _ready():
 	add_to_group("inventory_ui") # v244.70: Coordinación global de UI
-	mouse_filter = Control.MOUSE_FILTER_PASS
+	mouse_filter = Control.MOUSE_FILTER_STOP # v305.65: Cambiado de PASS a STOP para bloqueo global
 	
 	var win = get_node_or_null("Window")
 	if win: win.mouse_filter = Control.MOUSE_FILTER_STOP # v244.71: Bloquear click-through
@@ -170,7 +170,7 @@ func _on_ship_equip_data(data: Dictionary):
 	var equip = data.get("equip", {})
 	if sid == "-1" or not equip: return
 	equipped_by_ship[sid] = equip
-	print("[SHIP-EQUIP] Datos recibidos para nave ", sid, ": w=", equip.get("w",[]).size(), " s=", equip.get("s",[]).size(), " e=", equip.get("e",[]).size())
+	# print("[SHIP-EQUIP] Datos recibidos para nave ", sid, ": w=", equip.get("w",[]).size(), " s=", equip.get("s",[]).size(), " e=", equip.get("e",[]).size())
 	# Re-renderizar solo si esta nave está seleccionada actualmente
 	if str(selected_hangar_ship_id) == sid or str(current_ship_id) == sid:
 		_update_hangar_ui()

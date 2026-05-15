@@ -270,8 +270,9 @@ function renderEnemyDetail() {
                         <div class="field"><label>Escudo (pts)</label><input type="number" value="${en.shield}" onchange="config.enemyModels['${selectedEnemyId}'].shield = parseInt(this.value)"></div>
                     </div>
                     <div class="price-group" style="margin-top:1rem;">
-                        <div class="field"><label>Exp (pts)</label><input type="number" value="${en.rewardExp}" onchange="config.enemyModels['${selectedEnemyId}'].rewardExp = parseInt(this.value)"></div>
-                        <div class="field"><label>Hubs (pts)</label><input type="number" value="${en.rewardHubs}" onchange="config.enemyModels['${selectedEnemyId}'].rewardHubs = parseInt(this.value)"></div>
+                        <div class="field"><label>Exp (pts)</label><input type="number" value="${en.rewardExp || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rewardExp = parseInt(this.value)"></div>
+                        <div class="field"><label>Hubs (pts)</label><input type="number" value="${en.rewardHubs || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rewardHubs = parseInt(this.value)"></div>
+                        <div class="field"><label style="color:var(--primary);">Ohcu (qty)</label><input type="number" value="${en.rewardOhcu || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rewardOhcu = parseInt(this.value)"></div>
                     </div>
                 </div>
                 <div class="card" style="width:100%; margin-bottom: 2rem; border-color: var(--accent); background: rgba(6, 182, 212, 0.1);">

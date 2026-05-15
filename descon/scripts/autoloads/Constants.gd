@@ -88,25 +88,25 @@ var SHOP_ITEMS = {
 		]
 	},
 	"weapons": [
-		{ "id": "las1", "name": "Láser LF-1", "desc": "Láser básico.", "base": 100, "prices": { "hubs": 10000, "ohcu": 10 } },
-		{ "id": "las2", "name": "Láser LF-2", "desc": "Mejora en potencia.", "base": 250, "prices": { "hubs": 50000, "ohcu": 50 } },
-		{ "id": "las3", "name": "Láser LF-3", "desc": "Estándar militar.", "base": 600, "prices": { "hubs": 200000, "ohcu": 200 } },
-		{ "id": "las4", "name": "Láser LF-4", "desc": "Vanguardia tecnológica.", "base": 1500, "prices": { "hubs": 1000000, "ohcu": 1000 } },
-		{ "id": "las5", "name": "Láser Prometheus", "desc": "Poder solar concentrado.", "base": 5000, "prices": { "hubs": 0, "ohcu": 5000 }, "premium": true },
-		{ "id": "las6", "name": "Cañón Hyper", "desc": "Disruptor de materia.", "base": 15000, "prices": { "hubs": 0, "ohcu": 15000 }, "premium": true }
+		{ "id": "las1", "name": "Láser LF-1", "desc": "Láser básico.", "base": 100, "icon": "res://assets/Armas/Arma1/Arma1.png", "prices": { "hubs": 10000, "ohcu": 10 } },
+		{ "id": "las2", "name": "Láser LF-2", "desc": "Mejora en potencia.", "base": 250, "icon": "res://assets/Armas/Arma2/Arma2.png", "prices": { "hubs": 50000, "ohcu": 50 } },
+		{ "id": "las3", "name": "Láser LF-3", "desc": "Estándar militar.", "base": 600, "icon": "res://assets/Armas/Arma3/Arma3.png", "prices": { "hubs": 200000, "ohcu": 200 } },
+		{ "id": "las4", "name": "Láser LF-4", "desc": "Vanguardia tecnológica.", "base": 1500, "icon": "res://assets/Armas/Arma4/Arma4.png", "prices": { "hubs": 1000000, "ohcu": 1000 } },
+		{ "id": "las5", "name": "Láser Prometheus", "desc": "Poder solar concentrado.", "base": 5000, "icon": "res://assets/Armas/Arma5/Arma5.png", "prices": { "hubs": 0, "ohcu": 5000 }, "premium": true },
+		{ "id": "las6", "name": "Cañón Hyper", "desc": "Disruptor de materia.", "base": 15000, "icon": "res://assets/Armas/Arma6/Arma6.png", "prices": { "hubs": 0, "ohcu": 15000 }, "premium": true }
 	],
 	"shields": [
-		{ "id": "sh1", "name": "Escudo S1", "desc": "Protección básica.", "base": 1000, "prices": { "hubs": 10000, "ohcu": 10 } },
-		{ "id": "sh2", "name": "Escudo S2", "desc": "Reforzado con titanio.", "base": 5000, "prices": { "hubs": 100000, "ohcu": 100 } },
-		{ "id": "sh3", "name": "Escudo SG3", "desc": "Campo gravitacional.", "base": 15000, "prices": { "hubs": 500000, "ohcu": 500 } },
-		{ "id": "sh4", "name": "Escudo NX", "desc": "Reparación por nanobots.", "base": 40000, "prices": { "hubs": 2000000, "ohcu": 2000 } },
-		{ "id": "sh5", "name": "Escudo Fusion", "desc": "Tecnología alienígena.", "base": 100000, "prices": { "hubs": 0, "ohcu": 10000 }, "premium": true },
-		{ "id": "sh6", "name": "Generador Z+", "desc": "Casi invulnerable.", "base": 250000, "prices": { "hubs": 0, "ohcu": 25000 }, "premium": true }
+		{ "id": "sh1", "name": "Escudo S1", "desc": "Protección básica.", "base": 1000, "icon": "res://assets/Escudos/Escudo1/Escudo1.png", "prices": { "hubs": 10000, "ohcu": 10 } },
+		{ "id": "sh2", "name": "Escudo S2", "desc": "Reforzado con titanio.", "base": 5000, "icon": "res://assets/Escudos/Escudo2/Escudo2.png", "prices": { "hubs": 100000, "ohcu": 100 } },
+		{ "id": "sh3", "name": "Escudo SG3", "desc": "Campo gravitacional.", "base": 15000, "icon": "res://assets/Escudos/Escudo3/Escudo3.png", "prices": { "hubs": 500000, "ohcu": 500 } },
+		{ "id": "sh4", "name": "Escudo NX", "desc": "Reparación por nanobots.", "base": 40000, "icon": "res://assets/Escudos/Escudo4/Escudo4.png", "prices": { "hubs": 2000000, "ohcu": 2000 } },
+		{ "id": "sh5", "name": "Escudo Fusion", "desc": "Tecnología alienígena.", "base": 100000, "icon": "res://assets/Escudos/Escudo5/Escudo5.png", "prices": { "hubs": 0, "ohcu": 10000 }, "premium": true },
+		{ "id": "sh6", "name": "Generador Z+", "desc": "Casi invulnerable.", "base": 250000, "icon": "res://assets/Escudos/Escudo6/Escudo6.png", "prices": { "hubs": 0, "ohcu": 25000 }, "premium": true }
 	],
 	"engines": [
-		{ "id": "en1", "name": "Motor M1", "desc": "Propulsión química.", "base": 20, "prices": { "hubs": 5000, "ohcu": 5 } },
-		{ "id": "en2", "name": "Motor M2", "desc": "Estándar iónico.", "base": 50, "prices": { "hubs": 50000, "ohcu": 50 } },
-		{ "id": "en3", "name": "Motor M3", "desc": "Núcleo de plasma.", "base": 100, "prices": { "hubs": 300000, "ohcu": 300 } }
+		{ "id": "en1", "name": "Motor M1", "desc": "Propulsión química.", "base": 20, "icon": "res://assets/Motores/Motor1/Motor1.png", "prices": { "hubs": 5000, "ohcu": 5 } },
+		{ "id": "en2", "name": "Motor M2", "desc": "Estándar iónico.", "base": 50, "icon": "res://assets/Motores/Motor2/Motor2.png", "prices": { "hubs": 50000, "ohcu": 50 } },
+		{ "id": "en3", "name": "Motor M3", "desc": "Núcleo de plasma.", "base": 100, "icon": "res://assets/Motores/Motor3/Motor3.png", "prices": { "hubs": 300000, "ohcu": 300 } }
 	],
 	"extras": [
 		{ "id": "ext1", "name": "CPU de Salto", "desc": "Optimiza el salto hiperespacial.", "prices": { "hubs": 50000, "ohcu": 50 } },

@@ -19,7 +19,9 @@ func update_ui():
 	
 	var main_v = VBoxContainer.new()
 	main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_v.mouse_filter = Control.MOUSE_FILTER_STOP # v305.40: Bloquear click-through
 	h.add_child(main_v)
+	h.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	# --- BARRA DE CATEGORÍAS ---
 	var bar = HBoxContainer.new(); bar.add_theme_constant_override("separation", 15); main_v.add_child(bar)
@@ -51,8 +53,20 @@ func _create_shop_card(it, cat, parent):
 	
 	var n = Label.new(); n.text = it["name"]; n.horizontal_alignment = 1; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
 	
+	# v305.20: Mostrar ICONO en la tienda si existe
+	var icon_path = str(it.get("icon", ""))
+	if icon_path != "" and icon_path != "null" and ResourceLoader.exists(icon_path):
+		var tex_container = CenterContainer.new()
+		v.add_child(tex_container)
+		var tex = TextureRect.new()
+		tex.texture = load(icon_path)
+		tex.custom_minimum_size = Vector2(48, 48)
+		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex_container.add_child(tex)
+	
 	# v262.860: Mostrar Stats (Sincronizado con Admin)
-	var base_val = it.get("base", 0)
+	var base_val = int(it.get("base", 0))
 	var stat_label = Label.new(); stat_label.horizontal_alignment = 1; stat_label.add_theme_font_size_override("font_size", 9); stat_label.modulate = Color.GOLD
 	if cat == "weapons": stat_label.text = "POTENCIA DE FUEGO: " + str(base_val)
 	elif cat == "shields": stat_label.text = "CAPACIDAD DE ESCUDO: " + str(base_val)

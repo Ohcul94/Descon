@@ -634,7 +634,7 @@ module.exports = class BaseAI {
                 active: true, 
                 duration: mech.duration || 3000 
             });
-            console.log(`[AI] ${this.enemy.id} activó Invulnerabilidad (${mech.duration}ms)`);
+            // console.log(`[AI] ${this.enemy.id} activó Invulnerabilidad (${mech.duration}ms)`);
         }
     }
 };

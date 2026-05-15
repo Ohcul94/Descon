@@ -137,7 +137,7 @@ function registerInventoryHandlers(socket, io, state) {
                     instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
                     rarity: itemConfig.rarity || 0,
                     color: itemConfig.color || "#ffffff",
-                    icon: itemConfig.icon || "res://assets/items/placeholder.png"
+                    icon: itemConfig.icon || ""
                 });
                 console.log(`[SHOP-DEBUG] Item normal añadido al inventario: ${itemConfig.name}`);
             } else {
