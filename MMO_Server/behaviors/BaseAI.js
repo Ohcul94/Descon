@@ -136,6 +136,13 @@ module.exports = class BaseAI {
             this.enemy.rotation += Math.sign(diff) * step;
         }
 
+        // v269.120: BLOQUEO TOTAL DURANTE EL GANCHO (Inmovilidad y Silencio de Armas)
+        if (this.enemy.isHooking) {
+            this.enemy.rotation = targetAngle + Math.PI / 2;
+            this.enemy.isMoving = false;
+            return;
+        }
+
         // v268.810: Procesar combate y movimiento
         this.applyCombatLogic(activeTarget, dist, targetAngle, now, io, grid, players);
         
@@ -440,9 +447,9 @@ module.exports = class BaseAI {
                 this.enemy.rotation = angle + Math.PI / 2;
             }
 
-            // v266.695: Inmovilidad durante BLOQUEO, DISPARO y LANZAMIENTO DE GANCHO
-            if (state.isLocked || state.isFiring || this.enemy.isHooking) {
-                this.enemy.rotation = state.lockedAngle + Math.PI / 2;
+            // v266.695: Inmovilidad durante BLOQUEO y DISPARO
+            if (state.isLocked || state.isFiring) {
+                this.enemy.rotation = (state.lockedAngle || angle) + Math.PI / 2;
                 return true; 
             }
             return false; 
@@ -472,6 +479,17 @@ module.exports = class BaseAI {
                     stunDuration: mech.stunDuration || 0,
                     range: mech.fireRange || 800
                 });
+
+                // v269.110: Inmovilidad al Lanzar Gancho
+                if (mech.type === "hook") {
+                    this.enemy.isHooking = true;
+                    // Seguridad: Si falla, recuperar movimiento según config (def 2000ms)
+                    const missWait = mech.hookMissWaitMs || 2000;
+                    if (this.enemy._hookSafetyTimeout) clearTimeout(this.enemy._hookSafetyTimeout);
+                    this.enemy._hookSafetyTimeout = setTimeout(() => {
+                        this.enemy.isHooking = false;
+                    }, missWait);
+                }
 
                 state.shotsInBurst++;
                 state.nextShotTime = now + 150;

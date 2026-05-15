@@ -366,6 +366,7 @@ function renderEnemyDetail() {
                                         pullSpeed: "Vel. Atracción (px/s)",
                                         stunDuration: "Duración Stun (ms)",
                                         postHookWaitMs: "Espera Post-Gancho (ms)",
+                                        hookMissWaitMs: "Espera por Fallo (ms)",
                                         startDelay: "Retraso Inicio (ms)",
                                         activationHP: "Activación por HP (%)"
                                     };

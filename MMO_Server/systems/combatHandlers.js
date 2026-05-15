@@ -226,7 +226,12 @@ function registerCombatHandlers(socket, io, state) {
                         // Calcular tiempo de viaje estimado (en ms)
                         const dist = Math.sqrt(Math.pow(attacker.x - p.x, 2) + Math.pow(attacker.y - p.y, 2));
                         const pullDurationMs = Math.min(1000, Math.max(100, (dist / pullSpeed) * 1000));
-                        
+
+                        // v269.120: STUN UNIFICADO (Desde el impacto hasta el final de la penalización)
+                        const stunDur = (data.stunDuration || 2000);
+                        p.isStunned = true;
+                        p.stunEndTime = Date.now() + pullDurationMs + stunDur;
+
                         // Emitir el tirón inmediatamente para el cliente
                         io.to(`zone_${p.zone}`).emit('hookPulled', { 
                             victimId: p.socketId, 
@@ -234,25 +239,26 @@ function registerCombatHandlers(socket, io, state) {
                             pullSpeed: pullSpeed
                         });
 
-                        // Programar el fin del tirón y el inicio del Stun
+                        io.to(p.socketId).emit('stunState', { active: true, duration: pullDurationMs + stunDur });
+
+                        // Programar el fin del tirón (Atracción física)
                         setTimeout(() => {
-                            // 1. ATRAER FÍSICAMENTE en el servidor (al final del pull)
+                            // 1. ATRAER FÍSICAMENTE en el servidor
                             const angleToAttacker = Math.atan2(attacker.y - p.y, attacker.x - p.x);
                             p.x = attacker.x - Math.cos(angleToAttacker) * 100;
                             p.y = attacker.y - Math.sin(angleToAttacker) * 100;
                             
-                            // 2. STUN: Paralizar al jugador DESPUÉS de llegar al bicho
-                            const stunDur = data.stunDuration || 2000;
-                            p.isStunned = true;
-                            p.stunEndTime = Date.now() + stunDur;
-                            
-                            // v269.65: Espera configurable antes de recuperar el movimiento
+                            // v269.65: Espera configurable del bicho
                             const postWait = mech?.postHookWaitMs || 500;
-                            setTimeout(() => {
-                                attacker.isHooking = false; // Recién ahora el bicho puede moverse
-                            }, postWait);
                             
-                            io.to(p.socketId).emit('stunState', { active: true, duration: stunDur });
+                            if (attacker._hookSafetyTimeout) {
+                                clearTimeout(attacker._hookSafetyTimeout);
+                                attacker._hookSafetyTimeout = null;
+                            }
+
+                            setTimeout(() => {
+                                attacker.isHooking = false;
+                            }, postWait);
                         }, pullDurationMs);
                     }
                 }

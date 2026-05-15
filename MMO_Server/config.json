@@ -401,7 +401,8 @@
                     "turnSpeed": 0,
                     "startDelay": 0,
                     "pullSpeed": 200,
-                    "postHookWaitMs": 500
+                    "postHookWaitMs": 1500,
+                    "hookMissWaitMs": 1000
                 }
             ],
             "movementPhases": [
@@ -1668,6 +1669,7 @@
                 "stunDuration",
                 "pullSpeed",
                 "postHookWaitMs",
+                "hookMissWaitMs",
                 "isHoming",
                 "turnSpeed",
                 "startDelay"

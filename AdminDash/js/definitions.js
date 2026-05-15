@@ -6,7 +6,7 @@ const DEFAULT_MECHANICS_LIB = {
     "mine": { label: "Mina de Proximidad", icon: "💣", desc: "Explosivo estático.", fields: ["bulletDamage", "fireRange", "fireRate", "startDelay"] },
     "orbital_strike": { label: "Ataque Orbital", icon: "🌀", desc: "Círculos que giran y luego se disparan.", fields: ["bulletDamage", "orbitSpeed", "circleCount", "orbitRadius", "orbitDuration", "staticTime", "fireRate", "fireRange", "startDelay"] },
     "aura_damage": { label: "Aura de Vacío (Daño)", icon: "🔥", desc: "Daña a los jugadores cercanos continuamente.", fields: ["activationHP", "radius", "damage", "intervalMs", "duration", "cooldown", "startDelay"] },
-    "hook": { label: "Gancho Abisal", icon: "⚓", desc: "Atrae al objetivo, lo daña y lo paraliza.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "stunDuration", "pullSpeed", "postHookWaitMs", "isHoming", "turnSpeed", "startDelay"] }
+    "hook": { label: "Gancho Abisal", icon: "⚓", desc: "Atrae al objetivo, lo daña y lo paraliza.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "stunDuration", "pullSpeed", "postHookWaitMs", "hookMissWaitMs", "isHoming", "turnSpeed", "startDelay"] }
 };
 
 // v266.230: Definición de Mecánicas de Movimiento (Cerebros)
