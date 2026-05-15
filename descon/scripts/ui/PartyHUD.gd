@@ -82,10 +82,20 @@ func _refresh_list():
 		child.queue_free()
 		
 	var party = PartyManager.current_party
-	if not party: return
+	if not party: 
+		custom_minimum_size.y = 40 # Tamaño mínimo si está solo
+		return
 	
 	var members = party.get("members", [])
 	var names = party.get("names", [])
+	
+	# v306.15: TAMAÑO DINÁMICO
+	# Altura base = Header (30) + Margen (10) + (Miembros * Altura de fila (aprox 45))
+	var row_height = 45
+	var base_height = 45 
+	var final_height = base_height + (members.size() * row_height)
+	custom_minimum_size.y = final_height
+	size.y = final_height
 	
 	for i in range(members.size()):
 		var id = str(members[i])
@@ -95,3 +105,7 @@ func _refresh_list():
 		members_list.add_child(row)
 		if row.has_method("setup"):
 			row.setup(id, p_name)
+	
+	# v306.16: Forzar actualización del marco si existe
+	var frame = get_node_or_null("SciFiFrame")
+	if frame: frame.queue_redraw()

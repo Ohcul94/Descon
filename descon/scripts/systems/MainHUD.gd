@@ -160,6 +160,24 @@ func _ready():
 		if not NetworkManager.interference_event.is_connected(_on_interference_event):
 			NetworkManager.interference_event.connect(_on_interference_event)
 
+	# v305.95: Aplicar Marcos Sci-Fi (Diseño Referencia Roja)
+	# _apply_sci_fi_frame(skills_hud) # Eliminado por petición del usuario
+	_apply_sci_fi_frame(center_stats)
+	_apply_sci_fi_frame(radar_window)
+	
+	# v306.10: Aplicar a Panel de Equipo y Barra de Control (Solo limpieza, sin marco visible)
+	var party_hud = get_node_or_null("PartyHUD")
+	if party_hud: _apply_sci_fi_frame(party_hud, true)
+	
+	var control_bar = get_node_or_null("ControlBar")
+	if control_bar: _apply_sci_fi_frame(control_bar, true)
+	
+	# v305.95: El chat puede tardar un frame en instanciarse o estar en grupo
+	get_tree().process_frame.connect(func():
+		var chats = get_tree().get_nodes_in_group("chat_ui")
+		for chat in chats: _apply_sci_fi_frame(chat)
+	, CONNECT_ONE_SHOT)
+
 func _on_interference_event(data: Dictionary):
 	var duration = data.get("duration", 4000.0) / 1000.0
 	set_interference_mode(true)
@@ -336,9 +354,9 @@ func _input(event: InputEvent):
 									clicked_node = child
 									break
 				
-				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat)
+				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat, Equipo, Iconos)
 				if not clicked_node:
-					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick"]:
+					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar"]:
 						var win = _get_hud_node(win_id)
 						if win and win.visible and win.get_global_rect().has_point(event.position):
 							clicked_node = win
@@ -1285,6 +1303,8 @@ func _restore_default_layout():
 		"Sphere2Slot":     { "x": 704.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 		"Sphere3Slot":     { "x": 789.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 		"Sphere4Slot":     { "x": 874.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
+		"PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 }, # v306.30: Bajado para no tapar FPS
+		"ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0 }, # v306.30: Posición base
 	}
 	
 	# Aplicar el layout usando el mismo sistema que usa al cargar del servidor
@@ -1296,14 +1316,13 @@ func _restore_default_layout():
 		var joy_enabled = SettingsManager.mobile_mode if SettingsManager else false
 		joy.visible = joy_enabled
 		# v266.690: Siempre IGNORE. El joystick usa _input() manual, no necesita capturar via GUI.
-		joy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		virtual_joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if joy_enabled:
 			joy.global_position = Vector2(20, 680)
 		else:
 			joy.global_position = Vector2(-2000, -2000)
-
 	
-	# Resetear sliders si están visibles
+	# v266.650: Layout de fábrica = Layout "PC" de Caelli94 (valores exactos de la DB)
 	var editor_ui = get_node_or_null("EditLayoutUI")
 	if editor_ui:
 		var pp = editor_ui.find_child("PropertyPanel", true, false)
@@ -1519,7 +1538,7 @@ func _update_icon_tooltips():
 	}
 	
 	for btn in c_bar.get_children():
-		if btn.name == "TooltipAnchor": continue
+		if not btn is Button: continue
 		
 		var b_name = btn.name.replace("Icon", "")
 		var final_name = names.get(b_name, b_name)
@@ -1581,6 +1600,16 @@ func _is_pos_over_priority_ui(p: Vector2, ignore_editable: bool = false) -> bool
 		for chat in chat_nodes:
 			if chat is Control and chat.visible:
 				if chat.get_global_rect().has_point(p): return true
+		
+		# 2.2. Barra de Control (v306.45: Solo bloquea clics al mundo en juego normal)
+		var c_bar = get_node_or_null("ControlBar")
+		if c_bar and c_bar.visible:
+			if c_bar.get_global_rect().has_point(p): return true
+			
+		# 2.3. Panel de Equipo
+		var p_hud = get_node_or_null("PartyHUD")
+		if p_hud and p_hud.visible:
+			if p_hud.get_global_rect().has_point(p): return true
 
 	# 2. Menús abiertos (Inventario, Config, etc) - SIEMPRE BLOQUEAN
 	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
@@ -1588,10 +1617,6 @@ func _is_pos_over_priority_ui(p: Vector2, ignore_editable: bool = false) -> bool
 		if ui is Control and ui.visible:
 			if ui.get_global_rect().has_point(p): return true
 			
-	# 2.2. Barra de Control
-	var c_bar = get_node_or_null("ControlBar")
-	if c_bar and c_bar.visible:
-		if c_bar.get_global_rect().has_point(p): return true
 
 	# 3. Menú ESC
 	if _esc_menu and _esc_menu.visible:
@@ -1874,13 +1899,21 @@ func toggle_hud_editing(slot_index: int = -1):
 				_make_node_draggable(child, child.name)
 		
 	# 2. Ventanas Mayores (v266.560: Solo mostrar joystick si está activo)
-	var wins = ["CenterStats", "RadarWindow", "ChatUI"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
 	for win_id in wins:
 		var win = _get_hud_node(win_id)
 		if win:
+			# v306.40: Liberar ventana para arrastre libre (Igual que el chat)
+			if is_editing_layout:
+				win.visible = true
+				var gp = win.global_position
+				win.top_level = true
+				win.global_position = gp
+				win.mouse_filter = Control.MOUSE_FILTER_STOP
+			
 			_make_node_draggable(win, win_id)
 
 func _make_node_draggable(node: Control, _hud_id: String):
@@ -1891,9 +1924,8 @@ func _make_node_draggable(node: Control, _hud_id: String):
 		if not overlay:
 			overlay = ColorRect.new()
 			overlay.name = "DragOverlay"
-			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			overlay.color = Color(0, 1, 1, 0.4) # Más visible
-			overlay.mouse_filter = Control.MOUSE_FILTER_STOP # Capturar el clic
+			overlay.color = Color(0, 1, 1, 0.4)
+			overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 			
 			var border = ReferenceRect.new()
 			border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -1902,6 +1934,21 @@ func _make_node_draggable(node: Control, _hud_id: String):
 			border.editor_only = false
 			overlay.add_child(border)
 			node.add_child(overlay)
+			
+			# v306.30: Si es un contenedor, el overlay debe ser flotante (top_level) 
+			# para no desplazar a los hijos en el layout.
+			if node is Container:
+				overlay.top_level = true
+				overlay.anchor_right = 0
+				overlay.anchor_bottom = 0
+				var sync = func(): 
+					overlay.global_position = node.global_position
+					overlay.size = node.size
+				node.resized.connect(sync)
+				node.item_rect_changed.connect(sync)
+				sync.call()
+			else:
+				overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		
 		overlay.visible = true
 		node.move_child(overlay, node.get_child_count() - 1) # Asegurar que esté ARRIBA
@@ -1966,7 +2013,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			}
 	
 	# v266.220: Guardar también posiciones de ventanas principales
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			layout[win_id] = { 
@@ -2015,7 +2062,7 @@ func _backup_layout():
 				}
 	
 	# Guardar Ventanas principales
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			_layout_backup[win_id] = { 
@@ -2028,3 +2075,66 @@ func _restore_layout_backup():
 	if _layout_backup.is_empty(): return
 	_apply_hud_data(_layout_backup, {})
 	print("[HUD] Layout restaurado desde backup.")
+
+# --- v305.95: SISTEMA DE MARCOS DINÁMICOS ---
+func _apply_sci_fi_frame(node: Control, invisible: bool = false):
+	if not node: return
+	
+	# v306.40: LIMPIEZA Y ENCAPSULAMIENTO
+	node.clip_contents = true
+	node.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	var clean_node = func(target, recursive_func):
+		for child in target.get_children():
+			var c_name = child.name.to_lower()
+			if c_name == "header" or c_name == "title" or c_name == "titlebar" or c_name == "min":
+				child.visible = false
+			
+			if child is VBoxContainer or child.name == "Minimap" or child.name == "VBox" or child.name == "Scroll":
+				child.anchor_left = 0; child.anchor_top = 0
+				child.anchor_right = 1; child.anchor_bottom = 1
+				child.offset_left = 25; child.offset_top = 25
+				child.offset_right = -25; child.offset_bottom = -25
+				
+			if child is PanelContainer or child is Panel:
+				child.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+				child.clip_contents = true
+			
+			if child is Label and (child.text.contains("SISTEMA") or child.text.contains("LOBY") or child.text.contains("CHAT")):
+				child.visible = false
+			recursive_func.call(child, recursive_func)
+
+	if node is PanelContainer or node is Panel or node is Control:
+		node.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		if node.name == "CenterStats": node.custom_minimum_size = Vector2(250, 140)
+		elif node.name == "RadarWindow": node.custom_minimum_size = Vector2(220, 220)
+		elif "Chat" in node.name: node.custom_minimum_size = Vector2(320, 200)
+		elif "Party" in node.name: node.custom_minimum_size = Vector2(200, 80)
+		elif "ControlBar" in node.name: node.custom_minimum_size = Vector2(280, 45) # v306.45: Área de agarre
+	
+	clean_node.call(node, clean_node)
+	
+	if invisible: return # v306.40: Solo limpiar, sin inyectar el marco rojo
+	
+	# Inyectar marco
+	var frame_script = load("res://scripts/ui/HUDFrame.gd")
+	if not frame_script: return
+	var frame = Control.new(); frame.set_script(frame_script); frame.name = "SciFiFrame"
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	# v306.30: Soporte para Contenedores (HBox/VBox) sin romper el layout
+	if node is Container:
+		frame.top_level = true
+		frame.anchor_right = 0
+		frame.anchor_bottom = 0
+		var sync_f = func():
+			frame.global_position = node.global_position
+			frame.size = node.size
+		node.resized.connect(sync_f)
+		node.item_rect_changed.connect(sync_f)
+		sync_f.call()
+	else:
+		frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	node.add_child(frame)
+	node.move_child(frame, 0)
