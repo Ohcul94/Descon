@@ -326,6 +326,15 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(6, 182, 21
 .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
 .btn-danger:hover { background: var(--danger); color: white; }
 
+.subtabs {
+    display: flex;
+    gap: 0.5rem;
+    background: rgba(0,0,0,0.2);
+    padding: 0.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
 .btn-subtab {
     background: transparent;
     border: none;

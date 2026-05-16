@@ -7,6 +7,7 @@ function refreshCurrentTab() {
         'shields': renderShields, 'engines': renderEngines, 'skills': renderSkills, 
         'mechanics': renderMechanicsLib, 'maps': renderMaps, 'users': renderRegisteredUsers,
         'pilot': renderPilot,
+        'modes': renderModes,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions())
     };
     if(renderMap[tabId]) renderMap[tabId]();
@@ -17,6 +18,7 @@ function renderAll() {
     renderShips(); renderEnemies(); renderSkills(); renderMechanicsLib();
     renderMaps(); renderAmmo(); renderWeapons(); renderShields(); renderEngines();
     renderPilot();
+    renderModes();
 }
 
 function renderAmmo() {
@@ -624,6 +626,10 @@ function renderSkills() {
     const f = getFilter();
     for(let name in config.skillsData) {
         const s = config.skillsData[name];
+        
+        // v1.9.2: Filtrar por Esfera seleccionada
+        if (s.type !== currentSkillTab) continue;
+
         if (f && !name.toLowerCase().includes(f) && !JSON.stringify(s).toLowerCase().includes(f)) continue;
         const card = document.createElement('div'); card.className = 'card';
         if(!s.targetFilters) s.targetFilters = { allies: true, enemies: false, bosses: false, players: true };
@@ -932,5 +938,104 @@ function renderPilot() {
                    style="font-family:'JetBrains Mono'; font-weight:bold; color:var(--primary); font-size: 1.1rem;">
         `;
         expGrid.appendChild(field);
+    }
+}
+
+function renderModes() {
+    if (!config.gameModes) {
+        config.gameModes = {
+            hunting: { enabled: true, targets: [], rewardMult: 1.2 },
+            extraction: { enabled: true, zones: [], difficulty: 1 },
+            arenas: { enabled: true, maps: [], minPlayers: 2 }
+        };
+    }
+
+    const content = document.getElementById('modes-content');
+    if (!content) return;
+
+    if (currentModeTab === 'hunting') {
+        content.innerHTML = `
+            <div class="card" style="grid-column: span 2;">
+                <h3 style="color:var(--accent); margin-bottom: 0.5rem;">🔫 MODO CACERÍA</h3>
+                <p style="opacity:0.7; margin-bottom:1.5rem;">Configuración de eventos de eliminación de objetivos prioritarios.</p>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Estado del Modo</label>
+                        <select onchange="config.gameModes.hunting.enabled = this.value === 'true'">
+                            <option value="true" ${config.gameModes.hunting.enabled ? 'selected' : ''}>Activo</option>
+                            <option value="false" ${!config.gameModes.hunting.enabled ? 'selected' : ''}>Inactivo</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Multiplicador de Recompensa</label>
+                        <input type="number" step="0.1" value="${config.gameModes.hunting.rewardMult}" 
+                               onchange="config.gameModes.hunting.rewardMult = parseFloat(this.value)">
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h4 style="color:var(--primary); margin-bottom: 1rem;">🎯 OBJETIVOS PRIORITARIOS</h4>
+                <p style="font-size:0.8rem; opacity:0.6;">Lista de IDs de enemigos que activan el bono de cacería.</p>
+                <input type="text" placeholder="Ej: 101, 102, 103" value="${config.gameModes.hunting.targets.join(', ')}"
+                       onchange="config.gameModes.hunting.targets = this.value.split(',').map(v => v.trim())"
+                       style="margin-top:10px;">
+            </div>
+        `;
+    } else if (currentModeTab === 'extraction') {
+        content.innerHTML = `
+            <div class="card" style="grid-column: span 2;">
+                <h3 style="color:var(--primary); margin-bottom: 0.5rem;">📦 MODO EXTRACCIÓN</h3>
+                <p style="opacity:0.7; margin-bottom:1.5rem;">Configuración de misiones de transporte y recuperación de carga en zonas hostiles.</p>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Estado del Modo</label>
+                        <select onchange="config.gameModes.extraction.enabled = this.value === 'true'">
+                            <option value="true" ${config.gameModes.extraction.enabled ? 'selected' : ''}>Activo</option>
+                            <option value="false" ${!config.gameModes.extraction.enabled ? 'selected' : ''}>Inactivo</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Dificultad Base (Escalado)</label>
+                        <input type="number" value="${config.gameModes.extraction.difficulty}" 
+                               onchange="config.gameModes.extraction.difficulty = parseInt(this.value)">
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h4 style="color:var(--accent); margin-bottom: 1rem;">📍 PUNTOS DE EXTRACCIÓN</h4>
+                <p style="font-size:0.8rem; opacity:0.6;">Zonas habilitadas para la entrega de carga.</p>
+                <input type="text" placeholder="Ej: Zona 4, Zona 8" value="${config.gameModes.extraction.zones.join(', ')}"
+                       onchange="config.gameModes.extraction.zones = this.value.split(',').map(v => v.trim())"
+                       style="margin-top:10px;">
+            </div>
+        `;
+    } else if (currentModeTab === 'arenas') {
+        content.innerHTML = `
+            <div class="card" style="grid-column: span 2;">
+                <h3 style="color:#ff3131; margin-bottom: 0.5rem;">⚔️ MODO ARENAS (PVP)</h3>
+                <p style="opacity:0.7; margin-bottom:1.5rem;">Configuración de combates competitivos en entornos controlados.</p>
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Estado del Modo</label>
+                        <select onchange="config.gameModes.arenas.enabled = this.value === 'true'">
+                            <option value="true" ${config.gameModes.arenas.enabled ? 'selected' : ''}>Activo</option>
+                            <option value="false" ${!config.gameModes.arenas.enabled ? 'selected' : ''}>Inactivo</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Jugadores Mínimos por Partida</label>
+                        <input type="number" value="${config.gameModes.arenas.minPlayers}" 
+                               onchange="config.gameModes.arenas.minPlayers = parseInt(this.value)">
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h4 style="color:#ff3131; margin-bottom: 1rem;">🏟️ MAPAS DE ARENA</h4>
+                <p style="font-size:0.8rem; opacity:0.6;">IDs de mapas reservados para duelos PvP.</p>
+                <input type="text" placeholder="Ej: 9, 10" value="${config.gameModes.arenas.maps.join(', ')}"
+                       onchange="config.gameModes.arenas.maps = this.value.split(',').map(v => v.trim())"
+                       style="margin-top:10px;">
+            </div>
+        `;
     }
 }

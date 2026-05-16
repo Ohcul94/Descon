@@ -3,6 +3,8 @@ let config = {};
 
 let currentAmmoTab = 'laser';
 let currentEnemySubTab = 'regular';
+let currentModeTab = 'hunting';
+let currentSkillTab = 'Ataque';
 let currentMechTab = 'attack';
 let selectedEnemyId = null;
 let selectedMapId = null;
@@ -19,13 +21,18 @@ function showTab(tabId) {
     localStorage.setItem('admin_last_tab', tabId);
     
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+    
+    // Limpiar clases active pero conservar las de sub-links si se están usando
+    const isSubTab = ['enemy-detail', 'map-detail'].includes(tabId);
+    if (!isSubTab) {
+        document.querySelectorAll('.nav-link:not(.sub)').forEach(b => b.classList.remove('active'));
+    }
     
     const view = document.getElementById('view-' + tabId);
     if(view) view.classList.add('active');
     
-    // v267.950: Sincronizar Sidebar (aunque se llame por código)
-    const sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('${tabId}')"]`);
+    // Resaltar link principal si existe y NO es un sub-enlace
+    const sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('${tabId}')"]:not(.sub)`);
     if(sidebarLink) sidebarLink.classList.add('active');
     
     const titles = { 
@@ -37,7 +44,8 @@ function showTab(tabId) {
         'sessions': 'Auditoría de Sesiones Estelares',
         'users': 'Gestión de Pilotos Registrados',
         'enemy-detail': 'Editor de Entidad', 'map-detail': 'Configuración de Zona',
-        'pilot': 'Perfil Maestro del Piloto'
+        'pilot': 'Perfil Maestro del Piloto',
+        'modes': 'Configuración de Modos de Juego'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
     
@@ -200,19 +208,45 @@ function selectMap(id) {
 function setAmmoTab(tab, btn) {
     currentAmmoTab = tab;
     if (btn) {
-        btn.parentElement.querySelectorAll('.btn-subtab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.nav-link.sub').forEach(l => l.classList.remove('active'));
         btn.classList.add('active');
     }
     renderAmmo();
 }
 
-function setEnemySubTab(tab) {
+function setEnemySubTab(tab, btn) {
     currentEnemySubTab = tab;
+    if (btn) {
+        document.querySelectorAll('.nav-link.sub').forEach(l => l.classList.remove('active'));
+        btn.classList.add('active');
+    }
     renderEnemies();
 }
 
-function setMechTab(tab) {
+function setModeTab(tab, btn) {
+    currentModeTab = tab;
+    if (btn) {
+        document.querySelectorAll('.nav-link.sub').forEach(l => l.classList.remove('active'));
+        btn.classList.add('active');
+    }
+    renderModes();
+}
+
+function setSkillTab(tab, btn) {
+    currentSkillTab = tab;
+    if (btn) {
+        document.querySelectorAll('.nav-link.sub').forEach(l => l.classList.remove('active'));
+        btn.classList.add('active');
+    }
+    renderSkills();
+}
+
+function setMechTab(tab, btn) {
     currentMechTab = tab;
+    if (btn) {
+        document.querySelectorAll('.nav-link.sub').forEach(l => l.classList.remove('active'));
+        btn.classList.add('active');
+    }
     renderMechanicsLib();
 }
 

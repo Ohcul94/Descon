@@ -122,11 +122,11 @@
                 <div class="nav-group">
                     <div class="nav-folder" onclick="toggleFolder('folder-enemies'); showTab('enemies')">👾 Amenazas (IA) <span class="chevron">▶</span></div>
                     <div id="folder-enemies" class="folder-content">
-                        <div class="nav-link sub" onclick="toggleFolder('subfolder-regulars')">Enemigos <span class="chevron">▶</span></div>
+                        <div class="nav-link sub" onclick="setEnemySubTab('regular', this); toggleFolder('subfolder-regulars')">Regulares <span class="chevron">▶</span></div>
                         <div id="subfolder-regulars" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
                             <div id="sidebar-enemies-list"></div>
                         </div>
-                        <div class="nav-link sub" onclick="toggleFolder('subfolder-bosses')">Bosses <span class="chevron">▶</span></div>
+                        <div class="nav-link sub" onclick="setEnemySubTab('boss', this); toggleFolder('subfolder-bosses')">Bosses <span class="chevron">▶</span></div>
                         <div id="subfolder-bosses" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
                             <div id="sidebar-bosses-list"></div>
                         </div>
@@ -143,11 +143,11 @@
                 <div class="nav-group">
                     <div class="nav-folder" onclick="toggleFolder('folder-mechanics'); showTab('mechanics')">⚙️ Mecánicas <span class="chevron">▶</span></div>
                     <div id="folder-mechanics" class="folder-content">
-                        <div class="nav-link sub" onclick="setMechTab('attack'); showTab('mechanics')">⚔️ Ataque</div>
-                        <div class="nav-link sub" onclick="setMechTab('defense'); showTab('mechanics')">🛡️ Defensa</div>
-                        <div class="nav-link sub" onclick="setMechTab('movement'); showTab('mechanics')">🏃 Movimiento</div>
-                        <div class="nav-link sub" onclick="setMechTab('ammo'); showTab('mechanics')">📦 Municiones</div>
-                        <div class="nav-link sub" onclick="setMechTab('ambience'); showTab('mechanics')">🌍 Ambiente</div>
+                        <div class="nav-link sub" onclick="setMechTab('attack', this); showTab('mechanics')">⚔️ Ataque</div>
+                        <div class="nav-link sub" onclick="setMechTab('defense', this); showTab('mechanics')">🛡️ Defensa</div>
+                        <div class="nav-link sub" onclick="setMechTab('movement', this); showTab('mechanics')">🏃 Movimiento</div>
+                        <div class="nav-link sub" onclick="setMechTab('ammo', this); showTab('mechanics')">📦 Municiones</div>
+                        <div class="nav-link sub" onclick="setMechTab('ambience', this); showTab('mechanics')">🌍 Ambiente</div>
                     </div>
                 </div>
 
@@ -167,16 +167,31 @@
                 </div>
 
                 <div class="nav-group">
-                    <div class="nav-link" id="nav-skills" onclick="showTab('skills')">🌀 Habilidades</div>
+                    <div class="nav-folder" onclick="toggleFolder('folder-skills'); showTab('skills')">🌀 Habilidades <span class="chevron">▶</span></div>
+                    <div id="folder-skills" class="folder-content">
+                        <div class="nav-link sub" onclick="setSkillTab('Ataque', this); showTab('skills')">🔴 Esfera Alfa (Ataque)</div>
+                        <div class="nav-link sub" onclick="setSkillTab('Defensa', this); showTab('skills')">🔵 Esfera Beta (Defensa)</div>
+                        <div class="nav-link sub" onclick="setSkillTab('Utilidad', this); showTab('skills')">🟢 Esfera Gamma (Utilidad)</div>
+                        <div class="nav-link sub" onclick="setSkillTab('Curación', this); showTab('skills')">🟡 Esfera Delta (Curación)</div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-folder" onclick="toggleFolder('folder-modes'); showTab('modes')">🎮 Modos de Juego <span class="chevron">▶</span></div>
+                    <div id="folder-modes" class="folder-content">
+                        <div class="nav-link sub" onclick="setModeTab('hunting', this); showTab('modes')">🔫 Cacería</div>
+                        <div class="nav-link sub" onclick="setModeTab('extraction', this); showTab('modes')">📦 Extracción</div>
+                        <div class="nav-link sub" onclick="setModeTab('arenas', this); showTab('modes')">⚔️ Arenas</div>
+                    </div>
                 </div>
 
                 <div class="nav-group">
                     <div class="nav-link" onclick="showTab('json')">📄 Ver JSON</div>
                     <div class="nav-folder" onclick="toggleFolder('folder-audit')">🕒 Auditoría <span class="chevron">▶</span></div>
                     <div id="folder-audit" class="folder-content">
-                        <div class="nav-link sub" id="nav-sessions-online" onclick="setSessionSubTab('online')">🟢 Pilotos en Órbita</div>
-                        <div class="nav-link sub" id="nav-sessions-history" onclick="setSessionSubTab('history')">📜 Historial de Bitácora</div>
-                        <div class="nav-link sub" id="nav-sessions-users" onclick="setSessionSubTab('users')">👥 Gestión de Pilotos</div>
+                        <div class="nav-link sub" id="nav-sessions-online" onclick="setSessionSubTab('online', this)">🟢 Pilotos en Órbita</div>
+                        <div class="nav-link sub" id="nav-sessions-history" onclick="setSessionSubTab('history', this)">📜 Historial de Bitácora</div>
+                        <div class="nav-link sub" id="nav-sessions-users" onclick="setSessionSubTab('users', this)">👥 Gestión de Pilotos</div>
                     </div>
                 </div>
                 
@@ -221,6 +236,12 @@
                     <div id="exp-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px;">
                         <!-- Inputs de EXP generados dinámicamente -->
                     </div>
+                </div>
+            </div>
+
+            <div id="view-modes" class="view">
+                <div id="modes-content" class="grid">
+                    <!-- Contenido dinámico -->
                 </div>
             </div>
 
