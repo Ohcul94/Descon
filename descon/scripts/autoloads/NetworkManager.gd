@@ -295,7 +295,13 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"tradeStarted": trade_started.emit(e_data)
 		"tradePartnerUpdate": trade_partner_update.emit(e_data)
 		"tradePartnerReady": trade_partner_ready.emit(e_data)
-		"tradeSuccess": trade_success.emit(e_data)
+		"tradeSuccess": 
+			trade_success.emit(e_data)
+			# v300.650: AUTO-SYNC TRAS TRADE EXITOSO
+			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("inventoryData"):
+				var inv_p = e_data["inventoryData"]
+				if inv_p.has("player"): inv_p = inv_p["player"]
+				inventory_data.emit(inv_p)
 		"tradeCancelled": trade_cancelled.emit(e_data)
 
 

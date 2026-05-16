@@ -114,15 +114,20 @@ function registerTradeHandlers(socket, io, state) {
         trade.ready2 = false;
 
         if (trade.p1 === socket.id) {
-            trade.items1 = items; // items es un array de instanceIds o objetos breves
+            trade.items1 = items;
         } else {
             trade.items2 = items;
         }
 
+        console.log(`[TRADE-SYNC] ${p.user} actualizó oferta: ${items.length} items.`);
+
+        // v300.800: BÚSQUEDA EXHAUSTIVA (Bodega + Todas las naves)
+        const fullItems = items.map(instId => findItemAnywhere(socket.dbUser, instId)).filter(i => !!i);
+
         // Sincronizar con el otro jugador
         const partnerId = (trade.p1 === socket.id) ? trade.p2 : trade.p1;
-        io.to(partnerId).emit('tradePartnerUpdate', { items, partnerReady: false });
-        socket.emit('tradePartnerUpdate', { partnerReady: false }); // Reset local ready state
+        io.to(partnerId).emit('tradePartnerUpdate', { items: fullItems, partnerReady: false });
+        socket.emit('tradePartnerUpdate', { partnerReady: false });
     });
 
     // 5. CONFIRMAR (READY)
@@ -156,31 +161,32 @@ async function executeTrade(tradeId, io, state) {
     trade.locked = true;
 
     try {
-        const user1 = await User.findById(state.players[trade.p1].dbId);
-        const user2 = await User.findById(state.players[trade.p2].dbId);
+        const user1 = await User.findById(state.players[trade.p1].id);
+        const user2 = await User.findById(state.players[trade.p2].id);
 
         if (!user1 || !user2) throw new Error("USUARIO NO ENCONTRADO");
 
-        // VALIDACIÓN DE SEGURIDAD: Verificar que los items realmente existen en los inventarios
+        // VALIDACIÓN DE SEGURIDAD EXHAUSTIVA
         const validateItems = (user, itemInstances) => {
-            return itemInstances.every(instId => user.gameData.inventory.some(it => it.instanceId === instId));
+            return itemInstances.every(instId => findItemAnywhere(user, instId) !== null);
         };
 
         if (!validateItems(user1, trade.items1) || !validateItems(user2, trade.items2)) {
-            throw new Error("ÍTEMS NO ENCONTRADOS EN BODEGA (¿EQUIPADOS?)");
+            throw new Error("ÍTEMS NO ENCONTRADOS EN LA CUENTA");
         }
 
         // PROCESAR INTERCAMBIO
         const itemsFrom1 = [];
         trade.items1.forEach(instId => {
-            const idx = user1.gameData.inventory.findIndex(it => it.instanceId === instId);
-            itemsFrom1.push(user1.gameData.inventory.splice(idx, 1)[0]);
+            // Buscar y extraer de donde sea que esté
+            const item = extractItemAnywhere(user1, instId);
+            if (item) itemsFrom1.push(item);
         });
 
         const itemsFrom2 = [];
         trade.items2.forEach(instId => {
-            const idx = user2.gameData.inventory.findIndex(it => it.instanceId === instId);
-            itemsFrom2.push(user2.gameData.inventory.splice(idx, 1)[0]);
+            const item = extractItemAnywhere(user2, instId);
+            if (item) itemsFrom2.push(item);
         });
 
         // Entregar
@@ -229,6 +235,91 @@ async function executeTrade(tradeId, io, state) {
             delete activeTrades[tradeId];
         }
     }
+}
+
+function findItemAnywhere(user, instId) {
+    if (!user || !user.gameData) return null;
+    
+    // 1. Buscar en inventario
+    const invItem = user.gameData.inventory.find(it => it.instanceId === instId);
+    if (invItem) return invItem;
+    
+    // 2. Buscar en naves (equippedByShip)
+    if (user.gameData.equippedByShip) {
+        const ebs = user.gameData.equippedByShip;
+        const ships = (ebs instanceof Map) ? Array.from(ebs.values()) : Object.values(ebs);
+        for (const shipEq of ships) {
+            for (const cat in shipEq) {
+                if (Array.isArray(shipEq[cat])) {
+                    const found = shipEq[cat].find(it => it.instanceId === instId);
+                    if (found) return found;
+                }
+            }
+        }
+    }
+    return null;
+}
+
+function extractItemAnywhere(user, instId) {
+    // Buscar en inventario y sacarlo
+    const idx = user.gameData.inventory.findIndex(it => it.instanceId === instId);
+    if (idx !== -1) return user.gameData.inventory.splice(idx, 1)[0];
+    
+    // Si no está en inventario, buscar en naves y sacarlo de ahí (esto lo desequipa de paso)
+    if (user.gameData.equippedByShip) {
+        const ebs = user.gameData.equippedByShip;
+        const keys = (ebs instanceof Map) ? Array.from(ebs.keys()) : Object.keys(ebs);
+        for (const k of keys) {
+            const shipEq = (ebs instanceof Map) ? ebs.get(k) : ebs[k];
+            for (const cat in shipEq) {
+                if (Array.isArray(shipEq[cat])) {
+                    const sidx = shipEq[cat].findIndex(it => it.instanceId === instId);
+                    if (sidx !== -1) {
+                        const item = shipEq[cat].splice(sidx, 1)[0];
+                        user.markModified('gameData.equippedByShip');
+                        return item;
+                    }
+                }
+            }
+        }
+    }
+    return null;
+}
+
+function unequipFromAllShips(user, instId) {
+    // 1. Limpiar de nave activa
+    const eq = user.gameData.equipped;
+    if (eq) {
+        Object.keys(eq).forEach(cat => {
+            if (Array.isArray(eq[cat])) {
+                user.gameData.equipped[cat] = eq[cat].filter(it => it.instanceId !== instId);
+            }
+        });
+    }
+
+    // 2. Limpiar de equippedByShip (Mapa o Objeto)
+    if (user.gameData.equippedByShip) {
+        if (typeof user.gameData.equippedByShip.get === 'function') {
+            user.gameData.equippedByShip.forEach((shipEq, shipId) => {
+                Object.keys(shipEq).forEach(cat => {
+                    if (Array.isArray(shipEq[cat])) {
+                        shipEq[cat] = shipEq[cat].filter(it => it.instanceId !== instId);
+                    }
+                });
+            });
+        } else {
+            Object.keys(user.gameData.equippedByShip).forEach(shipId => {
+                const shipEq = user.gameData.equippedByShip[shipId];
+                Object.keys(shipEq).forEach(cat => {
+                    if (Array.isArray(shipEq[cat])) {
+                        shipEq[cat] = shipEq[cat].filter(it => it.instanceId !== instId);
+                    }
+                });
+            });
+        }
+    }
+    user.markModified('gameData.equipped');
+    user.markModified('gameData.equippedByShip');
 }
 
 module.exports = { registerTradeHandlers };

@@ -2293,9 +2293,9 @@ func _on_trade_started(data):
 	var trade_scene = load("res://scripts/ui/TradeHUD.gd")
 	if trade_scene:
 		var trade_hud = CanvasLayer.new()
-		trade_hud.name = "TradeHUD"
+		trade_hud.name = "TradeHUD_" + str(Time.get_ticks_msec())
+		trade_hud.layer = 100 # v300.500: PRIORIDAD MÁXIMA
 		
-		# v300.181: Primero el script, luego construir la interfaz UNA SOLA VEZ
 		trade_hud.set_script(trade_scene)
 		_build_trade_ui_runtime(trade_hud)
 		add_child(trade_hud)
