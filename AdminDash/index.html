@@ -115,7 +115,8 @@
             
             <div id="sidebar-scroll">
                 <div class="nav-group">
-                    <div class="nav-link active" onclick="showTab('ships')">🚀 Naves Estelares</div>
+                    <div class="nav-link active" onclick="showTab('pilot')">👨‍🚀 Perfil del Piloto</div>
+                    <div class="nav-link" onclick="showTab('ships')">🚀 Naves Estelares</div>
                 </div>
 
                 <div class="nav-group">
@@ -133,7 +134,25 @@
                 </div>
 
                 <div class="nav-group">
-                    <div class="nav-folder" onclick="toggleFolder('folder-market'); showTab('ammo')">💎 Mercado <span class="chevron">▼</span></div>
+                    <div class="nav-folder" onclick="toggleFolder('folder-maps'); showTab('maps')">🗺️ Cartografía <span class="chevron">▶</span></div>
+                    <div id="folder-maps" class="folder-content">
+                        <div id="sidebar-maps-list"></div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-folder" onclick="toggleFolder('folder-mechanics'); showTab('mechanics')">⚙️ Mecánicas <span class="chevron">▶</span></div>
+                    <div id="folder-mechanics" class="folder-content">
+                        <div class="nav-link sub" onclick="setMechTab('attack'); showTab('mechanics')">⚔️ Ataque</div>
+                        <div class="nav-link sub" onclick="setMechTab('defense'); showTab('mechanics')">🛡️ Defensa</div>
+                        <div class="nav-link sub" onclick="setMechTab('movement'); showTab('mechanics')">🏃 Movimiento</div>
+                        <div class="nav-link sub" onclick="setMechTab('ammo'); showTab('mechanics')">📦 Municiones</div>
+                        <div class="nav-link sub" onclick="setMechTab('ambience'); showTab('mechanics')">🌍 Ambiente</div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
+                    <div class="nav-folder" onclick="toggleFolder('folder-market'); showTab('ammo')">💎 Mercado <span class="chevron">▶</span></div>
                     <div id="folder-market" class="folder-content">
                         <div class="nav-link sub" onclick="toggleFolder('subfolder-ammo'); setAmmoTab('laser'); showTab('ammo')">📦 Municiones <span class="chevron">▶</span></div>
                         <div id="subfolder-ammo" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
@@ -149,21 +168,6 @@
 
                 <div class="nav-group">
                     <div class="nav-link" id="nav-skills" onclick="showTab('skills')">🌀 Habilidades</div>
-                    <div class="nav-folder" onclick="toggleFolder('folder-mechanics'); showTab('mechanics')">⚙️ Mecánicas <span class="chevron">▼</span></div>
-                    <div id="folder-mechanics" class="folder-content">
-                        <div class="nav-link sub" onclick="setMechTab('attack'); showTab('mechanics')">⚔️ Ataque</div>
-                        <div class="nav-link sub" onclick="setMechTab('defense'); showTab('mechanics')">🛡️ Defensa</div>
-                        <div class="nav-link sub" onclick="setMechTab('movement'); showTab('mechanics')">🏃 Movimiento</div>
-                        <div class="nav-link sub" onclick="setMechTab('ammo'); showTab('mechanics')">📦 Municiones</div>
-                        <div class="nav-link sub" onclick="setMechTab('ambience'); showTab('mechanics')">🌍 Ambiente</div>
-                    </div>
-                </div>
-                
-                <div class="nav-group">
-                    <div class="nav-folder" onclick="toggleFolder('folder-maps'); showTab('maps')">🗺️ Cartografía <span class="chevron">▶</span></div>
-                    <div id="folder-maps" class="folder-content">
-                        <div id="sidebar-maps-list"></div>
-                    </div>
                 </div>
 
                 <div class="nav-group">
@@ -194,6 +198,30 @@
 
             <div id="view-ships" class="view active">
                 <div id="ships-grid" class="grid"></div>
+            </div>
+
+            <div id="view-pilot" class="view">
+                <div id="pilot-config-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                    <!-- Configuración de Recursos y Despliegue -->
+                </div>
+
+                <div class="card" style="width: 100%; margin-bottom: 2rem;">
+                    <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                        📦 MUNICIÓN INICIAL (TIER 1 - 6)
+                    </h3>
+                    <div id="starting-ammo-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem;">
+                        <!-- Columnas para Láser, Misil y Mina -->
+                    </div>
+                </div>
+
+                <div class="card" style="width: 100%;">
+                    <h3 style="color: var(--accent); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                        📈 CURVA DE PROGRESIÓN (EXP DEL 1 AL 30)
+                    </h3>
+                    <div id="exp-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px;">
+                        <!-- Inputs de EXP generados dinámicamente -->
+                    </div>
+                </div>
             </div>
 
             <div id="view-enemies" class="view">

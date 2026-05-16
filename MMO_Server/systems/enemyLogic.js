@@ -113,13 +113,21 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
 
                 memberSocket.emit('enemyKillSession', { hubs: shared_h, ohcu: shared_o, exp: shared_e, killer: killerSocketId });
 
-                let nextLevelExp = Math.floor(1000 * Math.pow(user.gameData.level, 1.5));
+                const getExpReq = (lvl) => {
+                    if (state.SERVER_CONFIG?.pilotConfig?.expRequirements) {
+                        const reqs = state.SERVER_CONFIG.pilotConfig.expRequirements;
+                        return reqs[lvl - 1] || Math.floor(1000 * Math.pow(lvl, 1.5));
+                    }
+                    return Math.floor(1000 * Math.pow(lvl, 1.5));
+                };
+
+                let nextLevelExp = getExpReq(user.gameData.level);
                 while (user.gameData.exp >= nextLevelExp && user.gameData.level < 100) {
                     user.gameData.exp -= nextLevelExp;
                     user.gameData.level++;
                     user.gameData.skillPoints++;
                     memberSocket.emit('gameNotification', { msg: `NIVEL ${user.gameData.level} ALCANZADO!`, type: 'success' });
-                    nextLevelExp = Math.floor(1000 * Math.pow(user.gameData.level, 1.5));
+                    nextLevelExp = getExpReq(user.gameData.level);
                 }
 
                 memP.hubs = user.gameData.hubs;

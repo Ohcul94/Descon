@@ -154,14 +154,18 @@ const handleUserLogin = async (socket, user, username) => {
         } catch (e) { console.error("Error obteniendo tag para login:", e); }
     }
 
+    const pc = state.SERVER_CONFIG?.pilotConfig || {};
+    const startShip = pc.startingShipId || 1;
+    const startZone = pc.startingMapId || 1;
+
     players[socket.id] = {
         id: dbId,
         socketId: socket.id,
         num: state.nextPlayerNum++,
         user: username,
         clanTag: clanTag, // v244.110: Siglas para el NameTag
-        x: user.gameData.lastPos?.x || (user.gameData.zone === 1 ? 1000 : 2000),
-        y: user.gameData.lastPos?.y || (user.gameData.zone === 1 ? 1000 : 2000),
+        x: user.gameData.lastPos?.x || (user.gameData.zone === startZone ? 1000 : 2000),
+        y: user.gameData.lastPos?.y || (user.gameData.zone === startZone ? 1000 : 2000),
         rotation: 0,
         hp: user.gameData.hp || baseHp,
         maxHp: baseHp,
@@ -176,18 +180,18 @@ const handleUserLogin = async (socket, user, username) => {
         },
         baseHp: baseHp,
         baseShield: baseSh,
-        ammo: user.gameData.ammo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
+        ammo: user.gameData.ammo || pc.startingAmmo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
         equipped: resolvedEquip,
         spheres: user.gameData.spheres,
         hudConfig: user.gameData.hudConfig || {},
         hudPositions: user.gameData.hudPositions || {},
         hudLayouts: user.gameData.hudLayouts || [], // v266.130: Slots múltiples
-        hubs: user.gameData.hubs || 0,
-        ohcu: user.gameData.ohcu || 0,
+        hubs: (user.gameData.hubs !== undefined) ? user.gameData.hubs : (pc.startingHubs || 0),
+        ohcu: (user.gameData.ohcu !== undefined) ? user.gameData.ohcu : (pc.startingOhcu || 0),
         exp: user.gameData.exp || 0,
         clanId: user.gameData.clanId, // v244.110: Mantener referencia para filtros de combate
-        currentShipId: user.gameData.currentShipId || 1,
-        zone: user.gameData.zone || 1,
+        currentShipId: user.gameData.currentShipId || startShip,
+        zone: user.gameData.zone || startZone,
         pvpEnabled: !!user.gameData.pvpEnabled,
         lastPos: { x: user.gameData.lastPos?.x || 2000, y: user.gameData.lastPos?.y || 2000 },
         lastPvpCombatTime: 0,
@@ -410,10 +414,29 @@ io.on('connection', (socket) => {
             // ENCRIPTACIÓN DE CONTRASEÑA (v35.0)
             const hashedPassword = await bcrypt.hash(data.password, 10);
 
+            const pc = state.SERVER_CONFIG?.pilotConfig || {};
+            const startShip = pc.startingShipId ?? 1;
+
             const newUser = new User({
                 username,
                 password: hashedPassword
             });
+
+            // v1.9: Aplicar configuración inicial desde Admin Panel
+            newUser.gameData.hubs = pc.startingHubs ?? 0;
+            newUser.gameData.ohcu = pc.startingOhcu ?? 0;
+            newUser.gameData.currentShipId = startShip;
+            newUser.gameData.zone = pc.startingMapId ?? 1;
+            newUser.gameData.ownedShips = [startShip];
+            
+            // v1.9.1: Aplicar munición inicial
+            if (pc.startingAmmo) {
+                newUser.gameData.ammo = JSON.parse(JSON.stringify(pc.startingAmmo));
+            }
+            
+            // Inicializar equipamiento por nave para la nave inicial
+            if (!newUser.gameData.equippedByShip) newUser.gameData.equippedByShip = new Map();
+            newUser.gameData.equippedByShip.set(String(startShip), { w: [], s: [], e: [], x: [] });
 
             await newUser.save();
             socket.emit('authSuccess', { user: username, msg: '¡Identidad blindada y grabada en la Galaxia!' });

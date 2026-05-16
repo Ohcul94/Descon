@@ -6,6 +6,7 @@ function refreshCurrentTab() {
         'ships': renderShips, 'enemies': renderEnemies, 'ammo': renderAmmo, 'weapons': renderWeapons, 
         'shields': renderShields, 'engines': renderEngines, 'skills': renderSkills, 
         'mechanics': renderMechanicsLib, 'maps': renderMaps, 'users': renderRegisteredUsers,
+        'pilot': renderPilot,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions())
     };
     if(renderMap[tabId]) renderMap[tabId]();
@@ -15,6 +16,7 @@ function renderAll() {
     if(!config) return;
     renderShips(); renderEnemies(); renderSkills(); renderMechanicsLib();
     renderMaps(); renderAmmo(); renderWeapons(); renderShields(); renderEngines();
+    renderPilot();
 }
 
 function renderAmmo() {
@@ -844,4 +846,91 @@ function renderRegisteredUsers(data) {
         `;
         list.appendChild(row);
     });
+}
+
+function renderPilot() {
+    if (!config.pilotConfig) {
+        config.pilotConfig = {
+            startingHubs: 0,
+            startingOhcu: 0,
+            startingShipId: 1,
+            startingMapId: 1,
+            expRequirements: Array(30).fill(0).map((_, i) => (i + 1) * 1000)
+        };
+    }
+    
+    const container = document.getElementById('pilot-config-container');
+    if(!container) return;
+    
+    container.innerHTML = `
+        <div class="card">
+            <h4 style="color:var(--primary); margin-bottom:1rem;">💰 RECURSOS INICIALES</h4>
+            <div class="form-grid">
+                <div class="field"><label>Hubs Iniciales</label><input type="number" value="${config.pilotConfig.startingHubs}" onchange="config.pilotConfig.startingHubs = parseInt(this.value)"></div>
+                <div class="field"><label>Ohcu Iniciales</label><input type="number" value="${config.pilotConfig.startingOhcu}" onchange="config.pilotConfig.startingOhcu = parseInt(this.value)"></div>
+            </div>
+        </div>
+        <div class="card">
+            <h4 style="color:var(--accent); margin-bottom:1rem;">🚀 DESPLIEGUE INICIAL</h4>
+            <div class="form-grid">
+                <div class="field"><label>Nave de Nacimiento</label>
+                    <select onchange="config.pilotConfig.startingShipId = parseInt(this.value)">
+                        ${config.shipModels.map(s => `<option value="${s.id}" ${config.pilotConfig.startingShipId == s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="field"><label>Mapa de Nacimiento</label>
+                    <select onchange="config.pilotConfig.startingMapId = parseInt(this.value)">
+                        ${Object.keys(config.mapsConfig).map(id => `<option value="${id}" ${config.pilotConfig.startingMapId == id ? 'selected' : ''}>${config.mapsConfig[id].name}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // v1.9.1: Render Ammo Grid
+    const ammoGrid = document.getElementById('starting-ammo-grid');
+    if(ammoGrid) {
+        if(!config.pilotConfig.startingAmmo) {
+            config.pilotConfig.startingAmmo = {
+                laser: [1000, 0, 0, 0, 0, 0],
+                missile: [50, 0, 0, 0, 0, 0],
+                mine: [10, 0, 0, 0, 0, 0]
+            };
+        }
+        
+        const types = [
+            { id: 'laser', name: '🔦 LÁSERES', color: '#31dfff' },
+            { id: 'missile', name: '🚀 MISILES', color: '#ff5500' },
+            { id: 'mine', name: '💣 MINAS', color: '#ffe031' }
+        ];
+        
+        ammoGrid.innerHTML = types.map(t => `
+            <div class="ammo-col">
+                <h5 style="color:${t.color}; margin-bottom:1rem; border-bottom:1px solid ${t.color}33; padding-bottom:5px;">${t.name}</h5>
+                ${[0,1,2,3,4,5].map(tier => `
+                    <div class="field" style="margin-bottom:10px;">
+                        <label style="font-size:0.7rem;">Tier ${tier + 1}</label>
+                        <input type="number" value="${config.pilotConfig.startingAmmo[t.id][tier]}" 
+                               onchange="config.pilotConfig.startingAmmo['${t.id}'][${tier}] = parseInt(this.value)"
+                               style="border-color:${t.color}66; color:${t.color}; font-family:'JetBrains Mono';">
+                    </div>
+                `).join('')}
+            </div>
+        `).join('');
+    }
+
+    const expGrid = document.getElementById('exp-grid');
+    if(!expGrid) return;
+    expGrid.innerHTML = '';
+    for (let i = 0; i < 30; i++) {
+        const field = document.createElement('div');
+        field.className = 'field';
+        field.innerHTML = `
+            <label>Nivel ${i + 1} <span style="opacity:0.5; font-size:0.6rem;">(EXP Requerida)</span></label>
+            <input type="number" value="${config.pilotConfig.expRequirements[i] || 0}" 
+                   onchange="config.pilotConfig.expRequirements[${i}] = parseInt(this.value)"
+                   style="font-family:'JetBrains Mono'; font-weight:bold; color:var(--primary); font-size: 1.1rem;">
+        `;
+        expGrid.appendChild(field);
+    }
 }

@@ -36,7 +36,8 @@ function showTab(tabId) {
         'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema',
         'sessions': 'Auditoría de Sesiones Estelares',
         'users': 'Gestión de Pilotos Registrados',
-        'enemy-detail': 'Editor de Entidad', 'map-detail': 'Configuración de Zona'
+        'enemy-detail': 'Editor de Entidad', 'map-detail': 'Configuración de Zona',
+        'pilot': 'Perfil Maestro del Piloto'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
     
@@ -115,6 +116,21 @@ function connect() {
         document.getElementById('conn-text').innerText = "ONLINE: " + user.toUpperCase();
         if(data.adminConfig) { 
             config = data.adminConfig; 
+            // v1.9: Inicializar configuración de piloto si es nueva
+            if (!config.pilotConfig) {
+                config.pilotConfig = {
+                    startingHubs: 0,
+                    startingOhcu: 0,
+                    startingShipId: 1,
+                    startingMapId: 1,
+                    startingAmmo: {
+                        laser: [1000, 0, 0, 0, 0, 0],
+                        missile: [50, 0, 0, 0, 0, 0],
+                        mine: [10, 0, 0, 0, 0, 0]
+                    },
+                    expRequirements: Array(30).fill(0).map((_, i) => (i + 1) * 1000)
+                };
+            }
             patchMechanicsLib();
             renderAll(); 
         }
