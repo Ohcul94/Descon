@@ -25,6 +25,8 @@ const bcrypt = require('bcrypt'); // Criptografía Pro v35.0
 const { getClanDataPayload, registerClanHandlers } = require('./events/clanHandlers');
 const { registerCombatHandlers } = require('./systems/combatHandlers');
 const { registerInventoryHandlers } = require('./systems/inventoryHandlers');
+const { registerTradeHandlers } = require('./systems/tradeHandlers');
+
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
 const HordeManager = require('./events/HordeManager');
@@ -462,17 +464,31 @@ io.on('connection', (socket) => {
         }
     });
 
-    // v164.10: CONSULTA DE INVENTARIO (Sincronía Godot F1)
+    // v164.10: CONSULTA DE INVENTARIO (Sincronía Godot F1 / Hangar)
     socket.on('getInventory', async () => {
-        if (!socket.dbUser) return;
         try {
-            const user = await User.findById(socket.dbUser._id);
+            // v300.185: Búsqueda robusta. Si dbUser falla, buscamos en el estado global de jugadores
+            var userId = socket.dbUser ? socket.dbUser._id : null;
+            if (!userId && state.players[socket.id]) {
+                userId = state.players[socket.id].dbId;
+            }
+            
+            console.log(`[SERVER-LOG] getInventory procesando para Socket: ${socket.id} | UserID: ${userId}`);
+            
+            if (!userId) {
+                console.log("[SERVER-LOG] ERROR: No se pudo identificar al usuario para este socket.");
+                return;
+            }
+
+            const user = await User.findById(userId);
             if (user) {
-                socket.dbUser = user;
+                socket.dbUser = user; // Re-sincronizar socket para futuras peticiones
                 const { getCategorizedInventory } = require('./systems/inventoryHandlers');
 
+                const invCount = user.gameData.inventory ? user.gameData.inventory.length : 0;
+                console.log(`[SERVER-LOG] Enviando ${invCount} items a Socket: ${socket.id}`);
+
                 // v263.000: MIGRACIÓN AUTOMÁTICA - Sincronizar equipped → equippedByShip
-                // Garantiza que la nave activa siempre tenga sus datos en el mapa por nave
                 const currentKey = String(user.gameData.currentShipId || 1);
                 const currentEquipped = user.gameData.equipped || { w: [], s: [], e: [], x: [] };
                 
@@ -482,7 +498,6 @@ io.on('connection', (socket) => {
                     needsSave = true;
                 }
                 
-                // Leer el mapa (Map o Object)
                 const eByShipObj = {};
                 if (user.gameData.equippedByShip instanceof Map) {
                     user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
@@ -490,7 +505,6 @@ io.on('connection', (socket) => {
                     Object.assign(eByShipObj, user.gameData.equippedByShip);
                 }
 
-                // Si la nave activa no tiene datos en el mapa, copiarlos desde equipped
                 const activeInMap = eByShipObj[currentKey];
                 const activeHasItems = currentEquipped && (
                     (currentEquipped.w && currentEquipped.w.length > 0) ||
@@ -505,15 +519,10 @@ io.on('connection', (socket) => {
 
                 if (activeHasItems && mapEmpty) {
                     eByShipObj[currentKey] = JSON.parse(JSON.stringify(currentEquipped));
-                    // Persistir en DB para que no se repita
-                    if (user.gameData.equippedByShip instanceof Map) {
-                        user.gameData.equippedByShip.set(currentKey, eByShipObj[currentKey]);
-                    } else {
-                        user.gameData.equippedByShip[currentKey] = eByShipObj[currentKey];
-                    }
+                    if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.set(currentKey, eByShipObj[currentKey]);
+                    else user.gameData.equippedByShip[currentKey] = eByShipObj[currentKey];
                     user.markModified('gameData.equippedByShip');
                     needsSave = true;
-                    Logger.debug('MIGRACIÓN', `Nave ${currentKey} de ${user.username}: equipamiento sincronizado al mapa.`);
                 }
 
                 if (needsSave) await user.save();
@@ -525,7 +534,6 @@ io.on('connection', (socket) => {
                         inventoryByCategory: getCategorizedInventory(user.gameData.inventory)
                     }
                 });
-                Logger.debug('SYNC', `Inventario sincronizado para ${user.username}. Naves en mapa: ${Object.keys(eByShipObj).join(', ')}`);
             }
         } catch (e) { console.error("Error en getInventory:", e); }
     });
@@ -784,7 +792,24 @@ io.on('connection', (socket) => {
     socket.on('chatMessage', (data) => {
         if (!players[socket.id]) return;
         const sender = players[socket.id].user;
-        const msg = data.msg.substring(0, 50); // Límite de 50 caracteres (v60.0)
+        const msg = data.msg.substring(0, 50);
+
+        // v300.080: COMANDOS DE CHAT
+        if (msg.toLowerCase().startsWith('/trade ')) {
+            const targetName = msg.substring(7).trim().toLowerCase();
+            const targetP = Object.values(state.players).find(p => p.user && p.user.toLowerCase() === targetName);
+            if (targetP) {
+                const targetId = Object.keys(state.players).find(k => state.players[k] === targetP);
+                const p1 = state.players[socket.id];
+                io.to(targetId).emit('tradeInvitationReceived', { fromId: socket.id, fromName: p1.user });
+                socket.emit('gameNotification', { msg: `INVITACIÓN ENVIADA A ${targetP.user.toUpperCase()}`, type: "info" });
+                return;
+            } else {
+                return socket.emit('chatMessage', { sender: 'SYSTEM', msg: `ERROR: Piloto '${targetName}' no encontrado.`, channel: 'global' });
+            }
+        }
+
+
 
         const responseData = {
             sender: sender,
@@ -819,6 +844,8 @@ io.on('connection', (socket) => {
 
     // v1.3: SISTEMA DE INVENTARIO Y ECONOMÍA - Modularizado en systems/inventoryHandlers.js
     registerInventoryHandlers(socket, io, state);
+    registerTradeHandlers(socket, io, state);
+
 
     // v220.81: TOGGLE PVP CONSENSUADO
     socket.on('togglePvP', async (enabled) => {

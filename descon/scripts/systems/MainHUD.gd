@@ -32,6 +32,8 @@ var active_slot_index: int = 0 # v266.300: Para mostrar cuál está en uso
 var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
 var _touch_registry: Dictionary = {} # v266.900: Registro para bypass de multitouch
 var _is_interference_ui_active: bool = false # v268.35
+var is_selecting_trade_target: bool = false # v300.080: Modo selección de trade
+
 
 
 func _ready():
@@ -159,6 +161,12 @@ func _ready():
 		# v268.35: Conexión de Interferencia
 		if not NetworkManager.interference_event.is_connected(_on_interference_event):
 			NetworkManager.interference_event.connect(_on_interference_event)
+
+		# v300.050: Conexiones de TRADE
+		if NetworkManager:
+			NetworkManager.trade_invitation_received.connect(_on_trade_invitation_received)
+			NetworkManager.trade_started.connect(_on_trade_started)
+
 
 	# v305.95: Aplicar Marcos Sci-Fi (Diseño Referencia Roja)
 	# _apply_sci_fi_frame(skills_hud) # Eliminado por petición del usuario
@@ -426,7 +434,33 @@ func _input(event: InputEvent):
 			get_viewport().set_input_as_handled()
 			return
 
+
+	# v300.090: CLIC PARA TRADE (Feedback Pro)
+	if is_selecting_trade_target:
+		if event is InputEventMouseButton and event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				var target = _get_entity_under_mouse()
+				if target:
+					var tid = target.get("entity_id") if target.has("entity_id") else target.name
+					NetworkManager.send_event("tradeInvite", tid)
+					notify("INVITACIÓN ENVIADA A " + target.name.to_upper(), "info")
+				else:
+					notify("SELECCIÓN CANCELADA", "warn")
+				_cancel_trade_selection()
+				get_viewport().set_input_as_handled()
+				return
+			elif event.button_index == MOUSE_BUTTON_RIGHT:
+				_cancel_trade_selection()
+				get_viewport().set_input_as_handled()
+				return
+		elif event.is_action_pressed("ui_cancel") or (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
+			_cancel_trade_selection()
+			get_viewport().set_input_as_handled()
+			return
+
+
 	# v2.7: Bloqueo de seguridad para ESC (Si hay algún menú de UI abierto)
+
 	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
 	for ui in ui_nodes:
 		if ui.visible: return
@@ -496,6 +530,18 @@ func _on_viewport_resize():
 		_apply_hud_data(data["hud_layout"], data.get("hud_config", {}))
 
 func _process(_delta):
+	# v300.250: Feedback visual para selección de Trade (Highlight)
+	if is_selecting_trade_target:
+		var target = _get_entity_under_mouse()
+		for p in get_tree().get_nodes_in_group("entities"):
+			if is_instance_valid(p) and not p.is_in_group("player") and p.has_method("set_target"): # Asumimos que si tiene set_target es una nave o similar
+				if p == target:
+					p.modulate = Color(0.5, 2.5, 4.0) 
+					p.scale = p.scale.lerp(Vector2(1.15, 1.15), 0.1)
+				else:
+					p.modulate = Color.WHITE
+					p.scale = p.scale.lerp(Vector2.ONE, 0.1)
+
 	var p_node = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(p_node) or p_node.get("is_dead") or p_node.get("entity_id") == "":
 		visible = false
@@ -1400,8 +1446,6 @@ func _create_esc_menu():
 		var requested_status = !_pvp_status
 		NetworkManager.send_event("togglePvP", requested_status)
 	)
-	vbox.add_child(pvp_btn)
-	
 	var config_btn = Button.new()
 	config_btn.text = "CONFIGURACIONES"
 	config_btn.pressed.connect(func():
@@ -1410,7 +1454,14 @@ func _create_esc_menu():
 	)
 	vbox.add_child(config_btn)
 	
+	var trade_btn = Button.new()
+	trade_btn.text = "INVITAR A COMERCIAR (CLIC)"
+	trade_btn.modulate = Color.CYAN
+	trade_btn.pressed.connect(_on_esc_trade_pressed)
+	vbox.add_child(trade_btn)
+	
 	var logout_btn = Button.new()
+
 	logout_btn.text = "CERRAR SESIÓN"
 	logout_btn.pressed.connect(func():
 		if NetworkManager:
@@ -2159,3 +2210,229 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 	
 	node.add_child(frame)
 	node.move_child(frame, 0)
+
+# v300.060: GESTIÓN DE TRADE
+func _on_trade_invitation_received(data):
+	# Limpiar modo selección si estaba activo
+	is_selecting_trade_target = false
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	
+	# data: { fromId, fromName }
+
+	var panel = Panel.new()
+	panel.custom_minimum_size = Vector2(300, 120)
+	panel.name = "TradeInvitePopup"
+	
+	# Estilo Sci-Fi
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0.05, 0.1, 0.9)
+	sb.border_width_left = 3; sb.border_color = Color.CYAN
+	sb.set_corner_radius_all(4)
+	panel.add_theme_stylebox_override("panel", sb)
+	
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 10)
+	panel.add_child(vbox)
+	
+	var title = Label.new()
+	title.text = "SOLICITUD DE COMERCIO"
+	title.add_theme_color_override("font_color", Color.CYAN)
+	title.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(title)
+	
+	var info = Label.new()
+	info.text = data.fromName.to_upper() + " quiere comerciar."
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(info)
+	
+	var hbox = HBoxContainer.new()
+	hbox.alignment = BoxContainer.ALIGNMENT_END
+	vbox.add_child(hbox)
+	
+	var btn_acc = Button.new()
+	btn_acc.text = "ACEPTAR"
+	btn_acc.modulate = Color.GREEN
+	btn_acc.pressed.connect(func():
+		NetworkManager.send_event("tradeAcceptInvite", data.fromId)
+		panel.queue_free()
+	)
+	hbox.add_child(btn_acc)
+	
+	var btn_rej = Button.new()
+	btn_rej.text = "RECHAZAR"
+	btn_rej.modulate = Color.RED
+	btn_rej.pressed.connect(func(): panel.queue_free())
+	hbox.add_child(btn_rej)
+	
+	add_child(panel)
+	
+	# Animación de entrada centrada (v300.130)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	panel.pivot_offset = panel.custom_minimum_size / 2.0
+	panel.scale = Vector2.ZERO
+	
+	var tw = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(panel, "scale", Vector2.ONE, 0.4)
+	
+	# Auto-destrucción tras 5 segundos (por pedido del usuario)
+	await get_tree().create_timer(5.0).timeout
+	if is_instance_valid(panel):
+		var tw2 = create_tween()
+		tw2.tween_property(panel, "scale", Vector2.ZERO, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		tw2.finished.connect(panel.queue_free)
+
+
+
+func _on_trade_started(data):
+	# v300.180: Limpieza preventiva para evitar duplicados
+	var old = get_node_or_null("TradeHUD")
+	if old: 
+		print("[TRADE-DEBUG] Eliminando instancia vieja de TradeHUD")
+		old.queue_free()
+
+	var trade_scene = load("res://scripts/ui/TradeHUD.gd")
+	if trade_scene:
+		var trade_hud = CanvasLayer.new()
+		trade_hud.name = "TradeHUD"
+		
+		# v300.181: Primero el script, luego construir la interfaz UNA SOLA VEZ
+		trade_hud.set_script(trade_scene)
+		_build_trade_ui_runtime(trade_hud)
+		add_child(trade_hud)
+		
+		trade_hud.setup(data)
+
+func _build_trade_ui_runtime(node):
+	var main_frame = Panel.new()
+	main_frame.name = "MainFrame"
+	node.add_child(main_frame)
+	
+	# --- SISTEMA RESPONSIVO (v300.150) ---
+	# Ocupar el 80% de la pantalla proporcionalmente (del 10% al 90%)
+	main_frame.anchor_left = 0.1
+	main_frame.anchor_right = 0.9
+	main_frame.anchor_top = 0.1
+	main_frame.anchor_bottom = 0.9
+	# Los offsets en 0 aseguran que se mantenga exacto en las anclas
+	main_frame.offset_left = 0; main_frame.offset_right = 0
+	main_frame.offset_top = 0; main_frame.offset_bottom = 0
+	
+	# Estilo Sci-Fi Premium
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0.05, 0.1, 0.95)
+	sb.border_width_left = 2; sb.border_width_top = 2
+	sb.border_width_right = 2; sb.border_width_bottom = 2
+	sb.border_color = Color.CYAN; sb.set_corner_radius_all(10)
+	main_frame.add_theme_stylebox_override("panel", sb)
+	
+	var layout = VBoxContainer.new()
+	layout.name = "ContentLayout"
+	layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 15)
+	main_frame.add_child(layout)
+	
+	# Header
+	var header = HBoxContainer.new()
+	header.name = "Header"
+	var partner_lbl = Label.new()
+	partner_lbl.name = "PartnerName"
+	partner_lbl.text = "SISTEMA DE COMERCIO INTERGALÁCTICO"
+	partner_lbl.add_theme_color_override("font_color", Color.CYAN)
+	partner_lbl.add_theme_font_size_override("font_size", 18)
+	header.add_child(partner_lbl)
+	
+	var spacer = Control.new(); spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL; header.add_child(spacer)
+	
+	var close_btn = Button.new(); close_btn.name = "CloseButton"; close_btn.text = " X "; header.add_child(close_btn)
+	# v306.90: Conexión dura de la X, para asegurar el cierre al margen del script adosado.
+	close_btn.pressed.connect(func():
+		if NetworkManager: NetworkManager.send_event("tradeCancel", {})
+		node.queue_free()
+	)
+	
+	layout.add_child(header)
+	layout.add_child(HSeparator.new())
+	
+	# --- GRID DE 4 COLUMNAS (ADAPTATIVO) ---
+	var columns_container = HBoxContainer.new()
+	columns_container.name = "Columns"
+	columns_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	columns_container.add_theme_constant_override("separation", 15)
+	layout.add_child(columns_container)
+	
+	var col_names = ["TU OFERTA", "SU OFERTA", "BODEGA", "EQUIPADO"]
+	var col_ids = ["MySide", "PartnerSide", "InventorySide", "EquippedSide"]
+	
+	for i in range(4):
+		var col = VBoxContainer.new()
+		col.name = col_ids[i]
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.size_flags_vertical = Control.SIZE_EXPAND_FILL # v300.170: Expansión vertical crítica
+		
+		var title = Label.new()
+		title.text = col_names[i]
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.add_theme_color_override("font_color", Color.AQUA)
+		col.add_child(title)
+		
+		var scroll = ScrollContainer.new()
+		scroll.name = "ScrollContainer" 
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL # v300.210: FIX CRÍTICO DE ANCHO 0
+		col.add_child(scroll)
+		
+		var grid = GridContainer.new()
+		grid.name = "OfferGrid" if i < 2 else ("InventoryGrid" if i == 2 else "EquippedGrid")
+		grid.columns = 3 # Se adapta al ancho disponible
+		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.add_child(grid)
+		
+		columns_container.add_child(col)
+		if i < 3: columns_container.add_child(VSeparator.new())
+	
+	# Footer
+	var footer = HBoxContainer.new()
+	footer.name = "Footer"
+	footer.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_child(HSeparator.new())
+	
+	var status = Label.new(); status.name = "StatusLabel"; status.text = "NEGOCIANDO..."; footer.add_child(status)
+	var f_spacer = Control.new(); f_spacer.custom_minimum_size.x = 50; footer.add_child(f_spacer)
+	
+	var confirm = Button.new()
+	confirm.name = "ConfirmButton"
+	confirm.text = "CONFIRMAR OFERTA"
+	confirm.custom_minimum_size = Vector2(200, 45) # Tamaño mínimo pero puede crecer
+	confirm.modulate = Color.CYAN
+	footer.add_child(confirm)
+	layout.add_child(footer)
+
+# --- v300.280: FUNCIONES DE SOPORTE TRADE ---
+func _on_esc_trade_pressed():
+	_close_esc_menu()
+	is_selecting_trade_target = true
+	Input.set_default_cursor_shape(Input.CURSOR_CROSS)
+	notify("MODO COMERCIO: SELECCIONA UN PILOTO", "info")
+
+func _cancel_trade_selection():
+	is_selecting_trade_target = false
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	for p in get_tree().get_nodes_in_group("entities"):
+		if is_instance_valid(p) and not p.is_in_group("player"):
+			p.modulate = Color.WHITE
+			p.scale = Vector2.ONE
+
+func _close_esc_menu():
+	if is_instance_valid(_esc_menu): _esc_menu.visible = false
+
+func _get_entity_under_mouse():
+	var m_pos = get_global_mouse_position()
+	var best_dist = 100.0 # Rango de detección generoso
+	var best_target = null
+	
+	for p in get_tree().get_nodes_in_group("entities"):
+		if is_instance_valid(p) and not p.is_in_group("player"):
+			var d = m_pos.distance_to(p.global_position)
+			if d < best_dist:
+				best_dist = d
+				best_target = p
+	return best_target

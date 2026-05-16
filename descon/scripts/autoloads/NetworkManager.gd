@@ -54,6 +54,13 @@ signal interference_event(data) # v268.30
 signal freeze_event(data) # v268.40
 signal ship_equip_data(data)
 signal environment_damaged(data) # v266.350: Daño Ambiental
+signal trade_invitation_received(data) # v300.100
+signal trade_started(data)
+signal trade_partner_update(data)
+signal trade_partner_ready(data)
+signal trade_success(data)
+signal trade_cancelled(data)
+
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
@@ -284,6 +291,13 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"pong_custom":
 			current_ms = int(Time.get_ticks_msec() - ping_start_time)
 			send_event("latencyUpdate", current_ms)
+		"tradeInvitationReceived": trade_invitation_received.emit(e_data)
+		"tradeStarted": trade_started.emit(e_data)
+		"tradePartnerUpdate": trade_partner_update.emit(e_data)
+		"tradePartnerReady": trade_partner_ready.emit(e_data)
+		"tradeSuccess": trade_success.emit(e_data)
+		"tradeCancelled": trade_cancelled.emit(e_data)
+
 
 func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_updated"):
 	# v167.96: No normalizar agresivamente. Confiar en el 'id' del objeto si existe.
