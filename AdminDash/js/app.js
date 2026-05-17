@@ -24,6 +24,8 @@ function showTab(tabId) {
     
     // Limpiar clases active de todos los links principales de primer nivel
     document.querySelectorAll('.nav-link:not(.sub)').forEach(b => b.classList.remove('active'));
+    // Limpiar clases active de todas las carpetas del menú
+    document.querySelectorAll('.nav-folder').forEach(f => f.classList.remove('active'));
     
     const view = document.getElementById('view-' + tabId);
     if(view) view.classList.add('active');
@@ -31,6 +33,26 @@ function showTab(tabId) {
     // Resaltar link principal si existe y NO es un sub-enlace
     const sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('${tabId}')"]:not(.sub)`);
     if(sidebarLink) sidebarLink.classList.add('active');
+
+    // Mapeo inteligente y dinámico de carpetas (nav-folder) activas según el tab actual
+    const folderMapping = {
+        'maps': 'folder-maps', 'map-detail': 'folder-maps',
+        'enemies': 'folder-enemies', 'enemy-detail': 'folder-enemies',
+        'mechanics': 'folder-mechanics',
+        'ammo': 'folder-market', 'weapons': 'folder-market', 'shields': 'folder-market', 'engines': 'folder-market',
+        'skills': 'folder-skills',
+        'modes': 'folder-modes'
+    };
+    const parentFolderId = folderMapping[tabId];
+    if (parentFolderId) {
+        const folderEl = document.getElementById(parentFolderId);
+        if (folderEl) {
+            const folderHeader = folderEl.previousElementSibling;
+            if (folderHeader && folderHeader.classList.contains('nav-folder')) {
+                folderHeader.classList.add('active');
+            }
+        }
+    }
     
     const titles = { 
         'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas', 
