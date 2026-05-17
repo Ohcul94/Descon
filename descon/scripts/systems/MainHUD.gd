@@ -328,46 +328,25 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			if rx <= 2.0 and ry <= 2.0:
 				final_pos = Vector2(rx * screen_size.x, ry * screen_size.y)
 			else:
-				# Detección inteligente de cuadrante responsivo para anclaje Sci-Fi exacto
-				if rx > 640.0:
-					# Anclado a la derecha de la pantalla (evita flotar o salirse)
-					var dist_right = 1280.0 - rx
-					final_pos.x = screen_size.x - dist_right
-				else:
-					# Anclado a la izquierda
-					final_pos.x = rx * (screen_size.x / 1280.0)
-				
-				if ry > 400.0:
-					# Anclado abajo
-					var dist_bottom = 800.0 - ry
-					final_pos.y = screen_size.y - dist_bottom
-				else:
-					# Anclado arriba
-					final_pos.y = ry * (screen_size.y / 800.0)
-					
-			# Corrección de tamaño real de nodo dinámico (soporte combined minimum size)
-			var raw_size = node.size
-			if raw_size.x <= 0:
-				raw_size = node.get_combined_minimum_size()
-			if raw_size.x <= 0:
-				raw_size = Vector2(250, 80) # Tamaño seguro estándar para Stats/HUD
-				
-			# Ajustar pivot_offset de forma responsiva al cuadrante para evitar recortes al escalar
-			if rx > 640.0:
-				# Si está a la derecha, el pivote se ancla a la derecha (evita salirse de la pantalla física)
-				node.pivot_offset = Vector2(raw_size.x, 0) if ry <= 400.0 else Vector2(raw_size.x, raw_size.y)
-			else:
-				# Si está a la izquierda, el pivote se ancla a la izquierda
-				node.pivot_offset = Vector2(0, 0) if ry <= 400.0 else Vector2(0, raw_size.y)
-
+				var scale_x = screen_size.x / 1280.0
+				var scale_y = screen_size.y / 800.0
+				final_pos = Vector2(rx * scale_x, ry * scale_y)
+			
 			var sc_val = float(pos_data.get("scale", 0.5))
 			var final_sc = sc_val * 2.0
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
+
+			var raw_size = node.size
+			if node.name == "CenterStats": raw_size = Vector2(250, 140)
+			elif node.name == "RadarWindow": raw_size = Vector2(220, 220)
+			elif "Chat" in node.name: raw_size = Vector2(320, 200)
+			elif "Party" in node.name: raw_size = Vector2(200, 80)
+			elif "ControlBar" in node.name: raw_size = Vector2(280, 45)
+			elif raw_size.x <= 0: raw_size = node.get_combined_minimum_size()
+			if raw_size.x <= 0: raw_size = Vector2(100, 100)
 				
 			var node_size = raw_size * node.scale
-			
-			# Clamp responsivo garantizado usando el tamaño escalado visual real
 			final_pos.x = clamp(final_pos.x, 0, screen_size.x - node_size.x)
 			final_pos.y = clamp(final_pos.y, 0, screen_size.y - node_size.y)
 			node.global_position = final_pos
@@ -1177,19 +1156,23 @@ func apply_layout_slot(index: int):
 		_restore_default_layout()
 
 func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
+	var screen_size = get_viewport_rect().size
+	var scale_x = 1280.0 / screen_size.x
+	var scale_y = 800.0 / screen_size.y
+
 	var layout = {}
 	if skills_hud:
 		layout["SkillsContainer"] = { 
-			"x": skills_hud.global_position.x, 
-			"y": skills_hud.global_position.y,
+			"x": skills_hud.global_position.x * scale_x, 
+			"y": skills_hud.global_position.y * scale_y,
 			"scale": skills_hud.scale.x / 2.0,
 			"alpha": skills_hud.modulate.a
 		}
 		for child in skills_hud.get_children():
 			if child.name == "DragOverlay": continue
 			layout[child.name] = { 
-				"x": child.global_position.x, 
-				"y": child.global_position.y,
+				"x": child.global_position.x * scale_x, 
+				"y": child.global_position.y * scale_y,
 				"scale": child.scale.x / 2.0,
 				"alpha": child.modulate.a
 			}
@@ -1198,8 +1181,8 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var win = _get_hud_node(win_id)
 		if win:
 			layout[win_id] = { 
-				"x": win.global_position.x, 
-				"y": win.global_position.y,
+				"x": win.global_position.x * scale_x, 
+				"y": win.global_position.y * scale_y,
 				"scale": win.scale.x / 2.0,
 				"alpha": win.modulate.a
 			}
@@ -1223,15 +1206,19 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 
 func _backup_layout():
 	_layout_backup.clear()
+	var screen_size = get_viewport_rect().size
+	var scale_x = 1280.0 / screen_size.x
+	var scale_y = 800.0 / screen_size.y
+
 	if skills_hud:
 		_layout_backup["SkillsContainer"] = { 
-			"x": skills_hud.global_position.x, "y": skills_hud.global_position.y,
+			"x": skills_hud.global_position.x * scale_x, "y": skills_hud.global_position.y * scale_y,
 			"scale": skills_hud.scale.x / 2.0, "alpha": skills_hud.modulate.a
 		}
 		for child in skills_hud.get_children():
 			if child is Control and child.name != "DragOverlay":
 				_layout_backup[child.name] = { 
-					"x": child.global_position.x, "y": child.global_position.y,
+					"x": child.global_position.x * scale_x, "y": child.global_position.y * scale_y,
 					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 				}
 	
@@ -1239,7 +1226,7 @@ func _backup_layout():
 		var win = _get_hud_node(win_id)
 		if win:
 			_layout_backup[win_id] = { 
-				"x": win.global_position.x, "y": win.global_position.y,
+				"x": win.global_position.x * scale_x, "y": win.global_position.y * scale_y,
 				"scale": win.scale.x / 2.0, "alpha": win.modulate.a
 			}
 
