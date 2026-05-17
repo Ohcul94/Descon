@@ -328,16 +328,38 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			if rx <= 2.0 and ry <= 2.0:
 				final_pos = Vector2(rx * screen_size.x, ry * screen_size.y)
 			else:
-				var scale_x = screen_size.x / 1280.0
-				var scale_y = screen_size.y / 800.0
-				final_pos = Vector2(rx * scale_x, ry * scale_y)
+				# Detección inteligente de cuadrante responsivo para anclaje Sci-Fi exacto
+				if rx > 640.0:
+					# Anclado a la derecha de la pantalla (evita flotar o salirse)
+					var dist_right = 1280.0 - rx
+					final_pos.x = screen_size.x - dist_right
+				else:
+					# Anclado a la izquierda
+					final_pos.x = rx * (screen_size.x / 1280.0)
+				
+				if ry > 400.0:
+					# Anclado abajo
+					var dist_bottom = 800.0 - ry
+					final_pos.y = screen_size.y - dist_bottom
+				else:
+					# Anclado arriba
+					final_pos.y = ry * (screen_size.y / 800.0)
 			
 			var sc_val = float(pos_data.get("scale", 0.5))
 			var final_sc = sc_val * 2.0
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var node_size = node.size * node.scale if node.size.x > 0 else Vector2(100, 100) * final_sc
+			# Corrección de tamaño real de nodo dinámico (soporte combined minimum size)
+			var raw_size = node.size
+			if raw_size.x <= 0:
+				raw_size = node.get_combined_minimum_size()
+			if raw_size.x <= 0:
+				raw_size = Vector2(250, 80) # Tamaño seguro estándar para Stats/HUD
+				
+			var node_size = raw_size * node.scale
+			
+			# Clamp para que nunca se dibuje fuera de la pantalla visible
 			final_pos.x = clamp(final_pos.x, 0, screen_size.x - node_size.x)
 			final_pos.y = clamp(final_pos.y, 0, screen_size.y - node_size.y)
 			node.global_position = final_pos
