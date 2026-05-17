@@ -20,8 +20,46 @@ module.exports = class BaseAI {
 
     update(grid, players, now, io) {
         const cfg = this.config;
-        
         if (!cfg) return;
+
+        // v3.0: Soporte de Leash Range (Rango de Retorno al Spawn)
+        if (this.enemy.startX === undefined) this.enemy.startX = this.enemy.x;
+        if (this.enemy.startY === undefined) this.enemy.startY = this.enemy.y;
+
+        const leashRange = Number(cfg.leashRange) || 0;
+        
+        // Verificar si se excedió el leashRange respecto al punto de spawn
+        if (leashRange > 0 && !this.enemy.returningToSpawn) {
+            const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
+            if (distFromSpawn > leashRange) {
+                this.enemy.returningToSpawn = true;
+                this.enemy.lastHitter = null; // Olvidar agresor
+                this.enemy.hp = this.enemy.maxHp; // Evasión completa estilo MMO
+                this.enemy.shield = this.enemy.maxShield;
+            }
+        }
+
+        // Si está regresando al spawn
+        if (this.enemy.returningToSpawn) {
+            const distToSpawn = Math.hypot(this.enemy.startX - this.enemy.x, this.enemy.startY - this.enemy.y);
+            if (distToSpawn < 50) {
+                this.enemy.returningToSpawn = false;
+                this.enemy.isMoving = false;
+            } else {
+                // Moverse hacia el punto de spawn
+                this.enemy.isMoving = true;
+                const angleToSpawn = Math.atan2(this.enemy.startY - this.enemy.y, this.enemy.startX - this.enemy.x);
+                const speed = this.getSpeed();
+                this.enemy.x += Math.cos(angleToSpawn) * speed;
+                this.enemy.y += Math.sin(angleToSpawn) * speed;
+                this.enemy.rotation = angleToSpawn + Math.PI / 2;
+                
+                // Regenerar stats rápidamente en el camino
+                this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * 0.05));
+                this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * 0.05));
+                return; // Omitir el resto de la IA de combate/agro
+            }
+        }
         
         // v269.195: PROCESAR DEFENSAS (Usar '|| 100' para manejar ceros del dashboard como 'siempre activo')
         const defMechanics = cfg.defenseMechanics || [];
@@ -188,8 +226,9 @@ module.exports = class BaseAI {
 
     getNearestPlayer(grid, players) {
         let closest = null;
-        // v266.999: Si hay Agresividad Extrema, el rango de visión es GLOBAL (50k px)
-        const visionRange = this.ambienceBoost ? 50000 : (this.enemy.isHorde ? 10000 : 800);
+        // v3.0: Rango de visión dinámico configurable desde el Panel de Admin
+        const configVision = this.config ? Number(this.config.visionRange) : 0;
+        const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy.isHorde ? 10000 : 800));
         let minDist = visionRange; 
         
         // v266.999: Búsqueda exhaustiva sin Grid si es extremo

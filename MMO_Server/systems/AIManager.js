@@ -66,6 +66,8 @@ class AIManager {
             isHorde,
             x: finalX,
             y: finalY,
+            startX: finalX,
+            startY: finalY,
             hp: initialHp,
             maxHp: initialHp,
             shield: initialShield,
