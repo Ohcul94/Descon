@@ -1413,7 +1413,24 @@ function renderModes() {
                 <!-- NIVEL 3: RADAR GLOBAL -->
                 <div class="card" style="margin:0;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                        <h4 style="color:var(--primary); margin:0;">🛰️ RADAR DE POSICIONAMIENTO GLOBAL</h4>
+                        <div style="display:flex; align-items:center; gap:20px;">
+                            <h4 style="color:var(--primary); margin:0;">🛰️ RADAR DE POSICIONAMIENTO GLOBAL</h4>
+                            <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); padding:4px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                                <label style="font-size:0.65rem; color:var(--accent); font-weight:bold; letter-spacing:1px; margin:0;">DIMENSIONES MUNDO (PX):</label>
+                                <div style="display:flex; align-items:center; gap:5px;">
+                                    <span style="font-size:0.65rem; opacity:0.6;">W:</span>
+                                    <input type="number" value="${config.gameModes.extraction.width || 10000}" 
+                                           onchange="config.gameModes.extraction.width = parseInt(this.value); renderModes();" 
+                                           style="width:70px; background:rgba(0,0,0,0.3); border:1px solid #333; color:white; font-size:0.75rem; text-align:center; padding:2px; border-radius:4px; font-weight:bold; font-family:'JetBrains Mono',monospace;">
+                                </div>
+                                <div style="display:flex; align-items:center; gap:5px; margin-left:10px;">
+                                    <span style="font-size:0.65rem; opacity:0.6;">H:</span>
+                                    <input type="number" value="${config.gameModes.extraction.height || 10000}" 
+                                           onchange="config.gameModes.extraction.height = parseInt(this.value); renderModes();" 
+                                           style="width:70px; background:rgba(0,0,0,0.3); border:1px solid #333; color:white; font-size:0.75rem; text-align:center; padding:2px; border-radius:4px; font-weight:bold; font-family:'JetBrains Mono',monospace;">
+                                </div>
+                            </div>
+                        </div>
                         <div style="display:flex; gap:10px;">
                             <button id="btn-radar-spawn" class="btn ${radarMode === 'spawn' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('spawn')">MODO SPAWN</button>
                             <button id="btn-radar-spawner" class="btn ${radarMode === 'spawner' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('spawner')">MODO AMENAZA</button>

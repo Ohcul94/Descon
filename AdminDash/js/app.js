@@ -787,7 +787,10 @@ function initRadar() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const container = document.getElementById('radar-container');
-    const scale = canvas.width / 10000;
+    
+    // Dimensiones dinámicas del mapa de extracción en píxeles (por defecto 10000)
+    const worldW = (config.gameModes && config.gameModes.extraction && config.gameModes.extraction.width) ? config.gameModes.extraction.width : 10000;
+    const worldH = (config.gameModes && config.gameModes.extraction && config.gameModes.extraction.height) ? config.gameModes.extraction.height : 10000;
     
     // Estado de arrastre
     let isDragging = false;
@@ -800,16 +803,16 @@ function initRadar() {
     window.addEventListener('resize', updateCanvasSize);
     updateCanvasSize();
 
-    // Convertir de coordenadas de mundo (10000) a coordenadas de canvas
+    // Convertir de coordenadas de mundo a coordenadas de canvas
     const worldToCanvas = (wx, wy) => ({
-        x: (wx / 10000) * canvas.width,
-        y: (wy / 10000) * canvas.height
+        x: (wx / worldW) * canvas.width,
+        y: (wy / worldH) * canvas.height
     });
 
     // Convertir de canvas a mundo
     const canvasToWorld = (cx, cy) => ({
-        wx: (cx / canvas.width) * 10000,
-        wy: (cy / canvas.height) * 10000
+        wx: (cx / canvas.width) * worldW,
+        wy: (cy / canvas.height) * worldH
     });
 
     canvas.onmousedown = (e) => {
@@ -930,7 +933,7 @@ function initRadar() {
         if (config.gameModes.extraction.spawnPoints) {
             config.gameModes.extraction.spawnPoints.forEach((p, idx) => {
                 const pos = worldToCanvas(p.x, p.y);
-                const radiusCanvas = (p.radius / 10000) * canvas.width;
+                const radiusCanvas = (p.radius / worldW) * canvas.width;
                 const isSelected = isDragging && dragItem && dragItem.type === 'spawn' && dragItem.index === idx;
 
                 // Burbuja (Dashed)
@@ -1018,7 +1021,7 @@ function initRadar() {
         spawners.forEach((s, idx) => {
             const pos = worldToCanvas(s.x, s.y);
             const isSelected = isDragging && dragItem && dragItem.type === 'spawner' && dragItem.index === idx;
-            const radiusCanvas = (s.radius / 10000) * canvas.width;
+            const radiusCanvas = (s.radius / worldW) * canvas.width;
 
             // Anillo de Enfoque Palpitante Interactivo (Cian)
             const isFocused = focusedRadarItem && focusedRadarItem.type === 'spawner' && focusedRadarItem.index === idx;
