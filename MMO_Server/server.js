@@ -15,6 +15,17 @@ const fs = require('fs-extra');
 const mongoose = require('mongoose');
 const Logger = require('./utils/logger');
 
+const normalizeZone = (z) => {
+    if (z === undefined || z === null) return 1;
+    if (typeof z === 'string') {
+        if (!isNaN(z) && z.trim() !== '') {
+            return Number(z);
+        }
+        return z;
+    }
+    return z;
+};
+
 // Modelos y Módulos de Seguridad
 const User = require('./models/User');
 const Session = require('./models/Session'); // v302.8: Auditoría de Sesiones
@@ -790,7 +801,41 @@ io.on('connection', (socket) => {
 
         socket.emit('changeZoneDone', newZone);
         socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
-        io.to(`zone_${newZone}`).emit('newPlayer', { ...p, id: socket.id });
+        socket.to(`zone_${newZone}`).emit('newPlayer', { ...p, id: socket.id, spheres: p.spheres });
+
+        // --- SYNC: Recopilar otros jugadores en la nueva zona ---
+        const currentPlayersInZone = {};
+        Object.keys(players).forEach(pId => {
+            const otherP = players[pId];
+            if (normalizeZone(otherP.zone) === normalizeZone(newZone) && pId !== socket.id) {
+                const { ai, ...cleanP } = otherP;
+                currentPlayersInZone[pId] = {
+                    ...cleanP,
+                    id: pId,
+                    zone: newZone,
+                    maxHp: otherP.maxHp || 2000,
+                    maxShield: otherP.maxShield || 1000,
+                    spheres: otherP.spheres || []
+                };
+            }
+        });
+
+        // --- SYNC: Recopilar enemigos en la nueva zona ---
+        const zoneEnemies = {};
+        Object.keys(enemies).forEach(eid => {
+            const e = enemies[eid];
+            if (normalizeZone(e.zone) === normalizeZone(newZone)) {
+                const { ai, ...cleanData } = e;
+                zoneEnemies[eid] = cleanData;
+            }
+        });
+
+        setTimeout(() => {
+            if (socket.connected) {
+                socket.emit('currentPlayers', currentPlayersInZone);
+                socket.emit('currentEnemies', zoneEnemies);
+            }
+        }, 300);
     });
 
     // v245.20: LISTENERS DE EVENTOS DE HORDAS
@@ -1194,12 +1239,12 @@ io.on('connection', (socket) => {
             const currentPlayersInZone = {};
             Object.keys(players).forEach(pId => {
                 const otherP = players[pId];
-                if (Number(otherP.zone) === Number(zoneId) && pId !== socket.id) {
+                if (normalizeZone(otherP.zone) === normalizeZone(zoneId) && pId !== socket.id) {
                     const { ai, ...cleanP } = otherP; // Evitar referencias circulares
                     currentPlayersInZone[pId] = {
                         ...cleanP,
                         id: pId,
-                        zone: Number(zoneId), // Asegurar que la zona es la correcta
+                        zone: zoneId, // Asegurar que la zona es la correcta
                         maxHp: otherP.maxHp || 2000,
                         maxShield: otherP.maxShield || 1000,
                         spheres: otherP.spheres || []
@@ -1219,7 +1264,7 @@ io.on('connection', (socket) => {
             // Sincronizar enemigos de la zona (inmediato, el cliente ya sabe manejarlos)
             const zoneEnemies = {};
             Object.keys(enemies).forEach(id => {
-                if (enemies[id].zone === zoneId) {
+                if (normalizeZone(enemies[id].zone) === normalizeZone(zoneId)) {
                     const { ai, ...cleanData } = enemies[id];
                     zoneEnemies[id] = cleanData;
                 }
