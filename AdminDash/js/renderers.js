@@ -188,20 +188,72 @@ function updateSidebar() {
 
     // Enemigos
     const baseSelectedId = selectedEnemyId ? selectedEnemyId.split('-')[0] : '';
+    const tiers = [
+        { suffix: '', label: 'Base (x1)' },
+        { suffix: '-A', label: 'Tier A (x2)' },
+        { suffix: '-B', label: 'Tier B (x3)' },
+        { suffix: '-C', label: 'Tier C (x4)' },
+        { suffix: '-D', label: 'Tier D (x5)' }
+    ];
+
     for(let id in config.enemyModels) {
-        if (id.includes('-')) continue; // Ocultar variantes sub-tier de la barra lateral
+        if (id.includes('-')) continue; // Ocultar variantes sub-tier de la iteración principal
         
         const en = config.enemyModels[id];
         const matches = en.name.toLowerCase().includes(searchTerm) || id.includes(searchTerm);
         if (!matches) continue;
 
-        const link = document.createElement('div');
-        link.className = 'nav-link sub ' + (baseSelectedId === id ? 'active' : '');
-        link.innerText = `${en.name || 'Enemigo '+id}`;
-        link.onclick = () => selectEnemy(id);
+        // Contenedor de grupo para el enemigo y sus variantes
+        const groupContainer = document.createElement('div');
+        groupContainer.className = 'enemy-group';
+        groupContainer.style.display = 'flex';
+        groupContainer.style.flexDirection = 'column';
+
+        // Enlace del Enemigo Base
+        const parentLink = document.createElement('div');
+        parentLink.className = 'nav-link sub ' + (baseSelectedId === id ? 'active' : '');
+        parentLink.innerText = `${en.name || 'Enemigo '+id}`;
+        parentLink.onclick = () => selectEnemy(id);
+        groupContainer.appendChild(parentLink);
+
+        // Si este enemigo está seleccionado (o alguno de sus sub-tiers), mostramos las variantes colapsables
+        if (baseSelectedId === id && parseInt(id) < 100) {
+            const subContainer = document.createElement('div');
+            subContainer.className = 'sub-tier-container';
+            subContainer.style.paddingLeft = '12px';
+            subContainer.style.display = 'flex';
+            subContainer.style.flexDirection = 'column';
+            subContainer.style.gap = '2px';
+            subContainer.style.marginTop = '2px';
+            subContainer.style.marginBottom = '6px';
+
+            tiers.forEach(t => {
+                const subId = `${id}${t.suffix}`;
+                const isSubActive = selectedEnemyId === subId;
+
+                const subLink = document.createElement('div');
+                subLink.className = 'nav-link sub-tier ' + (isSubActive ? 'active' : '');
+                subLink.innerText = `└ ${t.label}`;
+                subLink.style.fontSize = '0.72rem';
+                subLink.style.padding = '4px 8px';
+                subLink.style.opacity = isSubActive ? '1' : '0.6';
+                subLink.style.borderLeft = isSubActive ? '2px solid var(--accent)' : '1px dashed rgba(255,255,255,0.08)';
+                subLink.style.cursor = 'pointer';
+                subLink.style.transition = 'all 0.15s';
+                
+                subLink.onclick = (e) => {
+                    e.stopPropagation();
+                    selectEnemy(subId);
+                };
+
+                subContainer.appendChild(subLink);
+            });
+
+            groupContainer.appendChild(subContainer);
+        }
         
-        if (parseInt(id) < 100) enemyList.appendChild(link);
-        else bossList.appendChild(link);
+        if (parseInt(id) < 100) enemyList.appendChild(groupContainer);
+        else bossList.appendChild(groupContainer);
     }
 }
 
@@ -253,6 +305,7 @@ function renderEnemies() {
 }
 
 function renderEnemyDetail() {
+    updateSidebar();
     const MECHANICS_LIB = config.mechanicsLib || DEFAULT_MECHANICS_LIB;
     const MOVEMENT_LIB = config.movementLib || DEFAULT_MOVEMENT_LIB;
     const DEFENSE_LIB = config.defenseLib || DEFAULT_DEFENSE_LIB;
@@ -305,29 +358,7 @@ function renderEnemyDetail() {
     }
     if (!en.defenseMechanics) en.defenseMechanics = [];
 
-    let subTabsHtml = '';
-    if (baseId && parseInt(baseId) < 100) {
-        subTabsHtml = `
-            <div style="display: flex; gap: 10px; margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.6); padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); overflow-x: auto;">
-                ${tiers.map(t => {
-                    const tierId = `${baseId}${t.suffix}`;
-                    const isActive = selectedEnemyId === tierId;
-                    return `
-                        <button class="btn" style="flex: 1; padding: 10px 15px; font-size: 0.85rem; font-weight: bold; border-radius: 6px; 
-                                       background: ${isActive ? 'var(--accent)' : 'transparent'}; 
-                                       color: ${isActive ? '#000' : 'var(--text)'}; 
-                                       border: 1px solid ${isActive ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}; cursor: pointer; transition: all 0.2s;" 
-                                onclick="selectEnemy('${tierId}')">
-                            ${t.label}
-                        </button>
-                    `;
-                }).join('')}
-            </div>
-        `;
-    }
-
     container.innerHTML = `
-        ${subTabsHtml}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
             <div class="col">
                 <div class="card" style="width:100%; margin-bottom: 2rem;">
