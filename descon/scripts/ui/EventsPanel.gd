@@ -1,18 +1,22 @@
 extends Control
 
-# EventsPanel.gd (v1.1 - Sci-Fi Premium Aesthetic)
+# EventsPanel.gd (v1.2 - Modular Event Center)
 # Sincronizado con la estética del Hangar (F1)
 
 @onready var tabs = $Window/TabContainer
-@onready var extraction_tab = $Window/TabContainer/Extraction
-@onready var modes_tab = $Window/TabContainer/GameModes
-@onready var queue_btn = $Window/TabContainer/Extraction/QueueButton
-@onready var status_label = $Window/TabContainer/Extraction/StatusLabel
+@onready var hunt_tab = get_node_or_null("Window/TabContainer/Hunt")
+@onready var extraction_tab = get_node_or_null("Window/TabContainer/Extraction")
+@onready var arenas_tab = get_node_or_null("Window/TabContainer/Arenas")
+@onready var queue_btn = get_node_or_null("Window/TabContainer/Extraction/QueueButton")
+@onready var status_label = get_node_or_null("Window/TabContainer/Extraction/StatusLabel")
 
 var is_in_queue = false
 var is_open = false
 
 func _ready():
+	if tabs:
+		tabs.current_tab = 1 # v1.2: Mostrar Extracción (único construido) por defecto
+
 	add_to_group("events_ui")
 	add_to_group("inventory_ui") # v1.2: Tratar como panel principal
 	visible = false

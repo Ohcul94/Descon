@@ -37,28 +37,28 @@ offset_bottom = -15.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="GameModes" type="Control" parent="Window/TabContainer"]
+[node name="Hunt" type="Control" parent="Window/TabContainer"]
+visible = false
 layout_mode = 2
-name = "Modos de Juego"
+name = "Cacería"
 
-[node name="Label" type="Label" parent="Window/TabContainer/GameModes"]
+[node name="Label" type="Label" parent="Window/TabContainer/Hunt"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = -11.5
-offset_right = 100.0
-offset_bottom = 11.5
+offset_left = -150.0
+offset_top = -15.0
+offset_right = 150.0
+offset_bottom = 15.0
 grow_horizontal = 2
 grow_vertical = 2
-text = "Próximamente más eventos..."
+text = "PRÓXIMAMENTE: MODO CACERÍA"
 horizontal_alignment = 1
 
 [node name="Extraction" type="VBoxContainer" parent="Window/TabContainer"]
-visible = false
 layout_mode = 2
 name = "Extracción"
 alignment = 1
@@ -84,3 +84,24 @@ custom_minimum_size = Vector2(200, 50)
 layout_mode = 2
 size_flags_horizontal = 4
 text = "APLICAR EN COLA"
+
+[node name="Arenas" type="Control" parent="Window/TabContainer"]
+visible = false
+layout_mode = 2
+name = "Arenas"
+
+[node name="Label" type="Label" parent="Window/TabContainer/Arenas"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -15.0
+offset_right = 150.0
+offset_bottom = 15.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "PRÓXIMAMENTE: MODO ARENAS"
+horizontal_alignment = 1
