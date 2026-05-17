@@ -1326,7 +1326,7 @@ function renderModes() {
                         <h4 style="color:var(--accent); margin-bottom:1rem;">📍 SPAWN DE JUGADORES</h4>
                         <div style="display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto; padding-right:5px;">
                             ${(config.gameModes.extraction.spawnPoints || []).map((p, idx) => `
-                                <div id="card-spawn-${idx}" style="background:rgba(6,182,212,0.05); border:1px solid rgba(6,182,212,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease;">
+                                <div id="card-spawn-${idx}" onclick="highlightCard('spawn', ${idx})" style="background:rgba(6,182,212,0.05); border:1px solid rgba(6,182,212,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease; cursor:pointer;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                                         <input type="text" value="${p.label || 'Punto #'+(idx+1)}" onchange="config.gameModes.extraction.spawnPoints[${idx}].label = this.value" style="background:none; border:none; color:var(--accent); font-weight:bold; font-size:0.7rem; width:70%;">
                                         <button onclick="config.gameModes.extraction.spawnPoints.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
@@ -1346,7 +1346,7 @@ function renderModes() {
                         <h4 style="color:var(--primary); margin-bottom:1rem;">🛰️ PUNTOS DE ESCAPE</h4>
                         <div style="display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto; padding-right:5px;">
                             ${config.gameModes.extraction.extractPoints.map((p, idx) => `
-                                <div id="card-extract-${idx}" style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease;">
+                                <div id="card-extract-${idx}" onclick="highlightCard('extract', ${idx})" style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease; cursor:pointer;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                                         <input type="text" value="${p.label}" onchange="config.gameModes.extraction.extractPoints[${idx}].label = this.value" style="background:none; border:none; color:var(--primary); font-weight:bold; font-size:0.75rem; width:70%;">
                                         <button onclick="config.gameModes.extraction.extractPoints.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
@@ -1365,7 +1365,7 @@ function renderModes() {
                         <h4 style="color:var(--danger); margin-bottom:1rem;">👾 AMENAZAS DESPLEGADAS</h4>
                         <div style="display:flex; flex-direction:column; gap:10px; max-height:300px; overflow-y:auto; padding-right:5px;">
                             ${config.gameModes.extraction.spawners.map((s, idx) => `
-                                <div id="card-spawner-${idx}" style="background:rgba(255,49,49,0.05); border:1px solid rgba(255,49,49,0.2); border-radius:8px; padding:10px; overflow: visible; transition: all 0.3s ease;">
+                                <div id="card-spawner-${idx}" onclick="highlightCard('spawner', ${idx})" style="background:rgba(255,49,49,0.05); border:1px solid rgba(255,49,49,0.2); border-radius:8px; padding:10px; overflow: visible; transition: all 0.3s ease; cursor:pointer;">
                                     <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px; overflow: visible;">
                                         <div style="display:flex; justify-content:space-between; align-items:center;">
                                             <input type="text" value="${s.label || 'Zona '+ (idx+1)}" onchange="config.gameModes.extraction.spawners[${idx}].label = this.value; renderModes();" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:0.75rem; width:85%;">

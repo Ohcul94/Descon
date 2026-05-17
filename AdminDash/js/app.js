@@ -12,6 +12,7 @@ let selectedMapId = null;
 let currentSessionSubTab = 'online';
 let currentSessionPage = 0;
 let lastSessionsTotal = 0;
+let focusedRadarItem = null;
 
 let selectedDetailPlayer = null;
 let currentDetailPage = 0;
@@ -751,6 +752,7 @@ function setRadarMode(mode) {
 }
 
 function highlightCard(type, index) {
+    focusedRadarItem = { type, index };
     // Limpiar resaltados anteriores de cualquier tipo
     document.querySelectorAll('[id^="card-spawn-"], [id^="card-extract-"], [id^="card-spawner-"]').forEach(el => {
         el.style.boxShadow = 'none';
@@ -939,6 +941,24 @@ function initRadar() {
                 ctx.stroke();
                 ctx.setLineDash([]);
 
+                // Anillo de Enfoque Palpitante Interactivo (Cian)
+                const isFocused = focusedRadarItem && focusedRadarItem.type === 'spawn' && focusedRadarItem.index === idx;
+                if (isFocused) {
+                    const pulse = 4 + Math.sin(Date.now() / 150) * 3;
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, radiusCanvas + pulse, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+                    
+                    // Sombra interna del anillo
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, radiusCanvas + pulse - 2, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(6, 182, 212, 0.35)';
+                    ctx.lineWidth = 3.5;
+                    ctx.stroke();
+                }
+
                 // Punto
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
@@ -961,6 +981,24 @@ function initRadar() {
             const pos = worldToCanvas(p.x, p.y);
             const isSelected = isDragging && dragItem && dragItem.type === 'extract' && dragItem.index === idx;
             
+            // Anillo de Enfoque Palpitante Interactivo (Cian)
+            const isFocused = focusedRadarItem && focusedRadarItem.type === 'extract' && focusedRadarItem.index === idx;
+            if (isFocused) {
+                const pulse = 4 + Math.sin(Date.now() / 150) * 3;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 8 + pulse, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+                
+                // Sombra interna del anillo
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 8 + pulse - 2, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(6, 182, 212, 0.35)';
+                ctx.lineWidth = 3.5;
+                ctx.stroke();
+            }
+
             ctx.fillStyle = isSelected ? '#fff' : 'rgba(0, 210, 255, 0.3)';
             ctx.strokeStyle = '#00d2ff';
             ctx.lineWidth = 2;
@@ -981,6 +1019,24 @@ function initRadar() {
             const pos = worldToCanvas(s.x, s.y);
             const isSelected = isDragging && dragItem && dragItem.type === 'spawner' && dragItem.index === idx;
             const radiusCanvas = (s.radius / 10000) * canvas.width;
+
+            // Anillo de Enfoque Palpitante Interactivo (Cian)
+            const isFocused = focusedRadarItem && focusedRadarItem.type === 'spawner' && focusedRadarItem.index === idx;
+            if (isFocused) {
+                const pulse = 4 + Math.sin(Date.now() / 150) * 3;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radiusCanvas + pulse, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+                
+                // Sombra interna del anillo
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radiusCanvas + pulse - 2, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(6, 182, 212, 0.35)';
+                ctx.lineWidth = 3.5;
+                ctx.stroke();
+            }
 
             ctx.fillStyle = isSelected ? '#fff' : 'rgba(255, 49, 49, 0.1)';
             ctx.strokeStyle = '#ff3131';
