@@ -750,6 +750,36 @@ function setRadarMode(mode) {
     document.getElementById('radar-spawn-opts').style.display = mode === 'spawn' ? 'block' : 'none';
 }
 
+function highlightCard(type, index) {
+    // Limpiar resaltados anteriores de cualquier tipo
+    document.querySelectorAll('[id^="card-spawn-"], [id^="card-extract-"], [id^="card-spawner-"]').forEach(el => {
+        el.style.boxShadow = 'none';
+        el.style.borderColor = 'rgba(255,255,255,0.1)';
+        if (el.id.includes('spawn')) {
+            el.style.background = 'rgba(6,182,212,0.05)';
+            el.style.borderColor = 'rgba(6,182,212,0.2)';
+        } else if (el.id.includes('extract')) {
+            el.style.background = 'rgba(0,210,255,0.05)';
+            el.style.borderColor = 'rgba(0,210,255,0.2)';
+        } else {
+            el.style.background = 'rgba(255,49,49,0.05)';
+            el.style.borderColor = 'rgba(255,49,49,0.2)';
+        }
+    });
+
+    const cardId = `card-${type}-${index}`;
+    const card = document.getElementById(cardId);
+    if (card) {
+        // Darle un resplandor glow cian de alta gama y borde cian activo
+        card.style.borderColor = 'var(--accent)';
+        card.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.45)';
+        card.style.background = 'rgba(6, 182, 212, 0.08)';
+        
+        // Auto-scroll suave hasta que la tarjeta sea 100% visible en el listado colapsable
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
 function initRadar() {
     const canvas = document.getElementById('radar-canvas');
     if (!canvas) return;
@@ -794,6 +824,7 @@ function initRadar() {
                 isDragging = true;
                 dragItem = { type: 'extract', index: i };
                 canvas.style.cursor = 'grabbing';
+                highlightCard('extract', i);
                 return;
             }
         }
@@ -807,6 +838,7 @@ function initRadar() {
                 isDragging = true;
                 dragItem = { type: 'spawner', index: i };
                 canvas.style.cursor = 'grabbing';
+                highlightCard('spawner', i);
                 return;
             }
         }
@@ -820,6 +852,7 @@ function initRadar() {
                 isDragging = true;
                 dragItem = { type: 'spawn', index: i };
                 canvas.style.cursor = 'grabbing';
+                highlightCard('spawn', i);
                 return;
             }
         }
@@ -962,11 +995,11 @@ function initRadar() {
             ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
             ctx.fill();
 
-            // Etiqueta de Zona - Siempre por encima del radio
+            // Etiqueta de Zona - Siempre por encima del radio (Nombre Real o Correlativo)
             ctx.fillStyle = '#ff3131';
             ctx.font = 'bold 11px Outfit';
             ctx.textAlign = 'center';
-            ctx.fillText(s.label || 'Zona Enemiga', pos.x, pos.y - radiusCanvas - 6);
+            ctx.fillText(s.label || ('Zona ' + (idx + 1)), pos.x, pos.y - radiusCanvas - 6);
         });
 
         requestAnimationFrame(draw);
