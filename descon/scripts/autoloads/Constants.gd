@@ -8,8 +8,11 @@ func _ready():
 		NetworkManager.admin_config_updated.connect(_on_config_updated)
 		NetworkManager.config_updated.connect(_on_config_updated)
 
+var FULL_CONFIG = {}
+
 func _on_config_updated(config):
 	if typeof(config) != TYPE_DICTIONARY: return
+	FULL_CONFIG = config
 	
 	if config.has("shipModels"): SHIP_MODELS = config.shipModels
 	if config.has("enemyModels"): ENEMY_MODELS = config.enemyModels

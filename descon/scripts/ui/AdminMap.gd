@@ -59,15 +59,37 @@ func _draw():
 	draw_rect(map_rect, Color(0, 0.2, 0.3, 0.3))
 	draw_rect(map_rect, Color(0, 0.8, 1, 0.3), false, 1.0)
 	
-	var map_scale = (r_size.x / world_size) * zoom
+	# Obtener dimensiones dinámicas del mapa actual
+	var world_w: float = 10000.0
+	var world_h: float = 10000.0
 	
-	# Dibujar Grilla
-	var grid_step = 500.0 * map_scale
-	if grid_step > 5:
-		for i in range(1, int(world_size / 500.0)):
-			var d = i * grid_step
-			draw_line(r_pos + Vector2(d, 0), r_pos + Vector2(d, r_size.y), Color(1,1,1,0.05))
-			draw_line(r_pos + Vector2(0, d), r_pos + Vector2(r_size.x, d), Color(1,1,1,0.05))
+	var current_zone_id: String = "1"
+	var p_node = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(p_node) and "current_zone" in p_node:
+		current_zone_id = str(p_node.current_zone)
+	
+	if GameConstants.MAPS_CONFIG.has(current_zone_id):
+		var z_data = GameConstants.MAPS_CONFIG[current_zone_id]
+		if z_data.has("width") and float(z_data.width) > 0: world_w = float(z_data.width)
+		if z_data.has("height") and float(z_data.height) > 0: world_h = float(z_data.height)
+	elif current_zone_id == "10": # Modo Extracción
+		if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
+			var ext = GameConstants.FULL_CONFIG.gameModes.extraction
+			if ext.has("width") and float(ext.width) > 0: world_w = float(ext.width)
+			if ext.has("height") and float(ext.height) > 0: world_h = float(ext.height)
+	
+	var map_scale_x = (r_size.x / world_w) * zoom
+	var map_scale_y = (r_size.y / world_h) * zoom
+	
+	# Dibujar Grilla Dinámica (8x8 proporcional al tamaño real)
+	var grid_step_x = (world_w / 8.0) * map_scale_x
+	var grid_step_y = (world_h / 8.0) * map_scale_y
+	
+	for i in range(1, 8):
+		var dx = i * grid_step_x
+		var dy = i * grid_step_y
+		draw_line(r_pos + Vector2(dx, 0), r_pos + Vector2(dx, r_size.y), Color(1,1,1,0.03))
+		draw_line(r_pos + Vector2(0, dy), r_pos + Vector2(r_size.x, dy), Color(1,1,1,0.03))
 
 	# Dibujar Entidades
 	var entities = get_tree().get_nodes_in_group("entities")
@@ -75,9 +97,8 @@ func _draw():
 	for ent in entities:
 		if not is_instance_valid(ent) or ent.get("is_dead") == true: continue
 		
-		# Calcular posición relativa al mundo (Asumiendo 0,0 a WORLD_SIZE,WORLD_SIZE)
-		# Nota: En este juego parece que el mundo nace en 0,0 y va a 4000,4000
-		var pos = ent.global_position * map_scale
+		# Calcular posición relativa al mundo escalada en X e Y
+		var pos = Vector2(ent.global_position.x * map_scale_x, ent.global_position.y * map_scale_y)
 		var draw_p = r_pos + pos
 		
 		# Verificar que esté dentro del visualizador
