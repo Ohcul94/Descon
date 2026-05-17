@@ -1,3 +1,143 @@
+window.renderSearchableEnemySelect = function(currentValue, onChangeCallback, borderCSSColor = 'var(--success)', extraId = '') {
+    const currentEn = config.enemyModels[currentValue];
+    const currentName = currentEn ? `[ID ${currentValue}] ${currentEn.name}` : `ID ${currentValue}`;
+    const dropdownId = `dropdown-select-${extraId}`;
+    const inputId = `dropdown-search-${extraId}`;
+    const listId = `dropdown-list-${extraId}`;
+
+    // Programar la función de filtrado dinámico en la ventana global de forma única
+    window[`filterDropdown_${extraId}`] = function(query) {
+        const list = document.getElementById(listId);
+        if (!list) return;
+        list.innerHTML = '';
+        const q = query.toLowerCase();
+
+        for(let id in config.enemyModels) {
+            if (id.includes('-')) continue; // Ocultar sub-tiers del primer nivel
+            
+            const en = config.enemyModels[id];
+            const matches = en.name.toLowerCase().includes(q) || id.includes(q);
+            if (q && !matches) continue;
+            
+            const isBoss = parseInt(id) >= 100;
+            const row = document.createElement('div');
+            row.style.padding = '8px 12px';
+            row.style.cursor = 'pointer';
+            row.style.borderBottom = '1px solid rgba(255,255,255,0.02)';
+            row.style.display = 'flex';
+            row.style.flexDirection = 'column';
+            row.style.gap = '5px';
+            
+            row.onmouseenter = () => row.style.background = `${borderCSSColor}1a`;
+            row.onmouseleave = () => row.style.background = 'transparent';
+
+            const titleSpan = document.createElement('span');
+            titleSpan.innerHTML = `<strong>[ID ${id}]</strong> ${en.name}`;
+            titleSpan.style.color = isBoss ? 'var(--accent)' : borderCSSColor;
+            titleSpan.style.fontSize = '0.85rem';
+            row.appendChild(titleSpan);
+
+            if (isBoss) {
+                row.onclick = () => {
+                    onChangeCallback(id);
+                    document.getElementById(inputId).value = `[ID ${id}] ${en.name}`;
+                    list.style.display = 'none';
+                };
+            } else {
+                const tierContainer = document.createElement('div');
+                tierContainer.style.display = 'flex';
+                tierContainer.style.gap = '6px';
+                tierContainer.style.marginTop = '4px';
+                tierContainer.style.flexWrap = 'wrap';
+
+                const tiers = [
+                    { suffix: '', label: 'Base', val: id },
+                    { suffix: '-A', label: 'Tier A', val: `${id}-A` },
+                    { suffix: '-B', label: 'Tier B', val: `${id}-B` },
+                    { suffix: '-C', label: 'Tier C', val: `${id}-C` },
+                    { suffix: '-D', label: 'Tier D', val: `${id}-D` }
+                ];
+
+                tiers.forEach(t => {
+                    const enModel = config.enemyModels[t.val] || en;
+                    const tierName = enModel.name || `${en.name} ${t.label}`;
+                    
+                    const btn = document.createElement('button');
+                    btn.className = 'btn';
+                    btn.innerText = t.label;
+                    btn.style.padding = '3px 8px';
+                    btn.style.fontSize = '0.7rem';
+                    btn.style.background = `${borderCSSColor}26`;
+                    btn.style.border = `1px solid ${borderCSSColor}4d`;
+                    btn.style.color = 'var(--text)';
+                    btn.style.cursor = 'pointer';
+                    btn.style.borderRadius = '4px';
+                    btn.style.transition = 'all 0.15s';
+                    
+                    btn.onmouseenter = () => {
+                        btn.style.background = borderCSSColor;
+                        btn.style.color = '#000';
+                    };
+                    btn.onmouseleave = () => {
+                        btn.style.background = `${borderCSSColor}26`;
+                        btn.style.color = 'var(--text)';
+                    };
+
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        onChangeCallback(t.val);
+                        document.getElementById(inputId).value = `[ID ${t.val}] ${tierName}`;
+                        list.style.display = 'none';
+                    };
+
+                    tierContainer.appendChild(btn);
+                });
+
+                row.appendChild(tierContainer);
+            }
+            list.appendChild(row);
+        }
+
+        if (list.children.length === 0) {
+            const noResult = document.createElement('div');
+            noResult.innerText = 'No se encontraron enemigos';
+            noResult.style.padding = '10px';
+            noResult.style.color = '#888';
+            noResult.style.fontSize = '0.8rem';
+            list.appendChild(noResult);
+        }
+    };
+
+    // Agregamos un event listener global para cerrar este dropdown específico
+    document.addEventListener('click', function(e) {
+        const list = document.getElementById(listId);
+        const searchInput = document.getElementById(inputId);
+        if (list && searchInput && !list.contains(e.target) && e.target !== searchInput) {
+            list.style.display = 'none';
+        }
+    });
+
+    return `
+        <div style="position: relative; width: 100%; display: flex; flex-direction: column;">
+            <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                <input type="text" id="${inputId}" value="${currentName}" 
+                       placeholder="🔍 Escribí para filtrar enemigo..." 
+                       style="background:#0f172a; color:${borderCSSColor}; font-weight:bold; padding-right: 30px; border: 1px solid ${borderCSSColor}33; width: 100%; border-radius: 8px; outline: none;"
+                       onfocus="document.querySelectorAll('.folder-content[id^=dropdown-list-]').forEach(el=>el.style.display='none'); document.getElementById('${listId}').style.display = 'block'; window['filterDropdown_${extraId}'](this.value);"
+                       oninput="window['filterDropdown_${extraId}'](this.value);">
+                <span style="position: absolute; right: 10px; cursor: pointer; color: ${borderCSSColor}; font-size: 0.8rem;" 
+                      onclick="const el = document.getElementById('${listId}'); const cur = el.style.display; document.querySelectorAll('.folder-content[id^=dropdown-list-]').forEach(x=>x.style.display='none'); el.style.display = cur === 'block' ? 'none' : 'block';">▼</span>
+            </div>
+            
+            <div id="${listId}" class="folder-content" 
+                 style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 999999; 
+                        max-height: 250px; overflow-y: auto; background: #0f172a; border: 1px solid ${borderCSSColor}; 
+                        padding: 5px; box-shadow: 0 15px 30px rgba(0,0,0,0.6); margin-top: 5px; border-radius: 8px; width: 100%;">
+            </div>
+        </div>
+    `;
+};
+
 function refreshCurrentTab() {
     const active = document.querySelector('.view.active');
     if(!active) return;
@@ -713,7 +853,29 @@ function renderMapDetail() {
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--success); font-size: 0.8rem; font-weight:bold;">👾 ECOSISTEMA DE ENEMIGOS</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--success);" onclick="addMapSpawn('${selectedMapId}'); renderMapDetail();">+ AÑADIR ESPECIE</button></div>
                 <div id="spawns-list">
-                    ${(m.spawns || []).map((s, idx) => `<div class="card" style="margin-bottom:1rem; padding:1rem; position:relative; border-color: rgba(16, 185, 129, 0.2);"><div style="position:absolute; top:8px; right:8px;"><button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].spawns.splice(${idx},1); renderMapDetail();">✕</button></div><div class="form-grid"><div class="field" style="grid-column: span 2;"><label>Tipo de Enemigo</label><select style="background:#0f172a; color:var(--success); font-weight:bold;" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].type = this.value">${Object.keys(config.enemyModels).map(id => `<option value="${id}" ${s.type == id ? 'selected' : ''}>[ID ${id}] ${config.enemyModels[id].name}</option>`).join('')}</select></div><div class="field"><label>Cant. Máx</label><input type="number" value="${s.count}" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].count = parseInt(this.value)"></div><div class="field"><label>Intervalo (ms)</label><input type="number" value="${s.intervalMs}" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].intervalMs = parseInt(this.value)"></div></div></div>`).join('')}
+                    ${(m.spawns || []).map((s, idx) => `
+                        <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative; border-color: rgba(16, 185, 129, 0.2); overflow: visible;">
+                            <div style="position:absolute; top:8px; right:8px; z-index: 10;">
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].spawns.splice(${idx},1); renderMapDetail();">✕</button>
+                            </div>
+                            <div class="form-grid" style="overflow: visible;">
+                                <div class="field" style="grid-column: span 2; overflow: visible;">
+                                    <label>Tipo de Enemigo</label>
+                                    ${renderSearchableEnemySelect(s.type, (newId) => {
+                                        config.mapsConfig[selectedMapId].spawns[idx].type = newId;
+                                    }, 'var(--success)', `map-spawn-${idx}`)}
+                                </div>
+                                <div class="field">
+                                    <label>Cant. Máx</label>
+                                    <input type="number" value="${s.count}" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].count = parseInt(this.value)">
+                                </div>
+                                <div class="field">
+                                    <label>Intervalo (ms)</label>
+                                    <input type="number" value="${s.intervalMs}" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].intervalMs = parseInt(this.value)">
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         </div>
@@ -1203,15 +1365,18 @@ function renderModes() {
                         <h4 style="color:var(--danger); margin-bottom:1rem;">👾 AMENAZAS DESPLEGADAS</h4>
                         <div style="display:flex; flex-direction:column; gap:10px; max-height:300px; overflow-y:auto; padding-right:5px;">
                             ${config.gameModes.extraction.spawners.map((s, idx) => `
-                                <div style="background:rgba(255,49,49,0.05); border:1px solid rgba(255,49,49,0.2); border-radius:8px; padding:10px;">
-                                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px;">
+                                <div style="background:rgba(255,49,49,0.05); border:1px solid rgba(255,49,49,0.2); border-radius:8px; padding:10px; overflow: visible;">
+                                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px; overflow: visible;">
                                         <div style="display:flex; justify-content:space-between; align-items:center;">
                                             <input type="text" value="${s.label || 'Zona '+ (idx+1)}" onchange="config.gameModes.extraction.spawners[${idx}].label = this.value; renderModes();" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:0.75rem; width:85%;">
                                             <button onclick="config.gameModes.extraction.spawners.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
                                         </div>
-                                        <select onchange="config.gameModes.extraction.spawners[${idx}].enemyId = this.value; renderModes();" style="background:rgba(255,49,49,0.1); border:1px solid rgba(255,49,49,0.2); color:var(--danger); font-size:0.7rem; width:100%; padding:4px; border-radius:4px; cursor:pointer;">
-                                            ${Object.keys(config.enemyModels).map(id => `<option value="${id}" ${s.enemyId === id ? 'selected' : ''}>${config.enemyModels[id].name}</option>`).join('')}
-                                        </select>
+                                        <div style="overflow: visible; width: 100%;">
+                                            ${renderSearchableEnemySelect(s.enemyId, (newId) => {
+                                                config.gameModes.extraction.spawners[idx].enemyId = newId;
+                                                renderModes();
+                                            }, 'var(--danger)', `ext-spawn-${idx}`)}
+                                        </div>
                                     </div>
                                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
                                         <div class="field"><label>Cant.</label><input type="number" value="${s.count}" onchange="config.gameModes.extraction.spawners[${idx}].count = parseInt(this.value)"></div>
@@ -1261,8 +1426,8 @@ function renderModes() {
                             <canvas id="radar-canvas"></canvas>
                         </div>
                         
-                        <div style="display:flex; flex-direction:column; gap:15px; background:rgba(255,255,255,0.02); padding:25px; border-radius:10px;">
-                            <label style="color:var(--accent); font-size:0.85rem; margin-bottom:15px; display:block; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; font-weight:bold;">🛠️ HERRAMIENTA DE DESPLIEGUE</label>
+                        <div style="display:flex; flex-direction:column; gap:15px; background:rgba(255,255,255,0.02); padding:25px; border-radius:10px; overflow: visible;">
+                            <label style="color:var(--accent); font-size:0.85rem; margin-bottom:15px; display:block; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; font-weight:bold; overflow: visible;">🛠️ HERRAMIENTA DE DESPLIEGUE</label>
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                                 <div class="field"><label>Coord X</label><input type="number" id="radar-x" value="0"></div>
                                 <div class="field"><label>Coord Y</label><input type="number" id="radar-y" value="0"></div>
@@ -1271,12 +1436,14 @@ function renderModes() {
                                 <div class="field" style="margin-top:10px;"><label>Nombre</label><input type="text" id="radar-spawn-label" value="Punto Spawn"></div>
                                 <div class="field" style="margin-top:5px;"><label>Radio Burbuja</label><input type="number" id="radar-spawn-radius" value="500"></div>
                             </div>
-                            <div id="radar-spawner-opts" style="display:${radarMode === 'spawner' ? 'block' : 'none'}">
+                            <div id="radar-spawner-opts" style="display:${radarMode === 'spawner' ? 'block' : 'none'}; overflow: visible;">
                                 <div class="field" style="margin-top:10px;"><label>Nombre Zona</label><input type="text" id="radar-spawner-label" value="Zona de Amenaza"></div>
-                                <div class="field" style="margin-top:10px;"><label>Enemigo</label>
-                                    <select id="spawner-enemy-select" style="width:100%; font-size:0.8rem; background:#111; color:white; border:1px solid #333; padding:8px;">
-                                        ${Object.keys(config.enemyModels).map(id => `<option value="${id}">${config.enemyModels[id].name}</option>`).join('')}
-                                    </select>
+                                <div class="field" style="margin-top:10px; overflow: visible;">
+                                    <label>Enemigo</label>
+                                    <input type="hidden" id="spawner-enemy-select" value="${config.gameModes.extraction.spawners[0]?.enemyId || '1'}">
+                                    ${renderSearchableEnemySelect(config.gameModes.extraction.spawners[0]?.enemyId || '1', (newId) => {
+                                        document.getElementById('spawner-enemy-select').value = newId;
+                                    }, 'var(--accent)', 'radar-spawn-select')}
                                 </div>
                                 <div class="field" style="margin-top:10px;"><label>Cantidad</label><input type="number" id="radar-count" value="10"></div>
                                 <div class="field" style="margin-top:10px;"><label>Radio</label><input type="number" id="radar-radius" value="500"></div>
