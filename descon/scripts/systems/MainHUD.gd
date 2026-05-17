@@ -344,12 +344,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				else:
 					# Anclado arriba
 					final_pos.y = ry * (screen_size.y / 800.0)
-			
-			var sc_val = float(pos_data.get("scale", 0.5))
-			var final_sc = sc_val * 2.0
-			node.scale = Vector2(final_sc, final_sc)
-			node.modulate.a = float(pos_data.get("alpha", 1.0))
-
+					
 			# Corrección de tamaño real de nodo dinámico (soporte combined minimum size)
 			var raw_size = node.size
 			if raw_size.x <= 0:
@@ -357,9 +352,22 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			if raw_size.x <= 0:
 				raw_size = Vector2(250, 80) # Tamaño seguro estándar para Stats/HUD
 				
+			# Ajustar pivot_offset de forma responsiva al cuadrante para evitar recortes al escalar
+			if rx > 640.0:
+				# Si está a la derecha, el pivote se ancla a la derecha (evita salirse de la pantalla física)
+				node.pivot_offset = Vector2(raw_size.x, 0) if ry <= 400.0 else Vector2(raw_size.x, raw_size.y)
+			else:
+				# Si está a la izquierda, el pivote se ancla a la izquierda
+				node.pivot_offset = Vector2(0, 0) if ry <= 400.0 else Vector2(0, raw_size.y)
+
+			var sc_val = float(pos_data.get("scale", 0.5))
+			var final_sc = sc_val * 2.0
+			node.scale = Vector2(final_sc, final_sc)
+			node.modulate.a = float(pos_data.get("alpha", 1.0))
+				
 			var node_size = raw_size * node.scale
 			
-			# Clamp para que nunca se dibuje fuera de la pantalla visible
+			# Clamp responsivo garantizado usando el tamaño escalado visual real
 			final_pos.x = clamp(final_pos.x, 0, screen_size.x - node_size.x)
 			final_pos.y = clamp(final_pos.y, 0, screen_size.y - node_size.y)
 			node.global_position = final_pos
