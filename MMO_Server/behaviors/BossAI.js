@@ -90,10 +90,8 @@ module.exports = class BossAI extends BaseAI {
             case 2: this.phaseRamTeleport(target, dist, angle, now, io); break;
             case 3: this.phaseHomingMissiles(players, dist, angle, now, io); break;
         }
-
-        if (now - (this.enemy.lastHit || 0) > 4000) {
-            this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * 0.02));
-        }
+        
+        // La regeneración ahora es manejada de forma autoritativa y configurable en BaseAI.update()
     }
 
     changePhase(now, io) {
