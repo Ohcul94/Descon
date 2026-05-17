@@ -22,17 +22,32 @@ function showTab(tabId) {
     
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     
-    // Limpiar clases active de todos los links principales de primer nivel
-    document.querySelectorAll('.nav-link:not(.sub)').forEach(b => b.classList.remove('active'));
+    // Limpiar clases active de todos los links del sidebar (principales y sub-links)
+    document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
     // Limpiar clases active de todas las carpetas del menú
     document.querySelectorAll('.nav-folder').forEach(f => f.classList.remove('active'));
     
     const view = document.getElementById('view-' + tabId);
     if(view) view.classList.add('active');
     
-    // Resaltar link principal si existe y NO es un sub-enlace
-    const sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('${tabId}')"]:not(.sub)`);
-    if(sidebarLink) sidebarLink.classList.add('active');
+    // Resaltar el link del sidebar (sea sub-link o principal) que coincida con el tab o sub-tab activo
+    let sidebarLink;
+    if (tabId === 'ammo') {
+        sidebarLink = document.querySelector(`.nav-link[onclick*="setAmmoTab('${currentAmmoTab}')"]`);
+        if (!sidebarLink) sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('ammo')"]`);
+    } else if (tabId === 'skills') {
+        sidebarLink = document.querySelector(`.nav-link[onclick*="setSkillTab('${currentSkillTab}')"]`);
+        if (!sidebarLink) sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('skills')"]`);
+    } else if (tabId === 'mechanics') {
+        sidebarLink = document.querySelector(`.nav-link[onclick*="setMechTab('${currentMechTab}')"]`);
+        if (!sidebarLink) sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('mechanics')"]`);
+    } else if (tabId === 'modes') {
+        sidebarLink = document.querySelector(`.nav-link[onclick*="setModeTab('${currentModeTab}')"]`);
+        if (!sidebarLink) sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('modes')"]`);
+    } else {
+        sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('${tabId}')"]`);
+    }
+    if (sidebarLink) sidebarLink.classList.add('active');
 
     // Mapeo inteligente y dinámico de carpetas (nav-folder) activas según el tab actual
     const folderMapping = {
@@ -74,7 +89,14 @@ function showTab(tabId) {
         else if (currentSessionSubTab === 'history') socket.emit('getSessions', { page: currentSessionPage });
         else if (currentSessionSubTab === 'users') socket.emit('getRegisteredUsers');
     }
+    
+    // Refrescar tab actual
     refreshCurrentTab();
+
+    // Sincronizar el árbol del sidebar en caliente
+    if (typeof updateSidebar === 'function') {
+        updateSidebar();
+    }
 }
 
 window.onload = () => {
