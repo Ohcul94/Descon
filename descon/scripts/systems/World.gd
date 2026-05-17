@@ -405,8 +405,25 @@ func _input(event):
 		print("[DUNGEON] Solicitando ingreso a Dungeon Instanciada...")
 		NetworkManager.send_event("enterDungeon", {})
 
+func _parse_zone_to_int(zone_var) -> int:
+	var val = zone_var
+	if typeof(val) == TYPE_DICTIONARY:
+		val = val.get("zoneId", 1)
+	
+	if typeof(val) == TYPE_STRING:
+		if val.begins_with("dungeon"):
+			return 99
+		elif val.begins_with("extract_"):
+			var parts = val.split("_")
+			if parts.size() > 1:
+				return int(parts[1])
+			return 10
+		else:
+			return int(val)
+	return int(val)
+
 func _update_hud_map_name(zone_id):
-	var z_id = int(zone_id)
+	var z_id = _parse_zone_to_int(zone_id)
 	var z_name = "SECTOR DESCONOCIDO"
 	var z_id_str = str(z_id)
 	
@@ -456,8 +473,8 @@ func _on_player_updated(data):
 	
 	# v219.50: FILTRO DE ZONA CRÍTICO (Prevenir Fantasmas de otros mapas)
 	if is_instance_valid(local_player):
-		var remote_zone = int(data.get("zone", -1))
-		var local_zone = int(local_player.current_zone)
+		var remote_zone = _parse_zone_to_int(data.get("zone", -1))
+		var local_zone = _parse_zone_to_int(local_player.current_zone)
 		
 		# Si el jugador está en otra zona, lo eliminamos si existía aquí
 		if remote_zone != -1 and remote_zone != local_zone:
@@ -605,8 +622,8 @@ func _on_enemy_updated(data):
 	
 	# v225.65: FILTRO DE SEGURIDAD REFORZADO (Bloqueo absoluto de fantasmas)
 	if is_instance_valid(local_player):
-		var enemy_zone = int(data.get("zone", -1))
-		var my_zone = int(local_player.current_zone)
+		var enemy_zone = _parse_zone_to_int(data.get("zone", -1))
+		var my_zone = _parse_zone_to_int(local_player.current_zone)
 		
 		# Si la zona no viene en el paquete o no coincide, ignoramos el update
 		if enemy_zone != my_zone:
@@ -954,7 +971,15 @@ func _on_admin_config_received(data: Dictionary):
 		if is_instance_valid(ui_inventory) and ui_inventory.visible: ui_inventory._refresh_data()
 		print("[WORLD] Cambios globales aplicados correctamente.")
 
-func _on_clear_zone_entities(_zoneId):
+func _on_clear_zone_entities(payload):
+	var _zoneId = payload
+	var spawn_pos = null
+
+	if typeof(payload) == TYPE_DICTIONARY:
+		_zoneId = payload.get("zoneId", 1)
+		if payload.has("x") and payload.has("y"):
+			spawn_pos = Vector2(payload.x, payload.y)
+
 	# Limpiar enemigos visualmente
 	for id in enemies:
 		if is_instance_valid(enemies[id]): 
@@ -976,14 +1001,17 @@ func _on_clear_zone_entities(_zoneId):
 	
 	# v268.55: ACTUALIZAR ZONA INMEDIATAMENTE (Fix Sincronía Crítica)
 	# Esto evita que el filtro de _on_player_updated ignore a los jugadores del nuevo mapa
-	var zone_int = int(_zoneId) if typeof(_zoneId) != TYPE_STRING or not _zoneId.begins_with("dungeon") else 99
+	var zone_int = _parse_zone_to_int(_zoneId)
 	if is_instance_valid(local_player):
 		local_player.set("current_zone", zone_int)
 		print("[ZONE] Sincronía Preventiva: Zona actualizada a ", zone_int)
 
 	# v215.60: REPOSICIONAR JUGADOR LOCAL (Fix: Escena trabada)
 	if is_instance_valid(local_player):
-		local_player.global_position = Vector2(new_world_size / 2, new_world_size / 2)
+		if spawn_pos != null:
+			local_player.global_position = spawn_pos
+		else:
+			local_player.global_position = Vector2(new_world_size / 2, new_world_size / 2)
 		local_player.target_position = local_player.global_position
 		local_player.is_moving = false
 	
@@ -998,6 +1026,11 @@ func _on_clear_zone_entities(_zoneId):
 
 func _update_background(zone_id):
 	var zid = int(zone_id)
+	if typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_"):
+		var parts = zone_id.split("_")
+		if parts.size() > 1:
+			zid = int(parts[1])
+			
 	var scene_path = "res://scenes/maps/Map_Default.tscn"
 	
 	if zid == 1:

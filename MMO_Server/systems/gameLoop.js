@@ -4,6 +4,7 @@
  */
 const { handleEnemyDeath } = require('./enemyLogic');
 const Logger = require('../utils/logger');
+const extractionManager = require('./extractionManager');
 
 function startGameLoop(io, state, aiManager) {
     const grid = state.grid;
@@ -167,6 +168,9 @@ function startGameLoop(io, state, aiManager) {
     // 3. LOOP DE GUARDIANÍA (1s para Respawn Dinámico v266.999)
     setInterval(() => {
         aiManager.runGuardians();
+        
+        // v2.0: Procesar Lógica de Extracción (1Hz)
+        extractionManager.updateLoop();
         
         // Limpieza de Áreas expiradas
         const now = Date.now();

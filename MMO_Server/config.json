@@ -859,6 +859,32 @@
             "minLevel": 35,
             "name": "Mapa 9",
             "warpCost": 1000
+        },
+        "10": {
+            "color": "#ff0055",
+            "desc": "Sector Prohibido: Alta radiación y presencia de la flota oscura. Solo para misiones de extracción.",
+            "minLevel": 10,
+            "name": "Zona de Extracción",
+            "warpCost": 50,
+            "ambience": [
+                {
+                    "type": "radiation",
+                    "damage": 15,
+                    "intervalMs": 1000
+                }
+            ],
+            "spawns": [
+                {
+                    "type": "5",
+                    "count": 10,
+                    "intervalMs": 3000
+                },
+                {
+                    "type": "9",
+                    "count": 3,
+                    "intervalMs": 8000
+                }
+            ]
         }
     },
     "shipModels": [
@@ -1880,5 +1906,263 @@
             29000,
             30000
         ]
+    },
+    "gameModes": {
+        "hunting": {
+            "enabled": true,
+            "targets": [],
+            "rewardMult": 1.2
+        },
+        "extraction": {
+            "enabled": true,
+            "maxPlayers": 21,
+            "countdownTime": 600000,
+            "extractRadius": 150,
+            "maps": [
+                10
+            ],
+            "extractPoints": [
+                {
+                    "x": 2974,
+                    "y": 5038,
+                    "label": "Punto Alfa"
+                },
+                {
+                    "x": 6920,
+                    "y": 5070,
+                    "label": "Punto Beta"
+                },
+                {
+                    "x": 5019,
+                    "y": 3025,
+                    "label": "Punto Gamma"
+                },
+                {
+                    "x": 5003,
+                    "y": 7019,
+                    "label": "Punto Delta"
+                }
+            ],
+            "minPlayers": 3,
+            "startCountdown": 5000,
+            "spawners": [
+                {
+                    "x": 2040,
+                    "y": 1993,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 4006,
+                    "y": 1993,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 5990,
+                    "y": 2010,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 7956,
+                    "y": 1993,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 7990,
+                    "y": 3993,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 8023,
+                    "y": 5993,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 7990,
+                    "y": 7993,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 6023,
+                    "y": 7993,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 4006,
+                    "y": 7976,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 2006,
+                    "y": 7993,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 1990,
+                    "y": 6043,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 2006,
+                    "y": 3993,
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                }
+            ],
+            "spawnLockTime": 5000,
+            "spawnPoints": [
+                {
+                    "x": 540,
+                    "y": 543,
+                    "label": "Spwan 1",
+                    "radius": 500
+                },
+                {
+                    "x": 1606,
+                    "y": 543,
+                    "label": "Spwan  2",
+                    "radius": 500
+                },
+                {
+                    "x": 2740,
+                    "y": 543,
+                    "label": "Spwan 3",
+                    "radius": 500
+                },
+                {
+                    "x": 7273,
+                    "y": 543,
+                    "label": "Spwan  4",
+                    "radius": 500
+                },
+                {
+                    "x": 8356,
+                    "y": 543,
+                    "label": "Spwan 5",
+                    "radius": 500
+                },
+                {
+                    "x": 9456,
+                    "y": 560,
+                    "label": "Spwan  6",
+                    "radius": 500
+                },
+                {
+                    "x": 9423,
+                    "y": 3893,
+                    "label": "Spwan  7",
+                    "radius": 500
+                },
+                {
+                    "x": 9440,
+                    "y": 4926,
+                    "label": "Spwan  8",
+                    "radius": 500
+                },
+                {
+                    "x": 9456,
+                    "y": 5976,
+                    "label": "Spwan  9",
+                    "radius": 500
+                },
+                {
+                    "x": 9456,
+                    "y": 9460,
+                    "label": "Spwan  10",
+                    "radius": 500
+                },
+                {
+                    "x": 8340,
+                    "y": 9460,
+                    "label": "Spwan  11",
+                    "radius": 500
+                },
+                {
+                    "x": 7206,
+                    "y": 9476,
+                    "label": "Spwan  12",
+                    "radius": 500
+                },
+                {
+                    "x": 2756,
+                    "y": 9476,
+                    "label": "Spwan  13",
+                    "radius": 500
+                },
+                {
+                    "x": 1673,
+                    "y": 9493,
+                    "label": "Spwan  14",
+                    "radius": 500
+                },
+                {
+                    "x": 590,
+                    "y": 9476,
+                    "label": "Spwan  15",
+                    "radius": 500
+                },
+                {
+                    "x": 540,
+                    "y": 5960,
+                    "label": "Spwan  16",
+                    "radius": 500
+                },
+                {
+                    "x": 540,
+                    "y": 4893,
+                    "label": "Spwan 17",
+                    "radius": 500
+                },
+                {
+                    "x": 540,
+                    "y": 3826,
+                    "label": "Spwan  18",
+                    "radius": 500
+                },
+                {
+                    "x": 5023,
+                    "y": 593,
+                    "label": "Spwan 19",
+                    "radius": 500
+                },
+                {
+                    "x": 4906,
+                    "y": 9460,
+                    "label": "Spwan  20",
+                    "radius": 500
+                }
+            ],
+            "mechanics": [
+                "radiation",
+                "nebula"
+            ]
+        },
+        "arenas": {
+            "enabled": true,
+            "maps": [],
+            "minPlayers": 2
+        }
     }
 }

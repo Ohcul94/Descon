@@ -982,33 +982,203 @@ function renderModes() {
             </div>
         `;
     } else if (currentModeTab === 'extraction') {
+        if (!config.gameModes.extraction.minPlayers) config.gameModes.extraction.minPlayers = 2;
+        if (!config.gameModes.extraction.startCountdown) config.gameModes.extraction.startCountdown = 30000;
+        if (!config.gameModes.extraction.maxPlayers) config.gameModes.extraction.maxPlayers = 21;
+        if (!config.gameModes.extraction.countdownTime) config.gameModes.extraction.countdownTime = 600000;
+        if (!config.gameModes.extraction.extractRadius) config.gameModes.extraction.extractRadius = 150;
+        if (!config.gameModes.extraction.spawnLockTime) config.gameModes.extraction.spawnLockTime = 10000;
+        if (!config.gameModes.extraction.maps) config.gameModes.extraction.maps = [10];
+        if (!config.gameModes.extraction.spawners) config.gameModes.extraction.spawners = [];
+        if (!config.gameModes.extraction.spawnPoints) config.gameModes.extraction.spawnPoints = [];
+        if (!config.gameModes.extraction.mechanics) config.gameModes.extraction.mechanics = [];
+        if (!config.gameModes.extraction.extractPoints) {
+            config.gameModes.extraction.extractPoints = [
+                { x: 1500, y: 1500, label: "Punto Alfa" },
+                { x: 8500, y: 1500, label: "Punto Beta" }
+            ];
+        }
+
         content.innerHTML = `
-            <div class="card" style="grid-column: span 2;">
-                <h3 style="color:var(--primary); margin-bottom: 0.5rem;">📦 MODO EXTRACCIÓN</h3>
-                <p style="opacity:0.7; margin-bottom:1.5rem;">Configuración de misiones de transporte y recuperación de carga en zonas hostiles.</p>
-                <div class="form-grid">
-                    <div class="field">
-                        <label>Estado del Modo</label>
-                        <select onchange="config.gameModes.extraction.enabled = this.value === 'true'">
-                            <option value="true" ${config.gameModes.extraction.enabled ? 'selected' : ''}>Activo</option>
-                            <option value="false" ${!config.gameModes.extraction.enabled ? 'selected' : ''}>Inactivo</option>
-                        </select>
+            <div style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:20px; width:100%; padding-bottom:40px;">
+                
+                <!-- NIVEL 1: REGLAS Y MAPAS -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <!-- REGLAS MAESTRAS -->
+                    <div class="card" style="margin:0;">
+                        <h3 style="color:var(--primary); margin-bottom: 0.5rem;">📦 MODO EXTRACCIÓN (REGLAS MAESTRAS)</h3>
+                        <p style="opacity:0.7; margin-bottom:1.5rem;">Configuración del emparejador y tiempos globales.</p>
+                        <div class="form-grid" style="grid-template-columns: repeat(4, 1fr);">
+                            <div class="field"><label>Estado</label>
+                                <select onchange="config.gameModes.extraction.enabled = this.value === 'true'">
+                                    <option value="true" ${config.gameModes.extraction.enabled ? 'selected' : ''}>ACTIVO</option>
+                                    <option value="false" ${!config.gameModes.extraction.enabled ? 'selected' : ''}>DESACTIVADO</option>
+                                </select>
+                            </div>
+                            <div class="field"><label>Mín. Pilotos</label><input type="number" value="${config.gameModes.extraction.minPlayers}" onchange="config.gameModes.extraction.minPlayers = parseInt(this.value)"></div>
+                            <div class="field"><label>Máx. Pilotos</label><input type="number" value="${config.gameModes.extraction.maxPlayers}" onchange="config.gameModes.extraction.maxPlayers = parseInt(this.value)"></div>
+                            <div class="field"><label>Inicio (ms)</label><input type="number" step="1000" value="${config.gameModes.extraction.startCountdown}" onchange="config.gameModes.extraction.startCountdown = parseInt(this.value)"></div>
+                            <div class="field"><label>Extracción (ms)</label><input type="number" step="1000" value="${config.gameModes.extraction.countdownTime}" onchange="config.gameModes.extraction.countdownTime = parseInt(this.value)"></div>
+                            <div class="field"><label>Bloqueo Spawn (ms)</label><input type="number" step="1000" value="${config.gameModes.extraction.spawnLockTime}" onchange="config.gameModes.extraction.spawnLockTime = parseInt(this.value)" style="color:var(--accent); font-weight:bold;"></div>
+                            <div class="field"><label>Radio Ext. (px)</label><input type="number" value="${config.gameModes.extraction.extractRadius}" onchange="config.gameModes.extraction.extractRadius = parseInt(this.value)"></div>
+                        </div>
                     </div>
-                    <div class="field">
-                        <label>Dificultad Base (Escalado)</label>
-                        <input type="number" value="${config.gameModes.extraction.difficulty}" 
-                               onchange="config.gameModes.extraction.difficulty = parseInt(this.value)">
+
+                    <!-- MAPAS HABILITADOS -->
+                    <div class="card" style="margin:0;">
+                        <h3 style="color:var(--primary); margin-bottom: 0.5rem;">🗺️ MAPAS PARA EXTRACCIÓN</h3>
+                        <p style="opacity:0.6; margin-bottom:1.5rem;">Selecciona los mapas donde el modo estará activo.</p>
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <select id="add-ext-map-select" style="font-size:0.8rem; flex:1;">
+                                ${Object.keys(config.mapsConfig).map(id => `<option value="${id}">${config.mapsConfig[id].name}</option>`).join('')}
+                            </select>
+                            <button class="btn btn-primary" style="padding:4px 15px; font-size:0.7rem;" onclick="addExtractionMap()">+ AÑADIR MAPA</button>
+                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px; max-height:100px; overflow-y:auto;">
+                            ${config.gameModes.extraction.maps.map((mapId, idx) => `
+                                <div style="background:rgba(255,255,255,0.05); padding:6px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; gap:10px; font-size:0.75rem;">
+                                    <span>${config.mapsConfig[mapId]?.name || 'ID '+mapId}</span>
+                                    <button onclick="config.gameModes.extraction.maps.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NIVEL 2: 4 COLUMNAS -->
+                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
+                    <!-- SPAWN POINTS (PLAYERS) -->
+                    <div class="card" style="margin:0; border-top: 3px solid var(--accent);">
+                        <h4 style="color:var(--accent); margin-bottom:1rem;">📍 SPAWN DE JUGADORES</h4>
+                        <div style="display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto; padding-right:5px;">
+                            ${(config.gameModes.extraction.spawnPoints || []).map((p, idx) => `
+                                <div style="background:rgba(6,182,212,0.05); border:1px solid rgba(6,182,212,0.2); border-radius:8px; padding:10px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                        <input type="text" value="${p.label || 'Punto #'+(idx+1)}" onchange="config.gameModes.extraction.spawnPoints[${idx}].label = this.value" style="background:none; border:none; color:var(--accent); font-weight:bold; font-size:0.7rem; width:70%;">
+                                        <button onclick="config.gameModes.extraction.spawnPoints.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                                        <div class="field"><label>X</label><input type="number" id="spw-x-${idx}" value="${p.x}" onchange="config.gameModes.extraction.spawnPoints[${idx}].x = parseInt(this.value)"></div>
+                                        <div class="field"><label>Y</label><input type="number" id="spw-y-${idx}" value="${p.y}" onchange="config.gameModes.extraction.spawnPoints[${idx}].y = parseInt(this.value)"></div>
+                                    </div>
+                                    <div class="field" style="margin-top:5px;"><label>Radio Burbuja</label><input type="number" value="${p.radius}" onchange="config.gameModes.extraction.spawnPoints[${idx}].radius = parseInt(this.value)"></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- PUNTOS DE ESCAPE -->
+                    <div class="card" style="margin:0;">
+                        <h4 style="color:var(--primary); margin-bottom:1rem;">🛰️ PUNTOS DE ESCAPE</h4>
+                        <div style="display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto; padding-right:5px;">
+                            ${config.gameModes.extraction.extractPoints.map((p, idx) => `
+                                <div style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.2); border-radius:8px; padding:10px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                        <input type="text" value="${p.label}" onchange="config.gameModes.extraction.extractPoints[${idx}].label = this.value" style="background:none; border:none; color:var(--primary); font-weight:bold; font-size:0.75rem; width:70%;">
+                                        <button onclick="config.gameModes.extraction.extractPoints.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                                        <div class="field"><label>X</label><input type="number" id="ep-x-${idx}" value="${p.x}" onchange="config.gameModes.extraction.extractPoints[${idx}].x = parseInt(this.value)"></div>
+                                        <div class="field"><label>Y</label><input type="number" id="ep-y-${idx}" value="${p.y}" onchange="config.gameModes.extraction.extractPoints[${idx}].y = parseInt(this.value)"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- AMENAZAS -->
+                    <div class="card" style="margin:0;">
+                        <h4 style="color:var(--danger); margin-bottom:1rem;">👾 AMENAZAS DESPLEGADAS</h4>
+                        <div style="display:flex; flex-direction:column; gap:10px; max-height:300px; overflow-y:auto; padding-right:5px;">
+                            ${config.gameModes.extraction.spawners.map((s, idx) => `
+                                <div style="background:rgba(255,49,49,0.05); border:1px solid rgba(255,49,49,0.2); border-radius:8px; padding:10px;">
+                                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <input type="text" value="${s.label || 'Zona '+ (idx+1)}" onchange="config.gameModes.extraction.spawners[${idx}].label = this.value; renderModes();" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:0.75rem; width:85%;">
+                                            <button onclick="config.gameModes.extraction.spawners.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+                                        </div>
+                                        <select onchange="config.gameModes.extraction.spawners[${idx}].enemyId = this.value; renderModes();" style="background:rgba(255,49,49,0.1); border:1px solid rgba(255,49,49,0.2); color:var(--danger); font-size:0.7rem; width:100%; padding:4px; border-radius:4px; cursor:pointer;">
+                                            ${Object.keys(config.enemyModels).map(id => `<option value="${id}" ${s.enemyId === id ? 'selected' : ''}>${config.enemyModels[id].name}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                                        <div class="field"><label>Cant.</label><input type="number" value="${s.count}" onchange="config.gameModes.extraction.spawners[${idx}].count = parseInt(this.value)"></div>
+                                        <div class="field"><label>Radio</label><input type="number" value="${s.radius}" onchange="config.gameModes.extraction.spawners[${idx}].radius = parseInt(this.value)"></div>
+                                        <div class="field"><label>Coord X</label><input type="number" id="sp-x-${idx}" value="${s.x}" onchange="config.gameModes.extraction.spawners[${idx}].x = parseInt(this.value)"></div>
+                                        <div class="field"><label>Coord Y</label><input type="number" id="sp-y-${idx}" value="${s.y}" onchange="config.gameModes.extraction.spawners[${idx}].y = parseInt(this.value)"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- MECÁNICAS -->
+                    <div class="card" style="margin:0;">
+                        <h4 style="color:var(--accent); margin-bottom:1rem;">🌍 MECÁNICAS</h4>
+                        <p style="opacity:0.6; font-size:0.7rem; margin-bottom:1rem;">Efectos de ambiente de tu librería.</p>
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <select id="add-ext-mech-select" style="font-size:0.7rem; flex:1;">
+                                ${Object.keys(AMBIENCE_LIB).map(type => `<option value="${type}">${AMBIENCE_LIB[type].icon || '🌍'} ${AMBIENCE_LIB[type].label}</option>`).join('')}
+                            </select>
+                            <button class="btn btn-primary" style="padding:4px 10px; font-size:0.6rem;" onclick="addExtractionMechanic()">+ ACTIVAR</button>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                            ${(config.gameModes.extraction.mechanics || []).map((m, idx) => `
+                                <div style="background:rgba(6,182,212,0.1); border:1px solid var(--accent); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="color:var(--accent); font-weight:bold; font-size:0.7rem;">${AMBIENCE_LIB[m]?.icon || ''} ${(AMBIENCE_LIB[m]?.label || m).toUpperCase()}</span>
+                                    <button onclick="config.gameModes.extraction.mechanics.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NIVEL 3: RADAR GLOBAL -->
+                <div class="card" style="margin:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                        <h4 style="color:var(--primary); margin:0;">🛰️ RADAR DE POSICIONAMIENTO GLOBAL</h4>
+                        <div style="display:flex; gap:10px;">
+                            <button id="btn-radar-spawn" class="btn ${radarMode === 'spawn' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('spawn')">MODO SPAWN</button>
+                            <button id="btn-radar-spawner" class="btn ${radarMode === 'spawner' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('spawner')">MODO AMENAZA</button>
+                            <button id="btn-radar-extract" class="btn ${radarMode === 'extract' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('extract')">MODO ESCAPE</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display:grid; grid-template-columns: 1fr 400px; gap:30px;">
+                        <div id="radar-container" style="position:relative; width:600px; height:600px; margin:0 auto; background:#000; border:1px solid var(--primary); border-radius:10px; overflow:hidden; cursor:crosshair;">
+                            <canvas id="radar-canvas"></canvas>
+                        </div>
+                        
+                        <div style="display:flex; flex-direction:column; gap:15px; background:rgba(255,255,255,0.02); padding:25px; border-radius:10px;">
+                            <label style="color:var(--accent); font-size:0.85rem; margin-bottom:15px; display:block; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; font-weight:bold;">🛠️ HERRAMIENTA DE DESPLIEGUE</label>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                                <div class="field"><label>Coord X</label><input type="number" id="radar-x" value="0"></div>
+                                <div class="field"><label>Coord Y</label><input type="number" id="radar-y" value="0"></div>
+                            </div>
+                            <div id="radar-spawn-opts" style="display:${radarMode === 'spawn' ? 'block' : 'none'}">
+                                <div class="field" style="margin-top:10px;"><label>Nombre</label><input type="text" id="radar-spawn-label" value="Punto Spawn"></div>
+                                <div class="field" style="margin-top:5px;"><label>Radio Burbuja</label><input type="number" id="radar-spawn-radius" value="500"></div>
+                            </div>
+                            <div id="radar-spawner-opts" style="display:${radarMode === 'spawner' ? 'block' : 'none'}">
+                                <div class="field" style="margin-top:10px;"><label>Nombre Zona</label><input type="text" id="radar-spawner-label" value="Zona de Amenaza"></div>
+                                <div class="field" style="margin-top:10px;"><label>Enemigo</label>
+                                    <select id="spawner-enemy-select" style="width:100%; font-size:0.8rem; background:#111; color:white; border:1px solid #333; padding:8px;">
+                                        ${Object.keys(config.enemyModels).map(id => `<option value="${id}">${config.enemyModels[id].name}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="field" style="margin-top:10px;"><label>Cantidad</label><input type="number" id="radar-count" value="10"></div>
+                                <div class="field" style="margin-top:10px;"><label>Radio</label><input type="number" id="radar-radius" value="500"></div>
+                            </div>
+                            <div id="radar-extract-opts" style="display:${radarMode === 'extract' ? 'block' : 'none'}">
+                                <div class="field" style="margin-top:10px;"><label>Etiqueta</label><input type="text" id="radar-label" value="Punto Nuevo"></div>
+                            </div>
+                            <button class="btn btn-primary" style="width:100%; margin-top:20px; padding:15px; font-weight:bold;" onclick="addFromRadar()">FIJAR EN EL MAPA</button>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="card">
-                <h4 style="color:var(--accent); margin-bottom: 1rem;">📍 PUNTOS DE EXTRACCIÓN</h4>
-                <p style="font-size:0.8rem; opacity:0.6;">Zonas habilitadas para la entrega de carga.</p>
-                <input type="text" placeholder="Ej: Zona 4, Zona 8" value="${config.gameModes.extraction.zones.join(', ')}"
-                       onchange="config.gameModes.extraction.zones = this.value.split(',').map(v => v.trim())"
-                       style="margin-top:10px;">
-            </div>
         `;
+        setTimeout(initRadar, 100);
     } else if (currentModeTab === 'arenas') {
         content.innerHTML = `
             <div class="card" style="grid-column: span 2;">

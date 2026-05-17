@@ -31,6 +31,7 @@ const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
 const HordeManager = require('./events/HordeManager');
 const { calculateFinalStats } = require('./systems/statCalculator'); // v266.135: Sistema de Stats Dinámicos
+const extractionManager = require('./systems/extractionManager');
 
 // Configuraci├│n
 const PORT = process.env.PORT || 3333;
@@ -69,6 +70,7 @@ const hordeManager = new HordeManager(io, (...args) => aiManager.serverSpawnEnem
 aiManager.hordeManager = hordeManager;
 
 // v1.5: Inicio del Corazón del Servidor
+extractionManager.init(io, state, aiManager);
 startGameLoop(io, state, aiManager);
 
 // v243.15: Helper para serializar datos de clan con roles y estados
@@ -567,6 +569,9 @@ io.on('connection', (socket) => {
         const socket = io.sockets.sockets.get(socketId);
         if (!p || !socket || !socket.dbUser) return;
 
+        // v2.0: REGLA DE CONGELACIÓN - Si está en extracción, la DB no se toca hasta el éxito/muerte
+        if (p.isExtracting) return;
+
         try {
             await User.updateOne(
                 { _id: socket.dbUser._id },
@@ -799,6 +804,35 @@ io.on('connection', (socket) => {
         }
     });
 
+    // ==========================================
+    // SISTEMA DE EXTRACCIÓN (NUEVO)
+    // ==========================================
+    socket.on('joinExtractionMatch', async (data) => {
+        const p = state.players[socket.id];
+        if (!p) return;
+
+        // Si no hay partidas activas del mapa solicitado, creamos una
+        const mapId = data.mapId || 2;
+        let matchId = null;
+
+        // Buscar una partida existente con espacio
+        for (const [id, m] of extractionManager.matches) {
+            if (m.baseMap === mapId && m.players.length < m.maxPlayers) {
+                matchId = id;
+                break;
+            }
+        }
+
+        if (!matchId) {
+            matchId = extractionManager.createExtractionMatch(mapId);
+        }
+
+        const result = await extractionManager.joinMatch(socket.id, matchId);
+        if (!result.success) {
+            socket.emit('gameNotification', { msg: result.error, type: 'error' });
+        }
+    });
+
     socket.on('stopHordeEvent', () => {
         if (!players[socket.id] || players[socket.id].user !== "Caelli94") return;
         hordeManager.stopEvent();
@@ -914,6 +948,15 @@ io.on('connection', (socket) => {
         }
     });
 
+    // v2.2: EVENTOS DE MATCHMAKING DE EXTRACCIÓN
+    socket.on('joinExtractionQueue', () => {
+        extractionManager.addToQueue(socket.id);
+    });
+
+    socket.on('leaveExtractionQueue', () => {
+        extractionManager.leaveQueue(socket.id);
+    });
+
     // El cambio de nave (switchShip) está modularizado arriba.
 
     socket.on('playerMovement', async (movementData) => {
@@ -954,16 +997,38 @@ io.on('connection', (socket) => {
 
         if (movementData.selectedAmmo) p.selectedAmmo = movementData.selectedAmmo;
 
-        const oldZone = Number(p.zone !== undefined ? p.zone : 1);
-        const targetZone = (movementData.zone !== undefined) ? Number(movementData.zone) : oldZone;
+        let oldZone = p.zone !== undefined ? p.zone : 1;
+        let targetZone = oldZone;
+
+        // Si el jugador está en Extracción, ignoramos cambios de zona desde playerMovement (el servidor es la autoridad absoluta)
+        if (!p.isExtracting && movementData.zone !== undefined) {
+            targetZone = movementData.zone;
+        }
+
+        // Convertir a número solo si es un string enteramente numérico (para compatibilidad con zonas normales de ID numérico)
+        if (typeof oldZone === 'string' && !isNaN(oldZone) && oldZone.trim() !== '') {
+            oldZone = Number(oldZone);
+        }
+        if (typeof targetZone === 'string' && !isNaN(targetZone) && targetZone.trim() !== '') {
+            targetZone = Number(targetZone);
+        }
+
         p.zone = targetZone;
 
         if (oldZone !== targetZone) {
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${targetZone}`);
             
+            // v2.2: Soporte para AOI en Zona 10 al entrar por primera vez (Solo si no es extracción)
+            if (targetZone === 10) {
+                const sector = extractionManager.getSector(p.x);
+                p.currentSector = sector;
+                socket.join(`zone_10_sector_${sector}`);
+            }
+
             // Notificar a los que ya estaban que llegamos nosotros
-            socket.to(`zone_${targetZone}`).emit('newPlayer', { 
+            const broadcastTarget = (targetZone === 10) ? `zone_10_sector_${p.currentSector}` : `zone_${targetZone}`;
+            socket.to(broadcastTarget).emit('newPlayer', { 
                 ...p, 
                 id: socket.id, 
                 spheres: p.spheres,
@@ -1006,13 +1071,32 @@ io.on('connection', (socket) => {
             }, 350);
         }
 
-        // v262.97: Restaurando Visibilidad Total (Fix Minimapa y Sincronía)
-        socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', { 
-            ...p, 
-            id: socket.id, 
-            spheres: p.spheres,
-            isInvisible: p.isInvisible 
-        });
+        // v2.2: OPTIMIZACIÓN DE RED POR SECTORES (AOI) EN ZONA DE EXTRACCIÓN O MAPA 10
+        if (p.isExtracting) {
+            const sector = extractionManager.updatePlayerSector(socket, p.x);
+            socket.broadcast.to(`zone_${p.zone}_sector_${sector}`).emit('playerMoved', { 
+                ...p, 
+                id: socket.id, 
+                spheres: p.spheres,
+                isInvisible: p.isInvisible 
+            });
+        } else if (Number(p.zone) === 10) {
+            const sector = extractionManager.updatePlayerSector(socket, p.x);
+            socket.broadcast.to(`zone_10_sector_${sector}`).emit('playerMoved', { 
+                ...p, 
+                id: socket.id, 
+                spheres: p.spheres,
+                isInvisible: p.isInvisible 
+            });
+        } else {
+            // v262.97: Restaurando Visibilidad Total (Resto de zonas)
+            socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', { 
+                ...p, 
+                id: socket.id, 
+                spheres: p.spheres,
+                isInvisible: p.isInvisible 
+            });
+        }
     });
 
     socket.on('playerRespawn', (respawnData) => {
@@ -1324,6 +1408,9 @@ io.on('connection', (socket) => {
     });
     
     socket.on('disconnect', async () => {
+        // v2.2: Salir de la cola de extracción si estaba en ella
+        extractionManager.leaveQueue(socket.id);
+
         const p = players[socket.id];
         if (p) {
             Logger.info('CONN', `Conexión perdida con [${p.user}] - ID: ${socket.id}`);
@@ -1337,7 +1424,16 @@ io.on('connection', (socket) => {
                         const diffMs = logoutTime - session.loginAt;
                         session.logoutAt = logoutTime;
                         session.durationMinutes = Math.floor(diffMs / 60000);
-                        session.zoneAtLogout = p.zone || 1;
+                        let zoneNum = 1;
+                        if (p.zone !== undefined) {
+                            if (typeof p.zone === 'string' && p.zone.startsWith('extract_')) {
+                                const parts = p.zone.split('_');
+                                zoneNum = parseInt(parts[1]) || 1;
+                            } else {
+                                zoneNum = parseInt(p.zone) || 1;
+                            }
+                        }
+                        session.zoneAtLogout = zoneNum;
                         session.levelAtLogout = p.level || 1;
                         await session.save();
                     }

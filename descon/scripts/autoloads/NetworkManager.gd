@@ -60,6 +60,15 @@ signal trade_partner_update(data)
 signal trade_partner_ready(data)
 signal trade_success(data)
 signal trade_cancelled(data)
+signal extraction_queue_joined(data) # v2.2
+signal extraction_match_found(data)
+signal extraction_match_countdown(data) # v2.5
+signal extraction_match_cancelled(data)
+signal extraction_start(data)
+signal extraction_countdown(data)
+signal extraction_cancelled(data)
+signal extraction_final_success(data)
+signal extraction_failed(data)
 
 
 var socket: WebSocketPeer = WebSocketPeer.new()
@@ -303,6 +312,15 @@ func _dispatch_event(e_name: String, e_data: Variant):
 				if inv_p.has("player"): inv_p = inv_p["player"]
 				inventory_data.emit(inv_p)
 		"tradeCancelled": trade_cancelled.emit(e_data)
+		"extraction_queue_joined": extraction_queue_joined.emit(e_data)
+		"extraction_match_found": extraction_match_found.emit(e_data)
+		"extraction_match_countdown": extraction_match_countdown.emit(e_data)
+		"extraction_match_cancelled": extraction_match_cancelled.emit(e_data)
+		"extraction_start": extraction_start.emit(e_data)
+		"extraction_countdown": extraction_countdown.emit(e_data)
+		"extraction_cancelled": extraction_cancelled.emit(e_data)
+		"extraction_final_success": extraction_final_success.emit(e_data)
+		"extraction_failed": extraction_failed.emit(e_data)
 
 
 func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_updated"):

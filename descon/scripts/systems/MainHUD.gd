@@ -71,6 +71,19 @@ func _ready():
 			c_bar.add_child(btn)
 			c_bar.move_child(btn, 0)
 			
+		# Icono Eventos (Nuevo v2.2)
+		if not c_bar.has_node("IconEvents"):
+			var btn = Button.new()
+			btn.name = "IconEvents"
+			btn.text = "🏆"
+			btn.tooltip_text = "Eventos y Modos de Juego [F2]"
+			btn.custom_minimum_size = Vector2(32,32)
+			var sb = StyleBoxFlat.new(); sb.bg_color = Color(0.1,0.1,0.1,0.6); sb.set_corner_radius_all(4)
+			btn.add_theme_stylebox_override("normal", sb)
+			btn.pressed.connect(_on_icon_pressed.bind("Events"))
+			c_bar.add_child(btn)
+			c_bar.move_child(btn, 1)
+			
 	# v266.155: Soporte para cambio de resolución en tiempo real
 	get_viewport().size_changed.connect(_on_viewport_resize)
 
@@ -463,7 +476,11 @@ func _input(event: InputEvent):
 
 	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
 	for ui in ui_nodes:
-		if ui.visible: return
+		if ui.visible:
+			# Permitir que las teclas de toggle cierren sus propios paneles
+			if event.is_action_pressed("ui_events") or event.is_action_pressed("ui_inventory") or event.is_action_pressed("ui_party"):
+				break
+			return
 
 	# v266.160: Bloquear shortcuts si el usuario está escribiendo (Chat, etc)
 	var focus_node = get_viewport().gui_get_focus_owner()
@@ -475,6 +492,10 @@ func _input(event: InputEvent):
 	
 	if event.is_action_pressed("ui_party"):
 		_on_icon_pressed("Party")
+		get_viewport().set_input_as_handled()
+
+	if event.is_action_pressed("ui_events"):
+		_on_icon_pressed("Events")
 		get_viewport().set_input_as_handled()
 
 	if event.is_action_pressed("ui_pvp_toggle"):
@@ -862,6 +883,10 @@ func _on_minimize_pressed(id: String):
 		_update_icon_state(id, false)
 
 func _on_icon_pressed(id: String):
+	if id == "Events":
+		toggle_events_panel()
+		return
+		
 	if id == "EscMenu":
 		toggle_esc_menu()
 		return
@@ -2436,3 +2461,19 @@ func _get_entity_under_mouse():
 				best_dist = d
 				best_target = p
 	return best_target
+
+var _events_panel: Control = null
+func toggle_events_panel():
+	if not is_instance_valid(_events_panel):
+		var res = load("res://scenes/ui/EventsPanel.tscn")
+		if res:
+			_events_panel = res.instantiate()
+		else:
+			_events_panel = Control.new()
+			_events_panel.set_script(load("res://scripts/ui/EventsPanel.gd"))
+		add_child(_events_panel)
+		
+	if _events_panel.has_method("toggle"):
+		_events_panel.toggle()
+	else:
+		_events_panel.visible = !_events_panel.visible

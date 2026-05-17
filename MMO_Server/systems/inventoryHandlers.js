@@ -93,6 +93,11 @@ function registerInventoryHandlers(socket, io, state) {
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
 
+            const p = state.players[socket.id];
+            if (p && p.isExtracting) {
+                return socket.emit('gameNotification', { msg: 'TIENDA BLOQUEADA: No puedes comprar durante una Raid.', type: 'error' });
+            }
+
             console.log(`[SHOP-DEBUG] Iniciando compra: User=${user.username}, Cat=${category}, Item=${itemId}, Amount=${amount}, Currency=${currency}`);
             console.log(`[SHOP-DEBUG] Fondos actuales: Hubs=${user.gameData.hubs}, Ohcu=${user.gameData.ohcu}`);
 
@@ -170,7 +175,6 @@ function registerInventoryHandlers(socket, io, state) {
             socket.dbUser = user;
 
             // v269.100: Sincronización crítica RAM <-> DB
-            const p = state.players[socket.id];
             if (p) {
                 p.ammo = JSON.parse(JSON.stringify(user.gameData.ammo));
                 p.hubs = user.gameData.hubs;
@@ -195,6 +199,10 @@ function registerInventoryHandlers(socket, io, state) {
         if (!socket.dbUser || !state.players[socket.id]) return;
         const p = state.players[socket.id];
         
+        if (p.isExtracting) {
+            return socket.emit('gameNotification', { msg: 'EQUIPO BLOQUEADO: No puedes modificar tu nave en combate de extracción.', type: 'error' });
+        }
+
         const lock = checkCombatLock(p);
         if (lock.locked) {
             return socket.emit('gameNotification', { 
@@ -326,6 +334,10 @@ function registerInventoryHandlers(socket, io, state) {
         if (!socket.dbUser || !state.players[socket.id]) return;
         const p = state.players[socket.id];
         
+        if (p.isExtracting) {
+            return socket.emit('gameNotification', { msg: 'BODEGA BLOQUEADA: Extrae primero para modificar tu equipo.', type: 'error' });
+        }
+
         const lock = checkCombatLock(p);
         if (lock.locked) {
             return socket.emit('gameNotification', { 

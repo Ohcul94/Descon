@@ -139,6 +139,26 @@ function connect() {
                     expRequirements: Array(30).fill(0).map((_, i) => (i + 1) * 1000)
                 };
             }
+
+            // v2.1: Inicializar estructura de Modos de Juego si no existe
+            if (!config.gameModes) {
+                config.gameModes = {
+                    hunting: { enabled: true, targets: [], rewardMult: 1.2 },
+                    extraction: { 
+                        enabled: true, 
+                        maxPlayers: 21, 
+                        countdownTime: 10, 
+                        extractRadius: 150,
+                        maps: [2],
+                        extractPoints: [
+                            { x: 1500, y: 1500, label: "Punto Alfa" },
+                            { x: 8500, y: 8500, label: "Punto Beta" },
+                            { x: 5000, y: 500, label: "Punto Gamma" }
+                        ]
+                    },
+                    arenas: { enabled: true, maps: [], minPlayers: 2 }
+                };
+            }
             patchMechanicsLib();
             renderAll(); 
         }
@@ -635,6 +655,332 @@ async function deployToCloud() {
         showToast("❌ ERROR: No se pudo alcanzar el servidor de Oracle.");
         cloudSocket.disconnect();
     });
+}
+
+function addExtractionMap() {
+    const mapId = document.getElementById('add-ext-map-select').value;
+    if (!config.gameModes.extraction.maps.includes(parseInt(mapId))) {
+        config.gameModes.extraction.maps.push(parseInt(mapId));
+        renderModes();
+    }
+}
+
+function addExtractionMechanic() {
+    const mech = document.getElementById('add-ext-mech-select').value;
+    if (!config.gameModes.extraction.mechanics) config.gameModes.extraction.mechanics = [];
+    if (!config.gameModes.extraction.mechanics.includes(mech)) {
+        config.gameModes.extraction.mechanics.push(mech);
+        renderModes();
+    }
+}
+
+function toggleExtractionMap(id, enabled) {
+    if (!config.gameModes.extraction.maps) config.gameModes.extraction.maps = [];
+    if (enabled) {
+        if (!config.gameModes.extraction.maps.includes(id)) config.gameModes.extraction.maps.push(id);
+    } else {
+        config.gameModes.extraction.maps = config.gameModes.extraction.maps.filter(m => m !== id);
+    }
+}
+
+let radarMode = 'spawner'; // 'spawner' o 'extract'
+function setRadarMode(mode) {
+    radarMode = mode;
+    
+    // Actualizar visual de botones
+    const btnSpawner = document.getElementById('btn-radar-spawner');
+    const btnExtract = document.getElementById('btn-radar-extract');
+    
+    if (btnSpawner && btnExtract) {
+        if (mode === 'spawner') {
+            btnSpawner.classList.replace('btn-secondary', 'btn-primary');
+            btnExtract.classList.replace('btn-primary', 'btn-secondary');
+        } else {
+            btnSpawner.classList.replace('btn-primary', 'btn-secondary');
+            btnExtract.classList.replace('btn-secondary', 'btn-primary');
+        }
+    }
+
+    const modeText = document.getElementById('radar-mode-text');
+    if (modeText) modeText.innerText = mode === 'spawner' ? 'SPAWNER' : (mode === 'spawn' ? 'SPAWN' : 'ESCAPE');
+    
+    document.getElementById('radar-spawner-opts').style.display = mode === 'spawner' ? 'block' : 'none';
+    document.getElementById('radar-extract-opts').style.display = mode === 'extract' ? 'block' : 'none';
+    document.getElementById('radar-spawn-opts').style.display = mode === 'spawn' ? 'block' : 'none';
+}
+
+function initRadar() {
+    const canvas = document.getElementById('radar-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('radar-container');
+    const scale = canvas.width / 10000;
+    
+    // Estado de arrastre
+    let isDragging = false;
+    let dragItem = null; // { type: 'extract'|'spawner'|'spawn', index: number }
+
+    const updateCanvasSize = () => {
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+    };
+    window.addEventListener('resize', updateCanvasSize);
+    updateCanvasSize();
+
+    // Convertir de coordenadas de mundo (10000) a coordenadas de canvas
+    const worldToCanvas = (wx, wy) => ({
+        x: (wx / 10000) * canvas.width,
+        y: (wy / 10000) * canvas.height
+    });
+
+    // Convertir de canvas a mundo
+    const canvasToWorld = (cx, cy) => ({
+        wx: (cx / canvas.width) * 10000,
+        wy: (cy / canvas.height) * 10000
+    });
+
+    canvas.onmousedown = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // 1. Buscar en Puntos de Extracción
+        const points = config.gameModes.extraction.extractPoints || [];
+        for (let i = 0; i < points.length; i++) {
+            const pos = worldToCanvas(points[i].x, points[i].y);
+            const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+            if (dist < 15) { // Radio de colisión para agarrar
+                isDragging = true;
+                dragItem = { type: 'extract', index: i };
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+        }
+
+        // 2. Buscar en Amenazas (Spawners)
+        const spawners = config.gameModes.extraction.spawners || [];
+        for (let i = 0; i < spawners.length; i++) {
+            const pos = worldToCanvas(spawners[i].x, spawners[i].y);
+            const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+            if (dist < 15) {
+                isDragging = true;
+                dragItem = { type: 'spawner', index: i };
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+        }
+
+        // 3. Buscar en Spawn Points (Players)
+        const spawnPoints = config.gameModes.extraction.spawnPoints || [];
+        for (let i = 0; i < spawnPoints.length; i++) {
+            const pos = worldToCanvas(spawnPoints[i].x, spawnPoints[i].y);
+            const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+            if (dist < 15) {
+                isDragging = true;
+                dragItem = { type: 'spawn', index: i };
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+        }
+
+        // Si no agarró nada, capturar coordenadas para el input de "Fijar"
+        const world = canvasToWorld(mouseX, mouseY);
+        document.getElementById('radar-x').value = Math.round(world.wx);
+        document.getElementById('radar-y').value = Math.round(world.wy);
+    };
+
+    window.onmousemove = (e) => {
+        if (!isDragging || !dragItem) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = Math.max(0, Math.min(canvas.width, e.clientX - rect.left));
+        const mouseY = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
+        const world = canvasToWorld(mouseX, mouseY);
+
+        if (dragItem.type === 'extract') {
+            const p = config.gameModes.extraction.extractPoints[dragItem.index];
+            p.x = Math.round(world.wx);
+            p.y = Math.round(world.wy);
+            const ix = document.getElementById(`ep-x-${dragItem.index}`);
+            const iy = document.getElementById(`ep-y-${dragItem.index}`);
+            if (ix) ix.value = p.x;
+            if (iy) iy.value = p.y;
+        } else if (dragItem.type === 'spawner') {
+            const s = config.gameModes.extraction.spawners[dragItem.index];
+            s.x = Math.round(world.wx);
+            s.y = Math.round(world.wy);
+            const ix = document.getElementById(`sp-x-${dragItem.index}`);
+            const iy = document.getElementById(`sp-y-${dragItem.index}`);
+            if (ix) ix.value = s.x;
+            if (iy) iy.value = s.y;
+        } else if (dragItem.type === 'spawn') {
+            const sw = config.gameModes.extraction.spawnPoints[dragItem.index];
+            sw.x = Math.round(world.wx);
+            sw.y = Math.round(world.wy);
+            const ix = document.getElementById(`spw-x-${dragItem.index}`);
+            const iy = document.getElementById(`spw-y-${dragItem.index}`);
+            if (ix) ix.value = sw.x;
+            if (iy) iy.value = sw.y;
+        }
+    };
+
+    window.onmouseup = () => {
+        if (isDragging) {
+            isDragging = false;
+            dragItem = null;
+            canvas.style.cursor = 'crosshair';
+        }
+    };
+
+    const draw = () => {
+        if (!document.getElementById('radar-canvas')) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Dibujar Grid
+        ctx.strokeStyle = 'rgba(0, 210, 255, 0.1)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo((canvas.width / 5) * i, 0);
+            ctx.lineTo((canvas.width / 5) * i, canvas.height);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, (canvas.height / 5) * i);
+            ctx.lineTo(canvas.width, (canvas.height / 5) * i);
+            ctx.stroke();
+        }
+
+        // Dibujar Spawn Points (Players) - AMARILLO
+        if (config.gameModes.extraction.spawnPoints) {
+            config.gameModes.extraction.spawnPoints.forEach((p, idx) => {
+                const pos = worldToCanvas(p.x, p.y);
+                const radiusCanvas = (p.radius / 10000) * canvas.width;
+                const isSelected = isDragging && dragItem && dragItem.type === 'spawn' && dragItem.index === idx;
+
+                // Burbuja (Dashed)
+                ctx.beginPath();
+                ctx.setLineDash([5, 5]);
+                ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 204, 0, 0.4)';
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Punto
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = isSelected ? '#fff' : '#ffcc00';
+                ctx.fill();
+                ctx.strokeStyle = '#ffcc00';
+                ctx.stroke();
+
+                // Etiqueta
+                ctx.fillStyle = '#ffcc00';
+                ctx.font = '10px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.label || 'Spawn', pos.x, pos.y - 12);
+            });
+        }
+
+        // Dibujar Puntos de Extracción - AZUL
+        const points = config.gameModes.extraction.extractPoints || [];
+        points.forEach((p, idx) => {
+            const pos = worldToCanvas(p.x, p.y);
+            const isSelected = isDragging && dragItem && dragItem.type === 'extract' && dragItem.index === idx;
+            
+            ctx.fillStyle = isSelected ? '#fff' : 'rgba(0, 210, 255, 0.3)';
+            ctx.strokeStyle = '#00d2ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.fillStyle = '#00d2ff';
+            ctx.font = '10px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText(p.label, pos.x, pos.y - 15);
+        });
+
+        // Dibujar Spawners - ROJO
+        const spawners = config.gameModes.extraction.spawners || [];
+        spawners.forEach((s, idx) => {
+            const pos = worldToCanvas(s.x, s.y);
+            const isSelected = isDragging && dragItem && dragItem.type === 'spawner' && dragItem.index === idx;
+            const radiusCanvas = (s.radius / 10000) * canvas.width;
+
+            ctx.fillStyle = isSelected ? '#fff' : 'rgba(255, 49, 49, 0.1)';
+            ctx.strokeStyle = '#ff3131';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ff3131';
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Etiqueta de Zona - Siempre por encima del radio
+            ctx.fillStyle = '#ff3131';
+            ctx.font = 'bold 11px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText(s.label || 'Zona Enemiga', pos.x, pos.y - radiusCanvas - 6);
+        });
+
+        requestAnimationFrame(draw);
+    };
+    draw();
+}
+
+function addFromRadar() {
+    const x = parseInt(document.getElementById('radar-x').value);
+    const y = parseInt(document.getElementById('radar-y').value);
+    
+    if (radarMode === 'spawner') {
+        config.gameModes.extraction.spawners.push({
+            x, y,
+            label: document.getElementById('radar-spawner-label').value,
+            enemyId: document.getElementById('spawner-enemy-select').value,
+            count: parseInt(document.getElementById('radar-count').value),
+            radius: parseInt(document.getElementById('radar-radius').value)
+        });
+    } else if (radarMode === 'extract') {
+        config.gameModes.extraction.extractPoints.push({
+            x, y,
+            label: document.getElementById('radar-label').value
+        });
+    } else if (radarMode === 'spawn') {
+        if (!config.gameModes.extraction.spawnPoints) config.gameModes.extraction.spawnPoints = [];
+        config.gameModes.extraction.spawnPoints.push({
+            x, y,
+            label: document.getElementById('radar-spawn-label').value,
+            radius: parseInt(document.getElementById('radar-spawn-radius').value)
+        });
+    }
+    renderModes();
+}
+
+function addExtractionMechanic() {
+    const select = document.getElementById('add-ext-mech-select');
+    if (!select) return;
+    const type = select.value;
+    if (!config.gameModes.extraction.mechanics) config.gameModes.extraction.mechanics = [];
+    if (!config.gameModes.extraction.mechanics.includes(type)) {
+        config.gameModes.extraction.mechanics.push(type);
+        renderModes();
+    }
+}
+
+function addExtractionMap() {
+    const select = document.getElementById('add-ext-map-select');
+    if (!select) return;
+    const mapId = parseInt(select.value);
+    if (!config.gameModes.extraction.maps) config.gameModes.extraction.maps = [];
+    if (!config.gameModes.extraction.maps.includes(mapId)) {
+        config.gameModes.extraction.maps.push(mapId);
+        renderModes();
+    }
 }
 
 function toggleSidebar() {
