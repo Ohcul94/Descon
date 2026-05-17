@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config(); // v6.01 - Auto-trigger reload
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
@@ -909,6 +909,14 @@ io.on('connection', (socket) => {
         const p = players[socket.id];
         if (!p) return;
         
+        // v3.1: Bloquear cambios manuales de PvP dentro de la Raid de Extracción
+        if (p.isExtracting) {
+            return socket.emit('gameNotification', { 
+                msg: `¡MODO EXTRACCIÓN! No puedes cambiar el modo de combate dentro de la Raid.`, 
+                type: "error" 
+            });
+        }
+        
         // v222.45: ANTI-COMBAT-LOG (Solo si intenta desactivar PVP)
         if (enabled === false && p.pvpEnabled === true) {
             const now = Date.now();
@@ -1019,15 +1027,8 @@ io.on('connection', (socket) => {
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${targetZone}`);
             
-            // v2.2: Soporte para AOI en Zona 10 al entrar por primera vez (Solo si no es extracción)
-            if (targetZone === 10) {
-                const sector = extractionManager.getSector(p.x);
-                p.currentSector = sector;
-                socket.join(`zone_10_sector_${sector}`);
-            }
-
             // Notificar a los que ya estaban que llegamos nosotros
-            const broadcastTarget = (targetZone === 10) ? `zone_10_sector_${p.currentSector}` : `zone_${targetZone}`;
+            const broadcastTarget = `zone_${targetZone}`;
             socket.to(broadcastTarget).emit('newPlayer', { 
                 ...p, 
                 id: socket.id, 
@@ -1071,32 +1072,13 @@ io.on('connection', (socket) => {
             }, 350);
         }
 
-        // v2.2: OPTIMIZACIÓN DE RED POR SECTORES (AOI) EN ZONA DE EXTRACCIÓN O MAPA 10
-        if (p.isExtracting) {
-            const sector = extractionManager.updatePlayerSector(socket, p.x);
-            socket.broadcast.to(`zone_${p.zone}_sector_${sector}`).emit('playerMoved', { 
-                ...p, 
-                id: socket.id, 
-                spheres: p.spheres,
-                isInvisible: p.isInvisible 
-            });
-        } else if (Number(p.zone) === 10) {
-            const sector = extractionManager.updatePlayerSector(socket, p.x);
-            socket.broadcast.to(`zone_10_sector_${sector}`).emit('playerMoved', { 
-                ...p, 
-                id: socket.id, 
-                spheres: p.spheres,
-                isInvisible: p.isInvisible 
-            });
-        } else {
-            // v262.97: Restaurando Visibilidad Total (Resto de zonas)
-            socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', { 
-                ...p, 
-                id: socket.id, 
-                spheres: p.spheres,
-                isInvisible: p.isInvisible 
-            });
-        }
+        // v2.2: OPTIMIZACIÓN DE RED POR SECTORES (AOI) EN ZONA DE EXTRACCIÓN O MAPA 10 (VISIBILIDAD ROBUSTA DIRECTA)
+        socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', { 
+            ...p, 
+            id: socket.id, 
+            spheres: p.spheres,
+            isInvisible: p.isInvisible 
+        });
     });
 
     socket.on('playerRespawn', (respawnData) => {

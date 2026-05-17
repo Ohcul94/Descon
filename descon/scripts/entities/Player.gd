@@ -321,7 +321,7 @@ func _on_inventory_received(p_data):
 		if gd.has("ohcu"): ohculianos = int(gd["ohcu"])
 		if gd.has("level"): level = int(gd["level"])
 		if gd.has("exp"): current_exp = float(gd["exp"])
-		if gd.has("zone"): current_zone = int(gd["zone"])
+
 		
 		# v300.81: Los talentos ahora se sincronizan SOLO a través del TalentSystem.gd
 		# Evitamos duplicidad de datos en Player.gd

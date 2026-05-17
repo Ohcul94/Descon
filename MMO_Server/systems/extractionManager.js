@@ -280,6 +280,11 @@ class ExtractionManager {
             p.lastPos = { x: p.x, y: p.y };
         }
 
+        // Guardar estado original de PvP y forzar modo Combate (PvP)
+        p.originalPvpEnabled = !!p.pvpEnabled;
+        p.pvpEnabled = true;
+        this.io.emit('playerUpdated', { id: socketId, pvpEnabled: true });
+
         // Configurar estado de extracción en RAM
         p.zone = matchId;
         p.isExtracting = true;
@@ -290,7 +295,6 @@ class ExtractionManager {
         // v2.2: Inicializar sector AOI
         const sector = this.getSector(p.x);
         p.currentSector = sector;
-        socket.join(`zone_${matchId}_sector_${sector}`);
 
         match.players.push(socketId);
         socket.join(`zone_${matchId}`);
@@ -337,8 +341,8 @@ class ExtractionManager {
             }
         }, 300);
 
-        // Notificar a los otros pilotos del mismo sector
-        socket.to(`zone_${matchId}_sector_${sector}`).emit('newPlayer', { ...p, id: socketId });
+        // Notificar a todos los otros pilotos de la Raid
+        socket.to(`zone_${matchId}`).emit('newPlayer', { ...p, id: socketId });
 
         Logger.info('EXTRACT', `Piloto [${p.user}] entró a la Raid ${matchId} en Pos [${p.x}, ${p.y}]`);
         return { success: true };
@@ -520,6 +524,10 @@ class ExtractionManager {
             p.isExtracting = false;
             p.tempInventory = [];
             p.extractionTimer = 0;
+
+            // Restaurar PvP original
+            p.pvpEnabled = p.originalPvpEnabled !== undefined ? p.originalPvpEnabled : false;
+            this.io.emit('playerUpdated', { id: socketId, pvpEnabled: p.pvpEnabled });
 
             socket.join(`zone_1`);
             socket.emit('changeZoneDone', 1);

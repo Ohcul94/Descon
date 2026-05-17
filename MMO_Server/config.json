@@ -73,7 +73,8 @@
             ],
             "stopOnOutOfSight": true,
             "chaseUntilDeath": false,
-            "aggressive": true
+            "aggressive": true,
+            "defenseMechanics": []
         },
         "2": {
             "bulletDamage": 600,
@@ -115,7 +116,8 @@
                     "stopDist": 150,
                     "startDelay": 0
                 }
-            ]
+            ],
+            "defenseMechanics": []
         },
         "3": {
             "bulletDamage": 80,
@@ -1943,8 +1945,8 @@
                     "label": "Punto Delta"
                 }
             ],
-            "minPlayers": 3,
-            "startCountdown": 5000,
+            "minPlayers": 2,
+            "startCountdown": 3000,
             "spawners": [
                 {
                     "x": 2040,

@@ -26,6 +26,11 @@ func update_ui():
 	
 	var s_list = VBoxContainer.new(); s_list.size_flags_horizontal = 3; s_scroll.add_child(s_list)
 	
+	var current_zone_id = 1
+	var p_node = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(p_node) and "current_zone" in p_node:
+		current_zone_id = p_node.current_zone
+
 	var sectors = []
 	for z_id in GameConstants.MAPS_CONFIG:
 		var zone_data = GameConstants.MAPS_CONFIG[z_id]
@@ -34,12 +39,24 @@ func update_ui():
 		if not sd.has("color"): sd["color"] = "#ffffff"
 		sectors.append(sd)
 		
+	var has_current = false
+	for s in sectors:
+		if s.id == current_zone_id:
+			has_current = true
+			break
+			
+	if not has_current:
+		var custom_sector = {
+			"id": current_zone_id,
+			"name": "ZONA DE EXTRACCIÓN" if current_zone_id == 10 else ("DUNGEON" if current_zone_id == 99 else "INSTANCIA"),
+			"desc": "Sector inestable y de alta hostilidad.",
+			"color": "#ff00ff",
+			"warpCost": 0,
+			"minLevel": 1
+		}
+		sectors.append(custom_sector)
+		
 	sectors.sort_custom(func(a, b): return a.id < b.id)
-	
-	var current_zone_id = 1
-	var p_node = get_tree().get_first_node_in_group("player")
-	if is_instance_valid(p_node) and "current_zone" in p_node:
-		current_zone_id = p_node.current_zone
 	
 	var current_zone_name = "MAPA 1"
 

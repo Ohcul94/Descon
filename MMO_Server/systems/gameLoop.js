@@ -6,6 +6,18 @@ const { handleEnemyDeath } = require('./enemyLogic');
 const Logger = require('../utils/logger');
 const extractionManager = require('./extractionManager');
 
+const normalizeZone = (z) => {
+    if (z === undefined || z === null) return 1;
+    if (typeof z === 'string') {
+        if (!isNaN(z) && z.trim() !== '') {
+            return Number(z);
+        }
+        return z;
+    }
+    return z;
+};
+
+
 function startGameLoop(io, state, aiManager) {
     const grid = state.grid;
     
@@ -39,7 +51,7 @@ function startGameLoop(io, state, aiManager) {
 
             // v262.35: IA Inteligente (LOD) - Forzar actualización si hay mecánicas activas o Agresividad Extrema
             const { players: nearbyPs } = grid.getNearbyEntities(e.x, e.y);
-            const isNearPlayer = nearbyPs.some(p => p.zone === e.zone);
+            const isNearPlayer = nearbyPs.some(p => normalizeZone(p.zone) === normalizeZone(e.zone));
             const hasActiveMech = e.mechState && Object.values(e.mechState).some(m => m.isActive);
             
             // v266.999: Detección de Agresividad Extrema para Bypass de LOD
@@ -54,7 +66,7 @@ function startGameLoop(io, state, aiManager) {
             // v247.12: Repulsión física optimizada vía Grid
             const { enemies: nearbyEnemies } = grid.getNearbyEntities(e.x, e.y);
             nearbyEnemies.forEach(other => {
-                if (e.id !== other.id && e.zone === other.zone) {
+                if (e.id !== other.id && normalizeZone(e.zone) === normalizeZone(other.zone)) {
                     const dx = e.x - other.x;
                     const dy = e.y - other.y;
                     const d = Math.hypot(dx, dy);
@@ -84,7 +96,7 @@ function startGameLoop(io, state, aiManager) {
                     const cell = grid.grid.get(key);
                     if (cell) {
                         cell.enemies.forEach(e => {
-                            if (e.zone === p.zone) {
+                            if (normalizeZone(e.zone) === normalizeZone(p.zone)) {
                                 aoiData[e.id] = {
                                     id: e.id, x: e.x, y: e.y, rotation: e.rotation,
                                     hp: e.hp, shield: e.shield, zone: e.zone, type: e.type,

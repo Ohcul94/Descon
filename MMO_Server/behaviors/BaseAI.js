@@ -1,4 +1,14 @@
-// BaseAI.js (Cerebro General v85.10)
+const normalizeZone = (z) => {
+    if (z === undefined || z === null) return 1;
+    if (typeof z === 'string') {
+        if (!isNaN(z) && z.trim() !== '') {
+            return Number(z);
+        }
+        return z;
+    }
+    return z;
+};
+
 module.exports = class BaseAI {
     constructor(enemy, config, state) {
         this.enemy = enemy;
@@ -25,13 +35,18 @@ module.exports = class BaseAI {
         });
         
         // v266.999: Detección de Agresividad Extrema Ambiental (Búsqueda Ultra-Robusta)
-        const zoneId = this.enemy.zone;
+        let zoneId = this.enemy.zone;
+        if (typeof zoneId === 'string' && zoneId.startsWith('extract_')) {
+            zoneId = parseInt(zoneId.split('_')[1]) || 10;
+        } else if (typeof zoneId === 'string' && zoneId.startsWith('dungeon')) {
+            zoneId = 99;
+        }
         const currentConfig = (this.state && this.state.SERVER_CONFIG) ? this.state.SERVER_CONFIG : {};
         const maps = currentConfig.mapsConfig || currentConfig.maps || currentConfig.mapData || {};
         
         // Intentar encontrar el mapa por ID (2), String ("2") o Nombre ("Mapa 2")
-        let mapCfg = maps[zoneId] || maps[zoneId.toString()];
-        if (!mapCfg) {
+        let mapCfg = maps[zoneId] || (zoneId !== undefined ? maps[zoneId.toString()] : null);
+        if (!mapCfg && zoneId !== undefined) {
             mapCfg = Object.values(maps).find(m => m.name === zoneId || m.name === `Mapa ${zoneId}` || m.name === zoneId.toString());
         }
 
@@ -186,8 +201,27 @@ module.exports = class BaseAI {
             if (!this.enemy.isAggressive && !this._inCombat) continue;
             
             // v266.999: Búsqueda Global (Si el jugador está en una zona extrema, el bicho lo detecta)
-            const pZone = parseInt(p.zone);
-            const eZone = parseInt(this.enemy.zone);
+            let pZone = parseInt(p.zone);
+            if (isNaN(pZone)) {
+                if (typeof p.zone === 'string' && p.zone.startsWith('extract_')) {
+                    pZone = parseInt(p.zone.split('_')[1]) || 10;
+                } else if (typeof p.zone === 'string' && p.zone.startsWith('dungeon')) {
+                    pZone = 99;
+                } else {
+                    pZone = 0;
+                }
+            }
+
+            let eZone = parseInt(this.enemy.zone);
+            if (isNaN(eZone)) {
+                if (typeof this.enemy.zone === 'string' && this.enemy.zone.startsWith('extract_')) {
+                    eZone = parseInt(this.enemy.zone.split('_')[1]) || 10;
+                } else if (typeof this.enemy.zone === 'string' && this.enemy.zone.startsWith('dungeon')) {
+                    eZone = 99;
+                } else {
+                    eZone = 0;
+                }
+            }
             
             // Verificamos si la zona del JUGADOR es extrema
             const pMapCfg = maps[pZone] || maps[pZone.toString()];
@@ -199,7 +233,8 @@ module.exports = class BaseAI {
             if (p.isInvisible) continue; 
             
             // Si no estamos en la misma zona y la zona del jugador NO es extrema, ignoramos
-            if (pZone !== eZone && !pIsExtreme) continue;
+            const isSameZone = (normalizeZone(p.zone) === normalizeZone(this.enemy.zone));
+            if (!isSameZone && !pIsExtreme) continue;
 
             const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
             if (d < minDist) {
