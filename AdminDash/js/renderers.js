@@ -187,13 +187,16 @@ function updateSidebar() {
     }
 
     // Enemigos
+    const baseSelectedId = selectedEnemyId ? selectedEnemyId.split('-')[0] : '';
     for(let id in config.enemyModels) {
+        if (id.includes('-')) continue; // Ocultar variantes sub-tier de la barra lateral
+        
         const en = config.enemyModels[id];
         const matches = en.name.toLowerCase().includes(searchTerm) || id.includes(searchTerm);
         if (!matches) continue;
 
         const link = document.createElement('div');
-        link.className = 'nav-link sub ' + (selectedEnemyId === id ? 'active' : '');
+        link.className = 'nav-link sub ' + (baseSelectedId === id ? 'active' : '');
         link.innerText = `${en.name || 'Enemigo '+id}`;
         link.onclick = () => selectEnemy(id);
         
@@ -226,6 +229,8 @@ function renderEnemies() {
     const f = getFilter();
 
     for(let id in config.enemyModels) {
+        if (id.includes('-')) continue; // Ocultar variantes sub-tier de la grilla principal
+        
         const en = config.enemyModels[id];
         const eid = parseInt(id);
         if (currentEnemySubTab === 'regular' && eid >= 100) continue;
@@ -253,6 +258,42 @@ function renderEnemyDetail() {
     const DEFENSE_LIB = config.defenseLib || DEFAULT_DEFENSE_LIB;
 
     const container = document.getElementById('enemy-detail-container');
+    const baseId = selectedEnemyId ? selectedEnemyId.split('-')[0] : '';
+    const tiers = [
+        { suffix: '', label: 'Base (x1)' },
+        { suffix: '-A', label: 'Tier A (x2)', mult: 2, key: 'A' },
+        { suffix: '-B', label: 'Tier B (x3)', mult: 3, key: 'B' },
+        { suffix: '-C', label: 'Tier C (x4)', mult: 4, key: 'C' },
+        { suffix: '-D', label: 'Tier D (x5)', mult: 5, key: 'D' }
+    ];
+
+    if (baseId && parseInt(baseId) < 100) {
+        const parentModel = config.enemyModels[baseId];
+        if (parentModel) {
+            tiers.forEach(t => {
+                if (t.suffix === '') return;
+                const tierId = `${baseId}${t.suffix}`;
+                if (!config.enemyModels[tierId]) {
+                    const clone = JSON.parse(JSON.stringify(parentModel));
+                    clone.name = `${parentModel.name || 'Enemigo ' + baseId} ${t.key}`;
+                    clone.hp = parentModel.hp * t.mult;
+                    clone.shield = parentModel.shield * t.mult;
+                    if (clone.bulletDamage !== undefined) clone.bulletDamage = parentModel.bulletDamage * t.mult;
+                    if (clone.rewardExp !== undefined) clone.rewardExp = parentModel.rewardExp * t.mult;
+                    if (clone.rewardHubs !== undefined) clone.rewardHubs = parentModel.rewardHubs * t.mult;
+                    if (clone.rewardOhcu !== undefined) clone.rewardOhcu = parentModel.rewardOhcu * t.mult;
+                    if (Array.isArray(clone.mechanics)) {
+                        clone.mechanics.forEach(m => {
+                            if (m.bulletDamage !== undefined) m.bulletDamage = m.bulletDamage * t.mult;
+                            if (m.damage !== undefined) m.damage = m.damage * t.mult;
+                        });
+                    }
+                    config.enemyModels[tierId] = clone;
+                }
+            });
+        }
+    }
+
     const en = config.enemyModels[selectedEnemyId];
     if(!en) return;
 
@@ -264,7 +305,29 @@ function renderEnemyDetail() {
     }
     if (!en.defenseMechanics) en.defenseMechanics = [];
 
+    let subTabsHtml = '';
+    if (baseId && parseInt(baseId) < 100) {
+        subTabsHtml = `
+            <div style="display: flex; gap: 10px; margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.6); padding: 8px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.05); overflow-x: auto;">
+                ${tiers.map(t => {
+                    const tierId = `${baseId}${t.suffix}`;
+                    const isActive = selectedEnemyId === tierId;
+                    return `
+                        <button class="btn" style="flex: 1; padding: 10px 15px; font-size: 0.85rem; font-weight: bold; border-radius: 6px; 
+                                       background: ${isActive ? 'var(--accent)' : 'transparent'}; 
+                                       color: ${isActive ? '#000' : 'var(--text)'}; 
+                                       border: 1px solid ${isActive ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}; cursor: pointer; transition: all 0.2s;" 
+                                onclick="selectEnemy('${tierId}')">
+                            ${t.label}
+                        </button>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
     container.innerHTML = `
+        ${subTabsHtml}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
             <div class="col">
                 <div class="card" style="width:100%; margin-bottom: 2rem;">
