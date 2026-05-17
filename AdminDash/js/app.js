@@ -22,11 +22,8 @@ function showTab(tabId) {
     
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     
-    // Limpiar clases active pero conservar las de sub-links si se están usando
-    const isSubTab = ['enemy-detail', 'map-detail'].includes(tabId);
-    if (!isSubTab) {
-        document.querySelectorAll('.nav-link:not(.sub)').forEach(b => b.classList.remove('active'));
-    }
+    // Limpiar clases active de todos los links principales de primer nivel
+    document.querySelectorAll('.nav-link:not(.sub)').forEach(b => b.classList.remove('active'));
     
     const view = document.getElementById('view-' + tabId);
     if(view) view.classList.add('active');
