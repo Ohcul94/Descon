@@ -299,7 +299,8 @@ function renderEnemyDetail() {
                         <div class="field"><label>Rango de Retorno al Spawn (px)</label><input type="number" value="${en.leashRange || 0}" onchange="config.enemyModels['${selectedEnemyId}'].leashRange = parseInt(this.value)"></div>
                         <div class="field"><label>Regeneración de Vida Fuera de Combate (%)</label><input type="number" value="${en.hpRegenPercent !== undefined ? en.hpRegenPercent : 3}" onchange="config.enemyModels['${selectedEnemyId}'].hpRegenPercent = parseFloat(this.value)"></div>
                         <div class="field"><label>Regeneración de Escudo Fuera de Combate (%)</label><input type="number" value="${en.shieldRegenPercent !== undefined ? en.shieldRegenPercent : 5}" onchange="config.enemyModels['${selectedEnemyId}'].shieldRegenPercent = parseFloat(this.value)"></div>
-                        <div class="field"><label>Tiempo Espera Fuera de Combate (s)</label><input type="number" value="${en.regenDelaySec !== undefined ? en.regenDelaySec : 5}" onchange="config.enemyModels['${selectedEnemyId}'].regenDelaySec = parseFloat(this.value)"></div>
+                        <div class="field"><label>Tiempo Espera Fuera de Combate (ms)</label><input type="number" value="${en.regenDelayMs !== undefined ? en.regenDelayMs : (en.regenDelaySec !== undefined ? en.regenDelaySec * 1000 : 5000)}" onchange="config.enemyModels['${selectedEnemyId}'].regenDelayMs = parseInt(this.value); delete config.enemyModels['${selectedEnemyId}'].regenDelaySec;"></div>
+                        <div class="field"><label>Intervalo de Regeneración (ms)</label><input type="number" value="${en.regenIntervalMs !== undefined ? en.regenIntervalMs : 1000}" onchange="config.enemyModels['${selectedEnemyId}'].regenIntervalMs = parseInt(this.value)"></div>
                     </div>
                 </div>
                 <div style="margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center;">
