@@ -22,44 +22,11 @@ module.exports = class BaseAI {
         const cfg = this.config;
         if (!cfg) return;
 
-        // v3.0: Soporte de Leash Range (Rango de Retorno al Spawn)
+        // v3.0: Soporte de Leash Range (Rango de Retorno al Spawn) e Interrupción de Retorno
         if (this.enemy.startX === undefined) this.enemy.startX = this.enemy.x;
         if (this.enemy.startY === undefined) this.enemy.startY = this.enemy.y;
 
         const leashRange = Number(cfg.leashRange) || 0;
-        
-        // Verificar si se excedió el leashRange respecto al punto de spawn
-        if (leashRange > 0 && !this.enemy.returningToSpawn) {
-            const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
-            if (distFromSpawn > leashRange) {
-                this.enemy.returningToSpawn = true;
-                this.enemy.lastHitter = null; // Olvidar agresor
-                this.enemy.hp = this.enemy.maxHp; // Evasión completa estilo MMO
-                this.enemy.shield = this.enemy.maxShield;
-            }
-        }
-
-        // Si está regresando al spawn
-        if (this.enemy.returningToSpawn) {
-            const distToSpawn = Math.hypot(this.enemy.startX - this.enemy.x, this.enemy.startY - this.enemy.y);
-            if (distToSpawn < 50) {
-                this.enemy.returningToSpawn = false;
-                this.enemy.isMoving = false;
-            } else {
-                // Moverse hacia el punto de spawn
-                this.enemy.isMoving = true;
-                const angleToSpawn = Math.atan2(this.enemy.startY - this.enemy.y, this.enemy.startX - this.enemy.x);
-                const speed = this.getSpeed();
-                this.enemy.x += Math.cos(angleToSpawn) * speed;
-                this.enemy.y += Math.sin(angleToSpawn) * speed;
-                this.enemy.rotation = angleToSpawn + Math.PI / 2;
-                
-                // Regenerar stats rápidamente en el camino
-                this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * 0.05));
-                this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * 0.05));
-                return; // Omitir el resto de la IA de combate/agro
-            }
-        }
         
         // v269.195: PROCESAR DEFENSAS (Usar '|| 100' para manejar ceros del dashboard como 'siempre activo')
         const defMechanics = cfg.defenseMechanics || [];
@@ -122,10 +89,10 @@ module.exports = class BaseAI {
             }
         }
 
-        // v266.550: Búsqueda de objetivo potencial (Visión Pasiva)
+        // Búsqueda de objetivo potencial (Visión Pasiva)
         let potentialTarget = this.getNearestPlayer(grid, players);
         
-        // v266.560: Lógica de AGRO (Quién tiene la atención del bicho)
+        // Lógica de AGRO (Quién tiene la atención del bicho)
         let activeTarget = null;
         let isRevenge = false;
 
@@ -145,6 +112,62 @@ module.exports = class BaseAI {
         // 2. PROXIMIDAD: Si soy agresivo y no tengo venganza pendiente, busco al más cercano
         if (!activeTarget && isAggressive) {
             activeTarget = potentialTarget;
+        }
+
+        // v3.0: EVALUAR INTERRUPCIÓN DEL REGRESO AL SPAWN (Soft Leash)
+        if (this.enemy.returningToSpawn && activeTarget) {
+            const targetDistFromSpawn = Math.hypot(activeTarget.x - this.enemy.startX, activeTarget.y - this.enemy.startY);
+            const targetDistToEnemy = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
+            const configVision = cfg ? Number(cfg.visionRange) : 0;
+            const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy.isHorde ? 10000 : 800));
+
+            // Si el target está dentro del rango territorial de spawn y está al alcance de visión o le acaba de pegar
+            if (targetDistFromSpawn <= leashRange && (targetDistToEnemy < visionRange || isRevenge)) {
+                this.enemy.returningToSpawn = false; // Interrumpir el regreso
+                this._inCombat = true; // Volver al combate
+            }
+        }
+
+        // v3.0: EVALUAR EXCESO DE RANGO (Leash Range Check)
+        if (leashRange > 0 && !this.enemy.returningToSpawn) {
+            const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
+            
+            // También verificar si el target actual se paró fuera del leashRange del bicho (kiteo)
+            let isTargetOutOfLeash = false;
+            if (activeTarget) {
+                const targetDistFromSpawn = Math.hypot(activeTarget.x - this.enemy.startX, activeTarget.y - this.enemy.startY);
+                if (targetDistFromSpawn > leashRange) {
+                    isTargetOutOfLeash = true;
+                }
+            }
+
+            if (distFromSpawn > leashRange || isTargetOutOfLeash) {
+                this.enemy.returningToSpawn = true;
+                this.enemy.lastHitter = null; // Olvidar agresor para forzar retorno
+                activeTarget = null;
+                this._inCombat = false; // Salir de combate
+            }
+        }
+
+        // v3.0: PROCESAR REGRESO AL SPAWN
+        if (this.enemy.returningToSpawn) {
+            const distToSpawn = Math.hypot(this.enemy.startX - this.enemy.x, this.enemy.startY - this.enemy.y);
+            if (distToSpawn < 50) {
+                this.enemy.returningToSpawn = false;
+                this.enemy.isMoving = false;
+            } else {
+                this.enemy.isMoving = true;
+                const angleToSpawn = Math.atan2(this.enemy.startY - this.enemy.y, this.enemy.startX - this.enemy.x);
+                const speed = this.getSpeed();
+                this.enemy.x += Math.cos(angleToSpawn) * speed;
+                this.enemy.y += Math.sin(angleToSpawn) * speed;
+                this.enemy.rotation = angleToSpawn + Math.PI / 2;
+                
+                // Regeneración masiva en el regreso (estilo MMO Evasión Fuera de Combate)
+                this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * 0.03));
+                this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * 0.05));
+                return; // Omitir el resto del procesamiento de ataque
+            }
         }
 
         // v266.999: Si hay mecánicas activas O es Agresividad Extrema, NO PODEMOS soltar el flujo
