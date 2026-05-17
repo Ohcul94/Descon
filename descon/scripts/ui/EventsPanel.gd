@@ -16,7 +16,7 @@ func _ready():
 	add_to_group("events_ui")
 	add_to_group("inventory_ui") # v1.2: Tratar como panel principal
 	visible = false
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	var win = get_node_or_null("Window")
 	if win: 

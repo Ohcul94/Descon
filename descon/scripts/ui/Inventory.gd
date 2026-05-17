@@ -32,7 +32,7 @@ var pending_skill_to_equip = null # v301.5: Habilidad esperando selección de sl
 
 func _ready():
 	add_to_group("inventory_ui") # v244.70: Coordinación global de UI
-	mouse_filter = Control.MOUSE_FILTER_STOP # v305.65: Cambiado de PASS a STOP para bloqueo global
+	mouse_filter = Control.MOUSE_FILTER_IGNORE # v305.65: Cambiado de PASS a STOP para bloqueo global
 	
 	var win = get_node_or_null("Window")
 	if win: win.mouse_filter = Control.MOUSE_FILTER_STOP # v244.71: Bloquear click-through
