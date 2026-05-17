@@ -454,13 +454,18 @@
                     "type": "invulnerability",
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
-                    "duration": 5000,
-                    "cooldown": 4000,
+                    "duration": 3000,
+                    "cooldown": 10000,
                     "startDelay": 0,
                     "activationHP": 0
                 }
             ],
-            "aggressive": true
+            "aggressive": true,
+            "visionRange": 1000,
+            "leashRange": 1000,
+            "hpRegenPercent": 1,
+            "shieldRegenPercent": 20,
+            "regenIntervalMs": 2000
         },
         "11": {
             "bulletDamage": 380,
