@@ -203,43 +203,50 @@ function updateSidebar() {
         const matches = en.name.toLowerCase().includes(searchTerm) || id.includes(searchTerm);
         if (!matches) continue;
 
-        // Contenedor de grupo para el enemigo y sus variantes
-        const groupContainer = document.createElement('div');
-        groupContainer.className = 'enemy-group';
-        groupContainer.style.display = 'flex';
-        groupContainer.style.flexDirection = 'column';
+        if (parseInt(id) < 100) {
+            const isCurrentOpen = baseSelectedId === id;
+            
+            // Contenedor de grupo
+            const groupContainer = document.createElement('div');
+            groupContainer.className = 'enemy-group';
+            groupContainer.style.display = 'flex';
+            groupContainer.style.flexDirection = 'column';
 
-        // Enlace del Enemigo Base
-        const parentLink = document.createElement('div');
-        parentLink.className = 'nav-link sub ' + (baseSelectedId === id ? 'active' : '');
-        parentLink.innerText = `${en.name || 'Enemigo '+id}`;
-        parentLink.onclick = () => selectEnemy(id);
-        groupContainer.appendChild(parentLink);
+            // Enlace del Enemigo Base (Carpeta de nivel medio)
+            const parentLink = document.createElement('div');
+            parentLink.className = 'nav-link sub ' + (isCurrentOpen ? 'active' : '');
+            parentLink.style.display = 'flex';
+            parentLink.style.justifyContent = 'space-between';
+            parentLink.style.alignItems = 'center';
+            parentLink.style.cursor = 'pointer';
+            
+            parentLink.innerHTML = `
+                <span>👾 ${en.name || 'Enemigo '+id}</span>
+                <span class="chevron" style="font-size: 0.65rem; transition: transform 0.2s;">${isCurrentOpen ? '▼' : '▶'}</span>
+            `;
 
-        // Si este enemigo está seleccionado (o alguno de sus sub-tiers), mostramos las variantes colapsables
-        if (baseSelectedId === id && parseInt(id) < 100) {
+            parentLink.onclick = (e) => {
+                toggleFolder(`subfolder-enemy-${id}`, e);
+                selectEnemy(id);
+            };
+            groupContainer.appendChild(parentLink);
+
+            // Sub-carpeta colapsable con misma estética que subfolder-ammo
             const subContainer = document.createElement('div');
-            subContainer.className = 'sub-tier-container';
-            subContainer.style.paddingLeft = '12px';
-            subContainer.style.display = 'flex';
-            subContainer.style.flexDirection = 'column';
-            subContainer.style.gap = '2px';
-            subContainer.style.marginTop = '2px';
-            subContainer.style.marginBottom = '6px';
+            subContainer.id = `subfolder-enemy-${id}`;
+            subContainer.className = 'folder-content ' + (isCurrentOpen ? 'show' : '');
+            subContainer.style.paddingLeft = '1rem';
+            subContainer.style.borderLeft = '1px solid #333';
+            subContainer.style.marginLeft = '0.5rem';
 
             tiers.forEach(t => {
                 const subId = `${id}${t.suffix}`;
                 const isSubActive = selectedEnemyId === subId;
 
                 const subLink = document.createElement('div');
-                subLink.className = 'nav-link sub-tier ' + (isSubActive ? 'active' : '');
-                subLink.innerText = `└ ${t.label}`;
-                subLink.style.fontSize = '0.72rem';
-                subLink.style.padding = '4px 8px';
-                subLink.style.opacity = isSubActive ? '1' : '0.6';
-                subLink.style.borderLeft = isSubActive ? '2px solid var(--accent)' : '1px dashed rgba(255,255,255,0.08)';
+                subLink.className = 'nav-link sub ' + (isSubActive ? 'active' : '');
+                subLink.innerText = `🔫 ${t.label}`;
                 subLink.style.cursor = 'pointer';
-                subLink.style.transition = 'all 0.15s';
                 
                 subLink.onclick = (e) => {
                     e.stopPropagation();
@@ -250,10 +257,15 @@ function updateSidebar() {
             });
 
             groupContainer.appendChild(subContainer);
+            enemyList.appendChild(groupContainer);
+        } else {
+            // Bosses
+            const link = document.createElement('div');
+            link.className = 'nav-link sub ' + (selectedEnemyId === id ? 'active' : '');
+            link.innerText = `💀 ${en.name || 'Boss '+id}`;
+            link.onclick = () => selectEnemy(id);
+            bossList.appendChild(link);
         }
-        
-        if (parseInt(id) < 100) enemyList.appendChild(groupContainer);
-        else bossList.appendChild(groupContainer);
     }
 }
 
