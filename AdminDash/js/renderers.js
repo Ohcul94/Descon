@@ -245,7 +245,7 @@ function updateSidebar() {
 
                 const subLink = document.createElement('div');
                 subLink.className = 'nav-link sub ' + (isSubActive ? 'active' : '');
-                subLink.innerText = `🔫 ${t.label}`;
+                subLink.innerText = `👾 ${t.label}`;
                 subLink.style.cursor = 'pointer';
                 
                 subLink.onclick = (e) => {
