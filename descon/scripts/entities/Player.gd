@@ -600,7 +600,10 @@ func respawn():
 	is_dead = false
 	current_hp = max_hp
 	current_shield = max_shield
-	global_position = Vector2(randf_range(1500, 2500), randf_range(1500, 2500))
+	if current_zone == 1:
+		global_position = Vector2(1000, 1000)
+	else:
+		global_position = Vector2(randf_range(1500, 2500), randf_range(1500, 2500))
 	target_position = global_position
 	visible = true; modulate.a = 1.0; show()
 	set_physics_process(true); set_process(true)

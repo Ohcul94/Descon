@@ -519,8 +519,8 @@ class ExtractionManager {
         if (p && socket) {
             socket.leave(`zone_${matchId}`);
             p.zone = 1;
-            p.x = 2000;
-            p.y = 2000;
+            p.x = 1000;
+            p.y = 1000;
             p.isExtracting = false;
             p.tempInventory = [];
             p.extractionTimer = 0;
@@ -531,6 +531,38 @@ class ExtractionManager {
 
             socket.join(`zone_1`);
             socket.emit('changeZoneDone', 1);
+
+            // v3.0: Enviar jugadores y enemigos actuales de la Zona 1 (Lobby) para perfecta sincronía al volver
+            const currentPlayersInZone = {};
+            Object.keys(this.state.players).forEach(id => {
+                if (Number(this.state.players[id].zone) === 1 && id !== socketId) {
+                    currentPlayersInZone[id] = {
+                        id: id,
+                        dbId: this.state.players[id].id,
+                        user: this.state.players[id].user,
+                        x: this.state.players[id].x,
+                        y: this.state.players[id].y,
+                        zone: this.state.players[id].zone,
+                        hp: this.state.players[id].hp,
+                        maxHp: this.state.players[id].maxHp,
+                        shield: this.state.players[id].shield,
+                        maxShield: this.state.players[id].maxShield,
+                        shipType: this.state.players[id].shipType,
+                        spheres: this.state.players[id].spheres,
+                        pvpEnabled: this.state.players[id].pvpEnabled
+                    };
+                }
+            });
+            socket.emit('currentPlayers', currentPlayersInZone);
+
+            const zoneEnemies = {};
+            Object.keys(this.state.enemies).forEach(id => {
+                if (Number(this.state.enemies[id].zone) === 1) {
+                    const { ai, ...cleanData } = this.state.enemies[id];
+                    zoneEnemies[id] = cleanData;
+                }
+            });
+            socket.emit('currentEnemies', zoneEnemies);
             
             // Re-sincronizar stats finales
             calculateFinalStats(p, this.state.SERVER_CONFIG);

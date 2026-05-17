@@ -80,6 +80,13 @@ function registerZoneHandlers(socket, io, state) {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
 
+        // v2.9: Si venía de una extracción activa, limpiarlo en ExtractionManager y forzar retorno seguro
+        if (p.isExtracting) {
+            const extractionManager = require('../systems/extractionManager');
+            extractionManager.returnToHangar(socket.id, p.zone);
+            return;
+        }
+
         const oldZone = (p.zone !== undefined ? p.zone : 1);
         if (Number(oldZone) === Number(zoneId)) return; // Evitar cobro si ya está ahí
 
@@ -121,7 +128,7 @@ function registerZoneHandlers(socket, io, state) {
             socket.emit('inventoryData', { player: user.gameData });
             socket.emit('changeZoneDone', zoneId);
 
-            const newSize = (Number(zoneId) === 1 ? 4000 : 2000);
+            const newSize = (Number(zoneId) === 1 ? 2000 : 4000);
 
             // Gestión de Habitaciones v75.0 (Optimization)
             socket.leave(`zone_${oldZone}`);

@@ -35,6 +35,36 @@ func setup(world_ref):
 	NetworkManager.hook_pulled.connect(_on_hook_pulled)
 
 func _process(delta):
+	# 0. Filtro Proactivo de Zonas para prevenir Entidades Huérfanas (v3.0)
+	if is_instance_valid(world) and is_instance_valid(world.local_player):
+		var my_zone = _parse_zone_to_int(world.local_player.current_zone)
+		
+		# Limpiar Jugadores Remotos Huérfanos
+		for pid in remote_players.keys():
+			var rp = remote_players[pid]
+			if is_instance_valid(rp):
+				var rp_zone = rp.get_meta("zone") if rp.has_meta("zone") else -1
+				if rp_zone != -1 and rp_zone != my_zone:
+					remote_players.erase(pid)
+					rp.queue_free()
+					print("[EntityManager SINC] Piloto huérfano removido por cambio de zona: ", pid)
+					
+		# Limpiar Enemigos Huérfanos
+		for eid in enemies.keys():
+			var en = enemies[eid]
+			if is_instance_valid(en):
+				var en_zone = en.get_meta("zone") if en.has_meta("zone") else -1
+				if en_zone != -1 and en_zone != my_zone:
+					en.set_meta("is_pooled", true)
+					en.visible = false
+					en.set_process(false)
+					en.set_physics_process(false)
+					if en.get("_collision_shape"):
+						en.get("_collision_shape").set_deferred("disabled", true)
+					if en.get("_ui_wrapper"): en.get("_ui_wrapper").visible = false
+					enemies.erase(eid)
+					print("[EntityManager SINC] Enemigo huérfano purgado por cambio de zona: ", eid)
+
 	# 1. Procesar físicas locales de succión de Vórtices
 	for id in active_areas.keys():
 		var area = active_areas[id]
@@ -116,9 +146,10 @@ func _on_player_updated(data):
 	var id = str(data.id)
 	if id == "" or id == "null": return
 	
+	var remote_zone = _parse_zone_to_int(data.get("zone", -1))
+	
 	# Filtro de Zona Crítico
 	if is_instance_valid(world) and is_instance_valid(world.local_player):
-		var remote_zone = _parse_zone_to_int(data.get("zone", -1))
 		var local_zone = _parse_zone_to_int(world.local_player.current_zone)
 		
 		if remote_zone != -1 and remote_zone != local_zone:
@@ -154,6 +185,7 @@ func _on_player_updated(data):
 	if is_instance_valid(p):
 		p.target_position = Vector2(data.get("x", p.global_position.x), data.get("y", p.global_position.y))
 		p.target_rotation = data.get("rotation", p.rotation)
+		p.set_meta("zone", remote_zone)
 		p.update_stats(data)
 
 func _get_enemy_from_pool() -> Node:
@@ -273,6 +305,9 @@ func _on_enemy_updated(data):
 	if is_instance_valid(eref):
 		if data.has("x"): eref.target_position = Vector2(data.x, data.get("y", 0))
 		if data.has("rotation"): eref.target_rotation = data.rotation
+		var enemy_zone = _parse_zone_to_int(data.get("zone", -1))
+		if enemy_zone != -1:
+			eref.set_meta("zone", enemy_zone)
 		eref.update_stats(data); eref.visible = true; eref.show()
 	else:
 		enemies.erase(id)

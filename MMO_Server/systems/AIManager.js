@@ -54,7 +54,8 @@ class AIManager {
         const initialShield = (cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 101 ? 50000 : (type * 1000))))) * hpMult;
 
         let mapSize = 4000;
-        if (Number(zone) === 2) mapSize = 2000;
+        if (Number(zone) === 1) mapSize = 2000;
+        else if (Number(zone) === 2) mapSize = 2000;
         else if (Number(zone) === 9) mapSize = 2000;
 
         const finalX = posX || (zone === 9 ? 2000 : (Math.random() * (mapSize - 600) + 300));
