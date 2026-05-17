@@ -107,8 +107,11 @@ func _render_spheres_equipment(tab, _sub_tabs):
 			if equipped: inv_main.selected_sphere_type_filter = type_txt
 			
 			# v301.6: Búsqueda segura del TabContainer (Fix: Reconfigurar no hacía nada)
-			var st = get_parent()
-			if st is TabContainer: st.current_tab = 1
+			for child in get_children():
+				if child is TabContainer:
+					child.current_tab = 1
+					break
+			update_ui()
 		)
 		
 		if equipped:
