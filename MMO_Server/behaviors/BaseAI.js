@@ -243,9 +243,17 @@ module.exports = class BaseAI {
             this.applyMovementLogic(activeTarget, dist, targetAngle, now);
         }
         
-        // Regeneración pasiva standard
-        if (now - (this.enemy.lastHit || 0) > 5000 && this.enemy.shield < this.enemy.maxShield) {
-            this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * 0.01));
+        // Regeneración pasiva standard / Fuera de combate ocioso (después de 5 segundos de no recibir golpes)
+        if (now - (this.enemy.lastHit || 0) > 5000) {
+            const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 3;
+            const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 5;
+            
+            if (hpRegen > 0 && this.enemy.hp < this.enemy.maxHp) {
+                this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * (hpRegen / 100)));
+            }
+            if (shieldRegen > 0 && this.enemy.shield < this.enemy.maxShield) {
+                this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * (shieldRegen / 100)));
+            }
         }
     }
 

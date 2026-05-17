@@ -297,8 +297,8 @@ function renderEnemyDetail() {
                         <div class="field"><label>Timeout Abandono (ms)</label><input type="number" value="${en.chaseIdleTimeout || 0}" onchange="config.enemyModels['${selectedEnemyId}'].chaseIdleTimeout = parseInt(this.value)"></div>
                         <div class="field"><label>Rango de Visión (px)</label><input type="number" value="${en.visionRange || 800}" onchange="config.enemyModels['${selectedEnemyId}'].visionRange = parseInt(this.value)"></div>
                         <div class="field"><label>Rango de Retorno al Spawn (px)</label><input type="number" value="${en.leashRange || 0}" onchange="config.enemyModels['${selectedEnemyId}'].leashRange = parseInt(this.value)"></div>
-                        <div class="field"><label>Regeneración de Vida al Retorno (%)</label><input type="number" value="${en.hpRegenPercent !== undefined ? en.hpRegenPercent : 3}" onchange="config.enemyModels['${selectedEnemyId}'].hpRegenPercent = parseFloat(this.value)"></div>
-                        <div class="field"><label>Regeneración de Escudo al Retorno (%)</label><input type="number" value="${en.shieldRegenPercent !== undefined ? en.shieldRegenPercent : 5}" onchange="config.enemyModels['${selectedEnemyId}'].shieldRegenPercent = parseFloat(this.value)"></div>
+                        <div class="field"><label>Regeneración de Vida Fuera de Combate (%)</label><input type="number" value="${en.hpRegenPercent !== undefined ? en.hpRegenPercent : 3}" onchange="config.enemyModels['${selectedEnemyId}'].hpRegenPercent = parseFloat(this.value)"></div>
+                        <div class="field"><label>Regeneración de Escudo Fuera de Combate (%)</label><input type="number" value="${en.shieldRegenPercent !== undefined ? en.shieldRegenPercent : 5}" onchange="config.enemyModels['${selectedEnemyId}'].shieldRegenPercent = parseFloat(this.value)"></div>
                     </div>
                 </div>
                 <div style="margin-bottom: 1rem; display:flex; justify-content:space-between; align-items:center;">
