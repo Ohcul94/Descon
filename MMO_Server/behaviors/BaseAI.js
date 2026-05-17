@@ -164,8 +164,11 @@ module.exports = class BaseAI {
                 this.enemy.rotation = angleToSpawn + Math.PI / 2;
                 
                 // Regeneración masiva en el regreso (estilo MMO Evasión Fuera de Combate)
-                this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * 0.03));
-                this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * 0.05));
+                const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 3;
+                const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 5;
+                
+                this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * (hpRegen / 100)));
+                this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * (shieldRegen / 100)));
                 return; // Omitir el resto del procesamiento de ataque
             }
         }
