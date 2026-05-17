@@ -33,16 +33,16 @@ function showTab(tabId) {
     // Resaltar el link del sidebar (sea sub-link o principal) que coincida con el tab o sub-tab activo
     let sidebarLink;
     if (tabId === 'ammo') {
-        sidebarLink = document.querySelector(`.nav-link[onclick*="setAmmoTab('${currentAmmoTab}')"]`);
+        sidebarLink = document.querySelector(`.nav-link[onclick*="setAmmoTab"][onclick*="${currentAmmoTab}"]:not([onclick*="toggleFolder"])`);
         if (!sidebarLink) sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('ammo')"]`);
     } else if (tabId === 'skills') {
-        sidebarLink = document.querySelector(`.nav-link[onclick*="setSkillTab('${currentSkillTab}')"]`);
+        sidebarLink = document.querySelector(`.nav-link[onclick*="setSkillTab"][onclick*="${currentSkillTab}"]`);
         if (!sidebarLink) sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('skills')"]`);
     } else if (tabId === 'mechanics') {
-        sidebarLink = document.querySelector(`.nav-link[onclick*="setMechTab('${currentMechTab}')"]`);
+        sidebarLink = document.querySelector(`.nav-link[onclick*="setMechTab"][onclick*="${currentMechTab}"]`);
         if (!sidebarLink) sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('mechanics')"]`);
     } else if (tabId === 'modes') {
-        sidebarLink = document.querySelector(`.nav-link[onclick*="setModeTab('${currentModeTab}')"]`);
+        sidebarLink = document.querySelector(`.nav-link[onclick*="setModeTab"][onclick*="${currentModeTab}"]`);
         if (!sidebarLink) sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('modes')"]`);
     } else {
         sidebarLink = document.querySelector(`.nav-link[onclick*="showTab('${tabId}')"]`);
