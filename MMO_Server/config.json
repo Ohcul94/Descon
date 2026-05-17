@@ -161,7 +161,8 @@
             ],
             "chaseMissTimeout": 0,
             "chaseIdleTimeout": 0,
-            "aggressive": true
+            "aggressive": true,
+            "defenseMechanics": []
         },
         "4": {
             "bulletDamage": 250,
@@ -634,6 +635,750 @@
                     "startDelay": 0
                 }
             ]
+        },
+        "1-A": {
+            "bulletDamage": 80,
+            "bulletSpeed": 800,
+            "fireRange": 600,
+            "fireRate": 1000,
+            "hp": 1000,
+            "name": "Enemigo 1 A",
+            "rewardExp": 300,
+            "rewardHubs": 200,
+            "rewardOhcu": 2,
+            "shield": 200,
+            "speed": 450,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 80,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "laser",
+                    "bulletDamage": 20,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 450,
+                    "stopDist": 150,
+                    "startDelay": 0
+                },
+                {
+                    "type": "sniper",
+                    "speed": 3.5,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "idealDist": 150
+                }
+            ],
+            "stopOnOutOfSight": true,
+            "chaseUntilDeath": false,
+            "aggressive": true,
+            "defenseMechanics": []
+        },
+        "1-B": {
+            "bulletDamage": 120,
+            "bulletSpeed": 800,
+            "fireRange": 600,
+            "fireRate": 1000,
+            "hp": 1500,
+            "name": "Enemigo 1 B",
+            "rewardExp": 450,
+            "rewardHubs": 300,
+            "rewardOhcu": 3,
+            "shield": 300,
+            "speed": 450,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 120,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "laser",
+                    "bulletDamage": 30,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 450,
+                    "stopDist": 150,
+                    "startDelay": 0
+                },
+                {
+                    "type": "sniper",
+                    "speed": 3.5,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "idealDist": 150
+                }
+            ],
+            "stopOnOutOfSight": true,
+            "chaseUntilDeath": false,
+            "aggressive": true,
+            "defenseMechanics": []
+        },
+        "1-C": {
+            "bulletDamage": 160,
+            "bulletSpeed": 800,
+            "fireRange": 600,
+            "fireRate": 1000,
+            "hp": 2000,
+            "name": "Enemigo 1 C",
+            "rewardExp": 600,
+            "rewardHubs": 400,
+            "rewardOhcu": 4,
+            "shield": 400,
+            "speed": 450,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 160,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "laser",
+                    "bulletDamage": 40,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 450,
+                    "stopDist": 150,
+                    "startDelay": 0
+                },
+                {
+                    "type": "sniper",
+                    "speed": 3.5,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "idealDist": 150
+                }
+            ],
+            "stopOnOutOfSight": true,
+            "chaseUntilDeath": false,
+            "aggressive": true,
+            "defenseMechanics": []
+        },
+        "1-D": {
+            "bulletDamage": 200,
+            "bulletSpeed": 800,
+            "fireRange": 600,
+            "fireRate": 1000,
+            "hp": 2500,
+            "name": "Enemigo 1 D",
+            "rewardExp": 750,
+            "rewardHubs": 500,
+            "rewardOhcu": 5,
+            "shield": 500,
+            "speed": 450,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 200,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "laser",
+                    "bulletDamage": 50,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 450,
+                    "stopDist": 150,
+                    "startDelay": 0
+                },
+                {
+                    "type": "sniper",
+                    "speed": 3.5,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "idealDist": 150
+                }
+            ],
+            "stopOnOutOfSight": true,
+            "chaseUntilDeath": false,
+            "aggressive": true,
+            "defenseMechanics": []
+        },
+        "2-A": {
+            "bulletDamage": 1200,
+            "bulletSpeed": 800,
+            "fireRange": 650,
+            "fireRate": 1200,
+            "hp": 1600,
+            "name": "Enemigo 2 A",
+            "rewardExp": 400,
+            "rewardHubs": 400,
+            "rewardOhcu": 4,
+            "shield": 600,
+            "speed": 420,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 20,
+                    "bulletSpeed": 800,
+                    "fireRange": 650,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "ice_missile",
+                    "bulletDamage": 80,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 500,
+                    "slowDuration": 200,
+                    "isHoming": false
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 420,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "2-B": {
+            "bulletDamage": 1800,
+            "bulletSpeed": 800,
+            "fireRange": 650,
+            "fireRate": 1200,
+            "hp": 2400,
+            "name": "Enemigo 2 B",
+            "rewardExp": 600,
+            "rewardHubs": 600,
+            "rewardOhcu": 6,
+            "shield": 900,
+            "speed": 420,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 30,
+                    "bulletSpeed": 800,
+                    "fireRange": 650,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "ice_missile",
+                    "bulletDamage": 120,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 500,
+                    "slowDuration": 200,
+                    "isHoming": false
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 420,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "2-C": {
+            "bulletDamage": 2400,
+            "bulletSpeed": 800,
+            "fireRange": 650,
+            "fireRate": 1200,
+            "hp": 3200,
+            "name": "Enemigo 2 C",
+            "rewardExp": 800,
+            "rewardHubs": 800,
+            "rewardOhcu": 8,
+            "shield": 1200,
+            "speed": 420,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 40,
+                    "bulletSpeed": 800,
+                    "fireRange": 650,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "ice_missile",
+                    "bulletDamage": 160,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 500,
+                    "slowDuration": 200,
+                    "isHoming": false
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 420,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "2-D": {
+            "bulletDamage": 3000,
+            "bulletSpeed": 800,
+            "fireRange": 650,
+            "fireRate": 1200,
+            "hp": 4000,
+            "name": "Enemigo 2 D",
+            "rewardExp": 1000,
+            "rewardHubs": 1000,
+            "rewardOhcu": 10,
+            "shield": 1500,
+            "speed": 420,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 50,
+                    "bulletSpeed": 800,
+                    "fireRange": 650,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "ice_missile",
+                    "bulletDamage": 200,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "slowAmount": 500,
+                    "slowDuration": 200,
+                    "isHoming": false
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 420,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "3-A": {
+            "bulletDamage": 160,
+            "bulletSpeed": 850,
+            "fireRange": 700,
+            "fireRate": 1100,
+            "hp": 2400,
+            "name": "Enemigo 3 A",
+            "rewardExp": 600,
+            "rewardHubs": 700,
+            "rewardOhcu": 6,
+            "shield": 1200,
+            "speed": 400,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 20,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
+                },
+                {
+                    "type": "missile",
+                    "bulletDamage": 20,
+                    "bulletSpeed": 600,
+                    "fireRange": 600,
+                    "fireRate": 2000,
+                    "lifetimeMs": 3000,
+                    "turnSpeed": 2,
+                    "isHoming": true,
+                    "startDelay": 2000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 400,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "chaseMissTimeout": 0,
+            "chaseIdleTimeout": 0,
+            "aggressive": true
+        },
+        "3-B": {
+            "bulletDamage": 240,
+            "bulletSpeed": 850,
+            "fireRange": 700,
+            "fireRate": 1100,
+            "hp": 3600,
+            "name": "Enemigo 3 B",
+            "rewardExp": 900,
+            "rewardHubs": 1050,
+            "rewardOhcu": 9,
+            "shield": 1800,
+            "speed": 400,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 30,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
+                },
+                {
+                    "type": "missile",
+                    "bulletDamage": 30,
+                    "bulletSpeed": 600,
+                    "fireRange": 600,
+                    "fireRate": 2000,
+                    "lifetimeMs": 3000,
+                    "turnSpeed": 2,
+                    "isHoming": true,
+                    "startDelay": 2000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 400,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "chaseMissTimeout": 0,
+            "chaseIdleTimeout": 0,
+            "aggressive": true
+        },
+        "3-C": {
+            "bulletDamage": 320,
+            "bulletSpeed": 850,
+            "fireRange": 700,
+            "fireRate": 1100,
+            "hp": 4800,
+            "name": "Enemigo 3 C",
+            "rewardExp": 1200,
+            "rewardHubs": 1400,
+            "rewardOhcu": 12,
+            "shield": 2400,
+            "speed": 400,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 40,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
+                },
+                {
+                    "type": "missile",
+                    "bulletDamage": 40,
+                    "bulletSpeed": 600,
+                    "fireRange": 600,
+                    "fireRate": 2000,
+                    "lifetimeMs": 3000,
+                    "turnSpeed": 2,
+                    "isHoming": true,
+                    "startDelay": 2000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 400,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "chaseMissTimeout": 0,
+            "chaseIdleTimeout": 0,
+            "aggressive": true
+        },
+        "3-D": {
+            "bulletDamage": 400,
+            "bulletSpeed": 850,
+            "fireRange": 700,
+            "fireRate": 1100,
+            "hp": 6000,
+            "name": "Enemigo 3 D",
+            "rewardExp": 1500,
+            "rewardHubs": 1750,
+            "rewardOhcu": 15,
+            "shield": 3000,
+            "speed": 400,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 50,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000
+                },
+                {
+                    "type": "missile",
+                    "bulletDamage": 50,
+                    "bulletSpeed": 600,
+                    "fireRange": 600,
+                    "fireRate": 2000,
+                    "lifetimeMs": 3000,
+                    "turnSpeed": 2,
+                    "isHoming": true,
+                    "startDelay": 2000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 400,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "chaseMissTimeout": 0,
+            "chaseIdleTimeout": 0,
+            "aggressive": true
+        },
+        "10-A": {
+            "bulletDamage": 640,
+            "bulletSpeed": 920,
+            "fireRange": 1150,
+            "fireRate": 880,
+            "hp": 22000,
+            "name": "Enemigo 10 A",
+            "rewardExp": 4400,
+            "rewardHubs": 8400,
+            "rewardOhcu": 84,
+            "shield": 11000,
+            "speed": 305,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 640,
+                    "bulletSpeed": 920,
+                    "fireRange": 1150,
+                    "fireRate": 880,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 305,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "invulnerability",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 3000,
+                    "cooldown": 10000,
+                    "startDelay": 0,
+                    "activationHP": 0
+                }
+            ],
+            "aggressive": true,
+            "visionRange": 1000,
+            "leashRange": 1000,
+            "hpRegenPercent": 1,
+            "shieldRegenPercent": 20,
+            "regenIntervalMs": 2000
+        },
+        "10-B": {
+            "bulletDamage": 960,
+            "bulletSpeed": 920,
+            "fireRange": 1150,
+            "fireRate": 880,
+            "hp": 33000,
+            "name": "Enemigo 10 B",
+            "rewardExp": 6600,
+            "rewardHubs": 12600,
+            "rewardOhcu": 126,
+            "shield": 16500,
+            "speed": 305,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 960,
+                    "bulletSpeed": 920,
+                    "fireRange": 1150,
+                    "fireRate": 880,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 305,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "invulnerability",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 3000,
+                    "cooldown": 10000,
+                    "startDelay": 0,
+                    "activationHP": 0
+                }
+            ],
+            "aggressive": true,
+            "visionRange": 1000,
+            "leashRange": 1000,
+            "hpRegenPercent": 1,
+            "shieldRegenPercent": 20,
+            "regenIntervalMs": 2000
+        },
+        "10-C": {
+            "bulletDamage": 1280,
+            "bulletSpeed": 920,
+            "fireRange": 1150,
+            "fireRate": 880,
+            "hp": 44000,
+            "name": "Enemigo 10 C",
+            "rewardExp": 8800,
+            "rewardHubs": 16800,
+            "rewardOhcu": 168,
+            "shield": 22000,
+            "speed": 305,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 1280,
+                    "bulletSpeed": 920,
+                    "fireRange": 1150,
+                    "fireRate": 880,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 305,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "invulnerability",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 3000,
+                    "cooldown": 10000,
+                    "startDelay": 0,
+                    "activationHP": 0
+                }
+            ],
+            "aggressive": true,
+            "visionRange": 1000,
+            "leashRange": 1000,
+            "hpRegenPercent": 1,
+            "shieldRegenPercent": 20,
+            "regenIntervalMs": 2000
+        },
+        "10-D": {
+            "bulletDamage": 1600,
+            "bulletSpeed": 920,
+            "fireRange": 1150,
+            "fireRate": 880,
+            "hp": 55000,
+            "name": "Enemigo 10 D",
+            "rewardExp": 11000,
+            "rewardHubs": 21000,
+            "rewardOhcu": 210,
+            "shield": 27500,
+            "speed": 305,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 1600,
+                    "bulletSpeed": 920,
+                    "fireRange": 1150,
+                    "fireRate": 880,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 305,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "invulnerability",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 3000,
+                    "cooldown": 10000,
+                    "startDelay": 0,
+                    "activationHP": 0
+                }
+            ],
+            "aggressive": true,
+            "visionRange": 1000,
+            "leashRange": 1000,
+            "hpRegenPercent": 1,
+            "shieldRegenPercent": 20,
+            "regenIntervalMs": 2000
         }
     },
     "hordeConfig": {
