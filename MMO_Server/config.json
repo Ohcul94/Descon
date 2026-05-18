@@ -2657,7 +2657,87 @@
             28000,
             29000,
             30000
-        ]
+        ],
+        "defaultLayout": {
+            "CenterStats": {
+                "x": 1010,
+                "y": 18,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "ChatUI": {
+                "x": 18,
+                "y": 524,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "RadarWindow": {
+                "x": 1038,
+                "y": 556,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "SkillsContainer": {
+                "x": 396,
+                "y": 696,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "PartyHUD": {
+                "x": 20,
+                "y": 136,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "ControlBar": {
+                "x": 18,
+                "y": 732,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "LaserSlot": {
+                "x": 353,
+                "y": 868,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "MissileSlot": {
+                "x": 438,
+                "y": 868,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "MineSlot": {
+                "x": 523,
+                "y": 868,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "Sphere1Slot": {
+                "x": 608,
+                "y": 868,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "Sphere2Slot": {
+                "x": 693,
+                "y": 868,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "Sphere3Slot": {
+                "x": 778,
+                "y": 868,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "Sphere4Slot": {
+                "x": 863,
+                "y": 868,
+                "scale": 0.5,
+                "alpha": 1
+            }
+        }
     },
     "gameModes": {
         "hunting": {
