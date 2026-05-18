@@ -1251,7 +1251,10 @@ function initWebHUDDesigner() {
     }
 
     const layout = config.pilotConfig.defaultLayout;
-    canvas.innerHTML = ''; // Limpiar canvas
+    canvas.innerHTML = `
+        <div class="hud-canvas-axis-h"></div>
+        <div class="hud-canvas-axis-v"></div>
+    `; // Limpiar y meter ejes centrales
 
     // Dibujar cada elemento en el lienzo
     Object.keys(HUD_ELEMENTS_CONFIG).forEach(winId => {

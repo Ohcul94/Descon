@@ -53,6 +53,28 @@
         .hud-element:active {
             cursor: grabbing;
         }
+        .hud-canvas-axis-h {
+            position: absolute;
+            left: 0;
+            top: 200px;
+            width: 100%;
+            height: 2px;
+            background: #ff3b30;
+            box-shadow: 0 0 10px rgba(255, 59, 48, 0.8);
+            z-index: 1;
+            pointer-events: none;
+        }
+        .hud-canvas-axis-v {
+            position: absolute;
+            left: 320px;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: #ff3b30;
+            box-shadow: 0 0 10px rgba(255, 59, 48, 0.8);
+            z-index: 1;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -262,22 +284,6 @@
             </div>
 
             <div id="view-pilot" class="view">
-                <!-- v1.10: Maquetador Visual de HUD por Defecto -->
-                <div class="card" style="width: 100%; margin-bottom: 2rem;">
-                    <h3 style="color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
-                        <span>🛸 MAQUETADOR DE HUD POR DEFECTO (VALORES DE FÁBRICA)</span>
-                        <span style="font-size:0.8rem; opacity:0.6; font-weight:normal; color:var(--text);">Diseñá el HUD inicial arrastrando los paneles en esta pantalla 1280x800 (escala 0.5)</span>
-                    </h3>
-                    <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem; line-height:1.4;">
-                        Los pilotos nuevos nacerán con este diseño exacto. También será el layout que se cargará cuando cualquier piloto presione el botón <b>"Valores de Fábrica"</b> en su editor de HUD dentro del juego.
-                    </p>
-                    <div style="background: rgba(0,0,0,0.3); padding: 2rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 440px;">
-                        <div id="web-hud-canvas" class="hud-canvas">
-                            <!-- Los paneles del HUD se renderizan y arrastran aquí -->
-                        </div>
-                    </div>
-                </div>
-
                 <div id="pilot-config-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
                     <!-- Configuración de Recursos y Despliegue -->
                 </div>
@@ -291,12 +297,28 @@
                     </div>
                 </div>
 
-                <div class="card" style="width: 100%;">
+                <div class="card" style="width: 100%; margin-bottom: 2rem;">
                     <h3 style="color: var(--accent); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
                         📈 CURVA DE PROGRESIÓN (EXP DEL 1 AL 30)
                     </h3>
                     <div id="exp-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px;">
                         <!-- Inputs de EXP generados dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- v1.10: Maquetador Visual de HUD por Defecto colocado al final -->
+                <div class="card" style="width: 100%;">
+                    <h3 style="color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>🛸 MAQUETADOR DE HUD POR DEFECTO (VALORES DE FÁBRICA)</span>
+                        <span style="font-size:0.8rem; opacity:0.6; font-weight:normal; color:var(--text);">Diseñá el HUD inicial arrastrando los paneles en esta pantalla 1280x800 (escala 0.5)</span>
+                    </h3>
+                    <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem; line-height:1.4;">
+                        Los pilotos nuevos nacerán con este diseño exacto. También será el layout que se cargará cuando cualquier piloto presione el botón <b>"Valores de Fábrica"</b> en su editor de HUD dentro del juego.
+                    </p>
+                    <div style="background: rgba(0,0,0,0.3); padding: 2rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 440px;">
+                        <div id="web-hud-canvas" class="hud-canvas">
+                            <!-- Los paneles del HUD se renderizan y arrastran aquí -->
+                        </div>
                     </div>
                 </div>
             </div>
