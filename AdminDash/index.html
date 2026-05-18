@@ -8,6 +8,52 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <link rel="icon" type="image/png" href="assets/Favicon/favicon.png">
+    <style>
+        .hud-canvas {
+            width: 640px;
+            height: 400px;
+            background: radial-gradient(circle, #0c182d 0%, #030814 100%);
+            border: 2px solid #00dfff;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            margin-bottom: 1rem;
+            background-image: 
+                linear-gradient(rgba(0, 223, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 223, 255, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: center;
+        }
+        .hud-element {
+            position: absolute;
+            border: 1px solid rgba(0, 223, 255, 0.8);
+            background: rgba(0, 223, 255, 0.15);
+            color: #00dfff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: move;
+            user-select: none;
+            box-sizing: border-box;
+            border-radius: 6px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3), inset 0 0 12px rgba(0, 223, 255, 0.2);
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .hud-element:hover {
+            border-color: #ff3b30;
+            background: rgba(255, 59, 48, 0.2);
+            color: #ff3b30;
+            box-shadow: 0 4px 12px rgba(255,59,48,0.4), inset 0 0 12px rgba(255, 59, 48, 0.3);
+        }
+        .hud-element:active {
+            cursor: grabbing;
+        }
+    </style>
 </head>
 <body>
 
@@ -216,6 +262,22 @@
             </div>
 
             <div id="view-pilot" class="view">
+                <!-- v1.10: Maquetador Visual de HUD por Defecto -->
+                <div class="card" style="width: 100%; margin-bottom: 2rem;">
+                    <h3 style="color: var(--primary); margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>🛸 MAQUETADOR DE HUD POR DEFECTO (VALORES DE FÁBRICA)</span>
+                        <span style="font-size:0.8rem; opacity:0.6; font-weight:normal; color:var(--text);">Diseñá el HUD inicial arrastrando los paneles en esta pantalla 1280x800 (escala 0.5)</span>
+                    </h3>
+                    <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem; line-height:1.4;">
+                        Los pilotos nuevos nacerán con este diseño exacto. También será el layout que se cargará cuando cualquier piloto presione el botón <b>"Valores de Fábrica"</b> en su editor de HUD dentro del juego.
+                    </p>
+                    <div style="background: rgba(0,0,0,0.3); padding: 2rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 440px;">
+                        <div id="web-hud-canvas" class="hud-canvas">
+                            <!-- Los paneles del HUD se renderizan y arrastran aquí -->
+                        </div>
+                    </div>
+                </div>
+
                 <div id="pilot-config-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
                     <!-- Configuración de Recursos y Despliegue -->
                 </div>

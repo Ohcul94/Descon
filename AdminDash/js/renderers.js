@@ -1220,6 +1220,101 @@ function renderPilot() {
         `;
         expGrid.appendChild(field);
     }
+
+    // Inicializar el maquetador visual del HUD
+    initWebHUDDesigner();
+}
+
+const HUD_ELEMENTS_CONFIG = {
+    "CenterStats":     { name: "🧬 STATS (CenterStats)", x: 1063,  y: 21,  w: 250, h: 140 },
+    "ChatUI":          { name: "💬 CHAT (ChatUI)", x: 12,    y: 545, w: 320, h: 200 },
+    "RadarWindow":     { name: "🛰️ RADAR (RadarWindow)", x: 1066,  y: 564, w: 220, h: 220 },
+    "SkillsContainer": { name: "🔥 SKILLS (SkillsContainer)", x: 101,   y: 684, w: 520, h: 80 },
+    "PartyHUD":        { name: "👥 PARTY (PartyHUD)", x: 10,    y: 120, w: 200, h: 80 },
+    "ControlBar":      { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 280, h: 45 }
+};
+
+function initWebHUDDesigner() {
+    const canvas = document.getElementById('web-hud-canvas');
+    if (!canvas) return;
+
+    if (!config.pilotConfig.defaultLayout) {
+        // Inicializar con los defaults idénticos a los de fábrica de Godot
+        config.pilotConfig.defaultLayout = {
+            "CenterStats":     { "x": 1063,  "y": 21,    "scale": 0.5, "alpha": 1.0 },
+            "ChatUI":          { "x": 12,    "y": 545,   "scale": 0.5, "alpha": 1.0 },
+            "RadarWindow":     { "x": 1066,  "y": 564,   "scale": 0.5, "alpha": 1.0 },
+            "SkillsContainer": { "x": 101,   "y": 684,   "scale": 0.5, "alpha": 1.0 },
+            "PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
+            "ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0 }
+        };
+    }
+
+    const layout = config.pilotConfig.defaultLayout;
+    canvas.innerHTML = ''; // Limpiar canvas
+
+    // Dibujar cada elemento en el lienzo
+    Object.keys(HUD_ELEMENTS_CONFIG).forEach(winId => {
+        const spec = HUD_ELEMENTS_CONFIG[winId];
+        const state = layout[winId] || { x: spec.x, y: spec.y };
+        
+        // Convertir coordenadas del plano de 1280x800 al canvas de 640x400 (Escala 0.5)
+        const webX = state.x / 2.0;
+        const webY = state.y / 2.0;
+        const webW = spec.w / 2.0;
+        const webH = spec.h / 2.0;
+
+        const el = document.createElement('div');
+        el.className = 'hud-element';
+        el.id = `web-hud-${winId}`;
+        el.innerText = spec.name;
+        el.style.width = `${webW}px`;
+        el.style.height = `${webH}px`;
+        el.style.left = `${webX}px`;
+        el.style.top = `${webY}px`;
+
+        // Lógica premium de arrastre Drag & Drop en JS
+        el.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const elemLeft = el.offsetLeft;
+            const elemTop = el.offsetTop;
+
+            const onMouseMove = (moveEvent) => {
+                let dx = moveEvent.clientX - startX;
+                let dy = moveEvent.clientY - startY;
+
+                let newLeft = elemLeft + dx;
+                let newTop = elemTop + dy;
+
+                // Limitar el movimiento estrictamente dentro del canvas (640x400)
+                const maxLeft = 640 - webW;
+                const maxTop = 400 - webH;
+
+                newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+                newTop = Math.max(0, Math.min(newTop, maxTop));
+
+                el.style.left = `${newLeft}px`;
+                el.style.top = `${newTop}px`;
+
+                // Guardar la coordenada escalada de vuelta a la base de 1280x800 en memoria
+                if (!layout[winId]) layout[winId] = { scale: 0.5, alpha: 1.0 };
+                layout[winId].x = Math.round(newLeft * 2.0);
+                layout[winId].y = Math.round(newTop * 2.0);
+            };
+
+            const onMouseUp = () => {
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        canvas.appendChild(el);
+    });
 }
 
 function renderModes() {

@@ -199,7 +199,7 @@ const handleUserLogin = async (socket, user, username) => {
         equipped: resolvedEquip,
         spheres: user.gameData.spheres,
         hudConfig: user.gameData.hudConfig || {},
-        hudPositions: user.gameData.hudPositions || {},
+        hudPositions: (user.gameData.hudPositions && Object.keys(user.gameData.hudPositions).length > 0) ? user.gameData.hudPositions : (pc.defaultLayout || {}),
         hudLayouts: user.gameData.hudLayouts || [], // v266.130: Slots múltiples
         hubs: (user.gameData.hubs !== undefined) ? user.gameData.hubs : (pc.startingHubs || 0),
         ohcu: (user.gameData.ohcu !== undefined) ? user.gameData.ohcu : (pc.startingOhcu || 0),

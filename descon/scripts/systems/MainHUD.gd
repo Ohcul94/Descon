@@ -613,6 +613,15 @@ func _restore_default_layout():
 		"ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0 },
 	}
 	
+	# v1.10: Sincronización dinámica de valores de fábrica definidos en el AdminDash
+	if NetworkManager and NetworkManager.current_user_data.has("adminConfig"):
+		var admin_cfg = NetworkManager.current_user_data.adminConfig
+		if admin_cfg.has("pilotConfig") and admin_cfg.pilotConfig.has("defaultLayout"):
+			var server_layout = admin_cfg.pilotConfig.defaultLayout
+			for key in server_layout:
+				if server_layout[key] != null and typeof(server_layout[key]) == TYPE_DICTIONARY:
+					default_layout[key] = server_layout[key]
+					
 	_apply_hud_data(default_layout, {})
 	
 	var joy = _get_hud_node("VirtualJoystick")
