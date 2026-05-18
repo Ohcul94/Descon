@@ -320,8 +320,9 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 		var pos_data = layout[win_id]
 		var node = _get_hud_node(win_id)
 		if node and typeof(pos_data) == TYPE_DICTIONARY:
-			# v1.20: Conversión a Anclajes Nativos para Responsividad Perfecta (como el Minimapa)
 			node.top_level = false
+			var rx = float(pos_data.get("x", 0.0))
+			var ry = float(pos_data.get("y", 0.0))
 			
 			var sc_val = float(pos_data.get("scale", 0.5))
 			var final_sc = sc_val * 2.0
