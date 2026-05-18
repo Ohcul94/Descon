@@ -200,7 +200,7 @@ func _input(event: InputEvent):
 						var child = skills_hud.get_child(i)
 						if child is Control and child.name != "DragOverlay" and child.visible:
 							if child.get_global_rect().has_point(event.position):
-								clicked_node = skills_hud
+								clicked_node = child
 								break
 				
 				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat, Equipo, Iconos)
@@ -378,6 +378,10 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 					
 				node.global_position = f_pos
 			else:
+				if node.get_parent() == skills_hud and not layout.get("custom_skills", false):
+					node.top_level = false
+					continue
+					
 				# v1.31: Matemática Proporcional Original para Slots huérfanos
 				node.top_level = true
 				var final_pos = Vector2.ZERO
@@ -1125,7 +1129,11 @@ func toggle_hud_editing(slot_index: int = -1):
 			
 		for child in skills_hud.get_children():
 			if child is Control and child.name != "DragOverlay":
-				child.top_level = false
+				if is_editing_layout:
+					var gp = child.global_position
+					child.top_level = true
+					child.global_position = gp
+				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
 	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar"]
@@ -1259,6 +1267,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			"x": npos.x, "y": npos.y,
 			"scale": skills_hud.scale.x / 2.0, "alpha": skills_hud.modulate.a
 		}
+		layout["custom_skills"] = true
 		for child in skills_hud.get_children():
 			if child.name == "DragOverlay": continue
 			var cpos = get_normalized_pos.call(child, 1280.0, 800.0)
