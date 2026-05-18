@@ -167,8 +167,11 @@ func _handle_packet(p_string: String):
 		var res = json.parse(json_str)
 		if res == OK:
 			var arr = json.data
-			if typeof(arr) == TYPE_ARRAY and arr.size() >= 2:
-				_dispatch_event(arr[0], arr[1])
+			if typeof(arr) == TYPE_ARRAY and arr.size() >= 1:
+				var event_data = null
+				if arr.size() >= 2:
+					event_data = arr[1]
+				_dispatch_event(arr[0], event_data)
 
 func _dispatch_event(e_name: String, e_data: Variant):
 	match e_name:
