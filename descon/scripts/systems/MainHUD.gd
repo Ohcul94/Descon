@@ -1203,7 +1203,6 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 	var get_normalized_pos = func(win: Control, original_w: float, original_h: float):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
-		var ns = win.size * win.scale
 		
 		# v1.31: Retorno Inteligente dependiendo del tipo de redimensionamiento aplicado
 		if win.top_level:
