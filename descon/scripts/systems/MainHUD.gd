@@ -343,18 +343,26 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
-				var ns_temp = rs_temp * node.scale
+				var admin_visual_w = rs_temp.x * sc_val
+				var admin_visual_h = rs_temp.y * sc_val
+				var godot_visual_w = rs_temp.x * final_sc
+				var godot_visual_h = rs_temp.y * final_sc
+				
 				var original_w = 1280.0
 				var original_h = 800.0
 				var a_x = 0.0; var a_y = 0.0; var m_x = 0.0; var m_y = 0.0
 				
-				if rx + (ns_temp.x / 2.0) > (original_w / 2.0):
-					a_x = 1.0; m_x = -(original_w - rx)
+				if rx + (admin_visual_w / 2.0) > (original_w / 2.0):
+					a_x = 1.0
+					var margin_right = original_w - (rx + admin_visual_w)
+					m_x = -(margin_right + godot_visual_w)
 				else:
 					a_x = 0.0; m_x = rx
 					
-				if ry + (ns_temp.y / 2.0) > (original_h / 2.0):
-					a_y = 1.0; m_y = -(original_h - ry)
+				if ry + (admin_visual_h / 2.0) > (original_h / 2.0):
+					a_y = 1.0
+					var margin_bottom = original_h - (ry + admin_visual_h)
+					m_y = -(margin_bottom + godot_visual_h)
 				else:
 					a_y = 0.0; m_y = ry
 					
@@ -1212,9 +1220,24 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			nx = nx * scale_x
 			ny = ny * scale_y
 		else:
-			# Si usa anclaje nativo, devolvemos el offset original inyectado en el cuadrante
-			if win.anchor_left >= 0.9: nx = original_w + win.offset_left
-			if win.anchor_top >= 0.9: ny = original_h + win.offset_top
+			# v1.32: Recuperación del offset considerando márgenes y escalas visuales
+			var sc_val = win.scale.x / 2.0
+			var admin_w = win.size.x * sc_val
+			var admin_h = win.size.y * sc_val
+			var godot_w = win.size.x * win.scale.x
+			var godot_h = win.size.y * win.scale.y
+			
+			if win.anchor_left >= 0.9:
+				var margin_right = -win.offset_left - godot_w
+				nx = original_w - admin_w - margin_right
+			else:
+				nx = win.offset_left
+				
+			if win.anchor_top >= 0.9:
+				var margin_bottom = -win.offset_top - godot_h
+				ny = original_h - admin_h - margin_bottom
+			else:
+				ny = win.offset_top
 			
 		return Vector2(nx, ny)
 
