@@ -378,10 +378,6 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 					
 				node.global_position = f_pos
 			else:
-				if node.get_parent() == skills_hud and not layout.get("custom_skills", false):
-					node.top_level = false
-					continue
-					
 				# v1.31: Matemática Proporcional Original para Slots huérfanos
 				node.top_level = true
 				var final_pos = Vector2.ZERO
@@ -932,7 +928,7 @@ func toggle_hud_editing(slot_index: int = -1):
 			var sh = Shader.new()
 			sh.code = "shader_type canvas_item;
 				void fragment() {
-					vec2 grid = fract(SCREEN_UV * vec2(32.0, 20.0) - vec2(0.5, 0.5));
+					vec2 grid = fract(SCREEN_UV * vec2(32.0, 20.0));
 					float line = step(0.98, grid.x) + step(0.98, grid.y);
 					float axis_h = step(0.498, SCREEN_UV.y) * step(SCREEN_UV.y, 0.502);
 					float axis_v = step(0.498, SCREEN_UV.x) * step(SCREEN_UV.x, 0.502);
@@ -1267,7 +1263,6 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			"x": npos.x, "y": npos.y,
 			"scale": skills_hud.scale.x / 2.0, "alpha": skills_hud.modulate.a
 		}
-		layout["custom_skills"] = true
 		for child in skills_hud.get_children():
 			if child.name == "DragOverlay": continue
 			var cpos = get_normalized_pos.call(child, 1280.0, 800.0)
