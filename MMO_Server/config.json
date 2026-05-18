@@ -1461,13 +1461,7 @@
             "name": "Loby",
             "warpCost": 0,
             "ambience": [],
-            "spawns": [
-                {
-                    "type": "10",
-                    "count": 1,
-                    "intervalMs": 5000
-                }
-            ]
+            "spawns": []
         },
         "2": {
             "color": "#00ff00",
@@ -2678,8 +2672,8 @@
                 "alpha": 1
             },
             "SkillsContainer": {
-                "x": 396,
-                "y": 696,
+                "x": 404,
+                "y": 706,
                 "scale": 0.5,
                 "alpha": 1
             },
@@ -2696,44 +2690,44 @@
                 "alpha": 1
             },
             "LaserSlot": {
-                "x": 353,
-                "y": 868,
+                "x": 361,
+                "y": 878,
                 "scale": 0.5,
                 "alpha": 1
             },
             "MissileSlot": {
-                "x": 438,
-                "y": 868,
+                "x": 446,
+                "y": 878,
                 "scale": 0.5,
                 "alpha": 1
             },
             "MineSlot": {
-                "x": 523,
-                "y": 868,
+                "x": 531,
+                "y": 878,
                 "scale": 0.5,
                 "alpha": 1
             },
             "Sphere1Slot": {
-                "x": 608,
-                "y": 868,
+                "x": 616,
+                "y": 878,
                 "scale": 0.5,
                 "alpha": 1
             },
             "Sphere2Slot": {
-                "x": 693,
-                "y": 868,
+                "x": 701,
+                "y": 878,
                 "scale": 0.5,
                 "alpha": 1
             },
             "Sphere3Slot": {
-                "x": 778,
-                "y": 868,
+                "x": 786,
+                "y": 878,
                 "scale": 0.5,
                 "alpha": 1
             },
             "Sphere4Slot": {
-                "x": 863,
-                "y": 868,
+                "x": 871,
+                "y": 878,
                 "scale": 0.5,
                 "alpha": 1
             }

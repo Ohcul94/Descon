@@ -259,7 +259,7 @@ func _input(event: InputEvent):
 			
 			if _dragging_node.name == "Skills":
 				var handle = get_node_or_null("SkillsMasterHandle")
-				if handle: handle.global_position = _node_start_positions[_dragging_node] + delta + Vector2(245, -25)
+				if handle: handle.global_position = _node_start_positions[_dragging_node] + delta + Vector2(260, -30)
 			
 			get_viewport().set_input_as_handled()
 			return
@@ -347,8 +347,8 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif node.name == "RadarWindow": rs_temp = Vector2(220, 220)
 				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
 				elif "Party" in node.name: rs_temp = Vector2(200, 200)
-				elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
-				elif node.name == "Skills": rs_temp = Vector2(520, 80)
+				elif "ControlBar" in node.name: rs_temp = Vector2(340, 45)
+				elif node.name == "Skills": rs_temp = Vector2(575, 65)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
@@ -702,16 +702,10 @@ func _restore_default_layout():
 				var gp = win.global_position
 				win.top_level = true
 				win.global_position = gp
-				if win.name == "Skills":
-					for child in win.get_children():
-						if child is Control and child.name != "DragOverlay":
-							var cgp = child.global_position
-							child.top_level = true
-							child.global_position = cgp
 		
 		var handle = get_node_or_null("SkillsMasterHandle")
 		if handle and skills_hud:
-			handle.global_position = skills_hud.global_position + Vector2(245, -25)
+			handle.global_position = skills_hud.global_position + Vector2(260, -30)
 
 func _create_esc_menu():
 	var canvas = CanvasLayer.new()
@@ -928,7 +922,7 @@ func toggle_hud_editing(slot_index: int = -1):
 			var sh = Shader.new()
 			sh.code = "shader_type canvas_item;
 				void fragment() {
-					vec2 grid = fract(SCREEN_UV * vec2(32.0, 20.0));
+					vec2 grid = fract(SCREEN_UV * vec2(32.0, 20.0) - vec2(0.5, 0.5));
 					float line = step(0.98, grid.x) + step(0.98, grid.y);
 					float axis_h = step(0.498, SCREEN_UV.y) * step(SCREEN_UV.y, 0.502);
 					float axis_v = step(0.498, SCREEN_UV.x) * step(SCREEN_UV.x, 0.502);
@@ -1119,16 +1113,14 @@ func toggle_hud_editing(slot_index: int = -1):
 				add_child(handle)
 			
 			handle.visible = true
-			handle.global_position = skills_hud.global_position + Vector2(245, -25)
+			handle.global_position = skills_hud.global_position + Vector2(260, -30)
 		elif handle:
 			handle.visible = false
 			
 		for child in skills_hud.get_children():
 			if child is Control and child.name != "DragOverlay":
 				if is_editing_layout:
-					var gp = child.global_position
-					child.top_level = true
-					child.global_position = gp
+					child.visible = true
 				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
@@ -1229,12 +1221,12 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			# v1.45: Revertir márgenes absolutos a proporciones nominales base sin mutilación
 			var base_w = win.size.x
 			var base_h = win.size.y
-			if win.name == "Skills": base_w = 520; base_h = 80
+			if win.name == "Skills": base_w = 575; base_h = 65
 			elif win.name == "CenterStats": base_w = 250; base_h = 140
 			elif win.name == "RadarWindow": base_w = 220; base_h = 220
 			elif "Chat" in win.name: base_w = 320; base_h = 200
 			elif "Party" in win.name: base_w = 200; base_h = 200
-			elif "ControlBar" in win.name: base_w = 280; base_h = 45
+			elif "ControlBar" in win.name: base_w = 340; base_h = 45
 			
 			var godot_w = win.size.x * win.scale.x
 			var godot_h = win.size.y * win.scale.y
@@ -1372,8 +1364,8 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 			node.custom_minimum_size = Vector2(200, 200)
 			node.size = Vector2(200, 200)
 		elif "ControlBar" in node.name: 
-			node.custom_minimum_size = Vector2(280, 45)
-			node.size = Vector2(280, 45)
+			node.custom_minimum_size = Vector2(340, 45)
+			node.size = Vector2(340, 45)
 		elif "Slot" in node.name: 
 			node.custom_minimum_size = Vector2(65, 65)
 			node.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
