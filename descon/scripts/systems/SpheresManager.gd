@@ -79,12 +79,12 @@ func _update_visuals():
 		
 		if skill:
 			# v235.40: Mapeo dinámico de textura según el tipo de habilidad
-			var s_path = "res://assets/Esferas/EsferaAmarilla.png"
+			var s_path = "res://assets/Esferas/EsferaAmarilla1.png"
 			var s_type = str(skill.type).to_lower()
 			
 			if s_type == "ataque": s_path = "res://assets/Esferas/EsferaRoja1.png"
 			elif s_type == "defensa": s_path = "res://assets/Esferas/EsferaAzul1.png"
-			elif s_type == "curación" or s_type == "curacion": s_path = "res://assets/Esferas/EsferaVerde.png"
+			elif s_type == "curación" or s_type == "curacion": s_path = "res://assets/Esferas/EsferaVerde1.png"
 			
 			if ResourceLoader.exists(s_path):
 				sprite.texture = load(s_path)

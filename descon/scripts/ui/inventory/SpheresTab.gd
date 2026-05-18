@@ -174,6 +174,7 @@ func _render_spheres_library(tab):
 		{"path": "res://scripts/resources/skills/Skill_SmokeBomb.gd", "color": Color.AQUA, "icon": "☁️", "type": "DEFENSA"},
 		{"path": "res://scripts/resources/skills/Skill_RepairKit.gd", "color": Color.GREEN, "icon": "🔧", "type": "CURACIÓN"},
 		{"path": "res://scripts/resources/skills/Skill_RegenPath.gd", "color": Color.GREEN, "icon": "🧪", "type": "CURACIÓN"},
+		{"path": "res://scripts/resources/skills/Skill_AlphaRegen.gd", "color": Color.GREEN, "icon": "💚", "type": "CURACIÓN"},
 		{"path": "res://scripts/resources/skills/Skill_Reflect.gd", "color": Color.RED, "icon": "🛡️", "type": "ATAQUE"},
 		{"path": "res://scripts/resources/skills/Skill_PlasmaBlast.gd", "color": Color.RED, "icon": "💥", "type": "ATAQUE"}
 	]

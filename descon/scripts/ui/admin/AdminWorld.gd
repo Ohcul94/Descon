@@ -54,8 +54,8 @@ func render_spheres(container):
 			type_opt.add_item(t); if t == skill.type: type_opt.selected = type_opt.get_item_count() - 1
 		type_opt.item_selected.connect(func(idx): GameConstants.SKILLS_DATA[k_ref.name].type = type_opt.get_item_text(idx))
 
-		admin_main._add_input(grid, "COOLDOWN (S)", str(skill.get("cd", 10.0)), func(v): GameConstants.SKILLS_DATA[k_ref.name].cd = float(v))
-		admin_main._add_input(grid, "RANGO", str(skill.get("range", 0)), func(v): GameConstants.SKILLS_DATA[k_ref.name].range = float(v))
+		admin_main._add_input(grid, "TIEMPO DE RECARGA (ms)", str(skill.get("cd", 5000.0)), func(v): GameConstants.SKILLS_DATA[k_ref.name].cd = float(v))
+		admin_main._add_input(grid, "ALCANCE DE ACCIÓN (px)", str(skill.get("range", 0)), func(v): GameConstants.SKILLS_DATA[k_ref.name].range = float(v))
 
 		var target_hb = VBoxContainer.new(); grid.add_child(target_hb)
 		var target_l = Label.new(); target_l.text = "PUEDE LANZARSE A OTROS"; target_l.add_theme_font_size_override("font_size", 9); target_l.modulate.a = 0.5; target_hb.add_child(target_l)
@@ -81,11 +81,14 @@ func render_spheres(container):
 		btn_del.pressed.connect(func(): GameConstants.SKILLS_DATA.erase(k_ref.name); admin_main._build_ui())
 		grid.add_child(btn_del)
 		
-		if skill.has("amount"): admin_main._add_input(grid, "VALOR (HP/SH)", str(skill.amount), func(v): GameConstants.SKILLS_DATA[k_ref.name].amount = int(v))
-		if skill.has("speed"): admin_main._add_input(grid, "VELOCIDAD", str(skill.speed), func(v): GameConstants.SKILLS_DATA[k_ref.name].speed = float(v))
-		if skill.has("reflect_mult"): admin_main._add_input(grid, "MULT. DAÑO", str(skill.reflect_mult), func(v): GameConstants.SKILLS_DATA[k_ref.name].reflect_mult = float(v))
-		if skill.has("duration"): admin_main._add_input(grid, "DURACIÓN (S)", str(skill.duration), func(v): GameConstants.SKILLS_DATA[k_ref.name].duration = float(v))
-		if skill.has("slow_amount"): admin_main._add_input(grid, "PUNTOS DE SLOW (KM/H)", str(int(skill.slow_amount * 100)), func(v): GameConstants.SKILLS_DATA[k_ref.name].slow_amount = float(v) / 100.0)
+		if skill.has("amount"): admin_main._add_input(grid, "VALOR DE CURACIÓN (hp/sh)", str(skill.amount), func(v): GameConstants.SKILLS_DATA[k_ref.name].amount = int(v))
+		if skill.has("speed"): admin_main._add_input(grid, "VELOCIDAD DE MOVIMIENTO (px/s)", str(skill.speed), func(v): GameConstants.SKILLS_DATA[k_ref.name].speed = float(v))
+		if skill.has("reflect_mult"): admin_main._add_input(grid, "MULTIPLICADOR DE REFLEXIÓN (x)", str(skill.reflect_mult), func(v): GameConstants.SKILLS_DATA[k_ref.name].reflect_mult = float(v))
+		if skill.has("duration"):
+			var label_str = "DURACIÓN DE EFECTO (ms)" if float(skill.duration) >= 100.0 else "DURACIÓN DE EFECTO (s)"
+			admin_main._add_input(grid, label_str, str(skill.duration), func(v): GameConstants.SKILLS_DATA[k_ref.name].duration = float(v))
+		if skill.has("radius"): admin_main._add_input(grid, "RADIO DE ACCIÓN (px)", str(skill.radius), func(v): GameConstants.SKILLS_DATA[k_ref.name].radius = float(v))
+		if skill.has("slow_amount"): admin_main._add_input(grid, "CANTIDAD DE RALENTIZACIÓN (%)", str(int(skill.slow_amount * 100)), func(v): GameConstants.SKILLS_DATA[k_ref.name].slow_amount = float(v) / 100.0)
 
 	var add_btn = Button.new(); add_btn.text = " [+] AÑADIR NUEVA HABILIDAD / ESFERA "; add_btn.modulate = Color.CYAN
 	add_btn.pressed.connect(func():

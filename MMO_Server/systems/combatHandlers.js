@@ -9,6 +9,7 @@ const InvulnerabilitySkill = require('./skills/InvulnerabilitySkill');
 const HealSkill = require('./skills/HealSkill');
 const DamageSkill = require('./skills/DamageSkill');
 const BuffSkill = require('./skills/BuffSkill');
+const AlphaRegenSkill = require('./skills/AlphaRegenSkill');
 
 // v247.20: Registro de Habilidades Modulares
 SkillManager.registerSkill(new StealthSkill());
@@ -16,6 +17,7 @@ SkillManager.registerSkill(new BlinkSkill());
 SkillManager.registerSkill(new FrostTrailSkill());
 SkillManager.registerSkill(new SmokeBombSkill());
 SkillManager.registerSkill(new InvulnerabilitySkill());
+SkillManager.registerSkill(new AlphaRegenSkill());
 
 // Habilidades de Curación/Soporte
 SkillManager.registerSkill(new HealSkill("ESCUDO CELULAR"));
@@ -97,8 +99,9 @@ function registerCombatHandlers(socket, io, state) {
         if (!p.sphereCooldowns) p.sphereCooldowns = [0, 0, 0, 0];
         const lastUse = p.sphereCooldowns[sphereIdx] || 0;
         
-        const cd_sec = (state.SERVER_CONFIG.skillsData && state.SERVER_CONFIG.skillsData[data.skillName]) ? state.SERVER_CONFIG.skillsData[data.skillName].cd : 10;
-        if (now - lastUse < (cd_sec * 1000)) return;
+        const cd_val = (state.SERVER_CONFIG.skillsData && state.SERVER_CONFIG.skillsData[data.skillName]) ? state.SERVER_CONFIG.skillsData[data.skillName].cd : 10000;
+        const cd_ms = (cd_val < 100) ? (cd_val * 1000) : cd_val;
+        if (now - lastUse < cd_ms) return;
 
         // Actualizar cooldown antes de ejecutar para evitar spam
         p.sphereCooldowns[sphereIdx] = now;

@@ -498,12 +498,11 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 	# v4.2: Evitar autodaño/autocura si el objetivo es otro
 	var is_self = (target_id == null or target_id == entity_id)
 	
-	if is_self:
+	if is_self and skill.skill_name != "REGENERACIÓN ALFA":
 		# Auto-lanzamiento: Activar efectos locales inmediatos
 		if not sm.use_skill(id): return
 	else:
-		# Lanzamiento a otros: NO activar localmente (el servidor lo hará para el target)
-		# Solo activamos el cooldown visual en el HUD
+		# Lanzamiento a otros o habilidades de area física: NO activar localmente
 		pass
 		
 	# Enviar al servidor para que procese y broadcastee a todos
@@ -512,8 +511,14 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 		"targetId": target_id, "posX": p_data.pos.x, "posY": p_data.pos.y
 	})
 	
-	# Cooldown persistente
-	cooldowns[key] = skill.cooldown if "cooldown" in skill else 5.0
+	# Cooldown persistente basado en la configuración en milisegundos (ms)
+	var cd_val = 5.0
+	if GameConstants.SKILLS_DATA.has(skill.skill_name):
+		var cd_ms = GameConstants.SKILLS_DATA[skill.skill_name].get("cd", 5000.0)
+		cd_val = float(cd_ms) / 1000.0
+	elif "cooldown" in skill:
+		cd_val = skill.cooldown
+	cooldowns[key] = cd_val
 
 func set_joystick_direction(dir: Vector2):
 	joystick_direction = dir
@@ -719,12 +724,14 @@ func _find_skill_by_name(n: String):
 	var skills = [
 		Skill_TurboImpulse, Skill_ShieldCell, Skill_RepairKit, Skill_Reflect,
 		Skill_PlasmaBlast, Skill_Fortress, Skill_RegenPath, Skill_HyperDash,
-		Skill_Invulnerability, Skill_Blink, Skill_SmokeBomb, Skill_Stealth
+		Skill_Invulnerability, Skill_Blink, Skill_SmokeBomb, Skill_Stealth,
+		Skill_AlphaRegen
 	]
 	for s in skills:
 		var inst = s.new()
 		if inst.skill_name.to_upper().strip_edges() == target_n: return inst
 	return null
+
 
 func apply_shake(amount: float):
 	if get_node_or_null("/root/SettingsManager"):

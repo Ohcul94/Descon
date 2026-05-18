@@ -403,7 +403,40 @@ function startGameLoop(io, state, aiManager) {
                             p.isSlowed = true; p.lastSlowTime = now;
                             p.slowPoints = (area.slowAmount || 0.5) * 100;
                             if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints });
-                        } 
+                        } else if (area.type === 'HEAL_ZONE') {
+                            let isValidTarget = false;
+                            const filters = area.filters || { allies: true, enemies: false, bosses: false, players: true };
+                            if (is_ally) {
+                                if (filters.allies) isValidTarget = true;
+                            } else {
+                                if (filters.enemies || filters.players) isValidTarget = true;
+                            }
+
+                            if (isValidTarget) {
+                                const oldH = p.hp;
+                                const healVal = area.amount || 1500;
+                                p.hp = Math.min(p.maxHp, p.hp + healVal);
+                                const actualHeal = p.hp - oldH;
+
+                                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                    id: p.socketId,
+                                    hp: Math.ceil(p.hp),
+                                    shield: Math.ceil(p.shield),
+                                    maxHp: p.maxHp,
+                                    maxShield: p.maxShield
+                                });
+
+                                io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', {
+                                    id: area.ownerId,
+                                    skillName: 'REGENERACIÓN ALFA',
+                                    targetId: p.socketId,
+                                    powerValue: actualHeal
+                                });
+
+                                io.to(`zone_${area.zone}`).emit('removeArea', { id });
+                                delete activeAreas[id];
+                            }
+                        }
                         // v267.800: EFECTO FÍSICO DEL VÓRTICE AMBIENTAL SINCRO 1:1
                         if (area.type === 'VORTEX_HAZARD') {
                             // 1. Succión Literal (Fuerza en PX/S)

@@ -1097,8 +1097,8 @@ func _clear_all_equipment_visuals():
 func play_skill_vfx(skill_name: String, amount: float = 0.0):
 	# Mostrar siempre los números de retroalimentación
 	if has_method("_spawn_damage_text"):
-		if skill_name == "ESCUDO CELULAR": _spawn_damage_text("+" + str(int(amount)), Color.AQUA)
-		elif skill_name == "AUTO-REPARACIÓN": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
+		if skill_name == "ESCUDO CELULAR" or skill_name == "FORTALEZA-X": _spawn_damage_text("+" + str(int(amount)), Color.AQUA)
+		elif skill_name == "AUTO-REPARACIÓN" or skill_name == "NANO-REGENERACIÓN" or skill_name == "REGENERACIÓN ALFA": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
 		elif skill_name == "TURBO-IMPULSO": _spawn_damage_text("+" + str(int(amount)), Color.YELLOW)
 	match skill_name:
 		"TURBO-IMPULSO":
@@ -1123,11 +1123,11 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				tw.tween_property(vfx, "scale", Vector2(s*1.3, s*0.8), 0.1)
 				tw.tween_property(vfx, "scale", Vector2(s*0.8, s*1.3), 0.1)
 				get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(vfx): vfx.queue_free())
-		"ESCUDO CELULAR":
+		"ESCUDO CELULAR", "FORTALEZA-X":
 			shield_visual_timer = 2.0 # Activar visual 3D pro
 			# v260.20: Se eliminó el Sprite2D viejo para limpiar la visual 3D
 
-		"AUTO-REPARACIÓN":
+		"AUTO-REPARACIÓN", "NANO-REGENERACIÓN":
 			heal_visual_timer = 2.0 # Activar visual 3D pro de curación
 			# v260.30: Se eliminó el Sprite2D de curación en favor del efecto 3D
 		

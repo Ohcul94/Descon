@@ -1461,7 +1461,13 @@
             "name": "Loby",
             "warpCost": 0,
             "ambience": [],
-            "spawns": []
+            "spawns": [
+                {
+                    "type": "1-C",
+                    "count": 2,
+                    "intervalMs": 5000
+                }
+            ]
         },
         "2": {
             "color": "#00ff00",
@@ -2162,7 +2168,7 @@
         "AUTO-REPARACIÓN": {
             "amount": 400,
             "canTargetOthers": true,
-            "cd": 5,
+            "cd": 5000,
             "desc": "Drones de reparación restauran la integridad del casco.",
             "id": "SK-HEAL-01",
             "range": 500,
@@ -2176,7 +2182,7 @@
         },
         "BLINK": {
             "canTargetOthers": false,
-            "cd": 2,
+            "cd": 15000,
             "desc": "Teletransportación instantánea al punto seleccionado.",
             "id": "SK-UTIL-04",
             "range": 450,
@@ -2191,7 +2197,7 @@
         "ESCUDO CELULAR": {
             "amount": 600,
             "canTargetOthers": true,
-            "cd": 5,
+            "cd": 5000,
             "desc": "Inyecta plasma en los generadores para restaurar el escudo.",
             "id": "SK-DEF-01",
             "range": 0,
@@ -2206,7 +2212,7 @@
         "FORTALEZA-X": {
             "amount": 1200,
             "canTargetOthers": false,
-            "cd": 15,
+            "cd": 15000,
             "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.",
             "id": "SK-DEF-02",
             "range": 0,
@@ -2220,7 +2226,7 @@
         },
         "FROST-TRAIL": {
             "canTargetOthers": false,
-            "cd": 18,
+            "cd": 18000,
             "desc": "Deja un rastro de escarcha que ralentiza a los enemigos.",
             "duration": 6,
             "id": "SK-DEF-04",
@@ -2237,7 +2243,7 @@
         },
         "HYPER-DASH": {
             "canTargetOthers": false,
-            "cd": 5,
+            "cd": 5000,
             "desc": "Propulsión instantánea hacia adelante para evasión rápida.",
             "id": "SK-UTIL-02",
             "range": 0,
@@ -2252,7 +2258,7 @@
         },
         "INVULNERABILIDAD": {
             "canTargetOthers": false,
-            "cd": 30,
+            "cd": 30000,
             "desc": "Te vuelve inmune a todo daño durante 2 segundos.",
             "duration": 2,
             "id": "SK-UTIL-03",
@@ -2268,7 +2274,7 @@
         "NANO-REGENERACIÓN": {
             "amount": 300,
             "canTargetOthers": true,
-            "cd": 12,
+            "cd": 12000,
             "desc": "Inyecta nanobots que reparan el casco de forma continua.",
             "id": "SK-HEAL-02",
             "range": 0,
@@ -2280,10 +2286,27 @@
             },
             "type": "Curación"
         },
+        "REGENERACIÓN ALFA": {
+            "amount": 1500,
+            "canTargetOthers": false,
+            "cd": 3000,
+            "desc": "Un pulso de alta energía que deposita un núcleo en el suelo para restaurar 1500 HP de casco al recogerlo.",
+            "duration": 60000,
+            "id": "SK-HEAL-03",
+            "range": 600,
+            "radius": 100,
+            "targetFilters": {
+                "allies": true,
+                "bosses": false,
+                "enemies": false,
+                "players": true
+            },
+            "type": "Curación"
+        },
         "PLASMA BLAST": {
             "amount": 850,
             "canTargetOthers": true,
-            "cd": 8,
+            "cd": 8000,
             "desc": "Disparo concentrado de plasma con alta potencia destructiva.",
             "id": "SK-ATK-02",
             "range": 600,
@@ -2298,7 +2321,7 @@
         "REFLECT-Ω": {
             "amount": 500,
             "canTargetOthers": false,
-            "cd": 5,
+            "cd": 5000,
             "desc": "Crea un campo de resonancia que refleja daño hostil.",
             "id": "SK-ATK-01",
             "range": 0,
@@ -2314,7 +2337,7 @@
         "SMOKE-BOMB": {
             "amount": 1,
             "canTargetOthers": false,
-            "cd": 12,
+            "cd": 12000,
             "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.",
             "duration": 6,
             "id": "SK-DEF-03",
@@ -2330,7 +2353,7 @@
         },
         "STEALTH": {
             "canTargetOthers": false,
-            "cd": 25,
+            "cd": 25000,
             "desc": "Te vuelve invisible para enemigos y jugadores fuera de tu grupo.",
             "duration": 8,
             "id": "SK-UTIL-05",
@@ -2345,7 +2368,7 @@
         },
         "TURBO-IMPULSO": {
             "canTargetOthers": true,
-            "cd": 5,
+            "cd": 5000,
             "desc": "Aumenta la velocidad de los motores temporalmente.",
             "id": "SK-UTIL-01",
             "range": 0,

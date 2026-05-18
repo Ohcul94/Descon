@@ -75,3 +75,16 @@ Cuando implementes el nuevo módulo solicitado por el usuario:
 
 [INSERTAR AQUÍ EL REQUERIMIENTO DEL NUEVO MÓDULO O MECÁNICA]
 ```
+
+
+## 🎯 CREAR SKILLS PARA ESFERAS:
+1. **Analiza Primero** el archivo "E:\Descon\descon\scripts\resources" y los scripts que ya existen.
+2. **Analiza primero** el archivo del servidor relacionado y el script del cliente para entender qué variables ya existen.
+3. **Identifica** la estructura de datos de las esferas y cómo se aplican en el cliente Godot (main_hud.gd, skills.gd, stats.gd).
+4. **Crea** el nuevo skill en el cliente Godot (main_hud.gd, skills.gd, stats.gd) siguiendo la estructura existente.
+5. **Modifica** el servidor (Node.js) para que envíe la información del nuevo skill al cliente Godot.
+6. **Asegúrate** de que el nuevo skill funcione correctamente en el juego (pruebas).
+7. **Idioma:** Explícame y piensa todo en español latinoamericano.
+8. **Mantén los nombres de propiedades estándar:** utiliza siempre `hp`, `shield`/`sh`, `zone`, `x`, `y`, `id`, `spheres`.
+9. **Panel AdmiNDash** recorda siempre implementar los campos necesarios para yo poder modificar los parámetros del juego desde el panel.
+10. **Campos (Inputs)** Los campos tienen que ser siempre en español latinoamericano y expresar sus medidas entre parentesis () por ejemplo: (px) para pixeles, (ms) para milisegundos, etc

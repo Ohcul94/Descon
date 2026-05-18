@@ -417,6 +417,180 @@ func _on_spawn_area(data: Dictionary):
 		_spawn_ice_trail(id, Vector2(data.x, data.y), data.radius)
 	elif type == "VORTEX_HAZARD":
 		_spawn_vortex_vfx(id, Vector2(data.x, data.y), data.radius, data)
+	elif type == "HEAL_ZONE":
+		_spawn_heal_zone_vfx(id, Vector2(data.x, data.y), data.radius, data)
+
+func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
+	if active_areas.has(id): return
+	
+	var container = Node2D.new()
+	container.name = id
+	if is_instance_valid(world) and is_instance_valid(world.entities_node):
+		world.entities_node.add_child(container)
+	active_areas[id] = container
+	container.global_position = pos
+	
+	var owner_id = str(data.get("ownerId", ""))
+	var start_pos = pos
+	var emisor_node = null
+	
+	if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == owner_id:
+		emisor_node = world.local_player
+	elif remote_players.has(owner_id):
+		emisor_node = remote_players[owner_id]
+		
+	if is_instance_valid(emisor_node):
+		start_pos = emisor_node.global_position
+
+	# 1. Anillo/Círculo base verde translúcido
+	var poly = Polygon2D.new()
+	var pts = []
+	for i in range(33):
+		var ang = (i / 32.0) * TAU
+		pts.append(Vector2(cos(ang), sin(ang)) * radius)
+	
+	poly.polygon = PackedVector2Array(pts)
+	poly.color = Color(0.0, 0.4, 0.1, 0.12)
+	poly.name = "RangeVisual"
+	
+	var line = Line2D.new()
+	line.points = poly.polygon
+	line.width = 2.0
+	line.default_color = Color(0.0, 1.0, 0.3, 0.45)
+	
+	container.add_child(poly)
+	container.add_child(line)
+
+	# 2. Partículas hermosas de curación verdes
+	var particles = CPUParticles2D.new()
+	particles.emitting = false
+	particles.amount = 15
+	particles.lifetime = 1.8
+	particles.one_shot = false
+	particles.explosiveness = 0.0
+	particles.z_index = 5
+	
+	particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+	particles.emission_sphere_radius = float(radius) * 0.7
+	
+	particles.direction = Vector2(0, -1)
+	particles.spread = 45.0
+	particles.initial_velocity_min = 15.0
+	particles.initial_velocity_max = 35.0
+	particles.gravity = Vector2.ZERO
+	particles.damping_min = 2.0
+	particles.damping_max = 5.0
+	
+	particles.scale_amount_min = 3.0
+	particles.scale_amount_max = 6.0
+	
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color(0.2, 1.0, 0.4, 0.9))
+	gradient.add_point(0.5, Color(0.0, 0.8, 0.2, 0.6))
+	gradient.set_color(1, Color(0.0, 0.5, 0.1, 0.0))
+	particles.color_ramp = gradient
+	
+	particles.angle_min = 0.0
+	particles.angle_max = 360.0
+	particles.angular_velocity_min = -60.0
+	particles.angular_velocity_max = 60.0
+	
+	container.add_child(particles)
+
+	# 3. Icono / Esfera flotante y giratoria verde premium (3D Look)
+	var item_sprite = Sprite2D.new()
+	var item_tex = load("res://assets/Efectos de Skills/Curacion(Transp).png")
+	if not item_tex:
+		item_tex = load("res://assets/Esferas/EsferaVerde1.png")
+	
+	if item_tex:
+		item_sprite.texture = item_tex
+		var item_mat = CanvasItemMaterial.new()
+		item_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		item_sprite.material = item_mat
+		item_sprite.modulate = Color(0.2, 1.0, 0.4, 0.8)
+		item_sprite.scale = Vector2(0.22, 0.22)
+		item_sprite.z_index = 6
+		container.add_child(item_sprite)
+
+	# Si el emisor está lejos, simular el lanzamiento balístico (viaje del proyectil)
+	if start_pos.distance_to(pos) > 50.0:
+		poly.visible = false
+		line.visible = false
+		item_sprite.visible = false
+		particles.emitting = false
+		
+		# Crear el proyectil arrojable visual
+		var proj = Sprite2D.new()
+		proj.texture = item_tex
+		var proj_mat = CanvasItemMaterial.new()
+		proj_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		proj.material = proj_mat
+		proj.modulate = Color(0.3, 1.0, 0.5, 0.95)
+		proj.scale = Vector2(0.12, 0.12)
+		proj.global_position = start_pos
+		proj.z_index = 8
+		if is_instance_valid(world) and is_instance_valid(world.entities_node):
+			world.entities_node.add_child(proj)
+			
+		# Añadir estela al proyectil viajero
+		var trail = CPUParticles2D.new()
+		trail.amount = 10
+		trail.lifetime = 0.3
+		trail.gravity = Vector2.ZERO
+		trail.scale_amount_min = 2.0
+		trail.scale_amount_max = 4.0
+		trail.color_ramp = gradient
+		proj.add_child(trail)
+		
+		var travel_time = clamp(start_pos.distance_to(pos) / 950.0, 0.2, 0.5)
+		var tw = proj.create_tween().set_parallel(true)
+		tw.tween_property(proj, "global_position", pos, travel_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		
+		# Simular arco alto 3D inflando la escala a la mitad del trayecto
+		tw.tween_property(proj, "scale", Vector2(0.24, 0.24), travel_time / 2.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw.chain().tween_property(proj, "scale", Vector2(0.12, 0.12), travel_time / 2.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		
+		tw.finished.connect(func():
+			if is_instance_valid(proj):
+				proj.queue_free()
+			if is_instance_valid(container):
+				poly.visible = true
+				line.visible = true
+				item_sprite.visible = true
+				particles.emitting = true
+				
+				# Destello de impacto verde brillante
+				var flash = Sprite2D.new()
+				flash.texture = item_tex
+				var flash_mat = CanvasItemMaterial.new()
+				flash_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+				flash.material = flash_mat
+				flash.modulate = Color(0.4, 1.0, 0.6, 1.0)
+				flash.scale = Vector2(0.05, 0.05)
+				container.add_child(flash)
+				
+				var tw_flash = flash.create_tween()
+				tw_flash.tween_property(flash, "scale", Vector2(0.55, 0.55), 0.15).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+				tw_flash.parallel().tween_property(flash, "modulate:a", 0.0, 0.15)
+				tw_flash.finished.connect(flash.queue_free)
+				
+				# Iniciar oscilación e rotación infinitas
+				var tw_float = container.create_tween().set_loops()
+				tw_float.tween_property(item_sprite, "position:y", -8.0, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+				tw_float.tween_property(item_sprite, "position:y", 8.0, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+				
+				var tw_rot = container.create_tween().set_loops()
+				tw_rot.tween_property(item_sprite, "rotation_degrees", 360.0, 4.0)
+		)
+	else:
+		particles.emitting = true
+		var tw_float = container.create_tween().set_loops()
+		tw_float.tween_property(item_sprite, "position:y", -8.0, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw_float.tween_property(item_sprite, "position:y", 8.0, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		
+		var tw_rot = container.create_tween().set_loops()
+		tw_rot.tween_property(item_sprite, "rotation_degrees", 360.0, 4.0)
 
 func _spawn_vortex_vfx(id, pos, radius, data):
 	if active_areas.has(id): return
@@ -517,10 +691,12 @@ func _on_remove_area(data: Dictionary):
 	var id = data.get("id", "")
 	if active_areas.has(id):
 		var area = active_areas[id]
-		var tw = create_tween()
-		tw.tween_property(area, "modulate:a", 0.0, 1.0)
-		tw.tween_callback(area.queue_free)
 		active_areas.erase(id)
+		if is_instance_valid(area):
+			var tw = area.create_tween().set_parallel(true)
+			tw.tween_property(area, "scale", Vector2.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+			tw.tween_property(area, "modulate:a", 0.0, 0.15)
+			tw.chain().tween_callback(area.queue_free)
 
 func _spawn_smoke_cloud(id, pos, radius):
 	if active_areas.has(id): return
@@ -602,9 +778,10 @@ func _on_remote_skill_used(data):
 	var target_id = str(data.get("targetId", sender_id))
 	
 	var target_node = null
+	var skill_name = data.get("skillName", "")
 	
 	if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == target_id:
-		if sender_id == target_id: return
+		if sender_id == target_id and skill_name != "REGENERACIÓN ALFA": return
 		target_node = world.local_player
 	elif remote_players.has(target_id):
 		target_node = remote_players[target_id]
@@ -612,8 +789,6 @@ func _on_remote_skill_used(data):
 		target_node = enemies[target_id]
 	
 	if is_instance_valid(target_node):
-		var skill_name = data.get("skillName", "")
-		
 		if skill_name == "BLINK" and data.has("pos") and target_node.has_method("teleport_to"):
 			var new_pos = Vector2(data.pos.x, data.pos.y)
 			target_node.teleport_to(new_pos)
