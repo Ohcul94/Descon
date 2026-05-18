@@ -1303,6 +1303,39 @@ function initWebHUDDesigner() {
 
                 // Guardar la coordenada escalada de vuelta a la base de 1280x800 en memoria
                 if (!layout[winId]) layout[winId] = { scale: 0.5, alpha: 1.0 };
+                
+                if (winId === "SkillsContainer") {
+                    const oldX = layout[winId].x !== undefined ? layout[winId].x : spec.x;
+                    const oldY = layout[winId].y !== undefined ? layout[winId].y : spec.y;
+                    const newX = Math.round(newLeft * 2.0);
+                    const newY = Math.round(newTop * 2.0);
+                    const dx = newX - oldX;
+                    const dy = newY - oldY;
+
+                    const slots = ["LaserSlot", "MissileSlot", "MineSlot", "Sphere1Slot", "Sphere2Slot", "Sphere3Slot", "Sphere4Slot"];
+                    slots.forEach(slotId => {
+                        if (!layout[slotId]) {
+                            const defaultSlots = {
+                                "LaserSlot":       { "x": 364.5, "y": 714 },
+                                "MissileSlot":     { "x": 449.5, "y": 714 },
+                                "MineSlot":        { "x": 534.5, "y": 714 },
+                                "Sphere1Slot":     { "x": 619.5, "y": 714 },
+                                "Sphere2Slot":     { "x": 704.5, "y": 714 },
+                                "Sphere3Slot":     { "x": 789.5, "y": 714 },
+                                "Sphere4Slot":     { "x": 874.5, "y": 714 }
+                            };
+                            layout[slotId] = { 
+                                x: defaultSlots[slotId].x, 
+                                y: defaultSlots[slotId].y, 
+                                scale: 0.5, 
+                                alpha: 1.0 
+                            };
+                        }
+                        layout[slotId].x = Math.round(layout[slotId].x + dx);
+                        layout[slotId].y = Math.round(layout[slotId].y + dy);
+                    });
+                }
+                
                 layout[winId].x = Math.round(newLeft * 2.0);
                 layout[winId].y = Math.round(newTop * 2.0);
             };

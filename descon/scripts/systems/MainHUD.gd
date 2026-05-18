@@ -239,8 +239,7 @@ func _input(event: InputEvent):
 						clicked_node.top_level = true
 						for child in clicked_node.get_children():
 							if child is Control and child.name != "DragOverlay":
-								child.top_level = true
-								_node_start_positions[child] = child.global_position
+								child.top_level = false # Acoplar en bloque nativo e impedir desalineación
 					else:
 						clicked_node.top_level = true
 								
@@ -918,7 +917,11 @@ func toggle_hud_editing(slot_index: int = -1):
 				void fragment() {
 					vec2 grid = fract(SCREEN_UV * vec2(32.0, 20.0));
 					float line = step(0.98, grid.x) + step(0.98, grid.y);
-					COLOR = vec4(0.0, 1.0, 1.0, line * 0.1);
+					float axis_h = step(0.498, SCREEN_UV.y) * step(SCREEN_UV.y, 0.502);
+					float axis_v = step(0.498, SCREEN_UV.x) * step(SCREEN_UV.x, 0.502);
+					vec4 grid_color = vec4(0.0, 1.0, 1.0, line * 0.1);
+					vec4 axis_color = vec4(1.0, 0.2, 0.2, (axis_h + axis_v) * 0.8);
+					COLOR = mix(grid_color, axis_color, clamp(axis_h + axis_v, 0.0, 1.0));
 				}"
 			mat.shader = sh
 			grid.material = mat
