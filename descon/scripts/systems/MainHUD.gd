@@ -200,7 +200,7 @@ func _input(event: InputEvent):
 						var child = skills_hud.get_child(i)
 						if child is Control and child.name != "DragOverlay" and child.visible:
 							if child.get_global_rect().has_point(event.position):
-								clicked_node = child
+								clicked_node = skills_hud
 								break
 				
 				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat, Equipo, Iconos)
@@ -1125,11 +1125,7 @@ func toggle_hud_editing(slot_index: int = -1):
 			
 		for child in skills_hud.get_children():
 			if child is Control and child.name != "DragOverlay":
-				if is_editing_layout:
-					var gp = child.global_position
-					child.top_level = true
-					child.global_position = gp
-				_make_node_draggable(child, child.name)
+				child.top_level = false
 		
 	# Ventanas Mayores
 	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar"]
