@@ -328,62 +328,62 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var rs_temp = node.size
-			var is_slot = "Slot" in node.name or node.name in ["Util1", "Util2", "Def", "Cur"]
+			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar"] or "Chat" in node.name or "Party" in node.name
 			
-			if node.name == "CenterStats": rs_temp = Vector2(320, 200)
-			elif node.name == "RadarWindow": rs_temp = Vector2(280, 280)
-			elif "Chat" in node.name: rs_temp = Vector2(320, 200)
-			elif "Party" in node.name: rs_temp = Vector2(200, 80)
-			elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
-			elif is_slot: rs_temp = Vector2(65, 65)
-			elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
-			if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
-				
-			var ns_temp = rs_temp * node.scale
-			var original_w = 1280.0
-			var original_h = 800.0
-			
-			var a_x = 0.0
-			var a_y = 0.0
-			var m_x = 0.0
-			var m_y = 0.0
-			
-			# Cuadrante X: Izquierda o Derecha
-			if rx + (ns_temp.x / 2.0) > (original_w / 2.0):
-				a_x = 1.0
-				m_x = -(original_w - rx)
-			else:
-				a_x = 0.0
-				m_x = rx
-				
-			# Cuadrante Y: Arriba o Abajo
-			if ry + (ns_temp.y / 2.0) > (original_h / 2.0):
-				a_y = 1.0
-				m_y = -(original_h - ry)
-			else:
-				a_y = 0.0
-				m_y = ry
-			
-			if not is_slot:
+			if is_corner_win:
+				# v1.30: Anclajes Nativos Godot para Ventanas Mayores de Esquina (Responsividad Perfecta)
 				node.top_level = false
-				node.set_anchors_preset(Control.PRESET_TOP_LEFT, true) # Reset anclas
+				
+				var rs_temp = node.size
+				if node.name == "CenterStats": rs_temp = Vector2(320, 200)
+				elif node.name == "RadarWindow": rs_temp = Vector2(280, 280)
+				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
+				elif "Party" in node.name: rs_temp = Vector2(200, 80)
+				elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
+				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
+				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
+				
+				var ns_temp = rs_temp * node.scale
+				var original_w = 1280.0
+				var original_h = 800.0
+				var a_x = 0.0; var a_y = 0.0; var m_x = 0.0; var m_y = 0.0
+				
+				if rx + (ns_temp.x / 2.0) > (original_w / 2.0):
+					a_x = 1.0; m_x = -(original_w - rx)
+				else:
+					a_x = 0.0; m_x = rx
+					
+				if ry + (ns_temp.y / 2.0) > (original_h / 2.0):
+					a_y = 1.0; m_y = -(original_h - ry)
+				else:
+					a_y = 0.0; m_y = ry
+					
+				node.set_anchors_preset(Control.PRESET_TOP_LEFT, true)
 				node.anchor_left = a_x; node.anchor_right = a_x
 				node.anchor_top = a_y; node.anchor_bottom = a_y
-				
-				node.offset_left = m_x
-				node.offset_top = m_y
-				
+				node.offset_left = m_x; node.offset_top = m_y
 				node.offset_right = m_x + rs_temp.x
 				node.offset_bottom = m_y + rs_temp.y
 			else:
+				# v1.31: Matemática Proporcional Original para SkillsContainer y sus Slots
 				node.top_level = true
-				var f_pos = Vector2.ZERO
-				if a_x == 1.0: f_pos.x = _screen_size.x - ns_temp.x + m_x
-				else: f_pos.x = m_x
-				if a_y == 1.0: f_pos.y = _screen_size.y - ns_temp.y + m_y
-				else: f_pos.y = m_y
-				node.global_position = f_pos
+				var final_pos = Vector2.ZERO
+				if rx <= 2.0 and ry <= 2.0:
+					final_pos = Vector2(rx * _screen_size.x, ry * _screen_size.y)
+				else:
+					var scale_x = _screen_size.x / 1280.0
+					var scale_y = _screen_size.y / 800.0
+					final_pos = Vector2(rx * scale_x, ry * scale_y)
+				
+				var rs_temp = node.size
+				if "Slot" in node.name or node.name in ["Util1", "Util2", "Def", "Cur"]: rs_temp = Vector2(65, 65)
+				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
+				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
+				
+				var ns_temp = rs_temp * node.scale
+				final_pos.x = clamp(final_pos.x, 0, _screen_size.x - ns_temp.x)
+				final_pos.y = clamp(final_pos.y, 0, _screen_size.y - ns_temp.y)
+				node.global_position = final_pos
 	
 	for win_id in config:
 		var node = _get_hud_node(win_id)
@@ -1205,14 +1205,15 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var ny = win.global_position.y
 		var ns = win.size * win.scale
 		
+		# v1.31: Retorno Inteligente dependiendo del tipo de redimensionamiento aplicado
 		if win.top_level:
-			if nx + (ns.x / 2.0) > (_screen_size.x / 2.0):
-				var margin_right = _screen_size.x - (nx + ns.x)
-				nx = original_w - ns.x - margin_right
-			if ny + (ns.y / 2.0) > (_screen_size.y / 2.0):
-				var margin_bottom = _screen_size.y - (ny + ns.y)
-				ny = original_h - ns.y - margin_bottom
+			# Si usa matemática proporcional, devolvemos invirtiendo la proporción de escala
+			var scale_x = original_w / _screen_size.x
+			var scale_y = original_h / _screen_size.y
+			nx = nx * scale_x
+			ny = ny * scale_y
 		else:
+			# Si usa anclaje nativo, devolvemos el offset original inyectado en el cuadrante
 			if win.anchor_left >= 0.9: nx = original_w + win.offset_left
 			if win.anchor_top >= 0.9: ny = original_h + win.offset_top
 			
