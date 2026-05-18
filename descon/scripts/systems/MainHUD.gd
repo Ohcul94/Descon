@@ -928,7 +928,7 @@ func toggle_hud_editing(slot_index: int = -1):
 			var sh = Shader.new()
 			sh.code = "shader_type canvas_item;
 				void fragment() {
-					vec2 grid = fract(SCREEN_UV * vec2(32.0, 20.0));
+					vec2 grid = fract(SCREEN_UV * vec2(32.0, 20.0) - vec2(0.5, 0.5));
 					float line = step(0.98, grid.x) + step(0.98, grid.y);
 					float axis_h = step(0.498, SCREEN_UV.y) * step(SCREEN_UV.y, 0.502);
 					float axis_v = step(0.498, SCREEN_UV.x) * step(SCREEN_UV.x, 0.502);
