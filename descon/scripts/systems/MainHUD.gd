@@ -320,62 +320,58 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 		var pos_data = layout[win_id]
 		var node = _get_hud_node(win_id)
 		if node and typeof(pos_data) == TYPE_DICTIONARY:
-			node.top_level = true
-			var rx = float(pos_data.get("x", 0.0))
-			var ry = float(pos_data.get("y", 0.0))
-			
-			var final_pos = Vector2.ZERO
-			var original_w = 1280.0
-			var original_h = 800.0
-			
-			if rx <= 2.0 and ry <= 2.0:
-				final_pos = Vector2(rx * screen_size.x, ry * screen_size.y)
-			else:
-				var sc_val_temp = float(pos_data.get("scale", 0.5))
-				var final_sc_temp = sc_val_temp * 2.0
-				var rs_temp = node.size
-				if node.name == "CenterStats": rs_temp = Vector2(320, 200)
-				elif node.name == "RadarWindow": rs_temp = Vector2(280, 280)
-				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
-				elif "Party" in node.name: rs_temp = Vector2(200, 80)
-				elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
-				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
-				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
-				
-				var ns_temp = rs_temp * Vector2(final_sc_temp, final_sc_temp)
-				
-				# X: Anclar al borde más cercano
-				if rx + (ns_temp.x / 2.0) > (original_w / 2.0):
-					var margin_right = original_w - (rx + ns_temp.x)
-					final_pos.x = screen_size.x - ns_temp.x - margin_right
-				else:
-					final_pos.x = rx
-					
-				# Y: Anclar al borde más cercano
-				if ry + (ns_temp.y / 2.0) > (original_h / 2.0):
-					var margin_bottom = original_h - (ry + ns_temp.y)
-					final_pos.y = screen_size.y - ns_temp.y - margin_bottom
-				else:
-					final_pos.y = ry
+			# v1.20: Conversión a Anclajes Nativos para Responsividad Perfecta (como el Minimapa)
+			node.top_level = false
 			
 			var sc_val = float(pos_data.get("scale", 0.5))
 			var final_sc = sc_val * 2.0
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var raw_size = node.size
-			if node.name == "CenterStats": raw_size = Vector2(320, 200)
-			elif node.name == "RadarWindow": raw_size = Vector2(280, 280)
-			elif "Chat" in node.name: raw_size = Vector2(320, 200)
-			elif "Party" in node.name: raw_size = Vector2(200, 80)
-			elif "ControlBar" in node.name: raw_size = Vector2(280, 45)
-			elif raw_size.x <= 0: raw_size = node.get_combined_minimum_size()
-			if raw_size.x <= 0: raw_size = Vector2(100, 100)
+			var rs_temp = node.size
+			if node.name == "CenterStats": rs_temp = Vector2(320, 200)
+			elif node.name == "RadarWindow": rs_temp = Vector2(280, 280)
+			elif "Chat" in node.name: rs_temp = Vector2(320, 200)
+			elif "Party" in node.name: rs_temp = Vector2(200, 80)
+			elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
+			elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
+			if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
-			var node_size = raw_size * node.scale
-			final_pos.x = clamp(final_pos.x, 0, screen_size.x - node_size.x)
-			final_pos.y = clamp(final_pos.y, 0, screen_size.y - node_size.y)
-			node.global_position = final_pos
+			var ns_temp = rs_temp * node.scale
+			var original_w = 1280.0
+			var original_h = 800.0
+			
+			var a_x = 0.0
+			var a_y = 0.0
+			var m_x = 0.0
+			var m_y = 0.0
+			
+			# Cuadrante X: Izquierda o Derecha
+			if rx + (ns_temp.x / 2.0) > (original_w / 2.0):
+				a_x = 1.0
+				m_x = -(original_w - rx)
+			else:
+				a_x = 0.0
+				m_x = rx
+				
+			# Cuadrante Y: Arriba o Abajo
+			if ry + (ns_temp.y / 2.0) > (original_h / 2.0):
+				a_y = 1.0
+				m_y = -(original_h - ry)
+			else:
+				a_y = 0.0
+				m_y = ry
+			
+			node.set_anchors_preset(Control.PRESET_TOP_LEFT, true) # Reset anclas
+			node.anchor_left = a_x; node.anchor_right = a_x
+			node.anchor_top = a_y; node.anchor_bottom = a_y
+			
+			node.offset_left = m_x
+			node.offset_top = m_y
+			
+			# Compensar tamaños visuales para el motor
+			node.offset_right = m_x + rs_temp.x
+			node.offset_bottom = m_y + rs_temp.y
 	
 	for win_id in config:
 		var node = _get_hud_node(win_id)
@@ -1193,32 +1189,14 @@ func apply_layout_slot(index: int):
 func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 	var screen_size = get_viewport_rect().size
 	var get_normalized_pos = func(win: Control, original_w: float, original_h: float):
-		var ns = win.size
-		if win.name == "CenterStats": ns = Vector2(320, 200)
-		elif win.name == "RadarWindow": ns = Vector2(280, 280)
-		elif "Chat" in win.name: ns = Vector2(320, 200)
-		elif "Party" in win.name: ns = Vector2(200, 80)
-		elif "ControlBar" in win.name: ns = Vector2(280, 45)
-		elif ns.x <= 0: ns = win.get_combined_minimum_size()
-		if ns.x <= 0: ns = Vector2(100, 100)
+		var nx = win.global_position.x
+		var ny = win.global_position.y
 		
-		ns *= win.scale
-		var nx = 0.0
-		var ny = 0.0
-		
-		# Inverso X
-		if win.global_position.x + (ns.x / 2.0) > (screen_size.x / 2.0):
-			var margin_right = screen_size.x - (win.global_position.x + ns.x)
-			nx = original_w - ns.x - margin_right
-		else:
-			nx = win.global_position.x
-			
-		# Inverso Y
-		if win.global_position.y + (ns.y / 2.0) > (screen_size.y / 2.0):
-			var margin_bottom = screen_size.y - (win.global_position.y + ns.y)
-			ny = original_h - ns.y - margin_bottom
-		else:
-			ny = win.global_position.y
+		# Inverso si está anclado a la derecha/abajo (Godot Anchors)
+		if win.anchor_left >= 0.9:
+			nx = original_w + win.offset_left
+		if win.anchor_top >= 0.9:
+			ny = original_h + win.offset_top
 			
 		return Vector2(nx, ny)
 
