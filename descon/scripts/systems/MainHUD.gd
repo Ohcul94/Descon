@@ -335,8 +335,8 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				node.top_level = true
 				
 				var rs_temp = node.size
-				if node.name == "CenterStats": rs_temp = Vector2(320, 200)
-				elif node.name == "RadarWindow": rs_temp = Vector2(280, 280)
+				if node.name == "CenterStats": rs_temp = Vector2(250, 140)
+				elif node.name == "RadarWindow": rs_temp = Vector2(220, 220)
 				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
 				elif "Party" in node.name: rs_temp = Vector2(200, 80)
 				elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
