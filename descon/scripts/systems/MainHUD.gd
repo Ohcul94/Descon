@@ -315,12 +315,11 @@ func _input(event: InputEvent):
 		get_viewport().set_input_as_handled()
 
 func _apply_hud_data(layout: Dictionary, config: Dictionary):
-	var screen_size = get_viewport_rect().size
+	var _screen_size = get_viewport_rect().size
 	for win_id in layout:
 		var pos_data = layout[win_id]
 		var node = _get_hud_node(win_id)
 		if node and typeof(pos_data) == TYPE_DICTIONARY:
-			node.top_level = false
 			var rx = float(pos_data.get("x", 0.0))
 			var ry = float(pos_data.get("y", 0.0))
 			
@@ -330,11 +329,14 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
 			var rs_temp = node.size
+			var is_slot = "Slot" in node.name or node.name in ["Util1", "Util2", "Def", "Cur"]
+			
 			if node.name == "CenterStats": rs_temp = Vector2(320, 200)
 			elif node.name == "RadarWindow": rs_temp = Vector2(280, 280)
 			elif "Chat" in node.name: rs_temp = Vector2(320, 200)
 			elif "Party" in node.name: rs_temp = Vector2(200, 80)
 			elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
+			elif is_slot: rs_temp = Vector2(65, 65)
 			elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 			if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
@@ -363,16 +365,25 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				a_y = 0.0
 				m_y = ry
 			
-			node.set_anchors_preset(Control.PRESET_TOP_LEFT, true) # Reset anclas
-			node.anchor_left = a_x; node.anchor_right = a_x
-			node.anchor_top = a_y; node.anchor_bottom = a_y
-			
-			node.offset_left = m_x
-			node.offset_top = m_y
-			
-			# Compensar tamaños visuales para el motor
-			node.offset_right = m_x + rs_temp.x
-			node.offset_bottom = m_y + rs_temp.y
+			if not is_slot:
+				node.top_level = false
+				node.set_anchors_preset(Control.PRESET_TOP_LEFT, true) # Reset anclas
+				node.anchor_left = a_x; node.anchor_right = a_x
+				node.anchor_top = a_y; node.anchor_bottom = a_y
+				
+				node.offset_left = m_x
+				node.offset_top = m_y
+				
+				node.offset_right = m_x + rs_temp.x
+				node.offset_bottom = m_y + rs_temp.y
+			else:
+				node.top_level = true
+				var f_pos = Vector2.ZERO
+				if a_x == 1.0: f_pos.x = _screen_size.x - ns_temp.x + m_x
+				else: f_pos.x = m_x
+				if a_y == 1.0: f_pos.y = _screen_size.y - ns_temp.y + m_y
+				else: f_pos.y = m_y
+				node.global_position = f_pos
 	
 	for win_id in config:
 		var node = _get_hud_node(win_id)
@@ -1188,16 +1199,22 @@ func apply_layout_slot(index: int):
 		_restore_default_layout()
 
 func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
-	var screen_size = get_viewport_rect().size
+	var _screen_size = get_viewport_rect().size
 	var get_normalized_pos = func(win: Control, original_w: float, original_h: float):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
+		var ns = win.size * win.scale
 		
-		# Inverso si está anclado a la derecha/abajo (Godot Anchors)
-		if win.anchor_left >= 0.9:
-			nx = original_w + win.offset_left
-		if win.anchor_top >= 0.9:
-			ny = original_h + win.offset_top
+		if win.top_level:
+			if nx + (ns.x / 2.0) > (_screen_size.x / 2.0):
+				var margin_right = _screen_size.x - (nx + ns.x)
+				nx = original_w - ns.x - margin_right
+			if ny + (ns.y / 2.0) > (_screen_size.y / 2.0):
+				var margin_bottom = _screen_size.y - (ny + ns.y)
+				ny = original_h - ns.y - margin_bottom
+		else:
+			if win.anchor_left >= 0.9: nx = original_w + win.offset_left
+			if win.anchor_top >= 0.9: ny = original_h + win.offset_top
 			
 		return Vector2(nx, ny)
 
