@@ -257,7 +257,7 @@ func _input(event: InputEvent):
 			
 			if _dragging_node.name == "Skills":
 				var handle = get_node_or_null("SkillsMasterHandle")
-				if handle: handle.global_position = _node_start_positions[_dragging_node] + delta + Vector2(-35, 0)
+				if handle: handle.global_position = _node_start_positions[_dragging_node] + delta + Vector2(245, -25)
 			
 			get_viewport().set_input_as_handled()
 			return
@@ -698,7 +698,7 @@ func _restore_default_layout():
 		
 		var handle = get_node_or_null("SkillsMasterHandle")
 		if handle and skills_hud:
-			handle.global_position = skills_hud.global_position + Vector2(-35, 0)
+			handle.global_position = skills_hud.global_position + Vector2(245, -25)
 
 func _create_esc_menu():
 	var canvas = CanvasLayer.new()
@@ -1102,11 +1102,11 @@ func toggle_hud_editing(slot_index: int = -1):
 				handle = Button.new()
 				handle.name = "SkillsMasterHandle"
 				handle.text = "::"
-				handle.custom_minimum_size = Vector2(30, 60)
+				handle.custom_minimum_size = Vector2(60, 20)
 				add_child(handle)
 			
 			handle.visible = true
-			handle.global_position = skills_hud.global_position + Vector2(-35, 0)
+			handle.global_position = skills_hud.global_position + Vector2(245, -25)
 		elif handle:
 			handle.visible = false
 			
