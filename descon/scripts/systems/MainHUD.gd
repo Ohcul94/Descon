@@ -28,6 +28,9 @@ var active_slot_index: int = 0 # v266.300: Para mostrar cuál está en uso
 var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
 var is_selecting_trade_target: bool = false # v300.080: Modo selección de trade
 
+var _last_applied_layout: Dictionary = {}
+var _last_applied_config: Dictionary = {}
+
 func _ready():
 	add_to_group("hud")
 	print("[MainHUD] Inicializando coordinador central modular v200.0")
@@ -214,6 +217,11 @@ func _input(event: InputEvent):
 					_node_start_positions.clear()
 					_node_start_positions[clicked_node] = clicked_node.global_position
 					
+					if clicked_node.name == "Skills":
+						for child in clicked_node.get_children():
+							if child is Control and child.name != "DragOverlay" and child.top_level:
+								_node_start_positions[child] = child.global_position
+					
 					# v266.500: Mostrar y actualizar Panel de Propiedades
 					var edit_ui = get_node_or_null("EditLayoutUI")
 					if edit_ui:
@@ -235,13 +243,7 @@ func _input(event: InputEvent):
 							var a_val = pp.find_child("AlphaVal", true, false)
 							if a_val: a_val.text = str(int(clicked_node.modulate.a * 100))
 					
-					if clicked_node.name == "Skills":
-						clicked_node.top_level = true
-						for child in clicked_node.get_children():
-							if child is Control and child.name != "DragOverlay":
-								child.top_level = false # Acoplar en bloque nativo e impedir desalineación
-					else:
-						clicked_node.top_level = true
+					clicked_node.top_level = true
 								
 					get_viewport().set_input_as_handled()
 					return
@@ -315,6 +317,13 @@ func _input(event: InputEvent):
 
 func _apply_hud_data(layout: Dictionary, config: Dictionary):
 	var _screen_size = get_viewport_rect().size
+	_last_applied_layout = layout
+	_last_applied_config = config
+	
+	if skills_hud and not is_editing_layout:
+		for child in skills_hud.get_children():
+			if child is Control and child.name != "DragOverlay":
+				child.top_level = false
 	for win_id in layout:
 		var pos_data = layout[win_id]
 		var node = _get_hud_node(win_id)
@@ -394,10 +403,12 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 		if node: node.visible = bool(config[win_id])
 
 func _on_viewport_resize():
-	if not is_instance_valid(NetworkManager): return
-	var data = NetworkManager.current_user_data
-	if typeof(data) == TYPE_DICTIONARY and data.has("hud_layout"):
-		_apply_hud_data(data["hud_layout"], data.get("hud_config", {}))
+	if not _last_applied_layout.is_empty():
+		_apply_hud_data(_last_applied_layout, _last_applied_config)
+	elif is_instance_valid(NetworkManager):
+		var data = NetworkManager.current_user_data
+		if typeof(data) == TYPE_DICTIONARY and data.has("hud_layout"):
+			_apply_hud_data(data["hud_layout"], data.get("hud_config", {}))
 
 func _process(_delta):
 	# Trade Highlight visual feedback
