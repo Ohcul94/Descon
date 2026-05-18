@@ -331,8 +331,8 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar"] or "Chat" in node.name or "Party" in node.name
 			
 			if is_corner_win:
-				# v1.30: Anclajes Nativos Godot para Ventanas Mayores de Esquina (Responsividad Perfecta)
-				node.top_level = false
+				# v1.40: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) para ignorar padres sin FullRect
+				node.top_level = true
 				
 				var rs_temp = node.size
 				if node.name == "CenterStats": rs_temp = Vector2(320, 200)
@@ -350,28 +350,23 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				
 				var original_w = 1280.0
 				var original_h = 800.0
-				var a_x = 0.0; var a_y = 0.0; var m_x = 0.0; var m_y = 0.0
+				var f_pos = Vector2.ZERO
 				
+				# X: Preservar margen absoluto al borde de la pantalla global
 				if rx + (admin_visual_w / 2.0) > (original_w / 2.0):
-					a_x = 1.0
 					var margin_right = original_w - (rx + admin_visual_w)
-					m_x = -(margin_right + godot_visual_w)
+					f_pos.x = _screen_size.x - godot_visual_w - margin_right
 				else:
-					a_x = 0.0; m_x = rx
+					f_pos.x = rx
 					
+				# Y: Preservar margen absoluto al borde de la pantalla global
 				if ry + (admin_visual_h / 2.0) > (original_h / 2.0):
-					a_y = 1.0
 					var margin_bottom = original_h - (ry + admin_visual_h)
-					m_y = -(margin_bottom + godot_visual_h)
+					f_pos.y = _screen_size.y - godot_visual_h - margin_bottom
 				else:
-					a_y = 0.0; m_y = ry
+					f_pos.y = ry
 					
-				node.set_anchors_preset(Control.PRESET_TOP_LEFT, true)
-				node.anchor_left = a_x; node.anchor_right = a_x
-				node.anchor_top = a_y; node.anchor_bottom = a_y
-				node.offset_left = m_x; node.offset_top = m_y
-				node.offset_right = m_x + rs_temp.x
-				node.offset_bottom = m_y + rs_temp.y
+				node.global_position = f_pos
 			else:
 				# v1.31: Matemática Proporcional Original para SkillsContainer y sus Slots
 				node.top_level = true
@@ -1212,32 +1207,30 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
 		
-		# v1.31: Retorno Inteligente dependiendo del tipo de redimensionamiento aplicado
-		if win.top_level:
-			# Si usa matemática proporcional, devolvemos invirtiendo la proporción de escala
-			var scale_x = original_w / _screen_size.x
-			var scale_y = original_h / _screen_size.y
-			nx = nx * scale_x
-			ny = ny * scale_y
-		else:
-			# v1.32: Recuperación del offset considerando márgenes y escalas visuales
+		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar"] or "Chat" in win.name or "Party" in win.name
+		
+		if is_corner_win:
+			# v1.40: Revertir la emulación de márgenes absolutos a proporciones de AdminDash
 			var sc_val = win.scale.x / 2.0
 			var admin_w = win.size.x * sc_val
 			var admin_h = win.size.y * sc_val
 			var godot_w = win.size.x * win.scale.x
 			var godot_h = win.size.y * win.scale.y
 			
-			if win.anchor_left >= 0.9:
-				var margin_right = -win.offset_left - godot_w
+			if nx + (godot_w / 2.0) > (_screen_size.x / 2.0):
+				var margin_right = _screen_size.x - (nx + godot_w)
 				nx = original_w - admin_w - margin_right
-			else:
-				nx = win.offset_left
 				
-			if win.anchor_top >= 0.9:
-				var margin_bottom = -win.offset_top - godot_h
+			if ny + (godot_h / 2.0) > (_screen_size.y / 2.0):
+				var margin_bottom = _screen_size.y - (ny + godot_h)
 				ny = original_h - admin_h - margin_bottom
-			else:
-				ny = win.offset_top
+				
+		elif win.top_level:
+			# Matemática Proporcional Original (Skills y Slots)
+			var scale_x = original_w / _screen_size.x
+			var scale_y = original_h / _screen_size.y
+			nx = nx * scale_x
+			ny = ny * scale_y
 			
 		return Vector2(nx, ny)
 
