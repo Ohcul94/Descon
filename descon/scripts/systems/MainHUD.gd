@@ -333,11 +333,17 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				final_pos = Vector2(rx * scale_x, ry * scale_y)
 			
 			var sc_val = float(pos_data.get("scale", 0.5))
-			node.scale = Vector2(sc_val, sc_val)
+			var final_sc = sc_val * 2.0
+			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
 			var raw_size = node.size
-			if raw_size.x <= 0: raw_size = node.get_combined_minimum_size()
+			if node.name == "CenterStats": raw_size = Vector2(320, 200)
+			elif node.name == "RadarWindow": raw_size = Vector2(280, 280)
+			elif "Chat" in node.name: raw_size = Vector2(320, 200)
+			elif "Party" in node.name: raw_size = Vector2(200, 80)
+			elif "ControlBar" in node.name: raw_size = Vector2(280, 45)
+			elif raw_size.x <= 0: raw_size = node.get_combined_minimum_size()
 			if raw_size.x <= 0: raw_size = Vector2(100, 100)
 				
 			var node_size = raw_size * node.scale
@@ -1168,7 +1174,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		layout["SkillsContainer"] = { 
 			"x": skills_hud.global_position.x * scale_x, 
 			"y": skills_hud.global_position.y * scale_y,
-			"scale": skills_hud.scale.x,
+			"scale": skills_hud.scale.x / 2.0,
 			"alpha": skills_hud.modulate.a
 		}
 		for child in skills_hud.get_children():
@@ -1176,7 +1182,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			layout[child.name] = { 
 				"x": child.global_position.x * scale_x, 
 				"y": child.global_position.y * scale_y,
-				"scale": child.scale.x,
+				"scale": child.scale.x / 2.0,
 				"alpha": child.modulate.a
 			}
 	
@@ -1186,7 +1192,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			layout[win_id] = { 
 				"x": win.global_position.x * scale_x, 
 				"y": win.global_position.y * scale_y,
-				"scale": win.scale.x,
+				"scale": win.scale.x / 2.0,
 				"alpha": win.modulate.a
 			}
 	
