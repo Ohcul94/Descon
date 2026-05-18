@@ -619,7 +619,7 @@ func _restore_default_layout():
 	if joy:
 		var joy_enabled = SettingsManager.mobile_mode if SettingsManager else false
 		joy.visible = joy_enabled
-		virtual_joystick.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		joy.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if joy_enabled:
 			joy.global_position = Vector2(20, 680)
 		else:
