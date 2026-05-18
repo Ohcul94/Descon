@@ -325,12 +325,38 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			var ry = float(pos_data.get("y", 0.0))
 			
 			var final_pos = Vector2.ZERO
+			var original_w = 1280.0
+			var original_h = 800.0
+			
 			if rx <= 2.0 and ry <= 2.0:
 				final_pos = Vector2(rx * screen_size.x, ry * screen_size.y)
 			else:
-				var scale_x = screen_size.x / 1280.0
-				var scale_y = screen_size.y / 800.0
-				final_pos = Vector2(rx * scale_x, ry * scale_y)
+				var sc_val_temp = float(pos_data.get("scale", 0.5))
+				var final_sc_temp = sc_val_temp * 2.0
+				var rs_temp = node.size
+				if node.name == "CenterStats": rs_temp = Vector2(320, 200)
+				elif node.name == "RadarWindow": rs_temp = Vector2(280, 280)
+				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
+				elif "Party" in node.name: rs_temp = Vector2(200, 80)
+				elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
+				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
+				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
+				
+				var ns_temp = rs_temp * Vector2(final_sc_temp, final_sc_temp)
+				
+				# X: Anclar al borde más cercano
+				if rx + (ns_temp.x / 2.0) > (original_w / 2.0):
+					var margin_right = original_w - (rx + ns_temp.x)
+					final_pos.x = screen_size.x - ns_temp.x - margin_right
+				else:
+					final_pos.x = rx
+					
+				# Y: Anclar al borde más cercano
+				if ry + (ns_temp.y / 2.0) > (original_h / 2.0):
+					var margin_bottom = original_h - (ry + ns_temp.y)
+					final_pos.y = screen_size.y - ns_temp.y - margin_bottom
+				else:
+					final_pos.y = ry
 			
 			var sc_val = float(pos_data.get("scale", 0.5))
 			var final_sc = sc_val * 2.0
@@ -1166,34 +1192,58 @@ func apply_layout_slot(index: int):
 
 func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 	var screen_size = get_viewport_rect().size
-	var scale_x = 1280.0 / screen_size.x
-	var scale_y = 800.0 / screen_size.y
+	var get_normalized_pos = func(win: Control, original_w: float, original_h: float):
+		var ns = win.size
+		if win.name == "CenterStats": ns = Vector2(320, 200)
+		elif win.name == "RadarWindow": ns = Vector2(280, 280)
+		elif "Chat" in win.name: ns = Vector2(320, 200)
+		elif "Party" in win.name: ns = Vector2(200, 80)
+		elif "ControlBar" in win.name: ns = Vector2(280, 45)
+		elif ns.x <= 0: ns = win.get_combined_minimum_size()
+		if ns.x <= 0: ns = Vector2(100, 100)
+		
+		ns *= win.scale
+		var nx = 0.0
+		var ny = 0.0
+		
+		# Inverso X
+		if win.global_position.x + (ns.x / 2.0) > (screen_size.x / 2.0):
+			var margin_right = screen_size.x - (win.global_position.x + ns.x)
+			nx = original_w - ns.x - margin_right
+		else:
+			nx = win.global_position.x
+			
+		# Inverso Y
+		if win.global_position.y + (ns.y / 2.0) > (screen_size.y / 2.0):
+			var margin_bottom = screen_size.y - (win.global_position.y + ns.y)
+			ny = original_h - ns.y - margin_bottom
+		else:
+			ny = win.global_position.y
+			
+		return Vector2(nx, ny)
 
 	var layout = {}
 	if skills_hud:
+		var npos = get_normalized_pos.call(skills_hud, 1280.0, 800.0)
 		layout["SkillsContainer"] = { 
-			"x": skills_hud.global_position.x * scale_x, 
-			"y": skills_hud.global_position.y * scale_y,
-			"scale": skills_hud.scale.x / 2.0,
-			"alpha": skills_hud.modulate.a
+			"x": npos.x, "y": npos.y,
+			"scale": skills_hud.scale.x / 2.0, "alpha": skills_hud.modulate.a
 		}
 		for child in skills_hud.get_children():
 			if child.name == "DragOverlay": continue
+			var cpos = get_normalized_pos.call(child, 1280.0, 800.0)
 			layout[child.name] = { 
-				"x": child.global_position.x * scale_x, 
-				"y": child.global_position.y * scale_y,
-				"scale": child.scale.x / 2.0,
-				"alpha": child.modulate.a
+				"x": cpos.x, "y": cpos.y,
+				"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 			}
 	
 	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar"]:
 		var win = _get_hud_node(win_id)
 		if win:
+			var wpos = get_normalized_pos.call(win, 1280.0, 800.0)
 			layout[win_id] = { 
-				"x": win.global_position.x * scale_x, 
-				"y": win.global_position.y * scale_y,
-				"scale": win.scale.x / 2.0,
-				"alpha": win.modulate.a
+				"x": wpos.x, "y": wpos.y,
+				"scale": win.scale.x / 2.0, "alpha": win.modulate.a
 			}
 	
 	if NetworkManager:
