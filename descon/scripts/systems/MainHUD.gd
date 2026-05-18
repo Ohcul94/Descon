@@ -327,10 +327,10 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar"] or "Chat" in node.name or "Party" in node.name
+			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"] or "Chat" in node.name or "Party" in node.name
 			
 			if is_corner_win:
-				# v1.40: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) para ignorar padres sin FullRect
+				# v1.45: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) SIN MUTILACIÓN ESCALAR
 				node.top_level = true
 				
 				var rs_temp = node.size
@@ -339,11 +339,13 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
 				elif "Party" in node.name: rs_temp = Vector2(200, 200)
 				elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
+				elif node.name == "Skills": rs_temp = Vector2(520, 80)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
-				var admin_visual_w = rs_temp.x * sc_val
-				var admin_visual_h = rs_temp.y * sc_val
+				var base_w = rs_temp.x
+				var base_h = rs_temp.y
+				
 				var godot_visual_w = rs_temp.x * final_sc
 				var godot_visual_h = rs_temp.y * final_sc
 				
@@ -351,23 +353,23 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				var original_h = 800.0
 				var f_pos = Vector2.ZERO
 				
-				# X: Preservar margen absoluto al borde de la pantalla global
-				if rx + (admin_visual_w / 2.0) > (original_w / 2.0):
-					var margin_right = original_w - (rx + admin_visual_w)
+				# X: Preservar margen absoluto nominal
+				if rx + (base_w / 2.0) > (original_w / 2.0):
+					var margin_right = original_w - (rx + base_w)
 					f_pos.x = _screen_size.x - godot_visual_w - margin_right
 				else:
 					f_pos.x = rx
 					
-				# Y: Preservar margen absoluto al borde de la pantalla global
-				if ry + (admin_visual_h / 2.0) > (original_h / 2.0):
-					var margin_bottom = original_h - (ry + admin_visual_h)
+				# Y: Preservar margen absoluto nominal
+				if ry + (base_h / 2.0) > (original_h / 2.0):
+					var margin_bottom = original_h - (ry + base_h)
 					f_pos.y = _screen_size.y - godot_visual_h - margin_bottom
 				else:
 					f_pos.y = ry
 					
 				node.global_position = f_pos
 			else:
-				# v1.31: Matemática Proporcional Original para SkillsContainer y sus Slots
+				# v1.31: Matemática Proporcional Original para Slots huérfanos
 				node.top_level = true
 				var final_pos = Vector2.ZERO
 				if rx <= 2.0 and ry <= 2.0:
@@ -1210,26 +1212,32 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
 		
-		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar"] or "Chat" in win.name or "Party" in win.name
+		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"] or "Chat" in win.name or "Party" in win.name
 		
 		if is_corner_win:
-			# v1.40: Revertir la emulación de márgenes absolutos a proporciones de AdminDash
-			var sc_val = win.scale.x / 2.0
-			var admin_w = win.size.x * sc_val
-			var admin_h = win.size.y * sc_val
+			# v1.45: Revertir márgenes absolutos a proporciones nominales base sin mutilación
+			var base_w = win.size.x
+			var base_h = win.size.y
+			if win.name == "Skills": base_w = 520; base_h = 80
+			elif win.name == "CenterStats": base_w = 250; base_h = 140
+			elif win.name == "RadarWindow": base_w = 220; base_h = 220
+			elif "Chat" in win.name: base_w = 320; base_h = 200
+			elif "Party" in win.name: base_w = 200; base_h = 200
+			elif "ControlBar" in win.name: base_w = 280; base_h = 45
+			
 			var godot_w = win.size.x * win.scale.x
 			var godot_h = win.size.y * win.scale.y
 			
 			if nx + (godot_w / 2.0) > (_screen_size.x / 2.0):
 				var margin_right = _screen_size.x - (nx + godot_w)
-				nx = original_w - admin_w - margin_right
+				nx = original_w - base_w - margin_right
 				
 			if ny + (godot_h / 2.0) > (_screen_size.y / 2.0):
 				var margin_bottom = _screen_size.y - (ny + godot_h)
-				ny = original_h - admin_h - margin_bottom
+				ny = original_h - base_h - margin_bottom
 				
 		elif win.top_level:
-			# Matemática Proporcional Original (Skills y Slots)
+			# Matemática Proporcional Original (Solo Slots huérfanos u otros)
 			var scale_x = original_w / _screen_size.x
 			var scale_y = original_h / _screen_size.y
 			nx = nx * scale_x
