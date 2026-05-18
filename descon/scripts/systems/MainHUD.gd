@@ -338,7 +338,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				if node.name == "CenterStats": rs_temp = Vector2(250, 140)
 				elif node.name == "RadarWindow": rs_temp = Vector2(220, 220)
 				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
-				elif "Party" in node.name: rs_temp = Vector2(200, 80)
+				elif "Party" in node.name: rs_temp = Vector2(200, 200)
 				elif "ControlBar" in node.name: rs_temp = Vector2(280, 45)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
@@ -916,7 +916,7 @@ func toggle_hud_editing(slot_index: int = -1):
 			var sh = Shader.new()
 			sh.code = "shader_type canvas_item;
 				void fragment() {
-					vec2 grid = fract(SCREEN_UV * vec2(20.0, 15.0));
+					vec2 grid = fract(SCREEN_UV * vec2(32.0, 20.0));
 					float line = step(0.98, grid.x) + step(0.98, grid.y);
 					COLOR = vec4(0.0, 1.0, 1.0, line * 0.1);
 				}"
@@ -1337,11 +1337,21 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 
 	if node is PanelContainer or node is Panel or node is Control:
 		node.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-		if node.name == "CenterStats": node.custom_minimum_size = Vector2(250, 140)
-		elif node.name == "RadarWindow": node.custom_minimum_size = Vector2(220, 220)
-		elif "Chat" in node.name: node.custom_minimum_size = Vector2(320, 200)
-		elif "Party" in node.name: node.custom_minimum_size = Vector2(200, 80)
-		elif "ControlBar" in node.name: node.custom_minimum_size = Vector2(280, 45)
+		if node.name == "CenterStats": 
+			node.custom_minimum_size = Vector2(250, 140)
+			node.size = Vector2(250, 140)
+		elif node.name == "RadarWindow": 
+			node.custom_minimum_size = Vector2(220, 220)
+			node.size = Vector2(220, 220)
+		elif "Chat" in node.name: 
+			node.custom_minimum_size = Vector2(320, 200)
+			node.size = Vector2(320, 200)
+		elif "Party" in node.name: 
+			node.custom_minimum_size = Vector2(200, 200)
+			node.size = Vector2(200, 200)
+		elif "ControlBar" in node.name: 
+			node.custom_minimum_size = Vector2(280, 45)
+			node.size = Vector2(280, 45)
 		elif "Slot" in node.name: 
 			node.custom_minimum_size = Vector2(65, 65)
 			node.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
