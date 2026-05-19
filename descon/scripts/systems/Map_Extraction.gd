@@ -14,6 +14,15 @@ extends BaseMap
 @onready var asteroids_3d: Node3D = $ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D
 
 var player_node: Node2D = null
+var active_extract_points: Array = []
+
+var match_timer_label: Label = null
+var spawn_lock_container: PanelContainer = null
+var spawn_lock_label: Label = null
+var spawn_lock_remaining: float = 0.0
+var initial_player_pos: Vector2 = Vector2.ZERO
+var has_saved_initial_pos: bool = false
+var spawn_lock_finished_notify_timer: float = 0.0
 
 func _ready():
 	super._ready()
@@ -22,13 +31,76 @@ func _ready():
 	_on_window_resized()
 	get_tree().get_root().size_changed.connect(_on_window_resized)
 	
+	# Crear los componentes visuales del botón flotante interactivo de salto
+	_create_portal_jump_ui()
+	
 	# Generar obstáculos procedimentales en el mapa de 10,000 x 10,000 px (Desactivado a petición del usuario)
 	# _generate_procedural_obstacles()
 	
 	# Generar portales 3D de extracción en los puntos configurados en el AdminDash
 	_generate_extraction_portals()
 
+	# Inicializar cuenta regresiva de spawn lock desde la config dinámica
+	var spawn_lock_ms = 10000.0
+	if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
+		var ext = GameConstants.FULL_CONFIG.gameModes.extraction
+		if ext.has("spawnLockTime"):
+			spawn_lock_ms = float(ext.spawnLockTime)
+	spawn_lock_remaining = spawn_lock_ms / 1000.0
+
+	# Crear HUD UI de temporizadores
+	_create_timers_ui()
+
+	# Conectar señal de actualización de raid desde red
+	if NetworkManager:
+		if not NetworkManager.raid_time_update.is_connected(_on_raid_time_update):
+			NetworkManager.raid_time_update.connect(_on_raid_time_update)
+
 func _physics_process(_delta):
+	# --- LOCALIZAR NAVE DEL JUGADOR ---
+	if not is_instance_valid(player_node):
+		var players = get_tree().get_nodes_in_group("player")
+		if players.size() > 0:
+			player_node = players[0]
+
+	# --- GESTIÓN DINÁMICA DE SPAWN LOCK (BARRERA DE INICIO) ---
+	if spawn_lock_remaining > 0.0:
+		spawn_lock_remaining = max(0.0, spawn_lock_remaining - _delta)
+		
+		if is_instance_valid(player_node):
+			if not has_saved_initial_pos:
+				initial_player_pos = player_node.global_position
+				has_saved_initial_pos = true
+			
+			# Congelar posición y bloquear habilidades
+			player_node.global_position = initial_player_pos
+			if "velocity" in player_node:
+				player_node.velocity = Vector2.ZERO
+			player_node.set_meta("skills_blocked", true)
+			
+		if spawn_lock_label and spawn_lock_container:
+			spawn_lock_label.text = "🚨 BARRERA DE SEGURIDAD ACTIVA 🚨\nSISTEMAS ONLINE EN: " + str(snapped(spawn_lock_remaining, 0.1)) + "s"
+			spawn_lock_container.visible = true
+			var border_pulse = 0.6 + sin(Time.get_ticks_msec() * 0.015) * 0.4
+			spawn_lock_container.modulate.a = border_pulse
+	else:
+		if has_saved_initial_pos:
+			if is_instance_valid(player_node):
+				player_node.set_meta("skills_blocked", false)
+				spawn_lock_finished_notify_timer = 1.5
+				has_saved_initial_pos = false
+				
+		if spawn_lock_finished_notify_timer > 0.0:
+			spawn_lock_finished_notify_timer = max(0.0, spawn_lock_finished_notify_timer - _delta)
+			if spawn_lock_label and spawn_lock_container:
+				spawn_lock_label.text = "🟢 ¡CONEXIÓN SENSORIAL ESTABLECIDA! 🟢\nSISTEMAS DE VUELO Y COMBATE ONLINE"
+				spawn_lock_label.add_theme_color_override("font_color", Color.GREEN)
+				spawn_lock_container.visible = true
+				spawn_lock_container.modulate.a = clamp(spawn_lock_finished_notify_timer / 1.5, 0.0, 1.0)
+		else:
+			if spawn_lock_container:
+				spawn_lock_container.visible = false
+
 	# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL (Estilo MU Online) ---
 	# Para resolver el "desfase raro" definitivamente:
 	# El centro de la pantalla no es la posición exacta de la nave (porque la cámara tiene smoothing/suavizado y se retrasa).
@@ -44,11 +116,6 @@ func _physics_process(_delta):
 		target_pos = cam_2d.get_screen_center_position() # Obtener el centro real renderizado de la pantalla
 		current_zoom = cam_2d.zoom.x
 	else:
-		# Fallback a la nave si no hay cámara
-		if not is_instance_valid(player_node):
-			var players = get_tree().get_nodes_in_group("player")
-			if players.size() > 0:
-				player_node = players[0]
 		if is_instance_valid(player_node):
 			target_pos = player_node.global_position
 	
@@ -102,6 +169,57 @@ func _process(delta):
 				portal.rotation.y = deg_to_rad(-90.0) + wobble_y
 				
 				index += 1
+
+	# --- VERIFICACIÓN DE PROXIMIDAD A PORTALES E INTERACCIÓN DE SALTO ---
+	var active_near_portal = null
+	var near_portal_target_zone = "1"
+	
+	if not is_instance_valid(player_node):
+		var players = get_tree().get_nodes_in_group("player")
+		if players.size() > 0:
+			player_node = players[0]
+			
+	if is_instance_valid(player_node):
+		for pt in active_extract_points:
+			var pos_2d = Vector2(float(pt.x), float(pt.y))
+			var radius = float(pt.get("proximityRadius", 300.0))
+			var dist = player_node.global_position.distance_to(pos_2d)
+			
+			if dist <= radius:
+				active_near_portal = pt
+				near_portal_target_zone = str(pt.get("targetZone", "1"))
+				break
+				
+	var container = get_node_or_null("PortalUICanvas/PortalBtnContainer")
+	if is_instance_valid(container):
+		if active_near_portal != null:
+			var target_name = "Lobby / Hangar"
+			if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(near_portal_target_zone):
+				target_name = GameConstants.MAPS_CONFIG[near_portal_target_zone].get("name", "Sector " + near_portal_target_zone)
+			elif near_portal_target_zone == "1":
+				target_name = "Lobby / Hangar"
+			else:
+				target_name = "Sector " + near_portal_target_zone
+				
+			var bind_key_text = "ESPACIO"
+			if InputMap.has_action("portal_jump"):
+				var events = InputMap.action_get_events("portal_jump")
+				if events.size() > 0:
+					bind_key_text = events[0].as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
+					if bind_key_text == "SPACE":
+						bind_key_text = "ESPACIO"
+				
+			var desc_lbl = container.get_node_or_null("PortalDescLabel")
+			if desc_lbl:
+				desc_lbl.text = "ENTRAR A " + target_name.to_upper() + " [" + bind_key_text + " / Clic]"
+				
+			var click_btn = container.get_node_or_null("CenterContainer/PortalJumpBtn/ClickButton")
+			if click_btn:
+				click_btn.set_meta("target_zone", near_portal_target_zone)
+				
+			container.visible = true
+		else:
+			container.visible = false
 
 func _on_window_resized():
 	var size = get_viewport().size
@@ -212,6 +330,8 @@ func _generate_extraction_portals():
 			{"x": 5003, "y": 7019, "label": "Punto Delta"}
 		]
 		
+	active_extract_points = extract_points
+		
 	var parent_portals_3d = get_node_or_null("ViewportCanvas/SubViewportContainer/SubViewport/Portals3D")
 	if not parent_portals_3d:
 		parent_portals_3d = Node3D.new()
@@ -281,7 +401,8 @@ func _generate_extraction_portals():
 		
 		var trigger_shape = CollisionShape2D.new()
 		var trigger_circle = CircleShape2D.new()
-		trigger_circle.radius = 150.0 # Rango de activación de extracción
+		var dynamic_radius = float(pt.get("proximityRadius", 300.0))
+		trigger_circle.radius = dynamic_radius # Rango de activación de extracción dinámico
 		trigger_shape.shape = trigger_circle
 		area_2d.add_child(trigger_shape)
 		
@@ -296,3 +417,179 @@ func _generate_extraction_portals():
 		add_child(area_2d)
 
 	print("[Map_Extraction] ¡Cargados con éxito ", extract_points.size(), " portales 3D basados en la configuración!")
+
+func _create_portal_jump_ui():
+	# Crear un CanvasLayer exclusivo para la interfaz premium de salto
+	var ui_canvas = CanvasLayer.new()
+	ui_canvas.name = "PortalUICanvas"
+	ui_canvas.layer = 100 # Dibujar por encima del HUD general
+	add_child(ui_canvas)
+	
+	# Contenedor principal de posición centrado abajo
+	var btn_container = VBoxContainer.new()
+	btn_container.name = "PortalBtnContainer"
+	btn_container.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	btn_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	# Desplazar hacia arriba para quedar flotando hermosamente sobre la barra de habilidades
+	btn_container.position.y -= 190
+	ui_canvas.add_child(btn_container)
+	
+	# Contenedor para centrar el slot de 64x64
+	var center_slot = CenterContainer.new()
+	center_slot.name = "CenterContainer"
+	btn_container.add_child(center_slot)
+	
+	# El slot circular estilo habilidad
+	var portal_btn = PanelContainer.new()
+	portal_btn.name = "PortalJumpBtn"
+	portal_btn.custom_minimum_size = Vector2(64, 64)
+	portal_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	center_slot.add_child(portal_btn)
+	
+	# Añadir el dibujo del portal en el centro (emoji galáctico)
+	var icon = Label.new()
+	icon.text = "🌀"
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.add_theme_font_size_override("font_size", 28)
+	portal_btn.add_child(icon)
+	
+	# Estilo normal circular neón cian
+	var style_normal = StyleBoxFlat.new()
+	style_normal.bg_color = Color(0, 0.4, 0.6, 0.25)
+	style_normal.border_width_left = 3
+	style_normal.border_width_top = 3
+	style_normal.border_width_right = 3
+	style_normal.border_width_bottom = 3
+	style_normal.border_color = Color(0, 0.9, 1.0, 0.8)
+	style_normal.set_corner_radius_all(32)
+	style_normal.anti_aliasing = true
+	
+	portal_btn.add_theme_stylebox_override("panel", style_normal)
+	
+	# Botón invisible para capturar el click de mouse
+	var click_btn = Button.new()
+	click_btn.name = "ClickButton"
+	click_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	click_btn.modulate.a = 0 # Completamente invisible
+	click_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	portal_btn.add_child(click_btn)
+	
+	# Etiqueta de texto debajo del portal
+	var desc_lbl = Label.new()
+	desc_lbl.name = "PortalDescLabel"
+	desc_lbl.text = "ENTRAR AL PORTAL [ESPACIO]"
+	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc_lbl.add_theme_font_size_override("font_size", 12)
+	desc_lbl.add_theme_color_override("font_color", Color.CYAN)
+	desc_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	desc_lbl.add_theme_constant_override("outline_size", 5)
+	btn_container.add_child(desc_lbl)
+	
+	# Conectar el click al de salto
+	click_btn.pressed.connect(func():
+		var target = click_btn.get_meta("target_zone") if click_btn.has_meta("target_zone") else "1"
+		_on_portal_jump_pressed(target)
+	)
+	
+	btn_container.visible = false # Oculto por defecto
+
+func _on_portal_jump_pressed(target_zone):
+	# Enviar el evento de salto al servidor autoritativo
+	print("[Map_Extraction] Iniciando salto interdimensional hacia Zona: ", target_zone)
+	NetworkManager.send_event("changeZone", target_zone)
+
+func _input(event):
+	# Atajo premium configurable: Presionar la tecla asignada (por defecto Espacio) para saltar instantáneamente
+	if event.is_action_pressed("portal_jump") and not event.is_echo():
+		var container = get_node_or_null("PortalUICanvas/PortalBtnContainer")
+		if is_instance_valid(container) and container.visible:
+			var click_btn = get_node_or_null("PortalUICanvas/PortalBtnContainer/CenterContainer/PortalJumpBtn/ClickButton")
+			if is_instance_valid(click_btn):
+				click_btn.pressed.emit()
+				get_viewport().set_input_as_handled()
+
+func _create_timers_ui():
+	var ui_canvas = get_node_or_null("PortalUICanvas")
+	if not is_instance_valid(ui_canvas): return
+	
+	# 1. TIMER DE EXTRACCIÓN GLOBAL (Top Center)
+	var top_container = CenterContainer.new()
+	top_container.name = "RaidTimerContainer"
+	top_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	top_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	top_container.offset_top = 20
+	ui_canvas.add_child(top_container)
+	
+	var timer_panel = PanelContainer.new()
+	timer_panel.name = "TimerPanel"
+	var sb_timer = StyleBoxFlat.new()
+	sb_timer.bg_color = Color(0, 0, 0, 0.75)
+	sb_timer.set_border_width_all(2)
+	sb_timer.border_color = Color(0, 0.9, 1.0, 0.8) # Glowing cyan
+	sb_timer.set_corner_radius_all(12)
+	sb_timer.set_content_margin_all(8)
+	timer_panel.add_theme_stylebox_override("panel", sb_timer)
+	top_container.add_child(timer_panel)
+	
+	match_timer_label = Label.new()
+	match_timer_label.name = "MatchTimerLabel"
+	match_timer_label.text = "⏱️ CARGANDO RAID... "
+	match_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	match_timer_label.add_theme_font_size_override("font_size", 13)
+	match_timer_label.add_theme_color_override("font_color", Color.CYAN)
+	match_timer_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	match_timer_label.add_theme_constant_override("outline_size", 4)
+	timer_panel.add_child(match_timer_label)
+	
+	# 2. ALERTA DE SPAWN LOCK (Center Screen)
+	var center_container = CenterContainer.new()
+	center_container.name = "SpawnLockContainer"
+	center_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	center_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	center_container.grow_vertical = Control.GROW_DIRECTION_BOTH
+	ui_canvas.add_child(center_container)
+	
+	spawn_lock_container = PanelContainer.new()
+	var sb_lock = StyleBoxFlat.new()
+	sb_lock.bg_color = Color(0.1, 0, 0, 0.8) # Reddish dark
+	sb_lock.set_border_width_all(3)
+	sb_lock.border_color = Color(1.0, 0.3, 0.0, 0.9) # Glowing orange/red border
+	sb_lock.set_corner_radius_all(16)
+	sb_lock.set_content_margin_all(20)
+	spawn_lock_container.add_theme_stylebox_override("panel", sb_lock)
+	center_container.add_child(spawn_lock_container)
+	
+	spawn_lock_label = Label.new()
+	spawn_lock_label.name = "SpawnLockLabel"
+	spawn_lock_label.text = "🚨 BARRERA DE SPAWN ACTIVA 🚨\nSISTEMAS CONGELADOS: 10.0s"
+	spawn_lock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	spawn_lock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	spawn_lock_label.add_theme_font_size_override("font_size", 16)
+	spawn_lock_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.0)) # Orange
+	spawn_lock_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	spawn_lock_label.add_theme_constant_override("outline_size", 5)
+	spawn_lock_container.add_child(spawn_lock_label)
+	
+	spawn_lock_container.visible = false
+
+func _on_raid_time_update(data: Dictionary):
+	var remaining = int(data.get("remaining", 0))
+	if match_timer_label:
+		var mins = remaining / 60
+		var secs = remaining % 60
+		var time_str = "%02d:%02d" % [mins, secs]
+		match_timer_label.text = "⏱️ EXTRACCIÓN EN: " + time_str
+		
+		# Feedback de alerta cuando queda poco tiempo
+		if remaining <= 120:
+			match_timer_label.add_theme_color_override("font_color", Color.RED)
+			var panel = match_timer_label.get_parent()
+			if panel:
+				panel.modulate = Color(1.3, 0.5, 0.5, 1.0)
+		else:
+			match_timer_label.add_theme_color_override("font_color", Color.CYAN)
+			var panel = match_timer_label.get_parent()
+			if panel:
+				panel.modulate = Color.WHITE

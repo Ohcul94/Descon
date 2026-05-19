@@ -51,23 +51,33 @@ class ExtractionManager {
             : null;
 
         const maxPlayers = extConfig ? (extConfig.maxPlayers || 21) : 21;
-        const radius = extConfig ? (extConfig.extractRadius || 150) : 150;
+        const radius = extConfig ? (extConfig.extractRadius || 300) : 300;
         
         // Mapear puntos del config a la instancia
         const extractionPoints = (extConfig && extConfig.extractPoints)
-            ? extConfig.extractPoints.map((p, idx) => ({ id: idx + 1, x: p.x, y: p.y, radius: radius, label: p.label }))
+            ? extConfig.extractPoints.map((p, idx) => ({ 
+                id: idx + 1, 
+                x: p.x, 
+                y: p.y, 
+                radius: p.proximityRadius || radius, 
+                label: p.label,
+                targetZone: p.targetZone || "1",
+                proximityRadius: p.proximityRadius || radius
+            }))
             : [
-                { id: 1, x: 1500, y: 1500, radius: 150, label: "Alfa" },
-                { id: 2, x: 8500, y: 8500, radius: 150, label: "Beta" },
-                { id: 3, x: 5000, y: 500, radius: 150, label: "Gamma" }
+                { id: 1, x: 1500, y: 1500, radius: 300, label: "Alfa", targetZone: "1", proximityRadius: 300 },
+                { id: 2, x: 8500, y: 8500, radius: 300, label: "Beta", targetZone: "1", proximityRadius: 300 },
+                { id: 3, x: 5000, y: 500, radius: 300, label: "Gamma", targetZone: "1", proximityRadius: 300 }
             ];
+
+        const duration = extConfig ? (extConfig.countdownTime || 600000) : 600000;
 
         const matchData = {
             id: matchId,
             baseMap: mapBaseId,
             maxPlayers: maxPlayers,
             startTime: Date.now(),
-            duration: 15 * 60 * 1000, // 15 minutos de Raid
+            duration: duration, // v2.9: Duración configurable desde el Admin Panel
             players: [], // Lista de socket.ids en la partida
             extractionPoints: extractionPoints,
             isActive: true
@@ -438,14 +448,16 @@ class ExtractionManager {
     }
 
     /**
-     * Procesa la extracción exitosa: Persistencia en DB y retorno al Hangar.
+     * Procesa la extracción exitosa: Persistencia en DB y retorno a la zona seleccionada.
      */
-    async handleExtractionSuccess(socketId, matchId) {
+    async handleExtractionSuccess(socketId, matchId, targetZone) {
         const p = this.state.players[socketId];
         const match = this.matches.get(matchId);
         if (!p || !match) return;
 
-        Logger.success('EXTRACT', `¡Extracción Exitosa! Piloto [${p.user}] evacuó con ${p.tempInventory.length} items.`);
+        const newZone = targetZone ? Number(targetZone) : 1;
+
+        Logger.success('EXTRACT', `¡Extracción Exitosa! Piloto [${p.user}] evacuó con ${p.tempInventory.length} items hacia Zona ${newZone}.`);
 
         try {
             // Escritura limpia y autoritativa en MongoDB Atlas
@@ -454,8 +466,8 @@ class ExtractionManager {
                 { 
                     $push: { "gameData.inventory": { $each: p.tempInventory } },
                     $set: { 
-                        "gameData.zone": 1, 
-                        "gameData.lastPos": { x: 2000, y: 2000 },
+                        "gameData.zone": newZone, 
+                        "gameData.lastPos": { x: 1000, y: 1000 },
                         "gameData.hp": p.hp,
                         "gameData.shield": p.shield
                     }
@@ -467,7 +479,7 @@ class ExtractionManager {
             p.inventory.push(...p.tempInventory);
 
             this.io.to(socketId).emit('extraction_final_success', { items: p.tempInventory });
-            this.returnToHangar(socketId, matchId);
+            this.returnToSelectedZone(socketId, matchId, newZone);
 
         } catch (err) {
             Logger.error('EXTRACT', `Error persistiendo extracción de ${p.user}: ${err.message}`);
@@ -479,11 +491,13 @@ class ExtractionManager {
      */
     async handlePilotDeath(socketId, matchId) {
         const p = this.state.players[socketId];
-        if (!p) return;
+        const match = this.matches.get(matchId);
+        if (!p || !match) return;
 
-        Logger.warn('EXTRACT', `Piloto [${p.user}] murió en la Raid.`);
+        Logger.warn('EXTRACT', `¡Piloto Derribado! [${p.user}] perdió sus items de Raid.`);
 
         try {
+            // MongoDB Atlas persistencia hardcore
             await User.updateOne(
                 { _id: p.id },
                 { 
@@ -508,6 +522,13 @@ class ExtractionManager {
      * Saca al jugador de la instancia y lo devuelve al Hangar Seguro.
      */
     returnToHangar(socketId, matchId) {
+        this.returnToSelectedZone(socketId, matchId, 1);
+    }
+
+    /**
+     * Saca al jugador de la instancia y lo devuelve a la zona/sector seleccionada.
+     */
+    returnToSelectedZone(socketId, matchId, targetZone) {
         const p = this.state.players[socketId];
         const match = this.matches.get(matchId);
         const socket = this.io.sockets.sockets.get(socketId);
@@ -516,11 +537,17 @@ class ExtractionManager {
             match.players = match.players.filter(id => id !== socketId);
         }
 
+        const newZone = targetZone ? Number(targetZone) : 1;
+
         if (p && socket) {
             socket.leave(`zone_${matchId}`);
-            p.zone = 1;
-            p.x = 1000;
-            p.y = 1000;
+            p.zone = newZone;
+            
+            // Posicionar al centro según el tamaño estándar de la nueva zona
+            const size = (newZone === 1 ? 2000 : 4000);
+            p.x = size / 2;
+            p.y = size / 2;
+            
             p.isExtracting = false;
             p.tempInventory = [];
             p.extractionTimer = 0;
@@ -529,13 +556,13 @@ class ExtractionManager {
             p.pvpEnabled = p.originalPvpEnabled !== undefined ? p.originalPvpEnabled : false;
             this.io.emit('playerUpdated', { id: socketId, pvpEnabled: p.pvpEnabled });
 
-            socket.join(`zone_1`);
-            socket.emit('changeZoneDone', 1);
+            socket.join(`zone_${newZone}`);
+            socket.emit('changeZoneDone', newZone);
 
-            // v3.0: Enviar jugadores y enemigos actuales de la Zona 1 (Lobby) para perfecta sincronía al volver
+            // Sincronizar jugadores activos en la nueva zona
             const currentPlayersInZone = {};
             Object.keys(this.state.players).forEach(id => {
-                if (Number(this.state.players[id].zone) === 1 && id !== socketId) {
+                if (Number(this.state.players[id].zone) === newZone && id !== socketId) {
                     currentPlayersInZone[id] = {
                         id: id,
                         dbId: this.state.players[id].id,

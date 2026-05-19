@@ -13,7 +13,9 @@ var default_keys = {
 	"slot_5": KEY_A, "slot_6": KEY_S, "slot_7": KEY_D,
 	"ui_inventory": KEY_F1, "ui_menu": KEY_ESCAPE, "ui_events": KEY_F2,
 	"ui_map": KEY_M, "ui_party": KEY_P, "ui_pvp_toggle": KEY_C,
-	"auto_target_self": KEY_ALT # v4.9: Atajo para auto-casteo
+	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
+	"portal_jump": KEY_SPACE, # Atajo para portal de salto
+	"chat_toggle": KEY_ENTER # Atajo para chat
 }
 var cast_mode_cache: int = 1 # v267.10: Cache local del modo de casteo
 var graphics_quality: int = 1 # 0: Baja, 1: Media, 2: Alta
@@ -92,8 +94,7 @@ func save_settings():
 	config_file.set_value("accessibility", "mobile_aim_sensitivity", mobile_aim_sensitivity)
 	config_file.set_value("accessibility", "mobile_invert_y", mobile_invert_y)
 	
-	for i in range(1, 8):
-		var action = "slot_" + str(i)
+	for action in default_keys:
 		var events = InputMap.action_get_events(action)
 		if events.size() > 0:
 			var event = events[0]

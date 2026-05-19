@@ -1090,7 +1090,9 @@ function addFromRadar() {
     } else if (radarMode === 'extract') {
         config.gameModes.extraction.extractPoints.push({
             x, y,
-            label: document.getElementById('radar-label').value
+            label: document.getElementById('radar-label').value,
+            proximityRadius: 300,
+            targetZone: "1"
         });
     } else if (radarMode === 'spawn') {
         if (!config.gameModes.extraction.spawnPoints) config.gameModes.extraction.spawnPoints = [];

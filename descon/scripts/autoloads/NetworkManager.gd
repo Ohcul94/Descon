@@ -69,6 +69,7 @@ signal extraction_countdown(data)
 signal extraction_cancelled(data)
 signal extraction_final_success(data)
 signal extraction_failed(data)
+signal raid_time_update(data)
 
 
 var socket: WebSocketPeer = WebSocketPeer.new()
@@ -324,6 +325,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"extraction_cancelled": extraction_cancelled.emit(e_data)
 		"extraction_final_success": extraction_final_success.emit(e_data)
 		"extraction_failed": extraction_failed.emit(e_data)
+		"raid_time_update": raid_time_update.emit(e_data)
 
 
 func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_updated"):

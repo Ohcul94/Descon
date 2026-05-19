@@ -3265,7 +3265,7 @@
                     "radius": 500
                 }
             ],
-            "spawnLockTime": 5000,
+            "spawnLockTime": 10000,
             "spawnPoints": [
                 {
                     "x": 540,

@@ -134,9 +134,99 @@ window.renderSearchableEnemySelect = function(currentValue, onChangeCallback, bo
                         max-height: 250px; overflow-y: auto; background: #0f172a; border: 1px solid ${borderCSSColor}; 
                         padding: 5px; box-shadow: 0 15px 30px rgba(0,0,0,0.6); margin-top: 5px; border-radius: 8px; width: 100%;">
             </div>
+    `;
+};
+
+window.renderSearchableMapSelect = function(currentValue, onChangeCallback, borderCSSColor = 'var(--primary)', extraId = '') {
+    const currentMap = config.mapsConfig[currentValue];
+    const currentName = currentMap ? `[ID ${currentValue}] ${currentMap.name}` : `ID ${currentValue}`;
+    const dropdownId = `dropdown-select-${extraId}`;
+    const inputId = `dropdown-search-${extraId}`;
+    const listId = `dropdown-list-${extraId}`;
+
+    // Programar la función de filtrado dinámico en la ventana global de forma única
+    window[`filterMapDropdown_${extraId}`] = function(query) {
+        const list = document.getElementById(listId);
+        if (!list) return;
+        list.innerHTML = '';
+        const q = query.toLowerCase();
+
+        // Asegurar que lobby (1) siempre esté disponible
+        if (!config.mapsConfig["1"]) {
+            config.mapsConfig["1"] = { name: "Lobby / Hangar", color: "var(--primary)" };
+        }
+
+        for(let id in config.mapsConfig) {
+            const mapObj = config.mapsConfig[id];
+            const matches = mapObj.name.toLowerCase().includes(q) || id.includes(q);
+            if (q && !matches) continue;
+            
+            const row = document.createElement('div');
+            row.style.padding = '8px 12px';
+            row.style.cursor = 'pointer';
+            row.style.borderBottom = '1px solid rgba(255,255,255,0.02)';
+            row.style.display = 'flex';
+            row.style.flexDirection = 'column';
+            row.style.gap = '5px';
+            
+            row.onmouseenter = () => row.style.background = `${borderCSSColor}1a`;
+            row.onmouseleave = () => row.style.background = 'transparent';
+
+            const titleSpan = document.createElement('span');
+            titleSpan.innerHTML = `<strong>[ID ${id}]</strong> ${mapObj.name}`;
+            titleSpan.style.color = borderCSSColor;
+            titleSpan.style.fontSize = '0.85rem';
+            row.appendChild(titleSpan);
+
+            row.onclick = () => {
+                onChangeCallback(id);
+                document.getElementById(inputId).value = `[ID ${id}] ${mapObj.name}`;
+                list.style.display = 'none';
+            };
+            
+            list.appendChild(row);
+        }
+
+        if (list.children.length === 0) {
+            const noResult = document.createElement('div');
+            noResult.innerText = 'No se encontraron mapas';
+            noResult.style.padding = '10px';
+            noResult.style.color = '#888';
+            noResult.style.fontSize = '0.8rem';
+            list.appendChild(noResult);
+        }
+    };
+
+    // Agregamos un event listener global para cerrar este dropdown específico
+    document.addEventListener('click', function(e) {
+        const list = document.getElementById(listId);
+        const searchInput = document.getElementById(inputId);
+        if (list && searchInput && !list.contains(e.target) && e.target !== searchInput) {
+            list.style.display = 'none';
+        }
+    });
+
+    return `
+        <div style="position: relative; width: 100%; display: flex; flex-direction: column;">
+            <div style="position: relative; display: flex; align-items: center; width: 100%;">
+                <input type="text" id="${inputId}" value="${currentName}" 
+                       placeholder="🔍 Escribí para filtrar mapa..." 
+                       style="background:#0f172a; color:${borderCSSColor}; font-weight:bold; padding-right: 30px; border: 1px solid ${borderCSSColor}33; width: 100%; border-radius: 8px; outline: none; font-size: 0.75rem;"
+                       onfocus="document.querySelectorAll('.folder-content[id^=dropdown-list-]').forEach(el=>el.style.display='none'); document.getElementById('${listId}').style.display = 'block'; window['filterMapDropdown_${extraId}'](this.value);"
+                       oninput="window['filterMapDropdown_${extraId}'](this.value);">
+                <span style="position: absolute; right: 10px; cursor: pointer; color: ${borderCSSColor}; font-size: 0.8rem;" 
+                      onclick="const el = document.getElementById('${listId}'); const cur = el.style.display; document.querySelectorAll('.folder-content[id^=dropdown-list-]').forEach(x=>x.style.display='none'); el.style.display = cur === 'block' ? 'none' : 'block';">▼</span>
+            </div>
+            
+            <div id="${listId}" class="folder-content" 
+                 style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 999999; 
+                        max-height: 200px; overflow-y: auto; background: #0f172a; border: 1px solid ${borderCSSColor}; 
+                        padding: 5px; box-shadow: 0 15px 30px rgba(0,0,0,0.6); margin-top: 5px; border-radius: 8px; width: 100%;">
+            </div>
         </div>
     `;
 };
+
 
 function refreshCurrentTab() {
     const active = document.querySelector('.view.active');
@@ -1488,14 +1578,24 @@ function renderModes() {
                         <h4 style="color:var(--primary); margin-bottom:1rem;">🛰️ PUNTOS DE ESCAPE</h4>
                         <div style="display:flex; flex-direction:column; gap:8px; max-height:300px; overflow-y:auto; padding-right:5px;">
                             ${config.gameModes.extraction.extractPoints.map((p, idx) => `
-                                <div id="card-extract-${idx}" onclick="highlightCard('extract', ${idx})" style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease; cursor:pointer;">
+                                <div id="card-extract-${idx}" onclick="highlightCard('extract', ${idx})" style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease; cursor:pointer; overflow: visible;">
                                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                                         <input type="text" value="${p.label}" onchange="config.gameModes.extraction.extractPoints[${idx}].label = this.value" style="background:none; border:none; color:var(--primary); font-weight:bold; font-size:0.75rem; width:70%;">
                                         <button onclick="config.gameModes.extraction.extractPoints.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
                                     </div>
-                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                                        <div class="field"><label>X</label><input type="number" id="ep-x-${idx}" value="${p.x}" onchange="config.gameModes.extraction.extractPoints[${idx}].x = parseInt(this.value)"></div>
-                                        <div class="field"><label>Y</label><input type="number" id="ep-y-${idx}" value="${p.y}" onchange="config.gameModes.extraction.extractPoints[${idx}].y = parseInt(this.value)"></div>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px; margin-bottom:8px;">
+                                        <div class="field"><label>Coord X (px)</label><input type="number" id="ep-x-${idx}" value="${p.x}" onchange="config.gameModes.extraction.extractPoints[${idx}].x = parseInt(this.value)"></div>
+                                        <div class="field"><label>Coord Y (px)</label><input type="number" id="ep-y-${idx}" value="${p.y}" onchange="config.gameModes.extraction.extractPoints[${idx}].y = parseInt(this.value)"></div>
+                                    </div>
+                                    <div class="field" style="margin-bottom:8px; overflow: visible; width: 100%;">
+                                        <label>Mapa de Destino</label>
+                                        ${renderSearchableMapSelect(p.targetZone || "1", (newId) => {
+                                            config.gameModes.extraction.extractPoints[idx].targetZone = newId;
+                                        }, 'var(--primary)', `ext-map-${idx}`)}
+                                    </div>
+                                    <div class="field">
+                                        <label>Radio de Proximidad (px)</label>
+                                        <input type="number" value="${p.proximityRadius || 300}" onchange="config.gameModes.extraction.extractPoints[${idx}].proximityRadius = parseInt(this.value)">
                                     </div>
                                 </div>
                             `).join('')}

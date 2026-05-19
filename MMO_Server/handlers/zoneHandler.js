@@ -80,10 +80,33 @@ function registerZoneHandlers(socket, io, state) {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
 
-        // v2.9: Si venía de una extracción activa, limpiarlo en ExtractionManager y forzar retorno seguro
+        // v2.9: Si venía de una extracción activa, verificar si está cerca de un portal de escape para darle la victoria
         if (p.isExtracting) {
             const extractionManager = require('../systems/extractionManager');
-            extractionManager.returnToHangar(socket.id, p.zone);
+            const match = extractionManager.matches.get(p.zone);
+            let nearPortal = false;
+            
+            if (match) {
+                for (const ep of match.extractionPoints) {
+                    const dx = p.x - ep.x;
+                    const dy = p.y - ep.y;
+                    const distSq = dx * dx + dy * dy;
+                    const checkRadius = ep.proximityRadius || ep.radius || 150;
+                    
+                    if (distSq < checkRadius * checkRadius) {
+                        nearPortal = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (nearPortal) {
+                // Extracción exitosa hacia la zona/mapa seleccionada
+                await extractionManager.handleExtractionSuccess(socket.id, p.zone, zoneId);
+            } else {
+                // Cancelado/Fuerza bruta: devuelto al lobby sin items de raid
+                extractionManager.returnToHangar(socket.id, p.zone);
+            }
             return;
         }
 

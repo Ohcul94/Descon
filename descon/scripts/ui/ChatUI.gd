@@ -70,7 +70,7 @@ func _input(ev):
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud and hud.get("is_editing_layout"): return
 	
-	if ev.is_action_pressed("ui_accept"):
+	if ev.is_action_pressed("chat_toggle"):
 		if chat_input:
 			if not chat_input.has_focus():
 				chat_input.grab_focus()
