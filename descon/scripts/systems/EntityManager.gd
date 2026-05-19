@@ -65,10 +65,55 @@ func _process(delta):
 					enemies.erase(eid)
 					print("[EntityManager SINC] Enemigo huérfano purgado por cambio de zona: ", eid)
 
-	# 1. Procesar físicas locales de succión de Vórtices
+	# 1. Procesar físicas locales de succión de Vórtices y Lazos Curativos
 	for id in active_areas.keys():
 		var area = active_areas[id]
 		if not is_instance_valid(area): continue
+
+		if area.has_meta("type") and area.get_meta("type") == "VITAL_LINK":
+			var owner_id = area.get_meta("ownerId")
+			var target_id = area.get_meta("targetId")
+			
+			var owner_node = null
+			var target_node = null
+			
+			if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == owner_id:
+				owner_node = world.local_player
+			elif remote_players.has(owner_id):
+				owner_node = remote_players[owner_id]
+			elif enemies.has(owner_id):
+				owner_node = enemies[owner_id]
+				
+			if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == target_id:
+				target_node = world.local_player
+			elif remote_players.has(target_id):
+				target_node = remote_players[target_id]
+			elif enemies.has(target_id):
+				target_node = enemies[target_id]
+				
+			if is_instance_valid(owner_node) and is_instance_valid(target_node):
+				# Centrar el contenedor en el emisor
+				area.global_position = owner_node.global_position
+				
+				# Dibujar el rayo de plasma verde usando coordenadas globales directas (gracias a set_as_top_level)
+				var rayo_node = area.get_node_or_null("RayoVerde")
+				if rayo_node:
+					var start_pos = owner_node.global_position + Vector2(0, -20)
+					var end_pos = target_node.global_position + Vector2(0, -20)
+					rayo_node.points = [start_pos, end_pos]
+					
+					var pulse = area.get_meta("pulse_timer") + delta * 12.0
+					area.set_meta("pulse_timer", pulse)
+					rayo_node.width = 5.0 + sin(pulse) * 1.5
+				
+				# Rotar el anillo celeste de rango maximo (Karma style)
+				var ring_node = area.get_node_or_null("LimitRing")
+				if ring_node:
+					ring_node.rotation += delta * 0.2
+			else:
+				var rayo_node = area.get_node_or_null("RayoVerde")
+				if rayo_node: rayo_node.points = []
+			continue
 		
 		if area.has_meta("type") and area.get_meta("type") == "vortex":
 			var time = area.get_meta("time") + delta
@@ -419,6 +464,8 @@ func _on_spawn_area(data: Dictionary):
 		_spawn_vortex_vfx(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "HEAL_ZONE":
 		_spawn_heal_zone_vfx(id, Vector2(data.x, data.y), data.radius, data)
+	elif type == "VITAL_LINK":
+		_spawn_vital_link_vfx(id, data)
 
 func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
 	if active_areas.has(id): return
@@ -844,3 +891,45 @@ func _on_clear_enemy_projectiles(data: Dictionary):
 	var boss_id = str(data.get("bossId", ""))
 	if boss_id != "" and is_instance_valid(world) and is_instance_valid(world.combat_system) and world.combat_system.has_method("clear_boss_bullets"):
 		world.combat_system.clear_boss_bullets(boss_id)
+
+func _spawn_vital_link_vfx(id: String, data: Dictionary):
+	if active_areas.has(id): return
+	
+	var container = Node2D.new()
+	container.name = id
+	if is_instance_valid(world) and is_instance_valid(world.entities_node):
+		world.entities_node.add_child(container)
+	active_areas[id] = container
+	
+	container.set_meta("type", "VITAL_LINK")
+	container.set_meta("ownerId", str(data.get("ownerId", "")))
+	container.set_meta("targetId", str(data.get("targetId", "")))
+	container.set_meta("pulse_timer", 0.0)
+	
+	var break_range = float(data.get("radius", 500.0))
+	container.set_meta("radius", break_range)
+	
+	# 1. Anillo/Límite celeste translúcido centrado en el emisor (Karma style)
+	var limit_ring = Line2D.new()
+	limit_ring.name = "LimitRing"
+	limit_ring.width = 1.5
+	limit_ring.default_color = Color(0.0, 0.7, 1.0, 0.28) # Celeste vibrante translúcido
+	limit_ring.z_index = -1 # Detrás de las naves
+	
+	var ring_pts = []
+	var segments = 64
+	for i in range(segments + 1):
+		var ang = (i / float(segments)) * TAU
+		ring_pts.append(Vector2(cos(ang), sin(ang)) * break_range)
+	limit_ring.points = ring_pts
+	container.add_child(limit_ring)
+	
+	# 2. El rayo vinculante curativo Line2D (Verde brillante sólido y ultra-visible)
+	var rayo = Line2D.new()
+	rayo.name = "RayoVerde"
+	rayo.width = 5.0
+	rayo.default_color = Color(0.0, 1.0, 0.3, 0.95) # Verde eléctrico de alta intensidad
+	rayo.z_index = 3 # Por encima de las naves para que se distinga perfectamente
+	rayo.set_as_top_level(true) # IGNORAR transformaciones del contenedor parent y dibujar en el espacio global
+	
+	container.add_child(rayo)

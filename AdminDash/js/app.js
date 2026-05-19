@@ -4,7 +4,7 @@ let config = {};
 let currentAmmoTab = 'laser';
 let currentEnemySubTab = 'regular';
 let currentModeTab = 'hunting';
-let currentSkillTab = 'Ataque';
+let currentSkillTab = localStorage.getItem('admin_last_skill_tab') || 'Ataque';
 let currentMechTab = 'attack';
 let selectedEnemyId = null;
 let selectedMapId = null;
@@ -63,9 +63,12 @@ function showTab(tabId) {
     if (parentFolderId) {
         const folderEl = document.getElementById(parentFolderId);
         if (folderEl) {
+            folderEl.classList.add('show'); // Forzar despliegue visual de la carpeta
             const folderHeader = folderEl.previousElementSibling;
             if (folderHeader && folderHeader.classList.contains('nav-folder')) {
                 folderHeader.classList.add('active');
+                const chevron = folderHeader.querySelector('.chevron');
+                if (chevron) chevron.innerText = '▼';
             }
         }
     }
@@ -296,6 +299,7 @@ function setModeTab(tab, btn) {
 
 function setSkillTab(tab, btn) {
     currentSkillTab = tab;
+    localStorage.setItem('admin_last_skill_tab', tab);
     if (btn) {
         document.querySelectorAll('.nav-link.sub').forEach(l => l.classList.remove('active'));
         btn.classList.add('active');
@@ -608,6 +612,11 @@ function patchMechanicsLib() {
         if (!ml.fields.includes("turnSpeed")) ml.fields.push("turnSpeed");
         if (!ml.fields.includes("lockTimeMs")) ml.fields.push("lockTimeMs");
         if (!ml.fields.includes("isHoming")) ml.fields.push("isHoming");
+    }
+    if (config.skillsData && config.skillsData["VÍNCULO VITAL"]) {
+        const s = config.skillsData["VÍNCULO VITAL"];
+        if (s.breakRange === undefined) s.breakRange = 500;
+        if (s.tickInterval === undefined) s.tickInterval = 1000;
     }
     renderAll();
 }

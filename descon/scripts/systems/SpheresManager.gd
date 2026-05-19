@@ -137,7 +137,8 @@ func equip_item(sphere_id, item_data):
 						"BLINK": Skill_Blink,
 						"HYPER-DASH": Skill_HyperDash,
 						"TURBO-IMPULSO": Skill_TurboImpulse,
-						"INVULNERABILIDAD": Skill_Invulnerability
+						"INVULNERABILIDAD": Skill_Invulnerability,
+						"VÍNCULO VITAL": Skill_VitalLink
 					}
 					
 					if skill_classes.has(s_name):

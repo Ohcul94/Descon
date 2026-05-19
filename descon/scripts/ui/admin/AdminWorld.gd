@@ -30,6 +30,9 @@ func render_spheres(container):
 
 	for s_name in GameConstants.SKILLS_DATA:
 		var skill = GameConstants.SKILLS_DATA[s_name]; var target_cat = ""
+		if s_name == "VÍNCULO VITAL":
+			if not skill.has("breakRange"): GameConstants.SKILLS_DATA[s_name]["breakRange"] = 500.0
+			if not skill.has("tickInterval"): GameConstants.SKILLS_DATA[s_name]["tickInterval"] = 1000.0
 		for cat_name in categories:
 			if skill.type in categories[cat_name]: target_cat = cat_name; break
 		if target_cat == "": continue
@@ -88,6 +91,8 @@ func render_spheres(container):
 			var label_str = "DURACIÓN DE EFECTO (ms)" if float(skill.duration) >= 100.0 else "DURACIÓN DE EFECTO (s)"
 			admin_main._add_input(grid, label_str, str(skill.duration), func(v): GameConstants.SKILLS_DATA[k_ref.name].duration = float(v))
 		if skill.has("radius"): admin_main._add_input(grid, "RADIO DE ACCIÓN (px)", str(skill.radius), func(v): GameConstants.SKILLS_DATA[k_ref.name].radius = float(v))
+		if skill.has("breakRange"): admin_main._add_input(grid, "RANGO DE RUPTURA LAZO (px)", str(skill.breakRange), func(v): GameConstants.SKILLS_DATA[k_ref.name].breakRange = float(v))
+		if skill.has("tickInterval"): admin_main._add_input(grid, "INTERVALO TICK (ms)", str(skill.tickInterval), func(v): GameConstants.SKILLS_DATA[k_ref.name].tickInterval = float(v))
 		if skill.has("slow_amount"): admin_main._add_input(grid, "CANTIDAD DE RALENTIZACIÓN (%)", str(int(skill.slow_amount * 100)), func(v): GameConstants.SKILLS_DATA[k_ref.name].slow_amount = float(v) / 100.0)
 
 	var add_btn = Button.new(); add_btn.text = " [+] AÑADIR NUEVA HABILIDAD / ESFERA "; add_btn.modulate = Color.CYAN

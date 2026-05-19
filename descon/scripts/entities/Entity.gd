@@ -1098,7 +1098,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 	# Mostrar siempre los números de retroalimentación
 	if has_method("_spawn_damage_text"):
 		if skill_name == "ESCUDO CELULAR" or skill_name == "FORTALEZA-X": _spawn_damage_text("+" + str(int(amount)), Color.AQUA)
-		elif skill_name == "AUTO-REPARACIÓN" or skill_name == "NANO-REGENERACIÓN" or skill_name == "REGENERACIÓN ALFA": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
+		elif skill_name == "AUTO-REPARACIÓN" or skill_name == "NANO-REGENERACIÓN" or skill_name == "REGENERACIÓN ALFA" or skill_name == "VÍNCULO VITAL": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
 		elif skill_name == "TURBO-IMPULSO": _spawn_damage_text("+" + str(int(amount)), Color.YELLOW)
 	match skill_name:
 		"TURBO-IMPULSO":

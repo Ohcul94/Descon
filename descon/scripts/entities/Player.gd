@@ -491,12 +491,21 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 		var target_node = final_target
 		if is_instance_valid(target_node):
 			var dist = global_position.distance_to(target_node.global_position)
-			if dist > skill_range + 50.0:
+			if dist > skill_range + 5.0:
+				if has_method("_spawn_damage_text"):
+					_spawn_damage_text("¡Objetivo fuera de rango!", Color.RED)
 				print("[SKILL] Cancelado: Objetivo fuera de rango.")
 				return
 		
 	# v4.2: Evitar autodaño/autocura si el objetivo es otro
 	var is_self = (target_id == null or target_id == entity_id)
+
+	# BLOQUEO PREVENTIVO LOCAL: VÍNCULO VITAL no permite auto-casteo
+	if skill.skill_name == "VÍNCULO VITAL" and is_self:
+		if has_method("_spawn_damage_text"):
+			_spawn_damage_text("¡No puedes enlazarte a ti mismo!", Color.RED)
+		print("[SKILL] Cancelado localmente: Vínculo Vital no permite auto-casteo.")
+		return
 	
 	if is_self and skill.skill_name != "REGENERACIÓN ALFA":
 		# Auto-lanzamiento: Activar efectos locales inmediatos

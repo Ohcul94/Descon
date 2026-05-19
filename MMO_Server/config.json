@@ -2303,6 +2303,24 @@
             },
             "type": "Curación"
         },
+        "VÍNCULO VITAL": {
+            "amount": 250,
+            "canTargetOthers": true,
+            "cd": 4000,
+            "desc": "Enlaza un rayo curativo continuo a un aliado que restaura HP periódicamente. El lazo se corta si se alejan demasiado.",
+            "duration": 3000,
+            "breakRange": 500,
+            "tickInterval": 1000,
+            "id": "SK-HEAL-04",
+            "range": 350,
+            "targetFilters": {
+                "allies": true,
+                "bosses": false,
+                "enemies": false,
+                "players": true
+            },
+            "type": "Curación"
+        },
         "PLASMA BLAST": {
             "amount": 850,
             "canTargetOthers": true,

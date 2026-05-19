@@ -374,6 +374,73 @@ function startGameLoop(io, state, aiManager) {
                 continue;
             }
 
+            // SOPORTE DE VÍNCULO VITAL (Lazo Curativo Continuo)
+            if (area.type === 'VITAL_LINK') {
+                const owner = players[area.ownerId];
+                let target = players[area.targetId];
+                let isEnemyNPC = false;
+                if (!target && enemies[area.targetId]) {
+                    target = enemies[area.targetId];
+                    isEnemyNPC = true;
+                }
+
+                // Si alguno murió o se desconectó, romper el lazo
+                if (!owner || owner.isDead || !target || target.isDead) {
+                    io.to(`zone_${area.zone}`).emit('removeArea', { id });
+                    delete activeAreas[id];
+                    continue;
+                }
+
+                const targetZone = isEnemyNPC ? target.zoneId : target.zone;
+                if (owner.zone !== targetZone) {
+                    io.to(`zone_${area.zone}`).emit('removeArea', { id });
+                    delete activeAreas[id];
+                    continue;
+                }
+
+                // Validar distancia máxima
+                const dist = Math.hypot(target.x - owner.x, target.y - owner.y);
+                if (dist > area.radius) {
+                    io.to(`zone_${area.zone}`).emit('removeArea', { id });
+                    delete activeAreas[id];
+                    
+                    io.to(area.ownerId).emit('gameNotification', { msg: "¡VÍNCULO VITAL ROTO! Te alejaste demasiado.", type: "warning" });
+                    if (!isEnemyNPC) {
+                        io.to(area.targetId).emit('gameNotification', { msg: "¡VÍNCULO VITAL ROTO! Te alejaste demasiado.", type: "warning" });
+                    }
+                    continue;
+                }
+
+                // Procesar tick de curación periódica
+                if (now - (area.lastTickTime || 0) >= (area.tickInterval || 1000)) {
+                    const oldH = target.hp;
+                    target.hp = Math.min(target.maxHp, target.hp + (area.amount || 250));
+                    const actualHeal = target.hp - oldH;
+
+                    if (!isEnemyNPC) {
+                        // Sync estadísticas del receptor jugador
+                        io.to(`zone_${target.zone}`).emit('playerStatSync', {
+                            id: target.socketId,
+                            hp: Math.ceil(target.hp),
+                            shield: Math.ceil(target.shield),
+                            maxHp: target.maxHp,
+                            maxShield: target.maxShield
+                        });
+                    }
+
+                    // Notificar números verdes de curación sobre el receptor (jugador o NPC)
+                    io.to(`zone_${owner.zone}`).emit('remotePlayerUsedSkill', {
+                        id: area.ownerId,
+                        skillName: 'VÍNCULO VITAL',
+                        targetId: area.targetId,
+                        powerValue: actualHeal
+                    });
+
+                    area.lastTickTime = now;
+                }
+                continue; // El lazo vital no necesita colisionar físicamente con el grid
+            }
+
             const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(area.x, area.y);
 
             // Efectos a Jugadores

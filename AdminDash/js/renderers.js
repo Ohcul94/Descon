@@ -925,6 +925,8 @@ function renderSkills() {
                 <div class="field"><label>Rango (px)</label><input type="number" value="${s.range || 0}" onchange="config.skillsData['${name}'].range = parseInt(this.value)"></div>
                 ${s.duration !== undefined ? `<div class="field"><label>Duración (ms)</label><input type="number" value="${s.duration}" onchange="config.skillsData['${name}'].duration = parseInt(this.value)"></div>` : ''}
                 ${s.radius !== undefined ? `<div class="field"><label>Radio (px)</label><input type="number" value="${s.radius}" onchange="config.skillsData['${name}'].radius = parseInt(this.value)"></div>` : ''}
+                ${s.breakRange !== undefined ? `<div class="field"><label>Rango de Ruptura (px)</label><input type="number" value="${s.breakRange}" onchange="config.skillsData['${name}'].breakRange = parseInt(this.value)"></div>` : ''}
+                ${s.tickInterval !== undefined ? `<div class="field"><label>Intervalo Tick (ms)</label><input type="number" value="${s.tickInterval}" onchange="config.skillsData['${name}'].tickInterval = parseInt(this.value)"></div>` : ''}
             </div>
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.1); border-radius: 8px; padding: 12px;">
                 <label style="color:var(--accent); font-size: 0.6rem; font-weight:bold; display:flex; align-items:center; gap:5px; margin-bottom:1rem; letter-spacing: 1px; opacity: 0.8;">

@@ -10,6 +10,7 @@ const HealSkill = require('./skills/HealSkill');
 const DamageSkill = require('./skills/DamageSkill');
 const BuffSkill = require('./skills/BuffSkill');
 const AlphaRegenSkill = require('./skills/AlphaRegenSkill');
+const VitalLinkSkill = require('./skills/VitalLinkSkill');
 
 // v247.20: Registro de Habilidades Modulares
 SkillManager.registerSkill(new StealthSkill());
@@ -18,6 +19,7 @@ SkillManager.registerSkill(new FrostTrailSkill());
 SkillManager.registerSkill(new SmokeBombSkill());
 SkillManager.registerSkill(new InvulnerabilitySkill());
 SkillManager.registerSkill(new AlphaRegenSkill());
+SkillManager.registerSkill(new VitalLinkSkill());
 
 // Habilidades de Curación/Soporte
 SkillManager.registerSkill(new HealSkill("ESCUDO CELULAR"));
