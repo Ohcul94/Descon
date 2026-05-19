@@ -38,7 +38,8 @@ var MAPS_CONFIG = {
 	"6": { "name": "Mapa 5", "desc": "Borde exterior: Peligro extremo.", "color": "#ff0000", "warpCost": 100, "minLevel": 20 },
 	"7": { "name": "Mapa 6", "desc": "Sector de invasión: Hordas detectadas.", "color": "#aa0000", "warpCost": 200, "minLevel": 25 },
 	"8": { "name": "Mapa 7", "desc": "Guarida de Jefes: Requiere escolta.", "color": "#550000", "warpCost": 500, "minLevel": 30 },
-	"9": { "name": "Mapa 8", "desc": "Zona de Pruebas Tácticas (Showcase).", "color": "#aa00ff", "warpCost": 1000, "minLevel": 35 }
+	"9": { "name": "Mapa 8", "desc": "Zona de Pruebas Tácticas (Showcase).", "color": "#aa00ff", "warpCost": 1000, "minLevel": 35 },
+	"11": { "name": "Sector de Extracción", "desc": "Área de extracción de recursos. Cuidado con los asteroides.", "color": "#ff00aa", "warpCost": 100, "minLevel": 10 }
 }
 
 var HORDES_CONFIG = {

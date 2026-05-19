@@ -581,7 +581,7 @@ class ExtractionManager {
         Logger.warn('EXTRACT', `¡TIEMPO AGOTADO! La instancia ${matchId} se está colapsando.`);
         
         const playersToEject = [...match.players];
-        playersForMatch.forEach(sid => {
+        playersToEject.forEach(sid => {
             this.handlePilotDeath(sid, matchId);
         });
 

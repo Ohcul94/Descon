@@ -516,6 +516,11 @@ func set_map_name(p_name: String):
 var _notifier_container: VBoxContainer = null
 
 func _setup_notifier():
+	var layer = CanvasLayer.new()
+	layer.name = "HUD_Notifier_Layer"
+	layer.layer = 120 # Capa súper elevada para dibujar arriba de todos los paneles (F1, F2, etc.)
+	add_child(layer)
+	
 	_notifier_container = VBoxContainer.new()
 	_notifier_container.name = "HUD_Notifier"
 	_notifier_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -524,7 +529,7 @@ func _setup_notifier():
 	_notifier_container.grow_horizontal = Control.GROW_DIRECTION_BOTH 
 	_notifier_container.grow_vertical = Control.GROW_DIRECTION_END  
 	_notifier_container.alignment = BoxContainer.ALIGNMENT_BEGIN
-	add_child(_notifier_container)
+	layer.add_child(_notifier_container)
 
 func notify(msg: String, type: String = "info"):
 	if not _notifier_container: return

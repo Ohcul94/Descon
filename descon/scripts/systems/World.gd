@@ -401,6 +401,14 @@ func _update_background(zone_id):
 	var scene_path = "res://scenes/maps/Map_Default.tscn"
 	if zid == 1:
 		scene_path = "res://scenes/maps/Map_Loby.tscn"
+	elif zid == 10 or zid == 11:
+		scene_path = "res://scenes/maps/Map_Extraction.tscn"
+		
+	# Ocultar o mostrar las estrellas generadas según si es mapa de extracción
+	var is_extraction = (zid == 10 or zid == 11)
+	for spr in _star_sprites:
+		if is_instance_valid(spr):
+			spr.visible = not is_extraction
 		
 	if is_instance_valid(current_map_node):
 		current_map_node.queue_free()

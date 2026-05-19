@@ -31,10 +31,10 @@
             "bulletSpeed": 800,
             "fireRange": 600,
             "fireRate": 1000,
-            "hp": 500,
+            "hp": 300,
             "name": "Enemigo 1",
-            "rewardExp": 150,
-            "rewardHubs": 100,
+            "rewardExp": 10,
+            "rewardHubs": 10,
             "rewardOhcu": 1,
             "shield": 100,
             "speed": 450,
@@ -59,7 +59,7 @@
             "movementPhases": [
                 {
                     "type": "chase",
-                    "speed": 450,
+                    "speed": 200,
                     "stopDist": 150,
                     "startDelay": 0
                 },
@@ -74,19 +74,20 @@
             "stopOnOutOfSight": true,
             "chaseUntilDeath": false,
             "aggressive": true,
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "regenDelayMs": 10000
         },
         "2": {
             "bulletDamage": 600,
             "bulletSpeed": 800,
             "fireRange": 650,
             "fireRate": 1200,
-            "hp": 800,
+            "hp": 400,
             "name": "Enemigo 2",
-            "rewardExp": 200,
-            "rewardHubs": 200,
+            "rewardExp": 15,
+            "rewardHubs": 20,
             "rewardOhcu": 2,
-            "shield": 300,
+            "shield": 200,
             "speed": 420,
             "mechanics": [
                 {
@@ -112,24 +113,26 @@
             "movementPhases": [
                 {
                     "type": "chase",
-                    "speed": 420,
+                    "speed": 200,
                     "stopDist": 150,
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "aggressive": true,
+            "regenDelayMs": 10000
         },
         "3": {
             "bulletDamage": 80,
             "bulletSpeed": 850,
             "fireRange": 700,
             "fireRate": 1100,
-            "hp": 1200,
+            "hp": 500,
             "name": "Enemigo 3",
-            "rewardExp": 300,
-            "rewardHubs": 350,
+            "rewardExp": 25,
+            "rewardHubs": 30,
             "rewardOhcu": 3,
-            "shield": 600,
+            "shield": 300,
             "speed": 400,
             "mechanics": [
                 {
@@ -154,7 +157,7 @@
             "movementPhases": [
                 {
                     "type": "chase",
-                    "speed": 400,
+                    "speed": 200,
                     "stopDist": 150,
                     "startDelay": 0
                 }
@@ -162,19 +165,20 @@
             "chaseMissTimeout": 0,
             "chaseIdleTimeout": 0,
             "aggressive": true,
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "regenDelayMs": 10000
         },
         "4": {
             "bulletDamage": 250,
             "bulletSpeed": 850,
             "fireRange": 1000,
             "fireRate": 1000,
-            "hp": 8000,
+            "hp": 800,
             "name": "Enemigo 4",
-            "rewardExp": 1500,
-            "rewardHubs": 3500,
+            "rewardExp": 50,
+            "rewardHubs": 350,
             "rewardOhcu": 35,
-            "shield": 4500,
+            "shield": 400,
             "speed": 280,
             "mechanics": [
                 {
@@ -192,24 +196,25 @@
             "movementPhases": [
                 {
                     "type": "chase",
-                    "speed": 280,
+                    "speed": 250,
                     "stopDist": 150,
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "regenDelayMs": 10000
         },
         "5": {
             "bulletDamage": 120,
             "bulletSpeed": 800,
             "fireRange": 750,
             "fireRate": 1500,
-            "hp": 1500,
+            "hp": 1200,
             "name": "Enemigo 5",
-            "rewardExp": 400,
+            "rewardExp": 70,
             "rewardHubs": 500,
             "rewardOhcu": 5,
-            "shield": 800,
+            "shield": 600,
             "speed": 350,
             "mechanics": [
                 {
@@ -238,7 +243,7 @@
             "movementPhases": [
                 {
                     "type": "chase",
-                    "speed": 350,
+                    "speed": 300,
                     "stopDist": 150,
                     "startDelay": 0
                 },
@@ -252,7 +257,9 @@
                     "duration": 3000,
                     "explodeOnDeath": 150
                 }
-            ]
+            ],
+            "defenseMechanics": [],
+            "aggressive": true
         },
         "6": {
             "bulletDamage": 200,
@@ -1379,6 +1386,366 @@
             "hpRegenPercent": 1,
             "shieldRegenPercent": 20,
             "regenIntervalMs": 2000
+        },
+        "4-A": {
+            "bulletDamage": 500,
+            "bulletSpeed": 850,
+            "fireRange": 1000,
+            "fireRate": 1000,
+            "hp": 16000,
+            "name": "Enemigo 4 A",
+            "rewardExp": 3000,
+            "rewardHubs": 7000,
+            "rewardOhcu": 70,
+            "shield": 9000,
+            "speed": 280,
+            "mechanics": [
+                {
+                    "type": "mega_laser",
+                    "bulletDamage": 2000,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "chargeTimeMs": 2000,
+                    "lifetimeMs": 1500,
+                    "turnSpeed": 1,
+                    "lockTimeMs": 800
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 280,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "4-B": {
+            "bulletDamage": 750,
+            "bulletSpeed": 850,
+            "fireRange": 1000,
+            "fireRate": 1000,
+            "hp": 24000,
+            "name": "Enemigo 4 B",
+            "rewardExp": 4500,
+            "rewardHubs": 10500,
+            "rewardOhcu": 105,
+            "shield": 13500,
+            "speed": 280,
+            "mechanics": [
+                {
+                    "type": "mega_laser",
+                    "bulletDamage": 3000,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "chargeTimeMs": 2000,
+                    "lifetimeMs": 1500,
+                    "turnSpeed": 1,
+                    "lockTimeMs": 800
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 280,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "4-C": {
+            "bulletDamage": 1000,
+            "bulletSpeed": 850,
+            "fireRange": 1000,
+            "fireRate": 1000,
+            "hp": 32000,
+            "name": "Enemigo 4 C",
+            "rewardExp": 6000,
+            "rewardHubs": 14000,
+            "rewardOhcu": 140,
+            "shield": 18000,
+            "speed": 280,
+            "mechanics": [
+                {
+                    "type": "mega_laser",
+                    "bulletDamage": 4000,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "chargeTimeMs": 2000,
+                    "lifetimeMs": 1500,
+                    "turnSpeed": 1,
+                    "lockTimeMs": 800
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 280,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "4-D": {
+            "bulletDamage": 1250,
+            "bulletSpeed": 850,
+            "fireRange": 1000,
+            "fireRate": 1000,
+            "hp": 40000,
+            "name": "Enemigo 4 D",
+            "rewardExp": 7500,
+            "rewardHubs": 17500,
+            "rewardOhcu": 175,
+            "shield": 22500,
+            "speed": 280,
+            "mechanics": [
+                {
+                    "type": "mega_laser",
+                    "bulletDamage": 5000,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "chargeTimeMs": 2000,
+                    "lifetimeMs": 1500,
+                    "turnSpeed": 1,
+                    "lockTimeMs": 800
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 280,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "5-A": {
+            "bulletDamage": 240,
+            "bulletSpeed": 800,
+            "fireRange": 750,
+            "fireRate": 1500,
+            "hp": 3000,
+            "name": "Enemigo 5 A",
+            "rewardExp": 800,
+            "rewardHubs": 1000,
+            "rewardOhcu": 10,
+            "shield": 1600,
+            "speed": 350,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 240,
+                    "bulletSpeed": 800,
+                    "fireRange": 750,
+                    "fireRate": 1500,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "orbital_strike",
+                    "bulletDamage": 800,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "circleCount": 5,
+                    "orbitDuration": 3000,
+                    "orbitRadius": 100,
+                    "staticTime": 500,
+                    "startDelay": 1000,
+                    "orbitSpeed": 2
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 350,
+                    "stopDist": 150,
+                    "startDelay": 0
+                },
+                {
+                    "type": "kamikaze",
+                    "speed": 500,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "activationHP": 30,
+                    "explosionDamage": 150,
+                    "duration": 3000,
+                    "explodeOnDeath": 150
+                }
+            ]
+        },
+        "5-B": {
+            "bulletDamage": 360,
+            "bulletSpeed": 800,
+            "fireRange": 750,
+            "fireRate": 1500,
+            "hp": 4500,
+            "name": "Enemigo 5 B",
+            "rewardExp": 1200,
+            "rewardHubs": 1500,
+            "rewardOhcu": 15,
+            "shield": 2400,
+            "speed": 350,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 360,
+                    "bulletSpeed": 800,
+                    "fireRange": 750,
+                    "fireRate": 1500,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "orbital_strike",
+                    "bulletDamage": 1200,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "circleCount": 5,
+                    "orbitDuration": 3000,
+                    "orbitRadius": 100,
+                    "staticTime": 500,
+                    "startDelay": 1000,
+                    "orbitSpeed": 2
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 350,
+                    "stopDist": 150,
+                    "startDelay": 0
+                },
+                {
+                    "type": "kamikaze",
+                    "speed": 500,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "activationHP": 30,
+                    "explosionDamage": 150,
+                    "duration": 3000,
+                    "explodeOnDeath": 150
+                }
+            ]
+        },
+        "5-C": {
+            "bulletDamage": 480,
+            "bulletSpeed": 800,
+            "fireRange": 750,
+            "fireRate": 1500,
+            "hp": 6000,
+            "name": "Enemigo 5 C",
+            "rewardExp": 1600,
+            "rewardHubs": 2000,
+            "rewardOhcu": 20,
+            "shield": 3200,
+            "speed": 350,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 480,
+                    "bulletSpeed": 800,
+                    "fireRange": 750,
+                    "fireRate": 1500,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "orbital_strike",
+                    "bulletDamage": 1600,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "circleCount": 5,
+                    "orbitDuration": 3000,
+                    "orbitRadius": 100,
+                    "staticTime": 500,
+                    "startDelay": 1000,
+                    "orbitSpeed": 2
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 350,
+                    "stopDist": 150,
+                    "startDelay": 0
+                },
+                {
+                    "type": "kamikaze",
+                    "speed": 500,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "activationHP": 30,
+                    "explosionDamage": 150,
+                    "duration": 3000,
+                    "explodeOnDeath": 150
+                }
+            ]
+        },
+        "5-D": {
+            "bulletDamage": 600,
+            "bulletSpeed": 800,
+            "fireRange": 750,
+            "fireRate": 1500,
+            "hp": 7500,
+            "name": "Enemigo 5 D",
+            "rewardExp": 2000,
+            "rewardHubs": 2500,
+            "rewardOhcu": 25,
+            "shield": 4000,
+            "speed": 350,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 600,
+                    "bulletSpeed": 800,
+                    "fireRange": 750,
+                    "fireRate": 1500,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                },
+                {
+                    "type": "orbital_strike",
+                    "bulletDamage": 2000,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "circleCount": 5,
+                    "orbitDuration": 3000,
+                    "orbitRadius": 100,
+                    "staticTime": 500,
+                    "startDelay": 1000,
+                    "orbitSpeed": 2
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 350,
+                    "stopDist": 150,
+                    "startDelay": 0
+                },
+                {
+                    "type": "kamikaze",
+                    "speed": 500,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "activationHP": 30,
+                    "explosionDamage": 150,
+                    "duration": 3000,
+                    "explodeOnDeath": 150
+                }
+            ]
         }
     },
     "hordeConfig": {
@@ -1463,7 +1830,7 @@
             "ambience": [],
             "spawns": [
                 {
-                    "type": "1-C",
+                    "type": "1",
                     "count": 2,
                     "intervalMs": 5000
                 }
@@ -1655,14 +2022,14 @@
                 "w": 1,
                 "x": 1
             },
-            "speed": 500
+            "speed": 250
         },
         {
             "hp": 200,
             "id": 2,
             "name": "Vulture-G2",
             "prices": {
-                "hubs": 1000000,
+                "hubs": 10000,
                 "ohcu": 1000
             },
             "shield": 200,
@@ -1672,15 +2039,15 @@
                 "w": 2,
                 "x": 2
             },
-            "speed": 330
+            "speed": 250
         },
         {
             "hp": 400,
             "id": 3,
             "name": "Falcon-A3",
             "prices": {
-                "hubs": 5000000,
-                "ohcu": 5000
+                "hubs": 20000,
+                "ohcu": 2000
             },
             "shield": 400,
             "slots": {
@@ -1689,15 +2056,15 @@
                 "w": 4,
                 "x": 3
             },
-            "speed": 360
+            "speed": 250
         },
         {
             "hp": 800,
             "id": 4,
             "name": "Titan-S4",
             "prices": {
-                "hubs": 20000000,
-                "ohcu": 15000
+                "hubs": 30000,
+                "ohcu": 3000
             },
             "shield": 800,
             "slots": {
@@ -1706,7 +2073,7 @@
                 "w": 8,
                 "x": 4
             },
-            "speed": 390
+            "speed": 250
         },
         {
             "hp": 1600,
@@ -1714,7 +2081,7 @@
             "name": "Wraith-X5",
             "prices": {
                 "hubs": 0,
-                "ohcu": 50000
+                "ohcu": 6000
             },
             "shield": 1600,
             "slots": {
@@ -1723,7 +2090,7 @@
                 "w": 12,
                 "x": 5
             },
-            "speed": 420
+            "speed": 250
         },
         {
             "hp": 3200,
@@ -1731,7 +2098,7 @@
             "name": "Galactus-Z6",
             "prices": {
                 "hubs": 0,
-                "ohcu": 200000
+                "ohcu": 10000
             },
             "shield": 3200,
             "slots": {
@@ -1740,7 +2107,7 @@
                 "w": 16,
                 "x": 6
             },
-            "speed": 460
+            "speed": 1000
         }
     ],
     "shopItems": {
@@ -2662,7 +3029,7 @@
             ]
         },
         "expRequirements": [
-            1000,
+            0,
             2000,
             3000,
             4000,
@@ -2810,7 +3177,7 @@
                     "label": "Punto Delta"
                 }
             ],
-            "minPlayers": 2,
+            "minPlayers": 1,
             "startCountdown": 3000,
             "spawners": [
                 {

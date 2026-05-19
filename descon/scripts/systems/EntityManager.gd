@@ -864,7 +864,8 @@ func _on_clear_zone_entities(payload):
 		world.combat_system.clear_all_bullets()
 		
 	var is_dungeon = str(_zoneId).begins_with("dungeon")
-	var new_world_size = 2000.0 if (is_dungeon or int(_zoneId) > 2 or int(_zoneId) == 1) else 4000.0
+	var is_extraction = str(_zoneId).begins_with("extract_")
+	var new_world_size = 10000.0 if is_extraction else (2000.0 if (is_dungeon or int(_zoneId) > 2 or int(_zoneId) == 1) else 4000.0)
 	
 	var zone_int = _parse_zone_to_int(_zoneId)
 	if is_instance_valid(world) and is_instance_valid(world.local_player):
