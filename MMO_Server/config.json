@@ -2004,6 +2004,15 @@
                     "intervalMs": 8000
                 }
             ]
+        },
+        "11": {
+            "color": "#ff00aa",
+            "desc": "Área de extracción de recursos. Cuidado con los asteroides.",
+            "minLevel": 10,
+            "name": "Sector de Extracción",
+            "warpCost": 100,
+            "ambience": [],
+            "spawns": []
         }
     },
     "shipModels": [

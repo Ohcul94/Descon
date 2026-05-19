@@ -3,17 +3,6 @@ extends BaseMap
 # Map_Extraction.gd
 # Lógica para la sincronización de cámara 2D a 3D en el Lienzo 3D Único.
 # Hereda de BaseMap para compatibilidad del sistema de carga de mapas.
-
-@export var scale_factor: float = 0.02 # Relación entre 2D y 3D (1px 2D = 0.02 unidades 3D)
-@export var camera_height: float = 30.0 # Altura base de la cámara 3D en modo perspectiva
-@export var use_orthogonal: bool = true # Activar proyección ortogonal para eliminar distorsión y deslizamiento visual (Sensación Sólida 1:1)
-
-@onready var viewport_container: SubViewportContainer = $ViewportCanvas/SubViewportContainer
-@onready var sub_viewport: SubViewport = $ViewportCanvas/SubViewportContainer/SubViewport
-@onready var camera_3d: Camera3D = $ViewportCanvas/SubViewportContainer/SubViewport/Camera3D
-@onready var asteroids_3d: Node3D = $ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D
-
-var player_node: Node2D = null
 var active_extract_points: Array = []
 
 var match_timer_label: Label = null
@@ -23,8 +12,16 @@ var spawn_lock_remaining: float = 0.0
 var initial_player_pos: Vector2 = Vector2.ZERO
 var has_saved_initial_pos: bool = false
 var spawn_lock_finished_notify_timer: float = 0.0
+var spawn_lock_radius: float = 500.0
+var spawn_bubble_mesh: MeshInstance3D = null
+var last_warn_time: float = 0.0
 
 func _ready():
+	viewport_container = $ViewportCanvas/SubViewportContainer
+	sub_viewport = $ViewportCanvas/SubViewportContainer/SubViewport
+	camera_3d = $ViewportCanvas/SubViewportContainer/SubViewport/Camera3D
+	asteroids_3d = $ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D
+	
 	super._ready()
 	
 	# Ajustar el viewport al tamaño inicial de la pantalla
@@ -63,7 +60,7 @@ func _physics_process(_delta):
 		if players.size() > 0:
 			player_node = players[0]
 
-	# --- GESTIÓN DINÁMICA DE SPAWN LOCK (BARRERA DE INICIO) ---
+	# --- GESTIÓN DINÁMICA DE SPAWN LOCK (BARRERA DE INICIO CON MOVIMIENTO PERMITIDO) ---
 	if spawn_lock_remaining > 0.0:
 		spawn_lock_remaining = max(0.0, spawn_lock_remaining - _delta)
 		
@@ -71,11 +68,63 @@ func _physics_process(_delta):
 			if not has_saved_initial_pos:
 				initial_player_pos = player_node.global_position
 				has_saved_initial_pos = true
+				
+				# Encontrar el spawn point configurado más cercano para extraer su radio dinámicamente
+				var closest_radius = 500.0
+				if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
+					var ext = GameConstants.FULL_CONFIG.gameModes.extraction
+					if ext.has("spawnPoints"):
+						var min_dist = 999999.0
+						for sp in ext.spawnPoints:
+							var sp_pos = Vector2(float(sp.get("x", 0)), float(sp.get("y", 0)))
+							var dist = initial_player_pos.distance_to(sp_pos)
+							if dist < min_dist:
+								min_dist = dist
+								closest_radius = float(sp.get("radius", 500.0))
+				spawn_lock_radius = closest_radius
+				
+				# Inyectar burbuja tridimensional de barrera protectora de spawn (estilo Shield Skill)
+				if is_instance_valid(sub_viewport) and not spawn_bubble_mesh:
+					spawn_bubble_mesh = MeshInstance3D.new()
+					spawn_bubble_mesh.name = "SpawnBarrierBubble"
+					var sphere = SphereMesh.new()
+					var r_3d = spawn_lock_radius * scale_factor
+					sphere.radius = r_3d
+					sphere.height = r_3d * 2.0
+					spawn_bubble_mesh.mesh = sphere
+					
+					var mat = ShaderMaterial.new()
+					mat.shader = load("res://resources/shaders/energy_shield.gdshader")
+					if mat.shader:
+						# Color naranja/dorado brillante palpitante de barrera espacial
+						mat.set_shader_parameter("color_escudo", Color(1.0, 0.65, 0.1, 0.8))
+						mat.set_shader_parameter("modo_curacion", false)
+					spawn_bubble_mesh.material_override = mat
+					
+					# Posicionar la burbuja 3D en base a la coordenada 2D del spawn
+					spawn_bubble_mesh.position.x = initial_player_pos.x * scale_factor
+					spawn_bubble_mesh.position.z = initial_player_pos.y * scale_factor
+					spawn_bubble_mesh.position.y = 0.0
+					
+					sub_viewport.add_child(spawn_bubble_mesh)
+					print("[SpawnLock] Burbuja protectora 3D inicializada con radio: ", r_3d)
+
+			# Permitir movimiento libre DENTRO de la burbuja, restringir salida
+			var distance = player_node.global_position.distance_to(initial_player_pos)
+			if distance > spawn_lock_radius:
+				var direction = (player_node.global_position - initial_player_pos).normalized()
+				player_node.global_position = initial_player_pos + direction * spawn_lock_radius
+				if "velocity" in player_node:
+					player_node.velocity = Vector2.ZERO
+				
+				# Alerta en logs superiores (MainHUD) para no molestar sobre la nave
+				var now = Time.get_ticks_msec() / 1000.0
+				if now - last_warn_time > 2.0:
+					last_warn_time = now
+					var hud = get_tree().get_first_node_in_group("hud")
+					if hud and hud.has_method("notify"):
+						hud.notify("🚨 BARRERA SENSORIAL: Regresa al sector seguro del spawn", "warn")
 			
-			# Congelar posición y bloquear habilidades
-			player_node.global_position = initial_player_pos
-			if "velocity" in player_node:
-				player_node.velocity = Vector2.ZERO
 			player_node.set_meta("skills_blocked", true)
 			
 		if spawn_lock_label and spawn_lock_container:
@@ -89,6 +138,16 @@ func _physics_process(_delta):
 				player_node.set_meta("skills_blocked", false)
 				spawn_lock_finished_notify_timer = 1.5
 				has_saved_initial_pos = false
+				
+				# Desvanecer y limpiar la burbuja protectora tridimensional
+				if is_instance_valid(spawn_bubble_mesh):
+					var tween = create_tween()
+					tween.tween_property(spawn_bubble_mesh, "scale", Vector3.ZERO, 0.6).set_trans(Tween.TRANS_SINE)
+					tween.finished.connect(func():
+						if is_instance_valid(spawn_bubble_mesh):
+							spawn_bubble_mesh.queue_free()
+							spawn_bubble_mesh = null
+					)
 				
 		if spawn_lock_finished_notify_timer > 0.0:
 			spawn_lock_finished_notify_timer = max(0.0, spawn_lock_finished_notify_timer - _delta)
@@ -543,12 +602,13 @@ func _create_timers_ui():
 	match_timer_label.add_theme_constant_override("outline_size", 4)
 	timer_panel.add_child(match_timer_label)
 	
-	# 2. ALERTA DE SPAWN LOCK (Center Screen)
+	# 2. ALERTA DE SPAWN LOCK (Top Center - below timer)
 	var center_container = CenterContainer.new()
 	center_container.name = "SpawnLockContainer"
-	center_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	center_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 20)
+	center_container.offset_top = 85
 	center_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	center_container.grow_vertical = Control.GROW_DIRECTION_BOTH
+	center_container.grow_vertical = Control.GROW_DIRECTION_END
 	ui_canvas.add_child(center_container)
 	
 	spawn_lock_container = PanelContainer.new()
@@ -577,7 +637,7 @@ func _create_timers_ui():
 func _on_raid_time_update(data: Dictionary):
 	var remaining = int(data.get("remaining", 0))
 	if match_timer_label:
-		var mins = remaining / 60
+		var mins = int(float(remaining) / 60.0)
 		var secs = remaining % 60
 		var time_str = "%02d:%02d" % [mins, secs]
 		match_timer_label.text = "⏱️ EXTRACCIÓN EN: " + time_str
