@@ -2,18 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://s8vwtv2nca17"
-path.s3tc="res://.godot/imported/mixboard-image.png-c038ba226d4ea03085d207e4be395b7d.s3tc.ctex"
-path.etc2="res://.godot/imported/mixboard-image.png-c038ba226d4ea03085d207e4be395b7d.etc2.ctex"
+uid="uid://ccwwku1r63ud5"
+path.s3tc="res://.godot/imported/Puerta2_Puerta2_rm.jpg-d3df1872f27dee975628dcece5d84357.s3tc.ctex"
+path.etc2="res://.godot/imported/Puerta2_Puerta2_rm.jpg-d3df1872f27dee975628dcece5d84357.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
+generator_parameters={
+"md5": "70831a08832dfc44dda566649f3f810e"
+}
 
 [deps]
 
-source_file="res://assets/Base de Mapas/mixboard-image.png"
-dest_files=["res://.godot/imported/mixboard-image.png-c038ba226d4ea03085d207e4be395b7d.s3tc.ctex", "res://.godot/imported/mixboard-image.png-c038ba226d4ea03085d207e4be395b7d.etc2.ctex"]
+source_file="res://assets/Puertas/3D/Puerta2/Puerta2_Puerta2_rm.jpg"
+dest_files=["res://.godot/imported/Puerta2_Puerta2_rm.jpg-d3df1872f27dee975628dcece5d84357.s3tc.ctex", "res://.godot/imported/Puerta2_Puerta2_rm.jpg-d3df1872f27dee975628dcece5d84357.etc2.ctex"]
 
 [params]
 

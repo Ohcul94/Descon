@@ -61,6 +61,15 @@ func _draw():
 	var player = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(player): return
 	
+	# CALCULAR TAMAÑO DE MUNDO DINÁMICAMENTE PARA RADAR
+	# Evita que el jugador desaparezca en mapas de 10,000x10,000 píxeles
+	var current_zone_id = str(player.current_zone) if "current_zone" in player else "1"
+	if current_zone_id == "10" or current_zone_id == "11" or current_zone_id.begins_with("extract_"):
+		world_size = 10000.0
+	else:
+		var is_dungeon = current_zone_id == "1" or int(current_zone_id) > 2
+		world_size = 2000.0 if is_dungeon else 4000.0
+		
 	var r_size = size
 	var map_scale = r_size.x / world_size
 	
@@ -139,11 +148,45 @@ func _draw():
 			var pos = ent.global_position * map_scale
 			draw_circle(pos, 2.0, Color(1, 0.4, 0)) # #ff6600
 
-	# 4. Jugador Local (Punto Blanco Puro)
+	# 4. Dibujar Portales de Extracción (Cian de Neón con efecto de pulso!)
+	if current_zone_id == "10" or current_zone_id == "11" or current_zone_id.begins_with("extract_"):
+		var extract_points = []
+		if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
+			var ext = GameConstants.FULL_CONFIG.gameModes.extraction
+			if ext.has("extractPoints"):
+				extract_points = ext.extractPoints
+				
+		if extract_points.size() == 0:
+			# Fallback
+			extract_points = [
+				{"x": 2974, "y": 5038, "label": "Punto Alfa"},
+				{"x": 6920, "y": 5070, "label": "Punto Beta"},
+				{"x": 5019, "y": 3025, "label": "Punto Gamma"},
+				{"x": 5003, "y": 7019, "label": "Punto Delta"}
+			]
+			
+		var pulse = 0.5 + sin(Time.get_ticks_msec() * 0.005) * 0.3
+		for pt in extract_points:
+			var pt_pos = Vector2(float(pt.x), float(pt.y)) * map_scale
+			
+			# Dibujar halo cian de portal radar
+			draw_circle(pt_pos, 4.5, Color(0, 0.9, 1.0, 0.8))
+			draw_circle(pt_pos, 7.0 + pulse * 2.0, Color(0, 0.9, 1.0, 0.3), false, 1.0)
+			
+			# Mostrar primera letra de la zona ("A", "B", "G", "D")
+			var label = str(pt.get("label", "Portal")).to_lower()
+			var letter = "E"
+			if label.contains("alfa"): letter = "A"
+			elif label.contains("beta"): letter = "B"
+			elif label.contains("gamma"): letter = "G"
+			elif label.contains("delta"): letter = "D"
+			
+			var font = get_theme_font("font")
+			draw_string(font, pt_pos + Vector2(-3, 3), letter, HORIZONTAL_ALIGNMENT_CENTER, -1, 7, Color.WHITE)
+
+	# 5. Jugador Local (Punto Blanco Puro)
 	var local_pos = player.global_position * map_scale
 	draw_circle(local_pos, 3.5, Color.WHITE)
-	# Eliminado el recuadro de barrido para evitar confusiones cromáticas
-
 
 	# Borde del radar
 	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0, 1, 1, 0.1), false, 1.0)

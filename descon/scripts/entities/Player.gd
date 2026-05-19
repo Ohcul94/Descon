@@ -579,6 +579,9 @@ func _apply_movement():
 					velocity = velocity.bounce(col.get_normal()) * 0.5
 
 		var w_size = GameConstants.GAME_CONFIG.get("worldSize", 4000)
+		var p_node = get_parent()
+		if is_instance_valid(p_node) and "current_map_node" in p_node and is_instance_valid(p_node.current_map_node):
+			w_size = p_node.current_map_node.world_size
 		global_position.x = clamp(global_position.x, 10, w_size - 10)
 		global_position.y = clamp(global_position.y, 10, w_size - 10)
 

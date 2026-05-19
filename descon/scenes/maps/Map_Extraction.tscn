@@ -4,7 +4,7 @@
 [ext_resource type="Texture2D" path="res://assets/Base de Mapas/mixboard-image.png" id="2_tex"]
 
 [sub_resource type="Environment" id="Environment_space"]
-background_mode = 1
+background_mode = 0
 background_color = Color(0.0117647, 0.0117647, 0.0156863, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.14902, 0.180392, 0.239216, 1)
@@ -48,6 +48,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="SubViewport" type="SubViewport" parent="ViewportCanvas/SubViewportContainer"]
+transparent_bg = true
 own_world_3d = true
 handle_input_locally = false
 size = Vector2i(1920, 1080)
@@ -105,14 +106,12 @@ size = Vector3(6, 5, 6)
 material = SubResource("StandardMaterial3D_metal")
 
 [node name="ParallaxBackground" type="ParallaxBackground" parent="."]
-visible = false
-layer = -10
+layer = -25
 
 [node name="StaticLayer" type="CanvasLayer" parent="ParallaxBackground"]
-layer = -20
+layer = -30
 
 [node name="SpaceBG" type="ColorRect" parent="ParallaxBackground/StaticLayer"]
-visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -124,7 +123,7 @@ color = Color(0.0156863, 0.0156863, 0.0156863, 1)
 [node name="MapWorldLayer" type="ParallaxLayer" parent="ParallaxBackground"]
 
 [node name="MapBackground" type="TextureRect" parent="ParallaxBackground/MapWorldLayer"]
-modulate = Color(1, 1, 1, 0)
+modulate = Color(1, 1, 1, 1)
 offset_left = -7895.0
 offset_top = -7987.0
 offset_right = 8105.0
