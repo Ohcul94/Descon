@@ -197,7 +197,7 @@ func _process(delta):
 	_update_animations()
 	_update_auras(delta)
 
-	# OPTIMIZACIÓN: Pausar SubViewport de entidades fuera de pantalla
+	# OPTIMIZACIÓN MASIVA: Pausar/Intercalar SubViewport de entidades según visibilidad y rol
 	if _cached_viewport:
 		var cam = get_viewport().get_camera_2d()
 		var screen_visible = true
@@ -208,8 +208,18 @@ func _process(delta):
 			var diff = global_position - cam_pos
 			if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
 				screen_visible = false
+		
 		if screen_visible:
-			_cached_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+			if is_in_group("player") or entity_type >= 100: # Jugador local y Bosses actualizan en cada frame
+				_cached_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+			else:
+				# Enemigos y pilotos remotos alternan frames para funcionar a 30 FPS en vez de 60
+				# Distribuimos la carga par/impar usando el hash del nombre de la entidad
+				var frame = Engine.get_frames_drawn()
+				if (frame + name.hash()) % 2 == 0:
+					_cached_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+				else:
+					_cached_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		else:
 			_cached_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 

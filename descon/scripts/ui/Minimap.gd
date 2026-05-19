@@ -35,6 +35,10 @@ func _input(event):
 				
 				var p = get_tree().get_first_node_in_group("player")
 				if is_instance_valid(p) and p.has_method("set_autopilot"):
+					if p.get_meta("spawn_locked", false):
+						print("[NAV] BLOQUEADO: No puedes fijar rumbo mientras esté activa la barrera de spawn.")
+						get_viewport().set_input_as_handled()
+						return
 					p.set_autopilot(target_world_pos)
 					print("[NAV] DESTINO FIJADO: ", target_world_pos)
 					get_viewport().set_input_as_handled() # Consumir evento
@@ -61,14 +65,29 @@ func _draw():
 	var player = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(player): return
 	
-	# CALCULAR TAMAÑO DE MUNDO DINÁMICAMENTE PARA RADAR
-	# Evita que el jugador desaparezca en mapas de 10,000x10,000 píxeles
 	var current_zone_id = str(player.current_zone) if "current_zone" in player else "1"
-	if current_zone_id == "10" or current_zone_id == "11" or current_zone_id.begins_with("extract_"):
-		world_size = 10000.0
+	
+	# CALCULAR TAMAÑO DE MUNDO DINÁMICAMENTE PARA RADAR
+	# 1. Intentar obtener el tamaño del mapa cargado actualmente en pantalla
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map):
+		var p_parent = player.get_parent()
+		if is_instance_valid(p_parent) and "current_map_node" in p_parent and is_instance_valid(p_parent.current_map_node):
+			current_map = p_parent.current_map_node
+			
+	if is_instance_valid(current_map) and "world_size" in current_map and float(current_map.world_size) > 0:
+		world_size = float(current_map.world_size)
 	else:
-		var is_dungeon = current_zone_id == "1" or int(current_zone_id) > 2
-		world_size = 2000.0 if is_dungeon else 4000.0
+		# 2. Fallback secundario basado en ID de zona
+		if current_zone_id == "10" or current_zone_id == "11" or current_zone_id.begins_with("extract_"):
+			world_size = 10000.0
+			if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
+				var ext = GameConstants.FULL_CONFIG.gameModes.extraction
+				if ext.has("width"):
+					world_size = float(ext.width)
+		else:
+			var is_dungeon = current_zone_id == "1" or int(current_zone_id) > 2
+			world_size = 2000.0 if is_dungeon else 4000.0
 		
 	var r_size = size
 	var map_scale = r_size.x / world_size

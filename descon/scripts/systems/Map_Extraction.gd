@@ -37,12 +37,14 @@ func _ready():
 	# Generar portales 3D de extracción en los puntos configurados en el AdminDash
 	_generate_extraction_portals()
 
-	# Inicializar cuenta regresiva de spawn lock desde la config dinámica
+	# Inicializar cuenta regresiva de spawn lock y tamaño de mundo desde la config dinámica
 	var spawn_lock_ms = 10000.0
 	if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
 		var ext = GameConstants.FULL_CONFIG.gameModes.extraction
 		if ext.has("spawnLockTime"):
 			spawn_lock_ms = float(ext.spawnLockTime)
+		if ext.has("width") and float(ext.width) > 0:
+			world_size = float(ext.width)
 	spawn_lock_remaining = spawn_lock_ms / 1000.0
 
 	# Crear HUD UI de temporizadores
@@ -126,6 +128,7 @@ func _physics_process(_delta):
 						hud.notify("🚨 BARRERA SENSORIAL: Regresa al sector seguro del spawn", "warn")
 			
 			player_node.set_meta("skills_blocked", true)
+			player_node.set_meta("spawn_locked", true)
 			
 		if spawn_lock_label and spawn_lock_container:
 			spawn_lock_label.text = "🚨 BARRERA DE SEGURIDAD ACTIVA 🚨\nSISTEMAS ONLINE EN: " + str(snapped(spawn_lock_remaining, 0.1)) + "s"
@@ -136,6 +139,7 @@ func _physics_process(_delta):
 		if has_saved_initial_pos:
 			if is_instance_valid(player_node):
 				player_node.set_meta("skills_blocked", false)
+				player_node.set_meta("spawn_locked", false)
 				spawn_lock_finished_notify_timer = 1.5
 				has_saved_initial_pos = false
 				

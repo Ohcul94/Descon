@@ -101,9 +101,14 @@ class ExtractionManager {
                     const rx = (parseInt(s.x) || 5000) + (Math.random() - 0.5) * radius * 2;
                     const ry = (parseInt(s.y) || 5000) + (Math.random() - 0.5) * radius * 2;
                     
-                    // Asegurar que rx/ry están dentro de los límites del mapa (0-10000)
-                    const finalX = Math.min(9900, Math.max(100, rx));
-                    const finalY = Math.min(9900, Math.max(100, ry));
+                    // Asegurar que rx/ry están dentro de los límites del mapa dinámico
+                    const mapW = extConfig && extConfig.width ? parseInt(extConfig.width) : 10000;
+                    const mapH = extConfig && extConfig.height ? parseInt(extConfig.height) : 10000;
+                    const maxLimitX = Math.max(900, mapW - 100);
+                    const maxLimitY = Math.max(900, mapH - 100);
+                    
+                    const finalX = Math.min(maxLimitX, Math.max(100, rx));
+                    const finalY = Math.min(maxLimitY, Math.max(100, ry));
 
                     this.aiManager.serverSpawnEnemy(matchId, enemyId, finalX, finalY);
                     totalSpawned++;

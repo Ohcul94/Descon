@@ -171,6 +171,8 @@ func _unhandled_input(event):
 			# En modo celular solo mueve el joystick virtual, no el click
 			var is_mobile = SettingsManager and SettingsManager.mobile_mode
 			if not is_mobile and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
+				if get_meta("spawn_locked", false):
+					return # Ignorar clicks de movimiento si la barrera de spawn está activa
 				target_position = get_global_mouse_position()
 				is_moving = true; autopilot_enabled = false
 			
@@ -586,6 +588,8 @@ func _apply_movement():
 		global_position.y = clamp(global_position.y, 10, w_size - 10)
 
 func set_autopilot(p_dest: Vector2):
+	if get_meta("spawn_locked", false):
+		return # Bloquear piloto automático si la barrera de spawn está activa
 	target_position = p_dest
 	is_moving = true
 	autopilot_enabled = true

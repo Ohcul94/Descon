@@ -962,18 +962,49 @@ function initRadar() {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
         
-        // Dibujar Grid
-        ctx.strokeStyle = 'rgba(0, 210, 255, 0.1)';
+        // Dibujar Grid fino
+        ctx.strokeStyle = 'rgba(0, 210, 255, 0.08)';
         ctx.lineWidth = 1;
-        for (let i = 1; i < 5; i++) {
+        const gridDivisions = 10;
+        for (let i = 1; i < gridDivisions; i++) {
+            if (i === gridDivisions / 2) continue; // Evitar dibujar la línea fina sobre la línea central
             ctx.beginPath();
-            ctx.moveTo((canvas.width / 5) * i, 0);
-            ctx.lineTo((canvas.width / 5) * i, canvas.height);
+            ctx.moveTo((canvas.width / gridDivisions) * i, 0);
+            ctx.lineTo((canvas.width / gridDivisions) * i, canvas.height);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(0, (canvas.height / 5) * i);
-            ctx.lineTo(canvas.width, (canvas.height / 5) * i);
+            ctx.moveTo(0, (canvas.height / gridDivisions) * i);
+            ctx.lineTo(canvas.width, (canvas.height / gridDivisions) * i);
             ctx.stroke();
+        }
+
+        // Dibujar líneas divisoria centrales (mitad horizontal y vertical)
+        ctx.strokeStyle = 'rgba(0, 140, 170, 0.35)';
+        ctx.lineWidth = 3;
+        
+        // Línea central vertical
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+        
+        // Línea central horizontal
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height / 2);
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+
+        // Dibujar puntos en las intersecciones de la cuadrícula para alineación
+        ctx.fillStyle = 'rgba(0, 210, 255, 0.3)';
+        for (let i = 1; i < gridDivisions; i++) {
+            for (let j = 1; j < gridDivisions; j++) {
+                const px = (canvas.width / gridDivisions) * i;
+                const py = (canvas.height / gridDivisions) * j;
+                
+                ctx.beginPath();
+                ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
         }
 
         // Dibujar Spawn Points (Players) - AMARILLO
