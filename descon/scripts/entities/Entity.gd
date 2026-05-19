@@ -194,13 +194,40 @@ func _process(delta):
 		# Suavizado de rotación (Lerp_angle evita saltos de 0 a 360)
 		rotation = lerp_angle(rotation, target_rotation, 0.2)
 	
+	# Sincronización del Lienzo 3D Único (Mapeo de físicas 2D a coordenadas 3D)
+	if is_instance_valid(world_root_3d) and get_meta("is_single_world", false):
+		var s_factor = get_meta("map_scale", 0.02)
+		world_root_3d.position.x = global_position.x * s_factor
+		world_root_3d.position.z = global_position.y * s_factor
+		world_root_3d.position.y = 0.0
+		# Frustum culling manual: ocultar si está fuera del margen visible
+		var is_vis = true
+		var cam = get_viewport().get_camera_2d()
+		if cam:
+			var screen_size = get_viewport_rect().size
+			var cam_pos = cam.global_position
+			var margin = 600.0
+			var diff = global_position - cam_pos
+			if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
+				is_vis = false
+		world_root_3d.visible = is_vis
+
 	_update_animations()
 	_update_auras(delta)
 
-	# OPTIMIZACIÓN MASIVA: Pausar/Intercalar SubViewport de entidades según visibilidad y rol
-	if _cached_viewport:
+	# OPTIMIZACIÓN MASIVA: Pausar/Intercalar SubViewport de entidades según visibilidad, rol y distancia
+	var screen_visible = true
+	if is_instance_valid(world_root_3d) and get_meta("is_single_world", false):
 		var cam = get_viewport().get_camera_2d()
-		var screen_visible = true
+		if cam:
+			var screen_size = get_viewport_rect().size
+			var cam_pos = cam.global_position
+			var margin = 600.0
+			var diff = global_position - cam_pos
+			if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
+				screen_visible = false
+	elif _cached_viewport:
+		var cam = get_viewport().get_camera_2d()
 		if cam:
 			var screen_size = get_viewport_rect().size
 			var cam_pos = cam.global_position
@@ -213,10 +240,20 @@ func _process(delta):
 			if is_in_group("player") or entity_type >= 100: # Jugador local y Bosses actualizan en cada frame
 				_cached_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 			else:
-				# Enemigos y pilotos remotos alternan frames para funcionar a 30 FPS en vez de 60
-				# Distribuimos la carga par/impar usando el hash del nombre de la entidad
+				# LOD temporal adaptativo según distancia al jugador local para reducir updates transparentes
+				var player = get_tree().get_first_node_in_group("player")
+				var modulo = 2
+				if is_instance_valid(player):
+					var dist = global_position.distance_to(player.global_position)
+					if dist > 600.0:
+						modulo = 6 # ~10 FPS si está muy lejos
+					elif dist > 300.0:
+						modulo = 4 # ~15 FPS a distancia media
+					else:
+						modulo = 2 # ~30 FPS de cerca
+						
 				var frame = Engine.get_frames_drawn()
-				if (frame + name.hash()) % 2 == 0:
+				if (frame + name.hash()) % modulo == 0:
 					_cached_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 				else:
 					_cached_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -228,7 +265,7 @@ func _process(delta):
 	is_hovered = false 
 
 	# v219.98: FÍSICAS 3D DINÁMICAS (BANKING + BOBBING + ÓRBITA)
-	if is_instance_valid(_3d_model):
+	if is_instance_valid(_3d_model) and screen_visible:
 		# 1. BALANCEO (BOBBING)
 		_3d_model.position.y = sin(Time.get_ticks_msec() * 0.002) * 0.12
 		
@@ -1168,54 +1205,80 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	print("[3D] Inicializando renderizado para: ", glb_path)
 	
-	# 1. Crear el contenedor del Viewport con su propio mundo 3D
-	# Resolucion dinamica segun calidad grafica (SettingsManager)
-	var quality = 1
-	if get_node_or_null("/root/SettingsManager"):
-		quality = SettingsManager.get_graphics_quality()
-		
-	var res = 256 # Calidad media por defecto
-	if is_in_group("player") or (is_in_group("enemies") and entity_type >= 4):
-		res = 512
-		
-	match quality:
-		0: # Baja (Celulares)
-			res = 128 if not is_in_group("player") else 256
-		1: # Media (Recomendado)
-			res = 256 if not is_in_group("player") else 512
-		2: # Alta (Gama Alta - Calidad Original Máxima)
-			res = 1024
+	# Detectar si hay un lienzo 3D global en el mapa actual
+	var current_map = get_tree().get_first_node_in_group("map")
+	var is_single_world = false
+	var target_viewport = null
+	var map_scale = 0.02
+	
+	if is_instance_valid(current_map):
+		if "sub_viewport" in current_map and is_instance_valid(current_map.sub_viewport):
+			is_single_world = true
+			target_viewport = current_map.sub_viewport
+			if "scale_factor" in current_map:
+				map_scale = current_map.scale_factor
+				
+	set_meta("is_single_world", is_single_world)
+	set_meta("map_scale", map_scale)
+	
+	# 1. Crear el contenedor del Viewport con su propio mundo 3D (Sólo si NO usamos el Lienzo 3D Único)
+	var viewport = null
+	var res = 256
+	if not is_single_world:
+		# Resolucion dinamica segun calidad grafica (SettingsManager)
+		var quality = 1
+		if get_node_or_null("/root/SettingsManager"):
+			quality = SettingsManager.get_graphics_quality()
 			
-	var viewport = SubViewport.new()
-	viewport.size = Vector2i(res, res)
-	viewport.transparent_bg = true
-	viewport.own_world_3d = true 
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	
-	# OPTIMIZACION MASIVA: Apagar cálculos innecesarios del motor 3D
-	viewport.positional_shadow_atlas_size = 0
-	if "use_hdr_3d" in viewport: viewport.use_hdr_3d = false
-	if "msaa_3d" in viewport: viewport.msaa_3d = Viewport.MSAA_DISABLED
-	if "screen_space_aa" in viewport: viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
-	
-	add_child(viewport)
-	_cached_viewport = viewport # Cache para frustum culling
-	
-	# Asegurar que el sprite principal esté en la escena y configurado
+		res = 256 # Calidad media por defecto
+		if is_in_group("player") or (is_in_group("enemies") and entity_type >= 4):
+			res = 512
+			
+		match quality:
+			0: # Baja (Celulares)
+				res = 128 if not is_in_group("player") else 256
+			1: # Media (Recomendado)
+				res = 256 if not is_in_group("player") else 512
+			2: # Alta (Gama Alta - Calidad Original Máxima)
+				res = 1024
+				
+		viewport = SubViewport.new()
+		viewport.size = Vector2i(res, res)
+		viewport.transparent_bg = true
+		viewport.own_world_3d = true 
+		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		
+		# OPTIMIZACION MASIVA: Apagar cálculos innecesarios del motor 3D
+		viewport.positional_shadow_atlas_size = 0
+		if "use_hdr_3d" in viewport: viewport.use_hdr_3d = false
+		if "msaa_3d" in viewport: viewport.msaa_3d = Viewport.MSAA_DISABLED
+		if "screen_space_aa" in viewport: viewport.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+		
+		add_child(viewport)
+		_cached_viewport = viewport # Cache para frustum culling
+	else:
+		_cached_viewport = null
+
+	# Asegurar que el sprite principal esté en la escena y configurado (Sólo visible si no es Lienzo Único)
 	if is_instance_valid(sprite):
 		if not sprite.get_parent():
 			add_child(sprite)
 		sprite.z_index = 10 # BIEN ARRIBA
 		sprite.name = "Ship3DRender"
+		sprite.visible = not is_single_world
 	else:
 		sprite = Sprite2D.new()
 		sprite.name = "Ship3DRender"
 		sprite.z_index = 10
 		add_child(sprite)
+		sprite.visible = not is_single_world
 	
 	# 2. Crear la escena 3D interna
 	var node3d = Node3D.new()
-	viewport.add_child(node3d)
+	if is_single_world:
+		target_viewport.add_child(node3d)
+	else:
+		viewport.add_child(node3d)
 	world_root_3d = node3d
 	
 	# PIVOTE INDEPENDIENTE (Igual que en 2D)
@@ -1223,14 +1286,15 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	accessory_pivot_3d.name = "AccessoryPivot"
 	node3d.add_child(accessory_pivot_3d)
 	
-	# Entorno con luz AMBIENTE BLANCA (Garantía de visibilidad)
-	var env = WorldEnvironment.new()
-	var world_env = Environment.new()
-	world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	world_env.ambient_light_color = Color.WHITE
-	world_env.ambient_light_energy = 1.0 
-	env.environment = world_env
-	node3d.add_child(env)
+	# Entorno con luz AMBIENTE BLANCA (Garantía de visibilidad - Sólo si es Viewport local)
+	if not is_single_world:
+		var env = WorldEnvironment.new()
+		var world_env = Environment.new()
+		world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		world_env.ambient_light_color = Color.WHITE
+		world_env.ambient_light_energy = 1.0 
+		env.environment = world_env
+		node3d.add_child(env)
 	
 	# Instanciar el modelo GLB
 	var model_scene = load(glb_path)
@@ -1285,29 +1349,31 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		_3d_shield_mesh.visible = false 
 		control_node.add_child(_3d_shield_mesh) # Ahora rota y escala CON la nave
 	
-	# 4. Cámara de Perspectiva con ZOOM 50% (Punto 0)
-	var cam_pivot = Node3D.new()
-	node3d.add_child(cam_pivot)
-	var cam = Camera3D.new()
-	cam_pivot.add_child(cam)
-	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
-	cam.fov = 60.0
-	cam.position = Vector3(0, 10, 10) # v238.20: RESTORED FROM 1f65223
-	cam.look_at(Vector3.ZERO)
-	
-	# LUZ FRONTAL (Headlight)
-	var sun = DirectionalLight3D.new()
-	cam.add_child(sun)
-	sun.rotation = Vector3.ZERO 
-	sun.light_energy = 2.0 # Volver al original suave
-	sun.light_specular = 0.0 # Reducido a 0 para no calcular brillos especulares
-	sun.shadow_enabled = false # Desactivar sombras direccionales obligatoriamente
-	# 5. Conectar al Sprite2D existente (Transparencia Pro)
-	if is_instance_valid(sprite):
-		sprite.texture = viewport.get_texture()
-		# Compensacion: si la resolucion bajó, agrandamos el sprite para mantener el tamaño real
-		var scale_factor = 1024.0 / float(res)
-		sprite.scale = Vector2(scale_factor, scale_factor)
+	# 4. Cámara de Perspectiva con ZOOM 50% (Punto 0 - Sólo si es Viewport local)
+	if not is_single_world:
+		var cam_pivot = Node3D.new()
+		node3d.add_child(cam_pivot)
+		var cam = Camera3D.new()
+		cam_pivot.add_child(cam)
+		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+		cam.fov = 60.0
+		cam.position = Vector3(0, 10, 10) # v238.20: RESTORED FROM 1f65223
+		cam.look_at(Vector3.ZERO)
+		
+		# LUZ FRONTAL (Headlight)
+		var sun = DirectionalLight3D.new()
+		cam.add_child(sun)
+		sun.rotation = Vector3.ZERO 
+		sun.light_energy = 2.0 # Volver al original suave
+		sun.light_specular = 0.0 # Reducido a 0 para no calcular brillos especulares
+		sun.shadow_enabled = false # Desactivar sombras direccionales obligatoriamente
+		
+		# 5. Conectar al Sprite2D existente (Transparencia Pro)
+		if is_instance_valid(sprite):
+			sprite.texture = viewport.get_texture()
+			# Compensacion: si la resolucion bajó, agrandamos el sprite para mantener el tamaño real
+			var scale_factor = 1024.0 / float(res)
+			sprite.scale = Vector2(scale_factor, scale_factor)
 		sprite.rotation_degrees = 0
 		sprite.flip_v = false 
 		
@@ -1531,8 +1597,11 @@ func _update_invisibility_visuals(invisible: bool):
 		modulate = Color(0.5, 0.8, 1.0, 0.3) if is_ally else Color(1, 1, 1, 0)
 		
 		if is_instance_valid(sprite): 
-			sprite.visible = true
+			sprite.visible = is_ally
 			sprite.modulate.a = 0.5 if is_ally else 0.0
+			
+		if is_instance_valid(world_root_3d):
+			world_root_3d.visible = false
 			
 		# HUD y Textos: SOLO para aliados
 		if is_instance_valid(name_tag): name_tag.visible = is_ally
@@ -1543,9 +1612,12 @@ func _update_invisibility_visuals(invisible: bool):
 		# Estado normal
 		visible = true
 		modulate = Color(1.0, 1.0, 1.0, 1.0)
-		if is_instance_valid(_3d_model): _3d_model.visible = true
+		
+		var is_single = get_meta("is_single_world", false)
+		if is_instance_valid(world_root_3d):
+			world_root_3d.visible = true
 		if is_instance_valid(sprite): 
-			sprite.visible = true
+			sprite.visible = not is_single
 			sprite.modulate.a = 1.0
 		if is_instance_valid(name_tag): name_tag.visible = true
 		if is_instance_valid(_ui_wrapper): 
@@ -1575,3 +1647,7 @@ func _apply_material_recursive(p_node, p_mat, is_overlay: bool):
 		else: p_node.material_override = p_mat
 	for child in p_node.get_children():
 		_apply_material_recursive(child, p_mat, is_overlay)
+
+func _exit_tree():
+	if is_instance_valid(world_root_3d):
+		world_root_3d.queue_free()
