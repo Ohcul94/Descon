@@ -134,6 +134,7 @@ window.renderSearchableEnemySelect = function(currentValue, onChangeCallback, bo
                         max-height: 250px; overflow-y: auto; background: #0f172a; border: 1px solid ${borderCSSColor}; 
                         padding: 5px; box-shadow: 0 15px 30px rgba(0,0,0,0.6); margin-top: 5px; border-radius: 8px; width: 100%;">
             </div>
+        </div>
     `;
 };
 
@@ -229,6 +230,7 @@ window.renderSearchableMapSelect = function(currentValue, onChangeCallback, bord
 
 
 function refreshCurrentTab() {
+    if(!config || Object.keys(config).length === 0) return;
     const active = document.querySelector('.view.active');
     if(!active) return;
     const tabId = active.id.replace('view-', '');
@@ -244,7 +246,7 @@ function refreshCurrentTab() {
 }
 
 function renderAll() {
-    if(!config) return;
+    if(!config || Object.keys(config).length === 0) return;
     renderShips(); renderEnemies(); renderSkills(); renderMechanicsLib();
     renderMaps(); renderAmmo(); renderWeapons(); renderShields(); renderEngines();
     renderPilot();
@@ -1498,6 +1500,7 @@ function renderModes() {
         if (!config.gameModes.extraction.spawners) config.gameModes.extraction.spawners = [];
         if (!config.gameModes.extraction.spawnPoints) config.gameModes.extraction.spawnPoints = [];
         if (!config.gameModes.extraction.mechanics) config.gameModes.extraction.mechanics = [];
+        config.gameModes.extraction.mechanics = config.gameModes.extraction.mechanics.filter(Boolean);
         if (!config.gameModes.extraction.extractPoints) {
             config.gameModes.extraction.extractPoints = [
                 { x: 1500, y: 1500, label: "Punto Alfa" },
@@ -1680,12 +1683,12 @@ function renderModes() {
                         </div>
                     </div>
                     
-                    <div style="display:grid; grid-template-columns: 1fr 400px; gap:30px;">
-                        <div id="radar-container" style="position:relative; width:600px; height:600px; margin:0 auto; background:#000; border:1px solid var(--primary); border-radius:10px; overflow:hidden; cursor:crosshair;">
-                            <canvas id="radar-canvas"></canvas>
+                    <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:30px; width:100%;">
+                        <div id="radar-container" style="position:relative; width:600px; height:600px; background:#000; border:2px solid var(--primary); border-radius:10px; overflow:hidden; cursor:crosshair; box-shadow: 0 0 20px rgba(0, 210, 255, 0.15);">
+                            <canvas id="radar-canvas" width="600" height="600" style="width: 100%; height: 100%; display: block;"></canvas>
                         </div>
                         
-                        <div style="display:flex; flex-direction:column; gap:15px; background:rgba(255,255,255,0.02); padding:25px; border-radius:10px; overflow: visible;">
+                        <div style="flex:1; min-width:350px; display:flex; flex-direction:column; gap:15px; background:rgba(255,255,255,0.02); padding:25px; border-radius:10px; overflow: visible;">
                             <label style="color:var(--accent); font-size:0.85rem; margin-bottom:15px; display:block; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; font-weight:bold; overflow: visible;">🛠️ HERRAMIENTA DE DESPLIEGUE</label>
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                                 <div class="field"><label>Coord X</label><input type="number" id="radar-x" value="0"></div>

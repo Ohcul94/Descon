@@ -739,16 +739,35 @@ function setRadarMode(mode) {
     radarMode = mode;
     
     // Actualizar visual de botones
+    const btnSpawn = document.getElementById('btn-radar-spawn');
     const btnSpawner = document.getElementById('btn-radar-spawner');
     const btnExtract = document.getElementById('btn-radar-extract');
     
-    if (btnSpawner && btnExtract) {
-        if (mode === 'spawner') {
-            btnSpawner.classList.replace('btn-secondary', 'btn-primary');
-            btnExtract.classList.replace('btn-primary', 'btn-secondary');
+    if (btnSpawn) {
+        if (mode === 'spawn') {
+            btnSpawn.classList.remove('btn-secondary');
+            btnSpawn.classList.add('btn-primary');
         } else {
-            btnSpawner.classList.replace('btn-primary', 'btn-secondary');
-            btnExtract.classList.replace('btn-secondary', 'btn-primary');
+            btnSpawn.classList.remove('btn-primary');
+            btnSpawn.classList.add('btn-secondary');
+        }
+    }
+    if (btnSpawner) {
+        if (mode === 'spawner') {
+            btnSpawner.classList.remove('btn-secondary');
+            btnSpawner.classList.add('btn-primary');
+        } else {
+            btnSpawner.classList.remove('btn-primary');
+            btnSpawner.classList.add('btn-secondary');
+        }
+    }
+    if (btnExtract) {
+        if (mode === 'extract') {
+            btnExtract.classList.remove('btn-secondary');
+            btnExtract.classList.add('btn-primary');
+        } else {
+            btnExtract.classList.remove('btn-primary');
+            btnExtract.classList.add('btn-secondary');
         }
     }
 
@@ -797,6 +816,10 @@ function initRadar() {
     const ctx = canvas.getContext('2d');
     const container = document.getElementById('radar-container');
     
+    // Cargar imagen de fondo del mapa coordinada con la escena de Godot
+    const bgImage = new Image();
+    bgImage.src = 'assets/mixboard-image.png';
+    
     // Dimensiones dinámicas del mapa de extracción en píxeles (por defecto 10000)
     const worldW = (config.gameModes && config.gameModes.extraction && config.gameModes.extraction.width) ? config.gameModes.extraction.width : 10000;
     const worldH = (config.gameModes && config.gameModes.extraction && config.gameModes.extraction.height) ? config.gameModes.extraction.height : 10000;
@@ -806,8 +829,15 @@ function initRadar() {
     let dragItem = null; // { type: 'extract'|'spawner'|'spawn', index: number }
 
     const updateCanvasSize = () => {
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        if (w > 0 && h > 0) {
+            canvas.width = w;
+            canvas.height = h;
+        } else {
+            canvas.width = 600;
+            canvas.height = 600;
+        }
     };
     window.addEventListener('resize', updateCanvasSize);
     updateCanvasSize();
@@ -923,6 +953,14 @@ function initRadar() {
     const draw = () => {
         if (!document.getElementById('radar-canvas')) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Dibujar imagen de fondo del mapa o fondo negro
+        if (bgImage.complete && bgImage.naturalWidth !== 0) {
+            ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+        } else {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
         
         // Dibujar Grid
         ctx.strokeStyle = 'rgba(0, 210, 255, 0.1)';

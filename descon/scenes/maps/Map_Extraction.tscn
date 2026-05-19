@@ -1,10 +1,9 @@
 [gd_scene format=3 uid="uid://cipfxdnfudpyc"]
 
-[ext_resource type="Script" path="res://scripts/systems/Map_Extraction.gd" id="1_extraction_script"]
-[ext_resource type="Texture2D" path="res://assets/Base de Mapas/mixboard-image.png" id="2_tex"]
+[ext_resource type="Script" uid="uid://dp6au5r48svjm" path="res://scripts/systems/Map_Extraction.gd" id="1_extraction_script"]
+[ext_resource type="Texture2D" uid="uid://s8vwtv2nca17" path="res://assets/Base de Mapas/mixboard-image.png" id="2_tex"]
 
 [sub_resource type="Environment" id="Environment_space"]
-background_mode = 0
 background_color = Color(0.0117647, 0.0117647, 0.0156863, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.14902, 0.180392, 0.239216, 1)
@@ -22,24 +21,21 @@ albedo_color = Color(0.45098, 0.501961, 0.54902, 1)
 metallic = 0.95
 roughness = 0.3
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_asteroid"]
-radius = 250.0
-
 [sub_resource type="CircleShape2D" id="CircleShape2D_outer_asteroid"]
 radius = 150.0
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
 size = Vector2(300, 300)
 
-[node name="Map_Extraction" type="Node2D"]
+[node name="Map_Extraction" type="Node2D" unique_id=1806288055]
 script = ExtResource("1_extraction_script")
 world_size = 10000.0
 zone_name = "SECTOR DE EXTRACCIÓN"
 
-[node name="ViewportCanvas" type="CanvasLayer" parent="."]
+[node name="ViewportCanvas" type="CanvasLayer" parent="." unique_id=2124670741]
 layer = -15
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="ViewportCanvas"]
+[node name="SubViewportContainer" type="SubViewportContainer" parent="ViewportCanvas" unique_id=1795325295]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -47,71 +43,71 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="SubViewport" type="SubViewport" parent="ViewportCanvas/SubViewportContainer"]
-transparent_bg = true
+[node name="SubViewport" type="SubViewport" parent="ViewportCanvas/SubViewportContainer" unique_id=1881081166]
 own_world_3d = true
+transparent_bg = true
 handle_input_locally = false
 size = Vector2i(1920, 1080)
 render_target_update_mode = 4
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="ViewportCanvas/SubViewportContainer/SubViewport"]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=1760387247]
 environment = SubResource("Environment_space")
 
-[node name="Camera3D" type="Camera3D" parent="ViewportCanvas/SubViewportContainer/SubViewport"]
+[node name="Camera3D" type="Camera3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=672536405]
 transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 20, 30, 20)
 fov = 50.0
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="ViewportCanvas/SubViewportContainer/SubViewport"]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=557693572]
 transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 20, 0)
 light_color = Color(0.701961, 0.85098, 1, 1)
 light_energy = 1.2
 shadow_enabled = true
 
-[node name="Asteroids3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport"]
+[node name="Asteroids3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=378578519]
 
-[node name="CentralDecorAsteroid" type="CSGSphere3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D"]
+[node name="CentralDecorAsteroid" type="CSGSphere3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D" unique_id=739622945]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, -5, 20)
 radius = 4.0
 radial_segments = 24
 rings = 16
 material = SubResource("StandardMaterial3D_rock")
 
-[node name="OuterAsteroid" type="CSGSphere3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D"]
+[node name="OuterAsteroid" type="CSGSphere3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D" unique_id=2058207942]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, -2, 30)
 radius = 2.5
 radial_segments = 16
 rings = 12
 material = SubResource("StandardMaterial3D_rock")
 
-[node name="Walls3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport"]
+[node name="Walls3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=2087470845]
 
-[node name="MetalWall_1" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D"]
+[node name="MetalWall_1" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D" unique_id=442655870]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 14)
 size = Vector3(6, 5, 6)
 material = SubResource("StandardMaterial3D_metal")
 
-[node name="MetalWall_2" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D"]
+[node name="MetalWall_2" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D" unique_id=1731548236]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 14)
 size = Vector3(6, 5, 6)
 material = SubResource("StandardMaterial3D_metal")
 
-[node name="MetalWall_3" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D"]
+[node name="MetalWall_3" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D" unique_id=1294788576]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 26)
 size = Vector3(6, 5, 6)
 material = SubResource("StandardMaterial3D_metal")
 
-[node name="MetalWall_4" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D"]
+[node name="MetalWall_4" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D" unique_id=528907532]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 26)
 size = Vector3(6, 5, 6)
 material = SubResource("StandardMaterial3D_metal")
 
-[node name="ParallaxBackground" type="ParallaxBackground" parent="."]
+[node name="ParallaxBackground" type="ParallaxBackground" parent="." unique_id=28182905]
 layer = -25
 
-[node name="StaticLayer" type="CanvasLayer" parent="ParallaxBackground"]
+[node name="StaticLayer" type="CanvasLayer" parent="ParallaxBackground" unique_id=242780451]
 layer = -30
 
-[node name="SpaceBG" type="ColorRect" parent="ParallaxBackground/StaticLayer"]
+[node name="SpaceBG" type="ColorRect" parent="ParallaxBackground/StaticLayer" unique_id=1824097515]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -120,10 +116,9 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.0156863, 0.0156863, 0.0156863, 1)
 
-[node name="MapWorldLayer" type="ParallaxLayer" parent="ParallaxBackground"]
+[node name="MapWorldLayer" type="ParallaxLayer" parent="ParallaxBackground" unique_id=518566638]
 
-[node name="MapBackground" type="TextureRect" parent="ParallaxBackground/MapWorldLayer"]
-modulate = Color(1, 1, 1, 1)
+[node name="MapBackground" type="TextureRect" parent="ParallaxBackground/MapWorldLayer" unique_id=1224172059]
 offset_left = -7895.0
 offset_top = -7987.0
 offset_right = 8105.0
@@ -133,44 +128,44 @@ texture = ExtResource("2_tex")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Decorations" type="Node2D" parent="."]
+[node name="Decorations" type="Node2D" parent="." unique_id=1072101022]
 z_index = -5
 
-[node name="Asteroids" type="Node2D" parent="."]
+[node name="Asteroids" type="Node2D" parent="." unique_id=1262042362]
 
-[node name="OuterAsteroidPhysical" type="StaticBody2D" parent="Asteroids" groups=["obstacles"]]
-collision_layer = 2
+[node name="OuterAsteroidPhysical" type="StaticBody2D" parent="Asteroids" unique_id=1668538123 groups=["obstacles"]]
 position = Vector2(500, 1500)
+collision_layer = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Asteroids/OuterAsteroidPhysical"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Asteroids/OuterAsteroidPhysical" unique_id=114414152]
 shape = SubResource("CircleShape2D_outer_asteroid")
 
-[node name="Walls" type="Node2D" parent="."]
+[node name="Walls" type="Node2D" parent="." unique_id=1788828939]
 
-[node name="MetalWallPhysical_1" type="StaticBody2D" parent="Walls" groups=["obstacles"]]
-collision_layer = 2
+[node name="MetalWallPhysical_1" type="StaticBody2D" parent="Walls" unique_id=118028185 groups=["obstacles"]]
 position = Vector2(700, 700)
+collision_layer = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_1"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_1" unique_id=2139877264]
 shape = SubResource("RectangleShape2D_wall")
 
-[node name="MetalWallPhysical_2" type="StaticBody2D" parent="Walls" groups=["obstacles"]]
-collision_layer = 2
+[node name="MetalWallPhysical_2" type="StaticBody2D" parent="Walls" unique_id=669197770 groups=["obstacles"]]
 position = Vector2(1300, 700)
+collision_layer = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_2"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_2" unique_id=277624040]
 shape = SubResource("RectangleShape2D_wall")
 
-[node name="MetalWallPhysical_3" type="StaticBody2D" parent="Walls" groups=["obstacles"]]
-collision_layer = 2
+[node name="MetalWallPhysical_3" type="StaticBody2D" parent="Walls" unique_id=1794094468 groups=["obstacles"]]
 position = Vector2(700, 1300)
+collision_layer = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_3"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_3" unique_id=1545864119]
 shape = SubResource("RectangleShape2D_wall")
 
-[node name="MetalWallPhysical_4" type="StaticBody2D" parent="Walls" groups=["obstacles"]]
-collision_layer = 2
+[node name="MetalWallPhysical_4" type="StaticBody2D" parent="Walls" unique_id=1069052109 groups=["obstacles"]]
 position = Vector2(1300, 1300)
+collision_layer = 2
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_4"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_4" unique_id=1316395918]
 shape = SubResource("RectangleShape2D_wall")
