@@ -339,10 +339,10 @@ func _process(delta):
 		if is_instance_valid(accessory_pivot_3d):
 			accessory_pivot_3d.rotate_y(delta * 2.0)
 		
-		# Sincronización de visibilidad y anti-rotación del Sprite2D
+		# Sincronización de visibilidad y anti-rotación del Sprite2D (Ocultar si es Lienzo Único)
 		if is_instance_valid(sprite):
 			sprite.rotation = -rotation
-			sprite.visible = visible
+			sprite.visible = visible if not get_meta("is_single_world", false) else false
 			
 		_last_rot2d = rotation
 	
@@ -1206,6 +1206,11 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	print("[3D] Inicializando renderizado para: ", glb_path)
 	
+	# v306.4: Evitar duplicaciones de naves huérfanas al reconstruir el layout 3D en cambios de mapa
+	if is_instance_valid(world_root_3d):
+		world_root_3d.queue_free()
+		world_root_3d = null
+	
 	# Detectar si hay un lienzo 3D global en el mapa actual
 	var current_map = get_tree().get_first_node_in_group("map")
 	var is_single_world = false
@@ -1377,12 +1382,12 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 			sprite.scale = Vector2(scale_factor, scale_factor)
 		sprite.rotation_degrees = 0
 		sprite.flip_v = false 
-		
-		if is_in_group("player") or is_in_group("remote_players"):
-			var sm = get_node_or_null("SpheresManager")
-			if sm and not sm.spheres_updated.is_connected(_update_3d_spheres):
-				sm.spheres_updated.connect(_update_3d_spheres)
-			_update_3d_spheres()
+	
+	if is_in_group("player") or is_in_group("remote_players"):
+		var sm = get_node_or_null("SpheresManager")
+		if sm and not sm.spheres_updated.is_connected(_update_3d_spheres):
+			sm.spheres_updated.connect(_update_3d_spheres)
+		_update_3d_spheres()
 	
 	print("[3D] Visualizacion configurada correctamente.")
 
@@ -1599,7 +1604,7 @@ func _update_invisibility_visuals(invisible: bool):
 		modulate = Color(0.5, 0.8, 1.0, 0.3) if is_ally else Color(1, 1, 1, 0)
 		
 		if is_instance_valid(sprite): 
-			sprite.visible = is_ally
+			sprite.visible = is_ally if not get_meta("is_single_world", false) else false
 			sprite.modulate.a = 0.5 if is_ally else 0.0
 			
 		if is_instance_valid(world_root_3d):
@@ -1668,3 +1673,10 @@ func _apply_material_recursive(p_node, p_mat, is_overlay: bool):
 func _exit_tree():
 	if is_instance_valid(world_root_3d):
 		world_root_3d.queue_free()
+
+# v306.4: Reconstruir visuales 3D al cambiar de mapa para re-ubicarse en el nuevo Viewport global
+func rebuild_3d_layout():
+	if is_in_group("enemies"):
+		_setup_enemy_visuals()
+	else:
+		_setup_ship_visuals()

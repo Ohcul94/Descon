@@ -9,7 +9,7 @@ class_name BaseMap
 
 @export var scale_factor: float = 0.02 # Relación 2D a 3D
 @export var camera_height: float = 30.0
-@export var use_orthogonal: bool = true
+@export var use_orthogonal: bool = false
 
 # Referencias dinámicas
 var viewport_container: SubViewportContainer = null
@@ -31,6 +31,19 @@ func _ready():
 		
 	# Configurar el lienzo 3D dinámico si no existe en la escena
 	_setup_3d_dynamic()
+	
+	# v306.3: Consolidar el sistema de Lienzo Único registrando el mapa en el grupo global
+	add_to_group("map")
+
+	# v307.0: Inyectar luz de cámara frontal (Headlight) si no existe ya en la cámara para evitar naves negras
+	if is_instance_valid(camera_3d) and not camera_3d.has_node("CameraHeadlight"):
+		var headlight = DirectionalLight3D.new()
+		headlight.name = "CameraHeadlight"
+		headlight.light_color = Color(0.9, 0.95, 1.0)
+		headlight.light_energy = 1.0
+		headlight.light_specular = 0.3
+		headlight.shadow_enabled = false
+		camera_3d.add_child(headlight)
 
 func setup_map():
 	# Método para ejecutar lógica específica al cargar el mapa
@@ -52,16 +65,17 @@ func _setup_3d_dynamic():
 	print("[BaseMap] Generando lienzo 3D autoritario para el Mapa: ", zone_name)
 	var canvas = CanvasLayer.new()
 	canvas.name = "ViewportCanvas"
-	canvas.layer = -15
+	canvas.layer = -5
 	add_child(canvas)
 	
 	viewport_container = SubViewportContainer.new()
 	viewport_container.name = "SubViewportContainer"
-	viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	viewport_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	viewport_container.grow_vertical = Control.GROW_DIRECTION_BOTH
 	viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	viewport_container.stretch = true
 	canvas.add_child(viewport_container)
+	viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
 	sub_viewport = SubViewport.new()
 	sub_viewport.name = "SubViewport"
@@ -72,6 +86,16 @@ func _setup_3d_dynamic():
 	sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport_container.add_child(sub_viewport)
 	
+	# Entorno global para el SubViewport (Luz ambiental azul oscuro de soporte para conservar relieve 3D)
+	var env_node = WorldEnvironment.new()
+	env_node.name = "WorldEnvironment"
+	var env = Environment.new()
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.15, 0.18, 0.24)
+	env.ambient_light_energy = 1.0
+	env_node.environment = env
+	sub_viewport.add_child(env_node)
+
 	# Iluminación de espacio profundo
 	var light = DirectionalLight3D.new()
 	light.name = "DirectionalLight3D"
@@ -87,46 +111,22 @@ func _setup_3d_dynamic():
 	light.light_energy = 1.2
 	sub_viewport.add_child(light)
 	
-	# Cámara 3D ortogonal de perspectiva bloqueada
+	# Cámara 3D ortogonal de perspectiva bloqueada (Mirando hacia abajo en el eje Y)
 	camera_3d = Camera3D.new()
 	camera_3d.name = "Camera3D"
-	camera_3d.fov = 50.0
+	camera_3d.fov = 35.0
 	camera_3d.transform = Transform3D(
 		Basis(
 			Vector3(1, 0, 0),
-			Vector3(0, 0, 1),
-			Vector3(0, -1, 0)
+			Vector3(0, 0, -1),
+			Vector3(0, 1, 0)
 		),
 		Vector3.ZERO
 	)
+	camera_3d.current = true
 	sub_viewport.add_child(camera_3d)
 	
-	# Nodo contenedor de asteroides de decoración espacial
-	asteroids_3d = Node3D.new()
-	asteroids_3d.name = "Asteroids3D"
-	sub_viewport.add_child(asteroids_3d)
-	
-	var rock_material = StandardMaterial3D.new()
-	rock_material.albedo_color = Color(0.35, 0.31, 0.27)
-	rock_material.roughness = 0.9
-	
-	# Distribuir asteroides en un área espacial de decoración
-	var asteroid_positions = [
-		Vector3(15, -6, 20), Vector3(25, -4, 10), Vector3(8, -8, 30),
-		Vector3(-10, -5, 15), Vector3(45, -7, 40), Vector3(5, -6, 5),
-		Vector3(30, -5, 35), Vector3(0, -7, 25), Vector3(50, -4, -10),
-		Vector3(12, -8, -5), Vector3(22, -6, 45), Vector3(-5, -5, 35)
-	]
-	
-	for i in range(asteroid_positions.size()):
-		var ast = CSGSphere3D.new()
-		ast.name = "ProceduralAsteroid_" + str(i)
-		ast.transform.origin = asteroid_positions[i]
-		ast.radius = 1.2 + (i % 4) * 0.7
-		ast.radial_segments = 16
-		ast.rings = 12
-		ast.material = rock_material
-		asteroids_3d.add_child(ast)
+	# No instanciamos asteroides procedimentales por defecto para mantener el fondo limpio y libre de esferas fantasma
 		
 	# Manejar redimensionamiento de pantalla de forma reactiva
 	get_tree().get_root().size_changed.connect(func():
@@ -161,25 +161,21 @@ func _physics_process(_delta):
 		if viewport_height <= 0:
 			viewport_height = 1080.0
 			
+		var dynamic_height = camera_height
 		if use_orthogonal:
 			camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
 			camera_3d.size = (viewport_height * scale_factor) / current_zoom
 			camera_3d.position.y = camera_height
+			dynamic_height = camera_height
 		else:
 			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
 			var target_visible_height = (viewport_height * scale_factor) / current_zoom
-			camera_3d.position.y = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+			camera_3d.position.y = dynamic_height
 		
-		# Sincronizar posición de la cámara 3D con el centro de la pantalla
+		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica (45 grados de inclinación original)
 		camera_3d.position.x = target_pos.x * scale_factor
-		camera_3d.position.z = target_pos.y * scale_factor
+		camera_3d.position.z = (target_pos.y * scale_factor) + dynamic_height
+		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, target_pos.y * scale_factor), Vector3.UP)
 
-func _process(delta):
-	# Rotación procedimental y lenta de los asteroides 3D de fondo
-	if is_instance_valid(asteroids_3d):
-		for asteroid in asteroids_3d.get_children():
-			if asteroid is Node3D:
-				var speed_mult = 0.05 + (abs(asteroid.name.hash() % 10) * 0.01)
-				asteroid.rotate_x(delta * speed_mult * 0.5)
-				asteroid.rotate_y(delta * speed_mult)
-				asteroid.rotate_z(delta * speed_mult * 0.3)
+# _process removido al no haber asteroides decorativos que rotar

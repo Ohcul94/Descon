@@ -411,6 +411,7 @@ func _update_background(zone_id):
 			spr.visible = not is_extraction
 		
 	if is_instance_valid(current_map_node):
+		current_map_node.remove_from_group("map")
 		current_map_node.queue_free()
 		
 	var map_scene = load(scene_path)
@@ -421,6 +422,9 @@ func _update_background(zone_id):
 		
 		if current_map_node.has_method("setup_map"):
 			current_map_node.setup_map()
+			
+		# v306.4: Reconstruir visuales 3D en todas las entidades activas para el nuevo mapa
+		get_tree().call_group("entities", "rebuild_3d_layout")
 
 func clear_remote_players():
 	if is_instance_valid(entity_manager):

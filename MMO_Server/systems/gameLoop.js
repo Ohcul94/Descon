@@ -199,10 +199,8 @@ function startGameLoop(io, state, aiManager) {
         const now = Date.now();
         const { players, enemies, activeAreas } = state;
 
-        // v247.1: Re-poblar el grid espacial cada 100ms (Optimización v6)
-        grid.clear();
-        Object.values(players).forEach(p => grid.insert(p, 'player'));
-        Object.values(enemies).forEach(e => grid.insert(e, 'enemy'));
+        // v270.0: Optimización - No limpiar ni re-poblar el grid aquí. 
+        // El loop principal de 33ms ya actualiza state.grid de manera constante a 30fps.
 
         // A. Reset temporal de flags para Jugadores
         Object.values(players).forEach(p => {

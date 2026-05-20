@@ -33,7 +33,7 @@ world_size = 10000.0
 zone_name = "SECTOR DE EXTRACCIÓN"
 
 [node name="ViewportCanvas" type="CanvasLayer" parent="." unique_id=2124670741]
-layer = -15
+layer = -5
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="ViewportCanvas" unique_id=1795325295]
 anchors_preset = 15

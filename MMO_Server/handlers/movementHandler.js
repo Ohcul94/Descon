@@ -18,19 +18,39 @@ function registerMovementHandlers(socket, io, state) {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
 
+        const now = Date.now();
+        if (!p.lastMoveTime) p.lastMoveTime = now;
+        const dt = Math.max(0.01, (now - p.lastMoveTime) / 1000);
+        p.lastMoveTime = now;
+
         // v200.30: ANTI-SPEEDHACK (Validación de Distancia)
         if (!p.speed && state.SERVER_CONFIG) {
             const ship = state.SERVER_CONFIG.shipModels.find(s => s.id === p.currentShipId);
             p.speed = ship ? ship.speed : 500;
         }
 
-        // v210.0: ANTI-SPEEDHACK (Ajuste de Precisión)
+        // v210.0: ANTI-SPEEDHACK (Ajuste de Precisión Dinámico con Tolerancia)
         const dx = movementData.x - p.x;
         const dy = movementData.y - p.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance >= 1100 && !p.justBlinked && !p.isAdmin) { 
-            // console.log(`[HACK] Teletransporte detectado en ${p.user}: ${distance}px`);
+        const shipSpeed = p.speed || 500;
+        const maxAllowed = (shipSpeed * dt) + 200; // Tolerancia de 200px por jitter/latencia
+        
+        if (distance > maxAllowed && !p.justBlinked && !p.isAdmin) { 
+            Logger.warn('SECURITY', `Movimiento sospechoso detectado en [${p.user}]: distancia ${Math.round(distance)}px, máx permitido ${Math.round(maxAllowed)}px (dt: ${dt.toFixed(3)}s)`);
+            
+            // Forzar corrección de posición (rubberbanding) enviando las coordenadas reales del servidor
+            socket.emit('playerStatSync', {
+                id: socket.id,
+                x: p.x,
+                y: p.y,
+                hp: p.hp,
+                shield: p.shield,
+                maxHp: p.maxHp,
+                maxShield: p.maxShield,
+                spheres: p.spheres || []
+            });
             return;
         }
         

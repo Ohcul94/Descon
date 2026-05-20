@@ -23,6 +23,8 @@ func _ready():
 	asteroids_3d = $ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D
 	
 	super._ready()
+	if is_instance_valid(camera_3d):
+		camera_3d.fov = 35.0
 	
 	# Ajustar el viewport al tamaño inicial de la pantalla
 	_on_window_resized()
@@ -190,18 +192,22 @@ func _physics_process(_delta):
 		if viewport_height <= 0:
 			viewport_height = 1080.0
 			
+		var dynamic_height = camera_height
 		if use_orthogonal:
 			camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
 			camera_3d.size = (viewport_height * scale_factor) / current_zoom
 			camera_3d.position.y = camera_height
+			dynamic_height = camera_height
 		else:
 			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
 			var target_visible_height = (viewport_height * scale_factor) / current_zoom
-			camera_3d.position.y = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+			camera_3d.position.y = dynamic_height
 		
-		# Sincronizar posición horizontal (X, Z) de la cámara 3D con el centro exacto de la pantalla
+		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica (45 grados de inclinación original)
 		camera_3d.position.x = target_pos.x * scale_factor
-		camera_3d.position.z = target_pos.y * scale_factor
+		camera_3d.position.z = (target_pos.y * scale_factor) + dynamic_height
+		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, target_pos.y * scale_factor), Vector3.UP)
 
 func _process(delta):
 	# Rotación procedimental y lenta de los asteroides 3D de fondo para dar vida a la escena

@@ -655,8 +655,13 @@ io.on('connection', (socket) => {
         }
     };
 
-    // GUARDAR PROGRESO (Sincronía Autoritativa)
+    // GUARDAR PROGRESO (Sincronía Autoritativa con Cooldown de 30s)
     socket.on('saveProgress', async () => {
+        const now = Date.now();
+        if (socket.lastSaveTime && (now - socket.lastSaveTime < 30000)) {
+            return; // Evita spam de escrituras en la base de datos
+        }
+        socket.lastSaveTime = now;
         await savePlayerToDB(socket.id);
     });
 

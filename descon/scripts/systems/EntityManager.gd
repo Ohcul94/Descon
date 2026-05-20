@@ -751,7 +751,7 @@ func _on_remove_area(data: Dictionary):
 			tw.tween_property(area, "modulate:a", 0.0, 0.15)
 			tw.chain().tween_callback(area.queue_free)
 
-func _spawn_heal_beacon_vfx(id, pos, radius, data = {}):
+func _spawn_heal_beacon_vfx(id, pos, radius, _data = {}):
 	if active_areas.has(id): return
 	
 	var vfx_script = load("res://scripts/vfx/HealBeaconVFX.gd")

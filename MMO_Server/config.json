@@ -1828,13 +1828,7 @@
             "name": "Loby",
             "warpCost": 0,
             "ambience": [],
-            "spawns": [
-                {
-                    "type": "1",
-                    "count": 2,
-                    "intervalMs": 5000
-                }
-            ]
+            "spawns": []
         },
         "2": {
             "color": "#00ff00",

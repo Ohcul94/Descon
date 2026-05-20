@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Logger = require('../utils/logger');
 const { handleEnemyDeath } = require('./enemyLogic');
 const SkillManager = require('./skills/SkillManager');
 const StealthSkill = require('./skills/StealthSkill');
@@ -103,6 +104,20 @@ function registerCombatHandlers(socket, io, state) {
         const sphereIdx = (data.id !== undefined) ? data.id : data.sphereIdx;
         if (sphereIdx === undefined || sphereIdx < 0 || sphereIdx > 3) return;
 
+        // v270.0: Blindaje de Habilidad (Verificar que el jugador la posea equipada)
+        let hasSkillEquipped = false;
+        if (p.spheres && Array.isArray(p.spheres)) {
+            hasSkillEquipped = p.spheres.some(s => s.equipped && (
+                (s.equipped.skill_name && s.equipped.skill_name.toUpperCase() === data.skillName.toUpperCase()) ||
+                (s.equipped.name && s.equipped.name.toUpperCase() === data.skillName.toUpperCase())
+            ));
+        }
+
+        if (!hasSkillEquipped && !p.isAdmin) {
+            Logger.warn('SECURITY', `Uso no autorizado de habilidad: [${p.user}] intentó usar "${data.skillName}" sin tenerla equipada.`);
+            return;
+        }
+
         const now = Date.now();
         if (!p.sphereCooldowns) p.sphereCooldowns = [0, 0, 0, 0];
         const lastUse = p.sphereCooldowns[sphereIdx] || 0;
@@ -132,19 +147,37 @@ function registerCombatHandlers(socket, io, state) {
         if (dist > 1800) return;
         if (enemy.isInvulnerable || (enemy.ai && enemy.ai._isDefenseSkillActive)) return;
 
-        let finalDamage = parseFloat(damage) || 100;
-        let maxAllowed = 5000; 
+        let weaponsBase = 0;
         if (p.equipped && p.equipped.w) {
-            let weaponsBase = 0;
             p.equipped.w.forEach(it => {
                 const master = state.SERVER_CONFIG.shopItems.weapons.find(w => w.id === it.id);
                 if (master) weaponsBase += (master.base || 0);
-                else weaponsBase += 500;
             });
-            if (weaponsBase > 0) maxAllowed = weaponsBase * 40; 
         }
+        if (weaponsBase === 0) weaponsBase = 100; // Fallback
+
+        // Encontrar el multiplicador máximo absoluto disponible en toda la munición que el jugador posee
+        let maxAmmoMult = 1;
+        if (p.ammo) {
+            Object.keys(p.ammo).forEach(type => {
+                const mults = state.SERVER_CONFIG.ammoMultipliers[type] || [1];
+                p.ammo[type].forEach((qty, tier) => {
+                    if (qty > 0 && mults[tier] > maxAmmoMult) {
+                        maxAmmoMult = mults[tier];
+                    }
+                });
+            });
+        }
+
+        // Permitimos un 50% extra para críticos/buffs del cliente
+        let maxAllowed = weaponsBase * maxAmmoMult * 1.5;
+        if (maxAllowed < 1000) maxAllowed = 1000;
         
-        if (finalDamage > maxAllowed) finalDamage = maxAllowed;
+        let finalDamage = parseFloat(damage) || 100;
+        if (finalDamage > maxAllowed && !p.isAdmin) {
+            Logger.warn('SECURITY', `Daño PvE excedido de [${p.user}] a enemigo [${enemy.name}]: reportado ${finalDamage}, máx permitido ${Math.round(maxAllowed)} (base: ${weaponsBase}, mult: ${maxAmmoMult})`);
+            finalDamage = maxAllowed;
+        }
 
         if (enemy.shield >= finalDamage) enemy.shield -= finalDamage;
         else { enemy.hp -= (finalDamage - enemy.shield); enemy.shield = 0; }
@@ -188,8 +221,15 @@ function registerCombatHandlers(socket, io, state) {
                 
                 const authorizedMaxDmg = baseDmg * damageMult;
 
-                // Si el cliente manda daño 0 o sospechosamente alto (más que el autorizado por el mapa), normalizamos
-                if (dmg <= 0 || dmg > (authorizedMaxDmg + 5)) dmg = authorizedMaxDmg;
+                // El daño recibido no puede ser inferior al daño real del enemigo (anti-GodMode/anti-mitigación hack)
+                // a menos que sea 0 por invulnerabilidad
+                if (p.isInvulnerable) {
+                    dmg = 0;
+                } else {
+                    if (dmg < authorizedMaxDmg * 0.9 || dmg > (authorizedMaxDmg + 5)) {
+                        dmg = authorizedMaxDmg;
+                    }
+                }
 
                 // v266.250: Verificación de Tipo de Bala (Solo aplica slow si la bala coincide)
                 if (cfg) {
@@ -299,8 +339,47 @@ function registerCombatHandlers(socket, io, state) {
         if (victim && attacker && !victim.isDead && !attacker.isDead) {
             if (victim.pvpEnabled && attacker.pvpEnabled) {
                 if (victim.isInvulnerable) return;
+
+                // v270.0: Validación de Distancia en PvP
+                const dist = Math.hypot(attacker.x - victim.x, attacker.y - victim.y);
+                if (dist > 1800) {
+                    Logger.warn('SECURITY', `Intento de PvP a distancia inválida: [${attacker.user}] -> [${victim.user}] (Distancia: ${Math.round(dist)}px)`);
+                    return;
+                }
+
                 const now = Date.now();
-                let dmg = data.damage || 50;
+                
+                // Calcular daño teórico máximo para el atacante
+                let baseDmg = 100;
+                if (attacker.equipped && attacker.equipped.w) {
+                    baseDmg = 0;
+                    attacker.equipped.w.forEach(item => {
+                        const masterItem = state.SERVER_CONFIG.shopItems.weapons.find(w => w.id === item.id);
+                        if (masterItem) baseDmg += (masterItem.base || 0);
+                    });
+                    if (baseDmg === 0) baseDmg = 100;
+                }
+
+                // Determinar multiplicador de munición seleccionada por el atacante
+                const attackerAmmoType = attacker.selectedAmmo || 'laser';
+                const mults = state.SERVER_CONFIG.ammoMultipliers[attackerAmmoType] || [1];
+                let maxMultiplier = 1;
+                if (attacker.ammo && attacker.ammo[attackerAmmoType]) {
+                    attacker.ammo[attackerAmmoType].forEach((qty, tier) => {
+                        if (qty > 0 && mults[tier] > maxMultiplier) {
+                            maxMultiplier = mults[tier];
+                        }
+                    });
+                }
+                
+                const finalMaxTheoreticalDamage = baseDmg * maxMultiplier;
+                const maxAllowedDmg = finalMaxTheoreticalDamage * 1.5; // 50% extra para críticos/buffs del cliente
+
+                let dmg = parseFloat(data.damage) || 50;
+                if (dmg > maxAllowedDmg && !attacker.isAdmin) {
+                    Logger.warn('SECURITY', `Daño PvP excedido de [${attacker.user}] a [${victim.user}]: reportado ${dmg}, máx permitido ${Math.round(maxAllowedDmg)} (base: ${baseDmg}, mult: ${maxMultiplier})`);
+                    dmg = maxAllowedDmg; // Truncar al máximo permitido
+                }
                 
                 if (victim.shield >= dmg) victim.shield -= dmg;
                 else { victim.hp -= (dmg - victim.shield); victim.shield = 0; }
