@@ -55,8 +55,14 @@ func _setup_3d_dynamic():
 	if is_instance_valid(existing_canvas):
 		viewport_container = existing_canvas.get_node_or_null("SubViewportContainer")
 		if is_instance_valid(viewport_container):
+			viewport_container.stretch = true
+			viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			sub_viewport = viewport_container.get_node_or_null("SubViewport")
 			if is_instance_valid(sub_viewport):
+				sub_viewport.transparent_bg = true
+				sub_viewport.own_world_3d = true
+				sub_viewport.handle_input_locally = false
+				sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 				camera_3d = sub_viewport.get_node_or_null("Camera3D")
 				asteroids_3d = sub_viewport.get_node_or_null("Asteroids3D")
 		return

@@ -18,6 +18,7 @@ var last_warn_time: float = 0.0
 
 func _ready():
 	viewport_container = $ViewportCanvas/SubViewportContainer
+	viewport_container.stretch = true
 	sub_viewport = $ViewportCanvas/SubViewportContainer/SubViewport
 	camera_3d = $ViewportCanvas/SubViewportContainer/SubViewport/Camera3D
 	asteroids_3d = $ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D
@@ -25,6 +26,14 @@ func _ready():
 	super._ready()
 	if is_instance_valid(camera_3d):
 		camera_3d.fov = 35.0
+		camera_3d.transform = Transform3D(
+			Basis(
+				Vector3(1, 0, 0),
+				Vector3(0, 0.707107, 0.707107),
+				Vector3(0, -0.707107, 0.707107)
+			).orthonormalized(),
+			Vector3(0, 30.0, 30.0)
+		)
 	
 	# Ajustar el viewport al tamaño inicial de la pantalla
 	_on_window_resized()
