@@ -403,6 +403,24 @@ fs.readJson(CONFIG_FILE).then(config => {
             "canTargetOthers": false
         };
     }
+    if (!state.SERVER_CONFIG.skillsData["BARRERA DE VIENTO"]) {
+        state.SERVER_CONFIG.skillsData["BARRERA DE VIENTO"] = {
+            "name": "BARRERA DE VIENTO",
+            "type": "Defensa",
+            "cd": 20000,
+            "duration": 6,
+            "width": 150,
+            "range": 400,
+            "canTargetOthers": false,
+            "targetFilters": {
+                "allies": false,
+                "enemies": true,
+                "bosses": false,
+                "players": false
+            }
+        };
+    }
+
     
     console.log('\x1b[35m[SERVER]\x1b[0m Configuración maestro cargada y habilidades inyectadas.');
     if (state.SERVER_CONFIG && state.SERVER_CONFIG.hordeConfig) hordeManager.updateConfig(state.SERVER_CONFIG.hordeConfig);

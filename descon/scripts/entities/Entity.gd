@@ -1416,8 +1416,9 @@ func _on_remote_skill_used(data: Dictionary):
 		elif s_name == "AUTO-REPARACIÓN" or s_name == "NANO-REGENERACIÓN":
 			heal_visual_timer = 2.0
 			print("[SKILL-SYNC] Activando visual de CURACION para aliado: ", username)
-		elif "SMOKE" in s_name or "BOMBA" in s_name:
-			pass # Ignorar visuales locales para bomba de humo
+		elif "SMOKE" in s_name or "BOMBA" in s_name or "VIENTO" in s_name or "WIND" in s_name:
+			pass # Ignorar visuales locales para bomba de humo y barrera de viento
+
 		elif s_name == "INVULNERABILIDAD":
 			invulnerable_timer = 2.0
 			print("[SKILL-SYNC] Activando visual de INVULNERABILIDAD para aliado: ", username)

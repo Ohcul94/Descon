@@ -227,10 +227,30 @@ func _draw():
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas (Solo queremos el punto)
 		var s_name = current_skill.get("skill_name", "")
-		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine":
+		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and s_name != "BARRERA DE VIENTO":
 			draw_line(Vector2.ZERO, end_point, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
-		draw_circle(end_point, 8.0, color)
+		if s_name == "BARRERA DE VIENTO":
+			var width_val = 150.0
+			if GameConstants.SKILLS_DATA.has(s_name):
+				width_val = float(GameConstants.SKILLS_DATA[s_name].get("width", 150.0))
+			var half_w = width_val / 2.0
+			var perp_angle = end_point.angle() + (PI / 2.0)
+			var wall_offset = Vector2(cos(perp_angle), sin(perp_angle)) * half_w
+			
+			var pt_a = end_point - wall_offset
+			var pt_b = end_point + wall_offset
+			
+			# Línea principal del indicador de la barrera plana
+			draw_line(pt_a, pt_b, Color(0.3, 0.9, 1.0, 0.85), 4.0)
+			
+			# Dibujar líneas indicadoras de flujo de viento hacia adelante
+			var push_dir = end_point.normalized()
+			draw_line(pt_a, pt_a + push_dir * 18.0, Color(0.3, 0.9, 1.0, 0.4), 2.0)
+			draw_line(pt_b, pt_b + push_dir * 18.0, Color(0.3, 0.9, 1.0, 0.4), 2.0)
+			draw_line(end_point, end_point + push_dir * 25.0, Color(0.3, 0.9, 1.0, 0.6), 2.0)
+		else:
+			draw_circle(end_point, 8.0, color)
 		
 	elif current_skill.get("type") == SkillType.POINT_CLICK:
 		if selected_target:

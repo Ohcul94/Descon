@@ -541,8 +541,60 @@ function startGameLoop(io, state, aiManager) {
                             // Sincronizar posición forzada por succión
                             io.to(p.socketId).emit('playerStatSync', { id: p.socketId, x: p.x, y: p.y });
                         }
+                        
+                        // v2.5: Repulsión Física Plana por Barrera de Viento
+                        if (area.type === 'WIND_BARRIER' && !is_ally) {
+                            const filters = area.targetFilters || { allies: false, enemies: true, bosses: false, players: false };
+                            if (filters.players) {
+                                const areaAngle = area.angle || 0;
+                                const halfW = (area.width || 150) / 2;
+                                const perpAngle = areaAngle + Math.PI / 2;
+                                
+                                const ax = area.x + Math.cos(perpAngle) * halfW;
+                                const ay = area.y + Math.sin(perpAngle) * halfW;
+                                const bx = area.x - Math.cos(perpAngle) * halfW;
+                                const by = area.y - Math.sin(perpAngle) * halfW;
+                                
+                                const thickness = 50; // Grosor de colisión del viento
+                                
+                                const abx = bx - ax;
+                                const aby = by - ay;
+                                const apx = p.x - ax;
+                                const apy = p.y - ay;
+                                
+                                const ab2 = abx * abx + aby * aby;
+                                let dist = 999999;
+                                let nx = 0;
+                                let ny = 0;
+                                
+                                if (ab2 === 0) {
+                                    const pdx = p.x - ax;
+                                    const pdy = p.y - ay;
+                                    dist = Math.hypot(pdx, pdy);
+                                    if (dist > 0) { nx = pdx / dist; ny = pdy / dist; }
+                                } else {
+                                    let t = (apx * abx + apy * aby) / ab2;
+                                    t = Math.max(0, Math.min(1, t));
+                                    const cx = ax + t * abx;
+                                    const cy = ay + t * aby;
+                                    
+                                    const pdx = p.x - cx;
+                                    const pdy = p.y - cy;
+                                    dist = Math.hypot(pdx, pdy);
+                                    if (dist > 0) { nx = pdx / dist; ny = pdy / dist; }
+                                }
+                                
+                                if (dist < thickness) {
+                                    const pushSpeed = 30; // 300px/s para impedir el cruce
+                                    p.x += nx * pushSpeed;
+                                    p.y += ny * pushSpeed;
+                                    io.to(p.socketId).emit('playerStatSync', { id: p.socketId, x: p.x, y: p.y });
+                                }
+                            }
+                        }
                     }
                 }
+
             });
 
             // Efectos a Enemigos
@@ -559,9 +611,59 @@ function startGameLoop(io, state, aiManager) {
                             e.isSlowed = true;
                             e.lastSlowTime = now;
                             e.slowMultiplier = area.slowAmount || 0.5;
+                        } else if (area.type === 'WIND_BARRIER') {
+                            const filters = area.targetFilters || { allies: false, enemies: true, bosses: false, players: false };
+                            const isBoss = !!e.isBoss;
+                            const shouldRepel = isBoss ? filters.bosses : filters.enemies;
+                            if (shouldRepel) {
+                                const areaAngle = area.angle || 0;
+                                const halfW = (area.width || 150) / 2;
+                                const perpAngle = areaAngle + Math.PI / 2;
+                                
+                                const ax = area.x + Math.cos(perpAngle) * halfW;
+                                const ay = area.y + Math.sin(perpAngle) * halfW;
+                                const bx = area.x - Math.cos(perpAngle) * halfW;
+                                const by = area.y - Math.sin(perpAngle) * halfW;
+                                
+                                const thickness = 50; // Grosor de colisión del viento
+                                
+                                const abx = bx - ax;
+                                const aby = by - ay;
+                                const apx = e.x - ax;
+                                const apy = e.y - ay;
+                                
+                                const ab2 = abx * abx + aby * aby;
+                                let dist = 999999;
+                                let nx = 0;
+                                let ny = 0;
+                                
+                                if (ab2 === 0) {
+                                    const edx = e.x - ax;
+                                    const edy = e.y - ay;
+                                    dist = Math.hypot(edx, edy);
+                                    if (dist > 0) { nx = edx / dist; ny = edy / dist; }
+                                } else {
+                                    let t = (apx * abx + apy * aby) / ab2;
+                                    t = Math.max(0, Math.min(1, t));
+                                    const cx = ax + t * abx;
+                                    const cy = ay + t * aby;
+                                    
+                                    const edx = e.x - cx;
+                                    const edy = e.y - cy;
+                                    dist = Math.hypot(edx, edy);
+                                    if (dist > 0) { nx = edx / dist; ny = edy / dist; }
+                                }
+                                
+                                if (dist < thickness) {
+                                    const pushSpeed = 30; // 300px/s para impedir que lo cruce
+                                    e.x += nx * pushSpeed;
+                                    e.y += ny * pushSpeed;
+                                }
+                            }
                         }
                     }
                 }
+
             });
         }
     }, 100);

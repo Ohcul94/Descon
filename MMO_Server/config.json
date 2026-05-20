@@ -2556,6 +2556,23 @@
             },
             "type": "Curación"
         },
+        "BARRERA DE VIENTO": {
+            "name": "BARRERA DE VIENTO",
+            "type": "Defensa",
+            "cd": 2000,
+            "duration": 6000,
+            "width": 150,
+            "range": 400,
+            "canTargetOthers": false,
+            "desc": "Crea una barrera de viento que repele a los objetivos seleccionados.",
+            "id": "SK-DEF-05",
+            "targetFilters": {
+                "allies": false,
+                "enemies": true,
+                "bosses": false,
+                "players": false
+            }
+        },
         "BLINK": {
             "canTargetOthers": false,
             "cd": 15000,

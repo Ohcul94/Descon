@@ -1,7 +1,7 @@
 extends Node2D
 
-# SpheresManager.gd - Sistema de Esferas Orbitales
-# Maneja 4 esferas alrededor del personaje con habilidades y estadísticas.
+const SkillWindBarrierClass = preload("res://scripts/resources/skills/Skill_WindBarrier.gd")
+
 
 var player = null
 signal spheres_updated
@@ -138,8 +138,11 @@ func equip_item(sphere_id, item_data):
 						"HYPER-DASH": Skill_HyperDash,
 						"TURBO-IMPULSO": Skill_TurboImpulse,
 						"INVULNERABILIDAD": Skill_Invulnerability,
-						"VÍNCULO VITAL": Skill_VitalLink
+						"VÍNCULO VITAL": Skill_VitalLink,
+						"BARRERA DE VIENTO": SkillWindBarrierClass
+
 					}
+
 					
 					if skill_classes.has(s_name):
 						s_class = skill_classes[s_name]

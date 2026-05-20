@@ -42,13 +42,14 @@ func _input(event):
 	# v1.8.1: Bloqueo de seguridad para Login
 	if not NetworkManager or not NetworkManager.is_logged_in: return
 	
-	# v1.8.2: Prioridad de UI - Ignorar si tocamos un menú o el minimapa
-	var is_pointer = event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag
-	if is_pointer:
-		var hud = get_tree().get_first_node_in_group("hud")
-		if hud and hud.has_method("_is_pos_over_priority_ui"):
-			if hud._is_pos_over_priority_ui(event.position):
-				return
+	# v1.8.2: Prioridad de UI - Ignorar si tocamos un menú o el minimapa (solo al iniciar toque, no durante el arrastre)
+	if not is_dragging:
+		var is_pointer = event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag
+		if is_pointer:
+			var hud = get_tree().get_first_node_in_group("hud")
+			if hud and hud.has_method("_is_pos_over_priority_ui"):
+				if hud._is_pos_over_priority_ui(event.position):
+					return
 	
 	# v1.8: Filtrado Multi-Touch Profesional
 	# Priorizamos ScreenTouch/Drag. El mouse solo se usa si no hay toques activos (para testing en PC).

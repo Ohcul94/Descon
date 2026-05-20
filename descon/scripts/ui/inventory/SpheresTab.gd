@@ -172,7 +172,9 @@ func _render_spheres_library(tab):
 		{"path": "res://scripts/resources/skills/Skill_Fortress.gd", "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},
 		{"path": "res://scripts/resources/skills/Skill_FrostTrail.gd", "color": Color.AQUA, "icon": "❄️", "type": "DEFENSA"},
 		{"path": "res://scripts/resources/skills/Skill_SmokeBomb.gd", "color": Color.AQUA, "icon": "☁️", "type": "DEFENSA"},
+		{"path": "res://scripts/resources/skills/Skill_WindBarrier.gd", "color": Color.AQUA, "icon": "🌀", "type": "DEFENSA"},
 		{"path": "res://scripts/resources/skills/Skill_RepairKit.gd", "color": Color.GREEN, "icon": "🔧", "type": "CURACIÓN"},
+
 		{"path": "res://scripts/resources/skills/Skill_RegenPath.gd", "color": Color.GREEN, "icon": "🧪", "type": "CURACIÓN"},
 		{"path": "res://scripts/resources/skills/Skill_AlphaRegen.gd", "color": Color.GREEN, "icon": "💚", "type": "CURACIÓN"},
 		{"path": "res://scripts/resources/skills/Skill_VitalLink.gd", "color": Color.GREEN, "icon": "🔗", "type": "CURACIÓN"},

@@ -333,13 +333,36 @@ func _update_sphere_ui(id: int, ref, slot):
 	if cds == null: cds = {}
 	var rv = cds.get(key, 0.0)
 	
+	var sm = ref.get_node_or_null("SpheresManager")
+	var equipped = false
+	var max_cd = 1.0
+	var type_color = Color.WHITE
+	
+	if is_instance_valid(sm) and sm.spheres_data.size() > id:
+		var skill = sm.spheres_data[id]["equipped"]
+		equipped = skill != null
+		if skill:
+			var s_name = ""
+			if typeof(skill) == TYPE_DICTIONARY: s_name = skill.get("skill_name", "")
+			else: s_name = skill.skill_name
+			
+			if s_name != "" and GameConstants.SKILLS_DATA.has(s_name):
+				max_cd = float(GameConstants.SKILLS_DATA[s_name].get("cd", 5000.0)) / 1000.0
+			elif "cooldown" in skill:
+				max_cd = skill.cooldown
+				
+			var raw_type = "ataque"
+			if typeof(skill) == TYPE_DICTIONARY: raw_type = str(skill.get("type", "ataque")).to_lower()
+			else: raw_type = str(skill.get("type")).to_lower() if skill.get("type") else "ataque"
+			
+			if "ataque" in raw_type: type_color = Color.RED
+			elif "defensa" in raw_type: type_color = Color.AQUA
+			elif "curación" in raw_type or "curacion" in raw_type: type_color = Color.GREEN
+			elif "utilidad" in raw_type or "movimiento" in raw_type: type_color = Color.YELLOW
+			else: type_color = Color.WHITE
+			
 	if l_fill:
-		if not _max_cds.has(key) or rv > _max_cds[key]:
-			_max_cds[key] = max(rv, 1.0)
-		
-		var max_cd = _max_cds[key]
 		var pct = clamp(rv / max_cd, 0.0, 1.0)
-		
 		l_fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		l_fill.size = Vector2(p_size.x, p_size.y * pct)
 		l_fill.position = Vector2(0, p_size.y * (1.0 - pct))
@@ -360,24 +383,6 @@ func _update_sphere_ui(id: int, ref, slot):
 		l_cd.visible = rv > 0.05
 		l_cd.text = str(snapped(rv, 0.1)) + "s"
 		l_cd.modulate = Color.RED
-	
-	var type_color = Color.WHITE
-	var sm = ref.get_node_or_null("SpheresManager")
-	var equipped = false
-	
-	if is_instance_valid(sm) and sm.spheres_data.size() > id:
-		var skill = sm.spheres_data[id]["equipped"]
-		equipped = skill != null
-		if skill:
-			var raw_type = "ataque"
-			if typeof(skill) == TYPE_DICTIONARY: raw_type = str(skill.get("type", "ataque")).to_lower()
-			else: raw_type = str(skill.get("type")).to_lower() if skill.get("type") else "ataque"
-			
-			if "ataque" in raw_type: type_color = Color.RED
-			elif "defensa" in raw_type: type_color = Color.AQUA
-			elif "curación" in raw_type or "curacion" in raw_type: type_color = Color.GREEN
-			elif "utilidad" in raw_type or "movimiento" in raw_type: type_color = Color.YELLOW
-			else: type_color = Color.WHITE
 	
 	var final_text_color = Color.RED if rv > 0.05 else type_color
 	slot.modulate = Color(1, 1, 1, slot.modulate.a) 
