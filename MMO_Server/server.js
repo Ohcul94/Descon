@@ -420,6 +420,25 @@ fs.readJson(CONFIG_FILE).then(config => {
             }
         };
     }
+    if (!state.SERVER_CONFIG.skillsData["BALIZA DE CURACION"]) {
+        state.SERVER_CONFIG.skillsData["BALIZA DE CURACION"] = {
+            "name": "BALIZA DE CURACION",
+            "type": "Curación",
+            "cd": 18000,
+            "duration": 8000,
+            "pulse_interval": 1500,
+            "heal_amount": 250,
+            "range": 500,
+            "radius": 200,
+            "canTargetOthers": false,
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
+        };
+    }
 
     
     console.log('\x1b[35m[SERVER]\x1b[0m Configuración maestro cargada y habilidades inyectadas.');

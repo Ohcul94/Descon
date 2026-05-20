@@ -2556,6 +2556,25 @@
             },
             "type": "Curación"
         },
+        "BALIZA DE CURACION": {
+            "name": "BALIZA DE CURACION",
+            "type": "Curación",
+            "cd": 18000,
+            "duration": 8000,
+            "pulse_interval": 1500,
+            "heal_amount": 250,
+            "range": 500,
+            "radius": 200,
+            "canTargetOthers": false,
+            "desc": "Despliega una baliza que emite ondas de curación periódicas a los aliados cercanos.",
+            "id": "SK-HEAL-02",
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true
+            }
+        },
         "BARRERA DE VIENTO": {
             "name": "BARRERA DE VIENTO",
             "type": "Defensa",
@@ -2764,7 +2783,7 @@
         },
         "STEALTH": {
             "canTargetOthers": false,
-            "cd": 25000,
+            "cd": 3000,
             "desc": "Te vuelve invisible para enemigos y jugadores fuera de tu grupo.",
             "duration": 8,
             "id": "SK-UTIL-05",

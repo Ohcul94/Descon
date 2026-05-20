@@ -1020,6 +1020,8 @@ function renderSkills() {
                 ${s.width !== undefined ? `<div class="field"><label>Ancho (px)</label><input type="number" value="${s.width}" onchange="config.skillsData['${name}'].width = parseInt(this.value)"></div>` : ''}
                 ${s.breakRange !== undefined ? `<div class="field"><label>Rango de Ruptura (px)</label><input type="number" value="${s.breakRange}" onchange="config.skillsData['${name}'].breakRange = parseInt(this.value)"></div>` : ''}
                 ${s.tickInterval !== undefined ? `<div class="field"><label>Intervalo Tick (ms)</label><input type="number" value="${s.tickInterval}" onchange="config.skillsData['${name}'].tickInterval = parseInt(this.value)"></div>` : ''}
+                ${s.pulse_interval !== undefined ? `<div class="field"><label>Intervalo Pulso (ms)</label><input type="number" value="${s.pulse_interval}" onchange="config.skillsData['${name}'].pulse_interval = parseInt(this.value)"></div>` : ''}
+                ${s.heal_amount !== undefined ? `<div class="field"><label>Sanación Onda</label><input type="number" value="${s.heal_amount}" onchange="config.skillsData['${name}'].heal_amount = parseInt(this.value)"></div>` : ''}
 
             </div>
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.1); border-radius: 8px; padding: 12px;">

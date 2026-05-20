@@ -374,6 +374,61 @@ function startGameLoop(io, state, aiManager) {
                 continue;
             }
 
+            // SOPORTE DE BALIZA DE CURACIÓN (Pulsos Periódicos de Sanación)
+            if (area.type === 'HEAL_BEACON') {
+                if (now - (area.lastPulseTime || 0) >= (area.pulse_interval || 1500)) {
+                    area.lastPulseTime = now;
+                    
+                    // Emitir evento de pulso a la zona para VFX en el cliente
+                    io.to(`zone_${area.zone}`).emit('beaconPulse', { id: area.id, radius: area.radius });
+                    
+                    const healVal = area.heal_amount || 250;
+                    const owner = players[area.ownerId];
+                    
+                    // Curar a jugadores aliados en el rango
+                    const { players: nearbyPlayers } = grid.getNearbyEntities(area.x, area.y);
+                    nearbyPlayers.forEach(p => {
+                        if (String(p.zone) === String(area.zone) && !p.isDead) {
+                            const dx = p.x - area.x;
+                            const dy = p.y - area.y;
+                            const dist = Math.hypot(dx, dy);
+                            
+                            if (dist < area.radius) {
+                                let is_ally = (p.socketId === area.ownerId);
+                                if (owner && !is_ally) {
+                                    if (p.clanId && owner.clanId && String(p.clanId) === String(owner.clanId)) is_ally = true;
+                                    const pUid = p.id ? p.id.toString() : null;
+                                    const oUid = owner.id ? owner.id.toString() : null;
+                                    if (pUid && oUid && state.playerParty[pUid] && state.playerParty[pUid] === state.playerParty[oUid]) is_ally = true;
+                                }
+                                
+                                if (is_ally) {
+                                    const oldH = p.hp;
+                                    p.hp = Math.min(p.maxHp, p.hp + healVal);
+                                    const actualHeal = p.hp - oldH;
+                                    
+                                    io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                        id: p.socketId,
+                                        hp: Math.ceil(p.hp),
+                                        shield: Math.ceil(p.shield),
+                                        maxHp: p.maxHp,
+                                        maxShield: p.maxShield
+                                    });
+                                    
+                                    io.to(`zone_${p.zone}`).emit('remotePlayerUsedSkill', {
+                                        id: area.ownerId,
+                                        skillName: 'BALIZA DE CURACION',
+                                        targetId: p.socketId,
+                                        powerValue: actualHeal
+                                    });
+                                }
+                            }
+                        }
+                    });
+                }
+                continue; // La baliza de curación no colisiona físicamente con los enemigos
+            }
+
             // SOPORTE DE VÍNCULO VITAL (Lazo Curativo Continuo)
             if (area.type === 'VITAL_LINK') {
                 const owner = players[area.ownerId];

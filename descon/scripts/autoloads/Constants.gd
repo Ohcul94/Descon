@@ -161,6 +161,7 @@ var SKILLS_DATA = {
 	"SMOKE-BOMB": { "id": "SK-DEF-03", "type": "Defensa", "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.", "duration": 6, "radius": 180, "cd": 12000.0, "range": 0, "amount": 1, "canTargetOthers": false },
 	"STEALTH": { "id": "SK-UTIL-05", "type": "Utilidad", "desc": "Te vuelve invisible para enemigos y jugadores fuera de tu grupo.", "duration": 8, "cd": 25000.0, "range": 0, "canTargetOthers": false },
 	"FROST-TRAIL": { "id": "SK-DEF-04", "type": "Defensa", "desc": "Deja un rastro de escarcha que ralentiza a los enemigos.", "duration": 6, "slow_amount": 0.5, "radius": 120, "cd": 18000.0, "range": 0, "canTargetOthers": false },
-	"BARRERA DE VIENTO": { "id": "SK-DEF-05", "type": "Defensa", "desc": "Crea una barrera de viento que repele a los objetivos seleccionados.", "duration": 6, "width": 150, "cd": 20000.0, "range": 400, "canTargetOthers": false, "targetFilters": { "allies": false, "enemies": true, "bosses": false, "players": false } }
+	"BARRERA DE VIENTO": { "id": "SK-DEF-05", "type": "Defensa", "desc": "Crea una barrera de viento que repele a los objetivos seleccionados.", "duration": 6, "width": 150, "cd": 20000.0, "range": 400, "canTargetOthers": false, "targetFilters": { "allies": false, "enemies": true, "bosses": false, "players": false } },
+	"BALIZA DE CURACION": { "id": "SK-HEAL-05", "type": "Curación", "desc": "Despliega una baliza que emite ondas de curación periódicas a los aliados cercanos.", "duration": 8000.0, "pulse_interval": 1500.0, "heal_amount": 250, "cd": 18000.0, "range": 500, "radius": 200.0, "canTargetOthers": false, "targetFilters": { "allies": true, "enemies": false, "bosses": false, "players": true } }
 }
 

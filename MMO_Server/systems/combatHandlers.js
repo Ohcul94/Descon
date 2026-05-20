@@ -12,6 +12,7 @@ const BuffSkill = require('./skills/BuffSkill');
 const AlphaRegenSkill = require('./skills/AlphaRegenSkill');
 const VitalLinkSkill = require('./skills/VitalLinkSkill');
 const WindBarrierSkill = require('./skills/WindBarrierSkill');
+const HealBeaconSkill = require('./skills/HealBeaconSkill');
 
 
 // v247.20: Registro de Habilidades Modulares
@@ -23,6 +24,7 @@ SkillManager.registerSkill(new InvulnerabilitySkill());
 SkillManager.registerSkill(new AlphaRegenSkill());
 SkillManager.registerSkill(new VitalLinkSkill());
 SkillManager.registerSkill(new WindBarrierSkill());
+SkillManager.registerSkill(new HealBeaconSkill());
 
 
 // Habilidades de Curación/Soporte

@@ -227,7 +227,7 @@ func _draw():
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas (Solo queremos el punto)
 		var s_name = current_skill.get("skill_name", "")
-		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and s_name != "BARRERA DE VIENTO":
+		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and s_name != "BARRERA DE VIENTO" and s_name != "BALIZA DE CURACION":
 			draw_line(Vector2.ZERO, end_point, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
 		if s_name == "BARRERA DE VIENTO":
@@ -249,6 +249,17 @@ func _draw():
 			draw_line(pt_a, pt_a + push_dir * 18.0, Color(0.3, 0.9, 1.0, 0.4), 2.0)
 			draw_line(pt_b, pt_b + push_dir * 18.0, Color(0.3, 0.9, 1.0, 0.4), 2.0)
 			draw_line(end_point, end_point + push_dir * 25.0, Color(0.3, 0.9, 1.0, 0.6), 2.0)
+		elif s_name == "BALIZA DE CURACION":
+			var radius_val = 200.0
+			if GameConstants.SKILLS_DATA.has(s_name):
+				radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 200.0))
+			
+			# Círculo externo del área de cobertura
+			draw_arc(end_point, radius_val, 0, TAU, 64, Color(0.1, 0.9, 0.2, 0.35), 2.0)
+			# Relleno del área
+			draw_circle(end_point, radius_val, Color(0.1, 0.9, 0.2, 0.08))
+			# Núcleo del dispositivo
+			draw_circle(end_point, 8.0, Color(0.1, 0.9, 0.2, 0.9))
 		else:
 			draw_circle(end_point, 8.0, color)
 		

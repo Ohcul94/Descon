@@ -49,6 +49,7 @@ signal clan_data(data)
 signal clan_member_status(data)
 signal spawn_area(data)
 signal remove_area(data)
+signal beacon_pulse(data)
 signal blindness_event(data)
 signal interference_event(data) # v268.30
 signal freeze_event(data) # v268.40
@@ -256,6 +257,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"clanMemberStatus": clan_member_status.emit(e_data)
 		"spawnArea": spawn_area.emit(e_data)
 		"removeArea": remove_area.emit(e_data)
+		"beaconPulse": beacon_pulse.emit(e_data)
 		"blindState": blind_state.emit(e_data)
 		"blindnessEvent": blindness_event.emit(e_data)
 		"interferenceEvent": interference_event.emit(e_data) # v268.30

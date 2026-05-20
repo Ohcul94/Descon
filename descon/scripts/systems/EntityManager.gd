@@ -32,6 +32,7 @@ func setup(world_ref):
 	NetworkManager.remote_skill_used.connect(_on_remote_skill_used)
 	NetworkManager.spawn_area.connect(_on_spawn_area)
 	NetworkManager.remove_area.connect(_on_remove_area)
+	NetworkManager.beacon_pulse.connect(_on_beacon_pulse)
 	NetworkManager.hook_pulled.connect(_on_hook_pulled)
 
 func _process(delta):
@@ -468,6 +469,8 @@ func _on_spawn_area(data: Dictionary):
 		_spawn_vital_link_vfx(id, data)
 	elif type == "WIND_BARRIER":
 		_spawn_wind_barrier_vfx(id, Vector2(data.x, data.y), data.radius, data)
+	elif type == "HEAL_BEACON":
+		_spawn_heal_beacon_vfx(id, Vector2(data.x, data.y), data.radius, data)
 
 func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
 
@@ -747,6 +750,32 @@ func _on_remove_area(data: Dictionary):
 			tw.tween_property(area, "scale", Vector2.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 			tw.tween_property(area, "modulate:a", 0.0, 0.15)
 			tw.chain().tween_callback(area.queue_free)
+
+func _spawn_heal_beacon_vfx(id, pos, radius, data = {}):
+	if active_areas.has(id): return
+	
+	var vfx_script = load("res://scripts/vfx/HealBeaconVFX.gd")
+	if vfx_script:
+		var beacon = vfx_script.new()
+		beacon.name = id
+		beacon.global_position = pos
+		beacon.radius = radius
+		beacon.z_index = 2 # Capa alta de efectos terrestres y boyas
+		
+		if is_instance_valid(world) and is_instance_valid(world.entities_node):
+			world.entities_node.add_child(beacon)
+		else:
+			get_parent().add_child(beacon)
+			
+		active_areas[id] = beacon
+
+func _on_beacon_pulse(data: Dictionary):
+	var id = data.get("id", "")
+	if active_areas.has(id):
+		var beacon = active_areas[id]
+		if is_instance_valid(beacon) and beacon.has_method("pulse"):
+			var pulse_radius = float(data.get("radius", 200.0))
+			beacon.pulse(pulse_radius)
 
 func _spawn_smoke_cloud(id, pos, radius):
 	if active_areas.has(id): return
