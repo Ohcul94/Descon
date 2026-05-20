@@ -65,41 +65,7 @@ shadow_enabled = true
 
 [node name="Asteroids3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=378578519]
 
-[node name="CentralDecorAsteroid" type="CSGSphere3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D" unique_id=739622945]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, -5, 20)
-radius = 4.0
-radial_segments = 24
-rings = 16
-material = SubResource("StandardMaterial3D_rock")
-
-[node name="OuterAsteroid" type="CSGSphere3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D" unique_id=2058207942]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, -2, 30)
-radius = 2.5
-radial_segments = 16
-rings = 12
-material = SubResource("StandardMaterial3D_rock")
-
 [node name="Walls3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=2087470845]
-
-[node name="MetalWall_1" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D" unique_id=442655870]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 14)
-size = Vector3(6, 5, 6)
-material = SubResource("StandardMaterial3D_metal")
-
-[node name="MetalWall_2" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D" unique_id=1731548236]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 14)
-size = Vector3(6, 5, 6)
-material = SubResource("StandardMaterial3D_metal")
-
-[node name="MetalWall_3" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D" unique_id=1294788576]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 26)
-size = Vector3(6, 5, 6)
-material = SubResource("StandardMaterial3D_metal")
-
-[node name="MetalWall_4" type="CSGBox3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Walls3D" unique_id=528907532]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 26, 0, 26)
-size = Vector3(6, 5, 6)
-material = SubResource("StandardMaterial3D_metal")
 
 [node name="ParallaxBackground" type="ParallaxBackground" parent="." unique_id=28182905]
 layer = -25
@@ -133,39 +99,4 @@ z_index = -5
 
 [node name="Asteroids" type="Node2D" parent="." unique_id=1262042362]
 
-[node name="OuterAsteroidPhysical" type="StaticBody2D" parent="Asteroids" unique_id=1668538123 groups=["obstacles"]]
-position = Vector2(500, 1500)
-collision_layer = 2
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Asteroids/OuterAsteroidPhysical" unique_id=114414152]
-shape = SubResource("CircleShape2D_outer_asteroid")
-
 [node name="Walls" type="Node2D" parent="." unique_id=1788828939]
-
-[node name="MetalWallPhysical_1" type="StaticBody2D" parent="Walls" unique_id=118028185 groups=["obstacles"]]
-position = Vector2(700, 700)
-collision_layer = 2
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_1" unique_id=2139877264]
-shape = SubResource("RectangleShape2D_wall")
-
-[node name="MetalWallPhysical_2" type="StaticBody2D" parent="Walls" unique_id=669197770 groups=["obstacles"]]
-position = Vector2(1300, 700)
-collision_layer = 2
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_2" unique_id=277624040]
-shape = SubResource("RectangleShape2D_wall")
-
-[node name="MetalWallPhysical_3" type="StaticBody2D" parent="Walls" unique_id=1794094468 groups=["obstacles"]]
-position = Vector2(700, 1300)
-collision_layer = 2
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_3" unique_id=1545864119]
-shape = SubResource("RectangleShape2D_wall")
-
-[node name="MetalWallPhysical_4" type="StaticBody2D" parent="Walls" unique_id=1069052109 groups=["obstacles"]]
-position = Vector2(1300, 1300)
-collision_layer = 2
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/MetalWallPhysical_4" unique_id=1316395918]
-shape = SubResource("RectangleShape2D_wall")

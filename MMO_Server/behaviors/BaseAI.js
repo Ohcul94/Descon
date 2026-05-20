@@ -96,22 +96,32 @@ module.exports = class BaseAI {
         let activeTarget = null;
         let isRevenge = false;
 
-        // 1. REPRESALIA: Prioridad al que me pegó (Si el idleLimit no expiró)
-        if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
-            const idleTime = now - (this.enemy.lastHit || 0);
-            const idleLimit = (this.ambienceBoost) ? 30000 : (cfg.chaseIdleTimeout || 10000); 
-            
-            if (idleTime < idleLimit) {
-                activeTarget = players[this.enemy.lastHitter];
-                isRevenge = true;
-            } else {
-                this.enemy.lastHitter = null; 
+        // v303.0: Soporte prioritario para Provocación (Taunt)
+        if (this.enemy.forcedTarget && players[this.enemy.forcedTarget] && now < this.enemy.tauntEndTime) {
+            const tauntPlayer = players[this.enemy.forcedTarget];
+            if (!tauntPlayer.isDead && !tauntPlayer.isInvisible) {
+                activeTarget = tauntPlayer;
             }
         }
 
-        // 2. PROXIMIDAD: Si soy agresivo y no tengo venganza pendiente, busco al más cercano
-        if (!activeTarget && isAggressive) {
-            activeTarget = potentialTarget;
+        if (!activeTarget) {
+            // 1. REPRESALIA: Prioridad al que me pegó (Si el idleLimit no expiró)
+            if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
+                const idleTime = now - (this.enemy.lastHit || 0);
+                const idleLimit = (this.ambienceBoost) ? 30000 : (cfg.chaseIdleTimeout || 10000); 
+                
+                if (idleTime < idleLimit) {
+                    activeTarget = players[this.enemy.lastHitter];
+                    isRevenge = true;
+                } else {
+                    this.enemy.lastHitter = null; 
+                }
+            }
+
+            // 2. PROXIMIDAD: Si soy agresivo y no tengo venganza pendiente, busco al más cercano
+            if (!activeTarget && isAggressive) {
+                activeTarget = potentialTarget;
+            }
         }
 
         // v3.0: EVALUAR INTERRUPCIÓN DEL REGRESO AL SPAWN (Soft Leash)
@@ -274,6 +284,14 @@ module.exports = class BaseAI {
 
 
     getNearestPlayer(grid, players) {
+        // v303.0: Retornar al jugador provocador si el taunt sigue activo
+        if (this.enemy.forcedTarget && players[this.enemy.forcedTarget] && Date.now() < this.enemy.tauntEndTime) {
+            const tauntPlayer = players[this.enemy.forcedTarget];
+            if (!tauntPlayer.isDead && !tauntPlayer.isInvisible) {
+                return tauntPlayer;
+            }
+        }
+
         let closest = null;
         // v3.0: Rango de visión dinámico configurable desde el Panel de Admin
         const configVision = this.config ? Number(this.config.visionRange) : 0;

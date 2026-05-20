@@ -227,7 +227,7 @@ func _draw():
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas (Solo queremos el punto)
 		var s_name = current_skill.get("skill_name", "")
-		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and s_name != "BARRERA DE VIENTO" and s_name != "BALIZA DE CURACION":
+		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and s_name != "BARRERA DE VIENTO" and s_name != "BALIZA DE CURACION" and s_name != "PROVOCACION":
 			draw_line(Vector2.ZERO, end_point, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
 		if s_name == "BARRERA DE VIENTO":
@@ -260,6 +260,24 @@ func _draw():
 			draw_circle(end_point, radius_val, Color(0.1, 0.9, 0.2, 0.08))
 			# Núcleo del dispositivo
 			draw_circle(end_point, 8.0, Color(0.1, 0.9, 0.2, 0.9))
+		elif s_name == "PROVOCACION":
+			var radius_val = 220.0
+			if GameConstants.SKILLS_DATA.has(s_name):
+				radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 220.0))
+			
+			var time_scale = Time.get_ticks_msec() / 1000.0
+			var charge_factor = fmod(time_scale * 1.5, 1.0)
+			var charge_radius = radius_val * (1.0 - charge_factor)
+			
+			# Círculo del área total (rojo)
+			draw_arc(end_point, radius_val, 0, TAU, 64, Color(1.0, 0.25, 0.2, 0.45), 2.5)
+			draw_circle(end_point, radius_val, Color(1.0, 0.2, 0.2, 0.08))
+			
+			# Anillo de carga concentrándose (naranja)
+			draw_arc(end_point, charge_radius, 0, TAU, 48, Color(1.0, 0.55, 0.1, 0.65), 1.5)
+			
+			# Epicentro
+			draw_circle(end_point, 7.0, Color(1.0, 0.2, 0.2, 0.95))
 		else:
 			draw_circle(end_point, 8.0, color)
 		

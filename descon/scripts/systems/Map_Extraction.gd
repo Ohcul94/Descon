@@ -34,6 +34,7 @@ func _ready():
 			).orthonormalized(),
 			Vector3(0, 30.0, 30.0)
 		)
+		_apply_camera_headlight(camera_3d)
 	
 	# Ajustar el viewport al tamaño inicial de la pantalla
 	_on_window_resized()
@@ -300,6 +301,8 @@ func _process(delta):
 			container.visible = false
 
 func _on_window_resized():
+	if is_instance_valid(viewport_container) and viewport_container.stretch:
+		return
 	var size = get_viewport().size
 	if is_instance_valid(sub_viewport):
 		sub_viewport.set_deferred("size", size)

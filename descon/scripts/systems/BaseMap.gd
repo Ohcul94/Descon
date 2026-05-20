@@ -64,7 +64,12 @@ func _setup_3d_dynamic():
 				sub_viewport.handle_input_locally = false
 				sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 				camera_3d = sub_viewport.get_node_or_null("Camera3D")
+				if is_instance_valid(camera_3d):
+					_apply_camera_headlight(camera_3d)
 				asteroids_3d = sub_viewport.get_node_or_null("Asteroids3D")
+				
+				# Aplicar iluminación mejorada cenital de arriba y ambiental de soporte
+				_apply_ambient_and_zenith_lights(sub_viewport)
 		return
 
 	# Si es un mapa 2D puro (Lobby, Default, etc.), crear lienzo 3D de alta gama programáticamente
@@ -92,17 +97,10 @@ func _setup_3d_dynamic():
 	sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport_container.add_child(sub_viewport)
 	
-	# Entorno global para el SubViewport (Luz ambiental azul oscuro de soporte para conservar relieve 3D)
-	var env_node = WorldEnvironment.new()
-	env_node.name = "WorldEnvironment"
-	var env = Environment.new()
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.15, 0.18, 0.24)
-	env.ambient_light_energy = 1.0
-	env_node.environment = env
-	sub_viewport.add_child(env_node)
+	# Aplicar iluminación mejorada cenital de arriba y ambiental de soporte
+	_apply_ambient_and_zenith_lights(sub_viewport)
 
-	# Iluminación de espacio profundo
+	# Iluminación de espacio profundo (Luz principal con sombras para relieve)
 	var light = DirectionalLight3D.new()
 	light.name = "DirectionalLight3D"
 	light.transform = Transform3D(
@@ -131,14 +129,67 @@ func _setup_3d_dynamic():
 	)
 	camera_3d.current = true
 	sub_viewport.add_child(camera_3d)
+	_apply_camera_headlight(camera_3d)
 	
 	# No instanciamos asteroides procedimentales por defecto para mantener el fondo limpio y libre de esferas fantasma
 		
 	# Manejar redimensionamiento de pantalla de forma reactiva
 	get_tree().get_root().size_changed.connect(func():
+		if is_instance_valid(viewport_container) and viewport_container.stretch:
+			return
 		if is_instance_valid(sub_viewport):
 			sub_viewport.size = get_viewport().size
 	)
+
+func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
+	if not is_instance_valid(sub_vp):
+		return
+		
+	# 1. WorldEnvironment (Asegurar luz ambiental clara de soporte duplicada)
+	var env_node = sub_vp.get_node_or_null("WorldEnvironment")
+	if not is_instance_valid(env_node):
+		env_node = WorldEnvironment.new()
+		env_node.name = "WorldEnvironment"
+		sub_vp.add_child(env_node)
+		
+	var env = env_node.environment
+	if is_instance_valid(env):
+		env = env.duplicate()
+		env_node.environment = env
+	else:
+		env = Environment.new()
+		env_node.environment = env
+		
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.28, 0.32, 0.40) # Azul metálico de soporte claro
+	env.ambient_light_energy = 2.0 # Mayor brillo de base para evitar que queden completamente negras en sombras
+	
+	# 2. Limpieza de DirectionalLight3D_Zenith para liberar slots de luces direccionales en Compatibility mode
+	var zenith = sub_vp.get_node_or_null("DirectionalLight3D_Zenith")
+	if is_instance_valid(zenith):
+		zenith.queue_free()
+
+func _apply_camera_headlight(cam: Camera3D):
+	if not is_instance_valid(cam):
+		return
+		
+	# Limpieza de la luz direccional anterior si existía para evitar conflictos
+	var old_hl = cam.get_node_or_null("CameraHeadlight")
+	if is_instance_valid(old_hl) and old_hl is DirectionalLight3D:
+		old_hl.queue_free()
+		
+	var headlight = cam.get_node_or_null("CameraOmniLight")
+	if not is_instance_valid(headlight):
+		headlight = OmniLight3D.new()
+		headlight.name = "CameraOmniLight"
+		cam.add_child(headlight)
+		
+	headlight.position = Vector3.ZERO # En la misma posición de la cámara
+	headlight.omni_range = 150.0 # Rango amplio para cubrir todo el campo visual
+	headlight.omni_attenuation = 0.05 # Atenuación ultra suave para mantener potencia constante
+	headlight.light_color = Color(1.0, 1.0, 1.0) # Luz blanca pura frontal
+	headlight.light_energy = 2.5 # Energía de soporte potente para brillo frontal constante
+	headlight.shadow_enabled = false # Sin sombras para evitar interferencias y oclusión
 
 func _physics_process(_delta):
 	# --- LOCALIZAR NAVE DEL JUGADOR ---

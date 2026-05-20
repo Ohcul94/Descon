@@ -2586,6 +2586,23 @@
                 "players": false
             }
         },
+        "PROVOCACION": {
+            "name": "PROVOCACION",
+            "type": "Defensa",
+            "cd": 15000,
+            "range": 450,
+            "radius": 220,
+            "taunt_duration": 4000,
+            "canTargetOthers": false,
+            "desc": "Provoca a todos los enemigos en el área elegida, forzándolos a atacarte por un tiempo determinado.",
+            "id": "SK-DEF-06",
+            "targetFilters": {
+                "allies": false,
+                "enemies": true,
+                "bosses": true,
+                "players": false
+            }
+        },
         "BLINK": {
             "canTargetOthers": false,
             "cd": 15000,

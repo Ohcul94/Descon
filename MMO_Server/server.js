@@ -439,6 +439,23 @@ fs.readJson(CONFIG_FILE).then(config => {
             }
         };
     }
+    if (!state.SERVER_CONFIG.skillsData["PROVOCACION"]) {
+        state.SERVER_CONFIG.skillsData["PROVOCACION"] = {
+            "name": "PROVOCACION",
+            "type": "Defensa",
+            "cd": 15000,
+            "range": 450,
+            "radius": 220,
+            "taunt_duration": 4000,
+            "canTargetOthers": false,
+            "targetFilters": {
+                "allies": false,
+                "enemies": true,
+                "bosses": true,
+                "players": false
+            }
+        };
+    }
 
     
     console.log('\x1b[35m[SERVER]\x1b[0m Configuración maestro cargada y habilidades inyectadas.');
