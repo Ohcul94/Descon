@@ -53,6 +53,7 @@ var _collision_shape: CollisionShape2D = null
 var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
 var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo LoL
+var _stealth_material: StandardMaterial3D = null
 var _cached_viewport: SubViewport = null # Cache para frustum culling
 
 func _ready():
@@ -1602,7 +1603,18 @@ func _update_invisibility_visuals(invisible: bool):
 			sprite.modulate.a = 0.5 if is_ally else 0.0
 			
 		if is_instance_valid(world_root_3d):
-			world_root_3d.visible = false
+			world_root_3d.visible = is_ally
+			
+		if is_instance_valid(_3d_model):
+			if is_ally:
+				if not _stealth_material:
+					_stealth_material = StandardMaterial3D.new()
+					_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+					_stealth_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					_stealth_material.albedo_color = Color(0.15, 0.65, 0.95, 0.28) # Holograma de sigilo translúcido cian/azul
+				_apply_material_recursive(_3d_model, _stealth_material, false)
+			else:
+				_apply_material_recursive(_3d_model, null, false)
 			
 		# HUD y Textos: SOLO para aliados
 		if is_instance_valid(name_tag): name_tag.visible = is_ally
@@ -1617,6 +1629,10 @@ func _update_invisibility_visuals(invisible: bool):
 		var is_single = get_meta("is_single_world", false)
 		if is_instance_valid(world_root_3d):
 			world_root_3d.visible = true
+			
+		if is_instance_valid(_3d_model):
+			_apply_material_recursive(_3d_model, null, false) # Restaurar material original
+			
 		if is_instance_valid(sprite): 
 			sprite.visible = not is_single
 			sprite.modulate.a = 1.0
