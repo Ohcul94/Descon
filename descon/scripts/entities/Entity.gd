@@ -1536,9 +1536,9 @@ func _spawn_death_vfx():
 		if world: world.add_child(wrapper)
 		else: get_parent().add_child(wrapper)
 		
-		# Configuración del Viewport 3D (Escala Controlada)
+		# Configuración del Viewport 3D (Escala Controlada para evitar cortes cuadrados)
 		var vp = SubViewport.new()
-		vp.size = Vector2i(256, 256) # Resolución optimizada
+		vp.size = Vector2i(384, 384) # Resolución expandida para margen de partículas
 		vp.transparent_bg = true
 		wrapper.add_child(vp)
 		
@@ -1548,7 +1548,7 @@ func _spawn_death_vfx():
 		var cam = Camera3D.new()
 		cam.position = Vector3(0, 0, 10)
 		cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-		cam.size = 6.0 # v4.8: Escala mucho más pequeña y táctica
+		cam.size = 12.0 # Captura un área mayor para dispersión de chispas y fragmentos
 		view_3d.add_child(cam)
 		
 		view_3d.add_child(explosion_3d)
