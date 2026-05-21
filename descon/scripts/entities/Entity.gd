@@ -1306,6 +1306,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	var model_scene = load(glb_path)
 	if model_scene:
 		var model = model_scene.instantiate()
+		_clean_internal_lights(model)
 		
 		# CREAMOS UN NODO DE CONTROL (Padre) 
 		var control_node = Node3D.new()
@@ -1479,6 +1480,8 @@ func _update_3d_spheres():
 		var s_path = "res://assets/Esferas/3D/Esfera" + color_name + "/Esfera" + color_name + ".glb"
 		if ResourceLoader.exists(s_path):
 			var s_scene = load(s_path).instantiate()
+			_clean_internal_lights(s_scene)
+			_setup_sphere_materials_recursive(s_scene, color_name)
 			accessory_pivot_3d.add_child(s_scene)
 			_3d_spheres[i] = s_scene
 			var a = i * (PI/2.0)
@@ -1669,6 +1672,45 @@ func _apply_material_recursive(p_node, p_mat, is_overlay: bool):
 		else: p_node.material_override = p_mat
 	for child in p_node.get_children():
 		_apply_material_recursive(child, p_mat, is_overlay)
+
+func _clean_internal_lights(node: Node):
+	if not is_instance_valid(node):
+		return
+	if node is Light3D:
+		print("[3D-LIGHT-CLEAN] Eliminando luz interna del modelo: ", node.name)
+		node.queue_free()
+	for child in node.get_children():
+		_clean_internal_lights(child)
+
+func _setup_sphere_materials_recursive(node: Node, color_name: String):
+	if not is_instance_valid(node):
+		return
+	if node is MeshInstance3D:
+		var mat = node.material_override
+		if not mat:
+			mat = node.get_active_material(0)
+		if mat and mat is StandardMaterial3D:
+			# Duplicar el material para hacerlo único y que no afecte otros elementos
+			mat = mat.duplicate()
+			node.material_override = mat
+			
+			# Habilitar emisión para que brille y no se apague al girar
+			mat.emission_enabled = true
+			mat.emission_energy_multiplier = 1.0 # Brillo equilibrado
+			
+			var emit_color = Color.WHITE
+			match color_name.to_lower():
+				"roja": emit_color = Color(1.0, 0.15, 0.15)
+				"azul": emit_color = Color(0.15, 0.4, 1.0)
+				"verde": emit_color = Color(0.15, 1.0, 0.15)
+				"amarilla": emit_color = Color(1.0, 0.85, 0.15)
+				
+			mat.emission = emit_color
+			if mat.albedo_texture:
+				mat.emission_operator = StandardMaterial3D.EMISSION_OP_MULTIPLY
+				mat.emission_texture = mat.albedo_texture
+	for child in node.get_children():
+		_setup_sphere_materials_recursive(child, color_name)
 
 func _exit_tree():
 	if is_instance_valid(world_root_3d):

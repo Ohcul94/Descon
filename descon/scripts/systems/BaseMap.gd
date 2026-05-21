@@ -9,7 +9,7 @@ class_name BaseMap
 
 @export var scale_factor: float = 0.02 # Relación 2D a 3D
 @export var camera_height: float = 30.0
-@export var use_orthogonal: bool = false
+@export var use_orthogonal: bool = true
 
 # Referencias dinámicas
 var viewport_container: SubViewportContainer = null
@@ -173,23 +173,22 @@ func _apply_camera_headlight(cam: Camera3D):
 	if not is_instance_valid(cam):
 		return
 		
-	# Limpieza de la luz direccional anterior si existía para evitar conflictos
-	var old_hl = cam.get_node_or_null("CameraHeadlight")
-	if is_instance_valid(old_hl) and old_hl is DirectionalLight3D:
-		old_hl.queue_free()
+	# Limpieza de la luz omni anterior si existía para evitar conflictos
+	var old_omni = cam.get_node_or_null("CameraOmniLight")
+	if is_instance_valid(old_omni) and old_omni is OmniLight3D:
+		old_omni.queue_free()
 		
-	var headlight = cam.get_node_or_null("CameraOmniLight")
+	var headlight = cam.get_node_or_null("CameraHeadlight")
 	if not is_instance_valid(headlight):
-		headlight = OmniLight3D.new()
-		headlight.name = "CameraOmniLight"
+		headlight = DirectionalLight3D.new()
+		headlight.name = "CameraHeadlight"
 		cam.add_child(headlight)
 		
-	headlight.position = Vector3.ZERO # En la misma posición de la cámara
-	headlight.omni_range = 150.0 # Rango amplio para cubrir todo el campo visual
-	headlight.omni_attenuation = 0.05 # Atenuación ultra suave para mantener potencia constante
+	headlight.rotation = Vector3.ZERO # Apunta en la misma dirección de la cámara
 	headlight.light_color = Color(1.0, 1.0, 1.0) # Luz blanca pura frontal
-	headlight.light_energy = 2.5 # Energía de soporte potente para brillo frontal constante
-	headlight.shadow_enabled = false # Sin sombras para evitar interferencias y oclusión
+	headlight.light_energy = 1.8 # Energía para un brillo constante uniforme sin decaer
+	headlight.light_specular = 0.2 # Brillo especular suave
+	headlight.shadow_enabled = false # Sin sombras para evitar oclusión y mantener visibilidad
 
 func _physics_process(_delta):
 	# --- LOCALIZAR NAVE DEL JUGADOR ---

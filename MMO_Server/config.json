@@ -2589,7 +2589,7 @@
         "PROVOCACION": {
             "name": "PROVOCACION",
             "type": "Defensa",
-            "cd": 15000,
+            "cd": 2000,
             "range": 450,
             "radius": 220,
             "taunt_duration": 4000,
@@ -2600,7 +2600,7 @@
                 "allies": false,
                 "enemies": true,
                 "bosses": true,
-                "players": false
+                "players": true
             }
         },
         "BLINK": {

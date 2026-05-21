@@ -1,103 +1,118 @@
+# e:/Descon/descon/scripts/vfx/TauntVFX.gd
 extends Node2D
+class_name TauntVFX
 
-var caster_id: String = ""
-var affected_enemy_ids: Array = []
-var radius: float = 220.0
-var duration_ms: float = 4000.0
+@export var line_color: Color = Color(1.0, 0.0, 0.0, 1.0) # Rojo
+@export var line_width: float = 2.0
+@export var line_duration: float = 0.5 # Duración de la contracción de las líneas
+@export var wave_duration: float = 0.3 # Duración de la onda expansiva
+@export var wave_max_radius_factor: float = 1.5 # Factor para el radio máximo de la onda
+@export var chat_bubble_duration: float = 2.0 # Duración de la burbuja de chat
+@export var chat_bubble_offset: Vector2 = Vector2(0, -50) # Offset para la burbuja
 
-var wave_radius: float = 0.0
-var wave_alpha: float = 1.0
-var elapsed_time: float = 0.0
-var max_life: float = 0.8 # duración total del efecto visual en segundos
+var _caster_node: Node2D
+var _affected_enemy_nodes: Array[Node2D] = []
+var _epicenter_pos: Vector2
+var _radius: float
+var _duration: float
 
-var caster_node: Node2D = null
-var enemy_nodes: Array = []
+var _line_tween: Tween
+var _wave_tween: Tween
+var _chat_bubble_timer: Timer
+
+var _current_wave_radius: float = 0.0
+var _current_wave_opacity: float = 1.0
+var _start_time: float = 0.0
 
 func _ready():
-	# Intentar buscar el caster
-	var world = get_tree().current_scene
-	if is_instance_valid(world):
-		var em = world.get("entity_manager")
-		if is_instance_valid(em):
-			# Buscar caster
-			if is_instance_valid(world.get("local_player")) and world.local_player.entity_id == caster_id:
-				caster_node = world.local_player
-			elif em.get("remote_players") and em.remote_players.has(caster_id):
-				caster_node = em.remote_players[caster_id]
-			
-			# Buscar enemigos y mostrar burbuja de enojo
-			for eid in affected_enemy_ids:
-				if em.get("enemies") and em.enemies.has(eid):
-					var enemy = em.enemies[eid]
-					if is_instance_valid(enemy):
-						enemy_nodes.append(enemy)
-						if enemy.has_method("show_bubble"):
-							enemy.show_bubble("😡") # Emoticón de enojo
+    set_process(false) # Desactivar _process por defecto
 
-	# Tweens para la onda expansiva
-	var tween = create_tween().set_parallel(true)
-	tween.tween_property(self, "wave_radius", radius, 0.45).set_trans(Tween.TRANS_OUT).set_ease(Tween.EASE_CUBIC)
-	tween.tween_property(self, "wave_alpha", 0.0, 0.65).set_trans(Tween.TRANS_IN).set_ease(Tween.EASE_QUAD)
-	
-	# Auto destrucción tras completarse el ciclo visual
-	get_tree().create_timer(max_life).timeout.connect(queue_free)
+func init(caster_node: Node2D, affected_enemy_nodes: Array[Node2D], epicenter_pos: Vector2, radius: float, duration: float):
+    _caster_node = caster_node
+    _affected_enemy_nodes = affected_enemy_nodes
+    _epicenter_pos = epicenter_pos
+    _radius = radius
+    _duration = duration / 1000.0 # Convertir ms a segundos
 
-func _process(delta: float):
-	elapsed_time += delta
-	queue_redraw()
+    global_position = _epicenter_pos # Posicionar el VFX en el epicentro
+    _start_time = Time.get_ticks_msec() / 1000.0
+    set_process(true)
+    _play_vfx()
+
+func _play_vfx():
+    # Epicentro: Destello de descarga y onda expansiva
+    _current_wave_radius = 0.0
+    _current_wave_opacity = 1.0
+    _wave_tween = create_tween()
+    _wave_tween.tween_property(self, "_current_wave_radius", _radius * wave_max_radius_factor, wave_duration).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+    _wave_tween.tween_property(self, "_current_wave_opacity", 0.0, wave_duration).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+    _wave_tween.finished.connect(queue_redraw) # Asegurar que se redibuje al finalizar
+
+    # Hilos de Agarre: Líneas rojas zigzagueantes
+    _line_tween = create_tween()
+    _line_tween.set_parallel(true)
+    for enemy_node in _affected_enemy_nodes:
+        if is_instance_valid(enemy_node):
+            # Simular contracción de las líneas
+            # Podrías usar un Line2D real y animar sus puntos, o dibujarlo en _draw
+            pass # La lógica de dibujo estará en _draw
+    _line_tween.tween_interval(line_duration) # Solo para que el tween tenga una duración
+    _line_tween.finished.connect(queue_redraw)
+
+    # Efecto de Provocación: Burbuja de chat "💢"
+    for enemy_node in _affected_enemy_nodes:
+        if is_instance_valid(enemy_node):
+            _show_chat_bubble(enemy_node, "💢")
+
+    # Destruir el VFX después de la duración de la provocación + un pequeño margen
+    get_tree().create_timer(_duration + 0.5).timeout.connect(queue_free)
 
 func _draw():
-	# 1. Dibujar onda expansiva de taunt (rojo brillante con núcleo)
-	if wave_alpha > 0.01:
-		# Anillo exterior
-		draw_arc(Vector2.ZERO, wave_radius, 0.0, TAU, 64, Color(1.0, 0.15, 0.1, wave_alpha * 0.8), 6.0 - 4.0 * (wave_radius / radius))
-		# Relleno desvanecido
-		draw_circle(Vector2.ZERO, wave_radius, Color(1.0, 0.1, 0.1, wave_alpha * 0.15))
-		
-		# Ondas de pulso secundarias concéntricas
-		var ring2 = wave_radius * 0.6
-		if ring2 < radius:
-			draw_arc(Vector2.ZERO, ring2, 0.0, TAU, 48, Color(1.0, 0.3, 0.1, wave_alpha * 0.4), 2.0)
-	
-	# 2. Dibujar hilos / cadenas de energía entre el epicentro y los enemigos
-	var fade_factor = clamp(1.0 - (elapsed_time / max_life), 0.0, 1.0)
-	if fade_factor > 0.0:
-		for enemy in enemy_nodes:
-			if is_instance_valid(enemy):
-				# Posición del enemigo relativa a este VFX
-				var p0 = Vector2.ZERO # Centro del taunt
-				var p1 = to_local(enemy.global_position)
-				
-				# Dibujar filamentos vibrantes de plasma rojo
-				_draw_electric_line(p0, p1, Color(1.0, 0.2, 0.1, fade_factor * 0.9), 3.0)
-				_draw_electric_line(p0, p1, Color(1.0, 0.7, 0.2, fade_factor * 1.0), 1.0) # Centro incandescente amarillo
-				
-				# Efecto de pulso fluyendo hacia el centro
-				var segments = 12
-				var time_offset = elapsed_time * 6.0
-				var flow_pos = fmod(time_offset, 1.0)
-				var pulse_pt = p0.lerp(p1, 1.0 - flow_pos)
-				draw_circle(pulse_pt, 5.0, Color(1.0, 0.9, 0.5, fade_factor))
+    # Dibujar la onda expansiva
+    if _current_wave_opacity > 0.01:
+        var wave_color = line_color
+        wave_color.a = _current_wave_opacity
+        draw_arc(Vector2.ZERO, _current_wave_radius, 0, TAU, 64, wave_color, line_width * 2, true)
 
-func _draw_electric_line(from: Vector2, to: Vector2, color: Color, width: float):
-	var points = PackedVector2Array()
-	var steps = 10
-	var diff = to - from
-	var dir = diff.normalized()
-	var normal = Vector2(-dir.y, dir.x)
-	
-	points.append(from)
-	
-	for i in range(1, steps):
-		var t = float(i) / steps
-		var pt = from.lerp(to, t)
-		
-		# Modulador de ruido eléctrico usando senos y la hora del juego
-		var noise = sin(t * PI * 3.0 + elapsed_time * 30.0) * 12.0 * (1.0 - t) * t
-		pt += normal * noise
-		points.append(pt)
-		
-	points.append(to)
-	
-	for i in range(points.size() - 1):
-		draw_line(points[i], points[i+1], color, width)
+    # Dibujar los hilos de agarre
+    var current_time = Time.get_ticks_msec() / 1000.0
+    var line_progress = 1.0
+    
+    line_progress = clamp((current_time - _start_time) / line_duration, 0.0, 1.0)
+
+    for enemy_node in _affected_enemy_nodes:
+        if is_instance_valid(enemy_node):
+            var epicenter_rel = Vector2.ZERO 
+            var end_pos = to_local(enemy_node.global_position)
+
+            # Las líneas viajan del enemigo hacia el centro (contracción)
+            # Usamos animated_start_pos para que el hilo "tire" del enemigo
+            var animated_start_pos = epicenter_rel.lerp(end_pos, 1.0 - line_progress)
+            
+            # Dibujar líneas zigzagueantes (ejemplo simple, puedes usar Line2D o más puntos)
+            var num_segments = 5
+            var current_point = animated_start_pos
+            for i in range(num_segments):
+                var next_point = animated_start_pos.lerp(end_pos, float(i + 1) / num_segments)
+                var offset_dir = (next_point - current_point).rotated(PI / 2).normalized()
+                var wobble_amount = sin(current_time * 10.0 + i) * 5.0 # Efecto de "wobble"
+                var mid_point = current_point.lerp(next_point, 0.5) + offset_dir * wobble_amount
+                draw_line(current_point, mid_point, line_color, line_width)
+                draw_line(mid_point, next_point, line_color, line_width)
+                current_point = next_point
+
+    queue_redraw() # Para animar las líneas y la onda
+
+func _show_chat_bubble(target_node: Node2D, text: String):
+    # Instanciar una burbuja de chat (Label o TextureRect con texto)
+    var chat_bubble = Label.new()
+    chat_bubble.text = text
+    chat_bubble.add_theme_font_size_override("font_size", 24)
+    chat_bubble.add_theme_color_override("font_color", Color.WHITE)
+    chat_bubble.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+    chat_bubble.position = chat_bubble_offset
+    target_node.add_child(chat_bubble)
+
+    var bubble_tween = create_tween()
+    bubble_tween.tween_property(chat_bubble, "modulate:a", 0.0, chat_bubble_duration).set_delay(chat_bubble_duration * 0.5)
+    bubble_tween.finished.connect(chat_bubble.queue_free)
