@@ -40,32 +40,32 @@ function registerZoneHandlers(socket, io, state) {
         socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
         socket.to(`zone_${newZone}`).emit('newPlayer', { ...p, id: socket.id, spheres: p.spheres });
 
-        // --- SYNC: Recopilar otros jugadores en la nueva zona ---
+        // v268.66: Sincronización Unificada y Purga Administrativa
         const currentPlayersInZone = {};
         Object.keys(players).forEach(pId => {
             const otherP = players[pId];
             if (normalizeZone(otherP.zone) === normalizeZone(newZone) && pId !== socket.id) {
                 const { ai, ...cleanP } = otherP;
-                currentPlayersInZone[pId] = {
-                    ...cleanP,
-                    id: pId,
-                    zone: newZone,
-                    maxHp: otherP.maxHp || 2000,
-                    maxShield: otherP.maxShield || 1000,
-                    spheres: otherP.spheres || []
-                };
+                currentPlayersInZone[pId] = { ...cleanP, id: pId, zone: newZone };
             }
         });
 
-        // --- SYNC: Recopilar enemigos en la nueva zona ---
         const zoneEnemies = {};
-        Object.keys(enemies).forEach(eid => {
-            const e = enemies[eid];
+        let purgeCount = 0;
+        Object.keys(enemies).forEach(id => {
+            const e = enemies[id];
             if (normalizeZone(e.zone) === normalizeZone(newZone)) {
-                const { ai, ...cleanData } = e;
-                zoneEnemies[eid] = cleanData;
+                if (e.hp <= 0 || e.isDead || !e.ai) {
+                    delete enemies[id];
+                    purgeCount++;
+                } else {
+                    const { ai, ...cleanData } = e;
+                    zoneEnemies[id] = cleanData;
+                }
             }
         });
+
+        if (purgeCount > 0) Logger.debug('ADMIN-CLEANUP', `Zona ${newZone}: ${purgeCount} residuos purgados.`);
 
         setTimeout(() => {
             if (socket.connected) {
@@ -167,45 +167,33 @@ function registerZoneHandlers(socket, io, state) {
             socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
             socket.to(`zone_${zoneId}`).emit('newPlayer', { ...p, id: socket.id, spheres: p.spheres });
 
-            // v225.70: LIMPIEZA DE RESIDUOS - Solo borrar si están muertos o corruptos (Evita resetear bichos vivos)
-            if (Number(zoneId) >= 2) {
-                let purgeCount = 0;
-                Object.keys(enemies).forEach(eid => {
-                    const e = enemies[eid];
-                    if (e && e.zone === zoneId && (e.hp <= 0 || !e.ai)) {
-                        delete enemies[eid];
-                        purgeCount++;
-                    }
-                });
-                if (purgeCount > 0) Logger.debug('CLEANUP', `Zona ${zoneId}: ${purgeCount} residuos purgados.`);
-            }
-
-            // v268.61: Sincronización Unificada - Agrupar entidades para evitar jitter inicial
+            // v268.66: Sincronización Unificada y Purga de Entidades Muertas
             const currentPlayersInZone = {};
             Object.keys(players).forEach(pId => {
                 const otherP = players[pId];
                 if (normalizeZone(otherP.zone) === normalizeZone(zoneId) && pId !== socket.id) {
                     const { ai, ...cleanP } = otherP;
-                    currentPlayersInZone[pId] = {
-                        ...cleanP,
-                        id: pId,
-                        zone: zoneId,
-                        maxHp: otherP.maxHp || 2000,
-                        maxShield: otherP.maxShield || 1000,
-                        spheres: otherP.spheres || []
-                    };
+                    currentPlayersInZone[pId] = { ...cleanP, id: pId, zone: zoneId };
                 }
             });
 
             const zoneEnemies = {};
+            let purgeCount = 0;
             Object.keys(enemies).forEach(id => {
-                if (normalizeZone(enemies[id].zone) === normalizeZone(zoneId)) {
-                    const { ai, ...cleanData } = enemies[id];
-                    zoneEnemies[id] = cleanData;
+                const e = enemies[id];
+                if (normalizeZone(e.zone) === normalizeZone(zoneId)) {
+                    if (e.hp <= 0 || e.isDead || !e.ai) {
+                        delete enemies[id];
+                        purgeCount++;
+                    } else {
+                        const { ai, ...cleanData } = e;
+                        zoneEnemies[id] = cleanData;
+                    }
                 }
             });
 
-            Logger.debug('ZONE-SYNC', `${p.user} en zona ${zoneId}. Sincronizando ${Object.keys(currentPlayersInZone).length} pilotos y ${Object.keys(zoneEnemies).length} enemigos.`);
+            if (purgeCount > 0) Logger.debug('CLEANUP', `Sector ${zoneId}: ${purgeCount} entidades muertas purgadas.`);
+            Logger.debug('ZONE-SYNC', `${p.user} en zona ${zoneId}. Enviando ${Object.keys(currentPlayersInZone).length} pilotos y ${Object.keys(zoneEnemies).length} enemigos.`);
             
             setTimeout(() => {
                 if (socket.connected) {
@@ -215,7 +203,6 @@ function registerZoneHandlers(socket, io, state) {
             }, 500);
 
             socket.emit('gameNotification', { msg: `Salto exitoso a Sector ${zoneId}`, type: 'success' });
-
         } catch (e) {
             console.error("Error en changeZone:", e);
         }
