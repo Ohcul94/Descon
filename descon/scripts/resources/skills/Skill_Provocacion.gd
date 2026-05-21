@@ -4,7 +4,7 @@ class_name Skill_Provocacion
 func _init():
 	skill_name = "PROVOCACION"
 	description = "Provoca a todos los enemigos en el área elegida, forzándolos a atacarte."
-	type = "Defensa"
+	type = "Ataque"
 	cooldown = 15.0
 
 func activate(player: CharacterBody2D):

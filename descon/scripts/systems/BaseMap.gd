@@ -161,8 +161,17 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 		env_node.environment = env
 		
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.28, 0.32, 0.40) # Azul metálico de soporte claro
-	env.ambient_light_energy = 2.0 # Mayor brillo de base para evitar que queden completamente negras en sombras
+	env.ambient_light_color = Color(0.9, 0.9, 0.9) # Luz ambiente neutra muy clara (sin tintes oscuros)
+	env.ambient_light_energy = 2.2 # Potente energía ambiental para eliminar partes negras o en penumbra
+	
+	# Desactivar sombras en todas las luces del Viewport para evitar áreas negras
+	for child in sub_vp.get_children():
+		if child is Light3D:
+			child.shadow_enabled = false
+			# Evitar que las luces direccionales quemen la escena
+			if child is DirectionalLight3D:
+				child.light_energy = min(child.light_energy, 1.0)
+				child.light_color = Color(1.0, 1.0, 1.0) # Luz blanca para mantener fidelidad de color
 	
 	# 2. Limpieza de DirectionalLight3D_Zenith para liberar slots de luces direccionales en Compatibility mode
 	var zenith = sub_vp.get_node_or_null("DirectionalLight3D_Zenith")

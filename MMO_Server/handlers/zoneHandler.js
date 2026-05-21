@@ -180,33 +180,23 @@ function registerZoneHandlers(socket, io, state) {
                 if (purgeCount > 0) Logger.debug('CLEANUP', `Zona ${zoneId}: ${purgeCount} residuos purgados.`);
             }
 
-            // v268.60: FIX DEFINITIVO - Sincronizar jugadores actuales en la zona destino
+            // v268.61: Sincronización Unificada - Agrupar entidades para evitar jitter inicial
             const currentPlayersInZone = {};
             Object.keys(players).forEach(pId => {
                 const otherP = players[pId];
                 if (normalizeZone(otherP.zone) === normalizeZone(zoneId) && pId !== socket.id) {
-                    const { ai, ...cleanP } = otherP; // Evitar referencias circulares
+                    const { ai, ...cleanP } = otherP;
                     currentPlayersInZone[pId] = {
                         ...cleanP,
                         id: pId,
-                        zone: zoneId, // Asegurar que la zona es la correcta
+                        zone: zoneId,
                         maxHp: otherP.maxHp || 2000,
                         maxShield: otherP.maxShield || 1000,
                         spheres: otherP.spheres || []
                     };
                 }
             });
-            
-            const playerCount = Object.keys(currentPlayersInZone).length;
-            Logger.debug('ZONE-SYNC', `${p.user} llegó a zona ${zoneId}. Enviando ${playerCount} pilotos en 500ms...`);
-            
-            // Delay para que el cliente termine de procesar changeZoneDone antes de recibir jugadores
-            setTimeout(() => {
-                socket.emit('currentPlayers', currentPlayersInZone);
-                Logger.debug('ZONE-SYNC', `currentPlayers enviado a ${p.user}: ${playerCount} pilotos.`);
-            }, 500);
 
-            // Sincronizar enemigos de la zona (inmediato, el cliente ya sabe manejarlos)
             const zoneEnemies = {};
             Object.keys(enemies).forEach(id => {
                 if (normalizeZone(enemies[id].zone) === normalizeZone(zoneId)) {
@@ -214,7 +204,16 @@ function registerZoneHandlers(socket, io, state) {
                     zoneEnemies[id] = cleanData;
                 }
             });
-            socket.emit('currentEnemies', zoneEnemies);
+
+            Logger.debug('ZONE-SYNC', `${p.user} en zona ${zoneId}. Sincronizando ${Object.keys(currentPlayersInZone).length} pilotos y ${Object.keys(zoneEnemies).length} enemigos.`);
+            
+            setTimeout(() => {
+                if (socket.connected) {
+                    socket.emit('currentPlayers', currentPlayersInZone);
+                    socket.emit('currentEnemies', zoneEnemies);
+                }
+            }, 500);
+
             socket.emit('gameNotification', { msg: `Salto exitoso a Sector ${zoneId}`, type: 'success' });
 
         } catch (e) {
