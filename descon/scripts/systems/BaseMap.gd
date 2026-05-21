@@ -199,7 +199,7 @@ func _apply_camera_headlight(cam: Camera3D):
 	headlight.light_specular = 0.2 # Brillo especular suave
 	headlight.shadow_enabled = false # Sin sombras para evitar oclusión y mantener visibilidad
 
-func _physics_process(_delta):
+func _process(_delta):
 	# --- LOCALIZAR NAVE DEL JUGADOR ---
 	if not is_instance_valid(player_node):
 		var players = get_tree().get_nodes_in_group("player")
@@ -212,6 +212,7 @@ func _physics_process(_delta):
 	
 	var cam_2d = get_viewport().get_camera_2d()
 	if is_instance_valid(cam_2d):
+		cam_2d.force_update_scroll() # Forzar actualización inmediata para evitar desfase de 1 frame (efecto acordeón)
 		target_pos = cam_2d.get_screen_center_position()
 		current_zoom = cam_2d.zoom.x
 	else:

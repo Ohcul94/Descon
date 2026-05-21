@@ -176,49 +176,6 @@ func _physics_process(_delta):
 			if spawn_lock_container:
 				spawn_lock_container.visible = false
 
-	# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL (Estilo MU Online) ---
-	# Para resolver el "desfase raro" definitivamente:
-	# El centro de la pantalla no es la posición exacta de la nave (porque la cámara tiene smoothing/suavizado y se retrasa).
-	# El centro real de la pantalla en píxeles es cam_2d.get_screen_center_position().
-	# Si sincronizamos la cámara 3D con el centro de pantalla real en lugar de la nave,
-	# los portales 3D se fijan pixel-perfect con el suelo y con los textos 2D en absoluta cohesión.
-	
-	var target_pos = Vector2.ZERO
-	var current_zoom = 1.0
-	
-	var cam_2d = get_viewport().get_camera_2d()
-	if is_instance_valid(cam_2d):
-		target_pos = cam_2d.get_screen_center_position() # Obtener el centro real renderizado de la pantalla
-		current_zoom = cam_2d.zoom.x
-	else:
-		if is_instance_valid(player_node):
-			target_pos = player_node.global_position
-	
-	if is_instance_valid(camera_3d):
-		if current_zoom <= 0.01:
-			current_zoom = 1.0
-			
-		var viewport_height = float(get_viewport().size.y)
-		if viewport_height <= 0:
-			viewport_height = 1080.0
-			
-		var dynamic_height = camera_height
-		if use_orthogonal:
-			camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
-			camera_3d.size = (viewport_height * scale_factor) / current_zoom
-			camera_3d.position.y = camera_height
-			dynamic_height = camera_height
-		else:
-			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
-			var target_visible_height = (viewport_height * scale_factor) / current_zoom
-			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
-			camera_3d.position.y = dynamic_height
-		
-		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica (45 grados de inclinación original)
-		camera_3d.position.x = target_pos.x * scale_factor
-		camera_3d.position.z = (target_pos.y * scale_factor) + dynamic_height
-		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, target_pos.y * scale_factor), Vector3.UP)
-
 func _process(delta):
 	# Rotación procedimental y lenta de los asteroides 3D de fondo para dar vida a la escena
 	if is_instance_valid(asteroids_3d):
@@ -299,6 +256,45 @@ func _process(delta):
 			container.visible = true
 		else:
 			container.visible = false
+
+	# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL (Estilo MU Online) ---
+	# Sincronizamos la cámara 3D con el centro de pantalla real de la Camera2D en cada frame de dibujo
+	var target_pos = Vector2.ZERO
+	var current_zoom = 1.0
+	
+	var cam_2d = get_viewport().get_camera_2d()
+	if is_instance_valid(cam_2d):
+		cam_2d.force_update_scroll() # Forzar actualización inmediata para evitar desfase de 1 frame (efecto acordeón)
+		target_pos = cam_2d.get_screen_center_position()
+		current_zoom = cam_2d.zoom.x
+	else:
+		if is_instance_valid(player_node):
+			target_pos = player_node.global_position
+	
+	if is_instance_valid(camera_3d):
+		if current_zoom <= 0.01:
+			current_zoom = 1.0
+			
+		var viewport_height = float(get_viewport().size.y)
+		if viewport_height <= 0:
+			viewport_height = 1080.0
+			
+		var dynamic_height = camera_height
+		if use_orthogonal:
+			camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
+			camera_3d.size = (viewport_height * scale_factor) / current_zoom
+			camera_3d.position.y = camera_height
+			dynamic_height = camera_height
+		else:
+			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
+			var target_visible_height = (viewport_height * scale_factor) / current_zoom
+			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+			camera_3d.position.y = dynamic_height
+		
+		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica
+		camera_3d.position.x = target_pos.x * scale_factor
+		camera_3d.position.z = (target_pos.y * scale_factor) + dynamic_height
+		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, target_pos.y * scale_factor), Vector3.UP)
 
 func _on_window_resized():
 	if is_instance_valid(viewport_container) and viewport_container.stretch:
