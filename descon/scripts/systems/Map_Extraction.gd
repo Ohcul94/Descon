@@ -116,8 +116,9 @@ func _physics_process(_delta):
 					spawn_bubble_mesh.material_override = mat
 					
 					# Posicionar la burbuja 3D en base a la coordenada 2D del spawn
+					var correction_z = 1.41421356
 					spawn_bubble_mesh.position.x = initial_player_pos.x * scale_factor
-					spawn_bubble_mesh.position.z = initial_player_pos.y * scale_factor
+					spawn_bubble_mesh.position.z = initial_player_pos.y * scale_factor * correction_z
 					spawn_bubble_mesh.position.y = 0.0
 					
 					sub_viewport.add_child(spawn_bubble_mesh)
@@ -176,48 +177,7 @@ func _physics_process(_delta):
 			if spawn_lock_container:
 				spawn_lock_container.visible = false
 
-	# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL (Estilo MU Online) ---
-	# Para resolver el "desfase raro" definitivamente:
-	# El centro de la pantalla no es la posición exacta de la nave (porque la cámara tiene smoothing/suavizado y se retrasa).
-	# El centro real de la pantalla en píxeles es cam_2d.get_screen_center_position().
-	# Si sincronizamos la cámara 3D con el centro de pantalla real en lugar de la nave,
-	# los portales 3D se fijan pixel-perfect con el suelo y con los textos 2D en absoluta cohesión.
-	
-	var target_pos = Vector2.ZERO
-	var current_zoom = 1.0
-	
-	var cam_2d = get_viewport().get_camera_2d()
-	if is_instance_valid(cam_2d):
-		target_pos = cam_2d.get_screen_center_position() # Obtener el centro real renderizado de la pantalla
-		current_zoom = cam_2d.zoom.x
-	else:
-		if is_instance_valid(player_node):
-			target_pos = player_node.global_position
-	
-	if is_instance_valid(camera_3d):
-		if current_zoom <= 0.01:
-			current_zoom = 1.0
-			
-		var viewport_height = float(get_viewport().size.y)
-		if viewport_height <= 0:
-			viewport_height = 1080.0
-			
-		var dynamic_height = camera_height
-		if use_orthogonal:
-			camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
-			camera_3d.size = (viewport_height * scale_factor) / current_zoom
-			camera_3d.position.y = camera_height
-			dynamic_height = camera_height
-		else:
-			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
-			var target_visible_height = (viewport_height * scale_factor) / current_zoom
-			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
-			camera_3d.position.y = dynamic_height
-		
-		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica (45 grados de inclinación original)
-		camera_3d.position.x = target_pos.x * scale_factor
-		camera_3d.position.z = (target_pos.y * scale_factor) + dynamic_height
-		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, target_pos.y * scale_factor), Vector3.UP)
+
 
 func _process(delta):
 	# Rotación procedimental y lenta de los asteroides 3D de fondo para dar vida a la escena
@@ -300,6 +260,45 @@ func _process(delta):
 		else:
 			container.visible = false
 
+	# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL (Estilo MU Online) ---
+	var target_pos = Vector2.ZERO
+	var current_zoom = 1.0
+	
+	var cam_2d = get_viewport().get_camera_2d()
+	if is_instance_valid(cam_2d):
+		target_pos = cam_2d.get_screen_center_position()
+		current_zoom = cam_2d.zoom.x
+	else:
+		if is_instance_valid(player_node):
+			target_pos = player_node.global_position
+	
+	if is_instance_valid(camera_3d):
+		if current_zoom <= 0.01:
+			current_zoom = 1.0
+			
+		var viewport_height = float(get_viewport().size.y)
+		if viewport_height <= 0:
+			viewport_height = 1080.0
+			
+		var dynamic_height = camera_height
+		if use_orthogonal:
+			camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
+			camera_3d.size = (viewport_height * scale_factor) / current_zoom
+			camera_3d.position.y = camera_height
+			dynamic_height = camera_height
+		else:
+			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
+			var target_visible_height = (viewport_height * scale_factor) / current_zoom
+			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+			camera_3d.position.y = dynamic_height
+		
+		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica (45 grados de inclinación original)
+		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal
+		var corrected_target_z = target_pos.y * scale_factor * correction_z
+		camera_3d.position.x = target_pos.x * scale_factor
+		camera_3d.position.z = corrected_target_z + dynamic_height
+		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
+
 func _on_window_resized():
 	if is_instance_valid(viewport_container) and viewport_container.stretch:
 		return
@@ -361,7 +360,8 @@ func _generate_procedural_obstacles():
 			
 			var box_3d = CSGBox3D.new()
 			box_3d.name = "Wall3D_" + str(i)
-			box_3d.position = Vector3(pos_2d.x * scale_factor, 0, pos_2d.y * scale_factor)
+			var correction_z = 1.41421356
+			box_3d.position = Vector3(pos_2d.x * scale_factor, 0, pos_2d.y * scale_factor * correction_z)
 			box_3d.size = Vector3(size_2d * scale_factor, rng.randf_range(5.0, 10.0), size_2d * scale_factor)
 			box_3d.material = mat_metal
 			parent_walls_3d.add_child(box_3d)
@@ -385,7 +385,8 @@ func _generate_procedural_obstacles():
 			
 			var sphere_3d = CSGSphere3D.new()
 			sphere_3d.name = "Asteroid3D_" + str(i)
-			sphere_3d.position = Vector3(pos_2d.x * scale_factor, rng.randf_range(-2.0, 2.0), pos_2d.y * scale_factor)
+			var correction_z = 1.41421356
+			sphere_3d.position = Vector3(pos_2d.x * scale_factor, rng.randf_range(-2.0, 2.0), pos_2d.y * scale_factor * correction_z)
 			sphere_3d.radius = radius_2d * scale_factor
 			sphere_3d.radial_segments = 16
 			sphere_3d.rings = 12
@@ -443,7 +444,8 @@ func _generate_extraction_portals():
 			portal_3d.rotation_degrees = Vector3(-45, -90, 0)
 			
 			# Colocamos las puertas a la misma altura que los obstáculos, ligeramente elevadas
-			portal_3d.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor)
+			var correction_z = 1.41421356
+			portal_3d.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor * correction_z)
 			
 			# ¡TAMAÑO AJUSTADO Y PERFECTO!:
 			# Escalamos a (10.0, 10.0, 10.0), lo cual es ideal y visible sin ser abrumador.
@@ -462,7 +464,8 @@ func _generate_extraction_portals():
 			# Fallback elegante usando formas básicas brillantes de Godot
 			var fallback_portal = CSGCylinder3D.new()
 			fallback_portal.name = "Portal3D_Fallback_" + str(i)
-			fallback_portal.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor)
+			var correction_z = 1.41421356
+			fallback_portal.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor * correction_z)
 			fallback_portal.radius = 4.0
 			fallback_portal.height = 3.0
 			var mat = StandardMaterial3D.new()

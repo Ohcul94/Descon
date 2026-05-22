@@ -218,19 +218,31 @@ func _on_player_updated(data):
 
 	if enemies.has(id): return 
 
+	var is_new = false
 	if not remote_players.has(id):
 		var rp = load("res://scenes/entities/Ship.tscn").instantiate()
 		rp.entity_id = id
 		rp.db_id = str(data.get("id", ""))
 		rp.add_to_group("remote_players")
 		remote_players[id] = rp
+		is_new = true
 		if is_instance_valid(world) and is_instance_valid(world.entities_node):
 			world.entities_node.add_child(rp)
 	
 	var p = remote_players[id]
 	if is_instance_valid(p):
-		p.target_position = Vector2(data.get("x", p.global_position.x), data.get("y", p.global_position.y))
-		p.target_rotation = data.get("rotation", p.rotation)
+		var new_pos = Vector2(data.get("x", p.global_position.x), data.get("y", p.global_position.y))
+		var new_rot = data.get("rotation", p.rotation)
+		p.target_position = new_pos
+		p.target_rotation = new_rot
+		if is_new:
+			p.global_position = new_pos
+			p.rotation = new_rot
+			if is_instance_valid(p.world_root_3d):
+				var s_factor = p.get_meta("map_scale", 0.02)
+				p.world_root_3d.position.x = new_pos.x * s_factor
+				p.world_root_3d.position.z = new_pos.y * s_factor
+				p.world_root_3d.position.y = 0.0
 		p.set_meta("zone", remote_zone)
 		p.update_stats(data)
 
@@ -342,15 +354,27 @@ func _on_enemy_updated(data):
 				enemies.erase(id)
 			return
 
+	var is_new = false
 	if not enemies.has(id):
 		var en = _get_enemy_from_pool()
 		en.entity_id = id
 		if not en.is_in_group("enemies"): en.add_to_group("enemies")
 		enemies[id] = en
+		is_new = true
 	var eref = enemies[id]
 	if is_instance_valid(eref):
-		if data.has("x"): eref.target_position = Vector2(data.x, data.get("y", 0))
-		if data.has("rotation"): eref.target_rotation = data.rotation
+		var new_pos = Vector2(data.get("x", eref.global_position.x), data.get("y", eref.global_position.y) if data.has("y") else eref.global_position.y)
+		var new_rot = data.get("rotation", eref.rotation)
+		eref.target_position = new_pos
+		eref.target_rotation = new_rot
+		if is_new:
+			eref.global_position = new_pos
+			eref.rotation = new_rot
+			if is_instance_valid(eref.world_root_3d):
+				var s_factor = eref.get_meta("map_scale", 0.02)
+				eref.world_root_3d.position.x = new_pos.x * s_factor
+				eref.world_root_3d.position.z = new_pos.y * s_factor
+				eref.world_root_3d.position.y = 0.0
 		var enemy_zone = _parse_zone_to_int(data.get("zone", -1))
 		if enemy_zone != -1:
 			eref.set_meta("zone", enemy_zone)

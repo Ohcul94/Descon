@@ -190,7 +190,7 @@ func _apply_camera_headlight(cam: Camera3D):
 	headlight.light_specular = 0.2 # Brillo especular suave
 	headlight.shadow_enabled = false # Sin sombras para evitar oclusión y mantener visibilidad
 
-func _physics_process(_delta):
+func _process(_delta):
 	# --- LOCALIZAR NAVE DEL JUGADOR ---
 	if not is_instance_valid(player_node):
 		var players = get_tree().get_nodes_in_group("player")
@@ -230,8 +230,10 @@ func _physics_process(_delta):
 			camera_3d.position.y = dynamic_height
 		
 		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica (45 grados de inclinación original)
+		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal
+		var corrected_target_z = target_pos.y * scale_factor * correction_z
 		camera_3d.position.x = target_pos.x * scale_factor
-		camera_3d.position.z = (target_pos.y * scale_factor) + dynamic_height
-		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, target_pos.y * scale_factor), Vector3.UP)
+		camera_3d.position.z = corrected_target_z + dynamic_height
+		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
 
 # _process removido al no haber asteroides decorativos que rotar

@@ -95,7 +95,7 @@ func _ready():
 		if hud_script:
 			_ui_wrapper = hud_script.new()
 			_ui_wrapper.setup(self)
-			_ui_wrapper.top_level = true
+			_ui_wrapper.top_level = false
 			_ui_wrapper.name = "HUD_Layer_Final"
 			add_child(_ui_wrapper)
 	
@@ -173,6 +173,7 @@ func _process(delta):
 	if is_dead:
 		if _ui_wrapper: _ui_wrapper.visible = false
 		if _reflect_aura: _reflect_aura.visible = false
+		if is_instance_valid(world_root_3d): world_root_3d.visible = false
 		visible = false; return
 	
 	visible = true; show()
@@ -192,14 +193,24 @@ func _process(delta):
 	if not is_in_group("player") and not is_teleporting:
 		# Deslizamiento suave de posición (Lerp 20% por frame)
 		global_position = global_position.lerp(target_position, 0.2)
-		# Suavizado de rotación (Lerp_angle evita saltos de 0 a 360)
-		rotation = lerp_angle(rotation, target_rotation, 0.2)
+		
+		# Suavizado de rotación respetando bloqueos tácticos (v306.8)
+		var can_rotate = true
+		if get_meta("is_locked", false) or get_meta("is_firing", false):
+			can_rotate = false
+			
+		if can_rotate:
+			var rot_speed = 0.2
+			if is_in_group("enemies"):
+				rot_speed = 0.1 # Suavizado orgánico original de enemigos
+			rotation = lerp_angle(rotation, target_rotation, rot_speed)
 	
 	# Sincronización del Lienzo 3D Único (Mapeo de físicas 2D a coordenadas 3D)
 	if is_instance_valid(world_root_3d) and get_meta("is_single_world", false):
 		var s_factor = get_meta("map_scale", 0.02)
+		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal
 		world_root_3d.position.x = global_position.x * s_factor
-		world_root_3d.position.z = global_position.y * s_factor
+		world_root_3d.position.z = global_position.y * s_factor * correction_z
 		world_root_3d.position.y = 0.0
 		# Frustum culling manual: ocultar si está fuera del margen visible
 		var is_vis = true
@@ -357,7 +368,8 @@ func _process(delta):
 			_update_tags()
 	
 	if is_instance_valid(_ui_wrapper):
-		_ui_wrapper.global_position = global_position
+		_ui_wrapper.global_rotation = 0.0
+		_ui_wrapper.position = Vector2.ZERO
 		if name_tag: 
 			var y_offset = -145.0
 			if is_in_group("player"): y_offset = -180.0
@@ -507,11 +519,13 @@ func update_stats(data):
 		if is_dead and not dead_on_server:
 			is_dead = false
 			visible = true; show(); modulate.a = 1.0
+			if is_instance_valid(world_root_3d): world_root_3d.visible = true
 			set_physics_process(true); set_process(true)
 		elif not is_dead and dead_on_server:
 			die()
 	elif current_hp > 0 and is_dead:
 		is_dead = false; visible = true; show()
+		if is_instance_valid(world_root_3d): world_root_3d.visible = true
 		set_physics_process(true); set_process(true)
 	
 	# v166.75: Capado de Seguridad (No exceder máximos sincronizados)
@@ -742,6 +756,7 @@ func die():
 	
 	visible = false; queue_redraw()
 	if _ui_wrapper: _ui_wrapper.visible = false
+	if is_instance_valid(world_root_3d): world_root_3d.visible = false
 	set_process(false)
 	
 	if not is_in_group("player") and not is_in_group("remote_players"): 

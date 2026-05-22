@@ -1746,6 +1746,194 @@
                     "explodeOnDeath": 150
                 }
             ]
+        },
+        "8-A": {
+            "bulletDamage": 700,
+            "bulletSpeed": 800,
+            "fireRange": 900,
+            "fireRate": 1200,
+            "hp": 10000,
+            "name": "Enemigo 8 A",
+            "rewardExp": 2400,
+            "rewardHubs": 5000,
+            "rewardOhcu": 50,
+            "shield": 20,
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 200,
+                    "bulletSpeed": 800,
+                    "fireRange": 900,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 300,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "aura_heal",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 4000,
+                    "cooldown": 2000,
+                    "startDelay": 0,
+                    "radius": 300,
+                    "healAmount": 100,
+                    "intervalMs": 400,
+                    "affectsEnemies": true,
+                    "affectsBosses": false
+                }
+            ]
+        },
+        "8-B": {
+            "bulletDamage": 1050,
+            "bulletSpeed": 800,
+            "fireRange": 900,
+            "fireRate": 1200,
+            "hp": 15000,
+            "name": "Enemigo 8 B",
+            "rewardExp": 3600,
+            "rewardHubs": 7500,
+            "rewardOhcu": 75,
+            "shield": 30,
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 300,
+                    "bulletSpeed": 800,
+                    "fireRange": 900,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 300,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "aura_heal",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 4000,
+                    "cooldown": 2000,
+                    "startDelay": 0,
+                    "radius": 300,
+                    "healAmount": 100,
+                    "intervalMs": 400,
+                    "affectsEnemies": true,
+                    "affectsBosses": false
+                }
+            ]
+        },
+        "8-C": {
+            "bulletDamage": 1400,
+            "bulletSpeed": 800,
+            "fireRange": 900,
+            "fireRate": 1200,
+            "hp": 20000,
+            "name": "Enemigo 8 C",
+            "rewardExp": 4800,
+            "rewardHubs": 10000,
+            "rewardOhcu": 100,
+            "shield": 40,
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 400,
+                    "bulletSpeed": 800,
+                    "fireRange": 900,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 300,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "aura_heal",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 4000,
+                    "cooldown": 2000,
+                    "startDelay": 0,
+                    "radius": 300,
+                    "healAmount": 100,
+                    "intervalMs": 400,
+                    "affectsEnemies": true,
+                    "affectsBosses": false
+                }
+            ]
+        },
+        "8-D": {
+            "bulletDamage": 1750,
+            "bulletSpeed": 800,
+            "fireRange": 900,
+            "fireRate": 1200,
+            "hp": 25000,
+            "name": "Enemigo 8 D",
+            "rewardExp": 6000,
+            "rewardHubs": 12500,
+            "rewardOhcu": 125,
+            "shield": 50,
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 500,
+                    "bulletSpeed": 800,
+                    "fireRange": 900,
+                    "fireRate": 1200,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 300,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "aura_heal",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 4000,
+                    "cooldown": 2000,
+                    "startDelay": 0,
+                    "radius": 300,
+                    "healAmount": 100,
+                    "intervalMs": 400,
+                    "affectsEnemies": true,
+                    "affectsBosses": false
+                }
+            ]
         }
     },
     "hordeConfig": {
@@ -1828,7 +2016,13 @@
             "name": "Loby",
             "warpCost": 0,
             "ambience": [],
-            "spawns": []
+            "spawns": [
+                {
+                    "type": "1",
+                    "count": 1,
+                    "intervalMs": 5000
+                }
+            ]
         },
         "2": {
             "color": "#00ff00",
