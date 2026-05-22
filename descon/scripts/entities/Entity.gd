@@ -16,6 +16,7 @@ var current_hp: float = 3000
 var max_shield: float = 1000; var current_shield: float = 1000
 var _display_hp: float = 3000 # v190.85: Interpolación visual de vida
 var _display_shield: float = 1000 # v190.85: Interpolación visual de escudo
+var status_effects: Dictionary = {} # v268.68: Almacén de estados (Stun, Frozen, etc.)
 var hp_regen: float = 5.0; var sh_regen: float = 15.0
 var current_ship_id: int = 1
 var target_position: Vector2 = Vector2.ZERO
@@ -54,6 +55,7 @@ var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
 var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo LoL
 var _stealth_material: StandardMaterial3D = null
+var _is_currently_invisible: bool = false
 var _cached_viewport: SubViewport = null # Cache para frustum culling
 
 func _ready():
@@ -166,19 +168,90 @@ func _process(delta):
 	if sync_lock_timer > 0:
 		sync_lock_timer -= delta
 	
+	# v310.1: SINCRONIZACIÓN ATÓMICA TOTAL (Elimina efecto acordeón y restaura HUD)
+	# 1. Interpolación de posición de red
+	if not is_in_group("player") and not is_teleporting:
+		var weight = 1.0 - pow(0.01, delta) # v310.2: Suavizado balanceado
+		global_position = global_position.lerp(target_position, weight)
+		
+		# Suavizado de rotación respetando bloqueos tácticos
+		var can_rotate = true
+		if get_meta("is_locked", false) or get_meta("is_firing", false):
+			can_rotate = false
+			
+		if can_rotate:
+			var rot_factor = 0.2
+			if is_in_group("enemies"):
+				rot_factor = 0.1 # Suavizado orgánico original de enemigos
+			var rot_weight = 1.0 - pow(1.0 - rot_factor, delta * 60.0)
+			rotation = lerp_angle(rotation, target_rotation, rot_weight)
+		
+	# 2. Sincronía de UI
+	# Primero actualizamos la posición 3D para tener el world_root_3d en su lugar correcto
+	_update_3d_root_sync()
+	
+	if is_instance_valid(_ui_wrapper):
+		_ui_wrapper.visible = visible and not is_dead
+		# Caso Single World (3D compartido): proyectar posición 3D real a pantalla para alinear el HUD
+		if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
+			var current_map = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
+				var cam3d: Camera3D = current_map.camera_3d
+				var sub_vp: SubViewport = current_map.sub_viewport
+				# Evitar error si el punto está detrás del plano cercano de la cámara o si no se puede proyectar
+				if not cam3d.is_position_behind(world_root_3d.global_position):
+					# unproject_position devuelve la posición en píxeles del SubViewport
+					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+					# Escalar de SubViewport a la pantalla principal si difieren en tamaño
+					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+						var main_size = Vector2(get_viewport().get_visible_rect().size)
+						sv_pixel *= main_size / Vector2(sub_vp.size)
+					# Convertir de píxeles de pantalla a coordenadas del mundo 2D
+					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+					_ui_wrapper.global_position = world_2d
+				else:
+					_ui_wrapper.global_position = global_position
+			else:
+				_ui_wrapper.global_position = global_position
+		else:
+			# Caso viewport local o 2D puro: seguir la posición directamente
+			_ui_wrapper.global_position = global_position
+		if name_tag: _update_hud_offsets()
+	
+	# 3. Resto de efectos (ya se llamó _update_3d_root_sync arriba)
+	_update_3d_shield(delta) # Aquí se procesa la invulnerabilidad
 	_update_reflect_aura(delta)
-	_update_3d_shield(delta)
 	_update_hit_flash(delta)
+	
+	# v268.70: Feedback visual de estados alterados (Soporte 2.5D)
+	if not is_dead:
+		var is_affected = status_effects.get("stunned", false) or status_effects.get("frozen", false)
+		var state_color = Color(1.5, 1.5, 3.5, 1.0) if is_affected else Color(1, 1, 1, 1) # v268.76: Más azul y brillante
+		
+		if is_instance_valid(sprite):
+			sprite.modulate = state_color
+		
+		# v268.77: Tinte para modelos 3D (Corregido para Viewports locales)
+		if is_instance_valid(_3d_model):
+			if is_affected:
+				if not _stealth_material:
+					_stealth_material = StandardMaterial3D.new()
+					_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+					_stealth_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				_stealth_material.albedo_color = Color(0.1, 0.5, 1.0, 0.6) # v268.76: Tinte más opaco para que se note
+				_apply_material_recursive(_3d_model, _stealth_material, false)
+			elif not status_effects.get("isInvisible", false):
+				_apply_material_recursive(_3d_model, null, false)
 	
 	if is_dead:
 		if _ui_wrapper: _ui_wrapper.visible = false
 		if _reflect_aura: _reflect_aura.visible = false
 		if is_instance_valid(world_root_3d): world_root_3d.visible = false
 		visible = false; return
-	
+
 	visible = true; show()
 	if _ui_wrapper: _ui_wrapper.visible = true
-	
+
 	# v219.65: Redibujado Inteligente (Interpolación v190.85)
 	_display_hp = lerp(_display_hp, current_hp, 0.1)
 	_display_shield = lerp(_display_shield, current_shield, 0.1)
@@ -189,41 +262,6 @@ func _process(delta):
 		last_draw_hp = _display_hp
 		last_draw_sh = _display_shield
 	
-	# v220.30: INTERPOLACIÓN DE MOVIMIENTO (Para fluidez en naves remotas/enemigos)
-	if not is_in_group("player") and not is_teleporting:
-		# Deslizamiento suave de posición (Lerp 20% por frame)
-		global_position = global_position.lerp(target_position, 0.2)
-		
-		# Suavizado de rotación respetando bloqueos tácticos (v306.8)
-		var can_rotate = true
-		if get_meta("is_locked", false) or get_meta("is_firing", false):
-			can_rotate = false
-			
-		if can_rotate:
-			var rot_speed = 0.2
-			if is_in_group("enemies"):
-				rot_speed = 0.1 # Suavizado orgánico original de enemigos
-			rotation = lerp_angle(rotation, target_rotation, rot_speed)
-	
-	# Sincronización del Lienzo 3D Único (Mapeo de físicas 2D a coordenadas 3D)
-	if is_instance_valid(world_root_3d) and get_meta("is_single_world", false):
-		var s_factor = get_meta("map_scale", 0.02)
-		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal
-		world_root_3d.position.x = global_position.x * s_factor
-		world_root_3d.position.z = global_position.y * s_factor * correction_z
-		world_root_3d.position.y = 0.0
-		# Frustum culling manual: ocultar si está fuera del margen visible
-		var is_vis = true
-		var cam = get_viewport().get_camera_2d()
-		if cam:
-			var screen_size = get_viewport_rect().size
-			var cam_pos = cam.global_position
-			var margin = 600.0
-			var diff = global_position - cam_pos
-			if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
-				is_vis = false
-		world_root_3d.visible = is_vis
-
 	_update_animations()
 	_update_auras(delta)
 
@@ -367,22 +405,15 @@ func _process(delta):
 			if current_shield < max_shield: current_shield = min(max_shield, current_shield + regen_sh)
 			_update_tags()
 	
+func _update_hud_offsets():
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.global_rotation = 0.0
-		_ui_wrapper.position = Vector2.ZERO
-		if name_tag: 
-			var y_offset = -145.0
-			if is_in_group("player"): y_offset = -180.0
-			elif entity_type >= 4: y_offset = -300.0 # Bosses (v238.80: Espacio para 3 líneas de texto)
-
-			name_tag.position.y = y_offset
-			if name_tag.size.x > 0:
-				name_tag.position.x = -(name_tag.size.x / 2.0)
-		
-		# v165.75: Las burbujas ahora son hijos de _ui_wrapper, por lo que siguen 
-		# la posición global automáticamente sin heredar rotación.
-
-
+	var y_offset = -145.0
+	if is_in_group("player"): y_offset = -180.0
+	elif entity_type >= 4: y_offset = -300.0
+	name_tag.position.y = y_offset
+	if name_tag.size.x > 0:
+		name_tag.position.x = -(name_tag.size.x / 2.0)
 
 func _draw():
 	# v166.61: RENDERIZADO TACTICO (Glow & Visibility Fix)
@@ -437,6 +468,28 @@ func _draw():
 
 	
 
+func _update_3d_root_sync():
+	if is_instance_valid(world_root_3d) and get_meta("is_single_world", false):
+		var s_factor = get_meta("map_scale", 0.02)
+		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal inclinada
+		world_root_3d.position.x = global_position.x * s_factor
+		world_root_3d.position.z = global_position.y * s_factor * correction_z
+		world_root_3d.position.y = 0.0
+		
+		# Optimización de visibilidad (Culling)
+		var cam = get_viewport().get_camera_2d()
+		if cam:
+			var diff = global_position - cam.get_screen_center_position()
+			var _margin_x = 1200.0
+			var _margin_y = 800.0
+			# v306.8: Corregir lógica de visibilidad para evitar assets fantasma o invisibles
+			if is_dead:
+				world_root_3d.visible = false
+			elif is_teleporting:
+				world_root_3d.visible = true
+			else:
+				world_root_3d.visible = abs(diff.x) < _margin_x and abs(diff.y) < _margin_y
+
 func reset_combat_timer():
 	last_combat_time = Time.get_ticks_msec()
 
@@ -445,6 +498,14 @@ func update_stats(data):
 	var raw = data.get("username", data.get("user", data.get("name", null)))
 	if raw != null and str(raw) != "" and str(raw) != "Unknown": 
 		username = str(raw)
+	
+	if data.has("status_effects"):
+		status_effects = data.status_effects
+	
+	# v268.87: Capturar posición desde el paquete de stats para evitar rubber-banding
+	if data.has("x"): target_position.x = float(data.x)
+	if data.has("y"): target_position.y = float(data.y)
+	if data.has("rot"): target_rotation = float(data.rot)
 	
 	if data.has("clanTag"):
 		clan_tag = str(data.clanTag)
@@ -517,16 +578,11 @@ func update_stats(data):
 	if data.has("isDead"):
 		var dead_on_server = bool(data.isDead)
 		if is_dead and not dead_on_server:
-			is_dead = false
-			visible = true; show(); modulate.a = 1.0
-			if is_instance_valid(world_root_3d): world_root_3d.visible = true
-			set_physics_process(true); set_process(true)
+			_resurrect(data)
 		elif not is_dead and dead_on_server:
 			die()
 	elif current_hp > 0 and is_dead:
-		is_dead = false; visible = true; show()
-		if is_instance_valid(world_root_3d): world_root_3d.visible = true
-		set_physics_process(true); set_process(true)
+		_resurrect(data)
 	
 	# v166.75: Capado de Seguridad (No exceder máximos sincronizados)
 	current_hp = min(current_hp, max_hp)
@@ -638,7 +694,39 @@ func _update_tags():
 				name_tag.add_theme_color_override("font_outline_color", Color.BLACK)
 				name_tag.add_theme_constant_override("outline_size", 4)
 
+func _resurrect(data: Dictionary):
+	# v306.5: Lógica de Resurrección Centralizada (Soluciona Invisibilidad por Culling)
+	is_dead = false
+	is_teleporting = true 
 
+	# 1. Salto instantáneo a la posición de respawn
+	if data.has("x") and data.has("y"):
+		global_position = Vector2(float(data.x), float(data.y))
+		target_position = global_position
+		if data.has("rot"):
+			rotation = float(data.rot)
+			target_rotation = rotation
+
+	# 2. Reset visual completo (Igual que el Player al spawnear)
+	_update_flash_visuals(0.0)
+	rebuild_3d_layout()
+
+	# 3. Restaurar visibilidad y estado de todos los componentes
+	modulate = Color(1, 1, 1, 1)
+	visible = true; show()
+	if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
+	if is_instance_valid(world_root_3d): 
+		world_root_3d.visible = true
+		world_root_3d.scale = Vector3(1,1,1) # Reset de escala por si el pooling la rompió
+	if _collision_shape: _collision_shape.set_deferred("disabled", false)
+	set_meta("is_pooled", false)
+
+	# 4. Reactivar procesos
+	set_physics_process(true); set_process(true)
+
+	# 5. Desbloquear culling y lerp de inmediato para evitar efecto acordeón
+	is_teleporting = false
+	
 	if _ui_wrapper: _ui_wrapper.queue_redraw()
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
@@ -745,20 +833,27 @@ func _spawn_damage_text(txt: String, clr: Color):
 		if dt.has_method("setup"): dt.setup(txt, clr)
 
 func die():
+	if is_dead: return
 	is_dead = true
+	
+	# 1. Detener toda la lógica del objeto inmediatamente
 	set_physics_process(false)
-	_spawn_death_vfx()
-	
-	# v210.180: Animación de Muerte Real
-	if is_instance_valid(anim_player) and anim_player.has_animation("death"):
-		anim_player.play("death")
-		await anim_player.animation_finished
-	
-	visible = false; queue_redraw()
-	if _ui_wrapper: _ui_wrapper.visible = false
-	if is_instance_valid(world_root_3d): world_root_3d.visible = false
 	set_process(false)
 	
+	# 2. Desaparecer el asset al instante (Evita quedar congelado o en blanco)
+	visible = false
+	if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
+	if is_instance_valid(world_root_3d): world_root_3d.visible = false
+	
+	# 3. Limpieza de efectos visuales residuales para el pooling/respawn
+	_update_flash_visuals(0.0)
+	if is_instance_valid(sprite):
+		sprite.modulate = Color(1, 1, 1, 1)
+		
+	# 4. Spawnear la explosión (VFX) justo donde estaba la nave
+	_spawn_death_vfx()
+	
+	# 5. Lógica de pooling/limpieza para enemigos
 	if not is_in_group("player") and not is_in_group("remote_players"): 
 		set_meta("is_pooled", true)
 		if _collision_shape: _collision_shape.set_deferred("disabled", true)
@@ -789,6 +884,9 @@ func _fire_orbital_strike():
 
 func _on_enemy_aura(data):
 	if str(data.id) != entity_id: return
+	# v268.67: Seguridad contra crash de red en entidades ya eliminadas
+	if not is_instance_valid(self) or is_queued_for_deletion():
+		return
 
 	var mId = data.mId
 	if data.active:
@@ -1050,12 +1148,9 @@ func _setup_enemy_visuals():
 	if glb_path != "":
 		print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)
 	
-	# v225.40: SALTO INTELIGENTE
-	if glb_path != "" and is_instance_valid(_3d_model) and is_instance_valid(sprite):
-		if sprite.texture != null and get_meta("current_glb", "") == glb_path: 
-			# Asegurar escala correcta incluso si el modelo se recicla
-			_3d_model.scale = Vector3(enemy_scale, enemy_scale, enemy_scale)
-			return
+	# v306.6: ELIMINACIÓN DE OPTIMIZACIÓN "SMART-JUMP"
+	# Se fuerza siempre el setup visual para garantizar que world_root_3d se asocie al Viewport del mapa actual.
+	# La optimización anterior fallaba al reciclar enemigos entre diferentes mapas o sesiones de pooling.
 
 	set_meta("current_glb", glb_path)
 
@@ -1453,7 +1548,8 @@ func _update_3d_shield(delta: float):
 	if not _3d_shield_mesh: return
 	
 	# v260.15: Lógica de Visibilidad Híbrida (Reflect, Escudo, Cura o Inmunidad)
-	var is_active = shield_visual_timer > 0 or reflect_timer > 0 or heal_visual_timer > 0 or invulnerable_timer > 0 or is_invulnerable
+	# v306.9: Asegurar que el estado autoritativo 'is_invulnerable' active el visual
+	var is_active = shield_visual_timer > 0 or reflect_timer > 0 or heal_visual_timer > 0 or invulnerable_timer > 0 or is_invulnerable == true
 	_3d_shield_mesh.visible = is_active
 	
 	if is_active:
@@ -1462,12 +1558,12 @@ func _update_3d_shield(delta: float):
 			var color = Color(0.1, 0.5, 1.0, 1.0) # Azul (Escudo)
 			var is_healing = heal_visual_timer > 0
 			
-			if reflect_timer > 0:
+			if reflect_timer > 0: 
 				color = Color(1.0, 0.2, 0.1, 1.0) # Rojo (Reflect)
-			elif invulnerable_timer > 0 or is_invulnerable:
-				color = Color(1.0, 0.9, 0.1, 1.0) # Amarillo (Invulnerabilidad)
 			elif is_healing:
 				color = Color(0.1, 1.0, 0.3, 1.0) # Verde (Cura)
+			elif invulnerable_timer > 0 or is_invulnerable:
+				color = Color(1.0, 0.8, 0.0, 1.0) # Amarillo/Oro (Invulnerabilidad)
 			
 			mat.set_shader_parameter("color_escudo", color)
 			mat.set_shader_parameter("modo_curacion", is_healing)
@@ -1505,6 +1601,9 @@ func _update_3d_spheres():
 			s_scene.scale = Vector3(3.0, 3.0, 3.0) 
 			
 			print("[FIX] Esfera cargada sin luces extra.")
+			
+	# Re-aplicar estado de invisibilidad visual a las nuevas esferas si corresponde
+	_update_invisibility_visuals(_is_currently_invisible)
 
 func _ensure_flash_material():
 	if not _hit_flash_material:
@@ -1539,8 +1638,12 @@ func _update_hit_flash(delta):
 func _update_flash_visuals(p_intensity: float):
 	if _hit_flash_material: _hit_flash_material.set_shader_parameter("hit_opacity", p_intensity)
 	if is_instance_valid(_3d_model) and _hit_flash_material_3d:
-		_hit_flash_material_3d.albedo_color.a = p_intensity * 0.4
-		_apply_flash_recursive(_3d_model, _hit_flash_material_3d)
+		if p_intensity > 0.01:
+			_hit_flash_material_3d.albedo_color.a = p_intensity * 0.4
+			_apply_flash_recursive(_3d_model, _hit_flash_material_3d)
+		elif not is_hovered:
+			# v310.6: Limpiar flash solo si no hay outline de selección activo
+			_apply_flash_recursive(_3d_model, null)
 
 func _apply_flash_recursive(p_node, p_mat):
 	if p_node is MeshInstance3D: p_node.material_overlay = p_mat
@@ -1594,6 +1697,7 @@ func _update_collision_size():
 	_collision_shape.shape.radius = base_size * 0.4
 
 func _update_invisibility_visuals(invisible: bool):
+	_is_currently_invisible = invisible
 	var is_local = is_in_group("player")
 	var in_party = false
 	var same_clan = false
@@ -1638,6 +1742,19 @@ func _update_invisibility_visuals(invisible: bool):
 				_apply_material_recursive(_3d_model, _stealth_material, false)
 			else:
 				_apply_material_recursive(_3d_model, null, false)
+				
+		# También para las esferas de soporte 3D
+		for s in _3d_spheres:
+			if is_instance_valid(s):
+				if is_ally:
+					if not _stealth_material:
+						_stealth_material = StandardMaterial3D.new()
+						_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+						_stealth_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+						_stealth_material.albedo_color = Color(0.15, 0.65, 0.95, 0.28)
+					_apply_material_recursive(s, _stealth_material, false)
+				else:
+					_apply_material_recursive(s, null, false)
 			
 		# HUD y Textos: SOLO para aliados
 		if is_instance_valid(name_tag): name_tag.visible = is_ally
@@ -1655,6 +1772,11 @@ func _update_invisibility_visuals(invisible: bool):
 			
 		if is_instance_valid(_3d_model):
 			_apply_material_recursive(_3d_model, null, false) # Restaurar material original
+			
+		# Restaurar material original de esferas
+		for s in _3d_spheres:
+			if is_instance_valid(s):
+				_apply_material_recursive(s, null, false)
 			
 		if is_instance_valid(sprite): 
 			sprite.visible = not is_single
@@ -1678,7 +1800,8 @@ func _update_hover_visuals(active: bool):
 			_hover_outline_material.grow_amount = 0.03 # Un poco más fino
 			_hover_outline_material.render_priority = 10
 		_apply_material_recursive(_3d_model, _hover_outline_material, true)
-	else:
+	elif _flash_timer <= 0.01:
+		# v308.2: Solo borrar el overlay si NO hay un efecto de daño activo
 		_apply_material_recursive(_3d_model, null, true)
 
 func _apply_material_recursive(p_node, p_mat, is_overlay: bool):

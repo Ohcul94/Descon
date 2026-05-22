@@ -2782,7 +2782,7 @@
         },
         "PROVOCACION": {
             "name": "PROVOCACION",
-            "type": "Defensa",
+            "type": "Ataque",
             "cd": 2000,
             "range": 450,
             "radius": 220,
@@ -3515,7 +3515,7 @@
                     "radius": 500
                 }
             ],
-            "spawnLockTime": 10000,
+            "spawnLockTime": 2000,
             "spawnPoints": [
                 {
                     "x": 1167,

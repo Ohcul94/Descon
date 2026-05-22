@@ -17,13 +17,16 @@ var spawn_bubble_mesh: MeshInstance3D = null
 var last_warn_time: float = 0.0
 
 func _ready():
-	viewport_container = $ViewportCanvas/SubViewportContainer
-	viewport_container.stretch = true
-	sub_viewport = $ViewportCanvas/SubViewportContainer/SubViewport
-	camera_3d = $ViewportCanvas/SubViewportContainer/SubViewport/Camera3D
-	asteroids_3d = $ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D
-	
 	super._ready()
+	
+	# Obtener referencias dinámicas creadas por la clase base
+	if is_instance_valid(sub_viewport):
+		asteroids_3d = sub_viewport.get_node_or_null("Asteroids3D")
+		if not is_instance_valid(asteroids_3d):
+			asteroids_3d = Node3D.new()
+			asteroids_3d.name = "Asteroids3D"
+			sub_viewport.add_child(asteroids_3d)
+			
 	if is_instance_valid(camera_3d):
 		camera_3d.fov = 35.0
 		camera_3d.transform = Transform3D(
@@ -35,10 +38,6 @@ func _ready():
 			Vector3(0, 30.0, 30.0)
 		)
 		_apply_camera_headlight(camera_3d)
-	
-	# Ajustar el viewport al tamaño inicial de la pantalla
-	_on_window_resized()
-	get_tree().get_root().size_changed.connect(_on_window_resized)
 	
 	# Crear los componentes visuales del botón flotante interactivo de salto
 	_create_portal_jump_ui()
@@ -177,9 +176,9 @@ func _physics_process(_delta):
 			if spawn_lock_container:
 				spawn_lock_container.visible = false
 
-
-
 func _process(delta):
+	super(delta)
+	
 	# Rotación procedimental y lenta de los asteroides 3D de fondo para dar vida a la escena
 	if is_instance_valid(asteroids_3d):
 		for asteroid in asteroids_3d.get_children():
@@ -190,7 +189,7 @@ func _process(delta):
 				asteroid.rotate_z(delta * speed_mult * 0.3)
 				
 	# --- EFECTO GIROSCÓPICO INTERDIMENSIONAL (WOBBLE MULTIEJE) ---
-	var parent_portals_3d = get_node_or_null("ViewportCanvas/SubViewportContainer/SubViewport/Portals3D")
+	var parent_portals_3d = sub_viewport.get_node_or_null("Portals3D") if is_instance_valid(sub_viewport) else null
 	if is_instance_valid(parent_portals_3d):
 		var time = Time.get_ticks_msec() * 0.001
 		var index = 0
@@ -260,61 +259,25 @@ func _process(delta):
 		else:
 			container.visible = false
 
-	# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL (Estilo MU Online) ---
-	var target_pos = Vector2.ZERO
-	var current_zoom = 1.0
-	
-	var cam_2d = get_viewport().get_camera_2d()
-	if is_instance_valid(cam_2d):
-		target_pos = cam_2d.get_screen_center_position()
-		current_zoom = cam_2d.zoom.x
-	else:
-		if is_instance_valid(player_node):
-			target_pos = player_node.global_position
-	
-	if is_instance_valid(camera_3d):
-		if current_zoom <= 0.01:
-			current_zoom = 1.0
-			
-		var viewport_height = float(get_viewport().size.y)
-		if viewport_height <= 0:
-			viewport_height = 1080.0
-			
-		var dynamic_height = camera_height
-		if use_orthogonal:
-			camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
-			camera_3d.size = (viewport_height * scale_factor) / current_zoom
-			camera_3d.position.y = camera_height
-			dynamic_height = camera_height
-		else:
-			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
-			var target_visible_height = (viewport_height * scale_factor) / current_zoom
-			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
-			camera_3d.position.y = dynamic_height
-		
-		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica (45 grados de inclinación original)
-		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal
-		var corrected_target_z = target_pos.y * scale_factor * correction_z
-		camera_3d.position.x = target_pos.x * scale_factor
-		camera_3d.position.z = corrected_target_z + dynamic_height
-		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
-
-func _on_window_resized():
-	if is_instance_valid(viewport_container) and viewport_container.stretch:
-		return
-	var size = get_viewport().size
-	if is_instance_valid(sub_viewport):
-		sub_viewport.set_deferred("size", size)
-
 func _generate_procedural_obstacles():
 	var rng = RandomNumberGenerator.new()
 	rng.randomize()
 	
-	var parent_walls_3d = get_node_or_null("ViewportCanvas/SubViewportContainer/SubViewport/Walls3D")
-	var parent_asteroids_3d = get_node_or_null("ViewportCanvas/SubViewportContainer/SubViewport/Asteroids3D")
+	var parent_walls_3d = sub_viewport.get_node_or_null("Walls3D") if is_instance_valid(sub_viewport) else null
+	var parent_asteroids_3d = sub_viewport.get_node_or_null("Asteroids3D") if is_instance_valid(sub_viewport) else null
 	var parent_walls_2d = get_node_or_null("Walls")
 	var parent_asteroids_2d = get_node_or_null("Asteroids")
 	
+	if is_instance_valid(sub_viewport):
+		if not parent_walls_3d:
+			parent_walls_3d = Node3D.new()
+			parent_walls_3d.name = "Walls3D"
+			sub_viewport.add_child(parent_walls_3d)
+		if not parent_asteroids_3d:
+			parent_asteroids_3d = Node3D.new()
+			parent_asteroids_3d.name = "Asteroids3D"
+			sub_viewport.add_child(parent_asteroids_3d)
+			
 	if not parent_walls_3d or not parent_asteroids_3d or not parent_walls_2d or not parent_asteroids_2d:
 		print("[Map_Extraction] Error: ¡Nodos padres no encontrados para la generación!")
 		return
@@ -414,15 +377,16 @@ func _generate_extraction_portals():
 		
 	active_extract_points = extract_points
 		
-	var parent_portals_3d = get_node_or_null("ViewportCanvas/SubViewportContainer/SubViewport/Portals3D")
-	if not parent_portals_3d:
+	var parent_portals_3d = sub_viewport.get_node_or_null("Portals3D") if is_instance_valid(sub_viewport) else null
+	if is_instance_valid(sub_viewport) and not parent_portals_3d:
 		parent_portals_3d = Node3D.new()
 		parent_portals_3d.name = "Portals3D"
 		sub_viewport.add_child(parent_portals_3d)
 		
 	# Limpiar portales previos
-	for child in parent_portals_3d.get_children():
-		child.queue_free()
+	if is_instance_valid(parent_portals_3d):
+		for child in parent_portals_3d.get_children():
+			child.queue_free()
 		
 	# Cargar el Asset 3D GLB suministrado
 	var portal_mesh_scene = load("res://assets/Puertas/3D/Puerta2/Puerta2.glb")

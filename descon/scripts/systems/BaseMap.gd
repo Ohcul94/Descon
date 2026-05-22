@@ -57,6 +57,7 @@ func _setup_3d_dynamic():
 		if is_instance_valid(viewport_container):
 			viewport_container.stretch = true
 			viewport_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			viewport_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			sub_viewport = viewport_container.get_node_or_null("SubViewport")
 			if is_instance_valid(sub_viewport):
 				sub_viewport.transparent_bg = true
@@ -161,8 +162,17 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 		env_node.environment = env
 		
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.28, 0.32, 0.40) # Azul metálico de soporte claro
-	env.ambient_light_energy = 2.0 # Mayor brillo de base para evitar que queden completamente negras en sombras
+	env.ambient_light_color = Color(0.9, 0.9, 0.9) # Luz ambiente neutra muy clara (sin tintes oscuros)
+	env.ambient_light_energy = 2.2 # Potente energía ambiental para eliminar partes negras o en penumbra
+	
+	# Desactivar sombras en todas las luces del Viewport para evitar áreas negras
+	for child in sub_vp.get_children():
+		if child is Light3D:
+			child.shadow_enabled = false
+			# Evitar que las luces direccionales quemen la escena
+			if child is DirectionalLight3D:
+				child.light_energy = min(child.light_energy, 1.0)
+				child.light_color = Color(1.0, 1.0, 1.0) # Luz blanca para mantener fidelidad de color
 	
 	# 2. Limpieza de DirectionalLight3D_Zenith para liberar slots de luces direccionales en Compatibility mode
 	var zenith = sub_vp.get_node_or_null("DirectionalLight3D_Zenith")
@@ -203,6 +213,7 @@ func _process(_delta):
 	
 	var cam_2d = get_viewport().get_camera_2d()
 	if is_instance_valid(cam_2d):
+		cam_2d.force_update_scroll() # Forzar actualización inmediata para evitar desfase de 1 frame (efecto acordeón)
 		target_pos = cam_2d.get_screen_center_position()
 		current_zoom = cam_2d.zoom.x
 	else:

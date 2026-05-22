@@ -22,7 +22,10 @@ func _process(delta):
 		_move_dir = movement.normalized()
 		_last_sync_pos = global_position
 	
-	if not is_instance_valid(sprite): queue_redraw() 
+	# v268.88: La rotación ahora la maneja la clase base con interpolación delta-timed
+	# Solo forzamos redibujado si no hay sprite (modo polígono)
+	if not is_instance_valid(sprite) and not is_dead: 
+		queue_redraw()
 
 func update_stats(data: Dictionary):
 	super.update_stats(data)

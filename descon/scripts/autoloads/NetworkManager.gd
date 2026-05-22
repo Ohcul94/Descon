@@ -82,6 +82,7 @@ var my_socket_id: String = "" # v168.04: ID Local para evitar self-cloning
 var auth_token: String = ""
 var login_name: String = ""
 var is_logged_in: bool = false # v244.60: Control global de estado de sesión
+var server_config: Dictionary = {} # v301.7: Cache local de la configuración del servidor
 var ping_start_time: int = 0
 var current_ms: int = 0
 var is_registering: bool = false # v244.10: Soporte para creación de cuenta
@@ -182,6 +183,9 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			is_logged_in = true
 			my_socket_id = str(e_data.get("socketId", ""))
 			current_user_data = e_data
+			if e_data.has("adminConfig"):
+				server_config = e_data.adminConfig
+			
 			auth_success.emit(e_data)
 			login_success.emit(e_data)
 			player_auth_success.emit(e_data)
@@ -271,6 +275,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"shipEquipData": ship_equip_data.emit(e_data)
 		"clearEnemyProjectiles": clear_enemy_projectiles.emit(e_data)
 		"adminConfigUpdated", "adminConfigLoaded": 
+			server_config = e_data
 			config_updated.emit(e_data)
 			admin_config_updated.emit(e_data)
 		"rewardReceived", "serverReward": reward_received.emit(e_data)

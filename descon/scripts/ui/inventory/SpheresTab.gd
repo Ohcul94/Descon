@@ -5,6 +5,14 @@ extends Control
 
 var inv_main = null
 
+func _get_color_from_skill_type(skill_type: String) -> Color:
+	match skill_type.to_upper():
+		"ATAQUE": return Color.RED
+		"DEFENSA": return Color.AQUA
+		"CURACIÓN", "CURACION": return Color.GREEN
+		"MOVIMIENTO", "UTILIDAD": return Color.YELLOW
+		_: return Color.SLATE_GRAY
+
 func setup(p_inv_main):
 	inv_main = p_inv_main
 
@@ -90,11 +98,7 @@ func _render_spheres_equipment(tab, _sub_tabs):
 			var raw_type = "ATAQUE"
 			if typeof(equipped) == TYPE_DICTIONARY: raw_type = equipped.get("type", "ATAQUE")
 			else: raw_type = equipped.type if "type" in equipped else "ATAQUE"
-			type_txt = str(raw_type).to_upper()
-			if type_txt == "ATAQUE": final_color = Color.RED
-			elif type_txt == "DEFENSA": final_color = Color.AQUA
-			elif type_txt in ["CURACIÓN", "CURACION"]: final_color = Color.GREEN
-			elif type_txt in ["MOVIMIENTO", "UTILIDAD"]: final_color = Color.YELLOW
+			type_txt = str(raw_type).to_upper(); final_color = _get_color_from_skill_type(type_txt)
 		else: type_txt = "NINGUNO"
 		
 		sb.border_color = final_color
@@ -163,31 +167,40 @@ func _render_spheres_library(tab):
 	# v301.3: Carga segura de habilidades para evitar Parse Error
 	var all_skills = []
 	var skill_configs = [
-		{"path": "res://scripts/resources/skills/Skill_TurboImpulse.gd", "color": Color.YELLOW, "icon": "⚡", "type": "UTILIDAD"},
-		{"path": "res://scripts/resources/skills/Skill_HyperDash.gd", "color": Color.YELLOW, "icon": "💨", "type": "UTILIDAD"},
-		{"path": "res://scripts/resources/skills/Skill_Invulnerability.gd", "color": Color.YELLOW, "icon": "🛡️", "type": "UTILIDAD"},
-		{"path": "res://scripts/resources/skills/Skill_Blink.gd", "color": Color.YELLOW, "icon": "✨", "type": "UTILIDAD"},
-		{"path": "res://scripts/resources/skills/Skill_Stealth.gd", "color": Color.YELLOW, "icon": "👻", "type": "UTILIDAD"},
-		{"path": "res://scripts/resources/skills/Skill_ShieldCell.gd", "color": Color.AQUA, "icon": "🛡️", "type": "DEFENSA"},
-		{"path": "res://scripts/resources/skills/Skill_Fortress.gd", "color": Color.AQUA, "icon": "🏰", "type": "DEFENSA"},
-		{"path": "res://scripts/resources/skills/Skill_FrostTrail.gd", "color": Color.AQUA, "icon": "❄️", "type": "DEFENSA"},
-		{"path": "res://scripts/resources/skills/Skill_SmokeBomb.gd", "color": Color.AQUA, "icon": "☁️", "type": "DEFENSA"},
-		{"path": "res://scripts/resources/skills/Skill_WindBarrier.gd", "color": Color.AQUA, "icon": "🌀", "type": "DEFENSA"},
-		{"path": "res://scripts/resources/skills/Skill_Provocacion.gd", "color": Color.AQUA, "icon": "😡", "type": "DEFENSA"},
-		{"path": "res://scripts/resources/skills/Skill_RepairKit.gd", "color": Color.GREEN, "icon": "🔧", "type": "CURACIÓN"},
-
-		{"path": "res://scripts/resources/skills/Skill_RegenPath.gd", "color": Color.GREEN, "icon": "🧪", "type": "CURACIÓN"},
-		{"path": "res://scripts/resources/skills/Skill_AlphaRegen.gd", "color": Color.GREEN, "icon": "💚", "type": "CURACIÓN"},
-		{"path": "res://scripts/resources/skills/Skill_VitalLink.gd", "color": Color.GREEN, "icon": "🔗", "type": "CURACIÓN"},
-		{"path": "res://scripts/resources/skills/Skill_HealBeacon.gd", "color": Color.GREEN, "icon": "📡", "type": "CURACIÓN"},
-		{"path": "res://scripts/resources/skills/Skill_Reflect.gd", "color": Color.RED, "icon": "🛡️", "type": "ATAQUE"},
-		{"path": "res://scripts/resources/skills/Skill_PlasmaBlast.gd", "color": Color.RED, "icon": "💥", "type": "ATAQUE"}
+		{"path": "res://scripts/resources/skills/Skill_TurboImpulse.gd", "icon": "⚡"},
+		{"path": "res://scripts/resources/skills/Skill_HyperDash.gd", "icon": "💨"},
+		{"path": "res://scripts/resources/skills/Skill_Invulnerability.gd", "icon": "🛡️"},
+		{"path": "res://scripts/resources/skills/Skill_Blink.gd", "icon": "✨"},
+		{"path": "res://scripts/resources/skills/Skill_Stealth.gd", "icon": "👻"},
+		{"path": "res://scripts/resources/skills/Skill_ShieldCell.gd", "icon": "🛡️"},
+		{"path": "res://scripts/resources/skills/Skill_Fortress.gd", "icon": "🏰"},
+		{"path": "res://scripts/resources/skills/Skill_FrostTrail.gd", "icon": "❄️"},
+		{"path": "res://scripts/resources/skills/Skill_SmokeBomb.gd", "icon": "☁️"},
+		{"path": "res://scripts/resources/skills/Skill_WindBarrier.gd", "icon": "🌀"},
+		{"path": "res://scripts/resources/skills/Skill_Provocacion.gd", "icon": "😡"},
+		{"path": "res://scripts/resources/skills/Skill_RepairKit.gd", "icon": "🔧"},
+		{"path": "res://scripts/resources/skills/Skill_RegenPath.gd", "icon": "🧪"},
+		{"path": "res://scripts/resources/skills/Skill_AlphaRegen.gd", "icon": "💚"},
+		{"path": "res://scripts/resources/skills/Skill_VitalLink.gd", "icon": "🔗"},
+		{"path": "res://scripts/resources/skills/Skill_HealBeacon.gd", "icon": "📡"},
+		{"path": "res://scripts/resources/skills/Skill_Reflect.gd", "icon": "🛡️"},
+		{"path": "res://scripts/resources/skills/Skill_PlasmaBlast.gd", "icon": "💥"}
 	]
 	
 	for cfg in skill_configs:
 		if ResourceLoader.exists(cfg["path"]):
 			var script = load(cfg["path"])
-			if script: all_skills.append({"class": script, "color": cfg["color"], "icon": cfg["icon"], "type": cfg["type"]})
+			if script:
+				var s_inst = script.new()
+				var s_name = s_inst.skill_name
+				var s_type = s_inst.get("type") if "type" in s_inst else "ATAQUE"
+				
+				# DINAMISMO AAA: Si el servidor tiene info de esta skill, la usamos por encima del script local
+				var server_skills = NetworkManager.server_config.get("skillsData", {})
+				if server_skills.has(s_name):
+					s_type = server_skills[s_name].get("type", s_type)
+				
+				all_skills.append({"instance": s_inst, "color": _get_color_from_skill_type(s_type), "icon": cfg["icon"], "type": s_type.to_upper()})
 
 	var currently_equipped = []
 	if is_instance_valid(inv_main.spheres_manager):
@@ -196,8 +209,8 @@ func _render_spheres_library(tab):
 			if eq: currently_equipped.append(eq.get("skill_name") if typeof(eq) == TYPE_DICTIONARY else eq.skill_name)
 
 	for s_info in all_skills:
-		if inv_main.selected_sphere_type_filter != "ANY" and s_info["type"] != inv_main.selected_sphere_type_filter: continue
-		var s_inst = s_info["class"].new()
+		if inv_main.selected_sphere_type_filter != "ANY" and s_info["type"].to_upper() != inv_main.selected_sphere_type_filter: continue
+		var s_inst = s_info["instance"]
 		var is_already_on = s_inst.skill_name in currently_equipped
 		_create_skill_card(s_inst, s_info["color"], s_info["icon"], grid, is_already_on)
 

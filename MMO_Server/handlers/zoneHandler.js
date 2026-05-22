@@ -1,6 +1,54 @@
 const User = require('../models/User');
 const Logger = require('../utils/logger');
 
+// v268.75: Sanitización de datos para evitar Circular References y Crash de Terminal
+const getCleanPlayerData = (p, id) => {
+    if (!p) return null;
+    try {
+        // v268.80: Deep clone total para eliminar referencias circulares y evitar el crash de terminal
+        return JSON.parse(JSON.stringify({
+            id: id,
+            user: p.user || 'Unknown',
+            x: p.x || 0,
+            y: p.y || 0,
+            hp: p.hp || 0,
+            maxHp: p.maxHp || 0,
+            sh: (p.sh !== undefined) ? p.sh : (p.shield || 0),
+            maxSh: (p.maxSh !== undefined) ? p.maxSh : (p.maxShield || 0),
+            zone: p.zone,
+            spheres: p.spheres || [],
+            status_effects: p.status_effects || {},
+            clanTag: p.clanTag || "",
+            currentShipId: p.currentShipId || 1,
+            pvpEnabled: !!p.pvpEnabled,
+            isInvulnerable: !!p.isInvulnerable
+        }));
+    } catch (e) {
+        console.error("Error sanitizing player data:", e);
+        return null;
+    }
+};
+
+// v268.80: Helper para limpiar datos de enemigos
+const getCleanEnemyData = (e, id) => {
+    try {
+        return JSON.parse(JSON.stringify({
+            id: id,
+            type: e.type,
+            x: e.x,
+            y: e.y,
+            hp: e.hp,
+            maxHp: e.maxHp,
+            sh: e.sh || e.shield,
+            status_effects: e.status_effects || {},
+            isDead: !!e.isDead,
+            isInvulnerable: !!e.isInvulnerable
+        }));
+    } catch (err) {
+        return null;
+    }
+};
+
 const normalizeZone = (z) => {
     if (typeof z === 'string') {
         if (!isNaN(z) && z.trim() !== '') {
@@ -38,34 +86,32 @@ function registerZoneHandlers(socket, io, state) {
 
         socket.emit('changeZoneDone', newZone);
         socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
-        socket.to(`zone_${newZone}`).emit('newPlayer', { ...p, id: socket.id, spheres: p.spheres });
+        socket.to(`zone_${newZone}`).emit('newPlayer', getCleanPlayerData(p, socket.id));
 
-        // --- SYNC: Recopilar otros jugadores en la nueva zona ---
+        // v268.66: Sincronización Unificada y Purga Administrativa
         const currentPlayersInZone = {};
         Object.keys(players).forEach(pId => {
             const otherP = players[pId];
             if (normalizeZone(otherP.zone) === normalizeZone(newZone) && pId !== socket.id) {
-                const { ai, ...cleanP } = otherP;
-                currentPlayersInZone[pId] = {
-                    ...cleanP,
-                    id: pId,
-                    zone: newZone,
-                    maxHp: otherP.maxHp || 2000,
-                    maxShield: otherP.maxShield || 1000,
-                    spheres: otherP.spheres || []
-                };
+                currentPlayersInZone[pId] = getCleanPlayerData(otherP, pId);
             }
         });
 
-        // --- SYNC: Recopilar enemigos en la nueva zona ---
         const zoneEnemies = {};
-        Object.keys(enemies).forEach(eid => {
-            const e = enemies[eid];
+        let purgeCount = 0;
+        Object.keys(enemies).forEach(id => {
+            const e = enemies[id];
             if (normalizeZone(e.zone) === normalizeZone(newZone)) {
-                const { ai, ...cleanData } = e;
-                zoneEnemies[eid] = cleanData;
+                if (e.hp <= 0 || e.isDead || !e.ai) {
+                    delete enemies[id];
+                    purgeCount++;
+                } else {
+                zoneEnemies[id] = getCleanEnemyData(e, id);
+                }
             }
         });
+
+        if (purgeCount > 0) Logger.debug('ADMIN-CLEANUP', `Zona ${newZone}: ${purgeCount} residuos purgados.`);
 
         setTimeout(() => {
             if (socket.connected) {
@@ -147,8 +193,9 @@ function registerZoneHandlers(socket, io, state) {
             socket.dbUser = user;
             p.ohcu = user.gameData.ohcu;
 
-            // Notificar nuevo balance y confirmar cambio de zona para limpieza de entidades
-            socket.emit('inventoryData', { player: user.gameData });
+            // v268.80: Clonación profunda para evitar Circular References y crash de terminal
+            const inventoryCopy = JSON.parse(JSON.stringify(user.gameData));
+            socket.emit('inventoryData', { player: inventoryCopy });
             socket.emit('changeZoneDone', zoneId);
 
             const newSize = (Number(zoneId) === 1 ? 2000 : 4000);
@@ -165,64 +212,47 @@ function registerZoneHandlers(socket, io, state) {
 
             // Avisar a la vieja zona que se fue y a la nueva que llegó
             socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
-            socket.to(`zone_${zoneId}`).emit('newPlayer', { ...p, id: socket.id, spheres: p.spheres });
+            socket.to(`zone_${zoneId}`).emit('newPlayer', getCleanPlayerData(p, socket.id));
 
-            // v225.70: LIMPIEZA DE RESIDUOS - Solo borrar si están muertos o corruptos (Evita resetear bichos vivos)
-            if (Number(zoneId) >= 2) {
-                let purgeCount = 0;
-                Object.keys(enemies).forEach(eid => {
-                    const e = enemies[eid];
-                    if (e && e.zone === zoneId && (e.hp <= 0 || !e.ai)) {
-                        delete enemies[eid];
-                        purgeCount++;
-                    }
-                });
-                if (purgeCount > 0) Logger.debug('CLEANUP', `Zona ${zoneId}: ${purgeCount} residuos purgados.`);
-            }
-
-            // v268.60: FIX DEFINITIVO - Sincronizar jugadores actuales en la zona destino
+            // v268.66: Sincronización Unificada y Purga de Entidades Muertas
             const currentPlayersInZone = {};
             Object.keys(players).forEach(pId => {
                 const otherP = players[pId];
                 if (normalizeZone(otherP.zone) === normalizeZone(zoneId) && pId !== socket.id) {
-                    const { ai, ...cleanP } = otherP; // Evitar referencias circulares
-                    currentPlayersInZone[pId] = {
-                        ...cleanP,
-                        id: pId,
-                        zone: zoneId, // Asegurar que la zona es la correcta
-                        maxHp: otherP.maxHp || 2000,
-                        maxShield: otherP.maxShield || 1000,
-                        spheres: otherP.spheres || []
-                    };
+                    currentPlayersInZone[pId] = getCleanPlayerData(otherP, pId);
                 }
             });
+
+            const zoneEnemies = {};
+            let purgeCount = 0;
+            Object.keys(enemies).forEach(id => {
+                const e = enemies[id];
+                if (normalizeZone(e.zone) === normalizeZone(zoneId)) {
+                    if (e.hp <= 0 || e.isDead || !e.ai) {
+                        delete enemies[id];
+                        purgeCount++;
+                    } else {
+                        zoneEnemies[id] = getCleanEnemyData(e, id);
+                    }
+                }
+            });
+
+            if (purgeCount > 0) Logger.debug('CLEANUP', `Sector ${zoneId}: ${purgeCount} entidades muertas purgadas.`);
+            Logger.debug('ZONE-SYNC', `${p.user} en zona ${zoneId}. Enviando ${Object.keys(currentPlayersInZone).length} pilotos y ${Object.keys(zoneEnemies).length} enemigos.`);
             
-            const playerCount = Object.keys(currentPlayersInZone).length;
-            Logger.debug('ZONE-SYNC', `${p.user} llegó a zona ${zoneId}. Enviando ${playerCount} pilotos en 500ms...`);
-            
-            // Delay para que el cliente termine de procesar changeZoneDone antes de recibir jugadores
             setTimeout(() => {
-                socket.emit('currentPlayers', currentPlayersInZone);
-                Logger.debug('ZONE-SYNC', `currentPlayers enviado a ${p.user}: ${playerCount} pilotos.`);
+                if (socket.connected) {
+                    socket.emit('currentPlayers', currentPlayersInZone);
+                    socket.emit('currentEnemies', zoneEnemies);
+                }
             }, 500);
 
-            // Sincronizar enemigos de la zona (inmediato, el cliente ya sabe manejarlos)
-            const zoneEnemies = {};
-            Object.keys(enemies).forEach(id => {
-                if (normalizeZone(enemies[id].zone) === normalizeZone(zoneId)) {
-                    const { ai, ...cleanData } = enemies[id];
-                    zoneEnemies[id] = cleanData;
-                }
-            });
-            socket.emit('currentEnemies', zoneEnemies);
             socket.emit('gameNotification', { msg: `Salto exitoso a Sector ${zoneId}`, type: 'success' });
-
         } catch (e) {
             console.error("Error en changeZone:", e);
         }
     });
 }
-
 module.exports = {
     registerZoneHandlers
 };

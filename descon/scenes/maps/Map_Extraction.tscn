@@ -32,40 +32,6 @@ script = ExtResource("1_extraction_script")
 world_size = 10000.0
 zone_name = "SECTOR DE EXTRACCIÓN"
 
-[node name="ViewportCanvas" type="CanvasLayer" parent="." unique_id=2124670741]
-layer = -5
-
-[node name="SubViewportContainer" type="SubViewportContainer" parent="ViewportCanvas" unique_id=1795325295]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="SubViewport" type="SubViewport" parent="ViewportCanvas/SubViewportContainer" unique_id=1881081166]
-own_world_3d = true
-transparent_bg = true
-handle_input_locally = false
-size = Vector2i(1920, 1080)
-render_target_update_mode = 4
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=1760387247]
-environment = SubResource("Environment_space")
-
-[node name="Camera3D" type="Camera3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=672536405]
-transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 20, 30, 20)
-fov = 50.0
-
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=557693572]
-transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 20, 0)
-light_color = Color(0.701961, 0.85098, 1, 1)
-light_energy = 1.2
-shadow_enabled = true
-
-[node name="Asteroids3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=378578519]
-
-[node name="Walls3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=2087470845]
 
 [node name="ParallaxBackground" type="ParallaxBackground" parent="." unique_id=28182905]
 layer = -25
