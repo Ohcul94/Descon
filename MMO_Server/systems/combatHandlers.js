@@ -92,7 +92,8 @@ function registerCombatHandlers(socket, io, state) {
             rotation: fireData.rotation,
             type: ammoType,
             ammoType: ammoTier,
-            targetId: fireData.targetId
+            targetId: fireData.targetId,
+            range: fireData.range !== undefined ? fireData.range : 600.0
         };
 
         socket.to(`zone_${p.zone}`).emit('playerFire', pData);

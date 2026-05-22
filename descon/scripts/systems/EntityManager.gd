@@ -238,11 +238,8 @@ func _on_player_updated(data):
 		if is_new:
 			p.global_position = new_pos
 			p.rotation = new_rot
-			if is_instance_valid(p.world_root_3d):
-				var s_factor = p.get_meta("map_scale", 0.02)
-				p.world_root_3d.position.x = new_pos.x * s_factor
-				p.world_root_3d.position.z = new_pos.y * s_factor
-				p.world_root_3d.position.y = 0.0
+			if p.has_method("_update_3d_root_sync"):
+				p._update_3d_root_sync()
 		p.set_meta("zone", remote_zone)
 		p.update_stats(data)
 
@@ -370,11 +367,8 @@ func _on_enemy_updated(data):
 		if is_new:
 			eref.global_position = new_pos
 			eref.rotation = new_rot
-			if is_instance_valid(eref.world_root_3d):
-				var s_factor = eref.get_meta("map_scale", 0.02)
-				eref.world_root_3d.position.x = new_pos.x * s_factor
-				eref.world_root_3d.position.z = new_pos.y * s_factor
-				eref.world_root_3d.position.y = 0.0
+			if eref.has_method("_update_3d_root_sync"):
+				eref._update_3d_root_sync()
 		var enemy_zone = _parse_zone_to_int(data.get("zone", -1))
 		if enemy_zone != -1:
 			eref.set_meta("zone", enemy_zone)

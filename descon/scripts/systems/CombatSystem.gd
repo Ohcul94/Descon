@@ -39,11 +39,6 @@ func _spawn_projectile(data, o_type):
 	var spawn_data = data.duplicate()
 	spawn_data["owner_type"] = o_type
 	
-	var px = str(data.get("x", 0.0)).to_float()
-	var py = str(data.get("y", 0.0)).to_float()
-	p.global_position = Vector2(px, py)
-	p.rotation = str(data.get("angle", 0.0)).to_float()
-	
 	# v168.13: Asegurar visibilidad (Z-Index alto) y organización
 	p.z_index = 5 
 	p.top_level = false # Seguir el sistema de coordenadas del padre
@@ -53,6 +48,43 @@ func _spawn_projectile(data, o_type):
 	else:
 		get_parent().add_child(p)
 
+	# v311.10: Posicionar en coordenadas globales de forma segura DESPUÉS de añadir al árbol de escenas
+	var px = str(data.get("x", 0.0)).to_float()
+	var py = str(data.get("y", 0.0)).to_float()
+	
+	# v311.20: Sincronización de origen de proyectil con la posición visual actual en el cliente para evitar lag de interpolación (lerp)
+	var owner_id = str(data.get("enemyId", data.get("id", data.get("senderId", data.get("entityId", "")))))
+	var spawn_pos = Vector2(px, py)
+	var found_entity = null
+	
+	if is_instance_valid(world):
+		if o_type == "player" and is_instance_valid(world.local_player):
+			found_entity = world.local_player
+		elif o_type == "remote" and owner_id != "" and world.get("remote_players") != null:
+			found_entity = world.remote_players.get(owner_id)
+		elif o_type == "enemy" and owner_id != "" and world.get("enemies") != null:
+			found_entity = world.enemies.get(owner_id)
+			
+	if is_instance_valid(found_entity):
+		spawn_pos = found_entity.global_position
+		
+		# v311.30: Alinear origen de la bala 2D con la proyección en pantalla de la nave 3D (Soluciona desalineación lateral por perspectiva de cámara inclinada)
+		if found_entity.get_meta("is_single_world", false) and is_instance_valid(found_entity.world_root_3d):
+			var current_map = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
+				var cam3d: Camera3D = current_map.camera_3d
+				var sub_vp: SubViewport = current_map.sub_viewport
+				if not cam3d.is_position_behind(found_entity.world_root_3d.global_position):
+					var sv_pixel = cam3d.unproject_position(found_entity.world_root_3d.global_position)
+					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+						var main_size = Vector2(get_viewport().get_visible_rect().size)
+						sv_pixel *= main_size / Vector2(sub_vp.size)
+					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+					spawn_pos = world_2d
+		
+	p.global_position = spawn_pos
+	p.rotation = str(data.get("angle", 0.0)).to_float()
+	
 	# v165.96: Inicialización CENTRALIZADA via setup()
 	if p.has_method("setup"):
 		p.setup(p.global_position, p.rotation, spawn_data)

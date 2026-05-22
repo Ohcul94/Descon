@@ -49,7 +49,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	if speed <= 0 and (type == "missile" or type == "ice_missile"):
 		speed = 450.0 # v266.520: Velocidad de crucero segura si no hay config
 		
-	max_range = float(p_data.get("range", 0.0))
+	max_range = float(p_data.get("range", 600.0))
 	target_id = str(p_data.get("targetId", ""))
 	
 	# v266.510: Localizar nodo objetivo (Reforzado v3)

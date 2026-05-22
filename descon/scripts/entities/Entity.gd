@@ -845,6 +845,12 @@ func die():
 	if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
 	if is_instance_valid(world_root_3d): world_root_3d.visible = false
 	
+	# Limpieza explícita de esferas 3D en muerte para evitar que queden flotando y agrandadas
+	for s in _3d_spheres:
+		if is_instance_valid(s):
+			s.queue_free()
+	_3d_spheres = [null, null, null, null]
+	
 	# 3. Limpieza de efectos visuales residuales para el pooling/respawn
 	_update_flash_visuals(0.0)
 	if is_instance_valid(sprite):
