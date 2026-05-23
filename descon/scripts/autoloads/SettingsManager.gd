@@ -15,7 +15,8 @@ var default_keys = {
 	"ui_map": KEY_M, "ui_party": KEY_P, "ui_pvp_toggle": KEY_C,
 	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto
-	"chat_toggle": KEY_ENTER # Atajo para chat
+	"chat_toggle": KEY_ENTER, # Atajo para chat
+	"loot_claim": KEY_Y # Atajo para abrir cofres de botín
 }
 var cast_mode_cache: int = 1 # v267.10: Cache local del modo de casteo
 var graphics_quality: int = 1 # 0: Baja, 1: Media, 2: Alta

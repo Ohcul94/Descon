@@ -8,6 +8,7 @@ var remote_players = {}
 var enemies = {}
 var enemy_pool = []
 var active_areas = {} # Cache de zonas de efecto (Humo, etc)
+var loot_drops = {} # Cache de botines activos en el mapa
 var active_laser_tracking = {} # Indicadores que siguen al jugador {enemy_id: {indicator, target_id}}
 
 const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
@@ -34,6 +35,9 @@ func setup(world_ref):
 	NetworkManager.remove_area.connect(_on_remove_area)
 	NetworkManager.beacon_pulse.connect(_on_beacon_pulse)
 	NetworkManager.hook_pulled.connect(_on_hook_pulled)
+	NetworkManager.loot_spawned.connect(_on_loot_spawned)
+	NetworkManager.loot_despawned.connect(_on_loot_despawned)
+
 
 func _process(delta):
 	# 0. Filtro Proactivo de Zonas para prevenir Entidades Huérfanas (v3.0)
@@ -65,6 +69,17 @@ func _process(delta):
 					if en.get("_ui_wrapper"): en.get("_ui_wrapper").visible = false
 					enemies.erase(eid)
 					print("[EntityManager SINC] Enemigo huérfano purgado por cambio de zona: ", eid)
+					
+		# Limpiar Botines Huérfanos
+		for lid in loot_drops.keys():
+			var drop = loot_drops[lid]
+			if is_instance_valid(drop):
+				var drop_zone = drop.get_meta("zone") if drop.has_meta("zone") else -1
+				if drop_zone != -1 and drop_zone != my_zone:
+					loot_drops.erase(lid)
+					drop.queue_free()
+					print("[EntityManager SINC] Botín huérfano purgado por cambio de zona: ", lid)
+
 
 	# 1. Procesar físicas locales de succión de Vórtices y Lazos Curativos
 	for id in active_areas.keys():
@@ -398,6 +413,10 @@ func clear_remote_players():
 		if is_instance_valid(enemies[id]): 
 			enemies[id].set_meta("is_pooled", true); enemies[id].visible = false; enemies[id].set_process(false); enemies[id].set_physics_process(false)
 	enemies.clear()
+	for id in loot_drops.keys():
+		var drop = loot_drops[id]
+		if is_instance_valid(drop): drop.queue_free()
+	loot_drops.clear()
 	print("[EntityManager] Universo limpiado correctamente.")
 
 func _on_enemy_dead(data: Dictionary):
@@ -1185,3 +1204,44 @@ func _get_entity_visual_position(entity: Node) -> Vector2:
 					return world_2d
 		return entity.global_position
 	return Vector2.ZERO
+
+func _on_loot_spawned(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return
+	var id = str(data.id)
+	
+	if loot_drops.has(id): return
+	
+	# Filtro de Zona
+	if is_instance_valid(world) and is_instance_valid(world.local_player):
+		var loot_zone = _parse_zone_to_int(data.get("zone", -1))
+		var my_zone = _parse_zone_to_int(world.local_player.current_zone)
+		if loot_zone != -1 and loot_zone != my_zone:
+			return
+			
+	var loot_script = load("res://scripts/entities/LootDrop.gd")
+	if loot_script:
+		var drop = Area2D.new()
+		drop.set_script(loot_script)
+		drop.name = id
+		drop.loot_id = id
+		drop.global_position = Vector2(data.x, data.y)
+		drop.set_meta("zone", _parse_zone_to_int(data.get("zone", -1)))
+		
+		if is_instance_valid(world) and is_instance_valid(world.entities_node):
+			world.entities_node.add_child(drop)
+			loot_drops[id] = drop
+			print("[EntityManager] Botín físico instanciado: ", id)
+
+func _on_loot_despawned(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return
+	var id = str(data.id)
+	
+	if loot_drops.has(id):
+		var drop = loot_drops[id]
+		loot_drops.erase(id)
+		if is_instance_valid(drop):
+			if drop.has_method("fade_out_and_free"):
+				drop.fade_out_and_free()
+			else:
+				drop.queue_free()
+			print("[EntityManager] Botín físico removido: ", id)

@@ -232,6 +232,7 @@ func _setup_ui():
 		"ui_menu": "MENÚ DE SISTEMA (ESC)", "ui_inventory": "INVENTARIO (F1)",
 		"ui_map": "MAPA (M)", "ui_party": "EQUIPO (P)", "ui_pvp_toggle": "MODO COMBATE (C)",
 		"portal_jump": "INGRESAR AL PORTAL",
+		"loot_claim": "ABRIR BOTÍN / COFRE",
 		"chat_toggle": "ABRIR / CERRAR CHAT"
 	}
 

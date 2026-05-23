@@ -185,6 +185,18 @@
                 <div class="nav-group">
                     <div class="nav-link active" onclick="showTab('pilot')">👨‍🚀 Perfil del Piloto</div>
                     <div class="nav-link" onclick="showTab('ships')">🚀 Naves Estelares</div>
+                    <div class="nav-folder" onclick="toggleFolder('folder-loot'); showTab('loot')">🎁 Sistema de Botín <span class="chevron">▶</span></div>
+                    <div id="folder-loot" class="folder-content">
+                        <div class="nav-link sub" onclick="showTab('loot')">⚙️ Config. Global</div>
+                        <div class="nav-link sub" onclick="toggleFolder('subfolder-loot-regulars')">Regulares <span class="chevron">▶</span></div>
+                        <div id="subfolder-loot-regulars" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
+                            <div id="sidebar-loot-enemies-list"></div>
+                        </div>
+                        <div class="nav-link sub" onclick="toggleFolder('subfolder-loot-bosses')">Bosses <span class="chevron">▶</span></div>
+                        <div id="subfolder-loot-bosses" class="folder-content" style="padding-left: 1rem; border-left: 1px solid #333; margin-left: 0.5rem;">
+                            <div id="sidebar-loot-bosses-list"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="nav-group">
@@ -281,6 +293,55 @@
 
             <div id="view-ships" class="view active">
                 <div id="ships-grid" class="grid"></div>
+            </div>
+
+            <div id="view-loot" class="view">
+                <div class="card" style="width: 100%; margin-bottom: 2rem;">
+                    <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                        🎁 CONFIGURACIÓN GLOBAL DEL SISTEMA DE BOTÍN
+                    </h3>
+                    <div class="form-grid">
+                        <div class="field">
+                            <label>Rango de Interacción del Botín (px)</label>
+                            <input type="number" id="loot-interact-range" onchange="config.lootConfig.interactRange = parseInt(this.value)">
+                        </div>
+                        <div class="field">
+                            <label>Tiempo de Expiración del Botín (ms)</label>
+                            <input type="number" id="loot-expiration-ms" onchange="config.lootConfig.expirationMs = parseInt(this.value)">
+                        </div>
+                        <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;">
+                            <input type="checkbox" id="loot-server-auth" onchange="config.lootConfig.serverAuthoritative = this.checked">
+                            <label for="loot-server-auth" style="margin-bottom:0; cursor:pointer;">Autoridad Estricta del Servidor (Validación de Distancia)</label>
+                        </div>
+                        <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;">
+                            <input type="checkbox" id="loot-pvp-drop" onchange="config.lootConfig.pvpDropEnabled = this.checked">
+                            <label for="loot-pvp-drop" style="margin-bottom:0; cursor:pointer;">Habilitar Drop de Recompensas en PvP (Futuro)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="width: 100%; background: rgba(6,182,212,0.03); border: 1px solid rgba(6,182,212,0.15);">
+                    <h3 style="color: var(--accent); margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+                        📊 RESUMEN DE TABLAS DE BOTÍN
+                    </h3>
+                    <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                        Usá el <strong style="color: var(--accent);">sidebar izquierdo</strong> para navegar a cada enemigo individual. 
+                        Desplegá las carpetas <strong>Regulares</strong> y <strong>Bosses</strong> bajo "🎁 Sistema de Botín" para configurar las recompensas de cada criatura.
+                    </p>
+                    <div id="loot-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+                        <!-- Se llena dinámicamente por renderLootConfig -->
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="view-enemy-loot" class="view">
+                <div class="section-header" style="margin-bottom: 1.5rem;">
+                    <button class="btn btn-secondary" onclick="showTab('loot')" style="margin-right:1rem;">Volver a Config. Global</button>
+                </div>
+                <div id="enemy-loot-detail-container" style="width: 100%;">
+                    <!-- Se renderizará dinámicamente -->
+                </div>
             </div>
 
             <div id="view-pilot" class="view">

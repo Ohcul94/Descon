@@ -240,6 +240,8 @@ function refreshCurrentTab() {
         'mechanics': renderMechanicsLib, 'maps': renderMaps, 'users': renderRegisteredUsers,
         'pilot': renderPilot,
         'modes': renderModes,
+        'loot': renderLootConfig,
+        'enemy-loot': renderEnemyLootDetail,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions())
     };
     if(renderMap[tabId]) renderMap[tabId]();
@@ -251,6 +253,7 @@ function renderAll() {
     renderMaps(); renderAmmo(); renderWeapons(); renderShields(); renderEngines();
     renderPilot();
     renderModes();
+    renderLootConfig();
 }
 
 function renderAmmo() {
@@ -615,6 +618,7 @@ function renderEnemyDetail() {
                         <div class="field"><label>Exp (pts)</label><input type="number" value="${en.rewardExp || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rewardExp = parseInt(this.value)"></div>
                         <div class="field"><label>Hubs (pts)</label><input type="number" value="${en.rewardHubs || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rewardHubs = parseInt(this.value)"></div>
                         <div class="field"><label style="color:var(--primary);">Ohcu (qty)</label><input type="number" value="${en.rewardOhcu || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rewardOhcu = parseInt(this.value)"></div>
+                        <div class="field"><label style="color:var(--accent);">Probabilidad de Cofre (%)</label><input type="number" min="0" max="100" step="1" value="${en.chestDropChance !== undefined ? Math.round(en.chestDropChance * 100) : 10}" onchange="config.enemyModels['${selectedEnemyId}'].chestDropChance = parseFloat(this.value) / 100"></div>
                     </div>
                 </div>
                 <div class="card" style="width:100%; margin-bottom: 2rem; border-color: var(--accent); background: rgba(6, 182, 212, 0.1);">
@@ -770,8 +774,39 @@ function renderEnemyDetail() {
                                     return `<div class="field"><label>${defLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}
                             </div>
-                        </div>
                     `).join('')}
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2rem; margin-bottom:1rem;">
+                    <label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">🎁 CONFIGURACIÓN DE BOTÍN (LOOT DROPS)</label>
+                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background: var(--accent); border-color: var(--accent); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);" onclick="addLootDrop('${selectedEnemyId}')">+ AGREGAR DROP</button>
+                </div>
+                <div id="loot-drop-list-${selectedEnemyId}">
+                    ${(en.lootDrops || []).map((ld, idx) => {
+                        const allItems = [
+                            ...(config.shopItems?.weapons || []),
+                            ...(config.shopItems?.shields || []),
+                            ...(config.shopItems?.engines || []),
+                            ...(config.shopItems?.extra || [])
+                        ];
+                        
+                        return `
+                            <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); display: flex; gap: 10px; align-items: center; justify-content: space-between;">
+                                <div style="flex: 2; display: flex; flex-direction: column; gap: 5px;">
+                                    <label style="font-size: 0.65rem; color: var(--text-dim);">ÍTEM DE RECOMPENSA</label>
+                                    <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateLootDropItem('${selectedEnemyId}', ${idx}, this.value)">
+                                        <option value="">-- Seleccionar Item --</option>
+                                        ${allItems.map(it => `<option value="${it.id}" ${ld.itemId === it.id ? 'selected' : ''}>[${it.type?.toUpperCase() || 'MOD'}] ${it.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                                    <label style="font-size: 0.65rem; color: var(--text-dim);">PROBABILIDAD (%)</label>
+                                    <input type="number" min="0" max="100" step="1" value="${Math.round((ld.chance || 0.1) * 100)}" style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="updateLootDropChance('${selectedEnemyId}', ${idx}, this.value)">
+                                </div>
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size: 1.2rem; font-weight: bold; margin-top: 15px;" onclick="removeLootDrop('${selectedEnemyId}', ${idx})">✕</button>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         </div>
@@ -883,6 +918,7 @@ function renderMapDetail() {
                         <div class="field"><label>Nivel Mín. (lvl)</label><input type="number" value="${m.minLevel}" onchange="config.mapsConfig['${selectedMapId}'].minLevel = parseInt(this.value)"></div>
                         <div class="field"><label>Costo Warp (Hubs)</label><input type="number" value="${m.warpCost}" onchange="config.mapsConfig['${selectedMapId}'].warpCost = parseInt(this.value)"></div>
                         <div class="field"><label>Color de Radar</label><input type="color" value="${m.color}" onchange="config.mapsConfig['${selectedMapId}'].color = this.value; updateSidebar();" style="height:40px;"></div>
+                        <div class="field"><label>Multiplicador de Drop (x)</label><input type="number" step="0.1" min="0" value="${m.dropMultiplier !== undefined ? m.dropMultiplier : 1}" onchange="config.mapsConfig['${selectedMapId}'].dropMultiplier = parseFloat(this.value) || 1"></div>
                     </div>
                     <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.05);">
                         <label style="color:var(--accent); font-size: 0.65rem; font-weight:bold; letter-spacing:1px; display:block; margin-bottom:0.8rem;">📐 DIMENSIONES DEL MAPA EN PÍXELES</label>
@@ -1755,3 +1791,213 @@ function renderModes() {
         `;
     }
 }
+
+function renderLootConfig() {
+    updateLootSidebar();
+    if (!config || !config.lootConfig) return;
+    
+    const rangeInput = document.getElementById('loot-interact-range');
+    const expInput = document.getElementById('loot-expiration-ms');
+    const authCheck = document.getElementById('loot-server-auth');
+    const pvpCheck = document.getElementById('loot-pvp-drop');
+    
+    if (rangeInput) rangeInput.value = config.lootConfig.interactRange || 400;
+    if (expInput) expInput.value = config.lootConfig.expirationMs || 300000;
+    if (authCheck) authCheck.checked = config.lootConfig.serverAuthoritative !== false;
+    if (pvpCheck) pvpCheck.checked = !!config.lootConfig.pvpDropEnabled;
+
+    // Resumen visual de tablas de botín por enemigo
+    const summaryGrid = document.getElementById('loot-summary-grid');
+    if (!summaryGrid) return;
+    summaryGrid.innerHTML = '';
+
+    if (!config.enemyModels) return;
+
+    const sortedIds = Object.keys(config.enemyModels).sort((a, b) => parseInt(a) - parseInt(b));
+    let totalEnemiesWithDrops = 0;
+
+    sortedIds.forEach(enemyId => {
+        if (enemyId.includes('-')) return;
+        const en = config.enemyModels[enemyId];
+        if (!en) return;
+
+        const dropCount = (en.lootDrops && en.lootDrops.length) || 0;
+        const isBoss = parseInt(enemyId) >= 100;
+        const accentColor = isBoss ? 'var(--accent)' : 'var(--success)';
+        const typeLabel = isBoss ? '💀 BOSS' : '👾 REGULAR';
+
+        if (dropCount > 0) totalEnemiesWithDrops++;
+
+        const card = document.createElement('div');
+        card.style.cssText = `
+            background: rgba(255,255,255,0.02); 
+            border: 1px solid rgba(255,255,255,0.06); 
+            border-radius: 10px; 
+            padding: 1rem 1.2rem; 
+            cursor: pointer; 
+            transition: all 0.25s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+        card.onmouseenter = function() { 
+            this.style.borderColor = 'rgba(6,182,212,0.35)'; 
+            this.style.background = 'rgba(6,182,212,0.05)'; 
+            this.style.transform = 'translateY(-2px)'; 
+        };
+        card.onmouseleave = function() { 
+            this.style.borderColor = 'rgba(255,255,255,0.06)'; 
+            this.style.background = 'rgba(255,255,255,0.02)'; 
+            this.style.transform = 'translateY(0)'; 
+        };
+        card.onclick = () => selectLootEnemy(enemyId);
+
+        card.innerHTML = `
+            <div>
+                <span style="font-size: 0.6rem; color: ${accentColor}; font-weight: bold;">${typeLabel}</span>
+                <div style="font-size: 0.95rem; color: #fff; font-weight: 600; margin-top: 2px;">${en.name || 'Enemigo ' + enemyId}</div>
+                <span style="font-size: 0.7rem; color: var(--text-dim);">#ID ${enemyId}</span>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: bold; color: ${dropCount > 0 ? accentColor : 'var(--text-dim)'};">${dropCount}</div>
+                <div style="font-size: 0.55rem; color: var(--text-dim); text-transform: uppercase;">Drops</div>
+            </div>
+        `;
+        summaryGrid.appendChild(card);
+    });
+}
+
+
+function updateLootSidebar() {
+    const enemyList = document.getElementById('sidebar-loot-enemies-list');
+    const bossList = document.getElementById('sidebar-loot-bosses-list');
+    if (!enemyList || !bossList) return;
+
+    enemyList.innerHTML = '';
+    bossList.innerHTML = '';
+
+    if (!config || !config.enemyModels) return;
+
+    const sortedIds = Object.keys(config.enemyModels).sort((a, b) => parseInt(a) - parseInt(b));
+
+    sortedIds.forEach(id => {
+        if (id.includes('-')) return;
+        const en = config.enemyModels[id];
+        if (!en) return;
+
+        const isBoss = parseInt(id) >= 100;
+        const dropCount = (en.lootDrops && en.lootDrops.length) || 0;
+        const isActive = selectedLootEnemyId === id;
+
+        const link = document.createElement('div');
+        link.className = 'nav-link sub ' + (isActive ? 'active' : '');
+        link.style.cursor = 'pointer';
+        link.style.display = 'flex';
+        link.style.justifyContent = 'space-between';
+        link.style.alignItems = 'center';
+        link.innerHTML = `
+            <span>${isBoss ? '💀' : '👾'} ${en.name || (isBoss ? 'Boss ' : 'Enemigo ') + id}</span>
+            <span style="font-size: 0.6rem; opacity: 0.5; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">${dropCount} drops</span>
+        `;
+        link.onclick = () => selectLootEnemy(id);
+
+        if (isBoss) bossList.appendChild(link);
+        else enemyList.appendChild(link);
+    });
+}
+
+function renderEnemyLootDetail() {
+    updateLootSidebar();
+    const container = document.getElementById('enemy-loot-detail-container');
+    if (!container) return;
+
+    const enemyId = selectedLootEnemyId;
+    if (!enemyId || !config.enemyModels[enemyId]) {
+        container.innerHTML = '<div style="color: var(--text-dim); text-align: center; padding: 4rem;">Seleccioná un enemigo del sidebar para configurar su botín.</div>';
+        return;
+    }
+
+    const en = config.enemyModels[enemyId];
+    if (!en.lootDrops) en.lootDrops = [];
+
+    const isBoss = parseInt(enemyId) >= 100;
+    const badgeColor = isBoss ? 'var(--accent)' : 'var(--success)';
+    const badgeText = isBoss ? 'BOSS' : 'REGULAR';
+
+    const allItems = [
+        ...(config.shopItems?.weapons || []),
+        ...(config.shopItems?.shields || []),
+        ...(config.shopItems?.engines || []),
+        ...(config.shopItems?.extra || [])
+    ];
+
+    const totalChance = en.lootDrops.reduce((sum, ld) => sum + (ld.chance || 0), 0);
+    const avgDrops = totalChance.toFixed(2);
+
+    container.innerHTML = `
+        <div class="card" style="width: 100%; margin-bottom: 2rem; border-left: 4px solid ${badgeColor};">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <span style="background: ${badgeColor}20; color: ${badgeColor}; padding: 3px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; margin-right: 12px;">${badgeText}</span>
+                    <strong style="font-size: 1.4rem; color: #fff;">${en.name}</strong>
+                    <span style="color: var(--text-dim); font-size: 0.85rem; margin-left: 8px;">(#ID ${enemyId})</span>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div style="text-align: center; background: rgba(255,255,255,0.03); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase;">Items Configurados</div>
+                        <div style="font-size: 1.3rem; font-weight: bold; color: var(--accent);">${en.lootDrops.length}</div>
+                    </div>
+                    <div style="text-align: center; background: rgba(255,255,255,0.03); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                        <div style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase;">Drops Promedio</div>
+                        <div style="font-size: 1.3rem; font-weight: bold; color: var(--primary);">${avgDrops}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                <label style="color: var(--accent); font-size: 0.75rem; font-weight: bold;">🎁 TABLA DE RECOMPENSAS</label>
+                <button class="btn btn-primary" style="padding: 6px 16px; font-size: 0.75rem; background: var(--accent); border-color: var(--accent);" onclick="addLootDropFromEnemyLoot('${enemyId}')">+ AGREGAR RECOMPENSA</button>
+            </div>
+
+            <div id="enemy-loot-drops-list" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                ${en.lootDrops.length === 0 ? `
+                    <div style="color: var(--text-dim); font-size: 0.85rem; padding: 2rem; text-align: center; background: rgba(255,255,255,0.01); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.08);">
+                        ⚠️ Este enemigo no tiene recompensas configuradas. Agregá ítems con el botón de arriba.
+                    </div>
+                ` : en.lootDrops.map((ld, idx) => {
+                    const selectedItem = allItems.find(it => it.id === ld.itemId);
+                    const chancePercent = Math.round((ld.chance || 0.1) * 100);
+                    const barColor = chancePercent >= 50 ? 'var(--success)' : (chancePercent >= 20 ? 'var(--primary)' : 'var(--accent)');
+                    return `
+                    <div style="background: rgba(255,255,255,0.02); padding: 1rem 1.2rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); display: grid; grid-template-columns: 2fr 1fr 80px auto; gap: 15px; align-items: center; transition: all 0.2s;" onmouseenter="this.style.borderColor='rgba(6,182,212,0.3)'; this.style.background='rgba(6,182,212,0.03)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.05)'; this.style.background='rgba(255,255,255,0.02)'">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">ÍTEM DE RECOMPENSA</label>
+                            <select style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; font-weight: bold; cursor: pointer; width: 100%; border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;" onchange="updateLootDropItemFromEnemyLoot('${enemyId}', ${idx}, this.value)">
+                                <option value="">-- Seleccionar Item --</option>
+                                ${allItems.map(it => `<option value="${it.id}" ${ld.itemId === it.id ? 'selected' : ''}>[${(it.type || 'MOD').toUpperCase()}] ${it.name}</option>`).join('')}
+                            </select>
+                            ${selectedItem ? `<span style="font-size: 0.65rem; color: var(--text-dim);">Tipo: ${(selectedItem.type || 'módulo').toUpperCase()} | Rareza: ${selectedItem.rarity || 0}</span>` : ''}
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">PROBABILIDAD</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="number" min="0" max="100" step="1" value="${chancePercent}" style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 6px; padding: 8px 10px; width: 80px; font-size: 0.9rem; font-weight: bold;" onchange="updateLootDropChanceFromEnemyLoot('${enemyId}', ${idx}, this.value); renderEnemyLootDetail()">
+                                <span style="font-size: 0.85rem; color: var(--text-dim);">%</span>
+                            </div>
+                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 4px;">
+                                <div style="height: 100%; width: ${chancePercent}%; background: ${barColor}; border-radius: 2px; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                            <span style="font-size: 1.4rem; font-weight: bold; color: ${barColor};">${chancePercent}%</span>
+                            <span style="font-size: 0.55rem; color: var(--text-dim);">DROP RATE</span>
+                        </div>
+                        <button style="background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.2); color: #ff4444; cursor: pointer; font-size: 1rem; font-weight: bold; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseenter="this.style.background='rgba(255,68,68,0.3)'" onmouseleave="this.style.background='rgba(255,68,68,0.1)'" onclick="removeLootDropFromEnemyLoot('${enemyId}', ${idx})">✕</button>
+                    </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+}
+

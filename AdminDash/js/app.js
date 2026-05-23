@@ -7,6 +7,7 @@ let currentModeTab = 'hunting';
 let currentSkillTab = localStorage.getItem('admin_last_skill_tab') || 'Ataque';
 let currentMechTab = 'attack';
 let selectedEnemyId = null;
+let selectedLootEnemyId = null;
 let selectedMapId = null;
 let folderToggledThisClick = null;
 
@@ -58,7 +59,9 @@ function showTab(tabId) {
         'mechanics': 'folder-mechanics',
         'ammo': 'folder-market', 'weapons': 'folder-market', 'shields': 'folder-market', 'engines': 'folder-market',
         'skills': 'folder-skills',
-        'modes': 'folder-modes'
+        'modes': 'folder-modes',
+        'loot': 'folder-loot',
+        'enemy-loot': 'folder-loot'
     };
     const parentFolderId = folderMapping[tabId];
     if (parentFolderId) {
@@ -95,7 +98,9 @@ function showTab(tabId) {
         'users': 'Gestión de Pilotos Registrados',
         'enemy-detail': 'Editor de Entidad', 'map-detail': 'Configuración de Zona',
         'pilot': 'Perfil Maestro del Piloto',
-        'modes': 'Configuración de Modos de Juego'
+        'modes': 'Configuración de Modos de Juego',
+        'loot': 'Sistema de Recompensas (Loot)',
+        'enemy-loot': 'Configuración de Botín del Enemigo'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
     
@@ -216,6 +221,17 @@ function connect() {
                     arenas: { enabled: true, maps: [], minPlayers: 2 }
                 };
             }
+
+            // Inicializar configuración global de botín
+            if (!config.lootConfig) {
+                config.lootConfig = {
+                    interactRange: 400,
+                    expirationMs: 300000,
+                    serverAuthoritative: true,
+                    pvpDropEnabled: false
+                };
+            }
+
             patchMechanicsLib();
             renderAll(); 
         }
@@ -224,10 +240,12 @@ function connect() {
         const lastTab = localStorage.getItem('admin_last_tab') || 'ships';
         const lastMap = localStorage.getItem('admin_last_map');
         const lastEnemy = localStorage.getItem('admin_last_enemy');
+        const lastLootEnemy = localStorage.getItem('admin_last_loot_enemy');
         const lastSessionTab = localStorage.getItem('admin_last_session_tab');
         
         if (lastTab === 'map-detail' && lastMap) selectMap(lastMap);
         else if (lastTab === 'enemy-detail' && lastEnemy) selectEnemy(lastEnemy);
+        else if (lastTab === 'enemy-loot' && lastLootEnemy) selectLootEnemy(lastLootEnemy);
         else if (lastTab === 'sessions' || lastTab === 'users') {
             if (lastSessionTab) setSessionSubTab(lastSessionTab);
             else showTab(lastTab);
@@ -1224,3 +1242,75 @@ function toggleSidebar() {
         btn.style.background = 'rgba(255, 255, 255, 0.05)';
     }
 }
+
+// FUNCIONES AUXILIARES DE LOOT DROPS (v1.0)
+function addLootDrop(enemyId, shouldRenderEnemyDetail = true) {
+    if (!config.enemyModels[enemyId]) return;
+    if (!config.enemyModels[enemyId].lootDrops) {
+        config.enemyModels[enemyId].lootDrops = [];
+    }
+    config.enemyModels[enemyId].lootDrops.push({ itemId: "", chance: 0.1 });
+    if (shouldRenderEnemyDetail) renderEnemyDetail();
+}
+
+function removeLootDrop(enemyId, idx, shouldRenderEnemyDetail = true) {
+    if (!config.enemyModels[enemyId] || !config.enemyModels[enemyId].lootDrops) return;
+    config.enemyModels[enemyId].lootDrops.splice(idx, 1);
+    if (shouldRenderEnemyDetail) renderEnemyDetail();
+}
+
+function updateLootDropItem(enemyId, idx, itemId) {
+    if (!config.enemyModels[enemyId] || !config.enemyModels[enemyId].lootDrops) return;
+    config.enemyModels[enemyId].lootDrops[idx].itemId = itemId;
+}
+
+function updateLootDropChance(enemyId, idx, chance) {
+    if (!config.enemyModels[enemyId] || !config.enemyModels[enemyId].lootDrops) return;
+    config.enemyModels[enemyId].lootDrops[idx].chance = parseFloat(chance) / 100;
+}
+
+// FUNCIONES PUENTE PARA LOOT CONFIG
+function addLootDropFromLootConfig(enemyId) {
+    addLootDrop(enemyId, false);
+    renderLootConfig();
+}
+
+function removeLootDropFromLootConfig(enemyId, idx) {
+    removeLootDrop(enemyId, idx, false);
+    renderLootConfig();
+}
+
+function updateLootDropItemFromLootConfig(enemyId, idx, itemId) {
+    updateLootDropItem(enemyId, idx, itemId);
+}
+
+function updateLootDropChanceFromLootConfig(enemyId, idx, chance) {
+    updateLootDropChance(enemyId, idx, chance);
+}
+
+function selectLootEnemy(id) {
+    selectedLootEnemyId = id;
+    localStorage.setItem('admin_last_loot_enemy', id);
+    localStorage.setItem('admin_last_tab', 'enemy-loot');
+    showTab('enemy-loot');
+    renderEnemyLootDetail();
+}
+
+function addLootDropFromEnemyLoot(enemyId) {
+    addLootDrop(enemyId, false);
+    renderEnemyLootDetail();
+}
+
+function removeLootDropFromEnemyLoot(enemyId, idx) {
+    removeLootDrop(enemyId, idx, false);
+    renderEnemyLootDetail();
+}
+
+function updateLootDropItemFromEnemyLoot(enemyId, idx, itemId) {
+    updateLootDropItem(enemyId, idx, itemId);
+}
+
+function updateLootDropChanceFromEnemyLoot(enemyId, idx, chance) {
+    updateLootDropChance(enemyId, idx, chance);
+}
+

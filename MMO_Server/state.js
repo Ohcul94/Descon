@@ -8,6 +8,7 @@ module.exports = {
     activeAreas: {},
     parties: {},
     playerParty: {},
+    lootDrops: {},
     
     // Configuraciones y contadores
     SERVER_CONFIG: null,

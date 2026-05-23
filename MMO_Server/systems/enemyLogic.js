@@ -3,6 +3,8 @@
  * Lógica compartida para procesamiento de muertes, explosiones y loot de enemigos.
  */
 const User = require('../models/User');
+const lootManager = require('./lootManager');
+
 
 function executeEnemyExplosion(enemy, io, state) {
     const cfg = state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels ? state.SERVER_CONFIG.enemyModels[enemy.type] : null;
@@ -140,6 +142,8 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
                 memberSocket.emit('inventoryData', { player: user.gameData });
             }
         }
+        // Generar botín físico en el mapa autoritativo
+        lootManager.spawnLootFromEnemy(enemy, io, state, killerSocketId);
     } catch (err) {
         console.error("[LOOT-ERR] Error en reparto de loot compartido:", err);
     }

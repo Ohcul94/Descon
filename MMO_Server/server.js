@@ -45,6 +45,8 @@ const { startGameLoop } = require('./systems/gameLoop');
 const HordeManager = require('./events/HordeManager');
 const { calculateFinalStats } = require('./systems/statCalculator'); // v266.135: Sistema de Stats Dinámicos
 const extractionManager = require('./systems/extractionManager');
+const lootManager = require('./systems/lootManager');
+
 
 // Configuraci├│n
 const PORT = process.env.PORT || 3333;
@@ -85,6 +87,8 @@ aiManager.hordeManager = hordeManager;
 // v1.5: Inicio del Corazón del Servidor
 extractionManager.init(io, state, aiManager);
 startGameLoop(io, state, aiManager);
+lootManager.startCleanupTimer(io, state);
+
 
 // v243.15: Helper para serializar datos de clan con roles y estados
 // v243.15: getClanDataPayload ahora reside en events/clanHandlers.js
@@ -699,6 +703,10 @@ io.on('connection', (socket) => {
 
     // v242.20: GESTIÓN DE CLANES (FLOTAS) - Modularizado en events/clanHandlers.js
     registerClanHandlers(socket, io, state);
+
+    // Registrar manejadores del sistema de botín autoritativo
+    lootManager.registerLootHandlers(socket, io, state);
+
 
     // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL (PROTEGIDO)
     socket.on('saveAdminConfig', async (config) => {

@@ -62,6 +62,17 @@ func _ready():
 	NetworkManager.interference_event.connect(_on_interference_event)
 	NetworkManager.freeze_event.connect(_on_freeze_event) # v268.40
 
+	# Inyección del sistema de interfaz del botín
+	var hud_node = get_node_or_null("HUD")
+	if hud_node:
+		var loot_ui_script = load("res://scripts/ui/LootUI.gd")
+		if loot_ui_script:
+			var loot_ui = loot_ui_script.new()
+			loot_ui.name = "LootUI"
+			hud_node.add_child(loot_ui)
+			print("[WORLD] LootUI inyectado dinámicamente en HUD.")
+
+
 func _inject_entity_manager():
 	entity_manager = Node.new()
 	entity_manager.name = "EntityManager"

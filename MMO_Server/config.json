@@ -1,4 +1,10 @@
 {
+    "lootConfig": {
+        "interactRange": 200,
+        "expirationMs": 10000,
+        "serverAuthoritative": true,
+        "pvpDropEnabled": false
+    },
     "ammoMultipliers": {
         "laser": [
             1,
@@ -75,7 +81,9 @@
             "chaseUntilDeath": false,
             "aggressive": true,
             "defenseMechanics": [],
-            "regenDelayMs": 10000
+            "regenDelayMs": 10000,
+            "lootDrops": [],
+            "chestDropChance": 1
         },
         "2": {
             "bulletDamage": 600,
@@ -120,7 +128,8 @@
             ],
             "defenseMechanics": [],
             "aggressive": true,
-            "regenDelayMs": 10000
+            "regenDelayMs": 10000,
+            "lootDrops": []
         },
         "3": {
             "bulletDamage": 80,
