@@ -8,6 +8,7 @@ let currentSkillTab = localStorage.getItem('admin_last_skill_tab') || 'Ataque';
 let currentMechTab = 'attack';
 let selectedEnemyId = null;
 let selectedMapId = null;
+let folderToggledThisClick = null;
 
 let currentSessionSubTab = 'online';
 let currentSessionPage = 0;
@@ -63,15 +64,26 @@ function showTab(tabId) {
     if (parentFolderId) {
         const folderEl = document.getElementById(parentFolderId);
         if (folderEl) {
-            folderEl.classList.add('show'); // Forzar despliegue visual de la carpeta
+            if (parentFolderId !== folderToggledThisClick) {
+                folderEl.classList.add('show'); // Forzar despliegue visual de la carpeta si no se clickeó para colapsar
+            }
             const folderHeader = folderEl.previousElementSibling;
             if (folderHeader && folderHeader.classList.contains('nav-folder')) {
-                folderHeader.classList.add('active');
+                if (folderEl.classList.contains('show')) {
+                    folderHeader.classList.add('active');
+                } else {
+                    folderHeader.classList.remove('active');
+                }
                 const chevron = folderHeader.querySelector('.chevron');
-                if (chevron) chevron.innerText = '▼';
+                if (chevron) {
+                    chevron.innerText = folderEl.classList.contains('show') ? '▼' : '▶';
+                }
             }
         }
     }
+    
+    // Resetear flag al final del procesamiento de navegación
+    folderToggledThisClick = null;
     
     const titles = { 
         'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas', 
@@ -251,6 +263,7 @@ function toggleFolder(id, event) {
     if (!el) return;
     
     el.classList.toggle('show');
+    folderToggledThisClick = id; // Registrar que esta carpeta fue alterada en este clic
     
     // Buscar el chevron en el elemento que disparó el click
     const header = document.querySelector(`[onclick*="${id}"]`);

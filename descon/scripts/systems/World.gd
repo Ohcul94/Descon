@@ -8,7 +8,6 @@ extends Node2D
 @onready var ui_hud = get_node_or_null("HUD/MainHUD")
 @onready var ui_chat = get_node_or_null("HUD/ChatUI")
 @onready var ui_inventory = get_node_or_null("HUD/Inventory")
-@onready var ui_admin = get_node_or_null("HUD/MainHUD/AdminPanel")
 @onready var local_player = $Player 
 @onready var combat_system = $CombatSystem
 var talent_system = null
@@ -51,7 +50,6 @@ func _ready():
 	
 	if ui_hud: ui_hud.visible = false
 	if ui_inventory: ui_inventory.visible = false
-	if ui_admin: ui_admin.visible = false
 	if ui_chat: ui_chat.visible = false
 	
 	_generate_stellar_data()
@@ -387,7 +385,6 @@ func _save_game_progress():
 func _on_admin_config_received(data: Dictionary):
 	if GameConstants.has_method("update_from_server"):
 		GameConstants.update_from_server(data)
-		if is_instance_valid(ui_admin) and ui_admin.visible: ui_admin._refresh_ui()
 		if is_instance_valid(ui_inventory) and ui_inventory.visible: ui_inventory._refresh_data()
 		print("[WORLD] Configuración administrativa y constantes actualizadas.")
 
