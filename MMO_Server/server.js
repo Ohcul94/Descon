@@ -39,6 +39,7 @@ const { registerInventoryHandlers } = require('./systems/inventoryHandlers');
 const { registerTradeHandlers } = require('./systems/tradeHandlers');
 const { registerZoneHandlers } = require('./handlers/zoneHandler');
 const { registerMovementHandlers } = require('./handlers/movementHandler');
+const { registerVaultHandlers } = require('./systems/vaultHandlers');
 
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
@@ -706,6 +707,9 @@ io.on('connection', (socket) => {
 
     // Registrar manejadores del sistema de botín autoritativo
     lootManager.registerLootHandlers(socket, io, state);
+
+    // v350.0: Registrar manejadores del baúl de almacenamiento personal
+    registerVaultHandlers(socket, io, state);
 
 
     // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL (PROTEGIDO)

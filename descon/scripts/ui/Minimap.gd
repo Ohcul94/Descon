@@ -203,6 +203,15 @@ func _draw():
 			var font = get_theme_font("font")
 			draw_string(font, pt_pos + Vector2(-3, 3), letter, HORIZONTAL_ALIGNMENT_CENTER, -1, 7, Color.WHITE)
 
+	# 6. Dibujar Baúles en el Lobby (Punto dorado brillante con una 'B' blanca)
+	for vault in get_tree().get_nodes_in_group("vaults"):
+		if is_instance_valid(vault) and vault.visible:
+			var vault_pos = vault.global_position * map_scale
+			draw_circle(vault_pos, 5.0, Color(1.0, 0.75, 0.0, 0.9)) # Círculo dorado brillante
+			draw_circle(vault_pos, 7.0, Color(1.0, 0.75, 0.0, 0.25)) # Brillo exterior suave
+			var font = get_theme_font("font")
+			draw_string(font, vault_pos + Vector2(-2.5, 3.0), "B", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+
 	# 5. Jugador Local (Punto Blanco Puro)
 	var local_pos = player.global_position * map_scale
 	draw_circle(local_pos, 3.5, Color.WHITE)

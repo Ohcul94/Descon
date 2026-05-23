@@ -71,6 +71,13 @@ func _ready():
 			loot_ui.name = "LootUI"
 			hud_node.add_child(loot_ui)
 			print("[WORLD] LootUI inyectado dinámicamente en HUD.")
+			
+		var vault_ui_script = load("res://scripts/ui/VaultUI.gd")
+		if vault_ui_script:
+			var vault_ui = vault_ui_script.new()
+			vault_ui.name = "VaultUI"
+			hud_node.add_child(vault_ui)
+			print("[WORLD] VaultUI inyectado dinámicamente en HUD.")
 
 
 func _inject_entity_manager():
@@ -430,6 +437,17 @@ func _update_background(zone_id):
 		
 		if current_map_node.has_method("setup_map"):
 			current_map_node.setup_map()
+			
+		# Instanciar Baúl físico en el lobby como hijo del mapa para que se libere al cambiar de zona
+		if zid == 1 and is_instance_valid(current_map_node):
+			var vault_script = load("res://scripts/entities/Vault.gd")
+			if vault_script:
+				var vault = Area2D.new()
+				vault.name = "PersonalVault"
+				vault.set_script(vault_script)
+				vault.global_position = Vector2(850, 850) # Coordenada Noroeste en el Lobby
+				current_map_node.add_child(vault)
+				print("[WORLD] Baúl Personal instanciado en el lobby.")
 			
 		# v306.4: Reconstruir visuales 3D en todas las entidades activas para el nuevo mapa
 		get_tree().call_group("entities", "rebuild_3d_layout")

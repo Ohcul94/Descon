@@ -1,4 +1,9 @@
 {
+    "vaultConfig": {
+        "defaultTabs": 1,
+        "slotsPerTab": 30,
+        "unlockPrices": [0, 5000, 15000, 45000, 100000]
+    },
     "lootConfig": {
         "interactRange": 200,
         "expirationMs": 10000,

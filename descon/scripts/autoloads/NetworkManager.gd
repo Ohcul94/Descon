@@ -77,6 +77,9 @@ signal extraction_final_success(data)
 signal extraction_failed(data)
 signal raid_time_update(data)
 
+signal vault_data(data)
+signal vault_updated(data)
+
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
@@ -316,6 +319,8 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"playerDisconnected":
 			player_disconnected.emit(str(e_data))
 		"clanData": clan_data.emit(e_data)
+		"vaultData": vault_data.emit(e_data)
+		"vaultUpdated": vault_updated.emit(e_data)
 		"clanMemberStatus": clan_member_status.emit(e_data)
 		"pong_custom":
 			current_ms = int(Time.get_ticks_msec() - ping_start_time)

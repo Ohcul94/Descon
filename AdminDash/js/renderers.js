@@ -1283,6 +1283,14 @@ function renderPilot() {
         };
     }
     
+    if (!config.vaultConfig) {
+        config.vaultConfig = {
+            defaultTabs: 1,
+            slotsPerTab: 30,
+            unlockPrices: [0, 5000, 15000, 45000, 100000]
+        };
+    }
+    
     const container = document.getElementById('pilot-config-container');
     if(!container) return;
     
@@ -1306,6 +1314,26 @@ function renderPilot() {
                     <select onchange="config.pilotConfig.startingMapId = parseInt(this.value)">
                         ${Object.keys(config.mapsConfig).map(id => `<option value="${id}" ${config.pilotConfig.startingMapId == id ? 'selected' : ''}>${config.mapsConfig[id].name}</option>`).join('')}
                     </select>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h4 style="color:var(--primary); margin-bottom:1rem;">📦 CONFIGURACIÓN DE BAÚLES</h4>
+            <div class="form-grid">
+                <div class="field"><label>Pestañas Iniciales (Defecto)</label>
+                    <input type="number" value="${config.vaultConfig.defaultTabs}" onchange="config.vaultConfig.defaultTabs = parseInt(this.value)">
+                </div>
+                <div class="field"><label>Slots por Pestaña</label>
+                    <input type="number" value="${config.vaultConfig.slotsPerTab}" onchange="config.vaultConfig.slotsPerTab = parseInt(this.value)">
+                </div>
+            </div>
+            <div style="margin-top:1rem;">
+                <label style="font-weight:bold; font-size:0.9rem; color:var(--accent); display:block; margin-bottom:0.5rem;">Costo de Desbloqueo (Hubs por Pestaña)</label>
+                <div class="form-grid">
+                    <div class="field"><label>Pestaña 2</label><input type="number" value="${config.vaultConfig.unlockPrices[1] || 0}" onchange="config.vaultConfig.unlockPrices[1] = parseInt(this.value)"></div>
+                    <div class="field"><label>Pestaña 3</label><input type="number" value="${config.vaultConfig.unlockPrices[2] || 0}" onchange="config.vaultConfig.unlockPrices[2] = parseInt(this.value)"></div>
+                    <div class="field"><label>Pestaña 4</label><input type="number" value="${config.vaultConfig.unlockPrices[3] || 0}" onchange="config.vaultConfig.unlockPrices[3] = parseInt(this.value)"></div>
+                    <div class="field"><label>Pestaña 5</label><input type="number" value="${config.vaultConfig.unlockPrices[4] || 0}" onchange="config.vaultConfig.unlockPrices[4] = parseInt(this.value)"></div>
                 </div>
             </div>
         </div>
