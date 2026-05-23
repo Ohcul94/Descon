@@ -11,6 +11,3 @@ func activate(player: CharacterBody2D):
 	# Efecto visual/feedback local al activar la habilidad
 	if player.has_method("play_skill_vfx"):
 		player.play_skill_vfx("WIND_BARRIER_ACTIVATE", 0.0)
-	
-	# Enviar el evento al servidor
-	super.activate(player)

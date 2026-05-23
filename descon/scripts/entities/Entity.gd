@@ -55,11 +55,16 @@ var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
 var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo LoL
 var _stealth_material: StandardMaterial3D = null
+var _status_material: StandardMaterial3D = null
+var _vfx_container_2d: Node2D = null
 var _is_currently_invisible: bool = false
 var _cached_viewport: SubViewport = null # Cache para frustum culling
 
 func _ready():
 	add_to_group("entities")
+	_vfx_container_2d = Node2D.new()
+	_vfx_container_2d.name = "VFXContainer2D"
+	add_child(_vfx_container_2d)
 	motion_mode = MOTION_MODE_FLOATING 
 	safe_margin = 0.5 # v235.99: Margen de seguridad aumentado para evitar 'pegamento'
 
@@ -223,6 +228,27 @@ func _process(delta):
 	_update_reflect_aura(delta)
 	_update_hit_flash(delta)
 	
+	# Sincronización de posición de VFX 2D a la perspectiva 3D
+	if is_instance_valid(_vfx_container_2d):
+		if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
+			var current_map = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
+				var cam3d = current_map.camera_3d
+				var sub_vp = current_map.sub_viewport
+				if not cam3d.is_position_behind(world_root_3d.global_position):
+					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+						var main_size = Vector2(get_viewport().get_visible_rect().size)
+						sv_pixel *= main_size / Vector2(sub_vp.size)
+					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+					_vfx_container_2d.global_position = world_2d
+				else:
+					_vfx_container_2d.position = Vector2.ZERO
+			else:
+				_vfx_container_2d.position = Vector2.ZERO
+		else:
+			_vfx_container_2d.position = Vector2.ZERO
+
 	# v268.70: Feedback visual de estados alterados (Soporte 2.5D)
 	if not is_dead:
 		var is_affected = status_effects.get("stunned", false) or status_effects.get("frozen", false)
@@ -231,16 +257,25 @@ func _process(delta):
 		if is_instance_valid(sprite):
 			sprite.modulate = state_color
 		
-		# v268.77: Tinte para modelos 3D (Corregido para Viewports locales)
+		# v268.77: Tinte para modelos 3D (Corregido para Viewports locales y compartidos)
 		if is_instance_valid(_3d_model):
 			if is_affected:
+				if not _status_material:
+					_status_material = StandardMaterial3D.new()
+					_status_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+					_status_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				_status_material.albedo_color = Color(0.1, 0.5, 1.0, 0.6) # v268.76: Tinte más opaco para que se note
+				_apply_material_recursive(_3d_model, _status_material, false)
+			elif _is_currently_invisible:
+				# Restaurar o mantener el material de sigilo si estamos en sigilo
 				if not _stealth_material:
 					_stealth_material = StandardMaterial3D.new()
 					_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
 					_stealth_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				_stealth_material.albedo_color = Color(0.1, 0.5, 1.0, 0.6) # v268.76: Tinte más opaco para que se note
+					_stealth_material.albedo_color = Color(0.15, 0.65, 0.95, 0.28) # Holograma de sigilo translúcido cian/azul
 				_apply_material_recursive(_3d_model, _stealth_material, false)
-			elif not status_effects.get("isInvisible", false):
+			else:
+				# Restaurar material original si no hay ni sigilo ni estado alterado
 				_apply_material_recursive(_3d_model, null, false)
 	
 	if is_dead:
@@ -583,6 +618,10 @@ func update_stats(data):
 			die()
 	elif current_hp > 0 and is_dead:
 		_resurrect(data)
+	elif current_hp <= 0 and not is_dead:
+		# v307.1: Si la vida llega a 0 en la sincronía pero no estamos marcados como muertos, forzar die()
+		die()
+	
 	
 	# v166.75: Capado de Seguridad (No exceder máximos sincronizados)
 	current_hp = min(current_hp, max_hp)
@@ -799,7 +838,20 @@ func _trigger_reflect_visual(p_dest: Vector2):
 		var dir_to_target = (p_dest - global_position).normalized()
 		if dir_to_target.length() < 0.1: dir_to_target = Vector2.UP
 		
-		spr.global_position = global_position + dir_to_target * 35.0
+		var spawn_origin = global_position
+		if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
+			var current_map = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
+				var cam3d = current_map.camera_3d
+				var sub_vp = current_map.sub_viewport
+				if not cam3d.is_position_behind(world_root_3d.global_position):
+					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+						var main_size = Vector2(get_viewport().get_visible_rect().size)
+						sv_pixel *= main_size / Vector2(sub_vp.size)
+					spawn_origin = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+		
+		spr.global_position = spawn_origin + dir_to_target * 35.0
 		# v235.12: Quitamos el offset para que no salga de costado
 		spr.rotation = dir_to_target.angle()
 		
@@ -912,7 +964,7 @@ func _on_enemy_aura(data):
 		var target_scale = (float(radius) * 2.0) / 512.0
 		spr.scale = Vector2.ZERO
 		
-		add_child(spr)
+		_vfx_container_2d.add_child(spr)
 		active_auras[mId] = {"node": spr, "target_scale": target_scale, "type": data.type}
 		
 		var tw = create_tween()
@@ -1262,7 +1314,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 	# Mostrar siempre los números de retroalimentación
 	if has_method("_spawn_damage_text"):
 		if skill_name == "ESCUDO CELULAR" or skill_name == "FORTALEZA-X": _spawn_damage_text("+" + str(int(amount)), Color.AQUA)
-		elif skill_name == "AUTO-REPARACIÓN" or skill_name == "NANO-REGENERACIÓN" or skill_name == "REGENERACIÓN ALFA" or skill_name == "VÍNCULO VITAL": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
+		elif skill_name == "AUTO-REPARACIÓN" or skill_name == "NANO-REGENERACIÓN" or skill_name == "REGENERACIÓN ALFA" or skill_name == "VÍNCULO VITAL" or skill_name == "BALIZA DE CURACION": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
 		elif skill_name == "TURBO-IMPULSO": _spawn_damage_text("+" + str(int(amount)), Color.YELLOW)
 	match skill_name:
 		"TURBO-IMPULSO":
@@ -1281,7 +1333,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				vfx.scale = Vector2(s, s); vfx.rotation_degrees = 180
 				vfx.position = Vector2(-65, 0)
 				vfx.z_index = -1
-				add_child(vfx)
+				_vfx_container_2d.add_child(vfx)
 				var tw = create_tween().set_loops()
 				tw.bind_node(vfx)
 				tw.tween_property(vfx, "scale", Vector2(s*1.3, s*0.8), 0.1)
@@ -1560,6 +1612,12 @@ func _update_3d_shield(delta: float):
 	
 	if is_active:
 		var mat = _3d_shield_mesh.material_override as ShaderMaterial
+		if not mat:
+			# Auto-recuperación del material si fue anulado por efectos u otras funciones
+			mat = ShaderMaterial.new()
+			mat.shader = load("res://resources/shaders/energy_shield.gdshader")
+			_3d_shield_mesh.material_override = mat
+			
 		if mat:
 			var color = Color(0.1, 0.5, 1.0, 1.0) # Azul (Escudo)
 			var is_healing = heal_visual_timer > 0
@@ -1582,6 +1640,8 @@ func _update_3d_spheres():
 	for s in _3d_spheres:
 		if is_instance_valid(s): s.queue_free()
 	_3d_spheres = [null, null, null, null]
+	
+	if is_dead: return
 	
 	for i in range(4):
 		var data = sm.spheres_data[i] if i < sm.spheres_data.size() else null
@@ -1662,7 +1722,19 @@ func _spawn_death_vfx():
 		
 		# Wrapper 2D para posicionar la explosión en el mundo
 		var wrapper = Node2D.new()
-		wrapper.global_position = global_position
+		var spawn_pos = global_position
+		if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
+			var current_map = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
+				var cam3d = current_map.camera_3d
+				var sub_vp = current_map.sub_viewport
+				if not cam3d.is_position_behind(world_root_3d.global_position):
+					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+						var main_size = Vector2(get_viewport().get_visible_rect().size)
+						sv_pixel *= main_size / Vector2(sub_vp.size)
+					spawn_pos = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+		wrapper.global_position = spawn_pos
 		
 		var world = get_tree().get_first_node_in_group("world_node")
 		if world: world.add_child(wrapper)
@@ -1811,9 +1883,12 @@ func _update_hover_visuals(active: bool):
 		_apply_material_recursive(_3d_model, null, true)
 
 func _apply_material_recursive(p_node, p_mat, is_overlay: bool):
+	if not is_instance_valid(p_node): return
 	if p_node is MeshInstance3D:
-		if is_overlay: p_node.material_overlay = p_mat
-		else: p_node.material_override = p_mat
+		# v311: No interferir con el material de los escudos procedimentales (evita la esfera blanca)
+		if p_node.name != "EnergyShield":
+			if is_overlay: p_node.material_overlay = p_mat
+			else: p_node.material_override = p_mat
 	for child in p_node.get_children():
 		_apply_material_recursive(child, p_mat, is_overlay)
 

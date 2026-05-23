@@ -2747,7 +2747,7 @@
         "BALIZA DE CURACION": {
             "name": "BALIZA DE CURACION",
             "type": "Curación",
-            "cd": 18000,
+            "cd": 2000,
             "duration": 8000,
             "pulse_interval": 1500,
             "heal_amount": 250,
@@ -2875,7 +2875,7 @@
         },
         "INVULNERABILIDAD": {
             "canTargetOthers": false,
-            "cd": 30000,
+            "cd": 2000,
             "desc": "Te vuelve inmune a todo daño durante 2 segundos.",
             "duration": 2,
             "id": "SK-UTIL-03",

@@ -382,9 +382,12 @@ function startGameLoop(io, state, aiManager) {
                     
                     const healVal = area.heal_amount || 250;
                     const owner = players[area.ownerId];
+                    const filters = area.targetFilters || { allies: true, enemies: false, bosses: false, players: true };
                     
-                    // Curar a jugadores aliados en el rango
-                    const { players: nearbyPlayers } = grid.getNearbyEntities(area.x, area.y);
+                    // Obtener tanto jugadores como enemigos cercanos
+                    const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(area.x, area.y);
+                    
+                    // 1. Curar jugadores según filtros (aliados, enemigos PvP, jugadores neutrales)
                     nearbyPlayers.forEach(p => {
                         if (String(p.zone) === String(area.zone) && !p.isDead) {
                             const dx = p.x - area.x;
@@ -392,15 +395,21 @@ function startGameLoop(io, state, aiManager) {
                             const dist = Math.hypot(dx, dy);
                             
                             if (dist < area.radius) {
-                                let is_ally = (p.socketId === area.ownerId);
-                                if (owner && !is_ally) {
-                                    if (p.clanId && owner.clanId && String(p.clanId) === String(owner.clanId)) is_ally = true;
-                                    const pUid = p.id ? p.id.toString() : null;
-                                    const oUid = owner.id ? owner.id.toString() : null;
-                                    if (pUid && oUid && state.playerParty[pUid] && state.playerParty[pUid] === state.playerParty[oUid]) is_ally = true;
-                                }
+                                const sameClan = (owner && p.clanId && owner.clanId && String(p.clanId) === String(owner.clanId));
+                                const pUid = p.id ? p.id.toString() : null;
+                                const oUid = owner ? (owner.id ? owner.id.toString() : null) : null;
+                                const sameParty = (pUid && oUid && state.playerParty[pUid] && state.playerParty[pUid] === state.playerParty[oUid]);
                                 
-                                if (is_ally) {
+                                const isDirectAlly = (p.socketId === area.ownerId) || sameClan || sameParty;
+                                const isAlly = isDirectAlly || (owner && !owner.pvpEnabled && !p.pvpEnabled);
+                                const isEnemy = !isDirectAlly && owner && (owner.pvpEnabled || p.pvpEnabled);
+                                
+                                let isValid = false;
+                                if (isAlly && filters.allies) isValid = true;
+                                else if (isEnemy && (filters.enemies || filters.players)) isValid = true;
+                                else if (!isAlly && !isEnemy && filters.players) isValid = true;
+                                
+                                if (isValid) {
                                     const oldH = p.hp;
                                     p.hp = Math.min(p.maxHp, p.hp + healVal);
                                     const actualHeal = p.hp - oldH;
@@ -417,6 +426,37 @@ function startGameLoop(io, state, aiManager) {
                                         id: area.ownerId,
                                         skillName: 'BALIZA DE CURACION',
                                         targetId: p.socketId,
+                                        powerValue: actualHeal
+                                    });
+                                }
+                            }
+                        }
+                    });
+                    
+                    // 2. Curar enemigos NPCs según filtros (enemies y bosses)
+                    nearbyEnemies.forEach(e => {
+                        if (String(e.zone) === String(area.zone) && e.hp > 0) {
+                            const dx = e.x - area.x;
+                            const dy = e.y - area.y;
+                            const dist = Math.hypot(dx, dy);
+                            
+                            if (dist < area.radius) {
+                                const isBoss = !!e.isBoss || e.type === 4 || e.type === 10 || e.type === 11 || (typeof e.type === 'number' && e.type >= 100);
+                                let isValid = false;
+                                if (isBoss && filters.bosses) isValid = true;
+                                else if (!isBoss && filters.enemies) isValid = true;
+                                
+                                if (isValid) {
+                                    const oldH = e.hp;
+                                    const maxHp = e.maxHp || (state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels && state.SERVER_CONFIG.enemyModels[e.type] ? state.SERVER_CONFIG.enemyModels[e.type].hp : 1000);
+                                    e.hp = Math.min(maxHp, e.hp + healVal);
+                                    const actualHeal = e.hp - oldH;
+                                    
+                                    // Emitir remotePlayerUsedSkill para mostrar el texto curativo sobre el enemigo
+                                    io.to(`zone_${e.zone}`).emit('remotePlayerUsedSkill', {
+                                        id: area.ownerId,
+                                        skillName: 'BALIZA DE CURACION',
+                                        targetId: e.id,
                                         powerValue: actualHeal
                                     });
                                 }

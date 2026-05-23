@@ -93,14 +93,17 @@ func _process(delta):
 				target_node = enemies[target_id]
 				
 			if is_instance_valid(owner_node) and is_instance_valid(target_node):
+				var owner_vis = _get_entity_visual_position(owner_node)
+				var target_vis = _get_entity_visual_position(target_node)
+				
 				# Centrar el contenedor en el emisor
-				area.global_position = owner_node.global_position
+				area.global_position = owner_vis
 				
 				# Dibujar el rayo de plasma verde usando coordenadas globales directas (gracias a set_as_top_level)
 				var rayo_node = area.get_node_or_null("RayoVerde")
 				if rayo_node:
-					var start_pos = owner_node.global_position + Vector2(0, -20)
-					var end_pos = target_node.global_position + Vector2(0, -20)
+					var start_pos = owner_vis + Vector2(0, -20)
+					var end_pos = target_vis + Vector2(0, -20)
 					rayo_node.points = [start_pos, end_pos]
 					
 					var pulse = area.get_meta("pulse_timer") + delta * 12.0
@@ -126,7 +129,8 @@ func _process(delta):
 			
 			if is_instance_valid(world) and is_instance_valid(world.local_player):
 				var player = world.local_player
-				var dist_vec = area.global_position - player.global_position
+				var area_pos = area.get_meta("logical_position") if area.has_meta("logical_position") else area.global_position
+				var dist_vec = area_pos - player.global_position
 				var dist = dist_vec.length()
 				var radius = area.get_meta("radius")
 				
@@ -156,17 +160,19 @@ func _process(delta):
 			if target_node == null and is_instance_valid(world) and is_instance_valid(world.local_player):
 				target_node = world.local_player
 			
+			var en_vis = _get_entity_visual_position(en)
 			if is_instance_valid(target_node) and not data.get("is_fixed", false):
-				var target_angle = (target_node.global_position - en.global_position).angle()
-				indicator.global_position = en.global_position
+				var target_vis = _get_entity_visual_position(target_node)
+				var target_angle = (target_vis - en_vis).angle()
+				indicator.global_position = en_vis
 				indicator.global_rotation = lerp_angle(indicator.global_rotation, target_angle, 4.0 * delta)
 				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			elif data.get("is_fixed", false):
-				indicator.global_position = en.global_position
+				indicator.global_position = en_vis
 				indicator.global_rotation = data.get("fixed_angle", 0.0)
 				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			else:
-				indicator.global_position = en.global_position
+				indicator.global_position = en_vis
 		else:
 			active_laser_tracking.erase(eid)
 
@@ -289,7 +295,8 @@ func _on_enemy_action(data: Dictionary):
 			indicator.top_level = true 
 			en.add_child(indicator) 
 			
-			indicator.global_position = en.global_position
+			var en_vis = _get_entity_visual_position(en)
+			indicator.global_position = en_vis
 			indicator.global_rotation = angle
 			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			
@@ -316,7 +323,8 @@ func _on_enemy_action(data: Dictionary):
 			en.add_child(indicator)
 			
 			var fixed_shoot_angle = angle
-			indicator.global_position = en.global_position
+			var en_vis = _get_entity_visual_position(en)
+			indicator.global_position = en_vis
 			indicator.global_rotation = fixed_shoot_angle
 			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
 			
@@ -439,8 +447,8 @@ func _on_hook_pulled(data: Dictionary):
 		chain.z_index = 4
 		world.entities_node.add_child(chain)
 		
-		var start_pos = attacker_node.global_position
-		var end_pos = victim_node.global_position
+		var start_pos = _get_entity_visual_position(attacker_node)
+		var end_pos = _get_entity_visual_position(victim_node)
 		chain.points = PackedVector2Array([start_pos, end_pos])
 		
 		var tw = create_tween()
@@ -491,7 +499,6 @@ func _on_spawn_area(data: Dictionary):
 		_spawn_heal_beacon_vfx(id, Vector2(data.x, data.y), data.radius, data)
 
 func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
-
 	if active_areas.has(id): return
 	
 	var container = Node2D.new()
@@ -499,10 +506,11 @@ func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
 	if is_instance_valid(world) and is_instance_valid(world.entities_node):
 		world.entities_node.add_child(container)
 	active_areas[id] = container
-	container.global_position = pos
+	var proj_pos = _get_projected_position(pos)
+	container.global_position = proj_pos
 	
 	var owner_id = str(data.get("ownerId", ""))
-	var start_pos = pos
+	var start_pos = proj_pos
 	var emisor_node = null
 	
 	if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == owner_id:
@@ -511,7 +519,7 @@ func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
 		emisor_node = remote_players[owner_id]
 		
 	if is_instance_valid(emisor_node):
-		start_pos = emisor_node.global_position
+		start_pos = _get_entity_visual_position(emisor_node)
 
 	# 1. Anillo/Círculo base verde translúcido
 	var poly = Polygon2D.new()
@@ -585,7 +593,7 @@ func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
 		container.add_child(item_sprite)
 
 	# Si el emisor está lejos, simular el lanzamiento balístico (viaje del proyectil)
-	if start_pos.distance_to(pos) > 50.0:
+	if start_pos.distance_to(proj_pos) > 50.0:
 		poly.visible = false
 		line.visible = false
 		item_sprite.visible = false
@@ -614,9 +622,9 @@ func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
 		trail.color_ramp = gradient
 		proj.add_child(trail)
 		
-		var travel_time = clamp(start_pos.distance_to(pos) / 950.0, 0.2, 0.5)
+		var travel_time = clamp(start_pos.distance_to(proj_pos) / 950.0, 0.2, 0.5)
 		var tw = proj.create_tween().set_parallel(true)
-		tw.tween_property(proj, "global_position", pos, travel_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw.tween_property(proj, "global_position", proj_pos, travel_time).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		
 		# Simular arco alto 3D inflando la escala a la mitad del trayecto
 		tw.tween_property(proj, "scale", Vector2(0.24, 0.24), travel_time / 2.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -668,16 +676,19 @@ func _spawn_vortex_vfx(id, pos, radius, data):
 	
 	var container = Node2D.new()
 	container.name = id
-	container.global_position = pos
 	container.z_index = 5
 	if is_instance_valid(world) and is_instance_valid(world.entities_node):
 		world.entities_node.add_child(container)
+	
+	var proj_pos = _get_projected_position(pos)
+	container.global_position = proj_pos
 	active_areas[id] = container
 	
 	container.set_meta("radius", radius)
 	container.set_meta("pull_force", data.get("pullForce", 8.0)) 
 	container.set_meta("type", "vortex")
 	container.set_meta("time", 0.0) 
+	container.set_meta("logical_position", pos)
 	
 	var poly = Polygon2D.new()
 	var pts = []
@@ -705,6 +716,9 @@ func _spawn_ice_trail(id, pos, _radius):
 	if is_instance_valid(world) and is_instance_valid(world.entities_node):
 		world.entities_node.add_child(container)
 	active_areas[id] = container
+	
+	var proj_pos = _get_projected_position(pos)
+	container.global_position = proj_pos
 	
 	var particles = CPUParticles2D.new()
 	particles.emitting = true
@@ -739,7 +753,7 @@ func _spawn_ice_trail(id, pos, _radius):
 	particles.angular_velocity_min = -90.0
 	particles.angular_velocity_max = 90.0
 	
-	particles.global_position = pos
+	particles.position = Vector2.ZERO
 	container.add_child(particles)
 	
 	var glow = Sprite2D.new()
@@ -752,7 +766,7 @@ func _spawn_ice_trail(id, pos, _radius):
 		glow.modulate = Color(0.5, 0.8, 1.0, 0.35)
 		glow.scale = Vector2(0.15, 0.15)
 		glow.z_index = 4
-		glow.global_position = pos
+		glow.position = Vector2.ZERO
 		container.add_child(glow)
 		
 		var tw = create_tween()
@@ -776,7 +790,6 @@ func _spawn_heal_beacon_vfx(id, pos, radius, _data = {}):
 	if vfx_script:
 		var beacon = vfx_script.new()
 		beacon.name = id
-		beacon.global_position = pos
 		beacon.radius = radius
 		beacon.z_index = 2 # Capa alta de efectos terrestres y boyas
 		
@@ -785,6 +798,8 @@ func _spawn_heal_beacon_vfx(id, pos, radius, _data = {}):
 		else:
 			get_parent().add_child(beacon)
 			
+		var proj_pos = _get_projected_position(pos)
+		beacon.global_position = proj_pos
 		active_areas[id] = beacon
 
 func _on_beacon_pulse(data: Dictionary):
@@ -800,10 +815,12 @@ func _spawn_smoke_cloud(id, pos, radius):
 	
 	var wrapper = Node2D.new()
 	wrapper.name = id
-	wrapper.global_position = pos
 	wrapper.z_index = -1 
 	if is_instance_valid(world) and is_instance_valid(world.entities_node):
 		world.entities_node.add_child(wrapper)
+		
+	var proj_pos = _get_projected_position(pos)
+	wrapper.global_position = proj_pos
 	active_areas[id] = wrapper
 	
 	var view_size = int(radius * 2.5)
@@ -878,7 +895,7 @@ func _on_remote_skill_used(data):
 	var skill_name = data.get("skillName", "")
 	
 	if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == target_id:
-		if sender_id == target_id and skill_name != "REGENERACIÓN ALFA": return
+		if sender_id == target_id and skill_name != "REGENERACIÓN ALFA" and skill_name != "BALIZA DE CURACION": return
 		target_node = world.local_player
 	elif remote_players.has(target_id):
 		target_node = remote_players[target_id]
@@ -993,7 +1010,7 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	if is_instance_valid(world) and is_instance_valid(world.entities_node):
 		world.entities_node.add_child(container)
 	active_areas[id] = container
-	container.global_position = pos
+	container.global_position = _get_projected_position(pos)
 	container.z_index = 0 # Nivel normal de naves para que se vea sobre el fondo pero con volumen
 	
 	# Rotar contenedor en base al ángulo de lanzamiento del viento
@@ -1132,3 +1149,39 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	var tw = container.create_tween().set_parallel(true)
 	tw.tween_property(container, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_property(container, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_SINE)
+
+func _get_projected_position(pos: Vector2) -> Vector2:
+	var current_map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(current_map) and "sub_viewport" in current_map and is_instance_valid(current_map.sub_viewport):
+		var cam3d = current_map.camera_3d if "camera_3d" in current_map else null
+		var sub_vp = current_map.sub_viewport
+		if is_instance_valid(cam3d) and is_instance_valid(sub_vp):
+			var map_scale = current_map.scale_factor if "scale_factor" in current_map else 0.02
+			var correction_z = 1.41421356 # 1.0 / sin(45 grados)
+			var pos_3d = Vector3(pos.x * map_scale, 0.0, pos.y * map_scale * correction_z)
+			if not cam3d.is_position_behind(pos_3d):
+				var sv_pixel = cam3d.unproject_position(pos_3d)
+				if sub_vp.size.x > 0 and sub_vp.size.y > 0:
+					var main_size = Vector2(get_viewport().get_visible_rect().size)
+					sv_pixel *= main_size / Vector2(sub_vp.size)
+				var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+				return world_2d
+	return pos
+
+func _get_entity_visual_position(entity: Node) -> Vector2:
+	if is_instance_valid(entity):
+		if entity.get_meta("is_single_world", false) and is_instance_valid(entity.get("world_root_3d")):
+			var current_map = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
+				var cam3d = current_map.camera_3d
+				var sub_vp = current_map.sub_viewport
+				var world_root_3d = entity.world_root_3d
+				if not cam3d.is_position_behind(world_root_3d.global_position):
+					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+						var main_size = Vector2(get_viewport().get_visible_rect().size)
+						sv_pixel *= main_size / Vector2(sub_vp.size)
+					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+					return world_2d
+		return entity.global_position
+	return Vector2.ZERO

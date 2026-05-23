@@ -53,11 +53,11 @@ class HealBeaconSkill extends BaseSkill {
             ownerId: socket.id,
             endTime: Date.now() + durationMs,
             zone: p.zone,
-            lastPulseTime: 0 // Se inicializa para disparar el primer pulso inmediatamente
+            lastPulseTime: Date.now(), // v308: Evitar pulso curativo instantáneo en el casteo
+            targetFilters: config.targetFilters || { allies: true, enemies: false, bosses: false, players: true }
         };
         
         io.to(`zone_${p.zone}`).emit('spawnArea', state.activeAreas[areaId]);
-        this.broadcastUsage(p, data, { io, socket });
     }
 }
 
