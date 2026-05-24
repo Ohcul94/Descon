@@ -1272,6 +1272,31 @@ function renderRegisteredUsers(data) {
     });
 }
 
+window.updateVaultPrice = function(index, key, val) {
+    if (!config.vaultConfig) {
+        config.vaultConfig = {};
+    }
+    if (!config.vaultConfig.unlockPrices) {
+        config.vaultConfig.unlockPrices = [0, 5000, 15000, 45000, 100000];
+    }
+    if (!config.vaultConfig.unlockPrices[index] || typeof config.vaultConfig.unlockPrices[index] !== 'object') {
+        const prevHubs = typeof config.vaultConfig.unlockPrices[index] === 'number' ? config.vaultConfig.unlockPrices[index] : 0;
+        config.vaultConfig.unlockPrices[index] = { hubs: prevHubs, ohcu: 0 };
+    }
+    config.vaultConfig.unlockPrices[index][key] = parseInt(val) || 0;
+};
+
+window.updateInventoryPrice = function(key, val) {
+    if (!config.inventoryConfig) {
+        config.inventoryConfig = {};
+    }
+    if (!config.inventoryConfig.unlockSlotPrice || typeof config.inventoryConfig.unlockSlotPrice !== 'object') {
+        const prevHubs = typeof config.inventoryConfig.unlockSlotPrice === 'number' ? config.inventoryConfig.unlockSlotPrice : 1000;
+        config.inventoryConfig.unlockSlotPrice = { hubs: prevHubs, ohcu: 0 };
+    }
+    config.inventoryConfig.unlockSlotPrice[key] = parseInt(val) || 0;
+};
+
 function renderPilot() {
     if (!config.pilotConfig) {
         config.pilotConfig = {
@@ -1287,14 +1312,20 @@ function renderPilot() {
         config.vaultConfig = {
             defaultTabs: 1,
             slotsPerTab: 30,
-            unlockPrices: [0, 5000, 15000, 45000, 100000]
+            unlockPrices: [
+                { hubs: 0, ohcu: 0 },
+                { hubs: 5000, ohcu: 0 },
+                { hubs: 15000, ohcu: 5 },
+                { hubs: 45000, ohcu: 10 },
+                { hubs: 100000, ohcu: 20 }
+            ]
         };
     }
     
     if (!config.inventoryConfig) {
         config.inventoryConfig = {
             defaultMaxSlots: 30,
-            unlockSlotPrice: 1000
+            unlockSlotPrice: { hubs: 1000, ohcu: 0 }
         };
     }
     
@@ -1335,12 +1366,28 @@ function renderPilot() {
                 </div>
             </div>
             <div style="margin-top:1rem;">
-                <label style="font-weight:bold; font-size:0.9rem; color:var(--accent); display:block; margin-bottom:0.5rem;">Costo de Desbloqueo (Hubs por Pestaña)</label>
+                <label style="font-weight:bold; font-size:0.9rem; color:var(--accent); display:block; margin-bottom:0.5rem;">Costo de Desbloqueo (Hubs / Ohcu por Pestaña)</label>
                 <div class="form-grid">
-                    <div class="field"><label>Pestaña 2</label><input type="number" value="${config.vaultConfig.unlockPrices[1] || 0}" onchange="config.vaultConfig.unlockPrices[1] = parseInt(this.value)"></div>
-                    <div class="field"><label>Pestaña 3</label><input type="number" value="${config.vaultConfig.unlockPrices[2] || 0}" onchange="config.vaultConfig.unlockPrices[2] = parseInt(this.value)"></div>
-                    <div class="field"><label>Pestaña 4</label><input type="number" value="${config.vaultConfig.unlockPrices[3] || 0}" onchange="config.vaultConfig.unlockPrices[3] = parseInt(this.value)"></div>
-                    <div class="field"><label>Pestaña 5</label><input type="number" value="${config.vaultConfig.unlockPrices[4] || 0}" onchange="config.vaultConfig.unlockPrices[4] = parseInt(this.value)"></div>
+                    ${[1, 2, 3, 4].map(idx => {
+                        const price = config.vaultConfig.unlockPrices[idx] || { hubs: 0, ohcu: 0 };
+                        const hubsVal = typeof price === 'object' ? (price.hubs ?? 0) : price;
+                        const ohcuVal = typeof price === 'object' ? (price.ohcu ?? 0) : 0;
+                        return `
+                            <div class="field" style="border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 6px;">
+                                <label style="color: var(--primary); font-weight: 600;">Pestaña ${idx + 1}</label>
+                                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                                    <div style="flex: 1;">
+                                        <label style="font-size: 8px; opacity: 0.6; margin-bottom: 2px;">Hubs</label>
+                                        <input type="number" value="${hubsVal}" onchange="updateVaultPrice(${idx}, 'hubs', this.value)" style="height: 28px; font-size: 0.85rem; padding: 2px 6px;">
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <label style="font-size: 8px; opacity: 0.6; margin-bottom: 2px;">Ohcu</label>
+                                        <input type="number" value="${ohcuVal}" onchange="updateVaultPrice(${idx}, 'ohcu', this.value)" style="height: 28px; font-size: 0.85rem; padding: 2px 6px;">
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         </div>
@@ -1350,8 +1397,18 @@ function renderPilot() {
                 <div class="field"><label>Slots de Bodega (Defecto)</label>
                     <input type="number" value="${config.inventoryConfig.defaultMaxSlots}" onchange="config.inventoryConfig.defaultMaxSlots = parseInt(this.value)">
                 </div>
-                <div class="field"><label>Costo de Expansión por Slot (Hubs)</label>
-                    <input type="number" value="${config.inventoryConfig.unlockSlotPrice}" onchange="config.inventoryConfig.unlockSlotPrice = parseInt(this.value)">
+                <div class="field" style="border: 1px solid rgba(255,255,255,0.05); padding: 8px; border-radius: 6px;">
+                    <label style="color: var(--accent); font-weight: 600;">Costo de Expansión por Slot</label>
+                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                        <div style="flex: 1;">
+                            <label style="font-size: 8px; opacity: 0.6; margin-bottom: 2px;">Hubs</label>
+                            <input type="number" value="${typeof config.inventoryConfig.unlockSlotPrice === 'object' ? (config.inventoryConfig.unlockSlotPrice.hubs ?? 0) : config.inventoryConfig.unlockSlotPrice}" onchange="updateInventoryPrice('hubs', this.value)" style="height: 28px; font-size: 0.85rem; padding: 2px 6px;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-size: 8px; opacity: 0.6; margin-bottom: 2px;">Ohcu</label>
+                            <input type="number" value="${typeof config.inventoryConfig.unlockSlotPrice === 'object' ? (config.inventoryConfig.unlockSlotPrice.ohcu ?? 0) : 0}" onchange="updateInventoryPrice('ohcu', this.value)" style="height: 28px; font-size: 0.85rem; padding: 2px 6px;">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

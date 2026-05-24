@@ -14,6 +14,12 @@ var my_equipped_grid: GridContainer
 var status_label: Label
 var confirm_button: Button
 
+# Tooltip Premium
+var info_panel: PanelContainer = null
+var lbl_info_title: Label = null
+var lbl_info_type: Label = null
+var lbl_info_stats: Label = null
+
 var trade_id = ""
 var partner_id = ""
 var my_offered_items = []
@@ -46,8 +52,56 @@ func _ready():
 	if confirm_button: confirm_button.pressed.connect(_on_confirm_pressed)
 	var close_btn = get_node_or_null("MainFrame/ContentLayout/Header/CloseButton")
 	if close_btn: close_btn.pressed.connect(_on_close_pressed)
+	
+	# Crear el Panel de Información Flotante (Tooltip Premium)
+	info_panel = PanelContainer.new()
+	info_panel.visible = false
+	info_panel.custom_minimum_size = Vector2(180, 80)
+	info_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(info_panel)
+	
+	var info_margin = MarginContainer.new()
+	info_margin.add_theme_constant_override("margin_left", 10)
+	info_margin.add_theme_constant_override("margin_right", 10)
+	info_margin.add_theme_constant_override("margin_top", 8)
+	info_margin.add_theme_constant_override("margin_bottom", 8)
+	info_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_panel.add_child(info_margin)
+	
+	var info_vbox = VBoxContainer.new()
+	info_vbox.add_theme_constant_override("separation", 4)
+	info_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_margin.add_child(info_vbox)
+	
+	lbl_info_title = Label.new()
+	lbl_info_title.add_theme_font_size_override("font_size", 11)
+	lbl_info_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl_info_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(lbl_info_title)
+	
+	lbl_info_type = Label.new()
+	lbl_info_type.add_theme_font_size_override("font_size", 8)
+	lbl_info_type.modulate = Color(0.7, 0.7, 0.7)
+	lbl_info_type.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(lbl_info_type)
+	
+	var info_sep = HSeparator.new()
+	info_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(info_sep)
+	
+	lbl_info_stats = Label.new()
+	lbl_info_stats.add_theme_font_size_override("font_size", 9)
+	lbl_info_stats.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	lbl_info_stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl_info_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(lbl_info_stats)
+	
 	await get_tree().process_frame
 	refresh_ui()
+
+func _input(event):
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_hide_info_panel()
 
 func setup(data):
 	_find_nodes()
@@ -119,31 +173,49 @@ func refresh_ui():
 func create_item_slot(item_data, context = "inventory"):
 	var item_id = "ITEM"
 	var icon_path = ""
+	var rarity = 0
+	var item_color = ""
 	if item_data is Dictionary:
 		item_id = str(item_data.get("itemId", item_data.get("id", "ITEM")))
 		icon_path = str(item_data.get("icon", ""))
+		rarity = int(item_data.get("rarity", 0))
+		item_color = str(item_data.get("color", ""))
 	elif item_data is String:
 		item_id = item_data
 	
-	# REGRESO AL COLORRECT (Lo que andaba)
-	var p = ColorRect.new()
-	p.custom_minimum_size = Vector2(60, 60)
-	match context:
-		"equipped": p.color = Color(0.8, 0.4, 0.1, 0.9) # Naranja
-		"inventory": p.color = Color(0, 0.5, 0, 0.7) # Verde
-		"offer": p.color = Color(0, 0.6, 0.6, 0.9) # Cian
-		_: p.color = Color(0.2, 0.2, 0.2, 1.0) # Gris
+	var slot_panel = PanelContainer.new()
+	slot_panel.custom_minimum_size = Vector2(80, 80)
 	
-	# Nombre fallback
-	var lbl = Label.new()
-	lbl.text = item_id.to_upper()
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.add_theme_color_override("font_color", Color.YELLOW)
-	lbl.add_theme_font_size_override("font_size", 10)
-	lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(lbl)
+	# Estilo vacío
+	var sb_empty = StyleBoxFlat.new()
+	sb_empty.bg_color = Color(1.0, 1.0, 1.0, 0.02)
+	sb_empty.border_width_left = 1
+	sb_empty.border_width_top = 1
+	sb_empty.border_width_right = 1
+	sb_empty.border_width_bottom = 1
+	sb_empty.border_color = Color(1.0, 1.0, 1.0, 0.05)
+	sb_empty.set_corner_radius_all(4)
+	
+	var rarity_color = _get_rarity_color(rarity)
+	if item_color != "":
+		rarity_color = Color.from_string(item_color, rarity_color)
+		
+	var sb_filled = sb_empty.duplicate()
+	sb_filled.bg_color = Color(rarity_color.r, rarity_color.g, rarity_color.b, 0.08)
+	sb_filled.border_color = rarity_color
+	sb_filled.border_width_left = 2
+	sb_filled.border_width_top = 2
+	sb_filled.border_width_right = 2
+	sb_filled.border_width_bottom = 2
+	slot_panel.add_theme_stylebox_override("panel", sb_filled)
+	
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 6)
+	margin.add_theme_constant_override("margin_right", 6)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_bottom", 6)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot_panel.add_child(margin)
 	
 	# Carga de Iconos (Búsqueda de emergencia)
 	var search_id = item_id.to_lower()
@@ -157,30 +229,44 @@ func create_item_slot(item_data, context = "inventory"):
 		}
 		if emergency_map.has(search_id): icon_path = emergency_map[search_id]
 	
+	var has_icon = false
 	if icon_path != "" and ResourceLoader.exists(icon_path):
 		var tex_res = load(icon_path)
 		if tex_res:
-			lbl.visible = false
 			var tex = TextureRect.new()
 			tex.texture = tex_res
 			tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			tex.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			tex.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			p.add_child(tex)
-	
-	var btn = Button.new()
-	btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	btn.flat = true
-	p.add_child(btn)
-	
+			margin.add_child(tex)
+			has_icon = true
+			
+	if not has_icon:
+		var lbl = Label.new()
+		lbl.text = item_id.to_upper()
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lbl.add_theme_color_override("font_color", Color.YELLOW)
+		lbl.add_theme_font_size_override("font_size", 10)
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		margin.add_child(lbl)
+		
+	# Eventos de ratón
 	if item_data is Dictionary:
-		match context:
-			"inventory": btn.pressed.connect(func(): add_to_offer(item_data))
-			"equipped": btn.pressed.connect(func(): add_to_offer(item_data))
-			"offer": btn.pressed.connect(func(): remove_from_offer(item_data))
-	
-	return p
+		slot_panel.gui_input.connect(func(event):
+			if event is InputEventMouseButton and event.pressed:
+				if event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
+					_hide_info_panel()
+					match context:
+						"inventory", "equipped": add_to_offer(item_data)
+						"offer": remove_from_offer(item_data)
+					get_viewport().set_input_as_handled()
+				elif event.button_index == MOUSE_BUTTON_LEFT:
+					_show_info_panel(item_data, slot_panel)
+					get_viewport().set_input_as_handled()
+		)
+		
+	return slot_panel
 
 func add_to_offer(item):
 	if is_ready: return
@@ -227,3 +313,108 @@ func _on_trade_cancelled(_data): queue_free()
 func _on_close_pressed():
 	NetworkManager.send_event("tradeCancel", {})
 	queue_free()
+
+func _show_info_panel(item_data, target_node: Control):
+	if not info_panel: return
+	if item_data == null:
+		print("[TRADE WARNING] item_data es nulo en _show_info_panel")
+		return
+	if not (item_data is Dictionary):
+		print("[TRADE WARNING] item_data no es un Dictionary en _show_info_panel: ", typeof(item_data))
+		return
+	
+	var rarity = 0
+	if item_data.has("rarity") and item_data["rarity"] != null:
+		rarity = int(item_data["rarity"])
+		
+	var rarity_color = _get_rarity_color(rarity)
+	if item_data.has("color") and item_data["color"] != null and str(item_data["color"]) != "":
+		rarity_color = Color.from_string(str(item_data["color"]), rarity_color)
+		
+	# Estilo del tooltip con borde del color de rareza
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.02, 0.02, 0.05, 0.96)
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_color = rarity_color
+	sb.set_corner_radius_all(6)
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 8
+	info_panel.add_theme_stylebox_override("panel", sb)
+	
+	# Llenar datos
+	var name_str = "ÍTEM"
+	if item_data.has("name") and item_data["name"] != null:
+		name_str = str(item_data["name"])
+	lbl_info_title.text = name_str.to_upper()
+	lbl_info_title.add_theme_color_override("font_color", rarity_color)
+	
+	var type_str = "MÓDULO"
+	if item_data.has("type") and item_data["type"] != null:
+		type_str = str(item_data["type"])
+	lbl_info_type.text = _get_rarity_label(rarity) + " | " + type_str.to_upper()
+	
+	# Estadísticas
+	var base_val = 0
+	if item_data.has("base") and item_data["base"] != null:
+		base_val = int(item_data["base"])
+		
+	var type_str_lower = type_str.to_lower()
+	var stat_text = ""
+	
+	var search_id = ""
+	if item_data.has("id") and item_data["id"] != null:
+		search_id = str(item_data["id"]).to_lower()
+	elif item_data.has("itemId") and item_data["itemId"] != null:
+		search_id = str(item_data["itemId"]).to_lower()
+	
+	if type_str_lower == "laser" or type_str_lower == "weapon" or search_id.begins_with("las"):
+		stat_text = "DAÑO: +" + str(base_val)
+	elif type_str_lower == "shield" or search_id.begins_with("sh"):
+		stat_text = "ESCUDO: +" + str(base_val)
+	elif type_str_lower == "engine" or search_id.begins_with("en"):
+		stat_text = "PROPULSIÓN: +" + str(base_val)
+	else:
+		stat_text = "ESTADÍSTICA BASE: +" + str(base_val)
+		
+	lbl_info_stats.text = stat_text
+	
+	# Posicionar al lado del nodo de forma inteligente
+	info_panel.visible = true
+	# Forzar el cálculo del tamaño del panel para que posicione bien
+	info_panel.reset_size()
+	
+	var target_pos = target_node.global_position
+	# Posicionar a la derecha del slot
+	var new_pos = target_pos + Vector2(target_node.size.x + 10, -10)
+	
+	# Si se sale por la derecha de la ventana
+	if new_pos.x + info_panel.size.x > get_viewport().get_visible_rect().size.x:
+		# Posicionar a la izquierda del slot
+		new_pos.x = target_pos.x - info_panel.size.x - 10
+		
+	info_panel.global_position = new_pos
+
+func _hide_info_panel():
+	if info_panel:
+		info_panel.visible = false
+
+func _get_rarity_color(rarity: int) -> Color:
+	match rarity:
+		0: return Color(0.7, 0.7, 0.7) # Común
+		1: return Color(0.13, 0.77, 0.36) # Raro
+		2: return Color(0.23, 0.51, 0.96) # Épico
+		3: return Color(0.66, 0.33, 0.97) # Reliquia
+		4: return Color(0.98, 0.45, 0.09) # Legendario
+		_: return Color.WHITE
+
+func _get_rarity_label(rarity: int) -> String:
+	match rarity:
+		0: return "COMÚN"
+		1: return "RARO"
+		2: return "ÉPICO"
+		3: return "RELIQUIA"
+		4: return "LEGENDARIO"
+		_: return "MÓDULO"

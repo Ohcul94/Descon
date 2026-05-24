@@ -10,6 +10,7 @@ var current_tab: int = 0
 var vault_config: Dictionary = {}
 var player_inventory: Array = []
 var player_hubs: int = 0
+var player_ohcu: int = 0
 
 # Referencias a nodos UI
 var control_root: Control = null
@@ -19,6 +20,7 @@ var vault_grid: GridContainer = null
 var inv_container: GridContainer = null
 var btn_unlock: Button = null
 var lbl_hubs: Label = null
+var lbl_ohcu: Label = null
 var lbl_slots_info: Label = null
 var lbl_inv_slots: Label = null
 var btn_expand_inv: Button = null
@@ -192,13 +194,28 @@ func _ready():
 	lbl_inv_title.add_theme_color_override("font_color", Color(0.0, 0.9, 1.0))
 	vbox_inv.add_child(lbl_inv_title)
 	
-	# Info de saldo / hubs
+	# Info de saldo / hubs y ohcu
+	var hbox_balances = HBoxContainer.new()
+	hbox_balances.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox_inv.add_child(hbox_balances)
+
 	lbl_hubs = Label.new()
-	lbl_hubs.text = "Hubs: 0 HUBS"
-	lbl_hubs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl_hubs.text = "Hubs: 0"
 	lbl_hubs.add_theme_font_size_override("font_size", 11)
 	lbl_hubs.add_theme_color_override("font_color", Color(0.23, 1.0, 0.2))
-	vbox_inv.add_child(lbl_hubs)
+	hbox_balances.add_child(lbl_hubs)
+
+	var lbl_sep_balances = Label.new()
+	lbl_sep_balances.text = "  |  "
+	lbl_sep_balances.add_theme_font_size_override("font_size", 11)
+	lbl_sep_balances.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	hbox_balances.add_child(lbl_sep_balances)
+
+	lbl_ohcu = Label.new()
+	lbl_ohcu.text = "Ohcu: 0"
+	lbl_ohcu.add_theme_font_size_override("font_size", 11)
+	lbl_ohcu.add_theme_color_override("font_color", Color(0.0, 0.8, 1.0))
+	hbox_balances.add_child(lbl_ohcu)
 	
 	# Scroll para lista de ítems de inventario
 	var scroll_inv = ScrollContainer.new()
@@ -363,11 +380,18 @@ func _on_inventory_received(data: Dictionary):
 	var player_data = data.get("player", {})
 	if player_data.has("inventoryMaxSlots"):
 		inventory_max_slots = int(player_data.inventoryMaxSlots)
+	if player_data.has("ohcu"):
+		player_ohcu = int(player_data.ohcu)
+	else:
+		player_ohcu = int(data.get("ohcu", 0))
 	
 	if is_open:
 		_refresh_inventory()
+		_update_unlock_tab_button()
 		if lbl_hubs:
-			lbl_hubs.text = "Hubs: " + str(player_hubs).replace(",", ".") + " HUBS"
+			lbl_hubs.text = "Hubs: " + str(player_hubs)
+		if lbl_ohcu:
+			lbl_ohcu.text = "Ohcu: " + str(player_ohcu)
 
 func open_vault():
 	if not is_open:
@@ -486,14 +510,7 @@ func _refresh_vault():
 			)
 			
 	# Actualizar botón de desbloquear pestaña
-	var prices = vault_config.get("unlockPrices", [0, 5000, 15000, 45000, 100000])
-	if unlocked_tabs >= prices.size():
-		btn_unlock.text = "LÍMITE MÁXIMO"
-		btn_unlock.disabled = true
-	else:
-		var price = prices[unlocked_tabs]
-		btn_unlock.text = "[+] ABRIR PESTAÑA " + str(unlocked_tabs + 1) + " (" + str(int(price)) + " Hubs)"
-		btn_unlock.disabled = (player_hubs < price)
+	_update_unlock_tab_button()
 
 func _refresh_inventory():
 	# Limpiar grid
@@ -503,10 +520,7 @@ func _refresh_inventory():
 	if lbl_inv_slots:
 		lbl_inv_slots.text = "BODEGA: " + str(player_inventory.size()) + "/" + str(int(inventory_max_slots)) + " SLOTS"
 		
-	var price = inventory_config.get("unlockSlotPrice", 1000)
-	if btn_expand_inv:
-		btn_expand_inv.text = "[+] AÑADIR SLOT (" + str(int(price)) + " Hubs)"
-		btn_expand_inv.disabled = (player_hubs < price)
+	_update_expand_inventory_button()
 		
 	# Rellenar slots del inventario del piloto (grilla simétrica de 80x80)
 	for i in range(int(inventory_max_slots)):
@@ -697,3 +711,72 @@ func _show_info_panel(item_data: Dictionary, target_node: Control):
 func _hide_info_panel():
 	if info_panel:
 		info_panel.visible = false
+
+func _parse_price(price_data) -> Dictionary:
+	var parsed = { "hubs": 0, "ohcu": 0 }
+	if price_data is Dictionary:
+		parsed["hubs"] = int(price_data.get("hubs", 0))
+		parsed["ohcu"] = int(price_data.get("ohcu", 0))
+	elif price_data is float or price_data is int:
+		parsed["hubs"] = int(price_data)
+	return parsed
+
+func _update_unlock_tab_button():
+	if not btn_unlock: return
+	var prices = vault_config.get("unlockPrices", [0, 5000, 15000, 45000, 100000])
+	if unlocked_tabs >= prices.size():
+		btn_unlock.text = "LÍMITE MÁXIMO"
+		btn_unlock.disabled = true
+		return
+
+	var raw_price = prices[unlocked_tabs]
+	var price_dict = _parse_price(raw_price)
+	var h_cost = price_dict["hubs"]
+	var o_cost = price_dict["ohcu"]
+
+	if h_cost == 0 and o_cost == 0:
+		btn_unlock.text = "BLOQUEADO"
+		btn_unlock.disabled = true
+	else:
+		var label_parts = []
+		if h_cost > 0:
+			label_parts.append(str(h_cost) + " Hubs")
+		if o_cost > 0:
+			label_parts.append(str(o_cost) + " Ohcu")
+		
+		btn_unlock.text = "[+] ABRIR PESTAÑA " + str(unlocked_tabs + 1) + " (" + " + ".join(label_parts) + ")"
+		
+		# Validación de fondos
+		var can_afford = true
+		if h_cost > 0 and player_hubs < h_cost:
+			can_afford = false
+		if o_cost > 0 and player_ohcu < o_cost:
+			can_afford = false
+		btn_unlock.disabled = not can_afford
+
+func _update_expand_inventory_button():
+	if not btn_expand_inv: return
+	var raw_price = inventory_config.get("unlockSlotPrice", 1000)
+	var price_dict = _parse_price(raw_price)
+	var h_cost = price_dict["hubs"]
+	var o_cost = price_dict["ohcu"]
+
+	if h_cost == 0 and o_cost == 0:
+		btn_expand_inv.text = "BLOQUEADO"
+		btn_expand_inv.disabled = true
+	else:
+		var label_parts = []
+		if h_cost > 0:
+			label_parts.append(str(h_cost) + " Hubs")
+		if o_cost > 0:
+			label_parts.append(str(o_cost) + " Ohcu")
+		
+		btn_expand_inv.text = "[+] AÑADIR SLOT (" + " + ".join(label_parts) + ")"
+		
+		# Validación de fondos
+		var can_afford = true
+		if h_cost > 0 and player_hubs < h_cost:
+			can_afford = false
+		if o_cost > 0 and player_ohcu < o_cost:
+			can_afford = false
+		btn_expand_inv.disabled = not can_afford

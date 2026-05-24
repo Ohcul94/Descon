@@ -1,5 +1,16 @@
 const User = require('../models/User');
 
+function parsePrice(priceConfig) {
+    if (priceConfig && typeof priceConfig === 'object') {
+        return {
+            hubs: parseInt(priceConfig.hubs) || 0,
+            ohcu: parseInt(priceConfig.ohcu) || 0
+        };
+    }
+    const val = parseInt(priceConfig) || 0;
+    return { hubs: val, ohcu: 0 };
+}
+
 function registerVaultHandlers(socket, io, state) {
     // 1. OBTENER DATOS DEL BAÚL
     socket.on('getVaultData', async () => {
@@ -210,13 +221,23 @@ function registerVaultHandlers(socket, io, state) {
                 return socket.emit('gameNotification', { msg: 'LÍMITE ALCANZADO: Has desbloqueado el máximo de pestañas posibles.', type: 'error' });
             }
 
-            const price = prices[nextTabIdx];
-            if (user.gameData.hubs < price) {
-                return socket.emit('gameNotification', { msg: `FONDOS INSUFICIENTES: Necesitas ${price} Hubs para desbloquear esta pestaña.`, type: 'error' });
+            const rawPrice = prices[nextTabIdx];
+            const price = parsePrice(rawPrice);
+
+            if (price.hubs === 0 && price.ohcu === 0) {
+                return socket.emit('gameNotification', { msg: 'BLOQUEADO: Esta pestaña debe adquirirse de otra forma.', type: 'error' });
             }
 
-            // Debitar hubs e incrementar pestañas
-            user.gameData.hubs -= price;
+            if (price.hubs > 0 && user.gameData.hubs < price.hubs) {
+                return socket.emit('gameNotification', { msg: `FONDOS INSUFICIENTES: Necesitas ${price.hubs} Hubs para desbloquear esta pestaña.`, type: 'error' });
+            }
+            if (price.ohcu > 0 && user.gameData.ohcu < price.ohcu) {
+                return socket.emit('gameNotification', { msg: `FONDOS INSUFICIENTES: Necesitas ${price.ohcu} Ohcu para desbloquear esta pestaña.`, type: 'error' });
+            }
+
+            // Debitar e incrementar pestañas
+            if (price.hubs > 0) user.gameData.hubs -= price.hubs;
+            if (price.ohcu > 0) user.gameData.ohcu -= price.ohcu;
             user.gameData.vaultUnlockedTabs += 1;
 
             user.markModified('gameData');
@@ -225,6 +246,7 @@ function registerVaultHandlers(socket, io, state) {
 
             // Sincronizar estado en memoria RAM
             p.hubs = user.gameData.hubs;
+            p.ohcu = user.gameData.ohcu;
 
             // Sincronizar clientes
             const { getCategorizedInventory } = require('./inventoryHandlers');
@@ -271,14 +293,23 @@ function registerVaultHandlers(socket, io, state) {
             }
  
             const inventoryConfig = state.SERVER_CONFIG.inventoryConfig || { defaultMaxSlots: 30, unlockSlotPrice: 1000 };
-            const price = inventoryConfig.unlockSlotPrice || 1000;
- 
-            if (user.gameData.hubs < price) {
-                return socket.emit('gameNotification', { msg: `FONDOS INSUFICIENTES: Necesitas ${price} Hubs para desbloquear 1 slot de inventario.`, type: 'error' });
+            const rawPrice = inventoryConfig.unlockSlotPrice || 1000;
+            const price = parsePrice(rawPrice);
+
+            if (price.hubs === 0 && price.ohcu === 0) {
+                return socket.emit('gameNotification', { msg: 'BLOQUEADO: Este slot debe adquirirse de otra forma.', type: 'error' });
+            }
+
+            if (price.hubs > 0 && user.gameData.hubs < price.hubs) {
+                return socket.emit('gameNotification', { msg: `FONDOS INSUFICIENTES: Necesitas ${price.hubs} Hubs para desbloquear 1 slot de inventario.`, type: 'error' });
+            }
+            if (price.ohcu > 0 && user.gameData.ohcu < price.ohcu) {
+                return socket.emit('gameNotification', { msg: `FONDOS INSUFICIENTES: Necesitas ${price.ohcu} Ohcu para desbloquear 1 slot de inventario.`, type: 'error' });
             }
  
-            // Debitar hubs e incrementar slots
-            user.gameData.hubs -= price;
+            // Debitar e incrementar slots
+            if (price.hubs > 0) user.gameData.hubs -= price.hubs;
+            if (price.ohcu > 0) user.gameData.ohcu -= price.ohcu;
             user.gameData.inventoryMaxSlots += 1;
  
             user.markModified('gameData');
@@ -287,6 +318,7 @@ function registerVaultHandlers(socket, io, state) {
  
             // Sincronizar estado en memoria RAM
             p.hubs = user.gameData.hubs;
+            p.ohcu = user.gameData.ohcu;
  
             // Sincronizar clientes
             const { getCategorizedInventory } = require('./inventoryHandlers');

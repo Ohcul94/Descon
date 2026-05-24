@@ -3,16 +3,16 @@
         "defaultTabs": 1,
         "slotsPerTab": 30,
         "unlockPrices": [
-            0,
-            5000,
-            15000,
-            45000,
-            100000
+            { "hubs": 0, "ohcu": 0 },
+            { "hubs": 5000, "ohcu": 0 },
+            { "hubs": 15000, "ohcu": 5 },
+            { "hubs": 0, "ohcu": 50 },
+            { "hubs": 100000, "ohcu": 100 }
         ]
     },
     "inventoryConfig": {
         "defaultMaxSlots": 30,
-        "unlockSlotPrice": 1000
+        "unlockSlotPrice": { "hubs": 1000, "ohcu": 0 }
     },
     "lootConfig": {
         "interactRange": 200,
