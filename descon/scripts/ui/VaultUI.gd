@@ -362,7 +362,7 @@ func _refresh_vault():
 			items_in_tab.append(it)
 			
 	if lbl_slots_info:
-		lbl_slots_info.text = "Slots: " + str(items_in_tab.size()) + "/" + str(slots_max)
+		lbl_slots_info.text = "Slots: " + str(items_in_tab.size()) + "/" + str(int(slots_max))
 		
 	# Rellenar slots
 	for i in range(slots_max):
@@ -394,46 +394,41 @@ func _refresh_vault():
 			sb_filled.border_color = rarity_color
 			slot_panel.add_theme_stylebox_override("panel", sb_filled)
 			
-			# Contenedor vertical
-			var vbox = VBoxContainer.new()
-			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-			vbox.add_theme_constant_override("separation", 2)
-			slot_panel.add_child(vbox)
+			# Borde y márgenes para la imagen a sangre completa
+			var sb_filled = sb_empty.duplicate()
+			sb_filled.bg_color = Color(rarity_color.r, rarity_color.g, rarity_color.b, 0.08)
+			sb_filled.border_color = rarity_color
+			sb_filled.border_width_left = 2
+			sb_filled.border_width_top = 2
+			sb_filled.border_width_right = 2
+			sb_filled.border_width_bottom = 2
+			slot_panel.add_theme_stylebox_override("panel", sb_filled)
 			
-			# Imagen del ítem (TextureRect)
+			var margin = MarginContainer.new()
+			margin.add_theme_constant_override("margin_left", 6)
+			margin.add_theme_constant_override("margin_right", 6)
+			margin.add_theme_constant_override("margin_top", 6)
+			margin.add_theme_constant_override("margin_bottom", 6)
+			margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			slot_panel.add_child(margin)
+			
+			# Imagen del ítem (TextureRect) a pantalla completa de slot
 			var icon_path = _get_item_icon(item)
 			if icon_path != "":
 				var tex_rect = TextureRect.new()
 				tex_rect.texture = load(icon_path)
 				tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-				tex_rect.custom_minimum_size = Vector2(36, 36)
-				tex_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-				vbox.add_child(tex_rect)
-			
-			# Nombre del ítem
-			var lbl_name = Label.new()
-			lbl_name.text = str(item.get("name", "Item")).to_upper()
-			lbl_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			lbl_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			lbl_name.add_theme_font_size_override("font_size", 8)
-			lbl_name.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-			vbox.add_child(lbl_name)
-			
-			# Botón retirar
-			var btn_get = Button.new()
-			btn_get.text = "RETIRAR"
-			btn_get.custom_minimum_size = Vector2(60, 20)
-			btn_get.add_theme_font_size_override("font_size", 8)
-			
-			var btn_style = StyleBoxFlat.new()
-			btn_style.bg_color = Color(rarity_color.r, rarity_color.g, rarity_color.b, 0.25)
-			btn_style.set_corner_radius_all(3)
-			btn_get.add_theme_stylebox_override("normal", btn_style)
-			
+				tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				margin.add_child(tex_rect)
+				
+			# Doble clic sobre el panel del slot para retirar
 			var inst_id = item.get("instanceId", "")
-			btn_get.pressed.connect(_on_withdraw_pressed.bind(inst_id))
-			vbox.add_child(btn_get)
+			slot_panel.gui_input.connect(func(event):
+				if event is InputEventMouseButton and event.pressed and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
+					_on_withdraw_pressed(inst_id)
+					get_viewport().set_input_as_handled()
+			)
 			
 	# Actualizar botón de desbloquear pestaña
 	var prices = vault_config.get("unlockPrices", [0, 5000, 15000, 45000, 100000])
@@ -442,7 +437,7 @@ func _refresh_vault():
 		btn_unlock.disabled = true
 	else:
 		var price = prices[unlocked_tabs]
-		btn_unlock.text = "[+] ABRIR PESTAÑA " + str(unlocked_tabs + 1) + " (" + str(price) + " Hubs)"
+		btn_unlock.text = "[+] ABRIR PESTAÑA " + str(unlocked_tabs + 1) + " (" + str(int(price)) + " Hubs)"
 		btn_unlock.disabled = (player_hubs < price)
 
 func _refresh_inventory():
@@ -451,11 +446,11 @@ func _refresh_inventory():
 		child.queue_free()
 		
 	if lbl_inv_slots:
-		lbl_inv_slots.text = "BODEGA: " + str(player_inventory.size()) + "/" + str(inventory_max_slots) + " SLOTS"
+		lbl_inv_slots.text = "BODEGA: " + str(player_inventory.size()) + "/" + str(int(inventory_max_slots)) + " SLOTS"
 		
 	var price = inventory_config.get("unlockSlotPrice", 1000)
 	if btn_expand_inv:
-		btn_expand_inv.text = "[+] AÑADIR SLOT (" + str(price) + " Hubs)"
+		btn_expand_inv.text = "[+] AÑADIR SLOT (" + str(int(price)) + " Hubs)"
 		btn_expand_inv.disabled = (player_hubs < price)
 		
 	if player_inventory.size() == 0:
@@ -530,31 +525,13 @@ func _refresh_inventory():
 		lbl_type.modulate = Color(0.7, 0.7, 0.7)
 		vbox_lbls.add_child(lbl_type)
 		
-		# Botón Guardar
-		var btn_save = Button.new()
-		btn_save.text = "GUARDAR"
-		btn_save.custom_minimum_size = Vector2(80, 24)
-		btn_save.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		btn_save.add_theme_font_size_override("font_size", 9)
-		
-		var btn_sb = StyleBoxFlat.new()
-		btn_sb.bg_color = Color(0.1, 0.1, 0.15, 0.8)
-		btn_sb.border_width_left = 1
-		btn_sb.border_width_right = 1
-		btn_sb.border_width_top = 1
-		btn_sb.border_width_bottom = 1
-		btn_sb.border_color = rarity_color
-		btn_sb.set_corner_radius_all(3)
-		btn_save.add_theme_stylebox_override("normal", btn_sb)
-		
-		var btn_sb_hover = btn_sb.duplicate()
-		btn_sb_hover.bg_color = rarity_color
-		btn_sb_hover.bg_color.a = 0.2
-		btn_save.add_theme_stylebox_override("hover", btn_sb_hover)
-		
+		# Doble clic sobre la fila para guardar en el baúl
 		var inst_id = item.get("instanceId", "")
-		btn_save.pressed.connect(_on_store_pressed.bind(inst_id))
-		hbox.add_child(btn_save)
+		row.gui_input.connect(func(event):
+			if event is InputEventMouseButton and event.pressed and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
+				_on_store_pressed(inst_id)
+				get_viewport().set_input_as_handled()
+		)
 
 func _on_store_pressed(instance_id: String):
 	if NetworkManager:

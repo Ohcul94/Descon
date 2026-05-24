@@ -280,34 +280,13 @@ func _create_item_row(item: Dictionary):
 	label_type.add_theme_color_override("font_color", rarity_color.lerp(Color.WHITE, 0.4))
 	vbox_text.add_child(label_type)
 	
-	# Botón individual Recoger
-	var btn_claim = Button.new()
-	btn_claim.text = "RECOGER"
-	btn_claim.custom_minimum_size = Vector2(80, 26)
-	btn_claim.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	
-	var btn_sb = StyleBoxFlat.new()
-	btn_sb.bg_color = Color(0.1, 0.1, 0.15, 0.8)
-	btn_sb.border_width_left = 1
-	btn_sb.border_width_right = 1
-	btn_sb.border_width_top = 1
-	btn_sb.border_width_bottom = 1
-	btn_sb.border_color = rarity_color
-	btn_sb.corner_radius_top_left = 3
-	btn_sb.corner_radius_top_right = 3
-	btn_sb.corner_radius_bottom_left = 3
-	btn_sb.corner_radius_bottom_right = 3
-	btn_claim.add_theme_stylebox_override("normal", btn_sb)
-	btn_claim.add_theme_font_size_override("font_size", 9)
-	
-	var btn_sb_hover = btn_sb.duplicate()
-	btn_sb_hover.bg_color = rarity_color
-	btn_sb_hover.bg_color.a = 0.2
-	btn_claim.add_theme_stylebox_override("hover", btn_sb_hover)
-	
+	# Doble clic sobre la fila para recoger el ítem del botín
 	var inst_id = str(item.get("instanceId", ""))
-	btn_claim.pressed.connect(func(): _on_claim_item_pressed(inst_id))
-	hbox.add_child(btn_claim)
+	item_panel.gui_input.connect(func(event):
+		if event is InputEventMouseButton and event.pressed and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
+			_on_claim_item_pressed(inst_id)
+			get_viewport().set_input_as_handled()
+	)
 
 func close_modal():
 	if is_open:
