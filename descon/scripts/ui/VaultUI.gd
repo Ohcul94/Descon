@@ -16,7 +16,7 @@ var control_root: Control = null
 var overlay: ColorRect = null
 var tab_bar: TabBar = null
 var vault_grid: GridContainer = null
-var inv_container: VBoxContainer = null
+var inv_container: GridContainer = null
 var btn_unlock: Button = null
 var lbl_hubs: Label = null
 var lbl_slots_info: Label = null
@@ -24,6 +24,12 @@ var lbl_inv_slots: Label = null
 var btn_expand_inv: Button = null
 var inventory_max_slots: int = 30
 var inventory_config: Dictionary = {}
+
+# Tooltip Premium
+var info_panel: PanelContainer = null
+var lbl_info_title: Label = null
+var lbl_info_type: Label = null
+var lbl_info_stats: Label = null
 
 func _ready():
 	add_to_group("vault_ui")
@@ -49,8 +55,8 @@ func _ready():
 	# 3. Diseñar panel de doble panel (HBoxContainer)
 	var hbox = HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 25)
-	hbox.custom_minimum_size = Vector2(850, 480)
-	hbox.position = Vector2(-425, -240) # Centrar en pantalla
+	hbox.custom_minimum_size = Vector2(865, 480)
+	hbox.position = Vector2(-432, -240) # Centrar en pantalla
 	control_root.add_child(hbox)
 	
 	# A) PANEL IZQUIERDO: EL BAÚL DE SEGURIDAD
@@ -149,7 +155,7 @@ func _ready():
 	
 	# B) PANEL DERECHO: INVENTARIO DEL PILOTO
 	var panel_inv = PanelContainer.new()
-	panel_inv.custom_minimum_size = Vector2(365, 480)
+	panel_inv.custom_minimum_size = Vector2(380, 480)
 	
 	var sb_inv = StyleBoxFlat.new()
 	sb_inv.bg_color = Color(0.01, 0.02, 0.04, 0.98)
@@ -200,8 +206,10 @@ func _ready():
 	scroll_inv.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vbox_inv.add_child(scroll_inv)
 	
-	inv_container = VBoxContainer.new()
-	inv_container.add_theme_constant_override("separation", 6)
+	inv_container = GridContainer.new()
+	inv_container.columns = 4
+	inv_container.add_theme_constant_override("h_separation", 10)
+	inv_container.add_theme_constant_override("v_separation", 10)
 	scroll_inv.add_child(inv_container)
 	
 	# Fila para Slots del Piloto y Expansión
@@ -252,6 +260,49 @@ func _ready():
 		NetworkManager.vault_data.connect(_on_vault_data_received)
 		NetworkManager.vault_updated.connect(_on_vault_updated_received)
 		NetworkManager.inventory_data.connect(_on_inventory_received)
+		
+	# 5. Crear el Panel de Información Flotante (Tooltip Premium)
+	info_panel = PanelContainer.new()
+	info_panel.visible = false
+	info_panel.custom_minimum_size = Vector2(180, 80)
+	info_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(info_panel)
+	
+	var info_margin = MarginContainer.new()
+	info_margin.add_theme_constant_override("margin_left", 10)
+	info_margin.add_theme_constant_override("margin_right", 10)
+	info_margin.add_theme_constant_override("margin_top", 8)
+	info_margin.add_theme_constant_override("margin_bottom", 8)
+	info_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_panel.add_child(info_margin)
+	
+	var info_vbox = VBoxContainer.new()
+	info_vbox.add_theme_constant_override("separation", 4)
+	info_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_margin.add_child(info_vbox)
+	
+	lbl_info_title = Label.new()
+	lbl_info_title.add_theme_font_size_override("font_size", 11)
+	lbl_info_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl_info_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(lbl_info_title)
+	
+	lbl_info_type = Label.new()
+	lbl_info_type.add_theme_font_size_override("font_size", 8)
+	lbl_info_type.modulate = Color(0.7, 0.7, 0.7)
+	lbl_info_type.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(lbl_info_type)
+	
+	var info_sep = HSeparator.new()
+	info_sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(info_sep)
+	
+	lbl_info_stats = Label.new()
+	lbl_info_stats.add_theme_font_size_override("font_size", 9)
+	lbl_info_stats.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	lbl_info_stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl_info_stats.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	info_vbox.add_child(lbl_info_stats)
 
 func _input(event):
 	if is_open:
@@ -264,6 +315,9 @@ func _input(event):
 			get_viewport().set_input_as_handled()
 		# Click fuera del modal para cerrar
 		elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			# Ocultar panel de información en cualquier click de mouse
+			_hide_info_panel()
+			
 			var root_rect = Rect2(control_root.global_position + control_root.get_child(0).position, control_root.get_child(0).size)
 			if not root_rect.has_point(event.position):
 				close_vault()
@@ -334,6 +388,7 @@ func open_vault():
 	_refresh_inventory()
 
 func close_vault():
+	_hide_info_panel()
 	if is_open:
 		is_open = false
 		
@@ -348,6 +403,7 @@ func close_vault():
 
 func _on_tab_changed(index):
 	current_tab = index
+	_hide_info_panel()
 	_refresh_vault()
 
 func _refresh_vault():
@@ -416,12 +472,17 @@ func _refresh_vault():
 				tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 				margin.add_child(tex_rect)
 				
-			# Doble clic sobre el panel del slot para retirar
+			# Eventos de ratón
 			var inst_id = item.get("instanceId", "")
 			slot_panel.gui_input.connect(func(event):
-				if event is InputEventMouseButton and event.pressed and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
-					_on_withdraw_pressed(inst_id)
-					get_viewport().set_input_as_handled()
+				if event is InputEventMouseButton and event.pressed:
+					if event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
+						_on_withdraw_pressed(inst_id)
+						_hide_info_panel()
+						get_viewport().set_input_as_handled()
+					elif event.button_index == MOUSE_BUTTON_LEFT:
+						_show_info_panel(item, slot_panel)
+						get_viewport().set_input_as_handled()
 			)
 			
 	# Actualizar botón de desbloquear pestaña
@@ -435,7 +496,7 @@ func _refresh_vault():
 		btn_unlock.disabled = (player_hubs < price)
 
 func _refresh_inventory():
-	# Limpiar
+	# Limpiar grid
 	for child in inv_container.get_children():
 		child.queue_free()
 		
@@ -447,91 +508,78 @@ func _refresh_inventory():
 		btn_expand_inv.text = "[+] AÑADIR SLOT (" + str(int(price)) + " Hubs)"
 		btn_expand_inv.disabled = (player_hubs < price)
 		
-	if player_inventory.size() == 0:
-		var lbl_empty = Label.new()
-		lbl_empty.text = "INVENTARIO VACÍO"
-		lbl_empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl_empty.add_theme_font_size_override("font_size", 10)
-		lbl_empty.modulate = Color(0.5, 0.5, 0.5)
-		inv_container.add_child(lbl_empty)
-		return
+	# Rellenar slots del inventario del piloto (grilla simétrica de 80x80)
+	for i in range(int(inventory_max_slots)):
+		var slot_panel = PanelContainer.new()
+		slot_panel.custom_minimum_size = Vector2(80, 80)
+		inv_container.add_child(slot_panel)
 		
-	# Poblar ítems de inventario
-	for item in player_inventory:
-		var row = PanelContainer.new()
-		row.custom_minimum_size = Vector2(0, 42)
-		inv_container.add_child(row)
+		# Estilo de slot base vacío
+		var sb_empty = StyleBoxFlat.new()
+		sb_empty.bg_color = Color(1.0, 1.0, 1.0, 0.02)
+		sb_empty.border_width_left = 1
+		sb_empty.border_width_top = 1
+		sb_empty.border_width_right = 1
+		sb_empty.border_width_bottom = 1
+		sb_empty.border_color = Color(1.0, 1.0, 1.0, 0.05)
+		sb_empty.set_corner_radius_all(4)
+		slot_panel.add_theme_stylebox_override("panel", sb_empty)
 		
-		var rarity_color = _get_rarity_color(item.get("rarity", 0))
-		if item.has("color") and item["color"] != "":
-			rarity_color = Color.from_string(item["color"], rarity_color)
+		# Si hay un ítem en este slot
+		if i < player_inventory.size():
+			var item = player_inventory[i]
+			var rarity_color = _get_rarity_color(item.get("rarity", 0))
+			if item.has("color") and item["color"] != "":
+				rarity_color = Color.from_string(item["color"], rarity_color)
+				
+			# Estilo de slot ocupado
+			var sb_filled = sb_empty.duplicate()
+			sb_filled.bg_color = Color(rarity_color.r, rarity_color.g, rarity_color.b, 0.08)
+			sb_filled.border_color = rarity_color
+			sb_filled.border_width_left = 2
+			sb_filled.border_width_top = 2
+			sb_filled.border_width_right = 2
+			sb_filled.border_width_bottom = 2
+			slot_panel.add_theme_stylebox_override("panel", sb_filled)
 			
-		var sb_row = StyleBoxFlat.new()
-		sb_row.bg_color = Color(1.0, 1.0, 1.0, 0.03)
-		sb_row.border_width_left = 3
-		sb_row.border_color = rarity_color
-		sb_row.set_corner_radius_all(3)
-		row.add_theme_stylebox_override("panel", sb_row)
-		
-		var hbox = HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 8)
-		row.add_child(hbox)
-		
-		# Cargar e inyectar el icono a la izquierda
-		var icon_path = _get_item_icon(item)
-		if icon_path != "":
-			var tex_rect = TextureRect.new()
-			tex_rect.texture = load(icon_path)
-			tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			tex_rect.custom_minimum_size = Vector2(28, 28)
-			tex_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			hbox.add_child(tex_rect)
-		
-		var margin = MarginContainer.new()
-		margin.add_theme_constant_override("margin_left", 8)
-		margin.add_theme_constant_override("margin_right", 8)
-		row.remove_child(hbox)
-		row.add_child(margin)
-		margin.add_child(hbox)
-		
-		# Indicador de rareza
-		var dot = ColorRect.new()
-		dot.custom_minimum_size = Vector2(8, 8)
-		dot.color = rarity_color
-		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		hbox.add_child(dot)
-		
-		# Nombre e info del ítem
-		var vbox_lbls = VBoxContainer.new()
-		vbox_lbls.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		vbox_lbls.alignment = BoxContainer.ALIGNMENT_CENTER
-		hbox.add_child(vbox_lbls)
-		
-		var lbl_name = Label.new()
-		lbl_name.text = str(item.get("name", "Ítem")).to_upper()
-		lbl_name.add_theme_font_size_override("font_size", 10)
-		vbox_lbls.add_child(lbl_name)
-		
-		var lbl_type = Label.new()
-		lbl_type.text = _get_rarity_label(item.get("rarity", 0)) + " | " + str(item.get("type", "MÓDULO")).to_upper()
-		lbl_type.add_theme_font_size_override("font_size", 8)
-		lbl_type.modulate = Color(0.7, 0.7, 0.7)
-		vbox_lbls.add_child(lbl_type)
-		
-		# Doble clic sobre la fila para guardar en el baúl
-		var inst_id = item.get("instanceId", "")
-		row.gui_input.connect(func(event):
-			if event is InputEventMouseButton and event.pressed and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
-				_on_store_pressed(inst_id)
-				get_viewport().set_input_as_handled()
-		)
+			var margin = MarginContainer.new()
+			margin.add_theme_constant_override("margin_left", 6)
+			margin.add_theme_constant_override("margin_right", 6)
+			margin.add_theme_constant_override("margin_top", 6)
+			margin.add_theme_constant_override("margin_bottom", 6)
+			margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			slot_panel.add_child(margin)
+			
+			# Imagen del ítem (TextureRect) a pantalla completa
+			var icon_path = _get_item_icon(item)
+			if icon_path != "":
+				var tex_rect = TextureRect.new()
+				tex_rect.texture = load(icon_path)
+				tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				tex_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				margin.add_child(tex_rect)
+				
+			# Eventos de ratón
+			var inst_id = item.get("instanceId", "")
+			slot_panel.gui_input.connect(func(event):
+				if event is InputEventMouseButton and event.pressed:
+					if event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
+						_on_store_pressed(inst_id)
+						_hide_info_panel()
+						get_viewport().set_input_as_handled()
+					elif event.button_index == MOUSE_BUTTON_LEFT:
+						_show_info_panel(item, slot_panel)
+						get_viewport().set_input_as_handled()
+			)
 
 func _on_store_pressed(instance_id: String):
+	_hide_info_panel()
 	if NetworkManager:
 		NetworkManager.send_event("storeVaultItem", { "instanceId": instance_id, "tab": current_tab })
 
 func _on_withdraw_pressed(instance_id: String):
+	_hide_info_panel()
 	if NetworkManager:
 		NetworkManager.send_event("withdrawVaultItem", { "instanceId": instance_id })
 
@@ -585,3 +633,67 @@ func _get_item_icon(item_data: Dictionary) -> String:
 	if ResourceLoader.exists(icon_path):
 		return icon_path
 	return ""
+
+func _show_info_panel(item_data: Dictionary, target_node: Control):
+	if not info_panel: return
+	
+	var rarity = item_data.get("rarity", 0)
+	var rarity_color = _get_rarity_color(rarity)
+	if item_data.has("color") and item_data["color"] != "":
+		rarity_color = Color.from_string(item_data["color"], rarity_color)
+		
+	# Estilo del tooltip con borde del color de rareza
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.02, 0.02, 0.05, 0.96)
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_color = rarity_color
+	sb.set_corner_radius_all(6)
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 8
+	info_panel.add_theme_stylebox_override("panel", sb)
+	
+	# Llenar datos
+	lbl_info_title.text = str(item_data.get("name", "ÍTEM")).to_upper()
+	lbl_info_title.add_theme_color_override("font_color", rarity_color)
+	
+	lbl_info_type.text = _get_rarity_label(rarity) + " | " + str(item_data.get("type", "MÓDULO")).to_upper()
+	
+	# Estadísticas
+	var base_val = int(item_data.get("base", 0))
+	var type_str = str(item_data.get("type", "")).to_lower()
+	var stat_text = ""
+	var search_id = str(item_data.get("id", "")).to_lower()
+	
+	if type_str == "laser" or type_str == "weapon" or search_id.begins_with("las"):
+		stat_text = "DAÑO: +" + str(base_val)
+	elif type_str == "shield" or search_id.begins_with("sh"):
+		stat_text = "ESCUDO: +" + str(base_val)
+	elif type_str == "engine" or search_id.begins_with("en"):
+		stat_text = "PROPULSIÓN: +" + str(base_val)
+	else:
+		stat_text = "ESTADÍSTICA BASE: +" + str(base_val)
+		
+	lbl_info_stats.text = stat_text
+	
+	# Posicionar al lado del nodo de forma inteligente
+	info_panel.visible = true
+	# Forzar el cálculo del tamaño del panel para que posicione bien
+	info_panel.reset_size()
+	
+	var target_pos = target_node.global_position
+	# Posicionar a la derecha del slot
+	var new_pos = target_pos + Vector2(target_node.size.x + 10, -10)
+	
+	# Si se sale por la derecha de la ventana
+	if new_pos.x + info_panel.size.x > get_viewport().get_visible_rect().size.x:
+		# Posicionar a la izquierda del slot
+		new_pos.x = target_pos.x - info_panel.size.x - 10
+		
+	info_panel.global_position = new_pos
+
+func _hide_info_panel():
+	if info_panel:
+		info_panel.visible = false
