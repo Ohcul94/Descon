@@ -388,13 +388,7 @@ func _refresh_vault():
 			if item.has("color") and item["color"] != "":
 				rarity_color = Color.from_string(item["color"], rarity_color)
 				
-			# Estilo de slot ocupado
-			var sb_filled = sb_empty.duplicate()
-			sb_filled.bg_color = Color(rarity_color.r, rarity_color.g, rarity_color.b, 0.06)
-			sb_filled.border_color = rarity_color
-			slot_panel.add_theme_stylebox_override("panel", sb_filled)
-			
-			# Borde y márgenes para la imagen a sangre completa
+			# Estilo de slot ocupado con borde y márgenes para la imagen a sangre completa
 			var sb_filled = sb_empty.duplicate()
 			sb_filled.bg_color = Color(rarity_color.r, rarity_color.g, rarity_color.b, 0.08)
 			sb_filled.border_color = rarity_color
