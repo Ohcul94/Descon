@@ -21,11 +21,16 @@ function registerVaultHandlers(socket, io, state) {
             if (user.gameData.vaultUnlockedTabs === undefined || user.gameData.vaultUnlockedTabs === null) {
                 user.gameData.vaultUnlockedTabs = state.SERVER_CONFIG.vaultConfig?.defaultTabs || 1;
             }
-
+            if (user.gameData.inventoryMaxSlots === undefined || user.gameData.inventoryMaxSlots === null) {
+                user.gameData.inventoryMaxSlots = state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
+            }
+ 
             socket.emit('vaultData', {
                 items: user.gameData.vaultItems,
                 unlockedTabs: user.gameData.vaultUnlockedTabs,
-                config: state.SERVER_CONFIG.vaultConfig || { defaultTabs: 1, slotsPerTab: 30, unlockPrices: [0, 5000, 15000, 45000, 100000] }
+                inventoryMaxSlots: user.gameData.inventoryMaxSlots,
+                vaultConfig: state.SERVER_CONFIG.vaultConfig || { defaultTabs: 1, slotsPerTab: 30, unlockPrices: [0, 5000, 15000, 45000, 100000] },
+                inventoryConfig: state.SERVER_CONFIG.inventoryConfig || { defaultMaxSlots: 30, unlockSlotPrice: 1000 }
             });
         } catch (e) {
             console.error('[VAULT ERROR] getVaultData:', e);
@@ -99,7 +104,8 @@ function registerVaultHandlers(socket, io, state) {
 
             socket.emit('vaultUpdated', {
                 items: user.gameData.vaultItems,
-                unlockedTabs: user.gameData.vaultUnlockedTabs
+                unlockedTabs: user.gameData.vaultUnlockedTabs,
+                inventoryMaxSlots: user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30
             });
 
             socket.emit('gameNotification', { msg: `ÍTEM GUARDADO EN PESTAÑA ${targetTab + 1}`, type: 'success' });
@@ -134,6 +140,12 @@ function registerVaultHandlers(socket, io, state) {
                 return socket.emit('gameNotification', { msg: 'ERROR: El ítem no se encuentra en el baúl.', type: 'error' });
             }
 
+            // Validar espacio de inventario
+            const maxSlots = user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
+            if (user.gameData.inventory.length >= maxSlots) {
+                return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Desbloquea más de ${maxSlots} slots para retirar este ítem.`, type: 'error' });
+            }
+ 
             const item = vaultItems[vaultIdx];
 
             // Retirar del baúl y regresar al inventario (limpiando propiedad tab)
@@ -160,7 +172,8 @@ function registerVaultHandlers(socket, io, state) {
 
             socket.emit('vaultUpdated', {
                 items: user.gameData.vaultItems,
-                unlockedTabs: user.gameData.vaultUnlockedTabs
+                unlockedTabs: user.gameData.vaultUnlockedTabs,
+                inventoryMaxSlots: user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30
             });
 
             socket.emit('gameNotification', { msg: 'ÍTEM RETIRADO AL INVENTARIO', type: 'success' });
@@ -225,12 +238,75 @@ function registerVaultHandlers(socket, io, state) {
 
             socket.emit('vaultUpdated', {
                 items: user.gameData.vaultItems,
-                unlockedTabs: user.gameData.vaultUnlockedTabs
+                unlockedTabs: user.gameData.vaultUnlockedTabs,
+                inventoryMaxSlots: user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30
             });
 
             socket.emit('gameNotification', { msg: `PESTAÑA ${nextTabIdx + 1} DESBLOQUEADA`, type: 'success' });
         } catch (e) {
             console.error('[VAULT ERROR] unlockVaultTab:', e);
+        } finally {
+            socket.isProcessingVaultTransaction = false;
+        }
+    });
+ 
+    // 5. DESBLOQUEAR SLOT DE INVENTARIO ADICIONAL
+    socket.on('unlockInventorySlot', async () => {
+        if (!socket.dbUser) return;
+        if (socket.isProcessingVaultTransaction) return;
+        socket.isProcessingVaultTransaction = true;
+        try {
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+ 
+            const p = state.players[socket.id];
+            if (!p) return;
+ 
+            if (p.zone !== 1) {
+                return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: Solo puedes desbloquear slots en el Lobby.', type: 'error' });
+            }
+ 
+            if (user.gameData.inventoryMaxSlots === undefined || user.gameData.inventoryMaxSlots === null) {
+                user.gameData.inventoryMaxSlots = state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
+            }
+ 
+            const inventoryConfig = state.SERVER_CONFIG.inventoryConfig || { defaultMaxSlots: 30, unlockSlotPrice: 1000 };
+            const price = inventoryConfig.unlockSlotPrice || 1000;
+ 
+            if (user.gameData.hubs < price) {
+                return socket.emit('gameNotification', { msg: `FONDOS INSUFICIENTES: Necesitas ${price} Hubs para desbloquear 1 slot de inventario.`, type: 'error' });
+            }
+ 
+            // Debitar hubs e incrementar slots
+            user.gameData.hubs -= price;
+            user.gameData.inventoryMaxSlots += 1;
+ 
+            user.markModified('gameData');
+            await user.save();
+            socket.dbUser = user;
+ 
+            // Sincronizar estado en memoria RAM
+            p.hubs = user.gameData.hubs;
+ 
+            // Sincronizar clientes
+            const { getCategorizedInventory } = require('./inventoryHandlers');
+            const eByShipObj = {};
+            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+            else Object.assign(eByShipObj, user.gameData.equippedByShip);
+ 
+            socket.emit('inventoryData', {
+                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
+            });
+ 
+            socket.emit('vaultUpdated', {
+                items: user.gameData.vaultItems,
+                unlockedTabs: user.gameData.vaultUnlockedTabs,
+                inventoryMaxSlots: user.gameData.inventoryMaxSlots
+            });
+ 
+            socket.emit('gameNotification', { msg: `SLOT DE INVENTARIO ADICIONAL DESBLOQUEADO (${user.gameData.inventoryMaxSlots} Slots Máx)`, type: 'success' });
+        } catch (e) {
+            console.error('[VAULT ERROR] unlockInventorySlot:', e);
         } finally {
             socket.isProcessingVaultTransaction = false;
         }

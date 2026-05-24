@@ -2,7 +2,17 @@
     "vaultConfig": {
         "defaultTabs": 1,
         "slotsPerTab": 30,
-        "unlockPrices": [0, 5000, 15000, 45000, 100000]
+        "unlockPrices": [
+            0,
+            5000,
+            15000,
+            45000,
+            100000
+        ]
+    },
+    "inventoryConfig": {
+        "defaultMaxSlots": 30,
+        "unlockSlotPrice": 1000
     },
     "lootConfig": {
         "interactRange": 200,
@@ -2030,13 +2040,7 @@
             "name": "Loby",
             "warpCost": 0,
             "ambience": [],
-            "spawns": [
-                {
-                    "type": "1",
-                    "count": 1,
-                    "intervalMs": 5000
-                }
-            ]
+            "spawns": []
         },
         "2": {
             "color": "#00ff00",

@@ -244,10 +244,21 @@ func _create_item_row(item: Dictionary):
 	
 	# Indicador / Icono de color brillante
 	var icon_color = ColorRect.new()
-	icon_color.custom_minimum_size = Vector2(10, 10)
+	icon_color.custom_minimum_size = Vector2(8, 8)
 	icon_color.color = rarity_color
 	icon_color.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	hbox.add_child(icon_color)
+	
+	# Icono gráfico del ítem
+	var icon_path = _get_item_icon(item)
+	if icon_path != "":
+		var tex_rect = TextureRect.new()
+		tex_rect.texture = load(icon_path)
+		tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tex_rect.custom_minimum_size = Vector2(28, 28)
+		tex_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hbox.add_child(tex_rect)
 	
 	# Nombre y Tipo del ítem
 	var vbox_text = VBoxContainer.new()
@@ -344,3 +355,28 @@ func _get_rarity_label(rarity: int) -> String:
 		3: return "RELIQUIA"
 		4: return "LEGENDARIO"
 		_: return "MÓDULO"
+
+func _get_item_icon(item_data: Dictionary) -> String:
+	var icon_path = str(item_data.get("icon", ""))
+	var search_id = str(item_data.get("id", "")).to_lower()
+	
+	if icon_path == "" or icon_path == "null" or "placeholder" in icon_path or not ResourceLoader.exists(icon_path):
+		# Fallback algorítmico básico
+		if search_id.begins_with("las"):
+			var n = search_id.replace("las", "")
+			icon_path = "res://assets/Armas/Arma" + n + "/Arma" + n + ".png"
+		elif search_id.begins_with("sh"):
+			var n = search_id.replace("sh", "")
+			icon_path = "res://assets/Escudos/Escudo" + n + "/Escudo" + n + ".png"
+		elif search_id.begins_with("en"):
+			var n = search_id.replace("en", "")
+			icon_path = "res://assets/Motores/Motor" + n + "/Motor" + n + ".png"
+			
+		# Fallback secundario si aún no existe
+		if not ResourceLoader.exists(icon_path):
+			if search_id.begins_with("las"):
+				icon_path = "res://assets/Municiones/Laser1.png"
+	
+	if ResourceLoader.exists(icon_path):
+		return icon_path
+	return ""

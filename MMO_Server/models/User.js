@@ -71,7 +71,8 @@ const UserSchema = new mongoose.Schema({
         isPremium: { type: Boolean, default: false }, // v305.0: Estatus de Piloto de Elite
         // v350.0: BAÚL DE SEGURIDAD PERSONAL
         vaultItems: { type: Array, default: [] },
-        vaultUnlockedTabs: { type: Number, default: 1 }
+        vaultUnlockedTabs: { type: Number, default: 1 },
+        inventoryMaxSlots: { type: Number, default: 30 }
     }
 });
 

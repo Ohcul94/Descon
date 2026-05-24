@@ -1291,6 +1291,13 @@ function renderPilot() {
         };
     }
     
+    if (!config.inventoryConfig) {
+        config.inventoryConfig = {
+            defaultMaxSlots: 30,
+            unlockSlotPrice: 1000
+        };
+    }
+    
     const container = document.getElementById('pilot-config-container');
     if(!container) return;
     
@@ -1334,6 +1341,17 @@ function renderPilot() {
                     <div class="field"><label>Pestaña 3</label><input type="number" value="${config.vaultConfig.unlockPrices[2] || 0}" onchange="config.vaultConfig.unlockPrices[2] = parseInt(this.value)"></div>
                     <div class="field"><label>Pestaña 4</label><input type="number" value="${config.vaultConfig.unlockPrices[3] || 0}" onchange="config.vaultConfig.unlockPrices[3] = parseInt(this.value)"></div>
                     <div class="field"><label>Pestaña 5</label><input type="number" value="${config.vaultConfig.unlockPrices[4] || 0}" onchange="config.vaultConfig.unlockPrices[4] = parseInt(this.value)"></div>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h4 style="color:var(--primary); margin-bottom:1rem;">🎒 CONFIGURACIÓN DE INVENTARIO</h4>
+            <div class="form-grid">
+                <div class="field"><label>Slots de Bodega (Defecto)</label>
+                    <input type="number" value="${config.inventoryConfig.defaultMaxSlots}" onchange="config.inventoryConfig.defaultMaxSlots = parseInt(this.value)">
+                </div>
+                <div class="field"><label>Costo de Expansión por Slot (Hubs)</label>
+                    <input type="number" value="${config.inventoryConfig.unlockSlotPrice}" onchange="config.inventoryConfig.unlockSlotPrice = parseInt(this.value)">
                 </div>
             </div>
         </div>

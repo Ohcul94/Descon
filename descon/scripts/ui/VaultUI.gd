@@ -20,6 +20,10 @@ var inv_container: VBoxContainer = null
 var btn_unlock: Button = null
 var lbl_hubs: Label = null
 var lbl_slots_info: Label = null
+var lbl_inv_slots: Label = null
+var btn_expand_inv: Button = null
+var inventory_max_slots: int = 30
+var inventory_config: Dictionary = {}
 
 func _ready():
 	add_to_group("vault_ui")
@@ -200,6 +204,42 @@ func _ready():
 	inv_container.add_theme_constant_override("separation", 6)
 	scroll_inv.add_child(inv_container)
 	
+	# Fila para Slots del Piloto y Expansión
+	var hbox_slots_inv = HBoxContainer.new()
+	vbox_inv.add_child(hbox_slots_inv)
+	
+	lbl_inv_slots = Label.new()
+	lbl_inv_slots.text = "BODEGA: 0/30 SLOTS"
+	lbl_inv_slots.add_theme_font_size_override("font_size", 10)
+	lbl_inv_slots.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	hbox_slots_inv.add_child(lbl_inv_slots)
+	
+	var spacer_inv = Control.new()
+	spacer_inv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox_slots_inv.add_child(spacer_inv)
+	
+	btn_expand_inv = Button.new()
+	btn_expand_inv.text = "[+] AÑADIR SLOT"
+	btn_expand_inv.custom_minimum_size = Vector2(120, 22)
+	btn_expand_inv.add_theme_font_size_override("font_size", 9)
+	
+	var btn_expand_style = StyleBoxFlat.new()
+	btn_expand_style.bg_color = Color(0.0, 0.15, 0.2, 0.5)
+	btn_expand_style.border_width_left = 1
+	btn_expand_style.border_width_top = 1
+	btn_expand_style.border_width_right = 1
+	btn_expand_style.border_width_bottom = 1
+	btn_expand_style.border_color = Color(0.0, 0.8, 1.0)
+	btn_expand_style.set_corner_radius_all(3)
+	btn_expand_inv.add_theme_stylebox_override("normal", btn_expand_style)
+	
+	var btn_expand_hover = btn_expand_style.duplicate()
+	btn_expand_hover.bg_color = Color(0.0, 0.25, 0.35, 0.7)
+	btn_expand_inv.add_theme_stylebox_override("hover", btn_expand_hover)
+	
+	btn_expand_inv.pressed.connect(_on_expand_inv_pressed)
+	hbox_slots_inv.add_child(btn_expand_inv)
+	
 	# Botón de Cerrar general
 	var btn_close = Button.new()
 	btn_close.text = "CERRAR BAÚL"
@@ -232,7 +272,9 @@ func _input(event):
 func _on_vault_data_received(data: Dictionary):
 	vault_items = data.get("items", [])
 	unlocked_tabs = int(data.get("unlockedTabs", 1))
-	vault_config = data.get("config", {})
+	vault_config = data.get("vaultConfig", {})
+	inventory_config = data.get("inventoryConfig", {})
+	inventory_max_slots = int(data.get("inventoryMaxSlots", 30))
 	
 	# Inicializar pestañas en TabBar
 	tab_bar.clear_tabs()
@@ -248,6 +290,7 @@ func _on_vault_data_received(data: Dictionary):
 func _on_vault_updated_received(data: Dictionary):
 	vault_items = data.get("items", [])
 	unlocked_tabs = int(data.get("unlockedTabs", 1))
+	inventory_max_slots = int(data.get("inventoryMaxSlots", inventory_max_slots))
 	
 	# Sincronizar TabBar
 	var old_tab = current_tab
@@ -258,10 +301,14 @@ func _on_vault_updated_received(data: Dictionary):
 	tab_bar.current_tab = current_tab
 	
 	_refresh_vault()
+	_refresh_inventory()
 
 func _on_inventory_received(data: Dictionary):
 	player_inventory = data.get("inventory", [])
 	player_hubs = int(data.get("hubs", 0))
+	var player_data = data.get("player", {})
+	if player_data.has("inventoryMaxSlots"):
+		inventory_max_slots = int(player_data.inventoryMaxSlots)
 	
 	if is_open:
 		_refresh_inventory()
@@ -350,16 +397,27 @@ func _refresh_vault():
 			# Contenedor vertical
 			var vbox = VBoxContainer.new()
 			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-			vbox.add_theme_constant_override("separation", 4)
+			vbox.add_theme_constant_override("separation", 2)
 			slot_panel.add_child(vbox)
+			
+			# Imagen del ítem (TextureRect)
+			var icon_path = _get_item_icon(item)
+			if icon_path != "":
+				var tex_rect = TextureRect.new()
+				tex_rect.texture = load(icon_path)
+				tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				tex_rect.custom_minimum_size = Vector2(36, 36)
+				tex_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+				vbox.add_child(tex_rect)
 			
 			# Nombre del ítem
 			var lbl_name = Label.new()
 			lbl_name.text = str(item.get("name", "Item")).to_upper()
 			lbl_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lbl_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			lbl_name.add_theme_font_size_override("font_size", 9)
-			lbl_name.add_theme_color_override("font_color", Color.WHITE)
+			lbl_name.add_theme_font_size_override("font_size", 8)
+			lbl_name.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 			vbox.add_child(lbl_name)
 			
 			# Botón retirar
@@ -392,6 +450,14 @@ func _refresh_inventory():
 	for child in inv_container.get_children():
 		child.queue_free()
 		
+	if lbl_inv_slots:
+		lbl_inv_slots.text = "BODEGA: " + str(player_inventory.size()) + "/" + str(inventory_max_slots) + " SLOTS"
+		
+	var price = inventory_config.get("unlockSlotPrice", 1000)
+	if btn_expand_inv:
+		btn_expand_inv.text = "[+] AÑADIR SLOT (" + str(price) + " Hubs)"
+		btn_expand_inv.disabled = (player_hubs < price)
+		
 	if player_inventory.size() == 0:
 		var lbl_empty = Label.new()
 		lbl_empty.text = "INVENTARIO VACÍO"
@@ -421,6 +487,17 @@ func _refresh_inventory():
 		var hbox = HBoxContainer.new()
 		hbox.add_theme_constant_override("separation", 8)
 		row.add_child(hbox)
+		
+		# Cargar e inyectar el icono a la izquierda
+		var icon_path = _get_item_icon(item)
+		if icon_path != "":
+			var tex_rect = TextureRect.new()
+			tex_rect.texture = load(icon_path)
+			tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			tex_rect.custom_minimum_size = Vector2(28, 28)
+			tex_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			hbox.add_child(tex_rect)
 		
 		var margin = MarginContainer.new()
 		margin.add_theme_constant_override("margin_left", 8)
@@ -508,3 +585,32 @@ func _get_rarity_label(rarity: int) -> String:
 		3: return "RELIQUIA"
 		4: return "LEGENDARIO"
 		_: return "MÓDULO"
+
+func _on_expand_inv_pressed():
+	if NetworkManager:
+		NetworkManager.send_event("unlockInventorySlot", {})
+
+func _get_item_icon(item_data: Dictionary) -> String:
+	var icon_path = str(item_data.get("icon", ""))
+	var search_id = str(item_data.get("id", "")).to_lower()
+	
+	if icon_path == "" or icon_path == "null" or "placeholder" in icon_path or not ResourceLoader.exists(icon_path):
+		# Fallback algorítmico básico
+		if search_id.begins_with("las"):
+			var n = search_id.replace("las", "")
+			icon_path = "res://assets/Armas/Arma" + n + "/Arma" + n + ".png"
+		elif search_id.begins_with("sh"):
+			var n = search_id.replace("sh", "")
+			icon_path = "res://assets/Escudos/Escudo" + n + "/Escudo" + n + ".png"
+		elif search_id.begins_with("en"):
+			var n = search_id.replace("en", "")
+			icon_path = "res://assets/Motores/Motor" + n + "/Motor" + n + ".png"
+			
+		# Fallback secundario si aún no existe
+		if not ResourceLoader.exists(icon_path):
+			if search_id.begins_with("las"):
+				icon_path = "res://assets/Municiones/Laser1.png"
+	
+	if ResourceLoader.exists(icon_path):
+		return icon_path
+	return ""

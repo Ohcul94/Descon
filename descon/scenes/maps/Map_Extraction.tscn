@@ -3,35 +3,10 @@
 [ext_resource type="Script" uid="uid://dp6au5r48svjm" path="res://scripts/systems/Map_Extraction.gd" id="1_extraction_script"]
 [ext_resource type="Texture2D" uid="uid://s8vwtv2nca17" path="res://assets/Base de Mapas/mixboard-image.png" id="2_tex"]
 
-[sub_resource type="Environment" id="Environment_space"]
-background_color = Color(0.0117647, 0.0117647, 0.0156863, 1)
-ambient_light_source = 2
-ambient_light_color = Color(0.14902, 0.180392, 0.239216, 1)
-tonemap_mode = 2
-glow_enabled = true
-glow_intensity = 0.6
-glow_bloom = 0.1
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rock"]
-albedo_color = Color(0.352941, 0.313726, 0.27451, 1)
-roughness = 0.9
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_metal"]
-albedo_color = Color(0.45098, 0.501961, 0.54902, 1)
-metallic = 0.95
-roughness = 0.3
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_outer_asteroid"]
-radius = 150.0
-
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
-size = Vector2(300, 300)
-
 [node name="Map_Extraction" type="Node2D" unique_id=1806288055]
 script = ExtResource("1_extraction_script")
 world_size = 10000.0
 zone_name = "SECTOR DE EXTRACCIÓN"
-
 
 [node name="ParallaxBackground" type="ParallaxBackground" parent="." unique_id=28182905]
 layer = -25

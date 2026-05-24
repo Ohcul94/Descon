@@ -205,32 +205,54 @@ function registerLootHandlers(socket, io, state) {
 
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
-
+ 
+            const maxSlots = user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
+            const availableSlots = maxSlots - user.gameData.inventory.length;
+ 
+            if (availableSlots <= 0) {
+                return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Desbloquea más de ${maxSlots} slots para recoger ítems.`, type: 'error' });
+            }
+ 
+            let claimedCount = 0;
+            const itemsToClaim = [];
+ 
+            // Extraer los ítems que quepan
+            while (drop.items.length > 0 && claimedCount < availableSlots) {
+                itemsToClaim.push(drop.items.shift());
+                claimedCount++;
+            }
+ 
             // Mover ítems al inventario
-            user.gameData.inventory.push(...drop.items);
+            user.gameData.inventory.push(...itemsToClaim);
             user.markModified('gameData.inventory');
             user.markModified('gameData');
             await user.save();
             socket.dbUser = user;
-
+ 
             // Sincronizar RAM local
             p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
-
-            console.log(`[LOOT-CLAIM] Jugador ${p.user} recogió todo el botín ${lootId} (${drop.items.length} ítems).`);
-
+ 
+            console.log(`[LOOT-CLAIM] Jugador ${p.user} recogió ${claimedCount} ítems del botín ${lootId}.`);
+ 
             // Notificar éxito al cliente y actualizar su inventario
             const eByShipObj = {};
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
             else Object.assign(eByShipObj, user.gameData.equippedByShip);
-
+ 
             socket.emit('inventoryData', {
                 player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
             });
-            socket.emit('gameNotification', { msg: '¡Has recogido todos los ítems!', type: 'success' });
-
-            // Remover el botín de la zona y de memoria
-            io.to(`zone_${drop.zone}`).emit('lootDespawned', { id: lootId });
-            delete state.lootDrops[lootId];
+ 
+            if (drop.items.length === 0) {
+                socket.emit('gameNotification', { msg: '¡Has recogido todos los ítems!', type: 'success' });
+                // Remover el botín de la zona y de memoria
+                io.to(`zone_${drop.zone}`).emit('lootDespawned', { id: lootId });
+                delete state.lootDrops[lootId];
+            } else {
+                socket.emit('gameNotification', { msg: `Recogidos ${claimedCount} ítems. Inventario lleno, quedaron más en el cofre.`, type: 'warning' });
+                // Enviar contenido actualizado del botín
+                socket.emit('lootContent', { lootId, items: drop.items });
+            }
         } catch (err) {
             console.error("[LOOT-CLAIM-ALL-ERR]", err);
         }
@@ -261,7 +283,13 @@ function registerLootHandlers(socket, io, state) {
 
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
-
+ 
+            // Validar espacio de inventario
+            const maxSlots = user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
+            if (user.gameData.inventory.length >= maxSlots) {
+                return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Desbloquea más de ${maxSlots} slots para recoger este ítem.`, type: 'error' });
+            }
+ 
             // Extraer ítem del drop y añadirlo al inventario
             const item = drop.items.splice(itemIndex, 1)[0];
             user.gameData.inventory.push(item);
