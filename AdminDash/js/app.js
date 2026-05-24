@@ -100,7 +100,8 @@ function showTab(tabId) {
         'pilot': 'Perfil Maestro del Piloto',
         'modes': 'Configuración de Modos de Juego',
         'loot': 'Sistema de Recompensas (Loot)',
-        'enemy-loot': 'Configuración de Botín del Enemigo'
+        'enemy-loot': 'Configuración de Botín del Enemigo',
+        'crafting': 'Crafteo y Creación de Ítems'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
     

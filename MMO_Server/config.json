@@ -3,16 +3,34 @@
         "defaultTabs": 1,
         "slotsPerTab": 30,
         "unlockPrices": [
-            { "hubs": 0, "ohcu": 0 },
-            { "hubs": 5000, "ohcu": 0 },
-            { "hubs": 15000, "ohcu": 5 },
-            { "hubs": 0, "ohcu": 50 },
-            { "hubs": 100000, "ohcu": 100 }
+            {
+                "hubs": 0,
+                "ohcu": 0
+            },
+            {
+                "hubs": 5000,
+                "ohcu": 0
+            },
+            {
+                "hubs": 15000,
+                "ohcu": 5
+            },
+            {
+                "hubs": 0,
+                "ohcu": 50
+            },
+            {
+                "hubs": 100000,
+                "ohcu": 100
+            }
         ]
     },
     "inventoryConfig": {
         "defaultMaxSlots": 30,
-        "unlockSlotPrice": { "hubs": 1000, "ohcu": 0 }
+        "unlockSlotPrice": {
+            "hubs": 1000,
+            "ohcu": 0
+        }
     },
     "lootConfig": {
         "interactRange": 200,
@@ -2744,6 +2762,56 @@
                 },
                 "premium": true
             }
+        ],
+        "resources": [
+            {
+                "id": "mat_iron",
+                "name": "Mineral de Hierro",
+                "desc": "Material básico para fundiciones espaciales.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Materiales/Hierro.png",
+                "color": "#9ca3af",
+                "type": "resource"
+            },
+            {
+                "id": "mat_copper",
+                "name": "Mineral de Cobre",
+                "desc": "Utilizado para componentes electrónicos.",
+                "prices": {
+                    "hubs": 200,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Materiales/Cobre.png",
+                "color": "#b45309",
+                "type": "resource"
+            },
+            {
+                "id": "mat_plasma",
+                "name": "Núcleo de Plasma",
+                "desc": "Esencia energética altamente inestable.",
+                "prices": {
+                    "hubs": 1000,
+                    "ohcu": 5
+                },
+                "icon": "res://assets/Materiales/Plasma.png",
+                "color": "#06b6d4",
+                "type": "resource"
+            },
+            {
+                "id": "mat_darkmatter",
+                "name": "Materia Oscura",
+                "desc": "Elemento exótico usado para tecnologías avanzadas.",
+                "prices": {
+                    "hubs": 5000,
+                    "ohcu": 25
+                },
+                "icon": "res://assets/Materiales/MateriaOscura.png",
+                "color": "#d946ef",
+                "type": "resource"
+            }
         ]
     },
     "skillsData": {
@@ -3667,6 +3735,106 @@
             "enabled": true,
             "maps": [],
             "minPlayers": 2
+        },
+        "craftingRecipes": [
+            {
+                "id": "recipe_las2",
+                "name": "Láser LF-2",
+                "desc": "Craftea un Láser LF-2 usando minerales.",
+                "resultItemId": "las2",
+                "resultCategory": "weapons",
+                "resultAmount": 1,
+                "costHubs": 1000,
+                "costOhcu": 0,
+                "ingredients": [
+                    {
+                        "itemId": "mat_iron",
+                        "amount": 10
+                    },
+                    {
+                        "itemId": "mat_copper",
+                        "amount": 5
+                    }
+                ]
+            },
+            {
+                "id": "recipe_sh2",
+                "name": "Escudo S2",
+                "desc": "Craftea un Escudo S2 con minerales y plasma.",
+                "resultItemId": "sh2",
+                "resultCategory": "shields",
+                "resultAmount": 1,
+                "costHubs": 5000,
+                "costOhcu": 0,
+                "ingredients": [
+                    {
+                        "itemId": "mat_iron",
+                        "amount": 15
+                    },
+                    {
+                        "itemId": "mat_plasma",
+                        "amount": 2
+                    }
+                ]
+            },
+            {
+                "id": "recipe_en2",
+                "name": "Motor M2",
+                "desc": "Craftea un Motor M2 con cobre y plasma.",
+                "resultItemId": "en2",
+                "resultCategory": "engines",
+                "resultAmount": 1,
+                "costHubs": 8000,
+                "costOhcu": 0,
+                "ingredients": [
+                    {
+                        "itemId": "mat_copper",
+                        "amount": 20
+                    },
+                    {
+                        "itemId": "mat_plasma",
+                        "amount": 3
+                    }
+                ]
+            },
+            {
+                "id": "recipe_plasma",
+                "name": "Núcleo de Plasma",
+                "desc": "Sintetiza un Núcleo de Plasma a partir de hierro y cobre.",
+                "resultItemId": "mat_plasma",
+                "resultCategory": "resources",
+                "resultAmount": 1,
+                "costHubs": 500,
+                "costOhcu": 0,
+                "ingredients": [
+                    {
+                        "itemId": "mat_iron",
+                        "amount": 8
+                    },
+                    {
+                        "itemId": "mat_copper",
+                        "amount": 8
+                    }
+                ]
+            }
+        ]
+    },
+    "craftingRecipes": [
+        {
+            "id": "recipe_new_g1slo",
+            "name": "Nueva Receta",
+            "desc": "Descripción de la nueva receta.",
+            "resultItemId": "las1",
+            "resultCategory": "weapons",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 0,
+            "ingredients": [
+                {
+                    "itemId": "mat_iron",
+                    "amount": 1
+                }
+            ]
         }
-    }
+    ]
 }

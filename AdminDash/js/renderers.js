@@ -242,6 +242,7 @@ function refreshCurrentTab() {
         'modes': renderModes,
         'loot': renderLootConfig,
         'enemy-loot': renderEnemyLootDetail,
+        'crafting': renderCrafting,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions())
     };
     if(renderMap[tabId]) renderMap[tabId]();
@@ -254,6 +255,7 @@ function renderAll() {
     renderPilot();
     renderModes();
     renderLootConfig();
+    renderCrafting();
 }
 
 function renderAmmo() {
@@ -2092,15 +2094,241 @@ function renderEnemyLootDetail() {
                             </div>
                         </div>
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                            <span style="font-size: 1.4rem; font-weight: bold; color: ${barColor};">${chancePercent}%</span>
-                            <span style="font-size: 0.55rem; color: var(--text-dim);">DROP RATE</span>
                         </div>
-                        <button style="background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.2); color: #ff4444; cursor: pointer; font-size: 1rem; font-weight: bold; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseenter="this.style.background='rgba(255,68,68,0.3)'" onmouseleave="this.style.background='rgba(255,68,68,0.1)'" onclick="removeLootDropFromEnemyLoot('${enemyId}', ${idx})">✕</button>
-                    </div>
                     `;
                 }).join('')}
             </div>
         </div>
     `;
 }
+
+// ==========================================
+// MÓDULO DE CRAFTEO Y CREACIÓN (ADMIN DASH)
+// ==========================================
+
+window.renderCrafting = function() {
+    // Inicializar secciones si no existen
+    if (!config.shopItems) config.shopItems = {};
+    if (!config.shopItems.resources) {
+        config.shopItems.resources = [
+            { id: "mat_iron", name: "Mineral de Hierro", desc: "Material básico para fundiciones espaciales.", prices: { hubs: 100, ohcu: 0 }, icon: "res://assets/Materiales/Hierro.png", color: "#9ca3af", type: "resource" },
+            { id: "mat_copper", name: "Mineral de Cobre", desc: "Utilizado para componentes electrónicos.", prices: { hubs: 200, ohcu: 0 }, icon: "res://assets/Materiales/Cobre.png", color: "#b45309", type: "resource" },
+            { id: "mat_plasma", name: "Núcleo de Plasma", desc: "Esencia energética altamente inestable.", prices: { hubs: 1000, ohcu: 5 }, icon: "res://assets/Materiales/Plasma.png", color: "#06b6d4", type: "resource" },
+            { id: "mat_darkmatter", name: "Materia Oscura", desc: "Elemento exótico usado para tecnologías avanzadas.", prices: { hubs: 5000, ohcu: 25 }, icon: "res://assets/Materiales/MateriaOscura.png", color: "#d946ef", type: "resource" }
+        ];
+    }
+    if (!config.craftingRecipes) {
+        config.craftingRecipes = [];
+    }
+
+    // --- RENDERIZAR MATERIALES ---
+    const resourcesList = document.getElementById('crafting-resources-list');
+    if (resourcesList) {
+        resourcesList.innerHTML = '';
+        config.shopItems.resources.forEach((res, idx) => {
+            const div = document.createElement('div');
+            div.style.background = 'rgba(255,255,255,0.02)';
+            div.style.padding = '1rem';
+            div.style.borderRadius = '10px';
+            div.style.border = '1px solid rgba(255,255,255,0.05)';
+            div.style.position = 'relative';
+            
+            div.innerHTML = `
+                <button style="position:absolute; top:8px; right:8px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:16px;" onclick="removeCraftingResource(${idx})">✕</button>
+                <div class="form-grid" style="grid-template-columns: 1fr 1.5fr; gap:10px;">
+                    <div class="field"><label>ID de Recurso</label><input type="text" value="${res.id}" onchange="config.shopItems.resources[${idx}].id = this.value; renderCrafting();"></div>
+                    <div class="field"><label>Nombre del Material</label><input type="text" value="${res.name}" onchange="config.shopItems.resources[${idx}].name = this.value; renderCrafting();"></div>
+                </div>
+                <div class="field full" style="margin-top:8px;"><label>Descripción</label><input type="text" value="${res.desc || ''}" onchange="config.shopItems.resources[${idx}].desc = this.value;"></div>
+                <div class="form-grid" style="grid-template-columns: 1.2fr 1fr 1fr; gap:10px; margin-top:8px;">
+                    <div class="field"><label>Icono (Godot path)</label><input type="text" value="${res.icon || ''}" onchange="config.shopItems.resources[${idx}].icon = this.value;"></div>
+                    <div class="field"><label>Color Visual</label><input type="color" value="${res.color || '#ffffff'}" style="height:35px; padding:0; cursor:pointer;" onchange="config.shopItems.resources[${idx}].color = this.value;"></div>
+                    <div class="field"><label>Precio de Venta</label><input type="number" value="${res.prices ? (res.prices.hubs || 0) : 0}" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.hubs = parseInt(this.value);"></div>
+                </div>
+            `;
+            resourcesList.appendChild(div);
+        });
+    }
+
+    // --- OBTENER TODOS LOS ÍTEMS DEL JUEGO PARA EL SELECTOR ---
+    const allGameItems = [];
+    if (config.shipModels) {
+        config.shipModels.forEach(s => allGameItems.push({ id: String(s.id), name: `[NAVE] ${s.name}`, category: 'ships' }));
+    }
+    if (config.shopItems) {
+        if (config.shopItems.weapons) {
+            config.shopItems.weapons.forEach(w => allGameItems.push({ id: w.id, name: `[ARMA] ${w.name}`, category: 'weapons' }));
+        }
+        if (config.shopItems.shields) {
+            config.shopItems.shields.forEach(s => allGameItems.push({ id: s.id, name: `[ESCUDO] ${s.name}`, category: 'shields' }));
+        }
+        if (config.shopItems.engines) {
+            config.shopItems.engines.forEach(e => allGameItems.push({ id: e.id, name: `[MOTOR] ${e.name}`, category: 'engines' }));
+        }
+        if (config.shopItems.extras) {
+            config.shopItems.extras.forEach(x => allGameItems.push({ id: x.id, name: `[EXTRA] ${x.name}`, category: 'extras' }));
+        }
+        if (config.shopItems.ammo) {
+            for (let sub in config.shopItems.ammo) {
+                config.shopItems.ammo[sub].forEach(a => allGameItems.push({ id: a.id, name: `[MUNI] ${sub.toUpperCase()} - ${a.name}`, category: 'ammo' }));
+            }
+        }
+        if (config.shopItems.resources) {
+            config.shopItems.resources.forEach(r => allGameItems.push({ id: r.id, name: `[RECURSO] ${r.name}`, category: 'resources' }));
+        }
+    }
+
+    // --- RENDERIZAR RECETAS ---
+    const recipesList = document.getElementById('crafting-recipes-list');
+    if (recipesList) {
+        recipesList.innerHTML = '';
+        config.craftingRecipes.forEach((recipe, idx) => {
+            const div = document.createElement('div');
+            div.style.background = 'rgba(255,255,255,0.02)';
+            div.style.padding = '1.5rem';
+            div.style.borderRadius = '12px';
+            div.style.border = '1px solid rgba(255,255,255,0.05)';
+            div.style.position = 'relative';
+
+            // Construir select de item resultante
+            const selectOptions = allGameItems.map(item => {
+                const isSelected = (recipe.resultItemId === item.id && recipe.resultCategory === item.category);
+                return `<option value="${item.category}:${item.id}" ${isSelected ? 'selected' : ''}>${item.name}</option>`;
+            }).join('');
+
+            // Ingredientes
+            const ingredientsHTML = (recipe.ingredients || []).map((ing, ingIdx) => {
+                const matSelectOptions = config.shopItems.resources.map(r => {
+                    return `<option value="${r.id}" ${ing.itemId === r.id ? 'selected' : ''}>${r.name} (${r.id})</option>`;
+                }).join('');
+
+                return `
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <select style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; padding: 6px 10px; border-radius: 6px; flex: 2;" onchange="updateCraftingRecipeIngredientItem(${idx}, ${ingIdx}, this.value)">
+                            <option value="">-- Seleccionar Material --</option>
+                            ${matSelectOptions}
+                        </select>
+                        <input type="number" min="1" value="${ing.amount}" style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; padding: 6px 10px; border-radius: 6px; width: 80px; text-align: center;" onchange="updateCraftingRecipeIngredientQty(${idx}, ${ingIdx}, this.value)">
+                        <button style="background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.2); color: #ff4444; border-radius: 6px; padding: 6px 12px; cursor: pointer;" onclick="removeCraftingRecipeIngredient(${idx}, ${ingIdx})">✕</button>
+                    </div>
+                `;
+            }).join('');
+
+            div.innerHTML = `
+                <button style="position:absolute; top:12px; right:12px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:18px;" onclick="removeCraftingRecipe(${idx})">✕ ELIMINAR RECETA</button>
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:15px;">
+                    <div class="field"><label>ID Única de Receta</label><input type="text" value="${recipe.id}" onchange="config.craftingRecipes[${idx}].id = this.value;"></div>
+                    <div class="field"><label>Nombre Visual de la Receta</label><input type="text" value="${recipe.name}" onchange="config.craftingRecipes[${idx}].name = this.value;"></div>
+                </div>
+                <div class="field full" style="margin-top:10px;"><label>Descripción de Receta</label><input type="text" value="${recipe.desc || ''}" onchange="config.craftingRecipes[${idx}].desc = this.value;"></div>
+                
+                <div class="form-grid" style="grid-template-columns: 2fr 1fr; gap:15px; margin-top:10px; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <div class="field">
+                        <label>Objeto Resultante a Fabricar</label>
+                        <select style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; font-weight: bold; cursor: pointer; width: 100%; border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;" onchange="updateCraftingRecipeResultItem(${idx}, this.value)">
+                            <option value="">-- Seleccionar Objeto del Juego --</option>
+                            ${selectOptions}
+                        </select>
+                    </div>
+                    <div class="field"><label>Cantidad Fabricada</label><input type="number" min="1" value="${recipe.resultAmount || 1}" onchange="config.craftingRecipes[${idx}].resultAmount = parseInt(this.value)"></div>
+                </div>
+
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:15px; margin-top:10px;">
+                    <div class="field"><label>Costo de Hubs (qty)</label><input type="number" value="${recipe.costHubs || 0}" onchange="config.craftingRecipes[${idx}].costHubs = parseInt(this.value)"></div>
+                    <div class="field"><label>Costo de Ohcu (qty)</label><input type="number" value="${recipe.costOhcu || 0}" onchange="config.craftingRecipes[${idx}].costOhcu = parseInt(this.value)"></div>
+                </div>
+
+                <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold;">⚙️ INGREDIENTES REQUERIDOS</label>
+                        <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.65rem;" onclick="addCraftingRecipeIngredient(${idx})">+ AGREGAR INGREDIENTE</button>
+                    </div>
+                    <div id="recipe-ingredients-${idx}">
+                        ${ingredientsHTML}
+                    </div>
+                </div>
+            `;
+            recipesList.appendChild(div);
+        });
+    }
+};
+
+window.addCraftingResource = function() {
+    const newId = "mat_new_" + Math.random().toString(36).substr(2, 5);
+    config.shopItems.resources.push({
+        id: newId,
+        name: "Nuevo Material",
+        desc: "Descripción del nuevo material.",
+        prices: { hubs: 100, ohcu: 0 },
+        icon: "res://assets/Materiales/Hierro.png",
+        color: "#ffffff",
+        type: "resource"
+    });
+    renderCrafting();
+};
+
+window.removeCraftingResource = function(idx) {
+    if (confirm("¿Estás seguro de eliminar este material? Esto podría afectar las recetas que lo utilicen.")) {
+        config.shopItems.resources.splice(idx, 1);
+        renderCrafting();
+    }
+};
+
+window.addCraftingRecipe = function() {
+    const newId = "recipe_new_" + Math.random().toString(36).substr(2, 5);
+    config.craftingRecipes.push({
+        id: newId,
+        name: "Nueva Receta",
+        desc: "Descripción de la nueva receta.",
+        resultItemId: "",
+        resultCategory: "weapons",
+        resultAmount: 1,
+        costHubs: 1000,
+        costOhcu: 0,
+        ingredients: []
+    });
+    renderCrafting();
+};
+
+window.removeCraftingRecipe = function(idx) {
+    if (confirm("¿Deseas eliminar esta receta de crafteo?")) {
+        config.craftingRecipes.splice(idx, 1);
+        renderCrafting();
+    }
+};
+
+window.addCraftingRecipeIngredient = function(recipeIdx) {
+    if (!config.craftingRecipes[recipeIdx].ingredients) {
+        config.craftingRecipes[recipeIdx].ingredients = [];
+    }
+    config.craftingRecipes[recipeIdx].ingredients.push({
+        itemId: "",
+        amount: 1
+    });
+    renderCrafting();
+};
+
+window.removeCraftingRecipeIngredient = function(recipeIdx, ingIdx) {
+    config.craftingRecipes[recipeIdx].ingredients.splice(ingIdx, 1);
+    renderCrafting();
+};
+
+window.updateCraftingRecipeIngredientItem = function(recipeIdx, ingIdx, value) {
+    config.craftingRecipes[recipeIdx].ingredients[ingIdx].itemId = value;
+};
+
+window.updateCraftingRecipeIngredientQty = function(recipeIdx, ingIdx, value) {
+    config.craftingRecipes[recipeIdx].ingredients[ingIdx].amount = parseInt(value) || 1;
+};
+
+window.updateCraftingRecipeResultItem = function(recipeIdx, value) {
+    if (!value) {
+        config.craftingRecipes[recipeIdx].resultCategory = "weapons";
+        config.craftingRecipes[recipeIdx].resultItemId = "";
+        return;
+    }
+    const [category, id] = value.split(':');
+    config.craftingRecipes[recipeIdx].resultCategory = category;
+    config.craftingRecipes[recipeIdx].resultItemId = id;
+};
 

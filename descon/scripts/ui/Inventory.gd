@@ -133,6 +133,7 @@ func _ready():
 	# v219.67: Asegurar creación de pestañas dinámicas (Fix desaparición Mapa/Clan)
 	_update_map_ui()
 	_update_clan_ui()
+	_update_crafting_ui()
 	
 	_refresh_data()
 	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
@@ -362,7 +363,9 @@ func _on_inventory_received(data: Dictionary):
 	else:
 		print("[HANGAR-SYNC] WARNING: inventoryData NO trajo equippedByShip. Keys: ", data.keys())
 	
-	if is_open: _update_clan_ui() # v244.96: Refresco instantáneo de solis e invitaciones
+	if is_open: 
+		_update_clan_ui()
+		_update_crafting_ui()
 	
 	# v164.11: Sincronizar con el Player (CRÍTICO PARA MMO SYNC)
 	# Siempre actualizamos los datos internos aunque la UI esté cerrada
@@ -418,6 +421,9 @@ func _update_active_tab_ui():
 		"Clan": 
 			var cn = tab_container.get_node_or_null("Clan")
 			if cn and cn.has_method("update_ui"): cn.update_ui()
+		"Crafteo": 
+			var ct = tab_container.get_node_or_null("Crafteo")
+			if ct and ct.has_method("update_ui"): ct.update_ui()
 	
 	queue_redraw()
 
@@ -459,6 +465,17 @@ func _update_map_ui():
 			if mt.has_method("setup"): mt.setup(self)
 	
 	if mt and mt.has_method("update_ui"): mt.update_ui()
+
+func _update_crafting_ui():
+	var ct = get_node_or_null("Window/TabContainer/Crafteo")
+	if not ct:
+		var tabs = get_node_or_null("Window/TabContainer")
+		if tabs:
+			ct = Control.new(); ct.name = "Crafteo"; tabs.add_child(ct)
+			ct.set_script(load("res://scripts/ui/inventory/CraftingTab.gd"))
+			if ct.has_method("setup"): ct.setup(self)
+	
+	if ct and ct.has_method("update_ui"): ct.update_ui()
 
 # v262.520: Traductor de ID de ítem → código de slot (w/s/e/x)
 func _get_slot_from_id(item_id: String) -> String:

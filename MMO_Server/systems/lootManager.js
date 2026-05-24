@@ -41,7 +41,8 @@ function isServerAuthoritative(state) {
             ...(state.SERVER_CONFIG.shopItems?.weapons || []),
             ...(state.SERVER_CONFIG.shopItems?.shields || []),
             ...(state.SERVER_CONFIG.shopItems?.engines || []),
-            ...(state.SERVER_CONFIG.shopItems?.extra || [])
+            ...(state.SERVER_CONFIG.shopItems?.extra || []),
+            ...(state.SERVER_CONFIG.shopItems?.resources || [])
         ];
 
         lootDrops.forEach(dropCfg => {

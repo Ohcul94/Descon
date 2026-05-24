@@ -20,6 +20,9 @@ function getCategorizedInventory(inventory) {
         } else if (id.startsWith('en') || id.startsWith('e')) {
             item.type = "engine";
             categories.modules.push(item);
+        } else if (id.startsWith('mat_') || (item.type && item.type.toLowerCase() === 'resource')) {
+            item.type = "resource";
+            categories.resources.push(item);
         } else {
             if (!item.type) item.type = "utility";
             item.type = item.type.toLowerCase();
@@ -519,6 +522,187 @@ function registerInventoryHandlers(socket, io, state) {
                 player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
             });
         } catch (e) { console.error("[SPHERE-UNEQUIP-ERROR]", e); }
+    });
+
+    // HANDLER DE CRAFTEO AUTORITATIVO
+    socket.on('craftItem', async (data) => {
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+
+        if (p.isExtracting) {
+            return socket.emit('gameNotification', { msg: 'BODEGA BLOQUEADA: No puedes craftear durante una Raid de extracción.', type: 'error' });
+        }
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            return socket.emit('gameNotification', { 
+                msg: `ERROR: Sistemas calientes. Espera ${lock.remaining}s fuera de combate para craftear.`, 
+                type: 'error' 
+            });
+        }
+
+        try {
+            const { recipeId } = data;
+            const recipes = state.SERVER_CONFIG.craftingRecipes || [];
+            const recipe = recipes.find(r => r.id === recipeId);
+            
+            if (!recipe) {
+                return socket.emit('gameNotification', { msg: 'Error: Receta no encontrada.', type: 'error' });
+            }
+
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+
+            const hubsCost = recipe.costHubs || 0;
+            const ohcuCost = recipe.costOhcu || 0;
+
+            if ((user.gameData.hubs || 0) < hubsCost) {
+                return socket.emit('gameNotification', { msg: 'FONDOS INSUFICIENTES: Faltan Hubs.', type: 'error' });
+            }
+            if ((user.gameData.ohcu || 0) < ohcuCost) {
+                return socket.emit('gameNotification', { msg: 'FONDOS INSUFICIENTES: Faltan OHCU.', type: 'error' });
+            }
+
+            const inventory = user.gameData.inventory || [];
+            const materialsCount = {};
+            inventory.forEach(it => {
+                const id = it.id;
+                materialsCount[id] = (materialsCount[id] || 0) + 1;
+            });
+
+            const ingredients = recipe.ingredients || [];
+            for (const ing of ingredients) {
+                const ownedAmount = materialsCount[ing.itemId] || 0;
+                if (ownedAmount < ing.amount) {
+                    return socket.emit('gameNotification', { msg: `MATERIALES INSUFICIENTES: Requiere más cantidad de un ingrediente.`, type: 'error' });
+                }
+            }
+
+            const resultCategory = recipe.resultCategory.toLowerCase();
+            const resultItemId = recipe.resultItemId;
+            const isShip = resultCategory === 'ships' || resultCategory === 'ship';
+            const isAmmo = resultCategory === 'ammo';
+            
+            if (!isShip && !isAmmo) {
+                const maxSlots = user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
+                let totalIngredientsToConsume = 0;
+                ingredients.forEach(ing => totalIngredientsToConsume += ing.amount);
+                
+                const finalSizeAfterCraft = inventory.length - totalIngredientsToConsume + (recipe.resultAmount || 1);
+                if (finalSizeAfterCraft > maxSlots) {
+                    return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Libera espacio para recibir el ítem fabricado.`, type: 'error' });
+                }
+            }
+
+            // Descontar dinero
+            user.gameData.hubs = (user.gameData.hubs || 0) - hubsCost;
+            user.gameData.ohcu = (user.gameData.ohcu || 0) - ohcuCost;
+
+            // Consumir ingredientes
+            ingredients.forEach(ing => {
+                let toRemove = ing.amount;
+                for (let i = user.gameData.inventory.length - 1; i >= 0; i--) {
+                    if (user.gameData.inventory[i].id === ing.itemId) {
+                        user.gameData.inventory.splice(i, 1);
+                        toRemove--;
+                        if (toRemove === 0) break;
+                    }
+                }
+            });
+
+            const resultAmount = recipe.resultAmount || 1;
+            
+            if (isShip) {
+                const shipId = parseInt(resultItemId);
+                if (!user.gameData.ownedShips.includes(shipId)) {
+                    user.gameData.ownedShips.push(shipId);
+                    user.markModified('gameData.ownedShips');
+                    if (!user.gameData.equippedByShip) user.gameData.equippedByShip = {};
+                    let ebs = user.gameData.equippedByShip;
+                    let hasKey = (ebs instanceof Map) ? ebs.has(String(shipId)) : ebs[String(shipId)];
+                    if (!hasKey) {
+                        if (ebs instanceof Map) ebs.set(String(shipId), { w: [], s: [], e: [], x: [] });
+                        else ebs[String(shipId)] = { w: [], s: [], e: [], x: [] };
+                        user.markModified('gameData.equippedByShip');
+                    }
+                } else {
+                    return socket.emit('gameNotification', { msg: 'ERROR: Ya posees esta nave.', type: 'error' });
+                }
+            } else if (isAmmo) {
+                const ammoType = resultItemId.startsWith("am_l") ? "laser" : (resultItemId.startsWith("am_m") ? "missile" : "mine");
+                const tierIndex = parseInt(resultItemId.slice(-1)) - 1;
+                
+                if (!user.gameData.ammo) {
+                    user.gameData.ammo = { laser: [0,0,0,0,0,0], missile: [0,0,0,0,0,0], mine: [0,0,0,0,0,0] };
+                }
+                if (!user.gameData.ammo[ammoType]) user.gameData.ammo[ammoType] = [0,0,0,0,0,0];
+
+                const oldAmmo = user.gameData.ammo[ammoType][tierIndex] || 0;
+                const newArr = [...user.gameData.ammo[ammoType]];
+                newArr[tierIndex] = oldAmmo + resultAmount;
+                user.gameData.ammo[ammoType] = newArr;
+
+                user.markModified(`gameData.ammo.${ammoType}`);
+                user.markModified('gameData.ammo');
+            } else {
+                const allItems = [
+                    ...(state.SERVER_CONFIG.shopItems.weapons || []),
+                    ...(state.SERVER_CONFIG.shopItems.shields || []),
+                    ...(state.SERVER_CONFIG.shopItems.engines || []),
+                    ...(state.SERVER_CONFIG.shopItems.extra || []),
+                    ...(state.SERVER_CONFIG.shopItems.resources || [])
+                ];
+
+                const itemConfig = allItems.find(i => i.id === resultItemId);
+                if (!itemConfig) {
+                    return socket.emit('gameNotification', { msg: 'ERROR: Ítem resultante no configurado en el servidor.', type: 'error' });
+                }
+
+                let type = (itemConfig.type || "utility").toLowerCase();
+                const id = itemConfig.id.toLowerCase();
+                if (id.startsWith('las') || id.startsWith('w')) type = "weapon";
+                else if (id.startsWith('sh') || id.startsWith('s')) type = "shield";
+                else if (id.startsWith('en') || id.startsWith('e')) type = "engine";
+
+                for (let r = 0; r < resultAmount; r++) {
+                    user.gameData.inventory.push({
+                        id: itemConfig.id,
+                        name: itemConfig.name,
+                        type: type,
+                        base: itemConfig.base || 0,
+                        instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
+                        rarity: itemConfig.rarity || 0,
+                        color: itemConfig.color || "#ffffff",
+                        icon: itemConfig.icon || ""
+                    });
+                }
+            }
+
+            user.markModified('gameData.inventory');
+            user.markModified('gameData.hubs');
+            user.markModified('gameData.ohcu');
+            user.markModified('gameData');
+
+            await user.save();
+            socket.dbUser = user;
+
+            p.ammo = JSON.parse(JSON.stringify(user.gameData.ammo));
+            p.hubs = user.gameData.hubs;
+            p.ohcu = user.gameData.ohcu;
+            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+
+            const eByShipObj = {};
+            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+            else Object.assign(eByShipObj, user.gameData.equippedByShip);
+
+            socket.emit('inventoryData', {
+                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
+            });
+
+            socket.emit('gameNotification', { msg: `¡CRAFTEO EXITOSO: ${recipe.name}!`, type: 'success' });
+        } catch (e) {
+            console.error('[CRAFTING-ERROR]', e);
+            socket.emit('gameNotification', { msg: 'Error interno al procesar el crafteo.', type: 'error' });
+        }
     });
 }
 

@@ -266,6 +266,10 @@
                 </div>
 
                 <div class="nav-group">
+                    <div class="nav-link" onclick="showTab('crafting')">⚒️ Crafteo o Creación</div>
+                </div>
+
+                <div class="nav-group">
                     <div class="nav-link" onclick="showTab('json')">📄 Ver JSON</div>
                     <div class="nav-folder" onclick="toggleFolder('folder-audit')">🕒 Auditoría <span class="chevron">▶</span></div>
                     <div id="folder-audit" class="folder-content">
@@ -430,6 +434,33 @@
             <div id="view-map-detail" class="view">
                 <div class="section-header"><button class="btn btn-secondary" onclick="showTab('maps')" style="margin-right:1rem;">Volver a Cartografía</button></div>
                 <div id="map-detail-container" style="width: 100%;"></div>
+            </div>
+
+            <div id="view-crafting" class="view">
+                <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 2rem; align-items: start;">
+                    <!-- Columna Izquierda: Gestión de Materiales / Recursos -->
+                    <div class="card" style="width: 100%;">
+                        <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                            <span>📦 MATERIALES / RECURSOS</span>
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addCraftingResource()">+ AGREGAR MATERIAL</button>
+                        </h3>
+                        <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">Crea o modifica los materiales de recolección y crafteo del juego.</p>
+                        <div id="crafting-resources-list" style="display: flex; flex-direction: column; gap: 15px;">
+                            <!-- Llenado dinámico -->
+                        </div>
+                    </div>
+                    <!-- Columna Derecha: Gestión de Recetas -->
+                    <div class="card" style="width: 100%;">
+                        <h3 style="color: var(--accent); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                            <span>⚒️ RECETAS DE CRAFTEO</span>
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addCraftingRecipe()">+ AGREGAR RECETA</button>
+                        </h3>
+                        <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">Configura las recetas de crafteo, ingredientes requeridos y costos.</p>
+                        <div id="crafting-recipes-list" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                            <!-- Llenado dinámico -->
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="view-json" class="view">
