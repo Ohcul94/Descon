@@ -18,6 +18,13 @@ const Logger = require('./utils/logger');
 const normalizeZone = (z) => {
     if (z === undefined || z === null) return 1;
     if (typeof z === 'string') {
+        if (z.startsWith('extract_')) {
+            const parts = z.split('_');
+            return parseInt(parts[1]) || 10;
+        }
+        if (z.startsWith('dungeon_') || z.startsWith('dungeon')) {
+            return 99;
+        }
         if (!isNaN(z) && z.trim() !== '') {
             return Number(z);
         }
@@ -471,6 +478,62 @@ fs.readJson(CONFIG_FILE).then(config => {
 });
 
 
+// v262.100: FUNCIÓN MAESTRA DE PERSISTENCIA (Autoridad del Servidor)
+const savePlayerToDB = async (socketId) => {
+    const p = players[socketId];
+    const socket = io.sockets.sockets.get(socketId);
+    if (!p || !socket || !socket.dbUser) return;
+
+    // v2.0: REGLA DE CONGELACIÓN - Si está en extracción, la DB no se toca hasta el éxito/muerte
+    if (p.isExtracting) return;
+
+    try {
+        await User.updateOne(
+            { _id: socket.dbUser._id },
+            {
+                $set: {
+                    "gameData.lastPos.x": Math.floor(p.x),
+                    "gameData.lastPos.y": Math.floor(p.y),
+                    "gameData.hp": Math.ceil(p.hp || 0),
+                    "gameData.shield": Math.ceil(p.shield || 0),
+                    "gameData.zone": (p.zone !== undefined ? p.zone : 1),
+                    "gameData.ammo": p.ammo,
+                    "gameData.selectedAmmo": p.selectedAmmo,
+                    "gameData.inventory": p.inventory,
+                    "gameData.equipped": p.equipped,
+                    "gameData.spheres": p.spheres,
+                    "gameData.hubs": p.hubs,
+                    "gameData.ohcu": p.ohcu,
+                    "gameData.level": p.level,
+                    "gameData.exp": p.exp,
+                    "gameData.skillPoints": p.skillPoints,
+                    "gameData.skillTree": p.skillTree,
+                    "gameData.hudConfig": p.hudConfig || {},
+                    "gameData.hudPositions": p.hudPositions || {},
+                    "gameData.currentShipId": p.currentShipId || 1
+                }
+            }
+        );
+        // console.log(`[DB-SAFE] Perfil de ${p.user} actualizado.`);
+    } catch (e) {
+        console.error(`Error crítico guardando a ${p.user}:`, e);
+    }
+};
+
+// v262.120: AUTO-SAVE GLOBAL (Cada 5 minutos)
+setInterval(async () => {
+    const socketIds = Object.keys(players);
+    // console.log(`[AUTO-SAVE] Iniciando guardado masivo de ${socketIds.length} pilotos...`);
+    
+    for (let i = 0; i < socketIds.length; i++) {
+        // Distribuimos el guardado (uno cada 50ms) para no saturar el event loop
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await savePlayerToDB(socketIds[i]);
+    }
+    // console.log(`[AUTO-SAVE] Guardado masivo completado.`);
+}, 5 * 60 * 1000); // 5 Minutos
+
+
 io.on('connection', (socket) => {
     const clientIP = socket.handshake.address;
     Logger.info('CONN', `Nueva conexión [${socket.id}] desde IP [${clientIP}]`);
@@ -636,48 +699,6 @@ io.on('connection', (socket) => {
         } catch (e) { console.error("Error en getInventory:", e); }
     });
 
-    // v262.100: FUNCIÓN MAESTRA DE PERSISTENCIA (Autoridad del Servidor)
-    const savePlayerToDB = async (socketId) => {
-        const p = players[socketId];
-        const socket = io.sockets.sockets.get(socketId);
-        if (!p || !socket || !socket.dbUser) return;
-
-        // v2.0: REGLA DE CONGELACIÓN - Si está en extracción, la DB no se toca hasta el éxito/muerte
-        if (p.isExtracting) return;
-
-        try {
-            await User.updateOne(
-                { _id: socket.dbUser._id },
-                {
-                    $set: {
-                        "gameData.lastPos.x": Math.floor(p.x),
-                        "gameData.lastPos.y": Math.floor(p.y),
-                        "gameData.hp": Math.ceil(p.hp || 0),
-                        "gameData.shield": Math.ceil(p.shield || 0),
-                        "gameData.zone": (p.zone !== undefined ? p.zone : 1),
-                        "gameData.ammo": p.ammo,
-                        "gameData.selectedAmmo": p.selectedAmmo,
-                        "gameData.inventory": p.inventory,
-                        "gameData.equipped": p.equipped,
-                        "gameData.spheres": p.spheres,
-                        "gameData.hubs": p.hubs,
-                        "gameData.ohcu": p.ohcu,
-                        "gameData.level": p.level,
-                        "gameData.exp": p.exp,
-                        "gameData.skillPoints": p.skillPoints,
-                        "gameData.skillTree": p.skillTree,
-                        "gameData.hudConfig": p.hudConfig || {},
-                        "gameData.hudPositions": p.hudPositions || {},
-                        "gameData.currentShipId": p.currentShipId || 1
-                    }
-                }
-            );
-            // console.log(`[DB-SAFE] Perfil de ${p.user} actualizado.`);
-        } catch (e) {
-            console.error(`Error crítico guardando a ${p.user}:`, e);
-        }
-    };
-
     // GUARDAR PROGRESO (Sincronía Autoritativa con Cooldown de 30s)
     socket.on('saveProgress', async () => {
         const now = Date.now();
@@ -687,19 +708,6 @@ io.on('connection', (socket) => {
         socket.lastSaveTime = now;
         await savePlayerToDB(socket.id);
     });
-
-    // v262.120: AUTO-SAVE GLOBAL (Cada 5 minutos)
-    setInterval(async () => {
-        const socketIds = Object.keys(players);
-        // console.log(`[AUTO-SAVE] Iniciando guardado masivo de ${socketIds.length} pilotos...`);
-        
-        for (let i = 0; i < socketIds.length; i++) {
-            // Distribuimos el guardado (uno cada 50ms) para no saturar el event loop
-            await new Promise(resolve => setTimeout(resolve, 50));
-            await savePlayerToDB(socketIds[i]);
-        }
-        // console.log(`[AUTO-SAVE] Guardado masivo completado.`);
-    }, 5 * 60 * 1000); // 5 Minutos
 
     // v243.15: Helper para serializar datos de clan con roles y estados
 

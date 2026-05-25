@@ -13,6 +13,12 @@ var prompt_label: Label = null
 var collision: CollisionShape2D = null
 var tween_float: Tween = null
 
+# Soporte para perspectiva 2.5D global (is_single_world)
+var is_single_world: bool = false
+var world_root_3d: Node3D = null
+var map_scale: float = 0.02
+var floating_offset_y: float = 0.0
+
 func _ready():
 	add_to_group("vaults")
 	
@@ -27,57 +33,97 @@ func _ready():
 	collision.shape = circle
 	add_child(collision)
 	
-	# 3. Crear sprite visual y renderizador 3D local (SubViewport)
+	# 2b. Configurar obstáculo sólido (StaticBody2D) para colisión física real
+	var solid_body = StaticBody2D.new()
+	solid_body.collision_layer = 2 # Capa física que bloquea al jugador (collision_mask = 2)
+	solid_body.collision_mask = 0  # No necesita detectar nada él mismo
+	add_child(solid_body)
+	
+	var solid_collision = CollisionShape2D.new()
+	var solid_circle = CircleShape2D.new()
+	solid_circle.radius = 45.0 # Radio de colisión física (bloquea el paso)
+	solid_collision.shape = solid_circle
+	solid_body.add_child(solid_collision)
+	
+	# 3. Crear sprite visual y renderizador 3D local
 	sprite = Sprite2D.new()
 	add_child(sprite)
 	
-	var viewport = SubViewport.new()
-	viewport.size = Vector2i(512, 512)
-	viewport.transparent_bg = true
-	viewport.own_world_3d = true
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	add_child(viewport)
+	# Detectar si hay un lienzo 3D global en el mapa actual
+	var current_map = get_tree().get_first_node_in_group("map")
+	var target_viewport = null
 	
-	# Escena 3D interna
-	var node3d = Node3D.new()
-	viewport.add_child(node3d)
+	if is_instance_valid(current_map):
+		if "sub_viewport" in current_map and is_instance_valid(current_map.sub_viewport):
+			is_single_world = true
+			target_viewport = current_map.sub_viewport
+			if "scale_factor" in current_map:
+				map_scale = current_map.scale_factor
+				
+	sprite.visible = not is_single_world
 	
-	# Entorno con luz ambiente blanca
-	var env = WorldEnvironment.new()
-	var world_env = Environment.new()
-	world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	world_env.ambient_light_color = Color(0.8, 0.85, 0.9)
-	world_env.ambient_light_energy = 1.2
-	env.environment = world_env
-	node3d.add_child(env)
-	
-	# Luz direccional frontal para relieve 3D
-	var sun = DirectionalLight3D.new()
-	sun.position = Vector3(2, 3, 2.5)
-	sun.light_energy = 1.8
-	sun.rotation_degrees = Vector3(-45, 35, 0)
-	node3d.add_child(sun)
-	
-	# Cargar e instanciar el modelo 3D del Baúl Personal
 	var glb_path = "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
-	if ResourceLoader.exists(glb_path):
-		var model_scene = load(glb_path)
-		if model_scene:
-			var model = model_scene.instantiate()
-			node3d.add_child(model)
-			model.scale = Vector3(2.8, 2.8, 2.8) # Tamaño doble (escala gigante solicitada)
-			model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
 	
-	# Cámara 3D (Ángulo ligeramente inclinado desde arriba)
-	var cam = Camera3D.new()
-	cam.position = Vector3(0, 1.6, 3.8)
-	cam.rotation_degrees = Vector3(-20, 0, 0)
-	node3d.add_child(cam)
-	
-	# Asignar la textura renderizada al Sprite 2D de la entidad
-	sprite.texture = viewport.get_texture()
-	sprite.scale = Vector2(0.84, 0.84)
-	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	if is_single_world:
+		# Instanciar en el Viewport global del mapa
+		world_root_3d = Node3D.new()
+		world_root_3d.name = "Vault3D_" + name
+		target_viewport.add_child(world_root_3d)
+		
+		if ResourceLoader.exists(glb_path):
+			var model_scene = load(glb_path)
+			if model_scene:
+				var model = model_scene.instantiate()
+				world_root_3d.add_child(model)
+				model.scale = Vector3(2.8, 2.8, 2.8) # Tamaño doble (escala gigante solicitada)
+				model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
+		_update_3d_position()
+	else:
+		# Render local con SubViewport propio (fallback)
+		var viewport = SubViewport.new()
+		viewport.size = Vector2i(512, 512)
+		viewport.transparent_bg = true
+		viewport.own_world_3d = true
+		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		add_child(viewport)
+		
+		world_root_3d = Node3D.new()
+		viewport.add_child(world_root_3d)
+		
+		# Entorno con luz ambiente blanca
+		var env = WorldEnvironment.new()
+		var world_env = Environment.new()
+		world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		world_env.ambient_light_color = Color(0.8, 0.85, 0.9)
+		world_env.ambient_light_energy = 1.2
+		env.environment = world_env
+		world_root_3d.add_child(env)
+		
+		# Luz direccional frontal para relieve 3D
+		var sun = DirectionalLight3D.new()
+		sun.position = Vector3(2, 3, 2.5)
+		sun.light_energy = 1.8
+		sun.rotation_degrees = Vector3(-45, 35, 0)
+		world_root_3d.add_child(sun)
+		
+		if ResourceLoader.exists(glb_path):
+			var model_scene = load(glb_path)
+			if model_scene:
+				var model = model_scene.instantiate()
+				world_root_3d.add_child(model)
+				model.scale = Vector3(2.8, 2.8, 2.8) # Tamaño doble (escala gigante solicitada)
+				model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
+		
+		# Cámara 3D (Ángulo ligeramente inclinado desde arriba)
+		var cam = Camera3D.new()
+		cam.position = Vector3(0, 1.6, 3.8)
+		cam.rotation_degrees = Vector3(-20, 0, 0)
+		world_root_3d.add_child(cam)
+		
+		# Asignar la textura renderizada al Sprite 2D de la entidad
+		sprite.texture = viewport.get_texture()
+		sprite.scale = Vector2(0.84, 0.84)
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	
 	# 4. Crear panel flotante de interacción premium
 	var key_text = "Y"
@@ -144,6 +190,8 @@ func _ready():
 	_start_floating_animation()
 
 func _process(_delta):
+	_update_3d_position()
+	
 	var mouse_pos = get_global_mouse_position()
 	var dist_to_mouse = global_position.distance_to(mouse_pos)
 	is_hovered = (dist_to_mouse <= 120.0)
@@ -157,8 +205,29 @@ func _start_floating_animation():
 	if tween_float:
 		tween_float.kill()
 	tween_float = create_tween().set_loops()
-	tween_float.tween_property(sprite, "position:y", -6.0, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween_float.tween_property(sprite, "position:y", 6.0, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	if is_single_world:
+		# En 3D animamos floating_offset_y. 6 píxeles * 0.02 = 0.12 unidades 3D.
+		tween_float.tween_property(self, "floating_offset_y", -0.12, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween_float.tween_property(self, "floating_offset_y", 0.12, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	else:
+		tween_float.tween_property(sprite, "position:y", -6.0, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween_float.tween_property(sprite, "position:y", 6.0, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+func _update_3d_position():
+	if is_instance_valid(world_root_3d):
+		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal inclinada
+		world_root_3d.position.x = global_position.x * map_scale
+		world_root_3d.position.z = global_position.y * map_scale * correction_z
+		if is_single_world:
+			world_root_3d.position.y = floating_offset_y
+		else:
+			world_root_3d.position.y = 0.0
+
+func _exit_tree():
+	if tween_float:
+		tween_float.kill()
+	if is_single_world and is_instance_valid(world_root_3d):
+		world_root_3d.queue_free()
 
 func _update_prompt_text():
 	var key_text = "Y"

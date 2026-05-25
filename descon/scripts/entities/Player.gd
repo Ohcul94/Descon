@@ -716,7 +716,19 @@ func update_stats(data):
 	if data.has("pvpEnabled"): 
 		pvp_status = !!data.pvpEnabled
 	
+	# v311.0: Conservar el target_position de click si el jugador se está moviendo y llega una actualización de posición del server.
+	var old_target_pos = target_position
+	
 	super.update_stats(data)
+	
+	if data.has("x") and data.has("y"):
+		# Forzar el posicionamiento directo para que el rubber-banding del server sea efectivo.
+		global_position = Vector2(float(data.x), float(data.y))
+		if is_moving:
+			target_position = old_target_pos
+		else:
+			target_position = global_position
+			
 	_emit_stats()
 
 func save_progress():

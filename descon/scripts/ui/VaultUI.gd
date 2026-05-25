@@ -202,7 +202,7 @@ func _ready():
 	lbl_hubs = Label.new()
 	lbl_hubs.text = "Hubs: 0"
 	lbl_hubs.add_theme_font_size_override("font_size", 11)
-	lbl_hubs.add_theme_color_override("font_color", Color(0.23, 1.0, 0.2))
+	lbl_hubs.add_theme_color_override("font_color", Color(0.0, 1.0, 1.0)) # Cian/Celeste
 	hbox_balances.add_child(lbl_hubs)
 
 	var lbl_sep_balances = Label.new()
@@ -214,7 +214,7 @@ func _ready():
 	lbl_ohcu = Label.new()
 	lbl_ohcu.text = "Ohcu: 0"
 	lbl_ohcu.add_theme_font_size_override("font_size", 11)
-	lbl_ohcu.add_theme_color_override("font_color", Color(0.0, 0.8, 1.0))
+	lbl_ohcu.add_theme_color_override("font_color", Color(1.0, 0.0, 1.0)) # Magenta/Violeta/Rosa
 	hbox_balances.add_child(lbl_ohcu)
 	
 	# Scroll para lista de ítems de inventario
@@ -375,23 +375,44 @@ func _on_vault_updated_received(data: Dictionary):
 	_refresh_inventory()
 
 func _on_inventory_received(data: Dictionary):
-	player_inventory = data.get("inventory", [])
-	player_hubs = int(data.get("hubs", 0))
+	var gd = data
+	if typeof(data) == TYPE_DICTIONARY and data.has("player"):
+		gd = data["player"]
+		
+	if typeof(gd) == TYPE_DICTIONARY:
+		if gd.has("gameData"):
+			gd = gd["gameData"]
+			
+		if gd.has("inventory"):
+			player_inventory = gd["inventory"]
+		elif gd.has("items"):
+			player_inventory = gd["items"]
+			
+		if gd.has("hubs"):
+			player_hubs = int(gd["hubs"])
+		if gd.has("ohcu"):
+			player_ohcu = int(gd["ohcu"])
+			
+	# Forzar consistencia con el Player real local
+	var player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player):
+		player_hubs = player.hubs
+		player_ohcu = player.ohculianos
+
 	var player_data = data.get("player", {})
-	if player_data.has("inventoryMaxSlots"):
-		inventory_max_slots = int(player_data.inventoryMaxSlots)
-	if player_data.has("ohcu"):
-		player_ohcu = int(player_data.ohcu)
-	else:
-		player_ohcu = int(data.get("ohcu", 0))
+	if player_data is Dictionary:
+		if player_data.has("inventoryMaxSlots"):
+			inventory_max_slots = int(player_data.inventoryMaxSlots)
+		elif gd is Dictionary and gd.has("inventoryMaxSlots"):
+			inventory_max_slots = int(gd.inventoryMaxSlots)
 	
 	if is_open:
 		_refresh_inventory()
 		_update_unlock_tab_button()
 		if lbl_hubs:
-			lbl_hubs.text = "Hubs: " + str(player_hubs)
+			lbl_hubs.text = "Hubs: " + _format_number(player_hubs)
 		if lbl_ohcu:
-			lbl_ohcu.text = "Ohcu: " + str(player_ohcu)
+			lbl_ohcu.text = "Ohcu: " + _format_number(player_ohcu)
 
 func open_vault():
 	if not is_open:
@@ -408,8 +429,20 @@ func open_vault():
 		tw.tween_property(overlay, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE)
 		tw.tween_property(control_root, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	
+	# Forzar consistencia con el Player real local antes de dibujar
+	var player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player):
+		player_hubs = player.hubs
+		player_ohcu = player.ohculianos
+		
+	if lbl_hubs:
+		lbl_hubs.text = "Hubs: " + _format_number(player_hubs)
+	if lbl_ohcu:
+		lbl_ohcu.text = "Ohcu: " + _format_number(player_ohcu)
+		
 	_refresh_vault()
 	_refresh_inventory()
+	_update_unlock_tab_button()
 
 func close_vault():
 	_hide_info_panel()
@@ -740,9 +773,9 @@ func _update_unlock_tab_button():
 	else:
 		var label_parts = []
 		if h_cost > 0:
-			label_parts.append(str(h_cost) + " Hubs")
+			label_parts.append(_format_number(h_cost) + " Hubs")
 		if o_cost > 0:
-			label_parts.append(str(o_cost) + " Ohcu")
+			label_parts.append(_format_number(o_cost) + " Ohcu")
 		
 		btn_unlock.text = "[+] ABRIR PESTAÑA " + str(unlocked_tabs + 1) + " (" + " + ".join(label_parts) + ")"
 		
@@ -767,9 +800,9 @@ func _update_expand_inventory_button():
 	else:
 		var label_parts = []
 		if h_cost > 0:
-			label_parts.append(str(h_cost) + " Hubs")
+			label_parts.append(_format_number(h_cost) + " Hubs")
 		if o_cost > 0:
-			label_parts.append(str(o_cost) + " Ohcu")
+			label_parts.append(_format_number(o_cost) + " Ohcu")
 		
 		btn_expand_inv.text = "[+] AÑADIR SLOT (" + " + ".join(label_parts) + ")"
 		
@@ -780,3 +813,17 @@ func _update_expand_inventory_button():
 		if o_cost > 0 and player_ohcu < o_cost:
 			can_afford = false
 		btn_expand_inv.disabled = not can_afford
+
+# Auxiliar para formatear números enteros con puntos como separador de miles
+func _format_number(value: int) -> String:
+	var num_str = str(value)
+	var result = ""
+	var count = 0
+	
+	for i in range(num_str.length() - 1, -1, -1):
+		if count > 0 and count % 3 == 0:
+			result = "." + result
+		result = num_str[i] + result
+		count += 1
+		
+	return result

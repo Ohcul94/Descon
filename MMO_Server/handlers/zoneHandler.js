@@ -50,7 +50,15 @@ const getCleanEnemyData = (e, id) => {
 };
 
 const normalizeZone = (z) => {
+    if (z === undefined || z === null) return 1;
     if (typeof z === 'string') {
+        if (z.startsWith('extract_')) {
+            const parts = z.split('_');
+            return parseInt(parts[1]) || 10;
+        }
+        if (z.startsWith('dungeon_') || z.startsWith('dungeon')) {
+            return 99;
+        }
         if (!isNaN(z) && z.trim() !== '') {
             return Number(z);
         }

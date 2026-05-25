@@ -87,23 +87,6 @@
                     "slowAmount": 0,
                     "slowDuration": 0,
                     "isHoming": false
-                },
-                {
-                    "type": "cone_cast",
-                    "bulletDamage": 10,
-                    "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000,
-                    "cooldown": 5000,
-                    "castTimeMs": 2500,
-                    "damage": 100,
-                    "stunDuration": 2000,
-                    "castSpeed": 1,
-                    "coneAngle": 0,
-                    "startDelay": 0,
-                    "coneFollow": true,
-                    "aimDelayMs": 1000,
-                    "lockTimeMs": 1000
                 }
             ],
             "movementPhases": [
@@ -2069,13 +2052,7 @@
             "name": "Loby",
             "warpCost": 0,
             "ambience": [],
-            "spawns": [
-                {
-                    "type": "1",
-                    "count": 1,
-                    "intervalMs": 5000
-                }
-            ]
+            "spawns": []
         },
         "2": {
             "color": "#00ff00",

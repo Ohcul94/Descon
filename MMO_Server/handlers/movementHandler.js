@@ -1,7 +1,15 @@
 const Logger = require('../utils/logger');
 
 const normalizeZone = (z) => {
+    if (z === undefined || z === null) return 1;
     if (typeof z === 'string') {
+        if (z.startsWith('extract_')) {
+            const parts = z.split('_');
+            return parseInt(parts[1]) || 10;
+        }
+        if (z.startsWith('dungeon_') || z.startsWith('dungeon')) {
+            return 99;
+        }
         if (!isNaN(z) && z.trim() !== '') {
             return Number(z);
         }
@@ -17,6 +25,12 @@ function registerMovementHandlers(socket, io, state) {
     socket.on('playerMovement', async (movementData) => {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
+
+        // v311.0: Filtrar movimientos desactualizados si la zona del cliente no coincide con la del servidor.
+        // Esto evita desincronizaciones cuando se procesan paquetes viejos en vuelo durante un cambio de zona.
+        if (movementData.zone !== undefined && normalizeZone(movementData.zone) !== normalizeZone(p.zone)) {
+            return;
+        }
 
         const now = Date.now();
         if (!p.lastMoveTime) p.lastMoveTime = now;

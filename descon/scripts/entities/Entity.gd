@@ -58,6 +58,7 @@ var _stealth_material: StandardMaterial3D = null
 var _status_material: StandardMaterial3D = null
 var _vfx_container_2d: Node2D = null
 var _is_currently_invisible: bool = false
+var _is_ally: bool = false
 var _cached_viewport: SubViewport = null # Cache para frustum culling
 
 func _ready():
@@ -522,6 +523,9 @@ func _update_3d_root_sync():
 				world_root_3d.visible = false
 			elif is_teleporting:
 				world_root_3d.visible = true
+			elif _is_currently_invisible and not _is_ally:
+				# Si somos invisibles y no somos aliados, ocultar completamente el canvas 3D
+				world_root_3d.visible = false
 			else:
 				world_root_3d.visible = abs(diff.x) < _margin_x and abs(diff.y) < _margin_y
 
@@ -1798,11 +1802,12 @@ func _update_invisibility_visuals(invisible: bool):
 	var in_party = false
 	var same_clan = false
 	
-	# v3.5: Verificar si somos del mismo grupo usando PartyManager
+	# v3.5: Verificar si somos del mismo grupo usando PartyManager (basado en nombres)
 	var pm = get_node_or_null("/root/PartyManager")
-	if pm and pm.current_party and pm.current_party.has("members"):
-		for m in pm.current_party["members"]:
-			if str(m.get("id", "")) == entity_id or str(m.get("socketId", "")) == entity_id:
+	if pm and pm.current_party and pm.current_party.has("names"):
+		var ent_name_upper = username.to_upper()
+		for n in pm.current_party["names"]:
+			if str(n).to_upper() == ent_name_upper:
 				in_party = true
 				break
 				
@@ -1814,8 +1819,10 @@ func _update_invisibility_visuals(invisible: bool):
 		if my_tag != "" and target_tag != "" and my_tag == target_tag:
 			same_clan = true
 
+	_is_ally = (is_local or in_party or same_clan)
+	var is_ally = _is_ally
+
 	if invisible:
-		var is_ally = (is_local or in_party or same_clan)
 		
 		# Nave: Para aliados transparente (0.3), para el resto invisible (0.0)
 		visible = true

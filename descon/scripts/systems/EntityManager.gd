@@ -10,6 +10,8 @@ var enemy_pool = []
 var active_areas = {} # Cache de zonas de efecto (Humo, etc)
 var loot_drops = {} # Cache de botines activos en el mapa
 var active_laser_tracking = {} # Indicadores que siguen al jugador {enemy_id: {indicator, target_id}}
+var zone_cleanup_timer = 0.0
+const ZONE_CLEANUP_INTERVAL = 1.0
 
 const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
 
@@ -40,45 +42,48 @@ func setup(world_ref):
 
 
 func _process(delta):
-	# 0. Filtro Proactivo de Zonas para prevenir Entidades Huérfanas (v3.0)
-	if is_instance_valid(world) and is_instance_valid(world.local_player):
-		var my_zone = _parse_zone_to_int(world.local_player.current_zone)
-		
-		# Limpiar Jugadores Remotos Huérfanos
-		for pid in remote_players.keys():
-			var rp = remote_players[pid]
-			if is_instance_valid(rp):
-				var rp_zone = rp.get_meta("zone") if rp.has_meta("zone") else -1
-				if rp_zone != -1 and rp_zone != my_zone:
-					remote_players.erase(pid)
-					rp.queue_free()
-					print("[EntityManager SINC] Piloto huérfano removido por cambio de zona: ", pid)
-					
-		# Limpiar Enemigos Huérfanos
-		for eid in enemies.keys():
-			var en = enemies[eid]
-			if is_instance_valid(en):
-				var en_zone = en.get_meta("zone") if en.has_meta("zone") else -1
-				if en_zone != -1 and en_zone != my_zone:
-					en.set_meta("is_pooled", true)
-					en.visible = false
-					en.set_process(false)
-					en.set_physics_process(false)
-					if en.get("_collision_shape"):
-						en.get("_collision_shape").set_deferred("disabled", true)
-					if en.get("_ui_wrapper"): en.get("_ui_wrapper").visible = false
-					enemies.erase(eid)
-					print("[EntityManager SINC] Enemigo huérfano purgado por cambio de zona: ", eid)
-					
-		# Limpiar Botines Huérfanos
-		for lid in loot_drops.keys():
-			var drop = loot_drops[lid]
-			if is_instance_valid(drop):
-				var drop_zone = drop.get_meta("zone") if drop.has_meta("zone") else -1
-				if drop_zone != -1 and drop_zone != my_zone:
-					loot_drops.erase(lid)
-					drop.queue_free()
-					print("[EntityManager SINC] Botín huérfano purgado por cambio de zona: ", lid)
+	# 0. Filtro Proactivo de Zonas para prevenir Entidades Huérfanas (v3.0) - Optimizado (v3.1)
+	zone_cleanup_timer += delta
+	if zone_cleanup_timer >= ZONE_CLEANUP_INTERVAL:
+		zone_cleanup_timer = 0.0
+		if is_instance_valid(world) and is_instance_valid(world.local_player):
+			var my_zone = _parse_zone_to_int(world.local_player.current_zone)
+			
+			# Limpiar Jugadores Remotos Huérfanos
+			for pid in remote_players.keys():
+				var rp = remote_players[pid]
+				if is_instance_valid(rp):
+					var rp_zone = rp.get_meta("zone") if rp.has_meta("zone") else -1
+					if rp_zone != -1 and rp_zone != my_zone:
+						remote_players.erase(pid)
+						rp.queue_free()
+						print("[EntityManager SINC] Piloto huérfano removido por cambio de zona: ", pid)
+						
+			# Limpiar Enemigos Huérfanos
+			for eid in enemies.keys():
+				var en = enemies[eid]
+				if is_instance_valid(en):
+					var en_zone = en.get_meta("zone") if en.has_meta("zone") else -1
+					if en_zone != -1 and en_zone != my_zone:
+						en.set_meta("is_pooled", true)
+						en.visible = false
+						en.set_process(false)
+						en.set_physics_process(false)
+						if en.get("_collision_shape"):
+							en.get("_collision_shape").set_deferred("disabled", true)
+						if en.get("_ui_wrapper"): en.get("_ui_wrapper").visible = false
+						enemies.erase(eid)
+						print("[EntityManager SINC] Enemigo huérfano purgado por cambio de zona: ", eid)
+						
+			# Limpiar Botines Huérfanos
+			for lid in loot_drops.keys():
+				var drop = loot_drops[lid]
+				if is_instance_valid(drop):
+					var drop_zone = drop.get_meta("zone") if drop.has_meta("zone") else -1
+					if drop_zone != -1 and drop_zone != my_zone:
+						loot_drops.erase(lid)
+						drop.queue_free()
+						print("[EntityManager SINC] Botín huérfano purgado por cambio de zona: ", lid)
 
 
 	# 1. Procesar físicas locales de succión de Vórtices y Lazos Curativos

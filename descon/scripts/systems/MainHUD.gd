@@ -806,7 +806,7 @@ func _on_server_player_updated(data: Dictionary):
 			if data.has("pvpEnabled"):
 				entity.pvp_status = data.pvpEnabled
 				if entity.name_tag:
-					entity.name_tag.modulate = Color(1, 0.2, 0.2) if data.pvpEnabled else Color.WHITE
+					entity.name_tag.modulate = Color.WHITE
 			break
 
 func _on_enemy_kill_reward(data: Dictionary):
