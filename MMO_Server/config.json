@@ -85,14 +85,25 @@
                     "fireRange": 600,
                     "fireRate": 1000,
                     "slowAmount": 0,
-                    "slowDuration": 0
+                    "slowDuration": 0,
+                    "isHoming": false
                 },
                 {
-                    "type": "laser",
+                    "type": "cone_cast",
                     "bulletDamage": 10,
                     "bulletSpeed": 800,
                     "fireRange": 600,
-                    "fireRate": 1000
+                    "fireRate": 1000,
+                    "cooldown": 5000,
+                    "castTimeMs": 2500,
+                    "damage": 100,
+                    "stunDuration": 2000,
+                    "castSpeed": 1,
+                    "coneAngle": 0,
+                    "startDelay": 0,
+                    "coneFollow": true,
+                    "aimDelayMs": 1000,
+                    "lockTimeMs": 1000
                 }
             ],
             "movementPhases": [
@@ -2058,7 +2069,13 @@
             "name": "Loby",
             "warpCost": 0,
             "ambience": [],
-            "spawns": []
+            "spawns": [
+                {
+                    "type": "1",
+                    "count": 1,
+                    "intervalMs": 5000
+                }
+            ]
         },
         "2": {
             "color": "#00ff00",
@@ -3223,6 +3240,24 @@
                 "hookMissWaitMs",
                 "isHoming",
                 "turnSpeed",
+                "startDelay"
+            ]
+        },
+        "cone_cast": {
+            "label": "Ataque en Cono Casteable",
+            "icon": "📐",
+            "desc": "Ataque en cono que se carga y al completarse daña/stunea.",
+            "fields": [
+                "cooldown",
+                "castTimeMs",
+                "damage",
+                "stunDuration",
+                "castSpeed",
+                "coneAngle",
+                "fireRange",
+                "coneFollow",
+                "lockTimeMs",
+                "aimDelayMs",
                 "startDelay"
             ]
         }

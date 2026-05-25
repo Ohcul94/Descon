@@ -190,7 +190,7 @@ module.exports = class BaseAI {
         }
 
         // v266.999: Si hay mecánicas activas O es Agresividad Extrema, NO PODEMOS soltar el flujo
-        const hasActiveMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isActive);
+        const hasActiveMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isActive || m.isCharging || m.isLocked || m.isFiring);
         const isExtreme = !!this.ambienceBoost;
         
         if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme) {
@@ -206,7 +206,7 @@ module.exports = class BaseAI {
 
         // v266.999: Lógica de Persistencia (Basada en Dashboard)
         const canSee = activeTarget && dist < (cfg.fireRange || 1000) * 1.5;
-        if (!isExtreme && !cfg.chaseUntilDeath && cfg.stopOnOutOfSight && !canSee && !isRevenge) {
+        if (!isExtreme && !cfg.chaseUntilDeath && cfg.stopOnOutOfSight && !canSee && !isRevenge && !hasActiveMech) {
             this.enemy.isMoving = false;
             return;
         }
@@ -230,19 +230,22 @@ module.exports = class BaseAI {
             return; 
         }
         
-        // v266.999: Rotación de Cuerpo - Mirar SIEMPRE al objetivo (v266.999)
-        if (this.enemy.rotation === undefined) this.enemy.rotation = targetAngle;
-        const turnSpeed = 5.0; // Velocidad de giro del cuerpo
-        const delta = 0.1; 
-        let diff = targetAngle - this.enemy.rotation;
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        while (diff > Math.PI) diff -= Math.PI * 2;
-        
-        const step = turnSpeed * delta;
-        if (Math.abs(diff) < step) {
-            this.enemy.rotation = targetAngle;
-        } else {
-            this.enemy.rotation += Math.sign(diff) * step;
+        // v266.999: Rotación de Cuerpo - Mirar SIEMPRE al objetivo (v266.999) (Ignorar si está canalizando, disparando o en retraso de re-apuntado)
+        const hasCastingMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging || m.isLocked || m.isFiring || (m.aimReadyTime && now < m.aimReadyTime));
+        if (!hasCastingMech) {
+            if (this.enemy.rotation === undefined) this.enemy.rotation = targetAngle;
+            const turnSpeed = 5.0; // Velocidad de giro del cuerpo
+            const delta = 0.1; 
+            let diff = targetAngle - this.enemy.rotation;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            
+            const step = turnSpeed * delta;
+            if (Math.abs(diff) < step) {
+                this.enemy.rotation = targetAngle;
+            } else {
+                this.enemy.rotation += Math.sign(diff) * step;
+            }
         }
 
         // v269.120: BLOQUEO TOTAL DURANTE EL GANCHO (Inmovilidad y Silencio de Armas)
@@ -255,9 +258,30 @@ module.exports = class BaseAI {
         // v268.810: Procesar combate y movimiento
         this.applyCombatLogic(activeTarget, dist, targetAngle, now, io, grid, players);
         
-        if (activeTarget) {
+        // Bloquear movimiento físico en todas las IAs si está cargando/canalizando un ataque
+        const isChargingAttack = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging);
+        if (isChargingAttack) {
+            this.enemy.isMoving = false;
+        } else if (activeTarget) {
             this.applyMovementLogic(activeTarget, dist, targetAngle, now);
         }
+
+        // v3.6: Forzar rotación fija si hay una mecánica activa que restrinja el apuntado (por aimDelayMs, lock o fire)
+        let forcedRotation = null;
+        if (this.enemy.mechState) {
+            for (const mId in this.enemy.mechState) {
+                const m = this.enemy.mechState[mId];
+                if (m.isLocked || m.isFiring || (m.aimReadyTime && now < m.aimReadyTime)) {
+                    if (m.lockedAngle !== undefined) {
+                        forcedRotation = m.lockedAngle + Math.PI / 2;
+                    }
+                }
+            }
+        }
+        if (forcedRotation !== null) {
+            this.enemy.rotation = forcedRotation;
+        }
+
         
         // Regeneración pasiva standard / Fuera de combate ocioso (después de X milisegundos de no recibir ni emitir daño)
         const lastCombatTime = Math.max(this.enemy.lastHit || 0, this.enemy.lastSuccessHit || 0);
@@ -361,7 +385,7 @@ module.exports = class BaseAI {
         
         // Si no hay mecánicas nuevas, usar el fallback del config raíz (compatibilidad)
         if (mechanics.length === 0) {
-            return this._executeMechanic(this.config, "default", target, dist, angle, now, io);
+            return this._executeMechanic(this.config, "default", target, dist, angle, now, io, players);
         }
 
         mechanics.forEach((mech, idx) => {
@@ -371,7 +395,7 @@ module.exports = class BaseAI {
 
             if (mech.type && mech.type.startsWith("aura_")) {
                 this._handleAuraLogic(mech, mId, now, io, grid, players);
-            } else if (this._executeMechanic(mech, mId, target, dist, angle, now, io)) {
+            } else if (this._executeMechanic(mech, mId, target, dist, angle, now, io, players)) {
                 isBusy = true;
             }
         });
@@ -503,12 +527,13 @@ module.exports = class BaseAI {
         }
     }
 
-    _executeMechanic(mech, mId, target, dist, angle, now, io) {
-        if (!target || !io) return; // Seguridad v266.999
+    _executeMechanic(mech, mId, target, dist, angle, now, io, players) {
+        if (!io) return;
+        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
+        if (!target && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive) return;
         
         const zoneStr = `zone_${this.enemy.zone}`;
         const type = mech.type || 'orbital';
-        const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
         const fireRange = mech.fireRange || 800;
 
         // v266.998: PRIORIDAD ATÓMICA - Si ya empezó, TERMINA
@@ -602,6 +627,117 @@ module.exports = class BaseAI {
             return false; 
         }
 
+        // v3.6: Mecánica de Cono Casteable (Autoritativo del Servidor)
+        if (mech.type === "cone_cast") {
+            const chargeTime = (mech.castTimeMs !== undefined) ? mech.castTimeMs : 2000;
+            const castSpeed = (mech.castSpeed !== undefined && mech.castSpeed > 0) ? mech.castSpeed : 1.0;
+            const actualDuration = chargeTime / castSpeed;
+            const cooldown = (mech.cooldown !== undefined) ? mech.cooldown : 5000;
+
+            if (!state.isCharging && now > state.nextShotTime) {
+                // FASE 1: INICIO DE CARGA
+                if (!target) return false; // Se necesita un objetivo inicial
+                
+                state.isCharging = true;
+                state.chargeEndTime = now + actualDuration;
+                state.lockedAngle = angle; // Ángulo inicial
+                
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "cone_charging",
+                    type: "cone_cast",
+                    duration: actualDuration,
+                    range: mech.fireRange || 400,
+                    coneAngle: mech.coneAngle || 60,
+                    damage: mech.damage || 100,
+                    stunDuration: mech.stunDuration || 0,
+                    coneFollow: !!mech.coneFollow,
+                    lockTimeMs: mech.lockTimeMs || 0
+                });
+            } else if (state.isCharging && now > state.chargeEndTime) {
+                // FASE 2: DETONACIÓN (DAÑO Y STUN EN EL SERVIDOR)
+                state.isCharging = false;
+                state.nextShotTime = now + cooldown;
+                state.aimReadyTime = now + (mech.aimDelayMs !== undefined ? mech.aimDelayMs : 1000);
+
+                const faceAngle = state.lockedAngle !== undefined ? state.lockedAngle : (this.enemy.rotation - Math.PI / 2);
+                const halfAngleRad = ((mech.coneAngle || 60) * Math.PI / 180) / 2;
+                const radius = mech.fireRange || 400;
+                const dmg = mech.damage || 100;
+                const stunDur = mech.stunDuration || 0;
+
+                // Avisar al cliente para reproducir animación de explosión en cono
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "cone_fire",
+                    type: "cone_cast",
+                    angle: faceAngle,
+                    range: radius,
+                    coneAngle: mech.coneAngle || 60
+                });
+
+                // Calcular jugadores golpeados
+                const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                zonePlayers.forEach(p => {
+                    const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                    if (d <= radius) {
+                        let diff = Math.atan2(p.y - this.enemy.y, p.x - this.enemy.x) - faceAngle;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+
+                        if (Math.abs(diff) <= halfAngleRad) {
+                            // Aplicar daño
+                            p.lastCombatTime = Date.now();
+                            if (p.shield >= dmg) {
+                                p.shield -= dmg;
+                            } else {
+                                p.hp -= (dmg - p.shield);
+                                p.shield = 0;
+                            }
+                            if (p.hp < 0) p.hp = 0;
+                            if (p.hp <= 0) p.isDead = true;
+
+                            // Aplicar stun si stunDur > 0
+                            if (stunDur > 0 && !p.isInvulnerable) {
+                                p.isStunned = true;
+                                p.stunEndTime = Date.now() + stunDur;
+                                io.to(p.socketId).emit('stunState', { active: true, duration: stunDur });
+                            }
+
+                            // Sincronizar stats del jugador golpeado
+                            io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                            io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                id: p.socketId,
+                                hp: Math.ceil(p.hp),
+                                shield: Math.ceil(p.shield),
+                                isDead: p.isDead,
+                                isInvulnerable: p.isInvulnerable,
+                                isInvisible: p.isInvisible,
+                                spheres: p.spheres || []
+                            });
+                        }
+                    }
+                });
+            }
+
+            this.enemy.mechState[mId] = state;
+
+            // Durante la carga, actualizar rotación
+            if (state.isCharging) {
+                const timeLeft = state.chargeEndTime - now;
+                const shouldTrack = !!mech.coneFollow && timeLeft > (mech.lockTimeMs || 0) && target;
+                
+                if (shouldTrack) {
+                    state.lockedAngle = angle;
+                }
+                
+                this.enemy.rotation = (state.lockedAngle !== undefined ? state.lockedAngle : angle) + Math.PI / 2;
+                return true; // Retorna true para indicar que el enemigo está ocupado ejecutando la mecánica
+            }
+
+            return false;
+        }
+
         if (now > state.nextShotTime) {
             const burstLimit = (mech.type === "laser") ? 3 : 1; 
             if (state.shotsInBurst < burstLimit) {
@@ -661,6 +797,14 @@ module.exports = class BaseAI {
 
     applyMovementLogic(target, dist, angle, now) {
         if (this.enemy.isHooking) return;
+
+        // v3.6: No moverse si estamos cargando/canalizando un ataque (ej: cone_cast o mega_laser)
+        const hasCastingMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging);
+        if (hasCastingMech) {
+            this.enemy.isMoving = false;
+            return;
+        }
+
         const speed = this.getSpeed();
         const stopDist = 120; 
         

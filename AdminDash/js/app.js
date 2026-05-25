@@ -544,6 +544,9 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'bulletSpeed') mech[f] = 800;
             else if (f === 'fireRange') mech[f] = 600;
             else if (f === 'fireRate') mech[f] = 1000;
+            else if (f === 'aimDelayMs') mech[f] = 1000;
+            else if (f === 'coneFollow') mech[f] = false;
+            else if (f === 'lockTimeMs') mech[f] = 0;
             else mech[f] = 0;
         }
     });

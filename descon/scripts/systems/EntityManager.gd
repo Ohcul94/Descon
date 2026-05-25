@@ -355,6 +355,62 @@ func _on_enemy_action(data: Dictionary):
 			await get_tree().create_timer(duration).timeout
 			if is_instance_valid(en): en.set_meta("is_locked", false)
 			if is_instance_valid(indicator): indicator.queue_free()
+		
+		elif action == "cone_charging":
+			var range_val = float(data.get("range", 400.0))
+			var cone_angle = float(data.get("coneAngle", 60.0))
+			
+			# Contenedor del cono
+			var cone_node = Node2D.new()
+			cone_node.name = "ConeIndicator_" + enemy_id
+			cone_node.set_meta("is_cone_indicator", true)
+			cone_node.rotation = -PI / 2 # Alinear con el frente local de la nave
+			en.add_child(cone_node)
+			
+			# Polígono de fondo (Área de Peligro)
+			var poly_bg = Polygon2D.new()
+			poly_bg.polygon = _get_cone_points(range_val, cone_angle)
+			poly_bg.color = Color(1.0, 0.0, 0.0, 0.15)
+			cone_node.add_child(poly_bg)
+			
+			# Polígono de carga (Progreso)
+			var poly_charge = Polygon2D.new()
+			poly_charge.polygon = _get_cone_points(1.0, cone_angle)
+			poly_charge.color = Color(1.0, 0.1, 0.1, 0.4)
+			cone_node.add_child(poly_charge)
+			
+			# Tween para expandir el radio de la carga
+			var tw = cone_node.create_tween()
+			tw.tween_method(
+				func(r: float):
+					if is_instance_valid(poly_charge):
+						poly_charge.polygon = _get_cone_points(r, cone_angle),
+				1.0,
+				range_val,
+				duration
+			)
+			
+		elif action == "cone_fire":
+			var indicator = en.get_node_or_null("ConeIndicator_" + enemy_id)
+			if is_instance_valid(indicator):
+				indicator.queue_free()
+				
+			var range_val = float(data.get("range", 400.0))
+			var cone_angle = float(data.get("coneAngle", 60.0))
+			
+			var blast = Node2D.new()
+			blast.rotation = -PI / 2
+			en.add_child(blast)
+			
+			var poly_blast = Polygon2D.new()
+			poly_blast.polygon = _get_cone_points(range_val, cone_angle)
+			poly_blast.color = Color(1.0, 0.4, 0.0, 0.8) # Naranja brillante
+			blast.add_child(poly_blast)
+			
+			# Desvanecer la explosión
+			var tw = blast.create_tween()
+			tw.tween_property(poly_blast, "color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw.finished.connect(blast.queue_free)
 
 func _on_enemy_updated(data):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return
@@ -423,7 +479,11 @@ func _on_enemy_dead(data: Dictionary):
 	var id = str(data.get("id", ""))
 	if id == "": return
 	var enemy = enemies.get(id)
-	if is_instance_valid(enemy): enemy.die()
+	if is_instance_valid(enemy):
+		var indicator = enemy.get_node_or_null("ConeIndicator_" + id)
+		if is_instance_valid(indicator):
+			indicator.queue_free()
+		enemy.die()
 	if enemies.has(id): enemies.erase(id)
 
 func _on_enemy_damaged(data: Dictionary):
@@ -1245,3 +1305,15 @@ func _on_loot_despawned(data: Dictionary):
 			else:
 				drop.queue_free()
 			print("[EntityManager] Botín físico removido: ", id)
+
+func _get_cone_points(radius: float, angle_degrees: float) -> PackedVector2Array:
+	var points = PackedVector2Array()
+	points.append(Vector2.ZERO)
+	var angle_rad = deg_to_rad(angle_degrees)
+	var half_angle = angle_rad / 2.0
+	var steps = 24
+	for i in range(steps + 1):
+		var ang = -half_angle + (float(i) / steps) * angle_rad
+		points.append(Vector2(cos(ang), sin(ang)) * radius)
+	points.append(Vector2.ZERO)
+	return points

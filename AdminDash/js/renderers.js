@@ -714,12 +714,12 @@ function renderEnemyDetail() {
                                         orbitDuration: "Tiempo de Giro (ms)",
                                         staticTime: "Tiempo Estático (ms)",
                                         radius: "Radio del Aura (px)",
-                                        damage: "Daño por Pulso (pts)",
+                                        damage: "Daño (pts)",
                                         intervalMs: "Intervalo de Tick (ms)",
                                         duration: "Duración Total (ms)",
-                                        cooldown: "Recarga (ms)",
+                                        cooldown: "Enfriamiento (CD) (ms)",
                                         pullSpeed: "Vel. Atracción (px/s)",
-                                        stunDuration: "Duración Stun (ms)",
+                                        stunDuration: "Duración de Stun (ms)",
                                         postHookWaitMs: "Espera Post-Gancho (ms)",
                                         hookMissWaitMs: "Espera por Fallo (ms)",
                                         startDelay: "Retraso Inicio (ms)",
@@ -728,9 +728,16 @@ function renderEnemyDetail() {
                                         shieldRegen: "Regen. de Escudo (pts/s)",
                                         healAmount: "Curación por Pulso (pts)",
                                         speedBonus: "Bono de Velocidad (px/s)",
-                                        explosionDamage: "Daño de Explosión (pts)"
+                                        explosionDamage: "Daño de Explosión (pts)",
+                                        castTimeMs: "Tiempo de Casteo (ms)",
+                                        castSpeed: "Velocidad de Casteo (x)",
+                                        coneAngle: "Ángulo del Cono (grados)",
+                                        coneFollow: "Seguimiento Dinámico (Homing)",
+                                        lockTimeMs: "Tiempo de Bloqueo (ms)",
+                                        aimDelayMs: "Espera de Apuntado (ms)"
                                     };
                                     if (f === 'isHoming') return `<div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.05); padding: 10px; border-radius: 8px; flex-direction: column; gap: 12px; border: 1px solid rgba(239, 68, 68, 0.2);"><div style="display:flex; align-items:center; gap:12px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isHoming = this.checked; renderEnemyDetail();"><label style="margin:0; font-size: 0.85rem; color: #ef4444; cursor:pointer;">ACTIVAR SEGUIMIENTO AL OBJETIVO</label></div>${m.isHoming ? `<div style="padding-top: 10px; border-top: 1px solid rgba(239, 68, 68, 0.2);"><label style="font-size: 0.65rem; color: var(--text-dim);">AGILIDAD DE GIRO (RAD/S)</label><input type="number" step="0.1" value="${m.turnSpeed || 2.5}" style="background:rgba(0,0,0,0.3); margin-top:5px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].turnSpeed = parseFloat(this.value)"></div>` : ''}</div>`;
+                                    if (f === 'coneFollow') return `<div class="field" style="display:flex; flex-direction:column; gap:8px;"><label>${fieldLabelsMap[f] || f}</label><div style="display:flex; align-items:center; height:40px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].coneFollow = this.checked; renderEnemyDetail();"></div></div>`;
                                     if (f === 'turnSpeed') return '';
                                     return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}
@@ -826,18 +833,25 @@ function renderMechanicsLib() {
     const fieldLabels = { 
         "bulletDamage": "Daño", 
         "bulletSpeed": "Velocidad", 
-        "fireRange": "Alcance", 
+        "fireRange": "Alcance (px)", 
         "fireRate": "Cadencia", 
         "staticTime": "Tiempo Estático",
         "reductionPercentage": "Reducción Daño",
         "shieldRegen": "Regen. Escudo",
         "duration": "Duración (ms)",
-        "cooldown": "Recarga (ms)",
+        "cooldown": "Enfriamiento (CD) (ms)",
         "radius": "Radio de Acción (px)",
-        "damage": "Daño por Pulso (pts)",
+        "damage": "Daño (pts)",
         "healAmount": "Cura por Pulso (pts)",
         "speedBonus": "Bono Velocidad (px/s)",
-        "intervalMs": "Intervalo (ms)"
+        "intervalMs": "Intervalo (ms)",
+        "castTimeMs": "Tiempo de Casteo (ms)",
+        "castSpeed": "Velocidad de Casteo (x)",
+        "coneAngle": "Ángulo del Cono (grados)",
+        "stunDuration": "Duración de Stun (ms)",
+        "coneFollow": "Seguimiento Dinámico (Homing)",
+        "lockTimeMs": "Tiempo de Bloqueo (ms)",
+        "aimDelayMs": "Espera de Apuntado (ms)"
     };
 
     if (currentMechTab === 'attack') {
