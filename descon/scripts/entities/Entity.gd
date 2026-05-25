@@ -1717,33 +1717,52 @@ func _apply_flash_recursive(p_node, p_mat):
 
 func _spawn_death_vfx():
 	var vfx_script = load("res://scripts/vfx/SpaceExplosion.gd")
-	if vfx_script:
-		var explosion_3d = vfx_script.new()
+	if not vfx_script: return
+	
+	var explosion_3d = vfx_script.new()
+	var is_single = get_meta("is_single_world", false)
+	var current_map = get_tree().get_first_node_in_group("map")
+	
+	# v311.0: OPTIMIZACIÓN AAA - Instanciación directa en el Lienzo 3D Único del mapa para evitar recrear Viewports/Cámaras
+	if is_single and is_instance_valid(current_map) and is_instance_valid(current_map.get("sub_viewport")):
+		var s_factor = get_meta("map_scale", 0.02)
+		var correction_z = 1.41421356 # Compensación para perspectiva ortogonal inclinada
 		
-		# Wrapper 2D para posicionar la explosión en el mundo
+		# Posicionamiento 3D exacto alineado con la posición 2D de la entidad
+		explosion_3d.position.x = global_position.x * s_factor
+		explosion_3d.position.z = global_position.y * s_factor * correction_z
+		explosion_3d.position.y = 0.0
+		
+		current_map.sub_viewport.add_child(explosion_3d)
+	else:
+		# Fallback: Modo original con SubViewport local dedicado (usado si no hay lienzo global)
 		var wrapper = Node2D.new()
 		var spawn_pos = global_position
-		if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
-			var current_map = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
-				var cam3d = current_map.camera_3d
-				var sub_vp = current_map.sub_viewport
-				if not cam3d.is_position_behind(world_root_3d.global_position):
-					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
-					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-						var main_size = Vector2(get_viewport().get_visible_rect().size)
-						sv_pixel *= main_size / Vector2(sub_vp.size)
-					spawn_pos = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+		
+		if is_single and is_instance_valid(world_root_3d) and is_instance_valid(current_map) and is_instance_valid(current_map.get("camera_3d")):
+			var cam3d = current_map.camera_3d
+			var sub_vp = current_map.get("sub_viewport")
+			if not cam3d.is_position_behind(world_root_3d.global_position):
+				var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+				if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+					var main_size = Vector2(get_viewport().get_visible_rect().size)
+					sv_pixel *= main_size / Vector2(sub_vp.size)
+				spawn_pos = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+		
 		wrapper.global_position = spawn_pos
 		
 		var world = get_tree().get_first_node_in_group("world_node")
 		if world: world.add_child(wrapper)
 		else: get_parent().add_child(wrapper)
 		
-		# Configuración del Viewport 3D (Escala Controlada para evitar cortes cuadrados)
 		var vp = SubViewport.new()
-		vp.size = Vector2i(384, 384) # Resolución expandida para margen de partículas
+		vp.size = Vector2i(384, 384)
 		vp.transparent_bg = true
+		
+		# Desactivar características costosas que no necesitamos
+		vp.positional_shadow_atlas_size = 0
+		if "use_hdr_3d" in vp: vp.use_hdr_3d = false
+		
 		wrapper.add_child(vp)
 		
 		var view_3d = Node3D.new()
@@ -1752,7 +1771,7 @@ func _spawn_death_vfx():
 		var cam = Camera3D.new()
 		cam.position = Vector3(0, 0, 10)
 		cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-		cam.size = 12.0 # Captura un área mayor para dispersión de chispas y fragmentos
+		cam.size = 12.0
 		view_3d.add_child(cam)
 		
 		view_3d.add_child(explosion_3d)
@@ -1761,7 +1780,6 @@ func _spawn_death_vfx():
 		explosion_sprite.texture = vp.get_texture()
 		wrapper.add_child(explosion_sprite)
 		
-		# Limpieza automática
 		get_tree().create_timer(2.0).timeout.connect(wrapper.queue_free)
 
 func _update_collision_size():
