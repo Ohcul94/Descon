@@ -1,12 +1,14 @@
 extends Control
 
-# HangarTab.gd - REPARACIÓN DE INTERACCIÓN (v263.070)
-# Corregido: Doble click, desequipado y limpieza de iconos inexistentes.
+# HangarTab.gd - REPARACIÓN DE INTERACCIÓN (v300.80)
+# Corregido: Doble click, desequipado, limpieza de iconos y visor 3D central.
 
 var inv_main = null
+var preview_mesh: Node3D = null
 
 func setup(p_inv_main):
 	inv_main = p_inv_main
+	set_process(true)
 
 func update_ui():
 	if not inv_main: return
@@ -14,6 +16,8 @@ func update_ui():
 	for n in h.get_children(): 
 		h.remove_child(n)
 		n.queue_free()
+		
+	preview_mesh = null
 
 	# v303.15: Renderizado inmediato (Paridad con Talentos y Esferas)
 	# Eliminado el bloqueo is_empty() para evitar estados de "congelamiento" visual.
@@ -49,9 +53,10 @@ func update_ui():
 		for sid in inv_main.owned_ships: _create_fleet_card(sid, f_grid)
 	
 	# --- SECCIÓN 2: CUERPO ---
-	var body_h = HBoxContainer.new(); body_h.size_flags_vertical = 3; body_h.add_theme_constant_override("separation", 30); main_v.add_child(body_h)
+	var body_h = HBoxContainer.new(); body_h.size_flags_vertical = 3; body_h.add_theme_constant_override("separation", 20); main_v.add_child(body_h)
 	
-	var left_v = VBoxContainer.new(); left_v.size_flags_horizontal = 3; left_v.size_flags_stretch_ratio = 1.3; body_h.add_child(left_v)
+	# Columna 1: Slots (Izquierda)
+	var left_v = VBoxContainer.new(); left_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; left_v.size_flags_stretch_ratio = 1.1; body_h.add_child(left_v)
 	
 	var model = {}
 	var viewing_id = inv_main.selected_hangar_ship_id if inv_main.selected_hangar_ship_id != -1 else inv_main.current_ship_id
@@ -60,7 +65,7 @@ func update_ui():
 	if model.is_empty(): model = GameConstants.SHIP_MODELS[0]
 	
 	var name_h = HBoxContainer.new(); left_v.add_child(name_h)
-	var s_title = Label.new(); s_title.text = model.get("name", "Nave").to_upper(); s_title.add_theme_font_size_override("font_size", 24); name_h.add_child(s_title)
+	var s_title = Label.new(); s_title.text = model.get("name", "Nave").to_upper(); s_title.add_theme_font_size_override("font_size", 20); name_h.add_child(s_title)
 
 	var slots_v = VBoxContainer.new(); slots_v.add_theme_constant_override("separation", 15); left_v.add_child(slots_v)
 	var slots = model.get("slots") if model.has("slots") else {"w":0, "s":0, "e":0, "x":1}
@@ -69,7 +74,92 @@ func update_ui():
 	_render_group(slots_v, "e", "MOTORES Y PROPULSION", slots["e"])
 	_render_group(slots_v, "x", "EXTRAS Y CPU", slots.get("x", 1))
 
-	var right_v = VBoxContainer.new(); right_v.size_flags_horizontal = 3; right_v.size_flags_stretch_ratio = 1.0; body_h.add_child(right_v)
+	# Columna 2: Visor 3D de la Nave (Centro)
+	var middle_v = VBoxContainer.new(); middle_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; middle_v.size_flags_stretch_ratio = 1.3; body_h.add_child(middle_v)
+	
+	var vp_container = SubViewportContainer.new()
+	vp_container.stretch = true
+	vp_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vp_container.custom_minimum_size = Vector2(250, 250)
+	middle_v.add_child(vp_container)
+	
+	var vp = SubViewport.new()
+	vp.own_world_3d = true
+	vp.transparent_bg = true
+	vp.msaa_3d = Viewport.MSAA_DISABLED
+	vp.positional_shadow_atlas_size = 0
+	if "use_hdr_3d" in vp: vp.use_hdr_3d = false
+	vp_container.add_child(vp)
+	
+	var node3d = Node3D.new()
+	vp.add_child(node3d)
+	
+	# Ambiente
+	var env = WorldEnvironment.new()
+	var world_env = Environment.new()
+	world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	world_env.ambient_light_color = Color.WHITE
+	world_env.ambient_light_energy = 0.8
+	env.environment = world_env
+	node3d.add_child(env)
+	
+	# Cámara (Añadida al árbol ANTES de look_at)
+	var cam = Camera3D.new()
+	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	cam.fov = 40.0
+	cam.position = Vector3(0, 1.3, 3.3)
+	node3d.add_child(cam)
+	cam.look_at(Vector3(0, 0.1, 0))
+	
+	# Luz Clave
+	var key_light = DirectionalLight3D.new()
+	key_light.light_energy = 1.6
+	key_light.shadow_enabled = false
+	key_light.rotation_degrees = Vector3(-35, 45, 0)
+	node3d.add_child(key_light)
+	
+	# Luz de Relleno
+	var fill_light = DirectionalLight3D.new()
+	fill_light.light_energy = 0.5
+	fill_light.shadow_enabled = false
+	fill_light.rotation_degrees = Vector3(25, -135, 0)
+	node3d.add_child(fill_light)
+	
+	# Cargar modelo de la nave
+	var ship_id = int(viewing_id)
+	var glb_path = ""
+	match ship_id:
+		1: glb_path = "res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb"
+		2: glb_path = "res://assets/Personajes/3D/Nave2/Nave2.glb"
+		3: glb_path = "res://assets/Personajes/3D/Nave3/Nave3.glb"
+		4: glb_path = "res://assets/Personajes/3D/Nave4/Nave4.glb"
+		5: glb_path = "res://assets/Personajes/3D/Nave5/Nave5.glb"
+		6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
+		
+	if glb_path != "" and ResourceLoader.exists(glb_path):
+		var model_scene = load(glb_path)
+		if model_scene:
+			var ship_model = model_scene.instantiate()
+			_clean_internal_lights_in_ui(ship_model)
+			
+			var pivot = Node3D.new()
+			pivot.name = "ShipPivot"
+			node3d.add_child(pivot)
+			pivot.add_child(ship_model)
+			
+			pivot.scale = Vector3(1.3, 1.3, 1.3)
+			
+			# Orientación corregida según el modelado del asset
+			match ship_id:
+				3: ship_model.rotation_degrees = Vector3(0, 1, 98)
+				4: ship_model.rotation_degrees = Vector3(0, -180, 52)
+				6: ship_model.rotation_degrees.y = 180
+				_: ship_model.rotation_degrees = Vector3.ZERO
+				
+			preview_mesh = pivot
+
+	# Columna 3: Bodega de Carga (Derecha)
+	var right_v = VBoxContainer.new(); right_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; right_v.size_flags_stretch_ratio = 1.0; body_h.add_child(right_v)
 	var inv_lbl = Label.new(); inv_lbl.text = "BODEGA DE CARGA / INVENTARIO"; inv_lbl.modulate = Color.CYAN; inv_lbl.add_theme_font_size_override("font_size", 10); inv_lbl.modulate.a = 0.6; right_v.add_child(inv_lbl)
 	
 	var inv_scroll = ScrollContainer.new(); inv_scroll.size_flags_vertical = 3; right_v.add_child(inv_scroll)
@@ -336,3 +426,14 @@ func _get_fallback_icon(id: String) -> String:
 	elif id.begins_with("ext"):
 		return ""
 	return ""
+
+func _clean_internal_lights_in_ui(node):
+	for child in node.get_children():
+		if child is Light3D:
+			child.queue_free()
+		else:
+			_clean_internal_lights_in_ui(child)
+
+func _process(delta):
+	if is_instance_valid(preview_mesh):
+		preview_mesh.rotate_y(delta * 0.5)
