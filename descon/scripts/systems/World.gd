@@ -79,6 +79,13 @@ func _ready():
 			hud_node.add_child(vault_ui)
 			print("[WORLD] VaultUI inyectado dinámicamente en HUD.")
 
+		var death_ui_script = load("res://scripts/ui/DeathModalUI.gd")
+		if death_ui_script:
+			var death_ui = death_ui_script.new()
+			death_ui.name = "DeathModalUI"
+			hud_node.add_child(death_ui)
+			print("[WORLD] DeathModalUI inyectado dinámicamente en HUD.")
+
 
 func _inject_entity_manager():
 	entity_manager = Node.new()
@@ -300,13 +307,14 @@ func _process(delta):
 		overlay.material.set_shader_parameter("view_size", view_size)
 	
 	save_timer += delta; if save_timer >= SAVE_INTERVAL: save_timer = 0.0; _save_game_progress()
-	if is_instance_valid(local_player) and local_player.is_dead:
-		respawn_timer += delta
-		if respawn_timer >= 3.0:
-			respawn_timer = 0.0
-			_perform_local_respawn()
-	else: 
-		respawn_timer = 0.0
+	if is_instance_valid(local_player):
+		var death_modal = get_node_or_null("HUD/DeathModalUI")
+		if local_player.is_dead:
+			if death_modal and not death_modal.is_open:
+				death_modal.open_modal()
+		else:
+			if death_modal and death_modal.is_open:
+				death_modal.close_modal()
 
 func _input(event):
 	var focusNode = get_viewport().gui_get_focus_owner()
