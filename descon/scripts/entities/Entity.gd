@@ -741,6 +741,7 @@ func _resurrect(data: Dictionary):
 	# v306.5: Lógica de Resurrección Centralizada (Soluciona Invisibilidad por Culling)
 	is_dead = false
 	is_teleporting = true 
+	_clear_wreckage_marker()
 
 	# 1. Salto instantáneo a la posición de respawn
 	if data.has("x") and data.has("y"):
@@ -914,6 +915,9 @@ func die():
 		
 	# 4. Spawnear la explosión (VFX) justo donde estaba la nave
 	_spawn_death_vfx()
+	
+	# Spawnear el marcador de restos
+	_spawn_wreckage_marker()
 	
 	# 5. Lógica de pooling/limpieza para enemigos
 	if not is_in_group("player") and not is_in_group("remote_players"): 
@@ -1966,3 +1970,25 @@ func rebuild_3d_layout():
 		_setup_enemy_visuals()
 	else:
 		_setup_ship_visuals()
+
+func _spawn_wreckage_marker():
+	_clear_wreckage_marker()
+	var world = get_tree().get_first_node_in_group("world_node")
+	if not is_instance_valid(world) or not is_instance_valid(world.entities_node): return
+	
+	var marker = Node2D.new()
+	marker.name = "Wreckage_" + str(entity_id)
+	marker.global_position = global_position
+	world.entities_node.add_child(marker)
+	
+	var drawing = Node2D.new()
+	drawing.name = "Visual"
+	drawing.set_script(load("res://scripts/ui/WreckageDrawing.gd"))
+	marker.add_child(drawing)
+
+func _clear_wreckage_marker():
+	var world = get_tree().get_first_node_in_group("world_node")
+	if is_instance_valid(world) and is_instance_valid(world.entities_node):
+		var marker = world.entities_node.get_node_or_null("Wreckage_" + str(entity_id))
+		if is_instance_valid(marker):
+			marker.queue_free()

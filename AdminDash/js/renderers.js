@@ -1057,7 +1057,8 @@ function renderSkills() {
 
         if (f && !name.toLowerCase().includes(f) && !JSON.stringify(s).toLowerCase().includes(f)) continue;
         const card = document.createElement('div'); card.className = 'card';
-        if(!s.targetFilters) s.targetFilters = { allies: true, enemies: false, bosses: false, players: true };
+        if(!s.targetFilters) s.targetFilters = { allies: true, enemies: false, bosses: false, players: true, clan: false };
+        if(s.targetFilters.clan === undefined) s.targetFilters.clan = false;
         card.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                 <div class="field" style="flex-grow:1;"><label>Protocolo</label><input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold; background:transparent; border:none;" readonly></div>
@@ -1068,14 +1069,15 @@ function renderSkills() {
                 <div class="field"><label>Puntos (pts)</label><input type="number" value="${s.amount || 0}" onchange="config.skillsData['${name}'].amount = parseInt(this.value)"></div>
                 <div class="field"><label>Rango (px)</label><input type="number" value="${s.range || 0}" onchange="config.skillsData['${name}'].range = parseInt(this.value)"></div>
                 ${s.duration !== undefined ? `<div class="field"><label>Duración (ms)</label><input type="number" value="${s.duration}" onchange="config.skillsData['${name}'].duration = parseInt(this.value)"></div>` : ''}
-                ${s.radius !== undefined ? `<div class="field"><label>Radio (px)</label><input type="number" value="${s.radius}" onchange="config.skillsData['${name}'].radius = parseInt(this.value)"></div>` : ''}
+                ${s.radius !== undefined ? `<div class="field"><label>Radio/Área (px)</label><input type="number" value="${s.radius}" onchange="config.skillsData['${name}'].radius = parseInt(this.value)"></div>` : ''}
                 ${s.width !== undefined ? `<div class="field"><label>Ancho (px)</label><input type="number" value="${s.width}" onchange="config.skillsData['${name}'].width = parseInt(this.value)"></div>` : ''}
                 ${s.breakRange !== undefined ? `<div class="field"><label>Rango de Ruptura (px)</label><input type="number" value="${s.breakRange}" onchange="config.skillsData['${name}'].breakRange = parseInt(this.value)"></div>` : ''}
                 ${s.tickInterval !== undefined ? `<div class="field"><label>Intervalo Tick (ms)</label><input type="number" value="${s.tickInterval}" onchange="config.skillsData['${name}'].tickInterval = parseInt(this.value)"></div>` : ''}
                 ${s.pulse_interval !== undefined ? `<div class="field"><label>Intervalo Pulso (ms)</label><input type="number" value="${s.pulse_interval}" onchange="config.skillsData['${name}'].pulse_interval = parseInt(this.value)"></div>` : ''}
                 ${s.heal_amount !== undefined ? `<div class="field"><label>Sanación Onda</label><input type="number" value="${s.heal_amount}" onchange="config.skillsData['${name}'].heal_amount = parseInt(this.value)"></div>` : ''}
                 ${s.taunt_duration !== undefined ? `<div class="field"><label>Duración Provocación (ms)</label><input type="number" value="${s.taunt_duration}" onchange="config.skillsData['${name}'].taunt_duration = parseInt(this.value)"></div>` : ''}
-
+                ${s.revive_hp_pct !== undefined ? `<div class="field"><label>Vida al Revivir (%)</label><input type="number" value="${s.revive_hp_pct}" onchange="config.skillsData['${name}'].revive_hp_pct = parseInt(this.value)"></div>` : ''}
+                ${s.revive_shield_pct !== undefined ? `<div class="field"><label>Escudo al Revivir (%)</label><input type="number" value="${s.revive_shield_pct}" onchange="config.skillsData['${name}'].revive_shield_pct = parseInt(this.value)"></div>` : ''}
             </div>
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.1); border-radius: 8px; padding: 12px;">
                 <label style="color:var(--accent); font-size: 0.6rem; font-weight:bold; display:flex; align-items:center; gap:5px; margin-bottom:1rem; letter-spacing: 1px; opacity: 0.8;">
@@ -1097,6 +1099,10 @@ function renderSkills() {
                     <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="this.querySelector('input').click()">
                         <input type="checkbox" style="width:14px; height:14px; cursor:pointer; accent-color:var(--accent);" ${s.targetFilters.players?'checked':''} onchange="config.skillsData['${name}'].targetFilters.players = this.checked" onclick="event.stopPropagation()">
                         <span style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:500;">Jugadores</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="this.querySelector('input').click()">
+                        <input type="checkbox" style="width:14px; height:14px; cursor:pointer; accent-color:var(--accent);" ${s.targetFilters.clan?'checked':''} onchange="config.skillsData['${name}'].targetFilters.clan = this.checked" onclick="event.stopPropagation()">
+                        <span style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:500;">Gente del Clan</span>
                     </div>
                 </div>
             </div>

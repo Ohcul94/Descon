@@ -171,6 +171,7 @@ func _render_spheres_library(tab):
 		{"path": "res://scripts/resources/skills/Skill_HyperDash.gd", "icon": "💨"},
 		{"path": "res://scripts/resources/skills/Skill_Invulnerability.gd", "icon": "🛡️"},
 		{"path": "res://scripts/resources/skills/Skill_Blink.gd", "icon": "✨"},
+		{"path": "res://scripts/resources/skills/Skill_Resurreccion.gd", "icon": "🕊️"},
 		{"path": "res://scripts/resources/skills/Skill_Stealth.gd", "icon": "👻"},
 		{"path": "res://scripts/resources/skills/Skill_ShieldCell.gd", "icon": "🛡️"},
 		{"path": "res://scripts/resources/skills/Skill_Fortress.gd", "icon": "🏰"},

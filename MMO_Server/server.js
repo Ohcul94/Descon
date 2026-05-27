@@ -452,7 +452,7 @@ fs.readJson(CONFIG_FILE).then(config => {
             }
         };
     }
-    if (!state.SERVER_CONFIG.skillsData["PROVOCACION"]) {
+	if (!state.SERVER_CONFIG.skillsData["PROVOCACION"]) {
         state.SERVER_CONFIG.skillsData["PROVOCACION"] = {
             "name": "PROVOCACION",
             "type": "Defensa",
@@ -466,6 +466,25 @@ fs.readJson(CONFIG_FILE).then(config => {
                 "enemies": true,
                 "bosses": true,
                 "players": false
+            }
+        };
+    }
+    if (!state.SERVER_CONFIG.skillsData["RESURRECCIÓN"]) {
+        state.SERVER_CONFIG.skillsData["RESURRECCIÓN"] = {
+            "name": "RESURRECCIÓN",
+            "type": "Utilidad",
+            "cd": 45000,
+            "revive_hp_pct": 50,
+            "revive_shield_pct": 20,
+            "range": 500,
+            "radius": 200,
+            "canTargetOthers": true,
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true,
+                "clan": true
             }
         };
     }

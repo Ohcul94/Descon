@@ -745,19 +745,35 @@ func save_progress():
 		"lastPos": {"x": global_position.x, "y": global_position.y}
 	})
 
-# Buscar clase de habilidad por nombre (v206.0 Internal Helper)
 func _find_skill_by_name(n: String):
 	if n == "": return null
 	var target_n = n.to_upper().strip_edges()
-	var skills = [
-		Skill_TurboImpulse, Skill_ShieldCell, Skill_RepairKit, Skill_Reflect,
-		Skill_PlasmaBlast, Skill_Fortress, Skill_RegenPath, Skill_HyperDash,
-		Skill_Invulnerability, Skill_Blink, Skill_SmokeBomb, Skill_Stealth,
-		Skill_AlphaRegen
-	]
-	for s in skills:
-		var inst = s.new()
-		if inst.skill_name.to_upper().strip_edges() == target_n: return inst
+	
+	var skill_paths = {
+		"TURBO-IMPULSO": "res://scripts/resources/skills/Skill_TurboImpulse.gd",
+		"ESCUDO CELULAR": "res://scripts/resources/skills/Skill_ShieldCell.gd",
+		"AUTO-REPARACIÓN": "res://scripts/resources/skills/Skill_RepairKit.gd",
+		"REFLECT-Ω": "res://scripts/resources/skills/Skill_Reflect.gd",
+		"PLASMA BLAST": "res://scripts/resources/skills/Skill_PlasmaBlast.gd",
+		"FORTALEZA-X": "res://scripts/resources/skills/Skill_Fortress.gd",
+		"NANO-REGENERACIÓN": "res://scripts/resources/skills/Skill_RegenPath.gd",
+		"HYPER-DASH": "res://scripts/resources/skills/Skill_HyperDash.gd",
+		"INVULNERABILIDAD": "res://scripts/resources/skills/Skill_Invulnerability.gd",
+		"BLINK": "res://scripts/resources/skills/Skill_Blink.gd",
+		"SMOKE-BOMB": "res://scripts/resources/skills/Skill_SmokeBomb.gd",
+		"STEALTH": "res://scripts/resources/skills/Skill_Stealth.gd",
+		"REGENERACIÓN ALFA": "res://scripts/resources/skills/Skill_AlphaRegen.gd",
+		"BARRERA DE VIENTO": "res://scripts/resources/skills/Skill_WindBarrier.gd",
+		"VÍNCULO VITAL": "res://scripts/resources/skills/Skill_VitalLink.gd",
+		"BALIZA DE CURACION": "res://scripts/resources/skills/Skill_HealBeacon.gd",
+		"PROVOCACION": "res://scripts/resources/skills/Skill_Provocacion.gd",
+		"RESURRECCIÓN": "res://scripts/resources/skills/Skill_Resurreccion.gd"
+	}
+	
+	if skill_paths.has(target_n):
+		var script = load(skill_paths[target_n])
+		if script:
+			return script.new()
 	return null
 
 

@@ -2888,7 +2888,8 @@
                 "allies": true,
                 "enemies": false,
                 "bosses": false,
-                "players": true
+                "players": true,
+                "clan": false
             }
         },
         "ESCUDO CELULAR": {
@@ -2950,7 +2951,8 @@
                 "allies": true,
                 "enemies": false,
                 "bosses": false,
-                "players": true
+                "players": true,
+                "clan": false
             }
         },
         "INVULNERABILIDAD": {
@@ -2965,7 +2967,8 @@
                 "allies": true,
                 "enemies": false,
                 "bosses": false,
-                "players": true
+                "players": true,
+                "clan": false
             }
         },
         "NANO-REGENERACIÓN": {
@@ -3078,7 +3081,8 @@
                 "allies": true,
                 "enemies": false,
                 "bosses": false,
-                "players": true
+                "players": true,
+                "clan": false
             }
         },
         "TURBO-IMPULSO": {
@@ -3092,9 +3096,29 @@
                 "allies": true,
                 "bosses": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "clan": false
             },
             "type": "Utilidad"
+        },
+        "RESURRECCIÓN": {
+            "name": "RESURRECCIÓN",
+            "type": "Utilidad",
+            "cd": 2000,
+            "revive_hp_pct": 50,
+            "revive_shield_pct": 20,
+            "range": 500,
+            "radius": 200,
+            "canTargetOthers": true,
+            "targetFilters": {
+                "allies": true,
+                "enemies": false,
+                "bosses": false,
+                "players": true,
+                "clan": true
+            },
+            "desc": "Canaliza un haz de energía en el área seleccionada para resucitar a los aliados caídos.",
+            "id": "SK-UTIL-06"
         }
     },
     "mechanicsLib": {

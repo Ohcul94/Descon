@@ -15,6 +15,9 @@ const VitalLinkSkill = require('./skills/VitalLinkSkill');
 const WindBarrierSkill = require('./skills/WindBarrierSkill');
 const HealBeaconSkill = require('./skills/HealBeaconSkill');
 const ProvocacionSkill = require('./skills/ProvocacionSkill');
+const ResurreccionSkill = require('./skills/ResurreccionSkill');
+
+// v301.4: Soporte unificado de habilidades de resurrección
 
 
 // v247.20: Registro de Habilidades Modulares
@@ -28,6 +31,7 @@ SkillManager.registerSkill(new VitalLinkSkill());
 SkillManager.registerSkill(new WindBarrierSkill());
 SkillManager.registerSkill(new HealBeaconSkill());
 SkillManager.registerSkill(new ProvocacionSkill());
+SkillManager.registerSkill(new ResurreccionSkill());
 
 
 // Habilidades de Curación/Soporte

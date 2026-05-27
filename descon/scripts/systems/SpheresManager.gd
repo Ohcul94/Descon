@@ -3,6 +3,7 @@ extends Node2D
 const SkillWindBarrierClass = preload("res://scripts/resources/skills/Skill_WindBarrier.gd")
 const SkillHealBeaconClass = preload("res://scripts/resources/skills/Skill_HealBeacon.gd")
 const SkillProvocacionClass = preload("res://scripts/resources/skills/Skill_Provocacion.gd")
+const SkillResurreccionClass = preload("res://scripts/resources/skills/Skill_Resurreccion.gd")
 
 
 var player = null
@@ -143,7 +144,8 @@ func equip_item(sphere_id, item_data):
 						"VÍNCULO VITAL": Skill_VitalLink,
 						"BARRERA DE VIENTO": SkillWindBarrierClass,
 						"BALIZA DE CURACION": SkillHealBeaconClass,
-						"PROVOCACION": SkillProvocacionClass
+						"PROVOCACION": SkillProvocacionClass,
+						"RESURRECCIÓN": SkillResurreccionClass
 					}
 
 					
