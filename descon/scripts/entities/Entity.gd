@@ -2027,10 +2027,10 @@ func _spawn_wreckage_marker():
 	label.custom_minimum_size = Vector2(300, 20)
 	marker.add_child(label)
 	
-	# Si es un enemigo, el marcador de naufragio dura solo 1000 ms para evitar polución visual
+	# Si es un enemigo, el marcador de naufragio dura solo 10000 ms para evitar polución visual
 	if is_in_group("enemies"):
 		var tw = marker.create_tween()
-		tw.tween_property(marker, "modulate:a", 0.0, 0.2).set_delay(0.8)
+		tw.tween_property(marker, "modulate:a", 0.0, 0.2).set_delay(9.8)
 		tw.finished.connect(marker.queue_free)
 
 func _clear_wreckage_marker():
