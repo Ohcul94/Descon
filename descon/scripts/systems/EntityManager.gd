@@ -463,6 +463,9 @@ func _on_enemy_updated(data):
 func _on_player_disconnected(id):
 	var sid = str(id)
 	if remote_players.has(sid):
+		# v301.6: Limpiar resto de naufragio del piloto desconectado
+		if remote_players[sid].has_method("_clear_wreckage_marker"):
+			remote_players[sid]._clear_wreckage_marker()
 		remote_players[sid].queue_free()
 		remote_players.erase(sid)
 
@@ -478,7 +481,14 @@ func clear_remote_players():
 		var drop = loot_drops[id]
 		if is_instance_valid(drop): drop.queue_free()
 	loot_drops.clear()
-	print("[EntityManager] Universo limpiado correctamente.")
+	
+	# v301.6: Limpiar todos los restos de naufragios del sector
+	if is_instance_valid(world) and is_instance_valid(world.get("entities_node")):
+		for child in world.entities_node.get_children():
+			if child.name.begins_with("Wreckage_"):
+				child.queue_free()
+				
+	print("[EntityManager] Universo y restos limpiados correctamente.")
 
 func _on_enemy_dead(data: Dictionary):
 	var id = str(data.get("id", ""))

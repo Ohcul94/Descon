@@ -155,6 +155,8 @@ function registerMovementHandlers(socket, io, state) {
     socket.on('playerRespawn', (respawnData) => {
         if (!players[socket.id]) return;
         const p = players[socket.id];
+        
+        const oldZone = p.zone;
         p.isDead = false;
         p.hp = respawnData.hp || p.maxHp || 1000;
         p.shield = respawnData.sh || p.maxShield || 500;
@@ -162,6 +164,41 @@ function registerMovementHandlers(socket, io, state) {
         p.y = respawnData.y || 2000;
         
         if (respawnData.zone) p.zone = Number(respawnData.zone);
+        const targetZone = p.zone;
+
+        if (oldZone !== targetZone) {
+            socket.leave(`zone_${oldZone}`);
+            socket.join(`zone_${targetZone}`);
+            
+            // Enviar lista de jugadores y enemigos de la nueva zona
+            setTimeout(() => {
+                const currentPlayersInZone = {};
+                Object.keys(players).forEach(pId => {
+                    const otherP = players[pId];
+                    if (normalizeZone(otherP.zone) === normalizeZone(targetZone) && pId !== socket.id) {
+                        currentPlayersInZone[pId] = {
+                            ...otherP,
+                            id: pId,
+                            zone: targetZone,
+                            maxHp: otherP.maxHp || 2000,
+                            maxShield: otherP.maxShield || 1000,
+                            spheres: otherP.spheres
+                        };
+                    }
+                });
+
+                const cleanEnemiesInZone = {};
+                Object.values(enemies).forEach(e => {
+                    if (normalizeZone(e.zone) === normalizeZone(targetZone)) {
+                        const { ai, ...data } = e;
+                        cleanEnemiesInZone[e.id] = data;
+                    }
+                });
+                
+                socket.emit('currentPlayers', currentPlayersInZone);
+                socket.emit('currentEnemies', cleanEnemiesInZone);
+            }, 350);
+        }
 
         const respawnPayload = { ...p, id: socket.id, isDead: false };
         socket.to(`zone_${p.zone}`).emit('newPlayer', respawnPayload);

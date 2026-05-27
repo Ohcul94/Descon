@@ -112,6 +112,12 @@ const handleUserLogin = async (socket, user, username) => {
             oldSocket.emit('authError', 'SESIÓN CERRADA: Se ha detectado un nuevo ingreso con esta cuenta.');
             oldSocket.disconnect();
         }
+        // v301.7: Purga física inmediata de la sesión y jugador anterior para evitar clones fantasmas en reconexiones rápidas
+        if (players[oldSocketId]) {
+            await savePlayerToDB(oldSocketId);
+            io.to(`zone_${players[oldSocketId].zone}`).emit('playerDisconnected', oldSocketId);
+            delete players[oldSocketId];
+        }
     }
     activeSessions.set(lowName, socket.id);
 
@@ -194,9 +200,9 @@ const handleUserLogin = async (socket, user, username) => {
         x: user.gameData.lastPos?.x || (user.gameData.zone === startZone ? 1000 : 2000),
         y: user.gameData.lastPos?.y || (user.gameData.zone === startZone ? 1000 : 2000),
         rotation: 0,
-        hp: user.gameData.hp || baseHp,
+        hp: (user.gameData.hp !== undefined) ? user.gameData.hp : baseHp,
         maxHp: baseHp,
-        shield: user.gameData.shield || baseSh,
+        shield: (user.gameData.shield !== undefined) ? user.gameData.shield : baseSh,
         maxShield: baseSh,
         level: user.gameData.level || 1,
         skillPoints: user.gameData.skillPoints || 0,
@@ -225,6 +231,7 @@ const handleUserLogin = async (socket, user, username) => {
         lastCombatTime: 0,
         clanId: user.gameData.clanId,
         isInvulnerable: false,
+        isDead: (user.gameData.hp !== undefined && user.gameData.hp <= 0),
         isAdmin: (user.username.toLowerCase() === "caelli94") // v266.700: Bypass Maestro
     };
 
@@ -500,21 +507,20 @@ fs.readJson(CONFIG_FILE).then(config => {
 // v262.100: FUNCIÓN MAESTRA DE PERSISTENCIA (Autoridad del Servidor)
 const savePlayerToDB = async (socketId) => {
     const p = players[socketId];
-    const socket = io.sockets.sockets.get(socketId);
-    if (!p || !socket || !socket.dbUser) return;
+    if (!p || !p.id) return;
 
     // v2.0: REGLA DE CONGELACIÓN - Si está en extracción, la DB no se toca hasta el éxito/muerte
     if (p.isExtracting) return;
 
     try {
         await User.updateOne(
-            { _id: socket.dbUser._id },
+            { _id: p.id },
             {
                 $set: {
                     "gameData.lastPos.x": Math.floor(p.x),
                     "gameData.lastPos.y": Math.floor(p.y),
-                    "gameData.hp": Math.ceil(p.hp || 0),
-                    "gameData.shield": Math.ceil(p.shield || 0),
+                    "gameData.hp": Math.ceil(p.hp !== undefined ? p.hp : 0),
+                    "gameData.shield": Math.ceil(p.shield !== undefined ? p.shield : 0),
                     "gameData.zone": (p.zone !== undefined ? p.zone : 1),
                     "gameData.ammo": p.ammo,
                     "gameData.selectedAmmo": p.selectedAmmo,

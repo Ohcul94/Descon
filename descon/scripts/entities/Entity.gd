@@ -1985,6 +1985,22 @@ func _spawn_wreckage_marker():
 	drawing.name = "Visual"
 	drawing.set_script(load("res://scripts/ui/WreckageDrawing.gd"))
 	marker.add_child(drawing)
+	
+	# v301.5: Mostrar etiqueta del piloto naufragado con transparencia suave
+	var label = Label.new()
+	var text_val = ""
+	if clan_tag.strip_edges() != "":
+		text_val = "[" + clan_tag.strip_edges() + "] " + username
+	else:
+		text_val = username
+	label.text = text_val
+	label.horizontal_alignment = 1 # HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = 1 # VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 9)
+	label.modulate = Color(0.7, 0.7, 0.7, 0.45) # 45% opacidad
+	label.position = Vector2(-150, 32)
+	label.custom_minimum_size = Vector2(300, 20)
+	marker.add_child(label)
 
 func _clear_wreckage_marker():
 	var world = get_tree().get_first_node_in_group("world_node")

@@ -270,6 +270,7 @@ func _on_body_entered(body):
 	if _has_hit: return
 	
 	if body.has_method("take_damage"):
+		if body.get("is_dead") == true: return
 		var body_eid = ""
 		if "entity_id" in body: body_eid = str(body.entity_id)
 		
