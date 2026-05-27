@@ -578,7 +578,7 @@ module.exports = class BaseAI {
                     duration: chargeTime + lockTime, 
                     angle: angle,
                     range: mech.fireRange || 800,
-                    targetId: target.id || target.socketId || "" // v266.730: Tracking en tiempo real
+                    targetId: target?.id || target?.socketId || "" // v266.730: Tracking en tiempo real
                 });
             } else if (state.isCharging && now > state.chargeEndTime) {
                 // FASE 2: BLOQUEO (Se detiene el apuntado, ventana de esquiva)
@@ -594,7 +594,7 @@ module.exports = class BaseAI {
                     duration: lockTime, 
                     angle: state.lockedAngle,
                     range: mech.fireRange || 800,
-                    targetId: target.id || target.socketId || ""
+                    targetId: target?.id || target?.socketId || ""
                 });
             } else if (state.isLocked && now > state.lockEndTime) {
                 // FASE 3: DISPARO (Sale el rayo)
@@ -604,7 +604,7 @@ module.exports = class BaseAI {
 
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
-                    targetId: target.id || target.socketId || "",
+                    targetId: target?.id || target?.socketId || "",
                     enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, 
                     angle: state.lockedAngle,
@@ -754,7 +754,7 @@ module.exports = class BaseAI {
 
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
-                    targetId: target.id || target.socketId || "",
+                    targetId: target?.id || target?.socketId || "",
                     enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
                     bulletSpeed: mech.bulletSpeed || 800, 

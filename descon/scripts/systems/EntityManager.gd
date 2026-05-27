@@ -65,13 +65,7 @@ func _process(delta):
 				if is_instance_valid(en):
 					var en_zone = en.get_meta("zone") if en.has_meta("zone") else -1
 					if en_zone != -1 and en_zone != my_zone:
-						en.set_meta("is_pooled", true)
-						en.visible = false
-						en.set_process(false)
-						en.set_physics_process(false)
-						if en.get("_collision_shape"):
-							en.get("_collision_shape").set_deferred("disabled", true)
-						if en.get("_ui_wrapper"): en.get("_ui_wrapper").visible = false
+						en.deactivate_for_pooling()
 						enemies.erase(eid)
 						print("[EntityManager SINC] Enemigo huérfano purgado por cambio de zona: ", eid)
 						
@@ -272,14 +266,7 @@ func _on_player_updated(data):
 func _get_enemy_from_pool() -> Node:
 	for en in enemy_pool:
 		if is_instance_valid(en) and en.get_meta("is_pooled", false):
-			en.set_meta("is_pooled", false)
-			en.is_dead = false
-			en.visible = true
-			en.set_process(true)
-			en.set_physics_process(true)
-			if en.get("_collision_shape"):
-				en.get("_collision_shape").set_deferred("disabled", false)
-			if en.get("_ui_wrapper"): en.get("_ui_wrapper").visible = true
+			en.activate_from_pool()
 			return en
 			
 	var en = ENEMY_SCENE.instantiate()
@@ -431,7 +418,7 @@ func _on_enemy_updated(data):
 			if enemies.has(id):
 				var old_en = enemies[id]
 				if is_instance_valid(old_en): 
-					old_en.set_meta("is_pooled", true); old_en.visible = false; old_en.set_process(false); old_en.set_physics_process(false)
+					old_en.deactivate_for_pooling()
 				enemies.erase(id)
 			return
 
@@ -475,7 +462,7 @@ func clear_remote_players():
 	remote_players.clear()
 	for id in enemies:
 		if is_instance_valid(enemies[id]): 
-			enemies[id].set_meta("is_pooled", true); enemies[id].visible = false; enemies[id].set_process(false); enemies[id].set_physics_process(false)
+			enemies[id].deactivate_for_pooling()
 	enemies.clear()
 	for id in loot_drops.keys():
 		var drop = loot_drops[id]
@@ -1014,7 +1001,7 @@ func _on_clear_zone_entities(payload):
 
 	for id in enemies:
 		if is_instance_valid(enemies[id]): 
-			enemies[id].set_meta("is_pooled", true); enemies[id].visible = false; enemies[id].set_process(false); enemies[id].set_physics_process(false)
+			enemies[id].deactivate_for_pooling()
 	enemies.clear()
 	
 	for id in remote_players:

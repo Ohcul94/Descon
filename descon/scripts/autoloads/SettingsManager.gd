@@ -30,6 +30,8 @@ var skill_aim_speed: float = 1.0   # Suavizado de apuntado de habilidades
 var mobile_mode: bool = false           # v266.670: Modo Celular MOBA
 var mobile_aim_sensitivity: float = 1.0 # v266.700: Sensibilidad de apuntado MOBA (profundidad)
 var mobile_invert_y: bool = true        # v266.760: Invertir eje Y en apuntado movil
+var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
+
 func _ready():
 	# v303.01: Soporte para argumentos de lanzamiento (--mobile)
 	for arg in OS.get_cmdline_user_args():
@@ -38,6 +40,7 @@ func _ready():
 			print("[SETTINGS] Forzando Modo Celular vía comando.")
 	
 	load_settings()
+	apply_fps_limit(fps_limit)
 	
 	# v303.02: Si iniciamos en modo celular, ajustar ventana inmediatamente
 	if mobile_mode:
@@ -71,6 +74,8 @@ func reset_to_factory():
 	mobile_mode = false
 	mobile_aim_sensitivity = 1.0
 	mobile_invert_y = true
+	fps_limit = 60
+	apply_fps_limit(60)
 	
 	save_settings()
 	# Forzar actualización de HUD
@@ -84,6 +89,7 @@ func save_settings():
 		
 	config_file.set_value("combat", "cast_mode", cast_mode_cache)
 	config_file.set_value("graphics", "quality", graphics_quality)
+	config_file.set_value("graphics", "fps_limit", fps_limit)
 	config_file.set_value("accessibility", "hit_flash", hit_flash_enabled)
 	config_file.set_value("accessibility", "camera_shake", camera_shake_enabled)
 	config_file.set_value("accessibility", "camera_shake_intensity", camera_shake_intensity)
@@ -118,6 +124,7 @@ func load_settings():
 	if err == OK:
 		cast_mode_cache = config_file.get_value("combat", "cast_mode", 1)
 		graphics_quality = config_file.get_value("graphics", "quality", 1)
+		fps_limit = config_file.get_value("graphics", "fps_limit", 60)
 		hit_flash_enabled = config_file.get_value("accessibility", "hit_flash", true)
 		camera_shake_enabled = config_file.get_value("accessibility", "camera_shake", true)
 		camera_shake_intensity = config_file.get_value("accessibility", "camera_shake_intensity", 1.0)
@@ -132,6 +139,7 @@ func load_settings():
 	else:
 		cast_mode_cache = 1
 		graphics_quality = 1
+		fps_limit = 60
 		hit_flash_enabled = true
 		camera_shake_enabled = true
 		camera_shake_intensity = 1.0
@@ -143,6 +151,16 @@ func load_settings():
 		mobile_aim_sensitivity = 1.0
 		mobile_invert_y = true
 		print("[SETTINGS] Usando configuración por defecto.")
+
+func apply_fps_limit(limit: int):
+	fps_limit = limit
+	Engine.max_fps = limit
+	# Si es de 90 o 120 FPS y estamos en PC, desactivar vsync para poder superar los 60 hz si es que la pantalla no da más
+	if limit > 60:
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	else:
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
+	print("[SETTINGS] Límite de FPS aplicado: ", limit, " (VSync: ", "OFF" if limit > 60 else "ON", ")")
 
 func _apply_key_to_inputmap(action: String, val):
 	if not InputMap.has_action(action): InputMap.add_action(action)

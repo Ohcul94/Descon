@@ -305,6 +305,30 @@ func _setup_ui():
 	
 	gfx_vbox.add_child(HSeparator.new())
 	
+	# LÍMITE DE FPS
+	var fps_lbl = Label.new()
+	fps_lbl.text = "LÍMITE DE FPS:"
+	gfx_vbox.add_child(fps_lbl)
+	
+	var fps_option = OptionButton.new()
+	fps_option.add_item("30 FPS", 0)
+	fps_option.add_item("60 FPS (Por Defecto)", 1)
+	fps_option.add_item("90 FPS", 2)
+	fps_option.add_item("120 FPS", 3)
+	
+	var fps_idx = 1
+	if get_node_or_null("/root/SettingsManager"):
+		match SettingsManager.fps_limit:
+			30: fps_idx = 0
+			60: fps_idx = 1
+			90: fps_idx = 2
+			120: fps_idx = 3
+	fps_option.selected = fps_idx
+	fps_option.item_selected.connect(_on_fps_limit_changed)
+	gfx_vbox.add_child(fps_option)
+	
+	gfx_vbox.add_child(HSeparator.new())
+	
 	# v2.9: Estilo para Checkboxes (Reborde visible SOLO en la caja)
 	var check_style = StyleBoxFlat.new()
 	check_style.bg_color = Color(0.1, 0.1, 0.1, 0.8)
@@ -536,6 +560,17 @@ func _on_graphics_quality_changed(idx: int):
 					ent._setup_enemy_visuals()
 				elif (ent.is_in_group("player") or ent.is_in_group("remote_players")) and ent.has_method("_setup_ship_visuals"):
 					ent._setup_ship_visuals()
+
+func _on_fps_limit_changed(idx: int):
+	var fps = 60
+	match idx:
+		0: fps = 30
+		1: fps = 60
+		2: fps = 90
+		3: fps = 120
+	if get_node_or_null("/root/SettingsManager"):
+		SettingsManager.apply_fps_limit(fps)
+		SettingsManager.save_settings()
 
 func close():
 	SettingsManager.save_settings()

@@ -1964,6 +1964,31 @@ func _exit_tree():
 	if is_instance_valid(world_root_3d):
 		world_root_3d.queue_free()
 
+func deactivate_for_pooling():
+	set_meta("is_pooled", true)
+	visible = false
+	set_process(false)
+	set_physics_process(false)
+	if _collision_shape:
+		_collision_shape.set_deferred("disabled", true)
+	if is_instance_valid(_ui_wrapper):
+		_ui_wrapper.visible = false
+	if is_instance_valid(world_root_3d):
+		world_root_3d.visible = false
+
+func activate_from_pool():
+	set_meta("is_pooled", false)
+	is_dead = false
+	visible = true
+	set_process(true)
+	set_physics_process(true)
+	if _collision_shape:
+		_collision_shape.set_deferred("disabled", false)
+	if is_instance_valid(_ui_wrapper):
+		_ui_wrapper.visible = true
+	if is_instance_valid(world_root_3d):
+		world_root_3d.visible = true
+
 # v306.4: Reconstruir visuales 3D al cambiar de mapa para re-ubicarse en el nuevo Viewport global
 func rebuild_3d_layout():
 	if is_in_group("enemies"):
@@ -2001,6 +2026,12 @@ func _spawn_wreckage_marker():
 	label.position = Vector2(-150, 32)
 	label.custom_minimum_size = Vector2(300, 20)
 	marker.add_child(label)
+	
+	# Si es un enemigo, el marcador de naufragio dura solo 1000 ms para evitar polución visual
+	if is_in_group("enemies"):
+		var tw = marker.create_tween()
+		tw.tween_property(marker, "modulate:a", 0.0, 0.2).set_delay(0.8)
+		tw.finished.connect(marker.queue_free)
 
 func _clear_wreckage_marker():
 	var world = get_tree().get_first_node_in_group("world_node")
