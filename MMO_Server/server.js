@@ -54,9 +54,10 @@ const HordeManager = require('./events/HordeManager');
 const { calculateFinalStats } = require('./systems/statCalculator'); // v266.135: Sistema de Stats Dinámicos
 const extractionManager = require('./systems/extractionManager');
 const lootManager = require('./systems/lootManager');
+const altarDefenseManager = require('./systems/altarDefenseManager');
 
 
-// Configuraci├│n
+// Configuración
 const PORT = process.env.PORT || 3333;
 const CONFIG_FILE = path.join(__dirname, 'config.json');
 
@@ -87,6 +88,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 const state = require('./state');
 const { players, activeSessions, enemies, activeAreas, parties, playerParty } = state;
 
+// v370.0: Almacenamiento de invitaciones activas de Defensa del Altar
+const altarDefenseInvites = new Map();
+
 // v1.4: Inicialización de Sistemas Maestros
 const aiManager = new AIManager(io, state, null);
 const hordeManager = new HordeManager(io, (...args) => aiManager.serverSpawnEnemy(...args), enemies);
@@ -94,6 +98,7 @@ aiManager.hordeManager = hordeManager;
 
 // v1.5: Inicio del Corazón del Servidor
 extractionManager.init(io, state, aiManager);
+altarDefenseManager.init(io, state, aiManager);
 startGameLoop(io, state, aiManager);
 lootManager.startCleanupTimer(io, state);
 
@@ -352,7 +357,7 @@ const handleUserLogin = async (socket, user, username) => {
     const cleanEnemiesInZone = {};
     Object.values(enemies).forEach(e => {
         if (e.zone === userZone) {
-            const { ai, ...data } = e;
+            const { ai, _hookSafetyTimeout, ...data } = e;
             cleanEnemiesInZone[e.id] = data;
         }
     });
@@ -1269,7 +1274,7 @@ io.on('connection', (socket) => {
                 const pid = playerParty[uid];
                 if (parties[pid]) {
                     // Solo marcar como desconectado, NO borrar del grupo
-                    io.emit('chatMessage', { sender: 'SYSTEM', msg: `${username.toUpperCase()} OFFLINE.`, channel: 'team', senderId: 'server' });
+                    io.emit('chatMessage', { sender: 'SYSTEM', msg: `${p.user.toUpperCase()} OFFLINE.`, channel: 'team', senderId: 'server' });
                 }
             }
         }
@@ -1452,6 +1457,238 @@ io.on('connection', (socket) => {
             
         } catch (e) {
             console.error("Error en kickFromParty:", e);
+        }
+    });
+
+    // ==========================================
+    // SISTEMA DE DEFENSA DEL ALTAR
+    // ==========================================
+    
+    function cancelAltarDefenseInvite(partyId, reason) {
+        const invite = altarDefenseInvites.get(partyId);
+        if (invite) {
+            if (invite.timeoutTimer) clearTimeout(invite.timeoutTimer);
+            invite.membersList.forEach(mUid => {
+                const targetSocketId = Object.keys(players).find(sid => players[sid].id === mUid);
+                if (targetSocketId) {
+                    io.to(targetSocketId).emit('altarDefenseCancelled', { reason: reason });
+                }
+            });
+            altarDefenseInvites.delete(partyId);
+        }
+    }
+
+    async function warpPartyToAltarDefense(membersList) {
+        try {
+            const altarDefenseConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense;
+            const targetZoneId = (altarDefenseConfig && altarDefenseConfig.maps && altarDefenseConfig.maps[0]) ? parseInt(altarDefenseConfig.maps[0]) : 9;
+
+            // Iniciar la partida en el AltarDefenseManager de forma autoritativa
+            altarDefenseManager.startMatch(targetZoneId, membersList);
+
+            const spawnPoints = (altarDefenseConfig && altarDefenseConfig.spawnPoints && altarDefenseConfig.spawnPoints.length > 0) 
+                ? altarDefenseConfig.spawnPoints 
+                : [{ x: 5000, y: 5000 }];
+
+            let spawnIdx = 0;
+            for (const mUid of membersList) {
+                const targetSocket = [...io.sockets.sockets.values()].find(s => {
+                    const p = players[s.id];
+                    return p && p.id === mUid;
+                });
+                if (targetSocket) {
+                    targetSocket.emit('altarDefenseSuccess', {});
+
+                    const p = players[targetSocket.id];
+                    if (p) {
+                        const oldZone = p.zone;
+                        const spawn = spawnPoints[spawnIdx % spawnPoints.length];
+                        const targetX = spawn ? parseInt(spawn.x) : 5000;
+                        const targetY = spawn ? parseInt(spawn.y) : 5000;
+                        spawnIdx++;
+
+                        if (Number(oldZone) !== Number(targetZoneId)) {
+                            await User.updateOne({ _id: p.id }, { $set: { "gameData.zone": targetZoneId } });
+
+                            targetSocket.leave(`zone_${oldZone}`);
+                            targetSocket.join(`zone_${targetZoneId}`);
+
+                            p.zone = targetZoneId;
+                            p.x = targetX;
+                            p.y = targetY;
+
+                            targetSocket.emit('changeZoneDone', { zoneId: targetZoneId, x: targetX, y: targetY });
+                            targetSocket.to(`zone_${oldZone}`).emit('playerDisconnected', targetSocket.id);
+
+                            const currentPlayersInZone = {};
+                            Object.keys(players).forEach(pId => {
+                                const otherP = players[pId];
+                                if (normalizeZone(otherP.zone) === normalizeZone(targetZoneId) && pId !== targetSocket.id) {
+                                    currentPlayersInZone[pId] = {
+                                        id: pId,
+                                        user: otherP.user,
+                                        x: otherP.x,
+                                        y: otherP.y,
+                                        hp: otherP.hp,
+                                        maxHp: otherP.maxHp,
+                                        sh: otherP.sh || otherP.shield,
+                                        maxSh: otherP.maxSh || otherP.maxShield,
+                                        zone: otherP.zone,
+                                        spheres: otherP.spheres || [],
+                                        clanTag: otherP.clanTag || ""
+                                    };
+                                }
+                            });
+
+                            const zoneEnemies = {};
+                            Object.keys(enemies).forEach(id => {
+                                const e = enemies[id];
+                                if (normalizeZone(e.zone) === normalizeZone(targetZoneId)) {
+                                    zoneEnemies[id] = {
+                                        id: id,
+                                        type: e.type,
+                                        x: e.x,
+                                        y: e.y,
+                                        hp: e.hp,
+                                        maxHp: e.maxHp,
+                                        sh: e.sh || e.shield
+                                    };
+                                }
+                            });
+
+                            setTimeout(() => {
+                                if (targetSocket.connected) {
+                                    targetSocket.emit('currentPlayers', currentPlayersInZone);
+                                    targetSocket.emit('currentEnemies', zoneEnemies);
+                                }
+                            }, 400);
+
+                            targetSocket.to(`zone_${targetZoneId}`).emit('newPlayer', {
+                                id: targetSocket.id,
+                                user: p.user,
+                                x: p.x,
+                                y: p.y,
+                                hp: p.hp,
+                                maxHp: p.maxHp,
+                                sh: p.sh || p.shield,
+                                maxSh: p.maxSh || p.maxShield,
+                                zone: p.zone,
+                                spheres: p.spheres || [],
+                                clanTag: p.clanTag || ""
+                            });
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Error warpeando party a Defensa del Altar:", err);
+        }
+    }
+
+    socket.on('registerAltarDefenseParty', () => {
+        try {
+            if (!socket.dbUser || !players[socket.id]) return;
+            const myUid = socket.dbUser._id.toString();
+            const partyId = playerParty[myUid];
+
+            if (!partyId || !parties[partyId]) {
+                return socket.emit('gameNotification', { msg: 'DEBES ESTAR EN UN GRUPO PARA REGISTRARTE', type: 'error' });
+            }
+
+            // Validar que sea el líder
+            if (partyId !== myUid) {
+                return socket.emit('gameNotification', { msg: 'SOLO EL LÍDER DEL GRUPO PUEDE INSCRIBIR AL GRUPO', type: 'error' });
+            }
+
+            const party = parties[partyId];
+            
+            // Limpiar cualquier invitación previa pendiente para esta party
+            if (altarDefenseInvites.has(partyId)) {
+                const prev = altarDefenseInvites.get(partyId);
+                if (prev.timeoutTimer) clearTimeout(prev.timeoutTimer);
+                altarDefenseInvites.delete(partyId);
+            }
+
+            const timeoutMs = (state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense && state.SERVER_CONFIG.gameModes.altar_defense.partyAcceptTimeout) || 10000;
+
+            if (party.members.length <= 1) {
+                // Éxito directo si solo está el líder (warpearlo directo)
+                return warpPartyToAltarDefense([myUid]);
+            }
+
+            // Crear invitación en memoria
+            const inviteState = {
+                partyId: partyId,
+                leaderId: myUid,
+                leaderName: socket.dbUser.username.toUpperCase(),
+                acceptedMembers: new Set([myUid]),
+                totalMembers: party.members.length,
+                membersList: [...party.members],
+                timeoutTimer: setTimeout(() => {
+                    cancelAltarDefenseInvite(partyId, "Tiempo de espera agotado.");
+                }, timeoutMs)
+            };
+
+            altarDefenseInvites.set(partyId, inviteState);
+
+            // Notificar a todos los miembros de la party (excepto el líder)
+            party.members.forEach(mUid => {
+                if (mUid !== myUid) {
+                    const targetSocketId = Object.keys(players).find(sid => players[sid].id === mUid);
+                    if (targetSocketId) {
+                        io.to(targetSocketId).emit('altarDefenseInvitation', {
+                            timeoutMs: timeoutMs,
+                            leaderName: socket.dbUser.username.toUpperCase()
+                        });
+                    }
+                }
+            });
+
+            socket.emit('gameNotification', { msg: 'INVITACIONES ENVIADAS AL GRUPO', type: 'info' });
+
+        } catch (e) {
+            console.error("Error en registerAltarDefenseParty:", e);
+        }
+    });
+
+    socket.on('acceptAltarDefenseInvite', () => {
+        try {
+            if (!socket.dbUser) return;
+            const myUid = socket.dbUser._id.toString();
+            const partyId = playerParty[myUid];
+
+            if (!partyId) return;
+            const invite = altarDefenseInvites.get(partyId);
+            if (!invite || !invite.membersList.includes(myUid)) return;
+
+            invite.acceptedMembers.add(myUid);
+
+            if (invite.acceptedMembers.size === invite.totalMembers) {
+                if (invite.timeoutTimer) clearTimeout(invite.timeoutTimer);
+                
+                // Teletransportar a todo el grupo al evento
+                warpPartyToAltarDefense(invite.membersList);
+
+                altarDefenseInvites.delete(partyId);
+            }
+        } catch (e) {
+            console.error("Error en acceptAltarDefenseInvite:", e);
+        }
+    });
+
+    socket.on('rejectAltarDefenseInvite', () => {
+        try {
+            if (!socket.dbUser) return;
+            const myUid = socket.dbUser._id.toString();
+            const partyId = playerParty[myUid];
+
+            if (!partyId) return;
+            const invite = altarDefenseInvites.get(partyId);
+            if (!invite) return;
+
+            cancelAltarDefenseInvite(partyId, `Inscripción rechazada por ${socket.dbUser.username.toUpperCase()}`);
+        } catch (e) {
+            console.error("Error en rejectAltarDefenseInvite:", e);
         }
     });
 });

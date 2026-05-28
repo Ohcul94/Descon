@@ -1623,6 +1623,21 @@ function renderModes() {
             arenas: { enabled: true, maps: [], minPlayers: 2 }
         };
     }
+    if (!config.gameModes.altar_defense) {
+        config.gameModes.altar_defense = {
+            enabled: true,
+            maxPlayers: 4,
+            altarHp: 10000,
+            altarShield: 5000,
+            maps: [],
+            altarPos: { x: 5000, y: 5000 },
+            spawnPoints: [],
+            spawners: [],
+            waves: [],
+            width: 10000,
+            height: 10000
+        };
+    }
 
     const content = document.getElementById('modes-content');
     if (!content) return;
@@ -1878,6 +1893,264 @@ function renderModes() {
                             </div>
                             <div id="radar-extract-opts" style="display:${radarMode === 'extract' ? 'block' : 'none'}">
                                 <div class="field" style="margin-top:10px;"><label>Etiqueta</label><input type="text" id="radar-label" value="Punto Nuevo"></div>
+                            </div>
+                            <button class="btn btn-primary" style="width:100%; margin-top:20px; padding:15px; font-weight:bold;" onclick="addFromRadar()">FIJAR EN EL MAPA</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        setTimeout(initRadar, 100);
+    } else if (currentModeTab === 'altar_defense') {
+        const ad = config.gameModes.altar_defense;
+        if (!ad.maxPlayers) ad.maxPlayers = 4;
+        if (!ad.altarHp) ad.altarHp = 10000;
+        if (!ad.altarShield) ad.altarShield = 5000;
+        if (!ad.partyAcceptTimeout) ad.partyAcceptTimeout = 10000;
+        if (ad.waveInterval === undefined) ad.waveInterval = 30000;
+        if (ad.spawnLockTime === undefined) ad.spawnLockTime = 10000;
+        if (ad.matchDuration === undefined) ad.matchDuration = 600000;
+        if (ad.loseLootOnDeath === undefined) ad.loseLootOnDeath = true;
+        if (!ad.maps) ad.maps = [];
+        if (!ad.altarPos) ad.altarPos = { x: 5000, y: 5000 };
+        if (!ad.spawnPoints) ad.spawnPoints = [];
+        if (!ad.spawners) ad.spawners = [];
+        if (!ad.exitPortals) ad.exitPortals = [];
+        if (!ad.waves) ad.waves = [];
+
+        content.innerHTML = `
+            <div style="grid-column: 1 / -1; display:flex; flex-direction:column; gap:20px; width:100%; padding-bottom:40px;">
+                
+                <!-- NIVEL 1: REGLAS Y MAPAS -->
+                <div style="display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px;">
+                    <!-- REGLAS MAESTRAS -->
+                    <div class="card" style="margin:0;">
+                        <h3 style="color:var(--primary); margin-bottom: 0.5rem;">🛡️ DEFENSA DEL ALTAR (REGLAS MAESTRAS)</h3>
+                        <p style="opacity:0.7; margin-bottom:1.5rem;">Configura las reglas básicas y temporizadores del modo de juego.</p>
+                        <div class="form-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                            <div class="field"><label>Estado</label>
+                                <select onchange="config.gameModes.altar_defense.enabled = this.value === 'true'">
+                                    <option value="true" ${ad.enabled ? 'selected' : ''}>ACTIVO</option>
+                                    <option value="false" ${!ad.enabled ? 'selected' : ''}>DESACTIVADO</option>
+                                </select>
+                            </div>
+                            <div class="field"><label>Máx. Pilotos Party</label><input type="number" value="${ad.maxPlayers}" onchange="config.gameModes.altar_defense.maxPlayers = parseInt(this.value)"></div>
+                            <div class="field"><label>Vida del Altar</label><input type="number" value="${ad.altarHp}" onchange="config.gameModes.altar_defense.altarHp = parseInt(this.value)"></div>
+                            <div class="field"><label>Escudo del Altar</label><input type="number" value="${ad.altarShield}" onchange="config.gameModes.altar_defense.altarShield = parseInt(this.value)"></div>
+                            
+                            <div class="field"><label>Tiempo Aceptar (ms)</label><input type="number" step="1000" value="${ad.partyAcceptTimeout}" onchange="config.gameModes.altar_defense.partyAcceptTimeout = parseInt(this.value)"></div>
+                            <div class="field"><label>Intervalo Oleadas (ms)</label><input type="number" step="1000" value="${ad.waveInterval}" onchange="config.gameModes.altar_defense.waveInterval = parseInt(this.value)"></div>
+                            <div class="field"><label>Bloqueo de Spawn (ms)</label><input type="number" step="1000" value="${ad.spawnLockTime}" onchange="config.gameModes.altar_defense.spawnLockTime = parseInt(this.value)"></div>
+                            <div class="field"><label>Duración Partida (ms)</label><input type="number" step="5000" value="${ad.matchDuration}" onchange="config.gameModes.altar_defense.matchDuration = parseInt(this.value)"></div>
+                            
+                            <div class="field" style="grid-column: span 4; display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.02); padding: 10px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-top: 5px;">
+                                <label style="margin: 0; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; color: var(--text);">
+                                    <input type="checkbox" ${ad.loseLootOnDeath ? 'checked' : ''} onchange="config.gameModes.altar_defense.loseLootOnDeath = this.checked" style="width: 18px; height: 18px; cursor: pointer;">
+                                    💀 Perder Loot al morir (Modo Hardcore)
+                                </label>
+                                <span style="font-size: 0.75rem; opacity: 0.6; flex: 1;">Si está desactivado, los jugadores mantendrán su loot temporal al morir o fallar (ideal para aprender las mecánicas).</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MAPAS HABILITADOS -->
+                    <div class="card" style="margin:0;">
+                        <h3 style="color:var(--primary); margin-bottom: 0.5rem;">🗺️ MAPAS PARA DEFENSA DEL ALTAR</h3>
+                        <p style="opacity:0.6; margin-bottom:1.5rem;">Selecciona los mapas donde se habilitará esta mecánica.</p>
+                        <div style="display:flex; gap:10px; margin-bottom:15px;">
+                            <select id="add-ad-map-select" style="font-size:0.8rem; flex:1;">
+                                ${Object.keys(config.mapsConfig).map(id => `<option value="${id}">${config.mapsConfig[id].name}</option>`).join('')}
+                            </select>
+                            <button class="btn btn-primary" style="padding:4px 15px; font-size:0.7rem;" onclick="addAltarDefenseMap()">+ AÑADIR MAPA</button>
+                        </div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px; max-height:140px; overflow-y:auto;">
+                            ${ad.maps.map((mapId, idx) => `
+                                <div style="background:rgba(255,255,255,0.05); padding:6px 12px; border-radius:20px; border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; gap:10px; font-size:0.75rem;">
+                                    <span>${config.mapsConfig[mapId]?.name || 'ID '+mapId}</span>
+                                    <button onclick="config.gameModes.altar_defense.maps.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NIVEL 2: CONFIGURACIÓN DE POSICIONAMIENTOS -->
+                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
+                    <!-- ALTAR POSITION -->
+                    <div class="card" style="margin:0; border-top: 3px solid var(--success);">
+                        <h4 style="color:var(--success); margin-bottom:1rem;">🏛️ POSICIÓN DEL ALTAR</h4>
+                        <p style="opacity:0.6; font-size:0.75rem; margin-bottom:15px;">Coordenadas centrales del altar a defender.</p>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 10px;">
+                            <div class="field"><label>Coord X</label><input type="number" id="ad-altar-x" value="${ad.altarPos.x}" onchange="config.gameModes.altar_defense.altarPos.x = parseInt(this.value); renderModes();"></div>
+                            <div class="field"><label>Coord Y</label><input type="number" id="ad-altar-y" value="${ad.altarPos.y}" onchange="config.gameModes.altar_defense.altarPos.y = parseInt(this.value); renderModes();"></div>
+                        </div>
+                        <div style="text-align:center; font-size:0.7rem; color:var(--success); opacity:0.8;">
+                            Usa el Radar de Posicionamiento para reubicarlo arrastrando su estrella o haciendo clic.
+                        </div>
+                    </div>
+
+                    <!-- SPAWN POINTS (PLAYERS) -->
+                    <div class="card" style="margin:0; border-top: 3px solid var(--accent);">
+                        <h4 style="color:var(--accent); margin-bottom:1rem;">📍 SPAWN DE JUGADORES</h4>
+                        <div style="display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; padding-right:5px;">
+                            ${(ad.spawnPoints || []).map((p, idx) => `
+                                <div id="card-ad-spawn-${idx}" onclick="highlightCard('ad-spawn', ${idx})" style="background:rgba(6,182,212,0.05); border:1px solid rgba(6,182,212,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease; cursor:pointer;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                        <input type="text" value="${p.label || 'Punto #'+(idx+1)}" onchange="config.gameModes.altar_defense.spawnPoints[${idx}].label = this.value" style="background:none; border:none; color:var(--accent); font-weight:bold; font-size:0.7rem; width:70%;">
+                                        <button onclick="config.gameModes.altar_defense.spawnPoints.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                                        <div class="field"><label>X</label><input type="number" id="ad-spw-x-${idx}" value="${p.x}" onchange="config.gameModes.altar_defense.spawnPoints[${idx}].x = parseInt(this.value)"></div>
+                                        <div class="field"><label>Y</label><input type="number" id="ad-spw-y-${idx}" value="${p.y}" onchange="config.gameModes.altar_defense.spawnPoints[${idx}].y = parseInt(this.value)"></div>
+                                    </div>
+                                    <div class="field" style="margin-top:5px;"><label>Radio Burbuja</label><input type="number" value="${p.radius || 200}" onchange="config.gameModes.altar_defense.spawnPoints[${idx}].radius = parseInt(this.value)"></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- AMENAZAS / ENEMIGOS -->
+                    <div class="card" style="margin:0; border-top: 3px solid var(--danger);">
+                        <h4 style="color:var(--danger); margin-bottom:1rem;">👾 SPAWNERS DE ENEMIGOS</h4>
+                        <div style="display:flex; flex-direction:column; gap:10px; max-height:280px; overflow-y:auto; padding-right:5px;">
+                            ${(ad.spawners || []).map((s, idx) => `
+                                <div id="card-ad-spawner-${idx}" onclick="highlightCard('ad-spawner', ${idx})" style="background:rgba(255,49,49,0.05); border:1px solid rgba(255,49,49,0.2); border-radius:8px; padding:10px; overflow: visible; transition: all 0.3s ease; cursor:pointer;">
+                                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px; overflow: visible;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                                            <input type="text" value="${s.label || 'Zona '+ (idx+1)}" onchange="config.gameModes.altar_defense.spawners[${idx}].label = this.value; renderModes();" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:0.75rem; width:85%;">
+                                            <button onclick="config.gameModes.altar_defense.spawners.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+                                        </div>
+                                        <div style="overflow: visible; width: 100%;">
+                                            ${renderSearchableEnemySelect(s.enemyId, (newId) => {
+                                                config.gameModes.altar_defense.spawners[idx].enemyId = newId;
+                                                renderModes();
+                                            }, 'var(--danger)', `ad-spawn-${idx}`)}
+                                        </div>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                                        <div class="field"><label>Cant.</label><input type="number" value="${s.count}" onchange="config.gameModes.altar_defense.spawners[${idx}].count = parseInt(this.value)"></div>
+                                        <div class="field"><label>Radio</label><input type="number" value="${s.radius}" onchange="config.gameModes.altar_defense.spawners[${idx}].radius = parseInt(this.value)"></div>
+                                        <div class="field"><label>Coord X</label><input type="number" id="ad-sp-x-${idx}" value="${s.x}" onchange="config.gameModes.altar_defense.spawners[${idx}].x = parseInt(this.value)"></div>
+                                        <div class="field"><label>Coord Y</label><input type="number" id="ad-sp-y-${idx}" value="${s.y}" onchange="config.gameModes.altar_defense.spawners[${idx}].y = parseInt(this.value)"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- PUERTAS DE ESCAPE (PORTALS) -->
+                    <div class="card" style="margin:0; border-top: 3px solid #00d2ff;">
+                        <h4 style="color:#00d2ff; margin-bottom:1rem;">🚪 PUERTAS DE ESCAPE (LOBBY)</h4>
+                        <div style="display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; padding-right:5px;">
+                            ${(ad.exitPortals || []).map((ep, idx) => `
+                                <div id="card-ad-portal-${idx}" onclick="highlightCard('ad-portal', ${idx})" style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease; cursor:pointer;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                        <input type="text" value="${ep.label || 'Puerta #'+(idx+1)}" onchange="config.gameModes.altar_defense.exitPortals[${idx}].label = this.value" style="background:none; border:none; color:#00d2ff; font-weight:bold; font-size:0.7rem; width:70%;">
+                                        <button onclick="config.gameModes.altar_defense.exitPortals.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
+                                    </div>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                                        <div class="field"><label>Coord X</label><input type="number" id="ad-pt-x-${idx}" value="${ep.x}" onchange="config.gameModes.altar_defense.exitPortals[${idx}].x = parseInt(this.value)"></div>
+                                        <div class="field"><label>Coord Y</label><input type="number" id="ad-pt-y-${idx}" value="${ep.y}" onchange="config.gameModes.altar_defense.exitPortals[${idx}].y = parseInt(this.value)"></div>
+                                    </div>
+                                    <div class="field" style="margin-top:5px;"><label>Radio Proximidad</label><input type="number" value="${ep.radius || 150}" onchange="config.gameModes.altar_defense.exitPortals[${idx}].radius = parseInt(this.value)"></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NIVEL 3: CONFIGURACIÓN DE OLEADAS (WAVES) -->
+                <div class="card" style="margin:0; border-top: 3px solid var(--accent);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                        <h4 style="color:var(--accent); margin:0;">🌊 CONFIGURACIÓN DE OLEADAS (WAVES)</h4>
+                        <button class="btn btn-primary" style="padding: 5px 20px; font-size:0.75rem;" onclick="addAltarDefenseWave()">+ AÑADIR OLEADA</button>
+                    </div>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:20px; max-height:400px; overflow-y:auto; padding-right:5px;">
+                        ${ad.waves.map((w, idx) => `
+                            <div class="card" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:15px; margin:0; position:relative; overflow: visible;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                    <input type="text" value="${w.name || 'Oleada ' + (idx + 1)}" onchange="config.gameModes.altar_defense.waves[${idx}].name = this.value" style="background:none; border:none; color:var(--primary); font-weight:bold; font-size:0.95rem; width:80%;">
+                                    <button onclick="config.gameModes.altar_defense.waves.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:1.1rem;">✕</button>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:10px; overflow: visible;">
+                                    <div style="overflow: visible; width: 100%;">
+                                        <label style="font-size:0.7rem; color:var(--text-dim); display:block; margin-bottom:4px;">Enemigo a Spawnear</label>
+                                        ${renderSearchableEnemySelect(w.enemyId || '1', (newId) => {
+                                            config.gameModes.altar_defense.waves[idx].enemyId = newId;
+                                        }, 'var(--primary)', `ad-wave-${idx}`)}
+                                    </div>
+                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                                        <div class="field"><label>Cantidad</label><input type="number" value="${w.count || 10}" onchange="config.gameModes.altar_defense.waves[${idx}].count = parseInt(this.value)"></div>
+                                        <div class="field"><label>Delay (ms)</label><input type="number" step="1000" value="${w.delayMs || 5000}" onchange="config.gameModes.altar_defense.waves[${idx}].delayMs = parseInt(this.value)"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- NIVEL 4: RADAR GLOBAL -->
+                <div class="card" style="margin:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                        <div style="display:flex; align-items:center; gap:20px;">
+                            <h4 style="color:var(--primary); margin:0;">🛰️ RADAR DE POSICIONAMIENTO GLOBAL (ALTAR)</h4>
+                            <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); padding:4px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                                <label style="font-size:0.65rem; color:var(--accent); font-weight:bold; letter-spacing:1px; margin:0;">DIMENSIONES MUNDO (PX):</label>
+                                <div style="display:flex; align-items:center; gap:5px;">
+                                    <span style="font-size:0.65rem; opacity:0.6;">W:</span>
+                                    <input type="number" value="${ad.width || 10000}" 
+                                           onchange="config.gameModes.altar_defense.width = parseInt(this.value); renderModes();" 
+                                           style="width:70px; background:rgba(0,0,0,0.3); border:1px solid #333; color:white; font-size:0.75rem; text-align:center; padding:2px; border-radius:4px; font-weight:bold; font-family:'JetBrains Mono',monospace;">
+                                </div>
+                                <div style="display:flex; align-items:center; gap:5px; margin-left:10px;">
+                                    <span style="font-size:0.65rem; opacity:0.6;">H:</span>
+                                    <input type="number" value="${ad.height || 10000}" 
+                                           onchange="config.gameModes.altar_defense.height = parseInt(this.value); renderModes();" 
+                                           style="width:70px; background:rgba(0,0,0,0.3); border:1px solid #333; color:white; font-size:0.75rem; text-align:center; padding:2px; border-radius:4px; font-weight:bold; font-family:'JetBrains Mono',monospace;">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button id="btn-radar-ad-altar" class="btn ${radarMode === 'ad-altar' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-altar')">MODO ALTAR</button>
+                            <button id="btn-radar-ad-spawn" class="btn ${radarMode === 'ad-spawn' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-spawn')">MODO SPAWN</button>
+                            <button id="btn-radar-ad-spawner" class="btn ${radarMode === 'ad-spawner' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-spawner')">MODO AMENAZA</button>
+                            <button id="btn-radar-ad-portal" class="btn ${radarMode === 'ad-portal' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-portal')">MODO PUERTA</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:30px; width:100%;">
+                        <div id="radar-container" style="position:relative; width:600px; height:600px; background:#000; border:2px solid var(--primary); border-radius:10px; overflow:hidden; cursor:crosshair; box-shadow: 0 0 20px rgba(0, 210, 255, 0.15);">
+                            <canvas id="radar-canvas" width="600" height="600" style="width: 100%; height: 100%; display: block;"></canvas>
+                        </div>
+                        
+                        <div style="flex:1; min-width:350px; display:flex; flex-direction:column; gap:15px; background:rgba(255,255,255,0.02); padding:25px; border-radius:10px; overflow: visible;">
+                            <label style="color:var(--accent); font-size:0.85rem; margin-bottom:15px; display:block; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; font-weight:bold; overflow: visible;">🛠️ HERRAMIENTA DE DESPLIEGUE</label>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                                <div class="field"><label>Coord X</label><input type="number" id="radar-x" value="0"></div>
+                                <div class="field"><label>Coord Y</label><input type="number" id="radar-y" value="0"></div>
+                            </div>
+                            <div id="radar-ad-altar-opts" style="display:${radarMode === 'ad-altar' ? 'block' : 'none'}">
+                                <p style="font-size:0.75rem; color:#aaa;">Haz clic en el mapa y presiona "Fijar" para mover la base del Altar.</p>
+                            </div>
+                            <div id="radar-ad-spawn-opts" style="display:${radarMode === 'ad-spawn' ? 'block' : 'none'}">
+                                <div class="field" style="margin-top:10px;"><label>Nombre</label><input type="text" id="radar-ad-spawn-label" value="Punto Spawn"></div>
+                                <div class="field" style="margin-top:5px;"><label>Radio Burbuja</label><input type="number" id="radar-ad-spawn-radius" value="200"></div>
+                            </div>
+                            <div id="radar-ad-spawner-opts" style="display:${radarMode === 'ad-spawner' ? 'block' : 'none'}; overflow: visible;">
+                                <div class="field" style="margin-top:10px;"><label>Nombre Zona</label><input type="text" id="radar-ad-spawner-label" value="Zona de Invasión"></div>
+                                <div class="field" style="margin-top:10px; overflow: visible;">
+                                    <label>Enemigo</label>
+                                    <input type="hidden" id="ad-spawner-enemy-select" value="${ad.spawners[0]?.enemyId || '1'}">
+                                    ${renderSearchableEnemySelect(ad.spawners[0]?.enemyId || '1', (newId) => {
+                                        document.getElementById('ad-spawner-enemy-select').value = newId;
+                                    }, 'var(--accent)', 'radar-ad-spawn-select')}
+                                </div>
+                                <div class="field" style="margin-top:10px;"><label>Cantidad</label><input type="number" id="radar-ad-count" value="10"></div>
+                                <div class="field" style="margin-top:10px;"><label>Radio</label><input type="number" id="radar-ad-radius" value="500"></div>
+                            </div>
+                            <div id="radar-ad-portal-opts" style="display:${radarMode === 'ad-portal' ? 'block' : 'none'}">
+                                <div class="field" style="margin-top:10px;"><label>Nombre Portal</label><input type="text" id="radar-ad-portal-label" value="Puerta de Escape"></div>
+                                <div class="field" style="margin-top:5px;"><label>Radio Proximidad</label><input type="number" id="radar-ad-portal-radius" value="150"></div>
                             </div>
                             <button class="btn btn-primary" style="width:100%; margin-top:20px; padding:15px; font-weight:bold;" onclick="addFromRadar()">FIJAR EN EL MAPA</button>
                         </div>

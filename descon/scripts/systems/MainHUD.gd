@@ -86,6 +86,11 @@ func _ready():
 		NetworkManager.trade_invitation_received.connect(_on_trade_invitation_received)
 		NetworkManager.trade_started.connect(_on_trade_started)
 
+		# Conexiones de Defensa del Altar
+		NetworkManager.altar_defense_invitation.connect(_on_altar_defense_invitation)
+		NetworkManager.altar_defense_cancelled.connect(_on_altar_defense_cancelled)
+		NetworkManager.altar_defense_success.connect(_on_altar_defense_success)
+
 	# v305.95: Aplicar Marcos Sci-Fi (Diseño Referencia Roja)
 	_apply_sci_fi_frame(center_stats)
 	_apply_sci_fi_frame(radar_window)
@@ -1628,3 +1633,122 @@ func toggle_events_panel():
 		_events_panel.toggle()
 	else:
 		_events_panel.visible = !_events_panel.visible
+
+# --- DEFENSA DEL ALTAR: MODAL DE INVITACIÓN ---
+var altar_defense_invite_popup: Panel = null
+var altar_defense_timer: Timer = null
+var altar_defense_time_left: int = 10
+
+func _on_altar_defense_invitation(data: Dictionary):
+	if is_instance_valid(altar_defense_invite_popup):
+		altar_defense_invite_popup.queue_free()
+	if is_instance_valid(altar_defense_timer):
+		altar_defense_timer.queue_free()
+
+	var timeout_ms = data.get("timeoutMs", 10000)
+	var leader_name = data.get("leaderName", "LÍDER")
+	altar_defense_time_left = int(timeout_ms / 1000)
+
+	altar_defense_invite_popup = Panel.new()
+	altar_defense_invite_popup.custom_minimum_size = Vector2(320, 160)
+	altar_defense_invite_popup.name = "AltarDefenseInvitePopup"
+
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.02, 0.02, 0.05, 0.95)
+	sb.border_width_left = 3
+	sb.border_width_top = 3
+	sb.border_width_right = 3
+	sb.border_width_bottom = 3
+	sb.border_color = Color(0, 0.8, 1) # Cyan
+	sb.set_corner_radius_all(6)
+	altar_defense_invite_popup.add_theme_stylebox_override("panel", sb)
+
+	var vbox = VBoxContainer.new()
+	vbox.name = "VBox"
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 12)
+	altar_defense_invite_popup.add_child(vbox)
+
+	var title = Label.new()
+	title.text = "DEFENSA DEL ALTAR"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color(0, 0.8, 1))
+	title.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(title)
+
+	var info = Label.new()
+	info.text = leader_name + " quiere inscribir al grupo en Defensa del Altar."
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info.add_theme_font_size_override("font_size", 11)
+	vbox.add_child(info)
+
+	var count_lbl = Label.new()
+	count_lbl.name = "CountdownLabel"
+	count_lbl.text = "Tiempo restante: " + str(altar_defense_time_left) + "s"
+	count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	count_lbl.add_theme_color_override("font_color", Color.YELLOW)
+	vbox.add_child(count_lbl)
+
+	var hbox = HBoxContainer.new()
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	hbox.add_theme_constant_override("separation", 20)
+	vbox.add_child(hbox)
+
+	var btn_acc = Button.new()
+	btn_acc.text = "ACEPTAR"
+	btn_acc.modulate = Color.GREEN
+	btn_acc.pressed.connect(func():
+		NetworkManager.send_event("acceptAltarDefenseInvite", {})
+		_close_altar_defense_invite()
+	)
+	hbox.add_child(btn_acc)
+
+	var btn_rej = Button.new()
+	btn_rej.text = "RECHAZAR"
+	btn_rej.modulate = Color.RED
+	btn_rej.pressed.connect(func():
+		NetworkManager.send_event("rejectAltarDefenseInvite", {})
+		_close_altar_defense_invite()
+	)
+	hbox.add_child(btn_rej)
+
+	add_child(altar_defense_invite_popup)
+	altar_defense_invite_popup.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	altar_defense_invite_popup.pivot_offset = altar_defense_invite_popup.custom_minimum_size / 2.0
+	altar_defense_invite_popup.scale = Vector2.ZERO
+
+	var tw = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(altar_defense_invite_popup, "scale", Vector2.ONE, 0.4)
+
+	# Timer for countdown
+	altar_defense_timer = Timer.new()
+	altar_defense_timer.wait_time = 1.0
+	altar_defense_timer.autostart = true
+	altar_defense_timer.timeout.connect(func():
+		altar_defense_time_left -= 1
+		if altar_defense_time_left <= 0:
+			_close_altar_defense_invite()
+		else:
+			if is_instance_valid(altar_defense_invite_popup):
+				var lbl = altar_defense_invite_popup.get_node_or_null("VBox/CountdownLabel")
+				if lbl:
+					lbl.text = "Tiempo restante: " + str(altar_defense_time_left) + "s"
+	)
+	add_child(altar_defense_timer)
+
+func _close_altar_defense_invite():
+	if is_instance_valid(altar_defense_timer):
+		altar_defense_timer.queue_free()
+	if is_instance_valid(altar_defense_invite_popup):
+		var tw = create_tween()
+		tw.tween_property(altar_defense_invite_popup, "scale", Vector2.ZERO, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		tw.finished.connect(altar_defense_invite_popup.queue_free)
+
+func _on_altar_defense_cancelled(data):
+	_close_altar_defense_invite()
+	var reason = data.get("reason", "Inscripción cancelada.")
+	notify("EVENTO CANCELADO: " + reason.to_upper(), "warn")
+
+func _on_altar_defense_success(_data):
+	_close_altar_defense_invite()
+	notify("¡EVENTO DE ALTARES INICIADO! PREPÁRATE...", "success")

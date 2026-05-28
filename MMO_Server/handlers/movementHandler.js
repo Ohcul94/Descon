@@ -170,6 +170,8 @@ function registerMovementHandlers(socket, io, state) {
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${targetZone}`);
             
+            socket.emit('changeZoneDone', { zoneId: targetZone, x: p.x, y: p.y });
+            
             // Enviar lista de jugadores y enemigos de la nueva zona
             setTimeout(() => {
                 const currentPlayersInZone = {};

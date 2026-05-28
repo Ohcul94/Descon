@@ -6,6 +6,7 @@ class_name BaseMap
 
 @export var world_size: float = 4000.0
 @export var zone_name: String = "SECTOR DESCONOCIDO"
+@export var zone_id: int = 1
 
 @export var scale_factor: float = 0.02 # Relación 2D a 3D
 @export var camera_height: float = 30.0
@@ -44,6 +45,9 @@ func _ready():
 		headlight.light_specular = 0.3
 		headlight.shadow_enabled = false
 		camera_3d.add_child(headlight)
+
+	# v370.0: Spawnear altar 3D si está configurado en Defensa del Altar
+	_spawn_altar_if_configured()
 
 func setup_map():
 	# Método para ejecutar lógica específica al cargar el mapa
@@ -248,3 +252,86 @@ func _process(_delta):
 		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
 
 # _process removido al no haber asteroides decorativos que rotar
+
+func _spawn_altar_if_configured():
+	if not is_instance_valid(sub_viewport): return
+	
+	var full_config = GameConstants.get("FULL_CONFIG")
+	if not full_config or not full_config.has("gameModes") or not full_config.gameModes.has("altar_defense"):
+		return
+		
+	var ad_config = full_config.gameModes.altar_defense
+	if not ad_config.has("maps") or not (ad_config.maps is Array):
+		return
+		
+	var map_included = false
+	for m in ad_config.maps:
+		if int(m) == zone_id:
+			map_included = true
+			break
+			
+	if not map_included:
+		return
+		
+	var altar_pos_data = ad_config.get("altarPos")
+	if not altar_pos_data or not altar_pos_data.has("x") or not altar_pos_data.has("y"):
+		return
+		
+	var altar_pos = Vector2(float(altar_pos_data.x), float(altar_pos_data.y))
+	print("[BaseMap] Spawneando Altar 3D en la posición: ", altar_pos)
+	
+	var altar_scene = load("res://assets/Altares/3D/Altar1/Altar1.glb")
+	if altar_scene:
+		var altar_3d = altar_scene.instantiate()
+		altar_3d.name = "Altar3D"
+		# Rotación vertical recta (mirando hacia el sur/cámara en el eje Y)
+		altar_3d.rotation_degrees = Vector3(0, 180, 0)
+		var correction_z = 1.41421356
+		altar_3d.position = Vector3(altar_pos.x * scale_factor, 0.0, altar_pos.y * scale_factor * correction_z)
+		# Escalamos para hacerlo bastante visible y destacado (15.0 de escala o 12.0)
+		altar_3d.scale = Vector3(15.0, 15.0, 15.0)
+		
+		# Agregamos luz omni para iluminar el altar con un brillo verde neón místico
+		var light = OmniLight3D.new()
+		light.name = "AltarLight"
+		light.position = Vector3(0, 2.0, 0)
+		light.light_color = Color(0, 1.0, 0.5) 
+		light.light_energy = 5.0
+		light.omni_range = 15.0
+		altar_3d.add_child(light)
+		
+		sub_viewport.add_child(altar_3d)
+
+		# --- AÑADIR COLLIDERS 2D PARA EL ALTAR ---
+		# 1. Area2D lógica para capturar impactos y daño
+		var altar_area = Area2D.new()
+		altar_area.name = "AltarArea2D"
+		altar_area.collision_layer = 1 | 2
+		altar_area.collision_mask = 1 | 2
+		altar_area.global_position = altar_pos
+		altar_area.add_to_group("altar")
+		
+		var col_shape = CollisionShape2D.new()
+		var circle = CircleShape2D.new()
+		circle.radius = 120.0
+		col_shape.shape = circle
+		altar_area.add_child(col_shape)
+		add_child(altar_area)
+
+		# 2. StaticBody2D físico para obstruir paso de naves
+		var static_body = StaticBody2D.new()
+		static_body.name = "AltarStaticBody2D"
+		static_body.collision_layer = 2
+		static_body.collision_mask = 0
+		static_body.global_position = altar_pos
+		
+		var static_col = CollisionShape2D.new()
+		var static_circle = CircleShape2D.new()
+		static_circle.radius = 100.0
+		static_col.shape = static_circle
+		static_body.add_child(static_col)
+		add_child(static_body)
+		
+		print("[BaseMap] Colliders 2D del Altar instanciados (Radio lógico: 120, Físico: 100)")
+	else:
+		print("[BaseMap] ADVERTENCIA: No se pudo cargar res://assets/Altares/3D/Altar1/Altar1.glb")

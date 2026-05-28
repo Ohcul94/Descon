@@ -1,6 +1,6 @@
 extends Control
 
-# EventsPanel.gd (v1.2 - Modular Event Center)
+# EventsPanel.gd (v1.3 - Modular Event Center & Altar Defense)
 # Sincronizado con la estética del Hangar (F1)
 
 @onready var tabs = $Window/TabContainer
@@ -10,12 +10,47 @@ extends Control
 @onready var queue_btn = get_node_or_null("Window/TabContainer/Extraction/QueueButton")
 @onready var status_label = get_node_or_null("Window/TabContainer/Extraction/StatusLabel")
 
+var altar_defense_tab: VBoxContainer
+var ad_queue_btn: Button
+var ad_status_label: Label
+var is_in_ad_queue = false
+
 var is_in_queue = false
 var is_open = false
 
 func _ready():
 	if tabs:
 		tabs.current_tab = 1 # v1.2: Mostrar Extracción (único construido) por defecto
+
+		# Programmatic creation of Altar Defense tab
+		altar_defense_tab = VBoxContainer.new()
+		altar_defense_tab.name = "Defensa del Altar"
+		altar_defense_tab.alignment = BoxContainer.ALIGNMENT_CENTER
+		
+		var ad_title = Label.new()
+		ad_title.text = "DEFENSA DEL ALTAR"
+		ad_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ad_title.add_theme_font_size_override("font_size", 24)
+		ad_title.add_theme_color_override("font_color", Color(0, 0.8, 1))
+		altar_defense_tab.add_child(ad_title)
+		
+		ad_status_label = Label.new()
+		ad_status_label.text = "ESTADO: DISPONIBLE"
+		ad_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		altar_defense_tab.add_child(ad_status_label)
+		
+		var ad_spacer = Control.new()
+		ad_spacer.custom_minimum_size = Vector2(0, 20)
+		altar_defense_tab.add_child(ad_spacer)
+		
+		ad_queue_btn = Button.new()
+		ad_queue_btn.custom_minimum_size = Vector2(240, 50)
+		ad_queue_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		ad_queue_btn.text = "INSCRIBIR GRUPO"
+		altar_defense_tab.add_child(ad_queue_btn)
+		
+		tabs.add_child(altar_defense_tab)
+		ad_queue_btn.pressed.connect(_on_ad_queue_pressed)
 
 	add_to_group("events_ui")
 	add_to_group("inventory_ui") # v1.2: Tratar como panel principal
@@ -37,6 +72,9 @@ func _ready():
 		NetworkManager.extraction_match_found.connect(_on_match_found)
 		NetworkManager.extraction_match_countdown.connect(_on_match_countdown)
 		NetworkManager.extraction_match_cancelled.connect(func(_d): is_in_queue = false; _update_ui())
+		
+		NetworkManager.altar_defense_cancelled.connect(func(_d): is_in_ad_queue = false; _update_ui())
+		NetworkManager.altar_defense_success.connect(func(_d): is_in_ad_queue = false; is_open = false; visible = false; _update_ui())
 		
 	# Sincronía Responsive
 	get_viewport().size_changed.connect(func(): queue_redraw())
@@ -123,6 +161,32 @@ func _update_ui():
 			status_label.text = "ESTADO: DISPONIBLE"
 			status_label.modulate = Color.WHITE
 			queue_btn.text = "APLICAR EN COLA"
+			
+	if ad_status_label and ad_queue_btn:
+		var has_party = PartyManager.current_party != null
+		var is_leader = false
+		var lp = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(lp) and has_party:
+			is_leader = (lp.db_id == PartyManager.current_party.id)
+			
+		if is_in_ad_queue:
+			ad_status_label.text = "ESTADO: GRUPO INSCRITO (ESPERANDO EVENTO)"
+			ad_status_label.modulate = Color.GREEN
+			ad_queue_btn.text = "CANCELAR INSCRIPCIÓN"
+			ad_queue_btn.disabled = not is_leader if has_party else false
+		else:
+			ad_status_label.text = "ESTADO: DISPONIBLE"
+			ad_status_label.modulate = Color.WHITE
+			if has_party:
+				if is_leader:
+					ad_queue_btn.text = "INSCRIBIR GRUPO"
+					ad_queue_btn.disabled = false
+				else:
+					ad_queue_btn.text = "SOLO LÍDER PUEDE INSCRIBIR"
+					ad_queue_btn.disabled = true
+			else:
+				ad_queue_btn.text = "INSCRIBIRSE (SOLO)"
+				ad_queue_btn.disabled = false
 
 func _on_queue_pressed():
 	if not NetworkManager: return
@@ -135,6 +199,23 @@ func _on_queue_pressed():
 		NetworkManager.send_event("joinExtractionQueue", {})
 		notify("UNIÉNDOSE A LA COLA...", "info")
 	
+	_update_ui()
+
+func _on_ad_queue_pressed():
+	if not NetworkManager: return
+	
+	if is_in_ad_queue:
+		NetworkManager.send_event("leaveAltarDefenseQueue", {})
+		is_in_ad_queue = false
+		notify("INSCRIPCIÓN CANCELADA", "warn")
+	else:
+		NetworkManager.send_event("registerAltarDefenseParty", {})
+		if PartyManager.current_party == null:
+			is_in_ad_queue = true
+			notify("TE HAS INSCRITO AL EVENTO", "success")
+		else:
+			notify("ENVIANDO INVITACIÓN A LOS COMPAÑEROS...", "info")
+			
 	_update_ui()
 
 func _on_queue_joined(data: Dictionary):

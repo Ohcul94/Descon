@@ -16,6 +16,16 @@ var spawn_lock_radius: float = 500.0
 var spawn_bubble_mesh: MeshInstance3D = null
 var last_warn_time: float = 0.0
 
+# Determina si esta instancia es una partida de Defensa del Altar (dinámico desde config)
+func _is_altar_defense_zone() -> bool:
+	var full_cfg = GameConstants.get("FULL_CONFIG")
+	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
+		var ad_maps = full_cfg.gameModes.altar_defense.get("maps", [])
+		for m in ad_maps:
+			if int(m) == zone_id:
+				return true
+	return false
+
 func _ready():
 	super._ready()
 	
@@ -45,17 +55,21 @@ func _ready():
 	# Generar obstáculos procedimentales en el mapa de 10,000 x 10,000 px (Desactivado a petición del usuario)
 	# _generate_procedural_obstacles()
 	
-	# Generar portales 3D de extracción en los puntos configurados en el AdminDash
+	# Generar portales 3D de extracción/escape en los puntos configurados en el AdminDash
 	_generate_extraction_portals()
 
 	# Inicializar cuenta regresiva de spawn lock y tamaño de mundo desde la config dinámica
 	var spawn_lock_ms = 10000.0
-	if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
-		var ext = GameConstants.FULL_CONFIG.gameModes.extraction
-		if ext.has("spawnLockTime"):
-			spawn_lock_ms = float(ext.spawnLockTime)
-		if ext.has("width") and float(ext.width) > 0:
-			world_size = float(ext.width)
+	var is_ad = _is_altar_defense_zone()
+	var full_config = GameConstants.get("FULL_CONFIG")
+	if full_config and full_config.has("gameModes"):
+		var mode_key = "altar_defense" if is_ad else "extraction"
+		if full_config.gameModes.has(mode_key):
+			var mode_cfg = full_config.gameModes[mode_key]
+			if mode_cfg.has("spawnLockTime"):
+				spawn_lock_ms = float(mode_cfg.spawnLockTime)
+			if mode_cfg.has("width") and float(mode_cfg.width) > 0:
+				world_size = float(mode_cfg.width)
 	spawn_lock_remaining = spawn_lock_ms / 1000.0
 
 	# Crear HUD UI de temporizadores
@@ -65,6 +79,10 @@ func _ready():
 	if NetworkManager:
 		if not NetworkManager.raid_time_update.is_connected(_on_raid_time_update):
 			NetworkManager.raid_time_update.connect(_on_raid_time_update)
+		if not NetworkManager.altar_state_update.is_connected(_on_altar_state_update):
+			NetworkManager.altar_state_update.connect(_on_altar_state_update)
+		if not NetworkManager.update_exit_portals.is_connected(_on_update_exit_portals):
+			NetworkManager.update_exit_portals.connect(_on_update_exit_portals)
 
 func _physics_process(_delta):
 	# --- LOCALIZAR NAVE DEL JUGADOR ---
@@ -84,16 +102,20 @@ func _physics_process(_delta):
 				
 				# Encontrar el spawn point configurado más cercano para extraer su radio dinámicamente
 				var closest_radius = 500.0
-				if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
-					var ext = GameConstants.FULL_CONFIG.gameModes.extraction
-					if ext.has("spawnPoints"):
-						var min_dist = 999999.0
-						for sp in ext.spawnPoints:
-							var sp_pos = Vector2(float(sp.get("x", 0)), float(sp.get("y", 0)))
-							var dist = initial_player_pos.distance_to(sp_pos)
-							if dist < min_dist:
-								min_dist = dist
-								closest_radius = float(sp.get("radius", 500.0))
+				var is_ad_spawn = _is_altar_defense_zone()
+				var full_cfg = GameConstants.get("FULL_CONFIG")
+				if full_cfg and full_cfg.has("gameModes"):
+					var mode_key = "altar_defense" if is_ad_spawn else "extraction"
+					if full_cfg.gameModes.has(mode_key):
+						var mode_cfg = full_cfg.gameModes[mode_key]
+						if mode_cfg.has("spawnPoints"):
+							var min_dist = 999999.0
+							for sp in mode_cfg.spawnPoints:
+								var sp_pos = Vector2(float(sp.get("x", 0)), float(sp.get("y", 0)))
+								var dist = initial_player_pos.distance_to(sp_pos)
+								if dist < min_dist:
+									min_dist = dist
+									closest_radius = float(sp.get("radius", 500.0))
 				spawn_lock_radius = closest_radius
 				
 				# Inyectar burbuja tridimensional de barrera protectora de spawn (estilo Shield Skill)
@@ -361,13 +383,16 @@ func _generate_procedural_obstacles():
 func _generate_extraction_portals():
 	# Intentar obtener los puntos configurados dinámicamente desde el servidor (vía GameConstants)
 	var extract_points = []
-	if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
-		var ext = GameConstants.FULL_CONFIG.gameModes.extraction
-		if ext.has("extractPoints"):
-			extract_points = ext.extractPoints
+	var is_ad_portal = _is_altar_defense_zone()
+	var full_cfg = GameConstants.get("FULL_CONFIG")
+	if full_cfg and full_cfg.has("gameModes"):
+		var mode_key = "altar_defense" if is_ad_portal else "extraction"
+		var key = "exitPortals" if is_ad_portal else "extractPoints"
+		if full_cfg.gameModes.has(mode_key) and full_cfg.gameModes[mode_key].has(key):
+			extract_points = full_cfg.gameModes[mode_key].get(key)
 			
 	# Fallback robusto con las coordenadas exactas de config.json si el servidor aún no envía la config completa
-	if extract_points.size() == 0:
+	if extract_points.size() == 0 and not is_ad_portal:
 		extract_points = [
 			{"x": 2974, "y": 5038, "label": "Punto Alfa"},
 			{"x": 6920, "y": 5070, "label": "Punto Beta"},
@@ -375,8 +400,24 @@ func _generate_extraction_portals():
 			{"x": 5003, "y": 7019, "label": "Punto Delta"}
 		]
 		
-	active_extract_points = extract_points
+	# Si es Altar Defense, no generamos portales al cargar. Esperamos la señal del servidor.
+	if is_ad_portal:
+		active_extract_points = []
+		# Limpiar portales 2D viejos
+		for old_area in get_tree().get_nodes_in_group("extraction_portal_areas"):
+			old_area.queue_free()
+		var parent_portals_3d = sub_viewport.get_node_or_null("Portals3D") if is_instance_valid(sub_viewport) else null
+		if is_instance_valid(parent_portals_3d):
+			for child in parent_portals_3d.get_children():
+				child.queue_free()
+		print("[Map_Extraction] Zona Altar Defense cargada. Esperando apertura de portales desde el servidor.")
+		return
 		
+	_generate_extraction_portals_list(extract_points)
+
+func _generate_extraction_portals_list(extract_points: Array):
+	active_extract_points = extract_points
+	
 	var parent_portals_3d = sub_viewport.get_node_or_null("Portals3D") if is_instance_valid(sub_viewport) else null
 	if is_instance_valid(sub_viewport) and not parent_portals_3d:
 		parent_portals_3d = Node3D.new()
@@ -387,6 +428,10 @@ func _generate_extraction_portals():
 	if is_instance_valid(parent_portals_3d):
 		for child in parent_portals_3d.get_children():
 			child.queue_free()
+			
+	# Limpiar portales 2D viejos
+	for old_area in get_tree().get_nodes_in_group("extraction_portal_areas"):
+		old_area.queue_free()
 		
 	# Cargar el Asset 3D GLB suministrado
 	var portal_mesh_scene = load("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
@@ -401,22 +446,13 @@ func _generate_extraction_portals():
 		if portal_mesh_scene:
 			var portal_3d = portal_mesh_scene.instantiate()
 			portal_3d.name = "Portal3D_" + str(i)
-			
-			# INCLINAR EL PORTAL DE CARA A LA CÁMARA OBLÍCUA:
-			# Rotamos el modelo 3D -45 grados en el eje X para inclinarlo hacia adelante
-			# y -90 grados en Y para alinearlo con el modelado nativo.
 			portal_3d.rotation_degrees = Vector3(-45, -90, 0)
 			
-			# Colocamos las puertas a la misma altura que los obstáculos, ligeramente elevadas
 			var correction_z = 1.41421356
 			portal_3d.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor * correction_z)
-			
-			# ¡TAMAÑO AJUSTADO Y PERFECTO!:
-			# Escalamos a (10.0, 10.0, 10.0), lo cual es ideal y visible sin ser abrumador.
 			portal_3d.scale = Vector3(10.0, 10.0, 10.0)
 			parent_portals_3d.add_child(portal_3d)
 			
-			# Añadir un efecto de luz de punto para destacar la puerta en la penumbra
 			var light = OmniLight3D.new()
 			light.name = "Light"
 			light.position = Vector3(0, 0, 1.5)
@@ -425,7 +461,6 @@ func _generate_extraction_portals():
 			light.omni_range = 15.0
 			portal_3d.add_child(light)
 		else:
-			# Fallback elegante usando formas básicas brillantes de Godot
 			var fallback_portal = CSGCylinder3D.new()
 			fallback_portal.name = "Portal3D_Fallback_" + str(i)
 			var correction_z = 1.41421356
@@ -439,22 +474,21 @@ func _generate_extraction_portals():
 			fallback_portal.material = mat
 			parent_portals_3d.add_child(fallback_portal)
 			
-		# B. Crear Zona Lógica 2D correspondiente para la lógica de extracción del cliente (SIN COLISIÓN FÍSICA)
-		# Eliminamos el StaticBody2D por completo a petición del usuario para evitar colisiones molestas al volar.
+		# B. Crear Zona Lógica 2D correspondiente
 		var area_2d = Area2D.new()
 		area_2d.name = "ExtractArea2D_" + str(i)
 		area_2d.global_position = pos_2d
 		area_2d.collision_layer = 1
 		area_2d.collision_mask = 1
+		area_2d.add_to_group("extraction_portal_areas")
 		
 		var trigger_shape = CollisionShape2D.new()
 		var trigger_circle = CircleShape2D.new()
 		var dynamic_radius = float(pt.get("proximityRadius", 300.0))
-		trigger_circle.radius = dynamic_radius # Rango de activación de extracción dinámico
+		trigger_circle.radius = dynamic_radius
 		trigger_shape.shape = trigger_circle
 		area_2d.add_child(trigger_shape)
 		
-		# Agregar etiqueta visual de proximidad en el suelo 2D para ubicarlo con precisión
 		var marker = Label.new()
 		marker.text = str(pt.get("label", "ZONA DE EXTRACCIÓN"))
 		marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -464,7 +498,25 @@ func _generate_extraction_portals():
 		
 		add_child(area_2d)
 
-	print("[Map_Extraction] ¡Cargados con éxito ", extract_points.size(), " portales 3D basados en la configuración!")
+	print("[Map_Extraction] ¡Cargados con éxito ", extract_points.size(), " portales dinámicos!")
+
+func _on_update_exit_portals(portals: Array):
+	print("[Map_Extraction] Actualización de portales recibida: ", portals.size(), " portales activos.")
+	if portals.size() == 0:
+		active_extract_points = []
+		# Limpiar portales 2D viejos
+		for old_area in get_tree().get_nodes_in_group("extraction_portal_areas"):
+			old_area.queue_free()
+		var parent_portals_3d = sub_viewport.get_node_or_null("Portals3D") if is_instance_valid(sub_viewport) else null
+		if is_instance_valid(parent_portals_3d):
+			for child in parent_portals_3d.get_children():
+				child.queue_free()
+				
+		var container = get_node_or_null("PortalUICanvas/PortalBtnContainer")
+		if is_instance_valid(container):
+			container.visible = false
+	else:
+		_generate_extraction_portals_list(portals)
 
 func _create_portal_jump_ui():
 	# Crear un CanvasLayer exclusivo para la interfaz premium de salto
@@ -590,12 +642,99 @@ func _create_timers_ui():
 	match_timer_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	match_timer_label.add_theme_constant_override("outline_size", 4)
 	timer_panel.add_child(match_timer_label)
+
+	# 1.5 BARRA DE HP Y SHIELD DEL ALTAR (Para Defensa al Altar)
+	var is_ad = _is_altar_defense_zone()
+	if is_ad:
+		var altar_hud_container = CenterContainer.new()
+		altar_hud_container.name = "AltarHUDContainer"
+		altar_hud_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		altar_hud_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		altar_hud_container.offset_top = 75
+		ui_canvas.add_child(altar_hud_container)
+		
+		var altar_panel = PanelContainer.new()
+		altar_panel.name = "AltarPanel"
+		var sb_altar = StyleBoxFlat.new()
+		sb_altar.bg_color = Color(0.05, 0.05, 0.05, 0.85)
+		sb_altar.set_border_width_all(2)
+		sb_altar.border_color = Color(0, 1.0, 0.5, 0.8) # Borde verde neón místico
+		sb_altar.set_corner_radius_all(10)
+		sb_altar.set_content_margin_all(8)
+		altar_panel.add_theme_stylebox_override("panel", sb_altar)
+		altar_hud_container.add_child(altar_panel)
+		
+		var vbox = VBoxContainer.new()
+		altar_panel.add_child(vbox)
+		
+		var title = Label.new()
+		title.text = "🏛️ ALTAR SENSORIAL 🏛️"
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.add_theme_font_size_override("font_size", 11)
+		title.add_theme_color_override("font_color", Color(0, 1.0, 0.5))
+		vbox.add_child(title)
+		
+		# Escudo (Azul)
+		var sh_progress = ProgressBar.new()
+		sh_progress.name = "AltarShieldBar"
+		sh_progress.custom_minimum_size = Vector2(250, 10)
+		sh_progress.show_percentage = false
+		var sb_sh_bg = StyleBoxFlat.new()
+		sb_sh_bg.bg_color = Color(0.1, 0.1, 0.2, 0.6)
+		sb_sh_bg.set_corner_radius_all(5)
+		sh_progress.add_theme_stylebox_override("background", sb_sh_bg)
+		var sb_sh_fill = StyleBoxFlat.new()
+		sb_sh_fill.bg_color = Color(0, 0.5, 1.0, 0.95)
+		sb_sh_fill.set_corner_radius_all(5)
+		sh_progress.add_theme_stylebox_override("fill", sb_sh_fill)
+		vbox.add_child(sh_progress)
+		
+		# Vida (Verde)
+		var hp_progress = ProgressBar.new()
+		hp_progress.name = "AltarHpBar"
+		hp_progress.custom_minimum_size = Vector2(250, 10)
+		hp_progress.show_percentage = false
+		var sb_hp_bg = StyleBoxFlat.new()
+		sb_hp_bg.bg_color = Color(0.2, 0.1, 0.1, 0.6)
+		sb_hp_bg.set_corner_radius_all(5)
+		hp_progress.add_theme_stylebox_override("background", sb_hp_bg)
+		var sb_hp_fill = StyleBoxFlat.new()
+		sb_hp_fill.bg_color = Color(0, 0.9, 0.1, 0.95)
+		sb_hp_fill.set_corner_radius_all(5)
+		hp_progress.add_theme_stylebox_override("fill", sb_hp_fill)
+		vbox.add_child(hp_progress)
+		
+		var status_lbl = Label.new()
+		status_lbl.name = "AltarStatusLabel"
+		status_lbl.text = "Escudo: --/-- | Vida: --/--"
+		status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		status_lbl.add_theme_font_size_override("font_size", 10)
+		status_lbl.add_theme_color_override("font_color", Color.WHITE)
+		vbox.add_child(status_lbl)
+		
+		# Inicialización con datos configurados en el cliente local si están cargados
+		var full_cfg = GameConstants.get("FULL_CONFIG")
+		if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
+			var ad_cfg = full_cfg.gameModes.altar_defense
+			var max_hp = float(ad_cfg.get("altarHp", 10000))
+			var max_sh = float(ad_cfg.get("altarShield", 5000))
+			sh_progress.max_value = max_sh
+			sh_progress.value = max_sh
+			hp_progress.max_value = max_hp
+			hp_progress.value = max_hp
+			status_lbl.text = "Escudo: " + str(int(max_sh)) + "/" + str(int(max_sh)) + " | Vida: " + str(int(max_hp)) + "/" + str(int(max_hp))
 	
-	# 2. ALERTA DE SPAWN LOCK (Top Center - below timer)
+	# 2. ALERTA DE SPAWN LOCK (Top Center - below timer/altar)
 	var center_container = CenterContainer.new()
 	center_container.name = "SpawnLockContainer"
 	center_container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP, Control.PRESET_MODE_MINSIZE, 20)
-	center_container.offset_top = 85
+	
+	# Desplazar hacia abajo si la barra del altar está presente para que no colisionen
+	if is_ad:
+		center_container.offset_top = 180
+	else:
+		center_container.offset_top = 85
+		
 	center_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	center_container.grow_vertical = Control.GROW_DIRECTION_END
 	ui_canvas.add_child(center_container)
@@ -622,6 +761,28 @@ func _create_timers_ui():
 	spawn_lock_container.add_child(spawn_lock_label)
 	
 	spawn_lock_container.visible = false
+
+func _on_altar_state_update(data: Dictionary):
+	var hp = float(data.get("hp", 0))
+	var max_hp = float(data.get("maxHp", 10000))
+	var sh = float(data.get("shield", 0))
+	var max_sh = float(data.get("maxShield", 5000))
+	
+	var ui_canvas = get_node_or_null("PortalUICanvas")
+	if not is_instance_valid(ui_canvas): return
+	
+	var sh_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarPanel/VBoxContainer/AltarShieldBar") as ProgressBar
+	var hp_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarPanel/VBoxContainer/AltarHpBar") as ProgressBar
+	var status_lbl = ui_canvas.get_node_or_null("AltarHUDContainer/AltarPanel/VBoxContainer/AltarStatusLabel") as Label
+	
+	if is_instance_valid(sh_bar):
+		sh_bar.max_value = max_sh
+		sh_bar.value = sh
+	if is_instance_valid(hp_bar):
+		hp_bar.max_value = max_hp
+		hp_bar.value = hp
+	if is_instance_valid(status_lbl):
+		status_lbl.text = "Escudo: " + str(int(sh)) + "/" + str(int(max_sh)) + " | Vida: " + str(int(hp)) + "/" + str(int(max_hp))
 
 func _on_raid_time_update(data: Dictionary):
 	var remaining = int(data.get("remaining", 0))

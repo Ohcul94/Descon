@@ -91,8 +91,8 @@ func _refresh_list():
 	
 	# v306.15: TAMAÑO DINÁMICO
 	# Altura base = Header (30) + Margen (10) + (Miembros * Altura de fila (aprox 45))
-	var row_height = 45
-	var base_height = 45 
+	var row_height = 52
+	var base_height = 48 
 	var final_height = base_height + (members.size() * row_height)
 	custom_minimum_size.y = final_height
 	size.y = final_height

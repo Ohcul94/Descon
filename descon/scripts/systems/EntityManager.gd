@@ -1013,7 +1013,33 @@ func _on_clear_zone_entities(payload):
 		
 	var is_dungeon = str(_zoneId).begins_with("dungeon")
 	var is_extraction = str(_zoneId).begins_with("extract_")
-	var new_world_size = 10000.0 if is_extraction else (2000.0 if (is_dungeon or int(_zoneId) > 2 or int(_zoneId) == 1) else 4000.0)
+	
+	# Determinar si es un mapa de Altar Defense (dinámico desde el config del servidor)
+	var zone_int_check = int(_zoneId) if not is_dungeon and not is_extraction else 0
+	var is_altar_defense = false
+	var full_cfg = GameConstants.get("FULL_CONFIG")
+	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
+		var ad_maps = full_cfg.gameModes.altar_defense.get("maps", [])
+		for m in ad_maps:
+			if int(m) == zone_int_check:
+				is_altar_defense = true
+				break
+	
+	var new_world_size = 10000.0
+	if is_extraction or is_altar_defense:
+		# Leer ancho del config si está definido
+		if is_altar_defense and full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
+			var ad_w = float(full_cfg.gameModes.altar_defense.get("width", 10000))
+			new_world_size = ad_w if ad_w > 0 else 10000.0
+		elif is_extraction and full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("extraction"):
+			var ex_w = float(full_cfg.gameModes.extraction.get("width", 10000))
+			new_world_size = ex_w if ex_w > 0 else 10000.0
+		else:
+			new_world_size = 10000.0
+	elif is_dungeon or int(_zoneId) > 2 or int(_zoneId) == 1:
+		new_world_size = 2000.0
+	else:
+		new_world_size = 4000.0
 	
 	var zone_int = _parse_zone_to_int(_zoneId)
 	if is_instance_valid(world) and is_instance_valid(world.local_player):

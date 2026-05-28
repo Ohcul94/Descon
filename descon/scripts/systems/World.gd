@@ -420,18 +420,32 @@ func _update_background(zone_id):
 		var parts = zone_id.split("_")
 		if parts.size() > 1:
 			zid = int(parts[1])
-			
+		
 	var scene_path = "res://scenes/maps/Map_Default.tscn"
+	
+	# Determinar si es un mapa de Altar Defense (leído del config del servidor)
+	var ad_map_ids = []
+	var full_cfg = GameConstants.get("FULL_CONFIG")
+	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
+		var ad_cfg = full_cfg.gameModes.altar_defense
+		if ad_cfg.has("maps"):
+			for m in ad_cfg.maps:
+				ad_map_ids.append(int(m))
+	
+	var is_altar_defense = (zid in ad_map_ids)
+	var is_extraction = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_")
+	
+	# Mapear escenas según el tipo de zona
 	if zid == 1:
 		scene_path = "res://scenes/maps/Map_Loby.tscn"
-	elif zid == 10 or zid == 11:
+	elif is_altar_defense or is_extraction:
 		scene_path = "res://scenes/maps/Map_Extraction.tscn"
 		
-	# Ocultar o mostrar las estrellas generadas según si es mapa de extracción
-	var is_extraction = (zid == 10 or zid == 11)
+	# Ocultar o mostrar las estrellas generadas según si es mapa de extracción o altar
+	var hide_stars = (is_altar_defense or is_extraction)
 	for spr in _star_sprites:
 		if is_instance_valid(spr):
-			spr.visible = not is_extraction
+			spr.visible = not hide_stars
 		
 	if is_instance_valid(current_map_node):
 		current_map_node.remove_from_group("map")
@@ -440,6 +454,8 @@ func _update_background(zone_id):
 	var map_scene = load(scene_path)
 	if map_scene:
 		current_map_node = map_scene.instantiate()
+		if "zone_id" in current_map_node:
+			current_map_node.zone_id = zid
 		add_child(current_map_node)
 		move_child(current_map_node, 0) # Asegurar que quede detrás de las entidades
 		

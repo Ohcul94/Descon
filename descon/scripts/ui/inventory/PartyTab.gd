@@ -99,5 +99,23 @@ func update_ui():
 					var hb = HBoxContainer.new()
 					var nl = Label.new(); nl.text = p.username if "username" in p else "Piloto"; nl.size_flags_horizontal = 3
 					var ib = Button.new(); ib.text = "INVITAR"; ib.add_theme_font_size_override("font_size", 10)
-					ib.pressed.connect(func(): PartyManager.invite_player(nl.text))
+					
+					# Verificar si el jugador ya está en el escuadrón actual
+					var already_in_party = false
+					var current_party = PartyManager.current_party
+					if current_party and current_party.has("names"):
+						var party_names = current_party.get("names", [])
+						# Convertir a String y comparar de forma robusta
+						for member_name in party_names:
+							if str(member_name).to_lower() == nl.text.to_lower():
+								already_in_party = true
+								break
+								
+					if already_in_party:
+						ib.disabled = true
+						ib.text = "EN GRUPO"
+						hb.modulate.a = 0.5
+					else:
+						ib.pressed.connect(func(): PartyManager.invite_player(nl.text))
+						
 					hb.add_child(nl); hb.add_child(ib); n_list.add_child(hb)

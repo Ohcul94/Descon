@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Logger = require('../utils/logger');
 const { handleEnemyDeath } = require('./enemyLogic');
 const SkillManager = require('./skills/SkillManager');
+const altarDefenseManager = require('./altarDefenseManager');
 const StealthSkill = require('./skills/StealthSkill');
 const BlinkSkill = require('./skills/BlinkSkill');
 const FrostTrailSkill = require('./skills/FrostTrailSkill');
@@ -415,6 +416,66 @@ function registerCombatHandlers(socket, io, state) {
         }
     });
 
+    // SISTEMA DE DEFENSA DEL ALTAR: IMPACTO AL ALTAR
+    socket.on('altarHit', (hitData) => {
+        try {
+            const p = state.players[socket.id];
+            if (!p || p.isDead || !state.SERVER_CONFIG) return;
+
+            const altarDefenseConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense;
+            if (!altarDefenseConfig) return;
+
+            const isAltarZone = altarDefenseConfig.maps && altarDefenseConfig.maps.map(Number).includes(Number(p.zone));
+            if (!isAltarZone) return;
+
+            // Inicializar el estado del altar en memoria del servidor si es la primera vez
+            if (!state.altarState) {
+                state.altarState = {
+                    hp: Number(altarDefenseConfig.altarHp) || 10000,
+                    maxHp: Number(altarDefenseConfig.altarHp) || 10000,
+                    shield: Number(altarDefenseConfig.altarShield) || 5000,
+                    maxShield: Number(altarDefenseConfig.altarShield) || 5000,
+                    zone: p.zone
+                };
+            }
+
+            let dmg = parseFloat(hitData.damage) || 0;
+            if (dmg <= 0) return;
+
+            let altar = state.altarState;
+            if (altar.shield >= dmg) {
+                altar.shield -= dmg;
+            } else {
+                altar.hp -= (dmg - altar.shield);
+                altar.shield = 0;
+            }
+
+            if (altar.hp <= 0) {
+                altar.hp = 0;
+                
+                io.to(`zone_${p.zone}`).emit('gameNotification', { 
+                    msg: "🚨 ¡EL ALTAR HA SIDO DESTRUIDO! MISIÓN FALLIDA. 🚨", 
+                    type: 'error' 
+                });
+
+                // Devolver a todos los jugadores en la zona al Lobby (Zona 1) después de 3 segundos
+                setTimeout(() => {
+                    altarDefenseManager.endMatch(false);
+                }, 3000);
+            }
+
+            // Emitir la actualización del estado del altar a todos en el sector
+            io.to(`zone_${p.zone}`).emit('altarStateUpdate', {
+                hp: Math.max(0, Math.ceil(altar.hp)),
+                maxHp: altar.maxHp,
+                shield: Math.max(0, Math.ceil(altar.shield)),
+                maxShield: altar.maxShield
+            });
+
+        } catch (e) {
+            console.error("Error en altarHit:", e);
+        }
+    });
 
 }
 

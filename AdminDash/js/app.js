@@ -3,7 +3,7 @@ let config = {};
 
 let currentAmmoTab = 'laser';
 let currentEnemySubTab = 'regular';
-let currentModeTab = 'hunting';
+let currentModeTab = localStorage.getItem('admin_last_mode_tab') || 'hunting';
 let currentSkillTab = localStorage.getItem('admin_last_skill_tab') || 'Ataque';
 let currentMechTab = 'attack';
 let selectedEnemyId = null;
@@ -322,6 +322,7 @@ function setEnemySubTab(tab, btn) {
 
 function setModeTab(tab, btn) {
     currentModeTab = tab;
+    localStorage.setItem('admin_last_mode_tab', tab);
     if (btn) {
         document.querySelectorAll('.nav-link.sub').forEach(l => l.classList.remove('active'));
         btn.classList.add('active');
@@ -773,7 +774,7 @@ let radarMode = 'spawner'; // 'spawner' o 'extract'
 function setRadarMode(mode) {
     radarMode = mode;
     
-    // Actualizar visual de botones
+    // Actualizar visual de botones (Extracción)
     const btnSpawn = document.getElementById('btn-radar-spawn');
     const btnSpawner = document.getElementById('btn-radar-spawner');
     const btnExtract = document.getElementById('btn-radar-extract');
@@ -806,24 +807,82 @@ function setRadarMode(mode) {
         }
     }
 
+    // Actualizar visual de botones (Defensa del Altar)
+    const btnAdAltar = document.getElementById('btn-radar-ad-altar');
+    const btnAdSpawn = document.getElementById('btn-radar-ad-spawn');
+    const btnAdSpawner = document.getElementById('btn-radar-ad-spawner');
+    const btnAdPortal = document.getElementById('btn-radar-ad-portal');
+
+    if (btnAdAltar) {
+        if (mode === 'ad-altar') {
+            btnAdAltar.classList.remove('btn-secondary');
+            btnAdAltar.classList.add('btn-primary');
+        } else {
+            btnAdAltar.classList.remove('btn-primary');
+            btnAdAltar.classList.add('btn-secondary');
+        }
+    }
+    if (btnAdSpawn) {
+        if (mode === 'ad-spawn') {
+            btnAdSpawn.classList.remove('btn-secondary');
+            btnAdSpawn.classList.add('btn-primary');
+        } else {
+            btnAdSpawn.classList.remove('btn-primary');
+            btnAdSpawn.classList.add('btn-secondary');
+        }
+    }
+    if (btnAdSpawner) {
+        if (mode === 'ad-spawner') {
+            btnAdSpawner.classList.remove('btn-secondary');
+            btnAdSpawner.classList.add('btn-primary');
+        } else {
+            btnAdSpawner.classList.remove('btn-primary');
+            btnAdSpawner.classList.add('btn-secondary');
+        }
+    }
+    if (btnAdPortal) {
+        if (mode === 'ad-portal') {
+            btnAdPortal.classList.remove('btn-secondary');
+            btnAdPortal.classList.add('btn-primary');
+        } else {
+            btnAdPortal.classList.remove('btn-primary');
+            btnAdPortal.classList.add('btn-secondary');
+        }
+    }
+
     const modeText = document.getElementById('radar-mode-text');
     if (modeText) modeText.innerText = mode === 'spawner' ? 'SPAWNER' : (mode === 'spawn' ? 'SPAWN' : 'ESCAPE');
     
-    document.getElementById('radar-spawner-opts').style.display = mode === 'spawner' ? 'block' : 'none';
-    document.getElementById('radar-extract-opts').style.display = mode === 'extract' ? 'block' : 'none';
-    document.getElementById('radar-spawn-opts').style.display = mode === 'spawn' ? 'block' : 'none';
+    // Toggle options display
+    if (document.getElementById('radar-spawner-opts')) document.getElementById('radar-spawner-opts').style.display = mode === 'spawner' ? 'block' : 'none';
+    if (document.getElementById('radar-extract-opts')) document.getElementById('radar-extract-opts').style.display = mode === 'extract' ? 'block' : 'none';
+    if (document.getElementById('radar-spawn-opts')) document.getElementById('radar-spawn-opts').style.display = mode === 'spawn' ? 'block' : 'none';
+    
+    if (document.getElementById('radar-ad-altar-opts')) document.getElementById('radar-ad-altar-opts').style.display = mode === 'ad-altar' ? 'block' : 'none';
+    if (document.getElementById('radar-ad-spawn-opts')) document.getElementById('radar-ad-spawn-opts').style.display = mode === 'ad-spawn' ? 'block' : 'none';
+    if (document.getElementById('radar-ad-spawner-opts')) document.getElementById('radar-ad-spawner-opts').style.display = mode === 'ad-spawner' ? 'block' : 'none';
+    if (document.getElementById('radar-ad-portal-opts')) document.getElementById('radar-ad-portal-opts').style.display = mode === 'ad-portal' ? 'block' : 'none';
 }
 
 function highlightCard(type, index) {
     focusedRadarItem = { type, index };
     // Limpiar resaltados anteriores de cualquier tipo
-    document.querySelectorAll('[id^="card-spawn-"], [id^="card-extract-"], [id^="card-spawner-"]').forEach(el => {
+    document.querySelectorAll('[id^="card-spawn-"], [id^="card-extract-"], [id^="card-spawner-"], [id^="card-ad-spawn-"], [id^="card-ad-spawner-"], [id^="card-ad-portal-"]').forEach(el => {
         el.style.boxShadow = 'none';
         el.style.borderColor = 'rgba(255,255,255,0.1)';
-        if (el.id.includes('spawn')) {
+        if (el.id.includes('spawn') && !el.id.includes('ad-')) {
             el.style.background = 'rgba(6,182,212,0.05)';
             el.style.borderColor = 'rgba(6,182,212,0.2)';
         } else if (el.id.includes('extract')) {
+            el.style.background = 'rgba(0,210,255,0.05)';
+            el.style.borderColor = 'rgba(0,210,255,0.2)';
+        } else if (el.id.includes('ad-spawn')) {
+            el.style.background = 'rgba(6,182,212,0.05)';
+            el.style.borderColor = 'rgba(6,182,212,0.2)';
+        } else if (el.id.includes('ad-spawner')) {
+            el.style.background = 'rgba(255,49,49,0.05)';
+            el.style.borderColor = 'rgba(255,49,49,0.2)';
+        } else if (el.id.includes('ad-portal')) {
             el.style.background = 'rgba(0,210,255,0.05)';
             el.style.borderColor = 'rgba(0,210,255,0.2)';
         } else {
@@ -851,17 +910,22 @@ function initRadar() {
     const ctx = canvas.getContext('2d');
     const container = document.getElementById('radar-container');
     
-    // Cargar imagen de fondo del mapa coordinada con la escena de Godot
-    const bgImage = new Image();
-    bgImage.src = 'assets/mixboard-image.png';
+    const isAltarDefense = (currentModeTab === 'altar_defense');
+    const modeData = isAltarDefense ? config.gameModes.altar_defense : config.gameModes.extraction;
     
-    // Dimensiones dinámicas del mapa de extracción en píxeles (por defecto 10000)
-    const worldW = (config.gameModes && config.gameModes.extraction && config.gameModes.extraction.width) ? config.gameModes.extraction.width : 10000;
-    const worldH = (config.gameModes && config.gameModes.extraction && config.gameModes.extraction.height) ? config.gameModes.extraction.height : 10000;
+    // Cargar imagen de fondo del mapa coordinada con la escena de Godot (sólo para extracción)
+    const bgImage = new Image();
+    if (!isAltarDefense) {
+        bgImage.src = 'assets/mixboard-image.png';
+    }
+    
+    // Dimensiones dinámicas del mapa en píxeles (por defecto 10000)
+    const worldW = (modeData && modeData.width) ? modeData.width : 10000;
+    const worldH = (modeData && modeData.height) ? modeData.height : 10000;
     
     // Estado de arrastre
     let isDragging = false;
-    let dragItem = null; // { type: 'extract'|'spawner'|'spawn', index: number }
+    let dragItem = null; 
 
     const updateCanvasSize = () => {
         const w = container.clientWidth;
@@ -894,45 +958,103 @@ function initRadar() {
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        // 1. Buscar en Puntos de Extracción
-        const points = config.gameModes.extraction.extractPoints || [];
-        for (let i = 0; i < points.length; i++) {
-            const pos = worldToCanvas(points[i].x, points[i].y);
-            const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
-            if (dist < 15) { // Radio de colisión para agarrar
-                isDragging = true;
-                dragItem = { type: 'extract', index: i };
-                canvas.style.cursor = 'grabbing';
-                highlightCard('extract', i);
-                return;
+        if (isAltarDefense) {
+            const ad = config.gameModes.altar_defense;
+            
+            // 1. Altar
+            if (ad.altarPos) {
+                const pos = worldToCanvas(ad.altarPos.x, ad.altarPos.y);
+                const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+                if (dist < 15) {
+                    isDragging = true;
+                    dragItem = { type: 'ad-altar' };
+                    canvas.style.cursor = 'grabbing';
+                    return;
+                }
             }
-        }
-
-        // 2. Buscar en Amenazas (Spawners)
-        const spawners = config.gameModes.extraction.spawners || [];
-        for (let i = 0; i < spawners.length; i++) {
-            const pos = worldToCanvas(spawners[i].x, spawners[i].y);
-            const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
-            if (dist < 15) {
-                isDragging = true;
-                dragItem = { type: 'spawner', index: i };
-                canvas.style.cursor = 'grabbing';
-                highlightCard('spawner', i);
-                return;
+            
+            // 2. Spawn Points
+            const spawnPoints = ad.spawnPoints || [];
+            for (let i = 0; i < spawnPoints.length; i++) {
+                const pos = worldToCanvas(spawnPoints[i].x, spawnPoints[i].y);
+                const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+                if (dist < 15) {
+                    isDragging = true;
+                    dragItem = { type: 'ad-spawn', index: i };
+                    canvas.style.cursor = 'grabbing';
+                    highlightCard('ad-spawn', i);
+                    return;
+                }
             }
-        }
+            
+            // 3. Spawners
+            const spawners = ad.spawners || [];
+            for (let i = 0; i < spawners.length; i++) {
+                const pos = worldToCanvas(spawners[i].x, spawners[i].y);
+                const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+                if (dist < 15) {
+                    isDragging = true;
+                    dragItem = { type: 'ad-spawner', index: i };
+                    canvas.style.cursor = 'grabbing';
+                    highlightCard('ad-spawner', i);
+                    return;
+                }
+            }
 
-        // 3. Buscar en Spawn Points (Players)
-        const spawnPoints = config.gameModes.extraction.spawnPoints || [];
-        for (let i = 0; i < spawnPoints.length; i++) {
-            const pos = worldToCanvas(spawnPoints[i].x, spawnPoints[i].y);
-            const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
-            if (dist < 15) {
-                isDragging = true;
-                dragItem = { type: 'spawn', index: i };
-                canvas.style.cursor = 'grabbing';
-                highlightCard('spawn', i);
-                return;
+            // 4. Puertas de Escape (Exit Portals)
+            const exitPortals = ad.exitPortals || [];
+            for (let i = 0; i < exitPortals.length; i++) {
+                const pos = worldToCanvas(exitPortals[i].x, exitPortals[i].y);
+                const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+                if (dist < 15) {
+                    isDragging = true;
+                    dragItem = { type: 'ad-portal', index: i };
+                    canvas.style.cursor = 'grabbing';
+                    highlightCard('ad-portal', i);
+                    return;
+                }
+            }
+        } else {
+            // 1. Buscar en Puntos de Extracción
+            const points = config.gameModes.extraction.extractPoints || [];
+            for (let i = 0; i < points.length; i++) {
+                const pos = worldToCanvas(points[i].x, points[i].y);
+                const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+                if (dist < 15) { 
+                    isDragging = true;
+                    dragItem = { type: 'extract', index: i };
+                    canvas.style.cursor = 'grabbing';
+                    highlightCard('extract', i);
+                    return;
+                }
+            }
+
+            // 2. Buscar en Amenazas (Spawners)
+            const spawners = config.gameModes.extraction.spawners || [];
+            for (let i = 0; i < spawners.length; i++) {
+                const pos = worldToCanvas(spawners[i].x, spawners[i].y);
+                const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+                if (dist < 15) {
+                    isDragging = true;
+                    dragItem = { type: 'spawner', index: i };
+                    canvas.style.cursor = 'grabbing';
+                    highlightCard('spawner', i);
+                    return;
+                }
+            }
+
+            // 3. Buscar en Spawn Points (Players)
+            const spawnPoints = config.gameModes.extraction.spawnPoints || [];
+            for (let i = 0; i < spawnPoints.length; i++) {
+                const pos = worldToCanvas(spawnPoints[i].x, spawnPoints[i].y);
+                const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+                if (dist < 15) {
+                    isDragging = true;
+                    dragItem = { type: 'spawn', index: i };
+                    canvas.style.cursor = 'grabbing';
+                    highlightCard('spawn', i);
+                    return;
+                }
             }
         }
 
@@ -950,30 +1072,66 @@ function initRadar() {
         const mouseY = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
         const world = canvasToWorld(mouseX, mouseY);
 
-        if (dragItem.type === 'extract') {
-            const p = config.gameModes.extraction.extractPoints[dragItem.index];
-            p.x = Math.round(world.wx);
-            p.y = Math.round(world.wy);
-            const ix = document.getElementById(`ep-x-${dragItem.index}`);
-            const iy = document.getElementById(`ep-y-${dragItem.index}`);
-            if (ix) ix.value = p.x;
-            if (iy) iy.value = p.y;
-        } else if (dragItem.type === 'spawner') {
-            const s = config.gameModes.extraction.spawners[dragItem.index];
-            s.x = Math.round(world.wx);
-            s.y = Math.round(world.wy);
-            const ix = document.getElementById(`sp-x-${dragItem.index}`);
-            const iy = document.getElementById(`sp-y-${dragItem.index}`);
-            if (ix) ix.value = s.x;
-            if (iy) iy.value = s.y;
-        } else if (dragItem.type === 'spawn') {
-            const sw = config.gameModes.extraction.spawnPoints[dragItem.index];
-            sw.x = Math.round(world.wx);
-            sw.y = Math.round(world.wy);
-            const ix = document.getElementById(`spw-x-${dragItem.index}`);
-            const iy = document.getElementById(`spw-y-${dragItem.index}`);
-            if (ix) ix.value = sw.x;
-            if (iy) iy.value = sw.y;
+        if (isAltarDefense) {
+            const ad = config.gameModes.altar_defense;
+            if (dragItem.type === 'ad-altar') {
+                ad.altarPos.x = Math.round(world.wx);
+                ad.altarPos.y = Math.round(world.wy);
+                const ix = document.getElementById('ad-altar-x');
+                const iy = document.getElementById('ad-altar-y');
+                if (ix) ix.value = ad.altarPos.x;
+                if (iy) iy.value = ad.altarPos.y;
+            } else if (dragItem.type === 'ad-spawn') {
+                const sw = ad.spawnPoints[dragItem.index];
+                sw.x = Math.round(world.wx);
+                sw.y = Math.round(world.wy);
+                const ix = document.getElementById(`ad-spw-x-${dragItem.index}`);
+                const iy = document.getElementById(`ad-spw-y-${dragItem.index}`);
+                if (ix) ix.value = sw.x;
+                if (iy) iy.value = sw.y;
+            } else if (dragItem.type === 'ad-spawner') {
+                const s = ad.spawners[dragItem.index];
+                s.x = Math.round(world.wx);
+                s.y = Math.round(world.wy);
+                const ix = document.getElementById(`ad-sp-x-${dragItem.index}`);
+                const iy = document.getElementById(`ad-sp-y-${dragItem.index}`);
+                if (ix) ix.value = s.x;
+                if (iy) iy.value = s.y;
+            } else if (dragItem.type === 'ad-portal') {
+                const ep = ad.exitPortals[dragItem.index];
+                ep.x = Math.round(world.wx);
+                ep.y = Math.round(world.wy);
+                const ix = document.getElementById(`ad-pt-x-${dragItem.index}`);
+                const iy = document.getElementById(`ad-pt-y-${dragItem.index}`);
+                if (ix) ix.value = ep.x;
+                if (iy) iy.value = ep.y;
+            }
+        } else {
+            if (dragItem.type === 'extract') {
+                const p = config.gameModes.extraction.extractPoints[dragItem.index];
+                p.x = Math.round(world.wx);
+                p.y = Math.round(world.wy);
+                const ix = document.getElementById(`ep-x-${dragItem.index}`);
+                const iy = document.getElementById(`ep-y-${dragItem.index}`);
+                if (ix) ix.value = p.x;
+                if (iy) iy.value = p.y;
+            } else if (dragItem.type === 'spawner') {
+                const s = config.gameModes.extraction.spawners[dragItem.index];
+                s.x = Math.round(world.wx);
+                s.y = Math.round(world.wy);
+                const ix = document.getElementById(`sp-x-${dragItem.index}`);
+                const iy = document.getElementById(`sp-y-${dragItem.index}`);
+                if (ix) ix.value = s.x;
+                if (iy) iy.value = s.y;
+            } else if (dragItem.type === 'spawn') {
+                const sw = config.gameModes.extraction.spawnPoints[dragItem.index];
+                sw.x = Math.round(world.wx);
+                sw.y = Math.round(world.wy);
+                const ix = document.getElementById(`spw-x-${dragItem.index}`);
+                const iy = document.getElementById(`spw-y-${dragItem.index}`);
+                if (ix) ix.value = sw.x;
+                if (iy) iy.value = sw.y;
+            }
         }
     };
 
@@ -1002,7 +1160,7 @@ function initRadar() {
         ctx.lineWidth = 1;
         const gridDivisions = 10;
         for (let i = 1; i < gridDivisions; i++) {
-            if (i === gridDivisions / 2) continue; // Evitar dibujar la línea fina sobre la línea central
+            if (i === gridDivisions / 2) continue; 
             ctx.beginPath();
             ctx.moveTo((canvas.width / gridDivisions) * i, 0);
             ctx.lineTo((canvas.width / gridDivisions) * i, canvas.height);
@@ -1013,23 +1171,20 @@ function initRadar() {
             ctx.stroke();
         }
 
-        // Dibujar líneas divisoria centrales (mitad horizontal y vertical)
+        // Dibujar líneas divisoria centrales
         ctx.strokeStyle = 'rgba(0, 140, 170, 0.35)';
         ctx.lineWidth = 3;
         
-        // Línea central vertical
         ctx.beginPath();
         ctx.moveTo(canvas.width / 2, 0);
         ctx.lineTo(canvas.width / 2, canvas.height);
         ctx.stroke();
         
-        // Línea central horizontal
         ctx.beginPath();
         ctx.moveTo(0, canvas.height / 2);
         ctx.lineTo(canvas.width, canvas.height / 2);
         ctx.stroke();
 
-        // Dibujar puntos en las intersecciones de la cuadrícula para alineación
         ctx.fillStyle = 'rgba(0, 210, 255, 0.3)';
         for (let i = 1; i < gridDivisions; i++) {
             for (let j = 1; j < gridDivisions; j++) {
@@ -1042,23 +1197,215 @@ function initRadar() {
             }
         }
 
-        // Dibujar Spawn Points (Players) - AMARILLO
-        if (config.gameModes.extraction.spawnPoints) {
-            config.gameModes.extraction.spawnPoints.forEach((p, idx) => {
-                const pos = worldToCanvas(p.x, p.y);
-                const radiusCanvas = (p.radius / worldW) * canvas.width;
-                const isSelected = isDragging && dragItem && dragItem.type === 'spawn' && dragItem.index === idx;
-
-                // Burbuja (Dashed)
+        if (isAltarDefense) {
+            const ad = config.gameModes.altar_defense;
+            
+            // Dibujar Altar - Verde
+            if (ad.altarPos) {
+                const pos = worldToCanvas(ad.altarPos.x, ad.altarPos.y);
+                const isSelected = isDragging && dragItem && dragItem.type === 'ad-altar';
+                ctx.fillStyle = isSelected ? '#fff' : 'rgba(74, 222, 128, 0.3)';
+                ctx.strokeStyle = '#4ade80';
+                ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.setLineDash([5, 5]);
-                ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(255, 204, 0, 0.4)';
+                ctx.arc(pos.x, pos.y, 14, 0, Math.PI * 2);
+                ctx.fill();
                 ctx.stroke();
-                ctx.setLineDash([]);
 
-                // Anillo de Enfoque Palpitante Interactivo (Cian)
-                const isFocused = focusedRadarItem && focusedRadarItem.type === 'spawn' && focusedRadarItem.index === idx;
+                ctx.fillStyle = '#4ade80';
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#4ade80';
+                ctx.font = 'bold 11px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText("ALTAR", pos.x, pos.y - 20);
+            }
+
+            // Dibujar Spawn de Jugadores - Amarillo
+            if (ad.spawnPoints) {
+                ad.spawnPoints.forEach((p, idx) => {
+                    const pos = worldToCanvas(p.x, p.y);
+                    const radiusCanvas = ((p.radius || 200) / worldW) * canvas.width;
+                    const isSelected = isDragging && dragItem && dragItem.type === 'ad-spawn' && dragItem.index === idx;
+
+                    ctx.beginPath();
+                    ctx.setLineDash([5, 5]);
+                    ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 204, 0, 0.4)';
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    const isFocused = focusedRadarItem && focusedRadarItem.type === 'ad-spawn' && focusedRadarItem.index === idx;
+                    if (isFocused) {
+                        const pulse = 4 + Math.sin(Date.now() / 150) * 3;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, radiusCanvas + pulse, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+                        ctx.lineWidth = 2.5;
+                        ctx.stroke();
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = isSelected ? '#fff' : '#ffcc00';
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffcc00';
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#ffcc00';
+                    ctx.font = '10px Outfit';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(p.label || 'Spawn', pos.x, pos.y - 12);
+                });
+            }
+
+            // Dibujar Spawners - Rojo
+            if (ad.spawners) {
+                ad.spawners.forEach((s, idx) => {
+                    const pos = worldToCanvas(s.x, s.y);
+                    const radiusCanvas = (s.radius / worldW) * canvas.width;
+                    const isSelected = isDragging && dragItem && dragItem.type === 'ad-spawner' && dragItem.index === idx;
+
+                    const isFocused = focusedRadarItem && focusedRadarItem.type === 'ad-spawner' && focusedRadarItem.index === idx;
+                    if (isFocused) {
+                        const pulse = 4 + Math.sin(Date.now() / 150) * 3;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, radiusCanvas + pulse, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+                        ctx.lineWidth = 2.5;
+                        ctx.stroke();
+                    }
+
+                    ctx.fillStyle = isSelected ? '#fff' : 'rgba(255, 49, 49, 0.1)';
+                    ctx.strokeStyle = '#ff3131';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#ff3131';
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ff3131';
+                    ctx.font = 'bold 11px Outfit';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(s.label || ('Zona ' + (idx + 1)), pos.x, pos.y - radiusCanvas - 6);
+                });
+            }
+
+            // Dibujar exitPortals (Puertas de escape) - Celeste/Azul
+            if (ad.exitPortals) {
+                ad.exitPortals.forEach((ep, idx) => {
+                    const pos = worldToCanvas(ep.x, ep.y);
+                    const radiusCanvas = ((ep.radius || 150) / worldW) * canvas.width;
+                    const isSelected = isDragging && dragItem && dragItem.type === 'ad-portal' && dragItem.index === idx;
+
+                    const isFocused = focusedRadarItem && focusedRadarItem.type === 'ad-portal' && focusedRadarItem.index === idx;
+                    if (isFocused) {
+                        const pulse = 4 + Math.sin(Date.now() / 150) * 3;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, radiusCanvas + pulse, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+                        ctx.lineWidth = 2.5;
+                        ctx.stroke();
+                    }
+
+                    ctx.fillStyle = isSelected ? '#fff' : 'rgba(0, 210, 255, 0.3)';
+                    ctx.strokeStyle = '#00d2ff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#00d2ff';
+                    ctx.font = '10px Outfit';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(ep.label || 'Puerta', pos.x, pos.y - 15);
+                });
+            }
+        } else {
+            // Dibujar Spawn Points (Players) - AMARILLO
+            if (config.gameModes.extraction.spawnPoints) {
+                config.gameModes.extraction.spawnPoints.forEach((p, idx) => {
+                    const pos = worldToCanvas(p.x, p.y);
+                    const radiusCanvas = (p.radius / worldW) * canvas.width;
+                    const isSelected = isDragging && dragItem && dragItem.type === 'spawn' && dragItem.index === idx;
+
+                    ctx.beginPath();
+                    ctx.setLineDash([5, 5]);
+                    ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 204, 0, 0.4)';
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    const isFocused = focusedRadarItem && focusedRadarItem.type === 'spawn' && focusedRadarItem.index === idx;
+                    if (isFocused) {
+                        const pulse = 4 + Math.sin(Date.now() / 150) * 3;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, radiusCanvas + pulse, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+                        ctx.lineWidth = 2.5;
+                        ctx.stroke();
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
+                    ctx.fillStyle = isSelected ? '#fff' : '#ffcc00';
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffcc00';
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#ffcc00';
+                    ctx.font = '10px Outfit';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(p.label || 'Spawn', pos.x, pos.y - 12);
+                });
+            }
+
+            // Dibujar Puntos de Extracción - AZUL
+            const points = config.gameModes.extraction.extractPoints || [];
+            points.forEach((p, idx) => {
+                const pos = worldToCanvas(p.x, p.y);
+                const isSelected = isDragging && dragItem && dragItem.type === 'extract' && dragItem.index === idx;
+                
+                const isFocused = focusedRadarItem && focusedRadarItem.type === 'extract' && focusedRadarItem.index === idx;
+                if (isFocused) {
+                    const pulse = 4 + Math.sin(Date.now() / 150) * 3;
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 8 + pulse, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+                }
+
+                ctx.fillStyle = isSelected ? '#fff' : 'rgba(0, 210, 255, 0.3)';
+                ctx.strokeStyle = '#00d2ff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.fillStyle = '#00d2ff';
+                ctx.font = '10px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.label, pos.x, pos.y - 15);
+            });
+
+            // Dibujar Spawners - ROJO
+            const spawners = config.gameModes.extraction.spawners || [];
+            spawners.forEach((s, idx) => {
+                const pos = worldToCanvas(s.x, s.y);
+                const isSelected = isDragging && dragItem && dragItem.type === 'spawner' && dragItem.index === idx;
+                const radiusCanvas = (s.radius / worldW) * canvas.width;
+
+                const isFocused = focusedRadarItem && focusedRadarItem.type === 'spawner' && focusedRadarItem.index === idx;
                 if (isFocused) {
                     const pulse = 4 + Math.sin(Date.now() / 150) * 3;
                     ctx.beginPath();
@@ -1066,113 +1413,27 @@ function initRadar() {
                     ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
                     ctx.lineWidth = 2.5;
                     ctx.stroke();
-                    
-                    // Sombra interna del anillo
-                    ctx.beginPath();
-                    ctx.arc(pos.x, pos.y, radiusCanvas + pulse - 2, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(6, 182, 212, 0.35)';
-                    ctx.lineWidth = 3.5;
-                    ctx.stroke();
                 }
 
-                // Punto
+                ctx.fillStyle = isSelected ? '#fff' : 'rgba(255, 49, 49, 0.1)';
+                ctx.strokeStyle = '#ff3131';
+                ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 6, 0, Math.PI * 2);
-                ctx.fillStyle = isSelected ? '#fff' : '#ffcc00';
+                ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.strokeStyle = '#ffcc00';
                 ctx.stroke();
+                
+                ctx.fillStyle = '#ff3131';
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+                ctx.fill();
 
-                // Etiqueta
-                ctx.fillStyle = '#ffcc00';
-                ctx.font = '10px Outfit';
+                ctx.fillStyle = '#ff3131';
+                ctx.font = 'bold 11px Outfit';
                 ctx.textAlign = 'center';
-                ctx.fillText(p.label || 'Spawn', pos.x, pos.y - 12);
+                ctx.fillText(s.label || ('Zona ' + (idx + 1)), pos.x, pos.y - radiusCanvas - 6);
             });
         }
-
-        // Dibujar Puntos de Extracción - AZUL
-        const points = config.gameModes.extraction.extractPoints || [];
-        points.forEach((p, idx) => {
-            const pos = worldToCanvas(p.x, p.y);
-            const isSelected = isDragging && dragItem && dragItem.type === 'extract' && dragItem.index === idx;
-            
-            // Anillo de Enfoque Palpitante Interactivo (Cian)
-            const isFocused = focusedRadarItem && focusedRadarItem.type === 'extract' && focusedRadarItem.index === idx;
-            if (isFocused) {
-                const pulse = 4 + Math.sin(Date.now() / 150) * 3;
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 8 + pulse, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-                
-                // Sombra interna del anillo
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 8 + pulse - 2, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(6, 182, 212, 0.35)';
-                ctx.lineWidth = 3.5;
-                ctx.stroke();
-            }
-
-            ctx.fillStyle = isSelected ? '#fff' : 'rgba(0, 210, 255, 0.3)';
-            ctx.strokeStyle = '#00d2ff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            
-            ctx.fillStyle = '#00d2ff';
-            ctx.font = '10px Outfit';
-            ctx.textAlign = 'center';
-            ctx.fillText(p.label, pos.x, pos.y - 15);
-        });
-
-        // Dibujar Spawners - ROJO
-        const spawners = config.gameModes.extraction.spawners || [];
-        spawners.forEach((s, idx) => {
-            const pos = worldToCanvas(s.x, s.y);
-            const isSelected = isDragging && dragItem && dragItem.type === 'spawner' && dragItem.index === idx;
-            const radiusCanvas = (s.radius / worldW) * canvas.width;
-
-            // Anillo de Enfoque Palpitante Interactivo (Cian)
-            const isFocused = focusedRadarItem && focusedRadarItem.type === 'spawner' && focusedRadarItem.index === idx;
-            if (isFocused) {
-                const pulse = 4 + Math.sin(Date.now() / 150) * 3;
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, radiusCanvas + pulse, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-                
-                // Sombra interna del anillo
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, radiusCanvas + pulse - 2, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(6, 182, 212, 0.35)';
-                ctx.lineWidth = 3.5;
-                ctx.stroke();
-            }
-
-            ctx.fillStyle = isSelected ? '#fff' : 'rgba(255, 49, 49, 0.1)';
-            ctx.strokeStyle = '#ff3131';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            
-            ctx.fillStyle = '#ff3131';
-            ctx.beginPath();
-            ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Etiqueta de Zona - Siempre por encima del radio (Nombre Real o Correlativo)
-            ctx.fillStyle = '#ff3131';
-            ctx.font = 'bold 11px Outfit';
-            ctx.textAlign = 'center';
-            ctx.fillText(s.label || ('Zona ' + (idx + 1)), pos.x, pos.y - radiusCanvas - 6);
-        });
 
         requestAnimationFrame(draw);
     };
@@ -1182,30 +1443,88 @@ function initRadar() {
 function addFromRadar() {
     const x = parseInt(document.getElementById('radar-x').value);
     const y = parseInt(document.getElementById('radar-y').value);
+    const isAltarDefense = (currentModeTab === 'altar_defense');
     
-    if (radarMode === 'spawner') {
-        config.gameModes.extraction.spawners.push({
-            x, y,
-            label: document.getElementById('radar-spawner-label').value,
-            enemyId: document.getElementById('spawner-enemy-select').value,
-            count: parseInt(document.getElementById('radar-count').value),
-            radius: parseInt(document.getElementById('radar-radius').value)
-        });
-    } else if (radarMode === 'extract') {
-        config.gameModes.extraction.extractPoints.push({
-            x, y,
-            label: document.getElementById('radar-label').value,
-            proximityRadius: 300,
-            targetZone: "1"
-        });
-    } else if (radarMode === 'spawn') {
-        if (!config.gameModes.extraction.spawnPoints) config.gameModes.extraction.spawnPoints = [];
-        config.gameModes.extraction.spawnPoints.push({
-            x, y,
-            label: document.getElementById('radar-spawn-label').value,
-            radius: parseInt(document.getElementById('radar-spawn-radius').value)
-        });
+    if (isAltarDefense) {
+        const ad = config.gameModes.altar_defense;
+        if (radarMode === 'ad-altar') {
+            ad.altarPos = { x, y };
+            const ix = document.getElementById('ad-altar-x');
+            const iy = document.getElementById('ad-altar-y');
+            if (ix) ix.value = x;
+            if (iy) iy.value = y;
+        } else if (radarMode === 'ad-spawn') {
+            if (!ad.spawnPoints) ad.spawnPoints = [];
+            ad.spawnPoints.push({
+                x, y,
+                label: document.getElementById('radar-ad-spawn-label').value,
+                radius: parseInt(document.getElementById('radar-ad-spawn-radius').value || 200)
+            });
+        } else if (radarMode === 'ad-spawner') {
+            if (!ad.spawners) ad.spawners = [];
+            ad.spawners.push({
+                x, y,
+                label: document.getElementById('radar-ad-spawner-label').value,
+                enemyId: document.getElementById('ad-spawner-enemy-select').value,
+                count: parseInt(document.getElementById('radar-ad-count').value),
+                radius: parseInt(document.getElementById('radar-ad-radius').value)
+            });
+        } else if (radarMode === 'ad-portal') {
+            if (!ad.exitPortals) ad.exitPortals = [];
+            ad.exitPortals.push({
+                x, y,
+                label: document.getElementById('radar-ad-portal-label').value,
+                radius: parseInt(document.getElementById('radar-ad-portal-radius').value || 150)
+            });
+        }
+    } else {
+        if (radarMode === 'spawner') {
+            config.gameModes.extraction.spawners.push({
+                x, y,
+                label: document.getElementById('radar-spawner-label').value,
+                enemyId: document.getElementById('spawner-enemy-select').value,
+                count: parseInt(document.getElementById('radar-count').value),
+                radius: parseInt(document.getElementById('radar-radius').value)
+            });
+        } else if (radarMode === 'extract') {
+            config.gameModes.extraction.extractPoints.push({
+                x, y,
+                label: document.getElementById('radar-label').value,
+                proximityRadius: 300,
+                targetZone: "1"
+            });
+        } else if (radarMode === 'spawn') {
+            if (!config.gameModes.extraction.spawnPoints) config.gameModes.extraction.spawnPoints = [];
+            config.gameModes.extraction.spawnPoints.push({
+                x, y,
+                label: document.getElementById('radar-spawn-label').value,
+                radius: parseInt(document.getElementById('radar-spawn-radius').value)
+            });
+        }
     }
+    renderModes();
+}
+
+function addAltarDefenseMap() {
+    const select = document.getElementById('add-ad-map-select');
+    if (!select) return;
+    const mapId = parseInt(select.value);
+    if (!config.gameModes.altar_defense.maps) config.gameModes.altar_defense.maps = [];
+    if (!config.gameModes.altar_defense.maps.includes(mapId)) {
+        config.gameModes.altar_defense.maps.push(mapId);
+        renderModes();
+    }
+}
+
+function addAltarDefenseWave() {
+    const ad = config.gameModes.altar_defense;
+    if (!ad.waves) ad.waves = [];
+    ad.waves.push({
+        name: `Oleada ${ad.waves.length + 1}`,
+        enemyId: "1",
+        count: 10,
+        delayMs: 5000
+    });
     renderModes();
 }
 

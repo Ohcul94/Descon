@@ -35,6 +35,8 @@ func _ready():
 	add_to_group("projectiles")
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
+	if not area_entered.is_connected(_on_area_entered):
+		area_entered.connect(_on_area_entered)
 	queue_redraw()
 
 func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
@@ -351,3 +353,12 @@ func _find_target():
 	# 3. Fallback: Si soy el único jugador en el mapa, yo debo ser el blanco
 	if _target_node == null:
 		_target_node = get_tree().get_first_node_in_group("player")
+
+func _on_area_entered(area):
+	if _has_hit: return
+	if area.is_in_group("altar") and owner_type == "enemy":
+		_has_hit = true
+		if NetworkManager:
+			print("[PROJ] Impactando Altar con daño: ", damage)
+			NetworkManager.send_event("altarHit", {"damage": damage})
+		_explode()

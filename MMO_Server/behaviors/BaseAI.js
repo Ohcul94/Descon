@@ -131,6 +131,24 @@ module.exports = class BaseAI {
             }
         }
 
+        // 3. ALTAR DEFENSE TARGET: Si no hay jugadores en la mira y es zona de Altar Defense, el Altar es el objetivo
+        const altarDefenseConfig = this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense;
+        const isAltarZone = altarDefenseConfig && altarDefenseConfig.maps && altarDefenseConfig.maps.map(Number).includes(Number(this.enemy.zone));
+        
+        if (!activeTarget && isAltarZone && altarDefenseConfig.altarPos) {
+            const altarHp = (this.state.altarState ? this.state.altarState.hp : 1) || 1;
+            if (altarHp > 0) {
+                activeTarget = {
+                    id: "altar",
+                    x: Number(altarDefenseConfig.altarPos.x) || 5000,
+                    y: Number(altarDefenseConfig.altarPos.y) || 5000,
+                    hp: altarHp,
+                    isDead: false,
+                    isInvisible: false
+                };
+            }
+        }
+
         // v3.0: EVALUAR INTERRUPCIÓN DEL REGRESO AL SPAWN (Soft Leash)
         if (this.enemy.returningToSpawn && activeTarget) {
             const targetDistFromSpawn = Math.hypot(activeTarget.x - this.enemy.startX, activeTarget.y - this.enemy.startY);

@@ -2159,7 +2159,8 @@
             "desc": "Zona de asteroides inestables.",
             "minLevel": 15,
             "name": "Mapa 5",
-            "warpCost": 50
+            "warpCost": 50,
+            "ambience": []
         },
         "6": {
             "color": "#ff0000",
@@ -2181,21 +2182,24 @@
             "desc": "Sector de invasión: Hordas detectadas.",
             "minLevel": 25,
             "name": "Mapa 7",
-            "warpCost": 200
+            "warpCost": 200,
+            "ambience": []
         },
         "8": {
             "color": "#550000",
             "desc": "Guarida de Jefes: Requiere escolta.",
             "minLevel": 30,
             "name": "Mapa 8",
-            "warpCost": 500
+            "warpCost": 500,
+            "ambience": []
         },
         "9": {
             "color": "#aa00ff",
             "desc": "Zona de Pruebas Tácticas (Showcase).",
             "minLevel": 35,
             "name": "Mapa 9",
-            "warpCost": 1000
+            "warpCost": 1000,
+            "ambience": []
         },
         "10": {
             "color": "#ff0055",
@@ -3853,7 +3857,69 @@
                     }
                 ]
             }
-        ]
+        ],
+        "altar_defense": {
+            "enabled": true,
+            "maxPlayers": 4,
+            "altarHp": 10000,
+            "altarShield": 5000,
+            "maps": [
+                9
+            ],
+            "altarPos": {
+                "x": 5000,
+                "y": 5000
+            },
+            "spawnPoints": [
+                {
+                    "x": 4533,
+                    "y": 5001,
+                    "label": "Spawn1",
+                    "radius": 200
+                },
+                {
+                    "x": 4983,
+                    "y": 4538,
+                    "label": "Spawn2",
+                    "radius": 200
+                },
+                {
+                    "x": 5450,
+                    "y": 5010,
+                    "label": "Spawn3",
+                    "radius": 200
+                },
+                {
+                    "x": 5000,
+                    "y": 5460,
+                    "label": "Spawn4",
+                    "radius": 200
+                }
+            ],
+            "spawners": [],
+            "waves": [],
+            "width": 10000,
+            "height": 10000,
+            "partyAcceptTimeout": 10000,
+            "waveInterval": 15000,
+            "spawnLockTime": 5000,
+            "matchDuration": 600000,
+            "loseLootOnDeath": true,
+            "exitPortals": [
+                {
+                    "x": 4583,
+                    "y": 5378,
+                    "label": "Escape1",
+                    "radius": 150
+                },
+                {
+                    "x": 5383,
+                    "y": 4661,
+                    "label": "Escape2",
+                    "radius": 150
+                }
+            ]
+        }
     },
     "craftingRecipes": [
         {

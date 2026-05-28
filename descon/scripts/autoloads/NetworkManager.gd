@@ -77,6 +77,12 @@ signal extraction_final_success(data)
 signal extraction_failed(data)
 signal raid_time_update(data)
 
+signal altar_defense_invitation(data)
+signal altar_defense_cancelled(data)
+signal altar_defense_success(data)
+signal altar_state_update(data)
+signal update_exit_portals(data)
+
 signal vault_data(data)
 signal vault_updated(data)
 
@@ -347,6 +353,11 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"extraction_final_success": extraction_final_success.emit(e_data)
 		"extraction_failed": extraction_failed.emit(e_data)
 		"raid_time_update": raid_time_update.emit(e_data)
+		"altarDefenseInvitation": altar_defense_invitation.emit(e_data)
+		"altarDefenseCancelled": altar_defense_cancelled.emit(e_data)
+		"altarDefenseSuccess": altar_defense_success.emit(e_data)
+		"altarStateUpdate": altar_state_update.emit(e_data)
+		"updateExitPortals": update_exit_portals.emit(e_data)
 
 
 func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_updated"):
