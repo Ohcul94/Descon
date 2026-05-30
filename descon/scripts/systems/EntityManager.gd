@@ -155,6 +155,19 @@ func _process(delta):
 					player.global_position += force
 					if player.has_method("apply_shake"): player.apply_shake(0.3)
 
+		if id.begins_with("cone_") or id.begins_with("blast_"):
+			var enemy_id = area.get_meta("enemy_id")
+			if enemies.has(enemy_id):
+				var en = enemies[enemy_id]
+				if is_instance_valid(en):
+					var en_vis = _get_entity_visual_position(en)
+					area.global_position = en_vis
+					area.global_rotation = en.global_rotation - PI / 2
+			else:
+				active_areas.erase(id)
+				area.queue_free()
+			continue
+
 	# 2. Procesar tracking de lásers en tiempo real (Mega Láser)
 	for eid in active_laser_tracking.keys():
 		var data = active_laser_tracking[eid]
@@ -356,8 +369,14 @@ func _on_enemy_action(data: Dictionary):
 			var cone_node = Node2D.new()
 			cone_node.name = "ConeIndicator_" + enemy_id
 			cone_node.set_meta("is_cone_indicator", true)
+			cone_node.set_meta("enemy_id", enemy_id)
 			cone_node.rotation = -PI / 2 # Alinear con el frente local de la nave
-			en.add_child(cone_node)
+			cone_node.set_as_top_level(true)
+			
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				world.entities_node.add_child(cone_node)
+			else:
+				en.add_child(cone_node)
 			
 			# Polígono de fondo (Área de Peligro)
 			var poly_bg = Polygon2D.new()
@@ -370,6 +389,8 @@ func _on_enemy_action(data: Dictionary):
 			poly_charge.polygon = _get_cone_points(1.0, cone_angle)
 			poly_charge.color = Color(1.0, 0.1, 0.1, 0.4)
 			cone_node.add_child(poly_charge)
+			
+			active_areas["cone_" + enemy_id] = cone_node
 			
 			# Tween para expandir el radio de la carga
 			var tw = cone_node.create_tween()
@@ -387,22 +408,38 @@ func _on_enemy_action(data: Dictionary):
 			if is_instance_valid(indicator):
 				indicator.queue_free()
 				
+			var root_indicator = world.entities_node.get_node_or_null("ConeIndicator_" + enemy_id) if is_instance_valid(world) and is_instance_valid(world.entities_node) else null
+			if is_instance_valid(root_indicator):
+				root_indicator.queue_free()
+				
 			var range_val = float(data.get("range", 400.0))
 			var cone_angle = float(data.get("coneAngle", 60.0))
 			
 			var blast = Node2D.new()
+			blast.name = "ConeBlast_" + enemy_id
+			blast.set_meta("enemy_id", enemy_id)
 			blast.rotation = -PI / 2
-			en.add_child(blast)
+			blast.set_as_top_level(true)
+			
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				world.entities_node.add_child(blast)
+			else:
+				en.add_child(blast)
 			
 			var poly_blast = Polygon2D.new()
 			poly_blast.polygon = _get_cone_points(range_val, cone_angle)
 			poly_blast.color = Color(1.0, 0.4, 0.0, 0.8) # Naranja brillante
 			blast.add_child(poly_blast)
 			
+			active_areas["blast_" + enemy_id] = blast
+			
 			# Desvanecer la explosión
 			var tw = blast.create_tween()
 			tw.tween_property(poly_blast, "color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-			tw.finished.connect(blast.queue_free)
+			tw.finished.connect(func():
+				active_areas.erase("blast_" + enemy_id)
+				blast.queue_free()
+			)
 
 func _on_enemy_updated(data):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return

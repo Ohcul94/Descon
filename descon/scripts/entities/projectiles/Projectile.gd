@@ -242,7 +242,11 @@ func _physics_process(delta):
 
 	# v266.800: Lógica de RASTREO (Homing) v3 - Ahora depende del switch is_homing
 	if is_homing and is_instance_valid(_target_node):
-		var target_angle = (_target_node.global_position - global_position).angle()
+		var target_pos = _target_node.global_position
+		if _target_node.get_meta("is_single_world", false) and is_instance_valid(_target_node.get("world_root_3d")):
+			target_pos = _get_visual_position_of(_target_node)
+		
+		var target_angle = (target_pos - global_position).angle()
 		
 		# rotate_toward garantiza que gire a una velocidad constante (turn_speed en radianes por segundo)
 		rotation = rotate_toward(rotation, target_angle, turn_speed * delta)
@@ -267,6 +271,24 @@ func _physics_process(delta):
 	
 	if global_position.length() > 15000: 
 		queue_free()
+
+func _get_visual_position_of(entity: Node) -> Vector2:
+	if is_instance_valid(entity):
+		if entity.get_meta("is_single_world", false) and is_instance_valid(entity.get("world_root_3d")):
+			var current_map = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
+				var cam3d = current_map.camera_3d
+				var sub_vp = current_map.sub_viewport
+				var world_root_3d = entity.world_root_3d
+				if not cam3d.is_position_behind(world_root_3d.global_position):
+					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+						var main_size = Vector2(get_viewport().get_visible_rect().size)
+						sv_pixel *= main_size / Vector2(sub_vp.size)
+					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+					return world_2d
+		return entity.global_position
+	return Vector2.ZERO
 
 func _on_body_entered(body):
 	if _has_hit: return

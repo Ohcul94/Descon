@@ -1988,6 +1988,7 @@ func activate_from_pool():
 		_ui_wrapper.visible = true
 	if is_instance_valid(world_root_3d):
 		world_root_3d.visible = true
+	rebuild_3d_layout()
 
 # v306.4: Reconstruir visuales 3D al cambiar de mapa para re-ubicarse en el nuevo Viewport global
 func rebuild_3d_layout():
