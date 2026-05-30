@@ -93,16 +93,13 @@ func _find_target_at_pos(pos: Vector2) -> Node2D:
 	var min_dist = 60.0 # Radio de detección estilo MOBA
 	
 	for e in entities:
-		var base_pos = e.global_position
-		var asset_pos = base_pos + Vector2(0, -45) 
-		
-		var dist_base = base_pos.distance_to(pos)
-		var dist_asset = asset_pos.distance_to(pos)
-		var final_dist = min(dist_base, dist_asset)
-		
-		if final_dist < min_dist:
-			min_dist = final_dist
-			best_target = e
+		if is_instance_valid(e):
+			var visual_pos = e.get_visual_position() if e.has_method("get_visual_position") else e.global_position
+			var dist = visual_pos.distance_to(pos)
+			
+			if dist < min_dist:
+				min_dist = dist
+				best_target = e
 			
 	return best_target
 

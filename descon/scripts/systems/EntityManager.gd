@@ -255,6 +255,7 @@ func _on_player_updated(data):
 	if not remote_players.has(id):
 		var rp = load("res://scenes/entities/Ship.tscn").instantiate()
 		rp.entity_id = id
+		rp.set_meta("socket_id", id) # Guardar ID de socket de red real para comercio
 		rp.db_id = str(data.get("id", ""))
 		rp.add_to_group("remote_players")
 		remote_players[id] = rp
@@ -1084,12 +1085,27 @@ func _on_clear_zone_entities(payload):
 		print("[EntityManager ZONE] Sincronía Preventiva: Zona actualizada a ", zone_int)
 
 	if is_instance_valid(world) and is_instance_valid(world.local_player):
+		var lp = world.local_player
 		if spawn_pos != null:
-			world.local_player.global_position = spawn_pos
+			lp.global_position = spawn_pos
 		else:
-			world.local_player.global_position = Vector2(new_world_size / 2, new_world_size / 2)
-		world.local_player.target_position = world.local_player.global_position
-		world.local_player.is_moving = false
+			lp.global_position = Vector2(new_world_size / 2, new_world_size / 2)
+		lp.target_position = lp.global_position
+		lp.is_moving = false
+		
+		# v306.9: Resucitar y restablecer procesos de física/movimiento al cambiar de zona si estaba muerto
+		if lp.get("is_dead") == true or lp.current_hp <= 0:
+			lp.is_dead = false
+			lp.current_hp = lp.max_hp
+			lp.current_shield = lp.max_shield
+			lp.visible = true
+			lp.modulate = Color(1, 1, 1, 1)
+			lp.show()
+			lp.set_physics_process(true)
+			lp.set_process(true)
+			if lp.has_method("_update_tags"): lp._update_tags()
+			if lp.has_method("_clear_wreckage_marker"): lp._clear_wreckage_marker()
+			print("[EntityManager ZONE] Piloto local resucitado automáticamente al ingresar a la zona.")
 	
 	var radar = world.ui_hud.get_node_or_null("MinimapUI") if is_instance_valid(world) and is_instance_valid(world.ui_hud) else null
 	if radar and "world_size" in radar:

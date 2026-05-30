@@ -228,7 +228,7 @@ func _process(_delta):
 		if current_zoom <= 0.01:
 			current_zoom = 1.0
 			
-		var viewport_height = float(get_viewport().size.y)
+		var viewport_height = float(get_viewport().get_visible_rect().size.y)
 		if viewport_height <= 0:
 			viewport_height = 1080.0
 			

@@ -27,6 +27,7 @@ var _layout_backup: Dictionary = {} # Para cancelar cambios
 var active_slot_index: int = 0 # v266.300: Para mostrar cuál está en uso
 var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
 var is_selecting_trade_target: bool = false # v300.080: Modo selección de trade
+var _trade_select_start_time: float = 0.0
 
 var _last_applied_layout: Dictionary = {}
 var _last_applied_config: Dictionary = {}
@@ -271,11 +272,13 @@ func _input(event: InputEvent):
 
 	# v300.090: CLIC PARA TRADE (Feedback Pro)
 	if is_selecting_trade_target:
+		if Time.get_ticks_msec() - _trade_select_start_time < 150:
+			return
 		if event is InputEventMouseButton and event.pressed:
 			if event.button_index == MOUSE_BUTTON_LEFT:
 				var target = _get_entity_under_mouse()
 				if target:
-					var tid = target.get("entity_id") if target.has("entity_id") else target.name
+					var tid = target.get_meta("socket_id") if target.has_meta("socket_id") else (target.get("entity_id") if target.has("entity_id") else target.name)
 					NetworkManager.send_event("tradeInvite", tid)
 					notify("INVITACIÓN ENVIADA A " + target.name.to_upper(), "info")
 				else:
@@ -419,10 +422,10 @@ func _process(_delta):
 	# Trade Highlight visual feedback
 	if is_selecting_trade_target:
 		var target = _get_entity_under_mouse()
-		for p in get_tree().get_nodes_in_group("entities"):
-			if is_instance_valid(p) and not p.is_in_group("player") and p.has_method("set_target"):
+		for p in get_tree().get_nodes_in_group("remote_players"):
+			if is_instance_valid(p):
 				if p == target:
-					p.modulate = Color(0.5, 2.5, 4.0) 
+					p.modulate = Color(2.5, 2.5, 0.5) # Pintar de color amarillo/dorado brillante estilo skill
 					p.scale = p.scale.lerp(Vector2(1.15, 1.15), 0.1)
 				else:
 					p.modulate = Color.WHITE
@@ -1591,14 +1594,15 @@ func _build_trade_ui_runtime(node):
 func _on_esc_trade_pressed():
 	_close_esc_menu()
 	is_selecting_trade_target = true
+	_trade_select_start_time = Time.get_ticks_msec()
 	Input.set_default_cursor_shape(Input.CURSOR_CROSS)
 	notify("MODO COMERCIO: SELECCIONA UN PILOTO", "info")
 
 func _cancel_trade_selection():
 	is_selecting_trade_target = false
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
-	for p in get_tree().get_nodes_in_group("entities"):
-		if is_instance_valid(p) and not p.is_in_group("player"):
+	for p in get_tree().get_nodes_in_group("remote_players"):
+		if is_instance_valid(p):
 			p.modulate = Color.WHITE
 			p.scale = Vector2.ONE
 
@@ -1606,15 +1610,18 @@ func _close_esc_menu():
 	if is_instance_valid(_esc_menu): _esc_menu.visible = false
 
 func _get_entity_under_mouse():
-	var m_pos = get_global_mouse_position()
-	var best_dist = 100.0
+	# Convertir posición de pantalla a coordenadas del mundo 2D en CanvasLayer (UI)
+	var m_pos = get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()
+	var best_dist = 60.0 # Radio de detección estilo MOBA (igual que en SkillController)
 	var best_target = null
 	
-	for p in get_tree().get_nodes_in_group("entities"):
-		if is_instance_valid(p) and not p.is_in_group("player"):
-			var d = m_pos.distance_to(p.global_position)
-			if d < best_dist:
-				best_dist = d
+	for p in get_tree().get_nodes_in_group("remote_players"):
+		if is_instance_valid(p):
+			var visual_pos = p.get_visual_position() if p.has_method("get_visual_position") else p.global_position
+			var dist = visual_pos.distance_to(m_pos)
+			
+			if dist < best_dist:
+				best_dist = dist
 				best_target = p
 	return best_target
 

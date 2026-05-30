@@ -42,14 +42,12 @@ func _input(event):
 	# v1.8.1: Bloqueo de seguridad para Login
 	if not NetworkManager or not NetworkManager.is_logged_in: return
 	
-	# v1.8.2: Prioridad de UI - Ignorar si tocamos un menú o el minimapa (solo al iniciar toque, no durante el arrastre)
+	# v1.8.2: Prioridad de UI - Ignorar si tocamos sobre cualquier botón, skill o elemento interactivo de la interfaz
 	if not is_dragging:
 		var is_pointer = event is InputEventMouse or event is InputEventScreenTouch or event is InputEventScreenDrag
 		if is_pointer:
-			var hud = get_tree().get_first_node_in_group("hud")
-			if hud and hud.has_method("_is_pos_over_priority_ui"):
-				if hud._is_pos_over_priority_ui(event.position):
-					return
+			if _is_point_over_ui(event.position):
+				return
 	
 	# v1.8: Filtrado Multi-Touch Profesional
 	# Priorizamos ScreenTouch/Drag. El mouse solo se usa si no hay toques activos (para testing en PC).
@@ -130,3 +128,75 @@ func _process(_delta):
 			visible = false
 			
 	queue_redraw()
+
+func _is_point_over_ui(pos: Vector2) -> bool:
+	# 1. Verificar MainHUD y sus componentes directos (prioridades, barra de control y skills)
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud:
+		if hud.has_method("_is_pos_over_priority_ui") and hud._is_pos_over_priority_ui(pos):
+			return true
+		if "skills_hud" in hud and is_instance_valid(hud.skills_hud) and hud.skills_hud.visible:
+			if hud.skills_hud.get_global_rect().has_point(pos):
+				return true
+		if "control_bar" in hud and is_instance_valid(hud.control_bar) and hud.control_bar.visible:
+			if hud.control_bar.get_global_rect().has_point(pos):
+				return true
+		# Búsqueda recursiva dentro del propio MainHUD (por si hay botones flotantes como el del chat, etc.)
+		if _check_control_at_pos(hud, pos):
+			return true
+
+	# 2. Verificar grupo de Inventario
+	for inv in get_tree().get_nodes_in_group("inventory_ui"):
+		if inv is Control and inv.visible and _check_control_at_pos(inv, pos):
+			return true
+
+	# 3. Verificar Portal de Salto en el mapa (Map_Extraction)
+	var extraction_map = get_tree().get_first_node_in_group("map")
+	if extraction_map:
+		var portal_canvas = extraction_map.get_node_or_null("PortalUICanvas")
+		if portal_canvas and _check_control_at_pos(portal_canvas, pos):
+			return true
+
+	# 4. Verificar interacción física con objetos del escenario (baúles, cofres de botín, etc.)
+	var world_touch_pos = get_global_mouse_position()
+	
+	# A. Verificar baúles en el escenario
+	for vault in get_tree().get_nodes_in_group("vaults"):
+		if is_instance_valid(vault) and vault.get("is_interactable") == true:
+			var dist = vault.global_position.distance_to(world_touch_pos)
+			if dist <= 120.0:
+				return true
+				
+	# B. Verificar botín/cofres y otras entidades interactivas en escena
+	var world_node = get_tree().get_first_node_in_group("world_node")
+	if world_node:
+		var entities_parent = world_node.get_node_or_null("Entities")
+		if is_instance_valid(entities_parent):
+			for child in entities_parent.get_children():
+				if is_instance_valid(child) and child.get("is_interactable") == true:
+					var dist = child.global_position.distance_to(world_touch_pos)
+					# Radio de 100 píxeles para dar un margen cómodo a los dedos en pantalla táctil
+					if dist <= 100.0:
+						return true
+
+	return false
+
+func _check_control_at_pos(node: Node, pos: Vector2) -> bool:
+	if not is_instance_valid(node): return false
+	
+	if node is Control:
+		# Ignorar el propio joystick y sus hijos
+		if node == self or is_ancestor_of(node):
+			return false
+		# Solo nos importan controles visibles e interactivos
+		if node.visible and node.get_global_rect().has_point(pos):
+			if node.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+				return true
+				
+	for child in node.get_children():
+		if child is Control and not child.visible:
+			continue
+		if _check_control_at_pos(child, pos):
+			return true
+			
+	return false

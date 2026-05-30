@@ -504,6 +504,20 @@ func _draw():
 
 	
 
+func get_visual_position() -> Vector2:
+	if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
+		var current_map = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
+			var cam3d: Camera3D = current_map.camera_3d
+			var sub_vp: SubViewport = current_map.sub_viewport
+			if not cam3d.is_position_behind(world_root_3d.global_position):
+				var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+				if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+					var main_size = Vector2(get_viewport().get_visible_rect().size)
+					sv_pixel *= main_size / Vector2(sub_vp.size)
+				return get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+	return global_position
+
 func _update_3d_root_sync():
 	if is_instance_valid(world_root_3d) and get_meta("is_single_world", false):
 		var s_factor = get_meta("map_scale", 0.02)
