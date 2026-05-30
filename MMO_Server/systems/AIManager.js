@@ -169,7 +169,8 @@ class AIManager {
             this.serverSpawnEnemy(2, 4);
         }
         
-        // v266.150: SHOWCASE DE ENEMIGOS EN ZONA 9 (Testeo Visual)
+        // v266.150: SHOWCASE DE ENEMIGOS EN ZONA 9 (Eliminado a petición del usuario para Defensa del Altar)
+        /*
         const regularEnemyTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
         regularEnemyTypes.forEach((type, index) => {
             const exists = Object.values(this.state.enemies).some(e => e.type == type && e.zone === 9);
@@ -185,6 +186,7 @@ class AIManager {
         // v266.155: GUARDIANES DE BOSSES (Nuevos IDs)
         const boss101 = Object.values(this.state.enemies).find(e => e.type === 101 && e.zone === 9);
         if (!boss101) this.serverSpawnEnemy(9, 101, 2000, 2000);
+        */
 
         const boss102s = Object.values(this.state.enemies).filter(e => e.type === 102 && e.zone === 8);
         if (boss102s.length === 0) {

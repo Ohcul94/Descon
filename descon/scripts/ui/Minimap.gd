@@ -75,7 +75,22 @@ func _draw():
 		if is_instance_valid(p_parent) and "current_map_node" in p_parent and is_instance_valid(p_parent.current_map_node):
 			current_map = p_parent.current_map_node
 			
-	if is_instance_valid(current_map) and "world_size" in current_map and float(current_map.world_size) > 0:
+	var is_altar_def_mode = (current_zone_id == "9")
+	var full_cfg_temp = GameConstants.get("FULL_CONFIG")
+	if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("altar_defense"):
+		var ad_maps = full_cfg_temp.gameModes.altar_defense.get("maps", [])
+		for m in ad_maps:
+			if int(m) == int(current_zone_id):
+				is_altar_def_mode = true
+				break
+
+	if is_altar_def_mode:
+		world_size = 10000.0
+		if full_cfg_temp and full_cfg_temp.gameModes.has("altar_defense"):
+			var ad = full_cfg_temp.gameModes.altar_defense
+			if ad.has("width") and float(ad.width) > 0:
+				world_size = float(ad.width)
+	elif is_instance_valid(current_map) and "world_size" in current_map and float(current_map.world_size) > 0:
 		world_size = float(current_map.world_size)
 	else:
 		# 2. Fallback secundario basado en ID de zona
@@ -202,6 +217,35 @@ func _draw():
 			
 			var font = get_theme_font("font")
 			draw_string(font, pt_pos + Vector2(-3, 3), letter, HORIZONTAL_ALIGNMENT_CENTER, -1, 7, Color.WHITE)
+
+	# 4.5 Dibujar Altar si es zona de Defensa del Altar (Verde neón místico con una 'A' blanca)
+	var is_altar_defense = false
+	var altar_pos = Vector2(5000.0, 5000.0)
+	
+	# Fallback directo por ID de zona
+	if current_zone_id == "9":
+		is_altar_defense = true
+		
+	var full_cfg = GameConstants.get("FULL_CONFIG")
+	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
+		var ad = full_cfg.gameModes.altar_defense
+		var ad_maps = ad.get("maps", [])
+		for m in ad_maps:
+			if int(m) == int(current_zone_id):
+				is_altar_defense = true
+				break
+		if is_altar_defense:
+			var a_pos = ad.get("altarPos", {"x": 5000.0, "y": 5000.0})
+			altar_pos = Vector2(float(a_pos.x), float(a_pos.y))
+
+	if is_altar_defense:
+		var alt_draw_pos = altar_pos * map_scale
+		var pulse = 0.5 + sin(Time.get_ticks_msec() * 0.004) * 0.3
+		draw_circle(alt_draw_pos, 6.0, Color(0.0, 1.0, 0.5, 0.9)) # Círculo verde brillante
+		draw_circle(alt_draw_pos, 9.0 + pulse * 3.0, Color(0.0, 1.0, 0.5, 0.35), false, 1.0) # Brillo
+		var font = get_theme_font("font")
+		draw_string(font, alt_draw_pos + Vector2(-3.5, 3.5), "A", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color.WHITE)
+
 
 	# 6. Dibujar Baúles en el Lobby (Punto dorado brillante con una 'B' blanca)
 	for vault in get_tree().get_nodes_in_group("vaults"):
