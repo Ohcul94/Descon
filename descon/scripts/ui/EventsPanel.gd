@@ -99,8 +99,8 @@ func toggle():
 func _draw():
 	if not visible: return
 	var screen_size = get_viewport_rect().size
-	# 80% de la pantalla como pidió el usuario
-	var r_size = Vector2(screen_size.x * 0.80, screen_size.y * 0.80)
+	# 85% de la pantalla para coincidir exactamente con el Inventario (F1)
+	var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
 	var r_pos = (screen_size - r_size) / 2.0
 	
 	# Actualizar Window física
@@ -111,10 +111,8 @@ func _draw():
 		
 		var tabs_node = win.get_node_or_null("TabContainer")
 		if tabs_node:
-			tabs_node.offset_top = 45
-			tabs_node.offset_left = 15
-			tabs_node.offset_right = -15
-			tabs_node.offset_bottom = -15
+			tabs_node.offset_top = 40; tabs_node.offset_left = 15
+			tabs_node.offset_right = -15; tabs_node.offset_bottom = -15
 	
 	# Dibujar fondo y bordes (Estética Hangar F1)
 	draw_rect(Rect2(r_pos, r_size), Color(0.02, 0.02, 0.05, 0.98)) # Fondo oscuro
@@ -125,9 +123,9 @@ func _draw():
 	var f = get_theme_font("font")
 	draw_string(f, r_pos + Vector2(20, 22), "CENTRO DE EVENTOS Y MISIONES", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0, 1, 1))
 	
-	# Botón Cerrar [X]
-	draw_rect(Rect2(r_pos.x + r_size.x - 35, r_pos.y+8, 25, 18), Color(0, 1, 1), false, 1.0)
-	draw_string(f, r_pos + Vector2(r_size.x-30, 21), "[X]", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 1, 1))
+	# Botón X (Cerrar) optimizado para legibilidad y celulares
+	draw_rect(Rect2(r_pos.x + r_size.x - 50, r_pos.y+6, 40, 24), Color(0, 1, 1), false, 1.2)
+	draw_string(f, r_pos + Vector2(r_size.x-36, 22), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0, 1, 1))
 
 func _input(event):
 	var is_click = false
@@ -138,9 +136,10 @@ func _input(event):
 
 	if is_click and visible:
 		var screen_size = get_viewport_rect().size
-		var r_size = Vector2(screen_size.x * 0.80, screen_size.y * 0.80)
+		var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
 		var r_pos = (screen_size - r_size) / 2
-		var x_rect = Rect2(r_pos.x + r_size.x - 35, r_pos.y + 8, 25, 18)
+		# Tap target de 60x40 para facil toque en celulares (no solapa con el texto M)
+		var x_rect = Rect2(r_pos.x + r_size.x - 60, r_pos.y, 60, 40)
 		if x_rect.has_point(event.position): 
 			toggle()
 			get_viewport().set_input_as_handled()

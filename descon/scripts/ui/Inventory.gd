@@ -216,10 +216,9 @@ func _draw():
 	draw_string(f, r_pos + Vector2(20, 22), "HUBS: " + _format_val(hubs), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0, 1, 1))
 	draw_string(f, r_pos + Vector2(180, 22), "OHCU: " + _format_val(ohcu), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(1, 0, 1))
 	
-	draw_rect(Rect2(r_pos.x + r_size.x - 65, r_pos.y+8, 20, 18), Color(0, 1, 1), false, 1.0)
-	draw_rect(Rect2(r_pos.x + r_size.x - 35, r_pos.y+8, 25, 18), Color(0, 1, 1), false, 1.0)
-	draw_string(f, r_pos + Vector2(r_size.x-60, 21), "M", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 1, 1))
-	draw_string(f, r_pos + Vector2(r_size.x-30, 21), "[X]", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 1, 1))
+	# Botón X (Cerrar) optimizado para legibilidad y celulares
+	draw_rect(Rect2(r_pos.x + r_size.x - 50, r_pos.y+6, 40, 24), Color(0, 1, 1), false, 1.2)
+	draw_string(f, r_pos + Vector2(r_size.x-36, 22), "X", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0, 1, 1))
 
 func _format_val(v):
 	var s = str(int(v)); var r = ""; var c = 0
@@ -262,7 +261,8 @@ func _input(event):
 		var screen_size = get_viewport_rect().size
 		var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)
 		var r_pos = (screen_size - r_size) / 2
-		var x_rect = Rect2(r_pos.x + r_size.x - 35, r_pos.y + 8, 25, 18)
+		# Tap target de 60x40 para facil toque en celulares (no solapa con el texto M)
+		var x_rect = Rect2(r_pos.x + r_size.x - 60, r_pos.y, 60, 40)
 		if x_rect.has_point(event.position): 
 			toggle()
 			get_viewport().set_input_as_handled()

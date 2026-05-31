@@ -1529,7 +1529,13 @@ func _build_trade_ui_runtime(node):
 	
 	var spacer = Control.new(); spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL; header.add_child(spacer)
 	
-	var close_btn = Button.new(); close_btn.name = "CloseButton"; close_btn.text = " X "; header.add_child(close_btn)
+	# Botón de Cerrar [X] - Agrandado para celulares
+	var close_btn = Button.new()
+	close_btn.name = "CloseButton"
+	close_btn.text = " X "
+	close_btn.custom_minimum_size = Vector2(50, 50)
+	close_btn.add_theme_font_size_override("font_size", 16)
+	header.add_child(close_btn)
 	close_btn.pressed.connect(func():
 		if NetworkManager: NetworkManager.send_event("tradeCancel", {})
 		node.queue_free()

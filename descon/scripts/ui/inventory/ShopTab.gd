@@ -172,8 +172,11 @@ func _open_detail_modal(it):
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(spacer)
 	
+	# Botón de Cerrar [X] - Agrandado para celulares
 	var btn_close_x = Button.new()
 	btn_close_x.text = " X "
+	btn_close_x.custom_minimum_size = Vector2(50, 50)
+	btn_close_x.add_theme_font_size_override("font_size", 16)
 	btn_close_x.flat = true
 	btn_close_x.modulate = Color.RED
 	btn_close_x.pressed.connect(func():

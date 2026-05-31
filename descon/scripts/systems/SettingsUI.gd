@@ -70,10 +70,11 @@ func _setup_ui():
 	title.add_theme_font_size_override("font_size", 18)
 	header.add_child(title)
 	
-	# Botón de Cerrar [X]
+	# Botón de Cerrar [X] - Agrandado para celulares
 	var x_btn = Button.new()
 	x_btn.text = " X "
-	x_btn.custom_minimum_size = Vector2(30, 30)
+	x_btn.custom_minimum_size = Vector2(50, 50)
+	x_btn.add_theme_font_size_override("font_size", 16)
 	x_btn.pressed.connect(func(): close())
 	header.add_child(x_btn)
 	
