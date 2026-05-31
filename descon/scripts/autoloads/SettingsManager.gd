@@ -32,6 +32,24 @@ var mobile_aim_sensitivity: float = 1.0 # v266.700: Sensibilidad de apuntado MOB
 var mobile_invert_y: bool = true        # v266.760: Invertir eje Y en apuntado movil
 var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
 
+# Configuraciones de tamaño de letra de forma independiente
+var font_size_player_name: int = 13
+var font_size_player_stats: int = 10
+var font_size_enemy_name: int = 13
+var font_size_enemy_stats: int = 10
+var font_size_chat_bubble: int = 10
+var font_size_menus: int = 12
+
+# Configuraciones de negrita de forma independiente (Por defecto desactivadas)
+var bold_player_name: bool = false
+var bold_player_stats: bool = false
+var bold_enemy_name: bool = false
+var bold_enemy_stats: bool = false
+var bold_chat_bubble: bool = false
+var bold_menus: bool = false
+
+var bold_font: SystemFont = null
+
 func _ready():
 	# v303.01: Soporte para argumentos de lanzamiento (--mobile)
 	for arg in OS.get_cmdline_user_args():
@@ -45,6 +63,9 @@ func _ready():
 	# v303.02: Si iniciamos en modo celular, ajustar ventana inmediatamente
 	if mobile_mode:
 		call_deferred("_apply_mobile_window_size")
+		
+	# Conectar hook de escalado de interfaz dinámico
+	get_tree().node_added.connect(_on_node_added)
 
 func _apply_mobile_window_size():
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
@@ -77,6 +98,23 @@ func reset_to_factory():
 	fps_limit = 60
 	apply_fps_limit(60)
 	
+	font_size_player_name = 13
+	font_size_player_stats = 10
+	font_size_enemy_name = 13
+	font_size_enemy_stats = 10
+	font_size_chat_bubble = 10
+	font_size_menus = 12
+	
+	bold_player_name = false
+	bold_player_stats = false
+	bold_enemy_name = false
+	bold_enemy_stats = false
+	bold_chat_bubble = false
+	bold_menus = false
+	
+	apply_menu_fonts_live()
+	update_entity_tags_live()
+	
 	save_settings()
 	# Forzar actualización de HUD
 	var hud = get_tree().get_first_node_in_group("main_hud")
@@ -100,6 +138,18 @@ func save_settings():
 	config_file.set_value("accessibility", "mobile_mode", mobile_mode)
 	config_file.set_value("accessibility", "mobile_aim_sensitivity", mobile_aim_sensitivity)
 	config_file.set_value("accessibility", "mobile_invert_y", mobile_invert_y)
+	config_file.set_value("accessibility", "font_size_player_name", font_size_player_name)
+	config_file.set_value("accessibility", "font_size_player_stats", font_size_player_stats)
+	config_file.set_value("accessibility", "font_size_enemy_name", font_size_enemy_name)
+	config_file.set_value("accessibility", "font_size_enemy_stats", font_size_enemy_stats)
+	config_file.set_value("accessibility", "font_size_chat_bubble", font_size_chat_bubble)
+	config_file.set_value("accessibility", "font_size_menus", font_size_menus)
+	config_file.set_value("accessibility", "bold_player_name", bold_player_name)
+	config_file.set_value("accessibility", "bold_player_stats", bold_player_stats)
+	config_file.set_value("accessibility", "bold_enemy_name", bold_enemy_name)
+	config_file.set_value("accessibility", "bold_enemy_stats", bold_enemy_stats)
+	config_file.set_value("accessibility", "bold_chat_bubble", bold_chat_bubble)
+	config_file.set_value("accessibility", "bold_menus", bold_menus)
 	
 	for action in default_keys:
 		var events = InputMap.action_get_events(action)
@@ -135,6 +185,18 @@ func load_settings():
 		mobile_mode = config_file.get_value("accessibility", "mobile_mode", false)
 		mobile_aim_sensitivity = config_file.get_value("accessibility", "mobile_aim_sensitivity", 1.0)
 		mobile_invert_y = config_file.get_value("accessibility", "mobile_invert_y", true)
+		font_size_player_name = config_file.get_value("accessibility", "font_size_player_name", 13)
+		font_size_player_stats = config_file.get_value("accessibility", "font_size_player_stats", 10)
+		font_size_enemy_name = config_file.get_value("accessibility", "font_size_enemy_name", 13)
+		font_size_enemy_stats = config_file.get_value("accessibility", "font_size_enemy_stats", 10)
+		font_size_chat_bubble = config_file.get_value("accessibility", "font_size_chat_bubble", 10)
+		font_size_menus = config_file.get_value("accessibility", "font_size_menus", 12)
+		bold_player_name = config_file.get_value("accessibility", "bold_player_name", false)
+		bold_player_stats = config_file.get_value("accessibility", "bold_player_stats", false)
+		bold_enemy_name = config_file.get_value("accessibility", "bold_enemy_name", false)
+		bold_enemy_stats = config_file.get_value("accessibility", "bold_enemy_stats", false)
+		bold_chat_bubble = config_file.get_value("accessibility", "bold_chat_bubble", false)
+		bold_menus = config_file.get_value("accessibility", "bold_menus", false)
 		print("[SETTINGS] Configuración cargada.")
 	else:
 		cast_mode_cache = 1
@@ -150,6 +212,18 @@ func load_settings():
 		mobile_mode = false
 		mobile_aim_sensitivity = 1.0
 		mobile_invert_y = true
+		font_size_player_name = 13
+		font_size_player_stats = 10
+		font_size_enemy_name = 13
+		font_size_enemy_stats = 10
+		font_size_chat_bubble = 10
+		font_size_menus = 12
+		bold_player_name = false
+		bold_player_stats = false
+		bold_enemy_name = false
+		bold_enemy_stats = false
+		bold_chat_bubble = false
+		bold_menus = false
 		print("[SETTINGS] Usando configuración por defecto.")
 
 func apply_fps_limit(limit: int):
@@ -182,3 +256,106 @@ func get_cast_mode() -> int:
 
 func get_graphics_quality() -> int:
 	return graphics_quality
+
+# --- FUNCIONES DE ESCALADO DINÁMICO DE FUENTES ---
+
+func update_entity_tags_live():
+	for ent in get_tree().get_nodes_in_group("entities"):
+		if is_instance_valid(ent) and ent.has_method("_update_tags"):
+			ent._update_tags()
+
+func apply_menu_fonts_live():
+	var roots = []
+	for hud in get_tree().get_nodes_in_group("hud"):
+		roots.append(hud)
+	for ui in get_tree().get_nodes_in_group("inventory_ui"):
+		roots.append(ui)
+	for chat in get_tree().get_nodes_in_group("chat_ui"):
+		roots.append(chat)
+	for settings in get_tree().get_nodes_in_group("settings_ui"):
+		roots.append(settings)
+	
+	for r in roots:
+		apply_menu_font_sizes_recursive(r, font_size_menus)
+
+func get_bold_font() -> SystemFont:
+	if not bold_font:
+		bold_font = SystemFont.new()
+		bold_font.font_weight = 700 # Peso de negrita (Bold)
+	return bold_font
+
+func apply_menu_font_sizes_recursive(node: Node, base_size: int):
+	if not is_instance_valid(node): return
+	
+	if node is Control:
+		var default_ref = 12
+		var ratio = float(base_size) / float(default_ref)
+		
+		# Aplicar negrita a nivel de nodo
+		if bold_menus:
+			if not node is RichTextLabel:
+				node.add_theme_font_override("font", get_bold_font())
+			else:
+				node.add_theme_font_override("normal_font", get_bold_font())
+		else:
+			if not node is RichTextLabel:
+				node.remove_theme_font_override("font")
+			else:
+				node.remove_theme_font_override("normal_font")
+		
+		if node is Label:
+			var orig = node.get_meta("orig_font_size", -1)
+			if orig == -1:
+				orig = node.get_theme_font_size("font_size")
+				if orig <= 0 or orig > 100: orig = 12
+				node.set_meta("orig_font_size", orig)
+			node.add_theme_font_size_override("font_size", int(round(orig * ratio)))
+		elif node is Button:
+			var orig = node.get_meta("orig_font_size", -1)
+			if orig == -1:
+				orig = node.get_theme_font_size("font_size")
+				if orig <= 0 or orig > 100: orig = 12
+				node.set_meta("orig_font_size", orig)
+			node.add_theme_font_size_override("font_size", int(round(orig * ratio)))
+		elif node is RichTextLabel:
+			var orig = node.get_meta("orig_font_size", -1)
+			if orig == -1:
+				orig = node.get_theme_font_size("normal_font_size")
+				if orig <= 0 or orig > 100: orig = 12
+				node.set_meta("orig_font_size", orig)
+			node.add_theme_font_size_override("normal_font_size", int(round(orig * ratio)))
+			node.add_theme_font_size_override("bold_font_size", int(round(orig * ratio)))
+		elif node is LineEdit or node is TextEdit:
+			var orig = node.get_meta("orig_font_size", -1)
+			if orig == -1:
+				orig = node.get_theme_font_size("font_size")
+				if orig <= 0 or orig > 100: orig = 12
+				node.set_meta("orig_font_size", orig)
+			node.add_theme_font_size_override("font_size", int(round(orig * ratio)))
+		elif node is TabContainer:
+			var orig = node.get_meta("orig_font_size", -1)
+			if orig == -1:
+				orig = node.get_theme_font_size("font_size")
+				if orig <= 0 or orig > 100: orig = 12
+				node.set_meta("orig_font_size", orig)
+			node.add_theme_font_size_override("font_size", int(round(orig * ratio)))
+		elif node is OptionButton:
+			var orig = node.get_meta("orig_font_size", -1)
+			if orig == -1:
+				orig = node.get_theme_font_size("font_size")
+				if orig <= 0 or orig > 100: orig = 12
+				node.set_meta("orig_font_size", orig)
+			node.add_theme_font_size_override("font_size", int(round(orig * ratio)))
+			
+	for child in node.get_children():
+		apply_menu_font_sizes_recursive(child, base_size)
+
+func _on_node_added(node: Node):
+	if node is Control:
+		if node.name == "NameTag" or node.get_meta("is_chat_bubble", false) or node.name.begins_with("Wreckage_"):
+			return
+		if not node.is_inside_tree(): return
+		await node.get_tree().process_frame
+		if is_instance_valid(node) and node.is_inside_tree():
+			# Si pertenece a las interfaces o HUDs principales
+			apply_menu_font_sizes_recursive(node, font_size_menus)

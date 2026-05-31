@@ -10,6 +10,7 @@ var _binding_label: Button = null
 
 func _ready():
 	add_to_group("inventory_ui") # v2.6: Unir al grupo de bloqueo global de UI
+	add_to_group("settings_ui")  # Para escalado dinámico de fuentes
 	_setup_ui()
 	visible = false
 
@@ -471,6 +472,87 @@ func _setup_ui():
 			if hud_ref: hud_ref.toggle_hud_editing(i)
 		)
 		row.add_child(edit_btn)
+
+	# ========================== TAB 5: FUENTES Y TEXTOS ==========================
+	var scroll_font = ScrollContainer.new()
+	scroll_font.name = "FUENTES"
+	tabs.add_child(scroll_font)
+	
+	var margin_font = MarginContainer.new()
+	margin_font.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin_font.add_theme_constant_override("margin_left", 20)
+	margin_font.add_theme_constant_override("margin_right", 20)
+	margin_font.add_theme_constant_override("margin_top", 20)
+	scroll_font.add_child(margin_font)
+	
+	var font_vbox = VBoxContainer.new()
+	font_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	font_vbox.add_theme_constant_override("separation", 15)
+	margin_font.add_child(font_vbox)
+	
+	var font_title = Label.new()
+	font_title.text = "CONFIGURACIÓN DE TAMAÑOS DE TEXTO:"
+	font_title.add_theme_color_override("font_color", Color.CYAN)
+	font_vbox.add_child(font_title)
+	
+	var make_font_slider = func(label_text: String, min_v: int, max_v: int, current_v: int, key_name: String):
+		var bold_key = key_name.replace("font_size_", "bold_")
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		font_vbox.add_child(row)
+		
+		var lbl = Label.new()
+		lbl.text = label_text
+		lbl.custom_minimum_size.x = 220
+		row.add_child(lbl)
+		
+		var slider = HSlider.new()
+		slider.min_value = min_v
+		slider.max_value = max_v
+		slider.step = 1
+		slider.value = current_v
+		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(slider)
+		
+		var val_lbl = Label.new()
+		val_lbl.text = str(current_v) + " px"
+		val_lbl.custom_minimum_size.x = 50
+		val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(val_lbl)
+		
+		var bold_chk = CheckBox.new()
+		bold_chk.text = "Negrita"
+		bold_chk.button_pressed = SettingsManager.get(bold_key)
+		row.add_child(bold_chk)
+		
+		slider.value_changed.connect(func(val):
+			var i_val = int(val)
+			val_lbl.text = str(i_val) + " px"
+			SettingsManager.set(key_name, i_val)
+			SettingsManager.save_settings()
+			
+			if key_name == "font_size_menus":
+				SettingsManager.apply_menu_fonts_live()
+			else:
+				SettingsManager.update_entity_tags_live()
+		)
+		
+		bold_chk.toggled.connect(func(pressed):
+			SettingsManager.set(bold_key, pressed)
+			SettingsManager.save_settings()
+			
+			if bold_key == "bold_menus":
+				SettingsManager.apply_menu_fonts_live()
+			else:
+				SettingsManager.update_entity_tags_live()
+		)
+
+	make_font_slider.call("Nombre de Jugadores:", 8, 24, SettingsManager.font_size_player_name, "font_size_player_name")
+	make_font_slider.call("Vida/Escudo Jugadores:", 6, 20, SettingsManager.font_size_player_stats, "font_size_player_stats")
+	make_font_slider.call("Nombre de Enemigos:", 8, 24, SettingsManager.font_size_enemy_name, "font_size_enemy_name")
+	make_font_slider.call("Vida/Escudo Enemigos:", 6, 20, SettingsManager.font_size_enemy_stats, "font_size_enemy_stats")
+	make_font_slider.call("Burbujas de Chat:", 6, 24, SettingsManager.font_size_chat_bubble, "font_size_chat_bubble")
+	make_font_slider.call("Fuentes de Menús (Base):", 8, 24, SettingsManager.font_size_menus, "font_size_menus")
 
 	# ========================== PIE DE PÁGINA (BOTONES COMUNES) ==========================
 

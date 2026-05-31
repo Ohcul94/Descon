@@ -709,8 +709,15 @@ func _update_tags():
 			name_tag = rtl
 			
 	if name_tag:
-		name_tag.add_theme_font_size_override("normal_font_size", 13)
-		name_tag.add_theme_font_size_override("bold_font_size", 13)
+		var is_enemy = is_in_group("enemies")
+		var name_sz = SettingsManager.font_size_enemy_name if is_enemy else SettingsManager.font_size_player_name
+		var stats_sz = SettingsManager.font_size_enemy_stats if is_enemy else SettingsManager.font_size_player_stats
+		var name_bold = SettingsManager.bold_enemy_name if is_enemy else SettingsManager.bold_player_name
+		var stats_bold = SettingsManager.bold_enemy_stats if is_enemy else SettingsManager.bold_player_stats
+		
+		name_tag.add_theme_font_size_override("normal_font_size", name_sz)
+		name_tag.add_theme_font_size_override("bold_font_size", name_sz)
+		name_tag.add_theme_font_size_override("font_size", name_sz)
 		name_tag.add_theme_color_override("font_outline_color", Color.BLACK)
 		name_tag.add_theme_constant_override("outline_size", 4)
 		if name_tag is RichTextLabel:
@@ -729,21 +736,31 @@ func _update_tags():
 				var tag_color = "#ffff00" # Amarillo = neutral/desconocido
 				if my_tag != "" and my_tag.to_lower() == clan_tag.strip_edges().to_lower():
 					tag_color = "#00ff44" # Verde = aliado (mismo clan)
-				# Futuro: elif is_enemy_clan(clan_tag): tag_color = "#ff3333"
 				
-				name_str = "[b][color=" + tag_color + "][" + clan_tag + "][/color][/b] " + username
+				var wrap_b_start = "[b]" if name_bold else ""
+				var wrap_b_end = "[/b]" if name_bold else ""
+				name_str = wrap_b_start + "[color=" + tag_color + "][" + clan_tag + "][/color]" + wrap_b_end + " " + username
 			
-			if is_rage: txt += "[b][wave amp=50 freq=2][color=" + n_color + "]" + name_str + "[/color][/wave][/b]\n"
-			else: txt += "[b][color=" + n_color + "]" + name_str + "[/color][/b]\n"
+			var wrap_name_start = "[b]" if name_bold else ""
+			var wrap_name_end = "[/b]" if name_bold else ""
+			if is_rage: txt += wrap_name_start + "[wave amp=50 freq=2][color=" + n_color + "]" + name_str + "[/color][/wave]" + wrap_name_end + "\n"
+			else: txt += wrap_name_start + "[color=" + n_color + "]" + name_str + "[/color]" + wrap_name_end + "\n"
 			
-			txt += "[color=#00ffff][font_size=10]SH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "[/font_size][/color]\n"
-			txt += "[color=#00ff00][font_size=10]HP: " + str(int(current_hp)) + " / " + str(int(max_hp)) + "[/font_size][/color][/center]"
+			var wrap_stats_start = "[b]" if stats_bold else ""
+			var wrap_stats_end = "[/b]" if stats_bold else ""
+			txt += wrap_stats_start + "[color=#00ffff][font_size=" + str(stats_sz) + "]SH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "[/font_size][/color]" + wrap_stats_end + "\n"
+			txt += wrap_stats_start + "[color=#00ff00][font_size=" + str(stats_sz) + "]HP: " + str(int(current_hp)) + " / " + str(int(max_hp)) + "[/font_size][/color]" + wrap_stats_end + "[/center]"
 			name_tag.text = txt
 		else: 
 			# Caso Label normal: sin BBCode, color plano
 			var name_str = username
 			if clan_tag != "": name_str = "[" + clan_tag + "] " + username
 			name_tag.text = name_str + "\nSH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "\nHP: " + str(int(current_hp)) + " / " + str(int(max_hp))
+			if name_bold or stats_bold:
+				name_tag.add_theme_font_override("font", SettingsManager.get_bold_font())
+			else:
+				name_tag.remove_theme_font_override("font")
+				
 			if is_rage:
 				name_tag.add_theme_color_override("font_outline_color", Color(0.75, 0, 1)) # Borde Violeta
 				name_tag.add_theme_constant_override("outline_size", 10) # Borde grueso para que se vea
@@ -1046,7 +1063,9 @@ func show_bubble(p_text: String):
 	style.content_margin_top = 4; style.content_margin_bottom = 4
 	
 	bubble.add_theme_stylebox_override("normal", style)
-	bubble.add_theme_font_size_override("font_size", 10) # v165.81: Fuente levemente más chica para apilado pro
+	bubble.add_theme_font_size_override("font_size", SettingsManager.font_size_chat_bubble)
+	if SettingsManager.bold_chat_bubble:
+		bubble.add_theme_font_override("font", SettingsManager.get_bold_font())
 	bubble.add_theme_color_override("font_shadow_color", Color.BLACK)
 	
 	if is_instance_valid(_ui_wrapper):
