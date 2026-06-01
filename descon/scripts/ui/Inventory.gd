@@ -132,6 +132,7 @@ func _ready():
 		if map_node.has_method("setup"): map_node.setup(self)
 	
 	# v219.67: Asegurar creación de pestañas dinámicas (Fix desaparición Mapa/Clan)
+	_update_weapons_ui()
 	_update_map_ui()
 	_update_clan_ui()
 	_update_crafting_ui()
@@ -390,8 +391,8 @@ func _on_inventory_received(data: Dictionary):
 		p.ohculianos = ohcu
 		if data.has("inventory") or data.has("items"): p.inventory = inventory_items
 		if data.has("equipped"): p.equipped = equipped_data
-		if data.has("ammo"): p.ammo = data.ammo.duplicate()
-		if data.has("selectedAmmo"): p.selected_ammo = data.selectedAmmo.duplicate()
+		if data.has("ammo") and typeof(data.ammo) == TYPE_DICTIONARY: p.ammo = data.ammo.duplicate()
+		if data.has("selectedAmmo") and typeof(data.selectedAmmo) == TYPE_DICTIONARY: p.selected_ammo = data.selectedAmmo.duplicate()
 		if data.has("currentShipId"):
 			p.current_ship_id = current_ship_id
 			if p.has_method("_setup_ship_visuals"): p._setup_ship_visuals()
@@ -421,6 +422,9 @@ func _update_active_tab_ui():
 		"Esferas": 
 			var s = tab_container.get_node_or_null("Esferas")
 			if s and s.has_method("update_ui"): s.update_ui()
+		"Armas":
+			var wt = tab_container.get_node_or_null("Armas")
+			if wt and wt.has_method("update_ui"): wt.update_ui()
 		"Talentos":
 			var tl = tab_container.get_node_or_null("Talentos")
 			if tl and tl.has_method("update_ui"): tl.update_ui()
@@ -469,6 +473,21 @@ func _update_clan_ui():
 			if NetworkManager: NetworkManager.send_event("getClanData", {})
 	
 	if ct and ct.has_method("update_ui"): ct.update_ui()
+
+func _update_weapons_ui():
+	var wt = get_node_or_null("Window/TabContainer/Armas")
+	if not wt:
+		var tabs = get_node_or_null("Window/TabContainer")
+		if tabs:
+			wt = Control.new(); wt.name = "Armas"; tabs.add_child(wt)
+			wt.set_script(load("res://scripts/ui/inventory/WeaponsTab.gd"))
+			if wt.has_method("setup"): wt.setup(self)
+			
+			# Reordenar pestaña para que aparezca al lado de Esferas (Esferas suele ser la 2da o 3ra pestaña)
+			# Hangar es 0, Esferas es 1. Queremos que Armas sea la pestaña 2.
+			tabs.move_child(wt, 2)
+	
+	if wt and wt.has_method("update_ui"): wt.update_ui()
 
 func _update_map_ui():
 	var mt = get_node_or_null("Window/TabContainer/Mapa")

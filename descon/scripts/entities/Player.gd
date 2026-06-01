@@ -36,8 +36,41 @@ var next_level_exp: float = 1000.0
 var skill_points: int = 0
 # v300.80: skill_tree delegado totalmente al TalentSystem.gd
 
-var ammo: Dictionary = {"laser": [1000, 0, 0, 0, 0, 0], "missile": [100, 0, 0], "mine": [10, 0, 0]}
-var selected_ammo: Dictionary = {"laser": 0, "missile": 0, "mine": 0}
+var ammo: Dictionary = {
+	"laser": [1000, 0, 0, 0, 0, 0],
+	"missile": [100, 0, 0],
+	"mine": [10, 0, 0],
+	"melee": [0, 0, 0, 0, 0, 0],
+	"heal": [0, 0, 0, 0, 0, 0],
+	"siphon": [0, 0, 0, 0, 0, 0],
+	"emp": [0, 0, 0, 0, 0, 0]
+}
+var selected_ammo: Dictionary = {
+	"laser": 0,
+	"missile": 0,
+	"mine": 0,
+	"melee": 0,
+	"heal": 0,
+	"siphon": 0,
+	"emp": 0
+}
+var ammo_slots: Array = ["laser", "missile", "mine"]
+
+func save_ammo_slots_local():
+	var f = ConfigFile.new()
+	f.set_value("hud", "ammo_slots", ammo_slots)
+	f.save("user://ammo_slots.cfg")
+
+func load_ammo_slots_local():
+	var f = ConfigFile.new()
+	if f.load("user://ammo_slots.cfg") == OK:
+		ammo_slots = f.get_value("hud", "ammo_slots", ["laser", "missile", "mine"])
+
+func set_ammo_slot(slot_idx: int, ammo_type: String):
+	if slot_idx >= 0 and slot_idx < ammo_slots.size():
+		ammo_slots[slot_idx] = ammo_type
+		save_ammo_slots_local()
+
 var _is_initializing: bool = false # v269.170: Bloqueo de guardado durante login
 var current_zone: int = 1
 var _skill_controller: Node2D = null
@@ -51,6 +84,7 @@ var stun_timer: float = 0.0
 var joystick_direction: Vector2 = Vector2.ZERO # v266.400
 
 func _ready():
+	load_ammo_slots_local()
 	super._ready() 
 	add_to_group("player")
 	target_position = global_position
@@ -212,9 +246,9 @@ enum Skill_Type { DIRECTIONAL, POINT_CLICK, AREA, INSTANT }
 
 func _handle_input():
 	# v260.90: Sistema de 7 Slots Unificados (Láser, Misil, Mina + 4 Esferas)
-	_handle_slot_input("slot_1", "laser", -1)
-	_handle_slot_input("slot_2", "missile", -1)
-	_handle_slot_input("slot_3", "mine", -1)
+	_handle_slot_input("slot_1", ammo_slots[0], -1)
+	_handle_slot_input("slot_2", ammo_slots[1], -1)
+	_handle_slot_input("slot_3", ammo_slots[2], -1)
 	
 	# Esferas (Slots 4 al 7) - v266.65: Auto-detección centralizada
 	for i in range(4):
@@ -288,11 +322,14 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 
 func _on_skill_executed(p_data: Dictionary):
 	var id = p_data.skill_id
-	if id == "laser" or id == "missile" or id == "mine":
+	if id in ["laser", "missile", "mine", "melee", "heal", "siphon", "emp"]:
 		_shoot_skill(id, p_data.angle, p_data.get("pos", Vector2.ZERO))
 	elif id.begins_with("sphere_"):
 		var s_idx = int(id.replace("sphere_", ""))
 		_use_sphere_skill(s_idx, p_data) # v260.91: Integración con lógica de esferas y targeting
+
+func is_in_combat() -> bool:
+	return (Time.get_ticks_msec() - last_combat_time) < 5000
 
 func _use_heal_skill(p_target):
 	if p_target:
@@ -300,7 +337,11 @@ func _use_heal_skill(p_target):
 		NetworkManager.send_event("playerHeal", {"targetId": p_target.entity_id, "amount": 500})
 
 
-var cooldowns = {"laser": 0.0, "missile": 0.0, "mine": 0.0, "sphere_0": 0.0, "sphere_1": 0.0, "sphere_2": 0.0, "sphere_3": 0.0}
+var cooldowns = {
+	"laser": 0.0, "missile": 0.0, "mine": 0.0,
+	"melee": 0.0, "heal": 0.0, "siphon": 0.0, "emp": 0.0,
+	"sphere_0": 0.0, "sphere_1": 0.0, "sphere_2": 0.0, "sphere_3": 0.0
+}
 func _handle_cooldowns(p_delta):
 	for s in cooldowns:
 		if cooldowns[s] > 0: cooldowns[s] -= p_delta
@@ -329,9 +370,9 @@ func _on_inventory_received(p_data):
 		# Evitamos duplicidad de datos en Player.gd
 		
 		# v240.95: Sincronía de Munición en Tiempo Real (Fix Shop Update)
-		if gd.has("ammo"):
+		if gd.has("ammo") and typeof(gd["ammo"]) == TYPE_DICTIONARY:
 			ammo = gd["ammo"].duplicate()
-		if gd.has("selectedAmmo"):
+		if gd.has("selectedAmmo") and typeof(gd["selectedAmmo"]) == TYPE_DICTIONARY:
 			selected_ammo = gd["selectedAmmo"].duplicate()
 		
 		# v235.95: Persistencia de Esferas Orbitales

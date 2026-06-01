@@ -49,13 +49,13 @@ func _ready():
 	if s3: _make_clickable(s3, _on_sphere_slot_gui_input.bind(null, 2))
 	if s4: _make_clickable(s4, _on_sphere_slot_gui_input.bind(null, 3))
 	
-	if sl: _make_clickable(sl, _on_base_slot_gui_input.bind(null, "laser"))
-	if smi: _make_clickable(smi, _on_base_slot_gui_input.bind(null, "missile"))
-	if sei: _make_clickable(sei, _on_base_slot_gui_input.bind(null, "mine"))
+	if sl: _make_clickable(sl, _on_base_slot_gui_input.bind(null, 0))
+	if smi: _make_clickable(smi, _on_base_slot_gui_input.bind(null, 1))
+	if sei: _make_clickable(sei, _on_base_slot_gui_input.bind(null, 2))
 	
-	_ammo_nodes["laser"] = get_node_or_null("LaserSlot/ammo-q")
-	_ammo_nodes["missile"] = get_node_or_null("MissileSlot/ammo-w")
-	_ammo_nodes["mine"] = get_node_or_null("MineSlot/ammo-e")
+	_ammo_nodes[0] = get_node_or_null("LaserSlot/ammo-q")
+	_ammo_nodes[1] = get_node_or_null("MissileSlot/ammo-w")
+	_ammo_nodes[2] = get_node_or_null("MineSlot/ammo-e")
 
 	if NetworkManager:
 		if not NetworkManager.interference_event.is_connected(_on_interference_event):
@@ -70,9 +70,9 @@ func _process(_delta):
 	
 	_handle_ammo_selector()
 	
-	_update_skill_ui("laser", p_node, get_node_or_null("LaserSlot"))
-	_update_skill_ui("missile", p_node, get_node_or_null("MissileSlot"))
-	_update_skill_ui("mine", p_node, get_node_or_null("MineSlot"))
+	_update_skill_ui(0, p_node, get_node_or_null("LaserSlot"))
+	_update_skill_ui(1, p_node, get_node_or_null("MissileSlot"))
+	_update_skill_ui(2, p_node, get_node_or_null("MineSlot"))
 	
 	_update_sphere_ui(0, p_node, get_node_or_null("Sphere1Slot"))
 	_update_sphere_ui(1, p_node, get_node_or_null("Sphere2Slot"))
@@ -278,11 +278,12 @@ func _format_val(v):
 			c = 0
 	return r
 
-func _update_skill_ui(type: String, ref, slot):
-	if not slot: return
+func _update_skill_ui(slot_idx: int, ref, slot):
+	if not slot or not ref.get("ammo_slots"): return
+	var type = ref.ammo_slots[slot_idx]
 	var l_fill = slot.get_node_or_null("Fill")
 	var l_cd = slot.get_node_or_null("CD")
-	var l_am = _ammo_nodes.get(type)
+	var l_am = _ammo_nodes.get(slot_idx)
 	
 	var cds = ref.get("cooldowns")
 	if cds == null: cds = {}
@@ -314,13 +315,33 @@ func _update_skill_ui(type: String, ref, slot):
 		var sel_data = ref.get("selected_ammo")
 		var sel = sel_data.get(type, 0) if sel_data != null else 0
 		var a_count = a_list[sel] if a_list.size() > sel else 0
+		
+		# Cambiar el label blanco dinámicamente
+		var main_label = null
+		for child in slot.get_children():
+			if child is Label and not child.name in ["BindingLabel", "CD", "ammo-q", "ammo-w", "ammo-e"]:
+				main_label = child
+				break
+		if main_label:
+			var type_names = {
+				"laser": "LÁSER",
+				"missile": "MISIL",
+				"mine": "MINA",
+				"melee": "MELEE",
+				"heal": "CURAR",
+				"siphon": "SIFÓN",
+				"emp": "EMP"
+			}
+			main_label.text = type_names.get(type, type.to_upper())
+		
+		# Mostrar solo Tier y Cantidad en el label secundario
 		l_am.text = "T" + str(int(sel + 1)) + ": " + _format_val(a_count)
-		l_am.modulate = Color(1.0, 1.0, 0.0) 
+		l_am.modulate = Color(0.0, 1.0, 0.0) # Modulado a verde claro limpio
 		l_am.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-		l_am.offset_bottom = -5 
+		l_am.offset_bottom = -2 
 		l_am.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l_am.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		l_am.add_theme_font_size_override("font_size", 10)
+		l_am.add_theme_font_size_override("font_size", 9)
 		l_am.visible = true
 
 func _update_sphere_ui(id: int, ref, slot):
@@ -486,22 +507,22 @@ func _on_sphere_slot_gui_input(event: InputEvent, id: int):
 					if sc.config.get("cast_mode") == 1:
 						sc.execute_skill(true)
 
-func _on_base_slot_gui_input(event: InputEvent, skill_id: String):
+func _on_base_slot_gui_input(event: InputEvent, slot_idx: int):
+	var p = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(p) or not p.get("ammo_slots"): return
+	var skill_id = p.ammo_slots[slot_idx]
 	if event == null: 
-		var p = get_tree().get_first_node_in_group("player")
-		if is_instance_valid(p): p.trigger_skill_by_id(skill_id)
+		p.trigger_skill_by_id(skill_id)
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		var p = get_tree().get_first_node_in_group("player")
-		if is_instance_valid(p):
-			if event.pressed:
-				p.trigger_skill_by_id(skill_id)
-			else:
-				var sc = p._skill_controller
-				if is_instance_valid(sc) and sc.is_aiming:
-					if sc.config.get("cast_mode") == 1:
-						sc.execute_skill()
+		if event.pressed:
+			p.trigger_skill_by_id(skill_id)
+		else:
+			var sc = p._skill_controller
+			if is_instance_valid(sc) and sc.is_aiming:
+				if sc.config.get("cast_mode") == 1:
+					sc.execute_skill()
 
 func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable):
 	var p = get_tree().get_first_node_in_group("player")

@@ -62,6 +62,38 @@
             8,
             16,
             30
+        ],
+        "melee": [
+            1.5,
+            3.0,
+            5.0,
+            10.0,
+            22.0,
+            50.0
+        ],
+        "heal": [
+            1.0,
+            1.8,
+            3.0,
+            5.5,
+            12.0,
+            25.0
+        ],
+        "siphon": [
+            0.8,
+            1.5,
+            2.5,
+            5.0,
+            10.0,
+            20.0
+        ],
+        "emp": [
+            0.5,
+            1.0,
+            1.5,
+            3.0,
+            6.0,
+            12.0
         ]
     },
     "enemyModels": {
@@ -2564,6 +2596,38 @@
                     "bulletSpeed": 800,
                     "mechanics": []
                 }
+            ],
+            "melee": [
+                { "id": "am_me1", "name": "Plasma Claw T1", "prices": { "hubs": 2000, "ohcu": 2 }, "range": 150, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 300, "chance": 10}] },
+                { "id": "am_me2", "name": "Plasma Claw T2", "prices": { "hubs": 4000, "ohcu": 4 }, "range": 150, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 300, "chance": 15}] },
+                { "id": "am_me3", "name": "Plasma Claw T3", "prices": { "hubs": 8000, "ohcu": 8 }, "range": 150, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 400, "chance": 20}] },
+                { "id": "am_me4", "name": "Plasma Claw T4", "prices": { "hubs": 16000, "ohcu": 16 }, "range": 150, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 400, "chance": 25}] },
+                { "id": "am_me5", "name": "Plasma Claw T5", "prices": { "hubs": 0, "ohcu": 40 }, "range": 160, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 500, "chance": 35}] },
+                { "id": "am_me6", "name": "Plasma Claw T6", "prices": { "hubs": 0, "ohcu": 80 }, "range": 170, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 600, "chance": 50}] }
+            ],
+            "heal": [
+                { "id": "am_h1", "name": "Heal Drones T1", "prices": { "hubs": 1500, "ohcu": 1 }, "range": 500, "cooldown": 1200, "bulletSpeed": 900, "mechanics": [] },
+                { "id": "am_h2", "name": "Heal Drones T2", "prices": { "hubs": 3000, "ohcu": 3 }, "range": 520, "cooldown": 1200, "bulletSpeed": 900, "mechanics": [] },
+                { "id": "am_h3", "name": "Heal Drones T3", "prices": { "hubs": 6000, "ohcu": 6 }, "range": 540, "cooldown": 1200, "bulletSpeed": 900, "mechanics": [] },
+                { "id": "am_h4", "name": "Heal Drones T4", "prices": { "hubs": 12000, "ohcu": 12 }, "range": 560, "cooldown": 1200, "bulletSpeed": 900, "mechanics": [] },
+                { "id": "am_h5", "name": "Heal Drones T5", "prices": { "hubs": 0, "ohcu": 30 }, "range": 580, "cooldown": 1200, "bulletSpeed": 950, "mechanics": [] },
+                { "id": "am_h6", "name": "Heal Drones T6", "prices": { "hubs": 0, "ohcu": 60 }, "range": 600, "cooldown": 1200, "bulletSpeed": 1000, "mechanics": [] }
+            ],
+            "siphon": [
+                { "id": "am_s1", "name": "Vampire Beam T1", "prices": { "hubs": 3000, "ohcu": 3 }, "range": 600, "cooldown": 1000, "bulletSpeed": 1200, "mechanics": [] },
+                { "id": "am_s2", "name": "Vampire Beam T2", "prices": { "hubs": 6000, "ohcu": 6 }, "range": 620, "cooldown": 1000, "bulletSpeed": 1200, "mechanics": [] },
+                { "id": "am_s3", "name": "Vampire Beam T3", "prices": { "hubs": 12000, "ohcu": 12 }, "range": 640, "cooldown": 1000, "bulletSpeed": 1200, "mechanics": [] },
+                { "id": "am_s4", "name": "Vampire Beam T4", "prices": { "hubs": 24000, "ohcu": 24 }, "range": 660, "cooldown": 1000, "bulletSpeed": 1200, "mechanics": [] },
+                { "id": "am_s5", "name": "Vampire Beam T5", "prices": { "hubs": 0, "ohcu": 60 }, "range": 680, "cooldown": 1000, "bulletSpeed": 1300, "mechanics": [] },
+                { "id": "am_s6", "name": "Vampire Beam T6", "prices": { "hubs": 0, "ohcu": 120 }, "range": 700, "cooldown": 1000, "bulletSpeed": 1400, "mechanics": [] }
+            ],
+            "emp": [
+                { "id": "am_e1", "name": "EMP Pulse T1", "prices": { "hubs": 4000, "ohcu": 5 }, "range": 400, "cooldown": 2000, "bulletSpeed": 700, "mechanics": [] },
+                { "id": "am_e2", "name": "EMP Pulse T2", "prices": { "hubs": 8000, "ohcu": 10 }, "range": 420, "cooldown": 2000, "bulletSpeed": 700, "mechanics": [] },
+                { "id": "am_e3", "name": "EMP Pulse T3", "prices": { "hubs": 16000, "ohcu": 20 }, "range": 440, "cooldown": 2000, "bulletSpeed": 700, "mechanics": [] },
+                { "id": "am_e4", "name": "EMP Pulse T4", "prices": { "hubs": 32000, "ohcu": 40 }, "range": 460, "cooldown": 2000, "bulletSpeed": 700, "mechanics": [] },
+                { "id": "am_e5", "name": "EMP Pulse T5", "prices": { "hubs": 0, "ohcu": 100 }, "range": 480, "cooldown": 2000, "bulletSpeed": 750, "mechanics": [] },
+                { "id": "am_e6", "name": "EMP Pulse T6", "prices": { "hubs": 0, "ohcu": 200 }, "range": 500, "cooldown": 2000, "bulletSpeed": 800, "mechanics": [] }
             ]
         },
         "engines": [

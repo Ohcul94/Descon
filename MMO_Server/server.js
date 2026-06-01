@@ -196,6 +196,84 @@ const handleUserLogin = async (socket, user, username) => {
     const startShip = pc.startingShipId || 1;
     const startZone = pc.startingMapId || 1;
 
+    // Normalización de munición y selectedAmmo (Garantizar compatibilidad con cuentas existentes)
+    const rawUser = user.toObject({ defaults: false });
+    const rawAmmo = rawUser.gameData ? rawUser.gameData.ammo : null;
+    const rawSelected = rawUser.gameData ? rawUser.gameData.selectedAmmo : null;
+
+    let ammoModified = false;
+    var ammoReset = false;
+    if (!rawAmmo || typeof rawAmmo === 'string' || rawAmmo instanceof String) {
+        ammoReset = true;
+    } else if (!rawAmmo.laser) {
+        ammoReset = true;
+    }
+
+    if (ammoReset) {
+        user.gameData.ammo = undefined;
+        user.gameData.ammo = {
+            laser: [1000, 0, 0, 0, 0, 0],
+            missile: [50, 0, 0, 0, 0, 0],
+            mine: [10, 0, 0, 0, 0, 0],
+            melee: [0, 0, 0, 0, 0, 0],
+            heal: [0, 0, 0, 0, 0, 0],
+            siphon: [0, 0, 0, 0, 0, 0],
+            emp: [0, 0, 0, 0, 0, 0]
+        };
+        ammoModified = true;
+    }
+
+    const defaultAmmo = {
+        laser: [1000, 0, 0, 0, 0, 0],
+        missile: [50, 0, 0, 0, 0, 0],
+        mine: [10, 0, 0, 0, 0, 0],
+        melee: [0, 0, 0, 0, 0, 0],
+        heal: [0, 0, 0, 0, 0, 0],
+        siphon: [0, 0, 0, 0, 0, 0],
+        emp: [0, 0, 0, 0, 0, 0]
+    };
+    
+    // Si no se reseteó por completo, normalizar tiers
+    if (!ammoReset) {
+        for (const key in defaultAmmo) {
+            if (!user.gameData.ammo[key] || !Array.isArray(user.gameData.ammo[key]) || user.gameData.ammo[key].length < 6) {
+                var baseArr = Array.isArray(user.gameData.ammo[key]) ? user.gameData.ammo[key] : [];
+                while (baseArr.length < 6) {
+                    baseArr.push(key === "laser" && baseArr.length === 0 ? 1000 : (key === "missile" && baseArr.length === 0 ? 50 : (key === "mine" && baseArr.length === 0 ? 10 : 0)));
+                }
+                user.gameData.ammo[key] = baseArr;
+                ammoModified = true;
+            }
+        }
+    }
+
+    var selectedReset = false;
+    if (!rawSelected || typeof rawSelected === 'string' || rawSelected instanceof String) {
+        selectedReset = true;
+    } else if (rawSelected.laser === undefined) {
+        selectedReset = true;
+    }
+
+    if (selectedReset) {
+        user.gameData.selectedAmmo = undefined;
+        user.gameData.selectedAmmo = { laser: 0, missile: 0, mine: 0, melee: 0, heal: 0, siphon: 0, emp: 0 };
+        ammoModified = true;
+    } else {
+        const defaultSelected = { laser: 0, missile: 0, mine: 0, melee: 0, heal: 0, siphon: 0, emp: 0 };
+        for (const key in defaultSelected) {
+            if (user.gameData.selectedAmmo[key] === undefined) {
+                user.gameData.selectedAmmo[key] = defaultSelected[key];
+                ammoModified = true;
+            }
+        }
+    }
+
+    if (ammoModified) {
+        user.markModified('gameData.ammo');
+        user.markModified('gameData.selectedAmmo');
+        await user.save();
+    }
+
     players[socket.id] = {
         id: dbId,
         socketId: socket.id,
@@ -218,7 +296,7 @@ const handleUserLogin = async (socket, user, username) => {
         },
         baseHp: baseHp,
         baseShield: baseSh,
-        ammo: user.gameData.ammo || pc.startingAmmo || { laser: [1000, 0, 0, 0, 0, 0], missile: [50, 0, 0, 0, 0, 0], mine: [10, 0, 0, 0, 0, 0] },
+        ammo: JSON.parse(JSON.stringify(user.gameData.ammo)),
         equipped: resolvedEquip,
         spheres: user.gameData.spheres,
         hudConfig: user.gameData.hudConfig || {},

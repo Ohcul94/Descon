@@ -149,11 +149,27 @@ function registerInventoryHandlers(socket, io, state) {
                 });
                 console.log(`[SHOP-DEBUG] Item normal añadido al inventario: ${itemConfig.name}`);
             } else {
-                const ammoType = itemId.startsWith("am_l") ? "laser" : (itemId.startsWith("am_m") ? "missile" : "mine");
+                let ammoType = "mine";
+                if (itemId.startsWith("am_l")) ammoType = "laser";
+                else if (itemId.startsWith("am_me")) ammoType = "melee";
+                else if (itemId.startsWith("am_m")) ammoType = "missile";
+                else if (itemId.startsWith("am_n")) ammoType = "mine";
+                else if (itemId.startsWith("am_h")) ammoType = "heal";
+                else if (itemId.startsWith("am_s")) ammoType = "siphon";
+                else if (itemId.startsWith("am_e")) ammoType = "emp";
+
                 const tierIndex = parseInt(itemId.slice(-1)) - 1;
                 
                 if (!user.gameData.ammo) {
-                    user.gameData.ammo = { laser: [0,0,0,0,0,0], missile: [0,0,0,0,0,0], mine: [0,0,0,0,0,0] };
+                    user.gameData.ammo = { 
+                        laser: [0,0,0,0,0,0], 
+                        missile: [0,0,0,0,0,0], 
+                        mine: [0,0,0,0,0,0],
+                        melee: [0,0,0,0,0,0],
+                        heal: [0,0,0,0,0,0],
+                        siphon: [0,0,0,0,0,0],
+                        emp: [0,0,0,0,0,0]
+                    };
                 }
                 if (!user.gameData.ammo[ammoType]) user.gameData.ammo[ammoType] = [0,0,0,0,0,0];
 
@@ -628,11 +644,27 @@ function registerInventoryHandlers(socket, io, state) {
                     return socket.emit('gameNotification', { msg: 'ERROR: Ya posees esta nave.', type: 'error' });
                 }
             } else if (isAmmo) {
-                const ammoType = resultItemId.startsWith("am_l") ? "laser" : (resultItemId.startsWith("am_m") ? "missile" : "mine");
+                let ammoType = "mine";
+                if (resultItemId.startsWith("am_l")) ammoType = "laser";
+                else if (resultItemId.startsWith("am_me")) ammoType = "melee";
+                else if (resultItemId.startsWith("am_m")) ammoType = "missile";
+                else if (resultItemId.startsWith("am_n")) ammoType = "mine";
+                else if (resultItemId.startsWith("am_h")) ammoType = "heal";
+                else if (resultItemId.startsWith("am_s")) ammoType = "siphon";
+                else if (resultItemId.startsWith("am_e")) ammoType = "emp";
+
                 const tierIndex = parseInt(resultItemId.slice(-1)) - 1;
                 
                 if (!user.gameData.ammo) {
-                    user.gameData.ammo = { laser: [0,0,0,0,0,0], missile: [0,0,0,0,0,0], mine: [0,0,0,0,0,0] };
+                    user.gameData.ammo = { 
+                        laser: [0,0,0,0,0,0], 
+                        missile: [0,0,0,0,0,0], 
+                        mine: [0,0,0,0,0,0],
+                        melee: [0,0,0,0,0,0],
+                        heal: [0,0,0,0,0,0],
+                        siphon: [0,0,0,0,0,0],
+                        emp: [0,0,0,0,0,0]
+                    };
                 }
                 if (!user.gameData.ammo[ammoType]) user.gameData.ammo[ammoType] = [0,0,0,0,0,0];
 

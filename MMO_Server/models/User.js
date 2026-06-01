@@ -31,12 +31,20 @@ const UserSchema = new mongoose.Schema({
         ammo: {
             laser: { type: [Number], default: [1000, 0, 0, 0, 0, 0] },
             missile: { type: [Number], default: [50, 0, 0, 0, 0, 0] },
-            mine: { type: [Number], default: [10, 0, 0, 0, 0, 0] }
+            mine: { type: [Number], default: [10, 0, 0, 0, 0, 0] },
+            melee: { type: [Number], default: [0, 0, 0, 0, 0, 0] },
+            heal: { type: [Number], default: [0, 0, 0, 0, 0, 0] },
+            siphon: { type: [Number], default: [0, 0, 0, 0, 0, 0] },
+            emp: { type: [Number], default: [0, 0, 0, 0, 0, 0] }
         },
         selectedAmmo: {
             laser: { type: Number, default: 0 },
             missile: { type: Number, default: 0 },
-            mine: { type: Number, default: 0 }
+            mine: { type: Number, default: 0 },
+            melee: { type: Number, default: 0 },
+            heal: { type: Number, default: 0 },
+            siphon: { type: Number, default: 0 },
+            emp: { type: Number, default: 0 }
         },
         lastPos: {
             x: { type: Number, default: 2000 },
