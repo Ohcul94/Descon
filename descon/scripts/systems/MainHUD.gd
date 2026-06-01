@@ -96,9 +96,9 @@ func _ready():
 	_apply_sci_fi_frame(center_stats)
 	_apply_sci_fi_frame(radar_window)
 	
-	# v306.10: Aplicar a Panel de Equipo y Barra de Control (Solo limpieza, sin marco visible)
+	# v306.10: Aplicar a Panel de Equipo con marco visible
 	var party_hud = get_node_or_null("PartyHUD")
-	if party_hud: _apply_sci_fi_frame(party_hud, true)
+	if party_hud: _apply_sci_fi_frame(party_hud, false)
 	if control_bar: _apply_sci_fi_frame(control_bar, true)
 	
 	# v306.50: Unificar Slots de Habilidades
@@ -354,7 +354,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				if node.name == "CenterStats": rs_temp = Vector2(250, 140)
 				elif node.name == "RadarWindow": rs_temp = Vector2(220, 220)
 				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
-				elif "Party" in node.name: rs_temp = Vector2(200, 200)
+				elif "Party" in node.name: rs_temp = Vector2(220, node.size.y)
 				elif "ControlBar" in node.name: rs_temp = Vector2(340, 45)
 				elif node.name == "Skills": rs_temp = Vector2(575, 65)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
@@ -1341,6 +1341,10 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 	
 	var clean_node = func(target, recursive_func):
 		for child in target.get_children():
+			# v306.17: Evitar limpiar los renglones de miembros de equipo (PartyMemberRow)
+			if "PartyMemberRow" in child.name or (child.get_script() and "PartyMemberRow" in child.get_script().resource_path):
+				continue
+				
 			var c_name = child.name.to_lower()
 			if c_name == "header" or c_name == "title" or c_name == "titlebar" or c_name == "min":
 				child.visible = false
@@ -1349,10 +1353,25 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 				var margin = 25
 				if target.name.contains("Slot"): margin = 5
 				
-				child.anchor_left = 0; child.anchor_top = 0
-				child.anchor_right = 1; child.anchor_bottom = 1
-				child.offset_left = margin; child.offset_top = margin
-				child.offset_right = -margin; child.offset_bottom = -margin
+				# v306.18: Solo aplicar márgenes a contenedores de primer nivel del HUD, no a los anidados para evitar desbordamiento
+				if target is HUDWindow or target.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"]:
+					if "Party" in target.name:
+						# Centrar horizontalmente (ancho 160) y estirar verticalmente con márgenes de 25px
+						child.layout_mode = 1
+						child.anchor_left = 0.5
+						child.anchor_right = 0.5
+						child.anchor_top = 0
+						child.anchor_bottom = 1
+						child.offset_left = -80
+						child.offset_right = 80
+						child.offset_top = 25
+						child.offset_bottom = -25
+					else:
+						child.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+						child.offset_left = margin
+						child.offset_top = margin
+						child.offset_right = -margin
+						child.offset_bottom = -margin
 				
 			if child is PanelContainer or child is Panel:
 				child.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
@@ -1374,8 +1393,8 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 			node.custom_minimum_size = Vector2(320, 200)
 			node.size = Vector2(320, 200)
 		elif "Party" in node.name: 
-			node.custom_minimum_size = Vector2(200, 200)
-			node.size = Vector2(200, 200)
+			node.custom_minimum_size.x = 220
+			node.size.x = 220
 		elif "ControlBar" in node.name: 
 			node.custom_minimum_size = Vector2(340, 45)
 			node.size = Vector2(340, 45)

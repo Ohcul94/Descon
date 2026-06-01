@@ -59,11 +59,17 @@ var ammo_slots: Array = ["laser", "missile", "mine"]
 func save_ammo_slots_local():
 	var f = ConfigFile.new()
 	f.set_value("hud", "ammo_slots", ammo_slots)
-	f.save("user://ammo_slots.cfg")
+	var filename = "user://ammo_slots.cfg"
+	if username != "" and username != "Piloto":
+		filename = "user://ammo_slots_" + username + ".cfg"
+	f.save(filename)
 
 func load_ammo_slots_local():
 	var f = ConfigFile.new()
-	if f.load("user://ammo_slots.cfg") == OK:
+	var filename = "user://ammo_slots.cfg"
+	if username != "" and username != "Piloto":
+		filename = "user://ammo_slots_" + username + ".cfg"
+	if f.load(filename) == OK:
 		ammo_slots = f.get_value("hud", "ammo_slots", ["laser", "missile", "mine"])
 
 func set_ammo_slot(slot_idx: int, ammo_type: String):
@@ -681,6 +687,9 @@ func _on_login_success(p_in):
 	self.db_id = str(p_in.get("id", ""))
 	self.username = p_in.get("username", p_in.get("user", "Piloto"))
 	self.clan_tag = str(p_in.get("clanTag", "")) # v244.110
+	
+	# Cargar slots específicos del usuario ahora que sabemos su nombre
+	load_ammo_slots_local()
 	
 	# v263.030: Refrescar tags de todas las entidades al conocer nuestro propio clan
 	if clan_tag != "":

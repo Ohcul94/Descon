@@ -27,7 +27,14 @@ func _ready():
 	super._ready() # Iniciar HUDWindow (Draggable)
 	
 	# v167.30: Inyección de Cabecera Profesional (Estilo Sistema Recon)
-	_create_drag_handler()
+	# _create_drag_handler()
+	
+	# Centrar verticalmente los contenedores del HUD de equipo
+	var box = get_node_or_null("VBoxContainer")
+	if box:
+		box.alignment = BoxContainer.ALIGNMENT_CENTER
+	if members_list:
+		members_list.alignment = BoxContainer.ALIGNMENT_CENTER
 	
 	if PartyManager:
 		PartyManager.party_updated.connect(_on_party_updated)
@@ -89,10 +96,11 @@ func _refresh_list():
 	var members = party.get("members", [])
 	var names = party.get("names", [])
 	
-	# v306.15: TAMAÑO DINÁMICO
-	# Altura base = Header (30) + Margen (10) + (Miembros * Altura de fila (aprox 45))
-	var row_height = 52
-	var base_height = 48 
+	# v306.19: TAMAÑO DINÁMICO AJUSTADO CON MARGEN DE SEGURIDAD
+	# Altura base = Margen superior (30) + Margen inferior (30)
+	# Fila = Alto de fila real (~55) + Separación (8) = 65px
+	var row_height = 65
+	var base_height = 60 
 	var final_height = base_height + (members.size() * row_height)
 	custom_minimum_size.y = final_height
 	size.y = final_height
@@ -102,6 +110,7 @@ func _refresh_list():
 		var p_name = names[i] if names.size() > i else "Piloto"
 		
 		var row = MEMBER_ROW_SCENE.instantiate()
+		row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER # Centrar horizontalmente la fila
 		members_list.add_child(row)
 		if row.has_method("setup"):
 			row.setup(id, p_name)
