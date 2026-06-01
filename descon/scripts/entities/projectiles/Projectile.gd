@@ -125,7 +125,6 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		collision_mask = 1 | 2 
 	else:
 		collision_mask = 1 # Los enemigos solo pegan a Players
-	
 	_setup_visual_sprite()
 	queue_redraw()
 
@@ -139,6 +138,10 @@ func _setup_visual_sprite():
 		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
+		"melee": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
+		"heal": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
+		"siphon": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
+		"emp": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
 		"hook": 
 			path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
 			modulate = Color(0, 1, 1) # v269.40: Cian Neón para diferenciar del láser rojo
@@ -184,6 +187,14 @@ func _setup_visual_sprite():
 		
 		if type == "ice_missile":
 			sprite.modulate = Color(0.4, 0.7, 1.0) # Celeste Hielo
+		elif type == "melee":
+			sprite.modulate = Color(1.0, 0.65, 0.1) # Naranja/Amarillo Fuego
+		elif type == "heal":
+			sprite.modulate = Color(0.2, 0.9, 0.3) # Verde Esmeralda Curación
+		elif type == "siphon":
+			sprite.modulate = Color(0.8, 0.15, 0.9) # Magenta/Púrpura Vampírico
+		elif type == "emp":
+			sprite.modulate = Color(0.1, 0.5, 1.0) # Azul Eléctrico EMP
 		elif owner_type == "enemy":
 			if type == "orbital_mine": sprite.modulate = Color(1.2, 1.2, 1.2) # Blanco brillante neón
 			else: sprite.modulate = Color(1.0, 0.3, 0.3) # Rojo para enemigos
@@ -191,14 +202,18 @@ func _setup_visual_sprite():
 			sprite.modulate = Color(0.3, 1.0, 1.0) # Cyan para jugadores
 		
 		add_child(sprite)
-
+ 
 func _draw():
 	if is_instance_valid(sprite): return
 	var color = Color.WHITE
 	if type == "ice_missile": color = Color(0.4, 0.7, 1.0)
+	elif type == "melee": color = Color(1.0, 0.65, 0.1)
+	elif type == "heal": color = Color(0.2, 0.9, 0.3)
+	elif type == "siphon": color = Color(0.8, 0.15, 0.9)
+	elif type == "emp": color = Color(0.1, 0.5, 1.0)
 	elif owner_type == "enemy": color = Color(1.0, 0.3, 0.3)
 	else: color = Color(0.3, 1.0, 1.0)
-
+ 
 	match type:
 		"laser":
 			draw_rect(Rect2(Vector2(-10, -2.5), Vector2(20, 5)), color)
@@ -211,6 +226,31 @@ func _draw():
 			# Dibujar un gancho procedural si no hay asset
 			draw_line(Vector2(0, 0), Vector2(-20, 0), Color.GRAY, 2.0)
 			draw_arc(Vector2(5, 0), 10, -PI/2, PI/2, 8, Color.GRAY, 3.0)
+		"melee":
+			# Dibujar un arco de plasma semicircular (cuchilla de energía)
+			draw_arc(Vector2.ZERO, 15.0, -PI/3, PI/3, 8, color, 4.0)
+			draw_line(Vector2(0, -10), Vector2(7, 0), color, 3.0)
+			draw_line(Vector2(0, 10), Vector2(7, 0), color, 3.0)
+		"heal":
+			# Círculo verde brillante con una cruz médica en el centro
+			draw_circle(Vector2.ZERO, 8.0, color)
+			draw_circle(Vector2.ZERO, 12.0, Color(color.r, color.g, color.b, 0.3), false, 2.0)
+			draw_line(Vector2(-4, 0), Vector2(4, 0), Color.WHITE, 2.0)
+			draw_line(Vector2(0, -4), Vector2(0, 4), Color.WHITE, 2.0)
+		"siphon":
+			# Núcleo oscuro y rombo/espiral magenta
+			draw_circle(Vector2.ZERO, 6.0, color)
+			draw_rect(Rect2(Vector2(-6, -6), Vector2(12, 12)), Color(color.r, color.g, color.b, 0.4), false, 2.0)
+			draw_circle(Vector2.ZERO, 10.0, Color(1.0, 0.1, 0.3, 0.4), false, 1.5)
+		"emp":
+			# Esfera eléctrica con un anillo disruptor y rayos hacia afuera
+			draw_circle(Vector2.ZERO, 8.0, Color.WHITE)
+			draw_circle(Vector2.ZERO, 13.0, color, false, 2.0)
+			# Pequeños pulsos
+			draw_line(Vector2(-10, -3), Vector2(-4, 3), color, 1.5)
+			draw_line(Vector2(4, -3), Vector2(10, 3), color, 1.5)
+			draw_line(Vector2(-3, -10), Vector2(3, -4), color, 1.5)
+			draw_line(Vector2(-3, 4), Vector2(3, 10), color, 1.5)
 
 func release_orbit():
 	orbit_target = null
