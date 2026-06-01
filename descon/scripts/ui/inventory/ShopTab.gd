@@ -126,6 +126,18 @@ func _open_detail_modal(it):
 	canvas_layer.layer = 110
 	get_tree().root.add_child(canvas_layer)
 	
+	if inv_main:
+		inv_main.active_modales.append(canvas_layer)
+		inv_main.modal_active = true
+		
+	var close_detail_modal = func():
+		preview_mesh = null
+		if inv_main:
+			if canvas_layer in inv_main.active_modales:
+				inv_main.active_modales.erase(canvas_layer)
+			inv_main.modal_active = inv_main.active_modales.size() > 0
+		canvas_layer.queue_free()
+	
 	# Crear overlay oscuro translúcido responsivo
 	var overlay = ColorRect.new()
 	overlay.name = "DetailOverlay"
@@ -184,10 +196,7 @@ func _open_detail_modal(it):
 	btn_close_x.add_theme_font_size_override("font_size", 16)
 	btn_close_x.flat = true
 	btn_close_x.modulate = Color.RED
-	btn_close_x.pressed.connect(func():
-		preview_mesh = null
-		canvas_layer.queue_free()
-	)
+	btn_close_x.pressed.connect(close_detail_modal)
 	header.add_child(btn_close_x)
 	
 	# Separación de contenido (HBox)
@@ -357,8 +366,7 @@ func _open_detail_modal(it):
 			b1.custom_minimum_size = Vector2(0, 36)
 			b1.pressed.connect(func():
 				_buy_request("ships", it, "hubs")
-				canvas_layer.queue_free()
-				preview_mesh = null
+				close_detail_modal.call()
 			)
 			btn_container.add_child(b1)
 			
@@ -368,8 +376,7 @@ func _open_detail_modal(it):
 			b2.custom_minimum_size = Vector2(0, 36)
 			b2.pressed.connect(func():
 				_buy_request("ships", it, "ohcu")
-				canvas_layer.queue_free()
-				preview_mesh = null
+				close_detail_modal.call()
 			)
 			btn_container.add_child(b2)
 			
@@ -381,10 +388,7 @@ func _open_detail_modal(it):
 	var btn_close = Button.new()
 	btn_close.text = "   CERRAR DETALLES   "
 	btn_close.custom_minimum_size = Vector2(150, 32)
-	btn_close.pressed.connect(func():
-		preview_mesh = null
-		canvas_layer.queue_free()
-	)
+	btn_close.pressed.connect(close_detail_modal)
 	footer.add_child(btn_close)
 
 func _clean_internal_lights_in_ui(node):

@@ -285,28 +285,35 @@ func _render_weapons_library(grid, p, is_comb):
 			# Comprobar si ya está asignada en este slot específico
 			var is_currently_here = (p.ammo_slots[i] == w_id)
 			if is_currently_here:
-				btn.modulate = w_cfg["color"]
+				btn.modulate = Color(0.0, 1.0, 0.0) # Verde brillante limpio para todos los ticks
 				btn.text = "✔"
-				btn.disabled = true
+				btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			else:
+				# Deshabilitar todos los botones de equipamiento si está en combate
+				if is_comb:
+					btn.disabled = true
+				btn.pressed.connect(_on_equip_pressed.bind(i, w_id))
 			
-			# Deshabilitar todos los botones de equipamiento si está en combate
-			if is_comb:
-				btn.disabled = true
-				
-			btn.pressed.connect(_on_equip_pressed.bind(i, w_id))
 			btn_h.add_child(btn)
 
 func _on_equip_pressed(slot_idx: int, ammo_type: String):
+	print("[WEAPONS-TAB] Intentando equipar munición: ", ammo_type, " en slot ", slot_idx)
 	var p = get_tree().get_first_node_in_group("player")
-	if not p: return
+	if not p:
+		print("[WEAPONS-TAB] Error: No se encontró el nodo del jugador.")
+		return
 	
 	if p.has_method("is_in_combat") and p.is_in_combat():
-		return # Bloqueado
+		print("[WEAPONS-TAB] Cancelado: El jugador está en combate.")
+		return
 		
 	if p.has_method("set_ammo_slot"):
+		print("[WEAPONS-TAB] Llamando a set_ammo_slot en Player.")
 		p.set_ammo_slot(slot_idx, ammo_type)
 		AudioManager.play_sfx("ui_click")
 		update_ui()
+	else:
+		print("[WEAPONS-TAB] Error: El jugador no tiene el método set_ammo_slot.")
 
 func _format_val(v):
 	var s = str(int(v))

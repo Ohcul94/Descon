@@ -30,6 +30,8 @@ var orbit_speed: float = 2.0
 var orbit_angle_offset: float = 0.0
 var orbit_start_time: float = 0.0
 var strike_id: String = "" # v266.995: ID único de ráfaga para evitar colisiones lógicas
+var _start_time_stamp: float = 0.0
+
 
 func _ready():
 	add_to_group("projectiles")
@@ -83,12 +85,16 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	
 	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
 	_start_pos = p_pos
+	_start_time_stamp = Time.get_ticks_msec() / 1000.0
+	if type == "melee":
+		lifetime = 0.35
 	
 	if type == "mega_laser":
 		velocity = Vector2.ZERO
 		speed = 0.0
 	else:
 		velocity = Vector2.RIGHT.rotated(p_angle) * speed
+
 	
 	# v266.610: Configuración de Colisión Dinámica en setup()
 	var shape = CollisionShape2D.new()
@@ -138,10 +144,10 @@ func _setup_visual_sprite():
 		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
-		"melee": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
-		"heal": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
-		"siphon": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
-		"emp": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
+		"melee": path = "res://assets/Municiones/Lasers/Laser2/Laser2.png"
+		"heal": path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
+		"siphon": path = "res://assets/Municiones/Misiles/Misil2/Misil2.png"
+		"emp": path = "res://assets/Municiones/Misiles/Misil3/Misil3.png"
 		"hook": 
 			path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
 			modulate = Color(0, 1, 1) # v269.40: Cian Neón para diferenciar del láser rojo
@@ -295,8 +301,23 @@ func _physics_process(delta):
 	# Efecto de Fricción Fuerte para desplegar minas estáticas a corta distancia
 	elif type == "mine":
 		velocity = velocity.lerp(Vector2.ZERO, 3.5 * delta)
+	elif type == "melee":
+		velocity = velocity.lerp(Vector2.ZERO, 6.0 * delta)
 		
-	global_position += velocity * delta
+	var move_step = velocity * delta
+	if type == "heal":
+		var time = (Time.get_ticks_msec() / 1000.0) - _start_time_stamp
+		var wave_offset = sin(time * 15.0) * 8.0
+		var perp = Vector2(-velocity.y, velocity.x).normalized()
+		global_position += move_step + perp * (wave_offset * delta * 60.0)
+	elif type == "siphon":
+		var time = (Time.get_ticks_msec() / 1000.0) - _start_time_stamp
+		var wave_offset = cos(time * 20.0) * 6.0
+		var perp = Vector2(-velocity.y, velocity.x).normalized()
+		global_position += move_step + perp * (wave_offset * delta * 60.0)
+	else:
+		global_position += move_step
+
 	
 	# v3.5: Límite de Rango (Auto-destrucción) - Ignorar para minas (ellas solo se frenan)
 	if max_range > 0:
@@ -394,8 +415,21 @@ func _on_body_entered(body):
 	elif body.is_in_group("obstacles"):
 		_explode()
 
+var _is_exploding: bool = false
+
 func _explode():
+	if type == "emp" and not _is_exploding:
+		_is_exploding = true
+		velocity = Vector2.ZERO
+		collision_mask = 0
+		collision_layer = 0
+		var tw = create_tween().set_parallel(true)
+		if is_instance_valid(sprite):
+			tw.tween_property(sprite, "scale", sprite.scale * 3.0, 0.25)
+			tw.tween_property(sprite, "modulate:a", 0.0, 0.25)
+		await tw.finished
 	queue_free()
+
 
 func _find_target():
 	if target_id == "": return

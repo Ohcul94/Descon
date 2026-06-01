@@ -73,9 +73,13 @@ func load_ammo_slots_local():
 		ammo_slots = f.get_value("hud", "ammo_slots", ["laser", "missile", "mine"])
 
 func set_ammo_slot(slot_idx: int, ammo_type: String):
+	print("[PLAYER] set_ammo_slot convocado. SlotIdx: ", slot_idx, " AmmoType: ", ammo_type, " slots_actuales: ", ammo_slots)
 	if slot_idx >= 0 and slot_idx < ammo_slots.size():
 		ammo_slots[slot_idx] = ammo_type
+		print("[PLAYER] Guardando slots localmente.")
 		save_ammo_slots_local()
+	else:
+		print("[PLAYER] Error: slot_idx fuera de rango.")
 
 var _is_initializing: bool = false # v269.170: Bloqueo de guardado durante login
 var current_zone: int = 1
