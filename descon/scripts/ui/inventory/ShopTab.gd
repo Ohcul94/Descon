@@ -120,16 +120,21 @@ func _create_shop_card(it, cat, parent):
 	parent.add_child(p)
 
 func _open_detail_modal(it):
-	# Crear overlay oscuro translúcido
-	var overlay = ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.8)
-	overlay.top_level = true
-	overlay.z_index = 1000
-	add_child(overlay)
-	overlay.size = get_viewport_rect().size
-	overlay.global_position = Vector2.ZERO
+	# Crear CanvasLayer para centrado automático independiente de resolución
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "DetailCanvasLayer"
+	canvas_layer.layer = 110
+	get_tree().root.add_child(canvas_layer)
 	
-	# Contenedor de centrado automático independiente de resolución
+	# Crear overlay oscuro translúcido responsivo
+	var overlay = ColorRect.new()
+	overlay.name = "DetailOverlay"
+	overlay.color = Color(0, 0, 0, 0.8)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	canvas_layer.add_child(overlay)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	# Contenedor de centrado automático
 	var center = CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
@@ -181,7 +186,7 @@ func _open_detail_modal(it):
 	btn_close_x.modulate = Color.RED
 	btn_close_x.pressed.connect(func():
 		preview_mesh = null
-		overlay.queue_free()
+		canvas_layer.queue_free()
 	)
 	header.add_child(btn_close_x)
 	
@@ -352,7 +357,7 @@ func _open_detail_modal(it):
 			b1.custom_minimum_size = Vector2(0, 36)
 			b1.pressed.connect(func():
 				_buy_request("ships", it, "hubs")
-				overlay.queue_free()
+				canvas_layer.queue_free()
 				preview_mesh = null
 			)
 			btn_container.add_child(b1)
@@ -363,7 +368,7 @@ func _open_detail_modal(it):
 			b2.custom_minimum_size = Vector2(0, 36)
 			b2.pressed.connect(func():
 				_buy_request("ships", it, "ohcu")
-				overlay.queue_free()
+				canvas_layer.queue_free()
 				preview_mesh = null
 			)
 			btn_container.add_child(b2)
@@ -378,7 +383,7 @@ func _open_detail_modal(it):
 	btn_close.custom_minimum_size = Vector2(150, 32)
 	btn_close.pressed.connect(func():
 		preview_mesh = null
-		overlay.queue_free()
+		canvas_layer.queue_free()
 	)
 	footer.add_child(btn_close)
 

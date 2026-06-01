@@ -26,6 +26,7 @@ var last_clan_subtab = 0 # v244.55: Preservar pestaña al refrescar
 var pending_clans = [] # v244.90: Solicitudes que el usuario envió y están pendientes
 var received_invites = [] # v244.95: Invitaciones que el usuario recibió de clanes
 var pending_skill_to_equip = null # v301.5: Habilidad esperando selección de slot
+var active_modales = [] # v307: Registro de modales activos para cerrado en capas (LIFO)
 
 
 
@@ -238,6 +239,15 @@ func _input(event):
 		
 	# v244.75: Las funciones de cerrado de menú (ESC y Botón X) deben funcionar SIEMPRE, incluso si estás escribiendo
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		# v307: Cerrar primero los modales activos por orden de capas (LIFO)
+		while active_modales.size() > 0:
+			var m = active_modales.pop_back()
+			if is_instance_valid(m):
+				m.queue_free()
+				modal_active = active_modales.size() > 0
+				get_viewport().set_input_as_handled()
+				return
+
 		if pending_skill_to_equip != null:
 			# v301.5: Cancelar equipamiento y volver a la biblioteca
 			pending_skill_to_equip = null
@@ -299,6 +309,14 @@ func toggle():
 	is_open = !is_open
 	visible = is_open
 	
+	if not is_open:
+		# v307: Cerrar de forma limpia cualquier modal huérfano activo al cerrar el inventario
+		for m in active_modales:
+			if is_instance_valid(m):
+				m.queue_free()
+		active_modales.clear()
+		modal_active = false
+	
 	if is_open: 
 		_refresh_data()
 	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
@@ -307,11 +325,8 @@ func toggle():
 		# v190.20: PRIORIDAD ABSOLUTA - Mover al frente de la jerarquía UI
 		if get_parent():
 			get_parent().move_child(self, get_parent().get_child_count() - 1)
-			# v303.11: Usar top_level para garantizar que se dibuje sobre paneles flotantes (como el Chat)
-			top_level = true
 			z_index = 100 
 	else:
-		top_level = false
 		z_index = 0
 		
 	queue_redraw()
@@ -497,24 +512,85 @@ func _on_game_notification(data: Dictionary):
 
 func _show_modal(title, msg, on_confirm, custom_node = null):
 	modal_active = true
-	var overlay = ColorRect.new(); overlay.color = Color(0,0,0,0.85); overlay.top_level = true; overlay.z_index = 1000; add_child(overlay)
-	overlay.size = get_viewport_rect().size; overlay.global_position = Vector2.ZERO
-	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(420, 220); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "ModalCanvasLayer"
+	canvas_layer.layer = 120
+	get_tree().root.add_child(canvas_layer)
+	active_modales.append(canvas_layer)
+	
+	var overlay = Control.new()
+	overlay.name = "ModalOverlay"
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	canvas_layer.add_child(overlay)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(420, 220)
+	overlay.add_child(p)
+	
+	# Centrado dinámico robusto
+	p.anchor_left = 0.5
+	p.anchor_right = 0.5
+	p.anchor_top = 0.5
+	p.anchor_bottom = 0.5
+	p.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	p.grow_vertical = Control.GROW_DIRECTION_BOTH
+	p.offset_left = -p.custom_minimum_size.x / 2.0
+	p.offset_right = p.custom_minimum_size.x / 2.0
+	p.offset_top = -p.custom_minimum_size.y / 2.0
+	p.offset_bottom = p.custom_minimum_size.y / 2.0
+	
 	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0.01, 0.04, 0.08, 1); sb.border_width_top = 3; sb.border_color = Color.CYAN; p.add_theme_stylebox_override("panel", sb)
 	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 20); p.add_child(v)
 	var tl = Label.new(); tl.text = title; tl.horizontal_alignment = 1; tl.modulate = Color.CYAN; tl.add_theme_font_size_override("font_size", 14); v.add_child(tl)
 	var rt = RichTextLabel.new(); rt.bbcode_enabled = true; rt.text = "[center]" + msg + "[/center]"; rt.fit_content = true; v.add_child(rt)
 	if custom_node: v.add_child(custom_node)
 	var hb = HBoxContainer.new(); hb.alignment = BoxContainer.ALIGNMENT_CENTER; hb.add_theme_constant_override("separation", 20); v.add_child(hb)
-	var bc = Button.new(); bc.text = "  CONFIRMAR  "; bc.custom_minimum_size = Vector2(120, 40); bc.pressed.connect(func(): on_confirm.call(); overlay.queue_free(); modal_active = false); hb.add_child(bc)
-	var bx = Button.new(); bx.text = "   CANCELAR   "; bx.custom_minimum_size = Vector2(120, 40); bx.pressed.connect(func(): overlay.queue_free(); modal_active = false); hb.add_child(bx)
+	var bc = Button.new(); bc.text = "  CONFIRMAR  "; bc.custom_minimum_size = Vector2(120, 40); bc.pressed.connect(func(): 
+		on_confirm.call()
+		if canvas_layer in active_modales: active_modales.erase(canvas_layer)
+		canvas_layer.queue_free()
+		modal_active = active_modales.size() > 0
+	); hb.add_child(bc)
+	var bx = Button.new(); bx.text = "   CANCELAR   "; bx.custom_minimum_size = Vector2(120, 40); bx.pressed.connect(func(): 
+		if canvas_layer in active_modales: active_modales.erase(canvas_layer)
+		canvas_layer.queue_free()
+		modal_active = active_modales.size() > 0
+	); hb.add_child(bx)
 
 func _show_result_modal(title, msg):
-	var overlay = ColorRect.new(); overlay.color = Color(0,0,0,0.85); overlay.top_level = true; overlay.z_index = 1001; add_child(overlay)
-	overlay.size = get_viewport_rect().size; overlay.global_position = Vector2.ZERO
-	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(380, 160); p.set_anchors_and_offsets_preset(Control.PRESET_CENTER); overlay.add_child(p)
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "ResultCanvasLayer"
+	canvas_layer.layer = 121
+	get_tree().root.add_child(canvas_layer)
+	active_modales.append(canvas_layer)
+	
+	var overlay = Control.new()
+	overlay.name = "ResultOverlay"
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	canvas_layer.add_child(overlay)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(380, 160)
+	overlay.add_child(p)
+	
+	# Centrado dinámico robusto
+	p.anchor_left = 0.5
+	p.anchor_right = 0.5
+	p.anchor_top = 0.5
+	p.anchor_bottom = 0.5
+	p.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	p.grow_vertical = Control.GROW_DIRECTION_BOTH
+	p.offset_left = -p.custom_minimum_size.x / 2.0
+	p.offset_right = p.custom_minimum_size.x / 2.0
+	p.offset_top = -p.custom_minimum_size.y / 2.0
+	p.offset_bottom = p.custom_minimum_size.y / 2.0
+	
 	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0.08,0.04, 1); sb.border_width_top = 2; sb.border_color = Color.GREEN; p.add_theme_stylebox_override("panel", sb)
 	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 15); p.add_child(v)
 	var tl = Label.new(); tl.text = title; tl.modulate = Color.GREEN; tl.horizontal_alignment = 1; v.add_child(tl)
 	var m = Label.new(); m.text = msg; m.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; m.horizontal_alignment = 1; v.add_child(m)
-	var b = Button.new(); b.text = "ENTENDIDO"; b.custom_minimum_size = Vector2(100, 35); b.pressed.connect(func(): overlay.queue_free()); v.add_child(b)
+	var b = Button.new(); b.text = "ENTENDIDO"; b.custom_minimum_size = Vector2(100, 35); b.pressed.connect(func(): 
+		if canvas_layer in active_modales: active_modales.erase(canvas_layer)
+		canvas_layer.queue_free()
+		modal_active = active_modales.size() > 0
+	); v.add_child(b)
