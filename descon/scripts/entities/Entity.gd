@@ -61,6 +61,47 @@ var _is_currently_invisible: bool = false
 var _is_ally: bool = false
 var _cached_viewport: SubViewport = null # Cache para frustum culling
 
+# Cache para optimización de rendimiento
+var _cached_map: Node = null
+var _cached_camera_3d: Camera3D = null
+var _cached_sub_viewport: SubViewport = null
+var _cached_camera_2d: Camera2D = null
+var _cached_player: Node = null
+var _cached_spheres_manager: Node = null
+
+# Estado para evitar recálculo redundante de tags UI
+var _last_rendered_hp: float = -1.0
+var _last_rendered_shield: float = -1.0
+var _last_rendered_max_hp: float = -1.0
+var _last_rendered_max_shield: float = -1.0
+var _last_rendered_username: String = ""
+var _last_rendered_clan_tag: String = ""
+var _last_rendered_is_rage: bool = false
+var _last_rendered_pvp_status: bool = false
+
+func _get_map_node() -> Node:
+	if not is_instance_valid(_cached_map):
+		_cached_map = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(_cached_map):
+			_cached_camera_3d = _cached_map.get("camera_3d")
+			_cached_sub_viewport = _cached_map.get("sub_viewport")
+	return _cached_map
+
+func _get_camera_2d() -> Camera2D:
+	if not is_instance_valid(_cached_camera_2d):
+		_cached_camera_2d = get_viewport().get_camera_2d()
+	return _cached_camera_2d
+
+func _get_player_node() -> Node:
+	if not is_instance_valid(_cached_player):
+		_cached_player = get_tree().get_first_node_in_group("player")
+	return _cached_player
+
+func _get_spheres_manager() -> Node:
+	if not is_instance_valid(_cached_spheres_manager):
+		_cached_spheres_manager = get_node_or_null("SpheresManager")
+	return _cached_spheres_manager
+
 func _ready():
 	add_to_group("entities")
 	_vfx_container_2d = Node2D.new()
@@ -192,36 +233,36 @@ func _process(delta):
 			var rot_weight = 1.0 - pow(1.0 - rot_factor, delta * 60.0)
 			rotation = lerp_angle(rotation, target_rotation, rot_weight)
 		
-	# 2. Sincronía de UI
+	# 2. Sincronía de UI y VFX
 	# Primero actualizamos la posición 3D para tener el world_root_3d en su lugar correcto
 	_update_3d_root_sync()
 	
+	var is_single = get_meta("is_single_world", false)
+	var projected_pos_hud = global_position
+	var projected_pos_vfx = Vector2.ZERO
+	var has_projected = false
+	
+	if is_single and is_instance_valid(world_root_3d):
+		var current_map = _get_map_node()
+		if is_instance_valid(current_map) and is_instance_valid(_cached_camera_3d):
+			var cam3d = _cached_camera_3d
+			var sub_vp = _cached_sub_viewport
+			if not cam3d.is_position_behind(world_root_3d.global_position):
+				# unproject_position devuelve la posición en píxeles del SubViewport
+				var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+				# Escalar de SubViewport a la pantalla principal si difieren en tamaño
+				if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+					var main_size = Vector2(get_viewport().get_visible_rect().size)
+					sv_pixel *= main_size / Vector2(sub_vp.size)
+				# Convertir de píxeles de pantalla a coordenadas del mundo 2D
+				var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+				projected_pos_hud = world_2d
+				projected_pos_vfx = world_2d
+				has_projected = true
+	
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.visible = visible and not is_dead
-		# Caso Single World (3D compartido): proyectar posición 3D real a pantalla para alinear el HUD
-		if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
-			var current_map = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
-				var cam3d: Camera3D = current_map.camera_3d
-				var sub_vp: SubViewport = current_map.sub_viewport
-				# Evitar error si el punto está detrás del plano cercano de la cámara o si no se puede proyectar
-				if not cam3d.is_position_behind(world_root_3d.global_position):
-					# unproject_position devuelve la posición en píxeles del SubViewport
-					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
-					# Escalar de SubViewport a la pantalla principal si difieren en tamaño
-					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-						var main_size = Vector2(get_viewport().get_visible_rect().size)
-						sv_pixel *= main_size / Vector2(sub_vp.size)
-					# Convertir de píxeles de pantalla a coordenadas del mundo 2D
-					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
-					_ui_wrapper.global_position = world_2d
-				else:
-					_ui_wrapper.global_position = global_position
-			else:
-				_ui_wrapper.global_position = global_position
-		else:
-			# Caso viewport local o 2D puro: seguir la posición directamente
-			_ui_wrapper.global_position = global_position
+		_ui_wrapper.global_position = projected_pos_hud
 		if name_tag: _update_hud_offsets()
 	
 	# 3. Resto de efectos (ya se llamó _update_3d_root_sync arriba)
@@ -229,24 +270,9 @@ func _process(delta):
 	_update_reflect_aura(delta)
 	_update_hit_flash(delta)
 	
-	# Sincronización de posición de VFX 2D a la perspectiva 3D
 	if is_instance_valid(_vfx_container_2d):
-		if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
-			var current_map = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
-				var cam3d = current_map.camera_3d
-				var sub_vp = current_map.sub_viewport
-				if not cam3d.is_position_behind(world_root_3d.global_position):
-					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
-					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-						var main_size = Vector2(get_viewport().get_visible_rect().size)
-						sv_pixel *= main_size / Vector2(sub_vp.size)
-					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
-					_vfx_container_2d.global_position = world_2d
-				else:
-					_vfx_container_2d.position = Vector2.ZERO
-			else:
-				_vfx_container_2d.position = Vector2.ZERO
+		if is_single and has_projected:
+			_vfx_container_2d.global_position = projected_pos_vfx
 		else:
 			_vfx_container_2d.position = Vector2.ZERO
 
@@ -303,31 +329,22 @@ func _process(delta):
 
 	# OPTIMIZACIÓN MASIVA: Pausar/Intercalar SubViewport de entidades según visibilidad, rol y distancia
 	var screen_visible = true
-	if is_instance_valid(world_root_3d) and get_meta("is_single_world", false):
-		var cam = get_viewport().get_camera_2d()
-		if cam:
-			var screen_size = get_viewport_rect().size
-			var cam_pos = cam.global_position
-			var margin = 600.0
-			var diff = global_position - cam_pos
-			if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
-				screen_visible = false
-	elif _cached_viewport:
-		var cam = get_viewport().get_camera_2d()
-		if cam:
-			var screen_size = get_viewport_rect().size
-			var cam_pos = cam.global_position
-			var margin = 600.0
-			var diff = global_position - cam_pos
-			if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
-				screen_visible = false
-		
+	var cam = _get_camera_2d()
+	if cam:
+		var screen_size = get_viewport_rect().size
+		var cam_pos = cam.global_position
+		var margin = 600.0
+		var diff = global_position - cam_pos
+		if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
+			screen_visible = false
+	
+	if _cached_viewport:
 		if screen_visible:
 			if is_in_group("player") or entity_type >= 100: # Jugador local y Bosses actualizan en cada frame
 				_cached_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 			else:
 				# LOD temporal adaptativo según distancia al jugador local para reducir updates transparentes
-				var player = get_tree().get_first_node_in_group("player")
+				var player = _get_player_node()
 				var modulo = 2
 				if is_instance_valid(player):
 					var dist = global_position.distance_to(player.global_position)
@@ -371,7 +388,7 @@ func _process(delta):
 		var is_auth = username == "Unknown" or username == ""
 		
 		# Buscamos el manager de esferas para saber qué está equipado
-		var manager = get_node_or_null("SpheresManager")
+		var manager = _get_spheres_manager()
 		
 		for i in range(4):
 			var s_node = _3d_spheres[i]
@@ -506,10 +523,10 @@ func _draw():
 
 func get_visual_position() -> Vector2:
 	if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
-		var current_map = get_tree().get_first_node_in_group("map")
-		if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
-			var cam3d: Camera3D = current_map.camera_3d
-			var sub_vp: SubViewport = current_map.sub_viewport
+		var current_map = _get_map_node()
+		if is_instance_valid(current_map) and is_instance_valid(_cached_camera_3d):
+			var cam3d: Camera3D = _cached_camera_3d
+			var sub_vp: SubViewport = _cached_sub_viewport
 			if not cam3d.is_position_behind(world_root_3d.global_position):
 				var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
 				if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
@@ -527,7 +544,7 @@ func _update_3d_root_sync():
 		world_root_3d.position.y = 0.0
 		
 		# Optimización de visibilidad (Culling)
-		var cam = get_viewport().get_camera_2d()
+		var cam = _get_camera_2d()
 		if cam:
 			var diff = global_position - cam.get_screen_center_position()
 			var _margin_x = 1200.0
@@ -689,7 +706,32 @@ func update_stats(data):
 	_update_tags()
 
 func _update_tags():
-	if name_tag and not name_tag is RichTextLabel:
+	if not name_tag: return
+	
+	# Verificar si los valores realmente cambiaron para evitar reconstruir el RichTextLabel innecesariamente
+	if (
+		abs(current_hp - _last_rendered_hp) < 1.0 and
+		abs(current_shield - _last_rendered_shield) < 1.0 and
+		abs(max_hp - _last_rendered_max_hp) < 1.0 and
+		abs(max_shield - _last_rendered_max_shield) < 1.0 and
+		username == _last_rendered_username and
+		clan_tag == _last_rendered_clan_tag and
+		is_rage == _last_rendered_is_rage and
+		pvp_status == _last_rendered_pvp_status
+	):
+		return # No cambió nada visual, evitar recálculo
+
+	# Guardar valores actuales
+	_last_rendered_hp = current_hp
+	_last_rendered_shield = current_shield
+	_last_rendered_max_hp = max_hp
+	_last_rendered_max_shield = max_shield
+	_last_rendered_username = username
+	_last_rendered_clan_tag = clan_tag
+	_last_rendered_is_rage = is_rage
+	_last_rendered_pvp_status = pvp_status
+
+	if not name_tag is RichTextLabel:
 		var rtl = RichTextLabel.new()
 		rtl.name = name_tag.name
 		rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -728,7 +770,7 @@ func _update_tags():
 			# v244.110: Mostrar TAG de Flota con color según relación
 			var name_str = username
 			if clan_tag != "":
-				var local_player = get_tree().get_first_node_in_group("player")
+				var local_player = _get_player_node()
 				var my_tag = ""
 				if is_instance_valid(local_player) and "clan_tag" in local_player:
 					my_tag = local_player.clan_tag.strip_edges()
