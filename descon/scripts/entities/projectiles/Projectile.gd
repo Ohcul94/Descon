@@ -396,9 +396,9 @@ func _on_body_entered(body):
 		
 		# Notificar al servidor
 		if NetworkManager:
-			if (owner_type == "player" or owner_type == "remote") and body.is_in_group("enemies"):
+			if owner_type == "player" and body.is_in_group("enemies"):
 				NetworkManager.send_event("enemyHit", {"enemyId": body.entity_id, "damage": damage})
-			elif (owner_type == "player" or owner_type == "remote") and is_pvp_target:
+			elif owner_type == "player" and is_pvp_target:
 				NetworkManager.send_event("playerHitByPlayer", {"victimId": body.entity_id, "damage": damage})
 			elif owner_type == "enemy" and body.is_in_group("player"):
 				NetworkManager.send_event("playerHitByEnemy", {
