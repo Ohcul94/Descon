@@ -70,6 +70,7 @@ func _ready():
 				spawn_lock_ms = float(mode_cfg.spawnLockTime)
 			if mode_cfg.has("width") and float(mode_cfg.width) > 0:
 				world_size = float(mode_cfg.width)
+				adjust_background()
 	spawn_lock_remaining = spawn_lock_ms / 1000.0
 
 	# Crear HUD UI de temporizadores

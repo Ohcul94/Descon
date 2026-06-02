@@ -81,10 +81,13 @@ function registerCombatHandlers(socket, io, state) {
 
         let baseDamage = 100;
         if (p.equipped && p.equipped.w) {
-            baseDamage = 0;
             p.equipped.w.forEach(item => {
-                const masterItem = state.SERVER_CONFIG.shopItems.weapons.find(w => w.id === item.id);
-                if (masterItem) baseDamage += (masterItem.base || 0);
+                let baseVal = item.base || 0;
+                if (!baseVal && state.SERVER_CONFIG && state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.weapons) {
+                    const masterItem = state.SERVER_CONFIG.shopItems.weapons.find(w => String(w.id) === String(item.id));
+                    if (masterItem) baseVal = masterItem.base || 0;
+                }
+                baseDamage += Number(baseVal) || 0;
             });
         }
 
@@ -160,14 +163,17 @@ function registerCombatHandlers(socket, io, state) {
         if (dist > 1800) return;
         if (enemy.isInvulnerable || (enemy.ai && enemy.ai._isDefenseSkillActive)) return;
 
-        let weaponsBase = 0;
+        let weaponsBase = 100; // Daño base de la nave
         if (p.equipped && p.equipped.w) {
             p.equipped.w.forEach(it => {
-                const master = state.SERVER_CONFIG.shopItems.weapons.find(w => w.id === it.id);
-                if (master) weaponsBase += (master.base || 0);
+                let baseVal = it.base || 0;
+                if (!baseVal && state.SERVER_CONFIG && state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.weapons) {
+                    const master = state.SERVER_CONFIG.shopItems.weapons.find(w => String(w.id) === String(it.id));
+                    if (master) baseVal = master.base || 0;
+                }
+                weaponsBase += Number(baseVal) || 0;
             });
         }
-        if (weaponsBase === 0) weaponsBase = 100; // Fallback
 
         // Encontrar el multiplicador máximo absoluto disponible en toda la munición que el jugador posee
         let maxAmmoMult = 1;
@@ -388,8 +394,24 @@ function registerCombatHandlers(socket, io, state) {
         const attacker = state.players[socket.id];
         
         if (victim && attacker && !victim.isDead && !attacker.isDead) {
+            console.log(`[PVP-HIT-IN] ${attacker.user} (pvpEnabled: ${attacker.pvpEnabled}) atacó a ${victim.user} (pvpEnabled: ${victim.pvpEnabled}, isInvulnerable: ${victim.isInvulnerable}) | Daño: ${data.damage}`);
             if (victim.pvpEnabled && attacker.pvpEnabled) {
-                if (victim.isInvulnerable) return;
+                if (victim.isInvulnerable) {
+                    // v270.20: Enviar actualización de stats reales correctivas de la víctima a todos en la zona (incluyendo el atacante)
+                    // para reajustar/corregir cualquier daño predictivo de 100 local en sus clientes
+                    io.to(`zone_${victim.zone}`).emit('playerStatSync', {
+                        id: data.victimId,
+                        hp: Math.ceil(victim.hp),
+                        shield: Math.ceil(victim.shield),
+                        maxHp: victim.maxHp,
+                        maxShield: victim.maxShield,
+                        isDead: victim.isDead,
+                        isInvulnerable: true,
+                        isInvisible: victim.isInvisible,
+                        spheres: victim.spheres || []
+                    });
+                    return;
+                }
 
                 // v270.0: Validación de Distancia en PvP
                 const dist = Math.hypot(attacker.x - victim.x, attacker.y - victim.y);
@@ -403,12 +425,14 @@ function registerCombatHandlers(socket, io, state) {
                 // Calcular daño teórico máximo para el atacante
                 let baseDmg = 100;
                 if (attacker.equipped && attacker.equipped.w) {
-                    baseDmg = 0;
                     attacker.equipped.w.forEach(item => {
-                        const masterItem = state.SERVER_CONFIG.shopItems.weapons.find(w => w.id === item.id);
-                        if (masterItem) baseDmg += (masterItem.base || 0);
+                        let baseVal = item.base || 0;
+                        if (!baseVal && state.SERVER_CONFIG && state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.weapons) {
+                            const masterItem = state.SERVER_CONFIG.shopItems.weapons.find(w => String(w.id) === String(item.id));
+                            if (masterItem) baseVal = masterItem.base || 0;
+                        }
+                        baseDmg += Number(baseVal) || 0;
                     });
-                    if (baseDmg === 0) baseDmg = 100;
                 }
 
                 // Determinar multiplicador de munición seleccionada por el atacante
@@ -446,7 +470,8 @@ function registerCombatHandlers(socket, io, state) {
                     io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
                         id: socket.id, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
                         maxHp: attacker.maxHp, maxShield: attacker.maxShield, isDead: attacker.isDead,
-                        isInvisible: attacker.isInvisible, spheres: attacker.spheres
+                        isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable,
+                        spheres: attacker.spheres || []
                     });
                     dmg = 0; // No le causa daño a la víctima
                 } else {
@@ -459,7 +484,8 @@ function registerCombatHandlers(socket, io, state) {
                         io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
                             id: socket.id, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
                             maxHp: attacker.maxHp, maxShield: attacker.maxShield, isDead: attacker.isDead,
-                            isInvisible: attacker.isInvisible, spheres: attacker.spheres
+                            isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable,
+                            spheres: attacker.spheres || []
                         });
                     } else if (attackerAmmoType === 'emp') {
                         // EMP: Silencia a la víctima durante 3 segundos
@@ -493,12 +519,21 @@ function registerCombatHandlers(socket, io, state) {
                 victim.regenDelay = 15000;
                 
                 io.to(`zone_${victim.zone}`).emit('playerStatSync', { 
-                    id: data.victimId, hp: victim.hp, shield: victim.shield, 
+                    id: data.victimId, hp: Math.ceil(victim.hp), shield: Math.ceil(victim.shield), 
                     maxHp: victim.maxHp, maxShield: victim.maxShield, isDead: victim.isDead,
-                    isInvisible: victim.isInvisible, // v245.94: Blindaje de Sigilo en PvP
-                    spheres: victim.spheres
+                    isInvisible: victim.isInvisible, isInvulnerable: !!victim.isInvulnerable,
+                    spheres: victim.spheres || []
                 });
             } else {
+                // v270.25: Forzar sincronización correctiva de la víctima si el PvP está bloqueado/seguro
+                // para que el atacante no se quede con la barra de vida desincronizada predictivamente en su pantalla
+                io.to(`zone_${victim.zone}`).emit('playerStatSync', { 
+                    id: data.victimId, hp: Math.ceil(victim.hp), shield: Math.ceil(victim.shield), 
+                    maxHp: victim.maxHp, maxShield: victim.maxShield, isDead: victim.isDead,
+                    isInvisible: victim.isInvisible, isInvulnerable: !!victim.isInvulnerable,
+                    spheres: victim.spheres || []
+                });
+
                 if (!attacker.pvpEnabled) {
                     socket.emit('gameNotification', { msg: "PVP BLOQUEADO: Tu modo combate est├í SEGURO", type: "warning" });
                 } else if (!victim.pvpEnabled) {

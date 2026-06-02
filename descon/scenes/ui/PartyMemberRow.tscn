@@ -32,10 +32,17 @@ corner_radius_top_right = 2
 corner_radius_bottom_right = 2
 corner_radius_bottom_left = 2
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_bg"]
+bg_color = Color(0.08, 0.08, 0.08, 0.6)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
 [node name="PartyMemberRow" type="PanelContainer"]
-custom_minimum_size = Vector2(160, 0)
+custom_minimum_size = Vector2(160, 52)
 offset_right = 160.0
-offset_bottom = 42.0
+offset_bottom = 52.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
 script = ExtResource("1_row")
 
@@ -57,6 +64,7 @@ clip_text = true
 [node name="HPBar" type="ProgressBar" parent="VBox"]
 custom_minimum_size = Vector2(0, 5)
 layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_hp")
 value = 100.0
 show_percentage = false
@@ -64,6 +72,7 @@ show_percentage = false
 [node name="SHBar" type="ProgressBar" parent="VBox"]
 custom_minimum_size = Vector2(0, 5)
 layout_mode = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_bg")
 theme_override_styles/fill = SubResource("StyleBoxFlat_sh")
 value = 100.0
 show_percentage = false
@@ -74,3 +83,4 @@ theme_override_colors/font_color = Color(1, 1, 1, 0.6)
 theme_override_font_sizes/font_size = 8
 text = "HP: 2000 | SH: 1000"
 horizontal_alignment = 2
+clip_text = true

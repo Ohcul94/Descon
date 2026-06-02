@@ -29,9 +29,19 @@ func _ready():
 		map_background.modulate.a = 0
 		var tween = create_tween()
 		tween.tween_property(map_background, "modulate:a", 0.7, 1.5).set_trans(Tween.TRANS_SINE)
+		adjust_background()
 		
 	# Configurar el lienzo 3D dinámico si no existe en la escena
 	_setup_3d_dynamic()
+
+func adjust_background():
+	if is_instance_valid(map_background):
+		# v311.1: Adaptar fondo dinámicamente al tamaño del mundo con un margen del 50%
+		var bg_margin = world_size * 0.5
+		map_background.offset_left = -bg_margin
+		map_background.offset_top = -bg_margin
+		map_background.offset_right = world_size + bg_margin
+		map_background.offset_bottom = world_size + bg_margin
 	
 	# v306.3: Consolidar el sistema de Lienzo Único registrando el mapa en el grupo global
 	add_to_group("map")

@@ -29,19 +29,19 @@ function calculateFinalStats(player, config) {
         // Escudos (Slot 's')
         if (Array.isArray(player.equipped.s)) {
             player.equipped.s.forEach(item => {
-                itemShield += (item.base || 0);
+                itemShield += (Number(item.base) || 0);
             });
         }
         // Motores (Slot 'e')
         if (Array.isArray(player.equipped.e)) {
             player.equipped.e.forEach(item => {
-                itemSpeed += (item.base || 0);
+                itemSpeed += (Number(item.base) || 0);
             });
         }
         // En el futuro se pueden sumar HP de módulos extra (Slot 'x')
         if (Array.isArray(player.equipped.x)) {
             player.equipped.x.forEach(item => {
-                itemHp += (item.base || 0);
+                itemHp += (Number(item.base) || 0);
             });
         }
     }

@@ -215,6 +215,49 @@ func _process(delta):
 	if sync_lock_timer > 0:
 		sync_lock_timer -= delta
 	
+	# v311.2: Calcular visibilidad en pantalla antes de procesar visuales costosos
+	var screen_visible = true
+	if not is_in_group("player"): # El jugador local siempre se considera visible
+		var cam = _get_camera_2d()
+		if cam:
+			var screen_size = get_viewport_rect().size
+			var cam_pos = cam.global_position
+			var margin = 600.0
+			var diff = target_position - cam_pos # v311.4: Usar target_position para evitar desincronización por cortocircuito
+			if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
+				screen_visible = false
+
+	# v311.3: Culling masivo de procesamiento para naves lejanas fuera de pantalla
+	if not is_in_group("player"):
+		if not screen_visible:
+			# Actualizar posición física 2D de inmediato (evita que queden clavadas en 0,0) (v311.6)
+			global_position = target_position
+			rotation = target_rotation
+			
+			if get_meta("_was_screen_visible", true) == true:
+				set_meta("_was_screen_visible", false)
+				if is_instance_valid(world_root_3d):
+					world_root_3d.visible = false
+				if is_instance_valid(_ui_wrapper):
+					_ui_wrapper.visible = false
+				if is_instance_valid(_vfx_container_2d):
+					_vfx_container_2d.visible = false
+			return # CORTOCIRCUITO COMPLETO: Salva 100% de cálculos en cada frame
+		else:
+			if get_meta("_was_screen_visible", true) == false:
+				set_meta("_was_screen_visible", true)
+				# Posicionar inmediatamente para evitar teleportación tardía visual
+				global_position = target_position
+				rotation = target_rotation
+			
+			# v311.5: Forzar visibilidad correcta al estar en pantalla
+			if is_instance_valid(world_root_3d):
+				world_root_3d.visible = not is_dead
+			if is_instance_valid(_ui_wrapper):
+				_ui_wrapper.visible = visible and not is_dead
+			if is_instance_valid(_vfx_container_2d):
+				_vfx_container_2d.visible = true
+
 	# v310.1: SINCRONIZACIÓN ATÓMICA TOTAL (Elimina efecto acordeón y restaura HUD)
 	# 1. Interpolación de posición de red
 	if not is_in_group("player") and not is_teleporting:
@@ -233,48 +276,57 @@ func _process(delta):
 			var rot_weight = 1.0 - pow(1.0 - rot_factor, delta * 60.0)
 			rotation = lerp_angle(rotation, target_rotation, rot_weight)
 		
-	# 2. Sincronía de UI y VFX
-	# Primero actualizamos la posición 3D para tener el world_root_3d en su lugar correcto
-	_update_3d_root_sync()
-	
-	var is_single = get_meta("is_single_world", false)
-	var projected_pos_hud = global_position
-	var projected_pos_vfx = Vector2.ZERO
-	var has_projected = false
-	
-	if is_single and is_instance_valid(world_root_3d):
-		var current_map = _get_map_node()
-		if is_instance_valid(current_map) and is_instance_valid(_cached_camera_3d):
-			var cam3d = _cached_camera_3d
-			var sub_vp = _cached_sub_viewport
-			if not cam3d.is_position_behind(world_root_3d.global_position):
-				# unproject_position devuelve la posición en píxeles del SubViewport
-				var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
-				# Escalar de SubViewport a la pantalla principal si difieren en tamaño
-				if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-					var main_size = Vector2(get_viewport().get_visible_rect().size)
-					sv_pixel *= main_size / Vector2(sub_vp.size)
-				# Convertir de píxeles de pantalla a coordenadas del mundo 2D
-				var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
-				projected_pos_hud = world_2d
-				projected_pos_vfx = world_2d
-				has_projected = true
-	
-	if is_instance_valid(_ui_wrapper):
-		_ui_wrapper.visible = visible and not is_dead
-		_ui_wrapper.global_position = projected_pos_hud
-		if name_tag: _update_hud_offsets()
-	
-	# 3. Resto de efectos (ya se llamó _update_3d_root_sync arriba)
-	_update_3d_shield(delta) # Aquí se procesa la invulnerabilidad
-	_update_reflect_aura(delta)
-	_update_hit_flash(delta)
-	
-	if is_instance_valid(_vfx_container_2d):
-		if is_single and has_projected:
-			_vfx_container_2d.global_position = projected_pos_vfx
-		else:
-			_vfx_container_2d.position = Vector2.ZERO
+	# 2. Sincronía de UI y VFX (Solo si está en pantalla)
+	if screen_visible:
+		# Primero actualizamos la posición 3D para tener el world_root_3d en su lugar correcto
+		_update_3d_root_sync()
+		
+		var is_single = get_meta("is_single_world", false)
+		var projected_pos_hud = global_position
+		var projected_pos_vfx = Vector2.ZERO
+		var has_projected = false
+		
+		if is_single and is_instance_valid(world_root_3d):
+			var current_map = _get_map_node()
+			if is_instance_valid(current_map) and is_instance_valid(_cached_camera_3d):
+				var cam3d = _cached_camera_3d
+				var sub_vp = _cached_sub_viewport
+				if not cam3d.is_position_behind(world_root_3d.global_position):
+					# unproject_position devuelve la posición en píxeles del SubViewport
+					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
+					# Escalar de SubViewport a la pantalla principal si difieren en tamaño
+					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+						var main_size = Vector2(get_viewport().get_visible_rect().size)
+						sv_pixel *= main_size / Vector2(sub_vp.size)
+					# Convertir de píxeles de pantalla a coordenadas del mundo 2D
+					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+					projected_pos_hud = world_2d
+					projected_pos_vfx = world_2d
+					has_projected = true
+		
+		if is_instance_valid(_ui_wrapper):
+			_ui_wrapper.visible = visible and not is_dead
+			_ui_wrapper.global_position = projected_pos_hud
+			if name_tag: _update_hud_offsets()
+		
+		# 3. Resto de efectos (ya se llamó _update_3d_root_sync arriba)
+		_update_3d_shield(delta) # Aquí se procesa la invulnerabilidad
+		_update_reflect_aura(delta)
+		_update_hit_flash(delta)
+		
+		if is_instance_valid(_vfx_container_2d):
+			if is_single and has_projected:
+				_vfx_container_2d.global_position = projected_pos_vfx
+			else:
+				_vfx_container_2d.position = Vector2.ZERO
+	else:
+		# v311.2: Culling proactivo cuando está fuera de pantalla
+		if is_instance_valid(world_root_3d):
+			world_root_3d.visible = false
+		if is_instance_valid(_ui_wrapper):
+			_ui_wrapper.visible = false
+		if is_instance_valid(_vfx_container_2d):
+			_vfx_container_2d.visible = false
 
 	# v268.70: Feedback visual de estados alterados (Soporte 2.5D)
 	if not is_dead:
@@ -328,16 +380,6 @@ func _process(delta):
 	_update_auras(delta)
 
 	# OPTIMIZACIÓN MASIVA: Pausar/Intercalar SubViewport de entidades según visibilidad, rol y distancia
-	var screen_visible = true
-	var cam = _get_camera_2d()
-	if cam:
-		var screen_size = get_viewport_rect().size
-		var cam_pos = cam.global_position
-		var margin = 600.0
-		var diff = global_position - cam_pos
-		if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
-			screen_visible = false
-	
 	if _cached_viewport:
 		if screen_visible:
 			if is_in_group("player") or entity_type >= 100: # Jugador local y Bosses actualizan en cada frame
@@ -543,22 +585,16 @@ func _update_3d_root_sync():
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
 		world_root_3d.position.y = 0.0
 		
-		# Optimización de visibilidad (Culling)
-		var cam = _get_camera_2d()
-		if cam:
-			var diff = global_position - cam.get_screen_center_position()
-			var _margin_x = 1200.0
-			var _margin_y = 800.0
-			# v306.8: Corregir lógica de visibilidad para evitar assets fantasma o invisibles
-			if is_dead:
-				world_root_3d.visible = false
-			elif is_teleporting:
-				world_root_3d.visible = true
-			elif _is_currently_invisible and not _is_ally:
-				# Si somos invisibles y no somos aliados, ocultar completamente el canvas 3D
-				world_root_3d.visible = false
-			else:
-				world_root_3d.visible = abs(diff.x) < _margin_x and abs(diff.y) < _margin_y
+		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)
+		if is_dead:
+			world_root_3d.visible = false
+		elif is_teleporting:
+			world_root_3d.visible = true
+		elif _is_currently_invisible and not _is_ally:
+			# Si somos invisibles y no somos aliados, ocultar completamente el canvas 3D
+			world_root_3d.visible = false
+		else:
+			world_root_3d.visible = true
 
 func reset_combat_timer():
 	last_combat_time = Time.get_ticks_msec()
@@ -850,6 +886,7 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	# v235.23: DEBUG LOGS (Para diagnosticar daño 0)
 	if is_in_group("player"):
 		print("[BATTLE-IN] Recibiendo: ", amt, " de ", attacker_id if attacker_id != "" else "Desconocido")
+		print("[DAMAGE-DEBUG] invulnerable_timer = ", invulnerable_timer, ", is_invulnerable = ", is_invulnerable, ", pvp_status = ", pvp_status)
 	
 	if invulnerable_timer > 0 or is_invulnerable:
 		amt = 0 # v269.185: Bloqueo visual total de daño (0 en rojo para feedback)

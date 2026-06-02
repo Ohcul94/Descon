@@ -334,7 +334,13 @@ func _physics_process(delta):
 			else:
 				queue_free()
 	
-	if global_position.length() > 15000: 
+	# v311.1: Evitar autodestrucción prematura en mapas masivos dinámicos de eventos (20k x 20k)
+	var max_map_limit = 35000.0
+	var active_map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(active_map) and "world_size" in active_map:
+		max_map_limit = float(active_map.world_size) * 1.6
+		
+	if global_position.length() > max_map_limit: 
 		queue_free()
 
 func _get_visual_position_of(entity: Node) -> Vector2:

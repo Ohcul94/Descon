@@ -136,6 +136,9 @@ class AIManager {
         if (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig) {
             const maps = this.state.SERVER_CONFIG.mapsConfig;
             Object.keys(maps).forEach(mapId => {
+                // v2.9.2: Ignorar mapas de eventos (10 para extracción, 9 para defensa del altar) del respawn genérico
+                if (Number(mapId) === 10 || Number(mapId) === 9) return;
+                
                 const mCfg = maps[mapId];
                 if (mCfg.spawns && mCfg.spawns.length > 0) {
                     mCfg.spawns.forEach((s, idx) => {
