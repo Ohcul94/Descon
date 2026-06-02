@@ -31,6 +31,7 @@ var orbit_angle_offset: float = 0.0
 var orbit_start_time: float = 0.0
 var strike_id: String = "" # v266.995: ID único de ráfaga para evitar colisiones lógicas
 var _start_time_stamp: float = 0.0
+var _find_target_timer: float = 0.0
 
 
 func _ready():
@@ -284,7 +285,10 @@ func _physics_process(delta):
 
 	# v266.510: Re-intentar búsqueda si el objetivo se perdió o no se encontró al nacer
 	if target_id != "" and not is_instance_valid(_target_node):
-		_find_target()
+		_find_target_timer += delta
+		if _find_target_timer >= 0.25:
+			_find_target_timer = 0.0
+			_find_target()
 
 	# v266.800: Lógica de RASTREO (Homing) v3 - Ahora depende del switch is_homing
 	if is_homing and is_instance_valid(_target_node):
@@ -335,19 +339,8 @@ func _physics_process(delta):
 
 func _get_visual_position_of(entity: Node) -> Vector2:
 	if is_instance_valid(entity):
-		if entity.get_meta("is_single_world", false) and is_instance_valid(entity.get("world_root_3d")):
-			var current_map = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
-				var cam3d = current_map.camera_3d
-				var sub_vp = current_map.sub_viewport
-				var world_root_3d = entity.world_root_3d
-				if not cam3d.is_position_behind(world_root_3d.global_position):
-					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
-					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-						var main_size = Vector2(get_viewport().get_visible_rect().size)
-						sv_pixel *= main_size / Vector2(sub_vp.size)
-					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
-					return world_2d
+		if entity.has_method("get_visual_position"):
+			return entity.get_visual_position()
 		return entity.global_position
 	return Vector2.ZERO
 
