@@ -136,6 +136,7 @@ window.renderSearchableEnemySelect = function(currentValue, onChangeCallback, bo
             </div>
         </div>
     `;
+};
 window.updateAdPhaseTotal = function(waveIdx, phaseIdx) {
     const wave = config.gameModes.altar_defense.waves[waveIdx];
     if (!wave || !wave.phases || !wave.phases[phaseIdx]) return;
@@ -1737,6 +1738,7 @@ function renderModes() {
                         <p style="opacity:0.6; margin-bottom:1.5rem;">Selecciona los mapas donde el modo estará activo.</p>
                         <div style="display:flex; gap:10px; margin-bottom:15px;">
                             <select id="add-ext-map-select" style="font-size:0.8rem; flex:1;">
+                                <option value="" disabled selected hidden>🔍 Seleccionar mapa...</option>
                                 ${Object.keys(config.mapsConfig).map(id => `<option value="${id}">${config.mapsConfig[id].name}</option>`).join('')}
                             </select>
                             <button class="btn btn-primary" style="padding:4px 15px; font-size:0.7rem;" onclick="addExtractionMap()">+ AÑADIR MAPA</button>
@@ -1976,6 +1978,7 @@ function renderModes() {
                         <p style="opacity:0.6; margin-bottom:1.5rem;">Selecciona los mapas donde se habilitará esta mecánica.</p>
                         <div style="display:flex; gap:10px; margin-bottom:15px;">
                             <select id="add-ad-map-select" style="font-size:0.8rem; flex:1;">
+                                <option value="" disabled selected hidden>🔍 Seleccionar mapa...</option>
                                 ${Object.keys(config.mapsConfig).map(id => `<option value="${id}">${config.mapsConfig[id].name}</option>`).join('')}
                             </select>
                             <button class="btn btn-primary" style="padding:4px 15px; font-size:0.7rem;" onclick="addAltarDefenseMap()">+ AÑADIR MAPA</button>
@@ -2142,28 +2145,31 @@ function renderModes() {
                                                             <div class="field">
                                                                 <label>Foco Objetivo</label>
                                                                 <select onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].focusTarget = this.value">
-                                                                    <option value="altar" ${ph.focusTarget === 'altar' ? 'selected' : ''}>Altar</option>
+                                                                    <option value="altar" ${ph.focusTarget === 'altar' ? 'selected' : ''}>Altar (Puro)</option>
+                                                                    <option value="altar_aggro" ${ph.focusTarget === 'altar_aggro' ? 'selected' : ''}>Altar (con Aggro)</option>
                                                                     <option value="players" ${ph.focusTarget === 'players' ? 'selected' : ''}>Jugadores</option>
                                                                 </select>
                                                             </div>
                                                             <div class="field">
                                                                 <label>Tipo Spawn</label>
-                                                                <select onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].spawnType = this.value">
+                                                                <select onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].spawnType = this.value; renderModes();">
                                                                     <option value="together" ${ph.spawnType === 'together' ? 'selected' : ''}>Todos juntos</option>
                                                                     <option value="staggered" ${ph.spawnType === 'staggered' ? 'selected' : ''}>Escalonados</option>
                                                                 </select>
                                                             </div>
                                                         </div>
 
-                                                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                                                        <div style="display:grid; grid-template-columns: ${ph.spawnType === 'staggered' ? '1fr 1fr' : '1fr'}; gap:10px;">
                                                             <div class="field">
                                                                 <label>Delay Inicio Fase (ms)</label>
                                                                 <input type="number" step="100" value="${ph.startDelayMs || 0}" onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].startDelayMs = parseInt(this.value)">
                                                             </div>
+                                                            ${ph.spawnType === 'staggered' ? `
                                                             <div class="field">
                                                                 <label>Delay Escalonamiento (ms)</label>
                                                                 <input type="number" step="100" value="${ph.staggerDelayMs || 500}" onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].staggerDelayMs = parseInt(this.value)">
                                                             </div>
+                                                            ` : ''}
                                                         </div>
 
                                                         <!-- DISTRIBUCIÓN DE SPAWNERS -->

@@ -130,6 +130,50 @@ module.exports = class BaseAI {
             }
         }
 
+        // 2.5. Si el foco es Altar con Aggro, intentar priorizar jugadores en rango de visión; si no, ir al Altar
+        if (!activeTarget && focusTarget === 'altar_aggro' && isAltarZone && altarDefenseConfig.altarPos) {
+            let playerTarget = null;
+            
+            // A. Primero revisar si hay un agresor por venganza activa
+            if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
+                const idleTime = now - (this.enemy.lastHit || 0);
+                const idleLimit = (this.ambienceBoost) ? 30000 : (cfg.chaseIdleTimeout || 10000); 
+                if (idleTime < idleLimit) {
+                    const p = players[this.enemy.lastHitter];
+                    if (!p.isDead && !p.isInvisible) {
+                        playerTarget = p;
+                        isRevenge = true;
+                    }
+                }
+            }
+            
+            // B. Si no hay venganza, buscar el jugador más cercano en el rango de visión
+            if (!playerTarget && potentialTarget) {
+                const distToPlayer = Math.hypot(potentialTarget.x - this.enemy.x, potentialTarget.y - this.enemy.y);
+                const configVision = cfg ? Number(cfg.visionRange) : 0;
+                const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy.isHorde ? 10000 : 800));
+                if (distToPlayer <= visionRange && !potentialTarget.isDead && !potentialTarget.isInvisible) {
+                    playerTarget = potentialTarget;
+                }
+            }
+            
+            if (playerTarget) {
+                activeTarget = playerTarget;
+            } else {
+                const altarHp = (this.state.altarState ? this.state.altarState.hp : 1) || 1;
+                if (altarHp > 0) {
+                    activeTarget = {
+                        id: "altar",
+                        x: Number(altarDefenseConfig.altarPos.x) || 5000,
+                        y: Number(altarDefenseConfig.altarPos.y) || 5000,
+                        hp: altarHp,
+                        isDead: false,
+                        isInvisible: false
+                    };
+                }
+            }
+        }
+
         // 3. Si el foco es Players (o si el altar ya fue destruido), aplicar agro de represalia y proximidad
         if (!activeTarget) {
             // REPRESALIA: Prioridad al que me pegó (Si el idleLimit no expiró)
