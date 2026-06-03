@@ -88,10 +88,15 @@ function startGameLoop(io, state, aiManager) {
                     const dx = e.x - other.x;
                     const dy = e.y - other.y;
                     const d = Math.hypot(dx, dy);
-                    if (d < 45) { // Distancia de repulsión
+                    if (d > 0 && d < 45) { // Distancia de repulsión
                         const force = (45 - d) * 0.05;
                         e.x += (dx / d) * force;
                         e.y += (dy / d) * force;
+                    } else if (d === 0) {
+                        // v313.0: Evitar NaN si dos enemigos están en la misma posición exacta
+                        const angle = Math.random() * Math.PI * 2;
+                        e.x += Math.cos(angle) * 2;
+                        e.y += Math.sin(angle) * 2;
                     }
                 }
             });

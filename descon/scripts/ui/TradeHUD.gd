@@ -102,6 +102,9 @@ func _ready():
 func _input(event):
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_hide_info_panel()
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		_on_close_pressed()
+		get_viewport().set_input_as_handled()
 
 func setup(data):
 	_find_nodes()

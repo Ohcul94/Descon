@@ -74,7 +74,7 @@ function registerZoneHandlers(socket, io, state) {
     socket.on('warpToZone', async (data) => {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
-        if (p.user !== "Caelli94") return; // Protección Admin
+        if (!p.isAdmin) return; // Protección Admin
 
         const newZone = data.zone || 1;
         const oldZone = p.zone;

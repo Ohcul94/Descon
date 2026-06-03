@@ -1,6 +1,15 @@
 extends CharacterBody2D
 class_name Entity
 
+# precargas estáticas de optimización de rendimiento (v313.0)
+const SpheresManagerScript = preload("res://scripts/systems/SpheresManager.gd")
+const EntityHUDScript = preload("res://scripts/entities/EntityHUD.gd")
+const DamageTextScript = preload("res://scripts/ui/DamageText.gd")
+const EnergyShieldShader = preload("res://resources/shaders/energy_shield.gdshader")
+const HitFlashShader = preload("res://resources/shaders/hit_flash.gdshader")
+const SpaceExplosionScript = preload("res://scripts/vfx/SpaceExplosion.gd")
+const WreckageDrawingScript = preload("res://scripts/ui/WreckageDrawing.gd")
+
 # Entity.gd (v150.20 - Non-Triangular Xeno Engine)
 # Eliminación Absoluta de Triángulos en Enemigos. Siluetas Geométricas Puras.
 
@@ -113,7 +122,7 @@ func _ready():
 
 	
 	# v235.56: Inicialización Universal de Esferas
-	var sm_script = load("res://scripts/systems/SpheresManager.gd")
+	var sm_script = SpheresManagerScript
 	if sm_script:
 		var sm = sm_script.new()
 		sm.name = "SpheresManager"
@@ -140,7 +149,7 @@ func _ready():
 	
 	if not _ui_wrapper:
 		# v300.30: El HUD ahora es un componente independiente (EntityHUD.gd)
-		var hud_script = load("res://scripts/entities/EntityHUD.gd")
+		var hud_script = EntityHUDScript
 		if hud_script:
 			_ui_wrapper = hud_script.new()
 			_ui_wrapper.setup(self)
@@ -984,7 +993,7 @@ func _trigger_reflect_visual(p_dest: Vector2):
 		tw.finished.connect(spr.queue_free)
 
 func _spawn_damage_text(txt: String, clr: Color):
-	var dt_script = load("res://scripts/ui/DamageText.gd")
+	var dt_script = DamageTextScript
 	if dt_script:
 		var dt = Marker2D.new()
 		dt.z_index = 100
@@ -1639,7 +1648,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		_3d_shield_mesh.mesh = sphere
 		
 		var mat = ShaderMaterial.new()
-		mat.shader = load("res://resources/shaders/energy_shield.gdshader")
+		mat.shader = EnergyShieldShader
 		_3d_shield_mesh.material_override = mat
 		_3d_shield_mesh.visible = false 
 		control_node.add_child(_3d_shield_mesh) # Ahora rota y escala CON la nave
@@ -1735,7 +1744,7 @@ func _update_3d_shield(delta: float):
 		if not mat:
 			# Auto-recuperación del material si fue anulado por efectos u otras funciones
 			mat = ShaderMaterial.new()
-			mat.shader = load("res://resources/shaders/energy_shield.gdshader")
+			mat.shader = EnergyShieldShader
 			_3d_shield_mesh.material_override = mat
 			
 		if mat:
@@ -1794,7 +1803,7 @@ func _update_3d_spheres():
 func _ensure_flash_material():
 	if not _hit_flash_material:
 		_hit_flash_material = ShaderMaterial.new()
-		_hit_flash_material.shader = load("res://resources/shaders/hit_flash.gdshader")
+		_hit_flash_material.shader = HitFlashShader
 	if not _hit_flash_material_3d:
 		_hit_flash_material_3d = StandardMaterial3D.new()
 		_hit_flash_material_3d.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
@@ -1836,7 +1845,7 @@ func _apply_flash_recursive(p_node, p_mat):
 	for child in p_node.get_children(): _apply_flash_recursive(child, p_mat)
 
 func _spawn_death_vfx():
-	var vfx_script = load("res://scripts/vfx/SpaceExplosion.gd")
+	var vfx_script = SpaceExplosionScript
 	if not vfx_script: return
 	
 	var explosion_3d = vfx_script.new()
@@ -2121,7 +2130,7 @@ func _spawn_wreckage_marker():
 	
 	var drawing = Node2D.new()
 	drawing.name = "Visual"
-	drawing.set_script(load("res://scripts/ui/WreckageDrawing.gd"))
+	drawing.set_script(WreckageDrawingScript)
 	marker.add_child(drawing)
 	
 	# v301.5: Mostrar etiqueta del piloto naufragado con transparencia suave

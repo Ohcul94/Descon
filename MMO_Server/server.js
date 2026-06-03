@@ -970,7 +970,7 @@ io.on('connection', (socket) => {
 
     // v245.20: LISTENERS DE EVENTOS DE HORDAS
     socket.on('startHordeEvent', () => {
-        if (!players[socket.id] || players[socket.id].user !== "Caelli94") return;
+        if (!players[socket.id] || !players[socket.id].isAdmin) return;
         if (state.SERVER_CONFIG && state.SERVER_CONFIG.hordeConfig) {
             state.SERVER_CONFIG.hordeConfig.active = true;
             hordeManager.updateConfig(state.SERVER_CONFIG.hordeConfig);
@@ -1009,7 +1009,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('stopHordeEvent', () => {
-        if (!players[socket.id] || players[socket.id].user !== "Caelli94") return;
+        if (!players[socket.id] || !players[socket.id].isAdmin) return;
         hordeManager.stopEvent();
         if (state.SERVER_CONFIG && state.SERVER_CONFIG.hordeConfig) state.SERVER_CONFIG.hordeConfig.active = false;
         socket.emit('gameNotification', { msg: 'EVENTO DETENIDO Y ZONA LIMPIADA', type: 'warning' });
@@ -1147,7 +1147,18 @@ io.on('connection', (socket) => {
 
     // SISTEMA DE TALENTOS (v300.70)
     socket.on('investSkill', async (data) => {
-        if (!socket.dbUser || !players[socket.id]) return;
+        if (!socket.dbUser || !players[socket.id] || !data) return;
+        
+        const cat = data.category;
+        const idx = parseInt(data.index);
+        
+        // Blindaje de Seguridad v314.0: Validar categoría e índice para evitar inyecciones y DoS por desbordamiento
+        const validCategories = ["engineering", "combat", "science"];
+        if (!validCategories.includes(cat) || isNaN(idx) || idx < 0 || idx > 7) {
+            console.warn(`[SECURITY-ALERT] Intento de inyección de talento inválido por parte de: ${players[socket.id].user} (Categoría: ${cat}, Índice: ${data.index})`);
+            return socket.emit('gameNotification', { msg: 'ACCIÓN DENEGADA: Parámetros de talento corruptos.', type: 'error' });
+        }
+
         try {
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
@@ -1155,14 +1166,12 @@ io.on('connection', (socket) => {
             let pts = user.gameData.skillPoints || 0;
             if (pts <= 0) return;
             
-            const cat = data.category;
-            const idx = data.index;
             if (!user.gameData.skillTree) user.gameData.skillTree = { engineering: [0,0,0,0,0,0,0,0], combat: [0,0,0,0,0,0,0,0], science: [0,0,0,0,0,0,0,0] };
             
             const branch = user.gameData.skillTree[cat] || [];
             
-            // Autocompletado del array para evitar errores de índice out-of-bounds
-            while (branch.length <= idx) branch.push(0);
+            // Autocompletado seguro del array de talento (tamaño fijo 8)
+            while (branch.length < 8) branch.push(0);
             
             if (branch[idx] >= 5) return;
             

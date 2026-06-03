@@ -277,6 +277,15 @@ function extractItemAnywhere(user, instId) {
                     if (sidx !== -1) {
                         const item = shipEq[cat].splice(sidx, 1)[0];
                         user.markModified('gameData.equippedByShip');
+                        
+                        // v313.0: Limpiar también del equipamiento plano de la nave activa si coincide
+                        if (String(k) === String(user.gameData.currentShipId)) {
+                            if (user.gameData.equipped && user.gameData.equipped[cat]) {
+                                user.gameData.equipped[cat] = user.gameData.equipped[cat].filter(it => it.instanceId !== instId);
+                                user.markModified('gameData.equipped');
+                            }
+                        }
+                        
                         return item;
                     }
                 }

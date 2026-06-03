@@ -74,7 +74,7 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
             return;
         }
 
-        const killerUid = killer.db_id;
+        const killerUid = killer.id;
         let membersToRewardSockets = [];
         
         // Buscar el socket real de killer para emitir
@@ -106,7 +106,7 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
 
         for (const memberSocket of membersToRewardSockets) {
             const memP = state.players[memberSocket.id];
-            const user = await User.findOne({ id: memP.db_id });
+            const user = await User.findById(memP.id);
             
             if (user && memP) {
                 user.gameData.hubs += shared_h;
