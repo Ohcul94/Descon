@@ -31,14 +31,15 @@ var GAME_CONFIG = {
 
 var MAPS_CONFIG = {
 	"1": { "name": "Loby", "desc": "Zona segura de reunión y comercio.", "color": "#ffffff", "warpCost": 0, "minLevel": 1 },
-	"2": { "name": "Mapa 1", "desc": "Zona de entrenamiento básico y recolección.", "color": "#00ff00", "warpCost": 0, "minLevel": 1 },
-	"3": { "name": "Mapa 2", "desc": "Sector hostil con recursos de nivel medio.", "color": "#ffff00", "warpCost": 10, "minLevel": 5 },
-	"4": { "name": "Mapa 3", "desc": "Nebulosa densa con piratas espaciales.", "color": "#ffaa00", "warpCost": 25, "minLevel": 10 },
-	"5": { "name": "Mapa 4", "desc": "Zona de asteroides inestables.", "color": "#ff5500", "warpCost": 50, "minLevel": 15 },
-	"6": { "name": "Mapa 5", "desc": "Borde exterior: Peligro extremo.", "color": "#ff0000", "warpCost": 100, "minLevel": 20 },
-	"7": { "name": "Mapa 6", "desc": "Sector de invasión: Hordas detectadas.", "color": "#aa0000", "warpCost": 200, "minLevel": 25 },
-	"8": { "name": "Mapa 7", "desc": "Guarida de Jefes: Requiere escolta.", "color": "#550000", "warpCost": 500, "minLevel": 30 },
-	"9": { "name": "Mapa 8", "desc": "Zona de Pruebas Tácticas (Showcase).", "color": "#aa00ff", "warpCost": 1000, "minLevel": 35 },
+	"2": { "name": "Mapa 2", "desc": "Zona de entrenamiento básico y recolección.", "color": "#00ff00", "warpCost": 0, "minLevel": 1 },
+	"3": { "name": "Mapa 3", "desc": "Sector hostil con recursos de nivel medio.", "color": "#ffff00", "warpCost": 10, "minLevel": 5 },
+	"4": { "name": "Mapa 4", "desc": "Nebulosa densa con piratas espaciales.", "color": "#ffaa00", "warpCost": 25, "minLevel": 10 },
+	"5": { "name": "Mapa 5", "desc": "Zona de asteroides inestables.", "color": "#ff5500", "warpCost": 50, "minLevel": 15 },
+	"6": { "name": "Mapa 6", "desc": "Borde exterior: Peligro extremo.", "color": "#ff0000", "warpCost": 100, "minLevel": 20 },
+	"7": { "name": "Mapa 7", "desc": "Sector de invasión: Hordas detectadas.", "color": "#aa0000", "warpCost": 200, "minLevel": 25 },
+	"8": { "name": "Mapa 8", "desc": "Guarida de Jefes: Requiere escolta.", "color": "#550000", "warpCost": 500, "minLevel": 30 },
+	"9": { "name": "Mapa 9", "desc": "Zona de Pruebas Tácticas (Showcase).", "color": "#aa00ff", "warpCost": 1000, "minLevel": 35 },
+	"10": { "name": "Zona de Extracción", "desc": "Sector Prohibido: Alta radiación y presencia de la flota oscura. Solo para misiones de extracción.", "color": "#ff0055", "warpCost": 50, "minLevel": 10 },
 	"11": { "name": "Sector de Extracción", "desc": "Área de extracción de recursos. Cuidado con los asteroides.", "color": "#ff00aa", "warpCost": 100, "minLevel": 10 }
 }
 

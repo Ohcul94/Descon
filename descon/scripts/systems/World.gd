@@ -433,7 +433,7 @@ func _update_background(zone_id):
 				ad_map_ids.append(int(m))
 	
 	var is_altar_defense = (zid in ad_map_ids)
-	var is_extraction = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_")
+	var is_extraction = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_") or zid == 10 or zid == 11
 	
 	# Mapear escenas según el tipo de zona
 	if zid == 1:
@@ -442,7 +442,7 @@ func _update_background(zone_id):
 		scene_path = "res://scenes/maps/Map_Extraction.tscn"
 		
 	# Ocultar o mostrar las estrellas generadas según si es mapa de extracción o altar
-	var hide_stars = (is_altar_defense or is_extraction)
+	var hide_stars = false
 	for spr in _star_sprites:
 		if is_instance_valid(spr):
 			spr.visible = not hide_stars

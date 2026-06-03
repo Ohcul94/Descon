@@ -25,10 +25,7 @@ var player_node: Node2D = null
 func _ready():
 	# Ajustar automáticamente el fondo al tamaño del mundo si es necesario
 	if is_instance_valid(map_background):
-		# Efecto de fade-in para transición suave
-		map_background.modulate.a = 0
-		var tween = create_tween()
-		tween.tween_property(map_background, "modulate:a", 0.7, 1.5).set_trans(Tween.TRANS_SINE)
+		map_background.visible = false
 		adjust_background()
 		
 	# Configurar el lienzo 3D dinámico si no existe en la escena

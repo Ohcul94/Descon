@@ -288,6 +288,7 @@ func apply_menu_font_sizes_recursive(node: Node, base_size: int):
 	if not is_instance_valid(node): return
 	
 	if node is Control:
+		node.set_meta("fonts_scaled", true)
 		var default_ref = 12
 		var ratio = float(base_size) / float(default_ref)
 		
@@ -354,8 +355,22 @@ func _on_node_added(node: Node):
 	if node is Control:
 		if node.name == "NameTag" or node.get_meta("is_chat_bubble", false) or node.name.begins_with("Wreckage_"):
 			return
+		
+		# v312.1: Bypass rápido para evitar lag en etiquetas de combate dinámicas
+		var parent = node.get_parent()
+		if parent:
+			if parent.name.begins_with("Wreckage_"):
+				return
+			var script = parent.get_script()
+			if script and script.get_path().ends_with("DamageText.gd"):
+				return
+
+		if node.has_meta("fonts_scaled") and node.get_meta("fonts_scaled"):
+			return
 		if not node.is_inside_tree(): return
 		await node.get_tree().process_frame
 		if is_instance_valid(node) and node.is_inside_tree():
+			if node.has_meta("fonts_scaled") and node.get_meta("fonts_scaled"):
+				return
 			# Si pertenece a las interfaces o HUDs principales
 			apply_menu_font_sizes_recursive(node, font_size_menus)

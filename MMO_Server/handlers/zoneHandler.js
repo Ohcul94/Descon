@@ -167,6 +167,12 @@ function registerZoneHandlers(socket, io, state) {
         const oldZone = (p.zone !== undefined ? p.zone : 1);
         if (Number(oldZone) === Number(zoneId)) return; // Evitar cobro si ya está ahí
 
+        // Bloqueo de salto manual a mapas de evento (Extracción)
+        if (Number(zoneId) === 10 || Number(zoneId) === 11) {
+            socket.emit('authError', 'ACCESO RESTRINGIDO: Ingreso exclusivo mediante evento de extracción (F2)');
+            return;
+        }
+
         try {
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;

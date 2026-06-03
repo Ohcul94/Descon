@@ -33,9 +33,12 @@ func update_ui():
 
 	var sectors = []
 	for z_id in GameConstants.MAPS_CONFIG:
+		var z_id_int = int(z_id)
+		if z_id_int == 10 or z_id_int == 11:
+			continue # Filtrar mapas de evento de extracción
 		var zone_data = GameConstants.MAPS_CONFIG[z_id]
 		var sd = zone_data.duplicate()
-		sd["id"] = int(z_id)
+		sd["id"] = z_id_int
 		if not sd.has("color"): sd["color"] = "#ffffff"
 		sectors.append(sd)
 		
@@ -48,7 +51,7 @@ func update_ui():
 	if not has_current:
 		var custom_sector = {
 			"id": current_zone_id,
-			"name": "ZONA DE EXTRACCIÓN" if current_zone_id == 10 else ("DUNGEON" if current_zone_id == 99 else "INSTANCIA"),
+			"name": "ZONA DE EXTRACCIÓN" if (current_zone_id == 10 or current_zone_id == 11) else ("DUNGEON" if current_zone_id == 99 else "INSTANCIA"),
 			"desc": "Sector inestable y de alta hostilidad.",
 			"color": "#ff00ff",
 			"warpCost": 0,

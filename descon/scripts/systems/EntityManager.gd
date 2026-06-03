@@ -1050,7 +1050,7 @@ func _on_clear_zone_entities(payload):
 		world.combat_system.clear_all_bullets()
 		
 	var is_dungeon = str(_zoneId).begins_with("dungeon")
-	var is_extraction = str(_zoneId).begins_with("extract_")
+	var is_extraction = str(_zoneId).begins_with("extract_") or str(_zoneId) == "10" or str(_zoneId) == "11"
 	
 	# Determinar si es un mapa de Altar Defense (dinámico desde el config del servidor)
 	var zone_int_check = int(_zoneId) if not is_dungeon and not is_extraction else 0

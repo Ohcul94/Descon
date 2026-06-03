@@ -415,6 +415,7 @@ function updateSidebar() {
     // Mapas
     for(let id in config.mapsConfig) {
         const m = config.mapsConfig[id];
+        if (id === "10" || id === "11") continue; // Omitir mapas de evento de extracción
         if(searchTerm && !m.name.toLowerCase().includes(searchTerm)) continue;
         const link = document.createElement('div');
         link.className = 'nav-link sub ' + (selectedMapId === id ? 'active' : '');
@@ -1038,6 +1039,7 @@ function renderMaps() {
     const f = getFilter();
     for(let id in config.mapsConfig) {
         const m = config.mapsConfig[id];
+        if (id === "10" || id === "11") continue; // Omitir mapas de evento de extracción
         if (f && !m.name.toLowerCase().includes(f)) continue;
         const card = document.createElement('div'); card.className = 'card';
         card.style.cursor = 'pointer'; card.onclick = () => selectMap(id);
