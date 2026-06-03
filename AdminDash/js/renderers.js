@@ -1923,6 +1923,7 @@ function renderModes() {
     } else if (currentModeTab === 'altar_defense') {
         const ad = config.gameModes.altar_defense;
         if (!ad.maxPlayers) ad.maxPlayers = 4;
+        if (!ad.minPlayers) ad.minPlayers = 2;
         if (!ad.altarHp) ad.altarHp = 10000;
         if (!ad.altarShield) ad.altarShield = 5000;
         if (!ad.partyAcceptTimeout) ad.partyAcceptTimeout = 10000;
@@ -1946,13 +1947,14 @@ function renderModes() {
                     <div class="card" style="margin:0;">
                         <h3 style="color:var(--primary); margin-bottom: 0.5rem;">🛡️ DEFENSA DEL ALTAR (REGLAS MAESTRAS)</h3>
                         <p style="opacity:0.7; margin-bottom:1.5rem;">Configura las reglas básicas y temporizadores del modo de juego.</p>
-                        <div class="form-grid" style="grid-template-columns: repeat(4, 1fr); gap: 15px;">
+                        <div class="form-grid" style="grid-template-columns: repeat(5, 1fr); gap: 15px;">
                             <div class="field"><label>Estado</label>
                                 <select onchange="config.gameModes.altar_defense.enabled = this.value === 'true'">
                                     <option value="true" ${ad.enabled ? 'selected' : ''}>ACTIVO</option>
                                     <option value="false" ${!ad.enabled ? 'selected' : ''}>DESACTIVADO</option>
                                 </select>
                             </div>
+                            <div class="field"><label>Mín. Pilotos Party</label><input type="number" value="${ad.minPlayers}" onchange="config.gameModes.altar_defense.minPlayers = parseInt(this.value)"></div>
                             <div class="field"><label>Máx. Pilotos Party</label><input type="number" value="${ad.maxPlayers}" onchange="config.gameModes.altar_defense.maxPlayers = parseInt(this.value)"></div>
                             <div class="field"><label>Vida del Altar</label><input type="number" value="${ad.altarHp}" onchange="config.gameModes.altar_defense.altarHp = parseInt(this.value)"></div>
                             <div class="field"><label>Escudo del Altar</label><input type="number" value="${ad.altarShield}" onchange="config.gameModes.altar_defense.altarShield = parseInt(this.value)"></div>
@@ -1961,8 +1963,9 @@ function renderModes() {
                             <div class="field"><label>Intervalo Oleadas (ms)</label><input type="number" step="1000" value="${ad.waveInterval}" onchange="config.gameModes.altar_defense.waveInterval = parseInt(this.value)"></div>
                             <div class="field"><label>Bloqueo de Spawn (ms)</label><input type="number" step="1000" value="${ad.spawnLockTime}" onchange="config.gameModes.altar_defense.spawnLockTime = parseInt(this.value)"></div>
                             <div class="field"><label>Duración Partida (ms)</label><input type="number" step="5000" value="${ad.matchDuration}" onchange="config.gameModes.altar_defense.matchDuration = parseInt(this.value)"></div>
+                            <div></div> <!-- Celda vacía para completar la fila de 5 -->
                             
-                            <div class="field" style="grid-column: span 4; display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.02); padding: 10px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-top: 5px;">
+                            <div class="field" style="grid-column: span 5; display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.02); padding: 10px 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); margin-top: 5px;">
                                 <label style="margin: 0; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: bold; color: var(--text);">
                                     <input type="checkbox" ${ad.loseLootOnDeath ? 'checked' : ''} onchange="config.gameModes.altar_defense.loseLootOnDeath = this.checked" style="width: 18px; height: 18px; cursor: pointer;">
                                     💀 Perder Loot al morir (Modo Hardcore)

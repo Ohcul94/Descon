@@ -1041,6 +1041,26 @@ io.on('connection', (socket) => {
             }
         }
 
+        if (msg.toLowerCase().startsWith('/party ')) {
+            const targetName = msg.substring(7).trim().toLowerCase();
+            const targetPlayer = Object.values(state.players).find(p => p.user && p.user.toLowerCase() === targetName);
+            if (targetPlayer) {
+                const targetSocket = io.sockets.sockets.get(targetPlayer.socketId);
+                if (targetSocket) {
+                    if (targetSocket.id === socket.id) {
+                        return socket.emit('chatMessage', { sender: 'SYSTEM', msg: `ERROR: No puedes invitarte a ti mismo.`, channel: 'global' });
+                    }
+                    targetSocket.emit('partyInvitation', {
+                        from: players[socket.id].user || 'Desconocido',
+                        fromId: socket.id
+                    });
+                    socket.emit('gameNotification', { msg: `INVITACIÓN DE GRUPO ENVIADA A ${targetPlayer.user.toUpperCase()}`, type: "info" });
+                    return;
+                }
+            }
+            return socket.emit('chatMessage', { sender: 'SYSTEM', msg: `ERROR: Piloto '${targetName}' no encontrado o fuera de línea.`, channel: 'global' });
+        }
+
 
 
         const responseData = {
@@ -1443,9 +1463,14 @@ io.on('connection', (socket) => {
     socket.on('inviteToParty', (targetName) => {
         try {
             if (!targetName || typeof targetName !== 'string') return;
-            const targetSocket = [...io.sockets.sockets.values()].find(s => s.dbUser && s.dbUser.username === targetName.toLowerCase());
+            const cleanTarget = targetName.trim().toLowerCase();
+            
+            // Buscar el piloto en la lista oficial de jugadores del juego (evitando capturar el socket del panel web Admin)
+            const targetPlayer = Object.values(players).find(p => p.user && p.user.toLowerCase() === cleanTarget);
+            if (!targetPlayer) return socket.emit('authError', 'PILOTO NO ENCONTRADO O FUERA DE LÍNEA');
 
-            if (!targetSocket) return socket.emit('authError', 'PILOTO NO ENCONTRADO O FUERA DE L├ìNEA');
+            const targetSocket = io.sockets.sockets.get(targetPlayer.socketId);
+            if (!targetSocket) return socket.emit('authError', 'PILOTO NO ENCONTRADO O FUERA DE LÍNEA');
             if (targetSocket.id === socket.id) return socket.emit('authError', 'NO PUEDES INVITARTE A TI MISMO');
             if (!players[socket.id]) return;
 
@@ -1697,6 +1722,13 @@ io.on('connection', (socket) => {
             }
 
             const timeoutMs = (state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense && state.SERVER_CONFIG.gameModes.altar_defense.partyAcceptTimeout) || 10000;
+            const minPlayers = (state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense && state.SERVER_CONFIG.gameModes.altar_defense.minPlayers) !== undefined 
+                ? parseInt(state.SERVER_CONFIG.gameModes.altar_defense.minPlayers) 
+                : 2;
+
+            if (party.members.length < minPlayers) {
+                return socket.emit('gameNotification', { msg: `SE REQUIEREN AL MENOS ${minPlayers} MIEMBROS EN EL GRUPO PARA ESTE EVENTO`, type: 'error' });
+            }
 
             if (party.members.length <= 1) {
                 // Éxito directo si solo está el líder (warpearlo directo)

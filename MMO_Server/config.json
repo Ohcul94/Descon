@@ -4446,6 +4446,19 @@
                                 "3": 1,
                                 "random": 5
                             }
+                        },
+                        {
+                            "name": "Fase 2",
+                            "enemyId": "6-C",
+                            "count": 5,
+                            "spawnerIndex": "random",
+                            "spawnType": "staggered",
+                            "staggerDelayMs": 1000,
+                            "startDelayMs": 0,
+                            "focusTarget": "altar_aggro",
+                            "spawnerDistribution": {
+                                "random": 5
+                            }
                         }
                     ]
                 }
@@ -4470,7 +4483,8 @@
                     "label": "Escape2",
                     "radius": 150
                 }
-            ]
+            ],
+            "minPlayers": 1
         }
     },
     "craftingRecipes": [
