@@ -29,6 +29,7 @@ var respawn_timer = 0.0
 # v268.30: Variables para Interferencia
 var _shake_strength = 0.0
 var _is_interference_active = false
+var _blind_tween: Tween = null
 
 # 650 Estrellas Procesales (v73.31) - PRE-BAKED para rendimiento
 var _star_sprites: Array = [] # [far, mid, near] Sprite2Ds
@@ -236,19 +237,33 @@ func _on_blindness_event(data):
 	var overlay = get_node_or_null("BlindnessLayer/Darkness")
 	if overlay:
 		overlay.size = get_viewport().get_visible_rect().size
-		overlay.set_meta("radius_px", radius_px)
 		overlay.visible = true
 		
-		var tw = create_tween()
-		overlay.modulate.a = 0.0
-		tw.tween_property(overlay, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		if _blind_tween:
+			_blind_tween.kill()
 		
+		var current_r = overlay.get_meta("radius_px", 2000.0) if overlay.modulate.a > 0.05 else 2000.0
+		
+		# 1. Animación de entrada progresiva (1.5s)
+		_blind_tween = create_tween().set_parallel(true)
+		_blind_tween.tween_property(overlay, "modulate:a", 1.0, 1.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		_blind_tween.tween_method(func(val: float): overlay.set_meta("radius_px", val), current_r, radius_px, 1.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		
+		# 2. Esperar la duración exacta del evento establecida por el servidor
 		await get_tree().create_timer(duration).timeout
 		
-		var tw_out = create_tween()
-		tw_out.tween_property(overlay, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
-		await tw_out.finished
-		overlay.visible = false
+		if not is_instance_valid(overlay) or not overlay.visible:
+			return
+		
+		# 3. Animación de salida progresiva (1.5s)
+		_blind_tween = create_tween().set_parallel(true)
+		_blind_tween.tween_property(overlay, "modulate:a", 0.0, 1.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		_blind_tween.tween_method(func(val: float): overlay.set_meta("radius_px", val), radius_px, 2000.0, 1.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		
+		_blind_tween.finished.connect(func():
+			if is_instance_valid(overlay):
+				overlay.visible = false
+		)
 
 func _generate_stellar_data():
 	var layers = [

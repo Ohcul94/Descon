@@ -50,19 +50,21 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	owner_type = p_data.get("owner_type", "player")
 	enemy_type = int(p_data.get("enemyType", 1))
 	
-	speed = float(p_data.get("bulletSpeed", p_data.get("speed", 800.0)))
+	var raw_speed = p_data.get("bulletSpeed")
+	if raw_speed == null: raw_speed = p_data.get("speed")
+	speed = _safe_float(raw_speed, 800.0)
 	if speed <= 0 and (type == "missile" or type == "ice_missile"):
 		speed = 450.0 # v266.520: Velocidad de crucero segura si no hay config
 		
-	max_range = float(p_data.get("range", 600.0))
+	max_range = _safe_float(p_data.get("range"), 600.0)
 	target_id = str(p_data.get("targetId", ""))
 	
 	# v266.510: Localizar nodo objetivo (Reforzado v3)
 	_find_target()
 	
 	# v266.500: Configuración Dinámica (Combustible y Agilidad)
-	lifetime = float(p_data.get("lifetimeMs", 0.0)) / 1000.0
-	turn_speed = float(p_data.get("turnSpeed", 2.5))
+	lifetime = _safe_float(p_data.get("lifetimeMs"), 0.0) / 1000.0
+	turn_speed = _safe_float(p_data.get("turnSpeed"), 2.5)
 	is_homing = bool(p_data.get("isHoming", false))
 	
 	var world = get_tree().get_first_node_in_group("world_node")
@@ -76,15 +78,17 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 					if str(e.get("entity_id")) == owner_id:
 						orbit_target = e
 						break
-		orbit_radius = float(p_data.get("orbitRadius", 150.0))
-		orbit_speed = float(p_data.get("orbitSpeed", 2.0))
-		orbit_angle_offset = float(p_data.get("orbitAngleOffset", 0.0))
+		orbit_radius = _safe_float(p_data.get("orbitRadius"), 150.0)
+		orbit_speed = _safe_float(p_data.get("orbitSpeed"), 2.0)
+		orbit_angle_offset = _safe_float(p_data.get("orbitAngleOffset"), 0.0)
 		orbit_start_time = Time.get_ticks_msec() / 1000.0
 	
 	strike_id = str(p_data.get("strikeId", ""))
 	if p_data.has("stunDuration"): set_meta("stunDuration", p_data.stunDuration)
 	
-	damage = p_data.get("damageBoost", p_data.get("damage", 10.0))
+	var raw_dmg = p_data.get("damageBoost")
+	if raw_dmg == null: raw_dmg = p_data.get("damage")
+	damage = _safe_float(raw_dmg, 10.0)
 	_start_pos = p_pos
 	_start_time_stamp = Time.get_ticks_msec() / 1000.0
 	if type == "melee":
@@ -457,3 +461,15 @@ func _on_area_entered(area):
 			print("[PROJ] Impactando Altar con daño: ", damage)
 			NetworkManager.send_event("altarHit", {"damage": damage})
 		_explode()
+
+func _safe_float(val, default: float = 0.0) -> float:
+	if val == null:
+		return default
+	var val_type = typeof(val)
+	if val_type == TYPE_INT or val_type == TYPE_FLOAT:
+		return float(val)
+	elif val_type == TYPE_STRING:
+		return val.to_float()
+	elif val_type == TYPE_BOOL:
+		return 1.0 if val else 0.0
+	return default

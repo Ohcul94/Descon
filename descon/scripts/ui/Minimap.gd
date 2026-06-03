@@ -245,6 +245,26 @@ func _draw():
 		draw_circle(alt_draw_pos, 9.0 + pulse * 3.0, Color(0.0, 1.0, 0.5, 0.35), false, 1.0) # Brillo
 		var font = get_theme_font("font")
 		draw_string(font, alt_draw_pos + Vector2(-3.5, 3.5), "A", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color.WHITE)
+		
+		# Dibujar Spawns de Jugadores en el radar (Verde/Amarillo suave)
+		if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
+			var ad = full_cfg.gameModes.altar_defense
+			if ad.has("spawnPoints") and ad.spawnPoints is Array:
+				for sp in ad.spawnPoints:
+					if sp is Dictionary and sp.has("x") and sp.has("y"):
+						var sp_pos = Vector2(float(sp.x), float(sp.y)) * map_scale
+						var radius_canvas = float(sp.get("radius", 200.0)) * map_scale
+						draw_circle(sp_pos, 2.0, Color(0.8, 0.9, 0.0, 0.8))
+						draw_circle(sp_pos, radius_canvas, Color(0.8, 0.9, 0.0, 0.12), false, 1.0)
+			
+			# Dibujar Spawners de Enemigos en el radar (Rojo de advertencia)
+			if ad.has("spawners") and ad.spawners is Array:
+				for s in ad.spawners:
+					if s is Dictionary and s.has("x") and s.has("y"):
+						var s_pos = Vector2(float(s.x), float(s.y)) * map_scale
+						var radius_canvas = float(s.get("radius", 300.0)) * map_scale
+						draw_circle(s_pos, 2.0, Color(1.0, 0.2, 0.2, 0.8))
+						draw_circle(s_pos, radius_canvas, Color(1.0, 0.2, 0.2, 0.12), false, 1.0)
 
 
 	# 6. Dibujar Baúles en el Lobby (Punto dorado brillante con una 'B' blanca)

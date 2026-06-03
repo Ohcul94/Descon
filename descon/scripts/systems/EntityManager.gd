@@ -239,9 +239,9 @@ func _on_player_updated(data):
 			return
 	
 	if is_instance_valid(world) and is_instance_valid(world.local_player) and (id == world.local_player.entity_id and id != ""):
-		if data.has("hp"): world.local_player.current_hp = float(data.hp)
-		if data.has("shield"): world.local_player.current_shield = float(data.shield)
-		elif data.has("sh"): world.local_player.current_shield = float(data.sh)
+		if data.has("hp") and data.hp != null: world.local_player.current_hp = float(data.hp)
+		if data.has("shield") and data.shield != null: world.local_player.current_shield = float(data.shield)
+		elif data.has("sh") and data.sh != null: world.local_player.current_shield = float(data.sh)
 		
 		world.local_player.update_stats(data)
 		

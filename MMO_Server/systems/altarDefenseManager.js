@@ -119,21 +119,143 @@ class AltarDefenseManager {
 
         // 2. Spawnear los enemigos de esta oleada
         const waveData = match.waves[waveIdx];
-        if (waveData && Array.isArray(waveData.enemies)) {
+        if (waveData) {
             Logger.info('ALTAR', `Spawneando Oleada ${waveIdx + 1}: ${waveData.name || 'Horda'}`);
             
-            waveData.enemies.forEach(enCfg => {
-                const type = parseInt(enCfg.type);
-                const count = parseInt(enCfg.count);
-                
-                for (let i = 0; i < count; i++) {
-                    // Spawnear alrededor del altar (ej. en un radio de 900px a 1400px para que viajen)
-                    const angle = Math.random() * Math.PI * 2;
-                    const dist = Math.random() * 500 + 900;
-                    const x = match.altarPos.x + Math.cos(angle) * dist;
-                    const y = match.altarPos.y + Math.sin(angle) * dist;
-                    this.aiManager.serverSpawnEnemy(match.zoneId, type, x, y, null, true);
+            const adConfig = this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense;
+            const enemySpawners = (adConfig && adConfig.spawners && adConfig.spawners.length > 0)
+                ? adConfig.spawners
+                : null;
+            
+            let phasesToRun = [];
+            if (Array.isArray(waveData.phases) && waveData.phases.length > 0) {
+                phasesToRun = waveData.phases;
+            } else {
+                // Retrocompatibilidad con formato plano o legacy array de enemigos
+                let legacyEnemies = [];
+                if (Array.isArray(waveData.enemies)) {
+                    legacyEnemies = waveData.enemies;
+                } else if (waveData.enemyId !== undefined) {
+                    legacyEnemies = [{
+                        type: waveData.enemyId,
+                        count: waveData.count || 10,
+                        spawnerIndex: waveData.spawnerIndex !== undefined ? waveData.spawnerIndex : 'random',
+                        spawnType: waveData.spawnType || 'together',
+                        staggerDelayMs: waveData.staggerDelayMs || 500
+                    }];
                 }
+                
+                // Mapear legacyEnemies a fases virtuales con startDelayMs: 0
+                phasesToRun = legacyEnemies.map((le, lIdx) => ({
+                    name: `Fase Legacy ${lIdx+1}`,
+                    enemyId: le.type,
+                    count: le.count,
+                    spawnerIndex: le.spawnerIndex,
+                    spawnType: le.spawnType,
+                    staggerDelayMs: le.staggerDelayMs,
+                    startDelayMs: 0,
+                    focusTarget: waveData.focusTarget || le.focusTarget || 'altar'
+                }));
+            }
+
+            phasesToRun.forEach(phase => {
+                const startDelay = phase.startDelayMs !== undefined ? parseInt(phase.startDelayMs) : 0;
+                
+                setTimeout(() => {
+                    // Si el estado de la partida cambió o se canceló, salir
+                    if (!this.activeMatch || this.activeMatch.currentWaveIndex !== waveIdx || this.activeMatch.status !== 'wave_active') return;
+
+                    const type = parseInt(phase.enemyId || phase.type);
+                    const count = parseInt(phase.count);
+                    const spawnerIdx = phase.spawnerIndex;
+                    const spawnType = phase.spawnType || 'together';
+                    const staggerDelayMs = phase.staggerDelayMs || 500;
+
+                    const spawnOne = (forcedSpawnerIdx) => {
+                        if (!this.activeMatch || this.activeMatch.currentWaveIndex !== waveIdx || this.activeMatch.status !== 'wave_active') return;
+
+                        let x = match.altarPos.x;
+                        let y = match.altarPos.y;
+                        
+                        let targetSpawner = null;
+                        if (enemySpawners) {
+                            const activeSpawnerIdx = forcedSpawnerIdx !== undefined ? forcedSpawnerIdx : spawnerIdx;
+                            if (activeSpawnerIdx !== undefined && activeSpawnerIdx !== 'random') {
+                                const idxInt = parseInt(activeSpawnerIdx);
+                                if (idxInt >= 0 && idxInt < enemySpawners.length) {
+                                    targetSpawner = enemySpawners[idxInt];
+                                }
+                            }
+                            // Fallback a random si es 'random' o si el índice es inválido
+                            if (!targetSpawner) {
+                                targetSpawner = enemySpawners[Math.floor(Math.random() * enemySpawners.length)];
+                            }
+                        }
+
+                        if (targetSpawner) {
+                            const radius = targetSpawner.radius || 200;
+                            const angle = Math.random() * Math.PI * 2;
+                            const r = Math.random() * radius;
+                            x = targetSpawner.x + Math.cos(angle) * r;
+                            y = targetSpawner.y + Math.sin(angle) * r;
+                        } else {
+                            // Fallback: Spawnear alrededor del altar
+                            const angle = Math.random() * Math.PI * 2;
+                            const dist = Math.random() * 500 + 900;
+                            x = match.altarPos.x + Math.cos(angle) * dist;
+                            y = match.altarPos.y + Math.sin(angle) * dist;
+                        }
+                        
+                        const enemy = this.aiManager.serverSpawnEnemy(match.zoneId, type, x, y, null, true);
+                        if (enemy) {
+                            // Inyectar focusTarget a nivel de enemigo desde la fase (con fallback a la oleada o 'altar')
+                            enemy.focusTarget = phase.focusTarget || waveData.focusTarget || 'altar';
+                        }
+                    };
+
+                    // Calcular la cola de spawners de forma detallada
+                    let spawnQueue = [];
+                    if (phase.spawnerDistribution && typeof phase.spawnerDistribution === 'object') {
+                        Object.keys(phase.spawnerDistribution).forEach(key => {
+                            const spCount = parseInt(phase.spawnerDistribution[key]) || 0;
+                            const targetSp = key === 'random' ? 'random' : parseInt(key);
+                            for (let i = 0; i < spCount; i++) {
+                                spawnQueue.push(targetSp);
+                            }
+                        });
+                    } 
+                    
+                    // Fallback si la cola quedó vacía por configuraciones viejas
+                    if (spawnQueue.length === 0) {
+                        if (spawnerIdx !== undefined && spawnerIdx !== 'random') {
+                            const specificCount = Math.min(count, phase.spawnerSpecificCount !== undefined ? parseInt(phase.spawnerSpecificCount) : count);
+                            const restCount = Math.max(0, count - specificCount);
+                            
+                            for (let i = 0; i < specificCount; i++) {
+                                spawnQueue.push(spawnerIdx);
+                            }
+                            for (let i = 0; i < restCount; i++) {
+                                spawnQueue.push('random');
+                            }
+                        } else {
+                            for (let i = 0; i < count; i++) {
+                                spawnQueue.push('random');
+                            }
+                        }
+                    }
+
+                    if (spawnType === 'staggered' && staggerDelayMs > 0) {
+                        spawnQueue.forEach((spId, i) => {
+                            setTimeout(() => {
+                                spawnOne(spId);
+                            }, i * staggerDelayMs);
+                        });
+                    } else {
+                        spawnQueue.forEach(spId => {
+                            spawnOne(spId);
+                        });
+                    }
+                }, startDelay);
             });
         }
     }

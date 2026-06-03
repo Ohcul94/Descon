@@ -103,7 +103,11 @@ module.exports = class BaseAI {
         let activeTarget = null;
         let isRevenge = false;
 
-        // v303.0: Soporte prioritario para Provocación (Taunt)
+        const altarDefenseConfig = this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense;
+        const isAltarZone = altarDefenseConfig && altarDefenseConfig.maps && altarDefenseConfig.maps.map(Number).includes(Number(this.enemy.zone));
+        const focusTarget = this.enemy.focusTarget || 'players'; // 'players' o 'altar'
+
+        // 1. REGLA PRIORITARIA: Provocación (Taunt)
         if (this.enemy.forcedTarget && players[this.enemy.forcedTarget] && now < this.enemy.tauntEndTime) {
             const tauntPlayer = players[this.enemy.forcedTarget];
             if (!tauntPlayer.isDead && !tauntPlayer.isInvisible) {
@@ -111,8 +115,24 @@ module.exports = class BaseAI {
             }
         }
 
+        // 2. Si el foco es Altar, ir directamente al altar (ignorando proximidad ordinaria)
+        if (!activeTarget && focusTarget === 'altar' && isAltarZone && altarDefenseConfig.altarPos) {
+            const altarHp = (this.state.altarState ? this.state.altarState.hp : 1) || 1;
+            if (altarHp > 0) {
+                activeTarget = {
+                    id: "altar",
+                    x: Number(altarDefenseConfig.altarPos.x) || 5000,
+                    y: Number(altarDefenseConfig.altarPos.y) || 5000,
+                    hp: altarHp,
+                    isDead: false,
+                    isInvisible: false
+                };
+            }
+        }
+
+        // 3. Si el foco es Players (o si el altar ya fue destruido), aplicar agro de represalia y proximidad
         if (!activeTarget) {
-            // 1. REPRESALIA: Prioridad al que me pegó (Si el idleLimit no expiró)
+            // REPRESALIA: Prioridad al que me pegó (Si el idleLimit no expiró)
             if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
                 const idleTime = now - (this.enemy.lastHit || 0);
                 const idleLimit = (this.ambienceBoost) ? 30000 : (cfg.chaseIdleTimeout || 10000); 
@@ -125,16 +145,13 @@ module.exports = class BaseAI {
                 }
             }
 
-            // 2. PROXIMIDAD: Si soy agresivo y no tengo venganza pendiente, busco al más cercano
+            // PROXIMIDAD: Si soy agresivo y no tengo venganza pendiente, busco al más cercano
             if (!activeTarget && isAggressive) {
                 activeTarget = potentialTarget;
             }
         }
 
-        // 3. ALTAR DEFENSE TARGET: Si no hay jugadores en la mira y es zona de Altar Defense, el Altar es el objetivo
-        const altarDefenseConfig = this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense;
-        const isAltarZone = altarDefenseConfig && altarDefenseConfig.maps && altarDefenseConfig.maps.map(Number).includes(Number(this.enemy.zone));
-        
+        // 4. FALLBACK DE ALTAR DEFENSE: Si es zona de Altar Defense y aún no hay target, apuntar al altar como último recurso
         if (!activeTarget && isAltarZone && altarDefenseConfig.altarPos) {
             const altarHp = (this.state.altarState ? this.state.altarState.hp : 1) || 1;
             if (altarHp > 0) {

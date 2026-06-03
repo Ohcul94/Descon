@@ -1465,8 +1465,6 @@ function addFromRadar() {
             ad.spawners.push({
                 x, y,
                 label: document.getElementById('radar-ad-spawner-label').value,
-                enemyId: document.getElementById('ad-spawner-enemy-select').value,
-                count: parseInt(document.getElementById('radar-ad-count').value),
                 radius: parseInt(document.getElementById('radar-ad-radius').value)
             });
         } else if (radarMode === 'ad-portal') {
@@ -1521,9 +1519,46 @@ function addAltarDefenseWave() {
     if (!ad.waves) ad.waves = [];
     ad.waves.push({
         name: `Oleada ${ad.waves.length + 1}`,
-        enemyId: "1",
-        count: 10,
-        delayMs: 5000
+        delayMs: 5000,
+        phases: [
+            {
+                name: "Fase 1",
+                enemyId: "",
+                count: 5,
+                spawnerIndex: "random",
+                spawnType: "together",
+                staggerDelayMs: 500,
+                startDelayMs: 0,
+                focusTarget: "altar",
+                spawnerDistribution: {
+                    random: 5
+                }
+            }
+        ]
+    });
+    renderModes();
+}
+
+/******************************************************************************
+* RENDERER: MODOS DE JUEGO (ADICIONALES)
+******************************************************************************/
+
+function addAltarDefensePhase(waveIdx) {
+    const waves = config.gameModes.altar_defense.waves;
+    if (!waves || !waves[waveIdx]) return;
+    if (!waves[waveIdx].phases) waves[waveIdx].phases = [];
+    waves[waveIdx].phases.push({
+        name: `Fase ${waves[waveIdx].phases.length + 1}`,
+        enemyId: "",
+        count: 5,
+        spawnerIndex: "random",
+        spawnType: "together",
+        staggerDelayMs: 500,
+        startDelayMs: 0,
+        focusTarget: "altar",
+        spawnerDistribution: {
+            random: 5
+        }
     });
     renderModes();
 }
@@ -1636,4 +1671,10 @@ function updateLootDropItemFromEnemyLoot(enemyId, idx, itemId) {
 function updateLootDropChanceFromEnemyLoot(enemyId, idx, chance) {
     updateLootDropChance(enemyId, idx, chance);
 }
+
+window.collapsedWaves = window.collapsedWaves || {};
+window.toggleWaveCollapse = function(idx) {
+    window.collapsedWaves[idx] = !window.collapsedWaves[idx];
+    renderModes();
+};
 

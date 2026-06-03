@@ -618,9 +618,9 @@ func update_stats(data):
 		status_effects = data.status_effects
 	
 	# v268.87: Capturar posición desde el paquete de stats para evitar rubber-banding
-	if data.has("x"): target_position.x = float(data.x)
-	if data.has("y"): target_position.y = float(data.y)
-	if data.has("rot"): target_rotation = float(data.rot)
+	if data.has("x"): target_position.x = _safe_float(data.x, target_position.x)
+	if data.has("y"): target_position.y = _safe_float(data.y, target_position.y)
+	if data.has("rot"): target_rotation = _safe_float(data.rot, target_rotation)
 	
 	if data.has("clanTag"):
 		clan_tag = str(data.clanTag)
@@ -647,19 +647,19 @@ func update_stats(data):
 		# v269.182: Eliminado timer de 2s para sincronizar con la duración real del skill
 	
 	if data.has("hp") and not lock_active:
-		var server_hp = float(data.get("hp", current_hp))
+		var server_hp = _safe_float(data.get("hp"), current_hp)
 		if not is_local or abs(current_hp - server_hp) > threshold:
 			current_hp = server_hp
 			
 	if (data.has("shield") or data.has("sh")) and not lock_active:
-		var server_sh = float(data.get("shield", data.get("sh", current_shield)))
+		var server_sh = _safe_float(data.get("shield", data.get("sh")), current_shield)
 		if not is_local or abs(current_shield - server_sh) > threshold:
 			current_shield = server_sh
 			
 	if data.has("maxHp"): 
-		max_hp = float(data.get("maxHp", max_hp))
+		max_hp = _safe_float(data.get("maxHp"), max_hp)
 	if (data.has("maxShield") or data.has("maxSh")):
-		max_shield = float(data.get("maxShield", data.get("maxSh", max_shield)))
+		max_shield = _safe_float(data.get("maxShield", data.get("maxSh")), max_shield)
 	
 	if data.has("currentShipId") and not is_in_group("enemies"):
 		var sid = int(data.currentShipId)
@@ -863,10 +863,10 @@ func _resurrect(data: Dictionary):
 
 	# 1. Salto instantáneo a la posición de respawn
 	if data.has("x") and data.has("y"):
-		global_position = Vector2(float(data.x), float(data.y))
+		global_position = Vector2(_safe_float(data.x, global_position.x), _safe_float(data.y, global_position.y))
 		target_position = global_position
 		if data.has("rot"):
-			rotation = float(data.rot)
+			rotation = _safe_float(data.rot, rotation)
 			target_rotation = rotation
 
 	# 2. Reset visual completo (Igual que el Player al spawnear)
@@ -2161,3 +2161,15 @@ func _clear_wreckage_marker():
 		var marker = world.entities_node.get_node_or_null("Wreckage_" + str(entity_id))
 		if is_instance_valid(marker):
 			marker.queue_free()
+
+func _safe_float(val, default: float = 0.0) -> float:
+	if val == null:
+		return default
+	var val_type = typeof(val)
+	if val_type == TYPE_INT or val_type == TYPE_FLOAT:
+		return float(val)
+	elif val_type == TYPE_STRING:
+		return val.to_float()
+	elif val_type == TYPE_BOOL:
+		return 1.0 if val else 0.0
+	return default

@@ -65,35 +65,35 @@
         ],
         "melee": [
             1.5,
-            3.0,
-            5.0,
-            10.0,
-            22.0,
-            50.0
+            3,
+            5,
+            10,
+            22,
+            50
         ],
         "heal": [
-            1.0,
+            1,
             1.8,
-            3.0,
+            3,
             5.5,
-            12.0,
-            25.0
+            12,
+            25
         ],
         "siphon": [
             0.8,
             1.5,
             2.5,
-            5.0,
-            10.0,
-            20.0
+            5,
+            10,
+            20
         ],
         "emp": [
             0.5,
-            1.0,
+            1,
             1.5,
-            3.0,
-            6.0,
-            12.0
+            3,
+            6,
+            12
         ]
     },
     "enemyModels": {
@@ -613,7 +613,16 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 290,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
         },
         "101": {
             "bulletDamage": 2000,
@@ -2002,6 +2011,111 @@
                     "affectsBosses": false
                 }
             ]
+        },
+        "13-A": {
+            "bulletDamage": 700,
+            "bulletSpeed": 950,
+            "fireRange": 1200,
+            "fireRate": 850,
+            "hp": 24000,
+            "name": "Enemigo 13 A",
+            "rewardExp": 5000,
+            "rewardHubs": 9000,
+            "rewardOhcu": 90,
+            "shield": 12000,
+            "speed": 290,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 700,
+                    "bulletSpeed": 950,
+                    "fireRange": 1200,
+                    "fireRate": 850,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
+        },
+        "13-B": {
+            "bulletDamage": 1050,
+            "bulletSpeed": 950,
+            "fireRange": 1200,
+            "fireRate": 850,
+            "hp": 36000,
+            "name": "Enemigo 13 B",
+            "rewardExp": 7500,
+            "rewardHubs": 13500,
+            "rewardOhcu": 135,
+            "shield": 18000,
+            "speed": 290,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 1050,
+                    "bulletSpeed": 950,
+                    "fireRange": 1200,
+                    "fireRate": 850,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
+        },
+        "13-C": {
+            "bulletDamage": 1400,
+            "bulletSpeed": 950,
+            "fireRange": 1200,
+            "fireRate": 850,
+            "hp": 48000,
+            "name": "Enemigo 13 C",
+            "rewardExp": 10000,
+            "rewardHubs": 18000,
+            "rewardOhcu": 180,
+            "shield": 24000,
+            "speed": 290,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 1400,
+                    "bulletSpeed": 950,
+                    "fireRange": 1200,
+                    "fireRate": 850,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
+        },
+        "13-D": {
+            "bulletDamage": 1750,
+            "bulletSpeed": 950,
+            "fireRange": 1200,
+            "fireRate": 850,
+            "hp": 60000,
+            "name": "Enemigo 13 D",
+            "rewardExp": 12500,
+            "rewardHubs": 22500,
+            "rewardOhcu": 225,
+            "shield": 30000,
+            "speed": 290,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 1750,
+                    "bulletSpeed": 950,
+                    "fireRange": 1200,
+                    "fireRate": 850,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 290,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
         }
     },
     "hordeConfig": {
@@ -2192,7 +2306,30 @@
             "minLevel": 15,
             "name": "Mapa 5",
             "warpCost": 50,
-            "ambience": []
+            "ambience": [
+                {
+                    "type": "vortex_hazard",
+                    "spawnInterval": 15000,
+                    "duration": 5000,
+                    "pullForce": 0,
+                    "damage": 10,
+                    "damageInterval": 0,
+                    "radius": 300
+                },
+                {
+                    "type": "blindness_hazard",
+                    "spawnInterval": 15000,
+                    "duration": 5000,
+                    "radius": 150
+                }
+            ],
+            "spawns": [
+                {
+                    "type": "13-D",
+                    "count": 5,
+                    "intervalMs": 5000
+                }
+            ]
         },
         "6": {
             "color": "#ff0000",
@@ -2587,36 +2724,336 @@
                 }
             ],
             "melee": [
-                { "id": "am_me1", "name": "Plasma Claw T1", "prices": { "hubs": 2000, "ohcu": 2 }, "range": 150, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 300, "chance": 10}] },
-                { "id": "am_me2", "name": "Plasma Claw T2", "prices": { "hubs": 4000, "ohcu": 4 }, "range": 150, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 300, "chance": 15}] },
-                { "id": "am_me3", "name": "Plasma Claw T3", "prices": { "hubs": 8000, "ohcu": 8 }, "range": 150, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 400, "chance": 20}] },
-                { "id": "am_me4", "name": "Plasma Claw T4", "prices": { "hubs": 16000, "ohcu": 16 }, "range": 150, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 400, "chance": 25}] },
-                { "id": "am_me5", "name": "Plasma Claw T5", "prices": { "hubs": 0, "ohcu": 40 }, "range": 160, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 500, "chance": 35}] },
-                { "id": "am_me6", "name": "Plasma Claw T6", "prices": { "hubs": 0, "ohcu": 80 }, "range": 170, "cooldown": 800, "bulletSpeed": 2500, "mechanics": [{"type": "stun", "duration": 600, "chance": 50}] }
+                {
+                    "id": "am_me1",
+                    "name": "Plasma Claw T1",
+                    "prices": {
+                        "hubs": 2000,
+                        "ohcu": 2
+                    },
+                    "range": 150,
+                    "cooldown": 800,
+                    "bulletSpeed": 2500,
+                    "mechanics": [
+                        {
+                            "type": "stun",
+                            "duration": 300,
+                            "chance": 10
+                        }
+                    ]
+                },
+                {
+                    "id": "am_me2",
+                    "name": "Plasma Claw T2",
+                    "prices": {
+                        "hubs": 4000,
+                        "ohcu": 4
+                    },
+                    "range": 150,
+                    "cooldown": 800,
+                    "bulletSpeed": 2500,
+                    "mechanics": [
+                        {
+                            "type": "stun",
+                            "duration": 300,
+                            "chance": 15
+                        }
+                    ]
+                },
+                {
+                    "id": "am_me3",
+                    "name": "Plasma Claw T3",
+                    "prices": {
+                        "hubs": 8000,
+                        "ohcu": 8
+                    },
+                    "range": 150,
+                    "cooldown": 800,
+                    "bulletSpeed": 2500,
+                    "mechanics": [
+                        {
+                            "type": "stun",
+                            "duration": 400,
+                            "chance": 20
+                        }
+                    ]
+                },
+                {
+                    "id": "am_me4",
+                    "name": "Plasma Claw T4",
+                    "prices": {
+                        "hubs": 16000,
+                        "ohcu": 16
+                    },
+                    "range": 150,
+                    "cooldown": 800,
+                    "bulletSpeed": 2500,
+                    "mechanics": [
+                        {
+                            "type": "stun",
+                            "duration": 400,
+                            "chance": 25
+                        }
+                    ]
+                },
+                {
+                    "id": "am_me5",
+                    "name": "Plasma Claw T5",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 40
+                    },
+                    "range": 160,
+                    "cooldown": 800,
+                    "bulletSpeed": 2500,
+                    "mechanics": [
+                        {
+                            "type": "stun",
+                            "duration": 500,
+                            "chance": 35
+                        }
+                    ]
+                },
+                {
+                    "id": "am_me6",
+                    "name": "Plasma Claw T6",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 80
+                    },
+                    "range": 170,
+                    "cooldown": 800,
+                    "bulletSpeed": 2500,
+                    "mechanics": [
+                        {
+                            "type": "stun",
+                            "duration": 600,
+                            "chance": 50
+                        }
+                    ]
+                }
             ],
             "heal": [
-                { "id": "am_h1", "name": "Heal Drones T1", "prices": { "hubs": 1500, "ohcu": 1 }, "range": 500, "cooldown": 1200, "bulletSpeed": 900, "mechanics": [] },
-                { "id": "am_h2", "name": "Heal Drones T2", "prices": { "hubs": 3000, "ohcu": 3 }, "range": 520, "cooldown": 1200, "bulletSpeed": 900, "mechanics": [] },
-                { "id": "am_h3", "name": "Heal Drones T3", "prices": { "hubs": 6000, "ohcu": 6 }, "range": 540, "cooldown": 1200, "bulletSpeed": 900, "mechanics": [] },
-                { "id": "am_h4", "name": "Heal Drones T4", "prices": { "hubs": 12000, "ohcu": 12 }, "range": 560, "cooldown": 1200, "bulletSpeed": 900, "mechanics": [] },
-                { "id": "am_h5", "name": "Heal Drones T5", "prices": { "hubs": 0, "ohcu": 30 }, "range": 580, "cooldown": 1200, "bulletSpeed": 950, "mechanics": [] },
-                { "id": "am_h6", "name": "Heal Drones T6", "prices": { "hubs": 0, "ohcu": 60 }, "range": 600, "cooldown": 1200, "bulletSpeed": 1000, "mechanics": [] }
+                {
+                    "id": "am_h1",
+                    "name": "Heal Drones T1",
+                    "prices": {
+                        "hubs": 1500,
+                        "ohcu": 1
+                    },
+                    "range": 500,
+                    "cooldown": 1200,
+                    "bulletSpeed": 900,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_h2",
+                    "name": "Heal Drones T2",
+                    "prices": {
+                        "hubs": 3000,
+                        "ohcu": 3
+                    },
+                    "range": 520,
+                    "cooldown": 1200,
+                    "bulletSpeed": 900,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_h3",
+                    "name": "Heal Drones T3",
+                    "prices": {
+                        "hubs": 6000,
+                        "ohcu": 6
+                    },
+                    "range": 540,
+                    "cooldown": 1200,
+                    "bulletSpeed": 900,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_h4",
+                    "name": "Heal Drones T4",
+                    "prices": {
+                        "hubs": 12000,
+                        "ohcu": 12
+                    },
+                    "range": 560,
+                    "cooldown": 1200,
+                    "bulletSpeed": 900,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_h5",
+                    "name": "Heal Drones T5",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 30
+                    },
+                    "range": 580,
+                    "cooldown": 1200,
+                    "bulletSpeed": 950,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_h6",
+                    "name": "Heal Drones T6",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 60
+                    },
+                    "range": 600,
+                    "cooldown": 1200,
+                    "bulletSpeed": 1000,
+                    "mechanics": []
+                }
             ],
             "siphon": [
-                { "id": "am_s1", "name": "Vampire Beam T1", "prices": { "hubs": 3000, "ohcu": 3 }, "range": 600, "cooldown": 1000, "bulletSpeed": 1200, "mechanics": [] },
-                { "id": "am_s2", "name": "Vampire Beam T2", "prices": { "hubs": 6000, "ohcu": 6 }, "range": 620, "cooldown": 1000, "bulletSpeed": 1200, "mechanics": [] },
-                { "id": "am_s3", "name": "Vampire Beam T3", "prices": { "hubs": 12000, "ohcu": 12 }, "range": 640, "cooldown": 1000, "bulletSpeed": 1200, "mechanics": [] },
-                { "id": "am_s4", "name": "Vampire Beam T4", "prices": { "hubs": 24000, "ohcu": 24 }, "range": 660, "cooldown": 1000, "bulletSpeed": 1200, "mechanics": [] },
-                { "id": "am_s5", "name": "Vampire Beam T5", "prices": { "hubs": 0, "ohcu": 60 }, "range": 680, "cooldown": 1000, "bulletSpeed": 1300, "mechanics": [] },
-                { "id": "am_s6", "name": "Vampire Beam T6", "prices": { "hubs": 0, "ohcu": 120 }, "range": 700, "cooldown": 1000, "bulletSpeed": 1400, "mechanics": [] }
+                {
+                    "id": "am_s1",
+                    "name": "Vampire Beam T1",
+                    "prices": {
+                        "hubs": 3000,
+                        "ohcu": 3
+                    },
+                    "range": 600,
+                    "cooldown": 1000,
+                    "bulletSpeed": 1200,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_s2",
+                    "name": "Vampire Beam T2",
+                    "prices": {
+                        "hubs": 6000,
+                        "ohcu": 6
+                    },
+                    "range": 620,
+                    "cooldown": 1000,
+                    "bulletSpeed": 1200,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_s3",
+                    "name": "Vampire Beam T3",
+                    "prices": {
+                        "hubs": 12000,
+                        "ohcu": 12
+                    },
+                    "range": 640,
+                    "cooldown": 1000,
+                    "bulletSpeed": 1200,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_s4",
+                    "name": "Vampire Beam T4",
+                    "prices": {
+                        "hubs": 24000,
+                        "ohcu": 24
+                    },
+                    "range": 660,
+                    "cooldown": 1000,
+                    "bulletSpeed": 1200,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_s5",
+                    "name": "Vampire Beam T5",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 60
+                    },
+                    "range": 680,
+                    "cooldown": 1000,
+                    "bulletSpeed": 1300,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_s6",
+                    "name": "Vampire Beam T6",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 120
+                    },
+                    "range": 700,
+                    "cooldown": 1000,
+                    "bulletSpeed": 1400,
+                    "mechanics": []
+                }
             ],
             "emp": [
-                { "id": "am_e1", "name": "EMP Pulse T1", "prices": { "hubs": 4000, "ohcu": 5 }, "range": 400, "cooldown": 2000, "bulletSpeed": 700, "mechanics": [] },
-                { "id": "am_e2", "name": "EMP Pulse T2", "prices": { "hubs": 8000, "ohcu": 10 }, "range": 420, "cooldown": 2000, "bulletSpeed": 700, "mechanics": [] },
-                { "id": "am_e3", "name": "EMP Pulse T3", "prices": { "hubs": 16000, "ohcu": 20 }, "range": 440, "cooldown": 2000, "bulletSpeed": 700, "mechanics": [] },
-                { "id": "am_e4", "name": "EMP Pulse T4", "prices": { "hubs": 32000, "ohcu": 40 }, "range": 460, "cooldown": 2000, "bulletSpeed": 700, "mechanics": [] },
-                { "id": "am_e5", "name": "EMP Pulse T5", "prices": { "hubs": 0, "ohcu": 100 }, "range": 480, "cooldown": 2000, "bulletSpeed": 750, "mechanics": [] },
-                { "id": "am_e6", "name": "EMP Pulse T6", "prices": { "hubs": 0, "ohcu": 200 }, "range": 500, "cooldown": 2000, "bulletSpeed": 800, "mechanics": [] }
+                {
+                    "id": "am_e1",
+                    "name": "EMP Pulse T1",
+                    "prices": {
+                        "hubs": 4000,
+                        "ohcu": 5
+                    },
+                    "range": 400,
+                    "cooldown": 2000,
+                    "bulletSpeed": 700,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_e2",
+                    "name": "EMP Pulse T2",
+                    "prices": {
+                        "hubs": 8000,
+                        "ohcu": 10
+                    },
+                    "range": 420,
+                    "cooldown": 2000,
+                    "bulletSpeed": 700,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_e3",
+                    "name": "EMP Pulse T3",
+                    "prices": {
+                        "hubs": 16000,
+                        "ohcu": 20
+                    },
+                    "range": 440,
+                    "cooldown": 2000,
+                    "bulletSpeed": 700,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_e4",
+                    "name": "EMP Pulse T4",
+                    "prices": {
+                        "hubs": 32000,
+                        "ohcu": 40
+                    },
+                    "range": 460,
+                    "cooldown": 2000,
+                    "bulletSpeed": 700,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_e5",
+                    "name": "EMP Pulse T5",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 100
+                    },
+                    "range": 480,
+                    "cooldown": 2000,
+                    "bulletSpeed": 750,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_e6",
+                    "name": "EMP Pulse T6",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 200
+                    },
+                    "range": 500,
+                    "cooldown": 2000,
+                    "bulletSpeed": 800,
+                    "mechanics": []
+                }
             ]
         },
         "engines": [
@@ -3949,8 +4386,51 @@
                     "radius": 200
                 }
             ],
-            "spawners": [],
-            "waves": [],
+            "spawners": [
+                {
+                    "x": 4967,
+                    "y": 1028,
+                    "label": "Zona de Invasión1",
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 9000,
+                    "y": 4994,
+                    "label": "Zona de Invasión2",
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 5000,
+                    "y": 9028,
+                    "label": "Zona de Invasión3",
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                },
+                {
+                    "x": 1000,
+                    "y": 5011,
+                    "label": "Zona de Invasión4",
+                    "enemyId": "1",
+                    "count": 10,
+                    "radius": 500
+                }
+            ],
+            "waves": [
+                {
+                    "name": "Oleada 1",
+                    "enemyId": "1",
+                    "count": 10,
+                    "delayMs": 5000,
+                    "spawnerIndex": "random",
+                    "spawnType": "staggered",
+                    "staggerDelayMs": 1000
+                }
+            ],
             "width": 10000,
             "height": 10000,
             "partyAcceptTimeout": 10000,

@@ -1,6 +1,6 @@
 window.renderSearchableEnemySelect = function(currentValue, onChangeCallback, borderCSSColor = 'var(--success)', extraId = '') {
-    const currentEn = config.enemyModels[currentValue];
-    const currentName = currentEn ? `[ID ${currentValue}] ${currentEn.name}` : `ID ${currentValue}`;
+    const currentEn = currentValue ? config.enemyModels[currentValue] : null;
+    const currentName = currentEn ? `[ID ${currentValue}] ${currentEn.name}` : (currentValue ? `ID ${currentValue}` : '');
     const dropdownId = `dropdown-select-${extraId}`;
     const inputId = `dropdown-search-${extraId}`;
     const listId = `dropdown-list-${extraId}`;
@@ -136,6 +136,21 @@ window.renderSearchableEnemySelect = function(currentValue, onChangeCallback, bo
             </div>
         </div>
     `;
+window.updateAdPhaseTotal = function(waveIdx, phaseIdx) {
+    const wave = config.gameModes.altar_defense.waves[waveIdx];
+    if (!wave || !wave.phases || !wave.phases[phaseIdx]) return;
+    const ph = wave.phases[phaseIdx];
+    
+    let totalCount = 0;
+    for (let key in ph.spawnerDistribution) {
+        totalCount += ph.spawnerDistribution[key] || 0;
+    }
+    ph.count = totalCount;
+    
+    const span = document.getElementById(`ad-phase-total-${waveIdx}-${phaseIdx}`);
+    if (span) {
+        span.innerText = totalCount;
+    }
 };
 
 window.renderSearchableMapSelect = function(currentValue, onChangeCallback, borderCSSColor = 'var(--primary)', extraId = '') {
@@ -2067,27 +2082,130 @@ function renderModes() {
                         <h4 style="color:var(--accent); margin:0;">🌊 CONFIGURACIÓN DE OLEADAS (WAVES)</h4>
                         <button class="btn btn-primary" style="padding: 5px 20px; font-size:0.75rem;" onclick="addAltarDefenseWave()">+ AÑADIR OLEADA</button>
                     </div>
-                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:20px; max-height:400px; overflow-y:auto; padding-right:5px;">
-                        ${ad.waves.map((w, idx) => `
+                    <div style="display:flex; flex-direction:column; gap:20px; max-height:500px; overflow-y:auto; padding-right:5px;">
+                        ${ad.waves.map((w, idx) => {
+                            const isCollapsed = window.collapsedWaves && window.collapsedWaves[idx];
+                            return `
                             <div class="card" style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:15px; margin:0; position:relative; overflow: visible;">
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                    <input type="text" value="${w.name || 'Oleada ' + (idx + 1)}" onchange="config.gameModes.altar_defense.waves[${idx}].name = this.value" style="background:none; border:none; color:var(--primary); font-weight:bold; font-size:0.95rem; width:80%;">
-                                    <button onclick="config.gameModes.altar_defense.waves.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:1.1rem;">✕</button>
-                                </div>
-                                <div style="display:flex; flex-direction:column; gap:10px; overflow: visible;">
-                                    <div style="overflow: visible; width: 100%;">
-                                        <label style="font-size:0.7rem; color:var(--text-dim); display:block; margin-bottom:4px;">Enemigo a Spawnear</label>
-                                        ${renderSearchableEnemySelect(w.enemyId || '1', (newId) => {
-                                            config.gameModes.altar_defense.waves[idx].enemyId = newId;
-                                        }, 'var(--primary)', `ad-wave-${idx}`)}
+                                <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleWaveCollapse(${idx})">
+                                    <div style="display:flex; align-items:center; gap:10px; width:80%;">
+                                        <span style="font-size:0.8rem; color:var(--text-dim);">${isCollapsed ? '▶' : '▼'}</span>
+                                        <input type="text" value="${w.name || 'Oleada ' + (idx + 1)}" onchange="config.gameModes.altar_defense.waves[${idx}].name = this.value; event.stopPropagation();" onclick="event.stopPropagation();" style="background:none; border:none; color:var(--primary); font-weight:bold; font-size:0.95rem; width:80%;">
                                     </div>
-                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                                        <div class="field"><label>Cantidad</label><input type="number" value="${w.count || 10}" onchange="config.gameModes.altar_defense.waves[${idx}].count = parseInt(this.value)"></div>
-                                        <div class="field"><label>Delay (ms)</label><input type="number" step="1000" value="${w.delayMs || 5000}" onchange="config.gameModes.altar_defense.waves[${idx}].delayMs = parseInt(this.value)"></div>
+                                    <div style="display:flex; align-items:center; gap:10px;">
+                                        <button onclick="config.gameModes.altar_defense.waves.splice(${idx},1); renderModes(); event.stopPropagation();" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:1.1rem;">✕</button>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: ${isCollapsed ? 'none' : 'flex'}; flex-direction:column; gap:15px; margin-top:15px; overflow: visible;">
+                                    <div style="display:grid; grid-template-columns: 1fr; gap:10px;">
+                                        <div class="field">
+                                            <label>Delay de Inicio de Oleada (ms)</label>
+                                            <input type="number" step="1000" value="${w.delayMs || 5000}" onchange="config.gameModes.altar_defense.waves[${idx}].delayMs = parseInt(this.value)">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- FASES DENTRO DE LA OLEADA -->
+                                    <div style="border-top: 1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                            <h5 style="color:var(--text); margin:0; font-size:0.85rem;">Fases de la Oleada</h5>
+                                            <button class="btn btn-secondary" style="padding: 2px 10px; font-size:0.65rem;" onclick="addAltarDefensePhase(${idx})">+ AÑADIR FASE</button>
+                                        </div>
+                                        <div style="display:flex; flex-direction:column; gap:12px;">
+                                            ${(w.phases || []).map((ph, phIdx) => {
+                                                if (!ph.spawnerDistribution) {
+                                                    ph.spawnerDistribution = {};
+                                                }
+                                                // Calcular cantidad total sumando la distribución
+                                                let totalCount = 0;
+                                                for (let key in ph.spawnerDistribution) {
+                                                    totalCount += ph.spawnerDistribution[key] || 0;
+                                                }
+                                                ph.count = totalCount;
+
+                                                return `
+                                                <div style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.03); border-radius:8px; padding:12px; position:relative; overflow: visible;">
+                                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                                                        <input type="text" value="${ph.name || 'Fase ' + (phIdx + 1)}" onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].name = this.value" style="background:none; border:none; color:var(--accent); font-weight:bold; font-size:0.8rem; width:70%;">
+                                                        <button onclick="config.gameModes.altar_defense.waves[${idx}].phases.splice(${phIdx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.9rem;">✕</button>
+                                                    </div>
+                                                    
+                                                    <div style="display:flex; flex-direction:column; gap:10px; overflow: visible;">
+                                                        <div style="overflow: visible; width: 100%;">
+                                                            <label style="font-size:0.7rem; color:var(--text-dim); display:block; margin-bottom:4px;">Enemigo a Spawnear</label>
+                                                            ${renderSearchableEnemySelect(ph.enemyId || '', (newId) => {
+                                                                config.gameModes.altar_defense.waves[idx].phases[phIdx].enemyId = newId;
+                                                            }, 'var(--accent)', `ad-wave-${idx}-phase-${phIdx}`)}
+                                                        </div>
+                                                        
+                                                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                                                            <div class="field">
+                                                                <label>Foco Objetivo</label>
+                                                                <select onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].focusTarget = this.value">
+                                                                    <option value="altar" ${ph.focusTarget === 'altar' ? 'selected' : ''}>Altar</option>
+                                                                    <option value="players" ${ph.focusTarget === 'players' ? 'selected' : ''}>Jugadores</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="field">
+                                                                <label>Tipo Spawn</label>
+                                                                <select onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].spawnType = this.value">
+                                                                    <option value="together" ${ph.spawnType === 'together' ? 'selected' : ''}>Todos juntos</option>
+                                                                    <option value="staggered" ${ph.spawnType === 'staggered' ? 'selected' : ''}>Escalonados</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+
+                                                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                                                            <div class="field">
+                                                                <label>Delay Inicio Fase (ms)</label>
+                                                                <input type="number" step="100" value="${ph.startDelayMs || 0}" onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].startDelayMs = parseInt(this.value)">
+                                                            </div>
+                                                            <div class="field">
+                                                                <label>Delay Escalonamiento (ms)</label>
+                                                                <input type="number" step="100" value="${ph.staggerDelayMs || 500}" onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].staggerDelayMs = parseInt(this.value)">
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- DISTRIBUCIÓN DE SPAWNERS -->
+                                                        <div style="background:rgba(0,0,0,0.2); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.03);">
+                                                            <label style="font-size:0.7rem; color:var(--accent); font-weight:bold; display:block; margin-bottom:6px;">Distribución de Enemigos por Spawner</label>
+                                                            <div style="display:flex; flex-direction:column; gap:6px;">
+                                                                <!-- Random Pool -->
+                                                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                                                    <span style="font-size:0.7rem; opacity:0.8;">Random (Cualquier zona)</span>
+                                                                    <input type="number" min="0" value="${ph.spawnerDistribution.random || 0}" 
+                                                                           oninput="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].spawnerDistribution.random = parseInt(this.value) || 0; updateAdPhaseTotal(${idx}, ${phIdx});"
+                                                                           style="width:60px; text-align:center; font-size:0.75rem; background:rgba(0,0,0,0.5); border:1px solid #333; color:white; border-radius:4px; padding:2px;">
+                                                                </div>
+                                                                <!-- Spawners específicos -->
+                                                                ${ad.spawners.map((sp, spIdx) => {
+                                                                    const val = ph.spawnerDistribution[spIdx] || 0;
+                                                                    return `
+                                                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                                                        <span style="font-size:0.7rem; opacity:0.8; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">[${spIdx}] ${sp.label || 'Zona ' + (spIdx + 1)}</span>
+                                                                        <input type="number" min="0" value="${val}" 
+                                                                               oninput="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].spawnerDistribution[${spIdx}] = parseInt(this.value) || 0; updateAdPhaseTotal(${idx}, ${phIdx});"
+                                                                               style="width:60px; text-align:center; font-size:0.75rem; background:rgba(0,0,0,0.5); border:1px solid #333; color:white; border-radius:4px; padding:2px;">
+                                                                    </div>
+                                                                    `;
+                                                                }).join('')}
+                                                            </div>
+                                                            <div style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.05); padding-top:4px; display:flex; justify-content:space-between; align-items:center;">
+                                                                <span style="font-size:0.7rem; font-weight:bold; color:var(--text);">Total Enemigos en Fase:</span>
+                                                                <span id="ad-phase-total-${idx}-${phIdx}" style="font-size:0.75rem; font-weight:bold; color:var(--success);">${totalCount}</span>
+                                                            </div>
+                                                        </div>
+
+                                                    </div>
+                                                </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 </div>
 
