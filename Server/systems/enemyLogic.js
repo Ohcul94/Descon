@@ -7,7 +7,7 @@ const lootManager = require('./lootManager');
 
 
 function executeEnemyExplosion(enemy, io, state) {
-    const cfg = state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels ? state.SERVER_CONFIG.enemyModels[enemy.type] : null;
+    const cfg = (state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels && state.SERVER_CONFIG.enemyModels[enemy.type]) || null;
     if (!cfg) return;
 
     const kamikazePhase = (cfg.movementPhases || []).find(p => p.type === 'kamikaze');
@@ -46,7 +46,7 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
     enemy.isDying = true;
     enemy.isDeadProcessed = true;
     
-    const cfg = state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels ? state.SERVER_CONFIG.enemyModels[enemy.type] : {};
+    const cfg = (state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels && state.SERVER_CONFIG.enemyModels[enemy.type]) || {};
 
     // Explosión Kamikaze
     const kamikazePhase = (cfg.movementPhases || []).find(p => p.type === 'kamikaze');
@@ -60,7 +60,8 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
     let o_loot = (cfg.rewardOhcu !== undefined) ? cfg.rewardOhcu : (enemy.type * 10);
     let e_loot = (cfg.rewardExp !== undefined) ? cfg.rewardExp : (enemy.type * 100);
 
-    if (enemy.name && enemy.name.toUpperCase().includes("CLONE")) {
+    const isPillar = enemy.type === 200 || (enemy.name && (enemy.name.toUpperCase().includes("PILAR") || enemy.name.toUpperCase().includes("PROTECTOR")));
+    if ((enemy.name && enemy.name.toUpperCase().includes("CLONE")) || isPillar) {
         h_loot = 0; o_loot = 0; e_loot = 0;
     }
 

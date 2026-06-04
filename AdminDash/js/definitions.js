@@ -24,7 +24,8 @@ const DEFAULT_MOVEMENT_LIB = {
 const DEFAULT_DEFENSE_LIB = {
     "basic_defense": { label: "Defensa Estándar", icon: "🛡️", desc: "Mecánica de mitigación de daño y regeneración.", fields: ["reductionPercentage", "shieldRegen", "duration", "cooldown", "startDelay"] },
     "aura_heal": { label: "Aura Curativa", icon: "✨", desc: "Cura a los aliados cercanos continuamente.", fields: ["activationHP", "radius", "healAmount", "intervalMs", "duration", "cooldown", "startDelay", "affectsEnemies", "affectsBosses"] },
-    "invulnerability": { label: "Invulnerabilidad Temporal", icon: "💎", desc: "Se vuelve inmune a todo daño por un tiempo.", fields: ["activationHP", "duration", "cooldown", "startDelay"] }
+    "invulnerability": { label: "Invulnerabilidad Temporal", icon: "💎", desc: "Se vuelve inmune a todo daño por un tiempo.", fields: ["activationHP", "duration", "cooldown", "startDelay"] },
+    "boss_pillars": { label: "Pilares del Boss", icon: "🗼", desc: "Invoca pilares que lo protegen y curan hasta ser destruidos.", fields: ["activationHP", "pillarCount", "pillarType", "pillarHp", "pillarShield", "pillarName", "spawnRadius", "duration", "healIntervalMs", "healPercentPerTick", "healPercentPerPillarOnExpiry", "cooldown", "startDelay"] }
 };
 
 // v266.300: Definición de Mecánicas de Ambiente (Hazards)

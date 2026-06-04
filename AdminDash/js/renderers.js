@@ -794,9 +794,18 @@ function renderEnemyDetail() {
                                         activationHP: "Activación por HP (%)",
                                         affectsEnemies: "Afectar a otros Enemigos", 
                                         affectsBosses: "Afectar a Bosses",
-                                        activationHP: "Activación por HP (%)"
+                                        pillarCount: "Cantidad de Pilares (uds)",
+                                        pillarType: "Tipo de Pilar (ID)",
+                                        pillarHp: "Vida del Pilar (pts)",
+                                        pillarShield: "Escudo del Pilar (pts)",
+                                        pillarName: "Nombre del Pilar",
+                                        spawnRadius: "Distancia de Spawn (px)",
+                                        healIntervalMs: "Intervalo Curación (ms)",
+                                        healPercentPerTick: "Curación por Tick (%)",
+                                        healPercentPerPillarOnExpiry: "Curación por Pilar Restante (%)"
                                     };
                                     if (['affectsEnemies', 'affectsBosses'].includes(f)) return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${m[f] ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.checked"><label style="margin:0;">${defLabels[f]}</label></div>`;
+                                    if (f === 'pillarName') return `<div class="field" style="grid-column: 1 / -1;"><label>${defLabels[f] || f}</label><input type="text" value="${m[f] || 'Pilar Protector'}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.value"></div>`;
                                     return `<div class="field"><label>${defLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}
                             </div>

@@ -41,6 +41,8 @@ module.exports = class BaseAI {
             const mId = `def_${idx}`;
             if (mech.type === "invulnerability") {
                 this._handleInvulnerabilityLogic(mech, mId, now, io);
+            } else if (mech.type === "boss_pillars") {
+                this._handleBossPillarsLogic(mech, mId, now, io);
             } else if (mech.type && mech.type.startsWith("aura_")) {
                 this._handleAuraLogic(mech, mId, now, io, grid, players);
             }
@@ -78,6 +80,11 @@ module.exports = class BaseAI {
         // v266.580: Inicialización de seguridad para nuevos enemigos
         if (!this.enemy.lastSuccessHit) this.enemy.lastSuccessHit = now;
         if (!this.enemy.lastHit) this.enemy.lastHit = 0;
+
+        // v3.9: Determinar de forma dinámica si el bicho está en combate activo
+        const lastCombatTime = Math.max(this.enemy.lastHit || 0, this.enemy.lastSuccessHit || 0);
+        const delayMs = cfg.regenDelayMs !== undefined ? Number(cfg.regenDelayMs) : (cfg.regenDelaySec !== undefined ? Number(cfg.regenDelaySec) * 1000 : 5000);
+        this._inCombat = (now - lastCombatTime) < delayMs;
 
         // v266.970: Lógica de Fases de Movimiento (Kamikaze Check)
         const phases = cfg.movementPhases || [];
@@ -225,7 +232,7 @@ module.exports = class BaseAI {
         }
 
         // v3.0: EVALUAR EXCESO DE RANGO (Leash Range Check)
-        if (leashRange > 0 && !this.enemy.returningToSpawn) {
+        if (leashRange > 0 && !this.enemy.returningToSpawn && !this._isDefenseSkillActive) {
             const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
             
             // También verificar si el target actual se paró fuera del leashRange del bicho (kiteo)
@@ -370,8 +377,7 @@ module.exports = class BaseAI {
 
         
         // Regeneración pasiva standard / Fuera de combate ocioso (después de X milisegundos de no recibir ni emitir daño)
-        const lastCombatTime = Math.max(this.enemy.lastHit || 0, this.enemy.lastSuccessHit || 0);
-        const delayMs = cfg.regenDelayMs !== undefined ? Number(cfg.regenDelayMs) : (cfg.regenDelaySec !== undefined ? Number(cfg.regenDelaySec) * 1000 : 5000);
+        // (lastCombatTime y delayMs ya fueron declaradas y asignadas al inicio de update)
         
         if (now - lastCombatTime > delayMs) {
             if (this.enemy.lastRegenTime === undefined) this.enemy.lastRegenTime = 0;
@@ -1006,6 +1012,169 @@ module.exports = class BaseAI {
                 duration: mech.duration || 3000 
             });
             // console.log(`[AI] ${this.enemy.id} activó Invulnerabilidad (${mech.duration}ms)`);
+        }
+    }
+
+    // Mecánica de Pilares Defensivos para Bosses
+    _handleBossPillarsLogic(mech, mId, now, io) {
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || { 
+            nextReadyTime: now + (mech.startDelay || 0), 
+            isActive: false, 
+            endTime: 0,
+            pillars: [],
+            lastHealTime: 0
+        };
+        this.enemy.defState[mId] = state;
+
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        // 1. Si la mecánica está activa, procesamos el estado de los pilares
+        if (state.isActive) {
+            // Forzar que el Boss permanezca en combate activo para evitar la regeneración pasiva fuera de combate mientras los pilares estén vivos
+            this.enemy.lastHit = now;
+
+            // Filtrar los pilares que siguen existiendo y tienen vida en el servidor
+            const activePillars = state.pillars.filter(pid => this.state.enemies[pid] && this.state.enemies[pid].hp > 0);
+
+            if (activePillars.length === 0) {
+                // Éxito: Todos los pilares fueron destruidos
+                state.isActive = false;
+                this._isDefenseSkillActive = false;
+                this.enemy.isInvulnerable = false;
+                state.pillars = [];
+                state.nextReadyTime = now + (mech.cooldown || 30000);
+
+                io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { id: this.enemy.id, active: false });
+                io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                    msg: `🛡️ ¡Pilares del Boss destruidos! La barrera ha caído.`, 
+                    type: "success" 
+                });
+            } else {
+                // Curación periódica mientras los pilares estén vivos
+                const interval = mech.healIntervalMs || 2000;
+                if (now - state.lastHealTime >= interval) {
+                    state.lastHealTime = now;
+                    const healPct = mech.healPercentPerTick !== undefined ? mech.healPercentPerTick : 1;
+                    const healAmount = this.enemy.maxHp * (healPct / 100);
+                    const oldHp = this.enemy.hp;
+                    
+                    if (healAmount > 0) {
+                        this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + healAmount);
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
+                            id: this.enemy.id, 
+                            hp: this.enemy.hp, 
+                            amount: Math.max(0, this.enemy.hp - oldHp) 
+                        });
+                    }
+                }
+
+                // Si se acaba el tiempo de la mecánica
+                if (now >= state.endTime) {
+                    // Curación de castigo por cada pilar que quede con vida
+                    const healPctPerPillar = mech.healPercentPerPillarOnExpiry || 5;
+                    const finalHealPct = activePillars.length * healPctPerPillar;
+                    const healAmount = this.enemy.maxHp * (finalHealPct / 100);
+                    const oldHp = this.enemy.hp;
+                    this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + healAmount);
+
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
+                        id: this.enemy.id, 
+                        hp: this.enemy.hp, 
+                        amount: Math.max(0, this.enemy.hp - oldHp) 
+                    });
+
+                    // Eliminar los pilares restantes de la zona
+                    activePillars.forEach(pid => {
+                        io.to(`zone_${this.enemy.zone}`).emit('bossEffect', { 
+                            type: 'leech', 
+                            from: pid, 
+                            to: this.enemy.id 
+                        });
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyDead', { id: pid });
+                        delete this.state.enemies[pid];
+                    });
+
+                    state.isActive = false;
+                    this._isDefenseSkillActive = false;
+                    this.enemy.isInvulnerable = false;
+                    state.pillars = [];
+                    state.nextReadyTime = now + (mech.cooldown || 30000);
+
+                    io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { id: this.enemy.id, active: false });
+                    io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                        msg: `⏳ Tiempo expirado. Pilares retirados y Boss regenerado.`, 
+                        type: "warning" 
+                    });
+                }
+            }
+        }
+
+        // 2. Activar si cumple condiciones
+        const triggerHP = mech.activationHP || 50;
+        if (!state.isActive && now >= state.nextReadyTime && hpPercent <= triggerHP) {
+            state.isActive = true;
+            this._isDefenseSkillActive = true;
+            this.enemy.isInvulnerable = true;
+            
+            state.endTime = now + (mech.duration || 15000);
+            state.lastHealTime = now;
+            state.pillars = [];
+
+            const pillarCount = mech.pillarCount || 3;
+            const radius = mech.spawnRadius || 350;
+            const pType = mech.pillarType || 200; // Tipo de enemigo asignado al pilar
+
+            // Cargar modelo del enemigo que actúa como pilar
+            const pCfg = (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.enemyModels) 
+                ? this.state.SERVER_CONFIG.enemyModels[pType.toString()] 
+                : null;
+
+            let hp = mech.pillarHp || (pCfg ? pCfg.hp : 5000);
+            let shield = mech.pillarShield || (pCfg ? pCfg.shield : 0);
+            let pName = mech.pillarName || (pCfg ? pCfg.name : "Pilar Protector");
+
+            for (let i = 0; i < pillarCount; i++) {
+                const angle = (i / pillarCount) * Math.PI * 2;
+                const px = this.enemy.x + Math.cos(angle) * radius;
+                const py = this.enemy.y + Math.sin(angle) * radius;
+                const pillarId = `pillar_${this.enemy.id}_${i}_${Date.now()}`;
+
+                const pillarObj = {
+                    id: pillarId,
+                    type: pType,
+                    zone: this.enemy.zone,
+                    name: pName,
+                    x: px,
+                    y: py,
+                    startX: px,
+                    startY: py,
+                    hp: hp,
+                    maxHp: hp,
+                    shield: shield,
+                    maxShield: shield,
+                    rotation: angle,
+                    lastHit: 0,
+                    isInvulnerable: false
+                };
+
+                this.state.enemies[pillarId] = pillarObj;
+                state.pillars.push(pillarId);
+
+                // Emitir spawn al cliente
+                io.to(`zone_${this.enemy.zone}`).emit('enemySpawn', pillarObj);
+            }
+
+            io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { 
+                id: this.enemy.id, 
+                active: true, 
+                duration: mech.duration || 15000 
+            });
+
+            io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                msg: `🚨 ¡El Boss invocó Pilares de Protección! Destrúyalos. 🚨`, 
+                type: "error" 
+            });
         }
     }
 };

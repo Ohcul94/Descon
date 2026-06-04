@@ -105,11 +105,16 @@ function registerInventoryHandlers(socket, io, state) {
             console.log(`[SHOP-DEBUG] Fondos actuales: Hubs=${user.gameData.hubs}, Ohcu=${user.gameData.ohcu}`);
 
             let itemConfig = null;
+            const isShip = category === 'ships' || category === 'ship';
+
             if (category === 'ammo') {
                 for (const type in state.SERVER_CONFIG.shopItems.ammo) {
                     const found = state.SERVER_CONFIG.shopItems.ammo[type].find(i => i.id === itemId);
                     if (found) { itemConfig = found; break; }
                 }
+            } else if (isShip) {
+                const targetShipId = parseInt(itemId);
+                itemConfig = state.SERVER_CONFIG.shipModels.find(s => s.id === targetShipId);
             } else if (state.SERVER_CONFIG.shopItems[category]) {
                 itemConfig = state.SERVER_CONFIG.shopItems[category].find(i => i.id === itemId);
             }
@@ -117,6 +122,13 @@ function registerInventoryHandlers(socket, io, state) {
             if (!itemConfig) {
                 console.log(`[SHOP-DEBUG] Error: Item ${itemId} no encontrado en config.`);
                 return socket.emit('authError', 'ITEM NO ENCONTRADO');
+            }
+
+            if (isShip) {
+                const targetShipId = parseInt(itemId);
+                if (user.gameData.ownedShips.includes(targetShipId)) {
+                    return socket.emit('gameNotification', { msg: 'ERROR: Ya posees esta nave.', type: 'error' });
+                }
             }
 
             const price = itemConfig.prices[currency] || 0;
@@ -130,7 +142,31 @@ function registerInventoryHandlers(socket, io, state) {
 
             user.gameData[currency] -= totalPrice;
 
-            if (category !== 'ammo') {
+            if (isShip) {
+                const targetShipId = parseInt(itemId);
+                user.gameData.ownedShips.push(targetShipId);
+                user.markModified('gameData.ownedShips');
+
+                if (!user.gameData.equippedByShip) user.gameData.equippedByShip = {};
+                let ebs = user.gameData.equippedByShip;
+                
+                let hasKey = false;
+                if (typeof ebs.get === 'function') {
+                    hasKey = ebs.has(String(targetShipId));
+                } else {
+                    hasKey = ebs[String(targetShipId)];
+                }
+
+                if (!hasKey) {
+                    if (typeof ebs.set === 'function') {
+                        ebs.set(String(targetShipId), { w: [], s: [], e: [], x: [] });
+                    } else {
+                        ebs[String(targetShipId)] = { w: [], s: [], e: [], x: [] };
+                    }
+                    user.markModified('gameData.equippedByShip');
+                }
+                console.log(`[SHOP-DEBUG] Nave comprada y añadida: ${itemConfig.name}`);
+            } else if (category !== 'ammo') {
                 let type = (itemConfig.type || "utility").toLowerCase();
                 const id = itemConfig.id.toLowerCase();
                 if (id.startsWith('las') || id.startsWith('w')) type = "weapon";

@@ -669,8 +669,52 @@
             "rewardExp": 25000,
             "rewardHubs": 0,
             "rewardOhcu": 1000,
-            "shield": 100000,
-            "speed": 220
+            "shield": 1000,
+            "speed": 220,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 220,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [
+                {
+                    "type": "boss_pillars",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 10000,
+                    "cooldown": 10000,
+                    "startDelay": 0,
+                    "activationHP": 70,
+                    "pillarCount": 4,
+                    "pillarType": 0,
+                    "pillarHp": 1000,
+                    "pillarShield": 100,
+                    "pillarName": 0,
+                    "spawnRadius": 500,
+                    "healIntervalMs": 3000,
+                    "healPercentPerTick": 0,
+                    "healPercentPerPillarOnExpiry": 15
+                }
+            ],
+            "aggressive": false,
+            "stopOnOutOfSight": true,
+            "visionRange": 1500,
+            "leashRange": 1500,
+            "regenDelayMs": 30000,
+            "regenIntervalMs": 5000
         },
         "103": {
             "bulletDamage": 3000,
@@ -3858,6 +3902,26 @@
             "fields": [
                 "activationHP",
                 "duration",
+                "cooldown",
+                "startDelay"
+            ]
+        },
+        "boss_pillars": {
+            "label": "Pilares del Boss",
+            "icon": "🗼",
+            "desc": "Invoca pilares que lo protegen y curan hasta ser destruidos.",
+            "fields": [
+                "activationHP",
+                "pillarCount",
+                "pillarType",
+                "pillarHp",
+                "pillarShield",
+                "pillarName",
+                "spawnRadius",
+                "duration",
+                "healIntervalMs",
+                "healPercentPerTick",
+                "healPercentPerPillarOnExpiry",
                 "cooldown",
                 "startDelay"
             ]

@@ -161,7 +161,11 @@ function registerCombatHandlers(socket, io, state) {
 
         const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
         if (dist > 1800) return;
-        if (enemy.isInvulnerable || (enemy.ai && enemy.ai._isDefenseSkillActive)) return;
+        if (enemy.isInvulnerable || (enemy.ai && enemy.ai._isDefenseSkillActive)) {
+            enemy.lastHit = Date.now();
+            p.lastCombatTime = Date.now();
+            return;
+        }
 
         let weaponsBase = 100; // Daño base de la nave
         if (p.equipped && p.equipped.w) {
@@ -262,7 +266,14 @@ function registerCombatHandlers(socket, io, state) {
 
             if (attackerType === 'enemy') {
                 const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
-                const baseDmg = cfg ? cfg.bulletDamage : 50;
+                let baseDmg = cfg ? cfg.bulletDamage : 50;
+                
+                if (cfg && cfg.mechanics && data.bulletType) {
+                    const matchingMech = cfg.mechanics.find(m => m.type === data.bulletType);
+                    if (matchingMech && matchingMech.bulletDamage !== undefined) {
+                        baseDmg = matchingMech.bulletDamage;
+                    }
+                }
                 
                 // v266.550: Registrar éxito del enemigo para reglas de persecución
                 const attackerId = data.attackerId || data.enemyId || data.senderId;
