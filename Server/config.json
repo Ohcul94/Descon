@@ -703,10 +703,14 @@
                     "pillarHp": 1000,
                     "pillarShield": 100,
                     "pillarName": 0,
-                    "spawnRadius": 500,
+                    "spawnRadius": 700,
                     "healIntervalMs": 3000,
                     "healPercentPerTick": 0,
-                    "healPercentPerPillarOnExpiry": 15
+                    "healPercentPerPillarOnExpiry": 10,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        70
+                    ]
                 }
             ],
             "aggressive": false,
@@ -3911,7 +3915,9 @@
             "icon": "🗼",
             "desc": "Invoca pilares que lo protegen y curan hasta ser destruidos.",
             "fields": [
-                "activationHP",
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "pillarCount",
                 "pillarType",
                 "pillarHp",
@@ -3922,8 +3928,7 @@
                 "healIntervalMs",
                 "healPercentPerTick",
                 "healPercentPerPillarOnExpiry",
-                "cooldown",
-                "startDelay"
+                "cooldown"
             ]
         }
     },

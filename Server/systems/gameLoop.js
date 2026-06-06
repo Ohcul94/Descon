@@ -120,7 +120,7 @@ function startGameLoop(io, state, aiManager) {
                     const cell = grid.grid.get(key);
                     if (cell) {
                         cell.enemies.forEach(e => {
-                            if (normalizeZone(e.zone) === pZoneNormalized) {
+                            if (normalizeZone(e.zone) === pZoneNormalized && enemies[e.id] && enemies[e.id].hp > 0) {
                                 aoiData[e.id] = {
                                     id: e.id, x: e.x, y: e.y, rotation: e.rotation,
                                     hp: e.hp, shield: e.shield, zone: e.zone, type: e.type,

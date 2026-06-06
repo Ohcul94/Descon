@@ -31,8 +31,51 @@ func handle_boss_effect(data: Dictionary):
 		"rift":
 			_create_void_rift_effect(p_x, p_y, data.get("duration", 4000) / 1000.0)
 		"leech":
-			# TODO: Visual de Leech v164.10
-			pass
+			var from_pos = Vector2(p_x, p_y)
+			var to_id = str(data.get("to", ""))
+			var to_node = null
+			
+			var entities = get_tree().get_nodes_in_group("entities")
+			for entity in entities:
+				if is_instance_valid(entity) and entity.get("entity_id") == to_id:
+					to_node = entity
+					break
+			if not to_node:
+				var pl = get_tree().get_first_node_in_group("player")
+				if is_instance_valid(pl) and pl.get("entity_id") == to_id:
+					to_node = pl
+			
+			var to_pos = to_node.global_position if is_instance_valid(to_node) else from_pos
+			_create_leech_ray_vfx(from_pos, to_pos, to_node)
+
+func _create_leech_ray_vfx(from_pos: Vector2, to_pos: Vector2, target_node: Node2D):
+	# Rayo curativo verde de pilares (39ff14 -> Verde Eléctrico)
+	var rayo = Line2D.new()
+	rayo.width = 4.0
+	rayo.default_color = Color("#39ff14")
+	rayo.points = PackedVector2Array([from_pos, to_pos])
+	
+	var world = get_tree().get_first_node_in_group("world")
+	if world: world.add_child(rayo)
+	else: get_tree().root.add_child(rayo)
+	
+	var duration = 0.8
+	var tween = create_tween().set_parallel(true)
+	
+	# Desvanecer ancho y color
+	tween.tween_property(rayo, "width", 0.0, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(rayo, "modulate:a", 0.0, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	
+	if is_instance_valid(target_node):
+		var steps = 15
+		for i in range(steps):
+			var t = (i / float(steps)) * duration
+			tween.tween_callback(func():
+				if is_instance_valid(rayo) and is_instance_valid(target_node):
+					rayo.points = PackedVector2Array([from_pos, target_node.global_position])
+			).set_delay(t)
+			
+	tween.chain().tween_callback(rayo.queue_free)
 
 func _create_nova_effect(p_x: float, p_y: float, radius: float):
 	# Anillo de energía expansiva (bc13fe -> Violeta Neón)

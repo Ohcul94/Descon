@@ -1023,11 +1023,26 @@ module.exports = class BaseAI {
             isActive: false, 
             endTime: 0,
             pillars: [],
-            lastHealTime: 0
+            lastHealTime: 0,
+            triggeredHPs: {},
+            combatStartTime: null
         };
         this.enemy.defState[mId] = state;
 
         const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        // Resetear triggers y timers si salimos de combate
+        if (!this._inCombat) {
+            state.triggeredHPs = {};
+            state.combatStartTime = null;
+        } else if (this._inCombat && !state.combatStartTime) {
+            state.combatStartTime = now;
+            // Si el modo es por tiempo y recién entramos en combate, programamos la primera activación
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
+        }
 
         // 1. Si la mecánica está activa, procesamos el estado de los pilares
         if (state.isActive) {
@@ -1044,6 +1059,7 @@ module.exports = class BaseAI {
                 this.enemy.isInvulnerable = false;
                 state.pillars = [];
                 state.nextReadyTime = now + (mech.cooldown || 30000);
+                this.enemy.lastHit = now;
 
                 io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { id: this.enemy.id, active: false });
                 io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
@@ -1066,6 +1082,18 @@ module.exports = class BaseAI {
                             hp: this.enemy.hp, 
                             amount: Math.max(0, this.enemy.hp - oldHp) 
                         });
+
+                        // Efecto visual de curación (leech) de cada pilar al Boss en cada tick
+                        activePillars.forEach(pid => {
+                            const pillar = this.state.enemies[pid];
+                            io.to(`zone_${this.enemy.zone}`).emit('bossEffect', { 
+                                type: 'leech', 
+                                from: pid, 
+                                to: this.enemy.id,
+                                x: pillar ? pillar.x : this.enemy.x,
+                                y: pillar ? pillar.y : this.enemy.y
+                            });
+                        });
                     }
                 }
 
@@ -1086,10 +1114,13 @@ module.exports = class BaseAI {
 
                     // Eliminar los pilares restantes de la zona
                     activePillars.forEach(pid => {
+                        const pillar = this.state.enemies[pid];
                         io.to(`zone_${this.enemy.zone}`).emit('bossEffect', { 
                             type: 'leech', 
                             from: pid, 
-                            to: this.enemy.id 
+                            to: this.enemy.id,
+                            x: pillar ? pillar.x : this.enemy.x,
+                            y: pillar ? pillar.y : this.enemy.y
                         });
                         io.to(`zone_${this.enemy.zone}`).emit('enemyDead', { id: pid });
                         delete this.state.enemies[pid];
@@ -1100,6 +1131,7 @@ module.exports = class BaseAI {
                     this.enemy.isInvulnerable = false;
                     state.pillars = [];
                     state.nextReadyTime = now + (mech.cooldown || 30000);
+                    this.enemy.lastHit = now;
 
                     io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { id: this.enemy.id, active: false });
                     io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
@@ -1111,8 +1143,38 @@ module.exports = class BaseAI {
         }
 
         // 2. Activar si cumple condiciones
-        const triggerHP = mech.activationHP || 50;
-        if (!state.isActive && now >= state.nextReadyTime && hpPercent <= triggerHP) {
+        let shouldActivate = false;
+        if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
+            if (mech.activationMode === "time") {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                // Modo HP (por defecto)
+                let thresholds = [];
+                if (Array.isArray(mech.activationHPs)) {
+                    thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
+                } else if (mech.activationHP !== undefined) {
+                    thresholds = [Number(mech.activationHP)];
+                } else {
+                    thresholds = [50];
+                }
+
+                if (!state.triggeredHPs) {
+                    state.triggeredHPs = {};
+                }
+
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        shouldActivate = true;
+                        state.triggeredHPs[hpVal] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (shouldActivate) {
             state.isActive = true;
             this._isDefenseSkillActive = true;
             this.enemy.isInvulnerable = true;
@@ -1120,6 +1182,10 @@ module.exports = class BaseAI {
             state.endTime = now + (mech.duration || 15000);
             state.lastHealTime = now;
             state.pillars = [];
+            
+            if (mech.activationMode !== "time") {
+                state.nextReadyTime = now + (mech.cooldown || 30000);
+            }
 
             const pillarCount = mech.pillarCount || 3;
             const radius = mech.spawnRadius || 350;

@@ -1035,13 +1035,20 @@ func die():
 	# 4. Spawnear la explosión (VFX) justo donde estaba la nave
 	_spawn_death_vfx()
 	
-	# Spawnear el marcador de restos
-	_spawn_wreckage_marker()
+	# Spawnear el marcador de restos (evitar para pilares)
+	var is_pillar = entity_type == 200 or "pillar" in entity_id
+	if not is_pillar:
+		_spawn_wreckage_marker()
 	
 	# 5. Lógica de pooling/limpieza para enemigos
 	if not is_in_group("player") and not is_in_group("remote_players"): 
-		set_meta("is_pooled", true)
-		if _collision_shape: _collision_shape.set_deferred("disabled", true)
+		if is_pillar:
+			if is_instance_valid(world_root_3d):
+				world_root_3d.queue_free()
+			queue_free()
+		else:
+			set_meta("is_pooled", true)
+			if _collision_shape: _collision_shape.set_deferred("disabled", true)
 
 # ---------------------------------------------------------
 # v266.985: Mecánicas de Ataque Orbital (Pedido del Usuario)

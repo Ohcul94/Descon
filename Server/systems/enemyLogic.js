@@ -60,7 +60,7 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
     let o_loot = (cfg.rewardOhcu !== undefined) ? cfg.rewardOhcu : (enemy.type * 10);
     let e_loot = (cfg.rewardExp !== undefined) ? cfg.rewardExp : (enemy.type * 100);
 
-    const isPillar = enemy.type === 200 || (enemy.name && (enemy.name.toUpperCase().includes("PILAR") || enemy.name.toUpperCase().includes("PROTECTOR")));
+    const isPillar = enemy.type === 200 || (enemy.name && (enemy.name.toUpperCase().includes("PILAR") || enemy.name.toUpperCase().includes("PROTECTOR"))) || (enemy.id && enemy.id.toString().includes("pillar_"));
     if ((enemy.name && enemy.name.toUpperCase().includes("CLONE")) || isPillar) {
         h_loot = 0; o_loot = 0; e_loot = 0;
     }
@@ -143,8 +143,10 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
                 memberSocket.emit('inventoryData', { player: user.gameData });
             }
         }
-        // Generar botín físico en el mapa autoritativo
-        lootManager.spawnLootFromEnemy(enemy, io, state, killerSocketId);
+        // Generar botín físico en el mapa autoritativo si no es un pilar
+        if (!isPillar) {
+            lootManager.spawnLootFromEnemy(enemy, io, state, killerSocketId);
+        }
     } catch (err) {
         console.error("[LOOT-ERR] Error en reparto de loot compartido:", err);
     }

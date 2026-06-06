@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dkysctcyffael"
-path="res://.godot/imported/Pilar1.glb-09b875cd225c03d6b9004664277d55f8.scn"
+uid="uid://b8fnm1jf2p5j5"
+path="res://.godot/imported/Pilar2.glb-cce6e2c53fec5b8a00935be91f127a47.scn"
 
 [deps]
 
-source_file="res://assets/Pilares/3D/Pilar1/Pilar1.glb"
-dest_files=["res://.godot/imported/Pilar1.glb-09b875cd225c03d6b9004664277d55f8.scn"]
+source_file="res://assets/Pilares/3D/Pilar2/Pilar2.glb"
+dest_files=["res://.godot/imported/Pilar2.glb-cce6e2c53fec5b8a00935be91f127a47.scn"]
 
 [params]
 

@@ -804,6 +804,48 @@ function renderEnemyDetail() {
                                         healPercentPerTick: "Curación por Tick (%)",
                                         healPercentPerPillarOnExpiry: "Curación por Pilar Restante (%)"
                                     };
+                                    if (f === 'activationMode') {
+                                        const mode = m.activationMode || 'hp';
+                                        return `
+                                            <div class="field" style="grid-column: 1 / -1; background: rgba(59, 130, 246, 0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2); display: flex; flex-direction: column; gap: 8px;">
+                                                <label style="color:#60a5fa; font-weight:bold; font-size:0.75rem;">MODO DE ACTIVACIÓN</label>
+                                                <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationMode = this.value; if(this.value === 'time') { delete config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationHPs; } else { delete config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs; } renderEnemyDetail();">
+                                                    <option value="hp" ${mode === 'hp' ? 'selected' : ''}>🩸 Por Porcentaje de Vida (HP)</option>
+                                                    <option value="time" ${mode === 'time' ? 'selected' : ''}>⏳ Por Tiempo en Combate</option>
+                                                </select>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'activationHPs') {
+                                        if (m.activationMode === 'time') return '';
+                                        const hps = m.activationHPs || [70];
+                                        m.activationHPs = hps;
+                                        return `
+                                            <div class="field" style="grid-column: 1 / -1; background: rgba(59, 130, 246, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(59, 130, 246, 0.2); display: flex; flex-direction: column; gap: 10px;">
+                                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                                    <label style="color:#60a5fa; font-size:0.75rem;">ACTIVADORES DE VIDA (%)</label>
+                                                    <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.65rem; background:#3b82f6;" onclick="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationHPs.push(50); renderEnemyDetail();">+ AGREGAR HP</button>
+                                                </div>
+                                                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                                    ${hps.map((hpVal, hpIdx) => `
+                                                        <div style="display:flex; align-items:center; gap:4px; background:#0f172a; padding:4px 8px; border-radius:4px; border:1px solid #334155;">
+                                                            <input type="number" value="${hpVal}" style="width:55px; background:transparent; border:none; color:white; text-align:center; padding:0; font-size:0.8rem;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationHPs[${hpIdx}] = parseFloat(this.value)">
+                                                            <span style="color:var(--text-dim); font-size:0.8rem;">%</span>
+                                                            <button style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer; font-size:0.8rem; margin-left:4px;" onclick="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationHPs.splice(${hpIdx}, 1); renderEnemyDetail();">✕</button>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'activationIntervalMs') {
+                                        if (m.activationMode !== 'time') return '';
+                                        const interval = m.activationIntervalMs || 45000;
+                                        m.activationIntervalMs = interval;
+                                        return `
+                                            <div class="field" style="grid-column: 1 / -1;"><label>Intervalo de Activación en Combate (ms)</label><input type="number" value="${interval}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs = parseInt(this.value)"></div>
+                                        `;
+                                    }
                                     if (['affectsEnemies', 'affectsBosses'].includes(f)) return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${m[f] ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.checked"><label style="margin:0;">${defLabels[f]}</label></div>`;
                                     if (f === 'pillarName') return `<div class="field" style="grid-column: 1 / -1;"><label>${defLabels[f] || f}</label><input type="text" value="${m[f] || 'Pilar Protector'}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.value"></div>`;
                                     return `<div class="field"><label>${defLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
