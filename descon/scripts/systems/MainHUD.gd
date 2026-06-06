@@ -592,7 +592,7 @@ func notify(msg: String, type: String = "info"):
 	
 	var font_size = 10
 	if type == "admin_notification":
-		font_size = 15
+		font_size = 20
 	label.add_theme_font_size_override("font_size", font_size)
 	
 	var sb = StyleBoxFlat.new()
