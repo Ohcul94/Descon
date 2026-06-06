@@ -1,0 +1,45 @@
+Actuá como un Ingeniero de Software Senior especializado en MMOs autoritativos en tiempo real. Vamos a crear una nueva habilidad (Protocolo de Combate) para mi juego. Mi arquitectura es estrictamente Data-Driven (orientada a datos configurados desde un Dashboard administrativo) y está dividida en dos partes:
+
+Servidor Autoritativo: Node.js (JavaScript ES6), gestionado con un sistema de rejilla espacial (state.grid) para optimización de colisiones y un orquestador singleton (SkillManager.js).
+
+Cliente Visual: Godot Engine 4 (GDScript), con una clase base SphereSkill.
+
+1. Datos de Configuración del Dashboard (Fuente de Verdad)
+Aquí tienes los parámetros exactos exportados desde el AdminDash para la nueva habilidad:
+
+Nombre del Protocolo: [EJ: PLASMA_BLAST]
+
+Nombre de Clase en Godot: [EJ: Skill_PlasmaBlast]
+
+Tipo: [EJ: Ataque]
+
+Cooldown (cd): [EJ: 8000] ms (en servidor) / [EJ: 8.0] segundos (en Godot).
+
+Rango Máximo (range): [EJ: 600] px.
+
+Potencia/Daño (power_value): [EJ: 850.0].
+
+[AGREGAR OTROS CAMPOS SI APLICA, EJ: radius, duration, etc.]: [...]
+
+Protocolos de Filtrado (Objetivos válidos): [EJ: Enemigos: true, Bosses: true, Jugadores: true, Aliados: false]
+
+2. Reglas Estrictas de Codificación (Estándar del Proyecto)
+Comentarios en Español: Dentro de cada función o bloque complejo, debés incluir aclaraciones detalladas en Español Latinoamericano explicando exactamente qué hace esa lógica.
+
+Archivos Completos: No me des parches, resúmenes ni fragmentos con // ... rest of code. Entregame siempre los archivos listos para copiar y pegar por completo.
+
+Sin Acoplamiento Feo: Las habilidades en el servidor deben ser componentes puros. Reciben sus configuraciones mediante el constructor (constructor(skillData)) y no buscan variables dentro del estado global de manera directa.
+
+Físicas y Red: En el servidor, debés utilizar la grilla espacial (state.grid.getNearbyEntities) si la habilidad afecta un área o requiere buscar entidades, para prevenir lag por fuerza bruta. Al final del procesamiento, debés emitir un evento de red mediante io.to(...) para sincronizar el aspecto visual (VFX) en los clientes de la zona.
+
+3. Entregables Requeridos
+Generá los siguientes archivos siguiendo estas estructuras base del proyecto:
+
+A. Código para el Servidor: Server/systems/skills/[NombreSkill]Skill.js
+Debe heredar de BaseSkill, inicializar las propiedades en el constructor mediante skillData, implementar la lógica de daño/efecto limitando el casteo al rango máximo en execute(p, data, { io, state, socket }) utilizando la grilla espacial para buscar objetivos, filtrar según los protocolos de filtrado provistos, emitir el evento de red para el cliente y finalizar con this.broadcastUsage(p, data, { io, socket });.
+
+B. Código para el Cliente: descon/scripts/[NombreScript].gd
+Debe extender de SphereSkill, registrar su class_name, inicializar sus valores estáticos de respaldo en el _init(), y definir la estructura de la función activate(player: CharacterBody2D) ejecutando un placeholder visual y llamando a super.activate(player).
+
+C. Guía de Integración
+Indicame brevemente dónde debo registrar la nueva habilidad en el servidor (en relación al SkillManager) y qué nodos o escenas de Godot adicionales (como un proyectil Area2D o Shaders) son necesarios instanciar para completar la mecánica visual.
