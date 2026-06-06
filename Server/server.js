@@ -1103,7 +1103,6 @@ io.on('connection', (socket) => {
             socket.emit('chatMessage', { ...responseData, msg: `${msg} (Sin compañeros activos)` });
         }
     });
-
     // TRANSMISIÓN ADMINISTRATIVA DESDE EL PANEL DE CONTROL
     socket.on('adminGlobalMessage', (data) => {
         if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
@@ -1117,8 +1116,8 @@ io.on('connection', (socket) => {
         });
         
         io.emit('gameNotification', {
-            msg: `[TRANSMISIÓN] Caelli94: ${msg}`,
-            type: 'success'
+            msg: `Caelli94: ${msg}`,
+            type: 'admin_notification'
         });
     });
 

@@ -589,7 +589,11 @@ func notify(msg: String, type: String = "info"):
 	label.text = msg
 	label.set_meta("raw_msg", msg)
 	label.set_meta("count", 1)
-	label.add_theme_font_size_override("font_size", 10)
+	
+	var font_size = 10
+	if type == "admin_notification":
+		font_size = 15
+	label.add_theme_font_size_override("font_size", font_size)
 	
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0, 0, 0, 0.7)
@@ -603,6 +607,7 @@ func notify(msg: String, type: String = "info"):
 		"warn", "error": sb.border_color = Color.YELLOW
 		"success": sb.border_color = Color.GREEN
 		"info": sb.border_color = Color.CYAN
+		"admin_notification": sb.border_color = Color.from_string("#bc13fe", Color.PURPLE)
 		_: sb.border_color = Color.CYAN
 	
 	label.add_theme_stylebox_override("normal", sb)
