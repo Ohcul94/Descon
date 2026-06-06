@@ -802,7 +802,11 @@ function renderEnemyDetail() {
                                         spawnRadius: "Distancia de Spawn (px)",
                                         healIntervalMs: "Intervalo Curación (ms)",
                                         healPercentPerTick: "Curación por Tick (%)",
-                                        healPercentPerPillarOnExpiry: "Curación por Pilar Restante (%)"
+                                        healPercentPerPillarOnExpiry: "Curación por Pilar Restante (%)",
+                                        orbCount: "Cantidad de Orbes (uds)",
+                                        orbSpeed: "Velocidad de Orbes (px/s)",
+                                        playerDamage: "Daño al Jugador (HP)",
+                                        bossHealPercent: "Curación al Boss por Orbe (%)"
                                     };
                                     if (f === 'activationMode') {
                                         const mode = m.activationMode || 'hp';

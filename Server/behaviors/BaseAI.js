@@ -45,6 +45,8 @@ module.exports = class BaseAI {
                 this._handleBossPillarsLogic(mech, mId, now, io);
             } else if (mech.type === "boss_colors") {
                 this._handleBossColorsLogic(mech, mId, now, io, players);
+            } else if (mech.type === "boss_water_orbs") {
+                this._handleBossWaterOrbsLogic(mech, mId, now, io, grid, players);
             } else if (mech.type && mech.type.startsWith("aura_")) {
                 this._handleAuraLogic(mech, mId, now, io, grid, players);
             }
@@ -83,7 +85,7 @@ module.exports = class BaseAI {
         if (!this.enemy.lastSuccessHit) this.enemy.lastSuccessHit = now;
         if (!this.enemy.lastHit) this.enemy.lastHit = 0;
 
-        // v3.9: Determinar de forma dinámica si el bicho está en combate activo
+        // v3.9: Determinar si el bicho está en combate activo
         const lastCombatTime = Math.max(this.enemy.lastHit || 0, this.enemy.lastSuccessHit || 0);
         const delayMs = cfg.regenDelayMs !== undefined ? Number(cfg.regenDelayMs) : (cfg.regenDelaySec !== undefined ? Number(cfg.regenDelaySec) * 1000 : 5000);
         this._inCombat = (now - lastCombatTime) < delayMs;
@@ -187,11 +189,21 @@ module.exports = class BaseAI {
         if (!activeTarget) {
             // REPRESALIA: Prioridad al que me pegó (Si el idleLimit no expiró)
             if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
+                const p = players[this.enemy.lastHitter];
                 const idleTime = now - (this.enemy.lastHit || 0);
-                const idleLimit = (this.ambienceBoost) ? 30000 : (cfg.chaseIdleTimeout || 10000); 
                 
-                if (idleTime < idleLimit) {
-                    activeTarget = players[this.enemy.lastHitter];
+                // Si chaseIdleTimeout es 0 en el panel, significa desactivado (sin timeout de abandono)
+                const idleLimit = cfg.chaseIdleTimeout !== undefined ? Number(cfg.chaseIdleTimeout) : 10000;
+                
+                const distToP = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                const configVision = cfg ? Number(cfg.visionRange) : 0;
+                const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy.isHorde ? 10000 : 800));
+
+                const outOfSight = cfg.stopOnOutOfSight && distToP > visionRange;
+                const idleExpired = idleLimit > 0 && idleTime >= idleLimit;
+
+                if (!outOfSight && !idleExpired) {
+                    activeTarget = p;
                     isRevenge = true;
                 } else {
                     this.enemy.lastHitter = null; 
@@ -277,8 +289,27 @@ module.exports = class BaseAI {
                     const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 3;
                     const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 5;
                     
-                    this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * (hpRegen / 100)));
-                    this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * (shieldRegen / 100)));
+                    const oldHp = this.enemy.hp;
+                    const oldShield = this.enemy.shield;
+                    let changed = false;
+
+                    if (hpRegen > 0 && this.enemy.hp < this.enemy.maxHp) {
+                        this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * (hpRegen / 100)));
+                        if (this.enemy.hp !== oldHp) changed = true;
+                    }
+                    if (shieldRegen > 0 && this.enemy.shield < this.enemy.maxShield) {
+                        this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * (shieldRegen / 100)));
+                        if (this.enemy.shield !== oldShield) changed = true;
+                    }
+
+                    if (changed) {
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
+                            id: this.enemy.id, 
+                            hp: this.enemy.hp, 
+                            shield: this.enemy.shield,
+                            amount: Math.max(0, this.enemy.hp - oldHp) 
+                        });
+                    }
                 }
                 return; // Omitir el resto del procesamiento de ataque
             }
@@ -299,9 +330,11 @@ module.exports = class BaseAI {
         const dist = activeTarget ? Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y) : 99999;
         const targetAngle = activeTarget ? Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x) : this.enemy.rotation;
 
-        // v266.999: Lógica de Persistencia (Basada en Dashboard)
-        const canSee = activeTarget && dist < (cfg.fireRange || 1000) * 1.5;
-        if (!isExtreme && !cfg.chaseUntilDeath && cfg.stopOnOutOfSight && !canSee && !isRevenge && !hasActiveMech) {
+        // Lógica de Persistencia (Basada en Dashboard)
+        const configVision = cfg ? Number(cfg.visionRange) : 0;
+        const visionRange = configVision > 0 ? configVision : 800;
+        const canSee = activeTarget && dist <= visionRange;
+        if (!isExtreme && !cfg.chaseUntilDeath && cfg.stopOnOutOfSight && !canSee && !hasActiveMech) {
             this.enemy.isMoving = false;
             return;
         }
@@ -381,7 +414,7 @@ module.exports = class BaseAI {
         // Regeneración pasiva standard / Fuera de combate ocioso (después de X milisegundos de no recibir ni emitir daño)
         // (lastCombatTime y delayMs ya fueron declaradas y asignadas al inicio de update)
         
-        if (now - lastCombatTime > delayMs) {
+        if (now - (this.enemy.lastHit || 0) > delayMs) {
             if (this.enemy.lastRegenTime === undefined) this.enemy.lastRegenTime = 0;
             const regenInterval = cfg.regenIntervalMs !== undefined ? Number(cfg.regenIntervalMs) : 1000;
             
@@ -390,11 +423,26 @@ module.exports = class BaseAI {
                 const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 3;
                 const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 5;
                 
+                const oldHp = this.enemy.hp;
+                const oldShield = this.enemy.shield;
+                let changed = false;
+
                 if (hpRegen > 0 && this.enemy.hp < this.enemy.maxHp) {
                     this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * (hpRegen / 100)));
+                    if (this.enemy.hp !== oldHp) changed = true;
                 }
                 if (shieldRegen > 0 && this.enemy.shield < this.enemy.maxShield) {
                     this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * (shieldRegen / 100)));
+                    if (this.enemy.shield !== oldShield) changed = true;
+                }
+
+                if (changed) {
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
+                        id: this.enemy.id, 
+                        hp: this.enemy.hp, 
+                        shield: this.enemy.shield,
+                        amount: Math.max(0, this.enemy.hp - oldHp) 
+                    });
                 }
             }
         }
@@ -1373,6 +1421,212 @@ module.exports = class BaseAI {
             io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
                 msg: `🎨 ¡El Boss activó una Barrera de Colores! Coincide tu color para dañarlo.`, 
                 type: "error" 
+            });
+        }
+    }
+
+    _handleBossWaterOrbsLogic(mech, mId, now, io, grid, players) {
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || { 
+            nextReadyTime: now + (mech.startDelay || 0), 
+            isActive: false, 
+            endTime: 0,
+            orbs: [],
+            triggeredHPs: {},
+            combatStartTime: null
+        };
+        this.enemy.defState[mId] = state;
+
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        if (!this._inCombat) {
+            if (state.orbs.length > 0) {
+                state.orbs.forEach(oid => {
+                    if (this.state.enemies[oid]) {
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyDead', { id: oid });
+                        delete this.state.enemies[oid];
+                    }
+                });
+            }
+            state.orbs = [];
+            state.triggeredHPs = {};
+            state.combatStartTime = null;
+            if (state.isActive) {
+                state.isActive = false;
+                this._isDefenseSkillActive = false;
+            }
+        } else if (this._inCombat && !state.combatStartTime) {
+            state.combatStartTime = now;
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
+        }
+
+        if (state.isActive) {
+            this.enemy.lastHit = now;
+
+            state.orbs = state.orbs.filter(oid => this.state.enemies[oid]);
+
+            if (state.orbs.length === 0 || now >= state.endTime) {
+                state.isActive = false;
+                this._isDefenseSkillActive = false;
+                
+                state.orbs.forEach(oid => {
+                    if (this.state.enemies[oid]) {
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyDead', { id: oid });
+                        delete this.state.enemies[oid];
+                    }
+                });
+                
+                state.orbs = [];
+                state.nextReadyTime = now + (mech.cooldown || 30000);
+                this.enemy.lastHit = now;
+                return;
+            }
+
+            let orbSpeedVal = mech.orbSpeed !== undefined ? Number(mech.orbSpeed) : 150;
+            if (orbSpeedVal <= 0) orbSpeedVal = 150; // Fallback para evitar que se queden quietas si es 0
+            const speed = orbSpeedVal * 0.033;
+            const dmg = mech.playerDamage !== undefined ? Number(mech.playerDamage) : 150;
+            const healPct = mech.bossHealPercent !== undefined ? Number(mech.bossHealPercent) : 5;
+
+            state.orbs.forEach(oid => {
+                const orb = this.state.enemies[oid];
+                if (!orb) return;
+
+                const angle = Math.atan2(this.enemy.y - orb.y, this.enemy.x - orb.x);
+                orb.x += Math.cos(angle) * speed;
+                orb.y += Math.sin(angle) * speed;
+                orb.rotation = angle + Math.PI / 2;
+
+                const distToBoss = Math.hypot(this.enemy.x - orb.x, this.enemy.y - orb.y);
+                if (distToBoss < 50) {
+                    const healAmount = this.enemy.maxHp * (healPct / 100);
+                    const oldHp = this.enemy.hp;
+                    this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + healAmount);
+
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
+                        id: this.enemy.id, 
+                        hp: this.enemy.hp, 
+                        amount: Math.max(0, this.enemy.hp - oldHp) 
+                    });
+
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyDead', { id: oid });
+                    delete this.state.enemies[oid];
+                    return;
+                }
+
+                const { players: nearbyPlayers } = grid.getNearbyEntities(orb.x, orb.y);
+                for (const p of nearbyPlayers) {
+                    if (p.zone === this.enemy.zone && !p.isDead) {
+                        const distToP = Math.hypot(p.x - orb.x, p.y - orb.y);
+                        if (distToP <= 60) {
+                            p.lastCombatTime = Date.now();
+                            if (p.shield >= dmg) p.shield -= dmg;
+                            else { p.hp -= (dmg - p.shield); p.shield = 0; }
+                            if (p.hp < 0) p.hp = 0;
+                            if (p.hp <= 0) p.isDead = true;
+
+                            io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                            io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+                                id: p.socketId, 
+                                hp: Math.ceil(p.hp), 
+                                shield: Math.ceil(p.shield),
+                                isDead: p.isDead
+                            });
+
+                            io.to(`zone_${this.enemy.zone}`).emit('enemyDead', { id: oid });
+                            delete this.state.enemies[oid];
+                            
+                            io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                                msg: `💧 ¡Orbe de agua interceptada! Evitaste que cure al Boss.`, 
+                                type: "info" 
+                            });
+                            break;
+                        }
+                    }
+                }
+            });
+        }
+
+        let shouldActivate = false;
+        if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
+            if (mech.activationMode === "time") {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                let thresholds = [];
+                if (Array.isArray(mech.activationHPs)) {
+                    thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
+                } else if (mech.activationHP !== undefined) {
+                    thresholds = [Number(mech.activationHP)];
+                } else {
+                    thresholds = [50];
+                }
+
+                if (!state.triggeredHPs) {
+                    state.triggeredHPs = {};
+                }
+
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        shouldActivate = true;
+                        state.triggeredHPs[hpVal] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (shouldActivate) {
+            state.isActive = true;
+            this._isDefenseSkillActive = true;
+
+            state.endTime = now + (mech.duration || 20000);
+            state.orbs = [];
+            
+            if (mech.activationMode !== "time") {
+                state.nextReadyTime = now + (mech.cooldown || 30000);
+            }
+
+            const orbCount = mech.orbCount || 4;
+            const radius = mech.spawnRadius || 500;
+
+            for (let i = 0; i < orbCount; i++) {
+                const angle = (i / orbCount) * Math.PI * 2 + (Math.random() * 0.5);
+                const ox = this.enemy.x + Math.cos(angle) * radius;
+                const oy = this.enemy.y + Math.sin(angle) * radius;
+                const orbId = `orb_${this.enemy.id}_${i}_${Date.now()}`;
+
+                const orbObj = {
+                    id: orbId,
+                    type: 201,
+                    zone: this.enemy.zone,
+                    name: "Orbe de Agua",
+                    x: ox,
+                    y: oy,
+                    startX: ox,
+                    startY: oy,
+                    hp: 9999,
+                    maxHp: 9999,
+                    shield: 0,
+                    maxShield: 0,
+                    rotation: angle + Math.PI,
+                    lastHit: 0,
+                    isInvulnerable: true
+                };
+
+                this.state.enemies[orbId] = orbObj;
+                state.orbs.push(orbId);
+
+                io.to(`zone_${this.enemy.zone}`).emit('enemySpawn', orbObj);
+            }
+
+            io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                msg: `💧 ¡El Boss invoca Orbes de Agua! ¡Intercéptalas antes de que lo curen! 💧`, 
+                type: "warning" 
             });
         }
     }

@@ -33,8 +33,16 @@ module.exports = class BossAI extends BaseAI {
                     console.log(`[BOSS-AI] Reset TOTAL (Phase/HP/Clones) para ${this.enemy.name}`);
                     
                     // 1. Reset Stats
+                    const oldHp = this.enemy.hp;
                     this.enemy.hp = this.enemy.maxHp;
                     this.enemy.shield = this.enemy.maxShield;
+
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
+                        id: this.enemy.id, 
+                        hp: this.enemy.hp, 
+                        shield: this.enemy.shield,
+                        amount: Math.max(0, this.enemy.hp - oldHp) 
+                    });
                     
                     // 2. Reset AI State (Volver a Phase 1)
                     this.isRage = false;

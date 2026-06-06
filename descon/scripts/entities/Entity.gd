@@ -1040,14 +1040,14 @@ func die():
 	# 4. Spawnear la explosión (VFX) justo donde estaba la nave
 	_spawn_death_vfx()
 	
-	# Spawnear el marcador de restos (evitar para pilares)
-	var is_pillar = entity_type == 200 or "pillar" in entity_id
-	if not is_pillar:
+	# Spawnear el marcador de restos (evitar para pilares y orbes de agua)
+	var is_special_defense = entity_type == 200 or entity_type == 201 or "pillar" in entity_id or "orb" in entity_id
+	if not is_special_defense:
 		_spawn_wreckage_marker()
 	
 	# 5. Lógica de pooling/limpieza para enemigos
 	if not is_in_group("player") and not is_in_group("remote_players"): 
-		if is_pillar:
+		if is_special_defense:
 			if is_instance_valid(world_root_3d):
 				world_root_3d.queue_free()
 			queue_free()
@@ -1313,10 +1313,41 @@ func _create_anim(lib: AnimationLibrary, a_name: String, start: int, count: int,
 	lib.add_animation(a_name, anim)
 
 func _setup_enemy_visuals():
+	if entity_type == 201:
+		if is_instance_valid(world_root_3d):
+			world_root_3d.queue_free()
+			world_root_3d = null
+		for c in get_children():
+			if "Viewport" in c.name or c is Sprite2D or c is Polygon2D or c is Line2D or c.name == "Ship3DRender":
+				c.queue_free()
+		
+		# Orbe de agua visual procedural (Esfera celeste translúcida)
+		var poly = Polygon2D.new()
+		poly.name = "WaterOrbVisual"
+		var pts = PackedVector2Array()
+		for i in range(25):
+			var a = (i / 24.0) * PI * 2
+			pts.append(Vector2(cos(a), sin(a)) * 25.0)
+		poly.polygon = pts
+		poly.color = Color(0.0, 0.6, 1.0, 0.65) # Celeste transparente
+		add_child(poly)
+		
+		# Aro exterior brillante
+		var line = Line2D.new()
+		line.points = pts
+		line.width = 3.0
+		line.default_color = Color(0.5, 0.9, 1.0, 0.9)
+		add_child(line)
+		
+		# Ocultar name tags y HUD
+		if is_instance_valid(name_tag): name_tag.visible = false
+		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
+		return
+
 	var glb_path = ""
 	var enemy_rot_offset = 0.0
 	var enemy_scale = 3.0 
-	var path = "" # v252.16: Declaración restaurada para fallback 2D
+	var path = "" 
 	
 	# v255.15: CONFIGURACIÓN NORMALIZADA (Manual de Activos)
 	match entity_type:

@@ -692,15 +692,19 @@
             ],
             "defenseMechanics": [
                 {
-                    "type": "boss_colors",
+                    "type": "boss_water_orbs",
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
-                    "duration": 5000,
-                    "cooldown": 8000,
+                    "duration": 10000,
+                    "cooldown": 10000,
                     "startDelay": 0,
                     "activationMode": "time",
-                    "activationIntervalMs": 1000,
-                    "radius": 1000
+                    "activationIntervalMs": 20000,
+                    "orbCount": 5,
+                    "spawnRadius": 700,
+                    "orbSpeed": 150,
+                    "playerDamage": 100,
+                    "bossHealPercent": 3
                 }
             ],
             "aggressive": false,
@@ -3932,6 +3936,23 @@
                 "duration",
                 "cooldown",
                 "radius"
+            ]
+        },
+        "boss_water_orbs": {
+            "label": "Orbes de Agua",
+            "icon": "💧",
+            "desc": "Invoca orbes que viajan al boss. Interceptarlas hace daño pero evita que el boss se cure.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "orbCount",
+                "spawnRadius",
+                "orbSpeed",
+                "playerDamage",
+                "bossHealPercent",
+                "duration",
+                "cooldown"
             ]
         }
     },

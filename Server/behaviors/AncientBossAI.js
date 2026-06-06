@@ -21,8 +21,16 @@ module.exports = class AncientBossAI extends BaseAI {
             if (now - this.noAggroStartTime > delayMs) {
                 if (this.enemy.hp < this.enemy.maxHp || this.enemy.shield < this.enemy.maxShield) {
                     console.log(`[BOSS-AI] Reset de HP y Escudo para Ancient Titán (${delayMs / 1000}s sin aggro)`);
+                    const oldHp = this.enemy.hp;
                     this.enemy.hp = this.enemy.maxHp;
                     this.enemy.shield = this.enemy.maxShield;
+
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
+                        id: this.enemy.id, 
+                        hp: this.enemy.hp, 
+                        shield: this.enemy.shield,
+                        amount: Math.max(0, this.enemy.hp - oldHp) 
+                    });
                 }
                 this.noAggroStartTime = 0;
             }
