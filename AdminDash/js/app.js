@@ -101,7 +101,8 @@ function showTab(tabId) {
         'modes': 'Configuración de Modos de Juego',
         'loot': 'Sistema de Recompensas (Loot)',
         'enemy-loot': 'Configuración de Botín del Enemigo',
-        'crafting': 'Crafteo y Creación de Ítems'
+        'crafting': 'Crafteo y Creación de Ítems',
+        'chat-global': 'Transmisión y Chat Global'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
     
@@ -147,9 +148,16 @@ function connect() {
 
     socket.on('connect', () => socket.emit('login', { user, password: pass, isAdmin: true }));
 
+    socket.on('chatMessage', (data) => {
+        if (data.channel === 'global') {
+            appendGlobalChatMessage(data);
+        }
+    });
+
     socket.on('adminConfigUpdated', (data) => {
         config = data;
         patchMechanicsLib();
+        syncChatGlobalToggle();
         renderAll();
     });
 
@@ -233,7 +241,15 @@ function connect() {
                 };
             }
 
+            // Inicializar configuración de Chat Global
+            if (!config.chatConfig) {
+                config.chatConfig = {
+                    globalChatEnabled: true
+                };
+            }
+
             patchMechanicsLib();
+            syncChatGlobalToggle();
             renderAll(); 
         }
         
@@ -664,6 +680,62 @@ function showToast(msg) {
 
 function hideToast() {
     document.getElementById('toast-overlay').style.display = 'none';
+}
+
+function syncChatGlobalToggle() {
+    const cb = document.getElementById('chat-global-enabled-toggle');
+    if (cb) {
+        cb.checked = !!(config.chatConfig && config.chatConfig.globalChatEnabled);
+    }
+}
+
+function toggleChatGlobalStatus(checked) {
+    if (!config.chatConfig) {
+        config.chatConfig = {};
+    }
+    config.chatConfig.globalChatEnabled = checked;
+    saveConfig();
+}
+
+function sendAdminGlobalMessage() {
+    const input = document.getElementById('chat-global-admin-input');
+    if (!input) return;
+    const msg = input.value.trim();
+    if (!msg) return;
+    
+    socket.emit('adminGlobalMessage', { msg: msg });
+    input.value = '';
+}
+
+function appendGlobalChatMessage(data) {
+    const log = document.getElementById('chat-global-log');
+    if (!log) return;
+    
+    if (log.innerHTML.includes('Conectando al canal de comunicación...')) {
+        log.innerHTML = '';
+    }
+    
+    const msgDiv = document.createElement('div');
+    msgDiv.style.padding = '6px 10px';
+    msgDiv.style.borderBottom = '1px solid rgba(255,255,255,0.02)';
+    msgDiv.style.borderRadius = '4px';
+    msgDiv.style.background = 'rgba(255,255,255,0.01)';
+    
+    const time = new Date().toLocaleTimeString();
+    
+    let senderColor = 'var(--primary)';
+    if (data.sender === 'Caelli94' || data.sender === 'SYSTEM') {
+        senderColor = 'var(--accent)';
+    }
+    
+    msgDiv.innerHTML = `
+        <span style="color: #555; margin-right: 8px; font-size: 0.8rem;">[${time}]</span>
+        <strong style="color: ${senderColor}; margin-right: 5px;">${data.sender}:</strong>
+        <span style="color: #ccc;">${data.msg}</span>
+    `;
+    
+    log.appendChild(msgDiv);
+    log.scrollTop = log.scrollHeight;
 }
 
 function saveConfig() {

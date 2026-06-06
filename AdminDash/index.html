@@ -275,6 +275,10 @@
                 </div>
 
                 <div class="nav-group">
+                    <div class="nav-link" onclick="showTab('chat-global')">💬 Chat Global</div>
+                </div>
+
+                <div class="nav-group">
                     <div class="nav-link" onclick="showTab('json')">📄 Ver JSON</div>
                     <div class="nav-folder" onclick="toggleFolder('folder-audit')">🕒 Auditoría <span class="chevron">▶</span></div>
                     <div id="folder-audit" class="folder-content">
@@ -464,6 +468,33 @@
                         <div id="crafting-recipes-list" style="display: flex; flex-direction: column; gap: 1.5rem;">
                             <!-- Llenado dinámico -->
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-chat-global" class="view">
+                <div class="card" style="width: 100%; margin-bottom: 2rem;">
+                    <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>💬 CONFIGURACIÓN DEL CHAT GLOBAL</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="cursor: pointer; font-size: 0.9rem; user-select: none; display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="chat-global-enabled-toggle" onchange="toggleChatGlobalStatus(this.checked)" style="width: auto; cursor: pointer;"> Habilitar Chat Global en Oracle Cloud
+                            </label>
+                        </div>
+                    </h3>
+                    <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1.5rem;">
+                        El chat global está <strong>siempre activo en entorno local</strong> para pruebas. En el servidor en la nube de Oracle Cloud, se puede activar/desactivar con este switch. Los pilotos de la nube solo podrán hablar en el chat global cuando esté encendido, o cuando vos te conectes al juego.
+                    </p>
+                </div>
+
+                <div class="card" style="width: 100%; display: flex; flex-direction: column; height: 60vh; box-sizing: border-box; padding: 2rem;">
+                    <h3 style="color: var(--accent); margin-bottom: 1rem;">🛰️ TRANSMISIÓN EN VIVO</h3>
+                    <div id="chat-global-log" style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 8px; min-height: 250px;">
+                        <div style="color: #666; font-style: italic;">Conectando al canal de comunicación...</div>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="chat-global-admin-input" placeholder="Escribí un mensaje de transmisión global..." style="flex: 1; background: var(--surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px 20px; color: white; outline: none;" onkeydown="if(event.key === 'Enter') sendAdminGlobalMessage()">
+                        <button class="btn btn-primary" onclick="sendAdminGlobalMessage()" style="padding: 0 25px;">TRANSMITIR 📡</button>
                     </div>
                 </div>
             </div>

@@ -1020,11 +1020,29 @@ io.on('connection', (socket) => {
         socket.emit('pong_custom');
     });
 
+    const isLocalServer = () => {
+        if (process.platform === 'win32') return true;
+        return !__dirname.includes('/home/ubuntu');
+    };
+
+    const isChatGlobalActive = () => {
+        if (isLocalServer()) return true;
+        const adminOnline = Object.values(state.players).some(p => p.user && p.user.toLowerCase() === 'caelli94');
+        const enabledInConfig = state.SERVER_CONFIG?.chatConfig?.globalChatEnabled ?? false;
+        return enabledInConfig || adminOnline;
+    };
+
     // SISTEMA DE CHAT v60.0
     socket.on('chatMessage', (data) => {
         if (!players[socket.id]) return;
         const sender = players[socket.id].user;
         const msg = data.msg.substring(0, 50);
+
+        if (data.channel === 'global') {
+            if (!isChatGlobalActive()) {
+                return socket.emit('chatMessage', { sender: 'SYSTEM', msg: 'El Chat Global está desactivado temporalmente.', channel: 'global' });
+            }
+        }
 
         // v300.080: COMANDOS DE CHAT
         if (msg.toLowerCase().startsWith('/trade ')) {
@@ -1084,6 +1102,24 @@ io.on('connection', (socket) => {
             // v164.33: Quitar redundancia de [EQUIPO] (el cliente ya pone el tag)
             socket.emit('chatMessage', { ...responseData, msg: `${msg} (Sin compañeros activos)` });
         }
+    });
+
+    // TRANSMISIÓN ADMINISTRATIVA DESDE EL PANEL DE CONTROL
+    socket.on('adminGlobalMessage', (data) => {
+        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        const msg = data.msg.substring(0, 100);
+        
+        io.emit('chatMessage', {
+            sender: 'Caelli94',
+            senderId: socket.id,
+            msg: msg,
+            channel: 'global'
+        });
+        
+        io.emit('gameNotification', {
+            msg: `[TRANSMISIÓN] Caelli94: ${msg}`,
+            type: 'success'
+        });
     });
 
     // v1.2: SISTEMA DE COMBATE Y HABILIDADES - Modularizado en systems/combatHandlers.js
