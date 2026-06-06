@@ -655,7 +655,8 @@
                     "stopDist": 150,
                     "startDelay": 0
                 }
-            ]
+            ],
+            "defenseMechanics": []
         },
         "102": {
             "bulletDamage": 5000,
@@ -691,26 +692,15 @@
             ],
             "defenseMechanics": [
                 {
-                    "type": "boss_pillars",
+                    "type": "boss_colors",
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
-                    "duration": 10000,
-                    "cooldown": 10000,
+                    "duration": 5000,
+                    "cooldown": 8000,
                     "startDelay": 0,
-                    "activationHP": 70,
-                    "pillarCount": 4,
-                    "pillarType": 0,
-                    "pillarHp": 1000,
-                    "pillarShield": 100,
-                    "pillarName": 0,
-                    "spawnRadius": 700,
-                    "healIntervalMs": 3000,
-                    "healPercentPerTick": 0,
-                    "healPercentPerPillarOnExpiry": 10,
-                    "activationMode": "hp",
-                    "activationHPs": [
-                        70
-                    ]
+                    "activationMode": "time",
+                    "activationIntervalMs": 1000,
+                    "radius": 1000
                 }
             ],
             "aggressive": false,
@@ -3232,7 +3222,7 @@
         "weapons": [
             {
                 "id": "las1",
-                "name": "Láser LF-1",
+                "name": "Láser 1",
                 "desc": "Láser básico.",
                 "base": 100,
                 "icon": "res://assets/Armas/Arma1/Arma1.png",
@@ -3243,7 +3233,7 @@
             },
             {
                 "id": "las2",
-                "name": "Láser LF-2",
+                "name": "Láser 2",
                 "desc": "Mejora en potencia.",
                 "base": 250,
                 "icon": "res://assets/Armas/Arma2/Arma2.png",
@@ -3254,7 +3244,7 @@
             },
             {
                 "id": "las3",
-                "name": "Láser LF-3",
+                "name": "Láser 3",
                 "desc": "Estándar militar.",
                 "base": 600,
                 "icon": "res://assets/Armas/Arma3/Arma3.png",
@@ -3265,7 +3255,7 @@
             },
             {
                 "id": "las4",
-                "name": "Láser LF-4",
+                "name": "Láser 4",
                 "desc": "Vanguardia tecnológica.",
                 "base": 1500,
                 "icon": "res://assets/Armas/Arma4/Arma4.png",
@@ -3276,7 +3266,7 @@
             },
             {
                 "id": "las5",
-                "name": "Láser Prometheus",
+                "name": "Láser 5",
                 "desc": "Poder solar concentrado.",
                 "base": 5000,
                 "icon": "res://assets/Armas/Arma5/Arma5.png",
@@ -3288,7 +3278,7 @@
             },
             {
                 "id": "las6",
-                "name": "Cañón Hyper",
+                "name": "Láser 6",
                 "desc": "Disruptor de materia.",
                 "base": 15000,
                 "icon": "res://assets/Armas/Arma6/Arma6.png",
@@ -3929,6 +3919,19 @@
                 "healPercentPerTick",
                 "healPercentPerPillarOnExpiry",
                 "cooldown"
+            ]
+        },
+        "boss_colors": {
+            "label": "Mecánica de Colores",
+            "icon": "🎨",
+            "desc": "El Boss y los jugadores cercanos reciben colores. Solo los del color del Boss pueden dañarlo.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "duration",
+                "cooldown",
+                "radius"
             ]
         }
     },

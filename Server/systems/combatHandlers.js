@@ -161,7 +161,21 @@ function registerCombatHandlers(socket, io, state) {
 
         const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
         if (dist > 1800) return;
-        if (enemy.isInvulnerable || (enemy.ai && enemy.ai._isDefenseSkillActive)) {
+        let isBlocked = enemy.isInvulnerable;
+        if (enemy.ai && enemy.ai._isDefenseSkillActive) {
+            if (enemy.colorState) {
+                const requiredColor = enemy.colorState.bossColor;
+                const playerColor = p.colorState;
+                if (playerColor !== requiredColor) {
+                    isBlocked = true;
+                    socket.emit('combatLog', `⚠️ La barrera del Boss es ${requiredColor.toUpperCase()}. ¡Tu color actual es ${playerColor ? playerColor.toUpperCase() : "NINGUNO"}!`);
+                }
+            } else {
+                isBlocked = true;
+            }
+        }
+
+        if (isBlocked) {
             enemy.lastHit = Date.now();
             p.lastCombatTime = Date.now();
             return;

@@ -40,6 +40,8 @@ signal loot_content(data)
 signal enemy_damaged(data)
 signal enemy_healed(data)
 signal boss_effect(data)
+signal boss_colors_start(data)
+signal boss_colors_end(data)
 signal blind_state(data)
 signal slow_state(data)
 signal stun_state(data)
@@ -254,7 +256,13 @@ func _dispatch_event(e_name: String, e_data: Variant):
 							e_val["id"] = str(en_id)
 							enemy_updated.emit(e_val)
 		"walletData": update_wallet.emit(e_data)
-		"combatLog": combat_log.emit(e_data.get("msg", ""))
+		"combatLog":
+			var msg = ""
+			if typeof(e_data) == TYPE_DICTIONARY:
+				msg = e_data.get("msg", "")
+			else:
+				msg = str(e_data)
+			combat_log.emit(msg)
 		"partyInvitation": party_invitation.emit(e_data)
 		"partyUpdate": party_update.emit(e_data)
 		"chatMessage":
@@ -271,6 +279,8 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"enemyDead", "serverEnemyDead": enemy_dead.emit(e_data)
 		"enemyKillSession": enemy_kill_session.emit(e_data)
 		"bossEffect": boss_effect.emit(e_data)
+		"bossColorsStart": boss_colors_start.emit(e_data)
+		"bossColorsEnd": boss_colors_end.emit(e_data)
 		"lootSpawned": loot_spawned.emit(e_data)
 		"lootDespawned": loot_despawned.emit(e_data)
 		"lootContent": loot_content.emit(e_data)

@@ -66,6 +66,9 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
     }
 
     io.to(`zone_${enemy.zone}`).emit('enemyDead', { id: enemyId, killer: killerSocketId });
+    if (enemy.colorState) {
+        io.to(`zone_${enemy.zone}`).emit('bossColorsEnd', { bossId: enemyId });
+    }
 
     // REPARTO DE LOOT COOPERATIVO (Portado de combatHandlers.js)
     try {

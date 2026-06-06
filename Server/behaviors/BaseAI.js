@@ -43,6 +43,8 @@ module.exports = class BaseAI {
                 this._handleInvulnerabilityLogic(mech, mId, now, io);
             } else if (mech.type === "boss_pillars") {
                 this._handleBossPillarsLogic(mech, mId, now, io);
+            } else if (mech.type === "boss_colors") {
+                this._handleBossColorsLogic(mech, mId, now, io, players);
             } else if (mech.type && mech.type.startsWith("aura_")) {
                 this._handleAuraLogic(mech, mId, now, io, grid, players);
             }
@@ -1239,6 +1241,137 @@ module.exports = class BaseAI {
 
             io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
                 msg: `🚨 ¡El Boss invocó Pilares de Protección! Destrúyalos. 🚨`, 
+                type: "error" 
+            });
+        }
+    }
+
+    _handleBossColorsLogic(mech, mId, now, io, players) {
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || { 
+            nextReadyTime: now + (mech.startDelay || 0), 
+            isActive: false, 
+            endTime: 0,
+            triggeredHPs: {},
+            combatStartTime: null
+        };
+        this.enemy.defState[mId] = state;
+
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        // Resetear triggers y timers si salimos de combate
+        if (!this._inCombat) {
+            state.triggeredHPs = {};
+            state.combatStartTime = null;
+            if (state.isActive) {
+                io.to(`zone_${this.enemy.zone}`).emit('bossColorsEnd', { bossId: this.enemy.id });
+                state.isActive = false;
+                this._isDefenseSkillActive = false;
+                this.enemy.colorState = null;
+            }
+        } else if (this._inCombat && !state.combatStartTime) {
+            state.combatStartTime = now;
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
+        }
+
+        // 1. Si está activa, comprobar si expira
+        if (state.isActive) {
+            this.enemy.lastHit = now;
+
+            if (now >= state.endTime) {
+                state.isActive = false;
+                this._isDefenseSkillActive = false;
+                this.enemy.colorState = null;
+                state.nextReadyTime = now + (mech.cooldown || 30000);
+                this.enemy.lastHit = now;
+
+                io.to(`zone_${this.enemy.zone}`).emit('bossColorsEnd', { bossId: this.enemy.id });
+                io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                    msg: `🎨 La barrera de colores del Boss ha desaparecido.`, 
+                    type: "info" 
+                });
+            }
+        }
+
+        // 2. Activar si cumple condiciones
+        let shouldActivate = false;
+        if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
+            if (mech.activationMode === "time") {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                // Modo HP (por defecto)
+                let thresholds = [];
+                if (Array.isArray(mech.activationHPs)) {
+                    thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
+                } else if (mech.activationHP !== undefined) {
+                    thresholds = [Number(mech.activationHP)];
+                } else {
+                    thresholds = [50];
+                }
+
+                if (!state.triggeredHPs) {
+                    state.triggeredHPs = {};
+                }
+
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        shouldActivate = true;
+                        state.triggeredHPs[hpVal] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (shouldActivate) {
+            state.isActive = true;
+            this._isDefenseSkillActive = true;
+            
+            const duration = mech.duration || 15000;
+            state.endTime = now + duration;
+            if (mech.activationMode !== "time") {
+                state.nextReadyTime = now + (mech.cooldown || 30000);
+            }
+
+            const colors = ["roja", "azul", "verde", "amarilla", "violeta"];
+            const bossColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            const radius = mech.radius || 1200;
+            const playerColors = {};
+            
+            const nearbyPlayers = Object.values(players || {}).filter(p => {
+                const sameZone = (normalizeZone(p.zone) === normalizeZone(this.enemy.zone));
+                if (!sameZone || p.isDead) return false;
+                const dist = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                return dist <= radius;
+            });
+
+            nearbyPlayers.forEach(p => {
+                const pColor = colors[Math.floor(Math.random() * colors.length)];
+                playerColors[p.socketId] = pColor;
+                p.colorState = pColor;
+            });
+
+            this.enemy.colorState = {
+                bossColor: bossColor,
+                playerColors: playerColors,
+                endTime: state.endTime
+            };
+
+            io.to(`zone_${this.enemy.zone}`).emit('bossColorsStart', {
+                bossId: this.enemy.id,
+                bossColor: bossColor,
+                playerColors: playerColors,
+                duration: duration
+            });
+
+            io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                msg: `🎨 ¡El Boss activó una Barrera de Colores! Coincide tu color para dañarlo.`, 
                 type: "error" 
             });
         }

@@ -39,6 +39,8 @@ func setup(world_ref):
 	NetworkManager.hook_pulled.connect(_on_hook_pulled)
 	NetworkManager.loot_spawned.connect(_on_loot_spawned)
 	NetworkManager.loot_despawned.connect(_on_loot_despawned)
+	NetworkManager.boss_colors_start.connect(_on_boss_colors_start)
+	NetworkManager.boss_colors_end.connect(_on_boss_colors_end)
 
 
 func _process(delta):
@@ -1398,3 +1400,59 @@ func _get_cone_points(radius: float, angle_degrees: float) -> PackedVector2Array
 		points.append(Vector2(cos(ang), sin(ang)) * radius)
 	points.append(Vector2.ZERO)
 	return points
+
+func _on_boss_colors_start(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY: return
+	var boss_id = str(data.get("bossId", ""))
+	var boss_color = str(data.get("bossColor", ""))
+	var player_colors = data.get("playerColors", {})
+	
+	# Aplicar aura de color al boss
+	var boss_node = enemies.get(boss_id)
+	if is_instance_valid(boss_node):
+		boss_node.set_meta("boss_color", boss_color)
+		if boss_node.has_method("apply_color_aura"):
+			boss_node.apply_color_aura(boss_color)
+		
+	# Aplicar aura de color a cada jugador correspondiente
+	for socket_id in player_colors.keys():
+		var p_color = player_colors[socket_id]
+		# Buscar si es el jugador local
+		if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == socket_id:
+			world.local_player.set_meta("my_color", p_color)
+			if world.local_player.has_method("apply_color_aura"):
+				world.local_player.apply_color_aura(p_color)
+		# O si es un jugador remoto
+		elif remote_players.has(socket_id):
+			var rp = remote_players[socket_id]
+			if is_instance_valid(rp):
+				rp.set_meta("my_color", p_color)
+				if rp.has_method("apply_color_aura"):
+					rp.apply_color_aura(p_color)
+
+func _on_boss_colors_end(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY: return
+	var boss_id = str(data.get("bossId", ""))
+	
+	# Remover aura del boss
+	var boss_node = enemies.get(boss_id)
+	if is_instance_valid(boss_node):
+		if boss_node.has_meta("boss_color"):
+			boss_node.remove_meta("boss_color")
+		if boss_node.has_method("remove_color_aura"):
+			boss_node.remove_color_aura()
+		
+	# Remover aura del jugador local
+	if is_instance_valid(world) and is_instance_valid(world.local_player):
+		if world.local_player.has_meta("my_color"):
+			world.local_player.remove_meta("my_color")
+		if world.local_player.has_method("remove_color_aura"):
+			world.local_player.remove_color_aura()
+			
+	# Remover aura de todos los jugadores remotos
+	for rp in remote_players.values():
+		if is_instance_valid(rp):
+			if rp.has_meta("my_color"):
+				rp.remove_meta("my_color")
+			if rp.has_method("remove_color_aura"):
+				rp.remove_color_aura()

@@ -892,11 +892,16 @@ func _resurrect(data: Dictionary):
 	if _ui_wrapper: _ui_wrapper.queue_redraw()
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
-	# v235.23: DEBUG LOGS (Para diagnosticar daño 0)
-	if is_in_group("player"):
-		print("[BATTLE-IN] Recibiendo: ", amt, " de ", attacker_id if attacker_id != "" else "Desconocido")
-		print("[DAMAGE-DEBUG] invulnerable_timer = ", invulnerable_timer, ", is_invulnerable = ", is_invulnerable, ", pvp_status = ", pvp_status)
-	
+	# Mecánica de colores cooperativa (boss_colors)
+	if has_meta("boss_color"):
+		var req_color = get_meta("boss_color")
+		var my_color = ""
+		var pl = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(pl) and pl.has_meta("my_color"):
+			my_color = pl.get_meta("my_color")
+		if my_color != req_color:
+			amt = 0.0
+
 	if invulnerable_timer > 0 or is_invulnerable:
 		amt = 0 # v269.185: Bloqueo visual total de daño (0 en rojo para feedback)
 	
@@ -2184,3 +2189,46 @@ func _safe_float(val, default: float = 0.0) -> float:
 	elif val_type == TYPE_BOOL:
 		return 1.0 if val else 0.0
 	return default
+
+var _color_aura_node: Line2D = null
+
+func apply_color_aura(color_name: String):
+	remove_color_aura()
+	
+	var clr = Color.WHITE
+	match color_name.to_lower():
+		"roja": clr = Color("#ff003c")
+		"azul": clr = Color("#00aaff")
+		"verde": clr = Color("#00ff66")
+		"amarilla": clr = Color("#ffdd00")
+		"violeta": clr = Color("#d400ff")
+		
+	var ring = Line2D.new()
+	ring.width = 4.0
+	ring.default_color = clr
+	ring.closed = true
+	
+	var radius = 70.0
+	if entity_type >= 101: # Boss
+		radius = 180.0
+	elif entity_type == 200 or "pillar" in entity_id: # Pilar
+		radius = 100.0
+		
+	var pts = PackedVector2Array()
+	var segments = 32
+	for i in range(segments + 1):
+		var phi = (i * 2.0 * PI) / segments
+		pts.append(Vector2(cos(phi), sin(phi)) * radius)
+	ring.points = pts
+	
+	add_child(ring)
+	_color_aura_node = ring
+	
+	var tween = create_tween().bind_node(ring).set_loops(0)
+	tween.tween_property(ring, "modulate:a", 0.3, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(ring, "modulate:a", 1.0, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+func remove_color_aura():
+	if is_instance_valid(_color_aura_node):
+		_color_aura_node.queue_free()
+	_color_aura_node = null
