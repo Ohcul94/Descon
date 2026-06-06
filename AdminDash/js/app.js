@@ -1,4 +1,5 @@
 let socket;
+let chatSocket = null;
 let config = {};
 
 let currentAmmoTab = 'laser';
@@ -140,19 +141,17 @@ function connect() {
     const btn = document.querySelector('#login-overlay button');
     const err = document.getElementById('login-error');
 
-    // Siempre conectar LOCAL para desarrollo
+    // Siempre conectar LOCAL para desarrollo del dashboard y base de datos
     const targetUrl = "http://127.0.0.1:3333";
+
+    if (socket) {
+        socket.disconnect();
+    }
     
     btn.innerText = "CONECTANDO A LOCAL...";
     socket = io(targetUrl);
 
     socket.on('connect', () => socket.emit('login', { user, password: pass, isAdmin: true }));
-
-    socket.on('chatMessage', (data) => {
-        if (data.channel === 'global') {
-            appendGlobalChatMessage(data);
-        }
-    });
 
     socket.on('adminConfigUpdated', (data) => {
         config = data;
@@ -192,7 +191,7 @@ function connect() {
         }
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('conn-dot').classList.add('online');
-        document.getElementById('conn-text').innerText = "ONLINE: " + user.toUpperCase();
+        document.getElementById('conn-text').innerText = "💻 LOCAL: " + user.toUpperCase();
         if(data.adminConfig) { 
             config = data.adminConfig; 
             // v1.9: Inicializar configuración de piloto si es nueva
@@ -252,6 +251,12 @@ function connect() {
             syncChatGlobalToggle();
             renderAll(); 
         }
+
+        // Conectar el socket del chat global dedicado de forma automática tras loguearse
+        const savedChatServer = localStorage.getItem('admin_chat_server_url') || "http://127.0.0.1:3333";
+        const chatSelect = document.getElementById('chat-server-select');
+        if (chatSelect) chatSelect.value = savedChatServer;
+        changeChatServer(savedChatServer);
         
         // v267.200: Restaurar última vista tras login
         const lastTab = localStorage.getItem('admin_last_tab') || 'ships';
@@ -697,13 +702,56 @@ function toggleChatGlobalStatus(checked) {
     saveConfig();
 }
 
+function connectChatSocket(targetUrl) {
+    if (chatSocket) {
+        chatSocket.disconnect();
+    }
+
+    console.log("[CHAT-CONNECT] Conectando socket de chat a:", targetUrl);
+    chatSocket = io(targetUrl);
+
+    chatSocket.on('connect', () => {
+        const user = document.getElementById('admin-user').value || localStorage.getItem('admin_user');
+        const pass = document.getElementById('admin-pass').value || localStorage.getItem('admin_pass');
+        chatSocket.emit('login', { user: user, password: pass, isAdmin: true });
+        console.log("[CHAT-SOCKET] Conectado exitosamente y autenticado en:", targetUrl);
+    });
+
+    chatSocket.on('chatMessage', (data) => {
+        if (data.channel === 'global') {
+            appendGlobalChatMessage(data);
+        }
+    });
+
+    chatSocket.on('disconnect', () => {
+        console.log("[CHAT-SOCKET] Desconectado de:", targetUrl);
+    });
+
+    chatSocket.on('connect_error', () => {
+        console.error("[CHAT-SOCKET] Error de conexión con:", targetUrl);
+    });
+}
+
+function changeChatServer(url) {
+    localStorage.setItem('admin_chat_server_url', url);
+    const log = document.getElementById('chat-global-log');
+    if (log) {
+        log.innerHTML = `<div style="color: #888; font-style: italic;">Conectando a servidor de chat (${url.includes("138.2.241.76") ? "Oracle Cloud" : "Local"})...</div>`;
+    }
+    connectChatSocket(url);
+}
+
 function sendAdminGlobalMessage() {
     const input = document.getElementById('chat-global-admin-input');
     if (!input) return;
     const msg = input.value.trim();
     if (!msg) return;
     
-    socket.emit('adminGlobalMessage', { msg: msg });
+    if (chatSocket && chatSocket.connected) {
+        chatSocket.emit('adminGlobalMessage', { msg: msg });
+    } else {
+        showToast("ERROR: El socket del chat no está conectado a este servidor.");
+    }
     input.value = '';
 }
 

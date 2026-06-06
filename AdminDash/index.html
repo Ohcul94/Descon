@@ -488,7 +488,16 @@
                 </div>
 
                 <div class="card" style="width: 100%; display: flex; flex-direction: column; height: 60vh; box-sizing: border-box; padding: 2rem;">
-                    <h3 style="color: var(--accent); margin-bottom: 1rem;">🛰️ TRANSMISIÓN EN VIVO</h3>
+                    <h3 style="color: var(--accent); margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>🛰️ TRANSMISIÓN EN VIVO</span>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="font-size: 0.85rem; color: var(--text-dim); font-weight: normal; margin-bottom: 0;">Servidor del Chat:</label>
+                            <select id="chat-server-select" onchange="changeChatServer(this.value)" style="padding: 6px 12px; background: var(--surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: white; cursor: pointer; outline: none; font-size: 0.8rem; font-family: 'Outfit', sans-serif;">
+                                <option value="http://127.0.0.1:3333">💻 Desarrollo Local (127.0.0.1)</option>
+                                <option value="http://138.2.241.76:3333">☁️ Oracle Cloud (138.2.241.76)</option>
+                            </select>
+                        </div>
+                    </h3>
                     <div id="chat-global-log" style="flex: 1; overflow-y: auto; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 8px; min-height: 250px;">
                         <div style="color: #666; font-style: italic;">Conectando al canal de comunicación...</div>
                     </div>
