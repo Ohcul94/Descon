@@ -88,6 +88,43 @@ app.use(express.static(path.join(__dirname, 'public')));
 const state = require('./state');
 const { players, activeSessions, enemies, activeAreas, parties, playerParty } = state;
 
+// v306.0: Inicializar monitores de rendimiento en RAM
+state.performance = {
+    avgTickTime: 0,
+    maxTickTime: 0,
+    lastTickDuration: 0,
+    memoryUsage: {},
+    cpuUsage: 0,
+    network: {
+        totalBytesSent: 0,
+        totalBytesReceived: 0
+    }
+};
+
+let lastCpuUsage = process.cpuUsage();
+let lastCpuTime = Date.now();
+
+setInterval(() => {
+    const elapsedMs = Date.now() - lastCpuTime;
+    if (elapsedMs <= 0) return;
+    const usage = process.cpuUsage(lastCpuUsage);
+    lastCpuUsage = process.cpuUsage();
+    lastCpuTime = Date.now();
+    
+    const totalMs = (usage.user + usage.system) / 1000;
+    const cpusCount = require('os').cpus().length || 1;
+    const percent = (totalMs / elapsedMs) * 100 / cpusCount;
+    
+    state.performance.cpuUsage = parseFloat(percent.toFixed(2));
+    
+    const mem = process.memoryUsage();
+    state.performance.memoryUsage = {
+        heapUsed: parseFloat((mem.heapUsed / 1024 / 1024).toFixed(2)),
+        heapTotal: parseFloat((mem.heapTotal / 1024 / 1024).toFixed(2)),
+        rss: parseFloat((mem.rss / 1024 / 1024).toFixed(2))
+    };
+}, 2000);
+
 // v370.0: Almacenamiento de invitaciones activas de Defensa del Altar
 const altarDefenseInvites = new Map();
 
@@ -647,6 +684,42 @@ io.on('connection', (socket) => {
     Logger.info('CONN', `Nueva conexión [${socket.id}] desde IP [${clientIP}]`);
     socket.dbUser = null;
 
+    // v306.0: Auditoría de Ancho de Banda y Telemetría
+    socket.bytesSent = 0;
+    socket.bytesReceived = 0;
+    socket.connectTime = Date.now();
+
+    // Interceptar tráfico entrante a nivel de Engine.io
+    socket.conn.on('packet', (packet) => {
+        if (packet && packet.data) {
+            const size = typeof packet.data === 'string' ? Buffer.byteLength(packet.data) : (packet.data.byteLength || packet.data.length || 0);
+            socket.bytesReceived += size;
+            if (state.performance && state.performance.network) {
+                state.performance.network.totalBytesReceived += size;
+            }
+        }
+    });
+
+    // Interceptar tráfico saliente a nivel de Engine.io
+    const originalWrite = socket.conn.write;
+    socket.conn.write = function(packets) {
+        let sizeSum = 0;
+        if (Array.isArray(packets)) {
+            packets.forEach(p => {
+                if (p && p.data) {
+                    sizeSum += typeof p.data === 'string' ? Buffer.byteLength(p.data) : (p.data.byteLength || p.data.length || 0);
+                }
+            });
+        } else if (packets && packets.data) {
+            sizeSum = typeof packets.data === 'string' ? Buffer.byteLength(packets.data) : (packets.data.byteLength || packets.data.length || 0);
+        }
+        socket.bytesSent += sizeSum;
+        if (state.performance && state.performance.network) {
+            state.performance.network.totalBytesSent += sizeSum;
+        }
+        return originalWrite.apply(this, arguments);
+    };
+
     // REGISTRO DE USUARIO (MongoDB)
     socket.on('register', async (data) => {
         try {
@@ -940,6 +1013,50 @@ io.on('connection', (socket) => {
             };
         });
         socket.emit('onlinePlayersList', onlineList);
+    });
+
+    // v306.0: Telemetría de Rendimiento de Instancia y Consumo por Jugador
+    socket.on('getServerPerformance', () => {
+        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        
+        const playerStats = Object.keys(players).map(id => {
+            const p = players[id];
+            const s = io.sockets.sockets.get(id);
+            if (!s) return null;
+            
+            const durationMs = Date.now() - (s.connectTime || Date.now());
+            const durationHours = durationMs / (1000 * 60 * 60);
+            
+            const sent = s.bytesSent || 0;
+            const received = s.bytesReceived || 0;
+            const total = sent + received;
+            
+            const sentPerHour = durationHours > 0 ? (sent / durationHours) : total;
+            const receivedPerHour = durationHours > 0 ? (received / durationHours) : total;
+            const totalPerHour = sentPerHour + receivedPerHour;
+            
+            return {
+                socketId: id,
+                username: p.user || 'Desconocido',
+                ip: s.handshake.address || "0.0.0.0",
+                connectTime: s.connectTime || Date.now(),
+                durationMs,
+                bytesSent: sent,
+                bytesReceived: received,
+                totalBytes: total,
+                sentPerHour,
+                receivedPerHour,
+                totalPerHour,
+                latency: p.latency || 0
+            };
+        }).filter(Boolean);
+        
+        socket.emit('serverPerformanceData', {
+            performance: state.performance,
+            playersCount: Object.keys(players).length,
+            enemiesCount: Object.keys(enemies).length,
+            playerStats
+        });
     });
 
     // v305.2: Gestión de Pilotos Registrados

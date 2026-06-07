@@ -145,20 +145,24 @@ function startGameLoop(io, state, aiManager) {
         totalTickTime += duration;
         tickCount++;
 
+        if (state.performance) {
+            state.performance.lastTickDuration = duration;
+            state.performance.maxTickTime = Math.max(state.performance.maxTickTime || 0, duration);
+        }
+
         if (duration > 33) {
             Logger.warn('PERF', `Tick lento: ${duration}ms (Presión en CPU o Red)`);
         }
 
-        // Loguear promedio cada 10 segundos (300 ticks aprox)
-        /*
         if (tickCount >= 300) {
-            const avg = (totalTickTime / tickCount).toFixed(2);
-            const memory = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
-            // console.log(`\x1b[36m[SERVER-STATS]\x1b[0m Avg Tick: ${avg}ms | RAM: ${memory}MB | Online: ${Object.keys(players).length}`);
+            if (state.performance) {
+                state.performance.avgTickTime = parseFloat((totalTickTime / tickCount).toFixed(2));
+                // Reseteamos el maxTickTime cada 10s para mantenerlo fresco
+                state.performance.maxTickTime = 0;
+            }
             tickCount = 0;
             totalTickTime = 0;
         }
-        */
     }, 33);
 
     // 2. LOOP DE REGENERACIÓN (1s)

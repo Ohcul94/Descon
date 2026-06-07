@@ -16,6 +16,7 @@ let currentSessionSubTab = 'online';
 let currentSessionPage = 0;
 let lastSessionsTotal = 0;
 let focusedRadarItem = null;
+let telemetryInterval = null;
 
 let selectedDetailPlayer = null;
 let currentDetailPage = 0;
@@ -23,6 +24,11 @@ let lastDetailTotal = 0;
 
 function showTab(tabId) {
     localStorage.setItem('admin_last_tab', tabId);
+    
+    if (telemetryInterval) {
+        clearInterval(telemetryInterval);
+        telemetryInterval = null;
+    }
     
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     
@@ -108,10 +114,18 @@ function showTab(tabId) {
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
     
     if(tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
-    if(tabId === 'sessions' || tabId === 'users') {
+    if(tabId === 'sessions' || tabId === 'users' || tabId === 'performance') {
         if (currentSessionSubTab === 'online') socket.emit('getOnlinePlayers');
         else if (currentSessionSubTab === 'history') socket.emit('getSessions', { page: currentSessionPage });
         else if (currentSessionSubTab === 'users') socket.emit('getRegisteredUsers');
+        else if (currentSessionSubTab === 'performance') {
+            socket.emit('getServerPerformance');
+            telemetryInterval = setInterval(() => {
+                if (socket && socket.connected && currentSessionSubTab === 'performance') {
+                    socket.emit('getServerPerformance');
+                }
+            }, 2500);
+        }
     }
     
     // Refrescar tab actual
@@ -179,6 +193,12 @@ function connect() {
 
     socket.on('registeredUsersList', (data) => {
         renderRegisteredUsers(data);
+    });
+
+    socket.on('serverPerformanceData', (data) => {
+        if (typeof renderPerformance === 'function') {
+            renderPerformance(data);
+        }
     });
 
     socket.on('loginSuccess', (data) => {
@@ -382,11 +402,19 @@ function setSessionSubTab(tab) {
     currentSessionSubTab = tab;
     localStorage.setItem('admin_last_session_tab', tab);
     if (tab === 'users') showTab('users');
+    else if (tab === 'performance') showTab('performance');
     else showTab('sessions');
     
     // Actualizar estados visuales en el sidebar
     document.querySelectorAll('#folder-audit .nav-link').forEach(b => b.classList.remove('active'));
-    document.getElementById('nav-sessions-' + tab).classList.add('active');
+    const linkEl = document.getElementById('nav-sessions-' + tab);
+    if (linkEl) linkEl.classList.add('active');
+    
+    // Limpiar telemetryInterval anterior
+    if (telemetryInterval) {
+        clearInterval(telemetryInterval);
+        telemetryInterval = null;
+    }
     
     if (tab === 'online') {
         socket.emit('getOnlinePlayers');
@@ -401,6 +429,13 @@ function setSessionSubTab(tab) {
         document.getElementById('th-session-ip-total').innerText = 'TOTAL SESIONES';
     } else if (tab === 'users') {
         socket.emit('getRegisteredUsers');
+    } else if (tab === 'performance') {
+        socket.emit('getServerPerformance');
+        telemetryInterval = setInterval(() => {
+            if (socket && socket.connected && currentSessionSubTab === 'performance') {
+                socket.emit('getServerPerformance');
+            }
+        }, 2500);
     }
 }
 

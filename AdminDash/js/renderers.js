@@ -2809,3 +2809,96 @@ window.updateCraftingRecipeResultItem = function(recipeIdx, value) {
     config.craftingRecipes[recipeIdx].resultItemId = id;
 };
 
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatDuration(ms) {
+    const totalSecs = Math.floor(ms / 1000);
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    
+    let parts = [];
+    if (hrs > 0) parts.push(`${hrs}h`);
+    if (mins > 0 || hrs > 0) parts.push(`${mins}m`);
+    parts.push(`${secs}s`);
+    return parts.join(' ');
+}
+
+window.renderPerformance = function(data) {
+    const perf = data.performance || {};
+    const cpuEl = document.getElementById('perf-cpu');
+    const memEl = document.getElementById('perf-mem');
+    const memTotalEl = document.getElementById('perf-mem-total');
+    const tickEl = document.getElementById('perf-tick');
+    const tickMaxEl = document.getElementById('perf-tick-max');
+    const netEl = document.getElementById('perf-net-in-out');
+    
+    const playersCountEl = document.getElementById('perf-players-count');
+    const enemiesCountEl = document.getElementById('perf-enemies-count');
+    const playersList = document.getElementById('performance-players-list');
+    
+    // Actualizar estadísticas básicas
+    if (cpuEl) cpuEl.innerText = (perf.cpuUsage !== undefined ? perf.cpuUsage : '--') + ' %';
+    if (memEl && perf.memoryUsage) memEl.innerText = (perf.memoryUsage.heapUsed !== undefined ? perf.memoryUsage.heapUsed : '--') + ' MB';
+    if (memTotalEl && perf.memoryUsage) memTotalEl.innerText = `Heap usado de ${perf.memoryUsage.heapTotal || '--'} MB (RSS: ${perf.memoryUsage.rss || '--'} MB)`;
+    if (tickEl) tickEl.innerText = (perf.lastTickDuration !== undefined ? perf.lastTickDuration : '--') + ' ms';
+    if (tickMaxEl) tickMaxEl.innerText = `Avg Tick: ${perf.avgTickTime || perf.lastTickDuration || 0}ms (Max: ${perf.maxTickTime || 0}ms)`;
+    
+    if (netEl && perf.network) {
+        const incoming = formatBytes(perf.network.totalBytesReceived || 0);
+        const outgoing = formatBytes(perf.network.totalBytesSent || 0);
+        netEl.innerHTML = `⬇️ ${incoming}<br>⬆️ ${outgoing}`;
+    }
+    
+    if (playersCountEl) playersCountEl.innerText = data.playersCount !== undefined ? data.playersCount : '--';
+    if (enemiesCountEl) enemiesCountEl.innerText = data.enemiesCount !== undefined ? data.enemiesCount : '--';
+    
+    if (!playersList) return;
+    playersList.innerHTML = '';
+    
+    const f = getFilter();
+    
+    if (!data.playerStats || data.playerStats.length === 0) {
+        playersList.innerHTML = `
+            <tr>
+                <td colspan="7" style="padding:2rem; text-align:center; color:#666; font-style:italic;">No hay pilotos en órbita en este momento.</td>
+            </tr>
+        `;
+        return;
+    }
+    
+    data.playerStats.forEach(p => {
+        if (f && !p.username.toLowerCase().includes(f) && !p.ip.includes(f)) return;
+        
+        const row = document.createElement('tr');
+        row.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+        
+        const timeOnline = formatDuration(p.durationMs);
+        const rec = formatBytes(p.bytesReceived);
+        const sent = formatBytes(p.bytesSent);
+        
+        // Formatear consumo estimado por hora
+        const totalPerHour = formatBytes(p.totalPerHour);
+        const estimateText = `${totalPerHour}/hora`;
+        
+        const latColor = p.latency < 100 ? 'var(--success)' : (p.latency < 250 ? 'var(--warning)' : 'var(--danger)');
+        
+        row.innerHTML = `
+            <td style="padding: 1.2rem; font-weight: bold; color: var(--primary);">${p.username.toUpperCase()}</td>
+            <td style="padding: 1.2rem; font-family: 'JetBrains Mono'; opacity: 0.7;">${p.ip}</td>
+            <td style="padding: 1.2rem;"><span class="card-tag" style="position:static; background:rgba(0,210,255,0.05); color:var(--primary); font-size:0.75rem;">${timeOnline}</span></td>
+            <td style="padding: 1.2rem; color: #a5f3fc; font-family: 'JetBrains Mono';">${rec}</td>
+            <td style="padding: 1.2rem; color: #fed7aa; font-family: 'JetBrains Mono';">${sent}</td>
+            <td style="padding: 1.2rem; font-weight: bold; color: ${latColor}; font-family: 'JetBrains Mono';">${p.latency}ms</td>
+            <td style="padding: 1.2rem; font-weight: bold; color: #3bff31; font-family: 'JetBrains Mono';">${estimateText}</td>
+        `;
+        playersList.appendChild(row);
+    });
+};
+
