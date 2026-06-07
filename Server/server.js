@@ -88,22 +88,38 @@ app.use(express.static(path.join(__dirname, 'public')));
 const state = require('./state');
 const { players, activeSessions, enemies, activeAreas, parties, playerParty } = state;
 
-// v306.0: Inicializar monitores de rendimiento en RAM
+// v370.1: Inicializar monitores de rendimiento AAA en RAM
 state.performance = {
+    // Tick metrics
     avgTickTime: 0,
     maxTickTime: 0,
     lastTickDuration: 0,
+    p99TickTime: 0,   // Percentil 99 de latencia de tick
+    p50TickTime: 0,   // Mediana real del tick
+    // CPU / Memoria
     memoryUsage: {},
     cpuUsage: 0,
+    rssHistory: [],   // Últimos 60 samples de RSS (MB)
+    heapHistory: [],  // Últimos 60 samples de heapUsed (MB)
+    // Red — bytes globales
     network: {
         totalBytesSent: 0,
         totalBytesReceived: 0
-    }
+    },
+    // PPS (Paquetes por Segundo) — globales del proceso
+    ppsIn: 0,
+    ppsOut: 0,
+    // Acumuladores internos entre intervalos
+    _pktIn: 0,
+    _pktOut: 0,
+    _bytesOutAcc: 0,  // Acumulador de egreso en el intervalo
+    _bytesInAcc: 0
 };
 
 let lastCpuUsage = process.cpuUsage();
 let lastCpuTime = Date.now();
 
+// v370.1: Intervalo AAA de métricas (2s)
 setInterval(() => {
     const elapsedMs = Date.now() - lastCpuTime;
     if (elapsedMs <= 0) return;
@@ -111,18 +127,40 @@ setInterval(() => {
     lastCpuUsage = process.cpuUsage();
     lastCpuTime = Date.now();
     
+    // CPU del proceso Node.js (no de la VM completa)
     const totalMs = (usage.user + usage.system) / 1000;
     const cpusCount = require('os').cpus().length || 1;
     const percent = (totalMs / elapsedMs) * 100 / cpusCount;
-    
     state.performance.cpuUsage = parseFloat(percent.toFixed(2));
     
+    // Memoria — sample actual
     const mem = process.memoryUsage();
+    const rssMB  = parseFloat((mem.rss      / 1024 / 1024).toFixed(2));
+    const heapMB = parseFloat((mem.heapUsed / 1024 / 1024).toFixed(2));
     state.performance.memoryUsage = {
-        heapUsed: parseFloat((mem.heapUsed / 1024 / 1024).toFixed(2)),
+        heapUsed:  heapMB,
         heapTotal: parseFloat((mem.heapTotal / 1024 / 1024).toFixed(2)),
-        rss: parseFloat((mem.rss / 1024 / 1024).toFixed(2))
+        rss:       rssMB
     };
+    
+    // Historial circular de memoria (máx 60 puntos = 2 minutos)
+    state.performance.rssHistory.push(rssMB);
+    state.performance.heapHistory.push(heapMB);
+    if (state.performance.rssHistory.length  > 60) state.performance.rssHistory.shift();
+    if (state.performance.heapHistory.length > 60) state.performance.heapHistory.shift();
+    
+    // PPS calculado sobre el intervalo de 2s
+    const elapsedSec = elapsedMs / 1000;
+    state.performance.ppsIn  = parseFloat((state.performance._pktIn  / elapsedSec).toFixed(1));
+    state.performance.ppsOut = parseFloat((state.performance._pktOut / elapsedSec).toFixed(1));
+    state.performance._pktIn  = 0;
+    state.performance._pktOut = 0;
+    
+    // Sincronizar acumuladores de bytes al contador global
+    state.performance.network.totalBytesSent     += state.performance._bytesOutAcc;
+    state.performance.network.totalBytesReceived += state.performance._bytesInAcc;
+    state.performance._bytesOutAcc = 0;
+    state.performance._bytesInAcc  = 0;
 }, 2000);
 
 // v370.0: Almacenamiento de invitaciones activas de Defensa del Altar
@@ -684,41 +722,51 @@ io.on('connection', (socket) => {
     Logger.info('CONN', `Nueva conexión [${socket.id}] desde IP [${clientIP}]`);
     socket.dbUser = null;
 
-    // v306.0: Auditoría de Ancho de Banda y Telemetría
-    socket.bytesSent = 0;
+    // v370.1: Auditoría de Ancho de Banda y Telemetría AAA
+    socket.bytesSent     = 0;
     socket.bytesReceived = 0;
-    socket.connectTime = Date.now();
+    socket.pktSent       = 0;
+    socket.pktReceived   = 0;
+    socket.connectTime   = Date.now();
 
-    // Interceptar tráfico entrante a nivel de Engine.io
+    // Interceptar tráfico ENTRANTE a nivel de Engine.io
+    // 'packet' se emite por cada paquete decodificado (PPS real)
     socket.conn.on('packet', (packet) => {
         if (packet && packet.data) {
-            const size = typeof packet.data === 'string' ? Buffer.byteLength(packet.data) : (packet.data.byteLength || packet.data.length || 0);
+            const size = typeof packet.data === 'string'
+                ? Buffer.byteLength(packet.data)
+                : (packet.data.byteLength || packet.data.length || 0);
             socket.bytesReceived += size;
-            if (state.performance && state.performance.network) {
-                state.performance.network.totalBytesReceived += size;
+            socket.pktReceived++;
+            if (state.performance) {
+                state.performance._pktIn++;
+                state.performance._bytesInAcc += size;
             }
         }
     });
 
-    // Interceptar tráfico saliente a nivel de Engine.io
-    const originalWrite = socket.conn.write;
-    socket.conn.write = function(packets) {
-        let sizeSum = 0;
-        if (Array.isArray(packets)) {
-            packets.forEach(p => {
-                if (p && p.data) {
-                    sizeSum += typeof p.data === 'string' ? Buffer.byteLength(p.data) : (p.data.byteLength || p.data.length || 0);
-                }
-            });
-        } else if (packets && packets.data) {
-            sizeSum = typeof packets.data === 'string' ? Buffer.byteLength(packets.data) : (packets.data.byteLength || packets.data.length || 0);
+    // Interceptar tráfico SALIENTE a nivel de Engine.io
+    // v370.1 FIX: Engine.io v4+ llama write(data, options) donde data es Buffer/string directo,
+    // no un objeto { data }. Interceptamos 'packetCreate' para el conteo real de egreso.
+    socket.conn.on('packetCreate', (packet) => {
+        if (!packet) return;
+        let size = 0;
+        if (packet.data) {
+            size = typeof packet.data === 'string'
+                ? Buffer.byteLength(packet.data)
+                : (packet.data.byteLength || packet.data.length || 0);
+        } else if (typeof packet === 'string') {
+            size = Buffer.byteLength(packet);
+        } else if (Buffer.isBuffer(packet)) {
+            size = packet.length;
         }
-        socket.bytesSent += sizeSum;
-        if (state.performance && state.performance.network) {
-            state.performance.network.totalBytesSent += sizeSum;
+        socket.bytesSent += size;
+        socket.pktSent++;
+        if (state.performance) {
+            state.performance._pktOut++;
+            state.performance._bytesOutAcc += size;
         }
-        return originalWrite.apply(this, arguments);
-    };
+    });
 
     // REGISTRO DE USUARIO (MongoDB)
     socket.on('register', async (data) => {
@@ -1019,42 +1067,51 @@ io.on('connection', (socket) => {
     socket.on('getServerPerformance', () => {
         if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
         
+        const now = Date.now();
         const playerStats = Object.keys(players).map(id => {
             const p = players[id];
             const s = io.sockets.sockets.get(id);
             if (!s) return null;
             
-            const durationMs = Date.now() - (s.connectTime || Date.now());
-            const durationHours = durationMs / (1000 * 60 * 60);
+            const durationMs   = now - (s.connectTime || now);
+            const durationHours = Math.max(durationMs / (1000 * 60 * 60), 1 / 3600); // Mínimo 1s para evitar /0
             
-            const sent = s.bytesSent || 0;
+            const sent     = s.bytesSent     || 0;
             const received = s.bytesReceived || 0;
-            const total = sent + received;
-            
-            const sentPerHour = durationHours > 0 ? (sent / durationHours) : total;
-            const receivedPerHour = durationHours > 0 ? (received / durationHours) : total;
-            const totalPerHour = sentPerHour + receivedPerHour;
+            const total    = sent + received;
             
             return {
-                socketId: id,
-                username: p.user || 'Desconocido',
-                ip: s.handshake.address || "0.0.0.0",
-                connectTime: s.connectTime || Date.now(),
+                socketId:        id,
+                username:        p.user || 'Desconocido',
+                ip:              s.handshake.address || '0.0.0.0',
+                zone:            p.zone || 0,
+                connectTime:     s.connectTime || now,
                 durationMs,
-                bytesSent: sent,
-                bytesReceived: received,
-                totalBytes: total,
-                sentPerHour,
-                receivedPerHour,
-                totalPerHour,
-                latency: p.latency || 0
+                bytesSent:       sent,
+                bytesReceived:   received,
+                totalBytes:      total,
+                sentPerHour:     sent     / durationHours,
+                receivedPerHour: received / durationHours,
+                totalPerHour:    total    / durationHours,
+                pktSent:         s.pktSent     || 0,
+                pktReceived:     s.pktReceived || 0,
+                latency:         p.latency || 0
             };
         }).filter(Boolean);
         
+        // Clonar performance omitiendo acumuladores internos (no útiles en el cliente)
+        const perfSnapshot = Object.assign({}, state.performance);
+        delete perfSnapshot._pktIn;
+        delete perfSnapshot._pktOut;
+        delete perfSnapshot._bytesOutAcc;
+        delete perfSnapshot._bytesInAcc;
+        
         socket.emit('serverPerformanceData', {
-            performance: state.performance,
+            performance:  perfSnapshot,
             playersCount: Object.keys(players).length,
             enemiesCount: Object.keys(enemies).length,
+            activeAreas:  Object.keys(state.activeAreas || {}).length,
+            uptimeMs:     process.uptime() * 1000,
             playerStats
         });
     });

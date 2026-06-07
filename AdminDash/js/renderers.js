@@ -2832,73 +2832,383 @@ function formatDuration(ms) {
 
 window.renderPerformance = function(data) {
     const perf = data.performance || {};
-    const cpuEl = document.getElementById('perf-cpu');
-    const memEl = document.getElementById('perf-mem');
-    const memTotalEl = document.getElementById('perf-mem-total');
-    const tickEl = document.getElementById('perf-tick');
-    const tickMaxEl = document.getElementById('perf-tick-max');
-    const netEl = document.getElementById('perf-net-in-out');
-    
-    const playersCountEl = document.getElementById('perf-players-count');
-    const enemiesCountEl = document.getElementById('perf-enemies-count');
-    const playersList = document.getElementById('performance-players-list');
-    
-    // Actualizar estadísticas básicas
-    if (cpuEl) cpuEl.innerText = (perf.cpuUsage !== undefined ? perf.cpuUsage : '--') + ' %';
-    if (memEl && perf.memoryUsage) memEl.innerText = (perf.memoryUsage.heapUsed !== undefined ? perf.memoryUsage.heapUsed : '--') + ' MB';
-    if (memTotalEl && perf.memoryUsage) memTotalEl.innerText = `Heap usado de ${perf.memoryUsage.heapTotal || '--'} MB (RSS: ${perf.memoryUsage.rss || '--'} MB)`;
-    if (tickEl) tickEl.innerText = (perf.lastTickDuration !== undefined ? perf.lastTickDuration : '--') + ' ms';
-    if (tickMaxEl) tickMaxEl.innerText = `Avg Tick: ${perf.avgTickTime || perf.lastTickDuration || 0}ms (Max: ${perf.maxTickTime || 0}ms)`;
-    
-    if (netEl && perf.network) {
-        const incoming = formatBytes(perf.network.totalBytesReceived || 0);
-        const outgoing = formatBytes(perf.network.totalBytesSent || 0);
-        netEl.innerHTML = `⬇️ ${incoming}<br>⬆️ ${outgoing}`;
+    const container = document.getElementById('perf-aaa-container');
+    if (!container) return;
+
+    // Helper para sparklines SVG autoescalables
+    function generateSparkline(history, color) {
+        if (!history || history.length === 0) {
+            return `<svg viewBox="0 0 100 30" width="100%" height="30"><text x="50%" y="50%" text-anchor="middle" fill="#555" font-size="8">Sin datos</text></svg>`;
+        }
+        const max = Math.max(...history) || 1;
+        const min = Math.min(...history) || 0;
+        const range = max - min || 1;
+        const width = 100;
+        const height = 30;
+        const points = history.map((val, idx) => {
+            const x = (idx / (history.length - 1)) * width;
+            const y = height - ((val - min) / range) * (height - 4) - 2;
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        
+        return `
+            <svg viewBox="0 0 100 30" width="100%" height="35" style="overflow:visible;">
+                <polyline fill="none" stroke="${color}" stroke-width="1.5" points="${points}" />
+                <circle cx="100" cy="${(height - ((history[history.length - 1] - min) / range) * (height - 4) - 2).toFixed(1)}" r="2" fill="${color}" />
+            </svg>
+        `;
     }
+
+    // 1. Análisis de Alertas Automáticas
+    let alerts = [];
     
-    if (playersCountEl) playersCountEl.innerText = data.playersCount !== undefined ? data.playersCount : '--';
-    if (enemiesCountEl) enemiesCountEl.innerText = data.enemiesCount !== undefined ? data.enemiesCount : '--';
-    
-    if (!playersList) return;
-    playersList.innerHTML = '';
-    
+    // Alerta CPU
+    if (perf.cpuUsage >= 70) {
+        alerts.push({
+            type: 'danger',
+            icon: '🔥',
+            title: 'USO CRÍTICO DE CPU',
+            desc: `La CPU del servidor está en ${perf.cpuUsage}%. Reducí la cantidad de entidades activas.`
+        });
+    } else if (perf.cpuUsage >= 55) {
+        alerts.push({
+            type: 'warning',
+            icon: '⚠️',
+            title: 'CPU ELEVADA',
+            desc: `Uso de CPU en ${perf.cpuUsage}%. Monitorear de cerca.`
+        });
+    }
+
+    // Alerta Latencia de Tick
+    const p99 = perf.p99TickTime || 0;
+    if (p99 >= 33) {
+        alerts.push({
+            type: 'danger',
+            icon: '⏱️',
+            title: 'TICK P99 CRÍTICO (STUTTERS)',
+            desc: `El percentil 99 de ticks está en ${p99.toFixed(1)} ms. El juego está experimentando tirones graves de físicas/colisiones.`
+        });
+    } else if (p99 >= 20) {
+        alerts.push({
+            type: 'warning',
+            icon: '⏳',
+            title: 'TICK P99 ELEVADO',
+            desc: `Latencia P99 en ${p99.toFixed(1)} ms. Posible sobrecarga leve en el bucle principal.`
+        });
+    }
+
+    // Alerta PPS de Entrada
+    const ppsIn = perf.ppsIn || 0;
+    if (ppsIn >= 8000) {
+        alerts.push({
+            type: 'danger',
+            icon: '📡',
+            title: 'SATURACIÓN DE RED (PPS IN CRÍTICO)',
+            desc: `Recibiendo ${ppsIn.toLocaleString()} paquetes/seg. Posible ataque de denegación de servicio o exploit de spam de red.`
+        });
+    }
+
+    // Alerta Fuga de Memoria (Detección de tendencia creciente en RSS)
+    let memoryLeakAlert = false;
+    let memLeakGrowth = 0;
+    if (perf.rssHistory && perf.rssHistory.length >= 20) {
+        const history = perf.rssHistory;
+        const len = history.length;
+        const initialSamples = history.slice(0, 5);
+        const finalSamples = history.slice(len - 5);
+        const avgInitial = initialSamples.reduce((a, b) => a + b, 0) / initialSamples.length;
+        const avgFinal = finalSamples.reduce((a, b) => a + b, 0) / finalSamples.length;
+        if (avgInitial > 0 && avgFinal > avgInitial) {
+            memLeakGrowth = ((avgFinal - avgInitial) / avgInitial) * 100;
+            if (memLeakGrowth >= 20) {
+                memoryLeakAlert = true;
+                alerts.push({
+                    type: 'danger',
+                    icon: '🧠',
+                    title: 'FUGA DE MEMORIA DETECTADA (LEAK)',
+                    desc: `El uso de RAM RSS ha crecido un +${memLeakGrowth.toFixed(1)}% en las últimas muestras. Posible fuga a largo plazo.`
+                });
+            }
+        }
+    }
+
+    // Renderizado del HTML
+    let html = '';
+
+    // SECCIÓN 1: PANEL DE ALERTAS
+    if (alerts.length > 0) {
+        html += `
+            <div class="perf-section-title" style="margin: 0 0 1rem 0; color: #ff5555; font-size: 0.9rem; font-weight: bold; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;">
+                🔔 ANÁLISIS DE ALERTAS EN TIEMPO REAL
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 2rem;">
+        `;
+        alerts.forEach(alert => {
+            const borderCol = alert.type === 'danger' ? '#ef4444' : '#f59e0b';
+            const bgCol = alert.type === 'danger' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(245, 158, 11, 0.05)';
+            const titleCol = alert.type === 'danger' ? '#f87171' : '#fbbf24';
+            html += `
+                <div style="border-left: 4px solid ${borderCol}; background: ${bgCol}; padding: 1rem; border-radius: 4px 8px 8px 4px; display: flex; align-items: flex-start; gap: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="font-size: 1.4rem; line-height: 1;">${alert.icon}</div>
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 4px 0; color: ${titleCol}; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;">${alert.title}</h4>
+                        <p style="margin: 0; font-size: 0.8rem; color: #ccc; line-height: 1.4;">${alert.desc}</p>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    } else {
+        html += `
+            <div style="border-left: 4px solid #10b981; background: rgba(16, 185, 129, 0.03); padding: 0.75rem 1rem; border-radius: 4px 8px 8px 4px; display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <div style="color: #10b981; font-size: 1.1rem;">✅</div>
+                <div style="color: #a7f3d0; font-size: 0.8rem; font-weight: 600;">SISTEMA ESTABLE: Todas las métricas de red, CPU, RAM y latencia están dentro del rango operativo seguro.</div>
+            </div>
+        `;
+    }
+
+    // SECCIÓN 2: TARJETAS GENERALES Y DETALLES DEL PROCESO
+    const uptimeStr = formatDuration(data.uptimeMs || 0);
+    html += `
+        <div class="perf-section-title" style="margin: 0 0 1rem 0; color: var(--accent); font-size: 0.9rem; font-weight: bold; letter-spacing: 1px;">
+            📊 TELEMETRÍA GENERAL DEL PROCESO
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:var(--primary); font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">PILOTOS ONLINE</h4>
+                <div style="font-size:2rem; font-weight:700; font-family:'JetBrains Mono'; color:#fff;">${data.playersCount !== undefined ? data.playersCount : '--'}</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Jugadores en mapas / lobby</p>
+            </div>
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:#ef4444; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">ENEMIGOS ACTIVOS</h4>
+                <div style="font-size:2rem; font-weight:700; font-family:'JetBrains Mono'; color:#fff;">${data.enemiesCount !== undefined ? data.enemiesCount : '--'}</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">IAs simuladas por AIManager</p>
+            </div>
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:#eab308; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">ÁREAS ACTIVAS</h4>
+                <div style="font-size:2rem; font-weight:700; font-family:'JetBrains Mono'; color:#fff;">${data.activeAreas !== undefined ? data.activeAreas : '--'}</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Grillas AOI cargadas</p>
+            </div>
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:#3bff31; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">UPTIME DE INSTANCIA</h4>
+                <div style="font-size:1.2rem; font-weight:700; font-family:'JetBrains Mono'; color:#fff; height: 2.2rem; display: flex; align-items: center;">${uptimeStr}</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Tiempo desde el último inicio</p>
+            </div>
+        </div>
+    `;
+
+    // SECCIÓN 3: TICK TIMES (P99, P50, Avg, Max)
+    const p99Val = perf.p99TickTime || 0;
+    const p50Val = perf.p50TickTime || 0;
+    const avgVal = perf.avgTickTime || 0;
+    const maxVal = perf.maxTickTime || 0;
+
+    const p99Color = p99Val >= 33 ? '#ef4444' : (p99Val >= 20 ? '#fbbf24' : '#10b981');
+    const p50Color = p50Val >= 16 ? '#ef4444' : (p50Val >= 10 ? '#fbbf24' : '#10b981');
+    const avgColor = avgVal >= 16 ? '#ef4444' : (avgVal >= 10 ? '#fbbf24' : '#10b981');
+
+    html += `
+        <div class="perf-section-title" style="margin: 0 0 1rem 0; color: var(--accent); font-size: 0.9rem; font-weight: bold; letter-spacing: 1px;">
+            ⏱️ ANÁLISIS DE CICLOS DE JUEGO (TICK LATENCY)
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:${p99Color}; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Percentil 99 (P99)</h4>
+                <div style="font-size:2rem; font-weight:700; font-family:'JetBrains Mono'; color:${p99Color};">${p99Val.toFixed(1)} ms</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Peor escenario de latencia</p>
+            </div>
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:${p50Color}; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Mediana (P50)</h4>
+                <div style="font-size:2rem; font-weight:700; font-family:'JetBrains Mono'; color:${p50Color};">${p50Val.toFixed(1)} ms</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Valor típico del Loop</p>
+            </div>
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:${avgColor}; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Promedio (Avg)</h4>
+                <div style="font-size:2rem; font-weight:700; font-family:'JetBrains Mono'; color:${avgColor};">${avgVal.toFixed(1)} ms</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Promedio móvil ponderado</p>
+            </div>
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:#a855f7; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Pico Histórico (Max)</h4>
+                <div style="font-size:2rem; font-weight:700; font-family:'JetBrains Mono'; color:#fff;">${maxVal.toFixed(1)} ms</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Mayor pico de procesamiento</p>
+            </div>
+        </div>
+    `;
+
+    // SECCIÓN 4: MÉTRICAS DE RED EN TIEMPO REAL
+    const incomingPps = perf.ppsIn || 0;
+    const outgoingPps = perf.ppsOut || 0;
+    const incomingBytes = formatBytes(perf.network?.totalBytesReceived || 0);
+    const outgoingBytes = formatBytes(perf.network?.totalBytesSent || 0);
+
+    html += `
+        <div class="perf-section-title" style="margin: 0 0 1rem 0; color: var(--accent); font-size: 0.9rem; font-weight: bold; letter-spacing: 1px;">
+            📡 TELEMETRÍA DE RED (BANDWIDTH & PACKETS)
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:var(--primary); font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Paquetes Entrantes (PPS In)</h4>
+                <div style="font-size:2rem; font-weight:700; font-family:'JetBrains Mono'; color:#fff;">${incomingPps.toLocaleString()} <span style="font-size: 0.9rem; opacity: 0.7;">pkts/s</span></div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Tasa de entrada actual</p>
+            </div>
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:#f43f5e; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Paquetes Salientes (PPS Out)</h4>
+                <div style="font-size:2rem; font-weight:700; font-family:'JetBrains Mono'; color:#fff;">${outgoingPps.toLocaleString()} <span style="font-size: 0.9rem; opacity: 0.7;">pkts/s</span></div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Tasa de salida actual</p>
+            </div>
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:#3bff31; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Total Tráfico Recibido</h4>
+                <div style="font-size:1.8rem; font-weight:700; font-family:'JetBrains Mono'; color:#fff; height: 2.2rem; display: flex; align-items: center;">⬇️ ${incomingBytes}</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Acumulado de bajada (Ingreso)</p>
+            </div>
+            <div class="card" style="background: rgba(0,210,255,0.03); border: 1px solid rgba(0,210,255,0.12); padding: 1.25rem;">
+                <h4 style="margin:0 0 8px 0; color:#3bff31; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Total Tráfico Enviado</h4>
+                <div style="font-size:1.8rem; font-weight:700; font-family:'JetBrains Mono'; color:#fff; height: 2.2rem; display: flex; align-items: center;">⬆️ ${outgoingBytes}</div>
+                <p style="margin:4px 0 0 0; font-size:0.75rem; opacity:0.6;">Acumulado de subida (Egreso)</p>
+            </div>
+        </div>
+    `;
+
+    // SECCIÓN 5: CPU Y MEMORIA (SPARKLINES HISTÓRICOS)
+    const rssVal = perf.memoryUsage?.rss || 0;
+    const heapVal = perf.memoryUsage?.heapUsed || 0;
+    const heapTot = perf.memoryUsage?.heapTotal || 0;
+    const cpuPct = perf.cpuUsage || 0;
+
+    html += `
+        <div class="perf-section-title" style="margin: 0 0 1rem 0; color: var(--accent); font-size: 0.9rem; font-weight: bold; letter-spacing: 1px;">
+            💻 RENDIMIENTO DE RECURSOS DEL SISTEMA
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; margin-bottom: 2rem;">
+            <!-- Uso de CPU -->
+            <div class="card" style="background: rgba(0,210,255,0.02); border: 1px solid rgba(0,210,255,0.12); padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h4 style="margin:0 0 10px 0; color:var(--primary); font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">USO DE CPU DEL PROCESO</h4>
+                    <div style="font-size:2.5rem; font-weight:800; font-family:'JetBrains Mono'; color:#fff; margin-bottom: 1rem;">${cpuPct}%</div>
+                </div>
+                <div>
+                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; margin-bottom: 6px;">
+                        <div style="width: ${cpuPct}%; height: 100%; background: ${cpuPct >= 70 ? 'var(--danger)' : (cpuPct >= 50 ? 'var(--warning)' : 'var(--primary)')}; border-radius: 4px; transition: width 0.3s ease;"></div>
+                    </div>
+                    <p style="margin:0; font-size:0.7rem; opacity:0.6;">Carga actual sobre el núcleo asignado</p>
+                </div>
+            </div>
+
+            <!-- Historial de Memoria con Sparklines SVG -->
+            <div class="card" style="background: rgba(0,210,255,0.02); border: 1px solid rgba(0,210,255,0.12); padding: 1.5rem;">
+                <h4 style="margin:0 0 15px 0; color:var(--accent); font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; display: flex; justify-content: space-between;">
+                    <span>📈 HISTORIAL Y TENDENCIA DE MEMORIA</span>
+                    <span style="font-family: 'JetBrains Mono'; font-weight: normal; color: #aaa; text-transform: none;">Últimos 120s (Muestras de 2s)</span>
+                </h4>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- RSS Sparkline -->
+                    <div style="background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02);">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
+                            <span style="font-size: 0.75rem; font-weight: bold; color: #60a5fa;">RAM RSS (Física)</span>
+                            <span style="font-family: 'JetBrains Mono'; font-size: 0.85rem; font-weight: bold; color: #fff;">${rssVal.toFixed(1)} MB</span>
+                        </div>
+                        <div style="margin-top: 5px; min-height: 40px;">
+                            ${generateSparkline(perf.rssHistory, '#60a5fa')}
+                        </div>
+                        <p style="margin: 5px 0 0 0; font-size: 0.65rem; opacity: 0.5; text-align: right;">rss footprint</p>
+                    </div>
+
+                    <!-- Heap Sparkline -->
+                    <div style="background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02);">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
+                            <span style="font-size: 0.75rem; font-weight: bold; color: #f472b6;">V8 Heap (JS)</span>
+                            <span style="font-family: 'JetBrains Mono'; font-size: 0.85rem; font-weight: bold; color: #fff;">${heapVal.toFixed(1)} / ${heapTot.toFixed(1)} MB</span>
+                        </div>
+                        <div style="margin-top: 5px; min-height: 40px;">
+                            ${generateSparkline(perf.heapHistory, '#f472b6')}
+                        </div>
+                        <p style="margin: 5px 0 0 0; font-size: 0.65rem; opacity: 0.5; text-align: right;">heap usage</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // SECCIÓN 6: AUDITORÍA DE ANCHO DE BANDA POR PILOTO
+    html += `
+        <div class="card" style="width: 100%; padding: 0; overflow: hidden; margin-top: 1rem; border: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2);">
+            <div style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; color:var(--primary); font-size: 0.95rem; font-weight: bold;">🕵️ AUDITORÍA DE ANCHO DE BANDA DETALLADA POR PILOTO</h3>
+                <span style="font-size:0.8rem; color:#aaa; font-style: italic;">Consumo de red granular y estimación por hora</span>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left;">
+                <thead style="background: rgba(255,255,255,0.03); border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <tr>
+                        <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--accent);">Piloto</th>
+                        <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--accent);">Dirección IP</th>
+                        <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--accent);">Zona</th>
+                        <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--accent);">Uptime Conexión</th>
+                        <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--accent);">Datos Recibidos</th>
+                        <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--accent);">Datos Enviados</th>
+                        <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--accent);">Paquetes (Rx / Tx)</th>
+                        <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--accent);">Latencia</th>
+                        <th style="padding: 1rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--accent);">Consumo Est. / Hora</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
     const f = getFilter();
-    
+    let shownPlayersCount = 0;
+
     if (!data.playerStats || data.playerStats.length === 0) {
-        playersList.innerHTML = `
+        html += `
             <tr>
-                <td colspan="7" style="padding:2rem; text-align:center; color:#666; font-style:italic;">No hay pilotos en órbita en este momento.</td>
+                <td colspan="9" style="padding:3rem; text-align:center; color:#666; font-style:italic;">No hay pilotos en órbita en este momento.</td>
             </tr>
         `;
-        return;
+    } else {
+        data.playerStats.forEach(p => {
+            if (f && !p.username.toLowerCase().includes(f) && !p.ip.includes(f)) return;
+            shownPlayersCount++;
+
+            const timeOnline = formatDuration(p.durationMs);
+            const recBytes = formatBytes(p.bytesReceived);
+            const sentBytes = formatBytes(p.bytesSent);
+            const estPerHour = formatBytes(p.totalPerHour || 0);
+
+            const latColor = p.latency < 80 ? '#10b981' : (p.latency < 180 ? '#fbbf24' : '#ef4444');
+            const zoneLabel = p.zone !== undefined ? p.zone : 'Desconocida';
+
+            html += `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 1rem 1.2rem; font-weight: bold; color: var(--primary); font-family: 'JetBrains Mono';">${p.username.toUpperCase()}</td>
+                    <td style="padding: 1rem 1.2rem; font-family: 'JetBrains Mono'; opacity: 0.7; font-size: 0.8rem;">${p.ip}</td>
+                    <td style="padding: 1rem 1.2rem; font-size: 0.85rem;"><span class="card-tag" style="position:static; background:rgba(234,179,8,0.1); color:#fbbf24; font-size:0.75rem; border: 1px solid rgba(234,179,8,0.25);">${zoneLabel}</span></td>
+                    <td style="padding: 1rem 1.2rem; font-size: 0.85rem;">${timeOnline}</td>
+                    <td style="padding: 1rem 1.2rem; color: #a5f3fc; font-family: 'JetBrains Mono'; font-size: 0.85rem;">${recBytes}</td>
+                    <td style="padding: 1rem 1.2rem; color: #fed7aa; font-family: 'JetBrains Mono'; font-size: 0.85rem;">${sentBytes}</td>
+                    <td style="padding: 1rem 1.2rem; font-family: 'JetBrains Mono'; font-size: 0.8rem; opacity: 0.8;">
+                        <span style="color: #60a5fa;">⬇️ ${(p.pktReceived || 0).toLocaleString()}</span> / 
+                        <span style="color: #f472b6;">⬆️ ${(p.pktSent || 0).toLocaleString()}</span>
+                    </td>
+                    <td style="padding: 1rem 1.2rem; font-weight: bold; color: ${latColor}; font-family: 'JetBrains Mono'; font-size: 0.85rem;">${p.latency}ms</td>
+                    <td style="padding: 1rem 1.2rem; font-weight: bold; color: #3bff31; font-family: 'JetBrains Mono'; font-size: 0.85rem;">${estPerHour}/h</td>
+                </tr>
+            `;
+        });
+
+        if (shownPlayersCount === 0) {
+            html += `
+                <tr>
+                    <td colspan="9" style="padding:3rem; text-align:center; color:#666; font-style:italic;">Ningún piloto coincide con el filtro: "${f}"</td>
+                </tr>
+            `;
+        }
     }
-    
-    data.playerStats.forEach(p => {
-        if (f && !p.username.toLowerCase().includes(f) && !p.ip.includes(f)) return;
-        
-        const row = document.createElement('tr');
-        row.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
-        
-        const timeOnline = formatDuration(p.durationMs);
-        const rec = formatBytes(p.bytesReceived);
-        const sent = formatBytes(p.bytesSent);
-        
-        // Formatear consumo estimado por hora
-        const totalPerHour = formatBytes(p.totalPerHour);
-        const estimateText = `${totalPerHour}/hora`;
-        
-        const latColor = p.latency < 100 ? 'var(--success)' : (p.latency < 250 ? 'var(--warning)' : 'var(--danger)');
-        
-        row.innerHTML = `
-            <td style="padding: 1.2rem; font-weight: bold; color: var(--primary);">${p.username.toUpperCase()}</td>
-            <td style="padding: 1.2rem; font-family: 'JetBrains Mono'; opacity: 0.7;">${p.ip}</td>
-            <td style="padding: 1.2rem;"><span class="card-tag" style="position:static; background:rgba(0,210,255,0.05); color:var(--primary); font-size:0.75rem;">${timeOnline}</span></td>
-            <td style="padding: 1.2rem; color: #a5f3fc; font-family: 'JetBrains Mono';">${rec}</td>
-            <td style="padding: 1.2rem; color: #fed7aa; font-family: 'JetBrains Mono';">${sent}</td>
-            <td style="padding: 1.2rem; font-weight: bold; color: ${latColor}; font-family: 'JetBrains Mono';">${p.latency}ms</td>
-            <td style="padding: 1.2rem; font-weight: bold; color: #3bff31; font-family: 'JetBrains Mono';">${estimateText}</td>
-        `;
-        playersList.appendChild(row);
-    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    container.innerHTML = html;
 };
 

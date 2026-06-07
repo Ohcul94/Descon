@@ -60,6 +60,9 @@ function registerCombatHandlers(socket, io, state) {
         const p = state.players[socket.id];
         if (!p || !state.SERVER_CONFIG) return;
 
+        const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
+        if (Number(p.zone) === lobbyZoneId) return;
+
         if (p.isSilenced || p.silencedUntil > Date.now()) return;
 
         // v308: Soporte dinámico para nuevas municiones
@@ -117,6 +120,9 @@ function registerCombatHandlers(socket, io, state) {
         const p = state.players[socket.id];
         if (!p || p.isDead || !state.SERVER_CONFIG) return;
 
+        const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
+        if (Number(p.zone) === lobbyZoneId) return;
+
         const sphereIdx = (data.id !== undefined) ? data.id : data.sphereIdx;
         if (sphereIdx === undefined || sphereIdx < 0 || sphereIdx > 3) return;
 
@@ -158,6 +164,9 @@ function registerCombatHandlers(socket, io, state) {
         const enemy = state.enemies[enemyId];
         const p = state.players[socket.id];
         if (!enemy || !p || !state.SERVER_CONFIG || p.isDead) return;
+
+        const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
+        if (Number(p.zone) === lobbyZoneId) return;
 
         const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
         if (dist > 1800) return;
@@ -272,6 +281,9 @@ function registerCombatHandlers(socket, io, state) {
     socket.on('playerHitByEnemy', (data) => {
         const p = state.players[socket.id];
         if (p && !p.isDead && state.SERVER_CONFIG) {
+            const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
+            if (Number(p.zone) === lobbyZoneId) return;
+
             const attackerType = data.attackerType || 'enemy';
             if (attackerType === 'remote' || attackerType === 'player') return;
             
@@ -419,6 +431,9 @@ function registerCombatHandlers(socket, io, state) {
         const attacker = state.players[socket.id];
         
         if (victim && attacker && !victim.isDead && !attacker.isDead) {
+            const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
+            if (Number(attacker.zone) === lobbyZoneId || Number(victim.zone) === lobbyZoneId) return;
+
             console.log(`[PVP-HIT-IN] ${attacker.user} (pvpEnabled: ${attacker.pvpEnabled}) atacó a ${victim.user} (pvpEnabled: ${victim.pvpEnabled}, isInvulnerable: ${victim.isInvulnerable}) | Daño: ${data.damage}`);
             if (victim.pvpEnabled && attacker.pvpEnabled) {
                 if (victim.isInvulnerable) {

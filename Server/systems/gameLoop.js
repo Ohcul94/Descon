@@ -28,10 +28,12 @@ const normalizeZone = (z) => {
 function startGameLoop(io, state, aiManager) {
     const grid = state.grid;
     
-    // v262.70: Monitor de Performance (Profiling)
+    // v370.1: Monitor de Performance AAA (Profiling con Percentiles)
     let lastTickTime = Date.now();
-    let tickCount = 0;
+    let tickCount    = 0;
     let totalTickTime = 0;
+    const TICK_SAMPLE_SIZE = 300;            // ~10s de historia a 30fps
+    const tickSamples = [];                  // Array circular de duraciones de tick
 
     // 1. LOOP DE IA Y MOVIMIENTO (33ms ~ 30fps para suavidad)
     setInterval(() => {
@@ -59,12 +61,18 @@ function startGameLoop(io, state, aiManager) {
             }
         });
 
+        // LOBBY OPTIMIZATION: determinar la zona de Lobby una sola vez por tick
+        const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
+
         for (const id in enemies) {
             const e = enemies[id];
             if (e.hp <= 0) {
                 if (!e.isDeadProcessed) handleEnemyDeath(id, io, state);
                 continue;
             }
+
+            // LOBBY OPTIMIZATION: saltar IA para enemigos en la zona del Lobby (no hay combate)
+            if (Number(e.zone) === lobbyZoneId) continue;
 
             // Normalizar zona del enemigo una sola vez por ciclo
             const eZoneNormalized = normalizeZone(e.zone);
@@ -105,6 +113,8 @@ function startGameLoop(io, state, aiManager) {
         // v262.30: Broadcast por AOI (Area of Interest) - 5x5 Celdas (2500px x 2500px)
         Object.values(players).forEach(p => {
             if (!p.zone) return;
+            // LOBBY OPTIMIZATION: no enviar enemiesMoved a jugadores del Lobby (no hay IAs activas ahí)
+            if (Number(p.zone) === lobbyZoneId) return;
             
             const aoiData = {};
             let count = 0;
@@ -139,11 +149,15 @@ function startGameLoop(io, state, aiManager) {
             }
         });
 
-        // v262.70: Métricas de Ciclo
-        const end = Date.now();
+        // v370.1: Métricas de Ciclo con Percentiles AAA
+        const end      = Date.now();
         const duration = end - start;
         totalTickTime += duration;
         tickCount++;
+
+        // Acumular en array circular para cálculo de percentiles
+        tickSamples.push(duration);
+        if (tickSamples.length > TICK_SAMPLE_SIZE) tickSamples.shift();
 
         if (state.performance) {
             state.performance.lastTickDuration = duration;
@@ -154,13 +168,21 @@ function startGameLoop(io, state, aiManager) {
             Logger.warn('PERF', `Tick lento: ${duration}ms (Presión en CPU o Red)`);
         }
 
-        if (tickCount >= 300) {
+        if (tickCount >= TICK_SAMPLE_SIZE) {
             if (state.performance) {
                 state.performance.avgTickTime = parseFloat((totalTickTime / tickCount).toFixed(2));
-                // Reseteamos el maxTickTime cada 10s para mantenerlo fresco
-                state.performance.maxTickTime = 0;
+                state.performance.maxTickTime = 0; // Reset cada ventana de 300 ticks
+
+                // Calcular P50 y P99 sobre el array de muestras acumulado
+                if (tickSamples.length >= 2) {
+                    const sorted = [...tickSamples].sort((a, b) => a - b);
+                    const p50Idx = Math.floor(sorted.length * 0.50);
+                    const p99Idx = Math.min(Math.floor(sorted.length * 0.99), sorted.length - 1);
+                    state.performance.p50TickTime = sorted[p50Idx];
+                    state.performance.p99TickTime = sorted[p99Idx];
+                }
             }
-            tickCount = 0;
+            tickCount    = 0;
             totalTickTime = 0;
         }
     }, 33);
@@ -332,6 +354,7 @@ function startGameLoop(io, state, aiManager) {
         }
 
         // B. Procesar Jugadores (Daño/Ambiente local)
+        const lobbyZoneIdArea = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
         Object.values(players).forEach(p => {
             const wasBlinded = p.isBlinded;
             if (now - (p.lastBlindTime || 0) > 200) p.isBlinded = false;
@@ -343,35 +366,38 @@ function startGameLoop(io, state, aiManager) {
                 p.slowPoints = 0;
             }
 
-            const mapConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[p.zone] : null;
-            if (mapConfig && mapConfig.ambience && p.hp > 0) {
-                mapConfig.ambience.forEach((hazard, idx) => {
-                    const dmg = hazard.damage || hazard.damagePerSecond || 0;
-                    const interval = hazard.intervalMs || 1000;
-                    
-                    if (hazard.type === 'radiation' && dmg > 0) {
-                        if (!p.hazardCooldowns) p.hazardCooldowns = {};
-                        const hKey = `rad_${idx}`;
-                        const lastHit = p.hazardCooldowns[hKey] || 0;
-                        if (now - lastHit >= interval) {
-                            p.hazardCooldowns[hKey] = now;
-                            p.lastCombatTime = now;
-                            if (p.shield >= dmg) p.shield -= dmg;
-                            else { p.hp -= (dmg - p.shield); p.shield = 0; }
-                            if (p.hp < 0) p.hp = 0;
-                            io.to(p.socketId).emit('environmentDamage', { damage: dmg });
-                            io.to(`zone_${p.zone}`).emit('playerStatSync', {
-                                id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield),
-                                maxHp: p.maxHp, maxShield: p.maxShield, isInvisible: p.isInvisible, isSlowed: p.isSlowed
-                            });
+            // LOBBY OPTIMIZATION: saltar todos los efectos ambientales para jugadores del Lobby
+            if (Number(p.zone) !== lobbyZoneIdArea) {
+                const mapConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[p.zone] : null;
+                if (mapConfig && mapConfig.ambience && p.hp > 0) {
+                    mapConfig.ambience.forEach((hazard, idx) => {
+                        const dmg = hazard.damage || hazard.damagePerSecond || 0;
+                        const interval = hazard.intervalMs || 1000;
+                        
+                        if (hazard.type === 'radiation' && dmg > 0) {
+                            if (!p.hazardCooldowns) p.hazardCooldowns = {};
+                            const hKey = `rad_${idx}`;
+                            const lastHit = p.hazardCooldowns[hKey] || 0;
+                            if (now - lastHit >= interval) {
+                                p.hazardCooldowns[hKey] = now;
+                                p.lastCombatTime = now;
+                                if (p.shield >= dmg) p.shield -= dmg;
+                                else { p.hp -= (dmg - p.shield); p.shield = 0; }
+                                if (p.hp < 0) p.hp = 0;
+                                io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                    id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield),
+                                    maxHp: p.maxHp, maxShield: p.maxShield, isInvisible: p.isInvisible, isSlowed: p.isSlowed
+                                });
+                            }
                         }
-                    }
-                    else if (hazard.type === 'nebula' && hazard.slowPercentage) {
-                        p.isSlowed = true;
-                        p.lastSlowTime = now;
-                        p.slowPoints = hazard.slowPercentage;
-                    }
-                });
+                        else if (hazard.type === 'nebula' && hazard.slowPercentage) {
+                            p.isSlowed = true;
+                            p.lastSlowTime = now;
+                            p.slowPoints = hazard.slowPercentage;
+                        }
+                    });
+                }
             }
             
             if (wasSlowed !== p.isSlowed) {

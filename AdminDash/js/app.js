@@ -22,6 +22,35 @@ let selectedDetailPlayer = null;
 let currentDetailPage = 0;
 let lastDetailTotal = 0;
 
+// v370.1: Entorno de servidor activo (local o cloud)
+const SERVER_URLS = {
+    local: 'http://127.0.0.1:3333',
+    cloud: 'http://138.2.241.76:3333'
+};
+let activeEnv = localStorage.getItem('admin_env') || 'local';
+
+function setEnv(env) {
+    activeEnv = env;
+    localStorage.setItem('admin_env', env);
+    const btnLocal  = document.getElementById('env-local');
+    const btnCloud  = document.getElementById('env-cloud');
+    const urlDisplay = document.getElementById('env-url-display');
+    if (!btnLocal || !btnCloud) return;
+    if (env === 'local') {
+        btnLocal.style.background = 'var(--primary)';
+        btnLocal.style.color      = '#000';
+        btnCloud.style.background = 'rgba(255,255,255,0.05)';
+        btnCloud.style.color      = 'var(--text-muted)';
+        if (urlDisplay) urlDisplay.textContent = '127.0.0.1:3333';
+    } else {
+        btnCloud.style.background = '#f0a500';
+        btnCloud.style.color      = '#000';
+        btnLocal.style.background = 'rgba(255,255,255,0.05)';
+        btnLocal.style.color      = 'var(--text-muted)';
+        if (urlDisplay) urlDisplay.textContent = '138.2.241.76:3333';
+    }
+}
+
 function showTab(tabId) {
     localStorage.setItem('admin_last_tab', tabId);
     
@@ -138,6 +167,9 @@ function showTab(tabId) {
 }
 
 window.onload = () => {
+    // Inicializar el selector de entorno al cargar
+    setEnv(activeEnv);
+
     const savedUser = localStorage.getItem('admin_user');
     const savedPass = localStorage.getItem('admin_pass');
     if(savedUser && savedPass) {
@@ -149,20 +181,20 @@ window.onload = () => {
 };
 
 function connect() {
-    const user = document.getElementById('admin-user').value;
-    const pass = document.getElementById('admin-pass').value;
+    const user    = document.getElementById('admin-user').value;
+    const pass    = document.getElementById('admin-pass').value;
     const remember = document.getElementById('remember-me').checked;
-    const btn = document.querySelector('#login-overlay button');
-    const err = document.getElementById('login-error');
+    const btn  = document.querySelector('#login-overlay button[onclick="connect()"]');
+    const err  = document.getElementById('login-error');
 
-    // Siempre conectar LOCAL para desarrollo del dashboard y base de datos
-    const targetUrl = "http://127.0.0.1:3333";
+    const targetUrl = SERVER_URLS[activeEnv] || SERVER_URLS.local;
+    const envLabel  = activeEnv === 'cloud' ? '☁️ ORACLE CLOUD' : '💻 LOCAL';
 
     if (socket) {
         socket.disconnect();
     }
     
-    btn.innerText = "CONECTANDO A LOCAL...";
+    btn.innerText = `CONECTANDO A ${envLabel.toUpperCase()}...`;
     socket = io(targetUrl);
 
     socket.on('connect', () => socket.emit('login', { user, password: pass, isAdmin: true }));
@@ -210,8 +242,9 @@ function connect() {
             localStorage.removeItem('admin_pass');
         }
         document.getElementById('login-overlay').style.display = 'none';
+        const envLabel = activeEnv === 'cloud' ? `☁️ CLOUD: ${user.toUpperCase()}` : `💻 LOCAL: ${user.toUpperCase()}`;
         document.getElementById('conn-dot').classList.add('online');
-        document.getElementById('conn-text').innerText = "💻 LOCAL: " + user.toUpperCase();
+        document.getElementById('conn-text').innerText = envLabel;
         if(data.adminConfig) { 
             config = data.adminConfig; 
             // v1.9: Inicializar configuración de piloto si es nueva
