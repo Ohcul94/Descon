@@ -34,9 +34,11 @@ function startGameLoop(io, state, aiManager) {
     let totalTickTime = 0;
     const TICK_SAMPLE_SIZE = 300;            // ~10s de historia a 30fps
     const tickSamples = [];                  // Array circular de duraciones de tick
+    let loopCounter  = 0;
 
     // 1. LOOP DE IA Y MOVIMIENTO (33ms ~ 30fps para suavidad)
     setInterval(() => {
+        loopCounter++;
         const start = Date.now();
         const now = start;
         const { enemies, players } = state;
@@ -110,12 +112,19 @@ function startGameLoop(io, state, aiManager) {
             });
         }
 
-        // v262.30: Broadcast por AOI (Area of Interest) - 5x5 Celdas (2500px x 2500px)
+        // v262.30: Broadcast por AOI (Area of Interest) - 5x5 Celdas (2500px x 2500px) a 15 FPS con Delta Compression
+        const isNetworkTick = (loopCounter % 2 === 0);
+
         Object.values(players).forEach(p => {
             if (!p.zone) return;
             // LOBBY OPTIMIZATION: no enviar enemiesMoved a jugadores del Lobby (no hay IAs activas ahí)
             if (Number(p.zone) === lobbyZoneId) return;
+
+            if (!p._lastSentEnemies) {
+                p._lastSentEnemies = {};
+            }
             
+            const currentAoiEnemyIds = new Set();
             const aoiData = {};
             let count = 0;
 
@@ -131,20 +140,77 @@ function startGameLoop(io, state, aiManager) {
                     if (cell) {
                         cell.enemies.forEach(e => {
                             if (normalizeZone(e.zone) === pZoneNormalized && enemies[e.id] && enemies[e.id].hp > 0) {
-                                aoiData[e.id] = {
-                                    id: e.id, x: e.x, y: e.y, rotation: e.rotation,
-                                    hp: e.hp, shield: e.shield, zone: e.zone, type: e.type,
-                                    name: e.name, isRage: e.isRage, isRamming: e.ai && e.ai.isRamming,
-                                    isInvulnerable: e.isInvulnerable // v269.180: Sincronía visual
-                                };
-                                count++;
+                                currentAoiEnemyIds.add(e.id);
+                                
+                                // Precision Reduction: Redondear posiciones y rotaciones para achicar el JSON de red
+                                const roundedX = Math.round(e.x);
+                                const roundedY = Math.round(e.y);
+                                const roundedRot = Math.round(e.rotation * 100) / 100;
+                                const isRamming = !!(e.ai && e.ai.isRamming);
+                                const isInvulnerable = !!e.isInvulnerable;
+                                const isRage = !!e.isRage;
+
+                                // Delta Compression: Validar si el estado cambio sustancialmente
+                                const last = p._lastSentEnemies[e.id];
+                                let shouldSend = false;
+
+                                if (!last) {
+                                    shouldSend = true;
+                                } else {
+                                    const posChanged = Math.abs(last.x - roundedX) >= 2 || Math.abs(last.y - roundedY) >= 2;
+                                    const rotChanged = Math.abs(last.rotation - roundedRot) >= 0.05;
+                                    const stateChanged = last.hp !== e.hp || 
+                                                         last.shield !== e.shield || 
+                                                         last.isRage !== isRage || 
+                                                         last.isRamming !== isRamming || 
+                                                         last.isInvulnerable !== isInvulnerable;
+
+                                    if (posChanged || rotChanged || stateChanged) {
+                                        shouldSend = true;
+                                    }
+                                }
+
+                                if (shouldSend) {
+                                    aoiData[e.id] = {
+                                        id: e.id,
+                                        x: roundedX,
+                                        y: roundedY,
+                                        rotation: roundedRot,
+                                        hp: e.hp,
+                                        shield: e.shield,
+                                        zone: e.zone,
+                                        type: e.type,
+                                        name: e.name,
+                                        isRage: isRage,
+                                        isRamming: isRamming,
+                                        isInvulnerable: isInvulnerable
+                                    };
+                                    p._lastSentEnemies[e.id] = {
+                                        x: roundedX,
+                                        y: roundedY,
+                                        rotation: roundedRot,
+                                        hp: e.hp,
+                                        shield: e.shield,
+                                        isRage: isRage,
+                                        isRamming: isRamming,
+                                        isInvulnerable: isInvulnerable
+                                    };
+                                    count++;
+                                }
                             }
                         });
                     }
                 }
             }
 
-            if (count > 0) {
+            // Cleanup de cache RAM para enemigos fuera del rango del jugador
+            for (const cachedId in p._lastSentEnemies) {
+                if (!currentAoiEnemyIds.has(Number(cachedId)) && !currentAoiEnemyIds.has(cachedId)) {
+                    delete p._lastSentEnemies[cachedId];
+                }
+            }
+
+            if (count > 0 && isNetworkTick) {
                 io.to(p.socketId).emit('enemiesMoved', aoiData);
             }
         });

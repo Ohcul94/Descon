@@ -293,7 +293,11 @@
                     <div class="nav-folder" onclick="toggleFolder('folder-audit')">🕒 Auditoría <span class="chevron">▶</span></div>
                     <div id="folder-audit" class="folder-content">
                         <div class="nav-link sub" id="nav-sessions-online" onclick="setSessionSubTab('online', this)">🟢 Pilotos en Órbita</div>
-                        <div class="nav-link sub" id="nav-sessions-performance" onclick="setSessionSubTab('performance', this)">📊 Rendimiento y Consumo</div>
+                        <div class="nav-link sub" id="nav-sessions-performance" onclick="toggleFolder('subfolder-performance', event)">📊 Rendimiento y Consumo <span class="chevron">▶</span></div>
+                        <div id="subfolder-performance" class="folder-content" style="padding-left: 1rem; border-left: 1px solid rgba(255,255,255,0.05); margin-left: 0.5rem;">
+                            <div class="nav-link sub" id="nav-performance-local" onclick="setPerformanceEnv('local', this)" style="font-size: 0.85rem; padding: 0.5rem 1rem;">💻 Local</div>
+                            <div class="nav-link sub" id="nav-performance-cloud" onclick="setPerformanceEnv('cloud', this)" style="font-size: 0.85rem; padding: 0.5rem 1rem;">☁️ Server</div>
+                        </div>
                         <div class="nav-link sub" id="nav-sessions-history" onclick="setSessionSubTab('history', this)">📜 Historial de Bitácora</div>
                         <div class="nav-link sub" id="nav-sessions-users" onclick="setSessionSubTab('users', this)">👥 Gestión de Pilotos</div>
                     </div>

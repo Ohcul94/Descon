@@ -28,6 +28,9 @@ const SERVER_URLS = {
     cloud: 'http://138.2.241.76:3333'
 };
 let activeEnv = localStorage.getItem('admin_env') || 'local';
+let socketLocal = null;
+let socketCloud = null;
+let activePerformanceEnv = localStorage.getItem('admin_perf_env') || 'local';
 
 function setEnv(env) {
     activeEnv = env;
@@ -148,10 +151,10 @@ function showTab(tabId) {
         else if (currentSessionSubTab === 'history') socket.emit('getSessions', { page: currentSessionPage });
         else if (currentSessionSubTab === 'users') socket.emit('getRegisteredUsers');
         else if (currentSessionSubTab === 'performance') {
-            socket.emit('getServerPerformance');
+            triggerPerformanceRequest();
             telemetryInterval = setInterval(() => {
-                if (socket && socket.connected && currentSessionSubTab === 'performance') {
-                    socket.emit('getServerPerformance');
+                if (currentSessionSubTab === 'performance') {
+                    triggerPerformanceRequest();
                 }
             }, 2500);
         }
@@ -188,17 +191,49 @@ function connect() {
     const err  = document.getElementById('login-error');
 
     const targetUrl = SERVER_URLS[activeEnv] || SERVER_URLS.local;
-    const envLabel  = activeEnv === 'cloud' ? '☁️ ORACLE CLOUD' : '💻 LOCAL';
+    const envLabel  = activeEnv === 'cloud' ? '☁️ SERVER' : '💻 LOCAL';
 
-    if (socket) {
-        socket.disconnect();
-    }
+    if (socket) socket.disconnect();
+    if (socketLocal) socketLocal.disconnect();
+    if (socketCloud) socketCloud.disconnect();
     
     btn.innerText = `CONECTANDO A ${envLabel.toUpperCase()}...`;
-    socket = io(targetUrl);
+    
+    // Conexiones de telemetría paralela dedicadas
+    socketLocal = io(SERVER_URLS.local);
+    socketCloud = io(SERVER_URLS.cloud);
+    
+    // El socket de operación principal apunta a la selección del Login
+    socket = activeEnv === 'cloud' ? socketCloud : socketLocal;
 
+    // Login en socket principal (bloqueante / decisivo para el Login)
     socket.on('connect', () => socket.emit('login', { user, password: pass, isAdmin: true }));
 
+    // Conectar y loguear el secundario de forma asíncrona / silenciosa
+    socketLocal.on('connect', () => {
+        if (activeEnv !== 'local') {
+            socketLocal.emit('login', { user, password: pass, isAdmin: true });
+        }
+    });
+    socketCloud.on('connect', () => {
+        if (activeEnv !== 'cloud') {
+            socketCloud.emit('login', { user, password: pass, isAdmin: true });
+        }
+    });
+
+    // Direccionamiento dinámico de telemetrías
+    socketLocal.on('serverPerformanceData', (data) => {
+        if (activePerformanceEnv === 'local' && currentSessionSubTab === 'performance') {
+            if (typeof renderPerformance === 'function') renderPerformance(data);
+        }
+    });
+    socketCloud.on('serverPerformanceData', (data) => {
+        if (activePerformanceEnv === 'cloud' && currentSessionSubTab === 'performance') {
+            if (typeof renderPerformance === 'function') renderPerformance(data);
+        }
+    });
+
+    // Operaciones del Dashboard atadas al socket del entorno principal
     socket.on('adminConfigUpdated', (data) => {
         config = data;
         patchMechanicsLib();
@@ -227,12 +262,6 @@ function connect() {
         renderRegisteredUsers(data);
     });
 
-    socket.on('serverPerformanceData', (data) => {
-        if (typeof renderPerformance === 'function') {
-            renderPerformance(data);
-        }
-    });
-
     socket.on('loginSuccess', (data) => {
         if(remember) {
             localStorage.setItem('admin_user', user);
@@ -242,9 +271,9 @@ function connect() {
             localStorage.removeItem('admin_pass');
         }
         document.getElementById('login-overlay').style.display = 'none';
-        const envLabel = activeEnv === 'cloud' ? `☁️ CLOUD: ${user.toUpperCase()}` : `💻 LOCAL: ${user.toUpperCase()}`;
+        const envLabelText = activeEnv === 'cloud' ? `☁️ SERVER: ${user.toUpperCase()}` : `💻 LOCAL: ${user.toUpperCase()}`;
         document.getElementById('conn-dot').classList.add('online');
-        document.getElementById('conn-text').innerText = envLabel;
+        document.getElementById('conn-text').innerText = envLabelText;
         if(data.adminConfig) { 
             config = data.adminConfig; 
             // v1.9: Inicializar configuración de piloto si es nueva
@@ -326,6 +355,16 @@ function connect() {
             else showTab(lastTab);
         }
         else showTab(lastTab);
+
+        // Si la pestaña actual tras el login es performance, expandimos la subcarpeta y activamos el tab visual
+        if (lastSessionTab === 'performance' || lastTab === 'performance') {
+            setTimeout(() => {
+                const subperf = document.getElementById('subfolder-performance');
+                if (subperf) subperf.classList.add('show');
+                const activeBtn = document.getElementById('nav-performance-' + activePerformanceEnv);
+                if (activeBtn) activeBtn.classList.add('active');
+            }, 100);
+        }
     });
 
     socket.on('disconnect', () => {
@@ -440,8 +479,20 @@ function setSessionSubTab(tab) {
     
     // Actualizar estados visuales en el sidebar
     document.querySelectorAll('#folder-audit .nav-link').forEach(b => b.classList.remove('active'));
-    const linkEl = document.getElementById('nav-sessions-' + tab);
-    if (linkEl) linkEl.classList.add('active');
+    
+    if (tab === 'performance') {
+        const subFolder = document.getElementById('subfolder-performance');
+        if (subFolder) subFolder.classList.add('show');
+        
+        const linkEl = document.getElementById('nav-performance-' + activePerformanceEnv);
+        if (linkEl) linkEl.classList.add('active');
+        
+        const parentLink = document.getElementById('nav-sessions-performance');
+        if (parentLink) parentLink.classList.add('active');
+    } else {
+        const linkEl = document.getElementById('nav-sessions-' + tab);
+        if (linkEl) linkEl.classList.add('active');
+    }
     
     // Limpiar telemetryInterval anterior
     if (telemetryInterval) {
@@ -463,13 +514,34 @@ function setSessionSubTab(tab) {
     } else if (tab === 'users') {
         socket.emit('getRegisteredUsers');
     } else if (tab === 'performance') {
-        socket.emit('getServerPerformance');
+        triggerPerformanceRequest();
         telemetryInterval = setInterval(() => {
-            if (socket && socket.connected && currentSessionSubTab === 'performance') {
-                socket.emit('getServerPerformance');
+            if (currentSessionSubTab === 'performance') {
+                triggerPerformanceRequest();
             }
         }, 2500);
     }
+}
+
+function triggerPerformanceRequest() {
+    if (activePerformanceEnv === 'local') {
+        if (socketLocal && socketLocal.connected) socketLocal.emit('getServerPerformance');
+    } else {
+        if (socketCloud && socketCloud.connected) socketCloud.emit('getServerPerformance');
+    }
+}
+
+function setPerformanceEnv(env, btn) {
+    activePerformanceEnv = env;
+    localStorage.setItem('admin_perf_env', env);
+    
+    // Limpiar contenedor para evitar ver datos viejos de otra instancia al conmutar
+    const container = document.getElementById('perf-aaa-container');
+    if (container) {
+        container.innerHTML = `<div style="color:#555; font-style:italic; padding:2rem; text-align:center;">Esperando datos de telemetria de ${env.toUpperCase() === 'CLOUD' ? 'SERVER' : 'LOCAL'}...</div>`;
+    }
+    
+    setSessionSubTab('performance');
 }
 
 function openPlayerSessionsModal(username) {
@@ -506,6 +578,9 @@ function logout() {
     localStorage.removeItem('admin_user');
     localStorage.removeItem('admin_pass');
     localStorage.removeItem('admin_last_tab');
+    localStorage.removeItem('admin_perf_env');
+    if (socketLocal) socketLocal.disconnect();
+    if (socketCloud) socketCloud.disconnect();
     location.reload();
 }
 
