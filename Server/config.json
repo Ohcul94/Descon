@@ -205,21 +205,23 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 10,
-                    "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000
+                    "bulletDamage": 40,
+                    "bulletSpeed": 900,
+                    "fireRange": 1000,
+                    "fireRate": 3000
                 },
                 {
-                    "type": "missile",
+                    "type": "ice_missile",
                     "bulletDamage": 10,
                     "bulletSpeed": 600,
-                    "fireRange": 600,
+                    "fireRange": 1000,
                     "fireRate": 2000,
-                    "lifetimeMs": 3000,
+                    "lifetimeMs": 4000,
                     "turnSpeed": 2,
                     "isHoming": true,
-                    "startDelay": 2000
+                    "startDelay": 500,
+                    "slowAmount": 50,
+                    "slowDuration": 2000
                 }
             ],
             "movementPhases": [
@@ -234,7 +236,17 @@
             "chaseIdleTimeout": 0,
             "aggressive": true,
             "defenseMechanics": [],
-            "regenDelayMs": 10000
+            "regenDelayMs": 6000,
+            "visionRange": 1000,
+            "stopOnOutOfSight": true,
+            "leashRange": 1000,
+            "chaseUntilDeath": true,
+            "lootDrops": [
+                {
+                    "itemId": "las1",
+                    "chance": 0.8
+                }
+            ]
         },
         "4": {
             "bulletDamage": 250,
@@ -270,7 +282,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "regenDelayMs": 10000
+            "regenDelayMs": 10000,
+            "aggressive": false
         },
         "5": {
             "bulletDamage": 120,
@@ -296,15 +309,15 @@
                 },
                 {
                     "type": "orbital_strike",
-                    "bulletDamage": 400,
+                    "bulletDamage": 100,
                     "bulletSpeed": 800,
                     "fireRange": 800,
-                    "fireRate": 3000,
+                    "fireRate": 5000,
                     "circleCount": 5,
                     "orbitDuration": 3000,
                     "orbitRadius": 100,
                     "staticTime": 500,
-                    "startDelay": 1000,
+                    "startDelay": 700,
                     "orbitSpeed": 2
                 }
             ],
@@ -320,14 +333,17 @@
                     "speed": 500,
                     "stopDist": 150,
                     "startDelay": 2000,
-                    "activationHP": 30,
+                    "activationHP": 20,
                     "explosionDamage": 150,
                     "duration": 3000,
                     "explodeOnDeath": 150
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "stopOnOutOfSight": true,
+            "leashRange": 1000,
+            "visionRange": 1000
         },
         "6": {
             "bulletDamage": 200,
@@ -777,19 +793,12 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 80,
-                    "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000,
-                    "slowAmount": 0,
-                    "slowDuration": 0
-                },
-                {
-                    "type": "laser",
                     "bulletDamage": 20,
                     "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000
+                    "fireRange": 800,
+                    "fireRate": 3000,
+                    "slowAmount": 0,
+                    "slowDuration": 0
                 }
             ],
             "movementPhases": [
@@ -810,7 +819,14 @@
             "stopOnOutOfSight": true,
             "chaseUntilDeath": false,
             "aggressive": true,
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "leashRange": 1500,
+            "lootDrops": [
+                {
+                    "itemId": "las1",
+                    "chance": 0.8
+                }
+            ]
         },
         "1-B": {
             "bulletDamage": 120,
@@ -977,22 +993,25 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 20,
+                    "bulletDamage": 30,
                     "bulletSpeed": 800,
-                    "fireRange": 650,
-                    "fireRate": 1200,
+                    "fireRange": 900,
+                    "fireRate": 3000,
                     "slowAmount": 0,
                     "slowDuration": 0
                 },
                 {
-                    "type": "ice_missile",
-                    "bulletDamage": 80,
-                    "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000,
-                    "slowAmount": 500,
-                    "slowDuration": 200,
-                    "isHoming": false
+                    "type": "missile",
+                    "bulletDamage": 25,
+                    "bulletSpeed": 600,
+                    "fireRange": 900,
+                    "fireRate": 5000,
+                    "slowAmount": 50,
+                    "slowDuration": 2000,
+                    "isHoming": true,
+                    "startDelay": 500,
+                    "lifetimeMs": 0,
+                    "turnSpeed": 0
                 }
             ],
             "movementPhases": [
@@ -1003,7 +1022,17 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "visionRange": 900,
+            "aggressive": true,
+            "stopOnOutOfSight": true,
+            "leashRange": 1000,
+            "lootDrops": [
+                {
+                    "itemId": "las1",
+                    "chance": 0.8
+                }
+            ]
         },
         "2-B": {
             "bulletDamage": 1800,
@@ -1149,21 +1178,23 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 20,
-                    "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000
+                    "bulletDamage": 40,
+                    "bulletSpeed": 900,
+                    "fireRange": 1000,
+                    "fireRate": 3000
                 },
                 {
-                    "type": "missile",
+                    "type": "ice_missile",
                     "bulletDamage": 20,
                     "bulletSpeed": 600,
-                    "fireRange": 600,
+                    "fireRange": 1000,
                     "fireRate": 2000,
                     "lifetimeMs": 3000,
                     "turnSpeed": 2,
                     "isHoming": true,
-                    "startDelay": 2000
+                    "startDelay": 500,
+                    "slowAmount": 50,
+                    "slowDuration": 2000
                 }
             ],
             "movementPhases": [
@@ -1176,7 +1207,11 @@
             ],
             "chaseMissTimeout": 0,
             "chaseIdleTimeout": 0,
-            "aggressive": true
+            "aggressive": true,
+            "defenseMechanics": [],
+            "visionRange": 1000,
+            "stopOnOutOfSight": true,
+            "leashRange": 1000
         },
         "3-B": {
             "bulletDamage": 240,
@@ -1520,15 +1555,30 @@
             "speed": 280,
             "mechanics": [
                 {
-                    "type": "mega_laser",
-                    "bulletDamage": 2000,
-                    "bulletSpeed": 800,
-                    "fireRange": 800,
+                    "type": "laser",
+                    "bulletDamage": 60,
+                    "bulletSpeed": 1000,
+                    "fireRange": 1000,
                     "fireRate": 3000,
                     "chargeTimeMs": 2000,
                     "lifetimeMs": 1500,
                     "turnSpeed": 1,
-                    "lockTimeMs": 800
+                    "lockTimeMs": 800,
+                    "startDelay": 0,
+                    "isHoming": 0
+                },
+                {
+                    "type": "mega_laser",
+                    "bulletDamage": 1000,
+                    "bulletSpeed": 800,
+                    "fireRange": 1000,
+                    "fireRate": 5000,
+                    "chargeTimeMs": 2000,
+                    "startDelay": 1000,
+                    "lifetimeMs": 1000,
+                    "turnSpeed": 0,
+                    "lockTimeMs": 1000,
+                    "isHoming": 0
                 }
             ],
             "movementPhases": [
@@ -1539,7 +1589,11 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "aggressive": true,
+            "stopOnOutOfSight": true,
+            "leashRange": 1000,
+            "visionRange": 1000
         },
         "4-B": {
             "bulletDamage": 750,
@@ -1661,24 +1715,24 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 240,
+                    "bulletDamage": 70,
                     "bulletSpeed": 800,
-                    "fireRange": 750,
-                    "fireRate": 1500,
+                    "fireRange": 1000,
+                    "fireRate": 3000,
                     "slowAmount": 0,
                     "slowDuration": 0
                 },
                 {
                     "type": "orbital_strike",
-                    "bulletDamage": 800,
+                    "bulletDamage": 150,
                     "bulletSpeed": 800,
                     "fireRange": 800,
-                    "fireRate": 3000,
-                    "circleCount": 5,
+                    "fireRate": 5000,
+                    "circleCount": 4,
                     "orbitDuration": 3000,
                     "orbitRadius": 100,
-                    "staticTime": 500,
-                    "startDelay": 1000,
+                    "staticTime": 1000,
+                    "startDelay": 700,
                     "orbitSpeed": 2
                 }
             ],
@@ -1691,15 +1745,20 @@
                 },
                 {
                     "type": "kamikaze",
-                    "speed": 500,
+                    "speed": 350,
                     "stopDist": 150,
                     "startDelay": 2000,
-                    "activationHP": 30,
+                    "activationHP": 20,
                     "explosionDamage": 150,
                     "duration": 3000,
                     "explodeOnDeath": 150
                 }
-            ]
+            ],
+            "defenseMechanics": [],
+            "aggressive": true,
+            "stopOnOutOfSight": true,
+            "visionRange": 1000,
+            "leashRange": 1000
         },
         "5-B": {
             "bulletDamage": 360,
@@ -1754,7 +1813,8 @@
                     "duration": 3000,
                     "explodeOnDeath": 150
                 }
-            ]
+            ],
+            "defenseMechanics": []
         },
         "5-C": {
             "bulletDamage": 480,
@@ -2158,6 +2218,322 @@
                 }
             ],
             "defenseMechanics": []
+        },
+        "6-A": {
+            "bulletDamage": 400,
+            "bulletSpeed": 600,
+            "fireRange": 800,
+            "fireRate": 2500,
+            "hp": 30000,
+            "name": "Enemigo 6 A",
+            "rewardExp": 500,
+            "rewardHubs": 10000,
+            "rewardOhcu": 100,
+            "shield": 20,
+            "speed": 250,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 400,
+                    "bulletSpeed": 600,
+                    "fireRange": 800,
+                    "fireRate": 2500,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "radius": 300,
+                    "damage": 400,
+                    "intervalMs": 400,
+                    "duration": 3000,
+                    "startDelay": 3500,
+                    "cooldown": 15000,
+                    "isHoming": 0,
+                    "turnSpeed": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 100,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true
+        },
+        "6-B": {
+            "bulletDamage": 600,
+            "bulletSpeed": 600,
+            "fireRange": 800,
+            "fireRate": 2500,
+            "hp": 45000,
+            "name": "Enemigo 6 B",
+            "rewardExp": 750,
+            "rewardHubs": 15000,
+            "rewardOhcu": 150,
+            "shield": 30,
+            "speed": 250,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 600,
+                    "bulletSpeed": 600,
+                    "fireRange": 800,
+                    "fireRate": 2500,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "radius": 300,
+                    "damage": 600,
+                    "intervalMs": 400,
+                    "duration": 3000,
+                    "startDelay": 3500,
+                    "cooldown": 15000,
+                    "isHoming": 0,
+                    "turnSpeed": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 100,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true
+        },
+        "6-C": {
+            "bulletDamage": 800,
+            "bulletSpeed": 600,
+            "fireRange": 800,
+            "fireRate": 2500,
+            "hp": 60000,
+            "name": "Enemigo 6 C",
+            "rewardExp": 1000,
+            "rewardHubs": 20000,
+            "rewardOhcu": 200,
+            "shield": 40,
+            "speed": 250,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 800,
+                    "bulletSpeed": 600,
+                    "fireRange": 800,
+                    "fireRate": 2500,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "radius": 300,
+                    "damage": 800,
+                    "intervalMs": 400,
+                    "duration": 3000,
+                    "startDelay": 3500,
+                    "cooldown": 15000,
+                    "isHoming": 0,
+                    "turnSpeed": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 100,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true
+        },
+        "6-D": {
+            "bulletDamage": 1000,
+            "bulletSpeed": 600,
+            "fireRange": 800,
+            "fireRate": 2500,
+            "hp": 75000,
+            "name": "Enemigo 6 D",
+            "rewardExp": 1250,
+            "rewardHubs": 25000,
+            "rewardOhcu": 250,
+            "shield": 50,
+            "speed": 250,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 1000,
+                    "bulletSpeed": 600,
+                    "fireRange": 800,
+                    "fireRate": 2500,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "radius": 300,
+                    "damage": 1000,
+                    "intervalMs": 400,
+                    "duration": 3000,
+                    "startDelay": 3500,
+                    "cooldown": 15000,
+                    "isHoming": 0,
+                    "turnSpeed": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 100,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true
+        },
+        "7-A": {
+            "bulletDamage": 320,
+            "bulletSpeed": 800,
+            "fireRange": 700,
+            "fireRate": 1300,
+            "hp": 6000,
+            "name": "Enemigo 7 A",
+            "rewardExp": 1200,
+            "rewardHubs": 2000,
+            "rewardOhcu": 20,
+            "shield": 3000,
+            "speed": 320,
+            "mechanics": [
+                {
+                    "type": "aura_damage",
+                    "bulletDamage": 20,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "radius": 500,
+                    "damage": 200,
+                    "intervalMs": 300,
+                    "duration": 3000,
+                    "cooldown": 5000,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 320,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "7-B": {
+            "bulletDamage": 480,
+            "bulletSpeed": 800,
+            "fireRange": 700,
+            "fireRate": 1300,
+            "hp": 9000,
+            "name": "Enemigo 7 B",
+            "rewardExp": 1800,
+            "rewardHubs": 3000,
+            "rewardOhcu": 30,
+            "shield": 4500,
+            "speed": 320,
+            "mechanics": [
+                {
+                    "type": "aura_damage",
+                    "bulletDamage": 30,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "radius": 500,
+                    "damage": 300,
+                    "intervalMs": 300,
+                    "duration": 3000,
+                    "cooldown": 5000,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 320,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "7-C": {
+            "bulletDamage": 640,
+            "bulletSpeed": 800,
+            "fireRange": 700,
+            "fireRate": 1300,
+            "hp": 12000,
+            "name": "Enemigo 7 C",
+            "rewardExp": 2400,
+            "rewardHubs": 4000,
+            "rewardOhcu": 40,
+            "shield": 6000,
+            "speed": 320,
+            "mechanics": [
+                {
+                    "type": "aura_damage",
+                    "bulletDamage": 40,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "radius": 500,
+                    "damage": 400,
+                    "intervalMs": 300,
+                    "duration": 3000,
+                    "cooldown": 5000,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 320,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
+        },
+        "7-D": {
+            "bulletDamage": 800,
+            "bulletSpeed": 800,
+            "fireRange": 700,
+            "fireRate": 1300,
+            "hp": 15000,
+            "name": "Enemigo 7 D",
+            "rewardExp": 3000,
+            "rewardHubs": 5000,
+            "rewardOhcu": 50,
+            "shield": 7500,
+            "speed": 320,
+            "mechanics": [
+                {
+                    "type": "aura_damage",
+                    "bulletDamage": 50,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "radius": 500,
+                    "damage": 500,
+                    "intervalMs": 300,
+                    "duration": 3000,
+                    "cooldown": 5000,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 320,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
         }
     },
     "hordeConfig": {
@@ -2250,15 +2626,6 @@
             "warpCost": 0,
             "ambience": [
                 {
-                    "type": "extreme_aggression",
-                    "damage": 10,
-                    "intervalMs": 300,
-                    "damageMult": 2,
-                    "speedMult": 1,
-                    "healthMult": 1,
-                    "respawnSpeedBonus": 0
-                },
-                {
                     "type": "radiation",
                     "damage": 10,
                     "intervalMs": 5000
@@ -2266,29 +2633,39 @@
             ],
             "spawns": [
                 {
-                    "type": "1",
+                    "type": "1-A",
                     "count": 5,
                     "intervalMs": 5000
                 },
                 {
-                    "type": "2",
+                    "type": "1-A",
                     "count": 5,
                     "intervalMs": 5000
                 },
                 {
-                    "type": "3",
+                    "type": "3-A",
                     "count": 5,
                     "intervalMs": 5000
                 },
                 {
-                    "type": "4",
+                    "type": "4-A",
                     "count": 5,
                     "intervalMs": 5000
                 },
                 {
-                    "type": "5",
+                    "type": "5-A",
                     "count": 5,
                     "intervalMs": 5000
+                },
+                {
+                    "type": "6-A",
+                    "count": 5,
+                    "intervalMs": 5000
+                },
+                {
+                    "type": "102",
+                    "count": 1,
+                    "intervalMs": 60000
                 }
             ]
         },
@@ -2402,7 +2779,14 @@
             "minLevel": 30,
             "name": "Mapa 8",
             "warpCost": 500,
-            "ambience": []
+            "ambience": [
+                {
+                    "type": "radiation",
+                    "damage": 10,
+                    "intervalMs": 10000
+                }
+            ],
+            "spawns": []
         },
         "9": {
             "color": "#aa00ff",
@@ -3393,7 +3777,8 @@
                 "allies": false,
                 "enemies": true,
                 "bosses": false,
-                "players": false
+                "players": false,
+                "clan": false
             }
         },
         "PROVOCACION": {
@@ -3439,7 +3824,8 @@
                 "allies": true,
                 "bosses": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "clan": false
             },
             "type": "Defensa"
         },
@@ -3455,7 +3841,8 @@
                 "allies": true,
                 "enemies": false,
                 "bosses": false,
-                "players": true
+                "players": true,
+                "clan": false
             }
         },
         "FROST-TRAIL": {
@@ -3472,7 +3859,8 @@
                 "allies": true,
                 "enemies": false,
                 "bosses": false,
-                "players": true
+                "players": true,
+                "clan": false
             }
         },
         "HYPER-DASH": {
@@ -3602,7 +3990,8 @@
                 "allies": true,
                 "enemies": false,
                 "bosses": false,
-                "players": true
+                "players": true,
+                "clan": false
             }
         },
         "STEALTH": {
