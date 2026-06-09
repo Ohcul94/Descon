@@ -2234,32 +2234,62 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 400,
-                    "bulletSpeed": 600,
-                    "fireRange": 800,
-                    "fireRate": 2500,
+                    "bulletDamage": 20,
+                    "bulletSpeed": 500,
+                    "fireRange": 300,
+                    "fireRate": 2000,
                     "slowAmount": 0,
                     "slowDuration": 0,
                     "radius": 300,
                     "damage": 400,
                     "intervalMs": 400,
                     "duration": 3000,
-                    "startDelay": 3500,
+                    "startDelay": 0,
                     "cooldown": 15000,
                     "isHoming": 0,
                     "turnSpeed": 0
+                },
+                {
+                    "type": "cone_cast",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "cooldown": 10000,
+                    "castTimeMs": 3000,
+                    "damage": 700,
+                    "stunDuration": 3000,
+                    "castSpeed": 0,
+                    "coneAngle": 0,
+                    "coneFollow": true,
+                    "lockTimeMs": 1000,
+                    "aimDelayMs": 1000,
+                    "startDelay": 1000
                 }
             ],
             "movementPhases": [
                 {
-                    "type": "chase",
+                    "type": "orbit",
                     "speed": 100,
                     "stopDist": 150,
-                    "startDelay": 0
+                    "startDelay": 0,
+                    "orbitRadius": 150
                 }
             ],
-            "defenseMechanics": [],
-            "aggressive": true
+            "defenseMechanics": [
+                {
+                    "type": "basic_defense",
+                    "reductionPercentage": 20,
+                    "shieldRegen": 5,
+                    "duration": 3000,
+                    "cooldown": 10000,
+                    "startDelay": 2000
+                }
+            ],
+            "aggressive": true,
+            "stopOnOutOfSight": true,
+            "visionRange": 1000,
+            "leashRange": 1500
         },
         "6-B": {
             "bulletDamage": 600,
@@ -2695,8 +2725,8 @@
                     "type": "freeze_hazard",
                     "spawnInterval": 4000,
                     "duration": 3000,
-                    "slowPercentage": 10,
-                    "slowFixed": 250
+                    "slowPercentage": 0,
+                    "slowFixed": 50
                 },
                 {
                     "type": "radiation",
@@ -4616,8 +4646,8 @@
             "spawnLockTime": 2000,
             "spawnPoints": [
                 {
-                    "x": 1167,
-                    "y": 1255,
+                    "x": 992,
+                    "y": 1037,
                     "label": "Spwan 1",
                     "radius": 500
                 },
@@ -4628,20 +4658,20 @@
                     "radius": 500
                 },
                 {
-                    "x": 4933,
-                    "y": 989,
+                    "x": 4992,
+                    "y": 1137,
                     "label": "Spwan 3",
                     "radius": 500
                 },
                 {
-                    "x": 7067,
-                    "y": 1122,
+                    "x": 7092,
+                    "y": 1204,
                     "label": "Spwan  4",
                     "radius": 500
                 },
                 {
-                    "x": 9000,
-                    "y": 1055,
+                    "x": 8959,
+                    "y": 1204,
                     "label": "Spwan 5",
                     "radius": 500
                 },

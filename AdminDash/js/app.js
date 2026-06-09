@@ -35,43 +35,43 @@ let activePerformanceEnv = localStorage.getItem('admin_perf_env') || 'local';
 function setEnv(env) {
     activeEnv = env;
     localStorage.setItem('admin_env', env);
-    const btnLocal  = document.getElementById('env-local');
-    const btnCloud  = document.getElementById('env-cloud');
+    const btnLocal = document.getElementById('env-local');
+    const btnCloud = document.getElementById('env-cloud');
     const urlDisplay = document.getElementById('env-url-display');
     if (!btnLocal || !btnCloud) return;
     if (env === 'local') {
         btnLocal.style.background = 'var(--primary)';
-        btnLocal.style.color      = '#000';
+        btnLocal.style.color = '#000';
         btnCloud.style.background = 'rgba(255,255,255,0.05)';
-        btnCloud.style.color      = 'var(--text-muted)';
+        btnCloud.style.color = 'var(--text-muted)';
         if (urlDisplay) urlDisplay.textContent = '127.0.0.1:3333';
     } else {
         btnCloud.style.background = '#f0a500';
-        btnCloud.style.color      = '#000';
+        btnCloud.style.color = '#000';
         btnLocal.style.background = 'rgba(255,255,255,0.05)';
-        btnLocal.style.color      = 'var(--text-muted)';
+        btnLocal.style.color = 'var(--text-muted)';
         if (urlDisplay) urlDisplay.textContent = '138.2.241.76:3333';
     }
 }
 
 function showTab(tabId) {
     localStorage.setItem('admin_last_tab', tabId);
-    
+
     if (telemetryInterval) {
         clearInterval(telemetryInterval);
         telemetryInterval = null;
     }
-    
+
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    
+
     // Limpiar clases active de todos los links del sidebar (principales y sub-links)
     document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
     // Limpiar clases active de todas las carpetas del menú
     document.querySelectorAll('.nav-folder').forEach(f => f.classList.remove('active'));
-    
+
     const view = document.getElementById('view-' + tabId);
-    if(view) view.classList.add('active');
-    
+    if (view) view.classList.add('active');
+
     // Resaltar el link del sidebar (sea sub-link o principal) que coincida con el tab o sub-tab activo
     let sidebarLink;
     if (tabId === 'ammo') {
@@ -123,12 +123,12 @@ function showTab(tabId) {
             }
         }
     }
-    
+
     // Resetear flag al final del procesamiento de navegación
     folderToggledThisClick = null;
-    
-    const titles = { 
-        'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas', 
+
+    const titles = {
+        'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas',
         'ammo': 'Mercado: Municiones', 'weapons': 'Mercado: Armamento',
         'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión',
         'skills': 'Protocolos de Combate', 'mechanics': 'Librería de Mecánicas',
@@ -144,9 +144,9 @@ function showTab(tabId) {
         'chat-global': 'Transmisión y Chat Global'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
-    
-    if(tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
-    if(tabId === 'sessions' || tabId === 'users' || tabId === 'performance') {
+
+    if (tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
+    if (tabId === 'sessions' || tabId === 'users' || tabId === 'performance') {
         if (currentSessionSubTab === 'online') socket.emit('getOnlinePlayers');
         else if (currentSessionSubTab === 'history') socket.emit('getSessions', { page: currentSessionPage });
         else if (currentSessionSubTab === 'users') socket.emit('getRegisteredUsers');
@@ -159,7 +159,7 @@ function showTab(tabId) {
             }, 2500);
         }
     }
-    
+
     // Refrescar tab actual
     refreshCurrentTab();
 
@@ -175,34 +175,34 @@ window.onload = () => {
 
     const savedUser = localStorage.getItem('admin_user');
     const savedPass = localStorage.getItem('admin_pass');
-    if(savedUser && savedPass) {
+    if (savedUser && savedPass) {
         document.getElementById('admin-user').value = savedUser;
         document.getElementById('admin-pass').value = savedPass;
         document.getElementById('remember-me').checked = true;
-        connect(); 
+        connect();
     }
 };
 
 function connect() {
-    const user    = document.getElementById('admin-user').value;
-    const pass    = document.getElementById('admin-pass').value;
+    const user = document.getElementById('admin-user').value;
+    const pass = document.getElementById('admin-pass').value;
     const remember = document.getElementById('remember-me').checked;
-    const btn  = document.querySelector('#login-overlay button[onclick="connect()"]');
-    const err  = document.getElementById('login-error');
+    const btn = document.querySelector('#login-overlay button[onclick="connect()"]');
+    const err = document.getElementById('login-error');
 
     const targetUrl = SERVER_URLS[activeEnv] || SERVER_URLS.local;
-    const envLabel  = activeEnv === 'cloud' ? '☁️ SERVER' : '💻 LOCAL';
+    const envLabel = activeEnv === 'cloud' ? '☁️ SERVER' : '💻 LOCAL';
 
     if (socket) socket.disconnect();
     if (socketLocal) socketLocal.disconnect();
     if (socketCloud) socketCloud.disconnect();
-    
+
     btn.innerText = `CONECTANDO A ${envLabel.toUpperCase()}...`;
-    
+
     // Conexiones de telemetría paralela dedicadas
     socketLocal = io(SERVER_URLS.local);
     socketCloud = io(SERVER_URLS.cloud);
-    
+
     // El socket de operación principal apunta a la selección del Login
     socket = activeEnv === 'cloud' ? socketCloud : socketLocal;
 
@@ -245,7 +245,7 @@ function connect() {
         lastSessionsTotal = data.total;
         currentSessionPage = data.page;
         renderSessions(data.sessions);
-        document.getElementById('page-indicator').innerText = `PÁGINA ${currentSessionPage + 1} de ${Math.ceil(lastSessionsTotal/50)}`;
+        document.getElementById('page-indicator').innerText = `PÁGINA ${currentSessionPage + 1} de ${Math.ceil(lastSessionsTotal / 50)}`;
     });
 
     socket.on('playerSessionsDetail', (data) => {
@@ -263,7 +263,7 @@ function connect() {
     });
 
     socket.on('loginSuccess', (data) => {
-        if(remember) {
+        if (remember) {
             localStorage.setItem('admin_user', user);
             localStorage.setItem('admin_pass', pass);
         } else {
@@ -274,8 +274,8 @@ function connect() {
         const envLabelText = activeEnv === 'cloud' ? `☁️ SERVER: ${user.toUpperCase()}` : `💻 LOCAL: ${user.toUpperCase()}`;
         document.getElementById('conn-dot').classList.add('online');
         document.getElementById('conn-text').innerText = envLabelText;
-        if(data.adminConfig) { 
-            config = data.adminConfig; 
+        if (data.adminConfig) {
+            config = data.adminConfig;
             // v1.9: Inicializar configuración de piloto si es nueva
             if (!config.pilotConfig) {
                 config.pilotConfig = {
@@ -296,10 +296,10 @@ function connect() {
             if (!config.gameModes) {
                 config.gameModes = {
                     hunting: { enabled: true, targets: [], rewardMult: 1.2 },
-                    extraction: { 
-                        enabled: true, 
-                        maxPlayers: 21, 
-                        countdownTime: 10, 
+                    extraction: {
+                        enabled: true,
+                        maxPlayers: 21,
+                        countdownTime: 10,
                         extractRadius: 150,
                         maps: [2],
                         extractPoints: [
@@ -331,7 +331,7 @@ function connect() {
 
             patchMechanicsLib();
             syncChatGlobalToggle();
-            renderAll(); 
+            renderAll();
         }
 
         // Conectar el socket del chat global dedicado de forma automática tras loguearse
@@ -339,14 +339,14 @@ function connect() {
         const chatSelect = document.getElementById('chat-server-select');
         if (chatSelect) chatSelect.value = savedChatServer;
         changeChatServer(savedChatServer);
-        
+
         // v267.200: Restaurar última vista tras login
         const lastTab = localStorage.getItem('admin_last_tab') || 'ships';
         const lastMap = localStorage.getItem('admin_last_map');
         const lastEnemy = localStorage.getItem('admin_last_enemy');
         const lastLootEnemy = localStorage.getItem('admin_last_loot_enemy');
         const lastSessionTab = localStorage.getItem('admin_last_session_tab');
-        
+
         if (lastTab === 'map-detail' && lastMap) selectMap(lastMap);
         else if (lastTab === 'enemy-detail' && lastEnemy) selectEnemy(lastEnemy);
         else if (lastTab === 'enemy-loot' && lastLootEnemy) selectLootEnemy(lastLootEnemy);
@@ -385,18 +385,18 @@ function connect() {
     });
 }
 
-function getFilter() { 
-    return (document.getElementById('global-filter')?.value || '').toLowerCase(); 
+function getFilter() {
+    return (document.getElementById('global-filter')?.value || '').toLowerCase();
 }
 
 function toggleFolder(id, event) {
     if (event) event.stopPropagation();
     const el = document.getElementById(id);
     if (!el) return;
-    
+
     el.classList.toggle('show');
     folderToggledThisClick = id; // Registrar que esta carpeta fue alterada en este clic
-    
+
     // Buscar el chevron en el elemento que disparó el click
     const header = document.querySelector(`[onclick*="${id}"]`);
     if (header) {
@@ -476,30 +476,30 @@ function setSessionSubTab(tab) {
     if (tab === 'users') showTab('users');
     else if (tab === 'performance') showTab('performance');
     else showTab('sessions');
-    
+
     // Actualizar estados visuales en el sidebar
     document.querySelectorAll('#folder-audit .nav-link').forEach(b => b.classList.remove('active'));
-    
+
     if (tab === 'performance') {
         const subFolder = document.getElementById('subfolder-performance');
         if (subFolder) subFolder.classList.add('show');
-        
+
         const linkEl = document.getElementById('nav-performance-' + activePerformanceEnv);
         if (linkEl) linkEl.classList.add('active');
-        
+
         const parentLink = document.getElementById('nav-sessions-performance');
         if (parentLink) parentLink.classList.add('active');
     } else {
         const linkEl = document.getElementById('nav-sessions-' + tab);
         if (linkEl) linkEl.classList.add('active');
     }
-    
+
     // Limpiar telemetryInterval anterior
     if (telemetryInterval) {
         clearInterval(telemetryInterval);
         telemetryInterval = null;
     }
-    
+
     if (tab === 'online') {
         socket.emit('getOnlinePlayers');
         document.getElementById('pagination-controls').style.display = 'none';
@@ -534,13 +534,13 @@ function triggerPerformanceRequest() {
 function setPerformanceEnv(env, btn) {
     activePerformanceEnv = env;
     localStorage.setItem('admin_perf_env', env);
-    
+
     // Limpiar contenedor para evitar ver datos viejos de otra instancia al conmutar
     const container = document.getElementById('perf-aaa-container');
     if (container) {
         container.innerHTML = `<div style="color:#555; font-style:italic; padding:2rem; text-align:center;">Esperando datos de telemetria de ${env.toUpperCase() === 'CLOUD' ? 'SERVER' : 'LOCAL'}...</div>`;
     }
-    
+
     setSessionSubTab('performance');
 }
 
@@ -560,7 +560,7 @@ function changePlayerDetailPage(dir) {
     const newPage = currentDetailPage + dir;
     if (newPage < 0) return;
     if (newPage >= Math.ceil(lastDetailTotal / 30)) return;
-    
+
     currentDetailPage = newPage;
     socket.emit('getPlayerSessions', { username: selectedDetailPlayer, page: newPage });
 }
@@ -569,7 +569,7 @@ function changeSessionPage(dir) {
     const newPage = currentSessionPage + dir;
     if (newPage < 0) return;
     if (newPage >= Math.ceil(lastSessionsTotal / 50)) return;
-    
+
     currentSessionPage = newPage;
     socket.emit('getSessions', { page: currentSessionPage });
 }
@@ -585,13 +585,13 @@ function logout() {
 }
 
 function addAmmoMechanic(type, idx) {
-    if(!config.shopItems.ammo[type][idx].mechanics) config.shopItems.ammo[type][idx].mechanics = [];
+    if (!config.shopItems.ammo[type][idx].mechanics) config.shopItems.ammo[type][idx].mechanics = [];
     config.shopItems.ammo[type][idx].mechanics.push({ type: "bleed", damagePerSecond: 5, duration: 3000 });
     renderAmmo();
 }
 
 function addMovementPhase(id) {
-    if(!config.enemyModels[id].movementPhases) config.enemyModels[id].movementPhases = [];
+    if (!config.enemyModels[id].movementPhases) config.enemyModels[id].movementPhases = [];
     config.enemyModels[id].movementPhases.push({ type: "chase", speed: 3.5, stopDist: 150, startDelay: 2000 });
 }
 
@@ -603,7 +603,7 @@ function updateMovementPhaseType(id, idx, type) {
     config.enemyModels[id].movementPhases[idx].type = type;
     const lib = (config.movementLib && config.movementLib[type]) ? config.movementLib[type] : DEFAULT_MOVEMENT_LIB[type];
     lib.fields.forEach(f => {
-        if(config.enemyModels[id].movementPhases[idx][f] === undefined) {
+        if (config.enemyModels[id].movementPhases[idx][f] === undefined) {
             if (f === 'speed') config.enemyModels[id].movementPhases[idx][f] = 3.5;
             else if (f === 'radius') config.enemyModels[id].movementPhases[idx][f] = 200;
             else if (f === 'speedBonus') config.enemyModels[id].movementPhases[idx][f] = 50;
@@ -620,7 +620,7 @@ function updateMovementPhaseType(id, idx, type) {
 function moveMovementPhase(id, idx, dir) {
     const arr = config.enemyModels[id].movementPhases;
     const newIdx = idx + dir;
-    if(newIdx < 0 || newIdx >= arr.length) return;
+    if (newIdx < 0 || newIdx >= arr.length) return;
     [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
 }
 
@@ -666,7 +666,7 @@ function removeDefenseMechanic(enemyId, idx) {
 function updateDefenseMechanicType(enemyId, idx, newType) {
     const mech = config.enemyModels[enemyId].defenseMechanics[idx];
     mech.type = newType;
-    
+
     // Inicializar campos según la LIB
     const lib = (config.defenseLib && config.defenseLib[newType]) ? config.defenseLib[newType] : DEFAULT_DEFENSE_LIB[newType];
     lib.fields.forEach(f => {
@@ -721,26 +721,26 @@ function updateMechanicType(enemyId, idx, newType) {
 function moveMechanic(enemyId, idx, dir) {
     const list = config.enemyModels[enemyId].mechanics;
     if (dir === -1 && idx > 0) {
-        [list[idx-1], list[idx]] = [list[idx], list[idx-1]];
+        [list[idx - 1], list[idx]] = [list[idx], list[idx - 1]];
     } else if (dir === 1 && idx < list.length - 1) {
-        [list[idx+1], list[idx]] = [list[idx], list[idx+1]];
+        [list[idx + 1], list[idx]] = [list[idx], list[idx + 1]];
     }
     renderEnemies();
 }
 
 function addAmbience(id) {
-    if(!config.mapsConfig[id].ambience) config.mapsConfig[id].ambience = [];
+    if (!config.mapsConfig[id].ambience) config.mapsConfig[id].ambience = [];
     config.mapsConfig[id].ambience.push({ type: "radiation", damage: 10, intervalMs: 300 });
 }
 
 function updateAmbienceType(mapId, idx, newType) {
     const hazard = config.mapsConfig[mapId].ambience[idx];
     hazard.type = newType;
-    
+
     // Limpiar campos específicos del tipo anterior para evitar basura
     const lib = AMBIENCE_LIB[newType];
     const newHazard = { type: newType };
-    
+
     // Inicializar campos requeridos con valores por defecto
     lib.fields.forEach(f => {
         if (f === 'spawnInterval') newHazard[f] = 15000;
@@ -754,13 +754,13 @@ function updateAmbienceType(mapId, idx, newType) {
         else if (f === 'intervalMs') newHazard[f] = 500;
         else newHazard[f] = 0;
     });
-    
+
     config.mapsConfig[mapId].ambience[idx] = newHazard;
     renderMapDetail();
 }
 
 function addMapSpawn(id) {
-    if(!config.mapsConfig[id].spawns) config.mapsConfig[id].spawns = [];
+    if (!config.mapsConfig[id].spawns) config.mapsConfig[id].spawns = [];
     config.mapsConfig[id].spawns.push({ type: "1", count: 5, intervalMs: 5000 });
 }
 
@@ -889,7 +889,7 @@ function sendAdminGlobalMessage() {
     if (!input) return;
     const msg = input.value.trim();
     if (!msg) return;
-    
+
     if (chatSocket && chatSocket.connected) {
         chatSocket.emit('adminGlobalMessage', { msg: msg });
     } else {
@@ -901,45 +901,45 @@ function sendAdminGlobalMessage() {
 function appendGlobalChatMessage(data) {
     const log = document.getElementById('chat-global-log');
     if (!log) return;
-    
+
     if (log.innerHTML.includes('Conectando al canal de comunicación...')) {
         log.innerHTML = '';
     }
-    
+
     const msgDiv = document.createElement('div');
     msgDiv.style.padding = '6px 10px';
     msgDiv.style.borderBottom = '1px solid rgba(255,255,255,0.02)';
     msgDiv.style.borderRadius = '4px';
     msgDiv.style.background = 'rgba(255,255,255,0.01)';
-    
+
     const time = new Date().toLocaleTimeString();
-    
+
     let senderColor = 'var(--primary)';
     if (data.sender === 'Caelli94' || data.sender === 'SYSTEM') {
         senderColor = 'var(--accent)';
     }
-    
+
     msgDiv.innerHTML = `
         <span style="color: #555; margin-right: 8px; font-size: 0.8rem;">[${time}]</span>
         <strong style="color: ${senderColor}; margin-right: 5px;">${data.sender}:</strong>
         <span style="color: #ccc;">${data.msg}</span>
     `;
-    
+
     log.appendChild(msgDiv);
     log.scrollTop = log.scrollHeight;
 }
 
 function saveConfig() {
-    if(!socket || !socket.connected) {
+    if (!socket || !socket.connected) {
         showToast("ERROR: No hay conexión con el servidor cósmico.");
         return;
     }
 
-    if(document.getElementById('view-json').classList.contains('active')) {
-        try { config = JSON.parse(document.getElementById('json-editor').value); } 
-        catch(e) { showToast("ERROR JSON: " + e.message); return; }
+    if (document.getElementById('view-json').classList.contains('active')) {
+        try { config = JSON.parse(document.getElementById('json-editor').value); }
+        catch (e) { showToast("ERROR JSON: " + e.message); return; }
     }
-    
+
     console.log("Enviando configuración al servidor...", config);
     socket.emit('saveAdminConfig', config);
     showToast("Configuración Local Sincronizada.");
@@ -950,11 +950,11 @@ function openConfirm(msg, title = "CONFIRMACIÓN") {
         document.getElementById('confirm-title').innerText = title;
         document.getElementById('confirm-msg').innerText = msg;
         document.getElementById('confirm-overlay').style.display = 'flex';
-        
+
         const okBtn = document.getElementById('confirm-ok-btn');
         const newOkBtn = okBtn.cloneNode(true); // Limpiar listeners viejos
         okBtn.parentNode.replaceChild(newOkBtn, okBtn);
-        
+
         newOkBtn.onclick = () => {
             document.getElementById('confirm-overlay').style.display = 'none';
             resolve(true);
@@ -977,14 +977,14 @@ async function deployToCloud() {
         "¿Estás seguro de desplegar TODA la configuración local al Servidor de Producción (Oracle)?\n\nEsto afectará a todos los jugadores activos.",
         "🚀 DESPLIEGUE A NUBE"
     );
-    
+
     if (!confirmed) return;
 
     showToast("🚀 INICIANDO DESPLIEGUE A NUBE...");
-    
+
     // Crear conexión temporal a Oracle
     const cloudSocket = io("http://138.2.241.76:3333");
-    
+
     cloudSocket.on('connect', () => {
         cloudSocket.emit('login', { user, password: pass, isAdmin: true });
     });
@@ -1036,12 +1036,12 @@ function toggleExtractionMap(id, enabled) {
 let radarMode = 'spawner'; // 'spawner' o 'extract'
 function setRadarMode(mode) {
     radarMode = mode;
-    
+
     // Actualizar visual de botones (Extracción)
     const btnSpawn = document.getElementById('btn-radar-spawn');
     const btnSpawner = document.getElementById('btn-radar-spawner');
     const btnExtract = document.getElementById('btn-radar-extract');
-    
+
     if (btnSpawn) {
         if (mode === 'spawn') {
             btnSpawn.classList.remove('btn-secondary');
@@ -1115,12 +1115,12 @@ function setRadarMode(mode) {
 
     const modeText = document.getElementById('radar-mode-text');
     if (modeText) modeText.innerText = mode === 'spawner' ? 'SPAWNER' : (mode === 'spawn' ? 'SPAWN' : 'ESCAPE');
-    
+
     // Toggle options display
     if (document.getElementById('radar-spawner-opts')) document.getElementById('radar-spawner-opts').style.display = mode === 'spawner' ? 'block' : 'none';
     if (document.getElementById('radar-extract-opts')) document.getElementById('radar-extract-opts').style.display = mode === 'extract' ? 'block' : 'none';
     if (document.getElementById('radar-spawn-opts')) document.getElementById('radar-spawn-opts').style.display = mode === 'spawn' ? 'block' : 'none';
-    
+
     if (document.getElementById('radar-ad-altar-opts')) document.getElementById('radar-ad-altar-opts').style.display = mode === 'ad-altar' ? 'block' : 'none';
     if (document.getElementById('radar-ad-spawn-opts')) document.getElementById('radar-ad-spawn-opts').style.display = mode === 'ad-spawn' ? 'block' : 'none';
     if (document.getElementById('radar-ad-spawner-opts')) document.getElementById('radar-ad-spawner-opts').style.display = mode === 'ad-spawner' ? 'block' : 'none';
@@ -1161,7 +1161,7 @@ function highlightCard(type, index) {
         card.style.borderColor = 'var(--accent)';
         card.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.45)';
         card.style.background = 'rgba(6, 182, 212, 0.08)';
-        
+
         // Auto-scroll suave hasta que la tarjeta sea 100% visible en el listado colapsable
         card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -1172,23 +1172,23 @@ function initRadar() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const container = document.getElementById('radar-container');
-    
+
     const isAltarDefense = (currentModeTab === 'altar_defense');
     const modeData = isAltarDefense ? config.gameModes.altar_defense : config.gameModes.extraction;
-    
+
     // Cargar imagen de fondo del mapa coordinada con la escena de Godot (sólo para extracción)
     const bgImage = new Image();
     if (!isAltarDefense) {
         bgImage.src = 'assets/mixboard-image.png';
     }
-    
+
     // Dimensiones dinámicas del mapa en píxeles (por defecto 10000)
     const worldW = (modeData && modeData.width) ? modeData.width : 10000;
     const worldH = (modeData && modeData.height) ? modeData.height : 10000;
-    
+
     // Estado de arrastre
     let isDragging = false;
-    let dragItem = null; 
+    let dragItem = null;
 
     const updateCanvasSize = () => {
         const w = container.clientWidth;
@@ -1223,7 +1223,7 @@ function initRadar() {
 
         if (isAltarDefense) {
             const ad = config.gameModes.altar_defense;
-            
+
             // 1. Altar
             if (ad.altarPos) {
                 const pos = worldToCanvas(ad.altarPos.x, ad.altarPos.y);
@@ -1235,7 +1235,7 @@ function initRadar() {
                     return;
                 }
             }
-            
+
             // 2. Spawn Points
             const spawnPoints = ad.spawnPoints || [];
             for (let i = 0; i < spawnPoints.length; i++) {
@@ -1249,7 +1249,7 @@ function initRadar() {
                     return;
                 }
             }
-            
+
             // 3. Spawners
             const spawners = ad.spawners || [];
             for (let i = 0; i < spawners.length; i++) {
@@ -1283,7 +1283,7 @@ function initRadar() {
             for (let i = 0; i < points.length; i++) {
                 const pos = worldToCanvas(points[i].x, points[i].y);
                 const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
-                if (dist < 15) { 
+                if (dist < 15) {
                     isDragging = true;
                     dragItem = { type: 'extract', index: i };
                     canvas.style.cursor = 'grabbing';
@@ -1329,7 +1329,7 @@ function initRadar() {
 
     window.onmousemove = (e) => {
         if (!isDragging || !dragItem) return;
-        
+
         const rect = canvas.getBoundingClientRect();
         const mouseX = Math.max(0, Math.min(canvas.width, e.clientX - rect.left));
         const mouseY = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
@@ -1409,7 +1409,7 @@ function initRadar() {
     const draw = () => {
         if (!document.getElementById('radar-canvas')) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
         // Dibujar imagen de fondo del mapa o fondo negro
         if (bgImage.complete && bgImage.naturalWidth !== 0) {
             ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
@@ -1417,13 +1417,13 @@ function initRadar() {
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-        
+
         // Dibujar Grid fino
         ctx.strokeStyle = 'rgba(0, 210, 255, 0.08)';
         ctx.lineWidth = 1;
         const gridDivisions = 10;
         for (let i = 1; i < gridDivisions; i++) {
-            if (i === gridDivisions / 2) continue; 
+            if (i === gridDivisions / 2) continue;
             ctx.beginPath();
             ctx.moveTo((canvas.width / gridDivisions) * i, 0);
             ctx.lineTo((canvas.width / gridDivisions) * i, canvas.height);
@@ -1437,12 +1437,12 @@ function initRadar() {
         // Dibujar líneas divisoria centrales
         ctx.strokeStyle = 'rgba(0, 140, 170, 0.35)';
         ctx.lineWidth = 3;
-        
+
         ctx.beginPath();
         ctx.moveTo(canvas.width / 2, 0);
         ctx.lineTo(canvas.width / 2, canvas.height);
         ctx.stroke();
-        
+
         ctx.beginPath();
         ctx.moveTo(0, canvas.height / 2);
         ctx.lineTo(canvas.width, canvas.height / 2);
@@ -1453,7 +1453,7 @@ function initRadar() {
             for (let j = 1; j < gridDivisions; j++) {
                 const px = (canvas.width / gridDivisions) * i;
                 const py = (canvas.height / gridDivisions) * j;
-                
+
                 ctx.beginPath();
                 ctx.arc(px, py, 2.5, 0, Math.PI * 2);
                 ctx.fill();
@@ -1462,7 +1462,7 @@ function initRadar() {
 
         if (isAltarDefense) {
             const ad = config.gameModes.altar_defense;
-            
+
             // Dibujar Altar - Verde
             if (ad.altarPos) {
                 const pos = worldToCanvas(ad.altarPos.x, ad.altarPos.y);
@@ -1636,7 +1636,7 @@ function initRadar() {
             points.forEach((p, idx) => {
                 const pos = worldToCanvas(p.x, p.y);
                 const isSelected = isDragging && dragItem && dragItem.type === 'extract' && dragItem.index === idx;
-                
+
                 const isFocused = focusedRadarItem && focusedRadarItem.type === 'extract' && focusedRadarItem.index === idx;
                 if (isFocused) {
                     const pulse = 4 + Math.sin(Date.now() / 150) * 3;
@@ -1654,7 +1654,7 @@ function initRadar() {
                 ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
-                
+
                 ctx.fillStyle = '#00d2ff';
                 ctx.font = '10px Outfit';
                 ctx.textAlign = 'center';
@@ -1685,7 +1685,7 @@ function initRadar() {
                 ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
-                
+
                 ctx.fillStyle = '#ff3131';
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
@@ -1707,7 +1707,7 @@ function addFromRadar() {
     const x = parseInt(document.getElementById('radar-x').value);
     const y = parseInt(document.getElementById('radar-y').value);
     const isAltarDefense = (currentModeTab === 'altar_defense');
-    
+
     if (isAltarDefense) {
         const ad = config.gameModes.altar_defense;
         if (radarMode === 'ad-altar') {
@@ -1851,7 +1851,7 @@ function addExtractionMap() {
 function toggleSidebar() {
     const nav = document.getElementById('sidebar');
     nav.classList.toggle('collapsed');
-    
+
     const btn = document.getElementById('sidebar-toggle');
     if (nav.classList.contains('collapsed')) {
         btn.innerHTML = '⮕';
@@ -1936,7 +1936,7 @@ function updateLootDropChanceFromEnemyLoot(enemyId, idx, chance) {
 }
 
 window.collapsedWaves = window.collapsedWaves || {};
-window.toggleWaveCollapse = function(idx) {
+window.toggleWaveCollapse = function (idx) {
     window.collapsedWaves[idx] = !window.collapsedWaves[idx];
     renderModes();
 };

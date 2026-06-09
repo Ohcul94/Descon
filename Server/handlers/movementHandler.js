@@ -21,6 +21,25 @@ const normalizeZone = (z) => {
 function registerMovementHandlers(socket, io, state) {
     const { players, enemies } = state;
 
+    const getMovementPayload = (p, id) => ({
+        id,
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+        rotation: Math.round((p.rotation || 0) * 100) / 100,
+        hp: Math.ceil(p.hp || 0),
+        shield: Math.ceil(p.shield || 0),
+        sh: Math.ceil(p.shield || 0),
+        maxHp: p.maxHp || 0,
+        maxShield: p.maxShield || 0,
+        zone: p.zone,
+        clanTag: p.clanTag || "",
+        currentShipId: p.currentShipId || 1,
+        pvpEnabled: !!p.pvpEnabled,
+        isInvisible: !!p.isInvisible,
+        isInvulnerable: !!p.isInvulnerable,
+        isDead: !!p.isDead
+    });
+
     // EVENTO DE MOVIMIENTO DE JUGADORES
     socket.on('playerMovement', async (movementData) => {
         if (!players[socket.id] || !socket.dbUser) return;
@@ -101,11 +120,9 @@ function registerMovementHandlers(socket, io, state) {
             
             // Notificar a los que ya estaban que llegamos nosotros
             const broadcastTarget = `zone_${targetZone}`;
-            socket.to(broadcastTarget).emit('newPlayer', { 
-                ...p, 
-                id: socket.id, 
-                spheres: p.spheres,
-                isInvisible: p.isInvisible 
+            socket.to(broadcastTarget).emit('newPlayer', {
+                ...getMovementPayload(p, socket.id),
+                spheres: p.spheres || []
             });
 
             Logger.debug('ZONE-SYNC', `${p.user} entró a zona ${targetZone}. Enviando estado en 350ms...`);
@@ -115,12 +132,9 @@ function registerMovementHandlers(socket, io, state) {
                     const otherP = players[pId];
                     if (normalizeZone(otherP.zone) === normalizeZone(targetZone) && pId !== socket.id) {
                         currentPlayersInZone[pId] = {
-                            ...otherP,
-                            id: pId,
+                            ...getMovementPayload(otherP, pId),
                             zone: targetZone,
-                            maxHp: otherP.maxHp || 2000,
-                            maxShield: otherP.maxShield || 1000,
-                            spheres: otherP.spheres
+                            spheres: otherP.spheres || []
                         };
                     }
                 });
@@ -143,12 +157,7 @@ function registerMovementHandlers(socket, io, state) {
         }
 
         // v2.2: OPTIMIZACIÓN DE RED POR SECTORES (AOI) EN ZONA DE EXTRACCIÓN O MAPA 10 (VISIBILIDAD ROBUSTA DIRECTA)
-        socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', { 
-            ...p, 
-            id: socket.id, 
-            spheres: p.spheres,
-            isInvisible: p.isInvisible 
-        });
+        socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', getMovementPayload(p, socket.id));
     });
 
     // EVENTO DE RESPAWN DE JUGADORES
@@ -179,12 +188,9 @@ function registerMovementHandlers(socket, io, state) {
                     const otherP = players[pId];
                     if (normalizeZone(otherP.zone) === normalizeZone(targetZone) && pId !== socket.id) {
                         currentPlayersInZone[pId] = {
-                            ...otherP,
-                            id: pId,
+                            ...getMovementPayload(otherP, pId),
                             zone: targetZone,
-                            maxHp: otherP.maxHp || 2000,
-                            maxShield: otherP.maxShield || 1000,
-                            spheres: otherP.spheres
+                            spheres: otherP.spheres || []
                         };
                     }
                 });
@@ -202,7 +208,11 @@ function registerMovementHandlers(socket, io, state) {
             }, 350);
         }
 
-        const respawnPayload = { ...p, id: socket.id, isDead: false };
+        const respawnPayload = {
+            ...getMovementPayload(p, socket.id),
+            isDead: false,
+            spheres: p.spheres || []
+        };
         socket.to(`zone_${p.zone}`).emit('newPlayer', respawnPayload);
         socket.to(`zone_${p.zone}`).emit('playerStatSync', {
             id: socket.id,

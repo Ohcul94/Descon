@@ -60,6 +60,42 @@ const altarDefenseManager = require('./systems/altarDefenseManager');
 // Configuración
 const PORT = process.env.PORT || 3333;
 const CONFIG_FILE = path.join(__dirname, 'config.json');
+const CLIENT_CONFIG_KEYS = [
+    'vaultConfig',
+    'inventoryConfig',
+    'ammoMultipliers',
+    'hordeConfig',
+    'mapsConfig',
+    'shipModels',
+    'shopItems',
+    'skillsData',
+    'pilotConfig',
+    'gameModes',
+    'craftingRecipes'
+];
+
+const buildClientConfig = (config) => {
+    if (!config || typeof config !== 'object') return config;
+    const clientConfig = {};
+    CLIENT_CONFIG_KEYS.forEach(key => {
+        if (config[key] !== undefined) clientConfig[key] = config[key];
+    });
+    return clientConfig;
+};
+
+const isAdminSocket = (socket) => {
+    return !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+};
+
+const emitConfigForSocket = (socket, eventName, config) => {
+    socket.emit(eventName, isAdminSocket(socket) ? config : buildClientConfig(config));
+};
+
+const broadcastConfigUpdate = (io, config) => {
+    io.sockets.sockets.forEach(socket => {
+        emitConfigForSocket(socket, 'adminConfigUpdated', config);
+    });
+};
 
 // Conexi├│n a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
@@ -183,21 +219,31 @@ lootManager.startCleanupTimer(io, state);
 
 // v244.20: Función Maestra de Inicialización de Sesión (Login/Register)
 const handleUserLogin = async (socket, user, username) => {
+    console.log(`[DEBUG-LOGIN] ===== INICIO handleUserLogin para ${username} (socket: ${socket.id}) =====`);
     // SEGURIDAD ANTI-MULTILOGIN v33.0: Desconectar sesión anterior (Case Insensitive)
     const lowName = username.toLowerCase();
     if (activeSessions.has(lowName)) {
         const oldSocketId = activeSessions.get(lowName);
+        console.log(`[DEBUG-LOGIN] ${username}: Sesión anterior detectada en socket ${oldSocketId}`);
         const oldSocket = io.sockets.sockets.get(oldSocketId);
         if (oldSocket) {
+            console.log(`[DEBUG-LOGIN] ${username}: Desconectando socket anterior...`);
             oldSocket.emit('authError', 'SESIÓN CERRADA: Se ha detectado un nuevo ingreso con esta cuenta.');
             oldSocket.disconnect();
+        } else {
+            console.log(`[DEBUG-LOGIN] ${username}: Socket anterior ${oldSocketId} ya NO existe (sesión zombi)`);
         }
         // v301.7: Purga física inmediata de la sesión y jugador anterior para evitar clones fantasmas en reconexiones rápidas
         if (players[oldSocketId]) {
+            console.log(`[DEBUG-LOGIN] ${username}: Guardando y eliminando player anterior...`);
             await savePlayerToDB(oldSocketId);
             io.to(`zone_${players[oldSocketId].zone}`).emit('playerDisconnected', oldSocketId);
             delete players[oldSocketId];
+        } else {
+            console.log(`[DEBUG-LOGIN] ${username}: No hay player anterior en RAM`);
         }
+    } else {
+        console.log(`[DEBUG-LOGIN] ${username}: No hay sesión anterior`);
     }
     activeSessions.set(lowName, socket.id);
 
@@ -410,8 +456,7 @@ const handleUserLogin = async (socket, user, username) => {
         }
     }
 
-    // v262.210: MIGRACIÓN Y CATEGORIZACIÓN (Fix de ítems viejos y Admin Panel)
-    const { getCategorizedInventory } = require('./systems/inventoryHandlers');
+    // v262.210: MIGRACIÓN (Fix de ítems viejos)
     if (!user.gameData.inventory) user.gameData.inventory = [];
     
     // v266.140: Sincronización PROFUNDA (Inventory + Equipped)
@@ -466,9 +511,7 @@ const handleUserLogin = async (socket, user, username) => {
         await user.save();
     }
 
-    const categorized = getCategorizedInventory(user.gameData.inventory);
-
-    socket.emit('loginSuccess', {
+    const loginPayload = {
         id: dbId,
         socketId: socket.id,
         user: username,
@@ -476,11 +519,14 @@ const handleUserLogin = async (socket, user, username) => {
         gameData: {
             ...JSON.parse(JSON.stringify(user.gameData)),
             equippedByShip: eByShipObj,
-            equipped: user.gameData.equipped,
-            inventoryByCategory: categorized
+            equipped: user.gameData.equipped
         },
-        adminConfig: adminConfig
-    });
+        adminConfig: buildClientConfig(adminConfig)
+    };
+    const payloadSize = JSON.stringify(loginPayload).length;
+    console.log(`[DEBUG-LOGIN] ${username}: Enviando loginSuccess (${payloadSize} bytes) con hp=${loginPayload.gameData.hp} shield=${loginPayload.gameData.shield} zone=${loginPayload.gameData.zone} shipId=${loginPayload.gameData.currentShipId}`);
+    console.log(`[DEBUG-LOGIN] ${username}: Spheres = ${JSON.stringify((loginPayload.gameData.spheres || []).map(s => ({name: s.name, eq: s.equipped ? s.equipped.skill_name || 'obj' : null})))}`);
+    socket.emit('loginSuccess', loginPayload);
 
     if (user.gameData.clanId) {
         socket.join(`clan_${user.gameData.clanId}`);
@@ -974,9 +1020,9 @@ io.on('connection', (socket) => {
             console.log(`\x1b[35m[ADMIN]\x1b[0m Configuración guardada en disco y RAM.`);
             
             // v226.30: PURGA DE ENTIDADES PARA EVITAR FANTASMAS (Sincronía Limpia)
-            // Notificar a todos los clientes que limpien su zona
-            io.emit('adminConfigUpdated', config);
-            io.emit('changeZoneDone', 1); // Forzar limpieza visual en clientes (Zona dummy para disparar el signal)
+            // Notificar la config sin simular un cambio de zona: el cliente trata
+            // changeZoneDone como teletransporte real y puede desincronizar usuarios.
+            broadcastConfigUpdate(io, config);
             
             // Vaciar enemigos en RAM para que el respawn los recree con nuevos datos
             Object.keys(enemies).forEach(id => delete enemies[id]);
@@ -1300,7 +1346,7 @@ io.on('connection', (socket) => {
 
     // ENVIAR CONFIG AL CONECTAR
     fs.readJson(CONFIG_FILE).then(config => {
-        if (config) socket.emit('adminConfigLoaded', config);
+        if (config) emitConfigForSocket(socket, 'adminConfigLoaded', config);
     }).catch(e => { /* Config por defecto en cliente */ });
 
     // v1.3: SISTEMA DE INVENTARIO Y ECONOMÍA - Modularizado en systems/inventoryHandlers.js
