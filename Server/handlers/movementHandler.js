@@ -23,6 +23,8 @@ function registerMovementHandlers(socket, io, state) {
 
     const getMovementPayload = (p, id) => ({
         id,
+        user: p.user || 'Unknown',
+        username: p.user || 'Unknown',
         x: Math.round(p.x),
         y: Math.round(p.y),
         rotation: Math.round((p.rotation || 0) * 100) / 100,
@@ -38,6 +40,16 @@ function registerMovementHandlers(socket, io, state) {
         isInvisible: !!p.isInvisible,
         isInvulnerable: !!p.isInvulnerable,
         isDead: !!p.isDead
+    });
+
+    const getLightMovementPayload = (p, id) => ({
+        id,
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+        rotation: Math.round((p.rotation || 0) * 100) / 100,
+        hp: Math.ceil(p.hp || 0),
+        sh: Math.ceil(p.shield || 0),
+        zone: p.zone
     });
 
     // EVENTO DE MOVIMIENTO DE JUGADORES
@@ -157,7 +169,7 @@ function registerMovementHandlers(socket, io, state) {
         }
 
         // v2.2: OPTIMIZACIÓN DE RED POR SECTORES (AOI) EN ZONA DE EXTRACCIÓN O MAPA 10 (VISIBILIDAD ROBUSTA DIRECTA)
-        socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', getMovementPayload(p, socket.id));
+        socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', getLightMovementPayload(p, socket.id));
     });
 
     // EVENTO DE RESPAWN DE JUGADORES

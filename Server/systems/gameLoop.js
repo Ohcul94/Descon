@@ -115,105 +115,109 @@ function startGameLoop(io, state, aiManager) {
         // v262.30: Broadcast por AOI (Area of Interest) - 5x5 Celdas (2500px x 2500px) a 15 FPS con Delta Compression
         const isNetworkTick = (loopCounter % 2 === 0);
 
-        Object.values(players).forEach(p => {
-            if (!p.zone) return;
-            // LOBBY OPTIMIZATION: no enviar enemiesMoved a jugadores del Lobby (no hay IAs activas ahí)
-            if (Number(p.zone) === lobbyZoneId) return;
+        if (isNetworkTick) {
+            Object.values(players).forEach(p => {
+                if (!p.zone) return;
+                // LOBBY OPTIMIZATION: no enviar enemiesMoved a jugadores del Lobby (no hay IAs activas ahí)
+                if (Number(p.zone) === lobbyZoneId) return;
 
-            if (!p._lastSentEnemies) {
-                p._lastSentEnemies = {};
-            }
-            
-            const currentAoiEnemyIds = new Set();
-            const aoiData = {};
-            let count = 0;
+                if (!p._lastSentEnemies) {
+                    p._lastSentEnemies = {};
+                }
+                
+                const currentAoiEnemyIds = new Set();
+                const aoiData = {};
+                let count = 0;
 
-            // Rango de 2 celdas a la redonda (total 5x5) para cubrir pantallas 4K/Ultra-wide
-            const cx = Math.floor(p.x / 500);
-            const cy = Math.floor(p.y / 500);
-            const pZoneNormalized = normalizeZone(p.zone);
+                // Rango de 2 celdas a la redonda (total 5x5) para cubrir pantallas 4K/Ultra-wide
+                const cx = Math.floor(p.x / 500);
+                const cy = Math.floor(p.y / 500);
+                const pZoneNormalized = normalizeZone(p.zone);
 
-            for (let dx = -2; dx <= 2; dx++) {
-                for (let dy = -2; dy <= 2; dy++) {
-                    const key = `${cx + dx},${cy + dy}`;
-                    const cell = grid.grid.get(key);
-                    if (cell) {
-                        cell.enemies.forEach(e => {
-                            if (normalizeZone(e.zone) === pZoneNormalized && enemies[e.id] && enemies[e.id].hp > 0) {
-                                currentAoiEnemyIds.add(e.id);
-                                
-                                // Precision Reduction: Redondear posiciones y rotaciones para achicar el JSON de red
-                                const roundedX = Math.round(e.x);
-                                const roundedY = Math.round(e.y);
-                                const roundedRot = Math.round(e.rotation * 100) / 100;
-                                const isRamming = !!(e.ai && e.ai.isRamming);
-                                const isInvulnerable = !!e.isInvulnerable;
-                                const isRage = !!e.isRage;
+                for (let dx = -2; dx <= 2; dx++) {
+                    for (let dy = -2; dy <= 2; dy++) {
+                        const key = `${cx + dx},${cy + dy}`;
+                        const cell = grid.grid.get(key);
+                        if (cell) {
+                            cell.enemies.forEach(e => {
+                                if (normalizeZone(e.zone) === pZoneNormalized && enemies[e.id] && enemies[e.id].hp > 0) {
+                                    currentAoiEnemyIds.add(e.id);
+                                    
+                                    // Precision Reduction: Redondear posiciones y rotaciones para achicar el JSON de red
+                                    const roundedX = Math.round(e.x);
+                                    const roundedY = Math.round(e.y);
+                                    const roundedRot = Math.round(e.rotation * 100) / 100;
+                                    const isRamming = !!(e.ai && e.ai.isRamming);
+                                    const isInvulnerable = !!e.isInvulnerable;
+                                    const isRage = !!e.isRage;
 
-                                // Delta Compression: Validar si el estado cambio sustancialmente
-                                const last = p._lastSentEnemies[e.id];
-                                let shouldSend = false;
+                                    // Delta Compression: Validar si el estado cambio sustancialmente
+                                    const last = p._lastSentEnemies[e.id];
+                                    let shouldSend = false;
 
-                                if (!last) {
-                                    shouldSend = true;
-                                } else {
-                                    const posChanged = Math.abs(last.x - roundedX) >= 2 || Math.abs(last.y - roundedY) >= 2;
-                                    const rotChanged = Math.abs(last.rotation - roundedRot) >= 0.05;
-                                    const stateChanged = last.hp !== e.hp || 
-                                                         last.shield !== e.shield || 
-                                                         last.isRage !== isRage || 
-                                                         last.isRamming !== isRamming || 
-                                                         last.isInvulnerable !== isInvulnerable;
-
-                                    if (posChanged || rotChanged || stateChanged) {
+                                    if (!last) {
                                         shouldSend = true;
+                                    } else {
+                                        const posChanged = Math.abs(last.x - roundedX) >= 2 || Math.abs(last.y - roundedY) >= 2;
+                                        const rotChanged = Math.abs(last.rotation - roundedRot) >= 0.05;
+                                        const stateChanged = last.hp !== e.hp || 
+                                                             last.shield !== e.shield || 
+                                                             last.isRage !== isRage || 
+                                                             last.isRamming !== isRamming || 
+                                                             last.isInvulnerable !== isInvulnerable;
+
+                                        if (posChanged || rotChanged || stateChanged) {
+                                            shouldSend = true;
+                                        }
+                                    }
+
+                                    if (shouldSend) {
+                                        aoiData[e.id] = {
+                                            id: e.id,
+                                            x: roundedX,
+                                            y: roundedY,
+                                            rotation: roundedRot,
+                                            hp: e.hp,
+                                            shield: e.shield,
+                                            zone: e.zone,
+                                            isRage: isRage,
+                                            isRamming: isRamming,
+                                            isInvulnerable: isInvulnerable
+                                        };
+                                        if (!last) {
+                                            aoiData[e.id].type = e.type;
+                                            aoiData[e.id].name = e.name;
+                                        }
+                                        p._lastSentEnemies[e.id] = {
+                                            x: roundedX,
+                                            y: roundedY,
+                                            rotation: roundedRot,
+                                            hp: e.hp,
+                                            shield: e.shield,
+                                            isRage: isRage,
+                                            isRamming: isRamming,
+                                            isInvulnerable: isInvulnerable
+                                        };
+                                        count++;
                                     }
                                 }
-
-                                if (shouldSend) {
-                                    aoiData[e.id] = {
-                                        id: e.id,
-                                        x: roundedX,
-                                        y: roundedY,
-                                        rotation: roundedRot,
-                                        hp: e.hp,
-                                        shield: e.shield,
-                                        zone: e.zone,
-                                        type: e.type,
-                                        name: e.name,
-                                        isRage: isRage,
-                                        isRamming: isRamming,
-                                        isInvulnerable: isInvulnerable
-                                    };
-                                    p._lastSentEnemies[e.id] = {
-                                        x: roundedX,
-                                        y: roundedY,
-                                        rotation: roundedRot,
-                                        hp: e.hp,
-                                        shield: e.shield,
-                                        isRage: isRage,
-                                        isRamming: isRamming,
-                                        isInvulnerable: isInvulnerable
-                                    };
-                                    count++;
-                                }
-                            }
-                        });
+                            });
+                        }
                     }
                 }
-            }
 
-            // Cleanup de cache RAM para enemigos fuera del rango del jugador
-            for (const cachedId in p._lastSentEnemies) {
-                if (!currentAoiEnemyIds.has(Number(cachedId)) && !currentAoiEnemyIds.has(cachedId)) {
-                    delete p._lastSentEnemies[cachedId];
+                // Cleanup de cache RAM para enemigos fuera del rango del jugador
+                for (const cachedId in p._lastSentEnemies) {
+                    if (!currentAoiEnemyIds.has(Number(cachedId)) && !currentAoiEnemyIds.has(cachedId)) {
+                        delete p._lastSentEnemies[cachedId];
+                    }
                 }
-            }
 
-            if (count > 0 && isNetworkTick) {
-                io.to(p.socketId).emit('enemiesMoved', aoiData);
-            }
-        });
+                if (count > 0) {
+                    io.to(p.socketId).emit('enemiesMoved', aoiData);
+                }
+            });
+        }
 
         // v370.1: Métricas de Ciclo con Percentiles AAA
         const end      = Date.now();

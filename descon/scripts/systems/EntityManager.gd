@@ -1313,21 +1313,6 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	tw.tween_property(container, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_SINE)
 
 func _get_projected_position(pos: Vector2) -> Vector2:
-	var current_map = get_tree().get_first_node_in_group("map")
-	if is_instance_valid(current_map) and "sub_viewport" in current_map and is_instance_valid(current_map.sub_viewport):
-		var cam3d = current_map.camera_3d if "camera_3d" in current_map else null
-		var sub_vp = current_map.sub_viewport
-		if is_instance_valid(cam3d) and is_instance_valid(sub_vp):
-			var map_scale = current_map.scale_factor if "scale_factor" in current_map else 0.02
-			var correction_z = 1.41421356 # 1.0 / sin(45 grados)
-			var pos_3d = Vector3(pos.x * map_scale, 0.0, pos.y * map_scale * correction_z)
-			if not cam3d.is_position_behind(pos_3d):
-				var sv_pixel = cam3d.unproject_position(pos_3d)
-				if sub_vp.size.x > 0 and sub_vp.size.y > 0:
-					var main_size = Vector2(get_viewport().get_visible_rect().size)
-					sv_pixel *= main_size / Vector2(sub_vp.size)
-				var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
-				return world_2d
 	return pos
 
 func _get_entity_visual_position(entity: Node) -> Vector2:

@@ -68,20 +68,6 @@ func _spawn_projectile(data, o_type):
 	if is_instance_valid(found_entity):
 		spawn_pos = found_entity.global_position
 		
-		# v311.30: Alinear origen de la bala 2D con la proyección en pantalla de la nave 3D (Soluciona desalineación lateral por perspectiva de cámara inclinada)
-		if found_entity.get_meta("is_single_world", false) and is_instance_valid(found_entity.world_root_3d):
-			var current_map = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
-				var cam3d: Camera3D = current_map.camera_3d
-				var sub_vp: SubViewport = current_map.sub_viewport
-				if not cam3d.is_position_behind(found_entity.world_root_3d.global_position):
-					var sv_pixel = cam3d.unproject_position(found_entity.world_root_3d.global_position)
-					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-						var main_size = Vector2(get_viewport().get_visible_rect().size)
-						sv_pixel *= main_size / Vector2(sub_vp.size)
-					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
-					spawn_pos = world_2d
-		
 	p.global_position = spawn_pos
 	p.rotation = str(data.get("angle", 0.0)).to_float()
 	

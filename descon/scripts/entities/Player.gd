@@ -499,7 +499,6 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 		"angle": p_angle, "rotation": rotation, "type": p_type, "ammoType": t_idx, 
 		"senderId": entity_id, "damageBoost": final_damage, "range": r_val
 	}
-	
 	shoot_fired.emit(final_payload)
 	NetworkManager.send_event("playerFire", final_payload)
 	apply_shake(0.8) # v260: Shake muy leve al disparar
