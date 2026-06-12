@@ -140,7 +140,7 @@ function startGameLoop(io, state, aiManager) {
                         const cell = grid.grid.get(key);
                         if (cell) {
                             cell.enemies.forEach(e => {
-                                if (normalizeZone(e.zone) === pZoneNormalized && enemies[e.id] && enemies[e.id].hp > 0) {
+                                if (String(e.zone) === String(p.zone) && enemies[e.id] && enemies[e.id].hp > 0) {
                                     // v270.30: Filtro de Distancia Euclidiana (Círculo de 1300px)
                                     // Evita enviar enemigos situados en las esquinas lejanas de la grilla 5x5 (fuera de pantalla)
                                     const dist = Math.hypot(p.x - e.x, p.y - e.y);

@@ -142,7 +142,7 @@ function registerMovementHandlers(socket, io, state) {
                 const currentPlayersInZone = {};
                 Object.keys(players).forEach(pId => {
                     const otherP = players[pId];
-                    if (normalizeZone(otherP.zone) === normalizeZone(targetZone) && pId !== socket.id) {
+                    if (String(otherP.zone) === String(targetZone) && pId !== socket.id) {
                         currentPlayersInZone[pId] = {
                             ...getMovementPayload(otherP, pId),
                             zone: targetZone,
@@ -153,7 +153,7 @@ function registerMovementHandlers(socket, io, state) {
 
                 const cleanEnemiesInZone = {};
                 Object.values(enemies).forEach(e => {
-                    if (normalizeZone(e.zone) === normalizeZone(targetZone)) {
+                    if (String(e.zone) === String(targetZone)) {
                         const { ai, ...data } = e;
                         cleanEnemiesInZone[e.id] = data;
                     }
@@ -198,7 +198,7 @@ function registerMovementHandlers(socket, io, state) {
                 const currentPlayersInZone = {};
                 Object.keys(players).forEach(pId => {
                     const otherP = players[pId];
-                    if (normalizeZone(otherP.zone) === normalizeZone(targetZone) && pId !== socket.id) {
+                    if (String(otherP.zone) === String(targetZone) && pId !== socket.id) {
                         currentPlayersInZone[pId] = {
                             ...getMovementPayload(otherP, pId),
                             zone: targetZone,
@@ -209,7 +209,7 @@ function registerMovementHandlers(socket, io, state) {
 
                 const cleanEnemiesInZone = {};
                 Object.values(enemies).forEach(e => {
-                    if (normalizeZone(e.zone) === normalizeZone(targetZone)) {
+                    if (String(e.zone) === String(targetZone)) {
                         const { ai, ...data } = e;
                         cleanEnemiesInZone[e.id] = data;
                     }
