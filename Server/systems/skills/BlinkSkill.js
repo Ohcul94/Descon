@@ -47,8 +47,7 @@ class BlinkSkill extends BaseSkill {
             hp: p.hp,
             shield: p.shield,
             maxHp: p.maxHp,
-            maxShield: p.maxShield,
-            spheres: p.spheres || []
+            maxShield: p.maxShield
         });
     }
 }

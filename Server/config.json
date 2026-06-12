@@ -2665,37 +2665,62 @@
                 {
                     "type": "1-A",
                     "count": 5,
-                    "intervalMs": 5000
-                },
-                {
-                    "type": "1-A",
-                    "count": 5,
-                    "intervalMs": 5000
+                    "intervalMs": 5000,
+                    "id": "spawn_2_idx_1_type_1-A",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 0
                 },
                 {
                     "type": "3-A",
                     "count": 5,
-                    "intervalMs": 5000
+                    "intervalMs": 5000,
+                    "id": "spawn_2_idx_2_type_3-A",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 0
                 },
                 {
                     "type": "4-A",
                     "count": 5,
-                    "intervalMs": 5000
+                    "intervalMs": 5000,
+                    "id": "spawn_2_idx_3_type_4-A",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 0
                 },
                 {
                     "type": "5-A",
                     "count": 5,
-                    "intervalMs": 5000
+                    "intervalMs": 5000,
+                    "id": "spawn_2_idx_4_type_5-A",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 0
                 },
                 {
                     "type": "6-A",
                     "count": 5,
-                    "intervalMs": 5000
+                    "intervalMs": 5000,
+                    "id": "spawn_2_idx_5_type_6-A",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 0
                 },
                 {
                     "type": "102",
                     "count": 1,
-                    "intervalMs": 60000
+                    "intervalMs": 60000,
+                    "id": "spawn_2_idx_6_type_102",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 0
                 }
             ]
         },
@@ -2710,7 +2735,12 @@
                 {
                     "type": "6",
                     "count": 1,
-                    "intervalMs": 100
+                    "intervalMs": 100,
+                    "id": "spawn_3_idx_0_type_6",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 0
                 }
             ]
         },
@@ -2745,7 +2775,12 @@
                 {
                     "type": "1",
                     "count": 5,
-                    "intervalMs": 5000
+                    "intervalMs": 5000,
+                    "id": "spawn_4_idx_0_type_1",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 300
                 }
             ]
         },
@@ -2776,7 +2811,12 @@
                 {
                     "type": "13-D",
                     "count": 5,
-                    "intervalMs": 5000
+                    "intervalMs": 5000,
+                    "id": "spawn_5_idx_0_type_13-D",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 300
                 }
             ]
         },
@@ -2791,7 +2831,12 @@
                 {
                     "type": "5",
                     "count": 2,
-                    "intervalMs": 5000
+                    "intervalMs": 5000,
+                    "id": "spawn_6_idx_0_type_5",
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 300
                 }
             ]
         },

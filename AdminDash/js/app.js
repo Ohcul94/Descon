@@ -761,11 +761,41 @@ function updateAmbienceType(mapId, idx, newType) {
 
 function addMapSpawn(id) {
     if (!config.mapsConfig[id].spawns) config.mapsConfig[id].spawns = [];
-    config.mapsConfig[id].spawns.push({ type: "1", count: 5, intervalMs: 5000 });
+    const uniqueId = 'spawn_' + Date.now() + Math.floor(Math.random() * 1000);
+    config.mapsConfig[id].spawns.push({
+        id: uniqueId,
+        type: "1",
+        count: 5,
+        intervalMs: 5000,
+        spawnMode: "random",
+        x: 1000,
+        y: 1000,
+        radius: 300
+    });
 }
 
 function patchMechanicsLib() {
     if (!config) return;
+
+    // Normalizar spawners de mapas para asegurar IDs y modos de respawn por unidad
+    if (config.mapsConfig) {
+        Object.keys(config.mapsConfig).forEach(mapId => {
+            const m = config.mapsConfig[mapId];
+            if (m && m.spawns) {
+                m.spawns.forEach((s, idx) => {
+                    if (!s.id) {
+                        s.id = `spawn_${mapId}_idx_${idx}_type_${s.type}`;
+                    }
+                    if (!s.spawnMode) {
+                        s.spawnMode = "random";
+                    }
+                    if (s.x === undefined) s.x = 1000;
+                    if (s.y === undefined) s.y = 1000;
+                    if (s.radius === undefined) s.radius = 300;
+                });
+            }
+        });
+    }
 
     // v268.600: Sincronización automática usando constantes BASE para evitar sobrescritura
     const libsMap = [
@@ -1130,12 +1160,15 @@ function setRadarMode(mode) {
 function highlightCard(type, index) {
     focusedRadarItem = { type, index };
     // Limpiar resaltados anteriores de cualquier tipo
-    document.querySelectorAll('[id^="card-spawn-"], [id^="card-extract-"], [id^="card-spawner-"], [id^="card-ad-spawn-"], [id^="card-ad-spawner-"], [id^="card-ad-portal-"]').forEach(el => {
+    document.querySelectorAll('[id^="card-spawn-"], [id^="card-extract-"], [id^="card-spawner-"], [id^="card-ad-spawn-"], [id^="card-ad-spawner-"], [id^="card-ad-portal-"], [id^="card-map-spawn-"]').forEach(el => {
         el.style.boxShadow = 'none';
         el.style.borderColor = 'rgba(255,255,255,0.1)';
-        if (el.id.includes('spawn') && !el.id.includes('ad-')) {
+        if (el.id.includes('spawn') && !el.id.includes('ad-') && !el.id.includes('map-')) {
             el.style.background = 'rgba(6,182,212,0.05)';
             el.style.borderColor = 'rgba(6,182,212,0.2)';
+        } else if (el.id.includes('map-spawn')) {
+            el.style.background = 'rgba(16,185,129,0.05)';
+            el.style.borderColor = 'rgba(16,185,129,0.2)';
         } else if (el.id.includes('extract')) {
             el.style.background = 'rgba(0,210,255,0.05)';
             el.style.borderColor = 'rgba(0,210,255,0.2)';
@@ -1940,4 +1973,231 @@ window.toggleWaveCollapse = function (idx) {
     window.collapsedWaves[idx] = !window.collapsedWaves[idx];
     renderModes();
 };
+
+function initMapRadar() {
+    const canvas = document.getElementById('map-radar-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('map-radar-container');
+
+    const m = config.mapsConfig[selectedMapId];
+    if (!m) return;
+
+    // Estado de arrastre
+    let isDragging = false;
+    let dragItem = null;
+
+    const updateCanvasSize = () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        if (w > 0 && h > 0) {
+            canvas.width = w;
+            canvas.height = h;
+        } else {
+            canvas.width = 400;
+            canvas.height = 400;
+        }
+    };
+    window.addEventListener('resize', updateCanvasSize);
+    updateCanvasSize();
+
+    // Convertir de coordenadas de mundo a coordenadas de canvas leyendo dinámicamente las dimensiones del mapa
+    const worldToCanvas = (wx, wy) => {
+        const worldW = m.width || 10000;
+        const worldH = m.height || 10000;
+        return {
+            x: (wx / worldW) * canvas.width,
+            y: (wy / worldH) * canvas.height
+        };
+    };
+
+    // Convertir de canvas a mundo leyendo dinámicamente las dimensiones del mapa
+    const canvasToWorld = (cx, cy) => {
+        const worldW = m.width || 10000;
+        const worldH = m.height || 10000;
+        return {
+            wx: (cx / canvas.width) * worldW,
+            wy: (cy / canvas.height) * worldH
+        };
+    };
+
+    canvas.onmousedown = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Buscar en Spawns de este mapa
+        const spawns = m.spawns || [];
+        for (let i = 0; i < spawns.length; i++) {
+            const s = spawns[i];
+            // Omitir spawns globales (random sin radio) ya que no tienen posición física real en el radar
+            if (s.spawnMode === 'random' && (!s.radius || s.radius === 0)) continue;
+
+            const sx = s.x !== undefined ? s.x : 1000;
+            const sy = s.y !== undefined ? s.y : 1000;
+            const pos = worldToCanvas(sx, sy);
+            const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
+            
+            // Si hace clic en un spawn (dentro de 15px del centro)
+            if (dist < 15) {
+                isDragging = true;
+                dragItem = { type: 'map-spawn', index: i };
+                canvas.style.cursor = 'grabbing';
+                highlightCard('map-spawn', i);
+                return;
+            }
+        }
+
+        // Si no agarró nada, capturar coordenadas del radar para mostrar
+        const world = canvasToWorld(mouseX, mouseY);
+        const rxInput = document.getElementById('map-radar-x');
+        const ryInput = document.getElementById('map-radar-y');
+        if (rxInput) rxInput.value = Math.round(world.wx);
+        if (ryInput) ryInput.value = Math.round(world.wy);
+    };
+
+    window.onmousemove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = Math.max(0, Math.min(canvas.width, e.clientX - rect.left));
+        const mouseY = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
+        const world = canvasToWorld(mouseX, mouseY);
+
+        if (isDragging && dragItem && dragItem.type === 'map-spawn') {
+            const s = m.spawns[dragItem.index];
+            s.x = Math.round(world.wx);
+            s.y = Math.round(world.wy);
+            
+            // Actualizar campos correspondientes en renderers si existen
+            const ix = document.querySelector(`input[onchange*="spawns[${dragItem.index}].x"], input[oninput*="spawns[${dragItem.index}].x"]`);
+            const iy = document.querySelector(`input[onchange*="spawns[${dragItem.index}].y"], input[oninput*="spawns[${dragItem.index}].y"]`);
+            if (ix) ix.value = s.x;
+            if (iy) iy.value = s.y;
+            
+            // Actualizar también los de lectura del radar
+            const rxInput = document.getElementById('map-radar-x');
+            const ryInput = document.getElementById('map-radar-y');
+            if (rxInput) rxInput.value = s.x;
+            if (ryInput) ryInput.value = s.y;
+        } else {
+            // Mostrar coordenadas flotantes al mover el mouse si no arrastra
+            const world = canvasToWorld(mouseX, mouseY);
+            window.lastMouseWorldX = Math.round(world.wx);
+            window.lastMouseWorldY = Math.round(world.wy);
+        }
+    };
+
+    window.onmouseup = () => {
+        if (isDragging) {
+            isDragging = false;
+            dragItem = null;
+            canvas.style.cursor = 'crosshair';
+        }
+    };
+
+    const draw = () => {
+        if (!document.getElementById('map-radar-canvas')) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const worldW = m.width || 10000;
+        const worldH = m.height || 10000;
+
+        // Fondo del radar oscuro de alta gama
+        ctx.fillStyle = '#0a0f1d';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Dibujar Grid cibernético fino
+        ctx.strokeStyle = m.color ? m.color + '15' : 'rgba(6, 182, 212, 0.08)';
+        ctx.lineWidth = 1;
+        const gridDivisions = 10;
+        for (let i = 1; i < gridDivisions; i++) {
+            ctx.beginPath();
+            ctx.moveTo((canvas.width / gridDivisions) * i, 0);
+            ctx.lineTo((canvas.width / gridDivisions) * i, canvas.height);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, (canvas.height / gridDivisions) * i);
+            ctx.lineTo(canvas.width, (canvas.height / gridDivisions) * i);
+            ctx.stroke();
+        }
+
+        // Líneas divisoria centrales
+        ctx.strokeStyle = m.color ? m.color + '40' : 'rgba(6, 182, 212, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height / 2);
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+
+        // Círculos concéntricos de radar sonar
+        ctx.strokeStyle = m.color ? m.color + '20' : 'rgba(6, 182, 212, 0.15)';
+        ctx.lineWidth = 1.5;
+        const circles = [0.15, 0.3, 0.45];
+        circles.forEach(rMult => {
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width * rMult, 0, Math.PI * 2);
+            ctx.stroke();
+        });
+
+        // Dibujar los spawns
+        const spawns = m.spawns || [];
+        spawns.forEach((s, idx) => {
+            // Omitir spawns globales (random sin radio)
+            if (s.spawnMode === 'random' && (!s.radius || s.radius === 0)) return;
+
+            const sx = s.x !== undefined ? s.x : 1000;
+            const sy = s.y !== undefined ? s.y : 1000;
+            const pos = worldToCanvas(sx, sy);
+            const isSelected = isDragging && dragItem && dragItem.type === 'map-spawn' && dragItem.index === idx;
+
+            // Dibujar círculo/burbuja de spawn si es modo random y tiene radio
+            if (s.spawnMode === 'random' && s.radius > 0) {
+                const radiusCanvas = (s.radius / worldW) * canvas.width;
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radiusCanvas, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Marcador de punto de spawn
+            ctx.fillStyle = isSelected ? '#fff' : 'rgba(16, 185, 129, 0.2)';
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Símbolo interno (cruz o estrella)
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Etiqueta del enemigo
+            const model = config.enemyModels[s.type] || { name: 'Enemigo ' + s.type };
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 9px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText(model.name, pos.x, pos.y - 14);
+        });
+
+        // Coordenadas flotantes del mouse
+        if (window.lastMouseWorldX !== undefined && window.lastMouseWorldY !== undefined) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.font = '10px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText(`X: ${window.lastMouseWorldX} Y: ${window.lastMouseWorldY}`, 10, canvas.height - 10);
+        }
+
+        requestAnimationFrame(draw);
+    };
+    draw();
+}
 

@@ -34,24 +34,7 @@ module.exports = class BaseAI {
         if (this.enemy.startY === undefined) this.enemy.startY = this.enemy.y;
 
         const leashRange = Number(cfg.leashRange) || 0;
-        
-        // v269.195: PROCESAR DEFENSAS (Usar '|| 100' para manejar ceros del dashboard como 'siempre activo')
-        const defMechanics = cfg.defenseMechanics || [];
-        defMechanics.forEach((mech, idx) => {
-            const mId = `def_${idx}`;
-            if (mech.type === "invulnerability") {
-                this._handleInvulnerabilityLogic(mech, mId, now, io);
-            } else if (mech.type === "boss_pillars") {
-                this._handleBossPillarsLogic(mech, mId, now, io);
-            } else if (mech.type === "boss_colors") {
-                this._handleBossColorsLogic(mech, mId, now, io, players);
-            } else if (mech.type === "boss_water_orbs") {
-                this._handleBossWaterOrbsLogic(mech, mId, now, io, grid, players);
-            } else if (mech.type && mech.type.startsWith("aura_")) {
-                this._handleAuraLogic(mech, mId, now, io, grid, players);
-            }
-        });
-        
+
         // v266.999: Detección de Agresividad Extrema Ambiental (Búsqueda Ultra-Robusta)
         let zoneId = this.enemy.zone;
         if (typeof zoneId === 'string' && zoneId.startsWith('extract_')) {
@@ -82,30 +65,8 @@ module.exports = class BaseAI {
         cfg.speed = this._baseSpeed * speedMult;
         
         // v266.580: Inicialización de seguridad para nuevos enemigos
-        if (!this.enemy.lastSuccessHit) this.enemy.lastSuccessHit = now;
-        if (!this.enemy.lastHit) this.enemy.lastHit = 0;
-
-        // v3.9: Determinar si el bicho está en combate activo
-        const lastCombatTime = Math.max(this.enemy.lastHit || 0, this.enemy.lastSuccessHit || 0);
-        const delayMs = cfg.regenDelayMs !== undefined ? Number(cfg.regenDelayMs) : (cfg.regenDelaySec !== undefined ? Number(cfg.regenDelaySec) * 1000 : 5000);
-        this._inCombat = (now - lastCombatTime) < delayMs;
-
-        // v266.970: Lógica de Fases de Movimiento (Kamikaze Check)
-        const phases = cfg.movementPhases || [];
-        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
-        const kamikazePhase = phases.find(p => p.type === 'kamikaze');
-
-        if (kamikazePhase && hpPercent <= (kamikazePhase.activationHP || 30)) {
-            if (!this.enemy.isKamikazeActive) {
-                this.enemy.isKamikazeActive = true;
-                this.enemy.kamikazeStartTime = now;
-                this.enemy.isRamming = true;
-                
-                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
-                    id: this.enemy.id, action: "kamikaze_start", duration: kamikazePhase.duration || 5000
-                });
-            }
-        }
+        if (this.enemy.lastSuccessHit === undefined) this.enemy.lastSuccessHit = 0;
+        if (this.enemy.lastHit === undefined) this.enemy.lastHit = 0;
 
         // Búsqueda de objetivo potencial (Visión Pasiva)
         let potentialTarget = this.getNearestPlayer(grid, players);
@@ -241,7 +202,6 @@ module.exports = class BaseAI {
             // Si el target está dentro del rango territorial de spawn y está al alcance de visión o le acaba de pegar
             if (targetDistFromSpawn <= leashRange && (targetDistToEnemy < visionRange || isRevenge)) {
                 this.enemy.returningToSpawn = false; // Interrumpir el regreso
-                this._inCombat = true; // Volver al combate
             }
         }
 
@@ -262,9 +222,33 @@ module.exports = class BaseAI {
                 this.enemy.returningToSpawn = true;
                 this.enemy.lastHitter = null; // Olvidar agresor para forzar retorno
                 activeTarget = null;
-                this._inCombat = false; // Salir de combate
             }
         }
+
+        // v3.9: Determinar si el bicho está en combate activo
+        const lastCombatTime = Math.max(this.enemy.lastHit || 0, this.enemy.lastSuccessHit || 0);
+        const delayMs = cfg.regenDelayMs !== undefined ? Number(cfg.regenDelayMs) : (cfg.regenDelaySec !== undefined ? Number(cfg.regenDelaySec) * 1000 : 5000);
+        
+        // En combate si ha recibido/hecho daño hace poco, o si tiene un target activo al que está persiguiendo (y no es el altar)
+        const hasActivePlayerTarget = activeTarget && activeTarget.id !== "altar" && !activeTarget.isDead && !activeTarget.isInvisible;
+        this._inCombat = (!this.enemy.returningToSpawn) && (((now - lastCombatTime) < delayMs) || !!hasActivePlayerTarget);
+
+        // v269.195: PROCESAR DEFENSAS (Usar '|| 100' para manejar ceros del dashboard como 'siempre activo')
+        const defMechanics = cfg.defenseMechanics || [];
+        defMechanics.forEach((mech, idx) => {
+            const mId = `def_${idx}`;
+            if (mech.type === "invulnerability") {
+                this._handleInvulnerabilityLogic(mech, mId, now, io);
+            } else if (mech.type === "boss_pillars") {
+                this._handleBossPillarsLogic(mech, mId, now, io);
+            } else if (mech.type === "boss_colors") {
+                this._handleBossColorsLogic(mech, mId, now, io, players);
+            } else if (mech.type === "boss_water_orbs") {
+                this._handleBossWaterOrbsLogic(mech, mId, now, io, grid, players);
+            } else if (mech.type && mech.type.startsWith("aura_")) {
+                this._handleAuraLogic(mech, mId, now, io, grid, players);
+            }
+        });
 
         // v3.0: PROCESAR REGRESO AL SPAWN
         if (this.enemy.returningToSpawn) {
@@ -312,6 +296,23 @@ module.exports = class BaseAI {
                     }
                 }
                 return; // Omitir el resto del procesamiento de ataque
+            }
+        }
+
+        // v266.970: Lógica de Fases de Movimiento (Kamikaze Check)
+        const phases = cfg.movementPhases || [];
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+        const kamikazePhase = phases.find(p => p.type === 'kamikaze');
+
+        if (kamikazePhase && hpPercent <= (kamikazePhase.activationHP || 30)) {
+            if (!this.enemy.isKamikazeActive) {
+                this.enemy.isKamikazeActive = true;
+                this.enemy.kamikazeStartTime = now;
+                this.enemy.isRamming = true;
+                
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id, action: "kamikaze_start", duration: kamikazePhase.duration || 5000
+                });
             }
         }
 

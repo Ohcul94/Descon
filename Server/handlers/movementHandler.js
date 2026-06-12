@@ -226,13 +226,6 @@ function registerMovementHandlers(socket, io, state) {
             spheres: p.spheres || []
         };
         socket.to(`zone_${p.zone}`).emit('newPlayer', respawnPayload);
-        socket.to(`zone_${p.zone}`).emit('playerStatSync', {
-            id: socket.id,
-            hp: p.hp,
-            shield: p.shield,
-            isDead: false,
-            spheres: p.spheres
-        });
     });
 }
 

@@ -17,5 +17,6 @@ module.exports = {
     
     // Timers y estados globales de respawn
     lastTitanDeath: 0,
-    lastAncientDeath: 0
+    lastAncientDeath: 0,
+    spawnerCooldowns: {}
 };

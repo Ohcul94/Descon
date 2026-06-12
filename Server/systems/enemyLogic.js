@@ -154,6 +154,18 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
         console.error("[LOOT-ERR] Error en reparto de loot compartido:", err);
     }
 
+    if (enemy.spawnerId && enemy.spawnerSlot !== undefined) {
+        const slotKey = `${enemy.spawnerId}_slot_${enemy.spawnerSlot}`;
+        const interval = enemy.spawnerInterval || 5000;
+        const mapCfg = state.SERVER_CONFIG?.mapsConfig?.[enemy.zone];
+        const extremeAggro = (mapCfg && mapCfg.ambience && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
+        const respawnBonus = extremeAggro ? (parseFloat(extremeAggro.respawnSpeedBonus) || 0) : 0;
+        const intervalMult = 1 + (respawnBonus / 100);
+        const actualInterval = interval / intervalMult;
+
+        state.spawnerCooldowns[slotKey] = Date.now() + actualInterval;
+    }
+
     delete state.enemies[enemyId];
     if (enemy.type === 4) state.lastTitanDeath = Date.now();
 }

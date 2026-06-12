@@ -19,18 +19,11 @@ class AIManager {
         this.hordeManager = hordeManager;
     }
 
-    serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, forceName = null, isHorde = false) {
+    serverSpawnEnemy(zone = 1, forceType = null, posX = null, posY = null, forceName = null, isHorde = false, spawnerId = null, spawnerSlot = null, spawnerInterval = null) {
         const { enemies, SERVER_CONFIG } = this.state;
         
         const isHordeZone = this.hordeManager && this.hordeManager.config.active && this.hordeManager.config.map === zone;
         
-        // v268.700: Permitir spawn en Zona 1 (Lobby) si el administrador lo configuró
-        /*
-        if (zone === 1 && !isHordeZone) {
-            return null;
-        }
-        */
-
         if (!forceType && zone === 2 && Object.keys(enemies).filter(e => enemies[e].zone === 2).length >= 15) return;
         
         const type = forceType || (Math.floor(Math.random() * 3) + 1);
@@ -53,13 +46,11 @@ class AIManager {
         const initialHp = (cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 101 ? 100000 : (type * 2000))))) * hpMult;
         const initialShield = (cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 101 ? 50000 : (type * 1000))))) * hpMult;
 
-        let mapSize = 4000;
-        if (Number(zone) === 1) mapSize = 2000;
-        else if (Number(zone) === 2) mapSize = 2000;
-        else if (Number(zone) === 9) mapSize = 2000;
+        const mapWidth = (mapCfg && mapCfg.width) ? mapCfg.width : 4000;
+        const mapHeight = (mapCfg && mapCfg.height) ? mapCfg.height : 4000;
 
-        const finalX = posX || (zone === 9 ? 2000 : (Math.random() * (mapSize - 600) + 300));
-        const finalY = posY || (zone === 9 ? 2000 : (Math.random() * (mapSize - 600) + 300));
+        const finalX = posX !== null ? posX : (zone === 9 ? 2000 : (Math.random() * (mapWidth - 600) + 300));
+        const finalY = posY !== null ? posY : (zone === 9 ? 2000 : (Math.random() * (mapHeight - 600) + 300));
 
         const e = {
             id, type, zone, name,
@@ -77,7 +68,10 @@ class AIManager {
             lastDash: 0,
             shotsInBurst: 0,
             nextShotTime: 0,
-            isInvulnerable: false
+            isInvulnerable: false,
+            spawnerId,
+            spawnerSlot,
+            spawnerInterval
         };
 
         // v268.850: Soporte para Fases de Movimiento (Priorizar velocidad de la fase 0)
@@ -142,23 +136,53 @@ class AIManager {
                 const mCfg = maps[mapId];
                 if (mCfg.spawns && mCfg.spawns.length > 0) {
                     mCfg.spawns.forEach((s, idx) => {
-                        const count = Object.values(this.state.enemies).filter(e => e.zone == mapId && e.type == s.type && e.hp > 0).length;
-                        if (count < s.count) {
-                            // Gestión de cooldown de spawn por especie/mapa
-                            if (!this.spawnCooldowns) this.spawnCooldowns = {};
-                            const sKey = `map_${mapId}_type_${s.type}`;
-                            const lastSpawn = this.spawnCooldowns[sKey] || 0;
-                            const now = Date.now();
-                            
-                            // v266.999: Aceleración de Respawn Profesional (Bonus %)
-                            const extremeAggro = (mCfg.ambience && Array.isArray(mCfg.ambience)) ? mCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
-                            const respawnBonus = extremeAggro ? (parseFloat(extremeAggro.respawnSpeedBonus) || 0) : 0;
-                            const intervalMult = 1 + (respawnBonus / 100);
-                            const actualInterval = (s.intervalMs || 5000) / intervalMult;
+                        // Asegurar identificador único del spawner
+                        if (!s.id) {
+                            s.id = `spawn_${mapId}_idx_${idx}_type_${s.type}`;
+                        }
 
-                            if (now - lastSpawn >= actualInterval) {
-                                this.spawnCooldowns[sKey] = now;
-                                this.serverSpawnEnemy(parseInt(mapId), s.type);
+                        const count = s.count || 1;
+                        for (let slot = 0; slot < count; slot++) {
+                            const isAlive = Object.values(this.state.enemies).some(
+                                e => e.zone == mapId && e.spawnerId === s.id && e.spawnerSlot === slot && e.hp > 0
+                            );
+
+                            if (!isAlive) {
+                                const slotKey = `${s.id}_slot_${slot}`;
+                                const respawnAt = this.state.spawnerCooldowns ? this.state.spawnerCooldowns[slotKey] : 0;
+                                const now = Date.now();
+
+                                if (!respawnAt || now >= respawnAt) {
+                                    if (this.state.spawnerCooldowns) {
+                                        delete this.state.spawnerCooldowns[slotKey];
+                                    }
+
+                                    // Determinar coordenadas según el modo
+                                    let posX = null;
+                                    let posY = null;
+
+                                    if (s.spawnMode === 'fixed' && s.x !== undefined && s.y !== undefined) {
+                                        posX = s.x;
+                                        posY = s.y;
+                                    } else if (s.spawnMode === 'random' && s.x !== undefined && s.y !== undefined && s.radius) {
+                                        const angle = Math.random() * Math.PI * 2;
+                                        const r = Math.random() * s.radius;
+                                        posX = s.x + Math.cos(angle) * r;
+                                        posY = s.y + Math.sin(angle) * r;
+                                    }
+
+                                    this.serverSpawnEnemy(
+                                        parseInt(mapId),
+                                        s.type,
+                                        posX,
+                                        posY,
+                                        null,
+                                        false,
+                                        s.id,
+                                        slot,
+                                        s.intervalMs || 5000
+                                    );
+                                }
                             }
                         }
                     });
@@ -171,25 +195,6 @@ class AIManager {
         if (!hasTitanZ2 && Date.now() - this.state.lastTitanDeath > 10000) {
             this.serverSpawnEnemy(2, 4);
         }
-        
-        // v266.150: SHOWCASE DE ENEMIGOS EN ZONA 9 (Eliminado a petición del usuario para Defensa del Altar)
-        /*
-        const regularEnemyTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-        regularEnemyTypes.forEach((type, index) => {
-            const exists = Object.values(this.state.enemies).some(e => e.type == type && e.zone === 9);
-            if (!exists) {
-                const angle = (index / regularEnemyTypes.length) * Math.PI * 2;
-                const radius = 800;
-                const px = 2000 + Math.cos(angle) * radius;
-                const py = 2000 + Math.sin(angle) * radius;
-                this.serverSpawnEnemy(9, type, px, py);
-            }
-        });
-
-        // v266.155: GUARDIANES DE BOSSES (Nuevos IDs)
-        const boss101 = Object.values(this.state.enemies).find(e => e.type === 101 && e.zone === 9);
-        if (!boss101) this.serverSpawnEnemy(9, 101, 2000, 2000);
-        */
 
         const boss102s = Object.values(this.state.enemies).filter(e => e.type === 102 && e.zone === 8);
         if (boss102s.length === 0) {
@@ -200,8 +205,6 @@ class AIManager {
         if (boss103s.length === 0) {
             this.serverSpawnEnemy(7, 103, 2000, 2000);
         }
-
-        // (Eliminadas las reglas hardcodeadas de Mapa 6 y otros ya que ahora son dinámicas)
     }
 }
 

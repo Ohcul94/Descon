@@ -101,15 +101,15 @@ function registerCombatHandlers(socket, io, state) {
         const pData = {
             id: socket.id,
             bulletId: fireData.bulletId,
-            damage: finalAuthorizedDamage,
-            x: fireData.x,
-            y: fireData.y,
-            angle: fireData.angle,
-            rotation: fireData.rotation,
+            damage: Math.round(finalAuthorizedDamage),
+            x: Math.round(fireData.x),
+            y: Math.round(fireData.y),
+            angle: Math.round((fireData.angle || 0) * 100) / 100,
+            rotation: Math.round((fireData.rotation || 0) * 100) / 100,
             type: ammoType,
             ammoType: ammoTier,
             targetId: fireData.targetId,
-            range: fireData.range !== undefined ? fireData.range : 600.0
+            range: Math.round(fireData.range !== undefined ? fireData.range : 600.0)
         };
 
         socket.to(`zone_${p.zone}`).emit('playerFire', pData);
@@ -235,8 +235,7 @@ function registerCombatHandlers(socket, io, state) {
             io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                 id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
                 maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
-                isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
-                spheres: p.spheres || [] 
+                isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible
             });
             finalDamage = 0; // No le hace daño al enemigo
         } else {
@@ -249,8 +248,7 @@ function registerCombatHandlers(socket, io, state) {
                 io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                     id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
                     maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
-                    isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
-                    spheres: p.spheres || [] 
+                    isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible
                 });
             } else if (activeAmmo === 'emp') {
                 // EMP: Silencia la IA del bicho durante 3 segundos para que no dispare mecánicas
@@ -270,7 +268,7 @@ function registerCombatHandlers(socket, io, state) {
         enemy.lastHitter = socket.id;
         p.lastCombatTime = Date.now();
 
-        io.to(`zone_${enemy.zone}`).emit('enemyDamaged', { id: enemyId, hp: Math.max(0, enemy.hp), shield: enemy.shield, bulletId });
+        socket.emit('enemyDamaged', { id: enemyId, hp: Math.max(0, enemy.hp), shield: enemy.shield, bulletId });
 
         if (enemy.hp <= 0 && !enemy.isDeadProcessed) {
             handleEnemyDeath(enemyId, io, state, socket.id);
@@ -419,8 +417,7 @@ function registerCombatHandlers(socket, io, state) {
             io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                 id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
                 maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
-                isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible, // v245.93: Blindaje de Sigilo en PvE
-                spheres: p.spheres || [] 
+                isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible // v245.93: Blindaje de Sigilo en PvE
             });
         }
     });
@@ -447,8 +444,7 @@ function registerCombatHandlers(socket, io, state) {
                         maxShield: victim.maxShield,
                         isDead: victim.isDead,
                         isInvulnerable: true,
-                        isInvisible: victim.isInvisible,
-                        spheres: victim.spheres || []
+                        isInvisible: victim.isInvisible
                     });
                     return;
                 }
@@ -510,8 +506,7 @@ function registerCombatHandlers(socket, io, state) {
                     io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
                         id: socket.id, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
                         maxHp: attacker.maxHp, maxShield: attacker.maxShield, isDead: attacker.isDead,
-                        isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable,
-                        spheres: attacker.spheres || []
+                        isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable
                     });
                     dmg = 0; // No le causa daño a la víctima
                 } else {
@@ -524,8 +519,7 @@ function registerCombatHandlers(socket, io, state) {
                         io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
                             id: socket.id, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
                             maxHp: attacker.maxHp, maxShield: attacker.maxShield, isDead: attacker.isDead,
-                            isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable,
-                            spheres: attacker.spheres || []
+                            isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable
                         });
                     } else if (attackerAmmoType === 'emp') {
                         // EMP: Silencia a la víctima durante 3 segundos
@@ -561,8 +555,7 @@ function registerCombatHandlers(socket, io, state) {
                 io.to(`zone_${victim.zone}`).emit('playerStatSync', { 
                     id: data.victimId, hp: Math.ceil(victim.hp), shield: Math.ceil(victim.shield), 
                     maxHp: victim.maxHp, maxShield: victim.maxShield, isDead: victim.isDead,
-                    isInvisible: victim.isInvisible, isInvulnerable: !!victim.isInvulnerable,
-                    spheres: victim.spheres || []
+                    isInvisible: victim.isInvisible, isInvulnerable: !!victim.isInvulnerable
                 });
             } else {
                 // v270.25: Forzar sincronización correctiva de la víctima si el PvP está bloqueado/seguro
@@ -570,8 +563,7 @@ function registerCombatHandlers(socket, io, state) {
                 io.to(`zone_${victim.zone}`).emit('playerStatSync', { 
                     id: data.victimId, hp: Math.ceil(victim.hp), shield: Math.ceil(victim.shield), 
                     maxHp: victim.maxHp, maxShield: victim.maxShield, isDead: victim.isDead,
-                    isInvisible: victim.isInvisible, isInvulnerable: !!victim.isInvulnerable,
-                    spheres: victim.spheres || []
+                    isInvisible: victim.isInvisible, isInvulnerable: !!victim.isInvulnerable
                 });
 
                 if (!attacker.pvpEnabled) {

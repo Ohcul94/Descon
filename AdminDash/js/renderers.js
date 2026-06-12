@@ -997,26 +997,43 @@ function renderMapDetail() {
     if(!m.ambience) m.ambience = [];
 
     container.innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start;">
+        <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 1.5rem; align-items: start;">
             <div class="col">
                 <div class="card" style="width:100%;">
                     <div class="field full"><label>NOMBRE DE LA ZONA</label><input type="text" value="${m.name}" style="font-size: 1.5rem; color:var(--accent);" onchange="config.mapsConfig['${selectedMapId}'].name = this.value; updateSidebar();"></div>
                     <div class="field full" style="margin-top:1rem;"><label>DESCRIPCIÓN DE HISTORIA</label><textarea onchange="config.mapsConfig['${selectedMapId}'].desc = this.value" style="height:100px; width:100%; background:rgba(0,0,0,0.2); border:1px solid #333; color:white; padding:10px; border-radius:8px;">${m.desc || ''}</textarea></div>
                     <div class="form-grid" style="margin-top:1rem;">
-                        <div class="field"><label>Nivel Mín. (lvl)</label><input type="number" value="${m.minLevel}" onchange="config.mapsConfig['${selectedMapId}'].minLevel = parseInt(this.value)"></div>
-                        <div class="field"><label>Costo Warp (Hubs)</label><input type="number" value="${m.warpCost}" onchange="config.mapsConfig['${selectedMapId}'].warpCost = parseInt(this.value)"></div>
-                        <div class="field"><label>Color de Radar</label><input type="color" value="${m.color}" onchange="config.mapsConfig['${selectedMapId}'].color = this.value; updateSidebar();" style="height:40px;"></div>
-                        <div class="field"><label>Multiplicador de Drop (x)</label><input type="number" step="0.1" min="0" value="${m.dropMultiplier !== undefined ? m.dropMultiplier : 1}" onchange="config.mapsConfig['${selectedMapId}'].dropMultiplier = parseFloat(this.value) || 1"></div>
+                        <div class="field"><label>Nivel Mín. (lvl)</label><input type="number" value="${m.minLevel}" oninput="config.mapsConfig['${selectedMapId}'].minLevel = parseInt(this.value) || 0"></div>
+                        <div class="field"><label>Costo Warp (Hubs)</label><input type="number" value="${m.warpCost}" oninput="config.mapsConfig['${selectedMapId}'].warpCost = parseInt(this.value) || 0"></div>
+                        <div class="field"><label>Color de Radar</label><input type="color" value="${m.color || '#00d2ff'}" oninput="config.mapsConfig['${selectedMapId}'].color = this.value; updateSidebar();" style="height:40px;"></div>
+                        <div class="field"><label>Multiplicador de Drop (x)</label><input type="number" step="0.1" min="0" value="${m.dropMultiplier !== undefined ? m.dropMultiplier : 1}" oninput="config.mapsConfig['${selectedMapId}'].dropMultiplier = parseFloat(this.value) || 1"></div>
                     </div>
                     <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.05);">
                         <label style="color:var(--accent); font-size: 0.65rem; font-weight:bold; letter-spacing:1px; display:block; margin-bottom:0.8rem;">📐 DIMENSIONES DEL MAPA EN PÍXELES</label>
                         <div class="form-grid">
-                            <div class="field"><label>Ancho (Width - px)</label><input type="number" value="${m.width || 10000}" onchange="config.mapsConfig['${selectedMapId}'].width = parseInt(this.value)"></div>
-                            <div class="field"><label>Alto (Height - px)</label><input type="number" value="${m.height || 10000}" onchange="config.mapsConfig['${selectedMapId}'].height = parseInt(this.value)"></div>
+                            <div class="field"><label>Ancho (Width - px)</label><input type="number" value="${m.width || 10000}" oninput="config.mapsConfig['${selectedMapId}'].width = parseInt(this.value) || 10000;"></div>
+                            <div class="field"><label>Alto (Height - px)</label><input type="number" value="${m.height || 10000}" oninput="config.mapsConfig['${selectedMapId}'].height = parseInt(this.value) || 10000;"></div>
                         </div>
                     </div>
                 </div>
             </div>
+            
+            <div class="col">
+                <div class="card" style="width:100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;">
+                    <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold; letter-spacing:1px; width:100%; text-align:left;">🛰️ RADAR TÁCTICO DEL MAPA</label>
+                    <div id="map-radar-container" style="position:relative; width:100%; aspect-ratio: 1; background:#000; border:2px solid var(--accent); border-radius:10px; overflow:hidden; cursor:crosshair; box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);">
+                        <canvas id="map-radar-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                    </div>
+                    <div style="display:flex; gap:10px; width:100%;">
+                        <div class="field" style="flex:1;"><label>Radar X</label><input type="number" id="map-radar-x" value="0" readonly></div>
+                        <div class="field" style="flex:1;"><label>Radar Y</label><input type="number" id="map-radar-y" value="0" readonly></div>
+                    </div>
+                    <div style="font-size:0.7rem; color:#888; text-align:center; width:100%;">
+                        Arrastra los iconos 👾 para ubicar los Spawns, o haz clic en el radar para ver coordenadas.
+                    </div>
+                </div>
+            </div>
+
             <div class="col">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">☢️ MECÁNICAS DE AMBIENTE (HAZARDS)</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addAmbience('${selectedMapId}'); renderMapDetail();">+ AGREGAR EFECTO</button></div>
                         <div id="ambience-list" style="margin-bottom: 2rem;">
@@ -1067,7 +1084,7 @@ function renderMapDetail() {
                                     <div class="field">
                                         <label>${labels[f] || f}</label>
                                         <input type="number" step="0.1" value="${val}" 
-                                               onchange="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value)">
+                                               oninput="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value) || 0">
                                     </div>`;
                                 }).join('')}
                             </div>
@@ -1077,7 +1094,7 @@ function renderMapDetail() {
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--success); font-size: 0.8rem; font-weight:bold;">👾 ECOSISTEMA DE ENEMIGOS</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--success);" onclick="addMapSpawn('${selectedMapId}'); renderMapDetail();">+ AÑADIR ESPECIE</button></div>
                 <div id="spawns-list">
                     ${(m.spawns || []).map((s, idx) => `
-                        <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative; border-color: rgba(16, 185, 129, 0.2); overflow: visible;">
+                        <div class="card" id="card-map-spawn-${idx}" onclick="highlightCard('map-spawn', ${idx})" style="margin-bottom:1rem; padding:1rem; position:relative; border-color: rgba(16, 185, 129, 0.2); overflow: visible; transition: all 0.3s ease; cursor:pointer;">
                             <div style="position:absolute; top:8px; right:8px; z-index: 10;">
                                 <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].spawns.splice(${idx},1); renderMapDetail();">✕</button>
                             </div>
@@ -1089,13 +1106,43 @@ function renderMapDetail() {
                                     }, 'var(--success)', `map-spawn-${idx}`)}
                                 </div>
                                 <div class="field">
-                                    <label>Cant. Máx</label>
-                                    <input type="number" value="${s.count}" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].count = parseInt(this.value)">
+                                    <label>Cant. Máx (slots)</label>
+                                    <input type="number" value="${s.count}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].count = parseInt(this.value) || 0">
                                 </div>
                                 <div class="field">
-                                    <label>Intervalo (ms)</label>
-                                    <input type="number" value="${s.intervalMs}" onchange="config.mapsConfig['${selectedMapId}'].spawns[${idx}].intervalMs = parseInt(this.value)">
+                                    <label>Intervalo Respawn (ms)</label>
+                                    <input type="number" value="${s.intervalMs}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].intervalMs = parseInt(this.value) || 0">
                                 </div>
+                                <div class="field" style="grid-column: span 2;">
+                                    <label>Modo de Aparición (Respawn)</label>
+                                    <select style="background:#0f172a; border:none; color:var(--success); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;"
+                                            onchange="const val = this.value;
+                                                      const s = config.mapsConfig['${selectedMapId}'].spawns[${idx}];
+                                                      if (val === 'random_global') { s.spawnMode = 'random'; s.radius = 0; }
+                                                      else if (val === 'random_zone') { s.spawnMode = 'random'; if (!s.radius || s.radius === 0) s.radius = 500; }
+                                                      else if (val === 'fixed') { s.spawnMode = 'fixed'; }
+                                                      renderMapDetail();">
+                                        <option value="random_global" ${s.spawnMode === 'random' && (!s.radius || s.radius === 0) ? 'selected' : ''}>🌍 Aleatorio (En todo el mapa)</option>
+                                        <option value="random_zone" ${s.spawnMode === 'random' && s.radius > 0 ? 'selected' : ''}>⭕ Aleatorio en un área (Centro + Radio)</option>
+                                        <option value="fixed" ${s.spawnMode === 'fixed' ? 'selected' : ''}>📍 Fijo (Coordenadas Exactas)</option>
+                                    </select>
+                                </div>
+                                ${s.spawnMode === 'fixed' || (s.spawnMode === 'random' && s.radius > 0) ? `
+                                <div class="field">
+                                    <label>Coordenada Centro X</label>
+                                    <input type="number" value="${s.x !== undefined ? s.x : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].x = parseInt(this.value) || 0">
+                                </div>
+                                <div class="field">
+                                    <label>Coordenada Centro Y</label>
+                                    <input type="number" value="${s.y !== undefined ? s.y : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].y = parseInt(this.value) || 0">
+                                </div>
+                                ` : ''}
+                                ${s.spawnMode === 'random' && s.radius > 0 ? `
+                                <div class="field" style="grid-column: span 2;">
+                                    <label>Radio de Área de Spawn (px)</label>
+                                    <input type="number" value="${s.radius}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].radius = parseInt(this.value) || 0">
+                                </div>
+                                ` : ''}
                             </div>
                         </div>
                     `).join('')}
@@ -1103,6 +1150,7 @@ function renderMapDetail() {
             </div>
         </div>
     `;
+    setTimeout(initMapRadar, 100);
 }
 
 function renderMaps() {

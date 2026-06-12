@@ -109,8 +109,7 @@ class ResurreccionSkill extends BaseSkill {
                 shield: Math.ceil(targetPlayer.shield),
                 maxHp: targetPlayer.maxHp,
                 maxShield: targetPlayer.maxShield,
-                isDead: false,
-                spheres: targetPlayer.spheres || []
+                isDead: false
             });
 
             revivedCount++;

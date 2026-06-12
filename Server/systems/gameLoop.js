@@ -141,12 +141,19 @@ function startGameLoop(io, state, aiManager) {
                         if (cell) {
                             cell.enemies.forEach(e => {
                                 if (normalizeZone(e.zone) === pZoneNormalized && enemies[e.id] && enemies[e.id].hp > 0) {
+                                    // v270.30: Filtro de Distancia Euclidiana (Círculo de 1300px)
+                                    // Evita enviar enemigos situados en las esquinas lejanas de la grilla 5x5 (fuera de pantalla)
+                                    const dist = Math.hypot(p.x - e.x, p.y - e.y);
+                                    if (dist > 1300) return;
+
                                     currentAoiEnemyIds.add(e.id);
                                     
                                     // Precision Reduction: Redondear posiciones y rotaciones para achicar el JSON de red
                                     const roundedX = Math.round(e.x);
                                     const roundedY = Math.round(e.y);
                                     const roundedRot = Math.round(e.rotation * 100) / 100;
+                                    const roundedHp = Math.round(e.hp);
+                                    const roundedShield = Math.round(e.shield);
                                     const isRamming = !!(e.ai && e.ai.isRamming);
                                     const isInvulnerable = !!e.isInvulnerable;
                                     const isRage = !!e.isRage;
@@ -160,8 +167,8 @@ function startGameLoop(io, state, aiManager) {
                                     } else {
                                         const posChanged = Math.abs(last.x - roundedX) >= 2 || Math.abs(last.y - roundedY) >= 2;
                                         const rotChanged = Math.abs(last.rotation - roundedRot) >= 0.05;
-                                        const stateChanged = last.hp !== e.hp || 
-                                                             last.shield !== e.shield || 
+                                        const stateChanged = last.hp !== roundedHp || 
+                                                             last.shield !== roundedShield || 
                                                              last.isRage !== isRage || 
                                                              last.isRamming !== isRamming || 
                                                              last.isInvulnerable !== isInvulnerable;
@@ -177,8 +184,8 @@ function startGameLoop(io, state, aiManager) {
                                             x: roundedX,
                                             y: roundedY,
                                             rotation: roundedRot,
-                                            hp: e.hp,
-                                            shield: e.shield,
+                                            hp: roundedHp,
+                                            shield: roundedShield,
                                             zone: e.zone,
                                             isRage: isRage,
                                             isRamming: isRamming,
@@ -192,8 +199,8 @@ function startGameLoop(io, state, aiManager) {
                                             x: roundedX,
                                             y: roundedY,
                                             rotation: roundedRot,
-                                            hp: e.hp,
-                                            shield: e.shield,
+                                            hp: roundedHp,
+                                            shield: roundedShield,
                                             isRage: isRage,
                                             isRamming: isRamming,
                                             isInvulnerable: isInvulnerable
