@@ -288,6 +288,15 @@ class ExtractionManager {
         const oldZone = p.zone;
         socket.leave(`zone_${oldZone}`);
         
+        // Update playersByZone index
+        if (this.state.playersByZone[oldZone] && this.state.playersByZone[oldZone][socketId]) {
+            delete this.state.playersByZone[oldZone][socketId];
+        }
+        if (!this.state.playersByZone[matchId]) {
+            this.state.playersByZone[matchId] = {};
+        }
+        this.state.playersByZone[matchId][socketId] = p;
+        
         // v3.0: Aplicar el spawn point asignado
         if (spawnPoint) {
             p.x = spawnPoint.x;
@@ -546,6 +555,16 @@ class ExtractionManager {
 
         if (p && socket) {
             socket.leave(`zone_${matchId}`);
+            
+            // Update playersByZone index
+            if (this.state.playersByZone[matchId] && this.state.playersByZone[matchId][socketId]) {
+                delete this.state.playersByZone[matchId][socketId];
+            }
+            if (!this.state.playersByZone[newZone]) {
+                this.state.playersByZone[newZone] = {};
+            }
+            this.state.playersByZone[newZone][socketId] = p;
+
             p.zone = newZone;
             
             // Posicionar al centro según el tamaño estándar de la nueva zona

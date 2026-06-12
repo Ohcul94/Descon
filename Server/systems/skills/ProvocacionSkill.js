@@ -53,7 +53,7 @@ class ProvocacionSkill extends BaseSkill {
 
         // Obtener enemigos cercanos de forma eficiente a través de la grilla espacial (Anti-Lag)
         if (state.grid) {
-            const { enemies: nearbyEnemies } = state.grid.getNearbyEntities(targetX, targetY);
+            const { enemies: nearbyEnemies } = state.grid.getNearbyEntities(targetX, targetY, p.zone);
             nearbyEnemies.forEach(e => {
                 if (e.zone === p.zone && e.hp > 0) {
                     const d = Math.hypot(e.x - targetX, e.y - targetY);

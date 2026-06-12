@@ -127,6 +127,15 @@ function registerMovementHandlers(socket, io, state) {
         p.zone = targetZone;
 
         if (oldZone !== targetZone) {
+            // v380.0: Actualizar indexación playersByZone
+            if (state.playersByZone[oldZone] && state.playersByZone[oldZone][socket.id]) {
+                delete state.playersByZone[oldZone][socket.id];
+            }
+            if (!state.playersByZone[targetZone]) {
+                state.playersByZone[targetZone] = {};
+            }
+            state.playersByZone[targetZone][socket.id] = p;
+
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${targetZone}`);
             
@@ -188,6 +197,15 @@ function registerMovementHandlers(socket, io, state) {
         const targetZone = p.zone;
 
         if (oldZone !== targetZone) {
+            // v380.0: Actualizar indexación playersByZone
+            if (state.playersByZone[oldZone] && state.playersByZone[oldZone][socket.id]) {
+                delete state.playersByZone[oldZone][socket.id];
+            }
+            if (!state.playersByZone[targetZone]) {
+                state.playersByZone[targetZone] = {};
+            }
+            state.playersByZone[targetZone][socket.id] = p;
+
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${targetZone}`);
             

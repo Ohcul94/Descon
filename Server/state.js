@@ -3,6 +3,7 @@ const GridManager = require('./systems/GridManager');
 module.exports = {
     grid: new GridManager(500),
     players: {},
+    playersByZone: {},
     activeSessions: new Map(),
     enemies: {},
     activeAreas: {},

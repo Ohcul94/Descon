@@ -10,10 +10,10 @@ class GridManager {
         this.grid = new Map();
     }
 
-    _getKey(x, y) {
+    _getKey(x, y, zone = 1) {
         const cx = Math.floor(x / this.cellSize);
         const cy = Math.floor(y / this.cellSize);
-        return `${cx},${cy}`;
+        return `${zone}_${cx},${cy}`;
     }
 
     clear() {
@@ -21,7 +21,7 @@ class GridManager {
     }
 
     insert(entity, type) {
-        const key = this._getKey(entity.x, entity.y);
+        const key = this._getKey(entity.x, entity.y, entity.zone);
         if (!this.grid.has(key)) {
             this.grid.set(key, { players: [], enemies: [], areas: [] });
         }
@@ -31,7 +31,7 @@ class GridManager {
         else if (type === 'area') cell.areas.push(entity);
     }
 
-    getNearbyEntities(x, y) {
+    getNearbyEntities(x, y, zone = 1) {
         const cx = Math.floor(x / this.cellSize);
         const cy = Math.floor(y / this.cellSize);
         
@@ -41,7 +41,7 @@ class GridManager {
         // Revisar celda actual y las 8 adyacentes (bloque 3x3)
         for (let dx = -1; dx <= 1; dx++) {
             for (let dy = -1; dy <= 1; dy++) {
-                const key = `${cx + dx},${cy + dy}`;
+                const key = `${zone}_${cx + dx},${cy + dy}`;
                 const cell = this.grid.get(key);
                 if (cell) {
                     nearbyPlayers = nearbyPlayers.concat(cell.players);

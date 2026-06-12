@@ -598,7 +598,7 @@ module.exports = class BaseAI {
 
     _applyAuraEffect(mech, grid, players, io) {
         const radius = mech.radius || 200;
-        const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(this.enemy.x, this.enemy.y);
+        const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(this.enemy.x, this.enemy.y, this.enemy.zone);
 
         if (mech.type === "aura_damage") {
             nearbyPlayers.forEach(p => {
@@ -1518,7 +1518,7 @@ module.exports = class BaseAI {
                     return;
                 }
 
-                const { players: nearbyPlayers } = grid.getNearbyEntities(orb.x, orb.y);
+                const { players: nearbyPlayers } = grid.getNearbyEntities(orb.x, orb.y, this.enemy.zone);
                 for (const p of nearbyPlayers) {
                     if (p.zone === this.enemy.zone && !p.isDead) {
                         const distToP = Math.hypot(p.x - orb.x, p.y - orb.y);

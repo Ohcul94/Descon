@@ -80,7 +80,7 @@ function startGameLoop(io, state, aiManager) {
             const eZoneNormalized = normalizeZone(e.zone);
 
             // v262.35: IA Inteligente (LOD) - Forzar actualización si hay mecánicas activas o Agresividad Extrema
-            const { players: nearbyPs } = grid.getNearbyEntities(e.x, e.y);
+            const { players: nearbyPs } = grid.getNearbyEntities(e.x, e.y, e.zone);
             const isNearPlayer = nearbyPs.some(p => normalizeZone(p.zone) === eZoneNormalized);
             const hasActiveMech = e.mechState && Object.values(e.mechState).some(m => m.isActive);
             
@@ -92,7 +92,7 @@ function startGameLoop(io, state, aiManager) {
             }
 
             // v247.12: Repulsión física optimizada vía Grid
-            const { enemies: nearbyEnemies } = grid.getNearbyEntities(e.x, e.y);
+            const { enemies: nearbyEnemies } = grid.getNearbyEntities(e.x, e.y, e.zone);
             nearbyEnemies.forEach(other => {
                 if (e.id !== other.id && eZoneNormalized === normalizeZone(other.zone)) {
                     const dx = e.x - other.x;
@@ -136,7 +136,7 @@ function startGameLoop(io, state, aiManager) {
 
                 for (let dx = -2; dx <= 2; dx++) {
                     for (let dy = -2; dy <= 2; dy++) {
-                        const key = `${cx + dx},${cy + dy}`;
+                        const key = `${p.zone}_${cx + dx},${cy + dy}`;
                         const cell = grid.grid.get(key);
                         if (cell) {
                             cell.enemies.forEach(e => {
@@ -351,9 +351,10 @@ function startGameLoop(io, state, aiManager) {
                                 const duration = hazard.duration || 8000;
                                 state.mapTimers[tKey] = now + duration; // El próximo intervalo cuenta desde el fin
                                 
-                                // v267.500: Spawnear debajo de CADA jugador
-                                Object.values(players).forEach(p => {
-                                    if (String(p.zone) === String(zoneId) && p.hp > 0) {
+                                // v267.500: Spawnear debajo de CADA jugador (Optimizado)
+                                const playersInZone = state.playersByZone[zoneId] ? Object.values(state.playersByZone[zoneId]) : [];
+                                playersInZone.forEach(p => {
+                                    if (p.hp > 0) {
                                         const areaId = `vortex_${zoneId}_${p.user}_${Date.now()}`;
                                         state.activeAreas[areaId] = {
                                             id: areaId,
@@ -516,7 +517,7 @@ function startGameLoop(io, state, aiManager) {
                     const filters = area.targetFilters || { allies: true, enemies: false, bosses: false, players: true };
                     
                     // Obtener tanto jugadores como enemigos cercanos
-                    const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(area.x, area.y);
+                    const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(area.x, area.y, area.zone);
                     
                     // 1. Curar jugadores según filtros (aliados, enemigos PvP, jugadores neutrales)
                     nearbyPlayers.forEach(p => {
@@ -665,7 +666,7 @@ function startGameLoop(io, state, aiManager) {
                 continue; // El lazo vital no necesita colisionar físicamente con el grid
             }
 
-            const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(area.x, area.y);
+            const { players: nearbyPlayers, enemies: nearbyEnemies } = grid.getNearbyEntities(area.x, area.y, area.zone);
 
             // Efectos a Jugadores
             nearbyPlayers.forEach(p => {

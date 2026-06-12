@@ -306,6 +306,16 @@ class AltarDefenseManager {
             if (plSocket) {
                 plSocket.leave(`zone_${pl.zone}`);
                 plSocket.join(`zone_${targetZoneId}`);
+
+                // Update playersByZone index
+                if (this.state.playersByZone[pl.zone] && this.state.playersByZone[pl.zone][pl.socketId]) {
+                    delete this.state.playersByZone[pl.zone][pl.socketId];
+                }
+                if (!this.state.playersByZone[targetZoneId]) {
+                    this.state.playersByZone[targetZoneId] = {};
+                }
+                this.state.playersByZone[targetZoneId][pl.socketId] = pl;
+
                 pl.zone = targetZoneId;
                 pl.x = 2000;
                 pl.y = 2000;

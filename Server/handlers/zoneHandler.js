@@ -83,6 +83,15 @@ function registerZoneHandlers(socket, io, state) {
         socket.leave(`zone_${oldZone}`);
         socket.join(`zone_${newZone}`);
 
+        // Update playersByZone index
+        if (state.playersByZone[oldZone] && state.playersByZone[oldZone][socket.id]) {
+            delete state.playersByZone[oldZone][socket.id];
+        }
+        if (!state.playersByZone[newZone]) {
+            state.playersByZone[newZone] = {};
+        }
+        state.playersByZone[newZone][socket.id] = p;
+
         p.zone = newZone;
         p.x = 2000;
         p.y = 2000;
@@ -217,6 +226,15 @@ function registerZoneHandlers(socket, io, state) {
             // Gestión de Habitaciones v75.0 (Optimization)
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${zoneId}`);
+
+            // Update playersByZone index
+            if (state.playersByZone[oldZone] && state.playersByZone[oldZone][socket.id]) {
+                delete state.playersByZone[oldZone][socket.id];
+            }
+            if (!state.playersByZone[zoneId]) {
+                state.playersByZone[zoneId] = {};
+            }
+            state.playersByZone[zoneId][socket.id] = p;
 
             p.zone = zoneId;
             p.x = newSize / 2;

@@ -47,6 +47,8 @@ const { registerTradeHandlers } = require('./systems/tradeHandlers');
 const { registerZoneHandlers } = require('./handlers/zoneHandler');
 const { registerMovementHandlers } = require('./handlers/movementHandler');
 const { registerVaultHandlers } = require('./systems/vaultHandlers');
+const { registerPartyHandlers } = require('./handlers/partyHandlers');
+const { registerSkillHandlers } = require('./handlers/skillHandlers');
 
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
@@ -236,8 +238,12 @@ const handleUserLogin = async (socket, user, username) => {
         // v301.7: Purga física inmediata de la sesión y jugador anterior para evitar clones fantasmas en reconexiones rápidas
         if (players[oldSocketId]) {
             console.log(`[DEBUG-LOGIN] ${username}: Guardando y eliminando player anterior...`);
+            const oldP = players[oldSocketId];
+            if (state.playersByZone[oldP.zone] && state.playersByZone[oldP.zone][oldSocketId]) {
+                delete state.playersByZone[oldP.zone][oldSocketId];
+            }
             await savePlayerToDB(oldSocketId);
-            io.to(`zone_${players[oldSocketId].zone}`).emit('playerDisconnected', oldSocketId);
+            io.to(`zone_${oldP.zone}`).emit('playerDisconnected', oldSocketId);
             delete players[oldSocketId];
         } else {
             console.log(`[DEBUG-LOGIN] ${username}: No hay player anterior en RAM`);
@@ -443,6 +449,13 @@ const handleUserLogin = async (socket, user, username) => {
     
     // v266.135: Cálculo Maestro de Stats (Base + Ítems + Skills)
     calculateFinalStats(p_ref, state.SERVER_CONFIG);
+
+    // Indexar jugador en playersByZone
+    const loginZone = p_ref.zone || 1;
+    if (!state.playersByZone[loginZone]) {
+        state.playersByZone[loginZone] = {};
+    }
+    state.playersByZone[loginZone][socket.id] = p_ref;
 
     let adminConfig = null;
     try { adminConfig = await fs.readJson(CONFIG_FILE); } catch (e) { }
@@ -1420,114 +1433,8 @@ io.on('connection', (socket) => {
     // Registro de Manejadores de Movimiento y Respawn (playerMovement, playerRespawn)
     registerMovementHandlers(socket, io, state);
 
-    // SISTEMA DE TALENTOS (v300.70)
-    socket.on('investSkill', async (data) => {
-        if (!socket.dbUser || !players[socket.id] || !data) return;
-        
-        const cat = data.category;
-        const idx = parseInt(data.index);
-        
-        // Blindaje de Seguridad v314.0: Validar categoría e índice para evitar inyecciones y DoS por desbordamiento
-        const validCategories = ["engineering", "combat", "science"];
-        if (!validCategories.includes(cat) || isNaN(idx) || idx < 0 || idx > 7) {
-            console.warn(`[SECURITY-ALERT] Intento de inyección de talento inválido por parte de: ${players[socket.id].user} (Categoría: ${cat}, Índice: ${data.index})`);
-            return socket.emit('gameNotification', { msg: 'ACCIÓN DENEGADA: Parámetros de talento corruptos.', type: 'error' });
-        }
-
-        try {
-            const user = await User.findById(socket.dbUser._id);
-            if (!user) return;
-            
-            let pts = user.gameData.skillPoints || 0;
-            if (pts <= 0) return;
-            
-            if (!user.gameData.skillTree) user.gameData.skillTree = { engineering: [0,0,0,0,0,0,0,0], combat: [0,0,0,0,0,0,0,0], science: [0,0,0,0,0,0,0,0] };
-            
-            const branch = user.gameData.skillTree[cat] || [];
-            
-            // Autocompletado seguro del array de talento (tamaño fijo 8)
-            while (branch.length < 8) branch.push(0);
-            
-            if (branch[idx] >= 5) return;
-            
-            branch[idx] += 1;
-            user.gameData.skillTree[cat] = branch;
-            user.gameData.skillPoints = pts - 1;
-            
-            // v300.75: Triple validación de guardado
-            user.markModified('gameData.skillTree');
-            user.markModified('gameData.skillPoints');
-            user.markModified('gameData');
-            
-            // v300.90: ¡ACTUALIZAR RAM! (El bug mortal de sobreescritura)
-            players[socket.id].skillTree = user.gameData.skillTree;
-            players[socket.id].skillPoints = user.gameData.skillPoints;
-            
-            await user.save();
-            Logger.debug('DATABASE', `Talento '${cat}' [${idx}] guardado para ${user.username}. Restantes: ${user.gameData.skillPoints}`);
-            
-            socket.dbUser = user;
-            
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip || {});
-            
-            socket.emit('inventoryData', {
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj }
-            });
-        } catch(e) { Logger.error('TALENT', e.message); }
-    });
-
-    socket.on('resetSkills', async () => {
-        if (!socket.dbUser || !players[socket.id]) return;
-        try {
-            const user = await User.findById(socket.dbUser._id);
-            if (!user) return;
-            
-            const RESET_COST = 5000;
-            if ((user.gameData.ohcu || 0) < RESET_COST) {
-                return socket.emit('gameNotification', { msg: 'OHCU INSUFICIENTE PARA RESETEAR', type: 'error' });
-            }
-            
-            let spent = 0;
-            const tree = user.gameData.skillTree || { engineering: [], combat: [], science: [] };
-            
-            ['engineering', 'combat', 'science'].forEach(cat => {
-                if (tree[cat] && Array.isArray(tree[cat])) {
-                    tree[cat].forEach(lvl => { spent += lvl; });
-                }
-                tree[cat] = [0,0,0,0,0,0,0,0];
-            });
-            
-            if (spent === 0) return socket.emit('gameNotification', { msg: 'NO HAY HABILIDADES PARA RESETEAR', type: 'error' });
-            
-            user.gameData.ohcu -= RESET_COST;
-            user.gameData.skillPoints = (user.gameData.skillPoints || 0) + spent;
-            user.gameData.skillTree = tree;
-            
-            user.markModified('gameData');
-            
-            // v300.90: ¡ACTUALIZAR RAM! 
-            players[socket.id].skillTree = user.gameData.skillTree;
-            players[socket.id].skillPoints = user.gameData.skillPoints;
-            players[socket.id].ohcu = user.gameData.ohcu;
-            
-            await user.save();
-            Logger.debug('DATABASE', `Árbol de habilidades reseteado para ${user.username}. Puntos devueltos: ${spent}`);
-            
-            socket.dbUser = user;
-            
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip || {});
-            
-            socket.emit('inventoryData', {
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj }
-            });
-            socket.emit('gameNotification', { msg: 'ÁRBOL DE HABILIDADES RESETEADO', type: 'success' });
-            
-        } catch(e) { Logger.error('SKILL-RESET', e.message); }
-    });
+    // SISTEMA DE TALENTOS Y HABILIDADES (Modularizado)
+    registerSkillHandlers(socket, io, state);
 
     // SISTEMA DE DUNGEONS BLINDADAS (Instancias Privadas)
     socket.on('enterDungeon', () => {
@@ -1556,6 +1463,14 @@ io.on('connection', (socket) => {
         playersToMove.forEach(s => {
             const memP = players[s.id];
             const oldZone = memP.zone;
+
+            if (state.playersByZone[oldZone] && state.playersByZone[oldZone][s.id]) {
+                delete state.playersByZone[oldZone][s.id];
+            }
+            if (!state.playersByZone[dungeonZoneId]) {
+                state.playersByZone[dungeonZoneId] = {};
+            }
+            state.playersByZone[dungeonZoneId][s.id] = memP;
 
             s.leave(`zone_${oldZone}`);
             s.join(`zone_${dungeonZoneId}`);
@@ -1624,6 +1539,9 @@ io.on('connection', (socket) => {
                 io.to(`clan_${p.clanId}`).emit('clanMemberStatus', { user: p.user, online: false });
             }
             
+            if (state.playersByZone[p.zone] && state.playersByZone[p.zone][socket.id]) {
+                delete state.playersByZone[p.zone][socket.id];
+            }
             await savePlayerToDB(socket.id);
             socket.broadcast.emit('playerDisconnected', socket.id);
             delete players[socket.id];
@@ -1714,118 +1632,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    // SISTEMA DE PARTIES (GRUPOS) v63.1 - Con guardas anti-crash
-    socket.on('inviteToParty', (targetName) => {
-        try {
-            if (!targetName || typeof targetName !== 'string') return;
-            const cleanTarget = targetName.trim().toLowerCase();
-            
-            // Buscar el piloto en la lista oficial de jugadores del juego (evitando capturar el socket del panel web Admin)
-            const targetPlayer = Object.values(players).find(p => p.user && p.user.toLowerCase() === cleanTarget);
-            if (!targetPlayer) return socket.emit('authError', 'PILOTO NO ENCONTRADO O FUERA DE LÍNEA');
-
-            const targetSocket = io.sockets.sockets.get(targetPlayer.socketId);
-            if (!targetSocket) return socket.emit('authError', 'PILOTO NO ENCONTRADO O FUERA DE LÍNEA');
-            if (targetSocket.id === socket.id) return socket.emit('authError', 'NO PUEDES INVITARTE A TI MISMO');
-            if (!players[socket.id]) return;
-
-            targetSocket.emit('partyInvitation', {
-                from: players[socket.id].user || 'Desconocido',
-                fromId: socket.id
-            });
-        } catch (e) { console.error("Error en inviteToParty:", e); }
-    });
-
-    socket.on('acceptParty', (leaderSid) => {
-        try {
-            const leaderSocket = io.sockets.sockets.get(leaderSid);
-            if (!leaderSocket || !leaderSocket.dbUser || !socket.dbUser) return socket.emit('authError', 'PILOTO NO DISPONIBLE');
-
-            const leaderUid = leaderSocket.dbUser._id.toString();
-            const myUid = socket.dbUser._id.toString();
-
-            let partyId = playerParty[leaderUid];
-            if (!partyId) {
-                // Crear nueva party (v134.50 Persistence dbId Based)
-                partyId = leaderUid;
-                parties[partyId] = { id: partyId, members: [leaderUid], names: [leaderSocket.dbUser.username.toUpperCase()] };
-                playerParty[leaderUid] = partyId;
-            }
-
-            if (parties[partyId].members.includes(myUid)) return;
-            if (parties[partyId].members.length >= 8) return socket.emit('authError', 'EL GRUPO EST├ü LLENO (MAX 8)');
-
-            parties[partyId].members.push(myUid);
-            parties[partyId].names.push(socket.dbUser.username.toUpperCase());
-            playerParty[myUid] = partyId;
-
-            io.emit('partyUpdate', parties[partyId]);
-            io.emit('chatMessage', {
-                sender: 'SYSTEM', msg: `${socket.dbUser.username.toUpperCase()} se ha unido al grupo.`, channel: 'team', senderId: 'server'
-            });
-        } catch (e) {
-            console.error("Error en acceptParty:", e);
-        }
-    });
-
-    socket.on('leaveParty', () => {
-        try {
-            if (!socket.dbUser) return;
-            const myUid = socket.dbUser._id.toString();
-            const partyId = playerParty[myUid];
-            if (!partyId || !parties[partyId]) return;
-
-            const name = socket.dbUser.username.toUpperCase();
-            parties[partyId].members = parties[partyId].members.filter(m => m !== myUid);
-            parties[partyId].names = parties[partyId].names.filter(n => n !== name);
-
-            if (parties[partyId].members.length <= 1) {
-                parties[partyId].members.forEach(m => delete playerParty[m]);
-                delete parties[partyId];
-                io.emit('partyUpdate', null);
-            } else {
-                io.emit('partyUpdate', parties[partyId]);
-            }
-            delete playerParty[myUid];
-            socket.emit('partyUpdate', null);
-        } catch (e) {
-            console.error("Error en leaveParty:", e);
-        }
-    });
-
-    socket.on('kickFromParty', (targetUid) => {
-        try {
-            if (!socket.dbUser) return;
-            const myUid = socket.dbUser._id.toString();
-            const partyId = playerParty[myUid];
-            
-            // Solo el líder puede kickear (id de la party == líderUid)
-            if (!partyId || partyId !== myUid || !parties[partyId]) return;
-            if (targetUid === myUid) return; // No se puede kickear a sí mismo
-
-            const targetIndex = parties[partyId].members.indexOf(targetUid);
-            if (targetIndex === -1) return;
-
-            parties[partyId].members.splice(targetIndex, 1);
-            parties[partyId].names.splice(targetIndex, 1);
-            delete playerParty[targetUid];
-
-            if (parties[partyId].members.length <= 1) {
-                parties[partyId].members.forEach(m => delete playerParty[m]);
-                delete parties[partyId];
-                io.emit('partyUpdate', null);
-            } else {
-                io.emit('partyUpdate', parties[partyId]);
-            }
-            
-            // Avisar específicamente al expulsado
-            const targetSocketId = Object.keys(players).find(sid => players[sid].dbId === targetUid);
-            if (targetSocketId) io.to(targetSocketId).emit('partyUpdate', null);
-            
-        } catch (e) {
-            console.error("Error en kickFromParty:", e);
-        }
-    });
+    // SISTEMA DE PARTIES (GRUPOS) (Modularizado)
+    registerPartyHandlers(socket, io, state);
 
     // ==========================================
     // SISTEMA DE DEFENSA DEL ALTAR
