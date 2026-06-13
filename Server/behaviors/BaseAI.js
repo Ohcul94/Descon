@@ -320,7 +320,8 @@ module.exports = class BaseAI {
         const hasActiveMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isActive || m.isCharging || m.isLocked || m.isFiring);
         const isExtreme = !!this.ambienceBoost;
         
-        if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme) {
+        const isProwler = (cfg.movementAI === 'prowler') || (cfg.movementPhases && cfg.movementPhases[0] && cfg.movementPhases[0].type === 'prowler');
+        if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme && !isProwler) {
             this.enemy.isMoving = false;
             return;
         }
@@ -335,7 +336,7 @@ module.exports = class BaseAI {
         const configVision = cfg ? Number(cfg.visionRange) : 0;
         const visionRange = configVision > 0 ? configVision : 800;
         const canSee = activeTarget && dist <= visionRange;
-        if (!isExtreme && !cfg.chaseUntilDeath && cfg.stopOnOutOfSight && !canSee && !hasActiveMech) {
+        if (!isExtreme && !cfg.chaseUntilDeath && cfg.stopOnOutOfSight && !canSee && !hasActiveMech && !isProwler) {
             this.enemy.isMoving = false;
             return;
         }
@@ -393,6 +394,8 @@ module.exports = class BaseAI {
             this.enemy.isMoving = false;
         } else if (activeTarget) {
             this.applyMovementLogic(activeTarget, dist, targetAngle, now);
+        } else if (isProwler) {
+            this.applyMovementLogic(null, 0, 0, now);
         }
 
         // v3.6: Forzar rotación fija si hay una mecánica activa que restrinja el apuntado (por aimDelayMs, lock o fire)

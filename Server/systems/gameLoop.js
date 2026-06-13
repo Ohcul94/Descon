@@ -86,8 +86,9 @@ function startGameLoop(io, state, aiManager) {
             
             // v266.999: Detección de Agresividad Extrema para Bypass de LOD (Usando Set optimizado O(1))
             const isExtreme = extremeZones.has(String(e.zone));
+            const isProwler = e.ai && e.ai.constructor.name === 'ProwlerAI';
 
-            if (isNearPlayer || hasActiveMech || isExtreme || (now % 1000 < 33)) {
+            if (isNearPlayer || hasActiveMech || isExtreme || isProwler || (now % 1000 < 33)) {
                 if (e.ai) e.ai.update(grid, players, now, io);
             }
 

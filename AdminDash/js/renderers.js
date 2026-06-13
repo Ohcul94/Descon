@@ -683,7 +683,22 @@ function renderEnemyDetail() {
                             </div>
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${MOVEMENT_LIB[m.type || 'chase'].fields.map(f => {
-                                    const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración (ms)", cooldown: "Recarga (ms)", startDelay: "Retraso Inicio (ms)", explodeOnDeath: "Explotar al morir", radius: "Radio del Aura (px)", speedBonus: "Bono de Velocidad (px/s)", intervalMs: "Intervalo de Tick (ms)", affectsEnemies: "Afectar a otros Enemigos", affectsBosses: "Afectar a Bosses" };
+                                    const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración (ms)", cooldown: "Recarga (ms)", startDelay: "Retraso Inicio (ms)", explodeOnDeath: "Explotar al morir", radius: "Radio del Aura (px)", speedBonus: "Bono de Velocidad (px/s)", intervalMs: "Intervalo de Tick (ms)", affectsEnemies: "Afectar a otros Enemigos", affectsBosses: "Afectar a Bosses", patrolRange: "Rango de Patrulla (px)", changeInterval: "Frecuencia del Cambio (ms / px)" };
+                                    if (f === 'changeTrigger') {
+                                        const val = m[f] || 'time';
+                                        return `<div class="field"><label>Criterio de Cambio</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].changeTrigger = this.value; renderEnemyDetail();">
+                                            <option value="time" ${val === 'time' ? 'selected' : ''}>⏳ Tiempo</option>
+                                            <option value="distance" ${val === 'distance' ? 'selected' : ''}>📏 Recorrido</option>
+                                        </select></div>`;
+                                    }
+                                    if (f === 'changeType') {
+                                        const val = m[f] || 'random';
+                                        return `<div class="field"><label>Tipo de Giro</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].changeType = this.value; renderEnemyDetail();">
+                                            <option value="random" ${val === 'random' ? 'selected' : ''}>🔀 Aleatorio</option>
+                                            <option value="reverse" ${val === 'reverse' ? 'selected' : ''}>🔄 Invertir Sentido (180°)</option>
+                                            <option value="orthogonal" ${val === 'orthogonal' ? 'selected' : ''}>📐 Giro 90°</option>
+                                        </select></div>`;
+                                    }
                                     if (['explodeOnDeath', 'affectsEnemies', 'affectsBosses'].includes(f)) return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${m[f] ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].${f} = this.checked"><label style="margin:0;">${moveLabels[f]}</label></div>`;
                                     return `<div class="field"><label>${moveLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}

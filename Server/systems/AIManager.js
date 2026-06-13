@@ -6,6 +6,7 @@ const MechanicBossAI = require('../behaviors/MechanicBossAI');
 const SniperAI = require('../behaviors/SniperAI');
 const ChargerAI = require('../behaviors/ChargerAI');
 const GravityAI = require('../behaviors/GravityAI');
+const ProwlerAI = require('../behaviors/ProwlerAI');
 const Logger = require('../utils/logger');
 
 /**
@@ -87,10 +88,11 @@ class AIManager {
         }
 
         const movSpeed = rawSpeed * 0.033;
-        const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
+        const phase0 = (cfg && cfg.movementPhases && cfg.movementPhases[0]) ? cfg.movementPhases[0] : {};
+        const aiConfig = cfg ? { ...cfg, ...phase0, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
         
         // v266.230: Asignación Dinámica de Cerebros basada en Configuración
-        const movementType = cfg ? cfg.movementAI : null;
+        const movementType = cfg ? (cfg.movementAI || phase0.type) : null;
 
         const AI_MAP = {
             "chase": ChaseAI,
@@ -100,7 +102,8 @@ class AIManager {
             "gravity": GravityAI,
             "boss": BossAI,
             "ancient": AncientBossAI,
-            "mechanic": MechanicBossAI
+            "mechanic": MechanicBossAI,
+            "prowler": ProwlerAI
         };
 
         if (movementType && AI_MAP[movementType]) {

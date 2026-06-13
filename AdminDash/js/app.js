@@ -612,6 +612,10 @@ function updateMovementPhaseType(id, idx, type) {
             else if (f === 'cooldown') config.enemyModels[id].movementPhases[idx][f] = 10000;
             else if (f === 'affectsEnemies') config.enemyModels[id].movementPhases[idx][f] = false;
             else if (f === 'affectsBosses') config.enemyModels[id].movementPhases[idx][f] = false;
+            else if (f === 'changeTrigger') config.enemyModels[id].movementPhases[idx][f] = 'time';
+            else if (f === 'changeType') config.enemyModels[id].movementPhases[idx][f] = 'random';
+            else if (f === 'changeInterval') config.enemyModels[id].movementPhases[idx][f] = 4000;
+            else if (f === 'patrolRange') config.enemyModels[id].movementPhases[idx][f] = 300;
             else config.enemyModels[id].movementPhases[idx][f] = 150;
         }
     });

@@ -2211,10 +2211,14 @@
             ],
             "movementPhases": [
                 {
-                    "type": "chase",
-                    "speed": 290,
+                    "type": "prowler",
+                    "speed": 200,
                     "stopDist": 150,
-                    "startDelay": 0
+                    "startDelay": 0,
+                    "patrolRange": 1500,
+                    "changeTrigger": 150,
+                    "changeInterval": 4000,
+                    "changeType": 150
                 }
             ],
             "defenseMechanics": []
@@ -2778,8 +2782,8 @@
                     "intervalMs": 5000,
                     "id": "spawn_4_idx_0_type_1",
                     "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
+                    "x": 5029,
+                    "y": 5019,
                     "radius": 300
                 }
             ]
@@ -2790,23 +2794,7 @@
             "minLevel": 15,
             "name": "Mapa 5",
             "warpCost": 50,
-            "ambience": [
-                {
-                    "type": "vortex_hazard",
-                    "spawnInterval": 15000,
-                    "duration": 5000,
-                    "pullForce": 0,
-                    "damage": 10,
-                    "damageInterval": 0,
-                    "radius": 300
-                },
-                {
-                    "type": "blindness_hazard",
-                    "spawnInterval": 15000,
-                    "duration": 5000,
-                    "radius": 150
-                }
-            ],
+            "ambience": [],
             "spawns": [
                 {
                     "type": "13-D",
@@ -2814,9 +2802,9 @@
                     "intervalMs": 5000,
                     "id": "spawn_5_idx_0_type_13-D",
                     "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
-                    "radius": 300
+                    "x": 5000,
+                    "y": 4990,
+                    "radius": 0
                 }
             ]
         },
@@ -4325,6 +4313,18 @@
                 "startDelay",
                 "affectsEnemies",
                 "affectsBosses"
+            ]
+        },
+        "prowler": {
+            "label": "Merodeador",
+            "icon": "🐾",
+            "desc": "Movimiento de patrulla autónoma en un rango circular configurable.",
+            "fields": [
+                "speed",
+                "patrolRange",
+                "changeTrigger",
+                "changeInterval",
+                "changeType"
             ]
         }
     },

@@ -17,6 +17,7 @@ const DEFAULT_MOVEMENT_LIB = {
     "orbit": { label: "Órbita Circular", icon: "🔄", desc: "Gira alrededor del jugador constantemente.", fields: ["speed", "orbitRadius"] },
     "charger": { label: "Embestida (Dash)", icon: "⚡", desc: "Se acerca y lanza ataques de alta velocidad.", fields: ["speed", "chargeCooldown"] },
     "kamikaze": { label: "Kamikaze", icon: "💣", desc: "Se lanza hacia vos al bajar de HP y explota.", fields: ["activationHP", "speed", "explosionDamage", "duration", "explodeOnDeath"] },
+    "prowler": { label: "Merodeador", icon: "🐾", desc: "Movimiento de patrulla autónoma en un rango circular configurable.", fields: ["speed", "patrolRange", "changeTrigger", "changeInterval", "changeType"] },
     "aura_speed": { label: "Aura de Impulso", icon: "🌬️", desc: "Aumenta la velocidad en un área circular.", fields: ["activationHP", "radius", "speedBonus", "duration", "cooldown", "startDelay", "affectsEnemies", "affectsBosses"] }
 };
 
