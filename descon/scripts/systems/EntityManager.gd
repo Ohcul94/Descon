@@ -157,14 +157,39 @@ func _process(delta):
 					player.global_position += force
 					if player.has_method("apply_shake"): player.apply_shake(0.3)
 
-		if id.begins_with("cone_") or id.begins_with("blast_"):
+		if id.begins_with("cone_") or id.begins_with("blast_") or id.begins_with("circle_"):
 			var enemy_id = area.get_meta("enemy_id")
 			if enemies.has(enemy_id):
 				var en = enemies[enemy_id]
 				if is_instance_valid(en):
 					var en_vis = _get_entity_visual_position(en)
-					area.global_position = en_vis
-					area.global_rotation = en.global_rotation - PI / 2
+					if id.begins_with("circle_"):
+						var duration = area.get_meta("duration")
+						var lock_time = area.get_meta("lock_time")
+						var timer = area.get_meta("charge_timer") + delta
+						area.set_meta("charge_timer", timer)
+						
+						var is_locked = area.get_meta("is_locked")
+						if not is_locked and (duration - timer) <= lock_time:
+							area.set_meta("is_locked", true)
+							area.set_meta("locked_pos", en_vis)
+						
+						if area.get_meta("is_locked"):
+							area.global_position = area.get_meta("locked_pos")
+						else:
+							area.global_position = en_vis
+							
+						# Actualizar la escala del círculo interno de carga
+						var charge_node = area.get_node_or_null("ChargeVisual")
+						if charge_node:
+							var inner_r = area.get_meta("inner_range")
+							var max_r = area.get_meta("range")
+							var progress = clamp(timer / duration, 0.0, 1.0)
+							var current_r = lerp(inner_r, max_r, progress)
+							charge_node.polygon = _get_ring_points(inner_r, current_r)
+					else:
+						area.global_position = en_vis
+						area.global_rotation = en.global_rotation - PI / 2
 			else:
 				active_areas.erase(id)
 				area.queue_free()
@@ -440,6 +465,122 @@ func _on_enemy_action(data: Dictionary):
 			var tw = blast.create_tween()
 			tw.tween_property(poly_blast, "color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 			tw.finished.connect(func():
+				active_areas.erase("blast_" + enemy_id)
+				blast.queue_free()
+			)
+		
+		elif action == "circle_charging":
+			var range_val = float(data.get("range", 300.0))
+			var charge_dur = float(data.get("duration", 2000.0)) / 1000.0
+			var lock_dur = float(data.get("lockTimeMs", 800.0)) / 1000.0
+			
+			var r_inner = 64.0
+			if is_instance_valid(en) and "_collision_shape" in en and is_instance_valid(en._collision_shape) and en._collision_shape.shape is CircleShape2D:
+				r_inner = en._collision_shape.shape.radius
+				
+			var circle_node = Node2D.new()
+			circle_node.name = "CircleIndicator_" + enemy_id
+			circle_node.z_index = -2 # Dibujar debajo de los assets para no pintarlos de rojo
+			circle_node.set_meta("is_circle_indicator", true)
+			circle_node.set_meta("enemy_id", enemy_id)
+			circle_node.set_meta("range", range_val)
+			circle_node.set_meta("inner_range", r_inner)
+			circle_node.set_meta("duration", charge_dur)
+			circle_node.set_meta("lock_time", lock_dur)
+			circle_node.set_meta("charge_timer", 0.0)
+			circle_node.set_meta("is_locked", false)
+			circle_node.set_meta("locked_pos", Vector2(data.get("x", en.global_position.x), data.get("y", en.global_position.y)))
+			circle_node.set_as_top_level(true)
+			
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				world.entities_node.add_child(circle_node)
+			else:
+				en.add_child(circle_node)
+				
+			# Círculo de fondo (Área de Peligro - Anillo)
+			var poly_bg = Polygon2D.new()
+			poly_bg.polygon = _get_ring_points(r_inner, range_val)
+			poly_bg.color = Color(1.0, 0.0, 0.0, 0.12)
+			circle_node.add_child(poly_bg)
+			
+			# Borde exterior del círculo
+			var border_outer = Line2D.new()
+			border_outer.points = _get_circle_outline_points(range_val)
+			border_outer.width = 2.0
+			border_outer.default_color = Color(1.0, 0.0, 0.0, 0.4)
+			circle_node.add_child(border_outer)
+			
+			# Borde interior del círculo
+			var border_inner = Line2D.new()
+			border_inner.points = _get_circle_outline_points(r_inner)
+			border_inner.width = 2.0
+			border_inner.default_color = Color(1.0, 0.0, 0.0, 0.4)
+			circle_node.add_child(border_inner)
+			
+			# Círculo de carga (Progreso - Anillo)
+			var poly_charge = Polygon2D.new()
+			poly_charge.name = "ChargeVisual"
+			poly_charge.polygon = _get_ring_points(r_inner, r_inner + 1.0)
+			poly_charge.color = Color(1.0, 0.1, 0.1, 0.35)
+			circle_node.add_child(poly_charge)
+			
+			active_areas["circle_" + enemy_id] = circle_node
+			
+		elif action == "circle_fire":
+			var indicator = en.get_node_or_null("CircleIndicator_" + enemy_id)
+			if is_instance_valid(indicator):
+				indicator.queue_free()
+				
+			var root_indicator = world.entities_node.get_node_or_null("CircleIndicator_" + enemy_id) if is_instance_valid(world) and is_instance_valid(world.entities_node) else null
+			if is_instance_valid(root_indicator):
+				root_indicator.queue_free()
+				
+			var range_val = float(data.get("range", 300.0))
+			var locked_x = float(data.get("x", en.global_position.x))
+			var locked_y = float(data.get("y", en.global_position.y))
+			
+			var r_inner = 64.0
+			if is_instance_valid(en) and "_collision_shape" in en and is_instance_valid(en._collision_shape) and en._collision_shape.shape is CircleShape2D:
+				r_inner = en._collision_shape.shape.radius
+				
+			var blast = Node2D.new()
+			blast.name = "CircleBlast_" + enemy_id
+			blast.z_index = -2 # Dibujar debajo de los assets
+			blast.set_meta("enemy_id", enemy_id)
+			blast.set_as_top_level(true)
+			blast.global_position = Vector2(locked_x, locked_y)
+			
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				world.entities_node.add_child(blast)
+			else:
+				en.add_child(blast)
+				
+			var poly_blast = Polygon2D.new()
+			poly_blast.polygon = _get_ring_points(r_inner, range_val)
+			poly_blast.color = Color(1.0, 0.3, 0.0, 0.75)
+			blast.add_child(poly_blast)
+			
+			# Borde de la explosión exterior
+			var blast_border_outer = Line2D.new()
+			blast_border_outer.points = _get_circle_outline_points(range_val)
+			blast_border_outer.width = 4.0
+			blast_border_outer.default_color = Color(1.0, 0.5, 0.0, 0.9)
+			blast.add_child(blast_border_outer)
+			
+			# Borde de la explosión interior
+			var blast_border_inner = Line2D.new()
+			blast_border_inner.points = _get_circle_outline_points(r_inner)
+			blast_border_inner.width = 4.0
+			blast_border_inner.default_color = Color(1.0, 0.5, 0.0, 0.9)
+			blast.add_child(blast_border_inner)
+			
+			active_areas["blast_" + enemy_id] = blast
+			
+			var tw = blast.create_tween().set_parallel(true)
+			tw.tween_property(poly_blast, "color:a", 0.0, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw.tween_property(blast_border_outer, "default_color:a", 0.0, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw.tween_property(blast_border_inner, "default_color:a", 0.0, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw.chain().finished.connect(func():
 				active_areas.erase("blast_" + enemy_id)
 				blast.queue_free()
 			)
@@ -1384,6 +1525,27 @@ func _get_cone_points(radius: float, angle_degrees: float) -> PackedVector2Array
 		var ang = -half_angle + (float(i) / steps) * angle_rad
 		points.append(Vector2(cos(ang), sin(ang)) * radius)
 	points.append(Vector2.ZERO)
+	return points
+
+func _get_ring_points(inner_radius: float, outer_radius: float) -> PackedVector2Array:
+	var points = PackedVector2Array()
+	var steps = 32
+	# Bucle exterior (horario)
+	for i in range(steps + 1):
+		var ang = (float(i) / steps) * TAU
+		points.append(Vector2(cos(ang), sin(ang)) * outer_radius)
+	# Bucle interior (antihorario)
+	for i in range(steps + 1):
+		var ang = (1.0 - float(i) / steps) * TAU
+		points.append(Vector2(cos(ang), sin(ang)) * inner_radius)
+	return points
+
+func _get_circle_outline_points(radius: float) -> PackedVector2Array:
+	var points = PackedVector2Array()
+	var steps = 32
+	for i in range(steps + 1):
+		var ang = (float(i) / steps) * TAU
+		points.append(Vector2(cos(ang), sin(ang)) * radius)
 	return points
 
 func _on_boss_colors_start(data: Dictionary):

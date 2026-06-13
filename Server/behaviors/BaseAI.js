@@ -1000,6 +1000,105 @@ module.exports = class BaseAI {
             return false;
         }
 
+        // Mecánica de Explosión Circular (circle_cast)
+        if (mech.type === "circle_cast") {
+            const chargeTime = (mech.castTimeMs !== undefined) ? mech.castTimeMs : 2000;
+            const cooldown = (mech.cooldown !== undefined) ? mech.cooldown : 5000;
+            const radius = mech.fireRange || 300;
+            const lockTimeMs = mech.lockTimeMs !== undefined ? mech.lockTimeMs : 800;
+
+            if (!state.isCharging && now > state.nextShotTime) {
+                // FASE 1: INICIO DE CARGA
+                state.isCharging = true;
+                state.chargeEndTime = now + chargeTime;
+                state.lockedX = this.enemy.x;
+                state.lockedY = this.enemy.y;
+                state.isPositionLocked = false;
+                
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "circle_charging",
+                    type: "circle_cast",
+                    duration: chargeTime,
+                    range: radius,
+                    damage: mech.damage || 500,
+                    lockTimeMs: lockTimeMs,
+                    x: this.enemy.x,
+                    y: this.enemy.y
+                });
+            } else if (state.isCharging) {
+                const timeLeft = state.chargeEndTime - now;
+                if (timeLeft <= 0) {
+                    // FASE 3: DETONACIÓN
+                    state.isCharging = false;
+                    state.nextShotTime = now + cooldown;
+
+                    // Si no se había bloqueado antes, bloquear ahora en el punto de detonación
+                    if (!state.isPositionLocked) {
+                        state.lockedX = this.enemy.x;
+                        state.lockedY = this.enemy.y;
+                        state.isPositionLocked = true;
+                    }
+
+                    const dmg = mech.damage || 500;
+
+                    // Avisar al cliente para reproducir animación de explosión circular
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        action: "circle_fire",
+                        type: "circle_cast",
+                        x: state.lockedX,
+                        y: state.lockedY,
+                        range: radius
+                    });
+
+                    // Calcular jugadores golpeados alrededor del punto de fijación
+                    const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                    zonePlayers.forEach(p => {
+                        const d = Math.hypot(p.x - state.lockedX, p.y - state.lockedY);
+                        if (d <= radius) {
+                            p.lastCombatTime = Date.now();
+                            if (p.shield >= dmg) {
+                                p.shield -= dmg;
+                            } else {
+                                p.hp -= (dmg - p.shield);
+                                p.shield = 0;
+                            }
+                            if (p.hp < 0) p.hp = 0;
+                            if (p.hp <= 0) p.isDead = true;
+
+                            // Sincronizar stats del jugador golpeado
+                            io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                            io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                id: p.socketId,
+                                hp: Math.ceil(p.hp),
+                                shield: Math.ceil(p.shield),
+                                isDead: p.isDead,
+                                isInvulnerable: p.isInvulnerable,
+                                isInvisible: p.isInvisible,
+                                spheres: p.spheres || []
+                            });
+                        }
+                    });
+                } else {
+                    // FASE 2: RASTREO / FIJACIÓN
+                    if (timeLeft > lockTimeMs) {
+                        // Sigue la posición del jefe
+                        state.lockedX = this.enemy.x;
+                        state.lockedY = this.enemy.y;
+                    } else if (!state.isPositionLocked) {
+                        // Se acaba de congelar la posición
+                        state.lockedX = this.enemy.x;
+                        state.lockedY = this.enemy.y;
+                        state.isPositionLocked = true;
+                    }
+                }
+            }
+
+            this.enemy.mechState[mId] = state;
+            return state.isCharging;
+        }
+
         if (now > state.nextShotTime) {
             const burstLimit = (mech.type === "laser") ? 3 : 1; 
             if (state.shotsInBurst < burstLimit) {

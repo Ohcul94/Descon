@@ -1796,17 +1796,16 @@
                     "slowDuration": 0
                 },
                 {
-                    "type": "orbital_strike",
-                    "bulletDamage": 1200,
+                    "type": "circle_cast",
+                    "bulletDamage": 10,
                     "bulletSpeed": 800,
-                    "fireRange": 800,
-                    "fireRate": 3000,
-                    "circleCount": 5,
-                    "orbitDuration": 3000,
-                    "orbitRadius": 100,
-                    "staticTime": 500,
-                    "startDelay": 1000,
-                    "orbitSpeed": 2
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "cooldown": 5000,
+                    "castTimeMs": 3000,
+                    "damage": 500,
+                    "lockTimeMs": 1000,
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
@@ -1831,22 +1830,7 @@
                     "explodeOnDeath": 150
                 }
             ],
-            "defenseMechanics": [
-                {
-                    "type": "invisibility",
-                    "reductionPercentage": 10,
-                    "shieldRegen": 5,
-                    "duration": 3000,
-                    "cooldown": 10000,
-                    "startDelay": 0,
-                    "activationMode": "time",
-                    "activationIntervalMs": 5000,
-                    "invisType": "camouflage",
-                    "keepAttacking": true,
-                    "changeSpeed": false,
-                    "invisSpeedMultiplier": 1
-                }
-            ],
+            "defenseMechanics": [],
             "lootDrops": [
                 {
                     "itemId": "las1",
@@ -4432,6 +4416,19 @@
                 "bombDelayMs",
                 "fuseTimeMs",
                 "cooldown",
+                "startDelay"
+            ]
+        },
+        "circle_cast": {
+            "label": "Explosión Circular",
+            "icon": "⭕",
+            "desc": "Ataque circular que se carga siguiendo al enemigo y explota dañando a todos.",
+            "fields": [
+                "cooldown",
+                "castTimeMs",
+                "damage",
+                "fireRange",
+                "lockTimeMs",
                 "startDelay"
             ]
         }

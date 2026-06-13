@@ -711,17 +711,18 @@ function updateMechanicType(enemyId, idx, newType) {
     lib.fields.forEach(f => {
         if (mech[f] === undefined) {
             if (f === 'radius') mech[f] = 250;
-            else if (f === 'damage') mech[f] = 15;
+            else if (f === 'damage') mech[f] = newType === 'circle_cast' ? 500 : 15;
             else if (f === 'intervalMs') mech[f] = 1000;
             else if (f === 'duration') mech[f] = 5000;
-            else if (f === 'cooldown') mech[f] = 10000;
+            else if (f === 'cooldown') mech[f] = newType === 'circle_cast' ? 5000 : 10000;
             else if (f === 'bulletDamage') mech[f] = 10;
             else if (f === 'bulletSpeed') mech[f] = 800;
-            else if (f === 'fireRange') mech[f] = 600;
+            else if (f === 'fireRange') mech[f] = newType === 'circle_cast' ? 300 : 600;
             else if (f === 'fireRate') mech[f] = 1000;
             else if (f === 'aimDelayMs') mech[f] = 1000;
             else if (f === 'coneFollow') mech[f] = false;
-            else if (f === 'lockTimeMs') mech[f] = 0;
+            else if (f === 'lockTimeMs') mech[f] = newType === 'circle_cast' ? 800 : 0;
+            else if (f === 'castTimeMs') mech[f] = 2000;
             else if (f === 'bombCount') mech[f] = 3;
             else if (f === 'bombDelayMs') mech[f] = 500;
             else if (f === 'fuseTimeMs') mech[f] = 1000;

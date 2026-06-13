@@ -8,7 +8,8 @@ const DEFAULT_MECHANICS_LIB = {
     "aura_damage": { label: "Aura de Vacío (Daño)", icon: "🔥", desc: "Daña a los jugadores cercanos continuamente.", fields: ["activationHP", "radius", "damage", "intervalMs", "duration", "cooldown", "startDelay"] },
     "hook": { label: "Gancho Abisal", icon: "⚓", desc: "Atrae al objetivo, lo daña y lo paraliza.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "stunDuration", "pullSpeed", "postHookWaitMs", "hookMissWaitMs", "isHoming", "turnSpeed", "startDelay"] },
     "cone_cast": { label: "Ataque en Cono Casteable", icon: "📐", desc: "Ataque en cono que se carga y al completarse daña/stunea.", fields: ["cooldown", "castTimeMs", "damage", "stunDuration", "castSpeed", "coneAngle", "fireRange", "coneFollow", "lockTimeMs", "aimDelayMs", "startDelay"] },
-    "bomb": { label: "Lanzador de Bombas", icon: "💣", desc: "Lanza bombas en círculo que explotan tras un retardo.", fields: ["bulletDamage", "radius", "fireRange", "bulletSpeed", "bombCount", "bombDelayMs", "fuseTimeMs", "cooldown", "startDelay"] }
+    "bomb": { label: "Lanzador de Bombas", icon: "💣", desc: "Lanza bombas en círculo que explotan tras un retardo.", fields: ["bulletDamage", "radius", "fireRange", "bulletSpeed", "bombCount", "bombDelayMs", "fuseTimeMs", "cooldown", "startDelay"] },
+    "circle_cast": { label: "Explosión Circular", icon: "⭕", desc: "Ataque circular que se carga siguiendo al enemigo y explota dañando a todos.", fields: ["cooldown", "castTimeMs", "damage", "fireRange", "lockTimeMs", "startDelay"] }
 };
 
 // v266.230: Definición de Mecánicas de Movimiento (Cerebros)
