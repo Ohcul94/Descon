@@ -768,7 +768,7 @@ function addMapSpawn(id) {
     const uniqueId = 'spawn_' + Date.now() + Math.floor(Math.random() * 1000);
     config.mapsConfig[id].spawns.push({
         id: uniqueId,
-        type: "1",
+        type: "",
         count: 5,
         intervalMs: 5000,
         spawnMode: "random",

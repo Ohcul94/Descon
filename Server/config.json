@@ -605,7 +605,20 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "movementPhases": [
+                {
+                    "type": "prowler",
+                    "speed": 300,
+                    "stopDist": 150,
+                    "startDelay": 0,
+                    "patrolRange": 2000,
+                    "changeTrigger": "time",
+                    "changeInterval": 7000,
+                    "changeType": "random"
+                }
+            ],
+            "defenseMechanics": []
         },
         "13": {
             "bulletDamage": 350,
@@ -2568,6 +2581,117 @@
                 }
             ],
             "defenseMechanics": []
+        },
+        "12-A": {
+            "bulletDamage": 600,
+            "bulletSpeed": 900,
+            "fireRange": 1100,
+            "fireRate": 900,
+            "hp": 20000,
+            "name": "Enemigo 12 A",
+            "rewardExp": 4000,
+            "rewardHubs": 8000,
+            "rewardOhcu": 80,
+            "shield": 10000,
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 600,
+                    "bulletSpeed": 900,
+                    "fireRange": 1100,
+                    "fireRate": 900,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
+        },
+        "12-B": {
+            "bulletDamage": 900,
+            "bulletSpeed": 900,
+            "fireRange": 1100,
+            "fireRate": 900,
+            "hp": 30000,
+            "name": "Enemigo 12 B",
+            "rewardExp": 6000,
+            "rewardHubs": 12000,
+            "rewardOhcu": 120,
+            "shield": 15000,
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 900,
+                    "bulletSpeed": 900,
+                    "fireRange": 1100,
+                    "fireRate": 900,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
+        },
+        "12-C": {
+            "bulletDamage": 1200,
+            "bulletSpeed": 900,
+            "fireRange": 1100,
+            "fireRate": 900,
+            "hp": 40000,
+            "name": "Enemigo 12 C",
+            "rewardExp": 8000,
+            "rewardHubs": 16000,
+            "rewardOhcu": 160,
+            "shield": 20000,
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 1200,
+                    "bulletSpeed": 900,
+                    "fireRange": 1100,
+                    "fireRate": 900,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ]
+        },
+        "12-D": {
+            "bulletDamage": 1500,
+            "bulletSpeed": 900,
+            "fireRange": 1100,
+            "fireRate": 900,
+            "hp": 50000,
+            "name": "Enemigo 12 D",
+            "rewardExp": 10000,
+            "rewardHubs": 20000,
+            "rewardOhcu": 200,
+            "shield": 25000,
+            "speed": 300,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 1500,
+                    "bulletSpeed": 900,
+                    "fireRange": 1100,
+                    "fireRate": 900,
+                    "slowAmount": 0,
+                    "slowDuration": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "prowler",
+                    "speed": 300,
+                    "stopDist": 150,
+                    "startDelay": 0,
+                    "patrolRange": 2000,
+                    "changeTrigger": "time",
+                    "changeInterval": 7000,
+                    "changeType": "random"
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true,
+            "leashRange": 1000
         }
     },
     "hordeConfig": {
@@ -2804,6 +2928,16 @@
                     "spawnMode": "random",
                     "x": 5000,
                     "y": 4990,
+                    "radius": 0
+                },
+                {
+                    "id": "spawn_1781310653822574",
+                    "type": "12-D",
+                    "count": 5,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
                     "radius": 0
                 }
             ]

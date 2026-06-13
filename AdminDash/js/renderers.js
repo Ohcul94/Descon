@@ -425,6 +425,14 @@ function updateSidebar() {
     const mapList = document.getElementById('sidebar-maps-list');
     if(!enemyList || !bossList || !mapList) return;
     
+    // Preservar el estado cerrado/abierto de las carpetas al re-renderizar
+    const closedFolders = new Set();
+    document.querySelectorAll('.folder-content').forEach(el => {
+        if (el.id && !el.classList.contains('show')) {
+            closedFolders.add(el.id);
+        }
+    });
+
     const searchTerm = (document.getElementById('sidebar-search')?.value || '').toLowerCase();
     enemyList.innerHTML = ''; bossList.innerHTML = ''; mapList.innerHTML = '';
 
@@ -458,7 +466,7 @@ function updateSidebar() {
         if (!matches) continue;
 
         if (parseInt(id) < 100) {
-            const isCurrentOpen = baseSelectedId === id;
+            const isCurrentOpen = baseSelectedId === id && !closedFolders.has(`subfolder-enemy-${id}`);
             
             // Contenedor de grupo
             const groupContainer = document.createElement('div');
