@@ -245,6 +245,8 @@ module.exports = class BaseAI {
                 this._handleBossColorsLogic(mech, mId, now, io, players);
             } else if (mech.type === "boss_water_orbs") {
                 this._handleBossWaterOrbsLogic(mech, mId, now, io, grid, players);
+            } else if (mech.type === "invisibility") {
+                this._handleInvisibilityLogic(mech, mId, now, io);
             } else if (mech.type && mech.type.startsWith("aura_")) {
                 this._handleAuraLogic(mech, mId, now, io, grid, players);
             }
@@ -522,6 +524,9 @@ module.exports = class BaseAI {
     }
 
     applyCombatLogic(target, dist, angle, now, io, grid, players) {
+        if ((this.enemy.isInvisible || this.enemy.isCamouflaged) && this.enemy.keepAttackingWhenInvis === false) {
+            return false;
+        }
         // v266.220: Sistema de Rotación de Mecánicas Modulares
         if (!this.enemy.spawnTime) this.enemy.spawnTime = now;
         if (!this.enemy.mechState) this.enemy.mechState = {};
@@ -676,7 +681,8 @@ module.exports = class BaseAI {
     _executeMechanic(mech, mId, target, dist, angle, now, io, players) {
         if (!io) return;
         const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
-        if (!target && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive) return;
+        const hasActiveBombs = state.activeBombsList && state.activeBombsList.length > 0;
+        if (!target && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive && !hasActiveBombs) return;
         
         const zoneStr = `zone_${this.enemy.zone}`;
         const type = mech.type || 'orbital';
@@ -771,6 +777,116 @@ module.exports = class BaseAI {
                 return true; 
             }
             return false; 
+        }
+
+        // Mecánica de Lanzamiento de Bombas (Bomba de Área)
+        if (mech.type === "bomb") {
+            const fireRange = mech.fireRange || 800;
+            const bombCount = mech.bombCount || 3;
+            const bombDelay = mech.bombDelayMs || 500;
+            const fuseTime = mech.fuseTimeMs || 1000;
+            const bulletSpeed = mech.bulletSpeed || 600;
+            const bulletDamage = mech.bulletDamage || 300;
+            const explosionRadius = mech.radius || 150;
+            const cooldown = mech.cooldown || 5000;
+
+            if (!state.activeBombsList) state.activeBombsList = [];
+
+            // 1. Procesar bombas activas (vuelo, aterrizaje, detonación)
+            for (let i = state.activeBombsList.length - 1; i >= 0; i--) {
+                const b = state.activeBombsList[i];
+                if (now >= b.explodeTime) {
+                    // DETONACIÓN EN EL SERVIDOR
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        action: "bomb_explode",
+                        x: b.targetX,
+                        y: b.targetY,
+                        radius: explosionRadius,
+                        damage: bulletDamage,
+                        mId: mId + "_" + b.id
+                    });
+
+                    // Calcular daño a jugadores dentro del radio
+                    const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                    zonePlayers.forEach(p => {
+                        const d = Math.hypot(p.x - b.targetX, p.y - b.targetY);
+                        if (d <= explosionRadius) {
+                            p.lastCombatTime = Date.now();
+                            if (p.shield >= bulletDamage) {
+                                p.shield -= bulletDamage;
+                            } else {
+                                p.hp -= (bulletDamage - p.shield);
+                                p.shield = 0;
+                            }
+                            if (p.hp < 0) p.hp = 0;
+                            if (p.hp <= 0) p.isDead = true;
+
+                            io.to(p.socketId).emit('environmentDamage', { damage: bulletDamage });
+                            io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                id: p.socketId,
+                                hp: Math.ceil(p.hp),
+                                shield: Math.ceil(p.shield),
+                                isDead: p.isDead
+                            });
+                        }
+                    });
+
+                    state.activeBombsList.splice(i, 1);
+                }
+            }
+
+            // 2. Iniciar y lanzar ráfagas
+            if (target && dist <= fireRange) {
+                if (!state.isFiringBurst && now > state.nextShotTime) {
+                    state.isFiringBurst = true;
+                    state.bombsFired = 0;
+                    state.nextBombTime = now;
+                }
+
+                if (state.isFiringBurst && now >= state.nextBombTime) {
+                    const travelTime = (dist / bulletSpeed) * 1000;
+                    const landTime = now + travelTime;
+                    const explodeTime = landTime + fuseTime;
+
+                    const newBomb = {
+                        id: Date.now() + "_" + Math.floor(Math.random() * 1000),
+                        startX: this.enemy.x,
+                        startY: this.enemy.y,
+                        targetX: target.x,
+                        targetY: target.y,
+                        landTime: landTime,
+                        explodeTime: explodeTime
+                    };
+
+                    state.activeBombsList.push(newBomb);
+
+                    // Notificar al cliente del lanzamiento de la bomba
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        action: "throw_bomb",
+                        startX: newBomb.startX,
+                        startY: newBomb.startY,
+                        targetX: newBomb.targetX,
+                        targetY: newBomb.targetY,
+                        travelTimeMs: travelTime,
+                        fuseTimeMs: fuseTime,
+                        radius: explosionRadius,
+                        mId: mId + "_" + newBomb.id
+                    });
+
+                    state.bombsFired++;
+                    if (state.bombsFired >= bombCount) {
+                        state.isFiringBurst = false;
+                        state.nextShotTime = now + cooldown;
+                    } else {
+                        state.nextBombTime = now + bombDelay;
+                    }
+                }
+            }
+
+            this.enemy.mechState[mId] = state;
+            return state.isFiringBurst || state.activeBombsList.length > 0;
         }
 
         // v3.6: Mecánica de Cono Casteable (Autoritativo del Servidor)
@@ -938,7 +1054,11 @@ module.exports = class BaseAI {
         // v268.830: El bono viene en px/s del panel, convertir a px/tick (* 0.033)
         const auraBonus = (this.enemy.auraSpeedBonus || 0) * 0.033;
         
-        return (baseSpeed + auraBonus) * slowMult;
+        let finalSpeed = (baseSpeed + auraBonus) * slowMult;
+        if (this.enemy.isInvisSpeedModifierActive && this.enemy.invisSpeedMultiplier !== undefined) {
+            finalSpeed *= this.enemy.invisSpeedMultiplier;
+        }
+        return finalSpeed;
     }
 
     applyMovementLogic(target, dist, angle, now) {
@@ -1066,6 +1186,112 @@ module.exports = class BaseAI {
                 duration: mech.duration || 3000 
             });
             // console.log(`[AI] ${this.enemy.id} activó Invulnerabilidad (${mech.duration}ms)`);
+        }
+    }
+
+    _handleInvisibilityLogic(mech, mId, now, io) {
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || { 
+            nextReadyTime: now + (mech.startDelay || 0), 
+            isActive: false, 
+            endTime: 0,
+            triggeredHPs: {},
+            combatStartTime: null
+        };
+        this.enemy.defState[mId] = state;
+
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        // Resetear triggers y timers si salimos de combate
+        if (!this._inCombat) {
+            state.triggeredHPs = {};
+            state.combatStartTime = null;
+        } else if (this._inCombat && !state.combatStartTime) {
+            state.combatStartTime = now;
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
+        }
+
+        // 1. Terminar si ya pasó el tiempo de la invisibilidad
+        if (state.isActive && now >= state.endTime) {
+            state.isActive = false;
+            this.enemy.isInvisible = false;
+            this.enemy.isCamouflaged = false;
+            this.enemy.isInvisSpeedModifierActive = false;
+            
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                state.nextReadyTime = now + (mech.cooldown || 10000);
+            }
+
+            io.to(`zone_${this.enemy.zone}`).emit("serverEnemyInvis", { 
+                id: this.enemy.id, 
+                active: false 
+            });
+        }
+
+        // 2. Activar si cumple condiciones
+        let shouldActivate = false;
+        if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
+            if (mech.activationMode === "time") {
+                shouldActivate = true;
+            } else {
+                // Modo HP (por defecto)
+                let thresholds = [];
+                if (Array.isArray(mech.activationHPs)) {
+                    thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
+                } else if (mech.activationHP !== undefined) {
+                    thresholds = [Number(mech.activationHP)];
+                } else {
+                    thresholds = [50];
+                }
+
+                if (!state.triggeredHPs) {
+                    state.triggeredHPs = {};
+                }
+
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        shouldActivate = true;
+                        state.triggeredHPs[hpVal] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (shouldActivate) {
+            state.isActive = true;
+            state.endTime = now + (mech.duration || 5000);
+            
+            const isCamo = mech.invisType === "camouflage";
+            if (isCamo) {
+                this.enemy.isCamouflaged = true;
+                this.enemy.isInvisible = false;
+            } else {
+                this.enemy.isInvisible = true;
+                this.enemy.isCamouflaged = false;
+            }
+
+            if (mech.changeSpeed) {
+                this.enemy.isInvisSpeedModifierActive = true;
+                this.enemy.invisSpeedMultiplier = mech.invisSpeedMultiplier !== undefined ? Number(mech.invisSpeedMultiplier) : 1.0;
+            } else {
+                this.enemy.isInvisSpeedModifierActive = false;
+            }
+
+            this.enemy.keepAttackingWhenInvis = mech.keepAttacking !== false;
+
+            io.to(`zone_${this.enemy.zone}`).emit("serverEnemyInvis", { 
+                id: this.enemy.id, 
+                active: true,
+                invisType: mech.invisType || "invisibility",
+                duration: mech.duration || 5000 
+            });
         }
     }
 

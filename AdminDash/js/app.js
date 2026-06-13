@@ -684,6 +684,12 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
             else if (f === 'cooldown') mech[f] = 10000;
             else if (f === 'affectsEnemies') mech[f] = false;
             else if (f === 'affectsBosses') mech[f] = false;
+            else if (f === 'invisType') mech[f] = 'invisibility';
+            else if (f === 'keepAttacking') mech[f] = true;
+            else if (f === 'changeSpeed') mech[f] = false;
+            else if (f === 'invisSpeedMultiplier') mech[f] = 1.0;
+            else if (f === 'activationMode') mech[f] = 'hp';
+            else if (f === 'activationHPs') mech[f] = [50];
             else mech[f] = 0;
         }
     });
@@ -716,6 +722,9 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'aimDelayMs') mech[f] = 1000;
             else if (f === 'coneFollow') mech[f] = false;
             else if (f === 'lockTimeMs') mech[f] = 0;
+            else if (f === 'bombCount') mech[f] = 3;
+            else if (f === 'bombDelayMs') mech[f] = 500;
+            else if (f === 'fuseTimeMs') mech[f] = 1000;
             else mech[f] = 0;
         }
     });

@@ -158,6 +158,8 @@ function startGameLoop(io, state, aiManager) {
                                     const isRamming = !!(e.ai && e.ai.isRamming);
                                     const isInvulnerable = !!e.isInvulnerable;
                                     const isRage = !!e.isRage;
+                                    const isInvisible = !!e.isInvisible;
+                                    const isCamouflaged = !!e.isCamouflaged;
 
                                     // Delta Compression: Validar si el estado cambio sustancialmente
                                     const last = p._lastSentEnemies[e.id];
@@ -172,7 +174,9 @@ function startGameLoop(io, state, aiManager) {
                                                              last.shield !== roundedShield || 
                                                              last.isRage !== isRage || 
                                                              last.isRamming !== isRamming || 
-                                                             last.isInvulnerable !== isInvulnerable;
+                                                             last.isInvulnerable !== isInvulnerable ||
+                                                             last.isInvisible !== isInvisible ||
+                                                             last.isCamouflaged !== isCamouflaged;
 
                                         if (posChanged || rotChanged || stateChanged) {
                                             shouldSend = true;
@@ -190,7 +194,9 @@ function startGameLoop(io, state, aiManager) {
                                             zone: e.zone,
                                             isRage: isRage,
                                             isRamming: isRamming,
-                                            isInvulnerable: isInvulnerable
+                                            isInvulnerable: isInvulnerable,
+                                            isInvisible: isInvisible,
+                                            isCamouflaged: isCamouflaged
                                         };
                                         if (!last) {
                                             aoiData[e.id].type = e.type;
@@ -204,7 +210,9 @@ function startGameLoop(io, state, aiManager) {
                                             shield: roundedShield,
                                             isRage: isRage,
                                             isRamming: isRamming,
-                                            isInvulnerable: isInvulnerable
+                                            isInvulnerable: isInvulnerable,
+                                            isInvisible: isInvisible,
+                                            isCamouflaged: isCamouflaged
                                         };
                                         count++;
                                     }

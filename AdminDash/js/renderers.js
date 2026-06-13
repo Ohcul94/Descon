@@ -736,46 +736,49 @@ function renderEnemyDetail() {
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${MECHANICS_LIB[m.type || 'laser'].fields.map(f => {
                                     const fieldLabelsMap = { 
-                                        bulletDamage: "Daño (pts)", 
-                                        bulletSpeed: "Vel. Bala (px/s)", 
-                                        fireRange: "Alcance (px)", 
-                                        fireRate: "Cadencia (ms)", 
-                                        slowAmount: "Slow (pts)", 
-                                        slowDuration: "Slow Dur. (ms)", 
-                                        startDelay: "Delay Inicio (ms)", 
-                                        lifetimeMs: "Combustible (ms)", 
-                                        turnSpeed: "Agilidad de Giro (rad/s)", 
-                                        chargeTimeMs: "Tiempo de Carga (ms)", 
-                                        lockTimeMs: "Tiempo de Bloqueo (ms)", 
-                                        isHoming: "Seguimiento (Homing)",
-                                        orbitSpeed: "Vel. de Giro (rad/s)",
-                                        circleCount: "Cant. de Círculos (uds)",
-                                        orbitRadius: "Radio de Órbita (px)",
-                                        orbitDuration: "Tiempo de Giro (ms)",
-                                        staticTime: "Tiempo Estático (ms)",
-                                        radius: "Radio del Aura (px)",
-                                        damage: "Daño (pts)",
-                                        intervalMs: "Intervalo de Tick (ms)",
-                                        duration: "Duración Total (ms)",
-                                        cooldown: "Enfriamiento (CD) (ms)",
-                                        pullSpeed: "Vel. Atracción (px/s)",
-                                        stunDuration: "Duración de Stun (ms)",
-                                        postHookWaitMs: "Espera Post-Gancho (ms)",
-                                        hookMissWaitMs: "Espera por Fallo (ms)",
-                                        startDelay: "Retraso Inicio (ms)",
-                                        activationHP: "Activación por HP (%)",
-                                        reductionPercentage: "Reducción de Daño (%)",
-                                        shieldRegen: "Regen. de Escudo (pts/s)",
-                                        healAmount: "Curación por Pulso (pts)",
-                                        speedBonus: "Bono de Velocidad (px/s)",
-                                        explosionDamage: "Daño de Explosión (pts)",
-                                        castTimeMs: "Tiempo de Casteo (ms)",
-                                        castSpeed: "Velocidad de Casteo (x)",
-                                        coneAngle: "Ángulo del Cono (grados)",
-                                        coneFollow: "Seguimiento Dinámico (Homing)",
-                                        lockTimeMs: "Tiempo de Bloqueo (ms)",
-                                        aimDelayMs: "Espera de Apuntado (ms)"
-                                    };
+                                         bulletDamage: m.type === 'bomb' ? "Daño de Explosión (pts)" : "Daño (pts)", 
+                                         bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : "Vel. Bala (px/s)", 
+                                         fireRange: m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : "Alcance (px)", 
+                                         fireRate: "Cadencia (ms)", 
+                                         slowAmount: "Slow (pts)", 
+                                         slowDuration: "Slow Dur. (ms)", 
+                                         startDelay: "Delay Inicio (ms)", 
+                                         lifetimeMs: "Combustible (ms)", 
+                                         turnSpeed: "Agilidad de Giro (rad/s)", 
+                                         chargeTimeMs: "Tiempo de Carga (ms)", 
+                                         lockTimeMs: "Tiempo de Bloqueo (ms)", 
+                                         isHoming: "Seguimiento (Homing)",
+                                         orbitSpeed: "Vel. de Giro (rad/s)",
+                                         circleCount: "Cant. de Círculos (uds)",
+                                         orbitRadius: "Radio de Órbita (px)",
+                                         orbitDuration: "Tiempo de Giro (ms)",
+                                         staticTime: "Tiempo Estático (ms)",
+                                         radius: m.type === 'bomb' ? "Radio de Explosión (px)" : "Radio del Aura (px)",
+                                         damage: "Daño (pts)",
+                                         intervalMs: "Intervalo de Tick (ms)",
+                                         duration: "Duración Total (ms)",
+                                         cooldown: "Enfriamiento (CD) (ms)",
+                                         pullSpeed: "Vel. Atracción (px/s)",
+                                         stunDuration: "Duración de Stun (ms)",
+                                         postHookWaitMs: "Espera Post-Gancho (ms)",
+                                         hookMissWaitMs: "Espera por Fallo (ms)",
+                                         startDelay: "Retraso Inicio (ms)",
+                                         activationHP: "Activación por HP (%)",
+                                         reductionPercentage: "Reducción de Daño (%)",
+                                         shieldRegen: "Regen. de Escudo (pts/s)",
+                                         healAmount: "Curación por Pulso (pts)",
+                                         speedBonus: "Bono de Velocidad (px/s)",
+                                         explosionDamage: "Daño de Explosión (pts)",
+                                         castTimeMs: "Tiempo de Casteo (ms)",
+                                         castSpeed: "Velocidad de Casteo (x)",
+                                         coneAngle: "Ángulo del Cono (grados)",
+                                         coneFollow: "Seguimiento Dinámico (Homing)",
+                                         lockTimeMs: "Tiempo de Bloqueo (ms)",
+                                         aimDelayMs: "Espera de Apuntado (ms)",
+                                         bombCount: "Cantidad de Bombas (uds)",
+                                         bombDelayMs: "Espera entre Bombas (ms)",
+                                         fuseTimeMs: "Retardo de Explosión (ms)"
+                                     };
                                     if (f === 'isHoming') return `<div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.05); padding: 10px; border-radius: 8px; flex-direction: column; gap: 12px; border: 1px solid rgba(239, 68, 68, 0.2);"><div style="display:flex; align-items:center; gap:12px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isHoming = this.checked; renderEnemyDetail();"><label style="margin:0; font-size: 0.85rem; color: #ef4444; cursor:pointer;">ACTIVAR SEGUIMIENTO AL OBJETIVO</label></div>${m.isHoming ? `<div style="padding-top: 10px; border-top: 1px solid rgba(239, 68, 68, 0.2);"><label style="font-size: 0.65rem; color: var(--text-dim);">AGILIDAD DE GIRO (RAD/S)</label><input type="number" step="0.1" value="${m.turnSpeed || 2.5}" style="background:rgba(0,0,0,0.3); margin-top:5px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].turnSpeed = parseFloat(this.value)"></div>` : ''}</div>`;
                                     if (f === 'coneFollow') return `<div class="field" style="display:flex; flex-direction:column; gap:8px;"><label>${fieldLabelsMap[f] || f}</label><div style="display:flex; align-items:center; height:40px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].coneFollow = this.checked; renderEnemyDetail();"></div></div>`;
                                     if (f === 'turnSpeed') return '';
@@ -829,8 +832,54 @@ function renderEnemyDetail() {
                                         orbCount: "Cantidad de Orbes (uds)",
                                         orbSpeed: "Velocidad de Orbes (px/s)",
                                         playerDamage: "Daño al Jugador (HP)",
-                                        bossHealPercent: "Curación al Boss por Orbe (%)"
+                                        bossHealPercent: "Curación al Boss por Orbe (%)",
+                                        invisType: "Tipo de Ocultamiento",
+                                        keepAttacking: "Ataca Invisible",
+                                        changeSpeed: "Modificar Velocidad",
+                                        invisSpeedMultiplier: "Multiplicador de Velocidad (x)"
                                     };
+                                    if (f === 'invisType') {
+                                        const type = m.invisType || 'invisibility';
+                                        m.invisType = type;
+                                        return `
+                                            <div class="field" style="grid-column: 1 / -1;"><label>Tipo de Ocultamiento</label>
+                                                <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].invisType = this.value; renderEnemyDetail();">
+                                                    <option value="invisibility" ${type === 'invisibility' ? 'selected' : ''}>👤 Invisibilidad (Totalmente Oculto)</option>
+                                                    <option value="camouflage" ${type === 'camouflage' ? 'selected' : ''}>👻 Camuflaje (Transparente)</option>
+                                                </select>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'keepAttacking') {
+                                        const checked = m.keepAttacking !== false;
+                                        if (m.keepAttacking === undefined) m.keepAttacking = true;
+                                        return `
+                                            <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;">
+                                                <input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].keepAttacking = this.checked">
+                                                <label style="margin:0;">Seguir atacando mientras está invisible</label>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'changeSpeed') {
+                                        const checked = !!m.changeSpeed;
+                                        if (m.changeSpeed === undefined) m.changeSpeed = false;
+                                        return `
+                                            <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;">
+                                                <input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].changeSpeed = this.checked; renderEnemyDetail();">
+                                                <label style="margin:0;">Modificar velocidad de movimiento</label>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'invisSpeedMultiplier') {
+                                        if (!m.changeSpeed) return '';
+                                        const mult = m.invisSpeedMultiplier !== undefined ? m.invisSpeedMultiplier : 1.0;
+                                        m.invisSpeedMultiplier = mult;
+                                        return `
+                                            <div class="field"><label>Multiplicador de Velocidad (x)</label>
+                                                <input type="number" step="0.1" value="${mult}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].invisSpeedMultiplier = parseFloat(this.value)">
+                                            </div>
+                                        `;
+                                    }
                                     if (f === 'activationMode') {
                                         const mode = m.activationMode || 'hp';
                                         return `

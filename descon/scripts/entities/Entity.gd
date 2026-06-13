@@ -67,6 +67,7 @@ var _stealth_material: StandardMaterial3D = null
 var _status_material: StandardMaterial3D = null
 var _vfx_container_2d: Node2D = null
 var _is_currently_invisible: bool = false
+var _is_currently_camouflaged: bool = false
 var _is_ally: bool = false
 var _cached_viewport: SubViewport = null # Cache para frustum culling
 
@@ -261,11 +262,20 @@ func _process(delta):
 			
 			# v311.5: Forzar visibilidad correcta al estar en pantalla
 			if is_instance_valid(world_root_3d):
-				world_root_3d.visible = not is_dead
+				if (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
+					world_root_3d.visible = _is_currently_camouflaged
+				else:
+					world_root_3d.visible = not is_dead
 			if is_instance_valid(_ui_wrapper):
-				_ui_wrapper.visible = visible and not is_dead
+				if (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
+					_ui_wrapper.visible = false
+				else:
+					_ui_wrapper.visible = visible and not is_dead
 			if is_instance_valid(_vfx_container_2d):
-				_vfx_container_2d.visible = true
+				if (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
+					_vfx_container_2d.visible = _is_currently_camouflaged
+				else:
+					_vfx_container_2d.visible = true
 
 	# v310.1: SINCRONIZACIÓN ATÓMICA TOTAL (Elimina efecto acordeón y restaura HUD)
 	# 1. Interpolación de posición de red
@@ -343,19 +353,22 @@ func _process(delta):
 		var state_color = Color(1.5, 1.5, 3.5, 1.0) if is_affected else Color(1, 1, 1, 1) # v268.76: Más azul y brillante
 		
 		if is_instance_valid(sprite):
-			sprite.modulate = state_color
+			if _is_currently_invisible or _is_currently_camouflaged:
+				var alpha_val = 0.5 if _is_ally else (0.3 if _is_currently_camouflaged else 0.0)
+				sprite.modulate = Color(state_color.r, state_color.g, state_color.b, alpha_val)
+			else:
+				sprite.modulate = state_color
 		
 		# v268.77: Tinte para modelos 3D (Corregido para Viewports locales y compartidos)
 		if is_instance_valid(_3d_model):
 			if is_affected:
 				if not _status_material:
 					_status_material = StandardMaterial3D.new()
-					_status_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
 					_status_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				_status_material.albedo_color = Color(0.1, 0.5, 1.0, 0.6) # v268.76: Tinte más opaco para que se note
 				_apply_material_recursive(_3d_model, _status_material, false)
-			elif _is_currently_invisible:
-				# Restaurar o mantener el material de sigilo si estamos en sigilo
+			elif _is_currently_invisible or _is_currently_camouflaged:
+				# Restaurar o mantener el material de sigilo si estamos en sigilo o camuflaje
 				if not _stealth_material:
 					_stealth_material = StandardMaterial3D.new()
 					_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
@@ -602,6 +615,8 @@ func _update_3d_root_sync():
 		elif _is_currently_invisible and not _is_ally:
 			# Si somos invisibles y no somos aliados, ocultar completamente el canvas 3D
 			world_root_3d.visible = false
+		elif _is_currently_camouflaged and not _is_ally:
+			world_root_3d.visible = true
 		else:
 			world_root_3d.visible = true
 
@@ -682,8 +697,10 @@ func update_stats(data):
 				self.call("_recalculate_stats")
 
 	# v3.5: Sincronía de Invisibilidad (STEALTH)
-	if data.has("isInvisible"):
-		_update_invisibility_visuals(bool(data.isInvisible))
+	if data.has("isInvisible") or data.has("isCamouflaged"):
+		var inv = bool(data.get("isInvisible", false))
+		var camo = bool(data.get("isCamouflaged", false))
+		_update_invisibility_visuals(inv, camo)
 
 	if not is_local:
 		if current_shield > max_shield: max_shield = current_shield
@@ -1845,7 +1862,7 @@ func _update_3d_spheres():
 			print("[FIX] Esfera cargada sin luces extra.")
 			
 	# Re-aplicar estado de invisibilidad visual a las nuevas esferas si corresponde
-	_update_invisibility_visuals(_is_currently_invisible)
+	_update_invisibility_visuals(_is_currently_invisible, _is_currently_camouflaged)
 
 func _ensure_flash_material():
 	if not _hit_flash_material:
@@ -1968,8 +1985,9 @@ func _update_collision_size():
 
 	_collision_shape.shape.radius = base_size * 0.4
 
-func _update_invisibility_visuals(invisible: bool):
+func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
 	_is_currently_invisible = invisible
+	_is_currently_camouflaged = camouflaged
 	var is_local = is_in_group("player")
 	var in_party = false
 	var same_clan = false
@@ -1994,21 +2012,24 @@ func _update_invisibility_visuals(invisible: bool):
 	_is_ally = (is_local or in_party or same_clan)
 	var is_ally = _is_ally
 
-	if invisible:
+	if invisible or camouflaged:
 		
-		# Nave: Para aliados transparente (0.3), para el resto invisible (0.0)
+		# Nave: Para aliados transparente (0.3), para el resto invisible (0.0) o camuflado (0.3)
 		visible = true
-		modulate = Color(0.5, 0.8, 1.0, 0.3) if is_ally else Color(1, 1, 1, 0)
+		if invisible:
+			modulate = Color(0.5, 0.8, 1.0, 0.3) if is_ally else Color(1, 1, 1, 0)
+		else: # camouflaged (se ve como holograma para todos)
+			modulate = Color(0.5, 0.8, 1.0, 0.3)
 		
 		if is_instance_valid(sprite): 
-			sprite.visible = is_ally if not get_meta("is_single_world", false) else false
-			sprite.modulate.a = 0.5 if is_ally else 0.0
+			sprite.visible = (is_ally or camouflaged) if not get_meta("is_single_world", false) else false
+			sprite.modulate.a = 0.5 if is_ally else (0.3 if camouflaged else 0.0)
 			
 		if is_instance_valid(world_root_3d):
-			world_root_3d.visible = is_ally
+			world_root_3d.visible = is_ally or camouflaged
 			
 		if is_instance_valid(_3d_model):
-			if is_ally:
+			if is_ally or camouflaged:
 				if not _stealth_material:
 					_stealth_material = StandardMaterial3D.new()
 					_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
@@ -2021,7 +2042,7 @@ func _update_invisibility_visuals(invisible: bool):
 		# También para las esferas de soporte 3D
 		for s in _3d_spheres:
 			if is_instance_valid(s):
-				if is_ally:
+				if is_ally or camouflaged:
 					if not _stealth_material:
 						_stealth_material = StandardMaterial3D.new()
 						_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED

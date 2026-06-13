@@ -72,78 +72,79 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
 
     // REPARTO DE LOOT COOPERATIVO (Portado de combatHandlers.js)
     try {
-        const killer = killerSocketId ? state.players[killerSocketId] : null;
-        if (!killer || !killerSocketId) {
-            delete state.enemies[enemyId];
-            return;
+        if (!killerSocketId && enemy.lastHitter) {
+            killerSocketId = enemy.lastHitter;
         }
 
-        const killerUid = killer.id;
-        let membersToRewardSockets = [];
-        
-        // Buscar el socket real de killer para emitir
-        const killerSocket = io.sockets.sockets.get(killerSocketId);
-        if (killerSocket) membersToRewardSockets.push(killerSocket);
+        const killer = killerSocketId ? state.players[killerSocketId] : null;
+        if (killer && killerSocketId) {
+            const killerUid = killer.id;
+            let membersToRewardSockets = [];
+            
+            // Buscar el socket real de killer para emitir
+            const killerSocket = io.sockets.sockets.get(killerSocketId);
+            if (killerSocket) membersToRewardSockets.push(killerSocket);
 
-        const partyId = state.playerParty[killerUid];
-        if (partyId && state.parties[partyId]) {
-            for (const mUid of state.parties[partyId].members) {
-                const mUidStr = mUid.toString();
-                if (mUidStr === killerUid) continue; 
-                
-                let sid = state.activeSessions.get(mUidStr);
-                if (sid) {
-                    const s = io.sockets.sockets.get(sid);
-                    if (s && state.players[s.id]) {
-                        const pM = state.players[s.id];
-                        const distToE = Math.hypot(pM.x - enemy.x, pM.y - enemy.y);
-                        if (pM.zone === enemy.zone && distToE <= 2500) membersToRewardSockets.push(s);
+            const partyId = state.playerParty[killerUid];
+            if (partyId && state.parties[partyId]) {
+                for (const mUid of state.parties[partyId].members) {
+                    const mUidStr = mUid.toString();
+                    if (mUidStr === killerUid) continue; 
+                    
+                    let sid = state.activeSessions.get(mUidStr);
+                    if (sid) {
+                        const s = io.sockets.sockets.get(sid);
+                        if (s && state.players[s.id]) {
+                            const pM = state.players[s.id];
+                            const distToE = Math.hypot(pM.x - enemy.x, pM.y - enemy.y);
+                            if (pM.zone === enemy.zone && distToE <= 2500) membersToRewardSockets.push(s);
+                        }
                     }
                 }
             }
-        }
 
-        const shareCount = membersToRewardSockets.length;
-        const shared_h = Math.floor(h_loot / shareCount);
-        const shared_o = Math.floor(o_loot / shareCount);
-        const shared_e = Math.floor(e_loot / shareCount);
+            const shareCount = membersToRewardSockets.length;
+            const shared_h = Math.floor(h_loot / shareCount);
+            const shared_o = Math.floor(o_loot / shareCount);
+            const shared_e = Math.floor(e_loot / shareCount);
 
-        for (const memberSocket of membersToRewardSockets) {
-            const memP = state.players[memberSocket.id];
-            const user = await User.findById(memP.id);
-            
-            if (user && memP) {
-                user.gameData.hubs += shared_h;
-                user.gameData.ohcu += shared_o;
-                user.gameData.exp += shared_e;
+            for (const memberSocket of membersToRewardSockets) {
+                const memP = state.players[memberSocket.id];
+                const user = await User.findById(memP.id);
+                
+                if (user && memP) {
+                    user.gameData.hubs += shared_h;
+                    user.gameData.ohcu += shared_o;
+                    user.gameData.exp += shared_e;
 
-                memberSocket.emit('enemyKillSession', { hubs: shared_h, ohcu: shared_o, exp: shared_e, killer: killerSocketId });
+                    memberSocket.emit('enemyKillSession', { hubs: shared_h, ohcu: shared_o, exp: shared_e, killer: killerSocketId });
 
-                const getExpReq = (lvl) => {
-                    if (state.SERVER_CONFIG?.pilotConfig?.expRequirements) {
-                        const reqs = state.SERVER_CONFIG.pilotConfig.expRequirements;
-                        return reqs[lvl - 1] || Math.floor(1000 * Math.pow(lvl, 1.5));
+                    const getExpReq = (lvl) => {
+                        if (state.SERVER_CONFIG?.pilotConfig?.expRequirements) {
+                            const reqs = state.SERVER_CONFIG.pilotConfig.expRequirements;
+                            return reqs[lvl - 1] || Math.floor(1000 * Math.pow(lvl, 1.5));
+                        }
+                        return Math.floor(1000 * Math.pow(lvl, 1.5));
+                    };
+
+                    let nextLevelExp = getExpReq(user.gameData.level);
+                    while (user.gameData.exp >= nextLevelExp && user.gameData.level < 100) {
+                        user.gameData.exp -= nextLevelExp;
+                        user.gameData.level++;
+                        user.gameData.skillPoints++;
+                        memberSocket.emit('gameNotification', { msg: `NIVEL ${user.gameData.level} ALCANZADO!`, type: 'success' });
+                        nextLevelExp = getExpReq(user.gameData.level);
                     }
-                    return Math.floor(1000 * Math.pow(lvl, 1.5));
-                };
 
-                let nextLevelExp = getExpReq(user.gameData.level);
-                while (user.gameData.exp >= nextLevelExp && user.gameData.level < 100) {
-                    user.gameData.exp -= nextLevelExp;
-                    user.gameData.level++;
-                    user.gameData.skillPoints++;
-                    memberSocket.emit('gameNotification', { msg: `NIVEL ${user.gameData.level} ALCANZADO!`, type: 'success' });
-                    nextLevelExp = getExpReq(user.gameData.level);
+                    memP.hubs = user.gameData.hubs;
+                    memP.ohcu = user.gameData.ohcu;
+                    memP.exp = user.gameData.exp;
+                    memP.level = user.gameData.level;
+                    memP.skillPoints = user.gameData.skillPoints;
+
+                    await user.save();
+                    memberSocket.emit('inventoryData', { player: user.gameData });
                 }
-
-                memP.hubs = user.gameData.hubs;
-                memP.ohcu = user.gameData.ohcu;
-                memP.exp = user.gameData.exp;
-                memP.level = user.gameData.level;
-                memP.skillPoints = user.gameData.skillPoints;
-
-                await user.save();
-                memberSocket.emit('inventoryData', { player: user.gameData });
             }
         }
         // Generar botín físico en el mapa autoritativo si no es una defensa especial

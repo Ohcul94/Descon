@@ -1778,7 +1778,7 @@
             "bulletSpeed": 800,
             "fireRange": 750,
             "fireRate": 1500,
-            "hp": 4500,
+            "hp": 100000,
             "name": "Enemigo 5 B",
             "rewardExp": 1200,
             "rewardHubs": 1500,
@@ -1811,23 +1811,49 @@
             ],
             "movementPhases": [
                 {
-                    "type": "chase",
+                    "type": "prowler",
                     "speed": 350,
                     "stopDist": 150,
-                    "startDelay": 0
+                    "startDelay": 0,
+                    "patrolRange": 300,
+                    "changeTrigger": "time",
+                    "changeInterval": 4000,
+                    "changeType": "random"
                 },
                 {
                     "type": "kamikaze",
                     "speed": 500,
                     "stopDist": 150,
                     "startDelay": 2000,
-                    "activationHP": 30,
+                    "activationHP": 40,
                     "explosionDamage": 150,
                     "duration": 3000,
                     "explodeOnDeath": 150
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [
+                {
+                    "type": "invisibility",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 3000,
+                    "cooldown": 10000,
+                    "startDelay": 0,
+                    "activationMode": "time",
+                    "activationIntervalMs": 5000,
+                    "invisType": "camouflage",
+                    "keepAttacking": true,
+                    "changeSpeed": false,
+                    "invisSpeedMultiplier": 1
+                }
+            ],
+            "lootDrops": [
+                {
+                    "itemId": "las1",
+                    "chance": 1
+                }
+            ],
+            "chestDropChance": 1
         },
         "5-C": {
             "bulletDamage": 480,
@@ -2628,7 +2654,16 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 300,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": []
         },
         "12-C": {
             "bulletDamage": 1200,
@@ -2951,14 +2986,14 @@
             "ambience": [],
             "spawns": [
                 {
-                    "type": "5",
+                    "type": "5-B",
                     "count": 2,
                     "intervalMs": 5000,
                     "id": "spawn_6_idx_0_type_5",
                     "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
-                    "radius": 300
+                    "x": 4878,
+                    "y": 4995,
+                    "radius": 0
                 }
             ]
         },
@@ -4383,6 +4418,22 @@
                 "aimDelayMs",
                 "startDelay"
             ]
+        },
+        "bomb": {
+            "label": "Lanzador de Bombas",
+            "icon": "💣",
+            "desc": "Lanza bombas en círculo que explotan tras un retardo.",
+            "fields": [
+                "bulletDamage",
+                "radius",
+                "fireRange",
+                "bulletSpeed",
+                "bombCount",
+                "bombDelayMs",
+                "fuseTimeMs",
+                "cooldown",
+                "startDelay"
+            ]
         }
     },
     "movementLib": {
@@ -4551,6 +4602,23 @@
                 "bossHealPercent",
                 "duration",
                 "cooldown"
+            ]
+        },
+        "invisibility": {
+            "label": "Invisibilidad / Camuflaje",
+            "icon": "👤",
+            "desc": "El enemigo se vuelve invisible o camuflado.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "duration",
+                "cooldown",
+                "invisType",
+                "keepAttacking",
+                "changeSpeed",
+                "invisSpeedMultiplier",
+                "startDelay"
             ]
         }
     },
