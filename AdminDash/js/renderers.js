@@ -1702,7 +1702,8 @@ const HUD_ELEMENTS_CONFIG = {
     "RadarWindow":     { name: "🛰️ RADAR (RadarWindow)", x: 1066,  y: 564, w: 220, h: 220 },
     "SkillsContainer": { name: "🔥 SKILLS (SkillsContainer)", x: 101,   y: 684, w: 575, h: 65 },
     "PartyHUD":        { name: "👥 PARTY (PartyHUD)", x: 10,    y: 120, w: 200, h: 200 },
-    "ControlBar":      { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 340, h: 45 }
+    "ControlBar":      { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 340, h: 45 },
+    "StatusEffects":   { name: "✨ ESTADOS (StatusEffects)", x: 390,   y: 620, w: 500, h: 55 }
 };
 
 function initWebHUDDesigner() {
@@ -1717,7 +1718,8 @@ function initWebHUDDesigner() {
             "RadarWindow":     { "x": 1066,  "y": 564,   "scale": 0.5, "alpha": 1.0 },
             "SkillsContainer": { "x": 101,   "y": 684,   "scale": 0.5, "alpha": 1.0 },
             "PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
-            "ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0 }
+            "ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0 },
+            "StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 }
         };
     }
 

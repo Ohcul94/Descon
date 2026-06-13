@@ -88,6 +88,8 @@ signal update_exit_portals(data)
 signal vault_data(data)
 signal vault_updated(data)
 
+signal status_effects_sync(data)
+
 
 var socket: WebSocketPeer = WebSocketPeer.new()
 var network_connected: bool = false
@@ -297,6 +299,7 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"slowState": slow_state.emit(e_data)
 		"stunState": stun_state.emit(e_data)
 		"hookPulled": hook_pulled.emit(e_data)
+		"statusEffectsSync": status_effects_sync.emit(e_data)
 		"gameNotification": game_notification.emit(e_data)
 		"shipEquipData": ship_equip_data.emit(e_data)
 		"clearEnemyProjectiles": clear_enemy_projectiles.emit(e_data)

@@ -94,6 +94,13 @@ var is_stunned: bool = false
 var stun_timer: float = 0.0
 var joystick_direction: Vector2 = Vector2.ZERO # v266.400
 
+# v266.360: Temporizadores de efectos de estado para el HUD de Estados
+var slow_timer: float = 0.0
+var heal_timer: float = 0.0
+var heal_stacks: int = 0
+var bleed_timer: float = 0.0
+var poison_timer: float = 0.0
+
 func _ready():
 	load_ammo_slots_local()
 	super._ready() 
@@ -118,6 +125,7 @@ func _ready():
 		NetworkManager.slow_state.connect(_on_slow_state)
 		NetworkManager.stun_state.connect(_on_stun_state)
 		NetworkManager.environment_damaged.connect(_on_environment_damaged)
+		NetworkManager.status_effects_sync.connect(_on_status_effects_sync)
 	
 	_setup_skill_controller()
 
@@ -147,8 +155,18 @@ func _on_slow_state(data: Dictionary):
 	if data.has("active"):
 		if data.active:
 			slow_points = data.get("amount", 50.0)
+			slow_timer = float(data.get("duration", 3000.0)) / 1000.0
 		else:
 			slow_points = 0.0
+			slow_timer = 0.0
+
+func _on_status_effects_sync(data: Dictionary):
+	if data.has("slow"): slow_timer = float(data.slow) / 1000.0
+	if data.has("stun"): stun_timer = float(data.stun) / 1000.0
+	if data.has("heal"): heal_timer = float(data.heal) / 1000.0
+	if data.has("healStacks"): heal_stacks = int(data.healStacks)
+	if data.has("bleed"): bleed_timer = float(data.bleed) / 1000.0
+	if data.has("poison"): poison_timer = float(data.poison) / 1000.0
 
 func _on_stun_state(data: Dictionary):
 	if data.has("active") and data.active:
@@ -236,6 +254,18 @@ func _unhandled_input(event):
 func _physics_process(p_delta):
 	if not NetworkManager.network_connected: return
 	_handle_cooldowns(p_delta)
+	
+	# Decrementar temporizadores de efectos de estado activos
+	if slow_timer > 0.0:
+		slow_timer = max(0.0, slow_timer - p_delta)
+	if heal_timer > 0.0:
+		heal_timer = max(0.0, heal_timer - p_delta)
+		if heal_timer <= 0.0:
+			heal_stacks = 0
+	if bleed_timer > 0.0:
+		bleed_timer = max(0.0, bleed_timer - p_delta)
+	if poison_timer > 0.0:
+		poison_timer = max(0.0, poison_timer - p_delta)
 	
 	if is_stunned:
 		stun_timer -= p_delta

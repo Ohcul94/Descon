@@ -26,6 +26,10 @@ class HealSkill extends BaseSkill {
             actual_val = target.hp - oldH;
         }
 
+        // v266.360: Stacks y temporizador de curación para el HUD de estados
+        target.healEndTime = Date.now() + 5000;
+        target.healStacks = Math.min((target.healStacks || 0) + 1, 5);
+
         if (target.socketId) {
             io.to(`zone_${target.zone}`).emit('playerStatSync', {
                 id: target.socketId,

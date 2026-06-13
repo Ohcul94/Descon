@@ -113,6 +113,9 @@ func _ready():
 		for chat in chats: _apply_sci_fi_frame(chat)
 	, CONNECT_ONE_SHOT)
 
+	# v266.360: Inicializar visualizador de estados activos
+	_setup_status_effects_panel()
+
 func _inject_components():
 	# 1. Componente de Habilidades
 	if skills_hud and skills_hud.get_script() != load("res://scripts/systems/SkillsHUD.gd"):
@@ -211,7 +214,7 @@ func _input(event: InputEvent):
 				
 				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat, Equipo, Iconos)
 				if not clicked_node:
-					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar"]:
+					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects"]:
 						var win = _get_hud_node(win_id)
 						if win and win.visible and win.get_global_rect().has_point(event.position):
 							clicked_node = win
@@ -344,7 +347,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"] or "Chat" in node.name or "Party" in node.name
+			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects"] or "Chat" in node.name or "Party" in node.name or "Status" in node.name
 			
 			if is_corner_win:
 				# v1.45: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) SIN MUTILACIÓN ESCALAR
@@ -357,6 +360,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif "Party" in node.name: rs_temp = Vector2(220, node.size.y)
 				elif "ControlBar" in node.name: rs_temp = Vector2(340, 45)
 				elif node.name == "Skills": rs_temp = Vector2(575, 65)
+				elif node.name == "StatusEffects": rs_temp = Vector2(500, 55)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
@@ -443,6 +447,9 @@ func _process(_delta):
 	if is_instance_valid(online_label):
 		online_label.text = "ONLINE: " + str(NetworkManager.online_count)
 
+	# v266.360: Actualizar UI de estados activos
+	_update_status_effects_ui()
+
 func _on_minimize_pressed(id: String):
 	var node = _get_hud_node(id)
 	if node:
@@ -476,6 +483,7 @@ func _get_hud_node(id: String):
 	if id == "Stats": real_id = "CenterStats"
 	if id == "Squad" or id == "Party": real_id = "PartyHUD"
 	if id == "SkillsContainer": real_id = "Skills"
+	if id == "Status" or id == "StatusEffects": real_id = "StatusEffects"
 	
 	var node = get_node_or_null(real_id)
 	
@@ -678,6 +686,7 @@ func _restore_default_layout():
 		"Sphere4Slot":     { "x": 874.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 		"PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
 		"ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0 },
+		"StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
 	}
 	
 	# v1.10: Sincronización dinámica de valores de fábrica definidos en el AdminDash
@@ -870,6 +879,10 @@ func _is_pos_over_priority_ui(p: Vector2, ignore_editable: bool = false) -> bool
 		var p_hud = get_node_or_null("PartyHUD")
 		if p_hud and p_hud.visible:
 			if p_hud.get_global_rect().has_point(p): return true
+
+		var s_hud = get_node_or_null("StatusEffects")
+		if s_hud and s_hud.visible:
+			if s_hud.get_global_rect().has_point(p): return true
 
 	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
 	for ui in ui_nodes:
@@ -1142,7 +1155,7 @@ func toggle_hud_editing(slot_index: int = -1):
 				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
@@ -1184,6 +1197,8 @@ func _make_node_draggable(node: Control, _hud_id: String):
 				var sync = func(): 
 					overlay.global_position = node.global_position
 					overlay.size = node.size
+					overlay.scale = node.scale
+					overlay.pivot_offset = node.pivot_offset
 				node.resized.connect(sync)
 				node.item_rect_changed.connect(sync)
 				sync.call()
@@ -1233,7 +1248,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
 		
-		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"] or "Chat" in win.name or "Party" in win.name
+		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects"] or "Chat" in win.name or "Party" in win.name or "Status" in win.name
 		
 		if is_corner_win:
 			# v1.45: Revertir márgenes absolutos a proporciones nominales base sin mutilación
@@ -1245,6 +1260,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			elif "Chat" in win.name: base_w = 320; base_h = 200
 			elif "Party" in win.name: base_w = 200; base_h = 200
 			elif "ControlBar" in win.name: base_w = 340; base_h = 45
+			elif "StatusEffects" in win.name: base_w = 500; base_h = 55
 			
 			var godot_w = win.size.x * win.scale.x
 			var godot_h = win.size.y * win.scale.y
@@ -1281,7 +1297,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 			}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wpos = get_normalized_pos.call(win, 1280.0, 800.0)
@@ -1789,3 +1805,117 @@ func _on_altar_defense_cancelled(data):
 func _on_altar_defense_success(_data):
 	_close_altar_defense_invite()
 	notify("¡EVENTO DE ALTARES INICIADO! PREPÁRATE...", "success")
+
+# --- SISTEMA DE VISUALIZACIÓN DE ESTADOS HUD v266.360 ---
+var _status_effects_panel: Control = null
+var _status_hbox: HBoxContainer = null
+
+func _setup_status_effects_panel():
+	if get_node_or_null("StatusEffects"): return
+	
+	_status_effects_panel = PanelContainer.new()
+	_status_effects_panel.name = "StatusEffects"
+	_status_effects_panel.custom_minimum_size = Vector2(500, 55)
+	
+	# Contenedor invisible (StyleBoxEmpty)
+	var sb = StyleBoxEmpty.new()
+	_status_effects_panel.add_theme_stylebox_override("panel", sb)
+	
+	_status_hbox = HBoxContainer.new()
+	_status_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	_status_hbox.add_theme_constant_override("separation", 6)
+	_status_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_status_effects_panel.add_child(_status_hbox)
+	
+	add_child(_status_effects_panel)
+	_status_effects_panel.top_level = true
+	_status_effects_panel.pivot_offset = Vector2(250, 27.5)
+
+func _update_status_effects_ui():
+	if not _status_hbox: return
+	
+	var p_node = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(p_node):
+		_status_effects_panel.visible = false
+		return
+		
+	var is_any_status = (
+		p_node.get("slow_timer") > 0.0 or 
+		p_node.get("heal_timer") > 0.0 or 
+		p_node.get("bleed_timer") > 0.0 or 
+		p_node.get("poison_timer") > 0.0 or 
+		(p_node.get("is_stunned") and p_node.get("stun_timer") > 0.0)
+	)
+	
+	if is_editing_layout:
+		_status_effects_panel.visible = true
+	else:
+		_status_effects_panel.visible = is_any_status
+		
+	if not _status_effects_panel.visible:
+		return
+		
+	for child in _status_hbox.get_children():
+		child.queue_free()
+		
+	if is_editing_layout and not is_any_status:
+		_add_status_box("❄️", "3.0", Color(0.0, 0.7, 1.0, 0.7))
+		_add_status_box("💚", "3x 4.5", Color(0.0, 0.8, 0.2, 0.7))
+		_add_status_box("🩸", "2.1", Color(0.9, 0.1, 0.1, 0.7))
+		_add_status_box("🧪", "5.0", Color(0.7, 0.1, 0.9, 0.7))
+		_add_status_box("🛡️", "1.5", Color(0.5, 0.5, 0.5, 0.7))
+		return
+		
+	if p_node.get("slow_timer") > 0.0:
+		_add_status_box("❄️", "%.1f" % p_node.slow_timer, Color(0.0, 0.7, 1.0, 0.7))
+		
+	if p_node.get("heal_timer") > 0.0:
+		var txt = "%.1f" % p_node.heal_timer
+		if p_node.get("heal_stacks") > 1:
+			txt = "%dx" % p_node.heal_stacks + txt
+		_add_status_box("💚", txt, Color(0.0, 0.8, 0.2, 0.7))
+		
+	if p_node.get("bleed_timer") > 0.0:
+		_add_status_box("🩸", "%.1f" % p_node.bleed_timer, Color(0.9, 0.1, 0.1, 0.7))
+		
+	if p_node.get("poison_timer") > 0.0:
+		_add_status_box("🧪", "%.1f" % p_node.poison_timer, Color(0.7, 0.1, 0.9, 0.7))
+		
+	if p_node.get("is_stunned") and p_node.get("stun_timer") > 0.0:
+		_add_status_box("🛡️", "%.1f" % p_node.stun_timer, Color(0.5, 0.5, 0.5, 0.7))
+
+func _add_status_box(emoji: String, text: String, color: Color):
+	var box = PanelContainer.new()
+	box.custom_minimum_size = Vector2(32, 32)
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = color
+	sb.border_width_left = 1; sb.border_width_top = 1
+	sb.border_width_right = 1; sb.border_width_bottom = 1
+	sb.border_color = Color(1, 1, 1, 0.25)
+	sb.set_corner_radius_all(4)
+	box.add_theme_stylebox_override("panel", sb)
+	
+	# Icono de fondo / Emoji alusivo grande (ocupa el 95% de la caja)
+	var icon_lbl = Label.new()
+	icon_lbl.text = emoji
+	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_lbl.add_theme_font_size_override("font_size", 20)
+	icon_lbl.modulate.a = 0.55
+	box.add_child(icon_lbl)
+	
+	# Texto de Cooldown superpuesto al frente (más grande y con contorno negro para legibilidad)
+	var txt_lbl = Label.new()
+	txt_lbl.text = text
+	txt_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	txt_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	txt_lbl.add_theme_font_size_override("font_size", 10)
+	txt_lbl.add_theme_color_override("font_color", Color.WHITE)
+	txt_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	txt_lbl.add_theme_constant_override("outline_size", 3)
+	box.add_child(txt_lbl)
+	
+	_status_hbox.add_child(box)

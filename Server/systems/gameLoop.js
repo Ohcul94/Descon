@@ -343,6 +343,38 @@ function startGameLoop(io, state, aiManager) {
                 }
             }
 
+            // Simular estados de sangrado (Bleed) si recibió daño de radiación recientemente
+            if (p.hazardCooldowns && Object.keys(p.hazardCooldowns).length > 0) {
+                const hasRecentRad = Object.values(p.hazardCooldowns).some(t => now - t < 1500);
+                if (hasRecentRad && (!p.bleedEndTime || now > p.bleedEndTime)) {
+                    p.bleedEndTime = now + 4000;
+                }
+            }
+            // Sincronizar estados activos al cliente para el visualizador del HUD
+            // v266.360: El veneno del sueño (Poison) solo se activa si hay daño por segundo
+            if (p.isAsleep && p.sleepDmgPerSecond > 0) {
+                p.poisonEndTime = p.sleepEndTime;
+            } else if (!p.isAsleep) {
+                p.poisonEndTime = 0;
+            }
+
+            // Sincronizar estados activos al cliente para el visualizador del HUD
+            const activeSlow = p.slowEndTime ? Math.max(0, p.slowEndTime - now) : 0;
+            const activeStun = p.stunEndTime ? Math.max(0, p.stunEndTime - now) : 0;
+            const activeHeal = p.healEndTime ? Math.max(0, p.healEndTime - now) : 0;
+            if (activeHeal <= 0) p.healStacks = 0;
+            const activeBleed = p.bleedEndTime ? Math.max(0, p.bleedEndTime - now) : 0;
+            const activePoison = p.poisonEndTime ? Math.max(0, p.poisonEndTime - now) : 0;
+
+            io.to(p.socketId).emit('statusEffectsSync', {
+                slow: activeSlow,
+                stun: activeStun,
+                heal: activeHeal,
+                healStacks: p.healStacks || 0,
+                bleed: activeBleed,
+                poison: activePoison
+            });
+
             // Sync obligatorio solo si hubo cambios por ambiente o regen o sueño
             if (changed) {
                 io.to(`zone_${p.zone}`).emit('playerStatSync', {
