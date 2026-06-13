@@ -132,8 +132,23 @@ func _draw():
 	
 	# 2. Dibujar Jugadores Remotos (Verde=Clan, Celeste=Party, Naranja=Otros)
 	var pm = get_node_or_null("/root/PartyManager")
+	var vision_r = 1300.0
+	if is_instance_valid(player):
+		if "vision_range" in player:
+			vision_r = player.vision_range
+		else:
+			if "current_ship_id" in player and GameConstants.SHIP_MODELS:
+				for ship in GameConstants.SHIP_MODELS:
+					if ship.id == player.current_ship_id:
+						vision_r = float(ship.get("vision", 1300.0))
+						break
+
 	for ent in get_tree().get_nodes_in_group("remote_players"):
 		if is_instance_valid(ent) and not ent.get("is_dead") and ent.visible:
+			# Validar si está en rango de visión real
+			if is_instance_valid(player) and player.global_position.distance_to(ent.global_position) > vision_r:
+				continue
+
 			var is_clan = false
 			var is_party = false
 			
@@ -179,6 +194,10 @@ func _draw():
 	# 3. Dibujar Enemigos NPC (Naranja JS v13.1.3)
 	for ent in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(ent) and not ent.get("is_dead") and ent.visible:
+			# Validar si está en rango de visión real
+			if is_instance_valid(player) and player.global_position.distance_to(ent.global_position) > vision_r:
+				continue
+
 			var pos = ent.global_position * map_scale
 			draw_circle(pos, 2.0, Color(1, 0.4, 0)) # #ff6600
 

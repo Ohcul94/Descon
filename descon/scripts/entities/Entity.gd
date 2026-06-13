@@ -228,14 +228,31 @@ func _process(delta):
 	# v311.2: Calcular visibilidad en pantalla antes de procesar visuales costosos
 	var screen_visible = true
 	if not is_in_group("player"): # El jugador local siempre se considera visible
-		var cam = _get_camera_2d()
-		if cam:
-			var screen_size = get_viewport_rect().size
-			var cam_pos = cam.global_position
-			var margin = 600.0
-			var diff = target_position - cam_pos # v311.4: Usar target_position para evitar desincronización por cortocircuito
-			if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
+		var local_player = _get_player_node()
+		if is_instance_valid(local_player):
+			var vision_r = 1300.0
+			if "vision_range" in local_player:
+				vision_r = local_player.vision_range
+			else:
+				# Fallback
+				if "current_ship_id" in local_player and GameConstants.SHIP_MODELS:
+					for ship in GameConstants.SHIP_MODELS:
+						if ship.id == local_player.current_ship_id:
+							vision_r = float(ship.get("vision", 1300.0))
+							break
+			var dist = target_position.distance_to(local_player.global_position)
+			if dist > vision_r:
 				screen_visible = false
+		
+		if screen_visible:
+			var cam = _get_camera_2d()
+			if cam:
+				var screen_size = get_viewport_rect().size
+				var cam_pos = cam.global_position
+				var margin = 600.0
+				var diff = target_position - cam_pos # v311.4: Usar target_position para evitar desincronización por cortocircuito
+				if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
+					screen_visible = false
 
 	# v311.3: Culling masivo de procesamiento para naves lejanas fuera de pantalla
 	if not is_in_group("player"):
@@ -252,6 +269,8 @@ func _process(delta):
 					_ui_wrapper.visible = false
 				if is_instance_valid(_vfx_container_2d):
 					_vfx_container_2d.visible = false
+				if is_instance_valid(sprite):
+					sprite.visible = false
 			return # CORTOCIRCUITO COMPLETO: Salva 100% de cálculos en cada frame
 		else:
 			if get_meta("_was_screen_visible", true) == false:

@@ -403,6 +403,7 @@ function renderShips() {
                 <div class="field"><label>HP Total (pts)</label><input type="number" value="${ship.hp}" onchange="config.shipModels[${idx}].hp = parseInt(this.value)"></div>
                 <div class="field"><label>Escudo Total (pts)</label><input type="number" value="${ship.shield}" onchange="config.shipModels[${idx}].shield = parseInt(this.value)"></div>
                 <div class="field"><label>Velocidad (px/s)</label><input type="number" value="${ship.speed}" onchange="config.shipModels[${idx}].speed = parseInt(this.value)"></div>
+                <div class="field"><label>Rango de Visión (px)</label><input type="number" value="${ship.vision || 1300}" onchange="config.shipModels[${idx}].vision = parseInt(this.value)"></div>
             </div>
             <div class="form-grid" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333;">
                 <div class="field"><label>Slots Armas (W)</label><input type="number" value="${ship.slots.w || 0}" onchange="config.shipModels[${idx}].slots.w = parseInt(this.value)"></div>

@@ -126,26 +126,34 @@ function startGameLoop(io, state, aiManager) {
                     p._lastSentEnemies = {};
                 }
                 
+                let playerVision = 1300;
+                if (state.SERVER_CONFIG && state.SERVER_CONFIG.shipModels) {
+                    const ship = state.SERVER_CONFIG.shipModels.find(s => s.id === p.currentShipId);
+                    if (ship && ship.vision !== undefined) {
+                        playerVision = Number(ship.vision);
+                    }
+                }
+
                 const currentAoiEnemyIds = new Set();
                 const aoiData = {};
                 let count = 0;
 
-                // Rango de 2 celdas a la redonda (total 5x5) para cubrir pantallas 4K/Ultra-wide
+                // Rango dinámico de celdas a la redonda según el rango de visión de la nave
+                const cellRange = Math.ceil(playerVision / 500);
                 const cx = Math.floor(p.x / 500);
                 const cy = Math.floor(p.y / 500);
                 const pZoneNormalized = normalizeZone(p.zone);
 
-                for (let dx = -2; dx <= 2; dx++) {
-                    for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -cellRange; dx <= cellRange; dx++) {
+                    for (let dy = -cellRange; dy <= cellRange; dy++) {
                         const key = `${p.zone}_${cx + dx},${cy + dy}`;
                         const cell = grid.grid.get(key);
                         if (cell) {
                             cell.enemies.forEach(e => {
                                 if (String(e.zone) === String(p.zone) && enemies[e.id] && enemies[e.id].hp > 0) {
-                                    // v270.30: Filtro de Distancia Euclidiana (Círculo de 1300px)
-                                    // Evita enviar enemigos situados en las esquinas lejanas de la grilla 5x5 (fuera de pantalla)
+                                    // Filtro de Distancia Euclidiana dinámico según la visión de la nave
                                     const dist = Math.hypot(p.x - e.x, p.y - e.y);
-                                    if (dist > 1300) return;
+                                    if (dist > playerVision) return;
 
                                     currentAoiEnemyIds.add(e.id);
                                     

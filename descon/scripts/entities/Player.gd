@@ -83,6 +83,7 @@ func set_ammo_slot(slot_idx: int, ammo_type: String):
 
 var _is_initializing: bool = false # v269.170: Bloqueo de guardado durante login
 var current_zone: int = 1
+var vision_range: float = 1300.0
 var _skill_controller: Node2D = null
 
 var _shake_amount: float = 0.0
@@ -425,11 +426,13 @@ func _recalculate_stats():
 			elif type == "e" or type == "engine" or cat == "e": speed_bonus += bonus
 			elif type == "h" or type == "hp" or cat == "h": total_hp_bonus += bonus
 	
-	var ship_base = { "hp": 3000, "shield": 1000, "speed": 300 }
+	var ship_base = { "hp": 3000, "shield": 1000, "speed": 300, "vision": 1300.0 }
 	for ship in GameConstants.SHIP_MODELS:
 		if ship.id == current_ship_id:
 			ship_base = ship
 			break
+			
+	vision_range = float(ship_base.get("vision", 1300.0))
 			
 	var base_hp_val = float(ship_base.get("hp", 3000)) + total_hp_bonus
 	var base_sh_val = float(ship_base.get("shield", 1000)) + total_sh_bonus
