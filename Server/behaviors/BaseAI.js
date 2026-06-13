@@ -697,6 +697,90 @@ module.exports = class BaseAI {
 
         if (dist > fireRange && !state.isCharging) return false;
 
+        // Mecánica de Sueño Inducido (Sleep)
+        if (mech.type === "sleep") {
+            const cooldown = mech.cooldown || 10000;
+            if (now > state.nextShotTime) {
+                const range = mech.fireRange || 600;
+                const targetCount = mech.targetCount || 1;
+                const targetMode = mech.targetMode || "proximity";
+                const sleepDuration = mech.duration || 5000;
+                const slowPct = mech.slowPercentage !== undefined ? mech.slowPercentage : 60;
+                const slowDur = mech.slowDuration !== undefined ? mech.slowDuration : 1500;
+                const dmgPerSecond = mech.damagePerSecond || 0;
+                const nightmareMult = mech.nightmareMultiplier !== undefined ? mech.nightmareMultiplier : 2.0;
+                const wakeOnDmg = mech.wakeOnDamage !== false;
+
+                let zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                zonePlayers = zonePlayers.filter(p => {
+                    const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                    return d <= range;
+                });
+
+                if (zonePlayers.length > 0) {
+                    if (targetMode === "proximity") {
+                        zonePlayers.sort((a, b) => {
+                            const dA = Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y);
+                            const dB = Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y);
+                            return dA - dB;
+                        });
+                    } else if (targetMode === "max_hp") {
+                        zonePlayers.sort((a, b) => b.maxHp - a.maxHp);
+                    } else if (targetMode === "missing_hp") {
+                        zonePlayers.sort((a, b) => {
+                            const missingA = a.maxHp - a.hp;
+                            const missingB = b.maxHp - b.hp;
+                            return missingB - missingA;
+                        });
+                    } else if (targetMode === "random") {
+                        zonePlayers.sort(() => Math.random() - 0.5);
+                    }
+
+                    const selectedTargets = zonePlayers.slice(0, targetCount);
+
+                    selectedTargets.forEach(p => {
+                        p.isAsleep = true;
+                        p.sleepEndTime = now + sleepDuration;
+                        p.sleepNextTickDmgTime = now + 1000;
+                        p.sleepDmgPerSecond = dmgPerSecond;
+                        p.nightmareMultiplier = nightmareMult;
+                        p.sleepWakeOnDamage = wakeOnDmg;
+
+                        // Aplicar somnolencia progresiva
+                        if (slowPct > 0 && slowDur > 0) {
+                            p.isSlowed = true;
+                            p.slowPoints = slowPct;
+                            p.lastSlowTime = now;
+                            p.slowEndTime = now + slowDur;
+                            io.to(p.socketId).emit('slowState', { active: true, amount: slowPct });
+                            io.to(p.socketId).emit('gameNotification', { msg: `💤 ¡Te sentís somnoliento! Ralentizado ${slowPct}% por ${slowDur}ms...`, type: "warning" });
+                        }
+
+                        setTimeout(() => {
+                            if (p && p.isAsleep && !p.isDead && p.sleepEndTime > Date.now()) {
+                                p.isStunned = true;
+                                p.stunEndTime = p.sleepEndTime;
+                                io.to(p.socketId).emit('stunState', { active: true, duration: p.sleepEndTime - Date.now(), isSleep: true });
+                                io.to(p.socketId).emit('gameNotification', { msg: "💤 ¡Te quedaste dormido! 💤", type: "error" });
+                            }
+                        }, slowDur);
+                    });
+
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        action: "sleep_cast",
+                        type: "sleep",
+                        range: range,
+                        targets: selectedTargets.map(p => p.socketId)
+                    });
+
+                    state.nextShotTime = now + cooldown;
+                }
+            }
+            this.enemy.mechState[mId] = state;
+            return false;
+        }
+
         if (mech.type === "orbital_strike") {
             if (now > state.nextShotTime) {
                 this._handleOrbitalStrikeLogic(mech, state, mId, now, io);

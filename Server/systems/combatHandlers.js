@@ -406,6 +406,17 @@ function registerCombatHandlers(socket, io, state) {
                     }
                 }
             }
+
+            if (p.isAsleep && p.sleepWakeOnDamage !== false) {
+                dmg = dmg * (p.nightmareMultiplier || 2.0);
+                p.isAsleep = false;
+                p.isStunned = false;
+                p.sleepEndTime = 0;
+                p.sleepDmgPerSecond = 0;
+                io.to(p.socketId).emit('stunState', { active: false });
+                io.to(p.socketId).emit('gameNotification', { msg: "💥 ¡PESADILLA! Te despertás abruptamente tras recibir daño extra.", type: "warning" });
+            }
+
             if (p.isInvulnerable) dmg = 0;
 
             if (p.shield >= dmg) p.shield -= dmg;
@@ -538,6 +549,16 @@ function registerCombatHandlers(socket, io, state) {
                         victim.isSlowed = true;
                         victim.slowEndTime = Date.now() + 1000;
                         io.to(data.victimId).emit('slowState', { active: true, amount: 200 });
+                    }
+
+                    if (victim.isAsleep && victim.sleepWakeOnDamage !== false) {
+                        dmg = dmg * (victim.nightmareMultiplier || 2.0);
+                        victim.isAsleep = false;
+                        victim.isStunned = false;
+                        victim.sleepEndTime = 0;
+                        victim.sleepDmgPerSecond = 0;
+                        io.to(data.victimId).emit('stunState', { active: false });
+                        io.to(data.victimId).emit('gameNotification', { msg: "💥 ¡PESADILLA! Te despertás abruptamente tras recibir daño extra.", type: "warning" });
                     }
 
                     if (victim.shield >= dmg) victim.shield -= dmg;

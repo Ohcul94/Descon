@@ -291,8 +291,45 @@ function startGameLoop(io, state, aiManager) {
 
             let changed = false;
 
+            // v266.360: Procesamiento de Sueño (Sleep Mechanic)
+            if (p.isAsleep) {
+                // Verificar si expiró el sueño
+                if (now >= p.sleepEndTime) {
+                    p.isAsleep = false;
+                    p.isStunned = false;
+                    p.sleepEndTime = 0;
+                    p.sleepDmgPerSecond = 0;
+                    io.to(p.socketId).emit('stunState', { active: false });
+                    io.to(p.socketId).emit('gameNotification', { msg: "💤 Te has despertado.", type: "info" });
+                    changed = true;
+                } else {
+                    // Aplicar daño por segundo del sueño si corresponde
+                    if (p.sleepDmgPerSecond > 0 && now >= p.sleepNextTickDmgTime) {
+                        p.sleepNextTickDmgTime = now + 1000;
+                        const dmg = p.sleepDmgPerSecond;
+                        p.lastCombatTime = now;
+                        if (p.shield >= dmg) {
+                            p.shield -= dmg;
+                        } else {
+                            p.hp -= (dmg - p.shield);
+                            p.shield = 0;
+                        }
+                        if (p.hp < 0) p.hp = 0;
+                        if (p.hp <= 0) {
+                            p.isDead = true;
+                            p.isAsleep = false;
+                            p.isStunned = false;
+                            io.to(p.socketId).emit('stunState', { active: false });
+                        }
+                        
+                        io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                        changed = true;
+                    }
+                }
+            }
+
             const timeSinceCombat = now - (p.lastCombatTime || 0);
-            if (timeSinceCombat > 10000) { // 10s fuera de combate
+            if (timeSinceCombat > 10000 && !p.isAsleep) { // 10s fuera de combate y no durmiendo
                 const regenAmount = p.maxHp * 0.05;
                 const shieldRegen = p.maxShield * 0.08;
 
@@ -306,16 +343,16 @@ function startGameLoop(io, state, aiManager) {
                 }
             }
 
-            // Sync obligatorio solo si hubo cambios por ambiente o regen
+            // Sync obligatorio solo si hubo cambios por ambiente o regen o sueño
             if (changed) {
                 io.to(`zone_${p.zone}`).emit('playerStatSync', {
                     id: p.socketId, 
                     hp: Math.ceil(p.hp), 
                     shield: Math.ceil(p.shield),
-                    maxHp: p.maxHp, // v270.0: Enviar máximos para evitar bugs visuales de 65k
+                    maxHp: p.maxHp, 
                     maxShield: p.maxShield,
                     isInvisible: p.isInvisible,
-                    isSlowed: p.isSlowed // v266.351
+                    isSlowed: p.isSlowed
                 });
             }
         });

@@ -158,9 +158,10 @@ func _on_stun_state(data: Dictionary):
 		target_position = global_position
 		velocity = Vector2.ZERO
 		apply_shake(5.0)
-		# Feedback visual: Azulado/Gris
+		# Feedback visual: Azulado/Gris o violeta para Sueño (Sleep)
+		var target_color = Color(0.8, 0.4, 1.0, 1.0) if data.get("isSleep", false) else Color(0.7, 0.7, 1.0, 1.0)
 		var tw = create_tween()
-		tw.tween_property(self, "modulate", Color(0.7, 0.7, 1.0, 1.0), 0.2)
+		tw.tween_property(self, "modulate", target_color, 0.2)
 	else:
 		is_stunned = false
 		stun_timer = 0.0

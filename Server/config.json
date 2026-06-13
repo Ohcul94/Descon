@@ -1796,16 +1796,24 @@
                     "slowDuration": 0
                 },
                 {
-                    "type": "circle_cast",
+                    "type": "sleep",
                     "bulletDamage": 10,
                     "bulletSpeed": 800,
-                    "fireRange": 600,
+                    "fireRange": 800,
                     "fireRate": 1000,
-                    "cooldown": 5000,
+                    "cooldown": 8000,
                     "castTimeMs": 3000,
                     "damage": 500,
                     "lockTimeMs": 1000,
-                    "startDelay": 0
+                    "startDelay": 0,
+                    "targetCount": 1,
+                    "targetMode": 0,
+                    "duration": 5000,
+                    "slowPercentage": 20,
+                    "slowDuration": 1500,
+                    "damagePerSecond": 0,
+                    "nightmareMultiplier": 0,
+                    "wakeOnDamage": false
                 }
             ],
             "movementPhases": [
@@ -4435,6 +4443,24 @@
                 "damage",
                 "fireRange",
                 "lockTimeMs",
+                "startDelay"
+            ]
+        },
+        "sleep": {
+            "label": "Sueño Inducido (Sleep)",
+            "icon": "💤",
+            "desc": "Duerme a los pilotos con somnolencia progresiva y un efecto de pesadilla al despertar.",
+            "fields": [
+                "fireRange",
+                "targetCount",
+                "targetMode",
+                "duration",
+                "slowPercentage",
+                "slowDuration",
+                "damagePerSecond",
+                "nightmareMultiplier",
+                "wakeOnDamage",
+                "cooldown",
                 "startDelay"
             ]
         }
