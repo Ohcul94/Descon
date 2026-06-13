@@ -347,7 +347,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects"] or "Chat" in node.name or "Party" in node.name or "Status" in node.name
+			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"] or "Chat" in node.name or "Party" in node.name
 			
 			if is_corner_win:
 				# v1.45: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) SIN MUTILACIÓN ESCALAR
@@ -398,7 +398,13 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				else:
 					var scale_x = _screen_size.x / 1280.0
 					var scale_y = _screen_size.y / 800.0
-					final_pos = Vector2(rx * scale_x, ry * scale_y)
+					if node.name == "StatusEffects":
+						var width = 500.0
+						var height = 55.0
+						final_pos.x = (rx + width / 2.0) * scale_x - (width / 2.0)
+						final_pos.y = (ry + height / 2.0) * scale_y - (height / 2.0)
+					else:
+						final_pos = Vector2(rx * scale_x, ry * scale_y)
 				
 				var rs_temp = node.size
 				if "Slot" in node.name or node.name in ["Util1", "Util2", "Def", "Cur"]: rs_temp = Vector2(65, 65)
@@ -1248,7 +1254,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
 		
-		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects"] or "Chat" in win.name or "Party" in win.name or "Status" in win.name
+		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"] or "Chat" in win.name or "Party" in win.name
 		
 		if is_corner_win:
 			# v1.45: Revertir márgenes absolutos a proporciones nominales base sin mutilación
@@ -1277,8 +1283,14 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			# Matemática Proporcional Original (Solo Slots huérfanos u otros)
 			var scale_x = original_w / _screen_size.x
 			var scale_y = original_h / _screen_size.y
-			nx = nx * scale_x
-			ny = ny * scale_y
+			if win.name == "StatusEffects":
+				var width = 500.0
+				var height = 55.0
+				nx = (nx + width / 2.0) * scale_x - (width / 2.0)
+				ny = (ny + height / 2.0) * scale_y - (height / 2.0)
+			else:
+				nx = nx * scale_x
+				ny = ny * scale_y
 			
 		return Vector2(nx, ny)
 
@@ -1341,13 +1353,22 @@ func _backup_layout():
 					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 				}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects"]:
 		var win = _get_hud_node(win_id)
 		if win:
-			_layout_backup[win_id] = { 
-				"x": win.global_position.x * scale_x, "y": win.global_position.y * scale_y,
-				"scale": win.scale.x / 2.0, "alpha": win.modulate.a
-			}
+			if win_id == "StatusEffects":
+				var width = 500.0
+				var height = 55.0
+				_layout_backup[win_id] = { 
+					"x": (win.global_position.x + width / 2.0) * scale_x - (width / 2.0),
+					"y": (win.global_position.y + height / 2.0) * scale_y - (height / 2.0),
+					"scale": win.scale.x / 2.0, "alpha": win.modulate.a
+				}
+			else:
+				_layout_backup[win_id] = { 
+					"x": win.global_position.x * scale_x, "y": win.global_position.y * scale_y,
+					"scale": win.scale.x / 2.0, "alpha": win.modulate.a
+				}
 
 func _restore_layout_backup():
 	if _layout_backup.is_empty(): return
