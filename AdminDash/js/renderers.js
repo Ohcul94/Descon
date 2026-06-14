@@ -739,7 +739,7 @@ function renderEnemyDetail() {
                                      const fieldLabelsMap = { 
                                           bulletDamage: m.type === 'bomb' ? "Daño de Explosión (pts)" : "Daño (pts)", 
                                           bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : "Vel. Bala (px/s)", 
-                                          fireRange: m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : "Alcance (px)"), 
+                                          fireRange: m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : "Alcance (px)")), 
                                           fireRate: "Cadencia (ms)", 
                                           slowAmount: "Ralentización (pts)", 
                                           slowDuration: "Duración de Ralentización (ms)", 
@@ -757,7 +757,7 @@ function renderEnemyDetail() {
                                           radius: m.type === 'bomb' ? "Radio de Explosión (px)" : "Radio del Aura (px)",
                                           damage: "Daño (pts)",
                                           intervalMs: "Intervalo de Tick (ms)",
-                                          duration: m.type === 'sleep' ? "Duración del Sueño (ms)" : "Duración Total (ms)",
+                                          duration: m.type === 'sleep' ? "Duración del Sueño (ms)" : (m.type === 'reflect' ? "Duración del Escudo (ms)" : "Duración Total (ms)"),
                                           cooldown: "Enfriamiento (CD) (ms)",
                                           pullSpeed: "Vel. Atracción (px/s)",
                                           stunDuration: "Duración de Stun (ms)",
@@ -783,7 +783,8 @@ function renderEnemyDetail() {
                                           slowPercentage: "Porcentaje de Ralentización (%)",
                                           damagePerSecond: "Daño por Segundo (pts/s)",
                                           nightmareMultiplier: "Multiplicador de Pesadilla (x)",
-                                          wakeOnDamage: "Despierta al Recibir Daño (Sí/No)"
+                                          wakeOnDamage: "Despierta al Recibir Daño (Sí/No)",
+                                          reflect_mult: "Multiplicador de Reflejo (x)"
                                       };
                                      if (f === 'isHoming') return `<div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.05); padding: 10px; border-radius: 8px; flex-direction: column; gap: 12px; border: 1px solid rgba(239, 68, 68, 0.2);"><div style="display:flex; align-items:center; gap:12px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:20px; height:20px; cursor:pointer;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isHoming = this.checked; renderEnemyDetail();"><label style="margin:0; font-size: 0.85rem; color: #ef4444; cursor:pointer;">ACTIVAR SEGUIMIENTO AL OBJETIVO</label></div>${m.isHoming ? `<div style="padding-top: 10px; border-top: 1px solid rgba(239, 68, 68, 0.2);"><label style="font-size: 0.65rem; color: var(--text-dim);">AGILIDAD DE GIRO (RAD/S)</label><input type="number" step="0.1" value="${m.turnSpeed || 2.5}" style="background:rgba(0,0,0,0.3); margin-top:5px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].turnSpeed = parseFloat(this.value)"></div>` : ''}</div>`;
                                      if (f === 'coneFollow') return `<div class="field" style="display:flex; flex-direction:column; gap:8px;"><label>${fieldLabelsMap[f] || f}</label><div style="display:flex; align-items:center; height:40px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].coneFollow = this.checked; renderEnemyDetail();"></div></div>`;
@@ -1011,7 +1012,8 @@ function renderMechanicsLib() {
         "stunDuration": "Duración de Stun (ms)",
         "coneFollow": "Seguimiento Dinámico (Homing)",
         "lockTimeMs": "Tiempo de Bloqueo (ms)",
-        "aimDelayMs": "Espera de Apuntado (ms)"
+        "aimDelayMs": "Espera de Apuntado (ms)",
+        "reflect_mult": "Multiplicador de Reflejo (x)"
     };
 
     if (currentMechTab === 'attack') {

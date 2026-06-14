@@ -10,7 +10,8 @@ const DEFAULT_MECHANICS_LIB = {
     "cone_cast": { label: "Ataque en Cono Casteable", icon: "📐", desc: "Ataque en cono que se carga y al completarse daña/stunea.", fields: ["cooldown", "castTimeMs", "damage", "stunDuration", "castSpeed", "coneAngle", "fireRange", "coneFollow", "lockTimeMs", "aimDelayMs", "startDelay"] },
     "bomb": { label: "Lanzador de Bombas", icon: "💣", desc: "Lanza bombas en círculo que explotan tras un retardo.", fields: ["bulletDamage", "radius", "fireRange", "bulletSpeed", "bombCount", "bombDelayMs", "fuseTimeMs", "cooldown", "startDelay"] },
     "circle_cast": { label: "Explosión Circular", icon: "⭕", desc: "Ataque circular que se carga siguiendo al enemigo y explota dañando a todos.", fields: ["cooldown", "castTimeMs", "damage", "fireRange", "lockTimeMs", "startDelay"] },
-    "sleep": { label: "Sueño Inducido (Sleep)", icon: "💤", desc: "Duerme a los pilotos con somnolencia progresiva y un efecto de pesadilla al despertar.", fields: ["fireRange", "targetCount", "targetMode", "duration", "slowPercentage", "slowDuration", "damagePerSecond", "nightmareMultiplier", "wakeOnDamage", "cooldown", "startDelay"] }
+    "sleep": { label: "Sueño Inducido (Sleep)", icon: "💤", desc: "Duerme a los pilotos con somnolencia progresiva y un efecto de pesadilla al despertar.", fields: ["fireRange", "targetCount", "targetMode", "duration", "slowPercentage", "slowDuration", "damagePerSecond", "nightmareMultiplier", "wakeOnDamage", "cooldown", "startDelay"] },
+    "reflect": { label: "Escudo Reflectante (Reflect)", icon: "🛡️", desc: "Devuelve daño recibido al atacante.", fields: ["duration", "reflect_mult", "cooldown", "fireRange", "startDelay"] }
 };
 
 // v266.230: Definición de Mecánicas de Movimiento (Cerebros)

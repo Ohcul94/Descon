@@ -1183,6 +1183,39 @@ module.exports = class BaseAI {
             return state.isCharging;
         }
 
+        // Mecánica de Reflect (Reflejo de Daño)
+        if (mech.type === "reflect") {
+            const cooldown = mech.cooldown || mech.fireRate || 10000;
+            const duration = mech.duration || 3000;
+            const reflectMult = mech.reflect_mult !== undefined ? mech.reflect_mult : 0.8;
+
+            if (!state.isActive && now > state.nextShotTime) {
+                state.isActive = true;
+                state.endTime = now + duration;
+                this.enemy.reflectActive = true;
+                this.enemy.reflectMult = reflectMult;
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "reflect_start",
+                    duration: duration,
+                    reflect_mult: reflectMult
+                });
+            } else if (state.isActive && now > state.endTime) {
+                state.isActive = false;
+                this.enemy.reflectActive = false;
+                state.nextShotTime = now + cooldown;
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "reflect_end"
+                });
+            }
+
+            this.enemy.mechState[mId] = state;
+            return state.isActive;
+        }
+
         if (now > state.nextShotTime) {
             const burstLimit = (mech.type === "laser") ? 3 : 1; 
             if (state.shotsInBurst < burstLimit) {

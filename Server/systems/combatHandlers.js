@@ -260,6 +260,32 @@ function registerCombatHandlers(socket, io, state) {
                 enemy.slowEndTime = Date.now() + 1000;
             }
 
+            if (enemy.reflectActive) {
+                const reflectMult = enemy.reflectMult !== undefined ? enemy.reflectMult : 0.8;
+                const reflectedDmg = Math.round(finalDamage * reflectMult);
+                if (reflectedDmg > 0 && !p.isInvulnerable) {
+                    if (p.shield >= reflectedDmg) p.shield -= reflectedDmg;
+                    else { p.hp -= (reflectedDmg - p.shield); p.shield = 0; }
+                    if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
+                    p.lastCombatTime = Date.now();
+                    
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+                        id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
+                        maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
+                        isInvulnerable: !!p.isInvulnerable, isInvisible: !!p.isInvisible
+                    });
+                    
+                    socket.emit('combatLog', `⚠️ ¡Daño reflejado! Recibiste ${reflectedDmg} de daño.`);
+                    
+                    io.to(`zone_${p.zone}`).emit('serverEnemyAction', {
+                        id: enemy.id,
+                        action: "reflect_trigger",
+                        targetId: socket.id,
+                        damage: reflectedDmg
+                    });
+                }
+            }
+
             if (enemy.shield >= finalDamage) enemy.shield -= finalDamage;
             else { enemy.hp -= (finalDamage - enemy.shield); enemy.shield = 0; }
         }

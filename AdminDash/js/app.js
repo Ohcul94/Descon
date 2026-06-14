@@ -726,6 +726,7 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'bombCount') mech[f] = 3;
             else if (f === 'bombDelayMs') mech[f] = 500;
             else if (f === 'fuseTimeMs') mech[f] = 1000;
+            else if (f === 'reflect_mult') mech[f] = 0.8;
             else mech[f] = 0;
         }
     });

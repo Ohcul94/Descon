@@ -1105,6 +1105,27 @@ func _on_enemy_action(data):
 		"orbital_strike_fire": 
 			_is_orbital_active = false
 			_fire_orbital_strike()
+		"reflect_start":
+			reflect_timer = float(data.get("duration", 3000.0)) / 1000.0
+			print("[REFLECT-IN] Enemigo activó reflect por ", reflect_timer, "s")
+		"reflect_end":
+			reflect_timer = 0.0
+			print("[REFLECT-IN] Enemigo desactivó reflect")
+		"reflect_trigger":
+			var target_id = str(data.get("targetId", ""))
+			var target_node = null
+			if target_id != "":
+				for ent in get_tree().get_nodes_in_group("entities"):
+					if str(ent.get("entity_id")) == target_id:
+						target_node = ent; break
+				if not target_node:
+					var local_player = get_tree().get_first_node_in_group("player")
+					if local_player and str(local_player.get("entity_id")) == target_id:
+						target_node = local_player
+			
+			var visual_target = Vector2.ZERO
+			if target_node: visual_target = target_node.global_position
+			_trigger_reflect_visual(visual_target if visual_target != Vector2.ZERO else global_position + Vector2.UP)
 
 func _fire_orbital_strike():
 	# v266.992: Buscar los proyectiles que ya están orbitando y soltarlos

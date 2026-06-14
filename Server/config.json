@@ -271,6 +271,13 @@
                     "lifetimeMs": 1500,
                     "turnSpeed": 1,
                     "lockTimeMs": 800
+                },
+                {
+                    "type": "reflect",
+                    "duration": 4000,
+                    "reflect_mult": 1.2,
+                    "cooldown": 10000,
+                    "fireRange": 800
                 }
             ],
             "movementPhases": [
