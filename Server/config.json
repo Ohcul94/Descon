@@ -6,40 +6,46 @@
         "gridSize": 10,
         "placeableItems": [
             {
-                "id": "chair",
-                "name": "Silla Metálica",
-                "cost": 200,
+                "id": "casa_1",
+                "name": "Estructura Hangar 1",
+                "cost": 1000,
                 "currency": "hubs",
-                "model": "res://assets/3d/chair.glb"
+                "model": "res://assets/Hangar-Casa/3D/1/Casa1.glb"
             },
             {
-                "id": "table",
-                "name": "Mesa de Hangar",
-                "cost": 500,
+                "id": "casa_2",
+                "name": "Estructura Hangar 2",
+                "cost": 2000,
                 "currency": "hubs",
-                "model": "res://assets/3d/table.glb"
+                "model": "res://assets/Hangar-Casa/3D/2/Casa2.glb"
             },
             {
-                "id": "light",
-                "name": "Pilar de Luz",
-                "cost": 800,
+                "id": "casa_3",
+                "name": "Estructura Hangar 3",
+                "cost": 3000,
                 "currency": "hubs",
-                "model": "res://assets/3d/light.glb",
-                "isLight": true
+                "model": "res://assets/Hangar-Casa/3D/3/Casa3.glb"
             },
             {
-                "id": "plant",
-                "name": "Holo-Planta",
-                "cost": 300,
+                "id": "casa_4",
+                "name": "Estructura Hangar 4",
+                "cost": 4000,
                 "currency": "hubs",
-                "model": "res://assets/3d/plant.glb"
+                "model": "res://assets/Hangar-Casa/3D/4/Casa4.glb"
             },
             {
-                "id": "terminal",
-                "name": "Terminal de Datos",
-                "cost": 1500,
-                "currency": "ohcu",
-                "model": "res://assets/3d/terminal.glb"
+                "id": "casa_5",
+                "name": "Estructura Hangar 5",
+                "cost": 5000,
+                "currency": "hubs",
+                "model": "res://assets/Hangar-Casa/3D/5/Casa5.glb"
+            },
+            {
+                "id": "casa_6",
+                "name": "Estructura Hangar 6",
+                "cost": 6000,
+                "currency": "hubs",
+                "model": "res://assets/Hangar-Casa/3D/6/Casa6.glb"
             }
         ]
     },
