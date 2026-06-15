@@ -2227,6 +2227,8 @@ func activate_from_pool():
 
 # v306.4: Reconstruir visuales 3D al cambiar de mapa para re-ubicarse en el nuevo Viewport global
 func rebuild_3d_layout():
+	if get_meta("is_pooled", false) == true:
+		return
 	if is_in_group("enemies"):
 		_setup_enemy_visuals()
 	else:

@@ -225,23 +225,18 @@ lootManager.startCleanupTimer(io, state);
 
 // v244.20: Función Maestra de Inicialización de Sesión (Login/Register)
 const handleUserLogin = async (socket, user, username) => {
-    console.log(`[DEBUG-LOGIN] ===== INICIO handleUserLogin para ${username} (socket: ${socket.id}) =====`);
     // SEGURIDAD ANTI-MULTILOGIN v33.0: Desconectar sesión anterior (Case Insensitive)
     const lowName = username.toLowerCase();
     if (activeSessions.has(lowName)) {
         const oldSocketId = activeSessions.get(lowName);
-        console.log(`[DEBUG-LOGIN] ${username}: Sesión anterior detectada en socket ${oldSocketId}`);
         const oldSocket = io.sockets.sockets.get(oldSocketId);
         if (oldSocket) {
-            console.log(`[DEBUG-LOGIN] ${username}: Desconectando socket anterior...`);
             oldSocket.emit('authError', 'SESIÓN CERRADA: Se ha detectado un nuevo ingreso con esta cuenta.');
             oldSocket.disconnect();
         } else {
-            console.log(`[DEBUG-LOGIN] ${username}: Socket anterior ${oldSocketId} ya NO existe (sesión zombi)`);
         }
         // v301.7: Purga física inmediata de la sesión y jugador anterior para evitar clones fantasmas en reconexiones rápidas
         if (players[oldSocketId]) {
-            console.log(`[DEBUG-LOGIN] ${username}: Guardando y eliminando player anterior...`);
             const oldP = players[oldSocketId];
             if (state.playersByZone[oldP.zone] && state.playersByZone[oldP.zone][oldSocketId]) {
                 delete state.playersByZone[oldP.zone][oldSocketId];
@@ -250,10 +245,8 @@ const handleUserLogin = async (socket, user, username) => {
             io.to(`zone_${oldP.zone}`).emit('playerDisconnected', oldSocketId);
             delete players[oldSocketId];
         } else {
-            console.log(`[DEBUG-LOGIN] ${username}: No hay player anterior en RAM`);
         }
     } else {
-        console.log(`[DEBUG-LOGIN] ${username}: No hay sesión anterior`);
     }
     activeSessions.set(lowName, socket.id);
 
@@ -540,9 +533,6 @@ const handleUserLogin = async (socket, user, username) => {
         },
         adminConfig: buildClientConfig(adminConfig)
     };
-    const payloadSize = JSON.stringify(loginPayload).length;
-    console.log(`[DEBUG-LOGIN] ${username}: Enviando loginSuccess (${payloadSize} bytes) con hp=${loginPayload.gameData.hp} shield=${loginPayload.gameData.shield} zone=${loginPayload.gameData.zone} shipId=${loginPayload.gameData.currentShipId}`);
-    console.log(`[DEBUG-LOGIN] ${username}: Spheres = ${JSON.stringify((loginPayload.gameData.spheres || []).map(s => ({name: s.name, eq: s.equipped ? s.equipped.skill_name || 'obj' : null})))}`);
     socket.emit('loginSuccess', loginPayload);
 
     if (user.gameData.clanId) {
