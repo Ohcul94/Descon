@@ -1,15 +1,43 @@
 extends Control
 
-# TouchControls.gd (v1.0 - Componente de Controles Táctiles y Joystick)
+# TouchControls.gd (v1.1 - Componente de Controles Táctiles y Grid Container)
 
 var virtual_joystick = null
+var grid_container: GridContainer = null
 
 func _ready():
 	print("[TouchControls] Inicializando controles táctiles.")
 	
+	# Crear un GridContainer dinámico de 6 columnas para organizar los íconos
+	grid_container = GridContainer.new()
+	grid_container.name = "GridContainer"
+	grid_container.columns = 6
+	grid_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	grid_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid_container.add_theme_constant_override("h_separation", 6)
+	grid_container.add_theme_constant_override("v_separation", 6)
+	add_child(grid_container)
+	
+	# Mover los hijos estáticos en diferido para evitar bloqueos del layout en _ready
+	call_deferred("_defer_move_existing_children")
+	
 	# v266.400: Inyectar Joystick Virtual (Soporte Móvil)
 	_setup_joystick()
 	_update_joystick_visibility()
+
+func _defer_move_existing_children():
+	var existing_children = []
+	for child in get_children():
+		if child is Button and child.name != "GridContainer":
+			existing_children.append(child)
+			
+	for child in existing_children:
+		remove_child(child)
+		grid_container.add_child(child)
+	
+	# Re-vincular y actualizar tooltips
+	_update_icon_tooltips()
 	
 	# v238.20: Sincronía Táctil Autorizativa (Esperar al Login)
 	if NetworkManager:
@@ -25,7 +53,7 @@ func _ready():
 
 func _setup_squad_and_events_icons():
 	# Icono Squad (Siempre Visible)
-	if not has_node("IconSquad"):
+	if not grid_container.has_node("IconSquad"):
 		var btn = Button.new()
 		btn.name = "IconSquad"
 		btn.text = "👥"
@@ -33,11 +61,10 @@ func _setup_squad_and_events_icons():
 		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0.1,0.1,0.1,0.6); sb.set_corner_radius_all(4)
 		btn.add_theme_stylebox_override("normal", sb)
 		btn.pressed.connect(_on_icon_pressed.bind("Squad"))
-		add_child(btn)
-		move_child(btn, 0)
+		grid_container.add_child(btn)
 		
 	# Icono Eventos (Nuevo v2.2)
-	if not has_node("IconEvents"):
+	if not grid_container.has_node("IconEvents"):
 		var btn = Button.new()
 		btn.name = "IconEvents"
 		btn.text = "🏆"
@@ -46,8 +73,7 @@ func _setup_squad_and_events_icons():
 		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0.1,0.1,0.1,0.6); sb.set_corner_radius_all(4)
 		btn.add_theme_stylebox_override("normal", sb)
 		btn.pressed.connect(_on_icon_pressed.bind("Events"))
-		add_child(btn)
-		move_child(btn, 1)
+		grid_container.add_child(btn)
 
 func _setup_joystick():
 	if virtual_joystick: return
@@ -90,11 +116,12 @@ func _update_joystick_visibility():
 func _setup_touch_buttons():
 	var touch_btns = [
 		{"id": "EscMenu", "icon": "⚙️", "tip": "Sistema (ESC)"},
-		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"}
+		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"},
+		{"id": "Housing", "icon": "🏠", "tip": "Housing (F3)"}
 	]
 	
 	for data in touch_btns:
-		if has_node("Icon" + data.id): continue
+		if grid_container.has_node("Icon" + data.id): continue
 		
 		var btn = Button.new()
 		btn.name = "Icon" + data.id
@@ -109,7 +136,7 @@ func _setup_touch_buttons():
 		btn.add_theme_stylebox_override("hover", h_sb)
 		
 		btn.pressed.connect(_on_icon_pressed.bind(data.id))
-		add_child(btn)
+		grid_container.add_child(btn)
 		_update_icon_tooltips()
 		print("[TouchControls] Botón táctil inyectado: ", data.id)
 
@@ -147,10 +174,17 @@ func _update_icon_tooltips():
 		"AdminPanel": "Admin", "Admin": "Admin",
 		"Squad": "Equipo", "Party": "Equipo", "Chat": "Chat",
 		"Stats": "Estadísticas", "Map": "Mapa", "Radar": "Minimapa", "RadarWindow": "Minimapa",
-		"PvP": "Modo combate", "Talents": "Talentos", "Skills": "Habilidades"
+		"PvP": "Modo combate", "Talents": "Talentos", "Skills": "Habilidades",
+		"Housing": "Housing"
 	}
 	
-	for btn in get_children():
+	var buttons = []
+	if is_instance_valid(grid_container):
+		buttons = grid_container.get_children()
+	else:
+		buttons = get_children()
+		
+	for btn in buttons:
 		if not btn is Button: continue
 		
 		var b_name = btn.name.replace("Icon", "")
@@ -184,3 +218,4 @@ func _on_icon_pressed(id: String):
 	var main_hud = get_parent()
 	if is_instance_valid(main_hud) and main_hud.has_method("_on_icon_pressed"):
 		main_hud._on_icon_pressed(id)
+

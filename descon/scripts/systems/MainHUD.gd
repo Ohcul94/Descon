@@ -362,7 +362,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif node.name == "RadarWindow": rs_temp = Vector2(220, 220)
 				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
 				elif "Party" in node.name: rs_temp = Vector2(220, node.size.y)
-				elif "ControlBar" in node.name: rs_temp = Vector2(340, 45)
+				elif "ControlBar" in node.name: rs_temp = Vector2(260, 85)
 				elif node.name == "Skills": rs_temp = Vector2(575, 65)
 				elif node.name == "StatusEffects": rs_temp = Vector2(500, 55)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
@@ -471,6 +471,10 @@ func _on_icon_pressed(id: String):
 		toggle_events_panel()
 		if is_instance_valid(_events_panel):
 			_update_icon_state("Events", _events_panel.visible)
+		return
+		
+	if id == "Housing":
+		toggle_housing_panel()
 		return
 		
 	if id == "EscMenu":
@@ -1269,7 +1273,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			elif win.name == "RadarWindow": base_w = 220; base_h = 220
 			elif "Chat" in win.name: base_w = 320; base_h = 200
 			elif "Party" in win.name: base_w = 200; base_h = 200
-			elif "ControlBar" in win.name: base_w = 340; base_h = 45
+			elif "ControlBar" in win.name: base_w = 260; base_h = 85
 			elif "StatusEffects" in win.name: base_w = 500; base_h = 55
 			
 			var godot_w = win.size.x * win.scale.x

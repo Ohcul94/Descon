@@ -25,6 +25,8 @@ var camera_zoom = 25.0
 const MIN_ZOOM = 10.0
 const MAX_ZOOM = 50.0
 
+var camera_center = Vector3.ZERO
+
 # Nodo raíz para los objetos 3D dentro del sub_viewport
 var housing_root_3d: Node3D = null
 var grid_lines_3d: Node3D = null
@@ -39,6 +41,9 @@ func setup_map():
 	zone_name = "MI HANGAR PRIVADO"
 	zone_id = 100
 	print("[HOUSING] Inicializando Mapa de Housing...")
+	
+	var half_grid = (grid_size * GRID_CELL_SIZE) / 2.0
+	camera_center = Vector3(half_grid, 0.0, half_grid)
 	
 	# Asegurar nodo contenedor 3D
 	if is_instance_valid(sub_viewport):
@@ -143,6 +148,24 @@ func _process(delta):
 func _update_orbit_camera():
 	if not is_instance_valid(camera_3d): return
 	
+	var rad_h = deg_to_rad(camera_angle_h)
+	
+	# Si no estamos en modo edición, permitir desplazarnos por la grilla usando WASD (Paneo)
+	if not is_edit_mode:
+		var move_speed = 25.0 * get_process_delta_time()
+		# Vectores en el plano XZ alineados con la visual de la cámara
+		var forward = Vector3(sin(rad_h), 0, cos(rad_h)).normalized()
+		var right = Vector3(cos(rad_h), 0, -sin(rad_h)).normalized()
+		
+		if Input.is_key_pressed(KEY_W):
+			camera_center -= forward * move_speed
+		if Input.is_key_pressed(KEY_S):
+			camera_center += forward * move_speed
+		if Input.is_key_pressed(KEY_A):
+			camera_center -= right * move_speed
+		if Input.is_key_pressed(KEY_D):
+			camera_center += right * move_speed
+	
 	# Rotación horizontal con flechas IZQUIERDA / DERECHA
 	if Input.is_key_pressed(KEY_LEFT):
 		camera_angle_h += 100.0 * get_process_delta_time()
@@ -155,11 +178,7 @@ func _update_orbit_camera():
 	if Input.is_key_pressed(KEY_DOWN):
 		camera_angle_v = clamp(camera_angle_v + 80.0 * get_process_delta_time(), 10.0, 85.0)
 
-	# Calcular posición esférica de la cámara alrededor del centro de la grilla
-	var half_grid = (grid_size * GRID_CELL_SIZE) / 2.0
-	var center = Vector3(half_grid, 0.0, half_grid)
-	
-	var rad_h = deg_to_rad(camera_angle_h)
+	rad_h = deg_to_rad(camera_angle_h)
 	var rad_v = deg_to_rad(camera_angle_v)
 	
 	var offset = Vector3(
@@ -168,8 +187,8 @@ func _update_orbit_camera():
 		camera_zoom * cos(rad_v) * cos(rad_h)
 	)
 	
-	camera_3d.position = center + offset
-	camera_3d.look_at(center, Vector3.UP)
+	camera_3d.position = camera_center + offset
+	camera_3d.look_at(camera_center, Vector3.UP)
 	camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
 
 func _on_socket_event_received(event_name: String, data: Dictionary):
