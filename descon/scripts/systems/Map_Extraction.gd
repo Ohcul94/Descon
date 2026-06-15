@@ -1153,4 +1153,3 @@ class ArenaStructureHUD extends Node2D:
 			if f_hp > 0.0:
 				var c = Color(0.0, 0.8, 0.1) if hp_pct > 0.3 else Color(1.0, 0.1, 0.1)
 				draw_rect(Rect2(x, base_y - 2, seg_w * f_hp, 4), c)
-

@@ -80,7 +80,11 @@ const UserSchema = new mongoose.Schema({
         // v350.0: BAÚL DE SEGURIDAD PERSONAL
         vaultItems: { type: Array, default: [] },
         vaultUnlockedTabs: { type: Number, default: 1 },
-        inventoryMaxSlots: { type: Number, default: 30 }
+        inventoryMaxSlots: { type: Number, default: 30 },
+        housing: {
+            unlocked: { type: Boolean, default: false },
+            placedObjects: { type: Array, default: [] }
+        }
     }
 });
 

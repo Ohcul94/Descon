@@ -795,6 +795,10 @@ function addMapSpawn(id) {
 function patchMechanicsLib() {
     if (!config) return;
 
+    if (!config.housingConfig) {
+        config.housingConfig = JSON.parse(JSON.stringify(DEFAULT_HOUSING_CONFIG));
+    }
+
     // Normalizar spawners de mapas para asegurar IDs y modos de respawn por unidad
     if (config.mapsConfig) {
         Object.keys(config.mapsConfig).forEach(mapId => {

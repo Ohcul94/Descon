@@ -259,6 +259,7 @@ function refreshCurrentTab() {
         'loot': renderLootConfig,
         'enemy-loot': renderEnemyLootDetail,
         'crafting': renderCrafting,
+        'housing': renderHousing,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions())
     };
     if(renderMap[tabId]) renderMap[tabId]();
@@ -272,6 +273,7 @@ function renderAll() {
     renderModes();
     renderLootConfig();
     renderCrafting();
+    renderHousing();
 }
 
 function renderAmmo() {
@@ -4026,4 +4028,85 @@ function initArenaRadar() {
     canvas.onmouseleave = stopDrag;
 }
 window.initArenaRadar = initArenaRadar;
+
+window.renderHousing = function() {
+    if (!config.housingConfig) {
+        config.housingConfig = JSON.parse(JSON.stringify(DEFAULT_HOUSING_CONFIG));
+    }
+    const hc = config.housingConfig;
+    
+    // Rellenar campos globales
+    const minLvlInput = document.getElementById('housing-min-level');
+    if (minLvlInput) minLvlInput.value = hc.levelRequired || 1;
+    
+    const costInput = document.getElementById('housing-cost');
+    if (costInput) costInput.value = hc.cost || 0;
+    
+    const currencySelect = document.getElementById('housing-currency');
+    if (currencySelect) currencySelect.value = hc.currency || 'hubs';
+    
+    const gridSizeInput = document.getElementById('housing-grid-size');
+    if (gridSizeInput) gridSizeInput.value = hc.gridSize || 10;
+    
+    // Render catálogo de items
+    const list = document.getElementById('housing-items-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const f = getFilter();
+    
+    (hc.placeableItems || []).forEach((item, idx) => {
+        if (f && !item.name.toLowerCase().includes(f) && !item.id.toLowerCase().includes(f)) return;
+        
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.background = 'rgba(255,255,255,0.02)';
+        div.style.padding = '1.5rem';
+        div.style.border = '1px solid rgba(255,255,255,0.05)';
+        div.style.position = 'relative';
+        
+        div.innerHTML = `
+            <div style="position:absolute; top:15px; right:15px;">
+                <button class="btn btn-secondary" style="background:var(--danger); border:none; padding:4px 10px;" onclick="removeHousingItem(${idx})">✕ ELIMINAR</button>
+            </div>
+            <div class="form-grid">
+                <div class="field"><label>ID Objeto</label><input type="text" value="${item.id}" onchange="config.housingConfig.placeableItems[${idx}].id = this.value"></div>
+                <div class="field"><label>Nombre</label><input type="text" value="${item.name}" onchange="config.housingConfig.placeableItems[${idx}].name = this.value"></div>
+                <div class="field"><label>Costo</label><input type="number" value="${item.cost}" onchange="config.housingConfig.placeableItems[${idx}].cost = parseInt(this.value)"></div>
+                <div class="field">
+                    <label>Moneda</label>
+                    <select onchange="config.housingConfig.placeableItems[${idx}].currency = this.value" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                        <option value="hubs" ${item.currency === 'hubs' ? 'selected' : ''}>HUBS</option>
+                        <option value="ohcu" ${item.currency === 'ohcu' ? 'selected' : ''}>OHCU</option>
+                    </select>
+                </div>
+                <div class="field full"><label>Ruta Modelo 3D (res://...)</label><input type="text" value="${item.model}" onchange="config.housingConfig.placeableItems[${idx}].model = this.value" style="font-family:'JetBrains Mono';"></div>
+                <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;">
+                    <input type="checkbox" id="item-light-${idx}" ${item.isLight ? 'checked' : ''} onchange="config.housingConfig.placeableItems[${idx}].isLight = this.checked">
+                    <label for="item-light-${idx}" style="margin-bottom:0; cursor:pointer;">¿Es Luz Dinámica?</label>
+                </div>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+};
+
+window.addHousingItem = function() {
+    if (!config.housingConfig.placeableItems) config.housingConfig.placeableItems = [];
+    config.housingConfig.placeableItems.push({
+        id: "decor_" + Date.now().toString().slice(-4),
+        name: "Nuevo Objeto 3D",
+        cost: 100,
+        currency: "hubs",
+        model: "res://assets/3d/decor.glb",
+        isLight: false
+    });
+    renderHousing();
+};
+
+window.removeHousingItem = function(idx) {
+    if (!config.housingConfig.placeableItems) return;
+    config.housingConfig.placeableItems.splice(idx, 1);
+    renderHousing();
+};
 

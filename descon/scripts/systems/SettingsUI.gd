@@ -232,6 +232,7 @@ func _setup_ui():
 		"slot_4": "SLOT 4 (HABILIDAD 1)", "slot_5": "SLOT 5 (HABILIDAD 2)", 
 		"slot_6": "SLOT 6 (HABILIDAD 3)", "slot_7": "SLOT 7 (HABILIDAD 4)",
 		"ui_menu": "MENÚ DE SISTEMA (ESC)", "ui_inventory": "INVENTARIO (F1)",
+		"ui_housing": "MENÚ DE HOUSING (F3)",
 		"ui_map": "MAPA (M)", "ui_party": "EQUIPO (P)", "ui_pvp_toggle": "MODO COMBATE (C)",
 		"portal_jump": "INGRESAR AL PORTAL",
 		"loot_claim": "ABRIR BOTÍN / COFRE",

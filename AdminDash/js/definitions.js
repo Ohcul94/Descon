@@ -79,3 +79,17 @@ let AMBIENCE_LIB = {
         fields: ["spawnInterval", "duration", "slowPercentage", "slowFixed"]
     }
 };
+
+const DEFAULT_HOUSING_CONFIG = {
+    levelRequired: 5,
+    cost: 10000,
+    currency: "hubs",
+    gridSize: 10,
+    placeableItems: [
+        { id: "chair", name: "Silla Metálica", cost: 200, currency: "hubs", model: "res://assets/3d/chair.glb" },
+        { id: "table", name: "Mesa de Hangar", cost: 500, currency: "hubs", model: "res://assets/3d/table.glb" },
+        { id: "light", name: "Pilar de Luz", cost: 800, currency: "hubs", model: "res://assets/3d/light.glb", isLight: true },
+        { id: "plant", name: "Holo-Planta", cost: 300, currency: "hubs", model: "res://assets/3d/plant.glb" },
+        { id: "terminal", name: "Terminal de Datos", cost: 1500, currency: "ohcu", model: "res://assets/3d/terminal.glb" }
+    ]
+};

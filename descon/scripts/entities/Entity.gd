@@ -620,6 +620,11 @@ func get_visual_position() -> Vector2:
 
 func _update_3d_root_sync():
 	if is_instance_valid(world_root_3d) and get_meta("is_single_world", false):
+		var pl = get_tree().get_first_node_in_group("player")
+		if pl and pl.get("current_zone") == 100:
+			world_root_3d.visible = false
+			return
+			
 		var s_factor = get_meta("map_scale", 0.02)
 		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal inclinada
 		world_root_3d.position.x = global_position.x * s_factor

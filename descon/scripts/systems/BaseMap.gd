@@ -211,6 +211,9 @@ func _apply_camera_headlight(cam: Camera3D):
 	headlight.shadow_enabled = false # Sin sombras para evitar oclusión y mantener visibilidad
 
 func _process(_delta):
+	if zone_id == 100:
+		return
+		
 	# --- LOCALIZAR NAVE DEL JUGADOR ---
 	if not is_instance_valid(player_node):
 		var players = get_tree().get_nodes_in_group("player")

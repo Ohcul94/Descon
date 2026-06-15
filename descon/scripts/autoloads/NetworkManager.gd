@@ -94,6 +94,8 @@ signal arena_finished(data)
 
 signal vault_data(data)
 signal vault_updated(data)
+signal housing_state(data)
+signal socket_event_received(event_name, data)
 
 signal status_effects_sync(data)
 
@@ -387,6 +389,11 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			arena_match_started.emit(e_data)
 		"arenaStateUpdate": arena_state_update.emit(e_data)
 		"arenaFinished": arena_finished.emit(e_data)
+		"housingState":
+			housing_state.emit(e_data)
+			socket_event_received.emit(e_name, e_data)
+		_:
+			socket_event_received.emit(e_name, e_data)
 
 
 func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_updated"):

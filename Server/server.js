@@ -49,6 +49,7 @@ const { registerMovementHandlers } = require('./handlers/movementHandler');
 const { registerVaultHandlers } = require('./systems/vaultHandlers');
 const { registerPartyHandlers } = require('./handlers/partyHandlers');
 const { registerSkillHandlers } = require('./handlers/skillHandlers');
+const { registerHousingHandlers } = require('./systems/housingHandlers');
 
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
@@ -74,7 +75,8 @@ const CLIENT_CONFIG_KEYS = [
     'skillsData',
     'pilotConfig',
     'gameModes',
-    'craftingRecipes'
+    'craftingRecipes',
+    'housingConfig'
 ];
 
 const buildClientConfig = (config) => {
@@ -1041,6 +1043,9 @@ io.on('connection', (socket) => {
 
     // v350.0: Registrar manejadores del baúl de almacenamiento personal
     registerVaultHandlers(socket, io, state);
+
+    // Registrar manejadores del sistema de Housing 3D
+    registerHousingHandlers(socket, io, state);
 
 
     // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL (PROTEGIDO)

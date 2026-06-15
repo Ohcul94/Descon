@@ -212,6 +212,9 @@ func _setup_skill_controller():
 		add_child(_skill_controller)
 
 func _unhandled_input(event):
+	if current_zone == 100:
+		return
+		
 	# v226.50: Bloquear zoom si el mouse está sobre la UI (Evitar zoom al scrollear menús)
 	if event is InputEventMouseButton:
 		# v2.6: Bloqueo de SEGURIDAD para evitar click-through a cualquier menú abierto
@@ -253,6 +256,16 @@ func _unhandled_input(event):
 
 func _physics_process(p_delta):
 	if not NetworkManager.network_connected: return
+	
+	if current_zone == 100:
+		if visible:
+			visible = false
+		velocity = Vector2.ZERO
+		return
+	else:
+		if not visible and not is_dead:
+			visible = true
+
 	_handle_cooldowns(p_delta)
 	
 	# Decrementar temporizadores de efectos de estado activos

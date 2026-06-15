@@ -301,7 +301,7 @@ func _input(event: InputEvent):
 	var ui_nodes = get_tree().get_nodes_in_group("inventory_ui")
 	for ui in ui_nodes:
 		if ui.visible:
-			if event.is_action_pressed("ui_events") or event.is_action_pressed("ui_inventory") or event.is_action_pressed("ui_party"):
+			if event.is_action_pressed("ui_events") or event.is_action_pressed("ui_inventory") or event.is_action_pressed("ui_party") or event.is_action_pressed("ui_housing"):
 				break
 			return
 
@@ -318,6 +318,10 @@ func _input(event: InputEvent):
 
 	if event.is_action_pressed("ui_events"):
 		_on_icon_pressed("Events")
+		get_viewport().set_input_as_handled()
+
+	if event.is_action_pressed("ui_housing"):
+		toggle_housing_panel()
 		get_viewport().set_input_as_handled()
 
 	if event.is_action_pressed("ui_pvp_toggle"):
@@ -1707,6 +1711,19 @@ func toggle_events_panel():
 		_events_panel.toggle()
 	else:
 		_events_panel.visible = !_events_panel.visible
+
+var _housing_panel: Control = null
+func toggle_housing_panel():
+	if not is_instance_valid(_housing_panel):
+		_housing_panel = Control.new()
+		_housing_panel.name = "HousingPanel"
+		_housing_panel.set_script(load("res://scripts/ui/HousingPanel.gd"))
+		add_child(_housing_panel)
+		
+	if _housing_panel.has_method("toggle"):
+		_housing_panel.toggle()
+	else:
+		_housing_panel.visible = !_housing_panel.visible
 
 # --- DEFENSA DEL ALTAR: MODAL DE INVITACIÓN ---
 var altar_defense_invite_popup: Panel = null

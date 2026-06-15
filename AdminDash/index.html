@@ -285,6 +285,10 @@
                 </div>
 
                 <div class="nav-group">
+                    <div class="nav-link" onclick="showTab('housing')">🏠 Sistema de Housing</div>
+                </div>
+
+                <div class="nav-group">
                     <div class="nav-link" onclick="showTab('chat-global')">💬 Chat Global</div>
                 </div>
 
@@ -482,6 +486,51 @@
                         <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">Configura las recetas de crafteo, ingredientes requeridos y costos.</p>
                         <div id="crafting-recipes-list" style="display: flex; flex-direction: column; gap: 1.5rem;">
                             <!-- Llenado dinámico -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-housing" class="view">
+                <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 2rem; align-items: start;">
+                    <!-- Columna Izquierda: Configuración Global de Vivienda -->
+                    <div class="card" style="width: 100%;">
+                        <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                            🏠 CONFIGURACIÓN GLOBAL DE VIVIENDA
+                        </h3>
+                        <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">Ajusta los requisitos generales para que los pilotos puedan desbloquear su casa propia.</p>
+                        <div class="form-grid" style="display: flex; flex-direction: column; gap: 15px;">
+                            <div class="field">
+                                <label>Nivel Mínimo Requerido</label>
+                                <input type="number" id="housing-min-level" onchange="config.housingConfig.levelRequired = parseInt(this.value)">
+                            </div>
+                            <div class="field">
+                                <label>Costo de Adquisición</label>
+                                <input type="number" id="housing-cost" onchange="config.housingConfig.cost = parseInt(this.value)">
+                            </div>
+                            <div class="field">
+                                <label>Moneda de Pago</label>
+                                <select id="housing-currency" onchange="config.housingConfig.currency = this.value" style="width: 100%; background: var(--surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; color: white; outline: none;">
+                                    <option value="hubs">HUBS (Moneda Común)</option>
+                                    <option value="ohcu">OHCU (Mineral Raro)</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Tamaño de Grilla (NxN)</label>
+                                <input type="number" id="housing-grid-size" onchange="config.housingConfig.gridSize = parseInt(this.value)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna Derecha: Catálogo de Objetos Colocables -->
+                    <div class="card" style="width: 100%;">
+                        <h3 style="color: var(--accent); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                            <span>📦 CATÁLOGO DE OBJETOS COLOCABLES (3D)</span>
+                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addHousingItem()">+ AGREGAR OBJETO</button>
+                        </h3>
+                        <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">Agrega, remueve y configura los assets 3D que los jugadores podrán comprar y colocar en su casa.</p>
+                        <div id="housing-items-list" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                            <!-- Se llena dinámicamente por renderHousing -->
                         </div>
                     </div>
                 </div>
