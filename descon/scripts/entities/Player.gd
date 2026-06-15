@@ -90,6 +90,7 @@ var _shake_amount: float = 0.0
 var _shake_decay: float = 0.9
 var _cam_node: Camera2D = null
 var slow_points: float = 0.0
+var slow_is_percentage: bool = false
 var is_stunned: bool = false
 var stun_timer: float = 0.0
 var joystick_direction: Vector2 = Vector2.ZERO # v266.400
@@ -155,9 +156,11 @@ func _on_slow_state(data: Dictionary):
 	if data.has("active"):
 		if data.active:
 			slow_points = data.get("amount", 50.0)
+			slow_is_percentage = data.get("isPercentage", false)
 			slow_timer = float(data.get("duration", 3000.0)) / 1000.0
 		else:
 			slow_points = 0.0
+			slow_is_percentage = false
 			slow_timer = 0.0
 
 func _on_status_effects_sync(data: Dictionary):
@@ -639,7 +642,8 @@ func _apply_movement():
 		var target_angle = joystick_direction.angle()
 		rotation = lerp_angle(rotation, target_angle, 0.25)
 		var dir = Vector2.RIGHT.rotated(rotation)
-		var final_speed = max(10.0, speed - slow_points - _freeze_slow_val) # v268.40
+		var slow_val = (speed * (slow_points / 100.0)) if slow_is_percentage else slow_points
+		var final_speed = max(10.0, speed - slow_val - _freeze_slow_val) # v268.40
 		velocity = dir * final_speed
 	elif is_moving:
 		var dist = global_position.distance_to(target_position)
@@ -651,7 +655,8 @@ func _apply_movement():
 			var target_angle = (target_position - global_position).angle()
 			rotation = lerp_angle(rotation, target_angle, 0.25)
 			var dir = Vector2.RIGHT.rotated(rotation)
-			var final_speed = max(10.0, speed - slow_points - _freeze_slow_val) # v268.40
+			var slow_val = (speed * (slow_points / 100.0)) if slow_is_percentage else slow_points
+			var final_speed = max(10.0, speed - slow_val - _freeze_slow_val) # v268.40
 			velocity = dir * final_speed
 		else:
 			is_moving = false

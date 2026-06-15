@@ -1132,6 +1132,7 @@ func _on_enemy_action(data):
 			if target_node: visual_target = target_node.global_position
 			_trigger_reflect_visual(visual_target if visual_target != Vector2.ZERO else global_position + Vector2.UP)
 
+
 func _fire_orbital_strike():
 	# v266.992: Buscar los proyectiles que ya están orbitando y soltarlos
 	var projs = get_tree().get_nodes_in_group("projectiles")

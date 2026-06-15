@@ -689,13 +689,13 @@ module.exports = class BaseAI {
         const fireRange = mech.fireRange || 800;
 
         // v266.998: PRIORIDAD ATÓMICA - Si ya empezó, TERMINA
-        if (state.isActive) {
+        if (state.isActive && mech.type === "orbital_strike") {
             this._handleOrbitalStrikeLogic(mech, state, mId, now, io);
             this.enemy.mechState[mId] = state;
             return true;
         }
 
-        if (dist > fireRange && !state.isCharging) return false;
+        if (dist > fireRange && !state.isCharging && !state.isActive) return false;
 
         // Mecánica de Sueño Inducido (Sleep)
         if (mech.type === "sleep") {
@@ -1216,6 +1216,57 @@ module.exports = class BaseAI {
             return state.isActive;
         }
 
+        // Mecánica de Lillia Q (spin_ring)
+        if (mech.type === "spin_ring") {
+            const cooldown = mech.cooldown !== undefined ? mech.cooldown : 5000;
+            const radius = mech.radius !== undefined ? mech.radius : 250;
+            const damage = mech.damage !== undefined ? mech.damage : 100;
+            const spinSpeed = mech.spinSpeed !== undefined ? mech.spinSpeed : 4.0;
+            
+            // La duración del giro completo es 2*PI / velocidad de giro
+            const duration = (2 * Math.PI / spinSpeed) * 1000;
+
+            if (!state.isActive && now > state.nextShotTime) {
+                state.isActive = true;
+                state.startTime = now;
+                state.endTime = now + duration;
+                state.nextShotTime = Infinity; // Bloquear casteo durante el giro
+                
+                // Compensar offset de rotación según la IA para que el orbe empiece en el frente visual exacto de la nave
+                const hasRotationOffset = (this.config.movementAI === 'chase' || this.config.movementAI === 'sniper' || this.enemy.type === 1 || this.enemy.type === 9 || this.enemy.type === 13 || this.enemy.type === 4 || this.enemy.type === 5 || this.enemy.type === 2 || this.enemy.type === 12);
+                const rotOffset = hasRotationOffset ? (Math.PI / 2) : 0;
+                state.startAngle = (angle !== undefined ? angle : (this.enemy.rotation || 0)) + rotOffset;
+
+                // Notificar al cliente para que cree la visual del spin_ring y ejecute la física local
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
+                    enemyId: this.enemy.id,
+                    targetId: target?.id || target?.socketId || "",
+                    enemyType: this.enemy.type,
+                    x: this.enemy.x, y: this.enemy.y,
+                    angle: state.startAngle,
+                    bulletSpeed: 0, // velocidad de traslación es 0 porque orbita
+                    bulletType: "spin_ring",
+                    lifetimeMs: duration,
+                    damage: damage,
+                    range: radius,
+                    isOrbiting: true,
+                    orbitRadius: radius,
+                    orbitSpeed: spinSpeed,
+                    orbitAngleOffset: state.startAngle
+                });
+            }
+
+            if (state.isActive) {
+                if (now > state.endTime) {
+                    state.isActive = false;
+                    state.nextShotTime = now + cooldown; // Cooldown empieza al terminar el giro
+                }
+            }
+
+            this.enemy.mechState[mId] = state;
+            return false;
+        }
+
         if (now > state.nextShotTime) {
             const burstLimit = (mech.type === "laser") ? 3 : 1; 
             if (state.shotsInBurst < burstLimit) {
@@ -1270,7 +1321,12 @@ module.exports = class BaseAI {
         // v268.830: El bono viene en px/s del panel, convertir a px/tick (* 0.033)
         const auraBonus = (this.enemy.auraSpeedBonus || 0) * 0.033;
         
-        let finalSpeed = (baseSpeed + auraBonus) * slowMult;
+        let spinSpeedBuff = 0;
+        if (this.enemy.spinSpeedBuffEndTime && Date.now() < this.enemy.spinSpeedBuffEndTime) {
+            spinSpeedBuff = (this.enemy.spinSpeedBuffAmount || 0) * 0.033;
+        }
+        
+        let finalSpeed = (baseSpeed + auraBonus + spinSpeedBuff) * slowMult;
         if (this.enemy.isInvisSpeedModifierActive && this.enemy.invisSpeedMultiplier !== undefined) {
             finalSpeed *= this.enemy.invisSpeedMultiplier;
         }

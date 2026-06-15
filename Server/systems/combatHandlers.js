@@ -320,8 +320,14 @@ function registerCombatHandlers(socket, io, state) {
                 
                 if (cfg && cfg.mechanics && data.bulletType) {
                     const matchingMech = cfg.mechanics.find(m => m.type === data.bulletType);
-                    if (matchingMech && matchingMech.bulletDamage !== undefined) {
-                        baseDmg = matchingMech.bulletDamage;
+                    if (matchingMech) {
+                        if (matchingMech.type === 'spin_ring') {
+                            baseDmg = matchingMech.damage !== undefined ? matchingMech.damage : 100;
+                        } else if (matchingMech.bulletDamage !== undefined) {
+                            baseDmg = matchingMech.bulletDamage;
+                        } else if (matchingMech.damage !== undefined) {
+                            baseDmg = matchingMech.damage;
+                        }
                     }
                 }
                 
@@ -354,19 +360,28 @@ function registerCombatHandlers(socket, io, state) {
                     let sAmount = 0;
                     let sDuration = 0;
                     let stunDuration = 0;
+                    let isPct = false;
 
                     // Buscar la mecánica específica que corresponde a la bala que impactó
                     if (cfg.mechanics) {
                         const matchingMech = cfg.mechanics.find(m => m.type === data.bulletType);
                         if (matchingMech) {
-                            sAmount = matchingMech.slowAmount || 0;
-                            sDuration = matchingMech.slowDuration || 0;
-                            stunDuration = matchingMech.stunDuration || 0;
+                            if (matchingMech.type === "spin_ring") {
+                                if (matchingMech.applySlow) {
+                                    sAmount = matchingMech.slowPercentage || 0;
+                                    sDuration = matchingMech.slowDuration || 0;
+                                    isPct = !!matchingMech.slowIsPercentage;
+                                }
+                            } else {
+                                sAmount = matchingMech.slowAmount || 0;
+                                sDuration = matchingMech.slowDuration || 0;
+                                stunDuration = matchingMech.stunDuration || 0;
+                            }
                         }
                     }
 
                     // Fallback a la raíz si no hay mecánicas modulares (retrocompatibilidad)
-                    if (sAmount === 0 && cfg.slowAmount > 0) {
+                    if (sAmount === 0 && cfg.slowAmount > 0 && data.bulletType !== "spin_ring") {
                         sAmount = cfg.slowAmount;
                         sDuration = cfg.slowDuration || 3000;
                     }
@@ -376,8 +391,34 @@ function registerCombatHandlers(socket, io, state) {
                         p.slowPoints = sAmount;
                         p.lastSlowTime = Date.now();
                         p.slowEndTime = Date.now() + sDuration;
+                        p.slowIsPercentage = isPct;
                         
-                        io.to(p.socketId).emit('slowState', { active: true, amount: sAmount });
+                        io.to(p.socketId).emit('slowState', { active: true, amount: sAmount, isPercentage: isPct, duration: sDuration });
+                    }
+                }
+
+                // Otorgar el buff de velocidad al enemigo cuando el orbe spin_ring golpea al jugador
+                if (data.bulletType === "spin_ring" && attackerId && state.enemies[attackerId]) {
+                    const enemyObj = state.enemies[attackerId];
+                    if (cfg && cfg.mechanics) {
+                        const matchingMech = cfg.mechanics.find(m => m.type === "spin_ring");
+                        if (matchingMech) {
+                            const speedBuffAmount = matchingMech.speedBuffAmount !== undefined ? matchingMech.speedBuffAmount : 150;
+                            const speedBuffDuration = matchingMech.speedBuffDuration !== undefined ? matchingMech.speedBuffDuration : 3000;
+                            
+                            if (speedBuffAmount > 0 && speedBuffDuration > 0) {
+                                enemyObj.spinSpeedBuffActive = true;
+                                enemyObj.spinSpeedBuffAmount = speedBuffAmount;
+                                enemyObj.spinSpeedBuffEndTime = Date.now() + speedBuffDuration;
+                                
+                                io.to(`zone_${p.zone}`).emit('serverEnemyAction', {
+                                    id: enemyObj.id,
+                                    action: "speed_buff",
+                                    duration: speedBuffDuration,
+                                    speedBonus: speedBuffAmount
+                                });
+                            }
+                        }
                     }
                 }
 

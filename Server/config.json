@@ -416,21 +416,22 @@
             "speed": 250,
             "mechanics": [
                 {
-                    "type": "laser",
-                    "bulletDamage": 200,
-                    "bulletSpeed": 600,
-                    "fireRange": 800,
-                    "fireRate": 2500,
-                    "slowAmount": 0,
-                    "slowDuration": 0,
-                    "radius": 300,
-                    "damage": 200,
-                    "intervalMs": 400,
-                    "duration": 3000,
-                    "startDelay": 3500,
-                    "cooldown": 15000,
-                    "isHoming": 0,
-                    "turnSpeed": 0
+                    "type": "spin_ring",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "cooldown": 4000,
+                    "radius": 100,
+                    "damage": 100,
+                    "spinSpeed": 50,
+                    "speedBuffAmount": 500,
+                    "speedBuffDuration": 5000,
+                    "applySlow": false,
+                    "slowPercentage": 50,
+                    "slowDuration": 3000,
+                    "startDelay": 0,
+                    "duration": 2000
                 }
             ],
             "movementPhases": [
@@ -2946,8 +2947,8 @@
             "spawns": [
                 {
                     "type": "6",
-                    "count": 1,
-                    "intervalMs": 100,
+                    "count": 2,
+                    "intervalMs": 3000,
                     "id": "spawn_3_idx_0_type_6",
                     "spawnMode": "random",
                     "x": 1000,
@@ -4533,6 +4534,25 @@
                 "reflect_mult",
                 "cooldown",
                 "fireRange",
+                "startDelay"
+            ]
+        },
+        "spin_ring": {
+            "label": "Giro de Lillia (spin_ring)",
+            "icon": "🌀",
+            "desc": "Tira un círculo alrededor del enemigo que gira. Si impacta, daña al objetivo, le da velocidad al dueño y puede aplicar slow.",
+            "fields": [
+                "cooldown",
+                "radius",
+                "damage",
+                "spinSpeed",
+                "speedBuffAmount",
+                "speedBuffDuration",
+                "applySlow",
+                "slowIsPercentage",
+                "slowPercentage",
+                "slowDuration",
+                "duration",
                 "startDelay"
             ]
         }

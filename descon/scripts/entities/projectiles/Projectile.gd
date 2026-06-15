@@ -32,6 +32,8 @@ var orbit_start_time: float = 0.0
 var strike_id: String = "" # v266.995: ID único de ráfaga para evitar colisiones lógicas
 var _start_time_stamp: float = 0.0
 var _find_target_timer: float = 0.0
+var world_root_3d: Node3D = null
+var _orb_mesh: MeshInstance3D = null
 
 
 func _ready():
@@ -109,7 +111,10 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		shape.shape = rect
 	else:
 		var circle = CircleShape2D.new()
-		circle.radius = 20.0 
+		if type == "spin_ring":
+			circle.radius = 35.0 # Radio de colisión 2D óptimo para Lillia Q
+		else:
+			circle.radius = 20.0 
 		shape.shape = circle
 	add_child(shape)
 	
@@ -136,10 +141,45 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		collision_mask = 1 | 2 
 	else:
 		collision_mask = 1 # Los enemigos solo pegan a Players
+		
+	# Instanciar Esfera 3D si es spin_ring
+	if type == "spin_ring":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "Orb3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+			
+			_orb_mesh = MeshInstance3D.new()
+			var sphere_mesh = SphereMesh.new()
+			sphere_mesh.radius = 0.45
+			sphere_mesh.height = 0.9
+			_orb_mesh.mesh = sphere_mesh
+			
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = Color(0.9, 0.2, 1.0) # Violeta Lillia
+			mat.emission_enabled = true
+			mat.emission = Color(0.9, 0.2, 1.0)
+			mat.emission_energy_multiplier = 3.0
+			_orb_mesh.material_override = mat
+			world_root_3d.add_child(_orb_mesh)
+			
+			# Animación suave de escalado al spawnear
+			world_root_3d.scale = Vector3.ZERO
+			create_tween().tween_property(world_root_3d, "scale", Vector3.ONE, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			
+		# Auto-limpieza al destruir para evitar fugas de memoria
+		tree_exiting.connect(func():
+			if is_instance_valid(world_root_3d):
+				world_root_3d.queue_free()
+		)
+		
 	_setup_visual_sprite()
 	queue_redraw()
 
 func _setup_visual_sprite():
+	if type == "spin_ring": return
 	if is_instance_valid(sprite): sprite.queue_free()
 	
 	var path = ""
@@ -268,6 +308,21 @@ func release_orbit():
 	# v266.992: Al poner orbit_target en null, empezará a moverse linealmente
 
 func _physics_process(delta):
+	# Sincronizar posición visual 3D con la física 2D del proyectil
+	if is_instance_valid(world_root_3d):
+		var s_factor = 0.02
+		var correction_z = 1.41421356
+		world_root_3d.position.x = global_position.x * s_factor
+		world_root_3d.position.z = global_position.y * s_factor * correction_z
+		world_root_3d.position.y = 0.0
+
+	# v3.6: Chequeo de lifetime al principio para que los proyectiles orbitantes también expiren
+	if lifetime > 0:
+		_current_lifetime += delta
+		if _current_lifetime >= lifetime:
+			queue_free()
+			return
+
 	# v266.992: Lógica de Órbita (Seguir al enemigo antes de disparar)
 	if is_instance_valid(orbit_target):
 		var time = (Time.get_ticks_msec() / 1000.0) - orbit_start_time
@@ -280,12 +335,6 @@ func _physics_process(delta):
 	# v269.35: Actualizar visual de la cadena del Gancho
 	if is_instance_valid(_chain_visual) and is_instance_valid(_owner_node):
 		_chain_visual.points = PackedVector2Array([_owner_node.global_position, global_position])
-
-	if lifetime > 0:
-		_current_lifetime += delta
-		if _current_lifetime >= lifetime:
-			queue_free()
-			return
 
 	# v266.510: Re-intentar búsqueda si el objetivo se perdió o no se encontró al nacer
 	if target_id != "" and not is_instance_valid(_target_node):
