@@ -2484,34 +2484,316 @@ function renderModes() {
         `;
         setTimeout(initRadar, 100);
     } else if (currentModeTab === 'arenas') {
-        content.innerHTML = `
-            <div class="card" style="grid-column: span 2;">
-                <h3 style="color:#ff3131; margin-bottom: 0.5rem;">⚔️ MODO ARENAS (PVP)</h3>
-                <p style="opacity:0.7; margin-bottom:1.5rem;">Configuración de combates competitivos en entornos controlados.</p>
-                <div class="form-grid">
-                    <div class="field">
-                        <label>Estado del Modo</label>
-                        <select onchange="config.gameModes.arenas.enabled = this.value === 'true'">
-                            <option value="true" ${config.gameModes.arenas.enabled ? 'selected' : ''}>Activo</option>
-                            <option value="false" ${!config.gameModes.arenas.enabled ? 'selected' : ''}>Inactivo</option>
-                        </select>
+        if (!config.gameModes.arenas) {
+            config.gameModes.arenas = { enabled: true, maps: [], minPlayers: 2 };
+        }
+        if (!config.gameModes.arenas.maps) config.gameModes.arenas.maps = [];
+        if (!config.gameModes.arenas.mapConfigs) config.gameModes.arenas.mapConfigs = {};
+
+        // Sincronizar mapa activo si no está fijado
+        if (!activeArenaMapId && config.gameModes.arenas.maps.length > 0) {
+            activeArenaMapId = config.gameModes.arenas.maps[0];
+        }
+        const mapCfg = activeArenaMapId ? config.gameModes.arenas.mapConfigs[activeArenaMapId] : null;
+
+        let leftColPillarsHtml = '';
+        let pillarDetailHtml = '';
+        let leftColSpawnsHtml = '';
+        let spawnDetailHtml = '';
+
+        if (mapCfg) {
+            if (!mapCfg.pillars) mapCfg.pillars = [];
+            if (!mapCfg.spawns) mapCfg.spawns = [];
+            
+            leftColPillarsHtml = mapCfg.pillars.map((p, idx) => `
+                <div onclick="selectArenaPillar(${idx})" style="background:${activeArenaPillarIndex === idx ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${activeArenaPillarIndex === idx ? 'var(--accent)' : 'rgba(255,255,255,0.06)'}; border-radius:8px; padding:10px; cursor:pointer; margin-bottom:8px; transition:all 0.2s;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:${p.team === 'red' ? '#ff3131' : '#31b6ff'}; font-weight:bold; font-size:0.8rem;">${p.name}</span>
+                        <button onclick="event.stopPropagation(); removeArenaPillar(${idx});" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.9rem;">✕</button>
                     </div>
-                    <div class="field">
-                        <label>Jugadores Mínimos por Partida</label>
-                        <input type="number" value="${config.gameModes.arenas.minPlayers}" 
-                               onchange="config.gameModes.arenas.minPlayers = parseInt(this.value)">
+                    <div style="font-size:0.7rem; opacity:0.6; margin-top:4px;">
+                        Pos: (${p.x}, ${p.y}) | Rango: ${p.range}
+                    </div>
+                </div>
+            `).join('');
+
+            leftColSpawnsHtml = mapCfg.spawns.map((s, idx) => `
+                <div onclick="selectArenaSpawn(${idx})" style="background:${activeArenaSpawnIndex === idx ? 'rgba(236,72,153,0.15)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${activeArenaSpawnIndex === idx ? 'var(--pink)' : 'rgba(255,255,255,0.06)'}; border-radius:8px; padding:10px; cursor:pointer; margin-bottom:8px; transition:all 0.2s;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:${s.team === 'red' ? '#ff3131' : '#31b6ff'}; font-weight:bold; font-size:0.8rem;">${s.name || 'Spawn ' + (idx + 1)}</span>
+                        <button onclick="event.stopPropagation(); removeArenaSpawn(${idx});" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.9rem;">✕</button>
+                    </div>
+                    <div style="font-size:0.7rem; opacity:0.6; margin-top:4px;">
+                        Pos: (${s.x}, ${s.y}) | Radio: ${s.radius}px
+                    </div>
+                </div>
+            `).join('');
+
+            if (activeArenaPillarIndex !== null && mapCfg.pillars[activeArenaPillarIndex]) {
+                const pil = mapCfg.pillars[activeArenaPillarIndex];
+                pillarDetailHtml = `
+                    <div class="card" style="margin:0; border-top:3px solid var(--accent);">
+                        <h4 style="color:var(--accent); margin-bottom:1rem;">🗼 DETALLES DEL PILAR</h4>
+                        <div class="form-grid" style="grid-template-columns:1fr; gap:10px;">
+                            <div class="field"><label>Nombre del Pilar</label>
+                                <input type="text" value="${pil.name}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].pillars[activeArenaPillarIndex].name = this.value; renderModes();">
+                            </div>
+                            <div class="field"><label>Equipo Propietario</label>
+                                <select onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].pillars[activeArenaPillarIndex].team = this.value; renderModes();">
+                                    <option value="red" ${pil.team === 'red' ? 'selected' : ''}>Rojo (Red)</option>
+                                    <option value="blue" ${pil.team === 'blue' ? 'selected' : ''}>Azul (Blue)</option>
+                                </select>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                <div class="field"><label>Coord X</label><input type="number" id="pillar-x" value="${pil.x}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].pillars[activeArenaPillarIndex].x = parseInt(this.value); renderModes();"></div>
+                                <div class="field"><label>Coord Y</label><input type="number" id="pillar-y" value="${pil.y}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].pillars[activeArenaPillarIndex].y = parseInt(this.value); renderModes();"></div>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                <div class="field"><label>Daño por Disparo</label><input type="number" value="${pil.damage}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].pillars[activeArenaPillarIndex].damage = parseInt(this.value); renderModes();"></div>
+                                <div class="field"><label>Rango de Ataque</label><input type="number" value="${pil.range}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].pillars[activeArenaPillarIndex].range = parseInt(this.value); renderModes();"></div>
+                            </div>
+                            <div class="field"><label>Tipo de Munición</label>
+                                <select onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].pillars[activeArenaPillarIndex].ammoType = this.value; renderModes();">
+                                    <option value="laser" ${pil.ammoType === 'laser' ? 'selected' : ''}>🔦 Láser</option>
+                                    <option value="missile" ${pil.ammoType === 'missile' ? 'selected' : ''}>🚀 Misil</option>
+                                    <option value="mine" ${pil.ammoType === 'mine' ? 'selected' : ''}>💣 Mina</option>
+                                </select>
+                            </div>
+                            <div class="field"><label>Tipo de Ataque</label>
+                                <select onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].pillars[activeArenaPillarIndex].attackType = this.value; renderModes();">
+                                    <option value="fast" ${pil.attackType === 'fast' ? 'selected' : ''}>⚡ Rápido (1s CD)</option>
+                                    <option value="heavy" ${pil.attackType === 'heavy' ? 'selected' : ''}>💥 Pesado (2s CD)</option>
+                                    <option value="area" ${pil.attackType === 'area' ? 'selected' : ''}>🌀 Área (1.5s CD)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                pillarDetailHtml = `
+                    <div class="card" style="margin:0; opacity:0.6; display:flex; align-items:center; justify-content:center; height:100%; border:1px dashed rgba(255,255,255,0.1);">
+                        <p style="text-align:center; font-style:italic; font-size:0.85rem;">Selecciona un pilar de la lista o el Canvas para editar sus propiedades.</p>
+                    </div>
+                `;
+            }
+
+            if (activeArenaSpawnIndex !== null && mapCfg.spawns[activeArenaSpawnIndex]) {
+                const sp = mapCfg.spawns[activeArenaSpawnIndex];
+                spawnDetailHtml = `
+                    <div class="card" style="margin:0; border-top:3px solid var(--pink);">
+                        <h4 style="color:var(--pink); margin-bottom:1rem;">📍 DETALLES DEL SPAWN</h4>
+                        <div class="form-grid" style="grid-template-columns:1fr; gap:10px;">
+                            <div class="field"><label>Nombre del Spawn</label>
+                                <input type="text" value="${sp.name || ''}" placeholder="Ej: Spawn Rojo 1" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].spawns[activeArenaSpawnIndex].name = this.value; renderModes();">
+                            </div>
+                            <div class="field"><label>Equipo Destinatario</label>
+                                <select onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].spawns[activeArenaSpawnIndex].team = this.value; renderModes();">
+                                    <option value="red" ${sp.team === 'red' ? 'selected' : ''}>Rojo (Red)</option>
+                                    <option value="blue" ${sp.team === 'blue' ? 'selected' : ''}>Azul (Blue)</option>
+                                </select>
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                <div class="field"><label>Coord X</label><input type="number" id="spawn-x" value="${sp.x}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].spawns[activeArenaSpawnIndex].x = parseInt(this.value); renderModes();"></div>
+                                <div class="field"><label>Coord Y</label><input type="number" id="spawn-y" value="${sp.y}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].spawns[activeArenaSpawnIndex].y = parseInt(this.value); renderModes();"></div>
+                            </div>
+                            <div class="field">
+                                <label>Radio en Píxeles (Burbuja)</label>
+                                <input type="number" value="${sp.radius || 200}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].spawns[activeArenaSpawnIndex].radius = parseInt(this.value); renderModes();">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                spawnDetailHtml = `
+                    <div class="card" style="margin:0; opacity:0.6; display:flex; align-items:center; justify-content:center; height:100%; border:1px dashed rgba(255,255,255,0.1);">
+                        <p style="text-align:center; font-style:italic; font-size:0.85rem;">Selecciona un spawn de la lista o el Canvas para editar sus propiedades.</p>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = `
+            <!-- PARTE 1: REGLAS Y MAPAS -->
+            <div style="grid-column: 1 / -1; display:grid; grid-template-columns: 1.2fr 0.8fr; gap:20px;">
+                <div class="card" style="margin:0;">
+                    <h3 style="color:#ff3131; margin-bottom: 0.5rem;">⚔️ MODO ARENAS (PVP)</h3>
+                    <p style="opacity:0.7; margin-bottom:1.5rem;">Configura el emparejamiento básico y tiempos del modo arenas.</p>
+                    <div class="form-grid" style="grid-template-columns: repeat(4, 1fr); gap:10px;">
+                        <div class="field">
+                            <label>Estado del Modo</label>
+                            <select onchange="config.gameModes.arenas.enabled = this.value === 'true'">
+                                <option value="true" ${config.gameModes.arenas.enabled ? 'selected' : ''}>Activo</option>
+                                <option value="false" ${!config.gameModes.arenas.enabled ? 'selected' : ''}>Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Pilotos Mínimos</label>
+                            <input type="number" value="${config.gameModes.arenas.minPlayers || 2}" onchange="config.gameModes.arenas.minPlayers = parseInt(this.value)">
+                        </div>
+                        <div class="field">
+                            <label>Pilotos Máximos</label>
+                            <input type="number" value="${config.gameModes.arenas.maxPlayers || 6}" onchange="config.gameModes.arenas.maxPlayers = parseInt(this.value)">
+                        </div>
+                        <div class="field">
+                            <label>Selección Respawn</label>
+                            <select onchange="config.gameModes.arenas.spawnMode = this.value">
+                                <option value="random" ${config.gameModes.arenas.spawnMode === 'random' ? 'selected' : ''}>🎲 Aleatorio (Random)</option>
+                                <option value="closest" ${config.gameModes.arenas.spawnMode === 'closest' ? 'selected' : ''}>📍 Más Cercano (Closest)</option>
+                                <option value="first" ${config.gameModes.arenas.spawnMode === 'first' ? 'selected' : ''}>1️⃣ Primer Spawn (First)</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Duración Partida (ms)</label>
+                            <input type="number" step="1000" value="${config.gameModes.arenas.matchDuration || 600000}" onchange="config.gameModes.arenas.matchDuration = parseInt(this.value)">
+                        </div>
+                        <div class="field">
+                            <label>Bloqueo Spawn (ms)</label>
+                            <input type="number" step="1000" value="${config.gameModes.arenas.spawnLockTime || 10000}" onchange="config.gameModes.arenas.spawnLockTime = parseInt(this.value)">
+                        </div>
+                        <div class="field">
+                            <label>Invul. al Revivir (ms)</label>
+                            <input type="number" step="500" value="${config.gameModes.arenas.respawnInvulnerabilityMs || 3000}" onchange="config.gameModes.arenas.respawnInvulnerabilityMs = parseInt(this.value)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin:0;">
+                    <h3 style="color:var(--primary); margin-bottom: 0.5rem;">🏟️ MAPAS DE ARENAS</h3>
+                    <p style="opacity:0.6; margin-bottom:1.5rem;">Selecciona y añade mapas PvP competitivos.</p>
+                    <div style="display:flex; gap:10px; margin-bottom:15px;">
+                        <select id="arena-map-select-add" style="font-size:0.8rem; flex:1;">
+                            <option value="" disabled selected hidden>🔍 Seleccionar mapa...</option>
+                            ${Object.keys(config.mapsConfig).map(id => `<option value="${id}">${config.mapsConfig[id].name} (ID ${id})</option>`).join('')}
+                        </select>
+                        <button class="btn btn-primary" style="padding:4px 15px; font-size:0.7rem;" onclick="addArenaMap(document.getElementById('arena-map-select-add').value)">+ AÑADIR MAPA</button>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <label style="font-weight:bold; font-size:0.8rem;">Mapa Activo para Configurar:</label>
+                        <select onchange="selectArenaMap(this.value)" style="font-size:0.8rem; flex:1; max-width:200px;">
+                            <option value="">Ninguno</option>
+                            ${config.gameModes.arenas.maps.map(id => `<option value="${id}" ${activeArenaMapId === id ? 'selected' : ''}>${config.mapsConfig[id]?.name || 'ID '+id}</option>`).join('')}
+                        </select>
                     </div>
                 </div>
             </div>
-            <div class="card">
-                <h4 style="color:#ff3131; margin-bottom: 1rem;">🏟️ MAPAS DE ARENA</h4>
-                <p style="font-size:0.8rem; opacity:0.6;">IDs de mapas reservados para duelos PvP.</p>
-                <input type="text" placeholder="Ej: 9, 10" value="${config.gameModes.arenas.maps.join(', ')}"
-                       onchange="config.gameModes.arenas.maps = this.value.split(',').map(v => v.trim())"
-                       style="margin-top:10px;">
-            </div>
+
+            <!-- PARTE 2: CONFIGURACIÓN ESPECÍFICA DEL MAPA -->
+            ${mapCfg ? `
+                <div style="grid-column: 1 / -1; display:grid; grid-template-columns: 1fr 1.2fr; gap:20px; margin-top:10px;">
+                    <div class="card" style="margin:0; max-height: 520px; overflow-y: auto;">
+                        <h4 style="color:#ff3131; margin-bottom:1rem;">📐 DIMENSIONES (MAPA ${activeArenaMapId})</h4>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+                            <div class="field"><label>Ancho (W px)</label><input type="number" value="${mapCfg.width || 10000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].width = parseInt(this.value); renderModes();"></div>
+                            <div class="field"><label>Alto (H px)</label><input type="number" value="${mapCfg.height || 10000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].height = parseInt(this.value); renderModes();"></div>
+                        </div>
+
+                        <!-- NEXO ROJO -->
+                        <h5 style="color:#ff3131; border-bottom:1px solid rgba(255,49,49,0.2); padding-bottom:4px; margin-bottom:10px;">🔴 NEXO ROJO (RED)</h5>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+                            <div class="field"><label>Vida Máx</label><input type="number" value="${mapCfg.nexusRed?.hp || 10000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].nexusRed.hp = parseInt(this.value)"></div>
+                            <div class="field"><label>Escudo Máx</label><input type="number" value="${mapCfg.nexusRed?.shield || 5000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].nexusRed.shield = parseInt(this.value)"></div>
+                            <div class="field"><label>Posición X</label><input type="number" id="nexus-red-x" value="${mapCfg.nexusRed?.x || 2000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].nexusRed.x = parseInt(this.value); renderModes();"></div>
+                            <div class="field"><label>Posición Y</label><input type="number" id="nexus-red-y" value="${mapCfg.nexusRed?.y || 5000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].nexusRed.y = parseInt(this.value); renderModes();"></div>
+                        </div>
+
+                        <!-- NEXO AZUL -->
+                        <h5 style="color:#31b6ff; border-bottom:1px solid rgba(49,182,255,0.2); padding-bottom:4px; margin-bottom:10px; margin-top:10px;">🔵 NEXO AZUL (BLUE)</h5>
+                        <div class="form-grid" style="grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+                            <div class="field"><label>Vida Máx</label><input type="number" value="${mapCfg.nexusBlue?.hp || 10000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].nexusBlue.hp = parseInt(this.value)"></div>
+                            <div class="field"><label>Escudo Máx</label><input type="number" value="${mapCfg.nexusBlue?.shield || 5000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].nexusBlue.shield = parseInt(this.value)"></div>
+                            <div class="field"><label>Posición X</label><input type="number" id="nexus-blue-x" value="${mapCfg.nexusBlue?.x || 8000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].nexusBlue.x = parseInt(this.value); renderModes();"></div>
+                            <div class="field"><label>Posición Y</label><input type="number" id="nexus-blue-y" value="${mapCfg.nexusBlue?.y || 5000}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].nexusBlue.y = parseInt(this.value); renderModes();"></div>
+                        </div>
+
+                        <!-- CONFIGURACIÓN DE RECURSOS 3D -->
+                        <h5 style="color:var(--accent); border-bottom:1px solid rgba(6,182,212,0.2); padding-bottom:4px; margin-bottom:10px; margin-top:15px;">📦 ASSETS 3D AUTORITATIVOS</h5>
+                        <div class="form-grid" style="grid-template-columns:1fr; gap:10px;">
+                            <div class="field"><label>Ruta Asset Nexos (.glb)</label>
+                                <input type="text" value="${mapCfg.nexusAsset || 'E:\\\\Descon\\\\descon\\\\assets\\\\Arenas PVP\\\\3D\\\\Nexos\\\\Nexo1\\\\Nexo1.glb'}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].nexusAsset = this.value">
+                            </div>
+                            <div class="field"><label>Ruta Asset Pilares/Torres (.glb)</label>
+                                <input type="text" value="${mapCfg.pillarAsset || 'E:\\\\Descon\\\\descon\\\\assets\\\\Arenas PVP\\\\3D\\\\Torres\\\\Torre1\\\\Torre1.glb'}" onchange="config.gameModes.arenas.mapConfigs[activeArenaMapId].pillarAsset = this.value">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin:0; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                        <h4 style="color:var(--primary); margin-bottom:1rem; align-self:flex-start;">🗺️ RADAR INTERACTIVO DE LA ARENA</h4>
+                        <div id="arena-radar-container" style="position:relative; width:100%; max-width:480px; height:330px; background:#000; border:2px solid var(--primary); border-radius:10px; overflow:hidden; cursor:crosshair; box-shadow: 0 0 20px rgba(0, 210, 255, 0.15);">
+                            <canvas id="arena-radar-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                        </div>
+                        <div style="display:flex; gap:15px; margin-top:10px; font-size:0.75rem;">
+                            <span>🔴 Nexo Rojo</span>
+                            <span>🔵 Nexo Azul</span>
+                            <span>⚪ Torres</span>
+                            <span>🛡️ Spawns</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN DE CONFIGURACIÓN DE PILARES DE DEFENSA -->
+                <div style="grid-column: 1 / -1; display:grid; grid-template-columns: 1fr 1.2fr 1fr; gap:20px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); padding-top:20px;">
+                    <!-- LISTADO DE PILARES -->
+                    <div class="card" style="margin:0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <h4 style="color:var(--primary); margin:0;">🗼 PILARES DE DEFENSA</h4>
+                            <button class="btn btn-primary" style="padding:4px 10px; font-size:0.65rem;" onclick="addArenaPillar()">+ AÑADIR PILAR</button>
+                        </div>
+                        <div style="max-height:300px; overflow-y:auto; padding-right:5px;">
+                            ${leftColPillarsHtml || '<p style="font-style:italic; font-size:0.8rem; opacity:0.6;">No hay pilares creados aún.</p>'}
+                        </div>
+                    </div>
+
+                    <!-- EXPLICACIÓN RADAR -->
+                    <div class="card" style="margin:0; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                        <div style="font-size:0.8rem; text-align:center; padding:10px;">
+                            <p style="font-weight:bold; color:var(--accent); font-size:0.95rem; margin-bottom:10px;">💡 CÓMO USAR EL RADAR DE ARENAS</p>
+                            <p style="opacity:0.8; margin-bottom:5px;">1. **Arrastra** los Nexos Rojo y Azul para ubicarlos en el plano 2D.</p>
+                            <p style="opacity:0.8; margin-bottom:5px;">2. **Añade** pilares y spawns, y **arrástralos** a su posición ideal en el Canvas.</p>
+                            <p style="opacity:0.8; margin-bottom:5px;">3. Selecciona cualquier pilar o spawn para editar sus propiedades avanzadas.</p>
+                        </div>
+                    </div>
+
+                    <!-- EDICIÓN DE PILAR DETALLE -->
+                    <div style="display:flex; flex-direction:column;">
+                        ${pillarDetailHtml}
+                    </div>
+                </div>
+
+                <!-- SECCIÓN DE CONFIGURACIÓN DE PUNTOS DE RESPAWN -->
+                <div style="grid-column: 1 / -1; display:grid; grid-template-columns: 1fr 1.2fr 1fr; gap:20px; margin-top:20px; border-top:1px solid rgba(255,255,255,0.05); padding-top:20px;">
+                    <!-- LISTADO DE SPAWNS -->
+                    <div class="card" style="margin:0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <h4 style="color:var(--pink); margin:0;">📍 PUNTOS DE RESPAWN</h4>
+                            <button class="btn btn-primary" style="padding:4px 10px; font-size:0.65rem; background:var(--pink); border-color:var(--pink);" onclick="addArenaSpawn()">+ AÑADIR SPAWN</button>
+                        </div>
+                        <div style="max-height:300px; overflow-y:auto; padding-right:5px;">
+                            ${leftColSpawnsHtml || '<p style="font-style:italic; font-size:0.8rem; opacity:0.6;">No hay spawns creados aún.</p>'}
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin:0; opacity:0.4; display:flex; align-items:center; justify-content:center; height:100%; border:1px dashed rgba(255,255,255,0.1);">
+                        <p style="text-align:center; font-style:italic; font-size:0.85rem;">Puedes crear múltiples zonas de reaparición para cada facción.</p>
+                    </div>
+
+                    <!-- EDICIÓN DE SPAWN DETALLE -->
+                    <div style="display:flex; flex-direction:column;">
+                        ${spawnDetailHtml}
+                    </div>
+                </div>
+            ` : `
+                <div class="card" style="grid-column: span 2; margin-top:10px; text-align:center; padding:40px; border:1px dashed rgba(255,255,255,0.1);">
+                    <p style="font-style:italic; opacity:0.7;">Por favor, añade o selecciona un mapa de arena de la lista superior para comenzar a configurar.</p>
+                </div>
+            `}
         `;
+
+        if (mapCfg) {
+            setTimeout(initArenaRadar, 100);
+        }
     }
+}
 }
 
 function renderLootConfig() {
@@ -3351,4 +3633,397 @@ window.renderPerformance = function(data) {
 
     container.innerHTML = html;
 };
+
+// ==========================================
+// FUNCIONES AUXILIARES DEL MODO ARENA
+// ==========================================
+
+window.addArenaMap = function(mapId) {
+    if (!mapId) return;
+    const idInt = parseInt(mapId);
+    if (!config.gameModes.arenas) {
+        config.gameModes.arenas = { enabled: true, maps: [], minPlayers: 2 };
+    }
+    if (!config.gameModes.arenas.maps) config.gameModes.arenas.maps = [];
+    if (!config.gameModes.arenas.maps.includes(idInt)) {
+        config.gameModes.arenas.maps.push(idInt);
+        if (!config.gameModes.arenas.mapConfigs) config.gameModes.arenas.mapConfigs = {};
+        config.gameModes.arenas.mapConfigs[idInt] = {
+            width: 10000,
+            height: 10000,
+            nexusRed: { x: 2000, y: 5000, hp: 10000, shield: 5000 },
+            nexusBlue: { x: 8000, y: 5000, hp: 10000, shield: 5000 },
+            pillars: []
+        };
+        activeArenaMapId = idInt;
+        activeArenaPillarIndex = null;
+        renderModes();
+    }
+};
+
+window.selectArenaMap = function(mapId) {
+    activeArenaMapId = mapId ? parseInt(mapId) : null;
+    activeArenaPillarIndex = null;
+    renderModes();
+};
+
+window.addArenaPillar = function() {
+    if (!activeArenaMapId) return;
+    const mapCfg = config.gameModes.arenas.mapConfigs[activeArenaMapId];
+    if (!mapCfg) return;
+    if (!mapCfg.pillars) mapCfg.pillars = [];
+    
+    const newPillar = {
+        name: `Pilar ${mapCfg.pillars.length + 1}`,
+        team: 'red',
+        x: Math.round(mapCfg.width / 2),
+        y: Math.round(mapCfg.height / 2),
+        damage: 150,
+        range: 600,
+        ammoType: 'laser',
+        attackType: 'fast',
+        hp: 3000,
+        shield: 1500
+    };
+    mapCfg.pillars.push(newPillar);
+    activeArenaPillarIndex = mapCfg.pillars.length - 1;
+    renderModes();
+};
+
+window.removeArenaPillar = function(idx) {
+    if (!activeArenaMapId) return;
+    const mapCfg = config.gameModes.arenas.mapConfigs[activeArenaMapId];
+    if (!mapCfg || !mapCfg.pillars) return;
+    mapCfg.pillars.splice(idx, 1);
+    activeArenaPillarIndex = null;
+    renderModes();
+};
+
+window.selectArenaPillar = function(idx) {
+    activeArenaPillarIndex = idx;
+    renderModes();
+};
+
+window.addArenaSpawn = function() {
+    if (!activeArenaMapId) return;
+    const mapCfg = config.gameModes.arenas.mapConfigs[activeArenaMapId];
+    if (!mapCfg) return;
+    if (!mapCfg.spawns) mapCfg.spawns = [];
+    
+    const newSpawn = {
+        name: `Spawn ${mapCfg.spawns.length + 1}`,
+        team: 'red',
+        x: Math.round(mapCfg.width / 2),
+        y: Math.round(mapCfg.height / 2),
+        radius: 200
+    };
+    mapCfg.spawns.push(newSpawn);
+    activeArenaSpawnIndex = mapCfg.spawns.length - 1;
+    renderModes();
+};
+
+window.removeArenaSpawn = function(idx) {
+    if (!activeArenaMapId) return;
+    const mapCfg = config.gameModes.arenas.mapConfigs[activeArenaMapId];
+    if (!mapCfg || !mapCfg.spawns) return;
+    mapCfg.spawns.splice(idx, 1);
+    activeArenaSpawnIndex = null;
+    renderModes();
+};
+
+window.selectArenaSpawn = function(idx) {
+    activeArenaSpawnIndex = idx;
+    renderModes();
+};
+
+function initArenaRadar() {
+    const canvas = document.getElementById('arena-radar-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('arena-radar-container');
+    
+    if (!activeArenaMapId) return;
+    const mapCfg = config.gameModes.arenas.mapConfigs[activeArenaMapId];
+    if (!mapCfg) return;
+
+    const worldW = mapCfg.width || 10000;
+    const worldH = mapCfg.height || 10000;
+
+    let isDragging = false;
+    let dragItem = null; // { type: 'nexus_red' | 'nexus_blue' | 'pillar' | 'spawn', index: idx }
+
+    const updateCanvasSize = () => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        if (w > 0 && h > 0) {
+            canvas.width = w;
+            canvas.height = h;
+        }
+    };
+    updateCanvasSize();
+
+    const worldToCanvas = (wx, wy) => ({
+        x: (wx / worldW) * canvas.width,
+        y: (wy / worldH) * canvas.height
+    });
+
+    const canvasToWorld = (cx, cy) => ({
+        wx: (cx / canvas.width) * worldW,
+        wy: (cy / canvas.height) * worldH
+    });
+
+    const draw = () => {
+        ctx.fillStyle = '#05070a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw grid
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.lineWidth = 1;
+        const gridCount = 10;
+        for (let i = 1; i < gridCount; i++) {
+            // vertical
+            const x = (i / gridCount) * canvas.width;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+
+            // horizontal
+            const y = (i / gridCount) * canvas.height;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+
+        // Draw Spawns
+        if (mapCfg.spawns) {
+            mapCfg.spawns.forEach((s, idx) => {
+                const pos = worldToCanvas(s.x, s.y);
+                const isSelected = activeArenaSpawnIndex === idx;
+                const rad = ((s.radius || 200) / worldW) * canvas.width;
+                
+                ctx.fillStyle = s.team === 'red' ? 'rgba(255, 49, 49, 0.05)' : 'rgba(49, 182, 255, 0.05)';
+                ctx.strokeStyle = isSelected ? '#ffffff' : (s.team === 'red' ? 'rgba(255, 49, 49, 0.4)' : 'rgba(49, 182, 255, 0.4)');
+                ctx.lineWidth = isSelected ? 2 : 1;
+                ctx.setLineDash([2, 5]);
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, rad, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = s.team === 'red' ? '#ff3131' : '#31b6ff';
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(s.name || `Spawn ${idx + 1}`, pos.x, pos.y - 8);
+            });
+        }
+
+        // Draw Red Nexus
+        if (mapCfg.nexusRed) {
+            const pos = worldToCanvas(mapCfg.nexusRed.x, mapCfg.nexusRed.y);
+            ctx.fillStyle = 'rgba(255, 49, 49, 0.2)';
+            ctx.strokeStyle = '#ff3131';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.fillStyle = '#ff3131';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('NEXO ROJO', pos.x, pos.y - 20);
+        }
+
+        // Draw Blue Nexus
+        if (mapCfg.nexusBlue) {
+            const pos = worldToCanvas(mapCfg.nexusBlue.x, mapCfg.nexusBlue.y);
+            ctx.fillStyle = 'rgba(49, 182, 255, 0.2)';
+            ctx.strokeStyle = '#31b6ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.fillStyle = '#31b6ff';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('NEXO AZUL', pos.x, pos.y - 20);
+        }
+
+        // Draw Pillars
+        if (mapCfg.pillars) {
+            mapCfg.pillars.forEach((p, idx) => {
+                const pos = worldToCanvas(p.x, p.y);
+                const isSelected = activeArenaPillarIndex === idx;
+                
+                ctx.strokeStyle = p.team === 'red' ? 'rgba(255, 49, 49, 0.25)' : 'rgba(49, 182, 255, 0.25)';
+                ctx.lineWidth = isSelected ? 2 : 1;
+                if (isSelected) {
+                    ctx.setLineDash([4, 4]);
+                } else {
+                    ctx.setLineDash([]);
+                }
+                ctx.beginPath();
+                const canvasRange = (p.range / worldW) * canvas.width;
+                ctx.arc(pos.x, pos.y, canvasRange, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                if (isSelected) {
+                    ctx.fillStyle = p.team === 'red' ? 'rgba(255, 49, 49, 0.03)' : 'rgba(49, 182, 255, 0.03)';
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, canvasRange, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = p.team === 'red' ? 'rgba(255, 49, 49, 0.4)' : 'rgba(49, 182, 255, 0.4)';
+                ctx.strokeStyle = isSelected ? '#ffffff' : (p.team === 'red' ? '#ff3131' : '#31b6ff');
+                ctx.lineWidth = isSelected ? 3 : 1.5;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '8px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.name, pos.x, pos.y - 12);
+            });
+        }
+    };
+
+    draw();
+
+    canvas.onmousedown = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Check if clicked Red Nexus
+        if (mapCfg.nexusRed) {
+            const pos = worldToCanvas(mapCfg.nexusRed.x, mapCfg.nexusRed.y);
+            if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 15) {
+                isDragging = true;
+                dragItem = { type: 'nexus_red' };
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+        }
+
+        // Check if clicked Blue Nexus
+        if (mapCfg.nexusBlue) {
+            const pos = worldToCanvas(mapCfg.nexusBlue.x, mapCfg.nexusBlue.y);
+            if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 15) {
+                isDragging = true;
+                dragItem = { type: 'nexus_blue' };
+                canvas.style.cursor = 'grabbing';
+                return;
+            }
+        }
+
+        // Check if clicked a Pillar
+        if (mapCfg.pillars) {
+            for (let i = 0; i < mapCfg.pillars.length; i++) {
+                const p = mapCfg.pillars[i];
+                const pos = worldToCanvas(p.x, p.y);
+                if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 12) {
+                    isDragging = true;
+                    dragItem = { type: 'pillar', index: i };
+                    activeArenaPillarIndex = i;
+                    activeArenaSpawnIndex = null;
+                    canvas.style.cursor = 'grabbing';
+                    draw();
+                    return;
+                }
+            }
+        }
+
+        // Check if clicked a Spawn
+        if (mapCfg.spawns) {
+            for (let i = 0; i < mapCfg.spawns.length; i++) {
+                const s = mapCfg.spawns[i];
+                const pos = worldToCanvas(s.x, s.y);
+                if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 12) {
+                    isDragging = true;
+                    dragItem = { type: 'spawn', index: i };
+                    activeArenaSpawnIndex = i;
+                    activeArenaPillarIndex = null;
+                    canvas.style.cursor = 'grabbing';
+                    draw();
+                    return;
+                }
+            }
+        }
+    };
+
+    canvas.onmousemove = (e) => {
+        if (!isDragging || !dragItem) return;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = Math.max(0, Math.min(canvas.width, e.clientX - rect.left));
+        const mouseY = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
+        const world = canvasToWorld(mouseX, mouseY);
+
+        if (dragItem.type === 'nexus_red') {
+            mapCfg.nexusRed.x = Math.round(world.wx);
+            mapCfg.nexusRed.y = Math.round(world.wy);
+            const ix = document.getElementById('nexus-red-x');
+            const iy = document.getElementById('nexus-red-y');
+            if (ix) ix.value = mapCfg.nexusRed.x;
+            if (iy) iy.value = mapCfg.nexusRed.y;
+        } 
+        else if (dragItem.type === 'nexus_blue') {
+            mapCfg.nexusBlue.x = Math.round(world.wx);
+            mapCfg.nexusBlue.y = Math.round(world.wy);
+            const ix = document.getElementById('nexus-blue-x');
+            const iy = document.getElementById('nexus-blue-y');
+            if (ix) ix.value = mapCfg.nexusBlue.x;
+            if (iy) iy.value = mapCfg.nexusBlue.y;
+        } 
+        else if (dragItem.type === 'pillar') {
+            const p = mapCfg.pillars[dragItem.index];
+            if (p) {
+                p.x = Math.round(world.wx);
+                p.y = Math.round(world.wy);
+                const ix = document.getElementById('pillar-x');
+                const iy = document.getElementById('pillar-y');
+                if (ix) ix.value = p.x;
+                if (iy) iy.value = p.y;
+            }
+        }
+        else if (dragItem.type === 'spawn') {
+            const s = mapCfg.spawns[dragItem.index];
+            if (s) {
+                s.x = Math.round(world.wx);
+                s.y = Math.round(world.wy);
+                const ix = document.getElementById('spawn-x');
+                const iy = document.getElementById('spawn-y');
+                if (ix) ix.value = s.x;
+                if (iy) iy.value = s.y;
+            }
+        }
+        draw();
+    };
+
+    const stopDrag = () => {
+        if (isDragging) {
+            isDragging = false;
+            dragItem = null;
+            canvas.style.cursor = 'crosshair';
+            renderModes();
+        }
+    };
+
+    canvas.onmouseup = stopDrag;
+    canvas.onmouseleave = stopDrag;
+}
+window.initArenaRadar = initArenaRadar;
 

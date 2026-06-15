@@ -16,6 +16,9 @@ let currentSessionSubTab = 'online';
 let currentSessionPage = 0;
 let lastSessionsTotal = 0;
 let focusedRadarItem = null;
+let activeArenaMapId = null;
+let activeArenaPillarIndex = null;
+let activeArenaSpawnIndex = null;
 let telemetryInterval = null;
 
 let selectedDetailPlayer = null;

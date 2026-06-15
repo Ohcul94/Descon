@@ -63,6 +63,11 @@ function registerMovementHandlers(socket, io, state) {
             return;
         }
 
+        if (p.isFrozen) {
+            movementData.x = p.x;
+            movementData.y = p.y;
+        }
+
         const now = Date.now();
         if (!p.lastMoveTime) p.lastMoveTime = now;
         const dt = Math.max(0.01, (now - p.lastMoveTime) / 1000);
@@ -190,8 +195,60 @@ function registerMovementHandlers(socket, io, state) {
         p.isDead = false;
         p.hp = respawnData.hp || p.maxHp || 1000;
         p.shield = respawnData.sh || p.maxShield || 500;
-        p.x = respawnData.x || 2000;
-        p.y = respawnData.y || 2000;
+        
+        let targetX = respawnData.x || 2000;
+        let targetY = respawnData.y || 2000;
+
+        if (typeof p.zone === 'string' && p.zone.startsWith('arena_')) {
+            const arenaManager = require('../systems/arenaManager');
+            const arenaMatch = arenaManager.matches.get(p.zone);
+            if (arenaMatch) {
+                let spawn = null;
+                const teamSpawns = (arenaMatch.spawns || []).filter(s => s.team === p.team);
+                if (teamSpawns.length > 0) {
+                    const mode = arenaMatch.spawnMode || 'random';
+                    if (mode === 'random') {
+                        const rIdx = Math.floor(Math.random() * teamSpawns.length);
+                        spawn = teamSpawns[rIdx];
+                    } else if (mode === 'closest') {
+                        let minDist = Infinity;
+                        let selected = teamSpawns[0];
+                        teamSpawns.forEach(s => {
+                            const dist = Math.hypot(s.x - p.x, s.y - p.y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                selected = s;
+                            }
+                        });
+                        spawn = selected;
+                    } else {
+                        spawn = teamSpawns[0];
+                    }
+                } else {
+                    spawn = (p.team === 'red') ? arenaMatch.spawnRed : arenaMatch.spawnBlue;
+                }
+
+                const radius = spawn.radius || 200;
+                const angle = Math.random() * Math.PI * 2;
+                const r = Math.random() * radius;
+                targetX = spawn.x + Math.cos(angle) * r;
+                targetY = spawn.y + Math.sin(angle) * r;
+
+                // Invulnerabilidad temporal al reaparecer
+                const arenasConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.arenas;
+                const invulMs = (arenasConfig && arenasConfig.respawnInvulnerabilityMs) ? parseInt(arenasConfig.respawnInvulnerabilityMs) : 3000;
+                
+                p.isInvulnerable = true;
+                setTimeout(() => {
+                    if (players[socket.id]) {
+                        players[socket.id].isInvulnerable = false;
+                    }
+                }, invulMs);
+            }
+        }
+
+        p.x = targetX;
+        p.y = targetY;
         
         if (respawnData.zone) p.zone = Number(respawnData.zone);
         const targetZone = p.zone;

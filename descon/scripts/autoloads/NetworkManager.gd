@@ -85,6 +85,13 @@ signal altar_defense_success(data)
 signal altar_state_update(data)
 signal update_exit_portals(data)
 
+signal arena_queue_joined(data)
+signal arena_queue_left
+signal arena_queue_update(data)
+signal arena_match_started(data)
+signal arena_state_update(data)
+signal arena_finished(data)
+
 signal vault_data(data)
 signal vault_updated(data)
 
@@ -104,6 +111,7 @@ var ping_start_time: int = 0
 var current_ms: int = 0
 var is_registering: bool = false # v244.10: Soporte para creación de cuenta
 var current_user_data: Dictionary = {} 
+var current_arena_data: Dictionary = {}
 
 
 func _ready():
@@ -371,6 +379,14 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"altarDefenseSuccess": altar_defense_success.emit(e_data)
 		"altarStateUpdate": altar_state_update.emit(e_data)
 		"updateExitPortals": update_exit_portals.emit(e_data)
+		"arenaQueueJoined": arena_queue_joined.emit(e_data)
+		"arenaQueueLeft": arena_queue_left.emit()
+		"arenaQueueUpdate": arena_queue_update.emit(e_data)
+		"arenaMatchStarted":
+			current_arena_data = e_data
+			arena_match_started.emit(e_data)
+		"arenaStateUpdate": arena_state_update.emit(e_data)
+		"arenaFinished": arena_finished.emit(e_data)
 
 
 func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_updated"):

@@ -6,8 +6,7 @@ class_name BaseMap
 
 @export var world_size: float = 4000.0
 @export var zone_name: String = "SECTOR DESCONOCIDO"
-@export var zone_id: int = 1
-
+@export var zone_id = 1
 @export var scale_factor: float = 0.02 # Relación 2D a 3D
 @export var camera_height: float = 30.0
 @export var use_orthogonal: bool = true
@@ -273,7 +272,7 @@ func _spawn_altar_if_configured():
 		
 	var map_included = false
 	for m in ad_config.maps:
-		if int(m) == zone_id:
+		if str(m) == str(zone_id):
 			map_included = true
 			break
 			

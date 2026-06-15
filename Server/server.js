@@ -57,6 +57,7 @@ const { calculateFinalStats } = require('./systems/statCalculator'); // v266.135
 const extractionManager = require('./systems/extractionManager');
 const lootManager = require('./systems/lootManager');
 const altarDefenseManager = require('./systems/altarDefenseManager');
+const arenaManager = require('./systems/arenaManager');
 
 
 // Configuración
@@ -212,6 +213,7 @@ aiManager.hordeManager = hordeManager;
 // v1.5: Inicio del Corazón del Servidor
 extractionManager.init(io, state, aiManager);
 altarDefenseManager.init(io, state, aiManager);
+arenaManager.init(io, state);
 startGameLoop(io, state, aiManager);
 lootManager.startCleanupTimer(io, state);
 
@@ -625,8 +627,40 @@ global.serverClearProjectiles = (zone, bossId) => {
 
 // Cargar configuraci├│n inicial
 fs.readJson(CONFIG_FILE).then(config => {
-    state.SERVER_CONFIG = config;
+    state.SERVER_CONFIG = config || {};
     
+    // Inyectar Configuración del Modo Arenas (PvP) por defecto si falta
+    if (!state.SERVER_CONFIG.gameModes) state.SERVER_CONFIG.gameModes = {};
+    if (!state.SERVER_CONFIG.gameModes.arenas) {
+        state.SERVER_CONFIG.gameModes.arenas = {
+            enabled: true,
+            minPlayers: 2,
+            maxPlayers: 6,
+            matchDuration: 600000,
+            spawnLockTime: 10000,
+            maps: ["11"],
+            mapConfigs: {
+                "11": {
+                    width: 10000,
+                    height: 10000,
+                    nexusRed: { x: 2000, y: 5000, hp: 10000, shield: 5000 },
+                    nexusBlue: { x: 8000, y: 5000, hp: 10000, shield: 5000 },
+                    spawns: [
+                        { name: "Spawn Rojo 1", team: "red", x: 2000, y: 5000, radius: 200 },
+                        { name: "Spawn Azul 1", team: "blue", x: 8000, y: 5000, radius: 200 }
+                    ],
+                    nexusAsset: "E:\\\\Descon\\\\descon\\\\assets\\\\Arenas PVP\\\\3D\\\\Nexos\\\\Nexo1\\\\Nexo1.glb",
+                    pillarAsset: "E:\\\\Descon\\\\descon\\\\assets\\\\Arenas PVP\\\\3D\\\\Torres\\\\Torre1\\\\Torre1.glb",
+                    pillars: []
+                }
+            }
+        };
+        // Guardar configuración para persistir la inyección inicial de arenas
+        fs.writeJson(CONFIG_FILE, state.SERVER_CONFIG, { spaces: 4 }).catch(err => {
+            console.error("[SERVER] Error al guardar inyección de arenas en config.json:", err);
+        });
+    }
+
     // v8.0: Inyección de Habilidades Nativas (Asegurar persistencia tras reinicio)
     if (!state.SERVER_CONFIG.skillsData) state.SERVER_CONFIG.skillsData = {};
     if (!state.SERVER_CONFIG.skillsData["FROST-TRAIL"]) {
@@ -738,7 +772,7 @@ const savePlayerToDB = async (socketId) => {
                     "gameData.lastPos.y": Math.floor(p.y),
                     "gameData.hp": Math.ceil(p.hp !== undefined ? p.hp : 0),
                     "gameData.shield": Math.ceil(p.shield !== undefined ? p.shield : 0),
-                    "gameData.zone": (p.zone !== undefined ? p.zone : 1),
+                    "gameData.zone": (typeof p.zone === 'string' ? (p.zone.startsWith('arena_') || p.zone.startsWith('extract_') ? 1 : (isNaN(parseInt(p.zone)) ? 1 : parseInt(p.zone))) : (p.zone !== undefined ? p.zone : 1)),
                     "gameData.ammo": p.ammo,
                     "gameData.selectedAmmo": p.selectedAmmo,
                     "gameData.inventory": p.inventory,
@@ -1426,6 +1460,19 @@ io.on('connection', (socket) => {
 
     socket.on('leaveExtractionQueue', () => {
         extractionManager.leaveQueue(socket.id);
+    });
+
+    // Eventos de Arenas PvP
+    socket.on('joinArenaQueue', () => {
+        arenaManager.joinQueue(socket.id);
+    });
+
+    socket.on('leaveArenaQueue', () => {
+        arenaManager.leaveQueue(socket.id);
+    });
+
+    socket.on('arenaHit', (data) => {
+        arenaManager.handleArenaHit(socket.id, data);
     });
 
     // El cambio de nave (switchShip) está modularizado arriba.

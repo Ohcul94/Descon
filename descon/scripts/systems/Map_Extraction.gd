@@ -16,13 +16,17 @@ var spawn_lock_radius: float = 500.0
 var spawn_bubble_mesh: MeshInstance3D = null
 var last_warn_time: float = 0.0
 
+# Registro de elementos de arena
+var arena_nexuses_nodes: Dictionary = {}
+var arena_pillars_nodes: Dictionary = {}
+
 # Determina si esta instancia es una partida de Defensa del Altar (dinámico desde config)
 func _is_altar_defense_zone() -> bool:
 	var full_cfg = GameConstants.get("FULL_CONFIG")
 	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
 		var ad_maps = full_cfg.gameModes.altar_defense.get("maps", [])
 		for m in ad_maps:
-			if int(m) == zone_id:
+			if str(m) == str(zone_id):
 				return true
 	return false
 
@@ -84,6 +88,11 @@ func _ready():
 			NetworkManager.altar_state_update.connect(_on_altar_state_update)
 		if not NetworkManager.update_exit_portals.is_connected(_on_update_exit_portals):
 			NetworkManager.update_exit_portals.connect(_on_update_exit_portals)
+		if not NetworkManager.arena_state_update.is_connected(_on_arena_state_update):
+			NetworkManager.arena_state_update.connect(_on_arena_state_update)
+			
+	# Instanciar elementos de la Arena PvP si corresponde
+	_spawn_arena_elements()
 
 func _physics_process(_delta):
 	# --- LOCALIZAR NAVE DEL JUGADOR ---
@@ -101,22 +110,36 @@ func _physics_process(_delta):
 				initial_player_pos = player_node.global_position
 				has_saved_initial_pos = true
 				
+
+				
 				# Encontrar el spawn point configurado más cercano para extraer su radio dinámicamente
 				var closest_radius = 500.0
-				var is_ad_spawn = _is_altar_defense_zone()
-				var full_cfg = GameConstants.get("FULL_CONFIG")
-				if full_cfg and full_cfg.has("gameModes"):
-					var mode_key = "altar_defense" if is_ad_spawn else "extraction"
-					if full_cfg.gameModes.has(mode_key):
-						var mode_cfg = full_cfg.gameModes[mode_key]
-						if mode_cfg.has("spawnPoints"):
-							var min_dist = 999999.0
-							for sp in mode_cfg.spawnPoints:
-								var sp_pos = Vector2(float(sp.get("x", 0)), float(sp.get("y", 0)))
-								var dist = initial_player_pos.distance_to(sp_pos)
-								if dist < min_dist:
-									min_dist = dist
-									closest_radius = float(sp.get("radius", 500.0))
+				if _is_arena_zone():
+					if NetworkManager.current_arena_data.has("spawns"):
+						var min_dist = 999999.0
+						var arena_spawns = NetworkManager.current_arena_data.spawns
+						for sp in arena_spawns:
+							var sp_pos = Vector2(float(sp.get("x", 0)), float(sp.get("y", 0)))
+							var dist = initial_player_pos.distance_to(sp_pos)
+							if dist < min_dist:
+								min_dist = dist
+								closest_radius = float(sp.get("radius", 200.0))
+								initial_player_pos = sp_pos
+				else:
+					var is_ad_spawn = _is_altar_defense_zone()
+					var full_cfg = GameConstants.get("FULL_CONFIG")
+					if full_cfg and full_cfg.has("gameModes"):
+						var mode_key = "altar_defense" if is_ad_spawn else "extraction"
+						if full_cfg.gameModes.has(mode_key):
+							var mode_cfg = full_cfg.gameModes[mode_key]
+							if mode_cfg.has("spawnPoints"):
+								var min_dist = 999999.0
+								for sp in mode_cfg.spawnPoints:
+									var sp_pos = Vector2(float(sp.get("x", 0)), float(sp.get("y", 0)))
+									var dist = initial_player_pos.distance_to(sp_pos)
+									if dist < min_dist:
+										min_dist = dist
+										closest_radius = float(sp.get("radius", 500.0))
 				spawn_lock_radius = closest_radius
 				
 				# Inyectar burbuja tridimensional de barrera protectora de spawn (estilo Shield Skill)
@@ -804,3 +827,330 @@ func _on_raid_time_update(data: Dictionary):
 			var panel = match_timer_label.get_parent()
 			if panel:
 				panel.modulate = Color.WHITE
+
+# --- SISTEMA DE ARENAS (PVP) ---
+func _is_arena_zone() -> bool:
+	return str(zone_id).begins_with("arena_")
+
+func _spawn_arena_elements():
+	if not _is_arena_zone(): return
+	print("[ARENA] Generando elementos de combate para la Arena PvP...")
+	
+	var data = NetworkManager.current_arena_data
+	if data.is_empty():
+		print("[ARENA] Datos de arena vacíos. Esperando señal del servidor...")
+		if not NetworkManager.arena_match_started.is_connected(_on_arena_match_started_spawn):
+			NetworkManager.arena_match_started.connect(_on_arena_match_started_spawn)
+		return
+		
+	# Limpiar elementos anteriores por seguridad
+	_clear_arena_elements()
+	
+	# Obtener rutas de assets 3D
+	var nexus_asset_path = "res://assets/Arenas PVP/3D/Nexos/Nexo1/Nexo1.glb"
+	var pillar_asset_path = "res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
+	
+	# Instanciar Nexos
+	if data.has("nexuses"):
+		var nexuses = data.nexuses
+		if nexuses.has("red"):
+			_spawn_nexus("nexus_red", nexuses.red, "red", nexus_asset_path)
+		if nexuses.has("blue"):
+			_spawn_nexus("nexus_blue", nexuses.blue, "blue", nexus_asset_path)
+			
+	# Instanciar Pilares
+	if data.has("pillars"):
+		for pillar in data.pillars:
+			_spawn_pillar(pillar, pillar_asset_path)
+
+func _on_arena_match_started_spawn(_data):
+	_spawn_arena_elements()
+
+func _clear_arena_elements():
+	for key in arena_nexuses_nodes:
+		var n = arena_nexuses_nodes[key]
+		if is_instance_valid(n.node_2d): n.node_2d.queue_free()
+		if is_instance_valid(n.node_3d): n.node_3d.queue_free()
+	arena_nexuses_nodes.clear()
+	
+	for key in arena_pillars_nodes:
+		var n = arena_pillars_nodes[key]
+		if is_instance_valid(n.node_2d): n.node_2d.queue_free()
+		if is_instance_valid(n.node_3d): n.node_3d.queue_free()
+	arena_pillars_nodes.clear()
+
+func _spawn_nexus(id: String, cfg: Dictionary, team: String, asset_path: String):
+	var pos_2d = Vector2(float(cfg.get("x", 0)), float(cfg.get("y", 0)))
+	var max_hp = float(cfg.get("maxHp", cfg.get("hp", 10000)))
+	var max_sh = float(cfg.get("maxShield", cfg.get("shield", 5000)))
+	
+	# 1. Objeto 2D Lógico
+	var area = Area2D.new()
+	area.name = id
+	area.global_position = pos_2d
+	area.collision_layer = 1 | 2
+	area.collision_mask = 1 | 2
+	area.add_to_group("arena_nexuses")
+	area.set_meta("entity_id", id)
+	area.set_meta("team", team)
+	
+	var col = CollisionShape2D.new()
+	var circle = CircleShape2D.new()
+	circle.radius = 150.0
+	col.shape = circle
+	area.add_child(col)
+	
+	# Obstrucción Física 2D
+	var static_body = StaticBody2D.new()
+	static_body.name = id + "_Physics"
+	static_body.collision_layer = 2
+	static_body.collision_mask = 0
+	
+	var static_col = CollisionShape2D.new()
+	var static_circle = CircleShape2D.new()
+	static_circle.radius = 120.0
+	static_col.shape = static_circle
+	static_body.add_child(static_col)
+	add_child(static_body)
+	# Asignar la posición global después de añadirlo al árbol de la escena para evitar fallos de offset
+	static_body.global_position = pos_2d
+	
+	# HUD Premium (Nombre y Barras Segmentadas)
+	var hud = ArenaStructureHUD.new()
+	hud.name_text = ("🔴 NEXO ROJO" if team == "red" else "🔵 NEXO AZUL")
+	hud.team = team
+	hud.current_hp = max_hp
+	hud.max_hp = max_hp
+	hud.current_shield = max_sh
+	hud.max_shield = max_sh
+	hud.bar_width = 120.0
+	hud.num_segments = 10
+	hud.position = Vector2(0, -90)
+	area.add_child(hud)
+	
+	add_child(area)
+	
+	# 2. Instanciación 3D
+	var node_3d = _instantiate_model_3d(asset_path, pos_2d, Vector3(18.0, 18.0, 18.0), team)
+	
+	arena_nexuses_nodes[id] = {
+		"node_2d": area,
+		"node_3d": node_3d,
+		"hud": hud,
+		"max_hp": max_hp,
+		"max_sh": max_sh
+	}
+
+func _spawn_pillar(cfg: Dictionary, asset_path: String):
+	var id = cfg.id
+	var team = cfg.get("team", "red")
+	var pos_2d = Vector2(float(cfg.x), float(cfg.y))
+	var max_hp = float(cfg.get("maxHp", cfg.get("hp", 3000)))
+	var max_sh = float(cfg.get("maxShield", cfg.get("shield", 1500)))
+	
+	# 1. Objeto 2D Lógico
+	var area = Area2D.new()
+	area.name = id
+	area.global_position = pos_2d
+	area.collision_layer = 1 | 2
+	area.collision_mask = 1 | 2
+	area.add_to_group("arena_pillars")
+	area.set_meta("entity_id", id)
+	area.set_meta("team", team)
+	
+	var col = CollisionShape2D.new()
+	var circle = CircleShape2D.new()
+	circle.radius = 80.0
+	col.shape = circle
+	area.add_child(col)
+	
+	# Obstrucción Física 2D
+	var static_body = StaticBody2D.new()
+	static_body.name = id + "_Physics"
+	static_body.collision_layer = 2
+	static_body.collision_mask = 0
+	
+	var static_col = CollisionShape2D.new()
+	var static_circle = CircleShape2D.new()
+	static_circle.radius = 60.0
+	static_col.shape = static_circle
+	static_body.add_child(static_col)
+	add_child(static_body)
+	# Asignar la posición global después de añadirlo al árbol de la escena para evitar fallos de offset
+	static_body.global_position = pos_2d
+	
+	# HUD Premium (Nombre y Barras Segmentadas)
+	var hud = ArenaStructureHUD.new()
+	hud.name_text = cfg.get("name", "PILAR")
+	hud.team = team
+	hud.current_hp = max_hp
+	hud.max_hp = max_hp
+	hud.current_shield = max_sh
+	hud.max_shield = max_sh
+	hud.bar_width = 80.0
+	hud.num_segments = 8
+	hud.position = Vector2(0, -70)
+	area.add_child(hud)
+	
+	add_child(area)
+	
+	# 2. Instanciación 3D
+	var node_3d = _instantiate_model_3d(asset_path, pos_2d, Vector3(10.0, 10.0, 10.0), team)
+	
+	arena_pillars_nodes[id] = {
+		"node_2d": area,
+		"node_3d": node_3d,
+		"hud": hud,
+		"max_hp": max_hp,
+		"max_sh": max_sh
+	}
+
+func _instantiate_model_3d(asset_path: String, pos_2d: Vector2, scale_3d: Vector3, team: String) -> Node3D:
+	if not is_instance_valid(sub_viewport): return null
+	
+	var correction_z = 1.41421356
+	var path = asset_path.replace("\\", "/")
+	if path.begins_with("res://"):
+		pass
+	elif ":" in path:
+		var parts = path.split("/descon/")
+		if parts.size() > 1:
+			path = "res://" + parts[1]
+		else:
+			path = "res://assets/Arenas PVP/3D/Nexos/Nexo1/Nexo1.glb"
+			
+	var scene = load(path)
+	if not scene:
+		var fallback = CSGCylinder3D.new()
+		fallback.radius = scale_3d.x * 0.3
+		fallback.height = scale_3d.y * 1.5
+		var mat = StandardMaterial3D.new()
+		mat.albedo_color = Color(1, 0.2, 0.2) if team == "red" else Color(0.2, 0.6, 1)
+		mat.emission_enabled = true
+		mat.emission = mat.albedo_color * 0.5
+		fallback.material = mat
+		
+		fallback.position = Vector3(pos_2d.x * scale_factor, 0.0, pos_2d.y * scale_factor * correction_z)
+		sub_viewport.add_child(fallback)
+		return fallback
+		
+	var obj = scene.instantiate()
+	obj.position = Vector3(pos_2d.x * scale_factor, 0.0, pos_2d.y * scale_factor * correction_z)
+	obj.scale = scale_3d
+	
+	# Corregir inclinación si es el nexo (rotarlo 45 grados en Y para que quede derecho)
+	if asset_path.contains("Nexo"):
+		obj.rotation_degrees = Vector3(0, 45, 0)
+	else:
+		obj.rotation_degrees = Vector3(0, 0, 0)
+	
+	var light = OmniLight3D.new()
+	light.light_color = Color(1.0, 0.2, 0.2) if team == "red" else Color(0.2, 0.6, 1.0)
+	light.light_energy = 4.0
+	light.omni_range = 10.0
+	light.position = Vector3(0, 3.0, 0)
+	obj.add_child(light)
+	
+	sub_viewport.add_child(obj)
+	return obj
+
+func _on_arena_state_update(data: Dictionary):
+	if data.has("nexuses"):
+		var nexuses = data.nexuses
+		for team in ["red", "blue"]:
+			var id = "nexus_" + team
+			if nexuses.has(team) and arena_nexuses_nodes.has(id):
+				var n_data = nexuses[team]
+				var node_info = arena_nexuses_nodes[id]
+				if is_instance_valid(node_info.get("hud")):
+					var hp = float(n_data.get("hp", 0))
+					var sh = float(n_data.get("shield", 0))
+					node_info.hud.update_stats(hp, node_info.max_hp, sh, node_info.max_sh)
+					
+	if data.has("pillars"):
+		for p_data in data.pillars:
+			var id = p_data.get("id", "")
+			if arena_pillars_nodes.has(id):
+				var node_info = arena_pillars_nodes[id]
+				if is_instance_valid(node_info.get("hud")):
+					var hp = float(p_data.get("hp", 0))
+					var sh = float(p_data.get("shield", 0))
+					node_info.hud.update_stats(hp, node_info.max_hp, sh, node_info.max_sh)
+					
+	var remaining = int(data.get("remainingTime", 0))
+	if match_timer_label and remaining > 0:
+		var mins = int(float(remaining) / 60.0)
+		var secs = remaining % 60
+		var time_str = "%02d:%02d" % [mins, secs]
+		match_timer_label.text = "⏱️ PVP RESTANTE: " + time_str
+		match_timer_label.add_theme_color_override("font_color", Color.YELLOW)
+
+
+# ==============================================================================
+# --- CLASE HELPER PARA HUD DE ESTRUCTURAS DE ARENA (Nexos y Torres) ---
+# ==============================================================================
+class ArenaStructureHUD extends Node2D:
+	var name_text: String = ""
+	var team: String = ""
+	var current_hp: float = 0.0
+	var max_hp: float = 1.0
+	var current_shield: float = 0.0
+	var max_shield: float = 1.0
+	var bar_width: float = 100.0
+	var num_segments: int = 8
+	var label_node: Label = null
+
+	func _ready():
+		label_node = Label.new()
+		label_node.text = name_text
+		label_node.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		# Aplicar outline negro premium
+		label_node.add_theme_font_size_override("font_size", 11)
+		label_node.add_theme_color_override("font_outline_color", Color.BLACK)
+		label_node.add_theme_constant_override("outline_size", 4)
+		
+		# Color del texto según team
+		if team == "red":
+			label_node.add_theme_color_override("font_color", Color(1.0, 0.35, 0.35))
+		elif team == "blue":
+			label_node.add_theme_color_override("font_color", Color(0.35, 0.75, 1.0))
+		else:
+			label_node.add_theme_color_override("font_color", Color.WHITE)
+			
+		label_node.custom_minimum_size = Vector2(200, 20)
+		label_node.position = Vector2(-100, -32)
+		add_child(label_node)
+
+	func update_stats(hp: float, max_h: float, sh: float, max_s: float):
+		current_hp = hp
+		max_hp = max_h
+		current_shield = sh
+		max_shield = max_s
+		queue_redraw()
+
+	func _draw():
+		var gap = 2.0
+		var seg_w = (bar_width - (gap * (num_segments - 1.0))) / float(num_segments)
+		
+		var sh_pct = clamp(current_shield / max_shield if max_shield > 0.0 else 0.0, 0.0, 1.0)
+		var hp_pct = clamp(current_hp / max_hp if max_hp > 0.0 else 0.0, 0.0, 1.0)
+		
+		# Dibujar barras segmentadas abajo del nombre
+		var base_y = -10.0
+		
+		for i in range(num_segments):
+			var x = -(bar_width / 2.0) + (i * (seg_w + gap))
+			
+			# Fondo (Escudo) - Cian oscuro semi-transparente
+			draw_rect(Rect2(x, base_y - 8, seg_w, 4), Color(0.0, 1.0, 1.0, 0.25))
+			var f_sh = clamp((sh_pct * num_segments) - i, 0.0, 1.0)
+			if f_sh > 0.0:
+				draw_rect(Rect2(x, base_y - 8, seg_w * f_sh, 4), Color(0.0, 0.85, 1.0))
+			
+			# Fondo (HP) - Verde oscuro semi-transparente
+			draw_rect(Rect2(x, base_y - 2, seg_w, 4), Color(0.0, 0.8, 0.0, 0.25))
+			var f_hp = clamp((hp_pct * num_segments) - i, 0.0, 1.0)
+			if f_hp > 0.0:
+				var c = Color(0.0, 0.8, 0.1) if hp_pct > 0.3 else Color(1.0, 0.1, 0.1)
+				draw_rect(Rect2(x, base_y - 2, seg_w * f_hp, 4), c)
+

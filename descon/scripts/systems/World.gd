@@ -447,13 +447,14 @@ func _update_background(zone_id):
 			for m in ad_cfg.maps:
 				ad_map_ids.append(int(m))
 	
+	var is_arena = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("arena_")
 	var is_altar_defense = (zid in ad_map_ids)
 	var is_extraction = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_") or zid == 10 or zid == 11
 	
 	# Mapear escenas según el tipo de zona
 	if zid == 1:
 		scene_path = "res://scenes/maps/Map_Loby.tscn"
-	elif is_altar_defense or is_extraction:
+	elif is_altar_defense or is_extraction or is_arena:
 		scene_path = "res://scenes/maps/Map_Extraction.tscn"
 		
 	# Ocultar o mostrar las estrellas generadas según si es mapa de extracción o altar
@@ -470,7 +471,7 @@ func _update_background(zone_id):
 	if map_scene:
 		current_map_node = map_scene.instantiate()
 		if "zone_id" in current_map_node:
-			current_map_node.zone_id = zid
+			current_map_node.zone_id = zone_id
 		add_child(current_map_node)
 		move_child(current_map_node, 0) # Asegurar que quede detrás de las entidades
 		

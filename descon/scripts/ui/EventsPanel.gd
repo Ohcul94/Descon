@@ -15,12 +15,49 @@ var ad_queue_btn: Button
 var ad_status_label: Label
 var is_in_ad_queue = false
 
+var arena_queue_btn: Button
+var arena_status_label: Label
+var is_in_arena_queue = false
+
 var is_in_queue = false
 var is_open = false
 
 func _ready():
 	if tabs:
 		tabs.current_tab = 1 # v1.2: Mostrar Extracción (único construido) por defecto
+
+		# Programmatic setup of Arenas Tab
+		if arenas_tab:
+			for child in arenas_tab.get_children():
+				child.queue_free()
+			
+			var vbox = VBoxContainer.new()
+			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+			vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			arenas_tab.add_child(vbox)
+			
+			var arena_title = Label.new()
+			arena_title.text = "COMBATE EN ARENAS (PVP)"
+			arena_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			arena_title.add_theme_font_size_override("font_size", 24)
+			arena_title.add_theme_color_override("font_color", Color(1, 0.2, 0.2))
+			vbox.add_child(arena_title)
+			
+			arena_status_label = Label.new()
+			arena_status_label.text = "ESTADO: DISPONIBLE"
+			arena_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			vbox.add_child(arena_status_label)
+			
+			var arena_spacer = Control.new()
+			arena_spacer.custom_minimum_size = Vector2(0, 20)
+			vbox.add_child(arena_spacer)
+			
+			arena_queue_btn = Button.new()
+			arena_queue_btn.custom_minimum_size = Vector2(240, 50)
+			arena_queue_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			arena_queue_btn.text = "BUSCAR PARTIDA PVP"
+			vbox.add_child(arena_queue_btn)
+			arena_queue_btn.pressed.connect(_on_arena_queue_pressed)
 
 		# Programmatic creation of Altar Defense tab
 		altar_defense_tab = VBoxContainer.new()
@@ -75,6 +112,12 @@ func _ready():
 		
 		NetworkManager.altar_defense_cancelled.connect(func(_d): is_in_ad_queue = false; _update_ui())
 		NetworkManager.altar_defense_success.connect(func(_d): is_in_ad_queue = false; is_open = false; visible = false; _update_ui())
+		
+		NetworkManager.arena_queue_joined.connect(_on_arena_queue_joined)
+		NetworkManager.arena_queue_left.connect(func(): is_in_arena_queue = false; _update_ui())
+		NetworkManager.arena_queue_update.connect(_on_arena_queue_update)
+		NetworkManager.arena_match_started.connect(_on_arena_match_started)
+		NetworkManager.arena_finished.connect(func(_d): is_in_arena_queue = false; _update_ui())
 		
 	# Sincronía Responsive
 	get_viewport().size_changed.connect(func(): queue_redraw())
@@ -186,6 +229,16 @@ func _update_ui():
 			else:
 				ad_queue_btn.text = "INSCRIBIRSE (SOLO)"
 				ad_queue_btn.disabled = false
+				
+	if arena_status_label and arena_queue_btn:
+		if is_in_arena_queue:
+			arena_status_label.text = "ESTADO: BUSCANDO PARTIDA PVP..."
+			arena_status_label.modulate = Color.GREEN
+			arena_queue_btn.text = "CANCELAR BÚSQUEDA"
+		else:
+			arena_status_label.text = "ESTADO: DISPONIBLE"
+			arena_status_label.modulate = Color.WHITE
+			arena_queue_btn.text = "BUSCAR PARTIDA PVP"
 
 func _on_queue_pressed():
 	if not NetworkManager: return
@@ -243,3 +296,31 @@ func notify(msg: String, type: String = "info"):
 	var hud = get_tree().get_first_node_in_group("hud")
 	if hud and hud.has_method("notify"):
 		hud.notify(msg, type)
+
+func _on_arena_queue_pressed():
+	if not NetworkManager: return
+	if is_in_arena_queue:
+		NetworkManager.send_event("leaveArenaQueue", {})
+		is_in_arena_queue = false
+		notify("BÚSQUEDA CANCELADA", "warn")
+	else:
+		NetworkManager.send_event("joinArenaQueue", {})
+		notify("UNIÉNDOSE A LA COLA DE ARENAS...", "info")
+	_update_ui()
+
+func _on_arena_queue_joined(_data):
+	is_in_arena_queue = true
+	notify("TE HAS UNIDO A LA COLA DE ARENAS", "success")
+	_update_ui()
+
+func _on_arena_queue_update(data):
+	var count = data.get("count", 0)
+	if arena_status_label and is_in_arena_queue:
+		arena_status_label.text = "BUSCANDO PARTIDA... PILOTOS EN COLA: " + str(count)
+
+func _on_arena_match_started(_data):
+	is_in_arena_queue = false
+	is_open = false
+	visible = false
+	notify("¡PARTIDA DE ARENA ENCONTRADA! PREPARANDO COMBATE...", "success")
+	_update_ui()

@@ -4032,7 +4032,8 @@
                 "allies": false,
                 "enemies": true,
                 "bosses": true,
-                "players": true
+                "players": true,
+                "clan": false
             }
         },
         "BLINK": {
@@ -4193,7 +4194,8 @@
                 "allies": false,
                 "bosses": true,
                 "enemies": true,
-                "players": true
+                "players": true,
+                "clan": false
             },
             "type": "Ataque"
         },
@@ -4210,7 +4212,8 @@
                 "allies": true,
                 "enemies": false,
                 "bosses": false,
-                "players": true
+                "players": true,
+                "clan": false
             }
         },
         "SMOKE-BOMB": {
@@ -4468,6 +4471,18 @@
                 "nightmareMultiplier",
                 "wakeOnDamage",
                 "cooldown",
+                "startDelay"
+            ]
+        },
+        "reflect": {
+            "label": "Escudo Reflectante (Reflect)",
+            "icon": "🛡️",
+            "desc": "Devuelve daño recibido al atacante.",
+            "fields": [
+                "duration",
+                "reflect_mult",
+                "cooldown",
+                "fireRange",
                 "startDelay"
             ]
         }
@@ -5058,8 +5073,110 @@
         },
         "arenas": {
             "enabled": true,
-            "maps": [],
-            "minPlayers": 2
+            "maps": [
+                9
+            ],
+            "minPlayers": 1,
+            "mapConfigs": {
+                "9": {
+                    "width": 10000,
+                    "height": 10000,
+                    "nexusRed": {
+                        "x": 2000,
+                        "y": 5000,
+                        "hp": 10000,
+                        "shield": 5000
+                    },
+                    "nexusBlue": {
+                        "x": 8000,
+                        "y": 5000,
+                        "hp": 10000,
+                        "shield": 5000
+                    },
+                    "pillars": [
+                        {
+                            "name": "Pilar 1",
+                            "team": "blue",
+                            "x": 7371,
+                            "y": 5790,
+                            "damage": 150,
+                            "range": 600,
+                            "ammoType": "laser",
+                            "attackType": "fast",
+                            "hp": 3000,
+                            "shield": 1500
+                        },
+                        {
+                            "name": "Pilar 2",
+                            "team": "blue",
+                            "x": 7351,
+                            "y": 4390,
+                            "damage": 150,
+                            "range": 600,
+                            "ammoType": "laser",
+                            "attackType": "fast",
+                            "hp": 3000,
+                            "shield": 1500
+                        },
+                        {
+                            "name": "Pilar 3",
+                            "team": "red",
+                            "x": 2651,
+                            "y": 4390,
+                            "damage": 150,
+                            "range": 600,
+                            "ammoType": "laser",
+                            "attackType": "fast",
+                            "hp": 3000,
+                            "shield": 1500
+                        },
+                        {
+                            "name": "Pilar 4",
+                            "team": "red",
+                            "x": 2651,
+                            "y": 5676,
+                            "damage": 150,
+                            "range": 600,
+                            "ammoType": "laser",
+                            "attackType": "fast",
+                            "hp": 3000,
+                            "shield": 1500
+                        }
+                    ],
+                    "spawns": [
+                        {
+                            "name": "Spawn 1",
+                            "team": "red",
+                            "x": 2096,
+                            "y": 3014,
+                            "radius": 200
+                        },
+                        {
+                            "name": "Spawn 2",
+                            "team": "red",
+                            "x": 2034,
+                            "y": 7018,
+                            "radius": 200
+                        },
+                        {
+                            "name": "Spawn 3",
+                            "team": "blue",
+                            "x": 8013,
+                            "y": 2967,
+                            "radius": 200
+                        },
+                        {
+                            "name": "Spawn 4",
+                            "team": "blue",
+                            "x": 7992,
+                            "y": 7028,
+                            "radius": 200
+                        }
+                    ]
+                }
+            },
+            "maxPlayers": 10,
+            "spawnLockTime": 1000
         },
         "craftingRecipes": [
             {
