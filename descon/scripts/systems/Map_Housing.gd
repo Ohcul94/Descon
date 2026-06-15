@@ -595,21 +595,33 @@ func _update_hud_buttons():
 	button_row.add_theme_constant_override("separation", 20)
 	menu_container.add_child(button_row)
 		
-	# Botón 1: Salir del Hangar
+	# Botón 1: Salir del Hangar (Lobby)
 	var btn_exit = Button.new()
 	btn_exit.name = "HousingExitButton"
-	btn_exit.text = "🚪 Volver al Hangar / Lobby"
-	btn_exit.custom_minimum_size = Vector2(250, 40)
+	btn_exit.text = "🚪 Lobby"
+	btn_exit.custom_minimum_size = Vector2(140, 40)
 	_apply_sci_fi_button_style(btn_exit, Color.RED)
 	btn_exit.pressed.connect(func():
 		NetworkManager.send_event("changeZone", 1)
 	)
 	button_row.add_child(btn_exit)
+	
+	# Botón 2: Tienda
+	var btn_shop = Button.new()
+	btn_shop.name = "HousingShopButton"
+	btn_shop.text = "🛒 Tienda"
+	btn_shop.custom_minimum_size = Vector2(140, 40)
+	_apply_sci_fi_button_style(btn_shop, Color.YELLOW)
+	btn_shop.pressed.connect(func():
+		if hud.has_method("toggle_housing_panel"):
+			hud.toggle_housing_panel()
+	)
+	button_row.add_child(btn_shop)
 		
-	# Botón 2: Modo Edición de Distribución
+	# Botón 3: Modo Edición de Distribución
 	btn_edit_layout = Button.new()
 	btn_edit_layout.name = "HousingEditLayoutButton"
-	btn_edit_layout.custom_minimum_size = Vector2(250, 40)
+	btn_edit_layout.custom_minimum_size = Vector2(160, 40)
 	_apply_sci_fi_button_style(btn_edit_layout, Color.CYAN)
 	_update_edit_layout_button_style()
 	btn_edit_layout.pressed.connect(func():
@@ -701,10 +713,10 @@ func _apply_sci_fi_button_style(btn: Button, border_color: Color):
 func _update_edit_layout_button_style():
 	if not is_instance_valid(btn_edit_layout): return
 	if is_editing_layout:
-		btn_edit_layout.text = "🔧 Modo Edición: ACTIVADO"
+		btn_edit_layout.text = "🔧 Edición: ON"
 		btn_edit_layout.modulate = Color.CYAN
 	else:
-		btn_edit_layout.text = "🔧 Modo Edición: DESACTIVADO"
+		btn_edit_layout.text = "🔧 Edición: OFF"
 		btn_edit_layout.modulate = Color.WHITE
 
 func _exit_tree():
