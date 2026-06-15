@@ -131,16 +131,66 @@ function registerHousingHandlers(socket, io, state) {
                 return socket.emit('gameNotification', { msg: 'Ya existe un objeto en esa celda de la grilla.', type: 'error' });
             }
 
-            // Validar costos
-            const currencyKey = itemConfig.currency === 'ohcu' ? 'ohcu' : 'hubs';
-            const cost = itemConfig.cost || 0;
+            // Validar límites máximos de colocación configurados
+            const currentCount = placedList.filter(obj => obj.itemType === itemType).length;
+            const maxLimit = itemConfig.maxLimit !== undefined ? parseInt(itemConfig.maxLimit) : 10; // Límite por defecto si no está especificado
+            if (currentCount + 1 > maxLimit) {
+                return socket.emit('gameNotification', { msg: `Límite alcanzado. Solo puedes colocar un máximo de ${maxLimit} de este objeto.`, type: 'error' });
+            }
 
-            if (user.gameData[currencyKey] < cost) {
-                return socket.emit('gameNotification', { msg: `Hubs u Ohcu insuficientes para comprar este objeto.`, type: 'error' });
+            // Validar costos: usar coste base para la primera copia, o extraCosts para copias subsecuentes
+            let finalCost = itemConfig.cost || 0;
+            let finalCurrency = itemConfig.currency === 'ohcu' ? 'ohcu' : 'hubs';
+            let requiredItems = [];
+
+            if (currentCount > 0 && itemConfig.extraCosts && Array.isArray(itemConfig.extraCosts)) {
+                // Buscamos si hay un coste especial configurado para este índice (el índice de la nueva copia es currentCount + 1)
+                const targetIndex = currentCount + 1;
+                const extraCostEntry = itemConfig.extraCosts.find(ec => parseInt(ec.index) === targetIndex);
+                if (extraCostEntry) {
+                    finalCost = extraCostEntry.cost !== undefined ? extraCostEntry.cost : finalCost;
+                    finalCurrency = extraCostEntry.currency === 'ohcu' ? 'ohcu' : 'hubs';
+                    requiredItems = extraCostEntry.requiredItems || [];
+                }
+            }
+
+            const currencyKey = finalCurrency === 'ohcu' ? 'ohcu' : 'hubs';
+
+            // Validar fondos de moneda
+            if (user.gameData[currencyKey] < finalCost) {
+                return socket.emit('gameNotification', { msg: `Hubs u Ohcu insuficientes para adquirir este objeto (Costo: ${finalCost} ${currencyKey.toUpperCase()}).`, type: 'error' });
+            }
+
+            // Validar items de inventario requeridos (si existen)
+            if (requiredItems.length > 0) {
+                const materialsCount = {};
+                user.gameData.inventory.forEach(it => {
+                    const itemId = it.id;
+                    materialsCount[itemId] = (materialsCount[itemId] || 0) + 1;
+                });
+
+                for (const req of requiredItems) {
+                    const owned = materialsCount[req.itemId] || 0;
+                    if (owned < req.qty) {
+                        return socket.emit('gameNotification', { msg: `Materiales insuficientes. Requiere ${req.qty}x ${req.itemId} para la copia #${currentCount + 1}.`, type: 'error' });
+                    }
+                }
+
+                // Consumir los items requeridos del inventario
+                requiredItems.forEach(req => {
+                    let toRemove = req.qty;
+                    for (let i = user.gameData.inventory.length - 1; i >= 0; i--) {
+                        if (user.gameData.inventory[i].id === req.itemId) {
+                            user.gameData.inventory.splice(i, 1);
+                            toRemove--;
+                            if (toRemove === 0) break;
+                        }
+                    }
+                });
             }
 
             // Debitar fondos
-            user.gameData[currencyKey] -= cost;
+            user.gameData[currencyKey] -= finalCost;
 
             // Generar ID único para este objeto en la colocación
             const placementId = 'obj_' + Date.now() + '_' + Math.floor(Math.random() * 1000);

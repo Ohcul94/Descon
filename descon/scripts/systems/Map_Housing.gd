@@ -421,7 +421,8 @@ func enter_edit_mode(item_type: String):
 		
 	current_preview_x = int(grid_size / 2.0)
 	current_preview_z = int(grid_size / 2.0)
-	current_preview_rot = 0
+	if moving_object_id == "":
+		current_preview_rot = 0
 	
 	_update_hud_buttons()
 

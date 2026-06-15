@@ -182,6 +182,16 @@ function registerZoneHandlers(socket, io, state) {
             return;
         }
 
+        // Bloqueo de entrada a Housing (Hangar Privado) desde zonas no permitidas
+        if (Number(zoneId) === 100) {
+            const config = state.SERVER_CONFIG?.housingConfig || {};
+            const allowedZones = config.allowedZones || [1]; // Por defecto solo lobby (1)
+            if (!allowedZones.includes(Number(oldZone))) {
+                socket.emit('authError', 'NO SE PERMITE EL ACCESO AL HANGAR PRIVADO DESDE ESTE SECTOR');
+                return;
+            }
+        }
+
         try {
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
