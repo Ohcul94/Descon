@@ -75,6 +75,17 @@ function startGameLoop(io, state, aiManager) {
             }
         });
 
+        // v2.4: Despawn de enemigos en zonas vacías para liberar RAM y contadores
+        // Si no hay jugadores en una zona, destruimos sus enemigos. AIManager los regenerará al entrar alguien.
+        for (const eId in state.enemies) {
+            const e = state.enemies[eId];
+            if (!activeZones.has(String(e.zone))) {
+                if (e.ai && typeof e.ai.cleanUp === 'function') e.ai.cleanUp();
+                state.grid.remove(e, 'enemy');
+                delete state.enemies[eId];
+            }
+        }
+
         for (const id in enemies) {
             const e = enemies[id];
 

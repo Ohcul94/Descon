@@ -1203,7 +1203,8 @@ io.on('connection', (socket) => {
             performance:  perfSnapshot,
             playersCount: Object.keys(players).length,
             enemiesCount: Object.keys(enemies).length,
-            activeAreas:  Object.keys(state.activeAreas || {}).length,
+            // v2.4: Áreas activas reales = Zonas que tienen al menos 1 jugador
+            activeAreas:  Object.keys(state.playersByZone || {}).filter(z => Object.keys(state.playersByZone[z]).length > 0).length,
             uptimeMs:     process.uptime() * 1000,
             playerStats
         });

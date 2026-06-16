@@ -137,6 +137,10 @@ class AIManager {
                 if (Number(mapId) === 10 || Number(mapId) === 9) return;
                 
                 const mCfg = maps[mapId];
+                
+                // v2.4: Omitir spawns en zonas sin jugadores activos
+                if (!this.state.playersByZone[mapId] || Object.keys(this.state.playersByZone[mapId]).length === 0) return;
+
                 if (mCfg.spawns && mCfg.spawns.length > 0) {
                     mCfg.spawns.forEach((s, idx) => {
                         // Asegurar identificador único del spawner
@@ -193,20 +197,26 @@ class AIManager {
             });
         }
 
-        // Guardián Jefes
-        const hasTitanZ2 = Object.values(this.state.enemies).some(e => e.type === 4 && e.zone === 2);
-        if (!hasTitanZ2 && Date.now() - this.state.lastTitanDeath > 10000) {
-            this.serverSpawnEnemy(2, 4);
+        // Guardián Jefes (Zonas Hardcodeadas)
+        if (this.state.playersByZone[2] && Object.keys(this.state.playersByZone[2]).length > 0) {
+            const hasTitanZ2 = Object.values(this.state.enemies).some(e => e.type === 4 && e.zone === 2);
+            if (!hasTitanZ2 && Date.now() - this.state.lastTitanDeath > 10000) {
+                this.serverSpawnEnemy(2, 4);
+            }
         }
 
-        const boss102s = Object.values(this.state.enemies).filter(e => e.type === 102 && e.zone === 8);
-        if (boss102s.length === 0) {
-            this.serverSpawnEnemy(8, 102, 2000, 2000);
+        if (this.state.playersByZone[8] && Object.keys(this.state.playersByZone[8]).length > 0) {
+            const boss102s = Object.values(this.state.enemies).filter(e => e.type === 102 && e.zone === 8);
+            if (boss102s.length === 0) {
+                this.serverSpawnEnemy(8, 102, 2000, 2000);
+            }
         }
 
-        const boss103s = Object.values(this.state.enemies).filter(e => e.type === 103 && e.zone === 7);
-        if (boss103s.length === 0) {
-            this.serverSpawnEnemy(7, 103, 2000, 2000);
+        if (this.state.playersByZone[7] && Object.keys(this.state.playersByZone[7]).length > 0) {
+            const boss103s = Object.values(this.state.enemies).filter(e => e.type === 103 && e.zone === 7);
+            if (boss103s.length === 0) {
+                this.serverSpawnEnemy(7, 103, 2000, 2000);
+            }
         }
     }
 }

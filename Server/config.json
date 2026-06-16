@@ -2935,7 +2935,9 @@
                     "y": 1000,
                     "radius": 0
                 }
-            ]
+            ],
+            "width": 10000,
+            "height": 10000
         },
         "3": {
             "color": "#ffff00",
@@ -5511,5 +5513,8 @@
                 ]
             }
         }
-    ]
+    ],
+    "questsGlobalConfig": {
+        "maxActiveQuests": 3
+    }
 }
