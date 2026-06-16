@@ -283,6 +283,10 @@
                 <div class="nav-group">
                     <div class="nav-link" onclick="showTab('crafting')">⚒️ Crafteo o Creación</div>
                 </div>
+                
+                <div class="nav-group">
+                    <div class="nav-link" onclick="showTab('quests')">📜 Sistema de Misiones</div>
+                </div>
 
                 <div class="nav-group">
                     <div class="nav-link" onclick="showTab('housing')">🏠 Sistema de Housing</div>
@@ -531,6 +535,33 @@
                         <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">Agrega, remueve y configura los assets 3D que los jugadores podrán comprar y colocar en su casa.</p>
                         <div id="housing-items-list" style="display: flex; flex-direction: column; gap: 1.5rem;">
                             <!-- Se llena dinámicamente por renderHousing -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-quests" class="view">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start;">
+                    <div class="card" style="width: 100%;">
+                        <h3 style="color: var(--accent); margin-bottom: 1.5rem;">⚙️ CONFIGURACIÓN GLOBAL DE MISIONES</h3>
+                        <div class="form-grid">
+                            <div class="field">
+                                <label>Límite de Misiones Activas Simultáneas</label>
+                                <input type="number" id="quests-max-active" onchange="config.questsGlobalConfig.maxActiveQuests = Math.floor(Math.max(1, parseInt(this.value)))">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="width: 100%;">
+                        <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                            <span>📜 CONFIGURACIÓN DE MISIONES DE LA GALAXIA</span>
+                            <button class="btn btn-primary" style="padding: 6px 16px; font-size: 0.8rem;" onclick="addNewQuest()">+ CREAR NUEVA MISIÓN</button>
+                        </h3>
+                        <p style="font-size:0.85rem; color:#aaa; margin-bottom:1.5rem; line-height:1.4;">
+                            Define las misiones de historia, diarias y semanales que los pilotos podrán completar. Las recompensas y la progresión se validan estrictamente en el servidor.
+                        </p>
+                        <div id="quests-list" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                            <!-- Llenado dinámico por renderers.js -->
                         </div>
                     </div>
                 </div>

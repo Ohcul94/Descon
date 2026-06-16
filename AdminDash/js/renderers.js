@@ -260,6 +260,7 @@ function refreshCurrentTab() {
         'enemy-loot': renderEnemyLootDetail,
         'crafting': renderCrafting,
         'housing': renderHousing,
+        'quests': renderQuests,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions())
     };
     if(renderMap[tabId]) renderMap[tabId]();
@@ -274,6 +275,7 @@ function renderAll() {
     renderLootConfig();
     renderCrafting();
     renderHousing();
+    renderQuests();
 }
 
 function renderAmmo() {
@@ -4115,4 +4117,185 @@ window.removeHousingItem = function(idx) {
     config.housingConfig.placeableItems.splice(idx, 1);
     renderHousing();
 };
+
+window.renderQuests = function() {
+    if (!config.questsConfig) {
+        config.questsConfig = JSON.parse(JSON.stringify(DEFAULT_QUESTS_CONFIG));
+    }
+    if (!config.questsGlobalConfig) {
+        config.questsGlobalConfig = JSON.parse(JSON.stringify(DEFAULT_QUESTS_GLOBAL_CONFIG));
+    }
+
+    const maxActiveInput = document.getElementById('quests-max-active');
+    if (maxActiveInput) {
+        maxActiveInput.value = config.questsGlobalConfig.maxActiveQuests || 3;
+    }
+    
+    const list = document.getElementById('quests-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const f = getFilter();
+    
+    config.questsConfig.forEach((quest, idx) => {
+        if (f && !quest.name.toLowerCase().includes(f) && !quest.id.toLowerCase().includes(f) && !quest.desc.toLowerCase().includes(f)) return;
+        
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.background = 'rgba(255,255,255,0.02)';
+        div.style.padding = '1.5rem';
+        div.style.border = '1px solid rgba(255,255,255,0.05)';
+        div.style.position = 'relative';
+        
+        // Items render helper
+        if (!quest.reward) quest.reward = { exp: 0, hubs: 0, ohcu: 0, items: [] };
+        if (!quest.reward.items) quest.reward.items = [];
+        
+        let rewardItemsHTML = (quest.reward.items || []).map((item, itemIdx) => `
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:5px; border-radius:6px;">
+                <div class="field" style="margin:0; flex:2;"><label style="font-size:9px;">ID Ítem</label><input type="text" value="${item.id}" style="font-size:0.75rem; padding:4px;" onchange="config.questsConfig[${idx}].reward.items[${itemIdx}].id = this.value"></div>
+                <div class="field" style="margin:0; flex:1;"><label style="font-size:9px;">Cant.</label><input type="number" value="${item.qty}" style="font-size:0.75rem; padding:4px;" onchange="config.questsConfig[${idx}].reward.items[${itemIdx}].qty = Math.floor(Math.max(1, parseInt(this.value) || 1))"></div>
+                <button class="btn" style="background:var(--danger); border:none; padding:4px 8px; font-size:10px; margin-top:15px; cursor:pointer;" onclick="config.questsConfig[${idx}].reward.items.splice(${itemIdx}, 1); renderQuests();">✕</button>
+            </div>
+        `).join('');
+
+        // Generar Select HTML para Objetivo según el tipo
+        let targetSelectorHTML = '';
+        if (quest.targetType === 'explore') {
+            let mapOptions = '';
+            for (let mapId in config.mapsConfig) {
+                if (mapId === "10" || mapId === "11") continue; // Excluir mapas de extracción
+                mapOptions += `<option value="${mapId}" ${String(quest.targetId) === String(mapId) ? 'selected' : ''}>[Sector ${mapId}] ${config.mapsConfig[mapId].name}</option>`;
+            }
+            targetSelectorHTML = `
+                <div class="field">
+                    <label>Mapa a Explorar</label>
+                    <select onchange="config.questsConfig[${idx}].targetId = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                        ${mapOptions}
+                    </select>
+                </div>
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:10px; width: 100%;">
+                    <div class="field"><label>Coordenada X (Opcional)</label><input type="number" value="${quest.targetX !== undefined ? quest.targetX : ''}" placeholder="Ej: 2000" onchange="config.questsConfig[${idx}].targetX = this.value ? Math.floor(parseInt(this.value)) : undefined"></div>
+                    <div class="field"><label>Coordenada Y (Opcional)</label><input type="number" value="${quest.targetY !== undefined ? quest.targetY : ''}" placeholder="Ej: 2000" onchange="config.questsConfig[${idx}].targetY = this.value ? Math.floor(parseInt(this.value)) : undefined"></div>
+                </div>
+            `;
+        } else if (quest.targetType === 'kill') {
+            let enemyOptions = '';
+            for (let enemyId in config.enemyModels) {
+                // Ocultar variantes A, B, C si queremos simplificar la lista, pero dejar todas las bases
+                if (enemyId.includes('-')) continue;
+                enemyOptions += `<option value="${enemyId}" ${String(quest.targetId) === String(enemyId) ? 'selected' : ''}>[ID ${enemyId}] ${config.enemyModels[enemyId].name}</option>`;
+            }
+            targetSelectorHTML = `
+                <div class="field">
+                    <label>Monstruo / Enemigo</label>
+                    <select onchange="config.questsConfig[${idx}].targetId = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                        ${enemyOptions}
+                    </select>
+                </div>
+            `;
+        } else {
+            // Recolectar items o genérico
+            targetSelectorHTML = `
+                <div class="field">
+                    <label>ID del Ítem</label>
+                    <input type="text" value="${quest.targetId || ''}" placeholder="Ej: w_laser_1" onchange="config.questsConfig[${idx}].targetId = this.value">
+                </div>
+            `;
+        }
+
+        div.innerHTML = `
+            <div style="position:absolute; top:15px; right:15px;">
+                <button class="btn btn-secondary" style="background:var(--danger); border:none; padding:4px 10px;" onclick="removeQuest(${idx})">✕ ELIMINAR MISIÓN</button>
+            </div>
+            
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:15px;">
+                <div class="field"><label>ID Misión</label><input type="text" value="${quest.id}" onchange="config.questsConfig[${idx}].id = this.value"></div>
+                <div class="field"><label>Nombre</label><input type="text" value="${quest.name}" onchange="config.questsConfig[${idx}].name = this.value"></div>
+                <div class="field">
+                    <label>Clasificación</label>
+                    <select onchange="config.questsConfig[${idx}].type = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                        <option value="story" ${quest.type === 'story' ? 'selected' : ''}>Historia 📖</option>
+                        <option value="daily" ${quest.type === 'daily' ? 'selected' : ''}>Diaria ⏳</option>
+                        <option value="weekly" ${quest.type === 'weekly' ? 'selected' : ''}>Semanal 📅</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="field full" style="margin-top:10px;"><label>Descripción</label><input type="text" value="${quest.desc}" onchange="config.questsConfig[${idx}].desc = this.value"></div>
+            
+            <div style="margin-top:1.5rem; padding-top:1.2rem; border-top:1px solid rgba(255,255,255,0.05); display:grid; grid-template-columns: 1.2fr 1fr; gap:2rem;">
+                <!-- Columna Objetivo -->
+                <div>
+                    <h4 style="color:var(--accent); font-size:0.8rem; font-weight:bold; margin-bottom:10px;">🎯 OBJETIVO DE LA MISIÓN</h4>
+                    <div class="form-grid" style="grid-template-columns: 1fr; gap:12px;">
+                        <div class="field">
+                            <label>Tipo de Objetivo</label>
+                            <select onchange="config.questsConfig[${idx}].targetType = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                                <option value="kill" ${quest.targetType === 'kill' ? 'selected' : ''}>⚔️ Matar Enemigos</option>
+                                <option value="collect" ${quest.targetType === 'collect' ? 'selected' : ''}>📦 Recolectar Ítems</option>
+                                <option value="explore" ${quest.targetType === 'explore' ? 'selected' : ''}>🗺️ Explorar Zona</option>
+                            </select>
+                        </div>
+                        
+                        ${targetSelectorHTML}
+                        
+                        <div class="field">
+                            <label>Cantidad Requerida</label>
+                            <input type="number" value="${quest.targetAmount || 1}" onchange="config.questsConfig[${idx}].targetAmount = Math.floor(Math.max(1, parseInt(this.value) || 1))">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Columna Recompensas -->
+                <div>
+                    <h4 style="color:var(--success); font-size:0.8rem; font-weight:bold; margin-bottom:10px;">🎁 RECOMPENSAS</h4>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
+                        <div class="field"><label>EXP</label><input type="number" value="${quest.reward.exp}" onchange="config.questsConfig[${idx}].reward.exp = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
+                        <div class="field"><label>HUBS</label><input type="number" value="${quest.reward.hubs}" onchange="config.questsConfig[${idx}].reward.hubs = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
+                        <div class="field"><label>OHCU</label><input type="number" value="${quest.reward.ohcu}" onchange="config.questsConfig[${idx}].reward.ohcu = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
+                    </div>
+                    
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <label style="font-size:0.75rem; color:#aaa; font-weight:bold;">📦 Ítems Recompensa</label>
+                            <button class="btn btn-primary" style="padding:2px 8px; font-size:9px;" onclick="config.questsConfig[${idx}].reward.items.push({id:'', qty:1}); renderQuests();">+ Añadir Ítem</button>
+                        </div>
+                        <div style="max-height:120px; overflow-y:auto; padding-right:5px;">
+                            ${rewardItemsHTML}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+};
+
+window.addNewQuest = function() {
+    if (!config.questsConfig) config.questsConfig = [];
+    config.questsConfig.push({
+        id: "quest_" + Date.now().toString().slice(-4),
+        name: "Nueva Misión Galáctica",
+        desc: "Descripción de la misión.",
+        type: "story",
+        targetType: "kill",
+        targetId: "1",
+        targetAmount: 5,
+        reward: {
+            exp: 100,
+            hubs: 500,
+            ohcu: 1,
+            items: []
+        }
+    });
+    renderQuests();
+};
+
+window.removeQuest = function(idx) {
+    if (!config.questsConfig) return;
+    config.questsConfig.splice(idx, 1);
+    renderQuests();
+};
+
 

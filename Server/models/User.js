@@ -84,6 +84,12 @@ const UserSchema = new mongoose.Schema({
         housing: {
             unlocked: { type: Boolean, default: false },
             placedObjects: { type: Array, default: [] }
+        },
+        quests: {
+            active: { type: Array, default: [] }, // Array de { id, progress, acceptedAt }
+            completed: { type: Array, default: [] }, // Array de IDs de misiones completadas
+            lastDailyReset: { type: Date, default: null },
+            lastWeeklyReset: { type: Date, default: null }
         }
     }
 });

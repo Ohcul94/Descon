@@ -136,6 +136,7 @@ func _ready():
 	_update_map_ui()
 	_update_clan_ui()
 	_update_crafting_ui()
+	_update_quests_ui()
 	
 	_refresh_data()
 	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
@@ -382,6 +383,7 @@ func _on_inventory_received(data: Dictionary):
 	if is_open: 
 		_update_clan_ui()
 		_update_crafting_ui()
+		_update_quests_ui()
 	
 	# v164.11: Sincronizar con el Player (CRÍTICO PARA MMO SYNC)
 	# Siempre actualizamos los datos internos aunque la UI esté cerrada
@@ -443,6 +445,9 @@ func _update_active_tab_ui():
 		"Crafteo": 
 			var ct = tab_container.get_node_or_null("Crafteo")
 			if ct and ct.has_method("update_ui"): ct.update_ui()
+		"Misiones":
+			var qt = tab_container.get_node_or_null("Misiones")
+			if qt and qt.has_method("update_ui"): qt.update_ui()
 	
 	queue_redraw()
 
@@ -613,3 +618,14 @@ func _show_result_modal(title, msg):
 		canvas_layer.queue_free()
 		modal_active = active_modales.size() > 0
 	); v.add_child(b)
+
+func _update_quests_ui():
+	var qt = get_node_or_null("Window/TabContainer/Misiones")
+	if not qt:
+		var tabs = get_node_or_null("Window/TabContainer")
+		if tabs:
+			qt = Control.new(); qt.name = "Misiones"; tabs.add_child(qt)
+			qt.set_script(load("res://scripts/ui/inventory/QuestsTab.gd"))
+			if qt.has_method("setup"): qt.setup(self)
+	
+	if qt and qt.has_method("update_ui"): qt.update_ui()

@@ -144,6 +144,7 @@ function showTab(tabId) {
         'loot': 'Sistema de Recompensas (Loot)',
         'enemy-loot': 'Configuración de Botín del Enemigo',
         'crafting': 'Crafteo y Creación de Ítems',
+        'quests': 'Misiones de la Galaxia',
         'chat-global': 'Transmisión y Chat Global'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
@@ -330,6 +331,14 @@ function connect() {
                 config.chatConfig = {
                     globalChatEnabled: true
                 };
+            }
+
+            // Inicializar configuración de Misiones
+            if (!config.questsConfig) {
+                config.questsConfig = JSON.parse(JSON.stringify(DEFAULT_QUESTS_CONFIG));
+            }
+            if (!config.questsGlobalConfig) {
+                config.questsGlobalConfig = JSON.parse(JSON.stringify(DEFAULT_QUESTS_GLOBAL_CONFIG));
             }
 
             patchMechanicsLib();

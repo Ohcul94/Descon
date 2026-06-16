@@ -76,7 +76,8 @@ const CLIENT_CONFIG_KEYS = [
     'pilotConfig',
     'gameModes',
     'craftingRecipes',
-    'housingConfig'
+    'housingConfig',
+    'questsConfig'
 ];
 
 const buildClientConfig = (config) => {
@@ -1036,6 +1037,10 @@ io.on('connection', (socket) => {
 
     // Registrar manejadores del sistema de Housing 3D
     registerHousingHandlers(socket, io, state);
+
+    // Registrar manejadores del sistema de Misiones (v380)
+    const { registerQuestHandlers } = require('./systems/questHandlers');
+    registerQuestHandlers(socket, io, state);
 
 
     // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL (PROTEGIDO)

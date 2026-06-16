@@ -94,3 +94,25 @@ const DEFAULT_HOUSING_CONFIG = {
         { id: "terminal", name: "Terminal de Datos", cost: 1500, currency: "ohcu", model: "res://assets/3d/terminal.glb" }
     ]
 };
+
+const DEFAULT_QUESTS_CONFIG = [
+    {
+        id: "quest_1",
+        name: "El Despertar del Piloto",
+        desc: "Derrota a 5 enemigos regulares para demostrar tu valía en órbita.",
+        type: "story",
+        targetType: "kill",
+        targetId: "1",
+        targetAmount: 5,
+        reward: {
+            exp: 500,
+            hubs: 1000,
+            ohcu: 5,
+            items: []
+        }
+    }
+];
+
+const DEFAULT_QUESTS_GLOBAL_CONFIG = {
+    maxActiveQuests: 3
+};

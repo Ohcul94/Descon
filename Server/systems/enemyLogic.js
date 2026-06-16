@@ -4,6 +4,7 @@
  */
 const User = require('../models/User');
 const lootManager = require('./lootManager');
+const { processEnemyKillsForUser } = require('./questHandlers');
 
 
 function executeEnemyExplosion(enemy, io, state) {
@@ -116,6 +117,9 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
                     user.gameData.hubs += shared_h;
                     user.gameData.ohcu += shared_o;
                     user.gameData.exp += shared_e;
+
+                    // Procesar progreso de misiones tipo 'kill' (v380)
+                    processEnemyKillsForUser(user, enemy.type, state, memberSocket);
 
                     memberSocket.emit('enemyKillSession', { hubs: shared_h, ohcu: shared_o, exp: shared_e, killer: killerSocketId });
 
