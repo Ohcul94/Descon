@@ -56,7 +56,7 @@ func _process(delta):
 				var rp = remote_players[pid]
 				if is_instance_valid(rp):
 					var rp_zone = rp.get_meta("zone") if rp.has_meta("zone") else -1
-					if rp_zone != -1 and rp_zone != my_zone:
+					if rp_zone == -1 or rp_zone != my_zone:
 						remote_players.erase(pid)
 						rp.queue_free()
 						print("[EntityManager SINC] Piloto huérfano removido por cambio de zona: ", pid)
@@ -66,7 +66,7 @@ func _process(delta):
 				var en = enemies[eid]
 				if is_instance_valid(en):
 					var en_zone = en.get_meta("zone") if en.has_meta("zone") else -1
-					if en_zone != -1 and en_zone != my_zone:
+					if en_zone == -1 or en_zone != my_zone:
 						en.deactivate_for_pooling()
 						enemies.erase(eid)
 						print("[EntityManager SINC] Enemigo huérfano purgado por cambio de zona: ", eid)
@@ -76,7 +76,7 @@ func _process(delta):
 				var drop = loot_drops[lid]
 				if is_instance_valid(drop):
 					var drop_zone = drop.get_meta("zone") if drop.has_meta("zone") else -1
-					if drop_zone != -1 and drop_zone != my_zone:
+					if drop_zone == -1 or drop_zone != my_zone:
 						loot_drops.erase(lid)
 						drop.queue_free()
 						print("[EntityManager SINC] Botín huérfano purgado por cambio de zona: ", lid)
@@ -645,6 +645,9 @@ func clear_remote_players():
 		if is_instance_valid(enemies[id]): 
 			enemies[id].deactivate_for_pooling()
 	enemies.clear()
+	for en in enemy_pool:
+		if is_instance_valid(en):
+			en.deactivate_for_pooling()
 	for id in loot_drops.keys():
 		var drop = loot_drops[id]
 		if is_instance_valid(drop): drop.queue_free()
@@ -1184,6 +1187,10 @@ func _on_clear_zone_entities(payload):
 		if is_instance_valid(enemies[id]): 
 			enemies[id].deactivate_for_pooling()
 	enemies.clear()
+	
+	for en in enemy_pool:
+		if is_instance_valid(en):
+			en.deactivate_for_pooling()
 	
 	for id in remote_players:
 		if is_instance_valid(remote_players[id]): remote_players[id].queue_free()

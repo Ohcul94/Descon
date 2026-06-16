@@ -4162,10 +4162,9 @@ window.renderQuests = function() {
         // Generar Select HTML para Objetivo según el tipo
         let targetSelectorHTML = '';
         if (quest.targetType === 'explore') {
-            let mapOptions = '';
+            let mapOptions = `<option value="" ${!quest.targetId ? 'selected' : ''}>-- Seleccionar Mapa --</option>`;
             for (let mapId in config.mapsConfig) {
-                if (mapId === "10" || mapId === "11") continue; // Excluir mapas de extracción
-                mapOptions += `<option value="${mapId}" ${String(quest.targetId) === String(mapId) ? 'selected' : ''}>[Sector ${mapId}] ${config.mapsConfig[mapId].name}</option>`;
+                mapOptions += `<option value="${mapId}" ${String(quest.targetId).trim().toLowerCase() === String(mapId).trim().toLowerCase() ? 'selected' : ''}>[Sector ${mapId}] ${config.mapsConfig[mapId].name}</option>`;
             }
             targetSelectorHTML = `
                 <div class="field">
@@ -4180,17 +4179,46 @@ window.renderQuests = function() {
                 </div>
             `;
         } else if (quest.targetType === 'kill') {
-            let enemyOptions = '';
+            let enemyOptions = `<option value="" ${!quest.targetId ? 'selected' : ''}>-- Seleccionar Enemigo --</option>`;
             for (let enemyId in config.enemyModels) {
-                // Ocultar variantes A, B, C si queremos simplificar la lista, pero dejar todas las bases
-                if (enemyId.includes('-')) continue;
-                enemyOptions += `<option value="${enemyId}" ${String(quest.targetId) === String(enemyId) ? 'selected' : ''}>[ID ${enemyId}] ${config.enemyModels[enemyId].name}</option>`;
+                // Traer absolutamente todos los monstruos incluyendo sub-tiers (1-D, 2-C, etc)
+                enemyOptions += `<option value="${enemyId}" ${String(quest.targetId).trim().toLowerCase() === String(enemyId).trim().toLowerCase() ? 'selected' : ''}>[ID ${enemyId}] ${config.enemyModels[enemyId].name}</option>`;
             }
             targetSelectorHTML = `
                 <div class="field">
                     <label>Monstruo / Enemigo</label>
                     <select onchange="config.questsConfig[${idx}].targetId = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
                         ${enemyOptions}
+                    </select>
+                </div>
+            `;
+        } else if (quest.targetType === 'event') {
+            const eventOptions = `
+                <option value="" ${!quest.targetId ? 'selected' : ''}>-- Seleccionar Evento --</option>
+                <option value="extraction_win" ${String(quest.targetId).trim().toLowerCase() === 'extraction_win' ? 'selected' : ''}>🏆 Ganar Extracción (F2)</option>
+                <option value="altar_defense_win" ${String(quest.targetId).trim().toLowerCase() === 'altar_defense_win' ? 'selected' : ''}>🗼 Completar Defensa del Altar</option>
+                <option value="arena_win" ${String(quest.targetId).trim().toLowerCase() === 'arena_win' ? 'selected' : ''}>⚔️ Ganar Arena PVP</option>
+            `;
+            targetSelectorHTML = `
+                <div class="field">
+                    <label>Evento Requerido</label>
+                    <select onchange="config.questsConfig[${idx}].targetId = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                        ${eventOptions}
+                    </select>
+                </div>
+            `;
+        } else if (quest.targetType === 'housing') {
+            let housingOptions = `<option value="" ${!quest.targetId ? 'selected' : ''}>-- Seleccionar Objeto --</option>`;
+            if (config.housingConfig && Array.isArray(config.housingConfig.placeableItems)) {
+                config.housingConfig.placeableItems.forEach(item => {
+                    housingOptions += `<option value="${item.id}" ${String(quest.targetId).trim().toLowerCase() === String(item.id).trim().toLowerCase() ? 'selected' : ''}>🏠 ${item.name} (ID: ${item.id})</option>`;
+                });
+            }
+            targetSelectorHTML = `
+                <div class="field">
+                    <label>Objeto de Housing</label>
+                    <select onchange="config.questsConfig[${idx}].targetId = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                        ${housingOptions}
                     </select>
                 </div>
             `;
@@ -4231,10 +4259,12 @@ window.renderQuests = function() {
                     <div class="form-grid" style="grid-template-columns: 1fr; gap:12px;">
                         <div class="field">
                             <label>Tipo de Objetivo</label>
-                            <select onchange="config.questsConfig[${idx}].targetType = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                            <select onchange="config.questsConfig[${idx}].targetType = this.value; config.questsConfig[${idx}].targetId = ''; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
                                 <option value="kill" ${quest.targetType === 'kill' ? 'selected' : ''}>⚔️ Matar Enemigos</option>
                                 <option value="collect" ${quest.targetType === 'collect' ? 'selected' : ''}>📦 Recolectar Ítems</option>
                                 <option value="explore" ${quest.targetType === 'explore' ? 'selected' : ''}>🗺️ Explorar Zona</option>
+                                <option value="event" ${quest.targetType === 'event' ? 'selected' : ''}>🏆 Evento Especial</option>
+                                <option value="housing" ${quest.targetType === 'housing' ? 'selected' : ''}>🏠 Colocar Housing</option>
                             </select>
                         </div>
                         
@@ -4280,7 +4310,7 @@ window.addNewQuest = function() {
         desc: "Descripción de la misión.",
         type: "story",
         targetType: "kill",
-        targetId: "1",
+        targetId: "",
         targetAmount: 5,
         reward: {
             exp: 100,

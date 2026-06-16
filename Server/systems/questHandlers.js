@@ -224,7 +224,7 @@ function registerQuestHandlers(socket, io, state) {
             // Validar progreso de forma autoritativa
             let isCompleted = false;
 
-            if (questDef.targetType === 'kill') {
+            if (questDef.targetType === 'kill' || questDef.targetType === 'event') {
                 isCompleted = activeQuest.progress >= questDef.targetAmount;
             } else if (questDef.targetType === 'explore') {
                 if (questDef.targetX !== undefined && questDef.targetY !== undefined && questDef.targetX !== null && questDef.targetY !== null) {
@@ -241,6 +241,10 @@ function registerQuestHandlers(socket, io, state) {
                 const inventory = user.gameData.inventory || [];
                 const itemQty = inventory.filter(item => String(item.id) === String(questDef.targetId)).length;
                 isCompleted = itemQty >= questDef.targetAmount;
+            } else if (questDef.targetType === 'housing') {
+                // Verificar si tiene el objeto colocado en el housing
+                const placed = user.gameData.housing ? user.gameData.housing.placedObjects : [];
+                isCompleted = Array.isArray(placed) && placed.some(obj => String(obj.id) === String(questDef.targetId));
             }
 
             if (!isCompleted) {
@@ -498,9 +502,42 @@ function processEnemyKillsForUser(user, enemyType, state, socket) {
     return modified;
 }
 
+function processEventWinForUser(user, eventType, state, socket) {
+    if (!user || !user.gameData || !user.gameData.quests) return false;
+    const activeQuests = user.gameData.quests.active || [];
+    const questsConfig = state.SERVER_CONFIG?.questsConfig || [];
+    let modified = false;
+
+    for (const activeQuest of activeQuests) {
+        const questDef = questsConfig.find(q => String(q.id) === String(activeQuest.id));
+        if (questDef && questDef.targetType === 'event' && String(questDef.targetId) === String(eventType)) {
+            if (activeQuest.progress < questDef.targetAmount) {
+                activeQuest.progress++;
+                modified = true;
+                if (socket) {
+                    socket.emit('gameNotification', {
+                        msg: `Misión: ${questDef.name} (${activeQuest.progress}/${questDef.targetAmount})`,
+                        type: 'info'
+                    });
+                    socket.emit('questsStateData', {
+                        active: user.gameData.quests.active,
+                        completed: user.gameData.quests.completed
+                    });
+                }
+            }
+        }
+    }
+
+    if (modified) {
+        user.markModified('gameData.quests');
+    }
+    return modified;
+}
+
 module.exports = {
     registerQuestHandlers,
     onEnemyKilled,
     onZoneChanged,
-    processEnemyKillsForUser
+    processEnemyKillsForUser,
+    processEventWinForUser
 };
