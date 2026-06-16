@@ -182,8 +182,25 @@ function registerMovementHandlers(socket, io, state) {
             }, 350);
         }
 
-        // v2.2: OPTIMIZACIÓN DE RED POR SECTORES (AOI) EN ZONA DE EXTRACCIÓN O MAPA 10 (VISIBILIDAD ROBUSTA DIRECTA)
-        socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', getLightMovementPayload(p, socket.id));
+        // v2.3: AOI (Area of Interest) para playerMoved — Solo emitir a jugadores en las 9 celdas vecinas
+        // Elimina el broadcast total O(N²) reemplazándolo por filtrado espacial O(vecinos)
+        const CELL_SIZE = 500; // Debe coincidir con el cellSize del GridManager
+        const pCx = Math.floor(p.x / CELL_SIZE);
+        const pCy = Math.floor(p.y / CELL_SIZE);
+        const movPayload = getLightMovementPayload(p, socket.id);
+
+        Object.values(state.players).forEach(other => {
+            // No enviarse a sí mismo y asegurarse de estar en la misma zona
+            if (other.socketId === socket.id || String(other.zone) !== String(p.zone)) return;
+
+            const oCx = Math.floor(other.x / CELL_SIZE);
+            const oCy = Math.floor(other.y / CELL_SIZE);
+
+            // Solo enviar si el otro jugador está en el bloque 3x3 de celdas alrededor del emisor
+            if (Math.abs(pCx - oCx) <= 1 && Math.abs(pCy - oCy) <= 1) {
+                io.to(other.socketId).emit('playerMoved', movPayload);
+            }
+        });
     });
 
     // EVENTO DE RESPAWN DE JUGADORES

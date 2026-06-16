@@ -108,11 +108,12 @@ function registerZoneHandlers(socket, io, state) {
         socket.to(`zone_${newZone}`).emit('newPlayer', getCleanPlayerData(p, socket.id));
 
         // v268.66: Sincronización Unificada y Purga Administrativa
+        // v2.3: Usar playersByZone en lugar de iterar todos los jugadores — O(N_zona) vs O(N_total)
         const currentPlayersInZone = {};
-        Object.keys(players).forEach(pId => {
-            const otherP = players[pId];
-            if (normalizeZone(otherP.zone) === normalizeZone(newZone) && pId !== socket.id) {
-                currentPlayersInZone[pId] = getCleanPlayerData(otherP, pId);
+        const zonePlayersIndex = state.playersByZone[newZone] || {};
+        Object.keys(zonePlayersIndex).forEach(pId => {
+            if (pId !== socket.id) {
+                currentPlayersInZone[pId] = getCleanPlayerData(zonePlayersIndex[pId], pId);
             }
         });
 
@@ -260,11 +261,12 @@ function registerZoneHandlers(socket, io, state) {
             socket.to(`zone_${zoneId}`).emit('newPlayer', getCleanPlayerData(p, socket.id));
 
             // v268.66: Sincronización Unificada y Purga de Entidades Muertas
+            // v2.3: Usar playersByZone en lugar de iterar todos los jugadores — O(N_zona) vs O(N_total)
             const currentPlayersInZone = {};
-            Object.keys(players).forEach(pId => {
-                const otherP = players[pId];
-                if (normalizeZone(otherP.zone) === normalizeZone(zoneId) && pId !== socket.id) {
-                    currentPlayersInZone[pId] = getCleanPlayerData(otherP, pId);
+            const destZoneIndex = state.playersByZone[zoneId] || {};
+            Object.keys(destZoneIndex).forEach(pId => {
+                if (pId !== socket.id) {
+                    currentPlayersInZone[pId] = getCleanPlayerData(destZoneIndex[pId], pId);
                 }
             });
 

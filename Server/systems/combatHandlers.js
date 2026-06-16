@@ -112,7 +112,21 @@ function registerCombatHandlers(socket, io, state) {
             range: Math.round(fireData.range !== undefined ? fireData.range : 600.0)
         };
 
-        socket.to(`zone_${p.zone}`).emit('playerFire', pData);
+        // v2.3: AOI para playerFire — Solo emitir disparos a jugadores en las 9 celdas vecinas
+        // Consistente con el sistema AOI de playerMoved. Reduce paquetes a jugadores alejados.
+        const FIRE_CELL_SIZE = 500;
+        const fCx = Math.floor(p.x / FIRE_CELL_SIZE);
+        const fCy = Math.floor(p.y / FIRE_CELL_SIZE);
+
+        Object.values(state.players).forEach(other => {
+            if (other.socketId === socket.id || String(other.zone) !== String(p.zone)) return;
+            const oCx = Math.floor(other.x / FIRE_CELL_SIZE);
+            const oCy = Math.floor(other.y / FIRE_CELL_SIZE);
+            if (Math.abs(fCx - oCx) <= 1 && Math.abs(fCy - oCy) <= 1) {
+                io.to(other.socketId).emit('playerFire', pData);
+            }
+        });
+
     });
 
     // SISTEMA DE HABILIDADES DE ESFERAS (Soporte Polimórfico v262.10)

@@ -66,8 +66,19 @@ function startGameLoop(io, state, aiManager) {
         // LOBBY OPTIMIZATION: determinar la zona de Lobby una sola vez por tick
         const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
 
+        // v2.3: Optimización de IA por Zonas Activas — CPU 0% en zonas sin jugadores
+        // Construir Set de zonas con al menos 1 jugador conectado (O(N_mapas_activos))
+        const activeZones = new Set();
+        Object.keys(state.playersByZone || {}).forEach(zoneId => {
+            if (state.playersByZone[zoneId] && Object.keys(state.playersByZone[zoneId]).length > 0) {
+                activeZones.add(String(zoneId));
+            }
+        });
+
         for (const id in enemies) {
             const e = enemies[id];
+
+            // Procesar muertes pendientes siempre, sin importar si hay jugadores en la zona
             if (e.hp <= 0) {
                 if (!e.isDeadProcessed) handleEnemyDeath(id, io, state);
                 continue;
@@ -76,17 +87,23 @@ function startGameLoop(io, state, aiManager) {
             // LOBBY OPTIMIZATION: saltar IA para enemigos en la zona del Lobby (no hay combate)
             if (Number(e.zone) === lobbyZoneId) continue;
 
+            // v2.3: SKIP completo si la zona del enemigo no tiene jugadores activos
+            // Excepción: mecánicas activas o ProwlerAI que deben seguir aunque la zona esté vacía
+            const zoneHasPlayers = activeZones.has(String(e.zone));
+            const hasActiveMech = e.mechState && Object.values(e.mechState).some(m => m.isActive);
+            const isProwler = e.ai && e.ai.constructor.name === 'ProwlerAI';
+
+            if (!zoneHasPlayers && !hasActiveMech && !isProwler) continue;
+
             // Normalizar zona del enemigo una sola vez por ciclo
             const eZoneNormalized = normalizeZone(e.zone);
 
             // v262.35: IA Inteligente (LOD) - Forzar actualización si hay mecánicas activas o Agresividad Extrema
             const { players: nearbyPs } = grid.getNearbyEntities(e.x, e.y, e.zone);
             const isNearPlayer = nearbyPs.some(p => normalizeZone(p.zone) === eZoneNormalized);
-            const hasActiveMech = e.mechState && Object.values(e.mechState).some(m => m.isActive);
             
             // v266.999: Detección de Agresividad Extrema para Bypass de LOD (Usando Set optimizado O(1))
             const isExtreme = extremeZones.has(String(e.zone));
-            const isProwler = e.ai && e.ai.constructor.name === 'ProwlerAI';
 
             if (isNearPlayer || hasActiveMech || isExtreme || isProwler || (now % 1000 < 33)) {
                 if (e.ai) e.ai.update(grid, players, now, io);
@@ -112,6 +129,7 @@ function startGameLoop(io, state, aiManager) {
                 }
             });
         }
+
 
         // v262.30: Broadcast por AOI (Area of Interest) - 5x5 Celdas (2500px x 2500px) a 15 FPS con Delta Compression
         const isNetworkTick = (loopCounter % 2 === 0);
