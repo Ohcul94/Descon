@@ -1224,10 +1224,15 @@ func _on_clear_zone_entities(payload):
 			new_world_size = ex_w if ex_w > 0 else 10000.0
 		else:
 			new_world_size = 10000.0
-	elif is_dungeon or int(_zoneId) > 2 or int(_zoneId) == 1:
+	elif is_dungeon or int(_zoneId) == 1:
 		new_world_size = 2000.0
 	else:
 		new_world_size = 4000.0
+		var z_id_str = str(_zoneId)
+		if z_id_str in GameConstants.MAPS_CONFIG:
+			var z_cfg = GameConstants.MAPS_CONFIG[z_id_str]
+			if z_cfg.has("width") and float(z_cfg.width) > 0:
+				new_world_size = float(z_cfg.width)
 	
 	var zone_int = _parse_zone_to_int(_zoneId)
 	if is_instance_valid(world) and is_instance_valid(world.local_player):

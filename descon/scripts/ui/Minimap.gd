@@ -6,6 +6,7 @@ extends Control
 const WORLD_DRAW_SIZE = 4000.0
 
 var world_size: float
+var info_label: Label = null
 
 func _input(event):
 	if event is InputEventMouseButton and event.pressed:
@@ -56,10 +57,63 @@ func _ready():
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE # Evitar que el BG bloquee al Minimap
 		bg.show_behind_parent = true
 		add_child(bg)
+		
+	# Inyectar Label de coordenadas y zona estilo neón
+	info_label = Label.new()
+	info_label.name = "MapInfoLabel"
+	info_label.add_theme_font_size_override("font_size", 10)
+	info_label.add_theme_color_override("font_color", Color(0, 1, 1, 0.95)) # Cian
+	
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0.04, 0.08, 0.75)
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	sb.border_width_left = 1
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(0, 1, 1, 0.3)
+	sb.set_corner_radius_all(3)
+	info_label.add_theme_stylebox_override("normal", sb)
+	
+	# Desactivar clipping para permitir dibujar fuera de la ventana del minimapa
+	clip_contents = false
+	if get_parent() is Control:
+		get_parent().clip_contents = false
+		
+	add_child(info_label)
 
 func _process(_delta):
 	if visible:
 		queue_redraw()
+		_update_info_label()
+
+func _update_info_label():
+	if not is_instance_valid(info_label): return
+	var player = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(player):
+		info_label.text = ""
+		return
+		
+	var current_zone_id = str(player.current_zone) if "current_zone" in player else "1"
+	var z_name = "SECTOR DESCONOCIDO"
+	if current_zone_id in GameConstants.MAPS_CONFIG:
+		z_name = GameConstants.MAPS_CONFIG[current_zone_id].name
+	elif int(current_zone_id) >= 500:
+		z_name = "INSTANCIA PRIVADA"
+	else:
+		z_name = "SECTOR " + str(current_zone_id).pad_zeros(2)
+		
+	var px = int(player.global_position.x)
+	var py = int(player.global_position.y)
+	info_label.text = "%s | X: %d, Y: %d" % [z_name.to_upper(), px, py]
+	
+	# Centrar dinámicamente adentro del minimapa en la parte superior
+	info_label.reset_size()
+	info_label.position.x = (size.x - info_label.size.x) / 2.0
+	info_label.position.y = 8
 
 func _draw():
 	var player = get_tree().get_first_node_in_group("player")

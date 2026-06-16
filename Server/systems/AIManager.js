@@ -171,7 +171,7 @@ class AIManager {
                                     if (s.spawnMode === 'fixed' && s.x !== undefined && s.y !== undefined) {
                                         posX = s.x;
                                         posY = s.y;
-                                    } else if (s.spawnMode === 'random' && s.x !== undefined && s.y !== undefined && s.radius) {
+                                    } else if (s.spawnMode === 'random' && s.x !== undefined && s.y !== undefined && s.radius !== undefined && s.radius > 0) {
                                         const angle = Math.random() * Math.PI * 2;
                                         const r = Math.random() * s.radius;
                                         posX = s.x + Math.cos(angle) * r;

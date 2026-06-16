@@ -1072,8 +1072,14 @@ io.on('connection', (socket) => {
             broadcastConfigUpdate(io, config);
             
             // Vaciar enemigos en RAM para que el respawn los recree con nuevos datos
-            Object.keys(enemies).forEach(id => delete enemies[id]);
-            console.log(`[ADMIN] Purgados ${Object.keys(enemies).length} enemigos antiguos para re-sincronización.`);
+            const oldEnemyCount = Object.keys(enemies).length;
+            Object.keys(enemies).forEach(id => {
+                const e = enemies[id];
+                if (state.grid) state.grid.remove(e, 'enemy');
+                io.to(`zone_${e.zone}`).emit('enemyDead', { id: id });
+                delete enemies[id];
+            });
+            console.log(`[ADMIN] Purgados ${oldEnemyCount} enemigos antiguos para re-sincronización.`);
             
         } catch (e) { console.error("Error guardando config:", e); }
     });
@@ -1082,7 +1088,12 @@ io.on('connection', (socket) => {
     socket.on('adminPurgeEnemies', () => {
         if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
         const count = Object.keys(enemies).length;
-        Object.keys(enemies).forEach(id => delete enemies[id]);
+        Object.keys(enemies).forEach(id => {
+            const e = enemies[id];
+            if (state.grid) state.grid.remove(e, 'enemy');
+            io.to(`zone_${e.zone}`).emit('enemyDead', { id: id });
+            delete enemies[id];
+        });
         console.log(`[ADMIN] Purga manual ejecutada por Caelli94. ${count} enemigos eliminados.`);
         io.emit('gameNotification', { msg: `PURGA COMPLETADA: ${count} enemigos eliminados.`, type: 'success' });
     });

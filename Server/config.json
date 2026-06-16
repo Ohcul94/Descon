@@ -2880,9 +2880,9 @@
                     "count": 5,
                     "intervalMs": 5000,
                     "id": "spawn_2_idx_1_type_1-A",
-                    "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
+                    "spawnMode": "fixed",
+                    "x": 8617,
+                    "y": 8574,
                     "radius": 0
                 },
                 {

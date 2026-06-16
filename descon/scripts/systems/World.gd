@@ -474,6 +474,14 @@ func _update_background(zone_id):
 		current_map_node = map_scene.instantiate()
 		if "zone_id" in current_map_node:
 			current_map_node.zone_id = zone_id
+			
+		# v311.2: Aplicar tamaño de mapa dinámico desde el servidor al nodo cargado
+		var z_id_str = str(zid)
+		if "world_size" in current_map_node and z_id_str in GameConstants.MAPS_CONFIG:
+			var z_cfg = GameConstants.MAPS_CONFIG[z_id_str]
+			if z_cfg.has("width") and float(z_cfg.width) > 0:
+				current_map_node.world_size = float(z_cfg.width)
+				
 		add_child(current_map_node)
 		move_child(current_map_node, 0) # Asegurar que quede detrás de las entidades
 		
