@@ -112,20 +112,26 @@ function registerCombatHandlers(socket, io, state) {
             range: Math.round(fireData.range !== undefined ? fireData.range : 600.0)
         };
 
-        // v2.3: AOI para playerFire — Solo emitir disparos a jugadores en las 9 celdas vecinas
-        // Consistente con el sistema AOI de playerMoved. Reduce paquetes a jugadores alejados.
-        const FIRE_CELL_SIZE = 500;
-        const fCx = Math.floor(p.x / FIRE_CELL_SIZE);
-        const fCy = Math.floor(p.y / FIRE_CELL_SIZE);
+        // v2.4: AOI adaptativo para playerFire
+        // - Zonas especiales (arena_, extract_): broadcast completo para que todos vean los disparos
+        // - Zonas normales: filtro por 3 celdas de radio
+        const isSpecialZoneFire = typeof p.zone === 'string' && (p.zone.startsWith('arena_') || p.zone.startsWith('extract_') || p.zone.startsWith('dungeon'));
+        if (isSpecialZoneFire) {
+            socket.to(`zone_${p.zone}`).emit('playerFire', pData);
+        } else {
+            const FIRE_CELL_SIZE = 500;
+            const fCx = Math.floor(p.x / FIRE_CELL_SIZE);
+            const fCy = Math.floor(p.y / FIRE_CELL_SIZE);
+            Object.values(state.players).forEach(other => {
+                if (other.socketId === socket.id || String(other.zone) !== String(p.zone)) return;
+                const oCx = Math.floor(other.x / FIRE_CELL_SIZE);
+                const oCy = Math.floor(other.y / FIRE_CELL_SIZE);
+                if (Math.abs(fCx - oCx) <= 3 && Math.abs(fCy - oCy) <= 3) {
+                    io.to(other.socketId).emit('playerFire', pData);
+                }
+            });
+        }
 
-        Object.values(state.players).forEach(other => {
-            if (other.socketId === socket.id || String(other.zone) !== String(p.zone)) return;
-            const oCx = Math.floor(other.x / FIRE_CELL_SIZE);
-            const oCy = Math.floor(other.y / FIRE_CELL_SIZE);
-            if (Math.abs(fCx - oCx) <= 1 && Math.abs(fCy - oCy) <= 1) {
-                io.to(other.socketId).emit('playerFire', pData);
-            }
-        });
 
     });
 

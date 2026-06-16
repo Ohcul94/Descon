@@ -1442,8 +1442,32 @@ io.on('connection', (socket) => {
             } catch (e) { console.error("[PVP-SAVE] Error:", e); }
         }
         
-        // Avisar a todos incluyendo al due├▒o (para visual local)
-        io.emit('playerUpdated', { id: socket.id, pvpEnabled: p.pvpEnabled });
+        // v2.4: Notificar a la zona con TODOS los datos de presentación del jugador.
+        // Si playerUpdated solo lleva { id, pvpEnabled }, el cliente Godot re-instancia la nave
+        // con valores por defecto (ship Tier 1, "Unknown") porque no tiene currentShipId ni username.
+        const pvpUpdatePayload = {
+            id:             socket.id,
+            pvpEnabled:     p.pvpEnabled,
+            // Campos de presentación — sin estos el cliente muestra nave Tier 1 y "Unknown"
+            user:           p.user || 'Unknown',
+            username:       p.user || 'Unknown',
+            x:              Math.round(p.x),
+            y:              Math.round(p.y),
+            rotation:       Math.round((p.rotation || 0) * 100) / 100,
+            hp:             Math.ceil(p.hp || 0),
+            shield:         Math.ceil(p.shield || 0),
+            sh:             Math.ceil(p.shield || 0),
+            maxHp:          p.maxHp || 0,
+            maxShield:      p.maxShield || 0,
+            zone:           p.zone,
+            clanTag:        p.clanTag || '',
+            currentShipId:  p.currentShipId || 1,
+            isInvisible:    !!p.isInvisible,
+            isInvulnerable: !!p.isInvulnerable,
+            isDead:         !!p.isDead,
+            spheres:        p.spheres || []
+        };
+        io.to(`zone_${p.zone}`).emit('playerUpdated', pvpUpdatePayload);
         console.log(`[PVP] Piloto ${p.user} modo: ${enabled ? 'ACTIVO' : 'SEGURO'}`);
     });
 

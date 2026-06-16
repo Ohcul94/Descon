@@ -6,7 +6,7 @@ class_name BaseMap
 
 @export var world_size: float = 4000.0
 @export var zone_name: String = "SECTOR DESCONOCIDO"
-@export var zone_id = 1
+@export var zone_id: Variant = 1  # Variant: acepta int (zonas normales) y String (arena_x, extract_x)
 @export var scale_factor: float = 0.02 # Relación 2D a 3D
 @export var camera_height: float = 30.0
 @export var use_orthogonal: bool = true
@@ -211,7 +211,8 @@ func _apply_camera_headlight(cam: Camera3D):
 	headlight.shadow_enabled = false # Sin sombras para evitar oclusión y mantener visibilidad
 
 func _process(_delta):
-	if zone_id == 100:
+	# v2.4: Comparar como string para evitar el error 'String' and 'int' cuando zone_id es "extract_X" o "arena_X"
+	if str(zone_id) == "100":
 		return
 		
 	# --- LOCALIZAR NAVE DEL JUGADOR ---

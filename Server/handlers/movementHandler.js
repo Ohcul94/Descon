@@ -182,25 +182,31 @@ function registerMovementHandlers(socket, io, state) {
             }, 350);
         }
 
-        // v2.3: AOI (Area of Interest) para playerMoved — Solo emitir a jugadores en las 9 celdas vecinas
-        // Elimina el broadcast total O(N²) reemplazándolo por filtrado espacial O(vecinos)
-        const CELL_SIZE = 500; // Debe coincidir con el cellSize del GridManager
-        const pCx = Math.floor(p.x / CELL_SIZE);
-        const pCy = Math.floor(p.y / CELL_SIZE);
+        // v2.4: AOI adaptativo para playerMoved
+        // - Zonas especiales (arena_, extract_): broadcast total (pocos jugadores, mapa pequeño, todos deben verse)
+        // - Zonas normales: filtro por 3 celdas de radio (cubre ~1500px, superior al rango de visión de nave ~1300px)
+        const isSpecialZone = typeof p.zone === 'string' && (p.zone.startsWith('arena_') || p.zone.startsWith('extract_') || p.zone.startsWith('dungeon'));
         const movPayload = getLightMovementPayload(p, socket.id);
 
-        Object.values(state.players).forEach(other => {
-            // No enviarse a sí mismo y asegurarse de estar en la misma zona
-            if (other.socketId === socket.id || String(other.zone) !== String(p.zone)) return;
+        if (isSpecialZone) {
+            // Broadcast completo a la zona — arenas/extracción son pequeñas y todos deben verse
+            socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', movPayload);
+        } else {
+            // AOI con 3 celdas de radio para zonas normales (cubre el rango visual estándar de naves)
+            const CELL_SIZE = 500;
+            const AOI_RANGE = 3; // 3 celdas × 500px = 1500px en cada dirección
+            const pCx = Math.floor(p.x / CELL_SIZE);
+            const pCy = Math.floor(p.y / CELL_SIZE);
 
-            const oCx = Math.floor(other.x / CELL_SIZE);
-            const oCy = Math.floor(other.y / CELL_SIZE);
-
-            // Solo enviar si el otro jugador está en el bloque 3x3 de celdas alrededor del emisor
-            if (Math.abs(pCx - oCx) <= 1 && Math.abs(pCy - oCy) <= 1) {
-                io.to(other.socketId).emit('playerMoved', movPayload);
-            }
-        });
+            Object.values(state.players).forEach(other => {
+                if (other.socketId === socket.id || String(other.zone) !== String(p.zone)) return;
+                const oCx = Math.floor(other.x / CELL_SIZE);
+                const oCy = Math.floor(other.y / CELL_SIZE);
+                if (Math.abs(pCx - oCx) <= AOI_RANGE && Math.abs(pCy - oCy) <= AOI_RANGE) {
+                    io.to(other.socketId).emit('playerMoved', movPayload);
+                }
+            });
+        }
     });
 
     // EVENTO DE RESPAWN DE JUGADORES
