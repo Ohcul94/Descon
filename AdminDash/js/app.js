@@ -818,18 +818,22 @@ function patchMechanicsLib() {
     if (config.mapsConfig) {
         Object.keys(config.mapsConfig).forEach(mapId => {
             const m = config.mapsConfig[mapId];
-            if (m && m.spawns) {
-                m.spawns.forEach((s, idx) => {
-                    if (!s.id) {
-                        s.id = `spawn_${mapId}_idx_${idx}_type_${s.type}`;
-                    }
-                    if (!s.spawnMode) {
-                        s.spawnMode = "random";
-                    }
-                    if (s.x === undefined) s.x = 1000;
-                    if (s.y === undefined) s.y = 1000;
-                    if (s.radius === undefined) s.radius = 300;
-                });
+            if (m) {
+                if (m.width === undefined) m.width = 10000;
+                if (m.height === undefined) m.height = 10000;
+                if (m.spawns) {
+                    m.spawns.forEach((s, idx) => {
+                        if (!s.id) {
+                            s.id = `spawn_${mapId}_idx_${idx}_type_${s.type}`;
+                        }
+                        if (!s.spawnMode) {
+                            s.spawnMode = "random";
+                        }
+                        if (s.x === undefined) s.x = 1000;
+                        if (s.y === undefined) s.y = 1000;
+                        if (s.radius === undefined) s.radius = 300;
+                    });
+                }
             }
         });
     }
