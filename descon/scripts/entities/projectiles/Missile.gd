@@ -5,9 +5,10 @@ class_name Missile
 
 func _ready():
 	super._ready()
-	speed = 500
-	damage = 25
-	type = "missile"
+	if not _is_setup:
+		speed = 500
+		damage = 25
+		type = "missile"
 
 func _physics_process(delta):
 	super._physics_process(delta)

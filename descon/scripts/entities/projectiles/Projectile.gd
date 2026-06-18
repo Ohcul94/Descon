@@ -34,6 +34,7 @@ var _start_time_stamp: float = 0.0
 var _find_target_timer: float = 0.0
 var world_root_3d: Node3D = null
 var _orb_mesh: MeshInstance3D = null
+var _is_setup: bool = false
 
 
 func _ready():
@@ -54,7 +55,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	
 	var raw_speed = p_data.get("bulletSpeed")
 	if raw_speed == null: raw_speed = p_data.get("speed")
-	speed = _safe_float(raw_speed, 800.0)
+	speed = _safe_float(raw_speed, speed)
 	if speed <= 0 and (type == "missile" or type == "ice_missile"):
 		speed = 450.0 # v266.520: Velocidad de crucero segura si no hay config
 		
@@ -90,7 +91,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	
 	var raw_dmg = p_data.get("damageBoost")
 	if raw_dmg == null: raw_dmg = p_data.get("damage")
-	damage = _safe_float(raw_dmg, 10.0)
+	damage = _safe_float(raw_dmg, damage)
 	_start_pos = p_pos
 	_start_time_stamp = Time.get_ticks_msec() / 1000.0
 	if type == "melee":
@@ -176,6 +177,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		)
 		
 	_setup_visual_sprite()
+	_is_setup = true
 	queue_redraw()
 
 func _setup_visual_sprite():

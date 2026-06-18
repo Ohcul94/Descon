@@ -416,22 +416,11 @@
             "speed": 250,
             "mechanics": [
                 {
-                    "type": "spin_ring",
-                    "bulletDamage": 10,
+                    "type": "laser",
+                    "bulletDamage": 1,
                     "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000,
-                    "cooldown": 4000,
-                    "radius": 100,
-                    "damage": 100,
-                    "spinSpeed": 50,
-                    "speedBuffAmount": 500,
-                    "speedBuffDuration": 5000,
-                    "applySlow": false,
-                    "slowPercentage": 50,
-                    "slowDuration": 3000,
-                    "startDelay": 0,
-                    "duration": 2000
+                    "fireRange": 800,
+                    "fireRate": 3000
                 }
             ],
             "movementPhases": [
@@ -854,28 +843,26 @@
             "bulletSpeed": 800,
             "fireRange": 600,
             "fireRate": 1000,
-            "hp": 1000,
+            "hp": 300,
             "name": "Enemigo 1 A",
-            "rewardExp": 300,
-            "rewardHubs": 200,
-            "rewardOhcu": 2,
-            "shield": 200,
+            "rewardExp": 10,
+            "rewardHubs": 10,
+            "rewardOhcu": 1,
+            "shield": 100,
             "speed": 450,
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 20,
-                    "bulletSpeed": 800,
+                    "bulletDamage": 100,
+                    "bulletSpeed": 500,
                     "fireRange": 800,
-                    "fireRate": 3000,
-                    "slowAmount": 0,
-                    "slowDuration": 0
+                    "fireRate": 3000
                 }
             ],
             "movementPhases": [
                 {
                     "type": "chase",
-                    "speed": 450,
+                    "speed": 200,
                     "stopDist": 150,
                     "startDelay": 0
                 },
@@ -895,9 +882,10 @@
             "lootDrops": [
                 {
                     "itemId": "las1",
-                    "chance": 0.8
+                    "chance": 1
                 }
-            ]
+            ],
+            "chestDropChance": 0.01
         },
         "1-B": {
             "bulletDamage": 120,
@@ -2876,7 +2864,7 @@
                     "x": 1244,
                     "y": 1195,
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
-                    "targetZoneId": "3",
+                    "targetZoneId": "2",
                     "targetX": 5000,
                     "targetY": 5000
                 }
@@ -2888,72 +2876,16 @@
             "minLevel": 1,
             "name": "Mapa 2",
             "warpCost": 0,
-            "ambience": [
-                {
-                    "type": "radiation",
-                    "damage": 10,
-                    "intervalMs": 5000
-                }
-            ],
+            "ambience": [],
             "spawns": [
                 {
                     "type": "1-A",
-                    "count": 5,
+                    "count": 60,
                     "intervalMs": 5000,
                     "id": "spawn_2_idx_1_type_1-A",
-                    "spawnMode": "fixed",
+                    "spawnMode": "random",
                     "x": 8617,
                     "y": 8574,
-                    "radius": 0
-                },
-                {
-                    "type": "3-A",
-                    "count": 5,
-                    "intervalMs": 5000,
-                    "id": "spawn_2_idx_2_type_3-A",
-                    "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
-                    "radius": 0
-                },
-                {
-                    "type": "4-A",
-                    "count": 5,
-                    "intervalMs": 5000,
-                    "id": "spawn_2_idx_3_type_4-A",
-                    "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
-                    "radius": 0
-                },
-                {
-                    "type": "5-A",
-                    "count": 5,
-                    "intervalMs": 5000,
-                    "id": "spawn_2_idx_4_type_5-A",
-                    "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
-                    "radius": 0
-                },
-                {
-                    "type": "6-A",
-                    "count": 5,
-                    "intervalMs": 5000,
-                    "id": "spawn_2_idx_5_type_6-A",
-                    "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
-                    "radius": 0
-                },
-                {
-                    "type": "102",
-                    "count": 1,
-                    "intervalMs": 60000,
-                    "id": "spawn_2_idx_6_type_102",
-                    "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
                     "radius": 0
                 }
             ],
@@ -2974,9 +2906,9 @@
                     "count": 2,
                     "intervalMs": 3000,
                     "id": "spawn_3_idx_0_type_6",
-                    "spawnMode": "random",
-                    "x": 1000,
-                    "y": 1000,
+                    "spawnMode": "fixed",
+                    "x": 1062,
+                    "y": 1054,
                     "radius": 0
                 }
             ],

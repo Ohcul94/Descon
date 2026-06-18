@@ -5,8 +5,9 @@ class_name Laser
 
 func _ready():
 	super._ready()
-	speed = 1200 # El láser es el proyectil más rápido
-	damage = 8
+	if not _is_setup:
+		speed = 1200 # El láser es el proyectil más rápido
+		damage = 8
 
 func _on_body_entered(body):
 	# Lógica específica de impacto láser (partículas rápidas)

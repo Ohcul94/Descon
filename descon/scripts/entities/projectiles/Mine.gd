@@ -6,8 +6,9 @@ class_name Mine
 func _ready():
 	# Las minas no se mueven (speed = 0)
 	super._ready()
-	speed = 0
-	damage = 50 # Mucho daño por impacto
+	if not _is_setup:
+		speed = 0
+		damage = 50 # Mucho daño por impacto
 
 func _on_body_entered(body):
 	# Explosión de mina (vfx)
