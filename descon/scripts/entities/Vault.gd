@@ -75,7 +75,7 @@ func _ready():
 			if model_scene:
 				var model = model_scene.instantiate()
 				world_root_3d.add_child(model)
-				model.scale = Vector3(2.8, 2.8, 2.8) # Tamaño doble (escala gigante solicitada)
+				model.scale = Vector3(1.4, 1.4, 1.4) # Escala normal perfecta para el baúl
 				model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
 		_update_3d_position()
 	else:
@@ -111,7 +111,7 @@ func _ready():
 			if model_scene:
 				var model = model_scene.instantiate()
 				world_root_3d.add_child(model)
-				model.scale = Vector3(2.8, 2.8, 2.8) # Tamaño doble (escala gigante solicitada)
+				model.scale = Vector3(1.4, 1.4, 1.4) # Escala normal perfecta para el baúl
 				model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
 		
 		# Cámara 3D (Ángulo ligeramente inclinado desde arriba)

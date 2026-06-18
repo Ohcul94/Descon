@@ -54,6 +54,13 @@ func adjust_background():
 
 	# v370.0: Spawnear altar 3D si está configurado en Defensa del Altar
 	_spawn_altar_if_configured()
+	
+	# v400.4: Diferir el inicio un frame completo para esperar a que la escena vieja se destruya y libere del árbol
+	_deferred_ready()
+
+func _deferred_ready():
+	await get_tree().process_frame
+	_spawn_map_objects()
 
 func setup_map():
 	# Método para ejecutar lógica específica al cargar el mapa
@@ -260,6 +267,23 @@ func _process(_delta):
 		camera_3d.position.x = target_pos.x * scale_factor
 		camera_3d.position.z = corrected_target_z + dynamic_height
 		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
+		
+	# Chequear cercanía a puertas interactivas del mapa
+	_check_doors_proximity()
+	
+	# Rotación procedimental continua de puertas 3D estilo Extracción
+	if active_doors_3d.size() > 0:
+		var time = Time.get_ticks_msec() * 0.001
+		var index = 0
+		for portal in active_doors_3d:
+			if is_instance_valid(portal):
+				portal.rotate_object_local(Vector3.FORWARD, _delta * 0.8)
+				var phase_offset = index * 1.5
+				var wobble_x = sin(time * 1.5 + phase_offset) * 0.06
+				var wobble_y = cos(time * 1.1 + phase_offset) * 0.06
+				portal.rotation.x = deg_to_rad(-45.0) + wobble_x
+				portal.rotation.y = deg_to_rad(-90.0) + wobble_y
+				index += 1
 
 # _process removido al no haber asteroides decorativos que rotar
 
@@ -345,3 +369,278 @@ func _spawn_altar_if_configured():
 		print("[BaseMap] Colliders 2D del Altar instanciados (Radio lógico: 120, Físico: 100)")
 	else:
 		print("[BaseMap] ADVERTENCIA: No se pudo cargar res://assets/Altares/3D/Altar1/Altar1.glb")
+
+# Variables para el sistema de puertas interactivas estilo extracción
+var active_doors: Array = []
+var active_doors_3d: Array = []
+var portal_btn_container: VBoxContainer = null
+var portal_desc_label: Label = null
+var portal_click_button: Button = null
+
+# v400.1: Spawnear objetos del mundo desde mapsConfig del servidor con física, rotaciones y comportamiento Premium
+# Lee objects[] de mapsConfig e instancia los modelos 3D y colisiones correspondientes
+func _spawn_map_objects():
+	var z_str = str(zone_id)
+	if not (z_str in GameConstants.MAPS_CONFIG):
+		return
+	var map_cfg = GameConstants.MAPS_CONFIG[z_str]
+	if not map_cfg.has("objects") or not (map_cfg.objects is Array):
+		return
+		
+	var vault_script = load("res://scripts/entities/Vault.gd")
+	
+	for obj in map_cfg.objects:
+		if not (obj is Dictionary and obj.has("x") and obj.has("y")):
+			continue
+		var obj_pos = Vector2(float(obj.x), float(obj.y))
+		var obj_type = str(obj.get("type", "chest"))
+		var obj_label = str(obj.get("label", ""))
+		
+		match obj_type:
+			"chest":
+				# Baúl Premium: instanciar el script Vault.gd (ya tiene su propia lógica 3D, colisión y rango)
+				if vault_script:
+					var vault = Area2D.new()
+					vault.name = "MapVault_" + obj_label.replace(" ", "_")
+					vault.set_script(vault_script)
+					# ¡IMPORTANTE!: Añadir al árbol primero, luego asignar global_position
+					add_child(vault)
+					vault.global_position = obj_pos
+					print("[BaseMap] Baúl instanciado correctamente: ", obj_label, " @ ", obj_pos)
+			
+			"door":
+				# Puerta de Warp Interactiva estilo Extracción: Area2D lógica para proximidad
+				var door = Area2D.new()
+				door.name = "MapDoor_" + obj_label.replace(" ", "_")
+				door.collision_mask = 1  # Detectar jugador
+				door.collision_layer = 0
+				
+				var col = CollisionShape2D.new()
+				var circle = CircleShape2D.new()
+				circle.radius = 300.0  # Rango de proximidad idéntico al evento de extracción
+				col.shape = circle
+				door.add_child(col)
+				
+				# Guardar metadatos del warp
+				door.set_meta("targetZoneId", str(obj.get("targetZoneId", "1")))
+				door.set_meta("targetX", float(obj.get("targetX", 5000)))
+				door.set_meta("targetY", float(obj.get("targetY", 5000)))
+				door.set_meta("door_label", obj_label)
+				
+				# Cargar modelo 3D en el viewport global (usar el assetPath guardado o el de extracción como fallback)
+				var model_path = str(obj.get("assetPath", ""))
+				if model_path == "":
+					model_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+				var model_node = _instantiate_map_object_3d(model_path, obj_pos, Vector3(10.0, 10.0, 10.0), Vector3(-45, -90, 0), Color(0.0, 0.9, 1.0))
+				if is_instance_valid(model_node):
+					active_doors_3d.append(model_node)
+				
+				add_child(door)
+				door.global_position = obj_pos
+				active_doors.append(door)
+				
+				# Crear la UI de salto si no existe aún
+				if not is_instance_valid(portal_btn_container):
+					_create_portal_jump_ui()
+					
+				print("[BaseMap] Puerta interactiva instanciada (estilo Extracción): ", obj_label, " -> Zona ", obj.get("targetZoneId", "?"))
+			
+			"tower":
+				# Torre Premium estilo PVP: Marcador visual 3D + Colisión sólida física real
+				var tower = StaticBody2D.new()
+				tower.name = "MapTower_" + obj_label.replace(" ", "_")
+				tower.collision_layer = 2  # Capa física para colisionar y bloquear al jugador
+				tower.collision_mask = 0
+				
+				var col = CollisionShape2D.new()
+				var circle = CircleShape2D.new()
+				circle.radius = 60.0  # Radio físico real para colisión del pilar
+				col.shape = circle
+				tower.add_child(col)
+				
+				# Instanciar el modelo 3D en el viewport global (usar el assetPath guardado o el de PVP como fallback)
+				var model_path = str(obj.get("assetPath", ""))
+				if model_path == "":
+					model_path = "res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
+				_instantiate_map_object_3d(model_path, obj_pos, Vector3(10.0, 10.0, 10.0), Vector3(0, 0, 0), Color(1.0, 0.5, 0.0))
+				
+				tower.add_to_group("towers")
+				add_child(tower)
+				tower.global_position = obj_pos
+				print("[BaseMap] Torre (Pilar PVP) instanciado correctamente: ", obj_label, " @ ", obj_pos)
+			
+			_:
+				print("[BaseMap] Tipo de objeto desconocido: ", obj_type, " @ ", obj_pos)
+
+# Instanciar modelo 3D del objeto en el Viewport global del mapa
+func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: Vector3, rotation_3d: Vector3, light_color: Color) -> Node3D:
+	if not is_instance_valid(sub_viewport):
+		return null
+		
+	var correction_z = 1.41421356
+	var scene = load(asset_path)
+	if not scene:
+		# Fallback visual simple
+		var fallback = CSGCylinder3D.new()
+		fallback.radius = scale_3d.x * 0.3
+		fallback.height = scale_3d.y * 1.5
+		var mat = StandardMaterial3D.new()
+		mat.albedo_color = light_color
+		mat.emission_enabled = true
+		mat.emission = light_color * 0.5
+		fallback.material = mat
+		fallback.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor * correction_z)
+		sub_viewport.add_child(fallback)
+		return fallback
+		
+	var obj = scene.instantiate()
+	obj.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor * correction_z)
+	obj.scale = scale_3d
+	obj.rotation_degrees = rotation_3d
+	
+	var light = OmniLight3D.new()
+	light.light_color = light_color
+	light.light_energy = 4.0
+	light.omni_range = 10.0
+	light.position = Vector3(0, 3.0, 0)
+	obj.add_child(light)
+	
+	sub_viewport.add_child(obj)
+	return obj
+
+# Crear UI interactiva flotante de portal
+func _create_portal_jump_ui():
+	var ui_canvas = CanvasLayer.new()
+	ui_canvas.name = "MapPortalUICanvas"
+	ui_canvas.layer = 100
+	add_child(ui_canvas)
+	
+	portal_btn_container = VBoxContainer.new()
+	portal_btn_container.name = "PortalBtnContainer"
+	portal_btn_container.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	portal_btn_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	portal_btn_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	portal_btn_container.position.y -= 190
+	ui_canvas.add_child(portal_btn_container)
+	
+	var center_slot = CenterContainer.new()
+	portal_btn_container.add_child(center_slot)
+	
+	var portal_btn = PanelContainer.new()
+	portal_btn.custom_minimum_size = Vector2(64, 64)
+	portal_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	center_slot.add_child(portal_btn)
+	
+	var icon = Label.new()
+	icon.text = "🌀" # Portal estelar en espiral/remolino estilo extracción (segundo nombrado que le gusta al usuario)
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon.add_theme_font_size_override("font_size", 28)
+	portal_btn.add_child(icon)
+	
+	var style_normal = StyleBoxFlat.new()
+	style_normal.bg_color = Color(0, 0.4, 0.6, 0.25)
+	style_normal.border_width_left = 3
+	style_normal.border_width_top = 3
+	style_normal.border_width_right = 3
+	style_normal.border_width_bottom = 3
+	style_normal.border_color = Color(0, 0.9, 1.0, 0.8)
+	style_normal.set_corner_radius_all(32)
+	style_normal.anti_aliasing = true
+	portal_btn.add_theme_stylebox_override("panel", style_normal)
+	
+	portal_click_button = Button.new()
+	portal_click_button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	portal_click_button.modulate.a = 0
+	portal_click_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	portal_btn.add_child(portal_click_button)
+	
+	portal_desc_label = Label.new()
+	portal_desc_label.name = "PortalDescLabel"
+	portal_desc_label.text = "ENTRAR AL PORTAL [ESPACIO]"
+	portal_desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	portal_desc_label.add_theme_font_size_override("font_size", 12)
+	portal_desc_label.add_theme_color_override("font_color", Color.CYAN)
+	portal_desc_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	portal_desc_label.add_theme_constant_override("outline_size", 5)
+	portal_btn_container.add_child(portal_desc_label)
+	
+	portal_click_button.pressed.connect(func():
+		var target = portal_click_button.get_meta("target_zone") if portal_click_button.has_meta("target_zone") else "1"
+		var tx = portal_click_button.get_meta("targetX") if portal_click_button.has_meta("targetX") else 5000
+		var ty = portal_click_button.get_meta("targetY") if portal_click_button.has_meta("targetY") else 5000
+		_on_map_portal_jump_pressed(target, tx, ty)
+	)
+	
+	portal_btn_container.visible = false
+
+func _on_map_portal_jump_pressed(target_zone: String, _tx: float, _ty: float):
+	print("[BaseMap] Warp interactivo presionado -> Zona ", target_zone)
+	if NetworkManager:
+		var target_val: Variant = target_zone
+		if target_zone.is_valid_int():
+			target_val = int(target_zone)
+			
+		NetworkManager.send_event("changeZone", target_val)
+
+# Procesar la cercanía al jugador para activar la interacción de puertas
+func _check_doors_proximity():
+	if active_doors.size() == 0:
+		return
+		
+	if not is_instance_valid(player_node):
+		var players = get_tree().get_nodes_in_group("player")
+		if players.size() > 0:
+			player_node = players[0]
+			
+	var active_near_door = null
+	if is_instance_valid(player_node):
+		for door in active_doors:
+			if is_instance_valid(door):
+				var dist = player_node.global_position.distance_to(door.global_position)
+				# Detección dentro del radio de 300px
+				if dist <= 300.0:
+					active_near_door = door
+					break
+					
+	if is_instance_valid(portal_btn_container):
+		if active_near_door != null:
+			var target_zone = active_near_door.get_meta("targetZoneId", "1")
+			var tx = active_near_door.get_meta("targetX", 5000)
+			var ty = active_near_door.get_meta("targetY", 5000)
+			
+			var target_name = "Lobby / Hangar"
+			if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(target_zone):
+				target_name = GameConstants.MAPS_CONFIG[target_zone].get("name", "Sector " + target_zone)
+			elif target_zone == "1":
+				target_name = "Lobby / Hangar"
+			else:
+				target_name = "Sector " + target_zone
+				
+			var bind_key_text = "ESPACIO"
+			if InputMap.has_action("portal_jump"):
+				var events = InputMap.action_get_events("portal_jump")
+				if events.size() > 0:
+					bind_key_text = events[0].as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
+					if bind_key_text == "SPACE":
+						bind_key_text = "ESPACIO"
+						
+			if is_instance_valid(portal_desc_label):
+				portal_desc_label.text = "ENTRAR A " + target_name.to_upper() + " [" + bind_key_text + " / Clic]"
+				
+			if is_instance_valid(portal_click_button):
+				portal_click_button.set_meta("target_zone", target_zone)
+				portal_click_button.set_meta("targetX", tx)
+				portal_click_button.set_meta("targetY", ty)
+				
+			portal_btn_container.visible = true
+		else:
+			portal_btn_container.visible = false
+
+# Atajo de teclado para entrar al portal si el contenedor está visible
+func _input(event):
+	if event.is_action_pressed("portal_jump") and not event.is_echo():
+		if is_instance_valid(portal_btn_container) and portal_btn_container.visible:
+			if is_instance_valid(portal_click_button):
+				portal_click_button.pressed.emit()
+				get_viewport().set_input_as_handled()

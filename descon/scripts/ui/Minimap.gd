@@ -1,11 +1,13 @@
 extends Control
 
-# Minimap.gd (Tactical Radar v141.80 - RESTORED FEATURE PARITY)
+# Minimap.gd (Tactical Radar v200.0 - SYNC FIX + WORLD OBJECTS)
 # Gestión de radar con dibujo directo para rendimiento y AUTOPILOTO visual.
+# SYNC FIX: Lee worldW/worldH desde MAPS_CONFIG (mismo origen que AdminDash)
 
-const WORLD_DRAW_SIZE = 4000.0
+const WORLD_DEFAULT_SIZE = 10000.0
 
-var world_size: float
+# world_size se mantiene por compatibilidad legado; usar worldW/worldH para dibujo
+var world_size: float = WORLD_DEFAULT_SIZE
 var info_label: Label = null
 
 func _input(event):
@@ -45,7 +47,7 @@ func _input(event):
 					get_viewport().set_input_as_handled() # Consumir evento
 
 func _ready():
-	world_size = GameConstants.GAME_CONFIG.get("worldSize", WORLD_DRAW_SIZE)
+	world_size = GameConstants.GAME_CONFIG.get("worldSize", WORLD_DEFAULT_SIZE)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = true
 	# v141.80: Fondo original restaurado (adiós al rosa de diagnóstico)
@@ -121,50 +123,73 @@ func _draw():
 	
 	var current_zone_id = str(player.current_zone) if "current_zone" in player else "1"
 	
-	# CALCULAR TAMAÑO DE MUNDO DINÁMICAMENTE PARA RADAR
-	# 1. Intentar obtener el tamaño del mapa cargado actualmente en pantalla
-	var current_map = get_tree().get_first_node_in_group("map")
-	if not is_instance_valid(current_map):
-		var p_parent = player.get_parent()
-		if is_instance_valid(p_parent) and "current_map_node" in p_parent and is_instance_valid(p_parent.current_map_node):
-			current_map = p_parent.current_map_node
-			
-	var is_altar_def_mode = (current_zone_id == "9")
+	# =====================================================================
+	# SYNC FIX v200.0: Calcular worldW/worldH desde MAPS_CONFIG del servidor
+	# El AdminDash usa `m.width || 10000` — ahora Godot usa la misma fuente.
+	# =====================================================================
+	var worldW: float = WORLD_DEFAULT_SIZE
+	var worldH: float = WORLD_DEFAULT_SIZE
+	
 	var full_cfg_temp = GameConstants.get("FULL_CONFIG")
+	
+	# 1. PRIORIDAD: leer width/height desde mapsConfig del servidor
+	if current_zone_id in GameConstants.MAPS_CONFIG:
+		var mc = GameConstants.MAPS_CONFIG[current_zone_id]
+		if mc.has("width") and float(mc.width) > 0:
+			worldW = float(mc.width)
+		if mc.has("height") and float(mc.height) > 0:
+			worldH = float(mc.height)
+	
+	# 2. Sobreescribir con dimensiones de modos de juego especiales
+	var is_altar_def_mode = false
 	if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("altar_defense"):
 		var ad_maps = full_cfg_temp.gameModes.altar_defense.get("maps", [])
 		for m in ad_maps:
 			if int(m) == int(current_zone_id):
 				is_altar_def_mode = true
 				break
-
-	if is_altar_def_mode:
-		world_size = 10000.0
-		if full_cfg_temp and full_cfg_temp.gameModes.has("altar_defense"):
+		if is_altar_def_mode:
 			var ad = full_cfg_temp.gameModes.altar_defense
 			if ad.has("width") and float(ad.width) > 0:
-				world_size = float(ad.width)
-	elif is_instance_valid(current_map) and "world_size" in current_map and float(current_map.world_size) > 0:
-		world_size = float(current_map.world_size)
-	else:
-		# 2. Fallback secundario basado en ID de zona
-		if current_zone_id == "10" or current_zone_id == "11" or current_zone_id.begins_with("extract_"):
-			world_size = 10000.0
-			if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
-				var ext = GameConstants.FULL_CONFIG.gameModes.extraction
-				if ext.has("width"):
-					world_size = float(ext.width)
-		else:
-			var is_dungeon = current_zone_id == "1" or int(current_zone_id) > 2
-			world_size = 2000.0 if is_dungeon else 4000.0
-		
+				worldW = float(ad.width)
+			if ad.has("height") and float(ad.height) > 0:
+				worldH = float(ad.height)
+	
+	if current_zone_id == "10" or current_zone_id == "11" or current_zone_id.begins_with("extract_"):
+		if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("extraction"):
+			var ext = full_cfg_temp.gameModes.extraction
+			if ext.has("width") and float(ext.width) > 0:
+				worldW = float(ext.width)
+			if ext.has("height") and float(ext.height) > 0:
+				worldH = float(ext.height)
+	
+	# 3. Fallback final: mapa cargado en escena
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map):
+		var p_parent = player.get_parent()
+		if is_instance_valid(p_parent) and "current_map_node" in p_parent and is_instance_valid(p_parent.current_map_node):
+			current_map = p_parent.current_map_node
+	if is_instance_valid(current_map) and "world_size" in current_map and float(current_map.world_size) > 0:
+		# Solo usar si worldW sigue siendo default (no sobrescrito por config)
+		if worldW == WORLD_DEFAULT_SIZE:
+			worldW = float(current_map.world_size)
+		if worldH == WORLD_DEFAULT_SIZE:
+			worldH = float(current_map.world_size)
+	
+	# Mantener world_size por compatibilidad legado
+	world_size = worldW
+	
 	var r_size = size
-	var map_scale = r_size.x / world_size
+	# Escalas separadas para X e Y (soporta mapas no cuadrados)
+	var scale_x: float = r_size.x / worldW
+	var scale_y: float = r_size.y / worldH
+	# map_scale legacy (para código que lo use)
+	var _map_scale: float = scale_x
 	
 	# 1. Dibujar Trayectoria del Autopiloto (Línea punteada del JS v66.6)
 	if player.get("is_autopilot_active") and player.get("target_position"):
-		var start_pos = player.global_position * map_scale
-		var end_pos = player.target_position * map_scale
+		var start_pos = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
+		var end_pos = Vector2(player.target_position.x * scale_x, player.target_position.y * scale_y)
 		
 		var dist = start_pos.distance_to(end_pos)
 		if dist > 5:
@@ -237,7 +262,7 @@ func _draw():
 			if ent.get("isInvisible"):
 				if not (is_clan or is_party): continue # Invisibilidad total para enemigos
 				
-			var pos = ent.global_position * map_scale
+			var pos = Vector2(ent.global_position.x * scale_x, ent.global_position.y * scale_y)
 			var dot_color = Color(1, 1, 0) # Amarillo por defecto (Otros Jugadores)
 			if is_clan: dot_color = Color(0, 1, 0) # Verde
 			elif is_party: dot_color = Color(0, 1, 1) # Celeste
@@ -252,7 +277,7 @@ func _draw():
 			if is_instance_valid(player) and player.global_position.distance_to(ent.global_position) > vision_r:
 				continue
 
-			var pos = ent.global_position * map_scale
+			var pos = Vector2(ent.global_position.x * scale_x, ent.global_position.y * scale_y)
 			draw_circle(pos, 2.0, Color(1, 0.4, 0)) # #ff6600
 
 	# 4. Dibujar Portales de Extracción (Cian de Neón con efecto de pulso!)
@@ -274,7 +299,7 @@ func _draw():
 			
 		var pulse = 0.5 + sin(Time.get_ticks_msec() * 0.005) * 0.3
 		for pt in extract_points:
-			var pt_pos = Vector2(float(pt.x), float(pt.y)) * map_scale
+			var pt_pos = Vector2(float(pt.x) * scale_x, float(pt.y) * scale_y)
 			
 			# Dibujar halo cian de portal radar
 			draw_circle(pt_pos, 4.5, Color(0, 0.9, 1.0, 0.8))
@@ -312,7 +337,7 @@ func _draw():
 			altar_pos = Vector2(float(a_pos.x), float(a_pos.y))
 
 	if is_altar_defense:
-		var alt_draw_pos = altar_pos * map_scale
+		var alt_draw_pos = Vector2(altar_pos.x * scale_x, altar_pos.y * scale_y)
 		var pulse = 0.5 + sin(Time.get_ticks_msec() * 0.004) * 0.3
 		draw_circle(alt_draw_pos, 6.0, Color(0.0, 1.0, 0.5, 0.9)) # Círculo verde brillante
 		draw_circle(alt_draw_pos, 9.0 + pulse * 3.0, Color(0.0, 1.0, 0.5, 0.35), false, 1.0) # Brillo
@@ -325,8 +350,8 @@ func _draw():
 			if ad.has("spawnPoints") and ad.spawnPoints is Array:
 				for sp in ad.spawnPoints:
 					if sp is Dictionary and sp.has("x") and sp.has("y"):
-						var sp_pos = Vector2(float(sp.x), float(sp.y)) * map_scale
-						var radius_canvas = float(sp.get("radius", 200.0)) * map_scale
+						var sp_pos = Vector2(float(sp.x) * scale_x, float(sp.y) * scale_y)
+						var radius_canvas = float(sp.get("radius", 200.0)) * scale_x
 						draw_circle(sp_pos, 2.0, Color(0.8, 0.9, 0.0, 0.8))
 						draw_circle(sp_pos, radius_canvas, Color(0.8, 0.9, 0.0, 0.12), false, 1.0)
 			
@@ -334,23 +359,57 @@ func _draw():
 			if ad.has("spawners") and ad.spawners is Array:
 				for s in ad.spawners:
 					if s is Dictionary and s.has("x") and s.has("y"):
-						var s_pos = Vector2(float(s.x), float(s.y)) * map_scale
-						var radius_canvas = float(s.get("radius", 300.0)) * map_scale
+						var s_pos = Vector2(float(s.x) * scale_x, float(s.y) * scale_y)
+						var radius_canvas = float(s.get("radius", 300.0)) * scale_x
 						draw_circle(s_pos, 2.0, Color(1.0, 0.2, 0.2, 0.8))
 						draw_circle(s_pos, radius_canvas, Color(1.0, 0.2, 0.2, 0.12), false, 1.0)
 
 
-	# 6. Dibujar Baúles en el Lobby (Punto dorado brillante con una 'B' blanca)
+	# 6. Dibujar Baúles en el Lobby via grupo de nodos (Punto dorado brillante)
 	for vault in get_tree().get_nodes_in_group("vaults"):
 		if is_instance_valid(vault) and vault.visible:
-			var vault_pos = vault.global_position * map_scale
-			draw_circle(vault_pos, 5.0, Color(1.0, 0.75, 0.0, 0.9)) # Círculo dorado brillante
-			draw_circle(vault_pos, 7.0, Color(1.0, 0.75, 0.0, 0.25)) # Brillo exterior suave
+			var vault_pos = Vector2(vault.global_position.x * scale_x, vault.global_position.y * scale_y)
+			draw_circle(vault_pos, 5.0, Color(1.0, 0.75, 0.0, 0.9))
+			draw_circle(vault_pos, 7.0, Color(1.0, 0.75, 0.0, 0.25))
 			var font = get_theme_font("font")
 			draw_string(font, vault_pos + Vector2(-2.5, 3.0), "B", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 
-	# 5. Jugador Local (Punto Blanco Puro)
-	var local_pos = player.global_position * map_scale
+	# 7. Dibujar Objetos del Mundo desde MAPS_CONFIG (Baúles, Puertas, Torres)
+	# Complementa los vaults de escena con los configurados en AdminDash
+	var z_id_str = str(current_zone_id)
+	if z_id_str in GameConstants.MAPS_CONFIG:
+		var zone_cfg = GameConstants.MAPS_CONFIG[z_id_str]
+		if zone_cfg.has("objects") and zone_cfg.objects is Array:
+			var font = get_theme_font("font")
+			for obj in zone_cfg.objects:
+				if not (obj is Dictionary and obj.has("x") and obj.has("y")): continue
+				var obj_pos = Vector2(float(obj.x) * scale_x, float(obj.y) * scale_y)
+				var obj_type = str(obj.get("type", "chest"))
+				
+				match obj_type:
+					"chest":
+						# Baúl - Dorado brillante con 'B'
+						draw_circle(obj_pos, 5.0, Color(1.0, 0.85, 0.0, 0.95))
+						draw_circle(obj_pos, 7.5, Color(1.0, 0.85, 0.0, 0.2), false, 1.5)
+						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "B", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+					"door":
+						# Puerta/Warp - Cian neón con 'P'
+						var pulse_door = 0.6 + sin(Time.get_ticks_msec() * 0.004) * 0.3
+						draw_circle(obj_pos, 5.5, Color(0.0, 0.9, 1.0, 0.9))
+						draw_circle(obj_pos, 8.0 + pulse_door * 2.0, Color(0.0, 0.9, 1.0, 0.25), false, 1.5)
+						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "P", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+					"tower":
+						# Torre - Naranja con 'T'
+						draw_circle(obj_pos, 5.0, Color(1.0, 0.55, 0.0, 0.9))
+						draw_circle(obj_pos, 7.5, Color(1.0, 0.55, 0.0, 0.2), false, 1.5)
+						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "T", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+					_:
+						# Objeto genérico - Blanco con 'O'
+						draw_circle(obj_pos, 4.0, Color(0.8, 0.8, 0.8, 0.8))
+						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "O", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+
+	# 5. Jugador Local (Punto Blanco Puro) — siempre último para estar arriba
+	var local_pos = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
 	draw_circle(local_pos, 3.5, Color.WHITE)
 
 	# Borde del radar

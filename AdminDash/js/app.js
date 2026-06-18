@@ -2027,6 +2027,8 @@ function initMapRadar() {
     // Estado de arrastre
     let isDragging = false;
     let dragItem = null;
+    // Modo de colocación de objetos: null = solo mover/spawn, 'chest'|'door'|'tower'
+    window._mapRadarObjectMode = window._mapRadarObjectMode || null;
 
     const updateCanvasSize = () => {
         const w = container.clientWidth;
@@ -2067,6 +2069,44 @@ function initMapRadar() {
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
+        // ------ MODO COLOCAR OBJETO ------
+        if (window._mapRadarObjectMode) {
+            const world = canvasToWorld(mouseX, mouseY);
+            if (!m.objects) m.objects = [];
+            const newObj = {
+                type: window._mapRadarObjectMode,
+                label: window._mapRadarObjectMode === 'chest' ? 'Baúl' :
+                       window._mapRadarObjectMode === 'door'  ? 'Puerta' : 'Torre',
+                x: Math.round(world.wx),
+                y: Math.round(world.wy),
+                assetPath: window._mapRadarObjectMode === 'chest' ? 'res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb' :
+                           window._mapRadarObjectMode === 'door'  ? 'res://assets/Puertas/3D/Puerta2/Puerta2.glb' :
+                                                                    'res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb'
+            };
+            if (window._mapRadarObjectMode === 'door') {
+                newObj.targetZoneId = '';
+                newObj.targetX = 5000;
+                newObj.targetY = 5000;
+            }
+            m.objects.push(newObj);
+            renderMapDetail();
+            return;
+        }
+
+        // ------ MODO MOVER: primero chequear objetos ------
+        const objects = m.objects || [];
+        for (let i = 0; i < objects.length; i++) {
+            const obj = objects[i];
+            const pos = worldToCanvas(obj.x || 0, obj.y || 0);
+            if (Math.hypot(pos.x - mouseX, pos.y - mouseY) < 12) {
+                isDragging = true;
+                dragItem = { type: 'map-obj', index: i };
+                canvas.style.cursor = 'grabbing';
+                highlightMapObject(i);
+                return;
+            }
+        }
+
         // Buscar en Spawns de este mapa
         const spawns = m.spawns || [];
         for (let i = 0; i < spawns.length; i++) {
@@ -2103,25 +2143,36 @@ function initMapRadar() {
         const mouseY = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
         const world = canvasToWorld(mouseX, mouseY);
 
-        if (isDragging && dragItem && dragItem.type === 'map-spawn') {
-            const s = m.spawns[dragItem.index];
-            s.x = Math.round(world.wx);
-            s.y = Math.round(world.wy);
-            
-            // Actualizar campos correspondientes en renderers si existen
-            const ix = document.querySelector(`input[onchange*="spawns[${dragItem.index}].x"], input[oninput*="spawns[${dragItem.index}].x"]`);
-            const iy = document.querySelector(`input[onchange*="spawns[${dragItem.index}].y"], input[oninput*="spawns[${dragItem.index}].y"]`);
-            if (ix) ix.value = s.x;
-            if (iy) iy.value = s.y;
-            
-            // Actualizar también los de lectura del radar
-            const rxInput = document.getElementById('map-radar-x');
-            const ryInput = document.getElementById('map-radar-y');
-            if (rxInput) rxInput.value = s.x;
-            if (ryInput) ryInput.value = s.y;
+        if (isDragging && dragItem) {
+            if (dragItem.type === 'map-obj') {
+                const obj = m.objects[dragItem.index];
+                if (obj) {
+                    obj.x = Math.round(world.wx);
+                    obj.y = Math.round(world.wy);
+                    const ix = document.getElementById(`map-obj-x-${dragItem.index}`);
+                    const iy = document.getElementById(`map-obj-y-${dragItem.index}`);
+                    if (ix) ix.value = obj.x;
+                    if (iy) iy.value = obj.y;
+                    const rxInput = document.getElementById('map-radar-x');
+                    const ryInput = document.getElementById('map-radar-y');
+                    if (rxInput) rxInput.value = obj.x;
+                    if (ryInput) ryInput.value = obj.y;
+                }
+            } else if (dragItem.type === 'map-spawn') {
+                const s = m.spawns[dragItem.index];
+                s.x = Math.round(world.wx);
+                s.y = Math.round(world.wy);
+                const ix = document.querySelector(`input[onchange*="spawns[${dragItem.index}].x"], input[oninput*="spawns[${dragItem.index}].x"]`);
+                const iy = document.querySelector(`input[onchange*="spawns[${dragItem.index}].y"], input[oninput*="spawns[${dragItem.index}].y"]`);
+                if (ix) ix.value = s.x;
+                if (iy) iy.value = s.y;
+                const rxInput = document.getElementById('map-radar-x');
+                const ryInput = document.getElementById('map-radar-y');
+                if (rxInput) rxInput.value = s.x;
+                if (ryInput) ryInput.value = s.y;
+            }
         } else {
             // Mostrar coordenadas flotantes al mover el mouse si no arrastra
-            const world = canvasToWorld(mouseX, mouseY);
             window.lastMouseWorldX = Math.round(world.wx);
             window.lastMouseWorldY = Math.round(world.wy);
         }
@@ -2131,7 +2182,7 @@ function initMapRadar() {
         if (isDragging) {
             isDragging = false;
             dragItem = null;
-            canvas.style.cursor = 'crosshair';
+            canvas.style.cursor = window._mapRadarObjectMode ? 'cell' : 'crosshair';
         }
     };
 
@@ -2183,10 +2234,9 @@ function initMapRadar() {
             ctx.stroke();
         });
 
-        // Dibujar los spawns
+        // ========== DIBUJAR SPAWNS ==========
         const spawns = m.spawns || [];
         spawns.forEach((s, idx) => {
-            // Omitir spawns globales (random sin radio)
             if (s.spawnMode === 'random' && (!s.radius || s.radius === 0)) return;
 
             const sx = s.x !== undefined ? s.x : 1000;
@@ -2194,7 +2244,6 @@ function initMapRadar() {
             const pos = worldToCanvas(sx, sy);
             const isSelected = isDragging && dragItem && dragItem.type === 'map-spawn' && dragItem.index === idx;
 
-            // Dibujar círculo/burbuja de spawn si es modo random y tiene radio
             if (s.spawnMode === 'random' && s.radius > 0) {
                 const radiusCanvas = (s.radius / worldW) * canvas.width;
                 ctx.fillStyle = 'rgba(16, 185, 129, 0.05)';
@@ -2206,7 +2255,6 @@ function initMapRadar() {
                 ctx.stroke();
             }
 
-            // Marcador de punto de spawn
             ctx.fillStyle = isSelected ? '#fff' : 'rgba(16, 185, 129, 0.2)';
             ctx.strokeStyle = '#10b981';
             ctx.lineWidth = 2;
@@ -2215,13 +2263,11 @@ function initMapRadar() {
             ctx.fill();
             ctx.stroke();
 
-            // Símbolo interno (cruz o estrella)
             ctx.fillStyle = '#10b981';
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, 3.5, 0, Math.PI * 2);
             ctx.fill();
 
-            // Etiqueta del enemigo
             const model = config.enemyModels[s.type] || { name: 'Enemigo ' + s.type };
             ctx.fillStyle = '#10b981';
             ctx.font = 'bold 9px Outfit';
@@ -2229,7 +2275,69 @@ function initMapRadar() {
             ctx.fillText(model.name, pos.x, pos.y - 14);
         });
 
-        // Coordenadas flotantes del mouse
+        // ========== DIBUJAR OBJETOS DEL MUNDO ==========
+        const OBJECT_STYLES = {
+            chest: { color: '#ffd700', glow: 'rgba(255,215,0,0.3)', icon: 'B', size: 9 },
+            door:  { color: '#00d2ff', glow: 'rgba(0,210,255,0.3)', icon: 'P', size: 10 },
+            tower: { color: '#ff8c00', glow: 'rgba(255,140,0,0.3)', icon: 'T', size: 9 }
+        };
+        const objects = m.objects || [];
+        objects.forEach((obj, idx) => {
+            const pos = worldToCanvas(obj.x || 0, obj.y || 0);
+            const isSelected = isDragging && dragItem && dragItem.type === 'map-obj' && dragItem.index === idx;
+            const isHighlighted = window._highlightedMapObj === idx;
+            const style = OBJECT_STYLES[obj.type] || { color: '#aaa', glow: 'rgba(200,200,200,0.2)', icon: 'O', size: 9 };
+
+            if (isSelected || isHighlighted) {
+                const pulse = 3 + Math.sin(Date.now() / 180) * 2;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 14 + pulse, 0, Math.PI * 2);
+                ctx.strokeStyle = style.color;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = style.glow;
+            ctx.strokeStyle = style.color;
+            ctx.lineWidth = isSelected ? 2.5 : 1.5;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = isSelected ? '#fff' : style.color;
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${style.size}px Outfit`;
+            ctx.textAlign = 'center';
+            ctx.fillText(style.icon, pos.x, pos.y + 3);
+
+            const label = obj.label || (obj.type === 'door' ? 'Puerta' : obj.type === 'chest' ? 'Baúl' : 'Torre');
+            ctx.fillStyle = style.color;
+            ctx.font = '8px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, pos.x, pos.y - 16);
+
+            if (obj.type === 'door' && obj.targetZoneId) {
+                const destZoneName = config.mapsConfig[obj.targetZoneId]?.name || `Zona ${obj.targetZoneId}`;
+                ctx.fillStyle = 'rgba(0,210,255,0.7)';
+                ctx.font = '7px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText(`→ ${destZoneName}`, pos.x, pos.y + 22);
+            }
+        });
+
+        if (window._mapRadarObjectMode) {
+            const modeStyle = OBJECT_STYLES[window._mapRadarObjectMode];
+            ctx.fillStyle = modeStyle ? modeStyle.color : '#fff';
+            ctx.font = 'bold 10px Outfit';
+            ctx.textAlign = 'left';
+            ctx.fillText(`MODO: COLOCAR ${window._mapRadarObjectMode.toUpperCase()}  (clic para colocar)`, 8, 16);
+        }
+
         if (window.lastMouseWorldX !== undefined && window.lastMouseWorldY !== undefined) {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             ctx.font = '10px monospace';
@@ -2240,5 +2348,60 @@ function initMapRadar() {
         requestAnimationFrame(draw);
     };
     draw();
+}
+
+// Activar/desactivar modo de colocación de objeto en el radar del mapa
+function setMapRadarObjectMode(type) {
+    window._mapRadarObjectMode = type;
+    const hint = document.getElementById('map-radar-mode-hint');
+    const canvas = document.getElementById('map-radar-canvas');
+    if (type) {
+        const labels = { chest: '📦 Baúl', door: '🚪 Puerta', tower: '🗼 Torre' };
+        if (hint) hint.innerHTML = `<span style="color:#ffd700;">MODO: Haz clic en el radar para colocar ${labels[type] || type}. Presioná \"Mover\" para salir.</span>`;
+        if (canvas) canvas.style.cursor = 'cell';
+    } else {
+        if (hint) hint.textContent = '🖱️ Arrastra spawns/objetos o haz clic para ver coordenadas.';
+        if (canvas) canvas.style.cursor = 'crosshair';
+    }
+}
+
+// Agregar objeto al mapa desde el botón del panel
+function addMapObject(mapId) {
+    const typeSelect = document.getElementById('new-map-obj-type');
+    const type = typeSelect ? typeSelect.value : 'chest';
+    if (!config.mapsConfig[mapId]) return;
+    if (!config.mapsConfig[mapId].objects) config.mapsConfig[mapId].objects = [];
+    const radarX = parseInt(document.getElementById('map-radar-x')?.value) || 5000;
+    const radarY = parseInt(document.getElementById('map-radar-y')?.value) || 5000;
+    const newObj = {
+        type,
+        label: type === 'chest' ? 'Baúl' : type === 'door' ? 'Puerta' : 'Torre',
+        x: radarX,
+        y: radarY,
+        assetPath: type === 'chest' ? 'res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb' :
+                   type === 'door'  ? 'res://assets/Puertas/3D/Puerta2/Puerta2.glb' :
+                                      'res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb'
+    };
+    if (type === 'door') {
+        newObj.targetZoneId = '';
+        newObj.targetX = 5000;
+        newObj.targetY = 5000;
+    }
+    config.mapsConfig[mapId].objects.push(newObj);
+}
+
+// Resaltar visualmente la tarjeta de objeto en el panel
+function highlightMapObject(idx) {
+    window._highlightedMapObj = idx;
+    document.querySelectorAll('[id^="card-map-obj-"]').forEach(el => {
+        el.style.boxShadow = '';
+        el.style.borderColor = '';
+    });
+    const card = document.getElementById(`card-map-obj-${idx}`);
+    if (card) {
+        card.style.boxShadow = '0 0 12px rgba(255,215,0,0.4)';
+        card.style.borderColor = 'rgba(255,215,0,0.6)';
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 }
 

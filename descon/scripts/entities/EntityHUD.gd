@@ -14,7 +14,7 @@ func _draw():
 	
 	# Ocultar barras de vida y escudo en la zona de housing (100)
 	var current_map = get_tree().get_first_node_in_group("map")
-	if current_map and current_map.get("zone_id") == 100:
+	if current_map and str(current_map.get("zone_id")) == "100":
 		return
 	
 	var bar_w = 44.0; var gap = 2.0; var segments = 4

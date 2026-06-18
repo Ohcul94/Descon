@@ -273,7 +273,7 @@ func _on_ad_queue_pressed():
 func _on_queue_joined(data: Dictionary):
 	is_in_queue = true
 	var pos = data.get("position", 1)
-	notify("ESTÁS EN LA COLA (POSICIÓN: " + str(pos) + ")", "success")
+	notify("ESTÁS EN LA COLA (POSICIÓN: " + str(int(pos)) + ")", "success")
 	_update_ui()
 
 func _on_match_found(_data: Dictionary):
