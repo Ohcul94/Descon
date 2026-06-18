@@ -59,7 +59,9 @@ func adjust_background():
 	_deferred_ready()
 
 func _deferred_ready():
+	print("[BaseMap _deferred_ready] Entrando a deferred ready. Esperando process_frame...")
 	await get_tree().process_frame
+	print("[BaseMap _deferred_ready] process_frame completado. Llamando a _spawn_map_objects...")
 	_spawn_map_objects()
 
 func setup_map():
@@ -381,10 +383,20 @@ var portal_click_button: Button = null
 # Lee objects[] de mapsConfig e instancia los modelos 3D y colisiones correspondientes
 func _spawn_map_objects():
 	var z_str = str(zone_id)
+	# v400.5: Si zone_id viene como float (ej: 1.0), normalizar a entero para que coincida con las llaves de MAPS_CONFIG
+	if "." in z_str and z_str.is_valid_float():
+		var z_float = float(z_str)
+		if z_float == int(z_float):
+			z_str = str(int(z_float))
+			
+	print("[BaseMap _spawn_map_objects] Iniciando spawn. zone_id es: ", z_str)
 	if not (z_str in GameConstants.MAPS_CONFIG):
+		print("[BaseMap _spawn_map_objects] ERROR: zone_id ", z_str, " no encontrada en MAPS_CONFIG. Configs disponibles: ", GameConstants.MAPS_CONFIG.keys())
 		return
 	var map_cfg = GameConstants.MAPS_CONFIG[z_str]
+	print("[BaseMap _spawn_map_objects] Encontrada config para zona ", z_str, ". Objetos: ", map_cfg.get("objects"))
 	if not map_cfg.has("objects") or not (map_cfg.objects is Array):
+		print("[BaseMap _spawn_map_objects] ADVERTENCIA: No hay un array de objetos en la config de la zona.")
 		return
 		
 	var vault_script = load("res://scripts/entities/Vault.gd")
@@ -474,12 +486,15 @@ func _spawn_map_objects():
 
 # Instanciar modelo 3D del objeto en el Viewport global del mapa
 func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: Vector3, rotation_3d: Vector3, light_color: Color) -> Node3D:
+	print("[BaseMap _instantiate_map_object_3d] Intentando instanciar: ", asset_path, " @ ", pos_2d)
 	if not is_instance_valid(sub_viewport):
+		print("[BaseMap _instantiate_map_object_3d] ERROR: sub_viewport es INVÁLIDO o NULO.")
 		return null
 		
 	var correction_z = 1.41421356
 	var scene = load(asset_path)
 	if not scene:
+		print("[BaseMap _instantiate_map_object_3d] ADVERTENCIA: Falló al cargar ", asset_path, ". Usando cilindro 3D de fallback.")
 		# Fallback visual simple
 		var fallback = CSGCylinder3D.new()
 		fallback.radius = scale_3d.x * 0.3

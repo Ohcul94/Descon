@@ -194,7 +194,8 @@ func _process(_delta):
 	
 	var mouse_pos = get_global_mouse_position()
 	var dist_to_mouse = global_position.distance_to(mouse_pos)
-	is_hovered = (dist_to_mouse <= 120.0)
+	# v1.1: Reducir radio de hover de 120px a 55px para que se ajuste a su nueva escala y evitar clics accidentales al costado
+	is_hovered = (dist_to_mouse <= 55.0)
 	
 	if is_hovered and is_interactable:
 		Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
