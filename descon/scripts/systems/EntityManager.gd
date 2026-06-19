@@ -1196,6 +1196,12 @@ func _on_clear_zone_entities(payload):
 		if is_instance_valid(remote_players[id]): remote_players[id].queue_free()
 	remote_players.clear()
 	
+	# v371.2: Limpiar restos de naufragios (wreckage markers) antiguos del sector al cambiar de zona
+	if is_instance_valid(world) and is_instance_valid(world.get("entities_node")):
+		for child in world.entities_node.get_children():
+			if is_instance_valid(child) and child.name.begins_with("Wreckage_"):
+				child.queue_free()
+	
 	if is_instance_valid(world) and is_instance_valid(world.combat_system) and world.combat_system.has_method("clear_all_bullets"):
 		world.combat_system.clear_all_bullets()
 		
