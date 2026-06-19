@@ -853,8 +853,8 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 500,
-                    "bulletSpeed": 400,
+                    "bulletDamage": 5,
+                    "bulletSpeed": 500,
                     "fireRange": 800,
                     "fireRate": 1500
                 }
