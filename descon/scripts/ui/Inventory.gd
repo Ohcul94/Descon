@@ -13,6 +13,7 @@ var is_open = false
 
 var talent_system = null
 var selected_hangar_ship_id = -1 # v210.15: Nave seleccionada para ver en Hangar
+var inv_main_preserve_ship_id = -1 # v308.3: ID a preservar tras respuesta del servidor (equip/unequip)
 
 var shop_tab = "ships"
 var ammo_sub_tab = "laser"
@@ -320,6 +321,7 @@ func toggle():
 		modal_active = false
 	
 	if is_open: 
+		selected_hangar_ship_id = -1
 		_refresh_data()
 	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
 	if is_open:
@@ -369,16 +371,35 @@ func _on_inventory_received(data: Dictionary):
 	if data.has("equippedByShip"):
 		# v262.999: Normalizar TODAS las claves a string + diagnóstico
 		var raw = data.equippedByShip
+		
+		# v308.5: Preservar datos locales optimistas de la nave no-activa modificada
+		var preserved_equip = null
+		var preserved_key = ""
+		if inv_main_preserve_ship_id != -1:
+			preserved_key = str(inv_main_preserve_ship_id)
+			if equipped_by_ship.has(preserved_key):
+				preserved_equip = equipped_by_ship[preserved_key].duplicate(true)
+		
 		equipped_by_ship = {}
 		for key in raw.keys():
 			equipped_by_ship[str(key)] = raw[key]
-		print("[HANGAR-SYNC] equippedByShip recibido. Claves: ", equipped_by_ship.keys(), " | Naves con datos: ", equipped_by_ship.size())
-		for k in equipped_by_ship.keys():
-			var e = equipped_by_ship[k]
-			if e is Dictionary:
-				print("  Nave ", k, ": w=", e.get("w", []).size(), " s=", e.get("s", []).size(), " e=", e.get("e", []).size())
+		
+		# Si la nave preservada tenía datos locales válidos y el server la devolvió vacía o incompleta,
+		# restauramos temporalmente la versión optimista local para evitar parpadeos
+		if preserved_key != "" and preserved_equip != null:
+			var server_equip = equipped_by_ship.get(preserved_key, null)
+			var server_has_items = false
+			if server_equip is Dictionary:
+				var total_s = server_equip.get("w", []).size() + server_equip.get("s", []).size() + server_equip.get("e", []).size() + server_equip.get("x", []).size()
+				if total_s > 0:
+					server_has_items = true
+			
+			var local_has_items = preserved_equip.get("w", []).size() + preserved_equip.get("s", []).size() + preserved_equip.get("e", []).size() + preserved_equip.get("x", []).size() > 0
+			
+			if local_has_items and not server_has_items:
+				equipped_by_ship[preserved_key] = preserved_equip
 	else:
-		print("[HANGAR-SYNC] WARNING: inventoryData NO trajo equippedByShip. Keys: ", data.keys())
+		pass
 	
 	if is_open: 
 		_update_clan_ui()
@@ -410,7 +431,20 @@ func _on_inventory_received(data: Dictionary):
 	queue_redraw()
 	
 	# v210.16: Conservar selección si es válida
-	if selected_hangar_ship_id == -1: selected_hangar_ship_id = current_ship_id
+	var did_preserve = false
+	var preserved_id_temp = inv_main_preserve_ship_id
+	if inv_main_preserve_ship_id != -1:
+		# v308.3: Hay una nave a preservar por acción de equip/unequip reciente
+		selected_hangar_ship_id = inv_main_preserve_ship_id
+		inv_main_preserve_ship_id = -1
+		did_preserve = true
+	elif selected_hangar_ship_id == -1:
+		selected_hangar_ship_id = current_ship_id
+		
+	# v308.6: Si modificamos una nave no-activa, pedir su equipamiento definitivo al servidor de inmediato
+	if did_preserve and preserved_id_temp != current_ship_id:
+		if NetworkManager:
+			NetworkManager.send_event("getShipEquip", preserved_id_temp)
 
 func _update_active_tab_ui():
 	var tab_container = get_node_or_null("Window/TabContainer")

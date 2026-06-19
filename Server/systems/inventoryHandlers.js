@@ -285,7 +285,8 @@ function registerInventoryHandlers(socket, io, state) {
 
             const targetId = shipId ? parseInt(shipId) : user.gameData.currentShipId;
             const shipKey = targetId.toString();
-            let shipEquip = getShipEquip(user, shipKey);
+            // v308.1: Clonamos shipEquip para evitar mutación directa de Mongoose y asegurar nueva referencia
+            let shipEquip = JSON.parse(JSON.stringify(getShipEquip(user, shipKey)));
 
             const shipModel = state.SERVER_CONFIG.shipModels.find(s => s.id === targetId);
             const max = (shipModel && shipModel.slots) ? (shipModel.slots[slot] || 1) : 1;
@@ -302,18 +303,21 @@ function registerInventoryHandlers(socket, io, state) {
 
             if (targetId === user.gameData.currentShipId) user.gameData.equipped = shipEquip;
 
+            user.markModified('gameData.equippedByShip'); // v308.2: Marcar el mapa explícitamente como modificado
             user.markModified('gameData');
             await user.save();
             socket.dbUser = user;
 
-            // v266.135: Recalcular Stats en RAM e informar al cliente
-            p.equipped = shipEquip;
-            calculateFinalStats(p, state.SERVER_CONFIG);
-            io.to(`zone_${p.zone}`).emit('playerStatSync', { 
-                id: socket.id, 
-                hp: p.hp, shield: p.shield, 
-                maxHp: p.maxHp, maxShield: p.maxShield 
-            });
+            // v266.135: Recalcular Stats en RAM e informar al cliente solo si es la nave activa
+            if (targetId === user.gameData.currentShipId) {
+                p.equipped = shipEquip;
+                calculateFinalStats(p, state.SERVER_CONFIG);
+                io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+                    id: socket.id, 
+                    hp: p.hp, shield: p.shield, 
+                    maxHp: p.maxHp, maxShield: p.maxShield 
+                });
+            }
 
             const eByShipObj = {};
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
@@ -405,7 +409,8 @@ function registerInventoryHandlers(socket, io, state) {
             const user = await User.findById(socket.dbUser._id);
             const targetId = data.shipId ? parseInt(data.shipId) : user.gameData.currentShipId;
             const shipKey = targetId.toString();
-            let shipEquip = getShipEquip(user, shipKey);
+            // v308.1: Clonamos shipEquip para evitar mutación directa de Mongoose y asegurar nueva referencia
+            let shipEquip = JSON.parse(JSON.stringify(getShipEquip(user, shipKey)));
             
             const idx = shipEquip[data.category].findIndex(it => it.instanceId === data.instanceId);
             if (idx === -1) return;
@@ -418,18 +423,21 @@ function registerInventoryHandlers(socket, io, state) {
             
             if (targetId === user.gameData.currentShipId) user.gameData.equipped = shipEquip;
             
+            user.markModified('gameData.equippedByShip'); // v308.2: Marcar el mapa explícitamente como modificado
             user.markModified('gameData');
             await user.save();
             socket.dbUser = user;
             
-            // v266.135: Recalcular Stats tras desequipar
-            p.equipped = shipEquip;
-            calculateFinalStats(p, state.SERVER_CONFIG);
-            io.to(`zone_${p.zone}`).emit('playerStatSync', { 
-                id: socket.id, 
-                hp: p.hp, shield: p.shield, 
-                maxHp: p.maxHp, maxShield: p.maxShield 
-            });
+            // v266.135: Recalcular Stats tras desequipar solo si es la nave activa
+            if (targetId === user.gameData.currentShipId) {
+                p.equipped = shipEquip;
+                calculateFinalStats(p, state.SERVER_CONFIG);
+                io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+                    id: socket.id, 
+                    hp: p.hp, shield: p.shield, 
+                    maxHp: p.maxHp, maxShield: p.maxShield 
+                });
+            }
 
             const eByShipObj = {};
             if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
