@@ -92,7 +92,7 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
                     const mUidStr = mUid.toString();
                     if (mUidStr === killerUid) continue; 
                     
-                    let sid = state.activeSessions.get(mUidStr);
+                    let sid = Object.keys(state.players).find(k => state.players[k].id === mUidStr);
                     if (sid) {
                         const s = io.sockets.sockets.get(sid);
                         if (s && state.players[s.id]) {

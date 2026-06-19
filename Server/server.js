@@ -401,6 +401,7 @@ const handleUserLogin = async (socket, user, username) => {
 
     players[socket.id] = {
         id: dbId,
+        dbId: dbId,
         socketId: socket.id,
         num: state.nextPlayerNum++,
         user: username,
