@@ -331,7 +331,15 @@ function registerCombatHandlers(socket, io, state) {
             const attackerType = data.attackerType || 'enemy';
             if (attackerType === 'remote' || attackerType === 'player') return;
             
-            const enemyType = data.enemyType || 1;
+            // v371.1: Resolución autoritativa del tipo de enemigo en el servidor para evitar desincronización por anti-cheat
+            const attackerId = data.attackerId || data.enemyId || data.senderId;
+            let enemyType = 1;
+            if (attackerId && state.enemies[attackerId]) {
+                enemyType = state.enemies[attackerId].type;
+            } else if (data.enemyType !== undefined) {
+                enemyType = data.enemyType;
+            }
+            
             let dmg = data.damage || 0;
 
             if (attackerType === 'enemy') {

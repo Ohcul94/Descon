@@ -46,6 +46,7 @@ module.exports = class MechanicBossAI extends BaseAI {
                     const dmg = this.config.bulletDamage * 0.5; // Menos daño pero muchas balas
                     io.to(zoneStr).emit('serverEnemyFire', {
                         enemyId: this.enemy.id,
+                        enemyType: this.enemy.type,
                         x: this.enemy.x, y: this.enemy.y,
                         angle: fireAngle, damage: dmg
                     });
@@ -57,6 +58,7 @@ module.exports = class MechanicBossAI extends BaseAI {
             if (now - (this.enemy.nextShotTime || 0) > 0) {
                 io.to(zoneStr).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
+                    enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y,
                     angle: this.enemy.rotation - Math.PI / 2,
                     damage: this.config.bulletDamage

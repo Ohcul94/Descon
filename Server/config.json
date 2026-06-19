@@ -853,10 +853,10 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 100,
-                    "bulletSpeed": 500,
+                    "bulletDamage": 500,
+                    "bulletSpeed": 400,
                     "fireRange": 800,
-                    "fireRate": 3000
+                    "fireRate": 1500
                 }
             ],
             "movementPhases": [

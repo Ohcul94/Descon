@@ -1274,6 +1274,9 @@ module.exports = class BaseAI {
                 
                 // v266.240: Compatibilidad de tipos para el cliente Godot
 
+                const modelCfg = (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.enemyModels) ? this.state.SERVER_CONFIG.enemyModels[this.enemy.type.toString()] : null;
+                const fallbackDmg = modelCfg ? (modelCfg.bulletDamage !== undefined ? modelCfg.bulletDamage : (modelCfg.damage !== undefined ? modelCfg.damage : (this.enemy.type * 100))) : (this.enemy.type * 100);
+
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
                     targetId: target?.id || target?.socketId || "",
@@ -1281,7 +1284,7 @@ module.exports = class BaseAI {
                     x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
                     bulletSpeed: mech.bulletSpeed || 800, 
                     bulletType: mech.type || "laser",
-                    damage: (mech.bulletDamage || (this.enemy.type * 100)) * (this.ambienceBoost ? (parseFloat(this.ambienceBoost.damageMult) || 1) : 1),
+                    damage: (mech.bulletDamage || fallbackDmg) * (this.ambienceBoost ? (parseFloat(this.ambienceBoost.damageMult) || 1) : 1),
                     // v266.220: Pasar datos extra de la mecánica (Slow, Combustible, Giro)
                     slowAmount: mech.slowAmount || 0,
                     slowDuration: mech.slowDuration || 0,
@@ -1379,6 +1382,7 @@ module.exports = class BaseAI {
                 const angleOffset = (i * Math.PI * 2 / count);
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id, 
+                    enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, 
                     angle: angleOffset,
                     bulletSpeed: mech.bulletSpeed || 1200, 

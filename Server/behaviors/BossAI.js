@@ -122,6 +122,7 @@ module.exports = class BossAI extends BaseAI {
         if (now > (this.nextLaserTime || 0)) {
             io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                 enemyId: this.enemy.id, targetId: target.id,
+                enemyType: this.enemy.type,
                 x: this.enemy.x, y: this.enemy.y, angle: angle,
                 damage: this.isRage ? (this.config.bulletDamage * 1.5) : this.config.bulletDamage
             });
@@ -168,6 +169,7 @@ module.exports = class BossAI extends BaseAI {
                 const pAngle = Math.atan2(p.y - this.enemy.y, p.x - this.enemy.x);
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id, targetId: p.id,
+                    enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, angle: pAngle,
                     type: 'missile', isHoming: true, life: 240, 
                     damage: this.isRage ? (this.config.bulletDamage * 2.5) : (this.config.bulletDamage * 1.5)
