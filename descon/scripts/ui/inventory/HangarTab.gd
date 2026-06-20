@@ -401,7 +401,37 @@ func _create_item_row(it, parent):
 	var action_hb = HBoxContainer.new(); action_hb.add_theme_constant_override("separation", 5); hb.add_child(action_hb)
 	
 	var b_sell = Button.new(); b_sell.text = "VENDER"; b_sell.modulate = Color(1, 0.4, 0.4); b_sell.add_theme_font_size_override("font_size", 8)
-	b_sell.pressed.connect(func(): NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", "")}))
+	b_sell.pressed.connect(func():
+		# v308.5: Validación previa de combate en cliente antes de confirmar
+		var player_node = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(player_node):
+			var time_since_combat = Time.get_ticks_msec() - player_node.last_combat_time
+			var combat_delay = 60000 # Cooldown autoritativo de 60s
+			if time_since_combat < combat_delay:
+				var remaining = int(ceil((combat_delay - time_since_combat) / 1000.0))
+				NetworkManager.game_notification.emit({
+					"msg": "ERROR: Sistemas calientes. Espera " + str(remaining) + "s para vender.", 
+					"type": "error"
+				})
+				return
+
+		var refund = 0
+		for cat_key in GameConstants.SHOP_ITEMS:
+			var category = GameConstants.SHOP_ITEMS[cat_key]
+			if category is Array:
+				for shop_item in category:
+					if str(shop_item.get("id", "")).to_lower() == search_id:
+						var prices = shop_item.get("prices", {})
+						if prices.has("hubs"):
+							refund = int(prices["hubs"] / 2)
+							break
+			if refund > 0: break
+		
+		var msg = "¿Confirmas la venta de [color=yellow]" + str(it.get("name", "ITEM")).to_upper() + "[/color] por [color=green]" + str(refund) + " HUBS[/color]?"
+		inv_main._show_modal("CONFIRMAR VENTA", msg, func():
+			NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", "")})
+		)
+	)
 	action_hb.add_child(b_sell)
 
 	var b_equip = Button.new(); b_equip.text = "EQUIPAR"; b_equip.add_theme_font_size_override("font_size", 9); action_hb.add_child(b_equip)

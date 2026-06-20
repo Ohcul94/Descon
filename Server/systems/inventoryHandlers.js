@@ -58,6 +58,24 @@ function checkCombatLock(p) {
     return { locked: false };
 }
 
+function sendInventoryData(socket, user) {
+    if (!user) return;
+    const eByShipObj = {};
+    if (user.gameData.equippedByShip instanceof Map) {
+        user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+    } else {
+        Object.assign(eByShipObj, user.gameData.equippedByShip || {});
+    }
+    socket.emit('inventoryData', {
+        player: { 
+            ...JSON.parse(JSON.stringify(user.gameData)), 
+            equippedByShip: eByShipObj, 
+            inventoryByCategory: getCategorizedInventory(user.gameData.inventory) 
+        }
+    });
+}
+
+
 function registerInventoryHandlers(socket, io, state) {
 
     // v263.010: CONSULTA DE EQUIPAMIENTO POR NAVE (sin necesidad de activarla)
@@ -238,13 +256,7 @@ function registerInventoryHandlers(socket, io, state) {
                 console.log(`[SHOP-DEBUG] RAM sincronizada para ${user.username}`);
             }
 
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip);
-
-            socket.emit('inventoryData', {
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
-            });
+            sendInventoryData(socket, user);
             console.log(`[SHOP-DEBUG] Evento inventoryData enviado al cliente.`);
         } catch (e) { console.error(e); }
     });
@@ -254,12 +266,18 @@ function registerInventoryHandlers(socket, io, state) {
         if (!socket.dbUser || !state.players[socket.id]) return;
         const p = state.players[socket.id];
         
+        if (p.isProcessingInventory) {
+            return socket.emit('gameNotification', { msg: 'Transacción en curso. Espera un momento.', type: 'error' });
+        }
+        
         if (p.isExtracting) {
+            sendInventoryData(socket, socket.dbUser);
             return socket.emit('gameNotification', { msg: 'EQUIPO BLOQUEADO: No puedes modificar tu nave en combate de extracción.', type: 'error' });
         }
 
         const lock = checkCombatLock(p);
         if (lock.locked) {
+            sendInventoryData(socket, socket.dbUser);
             return socket.emit('gameNotification', { 
                 msg: `ERROR: Sistemas calientes. Espera ${lock.remaining}s para equipar.`, 
                 type: 'error' 
@@ -267,13 +285,17 @@ function registerInventoryHandlers(socket, io, state) {
         }
 
         try {
+            p.isProcessingInventory = true;
             const data = (typeof raw_data === 'object' && raw_data.instanceId) ? raw_data : raw_data;
             const instanceId = data.instanceId;
             const shipId = (typeof data.shipId === 'object') ? (data.shipId.id || data.shipId.shipId) : data.shipId;
 
             const user = await User.findById(socket.dbUser._id);
             const idx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
-            if (idx === -1) return;
+            if (idx === -1) {
+                sendInventoryData(socket, user);
+                return;
+            }
 
             const item = user.gameData.inventory[idx];
             const id = (item.id || "").toLowerCase();
@@ -292,6 +314,7 @@ function registerInventoryHandlers(socket, io, state) {
             const max = (shipModel && shipModel.slots) ? (shipModel.slots[slot] || 1) : 1;
 
             if (shipEquip[slot].length >= max) {
+                sendInventoryData(socket, user);
                 return socket.emit('authError', `BODEGA LLENA: No hay más espacio para ${slot.toUpperCase()}`);
             }
 
@@ -308,6 +331,10 @@ function registerInventoryHandlers(socket, io, state) {
             await user.save();
             socket.dbUser = user;
 
+            // Sincronizar RAM (p) para persistencia en desconexión (F5)
+            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+            p.equipped = JSON.parse(JSON.stringify(user.gameData.equipped));
+
             // v266.135: Recalcular Stats en RAM e informar al cliente solo si es la nave activa
             if (targetId === user.gameData.currentShipId) {
                 p.equipped = shipEquip;
@@ -319,14 +346,11 @@ function registerInventoryHandlers(socket, io, state) {
                 });
             }
 
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip);
-
-            socket.emit('inventoryData', {
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
-            });
+            sendInventoryData(socket, user);
         } catch (e) { console.error(e); }
+        finally {
+            p.isProcessingInventory = false;
+        }
     });
 
     // CAMBIAR NAVE
@@ -379,13 +403,7 @@ function registerInventoryHandlers(socket, io, state) {
                 io.emit('playerUpdated', { id: socket.id, type: p.type });
             }
 
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip);
-
-            socket.emit('inventoryData', { 
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) } 
-            });
+            sendInventoryData(socket, user);
         } catch (e) { console.error(e); }
     });
 
@@ -393,12 +411,18 @@ function registerInventoryHandlers(socket, io, state) {
         if (!socket.dbUser || !state.players[socket.id]) return;
         const p = state.players[socket.id];
         
+        if (p.isProcessingInventory) {
+            return socket.emit('gameNotification', { msg: 'Transacción en curso. Espera un momento.', type: 'error' });
+        }
+        
         if (p.isExtracting) {
+            sendInventoryData(socket, socket.dbUser);
             return socket.emit('gameNotification', { msg: 'BODEGA BLOQUEADA: Extrae primero para modificar tu equipo.', type: 'error' });
         }
 
         const lock = checkCombatLock(p);
         if (lock.locked) {
+            sendInventoryData(socket, socket.dbUser);
             return socket.emit('gameNotification', { 
                 msg: `ERROR: Sistemas calientes. Espera ${lock.remaining}s para desequipar.`, 
                 type: 'error' 
@@ -406,6 +430,7 @@ function registerInventoryHandlers(socket, io, state) {
         }
 
         try {
+            p.isProcessingInventory = true;
             const user = await User.findById(socket.dbUser._id);
             const targetId = data.shipId ? parseInt(data.shipId) : user.gameData.currentShipId;
             const shipKey = targetId.toString();
@@ -413,7 +438,10 @@ function registerInventoryHandlers(socket, io, state) {
             let shipEquip = JSON.parse(JSON.stringify(getShipEquip(user, shipKey)));
             
             const idx = shipEquip[data.category].findIndex(it => it.instanceId === data.instanceId);
-            if (idx === -1) return;
+            if (idx === -1) {
+                sendInventoryData(socket, user);
+                return;
+            }
             
             const item = shipEquip[data.category].splice(idx, 1)[0];
             user.gameData.inventory.push(item);
@@ -427,6 +455,10 @@ function registerInventoryHandlers(socket, io, state) {
             user.markModified('gameData');
             await user.save();
             socket.dbUser = user;
+
+            // Sincronizar RAM (p) para persistencia en desconexión (F5)
+            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+            p.equipped = JSON.parse(JSON.stringify(user.gameData.equipped));
             
             // v266.135: Recalcular Stats tras desequipar solo si es la nave activa
             if (targetId === user.gameData.currentShipId) {
@@ -439,19 +471,20 @@ function registerInventoryHandlers(socket, io, state) {
                 });
             }
 
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip);
-
-            socket.emit('inventoryData', { 
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) } 
-            });
+            sendInventoryData(socket, user);
         } catch (e) { console.error(e); }
+        finally {
+            p.isProcessingInventory = false;
+        }
     });
 
     socket.on('sellItem', async (data) => {
         if (!socket.dbUser || !state.players[socket.id]) return;
         const p = state.players[socket.id];
+
+        if (p.isProcessingInventory) {
+            return socket.emit('gameNotification', { msg: 'Transacción en curso. Espera un momento.', type: 'error' });
+        }
 
         // v262.720: Candado de Combate también para Venta
         const lock = checkCombatLock(p);
@@ -463,6 +496,7 @@ function registerInventoryHandlers(socket, io, state) {
         }
 
         try {
+            p.isProcessingInventory = true;
             const { instanceId } = data;
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
@@ -493,16 +527,17 @@ function registerInventoryHandlers(socket, io, state) {
             await user.save();
             socket.dbUser = user;
 
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip);
+            // Sincronizar RAM (p) para persistencia en desconexión (F5)
+            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+            p.hubs = user.gameData.hubs;
 
-            socket.emit('inventoryData', {
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
-            });
+            sendInventoryData(socket, user);
 
             socket.emit('gameNotification', { msg: `VENDIDO POR ${refund} HUBS`, type: 'success' });
         } catch (e) { console.error(e); }
+        finally {
+            p.isProcessingInventory = false;
+        }
     });
 
     // v262.730: GESTIÓN DE ESFERAS AUTORITATIVA + BLOQUEO DE COMBATE
@@ -536,16 +571,10 @@ function registerInventoryHandlers(socket, io, state) {
             user.markModified('gameData.spheres');
             await user.save();
 
-            socket.dbUser = user;
+            user.dbUser = user;
             p.spheres = JSON.parse(JSON.stringify(user.gameData.spheres)); // Sincronizar RAM (Safe Copy)
 
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip);
-
-            socket.emit('inventoryData', {
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
-            });
+            sendInventoryData(socket, user);
             console.log(`[SPHERE] ${user.username} equipó ${skill.skill_name} en slot ${sphereId}`);
         } catch (e) { console.error("[SPHERE-ERROR]", e); }
     });
@@ -574,13 +603,7 @@ function registerInventoryHandlers(socket, io, state) {
             socket.dbUser = user;
             p.spheres = JSON.parse(JSON.stringify(user.gameData.spheres));
 
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip);
-
-            socket.emit('inventoryData', {
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
-            });
+            sendInventoryData(socket, user);
         } catch (e) { console.error("[SPHERE-UNEQUIP-ERROR]", e); }
     });
 
@@ -766,13 +789,7 @@ function registerInventoryHandlers(socket, io, state) {
             p.ohcu = user.gameData.ohcu;
             p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
 
-            const eByShipObj = {};
-            if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-            else Object.assign(eByShipObj, user.gameData.equippedByShip);
-
-            socket.emit('inventoryData', {
-                player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
-            });
+            sendInventoryData(socket, user);
 
             socket.emit('gameNotification', { msg: `¡CRAFTEO EXITOSO: ${recipe.name}!`, type: 'success' });
         } catch (e) {
