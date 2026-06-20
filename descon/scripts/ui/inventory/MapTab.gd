@@ -67,26 +67,44 @@ func update_ui():
 	
 	for s in sectors:
 		var is_current = (s.id == current_zone_id)
+		var is_selected = (s.id == selected_zone_id)
 
 		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(0, 70); s_list.add_child(p)
 		
 		var sb = StyleBoxFlat.new()
-		if is_current:
-			sb.bg_color = Color(1, 0.8, 0, 0.15)
+		
+		# Configuración de Fondo
+		if is_selected:
+			sb.bg_color = Color(0, 0.8, 1, 0.15) # Fondo cian más brillante para el seleccionado
+		elif is_current:
+			sb.bg_color = Color(1, 0.8, 0, 0.15) # Fondo dorado para la zona actual
+		else:
+			sb.bg_color = Color(0, 1, 1, 0.05) # Fondo normal
+			
+		# Configuración de Bordes
+		if is_selected:
+			# Borde completo cian para identificar claramente el mapa que se está mirando
+			sb.border_width_left = 4
+			sb.border_width_top = 2
+			sb.border_width_right = 2
+			sb.border_width_bottom = 2
+			sb.border_color = Color.CYAN
+		elif is_current:
 			sb.border_width_left = 5
 			sb.border_color = Color.GOLD
-			sb.shadow_color = Color(1, 0.8, 0, 0.2)
-			sb.shadow_size = 4
 		else:
-			sb.bg_color = Color(0,1,1,0.05)
 			sb.border_width_left = 3
 			sb.border_color = s.color
+			
+		if is_current:
+			sb.shadow_color = Color(1, 0.8, 0, 0.2)
+			sb.shadow_size = 4
 			
 		p.add_theme_stylebox_override("panel", sb)
 		
 		# Selección interactiva al hacer click en la tarjeta de sector
 		p.gui_input.connect(func(ev):
-			if ev is InputEventMouseButton and ev.pressed:
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 				selected_zone_id = s.id
 				update_ui()
 		)

@@ -34,7 +34,7 @@ var active_modales = [] # v307: Registro de modales activos para cerrado en capa
 
 func _ready():
 	add_to_group("inventory_ui") # v244.70: Coordinación global de UI
-	mouse_filter = Control.MOUSE_FILTER_IGNORE # v305.65: Cambiado de PASS a STOP para bloqueo global
+	mouse_filter = Control.MOUSE_FILTER_STOP # v305.65: Cambiado de IGNORE a STOP para bloqueo global
 	
 	var win = get_node_or_null("Window")
 	if win: win.mouse_filter = Control.MOUSE_FILTER_STOP # v244.71: Bloquear click-through
@@ -305,6 +305,9 @@ func _input(event):
 				for i in range(tabs.get_child_count()):
 					if tabs.get_child(i).name == "Mapa":
 						tabs.current_tab = i
+						var mt = tabs.get_child(i)
+						if mt and "selected_zone_id" in mt:
+							mt.selected_zone_id = -1
 						break
 		get_viewport().set_input_as_handled()
 
@@ -319,6 +322,11 @@ func toggle():
 				m.queue_free()
 		active_modales.clear()
 		modal_active = false
+		
+		# Resetear zona seleccionada al cerrar
+		var mt = get_node_or_null("Window/TabContainer/Mapa")
+		if mt and "selected_zone_id" in mt:
+			mt.selected_zone_id = -1
 	
 	if is_open: 
 		selected_hangar_ship_id = -1
