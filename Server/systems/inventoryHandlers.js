@@ -571,7 +571,7 @@ function registerInventoryHandlers(socket, io, state) {
             user.markModified('gameData.spheres');
             await user.save();
 
-            user.dbUser = user;
+            socket.dbUser = user;
             p.spheres = JSON.parse(JSON.stringify(user.gameData.spheres)); // Sincronizar RAM (Safe Copy)
 
             sendInventoryData(socket, user);

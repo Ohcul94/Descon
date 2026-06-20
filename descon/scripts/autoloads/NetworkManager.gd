@@ -127,8 +127,16 @@ func connect_to_server(ip: String, port: int, p_name: String, p_token: String = 
 		print("[NET] Socket activo detectado. Cerrando para nueva conexión...")
 		socket.close()
 		socket = WebSocketPeer.new()
+		socket.inbound_buffer_size = 1024 * 1024
+		socket.outbound_buffer_size = 1024 * 1024
+		socket.max_queued_packets = 2048
 		network_connected = false
 		
+	# Asegurar que el socket inicial también tenga el buffer configurado
+	socket.inbound_buffer_size = 1024 * 1024
+	socket.outbound_buffer_size = 1024 * 1024
+	socket.max_queued_packets = 2048
+
 	login_name = p_name
 	auth_token = p_token
 	var url = ""

@@ -4,6 +4,7 @@ extends Control
 # Lógica de sectores y mapa interactivo extraída de Inventory.gd.
 
 var inv_main = null
+var selected_zone_id: int = -1
 
 func setup(p_inv_main):
 	inv_main = p_inv_main
@@ -30,6 +31,9 @@ func update_ui():
 	var p_node = get_tree().get_first_node_in_group("player")
 	if is_instance_valid(p_node) and "current_zone" in p_node:
 		current_zone_id = p_node.current_zone
+
+	if selected_zone_id == -1:
+		selected_zone_id = current_zone_id
 
 	var sectors = []
 	for z_id in GameConstants.MAPS_CONFIG:
@@ -61,11 +65,8 @@ func update_ui():
 		
 	sectors.sort_custom(func(a, b): return a.id < b.id)
 	
-	var current_zone_name = "MAPA 1"
-
 	for s in sectors:
 		var is_current = (s.id == current_zone_id)
-		if is_current: current_zone_name = s.name
 
 		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(0, 70); s_list.add_child(p)
 		
@@ -82,6 +83,13 @@ func update_ui():
 			sb.border_color = s.color
 			
 		p.add_theme_stylebox_override("panel", sb)
+		
+		# Selección interactiva al hacer click en la tarjeta de sector
+		p.gui_input.connect(func(ev):
+			if ev is InputEventMouseButton and ev.pressed:
+				selected_zone_id = s.id
+				update_ui()
+		)
 		
 		var hb = HBoxContainer.new(); hb.add_theme_constant_override("separation", 10); p.add_child(hb)
 		
@@ -143,29 +151,150 @@ func update_ui():
 				)
 			)
 	
-	# Columna Derecha: El Mapa Interactivo
-	var r_col = VBoxContainer.new(); r_col.size_flags_horizontal = 3; master_h.add_child(r_col)
-	var map_container = PanelContainer.new(); map_container.size_flags_vertical = 3; r_col.add_child(map_container)
-	var msb = StyleBoxFlat.new(); msb.bg_color = Color(0,0,0,0.8); msb.set_border_width_all(1); msb.border_color = Color(0,1,1,0.2); map_container.add_theme_stylebox_override("panel", msb)
+	# Columna Derecha: Contenedor Principal de Detalles Dinámicos
+	var r_col = VBoxContainer.new(); r_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; master_h.add_child(r_col)
 	
-	var map_logic = Control.new()
-	map_logic.name = "MapLogic"
-	map_logic.size_flags_horizontal = 3
-	map_logic.size_flags_vertical = 3
-	map_logic.set_script(load("res://scripts/ui/AdminMap.gd"))
-	map_logic.is_embedded = true
-	map_logic.r_pos = Vector2(0, 0)
-	map_logic.r_margin = Vector2(5, 5)
-	map_container.add_child(map_logic)
+	# Buscar data de la zona seleccionada
+	var sel_zone_data = {}
+	for s in sectors:
+		if s.id == selected_zone_id:
+			sel_zone_data = s
+			break
 	
-	call_deferred("_setup_map_logic", current_zone_name)
-
-func _setup_map_logic(zone_name = "MAPA 1"):
-	var logic_node = find_child("MapLogic", true, false)
-	if is_instance_valid(logic_node):
-		logic_node.current_sector_name = zone_name
-		logic_node.visible = true
-		logic_node.custom_minimum_size = Vector2(400, 400)
-		logic_node.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		logic_node.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		logic_node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Contenedor de dos columnas
+	var cols_hb = HBoxContainer.new(); cols_hb.size_flags_vertical = Control.SIZE_EXPAND_FILL; cols_hb.add_theme_constant_override("separation", 15); r_col.add_child(cols_hb)
+	
+	# --- COLUMNA 1: ENEMIGOS Y DROPS ---
+	var col_enem = VBoxContainer.new(); col_enem.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cols_hb.add_child(col_enem)
+	var t_enem = Label.new(); t_enem.text = "ENEMIGOS Y BOTÍN (DROPS)"; t_enem.modulate = Color(1, 0.4, 0.4); t_enem.add_theme_font_size_override("font_size", 10); col_enem.add_child(t_enem)
+	
+	var scroll_enem = ScrollContainer.new(); scroll_enem.size_flags_vertical = Control.SIZE_EXPAND_FILL; col_enem.add_child(scroll_enem)
+	var list_enem = VBoxContainer.new(); list_enem.size_flags_horizontal = Control.SIZE_EXPAND_FILL; scroll_enem.add_child(list_enem)
+	
+	# Cargar enemigos configurados en spawns para el mapa
+	var spawns = sel_zone_data.get("spawns", [])
+	var drop_mult = float(sel_zone_data.get("dropMultiplier", 1.0))
+	
+	if spawns.is_empty():
+		var no_enem = Label.new(); no_enem.text = "No se detecta presencia enemiga en este sector."
+		no_enem.add_theme_font_size_override("font_size", 9); no_enem.modulate.a = 0.4
+		list_enem.add_child(no_enem)
+	else:
+		# Evitar duplicados de tipos de enemigos en la lista visual
+		var processed_types = []
+		for sp in spawns:
+			var raw_type = str(sp.get("type", ""))
+			if raw_type == "" or raw_type in processed_types:
+				continue
+			processed_types.append(raw_type)
+			
+			# Limpiar tipo (ej: "1-A" -> "1")
+			var base_type = raw_type.split("-")[0]
+			var enemy_cfg = {}
+			if GameConstants.ENEMY_MODELS.has(base_type):
+				enemy_cfg = GameConstants.ENEMY_MODELS[base_type]
+			elif GameConstants.ENEMY_MODELS.has(raw_type):
+				enemy_cfg = GameConstants.ENEMY_MODELS[raw_type]
+				
+			var e_panel = PanelContainer.new(); e_panel.custom_minimum_size.y = 50; list_enem.add_child(e_panel)
+			var esb = StyleBoxFlat.new(); esb.bg_color = Color(1, 0.2, 0.2, 0.03); esb.set_border_width_all(1); esb.border_color = Color(1, 0.2, 0.2, 0.1); e_panel.add_theme_stylebox_override("panel", esb)
+			var ev = VBoxContainer.new(); ev.offset_left = 6; e_panel.add_child(ev)
+			
+			var e_name = enemy_cfg.get("name", "Enemigo T" + base_type)
+			var e_hp = int(enemy_cfg.get("hp", 100))
+			var e_sh = int(enemy_cfg.get("shield", 0))
+			
+			var e_title = Label.new(); e_title.text = e_name.to_upper() + " [HP: " + str(e_hp) + " | SH: " + str(e_sh) + "]"
+			e_title.add_theme_font_size_override("font_size", 9); e_title.modulate = Color(1, 0.5, 0.5); ev.add_child(e_title)
+			
+			# Mostrar drop general de cofre
+			var c_chance = float(enemy_cfg.get("chestDropChance", 0.1)) * drop_mult
+			var c_chance_pct = int(c_chance * 100)
+			
+			var e_chance_lbl = Label.new(); e_chance_lbl.text = "Probabilidad de Cofre: " + str(c_chance_pct) + "%"
+			e_chance_lbl.add_theme_font_size_override("font_size", 8); e_chance_lbl.modulate = Color.DARK_GRAY; ev.add_child(e_chance_lbl)
+			
+			# Mostrar items de drop
+			var drops = enemy_cfg.get("lootDrops", [])
+			if drops.is_empty():
+				var no_drop = Label.new(); no_drop.text = "   • Sin drops de ítems específicos."
+				no_drop.add_theme_font_size_override("font_size", 8); no_drop.modulate.a = 0.4; ev.add_child(no_drop)
+			else:
+				var drop_title = Label.new(); drop_title.text = "   Botín Posible:"
+				drop_title.add_theme_font_size_override("font_size", 8); drop_title.modulate = Color.CYAN; ev.add_child(drop_title)
+				for d in drops:
+					var item_id = d.get("itemId", "")
+					var item_chance = int(float(d.get("chance", 0.1)) * 100)
+					
+					# Buscar nombre del item en shopItems
+					var item_name = item_id
+					for cat_key in GameConstants.SHOP_ITEMS:
+						var category = GameConstants.SHOP_ITEMS[cat_key]
+						if category is Array:
+							for shop_item in category:
+								if str(shop_item.get("id", "")).to_lower() == item_id.to_lower():
+									item_name = shop_item.get("name", item_id)
+									break
+						elif category is Dictionary:
+							for sub_key in category:
+								var sub_list = category[sub_key]
+								if sub_list is Array:
+									for shop_item in sub_list:
+										if str(shop_item.get("id", "")).to_lower() == item_id.to_lower():
+											item_name = shop_item.get("name", item_id)
+											break
+					var drop_lbl = Label.new(); drop_lbl.text = "     - " + item_name + " (" + str(item_chance) + "% chance)"
+					drop_lbl.add_theme_font_size_override("font_size", 8); drop_lbl.modulate.a = 0.85; ev.add_child(drop_lbl)
+	
+	# --- COLUMNA 2: MECÁNICAS AMBIENTALES ---
+	var col_amb = VBoxContainer.new(); col_amb.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cols_hb.add_child(col_amb)
+	var t_amb = Label.new(); t_amb.text = "MECÁNICAS AMBIENTALES"; t_amb.modulate = Color.YELLOW; t_amb.add_theme_font_size_override("font_size", 10); col_amb.add_child(t_amb)
+	
+	var scroll_amb = ScrollContainer.new(); scroll_amb.size_flags_vertical = Control.SIZE_EXPAND_FILL; col_amb.add_child(scroll_amb)
+	var list_amb = VBoxContainer.new(); list_amb.size_flags_horizontal = Control.SIZE_EXPAND_FILL; scroll_amb.add_child(list_amb)
+	
+	var ambience = sel_zone_data.get("ambience", [])
+	if ambience.is_empty():
+		var no_amb = Label.new(); no_amb.text = "Entorno estable. No se detectan anomalías climáticas."
+		no_amb.add_theme_font_size_override("font_size", 9); no_amb.modulate.a = 0.4
+		list_amb.add_child(no_amb)
+	else:
+		for a in ambience:
+			var a_type = str(a.get("type", ""))
+			var a_panel = PanelContainer.new(); a_panel.custom_minimum_size.y = 50; list_amb.add_child(a_panel)
+			var asb = StyleBoxFlat.new(); asb.bg_color = Color(1, 0.8, 0, 0.03); asb.set_border_width_all(1); asb.border_color = Color(1, 0.8, 0, 0.1); a_panel.add_theme_stylebox_override("panel", asb)
+			var av = VBoxContainer.new(); av.offset_left = 6; a_panel.add_child(av)
+			
+			var a_title_lbl = Label.new()
+			var a_desc_lbl = Label.new()
+			a_title_lbl.add_theme_font_size_override("font_size", 9); a_title_lbl.modulate = Color.YELLOW
+			a_desc_lbl.add_theme_font_size_override("font_size", 8); a_desc_lbl.modulate.a = 0.85
+			
+			match a_type:
+				"freeze_hazard":
+					a_title_lbl.text = "TORMENTA CRIOGÉNICA (FREEZE)"
+					var slow_pct = int(a.get("slowPercentage", 0))
+					var slow_fix = int(a.get("slowFixed", 0))
+					var dur = int(round(float(a.get("duration", 3000)) / 1000.0))
+					var slow_desc = str(slow_pct) + "%" if slow_pct > 0 else str(slow_fix) + " unidades"
+					a_desc_lbl.text = "Congela naves periódicamente.\nRalentiza en " + slow_desc + " durante " + str(dur) + "s."
+				"radiation":
+					a_title_lbl.text = "RADIACIÓN ESTELAR (RADIATION)"
+					var dmg = int(a.get("damage", 10))
+					var ms = int(round(float(a.get("intervalMs", 3000)) / 1000.0))
+					a_desc_lbl.text = "Campo electromagnético dañino.\nCausa " + str(dmg) + " de daño cada " + str(ms) + "s al escudo/casco."
+				"interferencia_hazard":
+					a_title_lbl.text = "NEBULOSA DE INTERFERENCIA (EMP)"
+					var dur = int(round(float(a.get("duration", 5000)) / 1000.0))
+					a_desc_lbl.text = "Frecuencia de pulso inestable.\nBloquea el uso de habilidades activas durante " + str(dur) + "s."
+				"extreme_aggression":
+					a_title_lbl.text = "AGRESIVIDAD EXTREMA"
+					var h_mult = float(a.get("healthMult", 1.0))
+					var h_mult_str = str(h_mult) if h_mult != int(h_mult) else str(int(h_mult))
+					a_desc_lbl.text = "Zona de combate hiperactiva.\nLos enemigos tienen un multiplicador de HP/Escudo de x" + h_mult_str + "."
+				_:
+					a_title_lbl.text = a_type.to_upper().replace("_", " ")
+					a_desc_lbl.text = "Parámetros: " + JSON.stringify(a)
+			
+			av.add_child(a_title_lbl)
+			av.add_child(a_desc_lbl)

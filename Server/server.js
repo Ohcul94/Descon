@@ -77,7 +77,8 @@ const CLIENT_CONFIG_KEYS = [
     'gameModes',
     'craftingRecipes',
     'housingConfig',
-    'questsConfig'
+    'questsConfig',
+    'enemyModels'
 ];
 
 const buildClientConfig = (config) => {

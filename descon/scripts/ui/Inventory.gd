@@ -322,6 +322,9 @@ func toggle():
 	
 	if is_open: 
 		selected_hangar_ship_id = -1
+		var mt = get_node_or_null("Window/TabContainer/Mapa")
+		if mt and "selected_zone_id" in mt:
+			mt.selected_zone_id = -1
 		_refresh_data()
 	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
 	if is_open:
