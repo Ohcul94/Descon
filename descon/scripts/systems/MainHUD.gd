@@ -381,6 +381,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				# X: Preservar margen absoluto nominal
 				if rx + (base_w / 2.0) > (original_w / 2.0):
 					var margin_right = original_w - (rx + base_w)
+					if margin_right < 0: margin_right = 0 # v308.50: Evitar que se desplace fuera del borde derecho
 					f_pos.x = _screen_size.x - godot_visual_w - margin_right
 				else:
 					f_pos.x = rx
@@ -388,6 +389,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				# Y: Preservar margen absoluto nominal
 				if ry + (base_h / 2.0) > (original_h / 2.0):
 					var margin_bottom = original_h - (ry + base_h)
+					if margin_bottom < 0: margin_bottom = 0 # v308.50: Evitar que se desplace fuera del borde inferior
 					f_pos.y = _screen_size.y - godot_visual_h - margin_bottom
 				else:
 					f_pos.y = ry
@@ -699,7 +701,7 @@ func _restore_default_layout():
 		"Sphere3Slot":     { "x": 789.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 		"Sphere4Slot":     { "x": 874.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 		"PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
-		"ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0 },
+		"ControlBar":      { "x": 10,    "y": 715,   "scale": 0.5, "alpha": 1.0 },
 		"StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
 	}
 	

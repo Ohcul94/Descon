@@ -1214,7 +1214,8 @@ func show_bubble(p_text: String):
 	bubble.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	bubble.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	bubble.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	bubble.custom_minimum_size = Vector2(80, 20)
+	bubble.custom_minimum_size = Vector2(280, 20)
+	bubble.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0, 0, 0, 0.7)
@@ -1237,8 +1238,8 @@ func show_bubble(p_text: String):
 		add_child(bubble)
 		
 	bubble.z_index = 10
-	# Posición base de inicio (Relativa al wrapper que ya está en global_pos)
-	bubble.position = Vector2(-bubble.size.x / 2.0, -110)
+	# Posición base de inicio centrada usando el ancho de la burbuja
+	bubble.position = Vector2(-280.0 / 2.0, -110)
 	
 	# Animación y Autodestrucción Segura
 	var tw = create_tween()
