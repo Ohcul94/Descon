@@ -187,6 +187,24 @@ func _update_icon_tooltips():
 	for btn in buttons:
 		if not btn is Button: continue
 		
+		# Unificar tamaño y estilos visuales para que todos luzcan y se comporten igual a Housing
+		btn.custom_minimum_size = Vector2(36, 36)
+		
+		var sb = StyleBoxFlat.new()
+		sb.bg_color = Color(0.1, 0.1, 0.1, 0.6)
+		sb.set_corner_radius_all(6)
+		btn.add_theme_stylebox_override("normal", sb)
+		
+		var h_sb = sb.duplicate()
+		h_sb.bg_color = Color(0.3, 0.5, 0.6, 0.8)
+		h_sb.border_width_bottom = 2
+		h_sb.border_color = Color.CYAN
+		btn.add_theme_stylebox_override("hover", h_sb)
+		
+		var p_sb = sb.duplicate()
+		p_sb.bg_color = Color(0.2, 0.4, 0.5, 0.9)
+		btn.add_theme_stylebox_override("pressed", p_sb)
+		
 		var b_name = btn.name.replace("Icon", "")
 		var final_name = names.get(b_name, b_name)
 		btn.tooltip_text = ""
