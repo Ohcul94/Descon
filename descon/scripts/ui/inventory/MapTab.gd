@@ -209,10 +209,10 @@ func update_ui():
 			# Limpiar tipo (ej: "1-A" -> "1")
 			var base_type = raw_type.split("-")[0]
 			var enemy_cfg = {}
-			if GameConstants.ENEMY_MODELS.has(base_type):
-				enemy_cfg = GameConstants.ENEMY_MODELS[base_type]
-			elif GameConstants.ENEMY_MODELS.has(raw_type):
+			if GameConstants.ENEMY_MODELS.has(raw_type):
 				enemy_cfg = GameConstants.ENEMY_MODELS[raw_type]
+			elif GameConstants.ENEMY_MODELS.has(base_type):
+				enemy_cfg = GameConstants.ENEMY_MODELS[base_type]
 				
 			var e_panel = PanelContainer.new(); e_panel.custom_minimum_size.y = 50; list_enem.add_child(e_panel)
 			var esb = StyleBoxFlat.new(); esb.bg_color = Color(1, 0.2, 0.2, 0.03); esb.set_border_width_all(1); esb.border_color = Color(1, 0.2, 0.2, 0.1); e_panel.add_theme_stylebox_override("panel", esb)

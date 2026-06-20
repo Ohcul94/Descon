@@ -101,7 +101,7 @@ function registerInventoryHandlers(socket, io, state) {
                 }
             }
 
-            console.log(`[SHIP-EQUIP] ${user.username} consultó nave ${key}: w=${equip.w?.length||0} s=${equip.s?.length||0} e=${equip.e?.length||0}`);
+            // console.log(`[SHIP-EQUIP] ${user.username} consultó nave ${key}: w=${equip.w?.length||0} s=${equip.s?.length||0} e=${equip.e?.length||0}`);
             socket.emit('shipEquipData', { shipId: targetId, equip });
         } catch (e) { console.error('[SHIP-EQUIP ERROR]', e); }
     });

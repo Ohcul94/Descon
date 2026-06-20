@@ -951,10 +951,10 @@ io.on('connection', (socket) => {
                 userId = state.players[socket.id].dbId;
             }
             
-            console.log(`[SERVER-LOG] getInventory procesando para Socket: ${socket.id} | UserID: ${userId}`);
+            // console.log(`[SERVER-LOG] getInventory procesando para Socket: ${socket.id} | UserID: ${userId}`);
             
             if (!userId) {
-                console.log("[SERVER-LOG] ERROR: No se pudo identificar al usuario para este socket.");
+                // console.log("[SERVER-LOG] ERROR: No se pudo identificar al usuario para este socket.");
                 return;
             }
 
@@ -964,7 +964,7 @@ io.on('connection', (socket) => {
                 const { getCategorizedInventory } = require('./systems/inventoryHandlers');
 
                 const invCount = user.gameData.inventory ? user.gameData.inventory.length : 0;
-                console.log(`[SERVER-LOG] Enviando ${invCount} items a Socket: ${socket.id}`);
+                // console.log(`[SERVER-LOG] Enviando ${invCount} items a Socket: ${socket.id}`);
 
                 // v263.000: MIGRACIÓN AUTOMÁTICA - Sincronizar equipped → equippedByShip
                 const currentKey = String(user.gameData.currentShipId || 1);

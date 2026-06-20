@@ -32,7 +32,7 @@ function isServerAuthoritative(state) {
 
         // 2. Tirada de cofre. Si falla, no spawnea nada.
         if (Math.random() > finalSpawnChance) {
-            console.log(`[LOOT-SPAWN] Enemigo ${enemy.type} en zona ${enemy.zone} no soltó cofre (Chance combinada: ${finalSpawnChance.toFixed(2)})`);
+            // console.log(`[LOOT-SPAWN] Enemigo ${enemy.type} en zona ${enemy.zone} no soltó cofre (Chance combinada: ${finalSpawnChance.toFixed(2)})`);
             return;
         }
 
@@ -100,7 +100,7 @@ function isServerAuthoritative(state) {
                     color: master.color || "#ffffff",
                     icon: master.icon || ""
                 });
-                console.log(`[LOOT-SPAWN] Garantizado ítem ${master.id} para evitar cofre vacío.`);
+                // console.log(`[LOOT-SPAWN] Garantizado ítem ${master.id} para evitar cofre vacío.`);
             }
         }
 
@@ -122,7 +122,7 @@ function isServerAuthoritative(state) {
 
             state.lootDrops[lootId] = lootDrop;
 
-            console.log(`[LOOT-SPAWN] Creado botín ${lootId} en zona ${enemy.zone} (${lootDrop.x}, ${lootDrop.y}) con ${droppedItems.length} ítems.`);
+            // console.log(`[LOOT-SPAWN] Creado botín ${lootId} en zona ${enemy.zone} (${lootDrop.x}, ${lootDrop.y}) con ${droppedItems.length} ítems.`);
 
             // Notificar a los jugadores de la zona sobre la presencia del botín físico
             io.to(`zone_${enemy.zone}`).emit('lootSpawned', {
@@ -146,7 +146,7 @@ function startCleanupTimer(io, state) {
             Object.keys(state.lootDrops).forEach(lootId => {
                 const drop = state.lootDrops[lootId];
                 if (drop && now > drop.expiresAt) {
-                    console.log(`[LOOT-CLEANUP] Purgando botín expirado: ${lootId} de zona ${drop.zone}`);
+                    // console.log(`[LOOT-CLEANUP] Purgando botín expirado: ${lootId} de zona ${drop.zone}`);
                     io.to(`zone_${drop.zone}`).emit('lootDespawned', { id: lootId });
                     delete state.lootDrops[lootId];
                 }
