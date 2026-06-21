@@ -628,6 +628,8 @@ function updateMovementPhaseType(id, idx, type) {
             else if (f === 'changeType') config.enemyModels[id].movementPhases[idx][f] = 'random';
             else if (f === 'changeInterval') config.enemyModels[id].movementPhases[idx][f] = 4000;
             else if (f === 'patrolRange') config.enemyModels[id].movementPhases[idx][f] = 300;
+            else if (f === 'amplitude') config.enemyModels[id].movementPhases[idx][f] = 100;
+            else if (f === 'frequency') config.enemyModels[id].movementPhases[idx][f] = 1.5;
             else config.enemyModels[id].movementPhases[idx][f] = 150;
         }
     });

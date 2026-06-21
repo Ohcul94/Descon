@@ -7,6 +7,7 @@ const SniperAI = require('../behaviors/SniperAI');
 const ChargerAI = require('../behaviors/ChargerAI');
 const GravityAI = require('../behaviors/GravityAI');
 const ProwlerAI = require('../behaviors/ProwlerAI');
+const ZigZagAI = require('../behaviors/ZigZagAI');
 const Logger = require('../utils/logger');
 
 /**
@@ -103,7 +104,8 @@ class AIManager {
             "boss": BossAI,
             "ancient": AncientBossAI,
             "mechanic": MechanicBossAI,
-            "prowler": ProwlerAI
+            "prowler": ProwlerAI,
+            "zigzag": ZigZagAI
         };
 
         if (movementType && AI_MAP[movementType]) {
