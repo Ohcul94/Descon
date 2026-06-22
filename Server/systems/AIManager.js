@@ -1,8 +1,8 @@
 const ChaseAI = require('../behaviors/ChaseAI');
 const OrbitAI = require('../behaviors/OrbitAI');
 const BossAI = require('../behaviors/BossAI');
-const AncientBossAI = require('../behaviors/AncientBossAI');
-const MechanicBossAI = require('../behaviors/MechanicBossAI');
+const AncientBossAI = require('../behaviors/BossAI');
+const MechanicBossAI = require('../behaviors/BossAI');
 const SniperAI = require('../behaviors/SniperAI');
 const ChargerAI = require('../behaviors/ChargerAI');
 const GravityAI = require('../behaviors/GravityAI');
@@ -112,9 +112,7 @@ class AIManager {
             e.ai = new AI_MAP[movementType](e, aiConfig, this.state);
         } else {
             // Fallback para tipos hardcodeados antiguos si no hay config
-            if (type === 103) e.ai = new MechanicBossAI(e, aiConfig, this.state); 
-            else if (type === 102) e.ai = new AncientBossAI(e, aiConfig, this.state); 
-            else if (type === 101) e.ai = new BossAI(e, aiConfig, this.state); 
+            if (type === 103 || type === 102 || type === 101) e.ai = new BossAI(e, aiConfig, this.state); 
             else if (type === 8 || type === 3) e.ai = new ChargerAI(e, aiConfig, this.state);
             else if (type === 6 || type === 7) e.ai = new GravityAI(e, aiConfig, this.state);
             else if (type === 5 || type === 2 || type === 12) e.ai = new SniperAI(e, aiConfig, this.state); 
@@ -199,27 +197,6 @@ class AIManager {
             });
         }
 
-        // Guardián Jefes (Zonas Hardcodeadas)
-        if (this.state.playersByZone[2] && Object.keys(this.state.playersByZone[2]).length > 0) {
-            const hasTitanZ2 = Object.values(this.state.enemies).some(e => e.type === 4 && e.zone === 2);
-            if (!hasTitanZ2 && Date.now() - this.state.lastTitanDeath > 10000) {
-                this.serverSpawnEnemy(2, 4);
-            }
-        }
-
-        if (this.state.playersByZone[8] && Object.keys(this.state.playersByZone[8]).length > 0) {
-            const boss102s = Object.values(this.state.enemies).filter(e => e.type === 102 && e.zone === 8);
-            if (boss102s.length === 0) {
-                this.serverSpawnEnemy(8, 102, 2000, 2000);
-            }
-        }
-
-        if (this.state.playersByZone[7] && Object.keys(this.state.playersByZone[7]).length > 0) {
-            const boss103s = Object.values(this.state.enemies).filter(e => e.type === 103 && e.zone === 7);
-            if (boss103s.length === 0) {
-                this.serverSpawnEnemy(7, 103, 2000, 2000);
-            }
-        }
     }
 }
 

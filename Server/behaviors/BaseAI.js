@@ -247,6 +247,8 @@ module.exports = class BaseAI {
                 this._handleBossWaterOrbsLogic(mech, mId, now, io, grid, players);
             } else if (mech.type === "invisibility") {
                 this._handleInvisibilityLogic(mech, mId, now, io);
+            } else if (mech.type === "duplicado") {
+                this._handleDuplicadoLogic(mech, mId, now, io);
             } else if (mech.type && mech.type.startsWith("aura_")) {
                 this._handleAuraLogic(mech, mId, now, io, grid, players);
             }
@@ -2134,6 +2136,131 @@ module.exports = class BaseAI {
                 msg: `💧 ¡El Boss invoca Orbes de Agua! ¡Intercéptalas antes de que lo curen! 💧`, 
                 type: "warning" 
             });
+        }
+    }
+
+    _handleDuplicadoLogic(mech, mId, now, io) {
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || { 
+            nextReadyTime: now + (mech.startDelay || 0), 
+            isActive: false, 
+            endTime: 0,
+            triggeredHPs: {},
+            combatStartTime: null
+        };
+        this.enemy.defState[mId] = state;
+
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        // Resetear triggers y timers si salimos de combate
+        if (!this._inCombat) {
+            state.triggeredHPs = {};
+            state.combatStartTime = null;
+        } else if (this._inCombat && !state.combatStartTime) {
+            state.combatStartTime = now;
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
+        }
+
+        // 1. Si la mecánica está activa, comprobar si expira
+        if (state.isActive) {
+            if (now >= state.endTime) {
+                state.isActive = false;
+                if (mech.activationMode !== "time") {
+                    state.nextReadyTime = now + (mech.cooldown || 30000);
+                }
+            }
+        }
+
+        // 2. Activar si cumple condiciones
+        let shouldActivate = false;
+        if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
+            if (mech.activationMode === "time") {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                // Modo HP (por defecto)
+                let thresholds = [];
+                if (Array.isArray(mech.activationHPs)) {
+                    thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
+                } else if (mech.activationHP !== undefined) {
+                    thresholds = [Number(mech.activationHP)];
+                } else {
+                    thresholds = [50];
+                }
+
+                if (!state.triggeredHPs) {
+                    state.triggeredHPs = {};
+                }
+
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        shouldActivate = true;
+                        state.triggeredHPs[hpVal] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (shouldActivate) {
+            state.isActive = true;
+            const duration = Number(mech.cloneDuration) || 8000;
+            state.endTime = now + duration;
+            if (mech.activationMode !== "time") {
+                state.nextReadyTime = now + (mech.cooldown || 30000);
+            }
+
+            const cloneCount = Number(mech.cloneCount) || 3;
+            const radius = Number(mech.spawnRadius) || 150;
+            const CloneAI = require('./CloneAI');
+
+            io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                msg: `👥 ¡El enemigo se ha duplicado! Cuidado con los clones.`, 
+                type: "warning" 
+            });
+
+            for (let i = 0; i < cloneCount; i++) {
+                const angle = (i / cloneCount) * Math.PI * 2 + (Math.random() * 0.5);
+                const cx = this.enemy.x + Math.cos(angle) * radius;
+                const cy = this.enemy.y + Math.sin(angle) * radius;
+                const cloneId = `clone_${this.enemy.id}_${i}_${Date.now()}`;
+
+                const cloneObj = {
+                    id: cloneId,
+                    type: this.enemy.type,
+                    zone: this.enemy.zone,
+                    name: `${this.enemy.name} (CLON)`,
+                    x: cx,
+                    y: cy,
+                    startX: cx,
+                    startY: cy,
+                    hp: Number(mech.cloneHp) || 1000,
+                    maxHp: Number(mech.cloneHp) || 1000,
+                    shield: Number(mech.cloneShield) || 0,
+                    maxShield: Number(mech.cloneShield) || 0,
+                    rotation: angle,
+                    lastHit: 0,
+                    isInvulnerable: false
+                };
+
+                const cloneConfig = {
+                    cloneSpeed: Number(mech.cloneSpeed) || 200,
+                    cloneDuration: duration,
+                    cloneExplosionDamage: Number(mech.cloneExplosionDamage) || 500,
+                    cloneHealAmount: Number(mech.cloneHealAmount) || 1000,
+                    cloneExplodeOnExpiry: mech.cloneExplodeOnExpiry !== false,
+                    parentEnemyId: this.enemy.id
+                };
+
+                cloneObj.ai = new CloneAI(cloneObj, cloneConfig, this.state);
+                this.state.enemies[cloneId] = cloneObj;
+
+                io.to(`zone_${this.enemy.zone}`).emit('enemySpawn', cloneObj);
+            }
         }
     }
 };

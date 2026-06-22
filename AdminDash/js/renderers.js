@@ -863,7 +863,15 @@ function renderEnemyDetail() {
                                         invisType: "Tipo de Ocultamiento",
                                         keepAttacking: "Ataca Invisible",
                                         changeSpeed: "Modificar Velocidad",
-                                        invisSpeedMultiplier: "Multiplicador de Velocidad (x)"
+                                        invisSpeedMultiplier: "Multiplicador de Velocidad (x)",
+                                        cloneCount: "Cantidad de Clones (uds)",
+                                        cloneHp: "Vida de Clones (pts)",
+                                        cloneShield: "Escudo de Clones (pts)",
+                                        cloneSpeed: "Velocidad de Clones (px/s)",
+                                        cloneDuration: "Duración de Clones (ms)",
+                                        cloneExplosionDamage: "Daño de Explosión (pts)",
+                                        cloneHealAmount: "Curación al original (pts)",
+                                        cloneExplodeOnExpiry: "Perseguir y explotar al expirar"
                                     };
                                     if (f === 'invisType') {
                                         const type = m.invisType || 'invisibility';
@@ -949,7 +957,10 @@ function renderEnemyDetail() {
                                             <div class="field" style="grid-column: 1 / -1;"><label>Intervalo de Activación en Combate (ms)</label><input type="number" value="${interval}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs = parseInt(this.value)"></div>
                                         `;
                                     }
-                                    if (['affectsEnemies', 'affectsBosses'].includes(f)) return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${m[f] ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.checked"><label style="margin:0;">${defLabels[f]}</label></div>`;
+                                    if (['affectsEnemies', 'affectsBosses', 'cloneExplodeOnExpiry'].includes(f)) {
+                                         const checked = f === 'cloneExplodeOnExpiry' ? m[f] !== false : !!m[f];
+                                         return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.checked"><label style="margin:0;">${defLabels[f]}</label></div>`;
+                                    }
                                     if (f === 'pillarName') return `<div class="field" style="grid-column: 1 / -1;"><label>${defLabels[f] || f}</label><input type="text" value="${m[f] || 'Pilar Protector'}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.value"></div>`;
                                     return `<div class="field"><label>${defLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}

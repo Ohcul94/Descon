@@ -704,6 +704,15 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
             else if (f === 'invisSpeedMultiplier') mech[f] = 1.0;
             else if (f === 'activationMode') mech[f] = 'hp';
             else if (f === 'activationHPs') mech[f] = [50];
+            else if (f === 'cloneCount') mech[f] = 3;
+            else if (f === 'cloneHp') mech[f] = 1000;
+            else if (f === 'cloneShield') mech[f] = 200;
+            else if (f === 'cloneSpeed') mech[f] = 200;
+            else if (f === 'cloneDuration') mech[f] = 8000;
+            else if (f === 'cloneExplosionDamage') mech[f] = 500;
+            else if (f === 'cloneHealAmount') mech[f] = 1000;
+            else if (f === 'cloneExplodeOnExpiry') mech[f] = true;
+            else if (f === 'spawnRadius') mech[f] = 150;
             else mech[f] = 0;
         }
     });

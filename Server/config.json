@@ -732,7 +732,30 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [
+                {
+                    "type": "duplicado",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 5000,
+                    "cooldown": 10000,
+                    "startDelay": 0,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "cloneCount": 2,
+                    "cloneHp": 1000,
+                    "cloneShield": 200,
+                    "cloneSpeed": 200,
+                    "cloneDuration": 8000,
+                    "cloneExplosionDamage": 500,
+                    "cloneHealAmount": 1000,
+                    "cloneExplodeOnExpiry": true,
+                    "spawnRadius": 150
+                }
+            ]
         },
         "102": {
             "bulletDamage": 5000,
@@ -3024,7 +3047,19 @@
             "ambience": [],
             "width": 10000,
             "height": 10000,
-            "objects": []
+            "objects": [],
+            "spawns": [
+                {
+                    "id": "spawn_1782084064418693",
+                    "type": "101",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 823,
+                    "y": 749,
+                    "radius": 300
+                }
+            ]
         },
         "8": {
             "color": "#550000",
@@ -4615,6 +4650,17 @@
                 "changeInterval",
                 "changeType"
             ]
+        },
+        "zigzag": {
+            "label": "Movimiento ZigZag",
+            "icon": "↩️",
+            "desc": "Persigue al jugador zigzagueando de lado a lado.",
+            "fields": [
+                "speed",
+                "stopDist",
+                "amplitude",
+                "frequency"
+            ]
         }
     },
     "defenseLib": {
@@ -4723,6 +4769,26 @@
                 "changeSpeed",
                 "invisSpeedMultiplier",
                 "startDelay"
+            ]
+        },
+        "duplicado": {
+            "label": "Duplicación Defensiva",
+            "icon": "👥",
+            "desc": "El enemigo se divide en clones que persiguen al jugador y explotan curando al original.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cloneCount",
+                "cloneHp",
+                "cloneShield",
+                "cloneSpeed",
+                "cloneDuration",
+                "cloneExplosionDamage",
+                "cloneHealAmount",
+                "cloneExplodeOnExpiry",
+                "spawnRadius",
+                "cooldown"
             ]
         }
     },
