@@ -28,7 +28,7 @@ class AIManager {
         
         if (!forceType && zone === 2 && Object.keys(enemies).filter(e => enemies[e].zone === 2).length >= 15) return;
         
-        const type = forceType || (Math.floor(Math.random() * 3) + 1);
+        const type = Number(forceType || (Math.floor(Math.random() * 3) + 1));
         const cfg = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[type.toString()] : null;
         
         const maps = (this.state && this.state.SERVER_CONFIG) ? (this.state.SERVER_CONFIG.mapsConfig || this.state.SERVER_CONFIG.maps || this.state.SERVER_CONFIG.mapData || {}) : {};

@@ -2791,7 +2791,7 @@
         }
     },
     "hordeConfig": {
-        "active": true,
+        "active": false,
         "currentWaveIndex": 0,
         "map": 7,
         "timeBetweenWaves": 5,
