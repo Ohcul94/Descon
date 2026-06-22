@@ -28,7 +28,10 @@ class AIManager {
         
         if (!forceType && zone === 2 && Object.keys(enemies).filter(e => enemies[e].zone === 2).length >= 15) return;
         
-        const type = Number(forceType || (Math.floor(Math.random() * 3) + 1));
+        let type = forceType || (Math.floor(Math.random() * 3) + 1);
+        if (typeof type === 'string' && !isNaN(Number(type))) {
+            type = Number(type);
+        }
         const cfg = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[type.toString()] : null;
         
         const maps = (this.state && this.state.SERVER_CONFIG) ? (this.state.SERVER_CONFIG.mapsConfig || this.state.SERVER_CONFIG.maps || this.state.SERVER_CONFIG.mapData || {}) : {};
@@ -40,13 +43,14 @@ class AIManager {
         const extremeAggro = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
         const hpMult = extremeAggro ? (parseFloat(extremeAggro.healthMult) || 1) : 1;
 
-        const isBoss = (type >= 101) || (cfg && cfg.isBoss);
+        const isBoss = (typeof type === 'number' && type >= 101) || (cfg && cfg.isBoss);
         const id = 'enemy_' + (isBoss ? 'boss_' : '') + Date.now() + Math.floor(Math.random() * 1000);
         
         const name = forceName || (cfg ? cfg.name : (type === 101 ? "Lord Titán" : (type === 4 ? "Enemigo 4" : (type === 5 ? "Boss2" : (type === 6 ? "Boss3" : "Enemigo")))));
 
-        const initialHp = (cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 101 ? 100000 : (type * 2000))))) * hpMult;
-        const initialShield = (cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 101 ? 50000 : (type * 1000))))) * hpMult;
+        const numericType = typeof type === 'number' ? type : parseInt(type) || 1;
+        const initialHp = (cfg ? cfg.hp : (type === 6 ? 150000 : (type === 5 ? 200000 : (type === 101 ? 100000 : (numericType * 2000))))) * hpMult;
+        const initialShield = (cfg ? cfg.shield : (type === 6 ? 75000 : (type === 5 ? 100000 : (type === 101 ? 50000 : (numericType * 1000))))) * hpMult;
 
         const mapWidth = (mapCfg && mapCfg.width) ? mapCfg.width : 4000;
         const mapHeight = (mapCfg && mapCfg.height) ? mapCfg.height : 4000;

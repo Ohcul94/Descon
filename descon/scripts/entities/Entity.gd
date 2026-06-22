@@ -782,7 +782,7 @@ func update_stats(data):
 		is_rage = bool(data.get("isRage", data.get("isRyze", false)))
 		
 	if data.has("type"):
-		var t = int(data.type)
+		var t = str(data.type).to_int()
 		# v224.30: Forzar recarga si el tipo cambió O si el 3D falló (polígono rosa visible)
 		if t != entity_type or not is_instance_valid(_3d_model): 
 			entity_type = t
