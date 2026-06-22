@@ -2259,7 +2259,8 @@ module.exports = class BaseAI {
                 cloneObj.ai = new CloneAI(cloneObj, cloneConfig, this.state);
                 this.state.enemies[cloneId] = cloneObj;
 
-                io.to(`zone_${this.enemy.zone}`).emit('enemySpawn', cloneObj);
+                const { ai, ...spawnData } = cloneObj;
+                io.to(`zone_${this.enemy.zone}`).emit('enemySpawn', spawnData);
             }
         }
     }

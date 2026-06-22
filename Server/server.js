@@ -416,19 +416,19 @@ const handleUserLogin = async (socket, user, username) => {
         maxShield: baseSh,
         level: user.gameData.level || 1,
         skillPoints: user.gameData.skillPoints || 0,
-        skillTree: user.gameData.skillTree || {
+        skillTree: JSON.parse(JSON.stringify(user.gameData.skillTree || {
             engineering: [0, 0, 0, 0, 0, 0, 0, 0],
             combat: [0, 0, 0, 0, 0, 0, 0, 0],
             science: [0, 0, 0, 0, 0, 0, 0, 0]
-        },
+        })),
         baseHp: baseHp,
         baseShield: baseSh,
         ammo: JSON.parse(JSON.stringify(user.gameData.ammo)),
         equipped: resolvedEquip,
-        spheres: user.gameData.spheres,
-        hudConfig: user.gameData.hudConfig || {},
-        hudPositions: (user.gameData.hudPositions && Object.keys(user.gameData.hudPositions).length > 0) ? user.gameData.hudPositions : (pc.defaultLayout || {}),
-        hudLayouts: user.gameData.hudLayouts || [], // v266.130: Slots múltiples
+        spheres: JSON.parse(JSON.stringify(user.gameData.spheres || [])),
+        hudConfig: JSON.parse(JSON.stringify(user.gameData.hudConfig || {})),
+        hudPositions: JSON.parse(JSON.stringify((user.gameData.hudPositions && Object.keys(user.gameData.hudPositions).length > 0) ? user.gameData.hudPositions : (pc.defaultLayout || {}))),
+        hudLayouts: JSON.parse(JSON.stringify(user.gameData.hudLayouts || [])), // v266.130: Slots múltiples
         hubs: (user.gameData.hubs !== undefined) ? user.gameData.hubs : (pc.startingHubs || 0),
         ohcu: (user.gameData.ohcu !== undefined) ? user.gameData.ohcu : (pc.startingOhcu || 0),
         exp: user.gameData.exp || 0,
@@ -531,8 +531,8 @@ const handleUserLogin = async (socket, user, username) => {
         clanTag: clanTag,
         gameData: {
             ...JSON.parse(JSON.stringify(user.gameData)),
-            equippedByShip: eByShipObj,
-            equipped: user.gameData.equipped
+            equippedByShip: JSON.parse(JSON.stringify(eByShipObj)),
+            equipped: JSON.parse(JSON.stringify(user.gameData.equipped || { w: [], s: [], e: [], x: [] }))
         },
         adminConfig: buildClientConfig(adminConfig)
     };
