@@ -272,26 +272,40 @@ module.exports = class BaseAI {
             this.enemy.lastRegenTime = now;
         }
 
-        // v269.195: PROCESAR DEFENSAS (Usar '|| 100' para manejar ceros del dashboard como 'siempre activo')
-        const defMechanics = cfg.defenseMechanics || [];
-        defMechanics.forEach((mech, idx) => {
-            const mId = `def_${idx}`;
-            if (mech.type === "invulnerability") {
-                this._handleInvulnerabilityLogic(mech, mId, now, io);
-            } else if (mech.type === "boss_pillars") {
-                this._handleBossPillarsLogic(mech, mId, now, io);
-            } else if (mech.type === "boss_colors") {
-                this._handleBossColorsLogic(mech, mId, now, io, players);
-            } else if (mech.type === "boss_water_orbs") {
-                this._handleBossWaterOrbsLogic(mech, mId, now, io, grid, players);
-            } else if (mech.type === "invisibility") {
-                this._handleInvisibilityLogic(mech, mId, now, io);
-            } else if (mech.type === "duplicado") {
-                this._handleDuplicadoLogic(mech, mId, now, io);
-            } else if (mech.type && mech.type.startsWith("aura_")) {
-                this._handleAuraLogic(mech, mId, now, io, grid, players);
-            }
-        });
+        // v269.195: PROCESAR DEFENSAS (Solo si está en combate activo)
+        if (this._inCombat) {
+            const defMechanics = cfg.defenseMechanics || [];
+            defMechanics.forEach((mech, idx) => {
+                const mId = `def_${idx}`;
+                if (mech.type === "invulnerability") {
+                    this._handleInvulnerabilityLogic(mech, mId, now, io);
+                } else if (mech.type === "boss_pillars") {
+                    this._handleBossPillarsLogic(mech, mId, now, io);
+                } else if (mech.type === "boss_colors") {
+                    this._handleBossColorsLogic(mech, mId, now, io, players);
+                } else if (mech.type === "boss_water_orbs") {
+                    this._handleBossWaterOrbsLogic(mech, mId, now, io, grid, players);
+                } else if (mech.type === "invisibility") {
+                    this._handleInvisibilityLogic(mech, mId, now, io);
+                } else if (mech.type === "duplicado") {
+                    this._handleDuplicadoLogic(mech, mId, now, io);
+                } else if (mech.type && mech.type.startsWith("aura_")) {
+                    this._handleAuraLogic(mech, mId, now, io, grid, players);
+                }
+            });
+        } else {
+            // v3.9.1: Si sale de combate, asegurar desactivar cualquier aura visual activa
+            const defMechanics = cfg.defenseMechanics || [];
+            defMechanics.forEach((mech, idx) => {
+                const mId = `def_${idx}`;
+                if (this.enemy.auraState && this.enemy.auraState[mId] && this.enemy.auraState[mId].isActive) {
+                    this.enemy.auraState[mId].isActive = false;
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAura', {
+                        id: this.enemy.id, mId: mId, active: false
+                    });
+                }
+            });
+        }
 
         // v3.0: PROCESAR REGRESO AL SPAWN
         if (this.enemy.returningToSpawn) {

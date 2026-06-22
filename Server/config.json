@@ -476,7 +476,7 @@
             "bulletSpeed": 800,
             "fireRange": 900,
             "fireRate": 1200,
-            "hp": 5000,
+            "hp": 50000,
             "name": "Enemigo 8",
             "rewardExp": 1200,
             "rewardHubs": 2500,
@@ -496,10 +496,12 @@
             ],
             "movementPhases": [
                 {
-                    "type": "chase",
+                    "type": "zigzag",
                     "speed": 300,
                     "stopDist": 150,
-                    "startDelay": 0
+                    "startDelay": 0,
+                    "amplitude": 500,
+                    "frequency": 1
                 }
             ],
             "defenseMechanics": [
@@ -3072,6 +3074,16 @@
                     "spawnMode": "fixed",
                     "x": 823,
                     "y": 749,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1782151326526778",
+                    "type": "8",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 2696,
+                    "y": 892,
                     "radius": 300
                 }
             ]

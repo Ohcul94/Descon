@@ -445,7 +445,7 @@ func _on_body_entered(body):
 		# SI LLEGAMOS AQUÍ: El impacto es válido (es NPC o es PvP legal)
 		_has_hit = true
 		if body.is_in_group("player"):
-			print("[PROJ-DEBUG] Impactando player con daño: ", damage, " de ", owner_id)
+			pass # print("[PROJ-DEBUG] Impactando player con daño: ", damage, " de ", owner_id)
 		body.take_damage(damage, global_position, owner_id)
 
 		

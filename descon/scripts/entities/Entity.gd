@@ -141,7 +141,7 @@ func _ready():
 	_collision_shape.shape = circle
 	add_child(_collision_shape)
 	
-	print("[BATTLE] Colisión normalizada: ", name)
+	# print("[BATTLE] Colisión normalizada: ", name)
 
 	var junk = ["HealthBar", "ShieldBar", "HP", "SH", "Health", "Shield"]
 	for j in junk:
@@ -913,6 +913,13 @@ func _resurrect(data: Dictionary):
 	# 2. Reset visual completo (Igual que el Player al spawnear)
 	_update_flash_visuals(0.0)
 	rebuild_3d_layout()
+	
+	# Limpiar auras activas viejas del pooling
+	for mId in active_auras:
+		var aura_data = active_auras[mId]
+		if is_instance_valid(aura_data.node):
+			aura_data.node.queue_free()
+	active_auras.clear()
 
 	# 3. Restaurar visibilidad y estado de todos los componentes
 	modulate = Color(1, 1, 1, 1)
@@ -1082,6 +1089,13 @@ func die():
 	_update_flash_visuals(0.0)
 	if is_instance_valid(sprite):
 		sprite.modulate = Color(1, 1, 1, 1)
+		
+	# Limpiar auras visuales activas en muerte
+	for mId in active_auras:
+		var aura_data = active_auras[mId]
+		if is_instance_valid(aura_data.node):
+			aura_data.node.queue_free()
+	active_auras.clear()
 		
 	# 4. Spawnear la explosión (VFX) justo donde estaba la nave
 	_spawn_death_vfx()
@@ -1448,8 +1462,8 @@ func _setup_enemy_visuals():
 			enemy_rot_offset = 0.0
 			enemy_scale = 5.0
 
-	if glb_path != "":
-		print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)
+	# if glb_path != "":
+	# 	print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)
 	
 	# v306.6: ELIMINACIÓN DE OPTIMIZACIÓN "SMART-JUMP"
 	# Se fuerza siempre el setup visual para garantizar que world_root_3d se asocie al Viewport del mapa actual.
@@ -1617,7 +1631,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 
 # v219.70: SISTEMA DE RENDERIZADO 3D SOBRE 2D (EXPERIMENTAL)
 func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
-	print("[3D] Inicializando renderizado para: ", glb_path)
+	# print("[3D] Inicializando renderizado para: ", glb_path)
 	
 	# v306.4: Evitar duplicaciones de naves huérfanas al reconstruir el layout 3D en cambios de mapa
 	if is_instance_valid(world_root_3d):
@@ -1803,7 +1817,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 			sm.spheres_updated.connect(_update_3d_spheres)
 		_update_3d_spheres()
 	
-	print("[3D] Visualizacion configurada correctamente.")
+	# print("[3D] Visualizacion configurada correctamente.")
 
 func _update_reflect_aura(_delta: float):
 	# v260.20: Aura 2D desactivada en favor del sistema de Escudo de Energía 3D
@@ -1911,7 +1925,7 @@ func _update_3d_spheres():
 			s_scene.position = Vector3(cos(a)*r, 0, sin(a)*r)
 			s_scene.scale = Vector3(3.0, 3.0, 3.0) 
 			
-			print("[FIX] Esfera cargada sin luces extra.")
+			# print("[FIX] Esfera cargada sin luces extra.")
 			
 	# Re-aplicar estado de invisibilidad visual a las nuevas esferas si corresponde
 	_update_invisibility_visuals(_is_currently_invisible, _is_currently_camouflaged)
