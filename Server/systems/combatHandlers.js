@@ -333,6 +333,8 @@ function registerCombatHandlers(socket, io, state) {
             
             // v371.1: Resolución autoritativa del tipo de enemigo en el servidor para evitar desincronización por anti-cheat
             const attackerId = data.attackerId || data.enemyId || data.senderId;
+            const isClone = attackerId && attackerId.startsWith('clone_');
+            
             let enemyType = 1;
             if (attackerId && state.enemies[attackerId]) {
                 enemyType = state.enemies[attackerId].type;
@@ -344,9 +346,9 @@ function registerCombatHandlers(socket, io, state) {
 
             if (attackerType === 'enemy') {
                 const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
-                let baseDmg = cfg ? cfg.bulletDamage : 50;
+                let baseDmg = isClone ? 0 : (cfg ? cfg.bulletDamage : 50);
                 
-                if (cfg && cfg.mechanics && data.bulletType) {
+                if (!isClone && cfg && cfg.mechanics && data.bulletType) {
                     const matchingMech = cfg.mechanics.find(m => m.type === data.bulletType);
                     if (matchingMech) {
                         if (matchingMech.type === 'spin_ring') {
@@ -374,8 +376,8 @@ function registerCombatHandlers(socket, io, state) {
                 const authorizedMaxDmg = baseDmg * damageMult;
 
                 // El daño recibido no puede ser inferior al daño real del enemigo (anti-GodMode/anti-mitigación hack)
-                // a menos que sea 0 por invulnerabilidad
-                if (p.isInvulnerable) {
+                // a menos que sea 0 por invulnerabilidad o si es un clon
+                if (p.isInvulnerable || isClone) {
                     dmg = 0;
                 } else {
                     if (dmg < authorizedMaxDmg * 0.9 || dmg > (authorizedMaxDmg + 5)) {
@@ -383,8 +385,8 @@ function registerCombatHandlers(socket, io, state) {
                     }
                 }
 
-                // v266.250: Verificación de Tipo de Bala (Solo aplica slow si la bala coincide)
-                if (cfg) {
+                // v266.250: Verificación de Tipo de Bala (Solo aplica slow si la bala coincide y no es clon)
+                if (cfg && !isClone) {
                     let sAmount = 0;
                     let sDuration = 0;
                     let stunDuration = 0;

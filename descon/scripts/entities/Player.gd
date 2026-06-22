@@ -502,6 +502,8 @@ func _recalculate_stats():
 	_emit_stats()
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
+	if amt <= 0.0:
+		return
 	super.take_damage(amt, attacker_pos, attacker_id)
 	apply_shake(amt * 0.05) # v260: Shake leve
 	# v240.69: Eliminado envío duplicado al servidor. Projectile.gd ya se encarga de notificar 

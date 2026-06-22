@@ -233,6 +233,45 @@ module.exports = class BaseAI {
         const hasActivePlayerTarget = activeTarget && activeTarget.id !== "altar" && !activeTarget.isDead && !activeTarget.isInvisible;
         this._inCombat = (!this.enemy.returningToSpawn) && (((now - lastCombatTime) < delayMs) || !!hasActivePlayerTarget);
 
+        // Lógica de Regeneración Autoritaria (Fuera de Combate / Ocioso)
+        if (!this._inCombat) {
+            if (this.enemy.lastRegenTime === undefined) this.enemy.lastRegenTime = now;
+            const regenInterval = cfg.regenIntervalMs !== undefined ? Number(cfg.regenIntervalMs) : 1000;
+            const elapsedMs = now - this.enemy.lastRegenTime;
+
+            if (elapsedMs >= regenInterval) {
+                const ticks = Math.floor(elapsedMs / regenInterval);
+                this.enemy.lastRegenTime = now - (elapsedMs % regenInterval); // Mantener el remanente de ms
+                const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 3;
+                const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 5;
+                
+                const oldHp = this.enemy.hp;
+                const oldShield = this.enemy.shield;
+                let changed = false;
+
+                if (hpRegen > 0 && this.enemy.hp < this.enemy.maxHp) {
+                    this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * (hpRegen / 100) * ticks));
+                    if (this.enemy.hp !== oldHp) changed = true;
+                }
+                if (shieldRegen > 0 && this.enemy.shield < this.enemy.maxShield) {
+                    this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * (shieldRegen / 100) * ticks));
+                    if (this.enemy.shield !== oldShield) changed = true;
+                }
+
+                if (changed) {
+                    io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
+                        id: this.enemy.id, 
+                        hp: this.enemy.hp, 
+                        shield: this.enemy.shield,
+                        amount: Math.max(0, this.enemy.hp - oldHp) 
+                    });
+                }
+            }
+        } else {
+            // Si está en combate, actualizar lastRegenTime para evitar acumulaciones masivas al salir de combate
+            this.enemy.lastRegenTime = now;
+        }
+
         // v269.195: PROCESAR DEFENSAS (Usar '|| 100' para manejar ceros del dashboard como 'siempre activo')
         const defMechanics = cfg.defenseMechanics || [];
         defMechanics.forEach((mech, idx) => {
@@ -397,9 +436,11 @@ module.exports = class BaseAI {
         if (isChargingAttack) {
             this.enemy.isMoving = false;
         } else if (activeTarget) {
-            this.applyMovementLogic(activeTarget, dist, targetAngle, now);
+            this.enemy.isMoving = true;
+            this.applyMovementLogic(activeTarget, dist, targetAngle, now, io);
         } else if (isProwler) {
-            this.applyMovementLogic(null, 0, 0, now);
+            this.enemy.isMoving = true;
+            this.applyMovementLogic(null, 0, 0, now, io);
         }
 
         // v3.6: Forzar rotación fija si hay una mecánica activa que restrinja el apuntado (por aimDelayMs, lock o fire)
@@ -418,42 +459,6 @@ module.exports = class BaseAI {
             this.enemy.rotation = forcedRotation;
         }
 
-        
-        // Regeneración pasiva standard / Fuera de combate ocioso (después de X milisegundos de no recibir ni emitir daño)
-        // (lastCombatTime y delayMs ya fueron declaradas y asignadas al inicio de update)
-        
-        if (now - (this.enemy.lastHit || 0) > delayMs) {
-            if (this.enemy.lastRegenTime === undefined) this.enemy.lastRegenTime = 0;
-            const regenInterval = cfg.regenIntervalMs !== undefined ? Number(cfg.regenIntervalMs) : 1000;
-            
-            if (now - this.enemy.lastRegenTime >= regenInterval) {
-                this.enemy.lastRegenTime = now;
-                const hpRegen = cfg.hpRegenPercent !== undefined ? Number(cfg.hpRegenPercent) : 3;
-                const shieldRegen = cfg.shieldRegenPercent !== undefined ? Number(cfg.shieldRegenPercent) : 5;
-                
-                const oldHp = this.enemy.hp;
-                const oldShield = this.enemy.shield;
-                let changed = false;
-
-                if (hpRegen > 0 && this.enemy.hp < this.enemy.maxHp) {
-                    this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + (this.enemy.maxHp * (hpRegen / 100)));
-                    if (this.enemy.hp !== oldHp) changed = true;
-                }
-                if (shieldRegen > 0 && this.enemy.shield < this.enemy.maxShield) {
-                    this.enemy.shield = Math.min(this.enemy.maxShield, this.enemy.shield + (this.enemy.maxShield * (shieldRegen / 100)));
-                    if (this.enemy.shield !== oldShield) changed = true;
-                }
-
-                if (changed) {
-                    io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
-                        id: this.enemy.id, 
-                        hp: this.enemy.hp, 
-                        shield: this.enemy.shield,
-                        amount: Math.max(0, this.enemy.hp - oldHp) 
-                    });
-                }
-            }
-        }
     }
 
 
@@ -1438,19 +1443,15 @@ module.exports = class BaseAI {
         };
         this.enemy.defState[mId] = state;
 
-        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
-
-        // 1. Terminar si ya pasó el tiempo
-        if (state.isActive && now >= state.endTime) {
+        // Resetear triggers y timers si salimos de combate
+        if (!this._inCombat) {
             state.isActive = false;
-            this._isDefenseSkillActive = false;
-            this.enemy.isInvulnerable = false; // Sincronía para el cliente
-            io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { id: this.enemy.id, active: false });
+            state.nextReadyTime = now + (mech.startDelay || 0);
         }
 
         // 2. Activar si cumple condiciones (v269.195: Fallback a 100 si es 0/null)
         const triggerHP = mech.activationHP || 100;
-        if (!state.isActive && now >= state.nextReadyTime && hpPercent <= triggerHP) {
+        if (!state.isActive && now >= state.nextReadyTime && this._inCombat && hpPercent <= triggerHP) {
             state.isActive = true;
             this._isDefenseSkillActive = true;
             this.enemy.isInvulnerable = true; // Sincronía para el cliente
@@ -1484,6 +1485,8 @@ module.exports = class BaseAI {
         if (!this._inCombat) {
             state.triggeredHPs = {};
             state.combatStartTime = null;
+            state.nextReadyTime = now + (mech.startDelay || 0);
+            state.isActive = false;
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
@@ -1593,6 +1596,7 @@ module.exports = class BaseAI {
         if (!this._inCombat) {
             state.triggeredHPs = {};
             state.combatStartTime = null;
+            state.nextReadyTime = now + (mech.startDelay || 0);
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             // Si el modo es por tiempo y recién entramos en combate, programamos la primera activación
@@ -1819,6 +1823,7 @@ module.exports = class BaseAI {
         if (!this._inCombat) {
             state.triggeredHPs = {};
             state.combatStartTime = null;
+            state.nextReadyTime = now + (mech.startDelay || 0);
             if (state.isActive) {
                 io.to(`zone_${this.enemy.zone}`).emit('bossColorsEnd', { bossId: this.enemy.id });
                 state.isActive = false;
@@ -1959,6 +1964,7 @@ module.exports = class BaseAI {
             state.orbs = [];
             state.triggeredHPs = {};
             state.combatStartTime = null;
+            state.nextReadyTime = now + (mech.startDelay || 0);
             if (state.isActive) {
                 state.isActive = false;
                 this._isDefenseSkillActive = false;
@@ -2156,6 +2162,8 @@ module.exports = class BaseAI {
         if (!this._inCombat) {
             state.triggeredHPs = {};
             state.combatStartTime = null;
+            state.nextReadyTime = now + (mech.startDelay || 0);
+            state.isActive = false;
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
@@ -2208,7 +2216,7 @@ module.exports = class BaseAI {
 
         if (shouldActivate) {
             state.isActive = true;
-            const duration = Number(mech.cloneDuration) || 8000;
+            let duration = Number(mech.cloneDuration) || 8000;
             state.endTime = now + duration;
             if (mech.activationMode !== "time") {
                 state.nextReadyTime = now + (mech.cooldown || 30000);
@@ -2223,37 +2231,45 @@ module.exports = class BaseAI {
                 type: "warning" 
             });
 
+            const clonesList = mech.clonesList || [];
+
             for (let i = 0; i < cloneCount; i++) {
                 const angle = (i / cloneCount) * Math.PI * 2 + (Math.random() * 0.5);
                 const cx = this.enemy.x + Math.cos(angle) * radius;
                 const cy = this.enemy.y + Math.sin(angle) * radius;
                 const cloneId = `clone_${this.enemy.id}_${i}_${Date.now()}`;
 
+                const customClone = clonesList[i] || { hp: 1000, shield: 200, role: "damage", value: 500 };
+                const isHeal = customClone.role === "heal";
+
                 const cloneObj = {
                     id: cloneId,
                     type: this.enemy.type,
                     zone: this.enemy.zone,
-                    name: `${this.enemy.name} (CLON)`,
+                    name: isHeal ? `💚 ${this.enemy.name} (CLON CURADOR)` : `💥 ${this.enemy.name} (CLON DE DAÑO)`,
+                    role: customClone.role,
                     x: cx,
                     y: cy,
                     startX: cx,
                     startY: cy,
-                    hp: Number(mech.cloneHp) || 1000,
-                    maxHp: Number(mech.cloneHp) || 1000,
-                    shield: Number(mech.cloneShield) || 0,
-                    maxShield: Number(mech.cloneShield) || 0,
+                    hp: Number(customClone.hp) || 1000,
+                    maxHp: Number(customClone.hp) || 1000,
+                    shield: Number(customClone.shield) || 0,
+                    maxShield: Number(customClone.shield) || 0,
                     rotation: angle,
                     lastHit: 0,
                     isInvulnerable: false
                 };
 
                 const cloneConfig = {
+                    aggressive: true,
                     cloneSpeed: Number(mech.cloneSpeed) || 200,
                     cloneDuration: duration,
-                    cloneExplosionDamage: Number(mech.cloneExplosionDamage) || 500,
-                    cloneHealAmount: Number(mech.cloneHealAmount) || 1000,
+                    cloneExplosionDamage: isHeal ? 0 : (Number(customClone.value) || 500),
+                    cloneHealAmount: isHeal ? (Number(customClone.value) || 1000) : 0,
                     cloneExplodeOnExpiry: mech.cloneExplodeOnExpiry !== false,
-                    parentEnemyId: this.enemy.id
+                    parentEnemyId: this.enemy.id,
+                    attackCooldownMs: Number(customClone.attackCooldownMs) || 2000
                 };
 
                 cloneObj.ai = new CloneAI(cloneObj, cloneConfig, this.state);

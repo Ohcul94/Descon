@@ -742,18 +742,33 @@
                     "startDelay": 0,
                     "activationMode": "hp",
                     "activationHPs": [
-                        50
+                        80
                     ],
                     "activationIntervalMs": 0,
                     "cloneCount": 2,
                     "cloneHp": 1000,
                     "cloneShield": 200,
                     "cloneSpeed": 200,
-                    "cloneDuration": 8000,
+                    "cloneDuration": 120000,
                     "cloneExplosionDamage": 500,
                     "cloneHealAmount": 1000,
                     "cloneExplodeOnExpiry": true,
-                    "spawnRadius": 150
+                    "spawnRadius": 150,
+                    "clonesList": [
+                        {
+                            "hp": 1000,
+                            "shield": 200,
+                            "role": "damage",
+                            "value": 500,
+                            "attackCooldownMs": 3000
+                        },
+                        {
+                            "hp": 1000,
+                            "shield": 200,
+                            "role": "heal",
+                            "value": 500
+                        }
+                    ]
                 }
             ]
         },
@@ -4780,12 +4795,8 @@
                 "activationHPs",
                 "activationIntervalMs",
                 "cloneCount",
-                "cloneHp",
-                "cloneShield",
                 "cloneSpeed",
                 "cloneDuration",
-                "cloneExplosionDamage",
-                "cloneHealAmount",
                 "cloneExplodeOnExpiry",
                 "spawnRadius",
                 "cooldown"

@@ -965,6 +965,54 @@ function renderEnemyDetail() {
                                     return `<div class="field"><label>${defLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}
                             </div>
+                            ${m.type === 'duplicado' ? (function() {
+                                 if (!m.clonesList) m.clonesList = [];
+                                 const cloneCount = parseInt(m.cloneCount) || 1;
+                                 while (m.clonesList.length < cloneCount) {
+                                     m.clonesList.push({
+                                         hp: 1000,
+                                         shield: 200,
+                                         role: "damage",
+                                         value: 500
+                                     });
+                                 }
+                                 if (m.clonesList.length > cloneCount) {
+                                     m.clonesList.splice(cloneCount);
+                                 }
+                                 return `
+                                     <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px dashed rgba(59, 130, 246, 0.3);">
+                                         <h5 style="color:#60a5fa; font-size:0.8rem; font-weight:bold; margin-bottom:1rem;">👥 CONFIGURACIÓN INDIVIDUAL DE CLONES</h5>
+                                         <div style="display:flex; flex-direction:column; gap:10px;">
+                                             ${m.clonesList.map((c, cloneIdx) => `
+                                                 <div style="background:rgba(59, 130, 246, 0.02); padding:10px; border-radius:6px; border:1px solid rgba(59, 130, 246, 0.15);">
+                                                     <div style="font-weight:bold; font-size:0.75rem; color:#93c5fd; margin-bottom:8px;">Clon #${cloneIdx + 1}</div>
+                                                     <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; gap:8px;">
+                                                         <div class="field" style="margin:0;"><label style="font-size:0.65rem;">HP (pts)</label>
+                                                             <input type="number" value="${c.hp || 1000}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].clonesList[${cloneIdx}].hp = parseInt(this.value) || 0">
+                                                         </div>
+                                                         <div class="field" style="margin:0;"><label style="font-size:0.65rem;">Escudo (pts)</label>
+                                                             <input type="number" value="${c.shield || 200}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].clonesList[${cloneIdx}].shield = parseInt(this.value) || 0">
+                                                         </div>
+                                                         <div class="field" style="margin:0;"><label style="font-size:0.65rem;">Rol / Función</label>
+                                                             <select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].clonesList[${cloneIdx}].role = this.value; renderEnemyDetail();">
+                                                                 <option value="damage" ${c.role === 'damage' ? 'selected' : ''}>💥 Daño</option>
+                                                                 <option value="heal" ${c.role === 'heal' ? 'selected' : ''}>💚 Curación</option>
+                                                             </select>
+                                                         </div>
+                                                         <div class="field" style="margin:0;"><label style="font-size:0.65rem;">${c.role === 'heal' ? 'Cura al original' : 'Daño explosión'}</label>
+                                                             <input type="number" value="${c.value || 500}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].clonesList[${cloneIdx}].value = parseInt(this.value) || 0">
+                                                         </div>
+                                                         <div class="field" style="margin:0;"><label style="font-size:0.65rem;">Recarga Ataque (ms)</label>
+                                                             <input type="number" value="${c.attackCooldownMs || 2000}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].clonesList[${cloneIdx}].attackCooldownMs = parseInt(this.value) || 2000">
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                             `).join('')}
+                                         </div>
+                                     </div>
+                                 `;
+                             })() : ''}
+                        </div>
                     `).join('')}
                 </div>
 

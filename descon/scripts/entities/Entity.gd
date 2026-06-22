@@ -933,6 +933,7 @@ func _resurrect(data: Dictionary):
 	if _ui_wrapper: _ui_wrapper.queue_redraw()
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
+	var original_amt = amt
 	# Mecánica de colores cooperativa (boss_colors)
 	if has_meta("boss_color"):
 		var req_color = get_meta("boss_color")
@@ -979,6 +980,10 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 
 
 	if is_god or is_dead: return
+	
+	if original_amt <= 0.0:
+		return
+		
 	reset_combat_timer() # Bloqueo local de regen
 	
 	# v235.31: Daño Local (Visual) para TODOS (incluyendo player)
