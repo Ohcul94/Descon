@@ -707,7 +707,7 @@
             "fireRate": 800,
             "hp": 100000,
             "isBoss": true,
-            "name": "Lord TitÃ¡n",
+            "name": "Lord Titán",
             "rageTimer": 20,
             "rewardExp": 10000,
             "rewardHubs": 50000,
@@ -779,7 +779,7 @@
             "fireRate": 1000,
             "hp": 200000,
             "isBoss": true,
-            "name": "Ancient TitÃ¡n",
+            "name": "Ancient Titán",
             "rageTimer": 20,
             "rewardExp": 25000,
             "rewardHubs": 0,
@@ -2854,7 +2854,7 @@
                         "type": "8"
                     }
                 ],
-                "name": "Fase 3: IncursiÃ³n Pesada",
+                "name": "Fase 3: Incursión Pesada",
                 "rewardMultiplier": 2
             },
             {
@@ -2880,7 +2880,7 @@
     "mapsConfig": {
         "1": {
             "color": "#ffffff",
-            "desc": "Zona segura de reuniÃ³n y comercio.",
+            "desc": "Zona segura de reunión y comercio.",
             "minLevel": 1,
             "name": "Loby",
             "warpCost": 0,
@@ -2910,7 +2910,7 @@
         },
         "2": {
             "color": "#00ff00",
-            "desc": "Zona de entrenamiento bÃ¡sico y recolecciÃ³n.",
+            "desc": "Zona de entrenamiento básico y recolección.",
             "minLevel": 1,
             "name": "Mapa 2",
             "warpCost": 0,
@@ -3055,7 +3055,7 @@
         },
         "7": {
             "color": "#aa0000",
-            "desc": "Sector de invasiÃ³n: Hordas detectadas.",
+            "desc": "Sector de invasión: Hordas detectadas.",
             "minLevel": 25,
             "name": "Mapa 7",
             "warpCost": 200,
@@ -3096,7 +3096,7 @@
         },
         "9": {
             "color": "#aa00ff",
-            "desc": "Zona de Pruebas TÃ¡cticas (Showcase).",
+            "desc": "Zona de Pruebas Tácticas (Showcase).",
             "minLevel": 35,
             "name": "Mapa 9",
             "warpCost": 1000,
@@ -3107,9 +3107,9 @@
         },
         "10": {
             "color": "#ff0055",
-            "desc": "Sector Prohibido: Alta radiaciÃ³n y presencia de la flota oscura. Solo para misiones de extracciÃ³n.",
+            "desc": "Sector Prohibido: Alta radiación y presencia de la flota oscura. Solo para misiones de extracción.",
             "minLevel": 10,
-            "name": "Zona de ExtracciÃ³n",
+            "name": "Zona de Extracción",
             "warpCost": 50,
             "ambience": [
                 {
@@ -3125,9 +3125,9 @@
         },
         "11": {
             "color": "#ff00aa",
-            "desc": "Ãrea de extracciÃ³n de recursos. Cuidado con los asteroides.",
+            "desc": "írea de extracción de recursos. Cuidado con los asteroides.",
             "minLevel": 10,
-            "name": "Sector de ExtracciÃ³n",
+            "name": "Sector de Extracción",
             "warpCost": 100,
             "ambience": [],
             "spawns": [],
@@ -3251,7 +3251,7 @@
             "laser": [
                 {
                     "id": "am_l1",
-                    "name": "LÃ¡ser T1",
+                    "name": "Láser T1",
                     "prices": {
                         "hubs": 1000,
                         "ohcu": 10
@@ -3263,7 +3263,7 @@
                 },
                 {
                     "id": "am_l2",
-                    "name": "LÃ¡ser T2",
+                    "name": "Láser T2",
                     "prices": {
                         "hubs": 2000,
                         "ohcu": 2
@@ -3275,7 +3275,7 @@
                 },
                 {
                     "id": "am_l3",
-                    "name": "LÃ¡ser T3",
+                    "name": "Láser T3",
                     "prices": {
                         "hubs": 3000,
                         "ohcu": 4
@@ -3287,7 +3287,7 @@
                 },
                 {
                     "id": "am_l4",
-                    "name": "LÃ¡ser T4",
+                    "name": "Láser T4",
                     "prices": {
                         "hubs": 4000,
                         "ohcu": 6
@@ -3299,7 +3299,7 @@
                 },
                 {
                     "id": "am_l5",
-                    "name": "LÃ¡ser T5",
+                    "name": "Láser T5",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 10
@@ -3311,7 +3311,7 @@
                 },
                 {
                     "id": "am_l6",
-                    "name": "LÃ¡ser T6",
+                    "name": "Láser T6",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 20
@@ -3807,7 +3807,7 @@
             {
                 "id": "en1",
                 "name": "Motor M1",
-                "desc": "PropulsiÃ³n quÃ­mica.",
+                "desc": "Propulsión química.",
                 "base": 20,
                 "icon": "res://assets/Motores/Motor1/Motor1.png",
                 "prices": {
@@ -3818,7 +3818,7 @@
             {
                 "id": "en2",
                 "name": "Motor M2",
-                "desc": "EstÃ¡ndar iÃ³nico.",
+                "desc": "Estándar iónico.",
                 "base": 50,
                 "icon": "res://assets/Motores/Motor2/Motor2.png",
                 "prices": {
@@ -3829,7 +3829,7 @@
             {
                 "id": "en3",
                 "name": "Motor M3",
-                "desc": "NÃºcleo de plasma.",
+                "desc": "Núcleo de plasma.",
                 "base": 100,
                 "icon": "res://assets/Motores/Motor3/Motor3.png",
                 "prices": {
@@ -3850,7 +3850,7 @@
             },
             {
                 "id": "ext2",
-                "name": "Radar TÃ¡ctico",
+                "name": "Radar Táctico",
                 "desc": "Mayor alcance de escaneo.",
                 "prices": {
                     "hubs": 100000,
@@ -3862,7 +3862,7 @@
             {
                 "id": "sh1",
                 "name": "Escudo S1",
-                "desc": "ProtecciÃ³n bÃ¡sica.",
+                "desc": "Protección básica.",
                 "base": 1000,
                 "icon": "res://assets/Escudos/Escudo1/Escudo1.png",
                 "prices": {
@@ -3895,7 +3895,7 @@
             {
                 "id": "sh4",
                 "name": "Escudo NX",
-                "desc": "ReparaciÃ³n por nanobots.",
+                "desc": "Reparación por nanobots.",
                 "base": 40000,
                 "icon": "res://assets/Escudos/Escudo4/Escudo4.png",
                 "prices": {
@@ -3906,7 +3906,7 @@
             {
                 "id": "sh5",
                 "name": "Escudo Fusion",
-                "desc": "TecnologÃ­a alienÃ­gena.",
+                "desc": "Tecnología alienígena.",
                 "base": 100000,
                 "icon": "res://assets/Escudos/Escudo5/Escudo5.png",
                 "prices": {
@@ -3931,8 +3931,8 @@
         "weapons": [
             {
                 "id": "las1",
-                "name": "LÃ¡ser 1",
-                "desc": "LÃ¡ser bÃ¡sico.",
+                "name": "Láser 1",
+                "desc": "Láser básico.",
                 "base": 100,
                 "icon": "res://assets/Armas/Arma1/Arma1.png",
                 "prices": {
@@ -3942,7 +3942,7 @@
             },
             {
                 "id": "las2",
-                "name": "LÃ¡ser 2",
+                "name": "Láser 2",
                 "desc": "Mejora en potencia.",
                 "base": 250,
                 "icon": "res://assets/Armas/Arma2/Arma2.png",
@@ -3953,8 +3953,8 @@
             },
             {
                 "id": "las3",
-                "name": "LÃ¡ser 3",
-                "desc": "EstÃ¡ndar militar.",
+                "name": "Láser 3",
+                "desc": "Estándar militar.",
                 "base": 600,
                 "icon": "res://assets/Armas/Arma3/Arma3.png",
                 "prices": {
@@ -3964,8 +3964,8 @@
             },
             {
                 "id": "las4",
-                "name": "LÃ¡ser 4",
-                "desc": "Vanguardia tecnolÃ³gica.",
+                "name": "Láser 4",
+                "desc": "Vanguardia tecnológica.",
                 "base": 1500,
                 "icon": "res://assets/Armas/Arma4/Arma4.png",
                 "prices": {
@@ -3975,7 +3975,7 @@
             },
             {
                 "id": "las5",
-                "name": "LÃ¡ser 5",
+                "name": "Láser 5",
                 "desc": "Poder solar concentrado.",
                 "base": 5000,
                 "icon": "res://assets/Armas/Arma5/Arma5.png",
@@ -3987,7 +3987,7 @@
             },
             {
                 "id": "las6",
-                "name": "LÃ¡ser 6",
+                "name": "Láser 6",
                 "desc": "Disruptor de materia.",
                 "base": 15000,
                 "icon": "res://assets/Armas/Arma6/Arma6.png",
@@ -4002,7 +4002,7 @@
             {
                 "id": "mat_iron",
                 "name": "Mineral de Hierro",
-                "desc": "Material bÃ¡sico para fundiciones espaciales.",
+                "desc": "Material básico para fundiciones espaciales.",
                 "prices": {
                     "hubs": 100,
                     "ohcu": 0
@@ -4014,7 +4014,7 @@
             {
                 "id": "mat_copper",
                 "name": "Mineral de Cobre",
-                "desc": "Utilizado para componentes electrÃ³nicos.",
+                "desc": "Utilizado para componentes electrónicos.",
                 "prices": {
                     "hubs": 200,
                     "ohcu": 0
@@ -4025,8 +4025,8 @@
             },
             {
                 "id": "mat_plasma",
-                "name": "NÃºcleo de Plasma",
-                "desc": "Esencia energÃ©tica altamente inestable.",
+                "name": "Núcleo de Plasma",
+                "desc": "Esencia energética altamente inestable.",
                 "prices": {
                     "hubs": 1000,
                     "ohcu": 5
@@ -4038,7 +4038,7 @@
             {
                 "id": "mat_darkmatter",
                 "name": "Materia Oscura",
-                "desc": "Elemento exÃ³tico usado para tecnologÃ­as avanzadas.",
+                "desc": "Elemento exótico usado para tecnologías avanzadas.",
                 "prices": {
                     "hubs": 5000,
                     "ohcu": 25
@@ -4050,11 +4050,11 @@
         ]
     },
     "skillsData": {
-        "AUTO-REPARACIÃ“N": {
+        "AUTO-REPARACIÓN": {
             "amount": 400,
             "canTargetOthers": true,
             "cd": 5000,
-            "desc": "Drones de reparaciÃ³n restauran la integridad del casco.",
+            "desc": "Drones de reparación restauran la integridad del casco.",
             "id": "SK-HEAL-01",
             "range": 500,
             "targetFilters": {
@@ -4063,11 +4063,11 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "CuraciÃ³n"
+            "type": "Curación"
         },
         "BALIZA DE CURACION": {
             "name": "BALIZA DE CURACION",
-            "type": "CuraciÃ³n",
+            "type": "Curación",
             "cd": 2000,
             "duration": 8000,
             "pulse_interval": 1500,
@@ -4075,7 +4075,7 @@
             "range": 500,
             "radius": 200,
             "canTargetOthers": false,
-            "desc": "Despliega una baliza que emite ondas de curaciÃ³n periÃ³dicas a los aliados cercanos.",
+            "desc": "Despliega una baliza que emite ondas de curación periódicas a los aliados cercanos.",
             "id": "SK-HEAL-02",
             "targetFilters": {
                 "allies": true,
@@ -4110,7 +4110,7 @@
             "radius": 220,
             "taunt_duration": 4000,
             "canTargetOthers": false,
-            "desc": "Provoca a todos los enemigos en el Ã¡rea elegida, forzÃ¡ndolos a atacarte por un tiempo determinado.",
+            "desc": "Provoca a todos los enemigos en el área elegida, forzándolos a atacarte por un tiempo determinado.",
             "id": "SK-DEF-06",
             "targetFilters": {
                 "allies": false,
@@ -4123,7 +4123,7 @@
         "BLINK": {
             "canTargetOthers": false,
             "cd": 15000,
-            "desc": "TeletransportaciÃ³n instantÃ¡nea al punto seleccionado.",
+            "desc": "Teletransportación instantánea al punto seleccionado.",
             "id": "SK-UTIL-04",
             "range": 450,
             "type": "Utilidad",
@@ -4155,7 +4155,7 @@
             "amount": 1200,
             "canTargetOthers": false,
             "cd": 15000,
-            "desc": "Sobrecarga los escudos incrementando la resistencia momentÃ¡neamente.",
+            "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.",
             "id": "SK-DEF-02",
             "range": 0,
             "type": "Defensa",
@@ -4188,7 +4188,7 @@
         "HYPER-DASH": {
             "canTargetOthers": false,
             "cd": 5000,
-            "desc": "PropulsiÃ³n instantÃ¡nea hacia adelante para evasiÃ³n rÃ¡pida.",
+            "desc": "Propulsión instantánea hacia adelante para evasión rápida.",
             "id": "SK-UTIL-02",
             "range": 0,
             "speed": 1000,
@@ -4204,7 +4204,7 @@
         "INVULNERABILIDAD": {
             "canTargetOthers": false,
             "cd": 2000,
-            "desc": "Te vuelve inmune a todo daÃ±o durante 2 segundos.",
+            "desc": "Te vuelve inmune a todo daño durante 2 segundos.",
             "duration": 2,
             "id": "SK-UTIL-03",
             "range": 0,
@@ -4217,7 +4217,7 @@
                 "clan": false
             }
         },
-        "NANO-REGENERACIÃ“N": {
+        "NANO-REGENERACIÓN": {
             "amount": 300,
             "canTargetOthers": true,
             "cd": 12000,
@@ -4230,13 +4230,13 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "CuraciÃ³n"
+            "type": "Curación"
         },
-        "REGENERACIÃ“N ALFA": {
+        "REGENERACIÓN ALFA": {
             "amount": 1500,
             "canTargetOthers": false,
             "cd": 3000,
-            "desc": "Un pulso de alta energÃ­a que deposita un nÃºcleo en el suelo para restaurar 1500 HP de casco al recogerlo.",
+            "desc": "Un pulso de alta energía que deposita un núcleo en el suelo para restaurar 1500 HP de casco al recogerlo.",
             "duration": 60000,
             "id": "SK-HEAL-03",
             "range": 600,
@@ -4247,13 +4247,13 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "CuraciÃ³n"
+            "type": "Curación"
         },
-        "VÃNCULO VITAL": {
+        "VÍNCULO VITAL": {
             "amount": 250,
             "canTargetOthers": true,
             "cd": 4000,
-            "desc": "Enlaza un rayo curativo continuo a un aliado que restaura HP periÃ³dicamente. El lazo se corta si se alejan demasiado.",
+            "desc": "Enlaza un rayo curativo continuo a un aliado que restaura HP periódicamente. El lazo se corta si se alejan demasiado.",
             "duration": 3000,
             "breakRange": 500,
             "tickInterval": 1000,
@@ -4265,7 +4265,7 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "CuraciÃ³n"
+            "type": "Curación"
         },
         "PLASMA BLAST": {
             "amount": 850,
@@ -4287,7 +4287,7 @@
             "amount": 500,
             "canTargetOthers": false,
             "cd": 5000,
-            "desc": "Crea un campo de resonancia que refleja daÃ±o hostil.",
+            "desc": "Crea un campo de resonancia que refleja daño hostil.",
             "id": "SK-ATK-01",
             "range": 0,
             "reflect_mult": 1.5,
@@ -4304,7 +4304,7 @@
             "amount": 1,
             "canTargetOthers": false,
             "cd": 12000,
-            "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el Ã¡rea.",
+            "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.",
             "duration": 6,
             "id": "SK-DEF-03",
             "radius": 180,
@@ -4350,8 +4350,8 @@
             },
             "type": "Utilidad"
         },
-        "RESURRECCIÃ“N": {
-            "name": "RESURRECCIÃ“N",
+        "RESURRECCIÓN": {
+            "name": "RESURRECCIÓN",
             "type": "Utilidad",
             "cd": 2000,
             "revive_hp_pct": 50,
@@ -4366,7 +4366,7 @@
                 "players": true,
                 "clan": true
             },
-            "desc": "Canaliza un haz de energÃ­a en el Ã¡rea seleccionada para resucitar a los aliados caÃ­dos.",
+            "desc": "Canaliza un haz de energía en el área seleccionada para resucitar a los aliados caídos.",
             "id": "SK-UTIL-06"
         }
     },
@@ -4374,7 +4374,7 @@
         "laser": {
             "label": "Láser Estándar",
             "icon": "🔫",
-            "desc": "Ataque lineal bÃ¡sico de alta cadencia.",
+            "desc": "Ataque lineal básico de alta cadencia.",
             "fields": [
                 "bulletDamage",
                 "bulletSpeed",
@@ -4420,7 +4420,7 @@
         "mine": {
             "label": "Mina de Proximidad",
             "icon": "💣",
-            "desc": "Explosivo estÃ¡tico que se activa por cercanÃ­a.",
+            "desc": "Explosivo estático que se activa por cercanía.",
             "fields": [
                 "bulletDamage",
                 "fireRange",
@@ -4429,7 +4429,7 @@
             ]
         },
         "mega_laser": {
-            "label": "Mega LÃ¡ser (Lux)",
+            "label": "Mega Láser",
             "icon": "ðŸ”†",
             "desc": "Rayo grueso que requiere precarga.",
             "fields": [
@@ -4448,7 +4448,7 @@
         "orbital_strike": {
             "label": "Ataque Orbital",
             "icon": "🌀",
-            "desc": "CÃ­rculos que giran y luego se disparan.",
+            "desc": "Círculos que giran y luego se disparan.",
             "fields": [
                 "bulletDamage",
                 "orbitSpeed",
@@ -4464,7 +4464,7 @@
         "aura_damage": {
             "label": "Aura de Vacío (Daño)",
             "icon": "🔥",
-            "desc": "DaÃ±a a los jugadores cercanos continuamente.",
+            "desc": "Daña a los jugadores cercanos continuamente.",
             "fields": [
                 "activationHP",
                 "radius",
@@ -4478,7 +4478,7 @@
         "hook": {
             "label": "Gancho Abisal",
             "icon": "⚓",
-            "desc": "Atrae al objetivo, lo daÃ±a y lo paraliza.",
+            "desc": "Atrae al objetivo, lo daña y lo paraliza.",
             "fields": [
                 "bulletDamage",
                 "bulletSpeed",
@@ -4496,7 +4496,7 @@
         "cone_cast": {
             "label": "Ataque en Cono Casteable",
             "icon": "📐",
-            "desc": "Ataque en cono que se carga y al completarse daÃ±a/stunea.",
+            "desc": "Ataque en cono que se carga y al completarse daña/stunea.",
             "fields": [
                 "cooldown",
                 "castTimeMs",
@@ -4514,7 +4514,7 @@
         "bomb": {
             "label": "Lanzador de Bombas",
             "icon": "💣",
-            "desc": "Lanza bombas en cÃ­rculo que explotan tras un retardo.",
+            "desc": "Lanza bombas en círculo que explotan tras un retardo.",
             "fields": [
                 "bulletDamage",
                 "radius",
@@ -4530,7 +4530,7 @@
         "circle_cast": {
             "label": "Explosión Circular",
             "icon": "⭕",
-            "desc": "Ataque circular que se carga siguiendo al enemigo y explota daÃ±ando a todos.",
+            "desc": "Ataque circular que se carga siguiendo al enemigo y explota dañando a todos.",
             "fields": [
                 "cooldown",
                 "castTimeMs",
@@ -4561,7 +4561,7 @@
         "reflect": {
             "label": "Escudo Reflectante (Reflect)",
             "icon": "🛡️",
-            "desc": "Devuelve daÃ±o recibido al atacante.",
+            "desc": "Devuelve daño recibido al atacante.",
             "fields": [
                 "duration",
                 "reflect_mult",
@@ -4571,9 +4571,9 @@
             ]
         },
         "spin_ring": {
-            "label": "Giro de Lillia (spin_ring)",
+            "label": "Giro Enloquecido",
             "icon": "🌀",
-            "desc": "Tira un cÃ­rculo alrededor del enemigo que gira. Si impacta, daÃ±a al objetivo, le da velocidad al dueÃ±o y puede aplicar slow.",
+            "desc": "Tira un círculo alrededor del enemigo que gira. Si impacta, daña al objetivo, le da velocidad al dueño y puede aplicar slow.",
             "fields": [
                 "cooldown",
                 "radius",
@@ -4603,14 +4603,14 @@
         "sniper": {
             "label": "Francotirador (Kiting)",
             "icon": "🎯",
-            "desc": "Mantiene una distancia segura alejÃ¡ndose si te acercas.",
+            "desc": "Mantiene una distancia segura alejándose si te acercas.",
             "fields": [
                 "speed",
                 "idealDist"
             ]
         },
         "orbit": {
-            "label": "Órbita Circular",
+            "label": "órbita Circular",
             "icon": "🔄",
             "desc": "Gira alrededor del jugador constantemente.",
             "fields": [
@@ -4642,7 +4642,7 @@
         "aura_speed": {
             "label": "Aura de Impulso",
             "icon": "🌬️",
-            "desc": "Aumenta la velocidad en un Ã¡rea circular.",
+            "desc": "Aumenta la velocidad en un área circular.",
             "fields": [
                 "activationHP",
                 "radius",
@@ -4657,7 +4657,7 @@
         "prowler": {
             "label": "Merodeador",
             "icon": "🐾",
-            "desc": "Movimiento de patrulla autÃ³noma en un rango circular configurable.",
+            "desc": "Movimiento de patrulla autónoma en un rango circular configurable.",
             "fields": [
                 "speed",
                 "patrolRange",
@@ -4682,7 +4682,7 @@
         "basic_defense": {
             "label": "Defensa Estándar",
             "icon": "🛡️",
-            "desc": "MecÃ¡nica de mitigaciÃ³n de daÃ±o y regeneraciÃ³n.",
+            "desc": "Mecánica de mitigación de daño y regeneración.",
             "fields": [
                 "reductionPercentage",
                 "shieldRegen",
@@ -4710,7 +4710,7 @@
         "invulnerability": {
             "label": "Invulnerabilidad Temporal",
             "icon": "💎",
-            "desc": "Se vuelve inmune a todo daÃ±o por un tiempo.",
+            "desc": "Se vuelve inmune a todo daño por un tiempo.",
             "fields": [
                 "activationHP",
                 "duration",
@@ -4742,7 +4742,7 @@
         "boss_colors": {
             "label": "Mecánica de Colores",
             "icon": "🎨",
-            "desc": "El Boss y los jugadores cercanos reciben colores. Solo los del color del Boss pueden daÃ±arlo.",
+            "desc": "El Boss y los jugadores cercanos reciben colores. Solo los del color del Boss pueden dañarlo.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -4755,7 +4755,7 @@
         "boss_water_orbs": {
             "label": "Orbes de Agua",
             "icon": "💧",
-            "desc": "Invoca orbes que viajan al boss. Interceptarlas hace daÃ±o pero evita que el boss se cure.",
+            "desc": "Invoca orbes que viajan al boss. Interceptarlas hace daño pero evita que el boss se cure.",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -5311,8 +5311,8 @@
         "craftingRecipes": [
             {
                 "id": "recipe_las2",
-                "name": "LÃ¡ser LF-2",
-                "desc": "Craftea un LÃ¡ser LF-2 usando minerales.",
+                "name": "Láser LF-2",
+                "desc": "Craftea un Láser LF-2 usando minerales.",
                 "resultItemId": "las2",
                 "resultCategory": "weapons",
                 "resultAmount": 1,
@@ -5371,8 +5371,8 @@
             },
             {
                 "id": "recipe_plasma",
-                "name": "NÃºcleo de Plasma",
-                "desc": "Sintetiza un NÃºcleo de Plasma a partir de hierro y cobre.",
+                "name": "Núcleo de Plasma",
+                "desc": "Sintetiza un Núcleo de Plasma a partir de hierro y cobre.",
                 "resultItemId": "mat_plasma",
                 "resultCategory": "resources",
                 "resultAmount": 1,
@@ -5432,7 +5432,7 @@
                 {
                     "x": 4967,
                     "y": 1028,
-                    "label": "Zona de InvasiÃ³n1",
+                    "label": "Zona de Invasión1",
                     "enemyId": "1",
                     "count": 10,
                     "radius": 500
@@ -5440,7 +5440,7 @@
                 {
                     "x": 9000,
                     "y": 4994,
-                    "label": "Zona de InvasiÃ³n2",
+                    "label": "Zona de Invasión2",
                     "enemyId": "1",
                     "count": 10,
                     "radius": 500
@@ -5448,7 +5448,7 @@
                 {
                     "x": 5000,
                     "y": 9028,
-                    "label": "Zona de InvasiÃ³n3",
+                    "label": "Zona de Invasión3",
                     "enemyId": "1",
                     "count": 10,
                     "radius": 500
@@ -5456,7 +5456,7 @@
                 {
                     "x": 1000,
                     "y": 5011,
-                    "label": "Zona de InvasiÃ³n4",
+                    "label": "Zona de Invasión4",
                     "enemyId": "1",
                     "count": 10,
                     "radius": 500
@@ -5533,7 +5533,7 @@
         {
             "id": "recipe_new_g1slo",
             "name": "Nueva Receta",
-            "desc": "DescripciÃ³n de la nueva receta.",
+            "desc": "Descripción de la nueva receta.",
             "resultItemId": "las1",
             "resultCategory": "weapons",
             "resultAmount": 1,
@@ -5554,7 +5554,7 @@
         {
             "id": "quest_1",
             "name": "El Despertar del Piloto",
-            "desc": "Derrota a 5 enemigos regulares para demostrar tu valÃ­a en Ã³rbita.",
+            "desc": "Derrota a 5 enemigos regulares para demostrar tu valía en órbita.",
             "type": "story",
             "targetType": "explore",
             "targetId": "1",
@@ -5574,5 +5574,126 @@
     ],
     "questsGlobalConfig": {
         "maxActiveQuests": 3
+    },
+    "ammoMechLib": {
+        "bleed": {
+            "label": "Sangrado",
+            "icon": "🩸",
+            "desc": "Daño por segundo durante un tiempo.",
+            "fields": [
+                "damagePerSecond",
+                "duration"
+            ]
+        },
+        "stun": {
+            "label": "Parálisis",
+            "icon": "⚡",
+            "desc": "Inmoviliza al objetivo.",
+            "fields": [
+                "duration",
+                "chance"
+            ]
+        },
+        "area": {
+            "label": "Daño de Área",
+            "icon": "💥",
+            "desc": "Explota al impactar.",
+            "fields": [
+                "damagePerSecond",
+                "radius"
+            ]
+        },
+        "critical": {
+            "label": "Golpe Crítico",
+            "icon": "💎",
+            "desc": "Probabilidad de daño extra.",
+            "fields": [
+                "chance"
+            ]
+        }
+    },
+    "ambienceLib": {
+        "radiation": {
+            "label": "Radiación",
+            "icon": "☢️",
+            "desc": "Daño constante por intervalos de tiempo.",
+            "fields": [
+                "damage",
+                "intervalMs"
+            ]
+        },
+        "nebula": {
+            "label": "Nebulosa",
+            "icon": "🌫️",
+            "desc": "Efecto de slow ambiental.",
+            "fields": [
+                "slowPercentage",
+                "visibility"
+            ]
+        },
+        "gravity": {
+            "label": "Gravedad Alta",
+            "icon": "🪐",
+            "desc": "Reduce la velocidad de dash.",
+            "fields": [
+                "dashPenalty"
+            ]
+        },
+        "extreme_aggression": {
+            "label": "Agresividad Extrema",
+            "icon": "👹",
+            "desc": "Enemigos acechan a toda distancia y con stats potenciados.",
+            "fields": [
+                "damageMult",
+                "speedMult",
+                "healthMult",
+                "respawnSpeedBonus"
+            ]
+        },
+        "vortex_hazard": {
+            "label": "Vórtices de Acecho",
+            "icon": "🌪️",
+            "desc": "Crea vórtices debajo de los jugadores que los succionan y dañan.",
+            "fields": [
+                "spawnInterval",
+                "duration",
+                "pullForce",
+                "damage",
+                "damageInterval",
+                "radius"
+            ]
+        },
+        "blindness_hazard": {
+            "label": "Ceguera de Vacío",
+            "icon": "👁️‍🗨️",
+            "desc": "Oscurece la pantalla de todos los jugadores periódicamente.",
+            "fields": [
+                "spawnInterval",
+                "duration",
+                "radius"
+            ]
+        },
+        "interferencia_hazard": {
+            "label": "Interferencia de Vacío",
+            "icon": "📡",
+            "desc": "Bloquea los slots de combate y genera estática visual.",
+            "fields": [
+                "spawnInterval",
+                "duration",
+                "shakeIntensity",
+                "staticIntensity"
+            ]
+        },
+        "freeze_hazard": {
+            "label": "Congelación de Vacío",
+            "icon": "❄️",
+            "desc": "Ralentiza a los jugadores y tiñe el mapa de blanco.",
+            "fields": [
+                "spawnInterval",
+                "duration",
+                "slowPercentage",
+                "slowFixed"
+            ]
+        }
     }
 }

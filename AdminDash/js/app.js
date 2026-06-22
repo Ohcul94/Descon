@@ -866,12 +866,56 @@ function patchMechanicsLib() {
                 } else {
                     // v268.620: Forzar sincronización de la estructura de campos
                     config[item.configKey][type].fields = [...item.base[type].fields];
-                    config[item.configKey][type].label = item.base[type].label;
-                    config[item.configKey][type].icon = item.base[type].icon;
+                    if (config[item.configKey][type].label === undefined) {
+                        config[item.configKey][type].label = item.base[type].label;
+                    }
+                    if (config[item.configKey][type].icon === undefined) {
+                        config[item.configKey][type].icon = item.base[type].icon;
+                    }
                 }
             }
         }
     });
+
+    // Sincronizar y persistir AMMO_MECH_LIB
+    if (!config.ammoMechLib) {
+        config.ammoMechLib = JSON.parse(JSON.stringify(AMMO_MECH_LIB));
+    } else {
+        for (let type in AMMO_MECH_LIB) {
+            if (!config.ammoMechLib[type]) {
+                config.ammoMechLib[type] = JSON.parse(JSON.stringify(AMMO_MECH_LIB[type]));
+            } else {
+                config.ammoMechLib[type].fields = [...AMMO_MECH_LIB[type].fields];
+                if (config.ammoMechLib[type].label === undefined) {
+                    config.ammoMechLib[type].label = AMMO_MECH_LIB[type].label;
+                }
+                if (config.ammoMechLib[type].icon === undefined) {
+                    config.ammoMechLib[type].icon = AMMO_MECH_LIB[type].icon;
+                }
+            }
+        }
+    }
+    AMMO_MECH_LIB = config.ammoMechLib;
+
+    // Sincronizar y persistir AMBIENCE_LIB
+    if (!config.ambienceLib) {
+        config.ambienceLib = JSON.parse(JSON.stringify(AMBIENCE_LIB));
+    } else {
+        for (let type in AMBIENCE_LIB) {
+            if (!config.ambienceLib[type]) {
+                config.ambienceLib[type] = JSON.parse(JSON.stringify(AMBIENCE_LIB[type]));
+            } else {
+                config.ambienceLib[type].fields = [...AMBIENCE_LIB[type].fields];
+                if (config.ambienceLib[type].label === undefined) {
+                    config.ambienceLib[type].label = AMBIENCE_LIB[type].label;
+                }
+                if (config.ambienceLib[type].icon === undefined) {
+                    config.ambienceLib[type].icon = AMBIENCE_LIB[type].icon;
+                }
+            }
+        }
+    }
+    AMBIENCE_LIB = config.ambienceLib;
 
     // Parches específicos de campos (retrocompatibilidad)
     if (config.mechanicsLib && config.mechanicsLib.laser) {

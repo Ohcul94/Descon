@@ -78,7 +78,12 @@ const CLIENT_CONFIG_KEYS = [
     'craftingRecipes',
     'housingConfig',
     'questsConfig',
-    'enemyModels'
+    'enemyModels',
+    'mechanicsLib',
+    'movementLib',
+    'defenseLib',
+    'ammoMechLib',
+    'ambienceLib'
 ];
 
 const buildClientConfig = (config) => {
