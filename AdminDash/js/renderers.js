@@ -286,6 +286,28 @@ function renderAmmo() {
     const multipliers = config.ammoMultipliers[type] || [];
     const shopItems = (config.shopItems.ammo && config.shopItems.ammo[type]) ? config.shopItems.ammo[type] : [];
 
+    const descMap = {
+        'laser': '🔦 <strong>Láser:</strong> Proyectil estándar directo. Daño enfocado a distancia media/larga.',
+        'mine': '💣 <strong>Mina:</strong> Munición explosiva de proximidad. Ideal para control de zonas o defensa.',
+        'missile': '🚀 <strong>Misil:</strong> Misil teledirigido de largo alcance con gran capacidad destructiva.',
+        'melee': '👊 <strong>Melee (Tanque):</strong> Ataque cuerpo a cuerpo de muy corto alcance. Ralentiza (paraliza) al enemigo al impactar.',
+        'heal': '💚 <strong>Curativa:</strong> Restaura HP y Escudo al propio jugador en PvE. En PvP, cura al aliado impactado y una porción a vos.',
+        'siphon': '🧛 <strong>Vampírica (Sifón):</strong> Inflige daño al enemigo y te cura un porcentaje del daño causado.',
+        'emp': '⚡ <strong>Pulso EMP:</strong> Silencia habilidades y mecánicas de la IA del enemigo o silencia a jugadores en PvP.'
+    };
+
+    const descDiv = document.createElement('div');
+    descDiv.style.gridColumn = '1 / -1';
+    descDiv.style.background = 'rgba(255, 255, 255, 0.02)';
+    descDiv.style.border = '1px solid rgba(255, 255, 255, 0.05)';
+    descDiv.style.padding = '1rem';
+    descDiv.style.borderRadius = '8px';
+    descDiv.style.marginBottom = '1rem';
+    descDiv.style.color = '#ccc';
+    descDiv.style.fontSize = '0.9rem';
+    descDiv.innerHTML = descMap[type] || 'Configuración de munición.';
+    grid.appendChild(descDiv);
+
     multipliers.forEach((m, i) => {
         const item = shopItems[i] || { name: `Tier ${i+1}`, range: 0, cooldown: 1000, prices: { hubs:0, ohcu:0 } };
         if(item.cooldown === undefined) item.cooldown = 1000;
@@ -293,6 +315,38 @@ function renderAmmo() {
         if(!item.mechanics) item.mechanics = [];
         
         if(f && !item.name.toLowerCase().includes(f) && !JSON.stringify(item).toLowerCase().includes(f)) return;
+
+        let extraFieldsHTML = '';
+        if (type === 'emp') {
+            extraFieldsHTML = `
+                <div class="field full" style="margin-top: 1rem;">
+                    <label>Duración del Silencio (ms)</label>
+                    <input type="number" value="${item.silenceDurationMs !== undefined ? item.silenceDurationMs : 3000}" onchange="config.shopItems.ammo['${type}'][${i}].silenceDurationMs = parseInt(this.value)">
+                </div>
+            `;
+        } else if (type === 'heal') {
+            extraFieldsHTML = `
+                <div class="form-grid" style="margin-top: 1rem; grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="field"><label>Curación PvE (%)</label><input type="number" value="${item.healPctPvE !== undefined ? item.healPctPvE : 40}" onchange="config.shopItems.ammo['${type}'][${i}].healPctPvE = parseInt(this.value)"></div>
+                    <div class="field"><label>Curación Aliado PvP (%)</label><input type="number" value="${item.healPctVictimPvP !== undefined ? item.healPctVictimPvP : 80}" onchange="config.shopItems.ammo['${type}'][${i}].healPctVictimPvP = parseInt(this.value)"></div>
+                    <div class="field"><label>Cura Propia PvP (%)</label><input type="number" value="${item.healPctAttackerPvP !== undefined ? item.healPctAttackerPvP : 30}" onchange="config.shopItems.ammo['${type}'][${i}].healPctAttackerPvP = parseInt(this.value)"></div>
+                </div>
+            `;
+        } else if (type === 'siphon') {
+            extraFieldsHTML = `
+                <div class="field full" style="margin-top: 1rem;">
+                    <label>Eficacia de Sifón / Robo de Vida (%)</label>
+                    <input type="number" value="${item.siphonPct !== undefined ? item.siphonPct : 25}" onchange="config.shopItems.ammo['${type}'][${i}].siphonPct = parseInt(this.value)">
+                </div>
+            `;
+        } else if (type === 'melee') {
+            extraFieldsHTML = `
+                <div class="form-grid" style="margin-top: 1rem; grid-template-columns: 1fr 1fr;">
+                    <div class="field"><label>Duración Slow (ms)</label><input type="number" value="${item.slowDurationMs !== undefined ? item.slowDurationMs : 1000}" onchange="config.shopItems.ammo['${type}'][${i}].slowDurationMs = parseInt(this.value)"></div>
+                    <div class="field"><label>Cantidad Ralentización (pts)</label><input type="number" value="${item.slowAmount !== undefined ? item.slowAmount : 200}" onchange="config.shopItems.ammo['${type}'][${i}].slowAmount = parseInt(this.value)"></div>
+                </div>
+            `;
+        }
 
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
@@ -305,6 +359,8 @@ function renderAmmo() {
                 <div class="field"><label>Vel. Bala (px/s)</label><input type="number" value="${item.bulletSpeed}" onchange="config.shopItems.ammo['${type}'][${i}].bulletSpeed = parseInt(this.value)"></div>
                 <div class="field"><label>Cooldown (ms)</label><input type="number" value="${item.cooldown}" onchange="config.shopItems.ammo['${type}'][${i}].cooldown = parseInt(this.value)"></div>
             </div>
+
+            ${extraFieldsHTML}
             
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #333;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">

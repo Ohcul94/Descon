@@ -2919,7 +2919,7 @@
             "ambience": [
                 {
                     "type": "multiplicador",
-                    "multiplier": 2
+                    "multiplier": 4
                 }
             ],
             "spawns": [

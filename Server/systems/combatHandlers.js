@@ -246,9 +246,14 @@ function registerCombatHandlers(socket, io, state) {
         }
 
         const activeAmmo = p.selectedAmmo || 'laser';
+        const activeTier = p.selectedAmmoTier !== undefined ? p.selectedAmmoTier : 0;
+        const ammoList = state.SERVER_CONFIG.shopItems?.ammo?.[activeAmmo] || [];
+        const ammoConfig = ammoList[activeTier] || {};
+
         if (activeAmmo === 'heal') {
             // Curativa: Restaura HP y Escudo al propio jugador en PvE
-            const healAmount = finalDamage * 0.4;
+            const healPct = (ammoConfig.healPctPvE !== undefined ? ammoConfig.healPctPvE : 40) / 100;
+            const healAmount = finalDamage * healPct;
             p.hp = Math.min(p.maxHp, p.hp + healAmount);
             p.shield = Math.min(p.maxShield, p.shield + healAmount);
             
@@ -261,7 +266,8 @@ function registerCombatHandlers(socket, io, state) {
         } else {
             if (activeAmmo === 'siphon') {
                 // Vampírica (Sifón): cura una porción del daño infligido al atacante
-                const siphonAmount = finalDamage * 0.25;
+                const siphonPct = (ammoConfig.siphonPct !== undefined ? ammoConfig.siphonPct : 25) / 100;
+                const siphonAmount = finalDamage * siphonPct;
                 p.hp = Math.min(p.maxHp, p.hp + siphonAmount);
                 p.shield = Math.min(p.maxShield, p.shield + siphonAmount);
                 
@@ -271,13 +277,15 @@ function registerCombatHandlers(socket, io, state) {
                     isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible
                 });
             } else if (activeAmmo === 'emp') {
-                // EMP: Silencia la IA del bicho durante 3 segundos para que no dispare mecánicas
+                // EMP: Silencia la IA del bicho durante el tiempo configurado
+                const silenceMs = ammoConfig.silenceDurationMs !== undefined ? ammoConfig.silenceDurationMs : 3000;
                 enemy.isSilenced = true;
-                enemy.silencedUntil = Date.now() + 3000;
+                enemy.silencedUntil = Date.now() + silenceMs;
             } else if (activeAmmo === 'melee') {
-                // Melee: Aplica una ralentización inmediata (microparálisis) al enemigo de 1 segundo
+                // Melee: Aplica una ralentización inmediata (microparálisis) al enemigo
+                const slowMs = ammoConfig.slowDurationMs !== undefined ? ammoConfig.slowDurationMs : 1000;
                 enemy.isSlowed = true;
-                enemy.slowEndTime = Date.now() + 1000;
+                enemy.slowEndTime = Date.now() + slowMs;
             }
 
             if (enemy.reflectActive) {
@@ -602,10 +610,16 @@ function registerCombatHandlers(socket, io, state) {
                     dmg = maxAllowedDmg; // Truncar al máximo permitido
                 }
                 
+                const attackerAmmoTier = attacker.selectedAmmoTier !== undefined ? attacker.selectedAmmoTier : 0;
+                const attackerAmmoList = state.SERVER_CONFIG.shopItems?.ammo?.[attackerAmmoType] || [];
+                const attackerAmmoConfig = attackerAmmoList[attackerAmmoTier] || {};
+                
                 if (attackerAmmoType === 'heal') {
-                    // Soporte: Cura un 80% a la víctima y un 30% al atacante
-                    const healVictim = dmg * 0.8;
-                    const healAttacker = dmg * 0.3;
+                    // Soporte: Cura a la víctima y al atacante usando los porcentajes configurados
+                    const healVictimPct = (attackerAmmoConfig.healPctVictimPvP !== undefined ? attackerAmmoConfig.healPctVictimPvP : 80) / 100;
+                    const healAttackerPct = (attackerAmmoConfig.healPctAttackerPvP !== undefined ? attackerAmmoConfig.healPctAttackerPvP : 30) / 100;
+                    const healVictim = dmg * healVictimPct;
+                    const healAttacker = dmg * healAttackerPct;
                     
                     victim.hp = Math.min(victim.maxHp, victim.hp + healVictim);
                     victim.shield = Math.min(victim.maxShield, victim.shield + healVictim);
@@ -621,8 +635,9 @@ function registerCombatHandlers(socket, io, state) {
                     dmg = 0; // No le causa daño a la víctima
                 } else {
                     if (attackerAmmoType === 'siphon') {
-                        // Sifón: Roba vida y cura al atacante en un 25%
-                        const siphonAmount = dmg * 0.25;
+                        // Sifón: Roba vida y cura al atacante
+                        const siphonPct = (attackerAmmoConfig.siphonPct !== undefined ? attackerAmmoConfig.siphonPct : 25) / 100;
+                        const siphonAmount = dmg * siphonPct;
                         attacker.hp = Math.min(attacker.maxHp, attacker.hp + siphonAmount);
                         attacker.shield = Math.min(attacker.maxShield, attacker.shield + siphonAmount);
                         
@@ -632,22 +647,25 @@ function registerCombatHandlers(socket, io, state) {
                             isInvisible: attacker.isInvisible, isInvulnerable: !!attacker.isInvulnerable
                         });
                     } else if (attackerAmmoType === 'emp') {
-                        // EMP: Silencia a la víctima durante 3 segundos
+                        // EMP: Silencia a la víctima durante el tiempo configurado
+                        const silenceMs = attackerAmmoConfig.silenceDurationMs !== undefined ? attackerAmmoConfig.silenceDurationMs : 3000;
                         victim.isSilenced = true;
-                        victim.silencedUntil = Date.now() + 3000;
+                        victim.silencedUntil = Date.now() + silenceMs;
                         
                         setTimeout(() => {
                             if (state.players[data.victimId]) {
                                 state.players[data.victimId].isSilenced = false;
                             }
-                        }, 3000);
+                        }, silenceMs);
                         
-                        io.to(data.victimId).emit('gameNotification', { msg: "🚨 ¡SILENCIADO POR PULSO EMP! 🚨", type: "error" });
+                        io.to(data.victimId).emit('gameNotification', { msg: `🚨 ¡SILENCIADO POR PULSO EMP (${silenceMs}ms)! 🚨`, type: "error" });
                     } else if (attackerAmmoType === 'melee') {
-                        // Melee: Micro-slow a la víctima durante 1 segundo
+                        // Melee: Ralentiza a la víctima
+                        const slowMs = attackerAmmoConfig.slowDurationMs !== undefined ? attackerAmmoConfig.slowDurationMs : 1000;
+                        const slowAmt = attackerAmmoConfig.slowAmount !== undefined ? attackerAmmoConfig.slowAmount : 200;
                         victim.isSlowed = true;
-                        victim.slowEndTime = Date.now() + 1000;
-                        io.to(data.victimId).emit('slowState', { active: true, amount: 200 });
+                        victim.slowEndTime = Date.now() + slowMs;
+                        io.to(data.victimId).emit('slowState', { active: true, amount: slowAmt });
                     }
 
                     if (victim.isAsleep && victim.sleepWakeOnDamage !== false) {
