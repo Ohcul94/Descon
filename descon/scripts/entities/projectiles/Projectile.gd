@@ -1,8 +1,8 @@
 extends Area2D
 class_name Projectile
 
-# Projectile.gd (v141.71 - VECTOR RENDERING & RECOVERY)
-# Clase base para todos los proyectiles. 
+# Projectile.gd (v141.72 - CONE EMP & VECTOR RENDERING)
+# Clase base para todos los proyectiles con soporte de colisión y efectos cónicos para EMP. 
 
 @export var speed: float = 800.0
 @export var damage: float = 10.0
@@ -10,32 +10,31 @@ class_name Projectile
 @export var type: String = "laser" # laser, missile, mine
 
 var owner_type: String = "player"
-var enemy_type: int = 1 # v226.40: Atributo crítico para sincronía de daño
+var enemy_type: int = 1 
 var velocity: Vector2 = Vector2.ZERO
 var sprite: Sprite2D = null
 var _has_hit: bool = false
 var max_range: float = 0.0
 var _start_pos: Vector2 = Vector2.ZERO
-var target_id: String = "" # v266.450: Soporte para Homing (Rastreo)
+var target_id: String = "" 
 var _target_node: Node2D = null
 var _owner_node: Node2D = null
 var _chain_visual: Line2D = null
-var lifetime: float = 6.0 # v266.460: Tiempo de vida máximo del misil
+var lifetime: float = 6.0 
 var _current_lifetime: float = 0.0
-var turn_speed: float = 2.5 # v266.505: Velocidad de rotación angular (Agilidad)
-var is_homing: bool = false # v266.800: Switch de rastreo dinámico
-var orbit_target: Node2D = null # v266.992: Objetivo al que orbitamos
+var turn_speed: float = 2.5 
+var is_homing: bool = false 
+var orbit_target: Node2D = null 
 var orbit_radius: float = 150.0
 var orbit_speed: float = 2.0
 var orbit_angle_offset: float = 0.0
 var orbit_start_time: float = 0.0
-var strike_id: String = "" # v266.995: ID único de ráfaga para evitar colisiones lógicas
+var strike_id: String = "" 
 var _start_time_stamp: float = 0.0
 var _find_target_timer: float = 0.0
 var world_root_3d: Node3D = null
 var _orb_mesh: MeshInstance3D = null
 var _is_setup: bool = false
-
 
 func _ready():
 	add_to_group("projectiles")
@@ -57,22 +56,19 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	if raw_speed == null: raw_speed = p_data.get("speed")
 	speed = _safe_float(raw_speed, speed)
 	if speed <= 0 and (type == "missile" or type == "ice_missile"):
-		speed = 450.0 # v266.520: Velocidad de crucero segura si no hay config
+		speed = 450.0 
 		
 	max_range = _safe_float(p_data.get("range"), 600.0)
 	target_id = str(p_data.get("targetId", ""))
 	
-	# v266.510: Localizar nodo objetivo (Reforzado v3)
 	_find_target()
 	
-	# v266.500: Configuración Dinámica (Combustible y Agilidad)
 	lifetime = _safe_float(p_data.get("lifetimeMs"), 0.0) / 1000.0
 	turn_speed = _safe_float(p_data.get("turnSpeed"), 2.5)
 	is_homing = bool(p_data.get("isHoming", false))
 	
 	var world = get_tree().get_first_node_in_group("world_node")
 	
-	# v266.992: Soporte para Órbita inicial
 	if p_data.get("isOrbiting", false):
 		if is_instance_valid(world):
 			var ent_node = world.get("entities_node")
@@ -103,17 +99,16 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	else:
 		velocity = Vector2.RIGHT.rotated(p_angle) * speed
 
-	
-	# v266.610: Configuración de Colisión Dinámica en setup()
 	var shape = CollisionShape2D.new()
 	if type == "mega_laser":
 		var rect = RectangleShape2D.new()
-		# El tamaño se ajustará en _setup_visual_sprite
 		shape.shape = rect
 	else:
 		var circle = CircleShape2D.new()
 		if type == "spin_ring":
-			circle.radius = 35.0 # Radio de colisión 2D óptimo para Lillia Q
+			circle.radius = 35.0 
+		elif type == "emp":
+			circle.radius = 30.0 # Ancho de 60px
 		else:
 			circle.radius = 20.0 
 		shape.shape = circle
@@ -121,7 +116,6 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	
 	collision_layer = 0
 	
-	# v269.30: Búsqueda de Dueño para efectos visuales (Cadena de Gancho)
 	if is_instance_valid(world):
 		var ent_node = world.get("entities_node")
 		if ent_node:
@@ -137,13 +131,12 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		_chain_visual.z_index = -1
 		_chain_visual.top_level = true
 		add_child(_chain_visual)
+
 	if owner_type == "player" or owner_type == "remote":
-		# v220.82: Ahora los jugadores pueden impactar NPCs (2) y otros Players (1) para PvP
 		collision_mask = 1 | 2 
 	else:
-		collision_mask = 1 # Los enemigos solo pegan a Players
+		collision_mask = 1 
 		
-	# Instanciar Esfera 3D si es spin_ring
 	if type == "spin_ring":
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
@@ -159,18 +152,16 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 			_orb_mesh.mesh = sphere_mesh
 			
 			var mat = StandardMaterial3D.new()
-			mat.albedo_color = Color(0.9, 0.2, 1.0) # Violeta Lillia
+			mat.albedo_color = Color(0.9, 0.2, 1.0) 
 			mat.emission_enabled = true
 			mat.emission = Color(0.9, 0.2, 1.0)
 			mat.emission_energy_multiplier = 3.0
 			_orb_mesh.material_override = mat
 			world_root_3d.add_child(_orb_mesh)
 			
-			# Animación suave de escalado al spawnear
 			world_root_3d.scale = Vector3.ZERO
 			create_tween().tween_property(world_root_3d, "scale", Vector3.ONE, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 			
-		# Auto-limpieza al destruir para evitar fugas de memoria
 		tree_exiting.connect(func():
 			if is_instance_valid(world_root_3d):
 				world_root_3d.queue_free()
@@ -184,6 +175,53 @@ func _setup_visual_sprite():
 	if type == "spin_ring": return
 	if is_instance_valid(sprite): sprite.queue_free()
 	
+	# Efecto de partículas de tormenta de viento eléctrica lineal para EMP
+	if type == "emp":
+		sprite = null
+		var parts = CPUParticles2D.new()
+		parts.name = "EMPViento"
+		parts.amount = 60
+		parts.lifetime = 0.4
+		parts.speed_scale = 1.3
+		parts.explosiveness = 0.05
+		parts.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+		parts.emission_rect_extents = Vector2(5.0, 30.0) # Cubre ancho de 60px
+		parts.direction = Vector2.RIGHT
+		parts.spread = 0.0 # Haz lineal recto sin esparcimiento cónico
+		parts.gravity = Vector2.ZERO
+		parts.initial_velocity_min = 250.0
+		parts.initial_velocity_max = 500.0
+		parts.scale_amount_min = 2.0
+		parts.scale_amount_max = 7.0
+		parts.z_index = 6
+		
+		var gradient = Gradient.new()
+		gradient.set_color(0, Color(0.15, 0.55, 1.0, 0.85)) 
+		gradient.add_point(0.4, Color(0.4, 0.8, 1.0, 0.65)) 
+		gradient.add_point(0.8, Color(0.05, 0.3, 0.9, 0.3)) 
+		gradient.set_color(1, Color(0.0, 0.1, 0.5, 0.0))
+		parts.color_ramp = gradient
+		
+		add_child(parts)
+		parts.emitting = true
+		
+		var sparks = CPUParticles2D.new()
+		sparks.amount = 25
+		sparks.lifetime = 0.5
+		sparks.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+		sparks.emission_rect_extents = Vector2(5.0, 30.0)
+		sparks.direction = Vector2.RIGHT
+		sparks.spread = 10.0
+		sparks.gravity = Vector2.ZERO
+		sparks.initial_velocity_min = 100.0
+		sparks.initial_velocity_max = 300.0
+		sparks.scale_amount_min = 1.0
+		sparks.scale_amount_max = 3.0
+		sparks.color = Color(0.7, 0.9, 1.0, 0.9)
+		add_child(sparks)
+		sparks.emitting = true
+		return
+
 	var path = ""
 	match type:
 		"laser": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
@@ -194,27 +232,24 @@ func _setup_visual_sprite():
 		"melee": path = "res://assets/Municiones/Lasers/Laser2/Laser2.png"
 		"heal": path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
 		"siphon": path = "res://assets/Municiones/Misiles/Misil2/Misil2.png"
-		"emp": path = "res://assets/Municiones/Misiles/Misil3/Misil3.png"
 		"hook": 
 			path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
-			modulate = Color(0, 1, 1) # v269.40: Cian Neón para diferenciar del láser rojo
+			modulate = Color(0, 1, 1) 
 		"mega_laser":
 			var beam = Line2D.new()
 			beam.width = 40.0
-			beam.default_color = Color(1, 0.2, 0.2, 0.8) # Rojo Lux
+			beam.default_color = Color(1, 0.2, 0.2, 0.8) 
 			var length = max_range if max_range > 0.0 else 1000.0
 			beam.points = PackedVector2Array([Vector2.ZERO, Vector2(length, 0)])
 			
-			# Efecto de brillo (Glow)
 			var glow = Line2D.new()
 			glow.width = 15.0
-			glow.default_color = Color(1, 1, 1, 0.9) # Centro blanco
+			glow.default_color = Color(1, 1, 1, 0.9) 
 			glow.points = beam.points
 			beam.add_child(glow)
 			
 			add_child(beam)
 			
-			# Ajustar colisión al tamaño del rayo
 			for child in get_children():
 				if child is CollisionShape2D and child.shape is RectangleShape2D:
 					child.shape.size = Vector2(length, 40.0)
@@ -226,33 +261,28 @@ func _setup_visual_sprite():
 		var tex = load(path)
 		sprite.texture = tex
 		
-		# Tamaños ajustados para que las proporciones no sobrepasen las naves (160px)
 		var target_size = 48.0
 		if type == "mine" or type == "orbital_mine": target_size = 64.0
 		elif type == "missile": target_size = 56.0
 		
 		var s = target_size / max(tex.get_width(), tex.get_height())
-		if type == "orbital_mine": s = 0.08 # Mantener escala de captura aprobada
+		if type == "orbital_mine": s = 0.08 
 		sprite.scale = Vector2(s, s)
-		
-		# Ajuste de orientación. Los renders "desde arriba" del usuario están a -90 grados respecto del este
 		sprite.rotation_degrees = 90
 		
 		if type == "ice_missile":
-			sprite.modulate = Color(0.4, 0.7, 1.0) # Celeste Hielo
+			sprite.modulate = Color(0.4, 0.7, 1.0) 
 		elif type == "melee":
-			sprite.modulate = Color(1.0, 0.65, 0.1) # Naranja/Amarillo Fuego
+			sprite.modulate = Color(1.0, 0.65, 0.1) 
 		elif type == "heal":
-			sprite.modulate = Color(0.2, 0.9, 0.3) # Verde Esmeralda Curación
+			sprite.modulate = Color(0.2, 0.9, 0.3) 
 		elif type == "siphon":
-			sprite.modulate = Color(0.8, 0.15, 0.9) # Magenta/Púrpura Vampírico
-		elif type == "emp":
-			sprite.modulate = Color(0.1, 0.5, 1.0) # Azul Eléctrico EMP
+			sprite.modulate = Color(0.8, 0.15, 0.9) 
 		elif owner_type == "enemy":
-			if type == "orbital_mine": sprite.modulate = Color(1.2, 1.2, 1.2) # Blanco brillante neón
-			else: sprite.modulate = Color(1.0, 0.3, 0.3) # Rojo para enemigos
+			if type == "orbital_mine": sprite.modulate = Color(1.2, 1.2, 1.2) 
+			else: sprite.modulate = Color(1.0, 0.3, 0.3) 
 		else:
-			sprite.modulate = Color(0.3, 1.0, 1.0) # Cyan para jugadores
+			sprite.modulate = Color(0.3, 1.0, 1.0) 
 		
 		add_child(sprite)
  
@@ -276,41 +306,31 @@ func _draw():
 			draw_circle(Vector2.ZERO, 10, Color.WHITE)
 			draw_circle(Vector2.ZERO, 12, Color(1, 1, 1, 0.3), false, 3.0)
 		"hook":
-			# Dibujar un gancho procedural si no hay asset
 			draw_line(Vector2(0, 0), Vector2(-20, 0), Color.GRAY, 2.0)
 			draw_arc(Vector2(5, 0), 10, -PI/2, PI/2, 8, Color.GRAY, 3.0)
 		"melee":
-			# Dibujar un arco de plasma semicircular (cuchilla de energía)
 			draw_arc(Vector2.ZERO, 15.0, -PI/3, PI/3, 8, color, 4.0)
 			draw_line(Vector2(0, -10), Vector2(7, 0), color, 3.0)
 			draw_line(Vector2(0, 10), Vector2(7, 0), color, 3.0)
 		"heal":
-			# Círculo verde brillante con una cruz médica en el centro
 			draw_circle(Vector2.ZERO, 8.0, color)
 			draw_circle(Vector2.ZERO, 12.0, Color(color.r, color.g, color.b, 0.3), false, 2.0)
 			draw_line(Vector2(-4, 0), Vector2(4, 0), Color.WHITE, 2.0)
 			draw_line(Vector2(0, -4), Vector2(0, 4), Color.WHITE, 2.0)
 		"siphon":
-			# Núcleo oscuro y rombo/espiral magenta
 			draw_circle(Vector2.ZERO, 6.0, color)
 			draw_rect(Rect2(Vector2(-6, -6), Vector2(12, 12)), Color(color.r, color.g, color.b, 0.4), false, 2.0)
 			draw_circle(Vector2.ZERO, 10.0, Color(1.0, 0.1, 0.3, 0.4), false, 1.5)
 		"emp":
-			# Esfera eléctrica con un anillo disruptor y rayos hacia afuera
-			draw_circle(Vector2.ZERO, 8.0, Color.WHITE)
-			draw_circle(Vector2.ZERO, 13.0, color, false, 2.0)
-			# Pequeños pulsos
-			draw_line(Vector2(-10, -3), Vector2(-4, 3), color, 1.5)
-			draw_line(Vector2(4, -3), Vector2(10, 3), color, 1.5)
-			draw_line(Vector2(-3, -10), Vector2(3, -4), color, 1.5)
-			draw_line(Vector2(-3, 4), Vector2(3, 10), color, 1.5)
+			# Dibujar líneas verticales sutiles que representan el frente del haz de viento (de Y=-30 a Y=30)
+			draw_line(Vector2(0, -30), Vector2(0, 30), Color(0.1, 0.5, 1.0, 0.45), 4.0)
+			draw_line(Vector2(-8, -20), Vector2(-8, 20), Color(0.3, 0.7, 1.0, 0.25), 2.0)
+			draw_line(Vector2(8, -20), Vector2(8, 20), Color(0.3, 0.7, 1.0, 0.25), 2.0)
 
 func release_orbit():
 	orbit_target = null
-	# v266.992: Al poner orbit_target en null, empezará a moverse linealmente
 
 func _physics_process(delta):
-	# Sincronizar posición visual 3D con la física 2D del proyectil
 	if is_instance_valid(world_root_3d):
 		var s_factor = 0.02
 		var correction_z = 1.41421356
@@ -318,46 +338,38 @@ func _physics_process(delta):
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
 		world_root_3d.position.y = 0.0
 
-	# v3.6: Chequeo de lifetime al principio para que los proyectiles orbitantes también expiren
 	if lifetime > 0:
 		_current_lifetime += delta
 		if _current_lifetime >= lifetime:
 			queue_free()
 			return
 
-	# v266.992: Lógica de Órbita (Seguir al enemigo antes de disparar)
 	if is_instance_valid(orbit_target):
 		var time = (Time.get_ticks_msec() / 1000.0) - orbit_start_time
 		var angle = time * orbit_speed + orbit_angle_offset
 		global_position = orbit_target.global_position + Vector2(cos(angle), sin(angle)) * orbit_radius
 		rotation = angle
-		velocity = Vector2.RIGHT.rotated(rotation) * speed # Preparar velocidad para cuando suelte
+		velocity = Vector2.RIGHT.rotated(rotation) * speed 
 		return
 
-	# v269.35: Actualizar visual de la cadena del Gancho
 	if is_instance_valid(_chain_visual) and is_instance_valid(_owner_node):
 		_chain_visual.points = PackedVector2Array([_owner_node.global_position, global_position])
 
-	# v266.510: Re-intentar búsqueda si el objetivo se perdió o no se encontró al nacer
 	if target_id != "" and not is_instance_valid(_target_node):
 		_find_target_timer += delta
 		if _find_target_timer >= 0.25:
 			_find_target_timer = 0.0
 			_find_target()
 
-	# v266.800: Lógica de RASTREO (Homing) v3 - Ahora depende del switch is_homing
 	if is_homing and is_instance_valid(_target_node):
 		var target_pos = _target_node.global_position
 		if _target_node.get_meta("is_single_world", false) and is_instance_valid(_target_node.get("world_root_3d")):
 			target_pos = _get_visual_position_of(_target_node)
 		
 		var target_angle = (target_pos - global_position).angle()
-		
-		# rotate_toward garantiza que gire a una velocidad constante (turn_speed en radianes por segundo)
 		rotation = rotate_toward(rotation, target_angle, turn_speed * delta)
 		velocity = Vector2.RIGHT.rotated(rotation) * speed
 	
-	# Efecto de Fricción Fuerte para desplegar minas estáticas a corta distancia
 	elif type == "mine":
 		velocity = velocity.lerp(Vector2.ZERO, 3.5 * delta)
 	elif type == "melee":
@@ -377,19 +389,15 @@ func _physics_process(delta):
 	else:
 		global_position += move_step
 
-	
-	# v3.5: Límite de Rango (Auto-destrucción) - Ignorar para minas (ellas solo se frenan)
 	if max_range > 0:
 		var dist = global_position.distance_to(_start_pos)
 		if dist >= max_range:
 			if type == "mine":
-				# v269.10: Posicionamiento de Precisión - Clavar la mina en el punto exacto
 				global_position = _start_pos + (_start_pos.direction_to(global_position) * max_range)
 				velocity = Vector2.ZERO
 			else:
 				queue_free()
 	
-	# v311.1: Evitar autodestrucción prematura en mapas masivos dinámicos de eventos (20k x 20k)
 	var max_map_limit = 35000.0
 	var active_map = get_tree().get_first_node_in_group("map")
 	if is_instance_valid(active_map) and "world_size" in active_map:
@@ -413,43 +421,32 @@ func _on_body_entered(body):
 		var body_eid = ""
 		if "entity_id" in body: body_eid = str(body.entity_id)
 		
-		# v266.996: Margen de seguridad para evitar que exploten por sacudidas de otros impactos
 		if type == "orbital_mine":
 			var age = (Time.get_ticks_msec() / 1000.0) - orbit_start_time
-			if age < 0.3: return # No explotar en los primeros 300ms de vida
+			if age < 0.3: return 
 		
-		# No pegarse a sí mismo
 		if body_eid == owner_id: return
 		
-		# v221.45: Determinar si es combate PvP y si ambos consienten
 		var is_pvp_target = body.is_in_group("remote_players") or body.is_in_group("player")
 		
 		if is_pvp_target:
-			# v221.80: SÓLO chequear consentimiento si el atacante es OTRO JUGADOR (player o remote)
 			if owner_type == "player" or owner_type == "remote":
 				var attacker_has_pvp = false
 				var target_has_pvp = false
 				
 				if "pvp_status" in body: target_has_pvp = body.pvp_status
 				
-				# Buscar al dueño de la bala para verificar SU pvp_status actualizado
 				for entity in get_tree().get_nodes_in_group("entities"):
 					if str(entity.entity_id) == owner_id:
 						if "pvp_status" in entity: attacker_has_pvp = entity.pvp_status
 						break
 				
 				if not (attacker_has_pvp and target_has_pvp):
-					# v222.20: EFECTO FANTASMA - Si no hay mutuo acuerdo, solo atravesamos
 					return
 		
-		# SI LLEGAMOS AQUÍ: El impacto es válido (es NPC o es PvP legal)
 		_has_hit = true
-		if body.is_in_group("player"):
-			pass # print("[PROJ-DEBUG] Impactando player con daño: ", damage, " de ", owner_id)
 		body.take_damage(damage, global_position, owner_id)
-
 		
-		# Notificar al servidor
 		if NetworkManager:
 			if owner_type == "player" and body.is_in_group("enemies"):
 				NetworkManager.send_event("enemyHit", {"enemyId": body.entity_id, "damage": damage})
@@ -459,8 +456,8 @@ func _on_body_entered(body):
 				NetworkManager.send_event("playerHitByEnemy", {
 					"damage": damage, 
 					"attackerType": owner_type,
-					"enemyType": enemy_type, # v226.41: Informar qué bicho pegó para validar daño
-					"bulletType": type, # v266.182: Informar si es hielo o especial
+					"enemyType": enemy_type, 
+					"bulletType": type, 
 					"attackerId": owner_id,
 					"stunDuration": float(get_meta("stunDuration", 0)) if has_meta("stunDuration") else 0.0
 				})
@@ -484,23 +481,19 @@ func _explode():
 		await tw.finished
 	queue_free()
 
-
 func _find_target():
 	if target_id == "": return
 	
-	# 1. ¿Soy yo?
 	if NetworkManager and target_id == str(NetworkManager.my_socket_id):
 		_target_node = get_tree().get_first_node_in_group("player")
 		if is_instance_valid(_target_node): return
 
-	# 2. Buscar en entidades por ID
 	var entities = get_tree().get_nodes_in_group("entities")
 	for e in entities:
 		if e.has_method("get") and str(e.get("entity_id")) == target_id:
 			_target_node = e
 			return
 			
-	# 3. Fallback: Si soy el único jugador en el mapa, yo debo ser el blanco
 	if _target_node == null:
 		_target_node = get_tree().get_first_node_in_group("player")
 

@@ -224,10 +224,17 @@ func _draw():
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas (Solo queremos el punto)
 		var s_name = current_skill.get("skill_name", "")
-		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and s_name != "BARRERA DE VIENTO" and s_name != "BALIZA DE CURACION" and s_name != "PROVOCACION" and s_name != "RESURRECCIÓN":
+		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO" and s_name != "BALIZA DE CURACION" and s_name != "PROVOCACION" and s_name != "RESURRECCIÓN":
 			draw_line(Vector2.ZERO, end_point, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
-		if s_name == "BARRERA DE VIENTO":
+		if current_skill.id == "emp":
+			var dir = aim_vec.normalized()
+			if aim_vec.length() < 0.1:
+				dir = Vector2.RIGHT
+			end_point = dir * range_val
+			draw_line(Vector2.ZERO, end_point, Color(0.1, 0.5, 1.0, 0.25), 60.0) # Haz grueso de ancho 60px
+			draw_line(Vector2.ZERO, end_point, Color(0.3, 0.7, 1.0, 0.65), 3.0)  # Núcleo de la mira
+		elif s_name == "BARRERA DE VIENTO":
 			var width_val = 150.0
 			if GameConstants.SKILLS_DATA.has(s_name):
 				width_val = float(GameConstants.SKILLS_DATA[s_name].get("width", 150.0))
