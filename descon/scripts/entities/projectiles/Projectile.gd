@@ -271,6 +271,36 @@ func _setup_visual_sprite():
 		add_child(parts_der)
 		parts_der.emitting = true
 		return
+		
+	# Efecto de partículas de estela verde brillante para Heal Drones
+	if type == "heal":
+		sprite = null
+		var parts = CPUParticles2D.new()
+		parts.name = "HealTrail"
+		parts.amount = 35
+		parts.lifetime = 0.5
+		parts.speed_scale = 1.0
+		parts.explosiveness = 0.0
+		parts.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+		parts.emission_sphere_radius = 5.0
+		parts.direction = Vector2.LEFT # Estela hacia atrás
+		parts.spread = 20.0
+		parts.gravity = Vector2.ZERO
+		parts.initial_velocity_min = 40.0
+		parts.initial_velocity_max = 90.0
+		parts.scale_amount_min = 2.0
+		parts.scale_amount_max = 5.0
+		parts.z_index = 5
+		
+		var grad = Gradient.new()
+		grad.set_color(0, Color(0.2, 0.95, 0.4, 0.9)) # Verde brillante
+		grad.add_point(0.5, Color(0.5, 1.0, 0.6, 0.7)) # Verde claro brillante
+		grad.set_color(1, Color(0.1, 0.6, 0.2, 0.0)) # Desvanecimiento
+		parts.color_ramp = grad
+		
+		add_child(parts)
+		parts.emitting = true
+		return
 
 	var path = ""
 	match type:
@@ -279,7 +309,6 @@ func _setup_visual_sprite():
 		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
-		"heal": path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
 		"siphon": path = "res://assets/Municiones/Misiles/Misil2/Misil2.png"
 		"hook": 
 			path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
@@ -401,10 +430,23 @@ func _draw():
 				draw_line(p1, p2, color_sierra, 3.0)
 				draw_line(p1, p2, color_nucleo, 1.2)
 		"heal":
-			draw_circle(Vector2.ZERO, 8.0, color)
-			draw_circle(Vector2.ZERO, 12.0, Color(color.r, color.g, color.b, 0.3), false, 2.0)
-			draw_line(Vector2(-4, 0), Vector2(4, 0), Color.WHITE, 2.0)
-			draw_line(Vector2(0, -4), Vector2(0, 4), Color.WHITE, 2.0)
+			# Dibujamos un mini-dron de soporte curativo (Heal Drones)
+			var pulse = sin(Time.get_ticks_msec() * 0.01) * 2.0
+			var base_r = 8.0 + pulse
+			
+			draw_circle(Vector2.ZERO, base_r, Color(0.15, 0.75, 0.25, 0.45)) # Brillo exterior verde
+			draw_circle(Vector2.ZERO, 6.0, Color(0.2, 0.95, 0.35, 0.9)) # Cuerpo del dron
+			draw_circle(Vector2.ZERO, 3.0, Color.WHITE) # Lente/núcleo luminoso
+			
+			# Brazos y mini-propulsores laterales del dron
+			draw_circle(Vector2(-10, 0), 2.5, Color(0.4, 0.4, 0.4, 0.8))
+			draw_circle(Vector2(10, 0), 2.5, Color(0.4, 0.4, 0.4, 0.8))
+			draw_line(Vector2(-10, 0), Vector2(-12, -3), Color(0.25, 0.95, 0.35, 0.6), 1.5)
+			draw_line(Vector2(10, 0), Vector2(12, -3), Color(0.25, 0.95, 0.35, 0.6), 1.5)
+			
+			# Cruz de curación blanca translúcida en el centro
+			draw_line(Vector2(-3.5, 0), Vector2(3.5, 0), Color.WHITE, 1.5)
+			draw_line(Vector2(0, -3.5), Vector2(0, 3.5), Color.WHITE, 1.5)
 		"siphon":
 			draw_circle(Vector2.ZERO, 6.0, color)
 			draw_rect(Rect2(Vector2(-6, -6), Vector2(12, 12)), Color(color.r, color.g, color.b, 0.4), false, 2.0)
@@ -497,12 +539,7 @@ func _physics_process(delta):
 	var move_step = velocity * delta
 	if type == "melee":
 		move_step = Vector2.ZERO
-	if type == "heal":
-		var time = (Time.get_ticks_msec() / 1000.0) - _start_time_stamp
-		var wave_offset = sin(time * 15.0) * 8.0
-		var perp = Vector2(-velocity.y, velocity.x).normalized()
-		global_position += move_step + perp * (wave_offset * delta * 60.0)
-	elif type == "siphon":
+	if type == "siphon":
 		var time = (Time.get_ticks_msec() / 1000.0) - _start_time_stamp
 		var wave_offset = cos(time * 20.0) * 6.0
 		var perp = Vector2(-velocity.y, velocity.x).normalized()
