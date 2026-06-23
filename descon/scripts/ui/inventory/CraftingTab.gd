@@ -1,6 +1,6 @@
 extends Control
 
-# CraftingTab.gd - MÓDULO DE CRAFTEO GALÁCTICO (v1.0)
+# CraftingTab.gd - MÓDULO DE CRAFTEO GALÁCTICO (v2.0)
 
 var inv_main = null
 
@@ -47,21 +47,35 @@ func update_ui():
 	
 	# Margen vertical de separación
 	var margin_top = Control.new()
-	margin_top.custom_minimum_size = Vector2(0, 10)
+	margin_top.custom_minimum_size = Vector2(0, 5)
 	main_v.add_child(margin_top)
 	
-	# --- SCROLL DE RECETAS ---
-	var scr = ScrollContainer.new()
-	scr.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scr.mouse_filter = Control.MOUSE_FILTER_PASS
-	main_v.add_child(scr)
+	# --- SUB TABS CONTAINER ---
+	var sub_tabs = TabContainer.new()
+	sub_tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	sub_tabs.mouse_filter = Control.MOUSE_FILTER_PASS
+	main_v.add_child(sub_tabs)
 	
-	var grid = GridContainer.new()
-	grid.columns = 3
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 20)
-	grid.add_theme_constant_override("v_separation", 20)
-	scr.add_child(grid)
+	var sb_tabs = StyleBoxFlat.new()
+	sb_tabs.bg_color = Color(0.01, 0.02, 0.05, 0.4)
+	sub_tabs.add_theme_stylebox_override("panel", sb_tabs)
+	
+	# --- SUB TAB 1: RECETAS ---
+	var tab_recipes = Control.new()
+	tab_recipes.name = "Recetas"
+	sub_tabs.add_child(tab_recipes)
+	
+	var scr_recipes = ScrollContainer.new()
+	scr_recipes.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scr_recipes.mouse_filter = Control.MOUSE_FILTER_PASS
+	tab_recipes.add_child(scr_recipes)
+	
+	var grid_recipes = GridContainer.new()
+	grid_recipes.columns = 3
+	grid_recipes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid_recipes.add_theme_constant_override("h_separation", 20)
+	grid_recipes.add_theme_constant_override("v_separation", 20)
+	scr_recipes.add_child(grid_recipes)
 	
 	var recipes = GameConstants.FULL_CONFIG.get("craftingRecipes", [])
 	if recipes.is_empty():
@@ -69,16 +83,63 @@ func update_ui():
 		empty_lbl.text = "No hay recetas de crafteo cargadas en la base de datos galáctica."
 		empty_lbl.modulate = Color.DARK_GRAY
 		empty_lbl.add_theme_font_size_override("font_size", 11)
-		grid.add_child(empty_lbl)
-		return
-		
-	# Renderizar cada receta
-	for recipe in recipes:
-		_create_recipe_card(recipe, grid)
+		grid_recipes.add_child(empty_lbl)
+	else:
+		# Renderizar cada receta
+		for recipe in recipes:
+			_create_recipe_card(recipe, grid_recipes)
+			
+	# --- SUB TAB 2: MATERIALES ---
+	var tab_materials = Control.new()
+	tab_materials.name = "Materiales"
+	sub_tabs.add_child(tab_materials)
+	
+	var scr_materials = ScrollContainer.new()
+	scr_materials.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scr_materials.mouse_filter = Control.MOUSE_FILTER_PASS
+	tab_materials.add_child(scr_materials)
+	
+	var grid_materials = GridContainer.new()
+	grid_materials.columns = 4
+	grid_materials.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid_materials.add_theme_constant_override("h_separation", 15)
+	grid_materials.add_theme_constant_override("v_separation", 15)
+	scr_materials.add_child(grid_materials)
+	
+	var resources = GameConstants.FULL_CONFIG.get("shopItems", {}).get("resources", [])
+	if resources.is_empty():
+		var empty_lbl = Label.new()
+		empty_lbl.text = "No hay materiales registrados en la base de datos galáctica."
+		empty_lbl.modulate = Color.DARK_GRAY
+		empty_lbl.add_theme_font_size_override("font_size", 11)
+		grid_materials.add_child(empty_lbl)
+	else:
+		# Renderizar cada material
+		for res in resources:
+			_create_material_card(res, grid_materials)
+
+func _get_item_icon(category: String, item_id: String) -> String:
+	var shop = GameConstants.FULL_CONFIG.get("shopItems", {})
+	if category == "ammo":
+		for type in shop.get("ammo", {}):
+			for item in shop["ammo"][type]:
+				if item.get("id", "") == item_id:
+					return item.get("icon", "")
+	elif shop.has(category):
+		var list = shop.get(category, [])
+		for item in list:
+			if item.get("id", "") == item_id:
+				return item.get("icon", "")
+	# Fallback: buscar en resources
+	var resources = shop.get("resources", [])
+	for res in resources:
+		if res.get("id", "") == item_id:
+			return res.get("icon", "")
+	return ""
 
 func _create_recipe_card(recipe: Dictionary, parent: Control):
 	var p = PanelContainer.new()
-	p.custom_minimum_size = Vector2(290, 220)
+	p.custom_minimum_size = Vector2(290, 240)
 	
 	# Estilo premium Cyberpunk / Dark Mode
 	var sb = StyleBoxFlat.new()
@@ -100,11 +161,28 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 	v.add_theme_constant_override("separation", 6)
 	p.add_child(v)
 	
-	# Margen interno mediante un contenedor ficticio o padding en el panel
 	sb.content_margin_left = 12
 	sb.content_margin_right = 12
 	sb.content_margin_top = 10
 	sb.content_margin_bottom = 10
+	
+	# Renderizado del icono/asset del item resultante con CenterContainer y escala
+	var icon_path = _get_item_icon(recipe.get("resultCategory", ""), recipe.get("resultItemId", ""))
+	var tex_container = CenterContainer.new()
+	v.add_child(tex_container)
+	
+	var icon_tex = TextureRect.new()
+	var base_scale = float(recipe.get("iconScale", 1.0))
+	icon_tex.custom_minimum_size = Vector2(48, 48) * base_scale
+	icon_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_tex.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	icon_tex.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
+		var tex = load(icon_path)
+		if tex:
+			icon_tex.texture = tex
+	tex_container.add_child(icon_tex)
 	
 	# 1. TÍTULO DEL RESULTADO
 	var name_lbl = Label.new()
@@ -161,10 +239,23 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 				
 		var ing_row = HBoxContainer.new()
 		ing_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ing_row.add_theme_constant_override("separation", 6)
 		ing_v.add_child(ing_row)
 		
+		# Icono en miniatura del material ingrediente
+		var ing_icon_path = mat_info.get("icon", "")
+		var ing_icon_tex = TextureRect.new()
+		ing_icon_tex.custom_minimum_size = Vector2(16, 16)
+		ing_icon_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ing_icon_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		if not ing_icon_path.is_empty() and ResourceLoader.exists(ing_icon_path):
+			var tex = load(ing_icon_path)
+			if tex:
+				ing_icon_tex.texture = tex
+		ing_row.add_child(ing_icon_tex)
+		
 		var ing_name_lbl = Label.new()
-		ing_name_lbl.text = "• " + mat_name
+		ing_name_lbl.text = mat_name
 		ing_name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		ing_name_lbl.add_theme_font_size_override("font_size", 9)
 		ing_name_lbl.modulate = mat_color
@@ -247,6 +338,87 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 		btn.modulate = Color(0.4, 0.4, 0.4, 0.6)
 		
 	v.add_child(btn)
+	parent.add_child(p)
+
+func _create_material_card(res: Dictionary, parent: Control):
+	var p = PanelContainer.new()
+	p.custom_minimum_size = Vector2(210, 160)
+	
+	# Estilo premium Cyberpunk / Dark Mode
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.01, 0.03, 0.08, 0.7)
+	sb.border_width_top = 2
+	var mat_color_str = res.get("color", "#00ffff")
+	var mat_color = Color.from_string(mat_color_str, Color.WHITE)
+	sb.border_color = mat_color
+	sb.border_width_left = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(mat_color.r, mat_color.g, mat_color.b, 0.15)
+	sb.corner_radius_top_left = 6
+	sb.corner_radius_top_right = 6
+	sb.corner_radius_bottom_left = 6
+	sb.corner_radius_bottom_right = 6
+	p.add_theme_stylebox_override("panel", sb)
+	
+	var v = VBoxContainer.new()
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	v.add_theme_constant_override("separation", 6)
+	p.add_child(v)
+	
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	
+	# 1. ICON / TEXTURE RECT con CenterContainer y escala
+	var icon_path = res.get("icon", "")
+	var tex_container = CenterContainer.new()
+	v.add_child(tex_container)
+	
+	var icon_tex = TextureRect.new()
+	var base_scale = float(res.get("iconScale", 1.0))
+	icon_tex.custom_minimum_size = Vector2(48, 48) * base_scale
+	icon_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon_tex.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	icon_tex.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
+		var tex = load(icon_path)
+		if tex:
+			icon_tex.texture = tex
+	tex_container.add_child(icon_tex)
+	
+	# 2. TÍTULO
+	var name_lbl = Label.new()
+	name_lbl.text = res.get("name", "Material")
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 11)
+	name_lbl.modulate = mat_color
+	v.add_child(name_lbl)
+	
+	# 3. DESCRIPCIÓN
+	var desc_lbl = Label.new()
+	desc_lbl.text = res.get("desc", "")
+	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc_lbl.add_theme_font_size_override("font_size", 8)
+	desc_lbl.modulate = Color(0.6, 0.6, 0.7, 0.8)
+	v.add_child(desc_lbl)
+	
+	# 4. CANTIDAD POSEÍDA
+	var owned_amount = 0
+	for item in inv_main.inventory_items:
+		if item.get("id", "") == res.get("id", ""):
+			owned_amount += 1
+			
+	var qty_lbl = Label.new()
+	qty_lbl.text = "En Inventario: " + str(owned_amount)
+	qty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	qty_lbl.add_theme_font_size_override("font_size", 9)
+	qty_lbl.modulate = Color.GREEN if owned_amount > 0 else Color.RED
+	v.add_child(qty_lbl)
+	
 	parent.add_child(p)
 
 func _get_resource_info(item_id: String) -> Dictionary:

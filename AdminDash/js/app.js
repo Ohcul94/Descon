@@ -103,7 +103,9 @@ function showTab(tabId) {
         'skills': 'folder-skills',
         'modes': 'folder-modes',
         'loot': 'folder-loot',
-        'enemy-loot': 'folder-loot'
+        'enemy-loot': 'folder-loot',
+        'crafting-recipes': 'folder-crafting',
+        'crafting-materials': 'folder-crafting'
     };
     const parentFolderId = folderMapping[tabId];
     if (parentFolderId) {
@@ -143,7 +145,8 @@ function showTab(tabId) {
         'modes': 'Configuración de Modos de Juego',
         'loot': 'Sistema de Recompensas (Loot)',
         'enemy-loot': 'Configuración de Botín del Enemigo',
-        'crafting': 'Crafteo y Creación de Ítems',
+        'crafting-recipes': 'Recetas de Crafteo',
+        'crafting-materials': 'Materiales de Crafteo',
         'quests': 'Misiones de la Galaxia',
         'chat-global': 'Transmisión y Chat Global'
     };
@@ -266,7 +269,17 @@ function connect() {
         renderRegisteredUsers(data);
     });
 
+    socket.on('assetFilesList', (data) => {
+        if (data && !data.error) {
+            window.allAssetFiles = data;
+        } else {
+            console.warn("Could not load asset files list:", data ? data.error : "Unknown error");
+            window.allAssetFiles = [];
+        }
+    });
+
     socket.on('loginSuccess', (data) => {
+        socket.emit('getAssetFiles');
         if (remember) {
             localStorage.setItem('admin_user', user);
             localStorage.setItem('admin_pass', pass);

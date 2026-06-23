@@ -258,7 +258,8 @@ function refreshCurrentTab() {
         'modes': renderModes,
         'loot': renderLootConfig,
         'enemy-loot': renderEnemyLootDetail,
-        'crafting': renderCrafting,
+        'crafting-recipes': renderCrafting,
+        'crafting-materials': renderCrafting,
         'housing': renderHousing,
         'quests': renderQuests,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions())
@@ -1082,16 +1083,29 @@ function renderEnemyDetail() {
                             ...(config.shopItems?.weapons || []),
                             ...(config.shopItems?.shields || []),
                             ...(config.shopItems?.engines || []),
-                            ...(config.shopItems?.extra || [])
+                            ...(config.shopItems?.extra || []),
+                            ...(config.shopItems?.resources || []).map(r => ({ ...r, type: 'resource' })),
+                            ...(config.craftingRecipes || []).map(rc => ({ ...rc, type: 'recipe' }))
                         ];
                         
                         return `
                             <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); display: flex; gap: 10px; align-items: center; justify-content: space-between;">
                                 <div style="flex: 2; display: flex; flex-direction: column; gap: 5px;">
-                                    <label style="font-size: 0.65rem; color: var(--text-dim);">ÍTEM DE RECOMPENSA</label>
+                                    <label style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase;">ÍTEM DE RECOMPENSA</label>
+                                    <input type="text" placeholder="🔍 Buscar por nombre o ID..." style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; margin-bottom: 2px;" oninput="
+                                        const query = this.value.toLowerCase().trim();
+                                        const select = this.nextElementSibling;
+                                        for (let opt of select.options) {
+                                            if (opt.value === '') continue;
+                                            const text = opt.textContent.toLowerCase();
+                                            const val = opt.value.toLowerCase();
+                                            const isMatch = text.includes(query) || val.includes(query);
+                                            opt.style.display = isMatch ? '' : 'none';
+                                        }
+                                    ">
                                     <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateLootDropItem('${selectedEnemyId}', ${idx}, this.value)">
                                         <option value="">-- Seleccionar Item --</option>
-                                        ${allItems.map(it => `<option value="${it.id}" ${ld.itemId === it.id ? 'selected' : ''}>[${it.type?.toUpperCase() || 'MOD'}] ${it.name}</option>`).join('')}
+                                        ${allItems.map(it => `<option value="${it.id}" ${ld.itemId === it.id ? 'selected' : ''}>[${(it.type || 'MOD').toUpperCase()}] ${it.name} (${it.id})</option>`).join('')}
                                     </select>
                                 </div>
                                 <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
@@ -3148,7 +3162,9 @@ function renderEnemyLootDetail() {
         ...(config.shopItems?.weapons || []),
         ...(config.shopItems?.shields || []),
         ...(config.shopItems?.engines || []),
-        ...(config.shopItems?.extra || [])
+        ...(config.shopItems?.extra || []),
+        ...(config.shopItems?.resources || []).map(r => ({ ...r, type: 'resource' })),
+        ...(config.craftingRecipes || []).map(rc => ({ ...rc, type: 'recipe' }))
     ];
 
     const totalChance = en.lootDrops.reduce((sum, ld) => sum + (ld.chance || 0), 0);
@@ -3192,9 +3208,20 @@ function renderEnemyLootDetail() {
                     <div style="background: rgba(255,255,255,0.02); padding: 1rem 1.2rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); display: grid; grid-template-columns: 2fr 1fr 80px auto; gap: 15px; align-items: center; transition: all 0.2s;" onmouseenter="this.style.borderColor='rgba(6,182,212,0.3)'; this.style.background='rgba(6,182,212,0.03)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.05)'; this.style.background='rgba(255,255,255,0.02)'">
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <label style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">ÍTEM DE RECOMPENSA</label>
+                            <input type="text" placeholder="🔍 Buscar por nombre o ID..." style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 6px; padding: 6px 10px; font-size: 0.75rem; margin-bottom: 4px;" oninput="
+                                const query = this.value.toLowerCase().trim();
+                                const select = this.nextElementSibling;
+                                for (let opt of select.options) {
+                                    if (opt.value === '') continue;
+                                    const text = opt.textContent.toLowerCase();
+                                    const val = opt.value.toLowerCase();
+                                    const isMatch = text.includes(query) || val.includes(query);
+                                    opt.style.display = isMatch ? '' : 'none';
+                                }
+                            ">
                             <select style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; font-weight: bold; cursor: pointer; width: 100%; border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;" onchange="updateLootDropItemFromEnemyLoot('${enemyId}', ${idx}, this.value)">
                                 <option value="">-- Seleccionar Item --</option>
-                                ${allItems.map(it => `<option value="${it.id}" ${ld.itemId === it.id ? 'selected' : ''}>[${(it.type || 'MOD').toUpperCase()}] ${it.name}</option>`).join('')}
+                                ${allItems.map(it => `<option value="${it.id}" ${ld.itemId === it.id ? 'selected' : ''}>[${(it.type || 'MOD').toUpperCase()}] ${it.name} (${it.id})</option>`).join('')}
                             </select>
                             ${selectedItem ? `<span style="font-size: 0.65rem; color: var(--text-dim);">Tipo: ${(selectedItem.type || 'módulo').toUpperCase()} | Rareza: ${selectedItem.rarity || 0}</span>` : ''}
                         </div>
@@ -3236,29 +3263,69 @@ window.renderCrafting = function() {
         config.craftingRecipes = [];
     }
 
+    const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+
+    function resolveAssetWebUrl(iconPath) {
+        if (!iconPath) return '';
+        let path = iconPath.replace(/\\/g, '/');
+        if (path.includes('res://assets/')) {
+            return path.replace('res://assets/', activeURL + '/assets/');
+        }
+        let idx = path.indexOf('assets/');
+        if (idx !== -1) {
+            return activeURL + '/' + path.substring(idx);
+        }
+        return iconPath;
+    }
+
     // --- RENDERIZAR MATERIALES ---
     const resourcesList = document.getElementById('crafting-resources-list');
     if (resourcesList) {
         resourcesList.innerHTML = '';
+        
         config.shopItems.resources.forEach((res, idx) => {
             const div = document.createElement('div');
             div.style.background = 'rgba(255,255,255,0.02)';
-            div.style.padding = '1rem';
+            div.style.padding = '1.5rem';
             div.style.borderRadius = '10px';
             div.style.border = '1px solid rgba(255,255,255,0.05)';
             div.style.position = 'relative';
             
+            const resIconWeb = resolveAssetWebUrl(res.icon);
+            const previewImgHTML = resIconWeb ? `<img src="${resIconWeb}" style="width:130px; height:130px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); display: block;" onerror="this.style.display='none';">` : `<div style="width:130px; height:130px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.75rem;">Sin Icono</div>`;
+            
             div.innerHTML = `
                 <button style="position:absolute; top:8px; right:8px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:16px;" onclick="removeCraftingResource(${idx})">✕</button>
-                <div class="form-grid" style="grid-template-columns: 1fr 1.5fr; gap:10px;">
-                    <div class="field"><label>ID de Recurso</label><input type="text" value="${res.id}" onchange="config.shopItems.resources[${idx}].id = this.value; renderCrafting();"></div>
-                    <div class="field"><label>Nombre del Material</label><input type="text" value="${res.name}" onchange="config.shopItems.resources[${idx}].name = this.value; renderCrafting();"></div>
-                </div>
-                <div class="field full" style="margin-top:8px;"><label>Descripción</label><input type="text" value="${res.desc || ''}" onchange="config.shopItems.resources[${idx}].desc = this.value;"></div>
-                <div class="form-grid" style="grid-template-columns: 1.2fr 1fr 1fr; gap:10px; margin-top:8px;">
-                    <div class="field"><label>Icono (Godot path)</label><input type="text" value="${res.icon || ''}" onchange="config.shopItems.resources[${idx}].icon = this.value;"></div>
-                    <div class="field"><label>Color Visual</label><input type="color" value="${res.color || '#ffffff'}" style="height:35px; padding:0; cursor:pointer;" onchange="config.shopItems.resources[${idx}].color = this.value;"></div>
-                    <div class="field"><label>Precio de Venta</label><input type="number" value="${res.prices ? (res.prices.hubs || 0) : 0}" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.hubs = parseInt(this.value);"></div>
+                <div style="display: flex; gap: 20px; align-items: flex-start;">
+                    <!-- Preview Image -->
+                    <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                        ${previewImgHTML}
+                    </div>
+                    
+                    <!-- Form Fields -->
+                    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 10px;">
+                        <div class="form-grid" style="grid-template-columns: 1fr 1.5fr; gap:10px; display: grid;">
+                            <div class="field"><label>ID de Recurso</label><input type="text" value="${res.id}" onchange="config.shopItems.resources[${idx}].id = this.value; renderCrafting();"></div>
+                            <div class="field"><label>Nombre del Material</label><input type="text" value="${res.name}" onchange="config.shopItems.resources[${idx}].name = this.value; renderCrafting();"></div>
+                        </div>
+                        <div class="field" style="width: 100%;"><label>Descripción</label><input type="text" value="${res.desc || ''}" style="width: 100%;" onchange="config.shopItems.resources[${idx}].desc = this.value;"></div>
+                        <div class="field" style="width: 100%;"><label>Icono (Godot path)</label>
+                            <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+                                <select style="flex-grow: 1; background: #0b0f19; border: 1px solid rgba(255,255,255,0.08); color: white; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" onchange="config.shopItems.resources[${idx}].icon = this.value; renderCrafting();">
+                                    <option value="">-- Seleccionar Asset --</option>
+                                    ${(window.allAssetFiles || []).map(p => `<option value="${p}" ${res.icon === p ? 'selected' : ''}>${p}</option>`).join('')}
+                                </select>
+                                <button class="btn btn-primary" style="padding: 8px 15px; font-size: 0.75rem; flex-shrink: 0; background: var(--accent); border-color: var(--accent);" onclick="triggerAssetUpload(${idx}, 'resource')">📂 IMPORTAR</button>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
+                            <div class="field" style="width: 70px; margin:0; flex-shrink: 0;"><label>Escala</label><input type="number" step="0.1" min="0.1" value="${res.iconScale || 1.0}" style="width: 100%;" onchange="config.shopItems.resources[${idx}].iconScale = parseFloat(this.value) || 1.0;"></div>
+                            <div class="field" style="width: 50px; margin:0; flex-shrink: 0;"><label>Color</label><input type="color" value="${res.color || '#ffffff'}" style="height:38px; width:100%; padding:0; border:none; background:none; cursor:pointer;" onchange="config.shopItems.resources[${idx}].color = this.value;"></div>
+                            <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Hubs)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.hubs || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.hubs = parseInt(this.value) || 0;"></div>
+                            <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Ohcu)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.ohcu || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.ohcu = parseInt(this.value) || 0;"></div>
+                        </div>
+                    </div>
                 </div>
             `;
             resourcesList.appendChild(div);
@@ -3329,37 +3396,65 @@ window.renderCrafting = function() {
                 `;
             }).join('');
 
+            let resultIcon = '';
+            if (recipe.resultCategory === 'ships') {
+                const s = config.shipModels?.find(ship => String(ship.id) === String(recipe.resultItemId));
+                resultIcon = s ? s.icon : '';
+            } else if (recipe.resultCategory === 'ammo') {
+                for (let sub in config.shopItems?.ammo || {}) {
+                    const a = config.shopItems.ammo[sub].find(item => item.id === recipe.resultItemId);
+                    if (a) { resultIcon = a.icon; break; }
+                }
+            } else {
+                const list = config.shopItems?.[recipe.resultCategory] || [];
+                const it = list.find(item => item.id === recipe.resultItemId);
+                resultIcon = it ? it.icon : '';
+            }
+            const recipeIconWeb = resolveAssetWebUrl(resultIcon);
+            const recipePreviewImgHTML = recipeIconWeb ? `<img src="${recipeIconWeb}" style="width:110px; height:110px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); display: block;" onerror="this.style.display='none';">` : `<div style="width:110px; height:110px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.75rem;">Sin Icono</div>`;
+
             div.innerHTML = `
                 <button style="position:absolute; top:12px; right:12px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:18px;" onclick="removeCraftingRecipe(${idx})">✕ ELIMINAR RECETA</button>
-                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:15px;">
-                    <div class="field"><label>ID Única de Receta</label><input type="text" value="${recipe.id}" onchange="config.craftingRecipes[${idx}].id = this.value;"></div>
-                    <div class="field"><label>Nombre Visual de la Receta</label><input type="text" value="${recipe.name}" onchange="config.craftingRecipes[${idx}].name = this.value;"></div>
-                </div>
-                <div class="field full" style="margin-top:10px;"><label>Descripción de Receta</label><input type="text" value="${recipe.desc || ''}" onchange="config.craftingRecipes[${idx}].desc = this.value;"></div>
-                
-                <div class="form-grid" style="grid-template-columns: 2fr 1fr; gap:15px; margin-top:10px; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <div class="field">
-                        <label>Objeto Resultante a Fabricar</label>
-                        <select style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; font-weight: bold; cursor: pointer; width: 100%; border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;" onchange="updateCraftingRecipeResultItem(${idx}, this.value)">
-                            <option value="">-- Seleccionar Objeto del Juego --</option>
-                            ${selectOptions}
-                        </select>
+                <div style="display: flex; gap: 20px; align-items: flex-start;">
+                    <!-- Preview Image -->
+                    <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                        ${recipePreviewImgHTML}
                     </div>
-                    <div class="field"><label>Cantidad Fabricada</label><input type="number" min="1" value="${recipe.resultAmount || 1}" onchange="config.craftingRecipes[${idx}].resultAmount = parseInt(this.value)"></div>
-                </div>
+                    
+                    <!-- Form Fields -->
+                    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 10px;">
+                        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:15px; display: grid;">
+                            <div class="field"><label>ID Única de Receta</label><input type="text" value="${recipe.id}" onchange="config.craftingRecipes[${idx}].id = this.value;"></div>
+                            <div class="field"><label>Nombre Visual de la Receta</label><input type="text" value="${recipe.name}" onchange="config.craftingRecipes[${idx}].name = this.value;"></div>
+                        </div>
+                        <div class="field" style="width:100%;"><label>Descripción de Receta</label><input type="text" value="${recipe.desc || ''}" style="width:100%;" onchange="config.craftingRecipes[${idx}].desc = this.value;"></div>
+                        
+                        <div class="form-grid" style="grid-template-columns: 2fr 1fr; gap:15px; display: grid; align-items:center;">
+                            <div class="field">
+                                <label>Objeto Resultante a Fabricar</label>
+                                <select style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: white; font-weight: bold; cursor: pointer; width: 100%; border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;" onchange="updateCraftingRecipeResultItem(${idx}, this.value); renderCrafting();">
+                                    <option value="">-- Seleccionar Objeto del Juego --</option>
+                                    ${selectOptions}
+                                </select>
+                            </div>
+                            <div class="field"><label>Cantidad Fabricada</label><input type="number" min="1" value="${recipe.resultAmount || 1}" onchange="config.craftingRecipes[${idx}].resultAmount = parseInt(this.value)"></div>
+                        </div>
 
-                <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:15px; margin-top:10px;">
-                    <div class="field"><label>Costo de Hubs (qty)</label><input type="number" value="${recipe.costHubs || 0}" onchange="config.craftingRecipes[${idx}].costHubs = parseInt(this.value)"></div>
-                    <div class="field"><label>Costo de Ohcu (qty)</label><input type="number" value="${recipe.costOhcu || 0}" onchange="config.craftingRecipes[${idx}].costOhcu = parseInt(this.value)"></div>
-                </div>
+                        <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
+                            <div class="field" style="width: 70px; margin:0; flex-shrink: 0;"><label>Escala</label><input type="number" step="0.1" min="0.1" value="${recipe.iconScale || 1.0}" style="width:100%;" onchange="config.craftingRecipes[${idx}].iconScale = parseFloat(this.value) || 1.0;"></div>
+                            <div class="field" style="flex-grow:1; margin:0;"><label>Costo de Hubs (qty)</label><input type="number" value="${recipe.costHubs || 0}" onchange="config.craftingRecipes[${idx}].costHubs = parseInt(this.value)"></div>
+                            <div class="field" style="flex-grow:1; margin:0;"><label>Costo de Ohcu (qty)</label><input type="number" value="${recipe.costOhcu || 0}" onchange="config.craftingRecipes[${idx}].costOhcu = parseInt(this.value)"></div>
+                        </div>
 
-                <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold;">⚙️ INGREDIENTES REQUERIDOS</label>
-                        <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.65rem;" onclick="addCraftingRecipeIngredient(${idx})">+ AGREGAR INGREDIENTE</button>
-                    </div>
-                    <div id="recipe-ingredients-${idx}">
-                        ${ingredientsHTML}
+                        <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold;">⚙️ INGREDIENTES REQUERIDOS</label>
+                                <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.65rem;" onclick="addCraftingRecipeIngredient(${idx})">+ AGREGAR INGREDIENTE</button>
+                            </div>
+                            <div id="recipe-ingredients-${idx}">
+                                ${ingredientsHTML}
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -4532,6 +4627,60 @@ window.removeQuest = function(idx) {
     if (!config.questsConfig) return;
     config.questsConfig.splice(idx, 1);
     renderQuests();
+};
+
+window.triggerAssetUpload = function(idx, type = 'resource') {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const base64Data = reader.result.split(',')[1];
+            const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+            
+            try {
+                const response = await fetch(`${activeURL}/api/upload-asset`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        fileName: file.name,
+                        fileData: base64Data
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success && result.path) {
+                    if (type === 'resource') {
+                        config.shopItems.resources[idx].icon = result.path;
+                    } else if (type === 'recipe') {
+                        config.craftingRecipes[idx].icon = result.path;
+                    }
+                    
+                    // Solicitar la lista de assets actualizada mediante socket
+                    const activeSocket = (activeEnv === 'cloud') ? socketCloud : socketLocal;
+                    if (activeSocket && activeSocket.connected) {
+                        activeSocket.emit('getAssetFiles');
+                    }
+                    
+                    alert('Asset importado con éxito!');
+                    renderCrafting();
+                } else {
+                    alert('Error al importar el asset: ' + (result.error || 'Desconocido'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error al conectar con el servidor para subir el archivo.');
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
 };
 
 

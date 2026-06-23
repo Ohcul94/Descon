@@ -130,8 +130,29 @@ app.use((req, res, next) => {
     next();
 });
 
-// Servir archivos est├íticos desde la carpeta 'public'
+// Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/assets', express.static(path.join(__dirname, '../descon/assets')));
+
+app.post('/api/upload-asset', express.json({ limit: '20mb' }), async (req, res) => {
+    try {
+        const { fileName, fileData } = req.body;
+        if (!fileName || !fileData) {
+            return res.status(400).json({ error: 'Faltan parámetros fileName o fileData' });
+        }
+        const targetDir = path.join(__dirname, '../descon/assets/Crafteo');
+        await fs.ensureDir(targetDir);
+        const filePath = path.join(targetDir, fileName);
+        const buffer = Buffer.from(fileData, 'base64');
+        await fs.writeFile(filePath, buffer);
+        const godotPath = `res://assets/Crafteo/${fileName}`;
+        console.log(`[ASSET UPLOAD] Guardado asset local en ${filePath}`);
+        return res.json({ success: true, path: godotPath });
+    } catch (err) {
+        console.error('[ASSET UPLOAD ERROR]', err);
+        return res.status(500).json({ error: err.message });
+    }
+});
 
 const state = require('./state');
 const { players, activeSessions, enemies, activeAreas, parties, playerParty } = state;
@@ -1103,6 +1124,40 @@ io.on('connection', (socket) => {
         });
         console.log(`[ADMIN] Purga manual ejecutada por Caelli94. ${count} enemigos eliminados.`);
         io.emit('gameNotification', { msg: `PURGA COMPLETADA: ${count} enemigos eliminados.`, type: 'success' });
+    });
+
+    // v370.2: Listado de assets en tiempo real para simplificar configuración
+    socket.on('getAssetFiles', async () => {
+        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") {
+            return socket.emit('assetFilesList', { error: 'Unauthorized' });
+        }
+        try {
+            const assetsDir = path.join(__dirname, '../descon/assets');
+            const fileList = [];
+            const walk = async (dir) => {
+                const files = await fs.readdir(dir);
+                for (const file of files) {
+                    const fullPath = path.join(dir, file);
+                    const stat = await fs.stat(fullPath);
+                    if (stat.isDirectory()) {
+                        await walk(fullPath);
+                    } else {
+                        const ext = path.extname(file).toLowerCase();
+                        if (['.png', '.jpg', '.jpeg', '.svg', '.tga', '.glb', '.gltf'].includes(ext)) {
+                            const rel = path.relative(assetsDir, fullPath).replace(/\\/g, '/');
+                            fileList.push('res://assets/' + rel);
+                        }
+                    }
+                }
+            };
+            if (await fs.pathExists(assetsDir)) {
+                await walk(assetsDir);
+            }
+            socket.emit('assetFilesList', fileList);
+        } catch (e) {
+            console.error("Error scanning asset files:", e);
+            socket.emit('assetFilesList', { error: e.message });
+        }
     });
 
     // v304.0: Auditoría Agrupada por Piloto (Bitácora Maestra)

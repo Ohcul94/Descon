@@ -4107,7 +4107,7 @@
                     "hubs": 100,
                     "ohcu": 0
                 },
-                "icon": "E:\\Descon\\descon\\assets\\Crafteo\\Mapas\\Mapa1",
+                "icon": "res://assets/Crafteo/Mapa1.png",
                 "color": "#ddd9d9",
                 "type": "resource"
             }
@@ -5605,7 +5605,7 @@
             "costOhcu": 0,
             "ingredients": [
                 {
-                    "itemId": "mat_iron",
+                    "itemId": "mat_map1",
                     "amount": 1
                 }
             ]
