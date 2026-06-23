@@ -234,6 +234,24 @@ func _draw():
 			end_point = dir * range_val
 			draw_line(Vector2.ZERO, end_point, Color(0.1, 0.5, 1.0, 0.25), 60.0) # Haz grueso de ancho 60px
 			draw_line(Vector2.ZERO, end_point, Color(0.3, 0.7, 1.0, 0.65), 3.0)  # Núcleo de la mira
+		elif current_skill.id == "melee":
+			var dir = aim_vec.normalized()
+			if aim_vec.length() < 0.1:
+				dir = Vector2.RIGHT
+			end_point = dir * range_val
+			var perp = Vector2(-dir.y, dir.x)
+			var pts_izq = PackedVector2Array()
+			var pts_der = PackedVector2Array()
+			var steps = 12
+			for j in range(steps + 1):
+				var t = float(j) / steps
+				var x_pos = t * range_val
+				var y_offset = (1.0 - t) * (range_val * 0.7)
+				pts_izq.append(dir * x_pos - perp * y_offset)
+				pts_der.append(dir * x_pos + perp * y_offset)
+			draw_polyline(pts_izq, Color(1.0, 0.45, 0.0, 0.5), 4.0)
+			draw_polyline(pts_der, Color(1.0, 0.45, 0.0, 0.5), 4.0)
+			draw_circle(end_point, 10.0, Color(1.0, 0.3, 0.0, 0.7))
 		elif s_name == "BARRERA DE VIENTO":
 			var width_val = 150.0
 			if GameConstants.SKILLS_DATA.has(s_name):

@@ -91,7 +91,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	_start_pos = p_pos
 	_start_time_stamp = Time.get_ticks_msec() / 1000.0
 	if type == "melee":
-		lifetime = 0.35
+		lifetime = 0.85 # 0.35s de convergencia circular + 0.5s de permanencia/desvanecimiento
 	
 	if type == "mega_laser":
 		velocity = Vector2.ZERO
@@ -99,20 +99,35 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	else:
 		velocity = Vector2.RIGHT.rotated(p_angle) * speed
 
-	var shape = CollisionShape2D.new()
-	if type == "mega_laser":
-		var rect = RectangleShape2D.new()
-		shape.shape = rect
+	if type == "melee":
+		var shape_izq = CollisionShape2D.new()
+		var circle_izq = CircleShape2D.new()
+		circle_izq.radius = 18.0
+		shape_izq.shape = circle_izq
+		shape_izq.name = "ColSierIzqu"
+		add_child(shape_izq)
+		
+		var shape_der = CollisionShape2D.new()
+		var circle_der = CircleShape2D.new()
+		circle_der.radius = 18.0
+		shape_der.shape = circle_der
+		shape_der.name = "ColSierDere"
+		add_child(shape_der)
 	else:
-		var circle = CircleShape2D.new()
-		if type == "spin_ring":
-			circle.radius = 35.0 
-		elif type == "emp":
-			circle.radius = 30.0 # Ancho de 60px
+		var shape = CollisionShape2D.new()
+		if type == "mega_laser":
+			var rect = RectangleShape2D.new()
+			shape.shape = rect
 		else:
-			circle.radius = 20.0 
-		shape.shape = circle
-	add_child(shape)
+			var circle = CircleShape2D.new()
+			if type == "spin_ring":
+				circle.radius = 35.0 
+			elif type == "emp":
+				circle.radius = 30.0 # Ancho de 60px
+			else:
+				circle.radius = 20.0 
+			shape.shape = circle
+		add_child(shape)
 	
 	collision_layer = 0
 	
@@ -221,6 +236,41 @@ func _setup_visual_sprite():
 		add_child(sparks)
 		sparks.emitting = true
 		return
+		
+	# Efecto de partículas de chispas radiales de sierras giratorias para Melee
+	if type == "melee":
+		sprite = null
+		var parts_izq = CPUParticles2D.new()
+		parts_izq.name = "CuchillaIzq"
+		parts_izq.amount = 40
+		parts_izq.lifetime = 0.2
+		parts_izq.speed_scale = 1.3
+		parts_izq.explosiveness = 0.0
+		parts_izq.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+		parts_izq.emission_sphere_radius = 12.0 # Emite desde el contorno de la sierra
+		parts_izq.spread = 180.0 # Radial en todas direcciones (efecto chispas)
+		parts_izq.gravity = Vector2.ZERO
+		parts_izq.initial_velocity_min = 50.0
+		parts_izq.initial_velocity_max = 130.0
+		parts_izq.scale_amount_min = 1.5
+		parts_izq.scale_amount_max = 4.0
+		parts_izq.z_index = 6
+		
+		var grad = Gradient.new()
+		grad.set_color(0, Color(1.0, 0.6, 0.0, 0.95)) # Chispas naranja brillante
+		grad.add_point(0.4, Color(1.0, 0.95, 0.3, 0.85)) # Amarillo núcleo
+		grad.add_point(0.7, Color(0.95, 0.2, 0.0, 0.4)) # Rojo difuminado
+		grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+		parts_izq.color_ramp = grad
+		
+		add_child(parts_izq)
+		parts_izq.emitting = true
+		
+		var parts_der = parts_izq.duplicate()
+		parts_der.name = "CuchillaDer"
+		add_child(parts_der)
+		parts_der.emitting = true
+		return
 
 	var path = ""
 	match type:
@@ -229,7 +279,6 @@ func _setup_visual_sprite():
 		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
-		"melee": path = "res://assets/Municiones/Lasers/Laser2/Laser2.png"
 		"heal": path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
 		"siphon": path = "res://assets/Municiones/Misiles/Misil2/Misil2.png"
 		"hook": 
@@ -309,9 +358,48 @@ func _draw():
 			draw_line(Vector2(0, 0), Vector2(-20, 0), Color.GRAY, 2.0)
 			draw_arc(Vector2(5, 0), 10, -PI/2, PI/2, 8, Color.GRAY, 3.0)
 		"melee":
-			draw_arc(Vector2.ZERO, 15.0, -PI/3, PI/3, 8, color, 4.0)
-			draw_line(Vector2(0, -10), Vector2(7, 0), color, 3.0)
-			draw_line(Vector2(0, 10), Vector2(7, 0), color, 3.0)
+			var t = _current_lifetime / 0.35
+			t = clamp(t, 0.0, 1.0)
+			var rango_local = max_range if max_range > 0.0 else 150.0
+			
+			var alpha = 1.0
+			if _current_lifetime > 0.35:
+				var extra_t = (_current_lifetime - 0.35) / 0.5
+				alpha = clamp(1.0 - extra_t, 0.0, 1.0)
+			
+			var color_sierra = Color(1.0, 0.4, 0.0, 0.8 * alpha) # Naranja ígneo
+			var color_relleno = Color(1.0, 0.55, 0.1, 0.3 * alpha) # Relleno translúcido
+			var color_nucleo = Color(1.0, 0.95, 0.4, 0.9 * alpha) # Amarillo brillante
+			
+			var r_sierra = 18.0
+			var spin_angle = (Time.get_ticks_msec() / 1000.0) * 16.0 # Velocidad de giro rápida
+			var num_dientes = 10
+			
+			# Sierra 1 (Izquierda) - Trayectoria circular
+			var theta_izq = -PI/2.0 + t * (PI/2.0)
+			var pos_izq = Vector2(cos(theta_izq) * rango_local, sin(theta_izq) * rango_local)
+			draw_circle(pos_izq, r_sierra, color_relleno)
+			draw_circle(pos_izq, r_sierra - 3.0, Color(color_sierra.r, color_sierra.g, color_sierra.b, 0.6 * alpha))
+			draw_circle(pos_izq, 4.0, color_nucleo)
+			for i in range(num_dientes):
+				var ang = spin_angle + (float(i) / num_dientes) * TAU
+				var p1 = pos_izq + Vector2(cos(ang), sin(ang)) * (r_sierra - 3.0)
+				var p2 = pos_izq + Vector2(cos(ang + 0.25), sin(ang + 0.25)) * (r_sierra + 6.0)
+				draw_line(p1, p2, color_sierra, 3.0)
+				draw_line(p1, p2, color_nucleo, 1.2)
+				
+			# Sierra 2 (Derecha) - Trayectoria circular
+			var theta_der = PI/2.0 - t * (PI/2.0)
+			var pos_der = Vector2(cos(theta_der) * rango_local, sin(theta_der) * rango_local)
+			draw_circle(pos_der, r_sierra, color_relleno)
+			draw_circle(pos_der, r_sierra - 3.0, Color(color_sierra.r, color_sierra.g, color_sierra.b, 0.6 * alpha))
+			draw_circle(pos_der, 4.0, color_nucleo)
+			for i in range(num_dientes):
+				var ang = -spin_angle + (float(i) / num_dientes) * TAU
+				var p1 = pos_der + Vector2(cos(ang), sin(ang)) * (r_sierra - 3.0)
+				var p2 = pos_der + Vector2(cos(ang - 0.25), sin(ang - 0.25)) * (r_sierra + 6.0)
+				draw_line(p1, p2, color_sierra, 3.0)
+				draw_line(p1, p2, color_nucleo, 1.2)
 		"heal":
 			draw_circle(Vector2.ZERO, 8.0, color)
 			draw_circle(Vector2.ZERO, 12.0, Color(color.r, color.g, color.b, 0.3), false, 2.0)
@@ -374,8 +462,41 @@ func _physics_process(delta):
 		velocity = velocity.lerp(Vector2.ZERO, 3.5 * delta)
 	elif type == "melee":
 		velocity = velocity.lerp(Vector2.ZERO, 6.0 * delta)
+		if is_instance_valid(_owner_node):
+			global_position = _owner_node.global_position
+			rotation = _owner_node.rotation
+			
+		var t = _current_lifetime / 0.35
+		t = clamp(t, 0.0, 1.0)
+		var rango_local = max_range if max_range > 0.0 else 150.0
+		
+		var theta_izq = -PI/2.0 + t * (PI/2.0)
+		var pos_izq = Vector2(cos(theta_izq) * rango_local, sin(theta_izq) * rango_local)
+		
+		var theta_der = PI/2.0 - t * (PI/2.0)
+		var pos_der = Vector2(cos(theta_der) * rango_local, sin(theta_der) * rango_local)
+		
+		var node_izq = get_node_or_null("CuchillaIzq")
+		var node_der = get_node_or_null("CuchillaDer")
+		if is_instance_valid(node_izq) and is_instance_valid(node_der):
+			node_izq.position = pos_izq
+			node_der.position = pos_der
+			
+			if _current_lifetime > 0.35:
+				node_izq.emitting = false
+				node_der.emitting = false
+				
+		var col_izq = get_node_or_null("ColSierIzqu")
+		var col_der = get_node_or_null("ColSierDere")
+		if is_instance_valid(col_izq) and is_instance_valid(col_der):
+			col_izq.position = pos_izq
+			col_der.position = pos_der
+			
+		queue_redraw()
 		
 	var move_step = velocity * delta
+	if type == "melee":
+		move_step = Vector2.ZERO
 	if type == "heal":
 		var time = (Time.get_ticks_msec() / 1000.0) - _start_time_stamp
 		var wave_offset = sin(time * 15.0) * 8.0
