@@ -254,13 +254,17 @@ function registerCombatHandlers(socket, io, state) {
             // Curativa: Restaura HP y Escudo al propio jugador en PvE
             const healPct = (ammoConfig.healPctPvE !== undefined ? ammoConfig.healPctPvE : 40) / 100;
             const healAmount = finalDamage * healPct;
+            const oldHp = p.hp;
+            const oldShield = p.shield;
             p.hp = Math.min(p.maxHp, p.hp + healAmount);
             p.shield = Math.min(p.maxShield, p.shield + healAmount);
+            const actualHeal = Math.ceil((p.hp - oldHp) + (p.shield - oldShield));
             
             io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                 id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
                 maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
-                isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible
+                isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
+                healPopup: actualHeal
             });
             finalDamage = 0; // No le hace daño al enemigo
         } else {
@@ -268,13 +272,17 @@ function registerCombatHandlers(socket, io, state) {
                 // Vampírica (Sifón): cura una porción del daño infligido al atacante
                 const siphonPct = (ammoConfig.siphonPct !== undefined ? ammoConfig.siphonPct : 25) / 100;
                 const siphonAmount = finalDamage * siphonPct;
+                const oldHp = p.hp;
+                const oldShield = p.shield;
                 p.hp = Math.min(p.maxHp, p.hp + siphonAmount);
                 p.shield = Math.min(p.maxShield, p.shield + siphonAmount);
+                const actualHeal = Math.ceil((p.hp - oldHp) + (p.shield - oldShield));
                 
                 io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                     id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
                     maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,
-                    isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible
+                    isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
+                    healPopup: actualHeal
                 });
             } else if (activeAmmo === 'emp') {
                 // EMP: Silencia la IA del bicho durante el tiempo configurado

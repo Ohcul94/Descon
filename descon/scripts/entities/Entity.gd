@@ -756,6 +756,10 @@ func update_stats(data):
 		# No reseteamos el combat_timer aquí porque el ataque real ya lo reseteó en take_damage
 		_spawn_damage_text(str(int(damage_taken)), Color.RED)
 	
+	if data.has("healPopup"):
+		var h_val = int(data.healPopup)
+		_spawn_damage_text("+" + str(h_val), Color.GREEN)
+		
 	if data.has("spheres"):
 		var sm = get_node_or_null("SpheresManager")
 		if is_instance_valid(sm):
@@ -989,6 +993,7 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	if is_god or is_dead: return
 	
 	if original_amt <= 0.0:
+		_spawn_damage_text("0", Color.RED)
 		return
 		
 	reset_combat_timer() # Bloqueo local de regen

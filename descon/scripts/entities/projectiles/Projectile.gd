@@ -325,6 +325,37 @@ func _setup_visual_sprite():
 		add_child(parts)
 		parts.emitting = true
 		return
+		
+	# Efecto de partículas de humo oscuro y aura carmesí para Siphon
+	if type == "siphon":
+		sprite = null
+		var parts = CPUParticles2D.new()
+		parts.name = "SiphonTrail"
+		parts.amount = 55
+		parts.lifetime = 0.5
+		parts.speed_scale = 1.0
+		parts.explosiveness = 0.0
+		parts.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
+		parts.emission_sphere_radius = 8.0
+		parts.direction = Vector2.LEFT
+		parts.spread = 20.0
+		parts.gravity = Vector2.ZERO
+		parts.initial_velocity_min = 20.0
+		parts.initial_velocity_max = 60.0
+		parts.scale_amount_min = 2.5
+		parts.scale_amount_max = 8.0 # Partículas más grandes y difusas para simular humo
+		parts.z_index = 5
+		
+		var grad = Gradient.new()
+		grad.set_color(0, Color(0.95, 0.05, 0.1, 0.85)) # Rojo carmesí brillante
+		grad.add_point(0.35, Color(0.6, 0.05, 0.65, 0.6)) # Púrpura místico
+		grad.add_point(0.7, Color(0.15, 0.02, 0.2, 0.35)) # Humo oscuro (púrpura/negro muy translúcido)
+		grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+		parts.color_ramp = grad
+		
+		add_child(parts)
+		parts.emitting = true
+		return
 
 	var path = ""
 	match type:
@@ -333,7 +364,6 @@ func _setup_visual_sprite():
 		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
-		"siphon": path = "res://assets/Municiones/Misiles/Misil2/Misil2.png"
 		"hook": 
 			path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
 			modulate = Color(0, 1, 1) 
@@ -479,9 +509,32 @@ func _draw():
 			draw_line(Vector2(-3.5, 0), Vector2(3.5, 0), Color.WHITE, 1.5)
 			draw_line(Vector2(0, -3.5), Vector2(0, 3.5), Color.WHITE, 1.5)
 		"siphon":
-			draw_circle(Vector2.ZERO, 6.0, color)
-			draw_rect(Rect2(Vector2(-6, -6), Vector2(12, 12)), Color(color.r, color.g, color.b, 0.4), false, 2.0)
-			draw_circle(Vector2.ZERO, 10.0, Color(1.0, 0.1, 0.3, 0.4), false, 1.5)
+			# Aguja/Cristal Rúnico Plateado con Canal de Sangre (Sifón)
+			var length = 18.0
+			var half_w = 4.0
+			
+			# Cuerpo plateado/cristal (rombo alargado)
+			var pts = PackedVector2Array([
+				Vector2(-length, 0),
+				Vector2(0, -half_w),
+				Vector2(length, 0),
+				Vector2(0, half_w)
+			])
+			draw_polygon(pts, [Color(0.85, 0.85, 0.9, 0.85)]) # Plateado/Cristal
+			draw_polyline(pts, Color(0.65, 0.05, 0.75, 0.9), 1.5) # Bordes mágicos púrpuras
+			
+			# Canal de sangre central (haz rojo carmesí brillante de punta a punta)
+			draw_line(Vector2(-length + 2.0, 0), Vector2(length - 2.0, 0), Color(0.95, 0.05, 0.1, 0.95), 2.5)
+			
+			# Cámara central / Gema brillante en el centro
+			var time_f = Time.get_ticks_msec() / 1000.0
+			var pulse = sin(time_f * 15.0) * 1.0
+			draw_circle(Vector2.ZERO, 3.5 + pulse, Color(0.95, 0.05, 0.15, 0.8)) # Brillo rojo carmesí
+			draw_circle(Vector2.ZERO, 2.0, Color.WHITE) # Lente central
+			
+			# Runas místicas grabadas a los lados (líneas púrpuras sutiles)
+			draw_line(Vector2(-6, -2), Vector2(-4, -2), Color(0.8, 0.1, 0.95, 0.75), 1.0)
+			draw_line(Vector2(4, 2), Vector2(6, 2), Color(0.8, 0.1, 0.95, 0.75), 1.0)
 		"emp":
 			# Dibujar líneas verticales sutiles que representan el frente del haz de viento (de Y=-30 a Y=30)
 			draw_line(Vector2(0, -30), Vector2(0, 30), Color(0.1, 0.5, 1.0, 0.45), 4.0)
@@ -597,6 +650,7 @@ func _physics_process(delta):
 		var wave_offset = cos(time * 20.0) * 6.0
 		var perp = Vector2(-velocity.y, velocity.x).normalized()
 		global_position += move_step + perp * (wave_offset * delta * 60.0)
+		queue_redraw()
 	else:
 		global_position += move_step
 
@@ -656,7 +710,10 @@ func _on_body_entered(body):
 					return
 		
 		_has_hit = true
-		body.take_damage(damage, global_position, owner_id)
+		var dmg_to_deal = damage
+		if type == "heal":
+			dmg_to_deal = 0.0
+		body.take_damage(dmg_to_deal, global_position, owner_id)
 		
 		if NetworkManager:
 			if owner_type == "player" and body.is_in_group("enemies"):
@@ -680,6 +737,85 @@ func _on_body_entered(body):
 var _is_exploding: bool = false
 
 func _explode():
+	if type == "siphon":
+		# 1. Efecto de Impacto (Destello de Cristal Rompiéndose)
+		var sparks_impact = CPUParticles2D.new()
+		sparks_impact.amount = 20
+		sparks_impact.lifetime = 0.3
+		sparks_impact.one_shot = true
+		sparks_impact.explosiveness = 1.0
+		sparks_impact.spread = 180.0
+		sparks_impact.gravity = Vector2.ZERO
+		sparks_impact.initial_velocity_min = 100.0
+		sparks_impact.initial_velocity_max = 220.0
+		sparks_impact.scale_amount_min = 1.5
+		sparks_impact.scale_amount_max = 4.0
+		
+		var spark_grad = Gradient.new()
+		spark_grad.set_color(0, Color(1.0, 0.95, 0.95, 0.95)) # Cristal blanco brillante
+		spark_grad.add_point(0.3, Color(0.95, 0.05, 0.15, 0.85)) # Rojo carmesí
+		spark_grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+		sparks_impact.color_ramp = spark_grad
+		
+		sparks_impact.global_position = global_position
+		get_parent().add_child(sparks_impact)
+		sparks_impact.emitting = true
+		
+		get_tree().create_timer(0.4).timeout.connect(sparks_impact.queue_free)
+		
+		# 2. Retribución "Chupasangre" (Trayectorias de espirales rojas hacia el atacante)
+		if is_instance_valid(_owner_node):
+			var ret = Node2D.new()
+			ret.top_level = true
+			ret.global_position = global_position
+			get_parent().add_child(ret)
+			
+			var p_ret = CPUParticles2D.new()
+			p_ret.amount = 30
+			p_ret.lifetime = 0.3
+			p_ret.gravity = Vector2.ZERO
+			p_ret.scale_amount_min = 2.0
+			p_ret.scale_amount_max = 5.0
+			p_ret.color = Color(0.95, 0.05, 0.1, 0.9) # Rojo brillante sangre
+			ret.add_child(p_ret)
+			p_ret.emitting = true
+			
+			var line = Line2D.new()
+			line.width = 3.5
+			line.default_color = Color(0.95, 0.1, 0.15, 0.9) # Rastro rojo
+			line.points = PackedVector2Array([Vector2.ZERO, Vector2(-8, 0)])
+			ret.add_child(line)
+			
+			# Script inline para la trayectoria espiral hacia el emisor
+			var inline_script = GDScript.new()
+			inline_script.source_code = "extends Node2D\n" + \
+				"var start_pos: Vector2\n" + \
+				"var owner_ref: Node2D\n" + \
+				"var duration: float = 0.5\n" + \
+				"var elapsed: float = 0.0\n" + \
+				"func _process(delta):\n" + \
+				"	if not is_instance_valid(owner_ref):\n" + \
+				"		queue_free()\n" + \
+				"		return\n" + \
+				"	elapsed += delta\n" + \
+				"	var t = elapsed / duration\n" + \
+				"	if t >= 1.0:\n" + \
+				"		queue_free()\n" + \
+				"		return\n" + \
+				"	var target_pos = owner_ref.global_position\n" + \
+				"	var base_pos = start_pos.lerp(target_pos, t)\n" + \
+				"	var dir = (target_pos - start_pos).normalized()\n" + \
+				"	var perp = Vector2(-dir.y, dir.x)\n" + \
+				"	var freq = 4.0 * PI\n" + \
+				"	var amp = 35.0 * (1.0 - t)\n" + \
+				"	var offset = perp * sin(t * freq) * amp\n" + \
+				"	global_position = base_pos + offset\n"
+			inline_script.reload()
+			ret.set_script(inline_script)
+			ret.set("start_pos", global_position)
+			ret.set("owner_ref", _owner_node)
+			ret.set_process(true)
+
 	if type == "emp" and not _is_exploding:
 		_is_exploding = true
 		velocity = Vector2.ZERO
