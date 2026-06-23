@@ -80,6 +80,12 @@ let AMBIENCE_LIB = {
         icon: "❄️",
         desc: "Ralentiza a los jugadores y tiñe el mapa de blanco.",
         fields: ["spawnInterval", "duration", "slowPercentage", "slowFixed"]
+    },
+    "multiplicador": {
+        label: "Multiplicador",
+        icon: "🧬",
+        desc: "Multiplica la vida, escudo, velocidad y daño de los enemigos.",
+        fields: ["multiplier"]
     }
 };
 

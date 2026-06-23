@@ -1131,7 +1131,8 @@ function renderMechanicsLib() {
                     duration: "Duración Efecto (ms)",
                     pullForce: "Fuerza Atracción (px/s)",
                     damageInterval: "Intervalo Daño (ms)",
-                    radius: "Radio Acción/Visión (px)"
+                    radius: "Radio Acción/Visión (px)",
+                    multiplier: "Multiplicador General (x)"
                 };
                 return labels[fl] || fl;
             }).join(' • ')}</div>`;
@@ -1234,7 +1235,8 @@ function renderMapDetail() {
                                         damageMult: "Multiplicador de Daño (x)",
                                         speedMult: "Multiplicador de Velocidad (x)",
                                         healthMult: "Multiplicador de Vida (x)",
-                                        respawnSpeedBonus: "Bono de Respawn (ms)"
+                                        respawnSpeedBonus: "Bono de Respawn (ms)",
+                                        multiplier: "Multiplicador General (x)"
                                     };
                                     let val = a[f];
                                     if (val === undefined) {

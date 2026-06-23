@@ -796,6 +796,7 @@ function updateAmbienceType(mapId, idx, newType) {
         else if (f === 'slowFixed') newHazard[f] = 0;
         else if (f === 'damage') newHazard[f] = 10;
         else if (f === 'intervalMs') newHazard[f] = 500;
+        else if (f === 'multiplier') newHazard[f] = 2;
         else newHazard[f] = 0;
     });
 

@@ -310,6 +310,11 @@ func update_ui():
 					var h_mult = float(a.get("healthMult", 1.0))
 					var h_mult_str = str(h_mult) if h_mult != int(h_mult) else str(int(h_mult))
 					a_desc_lbl.text = "Zona de combate hiperactiva.\nLos enemigos tienen un multiplicador de HP/Escudo de x" + h_mult_str + "."
+				"multiplicador":
+					a_title_lbl.text = "MULTIPLICADOR"
+					var mult = float(a.get("multiplier", 1.0))
+					var mult_str = str(mult) if mult != int(mult) else str(int(mult))
+					a_desc_lbl.text = "Zona con distorsión de poder.\nEnemigos potencian vida, escudo, daño y velocidad por x" + mult_str + "."
 				_:
 					a_title_lbl.text = a_type.to_upper().replace("_", " ")
 					a_desc_lbl.text = "Parámetros: " + JSON.stringify(a)

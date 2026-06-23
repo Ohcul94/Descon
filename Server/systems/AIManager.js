@@ -41,7 +41,9 @@ class AIManager {
         }
         
         const extremeAggro = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
-        const hpMult = extremeAggro ? (parseFloat(extremeAggro.healthMult) || 1) : 1;
+        const multiplicadorMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'multiplicador') : null;
+        const multiplicadorMult = multiplicadorMech ? (parseFloat(multiplicadorMech.multiplier) || 1) : 1;
+        const hpMult = (extremeAggro ? (parseFloat(extremeAggro.healthMult) || 1) : 1) * multiplicadorMult;
 
         const isBoss = (typeof type === 'number' && type >= 101) || (cfg && cfg.isBoss);
         const id = 'enemy_' + (isBoss ? 'boss_' : '') + Date.now() + Math.floor(Math.random() * 1000);

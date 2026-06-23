@@ -2916,7 +2916,12 @@
             "minLevel": 1,
             "name": "Mapa 2",
             "warpCost": 0,
-            "ambience": [],
+            "ambience": [
+                {
+                    "type": "multiplicador",
+                    "multiplier": 2
+                }
+            ],
             "spawns": [
                 {
                     "type": "1-A",
@@ -5705,6 +5710,14 @@
                 "duration",
                 "slowPercentage",
                 "slowFixed"
+            ]
+        },
+        "multiplicador": {
+            "label": "Multiplicador",
+            "icon": "🧬",
+            "desc": "Multiplica la vida, escudo, velocidad y daño de los enemigos.",
+            "fields": [
+                "multiplier"
             ]
         }
     }

@@ -371,7 +371,9 @@ function registerCombatHandlers(socket, io, state) {
                 const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
                 const mapCfg = maps[p.zone] || maps[p.zone.toString()];
                 const extremeAggro = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'extreme_aggression') : null;
-                const damageMult = extremeAggro ? (parseFloat(extremeAggro.damageMult) || 1) : 1;
+                const multiplicadorMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'multiplicador') : null;
+                const multiplicadorMult = multiplicadorMech ? (parseFloat(multiplicadorMech.multiplier) || 1) : 1;
+                const damageMult = (extremeAggro ? (parseFloat(extremeAggro.damageMult) || 1) : 1) * multiplicadorMult;
                 
                 const authorizedMaxDmg = baseDmg * damageMult;
 
