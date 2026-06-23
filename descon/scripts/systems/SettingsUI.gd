@@ -231,6 +231,7 @@ func _setup_ui():
 		"slot_1": "SLOT 1 (LÁSER)", "slot_2": "SLOT 2 (MISIL)", "slot_3": "SLOT 3 (MINA)",
 		"slot_4": "SLOT 4 (HABILIDAD 1)", "slot_5": "SLOT 5 (HABILIDAD 2)", 
 		"slot_6": "SLOT 6 (HABILIDAD 3)", "slot_7": "SLOT 7 (HABILIDAD 4)",
+		"auto_target_self": "AUTO-LANZAR HABILIDADES",
 		"ui_menu": "MENÚ DE SISTEMA (ESC)", "ui_inventory": "INVENTARIO (F1)",
 		"ui_events": "MENÚ DE EVENTOS (F2)",
 		"ui_housing": "MENÚ DE HOUSING (F3)",

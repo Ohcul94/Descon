@@ -2916,12 +2916,7 @@
             "minLevel": 1,
             "name": "Mapa 2",
             "warpCost": 0,
-            "ambience": [
-                {
-                    "type": "multiplicador",
-                    "multiplier": 4
-                }
-            ],
+            "ambience": [],
             "spawns": [
                 {
                     "type": "1-A",
@@ -5549,7 +5544,7 @@
     "craftingRecipes": [
         {
             "id": "recipe_new_g1slo",
-            "name": "Nueva Receta",
+            "name": "Arma",
             "desc": "Descripción de la nueva receta.",
             "resultItemId": "las1",
             "resultCategory": "weapons",
