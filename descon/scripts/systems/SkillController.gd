@@ -239,19 +239,40 @@ func _draw():
 			if aim_vec.length() < 0.1:
 				dir = Vector2.RIGHT
 			end_point = dir * range_val
-			var perp = Vector2(-dir.y, dir.x)
+			
 			var pts_izq = PackedVector2Array()
 			var pts_der = PackedVector2Array()
+			var pts_tras_izq = PackedVector2Array()
+			var pts_tras_der = PackedVector2Array()
+			
 			var steps = 12
 			for j in range(steps + 1):
 				var t = float(j) / steps
-				var x_pos = t * range_val
-				var y_offset = (1.0 - t) * (range_val * 0.7)
-				pts_izq.append(dir * x_pos - perp * y_offset)
-				pts_der.append(dir * x_pos + perp * y_offset)
-			draw_polyline(pts_izq, Color(1.0, 0.45, 0.0, 0.5), 4.0)
-			draw_polyline(pts_der, Color(1.0, 0.45, 0.0, 0.5), 4.0)
-			draw_circle(end_point, 10.0, Color(1.0, 0.3, 0.0, 0.7))
+				
+				# Delanteras
+				var theta_izq = -PI/2.0 + t * (PI/2.0)
+				var pt_izq = Vector2(cos(theta_izq), sin(theta_izq)) * range_val
+				pts_izq.append(pt_izq.rotated(dir.angle()))
+				
+				var theta_der = PI/2.0 - t * (PI/2.0)
+				var pt_der = Vector2(cos(theta_der), sin(theta_der)) * range_val
+				pts_der.append(pt_der.rotated(dir.angle()))
+				
+				# Traseras
+				var theta_tras_izq = -PI/2.0 - t * (PI/2.0)
+				var pt_tras_izq = Vector2(cos(theta_tras_izq), sin(theta_tras_izq)) * range_val
+				pts_tras_izq.append(pt_tras_izq.rotated(dir.angle()))
+				
+				var theta_tras_der = PI/2.0 + t * (PI/2.0)
+				var pt_tras_der = Vector2(cos(theta_tras_der), sin(theta_tras_der)) * range_val
+				pts_tras_der.append(pt_tras_der.rotated(dir.angle()))
+				
+			draw_polyline(pts_izq, Color(1.0, 0.45, 0.0, 0.55), 4.0)
+			draw_polyline(pts_der, Color(1.0, 0.45, 0.0, 0.55), 4.0)
+			draw_polyline(pts_tras_izq, Color(1.0, 0.45, 0.0, 0.35), 4.0)
+			draw_polyline(pts_tras_der, Color(1.0, 0.45, 0.0, 0.35), 4.0)
+			draw_circle(end_point, 10.0, Color(1.0, 0.3, 0.0, 0.75))
+			draw_circle(-end_point, 10.0, Color(1.0, 0.3, 0.0, 0.45))
 		elif s_name == "BARRERA DE VIENTO":
 			var width_val = 150.0
 			if GameConstants.SKILLS_DATA.has(s_name):

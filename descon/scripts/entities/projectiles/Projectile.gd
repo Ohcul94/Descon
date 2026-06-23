@@ -113,6 +113,20 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		shape_der.shape = circle_der
 		shape_der.name = "ColSierDere"
 		add_child(shape_der)
+		
+		var shape_tras_izq = CollisionShape2D.new()
+		var circle_tras_izq = CircleShape2D.new()
+		circle_tras_izq.radius = 18.0
+		shape_tras_izq.shape = circle_tras_izq
+		shape_tras_izq.name = "ColSierTrasIzqu"
+		add_child(shape_tras_izq)
+		
+		var shape_tras_der = CollisionShape2D.new()
+		var circle_tras_der = CircleShape2D.new()
+		circle_tras_der.radius = 18.0
+		shape_tras_der.shape = circle_tras_der
+		shape_tras_der.name = "ColSierTrasDere"
+		add_child(shape_tras_der)
 	else:
 		var shape = CollisionShape2D.new()
 		if type == "mega_laser":
@@ -270,6 +284,16 @@ func _setup_visual_sprite():
 		parts_der.name = "CuchillaDer"
 		add_child(parts_der)
 		parts_der.emitting = true
+		
+		var parts_tras_izq = parts_izq.duplicate()
+		parts_tras_izq.name = "CuchillaTrasIzq"
+		add_child(parts_tras_izq)
+		parts_tras_izq.emitting = true
+		
+		var parts_tras_der = parts_izq.duplicate()
+		parts_tras_der.name = "CuchillaTrasDer"
+		add_child(parts_tras_der)
+		parts_tras_der.emitting = true
 		return
 		
 	# Efecto de partículas de estela verde brillante para Heal Drones
@@ -404,31 +428,38 @@ func _draw():
 			var spin_angle = (Time.get_ticks_msec() / 1000.0) * 16.0 # Velocidad de giro rápida
 			var num_dientes = 10
 			
-			# Sierra 1 (Izquierda) - Trayectoria circular
+			# Delanteras
 			var theta_izq = -PI/2.0 + t * (PI/2.0)
 			var pos_izq = Vector2(cos(theta_izq) * rango_local, sin(theta_izq) * rango_local)
-			draw_circle(pos_izq, r_sierra, color_relleno)
-			draw_circle(pos_izq, r_sierra - 3.0, Color(color_sierra.r, color_sierra.g, color_sierra.b, 0.6 * alpha))
-			draw_circle(pos_izq, 4.0, color_nucleo)
-			for i in range(num_dientes):
-				var ang = spin_angle + (float(i) / num_dientes) * TAU
-				var p1 = pos_izq + Vector2(cos(ang), sin(ang)) * (r_sierra - 3.0)
-				var p2 = pos_izq + Vector2(cos(ang + 0.25), sin(ang + 0.25)) * (r_sierra + 6.0)
-				draw_line(p1, p2, color_sierra, 3.0)
-				draw_line(p1, p2, color_nucleo, 1.2)
-				
-			# Sierra 2 (Derecha) - Trayectoria circular
+			
 			var theta_der = PI/2.0 - t * (PI/2.0)
 			var pos_der = Vector2(cos(theta_der) * rango_local, sin(theta_der) * rango_local)
-			draw_circle(pos_der, r_sierra, color_relleno)
-			draw_circle(pos_der, r_sierra - 3.0, Color(color_sierra.r, color_sierra.g, color_sierra.b, 0.6 * alpha))
-			draw_circle(pos_der, 4.0, color_nucleo)
-			for i in range(num_dientes):
-				var ang = -spin_angle + (float(i) / num_dientes) * TAU
-				var p1 = pos_der + Vector2(cos(ang), sin(ang)) * (r_sierra - 3.0)
-				var p2 = pos_der + Vector2(cos(ang - 0.25), sin(ang - 0.25)) * (r_sierra + 6.0)
-				draw_line(p1, p2, color_sierra, 3.0)
-				draw_line(p1, p2, color_nucleo, 1.2)
+			
+			# Traseras (Trayectoria inversa)
+			var theta_tras_izq = -PI/2.0 - t * (PI/2.0)
+			var pos_tras_izq = Vector2(cos(theta_tras_izq) * rango_local, sin(theta_tras_izq) * rango_local)
+			
+			var theta_tras_der = PI/2.0 + t * (PI/2.0)
+			var pos_tras_der = Vector2(cos(theta_tras_der) * rango_local, sin(theta_tras_der) * rango_local)
+			
+			var list_pos = [pos_izq, pos_der, pos_tras_izq, pos_tras_der]
+			
+			# Dibujar las 4 sierras
+			for idx in range(4):
+				var pos = list_pos[idx]
+				draw_circle(pos, r_sierra, color_relleno)
+				draw_circle(pos, r_sierra - 3.0, Color(color_sierra.r, color_sierra.g, color_sierra.b, 0.6 * alpha))
+				draw_circle(pos, 4.0, color_nucleo)
+				
+				# Alternar sentido de giro entre sierras consecutivas
+				var angle_dir = spin_angle if idx % 2 == 0 else -spin_angle
+				
+				for i in range(num_dientes):
+					var ang = angle_dir + (float(i) / num_dientes) * TAU
+					var p1 = pos + Vector2(cos(ang), sin(ang)) * (r_sierra - 3.0)
+					var p2 = pos + Vector2(cos(ang + 0.25), sin(ang + 0.25)) * (r_sierra + 6.0)
+					draw_line(p1, p2, color_sierra, 3.0)
+					draw_line(p1, p2, color_nucleo, 1.2)
 		"heal":
 			# Dibujamos un mini-dron de soporte curativo (Heal Drones)
 			var pulse = sin(Time.get_ticks_msec() * 0.01) * 2.0
@@ -512,27 +543,49 @@ func _physics_process(delta):
 		t = clamp(t, 0.0, 1.0)
 		var rango_local = max_range if max_range > 0.0 else 150.0
 		
+		# Delanteras
 		var theta_izq = -PI/2.0 + t * (PI/2.0)
 		var pos_izq = Vector2(cos(theta_izq) * rango_local, sin(theta_izq) * rango_local)
 		
 		var theta_der = PI/2.0 - t * (PI/2.0)
 		var pos_der = Vector2(cos(theta_der) * rango_local, sin(theta_der) * rango_local)
 		
+		# Traseras (Trayectoria inversa)
+		var theta_tras_izq = -PI/2.0 - t * (PI/2.0)
+		var pos_tras_izq = Vector2(cos(theta_tras_izq) * rango_local, sin(theta_tras_izq) * rango_local)
+		
+		var theta_tras_der = PI/2.0 + t * (PI/2.0)
+		var pos_tras_der = Vector2(cos(theta_tras_der) * rango_local, sin(theta_tras_der) * rango_local)
+		
+		# Sincronización de visuales (partículas)
 		var node_izq = get_node_or_null("CuchillaIzq")
 		var node_der = get_node_or_null("CuchillaDer")
-		if is_instance_valid(node_izq) and is_instance_valid(node_der):
+		var node_tras_izq = get_node_or_null("CuchillaTrasIzq")
+		var node_tras_der = get_node_or_null("CuchillaTrasDer")
+		
+		if is_instance_valid(node_izq) and is_instance_valid(node_der) and is_instance_valid(node_tras_izq) and is_instance_valid(node_tras_der):
 			node_izq.position = pos_izq
 			node_der.position = pos_der
+			node_tras_izq.position = pos_tras_izq
+			node_tras_der.position = pos_tras_der
 			
 			if _current_lifetime > 0.35:
 				node_izq.emitting = false
 				node_der.emitting = false
+				node_tras_izq.emitting = false
+				node_tras_der.emitting = false
 				
+		# Sincronización de colisiones físicas locales
 		var col_izq = get_node_or_null("ColSierIzqu")
 		var col_der = get_node_or_null("ColSierDere")
-		if is_instance_valid(col_izq) and is_instance_valid(col_der):
+		var col_tras_izq = get_node_or_null("ColSierTrasIzqu")
+		var col_tras_der = get_node_or_null("ColSierTrasDere")
+		
+		if is_instance_valid(col_izq) and is_instance_valid(col_der) and is_instance_valid(col_tras_izq) and is_instance_valid(col_tras_der):
 			col_izq.position = pos_izq
 			col_der.position = pos_der
+			col_tras_izq.position = pos_tras_izq
+			col_tras_der.position = pos_tras_der
 			
 		queue_redraw()
 		
