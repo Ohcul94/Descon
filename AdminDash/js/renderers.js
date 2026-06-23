@@ -1075,51 +1075,20 @@ function renderEnemyDetail() {
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2rem; margin-bottom:1rem;">
                     <label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">🎁 CONFIGURACIÓN DE BOTÍN (LOOT DROPS)</label>
-                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background: var(--accent); border-color: var(--accent); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);" onclick="addLootDrop('${selectedEnemyId}')">+ AGREGAR DROP</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="btn btn-primary" style="padding: 4px 10px; font-size: 0.65rem;" onclick="showLootTabForEnemy('${selectedEnemyId}')">🔍 Balancear en pantalla completa</button>
+                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background: var(--accent); border-color: var(--accent); box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);" onclick="addLootDropFromComponent('${selectedEnemyId}', 'loot-table-component-threats')">+ AGREGAR DROP</button>
+                    </div>
                 </div>
-                <div id="loot-drop-list-${selectedEnemyId}">
-                    ${(en.lootDrops || []).map((ld, idx) => {
-                        const allItems = [
-                            ...(config.shopItems?.weapons || []),
-                            ...(config.shopItems?.shields || []),
-                            ...(config.shopItems?.engines || []),
-                            ...(config.shopItems?.extra || []),
-                            ...(config.shopItems?.resources || []).map(r => ({ ...r, type: 'resource' })),
-                            ...(config.craftingRecipes || []).map(rc => ({ ...rc, type: 'recipe' }))
-                        ];
-                        
-                        return `
-                            <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); display: flex; gap: 10px; align-items: center; justify-content: space-between;">
-                                <div style="flex: 2; display: flex; flex-direction: column; gap: 5px;">
-                                    <label style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase;">ÍTEM DE RECOMPENSA</label>
-                                    <input type="text" placeholder="🔍 Buscar por nombre o ID..." style="background: #0f172a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 4px; padding: 4px 8px; font-size: 0.7rem; margin-bottom: 2px;" oninput="
-                                        const query = this.value.toLowerCase().trim();
-                                        const select = this.nextElementSibling;
-                                        for (let opt of select.options) {
-                                            if (opt.value === '') continue;
-                                            const text = opt.textContent.toLowerCase();
-                                            const val = opt.value.toLowerCase();
-                                            const isMatch = text.includes(query) || val.includes(query);
-                                            opt.style.display = isMatch ? '' : 'none';
-                                        }
-                                    ">
-                                    <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateLootDropItem('${selectedEnemyId}', ${idx}, this.value)">
-                                        <option value="">-- Seleccionar Item --</option>
-                                        ${allItems.map(it => `<option value="${it.id}" ${ld.itemId === it.id ? 'selected' : ''}>[${(it.type || 'MOD').toUpperCase()}] ${it.name} (${it.id})</option>`).join('')}
-                                    </select>
-                                </div>
-                                <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
-                                    <label style="font-size: 0.65rem; color: var(--text-dim);">PROBABILIDAD (%)</label>
-                                    <input type="number" min="0" max="100" step="1" value="${Math.round((ld.chance || 0.1) * 100)}" style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="updateLootDropChance('${selectedEnemyId}', ${idx}, this.value)">
-                                </div>
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size: 1.2rem; font-weight: bold; margin-top: 15px;" onclick="removeLootDrop('${selectedEnemyId}', ${idx})">✕</button>
-                            </div>
-                        `;
-                    }).join('')}
+                <div id="loot-table-component-threats" style="background: rgba(255,255,255,0.01); padding: 10px; border-radius: 8px;">
+                    <!-- Rendered dynamically by component -->
                 </div>
             </div>
         </div>
     `;
+    setTimeout(() => {
+        window.renderLootTableComponent(selectedEnemyId, 'loot-table-component-threats');
+    }, 50);
 }
 
 function renderMechanicsLib() {
@@ -3051,7 +3020,6 @@ function renderLootConfig() {
     let totalEnemiesWithDrops = 0;
 
     sortedIds.forEach(enemyId => {
-        if (enemyId.includes('-')) return;
         const en = config.enemyModels[enemyId];
         if (!en) return;
 
@@ -3112,31 +3080,114 @@ function updateLootSidebar() {
 
     if (!config || !config.enemyModels) return;
 
+    // Preservar el estado cerrado/abierto de las carpetas de botín
+    const closedFolders = new Set();
+    document.querySelectorAll('.folder-content').forEach(el => {
+        if (el.id && !el.classList.contains('show')) {
+            closedFolders.add(el.id);
+        }
+    });
+
     const sortedIds = Object.keys(config.enemyModels).sort((a, b) => parseInt(a) - parseInt(b));
+    const baseSelectedId = selectedLootEnemyId ? selectedLootEnemyId.split('-')[0] : '';
+    const tiers = [
+        { suffix: '', label: 'Base (x1)' },
+        { suffix: '-A', label: 'Tier A (x2)' },
+        { suffix: '-B', label: 'Tier B (x3)' },
+        { suffix: '-C', label: 'Tier C (x4)' },
+        { suffix: '-D', label: 'Tier D (x5)' }
+    ];
 
     sortedIds.forEach(id => {
-        if (id.includes('-')) return;
+        if (id.includes('-')) return; // Omitir variantes en la iteración principal del sidebar
+        
         const en = config.enemyModels[id];
         if (!en) return;
 
         const isBoss = parseInt(id) >= 100;
-        const dropCount = (en.lootDrops && en.lootDrops.length) || 0;
-        const isActive = selectedLootEnemyId === id;
 
-        const link = document.createElement('div');
-        link.className = 'nav-link sub ' + (isActive ? 'active' : '');
-        link.style.cursor = 'pointer';
-        link.style.display = 'flex';
-        link.style.justifyContent = 'space-between';
-        link.style.alignItems = 'center';
-        link.innerHTML = `
-            <span>${isBoss ? '💀' : '👾'} ${en.name || (isBoss ? 'Boss ' : 'Enemigo ') + id}</span>
-            <span style="font-size: 0.6rem; opacity: 0.5; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">${dropCount} drops</span>
-        `;
-        link.onclick = () => selectLootEnemy(id);
+        if (!isBoss) {
+            const isCurrentOpen = baseSelectedId === id && !closedFolders.has(`subfolder-loot-enemy-${id}`);
+            
+            // Contenedor del grupo de botín
+            const groupContainer = document.createElement('div');
+            groupContainer.className = 'enemy-group';
+            groupContainer.style.display = 'flex';
+            groupContainer.style.flexDirection = 'column';
 
-        if (isBoss) bossList.appendChild(link);
-        else enemyList.appendChild(link);
+            // Enlace del Enemigo Base (Carpeta)
+            const parentLink = document.createElement('div');
+            parentLink.className = 'nav-link sub ' + (isCurrentOpen ? 'active' : '');
+            parentLink.style.display = 'flex';
+            parentLink.style.justifyContent = 'space-between';
+            parentLink.style.alignItems = 'center';
+            parentLink.style.cursor = 'pointer';
+            
+            parentLink.innerHTML = `
+                <span>👾 ${en.name || 'Enemigo '+id}</span>
+                <span class="chevron" style="font-size: 0.65rem; transition: transform 0.2s;">${isCurrentOpen ? '▼' : '▶'}</span>
+            `;
+
+            parentLink.onclick = (e) => {
+                toggleFolder(`subfolder-loot-enemy-${id}`, e);
+                selectLootEnemy(id);
+            };
+            groupContainer.appendChild(parentLink);
+
+            // Sub-carpeta colapsable para variantes de botín
+            const subContainer = document.createElement('div');
+            subContainer.id = `subfolder-loot-enemy-${id}`;
+            subContainer.className = 'folder-content ' + (isCurrentOpen ? 'show' : '');
+            subContainer.style.paddingLeft = '1rem';
+            subContainer.style.borderLeft = '1px solid #333';
+            subContainer.style.marginLeft = '0.5rem';
+
+            tiers.forEach(t => {
+                const subId = `${id}${t.suffix}`;
+                const subEn = config.enemyModels[subId];
+                if (!subEn) return;
+                
+                const isSubActive = selectedLootEnemyId === subId;
+                const subDropCount = (subEn.lootDrops && subEn.lootDrops.length) || 0;
+
+                const subLink = document.createElement('div');
+                subLink.className = 'nav-link sub ' + (isSubActive ? 'active' : '');
+                subLink.style.display = 'flex';
+                subLink.style.justifyContent = 'space-between';
+                subLink.style.alignItems = 'center';
+                subLink.style.cursor = 'pointer';
+                subLink.innerHTML = `
+                    <span>👾 ${t.label}</span>
+                    <span style="font-size: 0.55rem; opacity: 0.5; background: rgba(255,255,255,0.05); padding: 1px 4px; border-radius: 3px;">${subDropCount} drops</span>
+                `;
+                
+                subLink.onclick = (e) => {
+                    e.stopPropagation();
+                    selectLootEnemy(subId);
+                };
+
+                subContainer.appendChild(subLink);
+            });
+
+            groupContainer.appendChild(subContainer);
+            enemyList.appendChild(groupContainer);
+        } else {
+            // Bosses
+            const dropCount = (en.lootDrops && en.lootDrops.length) || 0;
+            const isActive = selectedLootEnemyId === id;
+            const link = document.createElement('div');
+            link.className = 'nav-link sub ' + (isActive ? 'active' : '');
+            link.style.cursor = 'pointer';
+            link.style.display = 'flex';
+            link.style.justifyContent = 'space-between';
+            link.style.alignItems = 'center';
+            link.innerHTML = `
+                <span>💀 ${en.name || 'Boss '+id}</span>
+                <span style="font-size: 0.6rem; opacity: 0.5; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">${dropCount} drops</span>
+            `;
+            link.onclick = () => selectLootEnemy(id);
+            bossList.appendChild(link);
+        }
     });
 }
 
@@ -3157,15 +3208,6 @@ function renderEnemyLootDetail() {
     const isBoss = parseInt(enemyId) >= 100;
     const badgeColor = isBoss ? 'var(--accent)' : 'var(--success)';
     const badgeText = isBoss ? 'BOSS' : 'REGULAR';
-
-    const allItems = [
-        ...(config.shopItems?.weapons || []),
-        ...(config.shopItems?.shields || []),
-        ...(config.shopItems?.engines || []),
-        ...(config.shopItems?.extra || []),
-        ...(config.shopItems?.resources || []).map(r => ({ ...r, type: 'resource' })),
-        ...(config.craftingRecipes || []).map(rc => ({ ...rc, type: 'recipe' }))
-    ];
 
     const totalChance = en.lootDrops.reduce((sum, ld) => sum + (ld.chance || 0), 0);
     const avgDrops = totalChance.toFixed(2);
@@ -3192,56 +3234,15 @@ function renderEnemyLootDetail() {
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
                 <label style="color: var(--accent); font-size: 0.75rem; font-weight: bold;">🎁 TABLA DE RECOMPENSAS</label>
-                <button class="btn btn-primary" style="padding: 6px 16px; font-size: 0.75rem; background: var(--accent); border-color: var(--accent);" onclick="addLootDropFromEnemyLoot('${enemyId}')">+ AGREGAR RECOMPENSA</button>
+                <button class="btn btn-primary" style="padding: 6px 16px; font-size: 0.75rem; background: var(--accent); border-color: var(--accent);" onclick="addLootDropFromComponent('${enemyId}', 'enemy-loot-detail-container')">+ AGREGAR RECOMPENSA</button>
             </div>
 
             <div id="enemy-loot-drops-list" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
-                ${en.lootDrops.length === 0 ? `
-                    <div style="color: var(--text-dim); font-size: 0.85rem; padding: 2rem; text-align: center; background: rgba(255,255,255,0.01); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.08);">
-                        ⚠️ Este enemigo no tiene recompensas configuradas. Agregá ítems con el botón de arriba.
-                    </div>
-                ` : en.lootDrops.map((ld, idx) => {
-                    const selectedItem = allItems.find(it => it.id === ld.itemId);
-                    const chancePercent = Math.round((ld.chance || 0.1) * 100);
-                    const barColor = chancePercent >= 50 ? 'var(--success)' : (chancePercent >= 20 ? 'var(--primary)' : 'var(--accent)');
-                    return `
-                    <div style="background: rgba(255,255,255,0.02); padding: 1rem 1.2rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); display: grid; grid-template-columns: 2fr 1fr 80px auto; gap: 15px; align-items: center; transition: all 0.2s;" onmouseenter="this.style.borderColor='rgba(6,182,212,0.3)'; this.style.background='rgba(6,182,212,0.03)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.05)'; this.style.background='rgba(255,255,255,0.02)'">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">ÍTEM DE RECOMPENSA</label>
-                            <input type="text" placeholder="🔍 Buscar por nombre o ID..." style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 6px; padding: 6px 10px; font-size: 0.75rem; margin-bottom: 4px;" oninput="
-                                const query = this.value.toLowerCase().trim();
-                                const select = this.nextElementSibling;
-                                for (let opt of select.options) {
-                                    if (opt.value === '') continue;
-                                    const text = opt.textContent.toLowerCase();
-                                    const val = opt.value.toLowerCase();
-                                    const isMatch = text.includes(query) || val.includes(query);
-                                    opt.style.display = isMatch ? '' : 'none';
-                                }
-                            ">
-                            <select style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; font-weight: bold; cursor: pointer; width: 100%; border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;" onchange="updateLootDropItemFromEnemyLoot('${enemyId}', ${idx}, this.value)">
-                                <option value="">-- Seleccionar Item --</option>
-                                ${allItems.map(it => `<option value="${it.id}" ${ld.itemId === it.id ? 'selected' : ''}>[${(it.type || 'MOD').toUpperCase()}] ${it.name} (${it.id})</option>`).join('')}
-                            </select>
-                            ${selectedItem ? `<span style="font-size: 0.65rem; color: var(--text-dim);">Tipo: ${(selectedItem.type || 'módulo').toUpperCase()} | Rareza: ${selectedItem.rarity || 0}</span>` : ''}
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <label style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">PROBABILIDAD</label>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <input type="number" min="0" max="100" step="1" value="${chancePercent}" style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 6px; padding: 8px 10px; width: 80px; font-size: 0.9rem; font-weight: bold;" onchange="updateLootDropChanceFromEnemyLoot('${enemyId}', ${idx}, this.value); renderEnemyLootDetail()">
-                                <span style="font-size: 0.85rem; color: var(--text-dim);">%</span>
-                            </div>
-                            <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 4px;">
-                                <div style="height: 100%; width: ${chancePercent}%; background: ${barColor}; border-radius: 2px; transition: width 0.3s;"></div>
-                            </div>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                        </div>
-                    `;
-                }).join('')}
+                <!-- Rendered dynamically by component -->
             </div>
         </div>
     `;
+    window.renderLootTableComponent(enemyId, 'enemy-loot-drops-list');
 }
 
 // ==========================================
@@ -4681,6 +4682,124 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
         reader.readAsDataURL(file);
     };
     input.click();
+};
+
+window.showLootTabForEnemy = function(enemyId) {
+    window.selectedLootEnemyId = enemyId;
+    showTab('enemy-loot');
+};
+
+window.renderLootTableComponent = function(enemyId, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const en = config.enemyModels[enemyId];
+    if (!en) return;
+    if (!en.lootDrops) en.lootDrops = [];
+
+    const allItems = [
+        ...(config.shopItems?.weapons || []),
+        ...(config.shopItems?.shields || []),
+        ...(config.shopItems?.engines || []),
+        ...(config.shopItems?.extra || []),
+        ...(config.shopItems?.resources || []).map(r => ({ ...r, type: 'resource' })),
+        ...(config.craftingRecipes || []).map(rc => ({ ...rc, type: 'recipe' }))
+    ];
+
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+            ${en.lootDrops.length === 0 ? `
+                <div style="color: var(--text-dim); font-size: 0.8rem; padding: 1.5rem; text-align: center; background: rgba(255,255,255,0.01); border-radius: 6px; border: 1px dashed rgba(255,255,255,0.08);">
+                    ⚠️ No hay drops configurados para este enemigo. Agregá ítems con el botón.
+                </div>
+            ` : en.lootDrops.map((ld, idx) => {
+                const selectedItem = allItems.find(it => it.id === ld.itemId);
+                const chancePercent = Math.round((ld.chance || 0.1) * 100);
+                const barColor = chancePercent >= 50 ? 'var(--success)' : (chancePercent >= 20 ? 'var(--primary)' : 'var(--accent)');
+                return `
+                <div style="background: rgba(255,255,255,0.02); padding: 1rem 1.2rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); display: grid; grid-template-columns: 2fr 1fr 80px auto; gap: 15px; align-items: center; transition: all 0.2s;" onmouseenter="this.style.borderColor='rgba(6,182,212,0.3)'; this.style.background='rgba(6,182,212,0.03)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.05)'; this.style.background='rgba(255,255,255,0.02)'">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">ÍTEM DE RECOMPENSA</label>
+                        <input type="text" placeholder="🔍 Buscar por nombre o ID..." style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 6px; padding: 6px 10px; font-size: 0.75rem; margin-bottom: 4px;" oninput="
+                            const query = this.value.toLowerCase().trim();
+                            const select = this.nextElementSibling;
+                            for (let opt of select.options) {
+                                if (opt.value === '') continue;
+                                const text = opt.textContent.toLowerCase();
+                                const val = opt.value.toLowerCase();
+                                const isMatch = text.includes(query) || val.includes(query);
+                                opt.style.display = isMatch ? '' : 'none';
+                            }
+                        ">
+                        <select style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; font-weight: bold; cursor: pointer; width: 100%; border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;" onchange="updateLootDropItemFromComponent('${enemyId}', ${idx}, this.value, '${containerId}')">
+                            <option value="">-- Seleccionar Item --</option>
+                            ${allItems.map(it => `<option value="${it.id}" ${ld.itemId === it.id ? 'selected' : ''}>[${(it.type || 'MOD').toUpperCase()}] ${it.name} (${it.id})</option>`).join('')}
+                        </select>
+                        ${selectedItem ? `<span style="font-size: 0.65rem; color: var(--text-dim);">Tipo: ${(selectedItem.type || 'módulo').toUpperCase()} | Rareza: ${selectedItem.rarity || 0}</span>` : ''}
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">PROBABILIDAD</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" min="0" max="100" step="1" value="${chancePercent}" style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 6px; padding: 8px 10px; width: 80px; font-size: 0.9rem; font-weight: bold;" onchange="updateLootDropChanceFromComponent('${enemyId}', ${idx}, this.value, '${containerId}')">
+                            <span style="font-size: 0.85rem; color: var(--text-dim);">%</span>
+                        </div>
+                        <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: 4px;">
+                            <div style="height: 100%; width: ${chancePercent}%; background: ${barColor}; border-radius: 2px; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                        <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size: 1.2rem; font-weight: bold; margin-top: 15px;" onclick="removeLootDropFromComponent('${enemyId}', ${idx}, '${containerId}')">✕</button>
+                    </div>
+                </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+};
+
+window.addLootDropFromComponent = function(enemyId, containerId) {
+    const en = config.enemyModels[enemyId];
+    if (!en) return;
+    if (!en.lootDrops) en.lootDrops = [];
+    en.lootDrops.push({ itemId: '', chance: 0.1 });
+    if (containerId === 'enemy-loot-detail-container') {
+        renderEnemyLootDetail();
+    } else {
+        renderEnemyDetail();
+    }
+};
+
+window.updateLootDropItemFromComponent = function(enemyId, idx, value, containerId) {
+    const en = config.enemyModels[enemyId];
+    if (!en || !en.lootDrops[idx]) return;
+    en.lootDrops[idx].itemId = value;
+    if (containerId === 'enemy-loot-detail-container') {
+        renderEnemyLootDetail();
+    } else {
+        renderEnemyDetail();
+    }
+};
+
+window.updateLootDropChanceFromComponent = function(enemyId, idx, value, containerId) {
+    const en = config.enemyModels[enemyId];
+    if (!en || !en.lootDrops[idx]) return;
+    en.lootDrops[idx].chance = (parseFloat(value) || 0) / 100;
+    if (containerId === 'enemy-loot-detail-container') {
+        renderEnemyLootDetail();
+    } else {
+        renderEnemyDetail();
+    }
+};
+
+window.removeLootDropFromComponent = function(enemyId, idx, containerId) {
+    const en = config.enemyModels[enemyId];
+    if (!en || !en.lootDrops) return;
+    en.lootDrops.splice(idx, 1);
+    if (containerId === 'enemy-loot-detail-container') {
+        renderEnemyLootDetail();
+    } else {
+        renderEnemyDetail();
+    }
 };
 
 

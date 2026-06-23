@@ -921,8 +921,12 @@
             "leashRange": 1500,
             "lootDrops": [
                 {
-                    "itemId": "las1",
+                    "itemId": "mat_map1",
                     "chance": 1
+                },
+                {
+                    "itemId": "",
+                    "chance": 0.1
                 }
             ],
             "chestDropChance": 0.01
@@ -975,7 +979,8 @@
             "stopOnOutOfSight": true,
             "chaseUntilDeath": false,
             "aggressive": true,
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "lootDrops": []
         },
         "1-C": {
             "bulletDamage": 160,
@@ -4107,7 +4112,7 @@
                     "hubs": 100,
                     "ohcu": 0
                 },
-                "icon": "res://assets/Crafteo/Mapa1.png",
+                "icon": "res://assets/Crafteo/Mapas/Mapa1/Mapa1.png",
                 "color": "#ddd9d9",
                 "type": "resource"
             }
