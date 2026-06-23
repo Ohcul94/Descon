@@ -929,7 +929,7 @@
                     "chance": 0.1
                 }
             ],
-            "chestDropChance": 0.01
+            "chestDropChance": 1
         },
         "1-B": {
             "bulletDamage": 120,
@@ -4113,7 +4113,7 @@
                     "ohcu": 0
                 },
                 "icon": "res://assets/Crafteo/Mapas/Mapa1/Mapa1.png",
-                "color": "#ddd9d9",
+                "color": "#cbcbcc",
                 "type": "resource"
             }
         ]

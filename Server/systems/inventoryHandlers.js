@@ -32,6 +32,80 @@ function getCategorizedInventory(inventory) {
     return categories;
 }
 
+function getMasterItemConfig(itemId, serverConfig) {
+    const id = (itemId || "").toLowerCase();
+    if (id.startsWith('mat_')) {
+        return (serverConfig.shopItems?.resources || []).find(r => r.id === itemId);
+    }
+    if (id.startsWith('recipe_')) {
+        return (serverConfig.craftingRecipes || []).find(r => r.id === itemId);
+    }
+    const allShopItems = [
+        ...(serverConfig.shopItems?.weapons || []),
+        ...(serverConfig.shopItems?.shields || []),
+        ...(serverConfig.shopItems?.engines || []),
+        ...(serverConfig.shopItems?.extra || []),
+        ...(serverConfig.shopItems?.resources || [])
+    ];
+    let found = allShopItems.find(item => item.id === itemId);
+    if (found) return found;
+    
+    return (serverConfig.craftingRecipes || []).find(r => r.id === itemId);
+}
+
+function addItemToInventory(user, itemData, serverConfig, quantity = 1) {
+    const master = getMasterItemConfig(itemData.id, serverConfig);
+    const maxStack = master ? parseInt(master.maxStack) || 1 : 1;
+    
+    if (maxStack > 1) {
+        let remainingToAdd = quantity;
+        for (let i = 0; i < user.gameData.inventory.length; i++) {
+            const currentItem = user.gameData.inventory[i];
+            if (currentItem.id === itemData.id) {
+                const currentAmount = parseInt(currentItem.amount) || 1;
+                if (currentAmount < maxStack) {
+                    const spaceInStack = maxStack - currentAmount;
+                    const toAdd = Math.min(spaceInStack, remainingToAdd);
+                    currentItem.amount = currentAmount + toAdd;
+                    remainingToAdd -= toAdd;
+                    if (remainingToAdd <= 0) break;
+                }
+            }
+        }
+        
+        while (remainingToAdd > 0) {
+            const maxSlots = user.gameData.inventoryMaxSlots || serverConfig.inventoryConfig?.defaultMaxSlots || 30;
+            if (user.gameData.inventory.length >= maxSlots) {
+                return remainingToAdd;
+            }
+            
+            const toAdd = Math.min(maxStack, remainingToAdd);
+            user.gameData.inventory.push({
+                ...JSON.parse(JSON.stringify(itemData)),
+                instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
+                amount: toAdd
+            });
+            remainingToAdd -= toAdd;
+        }
+        return 0;
+    } else {
+        let remainingToAdd = quantity;
+        while (remainingToAdd > 0) {
+            const maxSlots = user.gameData.inventoryMaxSlots || serverConfig.inventoryConfig?.defaultMaxSlots || 30;
+            if (user.gameData.inventory.length >= maxSlots) {
+                return remainingToAdd;
+            }
+            user.gameData.inventory.push({
+                ...JSON.parse(JSON.stringify(itemData)),
+                instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
+                amount: 1
+            });
+            remainingToAdd--;
+        }
+        return 0;
+    }
+}
+
 function getShipEquip(user, shipKey) {
     if (!user.gameData.equippedByShip) return { w: [], s: [], e: [], x: [] };
     let data = null;
@@ -191,7 +265,7 @@ function registerInventoryHandlers(socket, io, state) {
                 else if (id.startsWith('sh') || id.startsWith('s')) type = "shield";
                 else if (id.startsWith('en') || id.startsWith('e')) type = "engine";
 
-                user.gameData.inventory.push({
+                const newItem = {
                     id: itemConfig.id,
                     name: itemConfig.name,
                     type: type,
@@ -200,7 +274,14 @@ function registerInventoryHandlers(socket, io, state) {
                     rarity: itemConfig.rarity || 0,
                     color: itemConfig.color || "#ffffff",
                     icon: itemConfig.icon || ""
-                });
+                };
+
+                const remaining = addItemToInventory(user, newItem, state.SERVER_CONFIG, 1);
+                if (remaining > 0) {
+                    user.gameData[currency] += totalPrice;
+                    return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Desbloquea más slots.`, type: 'error' });
+                }
+                user.markModified('gameData.inventory');
                 console.log(`[SHOP-DEBUG] Item normal añadido al inventario: ${itemConfig.name}`);
             } else {
                 let ammoType = "mine";
@@ -299,6 +380,14 @@ function registerInventoryHandlers(socket, io, state) {
 
             const item = user.gameData.inventory[idx];
             const id = (item.id || "").toLowerCase();
+            const itemType = (item.type || "").toLowerCase();
+
+            const isResource = id.startsWith('mat_') || itemType === 'resource';
+            const isRecipe = id.startsWith('recipe_') || itemType === 'recipe';
+            if (isResource || isRecipe) {
+                sendInventoryData(socket, user);
+                return socket.emit('authError', 'LOS MATERIALES Y RECETAS NO PUEDEN EQUIPARSE');
+            }
 
             let slot = 'x';
             if (id.startsWith('las') || id.startsWith('w')) slot = 'w';
@@ -505,21 +594,15 @@ function registerInventoryHandlers(socket, io, state) {
             if (idx === -1) return;
 
             const item = user.gameData.inventory[idx];
+            const amount = parseInt(item.amount) || 1;
             
             let originalPrice = 0;
-            const allItems = [
-                ...(state.SERVER_CONFIG.shopItems.weapons || []),
-                ...(state.SERVER_CONFIG.shopItems.shields || []),
-                ...(state.SERVER_CONFIG.shopItems.engines || []),
-                ...(state.SERVER_CONFIG.shopItems.extra || [])
-            ];
-            
-            const configItem = allItems.find(i => i.id === item.id);
+            const configItem = getMasterItemConfig(item.id, state.SERVER_CONFIG);
             if (configItem && configItem.prices && configItem.prices.hubs) {
                 originalPrice = configItem.prices.hubs;
             }
 
-            const refund = Math.floor(originalPrice / 2);
+            const refund = Math.floor(originalPrice / 2) * amount;
             user.gameData.inventory.splice(idx, 1);
             user.gameData.hubs += refund;
 
@@ -649,7 +732,7 @@ function registerInventoryHandlers(socket, io, state) {
             const materialsCount = {};
             inventory.forEach(it => {
                 const id = it.id;
-                materialsCount[id] = (materialsCount[id] || 0) + 1;
+                materialsCount[id] = (materialsCount[id] || 0) + (parseInt(it.amount) || 1);
             });
 
             const ingredients = recipe.ingredients || [];
@@ -665,13 +748,58 @@ function registerInventoryHandlers(socket, io, state) {
             const isShip = resultCategory === 'ships' || resultCategory === 'ship';
             const isAmmo = resultCategory === 'ammo';
             
+            let craftedItemConfig = null;
             if (!isShip && !isAmmo) {
-                const maxSlots = user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
-                let totalIngredientsToConsume = 0;
-                ingredients.forEach(ing => totalIngredientsToConsume += ing.amount);
+                const allItems = [
+                    ...(state.SERVER_CONFIG.shopItems.weapons || []),
+                    ...(state.SERVER_CONFIG.shopItems.shields || []),
+                    ...(state.SERVER_CONFIG.shopItems.engines || []),
+                    ...(state.SERVER_CONFIG.shopItems.extra || []),
+                    ...(state.SERVER_CONFIG.shopItems.resources || [])
+                ];
+                craftedItemConfig = allItems.find(i => i.id === resultItemId);
+                if (!craftedItemConfig) {
+                    return socket.emit('gameNotification', { msg: 'ERROR: Ítem resultante no configurado en el servidor.', type: 'error' });
+                }
                 
-                const finalSizeAfterCraft = inventory.length - totalIngredientsToConsume + (recipe.resultAmount || 1);
-                if (finalSizeAfterCraft > maxSlots) {
+                let type = (craftedItemConfig.type || "utility").toLowerCase();
+                const id = craftedItemConfig.id.toLowerCase();
+                if (id.startsWith('las') || id.startsWith('w')) type = "weapon";
+                else if (id.startsWith('sh') || id.startsWith('s')) type = "shield";
+                else if (id.startsWith('en') || id.startsWith('e')) type = "engine";
+
+                const newItem = {
+                    id: craftedItemConfig.id,
+                    name: craftedItemConfig.name,
+                    type: type,
+                    base: craftedItemConfig.base || 0,
+                    instanceId: "",
+                    rarity: craftedItemConfig.rarity || 0,
+                    color: craftedItemConfig.color || "#ffffff",
+                    icon: craftedItemConfig.icon || ""
+                };
+
+                // Dry run check
+                const tempUser = { gameData: { inventory: JSON.parse(JSON.stringify(user.gameData.inventory)), inventoryMaxSlots: user.gameData.inventoryMaxSlots } };
+                ingredients.forEach(ing => {
+                    let toRemove = ing.amount;
+                    for (let i = tempUser.gameData.inventory.length - 1; i >= 0; i--) {
+                        if (tempUser.gameData.inventory[i].id === ing.itemId) {
+                            const currentAmount = parseInt(tempUser.gameData.inventory[i].amount) || 1;
+                            if (currentAmount <= toRemove) {
+                                tempUser.gameData.inventory.splice(i, 1);
+                                toRemove -= currentAmount;
+                            } else {
+                                tempUser.gameData.inventory[i].amount = currentAmount - toRemove;
+                                toRemove = 0;
+                            }
+                            if (toRemove === 0) break;
+                        }
+                    }
+                });
+
+                const remaining = addItemToInventory(tempUser, newItem, state.SERVER_CONFIG, recipe.resultAmount || 1);
+                if (remaining > 0) {
                     return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Libera espacio para recibir el ítem fabricado.`, type: 'error' });
                 }
             }
@@ -685,8 +813,14 @@ function registerInventoryHandlers(socket, io, state) {
                 let toRemove = ing.amount;
                 for (let i = user.gameData.inventory.length - 1; i >= 0; i--) {
                     if (user.gameData.inventory[i].id === ing.itemId) {
-                        user.gameData.inventory.splice(i, 1);
-                        toRemove--;
+                        const currentAmount = parseInt(user.gameData.inventory[i].amount) || 1;
+                        if (currentAmount <= toRemove) {
+                            user.gameData.inventory.splice(i, 1);
+                            toRemove -= currentAmount;
+                        } else {
+                            user.gameData.inventory[i].amount = currentAmount - toRemove;
+                            toRemove = 0;
+                        }
                         if (toRemove === 0) break;
                     }
                 }
@@ -743,37 +877,24 @@ function registerInventoryHandlers(socket, io, state) {
                 user.markModified(`gameData.ammo.${ammoType}`);
                 user.markModified('gameData.ammo');
             } else {
-                const allItems = [
-                    ...(state.SERVER_CONFIG.shopItems.weapons || []),
-                    ...(state.SERVER_CONFIG.shopItems.shields || []),
-                    ...(state.SERVER_CONFIG.shopItems.engines || []),
-                    ...(state.SERVER_CONFIG.shopItems.extra || []),
-                    ...(state.SERVER_CONFIG.shopItems.resources || [])
-                ];
-
-                const itemConfig = allItems.find(i => i.id === resultItemId);
-                if (!itemConfig) {
-                    return socket.emit('gameNotification', { msg: 'ERROR: Ítem resultante no configurado en el servidor.', type: 'error' });
-                }
-
-                let type = (itemConfig.type || "utility").toLowerCase();
-                const id = itemConfig.id.toLowerCase();
+                let type = (craftedItemConfig.type || "utility").toLowerCase();
+                const id = craftedItemConfig.id.toLowerCase();
                 if (id.startsWith('las') || id.startsWith('w')) type = "weapon";
                 else if (id.startsWith('sh') || id.startsWith('s')) type = "shield";
                 else if (id.startsWith('en') || id.startsWith('e')) type = "engine";
 
-                for (let r = 0; r < resultAmount; r++) {
-                    user.gameData.inventory.push({
-                        id: itemConfig.id,
-                        name: itemConfig.name,
-                        type: type,
-                        base: itemConfig.base || 0,
-                        instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
-                        rarity: itemConfig.rarity || 0,
-                        color: itemConfig.color || "#ffffff",
-                        icon: itemConfig.icon || ""
-                    });
-                }
+                const newItem = {
+                    id: craftedItemConfig.id,
+                    name: craftedItemConfig.name,
+                    type: type,
+                    base: craftedItemConfig.base || 0,
+                    instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
+                    rarity: craftedItemConfig.rarity || 0,
+                    color: craftedItemConfig.color || "#ffffff",
+                    icon: craftedItemConfig.icon || ""
+                };
+
+                addItemToInventory(user, newItem, state.SERVER_CONFIG, resultAmount);
             }
 
             user.markModified('gameData.inventory');
@@ -799,4 +920,4 @@ function registerInventoryHandlers(socket, io, state) {
     });
 }
 
-module.exports = { registerInventoryHandlers, getCategorizedInventory, checkCombatLock };
+module.exports = { registerInventoryHandlers, getCategorizedInventory, checkCombatLock, getMasterItemConfig, addItemToInventory };

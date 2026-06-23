@@ -338,6 +338,9 @@ func _create_item_row(it, parent):
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	var item_id = str(it.get("id", "")).to_lower()
+	var item_type = str(it.get("type", "")).to_lower()
+	var is_material_or_recipe = (item_type == "resource" or item_type == "recipe" or item_id.begins_with("mat_") or item_id.begins_with("recipe_"))
+	
 	var item_slot = inv_main._get_slot_from_id(item_id)
 	var slot_color = Color.CYAN
 	if item_slot == "w": slot_color = Color.RED
@@ -345,7 +348,11 @@ func _create_item_row(it, parent):
 	elif item_slot == "e": slot_color = Color.YELLOW
 	elif item_slot == "x": slot_color = Color.MEDIUM_PURPLE
 	
-	var n = Label.new(); n.text = str(it.get("name", "ITEM")).to_upper(); n.add_theme_font_size_override("font_size", 10); n.modulate = slot_color; v.add_child(n); n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var amount = int(it.get("amount", 1))
+	var name_text = str(it.get("name", "ITEM")).to_upper()
+	if amount > 1:
+		name_text += " (x" + str(amount) + ")"
+	var n = Label.new(); n.text = name_text; n.add_theme_font_size_override("font_size", 10); n.modulate = slot_color; v.add_child(n); n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var base_val = int(it.get("base", 0))
 	var stat_text = ""
 	if item_slot == "w": stat_text = "DAÑO: " + str(base_val)
@@ -423,40 +430,43 @@ func _create_item_row(it, parent):
 					if str(shop_item.get("id", "")).to_lower() == search_id:
 						var prices = shop_item.get("prices", {})
 						if prices.has("hubs"):
-							refund = int(prices["hubs"] / 2)
+							refund = int(prices["hubs"] / 2) * amount
 							break
 			if refund > 0: break
 		
-		var msg = "¿Confirmas la venta de [color=yellow]" + str(it.get("name", "ITEM")).to_upper() + "[/color] por [color=green]" + str(refund) + " HUBS[/color]?"
+		var msg_name = str(it.get("name", "ITEM")).to_upper()
+		if amount > 1:
+			msg_name += " (x" + str(amount) + ")"
+		var msg = "¿Confirmas la venta de [color=yellow]" + msg_name + "[/color] por [color=green]" + str(refund) + " HUBS[/color]?"
 		inv_main._show_modal("CONFIRMAR VENTA", msg, func():
 			NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", "")})
 		)
 	)
 	action_hb.add_child(b_sell)
 
-	var b_equip = Button.new(); b_equip.text = "EQUIPAR"; b_equip.add_theme_font_size_override("font_size", 9); action_hb.add_child(b_equip)
-	var equip_func = func():
-		var viewing_id = inv_main.selected_hangar_ship_id if inv_main.selected_hangar_ship_id != -1 else inv_main.current_ship_id
-		# v308.3: Actualización optimista local — Respuesta visual inmediata sin esperar al servidor
-		var sid_str = str(viewing_id)
-		if not inv_main.equipped_by_ship.has(sid_str):
-			inv_main.equipped_by_ship[sid_str] = {"w": [], "s": [], "e": [], "x": []}
-		var slot = inv_main._get_slot_from_id(str(it.get("id", "")))
-		inv_main.equipped_by_ship[sid_str][slot].append(it.duplicate(true))
-		var iid = it.get("instanceId", "")
-		inv_main.inventory_items = inv_main.inventory_items.filter(func(x): return x.get("instanceId", "") != iid)
-		inv_main.inv_main_preserve_ship_id = viewing_id  # Preservar para que _on_inventory_received no cambie la vista
-		call_deferred("update_ui")  # v308.4: Diferido para no destruir el nodo durante su propio evento de botón
-		NetworkManager.send_event("equipItem", {"instanceId": iid, "shipId": viewing_id})
-	
-	b_equip.pressed.connect(equip_func)
-	
-	# Doble Click en toda la fila para equipar
-	p.gui_input.connect(func(ev):
-		if ev is InputEventMouseButton and ev.pressed and ev.double_click:
-			equip_func.call()
-	)
-	
+	if not is_material_or_recipe:
+		var b_equip = Button.new(); b_equip.text = "EQUIPAR"; b_equip.add_theme_font_size_override("font_size", 9); action_hb.add_child(b_equip)
+		var equip_func = func():
+			var viewing_id = inv_main.selected_hangar_ship_id if inv_main.selected_hangar_ship_id != -1 else inv_main.current_ship_id
+			# v308.3: Actualización optimista local — Respuesta visual inmediata sin esperar al servidor
+			var sid_str = str(viewing_id)
+			if not inv_main.equipped_by_ship.has(sid_str):
+				inv_main.equipped_by_ship[sid_str] = {"w": [], "s": [], "e": [], "x": []}
+			var slot = inv_main._get_slot_from_id(str(it.get("id", "")))
+			inv_main.equipped_by_ship[sid_str][slot].append(it.duplicate(true))
+			var iid = it.get("instanceId", "")
+			inv_main.inventory_items = inv_main.inventory_items.filter(func(x): return x.get("instanceId", "") != iid)
+			inv_main.inv_main_preserve_ship_id = viewing_id  # Preservar para que _on_inventory_received no cambie la vista
+			call_deferred("update_ui")  # v308.4: Diferido para no destruir el nodo durante su propio evento de botón
+			NetworkManager.send_event("equipItem", {"instanceId": iid, "shipId": viewing_id})
+		
+		b_equip.pressed.connect(equip_func)
+		
+		# Doble Click en toda la fila para equipar
+		p.gui_input.connect(func(ev):
+			if ev is InputEventMouseButton and ev.pressed and ev.double_click:
+				equip_func.call()
+		)
 	parent.add_child(p)
 
 func _get_fallback_icon(id: String) -> String:

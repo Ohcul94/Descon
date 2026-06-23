@@ -207,24 +207,29 @@ function registerLootHandlers(socket, io, state) {
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
  
-            const maxSlots = user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
-            const availableSlots = maxSlots - user.gameData.inventory.length;
- 
-            if (availableSlots <= 0) {
-                return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Desbloquea más de ${maxSlots} slots para recoger ítems.`, type: 'error' });
-            }
- 
             let claimedCount = 0;
-            const itemsToClaim = [];
- 
-            // Extraer los ítems que quepan
-            while (drop.items.length > 0 && claimedCount < availableSlots) {
-                itemsToClaim.push(drop.items.shift());
-                claimedCount++;
+            const { addItemToInventory } = require('./inventoryHandlers');
+
+            while (drop.items.length > 0) {
+                const item = drop.items[0];
+                const amount = parseInt(item.amount) || 1;
+                const remaining = addItemToInventory(user, item, state.SERVER_CONFIG, amount);
+                if (remaining === 0) {
+                    drop.items.shift();
+                    claimedCount += amount;
+                } else if (remaining < amount) {
+                    item.amount = remaining;
+                    claimedCount += (amount - remaining);
+                    break;
+                } else {
+                    break;
+                }
             }
- 
-            // Mover ítems al inventario
-            user.gameData.inventory.push(...itemsToClaim);
+
+            if (claimedCount === 0) {
+                return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Desbloquea más slots.`, type: 'error' });
+            }
+
             user.markModified('gameData.inventory');
             user.markModified('gameData');
             await user.save();
@@ -285,15 +290,35 @@ function registerLootHandlers(socket, io, state) {
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
  
-            // Validar espacio de inventario
-            const maxSlots = user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
-            if (user.gameData.inventory.length >= maxSlots) {
-                return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Desbloquea más de ${maxSlots} slots para recoger este ítem.`, type: 'error' });
+            // Validar espacio de inventario e intentar añadir el ítem
+            const { addItemToInventory } = require('./inventoryHandlers');
+            const item = drop.items[itemIndex];
+            const amount = parseInt(item.amount) || 1;
+            const remaining = addItemToInventory(user, item, state.SERVER_CONFIG, amount);
+            
+            if (remaining > 0) {
+                if (remaining < amount) {
+                    item.amount = remaining;
+                    user.markModified('gameData.inventory');
+                    user.markModified('gameData');
+                    await user.save();
+                    socket.dbUser = user;
+                    p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+                    
+                    const eByShipObj = {};
+                    if (user.gameData.equippedByShip instanceof Map) user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+                    else Object.assign(eByShipObj, user.gameData.equippedByShip);
+                    socket.emit('inventoryData', {
+                        player: { ...JSON.parse(JSON.stringify(user.gameData)), equippedByShip: eByShipObj, inventoryByCategory: getCategorizedInventory(user.gameData.inventory) }
+                    });
+                    socket.emit('lootContent', { lootId, items: drop.items });
+                    return socket.emit('gameNotification', { msg: `Recogido parcialmente. Inventario lleno.`, type: 'warning' });
+                }
+                return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Desbloquea más slots para recoger este ítem.`, type: 'error' });
             }
- 
-            // Extraer ítem del drop y añadirlo al inventario
-            const item = drop.items.splice(itemIndex, 1)[0];
-            user.gameData.inventory.push(item);
+
+            // Extraer ítem del drop por completo
+            drop.items.splice(itemIndex, 1);
             user.markModified('gameData.inventory');
             user.markModified('gameData');
             await user.save();

@@ -3323,6 +3323,7 @@ window.renderCrafting = function() {
                         <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
                             <div class="field" style="width: 70px; margin:0; flex-shrink: 0;"><label>Escala</label><input type="number" step="0.1" min="0.1" value="${res.iconScale || 1.0}" style="width: 100%;" onchange="config.shopItems.resources[${idx}].iconScale = parseFloat(this.value) || 1.0;"></div>
                             <div class="field" style="width: 50px; margin:0; flex-shrink: 0;"><label>Color</label><input type="color" value="${res.color || '#ffffff'}" style="height:38px; width:100%; padding:0; border:none; background:none; cursor:pointer;" onchange="config.shopItems.resources[${idx}].color = this.value;"></div>
+                            <div class="field" style="width: 90px; margin:0; flex-shrink: 0;"><label>Límite Stack</label><input type="number" min="1" value="${res.maxStack || 1}" onchange="config.shopItems.resources[${idx}].maxStack = parseInt(this.value) || 1;"></div>
                             <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Hubs)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.hubs || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.hubs = parseInt(this.value) || 0;"></div>
                             <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Ohcu)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.ohcu || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.ohcu = parseInt(this.value) || 0;"></div>
                         </div>
@@ -3441,8 +3442,9 @@ window.renderCrafting = function() {
                             <div class="field"><label>Cantidad Fabricada</label><input type="number" min="1" value="${recipe.resultAmount || 1}" onchange="config.craftingRecipes[${idx}].resultAmount = parseInt(this.value)"></div>
                         </div>
 
-                        <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
+                         <div style="display: flex; gap: 15px; align-items: center; width: 100%;">
                             <div class="field" style="width: 70px; margin:0; flex-shrink: 0;"><label>Escala</label><input type="number" step="0.1" min="0.1" value="${recipe.iconScale || 1.0}" style="width:100%;" onchange="config.craftingRecipes[${idx}].iconScale = parseFloat(this.value) || 1.0;"></div>
+                            <div class="field" style="width: 90px; margin:0; flex-shrink: 0;"><label>Límite Stack</label><input type="number" min="1" value="${recipe.maxStack || 1}" onchange="config.craftingRecipes[${idx}].maxStack = parseInt(this.value) || 1;"></div>
                             <div class="field" style="flex-grow:1; margin:0;"><label>Costo de Hubs (qty)</label><input type="number" value="${recipe.costHubs || 0}" onchange="config.craftingRecipes[${idx}].costHubs = parseInt(this.value)"></div>
                             <div class="field" style="flex-grow:1; margin:0;"><label>Costo de Ohcu (qty)</label><input type="number" value="${recipe.costOhcu || 0}" onchange="config.craftingRecipes[${idx}].costOhcu = parseInt(this.value)"></div>
                         </div>

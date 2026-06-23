@@ -313,24 +313,22 @@ function registerQuestHandlers(socket, io, state) {
                     ...(state.SERVER_CONFIG.shopItems.resources || [])
                 ];
 
+                const { addItemToInventory } = require('./inventoryHandlers');
                 reward.items.forEach(rewItem => {
                     const master = allShopItems.find(i => String(i.id) === String(rewItem.id));
                     const qty = parseInt(rewItem.qty) || 1;
                     
-                    for (let k = 0; k < qty; k++) {
-                        const instanceId = Date.now() + Math.random().toString(36).substr(2, 5);
-                        const newItem = {
-                            id: rewItem.id,
-                            instanceId: instanceId,
-                            name: master ? master.name : `Ítem ${rewItem.id}`,
-                            type: master ? (master.type || "utility").toLowerCase() : "utility",
-                            base: master ? (master.base || 0) : 0,
-                            color: master ? master.color : "#ffffff",
-                            rarity: master ? (master.rarity || 0) : 0,
-                            icon: master ? master.icon : ""
-                        };
-                        user.gameData.inventory.push(newItem);
-                    }
+                    const newItem = {
+                        id: rewItem.id,
+                        instanceId: "",
+                        name: master ? master.name : `Ítem ${rewItem.id}`,
+                        type: master ? (master.type || "utility").toLowerCase() : "utility",
+                        base: master ? (master.base || 0) : 0,
+                        color: master ? master.color : "#ffffff",
+                        rarity: master ? (master.rarity || 0) : 0,
+                        icon: master ? master.icon : ""
+                    };
+                    addItemToInventory(user, newItem, state.SERVER_CONFIG, qty);
                 });
                 user.markModified('gameData.inventory');
                 p.inventory = user.gameData.inventory;
