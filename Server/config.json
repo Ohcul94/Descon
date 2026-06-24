@@ -5902,5 +5902,297 @@
                 "multiplier"
             ]
         }
+    },
+    "talentsConfig": {
+        "talents": [
+            {
+                "id": "eng_1",
+                "name": "REFUERZO DE CASCO",
+                "desc": "+2% HP por nivel",
+                "category": "engineering",
+                "maxLevel": 5,
+                "effects": {
+                    "hp_pct": 0.02
+                },
+                "icon": "🛡️"
+            },
+            {
+                "id": "eng_2",
+                "name": "ESCUDO DINÁMICO",
+                "desc": "+2% Escudo por nivel",
+                "category": "engineering",
+                "maxLevel": 5,
+                "effects": {
+                    "sh_pct": 0.02
+                },
+                "icon": "🔵"
+            },
+            {
+                "id": "eng_3",
+                "name": "REGEN EMERGENGIA",
+                "desc": "+5% HP Reparación",
+                "category": "engineering",
+                "maxLevel": 5,
+                "effects": {
+                    "hp_regen": 0.05
+                },
+                "icon": "🔧"
+            },
+            {
+                "id": "eng_4",
+                "name": "CAPACITOR OHCU",
+                "desc": "+5% Shield Regen",
+                "category": "engineering",
+                "maxLevel": 5,
+                "effects": {
+                    "shield_regen": 0.05
+                },
+                "icon": "🔋"
+            },
+            {
+                "id": "eng_5",
+                "name": "PLACAS NANOBOTS",
+                "desc": "+1% Armadura total",
+                "category": "engineering",
+                "maxLevel": 5,
+                "effects": {
+                    "armor_pct": 0.01
+                },
+                "icon": "⚙️"
+            },
+            {
+                "id": "eng_6",
+                "name": "REACTOR FUSIÓN",
+                "desc": "+3% Eficiencia Energía",
+                "category": "engineering",
+                "maxLevel": 5,
+                "effects": {
+                    "energy_efficiency": 0.03
+                },
+                "icon": "⚛️"
+            },
+            {
+                "id": "eng_7",
+                "name": "MANTE GALÁCTICO",
+                "desc": "-5% Costo Reparación",
+                "category": "engineering",
+                "maxLevel": 5,
+                "effects": {
+                    "repair_cost_reduction": 0.05
+                },
+                "icon": "💸"
+            },
+            {
+                "id": "eng_8",
+                "name": "ESTABL FLOTANTE",
+                "desc": "+1% Estabilidad (Vel)",
+                "category": "engineering",
+                "maxLevel": 5,
+                "effects": {
+                    "stability": 0.01
+                },
+                "icon": "🛸"
+            },
+            {
+                "id": "com_1",
+                "name": "LÁSER SOBRECARGA",
+                "desc": "+3% Daño Láser",
+                "category": "combat",
+                "maxLevel": 5,
+                "effects": {
+                    "laser_dmg_pct": 0.03
+                },
+                "icon": "🔫"
+            },
+            {
+                "id": "com_2",
+                "name": "MIRILLA TÁCTICA",
+                "desc": "+2% Prob. Crítico",
+                "category": "combat",
+                "maxLevel": 5,
+                "effects": {
+                    "crit_chance": 0.02
+                },
+                "icon": "🎯"
+            },
+            {
+                "id": "com_3",
+                "name": "FURIA DEL PILOTO",
+                "desc": "+5% Daño Crítico",
+                "category": "combat",
+                "maxLevel": 5,
+                "effects": {
+                    "crit_dmg": 0.05
+                },
+                "icon": "🔥"
+            },
+            {
+                "id": "com_4",
+                "name": "CARGA PROYECTIL",
+                "desc": "+5% Bonus Munición",
+                "category": "combat",
+                "maxLevel": 5,
+                "effects": {
+                    "ammo_bonus_pct": 0.05
+                },
+                "icon": "💣"
+            },
+            {
+                "id": "com_5",
+                "name": "DISPARO PRECISIÓN",
+                "desc": "+2% Puntería",
+                "category": "combat",
+                "maxLevel": 5,
+                "effects": {
+                    "accuracy_pct": 0.02
+                },
+                "icon": "👁️"
+            },
+            {
+                "id": "com_6",
+                "name": "PERFORACIÓN TÉRM",
+                "desc": "+3% Ignorar Escudo",
+                "category": "combat",
+                "maxLevel": 5,
+                "effects": {
+                    "ignore_shield_pct": 0.03
+                },
+                "icon": "⚡"
+            },
+            {
+                "id": "com_7",
+                "name": "CADENCIA MILITAR",
+                "desc": "-2% CD de Disparo",
+                "category": "combat",
+                "maxLevel": 5,
+                "effects": {
+                    "fire_rate_pct": 0.02
+                },
+                "icon": "⚔️"
+            },
+            {
+                "id": "com_8",
+                "name": "BLINDAJE ATAQUE",
+                "desc": "+1% Evasión en Combate",
+                "category": "combat",
+                "maxLevel": 5,
+                "effects": {
+                    "evasion_pct": 0.01
+                },
+                "icon": "🛡️"
+            },
+            {
+                "id": "sci_1",
+                "name": "MOTORES FUSIÓN",
+                "desc": "+1.5% Velocidad Base",
+                "category": "science",
+                "maxLevel": 5,
+                "effects": {
+                    "speed_pct": 0.015
+                },
+                "icon": "🚀"
+            },
+            {
+                "id": "sci_2",
+                "name": "ESCÁNER TÁCTICO",
+                "desc": "+10% Rango Minimapa",
+                "category": "science",
+                "maxLevel": 5,
+                "effects": {
+                    "minimap_range": 0.1
+                },
+                "icon": "📡"
+            },
+            {
+                "id": "sci_3",
+                "name": "MINERÍA OHCU",
+                "desc": "+5% OHCU de Kills",
+                "category": "science",
+                "maxLevel": 5,
+                "effects": {
+                    "ohcu_kill_bonus": 0.05
+                },
+                "icon": "💎"
+            },
+            {
+                "id": "sci_4",
+                "name": "MERCADO GALÁXIA",
+                "desc": "-2% Descuento Tienda",
+                "category": "science",
+                "maxLevel": 5,
+                "effects": {
+                    "shop_discount": 0.02
+                },
+                "icon": "🏪"
+            },
+            {
+                "id": "sci_5",
+                "name": "ENFRIAMIENTO RÁP",
+                "desc": "-3% CD Habilidades",
+                "category": "science",
+                "maxLevel": 5,
+                "effects": {
+                    "cooldown_reduction": 0.03
+                },
+                "icon": "❄️"
+            },
+            {
+                "id": "sci_6",
+                "name": "SINCRONÍA TACT",
+                "desc": "+1% Bonus en Grupo",
+                "category": "science",
+                "maxLevel": 5,
+                "effects": {
+                    "group_bonus": 0.01
+                },
+                "icon": "👥"
+            },
+            {
+                "id": "sci_7",
+                "name": "SENSORES PRECI",
+                "desc": "+5% Loot de Bosses",
+                "category": "science",
+                "maxLevel": 5,
+                "effects": {
+                    "boss_loot_bonus": 0.05
+                },
+                "icon": "🔬"
+            },
+            {
+                "id": "sci_8",
+                "name": "SALTO HIPERESP",
+                "desc": "+10% Distancia Dash",
+                "category": "science",
+                "maxLevel": 5,
+                "effects": {
+                    "dash_distance": 0.1
+                },
+                "icon": "🌀"
+            }
+        ],
+        "nodes": {
+            "eng_1": {
+                "x": 769,
+                "y": 380
+            },
+            "eng_2": {
+                "x": 848,
+                "y": 292
+            },
+            "eng_3": {
+                "x": 669,
+                "y": 295
+            }
+        },
+        "connections": [
+            {
+                "from": "eng_2",
+                "to": "eng_1"
+            },
+            {
+                "from": "eng_1",
+                "to": "eng_3"
+            }
+        ]
     }
 }

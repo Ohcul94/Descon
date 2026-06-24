@@ -839,6 +839,46 @@ function patchMechanicsLib() {
         config.housingConfig = JSON.parse(JSON.stringify(DEFAULT_HOUSING_CONFIG));
     }
 
+    if (!config.talentsConfig) {
+        config.talentsConfig = {
+            talents: [],
+            nodes: {},
+            connections: []
+        };
+    }
+
+    if (!config.talentsConfig.talents || config.talentsConfig.talents.length === 0) {
+        const DEFAULT_TALENTS = [
+            { id: "eng_1", name: "REFUERZO DE CASCO", desc: "+2% HP por nivel", category: "engineering", maxLevel: 5, effects: { hp_pct: 0.02 }, icon: "🛡️" },
+            { id: "eng_2", name: "ESCUDO DINÁMICO", desc: "+2% Escudo por nivel", category: "engineering", maxLevel: 5, effects: { sh_pct: 0.02 }, icon: "🔵" },
+            { id: "eng_3", name: "REGEN EMERGENGIA", desc: "+5% HP Reparación", category: "engineering", maxLevel: 5, effects: { hp_regen: 0.05 }, icon: "🔧" },
+            { id: "eng_4", name: "CAPACITOR OHCU", desc: "+5% Shield Regen", category: "engineering", maxLevel: 5, effects: { shield_regen: 0.05 }, icon: "🔋" },
+            { id: "eng_5", name: "PLACAS NANOBOTS", desc: "+1% Armadura total", category: "engineering", maxLevel: 5, effects: { armor_pct: 0.01 }, icon: "⚙️" },
+            { id: "eng_6", name: "REACTOR FUSIÓN", desc: "+3% Eficiencia Energía", category: "engineering", maxLevel: 5, effects: { energy_efficiency: 0.03 }, icon: "⚛️" },
+            { id: "eng_7", name: "MANTE GALÁCTICO", desc: "-5% Costo Reparación", category: "engineering", maxLevel: 5, effects: { repair_cost_reduction: 0.05 }, icon: "💸" },
+            { id: "eng_8", name: "ESTABL FLOTANTE", desc: "+1% Estabilidad (Vel)", category: "engineering", maxLevel: 5, effects: { stability: 0.01 }, icon: "🛸" },
+
+            { id: "com_1", name: "LÁSER SOBRECARGA", desc: "+3% Daño Láser", category: "combat", maxLevel: 5, effects: { laser_dmg_pct: 0.03 }, icon: "🔫" },
+            { id: "com_2", name: "MIRILLA TÁCTICA", desc: "+2% Prob. Crítico", category: "combat", maxLevel: 5, effects: { crit_chance: 0.02 }, icon: "🎯" },
+            { id: "com_3", name: "FURIA DEL PILOTO", desc: "+5% Daño Crítico", category: "combat", maxLevel: 5, effects: { crit_dmg: 0.05 }, icon: "🔥" },
+            { id: "com_4", name: "CARGA PROYECTIL", desc: "+5% Bonus Munición", category: "combat", maxLevel: 5, effects: { ammo_bonus_pct: 0.05 }, icon: "💣" },
+            { id: "com_5", name: "DISPARO PRECISIÓN", desc: "+2% Puntería", category: "combat", maxLevel: 5, effects: { accuracy_pct: 0.02 }, icon: "👁️" },
+            { id: "com_6", name: "PERFORACIÓN TÉRM", desc: "+3% Ignorar Escudo", category: "combat", maxLevel: 5, effects: { ignore_shield_pct: 0.03 }, icon: "⚡" },
+            { id: "com_7", name: "CADENCIA MILITAR", desc: "-2% CD de Disparo", category: "combat", maxLevel: 5, effects: { fire_rate_pct: 0.02 }, icon: "⚔️" },
+            { id: "com_8", name: "BLINDAJE ATAQUE", desc: "+1% Evasión en Combate", category: "combat", maxLevel: 5, effects: { evasion_pct: 0.01 }, icon: "🛡️" },
+
+            { id: "sci_1", name: "MOTORES FUSIÓN", desc: "+1.5% Velocidad Base", category: "science", maxLevel: 5, effects: { speed_pct: 0.015 }, icon: "🚀" },
+            { id: "sci_2", name: "ESCÁNER TÁCTICO", desc: "+10% Rango Minimapa", category: "science", maxLevel: 5, effects: { minimap_range: 0.10 }, icon: "📡" },
+            { id: "sci_3", name: "MINERÍA OHCU", desc: "+5% OHCU de Kills", category: "science", maxLevel: 5, effects: { ohcu_kill_bonus: 0.05 }, icon: "💎" },
+            { id: "sci_4", name: "MERCADO GALÁXIA", desc: "-2% Descuento Tienda", category: "science", maxLevel: 5, effects: { shop_discount: 0.02 }, icon: "🏪" },
+            { id: "sci_5", name: "ENFRIAMIENTO RÁP", desc: "-3% CD Habilidades", category: "science", maxLevel: 5, effects: { cooldown_reduction: 0.03 }, icon: "❄️" },
+            { id: "sci_6", name: "SINCRONÍA TACT", desc: "+1% Bonus en Grupo", category: "science", maxLevel: 5, effects: { group_bonus: 0.01 }, icon: "👥" },
+            { id: "sci_7", name: "SENSORES PRECI", desc: "+5% Loot de Bosses", category: "science", maxLevel: 5, effects: { boss_loot_bonus: 0.05 }, icon: "🔬" },
+            { id: "sci_8", name: "SALTO HIPERESP", desc: "+10% Distancia Dash", category: "science", maxLevel: 5, effects: { dash_distance: 0.10 }, icon: "🌀" }
+        ];
+        config.talentsConfig.talents = DEFAULT_TALENTS;
+    }
+
     // Normalizar spawners de mapas para asegurar IDs y modos de respawn por unidad
     if (config.mapsConfig) {
         Object.keys(config.mapsConfig).forEach(mapId => {
@@ -2467,10 +2507,268 @@ function highlightMapObject(idx) {
         el.style.borderColor = '';
     });
     const card = document.getElementById(`card-map-obj-${idx}`);
-    if (card) {
-        card.style.boxShadow = '0 0 12px rgba(255,215,0,0.4)';
-        card.style.borderColor = 'rgba(255,215,0,0.6)';
-        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ============================================================================
+// LOGICA DE TALENTOS Y MAPA DE CONEXIONES (TREE MAP)
+// ============================================================================
+
+let talentMapperTool = 'select'; // 'select' o 'connect'
+let selectedTalentNodeId = null;
+let connectStartNodeId = null;
+let talentPanOffset = { x: 0, y: 0 };
+let isPanningTalents = false;
+let panStart = { x: 0, y: 0 };
+let isDraggingTalentNode = false;
+let dragNodeId = null;
+let talentMapperCanvasInitialized = false;
+
+function addNewTalent() {
+    const id = 'talent_' + Date.now();
+    const newTalent = {
+        id: id,
+        name: 'Nuevo Talento',
+        desc: '+1% HP por nivel',
+        category: 'engineering',
+        maxLevel: 5,
+        effects: {
+            hp_pct: 0.01
+        },
+        icon: '🌳'
+    };
+    if (!config.talentsConfig.talents) config.talentsConfig.talents = [];
+    config.talentsConfig.talents.push(newTalent);
+    renderTalentCreator();
+    renderTalentMapper();
+}
+
+function deleteTalent(id) {
+    // Eliminar de la lista de creador
+    config.talentsConfig.talents = config.talentsConfig.talents.filter(t => t.id !== id);
+    // Eliminar de los nodos del mapa
+    if (config.talentsConfig.nodes && config.talentsConfig.nodes[id]) {
+        delete config.talentsConfig.nodes[id];
+    }
+    // Eliminar conexiones
+    if (config.talentsConfig.connections) {
+        config.talentsConfig.connections = config.talentsConfig.connections.filter(c => c.from !== id && c.to !== id);
+    }
+    if (selectedTalentNodeId === id) {
+        selectedTalentNodeId = null;
+        document.getElementById('talent-node-editor-card').style.display = 'none';
+    }
+    renderTalentCreator();
+    renderTalentMapper();
+}
+
+function setTalentMapperTool(tool) {
+    talentMapperTool = tool;
+    const btnSelect = document.getElementById('btn-talent-tool-select');
+    const btnConnect = document.getElementById('btn-talent-tool-connect');
+    if (btnSelect && btnConnect) {
+        if (tool === 'select') {
+            btnSelect.classList.remove('btn-secondary');
+            btnSelect.classList.add('btn-primary');
+            btnConnect.classList.remove('btn-primary');
+            btnConnect.classList.add('btn-secondary');
+        } else {
+            btnConnect.classList.remove('btn-secondary');
+            btnConnect.classList.add('btn-primary');
+            btnSelect.classList.remove('btn-primary');
+            btnSelect.classList.add('btn-secondary');
+        }
     }
 }
+
+function clearTalentMapperSelections() {
+    selectedTalentNodeId = null;
+    connectStartNodeId = null;
+    document.getElementById('talent-node-editor-card').style.display = 'none';
+    renderTalentMapper();
+}
+
+function placeTalentOnMap(talentId) {
+    if (!config.talentsConfig.nodes) config.talentsConfig.nodes = {};
+    
+    // Obtener dimensiones del canvas para centrarlo
+    const canvas = document.getElementById('talent-mapper-canvas');
+    let cx = 400;
+    let cy = 300;
+    if (canvas) {
+        cx = (canvas.width / 2) - talentPanOffset.x;
+        cy = (canvas.height / 2) - talentPanOffset.y;
+    }
+
+    config.talentsConfig.nodes[talentId] = {
+        x: Math.round(cx),
+        y: Math.round(cy)
+    };
+    renderTalentMapper();
+}
+
+function removeTalentFromMap(talentId) {
+    if (config.talentsConfig.nodes && config.talentsConfig.nodes[talentId]) {
+        delete config.talentsConfig.nodes[talentId];
+    }
+    if (config.talentsConfig.connections) {
+        config.talentsConfig.connections = config.talentsConfig.connections.filter(c => c.from !== talentId && c.to !== talentId);
+    }
+    if (selectedTalentNodeId === talentId) {
+        selectedTalentNodeId = null;
+        document.getElementById('talent-node-editor-card').style.display = 'none';
+    }
+    renderTalentMapper();
+}
+
+function initTalentMapper() {
+    const canvas = document.getElementById('talent-mapper-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('talent-mapper-container');
+
+    const updateCanvasSize = () => {
+        const w = canvas.parentElement.clientWidth;
+        const h = canvas.parentElement.clientHeight;
+        if (w > 0 && h > 0) {
+            canvas.width = w;
+            canvas.height = h;
+        }
+    };
+    
+    if (!talentMapperCanvasInitialized) {
+        window.addEventListener('resize', updateCanvasSize);
+        talentMapperCanvasInitialized = true;
+    }
+    updateCanvasSize();
+
+    // Mouse event positions
+    let mousePos = { x: 0, y: 0 };
+
+    const getNodeAtPosition = (mx, my) => {
+        if (!config.talentsConfig.nodes) return null;
+        const radius = 30; // Radio del círculo del talento
+        for (const [id, pos] of Object.entries(config.talentsConfig.nodes)) {
+            const screenX = pos.x + talentPanOffset.x;
+            const screenY = pos.y + talentPanOffset.y;
+            const dist = Math.hypot(screenX - mx, screenY - my);
+            if (dist <= radius) {
+                return id;
+            }
+        }
+        return null;
+    };
+
+    canvas.onmousedown = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        mousePos = { x: mx, y: my };
+
+        const clickedNodeId = getNodeAtPosition(mx, my);
+
+        if (clickedNodeId) {
+            if (talentMapperTool === 'select') {
+                isDraggingTalentNode = true;
+                dragNodeId = clickedNodeId;
+                selectedTalentNodeId = clickedNodeId;
+                canvas.style.cursor = 'grabbing';
+                showTalentNodeEditor(clickedNodeId);
+            } else if (talentMapperTool === 'connect') {
+                connectStartNodeId = clickedNodeId;
+            }
+        } else {
+            // Panning
+            isPanningTalents = true;
+            panStart = { x: e.clientX, y: e.clientY };
+            canvas.style.cursor = 'move';
+        }
+        renderTalentMapper();
+    };
+
+    canvas.onmousemove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        mousePos = { x: mx, y: my };
+
+        if (isDraggingTalentNode && dragNodeId) {
+            config.talentsConfig.nodes[dragNodeId].x = Math.round(mx - talentPanOffset.x);
+            config.talentsConfig.nodes[dragNodeId].y = Math.round(my - talentPanOffset.y);
+            renderTalentMapper();
+        } else if (isPanningTalents) {
+            const dx = e.clientX - panStart.x;
+            const dy = e.clientY - panStart.y;
+            talentPanOffset.x += dx;
+            talentPanOffset.y += dy;
+            panStart = { x: e.clientX, y: e.clientY };
+            renderTalentMapper();
+        } else if (connectStartNodeId) {
+            renderTalentMapper(mousePos);
+        }
+    };
+
+    canvas.onmouseup = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        if (isDraggingTalentNode) {
+            isDraggingTalentNode = false;
+            dragNodeId = null;
+            canvas.style.cursor = 'grab';
+        } else if (isPanningTalents) {
+            isPanningTalents = false;
+            canvas.style.cursor = 'grab';
+        } else if (connectStartNodeId) {
+            const clickedNodeId = getNodeAtPosition(mx, my);
+            if (clickedNodeId && clickedNodeId !== connectStartNodeId) {
+                // Crear conexión si no existe
+                if (!config.talentsConfig.connections) config.talentsConfig.connections = [];
+                const exists = config.talentsConfig.connections.some(c => 
+                    (c.from === connectStartNodeId && c.to === clickedNodeId) ||
+                    (c.from === clickedNodeId && c.to === connectStartNodeId)
+                );
+                if (!exists) {
+                    config.talentsConfig.connections.push({
+                        from: connectStartNodeId,
+                        to: clickedNodeId
+                    });
+                }
+            }
+            connectStartNodeId = null;
+            renderTalentMapper();
+        }
+    };
+
+    renderTalentMapper();
+}
+
+function showTalentNodeEditor(nodeId) {
+    const card = document.getElementById('talent-node-editor-card');
+    const content = document.getElementById('talent-node-editor-content');
+    if (!card || !content) return;
+
+    const talent = config.talentsConfig.talents.find(t => t.id === nodeId);
+    if (!talent) return;
+
+    card.style.display = 'block';
+    
+    // Generar campos de edición rápida del nodo mapeado
+    content.innerHTML = `
+        <div style="font-size:1.8rem; text-align:center; margin-bottom:10px;">${talent.icon || '🌳'}</div>
+        <div style="font-weight:bold; color:var(--accent); text-align:center; margin-bottom:15px;">${talent.name}</div>
+        <div class="field">
+            <label>Posición X</label>
+            <input type="number" value="${config.talentsConfig.nodes[nodeId].x}" onchange="config.talentsConfig.nodes['${nodeId}'].x = parseInt(this.value); renderTalentMapper();">
+        </div>
+        <div class="field">
+            <label>Posición Y</label>
+            <input type="number" value="${config.talentsConfig.nodes[nodeId].y}" onchange="config.talentsConfig.nodes['${nodeId}'].y = parseInt(this.value); renderTalentMapper();">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+            <button class="btn btn-secondary" style="background:#ff3b30; border-color:#ff3b30; color:white; margin:0;" onclick="removeTalentFromMap('${nodeId}')">❌ Quitar del Mapa</button>
+        </div>
+    `;
+}
+
 

@@ -308,6 +308,14 @@
                 </div>
 
                 <div class="nav-group">
+                    <div class="nav-folder" onclick="toggleFolder('folder-talents'); showTab('talent-creator')">🌳 Talentos <span class="chevron">▶</span></div>
+                    <div id="folder-talents" class="folder-content">
+                        <div class="nav-link sub" onclick="showTab('talent-creator')">🛠️ Creador de Talentos</div>
+                        <div class="nav-link sub" onclick="showTab('talent-mapper')">🕸️ Mapa de Talentos</div>
+                    </div>
+                </div>
+
+                <div class="nav-group">
                     <div class="nav-folder" onclick="toggleFolder('folder-modes'); showTab('modes')">🎮 Modos de Juego <span class="chevron">▶</span></div>
                     <div id="folder-modes" class="folder-content">
                         <div class="nav-link sub" onclick="setModeTab('hunting', this); showTab('modes')">🔫 Cacería</div>
@@ -497,6 +505,49 @@
 
             <div id="view-skills" class="view">
                 <div id="skills-grid" class="grid"></div>
+            </div>
+
+            <div id="view-talent-creator" class="view">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="color: var(--primary); font-size: 1.5rem; margin: 0;">🛠️ CREADOR DE TALENTOS</h3>
+                    <button class="btn btn-primary" onclick="addNewTalent()">➕ AGREGAR NUEVO TALENTO</button>
+                </div>
+                <div id="talents-creator-grid" class="grid"></div>
+            </div>
+
+            <div id="view-talent-mapper" class="view">
+                <div style="display: flex; gap: 1.5rem; height: calc(100vh - 220px); align-items: stretch;">
+                    <!-- Canvas del Mapa -->
+                    <div class="card" id="talent-mapper-container" style="flex: 1; display: flex; flex-direction: column; height: 100%; position: relative; overflow: hidden; padding: 1.5rem; margin: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="margin: 0; color: var(--primary);">🕸️ MAPA DE CONEXIONES</h3>
+                            <div style="display: flex; gap: 10px;">
+                                <button id="btn-talent-tool-select" class="btn btn-primary" onclick="setTalentMapperTool('select')">🖐️ Mover Nodos</button>
+                                <button id="btn-talent-tool-connect" class="btn btn-secondary" onclick="setTalentMapperTool('connect')">🔗 Conectar Nodos</button>
+                                <button class="btn btn-secondary" onclick="clearTalentMapperSelections()" style="background: #ff3b30; border-color: #ff3b30; color: white;">🧹 Limpiar</button>
+                            </div>
+                        </div>
+                        <div style="flex: 1; background: radial-gradient(circle, #0c182d 0%, #030814 100%); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; position: relative; overflow: hidden; min-height: 400px;">
+                            <canvas id="talent-mapper-canvas" style="display: block; width: 100%; height: 100%; cursor: grab;"></canvas>
+                        </div>
+                    </div>
+                    <!-- Panel Lateral -->
+                    <div style="width: 320px; display: flex; flex-direction: column; gap: 1.5rem; height: 100%;">
+                        <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; margin: 0; padding: 1.5rem;">
+                            <h4 style="color: var(--accent); margin-top: 0; margin-bottom: 0.5rem;">Talentos Disponibles</h4>
+                            <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1rem;">Doble clic en un talento para colocarlo en el mapa.</p>
+                            <div id="talent-mapper-unplaced-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                                <!-- Se llena dinámicamente -->
+                            </div>
+                        </div>
+                        <div class="card" id="talent-node-editor-card" style="display: none; margin: 0; padding: 1.5rem;">
+                            <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 0.5rem;">Nodo Seleccionado</h4>
+                            <div id="talent-node-editor-content">
+                                <!-- Configuración del nodo seleccionado -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="view-mechanics" class="view">
