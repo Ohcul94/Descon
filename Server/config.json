@@ -526,7 +526,8 @@
                     "affectsEnemies": true,
                     "affectsBosses": false
                 }
-            ]
+            ],
+            "lootDrops": []
         },
         "9": {
             "bulletDamage": 280,
@@ -2223,6 +2224,28 @@
                     "fireRate": 1200,
                     "slowAmount": 0,
                     "slowDuration": 0
+                },
+                {
+                    "type": "summoning",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        90
+                    ],
+                    "activationIntervalMs": 30000,
+                    "cooldown": 10000,
+                    "summonCount": 2,
+                    "spawnRadius": 150,
+                    "summonDurationMode": "until_death",
+                    "summonDurationMs": 10000,
+                    "summonsList": [
+                        "1-B",
+                        "random_base"
+                    ],
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
@@ -2233,22 +2256,9 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": [
-                {
-                    "type": "aura_heal",
-                    "reductionPercentage": 10,
-                    "shieldRegen": 5,
-                    "duration": 4000,
-                    "cooldown": 2000,
-                    "startDelay": 0,
-                    "radius": 300,
-                    "healAmount": 100,
-                    "intervalMs": 400,
-                    "affectsEnemies": true,
-                    "affectsBosses": false
-                }
-            ],
-            "aggressive": true
+            "defenseMechanics": [],
+            "aggressive": true,
+            "lootDrops": []
         },
         "13-A": {
             "bulletDamage": 700,
@@ -3087,18 +3097,8 @@
             "objects": [],
             "spawns": [
                 {
-                    "id": "spawn_1782084064418693",
-                    "type": "101",
-                    "count": 1,
-                    "intervalMs": 5000,
-                    "spawnMode": "fixed",
-                    "x": 823,
-                    "y": 749,
-                    "radius": 300
-                },
-                {
                     "id": "spawn_1782151326526778",
-                    "type": "8",
+                    "type": "8-D",
                     "count": 1,
                     "intervalMs": 5000,
                     "spawnMode": "random",
@@ -4876,6 +4876,23 @@
                 "slowPercentage",
                 "slowDuration",
                 "duration",
+                "startDelay"
+            ]
+        },
+        "summoning": {
+            "label": "Invocación (Summoning)",
+            "icon": "🧟",
+            "desc": "Invoca una cantidad de esbirros de tu elección por vida o por tiempo.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "summonCount",
+                "spawnRadius",
+                "summonDurationMode",
+                "summonDurationMs",
+                "summonsList",
                 "startDelay"
             ]
         }

@@ -720,6 +720,11 @@ module.exports = class BaseAI {
             return true;
         }
 
+        if (mech.type === "summoning") {
+            this._handleSummoningLogic(mech, mId, now, io);
+            return false;
+        }
+
         if (dist > fireRange && !state.isCharging && !state.isActive) return false;
 
         // Mecánica de Sueño Inducido (Sleep)
@@ -2295,6 +2300,186 @@ module.exports = class BaseAI {
                 this.state.enemies[cloneId] = cloneObj;
 
                 const { ai, ...spawnData } = cloneObj;
+                io.to(`zone_${this.enemy.zone}`).emit('enemySpawn', spawnData);
+            }
+        }
+    }
+
+    _handleSummoningLogic(mech, mId, now, io) {
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || { 
+            nextReadyTime: now + (mech.startDelay || 0), 
+            isActive: false, 
+            endTime: 0,
+            triggeredHPs: {},
+            combatStartTime: null
+        };
+        this.enemy.defState[mId] = state;
+
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        // Resetear triggers y timers si salimos de combate
+        if (!this._inCombat) {
+            state.triggeredHPs = {};
+            state.combatStartTime = null;
+            state.nextReadyTime = now + (mech.startDelay || 0);
+            state.isActive = false;
+        } else if (this._inCombat && !state.combatStartTime) {
+            state.combatStartTime = now;
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
+        }
+
+        // 1. Si la mecánica está activa, comprobar si expira
+        if (state.isActive) {
+            if (mech.summonDurationMode === "timed" && now >= state.endTime) {
+                state.isActive = false;
+                if (mech.activationMode !== "time") {
+                    state.nextReadyTime = now + (mech.cooldown || 30000);
+                }
+            }
+        }
+
+        // 2. Activar si cumple condiciones
+        let shouldActivate = false;
+        if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
+            if (mech.activationMode === "time") {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                // Modo HP (por defecto)
+                let thresholds = [];
+                if (Array.isArray(mech.activationHPs)) {
+                    thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
+                } else if (mech.activationHP !== undefined) {
+                    thresholds = [Number(mech.activationHP)];
+                } else {
+                    thresholds = [50];
+                }
+
+                if (!state.triggeredHPs) {
+                    state.triggeredHPs = {};
+                }
+
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        shouldActivate = true;
+                        state.triggeredHPs[hpVal] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (shouldActivate) {
+            state.isActive = true;
+            let duration = Number(mech.summonDurationMs) || 10000;
+            state.endTime = now + duration;
+            if (mech.activationMode !== "time") {
+                state.nextReadyTime = now + (mech.cooldown || 30000);
+            }
+
+            const summonCount = Number(mech.summonCount) || 3;
+            const radius = Number(mech.spawnRadius) || 150;
+
+            io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                msg: `🧟 ¡El enemigo ha invocado refuerzos! 🧟`, 
+                type: "warning" 
+            });
+
+            const summonsList = mech.summonsList || [];
+
+            for (let i = 0; i < summonCount; i++) {
+                const angle = (i / summonCount) * Math.PI * 2 + (Math.random() * 0.5);
+                const sx = this.enemy.x + Math.cos(angle) * radius;
+                const sy = this.enemy.y + Math.sin(angle) * radius;
+                const summonId = `summon_${this.enemy.id}_${i}_${Date.now()}`;
+
+                const choice = summonsList[i] || "random_base";
+                let selectedType = null;
+
+                // Resolver tipo aleatorio
+                const allTypes = Object.keys(this.state.SERVER_CONFIG.enemyModels).filter(id => !id.includes('-'));
+                
+                if (choice === "random") {
+                    selectedType = allTypes[Math.floor(Math.random() * allTypes.length)];
+                } else if (choice === "random_base") {
+                    const regularTypes = allTypes.filter(id => parseInt(id) < 100);
+                    selectedType = regularTypes[Math.floor(Math.random() * regularTypes.length)];
+                } else if (choice === "random_boss") {
+                    const bossTypes = allTypes.filter(id => parseInt(id) >= 100);
+                    selectedType = bossTypes[Math.floor(Math.random() * bossTypes.length)];
+                } else if (choice === "random_tier_a") {
+                    const bases = allTypes.filter(id => parseInt(id) < 100);
+                    const tierATypes = bases.map(id => `${id}-A`).filter(id => this.state.SERVER_CONFIG.enemyModels[id]);
+                    selectedType = tierATypes[Math.floor(Math.random() * tierATypes.length)];
+                } else if (choice === "random_tier_b") {
+                    const bases = allTypes.filter(id => parseInt(id) < 100);
+                    const tierBTypes = bases.map(id => `${id}-B`).filter(id => this.state.SERVER_CONFIG.enemyModels[id]);
+                    selectedType = tierBTypes[Math.floor(Math.random() * tierBTypes.length)];
+                } else if (choice === "random_tier_c") {
+                    const bases = allTypes.filter(id => parseInt(id) < 100);
+                    const tierCTypes = bases.map(id => `${id}-C`).filter(id => this.state.SERVER_CONFIG.enemyModels[id]);
+                    selectedType = tierCTypes[Math.floor(Math.random() * tierCTypes.length)];
+                } else if (choice === "random_tier_d") {
+                    const bases = allTypes.filter(id => parseInt(id) < 100);
+                    const tierDTypes = bases.map(id => `${id}-D`).filter(id => this.state.SERVER_CONFIG.enemyModels[id]);
+                    selectedType = tierDTypes[Math.floor(Math.random() * tierDTypes.length)];
+                } else {
+                    selectedType = choice;
+                }
+
+                // Si no se pudo resolver un tipo válido, usamos el ID 1 como fallback
+                if (!selectedType || !this.state.SERVER_CONFIG.enemyModels[selectedType]) {
+                    selectedType = "1";
+                }
+
+                const enemyCfg = this.state.SERVER_CONFIG.enemyModels[selectedType];
+                
+                const summonObj = {
+                    id: summonId,
+                    type: isNaN(parseInt(selectedType)) ? selectedType : parseInt(selectedType),
+                    typeString: selectedType.toString(),
+                    zone: this.enemy.zone,
+                    name: `🧟 ${enemyCfg.name || 'Invocación'}`,
+                    x: sx,
+                    y: sy,
+                    startX: sx,
+                    startY: sy,
+                    hp: Number(enemyCfg.hp) || 1000,
+                    maxHp: Number(enemyCfg.hp) || 1000,
+                    shield: Number(enemyCfg.shield) || 0,
+                    maxShield: Number(enemyCfg.shield) || 0,
+                    rotation: angle,
+                    lastHit: 0,
+                    isInvulnerable: false
+                };
+
+                // Asignar el comportamiento de IA cargando el cerebro correspondiente
+                const moveAI = enemyCfg.movementAI || 'chase';
+                let BrainClass;
+                try {
+                    BrainClass = require(`./${moveAI.charAt(0).toUpperCase() + moveAI.slice(1)}AI`);
+                } catch(e) {
+                    BrainClass = require('./ChaseAI');
+                }
+                summonObj.ai = new BrainClass(summonObj, enemyCfg, this.state);
+                this.state.enemies[summonId] = summonObj;
+
+                // Si tiene duración limitada, programar su destrucción
+                if (mech.summonDurationMode === "timed") {
+                    setTimeout(() => {
+                        if (this.state.enemies[summonId]) {
+                            io.to(`zone_${this.enemy.zone}`).emit('enemyDead', { id: summonId });
+                            delete this.state.enemies[summonId];
+                        }
+                    }, duration);
+                }
+
+                const { ai, ...spawnData } = summonObj;
                 io.to(`zone_${this.enemy.zone}`).emit('enemySpawn', spawnData);
             }
         }

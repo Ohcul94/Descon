@@ -750,7 +750,7 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'damage') mech[f] = newType === 'spin_ring' ? 100 : (newType === 'circle_cast' ? 500 : 15);
             else if (f === 'intervalMs') mech[f] = 1000;
             else if (f === 'duration') mech[f] = 5000;
-            else if (f === 'cooldown') mech[f] = newType === 'spin_ring' ? 4000 : (newType === 'circle_cast' ? 5000 : 10000);
+            else if (f === 'cooldown') mech[f] = newType === 'summoning' ? 30000 : (newType === 'spin_ring' ? 4000 : (newType === 'circle_cast' ? 5000 : 10000));
             else if (f === 'bulletDamage') mech[f] = 10;
             else if (f === 'bulletSpeed') mech[f] = 800;
             else if (f === 'fireRange') mech[f] = newType === 'circle_cast' ? 300 : 600;
@@ -769,6 +769,14 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'applySlow') mech[f] = false;
             else if (f === 'slowPercentage') mech[f] = 40;
             else if (f === 'slowDuration') mech[f] = 2000;
+            else if (f === 'activationMode') mech[f] = 'hp';
+            else if (f === 'activationHPs') mech[f] = [50];
+            else if (f === 'activationIntervalMs') mech[f] = 30000;
+            else if (f === 'summonCount') mech[f] = 3;
+            else if (f === 'spawnRadius') mech[f] = 150;
+            else if (f === 'summonDurationMode') mech[f] = 'until_death';
+            else if (f === 'summonDurationMs') mech[f] = 10000;
+            else if (f === 'summonsList') mech[f] = ['random_base', 'random_base', 'random_base'];
             else mech[f] = 0;
         }
     });
