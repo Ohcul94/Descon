@@ -3246,6 +3246,11 @@
             "hp": 100,
             "id": 1,
             "name": "Phoenix-L1",
+            "assetPath": "res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb",
+            "icon": "res://assets/Personajes/2D/Nave1/Nave1 (Lista).png",
+            "rotX": 0,
+            "rotY": 0,
+            "rotZ": 0,
             "prices": {
                 "hubs": 0,
                 "ohcu": 0
@@ -3264,6 +3269,11 @@
             "hp": 200,
             "id": 2,
             "name": "Vulture-G2",
+            "assetPath": "res://assets/Personajes/3D/Nave2/Nave2.glb",
+            "icon": "res://assets/Personajes/2D/Nave2/Nave2 (Lista).png",
+            "rotX": 0,
+            "rotY": 0,
+            "rotZ": 0,
             "prices": {
                 "hubs": 10000,
                 "ohcu": 1000
@@ -3282,6 +3292,11 @@
             "hp": 400,
             "id": 3,
             "name": "Falcon-A3",
+            "assetPath": "res://assets/Personajes/3D/Nave3/Nave3.glb",
+            "icon": "res://assets/Personajes/2D/Nave3/Nave3.png",
+            "rotX": 0,
+            "rotY": 1,
+            "rotZ": 98,
             "prices": {
                 "hubs": 20000,
                 "ohcu": 2000
@@ -3300,6 +3315,11 @@
             "hp": 800,
             "id": 4,
             "name": "Titan-S4",
+            "assetPath": "res://assets/Personajes/3D/Nave4/Nave4.glb",
+            "icon": "res://assets/Personajes/2D/Nave4/Nave4.png",
+            "rotX": 0,
+            "rotY": -180,
+            "rotZ": 52,
             "prices": {
                 "hubs": 30000,
                 "ohcu": 3000
@@ -3318,6 +3338,11 @@
             "hp": 1600,
             "id": 5,
             "name": "Wraith-X5",
+            "assetPath": "res://assets/Personajes/3D/Nave5/Nave5.glb",
+            "icon": "res://assets/Personajes/2D/Nave5/Nave5.png",
+            "rotX": 0,
+            "rotY": 0,
+            "rotZ": 0,
             "prices": {
                 "hubs": 0,
                 "ohcu": 6000
@@ -3336,6 +3361,11 @@
             "hp": 3200,
             "id": 6,
             "name": "Galactus-Z6",
+            "assetPath": "res://assets/Personajes/3D/Nave6/Nave6.glb",
+            "icon": "res://assets/Personajes/2D/Nave6/Nave6.png",
+            "rotX": 0,
+            "rotY": 180,
+            "rotZ": 0,
             "prices": {
                 "hubs": 0,
                 "ohcu": 10000

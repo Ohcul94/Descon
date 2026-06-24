@@ -128,13 +128,23 @@ func update_ui():
 	# Cargar modelo de la nave
 	var ship_id = int(viewing_id)
 	var glb_path = ""
-	match ship_id:
-		1: glb_path = "res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb"
-		2: glb_path = "res://assets/Personajes/3D/Nave2/Nave2.glb"
-		3: glb_path = "res://assets/Personajes/3D/Nave3/Nave3.glb"
-		4: glb_path = "res://assets/Personajes/3D/Nave4/Nave4.glb"
-		5: glb_path = "res://assets/Personajes/3D/Nave5/Nave5.glb"
-		6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
+	var ship_data = {}
+	if GameConstants.SHIP_MODELS:
+		for s in GameConstants.SHIP_MODELS:
+			if int(s.get("id")) == ship_id:
+				ship_data = s
+				break
+				
+	if ship_data.has("assetPath") and ship_data.assetPath != "":
+		glb_path = ship_data.assetPath
+	else:
+		match ship_id:
+			1: glb_path = "res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb"
+			2: glb_path = "res://assets/Personajes/3D/Nave2/Nave2.glb"
+			3: glb_path = "res://assets/Personajes/3D/Nave3/Nave3.glb"
+			4: glb_path = "res://assets/Personajes/3D/Nave4/Nave4.glb"
+			5: glb_path = "res://assets/Personajes/3D/Nave5/Nave5.glb"
+			6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
 		
 	if glb_path != "" and ResourceLoader.exists(glb_path):
 		var model_scene = load(glb_path)
@@ -150,11 +160,16 @@ func update_ui():
 			pivot.scale = Vector3(1.3, 1.3, 1.3)
 			
 			# Orientación corregida según el modelado del asset
-			match ship_id:
-				3: ship_model.rotation_degrees = Vector3(0, 1, 98)
-				4: ship_model.rotation_degrees = Vector3(0, -180, 52)
-				6: ship_model.rotation_degrees.y = 180
-				_: ship_model.rotation_degrees = Vector3.ZERO
+			if ship_data.has("rotX") or ship_data.has("rotY") or ship_data.has("rotZ"):
+				ship_model.rotation_degrees.x = float(ship_data.get("rotX", 0))
+				ship_model.rotation_degrees.y = float(ship_data.get("rotY", 0))
+				ship_model.rotation_degrees.z = float(ship_data.get("rotZ", 0))
+			else:
+				match ship_id:
+					3: ship_model.rotation_degrees = Vector3(0, 1, 98)
+					4: ship_model.rotation_degrees = Vector3(0, -180, 52)
+					6: ship_model.rotation_degrees.y = 180
+					_: ship_model.rotation_degrees = Vector3.ZERO
 				
 			preview_mesh = pivot
 
@@ -181,7 +196,7 @@ func update_ui():
 func _create_fleet_card(sid, parent):
 	var model = {}
 	for m in GameConstants.SHIP_MODELS: if m["id"] == sid: model = m; break
-	if model.is_empty(): return
+	if model.is_empty() or model.get("hidden", false): return
 	
 	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(150, 115)
 	var is_active = (sid == inv_main.current_ship_id)

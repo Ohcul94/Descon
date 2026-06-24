@@ -43,7 +43,9 @@ func update_ui():
 	var grid = GridContainer.new(); grid.columns = 3; grid.size_flags_horizontal = 3; grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 20); scr.add_child(grid)
 	
 	if shop_tab == "ships":
-		for ship in GameConstants.SHIP_MODELS: _create_shop_card(ship, "ships", grid)
+		for ship in GameConstants.SHIP_MODELS:
+			if not ship.get("hidden", false):
+				_create_shop_card(ship, "ships", grid)
 	elif shop_tab == "ammo":
 		_render_ammo_shop(main_v, grid)
 	else:
@@ -262,13 +264,23 @@ func _open_detail_modal(it):
 	# Cargar modelo GLB (limpio de tilts de gameplay)
 	var ship_id = int(it["id"])
 	var glb_path = ""
-	match ship_id:
-		1: glb_path = "res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb"
-		2: glb_path = "res://assets/Personajes/3D/Nave2/Nave2.glb"
-		3: glb_path = "res://assets/Personajes/3D/Nave3/Nave3.glb"
-		4: glb_path = "res://assets/Personajes/3D/Nave4/Nave4.glb"
-		5: glb_path = "res://assets/Personajes/3D/Nave5/Nave5.glb"
-		6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
+	var ship_data = {}
+	if GameConstants.SHIP_MODELS:
+		for s in GameConstants.SHIP_MODELS:
+			if int(s.get("id")) == ship_id:
+				ship_data = s
+				break
+				
+	if ship_data.has("assetPath") and ship_data.assetPath != "":
+		glb_path = ship_data.assetPath
+	else:
+		match ship_id:
+			1: glb_path = "res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb"
+			2: glb_path = "res://assets/Personajes/3D/Nave2/Nave2.glb"
+			3: glb_path = "res://assets/Personajes/3D/Nave3/Nave3.glb"
+			4: glb_path = "res://assets/Personajes/3D/Nave4/Nave4.glb"
+			5: glb_path = "res://assets/Personajes/3D/Nave5/Nave5.glb"
+			6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
 		
 	if glb_path != "" and ResourceLoader.exists(glb_path):
 		var model_scene = load(glb_path)
@@ -283,12 +295,17 @@ func _open_detail_modal(it):
 			
 			pivot.scale = Vector3(1.3, 1.3, 1.3)
 			
-			# Orientación base con corrección específica de modelado
-			match ship_id:
-				3: model.rotation_degrees = Vector3(0, 1, 98)
-				4: model.rotation_degrees = Vector3(0, -180, 52)
-				6: model.rotation_degrees.y = 180
-				_: model.rotation_degrees = Vector3.ZERO
+			# Orientación base con corrección específica
+			if ship_data.has("rotX") or ship_data.has("rotY") or ship_data.has("rotZ"):
+				model.rotation_degrees.x = float(ship_data.get("rotX", 0))
+				model.rotation_degrees.y = float(ship_data.get("rotY", 0))
+				model.rotation_degrees.z = float(ship_data.get("rotZ", 0))
+			else:
+				match ship_id:
+					3: model.rotation_degrees = Vector3(0, 1, 98)
+					4: model.rotation_degrees = Vector3(0, -180, 52)
+					6: model.rotation_degrees.y = 180
+					_: model.rotation_degrees = Vector3.ZERO
 				
 			preview_mesh = pivot
 			

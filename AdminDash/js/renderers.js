@@ -1,3 +1,17 @@
+window.resolveAssetWebUrl = function(iconPath) {
+    if (!iconPath) return '';
+    let path = iconPath;
+    const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+    if (path.includes('res://assets/')) {
+        return path.replace('res://assets/', activeURL + '/assets/');
+    }
+    let idx = path.indexOf('assets/');
+    if (idx !== -1) {
+        return activeURL + '/' + path.substring(idx);
+    }
+    return path;
+};
+
 window.renderSearchableEnemySelect = function(currentValue, onChangeCallback, borderCSSColor = 'var(--success)', extraId = '') {
     const currentEn = currentValue ? config.enemyModels[currentValue] : null;
     const currentName = currentEn ? `[ID ${currentValue}] ${currentEn.name}` : (currentValue ? `ID ${currentValue}` : '');
@@ -456,30 +470,113 @@ function renderShips() {
     const f = getFilter();
     config.shipModels.forEach((ship, idx) => {
         if(f && !ship.name.toLowerCase().includes(f) && !ship.id.toString().includes(f)) return;
+        
+        const shipIconWeb = resolveAssetWebUrl(ship.icon || '');
+        const previewHtml = shipIconWeb ? `<img src="${shipIconWeb}" style="width:80px; height:80px; object-fit:contain; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2);" onerror="this.style.display='none';">` : `<div style="width:80px; height:80px; border:1px dashed rgba(255,255,255,0.15); border-radius:6px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.75rem;">Sin Icono</div>`;
+
         const card = document.createElement('div'); card.className = 'card';
+        card.style.position = 'relative';
         card.innerHTML = `
-            <div class="card-tag">#ID ${ship.id}</div>
-            <div class="field full"><label>Nombre de la Nave</label><input type="text" value="${ship.name}" onchange="config.shipModels[${idx}].name = this.value"></div>
-            <div class="form-grid" style="margin-top: 1.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                <div style="background:rgba(255,255,255,0.06); color:#888; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:2px 6px; font-size:0.75rem; font-family:'JetBrains Mono'; font-weight:bold;">#ID ${ship.id}</div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <!-- Switch de visibilidad -->
+                    <button style="background:none; border:none; color:${ship.hidden ? '#ff9f0a' : '#00d2ff'}; cursor:pointer; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px;" onclick="toggleShipVisibility(${idx})">
+                        ${ship.hidden ? '🙈 OCULTO' : '👁️ VISIBLE'}
+                    </button>
+                    <!-- Eliminar -->
+                    <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.75rem; font-weight:bold;" onclick="removeShip(${idx})">
+                        ✕ ELIMINAR
+                    </button>
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:15px; align-items:flex-start; margin-top:0.5rem;">
+                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    ${previewHtml}
+                    <button class="btn" style="padding:4px 8px; font-size:0.65rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.2); color:var(--primary); cursor:pointer; border-radius:4px;" onclick="openAssetPicker(${idx}, 'ship_icon')">🖼️ ICONO</button>
+                </div>
+                <div style="flex-grow:1; display:flex; flex-direction:column; gap:10px;">
+                    <div class="field"><label>Nombre de la Nave</label><input type="text" value="${ship.name}" onchange="config.shipModels[${idx}].name = this.value"></div>
+                    <div class="field"><label>Ruta Asset 3D (.glb)</label><input type="text" value="${ship.assetPath || ''}" placeholder="res://assets/Personajes/3D/Nave..." onchange="config.shipModels[${idx}].assetPath = this.value"></div>
+                </div>
+            </div>
+
+            <h5 style="color:var(--accent); margin:15px 0 5px; font-size:0.75rem; border-bottom:1px solid rgba(6,182,212,0.15); padding-bottom:2px;">⚙️ ROTACIÓN 3D INICIAL</h5>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px; display:grid;">
+                <div class="field"><label>Rotación X (grados)</label><input type="number" value="${ship.rotX || 0}" onchange="config.shipModels[${idx}].rotX = parseFloat(this.value) || 0"></div>
+                <div class="field"><label>Rotación Y (grados)</label><input type="number" value="${ship.rotY || 0}" onchange="config.shipModels[${idx}].rotY = parseFloat(this.value) || 0"></div>
+                <div class="field"><label>Rotación Z (grados)</label><input type="number" value="${ship.rotZ || 0}" onchange="config.shipModels[${idx}].rotZ = parseFloat(this.value) || 0"></div>
+            </div>
+
+            <h5 style="color:var(--primary); margin:15px 0 5px; font-size:0.75rem; border-bottom:1px solid rgba(0,210,255,0.15); padding-bottom:2px;">📊 ESTADÍSTICAS</h5>
+            <div class="form-grid" style="margin-top: 0.5rem; display:grid;">
                 <div class="field"><label>HP Total (pts)</label><input type="number" value="${ship.hp}" onchange="config.shipModels[${idx}].hp = parseInt(this.value)"></div>
                 <div class="field"><label>Escudo Total (pts)</label><input type="number" value="${ship.shield}" onchange="config.shipModels[${idx}].shield = parseInt(this.value)"></div>
                 <div class="field"><label>Velocidad (px/s)</label><input type="number" value="${ship.speed}" onchange="config.shipModels[${idx}].speed = parseInt(this.value)"></div>
                 <div class="field"><label>Rango de Visión (px)</label><input type="number" value="${ship.vision || 1300}" onchange="config.shipModels[${idx}].vision = parseInt(this.value)"></div>
             </div>
-            <div class="form-grid" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333;">
+            <div class="form-grid" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333; display:grid;">
                 <div class="field"><label>Slots Armas (W)</label><input type="number" value="${ship.slots.w || 0}" onchange="config.shipModels[${idx}].slots.w = parseInt(this.value)"></div>
                 <div class="field"><label>Slots Escudos (S)</label><input type="number" value="${ship.slots.s || 0}" onchange="config.shipModels[${idx}].slots.s = parseInt(this.value)"></div>
                 <div class="field"><label>Slots Motores (E)</label><input type="number" value="${ship.slots.e || 0}" onchange="config.shipModels[${idx}].slots.e = parseInt(this.value)"></div>
                 <div class="field"><label>Slots Extras (X)</label><input type="number" value="${ship.slots.x || 0}" onchange="config.shipModels[${idx}].slots.x = parseInt(this.value)"></div>
             </div>
-            <div class="price-group">
-                <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${ship.prices.hubs}" onchange="config.shipModels[${idx}].prices.hubs = parseInt(this.value)"></div>
-                <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${ship.prices.ohcu}" onchange="config.shipModels[${idx}].prices.ohcu = parseInt(this.value)"></div>
+            <div class="price-group" style="display:flex; gap:15px; margin-top:1rem;">
+                <div class="field" style="flex:1;"><label>Precio Hubs (qty)</label><input type="number" value="${ship.prices.hubs}" onchange="config.shipModels[${idx}].prices.hubs = parseInt(this.value)"></div>
+                <div class="field" style="flex:1;"><label>Precio Ohcu (qty)</label><input type="number" value="${ship.prices.ohcu}" onchange="config.shipModels[${idx}].prices.ohcu = parseInt(this.value)"></div>
             </div>
         `;
         grid.appendChild(card);
     });
 }
+
+window.toggleShipVisibility = function(idx) {
+    config.shipModels[idx].hidden = !config.shipModels[idx].hidden;
+    renderShips();
+};
+
+window.addNewShip = function() {
+    if (!config.shipModels) config.shipModels = [];
+    let maxId = 0;
+    config.shipModels.forEach(s => {
+        if (s.id > maxId) maxId = s.id;
+    });
+    
+    const newShip = {
+        id: maxId + 1,
+        name: "Nueva Nave N" + (maxId + 1),
+        assetPath: "res://assets/Personajes/3D/Nave" + (maxId + 1) + "/Nave" + (maxId + 1) + ".glb",
+        icon: "",
+        rotX: 0,
+        rotY: 0,
+        rotZ: 0,
+        hp: 3000,
+        shield: 1000,
+        speed: 300,
+        vision: 1300,
+        slots: {
+            w: 1,
+            s: 1,
+            e: 1,
+            x: 1
+        },
+        prices: {
+            hubs: 10000,
+            ohcu: 100
+        }
+    };
+    config.shipModels.push(newShip);
+    renderShips();
+};
+
+window.removeShip = function(idx) {
+    if (!config.shipModels) return;
+    if (confirm(`¿Estás seguro de que deseas eliminar la nave "${config.shipModels[idx].name}"?`)) {
+        config.shipModels.splice(idx, 1);
+        renderShips();
+    }
+};
 
 function updateSidebar() {
     const enemyList = document.getElementById('sidebar-enemies-list');
@@ -3428,9 +3525,10 @@ window.renderCrafting = function() {
                     
                     <!-- Form Fields -->
                     <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 10px;">
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap:15px; display: grid;">
+                        <div class="form-grid" style="grid-template-columns: 1fr 1.5fr 50px; gap:15px; display: grid;">
                             <div class="field"><label>ID Única de Receta</label><input type="text" value="${recipe.id}" onchange="config.craftingRecipes[${idx}].id = this.value;"></div>
                             <div class="field"><label>Nombre Visual de la Receta</label><input type="text" value="${recipe.name}" onchange="config.craftingRecipes[${idx}].name = this.value;"></div>
+                            <div class="field" style="width: 50px; margin:0; flex-shrink: 0;"><label>Color</label><input type="color" value="${recipe.color || '#ffffff'}" style="height:38px; width:100%; padding:0; border:none; background:none; cursor:pointer;" onchange="config.craftingRecipes[${idx}].color = this.value;"></div>
                         </div>
                         <div class="field" style="width:100%;"><label>Descripción de Receta</label><input type="text" value="${recipe.desc || ''}" style="width:100%;" onchange="config.craftingRecipes[${idx}].desc = this.value;"></div>
                         
@@ -4666,6 +4764,8 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         config.shopItems.resources[idx].icon = result.path;
                     } else if (type === 'recipe') {
                         config.craftingRecipes[idx].icon = result.path;
+                    } else if (type === 'ship_icon') {
+                        config.shipModels[idx].icon = result.path;
                     }
                     
                     // Solicitar la lista de assets actualizada mediante socket
@@ -4675,7 +4775,11 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                     }
                     
                     alert('Asset importado con éxito!');
-                    renderCrafting();
+                    if (type === 'ship_icon') {
+                        renderShips();
+                    } else {
+                        renderCrafting();
+                    }
                 } else {
                     alert('Error al importar el asset: ' + (result.error || 'Desconocido'));
                 }
@@ -4693,36 +4797,7 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
 window._assetPickerState = { idx: 0, type: 'resource' };
 
 window.openAssetPicker = function(idx, type) {
-    const overlay = document.getElementById('asset-picker-overlay');
-    if (!overlay) return;
-    window._assetPickerState = { idx, type };
-
-    // Limpiar búsqueda
-    const searchEl = document.getElementById('asset-picker-search');
-    if (searchEl) searchEl.value = '';
-
-    // Construir filtro de carpetas
-    const folderSel = document.getElementById('asset-picker-folder');
-    if (folderSel) {
-        const allFiles = window.allAssetFiles || [];
-        const folders = new Set();
-        allFiles.forEach(p => {
-            const parts = p.replace('res://assets/', '').split('/');
-            if (parts.length > 1) folders.add(parts[0]);
-        });
-        folderSel.innerHTML = '<option value="">📁 Todas las carpetas</option>';
-        [...folders].sort().forEach(f => {
-            const opt = document.createElement('option');
-            opt.value = f;
-            opt.textContent = '📂 ' + f;
-            folderSel.appendChild(opt);
-        });
-        folderSel.value = '';
-    }
-
-    // Mostrar overlay y poblar grid
-    overlay.style.display = 'flex';
-    filterAssetPicker();
+    window.triggerAssetUpload(idx, type);
 };
 
 window.closeAssetPicker = function() {

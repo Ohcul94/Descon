@@ -1287,16 +1287,25 @@ func _setup_ship_visuals():
 	var h_f = 1; var v_f = 1
 	var rot_offset = 0.0 # Compensación de rotación si el asset no apunta a la derecha
 	
-	# v222.0: ACTIVACIÓN DE FLOTA 3D (Mapeo 1 a 6)
+	# v222.0: ACTIVACIÓN DE FLOTA 3D (Mapeo dinámico y hardcoded tradicional)
 	var glb_path = ""
-	
-	match current_ship_id:
-		1: glb_path = "res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb"
-		2: glb_path = "res://assets/Personajes/3D/Nave2/Nave2.glb"
-		3: glb_path = "res://assets/Personajes/3D/Nave3/Nave3.glb"
-		4: glb_path = "res://assets/Personajes/3D/Nave4/Nave4.glb"
-		5: glb_path = "res://assets/Personajes/3D/Nave5/Nave5.glb"
-		6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
+	var ship_data = {}
+	if GameConstants.SHIP_MODELS:
+		for s in GameConstants.SHIP_MODELS:
+			if int(s.get("id")) == int(current_ship_id):
+				ship_data = s
+				break
+
+	if ship_data.has("assetPath") and ship_data.assetPath != "":
+		glb_path = ship_data.assetPath
+	else:
+		match current_ship_id:
+			1: glb_path = "res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb"
+			2: glb_path = "res://assets/Personajes/3D/Nave2/Nave2.glb"
+			3: glb_path = "res://assets/Personajes/3D/Nave3/Nave3.glb"
+			4: glb_path = "res://assets/Personajes/3D/Nave4/Nave4.glb"
+			5: glb_path = "res://assets/Personajes/3D/Nave5/Nave5.glb"
+			6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
 
 	if glb_path != "" and ResourceLoader.exists(glb_path):
 		_setup_3d_visuals(glb_path)
@@ -1305,17 +1314,22 @@ func _setup_ship_visuals():
 		# Buscamos el modelo real (hijo del _3d_model que es el nodo control)
 		var actual_model = _3d_model.get_child(0) if _3d_model and _3d_model.get_child_count() > 0 else null
 		if actual_model:
-			match current_ship_id:
-				3: # NAVE 3: Calibrada manualmente para estar plana y al frente
-					actual_model.rotation_degrees.x = 0
-					actual_model.rotation_degrees.y = 1
-					actual_model.rotation_degrees.z = 98
-				4: # NAVE 4: Posición perfecta lograda por calibración manual
-					actual_model.rotation_degrees.x = 0
-					actual_model.rotation_degrees.y = -180
-					actual_model.rotation_degrees.z = 52
-				6: # NAVE 6: Viene en reversa
-					actual_model.rotation_degrees.y = 180
+			if ship_data.has("rotX") or ship_data.has("rotY") or ship_data.has("rotZ"):
+				actual_model.rotation_degrees.x = float(ship_data.get("rotX", 0))
+				actual_model.rotation_degrees.y = float(ship_data.get("rotY", 0))
+				actual_model.rotation_degrees.z = float(ship_data.get("rotZ", 0))
+			else:
+				match current_ship_id:
+					3: # NAVE 3: Calibrada manualmente para estar plana y al frente
+						actual_model.rotation_degrees.x = 0
+						actual_model.rotation_degrees.y = 1
+						actual_model.rotation_degrees.z = 98
+					4: # NAVE 4: Posición perfecta lograda por calibración manual
+						actual_model.rotation_degrees.x = 0
+						actual_model.rotation_degrees.y = -180
+						actual_model.rotation_degrees.z = 52
+					6: # NAVE 6: Viene en reversa
+						actual_model.rotation_degrees.y = 180
 			
 			# v220.72: APLICAR MEMORIA DE USUARIO (Si el piloto calibró esta nave en esta sesión)
 			if _ship_rot_mem.has(current_ship_id):
