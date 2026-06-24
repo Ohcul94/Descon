@@ -235,7 +235,7 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 		var owned_amount = 0
 		for item in inv_main.inventory_items:
 			if item.get("id", "") == ing_id:
-				owned_amount += 1
+				owned_amount += int(item.get("amount", 1))
 				
 		var ing_row = HBoxContainer.new()
 		ing_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -410,7 +410,7 @@ func _create_material_card(res: Dictionary, parent: Control):
 	var owned_amount = 0
 	for item in inv_main.inventory_items:
 		if item.get("id", "") == res.get("id", ""):
-			owned_amount += 1
+			owned_amount += int(item.get("amount", 1))
 			
 	var qty_lbl = Label.new()
 	qty_lbl.text = "En Inventario: " + str(owned_amount)
