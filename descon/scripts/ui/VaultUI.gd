@@ -434,6 +434,7 @@ func open_vault():
 	if is_instance_valid(player):
 		player_hubs = player.hubs
 		player_ohcu = player.ohculianos
+		player_inventory = player.inventory
 		
 	if lbl_hubs:
 		lbl_hubs.text = "Hubs: " + _format_number(player_hubs)
