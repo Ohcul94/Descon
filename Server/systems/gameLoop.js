@@ -372,19 +372,46 @@ function startGameLoop(io, state, aiManager) {
                 }
             }
 
+            // Daño por Debuffs de Sangrado y Veneno (v268.830)
+            let debuffDmg = 0;
+            if (p.bleedEndTime && now < p.bleedEndTime && p.bleedDps) {
+                debuffDmg += p.bleedDps;
+            }
+            if (p.poisonEndTime && now < p.poisonEndTime && p.poisonDps) {
+                debuffDmg += p.poisonDps;
+            }
+
+            if (debuffDmg > 0) {
+                p.lastCombatTime = now;
+                if (p.shield >= debuffDmg) {
+                    p.shield -= debuffDmg;
+                } else {
+                    p.hp -= (debuffDmg - p.shield);
+                    p.shield = 0;
+                }
+                if (p.hp < 0) p.hp = 0;
+                if (p.hp <= 0) p.isDead = true;
+
+                io.to(p.socketId).emit('environmentDamage', { damage: debuffDmg });
+                changed = true;
+            }
+
             // Simular estados de sangrado (Bleed) si recibió daño de radiación recientemente
             if (p.hazardCooldowns && Object.keys(p.hazardCooldowns).length > 0) {
                 const hasRecentRad = Object.values(p.hazardCooldowns).some(t => now - t < 1500);
                 if (hasRecentRad && (!p.bleedEndTime || now > p.bleedEndTime)) {
                     p.bleedEndTime = now + 4000;
+                    p.bleedDps = 25; // DPS default de radiacion
                 }
             }
             // Sincronizar estados activos al cliente para el visualizador del HUD
             // v266.360: El veneno del sueño (Poison) solo se activa si hay daño por segundo
             if (p.isAsleep && p.sleepDmgPerSecond > 0) {
                 p.poisonEndTime = p.sleepEndTime;
-            } else if (!p.isAsleep) {
+                p.poisonDps = p.sleepDmgPerSecond;
+            } else if (!p.isAsleep && (!p.poisonEndTime || now >= p.poisonEndTime)) {
                 p.poisonEndTime = 0;
+                p.poisonDps = 0;
             }
 
             // Sincronizar estados activos al cliente para el visualizador del HUD

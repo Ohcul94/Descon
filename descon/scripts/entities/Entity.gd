@@ -192,6 +192,7 @@ func _ready():
 		NetworkManager.enemy_aura.connect(_on_enemy_aura)
 
 var active_auras: Dictionary = {} # v268.800: { mId: Sprite2D }
+var _active_survival_dome: Dictionary = {} # v268.825: Datos de la mecanica Survival Dome activa
 
 
 var last_draw_hp: float = -1.0
@@ -427,6 +428,10 @@ func _process(delta):
 	
 	_update_animations()
 	_update_auras(delta)
+	
+	if not _active_survival_dome.is_empty():
+		_active_survival_dome.time_elapsed += delta
+		queue_redraw()
 
 	# OPTIMIZACIÓN MASIVA: Pausar/Intercalar SubViewport de entidades según visibilidad, rol y distancia
 	if _cached_viewport:
@@ -566,6 +571,44 @@ func _update_hud_offsets():
 		name_tag.position.x = -(name_tag.size.x / 2.0)
 
 func _draw():
+	# v268.825: Dibujo del Domo de Supervivencia (Survival Dome)
+	if not _active_survival_dome.is_empty():
+		var fire_range = _active_survival_dome.fire_range
+		var safe_pos = _active_survival_dome.safe_pos
+		var safe_radius = _active_survival_dome.safe_radius
+		var duration = _active_survival_dome.duration
+		var time_elapsed = _active_survival_dome.time_elapsed
+		
+		# 3. Barra de Progreso de Carga
+		var progress = clamp(time_elapsed / duration, 0.0, 1.0)
+		
+		# 1. Zona de Explosión (Peligro - Círculo rojo grande que se expande sin pintar la zona segura)
+		var current_fire_range = fire_range * progress
+		var local_safe_pos = to_local(safe_pos)
+		
+		var danger_poly = PackedVector2Array()
+		# Círculo exterior de peligro (Agujas del reloj)
+		for i in range(65):
+			var angle = (i / 64.0) * TAU
+			danger_poly.append(Vector2(cos(angle), sin(angle)) * current_fire_range)
+		# Círculo interior seguro (Contra las agujas del reloj) para sustraerlo del relleno
+		for i in range(65):
+			var angle = (1.0 - i / 64.0) * TAU
+			danger_poly.append(local_safe_pos + Vector2(cos(angle), sin(angle)) * safe_radius)
+			
+		draw_polygon(danger_poly, [Color(1.0, 0.0, 0.0, 0.15)])
+		draw_arc(Vector2.ZERO, fire_range, 0, TAU, 90, Color(1.0, 0.1, 0.1, 0.4), 2.0, true)
+		draw_arc(Vector2.ZERO, current_fire_range, 0, TAU, 90, Color(1.0, 0.3, 0.0, 0.7), 3.0, true)
+		
+		# 2. Domo Seguro (Refugio - Círculo verde brillante)
+		draw_circle(local_safe_pos, safe_radius, Color(0.0, 0.9, 0.4, 0.12))
+		
+		# Pulso dinámico para el borde de la zona segura
+		var safe_pulse = safe_radius + sin(Time.get_ticks_msec() * 0.007) * 3.0
+		draw_arc(local_safe_pos, safe_radius, 0, TAU, 72, Color(0.0, 1.0, 0.5, 0.8), 4.0, true)
+		draw_arc(local_safe_pos, safe_pulse, 0, TAU, 72, Color(0.2, 1.0, 0.6, 0.35), 1.5, true)
+
+
 	# v268.810: Dibujo de soporte para cúpulas de energía (Wall Dome)
 	for mId in active_auras:
 		var a_data = active_auras[mId]
@@ -1184,6 +1227,20 @@ func _on_enemy_action(data):
 			_is_orbital_active = true
 		"orbital_strike_fire": 
 			_is_orbital_active = false
+		"survival_dome_charging":
+			_active_survival_dome = {
+				"safe_pos": Vector2(float(data.get("safeX", 0.0)), float(data.get("safeY", 0.0))),
+				"safe_radius": float(data.get("safeRadius", 150.0)),
+				"fire_range": float(data.get("fireRange", 800.0)),
+				"duration": float(data.get("duration", 3000.0)) / 1000.0,
+				"time_elapsed": 0.0
+			}
+			queue_redraw()
+		"survival_dome_fire":
+			_active_survival_dome.clear()
+			queue_redraw()
+			# Simular destello de explosion en la nave
+			_trigger_hit_flash()
 		"wall_dome_start":
 			var mId = data.get("mId", "wall_dome")
 			if not active_auras.has(mId):

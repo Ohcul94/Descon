@@ -734,6 +734,10 @@ module.exports = class BaseAI {
             this._handleSummoningLogic(mech, mId, now, io);
             return false;
         }
+        
+        if (mech.type === "survival_dome") {
+            return this._handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, players);
+        }
 
         if (dist > fireRange && !state.isCharging && !state.isActive) return false;
 
@@ -2493,6 +2497,182 @@ module.exports = class BaseAI {
                 io.to(`zone_${this.enemy.zone}`).emit('enemySpawn', spawnData);
             }
         }
+    }
+
+    _handleSurvivalDomeLogic(mech, mId, target, dist, angle, now, io, players) {
+        if (!this.enemy.mechState) this.enemy.mechState = {};
+        const state = this.enemy.mechState[mId] || { 
+            nextShotTime: now + (mech.startDelay || 0), 
+            isCharging: false,
+            isPostCastWaiting: false,
+            chargeEndTime: 0,
+            postCastEndTime: 0,
+            safeX: 0,
+            safeY: 0,
+            safeRadius: mech.safeRadius || 150,
+            fireRange: mech.fireRange || 800
+        };
+        this.enemy.mechState[mId] = state;
+
+        // Cancelar o prevenir la mecánica si el enemigo no está en combate
+        if (!this._inCombat) {
+            if (state.isCharging || state.isPostCastWaiting) {
+                state.isCharging = false;
+                state.isPostCastWaiting = false;
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "survival_dome_fire", // limpia el domo en el cliente
+                    mId: mId
+                });
+            }
+            state.nextShotTime = now + (mech.startDelay || 0);
+            return false;
+        }
+
+        // Si ya pasó el tiempo de inmovilidad post-explosión
+        if (state.isPostCastWaiting && now >= state.postCastEndTime) {
+            state.isPostCastWaiting = false;
+        }
+
+        // Si está inmovilizado post-casteo, el enemigo se queda quieto
+        if (state.isPostCastWaiting) {
+            return true;
+        }
+
+        if (!state.isCharging && now >= state.nextShotTime && this._inCombat) {
+            // FASE 1: INICIO DE CARGA Y CÁLCULO DE LA ZONA SEGURA (Domo)
+            state.isCharging = true;
+            const castTime = Number(mech.castTimeMs) || 3000;
+            state.chargeEndTime = now + castTime;
+            state.safeRadius = Number(mech.safeRadius) || 150;
+            state.fireRange = Number(mech.fireRange) || 800;
+
+            // Calcular ubicación random del domo que no coincida con el enemigo (fuera de él)
+            const safeRadius = Number(mech.safeRadius) || 150;
+            const maxOffset = Math.max(safeRadius + 150, Number(mech.maxOffset) || 350);
+            const minOffset = safeRadius + 80; // Margen de seguridad para que el domo no toque el cuerpo del Boss
+            const randomAngle = Math.random() * Math.PI * 2;
+            const randomDist = minOffset + Math.random() * (maxOffset - minOffset);
+            state.safeX = this.enemy.x + Math.cos(randomAngle) * randomDist;
+            state.safeY = this.enemy.y + Math.sin(randomAngle) * randomDist;
+
+            // Notificar el inicio de la carga del domo
+            io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                id: this.enemy.id,
+                action: "survival_dome_charging",
+                mId: mId,
+                duration: castTime,
+                safeX: state.safeX,
+                safeY: state.safeY,
+                safeRadius: state.safeRadius,
+                fireRange: state.fireRange
+            });
+            
+            // Sonido de alerta global
+            io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
+                msg: `⚠️ ¡Alerta! El Boss está cargando un ataque masivo. ¡Busca refugio en el Domo Seguro! ⚠️`, 
+                type: "error" 
+            });
+        } 
+        
+        if (state.isCharging) {
+            if (now >= state.chargeEndTime) {
+                // FASE 2: DETONACIÓN (EXPLOSIÓN Y APLICACIÓN DE DAÑO / DEBUFFS)
+                state.isCharging = false;
+                
+                const cooldown = Number(mech.cooldown) || 10000;
+                state.nextShotTime = now + cooldown;
+
+                const postWait = Number(mech.postCastWaitMs) || 1000;
+                if (postWait > 0) {
+                    state.isPostCastWaiting = true;
+                    state.postCastEndTime = now + postWait;
+                }
+
+                // Notificar detonación
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "survival_dome_fire",
+                    mId: mId,
+                    safeX: state.safeX,
+                    safeY: state.safeY,
+                    safeRadius: state.safeRadius,
+                    fireRange: state.fireRange
+                });
+
+                // Evaluar jugadores afectados
+                const dmg = (Number(mech.damage) || 500) * (this.damageMult || 1);
+                const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead);
+                
+                zonePlayers.forEach(p => {
+                    // Distancia al enemigo para saber si está en el radio de la explosión
+                    const distToEnemy = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                    if (distToEnemy <= state.fireRange) {
+                        // Distancia al domo seguro
+                        const distToSafe = Math.hypot(p.x - state.safeX, p.y - state.safeY);
+                        if (distToSafe > state.safeRadius) {
+                            // Está FUERA de la zona segura: Recibe daño y debuffs
+                            p.lastCombatTime = Date.now();
+                            if (p.shield >= dmg) {
+                                p.shield -= dmg;
+                            } else {
+                                p.hp -= (dmg - p.shield);
+                                p.shield = 0;
+                            }
+                            if (p.hp < 0) p.hp = 0;
+                            if (p.hp <= 0) p.isDead = true;
+
+                            io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+
+                            // Aplicar Debuffs (Sangrado, Stun, Veneno)
+                            if (mech.applyBleed && mech.bleedDurationMs > 0) {
+                                const bleedDps = Number(mech.bleedDps) || 30;
+                                p.isBleeding = true;
+                                p.bleedEndTime = Date.now() + Number(mech.bleedDurationMs);
+                                p.bleedDps = bleedDps;
+                                io.to(p.socketId).emit('gameNotification', { 
+                                    msg: `🩸 ¡Sufres de Sangrado! perdiendo ${bleedDps} HP/s.`, 
+                                    type: "warning" 
+                                });
+                            }
+
+                            if (mech.applyStun && mech.stunDurationMs > 0) {
+                                const stunDuration = Number(mech.stunDurationMs);
+                                p.isStunned = true;
+                                p.stunEndTime = Date.now() + stunDuration;
+                                io.to(p.socketId).emit('stunState', { active: true, duration: stunDuration });
+                                io.to(p.socketId).emit('gameNotification', { 
+                                    msg: `⚡ ¡Has sido paralizado!`, 
+                                    type: "error" 
+                                });
+                            }
+
+                            if (mech.applyPoison && mech.poisonDurationMs > 0) {
+                                const poisonDps = Number(mech.poisonDps) || 20;
+                                p.isPoisoned = true;
+                                p.poisonEndTime = Date.now() + Number(mech.poisonDurationMs);
+                                p.poisonDps = poisonDps;
+                                io.to(p.socketId).emit('gameNotification', { 
+                                    msg: `🤢 ¡Has sido envenenado! perdiendo ${poisonDps} HP/s.`, 
+                                    type: "warning" 
+                                });
+                            }
+
+                            // Sincronizar stats del jugador
+                            io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                id: p.socketId,
+                                hp: Math.ceil(p.hp),
+                                shield: Math.ceil(p.shield),
+                                isDead: p.isDead
+                            });
+                        }
+                    }
+                });
+            }
+            return true; // Sigue ocupado (inmóvil) durante la carga
+        }
+
+        return false;
     }
 
     _handleWallDomeLogic(mech, mId, now, io) {

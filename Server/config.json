@@ -2226,10 +2226,10 @@
                     "slowDuration": 0
                 },
                 {
-                    "type": "summoning",
+                    "type": "survival_dome",
                     "bulletDamage": 10,
                     "bulletSpeed": 800,
-                    "fireRange": 600,
+                    "fireRange": 800,
                     "fireRate": 1000,
                     "activationMode": "hp",
                     "activationHPs": [
@@ -2245,7 +2245,18 @@
                         "1-B",
                         "random_base"
                     ],
-                    "startDelay": 0
+                    "startDelay": 0,
+                    "safeRadius": 300,
+                    "maxOffset": 300,
+                    "castTimeMs": 5000,
+                    "damage": 500,
+                    "postCastWaitMs": 500,
+                    "applyBleed": false,
+                    "bleedDurationMs": 3000,
+                    "applyStun": false,
+                    "stunDurationMs": 1500,
+                    "applyPoison": false,
+                    "poisonDurationMs": 4000
                 }
             ],
             "movementPhases": [
@@ -2256,19 +2267,7 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": [
-                {
-                    "type": "wall_dome",
-                    "reductionPercentage": 10,
-                    "shieldRegen": 5,
-                    "duration": 5000,
-                    "cooldown": 10000,
-                    "startDelay": 0,
-                    "activationMode": "time",
-                    "activationIntervalMs": 5000,
-                    "radius": 300
-                }
-            ],
+            "defenseMechanics": [],
             "aggressive": true,
             "lootDrops": []
         },
@@ -2978,9 +2977,9 @@
         "3": {
             "color": "#ffff00",
             "desc": "Sector hostil con recursos de nivel medio.",
-            "minLevel": 5,
+            "minLevel": 1,
             "name": "Mapa 3",
-            "warpCost": 10,
+            "warpCost": 0,
             "ambience": [],
             "spawns": [
                 {
@@ -3044,9 +3043,9 @@
         "5": {
             "color": "#ff5500",
             "desc": "Zona de asteroides inestables.",
-            "minLevel": 15,
+            "minLevel": 1,
             "name": "Mapa 5",
-            "warpCost": 50,
+            "warpCost": 0,
             "ambience": [],
             "spawns": [
                 {
@@ -3077,9 +3076,9 @@
         "6": {
             "color": "#ff0000",
             "desc": "Borde exterior: Peligro extremo.",
-            "minLevel": 20,
+            "minLevel": 1,
             "name": "Mapa 6",
-            "warpCost": 100,
+            "warpCost": 0,
             "ambience": [],
             "spawns": [
                 {
@@ -3100,9 +3099,9 @@
         "7": {
             "color": "#aa0000",
             "desc": "Sector de invasión: Hordas detectadas.",
-            "minLevel": 25,
+            "minLevel": 1,
             "name": "Mapa 7",
-            "warpCost": 200,
+            "warpCost": 0,
             "ambience": [],
             "width": 10000,
             "height": 10000,
@@ -3123,9 +3122,9 @@
         "8": {
             "color": "#550000",
             "desc": "Guarida de Jefes: Requiere escolta.",
-            "minLevel": 30,
+            "minLevel": 1,
             "name": "Mapa 8",
-            "warpCost": 500,
+            "warpCost": 0,
             "ambience": [
                 {
                     "type": "radiation",
@@ -3222,9 +3221,9 @@
         "9": {
             "color": "#aa00ff",
             "desc": "Zona de Pruebas Tácticas (Showcase).",
-            "minLevel": 35,
+            "minLevel": 1,
             "name": "Mapa 9",
-            "warpCost": 1000,
+            "warpCost": 0,
             "ambience": [],
             "width": 10000,
             "height": 10000,
@@ -4928,6 +4927,27 @@
                 "summonDurationMode",
                 "summonDurationMs",
                 "summonsList",
+                "startDelay"
+            ]
+        },
+        "survival_dome": {
+            "label": "Domo de Supervivencia (Survival Dome)",
+            "icon": "🔮",
+            "desc": "Carga un ataque masivo creando un domo seguro en una ubicacion aleatoria.",
+            "fields": [
+                "fireRange",
+                "safeRadius",
+                "maxOffset",
+                "castTimeMs",
+                "cooldown",
+                "damage",
+                "postCastWaitMs",
+                "applyBleed",
+                "bleedDurationMs",
+                "applyStun",
+                "stunDurationMs",
+                "applyPoison",
+                "poisonDurationMs",
                 "startDelay"
             ]
         }

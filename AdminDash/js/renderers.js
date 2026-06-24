@@ -915,7 +915,7 @@ function renderEnemyDetail() {
                                      const fieldLabelsMap = { 
                                           bulletDamage: m.type === 'bomb' ? "Daño de Explosión (pts)" : "Daño (pts)", 
                                           bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : "Vel. Bala (px/s)", 
-                                          fireRange: m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : "Alcance (px)")), 
+                                          fireRange: m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : (m.type === 'survival_dome' ? "Radio de la Explosión (px)" : "Alcance (px)"))), 
                                           fireRate: "Cadencia (ms)", 
                                           slowAmount: "Ralentización (pts)", 
                                           slowDuration: "Duración de Ralentización (ms)", 
@@ -930,17 +930,27 @@ function renderEnemyDetail() {
                                           orbitRadius: "Radio de Órbita (px)",
                                           orbitDuration: "Tiempo de Giro (ms)",
                                           staticTime: "Tiempo Estático (ms)",
-                                          radius: m.type === 'spin_ring' ? "Radio del Círculo (px)" : (m.type === 'bomb' ? "Radio de Explosión (px)" : "Radio del Aura (px)"),
                                           radius: m.type === 'spin_ring' ? "Radio del Círculo (px)" : (m.type === 'bomb' ? "Radio de Explosión (px)" : (m.type === 'wall_dome' ? "Radio del Domo (px)" : "Radio del Aura (px)")),
-                                          damage: "Daño (pts)",
+                                          damage: m.type === 'survival_dome' ? "Daño de la Explosión (pts)" : "Daño (pts)",
                                           intervalMs: "Intervalo de Tick (ms)",
                                           duration: m.type === 'sleep' ? "Duración del Sueño (ms)" : (m.type === 'reflect' ? "Duración del Escudo (ms)" : "Duración Total (ms)"),
                                           cooldown: "Enfriamiento (CD) (ms)",
                                           pullSpeed: "Vel. Atracción (px/s)",
                                           stunDuration: "Duración de Stun (ms)",
+                                          safeRadius: "Radio del Domo Seguro (px)",
+                                          maxOffset: "Radio Máximo de Dispersión (px)",
+                                          castTimeMs: m.type === 'circle_cast' ? "Tiempo de Carga (ms)" : "Tiempo de Casteo (ms)",
+                                          postCastWaitMs: "Espera Post-Explosión del Enemigo (ms)",
+                                          applyBleed: "Aplicar Debuff: Sangrado",
+                                          bleedDurationMs: "Duración del Sangrado (ms)",
+                                          bleedDps: "Daño por Segundo de Sangrado (pts/s)",
+                                          applyStun: "Aplicar Debuff: Parálisis",
+                                          stunDurationMs: "Duración de la Parálisis (ms)",
+                                          applyPoison: "Aplicar Debuff: Veneno",
+                                          poisonDurationMs: "Duración del Veneno (ms)",
+                                          poisonDps: "Daño por Segundo de Veneno (pts/s)",
                                           postHookWaitMs: "Espera Post-Gancho (ms)",
                                           hookMissWaitMs: "Espera por Fallo (ms)",
-                                          startDelay: "Retraso Inicio (ms)",
                                           activationHP: "Activación por HP (%)",
                                           reductionPercentage: "Reducción de Daño (%)",
                                           shieldRegen: "Regen. de Escudo (pts/s)",
@@ -1077,6 +1087,18 @@ function renderEnemyDetail() {
                                      if (f === 'wakeOnDamage') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] !== false ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].wakeOnDamage = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                      if (f === 'applySlow') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].applySlow = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                      if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].slowIsPercentage = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                     
+                                     if (f === 'applyBleed') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].applyBleed = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                     if (f === 'bleedDurationMs' && !m.applyBleed) return '';
+                                     if (f === 'bleedDps' && !m.applyBleed) return '';
+                                     
+                                     if (f === 'applyStun') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].applyStun = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                     if (f === 'stunDurationMs' && !m.applyStun) return '';
+                                     
+                                     if (f === 'applyPoison') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].applyPoison = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                     if (f === 'poisonDurationMs' && !m.applyPoison) return '';
+                                     if (f === 'poisonDps' && !m.applyPoison) return '';
+                                     
                                      if (f === 'targetMode') {
                                          const val = m[f] || 'proximity';
                                          return `<div class="field"><label>Criterio de Selección</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
