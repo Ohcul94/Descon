@@ -3411,6 +3411,29 @@
                 "hubs": 10000,
                 "ohcu": 100
             }
+        },
+        {
+            "id": 8,
+            "name": "Pinfli 11",
+            "assetPath": "res://assets/Crafteo/Nave11.glb",
+            "icon": "res://assets/Crafteo/Nave11.png",
+            "rotX": 0,
+            "rotY": 0,
+            "rotZ": 0,
+            "hp": 3000,
+            "shield": 1000,
+            "speed": 400,
+            "vision": 1300,
+            "slots": {
+                "w": 1,
+                "s": 1,
+                "e": 1,
+                "x": 1
+            },
+            "prices": {
+                "hubs": 10000,
+                "ohcu": 100
+            }
         }
     ],
     "shopItems": {
