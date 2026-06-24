@@ -144,6 +144,14 @@
             3,
             6,
             12
+        ],
+        "electron": [
+            1,
+            2,
+            3.5,
+            6,
+            12,
+            25
         ]
     },
     "enemyModels": {
@@ -3958,6 +3966,104 @@
                     "range": 500,
                     "cooldown": 2000,
                     "bulletSpeed": 800,
+                    "mechanics": []
+                }
+            ],
+            "electron": [
+                {
+                    "id": "am_el1",
+                    "name": "Electrón T1",
+                    "prices": {
+                        "hubs": 4000,
+                        "ohcu": 5
+                    },
+                    "range": 500,
+                    "cooldown": 2000,
+                    "bulletSpeed": 600,
+                    "explosionRadius": 120,
+                    "speedBuffPct": 15,
+                    "speedBuffDurationMs": 3000,
+                    "speedBuffMaxStacks": 4,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_el2",
+                    "name": "Electrón T2",
+                    "prices": {
+                        "hubs": 8000,
+                        "ohcu": 10
+                    },
+                    "range": 520,
+                    "cooldown": 1800,
+                    "bulletSpeed": 600,
+                    "explosionRadius": 120,
+                    "speedBuffPct": 18,
+                    "speedBuffDurationMs": 3000,
+                    "speedBuffMaxStacks": 4,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_el3",
+                    "name": "Electrón T3",
+                    "prices": {
+                        "hubs": 16000,
+                        "ohcu": 20
+                    },
+                    "range": 540,
+                    "cooldown": 1800,
+                    "bulletSpeed": 600,
+                    "explosionRadius": 130,
+                    "speedBuffPct": 20,
+                    "speedBuffDurationMs": 3500,
+                    "speedBuffMaxStacks": 4,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_el4",
+                    "name": "Electrón T4",
+                    "prices": {
+                        "hubs": 32000,
+                        "ohcu": 40
+                    },
+                    "range": 560,
+                    "cooldown": 1800,
+                    "bulletSpeed": 600,
+                    "explosionRadius": 130,
+                    "speedBuffPct": 22,
+                    "speedBuffDurationMs": 3500,
+                    "speedBuffMaxStacks": 5,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_el5",
+                    "name": "Electrón T5",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 100
+                    },
+                    "range": 580,
+                    "cooldown": 1800,
+                    "bulletSpeed": 600,
+                    "explosionRadius": 140,
+                    "speedBuffPct": 25,
+                    "speedBuffDurationMs": 4000,
+                    "speedBuffMaxStacks": 5,
+                    "mechanics": []
+                },
+                {
+                    "id": "am_el6",
+                    "name": "Electrón T6",
+                    "prices": {
+                        "hubs": 0,
+                        "ohcu": 200
+                    },
+                    "range": 600,
+                    "cooldown": 1800,
+                    "bulletSpeed": 650,
+                    "explosionRadius": 150,
+                    "speedBuffPct": 30,
+                    "speedBuffDurationMs": 4000,
+                    "speedBuffMaxStacks": 5,
                     "mechanics": []
                 }
             ]

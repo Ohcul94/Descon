@@ -35,7 +35,8 @@ const UserSchema = new mongoose.Schema({
             melee: { type: [Number], default: [0, 0, 0, 0, 0, 0] },
             heal: { type: [Number], default: [0, 0, 0, 0, 0, 0] },
             siphon: { type: [Number], default: [0, 0, 0, 0, 0, 0] },
-            emp: { type: [Number], default: [0, 0, 0, 0, 0, 0] }
+            emp: { type: [Number], default: [0, 0, 0, 0, 0, 0] },
+            electron: { type: [Number], default: [0, 0, 0, 0, 0, 0] }
         },
         selectedAmmo: {
             laser: { type: Number, default: 0 },
@@ -44,7 +45,8 @@ const UserSchema = new mongoose.Schema({
             melee: { type: Number, default: 0 },
             heal: { type: Number, default: 0 },
             siphon: { type: Number, default: 0 },
-            emp: { type: Number, default: 0 }
+            emp: { type: Number, default: 0 },
+            electron: { type: Number, default: 0 }
         },
         lastPos: {
             x: { type: Number, default: 2000 },

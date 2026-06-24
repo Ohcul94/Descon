@@ -291,6 +291,7 @@ function registerInventoryHandlers(socket, io, state) {
                 else if (itemId.startsWith("am_n")) ammoType = "mine";
                 else if (itemId.startsWith("am_h")) ammoType = "heal";
                 else if (itemId.startsWith("am_s")) ammoType = "siphon";
+                else if (itemId.startsWith("am_el")) ammoType = "electron";
                 else if (itemId.startsWith("am_e")) ammoType = "emp";
 
                 const tierIndex = parseInt(itemId.slice(-1)) - 1;
@@ -303,7 +304,8 @@ function registerInventoryHandlers(socket, io, state) {
                         melee: [0,0,0,0,0,0],
                         heal: [0,0,0,0,0,0],
                         siphon: [0,0,0,0,0,0],
-                        emp: [0,0,0,0,0,0]
+                        emp: [0,0,0,0,0,0],
+                        electron: [0,0,0,0,0,0]
                     };
                 }
                 if (!user.gameData.ammo[ammoType]) user.gameData.ammo[ammoType] = [0,0,0,0,0,0];

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Logger = require('../utils/logger');
 const { handleEnemyDeath } = require('./enemyLogic');
+const { calculateFinalStats } = require('./statCalculator');
 const SkillManager = require('./skills/SkillManager');
 const altarDefenseManager = require('./altarDefenseManager');
 const StealthSkill = require('./skills/StealthSkill');
@@ -69,7 +70,7 @@ function registerCombatHandlers(socket, io, state) {
         const ammoType = fireData.type || 'laser';
         const ammoTier = (fireData.ammoType !== undefined) ? fireData.ammoType : 0;
         
-        const validTypes = ['laser', 'missile', 'mine', 'melee', 'heal', 'siphon', 'emp'];
+        const validTypes = ['laser', 'missile', 'mine', 'melee', 'heal', 'siphon', 'emp', 'electron'];
         const typeKey = validTypes.includes(ammoType) ? ammoType : 'laser';
 
         if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][ammoTier] || 0) <= 0) {
@@ -294,6 +295,38 @@ function registerCombatHandlers(socket, io, state) {
                 const slowMs = ammoConfig.slowDurationMs !== undefined ? ammoConfig.slowDurationMs : 1000;
                 enemy.isSlowed = true;
                 enemy.slowEndTime = Date.now() + slowMs;
+            } else if (activeAmmo === 'electron') {
+                // Electron: Otorga velocidad de movimiento acumulable al jugador al impactar
+                const buffPct = ammoConfig.speedBuffPct !== undefined ? ammoConfig.speedBuffPct : 15;
+                const buffDuration = ammoConfig.speedBuffDurationMs !== undefined ? ammoConfig.speedBuffDurationMs : 3000;
+                const maxStacks = ammoConfig.speedBuffMaxStacks !== undefined ? ammoConfig.speedBuffMaxStacks : 4;
+                
+                p.electronSpeedBuffActive = true;
+                p.electronSpeedBuffPct = buffPct;
+                p.electronSpeedBuffDurationMs = buffDuration;
+                p.electronSpeedBuffMaxStacks = maxStacks;
+                
+                const now = Date.now();
+                if (p.electronSpeedBuffEndTime && p.electronSpeedBuffEndTime > now) {
+                    p.electronSpeedBuffStacks = Math.min((p.electronSpeedBuffStacks || 0) + 1, maxStacks);
+                } else {
+                    p.electronSpeedBuffStacks = 1;
+                }
+                p.electronSpeedBuffEndTime = now + buffDuration;
+                
+                // Recalcular estadísticas del jugador para que tenga efecto
+                calculateFinalStats(p, state.SERVER_CONFIG);
+                
+                // Sincronizar stats del jugador con la nueva velocidad
+                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                    id: socket.id,
+                    speed: p.speed,
+                    electronSpeedBuff: {
+                        duration: buffDuration,
+                        pct: buffPct,
+                        stacks: p.electronSpeedBuffStacks
+                    }
+                });
             }
 
             if (enemy.reflectActive) {
@@ -674,6 +707,38 @@ function registerCombatHandlers(socket, io, state) {
                         victim.isSlowed = true;
                         victim.slowEndTime = Date.now() + slowMs;
                         io.to(data.victimId).emit('slowState', { active: true, amount: slowAmt });
+                    } else if (attackerAmmoType === 'electron') {
+                        // Electron: Otorga velocidad de movimiento acumulable al atacante
+                        const buffPct = attackerAmmoConfig.speedBuffPct !== undefined ? attackerAmmoConfig.speedBuffPct : 15;
+                        const buffDuration = attackerAmmoConfig.speedBuffDurationMs !== undefined ? attackerAmmoConfig.speedBuffDurationMs : 3000;
+                        const maxStacks = attackerAmmoConfig.speedBuffMaxStacks !== undefined ? attackerAmmoConfig.speedBuffMaxStacks : 4;
+                        
+                        attacker.electronSpeedBuffActive = true;
+                        attacker.electronSpeedBuffPct = buffPct;
+                        attacker.electronSpeedBuffDurationMs = buffDuration;
+                        attacker.electronSpeedBuffMaxStacks = maxStacks;
+                        
+                        const now = Date.now();
+                        if (attacker.electronSpeedBuffEndTime && attacker.electronSpeedBuffEndTime > now) {
+                            attacker.electronSpeedBuffStacks = Math.min((attacker.electronSpeedBuffStacks || 0) + 1, maxStacks);
+                        } else {
+                            attacker.electronSpeedBuffStacks = 1;
+                        }
+                        attacker.electronSpeedBuffEndTime = now + buffDuration;
+                        
+                        // Recalcular estadísticas del atacante
+                        calculateFinalStats(attacker, state.SERVER_CONFIG);
+                        
+                        // Sincronizar stats del atacante
+                        io.to(attacker.socketId).emit('playerStatSync', {
+                            id: attacker.socketId,
+                            speed: attacker.speed,
+                            electronSpeedBuff: {
+                                duration: buffDuration,
+                                pct: buffPct,
+                                stacks: attacker.electronSpeedBuffStacks
+                            }
+                        });
                     }
 
                     if (victim.isAsleep && victim.sleepWakeOnDamage !== false) {

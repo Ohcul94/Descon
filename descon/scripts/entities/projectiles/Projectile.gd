@@ -430,6 +430,35 @@ func _draw():
 	else: color = Color(0.3, 1.0, 1.0)
  
 	match type:
+		"electron":
+			var total_flight_time = max_range / max(1.0, speed)
+			var t = clamp(_current_lifetime / total_flight_time, 0.0, 1.0)
+			var max_height = 180.0
+			var height = 4.0 * max_height * t * (1.0 - t)
+			
+			# Sombra en el suelo (plana en 2D, se encoge un poco al subir y se agranda al bajar)
+			var shadow_radius = 16.0 * (1.0 - t * 0.3)
+			var shadow_alpha = 0.35 * (1.0 - t * 0.5)
+			draw_circle(Vector2.ZERO, shadow_radius, Color(0, 0, 0, shadow_alpha))
+			
+			# Orbe de energía celeste/azul que se desplaza hacia arriba (-height)
+			var bomb_pos = Vector2(0, -height)
+			var pulse = sin(Time.get_ticks_msec() * 0.015) * 2.0
+			var bomb_radius = 12.0 + pulse
+			
+			# Aura externa
+			draw_circle(bomb_pos, bomb_radius + 6.0, Color(0.2, 0.6, 1.0, 0.35))
+			draw_circle(bomb_pos, bomb_radius, Color(0.4, 0.8, 1.0, 0.85))
+			# Núcleo brillante
+			draw_circle(bomb_pos, 5.0, Color.WHITE)
+			
+			# Rayos giratorios
+			var spin_angle = (Time.get_ticks_msec() / 1000.0) * 12.0
+			for i in range(3):
+				var ang = spin_angle + (float(i) / 3.0) * TAU
+				var spark_pos = bomb_pos + Vector2(cos(ang), sin(ang)) * (bomb_radius + 3.0)
+				draw_circle(spark_pos, 2.0, Color(0.8, 0.95, 1.0, 0.95))
+				draw_line(bomb_pos, spark_pos, Color(0.5, 0.9, 1.0, 0.6), 1.5)
 		"laser":
 			draw_rect(Rect2(Vector2(-10, -2.5), Vector2(20, 5)), color)
 		"missile", "ice_missile":
@@ -654,12 +683,18 @@ func _physics_process(delta):
 	else:
 		global_position += move_step
 
+	if type == "electron":
+		queue_redraw()
+
 	if max_range > 0:
 		var dist = global_position.distance_to(_start_pos)
 		if dist >= max_range:
 			if type == "mine":
 				global_position = _start_pos + (_start_pos.direction_to(global_position) * max_range)
 				velocity = Vector2.ZERO
+			elif type == "electron":
+				global_position = _start_pos + (_start_pos.direction_to(global_position) * max_range)
+				_explode()
 			else:
 				queue_free()
 	
@@ -680,6 +715,7 @@ func _get_visual_position_of(entity: Node) -> Vector2:
 
 func _on_body_entered(body):
 	if _has_hit: return
+	if type == "electron": return
 	
 	if body.has_method("take_damage"):
 		if body.get("is_dead") == true: return
@@ -737,6 +773,82 @@ func _on_body_entered(body):
 var _is_exploding: bool = false
 
 func _explode():
+	if _is_exploding: return
+	_is_exploding = true
+	
+	if type == "electron":
+		_has_hit = true
+		var radius = float(get_meta("explosionRadius", 120.0)) if has_meta("explosionRadius") else 120.0
+		
+		# 1. Efecto visual de explosión eléctrica de área
+		var particles = CPUParticles2D.new()
+		particles.amount = 75
+		particles.lifetime = 0.5
+		particles.one_shot = true
+		particles.explosiveness = 0.9
+		particles.spread = 180.0
+		particles.gravity = Vector2.ZERO
+		particles.initial_velocity_min = 150.0
+		particles.initial_velocity_max = 300.0
+		particles.scale_amount_min = 3.0
+		particles.scale_amount_max = 8.0
+		particles.z_index = 6
+		
+		var grad = Gradient.new()
+		grad.set_color(0, Color(0.2, 0.7, 1.0, 0.95)) # Azul/Celeste eléctrico brillante
+		grad.add_point(0.4, Color(0.5, 0.9, 1.0, 0.85)) # Blanco celeste núcleo
+		grad.add_point(0.7, Color(0.0, 0.3, 0.8, 0.4)) # Azul profundo desvanecido
+		grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+		particles.color_ramp = grad
+		
+		particles.global_position = global_position
+		get_parent().add_child(particles)
+		particles.emitting = true
+		get_tree().create_timer(0.6).timeout.connect(particles.queue_free)
+		
+		# Anillo de onda de choque eléctrico en área
+		var wave = Line2D.new()
+		wave.width = 4.0
+		wave.default_color = Color(0.3, 0.8, 1.0, 0.8)
+		get_parent().add_child(wave)
+		var pts = PackedVector2Array()
+		var steps = 32
+		for i in range(steps + 1):
+			var a = (float(i) / steps) * TAU
+			pts.append(Vector2(cos(a), sin(a)) * radius)
+		wave.points = pts
+		wave.global_position = global_position
+		
+		var tw = wave.create_tween()
+		tw.tween_property(wave, "scale", Vector2(1.2, 1.2), 0.3)
+		tw.parallel().tween_property(wave, "default_color:a", 0.0, 0.3)
+		tw.finished.connect(wave.queue_free)
+		
+		# 2. Buscar y dañar enemigos/jugadores en el radio de la explosión
+		var targets_hit = []
+		var entities = get_tree().get_nodes_in_group("entities")
+		for ent in entities:
+			if not is_instance_valid(ent) or ent.get("is_dead") == true: continue
+			
+			var ent_eid = ""
+			if "entity_id" in ent: ent_eid = str(ent.entity_id)
+			if ent_eid == owner_id: continue
+			
+			var dist = global_position.distance_to(ent.global_position)
+			if dist <= radius:
+				targets_hit.append(ent)
+				
+		for ent in targets_hit:
+			ent.take_damage(damage, global_position, owner_id)
+			if NetworkManager:
+				if owner_type == "player" and ent.is_in_group("enemies"):
+					NetworkManager.send_event("enemyHit", {"enemyId": ent.entity_id, "damage": damage})
+				elif owner_type == "player" and (ent.is_in_group("remote_players") or ent.is_in_group("player")):
+					NetworkManager.send_event("playerHitByPlayer", {"victimId": ent.entity_id, "damage": damage})
+					
+		queue_free()
+		return
+
 	if type == "siphon":
 		# 1. Efecto de Impacto (Destello de Cristal Rompiéndose)
 		var sparks_impact = CPUParticles2D.new()

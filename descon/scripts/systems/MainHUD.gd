@@ -1888,6 +1888,7 @@ func _update_status_effects_ui():
 		p_node.get("heal_timer") > 0.0 or 
 		p_node.get("bleed_timer") > 0.0 or 
 		p_node.get("poison_timer") > 0.0 or 
+		p_node.get("electron_speed_buff_timer") > 0.0 or
 		(p_node.get("is_stunned") and p_node.get("stun_timer") > 0.0)
 	)
 	
@@ -1905,6 +1906,7 @@ func _update_status_effects_ui():
 	if is_editing_layout and not is_any_status:
 		_add_status_box("❄️", "3.0", Color(0.0, 0.7, 1.0, 0.7))
 		_add_status_box("💚", "3x 4.5", Color(0.0, 0.8, 0.2, 0.7))
+		_add_status_box("⚡", "4x 5.0", Color(1.0, 0.8, 0.0, 0.7))
 		_add_status_box("🩸", "2.1", Color(0.9, 0.1, 0.1, 0.7))
 		_add_status_box("🧪", "5.0", Color(0.7, 0.1, 0.9, 0.7))
 		_add_status_box("🛡️", "1.5", Color(0.5, 0.5, 0.5, 0.7))
@@ -1918,6 +1920,12 @@ func _update_status_effects_ui():
 		if p_node.get("heal_stacks") > 1:
 			txt = "%dx" % p_node.heal_stacks + txt
 		_add_status_box("💚", txt, Color(0.0, 0.8, 0.2, 0.7))
+		
+	if p_node.get("electron_speed_buff_timer") > 0.0:
+		var txt = "%.1f" % p_node.electron_speed_buff_timer
+		if p_node.get("electron_speed_buff_stacks") > 1:
+			txt = "%dx " % p_node.electron_speed_buff_stacks + txt
+		_add_status_box("⚡", txt, Color(1.0, 0.8, 0.0, 0.7))
 		
 	if p_node.get("bleed_timer") > 0.0:
 		_add_status_box("🩸", "%.1f" % p_node.bleed_timer, Color(0.9, 0.1, 0.1, 0.7))

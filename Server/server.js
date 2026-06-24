@@ -370,7 +370,8 @@ const handleUserLogin = async (socket, user, username) => {
             melee: [0, 0, 0, 0, 0, 0],
             heal: [0, 0, 0, 0, 0, 0],
             siphon: [0, 0, 0, 0, 0, 0],
-            emp: [0, 0, 0, 0, 0, 0]
+            emp: [0, 0, 0, 0, 0, 0],
+            electron: [0, 0, 0, 0, 0, 0]
         };
         ammoModified = true;
     }
@@ -382,7 +383,8 @@ const handleUserLogin = async (socket, user, username) => {
         melee: [0, 0, 0, 0, 0, 0],
         heal: [0, 0, 0, 0, 0, 0],
         siphon: [0, 0, 0, 0, 0, 0],
-        emp: [0, 0, 0, 0, 0, 0]
+        emp: [0, 0, 0, 0, 0, 0],
+        electron: [0, 0, 0, 0, 0, 0]
     };
     
     // Si no se reseteó por completo, normalizar tiers
@@ -408,10 +410,10 @@ const handleUserLogin = async (socket, user, username) => {
 
     if (selectedReset) {
         user.gameData.selectedAmmo = undefined;
-        user.gameData.selectedAmmo = { laser: 0, missile: 0, mine: 0, melee: 0, heal: 0, siphon: 0, emp: 0 };
+        user.gameData.selectedAmmo = { laser: 0, missile: 0, mine: 0, melee: 0, heal: 0, siphon: 0, emp: 0, electron: 0 };
         ammoModified = true;
     } else {
-        const defaultSelected = { laser: 0, missile: 0, mine: 0, melee: 0, heal: 0, siphon: 0, emp: 0 };
+        const defaultSelected = { laser: 0, missile: 0, mine: 0, melee: 0, heal: 0, siphon: 0, emp: 0, electron: 0 };
         for (const key in defaultSelected) {
             if (user.gameData.selectedAmmo[key] === undefined) {
                 user.gameData.selectedAmmo[key] = defaultSelected[key];

@@ -310,7 +310,8 @@ function renderAmmo() {
         'melee': '👊 <strong>Melee (Tanque):</strong> Ataque cuerpo a cuerpo de muy corto alcance. Ralentiza (paraliza) al enemigo al impactar.',
         'heal': '💚 <strong>Curativa:</strong> Restaura HP y Escudo al propio jugador en PvE. En PvP, cura al aliado impactado y una porción a vos.',
         'siphon': '🧛 <strong>Vampírica (Sifón):</strong> Inflige daño al enemigo y te cura un porcentaje del daño causado.',
-        'emp': '⚡ <strong>Pulso EMP:</strong> Silencia habilidades y mecánicas de la IA del enemigo o silencia a jugadores en PvP.'
+        'emp': '⚡ <strong>Pulso EMP:</strong> Silencia habilidades y mecánicas de la IA del enemigo o silencia a jugadores en PvP.',
+        'electron': '⚛️ <strong>Electrón:</strong> Lanza una bomba de energía en parábola que explota en área al caer. Si golpea enemigos, te otorga velocidad de movimiento acumulable.'
     };
 
     const descDiv = document.createElement('div');
@@ -361,6 +362,15 @@ function renderAmmo() {
                 <div class="form-grid" style="margin-top: 1rem; grid-template-columns: 1fr 1fr;">
                     <div class="field"><label>Duración Slow (ms)</label><input type="number" value="${item.slowDurationMs !== undefined ? item.slowDurationMs : 1000}" onchange="config.shopItems.ammo['${type}'][${i}].slowDurationMs = parseInt(this.value)"></div>
                     <div class="field"><label>Cantidad Ralentización (pts)</label><input type="number" value="${item.slowAmount !== undefined ? item.slowAmount : 200}" onchange="config.shopItems.ammo['${type}'][${i}].slowAmount = parseInt(this.value)"></div>
+                </div>
+            `;
+        } else if (type === 'electron') {
+            extraFieldsHTML = `
+                <div class="form-grid" style="margin-top: 1rem; grid-template-columns: 1fr 1fr 1fr 1fr;">
+                    <div class="field"><label>Radio de Explosión (px)</label><input type="number" value="${item.explosionRadius !== undefined ? item.explosionRadius : 120}" onchange="config.shopItems.ammo['${type}'][${i}].explosionRadius = parseInt(this.value)"></div>
+                    <div class="field"><label>Velocidad Otorgada (%)</label><input type="number" value="${item.speedBuffPct !== undefined ? item.speedBuffPct : 15}" onchange="config.shopItems.ammo['${type}'][${i}].speedBuffPct = parseInt(this.value)"></div>
+                    <div class="field"><label>Duración de Velocidad (ms)</label><input type="number" value="${item.speedBuffDurationMs !== undefined ? item.speedBuffDurationMs : 3000}" onchange="config.shopItems.ammo['${type}'][${i}].speedBuffDurationMs = parseInt(this.value)"></div>
+                    <div class="field"><label>Stacks Máximos (cant)</label><input type="number" value="${item.speedBuffMaxStacks !== undefined ? item.speedBuffMaxStacks : 4}" onchange="config.shopItems.ammo['${type}'][${i}].speedBuffMaxStacks = parseInt(this.value)"></div>
                 </div>
             `;
         }

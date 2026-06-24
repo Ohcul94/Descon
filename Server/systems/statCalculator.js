@@ -55,7 +55,14 @@ function calculateFinalStats(player, config) {
     // 4. Calcular Totales Finales
     player.maxHp = Math.ceil((baseHp + itemHp) * hpBonus);
     player.maxShield = Math.ceil((baseShield + itemShield) * shBonus);
-    player.speed = baseSpeed + itemSpeed;
+    
+    let currentSpeed = baseSpeed + itemSpeed;
+    if (player.electronSpeedBuffEndTime && player.electronSpeedBuffEndTime > Date.now()) {
+        const bonusPct = (player.electronSpeedBuffPct || 0) / 100;
+        const stacks = player.electronSpeedBuffStacks || 1;
+        currentSpeed = Math.ceil(currentSpeed * (1.0 + (bonusPct * stacks)));
+    }
+    player.speed = currentSpeed;
 
     // Sanity Check: Mantener vida actual dentro de los límites
     if (player.hp > player.maxHp) player.hp = player.maxHp;

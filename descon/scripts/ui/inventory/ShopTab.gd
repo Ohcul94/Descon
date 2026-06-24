@@ -422,7 +422,7 @@ func _process(delta):
 
 func _render_ammo_shop(parent, grid):
 	var bar = HBoxContainer.new(); bar.add_theme_constant_override("separation", 10); parent.add_child(bar); parent.move_child(bar, 1)
-	for t in ["laser", "missile", "mine", "melee", "heal", "siphon", "emp"]:
+	for t in ["laser", "missile", "mine", "melee", "heal", "siphon", "emp", "electron"]:
 		var b = Button.new(); b.text = t.to_upper(); b.flat = true; b.modulate = Color.GOLD if ammo_sub_tab == t else Color.WHITE
 		b.pressed.connect(func(): ammo_sub_tab = t; update_ui())
 		bar.add_child(b)

@@ -224,7 +224,7 @@ func _draw():
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas (Solo queremos el punto)
 		var s_name = current_skill.get("skill_name", "")
-		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO" and s_name != "BALIZA DE CURACION" and s_name != "PROVOCACION" and s_name != "RESURRECCIÓN":
+		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and current_skill.id != "electron" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO" and s_name != "BALIZA DE CURACION" and s_name != "PROVOCACION" and s_name != "RESURRECCIÓN":
 			draw_line(Vector2.ZERO, end_point, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
 		if current_skill.id == "emp":
@@ -234,6 +234,13 @@ func _draw():
 			end_point = dir * range_val
 			draw_line(Vector2.ZERO, end_point, Color(0.1, 0.5, 1.0, 0.25), 60.0) # Haz grueso de ancho 60px
 			draw_line(Vector2.ZERO, end_point, Color(0.3, 0.7, 1.0, 0.65), 3.0)  # Núcleo de la mira
+		elif current_skill.id == "electron":
+			var radius_val = float(current_skill.get("explosionRadius", 120.0))
+			var draw_color = Color(0.2, 0.7, 1.0, 0.5)
+			var fill_color = Color(0.2, 0.7, 1.0, 0.1)
+			draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
+			draw_circle(end_point, radius_val, fill_color)
+			draw_circle(end_point, 8.0, draw_color)
 		elif current_skill.id == "melee":
 			var dir = aim_vec.normalized()
 			if aim_vec.length() < 0.1:

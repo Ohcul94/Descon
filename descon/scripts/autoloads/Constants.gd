@@ -90,6 +90,14 @@ var SHOP_ITEMS = {
 			{ "id": "am_m4", "name": "Misil T4", "prices": { "hubs": 20000, "ohcu": 20 }, "range": 1100 },
 			{ "id": "am_m5", "name": "Misil T5", "prices": { "hubs": 0, "ohcu": 50 }, "range": 1200 },
 			{ "id": "am_m6", "name": "Misil T6", "prices": { "hubs": 0, "ohcu": 100 }, "range": 1500 }
+		],
+		"electron": [
+			{ "id": "am_el1", "name": "Electrón T1", "prices": { "hubs": 4000, "ohcu": 5 }, "range": 500 },
+			{ "id": "am_el2", "name": "Electrón T2", "prices": { "hubs": 8000, "ohcu": 10 }, "range": 520 },
+			{ "id": "am_el3", "name": "Electrón T3", "prices": { "hubs": 16000, "ohcu": 20 }, "range": 540 },
+			{ "id": "am_el4", "name": "Electrón T4", "prices": { "hubs": 32000, "ohcu": 40 }, "range": 560 },
+			{ "id": "am_el5", "name": "Electrón T5", "prices": { "hubs": 0, "ohcu": 100 }, "range": 580 },
+			{ "id": "am_el6", "name": "Electrón T6", "prices": { "hubs": 0, "ohcu": 200 }, "range": 600 }
 		]
 	},
 	"weapons": [
@@ -143,7 +151,12 @@ var ENEMY_MODELS = {
 var AMMO_MULTIPLIERS = {
 	"laser": [1, 2, 3, 4, 5, 15],
 	"missile": [1, 2, 4, 8, 16, 30],
-	"mine": [1, 3, 7, 15, 40, 100]
+	"mine": [1, 3, 7, 15, 40, 100],
+	"melee": [1.5, 3, 5, 10, 22, 50],
+	"heal": [1, 1.8, 3, 5.5, 12, 25],
+	"siphon": [0.8, 1.5, 2.5, 5, 10, 20],
+	"emp": [0.5, 1, 1.5, 3, 6, 12],
+	"electron": [1.0, 2.0, 3.5, 6.0, 12.0, 25.0]
 }
 
 var SKILLS_DATA = {

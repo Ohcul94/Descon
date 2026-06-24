@@ -102,6 +102,11 @@ var heal_stacks: int = 0
 var bleed_timer: float = 0.0
 var poison_timer: float = 0.0
 
+# Buff de velocidad de la munición Electron
+var electron_speed_buff_timer: float = 0.0
+var electron_speed_buff_pct: float = 0.0
+var electron_speed_buff_stacks: int = 0
+
 func _ready():
 	load_ammo_slots_local()
 	super._ready() 
@@ -170,6 +175,12 @@ func _on_status_effects_sync(data: Dictionary):
 	if data.has("healStacks"): heal_stacks = int(data.healStacks)
 	if data.has("bleed"): bleed_timer = float(data.bleed) / 1000.0
 	if data.has("poison"): poison_timer = float(data.poison) / 1000.0
+	if data.has("electronSpeedBuff"):
+		var eb = data.electronSpeedBuff
+		electron_speed_buff_timer = float(eb.get("duration", 3000.0)) / 1000.0
+		electron_speed_buff_pct = float(eb.get("pct", 15.0))
+		electron_speed_buff_stacks = int(eb.get("stacks", 1))
+		_recalculate_stats()
 
 func _on_stun_state(data: Dictionary):
 	if data.has("active") and data.active:
@@ -282,6 +293,11 @@ func _physics_process(p_delta):
 		bleed_timer = max(0.0, bleed_timer - p_delta)
 	if poison_timer > 0.0:
 		poison_timer = max(0.0, poison_timer - p_delta)
+	if electron_speed_buff_timer > 0.0:
+		electron_speed_buff_timer = max(0.0, electron_speed_buff_timer - p_delta)
+		if electron_speed_buff_timer <= 0.0:
+			electron_speed_buff_stacks = 0
+			_recalculate_stats()
 	
 	if is_stunned:
 		stun_timer -= p_delta
@@ -380,7 +396,7 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 
 func _on_skill_executed(p_data: Dictionary):
 	var id = p_data.skill_id
-	if id in ["laser", "missile", "mine", "melee", "heal", "siphon", "emp"]:
+	if id in ["laser", "missile", "mine", "melee", "heal", "siphon", "emp", "electron"]:
 		_shoot_skill(id, p_data.angle, p_data.get("pos", Vector2.ZERO))
 	elif id.begins_with("sphere_"):
 		var s_idx = int(id.replace("sphere_", ""))
@@ -397,7 +413,7 @@ func _use_heal_skill(p_target):
 
 var cooldowns = {
 	"laser": 0.0, "missile": 0.0, "mine": 0.0,
-	"melee": 0.0, "heal": 0.0, "siphon": 0.0, "emp": 0.0,
+	"melee": 0.0, "heal": 0.0, "siphon": 0.0, "emp": 0.0, "electron": 0.0,
 	"sphere_0": 0.0, "sphere_1": 0.0, "sphere_2": 0.0, "sphere_3": 0.0
 }
 func _handle_cooldowns(p_delta):
@@ -497,6 +513,9 @@ func _recalculate_stats():
 		max_shield = base_sh_val
 		speed = base_speed_val
 	
+	if electron_speed_buff_timer > 0.0:
+		speed = speed * (1.0 + (electron_speed_buff_pct * electron_speed_buff_stacks) / 100.0)
+	
 	save_progress()
 	_update_tags()
 	_emit_stats()
@@ -537,11 +556,13 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 	
 	var r_val = 600.0
 	var ammo_list = GameConstants.SHOP_ITEMS.ammo.get(p_type, [])
+	var item_data = {}
 	if t_idx < ammo_list.size():
 		r_val = ammo_list[t_idx].get("range", 600.0)
+		item_data = ammo_list[t_idx]
 	
-	# v260.95: Lógica de Minas de Precisión (Despliegue en cursor si está en rango)
-	if p_type == "mine" and p_target_pos != Vector2.ZERO:
+	# v260.95: Lógica de Minas y Bombas Electron de Precisión (Despliegue en cursor si está en rango)
+	if (p_type == "mine" or p_type == "electron") and p_target_pos != Vector2.ZERO:
 		var dist = global_position.distance_to(p_target_pos)
 		r_val = min(r_val, dist)
 
@@ -551,6 +572,12 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 		"angle": p_angle, "rotation": rotation, "type": p_type, "ammoType": t_idx, 
 		"senderId": entity_id, "damageBoost": final_damage, "range": r_val
 	}
+	
+	# Copiar propiedades adicionales del tier (ej. explosionRadius) al payload
+	for key in item_data:
+		if not final_payload.has(key):
+			final_payload[key] = item_data[key]
+			
 	shoot_fired.emit(final_payload)
 	NetworkManager.send_event("playerFire", final_payload)
 	apply_shake(0.8) # v260: Shake muy leve al disparar
@@ -822,6 +849,13 @@ func update_stats(data):
 	# v221.40: Solo actualizar pvp_status si el servidor lo manda explícitamente
 	if data.has("pvpEnabled"): 
 		pvp_status = !!data.pvpEnabled
+	if data.has("speed"):
+		speed = float(data.speed)
+	if data.has("electronSpeedBuff"):
+		var eb = data.electronSpeedBuff
+		electron_speed_buff_timer = float(eb.get("duration", 3000.0)) / 1000.0
+		electron_speed_buff_pct = float(eb.get("pct", 15.0))
+		electron_speed_buff_stacks = int(eb.get("stacks", 1))
 	
 	# v311.0: Conservar el target_position de click si el jugador se está moviendo y llega una actualización de posición del server.
 	var old_target_pos = target_position
