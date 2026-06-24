@@ -4488,21 +4488,35 @@ window.renderHousing = function() {
             <div style="position:absolute; top:15px; right:15px;">
                 <button class="btn btn-secondary" style="background:var(--danger); border:none; padding:4px 10px;" onclick="removeHousingItem(${idx})">✕ ELIMINAR</button>
             </div>
-            <div class="form-grid">
+            <div class="form-grid" style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:15px;">
                 <div class="field"><label>ID Objeto</label><input type="text" value="${item.id}" onchange="config.housingConfig.placeableItems[${idx}].id = this.value"></div>
                 <div class="field"><label>Nombre</label><input type="text" value="${item.name}" onchange="config.housingConfig.placeableItems[${idx}].name = this.value"></div>
                 <div class="field"><label>Costo</label><input type="number" value="${item.cost}" onchange="config.housingConfig.placeableItems[${idx}].cost = parseInt(this.value)"></div>
                 <div class="field">
                     <label>Moneda</label>
-                    <select onchange="config.housingConfig.placeableItems[${idx}].currency = this.value" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                    <select onchange="config.housingConfig.placeableItems[${idx}].currency = this.value" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%; cursor:pointer;">
                         <option value="hubs" ${item.currency === 'hubs' ? 'selected' : ''}>HUBS</option>
                         <option value="ohcu" ${item.currency === 'ohcu' ? 'selected' : ''}>OHCU</option>
                     </select>
                 </div>
-                <div class="field full"><label>Ruta Modelo 3D (res://...)</label><input type="text" value="${item.model}" onchange="config.housingConfig.placeableItems[${idx}].model = this.value" style="font-family:'JetBrains Mono';"></div>
-                <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;">
+            </div>
+            
+            <div class="field full" style="margin-top:15px;">
+                <label>Ruta Modelo 3D (.glb)</label>
+                <div style="display:flex; gap:8px; align-items:center; width:100%;">
+                    <input type="text" value="${item.model}" onchange="config.housingConfig.placeableItems[${idx}].model = this.value" style="font-family:'JetBrains Mono'; flex-grow:1; margin:0;">
+                    <button class="btn btn-primary" style="padding:8px 12px; font-size:0.75rem; flex-shrink:0; background:var(--accent); border-color:var(--accent);" onclick="triggerAssetUpload(${idx}, 'housing_glb')">📁 SELECCIONAR GLB</button>
+                </div>
+            </div>
+
+            <h5 style="color:var(--accent); margin:15px 0 5px; font-size:0.75rem; border-bottom:1px solid rgba(6,182,212,0.15); padding-bottom:2px;">⚙️ ROTACIÓN 3D INICIAL</h5>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px; margin-bottom:15px; display:grid; align-items:center;">
+                <div class="field"><label>Rotación X (grados)</label><input type="number" value="${item.rotX || 0}" onchange="config.housingConfig.placeableItems[${idx}].rotX = parseFloat(this.value) || 0"></div>
+                <div class="field"><label>Rotación Y (grados)</label><input type="number" value="${item.rotY || 0}" onchange="config.housingConfig.placeableItems[${idx}].rotY = parseFloat(this.value) || 0"></div>
+                <div class="field"><label>Rotación Z (grados)</label><input type="number" value="${item.rotZ || 0}" onchange="config.housingConfig.placeableItems[${idx}].rotZ = parseFloat(this.value) || 0"></div>
+                <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px; padding:0;">
                     <input type="checkbox" id="item-light-${idx}" ${item.isLight ? 'checked' : ''} onchange="config.housingConfig.placeableItems[${idx}].isLight = this.checked">
-                    <label for="item-light-${idx}" style="margin-bottom:0; cursor:pointer;">¿Es Luz Dinámica?</label>
+                    <label for="item-light-${idx}" style="margin-bottom:0; cursor:pointer; font-weight:bold;">¿Luz Dinámica?</label>
                 </div>
             </div>
         `;
@@ -4518,6 +4532,9 @@ window.addHousingItem = function() {
         cost: 100,
         currency: "hubs",
         model: "res://assets/3d/decor.glb",
+        rotX: 0,
+        rotY: 0,
+        rotZ: 0,
         isLight: false
     });
     renderHousing();
@@ -4742,7 +4759,7 @@ window.removeQuest = function(idx) {
 window.triggerAssetUpload = function(idx, type = 'resource') {
     const input = document.createElement('input');
     input.type = 'file';
-    if (type === 'ship_glb') {
+    if (type === 'ship_glb' || type === 'housing_glb') {
         input.accept = '.glb';
     } else {
         input.accept = 'image/*';
@@ -4778,6 +4795,8 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         config.shipModels[idx].icon = result.path;
                     } else if (type === 'ship_glb') {
                         config.shipModels[idx].assetPath = result.path;
+                    } else if (type === 'housing_glb') {
+                        config.housingConfig.placeableItems[idx].model = result.path;
                     }
                     
                     // Solicitar la lista de assets actualizada mediante socket
@@ -4789,6 +4808,8 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                     alert('Asset importado con éxito!');
                     if (type === 'ship_icon' || type === 'ship_glb') {
                         renderShips();
+                    } else if (type === 'housing_glb') {
+                        renderHousing();
                     } else {
                         renderCrafting();
                     }
