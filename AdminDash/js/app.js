@@ -781,14 +781,7 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'safeRadius') mech[f] = 150;
             else if (f === 'maxOffset') mech[f] = 300;
             else if (f === 'postCastWaitMs') mech[f] = 1000;
-            else if (f === 'applyBleed') mech[f] = false;
-            else if (f === 'bleedDurationMs') mech[f] = 3000;
-            else if (f === 'bleedDps') mech[f] = 50;
-            else if (f === 'applyStun') mech[f] = false;
-            else if (f === 'stunDurationMs') mech[f] = 1500;
-            else if (f === 'applyPoison') mech[f] = false;
-            else if (f === 'poisonDurationMs') mech[f] = 4000;
-            else if (f === 'poisonDps') mech[f] = 40;
+            else if (f === 'debuffsList') mech[f] = [];
             else mech[f] = 0;
         }
     });

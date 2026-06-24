@@ -587,16 +587,23 @@ func _draw():
 		var local_safe_pos = to_local(safe_pos)
 		
 		var danger_poly = PackedVector2Array()
-		# Círculo exterior de peligro (Agujas del reloj)
-		for i in range(65):
-			var angle = (i / 64.0) * TAU
-			danger_poly.append(Vector2(cos(angle), sin(angle)) * current_fire_range)
-		# Círculo interior seguro (Contra las agujas del reloj) para sustraerlo del relleno
-		for i in range(65):
-			var angle = (1.0 - i / 64.0) * TAU
-			danger_poly.append(local_safe_pos + Vector2(cos(angle), sin(angle)) * safe_radius)
-			
-		draw_polygon(danger_poly, [Color(1.0, 0.0, 0.0, 0.15)])
+		# Solo dibujar el polígono compuesto si el radio ya es lo suficientemente grande
+		# para no generar geometría degenerada (triangulación fallida en Godot)
+		var dist_to_safe = local_safe_pos.length()
+		var min_valid_range = dist_to_safe + safe_radius + 5.0
+		if current_fire_range >= min_valid_range:
+			# Círculo exterior de peligro (Agujas del reloj)
+			for i in range(65):
+				var angle = (i / 64.0) * TAU
+				danger_poly.append(Vector2(cos(angle), sin(angle)) * current_fire_range)
+			# Círculo interior seguro (Contra las agujas del reloj) para sustraerlo del relleno
+			for i in range(65):
+				var angle = (1.0 - i / 64.0) * TAU
+				danger_poly.append(local_safe_pos + Vector2(cos(angle), sin(angle)) * safe_radius)
+			draw_polygon(danger_poly, [Color(1.0, 0.0, 0.0, 0.15)])
+		elif current_fire_range > 5.0:
+			# Círculo simple de peligro (sin sustracción) mientras el rango es pequeño
+			draw_circle(Vector2.ZERO, current_fire_range, Color(1.0, 0.0, 0.0, 0.15))
 		draw_arc(Vector2.ZERO, fire_range, 0, TAU, 90, Color(1.0, 0.1, 0.1, 0.4), 2.0, true)
 		draw_arc(Vector2.ZERO, current_fire_range, 0, TAU, 90, Color(1.0, 0.3, 0.0, 0.7), 3.0, true)
 		

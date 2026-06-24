@@ -1088,16 +1088,89 @@ function renderEnemyDetail() {
                                      if (f === 'applySlow') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].applySlow = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                      if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].slowIsPercentage = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                      
-                                     if (f === 'applyBleed') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].applyBleed = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
-                                     if (f === 'bleedDurationMs' && !m.applyBleed) return '';
-                                     if (f === 'bleedDps' && !m.applyBleed) return '';
-                                     
-                                     if (f === 'applyStun') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].applyStun = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
-                                     if (f === 'stunDurationMs' && !m.applyStun) return '';
-                                     
-                                     if (f === 'applyPoison') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].applyPoison = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
-                                     if (f === 'poisonDurationMs' && !m.applyPoison) return '';
-                                     if (f === 'poisonDps' && !m.applyPoison) return '';
+                                      if (f === 'debuffsList') {
+                                          if (!m.debuffsList) m.debuffsList = [];
+                                          return `
+                                              <div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(239, 68, 68, 0.2); display: flex; flex-direction: column; gap: 10px;">
+                                                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                                                      <label style="color:#ef4444; font-size:0.75rem; font-weight:bold;">EFECTOS ALTERADOS (DEBUFFS) AL EXPLOTAR</label>
+                                                      <div style="display:flex; gap:5px;">
+                                                          <select id="new-debuff-select-${idx}" style="background:#0f172a; color:white; font-size:0.75rem; border-radius:4px; padding:2px 4px; border:1px solid #334155;">
+                                                              <option value="bleed">🩸 Sangrado</option>
+                                                              <option value="poison">🤢 Veneno</option>
+                                                              <option value="stun">⚡ Parálisis</option>
+                                                              <option value="slow">🐢 Ralentización (Slow)</option>
+                                                          </select>
+                                                          <button class="btn btn-primary" style="padding: 2px 8px; font-size: 0.65rem; background:#ef4444;" onclick="const type = document.getElementById('new-debuff-select-${idx}').value; const debuffDefaults = { bleed: { type: 'bleed', dps: 30, duration: 4000, tickInterval: 1000 }, poison: { type: 'poison', dps: 20, duration: 4000, tickInterval: 1000 }, stun: { type: 'stun', duration: 1500 }, slow: { type: 'slow', amount: 50, duration: 2500, isPercentage: true } }; config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList.push(JSON.parse(JSON.stringify(debuffDefaults[type]))); renderEnemyDetail();">+ AGREGAR DEBUFF</button>
+                                                      </div>
+                                                  </div>
+                                                  <div style="display:grid; grid-template-columns: 1fr; gap:8px;">
+                                                      ${m.debuffsList.map((d, dIdx) => {
+                                                          let fieldsHtml = '';
+                                                          if (d.type === 'bleed' || d.type === 'poison') {
+                                                              fieldsHtml = `
+                                                                  <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; width:100%;">
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Daño (pts/tick)</label>
+                                                                          <input type="number" value="${d.dps || 20}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].dps = parseInt(this.value)">
+                                                                      </div>
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Duración (ms)</label>
+                                                                          <input type="number" value="${d.duration || 4000}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].duration = parseInt(this.value)">
+                                                                      </div>
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Intervalo Tick (ms)</label>
+                                                                          <input type="number" value="${d.tickInterval || 1000}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].tickInterval = parseInt(this.value)">
+                                                                      </div>
+                                                                  </div>
+                                                              `;
+                                                          } else if (d.type === 'stun') {
+                                                              fieldsHtml = `
+                                                                  <div style="display:grid; grid-template-columns: 1fr; gap:8px; width:100%;">
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Duración de Parálisis (ms)</label>
+                                                                          <input type="number" value="${d.duration || 1500}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].duration = parseInt(this.value)">
+                                                                      </div>
+                                                                  </div>
+                                                              `;
+                                                          } else if (d.type === 'slow') {
+                                                              fieldsHtml = `
+                                                                  <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; width:100%;">
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Cantidad de Ralentización</label>
+                                                                          <input type="number" value="${d.amount || 50}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].amount = parseInt(this.value)">
+                                                                      </div>
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Duración (ms)</label>
+                                                                          <input type="number" value="${d.duration || 2500}" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].duration = parseInt(this.value)">
+                                                                      </div>
+                                                                      <div>
+                                                                          <label style="font-size:0.65rem; color:var(--text-dim);">Tipo de Ralentización</label>
+                                                                          <select style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.75rem;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList[${dIdx}].isPercentage = this.value === 'percent';">
+                                                                              <option value="percent" ${d.isPercentage !== false ? 'selected' : ''}>% Porcentaje</option>
+                                                                              <option value="fixed" ${d.isPercentage === false ? 'selected' : ''}>🔢 Fijo (px/s)</option>
+                                                                          </select>
+                                                                      </div>
+                                                                  </div>
+                                                              `;
+                                                          }
+
+                                                          return `
+                                                              <div style="display:flex; flex-direction:column; gap:6px; background:#0f172a; padding:8px; border-radius:6px; border:1px solid #334155; position:relative;">
+                                                                  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">
+                                                                      <span style="font-size:0.75rem; font-weight:bold; color:#ef4444;">
+                                                                          ${d.type === 'bleed' ? '🩸 Sangrado' : (d.type === 'poison' ? '🤢 Veneno' : (d.type === 'stun' ? '⚡ Parálisis' : '🐢 Ralentización (Slow)'))}
+                                                                      </span>
+                                                                      <button style="background:none; border:none; color:#ef4444; font-weight:bold; cursor:pointer; font-size:0.8rem;" onclick="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].debuffsList.splice(${dIdx}, 1); renderEnemyDetail();">✕</button>
+                                                                  </div>
+                                                                  ${fieldsHtml}
+                                                              </div>
+                                                          `;
+                                                      }).join('')}
+                                                  </div>
+                                              </div>
+                                          `;
+                                      }
                                      
                                      if (f === 'targetMode') {
                                          const val = m[f] || 'proximity';

@@ -2256,7 +2256,19 @@
                     "applyStun": false,
                     "stunDurationMs": 1500,
                     "applyPoison": false,
-                    "poisonDurationMs": 4000
+                    "poisonDurationMs": 4000,
+                    "debuffsList": [
+                        {
+                            "type": "bleed",
+                            "dps": 10,
+                            "duration": 4000,
+                            "tickInterval": 1000
+                        },
+                        {
+                            "type": "stun",
+                            "duration": 2000
+                        }
+                    ]
                 }
             ],
             "movementPhases": [
@@ -4942,13 +4954,8 @@
                 "cooldown",
                 "damage",
                 "postCastWaitMs",
-                "applyBleed",
-                "bleedDurationMs",
-                "applyStun",
-                "stunDurationMs",
-                "applyPoison",
-                "poisonDurationMs",
-                "startDelay"
+                "startDelay",
+                "debuffsList"
             ]
         }
     },

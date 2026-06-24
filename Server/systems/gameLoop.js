@@ -372,13 +372,36 @@ function startGameLoop(io, state, aiManager) {
                 }
             }
 
-            // Daño por Debuffs de Sangrado y Veneno (v268.830)
+            // Daño por Debuffs de Sangrado y Veneno con ticks dinámicos (v268.830)
             let debuffDmg = 0;
             if (p.bleedEndTime && now < p.bleedEndTime && p.bleedDps) {
-                debuffDmg += p.bleedDps;
+                const interval = p.bleedInterval || 1000;
+                const lastTick = p.lastBleedTick || (now - 1000);
+                const elapsed = now - lastTick;
+                if (elapsed >= interval) {
+                    const ticks = Math.floor(elapsed / interval);
+                    debuffDmg += p.bleedDps * ticks;
+                    p.lastBleedTick = lastTick + (ticks * interval);
+                }
+            } else if (p.bleedEndTime && now >= p.bleedEndTime) {
+                p.bleedEndTime = 0;
+                p.bleedDps = 0;
+                p.bleedInterval = 0;
             }
+
             if (p.poisonEndTime && now < p.poisonEndTime && p.poisonDps) {
-                debuffDmg += p.poisonDps;
+                const interval = p.poisonInterval || 1000;
+                const lastTick = p.lastPoisonTick || (now - 1000);
+                const elapsed = now - lastTick;
+                if (elapsed >= interval) {
+                    const ticks = Math.floor(elapsed / interval);
+                    debuffDmg += p.poisonDps * ticks;
+                    p.lastPoisonTick = lastTick + (ticks * interval);
+                }
+            } else if (p.poisonEndTime && now >= p.poisonEndTime) {
+                p.poisonEndTime = 0;
+                p.poisonDps = 0;
+                p.poisonInterval = 0;
             }
 
             if (debuffDmg > 0) {
