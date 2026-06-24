@@ -566,6 +566,29 @@ func _update_hud_offsets():
 		name_tag.position.x = -(name_tag.size.x / 2.0)
 
 func _draw():
+	# v268.810: Dibujo de soporte para cúpulas de energía (Wall Dome)
+	for mId in active_auras:
+		var a_data = active_auras[mId]
+		if a_data.get("type") == "wall_dome":
+			var radius = a_data.get("radius", 300.0)
+			var pulse_val = sin(Time.get_ticks_msec() * 0.006)
+			var pulse_radius = radius + pulse_val * 4.0
+			
+			# 1. Relleno semitransparente del escudo
+			draw_circle(Vector2.ZERO, radius, Color(0.0, 0.4, 0.9, 0.06))
+			
+			# 2. Pared de energía (anillo principal de neón celeste)
+			draw_arc(Vector2.ZERO, radius, 0, TAU, 90, Color(0.0, 0.7, 1.0, 0.7), 5.0, true)
+			
+			# 3. Efecto de onda/brillo exterior
+			draw_arc(Vector2.ZERO, pulse_radius, 0, TAU, 90, Color(0.0, 0.9, 1.0, 0.25), 1.5, true)
+			
+			# 4. Líneas radiales de energía/campo de fuerza
+			for i in range(8):
+				var angle = (i * PI / 4.0) + (Time.get_ticks_msec() * 0.0002)
+				var dir = Vector2.from_angle(angle)
+				draw_line(dir * (radius - 12.0), dir * radius, Color(0.0, 0.8, 1.0, 0.6), 2.5, true)
+
 	# v166.61: RENDERIZADO TACTICO (Glow & Visibility Fix)
 	# v190.91: Si hay sprite cargado, ya no dibujamos el polígono base
 	if is_instance_valid(sprite): return
@@ -972,6 +995,17 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	if invulnerable_timer > 0 or is_invulnerable:
 		amt = 0 # v269.185: Bloqueo visual total de daño (0 en rojo para feedback)
 	
+	# v268.820: Soporte visual AAA para Muro de Energía (Wall Dome)
+	for mId in active_auras:
+		var a_data = active_auras[mId]
+		if a_data.get("type") == "wall_dome":
+			var radius = a_data.get("radius", 300.0)
+			var pl = get_tree().get_first_node_in_group("player")
+			if is_instance_valid(pl):
+				var dist = pl.global_position.distance_to(global_position)
+				if dist > radius:
+					amt = 0.0
+	
 	# v235.20: REFLEJO TOTAL (Prioridad absoluta sobre invulnerabildiad)
 	if reflect_timer > 0:
 		var r_amt = int(amt * 0.8)
@@ -1150,7 +1184,32 @@ func _on_enemy_action(data):
 			_is_orbital_active = true
 		"orbital_strike_fire": 
 			_is_orbital_active = false
-			_fire_orbital_strike()
+		"wall_dome_start":
+			var mId = data.get("mId", "wall_dome")
+			if not active_auras.has(mId):
+				var spr = Sprite2D.new()
+				var tex_path = "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png"
+				if ResourceLoader.exists(tex_path):
+					spr.texture = load(tex_path)
+				spr.modulate = Color(0.0, 0.6, 1.0, 0.45)
+				var radius = float(data.get("radius", 300.0))
+				var target_scale = (radius * 2.0) / 512.0
+				spr.scale = Vector2.ZERO
+				_vfx_container_2d.add_child(spr)
+				active_auras[mId] = {"node": spr, "target_scale": target_scale, "type": "wall_dome", "radius": radius}
+				var tw = create_tween()
+				tw.tween_property(spr, "scale", Vector2(target_scale, target_scale), 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+				queue_redraw()
+		"wall_dome_end":
+			var mId = data.get("mId", "wall_dome")
+			if active_auras.has(mId):
+				var a_data = active_auras[mId]
+				var spr = a_data.node
+				active_auras.erase(mId)
+				var tw = create_tween()
+				tw.tween_property(spr, "scale", Vector2.ZERO, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+				tw.finished.connect(spr.queue_free)
+				queue_redraw()
 		"reflect_start":
 			reflect_timer = float(data.get("duration", 3000.0)) / 1000.0
 			print("[REFLECT-IN] Enemigo activó reflect por ", reflect_timer, "s")
@@ -1232,6 +1291,8 @@ func _update_auras(delta):
 			var s = a_data.target_scale * pulse
 			spr.scale = Vector2(s, s)
 			spr.rotate(delta * 0.5)
+			if a_data.get("type") == "wall_dome":
+				queue_redraw()
 
 func _adjust_visuals(_type): 
 	if is_in_group("enemies"):

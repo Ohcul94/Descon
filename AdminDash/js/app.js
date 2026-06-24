@@ -717,6 +717,7 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
             else if (f === 'invisSpeedMultiplier') mech[f] = 1.0;
             else if (f === 'activationMode') mech[f] = 'hp';
             else if (f === 'activationHPs') mech[f] = [50];
+            else if (f === 'activationIntervalMs') mech[f] = 30000;
             else if (f === 'cloneCount') mech[f] = 3;
             else if (f === 'cloneHp') mech[f] = 1000;
             else if (f === 'cloneShield') mech[f] = 200;

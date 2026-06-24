@@ -205,9 +205,28 @@ function registerCombatHandlers(socket, io, state) {
             }
         }
 
-        if (isBlocked) {
+        // Verificar si el Muro de Energía (wall_dome) está activo y el jugador está fuera del área
+        let isOutsideDome = false;
+        let activeDomeRadius = 300;
+        if (enemy.defState) {
+            for (const mId in enemy.defState) {
+                const s = enemy.defState[mId];
+                if (s.isActive && s.type === "wall_dome") {
+                    activeDomeRadius = s.radius || 300;
+                    if (dist > activeDomeRadius) {
+                        isOutsideDome = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (isBlocked || isOutsideDome) {
             enemy.lastHit = Date.now();
             p.lastCombatTime = Date.now();
+            if (isOutsideDome) {
+                socket.emit('combatLog', `⚠️ El enemigo está protegido por un Muro de Energía. Debes ingresar al área (${Math.round(activeDomeRadius)}px) para hacerle daño.`);
+            }
             return;
         }
 
