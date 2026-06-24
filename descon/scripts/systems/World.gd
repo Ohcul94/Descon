@@ -229,6 +229,8 @@ func _on_interference_event(data):
 		overlay.visible = false
 		if is_instance_valid(local_player):
 			local_player.set_meta("skills_blocked", false)
+		var cam = get_viewport().get_camera_2d()
+		if cam: cam.offset = Vector2.ZERO
 
 func _on_blindness_event(data):
 	var duration = data.get("duration", 5000.0) / 1000.0
@@ -305,9 +307,6 @@ func _process(delta):
 		var cam = get_viewport().get_camera_2d()
 		if cam:
 			cam.offset = Vector2(randf_range(-_shake_strength, _shake_strength), randf_range(-_shake_strength, _shake_strength))
-	else:
-		var cam = get_viewport().get_camera_2d()
-		if cam: cam.offset = Vector2.ZERO
 	
 	# Agujero de Visión en Ceguera
 	var overlay = get_node_or_null("BlindnessLayer/Darkness")

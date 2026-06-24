@@ -87,7 +87,7 @@ var vision_range: float = 1300.0
 var _skill_controller: Node2D = null
 
 var _shake_amount: float = 0.0
-var _shake_decay: float = 0.9
+var _shake_decay: float = 0.93
 var _cam_node: Camera2D = null
 var slow_points: float = 0.0
 var slow_is_percentage: bool = false
@@ -524,7 +524,7 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	if amt <= 0.0:
 		return
 	super.take_damage(amt, attacker_pos, attacker_id)
-	apply_shake(amt * 0.05) # v260: Shake leve
+	apply_shake(amt * 0.15) # v260: Shake leve
 	# v240.69: Eliminado envío duplicado al servidor. Projectile.gd ya se encarga de notificar 
 	# el daño exacto con el enemyType correcto. Hacerlo aquí duplicaba el daño (1 hit = 2 hits) 
 	# y enviaba eventos "fantasma" que reiniciaban contadores de combate.
@@ -580,7 +580,7 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 			
 	shoot_fired.emit(final_payload)
 	NetworkManager.send_event("playerFire", final_payload)
-	apply_shake(0.8) # v260: Shake muy leve al disparar
+	apply_shake(1.2) # v260: Shake muy leve al disparar
 	_force_move_sync()
 
 func _use_sphere_skill(id: int, p_data: Dictionary):
@@ -873,7 +873,7 @@ func update_stats(data):
 	
 	# v380.0: Si el jugador recibe daño real de red, hacer temblar la cámara
 	if total_dmg > 1.0:
-		apply_shake(total_dmg * 0.05)
+		apply_shake(total_dmg * 0.15)
 	
 	if data.has("x") and data.has("y"):
 		# Forzar el posicionamiento directo para que el rubber-banding del server sea efectivo.
@@ -937,7 +937,7 @@ func apply_shake(amount: float):
 		amount *= SettingsManager.camera_shake_intensity
 		
 	_shake_amount += amount
-	_shake_amount = min(_shake_amount, 10.0)
+	_shake_amount = min(_shake_amount, 35.0)
 
 func _update_shake(_delta):
 	if _shake_amount > 0.1:
