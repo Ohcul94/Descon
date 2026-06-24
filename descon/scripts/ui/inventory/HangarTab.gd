@@ -422,7 +422,7 @@ func _create_item_row(it, parent):
 				})
 				return
 
-		var refund = 0
+		var single_refund = 0
 		for cat_key in GameConstants.SHOP_ITEMS:
 			var category = GameConstants.SHOP_ITEMS[cat_key]
 			if category is Array:
@@ -430,19 +430,132 @@ func _create_item_row(it, parent):
 					if str(shop_item.get("id", "")).to_lower() == search_id:
 						var prices = shop_item.get("prices", {})
 						if prices.has("hubs"):
-							refund = int(prices["hubs"] / 2) * amount
+							single_refund = int(prices["hubs"] / 2)
 							break
-			if refund > 0: break
+			if single_refund > 0: break
 		
 		var msg_name = str(it.get("name", "ITEM")).to_upper()
+		
 		if amount > 1:
-			msg_name += " (x" + str(amount) + ")"
-		var msg = "¿Confirmas la venta de [color=yellow]" + msg_name + "[/color] por [color=green]" + str(refund) + " HUBS[/color]?"
-		inv_main._show_modal("CONFIRMAR VENTA", msg, func():
-			NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", "")})
-		)
+			var slider_container = VBoxContainer.new()
+			slider_container.add_theme_constant_override("separation", 10)
+			
+			var val_lbl = Label.new()
+			val_lbl.text = "Cantidad a vender:"
+			val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			slider_container.add_child(val_lbl)
+			
+			var input_hb = HBoxContainer.new()
+			input_hb.alignment = BoxContainer.ALIGNMENT_CENTER
+			input_hb.add_theme_constant_override("separation", 10)
+			slider_container.add_child(input_hb)
+			
+			var slider = HSlider.new()
+			slider.min_value = 1
+			slider.max_value = amount
+			slider.value = amount
+			slider.step = 1
+			slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			input_hb.add_child(slider)
+			
+			var input_edit = LineEdit.new()
+			input_edit.text = str(amount)
+			input_edit.custom_minimum_size.x = 65
+			input_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			input_hb.add_child(input_edit)
+
+			var refund_lbl = Label.new()
+			refund_lbl.text = "(Reembolso: " + str(single_refund * amount) + " HUBS)"
+			refund_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			slider_container.add_child(refund_lbl)
+			
+			slider.value_changed.connect(func(val):
+				input_edit.text = str(int(val))
+				refund_lbl.text = "(Reembolso: " + str(single_refund * int(val)) + " HUBS)"
+			)
+			
+			input_edit.text_changed.connect(func(new_text):
+				var val = int(new_text)
+				if val < 1: val = 1
+				elif val > amount: val = amount
+				slider.value = val
+				refund_lbl.text = "(Reembolso: " + str(single_refund * val) + " HUBS)"
+			)
+			
+			input_edit.text_submitted.connect(func(_new_text):
+				input_edit.release_focus()
+			)
+			
+			var msg = "¿Confirmas la venta de parte de [color=yellow]" + msg_name + "[/color]?"
+			inv_main._show_modal("CONFIRMAR VENTA PARCIAL", msg, func():
+				NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", ""), "quantity": int(slider.value)})
+			, slider_container)
+		else:
+			var msg = "¿Confirmas la venta de [color=yellow]" + msg_name + "[/color] por [color=green]" + str(single_refund) + " HUBS[/color]?"
+			inv_main._show_modal("CONFIRMAR VENTA", msg, func():
+				NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", "")})
+			)
 	)
 	action_hb.add_child(b_sell)
+
+	if amount > 1:
+		var b_split = Button.new(); b_split.text = "SEPARAR"; b_split.modulate = Color(0.4, 0.8, 1); b_split.add_theme_font_size_override("font_size", 8)
+		b_split.pressed.connect(func():
+			var slider_container = VBoxContainer.new()
+			slider_container.add_theme_constant_override("separation", 10)
+			
+			var val_lbl = Label.new()
+			val_lbl.text = "Cantidad a separar:"
+			val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			slider_container.add_child(val_lbl)
+			
+			var input_hb = HBoxContainer.new()
+			input_hb.alignment = BoxContainer.ALIGNMENT_CENTER
+			input_hb.add_theme_constant_override("separation", 10)
+			slider_container.add_child(input_hb)
+			
+			var slider = HSlider.new()
+			slider.min_value = 1
+			slider.max_value = amount - 1
+			slider.value = amount - 1
+			slider.step = 1
+			slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			input_hb.add_child(slider)
+			
+			var input_edit = LineEdit.new()
+			input_edit.text = str(amount - 1)
+			input_edit.custom_minimum_size.x = 65
+			input_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			input_hb.add_child(input_edit)
+
+			var remain_lbl = Label.new()
+			remain_lbl.text = "(Quedan: 1)"
+			remain_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			slider_container.add_child(remain_lbl)
+			
+			slider.value_changed.connect(func(val):
+				input_edit.text = str(int(val))
+				remain_lbl.text = "(Quedan: " + str(amount - int(val)) + ")"
+			)
+			
+			input_edit.text_changed.connect(func(new_text):
+				var val = int(new_text)
+				if val < 1: val = 1
+				elif val > amount - 1: val = amount - 1
+				slider.value = val
+				remain_lbl.text = "(Quedan: " + str(amount - val) + ")"
+			)
+			
+			input_edit.text_submitted.connect(func(_new_text):
+				input_edit.release_focus()
+			)
+			
+			var msg = "¿Cuántas unidades deseas separar de este stack?"
+			inv_main._show_modal("SEPARAR STACK", msg, func():
+				NetworkManager.send_event("splitStack", {"instanceId": it.get("instanceId", ""), "quantity": int(slider.value)})
+			, slider_container)
+		)
+		action_hb.add_child(b_split)
 
 	if not is_material_or_recipe:
 		var b_equip = Button.new(); b_equip.text = "EQUIPAR"; b_equip.add_theme_font_size_override("font_size", 9); action_hb.add_child(b_equip)

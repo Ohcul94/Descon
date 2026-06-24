@@ -3227,8 +3227,9 @@ function renderEnemyLootDetail() {
                     </div>
                     <div style="text-align: center; background: rgba(255,255,255,0.03); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
                         <div style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase;">Drops Promedio</div>
-                        <div style="font-size: 1.3rem; font-weight: bold; color: var(--primary);">${avgDrops}</div>
-                    </div>
+                        <div style="font-size: 1.3rem; font-weight: bold; color: var(--primary);"><select id="asset-picker-select" size="12" style="flex:1; overflow-y:auto; padding:8px 12px; width:100%; background:rgba(255,255,255,0.02); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:8px;">
+                <!-- Options will be filled dynamically -->
+            </select></div>
                 </div>
             </div>
 
@@ -3310,13 +3311,10 @@ window.renderCrafting = function() {
                             <div class="field"><label>Nombre del Material</label><input type="text" value="${res.name}" onchange="config.shopItems.resources[${idx}].name = this.value; renderCrafting();"></div>
                         </div>
                         <div class="field" style="width: 100%;"><label>Descripción</label><input type="text" value="${res.desc || ''}" style="width: 100%;" onchange="config.shopItems.resources[${idx}].desc = this.value;"></div>
-                        <div class="field" style="width: 100%;"><label>Icono (Godot path)</label>
+                        <div class="field" style="width: 100%;"><label>Icono (Asset del Servidor)</label>
                             <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
-                                <select style="flex-grow: 1; background: #0b0f19; border: 1px solid rgba(255,255,255,0.08); color: white; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" onchange="config.shopItems.resources[${idx}].icon = this.value; renderCrafting();">
-                                    <option value="">-- Seleccionar Asset --</option>
-                                    ${(window.allAssetFiles || []).map(p => `<option value="${p}" ${res.icon === p ? 'selected' : ''}>${p}</option>`).join('')}
-                                </select>
-                                <button class="btn btn-primary" style="padding: 8px 15px; font-size: 0.75rem; flex-shrink: 0; background: var(--accent); border-color: var(--accent);" onclick="triggerAssetUpload(${idx}, 'resource')">📂 IMPORTAR</button>
+                                <div style="flex-grow:1; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:6px; padding:8px 12px; font-family:'JetBrains Mono'; font-size:0.75rem; color:${res.icon ? 'var(--primary)' : 'rgba(255,255,255,0.25)'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${res.icon || '-- Sin asset asignado --'}</div>
+                                <button class="btn btn-primary" style="padding:8px 15px; font-size:0.75rem; flex-shrink:0; background:var(--accent); border-color:var(--accent); white-space:nowrap;" onclick="openAssetPicker(${idx}, 'resource')">🖼 SELECCIONAR ASSET</button>
                             </div>
                         </div>
                         
@@ -3412,15 +3410,20 @@ window.renderCrafting = function() {
                 const it = list.find(item => item.id === recipe.resultItemId);
                 resultIcon = it ? it.icon : '';
             }
-            const recipeIconWeb = resolveAssetWebUrl(resultIcon);
+            // Usar icono propio de la receta si existe, sino el del item resultante
+            const recipeOwnIcon = recipe.icon || '';
+            const recipeDisplayIcon = recipeOwnIcon || resultIcon;
+            const recipeIconWeb = resolveAssetWebUrl(recipeDisplayIcon);
             const recipePreviewImgHTML = recipeIconWeb ? `<img src="${recipeIconWeb}" style="width:110px; height:110px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); display: block;" onerror="this.style.display='none';">` : `<div style="width:110px; height:110px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.75rem;">Sin Icono</div>`;
 
             div.innerHTML = `
                 <button style="position:absolute; top:12px; right:12px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:18px;" onclick="removeCraftingRecipe(${idx})">✕ ELIMINAR RECETA</button>
                 <div style="display: flex; gap: 20px; align-items: flex-start;">
-                    <!-- Preview Image -->
-                    <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                    <!-- Preview Image + Asset Picker para la receta -->
+                    <div style="flex-shrink: 0; display: flex; flex-direction:column; align-items: center; justify-content: center; gap:8px;">
                         ${recipePreviewImgHTML}
+                        <button class="btn" style="padding:5px 10px; font-size:0.65rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.2); color:var(--primary); white-space:nowrap; cursor:pointer; border-radius:6px; width:110px;" onclick="openAssetPicker(${idx}, 'recipe')">🖼 ICONO RECETA</button>
+                        ${recipeOwnIcon ? `<button style="padding:3px 8px; font-size:0.6rem; background:none; border:1px solid rgba(255,68,68,0.3); color:#ff6b6b; border-radius:4px; cursor:pointer; width:110px;" onclick="config.craftingRecipes[${idx}].icon=''; renderCrafting();">✕ Quitar icono</button>` : ''}
                     </div>
                     
                     <!-- Form Fields -->
@@ -4684,6 +4687,107 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
         reader.readAsDataURL(file);
     };
     input.click();
+};
+
+// ─── ASSET PICKER ───────────────────────────────────────────────────────────
+window._assetPickerState = { idx: 0, type: 'resource' };
+
+window.openAssetPicker = function(idx, type) {
+    const overlay = document.getElementById('asset-picker-overlay');
+    if (!overlay) return;
+    window._assetPickerState = { idx, type };
+
+    // Limpiar búsqueda
+    const searchEl = document.getElementById('asset-picker-search');
+    if (searchEl) searchEl.value = '';
+
+    // Construir filtro de carpetas
+    const folderSel = document.getElementById('asset-picker-folder');
+    if (folderSel) {
+        const allFiles = window.allAssetFiles || [];
+        const folders = new Set();
+        allFiles.forEach(p => {
+            const parts = p.replace('res://assets/', '').split('/');
+            if (parts.length > 1) folders.add(parts[0]);
+        });
+        folderSel.innerHTML = '<option value="">📁 Todas las carpetas</option>';
+        [...folders].sort().forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f;
+            opt.textContent = '📂 ' + f;
+            folderSel.appendChild(opt);
+        });
+        folderSel.value = '';
+    }
+
+    // Mostrar overlay y poblar grid
+    overlay.style.display = 'flex';
+    filterAssetPicker();
+};
+
+window.closeAssetPicker = function() {
+    const overlay = document.getElementById('asset-picker-overlay');
+    if (overlay) overlay.style.display = 'none';
+};
+
+// Confirm selection from asset picker
+window.confirmAssetPicker = function() {
+    const select = document.getElementById('asset-picker-select');
+    if (!select) return;
+    const chosen = select.value;
+    if (chosen) {
+        selectAssetFromPicker(chosen);
+    }
+};
+
+window.filterAssetPicker = function() {
+    const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+    const select = document.getElementById('asset-picker-select');
+    const countEl = document.getElementById('asset-picker-count');
+    if (!select) return;
+
+    const query = (document.getElementById('asset-picker-search')?.value || '').toLowerCase();
+    const folderFilter = (document.getElementById('asset-picker-folder')?.value || '').toLowerCase();
+    const allFiles = window.allAssetFiles || [];
+
+    const filtered = allFiles.filter(p => {
+        const lower = p.toLowerCase();
+        const folderMatch = !folderFilter || lower.includes('/' + folderFilter + '/');
+        const searchMatch = !query || lower.includes(query);
+        return folderMatch && searchMatch;
+    });
+
+    if (countEl) countEl.textContent = `${filtered.length} asset${filtered.length !== 1 ? 's' : ''}`;
+
+    // Clear previous options
+    select.innerHTML = '';
+    if (filtered.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = 'No se encontraron assets';
+        opt.disabled = true;
+        select.appendChild(opt);
+        return;
+    }
+
+    filtered.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p;
+        const filename = p.split('/').pop();
+        opt.textContent = filename;
+        select.appendChild(opt);
+    });
+
+};
+
+window.selectAssetFromPicker = function(path) {
+    const { idx, type } = window._assetPickerState;
+    if (type === 'resource') {
+        config.shopItems.resources[idx].icon = path;
+    } else if (type === 'recipe') {
+        config.craftingRecipes[idx].icon = path;
+    }
+    closeAssetPicker();
+    renderCrafting();
 };
 
 window.showLootTabForEnemy = function(enemyId) {

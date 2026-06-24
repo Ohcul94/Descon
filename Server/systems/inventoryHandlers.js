@@ -586,7 +586,7 @@ function registerInventoryHandlers(socket, io, state) {
 
         try {
             p.isProcessingInventory = true;
-            const { instanceId } = data;
+            const { instanceId, quantity } = data;
             const user = await User.findById(socket.dbUser._id);
             if (!user) return;
 
@@ -595,6 +595,7 @@ function registerInventoryHandlers(socket, io, state) {
 
             const item = user.gameData.inventory[idx];
             const amount = parseInt(item.amount) || 1;
+            const quantityToSell = quantity ? Math.min(parseInt(quantity) || 1, amount) : amount;
             
             let originalPrice = 0;
             const configItem = getMasterItemConfig(item.id, state.SERVER_CONFIG);
@@ -602,8 +603,13 @@ function registerInventoryHandlers(socket, io, state) {
                 originalPrice = configItem.prices.hubs;
             }
 
-            const refund = Math.floor(originalPrice / 2) * amount;
-            user.gameData.inventory.splice(idx, 1);
+            const refund = Math.floor(originalPrice / 2) * quantityToSell;
+            
+            if (quantityToSell < amount) {
+                item.amount = amount - quantityToSell;
+            } else {
+                user.gameData.inventory.splice(idx, 1);
+            }
             user.gameData.hubs += refund;
 
             user.markModified('gameData');
@@ -619,6 +625,68 @@ function registerInventoryHandlers(socket, io, state) {
             socket.emit('gameNotification', { msg: `VENDIDO POR ${refund} HUBS`, type: 'success' });
         } catch (e) { console.error(e); }
         finally {
+            p.isProcessingInventory = false;
+        }
+    });
+
+    socket.on('splitStack', async (data) => {
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+        
+        if (p.isProcessingInventory) {
+            return socket.emit('gameNotification', { msg: 'Transacción en curso. Espera un momento.', type: 'error' });
+        }
+
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            return socket.emit('gameNotification', { msg: 'Sistemas calientes. No puedes separar ítems en combate.', type: 'error' });
+        }
+
+        try {
+            p.isProcessingInventory = true;
+            const { instanceId, quantity } = data;
+            const qtyToSplit = parseInt(quantity) || 1;
+            if (qtyToSplit <= 0) return;
+
+            const user = await User.findById(socket.dbUser._id);
+            if (!user) return;
+
+            const idx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
+            if (idx === -1) return;
+
+            const item = user.gameData.inventory[idx];
+            const amount = parseInt(item.amount) || 1;
+
+            if (qtyToSplit >= amount) {
+                return socket.emit('gameNotification', { msg: 'Cantidad inválida para separar.', type: 'error' });
+            }
+
+            const maxSlots = user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
+            if (user.gameData.inventory.length >= maxSlots) {
+                return socket.emit('gameNotification', { msg: 'INVENTARIO LLENO: No hay espacio para crear un nuevo stack.', type: 'error' });
+            }
+
+            item.amount = amount - qtyToSplit;
+
+            const newItem = {
+                ...JSON.parse(JSON.stringify(item)),
+                instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
+                amount: qtyToSplit
+            };
+            user.gameData.inventory.push(newItem);
+
+            user.markModified('gameData.inventory');
+            user.markModified('gameData');
+            await user.save();
+            socket.dbUser = user;
+
+            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+
+            sendInventoryData(socket, user);
+            socket.emit('gameNotification', { msg: 'Ítem separado con éxito', type: 'success' });
+        } catch (e) {
+            console.error('[SPLIT-STACK-ERROR]', e);
+        } finally {
             p.isProcessingInventory = false;
         }
     });

@@ -4114,6 +4114,67 @@
                 },
                 "icon": "res://assets/Crafteo/Mapas/Mapa1/Mapa1.png",
                 "color": "#cbcbcc",
+                "type": "resource",
+                "maxStack": 5
+            },
+            {
+                "id": "mat_map2",
+                "name": "Mapa Inusual",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Mapas/Mapa2/Mapa2.png",
+                "color": "#73744e",
+                "type": "resource"
+            },
+            {
+                "id": "mat_map3",
+                "name": "Mapa Raro",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Mapas/Mapa3/Mapa3.png",
+                "color": "#455869",
+                "type": "resource"
+            },
+            {
+                "id": "mat_map4",
+                "name": "Mapa Epico",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Mapas/Mapa4/Mapa4.png",
+                "color": "#3f3c51",
+                "type": "resource"
+            },
+            {
+                "id": "mat_map5",
+                "name": "Mapa Legendario",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Mapas/Mapa5/Mapa5.png",
+                "color": "#824130",
+                "type": "resource"
+            },
+            {
+                "id": "mat_map6",
+                "name": "Mapa Mitico",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Mapas/Mapa6/Mapa6.png",
+                "color": "#c99943",
                 "type": "resource"
             }
         ]
