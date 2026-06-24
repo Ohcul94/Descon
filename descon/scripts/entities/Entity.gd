@@ -10,10 +10,16 @@ const HitFlashShader = preload("res://resources/shaders/hit_flash.gdshader")
 const SpaceExplosionScript = preload("res://scripts/vfx/SpaceExplosion.gd")
 const WreckageDrawingScript = preload("res://scripts/ui/WreckageDrawing.gd")
 
+# Caché estática de recursos para propulsión 3D optimizada
+static var _prop_proc_material: ParticleProcessMaterial = null
+static var _prop_material: StandardMaterial3D = null
+static var _prop_mesh: QuadMesh = null
+
 # Entity.gd (v150.20 - Non-Triangular Xeno Engine)
 # Eliminación Absoluta de Triángulos en Enemigos. Siluetas Geométricas Puras.
 
 var entity_id: String = ""
+var _3d_propulsion: GPUParticles3D = null
 var db_id: String = "" # v243.80: Identidad persistente (MongoDB ID)
 var username: String = "Unknown"
 var entity_type: int = 1
@@ -271,6 +277,8 @@ func _process(delta):
 					_vfx_container_2d.visible = false
 				if is_instance_valid(sprite):
 					sprite.visible = false
+				if is_instance_valid(_3d_propulsion):
+					_3d_propulsion.emitting = false
 			return # CORTOCIRCUITO COMPLETO: Salva 100% de cálculos en cada frame
 		else:
 			if get_meta("_was_screen_visible", true) == false:
@@ -465,6 +473,12 @@ func _process(delta):
 		_3d_model.rotation.y = lerp_angle(_3d_model.rotation.y, target_yaw, 0.2)
 		_3d_model.rotation.x = abs(_bank_current) * 0.12
 		_3d_model.rotation.z = -_bank_current * 0.4
+		
+		# Control de emisión de propulsión 3D basada en velocidad
+		if is_instance_valid(_3d_propulsion):
+			var is_moving = velocity.length() > 15.0 and not is_dead
+			if _3d_propulsion.emitting != is_moving:
+				_3d_propulsion.emitting = is_moving
 		
 		# 4. ACTUALIZAR ÓRBITA DE ESFERAS (Sincronización suave + Inventario)
 		_spheres_angle += delta * 0.3 
@@ -1084,6 +1098,9 @@ func die():
 	if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
 	if is_instance_valid(world_root_3d): world_root_3d.visible = false
 	
+	if is_instance_valid(_3d_propulsion):
+		_3d_propulsion.emitting = false
+	
 	# Limpieza explícita de esferas 3D en muerte para evitar que queden flotando y agrandadas
 	for s in _3d_spheres:
 		if is_instance_valid(s):
@@ -1656,6 +1673,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	if is_instance_valid(world_root_3d):
 		world_root_3d.queue_free()
 		world_root_3d = null
+	_3d_propulsion = null
 	
 	# Detectar si hay un lienzo 3D global en el mapa actual
 	var current_map = get_tree().get_first_node_in_group("map")
@@ -1801,6 +1819,9 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		_3d_shield_mesh.material_override = mat
 		_3d_shield_mesh.visible = false 
 		control_node.add_child(_3d_shield_mesh) # Ahora rota y escala CON la nave
+		
+		# v380.0: Inyectar partículas de propulsión 3D optimizadas
+		_setup_propulsion_particles(control_node)
 	
 	# 4. Cámara de Perspectiva con ZOOM 50% (Punto 0 - Sólo si es Viewport local)
 	if not is_single_world:
@@ -1837,6 +1858,61 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		_update_3d_spheres()
 	
 	# print("[3D] Visualizacion configurada correctamente.")
+
+func _setup_propulsion_particles(parent: Node3D):
+	_3d_propulsion = null
+	
+	var proc_path = "res://assets/VFX/Propulsion/propulsion_material.tres"
+	var mesh_path = "res://assets/VFX/Propulsion/propulsion_mesh_material.tres"
+	
+	if not ResourceLoader.exists(proc_path) or not ResourceLoader.exists(mesh_path):
+		return
+		
+	# 1. Cargar materiales y mallas estáticas de forma segura (Lazy Initialization)
+	if not _prop_proc_material:
+		_prop_proc_material = load(proc_path)
+
+	if not _prop_material:
+		_prop_material = load(mesh_path)
+
+	if not _prop_mesh:
+		_prop_mesh = QuadMesh.new()
+		_prop_mesh.material = _prop_material
+		_prop_mesh.size = Vector2(0.35, 0.35) # Tamaño ideal para la llama difusa
+
+	# 2. Determinar la posición según el modelo de nave
+	# Colgado de control_node, la nave apunta a +X, por lo que el escape siempre es -X.
+	var offset = Vector3(-0.35, 0.0, 0.0) # Acercado significativamente al asset
+	
+	if not is_in_group("enemies"):
+		match current_ship_id:
+			3:
+				offset = Vector3(-0.32, 0.0, 0.0)
+			4:
+				offset = Vector3(-0.35, 0.0, 0.0)
+			6:
+				offset = Vector3(-0.38, 0.0, 0.0)
+			_:
+				offset = Vector3(-0.35, 0.0, 0.0)
+
+	# 3. Instanciar el emisor local de partículas de propulsión
+	var particles = GPUParticles3D.new()
+	particles.name = "ThrusterParticles"
+	particles.amount = 60 # Mayor densidad para suavizado de llama de plasma continuo
+	particles.lifetime = 0.05 # Más corto y compacto para evitar estela larga
+	particles.preprocess = 0.05
+	particles.local_coords = false # Rastro estático al moverse
+	
+	particles.process_material = _prop_proc_material
+	particles.draw_pass_1 = _prop_mesh
+	
+	# Añadir al parent
+	parent.add_child(particles)
+	_3d_propulsion = particles
+	
+	# Posición del escape detrás del modelo de la nave
+	particles.position = offset
+	particles.emitting = false # Inicia apagado hasta que se mueva
 
 func _update_reflect_aura(_delta: float):
 	# v260.20: Aura 2D desactivada en favor del sistema de Escudo de Energía 3D

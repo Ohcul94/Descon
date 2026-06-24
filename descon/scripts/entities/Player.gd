@@ -860,7 +860,20 @@ func update_stats(data):
 	# v311.0: Conservar el target_position de click si el jugador se está moviendo y llega una actualización de posición del server.
 	var old_target_pos = target_position
 	
+	# Guardar valores de HP y escudo antes de la actualización del servidor
+	var old_hp = current_hp
+	var old_shield = current_shield
+	
 	super.update_stats(data)
+	
+	# Calcular daño real recibido tras la sincronización del servidor
+	var dmg_hp = old_hp - current_hp
+	var dmg_sh = old_shield - current_shield
+	var total_dmg = dmg_hp + dmg_sh
+	
+	# v380.0: Si el jugador recibe daño real de red, hacer temblar la cámara
+	if total_dmg > 1.0:
+		apply_shake(total_dmg * 0.05)
 	
 	if data.has("x") and data.has("y"):
 		# Forzar el posicionamiento directo para que el rubber-banding del server sea efectivo.
