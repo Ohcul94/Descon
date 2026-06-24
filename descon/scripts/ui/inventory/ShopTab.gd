@@ -70,9 +70,9 @@ func _create_shop_card(it, cat, parent):
 	
 	var n = Label.new(); n.text = it["name"]; n.horizontal_alignment = 1; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
 	
-	# Mostrar ICONO en la tienda si existe (Armas, Escudos, etc)
+	# Mostrar ICONO en la tienda si existe (Armas, Escudos, etc) - Se omite para naves
 	var icon_path = str(it.get("icon", ""))
-	if icon_path != "" and icon_path != "null" and ResourceLoader.exists(icon_path):
+	if cat != "ships" and icon_path != "" and icon_path != "null" and ResourceLoader.exists(icon_path):
 		var tex_container = CenterContainer.new()
 		v.add_child(tex_container)
 		var tex = TextureRect.new()

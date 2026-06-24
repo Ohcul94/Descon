@@ -3355,7 +3355,8 @@
                 "x": 5
             },
             "speed": 250,
-            "vision": 1300
+            "vision": 1300,
+            "hidden": false
         },
         {
             "hp": 3200,
@@ -3379,6 +3380,29 @@
             },
             "speed": 1000,
             "vision": 1300
+        },
+        {
+            "id": 7,
+            "name": "Tico 12",
+            "assetPath": "res://assets/Crafteo/Nave12.glb",
+            "icon": "res://assets/Crafteo/Nave12.png",
+            "rotX": 0,
+            "rotY": 0,
+            "rotZ": 0,
+            "hp": 3000,
+            "shield": 1000,
+            "speed": 300,
+            "vision": 1300,
+            "slots": {
+                "w": 1,
+                "s": 1,
+                "e": 1,
+                "x": 1
+            },
+            "prices": {
+                "hubs": 10000,
+                "ohcu": 100
+            }
         }
     ],
     "shopItems": {

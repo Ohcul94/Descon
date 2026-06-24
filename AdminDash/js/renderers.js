@@ -498,7 +498,13 @@ function renderShips() {
                 </div>
                 <div style="flex-grow:1; display:flex; flex-direction:column; gap:10px;">
                     <div class="field"><label>Nombre de la Nave</label><input type="text" value="${ship.name}" onchange="config.shipModels[${idx}].name = this.value"></div>
-                    <div class="field"><label>Ruta Asset 3D (.glb)</label><input type="text" value="${ship.assetPath || ''}" placeholder="res://assets/Personajes/3D/Nave..." onchange="config.shipModels[${idx}].assetPath = this.value"></div>
+                    <div class="field">
+                        <label>Ruta Asset 3D (.glb)</label>
+                        <div style="display:flex; gap:8px; align-items:center; width:100%;">
+                            <input type="text" value="${ship.assetPath || ''}" placeholder="res://assets/Personajes/3D/Nave..." onchange="config.shipModels[${idx}].assetPath = this.value" style="flex-grow:1; margin:0;">
+                            <button class="btn btn-primary" style="padding:8px 12px; font-size:0.75rem; flex-shrink:0; background:var(--accent); border-color:var(--accent);" onclick="triggerAssetUpload(${idx}, 'ship_glb')">📁 SELECCIONAR GLB</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -4736,7 +4742,11 @@ window.removeQuest = function(idx) {
 window.triggerAssetUpload = function(idx, type = 'resource') {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    if (type === 'ship_glb') {
+        input.accept = '.glb';
+    } else {
+        input.accept = 'image/*';
+    }
     input.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -4766,6 +4776,8 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         config.craftingRecipes[idx].icon = result.path;
                     } else if (type === 'ship_icon') {
                         config.shipModels[idx].icon = result.path;
+                    } else if (type === 'ship_glb') {
+                        config.shipModels[idx].assetPath = result.path;
                     }
                     
                     // Solicitar la lista de assets actualizada mediante socket
@@ -4775,7 +4787,7 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                     }
                     
                     alert('Asset importado con éxito!');
-                    if (type === 'ship_icon') {
+                    if (type === 'ship_icon' || type === 'ship_glb') {
                         renderShips();
                     } else {
                         renderCrafting();
