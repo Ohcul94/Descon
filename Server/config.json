@@ -5673,8 +5673,23 @@
                 {
                     "itemId": "mat_map1",
                     "amount": 1
+                },
+                {
+                    "itemId": "mat_map2",
+                    "amount": 1
                 }
             ]
+        },
+        {
+            "id": "recipe_new_hofx9",
+            "name": "Nueva Receta",
+            "desc": "Descripción de la nueva receta.",
+            "resultItemId": "",
+            "resultCategory": "weapons",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 0,
+            "ingredients": []
         }
     ],
     "chatConfig": {
