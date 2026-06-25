@@ -154,6 +154,50 @@ app.post('/api/upload-asset', express.json({ limit: '20mb' }), async (req, res) 
     }
 });
 
+// v1.0: Endpoint para resolver la ruta res:// de un asset existente sin copiarlo
+// Busca recursivamente en la carpeta de assets del proyecto y devuelve la ruta Godot
+app.get('/api/find-asset', async (req, res) => {
+    const { fileName } = req.query;
+    if (!fileName) return res.status(400).json({ error: 'Parámetro fileName requerido' });
+
+    const assetsDir = path.join(__dirname, '../descon/assets');
+    const projectRoot = path.join(__dirname, '../descon');
+
+    const findFileRecursive = async (dir, name) => {
+        let entries;
+        try {
+            entries = await fs.readdir(dir, { withFileTypes: true });
+        } catch (e) {
+            return null;
+        }
+        for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                const found = await findFileRecursive(fullPath, name);
+                if (found) return found;
+            } else if (entry.name === name) {
+                return fullPath;
+            }
+        }
+        return null;
+    };
+
+    try {
+        const found = await findFileRecursive(assetsDir, fileName);
+        if (!found) {
+            return res.json({ success: false, error: `"${fileName}" no encontrado en los assets del proyecto. Asegurate de que el archivo esté dentro de la carpeta descon/assets.` });
+        }
+        // Convertir la ruta absoluta a ruta res:// de Godot
+        const relative = path.relative(projectRoot, found).replace(/\\/g, '/');
+        const godotPath = `res://${relative}`;
+        console.log(`[FIND ASSET] Resuelto: ${fileName} → ${godotPath}`);
+        return res.json({ success: true, path: godotPath });
+    } catch (err) {
+        console.error('[FIND ASSET ERROR]', err);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
 const state = require('./state');
 const { players, activeSessions, enemies, activeAreas, parties, playerParty } = state;
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ds24tvf84roge"
-path="res://.godot/imported/Nave12.png-c8df5a6041f21e4d7c9d02191f79fefe.ctex"
+uid="uid://dd5ltqjnie5jm"
+path="res://.godot/imported/Celic3.png-becaddbc53e842adf0e77e6f0b8cc55f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Crafteo/Nave12.png"
-dest_files=["res://.godot/imported/Nave12.png-c8df5a6041f21e4d7c9d02191f79fefe.ctex"]
+source_file="res://assets/Crafteo/Celics/Celic3/Celic3.png"
+dest_files=["res://.godot/imported/Celic3.png-becaddbc53e842adf0e77e6f0b8cc55f.ctex"]
 
 [params]
 

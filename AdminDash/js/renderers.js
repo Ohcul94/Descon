@@ -4980,19 +4980,56 @@ window.removeQuest = function(idx) {
 window.triggerAssetUpload = function(idx, type = 'resource') {
     const input = document.createElement('input');
     input.type = 'file';
+
+    // Tipos que NO deben copiar el archivo — solo resuelven la ruta res://
+    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb'];
+    const isResolveOnly = resolveOnlyTypes.includes(type);
+
     if (type === 'ship_glb' || type === 'housing_glb') {
         input.accept = '.glb';
     } else {
         input.accept = 'image/*';
     }
+
     input.onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
+
+        const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+
+        // ── MODO RESOLVE-ONLY: Solo buscar el archivo en el proyecto, sin copiarlo ──
+        if (isResolveOnly) {
+            try {
+                const response = await fetch(`${activeURL}/api/find-asset?fileName=${encodeURIComponent(file.name)}`);
+                const result = await response.json();
+
+                if (result.success && result.path) {
+                    if (type === 'ship_icon') {
+                        config.shipModels[idx].icon = result.path;
+                    } else if (type === 'ship_glb') {
+                        config.shipModels[idx].assetPath = result.path;
+                    } else if (type === 'housing_glb') {
+                        config.housingConfig.placeableItems[idx].model = result.path;
+                    }
+                    if (type === 'ship_icon' || type === 'ship_glb') {
+                        renderShips();
+                    } else if (type === 'housing_glb') {
+                        renderHousing();
+                    }
+                } else {
+                    alert('❌ ' + (result.error || 'No se pudo encontrar el archivo en los assets del proyecto.\n\nAsegurate de que el archivo ya esté copiado dentro de la carpeta descon/assets antes de seleccionarlo.'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error al conectar con el servidor local para resolver la ruta del asset.');
+            }
+            return; // No continuar con el flujo de upload
+        }
+
+        // ── MODO UPLOAD: Leer el archivo y copiarlo al servidor (crafteo / recursos) ──
         const reader = new FileReader();
         reader.onload = async () => {
             const base64Data = reader.result.split(',')[1];
-            const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
             
             try {
                 const response = await fetch(`${activeURL}/api/upload-asset`, {
@@ -5012,12 +5049,6 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         config.shopItems.resources[idx].icon = result.path;
                     } else if (type === 'recipe') {
                         config.craftingRecipes[idx].icon = result.path;
-                    } else if (type === 'ship_icon') {
-                        config.shipModels[idx].icon = result.path;
-                    } else if (type === 'ship_glb') {
-                        config.shipModels[idx].assetPath = result.path;
-                    } else if (type === 'housing_glb') {
-                        config.housingConfig.placeableItems[idx].model = result.path;
                     }
                     
                     // Solicitar la lista de assets actualizada mediante socket
@@ -5027,13 +5058,7 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                     }
                     
                     alert('Asset importado con éxito!');
-                    if (type === 'ship_icon' || type === 'ship_glb') {
-                        renderShips();
-                    } else if (type === 'housing_glb') {
-                        renderHousing();
-                    } else {
-                        renderCrafting();
-                    }
+                    renderCrafting();
                 } else {
                     alert('Error al importar el asset: ' + (result.error || 'Desconocido'));
                 }

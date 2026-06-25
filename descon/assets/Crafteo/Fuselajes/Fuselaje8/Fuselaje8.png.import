@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dyokfjvymrws2"
-path="res://.godot/imported/Nave11.png-af578cf0fda53969643186660ec6323f.ctex"
+uid="uid://by58xs4rx4en6"
+path="res://.godot/imported/Fuselaje8.png-94c420547923d4cdb393a1514835d5ab.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Crafteo/Nave11.png"
-dest_files=["res://.godot/imported/Nave11.png-af578cf0fda53969643186660ec6323f.ctex"]
+source_file="res://assets/Crafteo/Fuselajes/Fuselaje8/Fuselaje8.png"
+dest_files=["res://.godot/imported/Fuselaje8.png-94c420547923d4cdb393a1514835d5ab.ctex"]
 
 [params]
 
