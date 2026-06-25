@@ -1,0 +1,108 @@
+# ============================================================
+# Pared1.obj — Módulo de Pared Dungeon (Low Poly)
+# ============================================================
+# Dimensiones: 2.0m ancho | 2.0m alto | 0.25m profundidad
+# Polígonos: 12 triángulos (6 caras x 2 tris)
+# UV Unwrap: Proporcional por cara — listo para Meshy AI
+#
+# Flujo de trabajo:
+#   1. Importar este .obj en Meshy AI
+#   2. Meshy genera: Albedo, Normal, Roughness, AO
+#   3. Exportar como .glb con texturas incrustadas
+#   4. Colocar el .glb en Godot como MeshInstance3D (visual)
+#   5. La colisión se maneja con StaticBody2D en la capa 2D
+#
+# Sistema de coordenadas: Y = Arriba (OpenGL / Godot 4)
+# ============================================================
+
+mtllib Pared1.mtl
+o Pared1
+
+# ── VÉRTICES ─────────────────────────────────────────────────
+# 8 vértices del bloque de pared
+# Cara Frontal  (Z = +0.125)
+v -1.0  0.0  0.125
+v  1.0  0.0  0.125
+v  1.0  2.0  0.125
+v -1.0  2.0  0.125
+# Cara Trasera  (Z = -0.125)
+v  1.0  0.0 -0.125
+v -1.0  0.0 -0.125
+v -1.0  2.0 -0.125
+v  1.0  2.0 -0.125
+
+# ── COORDENADAS UV ───────────────────────────────────────────
+# Las UVs están en el rango [0,1] sin superposición (no overlapping).
+# Meshy usará principalmente la cara Frontal (UV completo 0→1).
+# Las caras de canto tienen UVs proporcionales a su tamaño real.
+
+# Cara FRONTAL — UV completo (cara principal de texturizado)
+vt  0.000  0.000
+vt  1.000  0.000
+vt  1.000  1.000
+vt  0.000  1.000
+
+# Cara TRASERA — UV completo
+vt  0.000  0.000
+vt  1.000  0.000
+vt  1.000  1.000
+vt  0.000  1.000
+
+# Cara SUPERIOR — 2m x 0.25m → proporción 8:1 → V escalado a 0.125
+vt  0.000  0.000
+vt  1.000  0.000
+vt  1.000  0.125
+vt  0.000  0.125
+
+# Cara INFERIOR — igual que superior
+vt  0.000  0.000
+vt  1.000  0.000
+vt  1.000  0.125
+vt  0.000  0.125
+
+# Cara IZQUIERDA — 0.25m x 2m → U escalado a 0.125
+vt  0.000  0.000
+vt  0.125  0.000
+vt  0.125  1.000
+vt  0.000  1.000
+
+# Cara DERECHA — igual que izquierda
+vt  0.000  0.000
+vt  0.125  0.000
+vt  0.125  1.000
+vt  0.000  1.000
+
+# ── NORMALES ─────────────────────────────────────────────────
+vn  0.0  0.0  1.0
+vn  0.0  0.0 -1.0
+vn  0.0  1.0  0.0
+vn  0.0 -1.0  0.0
+vn -1.0  0.0  0.0
+vn  1.0  0.0  0.0
+
+# ── CARAS (triángulos: v/vt/vn) ──────────────────────────────
+usemtl Pared_Base
+
+# FRONTAL (+Z) — cara principal visible desde el interior del dungeon
+f 1/1/1   2/2/1   3/3/1
+f 1/1/1   3/3/1   4/4/1
+
+# TRASERA (-Z)
+f 5/5/2   6/6/2   7/7/2
+f 5/5/2   7/7/2   8/8/2
+
+# SUPERIOR (+Y) — techo del bloque
+f 4/9/3   3/10/3  8/11/3
+f 4/9/3   8/11/3  7/12/3
+
+# INFERIOR (-Y) — base del bloque
+f 6/13/4  5/14/4  2/15/4
+f 6/13/4  2/15/4  1/16/4
+
+# IZQUIERDA (-X)
+f 6/17/5  1/18/5  4/19/5
+f 6/17/5  4/19/5  7/20/5
+
+# DERECHA (+X)
+f 2/21/6  5/22/6  8/23/6
+f 2/21/6  8/23/6  3/24/6

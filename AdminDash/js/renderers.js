@@ -1555,6 +1555,7 @@ function renderMapDetail() {
                         <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem; border-color:rgba(255,215,0,0.4); color:#ffd700;" onclick="setMapRadarObjectMode('chest')">📦 Baúl</button>
                         <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem; border-color:rgba(0,210,255,0.4); color:#00d2ff;" onclick="setMapRadarObjectMode('door')">🚪 Puerta</button>
                         <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem; border-color:rgba(255,140,0,0.4); color:#ff8c00;" onclick="setMapRadarObjectMode('tower')">🗼 Torre</button>
+                        <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem; border-color:rgba(168,124,82,0.4); color:#a87c52;" onclick="setMapRadarObjectMode('wall')">🧱 Pared</button>
                         <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem;" onclick="setMapRadarObjectMode(null)">✋ Mover</button>
                     </div>
                     <div id="map-radar-mode-hint" style="font-size:0.65rem; color:#888; text-align:center; width:100%;">
@@ -1682,13 +1683,35 @@ function renderMapDetail() {
                 <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,215,0,0.1);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
                         <label style="color:#ffd700; font-size: 0.8rem; font-weight:bold;">🗺️ OBJETOS DEL MUNDO</label>
-                        <div style="display:flex; gap:6px;">
-                            <select id="new-map-obj-type" style="background:#0f172a; border:1px solid rgba(255,215,0,0.3); color:#ffd700; font-size:0.7rem; border-radius:4px; padding:3px 6px; cursor:pointer;">
-                                <option value="chest">📦 Baúl</option>
-                                <option value="door">🚪 Puerta</option>
-                                <option value="tower">🗼 Torre</option>
-                            </select>
-                            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#b8860b; border-color:#b8860b;" onclick="addMapObject('${selectedMapId}'); renderMapDetail();">+ AGREGAR</button>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
+                                <select id="new-map-obj-type" onchange="toggleNewMapObjExtraFields(this.value)" style="background:#0f172a; border:1px solid rgba(255,215,0,0.3); color:#ffd700; font-size:0.7rem; border-radius:4px; padding:3px 6px; cursor:pointer;">
+                                    <option value="chest" ${window._lastNewMapObjType === 'chest' ? 'selected' : ''}>📦 Baúl</option>
+                                    <option value="door" ${window._lastNewMapObjType === 'door' ? 'selected' : ''}>🚪 Puerta</option>
+                                    <option value="tower" ${window._lastNewMapObjType === 'tower' ? 'selected' : ''}>🗼 Torre</option>
+                                    <option value="wall" ${window._lastNewMapObjType === 'wall' ? 'selected' : ''}>🧱 Pared / Dungeon</option>
+                                </select>
+                                <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#b8860b; border-color:#b8860b;" onclick="addMapObject('${selectedMapId}'); renderMapDetail();">+ AGREGAR</button>
+                            </div>
+                            <div id="new-map-obj-extra-fields" style="display:${window._lastNewMapObjType === 'wall' ? 'flex' : 'none'}; flex-direction:column; gap:4px; background:rgba(0,0,0,0.3); padding:8px; border-radius:4px; border:1px solid rgba(168,124,82,0.3);">
+                                <div style="display:flex; gap:6px;">
+                                    <div class="field" style="flex:1; margin:0;">
+                                        <label style="font-size:0.6rem; color:#a87c52;">Rotación Y</label>
+                                        <input type="number" id="new-map-obj-rotY" value="0" style="padding:2px 4px; font-size:0.65rem; background:#0f172a; border:1px solid rgba(168,124,82,0.3); color:#fff; border-radius:4px;">
+                                    </div>
+                                    <div class="field" style="flex:1; margin:0;">
+                                        <label style="font-size:0.6rem; color:#a87c52;">Escala (bloque)</label>
+                                        <input type="number" step="0.1" id="new-map-obj-scale" value="1.0" style="padding:2px 4px; font-size:0.65rem; background:#0f172a; border:1px solid rgba(168,124,82,0.3); color:#fff; border-radius:4px;">
+                                    </div>
+                                </div>
+                                <div class="field" style="margin:0;">
+                                    <label style="font-size:0.6rem; color:#a87c52;">Asset GLB</label>
+                                    <div style="display:flex; gap:4px; align-items:center;">
+                                        <input type="text" id="new-map-obj-asset" value="res://assets/Paredes/Pared1/Pared1.glb" style="padding:2px 4px; font-size:0.65rem; flex:1; margin:0; background:#0f172a; border:1px solid rgba(168,124,82,0.3); color:#fff; border-radius:4px;">
+                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:0.6rem; margin:0; border-color:rgba(168,124,82,0.4); color:#a87c52;" onclick="triggerNewMapObjAssetPick()">📁</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div id="map-objects-list">
@@ -1696,7 +1719,8 @@ function renderMapDetail() {
                         const typeConfig = {
                             chest: { icon: '📦', color: '#ffd700', label: 'BAÚL' },
                             door:  { icon: '🚪', color: '#00d2ff', label: 'PUERTA/WARP' },
-                            tower: { icon: '🗼', color: '#ff8c00', label: 'TORRE' }
+                            tower: { icon: '🗼', color: '#ff8c00', label: 'TORRE' },
+                            wall:  { icon: '🧱', color: '#a87c52', label: 'PARED DUNGEON' }
                         };
                         const tc = typeConfig[obj.type] || { icon: '⭕', color: '#aaa', label: obj.type?.toUpperCase() || 'OBJETO' };
                         const allMapOptions = Object.keys(config.mapsConfig)
@@ -1729,9 +1753,27 @@ function renderMapDetail() {
                                 </div>
                                 <div class="field" style="grid-column:span 2;">
                                     <label>Asset (ruta .glb)</label>
-                                    <input type="text" value="${obj.assetPath || (obj.type === 'chest' ? 'res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb' : obj.type === 'door' ? 'res://assets/Puertas/3D/Puerta2/Puerta2.glb' : 'res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb')}" placeholder="Ruta al archivo .glb del asset"
-                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].assetPath = this.value">
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        <input type="text" value="${obj.assetPath || (obj.type === 'chest' ? 'res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb' : obj.type === 'door' ? 'res://assets/Puertas/3D/Puerta2/Puerta2.glb' : obj.type === 'wall' ? 'res://assets/Paredes/Pared1/Pared1.glb' : 'res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb')}" placeholder="Ruta al archivo .glb del asset"
+                                               oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].assetPath = this.value" style="flex:1; margin:0;">
+                                        <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:var(--accent); border-color:var(--accent);" onclick="triggerMapObjAssetPick('${selectedMapId}', ${idx})">📁</button>
+                                    </div>
                                 </div>
+                                ${obj.type === 'wall' ? `
+                                <div class="field" style="grid-column:span 2; border-top:1px solid rgba(168,124,82,0.2); padding-top:0.7rem; margin-top:0.3rem;">
+                                    <label style="color:#a87c52; font-size:0.6rem; font-weight:bold;">🧱 CONFIGURACIÓN DE PARED</label>
+                                </div>
+                                <div class="field">
+                                    <label>Rotación Y (grados)</label>
+                                    <input type="number" value="${obj.rotY || 0}" placeholder="0"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].rotY = parseFloat(this.value) || 0">
+                                </div>
+                                <div class="field">
+                                    <label>Escala (x1 = tamaño base)</label>
+                                    <input type="number" step="0.1" min="0.1" value="${obj.scale || 1}" placeholder="1"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].scale = parseFloat(this.value) || 1">
+                                </div>
+                                ` : ''}
                                 ${obj.type === 'door' ? `
                                 <div class="field" style="grid-column:span 2; border-top:1px solid rgba(0,210,255,0.2); padding-top:0.7rem; margin-top:0.3rem;">
                                     <label style="color:#00d2ff; font-size:0.6rem; font-weight:bold;">🌀 CONFIGURACIÓN DE WARP</label>
@@ -5082,6 +5124,32 @@ window.openAssetPicker = function(idx, type) {
 window.closeAssetPicker = function() {
     const overlay = document.getElementById('asset-picker-overlay');
     if (overlay) overlay.style.display = 'none';
+};
+
+// Seleccionar GLB para un objeto del mundo (chest, door, tower, wall) sin copiar el archivo
+window.triggerMapObjAssetPick = async function(mapId, objIdx) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.glb,.png,.jpg,.webp';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+        try {
+            const response = await fetch(`${activeURL}/api/find-asset?fileName=${encodeURIComponent(file.name)}`);
+            const result = await response.json();
+            if (result.success && result.path) {
+                config.mapsConfig[mapId].objects[objIdx].assetPath = result.path;
+                renderMapDetail();
+            } else {
+                alert('❌ ' + (result.error || 'Archivo no encontrado en los assets del proyecto.\n\nAsegurate de que el archivo ya esté dentro de la carpeta descon/assets.'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error al conectar con el servidor local.');
+        }
+    };
+    input.click();
 };
 
 // Confirm selection from asset picker

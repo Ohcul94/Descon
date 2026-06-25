@@ -14,6 +14,7 @@ var talent_system = null
 var current_map_node = null # Referencia al mapa cargado actualmente
 
 var entity_manager: Node = null
+var dungeon_builder: Node = null  # v1.0: Constructor de paredes de dungeon
 
 # Propiedades Dinámicas de Godot 4 (Backwards-compatibility de clase)
 var remote_players: Dictionary:
@@ -94,6 +95,12 @@ func _inject_entity_manager():
 	entity_manager.set_script(load("res://scripts/systems/EntityManager.gd"))
 	add_child(entity_manager)
 	entity_manager.setup(self)
+	
+	# v1.0: Inyectar DungeonBuilder
+	dungeon_builder = Node.new()
+	dungeon_builder.name = "DungeonBuilder"
+	dungeon_builder.set_script(load("res://scripts/systems/DungeonBuilder.gd"))
+	add_child(dungeon_builder)
 
 func _setup_freeze_overlay():
 	var canvas = CanvasLayer.new()
@@ -491,6 +498,11 @@ func _update_background(zone_id):
 		
 		# v306.4: Reconstruir visuales 3D en todas las entidades activas para el nuevo mapa
 		get_tree().call_group("entities", "rebuild_3d_layout")
+		
+		# v1.0: Spawnear paredes de dungeon configuradas desde el Admin Dash
+		if is_instance_valid(dungeon_builder):
+			await get_tree().process_frame  # Esperar un frame para que el viewport esté listo
+			dungeon_builder.build_for_zone(zone_id, current_map_node)
 
 func clear_remote_players():
 	if is_instance_valid(entity_manager):

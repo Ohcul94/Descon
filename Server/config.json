@@ -2954,10 +2954,20 @@
                 {
                     "type": "door",
                     "label": "Puerta",
-                    "x": 1244,
-                    "y": 1195,
+                    "x": 1393,
+                    "y": 1408,
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
                     "targetZoneId": "2",
+                    "targetX": 5000,
+                    "targetY": 5000
+                },
+                {
+                    "type": "door",
+                    "label": "Puerta",
+                    "x": 615,
+                    "y": 1396,
+                    "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
+                    "targetZoneId": "8",
                     "targetX": 5000,
                     "targetY": 5000
                 }
@@ -3414,9 +3424,9 @@
         },
         {
             "id": 7,
-            "name": "Tico 12",
-            "assetPath": "res://assets/Crafteo/Nave12.glb",
-            "icon": "res://assets/Crafteo/Nave12.png",
+            "name": "Tico 11",
+            "assetPath": "res://assets/Personajes/3D/Nave11/Nave11.glb",
+            "icon": "res://assets/Personajes/2D/Nave11/Nave11.png",
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
@@ -3437,9 +3447,9 @@
         },
         {
             "id": 8,
-            "name": "Pinfli 11",
-            "assetPath": "res://assets/Crafteo/Nave11.glb",
-            "icon": "res://assets/Crafteo/Nave11.png",
+            "name": "Pinfli 12",
+            "assetPath": "res://assets/Personajes/3D/Nave12/Nave12.glb",
+            "icon": "res://assets/Personajes/2D/Nave12/Nave12.png",
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,

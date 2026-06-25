@@ -1,0 +1,16 @@
+# ============================================================
+# Pared1.mtl — Material placeholder para Meshy AI
+# ============================================================
+# Este archivo define el material BASE del modelo.
+# Meshy reemplazará estos valores con sus texturas generadas.
+# Después de generar en Meshy, el .mtl ya no es necesario
+# (el .glb final lleva las texturas PBR incrustadas).
+# ============================================================
+
+newmtl Pared_Base
+Ka  0.180  0.180  0.180
+Kd  0.500  0.500  0.500
+Ks  0.040  0.040  0.040
+Ns  20.0
+d   1.0
+illum 1

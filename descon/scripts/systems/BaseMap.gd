@@ -481,6 +481,34 @@ func _spawn_map_objects():
 				tower.global_position = obj_pos
 				print("[BaseMap] Torre (Pilar PVP) instanciado correctamente: ", obj_label, " @ ", obj_pos)
 			
+			"wall":
+				# Pared de Dungeon: Colisión sólida 2D + Visual 3D
+				var wall_body = StaticBody2D.new()
+				wall_body.name = "MapWall_" + obj_label.replace(" ", "_")
+				wall_body.collision_layer = 2  # Colisionar con naves
+				wall_body.collision_mask = 0
+				
+				var scale_val = float(obj.get("scale", 1.0))
+				var rot_y = float(obj.get("rotY", 0.0))
+				
+				var col = CollisionShape2D.new()
+				var rect = RectangleShape2D.new()
+				rect.size = Vector2(100.0 * scale_val, 20.0 * scale_val)
+				col.shape = rect
+				col.rotation = deg_to_rad(rot_y)
+				wall_body.add_child(col)
+				
+				var model_path = str(obj.get("assetPath", ""))
+				if model_path == "":
+					model_path = "res://assets/Paredes/Pared1/Pared1.glb"
+				
+				_instantiate_map_object_3d(model_path, obj_pos, Vector3(scale_val, scale_val, scale_val), Vector3(0, rot_y, 0), Color(0.9, 0.3, 0.1))
+				
+				wall_body.add_to_group("walls")
+				add_child(wall_body)
+				wall_body.global_position = obj_pos
+				print("[BaseMap] Pared instanciada correctamente: ", obj_label, " @ ", obj_pos, " escala: ", scale_val, " rot: ", rot_y)
+			
 			_:
 				print("[BaseMap] Tipo de objeto desconocido: ", obj_type, " @ ", obj_pos)
 
