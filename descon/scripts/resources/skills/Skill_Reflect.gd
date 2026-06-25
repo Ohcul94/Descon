@@ -2,7 +2,7 @@ extends SphereSkill
 class_name Skill_Reflect
 
 func _init():
-	skill_name = "REFLECT-Ω"
+	skill_name = "REFLECT-OMEGA"
 	description = "Crea un campo de resonancia que refleja daño hostil."
 	type = "Ataque"
 	power_value = 500.0

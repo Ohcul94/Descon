@@ -445,20 +445,32 @@ func _update_sphere_ui(id: int, ref, slot):
 		elif typeof(equipped) == TYPE_STRING: equipped_name = equipped
 		
 		if equipped_name != "":
+			# Normalizar para búsquedas y caché seguras
+			var clean_name = equipped_name.to_upper().strip_edges()
+			var lookup_name = clean_name
+			
 			# Revisar caché primero
-			if _skill_icon_cache.has(equipped_name):
-				skill_icon_tex = _skill_icon_cache[equipped_name]
+			if _skill_icon_cache.has(clean_name):
+				skill_icon_tex = _skill_icon_cache[clean_name]
 			else:
 				var server_skills = {}
 				if NetworkManager and NetworkManager.server_config:
 					server_skills = NetworkManager.server_config.get("skillsData", {})
-				if server_skills.has(equipped_name):
-					var icon_path = server_skills[equipped_name].get("icon", "")
+				
+				# Resolver nombres cruzados (REFLECT-OMEGA)
+				if "REFLECT" in clean_name:
+					for s_key in server_skills.keys():
+						if "REFLECT" in s_key.to_upper():
+							lookup_name = s_key
+							break
+				
+				if server_skills.has(lookup_name):
+					var icon_path = server_skills[lookup_name].get("icon", "")
 					if icon_path != "" and ResourceLoader.exists(icon_path):
 						skill_icon_tex = load(icon_path)
 				# Guardar en caché (null también, para no reintentar)
-				_skill_icon_cache[equipped_name] = skill_icon_tex
- 
+				_skill_icon_cache[clean_name] = skill_icon_tex
+
 	# Remover o actualizar ícono en el slot (solo si cambia)
 	var prev_icon = slot.get_node_or_null("SkillIconRect")
 	var prev_icon_path = slot.get_meta("last_skill_icon_path", "") if slot.has_meta("last_skill_icon_path") else ""
@@ -468,8 +480,16 @@ func _update_sphere_ui(id: int, ref, slot):
 		if typeof(equipped) == TYPE_DICTIONARY: equipped_name2 = equipped.get("skill_name", "")
 		elif typeof(equipped) == TYPE_OBJECT and "skill_name" in equipped: equipped_name2 = str(equipped.skill_name)
 		elif typeof(equipped) == TYPE_STRING: equipped_name2 = equipped
+		
+		var clean_name2 = equipped_name2.to_upper().strip_edges()
+		var lookup_name2 = clean_name2
 		var sv2 = NetworkManager.server_config.get("skillsData", {}) if NetworkManager and NetworkManager.server_config else {}
-		if sv2.has(equipped_name2): new_icon_path = sv2[equipped_name2].get("icon", "")
+		if "REFLECT" in clean_name2:
+			for s_key in sv2.keys():
+				if "REFLECT" in s_key.to_upper():
+					lookup_name2 = s_key
+					break
+		if sv2.has(lookup_name2): new_icon_path = sv2[lookup_name2].get("icon", "")
 	
 	if new_icon_path != prev_icon_path:
 		# El ícono cambió: remover el anterior y crear nuevo si aplica

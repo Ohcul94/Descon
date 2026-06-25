@@ -907,7 +907,7 @@ func _find_skill_by_name(n: String):
 		"TURBO-IMPULSO": "res://scripts/resources/skills/Skill_TurboImpulse.gd",
 		"ESCUDO CELULAR": "res://scripts/resources/skills/Skill_ShieldCell.gd",
 		"AUTO-REPARACIÓN": "res://scripts/resources/skills/Skill_RepairKit.gd",
-		"REFLECT-Ω": "res://scripts/resources/skills/Skill_Reflect.gd",
+		"REFLECT-OMEGA": "res://scripts/resources/skills/Skill_Reflect.gd",
 		"PLASMA BLAST": "res://scripts/resources/skills/Skill_PlasmaBlast.gd",
 		"FORTALEZA-X": "res://scripts/resources/skills/Skill_Fortress.gd",
 		"NANO-REGENERACIÓN": "res://scripts/resources/skills/Skill_RegenPath.gd",

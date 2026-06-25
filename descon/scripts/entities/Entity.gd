@@ -2061,7 +2061,7 @@ func _on_remote_skill_used(data: Dictionary):
 
 	if final_match:
 		var s_name = str(data.get("skillName", ""))
-		if s_name == "REFLECT-Ω" or s_name == "REFLECT":
+		if s_name == "REFLECT-OMEGA" or s_name == "REFLECT":
 			reflect_timer = 3.0
 			print("[SKILL-SYNC] Activando visual de REFLECT para aliado: ", username)
 		elif s_name == "ESCUDO CELULAR" or s_name == "FORTALEZA-X":

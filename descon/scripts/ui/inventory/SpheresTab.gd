@@ -46,9 +46,20 @@ func update_ui():
 # v301.4: Intenta cargar textura desde ruta res:// del servidor
 func _load_skill_icon_texture(skill_name: String) -> Texture2D:
 	var server_skills = NetworkManager.server_config.get("skillsData", {})
-	if not server_skills.has(skill_name):
+	var clean_name = skill_name.to_upper().strip_edges()
+	
+	# Mapeo de normalización para nombres con caracteres especiales corruptos o de diferente codificación (UTF-8 / ISO-8859-1)
+	var lookup_key = clean_name
+	if "REFLECT" in clean_name:
+		# Mapear variaciones como REFLECT-OMEGA o similares
+		for key in server_skills.keys():
+			if "REFLECT" in key.to_upper():
+				lookup_key = key
+				break
+	
+	if not server_skills.has(lookup_key):
 		return null
-	var icon_path = server_skills[skill_name].get("icon", "")
+	var icon_path = server_skills[lookup_key].get("icon", "")
 	if icon_path == "" or not icon_path.ends_with(".png"):
 		return null
 	if ResourceLoader.exists(icon_path):
