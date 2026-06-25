@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dm4i0spyxa0gs"
-path="res://.godot/imported/Reflect.png-9a3067a5bd2152bfd084b967cebf45c9.ctex"
+uid="uid://cy2g6rj1xxkgb"
+path="res://.godot/imported/Escudo Celular.png-bbb3bdf722794977db880e18aedbad72.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Skills/Iconos/Reflect/Reflect.png"
-dest_files=["res://.godot/imported/Reflect.png-9a3067a5bd2152bfd084b967cebf45c9.ctex"]
+source_file="res://assets/Skills/Iconos/Defensa/Escudo Celular/Escudo Celular.png"
+dest_files=["res://.godot/imported/Escudo Celular.png-bbb3bdf722794977db880e18aedbad72.ctex"]
 
 [params]
 

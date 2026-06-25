@@ -1401,6 +1401,10 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 			if c_name == "header" or c_name == "title" or c_name == "titlebar" or c_name == "min":
 				child.visible = false
 			
+			if child is TextureRect:
+				# No tocar los TextureRects (íconos de habilidad)
+				continue
+				
 			if child is VBoxContainer or child.name == "Minimap" or child.name == "VBox" or child.name == "Scroll":
 				var margin = 25
 				if target.name.contains("Slot"): margin = 5

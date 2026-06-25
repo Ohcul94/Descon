@@ -1835,9 +1835,26 @@ function renderSkills() {
         const card = document.createElement('div'); card.className = 'card';
         if(!s.targetFilters) s.targetFilters = { allies: true, enemies: false, bosses: false, players: true, clan: false };
         if(s.targetFilters.clan === undefined) s.targetFilters.clan = false;
+
+        // Ícono actual
+        const skillIconWeb = resolveAssetWebUrl(s.icon || '');
+        const iconPreviewHtml = skillIconWeb
+            ? `<img src="${skillIconWeb}" style="width:72px; height:72px; object-fit:contain; border-radius:10px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">`
+            : `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:10px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
+
         card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                <div class="field" style="flex-grow:1;"><label>Protocolo</label><input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold; background:transparent; border:none;" readonly></div>
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
+                <!-- Columna ícono -->
+                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    ${iconPreviewHtml}
+                    <button class="btn" style="padding:4px 8px; font-size:0.62rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; white-space:nowrap;" onclick="triggerAssetUpload('${name}', 'skill_icon')">🖼️ ÍCONO</button>
+                    ${s.icon ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060; cursor:pointer; border-radius:4px;" onclick="config.skillsData['${name}'].icon=''; renderSkills();">✕ Quitar</button>` : ''}
+                </div>
+                <!-- Columna nombre + tipo -->
+                <div style="flex-grow:1;">
+                    <div class="field" style="margin-bottom:0;"><label>Protocolo</label><input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold; background:transparent; border:none;" readonly></div>
+                    ${s.icon ? `<div style="font-family:'JetBrains Mono'; font-size:0.65rem; color:rgba(255,255,255,0.35); margin-top:4px; word-break:break-all;">${s.icon}</div>` : '<div style="font-size:0.65rem; color:rgba(255,255,255,0.25); margin-top:4px;">Sin ícono asignado</div>'}
+                </div>
             </div>
             <div class="form-grid">
                 <div class="field"><label>Tipo</label><select onchange="config.skillsData['${name}'].type = this.value"><option value="Defensa" ${s.type==='Defensa'?'selected':''}>Defensa</option><option value="Curación" ${s.type==='Curación'?'selected':''}>Curación</option><option value="Ataque" ${s.type==='Ataque'?'selected':''}>Ataque</option><option value="Utilidad" ${s.type==='Utilidad'?'selected':''}>Utilidad</option></select></div>
@@ -5024,7 +5041,7 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
     input.type = 'file';
 
     // Tipos que NO deben copiar el archivo — solo resuelven la ruta res://
-    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb'];
+    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb', 'skill_icon'];
     const isResolveOnly = resolveOnlyTypes.includes(type);
 
     if (type === 'ship_glb' || type === 'housing_glb') {
@@ -5052,11 +5069,17 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         config.shipModels[idx].assetPath = result.path;
                     } else if (type === 'housing_glb') {
                         config.housingConfig.placeableItems[idx].model = result.path;
+                    } else if (type === 'skill_icon') {
+                        // idx = skill name (key in skillsData)
+                        if (!config.skillsData[idx]) config.skillsData[idx] = {};
+                        config.skillsData[idx].icon = result.path;
                     }
                     if (type === 'ship_icon' || type === 'ship_glb') {
                         renderShips();
                     } else if (type === 'housing_glb') {
                         renderHousing();
+                    } else if (type === 'skill_icon') {
+                        renderSkills();
                     }
                 } else {
                     alert('❌ ' + (result.error || 'No se pudo encontrar el archivo en los assets del proyecto.\n\nAsegurate de que el archivo ya esté copiado dentro de la carpeta descon/assets antes de seleccionarlo.'));

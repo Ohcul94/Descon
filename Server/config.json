@@ -4407,9 +4407,11 @@
                 "allies": true,
                 "bosses": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "clan": false
             },
-            "type": "Curación"
+            "type": "Curación",
+            "icon": "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png"
         },
         "BALIZA DE CURACION": {
             "name": "BALIZA DE CURACION",
@@ -4427,8 +4429,10 @@
                 "allies": true,
                 "enemies": false,
                 "bosses": false,
-                "players": true
-            }
+                "players": true,
+                "clan": false
+            },
+            "icon": "res://assets/Skills/Iconos/Cura/Baliza Curativa/Baliza Curativa.png"
         },
         "BARRERA DE VIENTO": {
             "name": "BARRERA DE VIENTO",
@@ -4446,7 +4450,8 @@
                 "bosses": false,
                 "players": false,
                 "clan": false
-            }
+            },
+            "icon": "res://assets/Skills/Iconos/Defensa/Barrera de Viento/Barrera de Viento.png"
         },
         "PROVOCACION": {
             "name": "PROVOCACION",
@@ -4464,7 +4469,8 @@
                 "bosses": true,
                 "players": true,
                 "clan": false
-            }
+            },
+            "icon": "res://assets/Skills/Iconos/Ataque/Provocacion/Provocacion.png"
         },
         "BLINK": {
             "canTargetOthers": false,
@@ -4479,7 +4485,8 @@
                 "bosses": false,
                 "players": true,
                 "clan": false
-            }
+            },
+            "icon": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png"
         },
         "ESCUDO CELULAR": {
             "amount": 600,
@@ -4495,7 +4502,8 @@
                 "players": true,
                 "clan": false
             },
-            "type": "Defensa"
+            "type": "Defensa",
+            "icon": "res://assets/Skills/Iconos/Defensa/Escudo Celular/Escudo Celular.png"
         },
         "FORTALEZA-X": {
             "amount": 1200,
@@ -4529,7 +4537,8 @@
                 "bosses": false,
                 "players": true,
                 "clan": false
-            }
+            },
+            "icon": "res://assets/Skills/Iconos/Defensa/Camino de Hielo/Camino de Hielo.png"
         },
         "HYPER-DASH": {
             "canTargetOthers": false,
@@ -4545,7 +4554,8 @@
                 "bosses": false,
                 "players": true,
                 "clan": false
-            }
+            },
+            "icon": "res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png"
         },
         "INVULNERABILIDAD": {
             "canTargetOthers": false,
@@ -4561,7 +4571,8 @@
                 "bosses": false,
                 "players": true,
                 "clan": false
-            }
+            },
+            "icon": "res://assets/Skills/Iconos/Utilidad/Invulnerabilidad/Invulnerabilidad.png"
         },
         "NANO-REGENERACIÓN": {
             "amount": 300,
@@ -4574,7 +4585,8 @@
                 "allies": true,
                 "bosses": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "clan": false
             },
             "type": "Curación"
         },
@@ -4591,9 +4603,11 @@
                 "allies": true,
                 "bosses": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "clan": false
             },
-            "type": "Curación"
+            "type": "Curación",
+            "icon": "res://assets/Skills/Iconos/Cura/Regeneracion Alfa/Regeneracion Alfa.png"
         },
         "VÍNCULO VITAL": {
             "amount": 250,
@@ -4609,9 +4623,11 @@
                 "allies": true,
                 "bosses": false,
                 "enemies": false,
-                "players": true
+                "players": true,
+                "clan": false
             },
-            "type": "Curación"
+            "type": "Curación",
+            "icon": "res://assets/Skills/Iconos/Cura/Vinculo Vital/Vinculo Vital.png"
         },
         "PLASMA BLAST": {
             "amount": 850,
@@ -4644,7 +4660,8 @@
                 "bosses": false,
                 "players": true,
                 "clan": false
-            }
+            },
+            "icon": "res://assets/Skills/Iconos/Ataque/Reflect/Reflect.png"
         },
         "SMOKE-BOMB": {
             "amount": 1,
@@ -4662,7 +4679,8 @@
                 "bosses": false,
                 "players": true,
                 "clan": false
-            }
+            },
+            "icon": "res://assets/Skills/Iconos/Defensa/Bomba de Humo/Bomba de Humo.png"
         },
         "STEALTH": {
             "canTargetOthers": false,
@@ -4672,6 +4690,7 @@
             "id": "SK-UTIL-05",
             "range": 0,
             "type": "Utilidad",
+            "icon": "res://assets/Skills/Iconos/Utilidad/Invisibilidad/Invisibilidad.png",
             "targetFilters": {
                 "allies": true,
                 "enemies": false,
@@ -4713,7 +4732,8 @@
                 "clan": true
             },
             "desc": "Canaliza un haz de energía en el área seleccionada para resucitar a los aliados caídos.",
-            "id": "SK-UTIL-06"
+            "id": "SK-UTIL-06",
+            "icon": "res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png"
         }
     },
     "mechanicsLib": {

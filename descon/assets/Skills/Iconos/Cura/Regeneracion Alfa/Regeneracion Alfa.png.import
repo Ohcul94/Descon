@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bfb0ocy3v81i"
-path="res://.godot/imported/Invisibilidad.png-281e9192fd298a89b7cd8983e87ec386.ctex"
+uid="uid://caa6840gh50a"
+path="res://.godot/imported/Regeneracion Alfa.png-fa3448d9f6e518b50ad1e77bb3e2ba22.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Skills/Iconos/Invisibilidad/Invisibilidad.png"
-dest_files=["res://.godot/imported/Invisibilidad.png-281e9192fd298a89b7cd8983e87ec386.ctex"]
+source_file="res://assets/Skills/Iconos/Cura/Regeneracion Alfa/Regeneracion Alfa.png"
+dest_files=["res://.godot/imported/Regeneracion Alfa.png-fa3448d9f6e518b50ad1e77bb3e2ba22.ctex"]
 
 [params]
 

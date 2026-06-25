@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bqckkf5vosnk2"
-path="res://.godot/imported/Reflect.png-c56b959d334599e839394441c5d83aa6.ctex"
+uid="uid://b8r5uywnuh6pj"
+path="res://.godot/imported/Camino de Hielo.png-8555fee72796ac1302808b7bb060a4bf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Efectos de Skills/Reflect (Rojo)/Reflect.png"
-dest_files=["res://.godot/imported/Reflect.png-c56b959d334599e839394441c5d83aa6.ctex"]
+source_file="res://assets/Skills/Iconos/Defensa/Camino de Hielo/Camino de Hielo.png"
+dest_files=["res://.godot/imported/Camino de Hielo.png-8555fee72796ac1302808b7bb060a4bf.ctex"]
 
 [params]
 

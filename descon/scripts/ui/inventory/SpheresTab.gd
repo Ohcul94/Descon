@@ -1,7 +1,8 @@
 extends Control
 
-# SpheresTab.gd - RESTAURACIÓN ESTÉTICA PREMIUM (v301.3)
+# SpheresTab.gd - RESTAURACIÓN ESTÉTICA PREMIUM (v301.4 - Skill Icons)
 # Recuperada la estética orbital original con corrección de carga de habilidades.
+# v301.4: Soporte para íconos PNG desde el servidor (skillsData[name].icon)
 
 var inv_main = null
 
@@ -42,6 +43,18 @@ func update_ui():
 	_render_spheres_equipment(eq_tab, sub_tabs)
 	_render_spheres_library(lib_tab)
 
+# v301.4: Intenta cargar textura desde ruta res:// del servidor
+func _load_skill_icon_texture(skill_name: String) -> Texture2D:
+	var server_skills = NetworkManager.server_config.get("skillsData", {})
+	if not server_skills.has(skill_name):
+		return null
+	var icon_path = server_skills[skill_name].get("icon", "")
+	if icon_path == "" or not icon_path.ends_with(".png"):
+		return null
+	if ResourceLoader.exists(icon_path):
+		return load(icon_path)
+	return null
+
 func _render_spheres_equipment(tab, _sub_tabs):
 	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); master_v.offset_top = 20; tab.add_child(master_v)
 	var spheres_h = HBoxContainer.new(); spheres_h.alignment = BoxContainer.ALIGNMENT_CENTER; spheres_h.add_theme_constant_override("separation", 60); master_v.add_child(spheres_h)
@@ -67,29 +80,20 @@ func _render_spheres_equipment(tab, _sub_tabs):
 		var v_box = VBoxContainer.new(); spheres_h.add_child(v_box)
 		var s_label = Label.new(); s_label.text = s_data["name"]; s_label.horizontal_alignment = 1; s_label.modulate = s_color; v_box.add_child(s_label)
 		
-		var p_ui = PanelContainer.new(); p_ui.custom_minimum_size = Vector2(140, 140); v_box.add_child(p_ui)
+		var p_ui = PanelContainer.new(); p_ui.custom_minimum_size = Vector2(180, 180); v_box.add_child(p_ui)
 		p_ui.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; p_ui.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); sb.border_width_left = 3; sb.border_width_right = 3; sb.border_width_top = 3; sb.border_width_bottom = 3; sb.border_color = s_color; sb.corner_radius_top_left = 70; sb.corner_radius_top_right = 70; sb.corner_radius_bottom_left = 70; sb.corner_radius_bottom_right = 70; p_ui.add_theme_stylebox_override("panel", sb)
+		var sb = StyleBoxFlat.new(); sb.bg_color = Color(0.05, 0.05, 0.08, 0.6); sb.border_width_left = 2; sb.border_width_right = 2; sb.border_width_top = 2; sb.border_width_bottom = 2; sb.border_color = s_color; sb.corner_radius_top_left = 12; sb.corner_radius_top_right = 12; sb.corner_radius_bottom_left = 12; sb.corner_radius_bottom_right = 12; p_ui.add_theme_stylebox_override("panel", sb)
 		
 		if not s_data.get("equipped"): sb.bg_color = s_color; sb.bg_color.a = 0.05
 		
 		var equipped = s_data.get("equipped")
 		var center = CenterContainer.new(); p_ui.add_child(center)
-		var info_v = VBoxContainer.new(); center.add_child(info_v)
+		var info_v = VBoxContainer.new(); info_v.alignment = BoxContainer.ALIGNMENT_CENTER; center.add_child(info_v)
 		
 		var s_name = "VACÍO"
 		if equipped:
 			if typeof(equipped) == TYPE_DICTIONARY: s_name = str(equipped.get("skill_name", "SKILL"))
 			elif "skill_name" in equipped: s_name = str(equipped.skill_name)
-		
-		var name_lbl = Label.new(); name_lbl.text = s_name.to_upper(); name_lbl.horizontal_alignment = 1; name_lbl.add_theme_font_size_override("font_size", 11)
-		name_lbl.modulate.a = 1.0 if equipped else 0.3; info_v.add_child(name_lbl)
-		
-		if equipped:
-			var p_val = 0
-			if typeof(equipped) == TYPE_DICTIONARY: p_val = equipped.get("power_value", 0)
-			elif "power_value" in equipped: p_val = equipped.power_value
-			var pwr = Label.new(); pwr.text = "POT: " + str(p_val); pwr.add_theme_font_size_override("font_size", 9); pwr.modulate = s_color; pwr.horizontal_alignment = 1; info_v.add_child(pwr)
 		
 		var type_txt = s_data.get("type", "ATAQUE")
 		var final_color = Color.SLATE_GRAY
@@ -102,6 +106,29 @@ func _render_spheres_equipment(tab, _sub_tabs):
 		else: type_txt = "NINGUNO"
 		
 		sb.border_color = final_color
+		
+		# v301.4: Mostrar ícono PNG de la habilidad equipada dentro de la esfera (Tamaño triple: 160x160)
+		var has_custom_icon = false
+		if equipped and s_name != "VACÍO":
+			var tex = _load_skill_icon_texture(s_name)
+			if tex:
+				has_custom_icon = true
+				var icon_rect = TextureRect.new()
+				icon_rect.texture = tex
+				icon_rect.custom_minimum_size = Vector2(160, 160)
+				icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+				icon_rect.modulate = final_color
+				info_v.add_child(icon_rect)
+				
+		# Si tiene ícono personalizado, removemos los bordes y el fondo del recuadro
+		if has_custom_icon:
+			sb.bg_color = Color(0,0,0,0)
+			sb.border_width_left = 0; sb.border_width_right = 0; sb.border_width_top = 0; sb.border_width_bottom = 0
+		
+		var name_lbl = Label.new(); name_lbl.text = s_name.to_upper(); name_lbl.horizontal_alignment = 1; name_lbl.add_theme_font_size_override("font_size", 11)
+		name_lbl.modulate = final_color if equipped else Color(1, 1, 1, 0.3); info_v.add_child(name_lbl)
+		
 		var type_label = Label.new(); type_label.text = type_txt; type_label.modulate = final_color; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
 		
 		var b = Button.new(); b.text = "RECONFIGURAR" if equipped else "EQUIPAR NÚCLEO"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
@@ -201,7 +228,16 @@ func _render_spheres_library(tab):
 				if server_skills.has(s_name):
 					s_type = server_skills[s_name].get("type", s_type)
 				
-				all_skills.append({"instance": s_inst, "color": _get_color_from_skill_type(s_type), "icon": cfg["icon"], "type": s_type.to_upper()})
+				# v301.4: Intentar cargar ícono PNG del servidor; si no hay, usar emoji como fallback
+				var tex_icon: Texture2D = _load_skill_icon_texture(s_name)
+				
+				all_skills.append({
+					"instance": s_inst,
+					"color": _get_color_from_skill_type(s_type),
+					"icon": cfg["icon"],
+					"tex_icon": tex_icon,
+					"type": s_type.to_upper()
+				})
 
 	var currently_equipped = []
 	if is_instance_valid(inv_main.spheres_manager):
@@ -213,20 +249,30 @@ func _render_spheres_library(tab):
 		if inv_main.selected_sphere_type_filter != "ANY" and s_info["type"].to_upper() != inv_main.selected_sphere_type_filter: continue
 		var s_inst = s_info["instance"]
 		var is_already_on = s_inst.skill_name in currently_equipped
-		_create_skill_card(s_inst, s_info["color"], s_info["icon"], grid, is_already_on)
+		_create_skill_card(s_inst, s_info["color"], s_info["icon"], s_info.get("tex_icon"), grid, is_already_on)
 
-func _create_skill_card(skill, color, icon_text, parent, is_equipped):
+func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is_equipped):
 	var skill_card = PanelContainer.new(); skill_card.custom_minimum_size = Vector2(350, 120); parent.add_child(skill_card)
 	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0, 0, 0.05, 0.7); sb.border_width_left = 4; sb.border_color = color; sb.corner_radius_top_right = 8; sb.corner_radius_bottom_right = 8; skill_card.add_theme_stylebox_override("panel", sb)
 	
 	var hb = HBoxContainer.new(); hb.offset_left = 15; skill_card.add_child(hb)
 	var icon_box = CenterContainer.new(); icon_box.custom_minimum_size = Vector2(60, 0); hb.add_child(icon_box)
-	var ico = Label.new(); ico.text = icon_text; ico.add_theme_font_size_override("font_size", 30); ico.modulate = color; icon_box.add_child(ico)
+	
+	# v301.4: Mostrar TextureRect con PNG si existe, sino Label con emoji como fallback
+	if tex_icon:
+		var icon_rect = TextureRect.new()
+		icon_rect.texture = tex_icon
+		icon_rect.custom_minimum_size = Vector2(48, 48)
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+		icon_rect.modulate = color
+		icon_box.add_child(icon_rect)
+	else:
+		var ico = Label.new(); ico.text = icon_text; ico.add_theme_font_size_override("font_size", 30); ico.modulate = color; icon_box.add_child(ico)
 	
 	var v_info = VBoxContainer.new(); v_info.size_flags_horizontal = 3; v_info.alignment = BoxContainer.ALIGNMENT_CENTER; hb.add_child(v_info)
 	var name_l = Label.new(); name_l.text = skill.skill_name; name_l.add_theme_font_size_override("font_size", 14); name_l.modulate = color; v_info.add_child(name_l)
 	var desc_l = Label.new(); desc_l.text = skill.description; desc_l.add_theme_font_size_override("font_size", 10); desc_l.modulate.a = 0.6; desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v_info.add_child(desc_l)
-	
 	
 	var b_equip = Button.new(); b_equip.text = "YA EQUIPADA" if is_equipped else "EQUIPAR"; b_equip.disabled = is_equipped; b_equip.custom_minimum_size = Vector2(80, 0); b_equip.size_flags_vertical = 4; hb.add_child(b_equip)
 	if is_equipped: skill_card.modulate.a = 0.5

@@ -8,6 +8,9 @@ var _max_cds = {}
 var _touch_registry = {}
 var _is_interference_ui_active = false
 
+# v301.4: Cache de texturas de íconos para no recargar desde disco en cada frame
+var _skill_icon_cache: Dictionary = {}
+
 var s1 = null
 var s2 = null
 var s3 = null
@@ -16,6 +19,7 @@ var s4 = null
 var sl = null
 var smi = null
 var sei = null
+
 
 func _ready():
 	print("[SkillsHUD] Iniciando componente modular.")
@@ -412,8 +416,8 @@ func _update_sphere_ui(id: int, ref, slot):
 	sb.bg_color = Color(0, 0, 0, 0.6) if equipped else Color(0, 0, 0, 0.2)
 	sb.draw_center = true
 	sb.border_width_left = 2; sb.border_width_right = 2; sb.border_width_top = 2; sb.border_width_bottom = 2
-	sb.border_color = Color.AQUA if equipped else Color(0.2, 0.2, 0.2, 0.5)
-	sb.set_corner_radius_all(p_size.x) 
+	sb.border_color = type_color if equipped else Color(0.2, 0.2, 0.2, 0.5)
+	sb.set_corner_radius_all(10) # Borde redondeado suave en lugar de círculo completo
 	sb.set_content_margin_all(2)
 	sb.anti_aliasing = true
 	
@@ -431,6 +435,77 @@ func _update_sphere_ui(id: int, ref, slot):
 		elif type_color == Color.AQUA: short_txt = "DEF"
 		elif type_color == Color.GREEN: short_txt = "CUR"
 		elif type_color == Color.YELLOW: short_txt = "UTIL"
+ 
+	# v301.4: Mostrar ícono PNG de la habilidad en el slot si existe (con caché)
+	var skill_icon_tex: Texture2D = null
+	if equipped:
+		var equipped_name = ""
+		if typeof(equipped) == TYPE_DICTIONARY: equipped_name = equipped.get("skill_name", "")
+		elif typeof(equipped) == TYPE_OBJECT and "skill_name" in equipped: equipped_name = str(equipped.skill_name)
+		elif typeof(equipped) == TYPE_STRING: equipped_name = equipped
+		
+		if equipped_name != "":
+			# Revisar caché primero
+			if _skill_icon_cache.has(equipped_name):
+				skill_icon_tex = _skill_icon_cache[equipped_name]
+			else:
+				var server_skills = {}
+				if NetworkManager and NetworkManager.server_config:
+					server_skills = NetworkManager.server_config.get("skillsData", {})
+				if server_skills.has(equipped_name):
+					var icon_path = server_skills[equipped_name].get("icon", "")
+					if icon_path != "" and ResourceLoader.exists(icon_path):
+						skill_icon_tex = load(icon_path)
+				# Guardar en caché (null también, para no reintentar)
+				_skill_icon_cache[equipped_name] = skill_icon_tex
+ 
+	# Remover o actualizar ícono en el slot (solo si cambia)
+	var prev_icon = slot.get_node_or_null("SkillIconRect")
+	var prev_icon_path = slot.get_meta("last_skill_icon_path", "") if slot.has_meta("last_skill_icon_path") else ""
+	var new_icon_path = ""
+	if skill_icon_tex and equipped:
+		var equipped_name2 = ""
+		if typeof(equipped) == TYPE_DICTIONARY: equipped_name2 = equipped.get("skill_name", "")
+		elif typeof(equipped) == TYPE_OBJECT and "skill_name" in equipped: equipped_name2 = str(equipped.skill_name)
+		elif typeof(equipped) == TYPE_STRING: equipped_name2 = equipped
+		var sv2 = NetworkManager.server_config.get("skillsData", {}) if NetworkManager and NetworkManager.server_config else {}
+		if sv2.has(equipped_name2): new_icon_path = sv2[equipped_name2].get("icon", "")
+	
+	if new_icon_path != prev_icon_path:
+		# El ícono cambió: remover el anterior y crear nuevo si aplica
+		if is_instance_valid(prev_icon):
+			prev_icon.queue_free()
+		slot.set_meta("last_skill_icon_path", new_icon_path)
+		
+		if skill_icon_tex:
+			var icon_rect = TextureRect.new()
+			icon_rect.name = "SkillIconRect"
+			icon_rect.texture = skill_icon_tex
+			icon_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			icon_rect.offset_left = 6; icon_rect.offset_right = -6
+			icon_rect.offset_top = 6; icon_rect.offset_bottom = -6
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			# v301.4b: Tinte del color de la esfera (igual que en la Biblioteca)
+			icon_rect.modulate = type_color
+			
+			# Insertamos el ícono en el slot.
+			slot.add_child(icon_rect)
+			
+			# Para que no sea tapado por el SciFiFrame u otros contenedores de fondo:
+			# lo movemos para estar por encima de SciFiFrame y Fill, pero por debajo de BindingLabel y CD.
+			# Vamos a encontrar el índice correcto:
+			var target_idx = 0
+			var fill_node = slot.get_node_or_null("Fill")
+			var frame_node = slot.get_node_or_null("SciFiFrame")
+			if is_instance_valid(fill_node):
+				target_idx = max(target_idx, slot.get_path_to(fill_node) + 1)
+			if is_instance_valid(frame_node):
+				target_idx = max(target_idx, slot.get_path_to(frame_node) + 1)
+			
+			slot.move_child(icon_rect, target_idx)
+
 
 	for child in slot.get_children():
 		if child is Label:
@@ -439,10 +514,18 @@ func _update_sphere_ui(id: int, ref, slot):
 				child.add_theme_color_override("font_color", Color.RED)
 			elif child.name == "Key":
 				pass
+			elif child.name == "BindingLabel":
+				# El bind de tecla siempre visible, encima del ícono
+				child.modulate.a = 1.0
 			else:
-				child.text = short_txt
-				child.add_theme_color_override("font_color", final_text_color) 
-				child.modulate.a = 1.0 if equipped else 0.3
+				# Texto corto (ATQ/DEF/etc): ocultar si hay ícono PNG
+				if skill_icon_tex:
+					child.modulate.a = 0.0
+				else:
+					child.text = short_txt
+					child.add_theme_color_override("font_color", final_text_color)
+					child.modulate.a = 1.0 if equipped else 0.3
+
 
 func _make_clickable(node: Control, callback: Callable):
 	if not node: return
