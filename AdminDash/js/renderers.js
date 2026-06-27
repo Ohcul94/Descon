@@ -1549,8 +1549,8 @@ function renderMapDetail() {
                             </div>
                             ${m.giveInvulnerabilityOnEntry ? `
                             <div class="field" style="grid-column: span 2;">
-                                <label>Tiempo de Invulnerabilidad (segundos)</label>
-                                <input type="number" min="1" value="${m.invulnerabilityDuration || 5}" oninput="config.mapsConfig['${selectedMapId}'].invulnerabilityDuration = parseInt(this.value) || 5">
+                                <label>Tiempo de Invulnerabilidad (ms)</label>
+                                <input type="number" min="1" value="${m.invulnerabilityDuration || 5000}" oninput="config.mapsConfig['${selectedMapId}'].invulnerabilityDuration = parseInt(this.value) || 5000">
                             </div>
                             ` : ''}
                             ` : ''}

@@ -99,6 +99,13 @@ function registerZoneHandlers(socket, io, state) {
         p.y = 2000;
         onZoneChanged(socket.id, newZone, state, io);
         applyZoneRules(p, socket, io, state);
+        socket.emit('playerStatSync', {
+            id: socket.id,
+            pvpEnabled: !!p.pvpEnabled,
+            isInvulnerable: !!p.isInvulnerable,
+            hp: Math.ceil(p.hp || 0),
+            shield: Math.ceil(p.shield || 0)
+        });
 
         // v238.41: Persistencia Administrativa Instantánea
         try {
@@ -139,6 +146,22 @@ function registerZoneHandlers(socket, io, state) {
             if (socket.connected) {
                 socket.emit('currentPlayers', currentPlayersInZone);
                 socket.emit('currentEnemies', zoneEnemies);
+                
+                // Sincronizar botines activos de la nueva zona
+                if (state.lootDrops) {
+                    Object.keys(state.lootDrops).forEach(lootId => {
+                        const drop = state.lootDrops[lootId];
+                        if (String(drop.zone) === String(newZone)) {
+                            socket.emit('lootSpawned', {
+                                id: drop.id,
+                                x: drop.x,
+                                y: drop.y,
+                                zone: drop.zone,
+                                expiresAt: drop.expiresAt
+                            });
+                        }
+                    });
+                }
             }
         }, 300);
     });
@@ -256,6 +279,13 @@ function registerZoneHandlers(socket, io, state) {
             p.y = newSize / 2;
             onZoneChanged(socket.id, zoneId, state, io);
             applyZoneRules(p, socket, io, state);
+            socket.emit('playerStatSync', {
+                id: socket.id,
+                pvpEnabled: !!p.pvpEnabled,
+                isInvulnerable: !!p.isInvulnerable,
+                hp: Math.ceil(p.hp || 0),
+                shield: Math.ceil(p.shield || 0)
+            });
 
             Logger.info('ZONE', `Jugador [${p.user}] saltó al Sector [${zoneId}] - Costo: ${COST} OHCU`);
 
@@ -294,6 +324,22 @@ function registerZoneHandlers(socket, io, state) {
                 if (socket.connected) {
                     socket.emit('currentPlayers', currentPlayersInZone);
                     socket.emit('currentEnemies', zoneEnemies);
+                    
+                    // Sincronizar botines activos de la nueva zona
+                    if (state.lootDrops) {
+                        Object.keys(state.lootDrops).forEach(lootId => {
+                            const drop = state.lootDrops[lootId];
+                            if (String(drop.zone) === String(zoneId)) {
+                                socket.emit('lootSpawned', {
+                                    id: drop.id,
+                                    x: drop.x,
+                                    y: drop.y,
+                                    zone: drop.zone,
+                                    expiresAt: drop.expiresAt
+                                });
+                            }
+                        });
+                    }
                 }
             }, 500);
 

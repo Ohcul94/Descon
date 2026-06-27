@@ -3140,7 +3140,9 @@
                     "radius": 300
                 }
             ],
-            "pvpMode": "mandatory"
+            "pvpMode": "full_drop",
+            "giveInvulnerabilityOnEntry": true,
+            "invulnerabilityDuration": 3000
         },
         "8": {
             "color": "#550000",

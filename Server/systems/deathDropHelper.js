@@ -3,6 +3,7 @@ const { sendInventoryData } = require('./inventoryHandlers');
 
 /**
  * Procesa la pérdida de todos los ítems equipados e inventario si el mapa tiene activado 'full_drop'.
+ * Lee directamente de la base de datos para asegurar consistencia absoluta de los ítems.
  * @param {Object} p Objeto del jugador en memoria (state.players[socket.id])
  * @param {Object} io Objeto global de socket.io
  * @param {Object} state Estado global del servidor
@@ -14,93 +15,95 @@ async function checkAndProcessDeathDrop(p, io, state) {
     if (mapCfg?.pvpMode === 'full_drop') {
         p.isDeadDropProcessed = true; // Evitar procesamiento duplicado
 
-        const droppedItems = [];
-        
-        // 1. Recolectar del inventario del jugador
-        if (p.inventory && Array.isArray(p.inventory)) {
-            p.inventory.forEach(item => {
-                if (item) droppedItems.push(item);
-            });
-        }
-        
-        // 2. Recolectar de ítems equipados en la nave actual
-        if (p.equipped) {
-            const slots = ['w', 's', 'e', 'x'];
-            slots.forEach(slot => {
-                if (p.equipped[slot] && Array.isArray(p.equipped[slot])) {
-                    p.equipped[slot].forEach(item => {
-                        if (item) droppedItems.push(item);
-                    });
-                }
-            });
-        }
-
-        // 3. Si hay ítems, spawnearlos en el suelo como un cofre físico
-        if (droppedItems.length > 0) {
-            const lootId = `loot_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-            const expirationMs = state.SERVER_CONFIG?.lootConfig?.expirationMs || 300000;
-            const expiresAt = Date.now() + expirationMs;
-
-            const lootDrop = {
-                id: lootId,
-                zone: p.zone,
-                x: Math.floor(p.x),
-                y: Math.floor(p.y),
-                items: JSON.parse(JSON.stringify(droppedItems)),
-                createdAt: Date.now(),
-                expiresAt: expiresAt
-            };
-
-            state.lootDrops[lootId] = lootDrop;
-            
-            io.to(`zone_${p.zone}`).emit('lootSpawned', {
-                id: lootId,
-                x: lootDrop.x,
-                y: lootDrop.y,
-                zone: lootDrop.zone,
-                expiresAt: expiresAt
-            });
-            
-            console.log(`[PVP-DROP] Jugador ${p.user} dropeó ${droppedItems.length} ítems en zona ${p.zone}`);
-        }
-
-        // 4. Vaciar en RAM
-        p.inventory = [];
-        p.equipped = { w: [], s: [], e: [], x: [] };
-
-        // 5. Vaciar en la Base de Datos (MongoDB) de forma autoritativa
         try {
             const user = await User.findById(p.dbId || p.id);
-            if (user) {
-                user.gameData.inventory = [];
-                user.gameData.equipped = { w: [], s: [], e: [], x: [] };
-                
-                const currentShipIdStr = String(user.gameData.currentShipId || 1);
-                if (user.gameData.equippedByShip) {
-                    if (user.gameData.equippedByShip instanceof Map) {
-                        user.gameData.equippedByShip.set(currentShipIdStr, { w: [], s: [], e: [], x: [] });
-                    } else {
-                        user.gameData.equippedByShip[currentShipIdStr] = { w: [], s: [], e: [], x: [] };
-                    }
-                    user.markModified('gameData.equippedByShip');
-                }
-                
-                user.markModified('gameData.inventory');
-                user.markModified('gameData.equipped');
-                user.markModified('gameData');
-                await user.save();
+            if (!user) return;
 
-                // Intentar obtener el socket del jugador para forzar sincronización visual de inventario
-                const socket = io.sockets.sockets.get(p.socketId);
-                if (socket) {
-                    sendInventoryData(socket, user);
+            const droppedItems = [];
+            
+            // 1. Recolectar del inventario del usuario en DB
+            if (user.gameData.inventory && Array.isArray(user.gameData.inventory)) {
+                user.gameData.inventory.forEach(item => {
+                    if (item) droppedItems.push(item);
+                });
+            }
+            
+            // 2. Recolectar de ítems equipados del usuario en DB
+            if (user.gameData.equipped) {
+                const slots = ['w', 's', 'e', 'x'];
+                slots.forEach(slot => {
+                    if (user.gameData.equipped[slot] && Array.isArray(user.gameData.equipped[slot])) {
+                        user.gameData.equipped[slot].forEach(item => {
+                            if (item) droppedItems.push(item);
+                        });
+                    }
+                });
+            }
+
+            // 3. Si hay ítems, spawnearlos en el suelo como un cofre físico interactivo
+            if (droppedItems.length > 0) {
+                const lootId = `loot_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+                const expirationMs = state.SERVER_CONFIG?.lootConfig?.expirationMs || 300000;
+                const expiresAt = Date.now() + expirationMs;
+
+                const lootDrop = {
+                    id: lootId,
+                    zone: p.zone,
+                    x: Math.floor(p.x),
+                    y: Math.floor(p.y),
+                    items: JSON.parse(JSON.stringify(droppedItems)),
+                    createdAt: Date.now(),
+                    expiresAt: expiresAt
+                };
+
+                state.lootDrops[lootId] = lootDrop;
+                
+                io.to(`zone_${p.zone}`).emit('lootSpawned', {
+                    id: lootId,
+                    x: lootDrop.x,
+                    y: lootDrop.y,
+                    zone: lootDrop.zone,
+                    expiresAt: expiresAt
+                });
+                
+                console.log(`[PVP-DROP] Jugador ${p.user} dropeó ${droppedItems.length} ítems en zona ${p.zone}`);
+            }
+
+            // 4. Vaciar en RAM
+            p.inventory = [];
+            p.equipped = { w: [], s: [], e: [], x: [] };
+
+            // 5. Vaciar en la Base de Datos (MongoDB) de forma autoritativa
+            user.gameData.inventory = [];
+            user.gameData.equipped = { w: [], s: [], e: [], x: [] };
+            
+            const currentShipIdStr = String(user.gameData.currentShipId || 1);
+            if (user.gameData.equippedByShip) {
+                if (user.gameData.equippedByShip instanceof Map) {
+                    user.gameData.equippedByShip.set(currentShipIdStr, { w: [], s: [], e: [], x: [] });
+                } else {
+                    user.gameData.equippedByShip[currentShipIdStr] = { w: [], s: [], e: [], x: [] };
                 }
+                user.markModified('gameData.equippedByShip');
+            }
+            
+            user.markModified('gameData.inventory');
+            user.markModified('gameData.equipped');
+            user.markModified('gameData');
+            await user.save();
+
+            // Sincronizar visualmente al cliente local su inventario vacío
+            const socket = io.sockets.sockets.get(p.socketId);
+            if (socket) {
+                sendInventoryData(socket, user);
             }
         } catch (err) {
-            console.error("[PVP-DROP] Error al vaciar base de datos de muerte:", err);
+            console.error("[PVP-DROP] Error al procesar muerte y vaciar base de datos:", err);
         }
     }
 }
+
+const entryInvulTimeouts = new Map();
 
 /**
  * Aplica reglas de zona al entrar a un mapa (PvP forzado, invulnerabilidad al ingresar).
@@ -118,60 +121,43 @@ function applyZoneRules(p, socket, io, state) {
         const isPvPMandatory = mapCfg.pvpMode === 'mandatory' || mapCfg.pvpMode === 'full_drop';
         if (isPvPMandatory) {
             p.pvpEnabled = true;
-            io.to(`zone_${p.zone}`).emit('playerUpdated', {
-                id:             socket.id,
-                pvpEnabled:     true,
-                user:           p.user || 'Unknown',
-                username:       p.user || 'Unknown',
-                x:              Math.round(p.x),
-                y:              Math.round(p.y),
-                rotation:       Math.round((p.rotation || 0) * 100) / 100,
-                hp:             Math.ceil(p.hp || 0),
-                shield:         Math.ceil(p.shield || 0),
-                sh:             Math.ceil(p.shield || 0),
-                maxHp:          p.maxHp || 0,
-                maxShield:      p.maxShield || 0,
-                zone:           p.zone,
-                clanTag:        p.clanTag || '',
-                currentShipId:  p.currentShipId || 1,
-                isInvisible:    !!p.isInvisible,
-                isInvulnerable: !!p.isInvulnerable,
-                isDead:         !!p.isDead,
-                spheres:        p.spheres || []
-            });
+            // NOTA: No emitimos playerUpdated parcial aquí ya que la transición emite inmediatamente
+            // después un newPlayer completo a toda la zona con los datos correctos.
             console.log(`[PVP-RULES] PvP forzado a ACTIVO para ${p.user} en zona ${p.zone}`);
         }
 
         // B. Aplicar invulnerabilidad al entrar si está configurado
         if (mapCfg.giveInvulnerabilityOnEntry) {
-            const durationSec = parseInt(mapCfg.invulnerabilityDuration) || 5;
+            const durationMs = parseInt(mapCfg.invulnerabilityDuration) || 5000;
             p.isInvulnerable = true;
-            io.to(`zone_${p.zone}`).emit('playerUpdated', {
-                id: socket.id,
-                isInvulnerable: true
-            });
             
+            // Enviamos notificación informativa al jugador local
             socket.emit('gameNotification', {
-                msg: `🔒 Invulnerabilidad activada por ${durationSec}s`,
+                msg: `🔒 Invulnerabilidad activada por ${(durationMs / 1000).toFixed(1)}s`,
                 type: 'info'
             });
 
-            if (p.invulnerabilityEntryTimeout) {
-                clearTimeout(p.invulnerabilityEntryTimeout);
+            if (entryInvulTimeouts.has(socket.id)) {
+                clearTimeout(entryInvulTimeouts.get(socket.id));
             }
 
-            p.invulnerabilityEntryTimeout = setTimeout(() => {
+            const timeoutRef = setTimeout(() => {
                 p.isInvulnerable = false;
-                io.to(`zone_${p.zone}`).emit('playerUpdated', {
+                
+                // Emitimos actualización correctiva mediante playerStatSync para no crear ghost players
+                io.to(`zone_${p.zone}`).emit('playerStatSync', {
                     id: socket.id,
                     isInvulnerable: false
                 });
+                
                 socket.emit('gameNotification', {
                     msg: `🔓 Invulnerabilidad desactivada`,
                     type: 'warning'
                 });
-                p.invulnerabilityEntryTimeout = null;
-            }, durationSec * 1000);
+                entryInvulTimeouts.delete(socket.id);
+            }, durationMs);
+
+            entryInvulTimeouts.set(socket.id, timeoutRef);
         }
     }
 }

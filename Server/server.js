@@ -606,8 +606,12 @@ const handleUserLogin = async (socket, user, username) => {
         socketId: socket.id,
         user: username,
         clanTag: clanTag,
+        pvpEnabled: !!p_ref.pvpEnabled,
+        isInvulnerable: !!p_ref.isInvulnerable,
         gameData: {
             ...JSON.parse(JSON.stringify(user.gameData)),
+            pvpEnabled: !!p_ref.pvpEnabled, // SYNC FIX: Usar el valor real en memoria (forzado por reglas de zona en login)
+            isInvulnerable: !!p_ref.isInvulnerable,
             equippedByShip: JSON.parse(JSON.stringify(eByShipObj)),
             equipped: JSON.parse(JSON.stringify(user.gameData.equipped || { w: [], s: [], e: [], x: [] }))
         },
@@ -652,6 +656,23 @@ const handleUserLogin = async (socket, user, username) => {
     setTimeout(() => {
         socket.emit('currentPlayers', currentPlayersInZone);
         socket.emit('currentEnemies', cleanEnemiesInZone);
+        
+        // Sincronizar botines activos de la zona al loguear
+        if (state.lootDrops) {
+            Object.keys(state.lootDrops).forEach(lootId => {
+                const drop = state.lootDrops[lootId];
+                if (String(drop.zone) === String(userZone)) {
+                    socket.emit('lootSpawned', {
+                        id: drop.id,
+                        x: drop.x,
+                        y: drop.y,
+                        zone: drop.zone,
+                        expiresAt: drop.expiresAt
+                    });
+                }
+            });
+        }
+        
         socket.broadcast.to(`zone_${userZone}`).emit('newPlayer', { ...playerSpawnData, spheres: p_ref.spheres });
         io.emit('onlineCount', Object.keys(players).length);
     }, 100);

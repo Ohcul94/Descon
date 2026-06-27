@@ -990,4 +990,4 @@ function registerInventoryHandlers(socket, io, state) {
     });
 }
 
-module.exports = { registerInventoryHandlers, getCategorizedInventory, checkCombatLock, getMasterItemConfig, addItemToInventory };
+module.exports = { registerInventoryHandlers, getCategorizedInventory, checkCombatLock, getMasterItemConfig, addItemToInventory, sendInventoryData };
