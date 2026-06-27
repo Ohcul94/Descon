@@ -38,15 +38,13 @@ SkillManager.registerSkill(new ResurreccionSkill());
 
 // Habilidades de Curación/Soporte
 SkillManager.registerSkill(new HealSkill("ESCUDO CELULAR"));
-SkillManager.registerSkill(new HealSkill("FORTALEZA-X"));
 SkillManager.registerSkill(new HealSkill("AUTO-REPARACIÓN"));
 SkillManager.registerSkill(new HealSkill("NANO-REGENERACIÓN"));
 
 // Habilidades Ofensivas
-SkillManager.registerSkill(new DamageSkill("PLASMA BLAST"));
 
 // Habilidades de Estado/Buffs
-SkillManager.registerSkill(new BuffSkill("REFLECT-Ω"));
+SkillManager.registerSkill(new BuffSkill("REFLECT-OMEGA"));
 SkillManager.registerSkill(new BuffSkill("TURBO-IMPULSO"));
 SkillManager.registerSkill(new BuffSkill("HYPER-DASH"));
 

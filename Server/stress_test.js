@@ -8,7 +8,7 @@ const SERVER_URL = "http://localhost:3333";
 const CLIENT_COUNT = 50;
 const clients = [];
 
-const SKILLS = ["REFLECT-Ω", "TURBO-IMPULSO", "HYPER-DASH", "BLINK", "FROST-TRAIL", "NANO-REGENERACIÓN"];
+const SKILLS = ["REFLECT-OMEGA", "TURBO-IMPULSO", "HYPER-DASH", "BLINK", "FROST-TRAIL", "NANO-REGENERACIÓN"];
 const AMMO = ["laser", "missile", "mine"];
 
 console.log(`\n[STRESS-TEST-PRO] Desplegando 50 pilotos con armamento variado...`);

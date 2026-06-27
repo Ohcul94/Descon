@@ -1852,8 +1852,9 @@ function renderSkills() {
                 </div>
                 <!-- Columna nombre + tipo -->
                 <div style="flex-grow:1;">
-                    <div class="field" style="margin-bottom:0;"><label>Protocolo</label><input type="text" value="${s.name || name}" style="color:var(--accent); font-weight:bold; background:transparent; border:none;" readonly></div>
-                    ${s.icon ? `<div style="font-family:'JetBrains Mono'; font-size:0.65rem; color:rgba(255,255,255,0.35); margin-top:4px; word-break:break-all;">${s.icon}</div>` : '<div style="font-size:0.65rem; color:rgba(255,255,255,0.25); margin-top:4px;">Sin ícono asignado</div>'}
+                    <div class="field" style="margin-bottom:0.5rem;"><label>Protocolo (ID Interno)</label><input type="text" value="${name}" style="color:var(--accent); font-weight:bold; background:transparent; border:none;" readonly></div>
+                    <div class="field full" style="margin-bottom:0.5rem;"><label>Nombre Público</label><input type="text" value="${s.name || name}" onchange="config.skillsData['${name}'].name = this.value; renderAll();"></div>
+                    <div class="field full"><label>Descripción</label><input type="text" value="${s.desc || ''}" onchange="config.skillsData['${name}'].desc = this.value"></div>
                 </div>
             </div>
             <div class="form-grid">

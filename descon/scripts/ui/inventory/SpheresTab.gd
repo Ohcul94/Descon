@@ -5,6 +5,9 @@ extends Control
 # v301.4: Soporte para íconos PNG desde el servidor (skillsData[name].icon)
 
 var inv_main = null
+var _preloaded_skills: Array = []
+var _texture_cache: Dictionary = {}
+var _has_preloaded: bool = false
 
 func _get_color_from_skill_type(skill_type: String) -> Color:
 	match skill_type.to_upper():
@@ -43,27 +46,82 @@ func update_ui():
 	_render_spheres_equipment(eq_tab, sub_tabs)
 	_render_spheres_library(lib_tab)
 
-# v301.4: Intenta cargar textura desde ruta res:// del servidor
-func _load_skill_icon_texture(skill_name: String) -> Texture2D:
-	var server_skills = NetworkManager.server_config.get("skillsData", {})
-	var clean_name = skill_name.to_upper().strip_edges()
+func _preload_resources_once():
+	if _has_preloaded: return
+	_preloaded_skills.clear()
 	
-	# Mapeo de normalización para nombres con caracteres especiales corruptos o de diferente codificación (UTF-8 / ISO-8859-1)
+	var skill_configs = [
+		{"path": "res://scripts/resources/skills/Skill_TurboImpulse.gd", "icon": "⚡"},
+		{"path": "res://scripts/resources/skills/Skill_HyperDash.gd", "icon": "💨"},
+		{"path": "res://scripts/resources/skills/Skill_Invulnerability.gd", "icon": "🛡️"},
+		{"path": "res://scripts/resources/skills/Skill_Blink.gd", "icon": "✨"},
+		{"path": "res://scripts/resources/skills/Skill_Resurreccion.gd", "icon": "🕊️"},
+		{"path": "res://scripts/resources/skills/Skill_Stealth.gd", "icon": "👻"},
+		{"path": "res://scripts/resources/skills/Skill_ShieldCell.gd", "icon": "🛡️"},
+		{"path": "res://scripts/resources/skills/Skill_FrostTrail.gd", "icon": "❄️"},
+		{"path": "res://scripts/resources/skills/Skill_SmokeBomb.gd", "icon": "☁️"},
+		{"path": "res://scripts/resources/skills/Skill_WindBarrier.gd", "icon": "🌀"},
+		{"path": "res://scripts/resources/skills/Skill_Provocacion.gd", "icon": "😡"},
+		{"path": "res://scripts/resources/skills/Skill_RepairKit.gd", "icon": "🔧"},
+		{"path": "res://scripts/resources/skills/Skill_RegenPath.gd", "icon": "🧪"},
+		{"path": "res://scripts/resources/skills/Skill_AlphaRegen.gd", "icon": "💚"},
+		{"path": "res://scripts/resources/skills/Skill_VitalLink.gd", "icon": "🔗"},
+		{"path": "res://scripts/resources/skills/Skill_HealBeacon.gd", "icon": "📡"},
+		{"path": "res://scripts/resources/skills/Skill_Reflect.gd", "icon": "🛡️"}
+	]
+	
+	for cfg in skill_configs:
+		if ResourceLoader.exists(cfg["path"]):
+			var script = load(cfg["path"])
+			if script:
+				var s_inst = script.new()
+				var s_name = s_inst.skill_name
+				var s_type = s_inst.get("type") if "type" in s_inst else "ATAQUE"
+				
+				# Cargar textura si existe
+				var tex_icon: Texture2D = _load_skill_icon_texture(s_name)
+				
+				_preloaded_skills.append({
+					"instance": s_inst,
+					"name": s_name,
+					"icon_text": cfg["icon"],
+					"tex_icon": tex_icon,
+					"default_type": s_type
+				})
+	_has_preloaded = true
+
+# v301.4: Intenta cargar textura desde ruta res:// del servidor (Optimizado con Caché)
+func _load_skill_icon_texture(skill_name: String) -> Texture2D:
+	var clean_name = skill_name.to_upper().strip_edges()
+	if _texture_cache.has(clean_name):
+		return _texture_cache[clean_name]
+		
+	var server_skills = {}
+	if NetworkManager and NetworkManager.server_config:
+		server_skills = NetworkManager.server_config.get("skillsData", {})
+		
 	var lookup_key = clean_name
 	if "REFLECT" in clean_name:
-		# Mapear variaciones como REFLECT-OMEGA o similares
 		for key in server_skills.keys():
 			if "REFLECT" in key.to_upper():
 				lookup_key = key
 				break
 	
 	if not server_skills.has(lookup_key):
+		_texture_cache[clean_name] = null
 		return null
+		
 	var icon_path = server_skills[lookup_key].get("icon", "")
 	if icon_path == "" or not icon_path.ends_with(".png"):
+		_texture_cache[clean_name] = null
 		return null
+		
 	if ResourceLoader.exists(icon_path):
-		return load(icon_path)
+		var tex = load(icon_path)
+		_texture_cache[clean_name] = tex
+		return tex
+		
+	_texture_cache[clean_name] = null
 	return null
 
 func _render_spheres_equipment(tab, _sub_tabs):
@@ -137,7 +195,19 @@ func _render_spheres_equipment(tab, _sub_tabs):
 			sb.bg_color = Color(0,0,0,0)
 			sb.border_width_left = 0; sb.border_width_right = 0; sb.border_width_top = 0; sb.border_width_bottom = 0
 		
-		var name_lbl = Label.new(); name_lbl.text = s_name.to_upper(); name_lbl.horizontal_alignment = 1; name_lbl.add_theme_font_size_override("font_size", 11)
+		var display_name = s_name
+		if s_name != "VACÍO" and NetworkManager and NetworkManager.server_config:
+			var server_skills = NetworkManager.server_config.get("skillsData", {})
+			var lookup_name = s_name.to_upper().strip_edges()
+			if "REFLECT" in lookup_name:
+				for key in server_skills.keys():
+					if "REFLECT" in key.to_upper():
+						lookup_name = key
+						break
+			if server_skills.has(lookup_name):
+				display_name = server_skills[lookup_name].get("name", server_skills[lookup_name].get("label", s_name))
+		
+		var name_lbl = Label.new(); name_lbl.text = display_name.to_upper(); name_lbl.horizontal_alignment = 1; name_lbl.add_theme_font_size_override("font_size", 11)
 		name_lbl.modulate = final_color if equipped else Color(1, 1, 1, 0.3); info_v.add_child(name_lbl)
 		
 		var type_label = Label.new(); type_label.text = type_txt; type_label.modulate = final_color; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
@@ -202,53 +272,30 @@ func _render_spheres_library(tab):
 	var scroll = ScrollContainer.new(); scroll.size_flags_vertical = 3; main_v.add_child(scroll)
 	var grid = GridContainer.new(); grid.columns = 2; grid.size_flags_horizontal = 3; grid.add_theme_constant_override("h_separation", 20); grid.add_theme_constant_override("v_separation", 20); scroll.add_child(grid)
 	
-	# v301.3: Carga segura de habilidades para evitar Parse Error
-	var all_skills = []
-	var skill_configs = [
-		{"path": "res://scripts/resources/skills/Skill_TurboImpulse.gd", "icon": "⚡"},
-		{"path": "res://scripts/resources/skills/Skill_HyperDash.gd", "icon": "💨"},
-		{"path": "res://scripts/resources/skills/Skill_Invulnerability.gd", "icon": "🛡️"},
-		{"path": "res://scripts/resources/skills/Skill_Blink.gd", "icon": "✨"},
-		{"path": "res://scripts/resources/skills/Skill_Resurreccion.gd", "icon": "🕊️"},
-		{"path": "res://scripts/resources/skills/Skill_Stealth.gd", "icon": "👻"},
-		{"path": "res://scripts/resources/skills/Skill_ShieldCell.gd", "icon": "🛡️"},
-		{"path": "res://scripts/resources/skills/Skill_Fortress.gd", "icon": "🏰"},
-		{"path": "res://scripts/resources/skills/Skill_FrostTrail.gd", "icon": "❄️"},
-		{"path": "res://scripts/resources/skills/Skill_SmokeBomb.gd", "icon": "☁️"},
-		{"path": "res://scripts/resources/skills/Skill_WindBarrier.gd", "icon": "🌀"},
-		{"path": "res://scripts/resources/skills/Skill_Provocacion.gd", "icon": "😡"},
-		{"path": "res://scripts/resources/skills/Skill_RepairKit.gd", "icon": "🔧"},
-		{"path": "res://scripts/resources/skills/Skill_RegenPath.gd", "icon": "🧪"},
-		{"path": "res://scripts/resources/skills/Skill_AlphaRegen.gd", "icon": "💚"},
-		{"path": "res://scripts/resources/skills/Skill_VitalLink.gd", "icon": "🔗"},
-		{"path": "res://scripts/resources/skills/Skill_HealBeacon.gd", "icon": "📡"},
-		{"path": "res://scripts/resources/skills/Skill_Reflect.gd", "icon": "🛡️"},
-		{"path": "res://scripts/resources/skills/Skill_PlasmaBlast.gd", "icon": "💥"}
-	]
+	# v301.3: Carga segura y optimizada con pre-caché de recursos (Estilo AAA)
+	_preload_resources_once()
 	
-	for cfg in skill_configs:
-		if ResourceLoader.exists(cfg["path"]):
-			var script = load(cfg["path"])
-			if script:
-				var s_inst = script.new()
-				var s_name = s_inst.skill_name
-				var s_type = s_inst.get("type") if "type" in s_inst else "ATAQUE"
-				
-				# DINAMISMO AAA: Si el servidor tiene info de esta skill, la usamos por encima del script local
-				var server_skills = NetworkManager.server_config.get("skillsData", {})
-				if server_skills.has(s_name):
-					s_type = server_skills[s_name].get("type", s_type)
-				
-				# v301.4: Intentar cargar ícono PNG del servidor; si no hay, usar emoji como fallback
-				var tex_icon: Texture2D = _load_skill_icon_texture(s_name)
-				
-				all_skills.append({
-					"instance": s_inst,
-					"color": _get_color_from_skill_type(s_type),
-					"icon": cfg["icon"],
-					"tex_icon": tex_icon,
-					"type": s_type.to_upper()
-				})
+	var all_skills = []
+	var server_skills = {}
+	if NetworkManager and NetworkManager.server_config:
+		server_skills = NetworkManager.server_config.get("skillsData", {})
+		
+	for skill_info in _preloaded_skills:
+		var s_inst = skill_info["instance"]
+		var s_name = skill_info["name"]
+		var s_type = skill_info["default_type"]
+		
+		# DINAMISMO AAA: Si el servidor tiene info de esta skill, la usamos por encima del script local
+		if server_skills.has(s_name):
+			s_type = server_skills[s_name].get("type", s_type)
+			
+		all_skills.append({
+			"instance": s_inst,
+			"color": _get_color_from_skill_type(s_type),
+			"icon": skill_info["icon_text"],
+			"tex_icon": skill_info["tex_icon"],
+			"type": s_type.to_upper()
+		})
 
 	var currently_equipped = []
 	if is_instance_valid(inv_main.spheres_manager):
@@ -281,9 +328,26 @@ func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is
 	else:
 		var ico = Label.new(); ico.text = icon_text; ico.add_theme_font_size_override("font_size", 30); ico.modulate = color; icon_box.add_child(ico)
 	
+	var s_name = skill.skill_name
+	var display_name = s_name
+	var description_text = skill.description
+	
+	if NetworkManager and NetworkManager.server_config:
+		var server_skills = NetworkManager.server_config.get("skillsData", {})
+		var lookup_name = s_name.to_upper().strip_edges()
+		if "REFLECT" in lookup_name:
+			for key in server_skills.keys():
+				if "REFLECT" in key.to_upper():
+					lookup_name = key
+					break
+		if server_skills.has(lookup_name):
+			var s_data = server_skills[lookup_name]
+			display_name = s_data.get("name", s_data.get("label", s_name))
+			description_text = s_data.get("desc", description_text)
+
 	var v_info = VBoxContainer.new(); v_info.size_flags_horizontal = 3; v_info.alignment = BoxContainer.ALIGNMENT_CENTER; hb.add_child(v_info)
-	var name_l = Label.new(); name_l.text = skill.skill_name; name_l.add_theme_font_size_override("font_size", 14); name_l.modulate = color; v_info.add_child(name_l)
-	var desc_l = Label.new(); desc_l.text = skill.description; desc_l.add_theme_font_size_override("font_size", 10); desc_l.modulate.a = 0.6; desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v_info.add_child(desc_l)
+	var name_l = Label.new(); name_l.text = display_name; name_l.add_theme_font_size_override("font_size", 14); name_l.modulate = color; v_info.add_child(name_l)
+	var desc_l = Label.new(); desc_l.text = description_text; desc_l.add_theme_font_size_override("font_size", 10); desc_l.modulate.a = 0.6; desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v_info.add_child(desc_l)
 	
 	var b_equip = Button.new(); b_equip.text = "YA EQUIPADA" if is_equipped else "EQUIPAR"; b_equip.disabled = is_equipped; b_equip.custom_minimum_size = Vector2(80, 0); b_equip.size_flags_vertical = 4; hb.add_child(b_equip)
 	if is_equipped: skill_card.modulate.a = 0.5

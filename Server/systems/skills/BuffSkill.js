@@ -10,7 +10,7 @@ class BuffSkill extends BaseSkill {
         // dependen fuertemente de la sincronización visual para que otros las vean.
         
         // v262.50: Sincronización de Buffs
-        if (this.name === "REFLECT-Ω") {
+        if (this.name === "REFLECT-OMEGA") {
             p.reflectActive = true;
             setTimeout(() => { p.reflectActive = false; }, 5000); // Duración estimada
         }

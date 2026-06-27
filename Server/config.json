@@ -4505,22 +4505,6 @@
             "type": "Defensa",
             "icon": "res://assets/Skills/Iconos/Defensa/Escudo Celular/Escudo Celular.png"
         },
-        "FORTALEZA-X": {
-            "amount": 1200,
-            "canTargetOthers": false,
-            "cd": 15000,
-            "desc": "Sobrecarga los escudos incrementando la resistencia momentáneamente.",
-            "id": "SK-DEF-02",
-            "range": 0,
-            "type": "Defensa",
-            "targetFilters": {
-                "allies": true,
-                "enemies": false,
-                "bosses": false,
-                "players": true,
-                "clan": false
-            }
-        },
         "FROST-TRAIL": {
             "canTargetOthers": false,
             "cd": 18000,
@@ -4629,23 +4613,7 @@
             "type": "Curación",
             "icon": "res://assets/Skills/Iconos/Cura/Vinculo Vital/Vinculo Vital.png"
         },
-        "PLASMA BLAST": {
-            "amount": 850,
-            "canTargetOthers": true,
-            "cd": 8000,
-            "desc": "Disparo concentrado de plasma con alta potencia destructiva.",
-            "id": "SK-ATK-02",
-            "range": 600,
-            "targetFilters": {
-                "allies": false,
-                "bosses": true,
-                "enemies": true,
-                "players": true,
-                "clan": false
-            },
-            "type": "Ataque"
-        },
-        "REFLECT-Î©": {
+        "REFLECT-OMEGA": {
             "amount": 500,
             "canTargetOthers": false,
             "cd": 5000,

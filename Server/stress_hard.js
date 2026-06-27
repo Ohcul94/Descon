@@ -8,7 +8,7 @@ const SERVER_URL = "http://localhost:3333";
 const CLIENT_COUNT = 100; // EL DOBLE DE ANTES
 const clients = [];
 
-const SKILLS = ["REFLECT-Ω", "TURBO-IMPULSO", "BLINK", "FROST-TRAIL"];
+const SKILLS = ["REFLECT-OMEGA", "TURBO-IMPULSO", "BLINK", "FROST-TRAIL"];
 
 console.log(`\n[STRESS-HARD] Iniciando invasión CENTENARIA de ${CLIENT_COUNT} naves...`);
 

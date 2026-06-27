@@ -45,7 +45,7 @@ async function createClient(index) {
         setInterval(() => {
             if (Math.random() > 0.8) {
                 socket.emit("playerSphereSkill", {
-                    id: 0, skillName: "REFLECT-Ω", powerValue: 100,
+                    id: 0, skillName: "REFLECT-OMEGA", powerValue: 100,
                     targetId: null, posX: posX, posY: posY
                 });
             }

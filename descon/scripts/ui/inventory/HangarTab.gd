@@ -5,6 +5,8 @@ extends Control
 
 var inv_main = null
 var preview_mesh: Node3D = null
+var _model_cache: Dictionary = {}
+var _texture_cache: Dictionary = {}
 
 func setup(p_inv_main):
 	inv_main = p_inv_main
@@ -147,7 +149,13 @@ func update_ui():
 			6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
 		
 	if glb_path != "" and ResourceLoader.exists(glb_path):
-		var model_scene = load(glb_path)
+		var model_scene = null
+		if _model_cache.has(glb_path):
+			model_scene = _model_cache[glb_path]
+		else:
+			model_scene = load(glb_path)
+			_model_cache[glb_path] = model_scene
+			
 		if model_scene:
 			var ship_model = model_scene.instantiate()
 			_clean_internal_lights_in_ui(ship_model)
@@ -318,7 +326,13 @@ func _render_group(parent, type, title, count):
 					icon_path = _get_fallback_icon(search_id)
 			
 			if icon_path != "" and icon_path != "null" and ResourceLoader.exists(icon_path):
-				var tex_res = load(icon_path)
+				var tex_res = null
+				if _texture_cache.has(icon_path):
+					tex_res = _texture_cache[icon_path]
+				else:
+					tex_res = load(icon_path)
+					_texture_cache[icon_path] = tex_res
+					
 				if tex_res:
 					it.visible = false # Ocultar texto si hay imagen
 					var tex = TextureRect.new()
@@ -407,7 +421,13 @@ func _create_item_row(it, parent):
 		icon_path = "res://assets/Municiones/Laser1.png"
 	
 	if icon_path != "" and icon_path != "null" and ResourceLoader.exists(icon_path):
-		var tex_res = load(icon_path)
+		var tex_res = null
+		if _texture_cache.has(icon_path):
+			tex_res = _texture_cache[icon_path]
+		else:
+			tex_res = load(icon_path)
+			_texture_cache[icon_path] = tex_res
+			
 		if tex_res:
 			var icon_rect = TextureRect.new()
 			icon_rect.texture = tex_res

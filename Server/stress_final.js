@@ -8,7 +8,7 @@ const SERVER_URL = "http://localhost:3333";
 const CLIENT_COUNT = 50; 
 const clients = [];
 
-const SKILLS = ["REFLECT-Ω", "TURBO-IMPULSO", "BLINK", "FROST-TRAIL"];
+const SKILLS = ["REFLECT-OMEGA", "TURBO-IMPULSO", "BLINK", "FROST-TRAIL"];
 
 console.log(`\n[STRESS-FINAL] Iniciando invasión masiva de ${CLIENT_COUNT} naves...`);
 
