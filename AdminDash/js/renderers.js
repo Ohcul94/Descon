@@ -5042,7 +5042,7 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
     input.type = 'file';
 
     // Tipos que NO deben copiar el archivo — solo resuelven la ruta res://
-    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb', 'skill_icon'];
+    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'talent_icon'];
     const isResolveOnly = resolveOnlyTypes.includes(type);
 
     if (type === 'ship_glb' || type === 'housing_glb') {
@@ -5074,6 +5074,8 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         // idx = skill name (key in skillsData)
                         if (!config.skillsData[idx]) config.skillsData[idx] = {};
                         config.skillsData[idx].icon = result.path;
+                    } else if (type === 'talent_icon') {
+                        config.talentsConfig.talents[idx].icon = result.path;
                     }
                     if (type === 'ship_icon' || type === 'ship_glb') {
                         renderShips();
@@ -5081,6 +5083,8 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         renderHousing();
                     } else if (type === 'skill_icon') {
                         renderSkills();
+                    } else if (type === 'talent_icon') {
+                        renderTalentCreator();
                     }
                 } else {
                     alert('❌ ' + (result.error || 'No se pudo encontrar el archivo en los assets del proyecto.\n\nAsegurate de que el archivo ya esté copiado dentro de la carpeta descon/assets antes de seleccionarlo.'));
@@ -5381,9 +5385,10 @@ window.renderTalentCreator = function() {
             </div>
 
             <div class="form-grid" style="display:grid; grid-template-columns: 80px 1fr; gap:12px;">
-                <div class="field">
-                    <label>Icono</label>
-                    <input type="text" value="${t.icon || '🌳'}" style="font-size:1.5rem; text-align:center;" onchange="config.talentsConfig.talents[${idx}].icon = this.value; renderTalentCreator();">
+                <div class="field" style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                    <label style="width:100%;">Icono</label>
+                    <input type="text" value="${t.icon || '🌳'}" style="font-size:1.5rem; text-align:center; width:100%;" onchange="config.talentsConfig.talents[${idx}].icon = this.value; renderTalentCreator();">
+                    <button class="btn" style="padding:2px 4px; font-size:0.6rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; width:100%; text-align:center;" onclick="triggerAssetUpload(${idx}, 'talent_icon')">🖼️ PNG</button>
                 </div>
                 <div class="field">
                     <label>Nombre del Talento</label>

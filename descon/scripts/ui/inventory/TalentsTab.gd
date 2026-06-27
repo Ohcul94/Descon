@@ -5,6 +5,7 @@ extends Control
 
 var inv_main = null
 var talent_system = null
+var _texture_cache: Dictionary = {}
 
 const SKILL_DATA = [
 	{ "id": "eng_1", "cat": "engineering", "name": "REFUERZO DE CASCO", "desc": "+2% HP por nivel", "max": 5 },
@@ -105,11 +106,81 @@ func _create_talent_card(parent, skill, lvl, cat, idx):
 	if lvl > 0: sb.border_color = cat_color; sb.bg_color = cat_color; sb.bg_color.a = 0.05
 	p.add_theme_stylebox_override("panel", sb)
 	
-	var v = VBoxContainer.new(); v.alignment = 1; v.mouse_filter = Control.MOUSE_FILTER_IGNORE; p.add_child(v)
+	# HBox principal
+	var hb = HBoxContainer.new(); hb.mouse_filter = Control.MOUSE_FILTER_IGNORE; p.add_child(hb)
+	hb.add_theme_constant_override("separation", 10)
+	
+	# Ajustar márgenes internos
+	var margins = MarginContainer.new()
+	margins.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margins.add_theme_constant_override("margin_left", 8)
+	margins.add_theme_constant_override("margin_right", 8)
+	margins.add_theme_constant_override("margin_top", 4)
+	margins.add_theme_constant_override("margin_bottom", 4)
+	margins.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.add_child(margins)
+	
+	var content_hb = HBoxContainer.new()
+	content_hb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content_hb.add_theme_constant_override("separation", 12)
+	margins.add_child(content_hb)
+	
+	# 1. Obtener datos dinámicos del servidor si están disponibles
+	var s_name = skill.name
+	var s_desc = skill.desc
+	var s_icon = ""
+	if NetworkManager and NetworkManager.server_config:
+		var talents_config = NetworkManager.server_config.get("talentsConfig", {})
+		var server_talents = talents_config.get("talents", [])
+		for t in server_talents:
+			if t.get("id") == skill.id:
+				s_name = t.get("name", s_name)
+				s_desc = t.get("desc", s_desc)
+				s_icon = t.get("icon", "")
+				break
+				
+	# 2. Contenedor de Icono (Izquierda)
+	var icon_box = CenterContainer.new(); icon_box.custom_minimum_size = Vector2(40, 0); content_hb.add_child(icon_box)
+	
+	var has_png = false
+	if s_icon != "" and s_icon.ends_with(".png"):
+		var cached_tex = _texture_cache.get(s_icon)
+		if cached_tex:
+			has_png = true
+			var icon_rect = TextureRect.new()
+			icon_rect.texture = cached_tex
+			icon_rect.custom_minimum_size = Vector2(36, 36)
+			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+			icon_rect.modulate = cat_color
+			icon_box.add_child(icon_rect)
+		elif ResourceLoader.exists(s_icon):
+			var tex = load(s_icon)
+			if tex:
+				_texture_cache[s_icon] = tex
+				has_png = true
+				var icon_rect = TextureRect.new()
+				icon_rect.texture = tex
+				icon_rect.custom_minimum_size = Vector2(36, 36)
+				icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+				icon_rect.modulate = cat_color
+				icon_box.add_child(icon_rect)
+				
+	if not has_png:
+		# Mostrar emoji o fallback como texto
+		var ico_label = Label.new()
+		ico_label.text = s_icon if s_icon != "" else "🌳"
+		ico_label.add_theme_font_size_override("font_size", 20)
+		ico_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		icon_box.add_child(ico_label)
+
+	# 3. Contenedor de Texto y Barras (Derecha)
+	var v = VBoxContainer.new(); v.alignment = BoxContainer.ALIGNMENT_CENTER; v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; v.mouse_filter = Control.MOUSE_FILTER_IGNORE; content_hb.add_child(v)
 	v.add_theme_constant_override("separation", 2)
 	
-	var n = Label.new(); n.text = skill.name; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
-	var d = Label.new(); d.text = skill.desc; d.autowrap_mode = 2; d.modulate.a = 0.6; d.add_theme_font_size_override("font_size", 9); v.add_child(d)
+	var n = Label.new(); n.text = s_name.to_upper(); n.add_theme_font_size_override("font_size", 11); v.add_child(n)
+	var d = Label.new(); d.text = s_desc; d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; d.modulate.a = 0.6; d.add_theme_font_size_override("font_size", 9); v.add_child(d)
 	
 	var bars = HBoxContainer.new(); bars.add_theme_constant_override("separation", 3); v.add_child(bars)
 	for b_idx in range(5):

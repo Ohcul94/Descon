@@ -83,7 +83,8 @@ const CLIENT_CONFIG_KEYS = [
     'movementLib',
     'defenseLib',
     'ammoMechLib',
-    'ambienceLib'
+    'ambienceLib',
+    'talentsConfig'
 ];
 
 const buildClientConfig = (config) => {
