@@ -214,7 +214,7 @@ func _input(event: InputEvent):
 				
 				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat, Equipo, Iconos)
 				if not clicked_node:
-					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects"]:
+					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer"]:
 						var win = _get_hud_node(win_id)
 						if win and win.visible and win.get_global_rect().has_point(event.position):
 							clicked_node = win
@@ -500,6 +500,7 @@ func _get_hud_node(id: String):
 	if id == "Squad" or id == "Party": real_id = "PartyHUD"
 	if id == "SkillsContainer": real_id = "Skills"
 	if id == "Status" or id == "StatusEffects": real_id = "StatusEffects"
+	if id == "PortalBtnContainer": real_id = "PortalBtnContainer"
 	
 	var node = get_node_or_null(real_id)
 	
@@ -513,6 +514,9 @@ func _get_hud_node(id: String):
 		var all_hud = get_tree().get_nodes_in_group("hud")
 		if all_hud.size() > 0:
 			node = all_hud[0].find_child(real_id, true, false)
+			
+	if not node and get_tree():
+		node = get_tree().root.find_child(real_id, true, false)
 			
 	return node
 
@@ -703,6 +707,7 @@ func _restore_default_layout():
 		"PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
 		"ControlBar":      { "x": 10,    "y": 715,   "scale": 0.5, "alpha": 1.0 },
 		"StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
+		"PortalBtnContainer": { "x": 540, "y": 610, "scale": 0.5, "alpha": 1.0 },
 	}
 	
 	# v1.10: Sincronización dinámica de valores de fábrica definidos en el AdminDash
@@ -1171,7 +1176,7 @@ func toggle_hud_editing(slot_index: int = -1):
 				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
@@ -1319,7 +1324,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 			}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wpos = get_normalized_pos.call(win, 1280.0, 800.0)
@@ -1363,7 +1368,7 @@ func _backup_layout():
 					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 				}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			if win_id == "StatusEffects":

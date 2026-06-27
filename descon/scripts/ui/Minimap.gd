@@ -123,6 +123,11 @@ func _draw():
 	
 	var current_zone_id = str(player.current_zone) if "current_zone" in player else "1"
 	
+	var hovered_dest = ""
+	var global_m_pos = get_global_mouse_position()
+	var is_hovered = get_global_rect().has_point(global_m_pos)
+	var local_m_pos = global_m_pos - global_position if is_hovered else Vector2.ZERO
+	
 	# =====================================================================
 	# SYNC FIX v200.0: Calcular worldW/worldH desde MAPS_CONFIG del servidor
 	# El AdminDash usa `m.width || 10000` — ahora Godot usa la misma fuente.
@@ -398,6 +403,19 @@ func _draw():
 						draw_circle(obj_pos, 5.5, Color(0.0, 0.9, 1.0, 0.9))
 						draw_circle(obj_pos, 8.0 + pulse_door * 2.0, Color(0.0, 0.9, 1.0, 0.25), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "P", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+						
+						# Obtener destino dinámico
+						var target_zone = str(obj.get("targetZoneId", obj.get("targetZone", "")))
+						if target_zone != "":
+							var dest_name = ""
+							if GameConstants.MAPS_CONFIG.has(target_zone):
+								dest_name = GameConstants.MAPS_CONFIG[target_zone].get("name", "Sector " + target_zone)
+							else:
+								dest_name = "Sector " + target_zone
+							
+							# Si el mouse está posicionado encima del portal en el minimapa (rango de 8px)
+							if is_hovered and local_m_pos.distance_to(obj_pos) < 8.0:
+								hovered_dest = dest_name
 					"tower":
 						# Torre - Naranja con 'T'
 						draw_circle(obj_pos, 5.0, Color(1.0, 0.55, 0.0, 0.9))
@@ -414,3 +432,24 @@ func _draw():
 
 	# Borde del radar
 	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0, 1, 1, 0.1), false, 1.0)
+	
+	# 8. Dibujar Tooltip interactivo si se pasa el mouse por encima de un portal
+	if hovered_dest != "":
+		var font = get_theme_font("font")
+		var tooltip_text = hovered_dest.to_upper()
+		var text_size = font.get_string_size(tooltip_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
+		var rect_size = text_size + Vector2(12, 8)
+		var rect_pos = local_m_pos + Vector2(10, 10)
+		
+		# Evitar que se salga del área del minimapa
+		if rect_pos.x + rect_size.x > r_size.x:
+			rect_pos.x = local_m_pos.x - rect_size.x - 10
+		if rect_pos.y + rect_size.y > r_size.y:
+			rect_pos.y = local_m_pos.y - rect_size.y - 10
+			
+		# Dibujar panel sci-fi con fondo oscuro y borde cian neón
+		draw_rect(Rect2(rect_pos, rect_size), Color(0.01, 0.04, 0.08, 0.92), true)
+		draw_rect(Rect2(rect_pos, rect_size), Color(0.0, 0.9, 1.0, 0.8), false, 1.0)
+		
+		# Renderizar texto
+		draw_string(font, rect_pos + Vector2(6, 14), tooltip_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.0, 1.0, 1.0))

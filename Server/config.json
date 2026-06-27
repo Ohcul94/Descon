@@ -2967,7 +2967,7 @@
                     "x": 615,
                     "y": 1396,
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
-                    "targetZoneId": "8",
+                    "targetZoneId": "7",
                     "targetX": 5000,
                     "targetY": 5000
                 }
@@ -3127,7 +3127,25 @@
             "ambience": [],
             "width": 10000,
             "height": 10000,
-            "objects": [],
+            "objects": [
+                {
+                    "type": "chest",
+                    "label": "Baúl",
+                    "x": 1188,
+                    "y": 1292,
+                    "assetPath": "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
+                },
+                {
+                    "type": "door",
+                    "label": "Puerta",
+                    "x": 1157,
+                    "y": 2519,
+                    "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
+                    "targetZoneId": "1",
+                    "targetX": 5000,
+                    "targetY": 5000
+                }
+            ],
             "spawns": [
                 {
                     "id": "spawn_1782151326526778",

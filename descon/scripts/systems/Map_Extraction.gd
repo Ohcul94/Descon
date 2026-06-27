@@ -552,12 +552,22 @@ func _create_portal_jump_ui():
 	# Contenedor principal de posición centrado abajo
 	var btn_container = VBoxContainer.new()
 	btn_container.name = "PortalBtnContainer"
-	btn_container.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	btn_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_container.add_to_group("portal_jump_ui")
+	btn_container.custom_minimum_size = Vector2(200, 100)
+	btn_container.size = Vector2(200, 100)
 	btn_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	# Desplazar hacia arriba para quedar flotando hermosamente sobre la barra de habilidades
-	btn_container.position.y -= 190
+	
 	ui_canvas.add_child(btn_container)
+	btn_container.anchor_left = 0.5
+	btn_container.anchor_right = 0.5
+	btn_container.anchor_top = 1.0
+	btn_container.anchor_bottom = 1.0
+	btn_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	btn_container.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	btn_container.offset_left = -100
+	btn_container.offset_right = 100
+	btn_container.offset_top = -190
+	btn_container.offset_bottom = -90
 	
 	# Contenedor para centrar el slot de 64x64
 	var center_slot = CenterContainer.new()
