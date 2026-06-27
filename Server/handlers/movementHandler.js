@@ -216,6 +216,7 @@ function registerMovementHandlers(socket, io, state) {
         
         const oldZone = p.zone;
         p.isDead = false;
+        p.isDeadDropProcessed = false;
         p.hp = respawnData.hp || p.maxHp || 1000;
         p.shield = respawnData.sh || p.maxShield || 500;
         

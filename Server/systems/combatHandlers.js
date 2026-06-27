@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Logger = require('../utils/logger');
 const { handleEnemyDeath } = require('./enemyLogic');
 const { calculateFinalStats } = require('./statCalculator');
+const { checkAndProcessDeathDrop } = require('./deathDropHelper');
 const SkillManager = require('./skills/SkillManager');
 const altarDefenseManager = require('./altarDefenseManager');
 const StealthSkill = require('./skills/StealthSkill');
@@ -586,7 +587,11 @@ function registerCombatHandlers(socket, io, state) {
 
             if (p.shield >= dmg) p.shield -= dmg;
             else { p.hp -= (dmg - p.shield); p.shield = 0; }
-            if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
+            if (p.hp <= 0) {
+                p.hp = 0;
+                p.isDead = true;
+                checkAndProcessDeathDrop(p, io, state);
+            }
             p.lastCombatTime = Date.now();
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
             
@@ -772,7 +777,11 @@ function registerCombatHandlers(socket, io, state) {
                     else { victim.hp -= (dmg - victim.shield); victim.shield = 0; }
                 }
                 
-                if (victim.hp <= 0) { victim.hp = 0; victim.isDead = true; }
+                if (victim.hp <= 0) {
+                    victim.hp = 0;
+                    victim.isDead = true;
+                    checkAndProcessDeathDrop(victim, io, state);
+                }
                 
                 victim.lastCombatTime = now;
                 attacker.lastCombatTime = now;

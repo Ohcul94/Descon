@@ -3135,11 +3135,12 @@
                     "count": 1,
                     "intervalMs": 5000,
                     "spawnMode": "random",
-                    "x": 2696,
-                    "y": 892,
+                    "x": 4966,
+                    "y": 1288,
                     "radius": 300
                 }
-            ]
+            ],
+            "pvpMode": "mandatory"
         },
         "8": {
             "color": "#550000",

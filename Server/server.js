@@ -43,6 +43,7 @@ const bcrypt = require('bcrypt'); // Criptografía Pro v35.0
 const { getClanDataPayload, registerClanHandlers } = require('./events/clanHandlers');
 const { registerCombatHandlers } = require('./systems/combatHandlers');
 const { registerInventoryHandlers } = require('./systems/inventoryHandlers');
+const { applyZoneRules } = require('./systems/deathDropHelper');
 const { registerTradeHandlers } = require('./systems/tradeHandlers');
 const { registerZoneHandlers } = require('./handlers/zoneHandler');
 const { registerMovementHandlers } = require('./handlers/movementHandler');
@@ -522,6 +523,9 @@ const handleUserLogin = async (socket, user, username) => {
     
     // v266.135: Cálculo Maestro de Stats (Base + Ítems + Skills)
     calculateFinalStats(p_ref, state.SERVER_CONFIG);
+
+    // Aplicar reglas de zona (PvP obligatorio, etc) al loguear
+    applyZoneRules(p_ref, socket, io, state);
 
     // Indexar jugador en playersByZone
     const loginZone = p_ref.zone || 1;
@@ -1526,6 +1530,16 @@ io.on('connection', (socket) => {
     socket.on('togglePvP', async (enabled) => {
         const p = players[socket.id];
         if (!p) return;
+        
+        // Bloquear desactivación o cambio manual en zonas con PvP obligatorio
+        const mapCfg = state.SERVER_CONFIG?.mapsConfig?.[p.zone];
+        const isPvPMandatory = mapCfg?.pvpMode === 'mandatory' || mapCfg?.pvpMode === 'full_drop';
+        if (isPvPMandatory) {
+            return socket.emit('gameNotification', { 
+                msg: `¡MODO COMBATE OBLIGATORIO! No puedes cambiar el modo de combate en este sector.`, 
+                type: "error" 
+            });
+        }
         
         // v3.1: Bloquear cambios manuales de PvP dentro de la Raid de Extracción
         if (p.isExtracting) {

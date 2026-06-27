@@ -5,6 +5,7 @@
 const { handleEnemyDeath } = require('./enemyLogic');
 const Logger = require('../utils/logger');
 const extractionManager = require('./extractionManager');
+const { checkAndProcessDeathDrop } = require('./deathDropHelper');
 
 const normalizeZone = (z) => {
     if (z === undefined || z === null) return 1;
@@ -345,10 +346,12 @@ function startGameLoop(io, state, aiManager) {
                         }
                         if (p.hp < 0) p.hp = 0;
                         if (p.hp <= 0) {
+                            p.hp = 0;
                             p.isDead = true;
                             p.isAsleep = false;
                             p.isStunned = false;
                             io.to(p.socketId).emit('stunState', { active: false });
+                            checkAndProcessDeathDrop(p, io, state);
                         }
                         
                         io.to(p.socketId).emit('environmentDamage', { damage: dmg });
@@ -412,8 +415,11 @@ function startGameLoop(io, state, aiManager) {
                     p.hp -= (debuffDmg - p.shield);
                     p.shield = 0;
                 }
-                if (p.hp < 0) p.hp = 0;
-                if (p.hp <= 0) p.isDead = true;
+                if (p.hp <= 0) {
+                    p.hp = 0;
+                    p.isDead = true;
+                    checkAndProcessDeathDrop(p, io, state);
+                }
 
                 io.to(p.socketId).emit('environmentDamage', { damage: debuffDmg });
                 changed = true;
@@ -626,11 +632,15 @@ function startGameLoop(io, state, aiManager) {
                                 p.lastCombatTime = now;
                                 if (p.shield >= dmg) p.shield -= dmg;
                                 else { p.hp -= (dmg - p.shield); p.shield = 0; }
-                                if (p.hp < 0) p.hp = 0;
+                                if (p.hp <= 0) {
+                                    p.hp = 0;
+                                    p.isDead = true;
+                                    checkAndProcessDeathDrop(p, io, state);
+                                }
                                 io.to(p.socketId).emit('environmentDamage', { damage: dmg });
                                 io.to(`zone_${p.zone}`).emit('playerStatSync', {
                                     id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield),
-                                    maxHp: p.maxHp, maxShield: p.maxShield, isInvisible: p.isInvisible, isSlowed: p.isSlowed
+                                    maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead, isInvisible: p.isInvisible, isSlowed: p.isSlowed
                                 });
                             }
                         }

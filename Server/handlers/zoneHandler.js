@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Logger = require('../utils/logger');
 const { onZoneChanged } = require('../systems/questHandlers');
+const { applyZoneRules } = require('../systems/deathDropHelper');
 
 // v268.75: Sanitización de datos para evitar Circular References y Crash de Terminal
 const getCleanPlayerData = (p, id) => {
@@ -97,6 +98,7 @@ function registerZoneHandlers(socket, io, state) {
         p.x = 2000;
         p.y = 2000;
         onZoneChanged(socket.id, newZone, state, io);
+        applyZoneRules(p, socket, io, state);
 
         // v238.41: Persistencia Administrativa Instantánea
         try {
@@ -253,6 +255,7 @@ function registerZoneHandlers(socket, io, state) {
             p.x = newSize / 2;
             p.y = newSize / 2;
             onZoneChanged(socket.id, zoneId, state, io);
+            applyZoneRules(p, socket, io, state);
 
             Logger.info('ZONE', `Jugador [${p.user}] saltó al Sector [${zoneId}] - Costo: ${COST} OHCU`);
 

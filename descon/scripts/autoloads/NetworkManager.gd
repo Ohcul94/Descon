@@ -440,9 +440,50 @@ func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_upda
 						sm.emit_signal("spheres_updated")
 
 func send_event(p_ename: String, p_val: Variant):
+	if p_ename == "changeZone":
+		var z_str = str(p_val)
+		if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(z_str):
+			var map_cfg = GameConstants.MAPS_CONFIG[z_str]
+			var pvp_mode = map_cfg.get("pvpMode", "tranquila")
+			if pvp_mode == "mandatory" or pvp_mode == "full_drop":
+				show_pvp_warning(p_val, pvp_mode)
+				return
+	_send_event_direct(p_ename, p_val)
+
+func _send_event_direct(p_ename: String, p_val: Variant):
 	if network_connected:
 		var pack = "42" + JSON.stringify([p_ename, p_val])
 		socket.send_text(pack)
+
+func show_pvp_warning(target_zone_id: Variant, pvp_mode: String):
+	var dialog = ConfirmationDialog.new()
+	dialog.name = "PvPWarningDialog"
+	dialog.title = "🚨 ADVERTENCIA DE SEGURIDAD 🚨"
+	
+	var desc = ""
+	if pvp_mode == "mandatory":
+		desc = "\nEl sector al que intentas entrar es una:\n\n🔥 ZONA DE COMBATE PVP OBLIGATORIO 🔥\n\n¿Estás seguro de que deseas ingresar?"
+	elif pvp_mode == "full_drop":
+		desc = "\n🚨 ¡ADVERTENCIA MÁXIMA DE PELIGRO! 🚨\n\nEl sector al que intentas entrar tiene:\n⚡ COMBATE PVP OBLIGATORIO Y PÉRDIDA TOTAL DE ITEMS EN MUERTE ⚡\n\nSi eres derrotado en este mapa, dropearás TODO lo que tengas equipado y en el inventario.\n\n¿Deseas ingresar bajo tu propio riesgo?"
+		
+	dialog.dialog_text = desc
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_MAIN_WINDOW_SCREEN
+	dialog.min_size = Vector2(450, 220)
+	dialog.exclusive = true
+	
+	dialog.ok_button_text = "ENTRAR AL SECTOR"
+	dialog.cancel_button_text = "QUEDARME AQUÍ"
+	
+	dialog.confirmed.connect(func():
+		_send_event_direct("changeZone", target_zone_id)
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(func():
+		dialog.queue_free()
+	)
+	
+	get_tree().root.add_child(dialog)
+	dialog.popup_centered()
 
 func _start_ping_loop():
 	await get_tree().create_timer(1.0).timeout 
