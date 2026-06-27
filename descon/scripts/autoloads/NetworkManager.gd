@@ -445,7 +445,7 @@ func send_event(p_ename: String, p_val: Variant):
 		if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(z_str):
 			var map_cfg = GameConstants.MAPS_CONFIG[z_str]
 			var pvp_mode = map_cfg.get("pvpMode", "tranquila")
-			if pvp_mode == "mandatory" or pvp_mode == "full_drop":
+			if pvp_mode == "mandatory" or pvp_mode == "full_drop" or pvp_mode == "partial_drop":
 				show_pvp_warning(p_val, pvp_mode)
 				return
 	_send_event_direct(p_ename, p_val)
@@ -456,34 +456,99 @@ func _send_event_direct(p_ename: String, p_val: Variant):
 		socket.send_text(pack)
 
 func show_pvp_warning(target_zone_id: Variant, pvp_mode: String):
-	var dialog = ConfirmationDialog.new()
-	dialog.name = "PvPWarningDialog"
-	dialog.title = "🚨 ADVERTENCIA DE SEGURIDAD 🚨"
+	# Construir modal independiente premium con la misma estética de viaje
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "PvpWarningCanvas"
+	canvas_layer.layer = 125
+	get_tree().root.add_child(canvas_layer)
 	
+	var overlay = Control.new()
+	overlay.name = "PvpWarningOverlay"
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	canvas_layer.add_child(overlay)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	# Panel del modal centrado
+	var p = PanelContainer.new()
+	p.custom_minimum_size = Vector2(430, 240)
+	overlay.add_child(p)
+	
+	p.anchor_left = 0.5
+	p.anchor_right = 0.5
+	p.anchor_top = 0.5
+	p.anchor_bottom = 0.5
+	p.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	p.grow_vertical = Control.GROW_DIRECTION_BOTH
+	p.offset_left = -p.custom_minimum_size.x / 2.0
+	p.offset_right = p.custom_minimum_size.x / 2.0
+	p.offset_top = -p.custom_minimum_size.y / 2.0
+	p.offset_bottom = p.custom_minimum_size.y / 2.0
+	
+	# Estilo oscuro y borde cian neón/rojo
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.01, 0.04, 0.08, 0.98)
+	sb.border_width_top = 4
+	sb.border_color = Color(1.0, 0.2, 0.2) if pvp_mode == "full_drop" else (Color(1.0, 0.5, 0.1) if pvp_mode == "partial_drop" else Color(0.9, 0.5, 0.1))
+	p.add_theme_stylebox_override("panel", sb)
+	
+	var v = VBoxContainer.new()
+	v.add_theme_constant_override("separation", 18)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	p.add_child(v)
+	
+	# Margen superior
+	var margin_top = Control.new()
+	margin_top.custom_minimum_size.y = 5
+	v.add_child(margin_top)
+	
+	# Título
+	var tl = Label.new()
+	tl.text = "🚨 ADVERTENCIA CRÍTICA 🚨" if (pvp_mode == "full_drop" or pvp_mode == "partial_drop") else "🚨 ADVERTENCIA DE SEGURIDAD 🚨"
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tl.modulate = Color(1.0, 0.2, 0.2) if (pvp_mode == "full_drop" or pvp_mode == "partial_drop") else Color(0.9, 0.5, 0.1)
+	tl.add_theme_font_size_override("font_size", 13)
+	v.add_child(tl)
+	
+	# Descripción
+	var rt = RichTextLabel.new()
+	rt.bbcode_enabled = true
 	var desc = ""
 	if pvp_mode == "mandatory":
-		desc = "\nEl sector al que intentas entrar es una:\n\n🔥 ZONA DE COMBATE PVP OBLIGATORIO 🔥\n\n¿Estás seguro de que deseas ingresar?"
+		desc = "[center]El sector al que intentas entrar es una:\n\n[color=#ff5555][b]🔥 ZONA DE COMBATE PVP OBLIGATORIO 🔥[/b][/color]\n\n¿Estás seguro de que deseas ingresar?[/center]"
 	elif pvp_mode == "full_drop":
-		desc = "\n🚨 ¡ADVERTENCIA MÁXIMA DE PELIGRO! 🚨\n\nEl sector al que intentas entrar tiene:\n⚡ COMBATE PVP OBLIGATORIO Y PÉRDIDA TOTAL DE ITEMS EN MUERTE ⚡\n\nSi eres derrotado en este mapa, dropearás TODO lo que tengas equipado y en el inventario.\n\n¿Deseas ingresar bajo tu propio riesgo?"
-		
-	dialog.dialog_text = desc
-	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_MAIN_WINDOW_SCREEN
-	dialog.min_size = Vector2(450, 220)
-	dialog.exclusive = true
+		desc = "[center]¡ATENCIÓN PILOTO! El sector tiene:\n[color=#ff3333][b]⚡ PVP OBLIGATORIO Y PÉRDIDA TOTAL DE ITEMS ⚡[/b][/color]\n\nSi eres derrotado en este mapa, [color=yellow][b]perderás y dropearás absolutamente todo[/b][/color] lo que tengas equipado y en el inventario.\n\n¿Deseas ingresar bajo tu propio riesgo?[/center]"
+	elif pvp_mode == "partial_drop":
+		desc = "[center]¡ATENCIÓN PILOTO! El sector tiene:\n[color=#ffaa33][b]⚡ PVP OBLIGATORIO Y PÉRDIDA DE INVENTARIO ⚡[/b][/color]\n\nSi eres derrotado en este mapa, [color=yellow][b]perderás todo tu inventario[/b][/color], pero conservarás los items equipados.\n\n¿Deseas ingresar bajo tu propio riesgo?[/center]"
+	rt.text = desc
+	rt.fit_content = true
+	rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_child(rt)
 	
-	dialog.ok_button_text = "ENTRAR AL SECTOR"
-	dialog.cancel_button_text = "QUEDARME AQUÍ"
+	# Contenedor de Botones
+	var hb = HBoxContainer.new()
+	hb.alignment = BoxContainer.ALIGNMENT_CENTER
+	hb.add_theme_constant_override("separation", 25)
+	v.add_child(hb)
 	
-	dialog.confirmed.connect(func():
+	var bc = Button.new()
+	bc.text = "  ENTRAR  "
+	bc.custom_minimum_size = Vector2(130, 42)
+	bc.add_theme_font_size_override("font_size", 10)
+	bc.pressed.connect(func():
 		_send_event_direct("changeZone", target_zone_id)
-		dialog.queue_free()
+		canvas_layer.queue_free()
 	)
-	dialog.canceled.connect(func():
-		dialog.queue_free()
-	)
+	hb.add_child(bc)
 	
-	get_tree().root.add_child(dialog)
-	dialog.popup_centered()
+	var bx = Button.new()
+	bx.text = " CANCELAR "
+	bx.custom_minimum_size = Vector2(130, 42)
+	bx.add_theme_font_size_override("font_size", 10)
+	bx.pressed.connect(func():
+		canvas_layer.queue_free()
+	)
+	hb.add_child(bx)
 
 func _start_ping_loop():
 	await get_tree().create_timer(1.0).timeout 

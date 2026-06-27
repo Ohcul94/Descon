@@ -382,33 +382,9 @@ func _on_inventory_received(data: Dictionary):
 	if data.has("equippedByShip"):
 		# v262.999: Normalizar TODAS las claves a string + diagnóstico
 		var raw = data.equippedByShip
-		
-		# v308.5: Preservar datos locales optimistas de la nave no-activa modificada
-		var preserved_equip = null
-		var preserved_key = ""
-		if inv_main_preserve_ship_id != -1:
-			preserved_key = str(inv_main_preserve_ship_id)
-			if equipped_by_ship.has(preserved_key):
-				preserved_equip = equipped_by_ship[preserved_key].duplicate(true)
-		
 		equipped_by_ship = {}
 		for key in raw.keys():
 			equipped_by_ship[str(key)] = raw[key]
-		
-		# Si la nave preservada tenía datos locales válidos y el server la devolvió vacía o incompleta,
-		# restauramos temporalmente la versión optimista local para evitar parpadeos
-		if preserved_key != "" and preserved_equip != null:
-			var server_equip = equipped_by_ship.get(preserved_key, null)
-			var server_has_items = false
-			if server_equip is Dictionary:
-				var total_s = server_equip.get("w", []).size() + server_equip.get("s", []).size() + server_equip.get("e", []).size() + server_equip.get("x", []).size()
-				if total_s > 0:
-					server_has_items = true
-			
-			var local_has_items = preserved_equip.get("w", []).size() + preserved_equip.get("s", []).size() + preserved_equip.get("e", []).size() + preserved_equip.get("x", []).size() > 0
-			
-			if local_has_items and not server_has_items:
-				equipped_by_ship[preserved_key] = preserved_equip
 	else:
 		pass
 	

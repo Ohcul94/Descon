@@ -347,15 +347,25 @@ func _render_group(parent, type, title, count):
 				if ev is InputEventMouseButton and ev.pressed:
 					get_viewport().set_input_as_handled() # v305.61: Bloqueo absoluto
 					if ev.double_click:
-						# v308.3: Actualización optimista local al desequipar
-						var sid_str2 = str(viewing_id)
-						if inv_main.equipped_by_ship.has(sid_str2) and inv_main.equipped_by_ship[sid_str2].has(type):
-							inv_main.equipped_by_ship[sid_str2][type].remove_at(i)
-							inv_main.inventory_items.append(item_data.duplicate(true))
-							inv_main.inv_main_preserve_ship_id = viewing_id  # Preservar vista de nave
-							call_deferred("update_ui")  # v308.4: Diferido para no destruir el nodo durante su propio evento
-						# Notificar al servidor (fuente de verdad)
-						NetworkManager.send_event("unequipItem", {"category": type, "instanceId": item_data.get("instanceId", ""), "shipId": viewing_id})
+						var player_node = get_tree().get_first_node_in_group("player")
+						var in_combat = false
+						if is_instance_valid(player_node) and player_node.has_method("is_in_combat"):
+							in_combat = player_node.is_in_combat()
+						
+						if not in_combat:
+							# v308.3: Actualización optimista local al desequipar
+							var sid_str2 = str(viewing_id)
+							if inv_main.equipped_by_ship.has(sid_str2) and inv_main.equipped_by_ship[sid_str2].has(type):
+								inv_main.equipped_by_ship[sid_str2][type].remove_at(i)
+								inv_main.inventory_items.append(item_data.duplicate(true))
+								inv_main.inv_main_preserve_ship_id = viewing_id  # Preservar vista de nave
+								call_deferred("update_ui")  # v308.4: Diferido para no destruir el nodo durante su propio evento
+							NetworkManager.send_event("unequipItem", {"category": type, "instanceId": item_data.get("instanceId", ""), "shipId": viewing_id})
+						else:
+							NetworkManager.game_notification.emit({
+								"msg": "ERROR: No puedes modificar tu equipamiento en combate.",
+								"type": "error"
+							})
 			)
 		else: var c = Label.new(); c.text = "+"; c.horizontal_alignment = 1; c.modulate.a = 0.1; p.add_child(c)
 		grid.add_child(p)
@@ -595,18 +605,30 @@ func _create_item_row(it, parent):
 	if not is_material_or_recipe:
 		var b_equip = Button.new(); b_equip.text = "EQUIPAR"; b_equip.add_theme_font_size_override("font_size", 9); action_hb.add_child(b_equip)
 		var equip_func = func():
+			var player_node = get_tree().get_first_node_in_group("player")
+			var in_combat = false
+			if is_instance_valid(player_node) and player_node.has_method("is_in_combat"):
+				in_combat = player_node.is_in_combat()
+			
 			var viewing_id = inv_main.selected_hangar_ship_id if inv_main.selected_hangar_ship_id != -1 else inv_main.current_ship_id
-			# v308.3: Actualización optimista local — Respuesta visual inmediata sin esperar al servidor
-			var sid_str = str(viewing_id)
-			if not inv_main.equipped_by_ship.has(sid_str):
-				inv_main.equipped_by_ship[sid_str] = {"w": [], "s": [], "e": [], "x": []}
-			var slot = inv_main._get_slot_from_id(str(it.get("id", "")))
-			inv_main.equipped_by_ship[sid_str][slot].append(it.duplicate(true))
 			var iid = it.get("instanceId", "")
-			inv_main.inventory_items = inv_main.inventory_items.filter(func(x): return x.get("instanceId", "") != iid)
-			inv_main.inv_main_preserve_ship_id = viewing_id  # Preservar para que _on_inventory_received no cambie la vista
-			call_deferred("update_ui")  # v308.4: Diferido para no destruir el nodo durante su propio evento de botón
-			NetworkManager.send_event("equipItem", {"instanceId": iid, "shipId": viewing_id})
+
+			if not in_combat:
+				# v308.3: Actualización optimista local — Respuesta visual inmediata sin esperar al servidor
+				var sid_str = str(viewing_id)
+				if not inv_main.equipped_by_ship.has(sid_str):
+					inv_main.equipped_by_ship[sid_str] = {"w": [], "s": [], "e": [], "x": []}
+				var slot = inv_main._get_slot_from_id(str(it.get("id", "")))
+				inv_main.equipped_by_ship[sid_str][slot].append(it.duplicate(true))
+				inv_main.inventory_items = inv_main.inventory_items.filter(func(x): return x.get("instanceId", "") != iid)
+				inv_main.inv_main_preserve_ship_id = viewing_id  # Preservar para que _on_inventory_received no cambie la vista
+				call_deferred("update_ui")  # v308.4: Diferido para no destruir el nodo durante su propio evento de botón
+				NetworkManager.send_event("equipItem", {"instanceId": iid, "shipId": viewing_id})
+			else:
+				NetworkManager.game_notification.emit({
+					"msg": "ERROR: No puedes modificar tu equipamiento en combate.",
+					"type": "error"
+				})
 		
 		b_equip.pressed.connect(equip_func)
 		

@@ -826,7 +826,7 @@ func _on_login_success(p_in):
 		if is_instance_valid(get_parent()) and get_parent().has_node("HUD/MainHUD"):
 			get_parent().get_node("HUD/MainHUD").set_pvp_status(pvp_status)
 		
-		update_stats({"pvpEnabled": pvp_status})
+		update_stats({"pvpEnabled": pvp_status, "isInvulnerable": p_in.get("isInvulnerable", false)})
 	_update_tags(); _emit_stats(); queue_redraw()
 	_is_initializing = false # v269.170: Restaurar guardado normal
 

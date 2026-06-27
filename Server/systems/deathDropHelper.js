@@ -2,8 +2,8 @@ const User = require('../models/User');
 const { sendInventoryData } = require('./inventoryHandlers');
 
 /**
- * Procesa la pérdida de todos los ítems equipados e inventario si el mapa tiene activado 'full_drop'.
- * Lee directamente de la base de datos para asegurar consistencia absoluta de los ítems.
+ * Procesa la pérdida de todos los ítems equipados e inventario si el mapa tiene activado 'full_drop',
+ * o solo inventario si es 'partial_drop'. Lee directamente de la base de datos para asegurar consistencia.
  * @param {Object} p Objeto del jugador en memoria (state.players[socket.id])
  * @param {Object} io Objeto global de socket.io
  * @param {Object} state Estado global del servidor
@@ -12,7 +12,10 @@ async function checkAndProcessDeathDrop(p, io, state) {
     if (!p || p.isDeadDropProcessed) return;
 
     const mapCfg = state.SERVER_CONFIG?.mapsConfig?.[p.zone];
-    if (mapCfg?.pvpMode === 'full_drop') {
+    const isFullDrop = mapCfg?.pvpMode === 'full_drop';
+    const isPartialDrop = mapCfg?.pvpMode === 'partial_drop';
+
+    if (isFullDrop || isPartialDrop) {
         p.isDeadDropProcessed = true; // Evitar procesamiento duplicado
 
         try {
@@ -21,15 +24,15 @@ async function checkAndProcessDeathDrop(p, io, state) {
 
             const droppedItems = [];
             
-            // 1. Recolectar del inventario del usuario en DB
+            // 1. Recolectar del inventario del usuario en DB (Siempre)
             if (user.gameData.inventory && Array.isArray(user.gameData.inventory)) {
                 user.gameData.inventory.forEach(item => {
                     if (item) droppedItems.push(item);
                 });
             }
             
-            // 2. Recolectar de ítems equipados del usuario en DB
-            if (user.gameData.equipped) {
+            // 2. Recolectar de ítems equipados del usuario en DB (Solo si es full_drop)
+            if (isFullDrop && user.gameData.equipped) {
                 const slots = ['w', 's', 'e', 'x'];
                 slots.forEach(slot => {
                     if (user.gameData.equipped[slot] && Array.isArray(user.gameData.equipped[slot])) {
@@ -66,29 +69,33 @@ async function checkAndProcessDeathDrop(p, io, state) {
                     expiresAt: expiresAt
                 });
                 
-                console.log(`[PVP-DROP] Jugador ${p.user} dropeó ${droppedItems.length} ítems en zona ${p.zone}`);
+                console.log(`[PVP-DROP] Jugador ${p.user} dropeó ${droppedItems.length} ítems en zona ${p.zone} (${mapCfg.pvpMode})`);
             }
 
             // 4. Vaciar en RAM
             p.inventory = [];
-            p.equipped = { w: [], s: [], e: [], x: [] };
+            if (isFullDrop) {
+                p.equipped = { w: [], s: [], e: [], x: [] };
+            }
 
             // 5. Vaciar en la Base de Datos (MongoDB) de forma autoritativa
             user.gameData.inventory = [];
-            user.gameData.equipped = { w: [], s: [], e: [], x: [] };
-            
-            const currentShipIdStr = String(user.gameData.currentShipId || 1);
-            if (user.gameData.equippedByShip) {
-                if (user.gameData.equippedByShip instanceof Map) {
-                    user.gameData.equippedByShip.set(currentShipIdStr, { w: [], s: [], e: [], x: [] });
-                } else {
-                    user.gameData.equippedByShip[currentShipIdStr] = { w: [], s: [], e: [], x: [] };
+            if (isFullDrop) {
+                user.gameData.equipped = { w: [], s: [], e: [], x: [] };
+                
+                const currentShipIdStr = String(user.gameData.currentShipId || 1);
+                if (user.gameData.equippedByShip) {
+                    if (user.gameData.equippedByShip instanceof Map) {
+                        user.gameData.equippedByShip.set(currentShipIdStr, { w: [], s: [], e: [], x: [] });
+                    } else {
+                        user.gameData.equippedByShip[currentShipIdStr] = { w: [], s: [], e: [], x: [] };
+                    }
+                    user.markModified('gameData.equippedByShip');
                 }
-                user.markModified('gameData.equippedByShip');
+                user.markModified('gameData.equipped');
             }
             
             user.markModified('gameData.inventory');
-            user.markModified('gameData.equipped');
             user.markModified('gameData');
             await user.save();
 
@@ -118,11 +125,9 @@ function applyZoneRules(p, socket, io, state) {
     const mapCfg = state.SERVER_CONFIG.mapsConfig?.[p.zone];
     if (mapCfg) {
         // A. Forzar PvP si es obligatorio
-        const isPvPMandatory = mapCfg.pvpMode === 'mandatory' || mapCfg.pvpMode === 'full_drop';
+        const isPvPMandatory = mapCfg.pvpMode === 'mandatory' || mapCfg.pvpMode === 'full_drop' || mapCfg.pvpMode === 'partial_drop';
         if (isPvPMandatory) {
             p.pvpEnabled = true;
-            // NOTA: No emitimos playerUpdated parcial aquí ya que la transición emite inmediatamente
-            // después un newPlayer completo a toda la zona con los datos correctos.
             console.log(`[PVP-RULES] PvP forzado a ACTIVO para ${p.user} en zona ${p.zone}`);
         }
 

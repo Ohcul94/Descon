@@ -3140,7 +3140,7 @@
                     "radius": 300
                 }
             ],
-            "pvpMode": "full_drop",
+            "pvpMode": "partial_drop",
             "giveInvulnerabilityOnEntry": true,
             "invulnerabilityDuration": 3000
         },

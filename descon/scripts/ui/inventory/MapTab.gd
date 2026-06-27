@@ -120,6 +120,23 @@ func update_ui():
 		
 		var d = Label.new(); d.text = s.get("desc", ""); d.add_theme_font_size_override("font_size", 8); d.modulate.a = 0.6; v.add_child(d)
 		
+		var pvp_lbl = Label.new()
+		pvp_lbl.add_theme_font_size_override("font_size", 8)
+		var pvp_mode = s.get("pvpMode", "tranquila")
+		if pvp_mode == "tranquila":
+			pvp_lbl.text = "🕊️ Zona Tranquila"
+			pvp_lbl.modulate = Color(0.2, 0.9, 0.4)
+		elif pvp_mode == "mandatory":
+			pvp_lbl.text = "⚔️ PvP Obligatorio"
+			pvp_lbl.modulate = Color(1.0, 0.6, 0.1)
+		elif pvp_mode == "partial_drop":
+			pvp_lbl.text = "🎒 PvP + Loot Parcial"
+			pvp_lbl.modulate = Color(1.0, 0.8, 0.2)
+		elif pvp_mode == "full_drop":
+			pvp_lbl.text = "💀 PvP + Loot Total"
+			pvp_lbl.modulate = Color(1.0, 0.2, 0.2)
+		v.add_child(pvp_lbl)
+		
 		if is_current:
 			var st = Label.new(); st.text = "ESTÁS AQUÍ"
 			st.modulate = Color.GOLD

@@ -1539,10 +1539,11 @@ function renderMapDetail() {
                                 <select onchange="config.mapsConfig['${selectedMapId}'].pvpMode = this.value; renderMapDetail();" style="background:#0f172a; border:1px solid #334155; color:white; width:100%; font-size:0.8rem; border-radius:4px; padding:6px; margin-top:4px;">
                                     <option value="tranquila" ${m.pvpMode === 'tranquila' || !m.pvpMode ? 'selected' : ''}>🕊️ Zona Tranquila (PVP Opcional)</option>
                                     <option value="mandatory" ${m.pvpMode === 'mandatory' ? 'selected' : ''}>⚔️ PVP Obligatorio</option>
+                                    <option value="partial_drop" ${m.pvpMode === 'partial_drop' ? 'selected' : ''}>🎒 PVP Obligatorio + Partial Drop (Inventario)</option>
                                     <option value="full_drop" ${m.pvpMode === 'full_drop' ? 'selected' : ''}>💀 PVP Obligatorio + Full Drop</option>
                                 </select>
                             </div>
-                            ${(m.pvpMode === 'mandatory' || m.pvpMode === 'full_drop') ? `
+                            ${(m.pvpMode === 'mandatory' || m.pvpMode === 'full_drop' || m.pvpMode === 'partial_drop') ? `
                             <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: span 2; margin-top:8px;">
                                 <input type="checkbox" id="give-invul-entry" ${m.giveInvulnerabilityOnEntry ? 'checked' : ''} onchange="config.mapsConfig['${selectedMapId}'].giveInvulnerabilityOnEntry = this.checked; renderMapDetail();">
                                 <label style="margin:0; cursor:pointer;" for="give-invul-entry">🛡️ Dar invulnerabilidad al entrar</label>
