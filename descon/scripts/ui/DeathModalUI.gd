@@ -29,20 +29,28 @@ func _ready():
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(overlay)
 	
-	# 2. Contenedor raíz centrado
+	# 2. Contenedor raíz adaptativo (Full Rect) para soportar cualquier tamaño de pantalla
 	control_root = Control.new()
-	control_root.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	control_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	control_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(control_root)
 	
 	overlay.visible = false
 	overlay.modulate.a = 0.0
 	control_root.visible = false
 	
-	# 3. Modal Container (PanelContainer)
+	# 3. Modal Container (PanelContainer) - Centrado dinámico perfecto mediante anchors y offsets explícitos
 	panel_container = PanelContainer.new()
 	panel_container.custom_minimum_size = Vector2(460, 260)
-	# Centrar el panel respecto al control raíz
-	panel_container.position = Vector2(-230, -130)
+	panel_container.anchor_left = 0.5
+	panel_container.anchor_right = 0.5
+	panel_container.anchor_top = 0.5
+	panel_container.anchor_bottom = 0.5
+	panel_container.offset_left = -230
+	panel_container.offset_right = 230
+	panel_container.offset_top = -130
+	panel_container.offset_bottom = 130
+	panel_container.pivot_offset = Vector2(230, 130) # Pivote en el centro del modal para escala suave
 	
 	# Estética Sci-Fi Neon (Borde magenta neón, fondo glassmorphism oscuro)
 	var sb = StyleBoxFlat.new()
@@ -168,12 +176,12 @@ func open_modal():
 	label_status.text = "Selecciona una opción antes del auto-retorno al Lobby."
 	
 	# Efecto de pulsación/entrada suave
-	control_root.scale = Vector2(0.85, 0.85)
+	panel_container.scale = Vector2(0.85, 0.85)
 	overlay.modulate.a = 0.0
 	
 	var tw = create_tween().set_parallel(true)
 	tw.tween_property(overlay, "modulate:a", 1.0, 0.25).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(control_root, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(panel_container, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func close_modal():
 	if is_open:
@@ -182,7 +190,7 @@ func close_modal():
 		
 		var tw = create_tween().set_parallel(true)
 		tw.tween_property(overlay, "modulate:a", 0.0, 0.2).set_trans(Tween.TRANS_SINE)
-		tw.tween_property(control_root, "scale", Vector2(0.85, 0.85), 0.2).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(panel_container, "scale", Vector2(0.85, 0.85), 0.2).set_trans(Tween.TRANS_SINE)
 		
 		await tw.finished
 		if not is_open:
