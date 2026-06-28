@@ -273,10 +273,26 @@ function registerCombatHandlers(socket, io, state) {
             // Curativa: Restaura HP y Escudo al propio jugador en PvE
             const healPct = (ammoConfig.healPctPvE !== undefined ? ammoConfig.healPctPvE : 40) / 100;
             const healAmount = finalDamage * healPct;
+
+            const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+            const mapCfg = maps[p.zone] || maps[p.zone.toString()];
+            const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+            let finalHealAmount = healAmount;
+            if (healPenaltyMech) {
+                if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
+                    const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;
+                    finalHealAmount = finalHealAmount * (1 - pct / 100);
+                }
+                if (healPenaltyMech.penaltyFixed !== undefined && healPenaltyMech.penaltyFixed !== "") {
+                    const fixed = parseFloat(healPenaltyMech.penaltyFixed) || 0;
+                    finalHealAmount = Math.max(0, finalHealAmount - fixed);
+                }
+            }
+
             const oldHp = p.hp;
             const oldShield = p.shield;
-            p.hp = Math.min(p.maxHp, p.hp + healAmount);
-            p.shield = Math.min(p.maxShield, p.shield + healAmount);
+            p.hp = Math.min(p.maxHp, p.hp + finalHealAmount);
+            p.shield = Math.min(p.maxShield, p.shield + finalHealAmount);
             const actualHeal = Math.ceil((p.hp - oldHp) + (p.shield - oldShield));
             
             io.to(`zone_${p.zone}`).emit('playerStatSync', { 
@@ -683,12 +699,44 @@ function registerCombatHandlers(socket, io, state) {
                     const healAttackerPct = (attackerAmmoConfig.healPctAttackerPvP !== undefined ? attackerAmmoConfig.healPctAttackerPvP : 30) / 100;
                     const healVictim = dmg * healVictimPct;
                     const healAttacker = dmg * healAttackerPct;
+
+                    const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
                     
-                    victim.hp = Math.min(victim.maxHp, victim.hp + healVictim);
-                    victim.shield = Math.min(victim.maxShield, victim.shield + healVictim);
+                    // Penalización de curación para la víctima
+                    const victimMapCfg = maps[victim.zone] || maps[victim.zone.toString()];
+                    const victimHealPenaltyMech = (victimMapCfg && Array.isArray(victimMapCfg.ambience)) ? victimMapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+                    let finalHealVictim = healVictim;
+                    if (victimHealPenaltyMech) {
+                        if (victimHealPenaltyMech.penaltyPercentage !== undefined && victimHealPenaltyMech.penaltyPercentage !== "") {
+                            const pct = parseFloat(victimHealPenaltyMech.penaltyPercentage) || 0;
+                            finalHealVictim = finalHealVictim * (1 - pct / 100);
+                        }
+                        if (victimHealPenaltyMech.penaltyFixed !== undefined && victimHealPenaltyMech.penaltyFixed !== "") {
+                            const fixed = parseFloat(victimHealPenaltyMech.penaltyFixed) || 0;
+                            finalHealVictim = Math.max(0, finalHealVictim - fixed);
+                        }
+                    }
+
+                    // Penalización de curación para el atacante
+                    const attackerMapCfg = maps[attacker.zone] || maps[attacker.zone.toString()];
+                    const attackerHealPenaltyMech = (attackerMapCfg && Array.isArray(attackerMapCfg.ambience)) ? attackerMapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+                    let finalHealAttacker = healAttacker;
+                    if (attackerHealPenaltyMech) {
+                        if (attackerHealPenaltyMech.penaltyPercentage !== undefined && attackerHealPenaltyMech.penaltyPercentage !== "") {
+                            const pct = parseFloat(attackerHealPenaltyMech.penaltyPercentage) || 0;
+                            finalHealAttacker = finalHealAttacker * (1 - pct / 100);
+                        }
+                        if (attackerHealPenaltyMech.penaltyFixed !== undefined && attackerHealPenaltyMech.penaltyFixed !== "") {
+                            const fixed = parseFloat(attackerHealPenaltyMech.penaltyFixed) || 0;
+                            finalHealAttacker = Math.max(0, finalHealAttacker - fixed);
+                        }
+                    }
                     
-                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAttacker);
-                    attacker.shield = Math.min(attacker.maxShield, attacker.shield + healAttacker);
+                    victim.hp = Math.min(victim.maxHp, victim.hp + finalHealVictim);
+                    victim.shield = Math.min(victim.maxShield, victim.shield + finalHealVictim);
+                    
+                    attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAttacker);
+                    attacker.shield = Math.min(attacker.maxShield, attacker.shield + finalHealAttacker);
                     
                     io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
                         id: socket.id, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 

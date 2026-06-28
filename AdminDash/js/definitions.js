@@ -89,6 +89,12 @@ let AMBIENCE_LIB = {
         icon: "🧬",
         desc: "Multiplica la vida, escudo, velocidad y daño de los enemigos.",
         fields: ["multiplier"]
+    },
+    "healing_penalty": {
+        label: "Penalizador de Curación",
+        icon: "💉",
+        desc: "Inhibe o reduce las curaciones de vida recibidas (porcentual o fija).",
+        fields: ["penaltyPercentage", "penaltyFixed"]
     }
 };
 

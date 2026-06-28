@@ -305,36 +305,64 @@ func update_ui():
 			a_title_lbl.add_theme_font_size_override("font_size", 9); a_title_lbl.modulate = Color.YELLOW
 			a_desc_lbl.add_theme_font_size_override("font_size", 8); a_desc_lbl.modulate.a = 0.85
 			
+			var a_label = a_type.to_upper().replace("_", " ")
+			var a_icon = "❓"
+			var a_desc_default = ""
+			
+			if GameConstants.FULL_CONFIG.has("ambienceLib"):
+				var ambience_lib = GameConstants.FULL_CONFIG["ambienceLib"]
+				if ambience_lib.has(a_type):
+					var lib_entry = ambience_lib[a_type]
+					if lib_entry.has("label"): a_label = lib_entry["label"]
+					if lib_entry.has("icon"): a_icon = lib_entry["icon"]
+					if lib_entry.has("desc"): a_desc_default = lib_entry["desc"]
+					
+			a_title_lbl.text = a_icon + " " + a_label.to_upper()
+			
 			match a_type:
 				"freeze_hazard":
-					a_title_lbl.text = "TORMENTA CRIOGÉNICA (FREEZE)"
 					var slow_pct = int(a.get("slowPercentage", 0))
 					var slow_fix = int(a.get("slowFixed", 0))
 					var dur = int(round(float(a.get("duration", 3000)) / 1000.0))
 					var slow_desc = str(slow_pct) + "%" if slow_pct > 0 else str(slow_fix) + " unidades"
 					a_desc_lbl.text = "Congela naves periódicamente.\nRalentiza en " + slow_desc + " durante " + str(dur) + "s."
 				"radiation":
-					a_title_lbl.text = "RADIACIÓN ESTELAR (RADIATION)"
 					var dmg = int(a.get("damage", 10))
 					var ms = int(round(float(a.get("intervalMs", 3000)) / 1000.0))
 					a_desc_lbl.text = "Campo electromagnético dañino.\nCausa " + str(dmg) + " de daño cada " + str(ms) + "s al escudo/casco."
 				"interferencia_hazard":
-					a_title_lbl.text = "NEBULOSA DE INTERFERENCIA (EMP)"
 					var dur = int(round(float(a.get("duration", 5000)) / 1000.0))
 					a_desc_lbl.text = "Frecuencia de pulso inestable.\nBloquea el uso de habilidades activas durante " + str(dur) + "s."
 				"extreme_aggression":
-					a_title_lbl.text = "AGRESIVIDAD EXTREMA"
 					var h_mult = float(a.get("healthMult", 1.0))
 					var h_mult_str = str(h_mult) if h_mult != int(h_mult) else str(int(h_mult))
 					a_desc_lbl.text = "Zona de combate hiperactiva.\nLos enemigos tienen un multiplicador de HP/Escudo de x" + h_mult_str + "."
 				"multiplicador":
-					a_title_lbl.text = "MULTIPLICADOR"
 					var mult = float(a.get("multiplier", 1.0))
 					var mult_str = str(mult) if mult != int(mult) else str(int(mult))
 					a_desc_lbl.text = "Zona con distorsión de poder.\nEnemigos potencian vida, escudo, daño y velocidad por x" + mult_str + "."
+				"healing_penalty":
+					var pct = int(a.get("penaltyPercentage", 0))
+					var fix = int(a.get("penaltyFixed", 0))
+					var details = ""
+					if pct > 0:
+						details += "Reducción de curación del " + str(pct) + "%"
+					if fix > 0:
+						if details != "": details += " y "
+						details += "reducción fija de " + str(fix) + " HP"
+					if details == "":
+						details = "Curación sin penalizaciones configuradas"
+					a_desc_lbl.text = "Inhibe la regeneración de salud de naves en este sector.\n" + details + "."
+				"vortex_hazard":
+					a_desc_lbl.text = "Genera vórtices que succionan y dañan a las naves."
+				"blindness_hazard":
+					a_desc_lbl.text = "Oscurece la pantalla de las naves periódicamente."
+				"gravity":
+					a_desc_lbl.text = "Reduce la velocidad del dash."
+				"nebula":
+					a_desc_lbl.text = "Ralentiza a las naves de forma constante en el área."
 				_:
-					a_title_lbl.text = a_type.to_upper().replace("_", " ")
-					a_desc_lbl.text = "Parámetros: " + JSON.stringify(a)
+					a_desc_lbl.text = a_desc_default if a_desc_default != "" else ("Parámetros: " + JSON.stringify(a))
 			
 			av.add_child(a_title_lbl)
 			av.add_child(a_desc_lbl)

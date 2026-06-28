@@ -1626,7 +1626,9 @@ function renderMapDetail() {
                                         speedMult: "Multiplicador de Velocidad (x)",
                                         healthMult: "Multiplicador de Vida (x)",
                                         respawnSpeedBonus: "Bono de Respawn (ms)",
-                                        multiplier: "Multiplicador General (x)"
+                                        multiplier: "Multiplicador General (x)",
+                                        penaltyPercentage: "Penalización Curación (%)",
+                                        penaltyFixed: "Penalización Curación Fija"
                                     };
                                     let val = a[f];
                                     if (val === undefined) {
@@ -1634,6 +1636,8 @@ function renderMapDetail() {
                                         if (f === 'spawnInterval') val = 10000;
                                         else if (f === 'duration') val = 5000;
                                         else if (f === 'radius') val = 250;
+                                        else if (f === 'penaltyPercentage') val = 50;
+                                        else if (f === 'penaltyFixed') val = 0;
                                         else val = 0;
                                         config.mapsConfig[selectedMapId].ambience[idx][f] = val;
                                     }

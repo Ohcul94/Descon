@@ -3124,17 +3124,16 @@
             "minLevel": 1,
             "name": "Mapa 7",
             "warpCost": 0,
-            "ambience": [],
+            "ambience": [
+                {
+                    "type": "healing_penalty",
+                    "penaltyPercentage": 100,
+                    "penaltyFixed": 0
+                }
+            ],
             "width": 10000,
             "height": 10000,
             "objects": [
-                {
-                    "type": "chest",
-                    "label": "Baúl",
-                    "x": 1188,
-                    "y": 1292,
-                    "assetPath": "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
-                },
                 {
                     "type": "door",
                     "label": "Puerta",
@@ -6118,6 +6117,15 @@
             "desc": "Multiplica la vida, escudo, velocidad y daño de los enemigos.",
             "fields": [
                 "multiplier"
+            ]
+        },
+        "healing_penalty": {
+            "label": "Penalizador de Curación",
+            "icon": "💉",
+            "desc": "Inhibe o reduce las curaciones de vida recibidas (porcentual o fija).",
+            "fields": [
+                "penaltyPercentage",
+                "penaltyFixed"
             ]
         }
     },

@@ -823,6 +823,8 @@ function updateAmbienceType(mapId, idx, newType) {
         else if (f === 'damage') newHazard[f] = 10;
         else if (f === 'intervalMs') newHazard[f] = 500;
         else if (f === 'multiplier') newHazard[f] = 2;
+        else if (f === 'penaltyPercentage') newHazard[f] = 50;
+        else if (f === 'penaltyFixed') newHazard[f] = 0;
         else newHazard[f] = 0;
     });
 

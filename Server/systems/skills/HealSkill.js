@@ -20,9 +20,24 @@ class HealSkill extends BaseSkill {
             actual_val = target.shield - oldS;
         } else {
             // HP: AUTO-REPARACIÓN, NANO-REGENERACIÓN
+            const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+            const mapCfg = maps[target.zone] || maps[target.zone.toString()];
+            const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+            let finalPower = powerValue;
+            if (healPenaltyMech) {
+                if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
+                    const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;
+                    finalPower = finalPower * (1 - pct / 100);
+                }
+                if (healPenaltyMech.penaltyFixed !== undefined && healPenaltyMech.penaltyFixed !== "") {
+                    const fixed = parseFloat(healPenaltyMech.penaltyFixed) || 0;
+                    finalPower = Math.max(0, finalPower - fixed);
+                }
+            }
+
             const mh = target.maxHp || 3000;
             const oldH = target.hp || 0;
-            target.hp = Math.min(oldH + powerValue, mh);
+            target.hp = Math.min(oldH + finalPower, mh);
             actual_val = target.hp - oldH;
         }
 

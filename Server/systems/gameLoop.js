@@ -717,8 +717,23 @@ function startGameLoop(io, state, aiManager) {
                                 else if (!isAlly && !isEnemy && filters.players) isValid = true;
                                 
                                 if (isValid) {
+                                    const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+                                    const mapCfg = maps[p.zone] || maps[p.zone.toString()];
+                                    const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+                                    let finalHealVal = healVal;
+                                    if (healPenaltyMech) {
+                                        if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
+                                            const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;
+                                            finalHealVal = finalHealVal * (1 - pct / 100);
+                                        }
+                                        if (healPenaltyMech.penaltyFixed !== undefined && healPenaltyMech.penaltyFixed !== "") {
+                                            const fixed = parseFloat(healPenaltyMech.penaltyFixed) || 0;
+                                            finalHealVal = Math.max(0, finalHealVal - fixed);
+                                        }
+                                    }
+
                                     const oldH = p.hp;
-                                    p.hp = Math.min(p.maxHp, p.hp + healVal);
+                                    p.hp = Math.min(p.maxHp, p.hp + finalHealVal);
                                     const actualHeal = p.hp - oldH;
                                     
                                     io.to(`zone_${p.zone}`).emit('playerStatSync', {
@@ -754,9 +769,24 @@ function startGameLoop(io, state, aiManager) {
                                 else if (!isBoss && filters.enemies) isValid = true;
                                 
                                 if (isValid) {
+                                    const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+                                    const mapCfg = maps[e.zone] || maps[e.zone.toString()];
+                                    const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+                                    let finalHealVal = healVal;
+                                    if (healPenaltyMech) {
+                                        if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
+                                            const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;
+                                            finalHealVal = finalHealVal * (1 - pct / 100);
+                                        }
+                                        if (healPenaltyMech.penaltyFixed !== undefined && healPenaltyMech.penaltyFixed !== "") {
+                                            const fixed = parseFloat(healPenaltyMech.penaltyFixed) || 0;
+                                            finalHealVal = Math.max(0, finalHealVal - fixed);
+                                        }
+                                    }
+
                                     const oldH = e.hp;
                                     const maxHp = e.maxHp || (state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels && state.SERVER_CONFIG.enemyModels[e.type] ? state.SERVER_CONFIG.enemyModels[e.type].hp : 1000);
-                                    e.hp = Math.min(maxHp, e.hp + healVal);
+                                    e.hp = Math.min(maxHp, e.hp + finalHealVal);
                                     const actualHeal = e.hp - oldH;
                                     
                                     // Emitir remotePlayerUsedSkill para mostrar el texto curativo sobre el enemigo
@@ -813,8 +843,24 @@ function startGameLoop(io, state, aiManager) {
 
                 // Procesar tick de curación periódica
                 if (now - (area.lastTickTime || 0) >= (area.tickInterval || 1000)) {
+                    const targetZone = isEnemyNPC ? target.zoneId : target.zone;
+                    const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+                    const mapCfg = maps[targetZone] || maps[targetZone.toString()];
+                    const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+                    let finalHealVal = area.amount || 250;
+                    if (healPenaltyMech) {
+                        if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
+                            const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;
+                            finalHealVal = finalHealVal * (1 - pct / 100);
+                        }
+                        if (healPenaltyMech.penaltyFixed !== undefined && healPenaltyMech.penaltyFixed !== "") {
+                            const fixed = parseFloat(healPenaltyMech.penaltyFixed) || 0;
+                            finalHealVal = Math.max(0, finalHealVal - fixed);
+                        }
+                    }
+
                     const oldH = target.hp;
-                    target.hp = Math.min(target.maxHp, target.hp + (area.amount || 250));
+                    target.hp = Math.min(target.maxHp, target.hp + finalHealVal);
                     const actualHeal = target.hp - oldH;
 
                     if (!isEnemyNPC) {
@@ -880,9 +926,23 @@ function startGameLoop(io, state, aiManager) {
                             }
 
                             if (isValidTarget) {
+                                const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+                                const mapCfg = maps[p.zone] || maps[p.zone.toString()];
+                                const healPenaltyMech = (mapCfg && Array.isArray(mapCfg.ambience)) ? mapCfg.ambience.find(a => a.type === 'healing_penalty') : null;
+                                let finalHealVal = area.amount || 1500;
+                                if (healPenaltyMech) {
+                                    if (healPenaltyMech.penaltyPercentage !== undefined && healPenaltyMech.penaltyPercentage !== "") {
+                                        const pct = parseFloat(healPenaltyMech.penaltyPercentage) || 0;
+                                        finalHealVal = finalHealVal * (1 - pct / 100);
+                                    }
+                                    if (healPenaltyMech.penaltyFixed !== undefined && healPenaltyMech.penaltyFixed !== "") {
+                                        const fixed = parseFloat(healPenaltyMech.penaltyFixed) || 0;
+                                        finalHealVal = Math.max(0, finalHealVal - fixed);
+                                    }
+                                }
+
                                 const oldH = p.hp;
-                                const healVal = area.amount || 1500;
-                                p.hp = Math.min(p.maxHp, p.hp + healVal);
+                                p.hp = Math.min(p.maxHp, p.hp + finalHealVal);
                                 const actualHeal = p.hp - oldH;
 
                                 io.to(`zone_${p.zone}`).emit('playerStatSync', {
