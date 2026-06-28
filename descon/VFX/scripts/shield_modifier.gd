@@ -5,6 +5,11 @@
 
 extends Node3D
 
+func _ready() -> void:
+	if not Engine.is_editor_hint():
+		for child in get_children():
+			if child is MeshInstance3D and child.material_override:
+				child.material_override = child.material_override.duplicate()
 
 @export var dissapear_line:float = 0.84:
 	set(new_dissapear_line):

@@ -1384,11 +1384,11 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	var node3d = Node3D.new()
 	vp.add_child(node3d)
 	
-	# Cámara Ortogonal configurada para encuadrar la media esfera
+	# Cámara de Perspectiva con el ángulo 2.5D exacto de la nave
 	var cam = Camera3D.new()
-	cam.position = Vector3(0, 0, 5) # Distancia idónea
-	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = 3.2 # Tamaño para encuadrar la media esfera sin recortarla
+	cam.position = Vector3(0, 10, 10)
+	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	cam.fov = 60.0
 	node3d.add_child(cam)
 	cam.look_at(Vector3.ZERO)
 	
@@ -1407,10 +1407,10 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 		var vfx = vfx_scene.instantiate()
 		node3d.add_child(vfx)
 		
-		# Escala 3D ideal para encajar en el viewport de 384px sin desbordar
-		vfx.scale = Vector3(1.6, 1.6, 1.6)
-		# Usar la rotación por defecto (0, 0, 0) que se ve perfecta en el editor
-		vfx.rotation_degrees = Vector3(0, 0, 0)
+		# Escala 3D ideal para el tamaño del viewport
+		vfx.scale = Vector3(3.0, 3.0, 3.0)
+		# Rotar 180 grados en Y para que la parte curva mire hacia afuera de la nave
+		vfx.rotation_degrees = Vector3(0, 180, 0)
 		
 		# Iniciar la animación de entrada
 		var anim = vfx.get_node_or_null("AnimationPlayer")
@@ -1421,9 +1421,8 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	var sprite = Sprite2D.new()
 	sprite.texture = vp.get_texture()
 	
-	# Rotar el sprite 90 grados (PI/2) localmente para alinear la horizontal del 3D con la vertical del 2D
+	# Rotar el sprite 90 grados (PI/2) localmente para alinear el eje vertical
 	sprite.rotation = PI / 2.0
-	# Escala 1.0 para que se dibuje a su tamaño lógico nativo en el mapa
 	sprite.scale = Vector2(1.0, 1.0)
 	
 	var canvas_mat = CanvasItemMaterial.new()

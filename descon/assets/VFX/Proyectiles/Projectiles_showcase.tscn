@@ -1,0 +1,190 @@
+[gd_scene format=3 uid="uid://bmllvoaescnmv"]
+
+[ext_resource type="PackedScene" uid="uid://b3oxeny65clqf" path="res://VFX/Scenes/VFX_Fire_ball_type_B.tscn" id="1_pwqdu"]
+[ext_resource type="PackedScene" uid="uid://d4i83bqlqpy0a" path="res://VFX/Scenes/VFX_Electric_strike.tscn" id="2_v7edw"]
+[ext_resource type="PackedScene" uid="uid://cntgsbe8u4xcb" path="res://VFX/Scenes/VFX_Fire_strike.tscn" id="3_m4qq2"]
+[ext_resource type="PackedScene" uid="uid://bxqb2r5cdt3gw" path="res://VFX/Scenes/VFX_Darkness_projectile.tscn" id="4_ut1jt"]
+[ext_resource type="PackedScene" uid="uid://tdbxidy0fi2u" path="res://VFX/Scenes/VFX_Cube_projectile.tscn" id="5_hrtv8"]
+[ext_resource type="PackedScene" uid="uid://bwg0s21ipwovx" path="res://VFX/Scenes/VFX_Hadouken.tscn" id="6_w0kw2"]
+[ext_resource type="PackedScene" uid="uid://b5d5nm8v8qth7" path="res://VFX/Scenes/VFX_Hit_hadouken.tscn" id="7_eg8vh"]
+[ext_resource type="PackedScene" uid="uid://bin1lmqiaoja2" path="res://VFX/Scenes/VFX_Anticipation_hadouken.tscn" id="8_aq4wr"]
+[ext_resource type="PackedScene" uid="uid://daxml87m8oqix" path="res://VFX/Scenes/VFX_Hit_fire_2.tscn" id="9_op2gs"]
+[ext_resource type="PackedScene" uid="uid://cywjr57rbvhib" path="res://VFX/Scenes/VFX_Hit_fire_3.tscn" id="10_6wapy"]
+[ext_resource type="PackedScene" uid="uid://d1mxj6jg28uo6" path="res://VFX/Scenes/VFX_Hit_cyber.tscn" id="11_4bot5"]
+[ext_resource type="PackedScene" uid="uid://d2snt7bd30276" path="res://VFX/Scenes/VFX_Hit_dark.tscn" id="12_v3c4y"]
+[ext_resource type="PackedScene" uid="uid://cdhyyv6yp6xos" path="res://VFX/Scenes/VFX_Hit_fire_1.tscn" id="13_r3ovb"]
+[ext_resource type="PackedScene" uid="uid://ch0ybhnkcuyap" path="res://VFX/Scenes/VFX_Hit_electric.tscn" id="14_h8v0y"]
+[ext_resource type="PackedScene" uid="uid://qs7tqcp0dhcl" path="res://VFX/Scenes/VFX_Anticipation_fire_1.tscn" id="15_b6fwv"]
+[ext_resource type="PackedScene" uid="uid://c8hek0t1bwiml" path="res://VFX/Scenes/VFX_Anticipation_fire_3.tscn" id="16_sl0bi"]
+[ext_resource type="PackedScene" uid="uid://dtjou6bodqar4" path="res://VFX/Scenes/VFX_Anticipation_wave_1.tscn" id="17_fp517"]
+[ext_resource type="PackedScene" uid="uid://ckdta26f1664f" path="res://VFX/Scenes/VFX_Anticipation_wave_digital.tscn" id="18_4y2dc"]
+[ext_resource type="PackedScene" uid="uid://crd40ycge6qp1" path="res://VFX/Scenes/VFX_Fire_ball_standar.tscn" id="19_0innb"]
+
+[sub_resource type="GDScript" id="GDScript_vig0k"]
+resource_name = "demo_projectile_s"
+script/source = "@tool
+extends Node3D
+
+enum {ANTICIPATION, HIT}
+
+@export var my_bool:bool = false:
+	set(new_my_bool):
+		my_bool = new_my_bool
+		self.play_all_animations(my_bool)
+
+func _ready() -> void:
+	$AnimationPlayer.play(\"Init\")
+	
+func _run():
+	$AnimationPlayer.play(\"Init\")
+
+func play_all_animations(_type:bool)->void:
+	
+	match _type:
+		true:
+			$VFX_Anticipation_Hadouken.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Anticipation_Fire1.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Anticipation_Fire3.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Anticipation_Wave1.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Anticipation_WaveDigital.find_child(\"AnimationPlayer\").play(\"Init\")
+		false:
+			
+			$VFX_Hit_Fire2.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Hit_Fire3.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Hit_Fire1.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Hit_Electric.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Hit_cyber.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Hit_Hadouken.find_child(\"AnimationPlayer\").play(\"Init\")
+			$VFX_Hit_dark.find_child(\"AnimationPlayer\").play(\"Init\")
+"
+
+[sub_resource type="Environment" id="Environment_jg4fy"]
+background_energy_multiplier = 0.3
+ambient_light_source = 2
+ambient_light_color = Color(0.205117, 0.205117, 0.205117, 1)
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rkk5e"]
+albedo_color = Color(0.340339, 0.340339, 0.340339, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_e7ubf"]
+size = Vector2(30, 30)
+
+[sub_resource type="Animation" id="Animation_as6tx"]
+resource_name = "Init"
+length = 1.9
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:my_bool")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.4, 1.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+
+[sub_resource type="Animation" id="Animation_uhifs"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:my_bool")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_rwh1t"]
+_data = {
+"Init": SubResource("Animation_as6tx"),
+"RESET": SubResource("Animation_uhifs")
+}
+
+[node name="map1_Projectiles_showcase" type="Node3D"]
+script = SubResource("GDScript_vig0k")
+my_bool = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
+light_energy = 0.3
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_jg4fy")
+
+[node name="floor" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.00527167, 0)
+material_override = SubResource("StandardMaterial3D_rkk5e")
+mesh = SubResource("PlaneMesh_e7ubf")
+
+[node name="VFX_FireBall" parent="." instance=ExtResource("19_0innb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.40659, 0)
+
+[node name="VFX_FireBall_TypeB" parent="." instance=ExtResource("1_pwqdu")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.40659, 0)
+
+[node name="VFX_ElectricStrike" parent="." instance=ExtResource("2_v7edw")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.40659, 0)
+
+[node name="VFX_FireStrike" parent="." instance=ExtResource("3_m4qq2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.40659, 0)
+
+[node name="VFX_DarknessProjectile" parent="." instance=ExtResource("4_ut1jt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.40659, 0)
+
+[node name="VFX_CubeProjectile" parent="." instance=ExtResource("5_hrtv8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1.40659, 0)
+
+[node name="VFX_Hadouken" parent="." instance=ExtResource("6_w0kw2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.40659, 0)
+
+[node name="VFX_Hit_Hadouken" parent="." instance=ExtResource("7_eg8vh")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.40659, -5.3539)
+
+[node name="VFX_Hit_Fire2" parent="." instance=ExtResource("9_op2gs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.40659, -5.3539)
+
+[node name="VFX_Hit_Fire3" parent="." instance=ExtResource("10_6wapy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.40659, -5.3539)
+
+[node name="VFX_Hit_cyber" parent="." instance=ExtResource("11_4bot5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1.40659, -5.3539)
+
+[node name="VFX_Hit_dark" parent="." instance=ExtResource("12_v3c4y")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.40659, -5.3539)
+
+[node name="VFX_Hit_Fire1" parent="." instance=ExtResource("13_r3ovb")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.40659, -5.3539)
+
+[node name="VFX_Hit_Electric" parent="." instance=ExtResource("14_h8v0y")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.40659, -5.3539)
+
+[node name="VFX_Anticipation_Hadouken" parent="." instance=ExtResource("8_aq4wr")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.40659, 7.38924)
+
+[node name="VFX_Anticipation_Fire1" parent="." instance=ExtResource("15_b6fwv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.40659, 7.38924)
+
+[node name="VFX_Anticipation_Fire3" parent="." instance=ExtResource("16_sl0bi")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.40659, 7.38924)
+
+[node name="VFX_Anticipation_Wave1" parent="." instance=ExtResource("17_fp517")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.40659, 7.38924)
+
+[node name="VFX_Anticipation_WaveDigital" parent="." instance=ExtResource("18_4y2dc")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1.40659, 7.38924)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_rwh1t")
+}
+autoplay = "Init"
