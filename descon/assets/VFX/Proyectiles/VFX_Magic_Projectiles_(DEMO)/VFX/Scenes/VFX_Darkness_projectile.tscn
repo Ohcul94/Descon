@@ -1,0 +1,138 @@
+[gd_scene load_steps=23 format=3 uid="uid://bxqb2r5cdt3gw"]
+
+[ext_resource type="Shader" uid="uid://btx1eos8uuvop" path="res://VFX/Shaders/s_FireHead_TypeK.tres" id="1_xfng0"]
+[ext_resource type="ArrayMesh" uid="uid://h17sj3khce5v" path="res://VFX/Objects/m_fireb_blast.obj" id="2_wpxvg"]
+[ext_resource type="Texture2D" uid="uid://bqjld35nq5lrl" path="res://VFX/Textures/T_VFX_Noise_531.png" id="3_wol6i"]
+[ext_resource type="ArrayMesh" uid="uid://dx5npxivo6fhv" path="res://VFX/Objects/sm_half_sphere.obj" id="4_866jm"]
+[ext_resource type="Shader" uid="uid://bpf8re2if2yu3" path="res://VFX/Shaders/s_FireHeader.tres" id="5_bfdnn"]
+
+[sub_resource type="Gradient" id="Gradient_offnt"]
+offsets = PackedFloat32Array(0.188925, 0.299674, 0.34202)
+colors = PackedColorArray(0.1, 0, 3, 1, 0.1, 1, 2, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_76w13"]
+gradient = SubResource("Gradient_offnt")
+use_hdr = true
+
+[sub_resource type="Gradient" id="Gradient_78t0x"]
+offsets = PackedFloat32Array(0, 0.0586319, 0.130293, 0.436482, 0.517915, 0.579805)
+colors = PackedColorArray(0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_2p5eh"]
+gradient = SubResource("Gradient_78t0x")
+fill_from = Vector2(1, 1)
+
+[sub_resource type="Gradient" id="Gradient_c4qc5"]
+offsets = PackedFloat32Array(0, 0.491857)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_vi3ha"]
+gradient = SubResource("Gradient_c4qc5")
+fill_from = Vector2(1, 0)
+fill_to = Vector2(1, 1)
+repeat = 1
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_g4jbv"]
+render_priority = 0
+shader = ExtResource("1_xfng0")
+shader_parameter/Fire_Scale = Vector2(1, 1)
+shader_parameter/Fire_Speed = Vector2(0, 2.5)
+shader_parameter/Color_Dissipation = 0.5
+shader_parameter/Dissapear_Step = 0.435
+shader_parameter/Proximity_Fade = 0.1
+shader_parameter/Fire_Texture = SubResource("GradientTexture2D_2p5eh")
+shader_parameter/Gradient_Substract = SubResource("GradientTexture2D_vi3ha")
+shader_parameter/Color_1D_Gradient = SubResource("GradientTexture1D_76w13")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_xr350"]
+render_priority = -1
+shader = ExtResource("1_xfng0")
+shader_parameter/Fire_Scale = Vector2(1, 1)
+shader_parameter/Fire_Speed = Vector2(0.1, 3)
+shader_parameter/Color_Dissipation = 1.0
+shader_parameter/Dissapear_Step = 0.3
+shader_parameter/Proximity_Fade = 0.2
+shader_parameter/Fire_Texture = ExtResource("3_wol6i")
+shader_parameter/Gradient_Substract = SubResource("GradientTexture2D_vi3ha")
+shader_parameter/Color_1D_Gradient = SubResource("GradientTexture1D_76w13")
+
+[sub_resource type="Gradient" id="Gradient_j6k0j"]
+offsets = PackedFloat32Array(0.136808, 0.19544, 0.263844, 0.778502, 0.837134, 0.869707)
+colors = PackedColorArray(0.1, 0, 3, 1, 0.1, 1, 2, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1, 1, 2, 1, 0.1, 0, 3, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_xc34j"]
+gradient = SubResource("Gradient_j6k0j")
+use_hdr = true
+
+[sub_resource type="Gradient" id="Gradient_ml0r2"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_443v4"]
+gradient = SubResource("Gradient_ml0r2")
+fill_to = Vector2(1, 0.337607)
+
+[sub_resource type="Gradient" id="Gradient_bdoyr"]
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_hlor6"]
+gradient = SubResource("Gradient_bdoyr")
+fill_from = Vector2(1, 0)
+fill_to = Vector2(1, 1)
+repeat = 1
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sx6jh"]
+render_priority = 0
+shader = ExtResource("1_xfng0")
+shader_parameter/Fire_Scale = Vector2(2, 1)
+shader_parameter/Fire_Speed = Vector2(3.5, 0)
+shader_parameter/Color_Dissipation = 0.5
+shader_parameter/Dissapear_Step = 0.1
+shader_parameter/Proximity_Fade = 0.1
+shader_parameter/Fire_Texture = SubResource("GradientTexture2D_443v4")
+shader_parameter/Gradient_Substract = SubResource("GradientTexture2D_hlor6")
+shader_parameter/Color_1D_Gradient = SubResource("GradientTexture1D_xc34j")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_le01h"]
+render_priority = -1
+shader = ExtResource("5_bfdnn")
+shader_parameter/Color = Color(0.5, 0.3, 3, 1)
+shader_parameter/Fresnel = 10.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_0cmvw"]
+height = 1.2
+
+[node name="VFX_DarknessProjectile" type="Node3D"]
+
+[node name="FBHead" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.7, 0, -6.11959e-08, 0, 0.7, 0, 6.11959e-08, 0, -0.7, 0, 0, 0.0107827)
+sorting_offset = 1.0
+material_override = SubResource("ShaderMaterial_g4jbv")
+cast_shadow = 0
+mesh = ExtResource("2_wpxvg")
+skeleton = NodePath("../../..")
+
+[node name="FBHead2inner" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.3, 0, -6.99382e-08, 0, 0.3, 0, 2.62268e-08, 0, -0.8, 0, 0, 0.531972)
+sorting_offset = 1.0
+material_override = SubResource("ShaderMaterial_xr350")
+cast_shadow = 0
+mesh = ExtResource("2_wpxvg")
+skeleton = NodePath("../../..")
+
+[node name="FBHead3outside" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.5, 0, -1.26126e-07, 0, 0.5, 0, 4.37114e-08, 0, -1.44271, 0, 0, 0.813338)
+sorting_offset = 1.0
+material_override = SubResource("ShaderMaterial_sx6jh")
+cast_shadow = 0
+mesh = ExtResource("4_866jm")
+skeleton = NodePath("../../..")
+
+[node name="MBall" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.02163, 0, 0, 0, -5.79461e-08, -1, 0, 1.32565, -4.37114e-08, 0, 0, 0)
+material_override = SubResource("ShaderMaterial_le01h")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_0cmvw")
+skeleton = NodePath("../..")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(0.160784, 0.301961, 1, 1)
+light_energy = 5.0

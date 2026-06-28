@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3 uid="uid://u26c663x54u3"]
+
+[ext_resource type="Script" path="res://Misc/projectile.gd" id="1_l5r0e"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_e8s8i"]
+
+[node name="Projectile" type="Node3D"]
+script = ExtResource("1_l5r0e")
+SPEED = 20.0
+
+[node name="RayCast3D" type="RayCast3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.105796)
+target_position = Vector3(0, 0, -1)
+
+[node name="Timer" type="Timer" parent="."]
+wait_time = 3.0
+one_shot = true
+autostart = true
+
+[node name="Area3D" type="Area3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Area3D"]
+shape = SubResource("SphereShape3D_e8s8i")
+
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]

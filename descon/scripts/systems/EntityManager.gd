@@ -1361,143 +1361,77 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	
 	var container = Node2D.new()
 	container.name = id
+	container.z_index = 2 # Nivel de naves para que se vea sobre el mapa con volumen
 	if is_instance_valid(world) and is_instance_valid(world.entities_node):
 		world.entities_node.add_child(container)
 	active_areas[id] = container
-	container.global_position = _get_projected_position(pos)
-	container.z_index = 0 # Nivel normal de naves para que se vea sobre el fondo pero con volumen
 	
-	# Rotar contenedor en base al ángulo de lanzamiento del viento
+	container.global_position = _get_projected_position(pos)
+	
+	# Rotar el contenedor en base al ángulo de lanzamiento del viento
 	var angle = float(_data.get("angle", 0.0))
 	container.rotation = angle
 	
-	var width = float(_data.get("width", 150.0))
-	var half_w = width / 2.0
+	# Crear el SubViewport 3D para renderizar el VFX 3D
+	var vp_size = 384
+	var vp = SubViewport.new()
+	vp.size = Vector2i(vp_size, vp_size)
+	vp.transparent_bg = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	container.add_child(vp)
 	
-	# PERSPECTIVA 3D (Proyección 2.5D superior):
-	# Aumentamos la altura vertical de la barrera para que luzca imponente
-	var persp_up = Vector2(0, -1).rotated(-angle)
-	var height_3d = 65.0 # Altura volumétrica ampliada de 45 a 65
+	# Escena 3D interna
+	var node3d = Node3D.new()
+	vp.add_child(node3d)
 	
-	var base_a = Vector2(0, -half_w)
-	var base_b = Vector2(0, half_w)
-	var top_a = base_a + persp_up * height_3d
-	var top_b = base_b + persp_up * height_3d
+	# Cámara Ortogonal configurada para encuadrar la media esfera
+	var cam = Camera3D.new()
+	cam.position = Vector3(0, 0, 5) # Distancia idónea
+	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	cam.size = 3.2 # Tamaño para encuadrar la media esfera sin recortarla
+	node3d.add_child(cam)
+	cam.look_at(Vector3.ZERO)
 	
-	# 1. Cortina de viento translúcida (Polígono vertical holográfico de alta visibilidad)
-	var poly = Polygon2D.new()
-	var poly_pts = [base_a, base_b, top_b, top_a]
-	poly.polygon = PackedVector2Array(poly_pts)
-	poly.color = Color(0.05, 0.7, 0.95, 0.18) # Opacidad inicial aumentada
-	container.add_child(poly)
+	# Luz ambiental blanca para que se vea idéntico al editor
+	var env = WorldEnvironment.new()
+	var world_env = Environment.new()
+	world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	world_env.ambient_light_color = Color.WHITE
+	world_env.ambient_light_energy = 1.2
+	env.environment = world_env
+	node3d.add_child(env)
 	
-	# Animar oscilación de opacidad para efecto de presión física de aire comprimido
-	var tw_poly = container.create_tween().set_loops()
-	tw_poly.tween_property(poly, "color", Color(0.1, 0.8, 1.0, 0.26), randf_range(0.35, 0.6)).set_trans(Tween.TRANS_SINE)
-	tw_poly.tween_property(poly, "color", Color(0.0, 0.6, 0.9, 0.10), randf_range(0.35, 0.6)).set_trans(Tween.TRANS_SINE)
-	
-	# 2. Filamentos de corriente vertical (Acentúa el volumen y flujo masivo)
-	var num_filaments = 10 # Aumentado de 8 a 10 para mayor densidad
-	for i in range(num_filaments):
-		var ratio = float(i) / float(num_filaments - 1)
-		var pt_base = base_a.lerp(base_b, ratio)
-		var pt_top = top_a.lerp(top_b, ratio)
+	# Instanciar el VFX 3D de la media esfera
+	var vfx_scene = load("res://VFX/scenes/VFX_Shield_green_plane.tscn")
+	if vfx_scene:
+		var vfx = vfx_scene.instantiate()
+		node3d.add_child(vfx)
 		
-		var filament = Line2D.new()
-		filament.points = PackedVector2Array([pt_base, pt_top])
-		filament.width = randf_range(2.0, 4.5)
-		filament.default_color = Color(0.3, 0.9, 1.0, randf_range(0.2, 0.45))
-		container.add_child(filament)
+		# Escala 3D ideal para encajar en el viewport de 384px sin desbordar
+		vfx.scale = Vector3(1.6, 1.6, 1.6)
+		# Usar la rotación por defecto (0, 0, 0) que se ve perfecta en el editor
+		vfx.rotation_degrees = Vector3(0, 0, 0)
 		
-		# Animar oscilación lateral independiente en cada filamento
-		var tw_fil = container.create_tween().set_loops()
-		var offset_x = randf_range(-16.0, 16.0) # Mayor rango de deformación
-		tw_fil.tween_property(filament, "position:x", offset_x, randf_range(0.35, 0.75)).set_trans(Tween.TRANS_SINE)
-		tw_fil.tween_property(filament, "position:x", 0.0, randf_range(0.35, 0.75)).set_trans(Tween.TRANS_SINE)
+		# Iniciar la animación de entrada
+		var anim = vfx.get_node_or_null("AnimationPlayer")
+		if anim and anim.has_animation("start_animation"):
+			anim.play("start_animation")
+			
+	# Sprite 2D que expone la textura del SubViewport al mundo 2.5D
+	var sprite = Sprite2D.new()
+	sprite.texture = vp.get_texture()
 	
-	# 3. Línea de base (Suelo - Doble capa para dar grosor físico al impacto)
-	var main_wall_glow = Line2D.new()
-	main_wall_glow.points = PackedVector2Array([base_a, base_b])
-	main_wall_glow.width = 18.0
-	main_wall_glow.default_color = Color(0.0, 0.7, 0.9, 0.14)
-	container.add_child(main_wall_glow)
+	# Rotar el sprite 90 grados (PI/2) localmente para alinear la horizontal del 3D con la vertical del 2D
+	sprite.rotation = PI / 2.0
+	# Escala 1.0 para que se dibuje a su tamaño lógico nativo en el mapa
+	sprite.scale = Vector2(1.0, 1.0)
 	
-	var main_wall = Line2D.new()
-	main_wall.points = PackedVector2Array([base_a, base_b])
-	main_wall.width = 5.0
-	main_wall.default_color = Color(0.25, 0.85, 1.0, 0.55)
-	container.add_child(main_wall)
+	var canvas_mat = CanvasItemMaterial.new()
+	canvas_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_MIX
+	sprite.material = canvas_mat
+	container.add_child(sprite)
 	
-	# 4. Línea de corona (Cima del muro - Doble capa brillante)
-	var core_wall_glow = Line2D.new()
-	core_wall_glow.points = PackedVector2Array([top_a, top_b])
-	core_wall_glow.width = 14.0
-	core_wall_glow.default_color = Color(0.3, 0.9, 1.0, 0.16)
-	container.add_child(core_wall_glow)
-	
-	var core_wall = Line2D.new()
-	core_wall.points = PackedVector2Array([top_a, top_b])
-	core_wall.width = 4.5
-	core_wall.default_color = Color(0.45, 0.95, 1.0, 0.8)
-	container.add_child(core_wall)
-	
-	# 5. Partículas de viento (Nivel Suelo - Flujo masivo y espeso)
-	var particles = CPUParticles2D.new()
-	particles.amount = 140 # Aumentado de 100 a 140
-	particles.lifetime = 0.55
-	particles.preprocess = 0.3
-	particles.randomness = 0.4
-	
-	particles.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	particles.emission_rect_extents = Vector2(8.0, half_w) # Espesor en X aumentado de 2 a 8 para simular volumen
-	
-	particles.direction = Vector2.RIGHT
-	particles.spread = 15.0
-	particles.gravity = Vector2.ZERO
-	particles.initial_velocity_min = 200.0 # Velocidad aumentada
-	particles.initial_velocity_max = 340.0
-	
-	particles.angle_min = -15.0
-	particles.angle_max = 15.0
-	particles.scale_amount_min = 1.5
-	particles.scale_amount_max = 6.0 # Partículas más grandes y visibles
-	
-	var grad = Gradient.new()
-	grad.set_color(0, Color(0.3, 0.95, 1.0, 0.7))
-	grad.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
-	particles.color_ramp = grad
-	
-	container.add_child(particles)
-	particles.emitting = true
-	
-	# 6. Partículas de viento (Nivel Cima - Flujo volumétrico ascendente)
-	var particles_top = CPUParticles2D.new()
-	particles_top.amount = 90 # Aumentado de 60 a 90
-	particles_top.lifetime = 0.65
-	particles_top.preprocess = 0.3
-	particles_top.randomness = 0.4
-	
-	particles_top.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	particles_top.emission_rect_extents = Vector2(8.0, half_w) # Espesor en X aumentado
-	particles_top.position = persp_up * height_3d
-	
-	particles_top.direction = (Vector2.RIGHT + persp_up * 0.25).normalized()
-	particles_top.spread = 20.0
-	particles_top.gravity = Vector2.ZERO
-	particles_top.initial_velocity_min = 150.0
-	particles_top.initial_velocity_max = 260.0
-	particles_top.scale_amount_min = 1.0
-	particles_top.scale_amount_max = 4.5 # Partículas de cima aumentadas
-	
-	var grad_top = Gradient.new()
-	grad_top.set_color(0, Color(0.0, 0.8, 1.0, 0.6))
-	grad_top.set_color(1, Color(1.0, 1.0, 1.0, 0.0))
-	particles_top.color_ramp = grad_top
-	
-	container.add_child(particles_top)
-	particles_top.emitting = true
-	
-	# 7. Animación de aparición (Pop-in)
+	# Animación de entrada con Tween en 2D (Pop-in fluido)
 	container.scale = Vector2.ZERO
 	container.modulate.a = 0.0
 	var tw = container.create_tween().set_parallel(true)

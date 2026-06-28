@@ -1,0 +1,126 @@
+[gd_scene load_steps=21 format=3 uid="uid://u8lcrufkdkae"]
+
+[ext_resource type="Material" uid="uid://bymsang3xqpwc" path="res://VFX/Objects/m_FireBall_std.tres" id="1_nbqwl"]
+[ext_resource type="ArrayMesh" uid="uid://h17sj3khce5v" path="res://VFX/Objects/m_fireb_blast.obj" id="2_8i1ue"]
+[ext_resource type="Shader" uid="uid://p2lb8wpdkavu" path="res://VFX/Shaders/s_FireTrail.tres" id="3_ibiff"]
+[ext_resource type="Gradient" uid="uid://dgt06oi35wq30" path="res://VFX/Textures/gradients/g_traild.tres" id="4_r1qpl"]
+[ext_resource type="Texture2D" uid="uid://cafyyv1wwcbqx" path="res://VFX/Textures/T_VFX_FireBall_Tail1.jpg" id="5_mdf77"]
+[ext_resource type="Shader" uid="uid://bpf8re2if2yu3" path="res://VFX/Shaders/s_FireHeader.tres" id="6_pjvls"]
+[ext_resource type="Shader" uid="uid://c6v1yetmqgcge" path="res://VFX/Shaders/s_Disolver.tres" id="7_xmj10"]
+[ext_resource type="Texture2D" uid="uid://cqb68vqjl2kdg" path="res://VFX/Textures/T_VFX_SparklesF21.jpg" id="8_6m5ca"]
+
+[sub_resource type="Gradient" id="Gradient_gsxkp"]
+offsets = PackedFloat32Array(0, 0.934853, 0.983713)
+colors = PackedColorArray(0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_xj25x"]
+gradient = SubResource("Gradient_gsxkp")
+fill_from = Vector2(1, 0)
+fill_to = Vector2(0, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_klrjt"]
+gradient = ExtResource("4_r1qpl")
+use_hdr = true
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_a4kce"]
+render_priority = 0
+shader = ExtResource("3_ibiff")
+shader_parameter/Trail_Scale = Vector2(1, 1)
+shader_parameter/Trail_Speed = Vector2(-2, 0)
+shader_parameter/Trail_Texture = ExtResource("5_mdf77")
+shader_parameter/Overlapping_Gradient = SubResource("GradientTexture1D_klrjt")
+shader_parameter/Gradient__Opacity = SubResource("GradientTexture2D_xj25x")
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_g0tek"]
+_surfaces = [{
+"aabb": AABB(-1.24019, 0, -8.08797, 2.48038, 1e-05, 9.03201),
+"attribute_data": PackedByteArray(249, 6, 255, 255, 8, 7, 0, 0, 243, 13, 255, 255, 16, 14, 0, 0, 0, 0, 255, 255, 0, 0, 0, 0, 5, 29, 255, 255, 5, 29, 0, 0, 255, 255, 255, 255, 255, 255, 0, 0, 124, 21, 255, 255, 138, 21, 0, 0),
+"format": 34896613399,
+"index_count": 30,
+"index_data": PackedByteArray(0, 0, 1, 0, 2, 0, 2, 0, 1, 0, 3, 0, 4, 0, 5, 0, 0, 0, 0, 0, 5, 0, 1, 0, 6, 0, 7, 0, 8, 0, 8, 0, 7, 0, 9, 0, 10, 0, 11, 0, 6, 0, 6, 0, 11, 0, 7, 0, 2, 0, 3, 0, 10, 0, 10, 0, 3, 0, 11, 0),
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 12,
+"vertex_data": PackedByteArray(140, 193, 0, 0, 169, 246, 67, 205, 113, 62, 0, 0, 156, 246, 162, 226, 164, 215, 0, 0, 194, 235, 159, 205, 86, 40, 0, 0, 159, 235, 176, 222, 73, 142, 0, 0, 255, 255, 100, 195, 181, 113, 0, 0, 255, 255, 11, 234, 228, 246, 0, 0, 59, 212, 236, 210, 26, 9, 0, 0, 59, 212, 151, 216, 255, 255, 0, 0, 0, 0, 128, 213, 0, 0, 0, 0, 0, 0, 155, 213, 247, 232, 0, 0, 0, 224, 221, 206, 4, 23, 0, 0, 236, 223, 223, 220, 251, 218, 248, 53, 74, 206, 151, 28, 175, 218, 96, 53, 58, 208, 118, 32, 237, 231, 220, 79, 205, 202, 156, 21, 215, 214, 175, 45, 112, 211, 227, 38, 58, 213, 117, 42, 41, 213, 84, 42, 179, 217, 104, 51, 38, 209, 79, 34)
+}]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jjp1b"]
+render_priority = 0
+shader = ExtResource("6_pjvls")
+shader_parameter/Color = Color(0.787834, 0.157377, 9.62615e-08, 1)
+shader_parameter/Fresnel = 5.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_1d5gd"]
+height = 1.2
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_iqqra"]
+render_priority = 0
+shader = ExtResource("7_xmj10")
+shader_parameter/Proximity_Fade = 0.1
+shader_parameter/Texture = ExtResource("8_6m5ca")
+
+[sub_resource type="Curve" id="Curve_fcugr"]
+_data = [Vector2(0, 0.0668712), 0.0, 0.0, 0, 0, Vector2(0.464396, 0.194479), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_5jcdp"]
+texture_mode = 1
+curve = SubResource("Curve_fcugr")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_x53bk"]
+particle_flag_align_y = true
+emission_shape = 2
+emission_sphere_radius = 0.4
+direction = Vector3(-1, 0, 0)
+spread = 0.0
+initial_velocity_min = 6.0
+initial_velocity_max = 9.0
+radial_velocity_min = 1.0
+radial_velocity_max = 3.0
+gravity = Vector3(0, 0, 0)
+attractor_interaction_enabled = false
+scale_min = 0.5
+scale_max = 1.2
+color = Color(3, 0.482, 0.2, 1)
+alpha_curve = SubResource("CurveTexture_5jcdp")
+
+[sub_resource type="QuadMesh" id="QuadMesh_ejcjs"]
+size = Vector2(0.5, 1)
+
+[node name="VFX_std_FireBall" type="Node3D"]
+
+[node name="FBHead" type="MeshInstance3D" parent="."]
+transform = Transform3D(-2.18557e-08, 0, 0.5, 0, 0.5, 0, -0.5, 0, -2.18557e-08, 0.0621024, 0, 0)
+sorting_offset = 1.0
+material_override = ExtResource("1_nbqwl")
+cast_shadow = 0
+mesh = ExtResource("2_8i1ue")
+skeleton = NodePath("../..")
+
+[node name="MCrossed1" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.0662565, 0, 0.498901, 0, 1, 0, -0.997803, 0, 0.0331283, -0.321898, 0, 0)
+material_override = SubResource("ShaderMaterial_a4kce")
+cast_shadow = 0
+mesh = SubResource("ArrayMesh_g0tek")
+skeleton = NodePath("../..")
+
+[node name="MBall" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.0662565, 0.997803, -4.36153e-08, 0, -4.37114e-08, -1, -0.997803, 0.0662565, -2.89617e-09, -0.0533876, 0, 0)
+material_override = SubResource("ShaderMaterial_jjp1b")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_1d5gd")
+
+[node name="Sparkles" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0528856, 0, 0)
+material_override = SubResource("ShaderMaterial_iqqra")
+cast_shadow = 0
+lifetime = 0.35
+explosiveness = 0.21
+randomness = 0.44
+local_coords = true
+process_material = SubResource("ParticleProcessMaterial_x53bk")
+draw_pass_1 = SubResource("QuadMesh_ejcjs")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.788235, 0, 1)
+light_energy = 0.6

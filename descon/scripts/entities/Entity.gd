@@ -1791,11 +1791,11 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				tw.tween_property(vfx, "scale", Vector2(s*0.8, s*1.3), 0.1)
 				get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(vfx): vfx.queue_free())
 		"ESCUDO CELULAR":
-			shield_visual_timer = 2.0 # Activar visual 3D pro
+			shield_visual_timer = _get_skill_duration("ESCUDO CELULAR", {}, 2.0) # Activar visual 3D pro
 			# v260.20: Se eliminó el Sprite2D viejo para limpiar la visual 3D
 
 		"AUTO-REPARACIÓN", "NANO-REGENERACIÓN":
-			heal_visual_timer = 2.0 # Activar visual 3D pro de curación
+			heal_visual_timer = _get_skill_duration(skill_name, {}, 2.0) # Activar visual 3D pro de curación
 			# v260.30: Se eliminó el Sprite2D de curación en favor del efecto 3D
 		
 		"SMOKE-BOMB":
@@ -1803,7 +1803,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 
 		
 		"INVULNERABILIDAD":
-			invulnerable_timer = 2.0 # Activar visual 3D amarilla
+			invulnerable_timer = _get_skill_duration("INVULNERABILIDAD", {}, 2.0) # Activar visual 3D amarilla
 			print("[SKILL] Activando visual de INVULNERABILIDAD para: ", username)
 		"BLINK_OUT":
 			# v3.2: Desaparición TOTAL e INSTANTÁNEA (sin VFX expansivo)
@@ -2080,20 +2080,20 @@ func _on_remote_skill_used(data: Dictionary):
 	if final_match:
 		var s_name = str(data.get("skillName", ""))
 		if s_name == "REFLECT-OMEGA" or s_name == "REFLECT":
-			reflect_timer = 3.0
-			print("[SKILL-SYNC] Activando visual de REFLECT para aliado: ", username)
+			reflect_timer = _get_skill_duration(s_name, data, 3.0)
+			print("[SKILL-SYNC] Activando visual de REFLECT para aliado: ", username, " por ", reflect_timer, "s")
 		elif s_name == "ESCUDO CELULAR":
-			shield_visual_timer = 2.0
-			print("[SKILL-SYNC] Activando visual de ESCUDO para aliado: ", username)
+			shield_visual_timer = _get_skill_duration(s_name, data, 2.0)
+			print("[SKILL-SYNC] Activando visual de ESCUDO para aliado: ", username, " por ", shield_visual_timer, "s")
 		elif s_name == "AUTO-REPARACIÓN" or s_name == "NANO-REGENERACIÓN":
-			heal_visual_timer = 2.0
-			print("[SKILL-SYNC] Activando visual de CURACION para aliado: ", username)
+			heal_visual_timer = _get_skill_duration(s_name, data, 2.0)
+			print("[SKILL-SYNC] Activando visual de CURACION para aliado: ", username, " por ", heal_visual_timer, "s")
 		elif "SMOKE" in s_name or "BOMBA" in s_name or "VIENTO" in s_name or "WIND" in s_name:
 			pass # Ignorar visuales locales para bomba de humo y barrera de viento
 
 		elif s_name == "INVULNERABILIDAD":
-			invulnerable_timer = 2.0
-			print("[SKILL-SYNC] Activando visual de INVULNERABILIDAD para aliado: ", username)
+			invulnerable_timer = _get_skill_duration(s_name, data, 2.0)
+			print("[SKILL-SYNC] Activando visual de INVULNERABILIDAD para aliado: ", username, " por ", invulnerable_timer, "s")
 
 func _update_3d_shield(delta: float):
 	if shield_visual_timer > 0: shield_visual_timer -= delta
@@ -2446,13 +2446,34 @@ func _apply_material_recursive(p_node, p_mat, is_overlay: bool):
 		_apply_material_recursive(child, p_mat, is_overlay)
 
 func _is_descendant_of_active_shield(node: Node) -> bool:
-	if not is_instance_valid(_active_shield_vfx): return false
 	var parent = node.get_parent()
 	while parent:
-		if parent == _active_shield_vfx:
+		if (is_instance_valid(_active_shield_vfx) and parent == _active_shield_vfx) or parent.name.begins_with("VFX_Shield_"):
 			return true
 		parent = parent.get_parent()
 	return false
+
+func _get_skill_duration(s_name: String, data: Dictionary, default_val: float) -> float:
+	var dur = default_val
+	# 1. Intentar leer del paquete de red
+	if data.has("duration"):
+		dur = float(data["duration"])
+	elif data.has("taunt_duration"):
+		dur = float(data["taunt_duration"])
+	# 2. Intentar leer de las constantes sincronizadas del servidor
+	elif GameConstants.SKILLS_DATA.has(s_name):
+		var s_data = GameConstants.SKILLS_DATA[s_name]
+		if s_data.has("duration"):
+			dur = float(s_data["duration"])
+		elif s_data.has("taunt_duration"):
+			dur = float(s_data["taunt_duration"])
+		elif s_data.has("taunt_duration"):
+			dur = float(s_data["taunt_duration"])
+	
+	# Normalizar: Si es mayor a 50 asumimos milisegundos y convertimos a segundos
+	if dur > 50.0:
+		dur = dur / 1000.0
+	return dur
 
 func _clean_internal_lights(node: Node):
 	if not is_instance_valid(node):

@@ -1,0 +1,24 @@
+Just drag the "VFX" folder into the root directory of your Godot project. 
+(I recommend doing this with Godot closed, simply copy the raw folder.)
+
+Inside the VFX folder, and addons folder.. you'll find a showcase scene where you can preview all the effects in real time.
+
+
+###  Common Questions  ###
+
+• Do these effects work in Compatibility mode or Forward+? 
+Yes,kind of.. they work in both modes. In Compatibility mode, the effects may appear slightly brighter, you can easily adjust the brightness if needed. Problem is Apple/Mac devices, sometimes things are off.
+
+• Does this work in any version of Godot? 
+Not exactly. Most of my effects are designed for Godot 4.3 and above. If you're using an older version, I can't guarantee full compatibility.
+
+• Can I move the "VFX" folder out of the root directory? 
+Yes, once it's placed in the main directory, you can move it elsewhere. Just note that demo scenes might break, but the VFX assets themselves should still work fine.
+
+• Will updating Godot break the effects? 
+No, unless the Godot team makes major changes to the internal shader system. As long as they keep things stable, the effects should continue to work.
+
+• What if I find a bug or error? 
+Can I contact you? Absolutely. If you run into any issues or spot a bug, feel free to message to support@leluvfx.com me or reach out in chat. I’ll be happy to take a look and help out.
+
+If you have any doubts feel free to contact me to support@leluvfx.com . :)

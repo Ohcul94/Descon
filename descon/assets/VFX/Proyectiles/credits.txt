@@ -1,0 +1,22 @@
+
+Hi,
+Here is the Magic Projectiles Premium edition file.. 
+which includes 19 VFX effects (7 Magic projectiles, 7 Hit effects, 5 Muzzle effects) that I've created for the tutorial "GODOT 4 - Magic Projectiles (fire ball)"
+including also all the textures i've used. 
+
+I haven't dont all the assets (3D models, and addons), here you can find the sources i've used:
+
+
+CREDITS:
+
+"Magic Witch" (https://skfb.ly/6yJvG) by Catarina Cerqueira is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+"Animated Training Dummy" (https://skfb.ly/6TFJo) by FunkyDealer is licensed under Creative Commons Attribution-NonCommercial (http://creativecommons.org/licenses/by-nc/4.0/).
+
+"Simple Free-Look Camera for Godot 4" Submitted by user AlanRichard; MIT; 2022-12-04  (https://godotengine.org/asset-library/asset/1561)
+
+"Motion Trail Plugin" by metanoia with help of aboudaladdin and emirthab  (https://github.com/metanoia83/Godot-4.0-Motion-Trail)
+
+
+
+THANK YOU SO MUCH !!  :3
