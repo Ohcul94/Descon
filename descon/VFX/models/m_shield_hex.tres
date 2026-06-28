@@ -1,8 +1,8 @@
-[gd_resource type="ShaderMaterial" load_steps=10 format=3 uid="uid://bivtqltm5bdov"]
+[gd_resource type="ShaderMaterial" format=3 ]
 
-[ext_resource type="Texture2D" uid="uid://bavuj1oxmbfin" path="res://VFX/textures/T_Noise_02.PNG" id="1_ipldr"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_Noise_02.PNG" id="1_ipldr"]
 [ext_resource type="Shader" path="res://VFX/shaders/s_shield_color_wLine.gdshader" id="1_k8n8l"]
-[ext_resource type="Texture2D" uid="uid://bkpvow5cr5y64" path="res://VFX/textures/T_Hex1_inv.jpg" id="2_2bmsb"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_Hex1_inv.jpg" id="2_2bmsb"]
 
 [sub_resource type="Gradient" id="Gradient_3v8lt"]
 offsets = PackedFloat32Array(0, 0.483193, 0.542017, 1)
@@ -33,17 +33,17 @@ shader_parameter/Gradient_Line = 1.155
 shader_parameter/Line_Baias = 0.235
 shader_parameter/SmoothStep = 1.0
 shader_parameter/Disolver_Scale = Vector2(1, 1)
+shader_parameter/Disolver_Noise_Line = ExtResource("1_ipldr")
 shader_parameter/Line_Distortion_Divider = 3.0
+shader_parameter/Gradient_Disappear = SubResource("GradientTexture2D_0qego")
+shader_parameter/Line_Gradient = SubResource("GradientTexture1D_jcvfq")
 shader_parameter/Overlay_Scale = Vector2(2, 2)
 shader_parameter/Overlay_Velocity = Vector2(0, -0.2)
+shader_parameter/Overlay_Texture = ExtResource("2_2bmsb")
 shader_parameter/Overlay_Power = 0.605
 shader_parameter/Proximity_light = 0.365
 shader_parameter/Proximity_Power = 0.56
 shader_parameter/Fresnel_invert = false
 shader_parameter/fresnel_power = 1.993
 shader_parameter/darkness = 1.435
-shader_parameter/Disolver_Noise_Line = ExtResource("1_ipldr")
-shader_parameter/Gradient_Disappear = SubResource("GradientTexture2D_0qego")
-shader_parameter/Line_Gradient = SubResource("GradientTexture1D_jcvfq")
-shader_parameter/Overlay_Texture = ExtResource("2_2bmsb")
 shader_parameter/Gradient_1D_Color = SubResource("GradientTexture1D_5n62b")

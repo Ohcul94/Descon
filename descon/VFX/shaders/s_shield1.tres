@@ -1,4 +1,4 @@
-[gd_resource type="Shader" format=3 uid="uid://ca177rs3w1t2b"]
+[gd_resource type="Shader" format=3 ]
 
 [resource]
 code = "shader_type spatial;

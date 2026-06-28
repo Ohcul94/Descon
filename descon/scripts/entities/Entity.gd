@@ -76,7 +76,6 @@ var invulnerable_timer: float = 0.0
 var is_invulnerable: bool = false # v2.7: Sincronía autoritativa
 var is_hovered: bool = false # v302.1: Feedback de apuntado
 var _reflect_aura: Sprite2D = null
-var _3d_shield_mesh: MeshInstance3D = null
 var _active_shield_vfx: Node3D = null
 var _active_shield_type: String = ""
 
@@ -1963,20 +1962,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		control_node.scale = Vector3(3.0, 3.0, 3.0) 
 		model.rotation_degrees.y = rot_offset 
 
-		# v260.10: Inyectar Escudo de Energía 3D (Procedural)
-		_3d_shield_mesh = MeshInstance3D.new()
-		_3d_shield_mesh.name = "EnergyShield"
-		var sphere = SphereMesh.new()
-		sphere.radius = 0.70 # v269.182: Aura más grande y épica
-		sphere.height = 1.40
-		_3d_shield_mesh.mesh = sphere
-		
-		var mat = ShaderMaterial.new()
-		mat.shader = EnergyShieldShader
-		_3d_shield_mesh.material_override = mat
-		_3d_shield_mesh.visible = false 
-		control_node.add_child(_3d_shield_mesh) # Ahora rota y escala CON la nave
-		
+		# Old procedural shield removed to prevent any interference
 		# v380.0: Inyectar partículas de propulsión 3D optimizadas
 		_setup_propulsion_particles(control_node)
 	
@@ -2252,7 +2238,9 @@ func _update_flash_visuals(p_intensity: float):
 			_apply_flash_recursive(_3d_model, null)
 
 func _apply_flash_recursive(p_node, p_mat):
-	if p_node is MeshInstance3D: p_node.material_overlay = p_mat
+	if p_node is MeshInstance3D: 
+		if not _is_descendant_of_active_shield(p_node):
+			p_node.material_overlay = p_mat
 	for child in p_node.get_children(): _apply_flash_recursive(child, p_mat)
 
 func _spawn_death_vfx():
@@ -2450,12 +2438,21 @@ func _update_hover_visuals(active: bool):
 func _apply_material_recursive(p_node, p_mat, is_overlay: bool):
 	if not is_instance_valid(p_node): return
 	if p_node is MeshInstance3D:
-		# v311: No interferir con el material de los escudos procedimentales (evita la esfera blanca)
-		if p_node.name != "EnergyShield":
+		# v311: No interferir con el material de los escudos procedimentales ni del VFX de escudo activo (evita la esfera blanca)
+		if p_node.name != "EnergyShield" and not _is_descendant_of_active_shield(p_node):
 			if is_overlay: p_node.material_overlay = p_mat
 			else: p_node.material_override = p_mat
 	for child in p_node.get_children():
 		_apply_material_recursive(child, p_mat, is_overlay)
+
+func _is_descendant_of_active_shield(node: Node) -> bool:
+	if not is_instance_valid(_active_shield_vfx): return false
+	var parent = node.get_parent()
+	while parent:
+		if parent == _active_shield_vfx:
+			return true
+		parent = parent.get_parent()
+	return false
 
 func _clean_internal_lights(node: Node):
 	if not is_instance_valid(node):

@@ -1,10 +1,10 @@
-[gd_scene load_steps=23 format=3 uid="uid://dm58fhy5bo4j5"]
+[gd_scene load_steps=23 format=3 ]
 
 [ext_resource type="Script" path="res://VFX/scripts/shield_modifier.gd" id="1_efry1"]
-[ext_resource type="Material" uid="uid://bsq71626xpfmd" path="res://VFX/models/m_BlueWild_shield1.tres" id="2_0dey2"]
-[ext_resource type="Material" uid="uid://cw03qo7gvbc4d" path="res://VFX/models/m_blueWild_Distortion1.tres" id="3_0vbbb"]
-[ext_resource type="Shader" uid="uid://s0vfh1s2wqq8" path="res://VFX/shaders/s_simple_shader_p.tres" id="5_3ydv0"]
-[ext_resource type="Texture2D" uid="uid://er3b7ldwbua7" path="res://VFX/textures/T_VFX_Glo31.png" id="6_8ubm7"]
+[ext_resource type="Material" path="res://VFX/models/m_BlueWild_shield1.tres" id="2_0dey2"]
+[ext_resource type="Material" path="res://VFX/models/m_blueWild_Distortion1.tres" id="3_0vbbb"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_simple_shader_p.tres" id="5_3ydv0"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Glo31.png" id="6_8ubm7"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_83ot6"]
 lightmap_size_hint = Vector2i(31, 15)

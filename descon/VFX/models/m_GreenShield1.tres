@@ -1,11 +1,11 @@
-[gd_resource type="ShaderMaterial" load_steps=11 format=3 uid="uid://b81721rd72gd0"]
+[gd_resource type="ShaderMaterial" load_steps=11 format=3 ]
 
 [ext_resource type="Shader" path="res://VFX/shaders/s_shield1.gdshader" id="1_4kipp"]
-[ext_resource type="Gradient" uid="uid://ctjpueo2rsxpl" path="res://VFX/textures/gradients/g_green_black_shield.tres" id="2_ddsot"]
-[ext_resource type="Texture2D" uid="uid://d00cl2ei52xpq" path="res://VFX/textures/T_GW_WaterNormal_01_b.PNG" id="2_p3prm"]
-[ext_resource type="Texture2D" uid="uid://dprnfrq5xocri" path="res://VFX/textures/T_VFX_Noise_11.PNG" id="2_yeyll"]
-[ext_resource type="Texture2D" uid="uid://bhetn1viimrlp" path="res://VFX/textures/T_VFX_Noise_14.PNG" id="3_sgovv"]
-[ext_resource type="Gradient" uid="uid://bt1ysj5bmhsfd" path="res://VFX/textures/gradients/g_line_green2.tres" id="4_gvxfg"]
+[ext_resource type="Gradient" path="res://VFX/textures/gradients/g_green_black_shield.tres" id="2_ddsot"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_GW_WaterNormal_01_b.PNG" id="2_p3prm"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_11.PNG" id="2_yeyll"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_14.PNG" id="3_sgovv"]
+[ext_resource type="Gradient" path="res://VFX/textures/gradients/g_line_green2.tres" id="4_gvxfg"]
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_d1exa"]
 gradient = ExtResource("2_ddsot")

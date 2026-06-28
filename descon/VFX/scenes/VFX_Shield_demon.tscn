@@ -1,9 +1,9 @@
-[gd_scene load_steps=24 format=3 uid="uid://dv1pxv1shfmkg"]
+[gd_scene load_steps=24 format=3 ]
 
 [ext_resource type="Script" path="res://VFX/scripts/shield_modifier.gd" id="1_da231"]
-[ext_resource type="Material" uid="uid://jptkwgjbc1ww" path="res://VFX/models/m_demon_shield1.tres" id="2_fqbjl"]
-[ext_resource type="Material" uid="uid://dhmq4fd0dmvls" path="res://VFX/models/m_distortion_demon_shield1.tres" id="3_f1wdt"]
-[ext_resource type="Texture2D" uid="uid://bk5fr8sxc8n3j" path="res://VFX/textures/T_VFX_Smoke_4_alpha.PNG" id="5_vyru3"]
+[ext_resource type="Material" path="res://VFX/models/m_demon_shield1.tres" id="2_fqbjl"]
+[ext_resource type="Material" path="res://VFX/models/m_distortion_demon_shield1.tres" id="3_f1wdt"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Smoke_4_alpha.PNG" id="5_vyru3"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_ajuag"]
 lightmap_size_hint = Vector2i(31, 15)

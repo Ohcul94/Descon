@@ -1,13 +1,13 @@
-[gd_scene load_steps=34 format=3 uid="uid://j7tp364r8jvf"]
+[gd_scene load_steps=34 format=3 ]
 
 [ext_resource type="Script" path="res://VFX/scripts/shield_modifier.gd" id="1_gy5oc"]
 [ext_resource type="Shader" path="res://VFX/shaders/s_shield_color_wLine.gdshader" id="2_femiy"]
-[ext_resource type="Texture2D" uid="uid://cveymnr77q4pu" path="res://VFX/textures/T_Noise_5f.png" id="2_hsn7b"]
-[ext_resource type="ArrayMesh" uid="uid://xerqlkggf5ah" path="res://VFX/models/sm_pyramid5.obj" id="3_nus0q"]
-[ext_resource type="Shader" uid="uid://uims3i06gibv" path="res://VFX/shaders/s_distortion_wLine.tres" id="4_40xxj"]
-[ext_resource type="Texture2D" uid="uid://b4ufumre40lad" path="res://VFX/textures/T_normal21_s.bmp" id="5_ckhpd"]
-[ext_resource type="Shader" uid="uid://s0vfh1s2wqq8" path="res://VFX/shaders/s_simple_shader_p.tres" id="5_v7rit"]
-[ext_resource type="Texture2D" uid="uid://er3b7ldwbua7" path="res://VFX/textures/T_VFX_Glo31.png" id="6_30d78"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_Noise_5f.png" id="2_hsn7b"]
+[ext_resource type="ArrayMesh" path="res://VFX/models/sm_pyramid5.obj" id="3_nus0q"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_distortion_wLine.tres" id="4_40xxj"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_normal21_s.bmp" id="5_ckhpd"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_simple_shader_p.tres" id="5_v7rit"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Glo31.png" id="6_30d78"]
 
 [sub_resource type="Gradient" id="Gradient_7wnlv"]
 offsets = PackedFloat32Array(0, 0.378151, 0.436975, 0.453782, 1)

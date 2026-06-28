@@ -1,6 +1,6 @@
-[gd_scene load_steps=6 format=3 uid="uid://le7bg2nc6i6i"]
+[gd_scene load_steps=6 format=3 ]
 
-[ext_resource type="Material" uid="uid://d4gpe8l1jnb2m" path="res://VFX/models/m_Hit_Shield_hex.tres" id="1_r3iiy"]
+[ext_resource type="Material" path="res://VFX/models/m_Hit_Shield_hex.tres" id="1_r3iiy"]
 
 [sub_resource type="Curve" id="Curve_8aa37"]
 _data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]

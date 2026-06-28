@@ -1,4 +1,4 @@
-[gd_resource type="VisualShader" load_steps=36 format=3 uid="uid://c1b8gobw5olmu"]
+[gd_resource type="VisualShader" load_steps=36 format=3 ]
 
 [sub_resource type="VisualShaderNodeVec2Parameter" id="VisualShaderNodeVec2Parameter_nix4a"]
 parameter_name = "details_scale"

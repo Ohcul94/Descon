@@ -1,8 +1,8 @@
-[gd_resource type="ShaderMaterial" load_steps=6 format=3 uid="uid://u1g1su25p3qh"]
+[gd_resource type="ShaderMaterial" load_steps=6 format=3 ]
 
 [ext_resource type="Shader" path="res://VFX/shaders/s_distortion_wLine.gdshader" id="1_bhxh3"]
-[ext_resource type="Texture2D" uid="uid://dprnfrq5xocri" path="res://VFX/textures/T_VFX_Noise_11.PNG" id="2_552n2"]
-[ext_resource type="Texture2D" uid="uid://d00cl2ei52xpq" path="res://VFX/textures/T_GW_WaterNormal_01_b.PNG" id="3_8utl7"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_11.PNG" id="2_552n2"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_GW_WaterNormal_01_b.PNG" id="3_8utl7"]
 
 [sub_resource type="Gradient" id="Gradient_tluns"]
 

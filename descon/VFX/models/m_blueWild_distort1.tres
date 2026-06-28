@@ -1,8 +1,6 @@
-[gd_resource type="ShaderMaterial" load_steps=6 format=3 uid="uid://54lbglo16m75"]
+[gd_resource type="ShaderMaterial" format=3 ]
 
 [ext_resource type="Shader" path="res://VFX/shaders/s_distortion_sphere_wLine.gdshader" id="1_3pbdt"]
-[ext_resource type="Texture2D" uid="uid://d1t240bu13lbu" path="res://VFX/textures/T_VFX_Noise_10.PNG" id="2_li6f6"]
-[ext_resource type="Texture2D" uid="uid://bwa8lyt0gct1p" path="res://VFX/textures/T_GW_Waterfall_Froth_01_N.PNG" id="3_2ehci"]
 
 [sub_resource type="Gradient" id="Gradient_tluns"]
 
@@ -20,7 +18,5 @@ shader_parameter/details_velocity = Vector2(0, 0)
 shader_parameter/RefStrenght = 0.5
 shader_parameter/Disolver_Scale = Vector2(2, 3)
 shader_parameter/Line_Distortion_Divider = 9.0
-shader_parameter/Gradient_Line = 0.705
-shader_parameter/Normal_Distortion_Texture = ExtResource("3_2ehci")
-shader_parameter/Disolver_Noise_Line = ExtResource("2_li6f6")
 shader_parameter/Gradient_Disappear = SubResource("GradientTexture2D_ebf6u")
+shader_parameter/Gradient_Line = 0.705

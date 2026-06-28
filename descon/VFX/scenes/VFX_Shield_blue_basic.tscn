@@ -1,8 +1,8 @@
-[gd_scene load_steps=10 format=3 uid="uid://d3ycd0pmvww7j"]
+[gd_scene load_steps=10 format=3 ]
 
 [ext_resource type="Script" path="res://VFX/scripts/shield_modifier.gd" id="1_gjfa2"]
-[ext_resource type="Material" uid="uid://cepv65lvr48of" path="res://VFX/models/m_basic_blueshield1.tres" id="2_eshpm"]
-[ext_resource type="Material" uid="uid://54lbglo16m75" path="res://VFX/models/m_blueWild_distort1.tres" id="3_qrca2"]
+[ext_resource type="Material" path="res://VFX/models/m_basic_blueshield1.tres" id="2_eshpm"]
+[ext_resource type="Material" path="res://VFX/models/m_blueWild_distort1.tres" id="3_qrca2"]
 
 [sub_resource type="SphereMesh" id="SphereMesh_83ot6"]
 lightmap_size_hint = Vector2i(31, 15)
