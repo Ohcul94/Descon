@@ -93,6 +93,9 @@ var slow_points: float = 0.0
 var slow_is_percentage: bool = false
 var is_stunned: bool = false
 var stun_timer: float = 0.0
+var is_feared: bool = false
+var fear_timer: float = 0.0
+var fear_vector: Vector2 = Vector2.ZERO
 var joystick_direction: Vector2 = Vector2.ZERO # v266.400
 
 # v266.360: Temporizadores de efectos de estado para el HUD de Estados
@@ -184,19 +187,37 @@ func _on_status_effects_sync(data: Dictionary):
 
 func _on_stun_state(data: Dictionary):
 	if data.has("active") and data.active:
-		is_stunned = true
-		stun_timer = float(data.get("duration", 2000.0)) / 1000.0
-		is_moving = false
-		target_position = global_position
-		velocity = Vector2.ZERO
-		apply_shake(5.0)
-		# Feedback visual: Azulado/Gris o violeta para Sueño (Sleep)
-		var target_color = Color(0.8, 0.4, 1.0, 1.0) if data.get("isSleep", false) else Color(0.7, 0.7, 1.0, 1.0)
-		var tw = create_tween()
-		tw.tween_property(self, "modulate", target_color, 0.2)
+		if data.get("isFear", false):
+			is_feared = true
+			fear_timer = float(data.get("duration", 3000.0)) / 1000.0
+			is_stunned = false
+			is_moving = false
+			autopilot_enabled = false
+			joystick_direction = Vector2.ZERO
+			
+			if velocity.length() > 10.0:
+				fear_vector = -velocity.normalized()
+			else:
+				fear_vector = Vector2.RIGHT.rotated(rotation + PI)
+				
+			var tw = create_tween()
+			tw.tween_property(self, "modulate", Color(0.9, 0.2, 0.2, 1.0), 0.2)
+		else:
+			is_stunned = true
+			stun_timer = float(data.get("duration", 2000.0)) / 1000.0
+			is_moving = false
+			target_position = global_position
+			velocity = Vector2.ZERO
+			apply_shake(5.0)
+			# Feedback visual: Azulado/Gris o violeta para Sueño (Sleep)
+			var target_color = Color(0.8, 0.4, 1.0, 1.0) if data.get("isSleep", false) else Color(0.7, 0.7, 1.0, 1.0)
+			var tw = create_tween()
+			tw.tween_property(self, "modulate", target_color, 0.2)
 	else:
 		is_stunned = false
+		is_feared = false
 		stun_timer = 0.0
+		fear_timer = 0.0
 		modulate = Color.WHITE
 
 var _freeze_slow_val: float = 0.0 # v268.40: Ralentización ambiental independiente
@@ -299,6 +320,12 @@ func _physics_process(p_delta):
 			electron_speed_buff_stacks = 0
 			_recalculate_stats()
 	
+	if is_feared:
+		fear_timer -= p_delta
+		if fear_timer <= 0:
+			is_feared = false
+			modulate = Color.WHITE
+
 	if is_stunned:
 		stun_timer -= p_delta
 		if stun_timer <= 0:
@@ -373,7 +400,8 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 						# v266.60: Auto-detección de tipo si no se especificó (o es -1)
 						if s_type == -1:
 							s_type = 3 # Instant por defecto
-							if s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL": s_type = 1 # PointClick
+							if s_name == "ESFERA DE TERROR": s_type = 0 # Siempre apuntable (Directional)
+							elif s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL": s_type = 1 # PointClick
 							elif s_data.get("range", 0) > 0 and s_name != "FROST-TRAIL": s_type = 0 # Directional
 		elif s_type == -1:
 			s_type = 0 # Laser/Missile/Mine son Directional
@@ -648,7 +676,8 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 	# Enviar al servidor para que procese y broadcastee a todos
 	NetworkManager.send_event("playerSphereSkill", {
 		"id": id, "skillName": skill.skill_name, "powerValue": skill.power_value,
-		"targetId": target_id, "posX": p_data.pos.x, "posY": p_data.pos.y
+		"targetId": target_id, "posX": p_data.pos.x, "posY": p_data.pos.y,
+		"angle": p_data.get("angle", rotation)
 	})
 	
 	# Cooldown persistente basado en la configuración en milisegundos (ms)
@@ -667,12 +696,16 @@ func set_joystick_direction(dir: Vector2):
 		autopilot_enabled = false
 
 func _apply_movement():
-	if joystick_direction != Vector2.ZERO:
+	var slow_val = (speed * (slow_points / 100.0)) if slow_is_percentage else slow_points
+	var final_speed = max(10.0, speed - slow_val - _freeze_slow_val) # v268.40
+
+	if is_feared:
+		rotation = lerp_angle(rotation, fear_vector.angle(), 0.25)
+		velocity = fear_vector * final_speed
+	elif joystick_direction != Vector2.ZERO:
 		var target_angle = joystick_direction.angle()
 		rotation = lerp_angle(rotation, target_angle, 0.25)
 		var dir = Vector2.RIGHT.rotated(rotation)
-		var slow_val = (speed * (slow_points / 100.0)) if slow_is_percentage else slow_points
-		var final_speed = max(10.0, speed - slow_val - _freeze_slow_val) # v268.40
 		velocity = dir * final_speed
 	elif is_moving:
 		var dist = global_position.distance_to(target_position)
@@ -684,8 +717,6 @@ func _apply_movement():
 			var target_angle = (target_position - global_position).angle()
 			rotation = lerp_angle(rotation, target_angle, 0.25)
 			var dir = Vector2.RIGHT.rotated(rotation)
-			var slow_val = (speed * (slow_points / 100.0)) if slow_is_percentage else slow_points
-			var final_speed = max(10.0, speed - slow_val - _freeze_slow_val) # v268.40
 			velocity = dir * final_speed
 		else:
 			is_moving = false
@@ -919,7 +950,8 @@ func _find_skill_by_name(n: String):
 		"VÍNCULO VITAL": "res://scripts/resources/skills/Skill_VitalLink.gd",
 		"BALIZA DE CURACION": "res://scripts/resources/skills/Skill_HealBeacon.gd",
 		"PROVOCACION": "res://scripts/resources/skills/Skill_Provocacion.gd",
-		"RESURRECCIÓN": "res://scripts/resources/skills/Skill_Resurreccion.gd"
+		"RESURRECCIÓN": "res://scripts/resources/skills/Skill_Resurreccion.gd",
+		"ESFERA DE TERROR": "res://scripts/resources/skills/Skill_FearSphere.gd"
 	}
 	
 	if skill_paths.has(target_n):

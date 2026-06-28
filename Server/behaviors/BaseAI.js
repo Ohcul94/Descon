@@ -401,7 +401,15 @@ module.exports = class BaseAI {
 
         // v266.999: Valores seguros si el target desapareció pero el ataque sigue
         const dist = activeTarget ? Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y) : 99999;
-        const targetAngle = activeTarget ? Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x) : this.enemy.rotation;
+        let targetAngle = activeTarget ? Math.atan2(activeTarget.y - this.enemy.y, activeTarget.x - this.enemy.x) : this.enemy.rotation;
+        
+        // v313.5: Lógica de miedo (Fear) - Invertir el ángulo de dirección
+        const isFeared = this.enemy.isFeared && now < (this.enemy.fearEndTime || 0);
+        if (isFeared) {
+            targetAngle = targetAngle + Math.PI;
+        } else if (this.enemy.isFeared) {
+            this.enemy.isFeared = false;
+        }
 
         // Lógica de Persistencia (Basada en Dashboard)
         const configVision = cfg ? Number(cfg.visionRange) : 0;

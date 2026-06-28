@@ -19,6 +19,7 @@ const WindBarrierSkill = require('./skills/WindBarrierSkill');
 const HealBeaconSkill = require('./skills/HealBeaconSkill');
 const ProvocacionSkill = require('./skills/ProvocacionSkill');
 const ResurreccionSkill = require('./skills/ResurreccionSkill');
+const FearSphereSkill = require('./skills/FearSphereSkill');
 
 // v301.4: Soporte unificado de habilidades de resurrección
 
@@ -35,6 +36,7 @@ SkillManager.registerSkill(new WindBarrierSkill());
 SkillManager.registerSkill(new HealBeaconSkill());
 SkillManager.registerSkill(new ProvocacionSkill());
 SkillManager.registerSkill(new ResurreccionSkill());
+SkillManager.registerSkill(new FearSphereSkill());
 
 
 // Habilidades de Curación/Soporte
@@ -176,6 +178,53 @@ function registerCombatHandlers(socket, io, state) {
         if (!handled) {
             console.warn(`[SKILL] Habilidad no reconocida o no migrada: ${data.skillName}`);
         }
+    });
+
+    // IMPACTO DE ESFERA DE TERROR (Mecanismo Autoritativo)
+    socket.on('fearSphereHit', async (data) => {
+        const p = state.players[socket.id];
+        if (!p || p.isDead || !state.SERVER_CONFIG) return;
+        
+        const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
+        if (Number(p.zone) === lobbyZoneId) return;
+
+        const targetId = data.enemyId || data.victimId;
+        const target = state.enemies[targetId] || state.players[targetId];
+        if (!target || target.hp <= 0) return;
+
+        // 1. Aplicar daño
+        const damage = Number(data.damage) || 500;
+        let actualDmg = 0;
+        const oldHp = target.hp || 0;
+        if (target.shield >= damage) {
+            target.shield -= damage;
+        } else {
+            target.hp -= (damage - target.shield);
+            target.shield = 0;
+        }
+        if (target.hp < 0) target.hp = 0;
+        actualDmg = Math.ceil(oldHp - target.hp);
+
+        // 2. Aplicar Fear (Miedo)
+        const durationMs = Number(data.duration) || 3000;
+        target.isFeared = true;
+        target.fearEndTime = Date.now() + durationMs;
+
+        if (target.socketId) {
+            io.to(target.socketId).emit('stunState', { active: true, duration: durationMs, isFear: true });
+            io.to(target.socketId).emit('gameNotification', { msg: "😱 ¡ESTÁS BAJO EFECTO DE TERROR! Tus controles se han invertido.", type: "error" });
+        }
+
+        // Sincronizar stats del target
+        io.to(`zone_${target.zone}`).emit('playerStatSync', {
+            id: target.socketId || target.id,
+            hp: Math.ceil(target.hp),
+            shield: Math.ceil(target.shield),
+            isDead: target.hp <= 0,
+            isFeared: true
+        });
+
+        io.to(`zone_${p.zone}`).emit('enemyDamaged', { id: target.id, hp: Math.max(0, target.hp), shield: target.shield, bulletId: "fear_hit" });
     });
 
     // IMPACTO EN ENEMIGO

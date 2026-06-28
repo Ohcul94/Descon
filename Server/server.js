@@ -839,6 +839,28 @@ fs.readJson(CONFIG_FILE).then(config => {
             }
         };
     }
+    if (!state.SERVER_CONFIG.skillsData["ESFERA DE TERROR"]) {
+        state.SERVER_CONFIG.skillsData["ESFERA DE TERROR"] = {
+            "name": "ESFERA DE TERROR",
+            "type": "Ataque",
+            "cd": 15000,
+            "amount": 500,
+            "range": 600,
+            "radius": 150,
+            "duration": 3000,
+            "speed": 800,
+            "canTargetOthers": false,
+            "targetFilters": {
+                "allies": false,
+                "enemies": true,
+                "bosses": true,
+                "players": true,
+                "clan": false
+            },
+            "desc": "Lanza una esfera de energía oscura que daña y aterroriza al objetivo, invirtiendo su movimiento.",
+            "icon": ""
+        };
+    }
 
     
     console.log('\x1b[35m[SERVER]\x1b[0m Configuración maestro cargada y habilidades inyectadas.');

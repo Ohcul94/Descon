@@ -84,6 +84,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	
 	strike_id = str(p_data.get("strikeId", ""))
 	if p_data.has("stunDuration"): set_meta("stunDuration", p_data.stunDuration)
+	if p_data.has("duration"): set_meta("duration", p_data.duration)
 	
 	var raw_dmg = p_data.get("damageBoost")
 	if raw_dmg == null: raw_dmg = p_data.get("damage")
@@ -426,10 +427,17 @@ func _draw():
 	elif type == "heal": color = Color(0.2, 0.9, 0.3)
 	elif type == "siphon": color = Color(0.8, 0.15, 0.9)
 	elif type == "emp": color = Color(0.1, 0.5, 1.0)
+	elif type == "fear": color = Color(0.75, 0.05, 0.8)
 	elif owner_type == "enemy": color = Color(1.0, 0.3, 0.3)
 	else: color = Color(0.3, 1.0, 1.0)
  
 	match type:
+		"fear":
+			var pulse = sin(Time.get_ticks_msec() * 0.015) * 2.0
+			var base_r = 14.0 + pulse
+			draw_circle(Vector2.ZERO, base_r, Color(0.6, 0.05, 0.65, 0.4))
+			draw_circle(Vector2.ZERO, 9.0, Color(0.12, 0.0, 0.18, 0.9))
+			draw_circle(Vector2.ZERO, 4.0, Color(0.9, 0.1, 0.1, 0.8))
 		"electron":
 			var total_flight_time = max_range / max(1.0, speed)
 			var t = clamp(_current_lifetime / total_flight_time, 0.0, 1.0)
@@ -753,9 +761,15 @@ func _on_body_entered(body):
 		
 		if NetworkManager:
 			if owner_type == "player" and body.is_in_group("enemies"):
-				NetworkManager.send_event("enemyHit", {"enemyId": body.entity_id, "damage": damage})
+				if type == "fear":
+					NetworkManager.send_event("fearSphereHit", {"enemyId": body.entity_id, "damage": damage, "duration": float(get_meta("duration")) if has_meta("duration") else 3000.0})
+				else:
+					NetworkManager.send_event("enemyHit", {"enemyId": body.entity_id, "damage": damage})
 			elif owner_type == "player" and is_pvp_target:
-				NetworkManager.send_event("playerHitByPlayer", {"victimId": body.entity_id, "damage": damage})
+				if type == "fear":
+					NetworkManager.send_event("fearSphereHit", {"victimId": body.entity_id, "damage": damage, "duration": float(get_meta("duration")) if has_meta("duration") else 3000.0})
+				else:
+					NetworkManager.send_event("playerHitByPlayer", {"victimId": body.entity_id, "damage": damage})
 			elif owner_type == "enemy" and body.is_in_group("player"):
 				NetworkManager.send_event("playerHitByEnemy", {
 					"damage": damage, 

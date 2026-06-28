@@ -1894,6 +1894,7 @@ function renderSkills() {
                 <div class="field"><label>Rango (px)</label><input type="number" value="${s.range || 0}" onchange="config.skillsData['${name}'].range = parseInt(this.value)"></div>
                 ${s.duration !== undefined ? `<div class="field"><label>Duración (ms)</label><input type="number" value="${s.duration}" onchange="config.skillsData['${name}'].duration = parseInt(this.value)"></div>` : ''}
                 ${s.radius !== undefined ? `<div class="field"><label>Radio/Área (px)</label><input type="number" value="${s.radius}" onchange="config.skillsData['${name}'].radius = parseInt(this.value)"></div>` : ''}
+                ${s.speed !== undefined ? `<div class="field"><label>Velocidad (px/s)</label><input type="number" value="${s.speed}" onchange="config.skillsData['${name}'].speed = parseInt(this.value)"></div>` : ''}
                 ${s.width !== undefined ? `<div class="field"><label>Ancho (px)</label><input type="number" value="${s.width}" onchange="config.skillsData['${name}'].width = parseInt(this.value)"></div>` : ''}
                 ${s.breakRange !== undefined ? `<div class="field"><label>Rango de Ruptura (px)</label><input type="number" value="${s.breakRange}" onchange="config.skillsData['${name}'].breakRange = parseInt(this.value)"></div>` : ''}
                 ${s.tickInterval !== undefined ? `<div class="field"><label>Intervalo Tick (ms)</label><input type="number" value="${s.tickInterval}" onchange="config.skillsData['${name}'].tickInterval = parseInt(this.value)"></div>` : ''}

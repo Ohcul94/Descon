@@ -67,7 +67,8 @@ func _preload_resources_once():
 		{"path": "res://scripts/resources/skills/Skill_AlphaRegen.gd", "icon": "💚"},
 		{"path": "res://scripts/resources/skills/Skill_VitalLink.gd", "icon": "🔗"},
 		{"path": "res://scripts/resources/skills/Skill_HealBeacon.gd", "icon": "📡"},
-		{"path": "res://scripts/resources/skills/Skill_Reflect.gd", "icon": "🛡️"}
+		{"path": "res://scripts/resources/skills/Skill_Reflect.gd", "icon": "🛡️"},
+		{"path": "res://scripts/resources/skills/Skill_FearSphere.gd", "icon": "💀"}
 	]
 	
 	for cfg in skill_configs:

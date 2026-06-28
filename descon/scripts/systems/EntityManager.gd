@@ -1154,10 +1154,43 @@ func _on_remote_skill_used(data):
 	if typeof(data) != TYPE_DICTIONARY: return
 	
 	var sender_id = str(data.get("id", ""))
+	var skill_name = data.get("skillName", "")
+	
+	if skill_name == "ESFERA DE TERROR":
+		var emisor_node = null
+		if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == sender_id:
+			emisor_node = world.local_player
+		elif remote_players.has(sender_id):
+			emisor_node = remote_players[sender_id]
+		
+		if is_instance_valid(emisor_node) and is_instance_valid(world) and is_instance_valid(world.combat_system):
+			var s_data = GameConstants.SKILLS_DATA.get("ESFERA DE TERROR", {})
+			var speed_val = float(s_data.get("speed", 800.0))
+			var range_val = float(s_data.get("range", 600.0))
+			var dur_val = float(s_data.get("duration", 3000.0))
+			var power_val = float(data.get("powerValue", 500.0))
+			
+			var proj_data = {
+				"id": sender_id,
+				"senderId": sender_id,
+				"x": emisor_node.global_position.x,
+				"y": emisor_node.global_position.y,
+				"angle": float(data.get("angle", emisor_node.rotation)),
+				"bulletType": "fear",
+				"type": "fear",
+				"damage": power_val,
+				"damageBoost": power_val,
+				"speed": speed_val,
+				"range": range_val,
+				"duration": dur_val,
+				"owner_type": "player" if sender_id == world.local_player.entity_id else "remote"
+			}
+			world.combat_system._spawn_projectile(proj_data, proj_data.owner_type)
+		return
+		
 	var target_id = str(data.get("targetId", sender_id))
 	
 	var target_node = null
-	var skill_name = data.get("skillName", "")
 	
 	if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == target_id:
 		if sender_id == target_id and skill_name != "REGENERACIÓN ALFA" and skill_name != "BALIZA DE CURACION": return
