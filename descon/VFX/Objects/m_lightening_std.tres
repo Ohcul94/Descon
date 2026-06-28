@@ -1,7 +1,7 @@
 [gd_resource type="ShaderMaterial" load_steps=5 format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_ProjectileSoft_Disp.tres" id="1_1ivve"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Z70.png" id="2_1rey2"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_ProjectileSoft_Disp.tres" id="1_1ivve"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Z70.png" id="2_1rey2"]
 
 [sub_resource type="Gradient" id="Gradient_158c3"]
 offsets = PackedFloat32Array(0, 0.0651466, 1)

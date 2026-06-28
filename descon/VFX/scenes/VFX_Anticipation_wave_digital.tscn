@@ -1,12 +1,12 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_FireHead_TypeK_auto.tres" id="1_y0kgo"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Whitemask1.jpg" id="2_lab8x"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_FireHead_TypeK_auto.tres" id="1_y0kgo"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Whitemask1.jpg" id="2_lab8x"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_half_sphere.obj" id="3_60mtb"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_single_masked_p.tres" id="4_qhpct"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Square_22Edge.PNG" id="5_o3bme"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_simple_p.tres" id="6_t0ey4"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Sqart2.jpg" id="7_hkld7"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_single_masked_p.tres" id="4_qhpct"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Square_22Edge.PNG" id="5_o3bme"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_simple_p.tres" id="6_t0ey4"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Sqart2.jpg" id="7_hkld7"]
 
 [sub_resource type="Gradient" id="Gradient_6r84w"]
 offsets = PackedFloat32Array(0.205788, 0.237942, 0.504823, 0.884244)

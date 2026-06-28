@@ -2,13 +2,13 @@
 
 [ext_resource type="Material" path="res://VFX/Objects/m_lightening_std.tres" id="1_bgg5g"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_fireb_blast4_HS.obj" id="2_oguec"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_FireHeader.tres" id="3_lecde"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_FireHeader.tres" id="3_lecde"]
 [ext_resource type="Material" path="res://VFX/Objects/m_Trail_lightening_1.tres" id="4_jbfai"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_basic_disolve_p.tres" id="5_kt8sj"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_spark44.jpg" id="6_3mogh"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Trail_dynamic.tres" id="7_r7x17"]
-[ext_resource type="Script" path="res://VFX/Misc/Trail3D.gd" id="8_r84ac"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_TrailKuwaharaLight.jpg" id="8_u574u"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_basic_disolve_p.tres" id="5_kt8sj"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_spark44.jpg" id="6_3mogh"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Trail_dynamic.tres" id="7_r7x17"]
+[ext_resource type="Script" path="res://VFX/misc/Trail3D.gd" id="8_r84ac"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_TrailKuwaharaLight.jpg" id="8_u574u"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rec5w"]
 render_priority = 0

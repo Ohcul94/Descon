@@ -1,10 +1,10 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_dualColor_masked.tres" id="1_dgfd8"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Srt1.jpg" id="2_5h4vp"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_dualColor_masked.tres" id="1_dgfd8"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Srt1.jpg" id="2_5h4vp"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_box2.obj" id="3_xlsrb"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_single_masked_p.tres" id="4_0d5ig"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Sqart2.jpg" id="5_xyuo0"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_single_masked_p.tres" id="4_0d5ig"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Sqart2.jpg" id="5_xyuo0"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_box2_rotated.obj" id="6_nkbvi"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_e6xun"]

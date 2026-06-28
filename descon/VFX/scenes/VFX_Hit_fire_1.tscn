@@ -1,11 +1,11 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_single_masked_p.tres" id="1_gk5yq"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_simple_1.png" id="2_8u82a"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Fire_Special_p.tres" id="3_sjo8h"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Noise21d_tiled.png" id="4_1l0gh"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_FireBall_s1_alpha.jpg" id="5_h7ib6"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_texr41.png" id="6_g11ji"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_single_masked_p.tres" id="1_gk5yq"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_simple_1.png" id="2_8u82a"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Fire_Special_p.tres" id="3_sjo8h"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise21d_tiled.png" id="4_1l0gh"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg" id="5_h7ib6"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_texr41.png" id="6_g11ji"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0w0hc"]
 render_priority = -1

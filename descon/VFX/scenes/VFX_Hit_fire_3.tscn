@@ -1,13 +1,13 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Disolver.tres" id="1_w84jt"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_sparks112.jpg" id="2_xye5t"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_1spark123.jpg" id="3_a8ayj"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Disolver.tres" id="1_w84jt"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_sparks112.jpg" id="2_xye5t"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_1spark123.jpg" id="3_a8ayj"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_plane_cross1a.obj" id="4_petjj"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Disolver_advanced.tres" id="5_x6b1m"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Noise_075.png" id="6_4dr2n"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_simple_p.tres" id="7_q3y8i"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_vfx_irl12.png" id="8_x18u6"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Disolver_advanced.tres" id="5_x6b1m"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_075.png" id="6_4dr2n"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_simple_p.tres" id="7_q3y8i"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_vfx_irl12.png" id="8_x18u6"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rffp0"]
 render_priority = 0

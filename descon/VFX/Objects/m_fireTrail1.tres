@@ -1,6 +1,6 @@
 [gd_resource type="ShaderMaterial" load_steps=4 format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Trail_Fire_shader.tres" id="1_otlli"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Trail_Fire_shader.tres" id="1_otlli"]
 
 [sub_resource type="Gradient" id="Gradient_03bav"]
 offsets = PackedFloat32Array(0, 0.226852, 0.481481, 0.978972, 1)

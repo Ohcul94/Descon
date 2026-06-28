@@ -1,12 +1,12 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_1spark123.jpg" id="1_0tv0a"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_1spark123.jpg" id="1_0tv0a"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_plane_cross1a.obj" id="2_a6koe"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Fire_Special_p.tres" id="3_0s14t"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Noise_12.PNG" id="4_0t0j8"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Spark41.jpg" id="5_mawmk"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_single_masked_p.tres" id="6_4pwah"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_simple_1.png" id="7_bnxue"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Fire_Special_p.tres" id="3_0s14t"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_12.PNG" id="4_0t0j8"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Spark41.jpg" id="5_mawmk"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_single_masked_p.tres" id="6_4pwah"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_simple_1.png" id="7_bnxue"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_b0jh2"]
 blend_mode = 1

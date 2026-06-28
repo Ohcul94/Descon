@@ -1,10 +1,10 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_simple_p.tres" id="1_72shc"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Flare_15.PNG" id="2_mv6sv"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Disolver_advanced.tres" id="3_ylo2g"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Noise_075.png" id="4_ru5kp"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Ex1d.jpg" id="5_pbfkj"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_simple_p.tres" id="1_72shc"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Flare_15.PNG" id="2_mv6sv"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Disolver_advanced.tres" id="3_ylo2g"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_075.png" id="4_ru5kp"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Ex1d.jpg" id="5_pbfkj"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_06beq"]
 render_priority = -2

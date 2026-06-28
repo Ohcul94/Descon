@@ -1,6 +1,6 @@
 [gd_resource type="VisualShader" format=3 ]
 
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_FireTrail.jpg" id="1_cynca"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_FireTrail.jpg" id="1_cynca"]
 
 [sub_resource type="VisualShaderNodeTexture" id="VisualShaderNodeTexture_7sgjr"]
 expanded_output_ports = [0]

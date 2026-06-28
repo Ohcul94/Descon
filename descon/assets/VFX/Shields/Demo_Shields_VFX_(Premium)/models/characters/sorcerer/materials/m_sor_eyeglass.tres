@@ -1,7 +1,0 @@
-[gd_resource type="StandardMaterial3D" format=3 uid="uid://de3kh6hinuh1n"]
-
-[resource]
-resource_name = "m_sor_eyeglass"
-cull_mode = 2
-albedo_color = Color(0.221713, 0.0629135, 0.202121, 0.137255)
-roughness = 0.0

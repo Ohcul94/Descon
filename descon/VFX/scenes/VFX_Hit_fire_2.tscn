@@ -1,11 +1,11 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Disolver_advanced.tres" id="1_lufcm"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_sparks223.jpg" id="2_670w7"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Disolver.tres" id="3_giul7"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Noise_075.png" id="4_bdvm7"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_simple_p.tres" id="5_og37j"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_flare8_vfx.png" id="6_anfso"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Disolver_advanced.tres" id="1_lufcm"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_sparks223.jpg" id="2_670w7"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Disolver.tres" id="3_giul7"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_075.png" id="4_bdvm7"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_simple_p.tres" id="5_og37j"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_flare8_vfx.png" id="6_anfso"]
 
 [sub_resource type="Gradient" id="Gradient_0mxqm"]
 offsets = PackedFloat32Array(0.175896, 1)

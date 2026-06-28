@@ -1,11 +1,11 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_FireHead_TypeK_auto.tres" id="1_y6vtt"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Wave56.jpg" id="2_0c081"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_FireHead_TypeK_auto.tres" id="1_y6vtt"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Wave56.jpg" id="2_0c081"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_half_sphere.obj" id="3_i8tpf"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_single_masked_p.tres" id="4_d2g0x"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Glo31.png" id="5_x4dcc"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_simple_p.tres" id="6_pdy2t"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_single_masked_p.tres" id="4_d2g0x"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Glo31.png" id="5_x4dcc"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_simple_p.tres" id="6_pdy2t"]
 
 [sub_resource type="Gradient" id="Gradient_sa455"]
 offsets = PackedFloat32Array(0.180064, 0.607717, 0.742765)

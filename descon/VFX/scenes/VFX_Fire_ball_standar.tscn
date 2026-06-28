@@ -1,13 +1,13 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_basic1_vfx.PNG" id="1_vjvyl"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_basic1_vfx.PNG" id="1_vjvyl"]
 [ext_resource type="Material" path="res://VFX/Objects/m_fireTrail1.tres" id="2_ljk52"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Trail_dynamic.tres" id="3_8jknl"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_FireTrail.jpg" id="4_f4e2w"]
-[ext_resource type="Script" path="res://VFX/Misc/Trail3D.gd" id="4_ig45u"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_fireball_shader.tres" id="5_ixu2y"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Trail_dynamic.tres" id="3_8jknl"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_FireTrail.jpg" id="4_f4e2w"]
+[ext_resource type="Script" path="res://VFX/misc/Trail3D.gd" id="4_ig45u"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_fireball_shader.tres" id="5_ixu2y"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/fireball_mesh_st.obj" id="6_ou60u"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_FireHeader_shader.tres" id="7_wi8x6"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_FireHeader_shader.tres" id="7_wi8x6"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0mdtd"]
 blend_mode = 1

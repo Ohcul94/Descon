@@ -1,8 +1,8 @@
 [gd_resource type="ShaderMaterial" load_steps=7 format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_ProjectileSoft_B_Disp.tres" id="1_j6gte"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Noise_019.png" id="2_52ln0"]
-[ext_resource type="Gradient" path="res://VFX/Textures/gradients/g_fireTypeC.tres" id="3_10xc7"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_ProjectileSoft_B_Disp.tres" id="1_j6gte"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_019.png" id="2_52ln0"]
+[ext_resource type="Gradient" path="res://VFX/textures/gradients/g_fireTypeC.tres" id="3_10xc7"]
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_oeum1"]
 gradient = ExtResource("3_10xc7")

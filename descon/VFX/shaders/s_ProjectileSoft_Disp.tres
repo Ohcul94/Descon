@@ -1,6 +1,6 @@
 [gd_resource type="VisualShader" format=3 ]
 
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Noise_075.png" id="1_p0m2m"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_075.png" id="1_p0m2m"]
 
 [sub_resource type="VisualShaderNodeInput" id="VisualShaderNodeInput_s1whx"]
 input_name = "time"

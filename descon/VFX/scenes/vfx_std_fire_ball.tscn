@@ -2,12 +2,12 @@
 
 [ext_resource type="Material" path="res://VFX/Objects/m_FireBall_std.tres" id="1_nbqwl"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/m_fireb_blast.obj" id="2_8i1ue"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_FireTrail.tres" id="3_ibiff"]
-[ext_resource type="Gradient" path="res://VFX/Textures/gradients/g_traild.tres" id="4_r1qpl"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_FireBall_Tail1.jpg" id="5_mdf77"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_FireHeader.tres" id="6_pjvls"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_Disolver.tres" id="7_xmj10"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_SparklesF21.jpg" id="8_6m5ca"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_FireTrail.tres" id="3_ibiff"]
+[ext_resource type="Gradient" path="res://VFX/textures/gradients/g_traild.tres" id="4_r1qpl"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_FireBall_Tail1.jpg" id="5_mdf77"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_FireHeader.tres" id="6_pjvls"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_Disolver.tres" id="7_xmj10"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_SparklesF21.jpg" id="8_6m5ca"]
 
 [sub_resource type="Gradient" id="Gradient_gsxkp"]
 offsets = PackedFloat32Array(0, 0.934853, 0.983713)

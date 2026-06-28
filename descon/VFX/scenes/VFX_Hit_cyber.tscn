@@ -1,13 +1,13 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_simple_p.tres" id="1_8ctjc"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Square_22Edge.PNG" id="2_vygfd"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_dualColor_masked.tres" id="3_qc5ab"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Sqart2.jpg" id="4_lbgwh"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_simple_p.tres" id="1_8ctjc"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Square_22Edge.PNG" id="2_vygfd"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_dualColor_masked.tres" id="3_qc5ab"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Sqart2.jpg" id="4_lbgwh"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_box2_rotated.obj" id="5_0tugo"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_hit22.jpg" id="6_u4d80"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_single_masked_p.tres" id="7_xvlr4"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_basic1_vfx.PNG" id="8_xjum3"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_hit22.jpg" id="6_u4d80"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_single_masked_p.tres" id="7_xvlr4"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_basic1_vfx.PNG" id="8_xjum3"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_urkyl"]
 render_priority = 0

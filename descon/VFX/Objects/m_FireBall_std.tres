@@ -1,8 +1,8 @@
 [gd_resource type="ShaderMaterial" load_steps=4 format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_FireHead_B.tres" id="1_by8bo"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Noise_075.png" id="2_poovh"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/gradients/g2d_typeA.tres" id="3_8l2dh"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_FireHead_B.tres" id="1_by8bo"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_075.png" id="2_poovh"]
+[ext_resource type="Texture2D" path="res://VFX/textures/gradients/g2d_typeA.tres" id="3_8l2dh"]
 
 [resource]
 render_priority = 0

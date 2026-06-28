@@ -1,10 +1,10 @@
 [gd_scene format=3 ]
 
-[ext_resource type="Shader" path="res://VFX/Shaders/s_FireHead_TypeK.tres" id="1_xfng0"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_FireHead_TypeK.tres" id="1_xfng0"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/m_fireb_blast.obj" id="2_wpxvg"]
-[ext_resource type="Texture2D" path="res://VFX/Textures/T_VFX_Noise_531.png" id="3_wol6i"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Noise_531.png" id="3_wol6i"]
 [ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_half_sphere.obj" id="4_866jm"]
-[ext_resource type="Shader" path="res://VFX/Shaders/s_FireHeader.tres" id="5_bfdnn"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_FireHeader.tres" id="5_bfdnn"]
 
 [sub_resource type="Gradient" id="Gradient_offnt"]
 offsets = PackedFloat32Array(0.188925, 0.299674, 0.34202)
