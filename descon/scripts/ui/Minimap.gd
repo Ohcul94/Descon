@@ -436,8 +436,8 @@ func _draw():
 	# 8. Dibujar Tooltip interactivo si se pasa el mouse por encima de un portal
 	if hovered_dest != "":
 		var font = get_theme_font("font")
-		var tooltip_text = hovered_dest.to_upper()
-		var text_size = font.get_string_size(tooltip_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
+		var radar_tooltip = hovered_dest.to_upper()
+		var text_size = font.get_string_size(radar_tooltip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8)
 		var rect_size = text_size + Vector2(12, 8)
 		var rect_pos = local_m_pos + Vector2(10, 10)
 		
@@ -452,4 +452,4 @@ func _draw():
 		draw_rect(Rect2(rect_pos, rect_size), Color(0.0, 0.9, 1.0, 0.8), false, 1.0)
 		
 		# Renderizar texto
-		draw_string(font, rect_pos + Vector2(6, 14), tooltip_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.0, 1.0, 1.0))
+		draw_string(font, rect_pos + Vector2(6, 14), radar_tooltip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.0, 1.0, 1.0))

@@ -10,6 +10,18 @@ const HitFlashShader = preload("res://resources/shaders/hit_flash.gdshader")
 const SpaceExplosionScript = preload("res://scripts/vfx/SpaceExplosion.gd")
 const WreckageDrawingScript = preload("res://scripts/ui/WreckageDrawing.gd")
 
+# Nuevos VFX de escudos
+const VFXShieldHexScene = preload("res://VFX/scenes/VFX_Shield_hex.tscn")
+const VFXShieldDemonScene = preload("res://VFX/scenes/VFX_Shield_demon.tscn")
+const VFXShieldGreenScene = preload("res://VFX/scenes/VFX_Shield_green.tscn")
+const VFXShieldYellowScene = preload("res://VFX/scenes/VFX_Shield_yellow.tscn")
+
+const VFXHitHexScene = preload("res://VFX/scenes/VFX_Hit_Hex_Sphere.tscn")
+const VFXHitDemonScene = preload("res://VFX/scenes/VFX_Hit_sphere_demon.tscn")
+const VFXHitGreenScene = preload("res://VFX/scenes/VFX_Hit_sphere_green.tscn")
+const VFXHitYellowScene = preload("res://VFX/scenes/VFX_Hit_sphere_bbasic.tscn")
+
+
 # Caché estática de recursos para propulsión 3D optimizada
 static var _prop_proc_material: ParticleProcessMaterial = null
 static var _prop_material: StandardMaterial3D = null
@@ -65,6 +77,9 @@ var is_invulnerable: bool = false # v2.7: Sincronía autoritativa
 var is_hovered: bool = false # v302.1: Feedback de apuntado
 var _reflect_aura: Sprite2D = null
 var _3d_shield_mesh: MeshInstance3D = null
+var _active_shield_vfx: Node3D = null
+var _active_shield_type: String = ""
+
 var _collision_shape: CollisionShape2D = null
 var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
@@ -1104,6 +1119,7 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 
 	_spawn_damage_text(str(int(amt)), Color.RED)
 	_trigger_hit_flash()
+	_play_shield_hit_vfx()
 
 	_update_tags()
 	if is_in_group("player") and has_method("_emit_stats"):
@@ -1152,6 +1168,22 @@ func _trigger_reflect_visual(p_dest: Vector2):
 		tw.tween_property(spr, "modulate:a", 0.0, 0.2).set_delay(0.12)
 		
 		tw.finished.connect(spr.queue_free)
+
+func _play_shield_hit_vfx():
+	if _active_shield_type == "" or not is_instance_valid(_active_shield_vfx): return
+	var hit_scene = null
+	match _active_shield_type:
+		"shield": hit_scene = VFXHitHexScene
+		"reflect": hit_scene = VFXHitDemonScene
+		"heal": hit_scene = VFXHitGreenScene
+		"invulnerable": hit_scene = VFXHitYellowScene
+	if hit_scene and is_instance_valid(_3d_model):
+		var hit_vfx = hit_scene.instantiate()
+		_3d_model.add_child(hit_vfx)
+		hit_vfx.scale = Vector3(0.65, 0.65, 0.65)
+		if hit_vfx is GPUParticles3D:
+			hit_vfx.emitting = true
+			get_tree().create_timer(hit_vfx.lifetime + 0.1).timeout.connect(func(): if is_instance_valid(hit_vfx): hit_vfx.queue_free())
 
 func _spawn_damage_text(txt: String, clr: Color):
 	var dt_script = DamageTextScript
@@ -1733,7 +1765,7 @@ func _clear_all_equipment_visuals():
 func play_skill_vfx(skill_name: String, amount: float = 0.0):
 	# Mostrar siempre los números de retroalimentación
 	if has_method("_spawn_damage_text"):
-		if skill_name == "ESCUDO CELULAR" or skill_name == "FORTALEZA-X": _spawn_damage_text("+" + str(int(amount)), Color.AQUA)
+		if skill_name == "ESCUDO CELULAR": _spawn_damage_text("+" + str(int(amount)), Color.AQUA)
 		elif skill_name == "AUTO-REPARACIÓN" or skill_name == "NANO-REGENERACIÓN" or skill_name == "REGENERACIÓN ALFA" or skill_name == "VÍNCULO VITAL" or skill_name == "BALIZA DE CURACION": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
 		elif skill_name == "TURBO-IMPULSO": _spawn_damage_text("+" + str(int(amount)), Color.YELLOW)
 	match skill_name:
@@ -1759,7 +1791,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				tw.tween_property(vfx, "scale", Vector2(s*1.3, s*0.8), 0.1)
 				tw.tween_property(vfx, "scale", Vector2(s*0.8, s*1.3), 0.1)
 				get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(vfx): vfx.queue_free())
-		"ESCUDO CELULAR", "FORTALEZA-X":
+		"ESCUDO CELULAR":
 			shield_visual_timer = 2.0 # Activar visual 3D pro
 			# v260.20: Se eliminó el Sprite2D viejo para limpiar la visual 3D
 
@@ -2064,7 +2096,7 @@ func _on_remote_skill_used(data: Dictionary):
 		if s_name == "REFLECT-OMEGA" or s_name == "REFLECT":
 			reflect_timer = 3.0
 			print("[SKILL-SYNC] Activando visual de REFLECT para aliado: ", username)
-		elif s_name == "ESCUDO CELULAR" or s_name == "FORTALEZA-X":
+		elif s_name == "ESCUDO CELULAR":
 			shield_visual_timer = 2.0
 			print("[SKILL-SYNC] Activando visual de ESCUDO para aliado: ", username)
 		elif s_name == "AUTO-REPARACIÓN" or s_name == "NANO-REGENERACIÓN":
@@ -2081,35 +2113,64 @@ func _update_3d_shield(delta: float):
 	if shield_visual_timer > 0: shield_visual_timer -= delta
 	if heal_visual_timer > 0: heal_visual_timer -= delta
 	if invulnerable_timer > 0: invulnerable_timer -= delta
-	
-	if not _3d_shield_mesh: return
-	
-	# v260.15: Lógica de Visibilidad Híbrida (Reflect, Escudo, Cura o Inmunidad)
-	# v306.9: Asegurar que el estado autoritativo 'is_invulnerable' active el visual
-	var is_active = shield_visual_timer > 0 or reflect_timer > 0 or heal_visual_timer > 0 or invulnerable_timer > 0 or is_invulnerable == true
-	_3d_shield_mesh.visible = is_active
-	
-	if is_active:
-		var mat = _3d_shield_mesh.material_override as ShaderMaterial
-		if not mat:
-			# Auto-recuperación del material si fue anulado por efectos u otras funciones
-			mat = ShaderMaterial.new()
-			mat.shader = EnergyShieldShader
-			_3d_shield_mesh.material_override = mat
-			
-		if mat:
-			var color = Color(0.1, 0.5, 1.0, 1.0) # Azul (Escudo)
-			var is_healing = heal_visual_timer > 0
-			
-			if reflect_timer > 0: 
-				color = Color(1.0, 0.2, 0.1, 1.0) # Rojo (Reflect)
-			elif is_healing:
-				color = Color(0.1, 1.0, 0.3, 1.0) # Verde (Cura)
-			elif invulnerable_timer > 0 or is_invulnerable:
-				color = Color(1.0, 0.8, 0.0, 1.0) # Amarillo/Oro (Invulnerabilidad)
-			
-			mat.set_shader_parameter("color_escudo", color)
-			mat.set_shader_parameter("modo_curacion", is_healing)
+
+	# Determinar el tipo de escudo activo prioritario
+	var target_type = ""
+	if invulnerable_timer > 0 or is_invulnerable:
+		target_type = "invulnerable"
+	elif reflect_timer > 0:
+		target_type = "reflect"
+	elif shield_visual_timer > 0:
+		target_type = "shield"
+	elif heal_visual_timer > 0:
+		target_type = "heal"
+
+	# Si cambió el tipo de escudo activo
+	if target_type != _active_shield_type:
+		# Eliminar el anterior
+		if is_instance_valid(_active_shield_vfx):
+			# Intentar reproducir end_animation antes de borrar si tiene AnimationPlayer
+			var anim = _active_shield_vfx.get_node_or_null("AnimationPlayer")
+			if anim and anim.has_animation("end_animation"):
+				anim.play("end_animation")
+				# Lo borramos tras el término de la animación
+				var temp_vfx = _active_shield_vfx
+				get_tree().create_timer(0.4).timeout.connect(func():
+					if is_instance_valid(temp_vfx):
+						temp_vfx.queue_free()
+				)
+			else:
+				_active_shield_vfx.queue_free()
+			_active_shield_vfx = null
+
+		_active_shield_type = target_type
+
+		# Instanciar el nuevo si corresponde
+		if target_type != "" and is_instance_valid(_3d_model):
+			var new_scene = null
+			match target_type:
+				"invulnerable":
+					new_scene = VFXShieldYellowScene
+				"reflect":
+					new_scene = VFXShieldDemonScene
+				"shield":
+					new_scene = VFXShieldHexScene
+				"heal":
+					new_scene = VFXShieldGreenScene
+
+			if new_scene:
+				var vfx = new_scene.instantiate()
+				_3d_model.add_child(vfx)
+				_active_shield_vfx = vfx
+				
+				# Configurar escala local relativa al pivote de la nave
+				vfx.scale = Vector3(0.65, 0.65, 0.65)
+				
+				# Iniciar animación de entrada
+				var anim = vfx.get_node_or_null("AnimationPlayer")
+				if anim and anim.has_animation("start_animation"):
+					anim.play("start_animation")
+
 
 func _update_3d_spheres():
 	var sm = get_node_or_null("SpheresManager")
