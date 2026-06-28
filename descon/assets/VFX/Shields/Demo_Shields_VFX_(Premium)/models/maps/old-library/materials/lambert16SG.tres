@@ -1,0 +1,14 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3 uid="uid://ca7tbb0s25f34"]
+
+[ext_resource type="Texture2D" uid="uid://d0kuobshl0n7f" path="res://models/maps/old-library/old_fantasy-style_library_edit1_Image_5.png" id="1_le53y"]
+[ext_resource type="Texture2D" uid="uid://c6jwymgpa3ptq" path="res://models/maps/old-library/old_fantasy-style_library_edit1_Image_6.png" id="2_xmuej"]
+
+[resource]
+resource_name = "lambert16SG"
+transparency = 4
+cull_mode = 2
+albedo_texture = ExtResource("1_le53y")
+roughness = 0.6
+normal_enabled = true
+normal_scale = -1.0
+normal_texture = ExtResource("2_xmuej")

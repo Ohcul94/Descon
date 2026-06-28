@@ -1,0 +1,25 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="VFX Shields (Premium)"
+config/description="Shields VFX "
+config/version="1.0"
+run/main_scene="res://VFX/map_Shields_vfx_demo.tscn"
+config/features=PackedStringArray("4.2", "Forward Plus")
+config/icon="res://icon.svg"
+
+[file_customization]
+
+folder_colors={
+"res://VFX/": "blue",
+"res://VFX/scenes/": "teal"
+}

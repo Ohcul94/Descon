@@ -1,0 +1,18 @@
+[gd_resource type="StandardMaterial3D" load_steps=4 format=3 uid="uid://nsnd63a1pvon"]
+
+[ext_resource type="Texture2D" uid="uid://347q7andidmj" path="res://models/maps/old-library/old_fantasy-style_library_edit1_Image_18.png" id="1_ygvpk"]
+[ext_resource type="Texture2D" uid="uid://dmb3ogrtqusev" path="res://models/maps/old-library/old_fantasy-style_library_edit1_Image_19.png" id="2_e80kk"]
+[ext_resource type="Texture2D" uid="uid://d2xkspkdh7lnt" path="res://models/maps/old-library/old_fantasy-style_library_edit1_Image_20.png" id="3_gr1wy"]
+
+[resource]
+resource_name = "lambert27SG"
+cull_mode = 2
+albedo_texture = ExtResource("1_ygvpk")
+metallic = 1.0
+metallic_texture = ExtResource("2_e80kk")
+metallic_texture_channel = 2
+roughness_texture = ExtResource("2_e80kk")
+roughness_texture_channel = 1
+normal_enabled = true
+normal_scale = -1.0
+normal_texture = ExtResource("3_gr1wy")

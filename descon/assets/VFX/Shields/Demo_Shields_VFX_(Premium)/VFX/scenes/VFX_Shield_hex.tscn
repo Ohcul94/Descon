@@ -1,0 +1,182 @@
+[gd_scene load_steps=10 format=3 uid="uid://uwce52ahsor4"]
+
+[ext_resource type="Script" path="res://VFX/scripts/shield_modifier.gd" id="1_3g14e"]
+[ext_resource type="Material" uid="uid://bivtqltm5bdov" path="res://VFX/models/m_shield_hex.tres" id="2_mkip7"]
+[ext_resource type="Material" uid="uid://cm0w2601fomj3" path="res://VFX/models/m_distortion_shield_hex.tres" id="3_w1omb"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_83ot6"]
+lightmap_size_hint = Vector2i(31, 15)
+add_uv2 = true
+uv2_padding = 0.0
+radius = 1.0
+height = 2.0
+radial_segments = 32
+rings = 16
+
+[sub_resource type="SphereMesh" id="SphereMesh_5d8wg"]
+lightmap_size_hint = Vector2i(31, 15)
+add_uv2 = true
+uv2_padding = 0.0
+radius = 1.0
+height = 2.0
+radial_segments = 32
+rings = 16
+
+[sub_resource type="Animation" id="Animation_uj6je"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("ShieldSphere_1:material_override:shader_parameter/Gradient_Line")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.155]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("DistortionSphere_1:material_override:shader_parameter/Gradient_Line")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [1.155]
+}
+
+[sub_resource type="Animation" id="Animation_tgt31"]
+resource_name = "end_animation"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("ShieldSphere_1:material_override:shader_parameter/Gradient_Line")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.155, -0.03]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("DistortionSphere_1:material_override:shader_parameter/Gradient_Line")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.155, 0.0]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("ShieldSphere_1:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.6),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("DistortionSphere_1:visible")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.6),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+
+[sub_resource type="Animation" id="Animation_ybpbd"]
+resource_name = "start_animation"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("ShieldSphere_1:material_override:shader_parameter/Gradient_Line")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [-0.03, 1.155]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("DistortionSphere_1:material_override:shader_parameter/Gradient_Line")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0.0, 1.155]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("ShieldSphere_1:visible")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("DistortionSphere_1:visible")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_18p84"]
+_data = {
+"RESET": SubResource("Animation_uj6je"),
+"end_animation": SubResource("Animation_tgt31"),
+"start_animation": SubResource("Animation_ybpbd")
+}
+
+[node name="VFX_Shield_hex" type="Node3D"]
+script = ExtResource("1_3g14e")
+dissapear_line = -0.03
+
+[node name="ShieldSphere_1" type="MeshInstance3D" parent="."]
+material_override = ExtResource("2_mkip7")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_83ot6")
+skeleton = NodePath("../..")
+
+[node name="DistortionSphere_1" type="MeshInstance3D" parent="."]
+material_override = ExtResource("3_w1omb")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_5d8wg")
+skeleton = NodePath("../..")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_18p84")
+}

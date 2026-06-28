@@ -1,0 +1,224 @@
+[gd_scene load_steps=15 format=3 uid="uid://cwbi1wslln2pg"]
+
+[ext_resource type="PackedScene" uid="uid://c1qk3s3ojgyw3" path="res://models/maps/old-library/old_fantasy_style_library_edit_1.tscn" id="1_y2gj3"]
+[ext_resource type="Texture2D" uid="uid://bmf4pprc2ynsj" path="res://misc/T_Left_Arrow.png" id="2_3lacb"]
+[ext_resource type="PackedScene" uid="uid://dasnfamvjrxg6" path="res://models/characters/sorcerer/sorcerer_edited_1.tscn" id="2_83t6x"]
+[ext_resource type="Texture2D" uid="uid://cjgwocvfhlmbq" path="res://misc/T_Misc112_desc.png" id="3_8l3mt"]
+[ext_resource type="PackedScene" uid="uid://clwlnb4h1fbs" path="res://scenes/viewer.tscn" id="3_avkxm"]
+[ext_resource type="Texture2D" uid="uid://ci61twwtndnbh" path="res://misc/T_Right_Arrow.png" id="3_y04er"]
+[ext_resource type="Script" path="res://scripts/sphere_spammer.gd" id="6_asexq"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_w2u7y"]
+size = Vector3(9.39917, 7.0116, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_lew11"]
+size = Vector3(9.39917, 0.897064, 13.8653)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_3xqi8"]
+radius = 1.25322
+
+[sub_resource type="Animation" id="Animation_e8nwm"]
+resource_name = "Init"
+length = 4.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("arrow_l:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.3, 4.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("play_the_game:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1.3, 4.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("arrow_r:modulate")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0, 1.3, 4.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_8sfhx"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("arrow_l:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("play_the_game:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("arrow_r:modulate")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_2pour"]
+_data = {
+"Init": SubResource("Animation_e8nwm"),
+"RESET": SubResource("Animation_8sfhx")
+}
+
+[sub_resource type="Environment" id="Environment_jv4y7"]
+background_mode = 2
+ambient_light_color = Color(0.300899, 0.211829, 0.128632, 1)
+ambient_light_sky_contribution = 0.0
+ambient_light_energy = 2.01
+tonemap_mode = 2
+ssao_enabled = true
+ssil_enabled = true
+sdfgi_enabled = true
+sdfgi_read_sky_light = false
+sdfgi_cascades = 1
+sdfgi_min_cell_size = 0.3
+sdfgi_energy = 8.0
+glow_enabled = true
+volumetric_fog_enabled = true
+
+[node name="map_demo" type="Node3D"]
+
+[node name="map" type="Node3D" parent="."]
+
+[node name="OmniLight3D" type="OmniLight3D" parent="map"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.26531, 2.63559, 1.80431)
+light_color = Color(1, 0.682353, 0.290196, 1)
+omni_range = 4.87456
+
+[node name="OmniLight3D2" type="OmniLight3D" parent="map"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.49549, 3.48087, -1.83495)
+light_color = Color(1, 0.682353, 0.290196, 1)
+light_energy = 0.5
+omni_range = 2.87585
+
+[node name="OmniLight3D3" type="OmniLight3D" parent="map"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.35995, 3.44437, -0.950699)
+light_color = Color(0.411765, 0.788235, 1, 1)
+light_energy = 2.468
+shadow_enabled = true
+omni_range = 2.69926
+
+[node name="OmniLight3D4" type="OmniLight3D" parent="map"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.35995, 2.18023, 1.88417)
+light_color = Color(0.992752, 0.649321, 0.408637, 1)
+light_energy = 2.468
+shadow_enabled = true
+omni_range = 2.69926
+
+[node name="StaticBody3D" type="StaticBody3D" parent="map"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="map/StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.09049, 3.0058, -6.55234)
+shape = SubResource("BoxShape3D_w2u7y")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="map/StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.09049, 3.0058, 6.31955)
+shape = SubResource("BoxShape3D_w2u7y")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="map/StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.36221, -0.0285356, -0.113915)
+shape = SubResource("BoxShape3D_lew11")
+
+[node name="shield_collider" type="StaticBody3D" parent="map"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="map/shield_collider"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.54713, 0)
+shape = SubResource("SphereShape3D_3xqi8")
+
+[node name="old_fantasy-style_library_edit1" parent="map" instance=ExtResource("1_y2gj3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.99167, 0, -0.265753)
+
+[node name="Notes" type="Node3D" parent="map"]
+
+[node name="arrow_l" type="Sprite3D" parent="map/Notes"]
+transform = Transform3D(-6.55671e-09, 0, -0.15, 0, 0.15, 0, 0.15, 0, -6.55671e-09, 0, 2, -1.55589)
+texture = ExtResource("2_3lacb")
+
+[node name="play_the_game" type="Sprite3D" parent="map/Notes"]
+transform = Transform3D(-6.55671e-09, 0, -0.15, 0, 0.15, 0, 0.15, 0, -6.55671e-09, 0, 3.13844, 0)
+texture = ExtResource("3_8l3mt")
+
+[node name="arrow_r" type="Sprite3D" parent="map/Notes"]
+transform = Transform3D(-6.55671e-09, 0, -0.15, 0, 0.15, 0, 0.15, 0, -6.55671e-09, 0, 2, 1.54941)
+texture = ExtResource("3_y04er")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="map/Notes"]
+libraries = {
+"": SubResource("AnimationLibrary_2pour")
+}
+autoplay = "Init"
+
+[node name="credits" type="Label" parent="map"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -129.0
+offset_top = -29.0
+offset_right = 130.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 0.494118)
+text = "Demo Project.  ( created by:  Le Lu )"
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.844736, -0.425904, 0.324078, 0.307962, 0.108411, 0.945202, -0.437699, 0.89825, 0.0395831, -2.50908, 0, -0.212583)
+light_color = Color(0.427451, 0.729412, 1, 1)
+light_energy = 0.8
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_jv4y7")
+
+[node name="sorcerer_edited1" parent="." instance=ExtResource("2_83t6x")]
+transform = Transform3D(0.425874, 0, -0.904782, 0, 1, 0, 0.904782, 0, 0.425874, -0.0299228, 0.386681, -0.00173303)
+
+[node name="viewer" parent="." instance=ExtResource("3_avkxm")]
+transform = Transform3D(-4.37114e-08, 0.146083, -0.989272, 0, 0.989272, 0.146083, 1, 6.38549e-09, -4.32425e-08, -4.80971, 2.058, 0)
+
+[node name="Sphere_Spammer" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.576, 0)
+script = ExtResource("6_asexq")

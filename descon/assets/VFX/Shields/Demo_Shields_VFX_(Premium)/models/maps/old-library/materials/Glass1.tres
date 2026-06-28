@@ -1,0 +1,13 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3 uid="uid://ccdgospc8sd2p"]
+
+[ext_resource type="Texture2D" uid="uid://dp8fo2v7a6ffd" path="res://models/maps/old-library/old_fantasy-style_library_edit1_Image_0.png" id="1_mxrko"]
+[ext_resource type="Texture2D" uid="uid://bbrtfuuarlidp" path="res://models/maps/old-library/old_fantasy-style_library_edit1_Image_1.png" id="2_rojgs"]
+
+[resource]
+resource_name = "Glass1"
+transparency = 4
+cull_mode = 2
+albedo_texture = ExtResource("1_mxrko")
+roughness = 0.6
+normal_enabled = true
+normal_texture = ExtResource("2_rojgs")

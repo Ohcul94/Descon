@@ -1,0 +1,49 @@
+[gd_resource type="ShaderMaterial" load_steps=10 format=3 uid="uid://jptkwgjbc1ww"]
+
+[ext_resource type="Shader" uid="uid://6epapgspumdw" path="res://VFX/shaders/s_shield_color_wLine.tres" id="1_jisnr"]
+[ext_resource type="Texture2D" uid="uid://cy4drjqm8nr5u" path="res://VFX/textures/T_Spiral_31a.jpg" id="2_opiav"]
+[ext_resource type="Texture2D" uid="uid://bahurhw4a76s3" path="res://VFX/textures/T_Noise_9n.png" id="3_ckofl"]
+
+[sub_resource type="Gradient" id="Gradient_0bcwo"]
+offsets = PackedFloat32Array(0, 0.138655, 0.546219, 0.621849, 0.714286)
+colors = PackedColorArray(0.396078, 0, 0, 0.709804, 0, 0, 0, 1, 0.423529, 0, 0.133333, 1, 1, 0, 0, 1, 0.0638195, 0, 0.0200913, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_uhuwl"]
+gradient = SubResource("Gradient_0bcwo")
+
+[sub_resource type="Gradient" id="Gradient_od8mt"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_cuei4"]
+gradient = SubResource("Gradient_od8mt")
+fill_from = Vector2(1, 1)
+
+[sub_resource type="Gradient" id="Gradient_otvvt"]
+offsets = PackedFloat32Array(0.201681, 0.495798)
+colors = PackedColorArray(0, 0, 0, 1, 3, 0.133, 0, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_6q2gw"]
+gradient = SubResource("Gradient_otvvt")
+use_hdr = true
+
+[resource]
+render_priority = 1
+shader = ExtResource("1_jisnr")
+shader_parameter/Size_Sphere = 0.0
+shader_parameter/Gradient_Line = 0.84
+shader_parameter/Line_Baias = 0.09
+shader_parameter/SmoothStep = 1.0
+shader_parameter/Disolver_Scale = Vector2(4, 2)
+shader_parameter/Line_Distortion_Divider = 3.0
+shader_parameter/Overlay_Scale = Vector2(3, 1)
+shader_parameter/Overlay_Velocity = Vector2(0.1, 1)
+shader_parameter/Overlay_Power = 0.57
+shader_parameter/Proximity_light = 0.415
+shader_parameter/Proximity_Power = 0.41
+shader_parameter/Fresnel_invert = false
+shader_parameter/fresnel_power = 1.195
+shader_parameter/darkness = 0.0
+shader_parameter/Disolver_Noise_Line = ExtResource("2_opiav")
+shader_parameter/Gradient_Disappear = SubResource("GradientTexture2D_cuei4")
+shader_parameter/Line_Gradient = SubResource("GradientTexture1D_6q2gw")
+shader_parameter/Overlay_Texture = ExtResource("3_ckofl")
+shader_parameter/Gradient_1D_Color = SubResource("GradientTexture1D_uhuwl")

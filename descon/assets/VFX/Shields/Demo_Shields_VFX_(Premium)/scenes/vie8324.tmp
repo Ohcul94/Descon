@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://clwlnb4h1fbs"]
+
+[ext_resource type="Script" path="res://scripts/viewer.gd" id="1_eim83"]
+
+[node name="viewer" type="Node3D"]
+script = ExtResource("1_eim83")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+fov = 50.0
+
+[node name="RayCast3D" type="RayCast3D" parent="Camera3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.31016, 0.00345373, 2.38419e-07)
+target_position = Vector3(0, 0, -1)
+collide_with_areas = true

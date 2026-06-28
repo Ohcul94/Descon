@@ -1,0 +1,34 @@
+[gd_resource type="ShaderMaterial" load_steps=8 format=3 uid="uid://cncwlba7hig6u"]
+
+[ext_resource type="Shader" uid="uid://d3wvh6bpn06qk" path="res://VFX/shaders/s_hit_sphere.tres" id="1_fwwds"]
+
+[sub_resource type="Gradient" id="Gradient_vnxre"]
+offsets = PackedFloat32Array(0.239496, 1)
+colors = PackedColorArray(0, 0.776471, 0.380392, 1, 0.2, 2, 5, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_ih0aq"]
+gradient = SubResource("Gradient_vnxre")
+use_hdr = true
+
+[sub_resource type="Gradient" id="Gradient_qpnof"]
+offsets = PackedFloat32Array(0.516807, 0.87395)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_cneii"]
+gradient = SubResource("Gradient_qpnof")
+fill_from = Vector2(1, 1)
+
+[sub_resource type="Gradient" id="Gradient_0dcfp"]
+offsets = PackedFloat32Array(0, 0.00840336, 0.117647, 0.155462, 0.176471, 0.277311, 0.306723, 0.378151)
+colors = PackedColorArray(0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_f1uu1"]
+gradient = SubResource("Gradient_0dcfp")
+fill_from = Vector2(1, 1)
+
+[resource]
+render_priority = 2
+shader = ExtResource("1_fwwds")
+shader_parameter/Size_Sphere = 0.26
+shader_parameter/Hit_Texture = SubResource("GradientTexture2D_f1uu1")
+shader_parameter/Gradient_Color_1D = SubResource("GradientTexture1D_ih0aq")
+shader_parameter/Gradient_Dissapear = SubResource("GradientTexture2D_cneii")

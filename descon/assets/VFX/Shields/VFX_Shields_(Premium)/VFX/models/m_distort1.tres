@@ -1,0 +1,24 @@
+[gd_resource type="ShaderMaterial" load_steps=6 format=3 uid="uid://u1g1su25p3qh"]
+
+[ext_resource type="Shader" uid="uid://uims3i06gibv" path="res://VFX/shaders/s_distortion_wLine.tres" id="1_bhxh3"]
+[ext_resource type="Texture2D" uid="uid://dprnfrq5xocri" path="res://VFX/textures/T_VFX_Noise_11.PNG" id="2_552n2"]
+[ext_resource type="Texture2D" uid="uid://d00cl2ei52xpq" path="res://VFX/textures/T_GW_WaterNormal_01_b.PNG" id="3_8utl7"]
+
+[sub_resource type="Gradient" id="Gradient_tluns"]
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_ebf6u"]
+gradient = SubResource("Gradient_tluns")
+fill_from = Vector2(1, 1)
+
+[resource]
+render_priority = 0
+shader = ExtResource("1_bhxh3")
+shader_parameter/details_scale = Vector2(3, 3)
+shader_parameter/details_velocity = Vector2(3, -2)
+shader_parameter/RefStrenght = 0.02
+shader_parameter/Disolver_Scale = Vector2(1, 3)
+shader_parameter/Line_Distortion_Divider = 8.0
+shader_parameter/Gradient_Line = 0.89
+shader_parameter/Normal_Distortion_Texture = ExtResource("3_8utl7")
+shader_parameter/Disolver_Noise_Line = ExtResource("2_552n2")
+shader_parameter/Gradient_Disappear = SubResource("GradientTexture2D_ebf6u")

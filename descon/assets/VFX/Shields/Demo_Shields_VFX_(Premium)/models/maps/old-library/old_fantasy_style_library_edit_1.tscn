@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3 uid="uid://c1qk3s3ojgyw3"]
+
+[ext_resource type="PackedScene" uid="uid://c00xgrpnjnbyo" path="res://models/maps/old-library/old_fantasy-style_library_edit1.glb" id="1_ehmrt"]
+
+[node name="old_fantasy-style_library_edit1" instance=ExtResource("1_ehmrt")]

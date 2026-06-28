@@ -1,0 +1,14 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3 uid="uid://doaqbxwowo5kh"]
+
+[ext_resource type="Texture2D" uid="uid://wc6fpqmuhds" path="res://models/maps/old-library/old_fantasy-style_library_edit1_Image_59.png" id="1_xb1ot"]
+[ext_resource type="Texture2D" uid="uid://dk5o525d8odhd" path="res://models/maps/old-library/old_fantasy-style_library_edit1_Image_60.png" id="2_lpfqt"]
+
+[resource]
+resource_name = "lambert48SG"
+cull_mode = 2
+albedo_texture = ExtResource("1_xb1ot")
+roughness = 0.44
+normal_enabled = true
+normal_texture = ExtResource("2_lpfqt")
+uv1_scale = Vector3(2.02269, 2.02269, 1)
+uv1_offset = Vector3(0, 1.19209e-07, 0)
