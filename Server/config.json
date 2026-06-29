@@ -3258,7 +3258,8 @@
             ],
             "width": 2000,
             "height": 2000,
-            "objects": []
+            "objects": [],
+            "pvpMode": "full_drop"
         },
         "9": {
             "color": "#aa00ff",

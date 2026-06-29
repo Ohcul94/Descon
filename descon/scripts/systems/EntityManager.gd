@@ -14,6 +14,16 @@ var zone_cleanup_timer = 0.0
 const ZONE_CLEANUP_INTERVAL = 1.0
 
 const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
+const SHIP_SCENE = preload("res://scenes/entities/Ship.tscn")
+const LOOT_DROP_SCRIPT = preload("res://scripts/entities/LootDrop.gd")
+const HEAL_BEACON_VFX_SCRIPT = preload("res://scripts/vfx/HealBeaconVFX.gd")
+const WIND_BARRIER_VFX_SCENE = preload("res://VFX/scenes/VFX_Shield_green_plane.tscn")
+const SMOKE_CLOUD_SHADER = preload("res://resources/shaders/smoke_cloud.gdshader")
+
+# Texturas precargadas estáticamente
+const TEX_CURACION_TRANSP = preload("res://assets/Efectos de Skills/Curacion(Transp).png")
+const TEX_ESFERA_AZUL_1 = preload("res://assets/Esferas/EsferaAzul1.png")
+const TEX_ESFERA_VERDE_1 = preload("res://assets/Esferas/EsferaVerde1.png")
 
 func setup(world_ref):
 	world = world_ref
@@ -280,7 +290,7 @@ func _on_player_updated(data):
 
 	var is_new = false
 	if not remote_players.has(id):
-		var rp = load("res://scenes/entities/Ship.tscn").instantiate()
+		var rp = SHIP_SCENE.instantiate()
 		rp.entity_id = id
 		rp.set_meta("socket_id", id) # Guardar ID de socket de red real para comercio
 		rp.db_id = str(data.get("id", ""))
@@ -843,9 +853,9 @@ func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
 
 	# 3. Icono / Esfera flotante y giratoria verde premium (3D Look)
 	var item_sprite = Sprite2D.new()
-	var item_tex = load("res://assets/Efectos de Skills/Curacion(Transp).png")
+	var item_tex = TEX_CURACION_TRANSP
 	if not item_tex:
-		item_tex = load("res://assets/Esferas/EsferaVerde1.png")
+		item_tex = TEX_ESFERA_VERDE_1
 	
 	if item_tex:
 		item_sprite.texture = item_tex
@@ -1022,7 +1032,7 @@ func _spawn_ice_trail(id, pos, _radius):
 	container.add_child(particles)
 	
 	var glow = Sprite2D.new()
-	var glow_tex = load("res://assets/Esferas/EsferaAzul1.png")
+	var glow_tex = TEX_ESFERA_AZUL_1
 	if glow_tex:
 		glow.texture = glow_tex
 		var glow_mat = CanvasItemMaterial.new()
@@ -1051,7 +1061,7 @@ func _on_remove_area(data: Dictionary):
 func _spawn_heal_beacon_vfx(id, pos, radius, _data = {}):
 	if active_areas.has(id): return
 	
-	var vfx_script = load("res://scripts/vfx/HealBeaconVFX.gd")
+	var vfx_script = HEAL_BEACON_VFX_SCRIPT
 	if vfx_script:
 		var beacon = vfx_script.new()
 		beacon.name = id
@@ -1112,7 +1122,7 @@ func _spawn_smoke_cloud(id, pos, radius):
 	mesh_inst.rotation_degrees.x = 90
 	
 	var mat = ShaderMaterial.new()
-	mat.shader = load("res://resources/shaders/smoke_cloud.gdshader")
+	mat.shader = SMOKE_CLOUD_SHADER
 	mesh_inst.material_override = mat
 	node3d.add_child(mesh_inst)
 	
@@ -1402,7 +1412,7 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	node3d.add_child(env)
 	
 	# Instanciar el VFX 3D de la media esfera
-	var vfx_scene = load("res://VFX/scenes/VFX_Shield_green_plane.tscn")
+	var vfx_scene = WIND_BARRIER_VFX_SCENE
 	if vfx_scene:
 		var vfx = vfx_scene.instantiate()
 		node3d.add_child(vfx)
@@ -1471,7 +1481,7 @@ func _on_loot_spawned(data: Dictionary):
 		if loot_zone != -1 and loot_zone != my_zone:
 			return
 			
-	var loot_script = load("res://scripts/entities/LootDrop.gd")
+	var loot_script = LOOT_DROP_SCRIPT
 	if loot_script:
 		var drop = Area2D.new()
 		drop.set_script(loot_script)

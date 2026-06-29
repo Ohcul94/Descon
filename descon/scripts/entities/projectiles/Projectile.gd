@@ -1,6 +1,30 @@
 extends Area2D
 class_name Projectile
 
+# Pre-cargado estático de escenas VFX para optimizar FPS en ráfagas de red (v313.1)
+const VFX_Anticipation_wave_digital_scene = preload("res://VFX/scenes/VFX_Anticipation_wave_digital.tscn")
+const VFX_Anticipation_hadouken_scene = preload("res://VFX/scenes/VFX_Anticipation_hadouken.tscn")
+const VFX_Hadouken_scene = preload("res://VFX/scenes/VFX_Hadouken.tscn")
+const VFX_Cube_projectile_scene = preload("res://VFX/scenes/VFX_Cube_projectile.tscn")
+const VFX_Hit_cyber_scene = preload("res://VFX/scenes/VFX_Hit_cyber.tscn")
+const VFX_Hit_hadouken_scene = preload("res://VFX/scenes/VFX_Hit_hadouken.tscn")
+
+# Pre-cargado estático de texturas para evitar I/O bloqueante
+const TEXTURE_LASER = preload("res://assets/Municiones/Lasers/Laser1/Laser1.png")
+const TEXTURE_MISSILE = preload("res://assets/Municiones/Misiles/Misil1/Misil1.png")
+const TEXTURE_MINE = preload("res://assets/Municiones/Minas/Mina1/Mina1.png")
+const TEXTURE_MINE_3 = preload("res://assets/Municiones/Minas/Mina3/Mina3.png")
+const TEXTURE_MINE_2 = preload("res://assets/Municiones/Minas/Mina2/Mina2.png")
+
+const TEXTURE_CACHE = {
+	"laser": TEXTURE_LASER,
+	"missile": TEXTURE_MISSILE,
+	"ice_missile": TEXTURE_MISSILE,
+	"mine": TEXTURE_MINE,
+	"orbital_mine": TEXTURE_MINE_3,
+	"hook": TEXTURE_MINE_2
+}
+
 # Projectile.gd (v141.72 - CONE EMP & VECTOR RENDERING)
 # Clase base para todos los proyectiles con soporte de colisión y efectos cónicos para EMP. 
 
@@ -202,9 +226,8 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
-			var antic_scene = load("res://VFX/scenes/VFX_Anticipation_wave_digital.tscn")
-			if antic_scene:
-				var antic = antic_scene.instantiate()
+			if VFX_Anticipation_wave_digital_scene:
+				var antic = VFX_Anticipation_wave_digital_scene.instantiate()
 				antic.name = "HealAntic3D_" + str(get_instance_id())
 				target_vp.add_child(antic)
 				
@@ -228,24 +251,19 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				var anim = antic.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")
-					anim.animation_finished.connect(func(_name):
-						if is_instance_valid(antic):
-							antic.queue_free()
-					)
+					anim.animation_finished.connect(antic.queue_free.unbind(1))
 				else:
-					get_tree().create_timer(1.0).timeout.connect(func():
-						if is_instance_valid(antic):
-							antic.queue_free()
-					)
+					var tw = antic.create_tween()
+					tw.tween_interval(1.0)
+					tw.tween_callback(antic.queue_free)
 
 	# Spawn 3D anticipation aura for emp (hadouken) projectiles
 	if type == "emp":
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
-			var antic_scene = load("res://VFX/scenes/VFX_Anticipation_hadouken.tscn")
-			if antic_scene:
-				var antic = antic_scene.instantiate()
+			if VFX_Anticipation_hadouken_scene:
+				var antic = VFX_Anticipation_hadouken_scene.instantiate()
 				antic.name = "HadoukenAntic3D_" + str(get_instance_id())
 				target_vp.add_child(antic)
 				
@@ -269,15 +287,11 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				var anim = antic.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")
-					anim.animation_finished.connect(func(_name):
-						if is_instance_valid(antic):
-							antic.queue_free()
-					)
+					anim.animation_finished.connect(antic.queue_free.unbind(1))
 				else:
-					get_tree().create_timer(1.0).timeout.connect(func():
-						if is_instance_valid(antic):
-							antic.queue_free()
-					)
+					var tw = antic.create_tween()
+					tw.tween_interval(1.0)
+					tw.tween_callback(antic.queue_free)
 					
 	_setup_visual_sprite()
 	_is_setup = true
@@ -292,9 +306,8 @@ func _setup_visual_sprite():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
-			var vfx_scene = load("res://VFX/scenes/VFX_Hadouken.tscn")
-			if vfx_scene:
-				world_root_3d = vfx_scene.instantiate()
+			if VFX_Hadouken_scene:
+				world_root_3d = VFX_Hadouken_scene.instantiate()
 				world_root_3d.name = "HadoukenProj3D_" + str(get_instance_id())
 				target_vp.add_child(world_root_3d)
 				
@@ -360,9 +373,8 @@ func _setup_visual_sprite():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
-			var vfx_scene = load("res://VFX/scenes/VFX_Cube_projectile.tscn")
-			if vfx_scene:
-				world_root_3d = vfx_scene.instantiate()
+			if VFX_Cube_projectile_scene:
+				world_root_3d = VFX_Cube_projectile_scene.instantiate()
 				world_root_3d.name = "HealProj3D_" + str(get_instance_id())
 				target_vp.add_child(world_root_3d)
 				
@@ -440,35 +452,41 @@ func _setup_visual_sprite():
 					child.position.x = child.shape.size.x / 2.0
 			return
 	
-	if path != "" and ResourceLoader.exists(path):
-		sprite = Sprite2D.new()
-		var tex = load(path)
-		sprite.texture = tex
-		
-		var target_size = 48.0
-		if type == "mine" or type == "orbital_mine": target_size = 64.0
-		elif type == "missile": target_size = 56.0
-		
-		var s = target_size / max(tex.get_width(), tex.get_height())
-		if type == "orbital_mine": s = 0.08 
-		sprite.scale = Vector2(s, s)
-		sprite.rotation_degrees = 90
-		
-		if type == "ice_missile":
-			sprite.modulate = Color(0.4, 0.7, 1.0) 
-		elif type == "melee":
-			sprite.modulate = Color(1.0, 0.65, 0.1) 
-		elif type == "heal":
-			sprite.modulate = Color(0.2, 0.9, 0.3) 
-		elif type == "siphon":
-			sprite.modulate = Color(0.8, 0.15, 0.9) 
-		elif owner_type == "enemy":
-			if type == "orbital_mine": sprite.modulate = Color(1.2, 1.2, 1.2) 
-			else: sprite.modulate = Color(1.0, 0.3, 0.3) 
-		else:
-			sprite.modulate = Color(0.3, 1.0, 1.0) 
-		
-		add_child(sprite)
+	if path != "":
+		var tex = null
+		if TEXTURE_CACHE.has(type):
+			tex = TEXTURE_CACHE[type]
+		elif ResourceLoader.exists(path):
+			tex = load(path)
+			
+		if tex:
+			sprite = Sprite2D.new()
+			sprite.texture = tex
+			
+			var target_size = 48.0
+			if type == "mine" or type == "orbital_mine": target_size = 64.0
+			elif type == "missile": target_size = 56.0
+			
+			var s = target_size / max(tex.get_width(), tex.get_height())
+			if type == "orbital_mine": s = 0.08 
+			sprite.scale = Vector2(s, s)
+			sprite.rotation_degrees = 90
+			
+			if type == "ice_missile":
+				sprite.modulate = Color(0.4, 0.7, 1.0) 
+			elif type == "melee":
+				sprite.modulate = Color(1.0, 0.65, 0.1) 
+			elif type == "heal":
+				sprite.modulate = Color(0.2, 0.9, 0.3) 
+			elif type == "siphon":
+				sprite.modulate = Color(0.8, 0.15, 0.9) 
+			elif owner_type == "enemy":
+				if type == "orbital_mine": sprite.modulate = Color(1.2, 1.2, 1.2) 
+				else: sprite.modulate = Color(1.0, 0.3, 0.3) 
+			else:
+				sprite.modulate = Color(0.3, 1.0, 1.0) 
+			
+			add_child(sprite)
  
 func _draw():
 	if is_instance_valid(sprite): return
@@ -1021,9 +1039,8 @@ func _explode():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
-			var hit_scene = load("res://VFX/scenes/VFX_Hit_cyber.tscn")
-			if hit_scene:
-				var hit_node = hit_scene.instantiate()
+			if VFX_Hit_cyber_scene:
+				var hit_node = VFX_Hit_cyber_scene.instantiate()
 				hit_node.name = "HealHit3D_" + str(get_instance_id())
 				target_vp.add_child(hit_node)
 				
@@ -1039,24 +1056,19 @@ func _explode():
 				var anim = hit_node.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")
-					anim.animation_finished.connect(func(_name):
-						if is_instance_valid(hit_node):
-							hit_node.queue_free()
-					)
+					anim.animation_finished.connect(hit_node.queue_free.unbind(1))
 				else:
-					get_tree().create_timer(1.0).timeout.connect(func():
-						if is_instance_valid(hit_node):
-							hit_node.queue_free()
-					)
+					var tw = hit_node.create_tween()
+					tw.tween_interval(1.0)
+					tw.tween_callback(hit_node.queue_free)
 
 	# Spawn 3D hit impact effect for emp (hadouken) projectiles
 	if type == "emp":
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
-			var hit_scene = load("res://VFX/scenes/VFX_Hit_hadouken.tscn")
-			if hit_scene:
-				var hit_node = hit_scene.instantiate()
+			if VFX_Hit_hadouken_scene:
+				var hit_node = VFX_Hit_hadouken_scene.instantiate()
 				hit_node.name = "HadoukenHit3D_" + str(get_instance_id())
 				target_vp.add_child(hit_node)
 				
@@ -1072,15 +1084,11 @@ func _explode():
 				var anim = hit_node.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")
-					anim.animation_finished.connect(func(_name):
-						if is_instance_valid(hit_node):
-							hit_node.queue_free()
-					)
+					anim.animation_finished.connect(hit_node.queue_free.unbind(1))
 				else:
-					get_tree().create_timer(1.0).timeout.connect(func():
-						if is_instance_valid(hit_node):
-							hit_node.queue_free()
-					)
+					var tw = hit_node.create_tween()
+					tw.tween_interval(1.0)
+					tw.tween_callback(hit_node.queue_free)
 
 	if type == "emp" and not _is_exploding:
 		_is_exploding = true

@@ -27,10 +27,12 @@ func _ready():
 	_create_spheres()
 	
 	# v6.2: Retraso de cortesía para asegurar que el HUD esté listo al loguear
-	get_tree().create_timer(1.5).timeout.connect(func():
+	var tw = create_tween()
+	tw.tween_interval(1.5)
+	var cb_update = func():
 		_update_visuals()
 		spheres_updated.emit()
-	)
+	tw.tween_callback(cb_update)
 
 func _create_spheres():
 	# Inicialización de nodos base para 4 esferas dinámicas

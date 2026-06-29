@@ -1,5 +1,8 @@
 extends Entity
 
+# Precargas estáticas para optimización de rendimiento (v313.3)
+const SKILL_CONTROLLER_SCRIPT = preload("res://scripts/systems/SkillController.gd")
+
 # Player.gd (Controlador Maestro v69.45 - FULL STABILITY RECOVERY)
 # Saneado y corregido para evitar errores de parseo y autodaño.
 
@@ -240,9 +243,8 @@ func apply_freeze_slow(data: Dictionary):
 	tw.tween_property(self, "_freeze_slow_val", 0.0, 1.5).set_trans(Tween.TRANS_SINE)
 
 func _setup_skill_controller():
-	var sc_script = load("res://scripts/systems/SkillController.gd")
-	if sc_script:
-		_skill_controller = sc_script.new()
+	if SKILL_CONTROLLER_SCRIPT:
+		_skill_controller = SKILL_CONTROLLER_SCRIPT.new()
 		_skill_controller.name = "SkillController"
 		add_child(_skill_controller)
 

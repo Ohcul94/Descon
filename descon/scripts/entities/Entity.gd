@@ -21,6 +21,46 @@ const VFXHitDemonScene = preload("res://VFX/scenes/VFX_Hit_sphere_demon.tscn")
 const VFXHitGreenScene = preload("res://VFX/scenes/VFX_Hit_sphere_green.tscn")
 const VFXHitYellowScene = preload("res://VFX/scenes/VFX_Hit_sphere_bbasic.tscn")
 
+# Pre-cargado estático de modelos 3D para evitar congelamiento (v313.2)
+const GLB_CACHE = {
+	"res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb": preload("res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb"),
+	"res://assets/Personajes/3D/Nave2/Nave2.glb": preload("res://assets/Personajes/3D/Nave2/Nave2.glb"),
+	"res://assets/Personajes/3D/Nave3/Nave3.glb": preload("res://assets/Personajes/3D/Nave3/Nave3.glb"),
+	"res://assets/Personajes/3D/Nave4/Nave4.glb": preload("res://assets/Personajes/3D/Nave4/Nave4.glb"),
+	"res://assets/Personajes/3D/Nave5/Nave5.glb": preload("res://assets/Personajes/3D/Nave5/Nave5.glb"),
+	"res://assets/Personajes/3D/Nave6/Nave6.glb": preload("res://assets/Personajes/3D/Nave6/Nave6.glb"),
+	
+	"res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb": preload("res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb"),
+	"res://assets/Enemigos/3D/Enemigo2/Enemigo2.glb": preload("res://assets/Enemigos/3D/Enemigo2/Enemigo2.glb"),
+	"res://assets/Enemigos/3D/Enemigo3/Enemigo3.glb": preload("res://assets/Enemigos/3D/Enemigo3/Enemigo3.glb"),
+	"res://assets/Enemigos/3D/Enemigo4/Enemigo4.glb": preload("res://assets/Enemigos/3D/Enemigo4/Enemigo4.glb"),
+	"res://assets/Enemigos/3D/Enemigo5/Enemigo5.glb": preload("res://assets/Enemigos/3D/Enemigo5/Enemigo5.glb"),
+	"res://assets/Enemigos/3D/Enemigo6/Enemigo6.glb": preload("res://assets/Enemigos/3D/Enemigo6/Enemigo6.glb"),
+	"res://assets/Enemigos/3D/Enemigo7/Enemigo7.glb": preload("res://assets/Enemigos/3D/Enemigo7/Enemigo7.glb"),
+	"res://assets/Enemigos/3D/Enemigo8/Enemigo8.glb": preload("res://assets/Enemigos/3D/Enemigo8/Enemigo8.glb"),
+	"res://assets/Enemigos/3D/Enemigo9/Enemigo9.glb": preload("res://assets/Enemigos/3D/Enemigo9/Enemigo9.glb"),
+	"res://assets/Enemigos/3D/Enemigo10/Enemigo10.glb": preload("res://assets/Enemigos/3D/Enemigo10/Enemigo10.glb"),
+	"res://assets/Enemigos/3D/Enemigo11/Enemigo11.glb": preload("res://assets/Enemigos/3D/Enemigo11/Enemigo11.glb"),
+	"res://assets/Enemigos/3D/Enemigo12/Enemigo12.glb": preload("res://assets/Enemigos/3D/Enemigo12/Enemigo12.glb"),
+	"res://assets/Enemigos/3D/Enemigo13/Enemigo13.glb": preload("res://assets/Enemigos/3D/Enemigo13/Enemigo13.glb"),
+	
+	"res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb": preload("res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"),
+	"res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb": preload("res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"),
+	"res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb": preload("res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"),
+	"res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb": preload("res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb"),
+	
+	"res://assets/Pilares/3D/Pilar1/Pilar1.glb": preload("res://assets/Pilares/3D/Pilar1/Pilar1.glb"),
+	
+	"res://assets/Esferas/3D/EsferaRoja/EsferaRoja.glb": preload("res://assets/Esferas/3D/EsferaRoja/EsferaRoja.glb"),
+	"res://assets/Esferas/3D/EsferaAzul/EsferaAzul.glb": preload("res://assets/Esferas/3D/EsferaAzul/EsferaAzul.glb"),
+	"res://assets/Esferas/3D/EsferaVerde/EsferaVerde.glb": preload("res://assets/Esferas/3D/EsferaVerde/EsferaVerde.glb"),
+	"res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla.glb": preload("res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla.glb")
+}
+
+# Pre-cargado estático de texturas de habilidades de enemigos para evitar lag (v313.3)
+const TEX_REFLECT_AURA = preload("res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png")
+const TEX_REFLECT_IMPACT = preload("res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png")
+
 
 # Caché estática de recursos para propulsión 3D optimizada
 static var _prop_proc_material: ParticleProcessMaterial = null
@@ -229,15 +269,17 @@ func teleport_to(new_pos: Vector2):
 	global_position = new_pos
 	target_position = new_pos
 	# 3. Re-aparecer después de 2 frames (tiempo suficiente para que el render procese)
-	get_tree().create_timer(0.05).timeout.connect(func():
-		if not is_instance_valid(self): return
+	var tw = create_tween()
+	tw.tween_interval(0.05)
+	var cb_show = func():
 		modulate.a = 1.0
 		if is_instance_valid(_3d_model): _3d_model.visible = true
 		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = true
-		get_tree().create_timer(0.45).timeout.connect(func(): 
-			if is_instance_valid(self): is_teleporting = false
-		)
-	)
+	tw.tween_callback(cb_show)
+	tw.tween_interval(0.45)
+	var cb_teleport = func():
+		is_teleporting = false
+	tw.tween_callback(cb_teleport)
 
 func _process(delta):
 	if reflect_timer > 0:
@@ -1190,9 +1232,8 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 func _trigger_reflect_visual(p_dest: Vector2):
 
 	var spr = Sprite2D.new()
-	var path = "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png"
-	if ResourceLoader.exists(path):
-		spr.texture = load(path)
+	if TEX_REFLECT_IMPACT:
+		spr.texture = TEX_REFLECT_IMPACT
 		spr.top_level = true
 		spr.z_index = 101
 		
@@ -1244,7 +1285,9 @@ func _play_shield_hit_vfx():
 		hit_vfx.scale = Vector3(0.65, 0.65, 0.65)
 		if hit_vfx is GPUParticles3D:
 			hit_vfx.emitting = true
-			get_tree().create_timer(hit_vfx.lifetime + 0.1).timeout.connect(func(): if is_instance_valid(hit_vfx): hit_vfx.queue_free())
+			var tw_vfx = hit_vfx.create_tween()
+			tw_vfx.tween_interval(hit_vfx.lifetime + 0.1)
+			tw_vfx.tween_callback(hit_vfx.queue_free)
 
 func _spawn_damage_text(txt: String, clr: Color):
 	var dt_script = DamageTextScript
@@ -1345,9 +1388,8 @@ func _on_enemy_action(data):
 			var mId = data.get("mId", "wall_dome")
 			if not active_auras.has(mId):
 				var spr = Sprite2D.new()
-				var tex_path = "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png"
-				if ResourceLoader.exists(tex_path):
-					spr.texture = load(tex_path)
+				if TEX_REFLECT_AURA:
+					spr.texture = TEX_REFLECT_AURA
 				spr.modulate = Color(0.0, 0.6, 1.0, 0.45)
 				var radius = float(data.get("radius", 300.0))
 				var target_scale = (radius * 2.0) / 512.0
@@ -1410,9 +1452,8 @@ func _on_enemy_aura(data):
 		if active_auras.has(mId): return
 		
 		var spr = Sprite2D.new()
-		var tex_path = "res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png"
-		if ResourceLoader.exists(tex_path):
-			spr.texture = load(tex_path)
+		if TEX_REFLECT_AURA:
+			spr.texture = TEX_REFLECT_AURA
 		
 		spr.modulate = Color(1, 0, 0, 0.4) # Default rojo (daño)
 		if data.type == "aura_heal": spr.modulate = Color(0, 1, 0.4, 0.4)
@@ -1835,9 +1876,11 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 			if "speed" in self:
 				var bonus = amount
 				self.speed += bonus
-				get_tree().create_timer(2.0).timeout.connect(func(): 
-					if is_instance_valid(self): self.speed -= bonus
-				)
+				var tw_speed = create_tween()
+				tw_speed.tween_interval(2.0)
+				var cb_speed = func():
+					self.speed -= bonus
+				tw_speed.tween_callback(cb_speed)
 				
 			var path = "res://assets/Efectos de Skills/Velocidad(Transp).png"
 			if ResourceLoader.exists(path):
@@ -1851,7 +1894,9 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				tw.bind_node(vfx)
 				tw.tween_property(vfx, "scale", Vector2(s*1.3, s*0.8), 0.1)
 				tw.tween_property(vfx, "scale", Vector2(s*0.8, s*1.3), 0.1)
-				get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(vfx): vfx.queue_free())
+				var tw_free = vfx.create_tween()
+				tw_free.tween_interval(2.0)
+				tw_free.tween_callback(vfx.queue_free)
 		"ESCUDO CELULAR":
 			shield_visual_timer = _get_skill_duration("ESCUDO CELULAR", {}, 2.0) # Activar visual 3D pro
 			# v260.20: Se eliminó el Sprite2D viejo para limpiar la visual 3D
@@ -1984,8 +2029,13 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		env.environment = world_env
 		node3d.add_child(env)
 	
-	# Instanciar el modelo GLB
-	var model_scene = load(glb_path)
+	# Instanciar el modelo GLB precargado o fallback
+	var model_scene = null
+	if GLB_CACHE.has(glb_path):
+		model_scene = GLB_CACHE[glb_path]
+	elif ResourceLoader.exists(glb_path):
+		model_scene = load(glb_path)
+		
 	if model_scene:
 		var model = model_scene.instantiate()
 		_clean_internal_lights(model)
@@ -2183,10 +2233,9 @@ func _update_3d_shield(delta: float):
 				anim.play("end_animation")
 				# Lo borramos tras el término de la animación
 				var temp_vfx = _active_shield_vfx
-				get_tree().create_timer(0.4).timeout.connect(func():
-					if is_instance_valid(temp_vfx):
-						temp_vfx.queue_free()
-				)
+				var tw_shield = temp_vfx.create_tween()
+				tw_shield.tween_interval(0.4)
+				tw_shield.tween_callback(temp_vfx.queue_free)
 			else:
 				_active_shield_vfx.queue_free()
 			_active_shield_vfx = null
@@ -2243,8 +2292,14 @@ func _update_3d_spheres():
 		elif s_type == "curación" or s_type == "curacion": color_name = "Verde"
 		
 		var s_path = "res://assets/Esferas/3D/Esfera" + color_name + "/Esfera" + color_name + ".glb"
-		if ResourceLoader.exists(s_path):
-			var s_scene = load(s_path).instantiate()
+		var s_scene_res = null
+		if GLB_CACHE.has(s_path):
+			s_scene_res = GLB_CACHE[s_path]
+		elif ResourceLoader.exists(s_path):
+			s_scene_res = load(s_path)
+			
+		if s_scene_res:
+			var s_scene = s_scene_res.instantiate()
 			_clean_internal_lights(s_scene)
 			_setup_sphere_materials_recursive(s_scene, color_name)
 			accessory_pivot_3d.add_child(s_scene)

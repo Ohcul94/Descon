@@ -1,5 +1,9 @@
 extends Area2D
 
+# Preprecargas estáticas para evitar I/O y congelamiento de FPS en el hilo principal (v313.2)
+const COFRE_MODEL_SCENE = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb")
+const HAND_INTERACT_TEX = preload("res://assets/UI/hand_interact.jpg")
+
 # LootDrop.gd (v1.0 - Botín Físico Interactivo AAA)
 # Representa el contenedor visual de botín en el mapa espacial.
 
@@ -60,16 +64,13 @@ func _ready():
 	sun.rotation_degrees = Vector3(-45, 35, 0)
 	node3d.add_child(sun)
 	
-	# Cargar e instanciar el cofre 3D GLB
-	var glb_path = "res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb"
-	if ResourceLoader.exists(glb_path):
-		var model_scene = load(glb_path)
-		if model_scene:
-			var model = model_scene.instantiate()
-			node3d.add_child(model)
-			# Escala y rotación del cofre (nivelado horizontalmente)
-			model.scale = Vector3(1.3, 1.3, 1.3)
-			model.rotation_degrees = Vector3(0, 90, 0)
+	# Instanciar el cofre 3D GLB precargado
+	if COFRE_MODEL_SCENE:
+		var model = COFRE_MODEL_SCENE.instantiate()
+		node3d.add_child(model)
+		# Escala y rotación del cofre (nivelado horizontalmente)
+		model.scale = Vector3(1.3, 1.3, 1.3)
+		model.rotation_degrees = Vector3(0, 90, 0)
 	
 	# Cámara 3D (Posición y ángulo fijos para evitar look_at antes de entrar al árbol)
 	var cam = Camera3D.new()
@@ -112,11 +113,10 @@ func _ready():
 	prompt_hbox.add_theme_constant_override("separation", 6)
 	interaction_prompt.add_child(prompt_hbox)
 	
-	# Icono miniatura de la manito interactiva
+	# Icono miniatura de la manito interactiva precargada
 	var prompt_icon = TextureRect.new()
-	var img_path = "res://assets/UI/hand_interact.jpg"
-	if ResourceLoader.exists(img_path):
-		prompt_icon.texture = load(img_path)
+	if HAND_INTERACT_TEX:
+		prompt_icon.texture = HAND_INTERACT_TEX
 	prompt_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	prompt_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	prompt_icon.custom_minimum_size = Vector2(18, 18)

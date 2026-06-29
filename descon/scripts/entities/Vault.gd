@@ -1,5 +1,9 @@
 extends Area2D
 
+# Precargas estáticas para optimización de rendimiento (v313.2)
+const BAUL_MODEL_SCENE = preload("res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb")
+const HAND_INTERACT_TEX = preload("res://assets/UI/hand_interact.jpg")
+
 # Vault.gd (v1.0 - Baúl Personal Interactivo AAA)
 # Entidad física del banco espacial en el lobby.
 
@@ -62,7 +66,6 @@ func _ready():
 				
 	sprite.visible = not is_single_world
 	
-	var glb_path = "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 	
 	if is_single_world:
 		# Instanciar en el Viewport global del mapa
@@ -70,13 +73,11 @@ func _ready():
 		world_root_3d.name = "Vault3D_" + name
 		target_viewport.add_child(world_root_3d)
 		
-		if ResourceLoader.exists(glb_path):
-			var model_scene = load(glb_path)
-			if model_scene:
-				var model = model_scene.instantiate()
-				world_root_3d.add_child(model)
-				model.scale = Vector3(1.4, 1.4, 1.4) # Escala normal perfecta para el baúl
-				model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
+		if BAUL_MODEL_SCENE:
+			var model = BAUL_MODEL_SCENE.instantiate()
+			world_root_3d.add_child(model)
+			model.scale = Vector3(1.4, 1.4, 1.4) # Escala normal perfecta para el baúl
+			model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
 		_update_3d_position()
 	else:
 		# Render local con SubViewport propio (fallback)
@@ -106,13 +107,11 @@ func _ready():
 		sun.rotation_degrees = Vector3(-45, 35, 0)
 		world_root_3d.add_child(sun)
 		
-		if ResourceLoader.exists(glb_path):
-			var model_scene = load(glb_path)
-			if model_scene:
-				var model = model_scene.instantiate()
-				world_root_3d.add_child(model)
-				model.scale = Vector3(1.4, 1.4, 1.4) # Escala normal perfecta para el baúl
-				model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
+		if BAUL_MODEL_SCENE:
+			var model = BAUL_MODEL_SCENE.instantiate()
+			world_root_3d.add_child(model)
+			model.scale = Vector3(1.4, 1.4, 1.4) # Escala normal perfecta para el baúl
+			model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
 		
 		# Cámara 3D (Ángulo ligeramente inclinado desde arriba)
 		var cam = Camera3D.new()
@@ -158,11 +157,10 @@ func _ready():
 	prompt_hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	interaction_prompt.add_child(prompt_hbox)
 	
-	# Icono miniatura de la mano (cargado desde el archivo JPG)
+	# Icono miniatura de la mano precargado
 	var prompt_icon = TextureRect.new()
-	var img_path = "res://assets/UI/hand_interact.jpg"
-	if ResourceLoader.exists(img_path):
-		prompt_icon.texture = load(img_path)
+	if HAND_INTERACT_TEX:
+		prompt_icon.texture = HAND_INTERACT_TEX
 	prompt_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	prompt_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	prompt_icon.custom_minimum_size = Vector2(18, 18)
