@@ -774,6 +774,8 @@ func update_stats(data):
 	
 	# v164.94: Sincronía de Popups de Daño (Antes de pisar los valores)
 	var old_total = current_hp + current_shield
+	var old_hp = current_hp
+	var old_shield = current_shield
 	
 	# v191.70: PREDICCIÓN DE CLIENTE ANTI-PARPADEO (Shield/HP Stability)
 	# Si somos el jugador local, ignoramos cambios minúsculos del server (Regen vs Latencia)
@@ -857,9 +859,19 @@ func update_stats(data):
 		# No reseteamos el combat_timer aquí porque el ataque real ya lo reseteó en take_damage
 		_spawn_damage_text(str(int(damage_taken)), Color.RED)
 	
+	# v400.15: Detección y visualización de Curación local (Vida en verde, Escudo en celeste)
 	if data.has("healPopup"):
 		var h_val = int(data.healPopup)
 		_spawn_damage_text("+" + str(h_val), Color.GREEN)
+	else:
+		var diff_hp = current_hp - old_hp
+		var diff_shield = current_shield - old_shield
+		
+		# Solo mostrar si el cambio es sustancial para ignorar la regeneración natural
+		if diff_hp >= 5.0 and old_hp > 0.0:
+			_spawn_damage_text("+" + str(int(diff_hp)), Color.GREEN)
+		if diff_shield >= 5.0:
+			_spawn_damage_text("+" + str(int(diff_shield)), Color(0.0, 0.9, 0.9)) # Celeste / Cian
 		
 	if data.has("spheres"):
 		var sm = get_node_or_null("SpheresManager")
@@ -1045,6 +1057,43 @@ func _resurrect(data: Dictionary):
 	if _ui_wrapper: _ui_wrapper.queue_redraw()
 
 func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: String = ""):
+	# v400.10: Control de PvP y modo combate en mapas tranquilos
+	var target_is_player = is_in_group("player") or is_in_group("remote_players")
+	if target_is_player and attacker_id != "":
+		var attacker_node = null
+		var attacker_is_player = false
+		for ent in get_tree().get_nodes_in_group("entities"):
+			if str(ent.get("entity_id")) == attacker_id:
+				attacker_node = ent
+				if ent.is_in_group("player") or ent.is_in_group("remote_players"):
+					attacker_is_player = true
+				break
+				
+		if attacker_is_player:
+			# Verificar si el mapa actual es zona PvP obligatoria
+			var is_pvp_map = false
+			var active_map = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(active_map):
+				var z_str = str(active_map.zone_id)
+				if z_str.contains("."):
+					z_str = str(int(z_str.to_float()))
+				if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(z_str):
+					var map_cfg = GameConstants.MAPS_CONFIG[z_str]
+					var pvp_mode = map_cfg.get("pvpMode", "tranquila")
+					if pvp_mode in ["mandatory", "full_drop", "partial_drop"]:
+						is_pvp_map = true
+						
+			if not is_pvp_map:
+				var target_pvp = pvp_status
+				var attacker_pvp = false
+				if is_instance_valid(attacker_node) and "pvp_status" in attacker_node:
+					attacker_pvp = attacker_node.pvp_status
+					
+				if not (target_pvp and attacker_pvp):
+					# Si alguno de los dos no tiene activado el modo combate en zona tranquila, se muestra +0
+					_spawn_damage_text("+0", Color(0.7, 0.7, 0.7))
+					return
+
 	var original_amt = amt
 	# Mecánica de colores cooperativa (boss_colors)
 	if has_meta("boss_color"):

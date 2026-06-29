@@ -817,6 +817,20 @@ func _on_body_entered(body):
 		var dmg_to_deal = damage
 		if type == "heal":
 			dmg_to_deal = 0.0
+			var is_target_ally = false
+			if body.has_method("get") and body.get("_is_ally") == true:
+				is_target_ally = true
+			elif body.is_in_group("player"):
+				is_target_ally = true
+				
+			if is_target_ally:
+				# Si es del clan o equipo, curar al objetivo
+				_predict_local_heal(body, damage)
+			else:
+				# Si es enemigo en combate, redirigir la curación al emisor del proyectil
+				if is_instance_valid(_owner_node):
+					_predict_local_heal(_owner_node, damage)
+					
 		body.take_damage(dmg_to_deal, global_position, owner_id)
 		
 		if NetworkManager:
@@ -1116,3 +1130,38 @@ func _safe_float(val, default: float = 0.0) -> float:
 	elif val_type == TYPE_BOOL:
 		return 1.0 if val else 0.0
 	return default
+
+func _predict_local_heal(target: Node2D, amount: float):
+	if not is_instance_valid(target): return
+	
+	var heal_shield = 0.0
+	var heal_hp = 0.0
+	
+	# Curar escudo primero
+	if "current_shield" in target and "max_shield" in target:
+		var sh_needed = target.max_shield - target.current_shield
+		if sh_needed > 0.0:
+			heal_shield = min(amount, sh_needed)
+			target.current_shield += heal_shield
+			amount -= heal_shield
+			
+	# Curar vida con lo restante
+	if amount > 0.0 and "current_hp" in target and "max_hp" in target:
+		var hp_needed = target.max_hp - target.current_hp
+		if hp_needed > 0.0:
+			heal_hp = min(amount, hp_needed)
+			target.current_hp += heal_hp
+			
+	# Disparar texto flotante
+	if heal_shield > 0.0:
+		if target.has_method("_spawn_damage_text"):
+			target.call("_spawn_damage_text", "+" + str(int(heal_shield)), Color(0.0, 0.9, 0.9)) # Celeste
+	if heal_hp > 0.0:
+		if target.has_method("_spawn_damage_text"):
+			target.call("_spawn_damage_text", "+" + str(int(heal_hp)), Color.GREEN) # Verde
+		
+	# Actualizar etiquetas de vida/escudo y stats locales
+	if target.has_method("_update_tags"):
+		target.call("_update_tags")
+	if target.is_in_group("player") and target.has_method("_emit_stats"):
+		target.call("_emit_stats")
