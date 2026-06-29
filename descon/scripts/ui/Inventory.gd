@@ -1,5 +1,17 @@
 extends Control
 
+# Precarga de pestañas de inventario para optimizar transiciones (v313.4)
+const HangarTabScript = preload("res://scripts/ui/inventory/HangarTab.gd")
+const SpheresTabScript = preload("res://scripts/ui/inventory/SpheresTab.gd")
+const ShopTabScript = preload("res://scripts/ui/inventory/ShopTab.gd")
+const TalentsTabScript = preload("res://scripts/ui/inventory/TalentsTab.gd")
+const PartyTabScript = preload("res://scripts/ui/inventory/PartyTab.gd")
+const ClanTabScript = preload("res://scripts/ui/inventory/ClanTab.gd")
+const MapTabScript = preload("res://scripts/ui/inventory/MapTab.gd")
+const WeaponsTabScript = preload("res://scripts/ui/inventory/WeaponsTab.gd")
+const CraftingTabScript = preload("res://scripts/ui/inventory/CraftingTab.gd")
+const QuestsTabScript = preload("res://scripts/ui/inventory/QuestsTab.gd")
+
 # Inventory.gd (Omni-Control v164.1 - Phoenix Absolute)
 # Saneamiento total de diccionarios (Bracket Notation) + Exorcismo de Título.
 
@@ -99,37 +111,37 @@ func _ready():
 	# v300.01: Inicialización de Módulos (Refactorización Modular)
 	var hangar_node = get_node_or_null("Window/TabContainer/Hangar")
 	if hangar_node:
-		hangar_node.set_script(load("res://scripts/ui/inventory/HangarTab.gd"))
+		hangar_node.set_script(HangarTabScript)
 		if hangar_node.has_method("setup"): hangar_node.setup(self)
 	
 	var spheres_node = get_node_or_null("Window/TabContainer/Esferas")
 	if spheres_node:
-		spheres_node.set_script(load("res://scripts/ui/inventory/SpheresTab.gd"))
+		spheres_node.set_script(SpheresTabScript)
 		if spheres_node.has_method("setup"): spheres_node.setup(self)
 
 	var shop_node = get_node_or_null("Window/TabContainer/Tienda")
 	if shop_node:
-		shop_node.set_script(load("res://scripts/ui/inventory/ShopTab.gd"))
+		shop_node.set_script(ShopTabScript)
 		if shop_node.has_method("setup"): shop_node.setup(self)
 
 	var talents_node = get_node_or_null("Window/TabContainer/Talentos")
 	if talents_node:
-		talents_node.set_script(load("res://scripts/ui/inventory/TalentsTab.gd"))
+		talents_node.set_script(TalentsTabScript)
 		if talents_node.has_method("setup"): talents_node.setup(self)
 
 	var party_node = get_node_or_null("Window/TabContainer/Equipo")
 	if party_node:
-		party_node.set_script(load("res://scripts/ui/inventory/PartyTab.gd"))
+		party_node.set_script(PartyTabScript)
 		if party_node.has_method("setup"): party_node.setup(self)
 
 	var clan_node = get_node_or_null("Window/TabContainer/Clan")
 	if clan_node:
-		clan_node.set_script(load("res://scripts/ui/inventory/ClanTab.gd"))
+		clan_node.set_script(ClanTabScript)
 		if clan_node.has_method("setup"): clan_node.setup(self)
 
 	var map_node = get_node_or_null("Window/TabContainer/Mapa")
 	if map_node:
-		map_node.set_script(load("res://scripts/ui/inventory/MapTab.gd"))
+		map_node.set_script(MapTabScript)
 		if map_node.has_method("setup"): map_node.setup(self)
 	
 	# v219.67: Asegurar creación de pestañas dinámicas (Fix desaparición Mapa/Clan)
@@ -494,7 +506,7 @@ func _update_clan_ui():
 		var tabs = get_node_or_null("Window/TabContainer")
 		if tabs:
 			ct = Control.new(); ct.name = "Clan"; tabs.add_child(ct)
-			ct.set_script(load("res://scripts/ui/inventory/ClanTab.gd"))
+			ct.set_script(ClanTabScript)
 			if ct.has_method("setup"): ct.setup(self)
 			if NetworkManager: NetworkManager.send_event("getClanData", {})
 	
@@ -506,7 +518,7 @@ func _update_weapons_ui():
 		var tabs = get_node_or_null("Window/TabContainer")
 		if tabs:
 			wt = Control.new(); wt.name = "Armas"; tabs.add_child(wt)
-			wt.set_script(load("res://scripts/ui/inventory/WeaponsTab.gd"))
+			wt.set_script(WeaponsTabScript)
 			if wt.has_method("setup"): wt.setup(self)
 			
 			# Reordenar pestaña para que aparezca al lado de Esferas (Esferas suele ser la 2da o 3ra pestaña)
@@ -521,7 +533,7 @@ func _update_map_ui():
 		var tabs = get_node_or_null("Window/TabContainer")
 		if tabs:
 			mt = Control.new(); mt.name = "Mapa"; tabs.add_child(mt)
-			mt.set_script(load("res://scripts/ui/inventory/MapTab.gd"))
+			mt.set_script(MapTabScript)
 			if mt.has_method("setup"): mt.setup(self)
 	
 	if mt and mt.has_method("update_ui"): mt.update_ui()
@@ -532,7 +544,7 @@ func _update_crafting_ui():
 		var tabs = get_node_or_null("Window/TabContainer")
 		if tabs:
 			ct = Control.new(); ct.name = "Crafteo"; tabs.add_child(ct)
-			ct.set_script(load("res://scripts/ui/inventory/CraftingTab.gd"))
+			ct.set_script(CraftingTabScript)
 			if ct.has_method("setup"): ct.setup(self)
 	
 	if ct and ct.has_method("update_ui"): ct.update_ui()
@@ -646,7 +658,7 @@ func _update_quests_ui():
 		var tabs = get_node_or_null("Window/TabContainer")
 		if tabs:
 			qt = Control.new(); qt.name = "Misiones"; tabs.add_child(qt)
-			qt.set_script(load("res://scripts/ui/inventory/QuestsTab.gd"))
+			qt.set_script(QuestsTabScript)
 			if qt.has_method("setup"): qt.setup(self)
 	
 	if qt and qt.has_method("update_ui"): qt.update_ui()

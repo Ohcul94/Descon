@@ -1,5 +1,12 @@
 extends Node2D
 
+# Precargas estáticas para optimización de rendimiento y transiciones (v313.4)
+const LootUIScript = preload("res://scripts/ui/LootUI.gd")
+const VaultUIScript = preload("res://scripts/ui/VaultUI.gd")
+const DeathModalUIScript = preload("res://scripts/ui/DeathModalUI.gd")
+const EntityManagerScript = preload("res://scripts/systems/EntityManager.gd")
+const DungeonBuilderScript = preload("res://scripts/systems/DungeonBuilder.gd")
+
 # World.gd (Controlador Global v200.0 - Phoenix Universal Render Modular)
 # Optimización de Instanciación de Entidades y Parallax Stellar.
 
@@ -63,44 +70,68 @@ func _ready():
 	NetworkManager.blindness_event.connect(_on_blindness_event)
 	NetworkManager.interference_event.connect(_on_interference_event)
 	NetworkManager.freeze_event.connect(_on_freeze_event) # v268.40
+	_perform_shader_warmup()
 
 	# Inyección del sistema de interfaz del botín
 	var hud_node = get_node_or_null("HUD")
 	if hud_node:
-		var loot_ui_script = load("res://scripts/ui/LootUI.gd")
-		if loot_ui_script:
-			var loot_ui = loot_ui_script.new()
+		if LootUIScript:
+			var loot_ui = LootUIScript.new()
 			loot_ui.name = "LootUI"
 			hud_node.add_child(loot_ui)
-			print("[WORLD] LootUI inyectado dinámicamente en HUD.")
+			print("[WORLD] LootUI inyectado desde preload.")
 			
-		var vault_ui_script = load("res://scripts/ui/VaultUI.gd")
-		if vault_ui_script:
-			var vault_ui = vault_ui_script.new()
+		if VaultUIScript:
+			var vault_ui = VaultUIScript.new()
 			vault_ui.name = "VaultUI"
 			hud_node.add_child(vault_ui)
-			print("[WORLD] VaultUI inyectado dinámicamente en HUD.")
-
-		var death_ui_script = load("res://scripts/ui/DeathModalUI.gd")
-		if death_ui_script:
-			var death_ui = death_ui_script.new()
+			print("[WORLD] VaultUI inyectado desde preload.")
+ 
+		if DeathModalUIScript:
+			var death_ui = DeathModalUIScript.new()
 			death_ui.name = "DeathModalUI"
 			hud_node.add_child(death_ui)
-			print("[WORLD] DeathModalUI inyectado dinámicamente en HUD.")
+			print("[WORLD] DeathModalUI inyectado desde preload.")
 
 
 func _inject_entity_manager():
 	entity_manager = Node.new()
 	entity_manager.name = "EntityManager"
-	entity_manager.set_script(load("res://scripts/systems/EntityManager.gd"))
+	entity_manager.set_script(EntityManagerScript)
 	add_child(entity_manager)
 	entity_manager.setup(self)
 	
 	# v1.0: Inyectar DungeonBuilder
 	dungeon_builder = Node.new()
 	dungeon_builder.name = "DungeonBuilder"
-	dungeon_builder.set_script(load("res://scripts/systems/DungeonBuilder.gd"))
+	dungeon_builder.set_script(DungeonBuilderScript)
 	add_child(dungeon_builder)
+
+func _perform_shader_warmup():
+	# Forzar precompilación del driver de video para evitar micro-tirones de GPU (v313.4)
+	var warmup_node = Node3D.new()
+	warmup_node.name = "ShaderWarmup"
+	add_child(warmup_node)
+	
+	var shaders = [
+		preload("res://resources/shaders/energy_shield.gdshader"),
+		preload("res://resources/shaders/hit_flash.gdshader")
+	]
+	
+	for shader in shaders:
+		if shader:
+			var mesh_instance = MeshInstance3D.new()
+			mesh_instance.mesh = QuadMesh.new()
+			var mat = ShaderMaterial.new()
+			mat.shader = shader
+			mesh_instance.material_override = mat
+			mesh_instance.visible = true
+			mesh_instance.scale = Vector3(0.001, 0.001, 0.001) 
+			warmup_node.add_child(mesh_instance)
+			
+	var cb_free = func():
+		warmup_node.queue_free()
+	get_tree().process_frame.connect(cb_free, CONNECT_ONE_SHOT)
 
 func _setup_freeze_overlay():
 	var canvas = CanvasLayer.new()
