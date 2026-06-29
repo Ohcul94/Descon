@@ -5,107 +5,218 @@ extends Node
 
 var _warmup_cache: Dictionary = {}
 
+var static_textures_to_cache = [
+  "res://assets/Esferas/EsferaAmarilla1.png",
+  "res://assets/Esferas/EsferaAzul1.png",
+  "res://assets/Esferas/EsferaRoja1.png",
+  "res://assets/Esferas/EsferaVerde1.png",
+  "res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla_EsferaAmarilla_basecolor.jpg",
+  "res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla_EsferaAmarilla_normal.jpg",
+  "res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla_EsferaAmarilla_rm.jpg",
+  "res://assets/Esferas/3D/EsferaAzul/EsferaAzul_EsferaAzul_basecolor.jpg",
+  "res://assets/Esferas/3D/EsferaRoja/EsferaRoja_EsferaRoja_basecolor.jpg",
+  "res://assets/Esferas/3D/EsferaVerde/EsferaVerde_EsferaVerde_basecolor.jpg",
+  "res://assets/Skills/Marco Contenedor.png",
+  "res://assets/Skills/Iconos/Ataque/Miedo/Miedo.png",
+  "res://assets/Skills/Iconos/Ataque/Provocacion/Provocacion.png",
+  "res://assets/Skills/Iconos/Ataque/Reflect/Reflect.png",
+  "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
+  "res://assets/Skills/Iconos/Cura/Baliza Curativa/Baliza Curativa.png",
+  "res://assets/Skills/Iconos/Cura/Regeneracion Alfa/Regeneracion Alfa.png",
+  "res://assets/Skills/Iconos/Cura/Vinculo Vital/Vinculo Vital.png",
+  "res://assets/Skills/Iconos/Defensa/Barrera de Viento/Barrera de Viento.png",
+  "res://assets/Skills/Iconos/Defensa/Bomba de Humo/Bomba de Humo.png",
+  "res://assets/Skills/Iconos/Defensa/Camino de Hielo/Camino de Hielo.png",
+  "res://assets/Skills/Iconos/Defensa/Escudo Celular/Escudo Celular.png",
+  "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
+  "res://assets/Skills/Iconos/Utilidad/Invisibilidad/Invisibilidad.png",
+  "res://assets/Skills/Iconos/Utilidad/Invulnerabilidad/Invulnerabilidad.png",
+  "res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png",
+  "res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png",
+  "res://assets/Talentos/ContenedorGrande.png",
+  "res://assets/UI/hand_interact.jpg",
+  "res://assets/UI/Chat/Chat(Transp).png",
+  "res://assets/UI/Chat/Chat.png",
+  "res://assets/UI/Equipo/Equipo(Transp).png",
+  "res://assets/UI/Equipo/Equipo.png",
+  "res://assets/UI/Habilidades/Habilidades(Transp).png",
+  "res://assets/UI/Habilidades/Habilidades.png",
+  "res://assets/UI/Minimapa/Minimapa(Transp).png",
+  "res://assets/UI/Minimapa/Minimapa.png",
+  "res://assets/UI/Perfil/Perfil(Transp).png",
+  "res://assets/UI/Perfil/Perfil.png",
+  "res://assets/Armas/Arma1/Arma1.png",
+  "res://assets/Armas/Arma2/Arma2.png",
+  "res://assets/Armas/Arma3/Arma3.png",
+  "res://assets/Armas/Arma4/Arma4.png",
+  "res://assets/Armas/Arma5/Arma5.png",
+  "res://assets/Armas/Arma6/Arma6.png",
+  "res://assets/Escudos/Escudo1/Escudo1.png",
+  "res://assets/Escudos/Escudo2/Escudo2.png",
+  "res://assets/Escudos/Escudo3/Escudo3.png",
+  "res://assets/Escudos/Escudo4/Escudo4.png",
+  "res://assets/Escudos/Escudo5/Escudo5.png",
+  "res://assets/Escudos/Escudo6/Escudo6.png",
+  "res://assets/Motores/Motor1/Motor1.png",
+  "res://assets/Motores/Motor2/Motor2.png",
+  "res://assets/Motores/Motor3/Motor3.png",
+  "res://assets/Municiones/Lasers/Laser1/Laser1.png",
+  "res://assets/Municiones/Lasers/Laser2/Laser2-1.png",
+  "res://assets/Municiones/Lasers/Laser2/Laser2.png",
+  "res://assets/Municiones/Minas/Mina1/Mina1.png",
+  "res://assets/Municiones/Minas/Mina2/Mina2-1.png",
+  "res://assets/Municiones/Minas/Mina2/Mina2.png",
+  "res://assets/Municiones/Minas/Mina3/Mina3-1.png",
+  "res://assets/Municiones/Minas/Mina3/Mina3.png",
+  "res://assets/Municiones/Misiles/Misil1/Misil1.png",
+  "res://assets/Municiones/Misiles/Misil2/Misil2-1.png",
+  "res://assets/Municiones/Misiles/Misil2/Misil2.png",
+  "res://assets/Municiones/Misiles/Misil3/Misil3-1.png",
+  "res://assets/Municiones/Misiles/Misil3/Misil3.png"
+]
+
 func _ready():
 	add_to_group("vfx_system")
 	print("[VFX] Sistema restaurado para compatibilidad de escenas.")
 	
-	# Iniciar el proceso de Warm-up de Shaders y Caché de Texturas en segundo plano
+	# Iniciar el precalentamiento y caché al arrancar
 	_run_shader_warmup()
 
 func _run_shader_warmup():
-	# Retrasar un frame inicial para asegurar que el motor arrancó por completo
+	# Esperamos un frame para asegurar que el root se cargó
 	await get_tree().process_frame
-	print("[VFX-WarmUp] Iniciando precalentamiento de Shaders y Caché de Texturas (Warm-up)...")
 	
-	# 1. Caché de Texturas (Iconos de UI, Talentos, Skills, Esferas)
-	var texture_dirs = [
-		"res://assets/Esferas",
-		"res://assets/Skills",
-		"res://assets/Talentos",
-		"res://assets/UI"
-	]
+	# 1. CREACIÓN DE PANTALLA DE CARGA AAA
+	var canvas = CanvasLayer.new()
+	canvas.layer = 9999 # Encima de todo
+	get_tree().root.add_child(canvas)
 	
-	for dir_path in texture_dirs:
-		_cache_textures_in_dir(dir_path)
+	var bg = ColorRect.new()
+	bg.color = Color(0.03, 0.03, 0.05, 1.0) # Fondo oscuro premium
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	canvas.add_child(bg)
+	
+	var center = CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	canvas.add_child(center)
+	
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	center.add_child(vbox)
+	
+	var title = Label.new()
+	title.text = "DESCON"
+	title.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color(0.2, 0.95, 0.4, 1.0)) # Verde HUD
+	title.add_theme_font_size_override("font_size", 48)
+	vbox.add_child(title)
+	
+	var spacing = Control.new()
+	spacing.custom_minimum_size = Vector2(0, 20)
+	vbox.add_child(spacing)
+	
+	var status = Label.new()
+	status.text = "Optimizando texturas de interfaz..."
+	status.horizontal_alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_CENTER
+	status.add_theme_color_override("font_color", Color(0.8, 0.85, 0.9, 0.75))
+	status.add_theme_font_size_override("font_size", 16)
+	vbox.add_child(status)
+	
+	var spacing2 = Control.new()
+	spacing2.custom_minimum_size = Vector2(0, 10)
+	vbox.add_child(spacing2)
+	
+	var progress = ProgressBar.new()
+	progress.custom_minimum_size = Vector2(320, 18)
+	progress.max_value = 100.0
+	progress.value = 0.0
+	vbox.add_child(progress)
+	
+	await get_tree().process_frame
+	
+	# 2. CARGAR TEXTURAS DE LA LISTA ESTÁTICA (Resuelve el lag de Android/Exportados)
+	var total_textures = static_textures_to_cache.size()
+	for i in range(total_textures):
+		var tex_path = static_textures_to_cache[i]
+		if ResourceLoader.exists(tex_path):
+			var tex = load(tex_path)
+			_warmup_cache[tex_path] = tex
 		
-	# 2. Precalentamiento de Shaders 3D (VFX, Escudos, Cofres y Modelos)
+		# Actualizar barra de progreso para texturas (0% a 50%)
+		progress.value = (float(i) / total_textures) * 50.0
+		if i % 8 == 0:
+			await get_tree().process_frame
+			
+	status.text = "Compilando shaders gráficos (GPU)..."
+	await get_tree().process_frame
+
+	# 3. PRECALENTAMIENTO DE SHADERS EN VIEWPORT PRINCIPAL (Forzar compilación Vulkan/GLES en móvil)
 	var scenes_to_compile = [
-		# Escudos
 		"res://VFX/scenes/VFX_Shield_green.tscn",
 		"res://VFX/scenes/VFX_Shield_green_plane.tscn",
-		
-		# Proyectiles 3D (Hadouken, Cube, Anticipaciones, Hits)
 		"res://VFX/scenes/VFX_Cube_projectile.tscn",
 		"res://VFX/scenes/VFX_Hadouken.tscn",
 		"res://VFX/scenes/VFX_Anticipation_wave_digital.tscn",
 		"res://VFX/scenes/VFX_Anticipation_hadouken.tscn",
 		"res://VFX/scenes/VFX_Hit_cyber.tscn",
 		"res://VFX/scenes/VFX_Hit_hadouken.tscn",
-		
-		# Modelos y naves
 		"res://scenes/entities/Enemy.tscn",
 		"res://scenes/entities/Ship.tscn",
 		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 	]
 	
-	# Crear un Viewport oculto para renderizar los shaders por un frame
-	var wp_vp = SubViewport.new()
-	wp_vp.size = Vector2i(128, 128)
-	wp_vp.transparent_bg = true
-	wp_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
-	add_child(wp_vp)
+	# Creamos un nodo 3D y cámara temporal en la escena principal para forzar render
+	var temp_node3d = Node3D.new()
+	get_tree().root.add_child(temp_node3d)
 	
-	var wp_node3d = Node3D.new()
-	wp_vp.add_child(wp_node3d)
+	var temp_cam = Camera3D.new()
+	temp_cam.position = Vector3(999.0, 999.0, 1004.0) # Fuera del mapa jugable
+	temp_node3d.add_child(temp_cam)
+	temp_cam.look_at(Vector3(999.0, 999.0, 999.0))
 	
-	var wp_cam = Camera3D.new()
-	wp_cam.position = Vector3(0, 0, 5)
-	wp_node3d.add_child(wp_cam)
-	wp_cam.look_at(Vector3.ZERO) # Ya está dentro del tree, así que no falla
-	
-	# Procesar cada escena secuencialmente
-	for scene_path in scenes_to_compile:
+	var total_scenes = scenes_to_compile.size()
+	for i in range(total_scenes):
+		var scene_path = scenes_to_compile[i]
+		status.text = "Preparando efectos: " + scene_path.get_file()
+		
 		if ResourceLoader.exists(scene_path):
 			var scene = load(scene_path)
 			if scene:
 				var instance = scene.instantiate()
 				if instance is Node3D:
-					wp_node3d.add_child(instance)
-					instance.position = Vector3.ZERO
+					temp_node3d.add_child(instance)
+					instance.position = Vector3(999.0, 999.0, 999.0) # Justo frente a la cámara temp
 				elif instance is Node2D:
-					wp_vp.add_child(instance)
-					instance.position = Vector2.ZERO
+					# Para escenas 2D, las añadimos directo a la raíz
+					get_tree().root.add_child(instance)
+					instance.position = Vector2(-9999.0, -9999.0) # Off-screen
 				else:
-					wp_vp.add_child(instance)
+					get_tree().root.add_child(instance)
 				
-				# Esperar un frame de físicas y renderizado para forzar la compilación del shader en la GPU
+				# Esperar 2 frames de renderizado (Requerido por compiladores de GPU móviles)
 				await get_tree().physics_frame
 				await get_tree().process_frame
 				
 				instance.queue_free()
 				
-	# Eliminar el viewport de calentamiento
-	wp_vp.queue_free()
-	print("[VFX-WarmUp] Precalentamiento de Shaders y Caché finalizado con éxito. Juego optimizado para gameplay AAA.")
+		# Actualizar barra de progreso para shaders (50% a 100%)
+		progress.value = 50.0 + ((float(i) / total_scenes) * 50.0)
+		await get_tree().process_frame
 
-func _cache_textures_in_dir(path: String):
-	if not DirAccess.dir_exists_absolute(path): return
+	# 4. LIMPIEZA DE ELEMENTOS TEMPORALES Y TRANSICIÓN SUAVE
+	temp_node3d.queue_free()
 	
-	var dir = DirAccess.open(path)
-	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
-		while file_name != "":
-			if not dir.current_is_dir():
-				var lower_name = file_name.to_lower()
-				if lower_name.ends_with(".png") or lower_name.ends_with(".jpg") or lower_name.ends_with(".jpeg") or lower_name.ends_with(".bmp"):
-					# Ignorar los archivos .import y cargar la textura real
-					var full_path = path + "/" + file_name
-					if ResourceLoader.exists(full_path):
-						var tex = load(full_path)
-						_warmup_cache[full_path] = tex
-			file_name = dir.get_next()
-		dir.list_dir_end()
+	status.text = "¡Listo!"
+	progress.value = 100.0
+	
+	# Animación de salida (Fade out)
+	var tween = create_tween()
+	tween.tween_property(bg, "modulate:a", 0.0, 0.4)
+	tween.parallel().tween_property(center, "modulate:a", 0.0, 0.3)
+	await tween.finished
+	
+	canvas.queue_free()
+	print("[VFX-WarmUp] Precalentamiento de Shaders y Caché finalizado con éxito. Carga completada.")
 
 func spawn_explosion(pos: Vector2, p_scale: float = 1.0): # Renombrado scale a p_scale
 	# Efecto visual de explosión por defecto
