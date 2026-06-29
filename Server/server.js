@@ -1451,8 +1451,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('ping_custom', () => {
-
-        socket.emit('pong_custom');
+        socket.emit('pong_custom', { serverTime: Date.now() });
     });
 
     const isLocalServer = () => {

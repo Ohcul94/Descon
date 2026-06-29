@@ -13,6 +13,9 @@ extends Control
 @onready var ms_label = $TopLeft/MS
 @onready var online_label = $TopLeft/ONLINE
 
+var server_time_label: Label = null
+var server_date_label: Label = null
+
 var radar_title: Label = null # v243.60: Titulo del Minimapa (Nombre del Sector)
 var virtual_joystick = null # Controlado por TouchControls.gd
 
@@ -35,6 +38,29 @@ var _last_applied_config: Dictionary = {}
 func _ready():
 	add_to_group("hud")
 	print("[MainHUD] Inicializando coordinador central modular v200.0")
+	
+	# Inicializar Reloj del Servidor (Horario de Argentina) en TopLeft
+	var top_left = get_node_or_null("TopLeft")
+	if top_left:
+		var spacer = Control.new()
+		spacer.custom_minimum_size.y = 6
+		top_left.add_child(spacer)
+		
+		server_time_label = Label.new()
+		server_time_label.name = "ServerTimeLabel"
+		server_time_label.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0)) # Cian neón
+		server_time_label.add_theme_font_size_override("font_size", 15)
+		server_time_label.add_theme_constant_override("outline_size", 4)
+		server_time_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		top_left.add_child(server_time_label)
+		
+		server_date_label = Label.new()
+		server_date_label.name = "ServerDateLabel"
+		server_date_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.9, 0.8)) # Azul espacial
+		server_date_label.add_theme_font_size_override("font_size", 10)
+		server_date_label.add_theme_constant_override("outline_size", 3)
+		server_date_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		top_left.add_child(server_date_label)
 	
 	# v302.99: Atajo de Desarrollador para simular móvil en PC
 	set_process_input(true)
@@ -458,6 +484,20 @@ func _process(_delta):
 	if ms_label: ms_label.text = "MS: " + str(NetworkManager.current_ms)
 	if is_instance_valid(online_label):
 		online_label.text = "ONLINE: " + str(NetworkManager.online_count)
+
+	# Actualizar Reloj del Servidor (Horario de Argentina UTC-3)
+	if is_instance_valid(server_time_label) or is_instance_valid(server_date_label):
+		var server_time_ms = NetworkManager.get_secure_server_time_ms()
+		# Restamos 3 horas para la zona horaria de Argentina (UTC-3)
+		var argentina_time_sec = int((server_time_ms - 3 * 3600 * 1000) / 1000.0)
+		var datetime = Time.get_datetime_dict_from_unix_time(argentina_time_sec)
+		
+		if is_instance_valid(server_time_label):
+			server_time_label.text = "%02d:%02d" % [datetime["hour"], datetime["minute"]]
+			
+		if is_instance_valid(server_date_label):
+			var short_year = datetime["year"] % 100
+			server_date_label.text = "%02d/%02d/%02d" % [datetime["day"], datetime["month"], short_year]
 
 	# v266.360: Actualizar UI de estados activos
 	_update_status_effects_ui()

@@ -115,6 +115,10 @@ var is_registering: bool = false # v244.10: Soporte para creación de cuenta
 var current_user_data: Dictionary = {} 
 var current_arena_data: Dictionary = {}
 
+# Sincronización segura del tiempo del servidor (Evita hacks de hora local)
+var time_synced: bool = false
+var ticks_at_sync: int = 0
+var server_time_at_sync: int = 0
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -362,6 +366,8 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"pong_custom":
 			current_ms = int(Time.get_ticks_msec() - ping_start_time)
 			send_event("latencyUpdate", current_ms)
+			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("serverTime"):
+				_sync_server_time(int(e_data["serverTime"]), current_ms)
 		"tradeInvitationReceived": trade_invitation_received.emit(e_data)
 		"tradeStarted": trade_started.emit(e_data)
 		"tradePartnerUpdate": trade_partner_update.emit(e_data)
@@ -556,3 +562,16 @@ func _start_ping_loop():
 		ping_start_time = Time.get_ticks_msec()
 		send_event("ping_custom", {})
 		await get_tree().create_timer(3.0).timeout
+
+func _sync_server_time(server_time_ms: int, latency_ms: int):
+	ticks_at_sync = Time.get_ticks_msec()
+	server_time_at_sync = server_time_ms + int(latency_ms / 2.0)
+	time_synced = true
+	# print("[NET-TIME] Sincronizado: server_time=", server_time_at_sync, " ticks=", ticks_at_sync)
+
+func get_secure_server_time_ms() -> int:
+	if not time_synced:
+		# Fallback seguro: hora del sistema en UTC
+		return int(Time.get_unix_time_from_system() * 1000)
+	var elapsed = Time.get_ticks_msec() - ticks_at_sync
+	return server_time_at_sync + elapsed
