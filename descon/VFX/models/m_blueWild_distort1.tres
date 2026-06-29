@@ -1,6 +1,6 @@
-[gd_resource type="ShaderMaterial" format=3 ]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://3cxce2xr3wvf"]
 
-[ext_resource type="Shader" path="res://VFX/shaders/s_distortion_sphere_wLine.gdshader" id="1_3pbdt"]
+[ext_resource type="Shader" uid="uid://4fco2iiuge2t" path="res://VFX/shaders/s_distortion_sphere_wLine.gdshader" id="1_3pbdt"]
 
 [sub_resource type="Gradient" id="Gradient_tluns"]
 

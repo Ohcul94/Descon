@@ -1,8 +1,8 @@
-[gd_resource type="ShaderMaterial" format=3 ]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://tfp8c0upaw7h"]
 
-[ext_resource type="Texture2D" path="res://VFX/textures/T_Noise_02.PNG" id="1_ipldr"]
-[ext_resource type="Shader" path="res://VFX/shaders/s_shield_color_wLine.gdshader" id="1_k8n8l"]
-[ext_resource type="Texture2D" path="res://VFX/textures/T_Hex1_inv.jpg" id="2_2bmsb"]
+[ext_resource type="Texture2D" uid="uid://bavuj1oxmbfin" path="res://VFX/textures/T_Noise_02.PNG" id="1_ipldr"]
+[ext_resource type="Shader" uid="uid://crlb81ob7dnis" path="res://VFX/shaders/s_shield_color_wLine.gdshader" id="1_k8n8l"]
+[ext_resource type="Texture2D" uid="uid://bkpvow5cr5y64" path="res://VFX/textures/T_Hex1_inv.jpg" id="2_2bmsb"]
 
 [sub_resource type="Gradient" id="Gradient_3v8lt"]
 offsets = PackedFloat32Array(0, 0.483193, 0.542017, 1)

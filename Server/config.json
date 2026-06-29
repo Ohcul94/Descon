@@ -4434,7 +4434,7 @@
                 "clan": false
             },
             "desc": "Lanza una esfera de energía oscura que daña y aterroriza al objetivo, invirtiendo su movimiento.",
-            "icon": ""
+            "icon": "res://assets/Skills/Iconos/Ataque/Miedo/Miedo.png"
         },
         "AUTO-REPARACIÓN": {
             "amount": 400,

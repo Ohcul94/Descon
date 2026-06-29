@@ -1,4 +1,4 @@
-[gd_scene format=3 ]
+[gd_scene format=3 uid="uid://3aawrlaro55a"]
 
 [ext_resource type="PackedScene" path="res://VFX/scenes/VFX_Fire_ball_type_B.tscn" id="1_pwqdu"]
 [ext_resource type="PackedScene" path="res://VFX/scenes/VFX_Electric_strike.tscn" id="2_v7edw"]
@@ -105,86 +105,84 @@ tracks/0/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_rwh1t"]
 _data = {
-"Init": SubResource("Animation_as6tx"),
-"RESET": SubResource("Animation_uhifs")
+&"Init": SubResource("Animation_as6tx"),
+&"RESET": SubResource("Animation_uhifs")
 }
 
-[node name="map1_Projectiles_showcase" type="Node3D"]
+[node name="map1_Projectiles_showcase" type="Node3D" unique_id=454331286]
 script = SubResource("GDScript_vig0k")
 my_bool = true
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=294951588]
 transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
 light_energy = 0.3
 shadow_enabled = true
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=569909256]
 environment = SubResource("Environment_jg4fy")
 
-[node name="floor" type="MeshInstance3D" parent="."]
+[node name="floor" type="MeshInstance3D" parent="." unique_id=709283462]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.00527167, 0)
 material_override = SubResource("StandardMaterial3D_rkk5e")
 mesh = SubResource("PlaneMesh_e7ubf")
 
-[node name="VFX_FireBall" parent="." instance=ExtResource("19_0innb")]
+[node name="VFX_FireBall" parent="." unique_id=1987311597 instance=ExtResource("19_0innb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.40659, 0)
 
-[node name="VFX_FireBall_TypeB" parent="." instance=ExtResource("1_pwqdu")]
+[node name="VFX_FireBall_TypeB" parent="." unique_id=1441189535 instance=ExtResource("1_pwqdu")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.40659, 0)
 
-[node name="VFX_ElectricStrike" parent="." instance=ExtResource("2_v7edw")]
+[node name="VFX_ElectricStrike" parent="." unique_id=1570549843 instance=ExtResource("2_v7edw")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.40659, 0)
 
-[node name="VFX_FireStrike" parent="." instance=ExtResource("3_m4qq2")]
+[node name="VFX_FireStrike" parent="." unique_id=882385763 instance=ExtResource("3_m4qq2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.40659, 0)
 
-[node name="VFX_DarknessProjectile" parent="." instance=ExtResource("4_ut1jt")]
+[node name="VFX_DarknessProjectile" parent="." unique_id=1050710516 instance=ExtResource("4_ut1jt")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.40659, 0)
 
-[node name="VFX_CubeProjectile" parent="." instance=ExtResource("5_hrtv8")]
+[node name="VFX_CubeProjectile" parent="." unique_id=1340307478 instance=ExtResource("5_hrtv8")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1.40659, 0)
 
-[node name="VFX_Hadouken" parent="." instance=ExtResource("6_w0kw2")]
+[node name="VFX_Hadouken" parent="." unique_id=475154435 instance=ExtResource("6_w0kw2")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.40659, 0)
 
-[node name="VFX_Hit_Hadouken" parent="." instance=ExtResource("7_eg8vh")]
+[node name="VFX_Hit_Hadouken" parent="." unique_id=261857225 instance=ExtResource("7_eg8vh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.40659, -5.3539)
 
-[node name="VFX_Hit_Fire2" parent="." instance=ExtResource("9_op2gs")]
+[node name="VFX_Hit_Fire2" parent="." unique_id=1605220330 instance=ExtResource("9_op2gs")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.40659, -5.3539)
 
-[node name="VFX_Hit_Fire3" parent="." instance=ExtResource("10_6wapy")]
+[node name="VFX_Hit_Fire3" parent="." unique_id=1484687677 instance=ExtResource("10_6wapy")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 1.40659, -5.3539)
 
-[node name="VFX_Hit_cyber" parent="." instance=ExtResource("11_4bot5")]
+[node name="VFX_Hit_cyber" parent="." unique_id=388187383 instance=ExtResource("11_4bot5")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1.40659, -5.3539)
 
-[node name="VFX_Hit_dark" parent="." instance=ExtResource("12_v3c4y")]
+[node name="VFX_Hit_dark" parent="." unique_id=1499964383 instance=ExtResource("12_v3c4y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.40659, -5.3539)
 
-[node name="VFX_Hit_Fire1" parent="." instance=ExtResource("13_r3ovb")]
+[node name="VFX_Hit_Fire1" parent="." unique_id=99791423 instance=ExtResource("13_r3ovb")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.40659, -5.3539)
 
-[node name="VFX_Hit_Electric" parent="." instance=ExtResource("14_h8v0y")]
+[node name="VFX_Hit_Electric" parent="." unique_id=989291779 instance=ExtResource("14_h8v0y")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.40659, -5.3539)
 
-[node name="VFX_Anticipation_Hadouken" parent="." instance=ExtResource("8_aq4wr")]
+[node name="VFX_Anticipation_Hadouken" parent="." unique_id=577824274 instance=ExtResource("8_aq4wr")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 1.40659, 7.38924)
 
-[node name="VFX_Anticipation_Fire1" parent="." instance=ExtResource("15_b6fwv")]
+[node name="VFX_Anticipation_Fire1" parent="." unique_id=308921770 instance=ExtResource("15_b6fwv")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 1.40659, 7.38924)
 
-[node name="VFX_Anticipation_Fire3" parent="." instance=ExtResource("16_sl0bi")]
+[node name="VFX_Anticipation_Fire3" parent="." unique_id=1787603137 instance=ExtResource("16_sl0bi")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 1.40659, 7.38924)
 
-[node name="VFX_Anticipation_Wave1" parent="." instance=ExtResource("17_fp517")]
+[node name="VFX_Anticipation_Wave1" parent="." unique_id=451502690 instance=ExtResource("17_fp517")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 1.40659, 7.38924)
 
-[node name="VFX_Anticipation_WaveDigital" parent="." instance=ExtResource("18_4y2dc")]
+[node name="VFX_Anticipation_WaveDigital" parent="." unique_id=445426774 instance=ExtResource("18_4y2dc")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3, 1.40659, 7.38924)
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
-libraries = {
-"": SubResource("AnimationLibrary_rwh1t")
-}
-autoplay = "Init"
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1158778745]
+libraries/ = SubResource("AnimationLibrary_rwh1t")
+autoplay = &"Init"

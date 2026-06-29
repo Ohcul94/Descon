@@ -1,7 +1,7 @@
-[gd_resource type="ShaderMaterial" format=3 ]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://b1iejcpeul254"]
 
-[ext_resource type="Shader" path="res://VFX/shaders/s_hit_sphere.tres" id="1_28rou"]
-[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_HitHex1.jpg" id="2_i43ww"]
+[ext_resource type="Shader" uid="uid://dsrcy1l0via61" path="res://VFX/shaders/s_hit_sphere.tres" id="1_28rou"]
+[ext_resource type="Texture2D" uid="uid://d1creearqaous" path="res://VFX/textures/T_VFX_HitHex1.jpg" id="2_i43ww"]
 
 [sub_resource type="Gradient" id="Gradient_xh2i0"]
 offsets = PackedFloat32Array(0.721311, 1)

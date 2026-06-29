@@ -1,6 +1,6 @@
-[gd_resource type="ShaderMaterial" format=3 ]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://dr1ilcj3to2t1"]
 
-[ext_resource type="Shader" path="res://VFX/shaders/s_hit_sphere.tres" id="1_fwwds"]
+[ext_resource type="Shader" uid="uid://dsrcy1l0via61" path="res://VFX/shaders/s_hit_sphere.tres" id="1_fwwds"]
 
 [sub_resource type="Gradient" id="Gradient_vnxre"]
 offsets = PackedFloat32Array(0.239496, 1)

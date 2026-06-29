@@ -1,6 +1,6 @@
-[gd_resource type="ShaderMaterial" format=3 ]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://qgucslbjgykn"]
 
-[ext_resource type="Shader" path="res://VFX/shaders/s_distortion_wLine.gdshader" id="1_7luak"]
+[ext_resource type="Shader" uid="uid://n4wstxcw4lfb" path="res://VFX/shaders/s_distortion_wLine.gdshader" id="1_7luak"]
 
 [sub_resource type="Gradient" id="Gradient_0mvlw"]
 

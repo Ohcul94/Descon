@@ -197,6 +197,88 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				world_root_3d.queue_free()
 		)
 		
+	# Spawn 3D anticipation aura for heal projectiles
+	if type == "heal":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			var antic_scene = load("res://VFX/scenes/VFX_Anticipation_wave_digital.tscn")
+			if antic_scene:
+				var antic = antic_scene.instantiate()
+				antic.name = "HealAntic3D_" + str(get_instance_id())
+				target_vp.add_child(antic)
+				
+				# Calcular posición desplazada hacia atrás de la nave (según la rotación de disparo)
+				var offset_dist = 50.0 # Desplazar 50px hacia atrás
+				var offset_pos = p_pos - Vector2.RIGHT.rotated(p_angle) * offset_dist
+				
+				# Posicionarlo a la altura correcta
+				var s_factor = 0.02
+				var correction_z = 1.41421356
+				antic.position.x = offset_pos.x * s_factor
+				antic.position.z = offset_pos.y * s_factor * correction_z
+				# Elevarlo un poco en Y para que se alinee con el chasis de la nave y no quede en el suelo
+				antic.position.y = 0.4
+				antic.scale = Vector3(1.2, 1.2, 1.2)
+				
+				# Sincronizar la rotación del aura 3D con la dirección del disparo
+				antic.rotation.y = -p_angle - PI/2.0
+				
+				# Auto-liberar al terminar la animación
+				var anim = antic.get_node_or_null("AnimationPlayer")
+				if anim:
+					anim.play("Init")
+					anim.animation_finished.connect(func(_name):
+						if is_instance_valid(antic):
+							antic.queue_free()
+					)
+				else:
+					get_tree().create_timer(1.0).timeout.connect(func():
+						if is_instance_valid(antic):
+							antic.queue_free()
+					)
+
+	# Spawn 3D anticipation aura for emp (hadouken) projectiles
+	if type == "emp":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			var antic_scene = load("res://VFX/scenes/VFX_Anticipation_hadouken.tscn")
+			if antic_scene:
+				var antic = antic_scene.instantiate()
+				antic.name = "HadoukenAntic3D_" + str(get_instance_id())
+				target_vp.add_child(antic)
+				
+				# Calcular posición desplazada hacia atrás de la nave (según la rotación de disparo)
+				var offset_dist = 50.0
+				var offset_pos = p_pos - Vector2.RIGHT.rotated(p_angle) * offset_dist
+				
+				# Posicionarlo a la altura correcta
+				var s_factor = 0.02
+				var correction_z = 1.41421356
+				antic.position.x = offset_pos.x * s_factor
+				antic.position.z = offset_pos.y * s_factor * correction_z
+				# Elevarlo un poco en Y para que se alinee con el chasis de la nave y no quede en el suelo
+				antic.position.y = 0.4
+				antic.scale = Vector3(1.2, 1.2, 1.2)
+				
+				# Sincronizar la rotación del aura 3D con la dirección del disparo
+				antic.rotation.y = -p_angle - PI/2.0
+				
+				# Auto-liberar al terminar la animación
+				var anim = antic.get_node_or_null("AnimationPlayer")
+				if anim:
+					anim.play("Init")
+					anim.animation_finished.connect(func(_name):
+						if is_instance_valid(antic):
+							antic.queue_free()
+					)
+				else:
+					get_tree().create_timer(1.0).timeout.connect(func():
+						if is_instance_valid(antic):
+							antic.queue_free()
+					)
+					
 	_setup_visual_sprite()
 	_is_setup = true
 	queue_redraw()
@@ -205,52 +287,28 @@ func _setup_visual_sprite():
 	if type == "spin_ring": return
 	if is_instance_valid(sprite): sprite.queue_free()
 	
-	# Efecto de partículas de tormenta de viento eléctrica lineal para EMP
+	# Efecto 3D de proyectil EMP (Hadouken)
 	if type == "emp":
-		sprite = null
-		var parts = CPUParticles2D.new()
-		parts.name = "EMPViento"
-		parts.amount = 60
-		parts.lifetime = 0.4
-		parts.speed_scale = 1.3
-		parts.explosiveness = 0.05
-		parts.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-		parts.emission_rect_extents = Vector2(5.0, 30.0) # Cubre ancho de 60px
-		parts.direction = Vector2.RIGHT
-		parts.spread = 0.0 # Haz lineal recto sin esparcimiento cónico
-		parts.gravity = Vector2.ZERO
-		parts.initial_velocity_min = 250.0
-		parts.initial_velocity_max = 500.0
-		parts.scale_amount_min = 2.0
-		parts.scale_amount_max = 7.0
-		parts.z_index = 6
-		
-		var gradient = Gradient.new()
-		gradient.set_color(0, Color(0.15, 0.55, 1.0, 0.85)) 
-		gradient.add_point(0.4, Color(0.4, 0.8, 1.0, 0.65)) 
-		gradient.add_point(0.8, Color(0.05, 0.3, 0.9, 0.3)) 
-		gradient.set_color(1, Color(0.0, 0.1, 0.5, 0.0))
-		parts.color_ramp = gradient
-		
-		add_child(parts)
-		parts.emitting = true
-		
-		var sparks = CPUParticles2D.new()
-		sparks.amount = 25
-		sparks.lifetime = 0.5
-		sparks.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-		sparks.emission_rect_extents = Vector2(5.0, 30.0)
-		sparks.direction = Vector2.RIGHT
-		sparks.spread = 10.0
-		sparks.gravity = Vector2.ZERO
-		sparks.initial_velocity_min = 100.0
-		sparks.initial_velocity_max = 300.0
-		sparks.scale_amount_min = 1.0
-		sparks.scale_amount_max = 3.0
-		sparks.color = Color(0.7, 0.9, 1.0, 0.9)
-		add_child(sparks)
-		sparks.emitting = true
-		return
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			var vfx_scene = load("res://VFX/scenes/VFX_Hadouken.tscn")
+			if vfx_scene:
+				world_root_3d = vfx_scene.instantiate()
+				world_root_3d.name = "HadoukenProj3D_" + str(get_instance_id())
+				target_vp.add_child(world_root_3d)
+				
+				# Escala 3D óptima
+				world_root_3d.scale = Vector3(1.5, 1.5, 1.5)
+				
+				# Conectar la limpieza al salir del árbol
+				tree_exiting.connect(func():
+					if is_instance_valid(world_root_3d):
+						world_root_3d.queue_free()
+				)
+				
+				sprite = null
+				return
 		
 	# Efecto de partículas de chispas radiales de sierras giratorias para Melee
 	if type == "melee":
@@ -297,35 +355,28 @@ func _setup_visual_sprite():
 		parts_tras_der.emitting = true
 		return
 		
-	# Efecto de partículas de estela verde brillante para Heal Drones
+	# Efecto 3D de proyectil curativo (glowing green cube)
 	if type == "heal":
-		sprite = null
-		var parts = CPUParticles2D.new()
-		parts.name = "HealTrail"
-		parts.amount = 35
-		parts.lifetime = 0.5
-		parts.speed_scale = 1.0
-		parts.explosiveness = 0.0
-		parts.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-		parts.emission_sphere_radius = 5.0
-		parts.direction = Vector2.LEFT # Estela hacia atrás
-		parts.spread = 20.0
-		parts.gravity = Vector2.ZERO
-		parts.initial_velocity_min = 40.0
-		parts.initial_velocity_max = 90.0
-		parts.scale_amount_min = 2.0
-		parts.scale_amount_max = 5.0
-		parts.z_index = 5
-		
-		var grad = Gradient.new()
-		grad.set_color(0, Color(0.2, 0.95, 0.4, 0.9)) # Verde brillante
-		grad.add_point(0.5, Color(0.5, 1.0, 0.6, 0.7)) # Verde claro brillante
-		grad.set_color(1, Color(0.1, 0.6, 0.2, 0.0)) # Desvanecimiento
-		parts.color_ramp = grad
-		
-		add_child(parts)
-		parts.emitting = true
-		return
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			var vfx_scene = load("res://VFX/scenes/VFX_Cube_projectile.tscn")
+			if vfx_scene:
+				world_root_3d = vfx_scene.instantiate()
+				world_root_3d.name = "HealProj3D_" + str(get_instance_id())
+				target_vp.add_child(world_root_3d)
+				
+				# Escala 3D óptima
+				world_root_3d.scale = Vector3(1.5, 1.5, 1.5)
+				
+				# Conectar la limpieza al salir del árbol
+				tree_exiting.connect(func():
+					if is_instance_valid(world_root_3d):
+						world_root_3d.queue_free()
+				)
+				
+				sprite = null
+				return
 		
 	# Efecto de partículas de humo oscuro y aura carmesí para Siphon
 	if type == "siphon":
@@ -528,6 +579,8 @@ func _draw():
 					draw_line(p1, p2, color_sierra, 3.0)
 					draw_line(p1, p2, color_nucleo, 1.2)
 		"heal":
+			if is_instance_valid(world_root_3d):
+				return
 			# Dibujamos un mini-dron de soporte curativo (Heal Drones)
 			var pulse = sin(Time.get_ticks_msec() * 0.01) * 2.0
 			var base_r = 8.0 + pulse
@@ -573,6 +626,8 @@ func _draw():
 			draw_line(Vector2(-6, -2), Vector2(-4, -2), Color(0.8, 0.1, 0.95, 0.75), 1.0)
 			draw_line(Vector2(4, 2), Vector2(6, 2), Color(0.8, 0.1, 0.95, 0.75), 1.0)
 		"emp":
+			if is_instance_valid(world_root_3d):
+				return
 			# Dibujar líneas verticales sutiles que representan el frente del haz de viento (de Y=-30 a Y=30)
 			draw_line(Vector2(0, -30), Vector2(0, 30), Color(0.1, 0.5, 1.0, 0.45), 4.0)
 			draw_line(Vector2(-8, -20), Vector2(-8, 20), Color(0.3, 0.7, 1.0, 0.25), 2.0)
@@ -587,7 +642,12 @@ func _physics_process(delta):
 		var correction_z = 1.41421356
 		world_root_3d.position.x = global_position.x * s_factor
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
+		
+		# Elevarlo a la altura estándar de flotación en 3D (0.0 para alineación con las naves)
 		world_root_3d.position.y = 0.0
+		
+		# Sincronizar rotación con la física 2D para que el modelo mire hacia donde avanza
+		world_root_3d.rotation.y = -rotation - PI/2.0
 
 	if lifetime > 0:
 		_current_lifetime += delta
@@ -941,6 +1001,72 @@ func _explode():
 			ret.set("start_pos", global_position)
 			ret.set("owner_ref", _owner_node)
 			ret.set_process(true)
+
+	# Spawn 3D hit impact effect for heal projectiles
+	if type == "heal":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			var hit_scene = load("res://VFX/scenes/VFX_Hit_cyber.tscn")
+			if hit_scene:
+				var hit_node = hit_scene.instantiate()
+				hit_node.name = "HealHit3D_" + str(get_instance_id())
+				target_vp.add_child(hit_node)
+				
+				# Posicionarlo en el lugar exacto del impacto a altura de la nave (0.0)
+				var s_factor = 0.02
+				var correction_z = 1.41421356
+				hit_node.position.x = global_position.x * s_factor
+				hit_node.position.z = global_position.y * s_factor * correction_z
+				hit_node.position.y = 0.0
+				hit_node.scale = Vector3(1.5, 1.5, 1.5)
+				
+				# Auto-liberar al terminar la animación
+				var anim = hit_node.get_node_or_null("AnimationPlayer")
+				if anim:
+					anim.play("Init")
+					anim.animation_finished.connect(func(_name):
+						if is_instance_valid(hit_node):
+							hit_node.queue_free()
+					)
+				else:
+					get_tree().create_timer(1.0).timeout.connect(func():
+						if is_instance_valid(hit_node):
+							hit_node.queue_free()
+					)
+
+	# Spawn 3D hit impact effect for emp (hadouken) projectiles
+	if type == "emp":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			var hit_scene = load("res://VFX/scenes/VFX_Hit_hadouken.tscn")
+			if hit_scene:
+				var hit_node = hit_scene.instantiate()
+				hit_node.name = "HadoukenHit3D_" + str(get_instance_id())
+				target_vp.add_child(hit_node)
+				
+				# Posicionarlo en el lugar exacto del impacto a altura de la nave (0.0)
+				var s_factor = 0.02
+				var correction_z = 1.41421356
+				hit_node.position.x = global_position.x * s_factor
+				hit_node.position.z = global_position.y * s_factor * correction_z
+				hit_node.position.y = 0.0
+				hit_node.scale = Vector3(1.5, 1.5, 1.5)
+				
+				# Auto-liberar al terminar la animación
+				var anim = hit_node.get_node_or_null("AnimationPlayer")
+				if anim:
+					anim.play("Init")
+					anim.animation_finished.connect(func(_name):
+						if is_instance_valid(hit_node):
+							hit_node.queue_free()
+					)
+				else:
+					get_tree().create_timer(1.0).timeout.connect(func():
+						if is_instance_valid(hit_node):
+							hit_node.queue_free()
+					)
 
 	if type == "emp" and not _is_exploding:
 		_is_exploding = true
