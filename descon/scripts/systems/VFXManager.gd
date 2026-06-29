@@ -3,9 +3,109 @@ extends Node
 # VFXSystem.gd (Architecture v164.12 - RE-SAVED)
 # Manager central de efectos visuales (Explosiones, Nova, Rifts)
 
+var _warmup_cache: Dictionary = {}
+
 func _ready():
 	add_to_group("vfx_system")
 	print("[VFX] Sistema restaurado para compatibilidad de escenas.")
+	
+	# Iniciar el proceso de Warm-up de Shaders y Caché de Texturas en segundo plano
+	_run_shader_warmup()
+
+func _run_shader_warmup():
+	# Retrasar un frame inicial para asegurar que el motor arrancó por completo
+	await get_tree().process_frame
+	print("[VFX-WarmUp] Iniciando precalentamiento de Shaders y Caché de Texturas (Warm-up)...")
+	
+	# 1. Caché de Texturas (Iconos de UI, Talentos, Skills, Esferas)
+	var texture_dirs = [
+		"res://assets/Esferas",
+		"res://assets/Skills",
+		"res://assets/Talentos",
+		"res://assets/UI"
+	]
+	
+	for dir_path in texture_dirs:
+		_cache_textures_in_dir(dir_path)
+		
+	# 2. Precalentamiento de Shaders 3D (VFX, Escudos, Cofres y Modelos)
+	var scenes_to_compile = [
+		# Escudos
+		"res://VFX/scenes/VFX_Shield_green.tscn",
+		"res://VFX/scenes/VFX_Shield_green_plane.tscn",
+		
+		# Proyectiles 3D (Hadouken, Cube, Anticipaciones, Hits)
+		"res://VFX/scenes/VFX_Cube_projectile.tscn",
+		"res://VFX/scenes/VFX_Hadouken.tscn",
+		"res://VFX/scenes/VFX_Anticipation_wave_digital.tscn",
+		"res://VFX/scenes/VFX_Anticipation_hadouken.tscn",
+		"res://VFX/scenes/VFX_Hit_cyber.tscn",
+		"res://VFX/scenes/VFX_Hit_hadouken.tscn",
+		
+		# Modelos y naves
+		"res://scenes/entities/Enemy.tscn",
+		"res://scenes/entities/Ship.tscn",
+		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
+	]
+	
+	# Crear un Viewport oculto para renderizar los shaders por un frame
+	var wp_vp = SubViewport.new()
+	wp_vp.size = Vector2i(128, 128)
+	wp_vp.transparent_bg = true
+	wp_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	add_child(wp_vp)
+	
+	var wp_node3d = Node3D.new()
+	wp_vp.add_child(wp_node3d)
+	
+	var wp_cam = Camera3D.new()
+	wp_cam.position = Vector3(0, 0, 5)
+	wp_node3d.add_child(wp_cam)
+	wp_cam.look_at(Vector3.ZERO) # Ya está dentro del tree, así que no falla
+	
+	# Procesar cada escena secuencialmente
+	for scene_path in scenes_to_compile:
+		if ResourceLoader.exists(scene_path):
+			var scene = load(scene_path)
+			if scene:
+				var instance = scene.instantiate()
+				if instance is Node3D:
+					wp_node3d.add_child(instance)
+					instance.position = Vector3.ZERO
+				elif instance is Node2D:
+					wp_vp.add_child(instance)
+					instance.position = Vector2.ZERO
+				else:
+					wp_vp.add_child(instance)
+				
+				# Esperar un frame de físicas y renderizado para forzar la compilación del shader en la GPU
+				await get_tree().physics_frame
+				await get_tree().process_frame
+				
+				instance.queue_free()
+				
+	# Eliminar el viewport de calentamiento
+	wp_vp.queue_free()
+	print("[VFX-WarmUp] Precalentamiento de Shaders y Caché finalizado con éxito. Juego optimizado para gameplay AAA.")
+
+func _cache_textures_in_dir(path: String):
+	if not DirAccess.dir_exists_absolute(path): return
+	
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir():
+				var lower_name = file_name.to_lower()
+				if lower_name.ends_with(".png") or lower_name.ends_with(".jpg") or lower_name.ends_with(".jpeg") or lower_name.ends_with(".bmp"):
+					# Ignorar los archivos .import y cargar la textura real
+					var full_path = path + "/" + file_name
+					if ResourceLoader.exists(full_path):
+						var tex = load(full_path)
+						_warmup_cache[full_path] = tex
+			file_name = dir.get_next()
+		dir.list_dir_end()
 
 func spawn_explosion(pos: Vector2, p_scale: float = 1.0): # Renombrado scale a p_scale
 	# Efecto visual de explosión por defecto
