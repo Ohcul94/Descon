@@ -1575,8 +1575,9 @@ io.on('connection', (socket) => {
         if (!p) return;
         
         // Bloquear desactivación o cambio manual en zonas con PvP obligatorio
-        const mapCfg = state.SERVER_CONFIG?.mapsConfig?.[p.zone];
-        const isPvPMandatory = mapCfg?.pvpMode === 'mandatory' || mapCfg?.pvpMode === 'full_drop';
+        const cleanZone = normalizeZone(p.zone);
+        const mapCfg = state.SERVER_CONFIG?.mapsConfig?.[cleanZone];
+        const isPvPMandatory = mapCfg?.pvpMode === 'mandatory' || mapCfg?.pvpMode === 'full_drop' || mapCfg?.pvpMode === 'partial_drop';
         if (isPvPMandatory) {
             return socket.emit('gameNotification', { 
                 msg: `¡MODO COMBATE OBLIGATORIO! No puedes cambiar el modo de combate en este sector.`, 
@@ -1592,18 +1593,19 @@ io.on('connection', (socket) => {
             });
         }
         
-        // v222.45: ANTI-COMBAT-LOG (Solo si intenta desactivar PVP)
-        if (enabled === false && p.pvpEnabled === true) {
-            const now = Date.now();
-            const timeSincePvp = now - (p.lastPvpCombatTime || 0);
-            
-            if (timeSincePvp < 30000) {
-                const remaining = Math.ceil((30000 - timeSincePvp) / 1000);
-                return socket.emit('gameNotification', { 
-                    msg: `┬íCOMBATE RECIENTE! Espera ${remaining}s para entrar en modo Seguro.`, 
-                    type: "error" 
-                });
-            }
+        // v222.45: ANTI-COMBAT-LOG / COOLDOWN DE COMBATE (Cualquier cambio de modo de combate)
+        const now = Date.now();
+        const timeSincePvp = now - (p.lastPvpCombatTime || 0);
+        
+        // v400.30: Cooldown dinámico configurado por mapa desde el Admin Dash (por defecto 30000ms)
+        const cooldownMs = mapCfg && mapCfg.pvpToggleCooldown !== undefined ? mapCfg.pvpToggleCooldown : 30000;
+        
+        if (timeSincePvp < cooldownMs) {
+            const remaining = Math.ceil((cooldownMs - timeSincePvp) / 1000);
+            return socket.emit('gameNotification', { 
+                msg: `¡COMBATE RECIENTE! Espera ${remaining}s para cambiar tu modo de combate.`, 
+                type: "error" 
+            });
         }
 
         p.pvpEnabled = !!enabled;

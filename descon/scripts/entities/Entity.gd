@@ -1074,9 +1074,22 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 			var is_pvp_map = false
 			var active_map = get_tree().get_first_node_in_group("map")
 			if is_instance_valid(active_map):
-				var z_str = str(active_map.zone_id)
-				if z_str.contains("."):
-					z_str = str(int(z_str.to_float()))
+				var raw_zone = active_map.zone_id
+				var z_id_int = 1
+				if typeof(raw_zone) == TYPE_STRING:
+					if raw_zone.begins_with("dungeon"):
+						z_id_int = 99
+					elif raw_zone.begins_with("extract_"):
+						var parts = raw_zone.split("_")
+						if parts.size() > 1:
+							z_id_int = int(parts[1])
+						else:
+							z_id_int = 10
+					else:
+						z_id_int = int(raw_zone)
+				else:
+					z_id_int = int(raw_zone)
+				var z_str = str(z_id_int)
 				if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(z_str):
 					var map_cfg = GameConstants.MAPS_CONFIG[z_str]
 					var pvp_mode = map_cfg.get("pvpMode", "tranquila")

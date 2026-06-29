@@ -491,6 +491,20 @@ func _update_background(zone_id):
 		add_child(current_map_node)
 		move_child(current_map_node, 0) # Asegurar que quede detrás de las entidades
 		
+		# v400.20: Desactivar automáticamente modo combate (PvP) al entrar a mapas pacíficos/tranquilos
+		var is_pvp_map = false
+		var clean_zid = _parse_zone_to_int(zone_id)
+		var check_z_id = str(clean_zid)
+		if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(check_z_id):
+			var map_cfg = GameConstants.MAPS_CONFIG[check_z_id]
+			var pvp_mode = map_cfg.get("pvpMode", "tranquila")
+			if pvp_mode in ["mandatory", "full_drop", "partial_drop"]:
+				is_pvp_map = true
+		
+		if not is_pvp_map:
+			print("[WORLD] Entrando a zona tranquila (No PvP obligatorio). Desactivando modo combate por defecto.")
+			NetworkManager.send_event("togglePvP", false)
+		
 		if current_map_node.has_method("setup_map"):
 			current_map_node.setup_map()
 			

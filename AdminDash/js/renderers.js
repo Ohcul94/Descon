@@ -1543,6 +1543,12 @@ function renderMapDetail() {
                                     <option value="full_drop" ${m.pvpMode === 'full_drop' ? 'selected' : ''}>💀 PVP Obligatorio + Full Drop</option>
                                 </select>
                             </div>
+                            ${(m.pvpMode === 'tranquila' || !m.pvpMode) ? `
+                            <div class="field" style="grid-column: span 2;">
+                                <label>Cooldown Cambio de Combate (ms)</label>
+                                <input type="number" min="0" value="${m.pvpToggleCooldown !== undefined ? m.pvpToggleCooldown : 30000}" oninput="config.mapsConfig['${selectedMapId}'].pvpToggleCooldown = parseInt(this.value) || 0">
+                            </div>
+                            ` : ''}
                             ${(m.pvpMode === 'mandatory' || m.pvpMode === 'full_drop' || m.pvpMode === 'partial_drop') ? `
                             <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: span 2; margin-top:8px;">
                                 <input type="checkbox" id="give-invul-entry" ${m.giveInvulnerabilityOnEntry ? 'checked' : ''} onchange="config.mapsConfig['${selectedMapId}'].giveInvulnerabilityOnEntry = this.checked; renderMapDetail();">
