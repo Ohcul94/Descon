@@ -124,8 +124,9 @@ function registerCombatHandlers(socket, io, state) {
             const FIRE_CELL_SIZE = 500;
             const fCx = Math.floor(p.x / FIRE_CELL_SIZE);
             const fCy = Math.floor(p.y / FIRE_CELL_SIZE);
-            Object.values(state.players).forEach(other => {
-                if (other.socketId === socket.id || String(other.zone) !== String(p.zone)) return;
+            const zonePlayers = state.playersByZone[p.zone] || {};
+            Object.values(zonePlayers).forEach(other => {
+                if (other.socketId === socket.id) return;
                 const oCx = Math.floor(other.x / FIRE_CELL_SIZE);
                 const oCy = Math.floor(other.y / FIRE_CELL_SIZE);
                 if (Math.abs(fCx - oCx) <= 3 && Math.abs(fCy - oCy) <= 3) {

@@ -198,8 +198,9 @@ function registerMovementHandlers(socket, io, state) {
             const pCx = Math.floor(p.x / CELL_SIZE);
             const pCy = Math.floor(p.y / CELL_SIZE);
 
-            Object.values(state.players).forEach(other => {
-                if (other.socketId === socket.id || String(other.zone) !== String(p.zone)) return;
+            const zonePlayers = state.playersByZone[p.zone] || {};
+            Object.values(zonePlayers).forEach(other => {
+                if (other.socketId === socket.id) return;
                 const oCx = Math.floor(other.x / CELL_SIZE);
                 const oCy = Math.floor(other.y / CELL_SIZE);
                 if (Math.abs(pCx - oCx) <= AOI_RANGE && Math.abs(pCy - oCy) <= AOI_RANGE) {
