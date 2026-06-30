@@ -1409,6 +1409,42 @@ func _on_enemy_action(data):
 				tw.tween_property(spr, "scale", Vector2.ZERO, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 				tw.finished.connect(spr.queue_free)
 				queue_redraw()
+		"throw_bomb":
+			var world = get_tree().get_first_node_in_group("world_node")
+			if world and world.has_method("get_node"):
+				var cs = world.get_node_or_null("CombatSystem")
+				if is_instance_valid(cs):
+					var s_x = float(data.get("startX", global_position.x))
+					var s_y = float(data.get("startY", global_position.y))
+					var t_x = float(data.get("targetX", 0.0))
+					var t_y = float(data.get("targetY", 0.0))
+					var start_pos = Vector2(s_x, s_y)
+					var target_pos = Vector2(t_x, t_y)
+					var dist = start_pos.distance_to(target_pos)
+					var travel_time = float(data.get("travelTimeMs", 1000.0)) / 1000.0
+					var speed_val = dist / max(0.01, travel_time)
+					var angle_val = start_pos.angle_to_point(target_pos)
+					
+					var proj_data = {
+						"bulletType": "electron",
+						"type": "electron",
+						"x": s_x,
+						"y": s_y,
+						"range": dist,
+						"bulletSpeed": speed_val,
+						"angle": angle_val,
+						"enemyId": entity_id,
+						"id": entity_id,
+						"lifetimeMs": float(data.get("travelTimeMs", 1000.0))
+					}
+					cs._spawn_projectile(proj_data, "enemy")
+		"bomb_explode":
+			var bx = float(data.get("x", 0.0))
+			var by = float(data.get("y", 0.0))
+			var radius = float(data.get("radius", 150.0))
+			var scale_factor = radius / 100.0
+			if is_instance_valid(VFXSystem):
+				VFXSystem.spawn_explosion(Vector2(bx, by), scale_factor)
 		"reflect_start":
 			reflect_timer = float(data.get("duration", 3000.0)) / 1000.0
 			print("[REFLECT-IN] Enemigo activó reflect por ", reflect_timer, "s")

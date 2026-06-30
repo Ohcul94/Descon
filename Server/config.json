@@ -1725,7 +1725,7 @@
             "speed": 280,
             "mechanics": [
                 {
-                    "type": "bomb",
+                    "type": "survival_dome",
                     "bulletDamage": 3000,
                     "bulletSpeed": 800,
                     "fireRange": 800,
@@ -1760,7 +1760,32 @@
                     "aimDelayMs": 1000,
                     "bombCount": 3,
                     "bombDelayMs": 500,
-                    "fuseTimeMs": 1000
+                    "fuseTimeMs": 1000,
+                    "reflect_mult": 0.8,
+                    "spinSpeed": 4,
+                    "speedBuffAmount": 150,
+                    "speedBuffDuration": 3000,
+                    "applySlow": false,
+                    "slowIsPercentage": 0,
+                    "slowPercentage": 40,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 30000,
+                    "summonCount": 3,
+                    "spawnRadius": 150,
+                    "summonDurationMode": "until_death",
+                    "summonDurationMs": 10000,
+                    "summonsList": [
+                        "random_base",
+                        "random_base",
+                        "random_base"
+                    ],
+                    "safeRadius": 150,
+                    "maxOffset": 300,
+                    "postCastWaitMs": 1000,
+                    "debuffsList": []
                 }
             ],
             "movementPhases": [

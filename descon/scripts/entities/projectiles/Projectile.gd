@@ -501,6 +501,11 @@ func _draw():
 	else: color = Color(0.3, 1.0, 1.0)
  
 	match type:
+		"spin_ring":
+			var pulse = sin(Time.get_ticks_msec() * 0.02) * 3.0
+			draw_circle(Vector2.ZERO, 15.0 + pulse, Color(0.85, 0.1, 0.95, 0.4))
+			draw_circle(Vector2.ZERO, 10.0, Color(0.9, 0.2, 1.0, 0.85))
+			draw_circle(Vector2.ZERO, 4.0, Color.WHITE)
 		"fear":
 			var pulse = sin(Time.get_ticks_msec() * 0.015) * 2.0
 			var base_r = 14.0 + pulse
