@@ -319,6 +319,97 @@ function startGameLoop(io, state, aiManager) {
         Object.values(players).forEach(p => {
             if (p.hp <= 0) return;
 
+            // Validar si el mapa actual del jugador es inactivo o no es accesible por horario
+            const zoneId = p.zone;
+            const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
+            if (Number(zoneId) !== lobbyZoneId && state.SERVER_CONFIG.mapsConfig && state.SERVER_CONFIG.mapsConfig[zoneId]) {
+                const mapCfg = state.SERVER_CONFIG.mapsConfig[zoneId];
+                
+                let redirectNeeded = false;
+                let reason = "";
+                
+                // 1. Redirigir si está inactivo/invisible
+                if (mapCfg.visible === false) {
+                    redirectNeeded = true;
+                    reason = "EL SECTOR HA SIDO DESACTIVADO POR EL ADMINISTRADOR";
+                }
+                // 2. Redirigir si expiró el horario permitido
+                else if (mapCfg.timeRestrictionsEnabled && mapCfg.allowedHours && mapCfg.allowedHours.length > 0) {
+                    const serverTime = new Date();
+                    const currentHours = serverTime.getHours();
+                    const currentMinutes = serverTime.getMinutes();
+                    const currentTimeVal = currentHours * 60 + currentMinutes;
+                    
+                    let isAllowed = false;
+                    for (const range of mapCfg.allowedHours) {
+                        const [startH, startM] = range.start.split(':').map(Number);
+                        const [endH, endM] = range.end.split(':').map(Number);
+                        const startVal = startH * 60 + startM;
+                        const endVal = endH * 60 + endM;
+                        
+                        if (startVal > endVal) { // Rango nocturno
+                            if (currentTimeVal >= startVal || currentTimeVal <= endVal) {
+                                isAllowed = true;
+                                break;
+                            }
+                        } else {
+                            if (currentTimeVal >= startVal && currentTimeVal <= endVal) {
+                                isAllowed = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!isAllowed) {
+                        redirectNeeded = true;
+                        reason = "HORARIO DE PERMANENCIA EXPIRADO";
+                    }
+                }
+                
+                if (redirectNeeded) {
+                    const oldZone = p.zone;
+                    const socket = io.sockets.sockets.get(p.socketId);
+                    
+                    if (socket) {
+                        console.log(`[AUTOROTATION] Redirigiendo a ${p.user} al Lobby desde sector ${oldZone} por: ${reason}`);
+                        
+                        socket.leave(`zone_${oldZone}`);
+                        socket.join(`zone_${lobbyZoneId}`);
+                        
+                        if (state.playersByZone[oldZone] && state.playersByZone[oldZone][socket.id]) {
+                            delete state.playersByZone[oldZone][socket.id];
+                        }
+                        if (!state.playersByZone[lobbyZoneId]) {
+                            state.playersByZone[lobbyZoneId] = {};
+                        }
+                        state.playersByZone[lobbyZoneId][socket.id] = p;
+                        
+                        p.zone = lobbyZoneId;
+                        p.x = 1000;
+                        p.y = 1000;
+                        
+                        const User = require('../models/User');
+                        User.updateOne({ _id: socket.dbUser._id }, { $set: { "gameData.zone": lobbyZoneId } })
+                            .catch(e => console.error("Error persistiendo warp automático:", e));
+                            
+                        socket.emit('changeZoneDone', lobbyZoneId);
+                        socket.emit('authError', `FUISTE DEVUELTO AL LOBBY: ${reason}`);
+                        socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
+                        socket.to(`zone_${lobbyZoneId}`).emit('newPlayer', {
+                            id: socket.id,
+                            user: p.user,
+                            x: p.x,
+                            y: p.y,
+                            hp: p.hp,
+                            maxHp: p.maxHp,
+                            sh: p.shield,
+                            maxSh: p.maxShield,
+                            zone: lobbyZoneId
+                        });
+                    }
+                }
+            }
+
             let changed = false;
 
             // v266.360: Procesamiento de Sueño (Sleep Mechanic)

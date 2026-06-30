@@ -3025,7 +3025,8 @@
                     "targetX": 5000,
                     "targetY": 5000
                 }
-            ]
+            ],
+            "visible": true
         },
         "2": {
             "color": "#00ff00",
@@ -3150,7 +3151,15 @@
             ],
             "width": 10000,
             "height": 10000,
-            "objects": []
+            "objects": [],
+            "visible": true,
+            "timeRestrictionsEnabled": true,
+            "allowedHours": [
+                {
+                    "start": "23:34",
+                    "end": "23:49"
+                }
+            ]
         },
         "7": {
             "color": "#aa0000",
@@ -3193,7 +3202,10 @@
             ],
             "pvpMode": "partial_drop",
             "giveInvulnerabilityOnEntry": true,
-            "invulnerabilityDuration": 3000
+            "invulnerabilityDuration": 3000,
+            "visible": false,
+            "timeRestrictionsEnabled": false,
+            "allowedHours": []
         },
         "8": {
             "color": "#550000",

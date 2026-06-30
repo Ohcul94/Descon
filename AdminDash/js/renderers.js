@@ -1523,7 +1523,14 @@ function renderMapDetail() {
         <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 1.5rem; align-items: start;">
             <div class="col">
                 <div class="card" style="width:100%;">
-                    <div class="field full"><label>NOMBRE DE LA ZONA</label><input type="text" value="${m.name}" style="font-size: 1.5rem; color:var(--accent);" onchange="config.mapsConfig['${selectedMapId}'].name = this.value; updateSidebar();"></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:1rem;">
+                        <div class="field" style="flex:1; margin:0;"><label>NOMBRE DE LA ZONA</label><input type="text" value="${m.name}" style="font-size: 1.5rem; color:var(--accent);" onchange="config.mapsConfig['${selectedMapId}'].name = this.value; updateSidebar();"></div>
+                        <button onclick="toggleMapVisibility('${selectedMapId}'); renderMapDetail();" 
+                                title="${m.visible !== false ? 'Mapa Activo (Visible en Godot)' : 'Mapa Inactivo (Oculto en Godot)'}"
+                                style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:${m.visible !== false ? 'var(--primary)' : '#64748b'}; cursor:pointer; font-size:1.4rem; padding:10px 14px; border-radius:8px; margin-top:20px; transition:all 0.2s; display:flex; align-items:center; justify-content:center; height:50px;">
+                            ${m.visible !== false ? '👁️' : '🕶️'}
+                        </button>
+                    </div>
                     <div class="field full" style="margin-top:1rem;"><label>DESCRIPCIÓN DE HISTORIA</label><textarea onchange="config.mapsConfig['${selectedMapId}'].desc = this.value" style="height:100px; width:100%; background:rgba(0,0,0,0.2); border:1px solid #333; color:white; padding:10px; border-radius:8px;">${m.desc || ''}</textarea></div>
                     <div class="form-grid" style="margin-top:1rem;">
                         <div class="field"><label>Nivel Mín. (lvl)</label><input type="number" value="${m.minLevel}" oninput="config.mapsConfig['${selectedMapId}'].minLevel = parseInt(this.value) || 0"></div>
@@ -1569,6 +1576,64 @@ function renderMapDetail() {
                             <div class="field"><label>Ancho (Width - px)</label><input type="number" value="${m.width || 10000}" oninput="config.mapsConfig['${selectedMapId}'].width = parseInt(this.value)"></div>
                             <div class="field"><label>Alto (Height - px)</label><input type="number" value="${m.height || 10000}" oninput="config.mapsConfig['${selectedMapId}'].height = parseInt(this.value)"></div>
                         </div>
+                    </div>
+                    <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+                            <label style="color:var(--accent); font-size: 0.65rem; font-weight:bold; letter-spacing:1px; margin:0;">🕒 RESTRICCIÓN DE HORARIOS (SERVER)</label>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <input type="checkbox" id="time-restrictions-enabled" ${m.timeRestrictionsEnabled ? 'checked' : ''} 
+                                       onchange="toggleTimeRestrictions('${selectedMapId}', this.checked)" style="width:16px; height:16px; cursor:pointer; accent-color:var(--accent);">
+                                <label for="time-restrictions-enabled" style="margin:0; cursor:pointer; font-size:0.75rem; color:var(--text-dim);">Activar</label>
+                            </div>
+                        </div>
+                        ${m.timeRestrictionsEnabled ? `
+                        <div style="background:rgba(0,0,0,0.25); padding:1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05); margin-bottom:1rem;">
+                            <div id="allowed-hours-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:1.2rem; max-height:160px; overflow-y:auto;">
+                                ${(m.allowedHours || []).length === 0 ? '<span style="font-size:0.75rem; color:#64748b; font-style:italic;">No hay horarios configurados. El sector será inaccesible.</span>' : ''}
+                                ${(m.allowedHours || []).map((range, index) => {
+                                    const isEditing = window._editingScheduleIndex === index;
+                                    if (isEditing) {
+                                        return `
+                                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.04); padding:6px 12px; border-radius:6px; border:1px solid var(--primary);">
+                                            <div style="display:flex; align-items:center; gap:8px;">
+                                                <input type="time" id="inline-edit-start-${index}" value="${range.start}" style="padding:2px 4px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; font-family:\'JetBrains Mono\', monospace;">
+                                                <span style="color:var(--text-dim); font-size:0.8rem;">➔</span>
+                                                <input type="time" id="inline-edit-end-${index}" value="${range.end}" style="padding:2px 4px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; font-family:\'JetBrains Mono\', monospace;">
+                                            </div>
+                                            <div style="display:flex; gap:6px;">
+                                                <button style="background:none; border:none; color:#00ff88; cursor:pointer; font-weight:bold; font-size:1rem; padding:2px 6px;" 
+                                                        title="Confirmar Cambios"
+                                                        onclick="saveInlineTimeRestrictionRange('${selectedMapId}', ${index})">✓</button>
+                                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold; font-size:0.95rem; padding:2px 6px;" 
+                                                        title="Cancelar"
+                                                        onclick="cancelInlineTimeRestrictionRange()">✕</button>
+                                            </div>
+                                        </div>
+                                        `;
+                                    } else {
+                                        return `
+                                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:6px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.03);">
+                                            <span style="font-size:0.8rem; font-family:\'JetBrains Mono\', monospace; color:var(--primary); font-weight:bold;">${range.start} ➔ ${range.end}</span>
+                                            <div style="display:flex; gap:8px;">
+                                                <button style="background:none; border:none; color:#ffb000; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:2px 6px;" 
+                                                        title="Editar Rango"
+                                                        onclick="editTimeRestrictionRange('${selectedMapId}', ${index})">✏️</button>
+                                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:2px 6px;" 
+                                                        title="Eliminar Rango"
+                                                        onclick="removeTimeRestrictionRange('${selectedMapId}', ${index})">✕</button>
+                                            </div>
+                                        </div>
+                                        `;
+                                    }
+                                }).join('')}
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:flex-end;">
+                                <div class="field" style="margin:0; flex:1;"><label style="font-size:0.6rem; color:#888;">INICIO</label><input type="time" id="new-range-start" style="padding:6px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; width:100%;"></div>
+                                <div class="field" style="margin:0; flex:1;"><label style="font-size:0.6rem; color:#888;">FIN</label><input type="time" id="new-range-end" style="padding:6px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; width:100%;"></div>
+                                <button class="btn btn-primary" style="padding:6px 12px; font-size:0.7rem; height:32px; margin:0;" onclick="addTimeRestrictionRange('${selectedMapId}')">+ AÑADIR</button>
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -1760,7 +1825,7 @@ function renderMapDetail() {
                         };
                         const tc = typeConfig[obj.type] || { icon: '⭕', color: '#aaa', label: obj.type?.toUpperCase() || 'OBJETO' };
                         const allMapOptions = Object.keys(config.mapsConfig)
-                            .filter(id => id !== selectedMapId && id !== '10' && id !== '11')
+                            .filter(id => id !== selectedMapId && id !== '10' && id !== '11' && (config.mapsConfig[id].visible !== false || obj.targetZoneId == id))
                             .map(id => `<option value="${id}" ${obj.targetZoneId == id ? 'selected' : ''}>${config.mapsConfig[id].name} (ID: ${id})</option>`)
                             .join('');
                         return `
@@ -1851,12 +1916,40 @@ function renderMaps() {
         const m = config.mapsConfig[id];
         if (id === "10" || id === "11") continue; // Omitir mapas de evento de extracción
         if (f && !m.name.toLowerCase().includes(f)) continue;
+        
+        const isVisible = m.visible !== false;
+        const eyeColor = isVisible ? 'var(--primary)' : '#64748b';
+        const eyeTitle = isVisible ? 'Mapa Activo (Visible en Godot)' : 'Mapa Inactivo (Oculto en Godot)';
+        const cardOpacity = isVisible ? '1' : '0.5';
+
         const card = document.createElement('div'); card.className = 'card';
         card.style.cursor = 'pointer'; card.onclick = () => selectMap(id);
-        card.innerHTML = `<div class="card-tag">#ID ${id}</div><div style="width:100%; height:4px; background:${m.color}; margin-bottom:1rem; border-radius:2px;"></div><h3>${m.name}</h3><p style="font-size:0.8rem; opacity:0.6;">${m.desc || 'Sin descripción'}</p><div style="margin-top:1rem; color:var(--accent); font-weight:bold; font-size:0.7rem;">Configurar Zona</div>`;
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                <div class="card-tag" style="margin:0;">#ID ${id}</div>
+                <button onclick="event.stopPropagation(); toggleMapVisibility('${id}')" 
+                        title="${eyeTitle}" 
+                        style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:${eyeColor}; cursor:pointer; font-size:1rem; padding:4px 8px; border-radius:6px; transition:all 0.2s; display:flex; align-items:center; gap:4px;">
+                    ${isVisible ? '👁️' : '🕶️'}
+                </button>
+            </div>
+            <div style="width:100%; height:4px; background:${m.color}; margin-bottom:1rem; border-radius:2px; opacity:${cardOpacity};"></div>
+            <h3 style="opacity:${cardOpacity};">${m.name}</h3>
+            <p style="font-size:0.8rem; opacity:${isVisible ? '0.6' : '0.35'};">${m.desc || 'Sin descripción'}</p>
+            <div style="margin-top:1rem; color:var(--accent); font-weight:bold; font-size:0.7rem; opacity:${cardOpacity};">Configurar Zona</div>
+        `;
         grid.appendChild(card);
     }
 }
+
+window.toggleMapVisibility = function(id) {
+    if (!config || !config.mapsConfig || !config.mapsConfig[id]) return;
+    const m = config.mapsConfig[id];
+    m.visible = (m.visible === false) ? true : false;
+    saveConfig();
+    renderMaps();
+    updateSidebar();
+};
 
 function renderSkills() {
     const grid = document.getElementById('skills-grid'); grid.innerHTML = '';
@@ -5688,6 +5781,66 @@ window.renderTalentMapper = function(connectingMousePos = null) {
     if (!canvas.onmousedown) {
         initTalentMapper();
     }
+};
+
+window.toggleTimeRestrictions = function(mapId, enabled) {
+    if (!config || !config.mapsConfig || !config.mapsConfig[mapId]) return;
+    config.mapsConfig[mapId].timeRestrictionsEnabled = enabled;
+    if (enabled && !config.mapsConfig[mapId].allowedHours) {
+        config.mapsConfig[mapId].allowedHours = [];
+    }
+    saveConfig();
+    renderMapDetail();
+};
+
+window.addTimeRestrictionRange = function(mapId) {
+    if (!config || !config.mapsConfig || !config.mapsConfig[mapId]) return;
+    const start = document.getElementById('new-range-start').value;
+    const end = document.getElementById('new-range-end').value;
+    if (!start || !end) {
+        showToast("ERROR: Ambos campos (Inicio y Fin) son requeridos.");
+        return;
+    }
+    if (!config.mapsConfig[mapId].allowedHours) {
+        config.mapsConfig[mapId].allowedHours = [];
+    }
+    config.mapsConfig[mapId].allowedHours.push({ start, end });
+    saveConfig();
+    renderMapDetail();
+};
+
+window.removeTimeRestrictionRange = function(mapId, index) {
+    if (!config || !config.mapsConfig || !config.mapsConfig[mapId] || !config.mapsConfig[mapId].allowedHours) return;
+    config.mapsConfig[mapId].allowedHours.splice(index, 1);
+    saveConfig();
+    renderMapDetail();
+};
+
+window.editTimeRestrictionRange = function(mapId, index) {
+    window._editingScheduleIndex = index;
+    renderMapDetail();
+};
+
+window.cancelInlineTimeRestrictionRange = function() {
+    window._editingScheduleIndex = -1;
+    renderMapDetail();
+};
+
+window.saveInlineTimeRestrictionRange = function(mapId, index) {
+    if (!config || !config.mapsConfig || !config.mapsConfig[mapId] || !config.mapsConfig[mapId].allowedHours) return;
+    
+    const newStart = document.getElementById(`inline-edit-start-${index}`).value;
+    const newEnd = document.getElementById(`inline-edit-end-${index}`).value;
+    
+    if (!newStart || !newEnd) {
+        showToast("ERROR: Ambos campos (Inicio y Fin) son requeridos.");
+        return;
+    }
+    
+    config.mapsConfig[mapId].allowedHours[index] = { start: newStart, end: newEnd };
+    window._editingScheduleIndex = -1;
+    saveConfig();
+    renderMapDetail();
 };
 
 

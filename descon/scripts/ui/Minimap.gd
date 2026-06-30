@@ -398,14 +398,21 @@ func _draw():
 						draw_circle(obj_pos, 7.5, Color(1.0, 0.85, 0.0, 0.2), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "B", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 					"door":
+						# Obtener destino dinámico
+						var target_zone = str(obj.get("targetZoneId", obj.get("targetZone", "")))
+						
+						# Validar si el destino está inactivo/invisible
+						if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(target_zone):
+							var target_map_cfg = GameConstants.MAPS_CONFIG[target_zone]
+							if target_map_cfg.has("visible") and target_map_cfg.get("visible") == false:
+								continue # Omitir el dibujo en el minimapa
+						
 						# Puerta/Warp - Cian neón con 'P'
 						var pulse_door = 0.6 + sin(Time.get_ticks_msec() * 0.004) * 0.3
 						draw_circle(obj_pos, 5.5, Color(0.0, 0.9, 1.0, 0.9))
 						draw_circle(obj_pos, 8.0 + pulse_door * 2.0, Color(0.0, 0.9, 1.0, 0.25), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "P", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 						
-						# Obtener destino dinámico
-						var target_zone = str(obj.get("targetZoneId", obj.get("targetZone", "")))
 						if target_zone != "":
 							var dest_name = ""
 							if GameConstants.MAPS_CONFIG.has(target_zone):

@@ -231,6 +231,47 @@ function registerZoneHandlers(socket, io, state) {
             if (state.SERVER_CONFIG.mapsConfig && state.SERVER_CONFIG.mapsConfig[zoneId]) {
                 COST = state.SERVER_CONFIG.mapsConfig[zoneId].warpCost || 0;
                 minLevel = state.SERVER_CONFIG.mapsConfig[zoneId].minLevel || 1;
+                
+                // Validar si el mapa está inactivo/invisible
+                if (state.SERVER_CONFIG.mapsConfig[zoneId].visible === false) {
+                    socket.emit('authError', `EL SECTOR SE ENCUENTRA INACTIVO O FUERA DE SERVICIO`);
+                    return;
+                }
+
+                // Validar restricciones de horario
+                const mapCfg = state.SERVER_CONFIG.mapsConfig[zoneId];
+                if (mapCfg.timeRestrictionsEnabled && mapCfg.allowedHours && mapCfg.allowedHours.length > 0) {
+                    const now = new Date();
+                    const currentHours = now.getHours();
+                    const currentMinutes = now.getMinutes();
+                    const currentTimeVal = currentHours * 60 + currentMinutes;
+                    
+                    let isAllowed = false;
+                    for (const range of mapCfg.allowedHours) {
+                        const [startH, startM] = range.start.split(':').map(Number);
+                        const [endH, endM] = range.end.split(':').map(Number);
+                        const startVal = startH * 60 + startM;
+                        const endVal = endH * 60 + endM;
+                        
+                        if (startVal > endVal) { // Rango nocturno cruzando medianoche
+                            if (currentTimeVal >= startVal || currentTimeVal <= endVal) {
+                                isAllowed = true;
+                                break;
+                            }
+                        } else {
+                            if (currentTimeVal >= startVal && currentTimeVal <= endVal) {
+                                isAllowed = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!isAllowed) {
+                        const rangesStr = mapCfg.allowedHours.map(r => `${r.start} a ${r.end}`).join(', ');
+                        socket.emit('authError', `ACCESO DENEGADO: Sector disponible en horarios: ${rangesStr} (Hora actual: ${now.toTimeString().split(' ')[0]})`);
+                        return;
+                    }
+                }
             }
 
             // Validar Nivel

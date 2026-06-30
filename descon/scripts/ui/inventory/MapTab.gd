@@ -41,6 +41,11 @@ func update_ui():
 		if z_id_int == 10 or z_id_int == 11:
 			continue # Filtrar mapas de evento de extracción
 		var zone_data = GameConstants.MAPS_CONFIG[z_id]
+		
+		# Filtrar si está inactivo/invisible, a menos que el jugador esté parado en ese mapa actualmente
+		if zone_data.has("visible") and zone_data.get("visible") == false and z_id_int != current_zone_id:
+			continue
+			
 		var sd = zone_data.duplicate()
 		sd["id"] = z_id_int
 		if not sd.has("color"): sd["color"] = "#ffffff"

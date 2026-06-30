@@ -419,9 +419,16 @@ func _spawn_map_objects():
 					add_child(vault)
 					vault.global_position = obj_pos
 					print("[BaseMap] Baúl instanciado correctamente: ", obj_label, " @ ", obj_pos)
-			
 			"door":
 				# Puerta de Warp Interactiva estilo Extracción: Area2D lógica para proximidad
+				var target_z = str(obj.get("targetZoneId", "1"))
+				# Si el mapa destino está marcado como visible = false en MAPS_CONFIG, no renderizar la puerta ni crear la colisión
+				if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(target_z):
+					var target_map_cfg = GameConstants.MAPS_CONFIG[target_z]
+					if target_map_cfg.has("visible") and target_map_cfg.get("visible") == false:
+						print("[BaseMap] Omitiendo puerta al mapa inactivo: ", target_z)
+						continue
+
 				var door = Area2D.new()
 				door.name = "MapDoor_" + obj_label.replace(" ", "_")
 				door.collision_mask = 1  # Detectar jugador
