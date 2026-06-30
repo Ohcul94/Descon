@@ -3154,12 +3154,7 @@
             "objects": [],
             "visible": true,
             "timeRestrictionsEnabled": true,
-            "allowedHours": [
-                {
-                    "start": "23:34",
-                    "end": "23:49"
-                }
-            ]
+            "allowedHours": []
         },
         "7": {
             "color": "#aa0000",
@@ -3203,7 +3198,7 @@
             "pvpMode": "partial_drop",
             "giveInvulnerabilityOnEntry": true,
             "invulnerabilityDuration": 3000,
-            "visible": false,
+            "visible": true,
             "timeRestrictionsEnabled": false,
             "allowedHours": []
         },
