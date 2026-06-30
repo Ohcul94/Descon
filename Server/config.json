@@ -1725,7 +1725,7 @@
             "speed": 280,
             "mechanics": [
                 {
-                    "type": "ice_missile",
+                    "type": "bomb",
                     "bulletDamage": 3000,
                     "bulletSpeed": 800,
                     "fireRange": 800,
@@ -1742,7 +1742,25 @@
                     "startDelay": 0,
                     "isHoming": 0,
                     "slowAmount": 0,
-                    "slowDuration": 2000
+                    "slowDuration": 2000,
+                    "activationHP": 0,
+                    "radius": 250,
+                    "damage": 1500,
+                    "intervalMs": 1000,
+                    "duration": 5000,
+                    "cooldown": 5000,
+                    "stunDuration": 2000,
+                    "pullSpeed": 0,
+                    "postHookWaitMs": 0,
+                    "hookMissWaitMs": 0,
+                    "castTimeMs": 2000,
+                    "castSpeed": 0,
+                    "coneAngle": 0,
+                    "coneFollow": false,
+                    "aimDelayMs": 1000,
+                    "bombCount": 3,
+                    "bombDelayMs": 500,
+                    "fuseTimeMs": 1000
                 }
             ],
             "movementPhases": [
@@ -4648,7 +4666,7 @@
         "REFLECT-OMEGA": {
             "amount": 500,
             "canTargetOthers": false,
-            "cd": 5000,
+            "cd": 1000,
             "desc": "Crea un campo de resonancia que refleja daño hostil.",
             "id": "SK-ATK-01",
             "range": 0,

@@ -309,7 +309,8 @@ function registerCombatHandlers(socket, io, state) {
         if (maxAllowed < 1000) maxAllowed = 1000;
         
         let finalDamage = parseFloat(damage) || 100;
-        if (finalDamage > maxAllowed && !p.isAdmin) {
+        const isReflect = !!data.isReflect;
+        if (finalDamage > maxAllowed && !p.isAdmin && !isReflect) {
             Logger.warn('SECURITY', `Daño PvE excedido de [${p.user}] a enemigo [${enemy.name}]: reportado ${finalDamage}, máx permitido ${Math.round(maxAllowed)} (base: ${weaponsBase}, mult: ${maxAmmoMult})`);
             finalDamage = maxAllowed;
         }
@@ -319,7 +320,6 @@ function registerCombatHandlers(socket, io, state) {
         const ammoList = state.SERVER_CONFIG.shopItems?.ammo?.[activeAmmo] || [];
         const ammoConfig = ammoList[activeTier] || {};
 
-        const isReflect = !!data.isReflect;
 
         if (isReflect) {
             // Daño directo de reflejo (no activa efectos de munición equipada como curación/sifón)
@@ -741,8 +741,9 @@ function registerCombatHandlers(socket, io, state) {
                 const finalMaxTheoreticalDamage = baseDmg * maxMultiplier;
                 const maxAllowedDmg = finalMaxTheoreticalDamage * 1.5; // 50% extra para críticos/buffs del cliente
 
+                const isReflect = !!data.isReflect;
                 let dmg = parseFloat(data.damage) || 50;
-                if (dmg > maxAllowedDmg && !attacker.isAdmin) {
+                if (dmg > maxAllowedDmg && !attacker.isAdmin && !isReflect) {
                     Logger.warn('SECURITY', `Daño PvP excedido de [${attacker.user}] a [${victim.user}]: reportado ${dmg}, máx permitido ${Math.round(maxAllowedDmg)} (base: ${baseDmg}, mult: ${maxMultiplier})`);
                     dmg = maxAllowedDmg; // Truncar al máximo permitido
                 }
@@ -750,8 +751,6 @@ function registerCombatHandlers(socket, io, state) {
                 const attackerAmmoTier = attacker.selectedAmmoTier !== undefined ? attacker.selectedAmmoTier : 0;
                 const attackerAmmoList = state.SERVER_CONFIG.shopItems?.ammo?.[attackerAmmoType] || [];
                 const attackerAmmoConfig = attackerAmmoList[attackerAmmoTier] || {};
-                
-                const isReflect = !!data.isReflect;
 
                 if (isReflect) {
                     // Daño directo de reflejo en PvP (no activa curación ni sifones de la munición del atacante)

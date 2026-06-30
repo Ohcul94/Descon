@@ -661,6 +661,20 @@ module.exports = class BaseAI {
                         if (p.shield >= dmg) p.shield -= dmg;
                         else { p.hp -= (dmg - p.shield); p.shield = 0; }
                         if (p.hp < 0) p.hp = 0;
+
+                        // v400.30: Reflejo autoritativo de habilidades directas en servidor
+                        if (p.reflectActive && !p.isInvulnerable) {
+                            const reflectMult = 0.8;
+                            const reflectedDmg = Math.round(dmg * reflectMult);
+                            if (reflectedDmg > 0) {
+                                if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                                else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                                if (this.enemy.hp < 0) this.enemy.hp = 0;
+                                io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', {
+                                    id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield
+                                });
+                            }
+                        }
                         
                         io.to(p.socketId).emit('environmentDamage', { damage: dmg });
                         io.to(`zone_${p.zone}`).emit('playerStatSync', { id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield) });
@@ -958,6 +972,20 @@ module.exports = class BaseAI {
                             if (p.hp < 0) p.hp = 0;
                             if (p.hp <= 0) p.isDead = true;
 
+                            // v400.30: Reflejo autoritativo de habilidades directas en servidor
+                            if (p.reflectActive && !p.isInvulnerable) {
+                                const reflectMult = 0.8;
+                                const reflectedDmg = Math.round(bulletDamage * reflectMult);
+                                if (reflectedDmg > 0) {
+                                    if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                                    else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                                    if (this.enemy.hp < 0) this.enemy.hp = 0;
+                                    io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', {
+                                        id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield
+                                    });
+                                }
+                            }
+
                             io.to(p.socketId).emit('environmentDamage', { damage: bulletDamage });
                             io.to(`zone_${p.zone}`).emit('playerStatSync', {
                                 id: p.socketId,
@@ -1095,6 +1123,20 @@ module.exports = class BaseAI {
                             if (p.hp < 0) p.hp = 0;
                             if (p.hp <= 0) p.isDead = true;
 
+                            // v400.30: Reflejo autoritativo de habilidades directas en servidor
+                            if (p.reflectActive && !p.isInvulnerable) {
+                                const reflectMult = 0.8;
+                                const reflectedDmg = Math.round(dmg * reflectMult);
+                                if (reflectedDmg > 0) {
+                                    if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                                    else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                                    if (this.enemy.hp < 0) this.enemy.hp = 0;
+                                    io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', {
+                                        id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield
+                                    });
+                                }
+                            }
+
                             // Aplicar stun si stunDur > 0
                             if (stunDur > 0 && !p.isInvulnerable) {
                                 p.isStunned = true;
@@ -1202,6 +1244,20 @@ module.exports = class BaseAI {
                             }
                             if (p.hp < 0) p.hp = 0;
                             if (p.hp <= 0) p.isDead = true;
+
+                            // v400.30: Reflejo autoritativo de habilidades directas en servidor
+                            if (p.reflectActive && !p.isInvulnerable) {
+                                const reflectMult = 0.8;
+                                const reflectedDmg = Math.round(dmg * reflectMult);
+                                if (reflectedDmg > 0) {
+                                    if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                                    else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                                    if (this.enemy.hp < 0) this.enemy.hp = 0;
+                                    io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', {
+                                        id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield
+                                    });
+                                }
+                            }
 
                             // Sincronizar stats del jugador golpeado
                             io.to(p.socketId).emit('environmentDamage', { damage: dmg });
@@ -2087,6 +2143,20 @@ module.exports = class BaseAI {
                             else { p.hp -= (dmg - p.shield); p.shield = 0; }
                             if (p.hp < 0) p.hp = 0;
                             if (p.hp <= 0) p.isDead = true;
+
+                            // v400.30: Reflejo autoritativo de habilidades directas en servidor
+                            if (p.reflectActive && !p.isInvulnerable) {
+                                const reflectMult = 0.8;
+                                const reflectedDmg = Math.round(dmg * reflectMult);
+                                if (reflectedDmg > 0) {
+                                    if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                                    else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                                    if (this.enemy.hp < 0) this.enemy.hp = 0;
+                                    io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', {
+                                        id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield
+                                    });
+                                }
+                            }
 
                             io.to(p.socketId).emit('environmentDamage', { damage: dmg });
                             io.to(`zone_${p.zone}`).emit('playerStatSync', { 
