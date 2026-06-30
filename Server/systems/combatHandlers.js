@@ -319,7 +319,14 @@ function registerCombatHandlers(socket, io, state) {
         const ammoList = state.SERVER_CONFIG.shopItems?.ammo?.[activeAmmo] || [];
         const ammoConfig = ammoList[activeTier] || {};
 
-        if (activeAmmo === 'heal') {
+        const isReflect = !!data.isReflect;
+
+        if (isReflect) {
+            // Daño directo de reflejo (no activa efectos de munición equipada como curación/sifón)
+            if (enemy.shield >= finalDamage) enemy.shield -= finalDamage;
+            else { enemy.hp -= (finalDamage - enemy.shield); enemy.shield = 0; }
+            finalDamage = 0; // Se aplicó el daño directamente, evitar doble aplicación abajo
+        } else if (activeAmmo === 'heal') {
             // Curativa: Restaura HP y Escudo al propio jugador en PvE
             const healPct = (ammoConfig.healPctPvE !== undefined ? ammoConfig.healPctPvE : 40) / 100;
             const healAmount = finalDamage * healPct;
@@ -482,7 +489,8 @@ function registerCombatHandlers(socket, io, state) {
                 let baseDmg = isClone ? 0 : (cfg ? cfg.bulletDamage : 50);
                 
                 if (!isClone && cfg && cfg.mechanics && data.bulletType) {
-                    const matchingMech = cfg.mechanics.find(m => m.type === data.bulletType);
+                    const searchType = data.bulletType === 'orbital_mine' ? 'orbital_strike' : data.bulletType;
+                    const matchingMech = cfg.mechanics.find(m => m.type === searchType);
                     if (matchingMech) {
                         if (matchingMech.type === 'spin_ring') {
                             baseDmg = matchingMech.damage !== undefined ? matchingMech.damage : 100;
@@ -743,7 +751,12 @@ function registerCombatHandlers(socket, io, state) {
                 const attackerAmmoList = state.SERVER_CONFIG.shopItems?.ammo?.[attackerAmmoType] || [];
                 const attackerAmmoConfig = attackerAmmoList[attackerAmmoTier] || {};
                 
-                if (attackerAmmoType === 'heal') {
+                const isReflect = !!data.isReflect;
+
+                if (isReflect) {
+                    // Daño directo de reflejo en PvP (no activa curación ni sifones de la munición del atacante)
+                    // dmg sigue intacto para aplicarse a la víctima abajo
+                } else if (attackerAmmoType === 'heal') {
                     // Soporte: Cura a la víctima y al atacante usando los porcentajes configurados
                     const healVictimPct = (attackerAmmoConfig.healPctVictimPvP !== undefined ? attackerAmmoConfig.healPctVictimPvP : 80) / 100;
                     const healAttackerPct = (attackerAmmoConfig.healPctAttackerPvP !== undefined ? attackerAmmoConfig.healPctAttackerPvP : 30) / 100;

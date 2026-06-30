@@ -1195,11 +1195,11 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 			# Siempre notificar al servidor
 			if NetworkManager:
 				if target_node and is_instance_valid(target_node) and target_node.is_in_group("remote_players"):
-					NetworkManager.send_event("playerHitByPlayer", {"victimId": attacker_id, "damage": r_amt})
+					NetworkManager.send_event("playerHitByPlayer", {"victimId": attacker_id, "damage": r_amt, "isReflect": true})
 				else:
 					# Por defecto PvE si no es un jugador remoto conocido
-					NetworkManager.send_event("enemyHit", {"enemyId": attacker_id, "damage": r_amt})
-				print("[REFLECT-OUT] Devolviendo: ", r_amt, " a ", attacker_id)
+					NetworkManager.send_event("enemyHit", {"enemyId": attacker_id, "damage": r_amt, "isReflect": true})
+				print("[REFLECT-OUT] Devolviendo (Reflejo): ", r_amt, " a ", attacker_id)
 			
 			# Aplicar localmente solo para feedback visual inmediato
 			if target_node and is_instance_valid(target_node) and target_node.has_method("take_damage"):

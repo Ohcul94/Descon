@@ -15,6 +15,17 @@ func setup(p_inv_main):
 func update_ui():
 	if not inv_main: return
 	var h = self
+	# Guardar la posición de scroll horizontal antes de limpiar
+	var last_scroll_h = 0
+	if h.get_child_count() > 0:
+		var main_v_node = h.get_child(0)
+		if main_v_node and main_v_node.get_child_count() > 0:
+			var fleet_v_node = main_v_node.get_child(0)
+			if fleet_v_node and fleet_v_node.get_child_count() > 1:
+				var f_scroll_node = fleet_v_node.get_child(1)
+				if f_scroll_node is ScrollContainer:
+					last_scroll_h = f_scroll_node.scroll_horizontal
+
 	for n in h.get_children(): 
 		h.remove_child(n)
 		n.queue_free()
@@ -53,6 +64,10 @@ func update_ui():
 		_create_fleet_card(1, f_grid)
 	else:
 		for sid in inv_main.owned_ships: _create_fleet_card(sid, f_grid)
+		
+	if last_scroll_h > 0:
+		f_scroll.scroll_horizontal = last_scroll_h
+		f_scroll.set_deferred("scroll_horizontal", last_scroll_h)
 	
 	# --- SECCIÓN 2: CUERPO ---
 	var body_h = HBoxContainer.new(); body_h.size_flags_vertical = 3; body_h.add_theme_constant_override("separation", 20); main_v.add_child(body_h)

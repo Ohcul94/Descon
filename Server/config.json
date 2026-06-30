@@ -348,7 +348,8 @@
             ],
             "defenseMechanics": [],
             "regenDelayMs": 10000,
-            "aggressive": false
+            "aggressive": false,
+            "lootDrops": []
         },
         "5": {
             "bulletDamage": 120,
@@ -1724,7 +1725,7 @@
             "speed": 280,
             "mechanics": [
                 {
-                    "type": "mega_laser",
+                    "type": "ice_missile",
                     "bulletDamage": 3000,
                     "bulletSpeed": 800,
                     "fireRange": 800,
@@ -1732,7 +1733,16 @@
                     "chargeTimeMs": 2000,
                     "lifetimeMs": 1500,
                     "turnSpeed": 1,
-                    "lockTimeMs": 800
+                    "lockTimeMs": 800,
+                    "orbitSpeed": 0,
+                    "circleCount": 0,
+                    "orbitRadius": 0,
+                    "orbitDuration": 0,
+                    "staticTime": 0,
+                    "startDelay": 0,
+                    "isHoming": 0,
+                    "slowAmount": 0,
+                    "slowDuration": 2000
                 }
             ],
             "movementPhases": [
@@ -1743,7 +1753,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "lootDrops": []
         },
         "4-C": {
             "bulletDamage": 1000,
@@ -3025,36 +3036,16 @@
             "minLevel": 1,
             "name": "Mapa 4",
             "warpCost": 0,
-            "ambience": [
-                {
-                    "type": "freeze_hazard",
-                    "spawnInterval": 4000,
-                    "duration": 3000,
-                    "slowPercentage": 0,
-                    "slowFixed": 50
-                },
-                {
-                    "type": "radiation",
-                    "damage": 10,
-                    "intervalMs": 3000
-                },
-                {
-                    "type": "interferencia_hazard",
-                    "spawnInterval": 15000,
-                    "duration": 5000,
-                    "shakeIntensity": 10,
-                    "staticIntensity": 0.3
-                }
-            ],
+            "ambience": [],
             "spawns": [
                 {
-                    "type": "1",
-                    "count": 5,
+                    "type": "4-B",
+                    "count": 1,
                     "intervalMs": 5000,
                     "id": "spawn_4_idx_0_type_1",
                     "spawnMode": "random",
-                    "x": 5029,
-                    "y": 5019,
+                    "x": 1331,
+                    "y": 1161,
                     "radius": 300
                 }
             ],
@@ -4421,7 +4412,7 @@
             "name": "ESFERA DE TERROR",
             "type": "Ataque",
             "cd": 4000,
-            "amount": 500,
+            "amount": 10,
             "range": 800,
             "radius": 150,
             "duration": 3000,
