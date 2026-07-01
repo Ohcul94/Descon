@@ -170,8 +170,32 @@ func execute_skill():
 				# print("[SKILL-MOBILE] Auto-target friendly skill to self")
 	else:
 		# --- MODO PC: Mouse Clásico ---
-		# v2.5D: Posición mundo 2D directa (consistente en ambos modos de cámara)
-		var target_pos = get_global_mouse_position()
+		var entity_exec = get_parent()
+		var map_node_exec = entity_exec._get_map_node() if entity_exec.has_method("_get_map_node") else null
+		var cam3d_exec = map_node_exec.get("camera_3d") if is_instance_valid(map_node_exec) else null
+		var sub_vp_exec = map_node_exec.get("sub_viewport") if is_instance_valid(map_node_exec) else null
+		var is_persp = is_instance_valid(cam3d_exec) and is_instance_valid(sub_vp_exec) and (not map_node_exec.use_orthogonal)
+		
+		var target_pos: Vector2
+		if is_persp:
+			var sf = map_node_exec.scale_factor if is_instance_valid(map_node_exec) else 0.02
+			var cz = map_node_exec.correction_z if is_instance_valid(map_node_exec) else 1.41421356
+			var mm = get_viewport().get_mouse_position()
+			var msz = Vector2(get_viewport().get_visible_rect().size)
+			var ssz = Vector2(sub_vp_exec.size)
+			var spx = mm
+			if ssz.x > 0 and msz.x > 0 and ssz != msz:
+				spx = mm * (ssz / msz)
+			var rf = cam3d_exec.project_ray_origin(spx)
+			var rt = rf + cam3d_exec.project_ray_normal(spx) * 2000.0
+			var pl = Plane(Vector3.UP, 0.0)
+			var hit = pl.intersects_ray(rf, rt)
+			if hit != null:
+				target_pos = Vector2(hit.x / sf, hit.z / (sf * cz))
+			else:
+				target_pos = get_global_mouse_position()
+		else:
+			target_pos = get_global_mouse_position()
 			
 		payload.angle = (target_pos - global_position).angle()
 		payload.pos = target_pos
@@ -281,9 +305,26 @@ func _draw():
 			aim_vec = Vector2.ZERO
 		else:
 			if use_perspective:
-				var target_pos_logic = get_global_mouse_position()
-				var diff_logic = target_pos_logic - parent_entity.global_position
-				aim_vec = diff_logic.rotated(-parent_entity.rotation)
+				# Convertir mouse a píxeles del SubViewport para raycast 3D
+				var mouse_main = get_viewport().get_mouse_position()
+				var main_size = Vector2(get_viewport().get_visible_rect().size)
+				var sub_size = Vector2(sub_vp.size)
+				var sub_px = mouse_main
+				if sub_size.x > 0 and main_size.x > 0 and sub_size != main_size:
+					sub_px = mouse_main * (sub_size / main_size)
+				
+				# Raycast desde cámara 3D al plano del suelo (Y=0) para obtener punto 3D exacto
+				var ray_from = cam3d.project_ray_origin(sub_px)
+				var ray_to = ray_from + cam3d.project_ray_normal(sub_px) * 2000.0
+				var plane = Plane(Vector3.UP, 0.0)
+				var intersect = plane.intersects_ray(ray_from, ray_to)
+				if intersect != null:
+					# Convertir 3D → 2D mundo (inversa de la conversión en _proj)
+					var world_2d_corrected = Vector2(intersect.x / s_factor, intersect.z / (s_factor * correction_z))
+					var diff_logic = world_2d_corrected - parent_entity.global_position
+					aim_vec = diff_logic.rotated(-parent_entity.rotation)
+				else:
+					aim_vec = Vector2.ZERO
 			else:
 				aim_vec = get_local_mouse_position()
 	

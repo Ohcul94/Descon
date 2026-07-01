@@ -21,6 +21,16 @@ var player_node: Node2D = null
 # correction_z dinámico: 1.0 / sin(tilt_angle) calculado desde la inclinación real de la cámara
 var correction_z: float = 1.41421356
 
+# Free Camera (orbit/free mode) — toggle con tecla O
+var free_cam_active: bool = false
+var free_cam_h: float = 180.0  # ángulo horizontal en grados (180 = detrás de la nave)
+var free_cam_v: float = 40.0   # ángulo vertical (10-85°, 0 = horizontal, 90 = top-down)
+var free_cam_zoom: float = 35.0
+var free_cam_center: Vector3 = Vector3.ZERO
+var free_orbit_mode: bool = true  # true=orbita jugador, false=libre (WASD)
+var _mid_dragging: bool = false
+var _drag_last: Vector2 = Vector2.ZERO
+
 # Referencia a la textura de fondo principal
 @onready var map_background: TextureRect = get_node_or_null("ParallaxBackground/MapWorldLayer/MapBackground")
 
@@ -30,8 +40,25 @@ func _ready():
 		map_background.visible = false
 		adjust_background()
 		
+	# Configurar acciones de input para cámara libre
+	_register_input_actions()
+		
 	# Configurar el lienzo 3D dinámico si no existe en la escena
 	_setup_3d_dynamic()
+
+# Registrar acciones de input para cámara libre si no existen
+func _register_input_actions():
+	if not InputMap.has_action("toggle_free_camera"):
+		InputMap.add_action("toggle_free_camera")
+		var ev = InputEventKey.new()
+		ev.keycode = KEY_O
+		InputMap.action_add_event("toggle_free_camera", ev)
+	
+	if not InputMap.has_action("toggle_orbit_mode"):
+		InputMap.add_action("toggle_orbit_mode")
+		var ev = InputEventKey.new()
+		ev.keycode = KEY_TAB
+		InputMap.action_add_event("toggle_orbit_mode", ev)
 
 func adjust_background():
 	if is_instance_valid(map_background):
@@ -232,6 +259,41 @@ func toggle_camera_projection():
 		hud.notify(msg, type)
 	print("[BaseMap] ", msg)
 
+# Actualizar cámara libre (orbit/free mode)
+func _update_free_camera():
+	if not is_instance_valid(camera_3d):
+		return
+	
+	# En orbit mode, el centro sigue al jugador cada frame
+	if free_orbit_mode and is_instance_valid(player_node):
+		var pp = player_node.global_position
+		free_cam_center = Vector3(pp.x * scale_factor, 0.0, pp.y * scale_factor * correction_z)
+	
+	var rad_h = deg_to_rad(free_cam_h)
+	var rad_v = deg_to_rad(free_cam_v)
+	
+	var offset = Vector3(
+		free_cam_zoom * cos(rad_v) * sin(rad_h),
+		free_cam_zoom * sin(rad_v),
+		free_cam_zoom * cos(rad_v) * cos(rad_h)
+	)
+	
+	camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
+	camera_3d.fov = 55.0
+	camera_3d.position = free_cam_center + offset
+	camera_3d.look_at(free_cam_center, Vector3.UP)
+	
+	# Actualizar correction_z dinámico desde el tilt real de la cámara
+	var dx = camera_3d.position.x - free_cam_center.x
+	var dz = camera_3d.position.z - free_cam_center.z
+	var h_dist = sqrt(dx * dx + dz * dz)
+	if h_dist > 0.001:
+		var tilt_angle = atan2(camera_3d.position.y, h_dist)
+		correction_z = 1.0 / sin(tilt_angle)
+	else:
+		correction_z = 1.0
+	self.set_meta("correction_z", correction_z)
+
 func _process(_delta):
 	# v2.4: Comparar como string para evitar el error 'String' and 'int' cuando zone_id es "extract_X" o "arena_X"
 	if str(zone_id) == "100":
@@ -243,56 +305,75 @@ func _process(_delta):
 		if players.size() > 0:
 			player_node = players[0]
 
-	# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL ---
-	var target_pos = Vector2.ZERO
-	var current_zoom = 1.0
-	
-	var cam_2d = get_viewport().get_camera_2d()
-	if is_instance_valid(cam_2d):
-		cam_2d.force_update_scroll() # Forzar actualización inmediata para evitar desfase de 1 frame (efecto acordeón)
-		target_pos = cam_2d.get_screen_center_position()
-		current_zoom = cam_2d.zoom.x
+	# --- CÁMARA LIBRE (ORBIT/FREE MODE) ---
+	if free_cam_active and is_instance_valid(camera_3d):
+		# WASD para paneo en free mode (no orbit)
+		if not free_orbit_mode:
+			var dt = get_process_delta_time()
+			var rad_h = deg_to_rad(free_cam_h)
+			var fwd = Vector3(sin(rad_h), 0, cos(rad_h)).normalized()
+			var rgt = Vector3(cos(rad_h), 0, -sin(rad_h)).normalized()
+			var pan_speed = 20.0 * (free_cam_zoom / 20.0)
+			if Input.is_key_pressed(KEY_W):
+				free_cam_center -= fwd * pan_speed * dt
+			if Input.is_key_pressed(KEY_S):
+				free_cam_center += fwd * pan_speed * dt
+			if Input.is_key_pressed(KEY_A):
+				free_cam_center -= rgt * pan_speed * dt
+			if Input.is_key_pressed(KEY_D):
+				free_cam_center += rgt * pan_speed * dt
+		_update_free_camera()
 	else:
-		if is_instance_valid(player_node):
-			target_pos = player_node.global_position
-			
-	if is_instance_valid(camera_3d):
-		if current_zoom <= 0.01:
-			current_zoom = 1.0
-			
-		var viewport_height = float(get_viewport().get_visible_rect().size.y)
-		if viewport_height <= 0:
-			viewport_height = 1080.0
-			
-		var dynamic_height = camera_height
-		if use_orthogonal:
-			camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
-			camera_3d.size = (viewport_height * scale_factor) / current_zoom
-			camera_3d.position.y = camera_height
-			dynamic_height = camera_height
+		# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL ---
+		var target_pos = Vector2.ZERO
+		var current_zoom = 1.0
+		
+		var cam_2d = get_viewport().get_camera_2d()
+		if is_instance_valid(cam_2d):
+			cam_2d.force_update_scroll() # Forzar actualización inmediata para evitar desfase de 1 frame (efecto acordeón)
+			target_pos = cam_2d.get_screen_center_position()
+			current_zoom = cam_2d.zoom.x
 		else:
-			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
-			camera_3d.fov = 55.0 # FOV más amplio para efecto LoL
-			var target_visible_height = (viewport_height * scale_factor) / current_zoom
-			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
-			camera_3d.position.y = dynamic_height
-		
-		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica
-		var z_offset = dynamic_height
-		if not use_orthogonal:
-			# En perspectiva, alejar más la cámara en Z para lograr inclinación de ~55° en lugar de 45°
-			z_offset = dynamic_height / tan(deg_to_rad(55.0))
-		
-		# Calcular correction_z dinámico desde la inclinación real de la cámara (ángulo entre horizontal y dirección de vista)
-		var tilt_angle = atan2(camera_3d.position.y, z_offset)
-		correction_z = 1.0 / sin(tilt_angle)
-		self.set_meta("correction_z", correction_z)
-		
-		var corrected_target_z = target_pos.y * scale_factor * correction_z
-		camera_3d.position.x = target_pos.x * scale_factor
-		
-		camera_3d.position.z = corrected_target_z + z_offset
-		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
+			if is_instance_valid(player_node):
+				target_pos = player_node.global_position
+				
+		if is_instance_valid(camera_3d):
+			if current_zoom <= 0.01:
+				current_zoom = 1.0
+				
+			var viewport_height = float(get_viewport().get_visible_rect().size.y)
+			if viewport_height <= 0:
+				viewport_height = 1080.0
+				
+			var dynamic_height = camera_height
+			if use_orthogonal:
+				camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
+				camera_3d.size = (viewport_height * scale_factor) / current_zoom
+				camera_3d.position.y = camera_height
+				dynamic_height = camera_height
+			else:
+				camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
+				camera_3d.fov = 55.0 # FOV más amplio para efecto LoL
+				var target_visible_height = (viewport_height * scale_factor) / current_zoom
+				dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+				camera_3d.position.y = dynamic_height
+			
+			# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica
+			var z_offset = dynamic_height
+			if not use_orthogonal:
+				# En perspectiva, alejar más la cámara en Z para lograr inclinación de ~40° en lugar de 55°
+				z_offset = dynamic_height / tan(deg_to_rad(40.0))
+			
+			# Calcular correction_z dinámico desde la inclinación real de la cámara (ángulo entre horizontal y dirección de vista)
+			var tilt_angle = atan2(camera_3d.position.y, z_offset)
+			correction_z = 1.0 / sin(tilt_angle)
+			self.set_meta("correction_z", correction_z)
+			
+			var corrected_target_z = target_pos.y * scale_factor * correction_z
+			camera_3d.position.x = target_pos.x * scale_factor
+			
+			camera_3d.position.z = corrected_target_z + z_offset
+			camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
 		
 	# Chequear cercanía a puertas interactivas del mapa
 	_check_doors_proximity()
@@ -724,6 +805,58 @@ func _check_doors_proximity():
 func _input(event):
 	if event.is_action_pressed("toggle_camera_projection") and not event.is_echo():
 		toggle_camera_projection()
+		get_viewport().set_input_as_handled()
+	
+	# Toggle cámara libre (tecla O)
+	if event.is_action_pressed("toggle_free_camera") and not event.is_echo():
+		free_cam_active = !free_cam_active
+		if free_cam_active:
+			# Configurar posición inicial coherente con la cámara actual
+			var msg_f = "CÁMARA LIBRE: " + ("ORBIT" if free_orbit_mode else "FREE")
+			var hud_f = get_tree().get_first_node_in_group("hud")
+			if hud_f and hud_f.has_method("notify"):
+				hud_f.notify(msg_f, "info")
+			print("[BaseMap] ", msg_f)
+			# Forzar perspectiva
+			use_orthogonal = false
+		else:
+			var hud_f = get_tree().get_first_node_in_group("hud")
+			if hud_f and hud_f.has_method("notify"):
+				hud_f.notify("CÁMARA: PERSPECTIVA (3D)", "success")
+		get_viewport().set_input_as_handled()
+	
+	# Toggle orbit/free mode dentro de cámara libre (tecla Tab)
+	if free_cam_active and event.is_action_pressed("toggle_orbit_mode") and not event.is_echo():
+		free_orbit_mode = !free_orbit_mode
+		var hud_f = get_tree().get_first_node_in_group("hud")
+		var msg_f = "CÁMARA: " + ("ORBIT (siguiendo nave)" if free_orbit_mode else "FREE (WASD para paneo)")
+		if hud_f and hud_f.has_method("notify"):
+			hud_f.notify(msg_f, "info")
+		print("[BaseMap] ", msg_f)
+		get_viewport().set_input_as_handled()
+	
+	# Middle-click drag para orbitar (solo en cámara libre)
+	if free_cam_active and event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			_mid_dragging = event.pressed
+			if event.pressed:
+				_drag_last = event.position
+			get_viewport().set_input_as_handled()
+		
+		# Scroll para zoom (solo en cámara libre)
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
+			free_cam_zoom = max(5.0, free_cam_zoom - 2.0)
+			get_viewport().set_input_as_handled()
+		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
+			free_cam_zoom = min(200.0, free_cam_zoom + 2.0)
+			get_viewport().set_input_as_handled()
+	
+	# Motion drag para orbitar
+	if free_cam_active and _mid_dragging and event is InputEventMouseMotion:
+		var delta = event.position - _drag_last
+		free_cam_h -= delta.x * 0.3
+		free_cam_v = clamp(free_cam_v + delta.y * 0.3, 10.0, 85.0)
+		_drag_last = event.position
 		get_viewport().set_input_as_handled()
 		
 	if event.is_action_pressed("portal_jump") and not event.is_echo():
