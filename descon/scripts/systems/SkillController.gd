@@ -208,20 +208,73 @@ func _draw():
 	
 	var range_val = current_skill.get("range", 500.0)
 	var color = config.indicator_color
+	
+	# v420.3: Detectar si estamos en perspectiva 3D para proyectar indicadores correctamente
+	var parent_entity = get_parent()
+	var parent_map = parent_entity._get_map_node() if parent_entity.has_method("_get_map_node") else null
+	var use_perspective = is_instance_valid(parent_map) and not parent_map.use_orthogonal
+	var cam3d: Camera3D = null
+	var sub_vp: SubViewport = null
+	if use_perspective:
+		cam3d = parent_map.get("camera_3d")
+		sub_vp = parent_map.get("sub_viewport")
+		use_perspective = is_instance_valid(cam3d) and is_instance_valid(sub_vp)
+	
+	# --- FUNCIÓN INTERNA: convierte posición 2D lógica global a posición local visual ---
+	# En ortogonal: retorna el mismo punto (to_local de la posición global)
+	# En perspectiva: proyecta via cámara 3D y convierte a espacio local del nodo
+	var s_factor = parent_map.scale_factor if is_instance_valid(parent_map) else 0.02
+	var correction_z = parent_map.correction_z if is_instance_valid(parent_map) else 1.41421356
+	
+	# Obtener la posición visual del origen (la nave del jugador)
+	var origin_vis: Vector2 = global_position
+	if use_perspective and parent_entity.has_method("get_visual_position"):
+		var vp = parent_entity.get_visual_position()
+		if vp != Vector2.ZERO:
+			origin_vis = vp
+	
+	# Convierte un desplazamiento 2D lógico (relativo a la nave) en un desplazamiento visual en pantalla
+	var _proj = func(offset_2d: Vector2) -> Vector2:
+		if not use_perspective:
+			return offset_2d  # En ortogonal: directo
+		# Posición 2D global del punto lógico
+		var world_2d = global_position + offset_2d
+		# Convertir a 3D
+		var pos_3d = Vector3(world_2d.x * s_factor, 0.0, world_2d.y * s_factor * correction_z)
+		if cam3d.is_position_behind(pos_3d):
+			return offset_2d  # Fallback si está detrás
+		# Proyectar a píxeles del SubViewport
+		var sv_px = cam3d.unproject_position(pos_3d)
+		# Escalar SubViewport → pantalla principal
+		var main_size = Vector2(get_viewport().get_visible_rect().size)
+		if sub_vp.size.x > 0:
+			sv_px *= main_size / Vector2(sub_vp.size)
+		# Convertir a coordenadas mundo 2D y luego a espacio local de este nodo
+		var world_2d_vis = get_viewport().get_canvas_transform().affine_inverse() * sv_px
+		return to_local(world_2d_vis)
+	
+	# Dibujar círculo de rango máximo (proyectando puntos individuales en perspectiva)
 	if range_val > 0:
-		draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 2.0)
+		if use_perspective:
+			# Construir el arco punto a punto proyectado
+			var steps = 64
+			var pts = PackedVector2Array()
+			for i in range(steps + 1):
+				var ang = (float(i) / steps) * TAU
+				var local_pt = Vector2(cos(ang), sin(ang)) * range_val
+				pts.append(_proj.call(local_pt))
+			draw_polyline(pts, color, 2.0)
+		else:
+			draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 2.0)
 	
 	# v266.810: FIX Visual - Compensar rotación de la nave
-	# El external_aim_vector viene en espacio de mundo (absoluto).
-	# Como este nodo es hijo de la nave, _draw() ocurre en espacio local rotado.
-	# Debemos des-rotar el vector para que visualmente apunte a donde dice el dedo.
 	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	var aim_vec: Vector2
 	if external_aim_vector != Vector2.ZERO:
 		aim_vec = external_aim_vector.rotated(-get_parent().rotation)
 	else:
 		if is_mobile:
-			aim_vec = Vector2.ZERO # Sin drag = en la nave
+			aim_vec = Vector2.ZERO
 		else:
 			aim_vec = get_local_mouse_position()
 	
@@ -232,25 +285,41 @@ func _draw():
 		if range_val > 0 and dist > range_val:
 			end_point = aim_vec.normalized() * range_val
 		
-		# v2.9: Ocultar línea para habilidades de teletransporte o minas (Solo queremos el punto)
+		# Punto final proyectado a espacio visual
+		var end_proj = _proj.call(end_point)
+		var origin_local = Vector2.ZERO  # Siempre el origen local
+		
+		# v2.9: Ocultar línea para habilidades de teletransporte o minas
 		var s_name = current_skill.get("skill_name", "")
 		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and current_skill.id != "electron" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO" and s_name != "BALIZA DE CURACION" and s_name != "PROVOCACION" and s_name != "RESURRECCIÓN":
-			draw_line(Vector2.ZERO, end_point, Color(color.r, color.g, color.b, 0.6), 3.0)
+			draw_line(origin_local, end_proj, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
 		if current_skill.id == "emp":
 			var dir = aim_vec.normalized()
 			if aim_vec.length() < 0.1:
 				dir = Vector2.RIGHT
 			end_point = dir * range_val
-			draw_line(Vector2.ZERO, end_point, Color(0.1, 0.5, 1.0, 0.25), 60.0) # Haz grueso de ancho 60px
-			draw_line(Vector2.ZERO, end_point, Color(0.3, 0.7, 1.0, 0.65), 3.0)  # Núcleo de la mira
+			end_proj = _proj.call(end_point)
+			draw_line(origin_local, end_proj, Color(0.1, 0.5, 1.0, 0.25), 60.0)
+			draw_line(origin_local, end_proj, Color(0.3, 0.7, 1.0, 0.65), 3.0)
 		elif current_skill.id == "electron":
 			var radius_val = float(current_skill.get("explosionRadius", 120.0))
 			var draw_color = Color(0.2, 0.7, 1.0, 0.5)
 			var fill_color = Color(0.2, 0.7, 1.0, 0.1)
-			draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
-			draw_circle(end_point, radius_val, fill_color)
-			draw_circle(end_point, 8.0, draw_color)
+			if use_perspective:
+				# Proyectar el círculo de explosión en perspectiva
+				var steps = 48
+				var pts_circle = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					var pt = end_point + Vector2(cos(ang), sin(ang)) * radius_val
+					pts_circle.append(_proj.call(pt))
+				draw_polyline(pts_circle, draw_color, 2.0)
+				draw_circle(end_proj, 8.0, draw_color)
+			else:
+				draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
+				draw_circle(end_point, radius_val, fill_color)
+				draw_circle(end_point, 8.0, draw_color)
 		elif current_skill.id == "melee":
 			var dir = aim_vec.normalized()
 			if aim_vec.length() < 0.1:
@@ -266,30 +335,28 @@ func _draw():
 			for j in range(steps + 1):
 				var t = float(j) / steps
 				
-				# Delanteras
 				var theta_izq = -PI/2.0 + t * (PI/2.0)
 				var pt_izq = Vector2(cos(theta_izq), sin(theta_izq)) * range_val
-				pts_izq.append(pt_izq.rotated(dir.angle()))
+				pts_izq.append(_proj.call(pt_izq.rotated(dir.angle())))
 				
 				var theta_der = PI/2.0 - t * (PI/2.0)
 				var pt_der = Vector2(cos(theta_der), sin(theta_der)) * range_val
-				pts_der.append(pt_der.rotated(dir.angle()))
+				pts_der.append(_proj.call(pt_der.rotated(dir.angle())))
 				
-				# Traseras
 				var theta_tras_izq = -PI/2.0 - t * (PI/2.0)
 				var pt_tras_izq = Vector2(cos(theta_tras_izq), sin(theta_tras_izq)) * range_val
-				pts_tras_izq.append(pt_tras_izq.rotated(dir.angle()))
+				pts_tras_izq.append(_proj.call(pt_tras_izq.rotated(dir.angle())))
 				
 				var theta_tras_der = PI/2.0 + t * (PI/2.0)
 				var pt_tras_der = Vector2(cos(theta_tras_der), sin(theta_tras_der)) * range_val
-				pts_tras_der.append(pt_tras_der.rotated(dir.angle()))
+				pts_tras_der.append(_proj.call(pt_tras_der.rotated(dir.angle())))
 				
 			draw_polyline(pts_izq, Color(1.0, 0.45, 0.0, 0.55), 4.0)
 			draw_polyline(pts_der, Color(1.0, 0.45, 0.0, 0.55), 4.0)
 			draw_polyline(pts_tras_izq, Color(1.0, 0.45, 0.0, 0.35), 4.0)
 			draw_polyline(pts_tras_der, Color(1.0, 0.45, 0.0, 0.35), 4.0)
-			draw_circle(end_point, 10.0, Color(1.0, 0.3, 0.0, 0.75))
-			draw_circle(-end_point, 10.0, Color(1.0, 0.3, 0.0, 0.45))
+			draw_circle(end_proj, 10.0, Color(1.0, 0.3, 0.0, 0.75))
+			draw_circle(_proj.call(-end_point), 10.0, Color(1.0, 0.3, 0.0, 0.45))
 		elif s_name == "BARRERA DE VIENTO":
 			var width_val = 150.0
 			if GameConstants.SKILLS_DATA.has(s_name):
@@ -298,17 +365,16 @@ func _draw():
 			var perp_angle = end_point.angle() + (PI / 2.0)
 			var wall_offset = Vector2(cos(perp_angle), sin(perp_angle)) * half_w
 			
-			var pt_a = end_point - wall_offset
-			var pt_b = end_point + wall_offset
+			var pt_a_proj = _proj.call(end_point - wall_offset)
+			var pt_b_proj = _proj.call(end_point + wall_offset)
+			draw_line(pt_a_proj, pt_b_proj, Color(0.3, 0.9, 1.0, 0.85), 4.0)
 			
-			# Línea principal del indicador de la barrera plana
-			draw_line(pt_a, pt_b, Color(0.3, 0.9, 1.0, 0.85), 4.0)
-			
-			# Dibujar líneas indicadoras de flujo de viento hacia adelante
 			var push_dir = end_point.normalized()
-			draw_line(pt_a, pt_a + push_dir * 18.0, Color(0.3, 0.9, 1.0, 0.4), 2.0)
-			draw_line(pt_b, pt_b + push_dir * 18.0, Color(0.3, 0.9, 1.0, 0.4), 2.0)
-			draw_line(end_point, end_point + push_dir * 25.0, Color(0.3, 0.9, 1.0, 0.6), 2.0)
+			var pt_a_raw = end_point - wall_offset
+			var pt_b_raw = end_point + wall_offset
+			draw_line(pt_a_proj, _proj.call(pt_a_raw + push_dir * 18.0), Color(0.3, 0.9, 1.0, 0.4), 2.0)
+			draw_line(pt_b_proj, _proj.call(pt_b_raw + push_dir * 18.0), Color(0.3, 0.9, 1.0, 0.4), 2.0)
+			draw_line(end_proj, _proj.call(end_point + push_dir * 25.0), Color(0.3, 0.9, 1.0, 0.6), 2.0)
 		elif s_name == "BALIZA DE CURACION" or s_name == "RESURRECCIÓN":
 			var radius_val = 200.0
 			if GameConstants.SKILLS_DATA.has(s_name):
@@ -320,12 +386,18 @@ func _draw():
 				draw_color = Color(0.9, 0.1, 0.9, 0.45)
 				fill_color = Color(0.9, 0.1, 0.9, 0.1)
 			
-			# Círculo externo del área de cobertura
-			draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
-			# Relleno del área
-			draw_circle(end_point, radius_val, fill_color)
-			# Núcleo del dispositivo
-			draw_circle(end_point, 8.0, draw_color)
+			if use_perspective:
+				var steps = 64
+				var pts_c = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					pts_c.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
+				draw_polyline(pts_c, draw_color, 2.0)
+				draw_circle(end_proj, 8.0, draw_color)
+			else:
+				draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
+				draw_circle(end_point, radius_val, fill_color)
+				draw_circle(end_point, 8.0, draw_color)
 		elif s_name == "PROVOCACION":
 			var radius_val = 220.0
 			if GameConstants.SKILLS_DATA.has(s_name):
@@ -335,21 +407,33 @@ func _draw():
 			var charge_factor = fmod(time_scale * 1.5, 1.0)
 			var charge_radius = radius_val * (1.0 - charge_factor)
 			
-			# Círculo del área total (rojo)
-			draw_arc(end_point, radius_val, 0, TAU, 64, Color(1.0, 0.25, 0.2, 0.45), 2.5)
-			draw_circle(end_point, radius_val, Color(1.0, 0.2, 0.2, 0.08))
-			
-			# Anillo de carga concentrándose (naranja)
-			draw_arc(end_point, charge_radius, 0, TAU, 48, Color(1.0, 0.55, 0.1, 0.65), 1.5)
-			
-			# Epicentro
-			draw_circle(end_point, 7.0, Color(1.0, 0.2, 0.2, 0.95))
+			if use_perspective:
+				var steps = 64
+				var pts_outer = PackedVector2Array()
+				var pts_charge = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					pts_outer.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
+					pts_charge.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * charge_radius))
+				draw_polyline(pts_outer, Color(1.0, 0.25, 0.2, 0.45), 2.5)
+				draw_polyline(pts_charge, Color(1.0, 0.55, 0.1, 0.65), 1.5)
+				draw_circle(end_proj, 7.0, Color(1.0, 0.2, 0.2, 0.95))
+			else:
+				draw_arc(end_point, radius_val, 0, TAU, 64, Color(1.0, 0.25, 0.2, 0.45), 2.5)
+				draw_circle(end_point, radius_val, Color(1.0, 0.2, 0.2, 0.08))
+				draw_arc(end_point, charge_radius, 0, TAU, 48, Color(1.0, 0.55, 0.1, 0.65), 1.5)
+				draw_circle(end_point, 7.0, Color(1.0, 0.2, 0.2, 0.95))
 		else:
-			draw_circle(end_point, 8.0, color)
+			draw_circle(end_proj, 8.0, color)
 		
 	elif current_skill.get("type") == SkillType.POINT_CLICK:
 		if selected_target:
-			var t_pos = to_local(selected_target.global_position)
+			var t_pos: Vector2
+			if use_perspective and selected_target.has_method("get_visual_position"):
+				var vis = selected_target.get_visual_position()
+				t_pos = to_local(vis) if vis != Vector2.ZERO else to_local(selected_target.global_position)
+			else:
+				t_pos = to_local(selected_target.global_position)
 			draw_arc(t_pos, 40.0, 0, TAU, 32, Color.YELLOW, 3.0)
 		else:
 			draw_circle(aim_vec, 15.0, Color(1, 1, 1, 0.2))
