@@ -281,13 +281,14 @@ func _draw():
 			aim_vec = Vector2.ZERO
 		else:
 			if use_perspective:
-				# 1. Obtener la posición lógica 3D a la que apunta el mouse
+				# 1. Obtener la posición lógica 3D real a la que apunta el mouse en el plano del mapa
 				var aim_3d = parent_entity.get_aim_target_3d(get_viewport().get_mouse_position())
 				var target_pos_logic = Vector2(aim_3d.x / parent_map.scale_factor, aim_3d.z / (parent_map.scale_factor * parent_map.correction_z))
-				# 2. El vector de dirección real va desde la posición global lógica de la nave (parent_entity) hacia ese target lógico
+				
+				# 2. El vector de dirección va desde la posición lógica global de la nave hacia esa posición lógica
 				var diff_logic = target_pos_logic - parent_entity.global_position
-				# 3. Como este nodo _draw() hereda la rotación de la nave, debemos des-rotar el vector 
-				# para que se alinee en el espacio local del CanvasItem dibujado.
+				
+				# 3. Des-rotar el vector lógico para el espacio local de dibujo del CanvasItem
 				aim_vec = diff_logic.rotated(-parent_entity.rotation)
 			else:
 				aim_vec = get_local_mouse_position()
@@ -301,7 +302,7 @@ func _draw():
 		
 		# Punto final proyectado a espacio visual
 		var end_proj = _proj.call(end_point)
-		var origin_local = Vector2.ZERO  # Siempre el origen local
+		var origin_local = to_local(origin_vis) if use_perspective else Vector2.ZERO
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas
 		var s_name = current_skill.get("skill_name", "")
