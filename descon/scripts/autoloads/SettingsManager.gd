@@ -15,6 +15,7 @@ var default_keys = {
 	"ui_map": KEY_M, "ui_party": KEY_P, "ui_pvp_toggle": KEY_C,
 	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto
+	"toggle_camera_projection": KEY_L, # Atajo para cambio de perspectiva
 	"chat_toggle": KEY_ENTER, # Atajo para chat
 	"loot_claim": KEY_Y # Atajo para abrir cofres de botín
 }

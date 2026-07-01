@@ -219,6 +219,16 @@ func _apply_camera_headlight(cam: Camera3D):
 	headlight.light_specular = 0.2 # Brillo especular suave
 	headlight.shadow_enabled = false # Sin sombras para evitar oclusión y mantener visibilidad
 
+# Método para alternar proyección de cámara (llamado al presionar tecla L)
+func toggle_camera_projection():
+	use_orthogonal = !use_orthogonal
+	var hud = get_tree().get_first_node_in_group("hud")
+	var msg = "CÁMARA: " + ("ORTOGONAL (2D)" if use_orthogonal else "PERSPECTIVA (3D)")
+	var type = "info" if use_orthogonal else "success"
+	if hud and hud.has_method("notify"):
+		hud.notify(msg, type)
+	print("[BaseMap] ", msg)
+
 func _process(_delta):
 	# v2.4: Comparar como string para evitar el error 'String' and 'int' cuando zone_id es "extract_X" o "arena_X"
 	if str(zone_id) == "100":
@@ -257,14 +267,17 @@ func _process(_delta):
 			camera_3d.size = (viewport_height * scale_factor) / current_zoom
 			camera_3d.position.y = camera_height
 			dynamic_height = camera_height
+			camera_3d.rotation_degrees = Vector3(-90, 0, 0) # Orientación original
 		else:
 			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
+			camera_3d.fov = 55.0 # FOV más amplio para efecto LoL
 			var target_visible_height = (viewport_height * scale_factor) / current_zoom
 			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
 			camera_3d.position.y = dynamic_height
+			camera_3d.rotation_degrees = Vector3(-55, 0, 0) # Inclinación más agresiva 2.5D
 		
-		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica (45 grados de inclinación original)
-		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal
+		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica
+		var correction_z = 1.41421356 # Factor de corrección 2D-3D
 		var corrected_target_z = target_pos.y * scale_factor * correction_z
 		camera_3d.position.x = target_pos.x * scale_factor
 		camera_3d.position.z = corrected_target_z + dynamic_height
@@ -700,6 +713,10 @@ func _check_doors_proximity():
 
 # Atajo de teclado para entrar al portal si el contenedor está visible
 func _input(event):
+	if event.is_action_pressed("toggle_camera_projection") and not event.is_echo():
+		toggle_camera_projection()
+		get_viewport().set_input_as_handled()
+		
 	if event.is_action_pressed("portal_jump") and not event.is_echo():
 		if is_instance_valid(portal_btn_container) and portal_btn_container.visible:
 			if is_instance_valid(portal_click_button):
