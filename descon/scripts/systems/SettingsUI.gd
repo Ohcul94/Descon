@@ -238,6 +238,8 @@ func _setup_ui():
 		"ui_map": "MAPA (M)", "ui_party": "EQUIPO (P)", "ui_pvp_toggle": "MODO COMBATE (C)",
 		"portal_jump": "INGRESAR AL PORTAL",
 		"toggle_camera_projection": "CAMBIAR PERSPECTIVA (CÁMARA)",
+		"toggle_free_camera": "MODO CÁMARA LIBRE 3D",
+		"toggle_orbit_mode": "ORBITAR / PANEO (CÁMARA LIBRE)",
 		"loot_claim": "ABRIR BOTÍN / COFRE",
 		"chat_toggle": "ABRIR / CERRAR CHAT"
 	}

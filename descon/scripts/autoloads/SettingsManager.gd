@@ -16,6 +16,8 @@ var default_keys = {
 	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto
 	"toggle_camera_projection": KEY_L, # Atajo para cambio de perspectiva
+	"toggle_free_camera": KEY_O, # Atajo para cámara libre 3D
+	"toggle_orbit_mode": KEY_TAB, # Atajo para orbit/free mode dentro de cámara libre
 	"chat_toggle": KEY_ENTER, # Atajo para chat
 	"loot_claim": KEY_Y # Atajo para abrir cofres de botín
 }
@@ -29,6 +31,14 @@ var skill_magnetism: float = 1.0
 var mouse_sensitivity: float = 1.0 # Velocidad del cursor virtual
 var skill_aim_speed: float = 1.0   # Suavizado de apuntado de habilidades
 var mobile_mode: bool = false           # v266.670: Modo Celular MOBA
+
+# Estado de cámara que persiste entre mapas (NO se guarda en disco, se reinicia al cerrar el juego)
+var cam_free_active: bool = false
+var cam_free_h: float = 0.0
+var cam_free_v: float = 40.0
+var cam_free_zoom: float = 35.0
+var cam_free_orbit: bool = true
+var cam_use_orthogonal: bool = true
 var mobile_aim_sensitivity: float = 1.0 # v266.700: Sensibilidad de apuntado MOBA (profundidad)
 var mobile_invert_y: bool = true        # v266.760: Invertir eje Y en apuntado movil
 var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)

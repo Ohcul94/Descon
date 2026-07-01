@@ -45,6 +45,9 @@ func _ready():
 		
 	# Configurar el lienzo 3D dinámico si no existe en la escena
 	_setup_3d_dynamic()
+	
+	# Restaurar estado de cámara de la sesión actual (persiste entre warps)
+	_restore_camera_state()
 
 # Registrar acciones de input para cámara libre si no existen
 func _register_input_actions():
@@ -252,12 +255,37 @@ func _apply_camera_headlight(cam: Camera3D):
 # Método para alternar proyección de cámara (llamado al presionar tecla L)
 func toggle_camera_projection():
 	use_orthogonal = !use_orthogonal
+	_save_camera_state()
 	var hud = get_tree().get_first_node_in_group("hud")
 	var msg = "CÁMARA: " + ("ORTOGONAL (2D)" if use_orthogonal else "PERSPECTIVA (3D)")
 	var type = "info" if use_orthogonal else "success"
 	if hud and hud.has_method("notify"):
 		hud.notify(msg, type)
 	print("[BaseMap] ", msg)
+
+# Guardar estado de cámara en SettingsManager (persiste entre mapas, no en disco)
+func _save_camera_state():
+	if not has_node("/root/SettingsManager"):
+		return
+	var sm = get_node("/root/SettingsManager")
+	sm.cam_free_active = free_cam_active
+	sm.cam_free_h = free_cam_h
+	sm.cam_free_v = free_cam_v
+	sm.cam_free_zoom = free_cam_zoom
+	sm.cam_free_orbit = free_orbit_mode
+	sm.cam_use_orthogonal = use_orthogonal
+
+# Restaurar estado de cámara desde SettingsManager
+func _restore_camera_state():
+	if not has_node("/root/SettingsManager"):
+		return
+	var sm = get_node("/root/SettingsManager")
+	free_cam_active = sm.cam_free_active
+	free_cam_h = sm.cam_free_h
+	free_cam_v = sm.cam_free_v
+	free_cam_zoom = sm.cam_free_zoom
+	free_orbit_mode = sm.cam_free_orbit
+	use_orthogonal = sm.cam_use_orthogonal
 
 # Actualizar cámara libre (orbit/free mode)
 func _update_free_camera():
@@ -269,6 +297,7 @@ func _update_free_camera():
 		var pp = player_node.global_position
 		free_cam_center = Vector3(pp.x * scale_factor, 0.0, pp.y * scale_factor * correction_z)
 	
+	# Ángulo FIJO (no relativo a la nave) — la cámara orbita en espacio mundo, no sigue la rotación del barco
 	var rad_h = deg_to_rad(free_cam_h)
 	var rad_v = deg_to_rad(free_cam_v)
 	
@@ -283,16 +312,9 @@ func _update_free_camera():
 	camera_3d.position = free_cam_center + offset
 	camera_3d.look_at(free_cam_center, Vector3.UP)
 	
-	# Actualizar correction_z dinámico desde el tilt real de la cámara
-	var dx = camera_3d.position.x - free_cam_center.x
-	var dz = camera_3d.position.z - free_cam_center.z
-	var h_dist = sqrt(dx * dx + dz * dz)
-	if h_dist > 0.001:
-		var tilt_angle = atan2(camera_3d.position.y, h_dist)
-		correction_z = 1.0 / sin(tilt_angle)
-	else:
-		correction_z = 1.0
-	self.set_meta("correction_z", correction_z)
+	# NO actualizar correction_z global — los assets 3D (portal, paredes, cofres, etc.)
+	# se posicionaron con el tilt de la cámara fija. Si lo cambiamos, se desplazan.
+	# En su lugar, calculamos uno local solo para la posición del centro si hiciera falta.
 
 func _process(_delta):
 	# v2.4: Comparar como string para evitar el error 'String' and 'int' cuando zone_id es "extract_X" o "arena_X"
@@ -805,29 +827,31 @@ func _check_doors_proximity():
 func _input(event):
 	if event.is_action_pressed("toggle_camera_projection") and not event.is_echo():
 		toggle_camera_projection()
+		_save_camera_state()
 		get_viewport().set_input_as_handled()
 	
 	# Toggle cámara libre (tecla O)
 	if event.is_action_pressed("toggle_free_camera") and not event.is_echo():
+		if use_orthogonal:
+			var l_key = _get_bound_key_text("toggle_camera_projection")
+			var hud_f = get_tree().get_first_node_in_group("hud")
+			if hud_f and hud_f.has_method("notify"):
+				hud_f.notify("PRIMERO CAMBIA A 3D (" + l_key + ")", "info")
+			get_viewport().set_input_as_handled()
+			return
+		
 		free_cam_active = !free_cam_active
-		if free_cam_active:
-			# Configurar posición inicial coherente con la cámara actual
-			var msg_f = "CÁMARA LIBRE: " + ("ORBIT" if free_orbit_mode else "FREE")
-			var hud_f = get_tree().get_first_node_in_group("hud")
-			if hud_f and hud_f.has_method("notify"):
-				hud_f.notify(msg_f, "info")
-			print("[BaseMap] ", msg_f)
-			# Forzar perspectiva
-			use_orthogonal = false
-		else:
-			var hud_f = get_tree().get_first_node_in_group("hud")
-			if hud_f and hud_f.has_method("notify"):
-				hud_f.notify("CÁMARA: PERSPECTIVA (3D)", "success")
+		_save_camera_state()
+		var hud_f = get_tree().get_first_node_in_group("hud")
+		if hud_f and hud_f.has_method("notify"):
+			hud_f.notify("CÁMARA " + ("LIBRE" if free_cam_active else "FIJA"), "info" if free_cam_active else "success")
+		print("[BaseMap] CÁMARA ", "LIBRE" if free_cam_active else "FIJA")
 		get_viewport().set_input_as_handled()
 	
 	# Toggle orbit/free mode dentro de cámara libre (tecla Tab)
 	if free_cam_active and event.is_action_pressed("toggle_orbit_mode") and not event.is_echo():
 		free_orbit_mode = !free_orbit_mode
+		_save_camera_state()
 		var hud_f = get_tree().get_first_node_in_group("hud")
 		var msg_f = "CÁMARA: " + ("ORBIT (siguiendo nave)" if free_orbit_mode else "FREE (WASD para paneo)")
 		if hud_f and hud_f.has_method("notify"):
@@ -846,17 +870,20 @@ func _input(event):
 		# Scroll para zoom (solo en cámara libre)
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
 			free_cam_zoom = max(5.0, free_cam_zoom - 2.0)
+			_save_camera_state()
 			get_viewport().set_input_as_handled()
 		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
 			free_cam_zoom = min(200.0, free_cam_zoom + 2.0)
+			_save_camera_state()
 			get_viewport().set_input_as_handled()
 	
-	# Motion drag para orbitar
+	# Motion drag para orbitar (como MMO: arrastrar abajo → cámara baja, arrastrar arriba → cámara sube)
 	if free_cam_active and _mid_dragging and event is InputEventMouseMotion:
 		var delta = event.position - _drag_last
-		free_cam_h -= delta.x * 0.3
+		free_cam_h += delta.x * 0.3
 		free_cam_v = clamp(free_cam_v + delta.y * 0.3, 10.0, 85.0)
 		_drag_last = event.position
+		_save_camera_state()
 		get_viewport().set_input_as_handled()
 		
 	if event.is_action_pressed("portal_jump") and not event.is_echo():
@@ -864,3 +891,14 @@ func _input(event):
 			if is_instance_valid(portal_click_button):
 				portal_click_button.pressed.emit()
 				get_viewport().set_input_as_handled()
+
+# Lee la tecla bindeada para mostrar en notificaciones
+func _get_bound_key_text(action: String) -> String:
+	if not InputMap.has_action(action): return "?"
+	var events = InputMap.action_get_events(action)
+	if events.size() > 0:
+		var txt = events[0].as_text().replace(" (Physical)", "")
+		if txt.contains("Physical"): txt = txt.replace("Physical", "").strip_edges()
+		if txt.begins_with("Mouse Button"): txt = "M" + txt.replace("Mouse Button ", "")
+		return txt.to_upper()
+	return "?"
