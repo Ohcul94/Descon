@@ -381,6 +381,10 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 	# v268.30: Bloqueo por Interferencia Ambiental
 	if get_meta("skills_blocked", false):
 		return
+	
+	# Bloquear skills solo en modo paneo (cámara libre sin seguir al jugador)
+	if get_node_or_null("/root/SettingsManager") and SettingsManager.cam_free_active and not SettingsManager.cam_free_orbit:
+		return
 		
 	var cd = cooldowns.get(skill_id, 0.0)
 	if cd <= 0:

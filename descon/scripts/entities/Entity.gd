@@ -352,6 +352,13 @@ func _process(delta):
 				var screen_size = get_viewport_rect().size
 				var cam_pos = cam.global_position
 				var margin = 600.0
+				# En modo PANEO (cámara libre sin orbitar), sin margen extra — solo lo que está en pantalla 2D
+				var map_node = get_tree().get_first_node_in_group("map")
+				if is_instance_valid(map_node):
+					var fca = map_node.get("free_cam_active")
+					var fom = map_node.get("free_orbit_mode")
+					if fca == true and fom == false:
+						margin = 0.0
 				var diff = target_position - cam_pos # v311.4: Usar target_position para evitar desincronización por cortocircuito
 				if abs(diff.x) > (screen_size.x / 2.0 + margin) or abs(diff.y) > (screen_size.y / 2.0 + margin):
 					screen_visible = false

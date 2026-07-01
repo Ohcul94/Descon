@@ -17,7 +17,7 @@ var default_keys = {
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto
 	"toggle_camera_projection": KEY_L, # Atajo para cambio de perspectiva
 	"toggle_free_camera": KEY_O, # Atajo para cámara libre 3D
-	"toggle_orbit_mode": KEY_TAB, # Atajo para orbit/free mode dentro de cámara libre
+	"toggle_orbit_mode": KEY_SEMICOLON, # Ñ en teclado español (física); orbit/free mode
 	"chat_toggle": KEY_ENTER, # Atajo para chat
 	"loot_claim": KEY_Y # Atajo para abrir cofres de botín
 }

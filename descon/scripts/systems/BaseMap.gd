@@ -60,7 +60,7 @@ func _register_input_actions():
 	if not InputMap.has_action("toggle_orbit_mode"):
 		InputMap.add_action("toggle_orbit_mode")
 		var ev = InputEventKey.new()
-		ev.keycode = KEY_TAB
+		ev.keycode = KEY_SEMICOLON
 		InputMap.action_add_event("toggle_orbit_mode", ev)
 
 func adjust_background():
@@ -344,6 +344,13 @@ func _process(_delta):
 				free_cam_center -= rgt * pan_speed * dt
 			if Input.is_key_pressed(KEY_D):
 				free_cam_center += rgt * pan_speed * dt
+			# Limitar paneo a los bordes del mapa + margen 10 uds 2D
+			var margin_x = 10.0 * scale_factor
+			var margin_z = 10.0 * scale_factor * correction_z
+			var max_x = world_size * scale_factor
+			var max_z = world_size * scale_factor * correction_z
+			free_cam_center.x = clamp(free_cam_center.x, -margin_x, max_x + margin_x)
+			free_cam_center.z = clamp(free_cam_center.z, -margin_z, max_z + margin_z)
 		_update_free_camera()
 	else:
 		# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL ---
@@ -832,17 +839,18 @@ func _input(event):
 	
 	# Toggle cámara libre (tecla O)
 	if event.is_action_pressed("toggle_free_camera") and not event.is_echo():
+		var hud_f = get_tree().get_first_node_in_group("hud")
 		if use_orthogonal:
 			var l_key = _get_bound_key_text("toggle_camera_projection")
-			var hud_f = get_tree().get_first_node_in_group("hud")
 			if hud_f and hud_f.has_method("notify"):
-				hud_f.notify("PRIMERO CAMBIA A 3D (" + l_key + ")", "info")
+				hud_f.notify("PRIMERO CAMBIA A 3D [" + l_key + "]", "info")
 			get_viewport().set_input_as_handled()
 			return
 		
 		free_cam_active = !free_cam_active
 		_save_camera_state()
-		var hud_f = get_tree().get_first_node_in_group("hud")
+		if has_node("/root/SettingsManager"):
+			get_node("/root/SettingsManager").cam_free_active = free_cam_active
 		if hud_f and hud_f.has_method("notify"):
 			hud_f.notify("CÁMARA " + ("LIBRE" if free_cam_active else "FIJA"), "info" if free_cam_active else "success")
 		print("[BaseMap] CÁMARA ", "LIBRE" if free_cam_active else "FIJA")
@@ -852,8 +860,14 @@ func _input(event):
 	if free_cam_active and event.is_action_pressed("toggle_orbit_mode") and not event.is_echo():
 		free_orbit_mode = !free_orbit_mode
 		_save_camera_state()
+		# Al entrar en PANEO, cancelar aiming (en ORBIT los skills funcionan)
+		if not free_orbit_mode:
+			var pn = get_tree().get_first_node_in_group("player")
+			if is_instance_valid(pn) and is_instance_valid(pn._skill_controller):
+				pn._skill_controller.is_aiming = false
+				pn._skill_controller.queue_redraw()
 		var hud_f = get_tree().get_first_node_in_group("hud")
-		var msg_f = "CÁMARA: " + ("ORBIT (siguiendo nave)" if free_orbit_mode else "FREE (WASD para paneo)")
+		var msg_f = "CÁMARA LIBRE " + ("ORBIT" if free_orbit_mode else "PANEO")
 		if hud_f and hud_f.has_method("notify"):
 			hud_f.notify(msg_f, "info")
 		print("[BaseMap] ", msg_f)
@@ -897,8 +911,11 @@ func _get_bound_key_text(action: String) -> String:
 	if not InputMap.has_action(action): return "?"
 	var events = InputMap.action_get_events(action)
 	if events.size() > 0:
-		var txt = events[0].as_text().replace(" (Physical)", "")
-		if txt.contains("Physical"): txt = txt.replace("Physical", "").strip_edges()
-		if txt.begins_with("Mouse Button"): txt = "M" + txt.replace("Mouse Button ", "")
-		return txt.to_upper()
+		var e = events[0]
+		if e is InputEventKey:
+			var kc = e.physical_keycode if e.physical_keycode != 0 else e.keycode
+			if kc != 0:
+				return OS.get_keycode_string(kc).to_upper()
+		elif e is InputEventMouseButton:
+			return "M" + str(e.button_index)
 	return "?"

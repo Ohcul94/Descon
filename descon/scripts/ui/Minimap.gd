@@ -433,6 +433,43 @@ func _draw():
 						draw_circle(obj_pos, 4.0, Color(0.8, 0.8, 0.8, 0.8))
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "O", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 
+	# 5.5 Rectángulo de visión en modo PANEO (cámara libre sin seguir al jugador)
+	var map_node = get_tree().get_first_node_in_group("map")
+	var is_pan_mode = false
+	if is_instance_valid(map_node):
+		var fca = map_node.get("free_cam_active")
+		var fom = map_node.get("free_orbit_mode")
+		is_pan_mode = (fca == true and fom == false)
+	if is_pan_mode:
+		var cam = map_node.get("camera_3d")
+		var svp = map_node.get("sub_viewport")
+		var sf = map_node.get("scale_factor")
+		var cz = map_node.get("correction_z")
+		if is_instance_valid(cam) and is_instance_valid(svp) and sf != null and cz != null:
+			var vp_size = svp.size
+			if vp_size.x > 0 and vp_size.y > 0:
+				var corners_2d_world = []
+				for corner in [Vector2(0, 0), Vector2(vp_size.x, 0), Vector2(vp_size.x, vp_size.y), Vector2(0, vp_size.y)]:
+					var origin = cam.project_ray_origin(corner)
+					var dir = cam.project_ray_normal(corner)
+					if dir.y >= 0: continue
+					var t = -origin.y / dir.y
+					var gp = origin + dir * t
+					var wx = gp.x / sf
+					var wy = gp.z / (sf * cz)
+					corners_2d_world.append(Vector2(wx, wy))
+				
+				if corners_2d_world.size() == 4:
+					var min_p = Vector2(INF, INF)
+					var max_p = Vector2(-INF, -INF)
+					for c in corners_2d_world:
+						var mp = Vector2(c.x * scale_x, c.y * scale_y)
+						min_p.x = min(min_p.x, mp.x)
+						min_p.y = min(min_p.y, mp.y)
+						max_p.x = max(max_p.x, mp.x)
+						max_p.y = max(max_p.y, mp.y)
+					draw_rect(Rect2(min_p, max_p - min_p), Color.WHITE, false, 1.5)
+
 	# 5. Jugador Local (Punto Blanco Puro) — siempre último para estar arriba
 	var local_pos = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
 	draw_circle(local_pos, 3.5, Color.WHITE)

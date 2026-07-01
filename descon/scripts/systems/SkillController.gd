@@ -138,6 +138,12 @@ func start_aiming(skill_data: Dictionary):
 		execute_skill()
 
 func execute_skill():
+	# Bloquear ejecución solo en modo paneo (cámara libre sin seguir al jugador)
+	if get_node_or_null("/root/SettingsManager") and SettingsManager.cam_free_active and not SettingsManager.cam_free_orbit:
+		is_aiming = false
+		queue_redraw()
+		return
+	
 	# v266.840: Separación Drástica PC vs CELU
 	if not is_aiming: return
 	
