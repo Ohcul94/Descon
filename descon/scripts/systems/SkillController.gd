@@ -170,15 +170,8 @@ func execute_skill():
 				# print("[SKILL-MOBILE] Auto-target friendly skill to self")
 	else:
 		# --- MODO PC: Mouse Clásico ---
-		# v2.5D: Corrección de coordenadas de apuntado 3D
-		var parent_map = get_parent()._get_map_node()
-		var target_pos = Vector2.ZERO
-		
-		if is_instance_valid(parent_map) and not parent_map.use_orthogonal:
-			var aim_3d = get_parent().get_aim_target_3d(get_viewport().get_mouse_position())
-			target_pos = Vector2(aim_3d.x / parent_map.scale_factor, aim_3d.z / (parent_map.scale_factor * parent_map.correction_z))
-		else:
-			target_pos = get_global_mouse_position()
+		# v2.5D: Posición mundo 2D directa (consistente en ambos modos de cámara)
+		var target_pos = get_global_mouse_position()
 			
 		payload.angle = (target_pos - global_position).angle()
 		payload.pos = target_pos
@@ -249,10 +242,19 @@ func _draw():
 			return offset_2d  # Fallback si está detrás
 		# Proyectar a píxeles del SubViewport
 		var sv_px = cam3d.unproject_position(pos_3d)
-		# Escalar SubViewport → pantalla principal
+		
+		# Escalar SubViewport → pantalla principal usando la misma lógica que get_aim_target_3d
+		var container = parent_map.viewport_container if parent_map else null
+		var sub_size = Vector2.ZERO
+		if is_instance_valid(sub_vp) and sub_vp.size.x > 0:
+			sub_size = Vector2(sub_vp.size)
+		elif is_instance_valid(container) and container.size.x > 0:
+			sub_size = Vector2(container.size)
+			
 		var main_size = Vector2(get_viewport().get_visible_rect().size)
-		if sub_vp.size.x > 0:
-			sv_px *= main_size / Vector2(sub_vp.size)
+		if sub_size.x > 0 and main_size.x > 0 and sub_size != main_size:
+			sv_px *= main_size / sub_size
+			
 		# Convertir a coordenadas mundo 2D y luego a espacio local de este nodo
 		var world_2d_vis = get_viewport().get_canvas_transform().affine_inverse() * sv_px
 		return to_local(world_2d_vis)
@@ -281,14 +283,8 @@ func _draw():
 			aim_vec = Vector2.ZERO
 		else:
 			if use_perspective:
-				# 1. Obtener la posición lógica 3D real a la que apunta el mouse en el plano del mapa
-				var aim_3d = parent_entity.get_aim_target_3d(get_viewport().get_mouse_position())
-				var target_pos_logic = Vector2(aim_3d.x / parent_map.scale_factor, aim_3d.z / (parent_map.scale_factor * parent_map.correction_z))
-				
-				# 2. El vector de dirección va desde la posición lógica global de la nave hacia esa posición lógica
+				var target_pos_logic = get_global_mouse_position()
 				var diff_logic = target_pos_logic - parent_entity.global_position
-				
-				# 3. Des-rotar el vector lógico para el espacio local de dibujo del CanvasItem
 				aim_vec = diff_logic.rotated(-parent_entity.rotation)
 			else:
 				aim_vec = get_local_mouse_position()

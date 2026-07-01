@@ -141,10 +141,10 @@ func get_aim_target_3d(mouse_pos_2d: Vector2) -> Vector3:
 	
 	# Obtener tamaño real de renderizado del SubViewport (con stretch, el container override el tamaño)
 	var sub_size = Vector2.ZERO
-	if is_instance_valid(container) and container.size.x > 0:
+	if is_instance_valid(sub_vp) and sub_vp.size.x > 0:
+		sub_size = Vector2(sub_vp.size)
+	elif is_instance_valid(container) and container.size.x > 0:
 		sub_size = Vector2(container.size)
-	elif is_instance_valid(sub_vp):
-		sub_size = Vector2(sub_vp.get_visible_rect().size)
 	
 	var main_size = Vector2(get_viewport().get_visible_rect().size)
 	
