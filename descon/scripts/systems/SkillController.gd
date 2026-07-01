@@ -237,9 +237,13 @@ func _draw():
 	var _proj = func(offset_2d: Vector2) -> Vector2:
 		if not use_perspective:
 			return offset_2d  # En ortogonal: directo
-		# Posición 2D global del punto lógico
-		var world_2d = global_position + offset_2d
-		# Convertir a 3D
+		# 1. El offset_2d está en el espacio local del CanvasItem.
+		# Como el CanvasItem está rotado con el jugador, debemos rotar el offset_2d 
+		# con la rotación de la nave para obtener el offset lógico global real del mundo.
+		var world_offset = offset_2d.rotated(parent_entity.rotation)
+		# 2. Posición 2D global lógica en el mundo
+		var world_2d = parent_entity.global_position + world_offset
+		# 3. Convertir a 3D
 		var pos_3d = Vector3(world_2d.x * s_factor, 0.0, world_2d.y * s_factor * correction_z)
 		if cam3d.is_position_behind(pos_3d):
 			return offset_2d  # Fallback si está detrás
@@ -276,7 +280,17 @@ func _draw():
 		if is_mobile:
 			aim_vec = Vector2.ZERO
 		else:
-			aim_vec = get_local_mouse_position()
+			if use_perspective:
+				# 1. Obtener la posición lógica 3D a la que apunta el mouse
+				var aim_3d = parent_entity.get_aim_target_3d(get_viewport().get_mouse_position())
+				var target_pos_logic = Vector2(aim_3d.x / parent_map.scale_factor, aim_3d.z / (parent_map.scale_factor * parent_map.correction_z))
+				# 2. El vector de dirección real va desde la posición global lógica de la nave (parent_entity) hacia ese target lógico
+				var diff_logic = target_pos_logic - parent_entity.global_position
+				# 3. Como este nodo _draw() hereda la rotación de la nave, debemos des-rotar el vector 
+				# para que se alinee en el espacio local del CanvasItem dibujado.
+				aim_vec = diff_logic.rotated(-parent_entity.rotation)
+			else:
+				aim_vec = get_local_mouse_position()
 	
 	# 2. Dibujar Indicador
 	if current_skill.get("type") == SkillType.DIRECTIONAL:
