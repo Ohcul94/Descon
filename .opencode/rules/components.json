@@ -1,0 +1,17 @@
+{
+  "server": {
+    "root": "E:/Descon/Server",
+    "systems_dir": "E:/Descon/Server/systems",
+    "skills_dir": "E:/Descon/Server/systems/skills",
+    "entry_point": "Server/systems/gameLoop.js"
+  },
+  "admindash": {
+    "root": "E:/Descon/AdminDash",
+    "js_dir": "E:/Descon/AdminDash/js",
+    "css_dir": "E:/Descon/AdminDash/css"
+  },
+  "godot_client": {
+    "root": "E:/Descon/descon",
+    "scripts_dir": "E:/Descon/descon/scripts"
+  }
+}

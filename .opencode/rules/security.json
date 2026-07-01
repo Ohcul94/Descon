@@ -1,0 +1,22 @@
+{
+  "git_policy": {
+    "auto_commit": false,
+    "auto_push": false,
+    "requirement": "Explicit user command required for every git action."
+  },
+  "cloud_policy": {
+    "root": "E:/Descon/OracleCloud",
+    "access_level": "none",
+    "requirement": "Prohibited. Only access if explicitly requested by user."
+  },
+  "protected_paths": [
+    "OracleCloud/",
+    "Ejecutables/",
+    "Ejecutables Android/",
+    "Ejecutables Web/"
+  ],
+  "permission_policy": {
+    "default": "ask_before_action",
+    "critical_files": ["package.json", "project.godot", ".gitignore"]
+  }
+}

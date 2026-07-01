@@ -197,7 +197,16 @@
             "stopOnOutOfSight": true,
             "chaseUntilDeath": false,
             "aggressive": true,
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "basic_defense",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 5000,
+                    "cooldown": 10000,
+                    "startDelay": 0
+                }
+            ],
             "regenDelayMs": 10000,
             "lootDrops": [],
             "chestDropChance": 1
@@ -3049,7 +3058,9 @@
             ],
             "width": 10000,
             "height": 10000,
-            "objects": []
+            "objects": [],
+            "timeRestrictionsEnabled": false,
+            "allowedHours": []
         },
         "3": {
             "color": "#ffff00",
