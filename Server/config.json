@@ -3071,8 +3071,8 @@
             "ambience": [],
             "spawns": [
                 {
-                    "type": "6",
-                    "count": 2,
+                    "type": "1",
+                    "count": 1,
                     "intervalMs": 3000,
                     "id": "spawn_3_idx_0_type_6",
                     "spawnMode": "fixed",

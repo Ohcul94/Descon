@@ -122,8 +122,47 @@ var _active_shield_type: String = ""
 var _collision_shape: CollisionShape2D = null
 var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
+# v302.5: Feedback de apuntado
 var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo LoL
 var _stealth_material: StandardMaterial3D = null
+
+# --- SISTEMA DE PUNTERÍA PROYECTADA (v2.5D) ---
+# Traduce la posición del mouse en pantalla a coordenadas 3D reales del mundo cuando la cámara está en perspectiva.
+func get_aim_target_3d(mouse_pos_2d: Vector2) -> Vector3:
+	var map_node = _get_map_node()
+	if not is_instance_valid(map_node) or not is_instance_valid(_cached_camera_3d) or map_node.use_orthogonal:
+		# Modo 2D / Ortogonal: Retornar posición plana extendida al 3D (Z=0)
+		return Vector3(mouse_pos_2d.x * map_node.scale_factor, 0.0, mouse_pos_2d.y * map_node.scale_factor * 1.4142)
+
+	# Modo Perspectiva: Realizar Raycast desde la cámara 3D
+	var cam = _cached_camera_3d
+	var sub_vp = _cached_sub_viewport
+	var container = map_node.viewport_container if map_node else null
+	
+	# Obtener tamaño real de renderizado del SubViewport (con stretch, el container override el tamaño)
+	var sub_size = Vector2.ZERO
+	if is_instance_valid(container) and container.size.x > 0:
+		sub_size = Vector2(container.size)
+	elif is_instance_valid(sub_vp):
+		sub_size = Vector2(sub_vp.get_visible_rect().size)
+	
+	var main_size = Vector2(get_viewport().get_visible_rect().size)
+	
+	# Escalar mouse del viewport principal al espacio del SubViewport
+	var adjusted_mouse = mouse_pos_2d
+	if sub_size.x > 0 and main_size.x > 0 and sub_size != main_size:
+		adjusted_mouse = mouse_pos_2d * (sub_size / main_size)
+	
+	var ray_length = 2000.0
+	var from = cam.project_ray_origin(adjusted_mouse)
+	var to = from + cam.project_ray_normal(adjusted_mouse) * ray_length
+	
+	# Intersección plana con el plano Y=0 (suelo del juego)
+	var plane = Plane(Vector3.UP, 0.0)
+	var intersect = plane.intersects_ray(from, to)
+	
+	return intersect if intersect != null else Vector3.ZERO
+
 var _status_material: StandardMaterial3D = null
 var _vfx_container_2d: Node2D = null
 var _is_currently_invisible: bool = false

@@ -170,9 +170,18 @@ func execute_skill():
 				# print("[SKILL-MOBILE] Auto-target friendly skill to self")
 	else:
 		# --- MODO PC: Mouse Clásico ---
-		var mouse_pos = get_global_mouse_position()
-		payload.angle = (mouse_pos - global_position).angle()
-		payload.pos = mouse_pos
+		# v2.5D: Corrección de coordenadas de apuntado 3D
+		var parent_map = get_parent()._get_map_node()
+		var target_pos = Vector2.ZERO
+		
+		if is_instance_valid(parent_map) and not parent_map.use_orthogonal:
+			var aim_3d = get_parent().get_aim_target_3d(get_viewport().get_mouse_position())
+			target_pos = Vector2(aim_3d.x / parent_map.scale_factor, aim_3d.z / (parent_map.scale_factor * 1.41421356))
+		else:
+			target_pos = get_global_mouse_position()
+			
+		payload.angle = (target_pos - global_position).angle()
+		payload.pos = target_pos
 		payload.target = selected_target
 	
 	# Limpiar estado (excepto external_aim_vector, que se necesita en activate())

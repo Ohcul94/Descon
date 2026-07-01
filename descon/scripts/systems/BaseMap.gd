@@ -267,20 +267,26 @@ func _process(_delta):
 			camera_3d.size = (viewport_height * scale_factor) / current_zoom
 			camera_3d.position.y = camera_height
 			dynamic_height = camera_height
-			camera_3d.rotation_degrees = Vector3(-90, 0, 0) # Orientación original
 		else:
 			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
 			camera_3d.fov = 55.0 # FOV más amplio para efecto LoL
 			var target_visible_height = (viewport_height * scale_factor) / current_zoom
 			dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
 			camera_3d.position.y = dynamic_height
-			camera_3d.rotation_degrees = Vector3(-55, 0, 0) # Inclinación más agresiva 2.5D
 		
 		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica
-		var correction_z = 1.41421356 # Factor de corrección 2D-3D
+		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal - CONSTANTE fija de posicionamiento de entidades
+		self.set_meta("correction_z", correction_z)
+		
 		var corrected_target_z = target_pos.y * scale_factor * correction_z
 		camera_3d.position.x = target_pos.x * scale_factor
-		camera_3d.position.z = corrected_target_z + dynamic_height
+		
+		var z_offset = dynamic_height
+		if not use_orthogonal:
+			# En perspectiva, alejar más la cámara en Z para lograr inclinación de ~55° en lugar de 45°
+			z_offset = dynamic_height / tan(deg_to_rad(55.0))
+		
+		camera_3d.position.z = corrected_target_z + z_offset
 		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
 		
 	# Chequear cercanía a puertas interactivas del mapa

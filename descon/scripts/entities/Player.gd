@@ -277,7 +277,15 @@ func _unhandled_input(event):
 			if not is_mobile and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
 				if get_meta("spawn_locked", false):
 					return # Ignorar clicks de movimiento si la barrera de spawn está activa
-				target_position = get_global_mouse_position()
+				
+				# v2.5D: Corrección de coordenadas si estamos en modo perspectiva
+				var mouse_pos = get_global_mouse_position()
+				if is_instance_valid(_cached_map) and not _cached_map.use_orthogonal:
+					var aim_3d = get_aim_target_3d(get_viewport().get_mouse_position())
+					target_position = Vector2(aim_3d.x / _cached_map.scale_factor, aim_3d.z / (_cached_map.scale_factor * 1.41421356))
+				else:
+					target_position = mouse_pos
+					
 				is_moving = true; autopilot_enabled = false
 			
 			# Procesar Zoom (Rueda)
