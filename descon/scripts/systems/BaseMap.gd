@@ -18,6 +18,9 @@ var camera_3d: Camera3D = null
 var asteroids_3d: Node3D = null
 var player_node: Node2D = null
 
+# correction_z dinámico: 1.0 / sin(tilt_angle) calculado desde la inclinación real de la cámara
+var correction_z: float = 1.41421356
+
 # Referencia a la textura de fondo principal
 @onready var map_background: TextureRect = get_node_or_null("ParallaxBackground/MapWorldLayer/MapBackground")
 
@@ -275,16 +278,18 @@ func _process(_delta):
 			camera_3d.position.y = dynamic_height
 		
 		# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica
-		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal - CONSTANTE fija de posicionamiento de entidades
-		self.set_meta("correction_z", correction_z)
-		
-		var corrected_target_z = target_pos.y * scale_factor * correction_z
-		camera_3d.position.x = target_pos.x * scale_factor
-		
 		var z_offset = dynamic_height
 		if not use_orthogonal:
 			# En perspectiva, alejar más la cámara en Z para lograr inclinación de ~55° en lugar de 45°
 			z_offset = dynamic_height / tan(deg_to_rad(55.0))
+		
+		# Calcular correction_z dinámico desde la inclinación real de la cámara (ángulo entre horizontal y dirección de vista)
+		var tilt_angle = atan2(camera_3d.position.y, z_offset)
+		correction_z = 1.0 / sin(tilt_angle)
+		self.set_meta("correction_z", correction_z)
+		
+		var corrected_target_z = target_pos.y * scale_factor * correction_z
+		camera_3d.position.x = target_pos.x * scale_factor
 		
 		camera_3d.position.z = corrected_target_z + z_offset
 		camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
@@ -341,7 +346,6 @@ func _spawn_altar_if_configured():
 		altar_3d.name = "Altar3D"
 		# Rotación vertical recta (mirando hacia el sur/cámara en el eje Y)
 		altar_3d.rotation_degrees = Vector3(0, 180, 0)
-		var correction_z = 1.41421356
 		altar_3d.position = Vector3(altar_pos.x * scale_factor, 0.0, altar_pos.y * scale_factor * correction_z)
 		# Escalamos para hacerlo bastante visible y destacado (15.0 de escala o 12.0)
 		altar_3d.scale = Vector3(15.0, 15.0, 15.0)
@@ -545,7 +549,6 @@ func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: V
 		print("[BaseMap _instantiate_map_object_3d] ERROR: sub_viewport es INVÁLIDO o NULO.")
 		return null
 		
-	var correction_z = 1.41421356
 	var scene = load(asset_path)
 	if not scene:
 		print("[BaseMap _instantiate_map_object_3d] ADVERTENCIA: Falló al cargar ", asset_path, ". Usando cilindro 3D de fallback.")

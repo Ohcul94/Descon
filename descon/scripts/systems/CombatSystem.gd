@@ -64,12 +64,46 @@ func _spawn_projectile(data, o_type):
 			found_entity = world.remote_players.get(owner_id)
 		elif o_type == "enemy" and owner_id != "" and world.get("enemies") != null:
 			found_entity = world.enemies.get(owner_id)
-			
+		
 	if is_instance_valid(found_entity):
-		spawn_pos = found_entity.global_position
+		# v420.1: En perspectiva 3D, usar posición visual proyectada para que el proyectil nazca
+		# donde se ve visualmente la nave, eliminando el desfase entre modelo 3D y munición.
+		var current_map = get_tree().get_first_node_in_group("map")
+		var use_perspective = is_instance_valid(current_map) and not current_map.use_orthogonal
+		var is_single_world = found_entity.get_meta("is_single_world", false)
+		
+		if use_perspective and is_single_world and found_entity.has_method("get_visual_position"):
+			var visual_pos = found_entity.get_visual_position()
+			# Solo usar la posición visual si es válida (no es Vector2.ZERO por culling)
+			if visual_pos != Vector2.ZERO:
+				spawn_pos = visual_pos
+			else:
+				spawn_pos = found_entity.global_position
+		else:
+			spawn_pos = found_entity.global_position
 		
 	p.global_position = spawn_pos
-	p.rotation = str(data.get("angle", 0.0)).to_float()
+	
+	# v420.2: En perspectiva 3D, recalcular el ángulo visual desde la posición proyectada del
+	# disparador hacia el objetivo visual del jugador local para coherencia visual perfecta.
+	var fire_angle = str(data.get("angle", 0.0)).to_float()
+	if o_type == "enemy":
+		var current_map_angle = get_tree().get_first_node_in_group("map")
+		var use_persp_angle = is_instance_valid(current_map_angle) and not current_map_angle.use_orthogonal
+		if use_persp_angle and is_instance_valid(found_entity) and found_entity.get_meta("is_single_world", false):
+			# Buscar el jugador local para calcular ángulo visual correcto
+			var local_player = get_tree().get_first_node_in_group("player")
+			if is_instance_valid(local_player):
+				var enemy_vis = spawn_pos
+				# Usar posición visual proyectada del jugador si está disponible, sino su global_position
+				var player_vis = Vector2.ZERO
+				if local_player.get_meta("is_single_world", false) and local_player.has_method("get_visual_position"):
+					player_vis = local_player.get_visual_position()
+				if player_vis == Vector2.ZERO:
+					player_vis = local_player.global_position
+				if enemy_vis != Vector2.ZERO and player_vis != Vector2.ZERO:
+					fire_angle = (player_vis - enemy_vis).angle()
+	p.rotation = fire_angle
 	
 	# v165.96: Inicialización CENTRALIZADA via setup()
 	if p.has_method("setup"):

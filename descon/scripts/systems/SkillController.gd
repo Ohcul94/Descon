@@ -176,7 +176,7 @@ func execute_skill():
 		
 		if is_instance_valid(parent_map) and not parent_map.use_orthogonal:
 			var aim_3d = get_parent().get_aim_target_3d(get_viewport().get_mouse_position())
-			target_pos = Vector2(aim_3d.x / parent_map.scale_factor, aim_3d.z / (parent_map.scale_factor * 1.41421356))
+			target_pos = Vector2(aim_3d.x / parent_map.scale_factor, aim_3d.z / (parent_map.scale_factor * parent_map.correction_z))
 		else:
 			target_pos = get_global_mouse_position()
 			
@@ -200,6 +200,7 @@ func cancel_aiming():
 	selected_target = null
 	queue_redraw()
 	print("[SKILL] Apuntado cancelado.")
+
 
 func _draw():
 	if not is_aiming: return

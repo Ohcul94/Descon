@@ -806,9 +806,9 @@ func _update_3d_root_sync():
 		if pl and pl.get("current_zone") == 100:
 			world_root_3d.visible = false
 			return
-			
-		var s_factor = get_meta("map_scale", 0.02)
-		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal inclinada
+		var map_node = _get_map_node()
+		var s_factor = map_node.scale_factor if is_instance_valid(map_node) else 0.02
+		var correction_z = map_node.correction_z if is_instance_valid(map_node) else 1.41421356
 		world_root_3d.position.x = global_position.x * s_factor
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
 		world_root_3d.position.y = 0.0
@@ -2121,8 +2121,24 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		node3d.add_child(control_node)
 		control_node.add_child(model)
 		
-		# v252.23: INSPECTOR Y ACTIVADOR DE ANIMACIONES
+		# v313.5: AUTO-CENTRADO DE MODELO (Elimina desfase visual entre asset y física)
+		# Calculamos la AABB total de todas las mallas para centrar el modelo en el origen (0,0,0)
+		var total_aabb = AABB()
+		var first_mesh = true
+		for mesh in model.find_children("*", "MeshInstance3D", true):
+			if first_mesh:
+				total_aabb = mesh.get_aabb()
+				first_mesh = false
+			else:
+				total_aabb = total_aabb.merge(mesh.get_aabb())
+		
+		if not first_mesh:
+			# Desplazamos el nodo de control para que el centro del modelo coincida con el origen
+			control_node.position = -total_aabb.get_center()
+		
+		# v252.23: INSPECTOR Y ACTIVADOR de ANIMACIONES
 		var anim_player_3d = null
+
 		if model.has_node("AnimationPlayer"):
 			anim_player_3d = model.get_node("AnimationPlayer")
 		else:
@@ -2445,8 +2461,8 @@ func _spawn_death_vfx():
 	
 	# v311.0: OPTIMIZACIÓN AAA - Instanciación directa en el Lienzo 3D Único del mapa para evitar recrear Viewports/Cámaras
 	if is_single and is_instance_valid(current_map) and is_instance_valid(current_map.get("sub_viewport")):
-		var s_factor = get_meta("map_scale", 0.02)
-		var correction_z = 1.41421356 # Compensación para perspectiva ortogonal inclinada
+		var s_factor = current_map.scale_factor if is_instance_valid(current_map) else 0.02
+		var correction_z = current_map.correction_z if is_instance_valid(current_map) else 1.41421356
 		
 		# Posicionamiento 3D exacto alineado con la posición 2D de la entidad
 		explosion_3d.position.x = global_position.x * s_factor

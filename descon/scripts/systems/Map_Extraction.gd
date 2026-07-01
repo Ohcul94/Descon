@@ -160,10 +160,9 @@ func _physics_process(_delta):
 						mat.set_shader_parameter("modo_curacion", false)
 					spawn_bubble_mesh.material_override = mat
 					
-					# Posicionar la burbuja 3D en base a la coordenada 2D del spawn
-					var correction_z = 1.41421356
-					spawn_bubble_mesh.position.x = initial_player_pos.x * scale_factor
-					spawn_bubble_mesh.position.z = initial_player_pos.y * scale_factor * correction_z
+				# Posicionar la burbuja 3D en base a la coordenada 2D del spawn
+				spawn_bubble_mesh.position.x = initial_player_pos.x * scale_factor
+				spawn_bubble_mesh.position.z = initial_player_pos.y * scale_factor * correction_z
 					spawn_bubble_mesh.position.y = 0.0
 					
 					sub_viewport.add_child(spawn_bubble_mesh)
@@ -369,7 +368,6 @@ func _generate_procedural_obstacles():
 			
 			var box_3d = CSGBox3D.new()
 			box_3d.name = "Wall3D_" + str(i)
-			var correction_z = 1.41421356
 			box_3d.position = Vector3(pos_2d.x * scale_factor, 0, pos_2d.y * scale_factor * correction_z)
 			box_3d.size = Vector3(size_2d * scale_factor, rng.randf_range(5.0, 10.0), size_2d * scale_factor)
 			box_3d.material = mat_metal
@@ -394,7 +392,6 @@ func _generate_procedural_obstacles():
 			
 			var sphere_3d = CSGSphere3D.new()
 			sphere_3d.name = "Asteroid3D_" + str(i)
-			var correction_z = 1.41421356
 			sphere_3d.position = Vector3(pos_2d.x * scale_factor, rng.randf_range(-2.0, 2.0), pos_2d.y * scale_factor * correction_z)
 			sphere_3d.radius = radius_2d * scale_factor
 			sphere_3d.radial_segments = 16
@@ -472,7 +469,6 @@ func _generate_extraction_portals_list(extract_points: Array):
 			portal_3d.name = "Portal3D_" + str(i)
 			portal_3d.rotation_degrees = Vector3(-45, -90, 0)
 			
-			var correction_z = 1.41421356
 			portal_3d.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor * correction_z)
 			portal_3d.scale = Vector3(10.0, 10.0, 10.0)
 			parent_portals_3d.add_child(portal_3d)
@@ -487,7 +483,6 @@ func _generate_extraction_portals_list(extract_points: Array):
 		else:
 			var fallback_portal = CSGCylinder3D.new()
 			fallback_portal.name = "Portal3D_Fallback_" + str(i)
-			var correction_z = 1.41421356
 			fallback_portal.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor * correction_z)
 			fallback_portal.radius = 4.0
 			fallback_portal.height = 3.0
@@ -1018,7 +1013,6 @@ func _spawn_pillar(cfg: Dictionary, asset_path: String):
 func _instantiate_model_3d(asset_path: String, pos_2d: Vector2, scale_3d: Vector3, team: String) -> Node3D:
 	if not is_instance_valid(sub_viewport): return null
 	
-	var correction_z = 1.41421356
 	var path = asset_path.replace("\\", "/")
 	if path.begins_with("res://"):
 		pass

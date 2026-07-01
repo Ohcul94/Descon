@@ -214,7 +214,8 @@ func _start_floating_animation():
 
 func _update_3d_position():
 	if is_instance_valid(world_root_3d):
-		var correction_z = 1.41421356 # 1.0 / sin(45 grados) para compensar perspectiva ortogonal inclinada
+		var current_map = get_tree().get_first_node_in_group("map")
+		var correction_z = current_map.correction_z if is_instance_valid(current_map) and "correction_z" in current_map else 1.41421356
 		world_root_3d.position.x = global_position.x * map_scale
 		world_root_3d.position.z = global_position.y * map_scale * correction_z
 		if is_single_world:

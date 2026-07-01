@@ -68,6 +68,18 @@ func _ready():
 		area_entered.connect(_on_area_entered)
 	queue_redraw()
 
+func _process(_delta):
+	# Sincronización visual 3D en cada frame para evitar desfase con las naves (Entity.gd)
+	if is_instance_valid(world_root_3d):
+		var active_map = get_tree().get_first_node_in_group("map")
+		var s_factor = active_map.scale_factor if is_instance_valid(active_map) and "scale_factor" in active_map else 0.02
+		var correction_z = active_map.correction_z if is_instance_valid(active_map) and "correction_z" in active_map else 1.41421356
+		world_root_3d.position.x = global_position.x * s_factor
+		world_root_3d.position.z = global_position.y * s_factor * correction_z
+		world_root_3d.position.y = 0.0
+		world_root_3d.rotation.y = -rotation - PI/2.0
+
+
 func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	global_position = p_pos
 	rotation = p_angle
@@ -237,7 +249,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				
 				# Posicionarlo a la altura correcta
 				var s_factor = 0.02
-				var correction_z = 1.41421356
+				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				antic.position.x = offset_pos.x * s_factor
 				antic.position.z = offset_pos.y * s_factor * correction_z
 				# Elevarlo un poco en Y para que se alinee con el chasis de la nave y no quede en el suelo
@@ -273,7 +285,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				
 				# Posicionarlo a la altura correcta
 				var s_factor = 0.02
-				var correction_z = 1.41421356
+				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				antic.position.x = offset_pos.x * s_factor
 				antic.position.z = offset_pos.y * s_factor * correction_z
 				# Elevarlo un poco en Y para que se alinee con el chasis de la nave y no quede en el suelo
@@ -660,24 +672,12 @@ func release_orbit():
 	orbit_target = null
 
 func _physics_process(delta):
-	if is_instance_valid(world_root_3d):
-		var s_factor = 0.02
-		var correction_z = 1.41421356
-		world_root_3d.position.x = global_position.x * s_factor
-		world_root_3d.position.z = global_position.y * s_factor * correction_z
-		
-		# Elevarlo a la altura estándar de flotación en 3D (0.0 para alineación con las naves)
-		world_root_3d.position.y = 0.0
-		
-		# Sincronizar rotación con la física 2D para que el modelo mire hacia donde avanza
-		world_root_3d.rotation.y = -rotation - PI/2.0
-
 	if lifetime > 0:
 		_current_lifetime += delta
 		if _current_lifetime >= lifetime:
 			queue_free()
 			return
-
+	
 	if is_instance_valid(orbit_target):
 		var time = (Time.get_ticks_msec() / 1000.0) - orbit_start_time
 		var angle = time * orbit_speed + orbit_angle_offset
@@ -685,16 +685,16 @@ func _physics_process(delta):
 		rotation = angle
 		velocity = Vector2.RIGHT.rotated(rotation) * speed 
 		return
-
+	
 	if is_instance_valid(_chain_visual) and is_instance_valid(_owner_node):
 		_chain_visual.points = PackedVector2Array([_owner_node.global_position, global_position])
-
+	
 	if target_id != "" and not is_instance_valid(_target_node):
 		_find_target_timer += delta
 		if _find_target_timer >= 0.25:
 			_find_target_timer = 0.0
 			_find_target()
-
+	
 	if is_homing and is_instance_valid(_target_node):
 		var target_pos = _target_node.global_position
 		if _target_node.get_meta("is_single_world", false) and is_instance_valid(_target_node.get("world_root_3d")):
@@ -773,10 +773,10 @@ func _physics_process(delta):
 		queue_redraw()
 	else:
 		global_position += move_step
-
+	
 	if type == "electron":
 		queue_redraw()
-
+	
 	if max_range > 0:
 		var dist = global_position.distance_to(_start_pos)
 		if dist >= max_range:
@@ -796,6 +796,7 @@ func _physics_process(delta):
 		
 	if global_position.length() > max_map_limit: 
 		queue_free()
+
 
 func _get_visual_position_of(entity: Node) -> Vector2:
 	if is_instance_valid(entity):
@@ -1051,7 +1052,7 @@ func _explode():
 				
 				# Posicionarlo en el lugar exacto del impacto a altura de la nave (0.0)
 				var s_factor = 0.02
-				var correction_z = 1.41421356
+				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
 				hit_node.position.y = 0.0
@@ -1079,7 +1080,7 @@ func _explode():
 				
 				# Posicionarlo en el lugar exacto del impacto a altura de la nave (0.0)
 				var s_factor = 0.02
-				var correction_z = 1.41421356
+				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
 				hit_node.position.y = 0.0

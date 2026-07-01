@@ -170,9 +170,9 @@
             "mechanics": [
                 {
                     "type": "laser",
-                    "bulletDamage": 40,
+                    "bulletDamage": 1,
                     "bulletSpeed": 800,
-                    "fireRange": 600,
+                    "fireRange": 1000,
                     "fireRate": 1000,
                     "slowAmount": 0,
                     "slowDuration": 0,
@@ -180,12 +180,6 @@
                 }
             ],
             "movementPhases": [
-                {
-                    "type": "chase",
-                    "speed": 200,
-                    "stopDist": 150,
-                    "startDelay": 0
-                },
                 {
                     "type": "sniper",
                     "speed": 3.5,
@@ -209,7 +203,8 @@
             ],
             "regenDelayMs": 10000,
             "lootDrops": [],
-            "chestDropChance": 1
+            "chestDropChance": 1,
+            "visionRange": 1200
         },
         "2": {
             "bulletDamage": 600,
@@ -3076,8 +3071,8 @@
                     "intervalMs": 3000,
                     "id": "spawn_3_idx_0_type_6",
                     "spawnMode": "fixed",
-                    "x": 1062,
-                    "y": 1054,
+                    "x": 2030,
+                    "y": 1987,
                     "radius": 0
                 }
             ],

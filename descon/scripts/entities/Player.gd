@@ -282,7 +282,7 @@ func _unhandled_input(event):
 				var mouse_pos = get_global_mouse_position()
 				if is_instance_valid(_cached_map) and not _cached_map.use_orthogonal:
 					var aim_3d = get_aim_target_3d(get_viewport().get_mouse_position())
-					target_position = Vector2(aim_3d.x / _cached_map.scale_factor, aim_3d.z / (_cached_map.scale_factor * 1.41421356))
+					target_position = Vector2(aim_3d.x / _cached_map.scale_factor, aim_3d.z / (_cached_map.scale_factor * _cached_map.correction_z))
 				else:
 					target_position = mouse_pos
 					
