@@ -294,8 +294,8 @@ func _draw():
 		if range_val > 0 and dist > range_val:
 			end_point = aim_vec.normalized() * range_val
 		
-		# Punto final en 2D local directo (no proyectado, para que coincida con el mouse)
-		var end_proj = end_point
+		# Punto final proyectado a espacio visual (perspectiva 3D)
+		var end_proj = _proj.call(end_point)
 		var origin_local = to_local(origin_vis) if use_perspective else Vector2.ZERO
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas
@@ -308,7 +308,7 @@ func _draw():
 			if aim_vec.length() < 0.1:
 				dir = Vector2.RIGHT
 			end_point = dir * range_val
-			end_proj = end_point
+			end_proj = _proj.call(end_point)
 			draw_line(origin_local, end_proj, Color(0.1, 0.5, 1.0, 0.25), 60.0)
 			draw_line(origin_local, end_proj, Color(0.3, 0.7, 1.0, 0.65), 3.0)
 		elif current_skill.id == "electron":
@@ -316,7 +316,13 @@ func _draw():
 			var draw_color = Color(0.2, 0.7, 1.0, 0.5)
 			var fill_color = Color(0.2, 0.7, 1.0, 0.1)
 			if use_perspective:
-				draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
+				var steps = 48
+				var pts_circle = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					var pt = end_point + Vector2(cos(ang), sin(ang)) * radius_val
+					pts_circle.append(_proj.call(pt))
+				draw_polyline(pts_circle, draw_color, 2.0)
 				draw_circle(end_proj, 8.0, draw_color)
 			else:
 				draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
@@ -367,14 +373,16 @@ func _draw():
 			var perp_angle = end_point.angle() + (PI / 2.0)
 			var wall_offset = Vector2(cos(perp_angle), sin(perp_angle)) * half_w
 			
-			var pt_a = end_point - wall_offset
-			var pt_b = end_point + wall_offset
-			draw_line(pt_a, pt_b, Color(0.3, 0.9, 1.0, 0.85), 4.0)
+			var pt_a_proj = _proj.call(end_point - wall_offset)
+			var pt_b_proj = _proj.call(end_point + wall_offset)
+			draw_line(pt_a_proj, pt_b_proj, Color(0.3, 0.9, 1.0, 0.85), 4.0)
 			
 			var push_dir = end_point.normalized()
-			draw_line(pt_a, pt_a + push_dir * 18.0, Color(0.3, 0.9, 1.0, 0.4), 2.0)
-			draw_line(pt_b, pt_b + push_dir * 18.0, Color(0.3, 0.9, 1.0, 0.4), 2.0)
-			draw_line(end_proj, end_point + push_dir * 25.0, Color(0.3, 0.9, 1.0, 0.6), 2.0)
+			var pt_a_raw = end_point - wall_offset
+			var pt_b_raw = end_point + wall_offset
+			draw_line(pt_a_proj, _proj.call(pt_a_raw + push_dir * 18.0), Color(0.3, 0.9, 1.0, 0.4), 2.0)
+			draw_line(pt_b_proj, _proj.call(pt_b_raw + push_dir * 18.0), Color(0.3, 0.9, 1.0, 0.4), 2.0)
+			draw_line(end_proj, _proj.call(end_point + push_dir * 25.0), Color(0.3, 0.9, 1.0, 0.6), 2.0)
 		elif s_name == "BALIZA DE CURACION" or s_name == "RESURRECCIÓN":
 			var radius_val = 200.0
 			if GameConstants.SKILLS_DATA.has(s_name):
@@ -387,7 +395,12 @@ func _draw():
 				fill_color = Color(0.9, 0.1, 0.9, 0.1)
 			
 			if use_perspective:
-				draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
+				var steps = 64
+				var pts_c = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					pts_c.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
+				draw_polyline(pts_c, draw_color, 2.0)
 				draw_circle(end_proj, 8.0, draw_color)
 			else:
 				draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
@@ -403,9 +416,15 @@ func _draw():
 			var charge_radius = radius_val * (1.0 - charge_factor)
 			
 			if use_perspective:
-				draw_arc(end_point, radius_val, 0, TAU, 64, Color(1.0, 0.25, 0.2, 0.45), 2.5)
-				draw_circle(end_point, radius_val, Color(1.0, 0.2, 0.2, 0.08))
-				draw_arc(end_point, charge_radius, 0, TAU, 48, Color(1.0, 0.55, 0.1, 0.65), 1.5)
+				var steps = 64
+				var pts_outer = PackedVector2Array()
+				var pts_charge = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					pts_outer.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
+					pts_charge.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * charge_radius))
+				draw_polyline(pts_outer, Color(1.0, 0.25, 0.2, 0.45), 2.5)
+				draw_polyline(pts_charge, Color(1.0, 0.55, 0.1, 0.65), 1.5)
 				draw_circle(end_proj, 7.0, Color(1.0, 0.2, 0.2, 0.95))
 			else:
 				draw_arc(end_point, radius_val, 0, TAU, 64, Color(1.0, 0.25, 0.2, 0.45), 2.5)
