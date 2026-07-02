@@ -473,6 +473,12 @@ func _draw():
 	# 5. Jugador Local (Punto Blanco Puro) — siempre último para estar arriba
 	var local_pos = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
 	draw_circle(local_pos, 3.5, Color.WHITE)
+	var cone_len = 10.0
+	var cone_spread = 0.8
+	var cone_angle = player.rotation
+	var cone_left = local_pos + Vector2.RIGHT.rotated(cone_angle + cone_spread) * cone_len
+	var cone_right = local_pos + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
+	draw_colored_polygon(PackedVector2Array([local_pos, cone_left, cone_right]), Color(0.6, 0.6, 0.6, 0.8))
 
 	# Borde del radar
 	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0, 1, 1, 0.1), false, 1.0)

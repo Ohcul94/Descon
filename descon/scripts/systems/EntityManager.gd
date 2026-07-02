@@ -1487,7 +1487,10 @@ func _on_loot_spawned(data: Dictionary):
 		drop.set_script(loot_script)
 		drop.name = id
 		drop.loot_id = id
-		drop.global_position = Vector2(data.x, data.y)
+		# Offset aleatorio para que el botín no quede encima del wreckage del enemigo
+		var loot_angle = randf() * TAU
+		var loot_offset = Vector2(cos(loot_angle), sin(loot_angle)) * randf_range(80.0, 130.0)
+		drop.global_position = Vector2(data.x, data.y) + loot_offset
 		drop.set_meta("zone", _parse_zone_to_int(data.get("zone", -1)))
 		
 		if is_instance_valid(world) and is_instance_valid(world.entities_node):
