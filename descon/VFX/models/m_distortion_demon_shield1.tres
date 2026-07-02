@@ -18,4 +18,4 @@ shader_parameter/RefStrenght = 0.02
 shader_parameter/Disolver_Scale = Vector2(4, 3)
 shader_parameter/Line_Distortion_Divider = 3.0
 shader_parameter/Gradient_Disappear = SubResource("GradientTexture2D_7r3cn")
-shader_parameter/Gradient_Line = 0.8
+shader_parameter/Gradient_Line = 0.84

@@ -1,7 +1,7 @@
-[gd_resource type="ShaderMaterial" format=3 ]
+[gd_resource type="ShaderMaterial" format=3 uid="uid://bocr7b25akcwp"]
 
-[ext_resource type="Texture2D" path="res://VFX/textures/T_Noise_5f.png" id="1_e5ces"]
-[ext_resource type="Shader" path="res://VFX/shaders/s_shield_color_wLine.gdshader" id="1_gb77g"]
+[ext_resource type="Texture2D" uid="uid://cveymnr77q4pu" path="res://VFX/textures/T_Noise_5f.png" id="1_e5ces"]
+[ext_resource type="Shader" uid="uid://crlb81ob7dnis" path="res://VFX/shaders/s_shield_color_wLine.gdshader" id="1_gb77g"]
 
 [sub_resource type="Gradient" id="Gradient_7wnlv"]
 offsets = PackedFloat32Array(0, 0.378151, 0.436975, 0.453782, 1)
@@ -28,7 +28,7 @@ use_hdr = true
 render_priority = 1
 shader = ExtResource("1_gb77g")
 shader_parameter/Size_Sphere = 0.25
-shader_parameter/Gradient_Line = 0.84
+shader_parameter/Gradient_Line = 0.93
 shader_parameter/Line_Baias = -0.035
 shader_parameter/SmoothStep = 1.0
 shader_parameter/Disolver_Scale = Vector2(1, 1)

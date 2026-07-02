@@ -8,16 +8,18 @@ const VFX_Hadouken_scene = preload("res://VFX/scenes/VFX_Hadouken.tscn")
 const VFX_Cube_projectile_scene = preload("res://VFX/scenes/VFX_Cube_projectile.tscn")
 const VFX_Hit_cyber_scene = preload("res://VFX/scenes/VFX_Hit_cyber.tscn")
 const VFX_Hit_hadouken_scene = preload("res://VFX/scenes/VFX_Hit_hadouken.tscn")
+const VFX_Laser_projectile_scene = preload("res://VFX/scenes/VFX_Laser_projectile.tscn")
+const VFX_Laser_Hit_scene = preload("res://VFX/scenes/VFX_Laser_Hit.tscn")
+const VFX_Fire_ball_type_B_scene = preload("res://VFX/scenes/VFX_Fire_ball_type_B.tscn")
+const VFX_Fire_strike_scene = preload("res://VFX/scenes/VFX_Fire_strike.tscn")
 
 # Pre-cargado estático de texturas para evitar I/O bloqueante
-const TEXTURE_LASER = preload("res://assets/Municiones/Lasers/Laser1/Laser1.png")
 const TEXTURE_MISSILE = preload("res://assets/Municiones/Misiles/Misil1/Misil1.png")
 const TEXTURE_MINE = preload("res://assets/Municiones/Minas/Mina1/Mina1.png")
 const TEXTURE_MINE_3 = preload("res://assets/Municiones/Minas/Mina3/Mina3.png")
 const TEXTURE_MINE_2 = preload("res://assets/Municiones/Minas/Mina2/Mina2.png")
 
 const TEXTURE_CACHE = {
-	"laser": TEXTURE_LASER,
 	"missile": TEXTURE_MISSILE,
 	"ice_missile": TEXTURE_MISSILE,
 	"mine": TEXTURE_MINE,
@@ -59,6 +61,8 @@ var _find_target_timer: float = 0.0
 var world_root_3d: Node3D = null
 var _orb_mesh: MeshInstance3D = null
 var _is_setup: bool = false
+var _melee_fireballs_3d: Array = []
+var _melee_blade_positions_3d: Array = []
 
 func _ready():
 	add_to_group("projectiles")
@@ -66,6 +70,8 @@ func _ready():
 		body_entered.connect(_on_body_entered)
 	if not area_entered.is_connected(_on_area_entered):
 		area_entered.connect(_on_area_entered)
+	if not body_shape_entered.is_connected(_on_body_shape_entered):
+		body_shape_entered.connect(_on_body_shape_entered)
 	queue_redraw()
 
 func _process(_delta):
@@ -304,7 +310,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 					var tw = antic.create_tween()
 					tw.tween_interval(1.0)
 					tw.tween_callback(antic.queue_free)
-					
+
 	_setup_visual_sprite()
 	_is_setup = true
 	queue_redraw()
@@ -335,49 +341,36 @@ func _setup_visual_sprite():
 				sprite = null
 				return
 		
-	# Efecto de partículas de chispas radiales de sierras giratorias para Melee
+	# Efecto 3D de bola de fuego giratoria para Melee (Fire Ball Type B en cada cuchilla)
 	if type == "melee":
 		sprite = null
-		var parts_izq = CPUParticles2D.new()
-		parts_izq.name = "CuchillaIzq"
-		parts_izq.amount = 40
-		parts_izq.lifetime = 0.2
-		parts_izq.speed_scale = 1.3
-		parts_izq.explosiveness = 0.0
-		parts_izq.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-		parts_izq.emission_sphere_radius = 12.0 # Emite desde el contorno de la sierra
-		parts_izq.spread = 180.0 # Radial en todas direcciones (efecto chispas)
-		parts_izq.gravity = Vector2.ZERO
-		parts_izq.initial_velocity_min = 50.0
-		parts_izq.initial_velocity_max = 130.0
-		parts_izq.scale_amount_min = 1.5
-		parts_izq.scale_amount_max = 4.0
-		parts_izq.z_index = 6
-		
-		var grad = Gradient.new()
-		grad.set_color(0, Color(1.0, 0.6, 0.0, 0.95)) # Chispas naranja brillante
-		grad.add_point(0.4, Color(1.0, 0.95, 0.3, 0.85)) # Amarillo núcleo
-		grad.add_point(0.7, Color(0.95, 0.2, 0.0, 0.4)) # Rojo difuminado
-		grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
-		parts_izq.color_ramp = grad
-		
-		add_child(parts_izq)
-		parts_izq.emitting = true
-		
-		var parts_der = parts_izq.duplicate()
-		parts_der.name = "CuchillaDer"
-		add_child(parts_der)
-		parts_der.emitting = true
-		
-		var parts_tras_izq = parts_izq.duplicate()
-		parts_tras_izq.name = "CuchillaTrasIzq"
-		add_child(parts_tras_izq)
-		parts_tras_izq.emitting = true
-		
-		var parts_tras_der = parts_izq.duplicate()
-		parts_tras_der.name = "CuchillaTrasDer"
-		add_child(parts_tras_der)
-		parts_tras_der.emitting = true
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			if VFX_Fire_ball_type_B_scene:
+				_melee_fireballs_3d = []
+				_melee_blade_positions_3d = []
+				for i in 4:
+					var fb = VFX_Fire_ball_type_B_scene.instantiate()
+					fb.name = "MeleeFB3D_" + str(get_instance_id()) + "_" + str(i)
+					fb.scale = Vector3(0.8, 0.8, 0.8)
+					# Rotar la estela estática 180° en Y para que quede detrás de la esfera
+					var trail1 = fb.get_node_or_null("Trail1_static")
+					if trail1:
+						var t = trail1.transform
+						trail1.transform = Transform3D(t.basis * Basis.from_euler(Vector3(0, PI, 0)), t.origin)
+					# Activar la estela dinámica (viene invisible en la escena)
+					var trail2 = fb.get_node_or_null("Trail2_dynamic")
+					if trail2:
+						trail2.visible = true
+					target_vp.add_child(fb)
+					_melee_fireballs_3d.append(fb)
+					_melee_blade_positions_3d.append(Vector3.ZERO)
+				tree_exiting.connect(func():
+					for fb in _melee_fireballs_3d:
+						if is_instance_valid(fb):
+							fb.queue_free()
+				)
 		return
 		
 	# Efecto 3D de proyectil curativo (glowing green cube)
@@ -433,11 +426,57 @@ func _setup_visual_sprite():
 		parts.emitting = true
 		return
 
+	# Efecto 3D de proyectil Láser (cubo rojo con estela)
+	if type == "laser":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			if VFX_Laser_projectile_scene:
+				world_root_3d = VFX_Laser_projectile_scene.instantiate()
+				world_root_3d.name = "LaserProj3D_" + str(get_instance_id())
+				target_vp.add_child(world_root_3d)
+				
+				world_root_3d.scale = Vector3(0.75, 0.75, 0.75)
+				
+				tree_exiting.connect(func():
+					if is_instance_valid(world_root_3d):
+						world_root_3d.queue_free()
+				)
+				
+				sprite = null
+				return
+
+	# Efecto 3D de proyectil de fuego (Fire Strike) para misiles
+	if type == "missile" or type == "ice_missile":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			if VFX_Fire_strike_scene:
+				world_root_3d = VFX_Fire_strike_scene.instantiate()
+				world_root_3d.name = "MissileProj3D_" + str(get_instance_id())
+				target_vp.add_child(world_root_3d)
+				
+				world_root_3d.scale = Vector3(0.75, 0.75, 0.75)
+				
+				# Activar la estela dinámica (viene invisible en la escena)
+				var trail2 = world_root_3d.get_node_or_null("Trail2_dynamic")
+				if trail2:
+					trail2.visible = true
+				
+				# Tinte azul para misiles de hielo
+				if type == "ice_missile":
+					world_root_3d.modulate = Color(0.4, 0.7, 2.0)
+				
+				tree_exiting.connect(func():
+					if is_instance_valid(world_root_3d):
+						world_root_3d.queue_free()
+				)
+				
+				sprite = null
+				return
+
 	var path = ""
 	match type:
-		"laser": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
-		"missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
-		"ice_missile": path = "res://assets/Municiones/Misiles/Misil1/Misil1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
 		"hook": 
@@ -502,16 +541,7 @@ func _setup_visual_sprite():
  
 func _draw():
 	if is_instance_valid(sprite): return
-	var color = Color.WHITE
-	if type == "ice_missile": color = Color(0.4, 0.7, 1.0)
-	elif type == "melee": color = Color(1.0, 0.65, 0.1)
-	elif type == "heal": color = Color(0.2, 0.9, 0.3)
-	elif type == "siphon": color = Color(0.8, 0.15, 0.9)
-	elif type == "emp": color = Color(0.1, 0.5, 1.0)
-	elif type == "fear": color = Color(0.75, 0.05, 0.8)
-	elif owner_type == "enemy": color = Color(1.0, 0.3, 0.3)
-	else: color = Color(0.3, 1.0, 1.0)
- 
+
 	match type:
 		"spin_ring":
 			var pulse = sin(Time.get_ticks_msec() * 0.02) * 3.0
@@ -553,10 +583,6 @@ func _draw():
 				var spark_pos = bomb_pos + Vector2(cos(ang), sin(ang)) * (bomb_radius + 3.0)
 				draw_circle(spark_pos, 2.0, Color(0.8, 0.95, 1.0, 0.95))
 				draw_line(bomb_pos, spark_pos, Color(0.5, 0.9, 1.0, 0.6), 1.5)
-		"laser":
-			draw_rect(Rect2(Vector2(-10, -2.5), Vector2(20, 5)), color)
-		"missile", "ice_missile":
-			draw_line(Vector2(-10, 0), Vector2(10, 0), color, 6.0)
 		"mine":
 			draw_circle(Vector2.ZERO, 10, Color.WHITE)
 			draw_circle(Vector2.ZERO, 12, Color(1, 1, 1, 0.3), false, 3.0)
@@ -564,55 +590,8 @@ func _draw():
 			draw_line(Vector2(0, 0), Vector2(-20, 0), Color.GRAY, 2.0)
 			draw_arc(Vector2(5, 0), 10, -PI/2, PI/2, 8, Color.GRAY, 3.0)
 		"melee":
-			var t = _current_lifetime / 0.35
-			t = clamp(t, 0.0, 1.0)
-			var rango_local = max_range if max_range > 0.0 else 150.0
-			
-			var alpha = 1.0
-			if _current_lifetime > 0.35:
-				var extra_t = (_current_lifetime - 0.35) / 0.5
-				alpha = clamp(1.0 - extra_t, 0.0, 1.0)
-			
-			var color_sierra = Color(1.0, 0.4, 0.0, 0.8 * alpha) # Naranja ígneo
-			var color_relleno = Color(1.0, 0.55, 0.1, 0.3 * alpha) # Relleno translúcido
-			var color_nucleo = Color(1.0, 0.95, 0.4, 0.9 * alpha) # Amarillo brillante
-			
-			var r_sierra = 18.0
-			var spin_angle = (Time.get_ticks_msec() / 1000.0) * 16.0 # Velocidad de giro rápida
-			var num_dientes = 10
-			
-			# Delanteras
-			var theta_izq = -PI/2.0 + t * (PI/2.0)
-			var pos_izq = Vector2(cos(theta_izq) * rango_local, sin(theta_izq) * rango_local)
-			
-			var theta_der = PI/2.0 - t * (PI/2.0)
-			var pos_der = Vector2(cos(theta_der) * rango_local, sin(theta_der) * rango_local)
-			
-			# Traseras (Trayectoria inversa)
-			var theta_tras_izq = -PI/2.0 - t * (PI/2.0)
-			var pos_tras_izq = Vector2(cos(theta_tras_izq) * rango_local, sin(theta_tras_izq) * rango_local)
-			
-			var theta_tras_der = PI/2.0 + t * (PI/2.0)
-			var pos_tras_der = Vector2(cos(theta_tras_der) * rango_local, sin(theta_tras_der) * rango_local)
-			
-			var list_pos = [pos_izq, pos_der, pos_tras_izq, pos_tras_der]
-			
-			# Dibujar las 4 sierras
-			for idx in range(4):
-				var pos = list_pos[idx]
-				draw_circle(pos, r_sierra, color_relleno)
-				draw_circle(pos, r_sierra - 3.0, Color(color_sierra.r, color_sierra.g, color_sierra.b, 0.6 * alpha))
-				draw_circle(pos, 4.0, color_nucleo)
-				
-				# Alternar sentido de giro entre sierras consecutivas
-				var angle_dir = spin_angle if idx % 2 == 0 else -spin_angle
-				
-				for i in range(num_dientes):
-					var ang = angle_dir + (float(i) / num_dientes) * TAU
-					var p1 = pos + Vector2(cos(ang), sin(ang)) * (r_sierra - 3.0)
-					var p2 = pos + Vector2(cos(ang + 0.25), sin(ang + 0.25)) * (r_sierra + 6.0)
-					draw_line(p1, p2, color_sierra, 3.0)
-					draw_line(p1, p2, color_nucleo, 1.2)
+			# Reemplazado por fireballs 3D en _setup_visual_sprite()
+			pass
 		"heal":
 			if is_instance_valid(world_root_3d):
 				return
@@ -730,23 +709,26 @@ func _physics_process(delta):
 		var theta_tras_der = PI/2.0 + t * (PI/2.0)
 		var pos_tras_der = Vector2(cos(theta_tras_der) * rango_local, sin(theta_tras_der) * rango_local)
 		
-		# Sincronización de visuales (partículas)
-		var node_izq = get_node_or_null("CuchillaIzq")
-		var node_der = get_node_or_null("CuchillaDer")
-		var node_tras_izq = get_node_or_null("CuchillaTrasIzq")
-		var node_tras_der = get_node_or_null("CuchillaTrasDer")
-		
-		if is_instance_valid(node_izq) and is_instance_valid(node_der) and is_instance_valid(node_tras_izq) and is_instance_valid(node_tras_der):
-			node_izq.position = pos_izq
-			node_der.position = pos_der
-			node_tras_izq.position = pos_tras_izq
-			node_tras_der.position = pos_tras_der
+		# Sincronización de visuales 3D (Fire Balls)
+		if _melee_fireballs_3d.size() == 4:
+			var map_for_fb = get_tree().get_first_node_in_group("map")
+			var s_factor = 0.02
+			var correction_z = 1.41421356
+			if is_instance_valid(map_for_fb):
+				if "scale_factor" in map_for_fb: s_factor = map_for_fb.scale_factor
+				if "correction_z" in map_for_fb: correction_z = map_for_fb.correction_z
 			
-			if _current_lifetime > 0.35:
-				node_izq.emitting = false
-				node_der.emitting = false
-				node_tras_izq.emitting = false
-				node_tras_der.emitting = false
+			var blade_positions_2d = [pos_izq, pos_der, pos_tras_izq, pos_tras_der]
+			for i in 4:
+				var blade_global_2d = global_position + blade_positions_2d[i]
+				var pos_3d = Vector3(
+					blade_global_2d.x * s_factor,
+					0.0,
+					blade_global_2d.y * s_factor * correction_z
+				)
+				if is_instance_valid(_melee_fireballs_3d[i]):
+					_melee_fireballs_3d[i].position = pos_3d
+				_melee_blade_positions_3d[i] = pos_3d
 				
 		# Sincronización de colisiones físicas locales
 		var col_izq = get_node_or_null("ColSierIzqu")
@@ -881,6 +863,27 @@ func _on_body_entered(body):
 		_explode()
 	elif body.is_in_group("obstacles"):
 		_explode()
+
+func _on_body_shape_entered(_body_rid, body, _body_shape_index, local_shape_index):
+	if type != "melee": return
+	if _has_hit: return
+	if not body.has_method("take_damage"): return
+	
+	if local_shape_index >= 0 and local_shape_index < _melee_blade_positions_3d.size():
+		var pos_3d = _melee_blade_positions_3d[local_shape_index]
+		if pos_3d.length_squared() > 0.001:
+			var map_node = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+				var target_vp = map_node.sub_viewport
+				if VFX_Fire_ball_type_B_scene:
+					var impact = VFX_Fire_ball_type_B_scene.instantiate()
+					impact.name = "MeleeImpact3D_" + str(get_instance_id())
+					target_vp.add_child(impact)
+					impact.position = pos_3d
+					impact.scale = Vector3(0.5, 0.5, 0.5)
+					var tw = impact.create_tween()
+					tw.tween_interval(0.5)
+					tw.tween_callback(impact.queue_free)
 
 var _is_exploding: bool = false
 
@@ -1087,6 +1090,32 @@ func _explode():
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				# Auto-liberar al terminar la animación
+				var anim = hit_node.get_node_or_null("AnimationPlayer")
+				if anim:
+					anim.play("Init")
+					anim.animation_finished.connect(hit_node.queue_free.unbind(1))
+				else:
+					var tw = hit_node.create_tween()
+					tw.tween_interval(1.0)
+					tw.tween_callback(hit_node.queue_free)
+
+	# Spawn 3D hit impact effect for laser projectiles
+	if type == "laser":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			if VFX_Laser_Hit_scene:
+				var hit_node = VFX_Laser_Hit_scene.instantiate()
+				hit_node.name = "LaserHit3D_" + str(get_instance_id())
+				target_vp.add_child(hit_node)
+				
+				var s_factor = 0.02
+				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
+				hit_node.position.x = global_position.x * s_factor
+				hit_node.position.z = global_position.y * s_factor * correction_z
+				hit_node.position.y = 0.0
+				hit_node.scale = Vector3(1.5, 1.5, 1.5)
+				
 				var anim = hit_node.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")

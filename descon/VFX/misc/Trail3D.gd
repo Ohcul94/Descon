@@ -96,7 +96,7 @@ func _process(delta):
 			mesh.surface_set_uv(Vector2(t1, 1))
 			mesh.surface_add_vertex(to_local(points[i] - currWidth))
 		else:
-			var t0 = i / points.size()
+			var t0 = float(i) / points.size()
 			var t1 = t
 			
 			mesh.surface_set_uv(Vector2(t0, 0))
@@ -120,6 +120,3 @@ func removePoint(i):
 	points.remove_at(i)
 	widths.remove_at(i)
 	lifePoints.remove_at(i)
-
-
-
