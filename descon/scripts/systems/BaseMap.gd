@@ -183,8 +183,91 @@ func _setup_3d_dynamic():
 	camera_3d.current = true
 	sub_viewport.add_child(camera_3d)
 	_apply_camera_headlight(camera_3d)
-	
-	# No instanciamos asteroides procedimentales por defecto para mantener el fondo limpio y libre de esferas fantasma
+
+	# Crear suelo 3D decorativo (superficie estelar / lunar)
+	var ground_root = Node3D.new()
+	ground_root.name = "Ground3D"
+	sub_viewport.add_child(ground_root)
+
+	var ground_size = 120.0
+	var half = ground_size / 2.0
+	var y_ground = -5.0
+
+	var mesh_instance = MeshInstance3D.new()
+	var plane_mesh = PlaneMesh.new()
+	plane_mesh.size = Vector2(ground_size, ground_size)
+	mesh_instance.mesh = plane_mesh
+	mesh_instance.position = Vector3(half, y_ground, half)
+
+	# Material de superficie rocosa estelar CON RELIEVE (normal mapping desde noise)
+	var noise_tex = preload("res://VFX/textures/T_VFX_Noise_531.png")
+	var detail_noise_tex = preload("res://VFX/textures/T_VFX_Noise21d_tiled.png")
+	var ground_mat = ShaderMaterial.new()
+	ground_mat.shader = preload("res://resources/shaders/ground_relief.gdshader")
+	ground_mat.set_shader_parameter("u_albedo_tex", noise_tex)
+	ground_mat.set_shader_parameter("u_detail_tex", detail_noise_tex)
+	ground_mat.set_shader_parameter("u_tint_color", Color(0.55, 0.52, 0.48))
+	ground_mat.set_shader_parameter("u_tiling", Vector2(5.0, 5.0))
+	ground_mat.set_shader_parameter("u_height_scale", 1.8)
+	ground_mat.set_shader_parameter("u_detail_strength", 0.4)
+	ground_mat.set_shader_parameter("u_metallic", 0.2)
+	ground_mat.set_shader_parameter("u_roughness", 0.85)
+	ground_mat.set_shader_parameter("u_emission", Vector3(0.04, 0.03, 0.08))
+	ground_mat.set_shader_parameter("u_emission_energy", 0.3)
+	mesh_instance.material_override = ground_mat
+	ground_root.add_child(mesh_instance)
+
+	# --- ANILLO DE NEBULOSA DE BORDE (límite visual del mapa) ---
+	var border_root = Node3D.new()
+	border_root.name = "BorderRing"
+	ground_root.add_child(border_root)
+
+	var ring_instance = MeshInstance3D.new()
+	var ring_mesh = TorusMesh.new()
+	ring_mesh.inner_radius = ground_size * 0.5 - 0.5
+	ring_mesh.outer_radius = ground_size * 0.5 + 6.0
+	ring_mesh.rings = 96
+	ring_mesh.ring_segments = 4
+	ring_instance.mesh = ring_mesh
+	ring_instance.position = Vector3(half, y_ground + 0.3, half)
+	ring_instance.rotation_degrees = Vector3(-90, 0, 0)
+
+	var nebula_noise = preload("res://VFX/textures/T_VFX_Noise_019.png")
+	var nebula_mat = ShaderMaterial.new()
+	nebula_mat.shader = preload("res://resources/shaders/border_nebula.gdshader")
+	nebula_mat.set_shader_parameter("u_noise_tex", nebula_noise)
+	nebula_mat.set_shader_parameter("u_color_a", Color(0.15, 0.02, 0.25, 0.5))
+	nebula_mat.set_shader_parameter("u_color_b", Color(0.0, 0.35, 0.55, 0.3))
+	nebula_mat.set_shader_parameter("u_color_c", Color(0.55, 0.05, 0.35, 0.4))
+	nebula_mat.set_shader_parameter("u_speed", 0.3)
+	nebula_mat.set_shader_parameter("u_alpha_scale", 0.9)
+	ring_instance.material_override = nebula_mat
+	border_root.add_child(ring_instance)
+
+	# Escombros decorativos flotando sobre el anillo de nebulosa
+	for i in range(28):
+		var angle = (i / 28.0) * TAU + randf() * 0.15
+		var radius = ground_size * 0.5 + 2.0 + randf() * 6.0
+		var rock = MeshInstance3D.new()
+		var box = BoxMesh.new()
+		var rs = Vector3(0.15 + randf() * 0.5, 0.08 + randf() * 0.25, 0.15 + randf() * 0.5)
+		box.size = rs
+		rock.mesh = box
+		rock.position = Vector3(
+			half + cos(angle) * radius,
+			y_ground + 0.2 + randf() * 2.5,
+			half + sin(angle) * radius
+		)
+		rock.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
+		var rock_mat = StandardMaterial3D.new()
+		var gray = 0.25 + randf() * 0.3
+		rock_mat.albedo_color = Color(gray, gray * 0.9, gray * 0.85)
+		rock_mat.metallic = 0.1 + randf() * 0.5
+		rock_mat.roughness = 0.5 + randf() * 0.5
+		rock_mat.emission_enabled = true
+		rock_mat.emission = Color(0.03, 0.01, 0.06) * (0.3 + randf() * 0.7)
+		rock.material_override = rock_mat
+		border_root.add_child(rock)
 		
 	# Manejar redimensionamiento de pantalla de forma reactiva
 	get_tree().get_root().size_changed.connect(func():

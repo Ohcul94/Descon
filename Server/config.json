@@ -3049,6 +3049,16 @@
                     "x": 8617,
                     "y": 8574,
                     "radius": 0
+                },
+                {
+                    "id": "spawn_178301417722132",
+                    "type": "101",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 2363,
+                    "y": 2197,
+                    "radius": 300
                 }
             ],
             "width": 10000,

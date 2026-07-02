@@ -163,10 +163,10 @@ func _physics_process(_delta):
 				# Posicionar la burbuja 3D en base a la coordenada 2D del spawn
 				spawn_bubble_mesh.position.x = initial_player_pos.x * scale_factor
 				spawn_bubble_mesh.position.z = initial_player_pos.y * scale_factor * correction_z
-					spawn_bubble_mesh.position.y = 0.0
-					
-					sub_viewport.add_child(spawn_bubble_mesh)
-					print("[SpawnLock] Burbuja protectora 3D inicializada con radio: ", r_3d)
+				spawn_bubble_mesh.position.y = 0.0
+
+				sub_viewport.add_child(spawn_bubble_mesh)
+				print("[SpawnLock] Burbuja protectora 3D inicializada con radio: ", r_3d)
 
 			# Permitir movimiento libre DENTRO de la burbuja, restringir salida
 			var distance = player_node.global_position.distance_to(initial_player_pos)

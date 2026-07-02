@@ -2799,17 +2799,110 @@ func _spawn_wreckage_marker():
 	label.custom_minimum_size = Vector2(300, 20)
 	marker.add_child(label)
 	
+	# En single world 3D: crear wreckage 3D en el viewport compartido para que no flote
+	var current_map = get_tree().get_first_node_in_group("map")
+	if get_meta("is_single_world", false) and is_instance_valid(current_map) and is_instance_valid(current_map.get("sub_viewport")):
+		var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+		var c_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+		
+		var wreckage_3d = Node3D.new()
+		wreckage_3d.name = "Wreckage3D_" + str(entity_id)
+		wreckage_3d.position.x = global_position.x * s_factor
+		wreckage_3d.position.z = global_position.y * s_factor * c_z
+		wreckage_3d.position.y = 0.0
+		current_map.sub_viewport.add_child(wreckage_3d)
+		
+		# Crear tracker dinámico: actualiza la posición del label cada frame proyectando la 3D→2D
+		var tracker_code = GDScript.new()
+		tracker_code.source_code = """
+extends Node2D
+func _process(_d):
+	if has_meta(\"t\") and has_meta(\"c\") and has_meta(\"v\") and is_instance_valid(get_meta(\"t\")):
+		var n = get_meta(\"t\"); var c = get_meta(\"c\"); var v = get_meta(\"v\")
+		if not is_instance_valid(c) or not is_instance_valid(v): return
+		if c.is_position_behind(n.global_position): return
+		var p = c.unproject_position(n.global_position)
+		if v.size.x > 0 and v.size.y > 0:
+			p *= Vector2(get_viewport().get_visible_rect().size) / Vector2(v.size)
+		global_position = get_viewport().get_canvas_transform().affine_inverse() * p
+"""
+		tracker_code.reload()
+		var tracker = Node2D.new()
+		tracker.name = "LabelTracker"
+		tracker.set_script(tracker_code)
+		tracker.set_meta("t", wreckage_3d)
+		tracker.set_meta("c", current_map.camera_3d)
+		tracker.set_meta("v", current_map.sub_viewport)
+		label.reparent(tracker)
+		marker.add_child(tracker)
+		# Ocultar el dibujo 2D en single world (ya tenemos el wreckage 3D)
+		if is_instance_valid(drawing): drawing.visible = false
+		
+		# Anillo metálico roto (restos de la nave)
+		var ring = MeshInstance3D.new()
+		var torus = TorusMesh.new()
+		torus.inner_radius = 0.3
+		torus.outer_radius = 0.5
+		torus.rings = 12
+		torus.ring_segments = 6
+		ring.mesh = torus
+		ring.rotation_degrees = Vector3(-90, 0, 0)
+		var ring_mat = StandardMaterial3D.new()
+		ring_mat.albedo_color = Color(0.35, 0.32, 0.3)
+		ring_mat.metallic = 0.6
+		ring_mat.roughness = 0.7
+		ring_mat.emission_enabled = true
+		ring_mat.emission = Color(0.02, 0.01, 0.03)
+		ring.material_override = ring_mat
+		wreckage_3d.add_child(ring)
+		
+		# Cruz de escombros (X sobre el anillo)
+		for cross_i in range(2):
+			var bar = MeshInstance3D.new()
+			var box = BoxMesh.new()
+			box.size = Vector3(0.8, 0.03, 0.06)
+			bar.mesh = box
+			bar.rotation_degrees = Vector3(-90, 0, 45.0 if cross_i == 0 else -45.0)
+			var bar_mat = StandardMaterial3D.new()
+			bar_mat.albedo_color = Color(0.4, 0.38, 0.35)
+			bar_mat.metallic = 0.5
+			bar_mat.roughness = 0.8
+			bar_mat.emission_enabled = true
+			bar_mat.emission = Color(0.02, 0.01, 0.02)
+			bar.material_override = bar_mat
+			wreckage_3d.add_child(bar)
+		
+		# Pequeña luz naranja para resaltar el naufragio
+		var light = OmniLight3D.new()
+		light.position = Vector3(0, 0.3, 0)
+		light.light_color = Color(1.0, 0.45, 0.1)
+		light.light_energy = 0.5
+		light.omni_range = 2.0
+		wreckage_3d.add_child(light)
+		
+		# Guardar referencia para limpieza
+		marker.set_meta("wreckage_3d", wreckage_3d)
+	
 	# Si es un enemigo, el marcador de naufragio dura solo 10000 ms para evitar polución visual
 	if is_in_group("enemies"):
 		var tw = marker.create_tween()
 		tw.tween_property(marker, "modulate:a", 0.0, 0.2).set_delay(9.8)
-		tw.finished.connect(marker.queue_free)
+		tw.finished.connect(func():
+			# Limpiar el wreckage 3D también
+			if marker.has_meta("wreckage_3d"):
+				var w3d = marker.get_meta("wreckage_3d")
+				if is_instance_valid(w3d): w3d.queue_free()
+			marker.queue_free()
+		)
 
 func _clear_wreckage_marker():
 	var world = get_tree().get_first_node_in_group("world_node")
 	if is_instance_valid(world) and is_instance_valid(world.entities_node):
 		var marker = world.entities_node.get_node_or_null("Wreckage_" + str(entity_id))
 		if is_instance_valid(marker):
+			if marker.has_meta("wreckage_3d"):
+				var w3d = marker.get_meta("wreckage_3d")
+				if is_instance_valid(w3d): w3d.queue_free()
 			marker.queue_free()
 
 func _safe_float(val, default: float = 0.0) -> float:
