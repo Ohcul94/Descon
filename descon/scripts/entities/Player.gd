@@ -277,9 +277,38 @@ func _unhandled_input(event):
 			if not is_mobile and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
 				if get_meta("spawn_locked", false):
 					return # Ignorar clicks de movimiento si la barrera de spawn está activa
-				
-				# v2.5D: Posición mundo 2D directa (consistente en ambos modos de cámara)
-				target_position = get_global_mouse_position()
+				# v2.5D: Cámara libre activa → raycast 3D estilo WoW para obtener posición 2D correcta
+				var map_node = get_tree().get_first_node_in_group("map")
+				var used_free_cam = false
+				if is_instance_valid(map_node) and map_node.get("free_cam_active") == true:
+					var cam3d = map_node.get("camera_3d")
+					var sub_vp = map_node.get("sub_viewport")
+					if is_instance_valid(cam3d) and is_instance_valid(sub_vp):
+						# Calcular posición normalizada del mouse en el SubViewport (0..1)
+						var screen_size = Vector2(sub_vp.size)
+						# El SubViewportContainer cubre toda la pantalla; usamos posición de pantalla directa
+						var screen_pos = event.position
+						var vp_size = Vector2(get_viewport().get_visible_rect().size)
+						# Normalizar a [0,1] teniendo en cuenta el tamaño real de la ventana
+						var uv = screen_pos / vp_size
+						# Proyectar rayo desde cámara 3D en dirección del pixel clickeado
+						var ray_origin = cam3d.project_ray_origin(uv * screen_size)
+						var ray_dir = cam3d.project_ray_normal(uv * screen_size)
+						# Intersectar con el plano Y = 0 (suelo del mundo 3D)
+						if abs(ray_dir.y) > 0.0001:
+							var t = -ray_origin.y / ray_dir.y
+							if t > 0.0:
+								var hit_3d = ray_origin + ray_dir * t
+								var s_factor = map_node.get("scale_factor") if map_node.get("scale_factor") != null else 0.02
+								var c_z = map_node.get("correction_z") if map_node.get("correction_z") != null else 1.41421356
+								# Convertir posición 3D → 2D de mapa
+								var world_x = hit_3d.x / s_factor
+								var world_y = hit_3d.z / (s_factor * c_z)
+								target_position = Vector2(world_x, world_y)
+								used_free_cam = true
+				if not used_free_cam:
+					# Fallback: cámara normal, usar posición 2D directa
+					target_position = get_global_mouse_position()
 
 				is_moving = true; autopilot_enabled = false
 			
