@@ -462,27 +462,27 @@ func _create_world_cursor():
 	cursor_3d.visible = false
 	sub_viewport.add_child(cursor_3d)
 
-	# --- Anillo exterior (TorusMesh muy aplanado) ---
-	var ring = MeshInstance3D.new()
-	ring.name = "CursorRing"
-	var torus = TorusMesh.new()
-	torus.inner_radius = 0.28
-	torus.outer_radius = 0.38
-	torus.rings = 32
-	torus.ring_segments = 6
-	ring.mesh = torus
-	ring.rotation_degrees = Vector3(90, 0, 0) # Aplanar al suelo
-	ring.position.y = 0.05
+	# --- Esfera del cursor (SphereMesh) ---
+	var sphere = MeshInstance3D.new()
+	sphere.name = "CursorSphere"
+	var sphere_mesh = SphereMesh.new()
+	sphere_mesh.radius = 0.38
+	sphere_mesh.height = 0.76
+	sphere_mesh.rings = 24
+	sphere_mesh.radial_segments = 24
+	sphere.mesh = sphere_mesh
+	sphere.position.y = 0.38
 
-	var ring_mat = StandardMaterial3D.new()
-	ring_mat.albedo_color = Color(0.0, 1.0, 0.85, 1.0)
-	ring_mat.emission_enabled = true
-	ring_mat.emission = Color(0.0, 0.9, 0.75)
-	ring_mat.emission_energy_multiplier = 2.5
-	ring_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
-	ring_mat.no_depth_test = false
-	ring.material_override = ring_mat
-	cursor_3d.add_child(ring)
+	var sphere_mat = StandardMaterial3D.new()
+	sphere_mat.albedo_color = Color(0.0, 1.0, 0.85, 0.35)
+	sphere_mat.emission_enabled = true
+	sphere_mat.emission = Color(0.0, 0.9, 0.75)
+	sphere_mat.emission_energy_multiplier = 1.5
+	sphere_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	sphere_mat.no_depth_test = false
+	sphere_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sphere.material_override = sphere_mat
+	cursor_3d.add_child(sphere)
 
 	# --- Cruz central (4 líneas pequeñas como en LoL) ---
 	var cross_size = 0.12
