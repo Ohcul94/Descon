@@ -174,7 +174,9 @@ func _process(delta):
 	# Actualizar posición, color y validez del preview en modo edición
 	if is_edit_mode and is_instance_valid(preview_node):
 		# Paneo/posicionamiento con el mouse proyectado en la grilla
-		var mouse_pos = get_viewport().get_mouse_position()
+		# v420.4: Convertir posición del mouse de pantalla al espacio del SubViewport
+		var raw_mouse = get_viewport().get_mouse_position()
+		var mouse_pos = _screen_to_subvp(raw_mouse)
 		var grid_pos_3d = _project_mouse_to_grid(mouse_pos)
 		
 		# Calcular coordenadas de celda
@@ -426,6 +428,19 @@ func enter_edit_mode(item_type: String):
 	
 	_update_hud_buttons()
 
+# v420.4: Convierte posición del mouse en pantalla al espacio del SubViewport,
+# considerando el offset y tamaño del viewport_container.
+func _screen_to_subvp(screen_pos: Vector2) -> Vector2:
+	if not is_instance_valid(viewport_container) or not is_instance_valid(sub_viewport):
+		return screen_pos
+	var coffset = viewport_container.global_position
+	var sub_sz = Vector2(sub_viewport.size)
+	var cont_sz = Vector2(viewport_container.size)
+	var local_pos = screen_pos - coffset
+	if sub_sz.x > 0 and cont_sz.x > 0 and sub_sz != cont_sz:
+		local_pos *= sub_sz / cont_sz
+	return local_pos
+
 func _project_mouse_to_grid(mouse_pos: Vector2) -> Vector3:
 	if not is_instance_valid(camera_3d): return Vector3.ZERO
 	
@@ -487,7 +502,8 @@ func _input(event):
 
 	# Selección interactiva de objetos instalados para mover (si el Modo Edición está activo en el HUD)
 	if not is_edit_mode and is_editing_layout and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var mouse_pos = get_viewport().get_mouse_position()
+		var raw_mouse = get_viewport().get_mouse_position()
+		var mouse_pos = _screen_to_subvp(raw_mouse)
 		var grid_pos_3d = _project_mouse_to_grid(mouse_pos)
 		
 		var cell_x = int(clamp(floor(grid_pos_3d.x / GRID_CELL_SIZE), 0, grid_size - 1))

@@ -21,6 +21,13 @@ var player_node: Node2D = null
 # correction_z dinámico: 1.0 / sin(tilt_angle) calculado desde la inclinación real de la cámara
 var correction_z: float = 1.41421356
 
+# v420.5: Cursor 3D World-Space (estilo LoL/Dota2)
+# Vive en el SubViewport — se mueve via raycast al plano Y=0 cada frame.
+# Elimina todas las conversiones Screen→Canvas→SubViewport que causaban desfase.
+var cursor_3d: Node3D = null
+var mouse_world_pos_3d: Vector3 = Vector3.ZERO   # Posición 3D exacta del cursor en el mundo
+var mouse_world_pos_2d: Vector2 = Vector2.ZERO   # Equivalente en espacio lógico 2D del mapa
+
 # Free Camera (orbit/free mode) — toggle con tecla O
 var free_cam_active: bool = false
 var free_cam_h: float = 180.0  # ángulo horizontal en grados (180 = detrás de la nave)
@@ -123,6 +130,9 @@ func _setup_3d_dynamic():
 				
 				# Aplicar iluminación mejorada cenital de arriba y ambiental de soporte
 				_apply_ambient_and_zenith_lights(sub_viewport)
+				
+				# v420.5: Crear cursor 3D world-space
+				_create_world_cursor()
 		return
 
 	# Si es un mapa 2D puro (Lobby, Default, etc.), crear lienzo 3D de alta gama programáticamente
@@ -183,6 +193,9 @@ func _setup_3d_dynamic():
 	camera_3d.current = true
 	sub_viewport.add_child(camera_3d)
 	_apply_camera_headlight(camera_3d)
+	
+	# v420.5: Crear cursor 3D world-space
+	_create_world_cursor()
 
 	# Crear suelo 3D decorativo (superficie estelar / lunar)
 	var ground_root = Node3D.new()
@@ -419,6 +432,112 @@ func _update_free_camera():
 	# se posicionaron con el tilt de la cámara fija. Si lo cambiamos, se desplazan.
 	# En su lugar, calculamos uno local solo para la posición del centro si hiciera falta.
 
+# v420.5: Convierte posición del mouse en pantalla al espacio del SubViewport.
+# Esta es la ÚNICA conversión Screen→SubViewport en todo el sistema.
+# Todos los demás sistemas deben usar mouse_world_pos_2d en lugar de hacer su propia conversión.
+func _get_subvp_mouse_pos() -> Vector2:
+	var mouse = get_viewport().get_mouse_position()
+	if not is_instance_valid(viewport_container) or not is_instance_valid(sub_viewport):
+		return mouse
+	var offset = viewport_container.global_position
+	var cont_sz = Vector2(viewport_container.size)
+	var sub_sz = Vector2(sub_viewport.size)
+	var local = mouse - offset
+	if sub_sz.x > 0 and cont_sz.x > 0 and sub_sz != cont_sz:
+		local *= sub_sz / cont_sz
+	return local
+
+# v420.5: Crea el cursor 3D world-space dentro del SubViewport.
+# Estilo LoL: anillo exterior + cruz central. Vive en Y=0 (plano del suelo).
+func _create_world_cursor():
+	if not is_instance_valid(sub_viewport):
+		return
+	# Limpiar cursor viejo si existía
+	var old = sub_viewport.get_node_or_null("WorldCursor3D")
+	if is_instance_valid(old):
+		old.queue_free()
+
+	cursor_3d = Node3D.new()
+	cursor_3d.name = "WorldCursor3D"
+	cursor_3d.visible = false
+	sub_viewport.add_child(cursor_3d)
+
+	# --- Anillo exterior (TorusMesh muy aplanado) ---
+	var ring = MeshInstance3D.new()
+	ring.name = "CursorRing"
+	var torus = TorusMesh.new()
+	torus.inner_radius = 0.28
+	torus.outer_radius = 0.38
+	torus.rings = 32
+	torus.ring_segments = 6
+	ring.mesh = torus
+	ring.rotation_degrees = Vector3(90, 0, 0) # Aplanar al suelo
+	ring.position.y = 0.05
+
+	var ring_mat = StandardMaterial3D.new()
+	ring_mat.albedo_color = Color(0.0, 1.0, 0.85, 1.0)
+	ring_mat.emission_enabled = true
+	ring_mat.emission = Color(0.0, 0.9, 0.75)
+	ring_mat.emission_energy_multiplier = 2.5
+	ring_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+	ring_mat.no_depth_test = false
+	ring.material_override = ring_mat
+	cursor_3d.add_child(ring)
+
+	# --- Cruz central (4 líneas pequeñas como en LoL) ---
+	var cross_size = 0.12
+	var cross_thickness = 0.035
+	for i in range(4):
+		var bar = MeshInstance3D.new()
+		var box = BoxMesh.new()
+		if i < 2:
+			box.size = Vector3(cross_size, 0.04, cross_thickness)
+		else:
+			box.size = Vector3(cross_thickness, 0.04, cross_size)
+		bar.mesh = box
+		var offset_dist = 0.18
+		match i:
+			0: bar.position = Vector3(-offset_dist, 0.05, 0)
+			1: bar.position = Vector3(offset_dist, 0.05, 0)
+			2: bar.position = Vector3(0, 0.05, -offset_dist)
+			3: bar.position = Vector3(0, 0.05, offset_dist)
+		var bar_mat = StandardMaterial3D.new()
+		bar_mat.albedo_color = Color(1.0, 1.0, 1.0, 0.9)
+		bar_mat.emission_enabled = true
+		bar_mat.emission = Color(0.5, 1.0, 0.9)
+		bar_mat.emission_energy_multiplier = 1.5
+		bar_mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+		bar.material_override = bar_mat
+		cursor_3d.add_child(bar)
+
+# v420.5: Actualiza posición del cursor 3D cada frame via raycast al plano Y=0.
+# En modo ortogonal (2D), oculta el cursor 3D (el SO se encarga del cursor 2D).
+func _update_world_cursor():
+	if not is_instance_valid(cursor_3d):
+		return
+
+	# Modo 2D: cursor del SO, sin cursor 3D
+	if use_orthogonal or not is_instance_valid(camera_3d):
+		cursor_3d.visible = false
+		mouse_world_pos_3d = Vector3.ZERO
+		mouse_world_pos_2d = Vector2.ZERO
+		return
+
+	# Raycast: mouse → SubViewport → cámara 3D → plano Y=0
+	var sub_px = _get_subvp_mouse_pos()
+	var ray_from = camera_3d.project_ray_origin(sub_px)
+	var ray_dir = camera_3d.project_ray_normal(sub_px)
+	var hit = Plane(Vector3.UP, 0.0).intersects_ray(ray_from, ray_dir * 2000.0)
+
+	if hit != null:
+		mouse_world_pos_3d = hit
+		mouse_world_pos_2d = Vector2(hit.x / scale_factor, hit.z / (scale_factor * correction_z))
+		cursor_3d.global_position = Vector3(hit.x, 0.05, hit.z)
+		cursor_3d.visible = true
+	else:
+		cursor_3d.visible = false
+
+
 func _process(_delta):
 	# v2.4: Comparar como string para evitar el error 'String' and 'int' cuando zone_id es "extract_X" o "arena_X"
 	if str(zone_id) == "100":
@@ -507,6 +626,9 @@ func _process(_delta):
 			camera_3d.position.z = corrected_target_z + z_offset
 			camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
 		
+	# v420.5: Actualizar cursor 3D world-space (solo en modo perspectiva)
+	_update_world_cursor()
+
 	# Chequear cercanía a puertas interactivas del mapa
 	_check_doors_proximity()
 	_update_interact_visibility()

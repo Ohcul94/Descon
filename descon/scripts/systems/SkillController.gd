@@ -184,25 +184,17 @@ func execute_skill():
 		
 		var target_pos: Vector2
 		if is_persp:
-			var sf = map_node_exec.scale_factor if is_instance_valid(map_node_exec) else 0.02
-			var cz = map_node_exec.correction_z if is_instance_valid(map_node_exec) else 1.41421356
-			var mm = get_viewport().get_mouse_position()
-			var msz = Vector2(get_viewport().get_visible_rect().size)
-			var ssz = Vector2(sub_vp_exec.size)
-			var spx = mm
-			if ssz.x > 0 and msz.x > 0 and ssz != msz:
-				spx = mm * (ssz / msz)
-			var rf = cam3d_exec.project_ray_origin(spx)
-			var rt = rf + cam3d_exec.project_ray_normal(spx) * 2000.0
-			var pl = Plane(Vector3.UP, 0.0)
-			var hit = pl.intersects_ray(rf, rt)
-			if hit != null:
-				target_pos = Vector2(hit.x / sf, hit.z / (sf * cz))
+			# v420.5: Usar la posición del cursor 3D world-space del mapa.
+			# Es la misma fuente de verdad que el indicador visual → disparo siempre coincide.
+			var wp = map_node_exec.get("mouse_world_pos_2d") if is_instance_valid(map_node_exec) else null
+			if wp != null and wp != Vector2.ZERO:
+				target_pos = wp
 			else:
+				# Fallback: en modo 2D o si el cursor aún no inicializó
 				target_pos = get_global_mouse_position()
 		else:
 			target_pos = get_global_mouse_position()
-			
+		
 		payload.angle = (target_pos - global_position).angle()
 		payload.pos = target_pos
 		payload.target = selected_target
@@ -255,6 +247,7 @@ func _draw():
 	var correction_z = parent_map.correction_z if is_instance_valid(parent_map) else 1.41421356
 	
 	# Convierte un desplazamiento 2D lógico (relativo a la nave) en un desplazamiento visual en pantalla
+	# v420.4: Proyección robusta con escala correcta SubViewport→Container→Pantalla
 	var _proj = func(offset_2d: Vector2) -> Vector2:
 		if not use_perspective:
 			return offset_2d  # En ortogonal: directo
@@ -271,17 +264,20 @@ func _draw():
 		# Proyectar a píxeles del SubViewport
 		var sv_px = cam3d.unproject_position(pos_3d)
 		
-		# Escalar SubViewport → pantalla principal
+		# v420.4: Escalar SubViewport → Container → Pantalla correctamente
+		# Cuando stretch=true, el SubViewport se escala al tamaño del Container.
+		# Debemos escalar sv_px por (container_size / sub_vp_size) para tener píxeles de pantalla.
 		var container = parent_map.viewport_container if parent_map else null
-		var sub_size = Vector2.ZERO
-		if is_instance_valid(sub_vp) and sub_vp.size.x > 0:
-			sub_size = Vector2(sub_vp.size)
-		elif is_instance_valid(container) and container.size.x > 0:
-			sub_size = Vector2(container.size)
-			
-		var main_size = Vector2(get_viewport().get_visible_rect().size)
-		if sub_size.x > 0 and main_size.x > 0 and sub_size != main_size:
-			sv_px *= main_size / sub_size
+		var sub_size = Vector2(sub_vp.size) if is_instance_valid(sub_vp) and sub_vp.size.x > 0 else Vector2.ZERO
+		var container_size = Vector2(container.size) if is_instance_valid(container) and container.size.x > 0 else Vector2.ZERO
+		if sub_size.x > 0 and container_size.x > 0 and sub_size != container_size:
+			sv_px *= container_size / sub_size
+		
+		# v420.4: Si el container tiene un offset en pantalla (no está en (0,0)), compensarlo
+		var container_offset = Vector2.ZERO
+		if is_instance_valid(container):
+			container_offset = container.global_position
+		sv_px += container_offset
 			
 		# Convertir a coordenadas mundo 2D y luego a espacio local de este nodo
 		var world_2d_vis = get_viewport().get_canvas_transform().affine_inverse() * sv_px
@@ -301,7 +297,8 @@ func _draw():
 		else:
 			draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 2.0)
 	
-	# v266.810: FIX Visual - Compensar rotación de la nave
+	# v420.5: El aim_vec lee mouse_world_pos_2d del mapa (calculado por el cursor 3D world-space).
+	# Un único raycast en BaseMap._update_world_cursor() — cero conversiones adicionales aquí.
 	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	var aim_vec: Vector2
 	if external_aim_vector != Vector2.ZERO:
@@ -311,23 +308,9 @@ func _draw():
 			aim_vec = Vector2.ZERO
 		else:
 			if use_perspective:
-				# Convertir mouse a píxeles del SubViewport para raycast 3D
-				var mouse_main = get_viewport().get_mouse_position()
-				var main_size = Vector2(get_viewport().get_visible_rect().size)
-				var sub_size = Vector2(sub_vp.size)
-				var sub_px = mouse_main
-				if sub_size.x > 0 and main_size.x > 0 and sub_size != main_size:
-					sub_px = mouse_main * (sub_size / main_size)
-				
-				# Raycast desde cámara 3D al plano del suelo (Y=0) para obtener punto 3D exacto
-				var ray_from = cam3d.project_ray_origin(sub_px)
-				var ray_to = ray_from + cam3d.project_ray_normal(sub_px) * 2000.0
-				var plane = Plane(Vector3.UP, 0.0)
-				var intersect = plane.intersects_ray(ray_from, ray_to)
-				if intersect != null:
-					# Convertir 3D → 2D mundo (inversa de la conversión en _proj)
-					var world_2d_corrected = Vector2(intersect.x / s_factor, intersect.z / (s_factor * correction_z))
-					var diff_logic = world_2d_corrected - parent_entity.global_position
+				# Leer directamente la posición del mundo ya calculada por el cursor 3D del mapa
+				if is_instance_valid(parent_map) and parent_map.mouse_world_pos_2d != Vector2.ZERO:
+					var diff_logic = parent_map.mouse_world_pos_2d - parent_entity.global_position
 					aim_vec = diff_logic.rotated(-parent_entity.rotation)
 				else:
 					aim_vec = Vector2.ZERO
