@@ -371,6 +371,27 @@ func _apply_camera_headlight(cam: Camera3D):
 # Método para alternar proyección de cámara (llamado al presionar tecla L)
 func toggle_camera_projection():
 	use_orthogonal = !use_orthogonal
+	if use_orthogonal and free_cam_active:
+		free_cam_active = false
+	_save_camera_state()
+	if has_node("/root/SettingsManager"):
+		var sm = get_node("/root/SettingsManager")
+		sm.camera_use_orthogonal = use_orthogonal
+		sm.save_settings()
+	var hud = get_tree().get_first_node_in_group("hud")
+	var msg = "CÁMARA: " + ("ORTOGONAL (2D)" if use_orthogonal else "PERSPECTIVA (3D)")
+	var type = "info" if use_orthogonal else "success"
+	if hud and hud.has_method("notify"):
+		hud.notify(msg, type)
+	print("[BaseMap] ", msg)
+
+# Método para establecer 2D/3D desde UI (Settings)
+func set_camera_2d_mode(active: bool):
+	if use_orthogonal == active:
+		return
+	use_orthogonal = active
+	if active and free_cam_active:
+		free_cam_active = false
 	_save_camera_state()
 	var hud = get_tree().get_first_node_in_group("hud")
 	var msg = "CÁMARA: " + ("ORTOGONAL (2D)" if use_orthogonal else "PERSPECTIVA (3D)")

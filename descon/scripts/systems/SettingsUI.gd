@@ -88,6 +88,7 @@ func _setup_ui():
 	# ========================== TAB 1: JUEGO Y CONTROLES ==========================
 	var scroll_game = ScrollContainer.new()
 	scroll_game.name = "JUEGO Y TECLAS"
+	scroll_game.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tabs.add_child(scroll_game)
 	
 	var margin_game = MarginContainer.new()
@@ -281,6 +282,7 @@ func _setup_ui():
 	# ========================== TAB 2: GRÁFICOS Y ACCESIBILIDAD ==========================
 	var scroll_gfx = ScrollContainer.new()
 	scroll_gfx.name = "GRÁFICOS"
+	scroll_gfx.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tabs.add_child(scroll_gfx)
 	
 	var margin_gfx = MarginContainer.new()
@@ -292,7 +294,7 @@ func _setup_ui():
 	
 	var gfx_vbox = VBoxContainer.new()
 	gfx_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	gfx_vbox.add_theme_constant_override("separation", 15)
+	gfx_vbox.add_theme_constant_override("separation", 12)
 	margin_gfx.add_child(gfx_vbox)
 	
 	# CALIDAD GRÁFICA
@@ -347,11 +349,11 @@ func _setup_ui():
 	
 	# EFECTO DE PARPADEO
 	var row_flash = HBoxContainer.new()
-	row_flash.add_theme_constant_override("separation", 15)
+	row_flash.add_theme_constant_override("separation", 10)
 	gfx_vbox.add_child(row_flash)
 	
 	var flash_check = CheckBox.new()
-	flash_check.text = "" # Sin texto para que el estilo sea solo el recuadro
+	flash_check.text = ""
 	flash_check.add_theme_stylebox_override("normal", check_style)
 	flash_check.add_theme_stylebox_override("pressed", check_style)
 	flash_check.add_theme_stylebox_override("hover", check_style)
@@ -365,7 +367,7 @@ func _setup_ui():
 	
 	# TEMBLOR DE CÁMARA
 	var row_shake = HBoxContainer.new()
-	row_shake.add_theme_constant_override("separation", 15)
+	row_shake.add_theme_constant_override("separation", 10)
 	gfx_vbox.add_child(row_shake)
 	
 	var shake_check = CheckBox.new()
@@ -388,9 +390,43 @@ func _setup_ui():
 	shake_slider.value_changed.connect(func(val): SettingsManager.camera_shake_intensity = val; SettingsManager.save_settings())
 	gfx_vbox.add_child(shake_slider)
 
+	gfx_vbox.add_child(HSeparator.new())
+
+	# CÁMARA 3D
+	var row_cam = HBoxContainer.new()
+	row_cam.add_theme_constant_override("separation", 10)
+	gfx_vbox.add_child(row_cam)
+
+	var cam_check = CheckBox.new()
+	cam_check.text = ""
+	cam_check.add_theme_stylebox_override("normal", check_style)
+	cam_check.add_theme_stylebox_override("pressed", check_style)
+	cam_check.add_theme_stylebox_override("hover", check_style)
+	if get_node_or_null("/root/SettingsManager"): cam_check.button_pressed = not SettingsManager.cam_use_orthogonal
+	cam_check.toggled.connect(func(val):
+		var is_3d = val
+		SettingsManager.camera_use_orthogonal = not is_3d
+		SettingsManager.cam_use_orthogonal = not is_3d
+		SettingsManager.save_settings()
+		var map_node = get_tree().get_first_node_in_group("map")
+		if map_node and map_node.has_method("set_camera_2d_mode"):
+			map_node.set_camera_2d_mode(not is_3d)
+	)
+	row_cam.add_child(cam_check)
+
+	var cam_lbl = Label.new()
+	cam_lbl.text = "CÁMARA 3D"
+	row_cam.add_child(cam_lbl)
+
+	# Bottom spacer para forzar scroll en cualquier pantalla
+	var bot_spacer = Control.new()
+	bot_spacer.custom_minimum_size.y = 200
+	gfx_vbox.add_child(bot_spacer)
+
 	# ========================== TAB 3: SONIDO (PRÓXIMAMENTE) ==========================
 	var scroll_audio = ScrollContainer.new()
 	scroll_audio.name = "SONIDO"
+	scroll_audio.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tabs.add_child(scroll_audio)
 	
 	var margin_audio = MarginContainer.new()
@@ -413,6 +449,7 @@ func _setup_ui():
 	# ========================== TAB 4: INTERFAZ Y LAYOUT ==========================
 	var scroll_hud = ScrollContainer.new()
 	scroll_hud.name = "INTERFAZ Y LAYOUT"
+	scroll_hud.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tabs.add_child(scroll_hud)
 	
 	var margin_hud = MarginContainer.new()
@@ -483,6 +520,7 @@ func _setup_ui():
 	# ========================== TAB 5: FUENTES Y TEXTOS ==========================
 	var scroll_font = ScrollContainer.new()
 	scroll_font.name = "FUENTES"
+	scroll_font.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tabs.add_child(scroll_font)
 	
 	var margin_font = MarginContainer.new()
