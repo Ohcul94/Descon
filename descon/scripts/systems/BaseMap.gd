@@ -189,15 +189,34 @@ func _setup_3d_dynamic():
 	ground_root.name = "Ground3D"
 	sub_viewport.add_child(ground_root)
 
-	var ground_size = 120.0
-	var half = ground_size / 2.0
+	# Obtener dimensiones dinámicas del mapa desde MAPS_CONFIG (AdminDash Cartografia)
+	var map_width = world_size
+	var map_height = world_size
+	var z_id_str = str(zone_id)
+	if "." in z_id_str and z_id_str.is_valid_float():
+		var z_float = float(z_id_str)
+		if z_float == int(z_float):
+			z_id_str = str(int(z_float))
+	if GameConstants.MAPS_CONFIG.has(z_id_str):
+		var cfg = GameConstants.MAPS_CONFIG[z_id_str]
+		if cfg.has("width") and float(cfg.width) > 0:
+			map_width = float(cfg.width)
+			map_height = float(cfg.width)
+		if cfg.has("height") and float(cfg.height) > 0:
+			map_height = float(cfg.height)
+
+	var margin_2d = 3000.0
+	var ground_size_x = (map_width + margin_2d * 2.0) * scale_factor
+	var ground_size_z = (map_height + margin_2d * 2.0) * scale_factor
+	var center_x = (map_width / 2.0) * scale_factor
+	var center_z = (map_height / 2.0) * scale_factor
 	var y_ground = -5.0
 
 	var mesh_instance = MeshInstance3D.new()
 	var plane_mesh = PlaneMesh.new()
-	plane_mesh.size = Vector2(ground_size, ground_size)
+	plane_mesh.size = Vector2(ground_size_x, ground_size_z)
 	mesh_instance.mesh = plane_mesh
-	mesh_instance.position = Vector3(half, y_ground, half)
+	mesh_instance.position = Vector3(center_x, y_ground, center_z)
 
 	# Material de superficie rocosa estelar CON RELIEVE (normal mapping desde noise)
 	var noise_tex = preload("res://VFX/textures/T_VFX_Noise_531.png")
@@ -224,12 +243,13 @@ func _setup_3d_dynamic():
 
 	var ring_instance = MeshInstance3D.new()
 	var ring_mesh = TorusMesh.new()
-	ring_mesh.inner_radius = ground_size * 0.5 - 0.5
-	ring_mesh.outer_radius = ground_size * 0.5 + 6.0
+	var ground_radius = max(ground_size_x, ground_size_z) * 0.5
+	ring_mesh.inner_radius = ground_radius - 0.5
+	ring_mesh.outer_radius = ground_radius + 6.0
 	ring_mesh.rings = 96
 	ring_mesh.ring_segments = 4
 	ring_instance.mesh = ring_mesh
-	ring_instance.position = Vector3(half, y_ground + 0.3, half)
+	ring_instance.position = Vector3(center_x, y_ground + 0.3, center_z)
 	ring_instance.rotation_degrees = Vector3(-90, 0, 0)
 
 	var nebula_noise = preload("res://VFX/textures/T_VFX_Noise_019.png")
@@ -247,16 +267,16 @@ func _setup_3d_dynamic():
 	# Escombros decorativos flotando sobre el anillo de nebulosa
 	for i in range(28):
 		var angle = (i / 28.0) * TAU + randf() * 0.15
-		var radius = ground_size * 0.5 + 2.0 + randf() * 6.0
+		var radius = ground_radius + 2.0 + randf() * 6.0
 		var rock = MeshInstance3D.new()
 		var box = BoxMesh.new()
 		var rs = Vector3(0.15 + randf() * 0.5, 0.08 + randf() * 0.25, 0.15 + randf() * 0.5)
 		box.size = rs
 		rock.mesh = box
 		rock.position = Vector3(
-			half + cos(angle) * radius,
+			center_x + cos(angle) * radius,
 			y_ground + 0.2 + randf() * 2.5,
-			half + sin(angle) * radius
+			center_z + sin(angle) * radius
 		)
 		rock.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
 		var rock_mat = StandardMaterial3D.new()
