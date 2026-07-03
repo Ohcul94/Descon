@@ -106,6 +106,11 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	_find_target()
 	
 	lifetime = _safe_float(p_data.get("lifetimeMs"), 0.0) / 1000.0
+	# Calcular lifetime desde range/speed si el servidor no lo envió
+	if lifetime <= 0 and speed > 0 and max_range > 0:
+		lifetime = max_range / speed + 1.0
+	elif lifetime <= 0:
+		lifetime = 3.0
 	turn_speed = _safe_float(p_data.get("turnSpeed"), 2.5)
 	is_homing = bool(p_data.get("isHoming", false))
 	
@@ -463,9 +468,19 @@ func _setup_visual_sprite():
 				if trail2:
 					trail2.visible = true
 				
-				# Tinte azul para misiles de hielo
-				if type == "ice_missile":
-					world_root_3d.modulate = Color(0.4, 0.7, 2.0)
+			# Auto-limpiar el nodo 3D cuando el proyectil 2D se destruye
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+			)
+			
+			# Tinte azul para misiles de hielo
+			if type == "ice_missile":
+				var mesh = world_root_3d.get_node_or_null("MeshInstance3D")
+				if mesh and mesh.material_override:
+					var mat = mesh.material_override.duplicate()
+					mat.albedo_color = Color(0.4, 0.7, 2.0)
+					mesh.material_override = mat
 				
 				tree_exiting.connect(func():
 					if is_instance_valid(world_root_3d):
