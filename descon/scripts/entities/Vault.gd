@@ -2,7 +2,6 @@ extends Area2D
 
 # Precargas estáticas para optimización de rendimiento (v313.2)
 const BAUL_MODEL_SCENE = preload("res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb")
-const HAND_INTERACT_TEX = preload("res://assets/UI/hand_interact.jpg")
 
 # Vault.gd (v1.0 - Baúl Personal Interactivo AAA)
 # Entidad física del banco espacial en el lobby.
@@ -12,16 +11,13 @@ var is_hovered: bool = false
 
 # Componentes visuales dinámicos
 var sprite: Sprite2D = null
-var interaction_prompt: PanelContainer = null
-var prompt_label: Label = null
 var collision: CollisionShape2D = null
-var tween_float: Tween = null
+var float_time: float = 0.0
 
 # Soporte para perspectiva 2.5D global (is_single_world)
 var is_single_world: bool = false
 var world_root_3d: Node3D = null
 var map_scale: float = 0.02
-var floating_offset_y: float = 0.0
 
 func _ready():
 	add_to_group("vaults")
@@ -124,70 +120,22 @@ func _ready():
 		sprite.scale = Vector2(0.84, 0.84)
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	
-	# 4. Crear panel flotante de interacción premium
-	var key_text = "Y"
-	if InputMap.has_action("loot_claim"):
-		var events = InputMap.action_get_events("loot_claim")
-		if events.size() > 0:
-			key_text = events[0].as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
-			if key_text == "SPACE":
-				key_text = "ESPACIO"
-			
-	interaction_prompt = PanelContainer.new()
-	interaction_prompt.visible = false
-	interaction_prompt.custom_minimum_size = Vector2(170, 32)
-	interaction_prompt.position = Vector2(-85, -145)
-	interaction_prompt.mouse_filter = Control.MOUSE_FILTER_PASS
-	interaction_prompt.gui_input.connect(_on_prompt_gui_input)
-	
-	var prompt_style = StyleBoxFlat.new()
-	prompt_style.bg_color = Color(0.02, 0.02, 0.05, 0.9)
-	prompt_style.border_width_left = 1
-	prompt_style.border_width_top = 1
-	prompt_style.border_width_right = 1
-	prompt_style.border_width_bottom = 1
-	prompt_style.border_color = Color(1.0, 0.75, 0.0, 0.8) # Borde dorado brillante
-	prompt_style.set_corner_radius_all(6)
-	prompt_style.anti_aliasing = true
-	interaction_prompt.add_theme_stylebox_override("panel", prompt_style)
-	
-	var prompt_hbox = HBoxContainer.new()
-	prompt_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	prompt_hbox.add_theme_constant_override("separation", 6)
-	prompt_hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	interaction_prompt.add_child(prompt_hbox)
-	
-	# Icono miniatura de la mano precargado
-	var prompt_icon = TextureRect.new()
-	if HAND_INTERACT_TEX:
-		prompt_icon.texture = HAND_INTERACT_TEX
-	prompt_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	prompt_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	prompt_icon.custom_minimum_size = Vector2(18, 18)
-	prompt_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	prompt_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	prompt_hbox.add_child(prompt_icon)
-	
-	# Texto
-	prompt_label = Label.new()
-	prompt_label.text = "[" + key_text + "] BAÚL PERSONAL"
-	prompt_label.add_theme_font_size_override("font_size", 11)
-	prompt_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))
-	prompt_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	prompt_label.add_theme_constant_override("outline_size", 3)
-	prompt_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	prompt_hbox.add_child(prompt_label)
-	
-	add_child(interaction_prompt)
-	
-	# Conectar señales
+	# 4. Conectar señales
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)
-	
+
+	# Verificar superposición en el próximo frame
+	call_deferred("_check_initial_overlap")
+
 	# Animaciones de suspensión
 	_start_floating_animation()
 
-func _process(_delta):
+func _process(delta):
+	float_time += delta
+	if is_single_world and is_instance_valid(world_root_3d):
+		world_root_3d.position.y = sin(float_time * 2.243) * 0.12 - 0.5
+	elif is_instance_valid(sprite):
+		sprite.position.y = sin(float_time * 2.243) * 6.0
 	_update_3d_position()
 	
 	var mouse_pos = get_global_mouse_position()
@@ -201,16 +149,7 @@ func _process(_delta):
 		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 func _start_floating_animation():
-	if tween_float:
-		tween_float.kill()
-	tween_float = create_tween().set_loops()
-	if is_single_world:
-		# En 3D animamos floating_offset_y. 6 píxeles * 0.02 = 0.12 unidades 3D.
-		tween_float.tween_property(self, "floating_offset_y", -0.12, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		tween_float.tween_property(self, "floating_offset_y", 0.12, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-	else:
-		tween_float.tween_property(sprite, "position:y", -6.0, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		tween_float.tween_property(sprite, "position:y", 6.0, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	pass
 
 func _update_3d_position():
 	if is_instance_valid(world_root_3d):
@@ -218,57 +157,42 @@ func _update_3d_position():
 		var correction_z = current_map.correction_z if is_instance_valid(current_map) and "correction_z" in current_map else 1.41421356
 		world_root_3d.position.x = global_position.x * map_scale
 		world_root_3d.position.z = global_position.y * map_scale * correction_z
-		if is_single_world:
-			world_root_3d.position.y = floating_offset_y
-		else:
-			world_root_3d.position.y = 0.0
 
 func _exit_tree():
-	if tween_float:
-		tween_float.kill()
 	if is_single_world and is_instance_valid(world_root_3d):
 		world_root_3d.queue_free()
 
-func _update_prompt_text():
-	var key_text = "Y"
-	if InputMap.has_action("loot_claim"):
-		var events = InputMap.action_get_events("loot_claim")
-		if events.size() > 0:
-			key_text = events[0].as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
-			if key_text == "SPACE":
-				key_text = "ESPACIO"
-				
-	if prompt_label:
-		prompt_label.text = "[" + key_text + "] BAÚL PERSONAL"
+func _check_initial_overlap():
+	if not is_instance_valid(self):
+		return
+	for body in get_overlapping_bodies():
+		if body.is_in_group("player"):
+			_on_body_entered(body)
+			break
 
 func _on_body_entered(body):
 	if body.is_in_group("player"):
 		is_interactable = true
-		_update_prompt_text()
-		if interaction_prompt:
-			interaction_prompt.visible = true
-			interaction_prompt.scale = Vector2.ZERO
-			interaction_prompt.pivot_offset = Vector2(85, 16)
-			var tw = create_tween()
-			tw.tween_property(interaction_prompt, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		# Registrar en el mapa para mostrar botón de interacción
+		var map = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map) and map.has_method("register_vault_interaction"):
+			map.register_vault_interaction(self)
 
 func _on_body_exited(body):
 	if body.is_in_group("player"):
 		is_interactable = false
-		if interaction_prompt:
-			interaction_prompt.visible = false
 		Input.set_default_cursor_shape(Input.CURSOR_ARROW)
-		
+		# Solo desregistrar si este vault es el activo actualmente
+		var map = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map) and map.has_method("unregister_vault_interaction") and map.get("active_vault_node") == self:
+			map.unregister_vault_interaction()
 		# Cerrar el modal del baúl si se aleja
 		var ui = get_tree().get_first_node_in_group("vault_ui")
 		if ui and ui.is_open:
 			ui.close_vault()
 
 func _unhandled_input(event):
-	if is_interactable and event.is_action_pressed("loot_claim") and not event.is_echo():
-		_interact()
-		get_viewport().set_input_as_handled()
-	elif is_interactable and is_hovered and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if is_interactable and is_hovered and event is InputEventMouseButton and event.pressed and event.double_click and event.button_index == MOUSE_BUTTON_LEFT:
 		_interact()
 		get_viewport().set_input_as_handled()
 
@@ -276,8 +200,3 @@ func _interact():
 	print("[VAULT] Interactuando con baúl personal")
 	if NetworkManager:
 		NetworkManager.send_event("getVaultData", {})
-
-func _on_prompt_gui_input(event):
-	if is_interactable and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		_interact()
-		get_viewport().set_input_as_handled()

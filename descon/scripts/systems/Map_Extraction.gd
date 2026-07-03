@@ -159,6 +159,7 @@ func _physics_process(_delta):
 						mat.set_shader_parameter("color_escudo", Color(1.0, 0.65, 0.1, 0.8))
 						mat.set_shader_parameter("modo_curacion", false)
 					spawn_bubble_mesh.material_override = mat
+					print("[SpawnLock] Burbuja protectora 3D inicializada con radio: ", r_3d)
 					
 				# Posicionar la burbuja 3D en base a la coordenada 2D del spawn
 				spawn_bubble_mesh.position.x = initial_player_pos.x * scale_factor
@@ -166,7 +167,6 @@ func _physics_process(_delta):
 				spawn_bubble_mesh.position.y = 0.0
 
 				sub_viewport.add_child(spawn_bubble_mesh)
-				print("[SpawnLock] Burbuja protectora 3D inicializada con radio: ", r_3d)
 
 			# Permitir movimiento libre DENTRO de la burbuja, restringir salida
 			var distance = player_node.global_position.distance_to(initial_player_pos)
@@ -273,8 +273,7 @@ func _process(delta):
 				near_portal_target_zone = str(pt.get("targetZone", "1"))
 				break
 				
-	var container = get_node_or_null("PortalUICanvas/PortalBtnContainer")
-	if is_instance_valid(container):
+	if is_instance_valid(portal_btn_container):
 		if active_near_portal != null:
 			var target_name = "Lobby / Hangar"
 			if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(near_portal_target_zone):
@@ -292,17 +291,23 @@ func _process(delta):
 					if bind_key_text == "SPACE":
 						bind_key_text = "ESPACIO"
 				
-			var desc_lbl = container.get_node_or_null("PortalDescLabel")
-			if desc_lbl:
-				desc_lbl.text = "ENTRAR A " + target_name.to_upper() + " [" + bind_key_text + " / Clic]"
+			if is_instance_valid(portal_desc_label):
+				portal_desc_label.text = "ENTRAR A " + target_name.to_upper() + " [" + bind_key_text + " / Clic]"
 				
-			var click_btn = container.get_node_or_null("CenterContainer/PortalJumpBtn/ClickButton")
-			if click_btn:
-				click_btn.set_meta("target_zone", near_portal_target_zone)
+			if is_instance_valid(portal_click_button):
+				portal_click_button.set_meta("target_zone", near_portal_target_zone)
 				
-			container.visible = true
+			_current_interact_mode = "portal"
+			if portal_icon_label:
+				portal_icon_label.text = "🌀"
+			portal_btn_container.visible = true
 		else:
-			container.visible = false
+			if _current_interact_mode == "portal":
+				_current_interact_mode = ""
+			# No ocultar si hay vault/loot activo
+			if not is_instance_valid(active_vault_node) and not is_instance_valid(active_loot_node):
+				portal_btn_container.visible = false
+	_update_interact_visibility()
 
 func _generate_procedural_obstacles():
 	var rng = RandomNumberGenerator.new()
@@ -545,29 +550,29 @@ func _create_portal_jump_ui():
 	add_child(ui_canvas)
 	
 	# Contenedor principal de posición centrado abajo
-	var btn_container = VBoxContainer.new()
-	btn_container.name = "PortalBtnContainer"
-	btn_container.add_to_group("portal_jump_ui")
-	btn_container.custom_minimum_size = Vector2(200, 100)
-	btn_container.size = Vector2(200, 100)
-	btn_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	portal_btn_container = VBoxContainer.new()
+	portal_btn_container.name = "PortalBtnContainer"
+	portal_btn_container.add_to_group("portal_jump_ui")
+	portal_btn_container.custom_minimum_size = Vector2(200, 100)
+	portal_btn_container.size = Vector2(200, 100)
+	portal_btn_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	
-	ui_canvas.add_child(btn_container)
-	btn_container.anchor_left = 0.5
-	btn_container.anchor_right = 0.5
-	btn_container.anchor_top = 1.0
-	btn_container.anchor_bottom = 1.0
-	btn_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	btn_container.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	btn_container.offset_left = -100
-	btn_container.offset_right = 100
-	btn_container.offset_top = -190
-	btn_container.offset_bottom = -90
+	ui_canvas.add_child(portal_btn_container)
+	portal_btn_container.anchor_left = 0.5
+	portal_btn_container.anchor_right = 0.5
+	portal_btn_container.anchor_top = 1.0
+	portal_btn_container.anchor_bottom = 1.0
+	portal_btn_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	portal_btn_container.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	portal_btn_container.offset_left = -100
+	portal_btn_container.offset_right = 100
+	portal_btn_container.offset_top = -190
+	portal_btn_container.offset_bottom = -90
 	
 	# Contenedor para centrar el slot de 64x64
 	var center_slot = CenterContainer.new()
 	center_slot.name = "CenterContainer"
-	btn_container.add_child(center_slot)
+	portal_btn_container.add_child(center_slot)
 	
 	# El slot circular estilo habilidad
 	var portal_btn = PanelContainer.new()
@@ -578,6 +583,7 @@ func _create_portal_jump_ui():
 	
 	# Añadir el dibujo del portal en el centro (emoji galáctico)
 	var icon = Label.new()
+	portal_icon_label = icon
 	icon.text = "🌀"
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -598,45 +604,59 @@ func _create_portal_jump_ui():
 	portal_btn.add_theme_stylebox_override("panel", style_normal)
 	
 	# Botón invisible para capturar el click de mouse
-	var click_btn = Button.new()
-	click_btn.name = "ClickButton"
-	click_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	click_btn.modulate.a = 0 # Completamente invisible
-	click_btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	portal_btn.add_child(click_btn)
+	portal_click_button = Button.new()
+	portal_click_button.name = "ClickButton"
+	portal_click_button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	portal_click_button.modulate.a = 0 # Completamente invisible
+	portal_click_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	portal_btn.add_child(portal_click_button)
 	
 	# Etiqueta de texto debajo del portal
-	var desc_lbl = Label.new()
-	desc_lbl.name = "PortalDescLabel"
-	desc_lbl.text = "ENTRAR AL PORTAL [ESPACIO]"
-	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	desc_lbl.add_theme_font_size_override("font_size", 12)
-	desc_lbl.add_theme_color_override("font_color", Color.CYAN)
-	desc_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	desc_lbl.add_theme_constant_override("outline_size", 5)
-	btn_container.add_child(desc_lbl)
+	portal_desc_label = Label.new()
+	portal_desc_label.name = "PortalDescLabel"
+	portal_desc_label.text = "ENTRAR AL PORTAL [ESPACIO]"
+	portal_desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	portal_desc_label.add_theme_font_size_override("font_size", 12)
+	portal_desc_label.add_theme_color_override("font_color", Color.CYAN)
+	portal_desc_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	portal_desc_label.add_theme_constant_override("outline_size", 5)
+	portal_btn_container.add_child(portal_desc_label)
 	
-	# Conectar el click al de salto
-	click_btn.pressed.connect(func():
-		var target = click_btn.get_meta("target_zone") if click_btn.has_meta("target_zone") else "1"
-		_on_portal_jump_pressed(target)
-	)
+	# Conectar el click al manejador genérico (portal / vault / loot)
+	portal_click_button.pressed.connect(_on_interact_button_pressed)
 	
-	btn_container.visible = false # Oculto por defecto
+	portal_btn_container.visible = false # Oculto por defecto
 
 func _on_portal_jump_pressed(target_zone):
 	# Enviar el evento de salto al servidor autoritativo
 	print("[Map_Extraction] Iniciando salto interdimensional hacia Zona: ", target_zone)
 	NetworkManager.send_event("changeZone", target_zone)
 
+# Override del manejador genérico para usar _on_portal_jump_pressed en lugar de _on_map_portal_jump_pressed
+func _on_interact_button_pressed():
+	match _current_interact_mode:
+		"portal":
+			var target = portal_click_button.get_meta("target_zone") if portal_click_button.has_meta("target_zone") else "1"
+			_on_portal_jump_pressed(target)
+		"vault":
+			if is_instance_valid(active_vault_node) and active_vault_node.has_method("_interact"):
+				active_vault_node._interact()
+		"loot":
+			if is_instance_valid(active_loot_node) and active_loot_node.has_method("_interact"):
+				active_loot_node._interact()
+
 func _input(event):
 	# Atajo premium configurable: Presionar la tecla asignada (por defecto Espacio) para saltar instantáneamente
 	if event.is_action_pressed("portal_jump") and not event.is_echo():
-		var container = get_node_or_null("PortalUICanvas/PortalBtnContainer")
-		if is_instance_valid(container) and container.visible:
-			var click_btn = get_node_or_null("PortalUICanvas/PortalBtnContainer/CenterContainer/PortalJumpBtn/ClickButton")
-			if is_instance_valid(click_btn):
-				click_btn.pressed.emit()
+		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode == "portal":
+			if is_instance_valid(portal_click_button):
+				portal_click_button.pressed.emit()
+				get_viewport().set_input_as_handled()
+
+	if event.is_action_pressed("loot_claim") and not event.is_echo():
+		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode in ["vault", "loot"]:
+			if is_instance_valid(portal_click_button):
+				portal_click_button.pressed.emit()
 				get_viewport().set_input_as_handled()
 
 func _create_timers_ui():

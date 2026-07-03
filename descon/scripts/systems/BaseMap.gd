@@ -489,6 +489,7 @@ func _process(_delta):
 		
 	# Chequear cercanía a puertas interactivas del mapa
 	_check_doors_proximity()
+	_update_interact_visibility()
 	
 	# Rotación procedimental continua de puertas 3D estilo Extracción
 	if active_doors_3d.size() > 0:
@@ -594,6 +595,11 @@ var active_doors_3d: Array = []
 var portal_btn_container: VBoxContainer = null
 var portal_desc_label: Label = null
 var portal_click_button: Button = null
+var portal_icon_label: Label = null
+# Variables para el sistema de interacción de vaults y loot drops
+var active_vault_node: Node = null
+var active_loot_node: Node = null
+var _current_interact_mode: String = "" # "portal", "vault", "loot"
 
 # v400.1: Spawnear objetos del mundo desde mapsConfig del servidor con física, rotaciones y comportamiento Premium
 # Lee objects[] de mapsConfig e instancia los modelos 3D y colisiones correspondientes
@@ -808,6 +814,7 @@ func _create_portal_jump_ui():
 	center_slot.add_child(portal_btn)
 	
 	var icon = Label.new()
+	portal_icon_label = icon
 	icon.text = "🌀" # Portal estelar en espiral/remolino estilo extracción (segundo nombrado que le gusta al usuario)
 	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -841,12 +848,7 @@ func _create_portal_jump_ui():
 	portal_desc_label.add_theme_constant_override("outline_size", 5)
 	portal_btn_container.add_child(portal_desc_label)
 	
-	portal_click_button.pressed.connect(func():
-		var target = portal_click_button.get_meta("target_zone") if portal_click_button.has_meta("target_zone") else "1"
-		var tx = portal_click_button.get_meta("targetX") if portal_click_button.has_meta("targetX") else 5000
-		var ty = portal_click_button.get_meta("targetY") if portal_click_button.has_meta("targetY") else 5000
-		_on_map_portal_jump_pressed(target, tx, ty)
-	)
+	portal_click_button.pressed.connect(_on_interact_button_pressed)
 	
 	portal_btn_container.visible = false
 
@@ -858,6 +860,104 @@ func _on_map_portal_jump_pressed(target_zone: String, _tx: float, _ty: float):
 			target_val = int(target_zone)
 			
 		NetworkManager.send_event("changeZone", target_val)
+
+# Manejador genérico del botón de interacción (portal / vault / loot)
+func _on_interact_button_pressed():
+	match _current_interact_mode:
+		"portal":
+			var target = portal_click_button.get_meta("target_zone") if portal_click_button.has_meta("target_zone") else "1"
+			var tx = portal_click_button.get_meta("targetX") if portal_click_button.has_meta("targetX") else 5000
+			var ty = portal_click_button.get_meta("targetY") if portal_click_button.has_meta("targetY") else 5000
+			_on_map_portal_jump_pressed(target, tx, ty)
+		"vault":
+			if is_instance_valid(active_vault_node) and active_vault_node.has_method("_interact"):
+				active_vault_node._interact()
+		"loot":
+			if is_instance_valid(active_loot_node) and active_loot_node.has_method("_interact"):
+				active_loot_node._interact()
+
+# Actualizar visibilidad del botón de interacción para vault/loot
+func _update_interact_visibility():
+	if _current_interact_mode == "portal":
+		return
+	if is_instance_valid(active_vault_node):
+		# Crear la UI de forma lazy si todavía no existe (mapa sin portales)
+		if not is_instance_valid(portal_btn_container):
+			_create_portal_jump_ui()
+		if portal_desc_label:
+			var key_text = _get_bound_interact_key("loot_claim")
+			portal_desc_label.text = "ABRIR BAÚL [" + key_text + " / Clic]"
+		if portal_icon_label:
+			portal_icon_label.text = "📦"
+		_current_interact_mode = "vault"
+		portal_btn_container.visible = true
+	elif is_instance_valid(active_loot_node):
+		# Crear la UI de forma lazy si todavía no existe (mapa sin portales)
+		if not is_instance_valid(portal_btn_container):
+			_create_portal_jump_ui()
+		if portal_desc_label:
+			var key_text = _get_bound_interact_key("loot_claim")
+			portal_desc_label.text = "ABRIR COFRE [" + key_text + " / Clic]"
+		if portal_icon_label:
+			portal_icon_label.text = "🎁"
+		_current_interact_mode = "loot"
+		portal_btn_container.visible = true
+	else:
+		if is_instance_valid(portal_btn_container) and _current_interact_mode != "portal":
+			portal_btn_container.visible = false
+
+# Mostrar botón de loot directamente (llamado desde LootDrop)
+func _show_loot_button(loot: Node):
+	if _current_interact_mode == "portal":
+		return
+	# Crear la UI de forma lazy si todavía no existe (mapa sin portales)
+	if not is_instance_valid(portal_btn_container):
+		_create_portal_jump_ui()
+	active_loot_node = loot
+	if portal_desc_label:
+		var key_text = _get_bound_interact_key("loot_claim")
+		portal_desc_label.text = "ABRIR COFRE [" + key_text + " / Clic]"
+	if portal_icon_label:
+		portal_icon_label.text = "🎁"
+	_current_interact_mode = "loot"
+	portal_btn_container.visible = true
+
+func _hide_loot_button():
+	active_loot_node = null
+	if is_instance_valid(portal_btn_container) and _current_interact_mode == "loot":
+		_current_interact_mode = ""
+		if not is_instance_valid(active_vault_node):
+			portal_btn_container.visible = false
+
+# Registrar/desregistrar vault para interacción
+func register_vault_interaction(vault: Node):
+	active_vault_node = vault
+	# Crear la UI de forma lazy si todavía no existe (mapa sin portales)
+	if not is_instance_valid(portal_btn_container):
+		_create_portal_jump_ui()
+	_update_interact_visibility()
+
+func unregister_vault_interaction():
+	active_vault_node = null
+	_update_interact_visibility()
+
+# Registrar/desregistrar loot drop para interacción (usado por LootDrop)
+func register_loot_interaction(loot: Node):
+	_show_loot_button(loot)
+
+func unregister_loot_interaction():
+	_hide_loot_button()
+
+# Obtener texto de tecla interactiva
+func _get_bound_interact_key(action: String) -> String:
+	if not InputMap.has_action(action): return "Y"
+	var events = InputMap.action_get_events(action)
+	if events.size() > 0:
+		var key_text = events[0].as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
+		if key_text == "SPACE":
+			key_text = "ESPACIO"
+		return key_text
+	return "Y"
 
 # Procesar la cercanía al jugador para activar la interacción de puertas
 func _check_doors_proximity():
@@ -909,9 +1009,16 @@ func _check_doors_proximity():
 				portal_click_button.set_meta("targetX", tx)
 				portal_click_button.set_meta("targetY", ty)
 				
+			_current_interact_mode = "portal"
+			if portal_icon_label:
+				portal_icon_label.text = "🌀"
 			portal_btn_container.visible = true
 		else:
-			portal_btn_container.visible = false
+			if _current_interact_mode == "portal":
+				_current_interact_mode = ""
+			# No ocultar si hay vault/loot activo
+			if not is_instance_valid(active_vault_node) and not is_instance_valid(active_loot_node):
+				portal_btn_container.visible = false
 
 # Atajo de teclado para entrar al portal si el contenedor está visible
 func _input(event):
@@ -984,7 +1091,13 @@ func _input(event):
 		get_viewport().set_input_as_handled()
 		
 	if event.is_action_pressed("portal_jump") and not event.is_echo():
-		if is_instance_valid(portal_btn_container) and portal_btn_container.visible:
+		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode == "portal":
+			if is_instance_valid(portal_click_button):
+				portal_click_button.pressed.emit()
+				get_viewport().set_input_as_handled()
+
+	if event.is_action_pressed("loot_claim") and not event.is_echo():
+		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode in ["vault", "loot"]:
 			if is_instance_valid(portal_click_button):
 				portal_click_button.pressed.emit()
 				get_viewport().set_input_as_handled()
