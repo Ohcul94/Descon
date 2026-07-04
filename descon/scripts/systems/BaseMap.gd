@@ -67,6 +67,9 @@ func _ready():
 	# Restaurar estado de cámara de la sesión actual (persiste entre warps)
 	_restore_camera_state()
 	
+	# Establecer metadato estático autoritario para sincronizar con proyectiles y entidades
+	self.set_meta("correction_z", correction_z)
+	
 	# v430.1: Conectar señales de sincronización de configuración del servidor
 	if NetworkManager:
 		if not NetworkManager.config_updated.is_connected(_on_network_config_updated):
@@ -128,7 +131,6 @@ func setup_map():
 func _on_network_config_updated(_config):
 	print("[BaseMap] Configuración del servidor recibida. Regenerando layout 3D...")
 	_setup_dynamic_3d_map_layout()
-
 func _setup_dynamic_3d_map_layout():
 	if not is_instance_valid(sub_viewport):
 		return
@@ -188,6 +190,75 @@ func _setup_dynamic_3d_map_layout():
 	ground_mat.set_shader_parameter("u_emission_energy", 0.3)
 	mesh_instance.material_override = ground_mat
 	ground_root.add_child(mesh_instance)
+
+	# --- PARED DE NEBULOSA PERIMETRAL VISCOSA (Barrera Visual) ---
+	var wall_root = Node3D.new()
+	wall_root.name = "NebulaWalls"
+	ground_root.add_child(wall_root)
+	
+	var wall_height = 40.0
+	var y_wall = y_ground + wall_height / 2.0
+	
+	var min_x = 0.0
+	var max_x = map_width * scale_factor
+	var min_z = 0.0
+	var max_z = map_height * scale_factor * correction_z
+	
+	var buffer_x = 80.0 * scale_factor
+	var buffer_z = 80.0 * scale_factor * correction_z
+	
+	# Material de nebulosa viscosa usando el shader animado preexistente
+	var wall_mat = ShaderMaterial.new()
+	wall_mat.shader = SHADER_BORDER_NEBULA
+	wall_mat.set_shader_parameter("u_noise_tex", TEXTURE_NOISE_019)
+	# Colores densos y viscosos con alta opacidad para bloquear la vista
+	wall_mat.set_shader_parameter("u_color_a", Color(0.18, 0.01, 0.28, 0.95))
+	wall_mat.set_shader_parameter("u_color_b", Color(0.01, 0.25, 0.45, 0.90))
+	wall_mat.set_shader_parameter("u_color_c", Color(0.55, 0.02, 0.35, 0.90))
+	wall_mat.set_shader_parameter("u_speed", 0.4)
+	wall_mat.set_shader_parameter("u_alpha_scale", 1.8) # Alta opacidad para bloquear vista al exterior
+	
+	# 1. Pared Superior
+	var wall_top = MeshInstance3D.new()
+	wall_top.name = "WallTop"
+	var mesh_top = QuadMesh.new()
+	mesh_top.size = Vector2(max_x - min_x, wall_height)
+	wall_top.mesh = mesh_top
+	wall_top.material_override = wall_mat
+	wall_top.position = Vector3((max_x + min_x) / 2.0, y_wall, min_z - buffer_z)
+	wall_root.add_child(wall_top)
+	
+	# 2. Pared Inferior
+	var wall_bottom = MeshInstance3D.new()
+	wall_bottom.name = "WallBottom"
+	var mesh_bottom = QuadMesh.new()
+	mesh_bottom.size = Vector2(max_x - min_x, wall_height)
+	wall_bottom.mesh = mesh_bottom
+	wall_bottom.material_override = wall_mat
+	wall_bottom.position = Vector3((max_x + min_x) / 2.0, y_wall, max_z + buffer_z)
+	wall_root.add_child(wall_bottom)
+	
+	# 3. Pared Izquierda
+	var wall_left = MeshInstance3D.new()
+	wall_left.name = "WallLeft"
+	var mesh_left = QuadMesh.new()
+	mesh_left.size = Vector2(max_z - min_z, wall_height)
+	wall_left.mesh = mesh_left
+	wall_left.material_override = wall_mat
+	wall_left.position = Vector3(min_x - buffer_x, y_wall, (max_z + min_z) / 2.0)
+	wall_left.rotation_degrees = Vector3(0, 90, 0)
+	wall_root.add_child(wall_left)
+	
+	# 4. Pared Derecha
+	var wall_right = MeshInstance3D.new()
+	wall_right.name = "WallRight"
+	var mesh_right = QuadMesh.new()
+	mesh_right.size = Vector2(max_z - min_z, wall_height)
+	wall_right.mesh = mesh_right
+	wall_right.material_override = wall_mat
+	wall_right.position = Vector3(max_x + buffer_x, y_wall, (max_z + min_z) / 2.0)
+	wall_right.rotation_degrees = Vector3(0, 90, 0)
+	wall_root.add_child(wall_right)
 
 func _setup_3d_dynamic():
 	# Si ya existe ViewportCanvas en la escena (como en Map_Extraction), vincular referencias y retornar
@@ -616,9 +687,7 @@ func _process(_delta):
 				# En perspectiva, alejar más la cámara en Z para lograr inclinación de ~40° en lugar de 55°
 				z_offset = dynamic_height / tan(deg_to_rad(40.0))
 			
-			# Calcular correction_z dinámico desde la inclinación real de la cámara (ángulo entre horizontal y dirección de vista)
-			var tilt_angle = atan2(camera_3d.position.y, z_offset)
-			correction_z = 1.0 / sin(tilt_angle)
+			# correction_z fijo autoritario (evitar desfasajes por inclinación dinámica)
 			self.set_meta("correction_z", correction_z)
 			
 			var corrected_target_z = target_pos.y * scale_factor * correction_z

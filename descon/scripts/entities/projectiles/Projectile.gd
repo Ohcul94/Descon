@@ -691,9 +691,6 @@ func _physics_process(delta):
 	
 	if is_homing and is_instance_valid(_target_node):
 		var target_pos = _target_node.global_position
-		if _target_node.get_meta("is_single_world", false) and is_instance_valid(_target_node.get("world_root_3d")):
-			target_pos = _get_visual_position_of(_target_node)
-		
 		var target_angle = (target_pos - global_position).angle()
 		rotation = rotate_toward(rotation, target_angle, turn_speed * delta)
 		velocity = Vector2.RIGHT.rotated(rotation) * speed

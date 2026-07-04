@@ -436,22 +436,10 @@ func _process(delta):
 		var has_projected = false
 		
 		if is_single and is_instance_valid(world_root_3d):
-			var current_map = _get_map_node()
-			if is_instance_valid(current_map) and is_instance_valid(_cached_camera_3d):
-				var cam3d = _cached_camera_3d
-				var sub_vp = _cached_sub_viewport
-				if not cam3d.is_position_behind(world_root_3d.global_position):
-					# unproject_position devuelve la posición en píxeles del SubViewport
-					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
-					# Escalar de SubViewport a la pantalla principal si difieren en tamaño
-					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-						var main_size = Vector2(get_viewport().get_visible_rect().size)
-						sv_pixel *= main_size / Vector2(sub_vp.size)
-					# Convertir de píxeles de pantalla a coordenadas del mundo 2D
-					var world_2d = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
-					projected_pos_hud = world_2d
-					projected_pos_vfx = world_2d
-					has_projected = true
+			var world_2d = _project_3d_pos_to_2d(world_root_3d.global_position)
+			projected_pos_hud = world_2d
+			projected_pos_vfx = world_2d
+			has_projected = true
 		
 		if is_instance_valid(_ui_wrapper):
 			_ui_wrapper.visible = visible and not is_dead
@@ -795,16 +783,7 @@ func _draw():
 
 func get_visual_position() -> Vector2:
 	if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
-		var current_map = _get_map_node()
-		if is_instance_valid(current_map) and is_instance_valid(_cached_camera_3d):
-			var cam3d: Camera3D = _cached_camera_3d
-			var sub_vp: SubViewport = _cached_sub_viewport
-			if not cam3d.is_position_behind(world_root_3d.global_position):
-				var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
-				if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-					var main_size = Vector2(get_viewport().get_visible_rect().size)
-					sv_pixel *= main_size / Vector2(sub_vp.size)
-				return get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+		return _project_3d_pos_to_2d(world_root_3d.global_position)
 	return global_position
 
 func _update_3d_root_sync():
@@ -1289,16 +1268,7 @@ func _trigger_reflect_visual(p_dest: Vector2):
 		
 		var spawn_origin = global_position
 		if get_meta("is_single_world", false) and is_instance_valid(world_root_3d):
-			var current_map = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(current_map) and is_instance_valid(current_map.camera_3d):
-				var cam3d = current_map.camera_3d
-				var sub_vp = current_map.sub_viewport
-				if not cam3d.is_position_behind(world_root_3d.global_position):
-					var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
-					if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-						var main_size = Vector2(get_viewport().get_visible_rect().size)
-						sv_pixel *= main_size / Vector2(sub_vp.size)
-					spawn_origin = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+			spawn_origin = _project_3d_pos_to_2d(world_root_3d.global_position)
 		
 		spr.global_position = spawn_origin + dir_to_target * 35.0
 		# v235.12: Quitamos el offset para que no salga de costado
@@ -2482,15 +2452,8 @@ func _spawn_death_vfx():
 		var wrapper = Node2D.new()
 		var spawn_pos = global_position
 		
-		if is_single and is_instance_valid(world_root_3d) and is_instance_valid(current_map) and is_instance_valid(current_map.get("camera_3d")):
-			var cam3d = current_map.camera_3d
-			var sub_vp = current_map.get("sub_viewport")
-			if not cam3d.is_position_behind(world_root_3d.global_position):
-				var sv_pixel = cam3d.unproject_position(world_root_3d.global_position)
-				if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
-					var main_size = Vector2(get_viewport().get_visible_rect().size)
-					sv_pixel *= main_size / Vector2(sub_vp.size)
-				spawn_pos = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+		if is_single and is_instance_valid(world_root_3d):
+			spawn_pos = _project_3d_pos_to_2d(world_root_3d.global_position)
 		
 		wrapper.global_position = spawn_pos
 		
@@ -2990,3 +2953,21 @@ func remove_color_aura():
 	if is_instance_valid(_color_aura_node):
 		_color_aura_node.queue_free()
 	_color_aura_node = null
+
+func _project_3d_pos_to_2d(pos_3d: Vector3) -> Vector2:
+	var current_map = _get_map_node()
+	if is_instance_valid(current_map) and is_instance_valid(_cached_camera_3d):
+		var cam3d = _cached_camera_3d
+		var sub_vp = _cached_sub_viewport
+		if is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+			if not cam3d.is_position_behind(pos_3d):
+				var sv_pixel = cam3d.unproject_position(pos_3d)
+				var container = current_map.viewport_container
+				if is_instance_valid(container):
+					sv_pixel *= Vector2(container.size) / Vector2(sub_vp.size)
+					sv_pixel += container.global_position
+				else:
+					var main_size = Vector2(get_viewport().get_visible_rect().size)
+					sv_pixel *= main_size / Vector2(sub_vp.size)
+				return get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
+	return global_position
