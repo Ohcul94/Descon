@@ -1,6 +1,13 @@
 extends Node2D
 class_name BaseMap
 
+# Precarga de recursos estáticos a nivel de clase para optimización y consistencia
+const TEXTURE_NOISE_531 = preload("res://VFX/textures/T_VFX_Noise_531.png")
+const TEXTURE_NOISE_21D = preload("res://VFX/textures/T_VFX_Noise21d_tiled.png")
+const SHADER_GROUND_RELIEF = preload("res://resources/shaders/ground_relief.gdshader")
+const TEXTURE_NOISE_019 = preload("res://VFX/textures/T_VFX_Noise_019.png")
+const SHADER_BORDER_NEBULA = preload("res://resources/shaders/border_nebula.gdshader")
+
 # Script Base para Mapas Instanciados con Soporte 3D Dinámico.
 # Permite definir propiedades específicas por cada nivel y autogenera lienzos 3D.
 
@@ -17,6 +24,10 @@ var sub_viewport: SubViewport = null
 var camera_3d: Camera3D = null
 var asteroids_3d: Node3D = null
 var player_node: Node2D = null
+var border_ring_node: Node3D = null
+var rock_data_list: Array = []
+var multimeshes: Dictionary = {}
+var rock_angle: float = 0.0
 
 # correction_z dinámico: 1.0 / sin(tilt_angle) calculado desde la inclinación real de la cámara
 var correction_z: float = 1.41421356
@@ -55,6 +66,13 @@ func _ready():
 	
 	# Restaurar estado de cámara de la sesión actual (persiste entre warps)
 	_restore_camera_state()
+	
+	# v430.1: Conectar señales de sincronización de configuración del servidor
+	if NetworkManager:
+		if not NetworkManager.config_updated.is_connected(_on_network_config_updated):
+			NetworkManager.config_updated.connect(_on_network_config_updated)
+		if not NetworkManager.admin_config_updated.is_connected(_on_network_config_updated):
+			NetworkManager.admin_config_updated.connect(_on_network_config_updated)
 
 # Registrar acciones de input para cámara libre si no existen
 func _register_input_actions():
@@ -105,8 +123,257 @@ func _deferred_ready():
 	_spawn_map_objects()
 
 func setup_map():
-	# Método para ejecutar lógica específica al cargar el mapa
-	pass
+	_setup_dynamic_3d_map_layout()
+
+func _on_network_config_updated(_config):
+	print("[BaseMap] Configuración del servidor recibida. Regenerando layout 3D...")
+	_setup_dynamic_3d_map_layout()
+
+func _setup_dynamic_3d_map_layout():
+	if not is_instance_valid(sub_viewport):
+		return
+		
+	# Limpiar suelo y rocas viejos si existen para evitar duplicación
+	var old_ground = sub_viewport.get_node_or_null("Ground3D")
+	if is_instance_valid(old_ground):
+		old_ground.queue_free()
+
+	# Crear suelo 3D decorativo (superficie estelar / lunar)
+	var ground_root = Node3D.new()
+	ground_root.name = "Ground3D"
+	sub_viewport.add_child(ground_root)
+
+	# Obtener dimensiones dinámicas del mapa desde MAPS_CONFIG (AdminDash Cartografia)
+	var map_width = world_size
+	var map_height = world_size
+	var z_id_str = str(zone_id)
+	if "." in z_id_str and z_id_str.is_valid_float():
+		var z_float = float(z_id_str)
+		if z_float == int(z_float):
+			z_id_str = str(int(z_float))
+	if GameConstants.MAPS_CONFIG.has(z_id_str):
+		var cfg = GameConstants.MAPS_CONFIG[z_id_str]
+		if cfg.has("width") and float(cfg.width) > 0:
+			map_width = float(cfg.width)
+			map_height = float(cfg.width)
+			world_size = map_width # Sincronizar world_size
+		if cfg.has("height") and float(cfg.height) > 0:
+			map_height = float(cfg.height)
+
+	var margin_2d = 3000.0
+	var ground_size_x = (map_width + margin_2d * 2.0) * scale_factor
+	var ground_size_z = (map_height + margin_2d * 2.0) * scale_factor * correction_z
+	var center_x = (map_width / 2.0) * scale_factor
+	var center_z = (map_height / 2.0) * scale_factor * correction_z
+	var y_ground = -5.0
+
+	var mesh_instance = MeshInstance3D.new()
+	var plane_mesh = PlaneMesh.new()
+	plane_mesh.size = Vector2(ground_size_x, ground_size_z)
+	mesh_instance.mesh = plane_mesh
+	mesh_instance.position = Vector3(center_x, y_ground, center_z)
+
+	# Material de superficie rocosa estelar CON RELIEVE (normal mapping desde noise)
+	var ground_mat = ShaderMaterial.new()
+	ground_mat.shader = SHADER_GROUND_RELIEF
+	ground_mat.set_shader_parameter("u_albedo_tex", TEXTURE_NOISE_531)
+	ground_mat.set_shader_parameter("u_detail_tex", TEXTURE_NOISE_21D)
+	ground_mat.set_shader_parameter("u_tint_color", Color(0.55, 0.52, 0.48))
+	ground_mat.set_shader_parameter("u_tiling", Vector2(5.0, 5.0))
+	ground_mat.set_shader_parameter("u_height_scale", 1.8)
+	ground_mat.set_shader_parameter("u_detail_strength", 0.4)
+	ground_mat.set_shader_parameter("u_metallic", 0.2)
+	ground_mat.set_shader_parameter("u_roughness", 0.85)
+	ground_mat.set_shader_parameter("u_emission", Vector3(0.04, 0.03, 0.08))
+	ground_mat.set_shader_parameter("u_emission_energy", 0.3)
+	mesh_instance.material_override = ground_mat
+	ground_root.add_child(mesh_instance)
+
+	# --- ANILLO DE NEBULOSA DE BORDE (límite visual del mapa) ---
+	var border_root = Node3D.new()
+	border_root.name = "BorderRing"
+	ground_root.add_child(border_root)
+	border_ring_node = border_root
+ 
+	var ring_instance = MeshInstance3D.new()
+	var ring_mesh = TorusMesh.new()
+	# Calcular la diagonal de la zona de juego para que el anillo de nebulosa
+	# empiece exactamente afuera de los límites de la caja del mapa
+	var diagonal_2d = sqrt(map_width * map_width + map_height * map_height)
+	var diagonal_3d = diagonal_2d * scale_factor
+	var nebula_inner_3d = (diagonal_3d * 0.5) + (80.0 * scale_factor) # Mínimo 80px de margen
+	var nebula_outer_3d = nebula_inner_3d + (450.0 * scale_factor)   # Ancho de la nebulosa
+	
+	ring_mesh.inner_radius = nebula_inner_3d
+	ring_mesh.outer_radius = nebula_outer_3d
+	ring_mesh.rings = 96
+	ring_mesh.ring_segments = 4
+	ring_instance.mesh = ring_mesh
+	ring_instance.position = Vector3(center_x, y_ground + 0.3, center_z)
+	ring_instance.rotation_degrees = Vector3(-90, 0, 0)
+	# Aplicar el estiramiento elíptico en Z usando correction_z para alinear con las rocas
+	ring_instance.scale = Vector3(1.0, correction_z, 1.0)
+ 
+	var nebula_mat = ShaderMaterial.new()
+	nebula_mat.shader = SHADER_BORDER_NEBULA
+	nebula_mat.set_shader_parameter("u_noise_tex", TEXTURE_NOISE_019)
+	nebula_mat.set_shader_parameter("u_color_a", Color(0.15, 0.02, 0.25, 0.5))
+	nebula_mat.set_shader_parameter("u_color_b", Color(0.0, 0.35, 0.55, 0.3))
+	nebula_mat.set_shader_parameter("u_color_c", Color(0.55, 0.05, 0.35, 0.4))
+	nebula_mat.set_shader_parameter("u_speed", 0.3)
+	nebula_mat.set_shader_parameter("u_alpha_scale", 0.9)
+	ring_instance.material_override = nebula_mat
+	border_root.add_child(ring_instance)
+ 
+	# --- CINTURÓN DE ASTEROIDES / BARRERA ORBITAL (borde del mapa real) ---
+	const ROCK_COLORS = [
+		Color(0.35, 0.32, 0.28),
+		Color(0.45, 0.42, 0.38),
+		Color(0.25, 0.22, 0.18),
+		Color(0.55, 0.52, 0.48),
+		Color(0.30, 0.28, 0.24),
+		Color(0.40, 0.37, 0.33),
+		Color(0.20, 0.18, 0.15)
+	]
+	var rock_seed = str(zone_id).hash() * 1337 + 123
+	var rock_rng = RandomNumberGenerator.new()
+	rock_rng.seed = rock_seed
+ 
+	# Precargar meshes base
+	var box_template = BoxMesh.new()
+	box_template.size = Vector3.ONE
+	var sphere_template = SphereMesh.new()
+	sphere_template.radius = 1.0
+	sphere_template.height = 2.0
+	var cyl_template = CylinderMesh.new()
+	cyl_template.top_radius = 1.0
+	cyl_template.bottom_radius = 1.0
+	cyl_template.height = 1.0
+ 
+	# Precargar materiales base (se comparten entre rocas del mismo color)
+	var mat_cache = {}
+	for col in ROCK_COLORS:
+		var m = StandardMaterial3D.new()
+		m.albedo_color = col
+		m.metallic = 0.15
+		m.roughness = 0.8
+		mat_cache[col] = m
+ 
+	rock_data_list = []
+	multimeshes = {}
+	rock_angle = 0.0
+	
+	var center_2d = Vector2(map_width / 2.0, map_height / 2.0)
+	var rocks_count_grouped = {}
+ 
+	# Caminar dinámicamente por el perímetro del mapa cada determinado intervalo de píxeles
+	var rock_spacing = 80.0 # Cada 80 píxeles ponemos una columna de rocas
+	var border_points = []
+	
+	# Asegurar valores mínimos válidos de mapa para prevenir bucles infinitos o fallos
+	var w_lim = max(map_width, 100.0)
+	var h_lim = max(map_height, 100.0)
+
+	# Borde superior (y = 0): x va de 0 a w_lim
+	var steps_x = int(w_lim / rock_spacing)
+	for i in range(steps_x + 1):
+		border_points.append(Vector2(i * rock_spacing, 0.0))
+
+	# Borde derecho (x = w_lim): y va de spacing a h_lim
+	var steps_y = int(h_lim / rock_spacing)
+	for i in range(1, steps_y + 1):
+		border_points.append(Vector2(w_lim, i * rock_spacing))
+
+	# Borde inferior (y = h_lim): x va de w_lim-spacing a 0
+	for i in range(1, steps_x + 1):
+		border_points.append(Vector2(w_lim - (i * rock_spacing), h_lim))
+
+	# Borde izquierdo (x = 0): y va de h_lim-spacing a spacing
+	for i in range(1, steps_y):
+		border_points.append(Vector2(0.0, h_lim - (i * rock_spacing)))
+
+	# Configuración de márgenes exteriores (fuera de los límites del mapa)
+	var buffer = 80.0   # Mínimo 80 píxeles por fuera del límite para no colisionar/molestar
+	var spread = 120.0  # Banda de dispersión exterior de hasta 120 píxeles de ancho
+
+	for pt in border_points:
+		# Dirección radial desde el centro del mapa
+		var dir = (pt - center_2d).normalized()
+		if dir.length_squared() == 0:
+			dir = Vector2.UP
+			
+		# Empujar el punto estrictamente hacia el exterior
+		var outward = buffer + rock_rng.randf() * spread
+		var final_pt = pt + dir * outward
+		
+		# Vector relativo en 2D al centro del mapa
+		var rel_2d = final_pt - center_2d
+ 
+		# Generar una columna vertical de 2 a 3 rocas para formar la barrera visual
+		var column_height = rock_rng.randi_range(2, 3)
+		for h_idx in range(column_height):
+			var mesh_type = rock_rng.randi() % 3
+			var scale_vec = Vector3.ONE
+			# Usando exactamente la escala y proporciones del código original para que no se deformen
+			if mesh_type == 0:
+				var sw = 0.4 + rock_rng.randf() * 2.5
+				var sh = 0.8 + rock_rng.randf() * 4.0
+				var sd = 0.4 + rock_rng.randf() * 2.5
+				scale_vec = Vector3(sw, sh, sd)
+			elif mesh_type == 1:
+				var sr = 0.3 + rock_rng.randf() * 1.6
+				scale_vec = Vector3(sr, sr, sr)
+			else:
+				var cr = 0.2 + rock_rng.randf() * 1.4
+				var ch = 0.8 + rock_rng.randf() * 4.0
+				scale_vec = Vector3(cr, ch, cr)
+ 
+			var ry: float
+			if h_idx == 0:
+				ry = y_ground + 0.1 + rock_rng.randf() * 1.5
+			elif h_idx == 1:
+				ry = y_ground + 2.5 + rock_rng.randf() * 2.0
+			else:
+				ry = y_ground + 5.0 + rock_rng.randf() * 2.5
+ 
+			var rot = Vector3(rock_rng.randf() * TAU, rock_rng.randf() * TAU, rock_rng.randf() * TAU)
+			var col_idx = rock_rng.randi() % ROCK_COLORS.size()
+			var key = str(mesh_type) + "_" + str(col_idx)
+ 
+			if not rocks_count_grouped.has(key):
+				rocks_count_grouped[key] = 0
+			rocks_count_grouped[key] += 1
+ 
+			rock_data_list.append({
+				"rel_2d": rel_2d,
+				"ry": ry,
+				"rot": rot,
+				"scale": scale_vec,
+				"key": key
+			})
+ 
+	var templates = [box_template, sphere_template, cyl_template]
+	for key in rocks_count_grouped.keys():
+		var parts = key.split("_")
+		var mesh_type = int(parts[0])
+		var col_idx = int(parts[1])
+		var count = rocks_count_grouped[key]
+		
+		var mmi = MultiMeshInstance3D.new()
+		var mm = MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.use_colors = false
+		mm.mesh = templates[mesh_type]
+		mm.instance_count = count
+		
+		# Usamos el material original del caché
+		mmi.material_override = mat_cache[ROCK_COLORS[col_idx]]
+		mmi.multimesh = mm
+		border_root.add_child(mmi)
+		multimeshes[key] = mm
+ 
+	# Ejecutar actualización inicial de posiciones de las rocas
+	_update_rocks_positions()
 
 func _setup_3d_dynamic():
 	# Si ya existe ViewportCanvas en la escena (como en Map_Extraction), vincular referencias y retornar
@@ -196,13 +463,19 @@ func _setup_3d_dynamic():
 	
 	# v420.5: Crear cursor 3D world-space
 	_create_world_cursor()
-
-	# Crear suelo 3D decorativo (superficie estelar / lunar)
-	var ground_root = Node3D.new()
-	ground_root.name = "Ground3D"
-	sub_viewport.add_child(ground_root)
-
-	# Obtener dimensiones dinámicas del mapa desde MAPS_CONFIG (AdminDash Cartografia)
+		
+	# Manejar redimensionamiento de pantalla de forma reactiva
+	get_tree().get_root().size_changed.connect(func():
+		if is_instance_valid(viewport_container) and viewport_container.stretch:
+			return
+		if is_instance_valid(sub_viewport):
+			sub_viewport.size = get_viewport().size
+	)
+ 
+func _update_rocks_positions():
+	if rock_data_list.size() == 0:
+		return
+		
 	var map_width = world_size
 	var map_height = world_size
 	var z_id_str = str(zone_id)
@@ -217,98 +490,26 @@ func _setup_3d_dynamic():
 			map_height = float(cfg.width)
 		if cfg.has("height") and float(cfg.height) > 0:
 			map_height = float(cfg.height)
-
-	var margin_2d = 3000.0
-	var ground_size_x = (map_width + margin_2d * 2.0) * scale_factor
-	var ground_size_z = (map_height + margin_2d * 2.0) * scale_factor
-	var center_x = (map_width / 2.0) * scale_factor
-	var center_z = (map_height / 2.0) * scale_factor
-	var y_ground = -5.0
-
-	var mesh_instance = MeshInstance3D.new()
-	var plane_mesh = PlaneMesh.new()
-	plane_mesh.size = Vector2(ground_size_x, ground_size_z)
-	mesh_instance.mesh = plane_mesh
-	mesh_instance.position = Vector3(center_x, y_ground, center_z)
-
-	# Material de superficie rocosa estelar CON RELIEVE (normal mapping desde noise)
-	var noise_tex = preload("res://VFX/textures/T_VFX_Noise_531.png")
-	var detail_noise_tex = preload("res://VFX/textures/T_VFX_Noise21d_tiled.png")
-	var ground_mat = ShaderMaterial.new()
-	ground_mat.shader = preload("res://resources/shaders/ground_relief.gdshader")
-	ground_mat.set_shader_parameter("u_albedo_tex", noise_tex)
-	ground_mat.set_shader_parameter("u_detail_tex", detail_noise_tex)
-	ground_mat.set_shader_parameter("u_tint_color", Color(0.55, 0.52, 0.48))
-	ground_mat.set_shader_parameter("u_tiling", Vector2(5.0, 5.0))
-	ground_mat.set_shader_parameter("u_height_scale", 1.8)
-	ground_mat.set_shader_parameter("u_detail_strength", 0.4)
-	ground_mat.set_shader_parameter("u_metallic", 0.2)
-	ground_mat.set_shader_parameter("u_roughness", 0.85)
-	ground_mat.set_shader_parameter("u_emission", Vector3(0.04, 0.03, 0.08))
-	ground_mat.set_shader_parameter("u_emission_energy", 0.3)
-	mesh_instance.material_override = ground_mat
-	ground_root.add_child(mesh_instance)
-
-	# --- ANILLO DE NEBULOSA DE BORDE (límite visual del mapa) ---
-	var border_root = Node3D.new()
-	border_root.name = "BorderRing"
-	ground_root.add_child(border_root)
-
-	var ring_instance = MeshInstance3D.new()
-	var ring_mesh = TorusMesh.new()
-	var ground_radius = max(ground_size_x, ground_size_z) * 0.5
-	ring_mesh.inner_radius = ground_radius - 0.5
-	ring_mesh.outer_radius = ground_radius + 6.0
-	ring_mesh.rings = 96
-	ring_mesh.ring_segments = 4
-	ring_instance.mesh = ring_mesh
-	ring_instance.position = Vector3(center_x, y_ground + 0.3, center_z)
-	ring_instance.rotation_degrees = Vector3(-90, 0, 0)
-
-	var nebula_noise = preload("res://VFX/textures/T_VFX_Noise_019.png")
-	var nebula_mat = ShaderMaterial.new()
-	nebula_mat.shader = preload("res://resources/shaders/border_nebula.gdshader")
-	nebula_mat.set_shader_parameter("u_noise_tex", nebula_noise)
-	nebula_mat.set_shader_parameter("u_color_a", Color(0.15, 0.02, 0.25, 0.5))
-	nebula_mat.set_shader_parameter("u_color_b", Color(0.0, 0.35, 0.55, 0.3))
-	nebula_mat.set_shader_parameter("u_color_c", Color(0.55, 0.05, 0.35, 0.4))
-	nebula_mat.set_shader_parameter("u_speed", 0.3)
-	nebula_mat.set_shader_parameter("u_alpha_scale", 0.9)
-	ring_instance.material_override = nebula_mat
-	border_root.add_child(ring_instance)
-
-	# Escombros decorativos flotando sobre el anillo de nebulosa
-	for i in range(28):
-		var angle = (i / 28.0) * TAU + randf() * 0.15
-		var radius = ground_radius + 2.0 + randf() * 6.0
-		var rock = MeshInstance3D.new()
-		var box = BoxMesh.new()
-		var rs = Vector3(0.15 + randf() * 0.5, 0.08 + randf() * 0.25, 0.15 + randf() * 0.5)
-		box.size = rs
-		rock.mesh = box
-		rock.position = Vector3(
-			center_x + cos(angle) * radius,
-			y_ground + 0.2 + randf() * 2.5,
-			center_z + sin(angle) * radius
-		)
-		rock.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
-		var rock_mat = StandardMaterial3D.new()
-		var gray = 0.25 + randf() * 0.3
-		rock_mat.albedo_color = Color(gray, gray * 0.9, gray * 0.85)
-		rock_mat.metallic = 0.1 + randf() * 0.5
-		rock_mat.roughness = 0.5 + randf() * 0.5
-		rock_mat.emission_enabled = true
-		rock_mat.emission = Color(0.03, 0.01, 0.06) * (0.3 + randf() * 0.7)
-		rock.material_override = rock_mat
-		border_root.add_child(rock)
+	var center_2d = Vector2(map_width / 2.0, map_height / 2.0)
+	
+	var indices = {}
+	for rock in rock_data_list:
+		var key = rock.key
+		var rel_2d = rock.rel_2d
+		var rotated_rel = rel_2d.rotated(rock_angle)
+		var current_2d = center_2d + rotated_rel
 		
-	# Manejar redimensionamiento de pantalla de forma reactiva
-	get_tree().get_root().size_changed.connect(func():
-		if is_instance_valid(viewport_container) and viewport_container.stretch:
-			return
-		if is_instance_valid(sub_viewport):
-			sub_viewport.size = get_viewport().size
-	)
+		var rx = current_2d.x * scale_factor
+		var rz = current_2d.y * scale_factor * correction_z
+		var ry = rock.ry
+		
+		var pos = Vector3(rx, ry, rz)
+		var xform = Transform3D(Basis.from_euler(rock.rot), pos).scaled(rock.scale)
+		
+		var mm = multimeshes[key]
+		var idx = indices.get(key, 0)
+		mm.set_instance_transform(idx, xform)
+		indices[key] = idx + 1
 
 func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 	if not is_instance_valid(sub_vp):
@@ -560,6 +761,15 @@ func _update_world_cursor():
 
 
 func _process(_delta):
+	# Rotar lentamente la nebulosa y su cinturón de rocas (BorderRing)
+	if rock_data_list.size() > 0:
+		rock_angle += _delta * 0.02
+		_update_rocks_positions()
+	if is_instance_valid(border_ring_node) and border_ring_node.get_child_count() > 0:
+		var torus = border_ring_node.get_child(0)
+		if is_instance_valid(torus):
+			torus.rotate_y(_delta * 0.01)
+		
 	# v2.4: Comparar como string para evitar el error 'String' and 'int' cuando zone_id es "extract_X" o "arena_X"
 	if str(zone_id) == "100":
 		return

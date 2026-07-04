@@ -2420,6 +2420,71 @@ function initMapRadar() {
             ctx.stroke();
         });
 
+        // ========== CINTURÓN DE ASTEROIDES / BARRERA ORBITAL ==========
+        try {
+            const rockKey = `rocks_${selectedMapId}_${canvas.width}_${canvas.height}`;
+            if (!window._rockCache) window._rockCache = {};
+            if (!window._rockCache[rockKey]) {
+                const wRocks = [];
+                const rockCount = 400;
+                const borderPxW = canvas.width * 0.06;
+                const borderPxH = canvas.height * 0.06;
+                let s = parseInt(selectedMapId || '1') * 7919 + 13;
+                const rng = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+
+                for (let i = 0; i < rockCount; i++) {
+                    const side = Math.floor(rng() * 4);
+                    const t = rng();
+                    const depthPxX = rng() * borderPxW;
+                    const depthPxY = rng() * borderPxH;
+                    let cx, cy;
+                    if (side === 0) {
+                        cx = t * canvas.width;
+                        cy = depthPxY;
+                    } else if (side === 1) {
+                        cx = t * canvas.width;
+                        cy = canvas.height - depthPxY;
+                    } else if (side === 2) {
+                        cx = depthPxX;
+                        cy = t * canvas.height;
+                    } else {
+                        cx = canvas.width - depthPxX;
+                        cy = t * canvas.height;
+                    }
+                    const sizePx = 3 + rng() * 12;
+                    const bright = 80 + Math.floor(rng() * 100);
+                    const color = `rgb(${bright},${bright + 8},${bright + 18})`;
+                    const alpha = 0.4 + rng() * 0.6;
+                    const pts = 5 + Math.floor(rng() * 4);
+                    const verts = [];
+                    for (let j = 0; j < pts; j++) {
+                        const angle = (j / pts) * Math.PI * 2;
+                        const rv = sizePx * (0.4 + rng() * 0.6);
+                        verts.push({ ox: Math.cos(angle) * rv, oy: Math.sin(angle) * rv });
+                    }
+                    wRocks.push({ cx, cy, color, alpha, verts });
+                }
+                window._rockCache[rockKey] = wRocks;
+            }
+            const rocks = window._rockCache[rockKey];
+            for (let i = 0; i < rocks.length; i++) {
+                const r = rocks[i];
+                ctx.fillStyle = r.color;
+                ctx.globalAlpha = r.alpha;
+                ctx.beginPath();
+                for (let j = 0; j < r.verts.length; j++) {
+                    const px = r.cx + r.verts[j].ox;
+                    const py = r.cy + r.verts[j].oy;
+                    if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+        } catch(e) {
+            console.warn("Rock border error:", e);
+        }
+
         // ========== DIBUJAR SPAWNS ==========
         const spawns = m.spawns || [];
         spawns.forEach((s, idx) => {
