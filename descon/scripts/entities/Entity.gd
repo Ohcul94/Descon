@@ -2746,7 +2746,7 @@ func _spawn_wreckage_marker():
 	drawing.set_script(WreckageDrawingScript)
 	marker.add_child(drawing)
 	
-	# v301.5: Etiqueta del piloto naufragado usando Node2D+draw_string (compatible con jerarquía 2D)
+	# v301.5: Etiqueta del piloto naufragado usando Label nativo (más robusto y visible)
 	var text_val = ""
 	if clan_tag.strip_edges() != "":
 		text_val = "[" + clan_tag.strip_edges() + "] " + username
@@ -2755,33 +2755,23 @@ func _spawn_wreckage_marker():
 	if text_val.strip_edges() == "":
 		text_val = "Naufrago"
 	
-	var label_text = text_val # capturar para el closure
-	var label_draw = Node2D.new()
-	label_draw.name = "WreckageLabel"
-	label_draw.position = Vector2(0, -55)
-	label_draw.z_index = 10
-	label_draw.modulate = Color(0.85, 0.85, 0.85, 0.7)
-	# Guardar el texto como meta para el draw
-	label_draw.set_meta("label_text", label_text)
-	# Script inline que dibuja el texto centrado
-	var lbl_code = GDScript.new()
-	lbl_code.source_code = """
-extends Node2D
-func _draw():
-	var txt = get_meta("label_text", "")
-	if txt == "": return
-	var fnt = ThemeDB.fallback_font
-	var fsize = 13
-	var txt_w = fnt.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize).x
-	# Sombra
-	draw_string(fnt, Vector2(-txt_w * 0.5 + 1, 1), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, Color(0, 0, 0, 0.8))
-	# Texto principal
-	draw_string(fnt, Vector2(-txt_w * 0.5, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsize, Color(0.9, 0.9, 0.9, 0.85))
-"""
-	lbl_code.reload()
-	label_draw.set_script(lbl_code)
-	marker.add_child(label_draw)
-	var label = label_draw # alias para compatibilidad con el bloque single_world de abajo
+	var label = Label.new()
+	label.name = "WreckageLabel"
+	label.text = text_val
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	label.grow_vertical = Control.GROW_DIRECTION_BOTH
+	label.position = Vector2(-150, -55) # Centrado horizontal de 300px
+	label.custom_minimum_size = Vector2(300, 20)
+	label.z_index = 10
+	
+	# Estilos visuales del Label
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 4)
+	label.add_theme_font_size_override("font_size", 13)
+	label.modulate = Color(0.9, 0.9, 0.9, 0.85)
 	
 	# En single world 3D: crear wreckage 3D en el viewport compartido para que no flote
 	var current_map = get_tree().get_first_node_in_group("map")
@@ -2807,6 +2797,7 @@ func _process(_d):
 	var t = get_meta("t", null)
 	var cam = get_meta("cam", null)
 	var sub_vp = get_meta("sub_vp", null)
+	var map = get_meta("map", null)
 	if not is_instance_valid(t) or not is_instance_valid(cam) or not is_instance_valid(sub_vp):
 		return
 	if cam.is_position_behind(t.global_position):
@@ -2814,9 +2805,19 @@ func _process(_d):
 		return
 	visible = true
 	var sv_pixel = cam.unproject_position(t.global_position)
-	if sub_vp.size.x > 0 and sub_vp.size.y > 0:
-		var main_size = Vector2(get_viewport().get_visible_rect().size)
-		sv_pixel *= main_size / Vector2(sub_vp.size)
+	if is_instance_valid(map):
+		var container = map.viewport_container
+		if is_instance_valid(container) and sub_vp.size.x > 0:
+			sv_pixel *= Vector2(container.size) / Vector2(sub_vp.size)
+			sv_pixel += container.global_position
+		else:
+			if sub_vp.size.x > 0 and sub_vp.size.y > 0:
+				var main_size = Vector2(get_viewport().get_visible_rect().size)
+				sv_pixel *= main_size / Vector2(sub_vp.size)
+	else:
+		if sub_vp.size.x > 0 and sub_vp.size.y > 0:
+			var main_size = Vector2(get_viewport().get_visible_rect().size)
+			sv_pixel *= main_size / Vector2(sub_vp.size)
 	global_position = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
 """
 		tracker_code.reload()
@@ -2826,9 +2827,13 @@ func _process(_d):
 		tracker.set_meta("t", wreckage_3d)
 		tracker.set_meta("cam", cam3d_ref)
 		tracker.set_meta("sub_vp", sub_vp_ref)
-		label.position = Vector2(0, -55) # offset sobre el marcador de muerte
-		label.reparent(tracker)
+		tracker.set_meta("map", current_map)
+		
+		# Agregar tracker al marcador y agregar el label directamente al tracker
 		marker.add_child(tracker)
+		tracker.add_child(label)
+		label.position = Vector2(-150, -55) # offset local sobre el marcador de muerte y centrado
+		
 		# Ocultar el dibujo 2D en single world (ya tenemos el wreckage 3D)
 		if is_instance_valid(drawing): drawing.visible = false
 		
@@ -2876,6 +2881,8 @@ func _process(_d):
 		
 		# Guardar referencia para limpieza
 		marker.set_meta("wreckage_3d", wreckage_3d)
+	else:
+		marker.add_child(label)
 	
 	# Si es un enemigo, el marcador de naufragio dura solo 10000 ms para evitar polución visual
 	if is_in_group("enemies"):

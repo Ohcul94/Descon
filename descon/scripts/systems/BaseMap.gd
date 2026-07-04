@@ -1284,12 +1284,14 @@ func _input(event):
 			get_viewport().set_input_as_handled()
 		
 		# Scroll para zoom (solo en cámara libre)
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			free_cam_zoom = max(5.0, free_cam_zoom - 2.0)
-			_save_camera_state()
-			get_viewport().set_input_as_handled()
-		if event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			free_cam_zoom = min(200.0, free_cam_zoom + 2.0)
+		if (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN) and event.pressed:
+			var hovered = get_viewport().gui_get_hovered_control()
+			if hovered != null and not (hovered is SubViewportContainer):
+				return
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				free_cam_zoom = max(5.0, free_cam_zoom - 2.0)
+			else:
+				free_cam_zoom = min(200.0, free_cam_zoom + 2.0)
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
 	

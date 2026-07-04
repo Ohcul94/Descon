@@ -314,6 +314,9 @@ func _unhandled_input(event):
 			
 			# Procesar Zoom (Rueda)
 			if is_instance_valid(cam):
+				var hovered = get_viewport().gui_get_hovered_control()
+				if hovered != null and not (hovered is SubViewportContainer):
+					return
 				var zoom_step = 0.1
 				var min_zoom = 0.3; var max_zoom = 2.0
 				if event.button_index == MOUSE_BUTTON_WHEEL_UP:
