@@ -11,6 +11,28 @@ var _is_interference_ui_active = false
 # v301.4: Cache de texturas de íconos para no recargar desde disco en cada frame
 var _skill_icon_cache: Dictionary = {}
 
+var _skill_icon_paths: Dictionary = {
+	"BLINK": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
+	"TURBO-IMPULSO": "res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png",
+	"HYPER-DASH": "res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png",
+	"INVULNERABILIDAD": "res://assets/Skills/Iconos/Utilidad/Invulnerabilidad/Invulnerabilidad.png",
+	"STEALTH": "res://assets/Skills/Iconos/Utilidad/Invisibilidad/Invisibilidad.png",
+	"RESURRECCION": "res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png",
+	"REFLECT-OMEGA": "res://assets/Skills/Iconos/Ataque/Reflect/Reflect.png",
+	"ESFERA DE TERROR": "res://assets/Skills/Iconos/Ataque/Miedo/Miedo.png",
+	"PROVOCACION": "res://assets/Skills/Iconos/Ataque/Provocacion/Provocacion.png",
+
+	"VINCULO VITAL": "res://assets/Skills/Iconos/Cura/Vinculo Vital/Vinculo Vital.png",
+	"REGENERACION ALFA": "res://assets/Skills/Iconos/Cura/Regeneracion Alfa/Regeneracion Alfa.png",
+	"BALIZA DE CURACION": "res://assets/Skills/Iconos/Cura/Baliza Curativa/Baliza Curativa.png",
+	"AUTO-REPARACION": "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
+	"NANO-REGENERACION": "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
+	"ESCUDO CELULAR": "res://assets/Skills/Iconos/Defensa/Escudo Celular/Escudo Celular.png",
+	"SMOKE-BOMB": "res://assets/Skills/Iconos/Defensa/Bomba de Humo/Bomba de Humo.png",
+	"FROST-TRAIL": "res://assets/Skills/Iconos/Defensa/Camino de Hielo/Camino de Hielo.png",
+	"BARRERA DE VIENTO": "res://assets/Skills/Iconos/Defensa/Barrera de Viento/Barrera de Viento.png",
+}
+
 var s1 = null
 var s2 = null
 var s3 = null
@@ -42,10 +64,7 @@ func _ready():
 			s4.position = s3.position + Vector2(s3.size.x + 10, 0)
 		
 		for child in s4.find_children("*", "Label", true, false):
-			if child.text == "CUR" or child.text == "MOV" or child.text == "DEF":
-				child.text = "ATQ"
-			if child.text == "D" or child.text == "A" or child.text == "S":
-				child.text = "R"
+			child.text = ""
 		print("[SkillsHUD] Sphere4Slot inyectado dinámicamente.")
 
 	if s1: _make_clickable(s1, _on_sphere_slot_gui_input.bind(null, 0))
@@ -64,6 +83,9 @@ func _ready():
 	if NetworkManager:
 		if not NetworkManager.interference_event.is_connected(_on_interference_event):
 			NetworkManager.interference_event.connect(_on_interference_event)
+		if NetworkManager.config_updated.is_connected(_on_config_updated):
+			NetworkManager.config_updated.disconnect(_on_config_updated)
+		NetworkManager.config_updated.connect(_on_config_updated)
 			
 	set_process(true)
 
@@ -242,7 +264,7 @@ func _sync_hud_keys():
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			lbl.offset_top = 8 
 			lbl.add_theme_font_size_override("font_size", 12)
-			lbl.add_theme_color_override("font_color", Color.CYAN)
+			lbl.add_theme_color_override("font_color", Color.WHITE)
 			lbl.add_theme_color_override("font_outline_color", Color.BLACK)
 			lbl.add_theme_constant_override("outline_size", 4)
 			slot.add_child(lbl)
@@ -359,17 +381,16 @@ func _update_sphere_ui(id: int, ref, slot):
 	var rv = cds.get(key, 0.0)
 	
 	var sm = ref.get_node_or_null("SpheresManager")
-	var equipped = false
+	var skill = null
 	var max_cd = 1.0
 	var type_color = Color.WHITE
 	
 	if is_instance_valid(sm) and sm.spheres_data.size() > id:
-		var skill = sm.spheres_data[id]["equipped"]
-		equipped = skill != null
+		skill = sm.spheres_data[id]["equipped"]
 		if skill:
 			var s_name = ""
 			if typeof(skill) == TYPE_DICTIONARY: s_name = skill.get("skill_name", "")
-			else: s_name = skill.skill_name
+			else: s_name = str(skill.skill_name)
 			
 			if s_name != "" and GameConstants.SKILLS_DATA.has(s_name):
 				max_cd = float(GameConstants.SKILLS_DATA[s_name].get("cd", 5000.0)) / 1000.0
@@ -400,24 +421,23 @@ func _update_sphere_ui(id: int, ref, slot):
 		l_cd.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l_cd.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l_cd.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		l_cd.add_theme_color_override("font_color", Color.RED)
+		l_cd.add_theme_color_override("font_color", Color.WHITE)
 		l_cd.add_theme_font_size_override("font_size", 12)
 		slot.add_child(l_cd)
 	
 	if is_instance_valid(l_cd):
 		l_cd.visible = rv > 0.05
 		l_cd.text = str(snapped(rv, 0.1)) + "s"
-		l_cd.modulate = Color.RED
+		l_cd.modulate = Color.WHITE
 	
-	var final_text_color = Color.RED if rv > 0.05 else type_color
 	slot.modulate = Color(1, 1, 1, slot.modulate.a) 
 	
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0, 0, 0, 0.6) if equipped else Color(0, 0, 0, 0.2)
+	sb.bg_color = Color(0, 0, 0, 0.6) if skill else Color(0, 0, 0, 0.2)
 	sb.draw_center = true
 	sb.border_width_left = 2; sb.border_width_right = 2; sb.border_width_top = 2; sb.border_width_bottom = 2
-	sb.border_color = type_color if equipped else Color(0.2, 0.2, 0.2, 0.5)
-	sb.set_corner_radius_all(10) # Borde redondeado suave en lugar de círculo completo
+	sb.border_color = type_color if skill else Color(0.2, 0.2, 0.2, 0.5)
+	sb.set_corner_radius_all(10)
 	sb.set_content_margin_all(2)
 	sb.anti_aliasing = true
 	
@@ -429,123 +449,73 @@ func _update_sphere_ui(id: int, ref, slot):
 		if slot is PanelContainer:
 			slot.add_theme_stylebox_override("panel", sb)
 	
-	var short_txt = "VACÍO"
-	if equipped:
-		if type_color == Color.RED: short_txt = "ATQ"
-		elif type_color == Color.AQUA: short_txt = "DEF"
-		elif type_color == Color.GREEN: short_txt = "CUR"
-		elif type_color == Color.YELLOW: short_txt = "UTIL"
- 
-	# v301.4: Mostrar ícono PNG de la habilidad en el slot si existe (con caché)
 	var skill_icon_tex: Texture2D = null
-	if equipped:
-		var equipped_name = ""
-		if typeof(equipped) == TYPE_DICTIONARY: equipped_name = equipped.get("skill_name", "")
-		elif typeof(equipped) == TYPE_OBJECT and "skill_name" in equipped: equipped_name = str(equipped.skill_name)
-		elif typeof(equipped) == TYPE_STRING: equipped_name = equipped
+	var equipped_name = ""
+	if skill:
+		if typeof(skill) == TYPE_DICTIONARY: equipped_name = skill.get("skill_name", "")
+		elif "skill_name" in skill: equipped_name = str(skill.skill_name)
 		
 		if equipped_name != "":
-			# Normalizar para búsquedas y caché seguras
-			var clean_name = equipped_name.to_upper().strip_edges()
+			var clean_name = equipped_name.to_upper().strip_edges().replace("Ó", "O").replace("É", "E").replace("Í", "I").replace("Á", "A").replace("Ú", "U").replace("Ü", "U")
 			var lookup_name = clean_name
 			
-			# Revisar caché primero
 			if _skill_icon_cache.has(clean_name):
 				skill_icon_tex = _skill_icon_cache[clean_name]
 			else:
-				var server_skills = {}
-				if NetworkManager and NetworkManager.server_config:
-					server_skills = NetworkManager.server_config.get("skillsData", {})
+				var icon_path = _skill_icon_paths.get(clean_name, "")
+				if icon_path == "":
+					var server_skills = {}
+					if NetworkManager and NetworkManager.server_config:
+						server_skills = NetworkManager.server_config.get("skillsData", {})
+					if server_skills.has(lookup_name):
+						icon_path = server_skills[lookup_name].get("icon", "")
 				
-				# Resolver nombres cruzados (REFLECT-OMEGA)
-				if "REFLECT" in clean_name:
-					for s_key in server_skills.keys():
-						if "REFLECT" in s_key.to_upper():
-							lookup_name = s_key
-							break
-				
-				if server_skills.has(lookup_name):
-					var icon_path = server_skills[lookup_name].get("icon", "")
-					if icon_path != "" and ResourceLoader.exists(icon_path):
-						skill_icon_tex = load(icon_path)
-				# Guardar en caché (null también, para no reintentar)
-				_skill_icon_cache[clean_name] = skill_icon_tex
-
-	# Remover o actualizar ícono en el slot (solo si cambia)
-	var prev_icon = slot.get_node_or_null("SkillIconRect")
-	var prev_icon_path = slot.get_meta("last_skill_icon_path", "") if slot.has_meta("last_skill_icon_path") else ""
-	var new_icon_path = ""
-	if skill_icon_tex and equipped:
-		var equipped_name2 = ""
-		if typeof(equipped) == TYPE_DICTIONARY: equipped_name2 = equipped.get("skill_name", "")
-		elif typeof(equipped) == TYPE_OBJECT and "skill_name" in equipped: equipped_name2 = str(equipped.skill_name)
-		elif typeof(equipped) == TYPE_STRING: equipped_name2 = equipped
-		
-		var clean_name2 = equipped_name2.to_upper().strip_edges()
-		var lookup_name2 = clean_name2
-		var sv2 = NetworkManager.server_config.get("skillsData", {}) if NetworkManager and NetworkManager.server_config else {}
-		if "REFLECT" in clean_name2:
-			for s_key in sv2.keys():
-				if "REFLECT" in s_key.to_upper():
-					lookup_name2 = s_key
-					break
-		if sv2.has(lookup_name2): new_icon_path = sv2[lookup_name2].get("icon", "")
+				if icon_path != "" and ResourceLoader.exists(icon_path):
+					skill_icon_tex = load(icon_path)
+				if skill_icon_tex:
+					_skill_icon_cache[clean_name] = skill_icon_tex
 	
-	if new_icon_path != prev_icon_path:
-		# El ícono cambió: remover el anterior y crear nuevo si aplica
-		if is_instance_valid(prev_icon):
-			prev_icon.queue_free()
-		slot.set_meta("last_skill_icon_path", new_icon_path)
-		
-		if skill_icon_tex:
-			var icon_rect = TextureRect.new()
+	if skill_icon_tex:
+		var icon_rect = slot.get_node_or_null("SkillIconRect") as TextureRect
+		if not is_instance_valid(icon_rect):
+			icon_rect = TextureRect.new()
 			icon_rect.name = "SkillIconRect"
-			icon_rect.texture = skill_icon_tex
 			icon_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			icon_rect.offset_left = 6; icon_rect.offset_right = -6
 			icon_rect.offset_top = 6; icon_rect.offset_bottom = -6
 			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 			icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			# v301.4b: Tinte del color de la esfera (igual que en la Biblioteca)
-			icon_rect.modulate = type_color
-			
-			# Insertamos el ícono en el slot.
+
 			slot.add_child(icon_rect)
-			
-			# Para que no sea tapado por el SciFiFrame u otros contenedores de fondo:
-			# lo movemos para estar por encima de SciFiFrame y Fill, pero por debajo de BindingLabel y CD.
-			# Vamos a encontrar el índice correcto:
+
 			var target_idx = 0
 			var fill_node = slot.get_node_or_null("Fill")
-			var frame_node = slot.get_node_or_null("SciFiFrame")
 			if is_instance_valid(fill_node):
-				target_idx = max(target_idx, slot.get_path_to(fill_node) + 1)
-			if is_instance_valid(frame_node):
-				target_idx = max(target_idx, slot.get_path_to(frame_node) + 1)
-			
+				target_idx = max(target_idx, fill_node.get_index() + 1)
 			slot.move_child(icon_rect, target_idx)
-
+		icon_rect.texture = skill_icon_tex
+	elif not skill:
+		var icon_rect = slot.get_node_or_null("SkillIconRect")
+		if is_instance_valid(icon_rect):
+			icon_rect.queue_free()
 
 	for child in slot.get_children():
 		if child is Label:
 			if child.name == "CD":
-				child.modulate = Color.RED
-				child.add_theme_color_override("font_color", Color.RED)
+				child.modulate = Color.WHITE
+				child.add_theme_color_override("font_color", Color.WHITE)
 			elif child.name == "Key":
 				pass
 			elif child.name == "BindingLabel":
-				# El bind de tecla siempre visible, encima del ícono
 				child.modulate.a = 1.0
-			else:
-				# Texto corto (ATQ/DEF/etc): ocultar si hay ícono PNG
-				if skill_icon_tex:
-					child.modulate.a = 0.0
-				else:
-					child.text = short_txt
-					child.add_theme_color_override("font_color", final_text_color)
-					child.modulate.a = 1.0 if equipped else 0.3
 
+
+func _on_config_updated(_config: Dictionary = {}):
+	_skill_icon_cache.clear()
+
+func clear_icon_cache():
+	_skill_icon_cache.clear()
 
 func _make_clickable(node: Control, callback: Callable):
 	if not node: return

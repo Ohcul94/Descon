@@ -175,7 +175,7 @@ func equip_item(sphere_id, item_data):
 			spheres_updated.emit()
 			
 			# v6.1: Forzar actualización del HUD global si existe
-			var hud = get_tree().get_first_node_in_group("hud_main")
+			var hud = get_tree().get_first_node_in_group("hud")
 			if is_instance_valid(hud) and hud.has_method("update_skill_slots"):
 				hud.update_skill_slots()
 

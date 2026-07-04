@@ -1985,6 +1985,18 @@ func _update_status_effects_ui():
 	if p_node.get("is_stunned") and p_node.get("stun_timer") > 0.0:
 		_add_status_box("🛡️", "%.1f" % p_node.stun_timer, Color(0.5, 0.5, 0.5, 0.7))
 
+func update_skill_slots():
+	if not is_instance_valid(skills_hud):
+		return
+	for slot in skills_hud.get_children():
+		if slot is Control and "Slot" in slot.name:
+			if slot.has_meta("last_skill_icon_path"):
+				slot.remove_meta("last_skill_icon_path")
+			var icon = slot.get_node_or_null("SkillIconRect")
+			if is_instance_valid(icon):
+				icon.queue_free()
+	skills_hud.clear_icon_cache()
+
 func _add_status_box(emoji: String, text: String, color: Color):
 	var box = PanelContainer.new()
 	box.custom_minimum_size = Vector2(32, 32)
