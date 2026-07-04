@@ -370,18 +370,17 @@ func _process(delta):
 			global_position = target_position
 			rotation = target_rotation
 			
-			if get_meta("_was_screen_visible", true) == true:
-				set_meta("_was_screen_visible", false)
-				if is_instance_valid(world_root_3d):
-					world_root_3d.visible = false
-				if is_instance_valid(_ui_wrapper):
-					_ui_wrapper.visible = false
-				if is_instance_valid(_vfx_container_2d):
-					_vfx_container_2d.visible = false
-				if is_instance_valid(sprite):
-					sprite.visible = false
-				if is_instance_valid(_3d_propulsion):
-					_3d_propulsion.emitting = false
+			if is_instance_valid(world_root_3d) and world_root_3d.visible:
+				world_root_3d.visible = false
+			if is_instance_valid(_ui_wrapper) and _ui_wrapper.visible:
+				_ui_wrapper.visible = false
+			if is_instance_valid(_vfx_container_2d) and _vfx_container_2d.visible:
+				_vfx_container_2d.visible = false
+			if is_instance_valid(sprite) and sprite.visible:
+				sprite.visible = false
+			if is_instance_valid(_3d_propulsion) and _3d_propulsion.emitting:
+				_3d_propulsion.emitting = false
+			set_meta("_was_screen_visible", false)
 			return # CORTOCIRCUITO COMPLETO: Salva 100% de cálculos en cada frame
 		else:
 			if get_meta("_was_screen_visible", true) == false:

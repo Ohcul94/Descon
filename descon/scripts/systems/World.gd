@@ -61,7 +61,7 @@ func _ready():
 	if ui_inventory: ui_inventory.visible = false
 	if ui_chat: ui_chat.visible = false
 	
-	_generate_stellar_data()
+	# _generate_stellar_data() # v73.31: Eliminado por solicitud del usuario para limpiar el fondo
 	
 	# v267.900: Inicializar Overlays de Ambiente
 	_setup_blindness_overlay()
