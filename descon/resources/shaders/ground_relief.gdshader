@@ -13,6 +13,11 @@ uniform vec2 u_tiling = vec2(5.0, 5.0);
 uniform float u_detail_strength : hint_range(0.0, 2.0) = 0.4;
 uniform sampler2D u_detail_tex : source_color;
 
+uniform vec4 u_fog_color : source_color = vec4(0.012, 0.006, 0.035, 1.0);
+uniform float u_fog_start = 30.0;
+uniform float u_fog_end = 120.0;
+uniform vec3 u_horizon_glow_color : source_color = vec3(0.08, 0.02, 0.18);
+
 void fragment() {
 	vec2 uv = UV * u_tiling;
 
@@ -43,11 +48,21 @@ void fragment() {
 	));
 
 	vec3 tex_color = texture(u_albedo_tex, uv).rgb;
-	ALBEDO = tex_color * u_tint_color.rgb;
+	vec3 base_albedo = tex_color * u_tint_color.rgb;
 
 	METALLIC = u_metallic + (height - 0.5) * 0.08;
-	ROUGHNESS = u_roughness - (height - 0.5) * 0.1;
+	float base_roughness = u_roughness - (height - 0.5) * 0.1;
 
 	float emissive_variation = 0.7 + height * 0.6 + detail * 0.15;
-	EMISSION = u_emission * u_emission_energy * emissive_variation;
+	vec3 base_emission = u_emission * u_emission_energy * emissive_variation;
+
+	float dist = length(VERTEX);
+	float fog = smoothstep(u_fog_start, u_fog_end, dist);
+
+	float horizon_mask = smoothstep(0.1, 0.5, fog) * (1.0 - smoothstep(0.7, 1.0, fog));
+	vec3 horizon_glow = u_horizon_glow_color * horizon_mask * 0.6;
+
+	ALBEDO = mix(base_albedo, u_fog_color.rgb, fog);
+	ROUGHNESS = mix(base_roughness, 0.0, fog * 0.7);
+	EMISSION = mix(base_emission + horizon_glow, u_fog_color.rgb * 0.3, fog);
 }

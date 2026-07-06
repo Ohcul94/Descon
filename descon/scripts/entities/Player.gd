@@ -320,7 +320,7 @@ func _unhandled_input(event):
 				if hovered != null and not (hovered is SubViewportContainer):
 					return
 				var zoom_step = 0.1
-				var min_zoom = 0.3; var max_zoom = 2.0
+				var min_zoom = 0.45; var max_zoom = 2.0
 				if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 					var target_z = clamp(cam.zoom.x + zoom_step, min_zoom, max_zoom)
 					create_tween().set_trans(Tween.TRANS_SINE).tween_property(cam, "zoom", Vector2(target_z, target_z), 0.2)
