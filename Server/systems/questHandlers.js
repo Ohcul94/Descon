@@ -4,6 +4,7 @@
  */
 const User = require('../models/User');
 const Logger = require('../utils/logger');
+const { awardBattlePassExpServer } = require('./battlePassHandlers');
 const fs = require('fs-extra');
 const path = require('path');
 
@@ -282,6 +283,14 @@ function registerQuestHandlers(socket, io, state) {
             user.gameData.hubs += hubsReward;
             user.gameData.ohcu += ohcuReward;
             user.gameData.exp += expReward;
+
+            const bpXpSources = state.SERVER_CONFIG?.battlePassConfig?.xpSources;
+            if (bpXpSources && bpXpSources.questExp) {
+                const bpResult = await awardBattlePassExpServer(user, bpXpSources.questExp, state);
+                if (bpResult.leveledUp) {
+                    socket.emit('gameNotification', { msg: `🎖️ ¡Subiste al Nivel ${bpResult.newLevel} del Pase de Batalla!`, type: 'success' });
+                }
+            }
 
             p.hubs = user.gameData.hubs;
             p.ohcu = user.gameData.ohcu;

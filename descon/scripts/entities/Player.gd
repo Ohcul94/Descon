@@ -258,7 +258,7 @@ func _unhandled_input(event):
 	if event is InputEventMouseButton:
 		# v2.6: Bloqueo de SEGURIDAD para evitar click-through a cualquier menú abierto
 		var ui_blocking = false
-		for group in ["inventory_ui", "admin_panel_ui"]:
+		for group in ["inventory_ui", "admin_panel_ui", "battlepass_ui"]:
 			for node in get_tree().get_nodes_in_group(group):
 				if node.visible:
 					# v2.7: Si el menú está visible y bloquea mouse, impedimos movimiento

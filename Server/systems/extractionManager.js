@@ -7,6 +7,7 @@
 const User = require('../models/User');
 const Logger = require('../utils/logger');
 const { calculateFinalStats } = require('./statCalculator');
+const { awardBattlePassExpServer } = require('./battlePassHandlers');
 
 class ExtractionManager {
     constructor() {
@@ -474,17 +475,35 @@ class ExtractionManager {
         Logger.success('EXTRACT', `¡Extracción Exitosa! Piloto [${p.user}] evacuó con ${p.tempInventory.length} items hacia Zona ${newZone}.`);
 
         try {
-            // Escritura limpia y autoritativa en MongoDB Atlas
+            // Calcular battle pass XP antes de persistir
+            const bpXpSources = this.state.SERVER_CONFIG?.battlePassConfig?.xpSources;
+            let bpUpdate = null;
+            if (bpXpSources && bpXpSources.extractionExp) {
+                const user = await User.findById(p.id);
+                if (user) {
+                    const bpResult = await awardBattlePassExpServer(user, bpXpSources.extractionExp, this.state);
+                    bpUpdate = user.gameData.battlePass;
+                    if (bpResult.leveledUp) {
+                        this.io.to(socketId).emit('gameNotification', { msg: `🎖️ ¡Subiste al Nivel ${bpResult.newLevel} del Pase de Batalla!`, type: 'success' });
+                    }
+                }
+            }
+
+            const updateSet = { 
+                "gameData.zone": newZone, 
+                "gameData.lastPos": { x: 1000, y: 1000 },
+                "gameData.hp": p.hp,
+                "gameData.shield": p.shield
+            };
+            if (bpUpdate) {
+                updateSet["gameData.battlePass"] = bpUpdate;
+            }
+
             await User.updateOne(
                 { _id: p.id },
                 { 
                     $push: { "gameData.inventory": { $each: p.tempInventory } },
-                    $set: { 
-                        "gameData.zone": newZone, 
-                        "gameData.lastPos": { x: 1000, y: 1000 },
-                        "gameData.hp": p.hp,
-                        "gameData.shield": p.shield
-                    }
+                    $set: updateSet
                 }
             );
 

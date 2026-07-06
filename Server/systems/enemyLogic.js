@@ -5,6 +5,7 @@
 const User = require('../models/User');
 const lootManager = require('./lootManager');
 const { processEnemyKillsForUser } = require('./questHandlers');
+const { awardBattlePassExpServer } = require('./battlePassHandlers');
 
 
 function executeEnemyExplosion(enemy, io, state) {
@@ -117,6 +118,14 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
                     user.gameData.hubs += shared_h;
                     user.gameData.ohcu += shared_o;
                     user.gameData.exp += shared_e;
+
+                    const bpXpSources = state.SERVER_CONFIG?.battlePassConfig?.xpSources;
+                    if (bpXpSources && bpXpSources.killExp) {
+                        const bpResult = await awardBattlePassExpServer(user, bpXpSources.killExp, state);
+                        if (bpResult.leveledUp) {
+                            memberSocket.emit('gameNotification', { msg: `🎖️ ¡Subiste al Nivel ${bpResult.newLevel} del Pase de Batalla!`, type: 'success' });
+                        }
+                    }
 
                     // Procesar progreso de misiones tipo 'kill' (v380)
                     processEnemyKillsForUser(user, enemy.type, state, memberSocket);

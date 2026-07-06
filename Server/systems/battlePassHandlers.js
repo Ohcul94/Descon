@@ -226,4 +226,39 @@ async function applyReward(user, reward, socket, bpConfig) {
     socket.emit('walletData', { hubs: user.gameData.hubs, ohcu: user.gameData.ohcu });
 }
 
-module.exports = { registerBattlePassHandlers };
+async function awardBattlePassExpServer(user, amount, state) {
+    if (!user || !amount || amount <= 0) return { leveledUp: false };
+
+    const bpConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.battlePassConfig;
+    if (!bpConfig || !bpConfig.levels) return { leveledUp: false };
+
+    let bp = user.gameData.battlePass || {};
+    if (!bp.level) bp.level = 1;
+    if (!bp.exp) bp.exp = 0;
+    if (!bp.claimedFree) bp.claimedFree = [];
+    if (!bp.claimedVip) bp.claimedVip = [];
+
+    bp.exp += amount;
+
+    const maxLevel = bpConfig.maxLevel || 50;
+    let leveledUp = false;
+    while (bp.level < maxLevel) {
+        const levelConfig = bpConfig.levels.find(l => l.level === bp.level);
+        if (!levelConfig) break;
+        const required = levelConfig.expRequired || 2000;
+        if (bp.exp >= required) {
+            bp.exp -= required;
+            bp.level++;
+            leveledUp = true;
+        } else {
+            break;
+        }
+    }
+
+    if (bp.level >= maxLevel) bp.exp = 0;
+
+    user.gameData.battlePass = bp;
+    return { leveledUp, newLevel: bp.level };
+}
+
+module.exports = { registerBattlePassHandlers, awardBattlePassExpServer };
