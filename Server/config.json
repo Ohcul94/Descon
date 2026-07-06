@@ -3169,7 +3169,7 @@
             "height": 10000,
             "objects": [],
             "visible": true,
-            "timeRestrictionsEnabled": false,
+            "timeRestrictionsEnabled": true,
             "allowedHours": []
         },
         "7": {

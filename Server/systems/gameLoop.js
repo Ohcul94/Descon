@@ -336,28 +336,37 @@ function startGameLoop(io, state, aiManager) {
                 // 2. Redirigir si expiró el horario permitido
                 else if (mapCfg.timeRestrictionsEnabled && mapCfg.allowedHours && mapCfg.allowedHours.length > 0) {
                     const serverTime = new Date();
+                    const currentDay = serverTime.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
                     const currentHours = serverTime.getHours();
                     const currentMinutes = serverTime.getMinutes();
                     const currentTimeVal = currentHours * 60 + currentMinutes;
                     
                     let isAllowed = false;
-                    for (const range of mapCfg.allowedHours) {
-                        const [startH, startM] = range.start.split(':').map(Number);
-                        const [endH, endM] = range.end.split(':').map(Number);
-                        const startVal = startH * 60 + startM;
-                        const endVal = endH * 60 + endM;
+                    for (const group of mapCfg.allowedHours) {
+                        const days = group.days || [0,1,2,3,4,5,6];
+                        if (!days.includes(currentDay)) continue;
                         
-                        if (startVal > endVal) { // Rango nocturno
-                            if (currentTimeVal >= startVal || currentTimeVal <= endVal) {
-                                isAllowed = true;
-                                break;
-                            }
-                        } else {
-                            if (currentTimeVal >= startVal && currentTimeVal <= endVal) {
-                                isAllowed = true;
-                                break;
+                        const hours = group.hours || [{ start: group.start, end: group.end }];
+                        for (const range of hours) {
+                            if (!range.start || !range.end) continue;
+                            const [startH, startM] = range.start.split(':').map(Number);
+                            const [endH, endM] = range.end.split(':').map(Number);
+                            const startVal = startH * 60 + startM;
+                            const endVal = endH * 60 + endM;
+                            
+                            if (startVal > endVal) { // Rango nocturno
+                                if (currentTimeVal >= startVal || currentTimeVal <= endVal) {
+                                    isAllowed = true;
+                                    break;
+                                }
+                            } else {
+                                if (currentTimeVal >= startVal && currentTimeVal <= endVal) {
+                                    isAllowed = true;
+                                    break;
+                                }
                             }
                         }
+                        if (isAllowed) break;
                     }
                     
                     if (!isAllowed) {

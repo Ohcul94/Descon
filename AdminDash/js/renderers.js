@@ -1577,6 +1577,18 @@ function renderMapDetail() {
                             <div class="field"><label>Alto (Height - px)</label><input type="number" value="${m.height || 10000}" oninput="config.mapsConfig['${selectedMapId}'].height = parseInt(this.value)"></div>
                         </div>
                     </div>
+                    ${(() => {
+                        // Normalizar datos: migrar formato antiguo → nuevo
+                        const hours = (m.allowedHours || []).map(g => {
+                            if (g.hours) return g; // ya en formato nuevo
+                            return {
+                                days: g.days || [0,1,2,3,4,5,6],
+                                hours: [{ start: g.start || "00:00", end: g.end || "00:00" }]
+                            };
+                        });
+                        const dayLabels = ['DO','LU','MA','MI','JU','VI','SA'];
+                        const dayValues = [0,1,2,3,4,5,6];
+                        return `
                     <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.05);">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
                             <label style="color:var(--accent); font-size: 0.65rem; font-weight:bold; letter-spacing:1px; margin:0;">🕒 RESTRICCIÓN DE HORARIOS (SERVER)</label>
@@ -1588,53 +1600,113 @@ function renderMapDetail() {
                         </div>
                         ${m.timeRestrictionsEnabled ? `
                         <div style="background:rgba(0,0,0,0.25); padding:1rem; border-radius:10px; border:1px solid rgba(255,255,255,0.05); margin-bottom:1rem;">
-                            <div id="allowed-hours-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:1.2rem; max-height:160px; overflow-y:auto;">
-                                ${(m.allowedHours || []).length === 0 ? '<span style="font-size:0.75rem; color:#64748b; font-style:italic;">No hay horarios configurados. El sector será inaccesible.</span>' : ''}
-                                ${(m.allowedHours || []).map((range, index) => {
-                                    const isEditing = window._editingScheduleIndex === index;
+                            <div id="allowed-hours-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:1.2rem; max-height:320px; overflow-y:auto;">
+                                ${hours.length === 0 ? '<span style="font-size:0.75rem; color:#64748b; font-style:italic;">No hay horarios configurados. El sector será inaccesible.</span>' : ''}
+                                ${hours.map((group, gIdx) => {
+                                    const days = group.days || [0,1,2,3,4,5,6];
+                                    const isAllDays = days.length === 7;
+                                    const isEditing = window._editingGroupIndex === gIdx;
                                     if (isEditing) {
                                         return `
-                                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.04); padding:6px 12px; border-radius:6px; border:1px solid var(--primary);">
-                                            <div style="display:flex; align-items:center; gap:8px;">
-                                                <input type="time" id="inline-edit-start-${index}" value="${range.start}" style="padding:2px 4px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; font-family:\'JetBrains Mono\', monospace;">
-                                                <span style="color:var(--text-dim); font-size:0.8rem;">➔</span>
-                                                <input type="time" id="inline-edit-end-${index}" value="${range.end}" style="padding:2px 4px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; font-family:\'JetBrains Mono\', monospace;">
+                                        <div style="display:flex; flex-direction:column; gap:6px; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:6px; border:1px solid var(--primary);">
+                                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--accent); font-size:0.6rem; font-weight:bold; letter-spacing:1px;">EDITAR GRUPO</span>
+                                                <div style="display:flex; gap:6px;">
+                                                    <button style="background:none; border:none; color:#00ff88; cursor:pointer; font-weight:bold; font-size:1rem; padding:2px 6px;" 
+                                                            title="Confirmar Grupo" onclick="saveScheduleGroup('${selectedMapId}', ${gIdx})">✓</button>
+                                                    <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold; font-size:0.95rem; padding:2px 6px;" 
+                                                            title="Cancelar" onclick="cancelScheduleGroupEdit()">✕</button>
+                                                </div>
                                             </div>
-                                            <div style="display:flex; gap:6px;">
-                                                <button style="background:none; border:none; color:#00ff88; cursor:pointer; font-weight:bold; font-size:1rem; padding:2px 6px;" 
-                                                        title="Confirmar Cambios"
-                                                        onclick="saveInlineTimeRestrictionRange('${selectedMapId}', ${index})">✓</button>
-                                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold; font-size:0.95rem; padding:2px 6px;" 
-                                                        title="Cancelar"
-                                                        onclick="cancelInlineTimeRestrictionRange()">✕</button>
+                                            <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                                                ${dayValues.map(d => `
+                                                    <label style="display:flex; align-items:center; gap:2px; cursor:pointer; font-size:0.65rem; color:${days.includes(d) ? 'var(--accent)' : '#64748b'}; font-weight:${days.includes(d) ? 'bold' : 'normal'}; padding:2px 4px; border-radius:4px; background:${days.includes(d) ? 'rgba(6,182,212,0.15)' : 'transparent'}; border:1px solid ${days.includes(d) ? 'var(--accent)' : 'rgba(255,255,255,0.05)'};">
+                                                        <input type="checkbox" class="edit-grp-day-${gIdx}" value="${d}" ${days.includes(d) ? 'checked' : ''} 
+                                                               onchange="window._updateGroupDays(${gIdx})" style="width:12px; height:12px; margin:0; accent-color:var(--accent);">
+                                                        ${dayLabels[d]}
+                                                    </label>
+                                                `).join('')}
+                                                <label style="display:flex; align-items:center; gap:2px; cursor:pointer; font-size:0.65rem; color:${isAllDays ? 'var(--accent)' : '#64748b'}; font-weight:${isAllDays ? 'bold' : 'normal'}; padding:2px 6px; border-radius:4px; background:${isAllDays ? 'rgba(6,182,212,0.15)' : 'transparent'}; border:1px solid ${isAllDays ? 'var(--accent)' : 'rgba(255,255,255,0.05)'}; margin-left:4px;">
+                                                    <input type="checkbox" class="edit-grp-all-${gIdx}" ${isAllDays ? 'checked' : ''} 
+                                                           onchange="window._toggleGroupAllDays(${gIdx})" style="width:12px; height:12px; margin:0; accent-color:var(--accent);">
+                                                    TODOS
+                                                </label>
+                                            </div>
+                                            <div style="display:flex; flex-direction:column; gap:4px; padding-left:8px; border-left:2px solid rgba(6,182,212,0.2);">
+                                                ${(group.hours || []).map((hr, hIdx) => `
+                                                    <div style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.03); padding:4px 8px; border-radius:4px;">
+                                                        <span style="font-size:0.55rem; color:#888; min-width:60px;">RANGO ${hIdx+1}</span>
+                                                        <input type="time" id="edit-hr-start-${gIdx}-${hIdx}" value="${hr.start}" style="padding:2px 4px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.75rem; width:90px; font-family:'JetBrains Mono', monospace;">
+                                                        <span style="color:var(--text-dim); font-size:0.75rem;">➔</span>
+                                                        <input type="time" id="edit-hr-end-${gIdx}-${hIdx}" value="${hr.end}" style="padding:2px 4px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.75rem; width:90px; font-family:'JetBrains Mono', monospace;">
+                                                        <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.8rem; padding:0 4px;" 
+                                                                title="Eliminar Horario" onclick="removeGroupHour('${selectedMapId}', ${gIdx}, ${hIdx})">✕</button>
+                                                    </div>
+                                                `).join('')}
+                                                <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                                                    <input type="time" id="edit-new-hr-start-${gIdx}" style="padding:2px 4px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.7rem; width:90px; font-family:'JetBrains Mono', monospace;">
+                                                    <span style="color:var(--text-dim); font-size:0.7rem;">➔</span>
+                                                    <input type="time" id="edit-new-hr-end-${gIdx}" style="padding:2px 4px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.7rem; width:90px; font-family:'JetBrains Mono', monospace;">
+                                                    <button style="background:none; border:none; color:#00ff88; cursor:pointer; font-size:0.7rem; padding:2px 6px; border:1px solid rgba(0,255,136,0.3); border-radius:4px;" 
+                                                            title="Añadir Horario a Grupo" onclick="addHourToGroup('${selectedMapId}', ${gIdx})">+ HORARIO</button>
+                                                </div>
                                             </div>
                                         </div>
                                         `;
                                     } else {
                                         return `
-                                        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); padding:6px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.03);">
-                                            <span style="font-size:0.8rem; font-family:\'JetBrains Mono\', monospace; color:var(--primary); font-weight:bold;">${range.start} ➔ ${range.end}</span>
-                                            <div style="display:flex; gap:8px;">
-                                                <button style="background:none; border:none; color:#ffb000; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:2px 6px;" 
-                                                        title="Editar Rango"
-                                                        onclick="editTimeRestrictionRange('${selectedMapId}', ${index})">✏️</button>
-                                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:2px 6px;" 
-                                                        title="Eliminar Rango"
-                                                        onclick="removeTimeRestrictionRange('${selectedMapId}', ${index})">✕</button>
+                                        <div style="display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.03);">
+                                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                                <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                                                    ${isAllDays 
+                                                        ? '<span style="font-size:0.6rem; color:var(--accent); font-weight:bold; letter-spacing:0.5px; padding:2px 6px; border-radius:4px; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.2);">TODOS LOS DÍAS</span>'
+                                                        : dayLabels.map((label, i) => `
+                                                            <span style="font-size:0.6rem; color:${days.includes(i) ? 'var(--accent)' : '#334155'}; font-weight:${days.includes(i) ? 'bold' : 'normal'}; padding:2px 5px; border-radius:3px; background:${days.includes(i) ? 'rgba(6,182,212,0.1)' : 'transparent'}; border:1px solid ${days.includes(i) ? 'rgba(6,182,212,0.2)' : 'rgba(255,255,255,0.03)'};">${label}</span>
+                                                        `).join('')
+                                                    }
+                                                </div>
+                                                <div style="display:flex; gap:4px;">
+                                                    <button style="background:none; border:none; color:#ffb000; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:2px 6px;" 
+                                                            title="Editar Grupo" onclick="editScheduleGroup('${selectedMapId}', ${gIdx})">✏️</button>
+                                                    <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:2px 6px;" 
+                                                            title="Eliminar Grupo" onclick="removeScheduleGroup('${selectedMapId}', ${gIdx})">✕</button>
+                                                </div>
+                                            </div>
+                                            <div style="display:flex; flex-direction:column; gap:3px; padding-left:8px; border-left:2px solid rgba(255,255,255,0.06);">
+                                                ${(group.hours || []).map(hr => `
+                                                    <span style="font-size:0.75rem; font-family:'JetBrains Mono', monospace; color:var(--primary); font-weight:bold;">${hr.start} ➔ ${hr.end}</span>
+                                                `).join('')}
                                             </div>
                                         </div>
                                         `;
                                     }
                                 }).join('')}
                             </div>
-                            <div style="display:flex; gap:10px; align-items:flex-end;">
-                                <div class="field" style="margin:0; flex:1;"><label style="font-size:0.6rem; color:#888;">INICIO</label><input type="time" id="new-range-start" style="padding:6px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; width:100%;"></div>
-                                <div class="field" style="margin:0; flex:1;"><label style="font-size:0.6rem; color:#888;">FIN</label><input type="time" id="new-range-end" style="padding:6px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; width:100%;"></div>
-                                <button class="btn btn-primary" style="padding:6px 12px; font-size:0.7rem; height:32px; margin:0;" onclick="addTimeRestrictionRange('${selectedMapId}')">+ AÑADIR</button>
+                            <div style="display:flex; flex-direction:column; gap:8px; padding-top:0.8rem; border-top:1px solid rgba(255,255,255,0.05);">
+                                <span style="color:var(--accent); font-size:0.6rem; font-weight:bold; letter-spacing:1px;">NUEVO GRUPO DE DÍAS</span>
+                                <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                                    ${dayLabels.map((label, i) => `
+                                        <label style="display:flex; align-items:center; gap:2px; cursor:pointer; font-size:0.65rem; color:#64748b; padding:2px 4px; border-radius:4px; border:1px solid rgba(255,255,255,0.05);">
+                                            <input type="checkbox" id="new-day-${i}" value="${i}" style="width:12px; height:12px; margin:0; accent-color:var(--accent);">
+                                            ${label}
+                                        </label>
+                                    `).join('')}
+                                    <label style="display:flex; align-items:center; gap:2px; cursor:pointer; font-size:0.65rem; color:#64748b; padding:2px 6px; border-radius:4px; border:1px solid rgba(255,255,255,0.05); margin-left:4px;">
+                                        <input type="checkbox" id="new-day-all" style="width:12px; height:12px; margin:0; accent-color:var(--accent);" onchange="window._toggleNewAllDays()">
+                                        TODOS
+                                    </label>
+                                </div>
+                                <div style="display:flex; gap:10px; align-items:flex-end;">
+                                    <div class="field" style="margin:0; flex:1;"><label style="font-size:0.6rem; color:#888;">INICIO</label><input type="time" id="new-range-start" style="padding:6px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; width:100%;"></div>
+                                    <div class="field" style="margin:0; flex:1;"><label style="font-size:0.6rem; color:#888;">FIN</label><input type="time" id="new-range-end" style="padding:6px; background:#0f172a; border:1px solid #334155; color:white; border-radius:4px; font-size:0.8rem; width:100%;"></div>
+                                    <button class="btn btn-primary" style="padding:6px 12px; font-size:0.7rem; height:32px; margin:0;" onclick="addScheduleGroup('${selectedMapId}')">+ AÑADIR GRUPO</button>
+                                </div>
                             </div>
                         </div>
                         ` : ''}
                     </div>
+                    `;
+                    })()}
                 </div>
             </div>
             
@@ -5783,6 +5855,7 @@ window.renderTalentMapper = function(connectingMousePos = null) {
     }
 };
 
+// ─── TOGLE ACTIVAR ───
 window.toggleTimeRestrictions = function(mapId, enabled) {
     if (!config || !config.mapsConfig || !config.mapsConfig[mapId]) return;
     config.mapsConfig[mapId].timeRestrictionsEnabled = enabled;
@@ -5793,52 +5866,148 @@ window.toggleTimeRestrictions = function(mapId, enabled) {
     renderMapDetail();
 };
 
-window.addTimeRestrictionRange = function(mapId) {
+// ─── HELPERS DE DÍAS ───
+window._toggleNewAllDays = function() {
+    const allCb = document.getElementById('new-day-all');
+    const isChecked = allCb.checked;
+    [0,1,2,3,4,5,6].forEach(i => {
+        const cb = document.getElementById('new-day-' + i);
+        if (cb) cb.checked = isChecked;
+    });
+};
+
+window._updateGroupDays = function(gIdx) {
+    const dayCbs = [0,1,2,3,4,5,6].map(i => document.querySelector(`.edit-grp-day-${gIdx}[value="${i}"]`));
+    const allCb = document.querySelector(`.edit-grp-all-${gIdx}`);
+    const allChecked = dayCbs.every(cb => cb && cb.checked);
+    if (allCb) allCb.checked = allChecked;
+};
+
+window._toggleGroupAllDays = function(gIdx) {
+    const allCb = document.querySelector(`.edit-grp-all-${gIdx}`);
+    const isChecked = allCb.checked;
+    [0,1,2,3,4,5,6].forEach(i => {
+        const cb = document.querySelector(`.edit-grp-day-${gIdx}[value="${i}"]`);
+        if (cb) cb.checked = isChecked;
+    });
+};
+
+window._getNewGroupDays = function() {
+    const dayCbs = [0,1,2,3,4,5,6].map(i => document.getElementById('new-day-' + i));
+    const allCb = document.getElementById('new-day-all');
+    if (!dayCbs.every(Boolean)) return [0,1,2,3,4,5,6];
+    const checked = dayCbs.filter(cb => cb.checked).map(cb => parseInt(cb.value));
+    if (checked.length === 7 || (allCb && allCb.checked)) return [0,1,2,3,4,5,6];
+    return checked;
+};
+
+window._getEditGroupDays = function(gIdx) {
+    const dayCbs = [0,1,2,3,4,5,6].map(i => document.querySelector(`.edit-grp-day-${gIdx}[value="${i}"]`));
+    if (!dayCbs.every(Boolean)) return [0,1,2,3,4,5,6];
+    const checked = dayCbs.filter(cb => cb.checked).map(cb => parseInt(cb.value));
+    const allCb = document.querySelector(`.edit-grp-all-${gIdx}`);
+    if (checked.length === 7 || (allCb && allCb.checked)) return [0,1,2,3,4,5,6];
+    return checked;
+};
+
+// ─── AÑADIR GRUPO NUEVO ───
+window.addScheduleGroup = function(mapId) {
     if (!config || !config.mapsConfig || !config.mapsConfig[mapId]) return;
     const start = document.getElementById('new-range-start').value;
     const end = document.getElementById('new-range-end').value;
     if (!start || !end) {
-        showToast("ERROR: Ambos campos (Inicio y Fin) son requeridos.");
+        showToast("ERROR: Completá Inicio y Fin del horario.");
+        return;
+    }
+    const days = window._getNewGroupDays();
+    if (days.length === 0) {
+        showToast("ERROR: Seleccioná al menos un día.");
         return;
     }
     if (!config.mapsConfig[mapId].allowedHours) {
         config.mapsConfig[mapId].allowedHours = [];
     }
-    config.mapsConfig[mapId].allowedHours.push({ start, end });
+    config.mapsConfig[mapId].allowedHours.push({ days, hours: [{ start, end }] });
     saveConfig();
     renderMapDetail();
 };
 
-window.removeTimeRestrictionRange = function(mapId, index) {
-    if (!config || !config.mapsConfig || !config.mapsConfig[mapId] || !config.mapsConfig[mapId].allowedHours) return;
-    config.mapsConfig[mapId].allowedHours.splice(index, 1);
-    saveConfig();
+// ─── EDITAR GRUPO ───
+window.editScheduleGroup = function(mapId, gIdx) {
+    window._editingGroupIndex = gIdx;
     renderMapDetail();
 };
 
-window.editTimeRestrictionRange = function(mapId, index) {
-    window._editingScheduleIndex = index;
+window.cancelScheduleGroupEdit = function() {
+    window._editingGroupIndex = -1;
     renderMapDetail();
 };
 
-window.cancelInlineTimeRestrictionRange = function() {
-    window._editingScheduleIndex = -1;
-    renderMapDetail();
-};
-
-window.saveInlineTimeRestrictionRange = function(mapId, index) {
+window.saveScheduleGroup = function(mapId, gIdx) {
     if (!config || !config.mapsConfig || !config.mapsConfig[mapId] || !config.mapsConfig[mapId].allowedHours) return;
     
-    const newStart = document.getElementById(`inline-edit-start-${index}`).value;
-    const newEnd = document.getElementById(`inline-edit-end-${index}`).value;
-    
-    if (!newStart || !newEnd) {
-        showToast("ERROR: Ambos campos (Inicio y Fin) son requeridos.");
+    const days = window._getEditGroupDays(gIdx);
+    if (days.length === 0) {
+        showToast("ERROR: Seleccioná al menos un día.");
         return;
     }
     
-    config.mapsConfig[mapId].allowedHours[index] = { start: newStart, end: newEnd };
-    window._editingScheduleIndex = -1;
+    const group = config.mapsConfig[mapId].allowedHours[gIdx];
+    const hours = (group.hours || [{ start: "00:00", end: "00:00" }]).map((hr, hIdx) => {
+        const startEl = document.getElementById(`edit-hr-start-${gIdx}-${hIdx}`);
+        const endEl = document.getElementById(`edit-hr-end-${gIdx}-${hIdx}`);
+        if (startEl && endEl) {
+            return { start: startEl.value, end: endEl.value };
+        }
+        return hr;
+    });
+    
+    config.mapsConfig[mapId].allowedHours[gIdx] = { days, hours };
+    window._editingGroupIndex = -1;
+    saveConfig();
+    renderMapDetail();
+};
+
+// ─── AÑADIR HORARIO A GRUPO EN EDICIÓN ───
+window.addHourToGroup = function(mapId, gIdx) {
+    if (!config || !config.mapsConfig || !config.mapsConfig[mapId] || !config.mapsConfig[mapId].allowedHours) return;
+    const startEl = document.getElementById(`edit-new-hr-start-${gIdx}`);
+    const endEl = document.getElementById(`edit-new-hr-end-${gIdx}`);
+    if (!startEl || !endEl) return;
+    const start = startEl.value;
+    const end = endEl.value;
+    if (!start || !end) {
+        showToast("ERROR: Completá Inicio y Fin del nuevo horario.");
+        return;
+    }
+    if (!config.mapsConfig[mapId].allowedHours[gIdx].hours) {
+        config.mapsConfig[mapId].allowedHours[gIdx].hours = [];
+    }
+    config.mapsConfig[mapId].allowedHours[gIdx].hours.push({ start, end });
+    // Limpiar campos después de añadir
+    startEl.value = '';
+    endEl.value = '';
+    saveConfig();
+    renderMapDetail();
+};
+
+// ─── ELIMINAR HORARIO DE GRUPO ───
+window.removeGroupHour = function(mapId, gIdx, hIdx) {
+    if (!config || !config.mapsConfig || !config.mapsConfig[mapId] || !config.mapsConfig[mapId].allowedHours) return;
+    const group = config.mapsConfig[mapId].allowedHours[gIdx];
+    if (!group || !group.hours) return;
+    group.hours.splice(hIdx, 1);
+    if (group.hours.length === 0) {
+        group.hours = [{ start: "00:00", end: "00:00" }];
+    }
+    saveConfig();
+    renderMapDetail();
+};
+
+// ─── ELIMINAR GRUPO COMPLETO ───
+window.removeScheduleGroup = function(mapId, gIdx) {
+    if (!config || !config.mapsConfig || !config.mapsConfig[mapId] || !config.mapsConfig[mapId].allowedHours) return;
+    config.mapsConfig[mapId].allowedHours.splice(gIdx, 1);
     saveConfig();
     renderMapDetail();
 };
