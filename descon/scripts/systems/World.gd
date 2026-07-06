@@ -35,6 +35,7 @@ const SAVE_INTERVAL = 10.0
 var respawn_timer = 0.0
 
 # v268.30: Variables para Interferencia
+var _was_logged_in = false
 var _shake_strength = 0.0
 var _is_interference_active = false
 var _blind_tween: Tween = null
@@ -336,10 +337,12 @@ func _process(delta):
 	# Controlar visibilidad del juego real según el estado de login en caliente
 	if NetworkManager:
 		var is_logged = NetworkManager.is_logged_in
-		if is_instance_valid(ui_hud) and ui_hud.visible != is_logged:
-			ui_hud.visible = is_logged
-		if is_instance_valid(ui_chat) and ui_chat.visible != is_logged:
-			ui_chat.visible = is_logged
+		if is_logged != _was_logged_in:
+			_was_logged_in = is_logged
+			if is_instance_valid(ui_hud) and ui_hud.visible != is_logged:
+				ui_hud.visible = is_logged
+			if is_instance_valid(ui_chat) and ui_chat.visible != is_logged:
+				ui_chat.visible = is_logged
 		if is_instance_valid(local_player):
 			if local_player.visible != is_logged:
 				local_player.visible = is_logged
