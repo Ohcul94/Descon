@@ -148,7 +148,7 @@ func _on_auth_fail(msg):
 	if bg:
 		bg.visible = false
 	
-	var vfx = get_node_or_null("/root/VFXManager")
+	var vfx = get_node_or_null("/root/VFXSystem")
 	if vfx and vfx.has_method("start_login_cinematic"):
 		vfx.start_login_cinematic()
 		

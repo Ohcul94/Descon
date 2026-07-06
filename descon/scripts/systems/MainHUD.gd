@@ -203,7 +203,6 @@ func _input(event: InputEvent):
 			
 			if NetworkManager:
 				NetworkManager.logout()
-				
 			get_tree().reload_current_scene()
 			return
 
@@ -850,9 +849,10 @@ func _create_esc_menu():
 	logout_btn.pressed.connect(func():
 		if NetworkManager:
 			NetworkManager.logout()
-		var tree = Engine.get_main_loop()
-		if tree and tree is SceneTree:
-			tree.reload_current_scene()
+		_close_esc_menu()
+		var vfx = get_node_or_null("/root/VFXSystem")
+		if vfx and vfx.has_method("start_login_cinematic"):
+			vfx.start_login_cinematic()
 	)
 	vbox.add_child(logout_btn)
 	

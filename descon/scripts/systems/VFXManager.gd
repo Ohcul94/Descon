@@ -325,15 +325,25 @@ func start_login_cinematic():
 	var canvas = _loading_refs.get("viewport_canvas")
 	if canvas and is_instance_valid(canvas):
 		canvas.visible = true
-		canvas.modulate.a = 1.0
 
 	# Mostrar el LoginUI con fade-in
 	var login_ui = get_tree().root.find_child("LoginUI", true, false)
 	if login_ui:
+		# Limpiar texto de estado anterior (ej. "Bienvenido!")
+		var status = login_ui.get_node_or_null("Panel/VBoxContainer/ErrorLabel")
+		if status:
+			status.text = " "
 		login_ui.visible = true
 		login_ui.modulate.a = 0.0
 		var fade = create_tween()
 		fade.tween_property(login_ui, "modulate:a", 1.0, 0.4)
+
+	# Conectar señal para cuando el login sea exitoso
+	if NetworkManager:
+		if not NetworkManager.auth_success.is_connected(_on_login_done):
+			NetworkManager.auth_success.connect(_on_login_done, CONNECT_ONE_SHOT)
+		if NetworkManager.has_signal("login_success") and not NetworkManager.login_success.is_connected(_on_login_done):
+			NetworkManager.login_success.connect(_on_login_done, CONNECT_ONE_SHOT)
 
 func _set_world_environment_visible(value: bool):
 	# 1. Jugador Local
@@ -455,6 +465,14 @@ func _setup_cinematic_3d():
 	combat_controller.planet2 = planet2
 	combat_controller.planet3 = planet3
 
+func reset_for_new_session():
+	for key in _loading_refs.keys():
+		var node = _loading_refs[key]
+		if node and is_instance_valid(node):
+			node.queue_free()
+	_loading_refs.clear()
+	call_deferred("_run_shader_warmup")
+
 func _run_shader_warmup():
 	_loading_refs.clear()
 
@@ -465,7 +483,19 @@ func _run_shader_warmup():
 	if login_ui:
 		login_ui.visible = false
 
-	# 1. Crear e instanciar la UI de carga minimalista primero
+	# Inicializar la cinemática 3D PRIMERO, para que el fondo esté listo
+	_setup_cinematic_3d()
+	var cont = _loading_refs.get("viewport_display")
+	if cont and is_instance_valid(cont):
+		cont.visible = true
+	var canv = _loading_refs.get("viewport_canvas")
+	if canv and is_instance_valid(canv):
+		canv.visible = true
+
+	# Esperar un frame para que el 3D se renderice
+	await get_tree().process_frame
+
+	# 1. Crear e instanciar la UI de carga minimalista encima de la cinemática
 	var canvas = CanvasLayer.new()
 	canvas.layer = 9999
 	get_tree().root.add_child(canvas)
@@ -485,7 +515,7 @@ func _run_shader_warmup():
 	bottom_margin.add_theme_constant_override("margin_right", 120)
 	bottom_margin.add_theme_constant_override("margin_bottom", 45)
 	canvas.add_child(bottom_margin)
-	_loading_refs["center"] = bottom_margin # Mapeado para el fadeout automático al final
+	_loading_refs["center"] = bottom_margin
 
 	var vbox = VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -534,13 +564,6 @@ func _run_shader_warmup():
 	progress.add_theme_stylebox_override("background", pb_bg)
 	progress.add_theme_stylebox_override("fill", pb_fg)
 	vbox.add_child(progress)
-
-	# Esperar dos frames para obligar a Godot a pintar la barra de carga antes de inicializar el 3D
-	await get_tree().process_frame
-	await get_tree().process_frame
-
-	# 2. Inicializar el lienzo 3D
-	_setup_cinematic_3d()
 
 	await get_tree().process_frame
 
