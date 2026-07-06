@@ -540,6 +540,7 @@ func _get_hud_node(id: String):
 	if id == "SkillsContainer": real_id = "Skills"
 	if id == "Status" or id == "StatusEffects": real_id = "StatusEffects"
 	if id == "PortalBtnContainer": real_id = "PortalBtnContainer"
+	if id == "BattlePass": real_id = "PaseBatalla"
 	
 	var node = get_node_or_null(real_id)
 	

@@ -117,7 +117,8 @@ func _setup_touch_buttons():
 	var touch_btns = [
 		{"id": "EscMenu", "icon": "⚙️", "tip": "Sistema (ESC)"},
 		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"},
-		{"id": "Housing", "icon": "🏠", "tip": "Housing (F3)"}
+		{"id": "Housing", "icon": "🏠", "tip": "Housing (F3)"},
+		{"id": "BattlePass", "icon": "🎟️", "tip": "Pase de Batalla (F4)"}
 	]
 	
 	for data in touch_btns:

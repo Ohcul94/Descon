@@ -98,6 +98,7 @@ signal housing_state(data)
 signal socket_event_received(event_name, data)
 
 signal status_effects_sync(data)
+signal battle_pass_state(data)
 
 
 var socket: WebSocketPeer = WebSocketPeer.new()
@@ -406,6 +407,9 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"arenaFinished": arena_finished.emit(e_data)
 		"housingState":
 			housing_state.emit(e_data)
+			socket_event_received.emit(e_name, e_data)
+		"battlePassState":
+			battle_pass_state.emit(e_data)
 			socket_event_received.emit(e_name, e_data)
 		_:
 			socket_event_received.emit(e_name, e_data)

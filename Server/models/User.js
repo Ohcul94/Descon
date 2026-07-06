@@ -88,10 +88,19 @@ const UserSchema = new mongoose.Schema({
             placedObjects: { type: Array, default: [] }
         },
         quests: {
-            active: { type: Array, default: [] }, // Array de { id, progress, acceptedAt }
-            completed: { type: Array, default: [] }, // Array de IDs de misiones completadas
+            active: { type: Array, default: [] },
+            completed: { type: Array, default: [] },
             lastDailyReset: { type: Date, default: null },
             lastWeeklyReset: { type: Date, default: null }
+        },
+        battlePass: {
+            level: { type: Number, default: 1 },
+            exp: { type: Number, default: 0 },
+            isVip: { type: Boolean, default: false },
+            vipActiveUntil: { type: Date, default: null },
+            claimedFree: { type: [Number], default: [] },
+            claimedVip: { type: [Number], default: [] },
+            lastDailyClaim: { type: Date, default: null }
         }
     }
 });

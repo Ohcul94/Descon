@@ -51,6 +51,7 @@ const { registerVaultHandlers } = require('./systems/vaultHandlers');
 const { registerPartyHandlers } = require('./handlers/partyHandlers');
 const { registerSkillHandlers } = require('./handlers/skillHandlers');
 const { registerHousingHandlers } = require('./systems/housingHandlers');
+const { registerBattlePassHandlers } = require('./systems/battlePassHandlers');
 
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
@@ -85,7 +86,8 @@ const CLIENT_CONFIG_KEYS = [
     'defenseLib',
     'ammoMechLib',
     'ambienceLib',
-    'talentsConfig'
+    'talentsConfig',
+    'battlePassConfig'
 ];
 
 const buildClientConfig = (config) => {
@@ -754,6 +756,34 @@ fs.readJson(CONFIG_FILE).then(config => {
         });
     }
 
+    // Battle Pass default config
+    if (!state.SERVER_CONFIG.battlePassConfig) {
+        state.SERVER_CONFIG.battlePassConfig = {
+            seasonName: "Temporada 1",
+            maxLevel: 50,
+            vipCostHubs: 50000,
+            vipCostOhcu: 200,
+            seasonDurationDays: 30,
+            xpSources: {
+                killExp: 50,
+                questExp: 200,
+                extractionExp: 500
+            },
+            levels: []
+        };
+        for (let lv = 1; lv <= 50; lv++) {
+            state.SERVER_CONFIG.battlePassConfig.levels.push({
+                level: lv,
+                expRequired: 2000 + lv * 200,
+                freeReward: { hubs: 1000 + lv * 100, ohcu: 0, exp: 0 },
+                vipReward: lv % 5 === 0 ? { itemName: "Cofre VIP", itemAmount: 1 } : { ohcu: 10 + lv * 2 }
+            });
+        }
+        fs.writeJson(CONFIG_FILE, state.SERVER_CONFIG, { spaces: 4 }).catch(err => {
+            console.error("[SERVER] Error al guardar inyección de battlePassConfig en config.json:", err);
+        });
+    }
+
     // v8.0: Inyección de Habilidades Nativas (Asegurar persistencia tras reinicio)
     if (!state.SERVER_CONFIG.skillsData) state.SERVER_CONFIG.skillsData = {};
     if (!state.SERVER_CONFIG.skillsData["FROST-TRAIL"]) {
@@ -1163,6 +1193,9 @@ io.on('connection', (socket) => {
     // Registrar manejadores del sistema de Misiones (v380)
     const { registerQuestHandlers } = require('./systems/questHandlers');
     registerQuestHandlers(socket, io, state);
+
+    // Registrar manejadores del Pase de Batalla
+    registerBattlePassHandlers(socket, io, state);
 
 
     // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL (PROTEGIDO)

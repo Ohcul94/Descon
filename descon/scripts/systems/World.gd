@@ -4,6 +4,7 @@ extends Node2D
 const LootUIScript = preload("res://scripts/ui/LootUI.gd")
 const VaultUIScript = preload("res://scripts/ui/VaultUI.gd")
 const DeathModalUIScript = preload("res://scripts/ui/DeathModalUI.gd")
+const PaseBatallaScript = preload("res://scripts/ui/PaseBatalla.gd")
 const EntityManagerScript = preload("res://scripts/systems/EntityManager.gd")
 const DungeonBuilderScript = preload("res://scripts/systems/DungeonBuilder.gd")
 
@@ -93,6 +94,12 @@ func _ready():
 			death_ui.name = "DeathModalUI"
 			hud_node.add_child(death_ui)
 			print("[WORLD] DeathModalUI inyectado desde preload.")
+
+		if PaseBatallaScript:
+			var bp_ui = PaseBatallaScript.new()
+			bp_ui.name = "PaseBatalla"
+			hud_node.add_child(bp_ui)
+			print("[WORLD] PaseBatalla inyectado desde preload.")
 
 
 func _inject_entity_manager():

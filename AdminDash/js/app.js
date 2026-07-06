@@ -148,6 +148,7 @@ function showTab(tabId) {
         'crafting-recipes': 'Recetas de Crafteo',
         'crafting-materials': 'Materiales de Crafteo',
         'quests': 'Misiones de la Galaxia',
+        'battlepass': 'Pase de Batalla',
         'chat-global': 'Transmisión y Chat Global'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
@@ -352,6 +353,35 @@ function connect() {
             }
             if (!config.questsGlobalConfig) {
                 config.questsGlobalConfig = JSON.parse(JSON.stringify(DEFAULT_QUESTS_GLOBAL_CONFIG));
+            }
+
+            // Inicializar configuración del Pase de Batalla
+            if (!config.battlePassConfig) {
+                const niveles = [];
+                for (let i = 0; i < 50; i++) {
+                    niveles.push({
+                        level: i + 1,
+                        expRequired: (i + 1) * 2000,
+                        freeReward: null,
+                        vipReward: null
+                    });
+                }
+                config.battlePassConfig = {
+                    enabled: true,
+                    seasonName: "Tempada 1: Alborada Galáctica",
+                    seasonDurationDays: 30,
+                    maxLevel: 50,
+                    vipCostHubs: 50000,
+                    vipCostOhcu: 200,
+                    xpSources: {
+                        killExp: 50,
+                        bossKillExp: 200,
+                        questExp: 100,
+                        extractionExp: 500,
+                        dailyBonusExp: 1000
+                    },
+                    levels: niveles
+                };
             }
 
             patchMechanicsLib();
