@@ -146,11 +146,14 @@ func _on_auth_fail(msg):
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	show()
 	var bg = get_node_or_null("FondoNegro")
-	if not bg:
-		bg = ColorRect.new(); bg.name = "FondoNegro"; bg.color = Color.BLACK
-		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		add_child(bg); move_child(bg, 0)
-	bg.visible = true
+	if bg:
+		bg.visible = false # Ocultar el fondo negro plano para permitir ver la cinemática
+	
+	# Reactivar la cinemática 3D de combate espacial de fondo
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx and vfx.has_method("start_login_cinematic"):
+		vfx.start_login_cinematic()
+		
 	_show_status("SESIÓN CERRADA: " + str(msg), Color.RED)
 
 func _show_status(txt, col):

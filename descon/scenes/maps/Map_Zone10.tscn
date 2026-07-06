@@ -1,0 +1,135 @@
+[gd_scene format=3 uid="uid://bt2hv43f2jomg"]
+
+[ext_resource type="Script" uid="uid://db62j6rerx7gv" path="res://scripts/systems/BaseMap.gd" id="1"]
+
+[sub_resource type="Environment" id="Env_main"]
+ambient_light_source = 2
+ambient_light_color = Color(0.9, 0.9, 0.9, 1)
+ambient_light_energy = 2.2
+
+[sub_resource type="StandardMaterial3D" id="Mat_ground_editor"]
+albedo_color = Color(0.42, 0.39, 0.36, 1)
+metallic = 0.2
+roughness = 0.85
+emission_enabled = true
+emission = Color(0.04, 0.03, 0.08, 1)
+emission_energy_multiplier = 0.3
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
+size = Vector2(160, 226.27)
+
+[sub_resource type="StandardMaterial3D" id="Mat_nebula_editor"]
+transparency = 1
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(0.25, 0.09, 0.35, 0.9)
+
+[sub_resource type="QuadMesh" id="QuadMesh_tb"]
+size = Vector2(40, 40)
+
+[sub_resource type="QuadMesh" id="QuadMesh_lr"]
+size = Vector2(56.56, 40)
+
+[node name="Map_Zone10" type="Node2D" unique_id=58071148]
+script = ExtResource("1")
+world_size = 2000.0
+zone_name = "ZONA 200 - CONSTRUCTOR"
+zone_id = 200
+
+[node name="ViewportCanvas" type="CanvasLayer" parent="." unique_id=689301010]
+layer = -5
+
+[node name="SubViewportContainer" type="SubViewportContainer" parent="ViewportCanvas" unique_id=599145483]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+stretch = true
+
+[node name="SubViewport" type="SubViewport" parent="ViewportCanvas/SubViewportContainer" unique_id=481409068]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(1280, 800)
+render_target_update_mode = 4
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=1476529485]
+environment = SubResource("Env_main")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=146547529]
+transform = Transform3D(0.8660254, 0.35355338, -0.35355338, 0, 0.70710677, 0.70710677, 0.5, -0.6123724, 0.6123724, 0, 0, 0)
+light_color = Color(0.7, 0.85, 1, 1)
+light_energy = 1.2
+
+[node name="Camera3D" type="Camera3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=588606998]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 20, 30, 58.28)
+projection = 1
+current = true
+size = 100.0
+
+[node name="CameraHeadlight" type="DirectionalLight3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Camera3D" unique_id=1939335962]
+light_energy = 1.8
+light_specular = 0.2
+
+[node name="Ground3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=737482712]
+
+[node name="GroundMesh" type="MeshInstance3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Ground3D" unique_id=476437583]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, -5, 28.28)
+material_override = SubResource("Mat_ground_editor")
+mesh = SubResource("PlaneMesh_ground")
+
+[node name="NebulaWalls" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Ground3D" unique_id=472844530]
+
+[node name="WallTop" type="MeshInstance3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Ground3D/NebulaWalls" unique_id=205610754]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 15, -2.26)
+material_override = SubResource("Mat_nebula_editor")
+mesh = SubResource("QuadMesh_tb")
+
+[node name="WallBottom" type="MeshInstance3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Ground3D/NebulaWalls" unique_id=82194222]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 15, 58.82)
+material_override = SubResource("Mat_nebula_editor")
+mesh = SubResource("QuadMesh_tb")
+
+[node name="WallLeft" type="MeshInstance3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Ground3D/NebulaWalls" unique_id=192412056]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -1.6, 15, 28.28)
+material_override = SubResource("Mat_nebula_editor")
+mesh = SubResource("QuadMesh_lr")
+
+[node name="WallRight" type="MeshInstance3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Ground3D/NebulaWalls" unique_id=938658339]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 41.6, 15, 28.28)
+material_override = SubResource("Mat_nebula_editor")
+mesh = SubResource("QuadMesh_lr")
+
+[node name="WorldCursor3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=572222797]
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="." unique_id=248940853]
+layer = -10
+
+[node name="StaticLayer" type="CanvasLayer" parent="ParallaxBackground" unique_id=799196298]
+layer = -20
+
+[node name="SpaceBG" type="ColorRect" parent="ParallaxBackground/StaticLayer" unique_id=2112834347]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.0156863, 0.0156863, 0.0156863, 1)
+
+[node name="MapWorldLayer" type="ParallaxLayer" parent="ParallaxBackground" unique_id=1622184087]
+
+[node name="MapBackground" type="TextureRect" parent="ParallaxBackground/MapWorldLayer" unique_id=757274213]
+modulate = Color(1, 1, 1, 0)
+offset_left = -8000.0
+offset_top = -8000.0
+offset_right = 8000.0
+offset_bottom = 8000.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Buildings" type="Node2D" parent="." unique_id=1975620610]
+z_index = -5

@@ -134,16 +134,6 @@ func _on_network_config_updated(_config):
 func _setup_dynamic_3d_map_layout():
 	if not is_instance_valid(sub_viewport):
 		return
-		
-	# Limpiar suelo y rocas viejos si existen para evitar duplicación
-	var old_ground = sub_viewport.get_node_or_null("Ground3D")
-	if is_instance_valid(old_ground):
-		old_ground.queue_free()
-
-	# Crear suelo 3D decorativo (superficie estelar / lunar)
-	var ground_root = Node3D.new()
-	ground_root.name = "Ground3D"
-	sub_viewport.add_child(ground_root)
 
 	# Obtener dimensiones dinámicas del mapa desde MAPS_CONFIG (AdminDash Cartografia)
 	var map_width = world_size
@@ -158,7 +148,7 @@ func _setup_dynamic_3d_map_layout():
 		if cfg.has("width") and float(cfg.width) > 0:
 			map_width = float(cfg.width)
 			map_height = float(cfg.width)
-			world_size = map_width # Sincronizar world_size
+			world_size = map_width
 		if cfg.has("height") and float(cfg.height) > 0:
 			map_height = float(cfg.height)
 
@@ -169,13 +159,23 @@ func _setup_dynamic_3d_map_layout():
 	var center_z = (map_height / 2.0) * scale_factor * correction_z
 	var y_ground = -5.0
 
+	# v500.0: Si Ground3D ya existe (pre-colocado en la escena), redimensionar sin recrear
+	var existing_ground = sub_viewport.get_node_or_null("Ground3D")
+	if is_instance_valid(existing_ground):
+		_resize_existing_ground(existing_ground, ground_size_x, ground_size_z, center_x, center_z, y_ground, map_width, map_height)
+		return
+
+	# Crear suelo 3D decorativo (superficie estelar / lunar)
+	var ground_root = Node3D.new()
+	ground_root.name = "Ground3D"
+	sub_viewport.add_child(ground_root)
+
 	var mesh_instance = MeshInstance3D.new()
 	var plane_mesh = PlaneMesh.new()
 	plane_mesh.size = Vector2(ground_size_x, ground_size_z)
 	mesh_instance.mesh = plane_mesh
 	mesh_instance.position = Vector3(center_x, y_ground, center_z)
 
-	# Material de superficie rocosa estelar CON RELIEVE (normal mapping desde noise)
 	var ground_mat = ShaderMaterial.new()
 	ground_mat.shader = SHADER_GROUND_RELIEF
 	ground_mat.set_shader_parameter("u_albedo_tex", TEXTURE_NOISE_531)
@@ -195,29 +195,27 @@ func _setup_dynamic_3d_map_layout():
 	var wall_root = Node3D.new()
 	wall_root.name = "NebulaWalls"
 	ground_root.add_child(wall_root)
-	
+
 	var wall_height = 40.0
 	var y_wall = y_ground + wall_height / 2.0
-	
+
 	var min_x = 0.0
 	var max_x = map_width * scale_factor
 	var min_z = 0.0
 	var max_z = map_height * scale_factor * correction_z
-	
+
 	var buffer_x = 80.0 * scale_factor
 	var buffer_z = 80.0 * scale_factor * correction_z
-	
-	# Material de nebulosa viscosa usando el shader animado preexistente
+
 	var wall_mat = ShaderMaterial.new()
 	wall_mat.shader = SHADER_BORDER_NEBULA
 	wall_mat.set_shader_parameter("u_noise_tex", TEXTURE_NOISE_019)
-	# Colores densos y viscosos con alta opacidad para bloquear la vista
 	wall_mat.set_shader_parameter("u_color_a", Color(0.18, 0.01, 0.28, 0.95))
 	wall_mat.set_shader_parameter("u_color_b", Color(0.01, 0.25, 0.45, 0.90))
 	wall_mat.set_shader_parameter("u_color_c", Color(0.55, 0.02, 0.35, 0.90))
 	wall_mat.set_shader_parameter("u_speed", 0.4)
-	wall_mat.set_shader_parameter("u_alpha_scale", 1.8) # Alta opacidad para bloquear vista al exterior
-	
+	wall_mat.set_shader_parameter("u_alpha_scale", 1.8)
+
 	# 1. Pared Superior
 	var wall_top = MeshInstance3D.new()
 	wall_top.name = "WallTop"
@@ -227,7 +225,7 @@ func _setup_dynamic_3d_map_layout():
 	wall_top.material_override = wall_mat
 	wall_top.position = Vector3((max_x + min_x) / 2.0, y_wall, min_z - buffer_z)
 	wall_root.add_child(wall_top)
-	
+
 	# 2. Pared Inferior
 	var wall_bottom = MeshInstance3D.new()
 	wall_bottom.name = "WallBottom"
@@ -237,7 +235,7 @@ func _setup_dynamic_3d_map_layout():
 	wall_bottom.material_override = wall_mat
 	wall_bottom.position = Vector3((max_x + min_x) / 2.0, y_wall, max_z + buffer_z)
 	wall_root.add_child(wall_bottom)
-	
+
 	# 3. Pared Izquierda
 	var wall_left = MeshInstance3D.new()
 	wall_left.name = "WallLeft"
@@ -248,7 +246,7 @@ func _setup_dynamic_3d_map_layout():
 	wall_left.position = Vector3(min_x - buffer_x, y_wall, (max_z + min_z) / 2.0)
 	wall_left.rotation_degrees = Vector3(0, 90, 0)
 	wall_root.add_child(wall_left)
-	
+
 	# 4. Pared Derecha
 	var wall_right = MeshInstance3D.new()
 	wall_right.name = "WallRight"
@@ -259,6 +257,67 @@ func _setup_dynamic_3d_map_layout():
 	wall_right.position = Vector3(max_x + buffer_x, y_wall, (max_z + min_z) / 2.0)
 	wall_right.rotation_degrees = Vector3(0, 90, 0)
 	wall_root.add_child(wall_right)
+
+# v500.0: Redimensionar Ground3D y NebulaWalls existentes (pre-colocados en escena)
+# Reemplaza los StandardMaterial3D del editor con los ShaderMaterial correctos en runtime
+func _resize_existing_ground(ground_root: Node3D, gs_x: float, gs_z: float, cx: float, cz: float, y: float, map_w: float, map_h: float):
+	var mesh_node = ground_root.get_node_or_null("GroundMesh")
+	if is_instance_valid(mesh_node) and mesh_node is MeshInstance3D:
+		var pm = mesh_node.mesh
+		if pm is PlaneMesh:
+			pm.size = Vector2(gs_x, gs_z)
+		mesh_node.position = Vector3(cx, y, cz)
+		# Reemplazar material placeholder del editor con ShaderMaterial de relief
+		var ground_mat = ShaderMaterial.new()
+		ground_mat.shader = SHADER_GROUND_RELIEF
+		ground_mat.set_shader_parameter("u_albedo_tex", TEXTURE_NOISE_531)
+		ground_mat.set_shader_parameter("u_detail_tex", TEXTURE_NOISE_21D)
+		ground_mat.set_shader_parameter("u_tint_color", Color(0.55, 0.52, 0.48))
+		ground_mat.set_shader_parameter("u_tiling", Vector2(5.0, 5.0))
+		ground_mat.set_shader_parameter("u_height_scale", 1.8)
+		ground_mat.set_shader_parameter("u_detail_strength", 0.4)
+		ground_mat.set_shader_parameter("u_metallic", 0.2)
+		ground_mat.set_shader_parameter("u_roughness", 0.85)
+		ground_mat.set_shader_parameter("u_emission", Vector3(0.04, 0.03, 0.08))
+		ground_mat.set_shader_parameter("u_emission_energy", 0.3)
+		mesh_node.material_override = ground_mat
+
+	var walls = ground_root.get_node_or_null("NebulaWalls")
+	if is_instance_valid(walls):
+		var wall_height = 40.0
+		var y_wall = y + wall_height / 2.0
+		var min_x = 0.0
+		var max_x = map_w * scale_factor
+		var min_z = 0.0
+		var max_z = map_h * scale_factor * correction_z
+		var buffer_x = 80.0 * scale_factor
+		var buffer_z = 80.0 * scale_factor * correction_z
+
+		# Material de nebulosa animado para las paredes
+		var wall_mat = ShaderMaterial.new()
+		wall_mat.shader = SHADER_BORDER_NEBULA
+		wall_mat.set_shader_parameter("u_noise_tex", TEXTURE_NOISE_019)
+		wall_mat.set_shader_parameter("u_color_a", Color(0.18, 0.01, 0.28, 0.95))
+		wall_mat.set_shader_parameter("u_color_b", Color(0.01, 0.25, 0.45, 0.90))
+		wall_mat.set_shader_parameter("u_color_c", Color(0.55, 0.02, 0.35, 0.90))
+		wall_mat.set_shader_parameter("u_speed", 0.4)
+		wall_mat.set_shader_parameter("u_alpha_scale", 1.8)
+
+		_resize_quad(walls, "WallTop", Vector2(max_x - min_x, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, min_z - buffer_z), Vector3.ZERO, wall_mat)
+		_resize_quad(walls, "WallBottom", Vector2(max_x - min_x, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, max_z + buffer_z), Vector3.ZERO, wall_mat)
+		_resize_quad(walls, "WallLeft", Vector2(max_z - min_z, wall_height), Vector3(min_x - buffer_x, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
+		_resize_quad(walls, "WallRight", Vector2(max_z - min_z, wall_height), Vector3(max_x + buffer_x, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
+
+func _resize_quad(parent: Node3D, node_name: String, size: Vector2, pos: Vector3, rot: Vector3, mat: Material = null):
+	var node = parent.get_node_or_null(node_name)
+	if is_instance_valid(node) and node is MeshInstance3D:
+		var mesh = node.mesh
+		if mesh is QuadMesh:
+			mesh.size = size
+		node.position = pos
+		node.rotation_degrees = rot
+		if mat:
+			node.material_override = mat
 
 func _setup_3d_dynamic():
 	# Si ya existe ViewportCanvas en la escena (como en Map_Extraction), vincular referencias y retornar

@@ -118,6 +118,8 @@ func _ready():
 	super._ready() 
 	add_to_group("player")
 	target_position = global_position
+	# Forzar ocultamiento en el inicio hasta que el login sea exitoso
+	visible = false
 	
 	collision_layer = 1
 	collision_mask = 2
@@ -327,7 +329,21 @@ func _unhandled_input(event):
 					create_tween().set_trans(Tween.TRANS_SINE).tween_property(cam, "zoom", Vector2(target_z, target_z), 0.2)
 
 func _physics_process(p_delta):
-	if not NetworkManager.network_connected: return
+	# Evaluar visibilidad antes del retorno de red para mantener la nave oculta sin conexión inicial
+	if NetworkManager and not NetworkManager.is_logged_in:
+		if visible:
+			visible = false
+		if is_instance_valid(world_root_3d):
+			world_root_3d.visible = false
+		if is_instance_valid(_ui_wrapper):
+			_ui_wrapper.visible = false
+	else:
+		if current_zone != 100 and not visible and not is_dead:
+			visible = true
+			
+	if not NetworkManager.network_connected: 
+		velocity = Vector2.ZERO
+		return
 	
 	if current_zone == 100:
 		if visible:
@@ -335,8 +351,7 @@ func _physics_process(p_delta):
 		velocity = Vector2.ZERO
 		return
 	else:
-		if not visible and not is_dead:
-			visible = true
+		pass
 
 	_handle_cooldowns(p_delta)
 	

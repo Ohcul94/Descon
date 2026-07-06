@@ -3169,7 +3169,7 @@
             "height": 10000,
             "objects": [],
             "visible": true,
-            "timeRestrictionsEnabled": true,
+            "timeRestrictionsEnabled": false,
             "allowedHours": []
         },
         "7": {
@@ -3358,6 +3358,20 @@
             "objects": [],
             "width": 10000,
             "height": 10000
+        },
+        "200": {
+            "name": "ZONA 200 - CONSTRUCTOR",
+            "desc": "Zona de construcción y edición de niveles 3D.",
+            "color": "#00ffaa",
+            "warpCost": 0,
+            "minLevel": 1,
+            "width": 2000,
+            "height": 2000,
+            "visible": true,
+            "pvpMode": "tranquila",
+            "ambience": [],
+            "spawns": [],
+            "objects": []
         }
     },
     "shipModels": [

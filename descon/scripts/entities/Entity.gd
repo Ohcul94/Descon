@@ -391,17 +391,23 @@ func _process(delta):
 			
 			# v311.5: Forzar visibilidad correcta al estar en pantalla
 			if is_instance_valid(world_root_3d):
-				if (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
+				if get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
+					world_root_3d.visible = false
+				elif (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
 					world_root_3d.visible = _is_currently_camouflaged
 				else:
 					world_root_3d.visible = not is_dead
 			if is_instance_valid(_ui_wrapper):
-				if (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
+				if get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
+					_ui_wrapper.visible = false
+				elif (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
 					_ui_wrapper.visible = false
 				else:
 					_ui_wrapper.visible = visible and not is_dead
 			if is_instance_valid(_vfx_container_2d):
-				if (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
+				if get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
+					_vfx_container_2d.visible = false
+				elif (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
 					_vfx_container_2d.visible = _is_currently_camouflaged
 				else:
 					_vfx_container_2d.visible = true

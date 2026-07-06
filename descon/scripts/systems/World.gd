@@ -491,6 +491,8 @@ func _update_background(zone_id):
 	# Mapear escenas según el tipo de zona
 	if zid == 1:
 		scene_path = "res://scenes/maps/Map_Loby.tscn"
+	elif zid == 200:
+		scene_path = "res://scenes/maps/Map_Zone10.tscn"
 	elif zid == 100:
 		scene_path = "res://scenes/maps/Map_Housing.tscn"
 	elif is_altar_defense or is_extraction or is_arena:

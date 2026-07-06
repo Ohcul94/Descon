@@ -29,8 +29,12 @@ func build_for_zone(zone_id, map_node: Node) -> void:
 	var target_viewport: SubViewport = map_node.sub_viewport
 	var scale_factor: float = map_node.get("scale_factor") if "scale_factor" in map_node else 0.02
 	
-	# 3. Obtener objetos del mapa desde GameConstants
+	# 3. Obtener objetos del mapa desde GameConstants (limpiar float "200.0" -> "200")
 	var zone_key = str(zone_id)
+	if "." in zone_key and zone_key.is_valid_float():
+		var z_float = float(zone_key)
+		if z_float == int(z_float):
+			zone_key = str(int(z_float))
 	if not GameConstants.MAPS_CONFIG.has(zone_key):
 		push_warning("[DungeonBuilder] No se encontró configuración para zona: " + zone_key)
 		return

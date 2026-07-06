@@ -616,7 +616,7 @@ function updateSidebar() {
     // Mapas
     for(let id in config.mapsConfig) {
         const m = config.mapsConfig[id];
-        if (id === "10" || id === "11") continue; // Omitir mapas de evento de extracción
+        if (id === "11") continue; // Omitir mapa de evento de extracción
         if(searchTerm && !m.name.toLowerCase().includes(searchTerm)) continue;
         const link = document.createElement('div');
         link.className = 'nav-link sub ' + (selectedMapId === id ? 'active' : '');
