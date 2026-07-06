@@ -66,6 +66,7 @@ acceleration = 1200.0
 friction = 800.0
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1607871619]
+layer = 2
 
 [node name="MainHUD" parent="HUD" unique_id=2046515387 instance=ExtResource("8_hud")]
 

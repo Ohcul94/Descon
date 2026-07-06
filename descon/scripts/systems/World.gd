@@ -333,6 +333,29 @@ func _generate_stellar_data():
 		_star_sprites.append(spr)
 
 func _process(delta):
+	# Controlar visibilidad del juego real según el estado de login en caliente
+	if NetworkManager:
+		var is_logged = NetworkManager.is_logged_in
+		if is_instance_valid(ui_hud) and ui_hud.visible != is_logged:
+			ui_hud.visible = is_logged
+		if is_instance_valid(ui_chat) and ui_chat.visible != is_logged:
+			ui_chat.visible = is_logged
+		if is_instance_valid(local_player):
+			if local_player.visible != is_logged:
+				local_player.visible = is_logged
+			var wr3d = local_player.get("world_root_3d")
+			if wr3d and is_instance_valid(wr3d) and wr3d.visible != is_logged:
+				wr3d.visible = is_logged
+			var uiw = local_player.get("_ui_wrapper")
+			if uiw and is_instance_valid(uiw) and uiw.visible != is_logged:
+				uiw.visible = is_logged
+		if is_instance_valid(current_map_node):
+			if current_map_node.visible != is_logged:
+				current_map_node.visible = is_logged
+			for child in current_map_node.find_children("*", "CanvasLayer", true, false):
+				if child.visible != is_logged:
+					child.visible = is_logged
+
 	# Parallax de estrellas
 	var cam_pos = Vector2.ZERO
 	if is_instance_valid(local_player): cam_pos = local_player.global_position

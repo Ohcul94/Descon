@@ -850,7 +850,9 @@ func _create_esc_menu():
 	logout_btn.pressed.connect(func():
 		if NetworkManager:
 			NetworkManager.logout()
-			get_tree().reload_current_scene()
+		var tree = Engine.get_main_loop()
+		if tree and tree is SceneTree:
+			tree.reload_current_scene()
 	)
 	vbox.add_child(logout_btn)
 	

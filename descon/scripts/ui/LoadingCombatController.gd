@@ -177,7 +177,7 @@ func _spawn_laser_projectile(from_ship: Node3D, to_ship: Node3D, col: Color, is_
 	
 	# Rotar el proyectil 3D para que mire hacia su objetivo en viaje
 	proj_node.look_at(to_ship.position, Vector3.UP)
-	proj_node.scale = Vector3(1.2, 1.2, 1.2) if is_emp else Vector3(1.0, 1.0, 1.0)
+	proj_node.scale = Vector3(0.6, 0.6, 0.6) if is_emp else Vector3(0.5, 0.5, 0.5)
 	
 	# Luz integrada adicional para iluminar naves al pasar
 	var light = OmniLight3D.new()

@@ -142,14 +142,12 @@ func _on_auth_success(_data):
 
 func _on_auth_fail(msg):
 	visible = true
-	modulate.a = 1.0
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	show()
 	var bg = get_node_or_null("FondoNegro")
 	if bg:
-		bg.visible = false # Ocultar el fondo negro plano para permitir ver la cinemática
+		bg.visible = false
 	
-	# Reactivar la cinemática 3D de combate espacial de fondo
 	var vfx = get_node_or_null("/root/VFXManager")
 	if vfx and vfx.has_method("start_login_cinematic"):
 		vfx.start_login_cinematic()

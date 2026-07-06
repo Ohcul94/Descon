@@ -447,7 +447,10 @@ func _process(delta):
 			has_projected = true
 		
 		if is_instance_valid(_ui_wrapper):
-			_ui_wrapper.visible = visible and not is_dead
+			if get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
+				_ui_wrapper.visible = false
+			else:
+				_ui_wrapper.visible = visible and not is_dead
 			_ui_wrapper.global_position = projected_pos_hud
 			if name_tag: _update_hud_offsets()
 		

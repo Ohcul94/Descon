@@ -306,13 +306,13 @@ func _on_login_done(_data = null):
 		if vp and is_instance_valid(vp):
 			vp.queue_free()
 			
-	# Restaurar solo el Player (su modelo 3D y su UI flotante)
-	_set_player_visible(true)
+	# Restaurar el Player, HUD, mapa y entidades del juego real
+	_set_world_environment_visible(true)
 	_loading_refs.clear()
 
 func start_login_cinematic():
-	# Solo ocultar el Player – nada más
-	_set_player_visible(false)
+	# Ocultar el entorno del juego real (Player, HUD, mapa, enemigos)
+	_set_world_environment_visible(false)
 	
 	# Configurar/reutilizar la cinemática 3D de combate
 	_setup_cinematic_3d()
@@ -335,22 +335,53 @@ func start_login_cinematic():
 		var fade = create_tween()
 		fade.tween_property(login_ui, "modulate:a", 1.0, 0.4)
 
-func _set_player_visible(value: bool):
+func _set_world_environment_visible(value: bool):
+	# 1. Jugador Local
 	var player = get_tree().root.find_child("Player", true, false)
-	if not player:
-		return
-	# Ocultar/mostrar modelo 3D
-	var wr3d = player.get("world_root_3d")
-	if wr3d and is_instance_valid(wr3d):
-		wr3d.visible = value
-	# Ocultar/mostrar UI flotante (nombre, HP, shield)
-	var uiw = player.get("_ui_wrapper")
-	if uiw and is_instance_valid(uiw):
-		uiw.visible = value
-	# Ocultar/mostrar sprite 2D si lo tiene
-	var spr = player.get("sprite")
-	if spr and is_instance_valid(spr):
-		spr.visible = value
+	if player:
+		# Modificar su visibilidad base
+		player.visible = value
+		
+		# Ocultar/mostrar su modelo 3D y UI flotante
+		var wr3d = player.get("world_root_3d")
+		if wr3d and is_instance_valid(wr3d):
+			wr3d.visible = value
+		var uiw = player.get("_ui_wrapper")
+		if uiw and is_instance_valid(uiw):
+			uiw.visible = value
+		var spr = player.get("sprite")
+		if spr and is_instance_valid(spr):
+			spr.visible = value
+
+	# 2. Mapas activos y sus CanvasLayers de renderizado 3D
+	for map in get_tree().get_nodes_in_group("map"):
+		if is_instance_valid(map):
+			map.visible = value
+			for child in map.find_children("*", "CanvasLayer", true, false):
+				child.visible = value
+	var world = get_tree().root.find_child("MainGame", true, false)
+	if world and "current_map_node" in world:
+		var map = world.current_map_node
+		if is_instance_valid(map):
+			map.visible = value
+			for child in map.find_children("*", "CanvasLayer", true, false):
+				child.visible = value
+
+	# 3. MainHUD (HUD de juego real)
+	var main_hud = get_tree().root.find_child("MainHUD", true, false)
+	if main_hud and is_instance_valid(main_hud):
+		main_hud.visible = value
+
+	# 4. Jugadores remotos y enemigos
+	for entity in get_tree().get_nodes_in_group("remote_players") + get_tree().get_nodes_in_group("enemies"):
+		if is_instance_valid(entity):
+			entity.visible = value
+			var e_wr3d = entity.get("world_root_3d")
+			if e_wr3d and is_instance_valid(e_wr3d):
+				e_wr3d.visible = value
+			var e_uiw = entity.get("_ui_wrapper")
+			if e_uiw and is_instance_valid(e_uiw):
+				e_uiw.visible = value
 
 func _setup_cinematic_3d():
 	# Si ya existe, no creamos de nuevo
@@ -358,7 +389,7 @@ func _setup_cinematic_3d():
 		return
 		
 	var bg_canvas = CanvasLayer.new()
-	bg_canvas.layer = -5
+	bg_canvas.layer = 1
 	get_tree().root.add_child(bg_canvas)
 	_loading_refs["viewport_canvas"] = bg_canvas
 
@@ -427,8 +458,8 @@ func _setup_cinematic_3d():
 func _run_shader_warmup():
 	_loading_refs.clear()
 
-	# Solo ocultar el Player antes de que el servidor lo configure
-	_set_player_visible(false)
+	# Ocultar el entorno de juego real al inicio
+	_set_world_environment_visible(false)
 
 	var login_ui = get_tree().root.find_child("LoginUI", true, false)
 	if login_ui:

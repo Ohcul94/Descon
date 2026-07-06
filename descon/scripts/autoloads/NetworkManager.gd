@@ -166,7 +166,6 @@ func logout():
 	login_name = ""
 	socket.close()
 	socket = WebSocketPeer.new()
-	connection_lost.emit()
 
 func _process(_delta):
 	socket.poll()
