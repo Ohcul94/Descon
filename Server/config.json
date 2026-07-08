@@ -3517,8 +3517,8 @@
         {
             "id": 7,
             "name": "Tico 11",
-            "assetPath": "res://assets/Personajes/3D/Nave11/Nave11.glb",
-            "icon": "res://assets/Personajes/2D/Nave11/Nave11.png",
+            "assetPath": "res://assets/Personajes/3D/Nave7/Nave7.glb",
+            "icon": "res://assets/Personajes/2D/Nave7/Nave7.png",
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
@@ -3540,6 +3540,98 @@
         {
             "id": 8,
             "name": "Pinfli 12",
+            "assetPath": "res://assets/Personajes/3D/Nave8/Nave8.glb",
+            "icon": "res://assets/Personajes/2D/Nave8/Nave8.png",
+            "rotX": 0,
+            "rotY": 0,
+            "rotZ": 0,
+            "hp": 3000,
+            "shield": 1000,
+            "speed": 400,
+            "vision": 1300,
+            "slots": {
+                "w": 1,
+                "s": 1,
+                "e": 1,
+                "x": 1
+            },
+            "prices": {
+                "hubs": 10000,
+                "ohcu": 100
+            }
+        },
+        {
+            "id": 9,
+            "name": "Nueva Nave N9",
+            "assetPath": "res://assets/Personajes/3D/Nave9/Nave9.glb",
+            "icon": "res://assets/Personajes/2D/Nave9/Nave9.png",
+            "rotX": 0,
+            "rotY": 0,
+            "rotZ": 0,
+            "hp": 3000,
+            "shield": 1000,
+            "speed": 300,
+            "vision": 1300,
+            "slots": {
+                "w": 1,
+                "s": 1,
+                "e": 1,
+                "x": 1
+            },
+            "prices": {
+                "hubs": 10000,
+                "ohcu": 100
+            }
+        },
+        {
+            "id": 10,
+            "name": "Nueva Nave N10",
+            "assetPath": "res://assets/Personajes/3D/Nave10/Nave10.glb",
+            "icon": "res://assets/Personajes/2D/Nave10/Nave10.png",
+            "rotX": 0,
+            "rotY": 0,
+            "rotZ": 0,
+            "hp": 3000,
+            "shield": 1000,
+            "speed": 300,
+            "vision": 1300,
+            "slots": {
+                "w": 1,
+                "s": 1,
+                "e": 1,
+                "x": 1
+            },
+            "prices": {
+                "hubs": 10000,
+                "ohcu": 100
+            }
+        },
+        {
+            "id": 11,
+            "name": "Nueva Nave N11",
+            "assetPath": "res://assets/Personajes/3D/Nave11/Nave11.glb",
+            "icon": "res://assets/Personajes/2D/Nave11/Nave11.png",
+            "rotX": 0,
+            "rotY": 0,
+            "rotZ": 0,
+            "hp": 3000,
+            "shield": 1000,
+            "speed": 300,
+            "vision": 1300,
+            "slots": {
+                "w": 1,
+                "s": 1,
+                "e": 1,
+                "x": 1
+            },
+            "prices": {
+                "hubs": 10000,
+                "ohcu": 100
+            }
+        },
+        {
+            "id": 12,
+            "name": "Nueva Nave N12",
             "assetPath": "res://assets/Personajes/3D/Nave12/Nave12.glb",
             "icon": "res://assets/Personajes/2D/Nave12/Nave12.png",
             "rotX": 0,
@@ -3547,7 +3639,7 @@
             "rotZ": 0,
             "hp": 3000,
             "shield": 1000,
-            "speed": 400,
+            "speed": 300,
             "vision": 1300,
             "slots": {
                 "w": 1,

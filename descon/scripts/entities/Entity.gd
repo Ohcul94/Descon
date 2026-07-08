@@ -9,6 +9,7 @@ const EnergyShieldShader = preload("res://resources/shaders/energy_shield.gdshad
 const HitFlashShader = preload("res://resources/shaders/hit_flash.gdshader")
 const SpaceExplosionScript = preload("res://scripts/vfx/SpaceExplosion.gd")
 const WreckageDrawingScript = preload("res://scripts/ui/WreckageDrawing.gd")
+const DashSparkTexture = preload("res://VFX/textures/T_VFX_sparks112.jpg")
 
 # Nuevos VFX de escudos
 const VFXShieldHexScene = preload("res://VFX/scenes/VFX_Shield_hex.tscn")
@@ -1924,12 +1925,30 @@ func _clear_all_equipment_visuals():
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.queue_redraw()
 
+func _apply_dash(power_value: float):
+	var dash_duration = 0.5
+	if GameConstants.SKILLS_DATA.has("HYPER-DASH"):
+		var s_data = GameConstants.SKILLS_DATA["HYPER-DASH"]
+		if s_data.has("duration"):
+			dash_duration = float(s_data["duration"])
+	if dash_duration > 50.0:
+		dash_duration = dash_duration / 1000.0
+	if "speed" in self:
+		var bonus = power_value
+		self.speed += bonus
+		var tw = create_tween()
+		tw.tween_interval(dash_duration)
+		tw.tween_callback(func():
+			self.speed -= bonus
+		)
+	play_skill_vfx("HYPER-DASH", power_value)
+
 func play_skill_vfx(skill_name: String, amount: float = 0.0):
 	# Mostrar siempre los números de retroalimentación
 	if has_method("_spawn_damage_text"):
 		if skill_name == "ESCUDO CELULAR": _spawn_damage_text("+" + str(int(amount)), Color.AQUA)
 		elif skill_name == "AUTO-REPARACIÓN" or skill_name == "NANO-REGENERACIÓN" or skill_name == "REGENERACIÓN ALFA" or skill_name == "VÍNCULO VITAL" or skill_name == "BALIZA DE CURACION": _spawn_damage_text("+" + str(int(amount)), Color.GREEN)
-		elif skill_name == "TURBO-IMPULSO": _spawn_damage_text("+" + str(int(amount)), Color.YELLOW)
+		elif skill_name == "TURBO-IMPULSO" or skill_name == "HYPER-DASH": _spawn_damage_text("+" + str(int(amount)), Color.YELLOW)
 	match skill_name:
 		"TURBO-IMPULSO":
 			# v4.1: Aplicar velocidad real si es un jugador (Aliado o Local)
@@ -1957,6 +1976,42 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				var tw_free = vfx.create_tween()
 				tw_free.tween_interval(2.0)
 				tw_free.tween_callback(vfx.queue_free)
+		"HYPER-DASH":
+			if is_instance_valid(_3d_model):
+				var spark_mat = StandardMaterial3D.new()
+				spark_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				spark_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+				spark_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				spark_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+				spark_mat.albedo_texture = DashSparkTexture
+				var mesh = QuadMesh.new()
+				mesh.size = Vector2(0.4, 0.4)
+				mesh.material = spark_mat
+				var proc_mat = ParticleProcessMaterial.new()
+				proc_mat.gravity = Vector3.ZERO
+				proc_mat.direction = Vector3(-1, 0, 0)
+				proc_mat.spread = 25.0
+				proc_mat.initial_velocity_min = 4.0
+				proc_mat.initial_velocity_max = 8.0
+				var grad = Gradient.new()
+				grad.set_color(0, Color(1.0, 0.95, 0.6, 1.0))
+				grad.add_point(0.4, Color(1.0, 0.7, 0.2, 0.8))
+				grad.set_color(1, Color(0.6, 0.2, 0.05, 0.0))
+				proc_mat.color_ramp = GradientTexture1D.new()
+				proc_mat.color_ramp.gradient = grad
+				var parts = GPUParticles3D.new()
+				parts.amount = 30
+				parts.lifetime = 0.4
+				parts.one_shot = true
+				parts.explosiveness = 0.8
+				parts.position = Vector3(-0.5, 0.0, 0.0)
+				parts.process_material = proc_mat
+				parts.draw_pass_1 = mesh
+				_3d_model.add_child(parts)
+				parts.emitting = true
+				var tw = create_tween()
+				tw.tween_interval(parts.lifetime + 0.5)
+				tw.tween_callback(parts.queue_free)
 		"ESCUDO CELULAR":
 			shield_visual_timer = _get_skill_duration("ESCUDO CELULAR", {}, 2.0) # Activar visual 3D pro
 			# v260.20: Se eliminó el Sprite2D viejo para limpiar la visual 3D

@@ -330,7 +330,7 @@ func _draw():
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas
 		var s_name = current_skill.get("skill_name", "")
-		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and current_skill.id != "electron" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO" and s_name != "BALIZA DE CURACION" and s_name != "PROVOCACION" and s_name != "RESURRECCIÓN":
+		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and current_skill.id != "electron" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO":
 			draw_line(origin_local, end_proj, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
 		if current_skill.id == "emp":
@@ -413,57 +413,55 @@ func _draw():
 			draw_line(pt_a_proj, _proj.call(pt_a_raw + push_dir * 18.0), Color(0.3, 0.9, 1.0, 0.4), 2.0)
 			draw_line(pt_b_proj, _proj.call(pt_b_raw + push_dir * 18.0), Color(0.3, 0.9, 1.0, 0.4), 2.0)
 			draw_line(end_proj, _proj.call(end_point + push_dir * 25.0), Color(0.3, 0.9, 1.0, 0.6), 2.0)
-		elif s_name == "BALIZA DE CURACION" or s_name == "RESURRECCIÓN":
-			var radius_val = 200.0
-			if GameConstants.SKILLS_DATA.has(s_name):
-				radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 200.0))
-			
-			var draw_color = Color(0.1, 0.9, 0.2, 0.35)
-			var fill_color = Color(0.1, 0.9, 0.2, 0.08)
-			if s_name == "RESURRECCIÓN":
-				draw_color = Color(0.9, 0.1, 0.9, 0.45)
-				fill_color = Color(0.9, 0.1, 0.9, 0.1)
-			
-			if use_perspective:
-				var steps = 64
-				var pts_c = PackedVector2Array()
-				for i in range(steps + 1):
-					var ang = (float(i) / steps) * TAU
-					pts_c.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
-				draw_polyline(pts_c, draw_color, 2.0)
-				draw_circle(end_proj, 8.0, draw_color)
-			else:
-				draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
-				draw_circle(end_point, radius_val, fill_color)
-				draw_circle(end_point, 8.0, draw_color)
-		elif s_name == "PROVOCACION":
-			var radius_val = 220.0
-			if GameConstants.SKILLS_DATA.has(s_name):
-				radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 220.0))
-			
-			var time_scale = Time.get_ticks_msec() / 1000.0
-			var charge_factor = fmod(time_scale * 1.5, 1.0)
-			var charge_radius = radius_val * (1.0 - charge_factor)
-			
-			if use_perspective:
-				var steps = 64
-				var pts_outer = PackedVector2Array()
-				var pts_charge = PackedVector2Array()
-				for i in range(steps + 1):
-					var ang = (float(i) / steps) * TAU
-					pts_outer.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
-					pts_charge.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * charge_radius))
-				draw_polyline(pts_outer, Color(1.0, 0.25, 0.2, 0.45), 2.5)
-				draw_polyline(pts_charge, Color(1.0, 0.55, 0.1, 0.65), 1.5)
-				draw_circle(end_proj, 7.0, Color(1.0, 0.2, 0.2, 0.95))
-			else:
-				draw_arc(end_point, radius_val, 0, TAU, 64, Color(1.0, 0.25, 0.2, 0.45), 2.5)
-				draw_circle(end_point, radius_val, Color(1.0, 0.2, 0.2, 0.08))
-				draw_arc(end_point, charge_radius, 0, TAU, 48, Color(1.0, 0.55, 0.1, 0.65), 1.5)
-				draw_circle(end_point, 7.0, Color(1.0, 0.2, 0.2, 0.95))
 		else:
 			draw_circle(end_proj, 8.0, color)
 		
+	elif current_skill.get("type") == SkillType.AREA:
+		# v5.0: Área de colocación en suelo (Resurrección, Baliza, Provocación)
+		var s_name = current_skill.get("skill_name", "")
+		var dist = aim_vec.length()
+		var end_point = aim_vec
+		if range_val > 0 and dist > range_val:
+			end_point = aim_vec.normalized() * range_val
+		var end_proj = _proj.call(end_point)
+		var radius_val = 200.0
+		if GameConstants.SKILLS_DATA.has(s_name):
+			radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 200.0))
+		var draw_color = config.indicator_color
+		var fill_color = Color(draw_color.r, draw_color.g, draw_color.b, 0.08)
+		if s_name == "RESURRECCIÓN":
+			draw_color = Color(0.9, 0.1, 0.9, 0.45)
+			fill_color = Color(0.9, 0.1, 0.9, 0.1)
+		elif s_name == "BALIZA DE CURACION":
+			draw_color = Color(0.1, 0.9, 0.2, 0.35)
+			fill_color = Color(0.1, 0.9, 0.2, 0.08)
+		elif s_name == "PROVOCACION":
+			draw_color = Color(1.0, 0.25, 0.2, 0.45)
+		if use_perspective:
+			var steps = 64
+			var pts_c = PackedVector2Array()
+			for i in range(steps + 1):
+				var ang = (float(i) / steps) * TAU
+				pts_c.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * radius_val))
+			draw_polyline(pts_c, draw_color, 2.0)
+			draw_circle(end_proj, 8.0, draw_color)
+		else:
+			draw_arc(end_point, radius_val, 0, TAU, 64, draw_color, 2.0)
+			draw_circle(end_point, radius_val, fill_color)
+			draw_circle(end_point, 8.0, draw_color)
+		if s_name == "PROVOCACION":
+			var time_scale = Time.get_ticks_msec() / 1000.0
+			var charge_factor = fmod(time_scale * 1.5, 1.0)
+			var charge_radius = radius_val * (1.0 - charge_factor)
+			if use_perspective:
+				var steps = 48
+				var pts_charge = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					pts_charge.append(_proj.call(end_point + Vector2(cos(ang), sin(ang)) * charge_radius))
+				draw_polyline(pts_charge, Color(1.0, 0.55, 0.1, 0.65), 1.5)
+			else:
+				draw_arc(end_point, charge_radius, 0, TAU, 48, Color(1.0, 0.55, 0.1, 0.65), 1.5)
 	elif current_skill.get("type") == SkillType.POINT_CLICK:
 		if selected_target:
 			var t_pos: Vector2
