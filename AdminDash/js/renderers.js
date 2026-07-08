@@ -336,6 +336,14 @@ function renderAmmo() {
         
         if(f && !item.name.toLowerCase().includes(f) && !JSON.stringify(item).toLowerCase().includes(f)) return;
 
+        const ammoIconKey = type + '_' + i;
+        if (!config.shopItems.ammo_icons) config.shopItems.ammo_icons = {};
+        const ammoIconPath = config.shopItems.ammo_icons[ammoIconKey] || '';
+        const ammoIconWeb = resolveAssetWebUrl(ammoIconPath);
+        const ammoIconPreview = ammoIconWeb
+            ? `<img src="${ammoIconWeb}" style="width:64px; height:64px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">`
+            : `<div style="width:64px; height:64px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.6rem; text-align:center; padding:2px;">Sin Ícono</div>`;
+
         let extraFieldsHTML = '';
         if (type === 'emp') {
             extraFieldsHTML = `
@@ -380,7 +388,16 @@ function renderAmmo() {
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
             <div class="card-tag">TIER ${i+1}</div>
-            <div class="field full"><label>Nombre Comercial</label><input type="text" value="${item.name}" onchange="config.shopItems.ammo['${type}'][${i}].name = this.value"></div>
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
+                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    ${ammoIconPreview}
+                    <button class="btn" style="padding:4px 8px; font-size:0.62rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; white-space:nowrap;" onclick="triggerAssetUpload('${ammoIconKey}', 'ammo_icon')">🖼️ ICONO</button>
+                    ${ammoIconPath ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060; cursor:pointer; border-radius:4px;" onclick="delete config.shopItems.ammo_icons['${ammoIconKey}']; renderAmmo();">✕ Quitar</button>` : ''}
+                </div>
+                <div style="flex-grow:1;">
+                    <div class="field full"><label>Nombre Comercial</label><input type="text" value="${item.name}" onchange="config.shopItems.ammo['${type}'][${i}].name = this.value"></div>
+                </div>
+            </div>
             
             <div class="form-grid" style="margin-top:1.5rem;">
                 <div class="field"><label>Mult. Daño (x)</label><input type="number" step="0.1" value="${m}" style="color:var(--accent); font-weight:bold;" onchange="config.ammoMultipliers['${type}'][${i}] = parseFloat(this.value)"></div>
@@ -427,10 +444,23 @@ function renderWeapons() {
     const f = getFilter();
     config.shopItems.weapons.forEach((w, i) => {
         if(f && !w.name.toLowerCase().includes(f) && !w.id.toLowerCase().includes(f)) return;
+        const iconWeb = resolveAssetWebUrl(w.icon || '');
+        const iconPreview = iconWeb
+            ? `<img src="${iconWeb}" style="width:72px; height:72px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">`
+            : `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
             <div class="card-tag">ID: ${w.id}</div>
-            <div class="field full"><label>Nombre del Arma</label><input type="text" value="${w.name}" onchange="config.shopItems.weapons[${i}].name = this.value"></div>
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
+                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    ${iconPreview}
+                    <button class="btn" style="padding:4px 8px; font-size:0.62rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; white-space:nowrap;" onclick="triggerAssetUpload(${i}, 'weapon_icon')">🖼️ ICONO</button>
+                    ${w.icon ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060; cursor:pointer; border-radius:4px;" onclick="config.shopItems.weapons[${i}].icon=''; renderWeapons();">✕ Quitar</button>` : ''}
+                </div>
+                <div style="flex-grow:1;">
+                    <div class="field full"><label>Nombre del Arma</label><input type="text" value="${w.name}" onchange="config.shopItems.weapons[${i}].name = this.value"></div>
+                </div>
+            </div>
             <div class="form-grid" style="margin-top:1rem;">
                 <div class="field"><label>Daño Base (pts)</label><input type="number" value="${w.base}" onchange="config.shopItems.weapons[${i}].base = parseInt(this.value)"></div>
                 <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${w.prices.hubs}" onchange="config.shopItems.weapons[${i}].prices.hubs = parseInt(this.value)"></div>
@@ -446,10 +476,23 @@ function renderShields() {
     const f = getFilter();
     config.shopItems.shields.forEach((s, i) => {
         if(f && !s.name.toLowerCase().includes(f) && !s.id.toLowerCase().includes(f) && !JSON.stringify(s).toLowerCase().includes(f)) return;
+        const iconWeb = resolveAssetWebUrl(s.icon || '');
+        const iconPreview = iconWeb
+            ? `<img src="${iconWeb}" style="width:72px; height:72px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">`
+            : `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
             <div class="card-tag">ID: ${s.id}</div>
-            <div class="field full"><label>Nombre del Escudo</label><input type="text" value="${s.name}" onchange="config.shopItems.shields[${i}].name = this.value"></div>
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
+                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    ${iconPreview}
+                    <button class="btn" style="padding:4px 8px; font-size:0.62rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; white-space:nowrap;" onclick="triggerAssetUpload(${i}, 'shield_icon')">🖼️ ICONO</button>
+                    ${s.icon ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060; cursor:pointer; border-radius:4px;" onclick="config.shopItems.shields[${i}].icon=''; renderShields();">✕ Quitar</button>` : ''}
+                </div>
+                <div style="flex-grow:1;">
+                    <div class="field full"><label>Nombre del Escudo</label><input type="text" value="${s.name}" onchange="config.shopItems.shields[${i}].name = this.value"></div>
+                </div>
+            </div>
             <div class="form-grid" style="margin-top:1rem;">
                 <div class="field"><label>Escudo Base (pts)</label><input type="number" value="${s.base}" onchange="config.shopItems.shields[${i}].base = parseInt(this.value)"></div>
                 <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${s.prices.hubs}" onchange="config.shopItems.shields[${i}].prices.hubs = parseInt(this.value)"></div>
@@ -465,10 +508,23 @@ function renderEngines() {
     const f = getFilter();
     config.shopItems.engines.forEach((e, i) => {
         if(f && !e.name.toLowerCase().includes(f) && !e.id.toLowerCase().includes(f) && !JSON.stringify(e).toLowerCase().includes(f)) return;
+        const iconWeb = resolveAssetWebUrl(e.icon || '');
+        const iconPreview = iconWeb
+            ? `<img src="${iconWeb}" style="width:72px; height:72px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(0,0,0,0.3);" onerror="this.style.display='none';">`
+            : `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
             <div class="card-tag">ID: ${e.id}</div>
-            <div class="field full"><label>Nombre del Motor</label><input type="text" value="${e.name}" onchange="config.shopItems.engines[${i}].name = this.value"></div>
+            <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
+                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    ${iconPreview}
+                    <button class="btn" style="padding:4px 8px; font-size:0.62rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; white-space:nowrap;" onclick="triggerAssetUpload(${i}, 'engine_icon')">🖼️ ICONO</button>
+                    ${e.icon ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060; cursor:pointer; border-radius:4px;" onclick="config.shopItems.engines[${i}].icon=''; renderEngines();">✕ Quitar</button>` : ''}
+                </div>
+                <div style="flex-grow:1;">
+                    <div class="field full"><label>Nombre del Motor</label><input type="text" value="${e.name}" onchange="config.shopItems.engines[${i}].name = this.value"></div>
+                </div>
+            </div>
             <div class="form-grid" style="margin-top:1rem;">
                 <div class="field"><label>Empuje Base (px/s)</label><input type="number" value="${e.base}" onchange="config.shopItems.engines[${i}].base = parseInt(this.value)"></div>
                 <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${e.prices.hubs}" onchange="config.shopItems.engines[${i}].prices.hubs = parseInt(this.value)"></div>
@@ -5496,7 +5552,7 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
     input.type = 'file';
 
     // Tipos que NO deben copiar el archivo — solo resuelven la ruta res://
-    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'talent_icon'];
+    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'talent_icon', 'weapon_icon', 'shield_icon', 'engine_icon', 'ammo_icon'];
     const isResolveOnly = resolveOnlyTypes.includes(type);
 
     if (type === 'ship_glb' || type === 'housing_glb') {
@@ -5528,6 +5584,15 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         // idx = skill name (key in skillsData)
                         if (!config.skillsData[idx]) config.skillsData[idx] = {};
                         config.skillsData[idx].icon = result.path;
+                    } else if (type === 'weapon_icon') {
+                        config.shopItems.weapons[idx].icon = result.path;
+                    } else if (type === 'shield_icon') {
+                        config.shopItems.shields[idx].icon = result.path;
+                    } else if (type === 'engine_icon') {
+                        config.shopItems.engines[idx].icon = result.path;
+                    } else if (type === 'ammo_icon') {
+                        if (!config.shopItems.ammo_icons) config.shopItems.ammo_icons = {};
+                        config.shopItems.ammo_icons[idx] = result.path;
                     } else if (type === 'talent_icon') {
                         config.talentsConfig.talents[idx].icon = result.path;
                     }
@@ -5535,6 +5600,14 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         renderShips();
                     } else if (type === 'housing_glb') {
                         renderHousing();
+                    } else if (type === 'weapon_icon') {
+                        renderWeapons();
+                    } else if (type === 'shield_icon') {
+                        renderShields();
+                    } else if (type === 'engine_icon') {
+                        renderEngines();
+                    } else if (type === 'ammo_icon') {
+                        renderAmmo();
                     } else if (type === 'skill_icon') {
                         renderSkills();
                     } else if (type === 'talent_icon') {
