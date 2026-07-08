@@ -44,7 +44,8 @@ class AlphaRegenSkill extends BaseSkill {
             amount: amount,
             filters: targetFilters,
             endTime: Date.now() + duration,
-            zone: p.zone
+            zone: p.zone,
+            skillName: this.name
         };
 
         io.to(`zone_${p.zone}`).emit('spawnArea', state.activeAreas[areaId]);

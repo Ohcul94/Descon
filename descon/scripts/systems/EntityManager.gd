@@ -19,6 +19,7 @@ const LOOT_DROP_SCRIPT = preload("res://scripts/entities/LootDrop.gd")
 const HEAL_BEACON_VFX_SCRIPT = preload("res://scripts/vfx/HealBeaconVFX.gd")
 const WIND_BARRIER_VFX_SCENE = preload("res://VFX/scenes/VFX_Shield_green_plane.tscn")
 const SMOKE_CLOUD_SHADER = preload("res://resources/shaders/smoke_cloud.gdshader")
+const VFX_SHIELD_GREEN_SCENE = preload("res://VFX/scenes/VFX_Shield_green.tscn")
 
 # Texturas precargadas estáticamente
 const TEX_CURACION_TRANSP = preload("res://assets/Efectos de Skills/Curacion(Transp).png")
@@ -770,7 +771,10 @@ func _on_spawn_area(data: Dictionary):
 	elif type == "VORTEX_HAZARD":
 		_spawn_vortex_vfx(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "HEAL_ZONE":
-		_spawn_heal_zone_vfx(id, Vector2(data.x, data.y), data.radius, data)
+		if data.get("skillName", "") == "REGENERACIÓN ALFA":
+			_spawn_alpha_regen_vfx(id, Vector2(data.x, data.y), data.radius, data)
+		else:
+			_spawn_heal_zone_vfx(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "RESURRECCIÓN":
 		_spawn_resurreccion_vfx(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "VITAL_LINK":
@@ -1117,11 +1121,38 @@ func _on_remove_area(data: Dictionary):
 			if area is GPUParticles3D:
 				area.emitting = false
 				area.queue_free()
+			elif area is Node3D:
+				var tw = area.create_tween().set_parallel(true)
+				tw.tween_property(area, "scale", Vector3.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+				tw.chain().tween_callback(area.queue_free)
 			else:
 				var tw = area.create_tween().set_parallel(true)
 				tw.tween_property(area, "scale", Vector2.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 				tw.tween_property(area, "modulate:a", 0.0, 0.15)
 				tw.chain().tween_callback(area.queue_free)
+
+func _spawn_alpha_regen_vfx(id, pos, radius, data):
+	if active_areas.has(id): return
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map) or not current_map.get("sub_viewport"):
+		return
+	var sub_vp = current_map.sub_viewport
+	var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+	var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+	
+	var vfx = VFX_SHIELD_GREEN_SCENE.instantiate()
+	vfx.name = id
+	vfx.position = Vector3(pos.x * s_factor, 0.0, pos.y * s_factor * correction_z)
+	
+	# Mitad de tamaño (0.325 es la mitad de la escala 0.65 que se usa en el jugador)
+	vfx.scale = Vector3(0.325, 0.325, 0.325)
+	
+	sub_vp.add_child(vfx)
+	active_areas[id] = vfx
+	
+	var anim = vfx.get_node_or_null("AnimationPlayer")
+	if anim and anim.has_animation("start_animation"):
+		anim.play("start_animation")
 
 func _spawn_heal_beacon_vfx(id, pos, radius, _data = {}):
 	if active_areas.has(id): return

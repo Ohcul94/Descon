@@ -118,6 +118,7 @@ var is_invulnerable: bool = false # v2.7: Sincronía autoritativa
 var is_hovered: bool = false # v302.1: Feedback de apuntado
 var _reflect_aura: Sprite2D = null
 var _active_shield_vfx: Node3D = null
+var _heal_shield_scale: float = 1.0
 var _active_shield_type: String = ""
 
 var _collision_shape: CollisionShape2D = null
@@ -2019,6 +2020,9 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 		"AUTO-REPARACIÓN", "NANO-REGENERACIÓN":
 			heal_visual_timer = _get_skill_duration(skill_name, {}, 2.0) # Activar visual 3D pro de curación
 			# v260.30: Se eliminó el Sprite2D de curación en favor del efecto 3D
+
+		"REGENERACIÓN ALFA":
+			pass
 		
 		"SMOKE-BOMB":
 			pass # La visual es gestionada por World.gd de forma global
@@ -2331,6 +2335,8 @@ func _on_remote_skill_used(data: Dictionary):
 		elif s_name == "AUTO-REPARACIÓN" or s_name == "NANO-REGENERACIÓN":
 			heal_visual_timer = _get_skill_duration(s_name, data, 2.0)
 			print("[SKILL-SYNC] Activando visual de CURACION para aliado: ", username, " por ", heal_visual_timer, "s")
+		elif s_name == "REGENERACIÓN ALFA":
+			pass
 		elif "SMOKE" in s_name or "BOMBA" in s_name or "VIENTO" in s_name or "WIND" in s_name:
 			pass # Ignorar visuales locales para bomba de humo y barrera de viento
 
@@ -2392,7 +2398,11 @@ func _update_3d_shield(delta: float):
 				_active_shield_vfx = vfx
 				
 				# Configurar escala local relativa al pivote de la nave
-				vfx.scale = Vector3(0.65, 0.65, 0.65)
+				var base_scale = 0.65
+				if target_type == "heal" and _heal_shield_scale != 1.0:
+					base_scale *= _heal_shield_scale
+					_heal_shield_scale = 1.0
+				vfx.scale = Vector3(base_scale, base_scale, base_scale)
 				
 				# Iniciar animación de entrada
 				var anim = vfx.get_node_or_null("AnimationPlayer")
