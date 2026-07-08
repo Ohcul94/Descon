@@ -42,27 +42,7 @@ class ResurreccionSkill extends BaseSkill {
         const reviveShieldPct = config.revive_shield_pct || 20;
         const filters = config.targetFilters || { allies: true, enemies: false, bosses: false, players: true, clan: true };
 
-        // 1. Emitir la animación de resurrección en el área para todos en la zona (SpawnArea visual temporal)
-        const areaId = `area_res_${state.nextAreaId++}`;
-        const visualArea = {
-            id: areaId,
-            x: targetX,
-            y: targetY,
-            radius: areaRadius,
-            type: 'HEAL_ZONE', // Reutilizamos el efecto verde de curación en el cliente
-            ownerId: socket.id,
-            endTime: Date.now() + 1500, // Duración corta para el destello visual de resurrección
-            zone: p.zone,
-            targetFilters: filters
-        };
-        io.to(`zone_${p.zone}`).emit('spawnArea', visualArea);
-
-        // Programar la remoción visual
-        setTimeout(() => {
-            io.to(`zone_${p.zone}`).emit('removeArea', { id: areaId });
-        }, 1500);
-
-        // 2. Buscar jugadores muertos en el radio
+        // Buscar jugadores muertos en el radio
         let revivedCount = 0;
         Object.keys(state.players).forEach(pId => {
             const targetPlayer = state.players[pId];
@@ -116,14 +96,33 @@ class ResurreccionSkill extends BaseSkill {
             Logger.info('SKILL', `[RESURRECCIÓN] ${p.user} resucitó a ${targetPlayer.user} en zona ${p.zone}`);
         });
 
-        if (revivedCount > 0) {
-            socket.emit('gameNotification', { msg: `¡Resucitaste a ${revivedCount} aliado(s)!`, type: 'success' });
-        } else {
-            socket.emit('gameNotification', { msg: "No se encontraron aliados caídos en el área.", type: 'warning' });
-        }
+		if (revivedCount > 0) {
+			// 1. Emitir VFX de resurrección solo si hay resucitados
+			const areaId = `area_res_${state.nextAreaId++}`;
+			const visualArea = {
+				id: areaId,
+				x: targetX,
+				y: targetY,
+				radius: areaRadius,
+				type: 'RESURRECCIÓN',
+				ownerId: socket.id,
+				endTime: Date.now() + 1500,
+				zone: p.zone,
+				targetFilters: filters
+			};
+			io.to(`zone_${p.zone}`).emit('spawnArea', visualArea);
 
-        // Notificar el casteo de la habilidad
-        this.broadcastUsage(p, data, { io, socket }, revivedCount);
+			setTimeout(() => {
+				io.to(`zone_${p.zone}`).emit('removeArea', { id: areaId });
+			}, 1500);
+
+			socket.emit('gameNotification', { msg: `¡Resucitaste a ${revivedCount} aliado(s)!`, type: 'success' });
+		} else {
+			socket.emit('gameNotification', { msg: "No se encontraron aliados caídos en el área.", type: 'warning' });
+		}
+
+		// Notificar el casteo de la habilidad
+		this.broadcastUsage(p, data, { io, socket }, revivedCount);
     }
 }
 

@@ -8,6 +8,5 @@ func _init():
 	cooldown = 45.0
 
 func activate(player: CharacterBody2D):
-	# Feedback local al activar la habilidad (opcional)
-	if player.has_method("play_skill_vfx"):
-		player.play_skill_vfx("HEAL_ZONE", 0.0) # Usamos el efecto visual existente
+	# El VFX se maneja desde el servidor vía spawnArea con tipo RESURRECCIÓN
+	super.activate(player)

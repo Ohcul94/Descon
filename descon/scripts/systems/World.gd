@@ -64,6 +64,7 @@ func _ready():
 	if ui_chat: ui_chat.visible = false
 	
 	# _generate_stellar_data() # v73.31: Eliminado por solicitud del usuario para limpiar el fondo
+	_setup_starfield()
 	
 	# v267.900: Inicializar Overlays de Ambiente
 	_setup_blindness_overlay()
@@ -312,6 +313,48 @@ func _on_blindness_event(data):
 			if is_instance_valid(overlay):
 				overlay.visible = false
 		)
+
+const STARFIELD_SHADER = preload("res://resources/shaders/starfield.gdshader")
+
+func _setup_starfield():
+	var bg = get_node_or_null("MapParallax/StaticLayer/SpaceBG")
+	if is_instance_valid(bg):
+		var mat = ShaderMaterial.new()
+		mat.shader = STARFIELD_SHADER
+		bg.material = mat
+	_enhance_star_particles()
+
+func _enhance_star_particles():
+	var layers = [
+		{"node": "MapParallax/ParticlesLayer/StarsLayer1", "count": 400, "lifetime": 12.0, "scale_min": 0.5, "scale_max": 1.5, "velocity": 8.0, "color": Color(1, 1, 1, 0.6)},
+		{"node": "MapParallax/ParticlesLayer/StarsLayer2", "count": 150, "lifetime": 8.0, "scale_min": 1.0, "scale_max": 2.5, "velocity": 5.0, "color": Color(0.85, 0.9, 1.0, 0.5)},
+		{"node": "MapParallax/ParticlesLayer/StarsLayer3", "count": 60, "lifetime": 4.0, "scale_min": 2.0, "scale_max": 4.0, "velocity": 3.0, "color": Color(1.0, 0.95, 0.8, 0.4)}
+	]
+	for l in layers:
+		var p = get_node_or_null(l.node)
+		if not is_instance_valid(p):
+			continue
+		p.amount = l.count
+		p.lifetime = l.lifetime
+		var pm = ParticleProcessMaterial.new()
+		pm.direction = Vector3(0, 0, 1)
+		pm.spread = 180.0
+		pm.gravity = Vector3.ZERO
+		pm.initial_velocity_min = 0.0
+		pm.initial_velocity_max = l.velocity
+		pm.scale_min = l.scale_min
+		pm.scale_max = l.scale_max
+		pm.color = l.color
+		pm.angular_velocity_min = -2.0
+		pm.angular_velocity_max = 2.0
+		pm.angle_min = 0.0
+		pm.angle_max = 360.0
+		p.process_material = pm
+		p.one_shot = false
+		p.explosiveness = 0.0
+		p.randomness = 0.2
+		p.fixed_fps = 0
+		p.visibility_rect = Rect2(-2000, -2000, 4000, 4000)
 
 func _generate_stellar_data():
 	var layers = [

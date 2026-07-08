@@ -97,6 +97,11 @@ func _process(delta):
 		var area = active_areas[id]
 		if not is_instance_valid(area): continue
 
+		# Sincronización visual 2.5D en perspectiva (proyectar posición lógica a pantalla cada frame)
+		if area.has_meta("logical_position"):
+			var log_pos = area.get_meta("logical_position")
+			area.global_position = _get_projected_position(log_pos)
+
 		if area.has_meta("type") and area.get_meta("type") == "VITAL_LINK":
 			var owner_id = area.get_meta("ownerId")
 			var target_id = area.get_meta("targetId")
@@ -766,6 +771,8 @@ func _on_spawn_area(data: Dictionary):
 		_spawn_vortex_vfx(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "HEAL_ZONE":
 		_spawn_heal_zone_vfx(id, Vector2(data.x, data.y), data.radius, data)
+	elif type == "RESURRECCIÓN":
+		_spawn_resurreccion_vfx(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "VITAL_LINK":
 		_spawn_vital_link_vfx(id, data)
 	elif type == "WIND_BARRIER":
@@ -783,6 +790,8 @@ func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
 	active_areas[id] = container
 	var proj_pos = _get_projected_position(pos)
 	container.global_position = proj_pos
+	container.set_meta("logical_position", pos)
+	container.set_meta("type", "heal_zone")
 	
 	var owner_id = str(data.get("ownerId", ""))
 	var start_pos = proj_pos
@@ -946,6 +955,56 @@ func _spawn_heal_zone_vfx(id, pos, radius, data = {}):
 		var tw_rot = container.create_tween().set_loops()
 		tw_rot.tween_property(item_sprite, "rotation_degrees", 360.0, 4.0)
 
+func _spawn_resurreccion_vfx(id, pos, _radius, _data):
+	if active_areas.has(id): return
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map) or not current_map.get("sub_viewport"):
+		return
+	var sub_vp = current_map.sub_viewport
+	var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+	var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+	var spark_mat = StandardMaterial3D.new()
+	spark_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	spark_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	spark_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	spark_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	spark_mat.albedo_texture = load("res://VFX/textures/T_VFX_sparks112.jpg")
+	var mesh = QuadMesh.new()
+	mesh.size = Vector2(0.6, 0.6)
+	mesh.material = spark_mat
+	var proc_mat = ParticleProcessMaterial.new()
+	proc_mat.gravity = Vector3(0, 3.0, 0)
+	proc_mat.direction = Vector3.UP
+	proc_mat.spread = 45.0
+	proc_mat.initial_velocity_min = 2.0
+	proc_mat.initial_velocity_max = 6.0
+	var grad = Gradient.new()
+	grad.set_color(0, Color(0.9, 0.2, 0.9, 1.0))
+	grad.add_point(0.3, Color(0.7, 0.1, 0.9, 0.8))
+	grad.add_point(0.6, Color(0.4, 0.0, 0.7, 0.4))
+	grad.set_color(1, Color(0.2, 0.0, 0.3, 0.0))
+	proc_mat.color_ramp = GradientTexture1D.new()
+	proc_mat.color_ramp.gradient = grad
+	var parts = GPUParticles3D.new()
+	parts.name = id
+	parts.amount = 40
+	parts.lifetime = 0.8
+	parts.one_shot = false
+	parts.explosiveness = 0.5
+	parts.position = Vector3(pos.x * s_factor, 0.0, pos.y * s_factor * correction_z)
+	parts.process_material = proc_mat
+	parts.draw_pass_1 = mesh
+	sub_vp.add_child(parts)
+	parts.emitting = true
+	var tw = create_tween()
+	tw.tween_interval(1.5)
+	tw.tween_callback(func():
+		if is_instance_valid(parts):
+			parts.emitting = false
+			parts.queue_free()
+	)
+	active_areas[id] = parts
+
 func _spawn_vortex_vfx(id, pos, radius, data):
 	if active_areas.has(id): return
 	
@@ -994,6 +1053,8 @@ func _spawn_ice_trail(id, pos, _radius):
 	
 	var proj_pos = _get_projected_position(pos)
 	container.global_position = proj_pos
+	container.set_meta("logical_position", pos)
+	container.set_meta("type", "ice")
 	
 	var particles = CPUParticles2D.new()
 	particles.emitting = true
@@ -1053,10 +1114,14 @@ func _on_remove_area(data: Dictionary):
 		var area = active_areas[id]
 		active_areas.erase(id)
 		if is_instance_valid(area):
-			var tw = area.create_tween().set_parallel(true)
-			tw.tween_property(area, "scale", Vector2.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
-			tw.tween_property(area, "modulate:a", 0.0, 0.15)
-			tw.chain().tween_callback(area.queue_free)
+			if area is GPUParticles3D:
+				area.emitting = false
+				area.queue_free()
+			else:
+				var tw = area.create_tween().set_parallel(true)
+				tw.tween_property(area, "scale", Vector2.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+				tw.tween_property(area, "modulate:a", 0.0, 0.15)
+				tw.chain().tween_callback(area.queue_free)
 
 func _spawn_heal_beacon_vfx(id, pos, radius, _data = {}):
 	if active_areas.has(id): return
@@ -1076,6 +1141,8 @@ func _spawn_heal_beacon_vfx(id, pos, radius, _data = {}):
 		var proj_pos = _get_projected_position(pos)
 		beacon.global_position = proj_pos
 		active_areas[id] = beacon
+		beacon.set_meta("logical_position", pos)
+		beacon.set_meta("type", "heal_beacon")
 
 func _on_beacon_pulse(data: Dictionary):
 	var id = data.get("id", "")
@@ -1097,6 +1164,8 @@ func _spawn_smoke_cloud(id, pos, radius):
 	var proj_pos = _get_projected_position(pos)
 	wrapper.global_position = proj_pos
 	active_areas[id] = wrapper
+	wrapper.set_meta("logical_position", pos)
+	wrapper.set_meta("type", "smoke")
 	
 	var view_size = int(radius * 2.5)
 	var vp = SubViewport.new()
@@ -1377,6 +1446,8 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	active_areas[id] = container
 	
 	container.global_position = _get_projected_position(pos)
+	container.set_meta("logical_position", pos)
+	container.set_meta("type", "wind_barrier")
 	
 	# Rotar el contenedor en base al ángulo de lanzamiento del viento
 	var angle = float(_data.get("angle", 0.0))
@@ -1448,6 +1519,26 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	tw.tween_property(container, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_SINE)
 
 func _get_projected_position(pos: Vector2) -> Vector2:
+	var current_map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(current_map):
+		var use_perspective = not current_map.get("use_orthogonal")
+		if use_perspective:
+			var cam3d = current_map.get("camera_3d")
+			var sub_vp = current_map.get("sub_viewport")
+			if is_instance_valid(cam3d) and is_instance_valid(sub_vp) and sub_vp.size.x > 0 and sub_vp.size.y > 0:
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				var pos_3d = Vector3(pos.x * s_factor, 0.0, pos.y * s_factor * correction_z)
+				if not cam3d.is_position_behind(pos_3d):
+					var sv_pixel = cam3d.unproject_position(pos_3d)
+					var container = current_map.get("viewport_container")
+					if is_instance_valid(container) and container.size.x > 0:
+						sv_pixel *= Vector2(container.size) / Vector2(sub_vp.size)
+						sv_pixel += container.global_position
+					else:
+						var main_size = Vector2(get_viewport().get_visible_rect().size)
+						sv_pixel *= main_size / Vector2(sub_vp.size)
+					return get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
 	return pos
 
 func _get_entity_visual_position(entity: Node) -> Vector2:

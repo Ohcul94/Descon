@@ -7,6 +7,8 @@ const TEXTURE_NOISE_21D = preload("res://VFX/textures/T_VFX_Noise21d_tiled.png")
 const SHADER_GROUND_RELIEF = preload("res://resources/shaders/ground_relief.gdshader")
 const TEXTURE_NOISE_019 = preload("res://VFX/textures/T_VFX_Noise_019.png")
 const SHADER_BORDER_NEBULA = preload("res://resources/shaders/border_nebula.gdshader")
+const SHADER_STARFIELD = preload("res://resources/shaders/starfield.gdshader")
+const SHADER_DOME_STARFIELD = preload("res://resources/shaders/dome_starfield.gdshader")
 
 # Script Base para Mapas Instanciados con Soporte 3D Dinámico.
 # Permite definir propiedades específicas por cada nivel y autogenera lienzos 3D.
@@ -92,6 +94,7 @@ func _register_input_actions():
 		InputMap.action_add_event("toggle_orbit_mode", ev)
 
 func adjust_background():
+	_setup_starfield()
 	if is_instance_valid(map_background):
 		# v311.1: Adaptar fondo dinámicamente al tamaño del mundo con un margen del 50%
 		var bg_margin = world_size * 0.5
@@ -124,6 +127,35 @@ func _deferred_ready():
 	await get_tree().process_frame
 	print("[BaseMap _deferred_ready] process_frame completado. Llamando a _spawn_map_objects...")
 	_spawn_map_objects()
+	_create_sky_dome()
+
+func _setup_starfield():
+	var bg = get_node_or_null("ParallaxBackground/StaticLayer/SpaceBG")
+	if is_instance_valid(bg):
+		var mat = ShaderMaterial.new()
+		mat.shader = SHADER_STARFIELD
+		bg.material = mat
+
+func _create_sky_dome():
+	if not is_instance_valid(sub_viewport):
+		return
+	var existing = sub_viewport.get_node_or_null("SkyDome")
+	if is_instance_valid(existing):
+		return
+	var dome = MeshInstance3D.new()
+	dome.name = "SkyDome"
+	var mesh = SphereMesh.new()
+	mesh.radius = 250.0
+	mesh.height = 500.0
+	mesh.radial_segments = 64
+	mesh.rings = 48
+	var mat = ShaderMaterial.new()
+	mat.shader = SHADER_DOME_STARFIELD
+	mat.render_priority = -128
+	dome.material_override = mat
+	dome.mesh = mesh
+	sub_viewport.add_child(dome)
+	print("[BaseMap] Cúpula estelar 3D creada.")
 
 func setup_map():
 	_setup_dynamic_3d_map_layout()
@@ -645,6 +677,12 @@ func _process(_delta):
 	# v2.4: Comparar como string para evitar el error 'String' and 'int' cuando zone_id es "extract_X" o "arena_X"
 	if str(zone_id) == "100":
 		return
+		
+	# Cúpula estelar sigue a la cámara (sin paralaje, orientación fija en espacio mundo)
+	if is_instance_valid(sub_viewport) and is_instance_valid(camera_3d):
+		var dome = sub_viewport.get_node_or_null("SkyDome")
+		if is_instance_valid(dome):
+			dome.global_position = camera_3d.global_position
 		
 	# --- LOCALIZAR NAVE DEL JUGADOR ---
 	if not is_instance_valid(player_node):

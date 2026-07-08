@@ -472,4 +472,7 @@ func _draw():
 				t_pos = to_local(selected_target.global_position)
 			draw_arc(t_pos, 40.0, 0, TAU, 32, Color.YELLOW, 3.0)
 		else:
-			draw_circle(aim_vec, 15.0, Color(1, 1, 1, 0.2))
+			if use_perspective:
+				draw_circle(_proj.call(aim_vec), 15.0, Color(1, 1, 1, 0.2))
+			else:
+				draw_circle(aim_vec, 15.0, Color(1, 1, 1, 0.2))
