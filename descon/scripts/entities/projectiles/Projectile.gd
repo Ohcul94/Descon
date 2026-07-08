@@ -400,35 +400,80 @@ func _setup_visual_sprite():
 				sprite = null
 				return
 		
-	# Efecto de partículas de humo oscuro y aura carmesí para Siphon
+	# Modelo 3D para Siphon con estela de partículas 3D
 	if type == "siphon":
 		sprite = null
-		var parts = CPUParticles2D.new()
-		parts.name = "SiphonTrail"
-		parts.amount = 55
-		parts.lifetime = 0.5
-		parts.speed_scale = 1.0
-		parts.explosiveness = 0.0
-		parts.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE
-		parts.emission_sphere_radius = 8.0
-		parts.direction = Vector2.LEFT
-		parts.spread = 20.0
-		parts.gravity = Vector2.ZERO
-		parts.initial_velocity_min = 20.0
-		parts.initial_velocity_max = 60.0
-		parts.scale_amount_min = 2.5
-		parts.scale_amount_max = 8.0 # Partículas más grandes y difusas para simular humo
-		parts.z_index = 5
-		
-		var grad = Gradient.new()
-		grad.set_color(0, Color(0.95, 0.05, 0.1, 0.85)) # Rojo carmesí brillante
-		grad.add_point(0.35, Color(0.6, 0.05, 0.65, 0.6)) # Púrpura místico
-		grad.add_point(0.7, Color(0.15, 0.02, 0.2, 0.35)) # Humo oscuro (púrpura/negro muy translúcido)
-		grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
-		parts.color_ramp = grad
-		
-		add_child(parts)
-		parts.emitting = true
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "SiphonProj3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+			
+			# Aguja de cristal plateado
+			var needle = MeshInstance3D.new()
+			var box = BoxMesh.new()
+			box.size = Vector3(0.2, 0.2, 0.9)
+			needle.mesh = box
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = Color(0.85, 0.85, 0.9)
+			mat.emission_enabled = true
+			mat.emission = Color(0.65, 0.05, 0.75)
+			mat.emission_energy_multiplier = 2.0
+			needle.material_override = mat
+			world_root_3d.add_child(needle)
+			
+			# Canal de sangre central
+			var channel = MeshInstance3D.new()
+			var ch_box = BoxMesh.new()
+			ch_box.size = Vector3(0.06, 0.06, 0.75)
+			channel.mesh = ch_box
+			var ch_mat = StandardMaterial3D.new()
+			ch_mat.albedo_color = Color(0.95, 0.05, 0.1)
+			ch_mat.emission_enabled = true
+			ch_mat.emission = Color(0.95, 0.05, 0.1)
+			ch_mat.emission_energy_multiplier = 3.0
+			channel.material_override = ch_mat
+			world_root_3d.add_child(channel)
+			
+			# Estela 3D: partículas carmesí/púrpura
+			var trail = GPUParticles3D.new()
+			trail.name = "SiphonTrail3D"
+			var trail_mat = StandardMaterial3D.new()
+			trail_mat.albedo_color = Color(0.95, 0.05, 0.1)
+			trail_mat.emission_enabled = true
+			trail_mat.emission = Color(0.6, 0.05, 0.65)
+			trail_mat.emission_energy_multiplier = 2.0
+			trail_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			trail.material_override = trail_mat
+			var p_mesh = SphereMesh.new()
+			p_mesh.radius = 0.08
+			p_mesh.height = 0.16
+			trail.draw_pass_1 = p_mesh
+			trail.amount = 30
+			trail.lifetime = 0.6
+			trail.explosiveness = 0.0
+			trail.one_shot = false
+			trail.emitting = true
+			trail.local_coords = false
+			trail.process_material = null
+			trail.speed_scale = 1.0
+			var spread_val = 0.3
+			var dir = ParticleProcessMaterial.new()
+			dir.direction = Vector3(-1, 0, 0)
+			dir.spread = spread_val
+			dir.gravity = Vector3.ZERO
+			dir.initial_velocity_min = 0.3
+			dir.initial_velocity_max = 1.0
+			trail.process_material = dir
+			world_root_3d.add_child(trail)
+			
+			world_root_3d.scale = Vector3(0.6, 0.6, 0.6)
+			
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+			)
 		return
 
 	# Efecto 3D de proyectil Láser (cubo rojo con estela)
@@ -628,6 +673,8 @@ func _draw():
 			draw_line(Vector2(-3.5, 0), Vector2(3.5, 0), Color.WHITE, 1.5)
 			draw_line(Vector2(0, -3.5), Vector2(0, 3.5), Color.WHITE, 1.5)
 		"siphon":
+			if is_instance_valid(world_root_3d):
+				return
 			# Aguja/Cristal Rúnico Plateado con Canal de Sangre (Sifón)
 			var length = 18.0
 			var half_w = 4.0

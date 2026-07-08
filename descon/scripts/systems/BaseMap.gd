@@ -132,9 +132,7 @@ func _deferred_ready():
 func _setup_starfield():
 	var bg = get_node_or_null("ParallaxBackground/StaticLayer/SpaceBG")
 	if is_instance_valid(bg):
-		var mat = ShaderMaterial.new()
-		mat.shader = SHADER_STARFIELD
-		bg.material = mat
+		bg.visible = false
 
 func _create_sky_dome():
 	if not is_instance_valid(sub_viewport):
@@ -155,7 +153,24 @@ func _create_sky_dome():
 	dome.material_override = mat
 	dome.mesh = mesh
 	sub_viewport.add_child(dome)
-	print("[BaseMap] Cúpula estelar 3D creada.")
+	
+	# Establecer visibilidad inicial según configuración (desactivado por defecto)
+	var show_s = false
+	if get_node_or_null("/root/SettingsManager"):
+		show_s = SettingsManager.show_stars
+	dome.visible = show_s
+	print("[BaseMap] Cúpula estelar 3D creada. Visibilidad: ", show_s)
+
+func update_sky_dome_visibility():
+	if not is_instance_valid(sub_viewport):
+		return
+	var dome = sub_viewport.get_node_or_null("SkyDome")
+	if is_instance_valid(dome):
+		var show_s = false
+		if get_node_or_null("/root/SettingsManager"):
+			show_s = SettingsManager.show_stars
+		dome.visible = show_s
+		print("[BaseMap] Visibilidad de cúpula estelar actualizada: ", show_s)
 
 func setup_map():
 	_setup_dynamic_3d_map_layout()
@@ -297,18 +312,18 @@ func _create_ground_material() -> ShaderMaterial:
 func _apply_ground_fog(mat: ShaderMaterial, fog_start: float, fog_end: float):
 	mat.set_shader_parameter("u_fog_start", fog_start)
 	mat.set_shader_parameter("u_fog_end", fog_end)
-	mat.set_shader_parameter("u_fog_color", Color(0.012, 0.006, 0.035, 1.0))
-	mat.set_shader_parameter("u_horizon_glow_color", Vector3(0.08, 0.02, 0.18))
+	mat.set_shader_parameter("u_fog_color", Color(0.0, 0.0, 0.0, 1.0))
+	mat.set_shader_parameter("u_horizon_glow_color", Vector3(0.005, 0.01, 0.02))
 
 func _create_nebula_material() -> ShaderMaterial:
 	var mat = ShaderMaterial.new()
 	mat.shader = SHADER_BORDER_NEBULA
 	mat.set_shader_parameter("u_noise_tex", TEXTURE_NOISE_019)
-	mat.set_shader_parameter("u_color_a", Color(0.12, 0.01, 0.22, 0.6))
-	mat.set_shader_parameter("u_color_b", Color(0.01, 0.18, 0.38, 0.35))
-	mat.set_shader_parameter("u_color_c", Color(0.45, 0.03, 0.28, 0.4))
-	mat.set_shader_parameter("u_speed", 0.3)
-	mat.set_shader_parameter("u_alpha_scale", 0.9)
+	mat.set_shader_parameter("u_color_a", Color(0.0, 0.0, 0.005, 0.3))
+	mat.set_shader_parameter("u_color_b", Color(0.002, 0.005, 0.015, 0.2))
+	mat.set_shader_parameter("u_color_c", Color(0.005, 0.01, 0.025, 0.25))
+	mat.set_shader_parameter("u_speed", 0.1)
+	mat.set_shader_parameter("u_alpha_scale", 0.3)
 	mat.set_shader_parameter("u_horizon_fade", 0.5)
 	return mat
 

@@ -13,10 +13,10 @@ uniform vec2 u_tiling = vec2(5.0, 5.0);
 uniform float u_detail_strength : hint_range(0.0, 2.0) = 0.4;
 uniform sampler2D u_detail_tex : source_color;
 
-uniform vec4 u_fog_color : source_color = vec4(0.012, 0.006, 0.035, 1.0);
+uniform vec4 u_fog_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform float u_fog_start = 30.0;
 uniform float u_fog_end = 120.0;
-uniform vec3 u_horizon_glow_color : source_color = vec3(0.08, 0.02, 0.18);
+uniform vec3 u_horizon_glow_color : source_color = vec3(0.005, 0.01, 0.02);
 
 void fragment() {
 	vec2 uv = UV * u_tiling;

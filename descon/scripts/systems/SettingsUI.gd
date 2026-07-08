@@ -418,6 +418,31 @@ func _setup_ui():
 	cam_lbl.text = "CÁMARA 3D"
 	row_cam.add_child(cam_lbl)
 
+	# ESTRELLAS EN EL CIELO
+	var row_stars = HBoxContainer.new()
+	row_stars.add_theme_constant_override("separation", 10)
+	gfx_vbox.add_child(row_stars)
+
+	var stars_check = CheckBox.new()
+	stars_check.text = ""
+	stars_check.add_theme_stylebox_override("normal", check_style)
+	stars_check.add_theme_stylebox_override("pressed", check_style)
+	stars_check.add_theme_stylebox_override("hover", check_style)
+	if get_node_or_null("/root/SettingsManager"):
+		stars_check.button_pressed = SettingsManager.show_stars
+	stars_check.toggled.connect(func(val):
+		SettingsManager.show_stars = val
+		SettingsManager.save_settings()
+		var map_node = get_tree().get_first_node_in_group("map")
+		if map_node and map_node.has_method("update_sky_dome_visibility"):
+			map_node.update_sky_dome_visibility()
+	)
+	row_stars.add_child(stars_check)
+
+	var stars_lbl = Label.new()
+	stars_lbl.text = "ACTIVAR ESTRELLAS EN EL CIELO"
+	row_stars.add_child(stars_lbl)
+
 	# Bottom spacer para forzar scroll en cualquier pantalla
 	var bot_spacer = Control.new()
 	bot_spacer.custom_minimum_size.y = 200

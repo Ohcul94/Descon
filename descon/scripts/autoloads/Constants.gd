@@ -98,6 +98,22 @@ var SHOP_ITEMS = {
 			{ "id": "am_el4", "name": "Electrón T4", "prices": { "hubs": 32000, "ohcu": 40 }, "range": 560 },
 			{ "id": "am_el5", "name": "Electrón T5", "prices": { "hubs": 0, "ohcu": 100 }, "range": 580 },
 			{ "id": "am_el6", "name": "Electrón T6", "prices": { "hubs": 0, "ohcu": 200 }, "range": 600 }
+		],
+		"siphon": [
+			{ "id": "am_s1", "name": "Vampire Beam T1", "prices": { "hubs": 3000, "ohcu": 3 }, "range": 600, "bulletSpeed": 1200 },
+			{ "id": "am_s2", "name": "Vampire Beam T2", "prices": { "hubs": 6000, "ohcu": 6 }, "range": 620, "bulletSpeed": 1200 },
+			{ "id": "am_s3", "name": "Vampire Beam T3", "prices": { "hubs": 12000, "ohcu": 12 }, "range": 640, "bulletSpeed": 1200 },
+			{ "id": "am_s4", "name": "Vampire Beam T4", "prices": { "hubs": 24000, "ohcu": 24 }, "range": 660, "bulletSpeed": 1200 },
+			{ "id": "am_s5", "name": "Vampire Beam T5", "prices": { "hubs": 0, "ohcu": 60 }, "range": 680, "bulletSpeed": 1300 },
+			{ "id": "am_s6", "name": "Vampire Beam T6", "prices": { "hubs": 0, "ohcu": 120 }, "range": 700, "bulletSpeed": 1400 }
+		],
+		"emp": [
+			{ "id": "am_e1", "name": "EMP Pulse T1", "prices": { "hubs": 4000, "ohcu": 4 }, "range": 500, "bulletSpeed": 800 },
+			{ "id": "am_e2", "name": "EMP Pulse T2", "prices": { "hubs": 8000, "ohcu": 8 }, "range": 550, "bulletSpeed": 850 },
+			{ "id": "am_e3", "name": "EMP Pulse T3", "prices": { "hubs": 16000, "ohcu": 16 }, "range": 600, "bulletSpeed": 900 },
+			{ "id": "am_e4", "name": "EMP Pulse T4", "prices": { "hubs": 32000, "ohcu": 32 }, "range": 650, "bulletSpeed": 950 },
+			{ "id": "am_e5", "name": "EMP Pulse T5", "prices": { "hubs": 0, "ohcu": 80 }, "range": 700, "bulletSpeed": 1000 },
+			{ "id": "am_e6", "name": "EMP Pulse T6", "prices": { "hubs": 0, "ohcu": 160 }, "range": 750, "bulletSpeed": 1100 }
 		]
 	},
 	"weapons": [

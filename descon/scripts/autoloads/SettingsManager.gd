@@ -43,6 +43,7 @@ var camera_use_orthogonal: bool = true # Persistido en disco (2D/3D)
 var mobile_aim_sensitivity: float = 1.0 # v266.700: Sensibilidad de apuntado MOBA (profundidad)
 var mobile_invert_y: bool = true        # v266.760: Invertir eje Y en apuntado movil
 var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
+var show_stars: bool = false            # Activar estrellas en el cielo (desactivado por defecto)
 
 # Configuraciones de tamaño de letra de forma independiente
 var font_size_player_name: int = 13
@@ -110,6 +111,7 @@ func reset_to_factory():
 	mobile_invert_y = true
 	fps_limit = 60
 	camera_use_orthogonal = true
+	show_stars = false
 	apply_fps_limit(60)
 	
 	font_size_player_name = 13
@@ -143,6 +145,7 @@ func save_settings():
 	config_file.set_value("graphics", "quality", graphics_quality)
 	config_file.set_value("graphics", "fps_limit", fps_limit)
 	config_file.set_value("graphics", "camera_use_orthogonal", camera_use_orthogonal)
+	config_file.set_value("graphics", "show_stars", show_stars)
 	config_file.set_value("accessibility", "hit_flash", hit_flash_enabled)
 	config_file.set_value("accessibility", "camera_shake", camera_shake_enabled)
 	config_file.set_value("accessibility", "camera_shake_intensity", camera_shake_intensity)
@@ -191,6 +194,7 @@ func load_settings():
 		graphics_quality = config_file.get_value("graphics", "quality", 1)
 		fps_limit = config_file.get_value("graphics", "fps_limit", 60)
 		camera_use_orthogonal = config_file.get_value("graphics", "camera_use_orthogonal", true)
+		show_stars = config_file.get_value("graphics", "show_stars", false)
 		hit_flash_enabled = config_file.get_value("accessibility", "hit_flash", true)
 		camera_shake_enabled = config_file.get_value("accessibility", "camera_shake", true)
 		camera_shake_intensity = config_file.get_value("accessibility", "camera_shake_intensity", 1.0)
@@ -219,6 +223,7 @@ func load_settings():
 		graphics_quality = 1
 		fps_limit = 60
 		camera_use_orthogonal = true
+		show_stars = false
 		hit_flash_enabled = true
 		camera_shake_enabled = true
 		camera_shake_intensity = 1.0

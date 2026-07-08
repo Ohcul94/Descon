@@ -36,7 +36,7 @@ void fragment() {
 
 	vec3 col_a = mix(u_color_a.rgb, u_color_b.rgb, noise_a);
 	vec3 nebula = mix(col_a, u_color_c.rgb, noise_b * 0.5 + 0.25);
-	nebula += vec3(0.08, 0.01, 0.12) * noise_c * 0.25;
+	nebula += vec3(0.005, 0.01, 0.02) * noise_c * 0.25;
 
 	float edge_x = 1.0 - abs(ring_uv - 0.5) * 2.0;
 	edge_x = smoothstep(0.0, 1.0, edge_x);

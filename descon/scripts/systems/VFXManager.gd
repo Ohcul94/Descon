@@ -84,7 +84,18 @@ var static_textures_to_cache = [
   "res://VFX/scenes/VFX_Hit_hadouken.tscn",
   "res://VFX/scenes/VFX_Hit_cyber.tscn",
   "res://VFX/scenes/VFX_Anticipation_hadouken.tscn",
-  "res://VFX/scenes/VFX_Anticipation_wave_digital.tscn"
+  "res://VFX/scenes/VFX_Anticipation_wave_digital.tscn",
+  "res://VFX/scenes/VFX_Laser_projectile.tscn",
+  "res://VFX/scenes/VFX_Laser_Hit.tscn",
+  "res://VFX/scenes/VFX_Fire_ball_type_B.tscn",
+  "res://VFX/scenes/VFX_Fire_strike.tscn",
+  "res://VFX/scenes/VFX_Shield_hex.tscn",
+  "res://VFX/scenes/VFX_Shield_demon.tscn",
+  "res://VFX/scenes/VFX_Shield_yellow.tscn",
+  "res://VFX/scenes/VFX_Hit_Hex_Sphere.tscn",
+  "res://VFX/scenes/VFX_Hit_sphere_demon.tscn",
+  "res://VFX/scenes/VFX_Hit_sphere_green.tscn",
+  "res://VFX/scenes/VFX_Hit_sphere_bbasic.tscn"
 ]
 
 func _ready():
@@ -590,6 +601,17 @@ func _run_shader_warmup():
 		"res://VFX/scenes/VFX_Anticipation_hadouken.tscn",
 		"res://VFX/scenes/VFX_Hit_cyber.tscn",
 		"res://VFX/scenes/VFX_Hit_hadouken.tscn",
+		"res://VFX/scenes/VFX_Laser_projectile.tscn",
+		"res://VFX/scenes/VFX_Laser_Hit.tscn",
+		"res://VFX/scenes/VFX_Fire_ball_type_B.tscn",
+		"res://VFX/scenes/VFX_Fire_strike.tscn",
+		"res://VFX/scenes/VFX_Shield_hex.tscn",
+		"res://VFX/scenes/VFX_Shield_demon.tscn",
+		"res://VFX/scenes/VFX_Shield_yellow.tscn",
+		"res://VFX/scenes/VFX_Hit_Hex_Sphere.tscn",
+		"res://VFX/scenes/VFX_Hit_sphere_demon.tscn",
+		"res://VFX/scenes/VFX_Hit_sphere_green.tscn",
+		"res://VFX/scenes/VFX_Hit_sphere_bbasic.tscn",
 		"res://scenes/entities/Enemy.tscn",
 		"res://scenes/entities/Ship.tscn",
 		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
