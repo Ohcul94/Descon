@@ -176,6 +176,17 @@ func _add_range_indicator():
 	ring.position.y = 0.02
 	add_child(ring)
 
+func _update_range_ring():
+	var ring = get_node_or_null("RangeRing")
+	if not ring: return
+	var radius_3d = _heal_radius_2d * _scale_factor
+	var torus = TorusMesh.new()
+	var ring_width = max(radius_3d * 0.06, 0.15)
+	var half_thick = ring_width * 0.5
+	torus.inner_radius = max(radius_3d - half_thick, 0.01)
+	torus.outer_radius = radius_3d + half_thick
+	ring.mesh = torus
+
 func _setup_ambient_particles():
 	var parts = GPUParticles3D.new()
 	parts.name = "Ambient"
@@ -214,8 +225,10 @@ func _setup_ambient_particles():
 	parts.emitting = true
 	_ambient_particles = parts
 
-func pulse(_radius_2d: float = 200.0):
-	var radius_3d = _heal_radius_2d * _scale_factor
+func pulse(radius_2d: float = 200.0):
+	_heal_radius_2d = radius_2d
+	_update_range_ring()
+	var radius_3d = radius_2d * _scale_factor
 	var lifetime = 0.8
 	var burst_speed = radius_3d / lifetime
 
