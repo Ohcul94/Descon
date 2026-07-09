@@ -436,6 +436,9 @@ func _setup_ui():
 		var map_node = get_tree().get_first_node_in_group("map")
 		if map_node and map_node.has_method("update_sky_dome_visibility"):
 			map_node.update_sky_dome_visibility()
+		var world_node = get_tree().get_first_node_in_group("world_node")
+		if world_node and world_node.has_method("update_stars_visibility"):
+			world_node.update_stars_visibility()
 	)
 	row_stars.add_child(stars_check)
 

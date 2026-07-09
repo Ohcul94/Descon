@@ -322,11 +322,11 @@ func _create_nebula_material() -> ShaderMaterial:
 	var mat = ShaderMaterial.new()
 	mat.shader = SHADER_BORDER_NEBULA
 	mat.set_shader_parameter("u_noise_tex", TEXTURE_NOISE_019)
-	mat.set_shader_parameter("u_color_a", Color(0.0, 0.0, 0.005, 0.3))
-	mat.set_shader_parameter("u_color_b", Color(0.002, 0.005, 0.015, 0.2))
-	mat.set_shader_parameter("u_color_c", Color(0.005, 0.01, 0.025, 0.25))
-	mat.set_shader_parameter("u_speed", 0.1)
-	mat.set_shader_parameter("u_alpha_scale", 0.3)
+	mat.set_shader_parameter("u_color_a", Color(0.12, 0.01, 0.22, 0.6))
+	mat.set_shader_parameter("u_color_b", Color(0.01, 0.18, 0.38, 0.35))
+	mat.set_shader_parameter("u_color_c", Color(0.45, 0.03, 0.28, 0.4))
+	mat.set_shader_parameter("u_speed", 0.3)
+	mat.set_shader_parameter("u_alpha_scale", 0.9)
 	mat.set_shader_parameter("u_horizon_fade", 0.5)
 	return mat
 

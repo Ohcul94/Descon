@@ -64,7 +64,7 @@ func _ready():
 	if ui_chat: ui_chat.visible = false
 	
 	# _generate_stellar_data() # v73.31: Eliminado por solicitud del usuario para limpiar el fondo
-	_setup_starfield()
+	update_stars_visibility()
 	
 	# v267.900: Inicializar Overlays de Ambiente
 	_setup_blindness_overlay()
@@ -316,13 +316,34 @@ func _on_blindness_event(data):
 
 const STARFIELD_SHADER = preload("res://resources/shaders/starfield.gdshader")
 
-func _setup_starfield():
+func update_stars_visibility():
+	var show_s = false
+	if get_node_or_null("/root/SettingsManager"):
+		show_s = SettingsManager.show_stars
+		
+	# 1. Controlar las partículas de estrellas 2D
+	var layers = [
+		"MapParallax/ParticlesLayer/StarsLayer1",
+		"MapParallax/ParticlesLayer/StarsLayer2",
+		"MapParallax/ParticlesLayer/StarsLayer3"
+	]
+	for path in layers:
+		var p = get_node_or_null(path)
+		if is_instance_valid(p):
+			p.visible = show_s
+
+	# 2. Controlar el shader de fondo SpaceBG (para evitar el violáceo aditivo)
 	var bg = get_node_or_null("MapParallax/StaticLayer/SpaceBG")
 	if is_instance_valid(bg):
-		var mat = ShaderMaterial.new()
-		mat.shader = STARFIELD_SHADER
-		bg.material = mat
-	_enhance_star_particles()
+		if show_s:
+			var mat = ShaderMaterial.new()
+			mat.shader = STARFIELD_SHADER
+			bg.material = mat
+		else:
+			bg.material = null
+
+func _setup_starfield():
+	update_stars_visibility()
 
 func _enhance_star_particles():
 	var layers = [
@@ -626,6 +647,8 @@ func _update_background(zone_id):
 		if is_instance_valid(dungeon_builder):
 			await get_tree().process_frame  # Esperar un frame para que el viewport esté listo
 			dungeon_builder.build_for_zone(zone_id, current_map_node)
+			
+		update_stars_visibility()
 
 func clear_remote_players():
 	if is_instance_valid(entity_manager):
