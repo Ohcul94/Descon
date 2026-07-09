@@ -16,10 +16,10 @@ const ZONE_CLEANUP_INTERVAL = 1.0
 const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
 const SHIP_SCENE = preload("res://scenes/entities/Ship.tscn")
 const LOOT_DROP_SCRIPT = preload("res://scripts/entities/LootDrop.gd")
-const HEAL_BEACON_VFX_SCRIPT = preload("res://scripts/vfx/HealBeaconVFX.gd")
 const WIND_BARRIER_VFX_SCENE = preload("res://VFX/scenes/VFX_Shield_green_plane.tscn")
 const SMOKE_CLOUD_SHADER = preload("res://resources/shaders/smoke_cloud.gdshader")
 const VFX_SHIELD_GREEN_SCENE = preload("res://VFX/scenes/VFX_Shield_green.tscn")
+const BEACON_3D_SCRIPT = preload("res://scripts/vfx/Beacon3D.gd")
 
 # Texturas precargadas estáticamente
 const TEX_CURACION_TRANSP = preload("res://assets/Efectos de Skills/Curacion(Transp).png")
@@ -1123,15 +1123,16 @@ func _on_remove_area(data: Dictionary):
 				area.queue_free()
 			elif area is Node3D:
 				var tw = area.create_tween().set_parallel(true)
-				tw.tween_property(area, "scale", Vector3.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+				tw.tween_property(area, "scale", Vector3(0.001, 0.001, 0.001), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+				tw.tween_property(area, "visible", false, 0.14)
 				tw.chain().tween_callback(area.queue_free)
 			else:
 				var tw = area.create_tween().set_parallel(true)
-				tw.tween_property(area, "scale", Vector2.ZERO, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+				tw.tween_property(area, "scale", Vector2(0.001, 0.001), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 				tw.tween_property(area, "modulate:a", 0.0, 0.15)
 				tw.chain().tween_callback(area.queue_free)
 
-func _spawn_alpha_regen_vfx(id, pos, radius, data):
+func _spawn_alpha_regen_vfx(id, pos, _radius, _data):
 	if active_areas.has(id): return
 	var current_map = get_tree().get_first_node_in_group("map")
 	if not is_instance_valid(current_map) or not current_map.get("sub_viewport"):
@@ -1154,26 +1155,21 @@ func _spawn_alpha_regen_vfx(id, pos, radius, data):
 	if anim and anim.has_animation("start_animation"):
 		anim.play("start_animation")
 
-func _spawn_heal_beacon_vfx(id, pos, radius, _data = {}):
+func _spawn_heal_beacon_vfx(id, pos, _radius, _data = {}):
 	if active_areas.has(id): return
-	
-	var vfx_script = HEAL_BEACON_VFX_SCRIPT
-	if vfx_script:
-		var beacon = vfx_script.new()
-		beacon.name = id
-		beacon.radius = radius
-		beacon.z_index = 2 # Capa alta de efectos terrestres y boyas
-		
-		if is_instance_valid(world) and is_instance_valid(world.entities_node):
-			world.entities_node.add_child(beacon)
-		else:
-			get_parent().add_child(beacon)
-			
-		var proj_pos = _get_projected_position(pos)
-		beacon.global_position = proj_pos
-		active_areas[id] = beacon
-		beacon.set_meta("logical_position", pos)
-		beacon.set_meta("type", "heal_beacon")
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map) or not current_map.get("sub_viewport"):
+		return
+	var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+	var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+	var sub_vp = current_map.sub_viewport
+	var beacon = BEACON_3D_SCRIPT.new()
+	beacon.name = id
+	beacon._scale_factor = s_factor
+	beacon._heal_radius_2d = float(_data.get("radius", 200.0))
+	beacon.position = Vector3(pos.x * s_factor, 0.0, pos.y * s_factor * correction_z)
+	sub_vp.add_child(beacon)
+	active_areas[id] = beacon
 
 func _on_beacon_pulse(data: Dictionary):
 	var id = data.get("id", "")

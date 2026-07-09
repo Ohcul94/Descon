@@ -76,7 +76,7 @@ light_specular = 0.2
 [node name="Ground3D" type="Node3D" parent="ViewportCanvas/SubViewportContainer/SubViewport" unique_id=737482712]
 
 [node name="GroundMesh" type="MeshInstance3D" parent="ViewportCanvas/SubViewportContainer/SubViewport/Ground3D" unique_id=476437583]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, -5, 28.28)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, -2, 28.28)
 material_override = SubResource("Mat_ground_editor")
 mesh = SubResource("PlaneMesh_ground")
 

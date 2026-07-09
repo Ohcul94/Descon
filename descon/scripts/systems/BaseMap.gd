@@ -9,6 +9,9 @@ const TEXTURE_NOISE_019 = preload("res://VFX/textures/T_VFX_Noise_019.png")
 const SHADER_BORDER_NEBULA = preload("res://resources/shaders/border_nebula.gdshader")
 const SHADER_STARFIELD = preload("res://resources/shaders/starfield.gdshader")
 const SHADER_DOME_STARFIELD = preload("res://resources/shaders/dome_starfield.gdshader")
+const MODEL_PORTAL_ICON = preload("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
+const MODEL_VAULT_ICON = preload("res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb")
+const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb")
 
 # Script Base para Mapas Instanciados con Soporte 3D Dinámico.
 # Permite definir propiedades específicas por cada nivel y autogenera lienzos 3D.
@@ -204,7 +207,7 @@ func _setup_dynamic_3d_map_layout():
 	var ground_size_z = (map_height + margin_2d * 2.0) * scale_factor * correction_z
 	var center_x = (map_width / 2.0) * scale_factor
 	var center_z = (map_height / 2.0) * scale_factor * correction_z
-	var y_ground = -5.0
+	var y_ground = -2.0
 
 	var fog_start_3d = max(map_width * scale_factor * 0.25, 15.0)
 	var fog_end_3d = max(map_width * scale_factor * 0.75, 60.0)
@@ -892,6 +895,8 @@ var portal_btn_container: VBoxContainer = null
 var portal_desc_label: Label = null
 var portal_click_button: Button = null
 var portal_icon_label: Label = null
+var portal_icon_viewport: SubViewport = null
+var portal_icon_holder: Node3D = null
 # Variables para el sistema de interacción de vaults y loot drops
 var active_vault_node: Node = null
 var active_loot_node: Node = null
@@ -968,7 +973,7 @@ func _spawn_map_objects():
 				var model_path = str(obj.get("assetPath", ""))
 				if model_path == "":
 					model_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
-				var model_node = _instantiate_map_object_3d(model_path, obj_pos, Vector3(10.0, 10.0, 10.0), Vector3(-45, -90, 0), Color(0.0, 0.9, 1.0))
+				var model_node = _instantiate_map_object_3d(model_path, obj_pos, Vector3(10.0, 10.0, 10.0), Vector3(-45, -90, 0), Color(0.0, 0.9, 1.0), 2.5)
 				if is_instance_valid(model_node):
 					active_doors_3d.append(model_node)
 				
@@ -999,7 +1004,7 @@ func _spawn_map_objects():
 				var model_path = str(obj.get("assetPath", ""))
 				if model_path == "":
 					model_path = "res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
-				_instantiate_map_object_3d(model_path, obj_pos, Vector3(10.0, 10.0, 10.0), Vector3(0, 0, 0), Color(1.0, 0.5, 0.0))
+				_instantiate_map_object_3d(model_path, obj_pos, Vector3(10.0, 10.0, 10.0), Vector3(0, 0, 0), Color(1.0, 0.5, 0.0), 2.5)
 				
 				tower.add_to_group("towers")
 				add_child(tower)
@@ -1038,7 +1043,7 @@ func _spawn_map_objects():
 				print("[BaseMap] Tipo de objeto desconocido: ", obj_type, " @ ", obj_pos)
 
 # Instanciar modelo 3D del objeto en el Viewport global del mapa
-func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: Vector3, rotation_3d: Vector3, light_color: Color) -> Node3D:
+func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: Vector3, rotation_3d: Vector3, light_color: Color, y_offset: float = 0.5) -> Node3D:
 	print("[BaseMap _instantiate_map_object_3d] Intentando instanciar: ", asset_path, " @ ", pos_2d)
 	if not is_instance_valid(sub_viewport):
 		print("[BaseMap _instantiate_map_object_3d] ERROR: sub_viewport es INVÁLIDO o NULO.")
@@ -1056,12 +1061,12 @@ func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: V
 		mat.emission_enabled = true
 		mat.emission = light_color * 0.5
 		fallback.material = mat
-		fallback.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor * correction_z)
+		fallback.position = Vector3(pos_2d.x * scale_factor, y_offset, pos_2d.y * scale_factor * correction_z)
 		sub_viewport.add_child(fallback)
 		return fallback
 		
 	var obj = scene.instantiate()
-	obj.position = Vector3(pos_2d.x * scale_factor, 0.5, pos_2d.y * scale_factor * correction_z)
+	obj.position = Vector3(pos_2d.x * scale_factor, y_offset, pos_2d.y * scale_factor * correction_z)
 	obj.scale = scale_3d
 	obj.rotation_degrees = rotation_3d
 	
@@ -1109,13 +1114,52 @@ func _create_portal_jump_ui():
 	portal_btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	center_slot.add_child(portal_btn)
 	
-	var icon = Label.new()
-	portal_icon_label = icon
-	icon.text = "🌀" # Portal estelar en espiral/remolino estilo extracción (segundo nombrado que le gusta al usuario)
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", 28)
-	portal_btn.add_child(icon)
+	portal_icon_viewport = SubViewport.new()
+	portal_icon_viewport.name = "PortalIconViewport"
+	portal_icon_viewport.size = Vector2(64, 64)
+	portal_icon_viewport.transparent_bg = true
+	portal_icon_viewport.own_world_3d = true
+	portal_icon_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	portal_icon_viewport.handle_input_locally = false
+	portal_icon_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
+	ui_canvas.add_child(portal_icon_viewport)
+
+	var icon_cam = Camera3D.new()
+	icon_cam.name = "IconCam"
+	icon_cam.current = true
+	icon_cam.look_at_from_position(Vector3(0, 0.8, 1.5), Vector3.ZERO)
+	portal_icon_viewport.add_child(icon_cam)
+
+	var icon_light = DirectionalLight3D.new()
+	icon_light.look_at_from_position(Vector3(2, 4, 2), Vector3.ZERO)
+	icon_light.light_energy = 1.5
+	portal_icon_viewport.add_child(icon_light)
+
+	var icon_light2 = OmniLight3D.new()
+	icon_light2.position = Vector3(-1, 0.5, 0)
+	icon_light2.light_energy = 0.8
+	icon_light2.omni_range = 5
+	portal_icon_viewport.add_child(icon_light2)
+
+	var icon_env = WorldEnvironment.new()
+	var env = Environment.new()
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.8, 0.85, 1.0)
+	env.ambient_light_energy = 2.0
+	icon_env.environment = env
+	portal_icon_viewport.add_child(icon_env)
+
+	portal_icon_holder = Node3D.new()
+	portal_icon_holder.name = "IconModelHolder"
+	portal_icon_viewport.add_child(portal_icon_holder)
+
+	var icon_texture = TextureRect.new()
+	icon_texture.name = "IconTexture"
+	icon_texture.texture = portal_icon_viewport.get_texture()
+	icon_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	icon_texture.expand = true
+	icon_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portal_btn.add_child(icon_texture)
 	
 	var style_normal = StyleBoxFlat.new()
 	style_normal.bg_color = Color(0, 0.4, 0.6, 0.25)
@@ -1147,6 +1191,27 @@ func _create_portal_jump_ui():
 	portal_click_button.pressed.connect(_on_interact_button_pressed)
 	
 	portal_btn_container.visible = false
+	_set_portal_icon("portal")
+
+func _set_portal_icon(type: String):
+	if not is_instance_valid(portal_icon_holder) or not is_instance_valid(portal_icon_viewport):
+		return
+	for c in portal_icon_holder.get_children():
+		portal_icon_holder.remove_child(c)
+		c.queue_free()
+	var scene: PackedScene = null
+	match type:
+		"portal":
+			scene = MODEL_PORTAL_ICON
+		"vault":
+			scene = MODEL_VAULT_ICON
+		"loot":
+			scene = MODEL_LOOT_ICON
+	if scene:
+		var model = scene.instantiate()
+		model.scale = Vector3(1.5, 1.5, 1.5)
+		model.rotation_degrees = Vector3(0, -90, 0)
+		portal_icon_holder.add_child(model)
 
 func _on_map_portal_jump_pressed(target_zone: String, _tx: float, _ty: float):
 	print("[BaseMap] Warp interactivo presionado -> Zona ", target_zone)
@@ -1183,8 +1248,7 @@ func _update_interact_visibility():
 		if portal_desc_label:
 			var key_text = _get_bound_interact_key("loot_claim")
 			portal_desc_label.text = "ABRIR BAÚL [" + key_text + " / Clic]"
-		if portal_icon_label:
-			portal_icon_label.text = "📦"
+		_set_portal_icon("vault")
 		_current_interact_mode = "vault"
 		portal_btn_container.visible = true
 	elif is_instance_valid(active_loot_node):
@@ -1194,8 +1258,7 @@ func _update_interact_visibility():
 		if portal_desc_label:
 			var key_text = _get_bound_interact_key("loot_claim")
 			portal_desc_label.text = "ABRIR COFRE [" + key_text + " / Clic]"
-		if portal_icon_label:
-			portal_icon_label.text = "🎁"
+		_set_portal_icon("loot")
 		_current_interact_mode = "loot"
 		portal_btn_container.visible = true
 	else:
@@ -1213,8 +1276,7 @@ func _show_loot_button(loot: Node):
 	if portal_desc_label:
 		var key_text = _get_bound_interact_key("loot_claim")
 		portal_desc_label.text = "ABRIR COFRE [" + key_text + " / Clic]"
-	if portal_icon_label:
-		portal_icon_label.text = "🎁"
+	_set_portal_icon("loot")
 	_current_interact_mode = "loot"
 	portal_btn_container.visible = true
 
@@ -1306,8 +1368,7 @@ func _check_doors_proximity():
 				portal_click_button.set_meta("targetY", ty)
 				
 			_current_interact_mode = "portal"
-			if portal_icon_label:
-				portal_icon_label.text = "🌀"
+			_set_portal_icon("portal")
 			portal_btn_container.visible = true
 		else:
 			if _current_interact_mode == "portal":

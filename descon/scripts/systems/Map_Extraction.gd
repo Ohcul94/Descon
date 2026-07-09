@@ -298,8 +298,7 @@ func _process(delta):
 				portal_click_button.set_meta("target_zone", near_portal_target_zone)
 				
 			_current_interact_mode = "portal"
-			if portal_icon_label:
-				portal_icon_label.text = "🌀"
+			_set_portal_icon("portal")
 			portal_btn_container.visible = true
 		else:
 			if _current_interact_mode == "portal":
@@ -581,14 +580,53 @@ func _create_portal_jump_ui():
 	portal_btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	center_slot.add_child(portal_btn)
 	
-	# Añadir el dibujo del portal en el centro (emoji galáctico)
-	var icon = Label.new()
-	portal_icon_label = icon
-	icon.text = "🌀"
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", 28)
-	portal_btn.add_child(icon)
+	# Añadir el modelo 3D del objeto en el centro
+	portal_icon_viewport = SubViewport.new()
+	portal_icon_viewport.name = "PortalIconViewport"
+	portal_icon_viewport.size = Vector2(64, 64)
+	portal_icon_viewport.transparent_bg = true
+	portal_icon_viewport.own_world_3d = true
+	portal_icon_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	portal_icon_viewport.handle_input_locally = false
+	portal_icon_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
+	ui_canvas.add_child(portal_icon_viewport)
+
+	var icon_cam = Camera3D.new()
+	icon_cam.name = "IconCam"
+	icon_cam.current = true
+	icon_cam.look_at_from_position(Vector3(0, 0.8, 1.5), Vector3.ZERO)
+	portal_icon_viewport.add_child(icon_cam)
+
+	var icon_light = DirectionalLight3D.new()
+	icon_light.look_at_from_position(Vector3(2, 4, 2), Vector3.ZERO)
+	icon_light.light_energy = 1.5
+	portal_icon_viewport.add_child(icon_light)
+
+	var icon_light2 = OmniLight3D.new()
+	icon_light2.position = Vector3(-1, 0.5, 0)
+	icon_light2.light_energy = 0.8
+	icon_light2.omni_range = 5
+	portal_icon_viewport.add_child(icon_light2)
+
+	var icon_env = WorldEnvironment.new()
+	var env = Environment.new()
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.8, 0.85, 1.0)
+	env.ambient_light_energy = 2.0
+	icon_env.environment = env
+	portal_icon_viewport.add_child(icon_env)
+
+	portal_icon_holder = Node3D.new()
+	portal_icon_holder.name = "IconModelHolder"
+	portal_icon_viewport.add_child(portal_icon_holder)
+
+	var icon_texture = TextureRect.new()
+	icon_texture.name = "IconTexture"
+	icon_texture.texture = portal_icon_viewport.get_texture()
+	icon_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	icon_texture.expand = true
+	icon_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portal_btn.add_child(icon_texture)
 	
 	# Estilo normal circular neón cian
 	var style_normal = StyleBoxFlat.new()
@@ -626,6 +664,7 @@ func _create_portal_jump_ui():
 	portal_click_button.pressed.connect(_on_interact_button_pressed)
 	
 	portal_btn_container.visible = false # Oculto por defecto
+	_set_portal_icon("portal")
 
 func _on_portal_jump_pressed(target_zone):
 	# Enviar el evento de salto al servidor autoritativo
