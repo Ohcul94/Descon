@@ -1952,7 +1952,6 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 		elif skill_name == "TURBO-IMPULSO" or skill_name == "HYPER-DASH": _spawn_damage_text("+" + str(int(amount)), Color.YELLOW)
 	match skill_name:
 		"TURBO-IMPULSO":
-			# v4.1: Aplicar velocidad real si es un jugador (Aliado o Local)
 			if "speed" in self:
 				var bonus = amount
 				self.speed += bonus
@@ -1961,22 +1960,54 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 				var cb_speed = func():
 					self.speed -= bonus
 				tw_speed.tween_callback(cb_speed)
-				
-			var path = "res://assets/Efectos de Skills/Velocidad(Transp).png"
-			if ResourceLoader.exists(path):
-				var vfx = Sprite2D.new(); var t = load(path); vfx.texture = t
-				var s = 145.0 / max(t.get_width(), t.get_height())
-				vfx.scale = Vector2(s, s); vfx.rotation_degrees = 180
-				vfx.position = Vector2(-65, 0)
-				vfx.z_index = -1
-				_vfx_container_2d.add_child(vfx)
-				var tw = create_tween().set_loops()
-				tw.bind_node(vfx)
-				tw.tween_property(vfx, "scale", Vector2(s*1.3, s*0.8), 0.1)
-				tw.tween_property(vfx, "scale", Vector2(s*0.8, s*1.3), 0.1)
-				var tw_free = vfx.create_tween()
+
+			if is_instance_valid(_3d_model):
+				var parts = GPUParticles3D.new()
+				parts.amount = 40
+				parts.lifetime = 0.5
+				parts.one_shot = false
+				parts.explosiveness = 0.0
+				parts.position = Vector3(-0.5, 0.1, 0.0)
+
+				var mesh = QuadMesh.new()
+				mesh.size = Vector2(0.12, 0.12)
+				var mat = StandardMaterial3D.new()
+				mat.albedo_color = Color(1.0, 0.85, 0.4)
+				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+				mat.albedo_texture = DashSparkTexture
+				mesh.material = mat
+				parts.draw_pass_1 = mesh
+
+				var pm = ParticleProcessMaterial.new()
+				pm.direction = Vector3(-1, 0, 0)
+				pm.spread = 22.0
+				pm.gravity = Vector3(0, -0.3, 0)
+				pm.initial_velocity_min = 2.5
+				pm.initial_velocity_max = 5.5
+				pm.scale_min = 1.0
+				pm.scale_max = 2.0
+				var grad = Gradient.new()
+				grad.set_color(0, Color(1.0, 0.9, 0.5, 1.0))
+				grad.add_point(0.4, Color(1.0, 0.7, 0.2, 0.7))
+				grad.set_color(1, Color(0.5, 0.15, 0.0, 0.0))
+				pm.color_ramp = GradientTexture1D.new()
+				pm.color_ramp.gradient = grad
+				parts.process_material = pm
+
+				_3d_model.add_child(parts)
+				parts.emitting = true
+
+				var tw_pulse = create_tween().set_loops()
+				tw_pulse.bind_node(parts)
+				tw_pulse.tween_property(parts, "scale", Vector3(1.3, 0.7, 1.0), 0.1)
+				tw_pulse.tween_property(parts, "scale", Vector3(0.7, 1.3, 1.0), 0.1)
+
+				var tw_free = create_tween()
 				tw_free.tween_interval(2.0)
-				tw_free.tween_callback(vfx.queue_free)
+				tw_free.tween_callback(parts.queue_free)
 		"HYPER-DASH":
 			if is_instance_valid(_3d_model):
 				var spark_mat = StandardMaterial3D.new()

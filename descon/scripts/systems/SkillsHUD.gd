@@ -13,8 +13,8 @@ var _skill_icon_cache: Dictionary = {}
 
 var _skill_icon_paths: Dictionary = {
 	"BLINK": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
-	"TURBO-IMPULSO": "res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png",
-	"HYPER-DASH": "res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png",
+	"TURBO-IMPULSO": "res://assets/Skills/Iconos/Utilidad/Turbo Impulso/Turbo Impulso.png",
+	"HYPER-DASH": "res://assets/Skills/Iconos/Utilidad/HyperDash/HyperDash.png",
 	"INVULNERABILIDAD": "res://assets/Skills/Iconos/Utilidad/Invulnerabilidad/Invulnerabilidad.png",
 	"STEALTH": "res://assets/Skills/Iconos/Utilidad/Invisibilidad/Invisibilidad.png",
 	"RESURRECCION": "res://assets/Skills/Iconos/Utilidad/Resurrecion/Resurrecion.png",
@@ -463,7 +463,7 @@ func _update_sphere_ui(id: int, ref, slot):
 				skill_icon_tex = _skill_icon_cache[clean_name]
 			else:
 				var icon_path = _skill_icon_paths.get(clean_name, "")
-				if icon_path == "":
+				if icon_path == "" or not ResourceLoader.exists(icon_path):
 					var server_skills = {}
 					if NetworkManager and NetworkManager.server_config:
 						server_skills = NetworkManager.server_config.get("skillsData", {})

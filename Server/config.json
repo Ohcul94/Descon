@@ -4577,7 +4577,8 @@
                 "color": "#c99943",
                 "type": "resource"
             }
-        ]
+        ],
+        "ammo_icons": {}
     },
     "skillsData": {
         "ESFERA DE TERROR": {
@@ -4743,7 +4744,7 @@
                 "players": true,
                 "clan": false
             },
-            "icon": "res://assets/Skills/Iconos/Utilidad/SuperVelocidad/SuperVelocidad.png"
+            "icon": "res://assets/Skills/Iconos/Utilidad/HyperDash/HyperDash.png"
         },
         "INVULNERABILIDAD": {
             "canTargetOthers": false,
@@ -4885,7 +4886,8 @@
                 "players": true,
                 "clan": false
             },
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "icon": "res://assets/Skills/Iconos/Utilidad/Turbo Impulso/Turbo Impulso.png"
         },
         "RESURRECCIÓN": {
             "name": "RESURRECCIÓN",
