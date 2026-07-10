@@ -1464,86 +1464,46 @@ func _spawn_vital_link_vfx(id: String, data: Dictionary):
 
 func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	if active_areas.has(id): return
-	
-	var container = Node2D.new()
-	container.name = id
-	container.z_index = 2 # Nivel de naves para que se vea sobre el mapa con volumen
-	if is_instance_valid(world) and is_instance_valid(world.entities_node):
-		world.entities_node.add_child(container)
-	active_areas[id] = container
-	
-	container.global_position = _get_projected_position(pos)
-	container.set_meta("logical_position", pos)
-	container.set_meta("type", "wind_barrier")
-	
-	# Rotar el contenedor en base al ángulo de lanzamiento del viento
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map) or not current_map.get("sub_viewport"):
+		return
+	var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+	var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+	var sub_vp = current_map.sub_viewport
+
 	var angle = float(_data.get("angle", 0.0))
-	container.rotation = angle
-	
-	# Crear el SubViewport 3D para renderizar el VFX 3D
-	var vp_size = 384
-	var vp = SubViewport.new()
-	vp.size = Vector2i(vp_size, vp_size)
-	vp.transparent_bg = true
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	container.add_child(vp)
-	
-	# Escena 3D interna
-	var node3d = Node3D.new()
-	vp.add_child(node3d)
-	
-	# Cámara de Perspectiva con el ángulo 2.5D exacto de la nave
-	var cam = Camera3D.new()
-	cam.position = Vector3(0, 10, 10)
-	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
-	cam.fov = 60.0
-	node3d.add_child(cam)
-	cam.look_at(Vector3.ZERO)
-	
-	# Luz ambiental blanca para que se vea idéntico al editor
-	var env = WorldEnvironment.new()
-	var world_env = Environment.new()
-	world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	world_env.ambient_light_color = Color.WHITE
-	world_env.ambient_light_energy = 1.2
-	env.environment = world_env
-	node3d.add_child(env)
-	
-	# Instanciar el VFX 3D de la media esfera
+	var width = float(_data.get("radius", _data.get("width", 150)))
+	var radius_3d = width * s_factor
+
+	var barrier = Node3D.new()
+	barrier.name = id
+	barrier.position = Vector3(pos.x * s_factor, 0.5, pos.y * s_factor * correction_z)
+	barrier.rotation.y = -angle
+	sub_vp.add_child(barrier)
+	active_areas[id] = barrier
+
 	var vfx_scene = WIND_BARRIER_VFX_SCENE
 	if vfx_scene:
 		var vfx = vfx_scene.instantiate()
-		node3d.add_child(vfx)
-		
-		# Escala 3D ideal para el tamaño del viewport
-		vfx.scale = Vector3(3.0, 3.0, 3.0)
-		# Rotar 180 grados en Y para que la parte curva mire hacia afuera de la nave
-		vfx.rotation_degrees = Vector3(0, 180, 0)
-		
-		# Iniciar la animación de entrada
-		var anim = vfx.get_node_or_null("AnimationPlayer")
-		if anim and anim.has_animation("start_animation"):
-			anim.play("start_animation")
-			
-	# Sprite 2D que expone la textura del SubViewport al mundo 2.5D
-	var sprite = Sprite2D.new()
-	sprite.texture = vp.get_texture()
-	
-	# Rotar el sprite 90 grados (PI/2) localmente para alinear el eje vertical
-	sprite.rotation = PI / 2.0
-	sprite.scale = Vector2(1.0, 1.0)
-	
-	var canvas_mat = CanvasItemMaterial.new()
-	canvas_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_MIX
-	sprite.material = canvas_mat
-	container.add_child(sprite)
-	
-	# Animación de entrada con Tween en 2D (Pop-in fluido)
-	container.scale = Vector2.ZERO
-	container.modulate.a = 0.0
-	var tw = container.create_tween().set_parallel(true)
-	tw.tween_property(container, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(container, "modulate:a", 1.0, 0.3).set_trans(Tween.TRANS_SINE)
+		vfx.scale = Vector3(radius_3d, radius_3d, radius_3d)
+		vfx.rotation_degrees.y = 90
+		barrier.add_child(vfx)
+
+		var wind_grad = Gradient.new()
+		wind_grad.set_color(0, Color(0.6, 0.8, 1.0, 0.8))
+		wind_grad.add_point(0.4, Color(0.75, 0.88, 1.0, 0.4))
+		wind_grad.set_color(1, Color(0.85, 0.92, 1.0, 0.0))
+		var wind_tex = GradientTexture1D.new()
+		wind_tex.gradient = wind_grad
+
+		for child in vfx.get_children():
+			if child is MeshInstance3D and child.material_override:
+				var mat = child.material_override
+				mat.set("shader_parameter/Gradient_1D_Color", wind_tex)
+
+	barrier.scale = Vector3.ZERO
+	var tw = create_tween()
+	tw.tween_property(barrier, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _get_projected_position(pos: Vector2) -> Vector2:
 	var current_map = get_tree().get_first_node_in_group("map")
