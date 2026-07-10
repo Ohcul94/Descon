@@ -4839,7 +4839,7 @@
         "SMOKE-BOMB": {
             "amount": 1,
             "canTargetOthers": false,
-            "cd": 12000,
+            "cd": 3000,
             "desc": "Lanza una bomba de humo que silencia y ciega a los enemigos en el área.",
             "duration": 6,
             "id": "SK-DEF-03",

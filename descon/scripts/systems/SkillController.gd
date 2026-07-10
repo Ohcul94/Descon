@@ -31,10 +31,32 @@ var buffered_skill_data: Dictionary = {} # v266.920: Input Buffering
 var buffer_timer: float = 0.0
 const BUFFER_WINDOW: float = 0.5 # Segundos que vive un input en la cola
 
+# Charge mechanic for PROVOCACION (Galio W style)
+var _charge_start_time: float = 0.0
+var _is_charging: bool = false
+const MAX_CHARGE_TIME: float = 3.0
+
 func _process(delta):
 	if is_aiming:
 		queue_redraw()
 		_update_targeting()
+	
+	if _is_charging:
+		var elapsed = (Time.get_ticks_msec() / 1000.0) - _charge_start_time
+		if elapsed >= MAX_CHARGE_TIME:
+			var parent = get_parent()
+			if parent and parent.has_method("_on_skill_executed"):
+				_is_charging = false
+				is_aiming = false
+				queue_redraw()
+				parent._on_skill_executed({
+					"skill_id": current_skill.get("id", ""),
+					"angle": 0.0,
+					"target": null,
+					"pos": parent.global_position
+				})
+			return
+		queue_redraw()
 	
 	# v266.920: Procesar buffer de entrada
 	if buffer_timer > 0:
@@ -118,6 +140,12 @@ func start_aiming(skill_data: Dictionary):
 	is_aiming = true
 	queue_redraw()
 	
+	# PROVOCACION: Iniciar carga tipo Galio W
+	var s_name = skill_data.get("skill_name", "")
+	if s_name == "PROVOCACION":
+		_charge_start_time = Time.get_ticks_msec() / 1000.0
+		_is_charging = true
+	
 	var is_mobile = false
 	if get_node_or_null("/root/SettingsManager"):
 		is_mobile = SettingsManager.mobile_mode
@@ -130,7 +158,7 @@ func start_aiming(skill_data: Dictionary):
 	
 	# MODO PC: Comportamiento clásico según cast_mode configurado
 	if current_skill.get("type") == SkillType.INSTANT:
-		if config.cast_mode != CastMode.ON_RELEASE:
+		if s_name != "PROVOCACION" and config.cast_mode != CastMode.ON_RELEASE:
 			execute_skill()
 		return
 	
@@ -195,12 +223,18 @@ func execute_skill():
 		else:
 			target_pos = get_global_mouse_position()
 		
-		payload.angle = (target_pos - global_position).angle()
-		payload.pos = target_pos
-		payload.target = selected_target
+		if current_skill.get("skill_name", "") == "PROVOCACION":
+			payload.angle = 0.0
+			payload.pos = global_position
+			payload.target = null
+		else:
+			payload.angle = (target_pos - global_position).angle()
+			payload.pos = target_pos
+			payload.target = selected_target
 	
 	# Limpiar estado (excepto external_aim_vector, que se necesita en activate())
 	is_aiming = false
+	_is_charging = false
 	selected_target = null
 	queue_redraw()
 	
@@ -212,6 +246,7 @@ func execute_skill():
 
 func cancel_aiming():
 	is_aiming = false
+	_is_charging = false
 	selected_target = null
 	queue_redraw()
 	print("[SKILL] Apuntado cancelado.")
@@ -219,7 +254,12 @@ func cancel_aiming():
 
 func _draw():
 	if not is_aiming: return
-	if current_skill.get("type") == SkillType.INSTANT: return
+	if current_skill.get("type") == SkillType.INSTANT:
+		# PROVOCACION: show charging ring centered on player instead of default INSTANT behavior
+		var s_name = current_skill.get("skill_name", "")
+		if s_name == "PROVOCACION":
+			_draw_charge_indicator()
+		return
 	
 	var range_val = current_skill.get("range", 500.0)
 	var color = config.indicator_color
@@ -476,3 +516,20 @@ func _draw():
 				draw_circle(_proj.call(aim_vec), 15.0, Color(1, 1, 1, 0.2))
 			else:
 				draw_circle(aim_vec, 15.0, Color(1, 1, 1, 0.2))
+
+func _draw_charge_indicator():
+	var radius_val = 220.0
+	var s_name = current_skill.get("skill_name", "")
+	if GameConstants.SKILLS_DATA.has(s_name):
+		radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 220.0))
+	
+	var elapsed = min((Time.get_ticks_msec() / 1000.0) - _charge_start_time, MAX_CHARGE_TIME)
+	var charge_pct = elapsed / MAX_CHARGE_TIME
+	
+	var center = to_local(global_position)
+	var max_r = radius_val * 0.5
+	draw_arc(center, max_r, 0, TAU, 48, Color(1.0, 0.25, 0.2, 0.35), 1.5)
+	var fill_r = max_r * (0.05 + charge_pct * 0.95)
+	draw_arc(center, fill_r, 0, TAU, 48, Color(1.0, 0.6, 0.1, 0.7), 2.5)
+	if charge_pct >= 0.95:
+		draw_arc(center, max_r * 1.1, 0, TAU, 48, Color(1.0, 1.0, 1.0, 0.4 + sin(Time.get_ticks_msec() / 80.0) * 0.3), 3.0)

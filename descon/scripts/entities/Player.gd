@@ -458,7 +458,8 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 							s_type = 3 # Instant por defecto
 							if s_name == "ESFERA DE TERROR": s_type = 0 # Siempre apuntable (Directional)
 							elif s_data.get("canTargetOthers", false) and s_name != "FROST-TRAIL": s_type = 1 # PointClick
-							elif s_name == "RESURRECCIÓN" or s_name == "BALIZA DE CURACION" or s_name == "PROVOCACION" or s_name == "REGENERACIÓN ALFA": s_type = 2 # Area
+							elif s_name == "RESURRECCIÓN" or s_name == "BALIZA DE CURACION" or s_name == "REGENERACIÓN ALFA": s_type = 2 # Area
+							elif s_name == "PROVOCACION": s_type = 3 # Instant (self-cast charge)
 							elif s_data.get("range", 0) > 0 and s_name != "FROST-TRAIL": s_type = 0 # Directional
 		elif s_type == -1:
 			s_type = 0 # Laser/Missile/Mine son Directional

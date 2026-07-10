@@ -138,6 +138,22 @@ func _perform_shader_warmup():
 			mesh_instance.scale = Vector3(0.001, 0.001, 0.001) 
 			warmup_node.add_child(mesh_instance)
 			
+	# v410.0: Precargar material 3D del humo para evitar stutter al tirarlo por primera vez
+	var smoke_tex = load("res://VFX/textures/T_VFX_Smoke_4_alpha.PNG")
+	if smoke_tex:
+		var smoke_mesh = MeshInstance3D.new()
+		smoke_mesh.mesh = QuadMesh.new()
+		var smoke_mat = StandardMaterial3D.new()
+		smoke_mat.albedo_texture = smoke_tex
+		smoke_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		smoke_mat.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+		smoke_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		smoke_mat.vertex_color_use_as_albedo = true
+		smoke_mesh.material_override = smoke_mat
+		smoke_mesh.visible = true
+		smoke_mesh.scale = Vector3(0.001, 0.001, 0.001)
+		warmup_node.add_child(smoke_mesh)
+			
 	var cb_free = func():
 		warmup_node.queue_free()
 	get_tree().process_frame.connect(cb_free, CONNECT_ONE_SHOT)

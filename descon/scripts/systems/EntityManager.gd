@@ -17,12 +17,12 @@ const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
 const SHIP_SCENE = preload("res://scenes/entities/Ship.tscn")
 const LOOT_DROP_SCRIPT = preload("res://scripts/entities/LootDrop.gd")
 const WIND_BARRIER_VFX_SCENE = preload("res://VFX/scenes/VFX_Shield_green_plane.tscn")
-const SMOKE_CLOUD_SHADER = preload("res://resources/shaders/smoke_cloud.gdshader")
 const VFX_SHIELD_GREEN_SCENE = preload("res://VFX/scenes/VFX_Shield_green.tscn")
 const BEACON_3D_SCRIPT = preload("res://scripts/vfx/Beacon3D.gd")
 
 # Texturas precargadas estáticamente
 const TEX_CURACION_TRANSP = preload("res://assets/Efectos de Skills/Curacion(Transp).png")
+const SMOKE_TEXTURE = preload("res://VFX/textures/T_VFX_Smoke_4_alpha.PNG")
 const TEX_ESFERA_AZUL_1 = preload("res://assets/Esferas/EsferaAzul1.png")
 const TEX_ESFERA_VERDE_1 = preload("res://assets/Esferas/EsferaVerde1.png")
 
@@ -48,6 +48,7 @@ func setup(world_ref):
 	NetworkManager.remove_area.connect(_on_remove_area)
 	NetworkManager.beacon_pulse.connect(_on_beacon_pulse)
 	NetworkManager.hook_pulled.connect(_on_hook_pulled)
+	NetworkManager.taunt_event.connect(_on_taunt_event)
 	NetworkManager.loot_spawned.connect(_on_loot_spawned)
 	NetworkManager.loot_despawned.connect(_on_loot_despawned)
 	NetworkManager.boss_colors_start.connect(_on_boss_colors_start)
@@ -128,27 +129,44 @@ func _process(delta):
 				var owner_vis = _get_entity_visual_position(owner_node)
 				var target_vis = _get_entity_visual_position(target_node)
 				
-				# Centrar el contenedor en el emisor
 				area.global_position = owner_vis
 				
-				# Dibujar el rayo de plasma verde usando coordenadas globales directas (gracias a set_as_top_level)
-				var rayo_node = area.get_node_or_null("RayoVerde")
-				if rayo_node:
-					var start_pos = owner_vis + Vector2(0, -20)
-					var end_pos = target_vis + Vector2(0, -20)
-					rayo_node.points = [start_pos, end_pos]
-					
-					var pulse = area.get_meta("pulse_timer") + delta * 12.0
-					area.set_meta("pulse_timer", pulse)
-					rayo_node.width = 5.0 + sin(pulse) * 1.5
+				var bolt_timer = area.get_meta("bolt_timer") + delta
+				area.set_meta("bolt_timer", bolt_timer)
+				if bolt_timer >= 0.08:
+					area.set_meta("bolt_timer", 0.0)
+					area.set_meta("bolt_seed", randi())
 				
-				# Rotar el anillo celeste de rango maximo (Karma style)
+				var start_pos = owner_vis + Vector2(0, -20)
+				var end_pos = target_vis + Vector2(0, -20)
+				var seed = area.get_meta("bolt_seed")
+				var pulse = area.get_meta("pulse_timer") + delta * 12.0
+				area.set_meta("pulse_timer", pulse)
+				var intensity = 0.5 + sin(pulse * 2.0) * 0.5
+				
+				var bolt_glow = area.get_node_or_null("BoltGlow")
+				var bolt_main = area.get_node_or_null("BoltMain")
+				var bolt_brn = area.get_node_or_null("BoltBranches")
+				
+				var main_pts = _generate_lightning(start_pos, end_pos, 10, seed, 60.0)
+				if bolt_main:
+					bolt_main.points = main_pts
+					bolt_main.width = 3.5 + intensity * 1.5
+				if bolt_glow:
+					bolt_glow.points = main_pts
+					bolt_glow.width = 10.0 + intensity * 4.0
+				
+				var branch_pts = _generate_lightning_branches(start_pos, end_pos, main_pts, seed + 999)
+				if bolt_brn:
+					bolt_brn.points = branch_pts
+				
 				var ring_node = area.get_node_or_null("LimitRing")
 				if ring_node:
 					ring_node.rotation += delta * 0.2
 			else:
-				var rayo_node = area.get_node_or_null("RayoVerde")
-				if rayo_node: rayo_node.points = []
+				for n in ["BoltGlow", "BoltMain", "BoltBranches"]:
+					var bn = area.get_node_or_null(n)
+					if bn: bn.points = []
 			continue
 		
 		if area.has_meta("type") and area.get_meta("type") == "vortex":
@@ -765,7 +783,7 @@ func _on_spawn_area(data: Dictionary):
 	var type = data.get("type", "SMOKE")
 	var id = data.get("id", "")
 	if type == "SMOKE":
-		_spawn_smoke_cloud(id, Vector2(data.x, data.y), data.radius)
+		_spawn_smoke_cloud(id, Vector2(data.x, data.y), data.radius, data)
 	elif type == "ICE":
 		_spawn_ice_trail(id, Vector2(data.x, data.y), data.radius)
 	elif type == "VORTEX_HAZARD":
@@ -1122,10 +1140,18 @@ func _on_remove_area(data: Dictionary):
 				area.emitting = false
 				area.queue_free()
 			elif area is Node3D:
-				var tw = area.create_tween().set_parallel(true)
-				tw.tween_property(area, "scale", Vector3(0.001, 0.001, 0.001), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
-				tw.tween_property(area, "visible", false, 0.14)
-				tw.chain().tween_callback(area.queue_free)
+				var particles = area.get_node_or_null("SmokeCloud") as GPUParticles3D
+				if is_instance_valid(particles):
+					particles.emitting = false
+					var tw = area.create_tween().set_parallel(true)
+					tw.tween_property(area, "scale", Vector3.ONE * 1.2, 1.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+					var timer = area.get_tree().create_timer(1.8)
+					timer.timeout.connect(area.queue_free)
+				else:
+					var tw = area.create_tween().set_parallel(true)
+					tw.tween_property(area, "scale", Vector3(0.001, 0.001, 0.001), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+					tw.tween_property(area, "visible", false, 0.14)
+					tw.chain().tween_callback(area.queue_free)
 			else:
 				var tw = area.create_tween().set_parallel(true)
 				tw.tween_property(area, "scale", Vector2(0.001, 0.001), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
@@ -1179,58 +1205,90 @@ func _on_beacon_pulse(data: Dictionary):
 			var pulse_radius = float(data.get("radius", 200.0))
 			beacon.pulse(pulse_radius)
 
-func _spawn_smoke_cloud(id, pos, radius):
+func _spawn_smoke_cloud(id, pos, radius, data = {}):
 	if active_areas.has(id): return
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map) or not current_map.get("sub_viewport"):
+		return
+	var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+	var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+	var sub_vp = current_map.sub_viewport
+
+	var smoke = Node3D.new()
+	smoke.name = id
+	var radius_3d = max(float(radius), 1.0) * s_factor
+	smoke.position = Vector3(pos.x * s_factor, 0.0, pos.y * s_factor * correction_z)
+	sub_vp.add_child(smoke)
+	active_areas[id] = smoke
+
+	var _duration = float(data.get("duration", 6.0))
+
+	var parts = GPUParticles3D.new()
+	parts.name = "SmokeCloud"
+	parts.amount = 120
+	parts.lifetime = 2.0
+	parts.one_shot = false
+	parts.explosiveness = 0.0
+	parts.randomness = 0.85
+	parts.preprocess = 1.0
+
+	var mesh = QuadMesh.new()
+	mesh.size = Vector2(2.5, 2.5) # Partículas gigantes para que se solapen y formen volumen denso
+	var mat = StandardMaterial3D.new()
+	mat.albedo_texture = SMOKE_TEXTURE
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.vertex_color_use_as_albedo = true # Para que el gradiente afecte al albedo correctamente
+	mesh.material = mat
+	parts.draw_pass_1 = mesh
+
+	var pm = ParticleProcessMaterial.new()
+	pm.direction = Vector3.UP
+	pm.spread = 180.0
+	pm.initial_velocity_min = 0.1
+	pm.initial_velocity_max = 0.4
+	pm.gravity = Vector3(0, 0.15, 0) # Elevación térmica ligera del humo caliente
+	pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	pm.emission_sphere_radius = 0.35 # Radio de emisión pequeño para que nazcan agrupadas y formen un cuerpo
 	
-	var wrapper = Node2D.new()
-	wrapper.name = id
-	wrapper.z_index = -1 
-	if is_instance_valid(world) and is_instance_valid(world.entities_node):
-		world.entities_node.add_child(wrapper)
-		
-	var proj_pos = _get_projected_position(pos)
-	wrapper.global_position = proj_pos
-	active_areas[id] = wrapper
-	wrapper.set_meta("logical_position", pos)
-	wrapper.set_meta("type", "smoke")
-	
-	var view_size = int(radius * 2.5)
-	var vp = SubViewport.new()
-	vp.size = Vector2i(view_size, view_size)
-	vp.transparent_bg = true
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	wrapper.add_child(vp)
-	
-	var node3d = Node3D.new()
-	vp.add_child(node3d)
-	
-	var cam = Camera3D.new()
-	cam.position = Vector3(0, 0, 10)
-	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size = 2.0 
-	node3d.add_child(cam)
-	cam.look_at(Vector3.ZERO)
-	
-	var mesh_inst = MeshInstance3D.new()
-	var plane = PlaneMesh.new()
-	plane.size = Vector2(2, 2)
-	mesh_inst.mesh = plane
-	mesh_inst.rotation_degrees.x = 90
-	
-	var mat = ShaderMaterial.new()
-	mat.shader = SMOKE_CLOUD_SHADER
-	mesh_inst.material_override = mat
-	node3d.add_child(mesh_inst)
-	
-	var sprite = Sprite2D.new()
-	sprite.texture = vp.get_texture()
-	wrapper.add_child(sprite)
-	
-	wrapper.modulate.a = 0.0
-	wrapper.scale = Vector2(0.5, 0.5) 
+	pm.scale_min = 1.0
+	pm.scale_max = 1.8
+
+	# Curva de escala: expandir el humo rápidamente al nacer
+	var curve = Curve.new()
+	curve.add_point(Vector2(0.0, 0.2))
+	curve.add_point(Vector2(0.15, 0.95))
+	curve.add_point(Vector2(0.6, 1.25))
+	curve.add_point(Vector2(1.0, 1.5))
+	var curve_tex = CurveTexture.new()
+	curve_tex.curve = curve
+	pm.scale_curve = curve_tex
+
+	# Gradiente de humo ceniza oscuro muy denso (como la imagen militar de referencia)
+	var grad = Gradient.new()
+	grad.set_color(0, Color(0.24, 0.23, 0.22, 0.0)) # Nace invisible
+	grad.add_point(0.12, Color(0.28, 0.27, 0.25, 0.92)) # Opacidad altísima rápida en el centro
+	grad.add_point(0.45, Color(0.32, 0.31, 0.29, 0.8)) # Masa de humo
+	grad.add_point(0.75, Color(0.38, 0.37, 0.35, 0.4)) # Disipándose
+	grad.set_color(grad.get_point_count() - 1, Color(0.45, 0.44, 0.42, 0.0)) # Termina invisible
+	pm.color_ramp = GradientTexture1D.new()
+	pm.color_ramp.gradient = grad
+
+	# Rotación y velocidad angular para simular turbulencias
+	pm.angle_min = -180.0
+	pm.angle_max = 180.0
+	pm.angular_velocity_min = -25.0
+	pm.angular_velocity_max = 25.0
+
+	parts.process_material = pm
+	parts.scale = Vector3(radius_3d, radius_3d, radius_3d)
+	smoke.add_child(parts)
+	parts.emitting = true
+
+	smoke.scale = Vector3.ZERO
 	var tw = create_tween().set_parallel(true)
-	tw.tween_property(wrapper, "modulate:a", 1.0, 0.2)
-	tw.tween_property(wrapper, "scale", Vector2(1.0, 1.0), 0.4).set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
+	tw.tween_property(smoke, "scale", Vector3.ONE, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _on_remote_stat_sync(data: Dictionary):
 	if typeof(data) != TYPE_DICTIONARY: return
@@ -1420,6 +1478,49 @@ func _on_clear_enemy_projectiles(data: Dictionary):
 	if boss_id != "" and is_instance_valid(world) and is_instance_valid(world.combat_system) and world.combat_system.has_method("clear_boss_bullets"):
 		world.combat_system.clear_boss_bullets(boss_id)
 
+func _generate_lightning(from: Vector2, to: Vector2, segments: int, seed_val: int, jitter: float) -> PackedVector2Array:
+	var pts = PackedVector2Array()
+	var dir = (to - from).normalized()
+	var len = from.distance_to(to)
+	var perp = Vector2(-dir.y, dir.x)
+	var rng = RandomNumberGenerator.new()
+	rng.seed = seed_val
+	
+	pts.append(from)
+	var step_len = len / float(segments)
+	for i in range(1, segments):
+		var t = float(i) / float(segments)
+		var base = from + dir * (step_len * i)
+		var j = jitter * (1.0 - t * 0.7) * (rng.randf() * 2.0 - 1.0)
+		pts.append(base + perp * j)
+	pts.append(to)
+	return pts
+
+func _generate_lightning_branches(from: Vector2, to: Vector2, main_pts: PackedVector2Array, seed_val: int) -> PackedVector2Array:
+	if main_pts.size() < 3: return PackedVector2Array()
+	var pts = PackedVector2Array()
+	var rng = RandomNumberGenerator.new()
+	rng.seed = seed_val
+	var dir = (to - from).normalized()
+	var perp = Vector2(-dir.y, dir.x)
+	var count = rng.randi_range(2, 4)
+	for _b in range(count):
+		var idx = rng.randi_range(1, main_pts.size() - 2)
+		var origin = main_pts[idx]
+		var next_idx = min(idx + rng.randi_range(1, 3), main_pts.size() - 1)
+		var target_dir = (main_pts[next_idx] - origin).normalized()
+		var branch_len = rng.randf_range(20.0, 50.0)
+		var branch_angle = rng.randf_range(-0.8, 0.8)
+		var end_pt = origin + target_dir.rotated(branch_angle) * branch_len
+		var b_segments = rng.randi_range(2, 4)
+		var b_step = 1.0 / float(b_segments)
+		for i in range(b_segments + 1):
+			var t = i * b_step
+			var p = origin.lerp(end_pt, t)
+			var j = (1.0 - t * 0.5) * 8.0 * (rng.randf() * 2.0 - 1.0)
+			pts.append(p + perp * j)
+	return pts
+
 func _spawn_vital_link_vfx(id: String, data: Dictionary):
 	if active_areas.has(id): return
 	
@@ -1433,6 +1534,8 @@ func _spawn_vital_link_vfx(id: String, data: Dictionary):
 	container.set_meta("ownerId", str(data.get("ownerId", "")))
 	container.set_meta("targetId", str(data.get("targetId", "")))
 	container.set_meta("pulse_timer", 0.0)
+	container.set_meta("bolt_timer", 0.0)
+	container.set_meta("bolt_seed", randi())
 	
 	var break_range = float(data.get("radius", 500.0))
 	container.set_meta("radius", break_range)
@@ -1441,26 +1544,34 @@ func _spawn_vital_link_vfx(id: String, data: Dictionary):
 	var limit_ring = Line2D.new()
 	limit_ring.name = "LimitRing"
 	limit_ring.width = 1.5
-	limit_ring.default_color = Color(0.0, 0.7, 1.0, 0.28) # Celeste vibrante translúcido
-	limit_ring.z_index = -1 # Detrás de las naves
+	limit_ring.default_color = Color(0.0, 0.7, 1.0, 0.28)
+	limit_ring.z_index = -1
 	
 	var ring_pts = []
-	var segments = 64
-	for i in range(segments + 1):
-		var ang = (i / float(segments)) * TAU
+	var ring_segments = 64
+	for i in range(ring_segments + 1):
+		var ang = (i / float(ring_segments)) * TAU
 		ring_pts.append(Vector2(cos(ang), sin(ang)) * break_range)
 	limit_ring.points = ring_pts
 	container.add_child(limit_ring)
 	
-	# 2. El rayo vinculante curativo Line2D (Verde brillante sólido y ultra-visible)
-	var rayo = Line2D.new()
-	rayo.name = "RayoVerde"
-	rayo.width = 5.0
-	rayo.default_color = Color(0.0, 1.0, 0.3, 0.95) # Verde eléctrico de alta intensidad
-	rayo.z_index = 3 # Por encima de las naves para que se distinga perfectamente
-	rayo.set_as_top_level(true) # IGNORAR transformaciones del contenedor parent y dibujar en el espacio global
-	
-	container.add_child(rayo)
+	# 2. Rayo mágico tipo lightning (3 capas: glow + main + branches)
+	for layer in ["Glow", "Main", "Branches"]:
+		var bolt = Line2D.new()
+		bolt.name = "Bolt" + layer
+		bolt.z_index = 3
+		bolt.set_as_top_level(true)
+		container.add_child(bolt)
+		match layer:
+			"Glow":
+				bolt.width = 12.0
+				bolt.default_color = Color(0.1, 0.9, 0.25, 0.2)
+			"Main":
+				bolt.width = 4.0
+				bolt.default_color = Color(0.2, 1.0, 0.3, 0.95)
+			"Branches":
+				bolt.width = 1.5
+				bolt.default_color = Color(0.3, 1.0, 0.4, 0.5)
 
 func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 	if active_areas.has(id): return
@@ -1678,3 +1789,24 @@ func _on_boss_colors_end(data: Dictionary):
 				rp.remove_meta("my_color")
 			if rp.has_method("remove_color_aura"):
 				rp.remove_color_aura()
+
+func _on_taunt_event(data: Dictionary):
+	if typeof(data) != TYPE_DICTIONARY: return
+	var epicenter = Vector2(data.get("x", 0.0), data.get("y", 0.0))
+	var radius = float(data.get("radius", 220.0))
+	var duration = float(data.get("duration", 4000.0))
+	var affected_ids = data.get("affectedEnemies", [])
+	
+	var affected_nodes: Array[Node2D] = []
+	for eid in affected_ids:
+		var en = enemies.get(str(eid))
+		if is_instance_valid(en):
+			affected_nodes.append(en)
+	
+	var proj_pos = _get_projected_position(epicenter)
+	
+	var taunt_vfx = TauntVFX.new()
+	if is_instance_valid(world) and is_instance_valid(world.entities_node):
+		world.entities_node.add_child(taunt_vfx)
+		taunt_vfx.init(null, affected_nodes, proj_pos, radius, duration)
+		taunt_vfx.top_level = true
