@@ -113,92 +113,23 @@ function registerMovementHandlers(socket, io, state) {
 
         if (movementData.selectedAmmo) p.selectedAmmo = movementData.selectedAmmo;
 
-        let oldZone = p.zone !== undefined ? p.zone : 1;
-        let targetZone = oldZone;
-
-        // Si el jugador está en Extracción, ignoramos cambios de zona desde playerMovement (el servidor es la autoridad absoluta)
-        if (!p.isExtracting && movementData.zone !== undefined) {
-            targetZone = movementData.zone;
-        }
-
-        // Convertir a número solo si es un string enteramente numérico (para compatibilidad con zonas normales de ID numérico)
-        if (typeof oldZone === 'string' && !isNaN(oldZone) && oldZone.trim() !== '') {
-            oldZone = Number(oldZone);
-        }
-        if (typeof targetZone === 'string' && !isNaN(targetZone) && targetZone.trim() !== '') {
-            targetZone = Number(targetZone);
-        }
-
-        p.zone = targetZone;
-
-        if (oldZone !== targetZone) {
-            // v380.0: Actualizar indexación playersByZone
-            if (state.playersByZone[oldZone] && state.playersByZone[oldZone][socket.id]) {
-                delete state.playersByZone[oldZone][socket.id];
-            }
-            if (!state.playersByZone[targetZone]) {
-                state.playersByZone[targetZone] = {};
-            }
-            state.playersByZone[targetZone][socket.id] = p;
-
-            socket.leave(`zone_${oldZone}`);
-            socket.join(`zone_${targetZone}`);
-            
-            // Notificar a los que ya estaban que llegamos nosotros
-            const broadcastTarget = `zone_${targetZone}`;
-            socket.to(broadcastTarget).emit('newPlayer', {
-                ...getMovementPayload(p, socket.id),
-                spheres: p.spheres || []
-            });
-
-            Logger.debug('ZONE-SYNC', `${p.user} entró a zona ${targetZone}. Enviando estado en 350ms...`);
-            setTimeout(() => {
-                const currentPlayersInZone = {};
-                Object.keys(players).forEach(pId => {
-                    const otherP = players[pId];
-                    if (String(otherP.zone) === String(targetZone) && pId !== socket.id) {
-                        currentPlayersInZone[pId] = {
-                            ...getMovementPayload(otherP, pId),
-                            zone: targetZone,
-                            spheres: otherP.spheres || []
-                        };
-                    }
-                });
-
-                const cleanEnemiesInZone = {};
-                Object.values(enemies).forEach(e => {
-                    if (String(e.zone) === String(targetZone)) {
-                        const { ai, ...data } = e;
-                        cleanEnemiesInZone[e.id] = data;
-                    }
-                });
-
-                const playerCount = Object.keys(currentPlayersInZone).length;
-                const enemyCount = Object.keys(cleanEnemiesInZone).length;
-                Logger.debug('ZONE-SYNC', `Enviando a ${p.user}: ${playerCount} jugadores, ${enemyCount} enemigos en zona ${targetZone}`);
-                
-                socket.emit('currentPlayers', currentPlayersInZone);
-                socket.emit('currentEnemies', cleanEnemiesInZone);
-            }, 350);
-        }
-
-        // v2.4: AOI adaptativo para playerMoved
-        // - Zonas especiales (arena_, extract_): broadcast total (pocos jugadores, mapa pequeño, todos deben verse)
-        // - Zonas normales: filtro por 3 celdas de radio (cubre ~1500px, superior al rango de visión de nave ~1300px)
-        const isSpecialZone = typeof p.zone === 'string' && (p.zone.startsWith('arena_') || p.zone.startsWith('extract_') || p.zone.startsWith('dungeon'));
+        // v314.0: Blindaje de Seguridad - El servidor es la única autoridad del mapa.
+        // Se elimina el cambio de zona desde playerMovement para evitar teletransporte no autorizado (hacks).
+        const currentZone = p.zone;
         const movPayload = getLightMovementPayload(p, socket.id);
+        const isSpecialZone = typeof currentZone === 'string' && (currentZone.startsWith('arena_') || currentZone.startsWith('extract_') || currentZone.startsWith('dungeon'));
 
         if (isSpecialZone) {
-            // Broadcast completo a la zona — arenas/extracción son pequeñas y todos deben verse
-            socket.broadcast.to(`zone_${p.zone}`).emit('playerMoved', movPayload);
+            // Broadcast completo a la zona
+            socket.broadcast.to(`zone_${currentZone}`).emit('playerMoved', movPayload);
         } else {
-            // AOI con 3 celdas de radio para zonas normales (cubre el rango visual estándar de naves)
+            // AOI con 3 celdas de radio para zonas normales
             const CELL_SIZE = 500;
-            const AOI_RANGE = 3; // 3 celdas × 500px = 1500px en cada dirección
+            const AOI_RANGE = 3;
             const pCx = Math.floor(p.x / CELL_SIZE);
             const pCy = Math.floor(p.y / CELL_SIZE);
 
-            const zonePlayers = state.playersByZone[p.zone] || {};
+            const zonePlayers = state.playersByZone[currentZone] || {};
             Object.values(zonePlayers).forEach(other => {
                 if (other.socketId === socket.id) return;
                 const oCx = Math.floor(other.x / CELL_SIZE);

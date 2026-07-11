@@ -973,6 +973,23 @@ io.on('connection', (socket) => {
     // 'packet' se emite por cada paquete decodificado (PPS real)
     socket.conn.on('packet', (packet) => {
         if (packet && packet.data) {
+            // v314.0: Rate Limiting de Paquetes (Anti-Flood)
+            const now = Date.now();
+            if (!socket.pktRateWindowStart) {
+                socket.pktRateWindowStart = now;
+                socket.pktRateCount = 0;
+            }
+            if (now - socket.pktRateWindowStart > 1000) {
+                socket.pktRateWindowStart = now;
+                socket.pktRateCount = 0;
+            }
+            socket.pktRateCount++;
+            if (socket.pktRateCount > 60) {
+                Logger.warn('SECURITY', `Desconectando socket [${socket.id}] por exceso de PPS (${socket.pktRateCount} > 60/s)`);
+                socket.disconnect(true);
+                return;
+            }
+
             const size = typeof packet.data === 'string'
                 ? Buffer.byteLength(packet.data)
                 : (packet.data.byteLength || packet.data.length || 0);

@@ -74,6 +74,16 @@ function registerCombatHandlers(socket, io, state) {
         const validTypes = ['laser', 'missile', 'mine', 'melee', 'heal', 'siphon', 'emp', 'electron'];
         const typeKey = validTypes.includes(ammoType) ? ammoType : 'laser';
 
+        // v314.0: Rate Limiting de Disparos (Anti-Cheat Cooldown)
+        const now = Date.now();
+        p.lastFireTimes = p.lastFireTimes || {};
+        const lastFire = p.lastFireTimes[typeKey] || 0;
+        const cooldownMs = 120; // 120ms mínimo entre disparos de la misma categoría
+        if (now - lastFire < cooldownMs && !p.isAdmin) {
+            return;
+        }
+        p.lastFireTimes[typeKey] = now;
+
         if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][ammoTier] || 0) <= 0) {
             return; 
         }
@@ -234,6 +244,16 @@ function registerCombatHandlers(socket, io, state) {
         const enemy = state.enemies[enemyId];
         const p = state.players[socket.id];
         if (!enemy || !p || !state.SERVER_CONFIG || p.isDead) return;
+
+        // v314.0: Rate Limiting de Impactos (Anti-Cheat Damager)
+        const now = Date.now();
+        p.lastHitTimes = p.lastHitTimes || {};
+        const lastHit = p.lastHitTimes[enemyId] || 0;
+        const minHitCooldown = 120; // 120ms mínimo entre impactos en el mismo objetivo
+        if (now - lastHit < minHitCooldown && !p.isAdmin) {
+            return;
+        }
+        p.lastHitTimes[enemyId] = now;
 
         const lobbyZoneId = Number(state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1);
         if (Number(p.zone) === lobbyZoneId) return;
@@ -688,6 +708,16 @@ function registerCombatHandlers(socket, io, state) {
 
             console.log(`[PVP-HIT-IN] ${attacker.user} (pvpEnabled: ${attacker.pvpEnabled}) atacó a ${victim.user} (pvpEnabled: ${victim.pvpEnabled}, isInvulnerable: ${victim.isInvulnerable}) | Daño: ${data.damage}`);
             if (victim.pvpEnabled && attacker.pvpEnabled) {
+                // v314.0: Rate Limiting de Impactos en PvP (Anti-Cheat Instakill)
+                const now = Date.now();
+                attacker.lastPvpHitTimes = attacker.lastPvpHitTimes || {};
+                const lastPvpHit = attacker.lastPvpHitTimes[data.victimId] || 0;
+                const minPvpHitCooldown = 200; // 200ms mínimo entre golpes PvP al mismo objetivo
+                if (now - lastPvpHit < minPvpHitCooldown && !attacker.isAdmin) {
+                    return;
+                }
+                attacker.lastPvpHitTimes[data.victimId] = now;
+
                 if (victim.isInvulnerable) {
                     // v270.20: Enviar actualización de stats reales correctivas de la víctima a todos en la zona (incluyendo el atacante)
                     // para reajustar/corregir cualquier daño predictivo de 100 local en sus clientes
@@ -711,8 +741,6 @@ function registerCombatHandlers(socket, io, state) {
                     return;
                 }
 
-                const now = Date.now();
-                
                 // Calcular daño teórico máximo para el atacante
                 let baseDmg = 100;
                 if (attacker.equipped && attacker.equipped.w) {
