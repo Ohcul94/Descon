@@ -27,12 +27,8 @@ func _ready():
 	_create_spheres()
 	
 	# v6.2: Retraso de cortesía para asegurar que el HUD esté listo al loguear
-	var tw = create_tween()
-	tw.tween_interval(1.5)
-	var cb_update = func():
-		_update_visuals()
-		spheres_updated.emit()
-	tw.tween_callback(cb_update)
+	# No se emite spheres_updated aquí porque _update_3d_spheres ya se llama
+	# al conectar la señal desde Entity.gd _ready(), evitando el re-flash de esferas.
 
 func _create_spheres():
 	# Inicialización de nodos base para 4 esferas dinámicas

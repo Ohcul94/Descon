@@ -116,8 +116,8 @@ func adjust_background():
 		var headlight = DirectionalLight3D.new()
 		headlight.name = "CameraHeadlight"
 		headlight.light_color = Color(0.9, 0.95, 1.0)
-		headlight.light_energy = 1.0
-		headlight.light_specular = 0.3
+		headlight.light_energy = 0.3
+		headlight.light_specular = 0.1
 		headlight.shadow_enabled = false
 		camera_3d.add_child(headlight)
 

@@ -645,9 +645,15 @@ func _process(delta):
 			_ship_rot_mem[current_ship_id] = m_rot
 			actual_model.rotation_degrees = m_rot
 			
-		# v235.69: Rotación de accesorios (Esferas)
+		# v235.69: Órbita individual de esferas (sin rotar el pivot, cada una se mueve por separado)
+		_spheres_angle += delta * 1.2
 		if is_instance_valid(accessory_pivot_3d):
-			accessory_pivot_3d.rotate_y(delta * 2.0)
+			var orbit_r = 7.0
+			for _si in range(_3d_spheres.size()):
+				var _s3d = _3d_spheres[_si]
+				if is_instance_valid(_s3d):
+					var _a = _spheres_angle + (_si * PI * 0.5)
+					_s3d.position = Vector3(cos(_a) * orbit_r, 0.0, sin(_a) * orbit_r)
 		
 		# Sincronización de visibilidad y anti-rotación del Sprite2D (Ocultar si es Lienzo Único)
 		if is_instance_valid(sprite):
@@ -2836,12 +2842,9 @@ func _setup_sphere_materials_recursive(node: Node, color_name: String):
 			"amarilla": emit_color = Color(1.0, 0.9, 0.2)
 			
 		mat.albedo_color = emit_color
-		mat.metallic = 0.5
-		mat.roughness = 0.15
-		mat.emission_enabled = true
-		mat.emission = emit_color
-		mat.emission_energy_multiplier = 0.8
-		mat.emission_operator = BaseMaterial3D.EMISSION_OP_ADD
+		mat.metallic = 0.8
+		mat.roughness = 0.2
+		mat.emission_enabled = false
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	for child in node.get_children():
 		_setup_sphere_materials_recursive(child, color_name)
