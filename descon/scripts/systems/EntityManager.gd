@@ -139,7 +139,7 @@ func _process(delta):
 				
 				var start_pos = owner_vis + Vector2(0, -20)
 				var end_pos = target_vis + Vector2(0, -20)
-				var seed = area.get_meta("bolt_seed")
+				var bolt_seed = area.get_meta("bolt_seed")
 				var pulse = area.get_meta("pulse_timer") + delta * 12.0
 				area.set_meta("pulse_timer", pulse)
 				var intensity = 0.5 + sin(pulse * 2.0) * 0.5
@@ -148,7 +148,7 @@ func _process(delta):
 				var bolt_main = area.get_node_or_null("BoltMain")
 				var bolt_brn = area.get_node_or_null("BoltBranches")
 				
-				var main_pts = _generate_lightning(start_pos, end_pos, 10, seed, 60.0)
+				var main_pts = _generate_lightning(start_pos, end_pos, 10, bolt_seed, 60.0)
 				if bolt_main:
 					bolt_main.points = main_pts
 					bolt_main.width = 3.5 + intensity * 1.5
@@ -156,7 +156,7 @@ func _process(delta):
 					bolt_glow.points = main_pts
 					bolt_glow.width = 10.0 + intensity * 4.0
 				
-				var branch_pts = _generate_lightning_branches(start_pos, end_pos, main_pts, seed + 999)
+				var branch_pts = _generate_lightning_branches(start_pos, end_pos, main_pts, bolt_seed + 999)
 				if bolt_brn:
 					bolt_brn.points = branch_pts
 				
@@ -1481,13 +1481,13 @@ func _on_clear_enemy_projectiles(data: Dictionary):
 func _generate_lightning(from: Vector2, to: Vector2, segments: int, seed_val: int, jitter: float) -> PackedVector2Array:
 	var pts = PackedVector2Array()
 	var dir = (to - from).normalized()
-	var len = from.distance_to(to)
+	var length = from.distance_to(to)
 	var perp = Vector2(-dir.y, dir.x)
 	var rng = RandomNumberGenerator.new()
 	rng.seed = seed_val
 	
 	pts.append(from)
-	var step_len = len / float(segments)
+	var step_len = length / float(segments)
 	for i in range(1, segments):
 		var t = float(i) / float(segments)
 		var base = from + dir * (step_len * i)

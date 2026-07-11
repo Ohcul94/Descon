@@ -700,6 +700,7 @@ function registerInventoryHandlers(socket, io, state) {
 
         const lock = checkCombatLock(p);
         if (lock.locked) {
+            sendInventoryData(socket, socket.dbUser);
             return socket.emit('gameNotification', { 
                 msg: `ERROR: Esferas calientes. Espera ${lock.remaining}s para cambiar habilidades.`, 
                 type: 'error' 
@@ -738,6 +739,7 @@ function registerInventoryHandlers(socket, io, state) {
 
         const lock = checkCombatLock(p);
         if (lock.locked) {
+            sendInventoryData(socket, socket.dbUser);
             return socket.emit('gameNotification', { 
                 msg: `ERROR: Esferas bloqueadas en combate.`, 
                 type: 'error' 

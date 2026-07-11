@@ -127,12 +127,28 @@ func _load_skill_icon_texture(skill_name: String) -> Texture2D:
 
 func _render_spheres_equipment(tab, _sub_tabs):
 	var master_v = VBoxContainer.new(); master_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); master_v.offset_top = 20; tab.add_child(master_v)
-	var spheres_h = HBoxContainer.new(); spheres_h.alignment = BoxContainer.ALIGNMENT_CENTER; spheres_h.add_theme_constant_override("separation", 60); master_v.add_child(spheres_h)
 	
 	var sm = inv_main.spheres_manager
 	if not is_instance_valid(sm):
 		var err = Label.new(); err.text = "SISTEMA ORBITAL NO INICIALIZADO"; err.horizontal_alignment = 1; master_v.add_child(err)
 		return
+
+	var player_node = get_tree().get_first_node_in_group("player")
+	var is_comb = player_node and player_node.has_method("is_in_combat") and player_node.is_in_combat()
+	
+	if is_comb:
+		var warning_lbl = Label.new()
+		warning_lbl.text = "⚠️ SISTEMA BLOQUEADO: EN COMBATE"
+		warning_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		warning_lbl.modulate = Color.RED
+		warning_lbl.add_theme_font_size_override("font_size", 12)
+		master_v.add_child(warning_lbl)
+		
+		var sep = Control.new()
+		sep.custom_minimum_size = Vector2(0, 10)
+		master_v.add_child(sep)
+
+	var spheres_h = HBoxContainer.new(); spheres_h.alignment = BoxContainer.ALIGNMENT_CENTER; spheres_h.add_theme_constant_override("separation", 60); master_v.add_child(spheres_h)
 
 	for i in range(4):
 		if i >= sm.spheres_data.size(): break
@@ -214,26 +230,33 @@ func _render_spheres_equipment(tab, _sub_tabs):
 		var type_label = Label.new(); type_label.text = type_txt; type_label.modulate = final_color; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
 		
 		var b = Button.new(); b.text = "RECONFIGURAR" if equipped else "EQUIPAR NÚCLEO"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
-		b.pressed.connect(func():
-			inv_main.selected_sphere_slot = i
-			inv_main.selected_sphere_type_filter = "ANY"
-			if equipped: inv_main.selected_sphere_type_filter = type_txt
-			
-			# v301.6: Búsqueda segura del TabContainer (Fix: Reconfigurar no hacía nada)
-			for child in get_children():
-				if child is TabContainer:
-					child.current_tab = 1
-					break
-			update_ui()
-		)
+		if is_comb:
+			b.disabled = true
+		else:
+			b.pressed.connect(func():
+				inv_main.selected_sphere_slot = i
+				inv_main.selected_sphere_type_filter = "ANY"
+				if equipped: inv_main.selected_sphere_type_filter = type_txt
+				
+				# v301.6: Búsqueda segura del TabContainer (Fix: Reconfigurar no hacía nada)
+				for child in get_children():
+					if child is TabContainer:
+						child.current_tab = 1
+						break
+				update_ui()
+			)
 		
 		if equipped:
 			var bu = Button.new(); bu.text = "DESEQUIPAR"; bu.add_theme_font_size_override("font_size", 9); bu.modulate = Color(1, 0.4, 0.4); v_box.add_child(bu)
-			bu.pressed.connect(func(): NetworkManager.send_event("unequipSphere", {"sphereId": i}))
+			if is_comb:
+				bu.disabled = true
+			else:
+				bu.pressed.connect(func(): NetworkManager.send_event("unequipSphere", {"sphereId": i}))
 		
 		# v301.5: Interacción de equipamiento (Click en el slot para confirmar)
 		p_ui.gui_input.connect(func(ev): 
 			if ev is InputEventMouseButton and ev.pressed:
+				if is_comb: return
 				if inv_main.get("pending_skill_to_equip") != null:
 					# Confirmar equipamiento
 					var skill = inv_main.pending_skill_to_equip
@@ -255,6 +278,9 @@ func _render_spheres_equipment(tab, _sub_tabs):
 
 func _render_spheres_library(tab):
 	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); main_v.offset_left = 20; main_v.offset_right = -20; main_v.offset_top = 20; tab.add_child(main_v)
+	
+	var player_node = get_tree().get_first_node_in_group("player")
+	var is_comb = player_node and player_node.has_method("is_in_combat") and player_node.is_in_combat()
 	
 	var filter_h = HBoxContainer.new(); filter_h.alignment = BoxContainer.ALIGNMENT_CENTER; filter_h.add_theme_constant_override("separation", 15); main_v.add_child(filter_h)
 	var filters = ["ANY", "ATAQUE", "DEFENSA", "CURACIÓN", "UTILIDAD"]
@@ -308,9 +334,9 @@ func _render_spheres_library(tab):
 		if inv_main.selected_sphere_type_filter != "ANY" and s_info["type"].to_upper() != inv_main.selected_sphere_type_filter: continue
 		var s_inst = s_info["instance"]
 		var is_already_on = s_inst.skill_name in currently_equipped
-		_create_skill_card(s_inst, s_info["color"], s_info["icon"], s_info.get("tex_icon"), grid, is_already_on)
+		_create_skill_card(s_inst, s_info["color"], s_info["icon"], s_info.get("tex_icon"), grid, is_already_on, is_comb)
 
-func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is_equipped):
+func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is_equipped, is_comb = false):
 	var skill_card = PanelContainer.new(); skill_card.custom_minimum_size = Vector2(350, 120); parent.add_child(skill_card)
 	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0, 0, 0.05, 0.7); sb.border_width_left = 4; sb.border_color = color; sb.corner_radius_top_right = 8; sb.corner_radius_bottom_right = 8; skill_card.add_theme_stylebox_override("panel", sb)
 	
@@ -350,8 +376,9 @@ func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is
 	var name_l = Label.new(); name_l.text = display_name; name_l.add_theme_font_size_override("font_size", 14); name_l.modulate = color; v_info.add_child(name_l)
 	var desc_l = Label.new(); desc_l.text = description_text; desc_l.add_theme_font_size_override("font_size", 10); desc_l.modulate.a = 0.6; desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v_info.add_child(desc_l)
 	
-	var b_equip = Button.new(); b_equip.text = "YA EQUIPADA" if is_equipped else "EQUIPAR"; b_equip.disabled = is_equipped; b_equip.custom_minimum_size = Vector2(80, 0); b_equip.size_flags_vertical = 4; hb.add_child(b_equip)
+	var b_equip = Button.new(); b_equip.text = "YA EQUIPADA" if is_equipped else "EQUIPAR"; b_equip.disabled = is_equipped or is_comb; b_equip.custom_minimum_size = Vector2(80, 0); b_equip.size_flags_vertical = 4; hb.add_child(b_equip)
 	if is_equipped: skill_card.modulate.a = 0.5
+	elif is_comb: skill_card.modulate.a = 0.6
 	
 	b_equip.pressed.connect(func():
 		# v301.5: Flujo de selección manual de slot
