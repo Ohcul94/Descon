@@ -1,5 +1,7 @@
 shader_type spatial;
-render_mode blend_mix, cull_disabled;
+// diffuse_lambert_wrap: envuelve la luz alrededor del plano suavizando la línea terminador
+// sin perder las sombras nativas 3D de las naves encima del suelo
+render_mode blend_mix, cull_disabled, diffuse_lambert_wrap, specular_disabled;
 
 uniform sampler2D u_albedo_tex : source_color;
 uniform vec4 u_tint_color : source_color = vec4(0.55, 0.52, 0.48, 1.0);
@@ -26,17 +28,13 @@ void fragment() {
 	vec2 eps = vec2(0.002, 0.0);
 	float hx = texture(u_albedo_tex, uv + eps).r;
 	float hz = texture(u_albedo_tex, uv + eps.yx).r;
-	vec3 normal = normalize(vec3(
-		(height - hx) * u_height_scale,
-		1.0,
-		(height - hz) * u_height_scale
-	));
 
 	vec2 detail_uv = UV * u_tiling * 3.0;
 	float detail = texture(u_detail_tex, detail_uv + TIME * vec2(0.005, 0.003)).r;
 	float detail_hx = texture(u_detail_tex, detail_uv + eps + TIME * vec2(0.005, 0.003)).r;
 	float detail_hz = texture(u_detail_tex, detail_uv + eps.yx + TIME * vec2(0.005, 0.003)).r;
-	// Calcular normales en espacio tangente (donde Z es arriba/afuera en Godot)
+
+	// Calcular normales en espacio tangente para dar relieve al suelo
 	vec3 tangent_normal = normalize(vec3(
 		(height - hx) * u_height_scale + (detail - detail_hx) * u_detail_strength * 0.3,
 		(height - hz) * u_height_scale + (detail - detail_hz) * u_detail_strength * 0.3,
@@ -50,6 +48,7 @@ void fragment() {
 	METALLIC = u_metallic + (height - 0.5) * 0.08;
 	float base_roughness = u_roughness - (height - 0.5) * 0.1;
 
+	// La emisión base garantiza que el lado oscuro no sea negro absoluto
 	float emissive_variation = 0.7 + height * 0.6 + detail * 0.15;
 	vec3 base_emission = u_emission * u_emission_energy * emissive_variation;
 

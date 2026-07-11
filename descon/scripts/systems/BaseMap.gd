@@ -444,8 +444,8 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 		env_node.environment = env
 		
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.22, 0.24, 0.35) # Espacio azul/gris suave pero iluminado
-	env.ambient_light_energy = 1.1 # Mayor energía de soporte para eliminar el negro absoluto
+	env.ambient_light_color = Color(0.28, 0.30, 0.42) # Espacio azul/gris suave pero iluminado
+	env.ambient_light_energy = 1.5 # Alta energía base para que los modelos nunca queden a oscuras
 
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 
@@ -494,46 +494,39 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 		if child is Light3D:
 			child.shadow_enabled = false
 
-	# 2. Luz Direccional Principal (Simula el sol o estrella del sector, iluminando desde arriba hacia abajo)
+	# 2. Luz Direccional Principal (Simula el sol o estrella del sector)
 	var main_light = sub_vp.get_node_or_null("DirectionalLight3D")
 	if not is_instance_valid(main_light) or not main_light is DirectionalLight3D:
 		main_light = DirectionalLight3D.new()
 		main_light.name = "DirectionalLight3D"
 		sub_vp.add_child(main_light)
 		
-	# Rotación hacia abajo: -55° en X (apunta al suelo), 35° en Y (horizontal)
-	main_light.rotation_degrees = Vector3(-55, 35, 0)
-	main_light.light_color = Color(1.0, 0.88, 0.76) # Luz cálida estelar
-	main_light.light_energy = 1.6
+	# Rotación hacia abajo: -65° en X (iluminación cenital limpia), 35° en Y
+	main_light.rotation_degrees = Vector3(-65, 35, 0)
+	main_light.light_color = Color(1.0, 0.92, 0.85) # Luz estelar
+	main_light.light_energy = 1.1 
 	
-	# Sombras nativas 3D profesionales según la calidad gráfica del juego (SettingsManager)
+	# Sombras nativas 3D profesionales según la calidad gráfica del juego
 	var native_shadows = true
 	if get_node_or_null("/root/SettingsManager"):
 		var quality = SettingsManager.get_graphics_quality()
-		if quality == 0: # Calidad Baja: desactivar para optimizar rendimiento en gama baja
+		if quality == 0: 
 			native_shadows = false
 			
 	main_light.shadow_enabled = native_shadows
 	if native_shadows:
-		main_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL # Más rápido y nítido para cámara cenital
-		main_light.directional_shadow_max_distance = 150.0 # Rango óptimo en unidades de mundo
-		main_light.shadow_bias = 0.04 # Evitar shadow acne (rayas en las mallas)
+		main_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+		main_light.directional_shadow_max_distance = 150.0
+		main_light.shadow_bias = 0.04
 		main_light.shadow_normal_bias = 1.5
 		sub_vp.positional_shadow_atlas_size = 2048
 		sub_vp.positional_shadow_atlas_16_bits = true
 
-	# 3. Luz Direccional de Relleno (Ilumina las caras en sombra desde el lado opuesto, también hacia abajo)
+	# 3. Limpieza de luces secundarias (GL Compatibility solo soporta 1-2 luces direccionales de forma estable)
+	# El relleno ahora se maneja 100% por la luz ambiental del WorldEnvironment
 	var fill_light = sub_vp.get_node_or_null("DirectionalLight3D_Fill")
-	if not is_instance_valid(fill_light) or not fill_light is DirectionalLight3D:
-		fill_light = DirectionalLight3D.new()
-		fill_light.name = "DirectionalLight3D_Fill"
-		sub_vp.add_child(fill_light)
-		
-	# Rotación opuesta hacia abajo: -35° en X, -145° en Y
-	fill_light.rotation_degrees = Vector3(-35, -145, 0)
-	fill_light.light_color = Color(0.45, 0.6, 0.9) # Relleno celeste frío
-	fill_light.light_energy = 0.8
-	fill_light.shadow_enabled = false
+	if is_instance_valid(fill_light):
+		fill_light.queue_free()
 
 	var zenith = sub_vp.get_node_or_null("DirectionalLight3D_Zenith")
 	if is_instance_valid(zenith):
@@ -549,16 +542,8 @@ func _apply_camera_headlight(cam: Camera3D):
 		old_omni.queue_free()
 		
 	var headlight = cam.get_node_or_null("CameraHeadlight")
-	if not is_instance_valid(headlight):
-		headlight = DirectionalLight3D.new()
-		headlight.name = "CameraHeadlight"
-		cam.add_child(headlight)
-		
-	headlight.rotation = Vector3.ZERO
-	headlight.light_color = Color(1.0, 0.95, 0.88) # Luz de relleno frontal de la cámara
-	headlight.light_energy = 1.2 # Mayor energía para garantizar visibilidad directa
-	headlight.light_specular = 0.2
-	headlight.shadow_enabled = false
+	if is_instance_valid(headlight):
+		headlight.queue_free()
 
 # Método para alternar proyección de cámara (llamado al presionar tecla L)
 func toggle_camera_projection():

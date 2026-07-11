@@ -2827,21 +2827,25 @@ func _setup_sphere_materials_recursive(node: Node, color_name: String):
 			mat = mat.duplicate()
 			node.material_override = mat
 			
-			# Habilitar emisión para que brille y no se apague al girar
-			mat.emission_enabled = true
-			mat.emission_energy_multiplier = 1.0 # Brillo equilibrado
+			# Efecto Película: Hacer que las esferas sean UNSHADED para que no tengan lado oscuro
+			# Se verán siempre como pura energía radiante, sin sombras.
+			mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
 			
 			var emit_color = Color.WHITE
 			match color_name.to_lower():
-				"roja": emit_color = Color(1.0, 0.15, 0.15)
-				"azul": emit_color = Color(0.15, 0.4, 1.0)
-				"verde": emit_color = Color(0.15, 1.0, 0.15)
-				"amarilla": emit_color = Color(1.0, 0.85, 0.15)
+				"roja": emit_color = Color(1.0, 0.2, 0.2)
+				"azul": emit_color = Color(0.2, 0.5, 1.0)
+				"verde": emit_color = Color(0.2, 1.0, 0.2)
+				"amarilla": emit_color = Color(1.0, 0.9, 0.2)
 				
+			# Como es UNSHADED, el albedo es el color final directamente visible
+			mat.albedo_color = emit_color
+			
+			# Mantenemos la emisión activa para que el motor de Glow (Bloom) en BaseMap.gd la tome
+			mat.emission_enabled = true
 			mat.emission = emit_color
-			if mat.albedo_texture:
-				mat.emission_operator = StandardMaterial3D.EMISSION_OP_MULTIPLY
-				mat.emission_texture = mat.albedo_texture
+			mat.emission_energy_multiplier = 1.5 
+			mat.emission_operator = StandardMaterial3D.EMISSION_OP_ADD
 	for child in node.get_children():
 		_setup_sphere_materials_recursive(child, color_name)
 
