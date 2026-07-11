@@ -2822,30 +2822,27 @@ func _setup_sphere_materials_recursive(node: Node, color_name: String):
 		var mat = node.material_override
 		if not mat:
 			mat = node.get_active_material(0)
-		if mat and mat is StandardMaterial3D:
-			# Duplicar el material para hacerlo único y que no afecte otros elementos
+		if mat and mat is BaseMaterial3D:
 			mat = mat.duplicate()
-			node.material_override = mat
+		else:
+			mat = StandardMaterial3D.new()
+		node.material_override = mat
+		
+		var emit_color = Color.WHITE
+		match color_name.to_lower():
+			"roja": emit_color = Color(1.0, 0.2, 0.2)
+			"azul": emit_color = Color(0.2, 0.5, 1.0)
+			"verde": emit_color = Color(0.2, 1.0, 0.2)
+			"amarilla": emit_color = Color(1.0, 0.9, 0.2)
 			
-			# Efecto Película: Hacer que las esferas sean UNSHADED para que no tengan lado oscuro
-			# Se verán siempre como pura energía radiante, sin sombras.
-			mat.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
-			
-			var emit_color = Color.WHITE
-			match color_name.to_lower():
-				"roja": emit_color = Color(1.0, 0.2, 0.2)
-				"azul": emit_color = Color(0.2, 0.5, 1.0)
-				"verde": emit_color = Color(0.2, 1.0, 0.2)
-				"amarilla": emit_color = Color(1.0, 0.9, 0.2)
-				
-			# Como es UNSHADED, el albedo es el color final directamente visible
-			mat.albedo_color = emit_color
-			
-			# Mantenemos la emisión activa para que el motor de Glow (Bloom) en BaseMap.gd la tome
-			mat.emission_enabled = true
-			mat.emission = emit_color
-			mat.emission_energy_multiplier = 1.5 
-			mat.emission_operator = StandardMaterial3D.EMISSION_OP_ADD
+		mat.albedo_color = emit_color
+		mat.metallic = 0.5
+		mat.roughness = 0.15
+		mat.emission_enabled = true
+		mat.emission = emit_color
+		mat.emission_energy_multiplier = 0.8
+		mat.emission_operator = BaseMaterial3D.EMISSION_OP_ADD
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	for child in node.get_children():
 		_setup_sphere_materials_recursive(child, color_name)
 

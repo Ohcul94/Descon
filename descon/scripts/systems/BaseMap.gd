@@ -21,7 +21,7 @@ const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofr
 @export var zone_id: Variant = 1  # Variant: acepta int (zonas normales) y String (arena_x, extract_x)
 @export var scale_factor: float = 0.02 # Relación 2D a 3D
 @export var camera_height: float = 30.0
-@export var use_orthogonal: bool = true
+@export var use_orthogonal: bool = false
 
 # Referencias dinámicas
 var viewport_container: SubViewportContainer = null
@@ -44,11 +44,13 @@ var cursor_3d: Node3D = null
 var mouse_world_pos_3d: Vector3 = Vector3.ZERO   # Posición 3D exacta del cursor en el mundo
 var mouse_world_pos_2d: Vector2 = Vector2.ZERO   # Equivalente en espacio lógico 2D del mapa
 
+var fixed_cam_zoom: float = 0.88
+
 # Free Camera (orbit/free mode) — toggle con tecla O
 var free_cam_active: bool = false
 var free_cam_h: float = 180.0  # ángulo horizontal en grados (180 = detrás de la nave)
 var free_cam_v: float = 40.0   # ángulo vertical (10-85°, 0 = horizontal, 90 = top-down)
-var free_cam_zoom: float = 35.0
+var free_cam_zoom: float = 28.0
 var free_cam_center: Vector3 = Vector3.ZERO
 var free_orbit_mode: bool = true  # true=orbita jugador, false=libre (WASD)
 var _mid_dragging: bool = false
@@ -545,61 +547,51 @@ func _apply_camera_headlight(cam: Camera3D):
 	if is_instance_valid(headlight):
 		headlight.queue_free()
 
-# Método para alternar proyección de cámara (llamado al presionar tecla L)
-func toggle_camera_projection():
-	use_orthogonal = !use_orthogonal
-	if use_orthogonal and free_cam_active:
-		free_cam_active = false
-	_save_camera_state()
-	if has_node("/root/SettingsManager"):
-		var sm = get_node("/root/SettingsManager")
-		sm.camera_use_orthogonal = use_orthogonal
-		sm.save_settings()
-	var hud = get_tree().get_first_node_in_group("hud")
-	var msg = "CÁMARA: " + ("ORTOGONAL (2D)" if use_orthogonal else "PERSPECTIVA (3D)")
-	var type = "info" if use_orthogonal else "success"
-	if hud and hud.has_method("notify"):
-		hud.notify(msg, type)
-	print("[BaseMap] ", msg)
+# Método para forzar modo 3D perspectiva desde UI (Settings)
+func set_camera_2d_mode(_active: bool):
+	use_orthogonal = false
 
-# Método para establecer 2D/3D desde UI (Settings)
-func set_camera_2d_mode(active: bool):
-	if use_orthogonal == active:
-		return
-	use_orthogonal = active
-	if active and free_cam_active:
-		free_cam_active = false
-	_save_camera_state()
-	var hud = get_tree().get_first_node_in_group("hud")
-	var msg = "CÁMARA: " + ("ORTOGONAL (2D)" if use_orthogonal else "PERSPECTIVA (3D)")
-	var type = "info" if use_orthogonal else "success"
-	if hud and hud.has_method("notify"):
-		hud.notify(msg, type)
-	print("[BaseMap] ", msg)
+func _get_base_height_and_factor() -> Dictionary:
+	var viewport_height = float(get_viewport().get_visible_rect().size.y) if is_inside_tree() else 1080.0
+	if viewport_height <= 0:
+		viewport_height = 1080.0
+	var target_visible_height = viewport_height * scale_factor
+	var fov_val = camera_3d.fov if is_instance_valid(camera_3d) else 55.0
+	var fov_rad = deg_to_rad(fov_val / 2.0)
+	var base_height = target_visible_height / (2.0 * tan(fov_rad))
+	var factor = sqrt(1.0 + 1.0 / (tan(deg_to_rad(40.0)) * tan(deg_to_rad(40.0))))
+	return {"base_height": base_height, "factor": factor}
+
+func _sync_zooms_from_free():
+	var res = _get_base_height_and_factor()
+	var min_dist = 0.3 * res.base_height * res.factor
+	var max_dist = 2.2 * res.base_height * res.factor
+	free_cam_zoom = clamp(free_cam_zoom, min_dist, max_dist)
+	fixed_cam_zoom = free_cam_zoom / (res.base_height * res.factor)
 
 # Guardar estado de cámara en SettingsManager (persiste entre mapas, no en disco)
 func _save_camera_state():
 	if not has_node("/root/SettingsManager"):
 		return
 	var sm = get_node("/root/SettingsManager")
+	sm.cam_fixed_zoom = fixed_cam_zoom
 	sm.cam_free_active = free_cam_active
 	sm.cam_free_h = free_cam_h
 	sm.cam_free_v = free_cam_v
 	sm.cam_free_zoom = free_cam_zoom
 	sm.cam_free_orbit = free_orbit_mode
-	sm.cam_use_orthogonal = use_orthogonal
 
-# Restaurar estado de cámara desde SettingsManager
 func _restore_camera_state():
 	if not has_node("/root/SettingsManager"):
 		return
 	var sm = get_node("/root/SettingsManager")
+	fixed_cam_zoom = sm.cam_fixed_zoom
 	free_cam_active = sm.cam_free_active
 	free_cam_h = sm.cam_free_h
 	free_cam_v = sm.cam_free_v
 	free_cam_zoom = sm.cam_free_zoom
 	free_orbit_mode = sm.cam_free_orbit
-	use_orthogonal = sm.cam_use_orthogonal
+	_sync_zooms_from_free()
 
 # Actualizar cámara libre (orbit/free mode)
 func _update_free_camera():
@@ -715,7 +707,7 @@ func _update_world_cursor():
 		return
 
 	# Modo 2D: cursor del SO, sin cursor 3D
-	if use_orthogonal or not is_instance_valid(camera_3d):
+	if not is_instance_valid(camera_3d):
 		cursor_3d.visible = false
 		mouse_world_pos_3d = Vector3.ZERO
 		mouse_world_pos_2d = Vector2.ZERO
@@ -781,47 +773,24 @@ func _process(_delta):
 			free_cam_center.z = clamp(free_cam_center.z, -margin_z, max_z + margin_z)
 		_update_free_camera()
 	else:
-		# --- SINCRONIZACIÓN DE CÁMARA PERFECTA DE ALTO NIVEL ---
 		var target_pos = Vector2.ZERO
-		var current_zoom = 1.0
-		
-		var cam_2d = get_viewport().get_camera_2d()
-		if is_instance_valid(cam_2d):
-			cam_2d.force_update_scroll() # Forzar actualización inmediata para evitar desfase de 1 frame (efecto acordeón)
-			target_pos = cam_2d.get_screen_center_position()
-			current_zoom = cam_2d.zoom.x
-		else:
-			if is_instance_valid(player_node):
-				target_pos = player_node.global_position
+		if is_instance_valid(player_node):
+			target_pos = player_node.global_position
 				
 		if is_instance_valid(camera_3d):
-			if current_zoom <= 0.01:
-				current_zoom = 1.0
-				
 			var viewport_height = float(get_viewport().get_visible_rect().size.y)
 			if viewport_height <= 0:
 				viewport_height = 1080.0
 				
-			var dynamic_height = camera_height
-			if use_orthogonal:
-				camera_3d.projection = Camera3D.PROJECTION_ORTHOGONAL
-				camera_3d.size = (viewport_height * scale_factor) / current_zoom
-				camera_3d.position.y = camera_height
-				dynamic_height = camera_height
-			else:
-				camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
-				camera_3d.fov = 55.0 # FOV más amplio para efecto LoL
-				var target_visible_height = (viewport_height * scale_factor) / current_zoom
-				dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
-				camera_3d.position.y = dynamic_height
+			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
+			camera_3d.fov = 55.0
+			var target_visible_height = viewport_height * scale_factor
+			var dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+			dynamic_height *= fixed_cam_zoom
+			camera_3d.position.y = dynamic_height
 			
-			# Sincronizar posición de la cámara 3D con inclinación tridimensional dinámica
-			var z_offset = dynamic_height
-			if not use_orthogonal:
-				# En perspectiva, alejar más la cámara en Z para lograr inclinación de ~40° en lugar de 55°
-				z_offset = dynamic_height / tan(deg_to_rad(40.0))
+			var z_offset = dynamic_height / tan(deg_to_rad(40.0))
 			
-			# correction_z fijo autoritario (evitar desfasajes por inclinación dinámica)
 			self.set_meta("correction_z", correction_z)
 			
 			var corrected_target_z = target_pos.y * scale_factor * correction_z
@@ -829,8 +798,7 @@ func _process(_delta):
 			
 			camera_3d.position.z = corrected_target_z + z_offset
 			camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
-		
-	# v420.5: Actualizar cursor 3D world-space (solo en modo perspectiva)
+	
 	_update_world_cursor()
 
 	# Chequear cercanía a puertas interactivas del mapa
@@ -1426,25 +1394,12 @@ func _check_doors_proximity():
 
 # Atajo de teclado para entrar al portal si el contenedor está visible
 func _input(event):
-	if event.is_action_pressed("toggle_camera_projection") and not event.is_echo():
-		toggle_camera_projection()
-		_save_camera_state()
-		get_viewport().set_input_as_handled()
-	
-	# Toggle cámara libre (tecla O)
 	if event.is_action_pressed("toggle_free_camera") and not event.is_echo():
-		var hud_f = get_tree().get_first_node_in_group("hud")
-		if use_orthogonal:
-			var l_key = _get_bound_key_text("toggle_camera_projection")
-			if hud_f and hud_f.has_method("notify"):
-				hud_f.notify("PRIMERO CAMBIA A 3D [" + l_key + "]", "info")
-			get_viewport().set_input_as_handled()
-			return
-		
 		free_cam_active = !free_cam_active
 		_save_camera_state()
 		if has_node("/root/SettingsManager"):
 			get_node("/root/SettingsManager").cam_free_active = free_cam_active
+		var hud_f = get_tree().get_first_node_in_group("hud")
 		if hud_f and hud_f.has_method("notify"):
 			hud_f.notify("CÁMARA " + ("LIBRE" if free_cam_active else "FIJA"), "info" if free_cam_active else "success")
 		print("[BaseMap] CÁMARA ", "LIBRE" if free_cam_active else "FIJA")
@@ -1467,6 +1422,20 @@ func _input(event):
 		print("[BaseMap] ", msg_f)
 		get_viewport().set_input_as_handled()
 	
+	# Scroll para zoom en cámara fija
+	if not free_cam_active and event is InputEventMouseButton and event.pressed:
+		if (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
+			var hovered = get_viewport().gui_get_hovered_control()
+			if hovered != null and not (hovered is SubViewportContainer):
+				return
+			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+				free_cam_zoom = max(10.0, free_cam_zoom - 2.0)
+			else:
+				free_cam_zoom = min(100.0, free_cam_zoom + 2.0)
+			_sync_zooms_from_free()
+			_save_camera_state()
+			get_viewport().set_input_as_handled()
+
 	# Middle-click drag para orbitar (solo en cámara libre)
 	if free_cam_active and event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_MIDDLE:
@@ -1481,9 +1450,10 @@ func _input(event):
 			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				free_cam_zoom = max(5.0, free_cam_zoom - 2.0)
+				free_cam_zoom = max(10.0, free_cam_zoom - 2.0)
 			else:
-				free_cam_zoom = min(55.0, free_cam_zoom + 2.0)
+				free_cam_zoom = min(100.0, free_cam_zoom + 2.0)
+			_sync_zooms_from_free()
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
 	
@@ -1494,7 +1464,6 @@ func _input(event):
 		free_cam_v = clamp(free_cam_v + delta.y * 0.3, 10.0, 85.0)
 		_drag_last = event.position
 		_save_camera_state()
-		get_viewport().set_input_as_handled()
 		
 	if event.is_action_pressed("portal_jump") and not event.is_echo():
 		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode == "portal":

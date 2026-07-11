@@ -15,7 +15,6 @@ var default_keys = {
 	"ui_map": KEY_M, "ui_party": KEY_P, "ui_pvp_toggle": KEY_C,
 	"auto_target_self": KEY_ALT, # v4.9: Atajo para auto-casteo
 	"portal_jump": KEY_SPACE, # Atajo para portal de salto
-	"toggle_camera_projection": KEY_L, # Atajo para cambio de perspectiva
 	"toggle_free_camera": KEY_O, # Atajo para cámara libre 3D
 	"toggle_orbit_mode": KEY_SEMICOLON, # Ñ en teclado español (física); orbit/free mode
 	"chat_toggle": KEY_ENTER, # Atajo para chat
@@ -33,13 +32,14 @@ var skill_aim_speed: float = 1.0   # Suavizado de apuntado de habilidades
 var mobile_mode: bool = false           # v266.670: Modo Celular MOBA
 
 # Estado de cámara que persiste entre mapas (NO se guarda en disco, se reinicia al cerrar el juego)
+var cam_fixed_zoom: float = 0.88
 var cam_free_active: bool = false
 var cam_free_h: float = 0.0
 var cam_free_v: float = 40.0
-var cam_free_zoom: float = 35.0
+var cam_free_zoom: float = 28.0
 var cam_free_orbit: bool = true
-var cam_use_orthogonal: bool = true
-var camera_use_orthogonal: bool = true # Persistido en disco (2D/3D)
+var cam_use_orthogonal: bool = false
+var camera_use_orthogonal: bool = false
 var mobile_aim_sensitivity: float = 1.0 # v266.700: Sensibilidad de apuntado MOBA (profundidad)
 var mobile_invert_y: bool = true        # v266.760: Invertir eje Y en apuntado movil
 var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
@@ -110,7 +110,8 @@ func reset_to_factory():
 	mobile_aim_sensitivity = 1.0
 	mobile_invert_y = true
 	fps_limit = 60
-	camera_use_orthogonal = true
+	camera_use_orthogonal = false
+	cam_use_orthogonal = false
 	show_stars = false
 	apply_fps_limit(60)
 	
@@ -222,7 +223,7 @@ func load_settings():
 		cast_mode_cache = 1
 		graphics_quality = 1
 		fps_limit = 60
-		camera_use_orthogonal = true
+		camera_use_orthogonal = false
 		show_stars = false
 		hit_flash_enabled = true
 		camera_shake_enabled = true

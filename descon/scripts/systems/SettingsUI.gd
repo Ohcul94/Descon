@@ -238,7 +238,6 @@ func _setup_ui():
 		"ui_housing": "MENÚ DE HOUSING (F3)",
 		"ui_map": "MAPA (M)", "ui_party": "EQUIPO (P)", "ui_pvp_toggle": "MODO COMBATE (C)",
 		"portal_jump": "INGRESAR AL PORTAL",
-		"toggle_camera_projection": "CAMBIAR PERSPECTIVA (CÁMARA)",
 		"toggle_free_camera": "MODO CÁMARA LIBRE 3D",
 		"toggle_orbit_mode": "ORBITAR / PANEO (CÁMARA LIBRE)",
 		"loot_claim": "ABRIR BOTÍN / COFRE",
@@ -399,23 +398,12 @@ func _setup_ui():
 
 	var cam_check = CheckBox.new()
 	cam_check.text = ""
-	cam_check.add_theme_stylebox_override("normal", check_style)
-	cam_check.add_theme_stylebox_override("pressed", check_style)
-	cam_check.add_theme_stylebox_override("hover", check_style)
-	if get_node_or_null("/root/SettingsManager"): cam_check.button_pressed = not SettingsManager.cam_use_orthogonal
-	cam_check.toggled.connect(func(val):
-		var is_3d = val
-		SettingsManager.camera_use_orthogonal = not is_3d
-		SettingsManager.cam_use_orthogonal = not is_3d
-		SettingsManager.save_settings()
-		var map_node = get_tree().get_first_node_in_group("map")
-		if map_node and map_node.has_method("set_camera_2d_mode"):
-			map_node.set_camera_2d_mode(not is_3d)
-	)
+	cam_check.disabled = true
+	cam_check.button_pressed = true
 	row_cam.add_child(cam_check)
 
 	var cam_lbl = Label.new()
-	cam_lbl.text = "CÁMARA 3D"
+	cam_lbl.text = "CÁMARA 3D (FIJA)"
 	row_cam.add_child(cam_lbl)
 
 	# ESTRELLAS EN EL CIELO
