@@ -133,3 +133,41 @@ const DEFAULT_QUESTS_CONFIG = [
 const DEFAULT_QUESTS_GLOBAL_CONFIG = {
     maxActiveQuests: 3
 };
+
+const DEFAULT_RANKING_CONFIG = {
+    categories: [
+        {
+            id: "monsters_killed",
+            name: "Monstruos Matados",
+            icon: "👾",
+            resetInterval: "weekly",
+            rewards: [
+                { rank: 1, hubs: 50000, ohcu: 100, exp: 10000, bpExp: 5000, items: [] },
+                { rank: 2, hubs: 25000, ohcu: 50, exp: 5000, bpExp: 2500, items: [] },
+                { rank: 3, hubs: 10000, ohcu: 25, exp: 2500, bpExp: 1000, items: [] }
+            ]
+        },
+        {
+            id: "events_completed",
+            name: "Eventos Completados",
+            icon: "🎯",
+            resetInterval: "monthly",
+            rewards: [
+                { rank: 1, hubs: 100000, ohcu: 200, exp: 20000, bpExp: 10000, items: [] },
+                { rank: 2, hubs: 50000, ohcu: 100, exp: 10000, bpExp: 5000, items: [] },
+                { rank: 3, hubs: 25000, ohcu: 50, exp: 5000, bpExp: 2500, items: [] }
+            ]
+        },
+        {
+            id: "level",
+            name: "Nivel Alcanzado",
+            icon: "⭐",
+            resetInterval: "never",
+            rewards: [
+                { rank: 1, hubs: 200000, ohcu: 500, exp: 50000, bpExp: 25000, items: [] },
+                { rank: 2, hubs: 100000, ohcu: 250, exp: 25000, bpExp: 10000, items: [] },
+                { rank: 3, hubs: 50000, ohcu: 100, exp: 10000, bpExp: 5000, items: [] }
+            ]
+        }
+    ]
+};

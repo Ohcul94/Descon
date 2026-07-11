@@ -279,7 +279,8 @@ function refreshCurrentTab() {
         'battlepass': renderBattlePass,
         'talent-creator': renderTalentCreator,
         'talent-mapper': renderTalentMapper,
-        'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions())
+        'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions()),
+        'ranking': renderRanking
     };
     if(renderMap[tabId]) renderMap[tabId]();
 }
@@ -295,6 +296,7 @@ function renderAll() {
     renderHousing();
     renderQuests();
     renderBattlePass();
+    renderRanking();
 }
 
 function renderAmmo() {
@@ -881,6 +883,7 @@ function renderEnemyDetail() {
                         <div class="field"><label>Hubs (pts)</label><input type="number" value="${en.rewardHubs || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rewardHubs = parseInt(this.value)"></div>
                         <div class="field"><label style="color:var(--primary);">Ohcu (qty)</label><input type="number" value="${en.rewardOhcu || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rewardOhcu = parseInt(this.value)"></div>
                         <div class="field"><label style="color:var(--accent);">Probabilidad de Cofre (%)</label><input type="number" min="0" max="100" step="1" value="${en.chestDropChance !== undefined ? Math.round(en.chestDropChance * 100) : 10}" onchange="config.enemyModels['${selectedEnemyId}'].chestDropChance = parseFloat(this.value) / 100"></div>
+                        <div class="field"><label style="color:var(--warning);">🏆 Pts Ranking</label><input type="number" value="${en.rankingPoints !== undefined ? en.rankingPoints : parseInt(selectedEnemyId.split('-')[0])}" onchange="config.enemyModels['${selectedEnemyId}'].rankingPoints = parseInt(this.value)"></div>
                     </div>
                 </div>
                 <div class="card" style="width:100%; margin-bottom: 2rem; border-color: var(--accent); background: rgba(6, 182, 212, 0.1);">
@@ -6337,5 +6340,276 @@ window.removeScheduleGroup = function(mapId, gIdx) {
     renderMapDetail();
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SISTEMA DE CLASIFICACIÓN / RANKING
+// ═══════════════════════════════════════════════════════════════════════════════
 
+function renderRanking() {
+    if (!config.rankingConfig) {
+        config.rankingConfig = JSON.parse(JSON.stringify(DEFAULT_RANKING_CONFIG));
+    }
+    const rc = config.rankingConfig;
+
+    const configContainer = document.getElementById('ranking-config-container');
+    const listContainer = document.getElementById('ranking-categories-container');
+    if (!configContainer || !listContainer) return;
+
+    const f = getFilter();
+
+    // ── Config Global ──
+    configContainer.innerHTML = `
+        <div class="card" style="width: 100%;">
+            <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                🏆 CONFIGURACIÓN GLOBAL DE CLASIFICACIÓN
+            </h3>
+            <p style="font-size:0.85rem; color:#aaa; margin-bottom:1.5rem; line-height:1.4;">
+                Configurá las categorías de ranking, las recompensas por posición y el intervalo de reinicio.
+                Cada categoría acumula puntos de forma independiente (<strong style="color:var(--accent);">Monstruos</strong>, 
+                <strong style="color:var(--accent);">Eventos</strong>, <strong style="color:var(--accent);">Nivel</strong>).
+                Los puntos de ranking por monstruo se configuran en el editor de cada enemigo.
+            </p>
+        </div>
+        <div class="card" style="width: 100%; border-color: rgba(6,182,212,0.2); background: rgba(6,182,212,0.03);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="color: var(--accent); margin:0; display: flex; align-items: center; gap: 10px;">
+                    📊 VISTA PREVIA DEL RANKING
+                </h3>
+                <button class="btn btn-primary" onclick="emitGetRankings()" style="padding: 8px 16px; font-size: 0.75rem;">
+                    🔄 REFRESCAR DATOS
+                </button>
+            </div>
+            <div id="ranking-preview" style="margin-top: 1rem; font-size: 0.85rem; color: #aaa;">
+                Seleccioná una categoría abajo y presioná "VER RANKING" para ver los líderes actuales.
+            </div>
+        </div>
+    `;
+
+    // ── Categorías ──
+    listContainer.innerHTML = '';
+
+    const headerCard = document.createElement('div');
+    headerCard.className = 'card';
+    headerCard.style.width = '100%';
+    headerCard.style.marginBottom = '1.5rem';
+    headerCard.innerHTML = `
+        <h3 style="color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 10px;">
+            🏅 CATEGORÍAS DE CLASIFICACIÓN
+            <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addRankingCategory()">+ AGREGAR CATEGORÍA</button>
+        </h3>
+        <p style="font-size:0.85rem; color:#aaa; line-height:1.4;">
+            Cada categoría tiene su propia tabla de posiciones y recompensas. 
+            Los intervalos de reinicio definen cada cuánto se reparten las recompensas y se resetean los puntajes.
+        </p>
+    `;
+    listContainer.appendChild(headerCard);
+
+    const categoriesDiv = document.createElement('div');
+    categoriesDiv.style.display = 'flex';
+    categoriesDiv.style.flexDirection = 'column';
+    categoriesDiv.style.gap = '2rem';
+    listContainer.appendChild(categoriesDiv);
+
+    const categories = rc.categories || [];
+    categories.forEach((cat, catIdx) => {
+        if (f && !cat.name.toLowerCase().includes(f) && !cat.id.toLowerCase().includes(f)) return;
+
+        const catCard = document.createElement('div');
+        catCard.className = 'card';
+        catCard.style.position = 'relative';
+        catCard.style.borderLeft = '4px solid var(--accent)';
+
+        if (!cat.rewards) cat.rewards = [];
+
+        let rewardsHTML = cat.rewards.map((rw, rIdx) => {
+            let itemsHTML = (rw.items || []).map((item, iIdx) => `
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:4px; background:rgba(255,255,255,0.02); padding:4px 8px; border-radius:6px;">
+                    <div class="field" style="margin:0; flex:2;"><label style="font-size:8px;">ID Ítem</label><input type="text" value="${item.id}" style="font-size:0.7rem; padding:3px;" onchange="config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].items[${iIdx}].id = this.value"></div>
+                    <div class="field" style="margin:0; flex:1;"><label style="font-size:8px;">Cant.</label><input type="number" value="${item.qty}" style="font-size:0.7rem; padding:3px;" onchange="config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].items[${iIdx}].qty = Math.floor(Math.max(1, parseInt(this.value) || 1))"></div>
+                    <button class="btn" style="background:var(--danger); border:none; padding:2px 6px; font-size:9px; margin-top:12px; cursor:pointer;" onclick="config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].items.splice(${iIdx}, 1); renderRanking();">✕</button>
+                </div>
+            `).join('');
+
+            return `
+                <div style="background:rgba(0,0,0,0.2); border-radius:12px; padding:1rem; margin-bottom:0.8rem; border:1px solid rgba(255,255,255,0.05); position:relative;">
+                    <div style="position:absolute; top:8px; right:8px; display:flex; gap:6px;">
+                        <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.8rem;" onclick="removeRankingReward(${catIdx}, ${rIdx})" title="Eliminar posición">✕</button>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:0.8rem;">
+                        <span style="background:var(--accent); color:#000; font-weight:bold; font-size:0.8rem; padding:4px 12px; border-radius:20px;">#${rw.rank}</span>
+                        <span style="color:var(--text-dim); font-size:0.75rem;">POSICIÓN</span>
+                    </div>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap:8px;">
+                        <div class="field"><label>Hubs</label><input type="number" value="${rw.hubs || 0}" onchange="config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].hubs = parseInt(this.value)"></div>
+                        <div class="field"><label>OHCU</label><input type="number" value="${rw.ohcu || 0}" onchange="config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].ohcu = parseInt(this.value)"></div>
+                        <div class="field"><label>EXP</label><input type="number" value="${rw.exp || 0}" onchange="config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].exp = parseInt(this.value)"></div>
+                        <div class="field"><label>EXP BP</label><input type="number" value="${rw.bpExp || 0}" onchange="config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].bpExp = parseInt(this.value)"></div>
+                    </div>
+                    <div style="margin-top:0.5rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <label style="font-size:9px; color:var(--text-dim);">📦 Ítems</label>
+                            <button class="btn btn-primary" style="padding:2px 8px; font-size:8px;" onclick="if(!config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].items) config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].items = []; config.rankingConfig.categories[${catIdx}].rewards[${rIdx}].items.push({id:'', qty:1}); renderRanking();">+ Item</button>
+                        </div>
+                        <div style="max-height:100px; overflow-y:auto;">
+                            ${itemsHTML}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        const resetOptions = [
+            { value: 'daily', label: 'Diario' },
+            { value: 'weekly', label: 'Semanal' },
+            { value: 'monthly', label: 'Mensual' },
+            { value: 'never', label: 'Nunca (manual)' }
+        ];
+
+        catCard.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; padding-bottom:0.8rem; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="font-family:'JetBrains Mono'; font-size:0.7rem; color:var(--text-dim); opacity:0.6;">ID: ${cat.id}</div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn btn-primary" style="padding:4px 10px; font-size:0.6rem; background:rgba(6,182,212,0.2); border:1px solid rgba(6,182,212,0.3); color:var(--accent);" onclick="viewRankingPreview('${cat.id}')">📊 VER RANKING</button>
+                    <button class="btn btn-danger" style="padding:4px 10px; font-size:0.6rem;" onclick="removeRankingCategory(${catIdx})">✕ ELIMINAR</button>
+                </div>
+            </div>
+            <div style="margin-bottom:1.5rem; display:flex; align-items:center; gap:15px;">
+                <div style="font-size:2.5rem; line-height:1;">${cat.icon || '🏆'}</div>
+                <div style="flex:1;">
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:12px;">
+                        <div class="field">
+                            <label>Nombre</label>
+                            <input type="text" value="${cat.name}" onchange="config.rankingConfig.categories[${catIdx}].name = this.value">
+                        </div>
+                        <div class="field">
+                            <label>Icono</label>
+                            <input type="text" value="${cat.icon || ''}" placeholder="Ej: 👾" onchange="config.rankingConfig.categories[${catIdx}].icon = this.value" style="font-size:1.2rem;">
+                        </div>
+                        <div class="field">
+                            <label>Intervalo de Reinicio</label>
+                            <select onchange="config.rankingConfig.categories[${catIdx}].resetInterval = this.value; renderRanking();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width:100%;">
+                                ${resetOptions.map(opt => `<option value="${opt.value}" ${cat.resetInterval === opt.value ? 'selected' : ''}>${opt.label}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h4 style="color:var(--accent); font-size:0.8rem; font-weight:bold; margin:0;">🎁 RECOMPENSAS POR POSICIÓN</h4>
+                    <button class="btn btn-primary" style="padding:4px 12px; font-size:0.65rem;" onclick="addRankingReward(${catIdx})">+ AGREGAR POSICIÓN</button>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    ${rewardsHTML || '<div style="color:#555; font-style:italic; font-size:0.8rem; padding:0.5rem;">No hay recompensas configuradas. Hacé clic en "+ AGREGAR POSICIÓN".</div>'}
+                </div>
+            </div>
+        `;
+        categoriesDiv.appendChild(catCard);
+    });
+
+    if (categories.length === 0) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.style.cssText = 'color:#555; font-style:italic; padding:2rem; text-align:center; font-size:0.9rem;';
+        emptyMsg.innerText = 'No hay categorías de ranking. Hacé clic en "+ AGREGAR CATEGORÍA" para comenzar.';
+        categoriesDiv.appendChild(emptyMsg);
+    }
+}
+
+// ─── FUNCIONES GLOBALES DE RANKING ───
+
+window.addRankingCategory = function() {
+    if (!config.rankingConfig) {
+        config.rankingConfig = JSON.parse(JSON.stringify(DEFAULT_RANKING_CONFIG));
+    }
+    if (!config.rankingConfig.categories) config.rankingConfig.categories = [];
+
+    const newId = 'cat_' + Date.now();
+    config.rankingConfig.categories.push({
+        id: newId,
+        name: 'Nueva Categoría',
+        icon: '🏆',
+        resetInterval: 'weekly',
+        rewards: [
+            { rank: 1, hubs: 10000, ohcu: 50, exp: 5000, bpExp: 2000, items: [] },
+            { rank: 2, hubs: 5000, ohcu: 25, exp: 2500, bpExp: 1000, items: [] },
+            { rank: 3, hubs: 2500, ohcu: 10, exp: 1000, bpExp: 500, items: [] }
+        ]
+    });
+    renderRanking();
+};
+
+window.removeRankingCategory = function(catIdx) {
+    if (!config.rankingConfig || !config.rankingConfig.categories) return;
+    config.rankingConfig.categories.splice(catIdx, 1);
+    renderRanking();
+};
+
+window.addRankingReward = function(catIdx) {
+    if (!config.rankingConfig || !config.rankingConfig.categories) return;
+    const cat = config.rankingConfig.categories[catIdx];
+    if (!cat) return;
+    if (!cat.rewards) cat.rewards = [];
+
+    const nextRank = cat.rewards.length > 0 ? Math.max(...cat.rewards.map(r => r.rank)) + 1 : 1;
+    cat.rewards.push({
+        rank: nextRank,
+        hubs: 0,
+        ohcu: 0,
+        exp: 0,
+        bpExp: 0,
+        items: []
+    });
+    renderRanking();
+};
+
+window.removeRankingReward = function(catIdx, rIdx) {
+    if (!config.rankingConfig || !config.rankingConfig.categories) return;
+    const cat = config.rankingConfig.categories[catIdx];
+    if (!cat || !cat.rewards) return;
+    cat.rewards.splice(rIdx, 1);
+    // Re-indexar ranks
+    cat.rewards.forEach((r, i) => r.rank = i + 1);
+    renderRanking();
+};
+
+window.viewRankingPreview = function(categoryId) {
+    const preview = document.getElementById('ranking-preview');
+    if (!preview) return;
+    preview.innerHTML = `<div style="color:#888; font-style:italic;">Solicitando datos del ranking <strong>${categoryId}</strong>...</div>`;
+
+    if (typeof socket !== 'undefined' && socket && socket.connected) {
+        socket.off('rankingsData');
+        socket.on('rankingsData', (data) => {
+            if (data.category !== categoryId) return;
+            if (!data.rankings || data.rankings.length === 0) {
+                preview.innerHTML = `<div style="color:#555; font-style:italic;">No hay datos de ranking para esta categoría aún.</div>`;
+                return;
+            }
+            let html = `<div style="display:flex; flex-direction:column; gap:6px;">`;
+            const medals = ['🥇', '🥈', '🥉'];
+            data.rankings.forEach((entry, idx) => {
+                const medal = idx < 3 ? medals[idx] : `#${idx + 1}`;
+                html += `
+                    <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
+                        <span style="font-size:1.2rem;">${medal}</span>
+                        <strong style="flex:1; color:var(--text);">${entry.username}</strong>
+                        <span style="color:var(--accent); font-weight:bold; font-family:'JetBrains Mono';">${entry.points} pts</span>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            preview.innerHTML = html;
+        });
+        socket.emit('getRankings', { category: categoryId });
+    } else {
+        preview.innerHTML = `<div style="color:#ff4444;">ERROR: No hay conexión con el servidor.</div>`;
+    }
+};
+
+window.emitGetRankings = function() {
+    const preview = document.getElementById('ranking-preview');
+    if (preview) {
+        preview.innerHTML = `<div style="color:#888; font-style:italic;">Seleccioná una categoría y hacé clic en "VER RANKING".</div>`;
+    }
+};
 

@@ -130,6 +130,16 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
                     // Procesar progreso de misiones tipo 'kill' (v380)
                     processEnemyKillsForUser(user, enemy.type, state, memberSocket);
 
+                    // Sistema de Clasificación: sumar puntos de ranking directamente en el user
+                    const rankPts = cfg.rankingPoints || 0;
+                    if (rankPts > 0) {
+                        if (!user.gameData.rankingData) {
+                            user.gameData.rankingData = { monsters_killed: 0, events_completed: 0 };
+                        }
+                        user.gameData.rankingData.monsters_killed = (user.gameData.rankingData.monsters_killed || 0) + rankPts;
+                        user.markModified('gameData.rankingData');
+                    }
+
                     memberSocket.emit('enemyKillSession', { hubs: shared_h, ohcu: shared_o, exp: shared_e, killer: killerSocketId });
 
                     const getExpReq = (lvl) => {

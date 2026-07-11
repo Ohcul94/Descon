@@ -347,6 +347,10 @@
                 </div>
 
                 <div class="nav-group">
+                    <div class="nav-link" onclick="showTab('ranking')">🏆 Clasificación</div>
+                </div>
+
+                <div class="nav-group">
                     <div class="nav-link" onclick="showTab('chat-global')">💬 Chat Global</div>
                 </div>
 
@@ -708,6 +712,13 @@
                         <input type="text" id="chat-global-admin-input" placeholder="Escribí un mensaje de transmisión global..." style="flex: 1; background: var(--surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px 20px; color: white; outline: none;" onkeydown="if(event.key === 'Enter') sendAdminGlobalMessage()">
                         <button class="btn btn-primary" onclick="sendAdminGlobalMessage()" style="padding: 0 25px;">TRANSMITIR 📡</button>
                     </div>
+                </div>
+            </div>
+
+            <div id="view-ranking" class="view">
+                <div id="ranking-config-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                </div>
+                <div id="ranking-categories-container" style="width: 100%;">
                 </div>
             </div>
 

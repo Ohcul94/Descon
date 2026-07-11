@@ -101,6 +101,11 @@ const UserSchema = new mongoose.Schema({
             claimedFree: { type: [Number], default: [] },
             claimedVip: { type: [Number], default: [] },
             lastDailyClaim: { type: Date, default: null }
+        },
+        // v450.0: Sistema de Clasificación / Ranking
+        rankingData: {
+            monsters_killed: { type: Number, default: 0 },
+            events_completed: { type: Number, default: 0 }
         }
     }
 });

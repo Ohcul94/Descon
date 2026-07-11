@@ -52,6 +52,7 @@ const { registerPartyHandlers } = require('./handlers/partyHandlers');
 const { registerSkillHandlers } = require('./handlers/skillHandlers');
 const { registerHousingHandlers } = require('./systems/housingHandlers');
 const { registerBattlePassHandlers } = require('./systems/battlePassHandlers');
+const { registerRankingHandlers } = require('./systems/rankingHandlers');
 
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
@@ -87,7 +88,8 @@ const CLIENT_CONFIG_KEYS = [
     'ammoMechLib',
     'ambienceLib',
     'talentsConfig',
-    'battlePassConfig'
+    'battlePassConfig',
+    'rankingConfig'
 ];
 
 const buildClientConfig = (config) => {
@@ -1197,6 +1199,8 @@ io.on('connection', (socket) => {
     // Registrar manejadores del Pase de Batalla
     registerBattlePassHandlers(socket, io, state);
 
+    // Registrar manejadores del Sistema de Clasificación (Ranking)
+    registerRankingHandlers(socket, io, state);
 
     // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL (PROTEGIDO)
     socket.on('saveAdminConfig', async (config) => {

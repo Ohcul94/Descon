@@ -149,7 +149,8 @@ function showTab(tabId) {
         'crafting-materials': 'Materiales de Crafteo',
         'quests': 'Misiones de la Galaxia',
         'battlepass': 'Pase de Batalla',
-        'chat-global': 'Transmisión y Chat Global'
+        'chat-global': 'Transmisión y Chat Global',
+        'ranking': 'Sistema de Clasificación'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
 
@@ -382,6 +383,10 @@ function connect() {
                     },
                     levels: niveles
                 };
+            }
+
+            if (!config.rankingConfig) {
+                config.rankingConfig = JSON.parse(JSON.stringify(DEFAULT_RANKING_CONFIG));
             }
 
             patchMechanicsLib();

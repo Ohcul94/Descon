@@ -204,7 +204,8 @@
             "regenDelayMs": 10000,
             "lootDrops": [],
             "chestDropChance": 1,
-            "visionRange": 1200
+            "visionRange": 1200,
+            "rankingPoints": 1
         },
         "2": {
             "bulletDamage": 600,
@@ -250,7 +251,8 @@
             "defenseMechanics": [],
             "aggressive": true,
             "regenDelayMs": 10000,
-            "lootDrops": []
+            "lootDrops": [],
+            "rankingPoints": 2
         },
         "3": {
             "bulletDamage": 80,
@@ -308,7 +310,8 @@
                     "itemId": "las1",
                     "chance": 0.8
                 }
-            ]
+            ],
+            "rankingPoints": 3
         },
         "4": {
             "bulletDamage": 250,
@@ -353,7 +356,8 @@
             "defenseMechanics": [],
             "regenDelayMs": 10000,
             "aggressive": false,
-            "lootDrops": []
+            "lootDrops": [],
+            "rankingPoints": 4
         },
         "5": {
             "bulletDamage": 120,
@@ -413,7 +417,8 @@
             "aggressive": true,
             "stopOnOutOfSight": true,
             "leashRange": 1000,
-            "visionRange": 1000
+            "visionRange": 1000,
+            "rankingPoints": 5
         },
         "6": {
             "bulletDamage": 200,
@@ -445,7 +450,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 6
         },
         "7": {
             "bulletDamage": 160,
@@ -482,7 +488,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 7
         },
         "8": {
             "bulletDamage": 350,
@@ -532,7 +539,8 @@
                     "affectsBosses": false
                 }
             ],
-            "lootDrops": []
+            "lootDrops": [],
+            "rankingPoints": 8
         },
         "9": {
             "bulletDamage": 280,
@@ -571,7 +579,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 9
         },
         "10": {
             "bulletDamage": 320,
@@ -620,7 +629,8 @@
             "leashRange": 1000,
             "hpRegenPercent": 1,
             "shieldRegenPercent": 20,
-            "regenIntervalMs": 2000
+            "regenIntervalMs": 2000,
+            "rankingPoints": 10
         },
         "11": {
             "bulletDamage": 380,
@@ -644,7 +654,8 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "rankingPoints": 11
         },
         "12": {
             "bulletDamage": 300,
@@ -681,7 +692,8 @@
                     "changeType": "random"
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 12
         },
         "13": {
             "bulletDamage": 350,
@@ -714,7 +726,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 13
         },
         "101": {
             "bulletDamage": 2000,
@@ -786,7 +799,8 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "rankingPoints": 100
         },
         "102": {
             "bulletDamage": 5000,
@@ -842,7 +856,8 @@
             "visionRange": 1500,
             "leashRange": 1500,
             "regenDelayMs": 30000,
-            "regenIntervalMs": 5000
+            "regenIntervalMs": 5000,
+            "rankingPoints": 200
         },
         "103": {
             "bulletDamage": 3000,
@@ -857,7 +872,8 @@
             "rewardHubs": 200000,
             "rewardOhcu": 2000,
             "shield": 75000,
-            "speed": 280
+            "speed": 280,
+            "rankingPoints": 300
         },
         "104": {
             "bulletDamage": 8000,
@@ -890,7 +906,8 @@
                     "orbitRadius": 300,
                     "startDelay": 0
                 }
-            ]
+            ],
+            "rankingPoints": 400
         },
         "1-A": {
             "bulletDamage": 80,
@@ -943,7 +960,8 @@
                     "chance": 0.1
                 }
             ],
-            "chestDropChance": 1
+            "chestDropChance": 1,
+            "rankingPoints": 1
         },
         "1-B": {
             "bulletDamage": 120,
@@ -994,7 +1012,8 @@
             "chaseUntilDeath": false,
             "aggressive": true,
             "defenseMechanics": [],
-            "lootDrops": []
+            "lootDrops": [],
+            "rankingPoints": 1
         },
         "1-C": {
             "bulletDamage": 160,
@@ -1044,7 +1063,8 @@
             "stopOnOutOfSight": true,
             "chaseUntilDeath": false,
             "aggressive": true,
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 1
         },
         "1-D": {
             "bulletDamage": 200,
@@ -1094,7 +1114,8 @@
             "stopOnOutOfSight": true,
             "chaseUntilDeath": false,
             "aggressive": true,
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 1
         },
         "2-A": {
             "bulletDamage": 1200,
@@ -1150,7 +1171,8 @@
                     "itemId": "las1",
                     "chance": 0.8
                 }
-            ]
+            ],
+            "rankingPoints": 2
         },
         "2-B": {
             "bulletDamage": 1800,
@@ -1193,7 +1215,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 2
         },
         "2-C": {
             "bulletDamage": 2400,
@@ -1236,7 +1259,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 2
         },
         "2-D": {
             "bulletDamage": 3000,
@@ -1280,7 +1304,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 2
         },
         "3-A": {
             "bulletDamage": 160,
@@ -1330,7 +1355,8 @@
             "defenseMechanics": [],
             "visionRange": 1000,
             "stopOnOutOfSight": true,
-            "leashRange": 1000
+            "leashRange": 1000,
+            "rankingPoints": 3
         },
         "3-B": {
             "bulletDamage": 240,
@@ -1374,7 +1400,8 @@
             ],
             "chaseMissTimeout": 0,
             "chaseIdleTimeout": 0,
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 3
         },
         "3-C": {
             "bulletDamage": 320,
@@ -1418,7 +1445,8 @@
             ],
             "chaseMissTimeout": 0,
             "chaseIdleTimeout": 0,
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 3
         },
         "3-D": {
             "bulletDamage": 400,
@@ -1463,7 +1491,8 @@
             "chaseMissTimeout": 0,
             "chaseIdleTimeout": 0,
             "aggressive": true,
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 3
         },
         "10-A": {
             "bulletDamage": 640,
@@ -1512,7 +1541,8 @@
             "leashRange": 1000,
             "hpRegenPercent": 1,
             "shieldRegenPercent": 20,
-            "regenIntervalMs": 2000
+            "regenIntervalMs": 2000,
+            "rankingPoints": 10
         },
         "10-B": {
             "bulletDamage": 960,
@@ -1561,7 +1591,8 @@
             "leashRange": 1000,
             "hpRegenPercent": 1,
             "shieldRegenPercent": 20,
-            "regenIntervalMs": 2000
+            "regenIntervalMs": 2000,
+            "rankingPoints": 10
         },
         "10-C": {
             "bulletDamage": 1280,
@@ -1610,7 +1641,8 @@
             "leashRange": 1000,
             "hpRegenPercent": 1,
             "shieldRegenPercent": 20,
-            "regenIntervalMs": 2000
+            "regenIntervalMs": 2000,
+            "rankingPoints": 10
         },
         "10-D": {
             "bulletDamage": 1600,
@@ -1659,7 +1691,8 @@
             "leashRange": 1000,
             "hpRegenPercent": 1,
             "shieldRegenPercent": 20,
-            "regenIntervalMs": 2000
+            "regenIntervalMs": 2000,
+            "rankingPoints": 10
         },
         "4-A": {
             "bulletDamage": 500,
@@ -1713,7 +1746,8 @@
             "aggressive": true,
             "stopOnOutOfSight": true,
             "leashRange": 1000,
-            "visionRange": 1000
+            "visionRange": 1000,
+            "rankingPoints": 4
         },
         "4-B": {
             "bulletDamage": 750,
@@ -1801,7 +1835,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "lootDrops": []
+            "lootDrops": [],
+            "rankingPoints": 4
         },
         "4-C": {
             "bulletDamage": 1000,
@@ -1836,7 +1871,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 4
         },
         "4-D": {
             "bulletDamage": 1250,
@@ -1872,7 +1908,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 4
         },
         "5-A": {
             "bulletDamage": 240,
@@ -1932,7 +1969,8 @@
             "aggressive": true,
             "stopOnOutOfSight": true,
             "visionRange": 1000,
-            "leashRange": 1000
+            "leashRange": 1000,
+            "rankingPoints": 5
         },
         "5-B": {
             "bulletDamage": 360,
@@ -2006,7 +2044,8 @@
                     "chance": 1
                 }
             ],
-            "chestDropChance": 1
+            "chestDropChance": 1,
+            "rankingPoints": 5
         },
         "5-C": {
             "bulletDamage": 480,
@@ -2061,7 +2100,8 @@
                     "duration": 3000,
                     "explodeOnDeath": 150
                 }
-            ]
+            ],
+            "rankingPoints": 5
         },
         "5-D": {
             "bulletDamage": 600,
@@ -2118,7 +2158,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 5
         },
         "8-A": {
             "bulletDamage": 700,
@@ -2165,7 +2206,8 @@
                     "affectsEnemies": true,
                     "affectsBosses": false
                 }
-            ]
+            ],
+            "rankingPoints": 8
         },
         "8-B": {
             "bulletDamage": 1050,
@@ -2212,7 +2254,8 @@
                     "affectsEnemies": true,
                     "affectsBosses": false
                 }
-            ]
+            ],
+            "rankingPoints": 8
         },
         "8-C": {
             "bulletDamage": 1400,
@@ -2259,7 +2302,8 @@
                     "affectsEnemies": true,
                     "affectsBosses": false
                 }
-            ]
+            ],
+            "rankingPoints": 8
         },
         "8-D": {
             "bulletDamage": 1750,
@@ -2339,7 +2383,8 @@
             ],
             "defenseMechanics": [],
             "aggressive": true,
-            "lootDrops": []
+            "lootDrops": [],
+            "rankingPoints": 8
         },
         "13-A": {
             "bulletDamage": 700,
@@ -2363,7 +2408,8 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "rankingPoints": 13
         },
         "13-B": {
             "bulletDamage": 1050,
@@ -2387,7 +2433,8 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "rankingPoints": 13
         },
         "13-C": {
             "bulletDamage": 1400,
@@ -2411,7 +2458,8 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "rankingPoints": 13
         },
         "13-D": {
             "bulletDamage": 1750,
@@ -2448,7 +2496,8 @@
                     "changeType": 150
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 13
         },
         "6-A": {
             "bulletDamage": 400,
@@ -2520,7 +2569,8 @@
             "aggressive": true,
             "stopOnOutOfSight": true,
             "visionRange": 1000,
-            "leashRange": 1500
+            "leashRange": 1500,
+            "rankingPoints": 6
         },
         "6-B": {
             "bulletDamage": 600,
@@ -2562,7 +2612,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 6
         },
         "6-C": {
             "bulletDamage": 800,
@@ -2604,7 +2655,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 6
         },
         "6-D": {
             "bulletDamage": 1000,
@@ -2646,7 +2698,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 6
         },
         "7-A": {
             "bulletDamage": 320,
@@ -2683,7 +2736,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 7
         },
         "7-B": {
             "bulletDamage": 480,
@@ -2720,7 +2774,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 7
         },
         "7-C": {
             "bulletDamage": 640,
@@ -2757,7 +2812,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 7
         },
         "7-D": {
             "bulletDamage": 800,
@@ -2795,7 +2851,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "aggressive": true
+            "aggressive": true,
+            "rankingPoints": 7
         },
         "12-A": {
             "bulletDamage": 600,
@@ -2819,7 +2876,8 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "rankingPoints": 12
         },
         "12-B": {
             "bulletDamage": 900,
@@ -2852,7 +2910,8 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": []
+            "defenseMechanics": [],
+            "rankingPoints": 12
         },
         "12-C": {
             "bulletDamage": 1200,
@@ -2876,7 +2935,8 @@
                     "slowAmount": 0,
                     "slowDuration": 0
                 }
-            ]
+            ],
+            "rankingPoints": 12
         },
         "12-D": {
             "bulletDamage": 1500,
@@ -2915,7 +2975,8 @@
             ],
             "defenseMechanics": [],
             "aggressive": true,
-            "leashRange": 1000
+            "leashRange": 1000,
+            "rankingPoints": 12
         }
     },
     "hordeConfig": {
