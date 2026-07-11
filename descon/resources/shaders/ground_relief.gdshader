@@ -36,16 +36,13 @@ void fragment() {
 	float detail = texture(u_detail_tex, detail_uv + TIME * vec2(0.005, 0.003)).r;
 	float detail_hx = texture(u_detail_tex, detail_uv + eps + TIME * vec2(0.005, 0.003)).r;
 	float detail_hz = texture(u_detail_tex, detail_uv + eps.yx + TIME * vec2(0.005, 0.003)).r;
-	vec3 detail_normal = normalize(vec3(
-		(detail - detail_hx) * u_detail_strength,
-		1.0,
-		(detail - detail_hz) * u_detail_strength
+	// Calcular normales en espacio tangente (donde Z es arriba/afuera en Godot)
+	vec3 tangent_normal = normalize(vec3(
+		(height - hx) * u_height_scale + (detail - detail_hx) * u_detail_strength * 0.3,
+		(height - hz) * u_height_scale + (detail - detail_hz) * u_detail_strength * 0.3,
+		1.0
 	));
-	NORMAL = normalize(vec3(
-		normal.x + detail_normal.x * 0.3,
-		normal.y,
-		normal.z + detail_normal.z * 0.3
-	));
+	NORMAL_MAP = tangent_normal;
 
 	vec3 tex_color = texture(u_albedo_tex, uv).rgb;
 	vec3 base_albedo = tex_color * u_tint_color.rgb;
@@ -56,7 +53,8 @@ void fragment() {
 	float emissive_variation = 0.7 + height * 0.6 + detail * 0.15;
 	vec3 base_emission = u_emission * u_emission_energy * emissive_variation;
 
-	float dist = length(VERTEX);
+	// Niebla radial en pantalla para ocultar los bordes de la malla sin oscurecer el centro
+	float dist = length(VERTEX.xy);
 	float fog = smoothstep(u_fog_start, u_fog_end, dist);
 
 	float horizon_mask = smoothstep(0.1, 0.5, fog) * (1.0 - smoothstep(0.7, 1.0, fog));

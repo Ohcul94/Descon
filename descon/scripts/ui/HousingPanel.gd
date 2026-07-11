@@ -232,19 +232,22 @@ func _setup_ui():
 			var env = WorldEnvironment.new()
 			var world_env = Environment.new()
 			world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-			world_env.ambient_light_color = Color.WHITE
-			world_env.ambient_light_energy = 0.9
+			world_env.ambient_light_color = Color(0.15, 0.15, 0.3)
+			world_env.ambient_light_energy = 0.4
+			world_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 			env.environment = world_env
 			node3d.add_child(env)
 			
 			# Luces para profundidad
 			var light_key = DirectionalLight3D.new()
-			light_key.light_energy = 1.3
+			light_key.light_energy = 1.8
+			light_key.light_color = Color(1.0, 0.9, 0.75)
 			light_key.rotation_degrees = Vector3(-35, 45, 0)
 			node3d.add_child(light_key)
 			
 			var light_fill = DirectionalLight3D.new()
-			light_fill.light_energy = 0.5
+			light_fill.light_energy = 0.6
+			light_fill.light_color = Color(0.7, 0.8, 1.0)
 			light_fill.rotation_degrees = Vector3(25, -135, 0)
 			node3d.add_child(light_fill)
 			

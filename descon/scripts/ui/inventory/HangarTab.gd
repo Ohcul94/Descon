@@ -115,8 +115,9 @@ func update_ui():
 	var env = WorldEnvironment.new()
 	var world_env = Environment.new()
 	world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	world_env.ambient_light_color = Color.WHITE
-	world_env.ambient_light_energy = 0.8
+	world_env.ambient_light_color = Color(0.15, 0.15, 0.3)
+	world_env.ambient_light_energy = 0.4
+	world_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.environment = world_env
 	node3d.add_child(env)
 	
@@ -130,14 +131,16 @@ func update_ui():
 	
 	# Luz Clave
 	var key_light = DirectionalLight3D.new()
-	key_light.light_energy = 1.6
+	key_light.light_energy = 1.8
+	key_light.light_color = Color(1.0, 0.9, 0.75)
 	key_light.shadow_enabled = false
 	key_light.rotation_degrees = Vector3(-35, 45, 0)
 	node3d.add_child(key_light)
 	
 	# Luz de Relleno
 	var fill_light = DirectionalLight3D.new()
-	fill_light.light_energy = 0.5
+	fill_light.light_energy = 0.6
+	fill_light.light_color = Color(0.7, 0.8, 1.0)
 	fill_light.shadow_enabled = false
 	fill_light.rotation_degrees = Vector3(25, -135, 0)
 	node3d.add_child(fill_light)

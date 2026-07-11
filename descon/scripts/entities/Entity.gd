@@ -30,6 +30,12 @@ const GLB_CACHE = {
 	"res://assets/Personajes/3D/Nave4/Nave4.glb": preload("res://assets/Personajes/3D/Nave4/Nave4.glb"),
 	"res://assets/Personajes/3D/Nave5/Nave5.glb": preload("res://assets/Personajes/3D/Nave5/Nave5.glb"),
 	"res://assets/Personajes/3D/Nave6/Nave6.glb": preload("res://assets/Personajes/3D/Nave6/Nave6.glb"),
+	"res://assets/Personajes/3D/Nave7/Nave7.glb": preload("res://assets/Personajes/3D/Nave7/Nave7.glb"),
+	"res://assets/Personajes/3D/Nave8/Nave8.glb": preload("res://assets/Personajes/3D/Nave8/Nave8.glb"),
+	"res://assets/Personajes/3D/Nave9/Nave9.glb": preload("res://assets/Personajes/3D/Nave9/Nave9.glb"),
+	"res://assets/Personajes/3D/Nave10/Nave10.glb": preload("res://assets/Personajes/3D/Nave10/Nave10.glb"),
+	"res://assets/Personajes/3D/Nave11/Nave11.glb": preload("res://assets/Personajes/3D/Nave11/Nave11.glb"),
+	"res://assets/Personajes/3D/Nave12/Nave12.glb": preload("res://assets/Personajes/3D/Nave12/Nave12.glb"),
 	
 	"res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb": preload("res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb"),
 	"res://assets/Enemigos/3D/Enemigo2/Enemigo2.glb": preload("res://assets/Enemigos/3D/Enemigo2/Enemigo2.glb"),
@@ -2284,7 +2290,6 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		control_node.scale = Vector3(3.0, 3.0, 3.0) 
 		model.rotation_degrees.y = rot_offset 
 
-		# Old procedural shield removed to prevent any interference
 		# v380.0: Inyectar partículas de propulsión 3D optimizadas
 		_setup_propulsion_particles(control_node)
 	

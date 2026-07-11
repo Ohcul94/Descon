@@ -72,8 +72,8 @@ func _ready():
 		if BAUL_MODEL_SCENE:
 			var model = BAUL_MODEL_SCENE.instantiate()
 			world_root_3d.add_child(model)
-			model.scale = Vector3(1.4, 1.4, 1.4) # Escala normal perfecta para el baúl
-			model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
+			model.scale = Vector3(1.4, 1.4, 1.4)
+			model.rotation_degrees = Vector3(0, 90, 0)
 		_update_3d_position()
 	else:
 		# Render local con SubViewport propio (fallback)
