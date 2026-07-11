@@ -2815,9 +2815,10 @@ func _get_skill_duration(s_name: String, data: Dictionary, default_val: float) -
 func _clean_internal_lights(node: Node):
 	if not is_instance_valid(node):
 		return
-	if node is Light3D:
-		print("[3D-LIGHT-CLEAN] Eliminando luz interna del modelo: ", node.name)
+	if node is Light3D or node is CollisionObject3D or node is CollisionShape3D or node is AudioStreamPlayer3D or node is Camera3D:
+		# print("[3D-CLEAN] Eliminando nodo no visual del modelo: ", node.name)
 		node.queue_free()
+		return # Cortar propagación si el nodo padre se elimina
 	for child in node.get_children():
 		_clean_internal_lights(child)
 
