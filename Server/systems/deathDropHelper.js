@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const { sendInventoryData } = require('./inventoryHandlers');
+const { calculateFinalStats } = require('./statCalculator');
 
 /**
  * Procesa la pérdida de todos los ítems equipados e inventario si el mapa tiene activado 'full_drop',
@@ -14,8 +15,9 @@ async function checkAndProcessDeathDrop(p, io, state) {
     const mapCfg = state.SERVER_CONFIG?.mapsConfig?.[p.zone];
     const isFullDrop = mapCfg?.pvpMode === 'full_drop';
     const isPartialDrop = mapCfg?.pvpMode === 'partial_drop';
+    const isInferno = mapCfg?.pvpMode === 'inferno';
 
-    if (isFullDrop || isPartialDrop) {
+    if (isFullDrop || isPartialDrop || isInferno) {
         p.isDeadDropProcessed = true; // Evitar procesamiento duplicado
 
         try {
@@ -31,8 +33,9 @@ async function checkAndProcessDeathDrop(p, io, state) {
                 });
             }
             
-            // 2. Recolectar de ítems equipados del usuario en DB (Solo si es full_drop)
-            if (isFullDrop && user.gameData.equipped) {
+            // 2. Recolectar de ítems equipados del usuario en DB (full_drop e inferno)
+            const dropEquipped = isFullDrop || isInferno;
+            if (dropEquipped && user.gameData.equipped) {
                 const slots = ['w', 's', 'e', 'x'];
                 slots.forEach(slot => {
                     if (user.gameData.equipped[slot] && Array.isArray(user.gameData.equipped[slot])) {
@@ -74,13 +77,13 @@ async function checkAndProcessDeathDrop(p, io, state) {
 
             // 4. Vaciar en RAM
             p.inventory = [];
-            if (isFullDrop) {
+            if (dropEquipped) {
                 p.equipped = { w: [], s: [], e: [], x: [] };
             }
 
             // 5. Vaciar en la Base de Datos (MongoDB) de forma autoritativa
             user.gameData.inventory = [];
-            if (isFullDrop) {
+            if (dropEquipped) {
                 user.gameData.equipped = { w: [], s: [], e: [], x: [] };
                 
                 const currentShipIdStr = String(user.gameData.currentShipId || 1);
@@ -93,6 +96,110 @@ async function checkAndProcessDeathDrop(p, io, state) {
                     user.markModified('gameData.equippedByShip');
                 }
                 user.markModified('gameData.equipped');
+            }
+
+            // 6. MODO INFIERNO: destruir la nave actual y forzar respawn al lobby
+            if (isInferno) {
+                const defaultShipId = state.SERVER_CONFIG?.pilotConfig?.startingShipId ?? 1;
+                const currentShip = user.gameData.currentShipId || defaultShipId;
+                const shipModel = state.SERVER_CONFIG?.shipModels?.find(s => s.id === currentShip);
+                const shipName = shipModel?.name || `Nave #${currentShip}`;
+
+                // Remover la nave actual de ownedShips (excepto si es la default)
+                if (currentShip !== defaultShipId && user.gameData.ownedShips.includes(currentShip)) {
+                    user.gameData.ownedShips = user.gameData.ownedShips.filter(id => id !== currentShip);
+                    user.markModified('gameData.ownedShips');
+
+                    // Limpiar equipamiento asociado a esa nave
+                    if (user.gameData.equippedByShip) {
+                        if (user.gameData.equippedByShip instanceof Map) {
+                            user.gameData.equippedByShip.delete(String(currentShip));
+                        } else {
+                            delete user.gameData.equippedByShip[String(currentShip)];
+                        }
+                        user.markModified('gameData.equippedByShip');
+                    }
+
+                    console.log(`[INFERNO] Nave ${shipName} (ID: ${currentShip}) destruida permanentemente a ${p.user}`);
+                }
+
+                // Reset a la nave por defecto
+                user.gameData.currentShipId = defaultShipId;
+                const defaultShipKey = String(defaultShipId);
+                user.markModified('gameData.currentShipId');
+
+                // Asegurar que la nave default tenga entrada en equippedByShip
+                if (user.gameData.equippedByShip) {
+                    if (user.gameData.equippedByShip instanceof Map) {
+                        if (!user.gameData.equippedByShip.has(defaultShipKey)) {
+                            user.gameData.equippedByShip.set(defaultShipKey, { w: [], s: [], e: [], x: [] });
+                        }
+                    } else {
+                        if (!user.gameData.equippedByShip[defaultShipKey]) {
+                            user.gameData.equippedByShip[defaultShipKey] = { w: [], s: [], e: [], x: [] };
+                        }
+                    }
+                    user.markModified('gameData.equippedByShip');
+                }
+
+                // Forzar respawn al lobby
+                const lobbyZone = state.SERVER_CONFIG?.pilotConfig?.startingMapId ?? 1;
+                const oldZone = p.zone;
+
+                user.gameData.zone = lobbyZone;
+                p.zone = lobbyZone;
+                p.x = 2000;
+                p.y = 2000;
+
+                // Aplicar stats de la nave default
+                p.currentShipId = defaultShipId;
+                p.type = defaultShipId;
+                calculateFinalStats(p, state.SERVER_CONFIG);
+
+                // Emitir eventos de destrucción de nave al cliente y teletransportar
+                const sock = io.sockets.sockets.get(p.socketId);
+                if (sock) {
+                    // Notificar destrucción de nave
+                    sock.emit('shipDestroyed', {
+                        shipId: currentShip,
+                        shipName: shipName,
+                        newShipId: defaultShipId
+                    });
+                    sock.emit('gameNotification', {
+                        msg: `💀 ¡INFIERNO! Tu nave ${shipName} ha sido DESTRUIDA. Has perdido todo.`,
+                        type: 'error'
+                    });
+
+                    // Teletransportar al lobby
+                    sock.leave(`zone_${oldZone}`);
+                    sock.join(`zone_${lobbyZone}`);
+
+                    if (state.playersByZone[oldZone] && state.playersByZone[oldZone][p.socketId]) {
+                        delete state.playersByZone[oldZone][p.socketId];
+                    }
+                    if (!state.playersByZone[lobbyZone]) {
+                        state.playersByZone[lobbyZone] = {};
+                    }
+                    state.playersByZone[lobbyZone][p.socketId] = p;
+
+                    sock.emit('changeZoneDone', { zoneId: lobbyZone, x: p.x, y: p.y });
+                    sock.to(`zone_${oldZone}`).emit('playerDisconnected', p.socketId);
+                    sock.to(`zone_${lobbyZone}`).emit('newPlayer', {
+                        id: p.socketId,
+                        user: p.user,
+                        x: p.x,
+                        y: p.y,
+                        hp: p.hp,
+                        maxHp: p.maxHp,
+                        sh: p.shield,
+                        maxSh: p.maxShield,
+                        zone: lobbyZone
+                    });
+
+                    // Resetear estado de muerte
+                    p.isDead = false;
+                    p.isDeadDropProcessed = false;
+                }
             }
             
             user.markModified('gameData.inventory');
@@ -125,7 +232,7 @@ function applyZoneRules(p, socket, io, state) {
     const mapCfg = state.SERVER_CONFIG.mapsConfig?.[p.zone];
     if (mapCfg) {
         // A. Forzar PvP si es obligatorio
-        const isPvPMandatory = mapCfg.pvpMode === 'mandatory' || mapCfg.pvpMode === 'full_drop' || mapCfg.pvpMode === 'partial_drop';
+        const isPvPMandatory = mapCfg.pvpMode === 'mandatory' || mapCfg.pvpMode === 'full_drop' || mapCfg.pvpMode === 'partial_drop' || mapCfg.pvpMode === 'inferno';
         if (isPvPMandatory) {
             p.pvpEnabled = true;
             console.log(`[PVP-RULES] PvP forzado a ACTIVO para ${p.user} en zona ${p.zone}`);

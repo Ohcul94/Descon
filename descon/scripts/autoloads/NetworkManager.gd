@@ -456,7 +456,7 @@ func send_event(p_ename: String, p_val: Variant):
 		if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(z_str):
 			var map_cfg = GameConstants.MAPS_CONFIG[z_str]
 			var pvp_mode = map_cfg.get("pvpMode", "tranquila")
-			if pvp_mode == "mandatory" or pvp_mode == "full_drop" or pvp_mode == "partial_drop":
+			if pvp_mode == "mandatory" or pvp_mode == "full_drop" or pvp_mode == "partial_drop" or pvp_mode == "inferno":
 				show_pvp_warning(p_val, pvp_mode)
 				return
 	_send_event_direct(p_ename, p_val)
@@ -497,9 +497,9 @@ func show_pvp_warning(target_zone_id: Variant, pvp_mode: String):
 	
 	# Estilo oscuro y borde cian neón/rojo
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.01, 0.04, 0.08, 0.98)
+	sb.bg_color = Color(0.08, 0.0, 0.0, 0.98) if pvp_mode == "inferno" else Color(0.01, 0.04, 0.08, 0.98)
 	sb.border_width_top = 4
-	sb.border_color = Color(1.0, 0.2, 0.2) if pvp_mode == "full_drop" else (Color(1.0, 0.5, 0.1) if pvp_mode == "partial_drop" else Color(0.9, 0.5, 0.1))
+	sb.border_color = Color(1.0, 0.0, 0.0) if pvp_mode == "inferno" else (Color(1.0, 0.2, 0.2) if pvp_mode == "full_drop" else (Color(1.0, 0.5, 0.1) if pvp_mode == "partial_drop" else Color(0.9, 0.5, 0.1)))
 	p.add_theme_stylebox_override("panel", sb)
 	
 	var v = VBoxContainer.new()
@@ -515,9 +515,9 @@ func show_pvp_warning(target_zone_id: Variant, pvp_mode: String):
 	
 	# Título
 	var tl = Label.new()
-	tl.text = "🚨 ADVERTENCIA CRÍTICA 🚨" if (pvp_mode == "full_drop" or pvp_mode == "partial_drop") else "🚨 ADVERTENCIA DE SEGURIDAD 🚨"
+	tl.text = "🔥 INFIERNO - ¡NO HAY RETORNO! 🔥" if pvp_mode == "inferno" else ("🚨 ADVERTENCIA CRÍTICA 🚨" if (pvp_mode == "full_drop" or pvp_mode == "partial_drop") else "🚨 ADVERTENCIA DE SEGURIDAD 🚨")
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tl.modulate = Color(1.0, 0.2, 0.2) if (pvp_mode == "full_drop" or pvp_mode == "partial_drop") else Color(0.9, 0.5, 0.1)
+	tl.modulate = Color(1.0, 0.0, 0.0) if pvp_mode == "inferno" else (Color(1.0, 0.2, 0.2) if (pvp_mode == "full_drop" or pvp_mode == "partial_drop") else Color(0.9, 0.5, 0.1))
 	tl.add_theme_font_size_override("font_size", 13)
 	v.add_child(tl)
 	
@@ -531,6 +531,8 @@ func show_pvp_warning(target_zone_id: Variant, pvp_mode: String):
 		desc = "[center]¡ATENCIÓN PILOTO! El sector tiene:\n[color=#ff3333][b]⚡ PVP OBLIGATORIO Y PÉRDIDA TOTAL DE ITEMS ⚡[/b][/color]\n\nSi eres derrotado en este mapa, [color=yellow][b]perderás y dropearás absolutamente todo[/b][/color] lo que tengas equipado y en el inventario.\n\n¿Deseas ingresar bajo tu propio riesgo?[/center]"
 	elif pvp_mode == "partial_drop":
 		desc = "[center]¡ATENCIÓN PILOTO! El sector tiene:\n[color=#ffaa33][b]⚡ PVP OBLIGATORIO Y PÉRDIDA DE INVENTARIO ⚡[/b][/color]\n\nSi eres derrotado en este mapa, [color=yellow][b]perderás todo tu inventario[/b][/color], pero conservarás los items equipados.\n\n¿Deseas ingresar bajo tu propio riesgo?[/center]"
+	elif pvp_mode == "inferno":
+		desc = "[center][color=#ff0000][b]🔥 ¡ZONA INFIERNO! 🔥[/b][/color]\n\n[color=#ff4444][b]⚠️ PVP OBLIGATORIO ⚠️[/b][/color]\n\nSi eres derrotado en este mapa:\n[color=red][b]• Pierdes TODO tu inventario\n• Pierdes TODOS tus items equipados\n• ¡TU NAVE SERÁ DESTRUIDA PERMANENTEMENTE!\n• Serás enviado al Lobby con la nave por defecto[/b][/color]\n\n[color=#ff6666][b]¿ESTÁS ABSOLUTAMENTE SEGURO DE INGRESAR?[/b][/color][/center]"
 	rt.text = desc
 	rt.fit_content = true
 	rt.size_flags_horizontal = Control.SIZE_EXPAND_FILL

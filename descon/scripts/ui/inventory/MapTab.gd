@@ -140,6 +140,9 @@ func update_ui():
 		elif pvp_mode == "full_drop":
 			pvp_lbl.text = "💀 PvP + Loot Total"
 			pvp_lbl.modulate = Color(1.0, 0.2, 0.2)
+		elif pvp_mode == "inferno":
+			pvp_lbl.text = "🔥 INFIERNO - Nave Destruida"
+			pvp_lbl.modulate = Color(1.0, 0.0, 0.0)
 		v.add_child(pvp_lbl)
 		
 		if is_current:

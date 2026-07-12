@@ -1644,7 +1644,7 @@ io.on('connection', (socket) => {
         // Bloquear desactivación o cambio manual en zonas con PvP obligatorio
         const cleanZone = normalizeZone(p.zone);
         const mapCfg = state.SERVER_CONFIG?.mapsConfig?.[cleanZone];
-        const isPvPMandatory = mapCfg?.pvpMode === 'mandatory' || mapCfg?.pvpMode === 'full_drop' || mapCfg?.pvpMode === 'partial_drop';
+        const isPvPMandatory = mapCfg?.pvpMode === 'mandatory' || mapCfg?.pvpMode === 'full_drop' || mapCfg?.pvpMode === 'partial_drop' || mapCfg?.pvpMode === 'inferno';
         if (isPvPMandatory) {
             return socket.emit('gameNotification', { 
                 msg: `¡MODO COMBATE OBLIGATORIO! No puedes cambiar el modo de combate en este sector.`, 

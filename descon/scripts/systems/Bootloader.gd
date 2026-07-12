@@ -25,16 +25,29 @@ func _ready():
 	if os_name == "Android" or os_name == "iOS":
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 
-	# Configurar IP según entorno (Editor corre local, builds compilados corren contra Oracle Cloud)
+	# 1. Si estamos en el EDITOR de Godot, BYPASSEAR el sistema de actualizaciones
+	# Esto evita que se sobrescriban los scripts que el desarrollador está editando en tiempo real.
 	if OS.has_feature("editor"):
-		target_ip = "127.0.0.1"
-	
-	# Detectar plataforma
+		print("[Bootloader] Ejecutando en Editor. Omitiendo actualizaciones para desarrollo local.")
+		status_lbl.text = "Iniciando modo desarrollo..."
+		await get_tree().process_frame
+		_setup_background_cinematic()
+		await get_tree().create_timer(0.5).timeout
+		_finish_bootloader_and_start()
+		return
+
+	# 2. Configurar plataforma y servidor para builds compilados
 	if os_name == "Android":
 		platform_key = "android"
+		target_ip = "138.2.241.76" # Celular siempre apunta a Oracle Cloud
 	else:
 		platform_key = "windows"
-		
+		# PC standalone: debug build apunta a local, release build apunta a producción
+		if OS.is_debug_build():
+			target_ip = "127.0.0.1"
+		else:
+			target_ip = "138.2.241.76"
+			
 	status_lbl.text = "Conectando con el servidor..."
 	
 	# Configurar estilo visual premium (verde neón) de la barra

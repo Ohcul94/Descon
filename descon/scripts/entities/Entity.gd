@@ -1182,8 +1182,8 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 				if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(z_str):
 					var map_cfg = GameConstants.MAPS_CONFIG[z_str]
 					var pvp_mode = map_cfg.get("pvpMode", "tranquila")
-					if pvp_mode in ["mandatory", "full_drop", "partial_drop"]:
-						is_pvp_map = true
+				if pvp_mode in ["mandatory", "full_drop", "partial_drop", "inferno"]:
+					is_pvp_map = true
 						
 			if not is_pvp_map:
 				var target_pvp = pvp_status

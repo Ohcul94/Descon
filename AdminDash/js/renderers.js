@@ -1609,6 +1609,7 @@ function renderMapDetail() {
                                     <option value="mandatory" ${m.pvpMode === 'mandatory' ? 'selected' : ''}>⚔️ PVP Obligatorio</option>
                                     <option value="partial_drop" ${m.pvpMode === 'partial_drop' ? 'selected' : ''}>🎒 PVP Obligatorio + Partial Drop (Inventario)</option>
                                     <option value="full_drop" ${m.pvpMode === 'full_drop' ? 'selected' : ''}>💀 PVP Obligatorio + Full Drop</option>
+                                    <option value="inferno" ${m.pvpMode === 'inferno' ? 'selected' : ''}>🔥 INFIERNO - Pierdes TODO + Nave destruida</option>
                                 </select>
                             </div>
                             ${(m.pvpMode === 'tranquila' || !m.pvpMode) ? `
@@ -1617,7 +1618,7 @@ function renderMapDetail() {
                                 <input type="number" min="0" value="${m.pvpToggleCooldown !== undefined ? m.pvpToggleCooldown : 30000}" oninput="config.mapsConfig['${selectedMapId}'].pvpToggleCooldown = parseInt(this.value) || 0">
                             </div>
                             ` : ''}
-                            ${(m.pvpMode === 'mandatory' || m.pvpMode === 'full_drop' || m.pvpMode === 'partial_drop') ? `
+                            ${(m.pvpMode === 'mandatory' || m.pvpMode === 'full_drop' || m.pvpMode === 'partial_drop' || m.pvpMode === 'inferno') ? `
                             <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: span 2; margin-top:8px;">
                                 <input type="checkbox" id="give-invul-entry" ${m.giveInvulnerabilityOnEntry ? 'checked' : ''} onchange="config.mapsConfig['${selectedMapId}'].giveInvulnerabilityOnEntry = this.checked; renderMapDetail();">
                                 <label style="margin:0; cursor:pointer;" for="give-invul-entry">🛡️ Dar invulnerabilidad al entrar</label>

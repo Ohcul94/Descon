@@ -644,7 +644,7 @@ func _update_background(zone_id):
 		if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(check_z_id):
 			var map_cfg = GameConstants.MAPS_CONFIG[check_z_id]
 			var pvp_mode = map_cfg.get("pvpMode", "tranquila")
-			if pvp_mode in ["mandatory", "full_drop", "partial_drop"]:
+			if pvp_mode in ["mandatory", "full_drop", "partial_drop", "inferno"]:
 				is_pvp_map = true
 		
 		if not is_pvp_map:
