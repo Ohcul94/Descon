@@ -1,12 +1,12 @@
 {
-    "version": "1783832483685",
-    "timestamp": 1783832483,
+    "version": "1783835050049",
+    "timestamp": 1783835050,
     "packages": {
         "windows": {
             "file": "updates_windows.pck",
-            "size": 179,
-            "hash": "93e20bf049a90c6c8f281be91b901e276064e9d6cd49fd74e91ac1ee83ac1874",
-            "signature": "qJk8dL6e93CIVsZpwdrLcUw5bTSqGuVR+zmBT0yzhQgEFE9q5FG9YK1HK0ET8LQMXp4ossZT2hrXuGRAWa0MNBYYm1CmiYccRD0pqt0wywaBEE4eoHKQW9txUaH4oO+twqGtdbGAU0ikmAEnb/nZt2z22z+vskqqwn+Etm7mrH9+ss66vS3nzZ760x1PVXc/4BigLid0Wn9KbjJE5Ymc3jwtpbvmtLFDagYO7iGerUqWd8WuRm1HbPVOigIP1HlVnD/p9JP0GJOM+QaHmhji3Pub51wuWz/QodEYTfxpCIDH+Bw86Djz7t0rqODTIytoBABxyKFWGQKqSbbTT3yg0w=="
+            "size": 1759304788,
+            "hash": "f0767cc7330c0b36dd6c54f6d88875df4de64b2082978583fc51a97ec8f026c5",
+            "signature": "a0TkVNRzVG8KEEBLiNiecywHp0kJLBb1DLfcbLLhNMcUVU/kel6MhLMN/lb5Virl9RP1bchlv8eVVvnN2RtsNQVXzXmXeltFMIk0mAC6y0Wxc4Mj0IOzRZ/paeTDJKyVIHEGnryA9bydxZB6zauwM9sA0zr+uA9SwygvbXSRzV6HIYDFHauHvCAh/1UFQRop7nFVh+KDmZHKZpqJbeag0MDnu3d67gDp+EOoCj4U3aS3Zc2vZVgme/l/pXT73TwMOlNSIsShbsGwh9tNW53YCDKSg9RCkzqvpRKounlsDNEte5HO66MCv40G074jU8hsSdHHbZTf6ExjA014P0i64w=="
         },
         "android": {
             "file": "updates_android.pck",

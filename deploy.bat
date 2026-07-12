@@ -1,7 +1,6 @@
 @echo off
-chcp 65001 > nul
 echo ==============================================
-echo INICIANDO DESPLIEGUE AUTOMÁTICO DE DESCON V2.0
+echo INICIANDO DESPLIEGUE AUTOMATICO DE DESCON V2.0
 echo ==============================================
 
 echo [1/5] Firmando y generando manifest.json de los PCKs...
@@ -12,11 +11,11 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-echo [2/5] Añadiendo cambios a Git...
+echo [2/5] Agregando cambios a Git...
 git add .
 
 echo [3/5] Creando commit local...
-git commit -m "build: actualización automática de pcks y código"
+git commit -m "build: actualizacion automatica de pcks y codigo"
 
 echo [4/5] Subiendo cambios a GitHub...
 git push origin master
@@ -35,6 +34,6 @@ if %errorlevel% neq 0 (
 )
 
 echo ==============================================
-echo ¡DESPLIEGUE FINALIZADO EXITOSAMENTE!
+echo DESPLIEGUE FINALIZADO EXITOSAMENTE
 echo ==============================================
 pause
