@@ -25,17 +25,41 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-set /p UPLOAD_PCK="Deseas subir los archivos PCK (actualizaciones) por SCP a Oracle Cloud? (S/N): "
-if /i "%UPLOAD_PCK%"=="S" (
-    echo [5/6] Subiendo manifest.json y parches PCK directamente a Oracle Cloud...
-    scp -i "E:\Descon\OracleCloud\ssh-key-2026-04-20.key" Server/public/cdn/* ubuntu@138.2.241.76:~/Descon/Server/public/cdn/
+set UPLOAD_MANIFEST=N
+set /p UPLOAD_WIN="Deseas subir el parche de Windows (1.6GB) a Oracle Cloud? (S/N): "
+if /i "%UPLOAD_WIN%"=="S" (
+    echo [5/6] Subiendo updates_windows.pck directamente a Oracle Cloud...
+    scp -i "E:\Descon\OracleCloud\ssh-key-2026-04-20.key" Server/public/cdn/updates_windows.pck ubuntu@138.2.241.76:~/Descon/Server/public/cdn/
     if %errorlevel% neq 0 (
-        echo [ERROR] Error al subir los parches PCK por SCP.
+        echo [ERROR] Error al subir updates_windows.pck.
+        pause
+        exit /b %errorlevel%
+    )
+    set UPLOAD_MANIFEST=S
+)
+
+set /p UPLOAD_AND="Deseas subir el parche de Android a Oracle Cloud? (S/N): "
+if /i "%UPLOAD_AND%"=="S" (
+    echo [5/6] Subiendo updates_android.pck directamente a Oracle Cloud...
+    scp -i "E:\Descon\OracleCloud\ssh-key-2026-04-20.key" Server/public/cdn/updates_android.pck ubuntu@138.2.241.76:~/Descon/Server/public/cdn/
+    if %errorlevel% neq 0 (
+        echo [ERROR] Error al subir updates_android.pck.
+        pause
+        exit /b %errorlevel%
+    )
+    set UPLOAD_MANIFEST=S
+)
+
+if "%UPLOAD_MANIFEST%"=="S" (
+    echo [5/6] Subiendo manifest.json directamente a Oracle Cloud...
+    scp -i "E:\Descon\OracleCloud\ssh-key-2026-04-20.key" Server/public/cdn/manifest.json ubuntu@138.2.241.76:~/Descon/Server/public/cdn/
+    if %errorlevel% neq 0 (
+        echo [ERROR] Error al subir manifest.json.
         pause
         exit /b %errorlevel%
     )
 ) else (
-    echo [5/6] Omitiendo subida de archivos PCK por SCP.
+    echo [5/6] Omitiendo subida de manifest y parches por SCP.
 )
 
 echo [6/6] Actualizando y reiniciando servidor Oracle Cloud...

@@ -113,31 +113,32 @@ func _on_manifest_download_completed(_result, response_code, _headers, body):
 	_compare_versions()
 
 func _compare_versions():
-	# Leer versión local
-	var local_version = "0"
+	# Leer hash local del paquete para esta plataforma
+	var local_hash = ""
 	if FileAccess.file_exists(LOCAL_MANIFEST_PATH):
 		var file = FileAccess.open(LOCAL_MANIFEST_PATH, FileAccess.READ)
 		var json = JSON.new()
 		if json.parse(file.get_as_text()) == OK:
-			local_version = json.data.get("version", "0")
-			
-	var remote_version = remote_manifest.get("version", "0")
+			var local_packages = json.data.get("packages", {})
+			if local_packages.has(platform_key):
+				local_hash = local_packages[platform_key].get("hash", "")
+				
 	var packages = remote_manifest.get("packages", {})
-	
 	if not packages.has(platform_key):
 		print("[Bootloader] No hay paquete para la plataforma actual: ", platform_key)
 		_load_existing_pck_if_any_and_start()
 		return
 
 	var package_info = packages[platform_key]
+	var remote_hash = package_info.get("hash", "")
 	var pck_exists = FileAccess.file_exists(PCK_SAVE_PATH)
 	
-	# Si la versión remota es diferente, o el archivo PCK local no existe físicamente
-	if local_version != remote_version or not pck_exists:
-		print("[Bootloader] Actualización disponible. Local: ", local_version, " | Remota: ", remote_version)
+	# Si el hash remoto es diferente, o el archivo PCK local no existe fisicamente
+	if local_hash != remote_hash or not pck_exists:
+		print("[Bootloader] Actualizacion disponible. Local hash: ", local_hash.left(10), " | Remoto: ", remote_hash.left(10))
 		_download_pck(package_info)
 	else:
-		print("[Bootloader] El juego ya está actualizado.")
+		print("[Bootloader] El juego ya esta actualizado (hashes coinciden).")
 		_load_existing_pck_if_any_and_start()
 
 func _download_pck(package_info: Dictionary):
