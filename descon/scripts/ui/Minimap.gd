@@ -33,10 +33,20 @@ func _input(event):
 			var global_m_pos = get_global_mouse_position()
 			if get_global_rect().has_point(global_m_pos):
 				var local_m_pos = global_m_pos - global_position
-				var map_pos = local_m_pos / size
-				var target_world_pos = map_pos * world_size
-				
+				var target_world_pos = Vector2.ZERO
+				var is_rotate = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
 				var p = get_tree().get_first_node_in_group("player")
+				if is_rotate and is_instance_valid(p):
+					var s_x = size.x / max(world_size, 1.0)
+					var s_y = size.y / max(world_size, 1.0)
+					var p_mp = Vector2(p.global_position.x * s_x, p.global_position.y * s_y)
+					var offset = local_m_pos - p_mp
+					var derotated = p_mp + offset.rotated(PI/2 + p.rotation)
+					target_world_pos = Vector2(derotated.x / max(s_x, 0.001), derotated.y / max(s_y, 0.001))
+				else:
+					var map_pos = local_m_pos / size
+					target_world_pos = map_pos * world_size
+				
 				if is_instance_valid(p) and p.has_method("set_autopilot"):
 					if p.get_meta("spawn_locked", false):
 						print("[NAV] BLOQUEADO: No puedes fijar rumbo mientras esté activa la barrera de spawn.")
@@ -190,6 +200,15 @@ func _draw():
 	var scale_y: float = r_size.y / worldH
 	# map_scale legacy (para código que lo use)
 	var _map_scale: float = scale_x
+	
+	# --- ROTATION MODE: transform all map content around player position ---
+	var is_rotate_mode = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
+	var rot_angle = 0.0
+	var player_mp = Vector2.ZERO
+	if is_rotate_mode:
+		rot_angle = -PI/2 - player.rotation
+		player_mp = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
+		draw_set_transform_matrix(Transform2D().translated(player_mp).rotated(rot_angle).translated(-player_mp))
 	
 	# 1. Dibujar Trayectoria del Autopiloto (Línea punteada del JS v66.6)
 	if player.get("is_autopilot_active") and player.get("target_position"):
@@ -470,15 +489,43 @@ func _draw():
 						max_p.y = max(max_p.y, mp.y)
 					draw_rect(Rect2(min_p, max_p - min_p), Color.WHITE, false, 1.5)
 
+	# --- NSEO: Indicadores cardinales en bordes del mundo (giran con el mapa en modo rotatorio) ---
+	var font_nseo = get_theme_font("font")
+	var margin_px = 12.0
+	var margin_wx = margin_px / scale_x
+	var margin_wy = margin_px / scale_y
+	var cardinals = [
+		{"label": "N", "pos": Vector2(worldW / 2, margin_wy)},
+		{"label": "S", "pos": Vector2(worldW / 2, worldH - margin_wy)},
+		{"label": "E", "pos": Vector2(worldW - margin_wx, worldH / 2)},
+		{"label": "O", "pos": Vector2(margin_wx, worldH / 2)}
+	]
+	for c in cardinals:
+		var cp = Vector2(c.pos.x * scale_x, c.pos.y * scale_y)
+		draw_string(font_nseo, cp - Vector2(3, 3), c.label, HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0, 1, 1, 0.7))
+
+	# --- Reset rotation transform before overlay elements ---
+	if is_rotate_mode:
+		draw_set_transform_matrix(Transform2D())
+
 	# 5. Jugador Local (Punto Blanco Puro) — siempre último para estar arriba
-	var local_pos = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
-	draw_circle(local_pos, 3.5, Color.WHITE)
-	var cone_len = 10.0
-	var cone_spread = 0.8
-	var cone_angle = player.rotation
-	var cone_left = local_pos + Vector2.RIGHT.rotated(cone_angle + cone_spread) * cone_len
-	var cone_right = local_pos + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
-	draw_colored_polygon(PackedVector2Array([local_pos, cone_left, cone_right]), Color(0.6, 0.6, 0.6, 0.8))
+	if is_rotate_mode:
+		draw_circle(player_mp, 3.5, Color.WHITE)
+		var cone_len = 10.0
+		var cone_spread = 0.8
+		var cone_angle = -PI/2
+		var cone_left = player_mp + Vector2.RIGHT.rotated(cone_angle + cone_spread) * cone_len
+		var cone_right = player_mp + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
+		draw_colored_polygon(PackedVector2Array([player_mp, cone_left, cone_right]), Color(0.6, 0.6, 0.6, 0.8))
+	else:
+		var local_pos = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
+		draw_circle(local_pos, 3.5, Color.WHITE)
+		var cone_len = 10.0
+		var cone_spread = 0.8
+		var cone_angle = player.rotation
+		var cone_left = local_pos + Vector2.RIGHT.rotated(cone_angle + cone_spread) * cone_len
+		var cone_right = local_pos + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
+		draw_colored_polygon(PackedVector2Array([local_pos, cone_left, cone_right]), Color(0.6, 0.6, 0.6, 0.8))
 
 	# Borde del radar
 	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0, 1, 1, 0.1), false, 1.0)

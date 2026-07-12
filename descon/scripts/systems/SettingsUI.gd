@@ -434,6 +434,28 @@ func _setup_ui():
 	stars_lbl.text = "ACTIVAR ESTRELLAS EN EL CIELO"
 	row_stars.add_child(stars_lbl)
 
+	# MINIMAPA ROTATORIO
+	var row_minimap = HBoxContainer.new()
+	row_minimap.add_theme_constant_override("separation", 10)
+	gfx_vbox.add_child(row_minimap)
+
+	var minimap_check = CheckBox.new()
+	minimap_check.text = ""
+	minimap_check.add_theme_stylebox_override("normal", check_style)
+	minimap_check.add_theme_stylebox_override("pressed", check_style)
+	minimap_check.add_theme_stylebox_override("hover", check_style)
+	if get_node_or_null("/root/SettingsManager"):
+		minimap_check.button_pressed = SettingsManager.minimap_rotate
+	minimap_check.toggled.connect(func(val):
+		SettingsManager.minimap_rotate = val
+		SettingsManager.save_settings()
+	)
+	row_minimap.add_child(minimap_check)
+
+	var minimap_lbl = Label.new()
+	minimap_lbl.text = "MINIMAPA ROTATORIO (GIRA CON LA NAVE)"
+	row_minimap.add_child(minimap_lbl)
+
 	# Bottom spacer para forzar scroll en cualquier pantalla
 	var bot_spacer = Control.new()
 	bot_spacer.custom_minimum_size.y = 200
