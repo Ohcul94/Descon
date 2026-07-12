@@ -119,8 +119,10 @@ func _ready():
 	add_to_group("vfx_system")
 	print("[VFX] Sistema restaurado para compatibilidad de escenas.")
 	
-	# Iniciar el precalentamiento y caché al arrancar de forma diferida
-	call_deferred("_run_shader_warmup")
+	# Iniciar el precalentamiento y caché al arrancar de forma diferida si no está el Bootloader
+	var main_scene = ProjectSettings.get_setting("application/run/main_scene")
+	if main_scene != "res://scenes/Bootloader.tscn":
+		call_deferred("_run_shader_warmup")
 
 func _add_loading_ship(parent: Node3D, path: String, pos: Vector3, s: float):
 	if not ResourceLoader.exists(path):
@@ -493,6 +495,13 @@ func _setup_cinematic_3d():
 	combat_controller.planet2 = planet2
 	combat_controller.planet3 = planet3
 
+func cleanup_cinematic():
+	for key in _loading_refs.keys():
+		var node = _loading_refs[key]
+		if node and is_instance_valid(node):
+			node.queue_free()
+	_loading_refs.clear()
+
 func reset_for_new_session():
 	for key in _loading_refs.keys():
 		var node = _loading_refs[key]
@@ -502,8 +511,6 @@ func reset_for_new_session():
 	call_deferred("_run_shader_warmup")
 
 func _run_shader_warmup():
-	_loading_refs.clear()
-
 	# Ocultar el entorno de juego real al inicio
 	_set_world_environment_visible(false)
 

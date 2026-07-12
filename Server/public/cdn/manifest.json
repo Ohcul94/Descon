@@ -1,0 +1,18 @@
+{
+    "version": "1783832483685",
+    "timestamp": 1783832483,
+    "packages": {
+        "windows": {
+            "file": "updates_windows.pck",
+            "size": 179,
+            "hash": "93e20bf049a90c6c8f281be91b901e276064e9d6cd49fd74e91ac1ee83ac1874",
+            "signature": "qJk8dL6e93CIVsZpwdrLcUw5bTSqGuVR+zmBT0yzhQgEFE9q5FG9YK1HK0ET8LQMXp4ossZT2hrXuGRAWa0MNBYYm1CmiYccRD0pqt0wywaBEE4eoHKQW9txUaH4oO+twqGtdbGAU0ikmAEnb/nZt2z22z+vskqqwn+Etm7mrH9+ss66vS3nzZ760x1PVXc/4BigLid0Wn9KbjJE5Ymc3jwtpbvmtLFDagYO7iGerUqWd8WuRm1HbPVOigIP1HlVnD/p9JP0GJOM+QaHmhji3Pub51wuWz/QodEYTfxpCIDH+Bw86Djz7t0rqODTIytoBABxyKFWGQKqSbbTT3yg0w=="
+        },
+        "android": {
+            "file": "updates_android.pck",
+            "size": 179,
+            "hash": "93e20bf049a90c6c8f281be91b901e276064e9d6cd49fd74e91ac1ee83ac1874",
+            "signature": "qJk8dL6e93CIVsZpwdrLcUw5bTSqGuVR+zmBT0yzhQgEFE9q5FG9YK1HK0ET8LQMXp4ossZT2hrXuGRAWa0MNBYYm1CmiYccRD0pqt0wywaBEE4eoHKQW9txUaH4oO+twqGtdbGAU0ikmAEnb/nZt2z22z+vskqqwn+Etm7mrH9+ss66vS3nzZ760x1PVXc/4BigLid0Wn9KbjJE5Ymc3jwtpbvmtLFDagYO7iGerUqWd8WuRm1HbPVOigIP1HlVnD/p9JP0GJOM+QaHmhji3Pub51wuWz/QodEYTfxpCIDH+Bw86Djz7t0rqODTIytoBABxyKFWGQKqSbbTT3yg0w=="
+        }
+    }
+}
