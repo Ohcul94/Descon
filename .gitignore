@@ -30,6 +30,7 @@ Ejecutable Android/
 Ejecutable Web/
 Descon (Viejo)/
 *.pck
+Server/public/cdn/
 *.exe
 *.apk
 *.zip
