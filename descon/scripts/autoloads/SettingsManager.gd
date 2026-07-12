@@ -83,6 +83,12 @@ func _ready():
 	get_tree().node_added.connect(_on_node_added)
 
 func _apply_mobile_window_size():
+	# Solo aplicar tamaño de ventana simulada en PC (si no es un dispositivo movil real)
+	var os = OS.get_name()
+	if os == "Android" or os == "iOS":
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+		return
+		
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	DisplayServer.window_set_size(Vector2i(450, 800))
 	# Centrar ventana
