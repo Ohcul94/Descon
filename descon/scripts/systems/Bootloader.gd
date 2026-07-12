@@ -5,6 +5,7 @@ extends Control
 
 const LOCAL_MANIFEST_PATH = "user://manifest_local.json"
 const PCK_SAVE_PATH = "user://updates.pck"
+const PCK_TEMP_PATH = "user://updates_temp.pck"
 const SERVER_PORT = 3333
 
 @onready var status_lbl = $BootloaderUI/MarginContainer/VBoxContainer/StatusLabel
@@ -19,8 +20,8 @@ var bytes_received: int = 0
 var total_bytes: int = 0
 
 func _ready():
-	# Configurar IP según entorno
-	if OS.has_feature("editor") or OS.is_debug_build():
+	# Configurar IP según entorno (Editor corre local, builds compilados corren contra Oracle Cloud)
+	if OS.has_feature("editor"):
 		target_ip = "127.0.0.1"
 	
 	# Detectar plataforma
@@ -149,8 +150,8 @@ func _download_pck(package_info: Dictionary):
 	progress_bar.visible = true
 	is_downloading = true
 	
-	# Usar HTTPRequest configurado para descargar directamente a disco
-	http_request.download_file = PCK_SAVE_PATH
+	# Usar HTTPRequest configurado para descargar directamente a disco temporal
+	http_request.download_file = PCK_TEMP_PATH
 	
 	http_request.request_completed.connect(_on_pck_download_completed.bind(package_info))
 	
@@ -180,8 +181,8 @@ func _on_pck_download_completed(_result, response_code, _headers, _body, package
 	status_lbl.text = "Verificando integridad..."
 	await get_tree().create_timer(0.2).timeout
 	
-	# 1. Verificar Hash SHA-256
-	var local_hash = _calculate_file_sha256(PCK_SAVE_PATH)
+	# 1. Verificar Hash SHA-256 del archivo temporal
+	var local_hash = _calculate_file_sha256(PCK_TEMP_PATH)
 	var remote_hash = package_info.get("hash", "")
 	
 	if local_hash != remote_hash:
@@ -189,17 +190,27 @@ func _on_pck_download_completed(_result, response_code, _headers, _body, package
 		_fail_and_load_game("El archivo descargado está corrupto.")
 		return
 		
-	# 2. Verificar Firma RSA
+	# 2. Verificar Firma RSA del archivo temporal
 	var signature_b64 = package_info.get("signature", "")
-	var is_valid = _verify_signature(PCK_SAVE_PATH, signature_b64)
+	var is_valid = _verify_signature(PCK_TEMP_PATH, signature_b64)
 	
 	if not is_valid:
 		print("[Bootloader-ERR] Firma digital no válida. El archivo podría haber sido modificado.")
 		_fail_and_load_game("Fallo de verificación de seguridad.")
 		return
 		
-	print("[Bootloader] Verificación exitosa. Montando PCK...")
+	print("[Bootloader] Verificación exitosa. Guardando actualización...")
 	
+	# Reemplazar el archivo temporal por el definitivo de forma segura
+	if FileAccess.file_exists(PCK_SAVE_PATH):
+		DirAccess.remove_absolute(PCK_SAVE_PATH)
+		
+	var err_rename = DirAccess.rename_absolute(PCK_TEMP_PATH, PCK_SAVE_PATH)
+	if err_rename != OK:
+		print("[Bootloader-ERR] Error al renombrar archivo temporal a definitivo: ", err_rename)
+		_fail_and_load_game("Error al guardar la actualización.")
+		return
+		
 	# Guardar manifiesto local
 	var file = FileAccess.open(LOCAL_MANIFEST_PATH, FileAccess.WRITE)
 	file.store_string(JSON.stringify(remote_manifest))
@@ -339,7 +350,7 @@ func _finish_bootloader_and_start():
 
 func _fail_and_load_game(msg: String):
 	print("[Bootloader-WARN] Error: ", msg)
-	status_lbl.text = msg + " Cargando juego base..."
+	status_lbl.text = msg + " Iniciando juego..."
 	progress_bar.visible = false
 	await get_tree().create_timer(2.0).timeout
-	_finish_bootloader_and_start()
+	_load_existing_pck_if_any_and_start()

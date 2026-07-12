@@ -146,13 +146,24 @@ app.post('/api/upload-asset', express.json({ limit: '20mb' }), async (req, res) 
         if (!fileName || !fileData) {
             return res.status(400).json({ error: 'Faltan parámetros fileName o fileData' });
         }
+        
+        // SEGURIDAD: Prevenir Path Traversal extrayendo solo el nombre base del archivo
+        const safeFileName = path.basename(fileName);
+        
+        // SEGURIDAD: Validar extensión contra lista blanca de assets seguros
+        const ext = path.extname(safeFileName).toLowerCase();
+        const allowedExtensions = ['.glb', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.import', '.json'];
+        if (!allowedExtensions.includes(ext)) {
+            return res.status(400).json({ error: 'Extensión de archivo no permitida por seguridad' });
+        }
+        
         const targetDir = path.join(__dirname, '../descon/assets/Crafteo');
         await fs.ensureDir(targetDir);
-        const filePath = path.join(targetDir, fileName);
+        const filePath = path.join(targetDir, safeFileName);
         const buffer = Buffer.from(fileData, 'base64');
         await fs.writeFile(filePath, buffer);
-        const godotPath = `res://assets/Crafteo/${fileName}`;
-        console.log(`[ASSET UPLOAD] Guardado asset local en ${filePath}`);
+        const godotPath = `res://assets/Crafteo/${safeFileName}`;
+        console.log(`[ASSET UPLOAD] Guardado asset local de forma segura en ${filePath}`);
         return res.json({ success: true, path: godotPath });
     } catch (err) {
         console.error('[ASSET UPLOAD ERROR]', err);
@@ -165,6 +176,9 @@ app.post('/api/upload-asset', express.json({ limit: '20mb' }), async (req, res) 
 app.get('/api/find-asset', async (req, res) => {
     const { fileName } = req.query;
     if (!fileName) return res.status(400).json({ error: 'Parámetro fileName requerido' });
+
+    // SEGURIDAD: Sanitizar nombre base
+    const safeFileName = path.basename(fileName);
 
     const assetsDir = path.join(__dirname, '../descon/assets');
     const projectRoot = path.join(__dirname, '../descon');
@@ -189,7 +203,7 @@ app.get('/api/find-asset', async (req, res) => {
     };
 
     try {
-        const found = await findFileRecursive(assetsDir, fileName);
+        const found = await findFileRecursive(assetsDir, safeFileName);
         if (!found) {
             return res.json({ success: false, error: `"${fileName}" no encontrado en los assets del proyecto. Asegurate de que el archivo esté dentro de la carpeta descon/assets.` });
         }
