@@ -20,12 +20,16 @@ var bytes_received: int = 0
 var total_bytes: int = 0
 
 func _ready():
+	# Forzar pantalla completa inmersiva incondicionalmente en dispositivos móviles (Android/iOS)
+	var os_name = OS.get_name()
+	if os_name == "Android" or os_name == "iOS":
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+
 	# Configurar IP según entorno (Editor corre local, builds compilados corren contra Oracle Cloud)
 	if OS.has_feature("editor"):
 		target_ip = "127.0.0.1"
 	
 	# Detectar plataforma
-	var os_name = OS.get_name()
 	if os_name == "Android":
 		platform_key = "android"
 	else:
@@ -117,11 +121,13 @@ func _compare_versions():
 	var local_hash = ""
 	if FileAccess.file_exists(LOCAL_MANIFEST_PATH):
 		var file = FileAccess.open(LOCAL_MANIFEST_PATH, FileAccess.READ)
-		var json = JSON.new()
-		if json.parse(file.get_as_text()) == OK:
-			var local_packages = json.data.get("packages", {})
-			if local_packages.has(platform_key):
-				local_hash = local_packages[platform_key].get("hash", "")
+		if file:
+			var json = JSON.new()
+			if json.parse(file.get_as_text()) == OK:
+				var local_packages = json.data.get("packages", {})
+				if local_packages.has(platform_key):
+					local_hash = local_packages[platform_key].get("hash", "")
+			file.close()
 				
 	var packages = remote_manifest.get("packages", {})
 	if not packages.has(platform_key):
@@ -132,6 +138,8 @@ func _compare_versions():
 	var package_info = packages[platform_key]
 	var remote_hash = package_info.get("hash", "")
 	var pck_exists = FileAccess.file_exists(PCK_SAVE_PATH)
+	
+	print("[Bootloader] Comparando hashes - Local: '", local_hash.left(10), "' | Remoto: '", remote_hash.left(10), "' | PCK Existe: ", pck_exists)
 	
 	# Si el hash remoto es diferente, o el archivo PCK local no existe fisicamente
 	if local_hash != remote_hash or not pck_exists:
@@ -214,7 +222,9 @@ func _on_pck_download_completed(_result, response_code, _headers, _body, package
 		
 	# Guardar manifiesto local
 	var file = FileAccess.open(LOCAL_MANIFEST_PATH, FileAccess.WRITE)
-	file.store_string(JSON.stringify(remote_manifest))
+	if file:
+		file.store_string(JSON.stringify(remote_manifest))
+		file.close()
 	
 	_mount_pck_and_start()
 
@@ -228,6 +238,7 @@ func _calculate_file_sha256(file_path: String) -> String:
 		var chunk = file.get_buffer(65536)
 		ctx.update(chunk)
 	var file_hash = ctx.finish()
+	file.close()
 	
 	# Convertir a hexadecimal string
 	var hash_str = ""
@@ -259,6 +270,7 @@ func _verify_signature(file_path: String, signature_b64: String) -> bool:
 		var chunk = file.get_buffer(65536)
 		ctx.update(chunk)
 	var file_hash = ctx.finish()
+	file.close()
 	
 	# Decodificar firma Base64
 	var signature_bytes = Marshalls.base64_to_raw(signature_b64)
