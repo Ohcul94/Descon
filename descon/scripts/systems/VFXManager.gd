@@ -666,9 +666,10 @@ func _run_shader_warmup():
 	tc.look_at_from_position(tc.position, Vector3(999.0, 999.0, 999.0))
 
 	var ts = scenes.size()
+	var instantiated_nodes = []
 	for i in range(ts):
 		var sp = scenes[i]
-		status.text = "Preparando efectos: " + sp.get_file()
+		status.text = "Cargando efectos: " + sp.get_file()
 		if ResourceLoader.exists(sp):
 			var s = load(sp)
 			if s:
@@ -681,11 +682,20 @@ func _run_shader_warmup():
 					inst.position = Vector2(-9999.0, -9999.0)
 				else:
 					get_tree().root.add_child(inst)
-				await get_tree().physics_frame
-				await get_tree().process_frame
-				inst.queue_free()
-		progress.value = 50.0 + ((float(i) / ts) * 50.0)
-		await get_tree().process_frame
+				instantiated_nodes.append(inst)
+		progress.value = 50.0 + ((float(i) / ts) * 45.0)
+		if i % 10 == 0:
+			await get_tree().process_frame
+
+	status.text = "Compilando graficos (GPU)..."
+	progress.value = 95.0
+	await get_tree().physics_frame
+	await get_tree().process_frame
+	
+	# Liberar todos los efectos instanciados
+	for inst in instantiated_nodes:
+		if is_instance_valid(inst):
+			inst.queue_free()
 
 	tn.queue_free()
 
