@@ -580,7 +580,8 @@
             ],
             "defenseMechanics": [],
             "aggressive": true,
-            "rankingPoints": 9
+            "rankingPoints": 9,
+            "lootDrops": []
         },
         "10": {
             "bulletDamage": 320,
@@ -2977,6 +2978,177 @@
             "aggressive": true,
             "leashRange": 1000,
             "rankingPoints": 12
+        },
+        "9-A": {
+            "bulletDamage": 560,
+            "bulletSpeed": 880,
+            "fireRange": 1050,
+            "fireRate": 950,
+            "hp": 18000,
+            "name": "Enemigo 9 A",
+            "rewardExp": 3600,
+            "rewardHubs": 7600,
+            "rewardOhcu": 76,
+            "shield": 8000,
+            "speed": 310,
+            "mechanics": [
+                {
+                    "type": "hook",
+                    "bulletDamage": 200,
+                    "bulletSpeed": 1500,
+                    "fireRange": 600,
+                    "fireRate": 3000,
+                    "stunDuration": 2000,
+                    "isHoming": 0,
+                    "turnSpeed": 0,
+                    "startDelay": 0,
+                    "pullSpeed": 200,
+                    "postHookWaitMs": 1500,
+                    "hookMissWaitMs": 1000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 310,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true,
+            "rankingPoints": 9
+        },
+        "9-B": {
+            "bulletDamage": 840,
+            "bulletSpeed": 880,
+            "fireRange": 1050,
+            "fireRate": 950,
+            "hp": 27000,
+            "name": "Enemigo 9 B",
+            "rewardExp": 5400,
+            "rewardHubs": 11400,
+            "rewardOhcu": 114,
+            "shield": 12000,
+            "speed": 310,
+            "mechanics": [
+                {
+                    "type": "hook",
+                    "bulletDamage": 300,
+                    "bulletSpeed": 1500,
+                    "fireRange": 600,
+                    "fireRate": 3000,
+                    "stunDuration": 2000,
+                    "isHoming": 0,
+                    "turnSpeed": 0,
+                    "startDelay": 0,
+                    "pullSpeed": 200,
+                    "postHookWaitMs": 1500,
+                    "hookMissWaitMs": 1000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 310,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true,
+            "rankingPoints": 9
+        },
+        "9-C": {
+            "bulletDamage": 1120,
+            "bulletSpeed": 880,
+            "fireRange": 1050,
+            "fireRate": 950,
+            "hp": 36000,
+            "name": "Enemigo 9 C",
+            "rewardExp": 7200,
+            "rewardHubs": 15200,
+            "rewardOhcu": 152,
+            "shield": 16000,
+            "speed": 310,
+            "mechanics": [
+                {
+                    "type": "missile",
+                    "bulletDamage": 400,
+                    "bulletSpeed": 1500,
+                    "fireRange": 600,
+                    "fireRate": 3000,
+                    "stunDuration": 2000,
+                    "isHoming": 0,
+                    "turnSpeed": 0,
+                    "startDelay": 0,
+                    "pullSpeed": 200,
+                    "postHookWaitMs": 1500,
+                    "hookMissWaitMs": 1000,
+                    "lifetimeMs": 0
+                },
+                {
+                    "type": "mine",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 310,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true,
+            "rankingPoints": 9,
+            "lootDrops": [],
+            "visionRange": 1500
+        },
+        "9-D": {
+            "bulletDamage": 1400,
+            "bulletSpeed": 880,
+            "fireRange": 1050,
+            "fireRate": 950,
+            "hp": 45000,
+            "name": "Enemigo 9 D",
+            "rewardExp": 9000,
+            "rewardHubs": 19000,
+            "rewardOhcu": 190,
+            "shield": 20000,
+            "speed": 310,
+            "mechanics": [
+                {
+                    "type": "hook",
+                    "bulletDamage": 500,
+                    "bulletSpeed": 1500,
+                    "fireRange": 600,
+                    "fireRate": 3000,
+                    "stunDuration": 2000,
+                    "isHoming": 0,
+                    "turnSpeed": 0,
+                    "startDelay": 0,
+                    "pullSpeed": 200,
+                    "postHookWaitMs": 1500,
+                    "hookMissWaitMs": 1000
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 310,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "aggressive": true,
+            "rankingPoints": 9
         }
     },
     "hordeConfig": {
@@ -3091,7 +3263,9 @@
                     "targetY": 5000
                 }
             ],
-            "visible": true
+            "visible": true,
+            "timeRestrictionsEnabled": true,
+            "allowedHours": []
         },
         "2": {
             "color": "#00ff00",
@@ -3216,13 +3390,13 @@
             "ambience": [],
             "spawns": [
                 {
-                    "type": "5-B",
-                    "count": 2,
+                    "type": "9-C",
+                    "count": 1,
                     "intervalMs": 5000,
                     "id": "spawn_6_idx_0_type_5",
-                    "spawnMode": "random",
-                    "x": 4878,
-                    "y": 4995,
+                    "spawnMode": "fixed",
+                    "x": 1935,
+                    "y": 1606,
                     "radius": 0
                 }
             ],
@@ -3421,7 +3595,7 @@
             "height": 10000
         },
         "200": {
-            "name": "ZONA 200 - CONSTRUCTOR",
+            "name": "Mapa 10",
             "desc": "Zona de construcción y edición de niveles 3D.",
             "color": "#00ffaa",
             "warpCost": 0,
@@ -3429,9 +3603,20 @@
             "width": 2000,
             "height": 2000,
             "visible": true,
-            "pvpMode": "tranquila",
+            "pvpMode": "inferno",
             "ambience": [],
-            "spawns": [],
+            "spawns": [
+                {
+                    "id": "spawn_1783917666252211",
+                    "type": "13-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 530,
+                    "y": 500,
+                    "radius": 300
+                }
+            ],
             "objects": []
         }
     },
@@ -3553,7 +3738,7 @@
             "hidden": false
         },
         {
-            "hp": 3200,
+            "hp": 320000,
             "id": 6,
             "name": "Galactus-Z6",
             "assetPath": "res://assets/Personajes/3D/Nave6/Nave6.glb",
@@ -7289,6 +7474,106 @@
                     "itemName": "Cofre VIP",
                     "itemAmount": 1
                 }
+            }
+        ]
+    },
+    "rankingConfig": {
+        "categories": [
+            {
+                "id": "monsters_killed",
+                "name": "Monstruos Matados",
+                "icon": "👾",
+                "resetInterval": "weekly",
+                "rewards": [
+                    {
+                        "rank": 1,
+                        "hubs": 50000,
+                        "ohcu": 100,
+                        "exp": 10000,
+                        "bpExp": 5000,
+                        "items": []
+                    },
+                    {
+                        "rank": 2,
+                        "hubs": 25000,
+                        "ohcu": 50,
+                        "exp": 5000,
+                        "bpExp": 2500,
+                        "items": []
+                    },
+                    {
+                        "rank": 3,
+                        "hubs": 10000,
+                        "ohcu": 25,
+                        "exp": 2500,
+                        "bpExp": 1000,
+                        "items": []
+                    }
+                ]
+            },
+            {
+                "id": "events_completed",
+                "name": "Eventos Completados",
+                "icon": "🎯",
+                "resetInterval": "monthly",
+                "rewards": [
+                    {
+                        "rank": 1,
+                        "hubs": 100000,
+                        "ohcu": 200,
+                        "exp": 20000,
+                        "bpExp": 10000,
+                        "items": []
+                    },
+                    {
+                        "rank": 2,
+                        "hubs": 50000,
+                        "ohcu": 100,
+                        "exp": 10000,
+                        "bpExp": 5000,
+                        "items": []
+                    },
+                    {
+                        "rank": 3,
+                        "hubs": 25000,
+                        "ohcu": 50,
+                        "exp": 5000,
+                        "bpExp": 2500,
+                        "items": []
+                    }
+                ]
+            },
+            {
+                "id": "level",
+                "name": "Nivel Alcanzado",
+                "icon": "⭐",
+                "resetInterval": "never",
+                "rewards": [
+                    {
+                        "rank": 1,
+                        "hubs": 200000,
+                        "ohcu": 500,
+                        "exp": 50000,
+                        "bpExp": 25000,
+                        "items": []
+                    },
+                    {
+                        "rank": 2,
+                        "hubs": 100000,
+                        "ohcu": 250,
+                        "exp": 25000,
+                        "bpExp": 10000,
+                        "items": []
+                    },
+                    {
+                        "rank": 3,
+                        "hubs": 50000,
+                        "ohcu": 100,
+                        "exp": 10000,
+                        "bpExp": 5000,
+                        "items": []
+                    }
+                ]
             }
         ]
     }
