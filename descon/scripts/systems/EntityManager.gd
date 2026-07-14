@@ -229,39 +229,50 @@ func _process(delta):
 				area.queue_free()
 			continue
 
-	# 2. Procesar tracking de lásers en tiempo real (Mega Láser)
+	# 2. Procesar tracking de lásers: actualizar posición y rotación Y del indicador 3D siguiendo al objetivo
 	for eid in active_laser_tracking.keys():
 		var data = active_laser_tracking[eid]
-		var indicator = data.get("indicator")
-		var t_id = data.get("targetId")
-		var length = data.get("range", 1000.0)
+		var indicator_3d = data.get("indicator_3d")
+		var en = data.get("enemy_node")
+		var t_id = data.get("targetId", "")
 		
-		if is_instance_valid(indicator) and indicator.get_parent():
-			var en = indicator.get_parent()
-			var target_node = null
+		if is_instance_valid(indicator_3d) and is_instance_valid(en):
+			# Sincronizar posición 3D
+			if is_instance_valid(en.get("world_root_3d")):
+				indicator_3d.global_position = en.world_root_3d.global_position
+				indicator_3d.global_position.y = 0.0
 			
-			if is_instance_valid(world) and is_instance_valid(world.local_player) and str(world.local_player.get("entity_id")) == t_id:
-				target_node = world.local_player
-			elif remote_players.has(t_id):
-				target_node = remote_players[t_id]
-			
-			if target_node == null and is_instance_valid(world) and is_instance_valid(world.local_player):
-				target_node = world.local_player
-			
-			var en_vis = _get_entity_visual_position(en)
-			if is_instance_valid(target_node) and not data.get("is_fixed", false):
-				var target_vis = _get_entity_visual_position(target_node)
-				var target_angle = (target_vis - en_vis).angle()
-				indicator.global_position = en_vis
-				indicator.global_rotation = lerp_angle(indicator.global_rotation, target_angle, 4.0 * delta)
-				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
+			# Sincronizar rotación Y con perspectiva 2.5D
+			if not data.get("is_fixed", false) and t_id != "":
+				var target_node = null
+				if is_instance_valid(world) and is_instance_valid(world.local_player) and str(world.local_player.get("entity_id")) == t_id:
+					target_node = world.local_player
+				elif remote_players.has(t_id):
+					target_node = remote_players[t_id]
+				
+				if target_node == null and is_instance_valid(world) and is_instance_valid(world.local_player):
+					target_node = world.local_player
+					
+				if is_instance_valid(target_node):
+					var target_angle = (target_node.global_position - en.global_position).angle()
+					var dir_2d = Vector2.RIGHT.rotated(target_angle)
+					var current_map = get_tree().get_first_node_in_group("map")
+					var s_factor = current_map.scale_factor if is_instance_valid(current_map) and "scale_factor" in current_map else 0.02
+					var correction_z = current_map.correction_z if is_instance_valid(current_map) and "correction_z" in current_map else 1.41421356
+					var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+					var target_y_rot = atan2(-diff_3d.x, -diff_3d.z)
+					indicator_3d.rotation.y = lerp_angle(indicator_3d.rotation.y, target_y_rot, 4.0 * delta)
 			elif data.get("is_fixed", false):
-				indicator.global_position = en_vis
-				indicator.global_rotation = data.get("fixed_angle", 0.0)
-				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
-			else:
-				indicator.global_position = en_vis
+				var fixed_shoot_angle = data.get("fixed_angle", 0.0)
+				var dir_2d = Vector2.RIGHT.rotated(fixed_shoot_angle)
+				var current_map = get_tree().get_first_node_in_group("map")
+				var s_factor = current_map.scale_factor if is_instance_valid(current_map) and "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if is_instance_valid(current_map) and "correction_z" in current_map else 1.41421356
+				var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+				indicator_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
 		else:
+			if is_instance_valid(indicator_3d):
+				indicator_3d.queue_free()
 			active_laser_tracking.erase(eid)
 
 func _parse_zone_to_int(zone_var) -> int:
@@ -350,6 +361,9 @@ func _get_enemy_from_pool() -> Node:
 		world.entities_node.add_child(en)
 	return en
 
+func _on_laser_indicator_exited(enemy_id: String):
+	active_laser_tracking.erase(enemy_id)
+
 func _on_enemy_action(data: Dictionary):
 	var action = data.get("action", "")
 	var enemy_id = str(data.get("id", ""))
@@ -361,67 +375,157 @@ func _on_enemy_action(data: Dictionary):
 		var length = float(data.get("range", 1500.0))
 		var t_id = str(data.get("targetId", ""))
 		
-		active_laser_tracking.erase(enemy_id)
+		# Limpiar tracking anterior e indicadores viejos
+		if active_laser_tracking.has(enemy_id):
+			var old_data = active_laser_tracking[enemy_id]
+			var old_3d = old_data.get("indicator_3d")
+			if is_instance_valid(old_3d): old_3d.queue_free()
+			active_laser_tracking.erase(enemy_id)
+			
 		for child in en.get_children():
 			if child.has_meta("is_laser_indicator"):
 				en.remove_child(child)
 				child.queue_free()
 		
+		# Limpiar indicador 3D suelto en el viewport (de runs anteriores)
+		var current_map = get_tree().get_first_node_in_group("map")
+		var is_3d_active = is_instance_valid(current_map) and current_map.get("sub_viewport") != null and is_instance_valid(en.get("world_root_3d"))
+		if is_3d_active:
+			var old_vp_node = current_map.sub_viewport.get_node_or_null("LaserIndicator3D_" + enemy_id)
+			if is_instance_valid(old_vp_node): old_vp_node.queue_free()
+		
 		if action == "charging":
-			var indicator = Line2D.new()
-			indicator.set_meta("is_laser_indicator", true)
-			indicator.width = 2.0
-			indicator.default_color = Color(1, 0, 0, 0.4) 
-			indicator.z_index = -1 
-			
-			indicator.top_level = true 
-			en.add_child(indicator) 
-			
-			var en_vis = _get_entity_visual_position(en)
-			indicator.global_position = en_vis
-			indicator.global_rotation = angle
-			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
-			
-			if t_id != "":
+			if is_3d_active:
+				# Fase charging en 3D: indicador fino rojo translúcido
+				# Fórmula de rotación Y idéntica a la del proyectil: -angle - PI/2.0
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var beam_len_3d = length * s_factor
+				var half_len = beam_len_3d / 2.0
+				
+				var indicator_3d = Node3D.new()
+				indicator_3d.name = "LaserIndicator3D_" + enemy_id
+				# Posición inicial = posición 3D del enemigo
+				if is_instance_valid(en.get("world_root_3d")):
+					indicator_3d.position = en.world_root_3d.global_position
+					indicator_3d.position.y = 0.0
+				# Rotación Y corregida inicial con perspectiva 2.5D
+				var dir_2d = Vector2.RIGHT.rotated(angle)
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+				indicator_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+				current_map.sub_viewport.add_child(indicator_3d)
+				
+				var mesh_inst = MeshInstance3D.new()
+				var box = BoxMesh.new()
+				box.size = Vector3(0.08, 0.08, beam_len_3d)
+				mesh_inst.mesh = box
+				var mat = StandardMaterial3D.new()
+				mat.albedo_color = Color(1.0, 0.0, 0.0, 0.4)
+				mat.emission_enabled = true
+				mat.emission = Color(1.0, 0.0, 0.0)
+				mat.emission_energy_multiplier = 2.0
+				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				mesh_inst.material_override = mat
+				mesh_inst.position = Vector3(0, 0.2, -half_len)
+				indicator_3d.add_child(mesh_inst)
+				
+				# Registrar en tracking para actualizar posición y rotación Y en _process
 				active_laser_tracking[enemy_id] = {
-					"indicator": indicator,
+					"indicator_3d": indicator_3d,
+					"enemy_node": en,
 					"targetId": t_id,
 					"range": length,
-					"is_fixed": false 
+					"is_fixed": false
 				}
-			
-			var tw = create_tween()
-			tw.tween_property(indicator, "default_color:a", 0.8, duration)
-			tw.finished.connect(indicator.queue_free)
-			
+				
+				indicator_3d.tree_exiting.connect(_on_laser_indicator_exited.bind(enemy_id))
+				
+				# Animación de carga
+				var tw = create_tween()
+				tw.tween_property(mat, "albedo_color:a", 0.8, duration)
+				tw.parallel().tween_property(mat, "emission_energy_multiplier", 4.0, duration)
+				tw.finished.connect(indicator_3d.queue_free)
+			else:
+				# Fallback 2D: Line2D hijo local de en con la rotación del ángulo del servidor
+				var indicator = Line2D.new()
+				indicator.set_meta("is_laser_indicator", true)
+				indicator.width = 2.5
+				indicator.default_color = Color(1, 0, 0, 0.4) 
+				indicator.z_index = -1 
+				indicator.top_level = false
+				indicator.position = Vector2.ZERO
+				indicator.rotation = angle  # ángulo del servidor directamente
+				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
+				en.add_child(indicator) 
+				var tw = create_tween()
+				tw.tween_property(indicator, "default_color:a", 0.8, duration)
+				tw.finished.connect(indicator.queue_free)
+				
 		elif action == "locked":
-			var indicator = Line2D.new()
-			indicator.set_meta("is_laser_indicator", true)
-			indicator.width = 4.0
-			indicator.default_color = Color(1, 0, 0, 0.8)
-			indicator.z_index = -1
-			
-			indicator.top_level = true
-			en.add_child(indicator)
-			
-			var fixed_shoot_angle = angle
-			var en_vis = _get_entity_visual_position(en)
-			indicator.global_position = en_vis
-			indicator.global_rotation = fixed_shoot_angle
-			indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
-			
-			active_laser_tracking[enemy_id] = {
-				"indicator": indicator,
-				"targetId": "", 
-				"fixed_angle": fixed_shoot_angle,
-				"range": length,
-				"is_fixed": true
-			}
-			
-			en.set_meta("is_locked", true)
-			await get_tree().create_timer(duration).timeout
-			if is_instance_valid(en): en.set_meta("is_locked", false)
-			if is_instance_valid(indicator): indicator.queue_free()
+			if is_3d_active:
+				# Fase locked en 3D: rayo más grueso con ángulo fijado del servidor
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var beam_len_3d = length * s_factor
+				var half_len = beam_len_3d / 2.0
+				
+				var indicator_3d = Node3D.new()
+				indicator_3d.name = "LaserIndicator3D_" + enemy_id
+				if is_instance_valid(en.get("world_root_3d")):
+					indicator_3d.position = en.world_root_3d.global_position
+					indicator_3d.position.y = 0.0
+				# Ángulo fijado corregido inicial con perspectiva 2.5D
+				var dir_2d = Vector2.RIGHT.rotated(angle)
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+				indicator_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+				current_map.sub_viewport.add_child(indicator_3d)
+				
+				var mesh_inst = MeshInstance3D.new()
+				var box = BoxMesh.new()
+				box.size = Vector3(0.16, 0.16, beam_len_3d)
+				mesh_inst.mesh = box
+				var mat = StandardMaterial3D.new()
+				mat.albedo_color = Color(1.0, 0.0, 0.0, 0.85)
+				mat.emission_enabled = true
+				mat.emission = Color(1.0, 0.0, 0.0)
+				mat.emission_energy_multiplier = 4.0
+				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				mesh_inst.material_override = mat
+				mesh_inst.position = Vector3(0, 0.2, -half_len)
+				indicator_3d.add_child(mesh_inst)
+				
+				# En locked el ángulo está fijado
+				active_laser_tracking[enemy_id] = {
+					"indicator_3d": indicator_3d,
+					"enemy_node": en,
+					"range": length,
+					"is_fixed": true,
+					"fixed_angle": angle
+				}
+				
+				indicator_3d.tree_exiting.connect(_on_laser_indicator_exited.bind(enemy_id))
+				
+				en.set_meta("is_locked", true)
+				await get_tree().create_timer(duration).timeout
+				if is_instance_valid(en): en.set_meta("is_locked", false)
+				if is_instance_valid(indicator_3d): indicator_3d.queue_free()
+			else:
+				# Fallback 2D: Line2D hijo de en con el ángulo fijado del servidor
+				var indicator = Line2D.new()
+				indicator.set_meta("is_laser_indicator", true)
+				indicator.width = 5.0
+				indicator.default_color = Color(1, 0, 0, 0.85)
+				indicator.z_index = -1
+				indicator.top_level = false
+				indicator.position = Vector2.ZERO
+				indicator.rotation = angle  # ángulo fijado del servidor
+				indicator.points = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT * length])
+				en.add_child(indicator) 
+				
+				en.set_meta("is_locked", true)
+				await get_tree().create_timer(duration).timeout
+				if is_instance_valid(en): en.set_meta("is_locked", false)
+				if is_instance_valid(indicator): indicator.queue_free()
 		
 		elif action == "cone_charging":
 			var range_val = float(data.get("range", 400.0))

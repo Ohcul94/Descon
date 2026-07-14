@@ -3073,27 +3073,17 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "missile",
-                    "bulletDamage": 400,
-                    "bulletSpeed": 1500,
-                    "fireRange": 600,
-                    "fireRate": 3000,
-                    "stunDuration": 2000,
-                    "isHoming": 0,
-                    "turnSpeed": 0,
-                    "startDelay": 0,
-                    "pullSpeed": 200,
-                    "postHookWaitMs": 1500,
-                    "hookMissWaitMs": 1000,
-                    "lifetimeMs": 0
-                },
-                {
-                    "type": "mine",
-                    "bulletDamage": 10,
+                    "type": "mega_laser",
+                    "bulletDamage": 1000,
                     "bulletSpeed": 800,
-                    "fireRange": 600,
+                    "fireRange": 1000,
                     "fireRate": 1000,
-                    "startDelay": 0
+                    "chargeTimeMs": 2000,
+                    "startDelay": 0,
+                    "lifetimeMs": 1000,
+                    "turnSpeed": 0,
+                    "lockTimeMs": 500,
+                    "isHoming": 0
                 }
             ],
             "movementPhases": [

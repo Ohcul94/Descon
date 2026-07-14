@@ -64,6 +64,15 @@ var _is_setup: bool = false
 var _melee_fireballs_3d: Array = []
 var _melee_blade_positions_3d: Array = []
 
+# Referencias para animación y efectos de Mega Láser (v315)
+var _laser_hit_3d: Node3D = null
+var _laser_glow_mat: StandardMaterial3D = null
+var _laser_beam_mat: StandardMaterial3D = null
+var _laser_core_mat: StandardMaterial3D = null
+var _laser_glow_mesh: MeshInstance3D = null
+var _laser_beam_mesh: MeshInstance3D = null
+var _laser_core_mesh: MeshInstance3D = null
+
 func _ready():
 	add_to_group("projectiles")
 	if not body_entered.is_connected(_on_body_entered):
@@ -83,7 +92,42 @@ func _process(_delta):
 		world_root_3d.position.x = global_position.x * s_factor
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
 		world_root_3d.position.y = 0.0
-		world_root_3d.rotation.y = -rotation - PI/2.0
+		if type == "mega_laser":
+			var dir_2d = Vector2.RIGHT.rotated(rotation)
+			var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+			world_root_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+			
+			# 1. Fluctuación y vibración dinámica del rayo láser
+			var time = Time.get_ticks_msec() / 1000.0
+			var scale_pulse = 1.0 + sin(time * 45.0) * 0.15
+			var scale_pulse_core = 1.0 + cos(time * 60.0) * 0.2
+			
+			if is_instance_valid(_laser_beam_mesh):
+				_laser_beam_mesh.scale.x = scale_pulse
+				_laser_beam_mesh.scale.y = scale_pulse
+			if is_instance_valid(_laser_core_mesh):
+				_laser_core_mesh.scale.x = scale_pulse_core
+				_laser_core_mesh.scale.y = scale_pulse_core
+			if is_instance_valid(_laser_glow_mesh):
+				_laser_glow_mesh.scale.x = 1.0 + sin(time * 30.0) * 0.1
+				_laser_glow_mesh.scale.y = 1.0 + sin(time * 30.0) * 0.1
+				
+			if is_instance_valid(_laser_glow_mat):
+				_laser_glow_mat.emission_energy_multiplier = 2.0 + sin(time * 35.0) * 0.4
+			if is_instance_valid(_laser_beam_mat):
+				_laser_beam_mat.emission_energy_multiplier = 5.0 + cos(time * 50.0) * 1.5
+			if is_instance_valid(_laser_core_mat):
+				_laser_core_mat.emission_energy_multiplier = 8.0 + sin(time * 70.0) * 2.0
+				
+			# 2. Posicionamiento del Hit VFX en la punta del láser
+			if is_instance_valid(_laser_hit_3d):
+				var length = max_range if max_range > 0.0 else 1000.0
+				var beam_len_3d = length * s_factor
+				var forward = -world_root_3d.global_transform.basis.z.normalized()
+				_laser_hit_3d.global_position = world_root_3d.global_position + forward * beam_len_3d
+				_laser_hit_3d.global_position.y = 0.2
+		else:
+			world_root_3d.rotation.y = -rotation - PI/2.0
 
 
 func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
@@ -535,6 +579,55 @@ func _setup_visual_sprite():
 				sprite = null
 				return
 
+	if type == "mine":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "Mine3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+
+			var core = MeshInstance3D.new()
+			var sphere = SphereMesh.new()
+			sphere.radius = 0.5
+			sphere.height = 1.0
+			core.mesh = sphere
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = Color(1.0, 0.15, 0.05)
+			mat.emission_enabled = true
+			mat.emission = Color(1.0, 0.15, 0.05)
+			mat.emission_energy_multiplier = 5.0
+			core.material_override = mat
+			world_root_3d.add_child(core)
+
+			var ring = MeshInstance3D.new()
+			var ring_mesh = CylinderMesh.new()
+			ring_mesh.top_radius = 0.7
+			ring_mesh.bottom_radius = 0.7
+			ring_mesh.height = 0.05
+			ring.mesh = ring_mesh
+			var ring_mat = StandardMaterial3D.new()
+			ring_mat.albedo_color = Color(1.0, 0.3, 0.1)
+			ring_mat.emission_enabled = true
+			ring_mat.emission = Color(1.0, 0.3, 0.1)
+			ring_mat.emission_energy_multiplier = 3.0
+			ring.material_override = ring_mat
+			world_root_3d.add_child(ring)
+
+			var light = OmniLight3D.new()
+			light.light_color = Color(1.0, 0.15, 0.05)
+			light.light_energy = 3.0
+			light.omni_range = 6.0
+			world_root_3d.add_child(light)
+
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+			)
+
+			sprite = null
+			return
+
 	var path = ""
 	match type:
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
@@ -543,24 +636,109 @@ func _setup_visual_sprite():
 			path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
 			modulate = Color(0, 1, 1) 
 		"mega_laser":
-			var beam = Line2D.new()
-			beam.width = 40.0
-			beam.default_color = Color(1, 0.2, 0.2, 0.8) 
 			var length = max_range if max_range > 0.0 else 1000.0
-			beam.points = PackedVector2Array([Vector2.ZERO, Vector2(length, 0)])
-			
-			var glow = Line2D.new()
-			glow.width = 15.0
-			glow.default_color = Color(1, 1, 1, 0.9) 
-			glow.points = beam.points
-			beam.add_child(glow)
-			
-			add_child(beam)
-			
+
 			for child in get_children():
 				if child is CollisionShape2D and child.shape is RectangleShape2D:
 					child.shape.size = Vector2(length, 40.0)
 					child.position.x = child.shape.size.x / 2.0
+
+			var map_node = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+				var target_vp = map_node.sub_viewport
+				var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+
+				world_root_3d = Node3D.new()
+				world_root_3d.name = "MegaLaser3D_" + str(get_instance_id())
+				target_vp.add_child(world_root_3d)
+
+				var beam_len_3d = length * s_factor
+				var half_len = beam_len_3d / 2.0
+
+				var glow = MeshInstance3D.new()
+				var glow_box = BoxMesh.new()
+				glow_box.size = Vector3(0.5, 0.5, beam_len_3d)
+				glow.mesh = glow_box
+				var glow_mat = StandardMaterial3D.new()
+				glow_mat.albedo_color = Color(1.0, 0.2, 0.05, 0.3)
+				glow_mat.emission_enabled = true
+				glow_mat.emission = Color(1.0, 0.15, 0.05)
+				glow_mat.emission_energy_multiplier = 2.0
+				glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				glow.material_override = glow_mat
+				glow.position = Vector3(0, 0.2, -half_len)
+				world_root_3d.add_child(glow)
+				
+				_laser_glow_mesh = glow
+				_laser_glow_mat = glow_mat
+
+				var beam_mesh = MeshInstance3D.new()
+				var box = BoxMesh.new()
+				box.size = Vector3(0.18, 0.18, beam_len_3d)
+				beam_mesh.mesh = box
+				var mat = StandardMaterial3D.new()
+				mat.albedo_color = Color(1.0, 0.25, 0.1)
+				mat.emission_enabled = true
+				mat.emission = Color(1.0, 0.25, 0.1)
+				mat.emission_energy_multiplier = 5.0
+				beam_mesh.material_override = mat
+				beam_mesh.position = Vector3(0, 0.2, -half_len)
+				world_root_3d.add_child(beam_mesh)
+				
+				_laser_beam_mesh = beam_mesh
+				_laser_beam_mat = mat
+
+				var core = MeshInstance3D.new()
+				var core_box = BoxMesh.new()
+				core_box.size = Vector3(0.05, 0.05, beam_len_3d * 0.97)
+				core.mesh = core_box
+				var core_mat = StandardMaterial3D.new()
+				core_mat.albedo_color = Color(1.0, 1.0, 1.0)
+				core_mat.emission_enabled = true
+				core_mat.emission = Color(1.0, 1.0, 0.95)
+				core_mat.emission_energy_multiplier = 8.0
+				core.material_override = core_mat
+				core.position = Vector3(0, 0.2, -half_len)
+				world_root_3d.add_child(core)
+				
+				_laser_core_mesh = core
+				_laser_core_mat = core_mat
+
+				var light = OmniLight3D.new()
+				light.light_color = Color(1.0, 0.2, 0.05)
+				light.light_energy = 5.0
+				light.omni_range = beam_len_3d * 0.6
+				light.position = Vector3(0, 0.2, -half_len)
+				world_root_3d.add_child(light)
+
+				# Instanciar efecto oficial de impacto de partículas en la punta del láser
+				if VFX_Laser_Hit_scene:
+					_laser_hit_3d = VFX_Laser_Hit_scene.instantiate()
+					_laser_hit_3d.name = "LaserHit3D_" + str(get_instance_id())
+					target_vp.add_child(_laser_hit_3d)
+
+				tree_exiting.connect(func():
+					if is_instance_valid(world_root_3d):
+						world_root_3d.queue_free()
+					if is_instance_valid(_laser_hit_3d):
+						_laser_hit_3d.queue_free()
+				)
+
+				sprite = null
+				return
+
+			var beam_2d = Line2D.new()
+			beam_2d.width = 40.0
+			beam_2d.default_color = Color(1, 0.2, 0.2, 0.8) 
+			beam_2d.points = PackedVector2Array([Vector2.ZERO, Vector2(length, 0)])
+
+			var glow_2d = Line2D.new()
+			glow_2d.width = 15.0
+			glow_2d.default_color = Color(1, 1, 1, 0.9) 
+			glow_2d.points = beam_2d.points
+			beam_2d.add_child(glow_2d)
+
+			add_child(beam_2d)
 			return
 	
 	if path != "":
@@ -644,6 +822,8 @@ func _draw():
 				draw_circle(spark_pos, 2.0, Color(0.8, 0.95, 1.0, 0.95))
 				draw_line(bomb_pos, spark_pos, Color(0.5, 0.9, 1.0, 0.6), 1.5)
 		"mine":
+			if is_instance_valid(world_root_3d):
+				return
 			draw_circle(Vector2.ZERO, 10, Color.WHITE)
 			draw_circle(Vector2.ZERO, 12, Color(1, 1, 1, 0.3), false, 3.0)
 		"hook":
@@ -736,7 +916,7 @@ func _physics_process(delta):
 			_find_target_timer = 0.0
 			_find_target()
 	
-	if is_homing and is_instance_valid(_target_node):
+	if is_homing and is_instance_valid(_target_node) and type != "mega_laser":
 		var target_pos = _target_node.global_position
 		var target_angle = (target_pos - global_position).angle()
 		rotation = rotate_toward(rotation, target_angle, turn_speed * delta)
@@ -744,6 +924,9 @@ func _physics_process(delta):
 	
 	elif type == "mine":
 		velocity = velocity.lerp(Vector2.ZERO, 3.5 * delta)
+	elif type == "mega_laser":
+		if is_instance_valid(_owner_node):
+			global_position = _owner_node.global_position
 	elif type == "melee":
 		velocity = velocity.lerp(Vector2.ZERO, 6.0 * delta)
 		if is_instance_valid(_owner_node):
@@ -804,7 +987,7 @@ func _physics_process(delta):
 		queue_redraw()
 		
 	var move_step = velocity * delta
-	if type == "melee":
+	if type == "melee" or type == "mega_laser":
 		move_step = Vector2.ZERO
 	if type == "siphon":
 		var time = (Time.get_ticks_msec() / 1000.0) - _start_time_stamp
@@ -818,7 +1001,7 @@ func _physics_process(delta):
 	if type == "electron":
 		queue_redraw()
 	
-	if max_range > 0:
+	if max_range > 0 and type != "mega_laser":
 		var dist = global_position.distance_to(_start_pos)
 		if dist >= max_range:
 			if type == "mine":
