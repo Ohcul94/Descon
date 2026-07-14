@@ -90,8 +90,8 @@ const exportPCK = (presetName, outputPath) => {
 };
 
 // Intentar exportaciones por CLI
-const exportedWindows = exportPCK('Descon', 'updates_windows.pck');
-const exportedAndroid = exportPCK('Descon V2', 'updates_android.pck');
+const exportedWindows = exportPCK('Descon Windows Patch', 'updates_windows.pck');
+const exportedAndroid = exportPCK('Descon V2 Patch', 'updates_android.pck');
 
 // Rutas de origen de exportación del usuario
 const EXPORT_WINDOWS_DIR = path.resolve(SERVER_DIR, '../Ejecutable');
@@ -102,41 +102,49 @@ const copyPCKFromExports = () => {
     console.log('[EXPORT] Buscando archivos PCK en las carpetas de exportación del usuario...');
     
     // Windows
-    const winSources = [
-        path.join(EXPORT_WINDOWS_DIR, 'Descon.pck'),
-        path.join(EXPORT_WINDOWS_DIR, 'updates_windows.pck')
-    ];
-    let winCopied = false;
-    for (const src of winSources) {
-        if (fs.existsSync(src)) {
-            const dest = path.join(CDN_DIR, 'updates_windows.pck');
-            fs.copyFileSync(src, dest);
-            console.log(`[EXPORT] Copiado PCK de Windows de: ${src} -> ${dest}`);
-            winCopied = true;
-            break;
+    if (!exportedWindows) {
+        const winSources = [
+            path.join(EXPORT_WINDOWS_DIR, 'Descon.pck'),
+            path.join(EXPORT_WINDOWS_DIR, 'updates_windows.pck')
+        ];
+        let winCopied = false;
+        for (const src of winSources) {
+            if (fs.existsSync(src)) {
+                const dest = path.join(CDN_DIR, 'updates_windows.pck');
+                fs.copyFileSync(src, dest);
+                console.log(`[EXPORT] Copiado PCK de Windows de: ${src} -> ${dest}`);
+                winCopied = true;
+                break;
+            }
         }
-    }
-    if (!winCopied) {
-        console.log('[EXPORT] No se encontró un nuevo PCK en la carpeta Ejecutable/ (se usará el existente en CDN si hay).');
+        if (!winCopied) {
+            console.log('[EXPORT] No se encontró un nuevo PCK en la carpeta Ejecutable/ (se usará el existente en CDN si hay).');
+        }
+    } else {
+        console.log('[EXPORT] PCK de Windows exportado por CLI con éxito. Omitiendo copia manual.');
     }
 
     // Android
-    const androidSources = [
-        path.join(EXPORT_ANDROID_DIR, 'Descon.pck'),
-        path.join(EXPORT_ANDROID_DIR, 'updates_android.pck')
-    ];
-    let androidCopied = false;
-    for (const src of androidSources) {
-        if (fs.existsSync(src)) {
-            const dest = path.join(CDN_DIR, 'updates_android.pck');
-            fs.copyFileSync(src, dest);
-            console.log(`[EXPORT] Copiado PCK de Android de: ${src} -> ${dest}`);
-            androidCopied = true;
-            break;
+    if (!exportedAndroid) {
+        const androidSources = [
+            path.join(EXPORT_ANDROID_DIR, 'Descon.pck'),
+            path.join(EXPORT_ANDROID_DIR, 'updates_android.pck')
+        ];
+        let androidCopied = false;
+        for (const src of androidSources) {
+            if (fs.existsSync(src)) {
+                const dest = path.join(CDN_DIR, 'updates_android.pck');
+                fs.copyFileSync(src, dest);
+                console.log(`[EXPORT] Copiado PCK de Android de: ${src} -> ${dest}`);
+                androidCopied = true;
+                break;
+            }
         }
-    }
-    if (!androidCopied) {
-        console.log('[EXPORT] No se encontró un nuevo PCK en la carpeta Ejecutable Android/ (se usará el existente en CDN si hay).');
+        if (!androidCopied) {
+            console.log('[EXPORT] No se encontró un nuevo PCK en la carpeta Ejecutable Android/ (se usará el existente en CDN si hay).');
+        }
+    } else {
+        console.log('[EXPORT] PCK de Android exportado por CLI con éxito. Omitiendo copia manual.');
     }
 };
 
