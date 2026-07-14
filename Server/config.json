@@ -489,7 +489,8 @@
                 }
             ],
             "defenseMechanics": [],
-            "rankingPoints": 7
+            "rankingPoints": 7,
+            "lootDrops": []
         },
         "8": {
             "bulletDamage": 350,
@@ -1447,7 +1448,9 @@
             "chaseMissTimeout": 0,
             "chaseIdleTimeout": 0,
             "aggressive": true,
-            "rankingPoints": 3
+            "rankingPoints": 3,
+            "defenseMechanics": [],
+            "lootDrops": []
         },
         "3-D": {
             "bulletDamage": 400,
@@ -3073,7 +3076,7 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "mega_laser",
+                    "type": "orbital_strike",
                     "bulletDamage": 1000,
                     "bulletSpeed": 800,
                     "fireRange": 1000,
@@ -3083,7 +3086,12 @@
                     "lifetimeMs": 1000,
                     "turnSpeed": 0,
                     "lockTimeMs": 500,
-                    "isHoming": 0
+                    "isHoming": 0,
+                    "orbitSpeed": 0,
+                    "circleCount": 0,
+                    "orbitRadius": 0,
+                    "orbitDuration": 0,
+                    "staticTime": 0
                 }
             ],
             "movementPhases": [
