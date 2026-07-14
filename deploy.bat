@@ -4,6 +4,7 @@ echo INICIANDO DESPLIEGUE AUTOMATICO DE DESCON V2.0
 echo ==============================================
 
 echo [1/6] Firmando y generando manifest.json de los PCKs...
+set GODOT_BIN=E:\PROGRAMAS\Godot\Godot_v4.7-stable_win64.exe
 node Server/tools/package_updates.js
 if %errorlevel% neq 0 (
     echo [ERROR] Error al firmar los PCKs. Despliegue cancelado.
