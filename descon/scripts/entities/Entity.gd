@@ -1123,8 +1123,8 @@ func _resurrect(data: Dictionary):
 	# Limpiar auras activas viejas del pooling
 	for mId in active_auras:
 		var aura_data = active_auras[mId]
-		if is_instance_valid(aura_data.node):
-			aura_data.node.queue_free()
+		if aura_data.has("node_3d") and is_instance_valid(aura_data.node_3d):
+			aura_data.node_3d.queue_free()
 	active_auras.clear()
 
 	# 3. Restaurar visibilidad y estado de todos los componentes
@@ -1373,8 +1373,8 @@ func die():
 	# Limpiar auras visuales activas en muerte
 	for mId in active_auras:
 		var aura_data = active_auras[mId]
-		if is_instance_valid(aura_data.node):
-			aura_data.node.queue_free()
+		if aura_data.has("node_3d") and is_instance_valid(aura_data.node_3d):
+			aura_data.node_3d.queue_free()
 	active_auras.clear()
 		
 	# 4. Spawnear la explosión (VFX) justo donde estaba la nave
@@ -1536,46 +1536,246 @@ func _on_enemy_aura(data):
 	if data.active:
 		if active_auras.has(mId): return
 		
-		var spr = Sprite2D.new()
-		if TEX_REFLECT_AURA:
-			spr.texture = TEX_REFLECT_AURA
-		
-		spr.modulate = Color(1, 0, 0, 0.4) # Default rojo (daño)
-		if data.type == "aura_heal": spr.modulate = Color(0, 1, 0.4, 0.4)
-		elif data.type == "aura_speed": spr.modulate = Color(1, 0.8, 0, 0.4)
-		
-		# v268.800: Escalar según el radio del aura (textura base es ~512px)
 		var radius = data.get("radius", 200)
-		var target_scale = (float(radius) * 2.0) / 512.0
-		spr.scale = Vector2.ZERO
 		
-		_vfx_container_2d.add_child(spr)
-		active_auras[mId] = {"node": spr, "target_scale": target_scale, "type": data.type}
+		active_auras[mId] = {"type": data.type, "radius": radius, "start_time_3d": Time.get_ticks_msec() / 1000.0}
 		
-		var tw = create_tween()
-		tw.tween_property(spr, "scale", Vector2(target_scale, target_scale), 0.5).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		# ---- 3D Aura Visual ----
+		var current_map = _get_map_node()
+		if is_instance_valid(current_map) and is_instance_valid(current_map.get("sub_viewport")):
+			var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+			var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+			
+			var radius_3d = radius * s_factor
+			
+			# Precargar texturas locales para cilindros y partículas
+			var tex_hex = preload("res://VFX/textures/T_Hex1_inv.jpg")
+			var tex_smoke = preload("res://VFX/textures/T_VFX_Smoke_4_alpha.PNG")
+			var tex_flare = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+			
+			# Definir shader personalizado para desvanecer extremos del cilindro y desplazar la textura
+			var shader = Shader.new()
+			shader.code = "shader_type spatial;
+render_mode blend_add, depth_draw_opaque, cull_disabled, unshaded;
+
+uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec4 albedo_color : source_color = vec4(1.0);
+uniform vec2 scroll_speed = vec2(0.0, -0.5);
+uniform vec2 uv_scale = vec2(1.0, 1.0);
+uniform float fade_exponent = 2.0;
+
+void fragment() {
+	vec2 uv = UV * uv_scale + scroll_speed * TIME;
+	vec4 tex = texture(albedo_texture, uv);
+	
+	// Desvanecimiento vertical suave (sin bordes duros de tubo arriba y abajo)
+	float vertical_fade = sin(UV.y * 3.14159265);
+	vertical_fade = pow(vertical_fade, fade_exponent);
+	
+	ALBEDO = albedo_color.rgb * tex.rgb;
+	ALPHA = albedo_color.a * tex.a * vertical_fade;
+}"
+			
+			var aura_3d = Node3D.new()
+			aura_3d.name = "Aura3D_" + mId
+			current_map.sub_viewport.add_child(aura_3d)
+			
+			aura_3d.position.x = global_position.x * s_factor
+			aura_3d.position.z = global_position.y * s_factor * correction_z
+			aura_3d.position.y = 0.01
+			aura_3d.scale = Vector3(0.01, 0.01, 0.01) # Iniciar en 0 para que crezca desde el centro de la nave
+			
+			var aura_color = Color(1.0, 0.05, 0.1, 0.75) # Por defecto rojo vacío/daño
+			if data.type == "aura_heal": aura_color = Color(0.05, 1.0, 0.35, 0.75)
+			elif data.type == "aura_speed": aura_color = Color(1.0, 0.75, 0.0, 0.75)
+			
+			# 1. Cilindro externo - Patrón Hexagonal
+			var cyl_outer = MeshInstance3D.new()
+			var mesh_outer = CylinderMesh.new()
+			mesh_outer.top_radius = radius_3d * 0.75
+			mesh_outer.bottom_radius = radius_3d * 1.15
+			mesh_outer.height = radius_3d * 2.6
+			mesh_outer.cap_top = false
+			mesh_outer.cap_bottom = false
+			cyl_outer.mesh = mesh_outer
+			
+			var mat_outer = ShaderMaterial.new()
+			mat_outer.shader = shader
+			mat_outer.set_shader_parameter("albedo_texture", tex_hex)
+			mat_outer.set_shader_parameter("scroll_speed", Vector2(0.0, -0.2))
+			mat_outer.set_shader_parameter("uv_scale", Vector2(4.0, 2.0))
+			mat_outer.set_shader_parameter("fade_exponent", 1.8)
+			cyl_outer.material_override = mat_outer
+			cyl_outer.position.y = mesh_outer.height / 2.0
+			aura_3d.add_child(cyl_outer)
+			
+			# 2. Cilindro interno - Humo fluido
+			var cyl_inner = MeshInstance3D.new()
+			var mesh_inner = CylinderMesh.new()
+			mesh_inner.top_radius = radius_3d * 0.65
+			mesh_inner.bottom_radius = radius_3d * 1.0
+			mesh_inner.height = radius_3d * 2.6
+			mesh_inner.cap_top = false
+			mesh_inner.cap_bottom = false
+			cyl_inner.mesh = mesh_inner
+			
+			var mat_inner = ShaderMaterial.new()
+			mat_inner.shader = shader
+			mat_inner.set_shader_parameter("albedo_texture", tex_smoke)
+			mat_inner.set_shader_parameter("scroll_speed", Vector2(0.0, -0.45))
+			mat_inner.set_shader_parameter("uv_scale", Vector2(2.5, 1.5))
+			mat_inner.set_shader_parameter("fade_exponent", 2.2)
+			cyl_inner.material_override = mat_inner
+			cyl_inner.position.y = mesh_inner.height / 2.0
+			aura_3d.add_child(cyl_inner)
+			
+			# 3. CPUParticles3D: Destellos ascendentes (Flares suaves en lugar de cuadrados)
+			var particles = CPUParticles3D.new()
+			particles.name = "AuraParticles_" + mId
+			current_map.sub_viewport.add_child(particles)
+			
+			particles.position.x = global_position.x * s_factor
+			particles.position.z = global_position.y * s_factor * correction_z
+			particles.position.y = 0.05
+			particles.scale = Vector3(0.01, 0.01, 0.01) # Iniciar en 0 para que crezca desde el centro de la nave
+			
+			particles.amount = 70
+			particles.lifetime = 1.6
+			particles.preprocess = 0.8
+			particles.randomness = 0.4
+			
+			particles.direction = Vector3.UP
+			particles.gravity = Vector3.ZERO
+			particles.initial_velocity_min = 1.0
+			particles.initial_velocity_max = 2.2
+			particles.spread = 10.0
+			
+			particles.emission_shape = CPUParticles3D.EMISSION_SHAPE_RING
+			particles.emission_ring_axis = Vector3.UP
+			particles.emission_ring_radius = radius_3d * 0.9
+			particles.emission_ring_inner_radius = radius_3d * 0.4
+			particles.emission_ring_height = 0.1
+			
+			particles.scale_amount_min = 0.08
+			particles.scale_amount_max = 0.22
+			
+			var s_curve = Curve.new()
+			s_curve.add_point(Vector2(0, 0.1))
+			s_curve.add_point(Vector2(0.2, 1.0))
+			s_curve.add_point(Vector2(0.8, 0.6))
+			s_curve.add_point(Vector2(1.0, 0.0))
+			particles.scale_amount_curve = s_curve
+			
+			var grad = Gradient.new()
+			var part_c = aura_color
+			part_c.a = 0.8
+			var trans_c = aura_color
+			trans_c.a = 0.0
+			grad.set_color(0, Color(part_c.r, part_c.g, part_c.b, 0.0))
+			grad.add_point(0.2, part_c)
+			grad.add_point(0.8, Color(part_c.r * 1.5, part_c.g * 1.2, part_c.b, 0.6))
+			grad.set_color(1, trans_c)
+			particles.color_ramp = grad
+			
+			var p_mesh = QuadMesh.new()
+			p_mesh.size = Vector2(0.4, 0.4)
+			particles.mesh = p_mesh
+			
+			var p_mat = StandardMaterial3D.new()
+			p_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			p_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+			p_mat.vertex_color_use_as_albedo = true
+			p_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			p_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+			if tex_flare:
+				p_mat.albedo_texture = tex_flare
+			particles.material_override = p_mat
+			
+			# Animación de aparición suave
+			var target_color_outer = aura_color
+			target_color_outer.a = 0.5
+			var target_color_inner = Color(aura_color.r * 0.8, aura_color.g * 0.8, aura_color.b, 0.45)
+			
+			var start_color_outer = target_color_outer
+			start_color_outer.a = 0.0
+			var start_color_inner = target_color_inner
+			start_color_inner.a = 0.0
+			
+			mat_outer.set_shader_parameter("albedo_color", start_color_outer)
+			mat_inner.set_shader_parameter("albedo_color", start_color_inner)
+			
+			var tw_in = create_tween().set_parallel(true)
+			tw_in.tween_property(aura_3d, "scale", Vector3(1.0, 1.0, 1.0), 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw_in.tween_property(particles, "scale", Vector3(1.0, 1.0, 1.0), 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			tw_in.tween_method(func(c): mat_outer.set_shader_parameter("albedo_color", c), start_color_outer, target_color_outer, 0.4)
+			tw_in.tween_method(func(c): mat_inner.set_shader_parameter("albedo_color", c), start_color_inner, target_color_inner, 0.4)
+			
+			active_auras[mId]["node_3d"] = aura_3d
+			active_auras[mId]["particles_3d"] = particles
+			active_auras[mId]["mat_outer"] = mat_outer
+			active_auras[mId]["mat_inner"] = mat_inner
+			active_auras[mId]["s_factor"] = s_factor
+			active_auras[mId]["correction_z"] = correction_z
+			active_auras[mId]["radius_3d"] = radius_3d
+	
 	else:
 		if active_auras.has(mId):
 			var a_data = active_auras[mId]
-			var spr = a_data.node
 			active_auras.erase(mId)
 			
-			var tw = create_tween()
-			tw.tween_property(spr, "scale", Vector2.ZERO, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
-			tw.finished.connect(spr.queue_free)
+			# ---- 3D cleanup con desvanecimiento animado ----
+			if a_data.has("node_3d") and is_instance_valid(a_data.node_3d):
+				var m_outer = a_data.get("mat_outer")
+				var m_inner = a_data.get("mat_inner")
+				
+				var tw_out = create_tween().set_parallel(true)
+				if is_instance_valid(m_outer):
+					var current_c_outer = m_outer.get_shader_parameter("albedo_color")
+					var target_c_outer = current_c_outer
+					target_c_outer.a = 0.0
+					tw_out.tween_method(func(c): m_outer.set_shader_parameter("albedo_color", c), current_c_outer, target_c_outer, 0.4)
+				if is_instance_valid(m_inner):
+					var current_c_inner = m_inner.get_shader_parameter("albedo_color")
+					var target_c_inner = current_c_inner
+					target_c_inner.a = 0.0
+					tw_out.tween_method(func(c): m_inner.set_shader_parameter("albedo_color", c), current_c_inner, target_c_inner, 0.4)
+				
+				if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
+					tw_out.tween_property(a_data.particles_3d, "scale", Vector3.ZERO, 0.4)
+				
+				var tw_cleanup = create_tween()
+				tw_cleanup.tween_interval(0.45)
+				tw_cleanup.tween_callback(a_data.node_3d.queue_free)
+				if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
+					tw_cleanup.tween_callback(a_data.particles_3d.queue_free)
+			else:
+				if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
+					a_data.particles_3d.queue_free()
 
 func _update_auras(delta):
+	var now = Time.get_ticks_msec() / 1000.0
 	for mId in active_auras:
 		var a_data = active_auras[mId]
-		var spr = a_data.node
-		if is_instance_valid(spr):
-			# Efecto de pulso y rotación suave
-			var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.004) * 0.05
-			var s = a_data.target_scale * pulse
-			spr.scale = Vector2(s, s)
-			spr.rotate(delta * 0.5)
+		
+		if a_data.has("node") and is_instance_valid(a_data.node):
+			var pulse = 1.0 + sin(now * 4.0) * 0.05
+			var s = a_data.get("target_scale", 1.0) * pulse
+			a_data.node.scale = Vector2(s, s)
+			a_data.node.rotate(delta * 0.5)
 			if a_data.get("type") == "wall_dome":
 				queue_redraw()
+		
+		if a_data.has("node_3d") and is_instance_valid(a_data.node_3d):
+			var s_factor = a_data.get("s_factor", 0.02)
+			var correction_z = a_data.get("correction_z", 1.41421356)
+			a_data.node_3d.position.x = global_position.x * s_factor
+			a_data.node_3d.position.z = global_position.y * s_factor * correction_z
+		
+		if a_data.has("particles_3d") and is_instance_valid(a_data.particles_3d):
+			var s_factor = a_data.get("s_factor", 0.02)
+			var correction_z = a_data.get("correction_z", 1.41421356)
+			a_data.particles_3d.position.x = global_position.x * s_factor
+			a_data.particles_3d.position.z = global_position.y * s_factor * correction_z
 
 func _adjust_visuals(_type): 
 	if is_in_group("enemies"):
