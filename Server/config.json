@@ -3073,7 +3073,7 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "hook",
+                    "type": "bomb",
                     "bulletDamage": 1000,
                     "bulletSpeed": 800,
                     "fireRange": 1300,
@@ -3086,10 +3086,10 @@
                     "isHoming": 0,
                     "activationHP": 0,
                     "radius": 250,
-                    "damage": 15,
+                    "damage": 500,
                     "intervalMs": 1000,
                     "duration": 5000,
-                    "cooldown": 10000,
+                    "cooldown": 3000,
                     "orbitSpeed": 2,
                     "circleCount": 3,
                     "orbitRadius": 150,
@@ -3103,7 +3103,14 @@
                     "stunDuration": 1000,
                     "pullSpeed": 0,
                     "postHookWaitMs": 500,
-                    "hookMissWaitMs": 0
+                    "hookMissWaitMs": 0,
+                    "castSpeed": 0,
+                    "coneAngle": 100,
+                    "coneFollow": true,
+                    "aimDelayMs": 1000,
+                    "bombCount": 3,
+                    "bombDelayMs": 500,
+                    "fuseTimeMs": 1000
                 }
             ],
             "movementPhases": [

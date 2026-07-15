@@ -224,6 +224,17 @@ func _process(delta):
 					else:
 						area.global_position = en_vis
 						area.global_rotation = en.global_rotation - PI / 2
+						
+						# Sincronizar la rotación del cono 3D
+						var cone_3d = area.get_meta("cone_3d") if area.has_meta("cone_3d") else null
+						if is_instance_valid(cone_3d):
+							var dir_2d = Vector2.RIGHT.rotated(en.global_rotation - PI / 2)
+							var current_map = get_tree().get_first_node_in_group("map")
+							if is_instance_valid(current_map):
+								var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+								var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+								var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+								cone_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
 			else:
 				active_areas.erase(id)
 				area.queue_free()
@@ -531,7 +542,7 @@ func _on_enemy_action(data: Dictionary):
 			var range_val = float(data.get("range", 400.0))
 			var cone_angle = float(data.get("coneAngle", 60.0))
 			
-			# Contenedor del cono
+			# Contenedor del cono (2D Dummy/Controller)
 			var cone_node = Node2D.new()
 			cone_node.name = "ConeIndicator_" + enemy_id
 			cone_node.set_meta("is_cone_indicator", true)
@@ -544,39 +555,89 @@ func _on_enemy_action(data: Dictionary):
 			else:
 				en.add_child(cone_node)
 			
-			# Polígono de fondo (Área de Peligro)
-			var poly_bg = Polygon2D.new()
-			poly_bg.polygon = _get_cone_points(range_val, cone_angle)
-			poly_bg.color = Color(1.0, 0.0, 0.0, 0.15)
-			cone_node.add_child(poly_bg)
-			
-			# Polígono de carga (Progreso)
-			var poly_charge = Polygon2D.new()
-			poly_charge.polygon = _get_cone_points(1.0, cone_angle)
-			poly_charge.color = Color(1.0, 0.1, 0.1, 0.4)
-			cone_node.add_child(poly_charge)
+			if is_3d_active:
+				# ---- 3D Cone Indicator ----
+				var cone_3d = Node3D.new()
+				cone_3d.name = "Cone3D_" + enemy_id
+				en.world_root_3d.add_child(cone_3d)
+				cone_3d.position.y = 0.05
+				
+				# Establecer rotación Y inicial del cono 3D
+				var dir_2d = Vector2.RIGHT.rotated(en.rotation - PI / 2)
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+				cone_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+				
+				var range_3d = range_val * s_factor
+				var cone_mesh = _make_cone_mesh_3d(range_3d, cone_angle)
+				
+				var mesh_bg = MeshInstance3D.new()
+				mesh_bg.mesh = cone_mesh
+				var mat_bg = StandardMaterial3D.new()
+				mat_bg.albedo_color = Color(1.0, 0.0, 0.0, 0.12)
+				mat_bg.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				mat_bg.cull_mode = BaseMaterial3D.CULL_DISABLED
+				mesh_bg.material_override = mat_bg
+				cone_3d.add_child(mesh_bg)
+				
+				var mesh_fill = MeshInstance3D.new()
+				mesh_fill.mesh = cone_mesh
+				var mat_fill = StandardMaterial3D.new()
+				mat_fill.albedo_color = Color(1.0, 0.1, 0.1, 0.35)
+				mat_fill.emission_enabled = true
+				mat_fill.emission = Color(1.0, 0.1, 0.1)
+				mat_fill.emission_energy_multiplier = 1.5
+				mat_fill.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				mat_fill.cull_mode = BaseMaterial3D.CULL_DISABLED
+				mesh_fill.material_override = mat_fill
+				cone_3d.add_child(mesh_fill)
+				mesh_fill.scale = Vector3(0.01, 0.01, 0.01)
+				
+				cone_node.set_meta("cone_3d", cone_3d)
+				
+				var tw_3d = cone_3d.create_tween()
+				tw_3d.tween_property(mesh_fill, "scale", Vector3.ONE, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			else:
+				# ---- Fallback 2D Cone Indicator ----
+				var poly_bg = Polygon2D.new()
+				poly_bg.polygon = _get_cone_points(range_val, cone_angle)
+				poly_bg.color = Color(1.0, 0.0, 0.0, 0.15)
+				cone_node.add_child(poly_bg)
+				
+				var poly_charge = Polygon2D.new()
+				poly_charge.polygon = _get_cone_points(1.0, cone_angle)
+				poly_charge.color = Color(1.0, 0.1, 0.1, 0.4)
+				cone_node.add_child(poly_charge)
+				
+				var lambda = func(r: float):
+					if is_instance_valid(poly_charge):
+						poly_charge.polygon = _get_cone_points(r, cone_angle)
+				var tw = cone_node.create_tween()
+				tw.tween_method(lambda, 1.0, range_val, duration)
 			
 			active_areas["cone_" + enemy_id] = cone_node
-			
-			# Tween para expandir el radio de la carga
-			var tw = cone_node.create_tween()
-			tw.tween_method(
-				func(r: float):
-					if is_instance_valid(poly_charge):
-						poly_charge.polygon = _get_cone_points(r, cone_angle),
-				1.0,
-				range_val,
-				duration
-			)
 			
 		elif action == "cone_fire":
 			var indicator = en.get_node_or_null("ConeIndicator_" + enemy_id)
 			if is_instance_valid(indicator):
+				var cone_3d = indicator.get_meta("cone_3d") if indicator.has_meta("cone_3d") else null
+				if is_instance_valid(cone_3d):
+					cone_3d.queue_free()
 				indicator.queue_free()
 				
 			var root_indicator = world.entities_node.get_node_or_null("ConeIndicator_" + enemy_id) if is_instance_valid(world) and is_instance_valid(world.entities_node) else null
 			if is_instance_valid(root_indicator):
+				var cone_3d = root_indicator.get_meta("cone_3d") if root_indicator.has_meta("cone_3d") else null
+				if is_instance_valid(cone_3d):
+					cone_3d.queue_free()
 				root_indicator.queue_free()
+				
+			# Also check for orphan 3D cones on world_root_3d
+			if is_instance_valid(en.get("world_root_3d")):
+				var orphan = en.world_root_3d.get_node_or_null("Cone3D_" + enemy_id)
+				if is_instance_valid(orphan):
+					orphan.queue_free()
 				
 			var range_val = float(data.get("range", 400.0))
 			var cone_angle = float(data.get("coneAngle", 60.0))
@@ -592,20 +653,62 @@ func _on_enemy_action(data: Dictionary):
 			else:
 				en.add_child(blast)
 			
-			var poly_blast = Polygon2D.new()
-			poly_blast.polygon = _get_cone_points(range_val, cone_angle)
-			poly_blast.color = Color(1.0, 0.4, 0.0, 0.8) # Naranja brillante
-			blast.add_child(poly_blast)
+			if is_3d_active:
+				# ---- 3D Cone Blast ----
+				var blast_3d = Node3D.new()
+				blast_3d.name = "ConeBlast3D_" + enemy_id
+				en.world_root_3d.add_child(blast_3d)
+				blast_3d.position.y = 0.05
+				
+				# Establecer rotación Y inicial del cono 3D (el ángulo ya es correcto)
+				var dir_2d = Vector2.RIGHT.rotated(angle)
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+				blast_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+				
+				var range_3d = range_val * s_factor
+				var cone_mesh = _make_cone_mesh_3d(range_3d, cone_angle)
+				
+				var mesh_blast = MeshInstance3D.new()
+				mesh_blast.mesh = cone_mesh
+				var mat_blast = StandardMaterial3D.new()
+				mat_blast.albedo_color = Color(1.0, 0.4, 0.0, 0.8)
+				mat_blast.emission_enabled = true
+				mat_blast.emission = Color(1.0, 0.4, 0.0)
+				mat_blast.emission_energy_multiplier = 3.0
+				mat_blast.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				mat_blast.cull_mode = BaseMaterial3D.CULL_DISABLED
+				mesh_blast.material_override = mat_blast
+				blast_3d.add_child(mesh_blast)
+				
+				var tw_3d = blast_3d.create_tween()
+				tw_3d.tween_property(mesh_blast, "material_override:albedo_color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+				tw_3d.parallel().tween_property(mesh_blast, "material_override:emission_energy_multiplier", 0.0, 0.25)
+				tw_3d.finished.connect(blast_3d.queue_free)
+				
+				var tw_dummy = blast.create_tween()
+				tw_dummy.tween_interval(0.25)
+				tw_dummy.finished.connect(func():
+					active_areas.erase("blast_" + enemy_id)
+					blast.queue_free()
+				)
+			else:
+				# ---- Fallback 2D Cone Blast ----
+				var poly_blast = Polygon2D.new()
+				poly_blast.polygon = _get_cone_points(range_val, cone_angle)
+				poly_blast.color = Color(1.0, 0.4, 0.0, 0.8) # Naranja brillante
+				blast.add_child(poly_blast)
+				
+				# Desvanecer la explosión (2D)
+				var tw = blast.create_tween()
+				tw.tween_property(poly_blast, "color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+				tw.finished.connect(func():
+					active_areas.erase("blast_" + enemy_id)
+					blast.queue_free()
+				)
 			
 			active_areas["blast_" + enemy_id] = blast
-			
-			# Desvanecer la explosión
-			var tw = blast.create_tween()
-			tw.tween_property(poly_blast, "color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-			tw.finished.connect(func():
-				active_areas.erase("blast_" + enemy_id)
-				blast.queue_free()
-			)
 		
 		elif action == "circle_charging":
 			var range_val = float(data.get("range", 300.0))
@@ -1804,6 +1907,27 @@ func _on_loot_despawned(data: Dictionary):
 			else:
 				drop.queue_free()
 			print("[EntityManager] Botín físico removido: ", id)
+
+func _make_cone_mesh_3d(range_3d: float, angle_deg: float) -> ArrayMesh:
+	var half_angle = deg_to_rad(angle_deg / 2.0)
+	var total_angle = deg_to_rad(angle_deg)
+	var segments = 24
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(segments):
+		var a1 = -half_angle + (float(i) / segments) * total_angle
+		var a2 = -half_angle + (float(i + 1) / segments) * total_angle
+		var p0 = Vector3(0, 0, 0)
+		var p1 = Vector3(sin(a1) * range_3d, 0, -cos(a1) * range_3d)
+		var p2 = Vector3(sin(a2) * range_3d, 0, -cos(a2) * range_3d)
+		var normal = Vector3.UP
+		st.set_normal(normal)
+		st.add_vertex(p0)
+		st.set_normal(normal)
+		st.add_vertex(p1)
+		st.set_normal(normal)
+		st.add_vertex(p2)
+	return st.commit()
 
 func _get_cone_points(radius: float, angle_degrees: float) -> PackedVector2Array:
 	var points = PackedVector2Array()
