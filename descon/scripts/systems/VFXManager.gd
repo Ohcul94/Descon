@@ -658,36 +658,13 @@ func _run_shader_warmup():
 		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 	]
 
-	var tn = Node3D.new()
-	get_tree().root.add_child(tn)
-	var tc = Camera3D.new()
-	tc.position = Vector3(999.0, 999.0, 1004.0)
-	tn.add_child(tc)
-	tc.look_at_from_position(tc.position, Vector3(999.0, 999.0, 999.0))
-
+	# Compilacion de shaders deshabilitada para evitar crashes en Android/PC
+	# Los shaders se compilaran la primera vez que se usen en el juego
 	var ts = scenes.size()
 	for i in range(ts):
-		var sp = scenes[i]
-		status.text = "Preparando efectos: " + sp.get_file()
-		if ResourceLoader.exists(sp):
-			var s = load(sp)
-			if s:
-				var inst = s.instantiate()
-				if inst is Node3D:
-					tn.add_child(inst)
-					inst.position = Vector3(999.0, 999.0, 999.0)
-				elif inst is Node2D:
-					get_tree().root.add_child(inst)
-					inst.position = Vector2(-9999.0, -9999.0)
-				else:
-					get_tree().root.add_child(inst)
-				await get_tree().physics_frame
-				await get_tree().process_frame
-				inst.queue_free()
 		progress.value = 50.0 + ((float(i) / ts) * 50.0)
-		await get_tree().process_frame
-
-	tn.queue_free()
+		if i % 5 == 0:
+			await get_tree().process_frame
 
 	status.text = "¡Listo!"
 	progress.value = 100.0
