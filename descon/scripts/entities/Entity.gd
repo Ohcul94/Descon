@@ -1486,6 +1486,54 @@ func _on_enemy_action(data):
 			var scale_factor = radius / 100.0
 			if is_instance_valid(VFXSystem):
 				VFXSystem.spawn_explosion(Vector2(bx, by), scale_factor)
+			var map_node = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(map_node) and map_node.get("sub_viewport") != null and is_instance_valid(world_root_3d):
+				var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+				var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
+				var vp = map_node.sub_viewport
+				var pos_3d = Vector3(bx * s_factor, 0.0, by * s_factor * correction_z)
+
+				var flash = MeshInstance3D.new()
+				var flash_s = SphereMesh.new()
+				var r3d = radius * 0.02
+				flash_s.radius = r3d * 0.3
+				flash_s.height = r3d * 0.6
+				flash.mesh = flash_s
+				var flash_mat = StandardMaterial3D.new()
+				flash_mat.albedo_color = Color(1.0, 0.5, 0.1, 0.9)
+				flash_mat.emission_enabled = true
+				flash_mat.emission = Color(1.0, 0.5, 0.1)
+				flash_mat.emission_energy_multiplier = 8.0
+				flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				flash.material_override = flash_mat
+				flash.position = pos_3d
+				vp.add_child(flash)
+				var tw_f = flash.create_tween()
+				tw_f.tween_property(flash, "scale", Vector3(2.5, 2.5, 2.5), 0.3)
+				tw_f.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.3)
+				tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.3)
+				tw_f.finished.connect(flash.queue_free)
+
+				var shockwave = MeshInstance3D.new()
+				var ring_mesh = TorusMesh.new()
+				ring_mesh.inner_radius = r3d * 0.5
+				ring_mesh.outer_radius = r3d * 0.55
+				shockwave.mesh = ring_mesh
+				var sw_mat = StandardMaterial3D.new()
+				sw_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.8)
+				sw_mat.emission_enabled = true
+				sw_mat.emission = Color(1.0, 0.4, 0.05)
+				sw_mat.emission_energy_multiplier = 3.0
+				sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				shockwave.material_override = sw_mat
+				shockwave.position = pos_3d
+				shockwave.rotation.x = PI / 2
+				vp.add_child(shockwave)
+				var tw_sw = shockwave.create_tween()
+				tw_sw.tween_property(shockwave, "scale", Vector3(2.5, 2.5, 2.5), 0.35)
+				tw_sw.parallel().tween_property(sw_mat, "albedo_color:a", 0.0, 0.35)
+				tw_sw.parallel().tween_property(sw_mat, "emission_energy_multiplier", 0.0, 0.35)
+				tw_sw.finished.connect(shockwave.queue_free)
 		"reflect_start":
 			reflect_timer = float(data.get("duration", 3000.0)) / 1000.0
 			print("[REFLECT-IN] Enemigo activó reflect por ", reflect_timer, "s")

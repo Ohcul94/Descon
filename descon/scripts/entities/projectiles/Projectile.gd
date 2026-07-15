@@ -73,6 +73,7 @@ var _laser_glow_mesh: MeshInstance3D = null
 var _laser_beam_mesh: MeshInstance3D = null
 var _laser_core_mesh: MeshInstance3D = null
 var _hook_chain_3d: MeshInstance3D = null
+var _bomb_ground_marker: Node3D = null
 
 func _ready():
 	add_to_group("projectiles")
@@ -90,9 +91,11 @@ func _process(_delta):
 		var active_map = get_tree().get_first_node_in_group("map")
 		var s_factor = active_map.scale_factor if is_instance_valid(active_map) and "scale_factor" in active_map else 0.02
 		var correction_z = active_map.correction_z if is_instance_valid(active_map) and "correction_z" in active_map else 1.41421356
-		world_root_3d.position.x = global_position.x * s_factor
-		world_root_3d.position.z = global_position.y * s_factor * correction_z
-		world_root_3d.position.y = 0.0
+		# El tipo "electron" maneja su propia posición 3D en _physics_process (parábola)
+		if type != "electron":
+			world_root_3d.position.x = global_position.x * s_factor
+			world_root_3d.position.z = global_position.y * s_factor * correction_z
+			world_root_3d.position.y = 0.0
 		if type == "mega_laser":
 			var dir_2d = Vector2.RIGHT.rotated(rotation)
 			var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
@@ -803,6 +806,139 @@ func _setup_visual_sprite():
 			sprite = null
 			return
 
+	if type == "electron":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+			var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
+
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "Bomb3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+
+			var body = MeshInstance3D.new()
+			var body_sphere = SphereMesh.new()
+			body_sphere.radius = 0.4
+			body_sphere.height = 0.8
+			body.mesh = body_sphere
+			var body_mat = StandardMaterial3D.new()
+			body_mat.albedo_color = Color(0.25, 0.25, 0.25)
+			body_mat.metallic = 0.8
+			body_mat.roughness = 0.3
+			body.material_override = body_mat
+			world_root_3d.add_child(body)
+
+			var glow = MeshInstance3D.new()
+			var glow_sphere = SphereMesh.new()
+			glow_sphere.radius = 0.5
+			glow_sphere.height = 1.0
+			glow.mesh = glow_sphere
+			var glow_mat = StandardMaterial3D.new()
+			glow_mat.albedo_color = Color(1.0, 0.4, 0.0, 0.2)
+			glow_mat.emission_enabled = true
+			glow_mat.emission = Color(1.0, 0.4, 0.0)
+			glow_mat.emission_energy_multiplier = 1.0
+			glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			glow.material_override = glow_mat
+			world_root_3d.add_child(glow)
+
+			var fuse = MeshInstance3D.new()
+			var fuse_cyl = CylinderMesh.new()
+			fuse_cyl.top_radius = 0.03
+			fuse_cyl.bottom_radius = 0.05
+			fuse_cyl.height = 0.25
+			fuse.mesh = fuse_cyl
+			var fuse_mat = StandardMaterial3D.new()
+			fuse_mat.albedo_color = Color(0.4, 0.3, 0.2)
+			fuse.position.y = 0.5
+			fuse.material_override = fuse_mat
+			world_root_3d.add_child(fuse)
+
+			var spark = MeshInstance3D.new()
+			var spark_sphere = SphereMesh.new()
+			spark_sphere.radius = 0.06
+			spark_sphere.height = 0.12
+			spark.mesh = spark_sphere
+			var spark_mat = StandardMaterial3D.new()
+			spark_mat.albedo_color = Color(1.0, 0.7, 0.0)
+			spark_mat.emission_enabled = true
+			spark_mat.emission = Color(1.0, 0.7, 0.0)
+			spark_mat.emission_energy_multiplier = 8.0
+			spark.material_override = spark_mat
+			spark.position.y = 0.65
+			world_root_3d.add_child(spark)
+
+			var sparks_node = Node3D.new()
+			sparks_node.name = "Sparks3D"
+			world_root_3d.add_child(sparks_node)
+			for i in 3:
+				var s = MeshInstance3D.new()
+				var ss = SphereMesh.new()
+				ss.radius = 0.03
+				ss.height = 0.06
+				s.mesh = ss
+				var sm = StandardMaterial3D.new()
+				sm.albedo_color = Color(1.0, 0.8, 0.2)
+				sm.emission_enabled = true
+				sm.emission = Color(1.0, 0.8, 0.2)
+				sm.emission_energy_multiplier = 6.0
+				s.material_override = sm
+				sparks_node.add_child(s)
+
+			var light = OmniLight3D.new()
+			light.light_color = Color(1.0, 0.4, 0.0)
+			light.light_energy = 4.0
+			light.omni_range = 6.0
+			world_root_3d.add_child(light)
+
+			var target_2d = _start_pos + Vector2(cos(rotation), sin(rotation)) * max_range
+			var marker_pos = Vector3(target_2d.x * s_factor, 0.02, target_2d.y * s_factor * correction_z)
+			_bomb_ground_marker = Node3D.new()
+			_bomb_ground_marker.name = "BombMarker_" + str(get_instance_id())
+			_bomb_ground_marker.position = marker_pos
+			target_vp.add_child(_bomb_ground_marker)
+
+			var marker_ring = MeshInstance3D.new()
+			var m_ring = TorusMesh.new()
+			m_ring.inner_radius = 0.6
+			m_ring.outer_radius = 0.7
+			marker_ring.mesh = m_ring
+			var m_mat = StandardMaterial3D.new()
+			m_mat.albedo_color = Color(1.0, 0.15, 0.05, 0.7)
+			m_mat.emission_enabled = true
+			m_mat.emission = Color(1.0, 0.15, 0.05)
+			m_mat.emission_energy_multiplier = 2.0
+			m_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			marker_ring.material_override = m_mat
+			marker_ring.rotation.x = PI / 2
+			_bomb_ground_marker.add_child(marker_ring)
+
+			var marker_fill = MeshInstance3D.new()
+			var m_fill = CylinderMesh.new()
+			m_fill.top_radius = 0.55
+			m_fill.bottom_radius = 0.55
+			m_fill.height = 0.01
+			marker_fill.mesh = m_fill
+			var mf_mat = StandardMaterial3D.new()
+			mf_mat.albedo_color = Color(1.0, 0.15, 0.05, 0.12)
+			mf_mat.emission_enabled = true
+			mf_mat.emission = Color(1.0, 0.15, 0.05)
+			mf_mat.emission_energy_multiplier = 0.5
+			mf_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			marker_fill.material_override = mf_mat
+			_bomb_ground_marker.add_child(marker_fill)
+
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+				if is_instance_valid(_bomb_ground_marker):
+					_bomb_ground_marker.queue_free()
+			)
+
+			sprite = null
+			return
+
 	var path = ""
 	match type:
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
@@ -968,6 +1104,8 @@ func _draw():
 			draw_circle(Vector2.ZERO, 9.0, Color(0.12, 0.0, 0.18, 0.9))
 			draw_circle(Vector2.ZERO, 4.0, Color(0.9, 0.1, 0.1, 0.8))
 		"electron":
+			if is_instance_valid(world_root_3d):
+				return
 			var total_flight_time = max_range / max(1.0, speed)
 			var t = clamp(_current_lifetime / total_flight_time, 0.0, 1.0)
 			var max_height = 180.0
@@ -1184,6 +1322,47 @@ func _physics_process(delta):
 	
 	if type == "electron":
 		queue_redraw()
+		if is_instance_valid(world_root_3d):
+			var map_n = get_tree().get_first_node_in_group("map")
+			var s_factor = map_n.scale_factor if is_instance_valid(map_n) and "scale_factor" in map_n else 0.02
+			var correction_z = map_n.correction_z if is_instance_valid(map_n) and "correction_z" in map_n else 1.41421356
+			var total_flight_time = max_range / max(1.0, speed)
+			var t = clamp(_current_lifetime / total_flight_time, 0.0, 1.0)
+			var time = Time.get_ticks_msec() / 1000.0
+			
+			var max_h = 4.5 # Altura máxima del arco de la parábola
+			var height_y = sin(t * PI) * max_h
+			
+			# La posición horizontal (X, Z) sigue a la posición 2D actual del proyectil en vuelo
+			world_root_3d.position.x = global_position.x * s_factor
+			world_root_3d.position.z = global_position.y * s_factor * correction_z
+			world_root_3d.position.y = height_y
+			
+			# Rotación constante en el aire para efecto de giro dinámico
+			world_root_3d.rotate_x(delta * 5.0)
+			world_root_3d.rotate_y(delta * 2.5)
+			
+			# Escala suave para aparecer y desaparecer al impactar
+			var scale_val = 1.0
+			if t < 0.15:
+				scale_val = t / 0.15
+			elif t > 0.85:
+				scale_val = (1.0 - t) / 0.15
+			world_root_3d.scale = Vector3(scale_val, scale_val, scale_val)
+			var spark_fuse = world_root_3d.get_node_or_null("Sparks3D")
+			if is_instance_valid(spark_fuse):
+				for i in spark_fuse.get_child_count():
+					var s = spark_fuse.get_child(i)
+					if is_instance_valid(s):
+						var ang = time * 15.0 + (float(i) / float(max(spark_fuse.get_child_count(), 1))) * TAU
+						s.position = Vector3(cos(ang) * 0.55, 0.0, sin(ang) * 0.55)
+			if is_instance_valid(_bomb_ground_marker):
+				var pulse = 1.0 + sin(time * 6.0) * 0.15
+				_bomb_ground_marker.scale = Vector3(pulse, 1.0, pulse)
+				var marker_ring = _bomb_ground_marker.get_child(0) if _bomb_ground_marker.get_child_count() > 0 else null
+				if is_instance_valid(marker_ring) and marker_ring is MeshInstance3D and marker_ring.material_override is StandardMaterial3D:
+					var m = marker_ring.material_override
+					m.emission_energy_multiplier = 2.0 + sin(time * 5.0) * 1.0
 	
 	if max_range > 0 and type != "mega_laser":
 		var dist = global_position.distance_to(_start_pos)
@@ -1336,9 +1515,9 @@ func _explode():
 		particles.z_index = 6
 		
 		var grad = Gradient.new()
-		grad.set_color(0, Color(0.2, 0.7, 1.0, 0.95)) # Azul/Celeste eléctrico brillante
-		grad.add_point(0.4, Color(0.5, 0.9, 1.0, 0.85)) # Blanco celeste núcleo
-		grad.add_point(0.7, Color(0.0, 0.3, 0.8, 0.4)) # Azul profundo desvanecido
+		grad.set_color(0, Color(1.0, 0.6, 0.1, 0.95))
+		grad.add_point(0.4, Color(1.0, 0.85, 0.2, 0.85))
+		grad.add_point(0.7, Color(0.8, 0.2, 0.05, 0.4))
 		grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
 		particles.color_ramp = grad
 		
@@ -1350,7 +1529,7 @@ func _explode():
 		# Anillo de onda de choque eléctrico en área
 		var wave = Line2D.new()
 		wave.width = 4.0
-		wave.default_color = Color(0.3, 0.8, 1.0, 0.8)
+		wave.default_color = Color(1.0, 0.5, 0.1, 0.8)
 		get_parent().add_child(wave)
 		var pts = PackedVector2Array()
 		var steps = 32
@@ -1386,7 +1565,71 @@ func _explode():
 					NetworkManager.send_event("enemyHit", {"enemyId": ent.entity_id, "damage": damage})
 				elif owner_type == "player" and (ent.is_in_group("remote_players") or ent.is_in_group("player")):
 					NetworkManager.send_event("playerHitByPlayer", {"victimId": ent.entity_id, "damage": damage})
-					
+
+		# Clean up ground marker
+		if is_instance_valid(_bomb_ground_marker):
+			var tw_m = _bomb_ground_marker.create_tween()
+			tw_m.tween_property(_bomb_ground_marker, "scale", Vector3.ZERO, 0.2)
+			tw_m.finished.connect(_bomb_ground_marker.queue_free)
+			_bomb_ground_marker = null
+
+		# 3D explosion VFX
+		if is_instance_valid(world_root_3d):
+			var vp = world_root_3d.get_parent()
+			if is_instance_valid(vp):
+				var radius_3d = radius * 0.02
+
+				var flash = MeshInstance3D.new()
+				var flash_sphere = SphereMesh.new()
+				flash_sphere.radius = radius_3d * 0.3
+				flash_sphere.height = radius_3d * 0.6
+				flash.mesh = flash_sphere
+				var flash_mat = StandardMaterial3D.new()
+				flash_mat.albedo_color = Color(1.0, 0.5, 0.1, 0.9)
+				flash_mat.emission_enabled = true
+				flash_mat.emission = Color(1.0, 0.5, 0.1)
+				flash_mat.emission_energy_multiplier = 8.0
+				flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				flash.material_override = flash_mat
+				flash.position = world_root_3d.position
+				vp.add_child(flash)
+				var tw_f = flash.create_tween()
+				tw_f.tween_property(flash, "scale", Vector3(2.5, 2.5, 2.5), 0.3)
+				tw_f.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.3)
+				tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.3)
+				tw_f.finished.connect(flash.queue_free)
+
+				var shockwave = MeshInstance3D.new()
+				var ring_mesh = TorusMesh.new()
+				ring_mesh.inner_radius = radius_3d * 0.5
+				ring_mesh.outer_radius = radius_3d * 0.55
+				shockwave.mesh = ring_mesh
+				var sw_mat = StandardMaterial3D.new()
+				sw_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.8)
+				sw_mat.emission_enabled = true
+				sw_mat.emission = Color(1.0, 0.4, 0.05)
+				sw_mat.emission_energy_multiplier = 3.0
+				sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				shockwave.material_override = sw_mat
+				shockwave.position = world_root_3d.position
+				shockwave.rotation.x = PI / 2
+				vp.add_child(shockwave)
+				var tw_sw = shockwave.create_tween()
+				tw_sw.tween_property(shockwave, "scale", Vector3(2.5, 2.5, 2.5), 0.35)
+				tw_sw.parallel().tween_property(sw_mat, "albedo_color:a", 0.0, 0.35)
+				tw_sw.parallel().tween_property(sw_mat, "emission_energy_multiplier", 0.0, 0.35)
+				tw_sw.finished.connect(shockwave.queue_free)
+
+				var explight = OmniLight3D.new()
+				explight.light_color = Color(0.3, 0.8, 1.0)
+				explight.light_energy = 8.0
+				explight.omni_range = 8.0
+				explight.position = world_root_3d.position
+				vp.add_child(explight)
+				var tw_l = explight.create_tween()
+				tw_l.tween_property(explight, "light_energy", 0.0, 0.3)
+				tw_l.finished.connect(explight.queue_free)
+
 		queue_free()
 		return
 
