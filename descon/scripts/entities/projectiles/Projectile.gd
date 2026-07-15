@@ -72,6 +72,7 @@ var _laser_core_mat: StandardMaterial3D = null
 var _laser_glow_mesh: MeshInstance3D = null
 var _laser_beam_mesh: MeshInstance3D = null
 var _laser_core_mesh: MeshInstance3D = null
+var _hook_chain_3d: MeshInstance3D = null
 
 func _ready():
 	add_to_group("projectiles")
@@ -128,6 +129,25 @@ func _process(_delta):
 				_laser_hit_3d.global_position.y = 0.2
 		else:
 			world_root_3d.rotation.y = -rotation - PI/2.0
+
+		if type == "hook" and is_instance_valid(_hook_chain_3d) and is_instance_valid(_owner_node):
+			var map_n = get_tree().get_first_node_in_group("map")
+			var sf = map_n.scale_factor if is_instance_valid(map_n) and "scale_factor" in map_n else 0.02
+			var cz = map_n.correction_z if is_instance_valid(map_n) and "correction_z" in map_n else 1.41421356
+
+			var owner_3d = Vector3(
+				_owner_node.global_position.x * sf,
+				0.0,
+				_owner_node.global_position.y * sf * cz
+			)
+			var hook_3d = world_root_3d.global_position
+			var mid = (owner_3d + hook_3d) / 2.0
+			var dist = owner_3d.distance_to(hook_3d)
+
+			_hook_chain_3d.global_position = mid
+			_hook_chain_3d.scale.y = max(dist, 0.01)
+			_hook_chain_3d.look_at(hook_3d, Vector3.UP)
+			_hook_chain_3d.rotate_object_local(Vector3.RIGHT, PI / 2)
 
 
 func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
@@ -680,6 +700,109 @@ func _setup_visual_sprite():
 			sprite = null
 			return
 
+	if type == "hook":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			var _s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "Hook3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+
+			var harpoon_len = 1.0
+			var half_len = harpoon_len / 2.0
+
+			var shaft = MeshInstance3D.new()
+			var cyl = CylinderMesh.new()
+			cyl.top_radius = 0.03
+			cyl.bottom_radius = 0.03
+			cyl.height = harpoon_len
+			shaft.mesh = cyl
+			shaft.rotation.x = PI / 2
+			shaft.position.z = -half_len
+			var shaft_mat = StandardMaterial3D.new()
+			shaft_mat.albedo_color = Color(0.0, 0.7, 0.7)
+			shaft_mat.metallic = 0.9
+			shaft_mat.roughness = 0.15
+			shaft.material_override = shaft_mat
+			world_root_3d.add_child(shaft)
+
+			var tip = MeshInstance3D.new()
+			var tip_cyl = CylinderMesh.new()
+			tip_cyl.top_radius = 0.0
+			tip_cyl.bottom_radius = 0.03
+			tip_cyl.height = 0.2
+			tip.mesh = tip_cyl
+			tip.rotation.x = PI / 2
+			tip.position.z = -harpoon_len
+			var tip_mat = StandardMaterial3D.new()
+			tip_mat.albedo_color = Color(0.0, 0.9, 0.9)
+			tip_mat.emission_enabled = true
+			tip_mat.emission = Color(0.0, 0.9, 0.9)
+			tip_mat.emission_energy_multiplier = 3.0
+			tip.material_override = tip_mat
+			world_root_3d.add_child(tip)
+
+			for i in 3:
+				var ring = MeshInstance3D.new()
+				var ring_mesh = CylinderMesh.new()
+				ring_mesh.top_radius = 0.06
+				ring_mesh.bottom_radius = 0.02
+				ring_mesh.height = 0.03
+				ring.mesh = ring_mesh
+				ring.position.z = -0.65 + i * 0.25
+				var ring_mat = StandardMaterial3D.new()
+				ring_mat.albedo_color = Color(0.0, 0.6, 0.6)
+				ring_mat.metallic = 1.0
+				ring_mat.roughness = 0.1
+				ring.material_override = ring_mat
+				world_root_3d.add_child(ring)
+
+			var orb = MeshInstance3D.new()
+			var sphere = SphereMesh.new()
+			sphere.radius = 0.07
+			sphere.height = 0.14
+			orb.mesh = sphere
+			orb.position.z = 0.05
+			var orb_mat = StandardMaterial3D.new()
+			orb_mat.albedo_color = Color(0.2, 1.0, 1.0)
+			orb_mat.emission_enabled = true
+			orb_mat.emission = Color(0.2, 1.0, 1.0)
+			orb_mat.emission_energy_multiplier = 6.0
+			orb.material_override = orb_mat
+			world_root_3d.add_child(orb)
+
+			var light = OmniLight3D.new()
+			light.light_color = Color(0.0, 0.8, 1.0)
+			light.light_energy = 5.0
+			light.omni_range = 4.0
+			world_root_3d.add_child(light)
+
+			_hook_chain_3d = MeshInstance3D.new()
+			var chain_cyl = CylinderMesh.new()
+			chain_cyl.top_radius = 0.008
+			chain_cyl.bottom_radius = 0.008
+			chain_cyl.height = 1.0
+			_hook_chain_3d.mesh = chain_cyl
+			var chain_mat = StandardMaterial3D.new()
+			chain_mat.albedo_color = Color(0.0, 0.9, 0.9, 0.4)
+			chain_mat.emission_enabled = true
+			chain_mat.emission = Color(0.0, 0.9, 0.9)
+			chain_mat.emission_energy_multiplier = 2.0
+			chain_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			_hook_chain_3d.material_override = chain_mat
+			target_vp.add_child(_hook_chain_3d)
+
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+				if is_instance_valid(_hook_chain_3d):
+					_hook_chain_3d.queue_free()
+			)
+
+			sprite = null
+			return
+
 	var path = ""
 	match type:
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
@@ -879,6 +1002,8 @@ func _draw():
 			draw_circle(Vector2.ZERO, 10, Color.WHITE)
 			draw_circle(Vector2.ZERO, 12, Color(1, 1, 1, 0.3), false, 3.0)
 		"hook":
+			if is_instance_valid(world_root_3d):
+				return
 			draw_line(Vector2(0, 0), Vector2(-20, 0), Color.GRAY, 2.0)
 			draw_arc(Vector2(5, 0), 10, -PI/2, PI/2, 8, Color.GRAY, 3.0)
 		"melee":

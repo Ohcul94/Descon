@@ -3073,11 +3073,11 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "aura_damage",
+                    "type": "hook",
                     "bulletDamage": 1000,
                     "bulletSpeed": 800,
                     "fireRange": 1300,
-                    "fireRate": 5000,
+                    "fireRate": 3000,
                     "chargeTimeMs": 2000,
                     "startDelay": 0,
                     "lifetimeMs": 1000,
@@ -3099,7 +3099,11 @@
                     "maxOffset": 300,
                     "castTimeMs": 2000,
                     "postCastWaitMs": 1000,
-                    "debuffsList": []
+                    "debuffsList": [],
+                    "stunDuration": 1000,
+                    "pullSpeed": 0,
+                    "postHookWaitMs": 500,
+                    "hookMissWaitMs": 0
                 }
             ],
             "movementPhases": [
