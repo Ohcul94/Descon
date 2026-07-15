@@ -214,13 +214,28 @@ func _process(delta):
 							area.global_position = en_vis
 							
 						# Actualizar la escala del círculo interno de carga
-						var charge_node = area.get_node_or_null("ChargeVisual")
-						if charge_node:
-							var inner_r = area.get_meta("inner_range")
-							var max_r = area.get_meta("range")
-							var progress = clamp(timer / duration, 0.0, 1.0)
-							var current_r = lerp(inner_r, max_r, progress)
-							charge_node.polygon = _get_ring_points(inner_r, current_r)
+						var progress = clamp(timer / duration, 0.0, 1.0)
+						var circle_3d = area.get_meta("circle_3d") if area.has_meta("circle_3d") else null
+						if is_instance_valid(circle_3d):
+							circle_3d.position.y = 0.05
+							for i in 5:
+								var ring = circle_3d.get_node_or_null("FireRing_" + str(i))
+								if is_instance_valid(ring):
+									var ring_mat = ring.material_override
+									if ring_mat is StandardMaterial3D:
+										var t = float(i) / 4.0
+										var delay = t * 0.5
+										var ring_p = clamp(progress * 2.5 - delay, 0.0, 1.0)
+										ring_mat.albedo_color.a = ring_p * 0.35
+										ring_mat.emission_energy_multiplier = ring_p * 3.5
+										ring.rotation.y = progress * TAU * (1.0 + t * 0.5)
+							var fire_core = circle_3d.get_node_or_null("FireCore")
+							if is_instance_valid(fire_core):
+								var core_mat = fire_core.material_override
+								if core_mat is StandardMaterial3D:
+									core_mat.albedo_color.a = clamp(progress * 1.5, 0.0, 0.5)
+									core_mat.emission_energy_multiplier = clamp(progress * 5.0, 0.0, 4.0)
+								fire_core.position.y = 0.1 + progress * 0.3
 					else:
 						area.global_position = en_vis
 						area.global_rotation = en.global_rotation - PI / 2
@@ -738,33 +753,79 @@ func _on_enemy_action(data: Dictionary):
 			else:
 				en.add_child(circle_node)
 				
-			# Círculo de fondo (Área de Peligro - Anillo)
-			var poly_bg = Polygon2D.new()
-			poly_bg.polygon = _get_ring_points(r_inner, range_val)
-			poly_bg.color = Color(1.0, 0.0, 0.0, 0.12)
-			circle_node.add_child(poly_bg)
-			
-			# Borde exterior del círculo
-			var border_outer = Line2D.new()
-			border_outer.points = _get_circle_outline_points(range_val)
-			border_outer.width = 2.0
-			border_outer.default_color = Color(1.0, 0.0, 0.0, 0.4)
-			circle_node.add_child(border_outer)
-			
-			# Borde interior del círculo
-			var border_inner = Line2D.new()
-			border_inner.points = _get_circle_outline_points(r_inner)
-			border_inner.width = 2.0
-			border_inner.default_color = Color(1.0, 0.0, 0.0, 0.4)
-			circle_node.add_child(border_inner)
-			
-			# Círculo de carga (Progreso - Anillo)
-			var poly_charge = Polygon2D.new()
-			poly_charge.name = "ChargeVisual"
-			poly_charge.polygon = _get_ring_points(r_inner, r_inner + 1.0)
-			poly_charge.color = Color(1.0, 0.1, 0.1, 0.35)
-			circle_node.add_child(poly_charge)
-			
+			# ---- 3D Circle Charging Aura (no 2D fallback) ----
+			if is_3d_active:
+				var circle_3d = Node3D.new()
+				circle_3d.name = "Circle3D_" + enemy_id
+				en.world_root_3d.add_child(circle_3d)
+
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var outer_r3d = range_val * s_factor
+				var inner_r3d = r_inner * s_factor
+
+				var ground_disc = MeshInstance3D.new()
+				var g_mesh = CylinderMesh.new()
+				g_mesh.top_radius = outer_r3d
+				g_mesh.bottom_radius = outer_r3d
+				g_mesh.height = 0.01
+				ground_disc.mesh = g_mesh
+				var g_mat = StandardMaterial3D.new()
+				g_mat.albedo_color = Color(1.0, 0.15, 0.0, 0.15)
+				g_mat.emission_enabled = true
+				g_mat.emission = Color(1.0, 0.15, 0.0)
+				g_mat.emission_energy_multiplier = 0.5
+				g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				ground_disc.material_override = g_mat
+				circle_3d.add_child(ground_disc)
+
+				var num_rings = 5
+				for i in num_rings:
+					var ring = MeshInstance3D.new()
+					ring.name = "FireRing_" + str(i)
+					var t_mesh = TorusMesh.new()
+					var t = float(i) / float(num_rings - 1)
+					var rr = lerp(inner_r3d, outer_r3d, t)
+					t_mesh.inner_radius = rr - 0.015
+					t_mesh.outer_radius = rr + 0.015
+					ring.mesh = t_mesh
+					var r_mat = StandardMaterial3D.new()
+					r_mat.albedo_color = Color(1.0, 0.3, 0.0, 0.0)
+					r_mat.emission_enabled = true
+					r_mat.emission = Color(1.0, 0.4, 0.0)
+					r_mat.emission_energy_multiplier = 0.0
+					r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					ring.material_override = r_mat
+					ring.rotation.x = PI / 2
+					circle_3d.add_child(ring)
+
+				var core = MeshInstance3D.new()
+				core.name = "FireCore"
+				var core_s = SphereMesh.new()
+				core_s.radius = inner_r3d * 0.3
+				core_s.height = inner_r3d * 0.6
+				core.mesh = core_s
+				var core_mat = StandardMaterial3D.new()
+				core_mat.albedo_color = Color(1.0, 0.5, 0.0, 0.0)
+				core_mat.emission_enabled = true
+				core_mat.emission = Color(1.0, 0.6, 0.1)
+				core_mat.emission_energy_multiplier = 0.0
+				core_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				core_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				core.material_override = core_mat
+				core.position.y = 0.1
+				circle_3d.add_child(core)
+
+				circle_3d.set_meta("outer_r3d", outer_r3d)
+				circle_3d.set_meta("inner_r3d", inner_r3d)
+				circle_node.set_meta("circle_3d", circle_3d)
+
+				circle_node.tree_exiting.connect(func():
+					if is_instance_valid(circle_3d):
+						circle_3d.queue_free()
+				)
+
 			active_areas["circle_" + enemy_id] = circle_node
 			
 		elif action == "circle_fire":
@@ -780,51 +841,98 @@ func _on_enemy_action(data: Dictionary):
 			var locked_x = float(data.get("x", en.global_position.x))
 			var locked_y = float(data.get("y", en.global_position.y))
 			
-			var r_inner = 64.0
-			if is_instance_valid(en) and "_collision_shape" in en and is_instance_valid(en._collision_shape) and en._collision_shape.shape is CircleShape2D:
-				r_inner = en._collision_shape.shape.radius
-				
-			var blast = Node2D.new()
-			blast.name = "CircleBlast_" + enemy_id
-			blast.z_index = -2 # Dibujar debajo de los assets
-			blast.set_meta("enemy_id", enemy_id)
-			blast.set_as_top_level(true)
-			blast.global_position = Vector2(locked_x, locked_y)
-			
-			if is_instance_valid(world) and is_instance_valid(world.entities_node):
-				world.entities_node.add_child(blast)
-			else:
-				en.add_child(blast)
-				
-			var poly_blast = Polygon2D.new()
-			poly_blast.polygon = _get_ring_points(r_inner, range_val)
-			poly_blast.color = Color(1.0, 0.3, 0.0, 0.75)
-			blast.add_child(poly_blast)
-			
-			# Borde de la explosión exterior
-			var blast_border_outer = Line2D.new()
-			blast_border_outer.points = _get_circle_outline_points(range_val)
-			blast_border_outer.width = 4.0
-			blast_border_outer.default_color = Color(1.0, 0.5, 0.0, 0.9)
-			blast.add_child(blast_border_outer)
-			
-			# Borde de la explosión interior
-			var blast_border_inner = Line2D.new()
-			blast_border_inner.points = _get_circle_outline_points(r_inner)
-			blast_border_inner.width = 4.0
-			blast_border_inner.default_color = Color(1.0, 0.5, 0.0, 0.9)
-			blast.add_child(blast_border_inner)
-			
-			active_areas["blast_" + enemy_id] = blast
-			
-			var tw = blast.create_tween().set_parallel(true)
-			tw.tween_property(poly_blast, "color:a", 0.0, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-			tw.tween_property(blast_border_outer, "default_color:a", 0.0, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-			tw.tween_property(blast_border_inner, "default_color:a", 0.0, 0.3).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-			tw.chain().finished.connect(func():
-				active_areas.erase("blast_" + enemy_id)
-				blast.queue_free()
-			)
+			# Clean up 3D charging ring from world_root_3d
+			if is_3d_active and is_instance_valid(en.get("world_root_3d")):
+				var old_3d = en.world_root_3d.get_node_or_null("Circle3D_" + enemy_id)
+				if is_instance_valid(old_3d):
+					old_3d.queue_free()
+
+			# ---- 3D Circle Explosion VFX (full radius, no 2D fallback) ----
+			if is_3d_active:
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				var vp = current_map.sub_viewport
+				var pos_3d = Vector3(locked_x * s_factor, 0.0, locked_y * s_factor * correction_z)
+				var r3d = range_val * s_factor
+
+				var flash = MeshInstance3D.new()
+				var flash_s = SphereMesh.new()
+				flash_s.radius = r3d * 0.3
+				flash_s.height = r3d * 0.6
+				flash.mesh = flash_s
+				var flash_mat = StandardMaterial3D.new()
+				flash_mat.albedo_color = Color(1.0, 0.6, 0.1, 0.9)
+				flash_mat.emission_enabled = true
+				flash_mat.emission = Color(1.0, 0.6, 0.1)
+				flash_mat.emission_energy_multiplier = 8.0
+				flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				flash_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				flash.material_override = flash_mat
+				flash.position = pos_3d
+				vp.add_child(flash)
+				var tw_f = flash.create_tween()
+				tw_f.tween_property(flash, "scale", Vector3(3.5, 3.5, 3.5), 0.3)
+				tw_f.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.3)
+				tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.3)
+				tw_f.finished.connect(flash.queue_free)
+
+				var damage_area = MeshInstance3D.new()
+				var area_mesh = CylinderMesh.new()
+				area_mesh.top_radius = r3d
+				area_mesh.bottom_radius = r3d
+				area_mesh.height = 0.01
+				damage_area.mesh = area_mesh
+				var area_mat = StandardMaterial3D.new()
+				area_mat.albedo_color = Color(1.0, 0.2, 0.0, 0.5)
+				area_mat.emission_enabled = true
+				area_mat.emission = Color(1.0, 0.3, 0.0)
+				area_mat.emission_energy_multiplier = 3.0
+				area_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				area_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				damage_area.material_override = area_mat
+				damage_area.position = pos_3d
+				damage_area.position.y = 0.01
+				vp.add_child(damage_area)
+				var tw_a = damage_area.create_tween().set_parallel(true)
+				tw_a.tween_property(area_mat, "albedo_color:a", 0.0, 0.5).set_ease(Tween.EASE_IN)
+				tw_a.tween_property(area_mat, "emission_energy_multiplier", 0.0, 0.5).set_ease(Tween.EASE_IN)
+				tw_a.finished.connect(damage_area.queue_free)
+
+				var shockwave = MeshInstance3D.new()
+				var sw_mesh = TorusMesh.new()
+				sw_mesh.inner_radius = r3d * 0.95
+				sw_mesh.outer_radius = r3d * 1.05
+				shockwave.mesh = sw_mesh
+				var sw_mat = StandardMaterial3D.new()
+				sw_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.9)
+				sw_mat.emission_enabled = true
+				sw_mat.emission = Color(1.0, 0.4, 0.05)
+				sw_mat.emission_energy_multiplier = 5.0
+				sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				sw_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				shockwave.material_override = sw_mat
+				shockwave.position = pos_3d
+				shockwave.position.y = 0.02
+				shockwave.rotation.x = PI / 2
+				vp.add_child(shockwave)
+				var tw_sw = shockwave.create_tween().set_parallel(true)
+				tw_sw.tween_property(shockwave, "scale", Vector3(1.5, 1.5, 1.5), 0.4)
+				tw_sw.tween_property(sw_mat, "albedo_color:a", 0.0, 0.4)
+				tw_sw.tween_property(sw_mat, "emission_energy_multiplier", 0.0, 0.4)
+				tw_sw.finished.connect(shockwave.queue_free)
+
+				var exp_light = OmniLight3D.new()
+				exp_light.light_color = Color(1.0, 0.4, 0.05)
+				exp_light.light_energy = 15.0
+				exp_light.omni_range = r3d * 2.0
+				exp_light.position = pos_3d
+				exp_light.position.y = 0.5
+				vp.add_child(exp_light)
+				var tw_l = exp_light.create_tween()
+				tw_l.tween_property(exp_light, "light_energy", 0.0, 0.4)
+				tw_l.finished.connect(exp_light.queue_free)
+
+			active_areas.erase("blast_" + enemy_id)
 
 func _on_enemy_updated(data):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return

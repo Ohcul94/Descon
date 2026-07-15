@@ -3073,7 +3073,7 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "bomb",
+                    "type": "circle_cast",
                     "bulletDamage": 1000,
                     "bulletSpeed": 800,
                     "fireRange": 1300,
