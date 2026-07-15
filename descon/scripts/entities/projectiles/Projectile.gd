@@ -151,10 +151,13 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	
 	lifetime = _safe_float(p_data.get("lifetimeMs"), 0.0) / 1000.0
 	# Calcular lifetime desde range/speed si el servidor no lo envió
-	if lifetime <= 0 and speed > 0 and max_range > 0:
-		lifetime = max_range / speed + 1.0
-	elif lifetime <= 0:
-		lifetime = 3.0
+	if lifetime <= 0:
+		if p_data.get("isOrbiting", false):
+			lifetime = 10.0 # Darle tiempo suficiente para la fase de órbita y disparo
+		elif speed > 0 and max_range > 0:
+			lifetime = max_range / speed + 1.0
+		else:
+			lifetime = 3.0
 	turn_speed = _safe_float(p_data.get("turnSpeed"), 2.5)
 	is_homing = bool(p_data.get("isHoming", false))
 	
@@ -628,6 +631,55 @@ func _setup_visual_sprite():
 			sprite = null
 			return
 
+	if type == "orbital_mine":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "OrbMine3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+
+			var core = MeshInstance3D.new()
+			var sphere = SphereMesh.new()
+			sphere.radius = 0.35
+			sphere.height = 0.7
+			core.mesh = sphere
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = Color(0.15, 0.6, 1.0)
+			mat.emission_enabled = true
+			mat.emission = Color(0.15, 0.6, 1.0)
+			mat.emission_energy_multiplier = 4.0
+			core.material_override = mat
+			world_root_3d.add_child(core)
+
+			var ring = MeshInstance3D.new()
+			var ring_mesh = TorusMesh.new()
+			ring_mesh.inner_radius = 0.5
+			ring_mesh.outer_radius = 0.65
+			ring.mesh = ring_mesh
+			var ring_mat = StandardMaterial3D.new()
+			ring_mat.albedo_color = Color(0.3, 0.8, 1.0)
+			ring_mat.emission_enabled = true
+			ring_mat.emission = Color(0.3, 0.8, 1.0)
+			ring_mat.emission_energy_multiplier = 2.0
+			ring.material_override = ring_mat
+			ring.rotation.x = PI / 2
+			world_root_3d.add_child(ring)
+
+			var light = OmniLight3D.new()
+			light.light_color = Color(0.15, 0.6, 1.0)
+			light.light_energy = 2.5
+			light.omni_range = 5.0
+			world_root_3d.add_child(light)
+
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+			)
+
+			sprite = null
+			return
+
 	var path = ""
 	match type:
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
@@ -891,6 +943,13 @@ func _draw():
 
 func release_orbit():
 	orbit_target = null
+	_start_pos = global_position
+
+func stop_orbit():
+	if is_instance_valid(orbit_target):
+		var time = (Time.get_ticks_msec() / 1000.0) - orbit_start_time
+		orbit_angle_offset = time * orbit_speed + orbit_angle_offset
+		orbit_speed = 0.0
 
 func _physics_process(delta):
 	if lifetime > 0:

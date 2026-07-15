@@ -3073,17 +3073,33 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "mega_laser",
+                    "type": "aura_damage",
                     "bulletDamage": 1000,
                     "bulletSpeed": 800,
-                    "fireRange": 1000,
-                    "fireRate": 1000,
+                    "fireRange": 1300,
+                    "fireRate": 5000,
                     "chargeTimeMs": 2000,
                     "startDelay": 0,
                     "lifetimeMs": 1000,
                     "turnSpeed": 0,
                     "lockTimeMs": 500,
-                    "isHoming": 0
+                    "isHoming": 0,
+                    "activationHP": 0,
+                    "radius": 250,
+                    "damage": 15,
+                    "intervalMs": 1000,
+                    "duration": 5000,
+                    "cooldown": 10000,
+                    "orbitSpeed": 2,
+                    "circleCount": 3,
+                    "orbitRadius": 150,
+                    "orbitDuration": 4000,
+                    "staticTime": 1000,
+                    "safeRadius": 150,
+                    "maxOffset": 300,
+                    "castTimeMs": 2000,
+                    "postCastWaitMs": 1000,
+                    "debuffsList": []
                 }
             ],
             "movementPhases": [

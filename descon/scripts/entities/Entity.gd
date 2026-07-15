@@ -1406,8 +1406,11 @@ func _on_enemy_action(data):
 	match data.action:
 		"orbital_strike_start": 
 			_is_orbital_active = true
+		"orbital_strike_static":
+			_stop_orbital_orbit()
 		"orbital_strike_fire": 
 			_is_orbital_active = false
+			_fire_orbital_strike()
 		"survival_dome_charging":
 			_active_survival_dome = {
 				"safe_pos": Vector2(float(data.get("safeX", 0.0)), float(data.get("safeY", 0.0))),
@@ -1505,6 +1508,14 @@ func _on_enemy_action(data):
 			if target_node: visual_target = target_node.global_position
 			_trigger_reflect_visual(visual_target if visual_target != Vector2.ZERO else global_position + Vector2.UP)
 
+
+func _stop_orbital_orbit():
+	# Detener la rotación orbital pero mantenerlos en sus posiciones relativas
+	var projs = get_tree().get_nodes_in_group("projectiles")
+	for p in projs:
+		if is_instance_valid(p) and str(p.get("owner_id")) == entity_id:
+			if p.has_method("stop_orbit"):
+				p.stop_orbit()
 
 func _fire_orbital_strike():
 	# v266.992: Buscar los proyectiles que ya están orbitando y soltarlos
