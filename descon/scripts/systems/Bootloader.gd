@@ -6,7 +6,6 @@ extends Control
 const LOCAL_MANIFEST_PATH = "user://manifest_local.json"
 const PCK_SAVE_PATH = "user://updates.pck"
 const PCK_TEMP_PATH = "user://updates_temp.pck"
-const BOOT_COUNTER_PATH = "user://boot_attempts.dat"
 const SERVER_PORT = 3333
 
 @onready var status_lbl = $BootloaderUI/MarginContainer/VBoxContainer/StatusLabel
@@ -36,32 +35,6 @@ func _ready():
 		await get_tree().create_timer(0.5).timeout
 		_finish_bootloader_and_start()
 		return
-
-	# SALVAGUARDA ANTI-CRASH: Detectar bucles de cierre por PCK corrupto.
-	# Incrementamos un contador al arrancar. Si llegamos a 2 arranques fallidos
-	# consecutivos (el juego nunca llegó a limpiar el contador), el PCK está roto.
-	var boot_count = 0
-	if FileAccess.file_exists(BOOT_COUNTER_PATH):
-		var f = FileAccess.open(BOOT_COUNTER_PATH, FileAccess.READ)
-		if f:
-			boot_count = f.get_8()
-			f.close()
-
-	if boot_count >= 2:
-		print("[Bootloader-SAFETY] Detectados ", boot_count, " arranques fallidos. Limpiando PCK corrupto...")
-		if FileAccess.file_exists(PCK_SAVE_PATH):
-			DirAccess.remove_absolute(PCK_SAVE_PATH)
-		if FileAccess.file_exists(LOCAL_MANIFEST_PATH):
-			DirAccess.remove_absolute(LOCAL_MANIFEST_PATH)
-		if FileAccess.file_exists(BOOT_COUNTER_PATH):
-			DirAccess.remove_absolute(BOOT_COUNTER_PATH)
-		print("[Bootloader-SAFETY] Caché limpiado. El juego descargará una copia fresca.")
-	else:
-		# Escribir el nuevo contador incrementado
-		var fw = FileAccess.open(BOOT_COUNTER_PATH, FileAccess.WRITE)
-		if fw:
-			fw.store_8(boot_count + 1)
-			fw.close()
 
 	# 2. Configurar plataforma y servidor para builds compilados
 	if os_name == "Android":
@@ -332,11 +305,7 @@ func _mount_pck_and_start():
 		print("[Bootloader] PCK montado con éxito.")
 		_reload_autoloads()
 	else:
-		print("[Bootloader-ERR] Fallo al montar el PCK local. Eliminando archivo corrupto...")
-		DirAccess.remove_absolute(PCK_SAVE_PATH)
-		if FileAccess.file_exists(LOCAL_MANIFEST_PATH):
-			DirAccess.remove_absolute(LOCAL_MANIFEST_PATH)
-		print("[Bootloader-ERR] PCK eliminado. El próximo arranque descargará uno limpio.")
+		print("[Bootloader-ERR] Fallo al montar el PCK local.")
 		
 	_finish_bootloader_and_start()
 
@@ -380,11 +349,6 @@ func _reload_autoloads():
 			print("[Bootloader-ERR] No se pudo cargar script actualizado para: ", path)
 
 func _finish_bootloader_and_start():
-	# Llegamos a esta función = el arranque fue exitoso. Limpiar el contador de arranques fallidos.
-	if FileAccess.file_exists(BOOT_COUNTER_PATH):
-		DirAccess.remove_absolute(BOOT_COUNTER_PATH)
-		print("[Bootloader] Arranque exitoso. Contador de seguridad limpiado.")
-
 	status_lbl.text = "Iniciando precalentamiento..."
 	progress_bar.visible = false
 	await get_tree().create_timer(0.2).timeout

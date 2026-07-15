@@ -658,13 +658,46 @@ func _run_shader_warmup():
 		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 	]
 
-	# Compilacion de shaders deshabilitada para evitar crashes en Android/PC
-	# Los shaders se compilaran la primera vez que se usen en el juego
+	var tn = Node3D.new()
+	get_tree().root.add_child(tn)
+	var tc = Camera3D.new()
+	tc.position = Vector3(999.0, 999.0, 1004.0)
+	tn.add_child(tc)
+	tc.look_at_from_position(tc.position, Vector3(999.0, 999.0, 999.0))
+
 	var ts = scenes.size()
+	var instantiated_nodes = []
 	for i in range(ts):
-		progress.value = 50.0 + ((float(i) / ts) * 50.0)
-		if i % 5 == 0:
+		var sp = scenes[i]
+		status.text = "Cargando efectos: " + sp.get_file()
+		if ResourceLoader.exists(sp):
+			var s = load(sp)
+			if s:
+				var inst = s.instantiate()
+				if inst is Node3D:
+					tn.add_child(inst)
+					inst.position = Vector3(999.0, 999.0, 999.0)
+				elif inst is Node2D:
+					get_tree().root.add_child(inst)
+					inst.position = Vector2(-9999.0, -9999.0)
+				else:
+					get_tree().root.add_child(inst)
+				instantiated_nodes.append(inst)
+		progress.value = 50.0 + ((float(i) / ts) * 45.0)
+		if i % 10 == 0:
 			await get_tree().process_frame
+
+	status.text = "Compilando graficos (GPU)..."
+	progress.value = 95.0
+	await get_tree().physics_frame
+	await get_tree().process_frame
+	
+	# Liberar todos los efectos instanciados
+	for inst in instantiated_nodes:
+		if is_instance_valid(inst):
+			inst.queue_free()
+
+	tn.queue_free()
 
 	status.text = "¡Listo!"
 	progress.value = 100.0
