@@ -37,10 +37,10 @@ if %errorlevel% neq 0 (
 set UPLOAD_MANIFEST=N
 set /p UPLOAD_WIN="Deseas subir el parche de Windows (1.6GB) a Oracle Cloud? (S/N): "
 if /i "%UPLOAD_WIN%"=="S" (
-    echo [6/6] Subiendo updates_windows.pck directamente a Oracle Cloud...
-    scp -i "E:\Descon\OracleCloud\ssh-key-2026-04-20.key" Server/public/cdn/updates_windows.pck ubuntu@138.2.241.76:~/Descon/Server/public/cdn/
+    echo [6/6] Subiendo Actualizacion Windows.pck directamente a Oracle Cloud...
+    scp -i "E:\Descon\OracleCloud\ssh-key-2026-04-20.key" "Server/public/cdn/Actualizacion Windows.pck" ubuntu@138.2.241.76:~/Descon/Server/public/cdn/
     if %errorlevel% neq 0 (
-        echo [ERROR] Error al subir updates_windows.pck.
+        echo [ERROR] Error al subir Actualizacion Windows.pck.
         pause
         exit /b %errorlevel%
     )
@@ -49,10 +49,10 @@ if /i "%UPLOAD_WIN%"=="S" (
 
 set /p UPLOAD_AND="Deseas subir el parche de Android a Oracle Cloud? (S/N): "
 if /i "%UPLOAD_AND%"=="S" (
-    echo [6/6] Subiendo updates_android.pck directamente a Oracle Cloud...
-    scp -i "E:\Descon\OracleCloud\ssh-key-2026-04-20.key" Server/public/cdn/updates_android.pck ubuntu@138.2.241.76:~/Descon/Server/public/cdn/
+    echo [6/6] Subiendo Actualizacion Android.pck directamente a Oracle Cloud...
+    scp -i "E:\Descon\OracleCloud\ssh-key-2026-04-20.key" "Server/public/cdn/Actualizacion Android.pck" ubuntu@138.2.241.76:~/Descon/Server/public/cdn/
     if %errorlevel% neq 0 (
-        echo [ERROR] Error al subir updates_android.pck.
+        echo [ERROR] Error al subir Actualizacion Android.pck.
         pause
         exit /b %errorlevel%
     )
