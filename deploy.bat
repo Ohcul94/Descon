@@ -35,7 +35,7 @@ if %errorlevel% neq 0 (
 )
 
 set UPLOAD_MANIFEST=N
-set /p UPLOAD_WIN="Deseas subir el parche de Windows (1.6GB) a Oracle Cloud? (S/N): "
+set /p UPLOAD_WIN="Deseas subir el parche de Windows a Oracle Cloud? (S/N): "
 if /i "%UPLOAD_WIN%"=="S" (
     echo [6/6] Subiendo Actualizacion Windows.pck directamente a Oracle Cloud...
     scp -i "E:\Descon\OracleCloud\ssh-key-2026-04-20.key" "Server/public/cdn/Actualizacion Windows.pck" ubuntu@138.2.241.76:~/Descon/Server/public/cdn/
