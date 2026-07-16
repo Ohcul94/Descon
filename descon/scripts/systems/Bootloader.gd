@@ -315,6 +315,7 @@ func _mount_pck_and_start():
 	if success:
 		print("[Bootloader] PCK montado con éxito.")
 		_reload_autoloads()
+		return # Detener ejecución aquí, ya que _reload_autoloads reiniciará la escena de forma nativa
 	else:
 		print("[Bootloader-ERR] Fallo al montar el PCK local.")
 		
