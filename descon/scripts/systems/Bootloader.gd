@@ -310,7 +310,7 @@ func _mount_pck_and_start():
 	_finish_bootloader_and_start()
 
 func _reload_autoloads():
-	print("[Bootloader] Recargando Singletons...")
+	print("[Bootloader] Recargando scripts de Singletons (Hot-swapping)...")
 	var autoloads = [
 		{"name": "NetworkManager", "path": "res://scripts/autoloads/NetworkManager.gd"},
 		{"name": "AudioManager", "path": "res://scripts/autoloads/AudioManager.gd"},
@@ -325,28 +325,27 @@ func _reload_autoloads():
 		var singleton_name = item["name"]
 		var path = item["path"]
 		
-		# 1. Si existe la instancia vieja, la removemos y liberamos
 		if root.has_node(singleton_name):
-			var old_node = root.get_node(singleton_name)
-			
-			# Si el nodo es VFXSystem, llamamos a la limpieza de la cinemática
-			if singleton_name == "VFXSystem" and old_node.has_method("cleanup_cinematic"):
-				old_node.cleanup_cinematic()
-				
-			root.remove_child(old_node)
-			old_node.queue_free()
-			print("[Bootloader] Eliminado Singleton viejo: ", singleton_name)
-			
-		# 2. Cargar el script (que ahora se leerá del PCK montado en res://)
-		var script = load(path)
-		if script:
-			var new_node = Node.new()
-			new_node.name = singleton_name
-			new_node.set_script(script)
-			root.add_child(new_node)
-			print("[Bootloader] Re-inicializado Singleton: ", singleton_name)
+			var existing_node = root.get_node(singleton_name)
+			var script = load(path)
+			if script:
+				# Cambiar el script de la instancia existente mantiene las referencias globales intactas
+				existing_node.set_script(script)
+				# Volver a invocar _ready para que el nuevo script se inicialice
+				if existing_node.has_method("_ready"):
+					existing_node._ready()
+				print("[Bootloader] Hot-swapped script en Singleton: ", singleton_name)
+			else:
+				print("[Bootloader-ERR] No se pudo cargar script para: ", path)
 		else:
-			print("[Bootloader-ERR] No se pudo cargar script actualizado para: ", path)
+			# Si por alguna razón no existía en el arranque del juego, lo creamos
+			var script = load(path)
+			if script:
+				var new_node = Node.new()
+				new_node.name = singleton_name
+				new_node.set_script(script)
+				root.add_child(new_node)
+				print("[Bootloader] Creado Singleton faltante: ", singleton_name)
 
 func _finish_bootloader_and_start():
 	status_lbl.text = "Iniciando precalentamiento..."
