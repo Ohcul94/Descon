@@ -297,8 +297,8 @@ func _input(event):
 	var focusNode = get_viewport().gui_get_focus_owner()
 	if focusNode is LineEdit or focusNode is TextEdit: return
 
-	# v244.60: No permitir abrir menues si no estamos logueados
-	if not NetworkManager.is_logged_in: return
+	var nm = get_node_or_null("/root/NetworkManager")
+	if not nm or not nm.is_logged_in: return
 
 	if event.is_action_pressed("ui_inventory"):
 		toggle(); get_viewport().set_input_as_handled()
