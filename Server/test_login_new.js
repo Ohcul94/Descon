@@ -16,7 +16,7 @@ const state = {
 
 async function testUser(username) {
     console.log(`\nProbando login simulado para: ${username}`);
-    const user = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+    const user = await User.findOne({ username: username.toLowerCase() });
     if (!user) {
         console.log("Usuario no encontrado.");
         return;

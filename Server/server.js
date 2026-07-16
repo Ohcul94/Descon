@@ -220,6 +220,7 @@ app.get('/api/find-asset', async (req, res) => {
 
 const state = require('./state');
 const { players, activeSessions, enemies, activeAreas, parties, playerParty } = state;
+const partyTimeouts = {};
 
 // v370.1: Inicializar monitores de rendimiento AAA en RAM
 state.performance = {
@@ -317,6 +318,14 @@ lootManager.startCleanupTimer(io, state);
 
 // v244.20: Función Maestra de Inicialización de Sesión (Login/Register)
 const handleUserLogin = async (socket, user, username) => {
+    // Cancelar cualquier timeout de remoción de party si el jugador se reconectó a tiempo
+    const dbId = user._id.toString();
+    if (partyTimeouts[dbId]) {
+        clearTimeout(partyTimeouts[dbId]);
+        delete partyTimeouts[dbId];
+        Logger.info('PARTY', `Cancelado timeout de party para ${username}. Reconectado con éxito.`);
+    }
+
     // SEGURIDAD ANTI-MULTILOGIN v33.0: Desconectar sesión anterior (Case Insensitive)
     const lowName = username.toLowerCase();
     if (activeSessions.has(lowName)) {
@@ -347,13 +356,11 @@ const handleUserLogin = async (socket, user, username) => {
     
     socket.dbUser = user;
 
-    const dbId = user._id.toString();
-
     // v190.85: Sincronía de Stats Base desde Admin Config (server-side start)
     let baseHp = 2000; let baseSh = 1000;
     const shipId = user.gameData.currentShipId || 1;
     try {
-        const config = await fs.readJson(CONFIG_FILE);
+        const config = state.SERVER_CONFIG;
         if (config && config.shipModels) {
             const model = config.shipModels.find(m => m.id === shipId);
             if (model) {
@@ -1043,7 +1050,7 @@ io.on('connection', (socket) => {
     socket.on('register', async (data) => {
         try {
             const username = data.user;
-            const existingUser = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+            const existingUser = await User.findOne({ username: username.toLowerCase() });
 
             if (existingUser) {
                 return socket.emit('authError', 'Ese usuario ya existe.');
@@ -1090,7 +1097,7 @@ io.on('connection', (socket) => {
     socket.on('login', async (data) => {
         try {
             const username = data.user;
-            const user = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+            const user = await User.findOne({ username: username.toLowerCase() });
 
             if (!user) {
                 return socket.emit('authError', 'Usuario o contraseña incorrectos.');
@@ -1873,6 +1880,32 @@ io.on('connection', (socket) => {
                 if (parties[pid]) {
                     // Solo marcar como desconectado, NO borrar del grupo
                     io.emit('chatMessage', { sender: 'SYSTEM', msg: `${p.user.toUpperCase()} OFFLINE.`, channel: 'team', senderId: 'server' });
+
+                    // Programar remoción definitiva después de 5 minutos (300000 ms)
+                    if (partyTimeouts[uid]) clearTimeout(partyTimeouts[uid]);
+                    partyTimeouts[uid] = setTimeout(() => {
+                        try {
+                            if (parties[pid] && playerParty[uid]) {
+                                // Remover del grupo si sigue desconectado
+                                const name = p.user.toUpperCase();
+                                parties[pid].members = parties[pid].members.filter(m => m !== uid);
+                                parties[pid].names = parties[pid].names.filter(n => n !== name);
+                                
+                                if (parties[pid].members.length <= 1) {
+                                    parties[pid].members.forEach(m => delete playerParty[m]);
+                                    delete parties[pid];
+                                    io.emit('partyUpdate', null);
+                                } else {
+                                    io.emit('partyUpdate', parties[pid]);
+                                }
+                                delete playerParty[uid];
+                                Logger.info('PARTY', `Piloto ${p.user} removido del grupo por inactividad de reconexión.`);
+                            }
+                            delete partyTimeouts[uid];
+                        } catch (err) {
+                            Logger.error('PARTY', `Error en timeout de party para ${uid}: ${err.message}`);
+                        }
+                    }, 5 * 60 * 1000); // 5 Minutos
                 }
             }
         }

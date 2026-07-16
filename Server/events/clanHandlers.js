@@ -183,7 +183,7 @@ function registerClanHandlers(socket, io, state) {
             const clan = await Clan.findOne({ leader: socket.dbUser._id });
             if (!clan) return socket.emit('gameNotification', { msg: 'SOLO EL LÍDER PUEDE EXPULSAR', type: 'error' });
 
-            const targetUser = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+            const targetUser = await User.findOne({ username: username.toLowerCase() });
             if (!targetUser) return;
 
             if (targetUser._id.toString() === clan.leader.toString()) return;
@@ -226,7 +226,7 @@ function registerClanHandlers(socket, io, state) {
             const clan = await Clan.findOne({ leader: socket.dbUser._id });
             if (!clan) return socket.emit('gameNotification', { msg: 'SOLO EL LÍDER PUEDE GESTIONAR SOLICITUDES', type: 'error' });
 
-            const targetUser = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+            const targetUser = await User.findOne({ username: username.toLowerCase() });
             if (!targetUser) return;
 
             clan.requests = clan.requests.filter(r => r.toString() !== targetUser._id.toString());
@@ -341,7 +341,7 @@ function registerClanHandlers(socket, io, state) {
                 return socket.emit('gameNotification', { msg: 'FLOTA LLENA', type: 'error' });
             }
 
-            const targetUser = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+            const targetUser = await User.findOne({ username: username.toLowerCase() });
             if (!targetUser) return socket.emit('gameNotification', { msg: 'PILOTO NO ENCONTRADO', type: 'error' });
 
             if (targetUser.gameData.clanId) {
@@ -390,7 +390,7 @@ function registerClanHandlers(socket, io, state) {
             const clan = await Clan.findOne({ leader: socket.dbUser._id });
             if (!clan) return;
 
-            const targetUser = await User.findOne({ username: { $regex: new RegExp("^" + username + "$", "i") } });
+            const targetUser = await User.findOne({ username: username.toLowerCase() });
             if (!targetUser) return;
 
             if (clan.sentInvites) {

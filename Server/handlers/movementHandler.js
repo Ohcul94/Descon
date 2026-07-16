@@ -85,7 +85,8 @@ function registerMovementHandlers(socket, io, state) {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         const shipSpeed = p.speed || 500;
-        const maxAllowed = (shipSpeed * dt) + 200; // Tolerancia de 200px por jitter/latencia
+        // Limitamos dt a 0.2s para evitar exploits de lag-switch, y reducimos tolerancia a 100px por seguridad
+        const maxAllowed = (shipSpeed * Math.min(0.2, dt)) + 100;
         
         if (distance > maxAllowed && !p.justBlinked && !p.isAdmin) { 
             Logger.warn('SECURITY', `Movimiento sospechoso detectado en [${p.user}]: distancia ${Math.round(distance)}px, máx permitido ${Math.round(maxAllowed)}px (dt: ${dt.toFixed(3)}s)`);

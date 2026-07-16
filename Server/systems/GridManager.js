@@ -25,9 +25,18 @@ class GridManager {
     }
 
     // v2.0: Mantener compatibilidad con el código legacy que llama clear() en el gameLoop.
-    // En el futuro, al migrar a reactivo puro, dejar este método vacío o eliminarlo.
+    // Reutiliza los objetos de celda y arrays para mitigar la recolección de basura (GC Pressure).
+    // Si la grilla crece demasiado, se vacía por completo para evitar acumulación de claves viejas.
     clear() {
-        this.grid.clear();
+        if (this.grid.size > 2000) {
+            this.grid.clear();
+        } else {
+            for (const cell of this.grid.values()) {
+                cell.players.length = 0;
+                cell.enemies.length = 0;
+                cell.areas.length = 0;
+            }
+        }
     }
 
     insert(entity, type) {
