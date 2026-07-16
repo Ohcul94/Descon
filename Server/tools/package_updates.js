@@ -90,8 +90,8 @@ const exportPCK = (presetName, outputPath) => {
 };
 
 // Intentar exportaciones por CLI
-const exportedWindows = exportPCK('Actualizacion Windows', 'Actualizacion Windows.pck');
-const exportedAndroid = exportPCK('Actualizacion Android', 'Actualizacion Android.pck');
+const exportedWindows = exportPCK('Descon Windows Patch', 'Actualizacion Windows.pck');
+const exportedAndroid = exportPCK('Descon V2 Patch', 'Actualizacion Android.pck');
 
 // Rutas de origen de exportación del usuario
 const EXPORT_WINDOWS_DIR = path.resolve(SERVER_DIR, '../Ejecutable');
