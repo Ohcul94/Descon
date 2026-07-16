@@ -305,7 +305,7 @@ func _physics_process(p_delta):
 		if current_zone != 100 and not visible and not is_dead:
 			visible = true
 			
-	if not NetworkManager.network_connected: 
+	if not is_instance_valid(NetworkManager) or not NetworkManager.network_connected: 
 		velocity = Vector2.ZERO
 		return
 	

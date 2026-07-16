@@ -455,7 +455,8 @@ func _process(delta):
 			has_projected = true
 		
 		if is_instance_valid(_ui_wrapper):
-			if get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
+			var nm = get_node_or_null("/root/NetworkManager")
+			if nm and not nm.is_logged_in:
 				_ui_wrapper.visible = false
 			else:
 				_ui_wrapper.visible = visible and not is_dead

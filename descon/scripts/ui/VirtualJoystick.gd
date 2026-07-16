@@ -111,8 +111,9 @@ func _reset_joystick():
 
 func _process(_delta):
 	# Actualizar estado de modo celular en tiempo real
-	if get_node_or_null("/root/SettingsManager"):
-		is_mobile_enabled = SettingsManager.mobile_mode
+	var sm = get_node_or_null("/root/SettingsManager")
+	if sm:
+		is_mobile_enabled = sm.mobile_mode
 	
 	var hud = get_tree().get_first_node_in_group("hud")
 	var is_edit = hud and hud.get("is_editing_layout")
