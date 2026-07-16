@@ -295,6 +295,8 @@ module.exports = class BaseAI {
                     this._handleDuplicadoLogic(mech, mId, now, io);
                 } else if (mech.type === "wall_dome") {
                     this._handleWallDomeLogic(mech, mId, now, io);
+                } else if (mech.type === "reflect") {
+                    this._handleReflectLogic(mech, mId, now, io);
                 } else if (mech.type && mech.type.startsWith("aura_")) {
                     this._handleAuraLogic(mech, mId, now, io, grid, players);
                 }
@@ -315,6 +317,15 @@ module.exports = class BaseAI {
                     io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
                         id: this.enemy.id, 
                         action: "wall_dome_end",
+                        mId: mId
+                    });
+                }
+                if (mech.type === "reflect" && this.enemy.defState && this.enemy.defState[mId] && this.enemy.defState[mId].isActive) {
+                    this.enemy.defState[mId].isActive = false;
+                    this.enemy.reflectActive = false;
+                    io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
+                        id: this.enemy.id, 
+                        action: "reflect_end",
                         mId: mId
                     });
                 }
@@ -1551,6 +1562,7 @@ module.exports = class BaseAI {
             state.nextReadyTime = now + (mech.startDelay || 0);
         }
 
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
         // 2. Activar si cumple condiciones (v269.195: Fallback a 100 si es 0/null)
         const triggerHP = mech.activationHP || 100;
         if (!state.isActive && now >= state.nextReadyTime && this._inCombat && hpPercent <= triggerHP) {
@@ -2881,6 +2893,110 @@ module.exports = class BaseAI {
             io.to(`zone_${this.enemy.zone}`).emit('gameNotification', { 
                 msg: `🛡️ ¡El Boss levantó un Muro de Energía! Entrá al área (${state.radius}px) para dañarlo. 🛡️`, 
                 type: "warning" 
+            });
+        }
+    }
+
+    _handleReflectLogic(mech, mId, now, io) {
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || { 
+            nextReadyTime: now + (mech.startDelay || 0), 
+            isActive: false, 
+            endTime: 0,
+            triggeredHPs: {},
+            combatStartTime: null,
+            type: "reflect"
+        };
+        this.enemy.defState[mId] = state;
+
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        // Resetear triggers y timers si salimos de combate
+        if (!this._inCombat) {
+            state.triggeredHPs = {};
+            state.combatStartTime = null;
+            state.nextReadyTime = now + (mech.startDelay || 0);
+            if (state.isActive) {
+                state.isActive = false;
+                this.enemy.reflectActive = false;
+                io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
+                    id: this.enemy.id, 
+                    action: "reflect_end",
+                    mId: mId
+                });
+            }
+        } else if (this._inCombat && !state.combatStartTime) {
+            state.combatStartTime = now;
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
+        }
+
+        // 1. Terminar si expira el tiempo
+        if (state.isActive && now >= state.endTime) {
+            state.isActive = false;
+            this.enemy.reflectActive = false;
+            
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                state.nextReadyTime = now + (mech.cooldown || 10000);
+            }
+
+            io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
+                id: this.enemy.id, 
+                action: "reflect_end",
+                mId: mId
+            });
+        }
+
+        // 2. Activar si cumple condiciones
+        let shouldActivate = false;
+        if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
+            if (mech.activationMode === "time") {
+                shouldActivate = true;
+            } else {
+                // Modo HP
+                let thresholds = [];
+                if (Array.isArray(mech.activationHPs)) {
+                    thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
+                } else if (mech.activationHP !== undefined) {
+                    thresholds = [Number(mech.activationHP)];
+                } else {
+                    thresholds = [50];
+                }
+
+                if (!state.triggeredHPs) {
+                    state.triggeredHPs = {};
+                }
+
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        shouldActivate = true;
+                        state.triggeredHPs[hpVal] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (shouldActivate) {
+            state.isActive = true;
+            const duration = mech.duration || 3000;
+            state.endTime = now + duration;
+            
+            const reflectMult = mech.reflect_mult !== undefined ? Number(mech.reflect_mult) : 0.8;
+            this.enemy.reflectActive = true;
+            this.enemy.reflectMult = reflectMult;
+
+            io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
+                id: this.enemy.id, 
+                action: "reflect_start",
+                duration: duration,
+                reflect_mult: reflectMult,
+                mId: mId
             });
         }
     }

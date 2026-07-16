@@ -449,6 +449,8 @@ function registerCombatHandlers(socket, io, state) {
                     if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
                     p.lastCombatTime = Date.now();
                     
+                    socket.emit('environmentDamage', { damage: reflectedDmg });
+                    
                     io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                         id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
                         maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead,

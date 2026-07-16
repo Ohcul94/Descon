@@ -3073,7 +3073,7 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "survival_dome",
+                    "type": "reflect",
                     "bulletDamage": 1000,
                     "bulletSpeed": 800,
                     "fireRange": 1300,
@@ -3085,11 +3085,11 @@
                     "lockTimeMs": 500,
                     "isHoming": 0,
                     "activationHP": 0,
-                    "radius": 250,
+                    "radius": 150,
                     "damage": 500,
                     "intervalMs": 1000,
-                    "duration": 5000,
-                    "cooldown": 3000,
+                    "duration": 4000,
+                    "cooldown": 5000,
                     "orbitSpeed": 2,
                     "circleCount": 3,
                     "orbitRadius": 150,
@@ -3110,7 +3110,17 @@
                     "aimDelayMs": 1000,
                     "bombCount": 3,
                     "bombDelayMs": 500,
-                    "fuseTimeMs": 1000
+                    "fuseTimeMs": 1000,
+                    "spinSpeed": 4,
+                    "speedBuffAmount": 500,
+                    "speedBuffDuration": 3000,
+                    "applySlow": true,
+                    "slowIsPercentage": 0,
+                    "slowPercentage": 500,
+                    "slowDuration": 2000,
+                    "reflect_mult": 1,
+                    "activationMode": "time",
+                    "activationIntervalMs": 3000
                 }
             ],
             "movementPhases": [
@@ -5254,6 +5264,7 @@
             "desc": "Círculos que giran y luego se disparan.",
             "fields": [
                 "bulletDamage",
+                "bulletSpeed",
                 "orbitSpeed",
                 "circleCount",
                 "orbitRadius",
@@ -5366,10 +5377,12 @@
             "icon": "🛡️",
             "desc": "Devuelve daño recibido al atacante.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
                 "duration",
                 "reflect_mult",
-                "cooldown",
-                "fireRange",
                 "startDelay"
             ]
         },
@@ -5649,6 +5662,20 @@
                 "cooldown",
                 "duration",
                 "radius",
+                "startDelay"
+            ]
+        },
+        "reflect": {
+            "label": "Escudo Reflectante (Reflect)",
+            "icon": "🛡️",
+            "desc": "Devuelve daño recibido al atacante.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "duration",
+                "reflect_mult",
                 "startDelay"
             ]
         }

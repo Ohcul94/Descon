@@ -762,6 +762,7 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
             else if (f === 'cloneHealAmount') mech[f] = 1000;
             else if (f === 'cloneExplodeOnExpiry') mech[f] = true;
             else if (f === 'spawnRadius') mech[f] = 150;
+            else if (f === 'reflect_mult') mech[f] = 0.8;
             else mech[f] = 0;
         }
     });
