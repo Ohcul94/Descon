@@ -25,7 +25,18 @@ func _ready():
 	if os_name == "Android" or os_name == "iOS":
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 
-	# 1. Si estamos en el EDITOR de Godot, BYPASSEAR el sistema de actualizaciones
+	# 1. Si ya se montó el PCK y reiniciamos de forma nativa para recargar autoloads,
+	# simplemente iniciamos el juego directamente.
+	if get_tree().has_meta("pck_loaded_and_reloaded"):
+		print("[Bootloader] Iniciando juego con parches aplicados y singletons recargados.")
+		status_lbl.text = "Iniciando juego..."
+		await get_tree().process_frame
+		_setup_background_cinematic()
+		await get_tree().create_timer(0.2).timeout
+		_finish_bootloader_and_start()
+		return
+
+	# 2. Si estamos en el EDITOR de Godot, BYPASSEAR el sistema de actualizaciones
 	# Esto evita que se sobrescriban los scripts que el desarrollador está editando en tiempo real.
 	if OS.has_feature("editor"):
 		print("[Bootloader] Ejecutando en Editor. Omitiendo actualizaciones para desarrollo local.")
@@ -36,7 +47,7 @@ func _ready():
 		_finish_bootloader_and_start()
 		return
 
-	# 2. Configurar plataforma y servidor para builds compilados
+	# 3. Configurar plataforma y servidor para builds compilados
 	if os_name == "Android":
 		platform_key = "android"
 		target_ip = "138.2.241.76" # Celular siempre apunta a Oracle Cloud
@@ -310,42 +321,19 @@ func _mount_pck_and_start():
 	_finish_bootloader_and_start()
 
 func _reload_autoloads():
-	print("[Bootloader] Recargando scripts de Singletons (Hot-swapping)...")
-	var autoloads = [
-		{"name": "NetworkManager", "path": "res://scripts/autoloads/NetworkManager.gd"},
-		{"name": "AudioManager", "path": "res://scripts/autoloads/AudioManager.gd"},
-		{"name": "GameConstants", "path": "res://scripts/autoloads/Constants.gd"},
-		{"name": "PartyManager", "path": "res://scripts/systems/PartyManager.gd"},
-		{"name": "VFXSystem", "path": "res://scripts/systems/VFXManager.gd"},
-		{"name": "SettingsManager", "path": "res://scripts/autoloads/SettingsManager.gd"}
-	]
+	# Si ya venimos de recargar el árbol con el PCK montado, no lo volvemos a hacer
+	if get_tree().has_meta("pck_loaded_and_reloaded"):
+		print("[Bootloader] Iniciando con singletons recargados por el motor.")
+		return
+
+	print("[Bootloader] PCK montado. Reiniciando árbol de forma nativa para recargar Autoloads...")
+	get_tree().set_meta("pck_loaded_and_reloaded", true)
 	
-	var root = get_tree().root
-	for item in autoloads:
-		var singleton_name = item["name"]
-		var path = item["path"]
-		
-		if root.has_node(singleton_name):
-			var existing_node = root.get_node(singleton_name)
-			var script = load(path)
-			if script:
-				# Cambiar el script de la instancia existente mantiene las referencias globales intactas
-				existing_node.set_script(script)
-				# Volver a invocar _ready para que el nuevo script se inicialice
-				if existing_node.has_method("_ready"):
-					existing_node._ready()
-				print("[Bootloader] Hot-swapped script en Singleton: ", singleton_name)
-			else:
-				print("[Bootloader-ERR] No se pudo cargar script para: ", path)
-		else:
-			# Si por alguna razón no existía en el arranque del juego, lo creamos
-			var script = load(path)
-			if script:
-				var new_node = Node.new()
-				new_node.name = singleton_name
-				new_node.set_script(script)
-				root.add_child(new_node)
-				print("[Bootloader] Creado Singleton faltante: ", singleton_name)
+	# Cambiar a la misma escena del bootloader. Al recargarse la escena,
+	# Godot recargará todos los Singletons usando los scripts del PCK montado.
+	var err = get_tree().change_scene_to_file("res://scenes/Bootloader.tscn")
+	if err != OK:
+		print("[Bootloader-ERR] No se pudo recargar la escena del Bootloader de forma nativa.")
 
 func _finish_bootloader_and_start():
 	status_lbl.text = "Iniciando precalentamiento..."
