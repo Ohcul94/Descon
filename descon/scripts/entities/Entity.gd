@@ -538,6 +538,25 @@ func _process(delta):
 	if not _active_survival_dome.is_empty():
 		_active_survival_dome.time_elapsed += delta
 		queue_redraw()
+		var dome_3d_ref = _active_survival_dome.get("dome_3d")
+		if is_instance_valid(dome_3d_ref):
+			var fire_r3d = _active_survival_dome.get("fire_r3d", 1.0)
+			var progress = clamp(_active_survival_dome.time_elapsed / _active_survival_dome.duration, 0.0, 1.0)
+			var current_r = fire_r3d * progress
+			var danger_disc = dome_3d_ref.get_meta("danger_disc") if dome_3d_ref.has_meta("danger_disc") else null
+			if is_instance_valid(danger_disc) and danger_disc.mesh is CylinderMesh:
+				danger_disc.mesh.top_radius = max(current_r, 0.01)
+				danger_disc.mesh.bottom_radius = max(current_r, 0.01)
+				danger_disc.position.y = 0.01
+			var safe_node = dome_3d_ref.get_node_or_null("SafeDome3D")
+			if is_instance_valid(safe_node):
+				var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.007) * 0.08
+				safe_node.scale = Vector3(pulse, 1.0, pulse)
+				var safe_disc = safe_node.get_meta("safe_disc") if safe_node.has_meta("safe_disc") else null
+				if is_instance_valid(safe_disc) and safe_disc.material_override:
+					var alpha = 0.2 + sin(Time.get_ticks_msec() * 0.005) * 0.12
+					safe_disc.material_override.albedo_color.a = alpha
+					safe_disc.material_override.emission_energy_multiplier = 1.5 + sin(Time.get_ticks_msec() * 0.005) * 1.0
 
 	# OPTIMIZACIÓN MASIVA: Pausar/Intercalar SubViewport de entidades según visibilidad, rol y distancia
 	if _cached_viewport:
@@ -684,50 +703,6 @@ func _update_hud_offsets():
 
 func _draw():
 	# v268.825: Dibujo del Domo de Supervivencia (Survival Dome)
-	if not _active_survival_dome.is_empty():
-		var fire_range = _active_survival_dome.fire_range
-		var safe_pos = _active_survival_dome.safe_pos
-		var safe_radius = _active_survival_dome.safe_radius
-		var duration = _active_survival_dome.duration
-		var time_elapsed = _active_survival_dome.time_elapsed
-		
-		# 3. Barra de Progreso de Carga
-		var progress = clamp(time_elapsed / duration, 0.0, 1.0)
-		
-		# 1. Zona de Explosión (Peligro - Círculo rojo grande que se expande sin pintar la zona segura)
-		var current_fire_range = fire_range * progress
-		var local_safe_pos = to_local(safe_pos)
-		
-		var danger_poly = PackedVector2Array()
-		# Solo dibujar el polígono compuesto si el radio ya es lo suficientemente grande
-		# para no generar geometría degenerada (triangulación fallida en Godot)
-		var dist_to_safe = local_safe_pos.length()
-		var min_valid_range = dist_to_safe + safe_radius + 5.0
-		if current_fire_range >= min_valid_range:
-			# Círculo exterior de peligro (Agujas del reloj)
-			for i in range(65):
-				var angle = (i / 64.0) * TAU
-				danger_poly.append(Vector2(cos(angle), sin(angle)) * current_fire_range)
-			# Círculo interior seguro (Contra las agujas del reloj) para sustraerlo del relleno
-			for i in range(65):
-				var angle = (1.0 - i / 64.0) * TAU
-				danger_poly.append(local_safe_pos + Vector2(cos(angle), sin(angle)) * safe_radius)
-			draw_polygon(danger_poly, [Color(1.0, 0.0, 0.0, 0.15)])
-		elif current_fire_range > 5.0:
-			# Círculo simple de peligro (sin sustracción) mientras el rango es pequeño
-			draw_circle(Vector2.ZERO, current_fire_range, Color(1.0, 0.0, 0.0, 0.15))
-		draw_arc(Vector2.ZERO, fire_range, 0, TAU, 90, Color(1.0, 0.1, 0.1, 0.4), 2.0, true)
-		draw_arc(Vector2.ZERO, current_fire_range, 0, TAU, 90, Color(1.0, 0.3, 0.0, 0.7), 3.0, true)
-		
-		# 2. Domo Seguro (Refugio - Círculo verde brillante)
-		draw_circle(local_safe_pos, safe_radius, Color(0.0, 0.9, 0.4, 0.12))
-		
-		# Pulso dinámico para el borde de la zona segura
-		var safe_pulse = safe_radius + sin(Time.get_ticks_msec() * 0.007) * 3.0
-		draw_arc(local_safe_pos, safe_radius, 0, TAU, 72, Color(0.0, 1.0, 0.5, 0.8), 4.0, true)
-		draw_arc(local_safe_pos, safe_pulse, 0, TAU, 72, Color(0.2, 1.0, 0.6, 0.35), 1.5, true)
-
-
 	# v268.810: Dibujo de soporte para cúpulas de energía (Wall Dome)
 	for mId in active_auras:
 		var a_data = active_auras[mId]
@@ -1420,10 +1395,189 @@ func _on_enemy_action(data):
 				"time_elapsed": 0.0
 			}
 			queue_redraw()
+			if is_instance_valid(world_root_3d):
+				var map_node = get_tree().get_first_node_in_group("map")
+				if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+					var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+					var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
+					var dome_3d = Node3D.new()
+					dome_3d.name = "Dome3D_" + entity_id
+					world_root_3d.add_child(dome_3d)
+					var fire_r3d = _active_survival_dome.fire_range * s_factor
+					var danger_disc = MeshInstance3D.new()
+					var disc_mesh = CylinderMesh.new()
+					disc_mesh.top_radius = 0.01
+					disc_mesh.bottom_radius = 0.01
+					disc_mesh.height = 0.02
+					danger_disc.mesh = disc_mesh
+					var d_mat = StandardMaterial3D.new()
+					d_mat.albedo_color = Color(1.0, 0.1, 0.0, 0.25)
+					d_mat.emission_enabled = true
+					d_mat.emission = Color(1.0, 0.15, 0.0)
+					d_mat.emission_energy_multiplier = 1.5
+					d_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					d_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					danger_disc.material_override = d_mat
+					danger_disc.position.y = 0.01
+					dome_3d.add_child(danger_disc)
+					dome_3d.set_meta("danger_disc", danger_disc)
+					dome_3d.set_meta("fire_r3d", fire_r3d)
+					var outer_ring = MeshInstance3D.new()
+					var ring_mesh = TorusMesh.new()
+					ring_mesh.inner_radius = fire_r3d - 0.02
+					ring_mesh.outer_radius = fire_r3d + 0.02
+					outer_ring.mesh = ring_mesh
+					var ring_mat = StandardMaterial3D.new()
+					ring_mat.albedo_color = Color(1.0, 0.1, 0.1, 0.5)
+					ring_mat.emission_enabled = true
+					ring_mat.emission = Color(1.0, 0.1, 0.1)
+					ring_mat.emission_energy_multiplier = 2.0
+					ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					outer_ring.material_override = ring_mat
+					outer_ring.rotation.x = PI / 2
+					dome_3d.add_child(outer_ring)
+					var safe_pos = _active_survival_dome.safe_pos
+					var safe_r3d = _active_survival_dome.safe_radius * s_factor
+					var boss_2d = global_position
+					var offset_x = (safe_pos.x - boss_2d.x) * s_factor
+					var offset_z = (safe_pos.y - boss_2d.y) * s_factor * correction_z
+					var safe_node = Node3D.new()
+					safe_node.name = "SafeDome3D"
+					safe_node.position = Vector3(offset_x, 0.0, offset_z)
+					dome_3d.add_child(safe_node)
+					var dome_hemi = MeshInstance3D.new()
+					var hemi_mesh = SphereMesh.new()
+					hemi_mesh.radius = safe_r3d
+					hemi_mesh.height = safe_r3d * 1.8
+					hemi_mesh.is_hemisphere = true
+					dome_hemi.mesh = hemi_mesh
+					var h_mat = StandardMaterial3D.new()
+					h_mat.albedo_color = Color(0.0, 1.0, 0.5, 0.15)
+					h_mat.emission_enabled = true
+					h_mat.emission = Color(0.0, 1.0, 0.5)
+					h_mat.emission_energy_multiplier = 2.0
+					h_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					h_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					dome_hemi.material_override = h_mat
+					dome_hemi.position.y = 0.0
+					safe_node.add_child(dome_hemi)
+					var dome_light = OmniLight3D.new()
+					dome_light.light_color = Color(0.0, 1.0, 0.5)
+					dome_light.light_energy = 4.0
+					dome_light.omni_range = safe_r3d * 2.5
+					dome_light.position.y = safe_r3d * 0.5
+					safe_node.add_child(dome_light)
+					var safe_disc = MeshInstance3D.new()
+					var sd_mesh = CylinderMesh.new()
+					sd_mesh.top_radius = safe_r3d
+					sd_mesh.bottom_radius = safe_r3d
+					sd_mesh.height = 0.015
+					safe_disc.mesh = sd_mesh
+					var sd_mat = StandardMaterial3D.new()
+					sd_mat.albedo_color = Color(0.0, 0.8, 1.0, 0.25)
+					sd_mat.emission_enabled = true
+					sd_mat.emission = Color(0.0, 0.8, 1.0)
+					sd_mat.emission_energy_multiplier = 2.0
+					sd_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					sd_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					safe_disc.material_override = sd_mat
+					safe_disc.position.y = 0.016
+					safe_node.add_child(safe_disc)
+					safe_node.set_meta("safe_disc", safe_disc)
+					_active_survival_dome["dome_3d"] = dome_3d
+					_active_survival_dome["s_factor"] = s_factor
+					_active_survival_dome["correction_z"] = correction_z
+					_active_survival_dome["fire_r3d"] = fire_r3d
+					tree_exiting.connect(func():
+						if is_instance_valid(dome_3d):
+							dome_3d.queue_free()
+					)
 		"survival_dome_fire":
+			var dome_3d_ref = _active_survival_dome.get("dome_3d")
+			if is_instance_valid(dome_3d_ref):
+				var map_node = get_tree().get_first_node_in_group("map")
+				if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+					var vp = map_node.sub_viewport
+					var fire_r3d = _active_survival_dome.get("fire_r3d", _active_survival_dome.fire_range * 0.02)
+					var boss_3d = world_root_3d.position if is_instance_valid(world_root_3d) else Vector3.ZERO
+					var flash = MeshInstance3D.new()
+					var flash_s = SphereMesh.new()
+					flash_s.radius = fire_r3d * 0.3
+					flash_s.height = fire_r3d * 0.6
+					flash.mesh = flash_s
+					var flash_mat = StandardMaterial3D.new()
+					flash_mat.albedo_color = Color(1.0, 0.5, 0.1, 0.9)
+					flash_mat.emission_enabled = true
+					flash_mat.emission = Color(1.0, 0.5, 0.1)
+					flash_mat.emission_energy_multiplier = 10.0
+					flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					flash_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					flash.material_override = flash_mat
+					flash.position = boss_3d
+					flash.position.y = 0.1
+					vp.add_child(flash)
+					var tw_f = flash.create_tween()
+					tw_f.tween_property(flash, "scale", Vector3(4.0, 4.0, 4.0), 0.35)
+					tw_f.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.35)
+					tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.35)
+					tw_f.finished.connect(flash.queue_free)
+					var damage_area = MeshInstance3D.new()
+					var area_mesh = CylinderMesh.new()
+					area_mesh.top_radius = fire_r3d
+					area_mesh.bottom_radius = fire_r3d
+					area_mesh.height = 0.01
+					damage_area.mesh = area_mesh
+					var area_mat = StandardMaterial3D.new()
+					area_mat.albedo_color = Color(1.0, 0.15, 0.0, 0.5)
+					area_mat.emission_enabled = true
+					area_mat.emission = Color(1.0, 0.2, 0.0)
+					area_mat.emission_energy_multiplier = 3.0
+					area_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					area_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					damage_area.material_override = area_mat
+					damage_area.position = boss_3d
+					damage_area.position.y = 0.01
+					vp.add_child(damage_area)
+					var tw_a = damage_area.create_tween().set_parallel(true)
+					tw_a.tween_property(area_mat, "albedo_color:a", 0.0, 0.5).set_ease(Tween.EASE_IN)
+					tw_a.tween_property(area_mat, "emission_energy_multiplier", 0.0, 0.5).set_ease(Tween.EASE_IN)
+					tw_a.finished.connect(damage_area.queue_free)
+					var shockwave = MeshInstance3D.new()
+					var sw_mesh = TorusMesh.new()
+					sw_mesh.inner_radius = fire_r3d * 0.95
+					sw_mesh.outer_radius = fire_r3d * 1.05
+					shockwave.mesh = sw_mesh
+					var sw_mat = StandardMaterial3D.new()
+					sw_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.9)
+					sw_mat.emission_enabled = true
+					sw_mat.emission = Color(1.0, 0.4, 0.05)
+					sw_mat.emission_energy_multiplier = 5.0
+					sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					sw_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					shockwave.material_override = sw_mat
+					shockwave.position = boss_3d
+					shockwave.position.y = 0.02
+					shockwave.rotation.x = PI / 2
+					vp.add_child(shockwave)
+					var tw_sw = shockwave.create_tween().set_parallel(true)
+					tw_sw.tween_property(shockwave, "scale", Vector3(1.5, 1.5, 1.5), 0.4)
+					tw_sw.tween_property(sw_mat, "albedo_color:a", 0.0, 0.4)
+					tw_sw.tween_property(sw_mat, "emission_energy_multiplier", 0.0, 0.4)
+					tw_sw.finished.connect(shockwave.queue_free)
+					var exp_light = OmniLight3D.new()
+					exp_light.light_color = Color(1.0, 0.4, 0.05)
+					exp_light.light_energy = 15.0
+					exp_light.omni_range = fire_r3d * 2.0
+					exp_light.position = boss_3d
+					exp_light.position.y = 0.5
+					vp.add_child(exp_light)
+					var tw_l = exp_light.create_tween()
+					tw_l.tween_property(exp_light, "light_energy", 0.0, 0.4)
+					tw_l.finished.connect(exp_light.queue_free)
+				dome_3d_ref.queue_free()
 			_active_survival_dome.clear()
 			queue_redraw()
-			# Simular destello de explosion en la nave
 			_trigger_hit_flash()
 		"wall_dome_start":
 			var mId = data.get("mId", "wall_dome")

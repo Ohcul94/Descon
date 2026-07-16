@@ -3073,7 +3073,7 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "circle_cast",
+                    "type": "survival_dome",
                     "bulletDamage": 1000,
                     "bulletSpeed": 800,
                     "fireRange": 1300,
@@ -3095,7 +3095,7 @@
                     "orbitRadius": 150,
                     "orbitDuration": 4000,
                     "staticTime": 1000,
-                    "safeRadius": 150,
+                    "safeRadius": 300,
                     "maxOffset": 300,
                     "castTimeMs": 2000,
                     "postCastWaitMs": 1000,
