@@ -3064,16 +3064,16 @@
             "bulletSpeed": 880,
             "fireRange": 1050,
             "fireRate": 950,
-            "hp": 36000,
+            "hp": 1000,
             "name": "Enemigo 9 C",
             "rewardExp": 7200,
             "rewardHubs": 15200,
             "rewardOhcu": 152,
-            "shield": 16000,
+            "shield": 100,
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "reflect",
+                    "type": "laser",
                     "bulletDamage": 1000,
                     "bulletSpeed": 800,
                     "fireRange": 1300,
@@ -3131,7 +3131,22 @@
                     "startDelay": 0
                 }
             ],
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "invulnerability",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 3000,
+                    "cooldown": 5000,
+                    "startDelay": 0,
+                    "activationHP": 90,
+                    "radius": 300,
+                    "healAmount": 20,
+                    "intervalMs": 500,
+                    "affectsEnemies": false,
+                    "affectsBosses": false
+                }
+            ],
             "aggressive": true,
             "rankingPoints": 9,
             "lootDrops": [],

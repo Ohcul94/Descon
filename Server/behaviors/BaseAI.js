@@ -1552,33 +1552,79 @@ module.exports = class BaseAI {
         const state = this.enemy.defState[mId] || { 
             nextReadyTime: now + (mech.startDelay || 0), 
             isActive: false, 
-            endTime: 0 
+            endTime: 0,
+            combatStartTime: null
         };
         this.enemy.defState[mId] = state;
 
-        // Resetear triggers y timers si salimos de combate
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+
+        // Resetear si salimos de combate
         if (!this._inCombat) {
             state.isActive = false;
+            this._isDefenseSkillActive = false;
+            this.enemy.isInvulnerable = false;
+            state.combatStartTime = null;
             state.nextReadyTime = now + (mech.startDelay || 0);
+        } else if (!state.combatStartTime) {
+            state.combatStartTime = now;
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
         }
 
-        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
-        // 2. Activar si cumple condiciones (v269.195: Fallback a 100 si es 0/null)
-        const triggerHP = mech.activationHP || 100;
-        if (!state.isActive && now >= state.nextReadyTime && this._inCombat && hpPercent <= triggerHP) {
+        // Desactivar si expiró la duración
+        if (state.isActive) {
+            if (now > state.endTime) {
+                state.isActive = false;
+                this._isDefenseSkillActive = false;
+                this.enemy.isInvulnerable = false;
+
+                if (mech.activationMode === "time") {
+                    state.nextReadyTime = now + (Number(mech.activationIntervalMs) || 30000);
+                } else {
+                    state.nextReadyTime = now + (mech.cooldown || 10000);
+                }
+
+                io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { 
+                    id: this.enemy.id, 
+                    active: false 
+                });
+            }
+            return;
+        }
+
+        if (now < state.nextReadyTime) return;
+
+        let shouldActivate = false;
+
+        if (mech.activationMode === "time") {
+            shouldActivate = true;
+            state.nextReadyTime = now + (Number(mech.activationIntervalMs) || 30000);
+        } else {
+            const thresholds = (mech.activationHPs && mech.activationHPs.length > 0)
+                ? mech.activationHPs
+                : [mech.activationHP || 70];
+            for (const hpVal of thresholds) {
+                if (hpPercent <= Number(hpVal)) {
+                    shouldActivate = true;
+                    break;
+                }
+            }
+        }
+
+        if (shouldActivate) {
             state.isActive = true;
             this._isDefenseSkillActive = true;
-            this.enemy.isInvulnerable = true; // Sincronía para el cliente
-            
+            this.enemy.isInvulnerable = true;
             state.endTime = now + (mech.duration || 3000);
-            state.nextReadyTime = now + (mech.duration || 3000) + (mech.cooldown || 10000);
-            
+
             io.to(`zone_${this.enemy.zone}`).emit("vfx_invulnerable", { 
                 id: this.enemy.id, 
                 active: true, 
                 duration: mech.duration || 3000 
             });
-            // console.log(`[AI] ${this.enemy.id} activó Invulnerabilidad (${mech.duration}ms)`);
         }
     }
 
