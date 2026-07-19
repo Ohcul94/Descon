@@ -7,6 +7,8 @@ const EntityHUDScript = preload("res://scripts/entities/EntityHUD.gd")
 const DamageTextScript = preload("res://scripts/ui/DamageText.gd")
 const EnergyShieldShader = preload("res://resources/shaders/energy_shield.gdshader")
 const HitFlashShader = preload("res://resources/shaders/hit_flash.gdshader")
+const ColorAuraShader = preload("res://resources/shaders/color_aura.gdshader")
+const ColorBeamShader = preload("res://resources/shaders/color_beam.gdshader")
 const SpaceExplosionScript = preload("res://scripts/vfx/SpaceExplosion.gd")
 const WreckageDrawingScript = preload("res://scripts/ui/WreckageDrawing.gd")
 const DashSparkTexture = preload("res://VFX/textures/T_VFX_sparks112.jpg")
@@ -449,8 +451,23 @@ func _process(delta):
 		var has_projected = false
 		
 		if is_single and is_instance_valid(world_root_3d):
+			# Altura 3D del punto de anclaje del HUD.
+			# Calibrada por tipo según la escala real del modelo.
+			# Los offsets locales del name_tag y barras se restan encima de este punto.
+			const HUD_HEIGHTS = {
+				-1: 2.0,  # Jugador
+				1: 1.5, 2: 1.5, 3: 1.5, 4: 1.5, 5: 1.5,
+				6: 1.5, 7: 1.5, 8: 1.5, 9: 1.5, 10: 1.5,
+				11: 1.5, 12: 1.5, 13: 1.5,
+				101: 4.5, 102: 4.5, 103: 4.5, 104: 5.5,
+				200: 3.5,
+			}
+			var lookup_key = -1 if is_in_group("player") else entity_type
+			var hud_height_3d: float = HUD_HEIGHTS.get(lookup_key, 1.5)
+			
 			var world_2d = _project_3d_pos_to_2d(world_root_3d.global_position)
-			projected_pos_hud = world_2d
+			var hud_3d_pos = world_root_3d.global_position + Vector3(0, hud_height_3d, 0)
+			projected_pos_hud = _project_3d_pos_to_2d(hud_3d_pos)
 			projected_pos_vfx = world_2d
 			has_projected = true
 		
@@ -695,9 +712,28 @@ func _process(delta):
 func _update_hud_offsets():
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.global_rotation = 0.0
-	var y_offset = -145.0
-	if is_in_group("player"): y_offset = -180.0
-	elif entity_type >= 4: y_offset = -300.0
+	
+	var is_projected = get_meta("is_single_world", false) and is_instance_valid(world_root_3d)
+	var y_offset: float
+	
+	if is_projected:
+		# Modo 3D: el contenedor ya está proyectado sobre el modelo.
+		# Usamos offsets pequeños para que el nombre quede justo encima de las barras.
+		if is_in_group("player"):
+			y_offset = -75.0
+		elif entity_type >= 101: # Boss
+			y_offset = -75.0
+		else:
+			y_offset = -70.0
+	else:
+		# Modo 2D clásico: offsets originales en píxeles desde la base del sprite.
+		if is_in_group("player"):
+			y_offset = -180.0
+		elif entity_type >= 4:
+			y_offset = -300.0
+		else:
+			y_offset = -145.0
+	
 	name_tag.position.y = y_offset
 	if name_tag.size.x > 0:
 		name_tag.position.x = -(name_tag.size.x / 2.0)
@@ -2179,35 +2215,21 @@ func _create_anim(lib: AnimationLibrary, a_name: String, start: int, count: int,
 	lib.add_animation(a_name, anim)
 
 func _setup_enemy_visuals():
+	# Limpieza de modelos 3D y Viewports anteriores (evita heredar naves/sprites del pool)
+	if is_instance_valid(world_root_3d):
+		world_root_3d.queue_free()
+		world_root_3d = null
+	_3d_model = null
+	_3d_propulsion = null
+	
+	for c in get_children():
+		if "Viewport" in c.name or c is Sprite2D or c is Polygon2D or c.name == "Ship3DRender" or c.name == "WaterOrbVisual" or (c is Line2D and c.name == "WaterOrbRing"):
+			c.queue_free()
+
 	if entity_type == 201:
-		if is_instance_valid(world_root_3d):
-			world_root_3d.queue_free()
-			world_root_3d = null
-		for c in get_children():
-			if "Viewport" in c.name or c is Sprite2D or c is Polygon2D or c is Line2D or c.name == "Ship3DRender":
-				c.queue_free()
-		
-		# Orbe de agua visual procedural (Esfera celeste translúcida)
-		var poly = Polygon2D.new()
-		poly.name = "WaterOrbVisual"
-		var pts = PackedVector2Array()
-		for i in range(25):
-			var a = (i / 24.0) * PI * 2
-			pts.append(Vector2(cos(a), sin(a)) * 25.0)
-		poly.polygon = pts
-		poly.color = Color(0.0, 0.6, 1.0, 0.65) # Celeste transparente
-		add_child(poly)
-		
-		# Aro exterior brillante
-		var line = Line2D.new()
-		line.points = pts
-		line.width = 3.0
-		line.default_color = Color(0.5, 0.9, 1.0, 0.9)
-		add_child(line)
-		
-		# Ocultar name tags y HUD
 		if is_instance_valid(name_tag): name_tag.visible = false
 		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
+		_setup_water_orb_3d()
 		return
 
 	var glb_path = ""
@@ -2243,7 +2265,7 @@ func _setup_enemy_visuals():
 		200: # Pilar Protector
 			glb_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
 			enemy_rot_offset = 0.0
-			enemy_scale = 5.0
+			enemy_scale = 9.0
 
 	# if glb_path != "":
 	# 	print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)
@@ -2268,7 +2290,13 @@ func _setup_enemy_visuals():
 		
 		_setup_3d_visuals(glb_path, enemy_rot_offset)
 		if is_instance_valid(_3d_model):
-			_3d_model.scale = Vector3(enemy_scale, enemy_scale, enemy_scale)
+			if entity_type == 200:
+				var aabb_size = _3d_model.get_meta("model_aabb_size", Vector3(1, 1, 1))
+				var scale_y = enemy_scale * 2.0
+				_3d_model.scale = Vector3(enemy_scale, scale_y, enemy_scale)
+				_3d_model.position.y += aabb_size.y * (scale_y - enemy_scale) * 0.5
+			else:
+				_3d_model.scale = Vector3(enemy_scale, enemy_scale, enemy_scale)
 			return
 		else:
 			print("[VISUAL-WARN] Falló carga 3D para ", username, ". Usando fallback 2D.")
@@ -2680,6 +2708,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		if not first_mesh:
 			# Desplazamos el nodo de control para que el centro del modelo coincida con el origen
 			control_node.position = -total_aabb.get_center()
+			control_node.set_meta("model_aabb_size", total_aabb.size)
 		
 		# v252.23: INSPECTOR Y ACTIVADOR de ANIMACIONES
 		var anim_player_3d = null
@@ -2851,7 +2880,7 @@ func _update_3d_shield(delta: float):
 
 	# Determinar el tipo de escudo activo prioritario
 	var target_type = ""
-	if invulnerable_timer > 0 or is_invulnerable:
+	if (invulnerable_timer > 0 or is_invulnerable) and entity_type != 201 and entity_type != 200:
 		target_type = "invulnerable"
 	elif reflect_timer > 0:
 		target_type = "reflect"
@@ -3490,7 +3519,7 @@ func _safe_float(val, default: float = 0.0) -> float:
 		return 1.0 if val else 0.0
 	return default
 
-var _color_aura_node: Line2D = null
+var _color_aura_3d_root: Node3D = null
 
 func apply_color_aura(color_name: String):
 	remove_color_aura()
@@ -3503,35 +3532,364 @@ func apply_color_aura(color_name: String):
 		"amarilla": clr = Color("#ffdd00")
 		"violeta": clr = Color("#d400ff")
 		
-	var ring = Line2D.new()
-	ring.width = 4.0
-	ring.default_color = clr
-	ring.closed = true
+	var pivot = accessory_pivot_3d if is_instance_valid(accessory_pivot_3d) else world_root_3d
+	if not is_instance_valid(pivot):
+		return
 	
-	var radius = 70.0
-	if entity_type >= 101: # Boss
-		radius = 180.0
-	elif entity_type == 200 or "pillar" in entity_id: # Pilar
-		radius = 100.0
-		
-	var pts = PackedVector2Array()
-	var segments = 32
-	for i in range(segments + 1):
-		var phi = (i * 2.0 * PI) / segments
-		pts.append(Vector2(cos(phi), sin(phi)) * radius)
-	ring.points = pts
+	var s_factor = get_meta("map_scale", 0.02)
+	var base_r
+	if entity_type >= 101:
+		base_r = 180.0
+	elif entity_type == 200 or "pillar" in entity_id:
+		base_r = 100.0
+	else:
+		base_r = 70.0
+	var r = base_r * s_factor
 	
-	add_child(ring)
-	_color_aura_node = ring
+	var aura_root = Node3D.new()
+	aura_root.name = "ColorAuraVFX"
+	pivot.add_child(aura_root)
+	_color_aura_3d_root = aura_root
 	
-	var tween = create_tween().bind_node(ring).set_loops(0)
-	tween.tween_property(ring, "modulate:a", 0.3, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(ring, "modulate:a", 1.0, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	# --- 1. Anillo/Disco brillante en la base (suelo 3D) ---
+	var ring_mesh = TorusMesh.new()
+	ring_mesh.inner_radius = r * 0.85
+	ring_mesh.outer_radius = r * 1.2
+	ring_mesh.rings = 8
+	ring_mesh.ring_segments = 32
+	
+	var ring = MeshInstance3D.new()
+	ring.mesh = ring_mesh
+	
+	var ring_mat = StandardMaterial3D.new()
+	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	ring_mat.albedo_color = Color(clr.r, clr.g, clr.b, 0.0) # Inicia transparente para fade-in
+	ring_mat.emission_enabled = true
+	ring_mat.emission = clr
+	ring_mat.emission_energy_multiplier = 4.0
+	ring.material_override = ring_mat
+	ring.position = Vector3(0, -0.02, 0) # Prevenir z-fighting sobre el plano de la nave
+	aura_root.add_child(ring)
+	
+	# --- 2. Haz cilíndrico de luz vertical (columna de energía con rayos) ---
+	var cylinder_mesh = CylinderMesh.new()
+	cylinder_mesh.top_radius = r * 0.95
+	cylinder_mesh.bottom_radius = r * 1.15
+	cylinder_mesh.height = r * 4.0
+	cylinder_mesh.radial_segments = 32
+	cylinder_mesh.rings = 4
+	cylinder_mesh.cap_top = false
+	cylinder_mesh.cap_bottom = false
+	
+	var cylinder = MeshInstance3D.new()
+	cylinder.mesh = cylinder_mesh
+	
+	var beam_mat = ShaderMaterial.new()
+	beam_mat.shader = ColorBeamShader
+	beam_mat.set_shader_parameter("beam_color", Color(clr.r, clr.g, clr.b, 0.0))
+	beam_mat.set_shader_parameter("speed", 1.6)
+	beam_mat.set_shader_parameter("scale_y", 6.0)
+	beam_mat.set_shader_parameter("scale_x", 20.0)
+	beam_mat.set_shader_parameter("fresnel_power", 2.2)
+	cylinder.material_override = beam_mat
+	cylinder.position = Vector3(0, r * 2.0, 0)
+	aura_root.add_child(cylinder)
+	
+	# --- 3. Partículas de destellos lineales verticales (haces ascendentes) ---
+	var tex_flare = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+	var particles = CPUParticles3D.new()
+	particles.amount = 40
+	particles.emitting = false
+	particles.lifetime = 1.2
+	particles.randomness = 0.5
+	particles.direction = Vector3.UP
+	particles.gravity = Vector3(0, 0.0, 0)
+	particles.initial_velocity_min = 2.0
+	particles.initial_velocity_max = 5.0
+	particles.spread = 5.0 # Flujo lineal vertical estricto
+	particles.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	particles.emission_sphere_radius = r * 0.8
+	particles.scale_amount_min = 0.5
+	particles.scale_amount_max = 1.2
+	particles.orbit_velocity_min = 0.15
+	particles.orbit_velocity_max = 0.45 # Giro orbital para efecto de espiral mágico
+	particles.particle_flag_align_y = true # Alinear las partículas en Y
+	aura_root.add_child(particles)
+	
+	var p_curve = Curve.new()
+	p_curve.add_point(Vector2(0, 0.0))
+	p_curve.add_point(Vector2(0.12, 1.0))
+	p_curve.add_point(Vector2(0.7, 0.7))
+	p_curve.add_point(Vector2(1.0, 0.0))
+	particles.scale_amount_curve = p_curve
+	
+	var p_grad = Gradient.new()
+	p_grad.set_color(0, Color(clr.r, clr.g, clr.b, 0.0))
+	p_grad.add_point(0.15, Color(clr.r, clr.g, clr.b, 1.0))
+	p_grad.add_point(0.7, Color(min(clr.r * 1.6, 1.0), min(clr.g * 1.4, 1.0), min(clr.b * 1.4, 1.0), 0.6))
+	p_grad.set_color(1, Color(clr.r, clr.g, clr.b, 0.0))
+	particles.color_ramp = p_grad
+	
+	var p_mesh = QuadMesh.new()
+	p_mesh.size = Vector2(0.04, r * 1.3) # Malla delgada y alta para parecer un rayo lineal
+	particles.mesh = p_mesh
+	
+	var p_mat = StandardMaterial3D.new()
+	p_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	p_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	p_mat.vertex_color_use_as_albedo = true
+	p_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	p_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	p_mat.albedo_texture = tex_flare
+	particles.material_override = p_mat
+	
+	# --- 4. Luz ambiental aditiva ---
+	var light = OmniLight3D.new()
+	light.light_color = clr
+	light.light_energy = 0.0
+	light.omni_range = r * 4.0
+	aura_root.add_child(light)
+	
+	# --- Entrada animada progresiva ---
+	aura_root.scale = Vector3(0.01, 0.01, 0.01)
+	
+	var tw = create_tween().set_parallel(true)
+	tw.tween_property(aura_root, "scale", Vector3(1.0, 1.0, 1.0), 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(ring_mat, "albedo_color:a", 0.5, 0.25)
+	tw.tween_property(beam_mat, "shader_parameter/beam_color", Color(clr.r, clr.g, clr.b, 0.65), 0.25)
+	tw.tween_property(light, "light_energy", 0.8, 0.35)
+	tw.tween_callback(func(): particles.emitting = true).set_delay(0.2)
+	
+	# --- Rotación infinita del cilindro para deslizar los haces de luz en el espacio ---
+	var rot_tw = cylinder.create_tween().set_loops()
+	rot_tw.tween_property(cylinder, "rotation:y", PI * 2, 6.0).as_relative()
+	
+	# --- Rotación leve contraria en el anillo base ---
+	var rot_ring_tw = ring.create_tween().set_loops()
+	rot_ring_tw.tween_property(ring, "rotation:z", -PI * 2, 10.0).as_relative()
+	
+	# --- Pulsación rítmica del brillo de la luz ---
+	var pulse_tw = aura_root.create_tween().set_loops()
+	pulse_tw.tween_property(light, "light_energy", 1.1, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	pulse_tw.tween_property(light, "light_energy", 0.5, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+
+func _setup_water_orb_3d():
+	var current_map = _get_map_node()
+	var is_single_world = false
+	var target_viewport = null
+	var map_scale_val = 0.02
+
+	if is_instance_valid(current_map):
+		if "sub_viewport" in current_map and is_instance_valid(current_map.sub_viewport):
+			is_single_world = true
+			target_viewport = current_map.sub_viewport
+			if "scale_factor" in current_map:
+				map_scale_val = current_map.scale_factor
+
+	set_meta("is_single_world", is_single_world)
+	set_meta("map_scale", map_scale_val)
+
+	var viewport = null
+	var res = 256
+	if not is_single_world:
+		var quality = 1
+		if get_node_or_null("/root/SettingsManager"):
+			quality = SettingsManager.get_graphics_quality()
+		match quality:
+			0: res = 128
+			2: res = 1024
+		viewport = SubViewport.new()
+		viewport.size = Vector2i(res, res)
+		viewport.transparent_bg = true
+		viewport.own_world_3d = true
+		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		viewport.positional_shadow_atlas_size = 0
+		add_child(viewport)
+		_cached_viewport = viewport
+
+	if is_instance_valid(sprite):
+		sprite.visible = not is_single_world
+	else:
+		sprite = Sprite2D.new()
+		sprite.name = "Ship3DRender"
+		sprite.z_index = 10
+		add_child(sprite)
+		sprite.visible = not is_single_world
+
+	var node3d = Node3D.new()
+	if is_single_world:
+		target_viewport.add_child(node3d)
+	else:
+		viewport.add_child(node3d)
+	world_root_3d = node3d
+
+	accessory_pivot_3d = Node3D.new()
+	accessory_pivot_3d.name = "AccessoryPivot"
+	node3d.add_child(accessory_pivot_3d)
+
+	if not is_single_world:
+		var env = WorldEnvironment.new()
+		var world_env = Environment.new()
+		world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		world_env.ambient_light_color = Color.WHITE
+		world_env.ambient_light_energy = 1.0
+		env.environment = world_env
+		node3d.add_child(env)
+
+		var cam_pivot = Node3D.new()
+		node3d.add_child(cam_pivot)
+		var cam = Camera3D.new()
+		cam_pivot.add_child(cam)
+		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+		cam.fov = 60.0
+		cam.position = Vector3(0, 10, 10)
+		cam.look_at(Vector3.ZERO)
+
+		var sun = DirectionalLight3D.new()
+		cam.add_child(sun)
+		sun.light_energy = 2.0
+		sun.light_specular = 0.0
+		sun.shadow_enabled = false
+
+		if is_instance_valid(sprite):
+			sprite.texture = viewport.get_texture()
+			sprite.scale = Vector2(1024.0 / float(res), 1024.0 / float(res))
+
+	# --- Water orb visual ---
+	var orb_size = map_scale_val * 100.0
+
+	var water_normal = preload("res://VFX/textures/T_GW_WaterNormal_01_b.PNG")
+
+	var water_shader = Shader.new()
+	water_shader.code = "shader_type spatial;
+render_mode blend_add, depth_draw_opaque, cull_disabled, unshaded;
+
+uniform sampler2D normal_map : source_color, filter_linear_mipmap, repeat_enable;
+uniform vec4 albedo_color : source_color = vec4(0.0, 0.6, 1.0, 0.45);
+uniform vec4 emission_color : source_color = vec4(0.0, 0.8, 1.0, 1.0);
+uniform float emission_energy = 4.0;
+uniform float wave_speed = 0.5;
+uniform float wave_strength = 0.3;
+
+void vertex() {
+	vec3 pos = VERTEX;
+	float w = sin(pos.x * 2.5 + TIME * wave_speed) * wave_strength * 0.08;
+	w += sin(pos.y * 3.2 + TIME * wave_speed * 1.2) * wave_strength * 0.06;
+	w += sin(pos.z * 2.0 + TIME * wave_speed * 0.8) * wave_strength * 0.07;
+	VERTEX = pos + NORMAL * w;
+}
+
+void fragment() {
+	vec2 uv1 = UV * 2.0 + vec2(TIME * 0.04, TIME * 0.02);
+	vec2 uv2 = UV * 3.0 + vec2(TIME * -0.03, TIME * 0.05);
+	vec3 n1 = texture(normal_map, uv1).rgb - 0.5;
+	vec3 n2 = texture(normal_map, uv2).rgb - 0.5;
+	vec3 n = normalize(n1 + n2);
+
+	vec3 view_dir = normalize(VIEW);
+	float fresnel = pow(1.0 - abs(dot(view_dir, n)), 2.5);
+	float ripple = sin(UV.x * 25.0 + UV.y * 18.0 + TIME * 2.5) * 0.5 + 0.5;
+
+	ALBEDO = albedo_color.rgb;
+	ALPHA = albedo_color.a * (0.5 + fresnel * 0.5);
+	EMISSION = emission_color.rgb * emission_energy * (0.6 + fresnel * 1.2 + ripple * 0.3);
+}"
+
+	var orb_mat = ShaderMaterial.new()
+	orb_mat.shader = water_shader
+	orb_mat.set_shader_parameter("normal_map", water_normal)
+	orb_mat.set_shader_parameter("albedo_color", Color(0.0, 0.6, 1.0, 0.45))
+	orb_mat.set_shader_parameter("emission_color", Color(0.0, 0.8, 1.0))
+	orb_mat.set_shader_parameter("emission_energy", 4.0)
+	orb_mat.set_shader_parameter("wave_speed", 0.5)
+	orb_mat.set_shader_parameter("wave_strength", 0.3)
+
+	var orb = MeshInstance3D.new()
+	var orb_mesh = SphereMesh.new()
+	orb_mesh.radius = orb_size
+	orb_mesh.height = orb_size * 2.0
+	orb.mesh = orb_mesh
+	orb.material_override = orb_mat
+	accessory_pivot_3d.add_child(orb)
+
+	var core_mat = StandardMaterial3D.new()
+	core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	core_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	core_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	core_mat.albedo_color = Color(0.3, 0.85, 1.0, 0.2)
+	core_mat.emission_enabled = true
+	core_mat.emission = Color(0.2, 0.8, 1.0)
+	core_mat.emission_energy_multiplier = 5.0
+	core_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+	var core = MeshInstance3D.new()
+	var core_mesh = SphereMesh.new()
+	core_mesh.radius = orb_size * 0.45
+	core_mesh.height = orb_size * 0.9
+	core.mesh = core_mesh
+	core.material_override = core_mat
+	accessory_pivot_3d.add_child(core)
+
+	var tex_flare = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+	var bubbles = CPUParticles3D.new()
+	bubbles.amount = 15
+	bubbles.lifetime = 2.5
+	bubbles.randomness = 0.6
+	bubbles.direction = Vector3.UP
+	bubbles.gravity = Vector3(0, 0.15, 0)
+	bubbles.initial_velocity_min = 0.1
+	bubbles.initial_velocity_max = 0.4
+	bubbles.spread = 60.0
+	bubbles.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	bubbles.emission_sphere_radius = orb_size * 1.1
+	bubbles.scale_amount_min = 0.015
+	bubbles.scale_amount_max = 0.04
+	accessory_pivot_3d.add_child(bubbles)
+
+	var b_curve = Curve.new()
+	b_curve.add_point(Vector2(0, 0.0))
+	b_curve.add_point(Vector2(0.15, 1.0))
+	b_curve.add_point(Vector2(0.7, 0.6))
+	b_curve.add_point(Vector2(1.0, 0.0))
+	bubbles.scale_amount_curve = b_curve
+
+	var b_grad = Gradient.new()
+	b_grad.set_color(0, Color(0.8, 1.0, 1.0, 0.0))
+	b_grad.add_point(0.15, Color(0.8, 1.0, 1.0, 0.9))
+	b_grad.add_point(0.6, Color(0.5, 0.9, 1.0, 0.3))
+	b_grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+	bubbles.color_ramp = b_grad
+
+	var b_mesh = QuadMesh.new()
+	b_mesh.size = Vector2(0.12, 0.12)
+	bubbles.mesh = b_mesh
+
+	var b_mat = StandardMaterial3D.new()
+	b_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	b_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	b_mat.vertex_color_use_as_albedo = true
+	b_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	b_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	b_mat.albedo_texture = tex_flare
+	bubbles.material_override = b_mat
+
+	var light = OmniLight3D.new()
+	light.light_color = Color(0.0, 0.7, 1.0)
+	light.light_energy = 1.0
+	light.omni_range = orb_size * 4.0
+	accessory_pivot_3d.add_child(light)
+
+	var tw = create_tween().set_parallel(true)
+	tw.tween_property(orb, "scale", Vector3(1.0, 1.0, 1.0), 0.3).from(Vector3(0.01, 0.01, 0.01)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(core, "scale", Vector3(1.0, 1.0, 1.0), 0.35).from(Vector3(0.01, 0.01, 0.01)).set_delay(0.05).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(light, "light_energy", 1.0, 0.3).from(0.0)
 
 func remove_color_aura():
-	if is_instance_valid(_color_aura_node):
-		_color_aura_node.queue_free()
-	_color_aura_node = null
+	if is_instance_valid(_color_aura_3d_root):
+		_color_aura_3d_root.queue_free()
+	_color_aura_3d_root = null
 
 func _project_3d_pos_to_2d(pos_3d: Vector3) -> Vector2:
 	var current_map = _get_map_node()

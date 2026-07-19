@@ -3133,18 +3133,40 @@
             ],
             "defenseMechanics": [
                 {
-                    "type": "invulnerability",
+                    "type": "basic_defense",
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
-                    "duration": 3000,
+                    "duration": 5000,
                     "cooldown": 5000,
                     "startDelay": 0,
                     "activationHP": 90,
-                    "radius": 300,
+                    "radius": 3000,
                     "healAmount": 20,
                     "intervalMs": 500,
                     "affectsEnemies": false,
-                    "affectsBosses": false
+                    "affectsBosses": false,
+                    "activationMode": "time",
+                    "activationIntervalMs": 6000,
+                    "pillarCount": 4,
+                    "pillarType": 0,
+                    "pillarHp": 1000,
+                    "pillarShield": 100,
+                    "pillarName": 0,
+                    "spawnRadius": 700,
+                    "healIntervalMs": 0,
+                    "healPercentPerTick": 0,
+                    "healPercentPerPillarOnExpiry": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "orbCount": 4,
+                    "orbSpeed": 100,
+                    "playerDamage": 100,
+                    "bossHealPercent": 10,
+                    "invisType": "invisibility",
+                    "keepAttacking": false,
+                    "changeSpeed": false,
+                    "invisSpeedMultiplier": 1
                 }
             ],
             "aggressive": true,
@@ -5576,7 +5598,9 @@
             "icon": "💎",
             "desc": "Se vuelve inmune a todo daño por un tiempo.",
             "fields": [
-                "activationHP",
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "duration",
                 "cooldown",
                 "startDelay"

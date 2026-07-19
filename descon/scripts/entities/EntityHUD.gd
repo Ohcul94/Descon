@@ -26,7 +26,13 @@ func _draw():
 	
 	var base_y = -70.0
 	if entity.is_in_group("player"): base_y = -105.0
-	elif entity.entity_type >= 4: base_y = -220.0 # Boss
+	elif entity.entity_type >= 101: base_y = -220.0 # Boss
+	
+	# En modo 3D proyectado, el contenedor ya está sobre el modelo.
+	# Las barras van justo en el punto de anclaje (base_y=0).
+	var is_projected = entity.get_meta("is_single_world", false) and is_instance_valid(entity.world_root_3d)
+	if is_projected:
+		base_y = 0.0
 	
 	for i in range(segments):
 		var x = -(bar_w / 2.0) + (i * (seg_w + gap))
