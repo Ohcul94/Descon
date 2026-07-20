@@ -499,7 +499,31 @@ function registerInventoryHandlers(socket, io, state) {
                 p.hp = p.maxHp; p.shield = p.maxShield;
 
                 io.to(`zone_${p.zone}`).emit('playerStatSync', { id: socket.id, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield });
-                io.emit('playerUpdated', { id: socket.id, type: p.type });
+                
+                // v315.0: Emitir el payload completo de presentación a la zona para evitar desincronías y el bug de UNKNOWN
+                const shipUpdatePayload = {
+                    id:             socket.id,
+                    type:           p.type,
+                    currentShipId:  p.currentShipId,
+                    pvpEnabled:     !!p.pvpEnabled,
+                    user:           p.user || 'Unknown',
+                    username:       p.user || 'Unknown',
+                    x:              Math.round(p.x),
+                    y:              Math.round(p.y),
+                    rotation:       Math.round((p.rotation || 0) * 100) / 100,
+                    hp:             Math.ceil(p.hp || 0),
+                    shield:         Math.ceil(p.shield || 0),
+                    sh:             Math.ceil(p.shield || 0),
+                    maxHp:          p.maxHp || 0,
+                    maxShield:      p.maxShield || 0,
+                    zone:           p.zone,
+                    clanTag:        p.clanTag || '',
+                    isInvisible:    !!p.isInvisible,
+                    isInvulnerable: !!p.isInvulnerable,
+                    isDead:         !!p.isDead,
+                    spheres:        p.spheres || []
+                };
+                io.to(`zone_${p.zone}`).emit('playerUpdated', shipUpdatePayload);
             }
 
             sendInventoryData(socket, user);

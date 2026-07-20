@@ -372,7 +372,8 @@ func _on_player_updated(data):
 			p.rotation = new_rot
 			if p.has_method("_update_3d_root_sync"):
 				p._update_3d_root_sync()
-		p.set_meta("zone", remote_zone)
+		if remote_zone != -1:
+			p.set_meta("zone", remote_zone)
 		p.update_stats(data)
 
 func _get_enemy_from_pool() -> Node:
