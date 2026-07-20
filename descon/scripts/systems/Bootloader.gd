@@ -176,7 +176,7 @@ func _compare_versions():
 func _download_pck(package_info: Dictionary):
 	var file_name = package_info.get("file")
 	total_bytes = package_info.get("size", 0)
-	var url = "http://" + target_ip + ":" + str(SERVER_PORT) + "/cdn/" + file_name
+	var url = "http://" + target_ip + ":" + str(SERVER_PORT) + "/cdn/" + file_name.uri_encode()
 	
 	status_lbl.text = "Descargando recursos (0%)..."
 	progress_bar.value = 0

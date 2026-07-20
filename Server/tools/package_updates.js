@@ -90,8 +90,8 @@ const exportPCK = (presetName, outputPath) => {
 };
 
 // Intentar exportaciones por CLI
-const exportedWindows = exportPCK('Descon Windows Patch', 'Actualizacion Windows.pck');
-const exportedAndroid = exportPCK('Descon V2 Patch', 'Actualizacion Android.pck');
+const exportedWindows = exportPCK('Descon Windows Patch', 'Actualizacion_Windows.pck');
+const exportedAndroid = exportPCK('Descon V2 Patch', 'Actualizacion_Android.pck');
 
 // Rutas de origen de exportación del usuario
 const EXPORT_WINDOWS_DIR = path.resolve(SERVER_DIR, '../Ejecutable');
@@ -105,12 +105,13 @@ const copyPCKFromExports = () => {
     if (!exportedWindows) {
         const winSources = [
             path.join(EXPORT_WINDOWS_DIR, 'Descon.pck'),
+            path.join(EXPORT_WINDOWS_DIR, 'Actualizacion_Windows.pck'),
             path.join(EXPORT_WINDOWS_DIR, 'Actualizacion Windows.pck')
         ];
         let winCopied = false;
         for (const src of winSources) {
             if (fs.existsSync(src)) {
-                const dest = path.join(CDN_DIR, 'Actualizacion Windows.pck');
+                const dest = path.join(CDN_DIR, 'Actualizacion_Windows.pck');
                 fs.copyFileSync(src, dest);
                 console.log(`[EXPORT] Copiado PCK de Windows de: ${src} -> ${dest}`);
                 winCopied = true;
@@ -128,12 +129,13 @@ const copyPCKFromExports = () => {
     if (!exportedAndroid) {
         const androidSources = [
             path.join(EXPORT_ANDROID_DIR, 'Descon.pck'),
+            path.join(EXPORT_ANDROID_DIR, 'Actualizacion_Android.pck'),
             path.join(EXPORT_ANDROID_DIR, 'Actualizacion Android.pck')
         ];
         let androidCopied = false;
         for (const src of androidSources) {
             if (fs.existsSync(src)) {
-                const dest = path.join(CDN_DIR, 'Actualizacion Android.pck');
+                const dest = path.join(CDN_DIR, 'Actualizacion_Android.pck');
                 fs.copyFileSync(src, dest);
                 console.log(`[EXPORT] Copiado PCK de Android de: ${src} -> ${dest}`);
                 androidCopied = true;
@@ -186,8 +188,8 @@ const generateManifest = () => {
         console.log(`[MANIFEST] Procesado ${platformKey}: hash=${sha256.substring(0, 10)}...`);
     };
 
-    processFile('Actualizacion Windows.pck', 'windows');
-    processFile('Actualizacion Android.pck', 'android');
+    processFile('Actualizacion_Windows.pck', 'windows');
+    processFile('Actualizacion_Android.pck', 'android');
 
     const manifestPath = path.join(CDN_DIR, 'manifest.json');
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 4));
