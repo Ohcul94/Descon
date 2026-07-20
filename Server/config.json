@@ -3073,7 +3073,7 @@
             "speed": 310,
             "mechanics": [
                 {
-                    "type": "laser",
+                    "type": "ice_storm",
                     "bulletDamage": 1000,
                     "bulletSpeed": 800,
                     "fireRange": 1300,
@@ -3085,7 +3085,7 @@
                     "lockTimeMs": 500,
                     "isHoming": 0,
                     "activationHP": 0,
-                    "radius": 150,
+                    "radius": 400,
                     "damage": 500,
                     "intervalMs": 1000,
                     "duration": 4000,
@@ -3120,7 +3120,10 @@
                     "slowDuration": 2000,
                     "reflect_mult": 1,
                     "activationMode": "time",
-                    "activationIntervalMs": 3000
+                    "activationIntervalMs": 3000,
+                    "tick_interval": 1000,
+                    "damage_per_tick": 200,
+                    "slow_amount": 200
                 }
             ],
             "movementPhases": [
@@ -5473,6 +5476,23 @@
                 "postCastWaitMs",
                 "startDelay",
                 "debuffsList"
+            ]
+        },
+        "ice_storm": {
+            "label": "Tormenta de Hielo",
+            "icon": "❄️",
+            "desc": "Invoca una tormenta de hielo persistente que daña y ralentiza a los jugadores en el área.",
+            "fields": [
+                "cooldown",
+                "castTimeMs",
+                "fireRange",
+                "radius",
+                "lockTimeMs",
+                "duration",
+                "tick_interval",
+                "damage_per_tick",
+                "slow_amount",
+                "startDelay"
             ]
         }
     },

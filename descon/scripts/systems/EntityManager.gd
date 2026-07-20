@@ -934,6 +934,179 @@ func _on_enemy_action(data: Dictionary):
 
 			active_areas.erase("blast_" + enemy_id)
 
+		elif action == "ice_storm_charging":
+			var range_val = float(data.get("range", 300.0))
+			var target_x = float(data.get("targetX", 0.0))
+			var target_y = float(data.get("targetY", 0.0))
+			var _charge_dur = float(data.get("duration", 1500.0)) / 1000.0
+			var _lock_dur = float(data.get("lockTimeMs", 500.0)) / 1000.0
+
+			if is_3d_active:
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				var vp = current_map.sub_viewport
+				var outer_r3d = range_val * s_factor
+
+				var circle_3d = Node3D.new()
+				circle_3d.name = "IceStormCharging_" + enemy_id
+				circle_3d.position = Vector3(target_x * s_factor, 0.0, target_y * s_factor * correction_z)
+				vp.add_child(circle_3d)
+
+				var ground_disc = MeshInstance3D.new()
+				var g_mesh = CylinderMesh.new()
+				g_mesh.top_radius = outer_r3d
+				g_mesh.bottom_radius = outer_r3d
+				g_mesh.height = 0.01
+				ground_disc.mesh = g_mesh
+				var g_mat = StandardMaterial3D.new()
+				g_mat.albedo_color = Color(0.4, 0.7, 1.0, 0.12)
+				g_mat.emission_enabled = true
+				g_mat.emission = Color(0.3, 0.6, 1.0)
+				g_mat.emission_energy_multiplier = 0.4
+				g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				ground_disc.material_override = g_mat
+				circle_3d.add_child(ground_disc)
+
+				var ring = MeshInstance3D.new()
+				var torus = TorusMesh.new()
+				torus.inner_radius = outer_r3d * 0.96
+				torus.outer_radius = outer_r3d
+				ring.mesh = torus
+				var r_mat = StandardMaterial3D.new()
+				r_mat.albedo_color = Color(0.5, 0.8, 1.0, 0.5)
+				r_mat.emission_enabled = true
+				r_mat.emission = Color(0.3, 0.7, 1.0)
+				r_mat.emission_energy_multiplier = 1.5
+				r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				ring.material_override = r_mat
+				ring.position.y = 0.02
+				ring.rotation.y = randf_range(0.0, TAU)
+				circle_3d.add_child(ring)
+
+		elif action == "ice_storm_deploy":
+			var storm_x = float(data.get("x", en.global_position.x))
+			var storm_y = float(data.get("y", en.global_position.y))
+			var range_val = float(data.get("range", 300.0))
+			var _storm_dur = float(data.get("duration", 5000.0)) / 1000.0
+
+			if active_areas.has("icestorm_" + enemy_id): return
+
+			if is_3d_active:
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				var vp = current_map.sub_viewport
+
+				# Limpiar el indicador de carga si aún existe
+				var old_charge = vp.get_node_or_null("IceStormCharging_" + enemy_id)
+				if is_instance_valid(old_charge):
+					old_charge.queue_free()
+
+				var r3d = range_val * s_factor
+
+				var storm = Node3D.new()
+				storm.name = "IceStorm_" + enemy_id
+				storm.position = Vector3(storm_x * s_factor, 0.0, storm_y * s_factor * correction_z)
+				vp.add_child(storm)
+				active_areas["icestorm_" + enemy_id] = storm
+
+				var ground = MeshInstance3D.new()
+				var g_mesh = CylinderMesh.new()
+				g_mesh.top_radius = r3d
+				g_mesh.bottom_radius = r3d
+				g_mesh.height = 0.02
+				ground.mesh = g_mesh
+				var g_mat = StandardMaterial3D.new()
+				g_mat.albedo_color = Color(0.5, 0.8, 1.0, 0.2)
+				g_mat.emission_enabled = true
+				g_mat.emission = Color(0.3, 0.6, 1.0)
+				g_mat.emission_energy_multiplier = 0.6
+				g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				ground.material_override = g_mat
+				ground.position.y = 0.01
+				storm.add_child(ground)
+
+				var ring_outer = MeshInstance3D.new()
+				var torus = TorusMesh.new()
+				torus.inner_radius = r3d * 0.97
+				torus.outer_radius = r3d
+				ring_outer.mesh = torus
+				var r_mat = StandardMaterial3D.new()
+				r_mat.albedo_color = Color(0.6, 0.9, 1.0, 0.6)
+				r_mat.emission_enabled = true
+				r_mat.emission = Color(0.4, 0.7, 1.0)
+				r_mat.emission_energy_multiplier = 2.0
+				r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				ring_outer.material_override = r_mat
+				ring_outer.position.y = 0.03
+				ring_outer.rotation.y = randf_range(0.0, TAU)
+				storm.add_child(ring_outer)
+
+				# Estalactitas de hielo cayendo (pinchos)
+				var particles = GPUParticles3D.new()
+				particles.amount = 30
+				particles.lifetime = 2.0
+				particles.one_shot = false
+				particles.explosiveness = 0.3
+				particles.randomness = 0.8
+				particles.preprocess = 0.5
+				particles.position.y = 2.0
+
+				var spike_mesh = CylinderMesh.new()
+				spike_mesh.top_radius = 0.08
+				spike_mesh.bottom_radius = 0.0
+				spike_mesh.height = 0.35
+				var mesh_mat = StandardMaterial3D.new()
+				mesh_mat.albedo_color = Color(0.7, 0.85, 1.0, 0.9)
+				mesh_mat.emission_enabled = true
+				mesh_mat.emission = Color(0.4, 0.7, 1.0)
+				mesh_mat.emission_energy_multiplier = 0.3
+				mesh_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				mesh_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				spike_mesh.material = mesh_mat
+				particles.draw_pass_1 = spike_mesh
+
+				var pm = ParticleProcessMaterial.new()
+				pm.direction = Vector3(0, -1, 0)
+				pm.spread = 12.0
+				pm.initial_velocity_min = 4.0
+				pm.initial_velocity_max = 7.0
+				pm.gravity = Vector3(0, -6.0, 0)
+				pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+				pm.emission_sphere_radius = r3d * 0.85
+				pm.scale_min = 0.4
+				pm.scale_max = 1.0
+
+				var grad = Gradient.new()
+				grad.set_color(0, Color(0.7, 0.85, 1.0, 0.0))
+				grad.add_point(0.15, Color(0.8, 0.9, 1.0, 0.9))
+				grad.add_point(0.6, Color(0.9, 0.95, 1.0, 0.85))
+				grad.set_color(grad.get_point_count() - 1, Color(1.0, 1.0, 1.0, 0.0))
+				pm.color_ramp = GradientTexture1D.new()
+				pm.color_ramp.gradient = grad
+
+				particles.process_material = pm
+				particles.scale = Vector3(r3d, r3d, r3d)
+				storm.add_child(particles)
+				particles.emitting = true
+
+				# Entrada animada
+				storm.scale = Vector3.ZERO
+				var entry_tw = create_tween().set_parallel(true)
+				entry_tw.tween_property(storm, "scale", Vector3.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+		elif action == "ice_storm_expire":
+			if active_areas.has("icestorm_" + enemy_id):
+				var storm = active_areas["icestorm_" + enemy_id]
+				if is_instance_valid(storm):
+					var fade_tw = create_tween().set_parallel(true)
+					fade_tw.tween_property(storm, "scale", Vector3.ZERO, 0.3)
+					fade_tw.finished.connect(storm.queue_free)
+				active_areas.erase("icestorm_" + enemy_id)
+
 func _on_enemy_updated(data):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return
 	var id = str(data.id)

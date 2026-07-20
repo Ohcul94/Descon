@@ -14,7 +14,8 @@ const DEFAULT_MECHANICS_LIB = {
     "reflect": { label: "Escudo Reflectante (Reflect)", icon: "🛡️", desc: "Devuelve daño recibido al atacante.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "duration", "reflect_mult", "startDelay"] },
     "spin_ring": { label: "Giro de Lillia (spin_ring)", icon: "🌀", desc: "Un orbe gira alrededor del enemigo. Si golpea a un jugador, le inflige daño, le da velocidad al dueño y puede aplicar slow.", fields: ["cooldown", "radius", "damage", "spinSpeed", "speedBuffAmount", "speedBuffDuration", "applySlow", "slowIsPercentage", "slowPercentage", "slowDuration", "duration", "startDelay"] },
     "summoning": { label: "Invocación (Summoning)", icon: "🧟", desc: "Invoca una cantidad de esbirros de tu elección por vida o por tiempo.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "summonCount", "spawnRadius", "summonDurationMode", "summonDurationMs", "summonsList", "startDelay"] },
-    "survival_dome": { label: "Domo de Supervivencia (Survival Dome)", icon: "🔮", desc: "Carga un ataque masivo creando un domo seguro en una ubicacion aleatoria.", fields: ["fireRange", "safeRadius", "maxOffset", "castTimeMs", "cooldown", "damage", "postCastWaitMs", "startDelay", "debuffsList"] }
+    "survival_dome": { label: "Domo de Supervivencia (Survival Dome)", icon: "🔮", desc: "Carga un ataque masivo creando un domo seguro en una ubicacion aleatoria.", fields: ["fireRange", "safeRadius", "maxOffset", "castTimeMs", "cooldown", "damage", "postCastWaitMs", "startDelay", "debuffsList"] },
+    "ice_storm": { label: "Tormenta de Hielo", icon: "❄️", desc: "Invoca una tormenta de hielo persistente que daña y ralentiza a los jugadores en el área.", fields: ["cooldown", "castTimeMs", "fireRange", "radius", "lockTimeMs", "duration", "tick_interval", "damage_per_tick", "slow_amount", "startDelay"] }
 };
 
 // v266.230: Definición de Mecánicas de Movimiento (Cerebros)

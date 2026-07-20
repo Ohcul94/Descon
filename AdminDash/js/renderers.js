@@ -1046,7 +1046,10 @@ function renderEnemyDetail() {
                                           spawnRadius: "Radio de Invocación (px)",
                                           summonDurationMode: "Modo de Duración de Invocación",
                                           summonDurationMs: "Tiempo de Vida de Invocación (ms)",
-                                          summonsList: "Lista de Esbirros Invocados"
+                                           summonsList: "Lista de Esbirros Invocados",
+                                           tick_interval: "Intervalo de Tick (ms)",
+                                           damage_per_tick: "Daño por Tick (pts)",
+                                           slow_amount: "Ralentización (0-1)"
                                        };
                                      if (f === 'activationMode') {
                                          const mode = m.activationMode || 'hp';
@@ -1510,7 +1513,11 @@ function renderMechanicsLib() {
         "spawnRadius": "Radio de Invocación (px)",
         "summonDurationMode": "Modo de Duración de Invocación",
         "summonDurationMs": "Tiempo de Vida de Invocación (ms)",
-        "summonsList": "Lista de Esbirros Invocados"
+        "summonsList": "Lista de Esbirros Invocados",
+        "tick_interval": "Intervalo de Tick (ms)",
+        "damage_per_tick": "Daño por Tick (pts)",
+        "slow_amount": "Ralentización (0-1)",
+        "radius": "Radio (px)"
     };
 
     if (currentMechTab === 'attack') {

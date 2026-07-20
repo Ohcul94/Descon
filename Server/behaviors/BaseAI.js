@@ -1302,6 +1302,175 @@ module.exports = class BaseAI {
             return state.isCharging;
         }
 
+        // Mecánica de Tormenta de Hielo (ice_storm)
+        if (mech.type === "ice_storm") {
+            const chargeTime = (mech.castTimeMs !== undefined) ? mech.castTimeMs : 1500;
+            const cooldown = (mech.cooldown !== undefined) ? mech.cooldown : 10000;
+            const stormRadius = mech.radius || 300;
+            const fireRange = mech.fireRange || 600;
+            const lockTimeMs = mech.lockTimeMs !== undefined ? mech.lockTimeMs : 500;
+            const duration = (mech.duration !== undefined) ? mech.duration : 5000;
+            const tickInterval = (mech.tick_interval !== undefined) ? mech.tick_interval : 1000;
+            const dmgPerTick = (mech.damage_per_tick !== undefined) ? mech.damage_per_tick : 50;
+            const slowAmount = (mech.slow_amount !== undefined) ? mech.slow_amount : 0.4;
+
+            if (!state.isActive && !state.isCharging && now > state.nextShotTime) {
+                // FASE 1: INICIO DE CARGA — elegir un jugador objetivo dentro del alcance
+                const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                let target = null;
+                let minDist = fireRange;
+                zonePlayers.forEach(p => {
+                    const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                    if (d <= minDist) {
+                        minDist = d;
+                        target = p;
+                    }
+                });
+                if (!target) {
+                    this.enemy.mechState[mId] = state;
+                    return false;
+                }
+
+                state.isCharging = true;
+                state.chargeEndTime = now + chargeTime;
+                state.lockedX = target.x;
+                state.lockedY = target.y;
+                state.targetId = target.socketId;
+                state.isPositionLocked = false;
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "ice_storm_charging",
+                    type: "ice_storm",
+                    duration: chargeTime,
+                    range: stormRadius,
+                    damagePerTick: dmgPerTick * (this.damageMult || 1),
+                    slowAmount: slowAmount,
+                    tickInterval: tickInterval,
+                    stormDuration: duration,
+                    targetX: target.x,
+                    targetY: target.y,
+                    x: this.enemy.x,
+                    y: this.enemy.y
+                });
+            } else if (state.isCharging) {
+                const timeLeft = state.chargeEndTime - now;
+                if (timeLeft <= 0) {
+                    // FASE 3: TORMENTA DESPLEGADA
+                    state.isCharging = false;
+                    state.isActive = true;
+                    state.activeEndTime = now + duration;
+                    state.lastTickTime = now;
+
+                    if (!state.isPositionLocked) {
+                        const target = Object.values(players || {}).find(p => p.socketId === state.targetId && !p.isDead && !p.isInvisible);
+                        if (target) {
+                            state.lockedX = target.x;
+                            state.lockedY = target.y;
+                        }
+                    }
+
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        action: "ice_storm_deploy",
+                        type: "ice_storm",
+                        x: state.lockedX,
+                        y: state.lockedY,
+                        range: stormRadius,
+                        duration: duration
+                    });
+                } else {
+                    // FASE 2: RASTREO / FIJACIÓN
+                    const target = Object.values(players || {}).find(p => p.socketId === state.targetId && !p.isDead && !p.isInvisible);
+                    if (timeLeft > lockTimeMs) {
+                        if (target) {
+                            state.lockedX = target.x;
+                            state.lockedY = target.y;
+                        }
+                    } else if (!state.isPositionLocked) {
+                        if (target) {
+                            state.lockedX = target.x;
+                            state.lockedY = target.y;
+                        }
+                        state.isPositionLocked = true;
+                    }
+                }
+            } else if (state.isActive) {
+                if (now >= state.activeEndTime) {
+                    // FASE 4: EXPIRACIÓN
+                    state.isActive = false;
+                    state.nextShotTime = now + cooldown;
+
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        action: "ice_storm_expire",
+                        type: "ice_storm",
+                        x: state.lockedX,
+                        y: state.lockedY
+                    });
+                } else {
+                    // Tick de daño + slow periódico
+                    if (now - state.lastTickTime >= tickInterval) {
+                        state.lastTickTime = now;
+
+                        const dmg = dmgPerTick * (this.damageMult || 1);
+                        const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                        zonePlayers.forEach(p => {
+                            const d = Math.hypot(p.x - state.lockedX, p.y - state.lockedY);
+                            if (d <= stormRadius) {
+                                // Aplicar slow
+                                const prevSlow = p.isSlowed;
+                                p.isSlowed = true;
+                                p.lastSlowTime = now;
+                                p.slowPoints = slowAmount * 100;
+                                if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints });
+
+                                // Aplicar daño
+                                p.lastCombatTime = Date.now();
+                                if (p.shield >= dmg) {
+                                    p.shield -= dmg;
+                                } else {
+                                    p.hp -= (dmg - p.shield);
+                                    p.shield = 0;
+                                }
+                                if (p.hp < 0) p.hp = 0;
+                                if (p.hp <= 0) p.isDead = true;
+
+                                // Reflejo autoritativo
+                                if (p.reflectActive && !p.isInvulnerable) {
+                                    const reflectMult = 0.8;
+                                    const reflectedDmg = Math.round(dmg * reflectMult);
+                                    if (reflectedDmg > 0) {
+                                        if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                                        else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                                        if (this.enemy.hp < 0) this.enemy.hp = 0;
+                                        io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', {
+                                            id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield
+                                        });
+                                    }
+                                }
+
+                                // Sincronizar stats
+                                io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                                    id: p.socketId,
+                                    hp: Math.ceil(p.hp),
+                                    shield: Math.ceil(p.shield),
+                                    isDead: p.isDead,
+                                    isInvulnerable: p.isInvulnerable,
+                                    isInvisible: p.isInvisible,
+                                    spheres: p.spheres || []
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+
+            this.enemy.mechState[mId] = state;
+            return state.isCharging || state.isActive;
+        }
+
         // Mecánica de Reflect (Reflejo de Daño)
         if (mech.type === "reflect") {
             const cooldown = mech.cooldown || mech.fireRate || 10000;
