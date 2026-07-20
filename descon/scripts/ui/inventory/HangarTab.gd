@@ -250,6 +250,8 @@ func _create_fleet_card(sid, parent):
 	var speed_mod_flat = 0.0
 	var speed_mod_pct = 0.0
 	var bonus_w = 0.0
+	var dmg_mod_flat = 0.0
+	var dmg_mod_pct = 0.0
 
 	var ship_e = _find_ship_equip(sid)
 	if ship_e:
@@ -268,6 +270,9 @@ func _create_fleet_card(sid, parent):
 			var sv = float(it.get("shieldMod", 0))
 			if it.get("shieldModType", "percent") == "flat": shield_mod_flat += sv
 			else: shield_mod_pct += sv
+			var dv = float(it.get("dmgMod", 0))
+			if it.get("dmgModType", "percent") == "flat": dmg_mod_flat += dv
+			else: dmg_mod_pct += dv
 		# Motores (e)
 		for it in ship_e.get("e", []):
 			speed_bonus += float(it.get("base", 0))
@@ -285,14 +290,17 @@ func _create_fleet_card(sid, parent):
 	var base_hp = float(model.get("hp", 0))
 	var base_sh = float(model.get("shield", 0))
 	var base_speed = float(model.get("speed", 0))
+	var base_atk = float(model.get("attack", 100))
 
 	var final_hp = (base_hp + total_hp_bonus + hp_mod_flat) * (1.0 + hp_mod_pct / 100.0)
 	var final_sh = (base_sh + total_sh_bonus + shield_mod_flat) * (1.0 + shield_mod_pct / 100.0)
 	var final_speed = (base_speed + speed_bonus + speed_mod_flat) * (1.0 + speed_mod_pct / 100.0)
+	var final_atk = ((base_atk + bonus_w) * (1.0 + dmg_mod_pct / 100.0)) + dmg_mod_flat
 
 	var bonus_hp = int(round(final_hp - base_hp))
 	var bonus_sh = int(round(final_sh - base_sh))
 	var bonus_e = int(round(final_speed - base_speed))
+	var bonus_atk = int(round(final_atk - base_atk))
 	
 	var stats_grid = GridContainer.new(); stats_grid.columns = 2; stats_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; v.add_child(stats_grid)
 	var create_stat = func(txt, base_val, bonus, label_color):
@@ -305,7 +313,7 @@ func _create_fleet_card(sid, parent):
 	create_stat.call("HP:", int(base_hp), int(bonus_hp), Color.GREEN)
 	create_stat.call("SH:", int(base_sh), int(bonus_sh), Color.AQUA)
 	create_stat.call("VEL:", int(base_speed), int(bonus_e), Color.YELLOW)
-	create_stat.call("ATK:", int(model.get("attack", 100)), int(bonus_w), Color.RED)
+	create_stat.call("ATK:", int(base_atk), int(bonus_atk), Color.RED)
 
 	if is_active:
 		var st = Label.new(); st.text = "ACTIVA"; st.horizontal_alignment = 1; st.modulate = Color.GREEN; st.add_theme_font_size_override("font_size", 9); v.add_child(st)
@@ -482,6 +490,11 @@ func _create_item_row(it, parent):
 			var t = "+" if sh_m > 0 else ""
 			var suffix = "%" if it.get("shieldModType", "percent") == "percent" else ""
 			stat_text += " | ESCUDO MOD: " + t + str(sh_m) + suffix
+		var dm_m = float(it.get("dmgMod", 0))
+		if dm_m != 0:
+			var t = "+" if dm_m > 0 else ""
+			var suffix = "%" if it.get("dmgModType", "percent") == "percent" else ""
+			stat_text += " | DAÑO: " + t + str(dm_m) + suffix
 	elif item_slot == "e":
 		stat_text = "VELOCIDAD: +" + str(base_val)
 		var hp_m = float(it.get("hpMod", 0))

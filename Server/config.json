@@ -4631,7 +4631,10 @@
                 "prices": {
                     "hubs": 5000,
                     "ohcu": 5
-                }
+                },
+                "speedMod": 10,
+                "hpMod": 35,
+                "hpModType": "flat"
             },
             {
                 "id": "en2",
@@ -4686,7 +4689,10 @@
                 "prices": {
                     "hubs": 10000,
                     "ohcu": 10
-                }
+                },
+                "shieldMod": 10,
+                "dmgMod": 20,
+                "dmgModType": "flat"
             },
             {
                 "id": "sh2",

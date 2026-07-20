@@ -59,20 +59,20 @@ function registerCombatHandlers(socket, io, state) {
     
     // Helper para leer dmgMod desde el ítem o master config (fallback si el campo no existe en el ítem)
     function readDmgMod(item) {
-        if (item.hasOwnProperty('dmgMod') || item.dmgMod !== undefined) {
-            return {
-                val: Number(item.dmgMod) || 0,
-                type: item.dmgModType || 'percent'
-            };
-        }
         if (state?.SERVER_CONFIG?.shopItems?.shields) {
             const master = state.SERVER_CONFIG.shopItems.shields.find(sh => String(sh.id) === String(item.id));
-            if (master) {
+            if (master && master.dmgMod !== undefined) {
                 return {
                     val: Number(master.dmgMod) || 0,
                     type: master.dmgModType || 'percent'
                 };
             }
+        }
+        if (item.hasOwnProperty('dmgMod') || item.dmgMod !== undefined) {
+            return {
+                val: Number(item.dmgMod) || 0,
+                type: item.dmgModType || 'percent'
+            };
         }
         return { val: 0, type: 'percent' };
     }

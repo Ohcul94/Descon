@@ -34,20 +34,20 @@ function calculateFinalStats(player, config) {
     // Helper para leer modificador desde el ítem o desde el master config (fallback)
     // Solo hace fallback si el campo NO existe en el ítem (ítems viejos pre-cambio)
     function readMod(item, fieldName, masterList) {
-        if (item.hasOwnProperty(fieldName) || item[fieldName] !== undefined) {
-            return {
-                val: Number(item[fieldName]) || 0,
-                type: item[fieldName + 'Type'] || 'percent'
-            };
-        }
         if (masterList) {
             const master = masterList.find(m => String(m.id) === String(item.id));
-            if (master) {
+            if (master && master[fieldName] !== undefined) {
                 return {
                     val: Number(master[fieldName]) || 0,
                     type: master[fieldName + 'Type'] || 'percent'
                 };
             }
+        }
+        if (item.hasOwnProperty(fieldName) || item[fieldName] !== undefined) {
+            return {
+                val: Number(item[fieldName]) || 0,
+                type: item[fieldName + 'Type'] || 'percent'
+            };
         }
         return { val: 0, type: 'percent' };
     }
