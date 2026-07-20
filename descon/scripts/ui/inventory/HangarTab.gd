@@ -255,33 +255,33 @@ func _create_fleet_card(sid, parent):
 
 	var ship_e = _find_ship_equip(sid)
 	if ship_e:
-		# Armas (w)
+		# Armas (w) - base ataque | modifica Velocidad y Vida
 		for it in ship_e.get("w", []):
 			bonus_w += float(it.get("base", 0))
-			var hv = float(it.get("hpMod", 0))
-			if it.get("hpModType", "percent") == "flat": hp_mod_flat += hv
-			else: hp_mod_pct += hv
 			var sv = float(it.get("speedMod", 0))
 			if it.get("speedModType", "percent") == "flat": speed_mod_flat += sv
 			else: speed_mod_pct += sv
-		# Escudos (s)
+			var hv = float(it.get("hpMod", 0))
+			if it.get("hpModType", "percent") == "flat": hp_mod_flat += hv
+			else: hp_mod_pct += hv
+		# Escudos (s) - base escudo | modifica Vida y Velocidad
 		for it in ship_e.get("s", []):
 			total_sh_bonus += float(it.get("base", 0))
-			var sv = float(it.get("shieldMod", 0))
-			if it.get("shieldModType", "percent") == "flat": shield_mod_flat += sv
-			else: shield_mod_pct += sv
-			var dv = float(it.get("dmgMod", 0))
-			if it.get("dmgModType", "percent") == "flat": dmg_mod_flat += dv
-			else: dmg_mod_pct += dv
-		# Motores (e)
-		for it in ship_e.get("e", []):
-			speed_bonus += float(it.get("base", 0))
 			var hv = float(it.get("hpMod", 0))
 			if it.get("hpModType", "percent") == "flat": hp_mod_flat += hv
 			else: hp_mod_pct += hv
 			var sv = float(it.get("speedMod", 0))
 			if it.get("speedModType", "percent") == "flat": speed_mod_flat += sv
 			else: speed_mod_pct += sv
+		# Motores (e) - base velocidad | modifica Escudo y Vida
+		for it in ship_e.get("e", []):
+			speed_bonus += float(it.get("base", 0))
+			var shv = float(it.get("shieldMod", 0))
+			if it.get("shieldModType", "percent") == "flat": shield_mod_flat += shv
+			else: shield_mod_pct += shv
+			var hv = float(it.get("hpMod", 0))
+			if it.get("hpModType", "percent") == "flat": hp_mod_flat += hv
+			else: hp_mod_pct += hv
 		# Extras (x)
 		for it in ship_e.get("x", []):
 			total_hp_bonus += float(it.get("base", 0))
@@ -473,6 +473,18 @@ func _create_item_row(it, parent):
 	var stat_text = ""
 	if item_slot == "w":
 		stat_text = "DAÑO: " + str(base_val)
+		var sp_m = float(it.get("speedMod", 0))
+		if sp_m != 0:
+			var t = "+" if sp_m > 0 else ""
+			var suffix = "%" if it.get("speedModType", "percent") == "percent" else ""
+			stat_text += " | VEL: " + t + str(sp_m) + suffix
+		var hp_m = float(it.get("hpMod", 0))
+		if hp_m != 0:
+			var t = "+" if hp_m > 0 else ""
+			var suffix = "%" if it.get("hpModType", "percent") == "percent" else ""
+			stat_text += " | HP: " + t + str(hp_m) + suffix
+	elif item_slot == "s":
+		stat_text = "ESCUDO: " + str(base_val)
 		var hp_m = float(it.get("hpMod", 0))
 		if hp_m != 0:
 			var t = "+" if hp_m > 0 else ""
@@ -483,30 +495,18 @@ func _create_item_row(it, parent):
 			var t = "+" if sp_m > 0 else ""
 			var suffix = "%" if it.get("speedModType", "percent") == "percent" else ""
 			stat_text += " | VEL: " + t + str(sp_m) + suffix
-	elif item_slot == "s":
-		stat_text = "ESCUDO: " + str(base_val)
+	elif item_slot == "e":
+		stat_text = "VELOCIDAD: +" + str(base_val)
 		var sh_m = float(it.get("shieldMod", 0))
 		if sh_m != 0:
 			var t = "+" if sh_m > 0 else ""
 			var suffix = "%" if it.get("shieldModType", "percent") == "percent" else ""
-			stat_text += " | ESCUDO MOD: " + t + str(sh_m) + suffix
-		var dm_m = float(it.get("dmgMod", 0))
-		if dm_m != 0:
-			var t = "+" if dm_m > 0 else ""
-			var suffix = "%" if it.get("dmgModType", "percent") == "percent" else ""
-			stat_text += " | DAÑO: " + t + str(dm_m) + suffix
-	elif item_slot == "e":
-		stat_text = "VELOCIDAD: +" + str(base_val)
+			stat_text += " | ESCUDO: " + t + str(sh_m) + suffix
 		var hp_m = float(it.get("hpMod", 0))
 		if hp_m != 0:
 			var t = "+" if hp_m > 0 else ""
 			var suffix = "%" if it.get("hpModType", "percent") == "percent" else ""
 			stat_text += " | HP: " + t + str(hp_m) + suffix
-		var sp_m = float(it.get("speedMod", 0))
-		if sp_m != 0:
-			var t = "+" if sp_m > 0 else ""
-			var suffix = "%" if it.get("speedModType", "percent") == "percent" else ""
-			stat_text += " | VEL: " + t + str(sp_m) + suffix
 	var st = Label.new(); st.text = stat_text; st.add_theme_font_size_override("font_size", 8); st.modulate.a = 0.8; v.add_child(st); st.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	# v305.80: Reparación agresiva en la bodega

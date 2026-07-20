@@ -53,42 +53,45 @@ function calculateFinalStats(player, config) {
     }
 
     if (player.equipped) {
-        // Armas (Slot 'w') - contribuyen hpMod y speedMod
+        // Armas (Slot 'w') - base ataque | modifica Velocidad y Vida
         if (Array.isArray(player.equipped.w)) {
             const masterWeapons = config?.shopItems?.weapons;
             player.equipped.w.forEach(item => {
-                const hp = readMod(item, 'hpMod', masterWeapons);
-                if (hp.type === 'flat') hpModFlat += hp.val;
-                else hpModPct += hp.val;
                 const sp = readMod(item, 'speedMod', masterWeapons);
                 if (sp.type === 'flat') speedModFlat += sp.val;
                 else speedModPct += sp.val;
+                const hp = readMod(item, 'hpMod', masterWeapons);
+                if (hp.type === 'flat') hpModFlat += hp.val;
+                else hpModPct += hp.val;
             });
         }
-        // Escudos (Slot 's')
+        // Escudos (Slot 's') - base escudo | modifica Vida y Velocidad
         if (Array.isArray(player.equipped.s)) {
             const masterShields = config?.shopItems?.shields;
             player.equipped.s.forEach(item => {
                 itemShield += (Number(item.base) || 0);
-                const sh = readMod(item, 'shieldMod', masterShields);
-                if (sh.type === 'flat') shieldModFlat += sh.val;
-                else shieldModPct += sh.val;
-            });
-        }
-        // Motores (Slot 'e')
-        if (Array.isArray(player.equipped.e)) {
-            const masterEngines = config?.shopItems?.engines;
-            player.equipped.e.forEach(item => {
-                itemSpeed += (Number(item.base) || 0);
-                const hp = readMod(item, 'hpMod', masterEngines);
+                const hp = readMod(item, 'hpMod', masterShields);
                 if (hp.type === 'flat') hpModFlat += hp.val;
                 else hpModPct += hp.val;
-                const sp = readMod(item, 'speedMod', masterEngines);
+                const sp = readMod(item, 'speedMod', masterShields);
                 if (sp.type === 'flat') speedModFlat += sp.val;
                 else speedModPct += sp.val;
             });
         }
-        // Módulos extra (Slot 'x')
+        // Motores (Slot 'e') - base velocidad | modifica Escudo y Vida
+        if (Array.isArray(player.equipped.e)) {
+            const masterEngines = config?.shopItems?.engines;
+            player.equipped.e.forEach(item => {
+                itemSpeed += (Number(item.base) || 0);
+                const sh = readMod(item, 'shieldMod', masterEngines);
+                if (sh.type === 'flat') shieldModFlat += sh.val;
+                else shieldModPct += sh.val;
+                const hp = readMod(item, 'hpMod', masterEngines);
+                if (hp.type === 'flat') hpModFlat += hp.val;
+                else hpModPct += hp.val;
+            });
+        }
+        // Módulos extra (Slot 'x') - base vida
         if (Array.isArray(player.equipped.x)) {
             player.equipped.x.forEach(item => {
                 itemHp += (Number(item.base) || 0);

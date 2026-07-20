@@ -544,29 +544,29 @@ func _recalculate_stats():
 			var bonus = float(item.get("base", 0))
 			if type == "w" or type == "laser" or cat == "w":
 				base_laser_damage += bonus
-				var hv = float(item.get("hpMod", 0))
-				if item.get("hpModType", "percent") == "flat": hp_mod_flat += hv
-				else: hp_mod_pct += hv
 				var sv = float(item.get("speedMod", 0))
 				if item.get("speedModType", "percent") == "flat": speed_mod_flat += sv
 				else: speed_mod_pct += sv
+				var hv = float(item.get("hpMod", 0))
+				if item.get("hpModType", "percent") == "flat": hp_mod_flat += hv
+				else: hp_mod_pct += hv
 			elif type == "s" or type == "shield" or cat == "s":
 				total_sh_bonus += bonus
-				var sv = float(item.get("shieldMod", 0))
-				if item.get("shieldModType", "percent") == "flat": shield_mod_flat += sv
-				else: shield_mod_pct += sv
-				var dv = float(item.get("dmgMod", 0))
-				if item.get("dmgModType", "percent") == "flat": dmg_mod_flat += dv
-				else: dmg_mod_pct += dv
-			elif type == "e" or type == "engine" or cat == "e":
-				speed_bonus += bonus
 				var hv = float(item.get("hpMod", 0))
 				if item.get("hpModType", "percent") == "flat": hp_mod_flat += hv
 				else: hp_mod_pct += hv
 				var sv = float(item.get("speedMod", 0))
 				if item.get("speedModType", "percent") == "flat": speed_mod_flat += sv
 				else: speed_mod_pct += sv
-			elif type == "h" or type == "hp" or cat == "h":
+			elif type == "e" or type == "engine" or cat == "e":
+				speed_bonus += bonus
+				var shv = float(item.get("shieldMod", 0))
+				if item.get("shieldModType", "percent") == "flat": shield_mod_flat += shv
+				else: shield_mod_pct += shv
+				var hv = float(item.get("hpMod", 0))
+				if item.get("hpModType", "percent") == "flat": hp_mod_flat += hv
+				else: hp_mod_pct += hv
+			elif type == "h" or type == "hp" or type == "x" or cat == "h" or cat == "x":
 				total_hp_bonus += bonus
 	
 	var ship_base = { "hp": 3000, "shield": 1000, "speed": 300, "vision": 1300.0 }

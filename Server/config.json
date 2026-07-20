@@ -4626,7 +4626,7 @@
                 "id": "en1",
                 "name": "Motor M1",
                 "desc": "Propulsión química.",
-                "base": 20,
+                "base": 50,
                 "icon": "res://assets/Motores/Motor1/Motor1.png",
                 "prices": {
                     "hubs": 5000,
@@ -4634,7 +4634,9 @@
                 },
                 "speedMod": 10,
                 "hpMod": 35,
-                "hpModType": "flat"
+                "hpModType": "flat",
+                "shieldMod": 60,
+                "dmgMod": 70
             },
             {
                 "id": "en2",
@@ -4691,8 +4693,11 @@
                     "ohcu": 10
                 },
                 "shieldMod": 10,
-                "dmgMod": 20,
-                "dmgModType": "flat"
+                "dmgMod": 30,
+                "dmgModType": "flat",
+                "speedMod": 40,
+                "speedModType": "flat",
+                "hpMod": 30
             },
             {
                 "id": "sh2",
@@ -4764,7 +4769,9 @@
                     "ohcu": 10
                 },
                 "speedMod": 10,
-                "hpMod": 10
+                "hpMod": 20,
+                "speedModType": "flat",
+                "hpModType": "flat"
             },
             {
                 "id": "las2",

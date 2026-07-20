@@ -2740,9 +2740,8 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		control_node.scale = Vector3(3.0, 3.0, 3.0) 
 		model.rotation_degrees.y = rot_offset 
 
-		# v390.0: Parche de sombreado plano para naves 1 a 6 (evita que se oscurezcan al girar)
-		if not is_in_group("enemies") and current_ship_id >= 1 and current_ship_id <= 6:
-			_make_materials_unshaded(model)
+		# v390.0: Parche de sombreado plano para todos los modelos 3D (naves y enemigos) (evita que se oscurezcan al girar)
+		_make_materials_unshaded(model)
 
 		# v380.0: Inyectar partículas de propulsión 3D optimizadas
 		_setup_propulsion_particles(control_node)

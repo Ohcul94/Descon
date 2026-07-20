@@ -57,10 +57,11 @@ SkillManager.registerSkill(new BuffSkill("HYPER-DASH"));
  */
 function registerCombatHandlers(socket, io, state) {
     
-    // Helper para leer dmgMod desde el ítem o master config (fallback si el campo no existe en el ítem)
+    // Helper para leer dmgMod desde el ítem o master config (shields y engines)
     function readDmgMod(item) {
-        if (state?.SERVER_CONFIG?.shopItems?.shields) {
-            const master = state.SERVER_CONFIG.shopItems.shields.find(sh => String(sh.id) === String(item.id));
+        const catKey = String(item.id).toLowerCase().startsWith('en') ? 'engines' : 'shields';
+        if (state?.SERVER_CONFIG?.shopItems?.[catKey]) {
+            const master = state.SERVER_CONFIG.shopItems[catKey].find(sh => String(sh.id) === String(item.id));
             if (master && master.dmgMod !== undefined) {
                 return {
                     val: Number(master.dmgMod) || 0,
@@ -126,14 +127,18 @@ function registerCombatHandlers(socket, io, state) {
             });
         }
 
-        // Modificador de daño desde escudos (dmgMod)
+        // Modificador de daño desde escudos y motores (dmgMod)
         let dmgModFlat = 0;
         let dmgModPct = 0;
-        if (p.equipped && p.equipped.s) {
-            p.equipped.s.forEach(item => {
-                const mod = readDmgMod(item);
-                if (mod.type === 'flat') dmgModFlat += mod.val;
-                else dmgModPct += mod.val;
+        if (p.equipped) {
+            ['s', 'e'].forEach(cat => {
+                if (Array.isArray(p.equipped[cat])) {
+                    p.equipped[cat].forEach(item => {
+                        const mod = readDmgMod(item);
+                        if (mod.type === 'flat') dmgModFlat += mod.val;
+                        else dmgModPct += mod.val;
+                    });
+                }
             });
         }
         const dmgModMult = 1.0 + (dmgModPct / 100);
@@ -356,14 +361,18 @@ function registerCombatHandlers(socket, io, state) {
             });
         }
 
-        // Modificador de daño desde escudos (dmgMod)
+        // Modificador de daño desde escudos y motores (dmgMod)
         let dmgModFlat = 0;
         let dmgModPct = 0;
-        if (p.equipped && p.equipped.s) {
-            p.equipped.s.forEach(item => {
-                const mod = readDmgMod(item);
-                if (mod.type === 'flat') dmgModFlat += mod.val;
-                else dmgModPct += mod.val;
+        if (p.equipped) {
+            ['s', 'e'].forEach(cat => {
+                if (Array.isArray(p.equipped[cat])) {
+                    p.equipped[cat].forEach(item => {
+                        const mod = readDmgMod(item);
+                        if (mod.type === 'flat') dmgModFlat += mod.val;
+                        else dmgModPct += mod.val;
+                    });
+                }
             });
         }
         const dmgModMult = 1.0 + (dmgModPct / 100);
@@ -812,14 +821,18 @@ function registerCombatHandlers(socket, io, state) {
                     });
                 }
                 
-                // Modificador de daño desde escudos (dmgMod)
+                // Modificador de daño desde escudos y motores (dmgMod)
                 let dmgModFlat = 0;
                 let dmgModPct = 0;
-                if (attacker.equipped && attacker.equipped.s) {
-                    attacker.equipped.s.forEach(item => {
-                        const mod = readDmgMod(item);
-                        if (mod.type === 'flat') dmgModFlat += mod.val;
-                        else dmgModPct += mod.val;
+                if (attacker.equipped) {
+                    ['s', 'e'].forEach(cat => {
+                        if (Array.isArray(attacker.equipped[cat])) {
+                            attacker.equipped[cat].forEach(item => {
+                                const mod = readDmgMod(item);
+                                if (mod.type === 'flat') dmgModFlat += mod.val;
+                                else dmgModPct += mod.val;
+                            });
+                        }
                     });
                 }
                 const dmgModMult = 1.0 + (dmgModPct / 100);
