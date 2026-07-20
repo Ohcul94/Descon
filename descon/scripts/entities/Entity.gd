@@ -2667,13 +2667,14 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 	accessory_pivot_3d.name = "AccessoryPivot"
 	node3d.add_child(accessory_pivot_3d)
 	
-	# Entorno con luz AMBIENTE BLANCA (Garantía de visibilidad - Sólo si es Viewport local)
+	# Entorno con luz ambiental azulada espacial (Garantía de visibilidad - Sólo si es Viewport local)
 	if not is_single_world:
 		var env = WorldEnvironment.new()
 		var world_env = Environment.new()
 		world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		world_env.ambient_light_color = Color.WHITE
-		world_env.ambient_light_energy = 1.0 
+		world_env.ambient_light_color = Color(0.2, 0.2, 0.35)
+		world_env.ambient_light_energy = 0.6
+		world_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 		env.environment = world_env
 		node3d.add_child(env)
 	
@@ -2739,27 +2740,42 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		control_node.scale = Vector3(3.0, 3.0, 3.0) 
 		model.rotation_degrees.y = rot_offset 
 
+		# v390.0: Parche de sombreado plano para naves 1 a 6 (evita que se oscurezcan al girar)
+		if not is_in_group("enemies") and current_ship_id >= 1 and current_ship_id <= 6:
+			_make_materials_unshaded(model)
+
 		# v380.0: Inyectar partículas de propulsión 3D optimizadas
 		_setup_propulsion_particles(control_node)
 	
-	# 4. Cámara de Perspectiva con ZOOM 50% (Punto 0 - Sólo si es Viewport local)
+	# 4. Cámara de Perspectiva con iluminación profesional (Sólo si es Viewport local)
 	if not is_single_world:
 		var cam_pivot = Node3D.new()
 		node3d.add_child(cam_pivot)
 		var cam = Camera3D.new()
 		cam_pivot.add_child(cam)
 		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
-		cam.fov = 60.0
-		cam.position = Vector3(0, 10, 10) # v238.20: RESTORED FROM 1f65223
-		cam.look_at(Vector3.ZERO)
+		cam.fov = 45.0
+		cam.position = Vector3(0, 1.3, 3.3)
+		cam.look_at(Vector3(0, 0.1, 0))
 		
-		# LUZ FRONTAL (Headlight)
-		var sun = DirectionalLight3D.new()
-		cam.add_child(sun)
-		sun.rotation = Vector3.ZERO 
-		sun.light_energy = 2.0 # Volver al original suave
-		sun.light_specular = 0.0 # Reducido a 0 para no calcular brillos especulares
-		sun.shadow_enabled = false # Desactivar sombras direccionales obligatoriamente
+		# LUZ CLAVE (Key Light) - En espacio mundial, siempre desde arriba
+		# No es hija de la cámara ni del modelo, así que no rota con ninguno
+		var key = DirectionalLight3D.new()
+		node3d.add_child(key)
+		key.rotation_degrees = Vector3(-65, 35, 0)
+		key.light_energy = 1.5
+		key.light_color = Color(1.0, 0.92, 0.85)
+		key.light_specular = 0.5
+		key.shadow_enabled = false
+		
+		# LUZ DE RELLENO (Fill Light) - En espacio mundial, desde el lado opuesto
+		var fill = DirectionalLight3D.new()
+		node3d.add_child(fill)
+		fill.rotation_degrees = Vector3(25, -135, 0)
+		fill.light_energy = 0.6
+		fill.light_color = Color(0.7, 0.8, 1.0)
+		fill.light_specular = 0.3
+		fill.shadow_enabled = false
 		
 		# 5. Conectar al Sprite2D existente (Transparencia Pro)
 		if is_instance_valid(sprite):
@@ -3265,6 +3281,34 @@ func _clean_internal_lights(node: Node):
 	for child in node.get_children():
 		_clean_internal_lights(child)
 
+# v390.0: Recorre las mallas de la nave y hace que sus materiales sean Unshaded
+# para que no se oscurezcan al mirar a la izquierda o hacia abajo, igual a las naves 7-12
+func _make_materials_unshaded(node: Node):
+	if not is_instance_valid(node):
+		return
+	if node is MeshInstance3D:
+		if node.name != "EnergyShield" and not _is_descendant_of_active_shield(node):
+			# 1. Modificar material_override si existe
+			if node.material_override and node.material_override is BaseMaterial3D:
+				node.material_override = node.material_override.duplicate()
+				node.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			
+			# 2. Modificar materiales de superficies individuales
+			for i in range(node.get_surface_override_material_count()):
+				var mat = node.get_surface_override_material(i)
+				if mat and mat is BaseMaterial3D:
+					var dup_mat = mat.duplicate()
+					dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					node.set_surface_override_material(i, dup_mat)
+				else:
+					var active_mat = node.get_active_material(i)
+					if active_mat and active_mat is BaseMaterial3D:
+						var dup_mat = active_mat.duplicate()
+						dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+						node.set_surface_override_material(i, dup_mat)
+	for child in node.get_children():
+		_make_materials_unshaded(child)
+
 func _setup_sphere_materials_recursive(node: Node, color_name: String):
 	if not is_instance_valid(node):
 		return
@@ -3733,8 +3777,9 @@ func _setup_water_orb_3d():
 		var env = WorldEnvironment.new()
 		var world_env = Environment.new()
 		world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		world_env.ambient_light_color = Color.WHITE
-		world_env.ambient_light_energy = 1.0
+		world_env.ambient_light_color = Color(0.2, 0.2, 0.35)
+		world_env.ambient_light_energy = 0.6
+		world_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 		env.environment = world_env
 		node3d.add_child(env)
 
@@ -3743,15 +3788,25 @@ func _setup_water_orb_3d():
 		var cam = Camera3D.new()
 		cam_pivot.add_child(cam)
 		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
-		cam.fov = 60.0
-		cam.position = Vector3(0, 10, 10)
-		cam.look_at(Vector3.ZERO)
+		cam.fov = 45.0
+		cam.position = Vector3(0, 1.3, 3.3)
+		cam.look_at(Vector3(0, 0.1, 0))
 
-		var sun = DirectionalLight3D.new()
-		cam.add_child(sun)
-		sun.light_energy = 2.0
-		sun.light_specular = 0.0
-		sun.shadow_enabled = false
+		var key = DirectionalLight3D.new()
+		node3d.add_child(key)
+		key.rotation_degrees = Vector3(-65, 35, 0)
+		key.light_energy = 1.5
+		key.light_color = Color(1.0, 0.92, 0.85)
+		key.light_specular = 0.5
+		key.shadow_enabled = false
+
+		var fill = DirectionalLight3D.new()
+		node3d.add_child(fill)
+		fill.rotation_degrees = Vector3(25, -135, 0)
+		fill.light_energy = 0.6
+		fill.light_color = Color(0.7, 0.8, 1.0)
+		fill.light_specular = 0.3
+		fill.shadow_enabled = false
 
 		if is_instance_valid(sprite):
 			sprite.texture = viewport.get_texture()

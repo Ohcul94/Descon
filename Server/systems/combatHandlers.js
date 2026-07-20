@@ -57,6 +57,26 @@ SkillManager.registerSkill(new BuffSkill("HYPER-DASH"));
  */
 function registerCombatHandlers(socket, io, state) {
     
+    // Helper para leer dmgMod desde el ítem o master config (fallback si el campo no existe en el ítem)
+    function readDmgMod(item) {
+        if (item.hasOwnProperty('dmgMod') || item.dmgMod !== undefined) {
+            return {
+                val: Number(item.dmgMod) || 0,
+                type: item.dmgModType || 'percent'
+            };
+        }
+        if (state?.SERVER_CONFIG?.shopItems?.shields) {
+            const master = state.SERVER_CONFIG.shopItems.shields.find(sh => String(sh.id) === String(item.id));
+            if (master) {
+                return {
+                    val: Number(master.dmgMod) || 0,
+                    type: master.dmgModType || 'percent'
+                };
+            }
+        }
+        return { val: 0, type: 'percent' };
+    }
+    
     // SISTEMA DE DAÑO AUTORITATIVO (Anti-Cheat Server-Side)
     socket.on('playerFire', (fireData) => {
         const p = state.players[socket.id];
@@ -106,9 +126,21 @@ function registerCombatHandlers(socket, io, state) {
             });
         }
 
+        // Modificador de daño desde escudos (dmgMod)
+        let dmgModFlat = 0;
+        let dmgModPct = 0;
+        if (p.equipped && p.equipped.s) {
+            p.equipped.s.forEach(item => {
+                const mod = readDmgMod(item);
+                if (mod.type === 'flat') dmgModFlat += mod.val;
+                else dmgModPct += mod.val;
+            });
+        }
+        const dmgModMult = 1.0 + (dmgModPct / 100);
+
         const mults = state.SERVER_CONFIG.ammoMultipliers[typeKey] || [1];
         const multiplier = mults[ammoTier] || 1;
-        const finalAuthorizedDamage = baseDamage * multiplier;
+        const finalAuthorizedDamage = Math.round((baseDamage * multiplier * dmgModMult) + dmgModFlat);
 
         const pData = {
             id: socket.id,
@@ -324,8 +356,20 @@ function registerCombatHandlers(socket, io, state) {
             });
         }
 
+        // Modificador de daño desde escudos (dmgMod)
+        let dmgModFlat = 0;
+        let dmgModPct = 0;
+        if (p.equipped && p.equipped.s) {
+            p.equipped.s.forEach(item => {
+                const mod = readDmgMod(item);
+                if (mod.type === 'flat') dmgModFlat += mod.val;
+                else dmgModPct += mod.val;
+            });
+        }
+        const dmgModMult = 1.0 + (dmgModPct / 100);
+
         // Permitimos un 50% extra para críticos/buffs del cliente
-        let maxAllowed = weaponsBase * maxAmmoMult * 1.5;
+        let maxAllowed = (weaponsBase * maxAmmoMult + dmgModFlat) * dmgModMult * 1.5;
         if (maxAllowed < 1000) maxAllowed = 1000;
         
         let finalDamage = parseFloat(damage) || 100;
@@ -768,7 +812,19 @@ function registerCombatHandlers(socket, io, state) {
                     });
                 }
                 
-                const finalMaxTheoreticalDamage = baseDmg * maxMultiplier;
+                // Modificador de daño desde escudos (dmgMod)
+                let dmgModFlat = 0;
+                let dmgModPct = 0;
+                if (attacker.equipped && attacker.equipped.s) {
+                    attacker.equipped.s.forEach(item => {
+                        const mod = readDmgMod(item);
+                        if (mod.type === 'flat') dmgModFlat += mod.val;
+                        else dmgModPct += mod.val;
+                    });
+                }
+                const dmgModMult = 1.0 + (dmgModPct / 100);
+
+                const finalMaxTheoreticalDamage = (baseDmg * maxMultiplier + dmgModFlat) * dmgModMult;
                 const maxAllowedDmg = finalMaxTheoreticalDamage * 1.5; // 50% extra para críticos/buffs del cliente
 
                 const isReflect = !!data.isReflect;

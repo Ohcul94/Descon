@@ -4756,7 +4756,9 @@
                 "prices": {
                     "hubs": 10000,
                     "ohcu": 10
-                }
+                },
+                "speedMod": 10,
+                "hpMod": 10
             },
             {
                 "id": "las2",

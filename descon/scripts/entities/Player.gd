@@ -526,6 +526,14 @@ func _recalculate_stats():
 	var total_sh_bonus = 0.0
 	var total_hp_bonus = 0.0
 	var speed_bonus = 0.0
+	var hp_mod_flat = 0.0
+	var hp_mod_pct = 0.0
+	var speed_mod_flat = 0.0
+	var speed_mod_pct = 0.0
+	var shield_mod_flat = 0.0
+	var shield_mod_pct = 0.0
+	var dmg_mod_flat = 0.0
+	var dmg_mod_pct = 0.0
 	
 	for cat in equipped:
 		var slot_list = equipped[cat]
@@ -534,10 +542,32 @@ func _recalculate_stats():
 			if typeof(item) != TYPE_DICTIONARY: continue
 			var type = str(item.get("type", cat)).to_lower()
 			var bonus = float(item.get("base", 0))
-			if type == "w" or type == "laser" or cat == "w": base_laser_damage += bonus
-			elif type == "s" or type == "shield" or cat == "s": total_sh_bonus += bonus
-			elif type == "e" or type == "engine" or cat == "e": speed_bonus += bonus
-			elif type == "h" or type == "hp" or cat == "h": total_hp_bonus += bonus
+			if type == "w" or type == "laser" or cat == "w":
+				base_laser_damage += bonus
+				var hv = float(item.get("hpMod", 0))
+				if item.get("hpModType", "percent") == "flat": hp_mod_flat += hv
+				else: hp_mod_pct += hv
+				var sv = float(item.get("speedMod", 0))
+				if item.get("speedModType", "percent") == "flat": speed_mod_flat += sv
+				else: speed_mod_pct += sv
+			elif type == "s" or type == "shield" or cat == "s":
+				total_sh_bonus += bonus
+				var sv = float(item.get("shieldMod", 0))
+				if item.get("shieldModType", "percent") == "flat": shield_mod_flat += sv
+				else: shield_mod_pct += sv
+				var dv = float(item.get("dmgMod", 0))
+				if item.get("dmgModType", "percent") == "flat": dmg_mod_flat += dv
+				else: dmg_mod_pct += dv
+			elif type == "e" or type == "engine" or cat == "e":
+				speed_bonus += bonus
+				var hv = float(item.get("hpMod", 0))
+				if item.get("hpModType", "percent") == "flat": hp_mod_flat += hv
+				else: hp_mod_pct += hv
+				var sv = float(item.get("speedMod", 0))
+				if item.get("speedModType", "percent") == "flat": speed_mod_flat += sv
+				else: speed_mod_pct += sv
+			elif type == "h" or type == "hp" or cat == "h":
+				total_hp_bonus += bonus
 	
 	var ship_base = { "hp": 3000, "shield": 1000, "speed": 300, "vision": 1300.0 }
 	for ship in GameConstants.SHIP_MODELS:
@@ -547,21 +577,27 @@ func _recalculate_stats():
 			
 	vision_range = float(ship_base.get("vision", 1300.0))
 			
-	var base_hp_val = float(ship_base.get("hp", 3000)) + total_hp_bonus
-	var base_sh_val = float(ship_base.get("shield", 1000)) + total_sh_bonus
-	var base_speed_val = float(ship_base.get("speed", 300)) + speed_bonus
+	var base_hp_val = float(ship_base.get("hp", 3000)) + total_hp_bonus + hp_mod_flat
+	var base_sh_val = float(ship_base.get("shield", 1000)) + total_sh_bonus + shield_mod_flat
+	var base_speed_val = float(ship_base.get("speed", 300)) + speed_bonus + speed_mod_flat
+	
+	var hp_mod_mult = 1.0 + hp_mod_pct / 100.0
+	var speed_mod_mult = 1.0 + speed_mod_pct / 100.0
+	var shield_mod_mult = 1.0 + shield_mod_pct / 100.0
+	var dmg_mod_mult = 1.0 + dmg_mod_pct / 100.0
 	
 	var talent_system = get_tree().get_first_node_in_group("talent_system")
 	if is_instance_valid(talent_system):
 		var bonuses = talent_system.get_bonuses()
-		max_hp = base_hp_val * (1.0 + bonuses["hp_pct"])
-		max_shield = base_sh_val * (1.0 + bonuses["sh_pct"])
-		speed = base_speed_val * (1.0 + bonuses["speed_pct"])
-		base_laser_damage *= (1.0 + bonuses["dmg_pct"])
+		max_hp = base_hp_val * (1.0 + bonuses["hp_pct"]) * hp_mod_mult
+		max_shield = base_sh_val * (1.0 + bonuses["sh_pct"]) * shield_mod_mult
+		speed = base_speed_val * (1.0 + bonuses["speed_pct"]) * speed_mod_mult
+		base_laser_damage = (base_laser_damage * (1.0 + bonuses["dmg_pct"]) * dmg_mod_mult) + dmg_mod_flat
 	else:
-		max_hp = base_hp_val
-		max_shield = base_sh_val
-		speed = base_speed_val
+		max_hp = base_hp_val * hp_mod_mult
+		max_shield = base_sh_val * shield_mod_mult
+		speed = base_speed_val * speed_mod_mult
+		base_laser_damage = (base_laser_damage * dmg_mod_mult) + dmg_mod_flat
 	
 	if electron_speed_buff_timer > 0.0:
 		speed = speed * (1.0 + (electron_speed_buff_pct * electron_speed_buff_stacks) / 100.0)

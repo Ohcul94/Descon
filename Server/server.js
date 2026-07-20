@@ -33,6 +33,104 @@ const normalizeZone = (z) => {
     return z;
 };
 
+const syncPlayerItems = (userOrPlayer, serverConfig) => {
+    if (!userOrPlayer || !serverConfig) return false;
+    const allShopItems = [
+        ...(serverConfig.shopItems?.weapons || []),
+        ...(serverConfig.shopItems?.shields || []),
+        ...(serverConfig.shopItems?.engines || []),
+        ...(serverConfig.shopItems?.extra || []),
+        ...(serverConfig.shopItems?.resources || [])
+    ];
+
+    const syncItem = (item) => {
+        const master = allShopItems.find(w => w.id === item.id);
+        if (master) {
+            let itemMod = false;
+            if (item.name !== master.name) { item.name = master.name; itemMod = true; }
+            const newType = (master.type || item.type || "utility").toLowerCase();
+            if (item.type !== newType) { item.type = newType; itemMod = true; }
+            const newBase = master.base || 0;
+            if (item.base !== newBase) { item.base = newBase; itemMod = true; }
+            const newColor = master.color || "#ffffff";
+            if (item.color !== newColor) { item.color = newColor; itemMod = true; }
+            const newRarity = master.rarity || 0;
+            if (item.rarity !== newRarity) { item.rarity = newRarity; itemMod = true; }
+            if (item.icon !== master.icon) { item.icon = master.icon; itemMod = true; }
+
+            // Nuevos modificadores
+            const hpMod = master.hpMod || 0;
+            if (item.hpMod !== hpMod) { item.hpMod = hpMod; itemMod = true; }
+            const hpModType = master.hpModType || 'percent';
+            if (item.hpModType !== hpModType) { item.hpModType = hpModType; itemMod = true; }
+
+            const speedMod = master.speedMod || 0;
+            if (item.speedMod !== speedMod) { item.speedMod = speedMod; itemMod = true; }
+            const speedModType = master.speedModType || 'percent';
+            if (item.speedModType !== speedModType) { item.speedModType = speedModType; itemMod = true; }
+
+            const shieldMod = master.shieldMod || 0;
+            if (item.shieldMod !== shieldMod) { item.shieldMod = shieldMod; itemMod = true; }
+            const shieldModType = master.shieldModType || 'percent';
+            if (item.shieldModType !== shieldModType) { item.shieldModType = shieldModType; itemMod = true; }
+
+            const dmgMod = master.dmgMod || 0;
+            if (item.dmgMod !== dmgMod) { item.dmgMod = dmgMod; itemMod = true; }
+            const dmgModType = master.dmgModType || 'percent';
+            if (item.dmgModType !== dmgModType) { item.dmgModType = dmgModType; itemMod = true; }
+
+            return itemMod;
+        }
+        return false;
+    };
+
+    let modified = false;
+
+    // Check inventory
+    const inventory = userOrPlayer.gameData ? userOrPlayer.gameData.inventory : userOrPlayer.inventory;
+    if (Array.isArray(inventory)) {
+        inventory.forEach(item => {
+            if (!item.instanceId) {
+                item.instanceId = Date.now() + Math.random().toString(36).substr(2, 5);
+                modified = true;
+            }
+            if (syncItem(item)) modified = true;
+        });
+    }
+
+    // Check equippedByShip
+    const ebs = userOrPlayer.gameData ? userOrPlayer.gameData.equippedByShip : userOrPlayer.equippedByShip;
+    if (ebs) {
+        const keys = (ebs instanceof Map) ? Array.from(ebs.keys()) : Object.keys(ebs);
+        keys.forEach(k => {
+            const shipEquip = (ebs instanceof Map) ? ebs.get(k) : ebs[k];
+            if (shipEquip) {
+                ['w', 's', 'e', 'x'].forEach(slot => {
+                    if (shipEquip[slot] && Array.isArray(shipEquip[slot])) {
+                        shipEquip[slot].forEach(item => {
+                            if (syncItem(item)) modified = true;
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // Check currently equipped (for RAM player structure)
+    const equipped = userOrPlayer.gameData ? userOrPlayer.gameData.equipped : userOrPlayer.equipped;
+    if (equipped) {
+        ['w', 's', 'e', 'x'].forEach(slot => {
+            if (equipped[slot] && Array.isArray(equipped[slot])) {
+                equipped[slot].forEach(item => {
+                    if (syncItem(item)) modified = true;
+                });
+            }
+        });
+    }
+
+    return modified;
+};
+
 // Modelos y Módulos de Seguridad
 const User = require('./models/User');
 const Session = require('./models/Session'); // v302.8: Auditoría de Sesiones
@@ -42,7 +140,7 @@ const bcrypt = require('bcrypt'); // Criptografía Pro v35.0
 // v1.1: Handlers y Sistemas Modulares
 const { getClanDataPayload, registerClanHandlers } = require('./events/clanHandlers');
 const { registerCombatHandlers } = require('./systems/combatHandlers');
-const { registerInventoryHandlers } = require('./systems/inventoryHandlers');
+const { registerInventoryHandlers, sendInventoryData } = require('./systems/inventoryHandlers');
 const { applyZoneRules } = require('./systems/deathDropHelper');
 const { registerTradeHandlers } = require('./systems/tradeHandlers');
 const { registerZoneHandlers } = require('./handlers/zoneHandler');
@@ -575,54 +673,11 @@ const handleUserLogin = async (socket, user, username) => {
     if (!user.gameData.inventory) user.gameData.inventory = [];
     
     // v266.140: Sincronización PROFUNDA (Inventory + Equipped)
-    const allShopItems = [
-        ...(state.SERVER_CONFIG.shopItems.weapons || []),
-        ...(state.SERVER_CONFIG.shopItems.shields || []),
-        ...(state.SERVER_CONFIG.shopItems.engines || []),
-        ...(state.SERVER_CONFIG.shopItems.extra || []),
-        ...(state.SERVER_CONFIG.shopItems.resources || [])
-    ];
-
-    let modified = false;
-    const syncItem = (item) => {
-        const master = allShopItems.find(w => w.id === item.id);
-        if (master) {
-            item.name = master.name || item.name;
-            item.type = (master.type || item.type || "utility").toLowerCase();
-            item.base = master.base || item.base || 0;
-            item.color = master.color || item.color;
-            item.rarity = master.rarity || item.rarity || 0;
-            if (!item.icon) item.icon = master.icon;
-            return true;
-        }
-        return false;
-    };
-
-    user.gameData.inventory.forEach(item => {
-        if (!item.instanceId) {
-            item.instanceId = Date.now() + Math.random().toString(36).substr(2, 5);
-            modified = true;
-        }
-        if (syncItem(item)) modified = true;
-    });
-
-    // Sincronizar también ítems ya equipados en el mapa de naves
-    if (user.gameData.equippedByShip) {
-        const ebs = user.gameData.equippedByShip;
-        const keys = (ebs instanceof Map) ? Array.from(ebs.keys()) : Object.keys(ebs);
-        keys.forEach(k => {
-            const shipEquip = (ebs instanceof Map) ? ebs.get(k) : ebs[k];
-            ['w', 's', 'e', 'x'].forEach(slot => {
-                if (shipEquip[slot]) shipEquip[slot].forEach(item => {
-                    if (syncItem(item)) modified = true;
-                });
-            });
-        });
-    }
-
+    const modified = syncPlayerItems(user, state.SERVER_CONFIG);
     if (modified) {
         user.markModified('gameData.inventory');
         user.markModified('gameData.equippedByShip');
+        user.markModified('gameData.equipped');
         await user.save();
     }
 
@@ -1150,6 +1205,14 @@ io.on('connection', (socket) => {
 
             const user = await User.findById(userId);
             if (user) {
+                // v266.150: Sincronizar modificadores e ítems con el config actual en cada petición
+                const modified = syncPlayerItems(user, state.SERVER_CONFIG);
+                if (modified) {
+                    user.markModified('gameData.inventory');
+                    user.markModified('gameData.equippedByShip');
+                    user.markModified('gameData.equipped');
+                    await user.save();
+                }
                 socket.dbUser = user; // Re-sincronizar socket para futuras peticiones
                 const { getCategorizedInventory } = require('./systems/inventoryHandlers');
 
@@ -1261,7 +1324,37 @@ io.on('connection', (socket) => {
             // v3.9: Sincronía en Caliente (Update global memory)
             state.SERVER_CONFIG = config;
             
-            console.log(`\x1b[35m[ADMIN]\x1b[0m Configuración guardada en disco y RAM.`);
+            // v266.145: Sincronizar en caliente los ítems de todos los jugadores conectados
+            Object.keys(players).forEach(async (socketId) => {
+                const p = players[socketId];
+                if (p) {
+                    syncPlayerItems(p, config);
+                    calculateFinalStats(p, config);
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', { 
+                        id: socketId, 
+                        hp: p.hp, shield: p.shield, 
+                        maxHp: p.maxHp, maxShield: p.maxShield 
+                    });
+                    
+                    const clientSocket = io.sockets.sockets.get(socketId);
+                    if (clientSocket && clientSocket.dbUser) {
+                        const userMod = syncPlayerItems(clientSocket.dbUser, config);
+                        if (userMod) {
+                            clientSocket.dbUser.markModified('gameData.inventory');
+                            clientSocket.dbUser.markModified('gameData.equippedByShip');
+                            clientSocket.dbUser.markModified('gameData.equipped');
+                            try {
+                                await clientSocket.dbUser.save();
+                            } catch (err) {
+                                console.error(`[ADMIN-SAVE] Error guardando usuario ${clientSocket.dbUser.username}:`, err);
+                            }
+                        }
+                        sendInventoryData(clientSocket, clientSocket.dbUser);
+                    }
+                }
+            });
+            
+            console.log(`\x1b[35m[ADMIN]\x1b[0m Configuración guardada en disco y RAM, e ítems/stats de jugadores sincronizados.`);
             
             // v226.30: PURGA DE ENTIDADES PARA EVITAR FANTASMAS (Sincronía Limpia)
             // Notificar la config sin simular un cambio de zona: el cliente trata

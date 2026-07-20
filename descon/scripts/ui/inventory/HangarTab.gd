@@ -178,6 +178,10 @@ func update_ui():
 			var ship_model = model_scene.instantiate()
 			_clean_internal_lights_in_ui(ship_model)
 			
+			# v390.0: Parche para que las naves 1 a 6 se mantengan siempre iluminadas (Unshaded)
+			if ship_id >= 1 and ship_id <= 6:
+				_make_materials_unshaded_in_ui(ship_model)
+			
 			var pivot = Node3D.new()
 			pivot.name = "ShipPivot"
 			node3d.add_child(pivot)
@@ -236,12 +240,59 @@ func _create_fleet_card(sid, parent):
 	var v = VBoxContainer.new(); v.add_theme_constant_override("separation", 2); p.add_child(v)
 	var n = Label.new(); n.text = model["name"]; n.horizontal_alignment = 1; n.add_theme_font_size_override("font_size", 11); v.add_child(n)
 	
-	var bonus_w = 0; var bonus_s = 0; var bonus_e = 0
+	var total_hp_bonus = 0.0
+	var hp_mod_flat = 0.0
+	var hp_mod_pct = 0.0
+	var total_sh_bonus = 0.0
+	var shield_mod_flat = 0.0
+	var shield_mod_pct = 0.0
+	var speed_bonus = 0.0
+	var speed_mod_flat = 0.0
+	var speed_mod_pct = 0.0
+	var bonus_w = 0.0
+
 	var ship_e = _find_ship_equip(sid)
 	if ship_e:
-		for it in ship_e.get("w", []): bonus_w += int(it.get("base", 0))
-		for it in ship_e.get("s", []): bonus_s += int(it.get("base", 0))
-		for it in ship_e.get("e", []): bonus_e += int(it.get("base", 0))
+		# Armas (w)
+		for it in ship_e.get("w", []):
+			bonus_w += float(it.get("base", 0))
+			var hv = float(it.get("hpMod", 0))
+			if it.get("hpModType", "percent") == "flat": hp_mod_flat += hv
+			else: hp_mod_pct += hv
+			var sv = float(it.get("speedMod", 0))
+			if it.get("speedModType", "percent") == "flat": speed_mod_flat += sv
+			else: speed_mod_pct += sv
+		# Escudos (s)
+		for it in ship_e.get("s", []):
+			total_sh_bonus += float(it.get("base", 0))
+			var sv = float(it.get("shieldMod", 0))
+			if it.get("shieldModType", "percent") == "flat": shield_mod_flat += sv
+			else: shield_mod_pct += sv
+		# Motores (e)
+		for it in ship_e.get("e", []):
+			speed_bonus += float(it.get("base", 0))
+			var hv = float(it.get("hpMod", 0))
+			if it.get("hpModType", "percent") == "flat": hp_mod_flat += hv
+			else: hp_mod_pct += hv
+			var sv = float(it.get("speedMod", 0))
+			if it.get("speedModType", "percent") == "flat": speed_mod_flat += sv
+			else: speed_mod_pct += sv
+		# Extras (x)
+		for it in ship_e.get("x", []):
+			total_hp_bonus += float(it.get("base", 0))
+
+	# Aplicar el cálculo
+	var base_hp = float(model.get("hp", 0))
+	var base_sh = float(model.get("shield", 0))
+	var base_speed = float(model.get("speed", 0))
+
+	var final_hp = (base_hp + total_hp_bonus + hp_mod_flat) * (1.0 + hp_mod_pct / 100.0)
+	var final_sh = (base_sh + total_sh_bonus + shield_mod_flat) * (1.0 + shield_mod_pct / 100.0)
+	var final_speed = (base_speed + speed_bonus + speed_mod_flat) * (1.0 + speed_mod_pct / 100.0)
+
+	var bonus_hp = int(round(final_hp - base_hp))
+	var bonus_sh = int(round(final_sh - base_sh))
+	var bonus_e = int(round(final_speed - base_speed))
 	
 	var stats_grid = GridContainer.new(); stats_grid.columns = 2; stats_grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; v.add_child(stats_grid)
 	var create_stat = func(txt, base_val, bonus, label_color):
@@ -251,9 +302,9 @@ func _create_fleet_card(sid, parent):
 		if bonus > 0:
 			var b_lbl = Label.new(); b_lbl.text = "+" + str(bonus); b_lbl.add_theme_font_size_override("font_size", 7); b_lbl.modulate = Color.GREEN; h_val.add_child(b_lbl)
 	
-	create_stat.call("HP:", int(model.get("hp", 0)), 0, Color.GREEN)
-	create_stat.call("SH:", int(model.get("shield", 0)), int(bonus_s), Color.AQUA)
-	create_stat.call("VEL:", int(model.get("speed", 0)), int(bonus_e), Color.YELLOW)
+	create_stat.call("HP:", int(base_hp), int(bonus_hp), Color.GREEN)
+	create_stat.call("SH:", int(base_sh), int(bonus_sh), Color.AQUA)
+	create_stat.call("VEL:", int(base_speed), int(bonus_e), Color.YELLOW)
 	create_stat.call("ATK:", int(model.get("attack", 100)), int(bonus_w), Color.RED)
 
 	if is_active:
@@ -412,9 +463,37 @@ func _create_item_row(it, parent):
 	var n = Label.new(); n.text = name_text; n.add_theme_font_size_override("font_size", 10); n.modulate = slot_color; v.add_child(n); n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var base_val = int(it.get("base", 0))
 	var stat_text = ""
-	if item_slot == "w": stat_text = "DAÑO: " + str(base_val)
-	elif item_slot == "s": stat_text = "ESCUDO: " + str(base_val)
-	elif item_slot == "e": stat_text = "VELOCIDAD: +" + str(base_val)
+	if item_slot == "w":
+		stat_text = "DAÑO: " + str(base_val)
+		var hp_m = float(it.get("hpMod", 0))
+		if hp_m != 0:
+			var t = "+" if hp_m > 0 else ""
+			var suffix = "%" if it.get("hpModType", "percent") == "percent" else ""
+			stat_text += " | HP: " + t + str(hp_m) + suffix
+		var sp_m = float(it.get("speedMod", 0))
+		if sp_m != 0:
+			var t = "+" if sp_m > 0 else ""
+			var suffix = "%" if it.get("speedModType", "percent") == "percent" else ""
+			stat_text += " | VEL: " + t + str(sp_m) + suffix
+	elif item_slot == "s":
+		stat_text = "ESCUDO: " + str(base_val)
+		var sh_m = float(it.get("shieldMod", 0))
+		if sh_m != 0:
+			var t = "+" if sh_m > 0 else ""
+			var suffix = "%" if it.get("shieldModType", "percent") == "percent" else ""
+			stat_text += " | ESCUDO MOD: " + t + str(sh_m) + suffix
+	elif item_slot == "e":
+		stat_text = "VELOCIDAD: +" + str(base_val)
+		var hp_m = float(it.get("hpMod", 0))
+		if hp_m != 0:
+			var t = "+" if hp_m > 0 else ""
+			var suffix = "%" if it.get("hpModType", "percent") == "percent" else ""
+			stat_text += " | HP: " + t + str(hp_m) + suffix
+		var sp_m = float(it.get("speedMod", 0))
+		if sp_m != 0:
+			var t = "+" if sp_m > 0 else ""
+			var suffix = "%" if it.get("speedModType", "percent") == "percent" else ""
+			stat_text += " | VEL: " + t + str(sp_m) + suffix
 	var st = Label.new(); st.text = stat_text; st.add_theme_font_size_override("font_size", 8); st.modulate.a = 0.8; v.add_child(st); st.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	# v305.80: Reparación agresiva en la bodega
@@ -678,6 +757,29 @@ func _clean_internal_lights_in_ui(node):
 			child.queue_free()
 		else:
 			_clean_internal_lights_in_ui(child)
+
+# v390.0: Configura materiales Unshaded para las naves 1 a 6 en el visor del hangar
+func _make_materials_unshaded_in_ui(node: Node):
+	if not is_instance_valid(node): return
+	if node is MeshInstance3D:
+		if node.material_override and node.material_override is BaseMaterial3D:
+			node.material_override = node.material_override.duplicate()
+			node.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		
+		for i in range(node.get_surface_override_material_count()):
+			var mat = node.get_surface_override_material(i)
+			if mat and mat is BaseMaterial3D:
+				var dup_mat = mat.duplicate()
+				dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				node.set_surface_override_material(i, dup_mat)
+			else:
+				var active_mat = node.get_active_material(i)
+				if active_mat and active_mat is BaseMaterial3D:
+					var dup_mat = active_mat.duplicate()
+					dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					node.set_surface_override_material(i, dup_mat)
+	for child in node.get_children():
+		_make_materials_unshaded_in_ui(child)
 
 func _process(delta):
 	if is_instance_valid(preview_mesh):
