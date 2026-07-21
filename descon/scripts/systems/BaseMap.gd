@@ -59,7 +59,6 @@ var _drag_last: Vector2 = Vector2.ZERO
 # Mobile touch camera control state
 var _mobile_touch_points: Dictionary = {}
 var _mobile_cam_drag_index: int = -1
-var _mobile_cam_drag_last: Vector2 = Vector2.ZERO
 var _pinch_start_dist: float = 0.0
 var _was_mobile_camera_edit: int = 0
 
@@ -1519,34 +1518,18 @@ func _on_mobile_camera_edit_toggled(state: int):
 		_save_camera_state()
 	_was_mobile_camera_edit = state
 
-# Manejo táctil de cámara libre en móvil (1 dedo orbitar, 2 dedos pinza zoom)
+# Manejo táctil de cámara libre en móvil
+# NOTA: La órbita con 1 dedo es manejada por CamDragOverlay en MainHUD.gd.
+# Aquí solo gestionamos el zoom con pinza de 2 dedos desde cualquier parte de la pantalla.
 func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 	if int(sm.mobile_camera_edit_enabled) != 1:
 		return
-		
-	var sens = sm.mobile_camera_sensitivity
 	
 	if event is InputEventScreenTouch:
 		if event.pressed:
 			if not _mobile_touch_points.has(event.index):
 				_mobile_touch_points[event.index] = event.position
-			
-			if _mobile_touch_points.size() == 1:
-				var ctrl = get_viewport().gui_get_control_under_position(event.position)
-				var is_interactive_ui = false
-				if ctrl and not (ctrl is SubViewportContainer) and ctrl != viewport_container:
-					if ctrl is Button or ctrl is TextureButton or ctrl is Slider or ctrl is LineEdit or ctrl is OptionButton:
-						is_interactive_ui = true
-					elif ctrl.name in ["VirtualJoystick", "SkillsContainer", "ControlBar", "ChatUI", "RadarWindow", "CenterStats", "PartyHUD", "CamEdit"]:
-						is_interactive_ui = true
-					elif ctrl.get_parent() and ctrl.get_parent().name in ["VirtualJoystick", "SkillsContainer", "ControlBar"]:
-						is_interactive_ui = true
-
-				if not is_interactive_ui and free_cam_active:
-					_mobile_cam_drag_index = event.index
-					_mobile_cam_drag_last = event.position
-			elif _mobile_touch_points.size() == 2:
-				_mobile_cam_drag_index = -1
+			if _mobile_touch_points.size() == 2:
 				var keys = _mobile_touch_points.keys()
 				_pinch_start_dist = _mobile_touch_points[keys[0]].distance_to(_mobile_touch_points[keys[1]])
 		else:
@@ -1559,13 +1542,7 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 	if event is InputEventScreenDrag:
 		_mobile_touch_points[event.index] = event.position
 		
-		if event.index == _mobile_cam_drag_index and free_cam_active:
-			var delta = event.position - _mobile_cam_drag_last
-			free_cam_h += delta.x * 0.3 * sens
-			free_cam_v = clamp(free_cam_v + delta.y * 0.3 * sens, 10.0, 85.0)
-			_mobile_cam_drag_last = event.position
-			_save_camera_state()
-		
+		# Zoom con pinza de 2 dedos
 		if _mobile_touch_points.size() >= 2 and _pinch_start_dist > 0.0:
 			var keys = _mobile_touch_points.keys()
 			if keys.size() >= 2:

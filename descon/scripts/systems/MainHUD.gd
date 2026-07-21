@@ -613,6 +613,12 @@ func _update_icon_state(id: String, state_val: Variant):
 				2:
 					btn.text = "🔒"
 					btn.modulate = Color(1.0, 0.85, 0.2)
+		
+		# Activar/desactivar el overlay de arrastre de cámara
+		var overlay = get_node_or_null("CamDragOverlay")
+		if overlay:
+			# Solo cuando state==1 (Libre Editable) el overlay captura toques
+			overlay.mouse_filter = Control.MOUSE_FILTER_STOP if int(state_val) == 1 else Control.MOUSE_FILTER_IGNORE
 		return
 	var is_active = bool(state_val)
 	if control_bar:
@@ -2132,24 +2138,27 @@ func _add_status_box(emoji: String, text: String, color: Color):
 	_status_hbox.add_child(box)
 
 func _create_cam_edit_button():
+	# --- Botón del Ojito ---
 	var btn = Button.new()
 	btn.name = "CamEdit"
 	btn.text = "👁️"
 	btn.custom_minimum_size = Vector2(48, 48)
 	btn.size = Vector2(48, 48)
+	btn.top_level = true
 	btn.global_position = Vector2(616, 220)
+	btn.z_index = 200  # Encima del overlay de cámara
 	
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0.05, 0.05, 0.1, 0.7)
 	sb.border_width_left = 2; sb.border_width_top = 2
 	sb.border_width_right = 2; sb.border_width_bottom = 2
 	sb.border_color = Color.CYAN
-	sb.set_corner_radius_all(24) # Botón completamente circular
+	sb.set_corner_radius_all(24)
 	btn.add_theme_stylebox_override("normal", sb)
 	
 	var h_sb = sb.duplicate()
 	h_sb.bg_color = Color(0.2, 0.4, 0.5, 0.8)
-	h_sb.border_color = Color(0.0, 1.0, 0.85) # Brillo neón
+	h_sb.border_color = Color(0.0, 1.0, 0.85)
 	btn.add_theme_stylebox_override("hover", h_sb)
 	
 	var p_sb = sb.duplicate()
@@ -2158,6 +2167,7 @@ func _create_cam_edit_button():
 	
 	btn.add_theme_font_size_override("font_size", 20)
 	
+	# Capturar toque manualmente y llamar a la acción en el RELEASE
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	btn.gui_input.connect(func(event):
 		if event is InputEventScreenTouch or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT):
@@ -2166,8 +2176,80 @@ func _create_cam_edit_button():
 				_on_icon_pressed("CamEdit")
 	)
 	
+	# --- Panel overlay de arrastre de cámara (equivalente al botón medio del mouse en PC) ---
+	# Cubre toda la pantalla cuando la cámara está en modo LIBRE EDITABLE.
+	# Intercepta todos los toques antes de que lleguen al sistema de apuntado.
+	var cam_drag_panel = Control.new()
+	cam_drag_panel.name = "CamDragOverlay"
+	cam_drag_panel.top_level = true
+	cam_drag_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Empieza ignorado
+	cam_drag_panel.z_index = 100  # Por encima del juego pero por debajo del HUD
+	# Tamaño fijado al viewport para cubrir toda la pantalla
+	cam_drag_panel.set_deferred("size", get_viewport_rect().size)
+	cam_drag_panel.set_deferred("position", Vector2.ZERO)
+	
+	cam_drag_panel.set_meta("drag_last_pos", Vector2.ZERO)
+	cam_drag_panel.set_meta("drag_touch_index", -1)
+	cam_drag_panel.set_meta("pinch_last_dist", 0.0)
+	cam_drag_panel.set_meta("touch_count", 0)
+	
+	cam_drag_panel.gui_input.connect(func(event):
+		var sm = get_node_or_null("/root/SettingsManager")
+		if not sm or int(sm.mobile_camera_edit_enabled) != 1:
+			return
+		
+		var map_node = get_tree().get_first_node_in_group("map")
+		if not is_instance_valid(map_node):
+			return
+		
+		var sens = sm.get("mobile_camera_sensitivity") if sm.get("mobile_camera_sensitivity") else 1.0
+		
+		var _touch_count = cam_drag_panel.get_meta("touch_count", 0)
+		var _drag_touch_index = cam_drag_panel.get_meta("drag_touch_index", -1)
+		var _drag_last_pos = cam_drag_panel.get_meta("drag_last_pos", Vector2.ZERO)
+		var _pinch_last_dist = cam_drag_panel.get_meta("pinch_last_dist", 0.0)
+		
+		if event is InputEventScreenTouch:
+			get_viewport().set_input_as_handled()
+			if event.pressed:
+				_touch_count += 1
+				if _touch_count == 1 and _drag_touch_index == -1:
+					_drag_touch_index = event.index
+					_drag_last_pos = event.position
+			else:
+				_touch_count = max(0, _touch_count - 1)
+				if event.index == _drag_touch_index:
+					_drag_touch_index = -1
+					_drag_last_pos = Vector2.ZERO
+				if _touch_count < 2:
+					_pinch_last_dist = 0.0
+		
+		elif event is InputEventScreenDrag:
+			get_viewport().set_input_as_handled()
+			if event.index == _drag_touch_index:
+				var delta = event.position - _drag_last_pos
+				_drag_last_pos = event.position
+				# Orbitar la cámara 3D (equivalente al botón medio en PC)
+				map_node.free_cam_h += delta.x * 0.3 * sens
+				map_node.free_cam_v = clamp(
+					map_node.free_cam_v + delta.y * 0.3 * sens,
+					10.0, 85.0
+				)
+				if map_node.has_method("_save_camera_state"):
+					map_node._save_camera_state()
+					
+		cam_drag_panel.set_meta("touch_count", _touch_count)
+		cam_drag_panel.set_meta("drag_touch_index", _drag_touch_index)
+		cam_drag_panel.set_meta("drag_last_pos", _drag_last_pos)
+		cam_drag_panel.set_meta("pinch_last_dist", _pinch_last_dist)
+	)
+	
+	add_child(cam_drag_panel)
+	
+	# Agregamos el botón al final para que reciba la entrada primero en la jerarquía del Scene Tree
 	add_child(btn)
 	btn.visible = SettingsManager.mobile_mode if SettingsManager else false
 	
+	# Actualizar visibilidad y estado del overlay al cambiar el modo de cámara
 	if SettingsManager:
 		_update_icon_state("CamEdit", SettingsManager.mobile_camera_edit_enabled)
