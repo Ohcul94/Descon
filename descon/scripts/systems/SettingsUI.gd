@@ -216,8 +216,12 @@ func _setup_ui():
 		mob_config_root.visible = is_mob
 		
 		var hud = get_tree().get_first_node_in_group("hud")
-		if hud and hud.has_method("_update_joystick_visibility"):
-			hud._update_joystick_visibility()
+		if hud:
+			if hud.has_method("_update_joystick_visibility"):
+				hud._update_joystick_visibility()
+			var cam_btn = hud.get_node_or_null("CamEdit")
+			if cam_btn:
+				cam_btn.visible = is_mob
 		
 		# Actualizar visibilidad de controles de cámara móvil en pestaña GRÁFICOS
 		if _mobcam_row: _mobcam_row.visible = is_mob
@@ -412,14 +416,18 @@ func _setup_ui():
 	mobcam_check.add_theme_stylebox_override("hover", check_style)
 	
 	var has_mobcam_edit = "mobile_camera_edit_enabled" in SettingsManager
-	mobcam_check.button_pressed = SettingsManager.mobile_camera_edit_enabled if has_mobcam_edit else false
+	mobcam_check.button_pressed = (int(SettingsManager.mobile_camera_edit_enabled) != 0) if has_mobcam_edit else false
 	mobcam_check.toggled.connect(func(val):
+		var state = 1 if val else 0
 		if "mobile_camera_edit_enabled" in SettingsManager:
-			SettingsManager.mobile_camera_edit_enabled = val
+			SettingsManager.mobile_camera_edit_enabled = state
 		SettingsManager.save_settings()
 		var map_node = get_tree().get_first_node_in_group("map")
 		if map_node and map_node.has_method("_on_mobile_camera_edit_toggled"):
-			map_node._on_mobile_camera_edit_toggled(val)
+			map_node._on_mobile_camera_edit_toggled(state)
+		var hud = get_tree().get_first_node_in_group("hud")
+		if hud and hud.has_method("_update_icon_state"):
+			hud._update_icon_state("CamEdit", state)
 	)
 	row_mobcam.add_child(mobcam_check)
 

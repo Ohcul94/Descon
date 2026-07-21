@@ -81,6 +81,7 @@ func _ready():
 	# v266.155: Soporte para cambio de resolución en tiempo real
 	get_viewport().size_changed.connect(_on_viewport_resize)
 
+	_create_cam_edit_button()
 	_aggressive_hide(self)
 	_update_icon_tooltips()
 	
@@ -239,7 +240,7 @@ func _input(event: InputEvent):
 				
 				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat, Equipo, Iconos)
 				if not clicked_node:
-					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer"]:
+					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamEdit"]:
 						var win = _get_hud_node(win_id)
 						if win and win.visible and win.get_global_rect().has_point(event.position):
 							clicked_node = win
@@ -276,6 +277,15 @@ func _input(event: InputEvent):
 							if s_val: s_val.text = str(int(clicked_node.scale.x * 100))
 							var a_val = pp.find_child("AlphaVal", true, false)
 							if a_val: a_val.text = str(int(clicked_node.modulate.a * 100))
+							
+							var r_row = pp.find_child("RowsRow", true, false)
+							if r_row:
+								r_row.visible = (clicked_node.name == "ControlBar")
+								if clicked_node.name == "ControlBar" and "rows" in clicked_node:
+									var r_opt = r_row.find_child("RowsOption", true, false)
+									if r_opt:
+										var target_idx = 0 if clicked_node.rows == 1 else 1
+										r_opt.selected = target_idx
 					
 					clicked_node.top_level = true
 								
@@ -368,6 +378,10 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 		var pos_data = layout[win_id]
 		var node = _get_hud_node(win_id)
 		if node and typeof(pos_data) == TYPE_DICTIONARY:
+			if node.name == "ControlBar" and node.has_method("set_rows"):
+				var rows_val = int(pos_data.get("rows", 1))
+				node.set_rows(rows_val)
+				
 			var rx = float(pos_data.get("x", 0.0))
 			var ry = float(pos_data.get("y", 0.0))
 			
@@ -387,7 +401,9 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif node.name == "RadarWindow": rs_temp = Vector2(220, 220)
 				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
 				elif "Party" in node.name: rs_temp = Vector2(220, node.size.y)
-				elif "ControlBar" in node.name: rs_temp = Vector2(260, 85)
+				elif "ControlBar" in node.name:
+					var rows_val = int(pos_data.get("rows", 2))
+					rs_temp = Vector2(260, 85) if rows_val == 2 else Vector2(420, 45)
 				elif node.name == "Skills": rs_temp = Vector2(575, 65)
 				elif node.name == "StatusEffects": rs_temp = Vector2(500, 55)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
@@ -508,6 +524,28 @@ func _on_minimize_pressed(id: String):
 		_update_icon_state(id, false)
 
 func _on_icon_pressed(id: String):
+	if id == "CamEdit":
+		if SettingsManager:
+			var current_state = int(SettingsManager.mobile_camera_edit_enabled)
+			var next_state = (current_state + 1) % 3
+			SettingsManager.mobile_camera_edit_enabled = next_state
+			SettingsManager.save_settings()
+			
+			match next_state:
+				0:
+					notify("CÁMARA: FIJA", "success")
+				1:
+					notify("CÁMARA: LIBRE EDITABLE", "info")
+				2:
+					notify("CÁMARA: LIBRE BLOQUEADA", "warn")
+			
+			var map_node = get_tree().get_first_node_in_group("map")
+			if map_node and map_node.has_method("_on_mobile_camera_edit_toggled"):
+				map_node._on_mobile_camera_edit_toggled(next_state)
+				
+			_update_icon_state("CamEdit", next_state)
+		return
+
 	if id == "Events":
 		toggle_events_panel()
 		if is_instance_valid(_events_panel):
@@ -541,6 +579,7 @@ func _get_hud_node(id: String):
 	if id == "Status" or id == "StatusEffects": real_id = "StatusEffects"
 	if id == "PortalBtnContainer": real_id = "PortalBtnContainer"
 	if id == "BattlePass": real_id = "PaseBatalla"
+	if id == "CamEdit": real_id = "CamEdit"
 	
 	var node = get_node_or_null(real_id)
 	
@@ -560,7 +599,22 @@ func _get_hud_node(id: String):
 			
 	return node
 
-func _update_icon_state(id: String, is_active: bool):
+func _update_icon_state(id: String, state_val: Variant):
+	if id == "CamEdit":
+		var btn = get_node_or_null("CamEdit")
+		if btn:
+			match int(state_val):
+				0:
+					btn.text = "👁️"
+					btn.modulate = Color(0.4, 0.4, 0.4, 0.6)
+				1:
+					btn.text = "👁️"
+					btn.modulate = Color.WHITE
+				2:
+					btn.text = "🔒"
+					btn.modulate = Color(1.0, 0.85, 0.2)
+		return
+	var is_active = bool(state_val)
 	if control_bar:
 		var icon = control_bar.get_node_or_null("Icon" + id)
 		if icon: icon.modulate = Color.WHITE if is_active else Color(0.4, 0.4, 0.4, 0.6)
@@ -745,9 +799,10 @@ func _restore_default_layout():
 		"Sphere3Slot":     { "x": 789.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 		"Sphere4Slot":     { "x": 874.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 		"PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
-		"ControlBar":      { "x": 10,    "y": 715,   "scale": 0.5, "alpha": 1.0 },
+		"ControlBar":      { "x": 10,    "y": 715,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
 		"StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
 		"PortalBtnContainer": { "x": 540, "y": 610, "scale": 0.5, "alpha": 1.0 },
+		"CamEdit":            { "x": 616,  "y": 220,   "scale": 0.5, "alpha": 1.0 },
 	}
 	
 	# v1.10: Sincronización dinámica de valores de fábrica definidos en el AdminDash
@@ -1137,6 +1192,36 @@ func toggle_hud_editing(slot_index: int = -1):
 			alpha_row.add_child(alpha_slider)
 			alpha_row.add_child(alpha_val_edit)
 			
+			var rows_row = HBoxContainer.new()
+			rows_row.name = "RowsRow"
+			rows_row.visible = false
+			prop_vbox.add_child(rows_row)
+			
+			var rows_lbl = Label.new()
+			rows_lbl.text = "FILAS:"
+			rows_lbl.custom_minimum_size.x = 40
+			rows_row.add_child(rows_lbl)
+			
+			var rows_option = OptionButton.new()
+			rows_option.name = "RowsOption"
+			rows_option.add_item("1 Fila (H)", 1)
+			rows_option.add_item("2 Filas (V)", 2)
+			rows_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			rows_row.add_child(rows_option)
+			
+			rows_option.item_selected.connect(func(idx):
+				var r_count = rows_option.get_item_id(idx)
+				if _selected_node_for_editing and _selected_node_for_editing.name == "ControlBar":
+					if _selected_node_for_editing.has_method("set_rows"):
+						_selected_node_for_editing.set_rows(r_count)
+						await get_tree().process_frame
+						var overlay = _selected_node_for_editing.get_node_or_null("DragOverlay")
+						if overlay:
+							overlay.global_position = _selected_node_for_editing.global_position
+							overlay.size = _selected_node_for_editing.size
+							overlay.scale = _selected_node_for_editing.scale
+			)
+			
 			var title_lbl = Label.new()
 			title_lbl.name = "TitleLabel"
 			var s_name = "Manual"
@@ -1219,7 +1304,7 @@ func toggle_hud_editing(slot_index: int = -1):
 				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamEdit"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
@@ -1323,7 +1408,10 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			elif win.name == "RadarWindow": base_w = 220; base_h = 220
 			elif "Chat" in win.name: base_w = 320; base_h = 200
 			elif "Party" in win.name: base_w = 200; base_h = 200
-			elif "ControlBar" in win.name: base_w = 260; base_h = 85
+			elif "ControlBar" in win.name:
+				var rows_cb = win.rows if "rows" in win else 2
+				base_w = 260 if rows_cb == 2 else 420
+				base_h = 85 if rows_cb == 2 else 45
 			elif "StatusEffects" in win.name: base_w = 500; base_h = 55
 			
 			var godot_w = win.size.x * win.scale.x
@@ -1367,14 +1455,17 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 			}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamEdit"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wpos = get_normalized_pos.call(win, 1280.0, 800.0)
-			layout[win_id] = { 
+			var wdata = { 
 				"x": wpos.x, "y": wpos.y,
 				"scale": win.scale.x / 2.0, "alpha": win.modulate.a
 			}
+			if win_id == "ControlBar" and "rows" in win:
+				wdata["rows"] = win.rows
+			layout[win_id] = wdata
 	
 	if NetworkManager:
 		NetworkManager.current_user_data["hudPositions"] = layout
@@ -1411,22 +1502,26 @@ func _backup_layout():
 					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 				}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamEdit"]:
 		var win = _get_hud_node(win_id)
 		if win:
+			var wdata = {}
 			if win_id == "StatusEffects":
 				var width = 500.0
 				var height = 55.0
-				_layout_backup[win_id] = { 
+				wdata = { 
 					"x": (win.global_position.x + width / 2.0) * scale_x - (width / 2.0),
 					"y": (win.global_position.y + height / 2.0) * scale_y - (height / 2.0),
 					"scale": win.scale.x / 2.0, "alpha": win.modulate.a
 				}
 			else:
-				_layout_backup[win_id] = { 
+				wdata = { 
 					"x": win.global_position.x * scale_x, "y": win.global_position.y * scale_y,
 					"scale": win.scale.x / 2.0, "alpha": win.modulate.a
 				}
+			if win_id == "ControlBar" and "rows" in win:
+				wdata["rows"] = win.rows
+			_layout_backup[win_id] = wdata
 
 func _restore_layout_backup():
 	if _layout_backup.is_empty(): return
@@ -2035,3 +2130,40 @@ func _add_status_box(emoji: String, text: String, color: Color):
 	box.add_child(txt_lbl)
 	
 	_status_hbox.add_child(box)
+
+func _create_cam_edit_button():
+	var btn = Button.new()
+	btn.name = "CamEdit"
+	btn.text = "👁️"
+	btn.custom_minimum_size = Vector2(48, 48)
+	btn.size = Vector2(48, 48)
+	btn.global_position = Vector2(616, 220)
+	
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.05, 0.05, 0.1, 0.7)
+	sb.border_width_left = 2; sb.border_width_top = 2
+	sb.border_width_right = 2; sb.border_width_bottom = 2
+	sb.border_color = Color.CYAN
+	sb.set_corner_radius_all(24) # Botón completamente circular
+	btn.add_theme_stylebox_override("normal", sb)
+	
+	var h_sb = sb.duplicate()
+	h_sb.bg_color = Color(0.2, 0.4, 0.5, 0.8)
+	h_sb.border_color = Color(0.0, 1.0, 0.85) # Brillo neón
+	btn.add_theme_stylebox_override("hover", h_sb)
+	
+	var p_sb = sb.duplicate()
+	p_sb.bg_color = Color(0.1, 0.3, 0.4, 0.9)
+	btn.add_theme_stylebox_override("pressed", p_sb)
+	
+	btn.add_theme_font_size_override("font_size", 20)
+	
+	btn.pressed.connect(func():
+		_on_icon_pressed("CamEdit")
+	)
+	
+	add_child(btn)
+	btn.visible = SettingsManager.mobile_mode if SettingsManager else false
+	
+	if SettingsManager:
+		_update_icon_state("CamEdit", SettingsManager.mobile_camera_edit_enabled)

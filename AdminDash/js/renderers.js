@@ -2819,8 +2819,9 @@ const HUD_ELEMENTS_CONFIG = {
     "RadarWindow":     { name: "🛰️ RADAR (RadarWindow)", x: 1066,  y: 564, w: 220, h: 220 },
     "SkillsContainer": { name: "🔥 SKILLS (SkillsContainer)", x: 101,   y: 684, w: 575, h: 65 },
     "PartyHUD":        { name: "👥 PARTY (PartyHUD)", x: 10,    y: 120, w: 200, h: 200 },
-    "ControlBar":      { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 340, h: 45 },
-    "StatusEffects":   { name: "✨ ESTADOS (StatusEffects)", x: 390,   y: 620, w: 500, h: 55 }
+    "ControlBar":      { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 260, h: 85 },
+    "StatusEffects":   { name: "✨ ESTADOS (StatusEffects)", x: 390,   y: 620, w: 500, h: 55 },
+    "CamEdit":         { name: "👁️ CÁMARA (CamEdit)", x: 616,   y: 220, w: 48,  h: 48 }
 };
 
 function initWebHUDDesigner() {
@@ -2835,12 +2836,21 @@ function initWebHUDDesigner() {
             "RadarWindow":     { "x": 1066,  "y": 564,   "scale": 0.5, "alpha": 1.0 },
             "SkillsContainer": { "x": 101,   "y": 684,   "scale": 0.5, "alpha": 1.0 },
             "PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
-            "ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0 },
-            "StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 }
+            "ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
+            "StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
+            "CamEdit":         { "x": 616,   "y": 220,   "scale": 0.5, "alpha": 1.0 }
         };
     }
 
     const layout = config.pilotConfig.defaultLayout;
+    
+    // Sincronizar el selector de filas de la barra de menús
+    const rowsSel = document.getElementById('web-hud-controlbar-rows');
+    if (rowsSel) {
+        const currentRows = (layout["ControlBar"] && layout["ControlBar"].rows) || 2;
+        rowsSel.value = currentRows;
+    }
+
     canvas.innerHTML = `
         <div class="hud-canvas-axis-h"></div>
         <div class="hud-canvas-axis-v"></div>
@@ -2848,8 +2858,19 @@ function initWebHUDDesigner() {
 
     // Dibujar cada elemento en el lienzo
     Object.keys(HUD_ELEMENTS_CONFIG).forEach(winId => {
-        const spec = HUD_ELEMENTS_CONFIG[winId];
+        const spec = JSON.parse(JSON.stringify(HUD_ELEMENTS_CONFIG[winId]));
         const state = layout[winId] || { x: spec.x, y: spec.y };
+        
+        if (winId === "ControlBar") {
+            const currentRows = state.rows || 2;
+            if (currentRows === 2) {
+                spec.w = 260;
+                spec.h = 85;
+            } else {
+                spec.w = 420;
+                spec.h = 45;
+            }
+        }
         
         // Convertir coordenadas del plano de 1280x800 al canvas de 640x400 (Escala 0.5)
         const webX = state.x / 2.0;
@@ -2942,6 +2963,23 @@ function initWebHUDDesigner() {
         canvas.appendChild(el);
     });
 }
+
+window.updateWebHUDControlBarRows = function(val) {
+    const rows = parseInt(val) || 2;
+    if (!config.pilotConfig.defaultLayout) config.pilotConfig.defaultLayout = {};
+    if (!config.pilotConfig.defaultLayout["ControlBar"]) config.pilotConfig.defaultLayout["ControlBar"] = { scale: 0.5, alpha: 1.0 };
+    config.pilotConfig.defaultLayout["ControlBar"].rows = rows;
+    
+    // Actualizar tamaño de la caja en el canvas
+    const el = document.getElementById('web-hud-ControlBar');
+    if (el) {
+        // Escala 0.5
+        const w = (rows === 2 ? 260 : 420) / 2.0;
+        const h = (rows === 2 ? 85 : 45) / 2.0;
+        el.style.width = `${w}px`;
+        el.style.height = `${h}px`;
+    }
+};
 
 function renderModes() {
     if (!config.gameModes) {

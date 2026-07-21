@@ -477,6 +477,16 @@
                         <div id="web-hud-canvas" class="hud-canvas">
                             <!-- Los paneles del HUD se renderizan y arrastran aquí -->
                         </div>
+                        <div style="margin-top: 1.5rem; display: flex; gap: 20px; align-items: center; background: rgba(255,255,255,0.02); padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                            <label style="font-weight: bold; font-size: 0.85rem; color: var(--accent); margin: 0;">⚙️ OPCIONES DE MENÚS (ControlBar):</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 0.8rem; opacity: 0.8;">Diseño de Filas:</span>
+                                <select id="web-hud-controlbar-rows" onchange="updateWebHUDControlBarRows(this.value)" style="background: #0b0f19; border: 1px solid rgba(255,255,255,0.1); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+                                    <option value="1">1 Fila (Horizontal)</option>
+                                    <option value="2">2 Filas (Compacto)</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

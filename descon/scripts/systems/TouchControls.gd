@@ -4,14 +4,25 @@ extends Control
 
 var virtual_joystick = null
 var grid_container: GridContainer = null
+var rows: int = 2
+
+func set_rows(p_rows: int):
+	rows = p_rows
+	if grid_container:
+		grid_container.columns = 6 if rows == 2 else 10
+		grid_container.reset_size()
+		reset_size()
+		custom_minimum_size = grid_container.get_combined_minimum_size()
+		size = custom_minimum_size
+		emit_signal("resized")
 
 func _ready():
 	print("[TouchControls] Inicializando controles táctiles.")
 	
-	# Crear un GridContainer dinámico de 6 columnas para organizar los íconos
+	# Crear un GridContainer dinámico de columnas según la configuración de filas
 	grid_container = GridContainer.new()
 	grid_container.name = "GridContainer"
-	grid_container.columns = 6
+	grid_container.columns = 6 if rows == 2 else 10
 	grid_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	grid_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -176,7 +187,7 @@ func _update_icon_tooltips():
 		"Squad": "Equipo", "Party": "Equipo", "Chat": "Chat",
 		"Stats": "Estadísticas", "Map": "Mapa", "Radar": "Minimapa", "RadarWindow": "Minimapa",
 		"PvP": "Modo combate", "Talents": "Talentos", "Skills": "Habilidades",
-		"Housing": "Housing"
+		"Housing": "Housing", "CamEdit": "Cámara Libre"
 	}
 	
 	var buttons = []

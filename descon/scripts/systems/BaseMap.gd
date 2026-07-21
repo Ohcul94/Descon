@@ -61,7 +61,7 @@ var _mobile_touch_points: Dictionary = {}
 var _mobile_cam_drag_index: int = -1
 var _mobile_cam_drag_last: Vector2 = Vector2.ZERO
 var _pinch_start_dist: float = 0.0
-var _was_mobile_camera_edit: bool = false
+var _was_mobile_camera_edit: int = 0
 
 # Referencia a la textura de fondo principal
 @onready var map_background: TextureRect = get_node_or_null("ParallaxBackground/MapWorldLayer/MapBackground")
@@ -83,12 +83,12 @@ func _ready():
 	
 	# Si mobile edit mode está activo en Settings, forzar cámara libre
 	var sm_init = get_node_or_null("/root/SettingsManager")
-	var is_mob_cam_edit = false
+	var is_mob_cam_edit = 0
 	if sm_init and "mobile_camera_edit_enabled" in sm_init:
-		is_mob_cam_edit = sm_init.mobile_camera_edit_enabled
-	if sm_init and sm_init.mobile_mode and is_mob_cam_edit:
-		free_cam_active = true
-		_was_mobile_camera_edit = true
+		is_mob_cam_edit = int(sm_init.mobile_camera_edit_enabled)
+	if sm_init and sm_init.mobile_mode:
+		free_cam_active = (is_mob_cam_edit != 0)
+		_was_mobile_camera_edit = is_mob_cam_edit
 	
 	# Establecer metadato estático autoritario para sincronizar con proyectiles y entidades
 	self.set_meta("correction_z", correction_z)
@@ -1508,19 +1508,22 @@ func _input(event):
 		_handle_mobile_camera_touch(event, sm_touch)
 
 # Alternar edición de cámara móvil desde Settings
-func _on_mobile_camera_edit_toggled(enabled: bool):
+func _on_mobile_camera_edit_toggled(state: int):
 	var sm = get_node_or_null("/root/SettingsManager")
 	if not sm or not sm.mobile_mode:
 		return
-	free_cam_active = enabled
-	if enabled:
+	free_cam_active = (state != 0)
+	if state != 0:
 		_restore_camera_state()
 	else:
 		_save_camera_state()
-	_was_mobile_camera_edit = enabled
+	_was_mobile_camera_edit = state
 
 # Manejo táctil de cámara libre en móvil (1 dedo orbitar, 2 dedos pinza zoom)
 func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
+	if int(sm.mobile_camera_edit_enabled) != 1:
+		return
+		
 	var sens = sm.mobile_camera_sensitivity
 	
 	if event is InputEventScreenTouch:

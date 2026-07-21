@@ -338,16 +338,16 @@ func _reload_autoloads():
 		"SettingsManager": "res://scripts/autoloads/SettingsManager.gd"
 	}
 	
-	for name in autoloads:
-		var path = autoloads[name]
-		var node = get_node_or_null("/root/" + name)
+	for autoload_name in autoloads:
+		var path = autoloads[autoload_name]
+		var node = get_node_or_null("/root/" + autoload_name)
 		if node and ResourceLoader.exists(path):
 			var new_script = load(path)
 			if new_script:
 				node.set_script(new_script)
 				if node.has_method("_ready"):
 					node._ready()
-				print("[Bootloader] Autoload recargado en memoria: ", name)
+				print("[Bootloader] Autoload recargado en memoria: ", autoload_name)
 
 	print("[Bootloader] PCK montado. Reiniciando árbol de forma nativa para recargar Autoloads...")
 	get_tree().set_meta("pck_loaded_and_reloaded", true)
