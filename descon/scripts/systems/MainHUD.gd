@@ -35,10 +35,6 @@ var _trade_select_start_time: float = 0.0
 var _last_applied_layout: Dictionary = {}
 var _last_applied_config: Dictionary = {}
 
-# v302.110: Estado de drag táctil de cámara libre (mobile)
-var _cam_drag_touch_index: int = -1
-var _cam_drag_last_pos: Vector2 = Vector2.ZERO
-
 func _ready():
 	add_to_group("hud")
 	print("[MainHUD] Inicializando coordinador central modular v200.0")
@@ -212,9 +208,6 @@ func _input(event: InputEvent):
 			return
 
 	if not NetworkManager or not NetworkManager.is_logged_in: return
-
-	# v302.110: Arrastre táctil de cámara libre en móvil (debe ir ANTES del layout editing)
-	_handle_hud_cam_drag(event)
 
 	# v266.120: Atajo de teclado para cerrar edición
 	if is_editing_layout and event.is_action_pressed("ui_menu"):
@@ -2177,55 +2170,3 @@ func _create_cam_edit_button():
 	
 	if SettingsManager:
 		_update_icon_state("CamEdit", SettingsManager.mobile_camera_edit_enabled)
-
-# v302.110: Manejo de arrastre táctil de cámara libre en _input() de MainHUD.
-# Se usa _input() en lugar de un overlay (que falla en Android por top_level).
-# _input() se llama ANTES de _unhandled_input() y del sistema de apuntado.
-func _handle_hud_cam_drag(event: InputEvent) -> void:
-	if not SettingsManager or int(SettingsManager.mobile_camera_edit_enabled) != 1:
-		return
-	if not (event is InputEventScreenTouch or event is InputEventScreenDrag):
-		return
-	
-	var touch_pos: Vector2 = event.position
-	
-	# Si el toque está sobre el botón CamEdit, no interferir: el botón lo maneja
-	var cam_btn = get_node_or_null("CamEdit")
-	if cam_btn and cam_btn.visible and cam_btn.get_global_rect().has_point(touch_pos):
-		return
-	
-	# Si el toque está sobre cualquier control interactivo del HUD (joystick, skills, etc.), no interferir
-	var ctrl = get_viewport().gui_get_control_under_position(touch_pos)
-	if ctrl and is_instance_valid(ctrl):
-		if ctrl is Button or ctrl is TextureButton or ctrl is Slider or ctrl is LineEdit or ctrl is OptionButton:
-			return
-		var pname = ctrl.get_parent().name if ctrl.get_parent() else ""
-		if ctrl.name == "VirtualJoystick" or pname == "VirtualJoystick":
-			return
-	
-	# Consumir el evento: bloquea que llegue al sistema de apuntado / BaseMap
-	get_viewport().set_input_as_handled()
-	
-	var map_node = get_tree().get_first_node_in_group("map")
-	var sens: float = SettingsManager.get("mobile_camera_sensitivity") if SettingsManager.get("mobile_camera_sensitivity") else 1.0
-	
-	if event is InputEventScreenTouch:
-		if event.pressed:
-			if _cam_drag_touch_index == -1:
-				_cam_drag_touch_index = event.index
-				_cam_drag_last_pos = touch_pos
-		else:
-			if event.index == _cam_drag_touch_index:
-				_cam_drag_touch_index = -1
-
-	elif event is InputEventScreenDrag:
-		if event.index == _cam_drag_touch_index and is_instance_valid(map_node):
-			var delta = touch_pos - _cam_drag_last_pos
-			_cam_drag_last_pos = touch_pos
-			map_node.free_cam_h += delta.x * 0.3 * sens
-			map_node.free_cam_v = clamp(
-				map_node.free_cam_v + delta.y * 0.3 * sens,
-				10.0, 85.0
-			)
-			if map_node.has_method("_save_camera_state"):
-				map_node._save_camera_state()
