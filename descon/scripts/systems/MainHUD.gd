@@ -2158,8 +2158,12 @@ func _create_cam_edit_button():
 	
 	btn.add_theme_font_size_override("font_size", 20)
 	
-	btn.pressed.connect(func():
-		_on_icon_pressed("CamEdit")
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.gui_input.connect(func(event):
+		if event is InputEventScreenTouch or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT):
+			get_viewport().set_input_as_handled()
+			if not event.pressed:
+				_on_icon_pressed("CamEdit")
 	)
 	
 	add_child(btn)

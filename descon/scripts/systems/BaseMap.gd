@@ -1501,10 +1501,10 @@ func _input(event):
 	
 	# --- MOBILE CAMERA TOUCH CONTROLS ---
 	var sm_touch = get_node_or_null("/root/SettingsManager")
-	var is_touch_edit = false
+	var is_touch_edit = 0
 	if sm_touch and "mobile_camera_edit_enabled" in sm_touch:
-		is_touch_edit = sm_touch.mobile_camera_edit_enabled
-	if sm_touch and sm_touch.mobile_mode and is_touch_edit:
+		is_touch_edit = int(sm_touch.mobile_camera_edit_enabled)
+	if sm_touch and sm_touch.mobile_mode and is_touch_edit != 0:
 		_handle_mobile_camera_touch(event, sm_touch)
 
 # Alternar edición de cámara móvil desde Settings
@@ -1533,8 +1533,16 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 			
 			if _mobile_touch_points.size() == 1:
 				var ctrl = get_viewport().gui_get_control_under_position(event.position)
-				var is_over_ui = ctrl != null and not (ctrl is SubViewportContainer) and ctrl != viewport_container
-				if not is_over_ui and free_cam_active:
+				var is_interactive_ui = false
+				if ctrl and not (ctrl is SubViewportContainer) and ctrl != viewport_container:
+					if ctrl is Button or ctrl is TextureButton or ctrl is Slider or ctrl is LineEdit or ctrl is OptionButton:
+						is_interactive_ui = true
+					elif ctrl.name in ["VirtualJoystick", "SkillsContainer", "ControlBar", "ChatUI", "RadarWindow", "CenterStats", "PartyHUD", "CamEdit"]:
+						is_interactive_ui = true
+					elif ctrl.get_parent() and ctrl.get_parent().name in ["VirtualJoystick", "SkillsContainer", "ControlBar"]:
+						is_interactive_ui = true
+
+				if not is_interactive_ui and free_cam_active:
 					_mobile_cam_drag_index = event.index
 					_mobile_cam_drag_last = event.position
 			elif _mobile_touch_points.size() == 2:
