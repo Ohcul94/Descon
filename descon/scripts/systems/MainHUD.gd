@@ -82,6 +82,7 @@ func _ready():
 	get_viewport().size_changed.connect(_on_viewport_resize)
 
 	_create_cam_edit_button()
+	_setup_mobile_camera_pad()
 	_aggressive_hide(self)
 	_update_icon_tooltips()
 	
@@ -474,6 +475,11 @@ func _on_viewport_resize():
 		var data = NetworkManager.current_user_data
 		if typeof(data) == TYPE_DICTIONARY and data.has("hud_layout"):
 			_apply_hud_data(data["hud_layout"], data.get("hud_config", {}))
+			
+	var cam_pad = get_node_or_null("CamTouchPadContainer")
+	if cam_pad:
+		var screen_s = get_viewport_rect().size
+		cam_pad.position = Vector2(screen_s.x - 210, (screen_s.y / 2.0) - 115)
 
 func _process(_delta):
 	# Trade Highlight visual feedback
@@ -601,18 +607,26 @@ func _get_hud_node(id: String):
 
 func _update_icon_state(id: String, state_val: Variant):
 	if id == "CamEdit":
-		var btn = get_node_or_null("CamEdit")
-		if btn:
-			match int(state_val):
-				0:
-					btn.text = "👁️"
-					btn.modulate = Color(0.4, 0.4, 0.4, 0.6)
-				1:
-					btn.text = "👁️"
-					btn.modulate = Color.WHITE
-				2:
-					btn.text = "🔒"
-					btn.modulate = Color(1.0, 0.85, 0.2)
+		var container = get_node_or_null("CamEdit")
+		if container:
+			var btn = container.get_node_or_null("VisualBtn")
+			if btn:
+				match int(state_val):
+					0:
+						btn.text = "👁️"
+						btn.modulate = Color(0.4, 0.4, 0.4, 0.6)
+					1:
+						btn.text = "👁️"
+						btn.modulate = Color.WHITE
+					2:
+						btn.text = "🔒"
+						btn.modulate = Color(1.0, 0.85, 0.2)
+		
+		# v302.140: Activar/Ocultar el Control Flotante AAA de Cámara Libre en Celular
+		var cam_pad = get_node_or_null("CamTouchPadContainer")
+		if cam_pad:
+			var is_mob = SettingsManager.mobile_mode if SettingsManager else false
+			cam_pad.visible = (int(state_val) == 1) and is_mob
 		return
 	var is_active = bool(state_val)
 	if control_bar:
@@ -2132,14 +2146,21 @@ func _add_status_box(emoji: String, text: String, color: Color):
 	_status_hbox.add_child(box)
 
 func _create_cam_edit_button():
-	# Botón del ojito: SIN top_level para que funcione en Android.
-	# top_level rompe el hit-testing táctil en Godot 4 en dispositivos físicos.
-	var btn = Button.new()
-	btn.name = "CamEdit"
-	btn.text = "👁️"
-	btn.custom_minimum_size = Vector2(48, 48)
-	btn.size = Vector2(48, 48)
-	btn.position = Vector2(616, 220)  # Posición relativa al MainHUD (que arranca en 0,0)
+	# v302.130: Estructura 100% idéntica a los slots de habilidades de SkillsHUD.gd
+	# NODO CONTENEDOR (Control) + TouchButton transparente superpuesto con mouse_filter = STOP.
+	var container = Control.new()
+	container.name = "CamEdit"
+	container.custom_minimum_size = Vector2(48, 48)
+	container.size = Vector2(48, 48)
+	container.position = Vector2(616, 220)
+	container.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	var visual_btn = Button.new()
+	visual_btn.name = "VisualBtn"
+	visual_btn.text = "👁️"
+	visual_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	visual_btn.add_theme_font_size_override("font_size", 20)
+	visual_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0.05, 0.05, 0.1, 0.7)
@@ -2147,23 +2168,28 @@ func _create_cam_edit_button():
 	sb.border_width_right = 2; sb.border_width_bottom = 2
 	sb.border_color = Color.CYAN
 	sb.set_corner_radius_all(24)
-	btn.add_theme_stylebox_override("normal", sb)
+	visual_btn.add_theme_stylebox_override("normal", sb)
 	
 	var h_sb = sb.duplicate()
 	h_sb.bg_color = Color(0.2, 0.4, 0.5, 0.8)
 	h_sb.border_color = Color(0.0, 1.0, 0.85)
-	btn.add_theme_stylebox_override("hover", h_sb)
+	visual_btn.add_theme_stylebox_override("hover", h_sb)
 	
 	var p_sb = sb.duplicate()
 	p_sb.bg_color = Color(0.1, 0.3, 0.4, 0.9)
-	btn.add_theme_stylebox_override("pressed", p_sb)
+	visual_btn.add_theme_stylebox_override("pressed", p_sb)
 	
-	btn.add_theme_font_size_override("font_size", 20)
-	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	container.add_child(visual_btn)
 	
-	# v302.120: Manejo táctil idéntico a los slots de habilidades en SkillsHUD.gd.
-	# Consume el evento con set_input_as_handled() para evitar que se dispare la mira/apuntado sobre el ojito.
-	btn.gui_input.connect(func(event):
+	# TouchButton transparente idéntico a SkillsHUD._make_clickable
+	var touch_btn = Button.new()
+	touch_btn.name = "TouchButton"
+	touch_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	touch_btn.modulate.a = 0.0
+	touch_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	container.add_child(touch_btn)
+	
+	touch_btn.gui_input.connect(func(event):
 		var is_press = (event is InputEventScreenTouch and event.pressed) or \
 					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
 		if is_press:
@@ -2171,8 +2197,166 @@ func _create_cam_edit_button():
 			_on_icon_pressed("CamEdit")
 	)
 	
-	add_child(btn)
-	btn.visible = SettingsManager.mobile_mode if SettingsManager else false
+	add_child(container)
+	container.visible = SettingsManager.mobile_mode if SettingsManager else false
 	
 	if SettingsManager:
 		_update_icon_state("CamEdit", SettingsManager.mobile_camera_edit_enabled)
+
+# v302.140: Control Flotante AAA de Cámara Libre en Móvil (TouchPad de Órbita 3D + Zoom + Reset)
+func _setup_mobile_camera_pad():
+	var pad_container = Control.new()
+	pad_container.name = "CamTouchPadContainer"
+	pad_container.custom_minimum_size = Vector2(190, 230)
+	pad_container.size = Vector2(190, 230)
+	pad_container.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	var screen_s = get_viewport_rect().size
+	pad_container.position = Vector2(screen_s.x - 210, (screen_s.y / 2.0) - 115)
+	
+	# 1. El TouchPad circular de Órbita 3D
+	var pad = Panel.new()
+	pad.name = "TouchPad"
+	pad.size = Vector2(150, 150)
+	pad.position = Vector2(20, 0)
+	pad.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	var style_pad = StyleBoxFlat.new()
+	style_pad.bg_color = Color(0.02, 0.08, 0.16, 0.65) # Neón futurista semitransparente
+	style_pad.border_width_left = 2; style_pad.border_width_top = 2
+	style_pad.border_width_right = 2; style_pad.border_width_bottom = 2
+	style_pad.border_color = Color(0.0, 0.9, 1.0, 0.95) # Borde Cian Neón brillante
+	style_pad.set_corner_radius_all(75) # Círculo perfecto
+	pad.add_theme_stylebox_override("panel", style_pad)
+	pad_container.add_child(pad)
+	
+	# Icono y Texto central
+	var lbl = Label.new()
+	lbl.text = "🎥\nORBITAR CÁMARA"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	lbl.add_theme_font_size_override("font_size", 11)
+	lbl.add_theme_color_override("font_color", Color(0.0, 0.9, 1.0, 0.9))
+	lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	lbl.add_theme_constant_override("outline_size", 3)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.add_child(lbl)
+	
+	# Drag en el TouchPad
+	pad.set_meta("touch_index", -1)
+	pad.set_meta("last_pos", Vector2.ZERO)
+	
+	pad.gui_input.connect(func(event):
+		var map_node = get_tree().get_first_node_in_group("map")
+		if not is_instance_valid(map_node): return
+		var sens = SettingsManager.mobile_camera_sensitivity if SettingsManager else 1.0
+		
+		var t_idx = pad.get_meta("touch_index", -1)
+		var l_pos = pad.get_meta("last_pos", Vector2.ZERO)
+		
+		if event is InputEventScreenTouch or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT):
+			get_viewport().set_input_as_handled()
+			if event.pressed:
+				if t_idx == -1:
+					t_idx = event.index if event is InputEventScreenTouch else 0
+					l_pos = event.position
+			else:
+				var ev_idx = event.index if event is InputEventScreenTouch else 0
+				if ev_idx == t_idx:
+					t_idx = -1
+		elif (event is InputEventScreenDrag) or (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
+			var ev_idx = event.index if event is InputEventScreenDrag else 0
+			if ev_idx == t_idx or t_idx == 0:
+				get_viewport().set_input_as_handled()
+				var delta = event.position - l_pos
+				l_pos = event.position
+				map_node.free_cam_h += delta.x * 0.4 * sens
+				map_node.free_cam_v = clamp(map_node.free_cam_v + delta.y * 0.4 * sens, 10.0, 85.0)
+				if map_node.has_method("_save_camera_state"):
+					map_node._save_camera_state()
+		
+		pad.set_meta("touch_index", t_idx)
+		pad.set_meta("last_pos", l_pos)
+	)
+	
+	# 2. Barra de Botones de Control (+ Zoom / - Zoom / Reset)
+	var hbox = HBoxContainer.new()
+	hbox.position = Vector2(0, 160)
+	hbox.size = Vector2(190, 42)
+	hbox.add_theme_constant_override("separation", 8)
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	pad_container.add_child(hbox)
+	
+	# Estilo para los botones de la barra de control
+	var style_btn = StyleBoxFlat.new()
+	style_btn.bg_color = Color(0.05, 0.12, 0.22, 0.85)
+	style_btn.border_width_left = 1; style_btn.border_width_top = 1
+	style_btn.border_width_right = 1; style_btn.border_width_bottom = 1
+	style_btn.border_color = Color(0.0, 0.85, 1.0, 0.7)
+	style_btn.set_corner_radius_all(8)
+	
+	# Botón Zoom In (+ Zoom)
+	var btn_in = Button.new()
+	btn_in.text = "🔍+"
+	btn_in.custom_minimum_size = Vector2(52, 38)
+	btn_in.add_theme_stylebox_override("normal", style_btn)
+	btn_in.add_theme_font_size_override("font_size", 14)
+	btn_in.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn_in.gui_input.connect(func(event):
+		var is_press = (event is InputEventScreenTouch and event.pressed) or \
+					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+		if is_press:
+			get_viewport().set_input_as_handled()
+			var map_node = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(map_node):
+				map_node.free_cam_zoom = clamp(map_node.free_cam_zoom - 4.0, 10.0, 100.0)
+				if map_node.has_method("_sync_zooms_from_free"): map_node._sync_zooms_from_free()
+				if map_node.has_method("_save_camera_state"): map_node._save_camera_state()
+	)
+	hbox.add_child(btn_in)
+	
+	# Botón Zoom Out (- Zoom)
+	var btn_out = Button.new()
+	btn_out.text = "🔍-"
+	btn_out.custom_minimum_size = Vector2(52, 38)
+	btn_out.add_theme_stylebox_override("normal", style_btn)
+	btn_out.add_theme_font_size_override("font_size", 14)
+	btn_out.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn_out.gui_input.connect(func(event):
+		var is_press = (event is InputEventScreenTouch and event.pressed) or \
+					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+		if is_press:
+			get_viewport().set_input_as_handled()
+			var map_node = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(map_node):
+				map_node.free_cam_zoom = clamp(map_node.free_cam_zoom + 4.0, 10.0, 100.0)
+				if map_node.has_method("_sync_zooms_from_free"): map_node._sync_zooms_from_free()
+				if map_node.has_method("_save_camera_state"): map_node._save_camera_state()
+	)
+	hbox.add_child(btn_out)
+	
+	# Botón Reset (↺)
+	var btn_rst = Button.new()
+	btn_rst.text = "↺"
+	btn_rst.custom_minimum_size = Vector2(52, 38)
+	btn_rst.add_theme_stylebox_override("normal", style_btn)
+	btn_rst.add_theme_font_size_override("font_size", 16)
+	btn_rst.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn_rst.gui_input.connect(func(event):
+		var is_press = (event is InputEventScreenTouch and event.pressed) or \
+					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+		if is_press:
+			get_viewport().set_input_as_handled()
+			var map_node = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(map_node):
+				map_node.free_cam_h = 180.0
+				map_node.free_cam_v = 40.0
+				map_node.free_cam_zoom = 28.0
+				if map_node.has_method("_sync_zooms_from_free"): map_node._sync_zooms_from_free()
+				if map_node.has_method("_save_camera_state"): map_node._save_camera_state()
+	)
+	hbox.add_child(btn_rst)
+	
+	add_child(pad_container)
+	pad_container.visible = false
