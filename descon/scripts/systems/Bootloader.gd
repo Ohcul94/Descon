@@ -327,6 +327,28 @@ func _reload_autoloads():
 		print("[Bootloader] Iniciando con singletons recargados por el motor.")
 		return
 
+	print("[Bootloader] PCK montado. Recargando scripts de Autoloads desde el PCK...")
+	
+	var autoloads = {
+		"NetworkManager": "res://scripts/autoloads/NetworkManager.gd",
+		"AudioManager": "res://scripts/autoloads/AudioManager.gd",
+		"GameConstants": "res://scripts/autoloads/Constants.gd",
+		"PartyManager": "res://scripts/systems/PartyManager.gd",
+		"VFXSystem": "res://scripts/systems/VFXManager.gd",
+		"SettingsManager": "res://scripts/autoloads/SettingsManager.gd"
+	}
+	
+	for name in autoloads:
+		var path = autoloads[name]
+		var node = get_node_or_null("/root/" + name)
+		if node and ResourceLoader.exists(path):
+			var new_script = load(path)
+			if new_script:
+				node.set_script(new_script)
+				if node.has_method("_ready"):
+					node._ready()
+				print("[Bootloader] Autoload recargado en memoria: ", name)
+
 	print("[Bootloader] PCK montado. Reiniciando árbol de forma nativa para recargar Autoloads...")
 	get_tree().set_meta("pck_loaded_and_reloaded", true)
 	

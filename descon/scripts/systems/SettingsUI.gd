@@ -410,9 +410,12 @@ func _setup_ui():
 	mobcam_check.add_theme_stylebox_override("normal", check_style)
 	mobcam_check.add_theme_stylebox_override("pressed", check_style)
 	mobcam_check.add_theme_stylebox_override("hover", check_style)
-	mobcam_check.button_pressed = SettingsManager.mobile_camera_edit_enabled
+	
+	var has_mobcam_edit = "mobile_camera_edit_enabled" in SettingsManager
+	mobcam_check.button_pressed = SettingsManager.mobile_camera_edit_enabled if has_mobcam_edit else false
 	mobcam_check.toggled.connect(func(val):
-		SettingsManager.mobile_camera_edit_enabled = val
+		if "mobile_camera_edit_enabled" in SettingsManager:
+			SettingsManager.mobile_camera_edit_enabled = val
 		SettingsManager.save_settings()
 		var map_node = get_tree().get_first_node_in_group("map")
 		if map_node and map_node.has_method("_on_mobile_camera_edit_toggled"):
@@ -431,10 +434,13 @@ func _setup_ui():
 	mobcam_sens_slider.min_value = 0.2
 	mobcam_sens_slider.max_value = 3.0
 	mobcam_sens_slider.step = 0.1
-	mobcam_sens_slider.value = SettingsManager.mobile_camera_sensitivity
+	
+	var has_mobcam_sens = "mobile_camera_sensitivity" in SettingsManager
+	mobcam_sens_slider.value = SettingsManager.mobile_camera_sensitivity if has_mobcam_sens else 1.0
 	mobcam_sens_slider.visible = SettingsManager.mobile_mode
 	mobcam_sens_slider.value_changed.connect(func(val):
-		SettingsManager.mobile_camera_sensitivity = val
+		if "mobile_camera_sensitivity" in SettingsManager:
+			SettingsManager.mobile_camera_sensitivity = val
 		SettingsManager.save_settings()
 	)
 	gfx_vbox.add_child(mobcam_sens_slider)
@@ -462,10 +468,13 @@ func _setup_ui():
 	stars_check.add_theme_stylebox_override("normal", check_style)
 	stars_check.add_theme_stylebox_override("pressed", check_style)
 	stars_check.add_theme_stylebox_override("hover", check_style)
+	
+	var has_show_stars = "show_stars" in SettingsManager
 	if get_node_or_null("/root/SettingsManager"):
-		stars_check.button_pressed = SettingsManager.show_stars
+		stars_check.button_pressed = SettingsManager.show_stars if has_show_stars else false
 	stars_check.toggled.connect(func(val):
-		SettingsManager.show_stars = val
+		if "show_stars" in SettingsManager:
+			SettingsManager.show_stars = val
 		SettingsManager.save_settings()
 		var map_node = get_tree().get_first_node_in_group("map")
 		if map_node and map_node.has_method("update_sky_dome_visibility"):
@@ -490,10 +499,13 @@ func _setup_ui():
 	minimap_check.add_theme_stylebox_override("normal", check_style)
 	minimap_check.add_theme_stylebox_override("pressed", check_style)
 	minimap_check.add_theme_stylebox_override("hover", check_style)
+	
+	var has_minimap_rotate = "minimap_rotate" in SettingsManager
 	if get_node_or_null("/root/SettingsManager"):
-		minimap_check.button_pressed = SettingsManager.minimap_rotate
+		minimap_check.button_pressed = SettingsManager.minimap_rotate if has_minimap_rotate else false
 	minimap_check.toggled.connect(func(val):
-		SettingsManager.minimap_rotate = val
+		if "minimap_rotate" in SettingsManager:
+			SettingsManager.minimap_rotate = val
 		SettingsManager.save_settings()
 	)
 	row_minimap.add_child(minimap_check)

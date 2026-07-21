@@ -83,7 +83,10 @@ func _ready():
 	
 	# Si mobile edit mode está activo en Settings, forzar cámara libre
 	var sm_init = get_node_or_null("/root/SettingsManager")
-	if sm_init and sm_init.mobile_mode and sm_init.mobile_camera_edit_enabled:
+	var is_mob_cam_edit = false
+	if sm_init and "mobile_camera_edit_enabled" in sm_init:
+		is_mob_cam_edit = sm_init.mobile_camera_edit_enabled
+	if sm_init and sm_init.mobile_mode and is_mob_cam_edit:
 		free_cam_active = true
 		_was_mobile_camera_edit = true
 	
@@ -746,7 +749,7 @@ func _process(_delta):
 		
 	# Sincronizar toggle de edición de cámara móvil desde SettingsManager
 	var sm = get_node_or_null("/root/SettingsManager")
-	if sm and sm.mobile_mode:
+	if sm and sm.mobile_mode and "mobile_camera_edit_enabled" in sm:
 		if sm.mobile_camera_edit_enabled != _was_mobile_camera_edit:
 			_on_mobile_camera_edit_toggled(sm.mobile_camera_edit_enabled)
 
@@ -1498,7 +1501,10 @@ func _input(event):
 	
 	# --- MOBILE CAMERA TOUCH CONTROLS ---
 	var sm_touch = get_node_or_null("/root/SettingsManager")
-	if sm_touch and sm_touch.mobile_mode and sm_touch.mobile_camera_edit_enabled:
+	var is_touch_edit = false
+	if sm_touch and "mobile_camera_edit_enabled" in sm_touch:
+		is_touch_edit = sm_touch.mobile_camera_edit_enabled
+	if sm_touch and sm_touch.mobile_mode and is_touch_edit:
 		_handle_mobile_camera_touch(event, sm_touch)
 
 # Alternar edición de cámara móvil desde Settings
