@@ -3351,16 +3351,6 @@
                     "x": 8617,
                     "y": 8574,
                     "radius": 0
-                },
-                {
-                    "id": "spawn_178301417722132",
-                    "type": "101",
-                    "count": 1,
-                    "intervalMs": 5000,
-                    "spawnMode": "random",
-                    "x": 2363,
-                    "y": 2197,
-                    "radius": 300
                 }
             ],
             "width": 10000,
@@ -3378,13 +3368,23 @@
             "ambience": [],
             "spawns": [
                 {
-                    "type": "1",
-                    "count": 1,
+                    "type": "2",
+                    "count": 30,
                     "intervalMs": 3000,
                     "id": "spawn_3_idx_0_type_6",
-                    "spawnMode": "fixed",
+                    "spawnMode": "random",
                     "x": 2030,
                     "y": 1987,
+                    "radius": 0
+                },
+                {
+                    "id": "spawn_1784662993702693",
+                    "type": "3",
+                    "count": 30,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
                     "radius": 0
                 }
             ],
@@ -3398,17 +3398,45 @@
             "minLevel": 1,
             "name": "Mapa 4",
             "warpCost": 0,
-            "ambience": [],
+            "ambience": [
+                {
+                    "type": "freeze_hazard",
+                    "spawnInterval": 30000,
+                    "duration": 5000,
+                    "slowPercentage": 20,
+                    "slowFixed": 0
+                }
+            ],
             "spawns": [
                 {
-                    "type": "4-B",
-                    "count": 1,
+                    "type": "3",
+                    "count": 35,
                     "intervalMs": 5000,
                     "id": "spawn_4_idx_0_type_1",
                     "spawnMode": "random",
                     "x": 1331,
                     "y": 1161,
-                    "radius": 300
+                    "radius": 0
+                },
+                {
+                    "id": "spawn_1784663062472875",
+                    "type": "4",
+                    "count": 20,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 0
+                },
+                {
+                    "id": "spawn_1784663076370159",
+                    "type": "5",
+                    "count": 10,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 1000,
+                    "y": 1000,
+                    "radius": 0
                 }
             ],
             "width": 10000,
