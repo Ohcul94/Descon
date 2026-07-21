@@ -83,10 +83,10 @@ const exportPCK = (presetName, outputPath) => {
         console.log(`[EXPORT] PCK creado con éxito: ${outputPath}`);
         return true;
     } catch (err) {
-        console.warn(`[WARNING] No se pudo exportar automáticamente usando el comando: ${GODOT_BIN}`);
-        console.warn(`Detalle: ${err.message}`);
-        console.warn(`Asegúrate de tener Godot en tu PATH o configura la variable GODOT_BIN.`);
-        return false;
+        console.error(`[ERROR] Falló la exportación de Godot por CLI usando: ${GODOT_BIN}`);
+        console.error(`Detalle: ${err.message}`);
+        console.error(`Por favor verifica que la ruta del ejecutable de Godot sea correcta y no esté bloqueado.`);
+        process.exit(1); // Aborta el script con código de error para detener el .bat de inmediato
     }
 };
 

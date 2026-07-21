@@ -2188,7 +2188,6 @@ func _setup_mobile_camera_pad():
 	
 	# Drag en el TouchPad
 	pad.set_meta("touch_index", -1)
-	pad.set_meta("last_pos", Vector2.ZERO)
 	
 	pad.gui_input.connect(func(event):
 		var map_node = get_tree().get_first_node_in_group("map")
@@ -2196,14 +2195,12 @@ func _setup_mobile_camera_pad():
 		var sens = SettingsManager.mobile_camera_sensitivity if SettingsManager else 1.0
 		
 		var t_idx = pad.get_meta("touch_index", -1)
-		var l_pos = pad.get_meta("last_pos", Vector2.ZERO)
 		
 		if event is InputEventScreenTouch or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT):
 			get_viewport().set_input_as_handled()
 			if event.pressed:
 				if t_idx == -1:
 					t_idx = event.index if event is InputEventScreenTouch else 0
-					l_pos = event.position
 			else:
 				var ev_idx = event.index if event is InputEventScreenTouch else 0
 				if ev_idx == t_idx:
@@ -2212,15 +2209,14 @@ func _setup_mobile_camera_pad():
 			var ev_idx = event.index if event is InputEventScreenDrag else 0
 			if ev_idx == t_idx or t_idx == 0:
 				get_viewport().set_input_as_handled()
-				var delta = event.position - l_pos
-				l_pos = event.position
-				map_node.free_cam_h += delta.x * 0.4 * sens
-				map_node.free_cam_v = clamp(map_node.free_cam_v + delta.y * 0.4 * sens, 10.0, 85.0)
+				var relative_val = event.relative
+				# Invertir el signo vertical para que funcione exactamente como PC (arrastrar abajo -> cámara baja)
+				map_node.free_cam_h += relative_val.x * 0.3 * sens
+				map_node.free_cam_v = clamp(map_node.free_cam_v + relative_val.y * 0.3 * sens, 10.0, 85.0)
 				if map_node.has_method("_save_camera_state"):
 					map_node._save_camera_state()
 		
 		pad.set_meta("touch_index", t_idx)
-		pad.set_meta("last_pos", l_pos)
 	)
 	
 	# 2. Barra de Botones de Control (+ Zoom / - Zoom / Reset)
