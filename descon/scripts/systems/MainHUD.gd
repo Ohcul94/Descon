@@ -2161,9 +2161,15 @@ func _create_cam_edit_button():
 	btn.add_theme_font_size_override("font_size", 20)
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	
-	# Usar señal nativa 'pressed' del Button: funciona igual en PC y Android,
-	# tanto con mouse como con InputEventScreenTouch, sin necesidad de gui_input manual.
-	btn.pressed.connect(func(): _on_icon_pressed("CamEdit"))
+	# v302.120: Manejo táctil idéntico a los slots de habilidades en SkillsHUD.gd.
+	# Consume el evento con set_input_as_handled() para evitar que se dispare la mira/apuntado sobre el ojito.
+	btn.gui_input.connect(func(event):
+		var is_press = (event is InputEventScreenTouch and event.pressed) or \
+					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
+		if is_press:
+			get_viewport().set_input_as_handled()
+			_on_icon_pressed("CamEdit")
+	)
 	
 	add_child(btn)
 	btn.visible = SettingsManager.mobile_mode if SettingsManager else false

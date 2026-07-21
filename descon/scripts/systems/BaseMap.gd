@@ -1539,12 +1539,13 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 			if ctrl and is_instance_valid(ctrl):
 				if ctrl is Button or ctrl is TextureButton or ctrl is Slider or ctrl is LineEdit or ctrl is OptionButton:
 					on_interactive_ui = true
-				elif ctrl.name in ["VirtualJoystick", "ControlBar", "ChatUI", "RadarWindow", "CenterStats", "PartyHUD", "Skills"]:
+				elif ctrl.name in ["VirtualJoystick", "ControlBar", "ChatUI", "RadarWindow", "CenterStats", "PartyHUD", "Skills", "CamEdit"]:
 					on_interactive_ui = true
 				elif ctrl.get_parent() and ctrl.get_parent().name in ["VirtualJoystick", "ControlBar", "GridContainer"]:
 					on_interactive_ui = true
 			
 			if not on_interactive_ui:
+				get_viewport().set_input_as_handled() # Consumir el toque para que NO dispare apuntado/mira
 				if not _mobile_touch_points.has(event.index):
 					_mobile_touch_points[event.index] = event.position
 				
@@ -1558,6 +1559,8 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 					var keys = _mobile_touch_points.keys()
 					_pinch_start_dist = _mobile_touch_points[keys[0]].distance_to(_mobile_touch_points[keys[1]])
 		else:
+			if _mobile_cam_drag_index != -1 and event.index == _mobile_cam_drag_index:
+				get_viewport().set_input_as_handled()
 			_mobile_touch_points.erase(event.index)
 			if event.index == _mobile_cam_drag_index:
 				_mobile_cam_drag_index = -1
@@ -1569,6 +1572,7 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 		
 		# Órbita de 1 dedo
 		if event.index == _mobile_cam_drag_index:
+			get_viewport().set_input_as_handled() # Consumir el arrastre para que NO active el apuntado/mira
 			var delta = event.position - _mobile_cam_drag_last
 			_mobile_cam_drag_last = event.position
 			free_cam_h += delta.x * 0.3 * sens
@@ -1577,6 +1581,7 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 		
 		# Zoom con pinza de 2 dedos
 		elif _mobile_touch_points.size() >= 2 and _pinch_start_dist > 0.0:
+			get_viewport().set_input_as_handled()
 			var keys = _mobile_touch_points.keys()
 			if keys.size() >= 2:
 				var p1 = _mobile_touch_points[keys[0]]
