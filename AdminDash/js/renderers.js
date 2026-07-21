@@ -2814,14 +2814,14 @@ function closeBattlePassRewardEditor() {
 }
 
 const HUD_ELEMENTS_CONFIG = {
-    "CenterStats":     { name: "🧬 STATS (CenterStats)", x: 1063,  y: 21,  w: 250, h: 140 },
-    "ChatUI":          { name: "💬 CHAT (ChatUI)", x: 12,    y: 545, w: 320, h: 200 },
-    "RadarWindow":     { name: "🛰️ RADAR (RadarWindow)", x: 1066,  y: 564, w: 220, h: 220 },
-    "SkillsContainer": { name: "🔥 SKILLS (SkillsContainer)", x: 101,   y: 684, w: 575, h: 65 },
-    "PartyHUD":        { name: "👥 PARTY (PartyHUD)", x: 10,    y: 120, w: 200, h: 200 },
-    "ControlBar":      { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 260, h: 85 },
-    "StatusEffects":   { name: "✨ ESTADOS (StatusEffects)", x: 390,   y: 620, w: 500, h: 55 },
-    "CamEdit":         { name: "👁️ CÁMARA (CamEdit)", x: 616,   y: 220, w: 48,  h: 48 }
+    "CenterStats":           { name: "🧬 STATS (CenterStats)", x: 1063,  y: 21,  w: 250, h: 140 },
+    "ChatUI":                { name: "💬 CHAT (ChatUI)", x: 12,    y: 545, w: 320, h: 200 },
+    "RadarWindow":           { name: "🛰️ RADAR (RadarWindow)", x: 1066,  y: 564, w: 220, h: 220 },
+    "SkillsContainer":       { name: "🔥 SKILLS (SkillsContainer)", x: 101,   y: 684, w: 575, h: 65 },
+    "PartyHUD":              { name: "👥 PARTY (PartyHUD)", x: 10,    y: 120, w: 200, h: 200 },
+    "ControlBar":            { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 260, h: 85 },
+    "StatusEffects":         { name: "✨ ESTADOS (StatusEffects)", x: 390,   y: 620, w: 500, h: 55 },
+    "CamTouchPadContainer":  { name: "🎥 CÁMARA (CamTouchPad)", x: 1060,  y: 250, w: 190, h: 230 }
 };
 
 function initWebHUDDesigner() {
@@ -2831,14 +2831,10 @@ function initWebHUDDesigner() {
     if (!config.pilotConfig.defaultLayout) {
         // Inicializar con los defaults idénticos a los de fábrica de Godot
         config.pilotConfig.defaultLayout = {
-            "CenterStats":     { "x": 1063,  "y": 21,    "scale": 0.5, "alpha": 1.0 },
-            "ChatUI":          { "x": 12,    "y": 545,   "scale": 0.5, "alpha": 1.0 },
-            "RadarWindow":     { "x": 1066,  "y": 564,   "scale": 0.5, "alpha": 1.0 },
-            "SkillsContainer": { "x": 101,   "y": 684,   "scale": 0.5, "alpha": 1.0 },
             "PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
             "ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
             "StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
-            "CamEdit":         { "x": 616,   "y": 220,   "scale": 0.5, "alpha": 1.0 }
+            "CamTouchPadContainer":  { "x": 1060,  "y": 250,   "scale": 0.5, "alpha": 1.0 }
         };
     }
 

@@ -7,7 +7,7 @@ signal closed
 var _is_binding: bool = false
 var _binding_action: String = ""
 var _binding_label: Button = null
-var _mobcam_row: HBoxContainer = null
+var _mobcam_row: Control = null
 var _mobcam_sens_slider: HSlider = null
 var _mobcam_sens_lbl: Label = null
 
@@ -403,39 +403,62 @@ func _setup_ui():
 
 	gfx_vbox.add_child(HSeparator.new())
 
-	# EDITAR CÁMARA (MÓVIL) — solo visible en modo móvil
-	var row_mobcam = HBoxContainer.new()
-	row_mobcam.add_theme_constant_override("separation", 10)
-	row_mobcam.visible = SettingsManager.mobile_mode
-	gfx_vbox.add_child(row_mobcam)
-
-	var mobcam_check = CheckBox.new()
-	mobcam_check.text = ""
-	mobcam_check.add_theme_stylebox_override("normal", check_style)
-	mobcam_check.add_theme_stylebox_override("pressed", check_style)
-	mobcam_check.add_theme_stylebox_override("hover", check_style)
+	# MODO DE CÁMARA 3D (MÓVIL) — 3 Opciones Excluyentes
+	var vbox_cam = VBoxContainer.new()
+	vbox_cam.name = "CamModeSelectionVBox"
+	vbox_cam.add_theme_constant_override("separation", 6)
+	vbox_cam.visible = SettingsManager.mobile_mode if SettingsManager else true
+	gfx_vbox.add_child(vbox_cam)
 	
-	var has_mobcam_edit = "mobile_camera_edit_enabled" in SettingsManager
-	mobcam_check.button_pressed = (int(SettingsManager.mobile_camera_edit_enabled) != 0) if has_mobcam_edit else false
-	mobcam_check.toggled.connect(func(val):
-		var state = 1 if val else 0
-		if "mobile_camera_edit_enabled" in SettingsManager:
-			SettingsManager.mobile_camera_edit_enabled = state
+	var cam_title = Label.new()
+	cam_title.text = "🎥 MODO DE CÁMARA 3D:"
+	cam_title.add_theme_color_override("font_color", Color(0, 0.85, 1.0))
+	cam_title.add_theme_font_size_override("font_size", 13)
+	vbox_cam.add_child(cam_title)
+	
+	var cur_mode = int(SettingsManager.mobile_camera_edit_enabled) if SettingsManager else 0
+	
+	var checks_vbox = HBoxContainer.new()
+	checks_vbox.add_theme_constant_override("separation", 15)
+	vbox_cam.add_child(checks_vbox)
+	
+	var check_fija = CheckBox.new()
+	check_fija.text = "3D Fija"
+	check_fija.button_pressed = (cur_mode == 0)
+	checks_vbox.add_child(check_fija)
+	
+	var check_editable = CheckBox.new()
+	check_editable.text = "3D Libre Editable"
+	check_editable.button_pressed = (cur_mode == 1)
+	checks_vbox.add_child(check_editable)
+	
+	var check_libre = CheckBox.new()
+	check_libre.text = "3D Libre"
+	check_libre.button_pressed = (cur_mode == 2)
+	checks_vbox.add_child(check_libre)
+	
+	var update_cam_selection = func(selected_mode: int):
+		if not SettingsManager: return
+		SettingsManager.mobile_camera_edit_enabled = selected_mode
 		SettingsManager.save_settings()
+		
+		check_fija.button_pressed = (selected_mode == 0)
+		check_editable.button_pressed = (selected_mode == 1)
+		check_libre.button_pressed = (selected_mode == 2)
+		
 		var map_node = get_tree().get_first_node_in_group("map")
 		if map_node and map_node.has_method("_on_mobile_camera_edit_toggled"):
-			map_node._on_mobile_camera_edit_toggled(state)
+			map_node._on_mobile_camera_edit_toggled(selected_mode)
+			
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud and hud.has_method("_update_icon_state"):
-			hud._update_icon_state("CamEdit", state)
-	)
-	row_mobcam.add_child(mobcam_check)
-
-	var mobcam_lbl = Label.new()
-	mobcam_lbl.text = "✏️ EDITAR CÁMARA (MÓVIL)"
-	row_mobcam.add_child(mobcam_lbl)
-
-	_mobcam_row = row_mobcam
+			hud._update_icon_state("CamEdit", selected_mode)
+	
+	check_fija.pressed.connect(func(): update_cam_selection.call(0))
+	check_editable.pressed.connect(func(): update_cam_selection.call(1))
+	check_libre.pressed.connect(func(): update_cam_selection.call(2))
+	
+	_mobcam_row = vbox_cam
 
 	# Slider de sensibilidad de órbita táctil
 	var mobcam_sens_slider = HSlider.new()

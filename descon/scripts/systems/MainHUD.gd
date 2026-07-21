@@ -81,7 +81,6 @@ func _ready():
 	# v266.155: Soporte para cambio de resolución en tiempo real
 	get_viewport().size_changed.connect(_on_viewport_resize)
 
-	_create_cam_edit_button()
 	_setup_mobile_camera_pad()
 	_aggressive_hide(self)
 	_update_icon_tooltips()
@@ -241,7 +240,7 @@ func _input(event: InputEvent):
 				
 				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat, Equipo, Iconos)
 				if not clicked_node:
-					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamEdit"]:
+					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamTouchPadContainer"]:
 						var win = _get_hud_node(win_id)
 						if win and win.visible and win.get_global_rect().has_point(event.position):
 							clicked_node = win
@@ -816,7 +815,7 @@ func _restore_default_layout():
 		"ControlBar":      { "x": 10,    "y": 715,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
 		"StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
 		"PortalBtnContainer": { "x": 540, "y": 610, "scale": 0.5, "alpha": 1.0 },
-		"CamEdit":            { "x": 616,  "y": 220,   "scale": 0.5, "alpha": 1.0 },
+		"CamTouchPadContainer": { "x": 1060, "y": 250,   "scale": 0.5, "alpha": 1.0 },
 	}
 	
 	# v1.10: Sincronización dinámica de valores de fábrica definidos en el AdminDash
@@ -2145,63 +2144,7 @@ func _add_status_box(emoji: String, text: String, color: Color):
 	
 	_status_hbox.add_child(box)
 
-func _create_cam_edit_button():
-	# v302.130: Estructura 100% idéntica a los slots de habilidades de SkillsHUD.gd
-	# NODO CONTENEDOR (Control) + TouchButton transparente superpuesto con mouse_filter = STOP.
-	var container = Control.new()
-	container.name = "CamEdit"
-	container.custom_minimum_size = Vector2(48, 48)
-	container.size = Vector2(48, 48)
-	container.position = Vector2(616, 220)
-	container.mouse_filter = Control.MOUSE_FILTER_STOP
-	
-	var visual_btn = Button.new()
-	visual_btn.name = "VisualBtn"
-	visual_btn.text = "👁️"
-	visual_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	visual_btn.add_theme_font_size_override("font_size", 20)
-	visual_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.05, 0.05, 0.1, 0.7)
-	sb.border_width_left = 2; sb.border_width_top = 2
-	sb.border_width_right = 2; sb.border_width_bottom = 2
-	sb.border_color = Color.CYAN
-	sb.set_corner_radius_all(24)
-	visual_btn.add_theme_stylebox_override("normal", sb)
-	
-	var h_sb = sb.duplicate()
-	h_sb.bg_color = Color(0.2, 0.4, 0.5, 0.8)
-	h_sb.border_color = Color(0.0, 1.0, 0.85)
-	visual_btn.add_theme_stylebox_override("hover", h_sb)
-	
-	var p_sb = sb.duplicate()
-	p_sb.bg_color = Color(0.1, 0.3, 0.4, 0.9)
-	visual_btn.add_theme_stylebox_override("pressed", p_sb)
-	
-	container.add_child(visual_btn)
-	
-	# TouchButton transparente idéntico a SkillsHUD._make_clickable
-	var touch_btn = Button.new()
-	touch_btn.name = "TouchButton"
-	touch_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	touch_btn.modulate.a = 0.0
-	touch_btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	container.add_child(touch_btn)
-	
-	touch_btn.gui_input.connect(func(event):
-		var is_press = (event is InputEventScreenTouch and event.pressed) or \
-					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
-		if is_press:
-			get_viewport().set_input_as_handled()
-			_on_icon_pressed("CamEdit")
-	)
-	
-	add_child(container)
-	container.visible = SettingsManager.mobile_mode if SettingsManager else false
-	
-	if SettingsManager:
-		_update_icon_state("CamEdit", SettingsManager.mobile_camera_edit_enabled)
+
 
 # v302.140: Control Flotante AAA de Cámara Libre en Móvil (TouchPad de Órbita 3D + Zoom + Reset)
 func _setup_mobile_camera_pad():
