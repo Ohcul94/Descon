@@ -7,6 +7,9 @@ signal closed
 var _is_binding: bool = false
 var _binding_action: String = ""
 var _binding_label: Button = null
+var _mobcam_row: HBoxContainer = null
+var _mobcam_sens_slider: HSlider = null
+var _mobcam_sens_lbl: Label = null
 
 func _ready():
 	add_to_group("inventory_ui") # v2.6: Unir al grupo de bloqueo global de UI
@@ -215,6 +218,11 @@ func _setup_ui():
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud and hud.has_method("_update_joystick_visibility"):
 			hud._update_joystick_visibility()
+		
+		# Actualizar visibilidad de controles de cámara móvil en pestaña GRÁFICOS
+		if _mobcam_row: _mobcam_row.visible = is_mob
+		if _mobcam_sens_slider: _mobcam_sens_slider.visible = is_mob
+		if _mobcam_sens_lbl: _mobcam_sens_lbl.visible = is_mob
 	)
 	
 	game_vbox.add_child(HSeparator.new())
@@ -391,20 +399,58 @@ func _setup_ui():
 
 	gfx_vbox.add_child(HSeparator.new())
 
-	# CÁMARA 3D
-	var row_cam = HBoxContainer.new()
-	row_cam.add_theme_constant_override("separation", 10)
-	gfx_vbox.add_child(row_cam)
+	# EDITAR CÁMARA (MÓVIL) — solo visible en modo móvil
+	var row_mobcam = HBoxContainer.new()
+	row_mobcam.add_theme_constant_override("separation", 10)
+	row_mobcam.visible = SettingsManager.mobile_mode
+	gfx_vbox.add_child(row_mobcam)
 
-	var cam_check = CheckBox.new()
-	cam_check.text = ""
-	cam_check.disabled = true
-	cam_check.button_pressed = true
-	row_cam.add_child(cam_check)
+	var mobcam_check = CheckBox.new()
+	mobcam_check.text = ""
+	mobcam_check.add_theme_stylebox_override("normal", check_style)
+	mobcam_check.add_theme_stylebox_override("pressed", check_style)
+	mobcam_check.add_theme_stylebox_override("hover", check_style)
+	mobcam_check.button_pressed = SettingsManager.mobile_camera_edit_enabled
+	mobcam_check.toggled.connect(func(val):
+		SettingsManager.mobile_camera_edit_enabled = val
+		SettingsManager.save_settings()
+		var map_node = get_tree().get_first_node_in_group("map")
+		if map_node and map_node.has_method("_on_mobile_camera_edit_toggled"):
+			map_node._on_mobile_camera_edit_toggled(val)
+	)
+	row_mobcam.add_child(mobcam_check)
 
-	var cam_lbl = Label.new()
-	cam_lbl.text = "CÁMARA 3D (FIJA)"
-	row_cam.add_child(cam_lbl)
+	var mobcam_lbl = Label.new()
+	mobcam_lbl.text = "✏️ EDITAR CÁMARA (MÓVIL)"
+	row_mobcam.add_child(mobcam_lbl)
+
+	_mobcam_row = row_mobcam
+
+	# Slider de sensibilidad de órbita táctil
+	var mobcam_sens_slider = HSlider.new()
+	mobcam_sens_slider.min_value = 0.2
+	mobcam_sens_slider.max_value = 3.0
+	mobcam_sens_slider.step = 0.1
+	mobcam_sens_slider.value = SettingsManager.mobile_camera_sensitivity
+	mobcam_sens_slider.visible = SettingsManager.mobile_mode
+	mobcam_sens_slider.value_changed.connect(func(val):
+		SettingsManager.mobile_camera_sensitivity = val
+		SettingsManager.save_settings()
+	)
+	gfx_vbox.add_child(mobcam_sens_slider)
+
+	_mobcam_sens_slider = mobcam_sens_slider
+
+	var mobcam_sens_lbl = Label.new()
+	mobcam_sens_lbl.text = "SENSIBILIDAD DE ÓRBITA TÁCTIL"
+	mobcam_sens_lbl.visible = SettingsManager.mobile_mode
+	mobcam_sens_lbl.add_theme_font_size_override("font_size", 10)
+	mobcam_sens_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
+	gfx_vbox.add_child(mobcam_sens_lbl)
+
+	_mobcam_sens_lbl = mobcam_sens_lbl
+
+	gfx_vbox.add_child(HSeparator.new())
 
 	# ESTRELLAS EN EL CIELO
 	var row_stars = HBoxContainer.new()
