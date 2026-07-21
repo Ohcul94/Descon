@@ -12,7 +12,8 @@ const GODOT_PROJECT_DIR = path.resolve(SERVER_DIR, '../descon');
 const PUBLIC_KEY_GD_PATH = path.join(GODOT_PROJECT_DIR, 'scripts', 'autoloads', 'PublicKey.gd');
 
 // Configuración de Godot
-const GODOT_BIN = process.env.GODOT_BIN || 'godot';
+const DEFAULT_GODOT_PATH = 'E:\\PROGRAMAS\\Godot\\Godot_v4.7-stable_win64.exe';
+const GODOT_BIN = process.env.GODOT_BIN || (fs.existsSync(DEFAULT_GODOT_PATH) ? DEFAULT_GODOT_PATH : 'godot');
 
 console.log('--- SISTEMA DE ACTUALIZACIÓN DESCON V2.0 ---');
 
