@@ -266,7 +266,7 @@ func _process(delta):
 			# Sincronizar posición 3D
 			if is_instance_valid(en.get("world_root_3d")):
 				indicator_3d.global_position = en.world_root_3d.global_position
-				indicator_3d.global_position.y = 0.0
+				indicator_3d.global_position.y = 1.5
 			
 			# Sincronizar rotación Y con perspectiva 2.5D
 			if not data.get("is_fixed", false) and t_id != "":
@@ -434,7 +434,7 @@ func _on_enemy_action(data: Dictionary):
 				# Posición inicial = posición 3D del enemigo
 				if is_instance_valid(en.get("world_root_3d")):
 					indicator_3d.position = en.world_root_3d.global_position
-					indicator_3d.position.y = 0.0
+					indicator_3d.position.y = 1.5
 				# Rotación Y corregida inicial con perspectiva 2.5D
 				var dir_2d = Vector2.RIGHT.rotated(angle)
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
@@ -499,7 +499,7 @@ func _on_enemy_action(data: Dictionary):
 				indicator_3d.name = "LaserIndicator3D_" + enemy_id
 				if is_instance_valid(en.get("world_root_3d")):
 					indicator_3d.position = en.world_root_3d.global_position
-					indicator_3d.position.y = 0.0
+					indicator_3d.position.y = 1.5
 				# Ángulo fijado corregido inicial con perspectiva 2.5D
 				var dir_2d = Vector2.RIGHT.rotated(angle)
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
@@ -853,7 +853,7 @@ func _on_enemy_action(data: Dictionary):
 				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 				var vp = current_map.sub_viewport
-				var pos_3d = Vector3(locked_x * s_factor, 0.0, locked_y * s_factor * correction_z)
+				var pos_3d = Vector3(locked_x * s_factor, 1.5, locked_y * s_factor * correction_z)
 				var r3d = range_val * s_factor
 
 				var flash = MeshInstance3D.new()
@@ -927,7 +927,7 @@ func _on_enemy_action(data: Dictionary):
 				exp_light.light_energy = 15.0
 				exp_light.omni_range = r3d * 2.0
 				exp_light.position = pos_3d
-				exp_light.position.y = 0.5
+				exp_light.position.y = 1.5
 				vp.add_child(exp_light)
 				var tw_l = exp_light.create_tween()
 				tw_l.tween_property(exp_light, "light_energy", 0.0, 0.4)
@@ -1658,7 +1658,7 @@ func _spawn_alpha_regen_vfx(id, pos, _radius, _data):
 	
 	var vfx = VFX_SHIELD_GREEN_SCENE.instantiate()
 	vfx.name = id
-	vfx.position = Vector3(pos.x * s_factor, 0.0, pos.y * s_factor * correction_z)
+	vfx.position = Vector3(pos.x * s_factor, 1.5, pos.y * s_factor * correction_z)
 	
 	# Mitad de tamaño (0.325 es la mitad de la escala 0.65 que se usa en el jugador)
 	vfx.scale = Vector3(0.325, 0.325, 0.325)
@@ -1706,7 +1706,7 @@ func _spawn_smoke_cloud(id, pos, radius, data = {}):
 	var smoke = Node3D.new()
 	smoke.name = id
 	var radius_3d = max(float(radius), 1.0) * s_factor
-	smoke.position = Vector3(pos.x * s_factor, 0.0, pos.y * s_factor * correction_z)
+	smoke.position = Vector3(pos.x * s_factor, 1.5, pos.y * s_factor * correction_z)
 	sub_vp.add_child(smoke)
 	active_areas[id] = smoke
 
@@ -2077,7 +2077,7 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 
 	var barrier = Node3D.new()
 	barrier.name = id
-	barrier.position = Vector3(pos.x * s_factor, 0.5, pos.y * s_factor * correction_z)
+	barrier.position = Vector3(pos.x * s_factor, 1.5, pos.y * s_factor * correction_z)
 	barrier.rotation.y = -angle
 	sub_vp.add_child(barrier)
 	active_areas[id] = barrier

@@ -313,6 +313,7 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 		"type": obj_type,
 		"x": _round_decimals(x_2d, 2),
 		"y": _round_decimals(y_2d, 2),
+		"yOffset": _round_decimals(pos_3d.y, 3),
 		"label": label,
 		"assetPath": asset_path,
 		"scale": _round_decimals(scale_2d, 2),
@@ -386,9 +387,17 @@ func import_from_json():
 		# Posición
 		var x_2d = float(obj.get("x", 0.0))
 		var y_2d = float(obj.get("y", 0.0))
+		var type_str = obj.get("type", "wall")
+		var default_y = 0.5
+		if type_str in ["door", "tower"]:
+			default_y = 2.5
+		elif type_str == "chest":
+			default_y = 0.0
+		
+		var y_offset = float(obj.get("yOffset", default_y))
 		instance.global_position = Vector3(
 			x_2d * scale_factor,
-			0.0,
+			y_offset,
 			y_2d * scale_factor * correction_z
 		)
 		

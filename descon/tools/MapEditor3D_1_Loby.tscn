@@ -2,12 +2,13 @@
 
 [ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
 [ext_resource type="PackedScene" uid="uid://c28gj75dps0kp" path="res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb" id="2_0qj33"]
+[ext_resource type="PackedScene" uid="uid://jqcsq2mpqfow" path="res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb" id="2_p5fu1"]
 [ext_resource type="PackedScene" uid="uid://diy8ycm00f4tx" path="res://assets/Puertas/3D/Puerta2/Puerta2.glb" id="3_fxo00"]
 [ext_resource type="PackedScene" uid="uid://kdb1krqsniuh" path="res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb" id="4_fxo00"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_p5fu1"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1xtp7"]
 albedo_color = Color(0.05, 0.08, 0.15, 1)
 metallic = 0.3
 roughness = 0.8
@@ -29,7 +30,7 @@ adjustment_saturation = 1.05
 
 [node name="MapEditor3D" type="Node3D" unique_id=1482142300]
 script = ExtResource("1_editor_script")
-json_to_import = "[{\"assetPath\":\"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb\",\"label\":\"Baúl Personal\",\"rotY\":0.0,\"scale\":1.0,\"type\":\"chest\",\"x\":1173.0,\"y\":620.0},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Puerta\",\"rotY\":0.0,\"scale\":1.0,\"type\":\"door\",\"x\":2078.0,\"y\":888.0}]"
+json_to_import = "[{\"assetPath\":\"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb\",\"label\":\"Baúl Personal\",\"rotY\":90.0,\"scale\":1.4,\"type\":\"chest\",\"x\":317.03,\"y\":660.41},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Puerta\",\"rotY\":-90.0,\"scale\":10.0,\"type\":\"door\",\"x\":2078.0,\"y\":888.0},{\"assetPath\":\"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb\",\"label\":\"Decorativo1\",\"rotY\":47.6,\"scale\":20.0,\"type\":\"wall\",\"x\":328.02,\"y\":254.03}]"
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=581850]
 transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
@@ -45,37 +46,46 @@ shape = SubResource("WorldBoundaryShape3D_1")
 
 [node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=929126398]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.08897781, -0.05, 0.01266861)
-material_override = SubResource("StandardMaterial3D_p5fu1")
+material_override = SubResource("StandardMaterial3D_1xtp7")
 mesh = SubResource("PlaneMesh_1")
 
 [node name="ObjectsRoot" type="Node3D" parent="." unique_id=58984843]
 unique_name_in_owner = true
 
-[node name="Baúl_Personal" parent="ObjectsRoot" unique_id=1914052540 instance=ExtResource("2_0qj33")]
-transform = Transform3D(-6.119594e-08, 0, 1.4, 0, 1.4, 0, -1.4, 0, -6.119594e-08, 6.340618, 0, 18.679274)
+[node name="Decorativo2" parent="ObjectsRoot" unique_id=109640744 instance=ExtResource("2_p5fu1")]
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 57.01207, 0, 45.883595)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb"
+metadata/label = &"Decorativo3"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="Baul1" type="Node3D" parent="ObjectsRoot" unique_id=1914052540 instance=ExtResource("2_0qj33")]
+transform = Transform3D(-1.9935654, 0, 2.2418067, 0, 3, 0, -2.2418067, 0, -1.9935654, 14.898824, 11.943824, 32.07036)
 metadata/obj_type = "chest"
 metadata/asset_path = "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 metadata/label = "Baúl Personal"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+metadata/scale_2d = 1.4
+metadata/rot_y_deg = 90.0
 metadata/editor_only = true
 
-[node name="Puerta" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("3_fxo00")]
-transform = Transform3D(-4.371139e-07, 7.071068, -7.071068, 0, 7.071068, 7.071068, 10, 3.090862e-07, -3.090862e-07, 41.56, 0, 25.116432)
+[node name="Puerta2" type="Node3D" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("3_fxo00")]
+transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 41.56, 5.1337852, 25.116432)
 metadata/obj_type = "door"
 metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
 metadata/label = "Puerta"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+metadata/scale_2d = 10.0
+metadata/rot_y_deg = -90.0
 metadata/editor_only = true
 
-[node name="Decorativo1" parent="ObjectsRoot" unique_id=1187028034 instance=ExtResource("4_fxo00")]
-transform = Transform3D(13.476385, 0, 14.7779255, 0, 20, 0, -14.7779255, 0, 13.476385, 6.560482, -0.39229202, 7.18517)
+[node name="Decorativo1" type="Node3D" parent="ObjectsRoot" unique_id=1187028034 instance=ExtResource("4_fxo00")]
+transform = Transform3D(13.486048, 0, 14.769106, 0, 20, 0, -14.769106, 0, 13.486048, 6.5604, 0, 7.1850533)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb"
-metadata/label = &"Decorativo1"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+metadata/label = "Decorativo1"
+metadata/scale_2d = 20.0
+metadata/rot_y_deg = 47.6
 metadata/editor_only = true
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1971071584]

@@ -4810,13 +4810,24 @@
             "name": "Loby",
             "objects": [
                 {
+                    "assetPath": "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb",
+                    "label": "Decorativo3",
+                    "rotY": 0.0,
+                    "scale": 20.0,
+                    "type": "wall",
+                    "x": 2850.6,
+                    "y": 1622.23,
+                    "yOffset": 0.0
+                },
+                {
                     "assetPath": "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
                     "label": "Baúl Personal",
-                    "rotY": 90.0,
-                    "scale": 1.4,
+                    "rotY": 131.6,
+                    "scale": 3.0,
                     "type": "chest",
-                    "x": 317.03,
-                    "y": 660.41
+                    "x": 744.94,
+                    "y": 1133.86,
+                    "yOffset": 11.944
                 },
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
@@ -4825,7 +4836,8 @@
                     "scale": 10.0,
                     "type": "door",
                     "x": 2078.0,
-                    "y": 888.0
+                    "y": 888.0,
+                    "yOffset": 5.134
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb",
@@ -4834,7 +4846,8 @@
                     "scale": 20.0,
                     "type": "wall",
                     "x": 328.02,
-                    "y": 254.03
+                    "y": 254.03,
+                    "yOffset": 0.0
                 }
             ],
             "spawns": [],

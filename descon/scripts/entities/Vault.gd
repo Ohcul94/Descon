@@ -139,7 +139,8 @@ func _ready():
 func _process(delta):
 	float_time += delta
 	if is_single_world and is_instance_valid(world_root_3d):
-		world_root_3d.position.y = sin(float_time * 2.243) * 0.12 - 0.5
+		var base_y = get_meta("custom_y_offset", 0.0)
+		world_root_3d.position.y = base_y + sin(float_time * 2.243) * 0.12
 	elif is_instance_valid(sprite):
 		sprite.position.y = sin(float_time * 2.243) * 6.0
 	_update_3d_position()

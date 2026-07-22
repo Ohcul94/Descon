@@ -831,7 +831,7 @@ func _update_3d_root_sync():
 		var correction_z = map_node.correction_z if is_instance_valid(map_node) else 1.41421356
 		world_root_3d.position.x = global_position.x * s_factor
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
-		world_root_3d.position.y = 0.0
+		world_root_3d.position.y = 1.5
 		
 		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)
 		if is_dead:
