@@ -13,6 +13,7 @@ const MODEL_PORTAL_ICON = preload("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
 const MODEL_VAULT_ICON = preload("res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb")
 const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb")
 
+
 # Script Base para Mapas Instanciados con Soporte 3D Dinámico.
 # Permite definir propiedades específicas por cada nivel y autogenera lienzos 3D.
 
@@ -266,7 +267,7 @@ func _setup_dynamic_3d_map_layout():
 	var min_z = 0.0
 	var max_z = map_height * scale_factor * correction_z
 
-	var nebula_offset = fog_end_3d * 0.35
+	var nebula_offset = 0.0
 
 	var wall_mat = _create_nebula_material()
 
@@ -294,7 +295,7 @@ func _resize_existing_ground(ground_root: Node3D, gs_x: float, gs_z: float, cx: 
 		var max_x = map_w * scale_factor
 		var min_z = 0.0
 		var max_z = map_h * scale_factor * correction_z
-		var nebula_offset = fog_end * 0.35
+		var nebula_offset = 0.0
 		var nebula_width = fog_end * 0.8
 
 		var wall_mat = _create_nebula_material()
@@ -315,7 +316,7 @@ func _resize_quad(parent: Node3D, node_name: String, size: Vector2, pos: Vector3
 		if mat:
 			node.material_override = mat
 
-func _create_ground_material() -> ShaderMaterial:
+func _create_ground_material() -> Material:
 	var mat = ShaderMaterial.new()
 	mat.shader = SHADER_GROUND_RELIEF
 	mat.set_shader_parameter("u_albedo_tex", TEXTURE_NOISE_531)
@@ -330,11 +331,12 @@ func _create_ground_material() -> ShaderMaterial:
 	mat.set_shader_parameter("u_emission_energy", 0.3)
 	return mat
 
-func _apply_ground_fog(mat: ShaderMaterial, fog_start: float, fog_end: float):
-	mat.set_shader_parameter("u_fog_start", fog_start)
-	mat.set_shader_parameter("u_fog_end", fog_end)
-	mat.set_shader_parameter("u_fog_color", Color(0.0, 0.0, 0.0, 1.0))
-	mat.set_shader_parameter("u_horizon_glow_color", Vector3(0.005, 0.01, 0.02))
+func _apply_ground_fog(mat: Material, fog_start: float, fog_end: float):
+	if mat is ShaderMaterial:
+		mat.set_shader_parameter("u_fog_start", fog_start)
+		mat.set_shader_parameter("u_fog_end", fog_end)
+		mat.set_shader_parameter("u_fog_color", Color(0.0, 0.0, 0.0, 1.0))
+		mat.set_shader_parameter("u_horizon_glow_color", Vector3(0.005, 0.01, 0.02))
 
 func _create_nebula_material() -> ShaderMaterial:
 	var mat = ShaderMaterial.new()
@@ -975,6 +977,8 @@ func _spawn_map_objects():
 					var vault = Area2D.new()
 					vault.name = "MapVault_" + obj_label.replace(" ", "_")
 					vault.set_script(vault_script)
+					vault.set_meta("custom_scale", float(obj.get("scale", 1.0)))
+					vault.set_meta("custom_rot_y", float(obj.get("rotY", 0.0)))
 					# ¡IMPORTANTE!: Añadir al árbol primero, luego asignar global_position
 					add_child(vault)
 					vault.global_position = obj_pos
@@ -1010,7 +1014,10 @@ func _spawn_map_objects():
 				var model_path = str(obj.get("assetPath", ""))
 				if model_path == "":
 					model_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
-				var model_node = _instantiate_map_object_3d(model_path, obj_pos, Vector3(10.0, 10.0, 10.0), Vector3(-45, -90, 0), Color(0.0, 0.9, 1.0), 2.5)
+				
+				var scale_val = float(obj.get("scale", 1.0))
+				var rot_y = float(obj.get("rotY", 0.0))
+				var model_node = _instantiate_map_object_3d(model_path, obj_pos, Vector3.ONE * scale_val, Vector3(0, rot_y, 0), Color(0.0, 0.9, 1.0), 2.5)
 				if is_instance_valid(model_node):
 					active_doors_3d.append(model_node)
 				
@@ -1041,7 +1048,10 @@ func _spawn_map_objects():
 				var model_path = str(obj.get("assetPath", ""))
 				if model_path == "":
 					model_path = "res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
-				_instantiate_map_object_3d(model_path, obj_pos, Vector3(10.0, 10.0, 10.0), Vector3(0, 0, 0), Color(1.0, 0.5, 0.0), 2.5)
+				
+				var scale_val = float(obj.get("scale", 1.0))
+				var rot_y = float(obj.get("rotY", 0.0))
+				_instantiate_map_object_3d(model_path, obj_pos, Vector3.ONE * scale_val, Vector3(0, rot_y, 0), Color(1.0, 0.5, 0.0), 2.5)
 				
 				tower.add_to_group("towers")
 				add_child(tower)

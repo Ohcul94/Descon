@@ -72,8 +72,11 @@ func _ready():
 		if BAUL_MODEL_SCENE:
 			var model = BAUL_MODEL_SCENE.instantiate()
 			world_root_3d.add_child(model)
-			model.scale = Vector3(1.4, 1.4, 1.4)
-			model.rotation_degrees = Vector3(0, 90, 0)
+			
+			var custom_scale = get_meta("custom_scale", 1.0)
+			var custom_rot_y = get_meta("custom_rot_y", 0.0)
+			model.scale = Vector3.ONE * custom_scale
+			model.rotation_degrees = Vector3(0, custom_rot_y, 0)
 		_update_3d_position()
 	else:
 		# Render local con SubViewport propio (fallback)
@@ -106,8 +109,11 @@ func _ready():
 		if BAUL_MODEL_SCENE:
 			var model = BAUL_MODEL_SCENE.instantiate()
 			world_root_3d.add_child(model)
-			model.scale = Vector3(1.4, 1.4, 1.4) # Escala normal perfecta para el baúl
-			model.rotation_degrees = Vector3(0, 90, 0) # Mirando de frente y nivelado
+			
+			var custom_scale = get_meta("custom_scale", 1.0)
+			var custom_rot_y = get_meta("custom_rot_y", 0.0)
+			model.scale = Vector3.ONE * custom_scale
+			model.rotation_degrees = Vector3(0, custom_rot_y, 0)
 		
 		# Cámara 3D (Ángulo ligeramente inclinado desde arriba)
 		var cam = Camera3D.new()

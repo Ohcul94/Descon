@@ -14,10 +14,14 @@ class_name MapEditor3D
 	set(val):
 		if val:
 			load_from_server()
+			load_from_server_config = false
+			notify_property_list_changed()
 @export var save_to_server_config: bool = false:
 	set(val):
 		if val:
 			save_to_server()
+			save_to_server_config = false
+			notify_property_list_changed()
 
 @export_group("Importar Mapa Manual")
 @export_multiline var json_to_import: String = ""
@@ -25,6 +29,8 @@ class_name MapEditor3D
 	set(val):
 		if val:
 			import_from_json()
+			trigger_import = false
+			notify_property_list_changed()
 
 
 
@@ -77,8 +83,21 @@ func _on_child_removed(child: Node):
 func _setup_object_metadata(obj: Node3D):
 	if not obj.has_meta("obj_type"):
 		obj.set_meta("obj_type", "wall")
-	if not obj.has_meta("asset_path") and obj is MeshInstance3D and obj.mesh:
-		obj.set_meta("asset_path", obj.mesh.resource_path)
+	if not obj.has_meta("asset_path"):
+		if obj.scene_file_path != "":
+			obj.set_meta("asset_path", obj.scene_file_path)
+		elif obj is MeshInstance3D and obj.mesh:
+			obj.set_meta("asset_path", obj.mesh.resource_path)
+	if obj.name.contains("@"):
+		var base_name = ""
+		if obj.scene_file_path != "":
+			base_name = obj.scene_file_path.get_file().get_basename()
+		elif obj.has_meta("label"):
+			base_name = obj.get_meta("label")
+		else:
+			base_name = obj.get_class()
+		obj.name = base_name.replace(" ", "_").replace("@", "")
+		
 	if not obj.has_meta("label"):
 		obj.set_meta("label", obj.name)
 	if not obj.has_meta("scale_2d"):
@@ -201,7 +220,16 @@ func _delete_selected():
 func _duplicate_selected():
 	if _selected_object:
 		var dup = _selected_object.duplicate()
+		var clean_name = _selected_object.name.replace("@", "")
+		dup.name = clean_name
 		objects_root.add_child(dup)
+		
+		var scene_root = get_tree().edited_scene_root if Engine.is_editor_hint() else self
+		if scene_root:
+			dup.owner = scene_root
+			for child in dup.get_children():
+				child.owner = scene_root
+				
 		dup.global_position += Vector3(5, 0, 5)
 		_setup_object_metadata(dup)
 		_select_object(dup)
@@ -231,10 +259,16 @@ func _on_context_menu_select(id: int):
 			if _selected_object:
 				var types = ["wall", "door", "chest", "tower", "decor", "custom"]
 				var type_index = id - 10
-				_selected_object.set_meta("obj_type", types[type_index])
-				print("MapEditor3D: Tipo cambiado a: " + types[type_index])
+				var new_type = types[type_index]
+				_selected_object.set_meta("obj_type", new_type)
+				_apply_default_properties_by_type(_selected_object, new_type)
+				print("MapEditor3D: Tipo cambiado a: " + new_type)
 		99:
 			_export_to_json()
+
+func _apply_default_properties_by_type(obj: Node3D, type: String):
+	obj.set_meta("scale_2d", obj.scale.x)
+	obj.set_meta("rot_y_deg", obj.rotation_degrees.y)
 
 ## EXPORTACIÓN JSON
 
@@ -261,14 +295,19 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 	var x_2d = pos_3d.x / scale_factor
 	var y_2d = pos_3d.z / (scale_factor * correction_z)
 	
-	var rot_y_deg = node.get_meta("rot_y_deg", rad_to_deg(node.rotation.y))
-	var scale_2d = node.get_meta("scale_2d", node.scale.x)
+	# Siempre usar el transform REAL del nodo (lo que el usuario ajustó con el gizmo)
+	var rot_y_deg = rad_to_deg(node.rotation.y)
 	var obj_type = node.get_meta("obj_type", "wall")
+	
+	var scale_2d = node.scale.x
 	var asset_path = node.get_meta("asset_path", "")
 	var label = node.get_meta("label", node.name)
 	
-	if asset_path == "" and node is MeshInstance3D and node.mesh:
-		asset_path = node.mesh.resource_path
+	if asset_path == "":
+		if node.scene_file_path != "":
+			asset_path = node.scene_file_path
+		elif node is MeshInstance3D and node.mesh:
+			asset_path = node.mesh.resource_path
 	
 	return {
 		"type": obj_type,
@@ -338,6 +377,8 @@ func import_from_json():
 			continue
 			
 		var instance = scene.instantiate()
+		var label_val = str(obj.get("label", instance.name))
+		instance.name = label_val.replace(" ", "_").replace("@", "")
 		objects_root.add_child(instance)
 		if scene_root:
 			instance.owner = scene_root
@@ -351,12 +392,11 @@ func import_from_json():
 			y_2d * scale_factor * correction_z
 		)
 		
-		# Rotación
+		# Rotación y Escala desde el JSON
 		var rot_y = float(obj.get("rotY", 0.0))
-		instance.rotation_degrees = Vector3(0, rot_y, 0)
-		
-		# Escala
 		var scale_val = float(obj.get("scale", 1.0))
+		
+		instance.rotation_degrees = Vector3(0.0, rot_y, 0.0)
 		instance.scale = Vector3.ONE * scale_val
 		
 		# Metadata
@@ -422,19 +462,25 @@ func load_from_server():
 	var height_val = float(map_data.get("height", 2000))
 	update_map_boundary(width_val, height_val)
 	
+	# Actualizar la textura y material de GroundPlane/GridVisual para que coincida con el Hangar/Lobby
+	var grid_visual = get_node_or_null("GroundPlane/GridVisual")
+	if is_instance_valid(grid_visual) and grid_visual is MeshInstance3D:
+		var mat = StandardMaterial3D.new()
+		mat.albedo_color = Color(0.05, 0.08, 0.15, 1)
+		mat.metallic = 0.3
+		mat.roughness = 0.8
+		grid_visual.material_override = mat
+	
 	print("MapEditor3D: ✅ Cargado mapa de la Zona ", zone_id, " (", map_data.get("name", "Sin Nombre"), ") desde el servidor. Tamaño: ", width_val, "x", height_val)
 
 func update_map_boundary(width_2d: float, height_2d: float):
 	var old_b = get_node_or_null("MapBoundaryVisual")
 	if is_instance_valid(old_b):
-		old_b.queue_free()
+		old_b.free()
 		
 	var boundary_visual = Node3D.new()
 	boundary_visual.name = "MapBoundaryVisual"
 	add_child(boundary_visual)
-	var scene_root = get_tree().edited_scene_root if Engine.is_editor_hint() else self
-	if scene_root:
-		boundary_visual.owner = scene_root
 		
 	var w_3d = width_2d * scale_factor
 	var h_3d = height_2d * scale_factor * correction_z
@@ -461,9 +507,6 @@ func _create_boundary_wall(parent: Node3D, box_size: Vector3, pos: Vector3, mat:
 	mi.material_override = mat
 	mi.position = pos
 	parent.add_child(mi)
-	var scene_root = get_tree().edited_scene_root if Engine.is_editor_hint() else self
-	if scene_root:
-		mi.owner = scene_root
 
 func save_to_server():
 	var file_path = "res://../Server/config.json"
@@ -491,6 +534,14 @@ func save_to_server():
 		print("MapEditor3D: La zona ", zone_id, " no existe en mapsConfig.")
 		return
 		
+	# Advertencia sobre nodos colocados fuera de ObjectsRoot
+	var default_nodes = ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual"]
+	for child in get_children():
+		if child is Node3D and not child.name in default_nodes:
+			print("\n⚠️ [MapEditor3D ADVERTENCIA] ⚠️")
+			print("El objeto '" + child.name + "' está fuera de ObjectsRoot.")
+			print("Para que se guarde en config.json y aparezca en el juego, DEBES arrastrarlo dentro de 'ObjectsRoot' en el árbol de escenas.\n")
+
 	# Generar el array de objetos actual
 	var objects_array = []
 	if not objects_root:

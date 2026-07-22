@@ -4805,43 +4805,43 @@
             "ambience": [],
             "color": "#ffffff",
             "desc": "Zona segura de reunión y comercio.",
-            "height": 2000.0,
+            "height": 6000.0,
             "minLevel": 1.0,
             "name": "Loby",
             "objects": [
                 {
                     "assetPath": "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
                     "label": "Baúl Personal",
-                    "rotY": 0.0,
-                    "scale": 1.0,
+                    "rotY": 90.0,
+                    "scale": 1.4,
                     "type": "chest",
-                    "x": 1006.0,
-                    "y": 998.0
+                    "x": 317.03,
+                    "y": 660.41
                 },
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
                     "label": "Puerta",
-                    "rotY": 0.0,
-                    "scale": 1.0,
+                    "rotY": -90.0,
+                    "scale": 10.0,
                     "type": "door",
-                    "x": 1393.0,
-                    "y": 1408.0
+                    "x": 2078.0,
+                    "y": 888.0
                 },
                 {
-                    "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
-                    "label": "Puerta",
-                    "rotY": 0.0,
-                    "scale": 1.0,
-                    "type": "door",
-                    "x": 615.0,
-                    "y": 1396.0
+                    "assetPath": "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb",
+                    "label": "Decorativo1",
+                    "rotY": 47.6,
+                    "scale": 20.0,
+                    "type": "wall",
+                    "x": 328.02,
+                    "y": 254.03
                 }
             ],
             "spawns": [],
             "timeRestrictionsEnabled": true,
             "visible": true,
             "warpCost": 0.0,
-            "width": 2000.0
+            "width": 6000.0
         },
         "10": {
             "ambience": [

@@ -659,10 +659,10 @@ func _update_background(zone_id):
 		# v306.4: Reconstruir visuales 3D en todas las entidades activas para el nuevo mapa
 		get_tree().call_group("entities", "rebuild_3d_layout")
 		
-		# v1.0: Spawnear paredes de dungeon configuradas desde el Admin Dash
-		if is_instance_valid(dungeon_builder):
-			await get_tree().process_frame  # Esperar un frame para que el viewport esté listo
-			dungeon_builder.build_for_zone(zone_id, current_map_node)
+		# v1.0: Desactivado para evitar duplicados (BaseMap.gd ya maneja el spawn de 'wall' nativamente con correction_z)
+		# if is_instance_valid(dungeon_builder):
+		# 	await get_tree().process_frame
+		# 	dungeon_builder.build_for_zone(zone_id, current_map_node)
 			
 		update_stars_visibility()
 
