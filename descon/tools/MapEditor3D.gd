@@ -490,16 +490,18 @@ func import_from_json():
 				var c_off_y = float(c_obj.get("offsetY", 0.0))
 				var c_rot = float(c_obj.get("rot", 0.0))
 				
+				var h_visual = 0.2 / scale_val # Altura fija visual en el editor de 0.2 unidades
+				
 				var col_helper = null
 				if c_type == "circle":
 					col_helper = CSGCylinder3D.new()
 					col_helper.name = "ColliderCircle" + str(idx)
 					col_helper.radius = (c_width * scale_factor) / 2.0
-					col_helper.height = 1.5
+					col_helper.height = h_visual
 				else:
 					col_helper = CSGBox3D.new()
 					col_helper.name = "Collider" + str(idx)
-					col_helper.size = Vector3(c_width * scale_factor, 1.5, c_height * scale_factor * correction_z)
+					col_helper.size = Vector3(c_width * scale_factor, h_visual, c_height * scale_factor * correction_z)
 					
 				var mat = StandardMaterial3D.new()
 				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -507,7 +509,7 @@ func import_from_json():
 				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 				col_helper.material = mat
 				
-				col_helper.position = Vector3(c_off_x * scale_factor, 0.75, c_off_y * scale_factor * correction_z)
+				col_helper.position = Vector3(c_off_x * scale_factor, h_visual / 2.0, c_off_y * scale_factor * correction_z)
 				col_helper.rotation_degrees = Vector3(0, c_rot, 0)
 				instance.add_child(col_helper)
 				if scene_root:
@@ -521,16 +523,18 @@ func import_from_json():
 			var c_off_y = float(obj.get("colOffsetY", 0.0))
 			var c_rot = float(obj.get("colRot", 0.0))
 			
+			var h_visual = 0.2 / scale_val # Altura fija visual en el editor de 0.2 unidades
+			
 			var col_helper = null
 			if c_type == "circle":
 				col_helper = CSGCylinder3D.new()
 				col_helper.name = "ColliderCircle"
 				col_helper.radius = (c_width * scale_factor) / 2.0
-				col_helper.height = 1.5
+				col_helper.height = h_visual
 			else:
 				col_helper = CSGBox3D.new()
 				col_helper.name = "Collider"
-				col_helper.size = Vector3(c_width * scale_factor, 1.5, c_height * scale_factor * correction_z)
+				col_helper.size = Vector3(c_width * scale_factor, h_visual, c_height * scale_factor * correction_z)
 				
 			var mat = StandardMaterial3D.new()
 			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -538,7 +542,7 @@ func import_from_json():
 			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			col_helper.material = mat
 			
-			col_helper.position = Vector3(c_off_x * scale_factor, 0.75, c_off_y * scale_factor * correction_z)
+			col_helper.position = Vector3(c_off_x * scale_factor, h_visual / 2.0, c_off_y * scale_factor * correction_z)
 			col_helper.rotation_degrees = Vector3(0, c_rot, 0)
 			instance.add_child(col_helper)
 			if scene_root:

@@ -4867,13 +4867,29 @@
                 },
                 {
                     "assetPath": "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
+                    "colHeight": 23.86,
+                    "colOffsetX": -0.12,
+                    "colOffsetY": 0.76,
+                    "colRot": -89.8,
+                    "colType": "rect",
+                    "colWidth": 46.39,
+                    "colliders": [
+                        {
+                            "height": 23.86,
+                            "offsetX": -0.12,
+                            "offsetY": 0.76,
+                            "rot": -89.8,
+                            "type": "rect",
+                            "width": 46.39
+                        }
+                    ],
                     "label": "Baúl Personal",
                     "rotY": 131.6,
                     "scale": 5.0,
                     "type": "chest",
                     "x": 744.95,
                     "y": 1133.85,
-                    "yOffset": 1.5
+                    "yOffset": 2.5
                 },
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
@@ -4919,6 +4935,14 @@
                             "width": 15.21
                         },
                         {
+                            "height": 3.68,
+                            "offsetX": 2.72,
+                            "offsetY": 8.59,
+                            "rot": -90.1,
+                            "type": "rect",
+                            "width": 15.49
+                        },
+                        {
                             "height": 6.01,
                             "offsetX": -15.12,
                             "offsetY": -1.93,
@@ -4934,6 +4958,16 @@
                     "x": 328.02,
                     "y": 301.8,
                     "yOffset": -0.167
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb",
+                    "label": "Decorativo3",
+                    "rotY": -28.0,
+                    "scale": 20.0,
+                    "type": "wall",
+                    "x": 5047.04,
+                    "y": 659.84,
+                    "yOffset": 0.0
                 }
             ],
             "spawns": [],
