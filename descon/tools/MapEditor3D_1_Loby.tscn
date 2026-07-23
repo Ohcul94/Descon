@@ -60,9 +60,35 @@ metadata/label = &"Decorativo3"
 metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
+metadata/Collider = Transform2D(1, 0, 0, 1, 0, 0)
+
+[node name="Collider1" type="CSGBox3D" parent="ObjectsRoot/Decorativo2" unique_id=818996627]
+transform = Transform3D(0.92420465, 0, 0, 0, 0.14432323, 0, 0, 0, 0.8639458, 0, 0.01471889, 0.00081181526)
+visible = false
+size = Vector3(1, 1, 0.5819092)
+
+[node name="Collider2" type="CSGBox3D" parent="ObjectsRoot/Decorativo2" unique_id=1414636821]
+transform = Transform3D(0.8234537, 0, 0.39225742, 0, 0.14432323, 0, -0.41961676, 0, 0.7697639, 0.117430486, 0.01471889, 0.1485159)
+visible = false
+size = Vector3(0.548645, 1, 0.5819092)
+
+[node name="Collider3" type="CSGBox3D" parent="ObjectsRoot/Decorativo2" unique_id=459861821]
+transform = Transform3D(0.82363904, 0, -0.39191723, 0, 0.14432323, 0, 0.41925284, 0, 0.7699371, -0.10847521, 0.01471889, 0.14836216)
+visible = false
+size = Vector3(0.56300354, 1, 0.5819092)
+
+[node name="Collider4" type="CSGBox3D" parent="ObjectsRoot/Decorativo2" unique_id=179049631]
+transform = Transform3D(0.82363904, 0, -0.39191723, 0, 0.14432323, 0, 0.41925284, 0, 0.7699371, 0.11329811, 0.01471889, -0.14423524)
+visible = false
+size = Vector3(0.56300354, 1, 0.5819092)
+
+[node name="Collider5" type="CSGBox3D" parent="ObjectsRoot/Decorativo2" unique_id=1797792657]
+transform = Transform3D(0.8234537, 0, 0.39225742, 0, 0.14432323, 0, -0.41961676, 0, 0.7697639, -0.11327815, 0.01471889, -0.13847995)
+visible = false
+size = Vector3(0.548645, 1, 0.5819092)
 
 [node name="Baul1" type="Node3D" parent="ObjectsRoot" unique_id=1914052540 instance=ExtResource("2_0qj33")]
-transform = Transform3D(-1.9935654, 0, 2.2418067, 0, 3, 0, -2.2418067, 0, -1.9935654, 14.898824, 11.943824, 32.07036)
+transform = Transform3D(-3.3226094, 0, 3.7363443, 0, 5, 0, -3.7363443, 0, -3.3226094, 14.899, 1.5, 32.07)
 metadata/obj_type = "chest"
 metadata/asset_path = "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 metadata/label = "Baúl Personal"
@@ -80,13 +106,38 @@ metadata/rot_y_deg = -90.0
 metadata/editor_only = true
 
 [node name="Decorativo1" type="Node3D" parent="ObjectsRoot" unique_id=1187028034 instance=ExtResource("4_fxo00")]
-transform = Transform3D(13.486048, 0, 14.769106, 0, 20, 0, -14.769106, 0, 13.486048, 6.5604, 0, 7.1850533)
+transform = Transform3D(13.486048, 0, 14.769106, 0, 20, 0, -14.769106, 0, 13.486048, 6.5604, -0.16708946, 8.536072)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb"
 metadata/label = "Decorativo1"
 metadata/scale_2d = 20.0
 metadata/rot_y_deg = 47.6
 metadata/editor_only = true
+
+[node name="Collider6" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=1423261128]
+transform = Transform3D(0.7106544, 0, -0.55235463, 0, 0.14433181, 0, 0.5908762, 0, 0.6643244, 0.09411293, 0.02307346, -0.098626316)
+visible = false
+size = Vector3(0.7689867, 1, 0.5851898)
+
+[node name="Collider7" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=705148354]
+transform = Transform3D(0.5887893, 0, -0.66594505, 0, 0.14433782, 0, 0.71239316, 0, 0.5504003, 0.051378727, 0.023073439, -0.04560989)
+visible = false
+size = Vector3(0.40620422, 1, 0.8104782)
+
+[node name="Collider8" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=1794176745]
+transform = Transform3D(0.9242417, 0, -0.0019038022, 0, 0.14434347, 0, 0.0020365417, 0, 0.86396587, 0.05433315, 0.023073483, 0.24017382)
+visible = false
+size = Vector3(0.32906818, 1, 0.19666862)
+
+[node name="Collider10" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=1481941595]
+transform = Transform3D(-0.0020365417, 0, -0.863986, 0, 0.14434817, 0, 0.92426324, 0, -0.0019040704, 0.054325193, 0.023073528, 0.24300647)
+visible = false
+size = Vector3(0.33519673, 1, 0.12050712)
+
+[node name="Collider9" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=2016191704]
+transform = Transform3D(0.924242, 0, -0.0068901423, 0, 0.1443495, 0, 0.0073709227, 0, 0.8639405, -0.3024345, 0.02307352, -0.05470811)
+visible = false
+size = Vector3(0.08519673, 1, 0.19666862)
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1971071584]
 transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)

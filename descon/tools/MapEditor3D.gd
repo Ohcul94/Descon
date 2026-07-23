@@ -309,7 +309,7 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 		elif node is MeshInstance3D and node.mesh:
 			asset_path = node.mesh.resource_path
 	
-	return {
+	var config = {
 		"type": obj_type,
 		"x": _round_decimals(x_2d, 2),
 		"y": _round_decimals(y_2d, 2),
@@ -319,6 +319,62 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 		"scale": _round_decimals(scale_2d, 2),
 		"rotY": _round_decimals(rot_y_deg, 1)
 	}
+	
+	if node.has_meta("colType"): config["colType"] = node.get_meta("colType")
+	if node.has_meta("colWidth"): config["colWidth"] = node.get_meta("colWidth")
+	if node.has_meta("colHeight"): config["colHeight"] = node.get_meta("colHeight")
+	if node.has_meta("colOffsetX"): config["colOffsetX"] = node.get_meta("colOffsetX")
+	if node.has_meta("colOffsetY"): config["colOffsetY"] = node.get_meta("colOffsetY")
+	if node.has_meta("colRot"): config["colRot"] = node.get_meta("colRot")
+	
+	# Buscar todos los colisionadores visuales como nodos hijos
+	var colliders_array = []
+	for child in node.get_children():
+		if child.name.to_lower().contains("collider"):
+			var c_type = "rect"
+			var w_3d = child.scale.x
+			var h_3d = child.scale.z
+			
+			if child.name.to_lower().contains("circle") or child is CSGCylinder3D:
+				c_type = "circle"
+				if child is CSGCylinder3D:
+					w_3d = child.radius * 2.0 * child.scale.x
+					h_3d = w_3d
+			elif child is CollisionShape3D:
+				if child.shape is CylinderShape3D or child.shape is SphereShape3D:
+					c_type = "circle"
+					w_3d = child.shape.radius * 2.0 * child.scale.x
+					h_3d = w_3d
+				elif child.shape is BoxShape3D:
+					w_3d = child.shape.size.x * child.scale.x
+					h_3d = child.shape.size.z * child.scale.z
+			elif child is CSGBox3D:
+				w_3d = child.size.x * child.scale.x
+				h_3d = child.size.z * child.scale.z
+				
+			var c_data = {
+				"type": c_type,
+				"width": _round_decimals(w_3d / scale_factor, 2),
+				"height": _round_decimals(h_3d / (scale_factor * correction_z), 2),
+				"offsetX": _round_decimals(child.position.x / scale_factor, 2),
+				"offsetY": _round_decimals(child.position.z / (scale_factor * correction_z), 2)
+			}
+			if child.rotation_degrees.y != 0.0:
+				c_data["rot"] = _round_decimals(child.rotation_degrees.y, 1)
+			colliders_array.append(c_data)
+			
+	if colliders_array.size() > 0:
+		config["colliders"] = colliders_array
+		# Para compatibilidad, llenar campos raíz con el primero
+		config["colType"] = colliders_array[0]["type"]
+		config["colWidth"] = colliders_array[0]["width"]
+		config["colHeight"] = colliders_array[0]["height"]
+		config["colOffsetX"] = colliders_array[0]["offsetX"]
+		config["colOffsetY"] = colliders_array[0]["offsetY"]
+		if colliders_array[0].has("rot"):
+			config["colRot"] = colliders_array[0]["rot"]
+			
+	return config
 
 func _round_decimals(val: float, decimals: int = 2) -> float:
 	var mult = pow(10, decimals)
@@ -415,6 +471,78 @@ func import_from_json():
 		instance.set_meta("asset_path", asset_path)
 		instance.set_meta("scale_2d", scale_val)
 		instance.set_meta("rot_y_deg", rot_y)
+		
+		if obj.has("colType"): instance.set_meta("colType", obj.colType)
+		if obj.has("colWidth"): instance.set_meta("colWidth", float(obj.colWidth))
+		if obj.has("colHeight"): instance.set_meta("colHeight", float(obj.colHeight))
+		if obj.has("colOffsetX"): instance.set_meta("colOffsetX", float(obj.colOffsetX))
+		if obj.has("colOffsetY"): instance.set_meta("colOffsetY", float(obj.colOffsetY))
+		if obj.has("colRot"): instance.set_meta("colRot", float(obj.colRot))
+		
+		# Crear nodos hijos visuales temporales en el editor para que el usuario pueda editarlos con gizmos
+		if obj.has("colliders"):
+			var idx = 1
+			for c_obj in obj.colliders:
+				var c_type = str(c_obj.type)
+				var c_width = float(c_obj.get("width", 100.0))
+				var c_height = float(c_obj.get("height", 20.0))
+				var c_off_x = float(c_obj.get("offsetX", 0.0))
+				var c_off_y = float(c_obj.get("offsetY", 0.0))
+				var c_rot = float(c_obj.get("rot", 0.0))
+				
+				var col_helper = null
+				if c_type == "circle":
+					col_helper = CSGCylinder3D.new()
+					col_helper.name = "ColliderCircle" + str(idx)
+					col_helper.radius = (c_width * scale_factor) / 2.0
+					col_helper.height = 1.5
+				else:
+					col_helper = CSGBox3D.new()
+					col_helper.name = "Collider" + str(idx)
+					col_helper.size = Vector3(c_width * scale_factor, 1.5, c_height * scale_factor * correction_z)
+					
+				var mat = StandardMaterial3D.new()
+				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				mat.albedo_color = Color(0.0, 0.8, 0.0, 0.3) # Verde translúcido
+				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				col_helper.material = mat
+				
+				col_helper.position = Vector3(c_off_x * scale_factor, 0.75, c_off_y * scale_factor * correction_z)
+				col_helper.rotation_degrees = Vector3(0, c_rot, 0)
+				instance.add_child(col_helper)
+				if scene_root:
+					col_helper.owner = scene_root
+				idx += 1
+		elif obj.has("colType"):
+			var c_type = str(obj.colType)
+			var c_width = float(obj.get("colWidth", 100.0))
+			var c_height = float(obj.get("colHeight", 20.0))
+			var c_off_x = float(obj.get("colOffsetX", 0.0))
+			var c_off_y = float(obj.get("colOffsetY", 0.0))
+			var c_rot = float(obj.get("colRot", 0.0))
+			
+			var col_helper = null
+			if c_type == "circle":
+				col_helper = CSGCylinder3D.new()
+				col_helper.name = "ColliderCircle"
+				col_helper.radius = (c_width * scale_factor) / 2.0
+				col_helper.height = 1.5
+			else:
+				col_helper = CSGBox3D.new()
+				col_helper.name = "Collider"
+				col_helper.size = Vector3(c_width * scale_factor, 1.5, c_height * scale_factor * correction_z)
+				
+			var mat = StandardMaterial3D.new()
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.albedo_color = Color(0.0, 0.8, 0.0, 0.3) # Verde translúcido
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			col_helper.material = mat
+			
+			col_helper.position = Vector3(c_off_x * scale_factor, 0.75, c_off_y * scale_factor * correction_z)
+			col_helper.rotation_degrees = Vector3(0, c_rot, 0)
+			instance.add_child(col_helper)
+			if scene_root:
+				col_helper.owner = scene_root
 		
 		if obj.has("targetZoneId"):
 			instance.set_meta("targetZoneId", str(obj.get("targetZoneId")))

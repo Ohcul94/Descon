@@ -4811,6 +4811,52 @@
             "objects": [
                 {
                     "assetPath": "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb",
+                    "colHeight": 17.77,
+                    "colOffsetX": 0.0,
+                    "colOffsetY": 0.03,
+                    "colType": "rect",
+                    "colWidth": 46.21,
+                    "colliders": [
+                        {
+                            "height": 17.77,
+                            "offsetX": 0.0,
+                            "offsetY": 0.03,
+                            "type": "rect",
+                            "width": 46.21
+                        },
+                        {
+                            "height": 17.77,
+                            "offsetX": 5.87,
+                            "offsetY": 5.25,
+                            "rot": 27.0,
+                            "type": "rect",
+                            "width": 25.35
+                        },
+                        {
+                            "height": 17.77,
+                            "offsetX": -5.42,
+                            "offsetY": 5.25,
+                            "rot": -27.0,
+                            "type": "rect",
+                            "width": 26.02
+                        },
+                        {
+                            "height": 17.77,
+                            "offsetX": 5.66,
+                            "offsetY": -5.1,
+                            "rot": -27.0,
+                            "type": "rect",
+                            "width": 26.02
+                        },
+                        {
+                            "height": 17.77,
+                            "offsetX": -5.66,
+                            "offsetY": -4.9,
+                            "rot": 27.0,
+                            "type": "rect",
+                            "width": 25.35
+                        }
+                    ],
                     "label": "Decorativo3",
                     "rotY": 0.0,
                     "scale": 20.0,
@@ -4823,11 +4869,11 @@
                     "assetPath": "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
                     "label": "Baúl Personal",
                     "rotY": 131.6,
-                    "scale": 3.0,
+                    "scale": 5.0,
                     "type": "chest",
-                    "x": 744.94,
-                    "y": 1133.86,
-                    "yOffset": 11.944
+                    "x": 744.95,
+                    "y": 1133.85,
+                    "yOffset": 1.5
                 },
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
@@ -4841,13 +4887,53 @@
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb",
+                    "colHeight": 17.87,
+                    "colOffsetX": 4.71,
+                    "colOffsetY": -3.49,
+                    "colRot": -39.7,
+                    "colType": "rect",
+                    "colWidth": 35.54,
+                    "colliders": [
+                        {
+                            "height": 17.87,
+                            "offsetX": 4.71,
+                            "offsetY": -3.49,
+                            "rot": -39.7,
+                            "type": "rect",
+                            "width": 35.54
+                        },
+                        {
+                            "height": 24.76,
+                            "offsetX": 2.57,
+                            "offsetY": -1.61,
+                            "rot": -50.4,
+                            "type": "rect",
+                            "width": 18.77
+                        },
+                        {
+                            "height": 6.01,
+                            "offsetX": 2.72,
+                            "offsetY": 8.49,
+                            "rot": -0.1,
+                            "type": "rect",
+                            "width": 15.21
+                        },
+                        {
+                            "height": 6.01,
+                            "offsetX": -15.12,
+                            "offsetY": -1.93,
+                            "rot": -0.5,
+                            "type": "rect",
+                            "width": 3.94
+                        }
+                    ],
                     "label": "Decorativo1",
                     "rotY": 47.6,
                     "scale": 20.0,
                     "type": "wall",
                     "x": 328.02,
-                    "y": 254.03,
-                    "yOffset": 0.0
+                    "y": 301.8,
+                    "yOffset": -0.167
                 }
             ],
             "spawns": [],

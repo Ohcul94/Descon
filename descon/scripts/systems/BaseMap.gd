@@ -1072,23 +1072,112 @@ func _spawn_map_objects():
 				var rot_y = float(obj.get("rotY", 0.0))
 				var y_offset = float(obj.get("yOffset", 0.5))
 				
-				var col = CollisionShape2D.new()
-				var rect = RectangleShape2D.new()
-				rect.size = Vector2(100.0 * scale_val, 20.0 * scale_val)
-				col.shape = rect
-				col.rotation = deg_to_rad(rot_y)
-				wall_body.add_child(col)
-				
 				var model_path = str(obj.get("assetPath", ""))
 				if model_path == "":
 					model_path = "res://assets/Paredes/Pared1/Pared1.glb"
 				
-				_instantiate_map_object_3d(model_path, obj_pos, Vector3(scale_val, scale_val, scale_val), Vector3(0, rot_y, 0), Color(0.9, 0.3, 0.1), y_offset)
+				var model_node = _instantiate_map_object_3d(model_path, obj_pos, Vector3(scale_val, scale_val, scale_val), Vector3(0, rot_y, 0), Color(0.9, 0.3, 0.1), y_offset)
+				
+				var custom_size = Vector2(100.0 * scale_val, 20.0 * scale_val)
+				var custom_offset = Vector2.ZERO
+				
+				# --- CONFIGURACIÓN DE COLLIDERS (MANUALES MÚLTIPLES O SIMPLE/AUTODETECTADA) ---
+				if obj.has("colliders"):
+					for c_obj in obj.colliders:
+						var c_type = str(c_obj.type)
+						var c_width = float(c_obj.get("width", 0.0))
+						var c_height = float(c_obj.get("height", 0.0))
+						var c_off_x = float(c_obj.get("offsetX", 0.0))
+						var c_off_y = float(c_obj.get("offsetY", 0.0))
+						var c_rot = float(c_obj.get("rot", 0.0))
+						
+						var sub_col = CollisionShape2D.new()
+						var sub_size = Vector2.ZERO
+						var sub_offset = Vector2(c_off_x, c_off_y) * scale_val
+						# Rotar el offset local de acuerdo a la rotación 2D del padre (-rot_y)
+						sub_offset = sub_offset.rotated(deg_to_rad(-rot_y))
+						
+						var sub_is_circle = false
+						
+						if c_type == "circle":
+							sub_is_circle = true
+							sub_size = Vector2(c_width, c_width) * scale_val
+						else:
+							sub_size = Vector2(c_width, c_height) * scale_val
+							
+						if sub_is_circle:
+							var circle = CircleShape2D.new()
+							circle.radius = sub_size.x / 2.0
+							sub_col.shape = circle
+						else:
+							var rect = RectangleShape2D.new()
+							rect.size = sub_size
+							sub_col.shape = rect
+							
+						sub_col.position = sub_offset
+						# Invertir el ángulo de rotación 3D para pasarlo a 2D
+						sub_col.rotation = deg_to_rad(-(rot_y + c_rot))
+						wall_body.add_child(sub_col)
+				else:
+					var col = CollisionShape2D.new()
+					var col_type = str(obj.get("colType", ""))
+					var col_width = float(obj.get("colWidth", 0.0))
+					var col_height = float(obj.get("colHeight", 0.0))
+					var col_offset_x = float(obj.get("colOffsetX", 0.0))
+					var col_offset_y = float(obj.get("colOffsetY", 0.0))
+					var col_rot = float(obj.get("colRot", 0.0))
+					
+					custom_size = Vector2(100.0 * scale_val, 20.0 * scale_val)
+					custom_offset = Vector2.ZERO
+					var is_circle = false
+					
+					if col_type != "":
+						if col_type == "circle":
+							is_circle = true
+							custom_size = Vector2(col_width, col_width) * scale_val
+						else:
+							custom_size = Vector2(col_width, col_height) * scale_val
+						custom_offset = Vector2(col_offset_x, col_offset_y) * scale_val
+					else:
+						if is_instance_valid(model_node):
+							var aabb = _calculate_local_aabb(model_node)
+							var s_factor = scale_factor
+							var corr_z = correction_z
+							
+							var w_2d = (aabb.size.x / s_factor) * scale_val
+							var h_2d = (aabb.size.z / (s_factor * corr_z)) * scale_val
+							
+							if w_2d > 1.0 and h_2d > 1.0:
+								custom_size = Vector2(w_2d, h_2d)
+								var aabb_center = aabb.position + aabb.size / 2.0
+								custom_offset.x = (aabb_center.x / s_factor) * scale_val
+								custom_offset.y = (aabb_center.z / (s_factor * corr_z)) * scale_val
+								
+								var ratio = w_2d / h_2d
+								if ratio >= 0.82 and ratio <= 1.22:
+									is_circle = true
+					
+					# Rotar el offset local de acuerdo a la rotación 2D del padre (-rot_y)
+					custom_offset = custom_offset.rotated(deg_to_rad(-rot_y))
+					
+					if is_circle:
+						var circle = CircleShape2D.new()
+						circle.radius = custom_size.x / 2.0
+						col.shape = circle
+					else:
+						var rect = RectangleShape2D.new()
+						rect.size = custom_size
+						col.shape = rect
+						
+					col.position = custom_offset
+					# Invertir el ángulo de rotación 3D para pasarlo a 2D
+					col.rotation = deg_to_rad(-(rot_y + col_rot))
+					wall_body.add_child(col)
 				
 				wall_body.add_to_group("walls")
 				add_child(wall_body)
 				wall_body.global_position = obj_pos
-				print("[BaseMap] Pared instanciada correctamente: ", obj_label, " @ ", obj_pos, " escala: ", scale_val, " rot: ", rot_y)
+				print("[BaseMap] Pared con autodetect-collider instanciada: ", obj_label, " @ ", obj_pos, " size: ", custom_size, " offset: ", custom_offset)
 			
 			"decor":
 				var scale_val = float(obj.get("scale", 1.0))
@@ -1629,3 +1718,31 @@ func _get_bound_key_text(action: String) -> String:
 		elif e is InputEventMouseButton:
 			return "M" + str(e.button_index)
 	return "?"
+
+func _calculate_local_aabb(node: Node3D) -> AABB:
+	var total_aabb = AABB()
+	var first = true
+	if not is_instance_valid(node):
+		return total_aabb
+	
+	# Pila guarda [nodo, transform_acumulado_relativo_al_root]
+	var stack = [[node, Transform3D.IDENTITY]]
+	while stack.size() > 0:
+		var item = stack.pop_back()
+		var curr = item[0]
+		var accum_trans = item[1]
+		
+		if curr is MeshInstance3D and curr.mesh:
+			var local_aabb = curr.mesh.get_aabb()
+			var trans_aabb = accum_trans * local_aabb
+			if first:
+				total_aabb = trans_aabb
+				first = false
+			else:
+				total_aabb = total_aabb.merge(trans_aabb)
+				
+		for child in curr.get_children():
+			if child is Node3D:
+				var child_trans = accum_trans * child.transform
+				stack.append([child, child_trans])
+	return total_aabb
