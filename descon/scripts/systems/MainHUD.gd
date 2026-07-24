@@ -142,6 +142,10 @@ func _ready():
 
 	# v266.360: Inicializar visualizador de estados activos
 	_setup_status_effects_panel()
+	
+	# Inicializar target frame
+	_setup_target_frame()
+	clear_target()
 
 func _inject_components():
 	# 1. Componente de Habilidades
@@ -240,7 +244,7 @@ func _input(event: InputEvent):
 				
 				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat, Equipo, Iconos)
 				if not clicked_node:
-					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamTouchPadContainer"]:
+					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamTouchPadContainer"]:
 						var win = _get_hud_node(win_id)
 						if win and win.visible and win.get_global_rect().has_point(event.position):
 							clicked_node = win
@@ -343,6 +347,13 @@ func _input(event: InputEvent):
 	var focus_node = get_viewport().gui_get_focus_owner()
 	if focus_node is LineEdit or focus_node is TextEdit: return
 
+	# ESC: deseleccionar target ANTES del menú ESC
+	if is_instance_valid(_target_entity):
+		if event.is_action_pressed("ui_menu") or event.is_action_pressed("ui_cancel"):
+			clear_target()
+			get_viewport().set_input_as_handled()
+			return
+
 	if event.is_action_pressed("ui_menu"):
 		toggle_esc_menu()
 		get_viewport().set_input_as_handled()
@@ -364,11 +375,27 @@ func _input(event: InputEvent):
 		if NetworkManager:
 			NetworkManager.send_event("togglePvP", requested_status)
 		get_viewport().set_input_as_handled()
-
+	
+	# Click izquierdo para targetear entidades (persiste hasta ESC)
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		if is_editing_layout or is_selecting_trade_target: return
+		var p_node = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(p_node) and p_node.get("_skill_controller") and p_node._skill_controller.is_aiming: return
+		if _settings_menu and _settings_menu.visible: return
+		if is_instance_valid(_esc_menu) and _esc_menu.visible: return
+		
+		var target = _find_target_entity()
+		if is_instance_valid(target):
+			set_target(target)
+	
 func _apply_hud_data(layout: Dictionary, config: Dictionary):
 	var _screen_size = get_viewport_rect().size
 	_last_applied_layout = layout
 	_last_applied_config = config
+	
+	# Asegurar que TargetFrame tenga posición aunque no esté en el layout guardado
+	if not layout.has("TargetFrame"):
+		layout["TargetFrame"] = { "x": 540, "y": 80, "scale": 0.5, "alpha": 1.0 }
 	
 	if skills_hud and not is_editing_layout:
 		for child in skills_hud.get_children():
@@ -521,6 +548,9 @@ func _process(_delta):
 
 	# v266.360: Actualizar UI de estados activos
 	_update_status_effects_ui()
+	
+	# Actualizar target frame
+	_update_target_frame()
 
 func _on_minimize_pressed(id: String):
 	var node = _get_hud_node(id)
@@ -585,6 +615,7 @@ func _get_hud_node(id: String):
 	if id == "PortalBtnContainer": real_id = "PortalBtnContainer"
 	if id == "BattlePass": real_id = "PaseBatalla"
 	if id == "CamEdit": real_id = "CamEdit"
+	if id == "TargetFrame": real_id = "TargetFrame"
 	
 	var node = get_node_or_null(real_id)
 	
@@ -814,6 +845,7 @@ func _restore_default_layout():
 		"PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
 		"ControlBar":      { "x": 10,    "y": 715,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
 		"StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
+		"TargetFrame":     { "x": 540,   "y": 80,    "scale": 0.5, "alpha": 1.0 },
 		"PortalBtnContainer": { "x": 540, "y": 610, "scale": 0.5, "alpha": 1.0 },
 		"CamTouchPadContainer": { "x": 1060, "y": 250,   "scale": 0.5, "alpha": 1.0 },
 	}
@@ -1317,7 +1349,7 @@ func toggle_hud_editing(slot_index: int = -1):
 				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamEdit"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
@@ -1468,7 +1500,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 			}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamEdit"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wpos = get_normalized_pos.call(win, 1280.0, 800.0)
@@ -1515,7 +1547,7 @@ func _backup_layout():
 					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 				}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "PortalBtnContainer", "CamEdit"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wdata = {}
@@ -1847,9 +1879,8 @@ func _close_esc_menu():
 	if is_instance_valid(_esc_menu): _esc_menu.visible = false
 
 func _get_entity_under_mouse():
-	# Convertir posición de pantalla a coordenadas del mundo 2D en CanvasLayer (UI)
 	var m_pos = get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()
-	var best_dist = 60.0 # Radio de detección estilo MOBA (igual que en SkillController)
+	var best_dist = 60.0
 	var best_target = null
 	
 	for p in get_tree().get_nodes_in_group("remote_players"):
@@ -1860,6 +1891,21 @@ func _get_entity_under_mouse():
 			if dist < best_dist:
 				best_dist = dist
 				best_target = p
+	return best_target
+
+func _find_target_entity():
+	var m_pos = get_viewport().get_canvas_transform().affine_inverse() * get_viewport().get_mouse_position()
+	var best_dist = 60.0
+	var best_target = null
+	
+	for e in get_tree().get_nodes_in_group("entities"):
+		if not is_instance_valid(e) or e.is_dead: continue
+		var visual_pos = e.get_visual_position() if e.has_method("get_visual_position") else e.global_position
+		var dist = visual_pos.distance_to(m_pos)
+		if dist < best_dist:
+			best_dist = dist
+			best_target = e
+	
 	return best_target
 
 var _events_panel: Control = null
@@ -2014,6 +2060,21 @@ func _on_altar_defense_success(_data):
 var _status_effects_panel: Control = null
 var _status_hbox: HBoxContainer = null
 
+# --- SISTEMA DE TARGET FRAME (TARGET + DEBUFFS) ---
+var _target_entity: Entity = null
+var _target_frame: Control = null
+var _target_vbox: VBoxContainer = null
+var _target_name_lbl: Label = null
+var _target_debuff_hbox: HBoxContainer = null
+var _target_hp_bar: ColorRect = null
+var _target_hp_bg: ColorRect = null
+var _target_hp_lbl: Label = null
+var _target_sh_bar: ColorRect = null
+var _target_sh_bg: ColorRect = null
+var _target_sh_lbl: Label = null
+var _hp_ratio: float = 1.0
+var _sh_ratio: float = 1.0
+
 func _setup_status_effects_panel():
 	if get_node_or_null("StatusEffects"): return
 	
@@ -2145,6 +2206,255 @@ func _add_status_box(emoji: String, text: String, color: Color):
 	_status_hbox.add_child(box)
 
 
+
+# --- SISTEMA DE TARGET FRAME (TARGET + DEBUFFS) ---
+func _setup_target_frame():
+	if _target_frame: return
+	
+	_target_frame = PanelContainer.new()
+	_target_frame.name = "TargetFrame"
+	_target_frame.custom_minimum_size = Vector2(200, 60)
+	
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.04, 0.04, 0.1, 0.88)
+	sb.border_width_left = 1; sb.border_width_top = 1
+	sb.border_width_right = 1; sb.border_width_bottom = 1
+	sb.border_color = Color(0.0, 0.85, 1.0, 0.35)
+	sb.set_corner_radius_all(4)
+	_target_frame.add_theme_stylebox_override("panel", sb)
+	
+	_target_vbox = VBoxContainer.new()
+	_target_vbox.add_theme_constant_override("separation", 1)
+	var margin = 4
+	_target_vbox.add_theme_constant_override("margin_left", margin)
+	_target_vbox.add_theme_constant_override("margin_right", margin)
+	_target_vbox.add_theme_constant_override("margin_top", margin)
+	_target_vbox.add_theme_constant_override("margin_bottom", margin)
+	_target_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_target_frame.add_child(_target_vbox)
+	
+	var header = HBoxContainer.new()
+	_target_vbox.add_child(header)
+	
+	_target_name_lbl = Label.new()
+	_target_name_lbl.add_theme_font_size_override("font_size", 11)
+	_target_name_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	_target_name_lbl.add_theme_constant_override("outline_size", 2)
+	_target_name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(_target_name_lbl)
+	
+	var close_btn = Button.new()
+	close_btn.text = "✕"
+	close_btn.modulate = Color(1, 0.3, 0.3, 0.5)
+	close_btn.add_theme_font_size_override("font_size", 8)
+	close_btn.custom_minimum_size = Vector2(16, 16)
+	close_btn.pressed.connect(func():
+		if is_editing_layout:
+			return
+		clear_target()
+	)
+	header.add_child(close_btn)
+	
+	# HP bar (más compacta)
+	var hp_container = Control.new()
+	hp_container.custom_minimum_size = Vector2(0, 12)
+	_target_vbox.add_child(hp_container)
+	
+	_target_hp_bg = ColorRect.new()
+	_target_hp_bg.color = Color(0, 0.4, 0, 0.2)
+	_target_hp_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hp_container.add_child(_target_hp_bg)
+	
+	_target_hp_bar = ColorRect.new()
+	_target_hp_bar.color = Color(0, 0.8, 0)
+	_target_hp_bar.anchor_top = 0.0
+	_target_hp_bar.anchor_bottom = 1.0
+	_target_hp_bar.anchor_left = 0.0
+	_target_hp_bar.anchor_right = 1.0
+	hp_container.add_child(_target_hp_bar)
+	
+	_target_hp_lbl = Label.new()
+	_target_hp_lbl.add_theme_font_size_override("font_size", 8)
+	_target_hp_lbl.add_theme_color_override("font_color", Color(0.8, 1.0, 0.8))
+	_target_hp_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	_target_hp_lbl.add_theme_constant_override("outline_size", 1)
+	_target_hp_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_target_hp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_target_hp_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hp_container.add_child(_target_hp_lbl)
+	
+	# Shield bar (más compacta)
+	var sh_container = Control.new()
+	sh_container.custom_minimum_size = Vector2(0, 12)
+	_target_vbox.add_child(sh_container)
+	
+	_target_sh_bg = ColorRect.new()
+	_target_sh_bg.color = Color(0, 0.5, 0.5, 0.2)
+	_target_sh_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sh_container.add_child(_target_sh_bg)
+	
+	_target_sh_bar = ColorRect.new()
+	_target_sh_bar.color = Color(0, 1, 1)
+	_target_sh_bar.anchor_top = 0.0
+	_target_sh_bar.anchor_bottom = 1.0
+	_target_sh_bar.anchor_left = 0.0
+	_target_sh_bar.anchor_right = 1.0
+	sh_container.add_child(_target_sh_bar)
+	
+	_target_sh_lbl = Label.new()
+	_target_sh_lbl.add_theme_font_size_override("font_size", 8)
+	_target_sh_lbl.add_theme_color_override("font_color", Color(0.6, 1.0, 1.0))
+	_target_sh_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	_target_sh_lbl.add_theme_constant_override("outline_size", 1)
+	_target_sh_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_target_sh_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_target_sh_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	sh_container.add_child(_target_sh_lbl)
+	
+	# Debuff icons row
+	_target_debuff_hbox = HBoxContainer.new()
+	_target_debuff_hbox.add_theme_constant_override("separation", 3)
+	_target_debuff_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	_target_vbox.add_child(_target_debuff_hbox)
+	
+	add_child(_target_frame)
+	_target_frame.top_level = true
+	_target_frame.position = Vector2(540, 80)
+
+func set_target(entity):
+	if _target_entity == entity: return
+	
+	# Limpiar selección anterior
+	if is_instance_valid(_target_entity):
+		if _target_entity.debuffs_updated.is_connected(_update_target_debuffs):
+			_target_entity.debuffs_updated.disconnect(_update_target_debuffs)
+		_target_entity.is_selected = false
+	
+	_target_entity = entity
+	
+	if not is_instance_valid(entity):
+		clear_target()
+		return
+	
+	entity.is_selected = true
+	_target_frame.visible = true
+	
+	if entity.debuffs_updated.is_connected(_update_target_debuffs):
+		entity.debuffs_updated.disconnect(_update_target_debuffs)
+	entity.debuffs_updated.connect(_update_target_debuffs)
+	
+	_update_target_frame()
+
+func clear_target():
+	if is_instance_valid(_target_entity):
+		if _target_entity.debuffs_updated.is_connected(_update_target_debuffs):
+			_target_entity.debuffs_updated.disconnect(_update_target_debuffs)
+		_target_entity.is_selected = false
+	_target_entity = null
+	if _target_frame: _target_frame.visible = false
+
+func _update_target_frame():
+	if not is_instance_valid(_target_frame): return
+	
+	# En modo edición, mostrar siempre para poder posicionarlo
+	if is_editing_layout:
+		if not _target_frame.visible:
+			_target_frame.visible = true
+		return
+	
+	if not _target_frame.visible: return
+	if not is_instance_valid(_target_entity) or _target_entity.is_dead:
+		clear_target()
+		return
+	
+	var ent = _target_entity
+	
+	var name_text = ent.username
+	if ent.clan_tag != "":
+		name_text = "[%s] %s" % [ent.clan_tag, ent.username]
+	_target_name_lbl.text = name_text
+	
+	var hp = int(ent._display_hp)
+	var max_hp = int(ent.max_hp)
+	var sh = int(ent._display_shield)
+	var max_sh = int(ent.max_shield)
+	
+	_hp_ratio = clamp(hp / float(max_hp) if max_hp > 0 else 0.0, 0.0, 1.0)
+	_sh_ratio = clamp(sh / float(max_sh) if max_sh > 0 else 0.0, 0.0, 1.0)
+	
+	_target_hp_bar.anchor_right = _hp_ratio
+	_target_hp_bar.color = Color(0, 0.8, 0) if _hp_ratio > 0.3 else Color(1, 0, 0)
+	_target_hp_lbl.text = "HP: %d / %d" % [hp, max_hp]
+	
+	_target_sh_bar.anchor_right = _sh_ratio
+	_target_sh_lbl.text = "SH: %d / %d" % [sh, max_sh]
+
+func _update_target_debuffs():
+	if not is_instance_valid(_target_entity) or not _target_debuff_hbox: return
+	
+	for child in _target_debuff_hbox.get_children():
+		child.queue_free()
+	
+	var debuff_list = _target_entity.get_debuffs_snapshot()
+	
+	for d in debuff_list:
+		var dtype = d.get("type", "")
+		var icon = "?"
+		var color = Color(0.5, 0.5, 0.5)
+		
+		for se_key in Entity.DEBUFF_MAP:
+			if Entity.DEBUFF_MAP[se_key].type == dtype:
+				icon = Entity.DEBUFF_MAP[se_key].icon
+				color = Entity.DEBUFF_MAP[se_key].color
+				break
+		
+		if icon == "?":
+			for b_key in Entity.BUFF_MAP:
+				if b_key == dtype:
+					icon = Entity.BUFF_MAP[b_key].icon
+					color = Entity.BUFF_MAP[b_key].color
+					break
+		
+		_add_target_debuff_icon(icon, d.get("time_left", 0.0), color, d.get("stacks", 1))
+
+func _add_target_debuff_icon(icon: String, time_left: float, color: Color, stacks: int):
+	var box = PanelContainer.new()
+	box.custom_minimum_size = Vector2(22, 22)
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(color.r, color.g, color.b, 0.2)
+	sb.border_width_all = 1
+	sb.border_color = Color(color.r, color.g, color.b, 0.5)
+	sb.set_corner_radius_all(2)
+	box.add_theme_stylebox_override("panel", sb)
+	
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 0)
+	box.add_child(vbox)
+	
+	var icon_lbl = Label.new()
+	icon_lbl.text = icon
+	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_lbl.add_theme_font_size_override("font_size", 11)
+	icon_lbl.modulate = Color(color.r, color.g, color.b, 0.85)
+	vbox.add_child(icon_lbl)
+	
+	var time_text = "%.1f" % time_left if time_left < 9.95 else ">9"
+	if stacks > 1:
+		time_text = "%dx" % stacks
+	var txt_lbl = Label.new()
+	txt_lbl.text = time_text
+	txt_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	txt_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	txt_lbl.add_theme_font_size_override("font_size", 7)
+	txt_lbl.add_theme_color_override("font_color", Color.WHITE)
+	txt_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	txt_lbl.add_theme_constant_override("outline_size", 1)
+	vbox.add_child(txt_lbl)
+	
+	_target_debuff_hbox.add_child(box)
 
 # v302.140: Control Flotante AAA de Cámara Libre en Móvil (TouchPad de Órbita 3D + Zoom + Reset)
 func _setup_mobile_camera_pad():

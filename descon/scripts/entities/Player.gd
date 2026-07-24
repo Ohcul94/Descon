@@ -171,17 +171,28 @@ func _on_slow_state(data: Dictionary):
 			slow_timer = 0.0
 
 func _on_status_effects_sync(data: Dictionary):
-	if data.has("slow"): slow_timer = float(data.slow) / 1000.0
-	if data.has("stun"): stun_timer = float(data.stun) / 1000.0
-	if data.has("heal"): heal_timer = float(data.heal) / 1000.0
-	if data.has("healStacks"): heal_stacks = int(data.healStacks)
-	if data.has("bleed"): bleed_timer = float(data.bleed) / 1000.0
-	if data.has("poison"): poison_timer = float(data.poison) / 1000.0
+	if data.has("slow"):
+		slow_timer = float(data.slow) / 1000.0
+		set_debuff_timer("slow", slow_timer)
+	if data.has("stun"):
+		stun_timer = float(data.stun) / 1000.0
+		set_debuff_timer("stun", stun_timer)
+	if data.has("heal"):
+		heal_timer = float(data.heal) / 1000.0
+		heal_stacks = int(data.get("healStacks", 1))
+		set_debuff_timer("heal", heal_timer, heal_stacks)
+	if data.has("bleed"):
+		bleed_timer = float(data.bleed) / 1000.0
+		set_debuff_timer("bleed", bleed_timer)
+	if data.has("poison"):
+		poison_timer = float(data.poison) / 1000.0
+		set_debuff_timer("poison", poison_timer)
 	if data.has("electronSpeedBuff"):
 		var eb = data.electronSpeedBuff
 		electron_speed_buff_timer = float(eb.get("duration", 3000.0)) / 1000.0
 		electron_speed_buff_pct = float(eb.get("pct", 15.0))
 		electron_speed_buff_stacks = int(eb.get("stacks", 1))
+		set_debuff_timer("electron_speed", electron_speed_buff_timer, electron_speed_buff_stacks)
 		_recalculate_stats()
 
 func _on_stun_state(data: Dictionary):
@@ -267,7 +278,7 @@ func _unhandled_input(event):
 		# Procesar Movimiento (Click)
 		if event.pressed:
 			var is_mobile = SettingsManager and SettingsManager.mobile_mode
-			if not is_mobile and (event.button_index == MOUSE_BUTTON_LEFT or event.button_index == MOUSE_BUTTON_RIGHT):
+			if not is_mobile and event.button_index == MOUSE_BUTTON_RIGHT:
 				if get_meta("spawn_locked", false):
 					return
 				var map_node = get_tree().get_first_node_in_group("map")

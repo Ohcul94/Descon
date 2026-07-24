@@ -13,6 +13,22 @@ const SpaceExplosionScript = preload("res://scripts/vfx/SpaceExplosion.gd")
 const WreckageDrawingScript = preload("res://scripts/ui/WreckageDrawing.gd")
 const DashSparkTexture = preload("res://VFX/textures/T_VFX_sparks112.jpg")
 
+signal debuffs_updated
+
+const DEBUFF_MAP = {
+	"stunned": {"type": "stun", "icon": "⛸", "color": Color(0.5, 0.5, 0.5), "name": "Stun"},
+	"bleeding": {"type": "bleed", "icon": "🩸", "color": Color(0.9, 0.1, 0.1), "name": "Bleed"},
+	"poisoned": {"type": "poison", "icon": "🧪", "color": Color(0.7, 0.1, 0.9), "name": "Poison"},
+	"slowed": {"type": "slow", "icon": "❄️", "color": Color(0.0, 0.7, 1.0), "name": "Slow"},
+	"feared": {"type": "fear", "icon": "💫", "color": Color(0.8, 0.2, 0.8), "name": "Fear"},
+	"frozen": {"type": "freeze", "icon": "🧊", "color": Color(0.3, 0.6, 1.0), "name": "Freeze"},
+}
+
+const BUFF_MAP = {
+	"heal": {"icon": "💚", "color": Color(0.0, 0.8, 0.2), "name": "Heal"},
+	"electron_speed": {"icon": "⚡", "color": Color(1.0, 0.8, 0.0), "name": "Speed"},
+}
+
 # Nuevos VFX de escudos
 const VFXShieldHexScene = preload("res://VFX/scenes/VFX_Shield_hex.tscn")
 const VFXShieldDemonScene = preload("res://VFX/scenes/VFX_Shield_demon.tscn")
@@ -124,6 +140,7 @@ var heal_visual_timer: float = 0.0
 var invulnerable_timer: float = 0.0
 var is_invulnerable: bool = false # v2.7: Sincronía autoritativa
 var is_hovered: bool = false # v302.1: Feedback de apuntado
+var is_selected: bool = false # Indicador de target activo
 var _reflect_aura: Sprite2D = null
 var _active_shield_vfx: Node3D = null
 var _heal_shield_scale: float = 1.0
@@ -134,6 +151,7 @@ var _hit_flash_material: ShaderMaterial = null
 var _hit_flash_material_3d: StandardMaterial3D = null
 # v302.5: Feedback de apuntado
 var _hover_outline_material: StandardMaterial3D = null # v302.5: Outline estilo LoL
+var _selection_outline_material: StandardMaterial3D = null # Outline dorado para target
 var _stealth_material: StandardMaterial3D = null
 
 # --- SISTEMA DE PUNTERÍA PROYECTADA (v2.5D) ---
@@ -176,6 +194,8 @@ func get_aim_target_3d(mouse_pos_2d: Vector2) -> Vector3:
 var _status_material: StandardMaterial3D = null
 var _vfx_container_2d: Node2D = null
 var _is_currently_invisible: bool = false
+
+var debuffs: Dictionary = {} # { type: {"time_left": float, "total": float, "stacks": int} }
 var _is_currently_camouflaged: bool = false
 var _is_ally: bool = false
 var _cached_viewport: SubViewport = null # Cache para frustum culling
@@ -544,6 +564,17 @@ func _process(delta):
 	_display_hp = lerp(_display_hp, current_hp, 0.1)
 	_display_shield = lerp(_display_shield, current_shield, 0.1)
 	
+	# Decaimiento de temporizadores de debuffs
+	if not debuffs.is_empty():
+		var changed = false
+		for key in debuffs.keys():
+			debuffs[key].time_left -= delta
+			if debuffs[key].time_left <= 0:
+				debuffs.erase(key)
+				changed = true
+		if changed:
+			debuffs_updated.emit()
+	
 	if abs(_display_hp - last_draw_hp) > 0.05 or abs(_display_shield - last_draw_sh) > 0.05:
 		queue_redraw()
 		if _ui_wrapper: _ui_wrapper.queue_redraw()
@@ -604,7 +635,8 @@ func _process(delta):
 
 	# v302.2: Actualización visual de Outline y reset para el siguiente frame
 	_update_hover_visuals(is_hovered)
-	is_hovered = false 
+	is_hovered = false
+	_update_selection_visuals()
 
 	# v219.98: FÍSICAS 3D DINÁMICAS (BANKING + BOBBING + ÓRBITA)
 	if is_instance_valid(_3d_model) and screen_visible:
@@ -857,6 +889,7 @@ func update_stats(data):
 	
 	if data.has("status_effects"):
 		status_effects = data.status_effects
+		_refresh_debuffs_from_status_effects()
 	
 	# v268.87: Capturar posición desde el paquete de stats para evitar rubber-banding
 	if data.has("x"): target_position.x = _safe_float(data.x, target_position.x)
@@ -1135,6 +1168,50 @@ func _update_tags():
 			else:
 				name_tag.add_theme_color_override("font_outline_color", Color.BLACK)
 				name_tag.add_theme_constant_override("outline_size", 4)
+
+func has_debuff(debuff_type: String) -> bool:
+	return debuffs.has(debuff_type)
+
+func get_debuffs_snapshot() -> Array:
+	var snapshot = []
+	for key in debuffs:
+		var d = debuffs[key]
+		d["type"] = key
+		snapshot.append(d.duplicate())
+	return snapshot
+
+func set_debuff_timer(debuff_type: String, time_left: float, stacks: int = 1):
+	if time_left <= 0:
+		if debuffs.has(debuff_type):
+			debuffs.erase(debuff_type)
+			debuffs_updated.emit()
+		return
+	if debuffs.has(debuff_type):
+		debuffs[debuff_type].time_left = time_left
+		debuffs[debuff_type].total = time_left
+		debuffs[debuff_type].stacks = stacks
+	else:
+		debuffs[debuff_type] = {"time_left": time_left, "total": time_left, "stacks": stacks}
+	debuffs_updated.emit()
+
+func _refresh_debuffs_from_status_effects():
+	var changed = false
+	for se_key in DEBUFF_MAP:
+		var info = DEBUFF_MAP[se_key]
+		var is_active = status_effects.get(se_key, false)
+		if is_active:
+			if not debuffs.has(info.type):
+				debuffs[info.type] = {"time_left": 3.0, "total": 3.0, "stacks": 1}
+				changed = true
+		else:
+			if debuffs.has(info.type):
+				debuffs.erase(info.type)
+				changed = true
+	if changed:
+		debuffs_updated.emit()
+
+func _on_status_effects_sync(_data: Dictionary):
+	pass # Override en Player.gd
 
 func _resurrect(data: Dictionary):
 	# v306.5: Lógica de Resurrección Centralizada (Soluciona Invisibilidad por Culling)
@@ -3233,6 +3310,23 @@ func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
 		if is_instance_valid(_ui_wrapper): 
 			_ui_wrapper.visible = true
 			_ui_wrapper.modulate.a = 1.0
+func _update_selection_visuals():
+	if not is_instance_valid(_3d_model): return
+	
+	if is_selected:
+		if not _selection_outline_material:
+			_selection_outline_material = StandardMaterial3D.new()
+			_selection_outline_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+			_selection_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
+			_selection_outline_material.albedo_color = Color(1, 0.85, 0, 0.25)
+			_selection_outline_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			_selection_outline_material.grow = true
+			_selection_outline_material.grow_amount = 0.005
+			_selection_outline_material.render_priority = 11
+		_apply_material_recursive(_3d_model, _selection_outline_material, true)
+	elif not is_hovered and _flash_timer <= 0.01:
+		_apply_material_recursive(_3d_model, null, true)
+
 func _update_hover_visuals(active: bool):
 	if not is_instance_valid(_3d_model): return
 	
@@ -3242,13 +3336,13 @@ func _update_hover_visuals(active: bool):
 			_hover_outline_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
 			_hover_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
 			# v302.6: Color más suave y armónico (Cian/Blanco con transparencia)
-			_hover_outline_material.albedo_color = Color(0, 1, 1, 0.4) 
+			_hover_outline_material.albedo_color = Color(0, 1, 1, 0.2) 
 			_hover_outline_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			_hover_outline_material.grow = true
-			_hover_outline_material.grow_amount = 0.03 # Un poco más fino
+			_hover_outline_material.grow_amount = 0.004
 			_hover_outline_material.render_priority = 10
 		_apply_material_recursive(_3d_model, _hover_outline_material, true)
-	elif _flash_timer <= 0.01:
+	elif _flash_timer <= 0.01 and not is_selected:
 		# v308.2: Solo borrar el overlay si NO hay un efecto de daño activo
 		_apply_material_recursive(_3d_model, null, true)
 
