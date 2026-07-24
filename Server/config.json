@@ -4897,8 +4897,18 @@
                     "rotY": -90.0,
                     "scale": 10.0,
                     "type": "door",
-                    "x": 2078.0,
-                    "y": 888.0,
+                    "x": 1001.05,
+                    "y": 3135.82,
+                    "yOffset": 5.134
+                },
+                {
+                    "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
+                    "label": "Puerta",
+                    "rotY": -90.0,
+                    "scale": 10.0,
+                    "type": "door",
+                    "x": 5005.5,
+                    "y": 3135.82,
                     "yOffset": 5.134
                 },
                 {

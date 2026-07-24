@@ -545,6 +545,47 @@ func _setup_ui():
 	minimap_lbl.text = "MINIMAPA ROTATORIO (GIRA CON LA NAVE)"
 	row_minimap.add_child(minimap_lbl)
 
+	gfx_vbox.add_child(HSeparator.new())
+
+	# --- VISIBILIDAD DE ELEMENTOS DE ENTIDADES ---
+	var vis_title = Label.new()
+	vis_title.text = "VISIBILIDAD DE ETIQUETAS Y BARRAS:"
+	vis_title.add_theme_color_override("font_color", Color.CYAN)
+	gfx_vbox.add_child(vis_title)
+
+	var make_entity_check = func(label: String, setting_key: String):
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		gfx_vbox.add_child(row)
+
+		var chk = CheckBox.new()
+		chk.text = ""
+		chk.add_theme_stylebox_override("normal", check_style)
+		chk.add_theme_stylebox_override("pressed", check_style)
+		chk.add_theme_stylebox_override("hover", check_style)
+		if get_node_or_null("/root/SettingsManager"):
+			chk.button_pressed = SettingsManager.get(setting_key)
+		chk.toggled.connect(func(val):
+			SettingsManager.set(setting_key, val)
+			SettingsManager.save_settings()
+			if setting_key.ends_with("_bars"):
+				SettingsManager.update_entity_hud_live()
+			else:
+				SettingsManager.update_entity_tags_live()
+		)
+		row.add_child(chk)
+
+		var lbl = Label.new()
+		lbl.text = label
+		row.add_child(lbl)
+
+	make_entity_check.call("TAGS JUGADORES (NOMBRE)", "show_player_tags")
+	make_entity_check.call("TAGS ENEMIGOS (NOMBRE)", "show_enemy_tags")
+	make_entity_check.call("BARRAS VIDA/ESCUDO JUGADORES", "show_player_bars")
+	make_entity_check.call("BARRAS VIDA/ESCUDO ENEMIGOS", "show_enemy_bars")
+	make_entity_check.call("NÚMEROS VIDA/ESCUDO JUGADORES", "show_player_stats")
+	make_entity_check.call("NÚMEROS VIDA/ESCUDO ENEMIGOS", "show_enemy_stats")
+
 	# Bottom spacer para forzar scroll en cualquier pantalla
 	var bot_spacer = Control.new()
 	bot_spacer.custom_minimum_size.y = 200

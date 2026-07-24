@@ -1009,8 +1009,16 @@ func update_stats(data):
 	# Forzar regenerar el tag para enemigos si estamos en local y somos T1/T4 etc
 	_update_tags()
 
+func _force_update_tags():
+	_last_rendered_username = ""
+	_update_tags()
+
 func _update_tags():
 	if not name_tag: return
+	
+	var is_enemy = is_in_group("enemies")
+	var show_tag = SettingsManager.show_enemy_tags if is_enemy else SettingsManager.show_player_tags
+	var show_stats = SettingsManager.show_enemy_stats if is_enemy else SettingsManager.show_player_stats
 	
 	# Verificar si los valores realmente cambiaron para evitar reconstruir el RichTextLabel innecesariamente
 	if (
@@ -1023,6 +1031,9 @@ func _update_tags():
 		is_rage == _last_rendered_is_rage and
 		pvp_status == _last_rendered_pvp_status
 	):
+		# Aún así, actualizar visibilidad por si cambió el setting externamente
+		if is_instance_valid(name_tag):
+			name_tag.visible = show_tag or show_stats
 		return # No cambió nada visual, evitar recálculo
 
 	# Guardar valores actuales
@@ -1055,7 +1066,6 @@ func _update_tags():
 			name_tag = rtl
 			
 	if name_tag:
-		var is_enemy = is_in_group("enemies")
 		var name_sz = SettingsManager.font_size_enemy_name if is_enemy else SettingsManager.font_size_player_name
 		var stats_sz = SettingsManager.font_size_enemy_stats if is_enemy else SettingsManager.font_size_player_stats
 		var name_bold = SettingsManager.bold_enemy_name if is_enemy else SettingsManager.bold_player_name
@@ -1087,21 +1097,33 @@ func _update_tags():
 				var wrap_b_end = "[/b]" if name_bold else ""
 				name_str = wrap_b_start + "[color=" + tag_color + "][" + clan_tag + "][/color]" + wrap_b_end + " " + username
 			
-			var wrap_name_start = "[b]" if name_bold else ""
-			var wrap_name_end = "[/b]" if name_bold else ""
-			if is_rage: txt += wrap_name_start + "[wave amp=50 freq=2][color=" + n_color + "]" + name_str + "[/color][/wave]" + wrap_name_end + "\n"
-			else: txt += wrap_name_start + "[color=" + n_color + "]" + name_str + "[/color]" + wrap_name_end + "\n"
+			if show_tag:
+				var wrap_name_start = "[b]" if name_bold else ""
+				var wrap_name_end = "[/b]" if name_bold else ""
+				if is_rage: txt += wrap_name_start + "[wave amp=50 freq=2][color=" + n_color + "]" + name_str + "[/color][/wave]" + wrap_name_end + "\n"
+				else: txt += wrap_name_start + "[color=" + n_color + "]" + name_str + "[/color]" + wrap_name_end + "\n"
 			
-			var wrap_stats_start = "[b]" if stats_bold else ""
-			var wrap_stats_end = "[/b]" if stats_bold else ""
-			txt += wrap_stats_start + "[color=#00ffff][font_size=" + str(stats_sz) + "]SH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "[/font_size][/color]" + wrap_stats_end + "\n"
-			txt += wrap_stats_start + "[color=#00ff00][font_size=" + str(stats_sz) + "]HP: " + str(int(current_hp)) + " / " + str(int(max_hp)) + "[/font_size][/color]" + wrap_stats_end + "[/center]"
+			if show_stats:
+				var wrap_stats_start = "[b]" if stats_bold else ""
+				var wrap_stats_end = "[/b]" if stats_bold else ""
+				txt += wrap_stats_start + "[color=#00ffff][font_size=" + str(stats_sz) + "]SH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "[/font_size][/color]" + wrap_stats_end + "\n"
+				txt += wrap_stats_start + "[color=#00ff00][font_size=" + str(stats_sz) + "]HP: " + str(int(current_hp)) + " / " + str(int(max_hp)) + "[/font_size][/color]" + wrap_stats_end + "[/center]"
+			
 			name_tag.text = txt
+			name_tag.visible = show_tag or show_stats
 		else: 
 			# Caso Label normal: sin BBCode, color plano
 			var name_str = username
 			if clan_tag != "": name_str = "[" + clan_tag + "] " + username
-			name_tag.text = name_str + "\nSH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "\nHP: " + str(int(current_hp)) + " / " + str(int(max_hp))
+			if show_tag and show_stats:
+				name_tag.text = name_str + "\nSH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "\nHP: " + str(int(current_hp)) + " / " + str(int(max_hp))
+			elif show_tag:
+				name_tag.text = name_str
+			elif show_stats:
+				name_tag.text = "SH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "\nHP: " + str(int(current_hp)) + " / " + str(int(max_hp))
+			else:
+				name_tag.text = ""
+			name_tag.visible = show_tag or show_stats
 			if name_bold or stats_bold:
 				name_tag.add_theme_font_override("font", SettingsManager.get_bold_font())
 			else:

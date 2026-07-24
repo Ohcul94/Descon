@@ -17,6 +17,12 @@ func _draw():
 	if current_map and str(current_map.get("zone_id")) == "100":
 		return
 	
+	# Ocultar barras según configuración del jugador
+	var is_entity_player = entity.is_in_group("player") or entity.is_in_group("remote_players")
+	var show_bars = SettingsManager.show_player_bars if is_entity_player else SettingsManager.show_enemy_bars
+	if not show_bars:
+		return
+	
 	var bar_w = 44.0; var gap = 2.0; var segments = 4
 	var seg_w = (bar_w - (gap * (segments - 1.0))) / float(segments)
 	

@@ -64,6 +64,14 @@ var bold_enemy_stats: bool = false
 var bold_chat_bubble: bool = false
 var bold_menus: bool = false
 
+# Visibilidad de elementos de UI de entidades
+var show_player_tags: bool = true
+var show_enemy_tags: bool = true
+var show_player_bars: bool = true
+var show_enemy_bars: bool = true
+var show_player_stats: bool = true
+var show_enemy_stats: bool = true
+
 var bold_font: SystemFont = null
 
 func _ready():
@@ -125,6 +133,12 @@ func reset_to_factory():
 	cam_use_orthogonal = false
 	show_stars = false
 	minimap_rotate = false
+	show_player_tags = true
+	show_enemy_tags = true
+	show_player_bars = true
+	show_enemy_bars = true
+	show_player_stats = true
+	show_enemy_stats = true
 	apply_fps_limit(60)
 	
 	font_size_player_name = 13
@@ -184,6 +198,12 @@ func save_settings():
 	config_file.set_value("accessibility", "bold_enemy_stats", bold_enemy_stats)
 	config_file.set_value("accessibility", "bold_chat_bubble", bold_chat_bubble)
 	config_file.set_value("accessibility", "bold_menus", bold_menus)
+	config_file.set_value("interface", "show_player_tags", show_player_tags)
+	config_file.set_value("interface", "show_enemy_tags", show_enemy_tags)
+	config_file.set_value("interface", "show_player_bars", show_player_bars)
+	config_file.set_value("interface", "show_enemy_bars", show_enemy_bars)
+	config_file.set_value("interface", "show_player_stats", show_player_stats)
+	config_file.set_value("interface", "show_enemy_stats", show_enemy_stats)
 	
 	for action in default_keys:
 		var events = InputMap.action_get_events(action)
@@ -237,6 +257,12 @@ func load_settings():
 		bold_enemy_stats = config_file.get_value("accessibility", "bold_enemy_stats", false)
 		bold_chat_bubble = config_file.get_value("accessibility", "bold_chat_bubble", false)
 		bold_menus = config_file.get_value("accessibility", "bold_menus", false)
+		show_player_tags = config_file.get_value("interface", "show_player_tags", true)
+		show_enemy_tags = config_file.get_value("interface", "show_enemy_tags", true)
+		show_player_bars = config_file.get_value("interface", "show_player_bars", true)
+		show_enemy_bars = config_file.get_value("interface", "show_enemy_bars", true)
+		show_player_stats = config_file.get_value("interface", "show_player_stats", true)
+		show_enemy_stats = config_file.get_value("interface", "show_enemy_stats", true)
 		print("[SETTINGS] Configuración cargada.")
 	else:
 		cast_mode_cache = 1
@@ -269,6 +295,12 @@ func load_settings():
 		bold_enemy_stats = false
 		bold_chat_bubble = false
 		bold_menus = false
+		show_player_tags = true
+		show_enemy_tags = true
+		show_player_bars = true
+		show_enemy_bars = true
+		show_player_stats = true
+		show_enemy_stats = true
 		print("[SETTINGS] Usando configuración por defecto.")
 
 func apply_fps_limit(limit: int):
@@ -306,8 +338,13 @@ func get_graphics_quality() -> int:
 
 func update_entity_tags_live():
 	for ent in get_tree().get_nodes_in_group("entities"):
-		if is_instance_valid(ent) and ent.has_method("_update_tags"):
-			ent._update_tags()
+		if is_instance_valid(ent) and ent.has_method("_force_update_tags"):
+			ent._force_update_tags()
+
+func update_entity_hud_live():
+	for ent in get_tree().get_nodes_in_group("entities"):
+		if is_instance_valid(ent) and is_instance_valid(ent._ui_wrapper):
+			ent._ui_wrapper.queue_redraw()
 
 func apply_menu_fonts_live():
 	var roots = []
