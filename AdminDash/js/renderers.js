@@ -2821,7 +2821,8 @@ const HUD_ELEMENTS_CONFIG = {
     "PartyHUD":              { name: "👥 PARTY (PartyHUD)", x: 10,    y: 120, w: 200, h: 200 },
     "ControlBar":            { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 260, h: 85 },
     "StatusEffects":         { name: "✨ ESTADOS (StatusEffects)", x: 390,   y: 620, w: 500, h: 55 },
-    "CamTouchPadContainer":  { name: "🎥 CÁMARA (CamTouchPad)", x: 1060,  y: 250, w: 190, h: 230 }
+    "CamTouchPadContainer":  { name: "🎥 CÁMARA (CamTouchPad)", x: 1060,  y: 250, w: 190, h: 230 },
+    "TargetFrame":           { name: "🎯 ENEMIGO (TargetFrame)", x: 540,  y: 80,  w: 200, h: 60 }
 };
 
 function initWebHUDDesigner() {
@@ -2834,8 +2835,12 @@ function initWebHUDDesigner() {
             "PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
             "ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
             "StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
-            "CamTouchPadContainer":  { "x": 1060,  "y": 250,   "scale": 0.5, "alpha": 1.0 }
+            "CamTouchPadContainer":  { "x": 1060,  "y": 250,   "scale": 0.5, "alpha": 1.0 },
+            "TargetFrame":     { "x": 540,   "y": 80,    "scale": 0.5, "alpha": 1.0 }
         };
+    } else if (!config.pilotConfig.defaultLayout["TargetFrame"]) {
+        // Asegurar que TargetFrame tenga posición aunque no esté en el layout guardado previamente
+        config.pilotConfig.defaultLayout["TargetFrame"] = { "x": 540, "y": 80, "scale": 0.5, "alpha": 1.0 };
     }
 
     const layout = config.pilotConfig.defaultLayout;

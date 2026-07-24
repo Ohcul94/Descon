@@ -417,7 +417,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"] or "Chat" in node.name or "Party" in node.name
+			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame"] or "Chat" in node.name or "Party" in node.name
 			
 			if is_corner_win:
 				# v1.45: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) SIN MUTILACIÓN ESCALAR
@@ -433,6 +433,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 					rs_temp = Vector2(260, 85) if rows_val == 2 else Vector2(420, 45)
 				elif node.name == "Skills": rs_temp = Vector2(575, 65)
 				elif node.name == "StatusEffects": rs_temp = Vector2(500, 55)
+				elif node.name == "TargetFrame": rs_temp = Vector2(200, 60)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
@@ -1190,6 +1191,15 @@ func toggle_hud_editing(slot_index: int = -1):
 					var final_v = v * 2.0
 					_selected_node_for_editing.scale = Vector2(final_v, final_v)
 					scale_val_edit.text = str(int(final_v * 100))
+					
+					# v312.40: Forzar sincronización de escala y posición en overlays top-level (como TargetFrame)
+					var overlay = _selected_node_for_editing.get_node_or_null("DragOverlay")
+					if overlay and overlay.visible:
+						overlay.scale = _selected_node_for_editing.scale
+						overlay.global_position = _selected_node_for_editing.global_position
+						overlay.pivot_offset = _selected_node_for_editing.pivot_offset
+						overlay.size = _selected_node_for_editing.size
+					
 					if _selected_node_for_editing.name == "Skills":
 						var handle = get_node_or_null("SkillsMasterHandle")
 						if handle: handle.global_position = _selected_node_for_editing.global_position + Vector2(-35, 0)
@@ -1442,7 +1452,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
 		
-		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"] or "Chat" in win.name or "Party" in win.name
+		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame"] or "Chat" in win.name or "Party" in win.name
 		
 		if is_corner_win:
 			# v1.45: Revertir márgenes absolutos a proporciones nominales base sin mutilación
@@ -1458,6 +1468,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				base_w = 260 if rows_cb == 2 else 420
 				base_h = 85 if rows_cb == 2 else 45
 			elif "StatusEffects" in win.name: base_w = 500; base_h = 55
+			elif "TargetFrame" in win.name: base_w = 200; base_h = 60
 			
 			var godot_w = win.size.x * win.scale.x
 			var godot_h = win.size.y * win.scale.y
@@ -1598,7 +1609,7 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 				if target.name.contains("Slot"): margin = 5
 				
 				# v306.18: Solo aplicar márgenes a contenedores de primer nivel del HUD, no a los anidados para evitar desbordamiento
-				if target is HUDWindow or target.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills"]:
+				if target is HUDWindow or target.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame"]:
 					if "Party" in target.name:
 						# Centrar horizontalmente (ancho 160) y estirar verticalmente con márgenes de 25px
 						child.layout_mode = 1
@@ -2214,6 +2225,7 @@ func _setup_target_frame():
 	_target_frame = PanelContainer.new()
 	_target_frame.name = "TargetFrame"
 	_target_frame.custom_minimum_size = Vector2(200, 60)
+	_target_frame.pivot_offset = Vector2(100, 30)
 	
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0.04, 0.04, 0.1, 0.88)
