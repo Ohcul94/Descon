@@ -251,20 +251,10 @@ func cancel_aiming():
 	queue_redraw()
 	print("[SKILL] Apuntado cancelado.")
 
-
 func _draw():
 	if not is_aiming: return
-	if current_skill.get("type") == SkillType.INSTANT:
-		# PROVOCACION: show charging ring centered on player instead of default INSTANT behavior
-		var s_name = current_skill.get("skill_name", "")
-		if s_name == "PROVOCACION":
-			_draw_charge_indicator()
-		return
 	
-	var range_val = current_skill.get("range", 500.0)
-	var color = config.indicator_color
-	
-	# v420.3: Detectar si estamos en perspectiva 3D para proyectar indicadores correctamente
+	# v325.2: Detectar perspectiva 3D y crear proyector local
 	var parent_entity = get_parent()
 	var parent_map = parent_entity._get_map_node() if parent_entity.has_method("_get_map_node") else null
 	var use_perspective = is_instance_valid(parent_map) and not parent_map.use_orthogonal
@@ -275,6 +265,80 @@ func _draw():
 		sub_vp = parent_map.get("sub_viewport")
 		use_perspective = is_instance_valid(cam3d) and is_instance_valid(sub_vp)
 	
+	var s_factor = parent_map.scale_factor if is_instance_valid(parent_map) else 0.02
+	var correction_z = parent_map.correction_z if is_instance_valid(parent_map) else 1.41421356
+	
+	var _proj = func(offset_2d: Vector2) -> Vector2:
+		if not use_perspective:
+			return offset_2d
+		var world_offset = offset_2d.rotated(parent_entity.rotation)
+		var world_2d = parent_entity.global_position + world_offset
+		var pos_3d = Vector3(world_2d.x * s_factor, 0.0, world_2d.y * s_factor * correction_z)
+		if cam3d.is_position_behind(pos_3d):
+			return offset_2d
+		var sv_px = cam3d.unproject_position(pos_3d)
+		var container = parent_map.viewport_container if parent_map else null
+		var sub_size = Vector2(sub_vp.size) if is_instance_valid(sub_vp) and sub_vp.size.x > 0 else Vector2.ZERO
+		var container_size = Vector2(container.size) if is_instance_valid(container) and container.size.x > 0 else Vector2.ZERO
+		if sub_size.x > 0 and container_size.x > 0 and sub_size != container_size:
+			sv_px *= container_size / sub_size
+		var container_offset = Vector2.ZERO
+		if is_instance_valid(container):
+			container_offset = container.global_position
+		sv_px += container_offset
+		var world_2d_vis = get_viewport().get_canvas_transform().affine_inverse() * sv_px
+		return to_local(world_2d_vis)
+
+	var s_name = current_skill.get("skill_name", "")
+
+	if current_skill.get("type") == SkillType.INSTANT:
+		if s_name == "PROVOCACION":
+			# Indicador de carga proyectado en 3D a escala real 1:1
+			var radius_val = 220.0
+			if GameConstants.SKILLS_DATA.has(s_name):
+				radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 220.0))
+			
+			var elapsed = min((Time.get_ticks_msec() / 1000.0) - _charge_start_time, MAX_CHARGE_TIME)
+			var charge_pct = elapsed / MAX_CHARGE_TIME
+			
+			var draw_color = Color(1.0, 0.25, 0.2, 0.45)
+			var fill_color = Color(1.0, 0.6, 0.1, 0.7)
+			
+			# Círculo de rango máximo real
+			if use_perspective:
+				var steps = 64
+				var pts_max = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					pts_max.append(_proj.call(Vector2(cos(ang), sin(ang)) * radius_val))
+				draw_polyline(pts_max, draw_color, 1.5)
+			else:
+				draw_arc(Vector2.ZERO, radius_val, 0, TAU, 64, draw_color, 1.5)
+				
+			# Círculo de expansión de carga
+			var current_r = radius_val * charge_pct
+			if use_perspective:
+				var steps = 64
+				var pts_charge = PackedVector2Array()
+				for i in range(steps + 1):
+					var ang = (float(i) / steps) * TAU
+					pts_charge.append(_proj.call(Vector2(cos(ang), sin(ang)) * current_r))
+				draw_polyline(pts_charge, fill_color, 2.5)
+				
+				if charge_pct >= 0.95:
+					var pts_flash = PackedVector2Array()
+					for i in range(steps + 1):
+						var ang = (float(i) / steps) * TAU
+						pts_flash.append(_proj.call(Vector2(cos(ang), sin(ang)) * radius_val * 1.05))
+					draw_polyline(pts_flash, Color(1.0, 1.0, 1.0, 0.4 + sin(Time.get_ticks_msec() / 80.0) * 0.3), 3.0)
+			else:
+				draw_arc(Vector2.ZERO, current_r, 0, TAU, 64, fill_color, 2.5)
+				if charge_pct >= 0.95:
+					draw_arc(Vector2.ZERO, radius_val * 1.05, 0, TAU, 64, Color(1.0, 1.0, 1.0, 0.4 + sin(Time.get_ticks_msec() / 80.0) * 0.3), 3.0)
+		return
+	
+	var range_val = current_skill.get("range", 500.0)
+	var color = config.indicator_color
 	
 	# Obtener la posición visual del origen (la nave del jugador)
 	var origin_vis: Vector2 = global_position
@@ -282,46 +346,6 @@ func _draw():
 		var vp = parent_entity.get_visual_position()
 		if vp != Vector2.ZERO:
 			origin_vis = vp
-	
-	var s_factor = parent_map.scale_factor if is_instance_valid(parent_map) else 0.02
-	var correction_z = parent_map.correction_z if is_instance_valid(parent_map) else 1.41421356
-	
-	# Convierte un desplazamiento 2D lógico (relativo a la nave) en un desplazamiento visual en pantalla
-	# v420.4: Proyección robusta con escala correcta SubViewport→Container→Pantalla
-	var _proj = func(offset_2d: Vector2) -> Vector2:
-		if not use_perspective:
-			return offset_2d  # En ortogonal: directo
-		# 1. El offset_2d está en el espacio local del CanvasItem.
-		# Como el CanvasItem está rotado con el jugador, debemos rotar el offset_2d 
-		# con la rotación de la nave para obtener el offset lógico global real del mundo.
-		var world_offset = offset_2d.rotated(parent_entity.rotation)
-		# 2. Posición 2D global lógica en el mundo
-		var world_2d = parent_entity.global_position + world_offset
-		# 3. Convertir a 3D
-		var pos_3d = Vector3(world_2d.x * s_factor, 0.0, world_2d.y * s_factor * correction_z)
-		if cam3d.is_position_behind(pos_3d):
-			return offset_2d  # Fallback si está detrás
-		# Proyectar a píxeles del SubViewport
-		var sv_px = cam3d.unproject_position(pos_3d)
-		
-		# v420.4: Escalar SubViewport → Container → Pantalla correctamente
-		# Cuando stretch=true, el SubViewport se escala al tamaño del Container.
-		# Debemos escalar sv_px por (container_size / sub_vp_size) para tener píxeles de pantalla.
-		var container = parent_map.viewport_container if parent_map else null
-		var sub_size = Vector2(sub_vp.size) if is_instance_valid(sub_vp) and sub_vp.size.x > 0 else Vector2.ZERO
-		var container_size = Vector2(container.size) if is_instance_valid(container) and container.size.x > 0 else Vector2.ZERO
-		if sub_size.x > 0 and container_size.x > 0 and sub_size != container_size:
-			sv_px *= container_size / sub_size
-		
-		# v420.4: Si el container tiene un offset en pantalla (no está en (0,0)), compensarlo
-		var container_offset = Vector2.ZERO
-		if is_instance_valid(container):
-			container_offset = container.global_position
-		sv_px += container_offset
-			
-		# Convertir a coordenadas mundo 2D y luego a espacio local de este nodo
-		var world_2d_vis = get_viewport().get_canvas_transform().affine_inverse() * sv_px
-		return to_local(world_2d_vis)
 	
 	# Dibujar círculo de rango máximo (proyectando puntos individuales en perspectiva)
 	if range_val > 0:
@@ -338,7 +362,6 @@ func _draw():
 			draw_arc(Vector2.ZERO, range_val, 0, TAU, 64, color, 2.0)
 	
 	# v420.5: El aim_vec lee mouse_world_pos_2d del mapa (calculado por el cursor 3D world-space).
-	# Un único raycast en BaseMap._update_world_cursor() — cero conversiones adicionales aquí.
 	var is_mobile = get_node_or_null("/root/SettingsManager") and SettingsManager.mobile_mode
 	var aim_vec: Vector2
 	if external_aim_vector != Vector2.ZERO:
@@ -348,7 +371,6 @@ func _draw():
 			aim_vec = Vector2.ZERO
 		else:
 			if use_perspective:
-				# Leer directamente la posición del mundo ya calculada por el cursor 3D del mapa
 				if is_instance_valid(parent_map) and parent_map.mouse_world_pos_2d != Vector2.ZERO:
 					var diff_logic = parent_map.mouse_world_pos_2d - parent_entity.global_position
 					aim_vec = diff_logic.rotated(-parent_entity.rotation)
@@ -369,7 +391,6 @@ func _draw():
 		var origin_local = to_local(origin_vis) if use_perspective else Vector2.ZERO
 		
 		# v2.9: Ocultar línea para habilidades de teletransporte o minas
-		var s_name = current_skill.get("skill_name", "")
 		if s_name != "BLINK" and s_name != "REGENERACIÓN ALFA" and current_skill.id != "mine" and current_skill.id != "electron" and current_skill.id != "emp" and s_name != "BARRERA DE VIENTO":
 			draw_line(origin_local, end_proj, Color(color.r, color.g, color.b, 0.6), 3.0)
 		
@@ -457,8 +478,6 @@ func _draw():
 			draw_circle(end_proj, 8.0, color)
 		
 	elif current_skill.get("type") == SkillType.AREA:
-		# v5.0: Área de colocación en suelo (Resurrección, Baliza, Provocación)
-		var s_name = current_skill.get("skill_name", "")
 		var dist = aim_vec.length()
 		var end_point = aim_vec
 		if range_val > 0 and dist > range_val:
@@ -516,20 +535,3 @@ func _draw():
 				draw_circle(_proj.call(aim_vec), 15.0, Color(1, 1, 1, 0.2))
 			else:
 				draw_circle(aim_vec, 15.0, Color(1, 1, 1, 0.2))
-
-func _draw_charge_indicator():
-	var radius_val = 220.0
-	var s_name = current_skill.get("skill_name", "")
-	if GameConstants.SKILLS_DATA.has(s_name):
-		radius_val = float(GameConstants.SKILLS_DATA[s_name].get("radius", 220.0))
-	
-	var elapsed = min((Time.get_ticks_msec() / 1000.0) - _charge_start_time, MAX_CHARGE_TIME)
-	var charge_pct = elapsed / MAX_CHARGE_TIME
-	
-	var center = to_local(global_position)
-	var max_r = radius_val * 0.5
-	draw_arc(center, max_r, 0, TAU, 48, Color(1.0, 0.25, 0.2, 0.35), 1.5)
-	var fill_r = max_r * (0.05 + charge_pct * 0.95)
-	draw_arc(center, fill_r, 0, TAU, 48, Color(1.0, 0.6, 0.1, 0.7), 2.5)
-	if charge_pct >= 0.95:
-		draw_arc(center, max_r * 1.1, 0, TAU, 48, Color(1.0, 1.0, 1.0, 0.4 + sin(Time.get_ticks_msec() / 80.0) * 0.3), 3.0)

@@ -2638,42 +2638,44 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 		
 		"TAUNT_ACTIVATE":
 			if is_instance_valid(_3d_model):
-				var parts = GPUParticles3D.new()
-				parts.amount = 16
-				parts.lifetime = 0.8
+				var parts = CPUParticles3D.new()
+				parts.amount = 24
+				parts.lifetime = 1.2
 				parts.one_shot = false
-				parts.explosiveness = 0.3
-				parts.preprocess = 0.4
-
+				parts.explosiveness = 0.2
+				
+				# Mesh de partículas más grande y visible
 				var mesh = QuadMesh.new()
-				mesh.size = Vector2(0.3, 0.3)
+				mesh.size = Vector2(0.8, 0.8)
 				var mat = StandardMaterial3D.new()
-				mat.albedo_color = Color(1.0, 0.3, 0.15, 1.0)
+				mat.albedo_color = Color(1.0, 0.35, 0.15, 1.0)
 				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 				mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
 				mesh.material = mat
-				parts.draw_pass_1 = mesh
+				parts.mesh = mesh
 
-				var pm = ParticleProcessMaterial.new()
-				pm.direction = Vector3.UP
-				pm.spread = 180.0
-				pm.gravity = Vector3.ZERO
-				pm.initial_velocity_min = 0.0
-				pm.initial_velocity_max = 0.1
-				pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
-				pm.emission_sphere_radius = 1.8
-				pm.scale_min = 1.0
-				pm.scale_max = 3.0
+				# Configurar comportamiento de la física de la partícula en CPU
+				parts.direction = Vector3.UP
+				parts.spread = 180.0
+				parts.gravity = Vector3.ZERO
+				parts.initial_velocity_min = 0.5
+				parts.initial_velocity_max = 2.0
+				parts.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+				parts.emission_sphere_radius = 2.0
+				
+				# Escala dinámica (se encogen al desvanecerse)
+				parts.scale_amount_min = 0.6
+				parts.scale_amount_max = 1.6
+
+				# Rampa de color (Naranja furia -> Rojo suave -> Transparente)
 				var grad = Gradient.new()
-				grad.set_color(0, Color(1.0, 0.4, 0.2, 0.6))
-				grad.add_point(0.5, Color(1.0, 0.2, 0.1, 0.2))
+				grad.set_color(0, Color(1.0, 0.5, 0.2, 0.8))
+				grad.add_point(0.5, Color(1.0, 0.2, 0.1, 0.4))
 				grad.set_color(grad.get_point_count() - 1, Color(0.5, 0.0, 0.0, 0.0))
-				pm.color_ramp = GradientTexture1D.new()
-				pm.color_ramp.gradient = grad
+				parts.color_ramp = grad
 
-				parts.process_material = pm
 				_3d_model.add_child(parts)
 				parts.emitting = true
 				var tw = create_tween()

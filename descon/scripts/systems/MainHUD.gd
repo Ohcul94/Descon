@@ -234,22 +234,23 @@ func _input(event: InputEvent):
 				if handle and handle.visible and handle.get_global_rect().has_point(event.position):
 					clicked_node = skills_hud
 				
-				# 2. Chequear slots individuales (en orden inverso)
-				if not clicked_node and skills_hud:
-					for i in range(skills_hud.get_child_count() - 1, -1, -1):
-						var child = skills_hud.get_child(i)
-						if child is Control and child.name != "DragOverlay" and child.visible:
+				# 2. Chequear colisión con las cajas celestes visuales (DragOverlay) del Canvas Layer de Edición
+				var edit_container = get_node_or_null("EditLayoutUI")
+				if not clicked_node and edit_container:
+					var candidates = []
+					for child in edit_container.get_children():
+						if child.name.begins_with("DragOverlay_") and child.visible:
 							if child.get_global_rect().has_point(event.position):
-								clicked_node = child
-								break
-				
-				# 3. v266.220: Chequear Ventanas Mayores (Stats, Mapa, Chat, Equipo, Iconos)
-				if not clicked_node:
-					for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamTouchPadContainer"]:
-						var win = _get_hud_node(win_id)
-						if win and win.visible and win.get_global_rect().has_point(event.position):
-							clicked_node = win
-							break
+								candidates.append(child)
+								
+					if candidates.size() > 0:
+						# Ordenar por área (de menor a mayor) para dar prioridad absoluta a botones y elementos específicos
+						candidates.sort_custom(func(a, b):
+							return (a.size.x * a.size.y) < (b.size.x * b.size.y)
+						)
+						var selected_overlay = candidates[0]
+						var hud_id = selected_overlay.name.replace("DragOverlay_", "")
+						clicked_node = _get_hud_node(hud_id)
 				
 				if clicked_node:
 					_dragging_node = clicked_node
@@ -424,7 +425,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame"] or "Chat" in node.name or "Party" in node.name
+			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer"] or "Chat" in node.name or "Party" in node.name
 			
 			if is_corner_win:
 				# v1.45: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) SIN MUTILACIÓN ESCALAR
@@ -441,6 +442,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif node.name == "Skills": rs_temp = Vector2(575, 65)
 				elif node.name == "StatusEffects": rs_temp = Vector2(500, 55)
 				elif node.name == "TargetFrame": rs_temp = Vector2(200, 60)
+				elif node.name == "PortalBtnContainer": rs_temp = Vector2(200, 100)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
@@ -454,21 +456,35 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				var original_h = 800.0
 				var f_pos = Vector2.ZERO
 				
-				# X: Preservar margen absoluto nominal
-				if rx + (base_w / 2.0) > (original_w / 2.0):
+				# X: Alineación inteligente de 3 vías (Izquierda, Centro, Derecha)
+				var cx = rx + (base_w / 2.0)
+				if cx < 426.0:
+					# 1. Alineado a la izquierda
+					f_pos.x = rx
+				elif cx > 854.0:
+					# 2. Alineado a la derecha
 					var margin_right = original_w - (rx + base_w)
-					if margin_right < 0: margin_right = 0 # v308.50: Evitar que se desplace fuera del borde derecho
+					if margin_right < 0: margin_right = 0
 					f_pos.x = _screen_size.x - godot_visual_w - margin_right
 				else:
-					f_pos.x = rx
+					# 3. Alineado al centro
+					var offset_x = cx - 640.0
+					f_pos.x = (_screen_size.x / 2.0) + offset_x - (godot_visual_w / 2.0)
 					
-				# Y: Preservar margen absoluto nominal
-				if ry + (base_h / 2.0) > (original_h / 2.0):
+				# Y: Alineación inteligente de 3 vías (Arriba, Centro, Abajo)
+				var cy = ry + (base_h / 2.0)
+				if cy < 266.0:
+					# 1. Alineado arriba
+					f_pos.y = ry
+				elif cy > 534.0:
+					# 2. Alineado abajo
 					var margin_bottom = original_h - (ry + base_h)
-					if margin_bottom < 0: margin_bottom = 0 # v308.50: Evitar que se desplace fuera del borde inferior
+					if margin_bottom < 0: margin_bottom = 0
 					f_pos.y = _screen_size.y - godot_visual_h - margin_bottom
 				else:
-					f_pos.y = ry
+					# 3. Alineado al centro
+					var offset_y = cy - 400.0
+					f_pos.y = (_screen_size.y / 2.0) + offset_y - (godot_visual_h / 2.0)
 					
 				node.global_position = f_pos
 			else:
@@ -559,6 +575,10 @@ func _process(_delta):
 	
 	# Actualizar target frame
 	_update_target_frame()
+	
+	# v325.2: Sincronizar todos los overlays de arrastre si estamos editando el layout
+	if is_editing_layout:
+		_sync_all_drag_overlays()
 
 func _on_minimize_pressed(id: String):
 	var node = _get_hud_node(id)
@@ -1142,14 +1162,10 @@ func toggle_hud_editing(slot_index: int = -1):
 			edit_container.add_child(panel)
 			
 			panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-			panel.custom_minimum_size.y = 80
+			panel.custom_minimum_size.y = 50
 			panel.alignment = BoxContainer.ALIGNMENT_CENTER
-			panel.add_theme_constant_override("separation", 30)
-			
-			var vbox = VBoxContainer.new()
-			vbox.name = "TopBarContent"
-			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-			panel.add_child(vbox)
+			panel.add_theme_constant_override("separation", 20)
+			panel.offset_top = 10
 			
 			var prop_panel = PanelContainer.new()
 			prop_panel.name = "PropertyPanel"
@@ -1279,67 +1295,51 @@ func toggle_hud_editing(slot_index: int = -1):
 					if _selected_node_for_editing.has_method("set_rows"):
 						_selected_node_for_editing.set_rows(r_count)
 						await get_tree().process_frame
-						var overlay = _selected_node_for_editing.get_node_or_null("DragOverlay")
+						var overlay = edit_container.get_node_or_null("DragOverlay_" + _selected_node_for_editing.name) if edit_container else null
 						if overlay:
-							overlay.global_position = _selected_node_for_editing.global_position
-							overlay.size = _selected_node_for_editing.size
-							overlay.scale = _selected_node_for_editing.scale
+							_sync_overlay_for_node(_selected_node_for_editing, _selected_node_for_editing.name)
 			)
-			
-			var title_lbl = Label.new()
-			title_lbl.name = "TitleLabel"
-			var s_name = "Manual"
-			if _editing_slot_index >= 0 and _editing_slot_index < _hud_layouts.size():
-				s_name = _hud_layouts[_editing_slot_index].name
-			title_lbl.text = "EDITANDO LAYOUT: " + s_name.to_upper()
-			title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			title_lbl.add_theme_color_override("font_color", Color.CYAN)
-			vbox.add_child(title_lbl)
-			
-			var btns_hbox = HBoxContainer.new()
-			btns_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-			btns_hbox.add_theme_constant_override("separation", 20)
-			vbox.add_child(btns_hbox)
 			
 			var save_btn = Button.new()
 			save_btn.text = " ✔ GUARDAR CAMBIOS "
 			save_btn.modulate = Color.GREEN
+			save_btn.custom_minimum_size = Vector2(170, 38)
 			save_btn.pressed.connect(func():
 				_save_hud_positions(_editing_slot_index)
 				toggle_hud_editing()
 			)
-			btns_hbox.add_child(save_btn)
+			panel.add_child(save_btn)
 			
 			var cancel_btn = Button.new()
 			cancel_btn.text = " ✕ SALIR SIN GUARDAR "
 			cancel_btn.modulate = Color.ORANGE
+			cancel_btn.custom_minimum_size = Vector2(170, 38)
 			cancel_btn.pressed.connect(func():
 				_restore_layout_backup()
 				if is_editing_layout:
 					toggle_hud_editing(-1) 
 			)
-			btns_hbox.add_child(cancel_btn)
+			panel.add_child(cancel_btn)
 			
 			var restore_btn = Button.new()
 			restore_btn.text = " ↺ VALORES DE FÁBRICA "
 			restore_btn.modulate = Color.RED
+			restore_btn.custom_minimum_size = Vector2(170, 38)
 			restore_btn.pressed.connect(_restore_default_layout)
-			btns_hbox.add_child(restore_btn)
+			panel.add_child(restore_btn)
 			
 			add_child(edit_container)
 		
-		var current_slot_name = "Manual"
-		if _editing_slot_index >= 0 and _editing_slot_index < _hud_layouts.size():
-			current_slot_name = _hud_layouts[_editing_slot_index].name
-		
-		var t_lbl = edit_container.find_child("TitleLabel", true, false)
-		if t_lbl: t_lbl.text = "EDITANDO LAYOUT: " + current_slot_name.to_upper()
 		edit_container.visible = true
 	else:
 		if edit_container: 
 			var pp = edit_container.find_child("PropertyPanel", true, false)
 			if pp: pp.visible = false
 			edit_container.visible = false
+			# Destruir overlays de arrastre al cerrar el editor
+			for child in edit_container.get_children():
+				if child.name.begins_with("DragOverlay_"):
+					child.queue_free()
 		_editing_slot_index = -1
 	
 	if is_instance_valid(_settings_menu): _settings_menu.close()
@@ -1387,46 +1387,132 @@ func toggle_hud_editing(slot_index: int = -1):
 func _make_node_draggable(node: Control, _hud_id: String):
 	if not node: return
 	
-	var overlay = node.get_node_or_null("DragOverlay")
+	var edit_container = get_node_or_null("EditLayoutUI")
+	var overlay = edit_container.get_node_or_null("DragOverlay_" + _hud_id) if edit_container else null
 	if is_editing_layout:
-		if not overlay:
-			overlay = ColorRect.new()
-			overlay.name = "DragOverlay"
-			overlay.color = Color(0, 1, 1, 0.4)
+		if not overlay and edit_container:
+			# v325.2: Usar Control con ColorRect y ReferenceRect sobre edit_container para evitar recortes (clip_contents) de padres
+			overlay = Control.new()
+			overlay.name = "DragOverlay_" + _hud_id
 			overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 			
-			var border = ReferenceRect.new()
-			border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-			border.border_color = Color.CYAN
-			border.border_width = 3
-			border.editor_only = false
-			overlay.add_child(border)
-			node.add_child(overlay)
+			var is_circular = _hud_id in ["PortalBtnContainer", "VirtualJoystick"]
 			
-			if node is Container:
-				overlay.top_level = true
-				overlay.anchor_right = 0
-				overlay.anchor_bottom = 0
-				var sync = func(): 
-					overlay.global_position = node.global_position
-					overlay.size = node.size
-					overlay.scale = node.scale
-					overlay.pivot_offset = node.pivot_offset
-				node.resized.connect(sync)
-				node.item_rect_changed.connect(sync)
-				sync.call()
-			else:
-				overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			# Fondo translúcido (solo si no es circular)
+			var bg = ColorRect.new()
+			bg.name = "Background"
+			bg.color = Color(0.0, 0.04, 0.07, 0.35)
+			bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			bg.visible = not is_circular
+			overlay.add_child(bg)
+			
+			# Borde finito de 1 píxel (solo si no es circular)
+			var border = ReferenceRect.new()
+			border.name = "Border"
+			border.border_color = Color(0.0, 0.85, 1.0, 0.85)
+			border.border_width = 1.0
+			border.editor_only = false
+			border.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			border.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			border.visible = not is_circular
+			overlay.add_child(border)
+			
+			# Dibujo circular vectorial premium
+			if is_circular:
+				var circle_draw = func():
+					var center = overlay.size / 2.0
+					var radius = overlay.size.x / 2.0 - 1.0
+					overlay.draw_circle(center, radius, Color(0.0, 0.04, 0.07, 0.35))
+					overlay.draw_arc(center, radius, 0, TAU, 64, Color(0.0, 0.85, 1.0, 0.85), 1.0, true)
+				overlay.draw.connect(circle_draw)
+			
+			# Añadir etiqueta descriptiva pequeña en el centro (solo si no es slot de Habilidad/Esfera)
+			var is_slot = "Slot" in _hud_id or _hud_id in ["Util1", "Util2", "Def", "Cur"]
+			if not is_slot:
+				var lbl = Label.new()
+				lbl.name = "OverlayLabel"
+				var clean_name = _hud_id
+				if clean_name == "ChatUI": clean_name = "CHAT"
+				elif clean_name == "CenterStats": clean_name = "ESTADÍSTICAS"
+				elif clean_name == "RadarWindow": clean_name = "MINIMAPA"
+				elif clean_name == "PartyHUD": clean_name = "EQUIPO"
+				elif clean_name == "ControlBar": clean_name = "CONTROLES"
+				elif clean_name == "StatusEffects": clean_name = "ESTADOS ACTÍVOS"
+				elif clean_name == "TargetFrame": clean_name = "MARCO OBJETIVO"
+				elif clean_name == "VirtualJoystick": clean_name = "JOYSTICK"
+				elif clean_name == "PortalBtnContainer": clean_name = "BOTÓN ACCIÓN"
+				elif clean_name == "CamEdit": clean_name = "CAM 3D"
+				elif clean_name == "Skills": clean_name = "CONTENEDOR HABILIDADES"
+				
+				lbl.text = clean_name
+				lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				lbl.add_theme_font_size_override("font_size", 9)
+				lbl.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0, 0.95))
+				lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+				lbl.add_theme_constant_override("outline_size", 2)
+				lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+				overlay.add_child(lbl)
+			
+			edit_container.add_child(overlay)
 		
-		overlay.visible = true
-		node.move_child(overlay, node.get_child_count() - 1)
+		if overlay:
+			overlay.visible = true
+			_sync_overlay_for_node(node, _hud_id)
 		
+		# Desactivar botones táctiles e interactivos del juego para evitar que consuman clicks en el editor
 		var t_btn = node.get_node_or_null("TouchButton")
 		if t_btn: t_btn.disabled = true
+		var click_btn = node.find_child("ClickButton", true, false)
+		if click_btn and click_btn is Button: click_btn.disabled = true
 	elif overlay:
 		overlay.visible = false
 		var t_btn = node.get_node_or_null("TouchButton")
 		if t_btn: t_btn.disabled = false
+		var click_btn = node.find_child("ClickButton", true, false)
+		if click_btn and click_btn is Button: click_btn.disabled = false
+
+func _sync_all_drag_overlays():
+	if skills_hud:
+		for child in skills_hud.get_children():
+			if child is Control and child.name != "DragOverlay":
+				_sync_overlay_for_node(child, child.name)
+				
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit"]
+	if SettingsManager and SettingsManager.mobile_mode:
+		wins.append("VirtualJoystick")
+		
+	for win_id in wins:
+		var win = _get_hud_node(win_id)
+		if win:
+			_sync_overlay_for_node(win, win_id)
+
+func _sync_overlay_for_node(node: Control, hud_id: String):
+	var edit_container = get_node_or_null("EditLayoutUI")
+	if not edit_container: return
+	var overlay = edit_container.get_node_or_null("DragOverlay_" + hud_id)
+	if is_instance_valid(overlay) and overlay.visible:
+		# v325.2: Sincronizar en base a dimensiones multiplicadas por la escala, manteniendo escala=1.0 para bordes vectoriales perfectos de 1px
+		var target_node = node
+		if hud_id == "PortalBtnContainer":
+			var btn = node.find_child("PortalJumpBtn", true, false)
+			if btn: target_node = btn
+			
+		var size_temp = target_node.size
+		if "Slot" in target_node.name or target_node.name in ["Util1", "Util2", "Def", "Cur"]:
+			size_temp = Vector2(65, 65)
+		elif size_temp.x <= 0:
+			size_temp = target_node.get_combined_minimum_size()
+		if size_temp.x <= 0:
+			size_temp = Vector2(100, 100)
+			
+		var sc = target_node.scale
+		overlay.size = size_temp * sc
+		overlay.scale = Vector2.ONE # Mantener escala limpia para que el StyleBoxFlat/ReferenceRect dibuje bordes nítidos de 1px
+		
+		# Ajustar la posición global basándonos en el pivote del nodo original
+		overlay.global_position = target_node.global_position + target_node.pivot_offset * (Vector2.ONE - sc)
 
 var _dragging_node: Control = null
 var _drag_offset: Vector2 = Vector2.ZERO
@@ -1455,16 +1541,37 @@ func apply_layout_slot(index: int):
 		active_slot_index = -1
 		_restore_default_layout()
 
+func rename_layout_slot(index: int, new_name: String):
+	if index < 0 or index >= 4: return
+	
+	# Asegurar que la lista local tenga los slots necesarios
+	while _hud_layouts.size() <= index:
+		_hud_layouts.append({
+			"name": "Slot %d" % (_hud_layouts.size() + 1),
+			"positions": {}
+		})
+		
+	_hud_layouts[index].name = new_name
+	
+	var payload = {
+		"slotIndex": index,
+		"name": new_name,
+		"positions": _hud_layouts[index].get("positions", {})
+	}
+	
+	if NetworkManager:
+		NetworkManager.send_event("saveHudLayout", payload)
+		print("[MainHUD] Slot renombrado local y remoto: ", new_name)
+
 func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 	var _screen_size = get_viewport_rect().size
 	var get_normalized_pos = func(win: Control, original_w: float, original_h: float):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
 		
-		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame"] or "Chat" in win.name or "Party" in win.name
+		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer"] or "Chat" in win.name or "Party" in win.name
 		
 		if is_corner_win:
-			# v1.45: Revertir márgenes absolutos a proporciones nominales base sin mutilación
 			var base_w = win.size.x
 			var base_h = win.size.y
 			if win.name == "Skills": base_w = 575; base_h = 65
@@ -1478,20 +1585,38 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				base_h = 85 if rows_cb == 2 else 45
 			elif "StatusEffects" in win.name: base_w = 500; base_h = 55
 			elif "TargetFrame" in win.name: base_w = 200; base_h = 60
+			elif "PortalBtnContainer" in win.name: base_w = 200; base_h = 100
 			
 			var godot_w = win.size.x * win.scale.x
 			var godot_h = win.size.y * win.scale.y
 			
-			if nx + (godot_w / 2.0) > (_screen_size.x / 2.0):
+			# X: Normalización de 3 vías (Izquierda, Centro, Derecha)
+			var screen_cx = nx + (godot_w / 2.0)
+			if screen_cx < (_screen_size.x / 3.0):
+				# Izquierda (preservar posición absoluta)
+				pass
+			elif screen_cx > (_screen_size.x * 2.0 / 3.0):
+				# Derecha (preservar margen derecho)
 				var margin_right = _screen_size.x - (nx + godot_w)
 				nx = original_w - base_w - margin_right
+			else:
+				# Centro (preservar offset del centro)
+				nx = nx - (_screen_size.x / 2.0) + 640.0 + (godot_w - base_w) / 2.0
 				
-			if ny + (godot_h / 2.0) > (_screen_size.y / 2.0):
+			# Y: Normalización de 3 vías (Arriba, Centro, Abajo)
+			var screen_cy = ny + (godot_h / 2.0)
+			if screen_cy < (_screen_size.y / 3.0):
+				# Arriba (preservar posición absoluta)
+				pass
+			elif screen_cy > (_screen_size.y * 2.0 / 3.0):
+				# Abajo (preservar margen inferior)
 				var margin_bottom = _screen_size.y - (ny + godot_h)
 				ny = original_h - base_h - margin_bottom
+			else:
+				# Centro (preservar offset del centro)
+				ny = ny - (_screen_size.y / 2.0) + 400.0 + (godot_h - base_h) / 2.0
 				
 		elif win.top_level:
-			# Matemática Proporcional Original (Solo Slots huérfanos u otros)
 			var scale_x = original_w / _screen_size.x
 			var scale_y = original_h / _screen_size.y
 			if win.name == "StatusEffects":
@@ -1535,16 +1660,27 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 	if NetworkManager:
 		NetworkManager.current_user_data["hudPositions"] = layout
 		NetworkManager.current_user_data["hud_layout"] = layout
+		_last_applied_layout = layout
 		
 		_update_active_slot_index(layout)
 		
 		var payload = { "positions": layout }
 		if slot_index >= 0:
 			payload["slotIndex"] = slot_index
-			payload["name"] = slot_name
-			if slot_index < _hud_layouts.size():
-				_hud_layouts[slot_index].positions = layout
-				if slot_name != "": _hud_layouts[slot_index].name = slot_name
+			
+			# Asegurar slots locales
+			while _hud_layouts.size() <= slot_index:
+				_hud_layouts.append({
+					"name": "Slot %d" % (_hud_layouts.size() + 1),
+					"positions": {}
+				})
+				
+			_hud_layouts[slot_index].positions = layout
+			if slot_name != "": 
+				_hud_layouts[slot_index].name = slot_name
+				payload["name"] = slot_name
+			else:
+				payload["name"] = _hud_layouts[slot_index].name
 		
 		active_slot_index = slot_index
 		NetworkManager.send_event("saveHudLayout", payload)
@@ -2437,6 +2573,8 @@ func _update_target_frame():
 	
 	_target_sh_bar.anchor_right = _sh_ratio
 	_target_sh_lbl.text = "SH: %d / %d" % [sh, max_sh]
+	
+	_update_target_debuffs()
 
 func _update_target_debuffs():
 	if not is_instance_valid(_target_entity) or not _target_debuff_hbox: return

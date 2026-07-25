@@ -667,6 +667,17 @@ func _setup_ui():
 		if i == active_idx: name_edit.add_theme_color_override("font_color", Color.YELLOW)
 		row.add_child(name_edit)
 		
+		# Conectar el guardado del nombre del layout
+		name_edit.text_submitted.connect(func(new_name):
+			if hud_ref:
+				hud_ref.rename_layout_slot(i, new_name)
+			name_edit.release_focus()
+		)
+		name_edit.focus_exited.connect(func():
+			if hud_ref:
+				hud_ref.rename_layout_slot(i, name_edit.text)
+		)
+		
 		var apply_btn = Button.new()
 		apply_btn.text = "USAR"
 		apply_btn.custom_minimum_size.x = 60

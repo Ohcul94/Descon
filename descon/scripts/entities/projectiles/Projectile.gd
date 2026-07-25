@@ -806,6 +806,58 @@ func _setup_visual_sprite():
 			sprite = null
 			return
 
+	# v325.2: Efecto 3D de proyectil de Miedo (Esfera de Terror)
+	if type == "fear":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "FearProj3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+
+			# Esfera interna oscura
+			var core = MeshInstance3D.new()
+			var sphere = SphereMesh.new()
+			sphere.radius = 0.35
+			sphere.height = 0.7
+			core.mesh = sphere
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = Color(0.12, 0.0, 0.18)
+			mat.metallic = 0.8
+			mat.roughness = 0.2
+			core.material_override = mat
+			world_root_3d.add_child(core)
+
+			# Esfera de brillo púrpura mágica externa
+			var glow = MeshInstance3D.new()
+			var glow_sphere = SphereMesh.new()
+			glow_sphere.radius = 0.45
+			glow_sphere.height = 0.9
+			glow.mesh = glow_sphere
+			var glow_mat = StandardMaterial3D.new()
+			glow_mat.albedo_color = Color(0.8, 0.1, 0.9, 0.35)
+			glow_mat.emission_enabled = true
+			glow_mat.emission = Color(0.8, 0.1, 0.9)
+			glow_mat.emission_energy_multiplier = 3.0
+			glow_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			glow.material_override = glow_mat
+			world_root_3d.add_child(glow)
+
+			# Luz omni de ambiente púrpura
+			var light = OmniLight3D.new()
+			light.light_color = Color(0.8, 0.1, 0.9)
+			light.light_energy = 3.5
+			light.omni_range = 5.0
+			world_root_3d.add_child(light)
+
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+			)
+
+			sprite = null
+			return
+
 	if type == "electron":
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
