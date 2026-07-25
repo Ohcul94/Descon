@@ -205,6 +205,8 @@ func _on_stun_state(data: Dictionary):
 			autopilot_enabled = false
 			joystick_direction = Vector2.ZERO
 			
+			set_debuff_timer("fear", fear_timer, 1)
+			
 			if velocity.length() > 10.0:
 				fear_vector = -velocity.normalized()
 			else:
@@ -229,6 +231,8 @@ func _on_stun_state(data: Dictionary):
 		stun_timer = 0.0
 		fear_timer = 0.0
 		modulate = Color.WHITE
+		set_debuff_timer("fear", 0)
+		set_debuff_timer("stun", 0)
 
 var _freeze_slow_val: float = 0.0 # v268.40: Ralentización ambiental independiente
 

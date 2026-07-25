@@ -33,7 +33,8 @@ const getStatusEffects = (ent) => {
         bleeding: !!(ent.isBleeding || (ent.bleedEndTime && now < ent.bleedEndTime)),
         poisoned: !!(ent.isPoisoned || (ent.poisonEndTime && now < ent.poisonEndTime)),
         frozen: !!(ent.isFrozen || (ent.freezeEndTime && now < ent.freezeEndTime)),
-        feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime))
+        feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime)),
+        provoked: !!(ent.forcedTarget && ent.tauntEndTime && now < ent.tauntEndTime)
     };
 };
 
@@ -225,7 +226,8 @@ function startGameLoop(io, state, aiManager) {
                                                           last_se.bleeding !== status_effects.bleeding ||
                                                           last_se.poisoned !== status_effects.poisoned ||
                                                           last_se.frozen !== status_effects.frozen ||
-                                                          last_se.feared !== status_effects.feared;
+                                                           last_se.feared !== status_effects.feared ||
+                                                           last_se.provoked !== status_effects.provoked;
                                         const stateChanged = last.hp !== roundedHp || 
                                                              last.shield !== roundedShield || 
                                                              last.isRage !== isRage || 

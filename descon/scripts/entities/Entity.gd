@@ -22,6 +22,7 @@ const DEBUFF_MAP = {
 	"slowed": {"type": "slow", "icon": "❄️", "color": Color(0.0, 0.7, 1.0), "name": "Slow"},
 	"feared": {"type": "fear", "icon": "💫", "color": Color(0.8, 0.2, 0.8), "name": "Fear"},
 	"frozen": {"type": "freeze", "icon": "🧊", "color": Color(0.3, 0.6, 1.0), "name": "Freeze"},
+	"provoked": {"type": "provoked", "icon": "🎯", "color": Color(1.0, 0.4, 0.0), "name": "Provocación"},
 }
 
 const BUFF_MAP = {
@@ -577,17 +578,6 @@ func _process(delta):
 	# v219.65: Redibujado Inteligente (Interpolación v190.85)
 	_display_hp = lerp(_display_hp, current_hp, 0.1)
 	_display_shield = lerp(_display_shield, current_shield, 0.1)
-	
-	# Decaimiento de temporizadores de debuffs
-	if not debuffs.is_empty():
-		var changed = false
-		for key in debuffs.keys():
-			debuffs[key].time_left -= delta
-			if debuffs[key].time_left <= 0:
-				debuffs.erase(key)
-				changed = true
-		if changed:
-			debuffs_updated.emit()
 	
 	if abs(_display_hp - last_draw_hp) > 0.05 or abs(_display_shield - last_draw_sh) > 0.05:
 		queue_redraw()
