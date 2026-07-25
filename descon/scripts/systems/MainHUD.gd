@@ -32,6 +32,7 @@ var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
 var is_selecting_trade_target: bool = false # v300.080: Modo selección de trade
 var _trade_select_start_time: float = 0.0
 
+var _cooldown_shader: Shader = null
 var _last_applied_layout: Dictionary = {}
 var _last_applied_config: Dictionary = {}
 
@@ -376,7 +377,7 @@ func _input(event: InputEvent):
 			NetworkManager.send_event("togglePvP", requested_status)
 		get_viewport().set_input_as_handled()
 	
-	# Click izquierdo para targetear entidades (persiste hasta ESC)
+	# Click izquierdo para targetear entidades o deseleccionar en el vacío
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if is_editing_layout or is_selecting_trade_target: return
 		var p_node = get_tree().get_first_node_in_group("player")
@@ -384,9 +385,15 @@ func _input(event: InputEvent):
 		if _settings_menu and _settings_menu.visible: return
 		if is_instance_valid(_esc_menu) and _esc_menu.visible: return
 		
+		# v314.10: Evitar deseleccionar al hacer clic sobre elementos de la interfaz de usuario
+		if _is_pos_over_priority_ui(event.position, false): return
+		
 		var target = _find_target_entity()
 		if is_instance_valid(target):
 			set_target(target)
+		else:
+			# Si hace clic en el piso/vacío sin target válido, limpiar selección
+			clear_target()
 	
 func _apply_hud_data(layout: Dictionary, config: Dictionary):
 	var _screen_size = get_viewport_rect().size
@@ -1062,8 +1069,9 @@ func _is_pos_over_priority_ui(p: Vector2, ignore_editable: bool = false) -> bool
 
 	var edit_ui = get_node_or_null("EditLayoutUI")
 	if edit_ui and edit_ui.visible:
-		var top_bar = edit_ui.find_child("TopBar", true, false)
-		if top_bar and top_bar.visible and top_bar.get_global_rect().has_point(p): return true
+		# v316.50: Solo bloquear clics sobre el contenido interactivo de la barra (botones y título), no sobre toda su franja horizontal vacía
+		var top_content = edit_ui.find_child("TopBarContent", true, false)
+		if top_content and top_content.visible and top_content.get_global_rect().has_point(p): return true
 		var prop_panel = edit_ui.find_child("PropertyPanel", true, false)
 		if prop_panel and prop_panel.visible and prop_panel.get_global_rect().has_point(p): return true
 		
@@ -1139,6 +1147,7 @@ func toggle_hud_editing(slot_index: int = -1):
 			panel.add_theme_constant_override("separation", 30)
 			
 			var vbox = VBoxContainer.new()
+			vbox.name = "TopBarContent"
 			vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 			panel.add_child(vbox)
 			
@@ -2107,6 +2116,37 @@ func _setup_status_effects_panel():
 	_status_effects_panel.top_level = true
 	_status_effects_panel.pivot_offset = Vector2(250, 27.5)
 
+func _get_cooldown_shader() -> Shader:
+	if _cooldown_shader == null:
+		_cooldown_shader = Shader.new()
+		_cooldown_shader.code = "shader_type canvas_item;
+render_mode blend_mix;
+uniform float progress : hint_range(0.0, 1.0) = 1.0;
+void fragment() {
+	vec2 uv = UV - vec2(0.5);
+	float angle = atan(uv.y, uv.x);
+	float target_angle = (angle + PI) / (2.0 * PI);
+	target_angle = fract(target_angle + 0.25);
+	if (target_angle >= 1.0 - progress) {
+		COLOR = vec4(0.0, 0.0, 0.0, 0.55);
+	} else {
+		COLOR = vec4(0.0);
+	}
+}"
+	return _cooldown_shader
+
+func _get_effect_info(type_key: String) -> Dictionary:
+	var clean_key = type_key.to_lower().replace("_", "")
+	for se_key in Entity.DEBUFF_MAP:
+		var info = Entity.DEBUFF_MAP[se_key]
+		if se_key.to_lower() == clean_key or info.type.to_lower() == clean_key:
+			return {"icon": info.icon, "color": info.color}
+	for b_key in Entity.BUFF_MAP:
+		var info = Entity.BUFF_MAP[b_key]
+		if b_key.to_lower() == clean_key or b_key.to_lower().replace("_", "") == clean_key:
+			return {"icon": info.icon, "color": info.color}
+	return {"icon": "🛡️", "color": Color(0.5, 0.5, 0.5)}
+
 func _update_status_effects_ui():
 	if not _status_hbox: return
 	
@@ -2115,14 +2155,7 @@ func _update_status_effects_ui():
 		_status_effects_panel.visible = false
 		return
 		
-	var is_any_status = (
-		p_node.get("slow_timer") > 0.0 or 
-		p_node.get("heal_timer") > 0.0 or 
-		p_node.get("bleed_timer") > 0.0 or 
-		p_node.get("poison_timer") > 0.0 or 
-		p_node.get("electron_speed_buff_timer") > 0.0 or
-		(p_node.get("is_stunned") and p_node.get("stun_timer") > 0.0)
-	)
+	var is_any_status = not p_node.debuffs.is_empty()
 	
 	if is_editing_layout:
 		_status_effects_panel.visible = true
@@ -2136,37 +2169,30 @@ func _update_status_effects_ui():
 		child.queue_free()
 		
 	if is_editing_layout and not is_any_status:
-		_add_status_box("❄️", "3.0", Color(0.0, 0.7, 1.0, 0.7))
-		_add_status_box("💚", "3x 4.5", Color(0.0, 0.8, 0.2, 0.7))
-		_add_status_box("⚡", "4x 5.0", Color(1.0, 0.8, 0.0, 0.7))
-		_add_status_box("🩸", "2.1", Color(0.9, 0.1, 0.1, 0.7))
-		_add_status_box("🧪", "5.0", Color(0.7, 0.1, 0.9, 0.7))
-		_add_status_box("🛡️", "1.5", Color(0.5, 0.5, 0.5, 0.7))
+		_add_status_box("❄️", "3.0", Color(0.0, 0.7, 1.0, 0.7), 0.7)
+		_add_status_box("💚", "3x 4.5", Color(0.0, 0.8, 0.2, 0.7), 0.5)
+		_add_status_box("⚡", "4x 5.0", Color(1.0, 0.8, 0.0, 0.7), 0.9)
+		_add_status_box("🩸", "2.1", Color(0.9, 0.1, 0.1, 0.7), 0.3)
+		_add_status_box("🧪", "5.0", Color(0.7, 0.1, 0.9, 0.7), 0.2)
+		_add_status_box("🛡️", "1.5", Color(0.5, 0.5, 0.5, 0.7), 0.8)
 		return
 		
-	if p_node.get("slow_timer") > 0.0:
-		_add_status_box("❄️", "%.1f" % p_node.slow_timer, Color(0.0, 0.7, 1.0, 0.7))
+	for key in p_node.debuffs:
+		var d = p_node.debuffs[key]
+		var info = _get_effect_info(key)
+		var icon = info.icon
+		var color = info.color
+		var box_color = Color(color.r, color.g, color.b, 0.7)
 		
-	if p_node.get("heal_timer") > 0.0:
-		var txt = "%.1f" % p_node.heal_timer
-		if p_node.get("heal_stacks") > 1:
-			txt = "%dx" % p_node.heal_stacks + txt
-		_add_status_box("💚", txt, Color(0.0, 0.8, 0.2, 0.7))
+		var time_left = d.time_left
+		var total = d.total
+		var progress = (time_left / total) if total > 0.01 else 0.0
 		
-	if p_node.get("electron_speed_buff_timer") > 0.0:
-		var txt = "%.1f" % p_node.electron_speed_buff_timer
-		if p_node.get("electron_speed_buff_stacks") > 1:
-			txt = "%dx " % p_node.electron_speed_buff_stacks + txt
-		_add_status_box("⚡", txt, Color(1.0, 0.8, 0.0, 0.7))
-		
-	if p_node.get("bleed_timer") > 0.0:
-		_add_status_box("🩸", "%.1f" % p_node.bleed_timer, Color(0.9, 0.1, 0.1, 0.7))
-		
-	if p_node.get("poison_timer") > 0.0:
-		_add_status_box("🧪", "%.1f" % p_node.poison_timer, Color(0.7, 0.1, 0.9, 0.7))
-		
-	if p_node.get("is_stunned") and p_node.get("stun_timer") > 0.0:
-		_add_status_box("🛡️", "%.1f" % p_node.stun_timer, Color(0.5, 0.5, 0.5, 0.7))
+		var txt = "%.1f" % time_left
+		if d.stacks > 1:
+			txt = "%dx" % d.stacks + txt
+			
+		_add_status_box(icon, txt, box_color, progress)
 
 func update_skill_slots():
 	if not is_instance_valid(skills_hud):
@@ -2180,7 +2206,7 @@ func update_skill_slots():
 				icon.queue_free()
 	skills_hud.clear_icon_cache()
 
-func _add_status_box(emoji: String, text: String, color: Color):
+func _add_status_box(emoji: String, text: String, color: Color, progress: float = 0.0):
 	var box = PanelContainer.new()
 	box.custom_minimum_size = Vector2(32, 32)
 	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -2194,7 +2220,6 @@ func _add_status_box(emoji: String, text: String, color: Color):
 	sb.set_corner_radius_all(4)
 	box.add_theme_stylebox_override("panel", sb)
 	
-	# Icono de fondo / Emoji alusivo grande (ocupa el 95% de la caja)
 	var icon_lbl = Label.new()
 	icon_lbl.text = emoji
 	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2203,7 +2228,18 @@ func _add_status_box(emoji: String, text: String, color: Color):
 	icon_lbl.modulate.a = 0.55
 	box.add_child(icon_lbl)
 	
-	# Texto de Cooldown superpuesto al frente (más grande y con contorno negro para legibilidad)
+	# Cooldown Shader Overlay
+	if progress > 0.0:
+		var overlay = ColorRect.new()
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		var mat = ShaderMaterial.new()
+		mat.shader = _get_cooldown_shader()
+		mat.set_shader_parameter("progress", progress)
+		overlay.material = mat
+		box.add_child(overlay)
+	
 	var txt_lbl = Label.new()
 	txt_lbl.text = text
 	txt_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -2224,8 +2260,8 @@ func _setup_target_frame():
 	
 	_target_frame = PanelContainer.new()
 	_target_frame.name = "TargetFrame"
-	_target_frame.custom_minimum_size = Vector2(200, 60)
-	_target_frame.pivot_offset = Vector2(100, 30)
+	_target_frame.custom_minimum_size = Vector2(200, 65)
+	_target_frame.pivot_offset = Vector2(100, 32.5)
 	
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0.04, 0.04, 0.1, 0.88)
@@ -2269,7 +2305,7 @@ func _setup_target_frame():
 	
 	# HP bar (más compacta)
 	var hp_container = Control.new()
-	hp_container.custom_minimum_size = Vector2(0, 12)
+	hp_container.custom_minimum_size = Vector2(0, 15)
 	_target_vbox.add_child(hp_container)
 	
 	_target_hp_bg = ColorRect.new()
@@ -2286,10 +2322,10 @@ func _setup_target_frame():
 	hp_container.add_child(_target_hp_bar)
 	
 	_target_hp_lbl = Label.new()
-	_target_hp_lbl.add_theme_font_size_override("font_size", 8)
-	_target_hp_lbl.add_theme_color_override("font_color", Color(0.8, 1.0, 0.8))
+	_target_hp_lbl.add_theme_font_size_override("font_size", 10)
+	_target_hp_lbl.add_theme_color_override("font_color", Color.WHITE)
 	_target_hp_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	_target_hp_lbl.add_theme_constant_override("outline_size", 1)
+	_target_hp_lbl.add_theme_constant_override("outline_size", 3)
 	_target_hp_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_target_hp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_target_hp_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -2297,7 +2333,7 @@ func _setup_target_frame():
 	
 	# Shield bar (más compacta)
 	var sh_container = Control.new()
-	sh_container.custom_minimum_size = Vector2(0, 12)
+	sh_container.custom_minimum_size = Vector2(0, 15)
 	_target_vbox.add_child(sh_container)
 	
 	_target_sh_bg = ColorRect.new()
@@ -2314,10 +2350,10 @@ func _setup_target_frame():
 	sh_container.add_child(_target_sh_bar)
 	
 	_target_sh_lbl = Label.new()
-	_target_sh_lbl.add_theme_font_size_override("font_size", 8)
-	_target_sh_lbl.add_theme_color_override("font_color", Color(0.6, 1.0, 1.0))
+	_target_sh_lbl.add_theme_font_size_override("font_size", 10)
+	_target_sh_lbl.add_theme_color_override("font_color", Color.WHITE)
 	_target_sh_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	_target_sh_lbl.add_theme_constant_override("outline_size", 1)
+	_target_sh_lbl.add_theme_constant_override("outline_size", 3)
 	_target_sh_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_target_sh_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_target_sh_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -2356,6 +2392,7 @@ func set_target(entity):
 	entity.debuffs_updated.connect(_update_target_debuffs)
 	
 	_update_target_frame()
+	_update_target_debuffs()
 
 func clear_target():
 	if is_instance_valid(_target_entity):
@@ -2427,31 +2464,44 @@ func _update_target_debuffs():
 					color = Entity.BUFF_MAP[b_key].color
 					break
 		
-		_add_target_debuff_icon(icon, d.get("time_left", 0.0), color, d.get("stacks", 1))
+		var t_left = d.get("time_left", 0.0)
+		var t_tot = d.get("total", t_left)
+		_add_target_debuff_icon(icon, t_left, t_tot, color, d.get("stacks", 1))
 
-func _add_target_debuff_icon(icon: String, time_left: float, color: Color, stacks: int):
+func _add_target_debuff_icon(icon: String, time_left: float, total: float, color: Color, stacks: int):
 	var box = PanelContainer.new()
-	box.custom_minimum_size = Vector2(22, 22)
+	box.custom_minimum_size = Vector2(26, 26)
 	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(color.r, color.g, color.b, 0.2)
-	sb.border_width_all = 1
-	sb.border_color = Color(color.r, color.g, color.b, 0.5)
-	sb.set_corner_radius_all(2)
+	sb.bg_color = color
+	sb.border_width_left = 1; sb.border_width_top = 1
+	sb.border_width_right = 1; sb.border_width_bottom = 1
+	sb.border_color = Color(1, 1, 1, 0.25)
+	sb.set_corner_radius_all(4)
 	box.add_theme_stylebox_override("panel", sb)
-	
-	var vbox = VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 0)
-	box.add_child(vbox)
 	
 	var icon_lbl = Label.new()
 	icon_lbl.text = icon
 	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon_lbl.add_theme_font_size_override("font_size", 11)
-	icon_lbl.modulate = Color(color.r, color.g, color.b, 0.85)
-	vbox.add_child(icon_lbl)
+	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_lbl.add_theme_font_size_override("font_size", 15)
+	icon_lbl.modulate.a = 0.55
+	box.add_child(icon_lbl)
+	
+	# Cooldown Shader Overlay
+	var progress = (time_left / total) if total > 0.01 else 0.0
+	if progress > 0.0:
+		var overlay = ColorRect.new()
+		overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		var mat = ShaderMaterial.new()
+		mat.shader = _get_cooldown_shader()
+		mat.set_shader_parameter("progress", progress)
+		overlay.material = mat
+		box.add_child(overlay)
 	
 	var time_text = "%.1f" % time_left if time_left < 9.95 else ">9"
 	if stacks > 1:
@@ -2460,11 +2510,11 @@ func _add_target_debuff_icon(icon: String, time_left: float, color: Color, stack
 	txt_lbl.text = time_text
 	txt_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	txt_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	txt_lbl.add_theme_font_size_override("font_size", 7)
+	txt_lbl.add_theme_font_size_override("font_size", 8)
 	txt_lbl.add_theme_color_override("font_color", Color.WHITE)
 	txt_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	txt_lbl.add_theme_constant_override("outline_size", 1)
-	vbox.add_child(txt_lbl)
+	txt_lbl.add_theme_constant_override("outline_size", 2)
+	box.add_child(txt_lbl)
 	
 	_target_debuff_hbox.add_child(box)
 

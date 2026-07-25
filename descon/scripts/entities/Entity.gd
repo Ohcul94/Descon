@@ -16,7 +16,7 @@ const DashSparkTexture = preload("res://VFX/textures/T_VFX_sparks112.jpg")
 signal debuffs_updated
 
 const DEBUFF_MAP = {
-	"stunned": {"type": "stun", "icon": "⛸", "color": Color(0.5, 0.5, 0.5), "name": "Stun"},
+	"stunned": {"type": "stun", "icon": "🛡️", "color": Color(0.5, 0.5, 0.5), "name": "Stun"},
 	"bleeding": {"type": "bleed", "icon": "🩸", "color": Color(0.9, 0.1, 0.1), "name": "Bleed"},
 	"poisoned": {"type": "poison", "icon": "🧪", "color": Color(0.7, 0.1, 0.9), "name": "Poison"},
 	"slowed": {"type": "slow", "icon": "❄️", "color": Color(0.0, 0.7, 1.0), "name": "Slow"},
@@ -351,6 +351,20 @@ func teleport_to(new_pos: Vector2):
 	tw.tween_callback(cb_teleport)
 
 func _process(delta):
+	# v320.10: Decrementar debuffs en tiempo real a 60+ FPS para suavidad visual
+	if not debuffs.is_empty():
+		var changed = false
+		var keys = debuffs.keys()
+		for key in keys:
+			if debuffs.has(key):
+				var d = debuffs[key]
+				d.time_left -= delta
+				if d.time_left <= 0:
+					debuffs.erase(key)
+					changed = true
+		if changed:
+			debuffs_updated.emit()
+
 	if reflect_timer > 0:
 		reflect_timer -= delta
 	
@@ -1187,11 +1201,21 @@ func set_debuff_timer(debuff_type: String, time_left: float, stacks: int = 1):
 			debuffs_updated.emit()
 		return
 	if debuffs.has(debuff_type):
-		debuffs[debuff_type].time_left = time_left
-		debuffs[debuff_type].total = time_left
-		debuffs[debuff_type].stacks = stacks
+		var prev = debuffs[debuff_type]
+		var current_total = prev.get("total", time_left)
+		if time_left > current_total:
+			current_total = time_left
+		debuffs[debuff_type] = {
+			"time_left": time_left,
+			"total": current_total,
+			"stacks": stacks
+		}
 	else:
-		debuffs[debuff_type] = {"time_left": time_left, "total": time_left, "stacks": stacks}
+		debuffs[debuff_type] = {
+			"time_left": time_left,
+			"total": time_left,
+			"stacks": stacks
+		}
 	debuffs_updated.emit()
 
 func _refresh_debuffs_from_status_effects():

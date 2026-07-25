@@ -3,6 +3,18 @@ const Logger = require('../utils/logger');
 const { onZoneChanged } = require('../systems/questHandlers');
 const { applyZoneRules } = require('../systems/deathDropHelper');
 
+const getStatusEffects = (ent) => {
+    const now = Date.now();
+    return {
+        slowed: !!(ent.isSlowed || (ent.slowEndTime && now < ent.slowEndTime)),
+        stunned: !!(ent.isStunned || (ent.stunEndTime && now < ent.stunEndTime)),
+        bleeding: !!(ent.isBleeding || (ent.bleedEndTime && now < ent.bleedEndTime)),
+        poisoned: !!(ent.isPoisoned || (ent.poisonEndTime && now < ent.poisonEndTime)),
+        frozen: !!(ent.isFrozen || (ent.freezeEndTime && now < ent.freezeEndTime)),
+        feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime))
+    };
+};
+
 // v268.75: Sanitización de datos para evitar Circular References y Crash de Terminal
 const getCleanPlayerData = (p, id) => {
     if (!p) return null;
@@ -19,7 +31,7 @@ const getCleanPlayerData = (p, id) => {
             maxSh: (p.maxSh !== undefined) ? p.maxSh : (p.maxShield || 0),
             zone: p.zone,
             spheres: p.spheres || [],
-            status_effects: p.status_effects || {},
+            status_effects: Object.assign(getStatusEffects(p), p.status_effects || {}),
             clanTag: p.clanTag || "",
             currentShipId: p.currentShipId || 1,
             pvpEnabled: !!p.pvpEnabled,
@@ -42,7 +54,7 @@ const getCleanEnemyData = (e, id) => {
             hp: e.hp,
             maxHp: e.maxHp,
             sh: e.sh || e.shield,
-            status_effects: e.status_effects || {},
+            status_effects: Object.assign(getStatusEffects(e), e.status_effects || {}),
             isDead: !!e.isDead,
             isInvulnerable: !!e.isInvulnerable
         }));

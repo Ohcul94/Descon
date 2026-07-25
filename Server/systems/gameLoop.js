@@ -25,6 +25,18 @@ const normalizeZone = (z) => {
     return z;
 };
 
+const getStatusEffects = (ent) => {
+    const now = Date.now();
+    return {
+        slowed: !!(ent.isSlowed || (ent.slowEndTime && now < ent.slowEndTime)),
+        stunned: !!(ent.isStunned || (ent.stunEndTime && now < ent.stunEndTime)),
+        bleeding: !!(ent.isBleeding || (ent.bleedEndTime && now < ent.bleedEndTime)),
+        poisoned: !!(ent.isPoisoned || (ent.poisonEndTime && now < ent.poisonEndTime)),
+        frozen: !!(ent.isFrozen || (ent.freezeEndTime && now < ent.freezeEndTime)),
+        feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime))
+    };
+};
+
 
 function startGameLoop(io, state, aiManager) {
     const grid = state.grid;
@@ -198,8 +210,7 @@ function startGameLoop(io, state, aiManager) {
                                     const isRage = !!e.isRage;
                                     const isInvisible = !!e.isInvisible;
                                     const isCamouflaged = !!e.isCamouflaged;
-
-                                    // Delta Compression: Validar si el estado cambio sustancialmente
+                                    const status_effects = getStatusEffects(e);
                                     const last = p._lastSentEnemies[e.id];
                                     let shouldSend = false;
 
@@ -208,13 +219,21 @@ function startGameLoop(io, state, aiManager) {
                                     } else {
                                         const posChanged = Math.abs(last.x - roundedX) >= 2 || Math.abs(last.y - roundedY) >= 2;
                                         const rotChanged = Math.abs(last.rotation - roundedRot) >= 0.05;
+                                        const last_se = last.status_effects || {};
+                                        const seChanged = last_se.slowed !== status_effects.slowed ||
+                                                          last_se.stunned !== status_effects.stunned ||
+                                                          last_se.bleeding !== status_effects.bleeding ||
+                                                          last_se.poisoned !== status_effects.poisoned ||
+                                                          last_se.frozen !== status_effects.frozen ||
+                                                          last_se.feared !== status_effects.feared;
                                         const stateChanged = last.hp !== roundedHp || 
                                                              last.shield !== roundedShield || 
                                                              last.isRage !== isRage || 
                                                              last.isRamming !== isRamming || 
                                                              last.isInvulnerable !== isInvulnerable ||
                                                              last.isInvisible !== isInvisible ||
-                                                             last.isCamouflaged !== isCamouflaged;
+                                                             last.isCamouflaged !== isCamouflaged ||
+                                                             seChanged;
 
                                         if (posChanged || rotChanged || stateChanged) {
                                             shouldSend = true;
@@ -234,7 +253,8 @@ function startGameLoop(io, state, aiManager) {
                                             isRamming: isRamming,
                                             isInvulnerable: isInvulnerable,
                                             isInvisible: isInvisible,
-                                            isCamouflaged: isCamouflaged
+                                            isCamouflaged: isCamouflaged,
+                                            status_effects: Object.assign(status_effects, e.status_effects || {})
                                         };
                                         if (!last) {
                                             aoiData[e.id].type = e.type;
@@ -250,7 +270,8 @@ function startGameLoop(io, state, aiManager) {
                                             isRamming: isRamming,
                                             isInvulnerable: isInvulnerable,
                                             isInvisible: isInvisible,
-                                            isCamouflaged: isCamouflaged
+                                            isCamouflaged: isCamouflaged,
+                                            status_effects: Object.assign({}, status_effects)
                                         };
                                         count++;
                                     }

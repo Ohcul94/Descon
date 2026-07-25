@@ -7,6 +7,7 @@ var _ammo_menus = {}
 var _max_cds = {}
 var _touch_registry = {}
 var _is_interference_ui_active = false
+var _cooldown_fill_shader: Shader = null
 
 # v301.4: Cache de texturas de íconos para no recargar desde disco en cada frame
 var _skill_icon_cache: Dictionary = {}
@@ -304,6 +305,48 @@ func _format_val(v):
 			c = 0
 	return r
 
+func _get_cooldown_fill_shader() -> Shader:
+	if _cooldown_fill_shader == null:
+		_cooldown_fill_shader = Shader.new()
+		_cooldown_fill_shader.code = "shader_type canvas_item;
+render_mode blend_mix;
+uniform float progress : hint_range(0.0, 1.0) = 1.0;
+void fragment() {
+	vec4 color = COLOR;
+	float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+	
+	vec2 uv = UV - vec2(0.5);
+	float angle = atan(uv.y, uv.x);
+	float target_angle = fract((angle + PI / 2.0) / (2.0 * PI));
+	
+	if (target_angle < progress) {
+		COLOR = color;
+	} else {
+		COLOR = vec4(vec3(gray), color.a);
+	}
+}"
+	return _cooldown_fill_shader
+
+var _cooldown_dark_shader: Shader = null
+
+func _get_cooldown_dark_shader() -> Shader:
+	if _cooldown_dark_shader == null:
+		_cooldown_dark_shader = Shader.new()
+		_cooldown_dark_shader.code = "shader_type canvas_item;
+render_mode blend_mix;
+uniform float progress : hint_range(0.0, 1.0) = 1.0;
+void fragment() {
+	vec2 uv = UV - vec2(0.5);
+	float angle = atan(uv.y, uv.x);
+	float target_angle = fract((angle + PI / 2.0) / (2.0 * PI));
+	if (target_angle >= 1.0 - progress) {
+		COLOR = vec4(0.0, 0.0, 0.0, 0.55);
+	} else {
+		COLOR = vec4(0.0);
+	}
+}"
+	return _cooldown_dark_shader
+
 func _update_skill_ui(slot_idx: int, ref, slot):
 	if not slot or not ref.get("ammo_slots"): return
 	var type = ref.ammo_slots[slot_idx]
@@ -316,21 +359,41 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 	var rv = cds.get(type, 0.0)
 	
 	if l_fill:
-		if not _max_cds.has(type) or rv > _max_cds[type]:
-			_max_cds[type] = max(rv, 0.5)
-		if rv < 0.01:
-			_max_cds[type] = lerp(_max_cds[type], 0.5, 0.01)
+		l_fill.visible = false
+		
+	if not _max_cds.has(type) or rv > _max_cds[type]:
+		_max_cds[type] = max(rv, 0.5)
+	if rv < 0.01:
+		_max_cds[type] = lerp(_max_cds[type], 0.5, 0.01)
 
-		var max_cd = _max_cds[type]
-		var pct = clamp(rv / max_cd, 0.0, 1.0)
-		
-		var parent_h = slot.size.y if slot.size.y > 0 else 65.0
-		var parent_w = slot.size.x if slot.size.x > 0 else 65.0
-		
-		l_fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		l_fill.size = Vector2(parent_w, parent_h * pct)
-		l_fill.position = Vector2(0, parent_h * (1.0 - pct))
-		l_fill.visible = rv > 0.02
+	var max_cd = _max_cds[type]
+	
+	# Asegurar que el slot no tenga material propio
+	slot.material = null
+	
+	# Control de Overlay de Cooldown Oscuro
+	var overlay = slot.get_node_or_null("CooldownOverlay") as ColorRect
+	if rv > 0.05 and max_cd > 0.05:
+		var progress = clamp(rv / max_cd, 0.0, 1.0)
+		if not is_instance_valid(overlay):
+			overlay = ColorRect.new()
+			overlay.name = "CooldownOverlay"
+			overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			slot.add_child(overlay)
+			# Mandar detrás del texto pero delante del fondo
+			slot.move_child(overlay, 1)
+			
+		var mat = overlay.material as ShaderMaterial
+		if not mat or mat.shader != _get_cooldown_dark_shader():
+			mat = ShaderMaterial.new()
+			mat.shader = _get_cooldown_dark_shader()
+			overlay.material = mat
+		mat.set_shader_parameter("progress", progress)
+		overlay.visible = true
+	else:
+		if is_instance_valid(overlay):
+			overlay.visible = false
 	
 	if l_cd:
 		l_cd.visible = rv > 0.05
@@ -342,10 +405,9 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 		var sel = sel_data.get(type, 0) if sel_data != null else 0
 		var a_count = a_list[sel] if a_list.size() > sel else 0
 		
-		# Cambiar el label blanco dinámicamente
 		var main_label = null
 		for child in slot.get_children():
-			if child is Label and not child.name in ["BindingLabel", "CD", "ammo-q", "ammo-w", "ammo-e"]:
+			if child is Label and not child.name in ["BindingLabel", "CD", "ammo-q", "ammo-w", "ammo-e", "Key"]:
 				main_label = child
 				break
 		if main_label:
@@ -360,9 +422,12 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 			}
 			main_label.text = type_names.get(type, type.to_upper())
 		
-		# Mostrar solo Tier y Cantidad en el label secundario
 		l_am.text = "T" + str(int(sel + 1)) + ": " + _format_val(a_count)
-		l_am.modulate = Color(0.0, 1.0, 0.0) # Modulado a verde claro limpio
+		if rv > 0.05:
+			l_am.modulate = Color(0.5, 0.5, 0.5) # Modulado gris opaco en CD
+		else:
+			l_am.modulate = Color(0.0, 1.0, 0.0) # Verde brillante
+			
 		l_am.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 		l_am.offset_bottom = -2 
 		l_am.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -372,7 +437,6 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 
 func _update_sphere_ui(id: int, ref, slot):
 	if not slot: return
-	var p_size = slot.size if slot.size.y > 0 else Vector2(65, 65)
 	var l_fill = slot.get_node_or_null("Fill")
 	
 	var key = "sphere_" + str(id)
@@ -392,8 +456,10 @@ func _update_sphere_ui(id: int, ref, slot):
 			if typeof(skill) == TYPE_DICTIONARY: s_name = skill.get("skill_name", "")
 			else: s_name = str(skill.skill_name)
 			
-			if s_name != "" and GameConstants.SKILLS_DATA.has(s_name):
-				max_cd = float(GameConstants.SKILLS_DATA[s_name].get("cd", 5000.0)) / 1000.0
+			# v320.40: Limpiar acentos para coincidir exactamente con Constants.gd
+			var clean_name = s_name.to_upper().strip_edges().replace("Ó", "O").replace("É", "E").replace("Í", "I").replace("Á", "A").replace("Ú", "U").replace("Ü", "U")
+			if GameConstants.SKILLS_DATA.has(clean_name):
+				max_cd = float(GameConstants.SKILLS_DATA[clean_name].get("cd", 5000.0)) / 1000.0
 			elif "cooldown" in skill:
 				max_cd = skill.cooldown
 				
@@ -408,11 +474,14 @@ func _update_sphere_ui(id: int, ref, slot):
 			else: type_color = Color.WHITE
 			
 	if l_fill:
-		var pct = clamp(rv / max_cd, 0.0, 1.0)
-		l_fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		l_fill.size = Vector2(p_size.x, p_size.y * pct)
-		l_fill.position = Vector2(0, p_size.y * (1.0 - pct))
-		l_fill.visible = rv > 0.05
+		l_fill.visible = false
+		
+	# Asegurar que el slot no tenga material propio
+	slot.material = null
+	
+	var progress = 1.0
+	if rv > 0.05 and max_cd > 0.05:
+		progress = clamp(1.0 - (rv / max_cd), 0.0, 1.0)
 	
 	var l_cd = slot.get_node_or_null("CD")
 	if not l_cd:
@@ -495,10 +564,21 @@ func _update_sphere_ui(id: int, ref, slot):
 				target_idx = max(target_idx, fill_node.get_index() + 1)
 			slot.move_child(icon_rect, target_idx)
 		icon_rect.texture = skill_icon_tex
+		
+		# Aplicar Shader de CD Radial al icono de la esfera
+		if progress < 1.0:
+			var mat = icon_rect.material as ShaderMaterial
+			if not mat or mat.shader != _get_cooldown_fill_shader():
+				mat = ShaderMaterial.new()
+				mat.shader = _get_cooldown_fill_shader()
+				icon_rect.material = mat
+			mat.set_shader_parameter("progress", progress)
+		else:
+			icon_rect.material = null
 	elif not skill:
-		var icon_rect = slot.get_node_or_null("SkillIconRect")
-		if is_instance_valid(icon_rect):
-			icon_rect.queue_free()
+		var old_icon = slot.get_node_or_null("SkillIconRect")
+		if is_instance_valid(old_icon):
+			old_icon.queue_free()
 
 	for child in slot.get_children():
 		if child is Label:

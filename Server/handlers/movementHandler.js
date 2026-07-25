@@ -18,6 +18,18 @@ const normalizeZone = (z) => {
     return z;
 };
 
+const getStatusEffects = (ent) => {
+    const now = Date.now();
+    return {
+        slowed: !!(ent.isSlowed || (ent.slowEndTime && now < ent.slowEndTime)),
+        stunned: !!(ent.isStunned || (ent.stunEndTime && now < ent.stunEndTime)),
+        bleeding: !!(ent.isBleeding || (ent.bleedEndTime && now < ent.bleedEndTime)),
+        poisoned: !!(ent.isPoisoned || (ent.poisonEndTime && now < ent.poisonEndTime)),
+        frozen: !!(ent.isFrozen || (ent.freezeEndTime && now < ent.freezeEndTime)),
+        feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime))
+    };
+};
+
 function registerMovementHandlers(socket, io, state) {
     const { players, enemies } = state;
 
@@ -39,7 +51,8 @@ function registerMovementHandlers(socket, io, state) {
         pvpEnabled: !!p.pvpEnabled,
         isInvisible: !!p.isInvisible,
         isInvulnerable: !!p.isInvulnerable,
-        isDead: !!p.isDead
+        isDead: !!p.isDead,
+        status_effects: Object.assign(getStatusEffects(p), p.status_effects || {})
     });
 
     const getLightMovementPayload = (p, id) => ({
@@ -49,7 +62,8 @@ function registerMovementHandlers(socket, io, state) {
         rotation: Math.round((p.rotation || 0) * 100) / 100,
         hp: Math.ceil(p.hp || 0),
         sh: Math.ceil(p.shield || 0),
-        zone: p.zone
+        zone: p.zone,
+        status_effects: Object.assign(getStatusEffects(p), p.status_effects || {})
     });
 
     // EVENTO DE MOVIMIENTO DE JUGADORES
