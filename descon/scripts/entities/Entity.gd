@@ -946,9 +946,9 @@ func update_stats(data):
 		if not is_local or abs(current_shield - server_sh) > threshold:
 			current_shield = server_sh
 			
-	if data.has("maxHp"): 
+	if data.has("maxHp") and not is_in_group("player"):
 		max_hp = _safe_float(data.get("maxHp"), max_hp)
-	if (data.has("maxShield") or data.has("maxSh")):
+	if (data.has("maxShield") or data.has("maxSh")) and not is_in_group("player"):
 		max_shield = _safe_float(data.get("maxShield", data.get("maxSh")), max_shield)
 	
 	if data.has("currentShipId") and not is_in_group("enemies"):
@@ -960,13 +960,12 @@ func update_stats(data):
 			_setup_ship_visuals()
 		
 	# v210.131: Sincronía de Equipamiento Visual (Reflejar en el sprite/HUD)
-	if data.has("equipped"):
+	# Solo para entidades remotas: el equipo del jugador local se actualiza por inventory_data
+	if data.has("equipped") and not is_in_group("player"):
 		var new_eq = data.equipped
 		if typeof(new_eq) == TYPE_DICTIONARY:
-			# Si somos el jugador local, ya tenemos 'equipped' vinculado, solo recalculamos
-			# Si somos remoto, actualizamos el diccionario local
-			if !is_in_group("player"):
-				if self.has_method("set"): self.set("equipped", new_eq)
+			if self.has_method("set"):
+				self.set("equipped", new_eq.duplicate(true))
 			
 			if self.has_method("_recalculate_stats"):
 				self.call("_recalculate_stats")

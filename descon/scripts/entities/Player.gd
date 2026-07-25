@@ -854,6 +854,7 @@ func _force_move_sync():
 
 func respawn():
 	is_dead = false
+	_recalculate_stats()
 	current_hp = max_hp
 	current_shield = max_shield
 	if current_zone == 1:
@@ -953,7 +954,8 @@ func update_stats(data):
 	# v221.40: Solo actualizar pvp_status si el servidor lo manda explícitamente
 	if data.has("pvpEnabled"): 
 		pvp_status = !!data.pvpEnabled
-	if data.has("speed"):
+	# v410: La velocidad del jugador local la calcula _recalculate_stats(), no el servidor
+	if data.has("speed") and not is_in_group("player"):
 		speed = float(data.speed)
 	if data.has("electronSpeedBuff"):
 		var eb = data.electronSpeedBuff
