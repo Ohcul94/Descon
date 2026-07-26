@@ -108,7 +108,7 @@ mesh = SubResource("PlaneMesh_1")
 [node name="ObjectsRoot" type="Node3D" parent="." unique_id=58984843]
 unique_name_in_owner = true
 
-[node name="Decorativo4" type="Node3D" parent="ObjectsRoot" unique_id=109640744 instance=ExtResource("2_p5fu1")]
+[node name="Decorativo4" parent="ObjectsRoot" unique_id=109640744 instance=ExtResource("2_p5fu1")]
 transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 57.012, 0, 45.883595)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb"
@@ -147,7 +147,7 @@ transform = Transform3D(0.8910065, 0, 0.4539905, 0, 1, 0, -0.4539905, 0, 0.89100
 size = Vector3(0.507, 0.01, 0.5026115)
 material = SubResource("StandardMaterial3D_s5vme")
 
-[node name="Baúl_Personal" type="Node3D" parent="ObjectsRoot" unique_id=1914052540 instance=ExtResource("2_0qj33")]
+[node name="Baúl_Personal" parent="ObjectsRoot" unique_id=1914052540 instance=ExtResource("2_0qj33")]
 transform = Transform3D(-3.319631, 0, 3.7389903, 0, 5, 0, -3.7389903, 0, -3.319631, 14.899, 2.5, 32.07012)
 metadata/obj_type = "chest"
 metadata/asset_path = "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
@@ -167,7 +167,7 @@ transform = Transform3D(0.0034906357, 0, -0.9999939, 0, 1, 0, 0.9999939, 0, 0.00
 size = Vector3(0.9278, 0.04, 0.6748627)
 material = SubResource("StandardMaterial3D_87xh5")
 
-[node name="Puerta" type="Node3D" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("3_fxo00")]
+[node name="Puerta" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("3_fxo00")]
 transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 20.021095, 5.134, 88.69434)
 metadata/obj_type = "door"
 metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
@@ -185,7 +185,7 @@ metadata/scale_2d = 10.0
 metadata/rot_y_deg = -90.0
 metadata/editor_only = true
 
-[node name="Decorativo5" type="Node3D" parent="ObjectsRoot" unique_id=1187028034 instance=ExtResource("4_fxo00")]
+[node name="Decorativo5" parent="ObjectsRoot" unique_id=1187028034 instance=ExtResource("4_fxo00")]
 transform = Transform3D(13.486048, 0, 14.769106, 0, 20, 0, -14.769106, 0, 13.486048, 6.5604, -0.167, 8.536193)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb"
@@ -225,7 +225,7 @@ transform = Transform3D(0.9999619, 0, -0.008726535, 0, 1, 0, 0.008726535, 0, 0.9
 size = Vector3(0.0788, 0.01, 0.16998847)
 material = SubResource("StandardMaterial3D_pdmhx")
 
-[node name="Decorativo6" type="Node3D" parent="ObjectsRoot" unique_id=866619522 instance=ExtResource("6_1xtp7")]
+[node name="Decorativo6" parent="ObjectsRoot" unique_id=866619522 instance=ExtResource("6_1xtp7")]
 transform = Transform3D(17.65895, 0, -9.389431, 0, 20, 0, 9.389431, 0, 17.65895, 100.9408, 0, 18.663094)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb"
