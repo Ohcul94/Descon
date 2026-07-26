@@ -6,6 +6,7 @@ const { handleEnemyDeath } = require('./enemyLogic');
 const Logger = require('../utils/logger');
 const extractionManager = require('./extractionManager');
 const { checkAndProcessDeathDrop } = require('./deathDropHelper');
+const combatTracker = require('./combatTracker');
 
 const normalizeZone = (z) => {
     if (z === undefined || z === null) return 1;
@@ -476,6 +477,7 @@ function startGameLoop(io, state, aiManager) {
                             io.to(p.socketId).emit('stunState', { active: false });
                             checkAndProcessDeathDrop(p, io, state);
                         }
+                        combatTracker.trackDamageTaken(p.socketId, 'sleep', dmg, 'sleep', state);
                         
                         io.to(p.socketId).emit('environmentDamage', { damage: dmg });
                         changed = true;
@@ -543,6 +545,7 @@ function startGameLoop(io, state, aiManager) {
                     p.isDead = true;
                     checkAndProcessDeathDrop(p, io, state);
                 }
+                combatTracker.trackDamageTaken(p.socketId, 'debuff', debuffDmg, 'debuff', state);
 
                 io.to(p.socketId).emit('environmentDamage', { damage: debuffDmg });
                 changed = true;
@@ -596,6 +599,8 @@ function startGameLoop(io, state, aiManager) {
                 });
             }
         });
+        combatTracker.broadcastCombatMeterUpdates(io, state);
+        combatTracker.cleanupEmptyGroups(state);
     }, 1000);
 
     // 3. LOOP DE GUARDIANÍA (1s para Respawn Dinámico v266.999)
@@ -760,6 +765,7 @@ function startGameLoop(io, state, aiManager) {
                                     p.isDead = true;
                                     checkAndProcessDeathDrop(p, io, state);
                                 }
+                                combatTracker.trackDamageTaken(p.socketId, 'environment', dmg, 'radiation', state);
                                 io.to(p.socketId).emit('environmentDamage', { damage: dmg });
                                 io.to(`zone_${p.zone}`).emit('playerStatSync', {
                                     id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield),
@@ -858,6 +864,9 @@ function startGameLoop(io, state, aiManager) {
                                     const oldH = p.hp;
                                     p.hp = Math.min(p.maxHp, p.hp + finalHealVal);
                                     const actualHeal = p.hp - oldH;
+                                    if (actualHeal > 0 && area.ownerId) {
+                                        combatTracker.trackHealingDone(area.ownerId, p.socketId, actualHeal, 'beacon', state);
+                                    }
                                     
                                     io.to(`zone_${p.zone}`).emit('playerStatSync', {
                                         id: p.socketId,
@@ -985,6 +994,9 @@ function startGameLoop(io, state, aiManager) {
                     const oldH = target.hp;
                     target.hp = Math.min(target.maxHp, target.hp + finalHealVal);
                     const actualHeal = target.hp - oldH;
+                    if (actualHeal > 0 && area.ownerId && !isEnemyNPC) {
+                        combatTracker.trackHealingDone(area.ownerId, area.targetId, actualHeal, 'vital_link', state);
+                    }
 
                     if (!isEnemyNPC) {
                         // Sync estadísticas del receptor jugador
@@ -1067,6 +1079,9 @@ function startGameLoop(io, state, aiManager) {
                                 const oldH = p.hp;
                                 p.hp = Math.min(p.maxHp, p.hp + finalHealVal);
                                 const actualHeal = p.hp - oldH;
+                                if (actualHeal > 0 && area.ownerId) {
+                                    combatTracker.trackHealingDone(area.ownerId, p.socketId, actualHeal, 'heal_zone', state);
+                                }
 
                                 io.to(`zone_${p.zone}`).emit('playerStatSync', {
                                     id: p.socketId,
@@ -1113,6 +1128,7 @@ function startGameLoop(io, state, aiManager) {
                                 if (p.shield >= dmg) p.shield -= dmg;
                                 else { p.hp -= (dmg - p.shield); p.shield = 0; }
                                 if (p.hp < 0) p.hp = 0;
+                                combatTracker.trackDamageTaken(p.socketId, 'vortex', dmg, 'vortex', state);
 
                                 io.to(p.socketId).emit('environmentDamage', { damage: dmg });
                                 io.to(`zone_${p.zone}`).emit('playerStatSync', {

@@ -35,6 +35,7 @@ var _trade_select_start_time: float = 0.0
 var _cooldown_shader: Shader = null
 var _last_applied_layout: Dictionary = {}
 var _last_applied_config: Dictionary = {}
+var _combat_meter: Control = null
 
 func _ready():
 	add_to_group("hud")
@@ -140,6 +141,10 @@ func _ready():
 		var chats = get_tree().get_nodes_in_group("chat_ui")
 		for chat in chats: _apply_sci_fi_frame(chat)
 	, CONNECT_ONE_SHOT)
+
+	# v370.4: Inicializar Combat Meter
+	_setup_combat_meter()
+	if _combat_meter: _apply_sci_fi_frame(_combat_meter)
 
 	# v266.360: Inicializar visualizador de estados activos
 	_setup_status_effects_panel()
@@ -306,6 +311,7 @@ func _input(event: InputEvent):
 			for node in _node_start_positions.keys():
 				if is_instance_valid(node):
 					node.global_position = _node_start_positions[node] + delta
+					_sync_scifi_frame(node)
 			
 			if _dragging_node.name == "Skills":
 				var handle = get_node_or_null("SkillsMasterHandle")
@@ -422,20 +428,25 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			
 			var sc_val = float(pos_data.get("scale", 0.5))
 			var final_sc = sc_val * 2.0
+			node.pivot_offset = Vector2.ZERO # ✅ Forzar punto de pivote en (0,0) para alineación de escala perfecta
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer"] or "Chat" in node.name or "Party" in node.name
+			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter"] or "Chat" in node.name or "Party" in node.name
 			
 			if is_corner_win:
 				# v1.45: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) SIN MUTILACIÓN ESCALAR
 				node.top_level = true
+				node.anchor_left = 0
+				node.anchor_top = 0
+				node.anchor_right = 0
+				node.anchor_bottom = 0
 				
 				var rs_temp = node.size
 				if node.name == "CenterStats": rs_temp = Vector2(250, 140)
 				elif node.name == "RadarWindow": rs_temp = Vector2(220, 220)
 				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
-				elif "Party" in node.name: rs_temp = Vector2(220, node.size.y)
+				elif "Party" in node.name: rs_temp = Vector2(220, 200)
 				elif "ControlBar" in node.name:
 					var rows_val = int(pos_data.get("rows", 2))
 					rs_temp = Vector2(260, 85) if rows_val == 2 else Vector2(420, 45)
@@ -443,6 +454,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif node.name == "StatusEffects": rs_temp = Vector2(500, 55)
 				elif node.name == "TargetFrame": rs_temp = Vector2(200, 60)
 				elif node.name == "PortalBtnContainer": rs_temp = Vector2(200, 100)
+				elif node.name == "CombatMeter": rs_temp = Vector2(340, 220)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
@@ -487,6 +499,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 					f_pos.y = (_screen_size.y / 2.0) + offset_y - (godot_visual_h / 2.0)
 					
 				node.global_position = f_pos
+				_sync_scifi_frame(node)
 			else:
 				# v1.31: Matemática Proporcional Original para Slots huérfanos
 				node.top_level = true
@@ -513,6 +526,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				final_pos.x = clamp(final_pos.x, 0, _screen_size.x - ns_temp.x)
 				final_pos.y = clamp(final_pos.y, 0, _screen_size.y - ns_temp.y)
 				node.global_position = final_pos
+				_sync_scifi_frame(node)
 	
 	for win_id in config:
 		var node = _get_hud_node(win_id)
@@ -579,6 +593,10 @@ func _process(_delta):
 	# v325.2: Sincronizar todos los overlays de arrastre si estamos editando el layout
 	if is_editing_layout:
 		_sync_all_drag_overlays()
+	
+	# Sincronizar marcos SciFi de contenedores (CombatMeter, CenterStats, etc.)
+	# Necesario porque cambiar scale no dispara resized/item_rect_changed en Godot
+	_sync_all_scifi_frames()
 
 func _on_minimize_pressed(id: String):
 	var node = _get_hud_node(id)
@@ -644,6 +662,7 @@ func _get_hud_node(id: String):
 	if id == "BattlePass": real_id = "PaseBatalla"
 	if id == "CamEdit": real_id = "CamEdit"
 	if id == "TargetFrame": real_id = "TargetFrame"
+	if id == "CombatMeter": real_id = "CombatMeter"
 	
 	var node = get_node_or_null(real_id)
 	
@@ -876,6 +895,7 @@ func _restore_default_layout():
 		"TargetFrame":     { "x": 540,   "y": 80,    "scale": 0.5, "alpha": 1.0 },
 		"PortalBtnContainer": { "x": 540, "y": 610, "scale": 0.5, "alpha": 1.0 },
 		"CamTouchPadContainer": { "x": 1060, "y": 250,   "scale": 0.5, "alpha": 1.0 },
+		"CombatMeter":         { "x": 12,   "y": 340,   "scale": 0.5, "alpha": 1.0 },
 	}
 	
 	# v1.10: Sincronización dinámica de valores de fábrica definidos en el AdminDash
@@ -1368,7 +1388,7 @@ func toggle_hud_editing(slot_index: int = -1):
 				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
@@ -1377,6 +1397,7 @@ func toggle_hud_editing(slot_index: int = -1):
 		if win:
 			if is_editing_layout:
 				win.visible = true
+				win.pivot_offset = Vector2.ZERO # ✅ Resetear a cero para evitar desfase de escala al arrastrar y editar
 				var gp = win.global_position
 				win.top_level = true
 				win.global_position = gp
@@ -1443,6 +1464,7 @@ func _make_node_draggable(node: Control, _hud_id: String):
 				elif clean_name == "VirtualJoystick": clean_name = "JOYSTICK"
 				elif clean_name == "PortalBtnContainer": clean_name = "BOTÓN ACCIÓN"
 				elif clean_name == "CamEdit": clean_name = "CAM 3D"
+				elif clean_name == "CombatMeter": clean_name = "MÉTRICAS DE COMBATE"
 				elif clean_name == "Skills": clean_name = "CONTENEDOR HABILIDADES"
 				
 				lbl.text = clean_name
@@ -1479,7 +1501,7 @@ func _sync_all_drag_overlays():
 			if child is Control and child.name != "DragOverlay":
 				_sync_overlay_for_node(child, child.name)
 				
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
@@ -1569,7 +1591,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
 		
-		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer"] or "Chat" in win.name or "Party" in win.name
+		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter"] or "Chat" in win.name or "Party" in win.name
 		
 		if is_corner_win:
 			var base_w = win.size.x
@@ -1578,7 +1600,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			elif win.name == "CenterStats": base_w = 250; base_h = 140
 			elif win.name == "RadarWindow": base_w = 220; base_h = 220
 			elif "Chat" in win.name: base_w = 320; base_h = 200
-			elif "Party" in win.name: base_w = 200; base_h = 200
+			elif "Party" in win.name: base_w = 220; base_h = 200
 			elif "ControlBar" in win.name:
 				var rows_cb = win.rows if "rows" in win else 2
 				base_w = 260 if rows_cb == 2 else 420
@@ -1586,6 +1608,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			elif "StatusEffects" in win.name: base_w = 500; base_h = 55
 			elif "TargetFrame" in win.name: base_w = 200; base_h = 60
 			elif "PortalBtnContainer" in win.name: base_w = 200; base_h = 100
+			elif "CombatMeter" in win.name: base_w = 340; base_h = 220
 			
 			var godot_w = win.size.x * win.scale.x
 			var godot_h = win.size.y * win.scale.y
@@ -1645,7 +1668,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 			}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wpos = get_normalized_pos.call(win, 1280.0, 800.0)
@@ -1703,7 +1726,7 @@ func _backup_layout():
 					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 				}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wdata = {}
@@ -1752,9 +1775,10 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 			if child is VBoxContainer or child.name == "Minimap" or child.name == "VBox" or child.name == "Scroll":
 				var margin = 25
 				if target.name.contains("Slot"): margin = 5
+				elif target.name == "CombatMeter": margin = 12
 				
 				# v306.18: Solo aplicar márgenes a contenedores de primer nivel del HUD, no a los anidados para evitar desbordamiento
-				if target is HUDWindow or target.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame"]:
+				if target is HUDWindow or target.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "CombatMeter"]:
 					if "Party" in target.name:
 						# Centrar horizontalmente (ancho 160) y estirar verticalmente con márgenes de 25px
 						child.layout_mode = 1
@@ -1816,21 +1840,57 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 	if "show_rivets" in frame: frame.set("show_rivets", show_rivets)
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
-	if node is Container:
-		frame.top_level = true
+	# ✅ Para CUALQUIER nodo: siempre insertar como hijo DIRECTO (sin top_level)
+	# con PRESET_FULL_RECT. Desactivamos clip_contents para que el marco no quede cortado.
+	# La escala se propaga automáticamente desde el padre al hijo en Godot.
+	node.clip_contents = false
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	# Para PanelContainer/Container: el sistema de layout reasigna el tamaño de los hijos,
+	# así que necesitamos que el frame esté exento de ese sistema.
+	# Solución: añadirlo como hijo del PADRE del nodo (hermano del Container),
+	# sincronizando posición+tamaño+escala cada frame via metadatos.
+	if node is Container and node.get_parent() and node.get_parent() is Control:
+		var parent = node.get_parent()
+		frame.top_level = true  # El frame dibuja en coordenadas globales, igual que el Container
+		frame.anchor_left = 0
+		frame.anchor_top = 0
 		frame.anchor_right = 0
 		frame.anchor_bottom = 0
-		var sync_f = func():
-			frame.global_position = node.global_position
-			frame.size = node.size
-		node.resized.connect(sync_f)
-		node.item_rect_changed.connect(sync_f)
-		sync_f.call()
+		parent.add_child(frame)
+		node.set_meta("_scifi_frame_ref", frame)
+		_sync_scifi_frame_now(node) # Sincronización inicial inmediata
 	else:
-		frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	
-	node.add_child(frame)
-	node.move_child(frame, 0)
+		node.add_child(frame)
+		node.move_child(frame, 0)
+
+func _sync_scifi_frame_now(node: Control):
+	if not node or not node.has_meta("_scifi_frame_ref"): return
+	var frame = node.get_meta("_scifi_frame_ref")
+	if not is_instance_valid(frame): return
+	var sc = node.scale
+	# La misma fórmula que usa _sync_overlay_for_node para el DragOverlay celeste:
+	# Cuando un nodo tiene pivot_offset, su esquina superior izquierda visual se desplaza.
+	frame.global_position = node.global_position + node.pivot_offset * (Vector2.ONE - sc)
+	frame.size = node.size * sc
+	frame.scale = Vector2.ONE
+	frame.visible = node.visible # ✅ Sincronizar visibilidad para que el marco se oculte/muestre junto con el contenedor
+
+func _sync_all_scifi_frames():
+	# Sincronizar marcos SciFi de contenedores HUD que usan el sistema hermano (sibling)
+	# Solo afecta a nodos Container que tienen metadato _scifi_frame_ref
+	var containers_to_sync = [center_stats, radar_window, _combat_meter]
+	var party = get_node_or_null("PartyHUD")
+	if party: containers_to_sync.append(party)
+	var chats = get_tree().get_nodes_in_group("chat_ui")
+	for chat in chats:
+		if is_instance_valid(chat): containers_to_sync.append(chat)
+	for node in containers_to_sync:
+		if is_instance_valid(node):
+			_sync_scifi_frame_now(node)
+
+func _sync_scifi_frame(_node: Control):
+	pass # SciFiFrame ahora es hijo normal — la escala se sincroniza automáticamente
 
 # --- v300.060: GESTIÓN DE TRADE ---
 func _on_trade_invitation_received(data):
@@ -2231,6 +2291,18 @@ var _target_sh_lbl: Label = null
 var _hp_ratio: float = 1.0
 var _sh_ratio: float = 1.0
 
+func _setup_combat_meter():
+	if _combat_meter: return
+	var script_res = load("res://scripts/ui/CombatMeter.gd")
+	if not script_res: return
+	_combat_meter = PanelContainer.new()
+	_combat_meter.name = "CombatMeter"
+	_combat_meter.set_script(script_res)
+	_combat_meter.visible = false
+	_combat_meter.top_level = true
+	_combat_meter.pivot_offset = Vector2.ZERO
+	add_child(_combat_meter)
+
 func _setup_status_effects_panel():
 	if get_node_or_null("StatusEffects"): return
 	
@@ -2250,7 +2322,7 @@ func _setup_status_effects_panel():
 	
 	add_child(_status_effects_panel)
 	_status_effects_panel.top_level = true
-	_status_effects_panel.pivot_offset = Vector2(250, 27.5)
+	_status_effects_panel.pivot_offset = Vector2.ZERO
 
 func _get_cooldown_shader() -> Shader:
 	if _cooldown_shader == null:

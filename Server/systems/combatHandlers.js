@@ -20,6 +20,7 @@ const HealBeaconSkill = require('./skills/HealBeaconSkill');
 const ProvocacionSkill = require('./skills/ProvocacionSkill');
 const ResurreccionSkill = require('./skills/ResurreccionSkill');
 const FearSphereSkill = require('./skills/FearSphereSkill');
+const combatTracker = require('./combatTracker');
 
 // v301.4: Soporte unificado de habilidades de resurrección
 
@@ -431,6 +432,7 @@ function registerCombatHandlers(socket, io, state) {
                 isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
                 healPopup: actualHeal
             });
+            combatTracker.trackHealingDone(socket.id, socket.id, actualHeal, 'ammo_heal', state);
             finalDamage = 0; // No le hace daño al enemigo
         } else {
             if (activeAmmo === 'siphon') {
@@ -449,6 +451,7 @@ function registerCombatHandlers(socket, io, state) {
                     isInvulnerable: p.isInvulnerable, isInvisible: p.isInvisible,
                     healPopup: actualHeal
                 });
+                combatTracker.trackHealingDone(socket.id, socket.id, actualHeal, 'ammo_siphon', state);
             } else if (activeAmmo === 'emp') {
                 // EMP: Silencia la IA del bicho durante el tiempo configurado
                 const silenceMs = ammoConfig.silenceDurationMs !== undefined ? ammoConfig.silenceDurationMs : 3000;
@@ -501,6 +504,7 @@ function registerCombatHandlers(socket, io, state) {
                     else { p.hp -= (reflectedDmg - p.shield); p.shield = 0; }
                     if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
                     p.lastCombatTime = Date.now();
+                    combatTracker.trackDamageTaken(socket.id, enemyId, reflectedDmg, 'reflect', state);
                     
                     socket.emit('environmentDamage', { damage: reflectedDmg });
                     
@@ -523,6 +527,7 @@ function registerCombatHandlers(socket, io, state) {
 
             if (enemy.shield >= finalDamage) enemy.shield -= finalDamage;
             else { enemy.hp -= (finalDamage - enemy.shield); enemy.shield = 0; }
+            combatTracker.trackDamageDealt(socket.id, enemyId, finalDamage, 'pve', state);
         }
         
         enemy.lastHit = Date.now();
@@ -734,6 +739,7 @@ function registerCombatHandlers(socket, io, state) {
 
             if (p.isInvulnerable) dmg = 0;
 
+            const dmgTakenFinal = dmg;
             if (p.shield >= dmg) p.shield -= dmg;
             else { p.hp -= (dmg - p.shield); p.shield = 0; }
             if (p.hp <= 0) {
@@ -743,6 +749,9 @@ function registerCombatHandlers(socket, io, state) {
             }
             p.lastCombatTime = Date.now();
             p.regenDelay = (attackerType === 'remote') ? 15000 : 5000;
+            if (dmgTakenFinal > 0) {
+                combatTracker.trackDamageTaken(socket.id, attackerId, dmgTakenFinal, 'pve', state);
+            }
             
             io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                 id: socket.id, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), 
@@ -899,6 +908,9 @@ function registerCombatHandlers(socket, io, state) {
                     attacker.hp = Math.min(attacker.maxHp, attacker.hp + finalHealAttacker);
                     attacker.shield = Math.min(attacker.maxShield, attacker.shield + finalHealAttacker);
                     
+                    combatTracker.trackHealingDone(socket.id, data.victimId, Math.round(finalHealVictim), 'pvp_heal_ammo', state);
+                    combatTracker.trackHealingDone(socket.id, socket.id, Math.round(finalHealAttacker), 'pvp_heal_ammo', state);
+                    
                     io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
                         id: socket.id, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
                         maxHp: attacker.maxHp, maxShield: attacker.maxShield, isDead: attacker.isDead,
@@ -912,6 +924,7 @@ function registerCombatHandlers(socket, io, state) {
                         const siphonAmount = dmg * siphonPct;
                         attacker.hp = Math.min(attacker.maxHp, attacker.hp + siphonAmount);
                         attacker.shield = Math.min(attacker.maxShield, attacker.shield + siphonAmount);
+                        combatTracker.trackHealingDone(socket.id, socket.id, Math.round(siphonAmount), 'pvp_siphon', state);
                         
                         io.to(`zone_${attacker.zone}`).emit('playerStatSync', { 
                             id: socket.id, hp: Math.ceil(attacker.hp), shield: Math.ceil(attacker.shield), 
@@ -984,6 +997,8 @@ function registerCombatHandlers(socket, io, state) {
 
                     if (victim.shield >= dmg) victim.shield -= dmg;
                     else { victim.hp -= (dmg - victim.shield); victim.shield = 0; }
+                    combatTracker.trackDamageDealt(socket.id, data.victimId, Math.round(dmg), 'pvp', state);
+                    combatTracker.trackDamageTaken(data.victimId, socket.id, Math.round(dmg), 'pvp', state);
                 }
                 
                 if (victim.hp <= 0) {

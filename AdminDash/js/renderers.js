@@ -2818,17 +2818,18 @@ const HUD_ELEMENTS_CONFIG = {
     "ChatUI":                { name: "💬 CHAT (ChatUI)", x: 12,    y: 545, w: 320, h: 200 },
     "RadarWindow":           { name: "🛰️ RADAR (RadarWindow)", x: 1066,  y: 564, w: 220, h: 220 },
     "SkillsContainer":       { name: "🔥 SKILLS (SkillsContainer)", x: 101,   y: 684, w: 575, h: 65 },
-    "PartyHUD":              { name: "👥 PARTY (PartyHUD)", x: 10,    y: 120, w: 200, h: 200 },
+    "PartyHUD":              { name: "👥 PARTY (PartyHUD)", x: 10,    y: 120, w: 220, h: 200 },
     "ControlBar":            { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 260, h: 85 },
     "StatusEffects":         { name: "✨ ESTADOS (StatusEffects)", x: 390,   y: 620, w: 500, h: 55 },
     "CamTouchPadContainer":  { name: "🎥 CÁMARA (CamTouchPad)", x: 1060,  y: 250, w: 190, h: 230 },
-    "TargetFrame":           { name: "🎯 ENEMIGO (TargetFrame)", x: 540,  y: 80,  w: 200, h: 60 }
+    "TargetFrame":           { name: "🎯 ENEMIGO (TargetFrame)", x: 540,  y: 80,  w: 200, h: 60 },
+    "CombatMeter":           { name: "⚔️ COMBAT (CombatMeter)", x: 940,  y: 180, w: 340, h: 220 }
 };
-
+ 
 function initWebHUDDesigner() {
     const canvas = document.getElementById('web-hud-canvas');
     if (!canvas) return;
-
+ 
     if (!config.pilotConfig.defaultLayout) {
         // Inicializar con los defaults idénticos a los de fábrica de Godot
         config.pilotConfig.defaultLayout = {
@@ -2836,11 +2837,16 @@ function initWebHUDDesigner() {
             "ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
             "StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
             "CamTouchPadContainer":  { "x": 1060,  "y": 250,   "scale": 0.5, "alpha": 1.0 },
-            "TargetFrame":     { "x": 540,   "y": 80,    "scale": 0.5, "alpha": 1.0 }
+            "TargetFrame":     { "x": 540,   "y": 80,    "scale": 0.5, "alpha": 1.0 },
+            "CombatMeter":     { "x": 940,   "y": 180,   "scale": 0.5, "alpha": 1.0 }
         };
-    } else if (!config.pilotConfig.defaultLayout["TargetFrame"]) {
-        // Asegurar que TargetFrame tenga posición aunque no esté en el layout guardado previamente
-        config.pilotConfig.defaultLayout["TargetFrame"] = { "x": 540, "y": 80, "scale": 0.5, "alpha": 1.0 };
+    } else {
+        if (!config.pilotConfig.defaultLayout["TargetFrame"]) {
+            config.pilotConfig.defaultLayout["TargetFrame"] = { "x": 540, "y": 80, "scale": 0.5, "alpha": 1.0 };
+        }
+        if (!config.pilotConfig.defaultLayout["CombatMeter"]) {
+            config.pilotConfig.defaultLayout["CombatMeter"] = { "x": 940, "y": 180, "scale": 0.5, "alpha": 1.0 };
+        }
     }
 
     const layout = config.pilotConfig.defaultLayout;

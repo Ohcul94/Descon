@@ -18,7 +18,6 @@ func _ready():
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	resized.connect(queue_redraw)
 	
-	# Asegurar que el padre no nos tape
 	if get_parent() is Control:
 		get_parent().resized.connect(queue_redraw)
 

@@ -11,6 +11,7 @@ func _ready():
 	window_id = "PartyHUD"
 	header_height = 30 # Definir zona de arrastre superior
 	z_index = 50
+	pivot_offset = Vector2.ZERO
 	
 	# v167.30: Exorcismo de Títulos Superpuestos (Limpiar el .tscn)
 	for child in get_children():
@@ -91,6 +92,7 @@ func _refresh_list():
 	var party = PartyManager.current_party
 	if not party: 
 		custom_minimum_size.y = 40 # Tamaño mínimo si está solo
+		size.y = 40
 		return
 	
 	var members = party.get("members", [])

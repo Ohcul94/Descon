@@ -5819,6 +5819,18 @@
                 "y": 26,
                 "scale": 0.5,
                 "alpha": 1
+            },
+            "CombatMeter": {
+                "x": 942,
+                "y": 172,
+                "scale": 0.5,
+                "alpha": 1
+            },
+            "CamTouchPadContainer": {
+                "scale": 0.5,
+                "alpha": 1,
+                "x": 844,
+                "y": 386
             }
         },
         "expRequirements": [

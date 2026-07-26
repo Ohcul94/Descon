@@ -1,4 +1,5 @@
 const BaseSkill = require('./BaseSkill');
+const combatTracker = require('../combatTracker');
 
 class HealSkill extends BaseSkill {
     constructor(name) {
@@ -44,6 +45,10 @@ class HealSkill extends BaseSkill {
         // v266.360: Stacks y temporizador de curación para el HUD de estados
         target.healEndTime = Date.now() + 5000;
         target.healStacks = Math.min((target.healStacks || 0) + 1, 5);
+
+        if (actual_val > 0 && target.socketId) {
+            combatTracker.trackHealingDone(p.socketId || socket.id, target.socketId, actual_val, 'skill_heal', state);
+        }
 
         if (target.socketId) {
             io.to(`zone_${target.zone}`).emit('playerStatSync', {

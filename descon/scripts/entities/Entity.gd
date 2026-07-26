@@ -1207,18 +1207,24 @@ func set_debuff_timer(debuff_type: String, time_left: float, stacks: int = 1):
 		}
 	debuffs_updated.emit()
 
+var _debuff_cooldown: Dictionary = {}
+
 func _refresh_debuffs_from_status_effects():
 	var changed = false
+	var now = Time.get_ticks_msec()
 	for se_key in DEBUFF_MAP:
 		var info = DEBUFF_MAP[se_key]
 		var is_active = status_effects.get(se_key, false)
 		if is_active:
 			if not debuffs.has(info.type):
+				if _debuff_cooldown.get(info.type, 0) > now - 1000:
+					continue
 				debuffs[info.type] = {"time_left": 3.0, "total": 3.0, "stacks": 1}
 				changed = true
 		else:
 			if debuffs.has(info.type):
 				debuffs.erase(info.type)
+				_debuff_cooldown[info.type] = now
 				changed = true
 	if changed:
 		debuffs_updated.emit()

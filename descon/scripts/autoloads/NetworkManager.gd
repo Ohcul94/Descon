@@ -99,6 +99,7 @@ signal socket_event_received(event_name, data)
 
 signal status_effects_sync(data)
 signal battle_pass_state(data)
+signal combat_meter_update(data)
 
 
 var socket: WebSocketPeer = WebSocketPeer.new()
@@ -411,6 +412,8 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"battlePassState":
 			battle_pass_state.emit(e_data)
 			socket_event_received.emit(e_name, e_data)
+		"combatMeterUpdate":
+			combat_meter_update.emit(e_data)
 		_:
 			socket_event_received.emit(e_name, e_data)
 

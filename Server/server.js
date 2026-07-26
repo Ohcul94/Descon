@@ -154,6 +154,7 @@ const { registerRankingHandlers } = require('./systems/rankingHandlers');
 
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
+const combatTracker = require('./systems/combatTracker');
 const HordeManager = require('./events/HordeManager');
 const { calculateFinalStats } = require('./systems/statCalculator'); // v266.135: Sistema de Stats Dinámicos
 const extractionManager = require('./systems/extractionManager');
@@ -319,6 +320,9 @@ app.get('/api/find-asset', async (req, res) => {
 const state = require('./state');
 const { players, activeSessions, enemies, activeAreas, parties, playerParty } = state;
 const partyTimeouts = {};
+
+// v370.2: Inicializar Combat Tracker (Métricas de Daño/Curación)
+combatTracker.initCombatTracker(state);
 
 // v370.1: Inicializar monitores de rendimiento AAA en RAM
 state.performance = {
@@ -1725,6 +1729,41 @@ io.on('connection', (socket) => {
 
     // v1.2: SISTEMA DE COMBATE Y HABILIDADES - Modularizado en systems/combatHandlers.js
     registerCombatHandlers(socket, io, state);
+
+    // v370.3: COMBAT METER - Reset/Request de métricas de combate
+    socket.on('resetCombatMeter', () => {
+        const p = players[socket.id];
+        if (!p) return;
+        const pUid = p.dbId || (p.id ? p.id.toString() : null);
+        if (!pUid) return;
+        const groupId = state.playerParty && state.playerParty[pUid] ? state.playerParty[pUid] : pUid;
+        combatTracker.resetCombatGroup(groupId, state);
+    });
+
+    socket.on('requestCombatMeter', () => {
+        const p = players[socket.id];
+        if (!p) return;
+        const pUid = p.dbId || (p.id ? p.id.toString() : null);
+        if (!pUid) return;
+        const groupId = state.playerParty && state.playerParty[pUid] ? state.playerParty[pUid] : pUid;
+        const data = combatTracker.getGroupData(groupId, state);
+        if (data) {
+            const now = Date.now();
+            const elapsed = (now - data.startTime) / 1000;
+            const payload = { members: {}, elapsed: Math.round(elapsed * 10) / 10 };
+            for (const uid in data.members) {
+                const m = data.members[uid];
+                payload.members[uid] = {
+                    n: m.name,
+                    dd: m.damageDone,
+                    dt: m.damageTaken,
+                    hd: m.healingDone,
+                    hr: m.healingReceived
+                };
+            }
+            socket.emit('combatMeterUpdate', payload);
+        }
+    });
 
     // ENVIAR CONFIG AL CONECTAR
     fs.readJson(CONFIG_FILE).then(config => {

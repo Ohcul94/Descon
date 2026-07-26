@@ -127,6 +127,7 @@ func _update_joystick_visibility():
 func _setup_touch_buttons():
 	var touch_btns = [
 		{"id": "EscMenu", "icon": "⚙️", "tip": "Sistema (ESC)"},
+		{"id": "CombatMeter", "icon": "📊", "tip": "Métricas de Combate"},
 		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"},
 		{"id": "Housing", "icon": "🏠", "tip": "Housing (F3)"},
 		{"id": "BattlePass", "icon": "🎟️", "tip": "Pase de Batalla (F4)"}
@@ -187,7 +188,8 @@ func _update_icon_tooltips():
 		"Squad": "Equipo", "Party": "Equipo", "Chat": "Chat",
 		"Stats": "Estadísticas", "Map": "Mapa", "Radar": "Minimapa", "RadarWindow": "Minimapa",
 		"PvP": "Modo combate", "Talents": "Talentos", "Skills": "Habilidades",
-		"Housing": "Housing", "CamEdit": "Cámara Libre"
+		"Housing": "Housing", "CamEdit": "Cámara Libre",
+		"CombatMeter": "Métricas"
 	}
 	
 	var buttons = []
