@@ -5739,90 +5739,90 @@
             "CenterStats": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 1010,
-                "y": 18
+                "x": 1018,
+                "y": 16
             },
             "ChatUI": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 16,
-                "y": 476
+                "x": 14,
+                "y": 490
             },
             "ControlBar": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 14,
-                "y": 688
+                "x": 6,
+                "y": 722
             },
             "LaserSlot": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 361,
-                "y": 878
+                "x": 337,
+                "y": 858
             },
             "MineSlot": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 531,
-                "y": 878
+                "x": 507,
+                "y": 858
             },
             "MissileSlot": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 446,
-                "y": 878
+                "x": 422,
+                "y": 858
             },
             "PartyHUD": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 20,
-                "y": 136
+                "x": 8,
+                "y": 134
             },
             "RadarWindow": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 1038,
+                "x": 1046,
                 "y": 556
             },
             "SkillsContainer": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 404,
-                "y": 706
+                "x": 380,
+                "y": 686
             },
             "Sphere1Slot": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 616,
-                "y": 878
+                "x": 592,
+                "y": 858
             },
             "Sphere2Slot": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 701,
-                "y": 878
+                "x": 677,
+                "y": 858
             },
             "Sphere3Slot": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 786,
-                "y": 878
+                "x": 762,
+                "y": 858
             },
             "Sphere4Slot": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 871,
-                "y": 878
+                "x": 847,
+                "y": 858
             },
             "TargetFrame": {
-                "x": 232,
-                "y": 26,
+                "x": 194,
+                "y": 12,
                 "scale": 0.5,
                 "alpha": 1
             },
             "CombatMeter": {
-                "x": 942,
-                "y": 172,
+                "x": 926,
+                "y": 164,
                 "scale": 0.5,
                 "alpha": 1
             },

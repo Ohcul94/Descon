@@ -27,8 +27,8 @@ func _draw():
 	# 1. Fondo principal
 	draw_rect(r, bg_color, true)
 	
-	# 2. Marco Exterior Oscuro (Redondeado)
-	_draw_rounded_frame(r, frame_color, border_thickness)
+	# 2. Marco Exterior Oscuro (Comentado para remover el borde grueso negro molesto)
+	# _draw_rounded_frame(r, frame_color, border_thickness)
 	
 	if show_glow:
 		# 3. Línea de Brillo Roja (Biselada / Chamfered)

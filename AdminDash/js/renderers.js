@@ -2819,11 +2819,12 @@ const HUD_ELEMENTS_CONFIG = {
     "RadarWindow":           { name: "🛰️ RADAR (RadarWindow)", x: 1066,  y: 564, w: 220, h: 220 },
     "SkillsContainer":       { name: "🔥 SKILLS (SkillsContainer)", x: 101,   y: 684, w: 575, h: 65 },
     "PartyHUD":              { name: "👥 PARTY (PartyHUD)", x: 10,    y: 120, w: 220, h: 200 },
-    "ControlBar":            { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 260, h: 85 },
+    "ControlBar":            { name: "⚙️ MENÚS (ControlBar)", x: 10,    y: 745, w: 340, h: 45 },
     "StatusEffects":         { name: "✨ ESTADOS (StatusEffects)", x: 390,   y: 620, w: 500, h: 55 },
     "CamTouchPadContainer":  { name: "🎥 CÁMARA (CamTouchPad)", x: 1060,  y: 250, w: 190, h: 230 },
-    "TargetFrame":           { name: "🎯 ENEMIGO (TargetFrame)", x: 540,  y: 80,  w: 200, h: 60 },
-    "CombatMeter":           { name: "⚔️ COMBAT (CombatMeter)", x: 940,  y: 180, w: 340, h: 220 }
+    "TargetFrame":           { name: "🎯 ENEMIGO (TargetFrame)", x: 540,  y: 80,  w: 200, h: 65 },
+    "CombatMeter":           { name: "⚔️ COMBAT (CombatMeter)", x: 940,  y: 180, w: 340, h: 220 },
+    "TopLeft":               { name: "📈 DIAGNÓSTICOS (TopLeft)", x: 10,    y: 10,  w: 180, h: 120 }
 };
  
 function initWebHUDDesigner() {
@@ -2833,6 +2834,7 @@ function initWebHUDDesigner() {
     if (!config.pilotConfig.defaultLayout) {
         // Inicializar con los defaults idénticos a los de fábrica de Godot
         config.pilotConfig.defaultLayout = {
+            "TopLeft":         { "x": 10,    "y": 10,    "scale": 0.5, "alpha": 1.0 },
             "PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
             "ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
             "StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
@@ -2867,17 +2869,6 @@ function initWebHUDDesigner() {
     Object.keys(HUD_ELEMENTS_CONFIG).forEach(winId => {
         const spec = JSON.parse(JSON.stringify(HUD_ELEMENTS_CONFIG[winId]));
         const state = layout[winId] || { x: spec.x, y: spec.y };
-        
-        if (winId === "ControlBar") {
-            const currentRows = state.rows || 2;
-            if (currentRows === 2) {
-                spec.w = 260;
-                spec.h = 85;
-            } else {
-                spec.w = 420;
-                spec.h = 45;
-            }
-        }
         
         // Convertir coordenadas del plano de 1280x800 al canvas de 640x400 (Escala 0.5)
         const webX = state.x / 2.0;

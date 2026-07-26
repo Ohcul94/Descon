@@ -44,25 +44,46 @@ func _ready():
 	# Inicializar Reloj del Servidor (Horario de Argentina) en TopLeft
 	var top_left = get_node_or_null("TopLeft")
 	if top_left:
+		var margin_c = MarginContainer.new()
+		margin_c.name = "PaddingContainer"
+		margin_c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		margin_c.add_theme_constant_override("margin_left", 16)
+		margin_c.add_theme_constant_override("margin_top", 12)
+		margin_c.add_theme_constant_override("margin_right", 12)
+		margin_c.add_theme_constant_override("margin_bottom", 12)
+		
+		var vbox = VBoxContainer.new()
+		vbox.name = "VBox"
+		margin_c.add_child(vbox)
+		
+		var children_to_move = []
+		for child in top_left.get_children():
+			children_to_move.append(child)
+		for child in children_to_move:
+			top_left.remove_child(child)
+			vbox.add_child(child)
+			
+		top_left.add_child(margin_c)
+		
 		var spacer = Control.new()
-		spacer.custom_minimum_size.y = 6
-		top_left.add_child(spacer)
+		spacer.custom_minimum_size.y = 4
+		vbox.add_child(spacer)
 		
 		server_time_label = Label.new()
 		server_time_label.name = "ServerTimeLabel"
-		server_time_label.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0)) # Cian neón
-		server_time_label.add_theme_font_size_override("font_size", 15)
+		server_time_label.add_theme_color_override("font_color", Color(0.0, 0.85, 1.0))
+		server_time_label.add_theme_font_size_override("font_size", 14)
 		server_time_label.add_theme_constant_override("outline_size", 4)
 		server_time_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-		top_left.add_child(server_time_label)
+		vbox.add_child(server_time_label)
 		
 		server_date_label = Label.new()
 		server_date_label.name = "ServerDateLabel"
-		server_date_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.9, 0.8)) # Azul espacial
-		server_date_label.add_theme_font_size_override("font_size", 10)
+		server_date_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.9, 0.8))
+		server_date_label.add_theme_font_size_override("font_size", 9)
 		server_date_label.add_theme_constant_override("outline_size", 3)
 		server_date_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
-		top_left.add_child(server_date_label)
+		vbox.add_child(server_date_label)
 	
 	# v302.99: Atajo de Desarrollador para simular móvil en PC
 	set_process_input(true)
@@ -432,7 +453,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter"] or "Chat" in node.name or "Party" in node.name
+			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"] or "Chat" in node.name or "Party" in node.name
 			
 			if is_corner_win:
 				# v1.45: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) SIN MUTILACIÓN ESCALAR
@@ -448,13 +469,13 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif "Chat" in node.name: rs_temp = Vector2(320, 200)
 				elif "Party" in node.name: rs_temp = Vector2(220, 200)
 				elif "ControlBar" in node.name:
-					var rows_val = int(pos_data.get("rows", 2))
-					rs_temp = Vector2(260, 85) if rows_val == 2 else Vector2(420, 45)
+					rs_temp = Vector2(340, 45)
 				elif node.name == "Skills": rs_temp = Vector2(575, 65)
 				elif node.name == "StatusEffects": rs_temp = Vector2(500, 55)
-				elif node.name == "TargetFrame": rs_temp = Vector2(200, 60)
-				elif node.name == "PortalBtnContainer": rs_temp = Vector2(200, 100)
+				elif node.name == "TargetFrame": rs_temp = Vector2(200, 65)
+				elif node.name == "PortalBtnContainer": rs_temp = Vector2(80, 80)
 				elif node.name == "CombatMeter": rs_temp = Vector2(340, 220)
+				elif node.name == "TopLeft": rs_temp = Vector2(180, 120)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
@@ -468,34 +489,38 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				var original_h = 800.0
 				var f_pos = Vector2.ZERO
 				
-				# X: Alineación inteligente de 3 vías (Izquierda, Centro, Derecha)
+				# X: Alineación inteligente de 3 vías (Izquierda, Centro, Derecha) - Escalable
+				var left_thresh_x = _screen_size.x / 3.0
+				var right_thresh_x = _screen_size.x * 2.0 / 3.0
 				var cx = rx + (base_w / 2.0)
-				if cx < 426.0:
+				if cx < left_thresh_x:
 					# 1. Alineado a la izquierda
 					f_pos.x = rx
-				elif cx > 854.0:
+				elif cx > right_thresh_x:
 					# 2. Alineado a la derecha
 					var margin_right = original_w - (rx + base_w)
 					if margin_right < 0: margin_right = 0
 					f_pos.x = _screen_size.x - godot_visual_w - margin_right
 				else:
 					# 3. Alineado al centro
-					var offset_x = cx - 640.0
+					var offset_x = cx - (original_w / 2.0)
 					f_pos.x = (_screen_size.x / 2.0) + offset_x - (godot_visual_w / 2.0)
 					
-				# Y: Alineación inteligente de 3 vías (Arriba, Centro, Abajo)
+				# Y: Alineación inteligente de 3 vías (Arriba, Centro, Abajo) - Escalable
+				var top_thresh_y = _screen_size.y / 3.0
+				var bottom_thresh_y = _screen_size.y * 2.0 / 3.0
 				var cy = ry + (base_h / 2.0)
-				if cy < 266.0:
+				if cy < top_thresh_y:
 					# 1. Alineado arriba
 					f_pos.y = ry
-				elif cy > 534.0:
+				elif cy > bottom_thresh_y:
 					# 2. Alineado abajo
 					var margin_bottom = original_h - (ry + base_h)
 					if margin_bottom < 0: margin_bottom = 0
 					f_pos.y = _screen_size.y - godot_visual_h - margin_bottom
 				else:
 					# 3. Alineado al centro
-					var offset_y = cy - 400.0
+					var offset_y = cy - (original_h / 2.0)
 					f_pos.y = (_screen_size.y / 2.0) + offset_y - (godot_visual_h / 2.0)
 					
 				node.global_position = f_pos
@@ -565,6 +590,8 @@ func _process(_delta):
 	else:
 		visible = true
 	
+
+
 	if fps_label: fps_label.text = "FPS: " + str(Engine.get_frames_per_second())
 	if ms_label: ms_label.text = "MS: " + str(NetworkManager.current_ms)
 	if is_instance_valid(online_label):
@@ -573,7 +600,6 @@ func _process(_delta):
 	# Actualizar Reloj del Servidor (Horario de Argentina UTC-3)
 	if is_instance_valid(server_time_label) or is_instance_valid(server_date_label):
 		var server_time_ms = NetworkManager.get_secure_server_time_ms()
-		# Restamos 3 horas para la zona horaria de Argentina (UTC-3)
 		var argentina_time_sec = int((server_time_ms - 3 * 3600 * 1000) / 1000.0)
 		var datetime = Time.get_datetime_dict_from_unix_time(argentina_time_sec)
 		
@@ -890,12 +916,13 @@ func _restore_default_layout():
 		"Sphere3Slot":     { "x": 789.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 		"Sphere4Slot":     { "x": 874.5, "y": 714,   "scale": 0.5, "alpha": 1.0 },
 		"PartyHUD":        { "x": 10,    "y": 120,   "scale": 0.5, "alpha": 1.0 },
-		"ControlBar":      { "x": 10,    "y": 715,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
+		"ControlBar":      { "x": 10,    "y": 745,   "scale": 0.5, "alpha": 1.0, "rows": 2 },
 		"StatusEffects":   { "x": 390,   "y": 620,   "scale": 0.5, "alpha": 1.0 },
 		"TargetFrame":     { "x": 540,   "y": 80,    "scale": 0.5, "alpha": 1.0 },
 		"PortalBtnContainer": { "x": 540, "y": 610, "scale": 0.5, "alpha": 1.0 },
 		"CamTouchPadContainer": { "x": 1060, "y": 250,   "scale": 0.5, "alpha": 1.0 },
-		"CombatMeter":         { "x": 12,   "y": 340,   "scale": 0.5, "alpha": 1.0 },
+		"CombatMeter":         { "x": 940,  "y": 180,   "scale": 0.5, "alpha": 1.0 },
+		"TopLeft":             { "x": 10,   "y": 10,    "scale": 0.5, "alpha": 1.0 },
 	}
 	
 	# v1.10: Sincronización dinámica de valores de fábrica definidos en el AdminDash
@@ -1388,7 +1415,7 @@ func toggle_hud_editing(slot_index: int = -1):
 				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
@@ -1466,6 +1493,7 @@ func _make_node_draggable(node: Control, _hud_id: String):
 				elif clean_name == "CamEdit": clean_name = "CAM 3D"
 				elif clean_name == "CombatMeter": clean_name = "MÉTRICAS DE COMBATE"
 				elif clean_name == "Skills": clean_name = "CONTENEDOR HABILIDADES"
+				elif clean_name == "TopLeft": clean_name = "DIAGNÓSTICOS"
 				
 				lbl.text = clean_name
 				lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1501,7 +1529,7 @@ func _sync_all_drag_overlays():
 			if child is Control and child.name != "DragOverlay":
 				_sync_overlay_for_node(child, child.name)
 				
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
 		wins.append("VirtualJoystick")
 		
@@ -1519,6 +1547,8 @@ func _sync_overlay_for_node(node: Control, hud_id: String):
 		var target_node = node
 		if hud_id == "PortalBtnContainer":
 			var btn = node.find_child("PortalJumpBtn", true, false)
+			if not btn:
+				btn = node.find_child("PanelContainer", true, false)
 			if btn: target_node = btn
 			
 		var size_temp = target_node.size
@@ -1591,8 +1621,8 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
 		
-		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter"] or "Chat" in win.name or "Party" in win.name
-		
+		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"] or "Chat" in win.name or "Party" in win.name
+
 		if is_corner_win:
 			var base_w = win.size.x
 			var base_h = win.size.y
@@ -1602,13 +1632,12 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			elif "Chat" in win.name: base_w = 320; base_h = 200
 			elif "Party" in win.name: base_w = 220; base_h = 200
 			elif "ControlBar" in win.name:
-				var rows_cb = win.rows if "rows" in win else 2
-				base_w = 260 if rows_cb == 2 else 420
-				base_h = 85 if rows_cb == 2 else 45
+				base_w = 340; base_h = 45
 			elif "StatusEffects" in win.name: base_w = 500; base_h = 55
-			elif "TargetFrame" in win.name: base_w = 200; base_h = 60
-			elif "PortalBtnContainer" in win.name: base_w = 200; base_h = 100
+			elif "TargetFrame" in win.name: base_w = 200; base_h = 65
+			elif "PortalBtnContainer" in win.name: base_w = 80; base_h = 80
 			elif "CombatMeter" in win.name: base_w = 340; base_h = 220
+			elif "TopLeft" in win.name: base_w = 180; base_h = 120
 			
 			var godot_w = win.size.x * win.scale.x
 			var godot_h = win.size.y * win.scale.y
@@ -1624,7 +1653,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				nx = original_w - base_w - margin_right
 			else:
 				# Centro (preservar offset del centro)
-				nx = nx - (_screen_size.x / 2.0) + 640.0 + (godot_w - base_w) / 2.0
+				nx = nx - (_screen_size.x / 2.0) + (original_w / 2.0) + (godot_w - base_w) / 2.0
 				
 			# Y: Normalización de 3 vías (Arriba, Centro, Abajo)
 			var screen_cy = ny + (godot_h / 2.0)
@@ -1637,7 +1666,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				ny = original_h - base_h - margin_bottom
 			else:
 				# Centro (preservar offset del centro)
-				ny = ny - (_screen_size.y / 2.0) + 400.0 + (godot_h - base_h) / 2.0
+				ny = ny - (_screen_size.y / 2.0) + (original_h / 2.0) + (godot_h - base_h) / 2.0
 				
 		elif win.top_level:
 			var scale_x = original_w / _screen_size.x
@@ -1668,7 +1697,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 				"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 			}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wpos = get_normalized_pos.call(win, 1280.0, 800.0)
@@ -1726,7 +1755,7 @@ func _backup_layout():
 					"scale": child.scale.x / 2.0, "alpha": child.modulate.a
 				}
 	
-	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter"]:
+	for win_id in ["CenterStats", "RadarWindow", "ChatUI", "VirtualJoystick", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]:
 		var win = _get_hud_node(win_id)
 		if win:
 			var wdata = {}

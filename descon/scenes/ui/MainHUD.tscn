@@ -54,9 +54,6 @@ offset_left = 10.0
 offset_top = 10.0
 offset_right = 150.0
 offset_bottom = 100.0
-script = ExtResource("2_window_script")
-window_id = "TopLeft"
-header_height = 30
 
 [node name="FPS" type="Label" parent="TopLeft"]
 layout_mode = 2

@@ -1239,8 +1239,8 @@ func _create_portal_jump_ui():
 	portal_btn_container = VBoxContainer.new()
 	portal_btn_container.name = "PortalBtnContainer"
 	portal_btn_container.add_to_group("portal_jump_ui")
-	portal_btn_container.custom_minimum_size = Vector2(200, 100)
-	portal_btn_container.size = Vector2(200, 100)
+	portal_btn_container.custom_minimum_size = Vector2(80, 80)
+	portal_btn_container.size = Vector2(80, 80)
 	portal_btn_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	
 	ui_canvas.add_child(portal_btn_container)
@@ -1250,10 +1250,10 @@ func _create_portal_jump_ui():
 	portal_btn_container.anchor_bottom = 1.0
 	portal_btn_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	portal_btn_container.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	portal_btn_container.offset_left = -100
-	portal_btn_container.offset_right = 100
-	portal_btn_container.offset_top = -190
-	portal_btn_container.offset_bottom = -90
+	portal_btn_container.offset_left = -40
+	portal_btn_container.offset_right = 40
+	portal_btn_container.offset_top = -130
+	portal_btn_container.offset_bottom = -50
 	
 	var center_slot = CenterContainer.new()
 	portal_btn_container.add_child(center_slot)

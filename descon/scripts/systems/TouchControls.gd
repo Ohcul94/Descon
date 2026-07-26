@@ -10,6 +10,7 @@ func set_rows(p_rows: int):
 	rows = p_rows
 	if grid_container:
 		grid_container.columns = 6 if rows == 2 else 10
+		_reorder_icons_by_category()
 		grid_container.reset_size()
 		reset_size()
 		custom_minimum_size = grid_container.get_combined_minimum_size()
@@ -53,7 +54,10 @@ func _defer_move_existing_children():
 	# v238.20: Sincronía Táctil Autorizativa (Esperar al Login)
 	if NetworkManager:
 		if not NetworkManager.login_success.is_connected(_setup_touch_buttons):
-			NetworkManager.login_success.connect(func(_d): _setup_touch_buttons())
+			NetworkManager.login_success.connect(func(_d): 
+				_setup_touch_buttons()
+				_reorder_icons_by_category()
+			)
 			
 	# También correr la configuración inicial de botones si ya estamos logueados
 	if NetworkManager and NetworkManager.is_logged_in:
@@ -61,6 +65,9 @@ func _defer_move_existing_children():
 
 	# Icono de escuadrón inicial (Siempre Visible)
 	_setup_squad_and_events_icons()
+	
+	# Reordenar iconos por categoría después de que todos estén creados
+	_reorder_icons_by_category()
 
 func _setup_squad_and_events_icons():
 	# Icono Squad (Siempre Visible)
@@ -85,6 +92,49 @@ func _setup_squad_and_events_icons():
 		btn.add_theme_stylebox_override("normal", sb)
 		btn.pressed.connect(_on_icon_pressed.bind("Events"))
 		grid_container.add_child(btn)
+
+# Iconos que abren menús/modales (no toggle de UI)
+var _menu_icon_ids: Array = ["EscMenu", "Inventory", "Housing", "Events"]
+
+func _get_icon_category(btn_name: String) -> String:
+	var id = btn_name.replace("Icon", "")
+	if id in _menu_icon_ids:
+		return "menu"
+	return "toggle"
+
+func _reorder_icons_by_category():
+	if not is_instance_valid(grid_container): return
+	
+	var all_buttons: Array = []
+	for child in grid_container.get_children():
+		if child is Button:
+			all_buttons.append(child)
+	
+	if all_buttons.is_empty(): return
+	
+	var menu_btns: Array = []
+	var toggle_btns: Array = []
+	for btn in all_buttons:
+		var cat = _get_icon_category(btn.name)
+		if cat == "menu":
+			menu_btns.append(btn)
+		else:
+			toggle_btns.append(btn)
+	
+	var ordered: Array
+	if rows == 2:
+		ordered = toggle_btns + menu_btns
+	else:
+		ordered = menu_btns + toggle_btns
+	
+	for i in range(ordered.size()):
+		grid_container.move_child(ordered[i], i)
+	
+	grid_container.reset_size()
+	reset_size()
+	custom_minimum_size = grid_container.get_combined_minimum_size()
+	size = custom_minimum_size
+	queue_redraw()
 
 func _setup_joystick():
 	if virtual_joystick: return
@@ -128,6 +178,7 @@ func _setup_touch_buttons():
 	var touch_btns = [
 		{"id": "EscMenu", "icon": "⚙️", "tip": "Sistema (ESC)"},
 		{"id": "CombatMeter", "icon": "📊", "tip": "Métricas de Combate"},
+		{"id": "TopLeft", "icon": "📈", "tip": "Diagnósticos (FPS/MS)"},
 		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"},
 		{"id": "Housing", "icon": "🏠", "tip": "Housing (F3)"},
 		{"id": "BattlePass", "icon": "🎟️", "tip": "Pase de Batalla (F4)"}
@@ -189,7 +240,8 @@ func _update_icon_tooltips():
 		"Stats": "Estadísticas", "Map": "Mapa", "Radar": "Minimapa", "RadarWindow": "Minimapa",
 		"PvP": "Modo combate", "Talents": "Talentos", "Skills": "Habilidades",
 		"Housing": "Housing", "CamEdit": "Cámara Libre",
-		"CombatMeter": "Métricas"
+		"CombatMeter": "Métricas",
+		"TopLeft": "Diagnósticos"
 	}
 	
 	var buttons = []
