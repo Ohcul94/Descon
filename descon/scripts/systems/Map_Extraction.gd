@@ -43,15 +43,6 @@ func _ready():
 			
 	if is_instance_valid(camera_3d):
 		camera_3d.fov = 35.0
-		camera_3d.transform = Transform3D(
-			Basis(
-				Vector3(1, 0, 0),
-				Vector3(0, 0.707107, 0.707107),
-				Vector3(0, -0.707107, 0.707107)
-			).orthonormalized(),
-			Vector3(0, 30.0, 30.0)
-		)
-		_apply_camera_headlight(camera_3d)
 	
 	# Crear los componentes visuales del botón flotante interactivo de salto
 	_create_portal_jump_ui()
@@ -705,6 +696,7 @@ func _on_interact_button_pressed():
 				active_loot_node._interact()
 
 func _input(event):
+	super._input(event)
 	# Atajo premium configurable: Presionar la tecla asignada (por defecto Espacio) para saltar instantáneamente
 	if event.is_action_pressed("portal_jump") and not event.is_echo():
 		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode == "portal":
@@ -914,7 +906,15 @@ func _on_raid_time_update(data: Dictionary):
 
 # --- SISTEMA DE ARENAS (PVP) ---
 func _is_arena_zone() -> bool:
-	return str(zone_id).begins_with("arena_")
+	if str(zone_id).begins_with("arena_"):
+		return true
+	var full_cfg = GameConstants.get("FULL_CONFIG")
+	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("arenas"):
+		var arena_maps = full_cfg.gameModes.arenas.get("maps", [])
+		for m in arena_maps:
+			if str(m) == str(zone_id):
+				return true
+	return false
 
 func _spawn_arena_elements():
 	if not _is_arena_zone(): return
@@ -922,10 +922,16 @@ func _spawn_arena_elements():
 	
 	var data = NetworkManager.current_arena_data
 	if data.is_empty():
-		print("[ARENA] Datos de arena vacíos. Esperando señal del servidor...")
-		if not NetworkManager.arena_match_started.is_connected(_on_arena_match_started_spawn):
-			NetworkManager.arena_match_started.connect(_on_arena_match_started_spawn)
-		return
+		print("[ARENA] Datos de arena vacíos. Cargando desde config.json como fallback...")
+		var full_cfg = GameConstants.get("FULL_CONFIG")
+		if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("arenas"):
+			var arena_cfg = full_cfg.gameModes.arenas
+			if arena_cfg.has("mapConfigs") and arena_cfg.mapConfigs.has(str(zone_id)):
+				data = arena_cfg.mapConfigs[str(zone_id)]
+		if data.is_empty():
+			if not NetworkManager.arena_match_started.is_connected(_on_arena_match_started_spawn):
+				NetworkManager.arena_match_started.connect(_on_arena_match_started_spawn)
+			return
 		
 	# Limpiar elementos anteriores por seguridad
 	_clear_arena_elements()

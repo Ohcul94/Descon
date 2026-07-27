@@ -16,7 +16,7 @@ func _input(event):
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud and hud.get("is_editing_layout"): return
 
-		if event.button_index == MOUSE_BUTTON_LEFT:
+		if event.button_index == MOUSE_BUTTON_RIGHT:
 			# v244.85: Bloqueo inteligente si hay menús superpuestos (F1 / F2)
 			var screen_size = get_viewport().get_visible_rect().size
 			var r_size = Vector2(screen_size.x * 0.85, screen_size.y * 0.85)

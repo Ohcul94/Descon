@@ -38,9 +38,9 @@ var MAPS_CONFIG = {
 	"6": { "name": "Mapa 6", "desc": "Borde exterior: Peligro extremo.", "color": "#ff0000", "warpCost": 100, "minLevel": 20 },
 	"7": { "name": "Mapa 7", "desc": "Sector de invasión: Hordas detectadas.", "color": "#aa0000", "warpCost": 200, "minLevel": 25 },
 	"8": { "name": "Mapa 8", "desc": "Guarida de Jefes: Requiere escolta.", "color": "#550000", "warpCost": 500, "minLevel": 30 },
-	"9": { "name": "Mapa 9", "desc": "Zona de Pruebas Tácticas (Showcase).", "color": "#aa00ff", "warpCost": 1000, "minLevel": 35 },
+	"9": { "name": "Arena PVP", "desc": "Zona de combate táctico y enfrentamiento por equipos. Destruye el nexo enemigo.", "color": "#aa00ff", "warpCost": 0, "minLevel": 1 },
 	"10": { "name": "Zona de Extracción", "desc": "Sector Prohibido: Alta radiación y presencia de la flota oscura. Solo para misiones de extracción.", "color": "#ff0055", "warpCost": 50, "minLevel": 10 },
-	"11": { "name": "Sector de Extracción", "desc": "Área de extracción de recursos. Cuidado con los asteroides.", "color": "#ff00aa", "warpCost": 100, "minLevel": 10 },
+	"11": { "name": "Defensa del Altar", "desc": "Protege el Altar Sagrado del ataque de las oleadas de naves enemigas.", "color": "#ff00aa", "warpCost": 100, "minLevel": 10 },
 }
 
 var HORDES_CONFIG = {

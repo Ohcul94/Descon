@@ -1,43 +1,22 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene format=3 uid="uid://codv26ddsfyds"]
 
-[ext_resource type="Script" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="PackedScene" uid="uid://diy8ycm00f4tx" path="res://assets/Puertas/3D/Puerta2/Puerta2.glb" id="2_humda"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_humda"]
+albedo_color = Color(0.05, 0.08, 0.15, 1)
+metallic = 0.3
+roughness = 0.8
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(20000, 20000)
 subdivide_width = 200
 subdivide_depth = 200
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
-transparency = 1
-cull_mode = 2
-albedo_color = Color(0.05, 0.08, 0.15, 1)
-metallic = 0.3
-roughness = 0.8
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
-height = 20000.0
-radius = 0.05
-
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_red"]
-shading_mode = 2
-albedo_color = Color(1, 0.2, 0.2, 0.8)
-emission_enabled = true
-emission = Color(1, 0.2, 0.2, 1)
-emission_energy_multiplier = 0.5
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_green"]
-shading_mode = 2
-albedo_color = Color(0.2, 1, 0.2, 0.8)
-emission_enabled = true
-emission = Color(0.2, 1, 0.2, 1)
-emission_energy_multiplier = 0.5
-
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 4
-background_sky_color = Color(0.02, 0.03, 0.08, 1)
 ambient_light_source = 1
 ambient_light_color = Color(0.3, 0.32, 0.4, 1)
 ambient_light_energy = 1.5
@@ -46,46 +25,282 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
 
-[node name="MapEditor3D" type="Node3D"]
+[node name="MapEditor3D" type="Node3D" unique_id=1774554658]
 script = ExtResource("1_editor_script")
 zone_id = "10"
 auto_load_event = true
-
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 80, 80)
-projection = 1
-fov = 55.0
-near = 0.1
-far = 5000.0
-
-[node name="GroundPlane" type="StaticBody3D" parent="."]
-collision_layer = 1
-collision_mask = 0
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane"]
-shape = SubResource("WorldBoundaryShape3D_1")
-
-[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
-mesh = SubResource("PlaneMesh_1")
-material_override = SubResource("StandardMaterial3D_1")
-
-[node name="ObjectsRoot" type="Node3D" parent="."]
-unique_name_in_owner = true
-meta = {
-"editor_only": true
+json_to_import = "[{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Punto Alfa\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"targetZoneId\":\"1\",\"type\":\"door\",\"x\":7967.0,\"y\":8055.0,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Punto Beta\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"targetZoneId\":\"1\",\"type\":\"door\",\"x\":12000.0,\"y\":12055.0,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Punto Gamma\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"targetZoneId\":\"1\",\"type\":\"door\",\"x\":12000.0,\"y\":8022.0,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Punto Delta\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"targetZoneId\":\"1\",\"type\":\"door\",\"x\":8033.0,\"y\":12055.0,\"yOffset\":0.0}]"
+metadata/extraction_config = {
+"countdownTime": 600000.0,
+"extractPoints": [{
+"label": "Punto Alfa",
+"x": 7967.0,
+"y": 8055.0
+}, {
+"label": "Punto Beta",
+"x": 12000.0,
+"y": 12055.0
+}, {
+"label": "Punto Gamma",
+"x": 12000.0,
+"y": 8022.0
+}, {
+"label": "Punto Delta",
+"x": 8033.0,
+"y": 12055.0
+}],
+"extractRadius": 150.0,
+"spawnLockTime": 2000.0,
+"spawnPoints": [{
+"label": "Spwan 1",
+"radius": 500.0,
+"x": 992.0,
+"y": 1037.0
+}, {
+"label": "Spwan  2",
+"radius": 500.0,
+"x": 3067.0,
+"y": 1022.0
+}, {
+"label": "Spwan 3",
+"radius": 500.0,
+"x": 4992.0,
+"y": 1137.0
+}, {
+"label": "Spwan  4",
+"radius": 500.0,
+"x": 7092.0,
+"y": 1204.0
+}, {
+"label": "Spwan 5",
+"radius": 500.0,
+"x": 8959.0,
+"y": 1204.0
+}, {
+"label": "Spwan  6",
+"radius": 500.0,
+"x": 19100.0,
+"y": 822.0
+}, {
+"label": "Spwan  7",
+"radius": 500.0,
+"x": 19033.0,
+"y": 2955.0
+}, {
+"label": "Spwan  8",
+"radius": 500.0,
+"x": 19100.0,
+"y": 5055.0
+}, {
+"label": "Spwan  9",
+"radius": 500.0,
+"x": 19067.0,
+"y": 7089.0
+}, {
+"label": "Spwan  10",
+"radius": 500.0,
+"x": 19067.0,
+"y": 9189.0
+}, {
+"label": "Spwan  11",
+"radius": 500.0,
+"x": 19000.0,
+"y": 19089.0
+}, {
+"label": "Spwan  12",
+"radius": 500.0,
+"x": 17067.0,
+"y": 18955.0
+}, {
+"label": "Spwan  13",
+"radius": 500.0,
+"x": 15000.0,
+"y": 19055.0
+}, {
+"label": "Spwan  14",
+"radius": 500.0,
+"x": 12800.0,
+"y": 19022.0
+}, {
+"label": "Spwan  15",
+"radius": 500.0,
+"x": 11200.0,
+"y": 19122.0
+}, {
+"label": "Spwan  16",
+"radius": 500.0,
+"x": 1133.0,
+"y": 19155.0
+}, {
+"label": "Spwan 17",
+"radius": 500.0,
+"x": 933.0,
+"y": 17055.0
+}, {
+"label": "Spwan  18",
+"radius": 500.0,
+"x": 1067.0,
+"y": 15055.0
+}, {
+"label": "Spwan 19",
+"radius": 500.0,
+"x": 1067.0,
+"y": 13189.0
+}, {
+"label": "Spwan  20",
+"radius": 500.0,
+"x": 1033.0,
+"y": 11089.0
+}],
+"spawners": [{
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 2000.0,
+"y": 4022.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 5933.0,
+"y": 4022.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 12000.0,
+"y": 4022.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 15900.0,
+"y": 3989.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 16167.0,
+"y": 15955.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 12067.0,
+"y": 16089.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 7933.0,
+"y": 16055.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 4067.0,
+"y": 16089.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 9967.0,
+"y": 8055.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 12067.0,
+"y": 10122.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 9967.0,
+"y": 12089.0
+}, {
+"count": 10.0,
+"enemyId": "1",
+"radius": 500.0,
+"x": 7900.0,
+"y": 10155.0
+}]
 }
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-45, 45, 0)
+[node name="Camera3D" type="Camera3D" parent="." unique_id=135558076]
+transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
+fov = 35.0
+near = 0.1
+far = 10000.0
+
+[node name="GroundPlane" type="StaticBody3D" parent="." unique_id=54288143]
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane" unique_id=568918090]
+shape = SubResource("WorldBoundaryShape3D_1")
+
+[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=388229220]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.049969483, 1.5258789e-05)
+material_override = SubResource("StandardMaterial3D_humda")
+mesh = SubResource("PlaneMesh_1")
+
+[node name="ObjectsRoot" type="Node3D" parent="." unique_id=1600365338]
+unique_name_in_owner = true
+
+[node name="Puerta2" type="Node3D" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("2_humda")]
+transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 159.34, 0, 227.8298)
+metadata/editor_only = true
+metadata/obj_type = "door"
+metadata/label = "Punto Alfa"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+metadata/scale_2d = 10.0
+metadata/rot_y_deg = -90.0
+metadata/radius = 150.0
+metadata/targetZoneId = "1"
+
+[node name="Puerta3" type="Node3D" parent="ObjectsRoot" unique_id=104526246 instance=ExtResource("2_humda")]
+transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 240, 0, 340.9669)
+metadata/editor_only = true
+metadata/obj_type = "door"
+metadata/label = "Punto Beta"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+metadata/scale_2d = 10.0
+metadata/rot_y_deg = -90.0
+metadata/radius = 150.0
+metadata/targetZoneId = "1"
+
+[node name="Puerta4" type="Node3D" parent="ObjectsRoot" unique_id=272732695 instance=ExtResource("2_humda")]
+transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 240, 0, 226.89642)
+metadata/editor_only = true
+metadata/obj_type = "door"
+metadata/label = "Punto Gamma"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+metadata/scale_2d = 10.0
+metadata/rot_y_deg = -90.0
+metadata/radius = 150.0
+metadata/targetZoneId = "1"
+
+[node name="Puerta5" type="Node3D" parent="ObjectsRoot" unique_id=647717876 instance=ExtResource("2_humda")]
+transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 160.66, 0, 340.9669)
+metadata/editor_only = true
+metadata/obj_type = "door"
+metadata/label = "Punto Delta"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+metadata/scale_2d = 10.0
+metadata/rot_y_deg = -90.0
+metadata/radius = 150.0
+metadata/targetZoneId = "1"
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=561682164]
+transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
 light_color = Color(1, 0.95, 0.9, 1)
 light_energy = 2.0
 light_specular = 0.3
 shadow_enabled = true
-directional_shadow_mode = 1
-directional_shadow_max_distance = 200.0
 shadow_bias = 0.02
 shadow_normal_bias = 0.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 200.0
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=781796303]
 environment = SubResource("Environment_1")

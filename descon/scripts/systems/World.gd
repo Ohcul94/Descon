@@ -586,7 +586,7 @@ func _update_background(zone_id):
 		if parts.size() > 1:
 			zid = int(parts[1])
 		
-	var scene_path = "res://scenes/maps/Map_Default.tscn"
+	var scene_path = "res://scenes/maps/Map_Exploracion.tscn"
 	
 	# Determinar si es un mapa de Altar Defense (leído del config del servidor)
 	var ad_map_ids = []
@@ -598,18 +598,22 @@ func _update_background(zone_id):
 				ad_map_ids.append(int(m))
 	
 	var is_arena = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("arena_")
+	if not is_arena and full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("arenas"):
+		var arena_maps = full_cfg.gameModes.arenas.get("maps", [])
+		for m in arena_maps:
+			if int(m) == zid:
+				is_arena = true
+				break
 	var is_altar_defense = (zid in ad_map_ids)
-	var is_extraction = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_") or zid == 10 or zid == 11
+	var is_extraction = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_") or zid == 10
 	
 	# Mapear escenas según el tipo de zona
 	if zid == 1:
 		scene_path = "res://scenes/maps/Map_Loby.tscn"
-	elif zid == 200:
-		scene_path = "res://scenes/maps/Map_Zone10.tscn"
 	elif zid == 100:
 		scene_path = "res://scenes/maps/Map_Housing.tscn"
 	elif is_altar_defense or is_extraction or is_arena:
-		scene_path = "res://scenes/maps/Map_Extraction.tscn"
+		scene_path = "res://scenes/maps/Map_Evento.tscn"
 		
 	# Ocultar o mostrar las estrellas generadas según si es mapa de extracción o altar
 	var hide_stars = false

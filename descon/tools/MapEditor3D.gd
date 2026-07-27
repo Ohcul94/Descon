@@ -48,7 +48,7 @@ var _gizmo_mode: int = 0  # 0=move, 1=rotate, 2=scale
 var _current_gizmo: Node3D = null
 var _auto_loading: bool = false
 
-const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "custom"]
+const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "nexus", "pillar", "custom"]
 
 func _ready():
 	if not Engine.is_editor_hint():
@@ -338,6 +338,14 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 	if node.has_meta("targetZoneId"): config["targetZoneId"] = node.get_meta("targetZoneId")
 	if node.has_meta("targetX"): config["targetX"] = node.get_meta("targetX")
 	if node.has_meta("targetY"): config["targetY"] = node.get_meta("targetY")
+	if node.has_meta("team"): config["team"] = node.get_meta("team")
+	if node.has_meta("ammoType"): config["ammoType"] = node.get_meta("ammoType")
+	if node.has_meta("attackType"): config["attackType"] = node.get_meta("attackType")
+	if node.has_meta("damage"): config["damage"] = node.get_meta("damage")
+	if node.has_meta("hp"): config["hp"] = node.get_meta("hp")
+	if node.has_meta("shield"): config["shield"] = node.get_meta("shield")
+	if node.has_meta("range"): config["range"] = node.get_meta("range")
+
 
 	
 	# Buscar todos los colisionadores visuales como nodos hijos
@@ -442,8 +450,13 @@ func import_from_json():
 				asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
 			elif obj.get("type") == "spawn":
 				asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb" # marcador visual de spawn
+			elif obj.get("type") == "nexus":
+				asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
+			elif obj.get("type") == "pillar":
+				asset_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
 			else:
 				asset_path = "res://assets/Paredes/Pared1/Pared1.glb"
+
 				
 		var scene = load(asset_path)
 		if not scene:
@@ -573,6 +586,21 @@ func import_from_json():
 			instance.set_meta("targetX", float(obj.get("targetX")))
 		if obj.has("targetY"):
 			instance.set_meta("targetY", float(obj.get("targetY")))
+		if obj.has("team"):
+			instance.set_meta("team", str(obj.get("team")))
+		if obj.has("ammoType"):
+			instance.set_meta("ammoType", str(obj.get("ammoType")))
+		if obj.has("attackType"):
+			instance.set_meta("attackType", str(obj.get("attackType")))
+		if obj.has("damage"):
+			instance.set_meta("damage", float(obj.get("damage")))
+		if obj.has("hp"):
+			instance.set_meta("hp", float(obj.get("hp")))
+		if obj.has("shield"):
+			instance.set_meta("shield", float(obj.get("shield")))
+		if obj.has("range"):
+			instance.set_meta("range", float(obj.get("range")))
+
 
 			
 	print("MapEditor3D: ✅ Importación completada con éxito.")
@@ -641,7 +669,16 @@ func load_from_server():
 			is_altar_zone = true
 			break
 
-	print("MapEditor3D: [DEBUG] zona=", zone_id, " is_extraction=", is_extraction_zone, " is_altar=", is_altar_zone, " ext_maps=", ext_maps)
+	var arena_cfg = config_dict.get("gameModes", {}).get("arenas", {})
+	var arena_maps = arena_cfg.get("maps", [])
+	var is_arena_zone = false
+	for _m in arena_maps:
+		if int(_m) == zone_id_int:
+			is_arena_zone = true
+			break
+
+	print("MapEditor3D: [DEBUG] zona=", zone_id, " is_extraction=", is_extraction_zone, " is_altar=", is_altar_zone, " is_arena=", is_arena_zone)
+
 
 
 	# ─── ZONA NORMAL: importar mapsConfig.objects directamente ────────────
@@ -738,6 +775,72 @@ func load_from_server():
 				print("MapEditor3D: ✅ Altar y portales importados. Editalos y guardá con 'Save to Server'.")
 			else:
 				print("MapEditor3D: ⚠️ Altar defense sin altarPos ni exitPortals en config.")
+
+	# ─── ZONA DE ARENA PVP ────────────────────────────────────────────────
+	if is_arena_zone:
+		var arena_map_cfg = arena_cfg.get("mapConfigs", {}).get(zone_id, {})
+		width_val  = float(arena_map_cfg.get("width", 10000))
+		height_val = float(arena_map_cfg.get("height", 10000))
+		
+		set_meta("arena_config", arena_map_cfg)
+
+		if objects.size() > 0:
+			json_to_import = JSON.stringify(objects)
+			import_from_json()
+			print("MapEditor3D: ✅ Objects de arena PVP cargados desde mapsConfig (", objects.size(), " obj).")
+		else:
+			var generated_objects = []
+			
+			# Nexo Rojo
+			var nexus_red = arena_map_cfg.get("nexusRed", {})
+			if nexus_red.has("x") and nexus_red.has("y"):
+				generated_objects.append({
+					"type": "nexus", "x": float(nexus_red.x), "y": float(nexus_red.y),
+					"yOffset": 0.0, "label": "Nexus Red", "scale": 20.0, "rotY": 0.0, "team": "red",
+					"hp": float(nexus_red.get("hp", 10000)), "shield": float(nexus_red.get("shield", 5000))
+				})
+			
+			# Nexo Azul
+			var nexus_blue = arena_map_cfg.get("nexusBlue", {})
+			if nexus_blue.has("x") and nexus_blue.has("y"):
+				generated_objects.append({
+					"type": "nexus", "x": float(nexus_blue.x), "y": float(nexus_blue.y),
+					"yOffset": 0.0, "label": "Nexus Blue", "scale": 20.0, "rotY": 180.0, "team": "blue",
+					"hp": float(nexus_blue.get("hp", 10000)), "shield": float(nexus_blue.get("shield", 5000))
+				})
+			
+			# Pilares
+			var pillars = arena_map_cfg.get("pillars", [])
+			for i in range(pillars.size()):
+				var p = pillars[i]
+				generated_objects.append({
+					"type": "pillar", "x": float(p.get("x", 0)), "y": float(p.get("y", 0)),
+					"yOffset": 0.0, "label": str(p.get("name", "Pilar_" + str(i+1))),
+					"scale": 12.0, "rotY": 0.0, "team": str(p.get("team", "neutral")),
+					"hp": float(p.get("hp", 3000)), "shield": float(p.get("shield", 1500)),
+					"range": float(p.get("range", 600)), "ammoType": str(p.get("ammoType", "laser")),
+					"attackType": str(p.get("attackType", "fast")), "damage": float(p.get("damage", 150))
+				})
+
+			# Spawns
+			var spawns = arena_map_cfg.get("spawns", [])
+			for i in range(spawns.size()):
+				var sp = spawns[i]
+				generated_objects.append({
+					"type": "spawn", "x": float(sp.get("x", 0)), "y": float(sp.get("y", 0)),
+					"yOffset": 0.0, "label": str(sp.get("name", "Spawn_" + str(i+1))),
+					"scale": 10.0, "rotY": 0.0, "team": str(sp.get("team", "red")),
+					"radius": float(sp.get("radius", 200))
+				})
+
+			if generated_objects.size() > 0:
+				print("MapEditor3D: ℹ️ objects vacío. Importando nexos, spawns y pilares como objetos editables...")
+				json_to_import = JSON.stringify(generated_objects)
+				import_from_json()
+				print("MapEditor3D: ✅ Nexos, pilares y spawns importados en 3D. Editalos y guardá con 'Save to Server'.")
+			else:
+				print("MapEditor3D: ⚠️ La arena PVP no tiene configuración en gameModes.")
+
 
 
 
@@ -1024,6 +1127,90 @@ func save_to_server():
 					})
 				ad_cfg_sv["exitPortals"] = new_portals
 				print("MapEditor3D: 🔄 gameModes.altar_defense.exitPortals actualizado con ", new_portals.size(), " portales del mapa 3D.")
+
+	# Tipo-safe check para arena PVP maps
+	var _sv_is_arena = false
+	if config_dict.has("gameModes") and config_dict.gameModes.has("arenas"):
+		var arenas_cfg_sv = config_dict.gameModes.arenas
+		for _m in arenas_cfg_sv.get("maps", []):
+			if int(_m) == zone_id_int_sv:
+				_sv_is_arena = true
+				break
+		if _sv_is_arena:
+			var arena_map_cfg = arenas_cfg_sv.get("mapConfigs", {}).get(zone_id, {})
+			
+			var nexus_red_objs = []
+			var nexus_blue_objs = []
+			var pillar_objs = []
+			var spawn_objs = []
+			
+			for o in objects_array:
+				var type_str = o.get("type", "")
+				if type_str == "nexus":
+					if o.get("team", "") == "red" or o.get("label", "").to_lower().contains("red"):
+						nexus_red_objs.append(o)
+					else:
+						nexus_blue_objs.append(o)
+				elif type_str == "pillar":
+					pillar_objs.append(o)
+				elif type_str == "spawn":
+					spawn_objs.append(o)
+
+			# Actualizar Nexo Rojo
+			if nexus_red_objs.size() > 0:
+				var nr = nexus_red_objs[0]
+				arena_map_cfg["nexusRed"] = {
+					"x": float(nr.get("x", 2000)),
+					"y": float(nr.get("y", 5000)),
+					"hp": float(nr.get("hp", 10000)),
+					"shield": float(nr.get("shield", 5000))
+				}
+				print("MapEditor3D: 🔄 gameModes.arenas nexusRed actualizado.")
+				
+			# Actualizar Nexo Azul
+			if nexus_blue_objs.size() > 0:
+				var nb = nexus_blue_objs[0]
+				arena_map_cfg["nexusBlue"] = {
+					"x": float(nb.get("x", 8000)),
+					"y": float(nb.get("y", 5000)),
+					"hp": float(nb.get("hp", 10000)),
+					"shield": float(nb.get("shield", 5000))
+				}
+				print("MapEditor3D: 🔄 gameModes.arenas nexusBlue actualizado.")
+
+			# Actualizar Pilares
+			if pillar_objs.size() > 0:
+				var new_pillars = []
+				for p in pillar_objs:
+					new_pillars.append({
+						"name": str(p.get("label", "Pilar")),
+						"team": str(p.get("team", "neutral")),
+						"x": float(p.get("x", 0)),
+						"y": float(p.get("y", 0)),
+						"hp": float(p.get("hp", 3000)),
+						"shield": float(p.get("shield", 1500)),
+						"range": float(p.get("range", 600)),
+						"ammoType": str(p.get("ammoType", "laser")),
+						"attackType": str(p.get("attackType", "fast")),
+						"damage": float(p.get("damage", 150))
+					})
+				arena_map_cfg["pillars"] = new_pillars
+				print("MapEditor3D: 🔄 gameModes.arenas pillars actualizados: ", new_pillars.size())
+
+			# Actualizar Spawns
+			if spawn_objs.size() > 0:
+				var new_spawns = []
+				for sp in spawn_objs:
+					new_spawns.append({
+						"name": str(sp.get("label", "Spawn")),
+						"team": str(sp.get("team", "red")),
+						"x": float(sp.get("x", 0)),
+						"y": float(sp.get("y", 0)),
+						"radius": float(sp.get("radius", 200))
+					})
+				arena_map_cfg["spawns"] = new_spawns
+				print("MapEditor3D: 🔄 gameModes.arenas spawns actualizados: ", new_spawns.size())
+
 	
 	# Escribir de vuelta a config.json de forma bonita (4 espacios de indentación)
 	var new_content = JSON.stringify(config_dict, "    ")
@@ -1034,4 +1221,3 @@ func save_to_server():
 		print("MapEditor3D: ✅ Guardado mapa de la Zona ", zone_id, " (", maps_config[zone_id].get("name", "Sin Nombre"), ") en Server/config.json.")
 	else:
 		print("MapEditor3D: Error al abrir config.json para escribir.")
-
