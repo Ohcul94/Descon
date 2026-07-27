@@ -848,6 +848,17 @@ func _process(_delta):
 func _spawn_altar_if_configured():
 	if not is_instance_valid(sub_viewport): return
 	
+	# Si ya hay un altar configurado e instanciado en objects, no spawnear otro
+	var z_str = str(zone_id)
+	if GameConstants.MAPS_CONFIG.has(z_str):
+		var map_cfg = GameConstants.MAPS_CONFIG[z_str]
+		if map_cfg.has("objects") and map_cfg.objects is Array:
+			for obj in map_cfg.objects:
+				if obj is Dictionary and obj.get("type") == "altar":
+					print("[BaseMap] Altar ya configurado en objects. Evitando spawn duplicado.")
+					return
+
+	
 	var full_config = GameConstants.get("FULL_CONFIG")
 	if not full_config or not full_config.has("gameModes") or not full_config.gameModes.has("altar_defense"):
 		return
@@ -971,6 +982,54 @@ func _spawn_map_objects():
 		var obj_label = str(obj.get("label", ""))
 		
 		match obj_type:
+			"altar":
+				# Altar de Defensa del Altar editable en 3D
+				var altar_scene = load("res://assets/Altares/3D/Altar1/Altar1.glb")
+				if altar_scene:
+					var scale_val = float(obj.get("scale", 15.0))
+					var rot_y = float(obj.get("rotY", 180.0))
+					var y_offset = float(obj.get("yOffset", 0.0))
+					
+					var altar_3d = _instantiate_map_object_3d(altar_scene.resource_path, obj_pos, Vector3.ONE * scale_val, Vector3(0, rot_y, 0), Color(0, 1.0, 0.5), y_offset)
+					if is_instance_valid(altar_3d):
+						# Luz omni para brillo místico
+						var light = OmniLight3D.new()
+						light.name = "AltarLight"
+						light.position = Vector3(0, 2.0, 0)
+						light.light_color = Color(0, 1.0, 0.5) 
+						light.light_energy = 5.0
+						light.omni_range = 15.0
+						altar_3d.add_child(light)
+						
+					# Area2D lógica para capturar impactos y daño
+					var altar_area = Area2D.new()
+					altar_area.name = "AltarArea2D"
+					altar_area.collision_layer = 1 | 2
+					altar_area.collision_mask = 1 | 2
+					altar_area.global_position = obj_pos
+					altar_area.add_to_group("altar")
+					
+					var col_shape = CollisionShape2D.new()
+					var circle = CircleShape2D.new()
+					circle.radius = 120.0
+					col_shape.shape = circle
+					altar_area.add_child(col_shape)
+					add_child(altar_area)
+
+					# StaticBody2D físico para obstruir paso de naves
+					var static_body = StaticBody2D.new()
+					static_body.name = "AltarStaticBody2D"
+					static_body.collision_layer = 2
+					static_body.collision_mask = 0
+					static_body.global_position = obj_pos
+					
+					var static_col = CollisionShape2D.new()
+					var static_circle = CircleShape2D.new()
+					static_circle.radius = 100.0
+					static_col.shape = static_circle
+					static_body.add_child(static_col)
+					add_child(static_body)
+					print("[BaseMap] Altar instanciado correctamente desde objects config: ", obj_pos)
 			"chest":
 				# Baúl Premium: instanciar el script Vault.gd (ya tiene su propia lógica 3D, colisión y rango)
 				if vault_script:

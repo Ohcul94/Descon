@@ -443,6 +443,26 @@ func _generate_extraction_portals():
 func _generate_extraction_portals_list(extract_points: Array):
 	active_extract_points = extract_points
 	
+	# Verificar si ya hay puertas instanciadas por la clase base (en mapsConfig.objects)
+	var has_placed_doors = false
+	var z_str = str(zone_id)
+	if "." in z_str and z_str.is_valid_float():
+		var z_float = float(z_str)
+		if z_float == int(z_float):
+			z_str = str(int(z_float))
+			
+	if GameConstants.MAPS_CONFIG.has(z_str):
+		var map_cfg = GameConstants.MAPS_CONFIG[z_str]
+		if map_cfg.has("objects") and map_cfg.objects is Array:
+			for obj in map_cfg.objects:
+				if obj is Dictionary and obj.get("type") in ["door", "portal"]:
+					has_placed_doors = true
+					break
+					
+	if has_placed_doors:
+		print("[Map_Extraction] Omitiendo instanciación de portales duplicados (detectadas puertas pre-colocadas en mapsConfig.objects).")
+		return
+	
 	var parent_portals_3d = sub_viewport.get_node_or_null("Portals3D") if is_instance_valid(sub_viewport) else null
 	if is_instance_valid(sub_viewport) and not parent_portals_3d:
 		parent_portals_3d = Node3D.new()

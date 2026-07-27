@@ -214,6 +214,34 @@ const broadcastConfigUpdate = (io, config) => {
     });
 };
 
+let isWatchingConfig = false;
+const watchConfigFile = () => {
+    if (isWatchingConfig) return;
+    isWatchingConfig = true;
+    let watchTimeout;
+    // Usar fs.watch para detectar cuando se guardan cambios en el archivo config.json
+    fs.watch(CONFIG_FILE, (eventType) => {
+        if (eventType === 'change') {
+            clearTimeout(watchTimeout);
+            watchTimeout = setTimeout(async () => {
+                try {
+                    const newConfig = await fs.readJson(CONFIG_FILE);
+                    // Comparar si realmente cambió el JSON para evitar loops
+                    if (JSON.stringify(newConfig) !== JSON.stringify(state.SERVER_CONFIG)) {
+                        console.log("[SERVER-WATCHER] 🔄 Cambios detectados en config.json. Recargando en caliente...");
+                        state.SERVER_CONFIG = newConfig;
+                        if (newConfig.hordeConfig) hordeManager.updateConfig(newConfig.hordeConfig);
+                        broadcastConfigUpdate(io, newConfig);
+                    }
+                } catch (e) {
+                    console.error("[SERVER-WATCHER] ❌ Error al recargar config.json:", e.message);
+                }
+            }, 150); // 150ms debounce
+        }
+    });
+};
+
+
 // Conexi├│n a MongoDB
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
@@ -977,8 +1005,10 @@ fs.readJson(CONFIG_FILE).then(config => {
     
     console.log('\x1b[35m[SERVER]\x1b[0m Configuración maestro cargada y habilidades inyectadas.');
     if (state.SERVER_CONFIG && state.SERVER_CONFIG.hordeConfig) hordeManager.updateConfig(state.SERVER_CONFIG.hordeConfig);
+    watchConfigFile();
 }).catch(() => {
     Logger.warn('SERVER', 'Usando configuración por defecto (config.json no encontrado).');
+    watchConfigFile();
 });
 
 

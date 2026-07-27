@@ -5321,14 +5321,15 @@
             ],
             "color": "#ff0055",
             "desc": "Sector Prohibido: Alta radiación y presencia de la flota oscura. Solo para misiones de extracción.",
-            "height": 10000,
+            "height": 20000,
             "minLevel": 10,
             "name": "Zona de Extracción",
             "objects": [],
             "spawns": [],
             "warpCost": 50,
-            "width": 10000
+            "width": 20000
         },
+
         "11": {
             "ambience": [],
             "color": "#ff00aa",

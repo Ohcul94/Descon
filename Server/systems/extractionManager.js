@@ -54,22 +54,47 @@ class ExtractionManager {
         const maxPlayers = extConfig ? (extConfig.maxPlayers || 21) : 21;
         const radius = extConfig ? (extConfig.extractRadius || 300) : 300;
         
-        // Mapear puntos del config a la instancia
-        const extractionPoints = (extConfig && extConfig.extractPoints)
-            ? extConfig.extractPoints.map((p, idx) => ({ 
-                id: idx + 1, 
-                x: p.x, 
-                y: p.y, 
-                radius: p.proximityRadius || radius, 
-                label: p.label,
-                targetZone: p.targetZone || "1",
-                proximityRadius: p.proximityRadius || radius
-            }))
-            : [
-                { id: 1, x: 1500, y: 1500, radius: 300, label: "Alfa", targetZone: "1", proximityRadius: 300 },
-                { id: 2, x: 8500, y: 8500, radius: 300, label: "Beta", targetZone: "1", proximityRadius: 300 },
-                { id: 3, x: 5000, y: 500, radius: 300, label: "Gamma", targetZone: "1", proximityRadius: 300 }
-            ];
+        // Intentar leer portales colocados en el editor 3D de Godot desde mapsConfig
+        const mapConfig = (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig)
+            ? this.state.SERVER_CONFIG.mapsConfig[mapBaseId]
+            : null;
+        
+        let extractionPoints = [];
+        if (mapConfig && Array.isArray(mapConfig.objects)) {
+            const doorObjects = mapConfig.objects.filter(obj => obj.type === 'door' || obj.type === 'portal');
+            if (doorObjects.length > 0) {
+                extractionPoints = doorObjects.map((obj, idx) => ({
+                    id: idx + 1,
+                    x: obj.x,
+                    y: obj.y,
+                    radius: obj.radius || radius,
+                    label: obj.label || `Punto ${idx + 1}`,
+                    targetZone: obj.targetZoneId || "1",
+                    proximityRadius: obj.radius || radius
+                }));
+                Logger.info('EXTRACT', `Cargados ${extractionPoints.length} puntos de extracción desde mapsConfig.objects en Mapa ${mapBaseId}.`);
+            }
+        }
+
+        // Fallback a gameModes si no se encontraron en mapsConfig
+        if (extractionPoints.length === 0) {
+            extractionPoints = (extConfig && extConfig.extractPoints)
+                ? extConfig.extractPoints.map((p, idx) => ({ 
+                    id: idx + 1, 
+                    x: p.x, 
+                    y: p.y, 
+                    radius: p.proximityRadius || radius, 
+                    label: p.label,
+                    targetZone: p.targetZone || "1",
+                    proximityRadius: p.proximityRadius || radius
+                }))
+                : [
+                    { id: 1, x: 1500, y: 1500, radius: 300, label: "Alfa", targetZone: "1", proximityRadius: 300 },
+                    { id: 2, x: 8500, y: 8500, radius: 300, label: "Beta", targetZone: "1", proximityRadius: 300 },
+                    { id: 3, x: 5000, y: 500, radius: 300, label: "Gamma", targetZone: "1", proximityRadius: 300 }
+                ];
+        }
+
 
         const duration = extConfig ? (extConfig.countdownTime || 600000) : 600000;
 
@@ -215,10 +240,31 @@ class ExtractionManager {
         
         const matchId = this.createExtractionMatch(mapId);
         
-        // v2.9: Asignar spawns aleatorios únicos
-        let availableSpawns = (extConfig && extConfig.spawnPoints && extConfig.spawnPoints.length > 0) 
-            ? [...extConfig.spawnPoints] 
-            : [{ x: 5000, y: 5000 }]; // Fallback
+        // Intentar leer spawn points configurados en el editor 3D
+        let availableSpawns = [];
+        const mapConfig = (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig)
+            ? this.state.SERVER_CONFIG.mapsConfig[mapId]
+            : null;
+        if (mapConfig && Array.isArray(mapConfig.objects)) {
+            const spawnObjects = mapConfig.objects.filter(obj => obj.type === 'spawn');
+            if (spawnObjects.length > 0) {
+                availableSpawns = spawnObjects.map(obj => ({
+                    x: obj.x,
+                    y: obj.y,
+                    radius: obj.radius || 200,
+                    label: obj.label || 'Spawn'
+                }));
+                Logger.info('MATCH', `Cargados ${availableSpawns.length} spawn points desde mapsConfig.objects en Mapa ${mapId}.`);
+            }
+        }
+
+        // Fallback a gameModes si no se encontraron en mapsConfig
+        if (availableSpawns.length === 0) {
+            availableSpawns = (extConfig && extConfig.spawnPoints && extConfig.spawnPoints.length > 0) 
+                ? [...extConfig.spawnPoints] 
+                : [{ x: 5000, y: 5000 }]; // Fallback
+        }
+
             
         // Mezclar spawns (Fisher-Yates)
         for (let i = availableSpawns.length - 1; i > 0; i--) {

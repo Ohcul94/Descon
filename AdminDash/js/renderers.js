@@ -1,4 +1,4 @@
-window.resolveAssetWebUrl = function(iconPath) {
+﻿window.resolveAssetWebUrl = function(iconPath) {
     if (!iconPath) return '';
     let path = iconPath;
     const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
@@ -683,7 +683,6 @@ function updateSidebar() {
     // Mapas
     for(let id in config.mapsConfig) {
         const m = config.mapsConfig[id];
-        if (id === "11") continue; // Omitir mapa de evento de extracción
         if(searchTerm && !m.name.toLowerCase().includes(searchTerm)) continue;
         const link = document.createElement('div');
         link.className = 'nav-link sub ' + (selectedMapId === id ? 'active' : '');
@@ -1977,7 +1976,7 @@ function renderMapDetail() {
                         };
                         const tc = typeConfig[obj.type] || { icon: '⭕', color: '#aaa', label: obj.type?.toUpperCase() || 'OBJETO' };
                         const allMapOptions = Object.keys(config.mapsConfig)
-                            .filter(id => id !== selectedMapId && id !== '10' && id !== '11' && (config.mapsConfig[id].visible !== false || obj.targetZoneId == id))
+                            .filter(id => id !== selectedMapId && (config.mapsConfig[id].visible !== false || obj.targetZoneId == id))
                             .map(id => `<option value="${id}" ${obj.targetZoneId == id ? 'selected' : ''}>${config.mapsConfig[id].name} (ID: ${id})</option>`)
                             .join('');
                         return `
@@ -2066,7 +2065,7 @@ function renderMaps() {
     const f = getFilter();
     for(let id in config.mapsConfig) {
         const m = config.mapsConfig[id];
-        if (id === "10" || id === "11") continue; // Omitir mapas de evento de extracción
+        // Mapas 10 y 11 ahora visibles en cartografía
         if (f && !m.name.toLowerCase().includes(f)) continue;
         
         const isVisible = m.visible !== false;

@@ -41,6 +41,33 @@ class AltarDefenseManager {
         const waveInterval = Number(adConfig.waveInterval) || 15000;
         const spawnLockTime = Number(adConfig.spawnLockTime) || 5000;
 
+        const mapConfig = (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig)
+            ? this.state.SERVER_CONFIG.mapsConfig[zoneId]
+            : null;
+
+        let altarPos = adConfig.altarPos || { x: 5000, y: 5000 };
+        if (mapConfig && Array.isArray(mapConfig.objects)) {
+            const altarObj = mapConfig.objects.find(obj => obj.type === 'altar');
+            if (altarObj) {
+                altarPos = { x: altarObj.x, y: altarObj.y };
+                Logger.info('ALTAR', `Posición del altar cargada desde mapsConfig.objects: [${altarPos.x}, ${altarPos.y}]`);
+            }
+        }
+
+        let exitPortals = adConfig.exitPortals || [];
+        if (mapConfig && Array.isArray(mapConfig.objects)) {
+            const doorObjects = mapConfig.objects.filter(obj => obj.type === 'door' || obj.type === 'portal');
+            if (doorObjects.length > 0) {
+                exitPortals = doorObjects.map((obj, idx) => ({
+                    label: obj.label || `Escape${idx + 1}`,
+                    radius: obj.radius || 150,
+                    x: obj.x,
+                    y: obj.y
+                }));
+                Logger.info('ALTAR', `Cargados ${exitPortals.length} portales de escape desde mapsConfig.objects.`);
+            }
+        }
+
         this.activeMatch = {
             zoneId: zoneId,
             members: membersList,
@@ -51,9 +78,10 @@ class AltarDefenseManager {
             
             status: 'spawn_lock', // 'spawn_lock', 'wave_active', 'waiting_next_wave', 'finished'
             statusEndTime: Date.now() + spawnLockTime,
-            exitPortals: adConfig.exitPortals || [],
-            altarPos: adConfig.altarPos || { x: 5000, y: 5000 }
+            exitPortals: exitPortals,
+            altarPos: altarPos
         };
+
 
         Logger.info('ALTAR', `Partida de Defensa al Altar iniciada en zona ${zoneId}. Esperando fin de barrera de seguridad (${spawnLockTime}ms).`);
         

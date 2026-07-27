@@ -1,4 +1,4 @@
-extends Node
+﻿extends Node
 
 # Constants.gd (v255.20 - REESTRUCTURACIÓN TOTAL DE ENTIDADES Y IDS)
 # Mapa de IDs normalizado: 1-99 Enemigos Regulares, 100+ Bosses.
@@ -40,7 +40,7 @@ var MAPS_CONFIG = {
 	"8": { "name": "Mapa 8", "desc": "Guarida de Jefes: Requiere escolta.", "color": "#550000", "warpCost": 500, "minLevel": 30 },
 	"9": { "name": "Mapa 9", "desc": "Zona de Pruebas Tácticas (Showcase).", "color": "#aa00ff", "warpCost": 1000, "minLevel": 35 },
 	"10": { "name": "Zona de Extracción", "desc": "Sector Prohibido: Alta radiación y presencia de la flota oscura. Solo para misiones de extracción.", "color": "#ff0055", "warpCost": 50, "minLevel": 10 },
-	"11": { "name": "Sector de Extracción", "desc": "Área de extracción de recursos. Cuidado con los asteroides.", "color": "#ff00aa", "warpCost": 100, "minLevel": 10 }
+	"11": { "name": "Sector de Extracción", "desc": "Área de extracción de recursos. Cuidado con los asteroides.", "color": "#ff00aa", "warpCost": 100, "minLevel": 10 },
 }
 
 var HORDES_CONFIG = {
@@ -155,8 +155,6 @@ var ENEMY_MODELS = {
 	"9": { "name": "Enemigo 9", "hp": 9000, "shield": 4000, "bulletDamage": 280, "fireRate": 950, "rewardHubs": 3800, "rewardOhcu": 38, "rewardExp": 1800, "speed": 310, "bulletSpeed": 880, "fireRange": 1050 },
 	"10": { "name": "Enemigo 10", "hp": 11000, "shield": 5500, "bulletDamage": 320, "fireRate": 880, "rewardHubs": 4200, "rewardOhcu": 42, "rewardExp": 2200, "speed": 305, "bulletSpeed": 920, "fireRange": 1150 },
 	"11": { "name": "Enemigo 11", "hp": 13000, "shield": 6500, "bulletDamage": 380, "fireRate": 820, "rewardHubs": 4800, "rewardOhcu": 48, "rewardExp": 2800, "speed": 285, "bulletSpeed": 980, "fireRange": 1250 },
-	"12": { "name": "Enemigo 12", "hp": 10000, "shield": 5000, "bulletDamage": 300, "fireRate": 900, "rewardHubs": 4000, "rewardOhcu": 40, "rewardExp": 2000, "speed": 300, "bulletSpeed": 900, "fireRange": 1100 },
-	"13": { "name": "Enemigo 13", "hp": 12000, "shield": 6000, "bulletDamage": 350, "fireRate": 850, "rewardHubs": 4500, "rewardOhcu": 45, "rewardExp": 2500, "speed": 290, "bulletSpeed": 950, "fireRange": 1200 },
 	
 	"101": { "name": "Lord Titán", "hp": 100000, "shield": 50000, "bulletDamage": 2000, "fireRate": 800, "rewardHubs": 50000, "rewardOhcu": 500, "rewardExp": 10000, "rageTimer": 20, "speed": 250, "bulletSpeed": 900, "fireRange": 1200, "isBoss": true },
 	"102": { "name": "Ancient Titán", "hp": 200000, "shield": 100000, "bulletDamage": 5000, "fireRate": 1000, "rewardHubs": 0, "rewardOhcu": 1000, "rewardExp": 25000, "rageTimer": 20, "speed": 220, "bulletSpeed": 1000, "fireRange": 1500, "isBoss": true },

@@ -9,6 +9,7 @@ class_name MapEditor3D
 
 @export_group("Sincronización con Servidor")
 @export var zone_id: String = "1"
+@export var auto_load_event: bool = false
 @export var confirm_overwrite_on_load: bool = false
 @export var load_from_server_config: bool = false:
 	set(val):
@@ -45,6 +46,7 @@ var _drag_offset: Vector3 = Vector3.ZERO
 var _snap_to_grid: bool = true
 var _gizmo_mode: int = 0  # 0=move, 1=rotate, 2=scale
 var _current_gizmo: Node3D = null
+var _auto_loading: bool = false
 
 const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "custom"]
 
@@ -52,6 +54,10 @@ func _ready():
 	if not Engine.is_editor_hint():
 		queue_free()
 		return
+	if auto_load_event:
+		_auto_loading = true
+		load_from_server()
+		_auto_loading = false
 	
 	_setup_editor_camera()
 	_connect_editor_signals()
@@ -248,6 +254,8 @@ func _show_context_menu(position: Vector2):
 	menu.add_item("Cambiar tipo: tower", 13)
 	menu.add_item("Cambiar tipo: decor", 14)
 	menu.add_item("Cambiar tipo: custom", 15)
+	menu.add_item("Cambiar tipo: altar", 16)
+	menu.add_item("Cambiar tipo: spawn", 17)
 	menu.add_separator()
 	menu.add_item("Exportar JSON al portapapeles", 99)
 	menu.id_pressed.connect(_on_context_menu_select)
@@ -255,9 +263,9 @@ func _show_context_menu(position: Vector2):
 
 func _on_context_menu_select(id: int):
 	match id:
-		10, 11, 12, 13, 14, 15:
+		10, 11, 12, 13, 14, 15, 16, 17:
 			if _selected_object:
-				var types = ["wall", "door", "chest", "tower", "decor", "custom"]
+				var types = ["wall", "door", "chest", "tower", "decor", "custom", "altar", "spawn"]
 				var type_index = id - 10
 				var new_type = types[type_index]
 				_selected_object.set_meta("obj_type", new_type)
@@ -326,6 +334,11 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 	if node.has_meta("colOffsetX"): config["colOffsetX"] = node.get_meta("colOffsetX")
 	if node.has_meta("colOffsetY"): config["colOffsetY"] = node.get_meta("colOffsetY")
 	if node.has_meta("colRot"): config["colRot"] = node.get_meta("colRot")
+	if node.has_meta("radius"): config["radius"] = node.get_meta("radius")
+	if node.has_meta("targetZoneId"): config["targetZoneId"] = node.get_meta("targetZoneId")
+	if node.has_meta("targetX"): config["targetX"] = node.get_meta("targetX")
+	if node.has_meta("targetY"): config["targetY"] = node.get_meta("targetY")
+
 	
 	# Buscar todos los colisionadores visuales como nodos hijos
 	var colliders_array = []
@@ -425,6 +438,10 @@ func import_from_json():
 				asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
 			elif obj.get("type") == "chest":
 				asset_path = "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
+			elif obj.get("type") == "altar":
+				asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
+			elif obj.get("type") == "spawn":
+				asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb" # marcador visual de spawn
 			else:
 				asset_path = "res://assets/Paredes/Pared1/Pared1.glb"
 				
@@ -548,23 +565,29 @@ func import_from_json():
 			if scene_root:
 				col_helper.owner = scene_root
 		
+		if obj.has("radius"):
+			instance.set_meta("radius", float(obj.get("radius")))
 		if obj.has("targetZoneId"):
 			instance.set_meta("targetZoneId", str(obj.get("targetZoneId")))
 		if obj.has("targetX"):
 			instance.set_meta("targetX", float(obj.get("targetX")))
 		if obj.has("targetY"):
 			instance.set_meta("targetY", float(obj.get("targetY")))
+
 			
 	print("MapEditor3D: ✅ Importación completada con éxito.")
 
 func load_from_server():
-	if not confirm_overwrite_on_load:
+	if not confirm_overwrite_on_load and not _auto_loading:
 		print("\n⚠️ [MapEditor3D PREVENCIÓN DE PÉRDIDA DE DATOS] ⚠️")
 		print("Para cargar los datos del servidor y reemplazar lo que tienes en el editor,")
 		print("DEBES activar primero la casilla 'confirm_overwrite_on_load' en el Inspector.\n")
 		return
 		
 	confirm_overwrite_on_load = false
+	
+	# Limpiar marcadores de eventos anteriores
+	_clear_event_markers()
 	
 	var file_path = "res://../Server/config.json"
 	if not FileAccess.file_exists(file_path):
@@ -593,26 +616,272 @@ func load_from_server():
 		
 	var map_data = maps_config[zone_id]
 	var objects = map_data.get("objects", [])
-	
-	# Importar los objetos
-	json_to_import = JSON.stringify(objects)
-	import_from_json()
-	
-	# Actualizar el borde delimitador del mapa (Nebulosa morada translúcida)
-	var width_val = float(map_data.get("width", 2000))
-	var height_val = float(map_data.get("height", 2000))
+
+	# Dimensiones: leer primero del gameMode si es zona de evento
+	var zone_id_int = int(zone_id)
+	var width_val = 0.0
+	var height_val = 0.0
+
+	# Leer configuraciones de gameModes
+	var ext_cfg = config_dict.get("gameModes", {}).get("extraction", {})
+	var ext_maps = ext_cfg.get("maps", [])
+	var ad_cfg = config_dict.get("gameModes", {}).get("altar_defense", {})
+	var ad_maps = ad_cfg.get("maps", [])
+
+	# Comparación tipo-segura: JSON puede parsear los IDs como float (10.0) en vez de int (10)
+	var is_extraction_zone = false
+	for _m in ext_maps:
+		if int(_m) == zone_id_int:
+			is_extraction_zone = true
+			break
+
+	var is_altar_zone = false
+	for _m in ad_maps:
+		if int(_m) == zone_id_int:
+			is_altar_zone = true
+			break
+
+	print("MapEditor3D: [DEBUG] zona=", zone_id, " is_extraction=", is_extraction_zone, " is_altar=", is_altar_zone, " ext_maps=", ext_maps)
+
+
+	# ─── ZONA NORMAL: importar mapsConfig.objects directamente ────────────
+	if not is_extraction_zone and not is_altar_zone:
+		json_to_import = JSON.stringify(objects)
+		import_from_json()
+
+	# ─── ZONA DE EXTRACCIÓN ───────────────────────────────────────────────
+	if is_extraction_zone:
+		width_val  = float(ext_cfg.get("width",  0))
+		height_val = float(ext_cfg.get("height", 0))
+		set_meta("extraction_config", {
+			"extractPoints": ext_cfg.get("extractPoints", []),
+			"spawnPoints":   ext_cfg.get("spawnPoints",   []),
+			"spawners":      ext_cfg.get("spawners",      []),
+			"countdownTime": ext_cfg.get("countdownTime", 600000),
+			"extractRadius": ext_cfg.get("extractRadius", 150),
+			"spawnLockTime": ext_cfg.get("spawnLockTime", 10000)
+		})
+		_spawn_extraction_markers(ext_cfg)
+
+		if objects.size() > 0:
+			# Ya tiene objects guardados desde el editor, usarlos directamente
+			json_to_import = JSON.stringify(objects)
+			import_from_json()
+			print("MapEditor3D: ✅ Objects de extracción cargados desde mapsConfig (", objects.size(), " obj).")
+		else:
+			# Primera vez: generar puertas desde extractPoints como objetos 3D editables
+			var generated_objects = []
+			var extract_pts    = ext_cfg.get("extractPoints", [])
+			var default_radius = float(ext_cfg.get("extractRadius", 150))
+			for ep in extract_pts:
+				generated_objects.append({
+					"type":         "door",
+					"x":            float(ep.get("x", 0)),
+					"y":            float(ep.get("y", 0)),
+					"yOffset":      0.0,
+					"label":        str(ep.get("label", "Punto")),
+					"scale":        10.0,
+					"rotY":         -90.0,
+					"radius":       float(ep.get("proximityRadius", default_radius)),
+					"targetZoneId": str(ep.get("targetZone", "1"))
+				})
+			if generated_objects.size() > 0:
+				print("MapEditor3D: ℹ️ objects vacío. Importando ", generated_objects.size(), " extractPoints como puertas 3D editables...")
+				json_to_import = JSON.stringify(generated_objects)
+				import_from_json()
+				print("MapEditor3D: ✅ Puertas importadas. Movelasen 3D y guardá con 'Save to Server'.")
+			else:
+				print("MapEditor3D: ⚠️ La zona de extracción no tiene extractPoints en el config.")
+
+	# ─── ZONA DE DEFENSA DE ALTAR ─────────────────────────────────────────
+	if is_altar_zone:
+		if width_val  <= 0: width_val  = float(ad_cfg.get("width",  0))
+		if height_val <= 0: height_val = float(ad_cfg.get("height", 0))
+		set_meta("altar_defense_config", {
+			"altarPos":     ad_cfg.get("altarPos",     {}),
+			"spawnPoints":  ad_cfg.get("spawnPoints",  []),
+			"spawners":     ad_cfg.get("spawners",     []),
+			"exitPortals":  ad_cfg.get("exitPortals",  []),
+			"waves":        ad_cfg.get("waves",        []),
+			"altarHp":      ad_cfg.get("altarHp",      10000),
+			"altarShield":  ad_cfg.get("altarShield",  5000),
+			"waveInterval": ad_cfg.get("waveInterval", 30000),
+			"spawnLockTime":ad_cfg.get("spawnLockTime",10000)
+		})
+		_spawn_altar_defense_markers(ad_cfg)
+
+		if objects.size() > 0:
+			json_to_import = JSON.stringify(objects)
+			import_from_json()
+			print("MapEditor3D: ✅ Objects de altar cargados desde mapsConfig (", objects.size(), " obj).")
+		else:
+			var generated_objects = []
+			var altar_pos    = ad_cfg.get("altarPos", {})
+			var exit_portals = ad_cfg.get("exitPortals", [])
+			if altar_pos.has("x") and altar_pos.has("y"):
+				generated_objects.append({
+					"type": "altar", "x": float(altar_pos.x), "y": float(altar_pos.y),
+					"yOffset": 0.0, "label": "Altar", "scale": 15.0, "rotY": 180.0
+				})
+			for ep in exit_portals:
+				generated_objects.append({
+					"type": "door",
+					"x": float(ep.get("x", 0)), "y": float(ep.get("y", 0)),
+					"yOffset": 0.0, "label": str(ep.get("label", "Escape")),
+					"scale": 10.0, "rotY": -90.0,
+					"radius": float(ep.get("radius", 150))
+				})
+			if generated_objects.size() > 0:
+				print("MapEditor3D: ℹ️ objects vacío. Importando altar + ", exit_portals.size(), " portales como objetos 3D editables...")
+				json_to_import = JSON.stringify(generated_objects)
+				import_from_json()
+				print("MapEditor3D: ✅ Altar y portales importados. Editalos y guardá con 'Save to Server'.")
+			else:
+				print("MapEditor3D: ⚠️ Altar defense sin altarPos ni exitPortals en config.")
+
+
+
+	# Fallback de dimensiones si no se llenaron desde gameMode
+	if width_val  <= 0: width_val  = float(map_data.get("width",  0))
+	if height_val <= 0: height_val = float(map_data.get("height", 0))
+	if width_val  <= 0: width_val  = 10000
+	if height_val <= 0: height_val = 10000
+
+	# Actualizar el borde delimitador del mapa
 	update_map_boundary(width_val, height_val)
-	
-	# Actualizar la textura y material de GroundPlane/GridVisual para que coincida con el Hangar/Lobby
+
+	# Actualizar material del GridVisual
 	var grid_visual = get_node_or_null("GroundPlane/GridVisual")
 	if is_instance_valid(grid_visual) and grid_visual is MeshInstance3D:
 		var mat = StandardMaterial3D.new()
 		mat.albedo_color = Color(0.05, 0.08, 0.15, 1)
-		mat.metallic = 0.3
-		mat.roughness = 0.8
+		mat.metallic     = 0.3
+		mat.roughness    = 0.8
 		grid_visual.material_override = mat
+
+	print("MapEditor3D: ✅ Cargado mapa Zona ", zone_id, " (", map_data.get("name", "Sin Nombre"), ") Tamaño: ", width_val, "x", height_val)
+
+
+func _clear_event_markers():
+	var old = get_node_or_null("EventMarkers")
+	if is_instance_valid(old):
+		old.free()
+
+func _create_marker_disc(pos_2d: Vector2, radius_2d: float, color: Color, label: String, parent: Node3D):
+	var r_3d = radius_2d * scale_factor
+	var pos_3d = Vector3(pos_2d.x * scale_factor, 0.05, pos_2d.y * scale_factor * correction_z)
 	
-	print("MapEditor3D: ✅ Cargado mapa de la Zona ", zone_id, " (", map_data.get("name", "Sin Nombre"), ") desde el servidor. Tamaño: ", width_val, "x", height_val)
+	var marker = CSGCylinder3D.new()
+	marker.radius = r_3d
+	marker.height = 0.1
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.emission_enabled = true
+	mat.emission = color
+	mat.emission_energy_multiplier = 0.6
+	marker.material = mat
+	marker.position = pos_3d
+	parent.add_child(marker)
+	
+	if label != "":
+		var lbl = _create_label_3d(label, color)
+		lbl.position = pos_3d + Vector3(0, 3.0, 0)
+		parent.add_child(lbl)
+
+func _create_label_3d(text: String, color: Color) -> Node3D:
+	var lbl = Node3D.new()
+	var label3d = Label3D.new()
+	label3d.text = text
+	label3d.font_size = 24
+	label3d.outline_size = 4
+	label3d.outline_modulate = Color(0, 0, 0, 0.8)
+	label3d.modulate = color
+	label3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label3d.no_aa = false
+	label3d.autowrap_mode = TextServer.AUTOWRAP_OFF
+	lbl.add_child(label3d)
+	return lbl
+
+func _spawn_extraction_markers(ext_cfg: Dictionary):
+	var root = Node3D.new()
+	root.name = "EventMarkers"
+	add_child(root)
+	
+	var portal_mesh = load("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
+	
+	var extract_points = ext_cfg.get("extractPoints", [])
+	for i in range(extract_points.size()):
+		var ep = extract_points[i]
+		var x = float(ep.get("x", 0))
+		var y = float(ep.get("y", 0))
+		var label = str(ep.get("label", "Extracción"))
+		_create_marker_disc(Vector2(x, y), 150, Color(0.2, 1, 0.2), "🛸 " + label, root)
+		if portal_mesh:
+			var portal = portal_mesh.instantiate()
+			portal.name = "PortalExtract_" + str(i)
+			portal.rotation_degrees = Vector3(-45, -90, 0)
+			portal.position = Vector3(x * scale_factor, 0.5, y * scale_factor * correction_z)
+			portal.scale = Vector3(10.0, 10.0, 10.0)
+			root.add_child(portal)
+	
+	var spawn_points = ext_cfg.get("spawnPoints", [])
+	for sp in spawn_points:
+		var x = float(sp.get("x", 0))
+		var y = float(sp.get("y", 0))
+		var label = str(sp.get("label", "Spawn"))
+		_create_marker_disc(Vector2(x, y), 200, Color(0.2, 0.6, 1), "📍 " + label, root)
+	
+	var spawners = ext_cfg.get("spawners", [])
+	for sw in spawners:
+		var x = float(sw.get("x", 0))
+		var y = float(sw.get("y", 0))
+		var radius = float(sw.get("radius", 300))
+		var label = str(sw.get("label", "Amenaza"))
+		_create_marker_disc(Vector2(x, y), radius, Color(1, 0.2, 0.2), "👾 " + label, root)
+
+func _spawn_altar_defense_markers(ad_cfg: Dictionary):
+	var root = Node3D.new()
+	root.name = "EventMarkers"
+	add_child(root)
+	
+	var altar_pos = ad_cfg.get("altarPos", {})
+	if altar_pos.has("x") and altar_pos.has("y"):
+		var x = float(altar_pos.x)
+		var y = float(altar_pos.y)
+		_create_marker_disc(Vector2(x, y), 250, Color(1, 0.8, 0.2), "🏛️ ALTAR", root)
+	
+	var spawn_points = ad_cfg.get("spawnPoints", [])
+	for sp in spawn_points:
+		var x = float(sp.get("x", 0))
+		var y = float(sp.get("y", 0))
+		var label = str(sp.get("label", "Spawn"))
+		_create_marker_disc(Vector2(x, y), 200, Color(0.2, 0.6, 1), "📍 " + label, root)
+	
+	var spawners = ad_cfg.get("spawners", [])
+	for sw in spawners:
+		var x = float(sw.get("x", 0))
+		var y = float(sw.get("y", 0))
+		var radius = float(sw.get("radius", 300))
+		var label = str(sw.get("label", "Amenaza"))
+		_create_marker_disc(Vector2(x, y), radius, Color(1, 0.2, 0.2), "👾 " + label, root)
+	
+	var portal_mesh = load("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
+	var exit_portals = ad_cfg.get("exitPortals", [])
+	for i in range(exit_portals.size()):
+		var ep = exit_portals[i]
+		var x = float(ep.get("x", 0))
+		var y = float(ep.get("y", 0))
+		var label = str(ep.get("label", "Portal"))
+		_create_marker_disc(Vector2(x, y), 150, Color(0.2, 1, 1), "🚪 " + label, root)
+		if portal_mesh:
+			var portal = portal_mesh.instantiate()
+			portal.name = "PortalEscape_" + str(i)
+			portal.rotation_degrees = Vector3(-45, -90, 0)
+			portal.position = Vector3(x * scale_factor, 0.5, y * scale_factor * correction_z)
+			portal.scale = Vector3(10.0, 10.0, 10.0)
+			root.add_child(portal)
 
 func update_map_boundary(width_2d: float, height_2d: float):
 	var old_b = get_node_or_null("MapBoundaryVisual")
@@ -676,7 +945,7 @@ func save_to_server():
 		return
 		
 	# Advertencia sobre nodos colocados fuera de ObjectsRoot
-	var default_nodes = ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual"]
+	var default_nodes = ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual", "EventMarkers"]
 	for child in get_children():
 		if child is Node3D and not child.name in default_nodes:
 			print("\n⚠️ [MapEditor3D ADVERTENCIA] ⚠️")
@@ -699,6 +968,63 @@ func save_to_server():
 	# Reemplazar en la configuración
 	maps_config[zone_id]["objects"] = objects_array
 	
+	# --- SINCRONIZACIÓN REVERSA: Actualizar gameModes si es zona de evento ---
+	var zone_id_int_sv = int(zone_id)
+
+	# Separar objetos por tipo (sin lambdas para compatibilidad)
+	var door_objects = []
+	var altar_objects = []
+	for _obj in objects_array:
+		var _t = _obj.get("type", "")
+		if _t == "door": door_objects.append(_obj)
+		elif _t == "altar": altar_objects.append(_obj)
+
+	# Tipo-safe check para extraction maps
+	var _sv_is_extraction = false
+	if config_dict.has("gameModes") and config_dict.gameModes.has("extraction"):
+		var ext_cfg_sv = config_dict.gameModes.extraction
+		for _m in ext_cfg_sv.get("maps", []):
+			if int(_m) == zone_id_int_sv:
+				_sv_is_extraction = true
+				break
+		if _sv_is_extraction and door_objects.size() > 0:
+			var new_extract_pts = []
+			for d in door_objects:
+				new_extract_pts.append({
+					"label": str(d.get("label", "Punto")),
+					"x": float(d.get("x", 0)),
+					"y": float(d.get("y", 0)),
+					"proximityRadius": float(d.get("radius", ext_cfg_sv.get("extractRadius", 150))),
+					"targetZone": str(d.get("targetZoneId", "1"))
+				})
+			ext_cfg_sv["extractPoints"] = new_extract_pts
+			print("MapEditor3D: 🔄 gameModes.extraction.extractPoints actualizado con ", new_extract_pts.size(), " puertas.")
+
+	# Tipo-safe check para altar_defense maps
+	var _sv_is_altar = false
+	if config_dict.has("gameModes") and config_dict.gameModes.has("altar_defense"):
+		var ad_cfg_sv = config_dict.gameModes.altar_defense
+		for _m in ad_cfg_sv.get("maps", []):
+			if int(_m) == zone_id_int_sv:
+				_sv_is_altar = true
+				break
+		if _sv_is_altar:
+			if altar_objects.size() > 0:
+				var a = altar_objects[0]
+				ad_cfg_sv["altarPos"] = { "x": float(a.get("x", 5000)), "y": float(a.get("y", 5000)) }
+				print("MapEditor3D: 🔄 gameModes.altar_defense.altarPos actualizado: ", ad_cfg_sv.altarPos)
+			if door_objects.size() > 0:
+				var new_portals = []
+				for d in door_objects:
+					new_portals.append({
+						"label": str(d.get("label", "Escape")),
+						"radius": float(d.get("radius", 150)),
+						"x": float(d.get("x", 0)),
+						"y": float(d.get("y", 0))
+					})
+				ad_cfg_sv["exitPortals"] = new_portals
+				print("MapEditor3D: 🔄 gameModes.altar_defense.exitPortals actualizado con ", new_portals.size(), " portales del mapa 3D.")
+	
 	# Escribir de vuelta a config.json de forma bonita (4 espacios de indentación)
 	var new_content = JSON.stringify(config_dict, "    ")
 	var write_file = FileAccess.open(file_path, FileAccess.WRITE)
@@ -708,3 +1034,4 @@ func save_to_server():
 		print("MapEditor3D: ✅ Guardado mapa de la Zona ", zone_id, " (", maps_config[zone_id].get("name", "Sin Nombre"), ") en Server/config.json.")
 	else:
 		print("MapEditor3D: Error al abrir config.json para escribir.")
+
