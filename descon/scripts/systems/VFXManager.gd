@@ -4,6 +4,8 @@ extends Node
 # Manager central de efectos visuales (Explosiones, Nova, Rifts)
 
 var _warmup_cache: Dictionary = {}
+var _vfx_pools: Dictionary = {} # { scene_path: Array[Node] } (v313.6)
+var _warmed_materials: Array[Material] = [] # Caché de retención fuerte de materiales (v313.8)
 var _loading_refs: Dictionary = {}
 
 var static_textures_to_cache = [
@@ -113,6 +115,57 @@ var static_textures_to_cache = [
   "res://VFX/scenes/VFX_Shield_blue_w_pyramid.tscn",
   "res://VFX/scenes/VFX_Shield_blue_wild.tscn",
   "res://VFX/scenes/vfx_std_fire_ball.tscn"
+]
+
+var static_models_to_cache = [
+	"res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb",
+	"res://assets/Personajes/3D/Nave2/Nave2.glb",
+	"res://assets/Personajes/3D/Nave3/Nave3.glb",
+	"res://assets/Personajes/3D/Nave4/Nave4.glb",
+	"res://assets/Personajes/3D/Nave5/Nave5.glb",
+	"res://assets/Personajes/3D/Nave6/Nave6.glb",
+	"res://assets/Personajes/3D/Nave7/Nave7.glb",
+	"res://assets/Personajes/3D/Nave8/Nave8.glb",
+	"res://assets/Personajes/3D/Nave9/Nave9.glb",
+	"res://assets/Personajes/3D/Nave10/Nave10.glb",
+	"res://assets/Personajes/3D/Nave11/Nave11.glb",
+	"res://assets/Personajes/3D/Nave12/Nave12.glb",
+	
+	"res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb",
+	"res://assets/Enemigos/3D/Enemigo2/Enemigo2.glb",
+	"res://assets/Enemigos/3D/Enemigo3/Enemigo3.glb",
+	"res://assets/Enemigos/3D/Enemigo4/Enemigo4.glb",
+	"res://assets/Enemigos/3D/Enemigo5/Enemigo5.glb",
+	"res://assets/Enemigos/3D/Enemigo6/Enemigo6.glb",
+	"res://assets/Enemigos/3D/Enemigo7/Enemigo7.glb",
+	"res://assets/Enemigos/3D/Enemigo8/Enemigo8.glb",
+	"res://assets/Enemigos/3D/Enemigo9/Enemigo9.glb",
+	"res://assets/Enemigos/3D/Enemigo10/Enemigo10.glb",
+	"res://assets/Enemigos/3D/Enemigo11/Enemigo11.glb",
+	"res://assets/Enemigos/3D/Enemigo12/Enemigo12.glb",
+	"res://assets/Enemigos/3D/Enemigo13/Enemigo13.glb",
+	
+	"res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb",
+	"res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb",
+	"res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb",
+	"res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb",
+	
+	"res://assets/Pilares/3D/Pilar1/Pilar1.glb",
+	
+	"res://assets/Esferas/3D/EsferaRoja/EsferaRoja.glb",
+	"res://assets/Esferas/3D/EsferaAzul/EsferaAzul.glb",
+	"res://assets/Esferas/3D/EsferaVerde/EsferaVerde.glb",
+	"res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla.glb",
+	
+	"res://assets/Puertas/3D/Puerta2/Puerta2.glb",
+	"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb",
+	"res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb",
+	"res://assets/Altares/3D/Altar1/Altar1.glb",
+	"res://assets/Paredes/Pared1/Pared1.glb",
+	"res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb",
+	"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb",
+	"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb",
+	"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb"
 ]
 
 func _ready():
@@ -602,19 +655,13 @@ func _run_shader_warmup():
 
 	await get_tree().process_frame
 
-	# 3. Precalentamiento progresivo en caché de texturas
-	var total = static_textures_to_cache.size()
-	for i in range(total):
-		var tex_path = static_textures_to_cache[i]
-		if ResourceLoader.exists(tex_path):
-			_warmup_cache[tex_path] = load(tex_path)
-		progress.value = (float(i) / total) * 50.0
-		if i % 8 == 0:
-			await get_tree().process_frame
-
-	status.text = "Compilando shaders gráficos (GPU)..."
-	await get_tree().process_frame
-
+	# 3. Unificar cola de recursos para la carga en segundo plano multihilo (v313.8)
+	var queue = []
+	for p in static_textures_to_cache:
+		if not queue.has(p): queue.append(p)
+	for p in static_models_to_cache:
+		if not queue.has(p): queue.append(p)
+	
 	# Compilar shaders gráficos instanciando efectos fuera de cámara
 	var scenes = [
 		"res://VFX/scenes/VFX_Shield_green.tscn",
@@ -657,6 +704,48 @@ func _run_shader_warmup():
 		"res://scenes/entities/Ship.tscn",
 		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 	]
+	
+	for p in scenes:
+		if not queue.has(p): queue.append(p)
+
+	# Iniciar solicitudes de carga multihilo en segundo plano
+	var pending = []
+	for path in queue:
+		if ResourceLoader.exists(path) and not _warmup_cache.has(path):
+			ResourceLoader.load_threaded_request(path)
+			pending.append(path)
+
+	# Bucle de espera asíncrono para mantener la cinemática de fondo a 60 FPS estables
+	var total_pending = pending.size()
+	while pending.size() > 0:
+		var i_idx = pending.size() - 1
+		while i_idx >= 0:
+			if i_idx < pending.size():
+				var path = pending[i_idx]
+				var progress_arr = []
+				var load_status = ResourceLoader.load_threaded_get_status(path, progress_arr)
+				
+				if load_status == ResourceLoader.THREAD_LOAD_LOADED:
+					var res = ResourceLoader.load_threaded_get(path)
+					_warmup_cache[path] = res
+					pending.remove_at(i_idx)
+				elif load_status == ResourceLoader.THREAD_LOAD_FAILED or load_status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+					pending.remove_at(i_idx)
+			i_idx -= 1
+			
+		var pct = 0.0
+		if total_pending > 0:
+			pct = (float(total_pending - pending.size()) / total_pending) * 85.0
+		progress.value = pct
+		status.text = "Cargando recursos del mundo: %d%%" % [int(pct)]
+		
+		# Esperar al siguiente frame (mantiene cinemática de fondo fluida)
+		await get_tree().process_frame
+
+	# 4. Fase de precalentamiento de shaders en GPU (85% a 95%)
+	status.text = "Compilando shaders gráficos (GPU)..."
+	progress.value = 85.0
+	await get_tree().process_frame
 
 	var tn = Node3D.new()
 	get_tree().root.add_child(tn)
@@ -669,23 +758,25 @@ func _run_shader_warmup():
 	var instantiated_nodes = []
 	for i in range(ts):
 		var sp = scenes[i]
-		status.text = "Cargando efectos: " + sp.get_file()
-		if ResourceLoader.exists(sp):
-			var s = load(sp)
-			if s:
-				var inst = s.instantiate()
-				if inst is Node3D:
-					tn.add_child(inst)
-					inst.position = Vector3(999.0, 999.0, 999.0)
-				elif inst is Node2D:
-					get_tree().root.add_child(inst)
-					inst.position = Vector2(-9999.0, -9999.0)
-				else:
-					get_tree().root.add_child(inst)
-				instantiated_nodes.append(inst)
-		progress.value = 50.0 + ((float(i) / ts) * 45.0)
-		if i % 10 == 0:
-			await get_tree().process_frame
+		var s = _warmup_cache.get(sp)
+		if s:
+			var inst = s.instantiate()
+			if inst is Node3D:
+				tn.add_child(inst)
+				inst.position = Vector3(999.0, 999.0, 999.0)
+			elif inst is Node2D:
+				get_tree().root.add_child(inst)
+				inst.position = Vector2(-9999.0, -9999.0)
+			else:
+				get_tree().root.add_child(inst)
+			
+			# Extraer y retener materiales en _warmed_materials para siempre
+			_cache_materials_recursive(inst)
+			instantiated_nodes.append(inst)
+		
+		progress.value = 85.0 + (float(i) / ts) * 10.0
+		# Amortiguar el lag de GPU instanciando un efecto por frame
+		await get_tree().process_frame
 
 	status.text = "Compilando graficos (GPU)..."
 	progress.value = 95.0
@@ -864,3 +955,119 @@ func _apply_nova_push(pos: Vector2, radius: float):
 			var direction = (p.global_position - pos).normalized()
 			if "velocity" in p:
 				p.velocity += direction * 800.0
+
+
+# ==========================================
+# SISTEMA DE CACHÉ DE RECURSOS Y OBJECT POOLING (v313.6)
+# ==========================================
+
+# Recuperar recursos cargados durante el warmup o cargarlos bajo demanda y guardarlos
+func get_cached_resource(path: String) -> Resource:
+	if _warmup_cache.has(path):
+		return _warmup_cache[path]
+	if ResourceLoader.exists(path):
+		var res = load(path)
+		_warmup_cache[path] = res
+		return res
+	return null
+
+# Obtener una instancia del pool para evitar instantiate() en combate
+func get_vfx_from_pool(scene_source) -> Node:
+	var path = ""
+	var scene = null
+	
+	if typeof(scene_source) == TYPE_STRING:
+		path = scene_source
+	elif scene_source is PackedScene:
+		path = scene_source.resource_path
+		scene = scene_source
+		
+	if path == "":
+		return null
+		
+	if not _vfx_pools.has(path):
+		_vfx_pools[path] = []
+		
+	var pool = _vfx_pools[path]
+	while pool.size() > 0:
+		var inst = pool.pop_back()
+		if is_instance_valid(inst):
+			_reset_vfx_node(inst)
+			return inst
+			
+	# Si no hay en el pool, instanciar
+	if not scene:
+		scene = get_cached_resource(path)
+	
+	if scene:
+		var inst = scene.instantiate()
+		inst.set_meta("pool_scene_path", path)
+		return inst
+		
+	return null
+
+# Devolver una instancia al pool en lugar de queue_free()
+func recycle_vfx_to_pool(vfx_node: Node):
+	if not is_instance_valid(vfx_node):
+		return
+		
+	var path = vfx_node.get_meta("pool_scene_path", "")
+	if path == "":
+		# Fallback si no proviene del pooler
+		vfx_node.queue_free()
+		return
+		
+	# Remover del padre para dejarlo inactivo y libre
+	if vfx_node.get_parent():
+		vfx_node.get_parent().remove_child(vfx_node)
+		
+	if not _vfx_pools.has(path):
+		_vfx_pools[path] = []
+		
+	# Evitar duplicar referencias del mismo objeto en el pool (v313.9)
+	if not _vfx_pools[path].has(vfx_node):
+		_vfx_pools[path].append(vfx_node)
+
+# Resetear el estado del nodo del pooler recursivamente (partículas y animaciones)
+func _reset_vfx_node(node: Node):
+	if node is GPUParticles3D or node is CPUParticles3D or node is GPUParticles2D or node is CPUParticles2D:
+		node.emitting = false
+		node.restart()
+		node.emitting = true
+	elif node is AnimationPlayer:
+		node.stop()
+		node.play()
+		
+	for child in node.get_children():
+		_reset_vfx_node(child)
+
+# Extraer y retener fuerte referencia de materiales para evitar que la GPU descarte shaders compilados (v313.8)
+func _cache_materials_recursive(node: Node):
+	if not is_instance_valid(node):
+		return
+		
+	if node is MeshInstance3D:
+		if node.material_override:
+			_warmed_materials.append(node.material_override)
+		for idx in range(node.get_surface_override_material_count()):
+			var mat = node.get_surface_override_material(idx)
+			if mat:
+				_warmed_materials.append(mat)
+		if node.mesh:
+			for idx in range(node.mesh.get_surface_count()):
+				var mat = node.mesh.surface_get_material(idx)
+				if mat:
+					_warmed_materials.append(mat)
+	elif node is GPUParticles3D or node is CPUParticles3D:
+		if node.material_override:
+			_warmed_materials.append(node.material_override)
+		if "draw_pass_1" in node and node.draw_pass_1 and "material" in node.draw_pass_1 and node.draw_pass_1.material:
+			_warmed_materials.append(node.draw_pass_1.material)
+		if "process_material" in node and node.process_material and node.process_material is Material:
+			_warmed_materials.append(node.process_material)
+	elif node is Sprite3D or node is Sprite2D:
+		if "material" in node and node.material:
+			_warmed_materials.append(node.material)
+			
+	for child in node.get_children():
+		_cache_materials_recursive(child)

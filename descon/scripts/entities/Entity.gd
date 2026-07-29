@@ -12,6 +12,10 @@ const ColorBeamShader = preload("res://resources/shaders/color_beam.gdshader")
 const SpaceExplosionScript = preload("res://scripts/vfx/SpaceExplosion.gd")
 const WreckageDrawingScript = preload("res://scripts/ui/WreckageDrawing.gd")
 const DashSparkTexture = preload("res://VFX/textures/T_VFX_sparks112.jpg")
+const VFX_HexTexture = preload("res://VFX/textures/T_Hex1_inv.jpg")
+const VFX_SmokeTexture = preload("res://VFX/textures/T_VFX_Smoke_4_alpha.PNG")
+const VFX_FlareTexture = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+const VFX_WaterNormalTexture = preload("res://VFX/textures/T_GW_WaterNormal_01_b.PNG")
 
 signal debuffs_updated
 
@@ -41,47 +45,7 @@ const VFXHitDemonScene = preload("res://VFX/scenes/VFX_Hit_sphere_demon.tscn")
 const VFXHitGreenScene = preload("res://VFX/scenes/VFX_Hit_sphere_green.tscn")
 const VFXHitYellowScene = preload("res://VFX/scenes/VFX_Hit_sphere_bbasic.tscn")
 
-# Pre-cargado estático de modelos 3D para evitar congelamiento (v313.2)
-const GLB_CACHE = {
-	"res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb": preload("res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb"),
-	"res://assets/Personajes/3D/Nave2/Nave2.glb": preload("res://assets/Personajes/3D/Nave2/Nave2.glb"),
-	"res://assets/Personajes/3D/Nave3/Nave3.glb": preload("res://assets/Personajes/3D/Nave3/Nave3.glb"),
-	"res://assets/Personajes/3D/Nave4/Nave4.glb": preload("res://assets/Personajes/3D/Nave4/Nave4.glb"),
-	"res://assets/Personajes/3D/Nave5/Nave5.glb": preload("res://assets/Personajes/3D/Nave5/Nave5.glb"),
-	"res://assets/Personajes/3D/Nave6/Nave6.glb": preload("res://assets/Personajes/3D/Nave6/Nave6.glb"),
-	"res://assets/Personajes/3D/Nave7/Nave7.glb": preload("res://assets/Personajes/3D/Nave7/Nave7.glb"),
-	"res://assets/Personajes/3D/Nave8/Nave8.glb": preload("res://assets/Personajes/3D/Nave8/Nave8.glb"),
-	"res://assets/Personajes/3D/Nave9/Nave9.glb": preload("res://assets/Personajes/3D/Nave9/Nave9.glb"),
-	"res://assets/Personajes/3D/Nave10/Nave10.glb": preload("res://assets/Personajes/3D/Nave10/Nave10.glb"),
-	"res://assets/Personajes/3D/Nave11/Nave11.glb": preload("res://assets/Personajes/3D/Nave11/Nave11.glb"),
-	"res://assets/Personajes/3D/Nave12/Nave12.glb": preload("res://assets/Personajes/3D/Nave12/Nave12.glb"),
-	
-	"res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb": preload("res://assets/Enemigos/3D/Enemigo1/Enemigo1.glb"),
-	"res://assets/Enemigos/3D/Enemigo2/Enemigo2.glb": preload("res://assets/Enemigos/3D/Enemigo2/Enemigo2.glb"),
-	"res://assets/Enemigos/3D/Enemigo3/Enemigo3.glb": preload("res://assets/Enemigos/3D/Enemigo3/Enemigo3.glb"),
-	"res://assets/Enemigos/3D/Enemigo4/Enemigo4.glb": preload("res://assets/Enemigos/3D/Enemigo4/Enemigo4.glb"),
-	"res://assets/Enemigos/3D/Enemigo5/Enemigo5.glb": preload("res://assets/Enemigos/3D/Enemigo5/Enemigo5.glb"),
-	"res://assets/Enemigos/3D/Enemigo6/Enemigo6.glb": preload("res://assets/Enemigos/3D/Enemigo6/Enemigo6.glb"),
-	"res://assets/Enemigos/3D/Enemigo7/Enemigo7.glb": preload("res://assets/Enemigos/3D/Enemigo7/Enemigo7.glb"),
-	"res://assets/Enemigos/3D/Enemigo8/Enemigo8.glb": preload("res://assets/Enemigos/3D/Enemigo8/Enemigo8.glb"),
-	"res://assets/Enemigos/3D/Enemigo9/Enemigo9.glb": preload("res://assets/Enemigos/3D/Enemigo9/Enemigo9.glb"),
-	"res://assets/Enemigos/3D/Enemigo10/Enemigo10.glb": preload("res://assets/Enemigos/3D/Enemigo10/Enemigo10.glb"),
-	"res://assets/Enemigos/3D/Enemigo11/Enemigo11.glb": preload("res://assets/Enemigos/3D/Enemigo11/Enemigo11.glb"),
-	"res://assets/Enemigos/3D/Enemigo12/Enemigo12.glb": preload("res://assets/Enemigos/3D/Enemigo12/Enemigo12.glb"),
-	"res://assets/Enemigos/3D/Enemigo13/Enemigo13.glb": preload("res://assets/Enemigos/3D/Enemigo13/Enemigo13.glb"),
-	
-	"res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb": preload("res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"),
-	"res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb": preload("res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"),
-	"res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb": preload("res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"),
-	"res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb": preload("res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb"),
-	
-	"res://assets/Pilares/3D/Pilar1/Pilar1.glb": preload("res://assets/Pilares/3D/Pilar1/Pilar1.glb"),
-	
-	"res://assets/Esferas/3D/EsferaRoja/EsferaRoja.glb": preload("res://assets/Esferas/3D/EsferaRoja/EsferaRoja.glb"),
-	"res://assets/Esferas/3D/EsferaAzul/EsferaAzul.glb": preload("res://assets/Esferas/3D/EsferaAzul/EsferaAzul.glb"),
-	"res://assets/Esferas/3D/EsferaVerde/EsferaVerde.glb": preload("res://assets/Esferas/3D/EsferaVerde/EsferaVerde.glb"),
-	"res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla.glb": preload("res://assets/Esferas/3D/EsferaAmarilla/EsferaAmarilla.glb")
-}
+# Caché de modelos 3D centralizada en VFXSystem (v313.7)
 
 # Pre-cargado estático de texturas de habilidades de enemigos para evitar lag (v313.3)
 const TEX_REFLECT_AURA = preload("res://assets/Efectos de Skills/Reflect (Rojo)/Reflect Aura (Transp).png")
@@ -1905,10 +1869,10 @@ func _on_enemy_aura(data):
 			
 			var radius_3d = radius * s_factor
 			
-			# Precargar texturas locales para cilindros y partículas
-			var tex_hex = preload("res://VFX/textures/T_Hex1_inv.jpg")
-			var tex_smoke = preload("res://VFX/textures/T_VFX_Smoke_4_alpha.PNG")
-			var tex_flare = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+			# Precargar texturas locales para cilindros y partículas (usando constantes optimizadas)
+			var tex_hex = VFX_HexTexture
+			var tex_smoke = VFX_SmokeTexture
+			var tex_flare = VFX_FlareTexture
 			
 			# Definir shader personalizado para desvanecer extremos del cilindro y desplazar la textura
 			var shader = Shader.new()
@@ -2798,12 +2762,8 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		env.environment = world_env
 		node3d.add_child(env)
 	
-	# Instanciar el modelo GLB precargado o fallback
-	var model_scene = null
-	if GLB_CACHE.has(glb_path):
-		model_scene = GLB_CACHE[glb_path]
-	elif ResourceLoader.exists(glb_path):
-		model_scene = load(glb_path)
+	# Instanciar el modelo GLB precargado o fallback (caché centralizada)
+	var model_scene = VFXSystem.get_cached_resource(glb_path)
 		
 	if model_scene:
 		var model = model_scene.instantiate()
@@ -3097,11 +3057,7 @@ func _update_3d_spheres():
 		elif s_type == "curación" or s_type == "curacion": color_name = "Verde"
 		
 		var s_path = "res://assets/Esferas/3D/Esfera" + color_name + "/Esfera" + color_name + ".glb"
-		var s_scene_res = null
-		if GLB_CACHE.has(s_path):
-			s_scene_res = GLB_CACHE[s_path]
-		elif ResourceLoader.exists(s_path):
-			s_scene_res = load(s_path)
+		var s_scene_res = VFXSystem.get_cached_resource(s_path)
 			
 		if s_scene_res:
 			var s_scene = s_scene_res.instantiate()
@@ -3778,7 +3734,7 @@ func apply_color_aura(color_name: String):
 	aura_root.add_child(cylinder)
 	
 	# --- 3. Partículas de destellos lineales verticales (haces ascendentes) ---
-	var tex_flare = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+	var tex_flare = VFX_FlareTexture
 	var particles = CPUParticles3D.new()
 	particles.amount = 40
 	particles.emitting = false
@@ -3951,7 +3907,7 @@ func _setup_water_orb_3d():
 	# --- Water orb visual ---
 	var orb_size = map_scale_val * 100.0
 
-	var water_normal = preload("res://VFX/textures/T_GW_WaterNormal_01_b.PNG")
+	var water_normal = VFX_WaterNormalTexture
 
 	var water_shader = Shader.new()
 	water_shader.code = "shader_type spatial;
@@ -4023,7 +3979,7 @@ void fragment() {
 	core.material_override = core_mat
 	accessory_pivot_3d.add_child(core)
 
-	var tex_flare = preload("res://VFX/textures/T_VFX_Flare_15.PNG")
+	var tex_flare = VFX_FlareTexture
 	var bubbles = CPUParticles3D.new()
 	bubbles.amount = 15
 	bubbles.lifetime = 2.5

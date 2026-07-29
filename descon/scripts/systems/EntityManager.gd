@@ -16,8 +16,8 @@ const ZONE_CLEANUP_INTERVAL = 1.0
 const ENEMY_SCENE = preload("res://scenes/entities/Enemy.tscn")
 const SHIP_SCENE = preload("res://scenes/entities/Ship.tscn")
 const LOOT_DROP_SCRIPT = preload("res://scripts/entities/LootDrop.gd")
-const WIND_BARRIER_VFX_SCENE = preload("res://VFX/scenes/VFX_Shield_green_plane.tscn")
-const VFX_SHIELD_GREEN_SCENE = preload("res://VFX/scenes/VFX_Shield_green.tscn")
+const WIND_BARRIER_VFX_SCENE = "res://VFX/scenes/VFX_Shield_green_plane.tscn"
+const VFX_SHIELD_GREEN_SCENE = "res://VFX/scenes/VFX_Shield_green.tscn"
 const BEACON_3D_SCRIPT = preload("res://scripts/vfx/Beacon3D.gd")
 
 # Texturas precargadas estáticamente
@@ -1627,7 +1627,12 @@ func _on_remove_area(data: Dictionary):
 		if is_instance_valid(area):
 			if area is GPUParticles3D:
 				area.emitting = false
-				area.queue_free()
+				if area.has_meta("pool_scene_path"):
+					var tw = area.create_tween()
+					tw.tween_interval(area.lifetime)
+					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(area))
+				else:
+					area.queue_free()
 			elif area is Node3D:
 				var particles = area.get_node_or_null("SmokeCloud") as GPUParticles3D
 				if is_instance_valid(particles):
@@ -1640,12 +1645,25 @@ func _on_remove_area(data: Dictionary):
 					var tw = area.create_tween().set_parallel(true)
 					tw.tween_property(area, "scale", Vector3(0.001, 0.001, 0.001), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 					tw.tween_property(area, "visible", false, 0.14)
-					tw.chain().tween_callback(area.queue_free)
+					if area.has_meta("pool_scene_path"):
+						tw.chain().tween_callback(func(): VFXSystem.recycle_vfx_to_pool(area))
+					else:
+						tw.chain().tween_callback(func():
+							_recycle_children_recursive(area)
+							area.queue_free()
+						)
 			else:
 				var tw = area.create_tween().set_parallel(true)
 				tw.tween_property(area, "scale", Vector2(0.001, 0.001), 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 				tw.tween_property(area, "modulate:a", 0.0, 0.15)
 				tw.chain().tween_callback(area.queue_free)
+
+func _recycle_children_recursive(node: Node):
+	for child in node.get_children():
+		if child.has_meta("pool_scene_path"):
+			VFXSystem.recycle_vfx_to_pool(child)
+		else:
+			_recycle_children_recursive(child)
 
 func _spawn_alpha_regen_vfx(id, pos, _radius, _data):
 	if active_areas.has(id): return
@@ -1656,7 +1674,7 @@ func _spawn_alpha_regen_vfx(id, pos, _radius, _data):
 	var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 	var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 	
-	var vfx = VFX_SHIELD_GREEN_SCENE.instantiate()
+	var vfx = VFXSystem.get_vfx_from_pool(VFX_SHIELD_GREEN_SCENE)
 	vfx.name = id
 	vfx.position = Vector3(pos.x * s_factor, 1.5, pos.y * s_factor * correction_z)
 	
@@ -2084,7 +2102,7 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 
 	var vfx_scene = WIND_BARRIER_VFX_SCENE
 	if vfx_scene:
-		var vfx = vfx_scene.instantiate()
+		var vfx = VFXSystem.get_vfx_from_pool(vfx_scene)
 		vfx.scale = Vector3(radius_3d, radius_3d, radius_3d)
 		vfx.rotation_degrees.y = 90
 		barrier.add_child(vfx)

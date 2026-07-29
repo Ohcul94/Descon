@@ -2,16 +2,16 @@ extends Area2D
 class_name Projectile
 
 # Pre-cargado estático de escenas VFX para optimizar FPS en ráfagas de red (v313.1)
-const VFX_Anticipation_wave_digital_scene = preload("res://VFX/scenes/VFX_Anticipation_wave_digital.tscn")
-const VFX_Anticipation_hadouken_scene = preload("res://VFX/scenes/VFX_Anticipation_hadouken.tscn")
-const VFX_Hadouken_scene = preload("res://VFX/scenes/VFX_Hadouken.tscn")
-const VFX_Cube_projectile_scene = preload("res://VFX/scenes/VFX_Cube_projectile.tscn")
-const VFX_Hit_cyber_scene = preload("res://VFX/scenes/VFX_Hit_cyber.tscn")
-const VFX_Hit_hadouken_scene = preload("res://VFX/scenes/VFX_Hit_hadouken.tscn")
-const VFX_Laser_projectile_scene = preload("res://VFX/scenes/VFX_Laser_projectile.tscn")
-const VFX_Laser_Hit_scene = preload("res://VFX/scenes/VFX_Laser_Hit.tscn")
-const VFX_Fire_ball_type_B_scene = preload("res://VFX/scenes/VFX_Fire_ball_type_B.tscn")
-const VFX_Fire_strike_scene = preload("res://VFX/scenes/VFX_Fire_strike.tscn")
+const VFX_Anticipation_wave_digital_scene = "res://VFX/scenes/VFX_Anticipation_wave_digital.tscn"
+const VFX_Anticipation_hadouken_scene = "res://VFX/scenes/VFX_Anticipation_hadouken.tscn"
+const VFX_Hadouken_scene = "res://VFX/scenes/VFX_Hadouken.tscn"
+const VFX_Cube_projectile_scene = "res://VFX/scenes/VFX_Cube_projectile.tscn"
+const VFX_Hit_cyber_scene = "res://VFX/scenes/VFX_Hit_cyber.tscn"
+const VFX_Hit_hadouken_scene = "res://VFX/scenes/VFX_Hit_hadouken.tscn"
+const VFX_Laser_projectile_scene = "res://VFX/scenes/VFX_Laser_projectile.tscn"
+const VFX_Laser_Hit_scene = "res://VFX/scenes/VFX_Laser_Hit.tscn"
+const VFX_Fire_ball_type_B_scene = "res://VFX/scenes/VFX_Fire_ball_type_B.tscn"
+const VFX_Fire_strike_scene = "res://VFX/scenes/VFX_Fire_strike.tscn"
 
 # Pre-cargado estático de texturas para evitar I/O bloqueante
 const TEXTURE_MISSILE = preload("res://assets/Municiones/Misiles/Misil1/Misil1.png")
@@ -320,7 +320,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Anticipation_wave_digital_scene:
-				var antic = VFX_Anticipation_wave_digital_scene.instantiate()
+				var antic = VFXSystem.get_vfx_from_pool(VFX_Anticipation_wave_digital_scene)
 				antic.name = "HealAntic3D_" + str(get_instance_id())
 				target_vp.add_child(antic)
 				
@@ -344,11 +344,11 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				var anim = antic.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")
-					anim.animation_finished.connect(antic.queue_free.unbind(1))
+					anim.animation_finished.connect(func(_a): VFXSystem.recycle_vfx_to_pool(antic), CONNECT_ONE_SHOT)
 				else:
 					var tw = antic.create_tween()
 					tw.tween_interval(1.0)
-					tw.tween_callback(antic.queue_free)
+					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(antic))
 
 	# Spawn 3D anticipation aura for emp (hadouken) projectiles
 	if type == "emp":
@@ -356,7 +356,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Anticipation_hadouken_scene:
-				var antic = VFX_Anticipation_hadouken_scene.instantiate()
+				var antic = VFXSystem.get_vfx_from_pool(VFX_Anticipation_hadouken_scene)
 				antic.name = "HadoukenAntic3D_" + str(get_instance_id())
 				target_vp.add_child(antic)
 				
@@ -380,11 +380,11 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				var anim = antic.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")
-					anim.animation_finished.connect(antic.queue_free.unbind(1))
+					anim.animation_finished.connect(func(_a): VFXSystem.recycle_vfx_to_pool(antic), CONNECT_ONE_SHOT)
 				else:
 					var tw = antic.create_tween()
 					tw.tween_interval(1.0)
-					tw.tween_callback(antic.queue_free)
+					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(antic))
 
 	_setup_visual_sprite()
 	_is_setup = true
@@ -400,7 +400,7 @@ func _setup_visual_sprite():
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Hadouken_scene:
-				world_root_3d = VFX_Hadouken_scene.instantiate()
+				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Hadouken_scene)
 				world_root_3d.name = "HadoukenProj3D_" + str(get_instance_id())
 				target_vp.add_child(world_root_3d)
 				
@@ -410,7 +410,7 @@ func _setup_visual_sprite():
 				# Conectar la limpieza al salir del árbol
 				tree_exiting.connect(func():
 					if is_instance_valid(world_root_3d):
-						world_root_3d.queue_free()
+						VFXSystem.recycle_vfx_to_pool(world_root_3d)
 				)
 				
 				sprite = null
@@ -426,7 +426,7 @@ func _setup_visual_sprite():
 				_melee_fireballs_3d = []
 				_melee_blade_positions_3d = []
 				for i in 4:
-					var fb = VFX_Fire_ball_type_B_scene.instantiate()
+					var fb = VFXSystem.get_vfx_from_pool(VFX_Fire_ball_type_B_scene)
 					fb.name = "MeleeFB3D_" + str(get_instance_id()) + "_" + str(i)
 					fb.scale = Vector3(0.8, 0.8, 0.8)
 					# Rotar la estela estática 180° en Y para que quede detrás de la esfera
@@ -444,7 +444,7 @@ func _setup_visual_sprite():
 				tree_exiting.connect(func():
 					for fb in _melee_fireballs_3d:
 						if is_instance_valid(fb):
-							fb.queue_free()
+							VFXSystem.recycle_vfx_to_pool(fb)
 				)
 		return
 		
@@ -454,7 +454,7 @@ func _setup_visual_sprite():
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Cube_projectile_scene:
-				world_root_3d = VFX_Cube_projectile_scene.instantiate()
+				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Cube_projectile_scene)
 				world_root_3d.name = "HealProj3D_" + str(get_instance_id())
 				target_vp.add_child(world_root_3d)
 				
@@ -464,7 +464,7 @@ func _setup_visual_sprite():
 				# Conectar la limpieza al salir del árbol
 				tree_exiting.connect(func():
 					if is_instance_valid(world_root_3d):
-						world_root_3d.queue_free()
+						VFXSystem.recycle_vfx_to_pool(world_root_3d)
 				)
 				
 				sprite = null
@@ -552,7 +552,7 @@ func _setup_visual_sprite():
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Laser_projectile_scene:
-				world_root_3d = VFX_Laser_projectile_scene.instantiate()
+				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Laser_projectile_scene)
 				world_root_3d.name = "LaserProj3D_" + str(get_instance_id())
 				target_vp.add_child(world_root_3d)
 				
@@ -560,7 +560,7 @@ func _setup_visual_sprite():
 				
 				tree_exiting.connect(func():
 					if is_instance_valid(world_root_3d):
-						world_root_3d.queue_free()
+						VFXSystem.recycle_vfx_to_pool(world_root_3d)
 				)
 				
 				sprite = null
@@ -572,7 +572,7 @@ func _setup_visual_sprite():
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Fire_strike_scene:
-				world_root_3d = VFX_Fire_strike_scene.instantiate()
+				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Fire_strike_scene)
 				world_root_3d.name = "MissileProj3D_" + str(get_instance_id())
 				target_vp.add_child(world_root_3d)
 				
@@ -586,7 +586,7 @@ func _setup_visual_sprite():
 			# Auto-limpiar el nodo 3D cuando el proyectil 2D se destruye
 			tree_exiting.connect(func():
 				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
+					VFXSystem.recycle_vfx_to_pool(world_root_3d)
 			)
 			
 			# Tinte azul para misiles de hielo
@@ -596,11 +596,6 @@ func _setup_visual_sprite():
 					var mat = mesh.material_override.duplicate()
 					mat.albedo_color = Color(0.4, 0.7, 2.0)
 					mesh.material_override = mat
-				
-				tree_exiting.connect(func():
-					if is_instance_valid(world_root_3d):
-						world_root_3d.queue_free()
-				)
 				
 				sprite = null
 				return
@@ -1076,15 +1071,15 @@ func _setup_visual_sprite():
 
 				# Instanciar efecto oficial de impacto de partículas en la punta del láser
 				if VFX_Laser_Hit_scene:
-					_laser_hit_3d = VFX_Laser_Hit_scene.instantiate()
+					_laser_hit_3d = VFXSystem.get_vfx_from_pool(VFX_Laser_Hit_scene)
 					_laser_hit_3d.name = "LaserHit3D_" + str(get_instance_id())
 					target_vp.add_child(_laser_hit_3d)
 
 				tree_exiting.connect(func():
 					if is_instance_valid(world_root_3d):
-						world_root_3d.queue_free()
+						VFXSystem.recycle_vfx_to_pool(world_root_3d)
 					if is_instance_valid(_laser_hit_3d):
-						_laser_hit_3d.queue_free()
+						VFXSystem.recycle_vfx_to_pool(_laser_hit_3d)
 				)
 
 				sprite = null
@@ -1533,14 +1528,14 @@ func _on_body_shape_entered(_body_rid, body, _body_shape_index, local_shape_inde
 			if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 				var target_vp = map_node.sub_viewport
 				if VFX_Fire_ball_type_B_scene:
-					var impact = VFX_Fire_ball_type_B_scene.instantiate()
+					var impact = VFXSystem.get_vfx_from_pool(VFX_Fire_ball_type_B_scene)
 					impact.name = "MeleeImpact3D_" + str(get_instance_id())
 					target_vp.add_child(impact)
 					impact.position = pos_3d
 					impact.scale = Vector3(0.5, 0.5, 0.5)
 					var tw = impact.create_tween()
 					tw.tween_interval(0.5)
-					tw.tween_callback(impact.queue_free)
+					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(impact))
 
 var _is_exploding: bool = false
 
@@ -1770,7 +1765,7 @@ func _explode():
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Hit_cyber_scene:
-				var hit_node = VFX_Hit_cyber_scene.instantiate()
+				var hit_node = VFXSystem.get_vfx_from_pool(VFX_Hit_cyber_scene)
 				hit_node.name = "HealHit3D_" + str(get_instance_id())
 				target_vp.add_child(hit_node)
 				
@@ -1786,11 +1781,11 @@ func _explode():
 				var anim = hit_node.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")
-					anim.animation_finished.connect(hit_node.queue_free.unbind(1))
+					anim.animation_finished.connect(func(_a): VFXSystem.recycle_vfx_to_pool(hit_node), CONNECT_ONE_SHOT)
 				else:
 					var tw = hit_node.create_tween()
 					tw.tween_interval(1.0)
-					tw.tween_callback(hit_node.queue_free)
+					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(hit_node))
 
 	# Spawn 3D hit impact effect for emp (hadouken) projectiles
 	if type == "emp":
@@ -1798,7 +1793,7 @@ func _explode():
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Hit_hadouken_scene:
-				var hit_node = VFX_Hit_hadouken_scene.instantiate()
+				var hit_node = VFXSystem.get_vfx_from_pool(VFX_Hit_hadouken_scene)
 				hit_node.name = "HadoukenHit3D_" + str(get_instance_id())
 				target_vp.add_child(hit_node)
 				
@@ -1814,11 +1809,11 @@ func _explode():
 				var anim = hit_node.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")
-					anim.animation_finished.connect(hit_node.queue_free.unbind(1))
+					anim.animation_finished.connect(func(_a): VFXSystem.recycle_vfx_to_pool(hit_node), CONNECT_ONE_SHOT)
 				else:
 					var tw = hit_node.create_tween()
 					tw.tween_interval(1.0)
-					tw.tween_callback(hit_node.queue_free)
+					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(hit_node))
 
 	# Spawn 3D hit impact effect for laser projectiles
 	if type == "laser":
@@ -1826,7 +1821,7 @@ func _explode():
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Laser_Hit_scene:
-				var hit_node = VFX_Laser_Hit_scene.instantiate()
+				var hit_node = VFXSystem.get_vfx_from_pool(VFX_Laser_Hit_scene)
 				hit_node.name = "LaserHit3D_" + str(get_instance_id())
 				target_vp.add_child(hit_node)
 				
@@ -1840,11 +1835,11 @@ func _explode():
 				var anim = hit_node.get_node_or_null("AnimationPlayer")
 				if anim:
 					anim.play("Init")
-					anim.animation_finished.connect(hit_node.queue_free.unbind(1))
+					anim.animation_finished.connect(func(_a): VFXSystem.recycle_vfx_to_pool(hit_node), CONNECT_ONE_SHOT)
 				else:
 					var tw = hit_node.create_tween()
 					tw.tween_interval(1.0)
-					tw.tween_callback(hit_node.queue_free)
+					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(hit_node))
 
 	if type == "emp" and not _is_exploding:
 		_is_exploding = true
