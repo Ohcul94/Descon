@@ -299,6 +299,7 @@ class ArenaManager {
                 targetSocket.emit('changeZoneDone', { zoneId: matchId, x: playerObj.x, y: playerObj.y });
                 targetSocket.emit('arenaMatchStarted', {
                     matchId: matchId,
+                    mapId: targetMapId,   // ← ID del mapa base (ej: 9) para lookup de objetos 3D
                     team: pl.team,
                     nexuses: matchState.nexuses,
                     pillars: matchState.pillars

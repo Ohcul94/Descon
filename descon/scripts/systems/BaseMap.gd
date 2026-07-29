@@ -962,6 +962,30 @@ func _spawn_map_objects():
 		if z_float == int(z_float):
 			z_str = str(int(z_float))
 			
+	# ARENA FIX: Si zone_id es un matchId dinámico (ej: "arena_1234567_42"), resolver el
+	# mapId base desde los datos del match o desde la config del servidor.
+	# El MapEditor3D guarda los objetos bajo el ID numérico del mapa (ej: "9"),
+	# no bajo el matchId que es temporal y único por partida.
+	if z_str.begins_with("arena_"):
+		var resolved = false
+		# Prioridad 1: Usar el mapId del match actual (enviado por el server en arenaMatchStarted)
+		if NetworkManager and NetworkManager.current_arena_data.has("mapId"):
+			z_str = str(NetworkManager.current_arena_data.mapId)
+			print("[BaseMap _spawn_map_objects] Arena: zone_id dinámico resuelto a mapId=", z_str)
+			resolved = true
+		# Prioridad 2: Usar el primer mapa configurado en gameModes.arenas
+		if not resolved:
+			var full_cfg = GameConstants.get("FULL_CONFIG")
+			if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("arenas"):
+				var arena_maps = full_cfg.gameModes.arenas.get("maps", [])
+				if arena_maps.size() > 0:
+					z_str = str(arena_maps[0])
+					print("[BaseMap _spawn_map_objects] Arena: zone_id resuelto desde config a mapId=", z_str)
+					resolved = true
+		if not resolved:
+			print("[BaseMap _spawn_map_objects] Arena: no se pudo resolver mapId para zone_id=", zone_id)
+			return
+			
 	print("[BaseMap _spawn_map_objects] Iniciando spawn. zone_id es: ", z_str)
 	if not (z_str in GameConstants.MAPS_CONFIG):
 		print("[BaseMap _spawn_map_objects] ERROR: zone_id ", z_str, " no encontrada en MAPS_CONFIG. Configs disponibles: ", GameConstants.MAPS_CONFIG.keys())
@@ -1247,8 +1271,20 @@ func _spawn_map_objects():
 					_instantiate_map_object_3d(model_path, obj_pos, Vector3.ONE * scale_val, Vector3(0, rot_y, 0), Color(0.8, 0.8, 0.8), y_offset)
 					print("[BaseMap] Objeto decorativo (sin colisión) instanciado: ", obj_label, " @ ", obj_pos, " escala: ", scale_val, " rot: ", rot_y)
 			
+			"spawn":
+				# Punto de spawn visual solamente (sin colisión), decorativo
+				var model_path = str(obj.get("assetPath", ""))
+				if model_path != "" and ResourceLoader.exists(model_path):
+					var scale_val = float(obj.get("scale", 1.0))
+					var rot_y = float(obj.get("rotY", 0.0))
+					var y_offset = float(obj.get("yOffset", 0.0))
+					_instantiate_map_object_3d(model_path, obj_pos, Vector3.ONE * scale_val, Vector3(0, rot_y, 0), Color(0.0, 1.0, 0.5), y_offset)
+				# print("[BaseMap] Spawn point registrado: ", obj_label, " @ ", obj_pos)
+			
 			_:
 				print("[BaseMap] Tipo de objeto desconocido: ", obj_type, " @ ", obj_pos)
+
+
 
 # Instanciar modelo 3D del objeto en el Viewport global del mapa
 func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: Vector3, rotation_3d: Vector3, light_color: Color, y_offset: float = 0.5) -> Node3D:

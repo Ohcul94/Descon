@@ -51,21 +51,34 @@ func _ready():
 	# _generate_procedural_obstacles()
 	
 	# Generar portales 3D de extracción/escape en los puntos configurados en el AdminDash
-	_generate_extraction_portals()
+	if not _is_arena_zone():
+		_generate_extraction_portals()
 
 	# Inicializar cuenta regresiva de spawn lock y tamaño de mundo desde la config dinámica
 	var spawn_lock_ms = 10000.0
 	var is_ad = _is_altar_defense_zone()
+	var is_ar = _is_arena_zone()
 	var full_config = GameConstants.get("FULL_CONFIG")
 	if full_config and full_config.has("gameModes"):
-		var mode_key = "altar_defense" if is_ad else "extraction"
-		if full_config.gameModes.has(mode_key):
-			var mode_cfg = full_config.gameModes[mode_key]
-			if mode_cfg.has("spawnLockTime"):
-				spawn_lock_ms = float(mode_cfg.spawnLockTime)
-			if mode_cfg.has("width") and float(mode_cfg.width) > 0:
-				world_size = float(mode_cfg.width)
-				adjust_background()
+		if is_ar:
+			if full_config.gameModes.has("arenas"):
+				var arena_cfg = full_config.gameModes.arenas
+				if arena_cfg.has("spawnLockTime"):
+					spawn_lock_ms = float(arena_cfg.spawnLockTime)
+				if arena_cfg.has("mapConfigs") and arena_cfg.mapConfigs.has(str(zone_id)):
+					var map_cfg = arena_cfg.mapConfigs[str(zone_id)]
+					if map_cfg.has("width") and float(map_cfg.width) > 0:
+						world_size = float(map_cfg.width)
+						adjust_background()
+		else:
+			var mode_key = "altar_defense" if is_ad else "extraction"
+			if full_config.gameModes.has(mode_key):
+				var mode_cfg = full_config.gameModes[mode_key]
+				if mode_cfg.has("spawnLockTime"):
+					spawn_lock_ms = float(mode_cfg.spawnLockTime)
+				if mode_cfg.has("width") and float(mode_cfg.width) > 0:
+					world_size = float(mode_cfg.width)
+					adjust_background()
 	spawn_lock_remaining = spawn_lock_ms / 1000.0
 
 	# Crear HUD UI de temporizadores
@@ -81,8 +94,41 @@ func _ready():
 			NetworkManager.update_exit_portals.connect(_on_update_exit_portals)
 		if not NetworkManager.arena_state_update.is_connected(_on_arena_state_update):
 			NetworkManager.arena_state_update.connect(_on_arena_state_update)
+		# ARENA FIX: Conectar arenaMatchStarted para auto-configurar el zone_id del matchId
+		# cuando World.gd (safety net) instancia este mapa después del changeZoneDone.
+		# Esto es necesario porque el matchId es "arena_XXX" (dinámico) y no un número fijo.
+		if not NetworkManager.arena_match_started.is_connected(_on_arena_match_started_self):
+			NetworkManager.arena_match_started.connect(_on_arena_match_started_self)
 			
 	# Instanciar elementos de la Arena PvP si corresponde
+	_spawn_arena_elements()
+	
+	# Retry arena elements cuando llegue la config del server
+	if _is_arena_zone() and arena_nexuses_nodes.is_empty() and arena_pillars_nodes.is_empty():
+		if NetworkManager:
+			if not NetworkManager.admin_config_updated.is_connected(_on_config_retry_arena):
+				NetworkManager.admin_config_updated.connect(_on_config_retry_arena)
+			if not NetworkManager.config_updated.is_connected(_on_config_retry_arena):
+				NetworkManager.config_updated.connect(_on_config_retry_arena)
+
+# Handler local para arenaMatchStarted en el nodo del mapa.
+# Actualiza zone_id al matchId real y regenera los elementos de arena si faltan.
+func _on_arena_match_started_self(data: Dictionary) -> void:
+	var match_id = str(data.get("matchId", ""))
+	if match_id.is_empty():
+		return
+	# Si el zone_id ya es correcto, solo asegurar que los elementos estén spawneados
+	if str(zone_id) == match_id:
+		if arena_nexuses_nodes.is_empty():
+			NetworkManager.current_arena_data = data
+			_spawn_arena_elements()
+		return
+	# Actualizar zone_id al matchId dinámico del servidor
+	zone_id = match_id
+	print("[Map_Extraction] arena_match_started recibido. zone_id actualizado a: ", zone_id)
+	# Guardar datos de arena en el NetworkManager para que _spawn_arena_elements los use
+	NetworkManager.current_arena_data = data
+	_clear_arena_elements()
 	_spawn_arena_elements()
 
 func _physics_process(_delta):
@@ -714,7 +760,11 @@ func _create_timers_ui():
 	var ui_canvas = get_node_or_null("PortalUICanvas")
 	if not is_instance_valid(ui_canvas): return
 	
-	# 1. TIMER DE EXTRACCIÓN GLOBAL (Top Center)
+	var is_ad = _is_altar_defense_zone()
+	var is_ar = _is_arena_zone()
+	var is_ext = not is_ad and not is_ar
+	
+	# 1. TIMER DE COMBATE / EXTRACCIÓN (Top Center)
 	var top_container = CenterContainer.new()
 	top_container.name = "RaidTimerContainer"
 	top_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -727,7 +777,7 @@ func _create_timers_ui():
 	var sb_timer = StyleBoxFlat.new()
 	sb_timer.bg_color = Color(0, 0, 0, 0.75)
 	sb_timer.set_border_width_all(2)
-	sb_timer.border_color = Color(0, 0.9, 1.0, 0.8) # Glowing cyan
+	sb_timer.border_color = Color(0, 0.9, 1.0, 0.8)
 	sb_timer.set_corner_radius_all(12)
 	sb_timer.set_content_margin_all(8)
 	timer_panel.add_theme_stylebox_override("panel", sb_timer)
@@ -735,7 +785,13 @@ func _create_timers_ui():
 	
 	match_timer_label = Label.new()
 	match_timer_label.name = "MatchTimerLabel"
-	match_timer_label.text = "⏱️ CARGANDO RAID... "
+	if is_ext:
+		match_timer_label.text = "EXTRACCIÓN EN: --:--"
+	elif is_ar:
+		match_timer_label.text = "ARENA PVP"
+		timer_panel.visible = false
+	else:
+		timer_panel.visible = false
 	match_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	match_timer_label.add_theme_font_size_override("font_size", 13)
 	match_timer_label.add_theme_color_override("font_color", Color.CYAN)
@@ -743,8 +799,7 @@ func _create_timers_ui():
 	match_timer_label.add_theme_constant_override("outline_size", 4)
 	timer_panel.add_child(match_timer_label)
 
-	# 1.5 BARRA DE HP Y SHIELD DEL ALTAR (Para Defensa al Altar)
-	var is_ad = _is_altar_defense_zone()
+	# 1.5 BARRA DE HP Y SHIELD DEL ALTAR (Solo para Defensa al Altar)
 	if is_ad:
 		var altar_hud_container = CenterContainer.new()
 		altar_hud_container.name = "AltarHUDContainer"
@@ -937,16 +992,40 @@ func _spawn_arena_elements():
 	_clear_arena_elements()
 	
 	# Obtener rutas de assets 3D
-	var nexus_asset_path = "res://assets/Arenas PVP/3D/Nexos/Nexo1/Nexo1.glb"
-	var pillar_asset_path = "res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
+	# NOTA: Los assets de nexo son los Altares y los pilares son los Pilares,
+	# igual que los usa el MapEditor3D_Evento_3_PVP.tscn
+	var nexus_asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
+	var pillar_asset_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
 	
-	# Instanciar Nexos
+	# Fallback: si no existen los Altares usar las Torres de defense, si existen
+	if not ResourceLoader.exists(nexus_asset_path):
+		nexus_asset_path = "res://assets/Arenas PVP/3D/Nexos/Nexo1/Nexo1.glb"
+	if not ResourceLoader.exists(pillar_asset_path):
+		pillar_asset_path = "res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb"
+	print("[ARENA] Usando assets → Nexo: ", nexus_asset_path, " | Pilar: ", pillar_asset_path)
+	
+	# Instanciar Nexos (soporta formato plano y anidado)
+	var has_nexuses = false
+	var nexuses_data = {}
+	
 	if data.has("nexuses"):
-		var nexuses = data.nexuses
-		if nexuses.has("red"):
-			_spawn_nexus("nexus_red", nexuses.red, "red", nexus_asset_path)
-		if nexuses.has("blue"):
-			_spawn_nexus("nexus_blue", nexuses.blue, "blue", nexus_asset_path)
+		nexuses_data = data.nexuses
+		has_nexuses = true
+	else:
+		# Formato plano del AdminDash: nexusRed, nexusBlue
+		if data.has("nexusRed") or data.has("nexusBlue"):
+			nexuses_data = {}
+			if data.has("nexusRed"):
+				nexuses_data["red"] = data.nexusRed
+			if data.has("nexusBlue"):
+				nexuses_data["blue"] = data.nexusBlue
+			has_nexuses = true
+	
+	if has_nexuses:
+		if nexuses_data.has("red"):
+			_spawn_nexus("nexus_red", nexuses_data.red, "red", nexus_asset_path)
+		if nexuses_data.has("blue"):
+			_spawn_nexus("nexus_blue", nexuses_data.blue, "blue", nexus_asset_path)
 			
 	# Instanciar Pilares
 	if data.has("pillars"):
@@ -955,6 +1034,15 @@ func _spawn_arena_elements():
 
 func _on_arena_match_started_spawn(_data):
 	_spawn_arena_elements()
+
+func _on_config_retry_arena(_config):
+	if _is_arena_zone() and arena_nexuses_nodes.is_empty() and arena_pillars_nodes.is_empty():
+		_spawn_arena_elements()
+		if not arena_nexuses_nodes.is_empty() or not arena_pillars_nodes.is_empty():
+			if NetworkManager.admin_config_updated.is_connected(_on_config_retry_arena):
+				NetworkManager.admin_config_updated.disconnect(_on_config_retry_arena)
+			if NetworkManager.config_updated.is_connected(_on_config_retry_arena):
+				NetworkManager.config_updated.disconnect(_on_config_retry_arena)
 
 func _clear_arena_elements():
 	for key in arena_nexuses_nodes:
@@ -1032,7 +1120,7 @@ func _spawn_nexus(id: String, cfg: Dictionary, team: String, asset_path: String)
 	}
 
 func _spawn_pillar(cfg: Dictionary, asset_path: String):
-	var id = cfg.id
+	var id = cfg.get("id", cfg.get("name", "pillar_" + str(cfg.get("x", 0))))
 	var team = cfg.get("team", "red")
 	var pos_2d = Vector2(float(cfg.x), float(cfg.y))
 	var max_hp = float(cfg.get("maxHp", cfg.get("hp", 3000)))

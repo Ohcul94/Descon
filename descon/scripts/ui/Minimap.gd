@@ -170,13 +170,16 @@ func _draw():
 			if ad.has("height") and float(ad.height) > 0:
 				worldH = float(ad.height)
 	
-	if current_zone_id == "10" or current_zone_id == "11" or current_zone_id.begins_with("extract_"):
-		if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("extraction"):
-			var ext = full_cfg_temp.gameModes.extraction
-			if ext.has("width") and float(ext.width) > 0:
-				worldW = float(ext.width)
-			if ext.has("height") and float(ext.height) > 0:
-				worldH = float(ext.height)
+	if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("extraction"):
+		var ext_maps = full_cfg_temp.gameModes.extraction.get("maps", [])
+		for em in ext_maps:
+			if int(em) == int(current_zone_id):
+				var ext = full_cfg_temp.gameModes.extraction
+				if ext.has("width") and float(ext.width) > 0:
+					worldW = float(ext.width)
+				if ext.has("height") and float(ext.height) > 0:
+					worldH = float(ext.height)
+				break
 	
 	# 3. Fallback final: mapa cargado en escena
 	var current_map = get_tree().get_first_node_in_group("map")
@@ -305,7 +308,17 @@ func _draw():
 			draw_circle(pos, 2.0, Color(1, 0.4, 0)) # #ff6600
 
 	# 4. Dibujar Portales de Extracción (Cian de Neón con efecto de pulso!)
-	if current_zone_id == "10" or current_zone_id == "11" or current_zone_id.begins_with("extract_"):
+	var is_extraction_zone = false
+	if current_zone_id.begins_with("extract_"):
+		is_extraction_zone = true
+	else:
+		var full_cfg_ext = GameConstants.get("FULL_CONFIG")
+		if full_cfg_ext and full_cfg_ext.has("gameModes") and full_cfg_ext.gameModes.has("extraction"):
+			for em in full_cfg_ext.gameModes.extraction.get("maps", []):
+				if int(em) == int(current_zone_id):
+					is_extraction_zone = true
+					break
+	if is_extraction_zone:
 		var extract_points = []
 		if GameConstants.get("FULL_CONFIG") and GameConstants.FULL_CONFIG.has("gameModes") and GameConstants.FULL_CONFIG.gameModes.has("extraction"):
 			var ext = GameConstants.FULL_CONFIG.gameModes.extraction
@@ -344,10 +357,6 @@ func _draw():
 	var is_altar_defense = false
 	var altar_pos = Vector2(5000.0, 5000.0)
 	
-	# Fallback directo por ID de zona
-	if current_zone_id == "9":
-		is_altar_defense = true
-		
 	var full_cfg = GameConstants.get("FULL_CONFIG")
 	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
 		var ad = full_cfg.gameModes.altar_defense
@@ -447,10 +456,35 @@ func _draw():
 						draw_circle(obj_pos, 5.0, Color(1.0, 0.55, 0.0, 0.9))
 						draw_circle(obj_pos, 7.5, Color(1.0, 0.55, 0.0, 0.2), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "T", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+					
+					"nexus":
+						# Nexo PVP - Rojo para Red, Azul para Blue, con pulso de energía y letra 'N'
+						var team = str(obj.get("team", "red")).to_lower()
+						var pulse = 0.5 + sin(Time.get_ticks_msec() * 0.005) * 0.3
+						var base_color = Color(1.0, 0.15, 0.15) if team == "red" else Color(0.15, 0.5, 1.0)
+						
+						draw_circle(obj_pos, 6.0, base_color)
+						draw_circle(obj_pos, 8.5 + pulse * 2.5, Color(base_color.r, base_color.g, base_color.b, 0.25), false, 1.5)
+						draw_string(font, obj_pos + Vector2(-3.0, 3.0), "N", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+						
+					"pillar":
+						# Pilar PVP - Rojo/Azul según equipo y letra 'P'
+						var team = str(obj.get("team", "neutral")).to_lower()
+						var base_color = Color(0.85, 0.85, 0.85)
+						if team == "red":
+							base_color = Color(0.9, 0.2, 0.2)
+						elif team == "blue":
+							base_color = Color(0.2, 0.4, 0.9)
+						
+						draw_circle(obj_pos, 4.5, base_color)
+						draw_circle(obj_pos, 6.5, Color(base_color.r, base_color.g, base_color.b, 0.2), false, 1.0)
+						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "P", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+						
 					_:
 						# Objeto genérico - Blanco con 'O'
 						draw_circle(obj_pos, 4.0, Color(0.8, 0.8, 0.8, 0.8))
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "O", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+
 
 	# 5.5 Rectángulo de visión en modo PANEO (cámara libre sin seguir al jugador)
 	var map_node = get_tree().get_first_node_in_group("map")

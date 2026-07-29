@@ -6,7 +6,7 @@ var _map_editor_scene: PackedScene = null
 var _map_editor_instance: Node = null
 
 func _enter_tree():
-	_map_editor_scene = preload("res://tools/MapEditor3D.tscn")
+	pass
 	
 	# Añadir botón en la barra superior del editor
 	var btn = Button.new()
@@ -51,6 +51,11 @@ func _on_editor_button_pressed():
 		_close_editor()
 
 func _open_editor():
+	if not _map_editor_scene:
+		_map_editor_scene = load("res://tools/MapEditor3D.tscn")
+	if not _map_editor_scene:
+		push_warning("[MapEditor3D] No se encontró MapEditor3D.tscn")
+		return
 	_map_editor_instance = _map_editor_scene.instantiate()
 	get_editor_interface().get_editor_viewport().add_child(_map_editor_instance)
 	

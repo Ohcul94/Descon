@@ -20,6 +20,7 @@ const DungeonBuilderScript = preload("res://scripts/systems/DungeonBuilder.gd")
 @onready var combat_system = $CombatSystem
 var talent_system = null
 var current_map_node = null # Referencia al mapa cargado actualmente
+var _last_zone_id = null   # Último zone_id cargado (para evitar recargas duplicadas)
 
 var entity_manager: Node = null
 var dungeon_builder: Node = null  # v1.0: Constructor de paredes de dungeon
@@ -53,6 +54,11 @@ func _ready():
 	
 	NetworkManager.login_success.connect(_on_login_success)
 	NetworkManager.config_updated.connect(_on_admin_config_received)
+	
+	# FIX SINCRONÍA ARENA: El server manda changeZoneDone (→ _update_background via clear_zone_entities)
+	# y LUEGO arenaMatchStarted con los datos completos. Conectar ambas señales garantiza que
+	# si la primera carga falló (config no llegó aún), la segunda corrige el mapa.
+	NetworkManager.arena_match_started.connect(_on_arena_match_started_world)
 	
 	# Sincronización HUD
 	NetworkManager.clear_zone_entities.connect(_update_hud_map_name) # v243.63
@@ -505,6 +511,10 @@ func _parse_zone_to_int(zone_var) -> int:
 			if parts.size() > 1:
 				return int(parts[1])
 			return 10
+		elif val.begins_with("arena_"):
+			if NetworkManager and NetworkManager.current_arena_data.has("mapId"):
+				return int(NetworkManager.current_arena_data.mapId)
+			return 9
 		else:
 			return int(val)
 	return int(val)
@@ -531,6 +541,22 @@ func _perform_local_respawn():
 	if is_instance_valid(local_player) and local_player.has_method("respawn"):
 		local_player.respawn()
 	_save_game_progress()
+
+# FIX ARENA SYNC: Cuando llega arenaMatchStarted, el mapa YA debería estar cargado
+# por changeZoneDone. Pero si el matchId es tipo "arena_XXXXX" y World._update_background
+# lo recibió ANTES de que llegara la config del servidor, cargó Map_Exploracion en vez
+# de Map_Evento. Esta señal actúa como safety net: recarga el mapa si es necesario.
+func _on_arena_match_started_world(data: Dictionary):
+	var match_id = str(data.get("matchId", ""))
+	if match_id.is_empty():
+		return
+	# Si ya está cargado el mapa correcto para esta arena, no hacer nada
+	if str(_last_zone_id) == match_id:
+		print("[WORLD-ARENA] Mapa de arena ya cargado para: ", match_id)
+		return
+	print("[WORLD-ARENA] Safety-net: recargando mapa para arena ", match_id)
+	_update_background(match_id)
+	_update_hud_map_name(match_id)
 
 func _on_login_success(data):
 	local_player._on_login_success(data)
@@ -580,11 +606,22 @@ func _on_admin_config_received(data: Dictionary):
 		print("[WORLD] Configuración administrativa y constantes actualizadas.")
 
 func _update_background(zone_id):
-	var zid = int(zone_id)
+	# Guardar zone_id para el safety-net de arena
+	_last_zone_id = zone_id
+	
+	var zid = int(zone_id) if typeof(zone_id) != TYPE_STRING else 0
 	if typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_"):
 		var parts = zone_id.split("_")
 		if parts.size() > 1:
 			zid = int(parts[1])
+	elif typeof(zone_id) == TYPE_STRING and zone_id.begins_with("arena_"):
+		# Las arenas usan matchId (ej: "arena_1234567_42"), NO un número de zona.
+		# zid se queda en 0 — la detección es por prefijo, no por número.
+		zid = 0
+	elif typeof(zone_id) != TYPE_STRING:
+		zid = int(zone_id)
+	else:
+		zid = int(zone_id) if zone_id.is_valid_int() else 0
 		
 	var scene_path = "res://scenes/maps/Map_Exploracion.tscn"
 	
@@ -597,15 +634,17 @@ func _update_background(zone_id):
 			for m in ad_cfg.maps:
 				ad_map_ids.append(int(m))
 	
+	# ARENA: Detectar por prefijo de string (matchId tipo "arena_XXX") O por lista del servidor
 	var is_arena = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("arena_")
-	if not is_arena and full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("arenas"):
+	if not is_arena and zid > 0 and full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("arenas"):
 		var arena_maps = full_cfg.gameModes.arenas.get("maps", [])
 		for m in arena_maps:
 			if int(m) == zid:
 				is_arena = true
 				break
-	var is_altar_defense = (zid in ad_map_ids)
-	var is_extraction = typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_") or zid == 10
+	
+	var is_altar_defense = (zid > 0 and zid in ad_map_ids)
+	var is_extraction = (typeof(zone_id) == TYPE_STRING and zone_id.begins_with("extract_")) or zid == 10
 	
 	# Mapear escenas según el tipo de zona
 	if zid == 1:
@@ -614,6 +653,8 @@ func _update_background(zone_id):
 		scene_path = "res://scenes/maps/Map_Housing.tscn"
 	elif is_altar_defense or is_extraction or is_arena:
 		scene_path = "res://scenes/maps/Map_Evento.tscn"
+	
+	print("[WORLD _update_background] zone_id=", zone_id, " zid=", zid, " is_arena=", is_arena, " scene=", scene_path)
 		
 	# Ocultar o mostrar las estrellas generadas según si es mapa de extracción o altar
 	var hide_stars = false
@@ -642,18 +683,22 @@ func _update_background(zone_id):
 		move_child(current_map_node, 0) # Asegurar que quede detrás de las entidades
 		
 		# v400.20: Desactivar automáticamente modo combate (PvP) al entrar a mapas pacíficos/tranquilos
-		var is_pvp_map = false
-		var clean_zid = _parse_zone_to_int(zone_id)
-		var check_z_id = str(clean_zid)
-		if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(check_z_id):
-			var map_cfg = GameConstants.MAPS_CONFIG[check_z_id]
-			var pvp_mode = map_cfg.get("pvpMode", "tranquila")
-			if pvp_mode in ["mandatory", "full_drop", "partial_drop", "inferno"]:
-				is_pvp_map = true
+		# IMPORTANTE: Las arenas/extracción/altar son siempre PvP — nunca desactivar PvP ahí.
+		var is_pvp_map = is_arena or is_extraction or is_altar_defense
+		if not is_pvp_map:
+			# Solo verificar MAPS_CONFIG para zonas numéricas estáticas (Lobby, Exploración, etc.)
+			var clean_zid = _parse_zone_to_int(zone_id)
+			var check_z_id = str(clean_zid)
+			if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(check_z_id):
+				var map_cfg = GameConstants.MAPS_CONFIG[check_z_id]
+				var pvp_mode = map_cfg.get("pvpMode", "tranquila")
+				if pvp_mode in ["mandatory", "full_drop", "partial_drop", "inferno"]:
+					is_pvp_map = true
 		
 		if not is_pvp_map:
 			print("[WORLD] Entrando a zona tranquila (No PvP obligatorio). Desactivando modo combate por defecto.")
 			NetworkManager.send_event("togglePvP", false)
+
 		
 		if current_map_node.has_method("setup_map"):
 			current_map_node.setup_map()

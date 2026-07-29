@@ -6,6 +6,7 @@ var _current_data = {}
 var _elapsed = 0.0
 var _sort_column = 0
 var _sort_ascending = false
+var _user_closed = false  # true = el usuario lo cerró manualmente, no reabrir automático
 
 var _container: VBoxContainer
 var _columns_hbox: HBoxContainer
@@ -103,7 +104,9 @@ func _build_footer():
 
 func toggle():
 	visible = !visible
+	_user_closed = not visible  # Si lo cierra el usuario, marcar para no reabrir
 	if visible:
+		_user_closed = false
 		NetworkManager.send_event("requestCombatMeter", {})
 
 func _toggle_display_mode():
@@ -132,11 +135,16 @@ func _on_combat_meter_update(data: Dictionary):
 			break
 	
 	if has_any:
-		if not visible:
+		# Solo abrir automáticamente si el usuario NO lo cerró manualmente
+		if not visible and not _user_closed:
 			visible = true
-		_refresh_rows()
+		if visible:
+			_refresh_rows()
 	else:
-		visible = false
+		# Sin datos de combate: ocultar y resetear el flag para permitir reapertura futura
+		if visible:
+			visible = false
+		_user_closed = false
 
 func _refresh_rows():
 	for child in _rows_container.get_children():
