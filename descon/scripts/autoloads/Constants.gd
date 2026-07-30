@@ -5,8 +5,10 @@
 
 func _ready():
 	if NetworkManager:
-		NetworkManager.admin_config_updated.connect(_on_config_updated)
-		NetworkManager.config_updated.connect(_on_config_updated)
+		if not NetworkManager.admin_config_updated.is_connected(_on_config_updated):
+			NetworkManager.admin_config_updated.connect(_on_config_updated)
+		if not NetworkManager.config_updated.is_connected(_on_config_updated):
+			NetworkManager.config_updated.connect(_on_config_updated)
 
 var FULL_CONFIG = {}
 

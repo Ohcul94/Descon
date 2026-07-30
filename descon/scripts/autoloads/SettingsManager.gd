@@ -90,7 +90,8 @@ func _ready():
 		call_deferred("_apply_mobile_window_size")
 		
 	# Conectar hook de escalado de interfaz dinámico
-	get_tree().node_added.connect(_on_node_added)
+	if not get_tree().node_added.is_connected(_on_node_added):
+		get_tree().node_added.connect(_on_node_added)
 
 func _apply_mobile_window_size():
 	# Solo aplicar tamaño de ventana simulada en PC (si no es un dispositivo movil real)

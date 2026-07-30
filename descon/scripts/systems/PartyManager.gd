@@ -10,8 +10,10 @@ var current_party = null
 
 func _ready():
 	if NetworkManager:
-		NetworkManager.party_invitation.connect(_on_invitation_received)
-		NetworkManager.party_update.connect(_on_party_updated)
+		if not NetworkManager.party_invitation.is_connected(_on_invitation_received):
+			NetworkManager.party_invitation.connect(_on_invitation_received)
+		if not NetworkManager.party_update.is_connected(_on_party_updated):
+			NetworkManager.party_update.connect(_on_party_updated)
 
 func invite_player(player_name: String):
 	if player_name != "" and NetworkManager:
