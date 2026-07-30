@@ -345,8 +345,8 @@ func _reload_autoloads():
 			var new_script = load(path)
 			if new_script:
 				node.set_script(new_script)
-				if node.has_method("_ready"):
-					node._ready()
+				# No llamamos a _ready() manualmente, ya que set_script() lo invoca automáticamente al actualizar el script en un nodo activo en el árbol (v313.10)
+				pass
 				print("[Bootloader] Autoload recargado en memoria: ", autoload_name)
 
 	print("[Bootloader] PCK montado. Reiniciando árbol de forma nativa para recargar Autoloads...")
