@@ -95,7 +95,10 @@ func _process(_delta):
 		if type != "electron":
 			world_root_3d.position.x = global_position.x * s_factor
 			world_root_3d.position.z = global_position.y * s_factor * correction_z
-			world_root_3d.position.y = 1.5
+			if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")):
+				world_root_3d.position.y = _owner_node.world_root_3d.position.y
+			else:
+				world_root_3d.position.y = 0.5
 		if type == "mega_laser":
 			var dir_2d = Vector2.RIGHT.rotated(rotation)
 			var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
@@ -129,7 +132,7 @@ func _process(_delta):
 				var beam_len_3d = length * s_factor
 				var forward = -world_root_3d.global_transform.basis.z.normalized()
 				_laser_hit_3d.global_position = world_root_3d.global_position + forward * beam_len_3d
-				_laser_hit_3d.global_position.y = 1.5 + 0.2
+				_laser_hit_3d.global_position.y = world_root_3d.position.y + 0.1
 		else:
 			world_root_3d.rotation.y = -rotation - PI/2.0
 
@@ -140,7 +143,7 @@ func _process(_delta):
 
 			var owner_3d = Vector3(
 				_owner_node.global_position.x * sf,
-				1.5,
+				_owner_node.world_root_3d.position.y if is_instance_valid(_owner_node.get("world_root_3d")) else 0.5,
 				_owner_node.global_position.y * sf * cz
 			)
 			var hook_3d = world_root_3d.global_position
@@ -334,7 +337,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				antic.position.x = offset_pos.x * s_factor
 				antic.position.z = offset_pos.y * s_factor * correction_z
 				# Elevarlo un poco en Y para que se alinee con el chasis de la nave y no quede en el suelo
-				antic.position.y = 1.5 + 0.4
+				antic.position.y = (_owner_node.world_root_3d.position.y + 0.2) if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.7
 				antic.scale = Vector3(1.2, 1.2, 1.2)
 				
 				# Sincronizar la rotación del aura 3D con la dirección del disparo
@@ -370,7 +373,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				antic.position.x = offset_pos.x * s_factor
 				antic.position.z = offset_pos.y * s_factor * correction_z
 				# Elevarlo un poco en Y para que se alinee con el chasis de la nave y no quede en el suelo
-				antic.position.y = 1.5 + 0.4
+				antic.position.y = (_owner_node.world_root_3d.position.y + 0.2) if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.7
 				antic.scale = Vector3(1.2, 1.2, 1.2)
 				
 				# Sincronizar la rotación del aura 3D con la dirección del disparo
@@ -1383,7 +1386,8 @@ func _physics_process(delta):
 			# La posición horizontal (X, Z) sigue a la posición 2D actual del proyectil en vuelo
 			world_root_3d.position.x = global_position.x * s_factor
 			world_root_3d.position.z = global_position.y * s_factor * correction_z
-			world_root_3d.position.y = 1.5 + height_y
+			var base_h = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
+			world_root_3d.position.y = base_h + height_y
 			
 			# Rotación constante en el aire para efecto de giro dinámico
 			world_root_3d.rotate_x(delta * 5.0)
@@ -1774,7 +1778,7 @@ func _explode():
 				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
-				hit_node.position.y = 1.5
+				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				# Auto-liberar al terminar la animación
@@ -1802,7 +1806,7 @@ func _explode():
 				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
-				hit_node.position.y = 1.5
+				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				# Auto-liberar al terminar la animación
@@ -1829,7 +1833,7 @@ func _explode():
 				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
-				hit_node.position.y = 1.5
+				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				var anim = hit_node.get_node_or_null("AnimationPlayer")

@@ -582,8 +582,8 @@ func _get_base_height_and_factor() -> Dictionary:
 
 func _sync_zooms_from_free():
 	var res = _get_base_height_and_factor()
-	var min_dist = 0.3 * res.base_height * res.factor
-	var max_dist = 2.2 * res.base_height * res.factor
+	var min_dist = 0.08 * res.base_height * res.factor
+	var max_dist = 0.8 * res.base_height * res.factor
 	free_cam_zoom = clamp(free_cam_zoom, min_dist, max_dist)
 	fixed_cam_zoom = free_cam_zoom / (res.base_height * res.factor)
 
@@ -1658,9 +1658,9 @@ func _input(event):
 			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				free_cam_zoom = max(10.0, free_cam_zoom - 2.0)
+				free_cam_zoom = max(3.0, free_cam_zoom - 2.0)
 			else:
-				free_cam_zoom = min(100.0, free_cam_zoom + 2.0)
+				free_cam_zoom = min(35.0, free_cam_zoom + 2.0)
 			_sync_zooms_from_free()
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
@@ -1679,9 +1679,9 @@ func _input(event):
 			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				free_cam_zoom = max(10.0, free_cam_zoom - 2.0)
+				free_cam_zoom = max(3.0, free_cam_zoom - 2.0)
 			else:
-				free_cam_zoom = min(100.0, free_cam_zoom + 2.0)
+				free_cam_zoom = min(35.0, free_cam_zoom + 2.0)
 			_sync_zooms_from_free()
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
@@ -1795,7 +1795,7 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 				var p2 = _mobile_touch_points[keys[1]]
 				var current_dist = p1.distance_to(p2)
 				var zoom_delta = (_pinch_start_dist - current_dist) * 0.1
-				free_cam_zoom = clamp(free_cam_zoom + zoom_delta, 10.0, 100.0)
+				free_cam_zoom = clamp(free_cam_zoom + zoom_delta, 3.0, 35.0)
 				_pinch_start_dist = current_dist
 				_sync_zooms_from_free()
 				_save_camera_state()

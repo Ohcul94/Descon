@@ -831,7 +831,10 @@ func _update_3d_root_sync():
 		var correction_z = map_node.correction_z if is_instance_valid(map_node) else 1.41421356
 		world_root_3d.position.x = global_position.x * s_factor
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
-		world_root_3d.position.y = 1.5
+		if entity_type >= 101 and entity_type <= 104 and not is_in_group("player"):
+			world_root_3d.position.y = 2.0
+		else:
+			world_root_3d.position.y = 0.5
 		
 		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)
 		if is_dead:
@@ -2216,6 +2219,7 @@ func _setup_ship_visuals():
 			# v220.72: APLICAR MEMORIA DE USUARIO (Si el piloto calibró esta nave en esta sesión)
 			if _ship_rot_mem.has(current_ship_id):
 				actual_model.rotation_degrees = _ship_rot_mem[current_ship_id]
+		_update_collision_size()
 		return # Salto al modo 3D pro
 	
 	# Mapeo 2D original (Backup)
@@ -2316,7 +2320,7 @@ func _setup_enemy_visuals():
 
 	var glb_path = ""
 	var enemy_rot_offset = 0.0
-	var enemy_scale = 3.0 
+	var _enemy_scale = 3.0 
 	var path = "" 
 	
 	# v255.15: CONFIGURACIÓN NORMALIZADA (Manual de Activos)
@@ -2331,23 +2335,23 @@ func _setup_enemy_visuals():
 		101: # Lord Titán (Boss1)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
 			enemy_rot_offset = 90.0
-			enemy_scale = 6.0
+			_enemy_scale = 6.0
 		102: # Ancient Titán (Boss2)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"
 			enemy_rot_offset = 90.0
-			enemy_scale = 6.0
+			_enemy_scale = 6.0
 		103: # Mechanic Boss (Boss3)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
 			enemy_rot_offset = 180.0
-			enemy_scale = 6.0
+			_enemy_scale = 6.0
 		104: # Stellar Guardian (Boss4)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb"
 			enemy_rot_offset = 0.0
-			enemy_scale = 8.0
+			_enemy_scale = 8.0
 		200: # Pilar Protector
 			glb_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
 			enemy_rot_offset = 0.0
-			enemy_scale = 9.0
+			_enemy_scale = 9.0
 
 	# if glb_path != "":
 	# 	print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)
@@ -2372,13 +2376,12 @@ func _setup_enemy_visuals():
 		
 		_setup_3d_visuals(glb_path, enemy_rot_offset)
 		if is_instance_valid(_3d_model):
-			if entity_type == 200:
-				var aabb_size = _3d_model.get_meta("model_aabb_size", Vector3(1, 1, 1))
-				var scale_y = enemy_scale * 2.0
-				_3d_model.scale = Vector3(enemy_scale, scale_y, enemy_scale)
-				_3d_model.position.y += aabb_size.y * (scale_y - enemy_scale) * 0.5
-			else:
-				_3d_model.scale = Vector3(enemy_scale, enemy_scale, enemy_scale)
+			# Conservar escala nativa del archivo original .glb pero multiplicada por 2.0 (o 6.0 si es Boss)
+			var current_scale = 2.0
+			if entity_type >= 101 and entity_type <= 104:
+				current_scale = 6.0
+			_3d_model.scale = Vector3(current_scale, current_scale, current_scale)
+			_update_collision_size()
 			return
 		else:
 			print("[VISUAL-WARN] Falló carga 3D para ", username, ". Usando fallback 2D.")
@@ -2817,7 +2820,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 				print("[3D-ANIM] Reproduciendo: ", target_anim, " en ", entity_type)
 		
 		_3d_model = control_node 
-		control_node.scale = Vector3(3.0, 3.0, 3.0) 
+		control_node.scale = Vector3(2.0, 2.0, 2.0) 
 		model.rotation_degrees.y = rot_offset 
 
 		# v390.0: Parche de sombreado plano para todos los modelos 3D (naves y enemigos) (evita que se oscurezcan al girar)
@@ -3185,9 +3188,45 @@ func _update_collision_size():
 	if not _collision_shape or not _collision_shape.shape is CircleShape2D: return
 
 	var base_size = 160.0
+
+	# Si tenemos un modelo 3D válido, calculamos el hitbox automáticamente a partir de sus límites reales
+	if is_instance_valid(_3d_model) and _3d_model.has_meta("model_aabb_size"):
+		var aabb_size = _3d_model.get_meta("model_aabb_size", Vector3.ONE)
+		var model_scale = _3d_model.scale
+		
+		# Dimensiones en X y Z (plano del juego)
+		var size_3d_x = aabb_size.x * model_scale.x
+		var size_3d_z = aabb_size.z * model_scale.z
+		var max_size_3d = max(size_3d_x, size_3d_z)
+		
+		# Convertir unidades 3D a píxeles lógicos 2D usando el factor de escala del mapa
+		var map_node = _get_map_node()
+		var map_scale = map_node.scale_factor if is_instance_valid(map_node) and "scale_factor" in map_node else 0.02
+		
+		if map_scale > 0.0:
+			var size_2d = max_size_3d / map_scale
+			# Factor de ajuste corrector según el modelo (evita hitboxes gigantes por detalles/alas externas)
+			var adjustment_factor = 0.9
+			if entity_type == 101: # Lord Titan
+				adjustment_factor = 0.38
+			elif entity_type >= 102 and entity_type <= 104:
+				adjustment_factor = 0.55
+				
+			_collision_shape.shape.radius = (size_2d * 0.5) * adjustment_factor
+			return
+
+	# Fallback estático en caso de que no haya modelo 3D instanciado (modo 2D o fallas de carga)
 	if is_in_group("enemies"):
-		if entity_type >= 4: base_size = 320.0
-		else: base_size = 160.0
+		if entity_type >= 101 and entity_type <= 104:
+			base_size = 320.0 * 2.0
+		elif entity_type == 200:
+			base_size = 320.0 * 2.2
+		elif entity_type >= 4:
+			base_size = 320.0
+		else:
+			base_size = 160.0
+	else:
+		base_size = 180.0
 
 	_collision_shape.shape.radius = base_size * 0.4
 
@@ -3520,7 +3559,7 @@ func _spawn_wreckage_marker():
 		wreckage_3d.name = "Wreckage3D_" + str(entity_id)
 		wreckage_3d.position.x = global_position.x * s_factor
 		wreckage_3d.position.z = global_position.y * s_factor * c_z
-		wreckage_3d.position.y = 0.0
+		wreckage_3d.position.y = 0.5
 		current_map.sub_viewport.add_child(wreckage_3d)
 		
 		# Crear tracker dinámico: proyecta la posición 3D del wreckage usando la cámara real

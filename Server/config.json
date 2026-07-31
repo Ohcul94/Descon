@@ -1592,67 +1592,82 @@
             "rewardHubs": 4500,
             "rewardOhcu": 45,
             "shield": 6000,
-            "speed": 290
+            "speed": 290,
+            "lootDrops": []
         },
         "101": {
             "bulletDamage": 2000,
             "bulletSpeed": 900,
             "defenseMechanics": [
                 {
-                    "activationHPs": [
-                        80
-                    ],
-                    "activationIntervalMs": 0,
-                    "activationMode": "hp",
-                    "cloneCount": 2,
-                    "cloneDuration": 120000,
-                    "cloneExplodeOnExpiry": true,
-                    "cloneExplosionDamage": 500,
-                    "cloneHealAmount": 1000,
-                    "cloneHp": 1000,
-                    "cloneShield": 200,
-                    "cloneSpeed": 200,
-                    "clonesList": [
-                        {
-                            "attackCooldownMs": 3000,
-                            "hp": 1000,
-                            "role": "damage",
-                            "shield": 200,
-                            "value": 500
-                        },
-                        {
-                            "hp": 1000,
-                            "role": "heal",
-                            "shield": 200,
-                            "value": 500
-                        }
-                    ],
-                    "cooldown": 10000,
-                    "duration": 5000,
+                    "type": "boss_water_orbs",
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
-                    "spawnRadius": 150,
+                    "duration": 5000,
+                    "cooldown": 0,
                     "startDelay": 0,
-                    "type": "duplicado"
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        30,
+                        70
+                    ],
+                    "activationIntervalMs": 30000,
+                    "orbCount": 5,
+                    "spawnRadius": 500,
+                    "orbSpeed": 100,
+                    "playerDamage": 20,
+                    "bossHealPercent": 5
                 }
             ],
             "fireRange": 1200,
             "fireRate": 800,
-            "hp": 100000,
+            "hp": 10000,
             "isBoss": true,
             "mechanics": [
                 {
-                    "bulletDamage": 10,
-                    "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000,
+                    "bulletDamage": 40,
+                    "bulletSpeed": 500,
+                    "fireRange": 1000,
+                    "fireRate": 3000,
                     "startDelay": 0,
                     "type": "laser"
+                },
+                {
+                    "type": "sleep",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 1500,
+                    "fireRate": 1000,
+                    "targetCount": 1,
+                    "targetMode": "random",
+                    "duration": 3000,
+                    "slowPercentage": 50,
+                    "slowDuration": 2000,
+                    "damagePerSecond": 0,
+                    "nightmareMultiplier": 0,
+                    "wakeOnDamage": false,
+                    "cooldown": 120000,
+                    "startDelay": 6000
+                },
+                {
+                    "type": "survival_dome",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 1000,
+                    "fireRate": 1000,
+                    "safeRadius": 200,
+                    "maxOffset": 300,
+                    "castTimeMs": 3000,
+                    "cooldown": 9000,
+                    "damage": 500,
+                    "postCastWaitMs": 1000,
+                    "startDelay": 9000,
+                    "debuffsList": []
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 250,
+                    "speed": 200,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -1664,8 +1679,23 @@
             "rewardExp": 10000,
             "rewardHubs": 50000,
             "rewardOhcu": 500,
-            "shield": 50000,
-            "speed": 250
+            "shield": 8000,
+            "speed": 250,
+            "lootDrops": [
+                {
+                    "itemId": "las1",
+                    "chance": 1
+                }
+            ],
+            "chaseUntilDeath": true,
+            "visionRange": 2000,
+            "chaseIdleTimeout": 10000,
+            "leashRange": 2000,
+            "hpRegenPercent": 25,
+            "shieldRegenPercent": 30,
+            "regenIntervalMs": 2000,
+            "chestDropChance": 1,
+            "regenDelayMs": 10000
         },
         "102": {
             "aggressive": false,
@@ -4867,7 +4897,7 @@
                     ],
                     "label": "Decorativo3",
                     "rotY": 0,
-                    "scale": 20,
+                    "scale": 10,
                     "type": "wall",
                     "x": 2850.6,
                     "y": 1622.23,
@@ -4893,31 +4923,31 @@
                     ],
                     "label": "Baúl Personal",
                     "rotY": 131.6,
-                    "scale": 5,
+                    "scale": 2,
                     "type": "chest",
                     "x": 744.95,
                     "y": 1133.85,
-                    "yOffset": 2.5
+                    "yOffset": 1
                 },
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
                     "label": "Puerta",
                     "rotY": -90,
-                    "scale": 10,
+                    "scale": 5,
                     "type": "door",
                     "x": 1001.05,
-                    "y": 3135.82,
-                    "yOffset": 5.134
+                    "y": 3135.81,
+                    "yOffset": 3
                 },
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
                     "label": "Puerta",
                     "rotY": -90,
-                    "scale": 10,
+                    "scale": 5,
                     "type": "door",
-                    "x": 5005.5,
-                    "y": 3135.82,
-                    "yOffset": 5.134
+                    "x": 1475.45,
+                    "y": 2888.85,
+                    "yOffset": 3
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb",
@@ -4971,7 +5001,7 @@
                     ],
                     "label": "Decorativo1",
                     "rotY": 47.6,
-                    "scale": 20,
+                    "scale": 10,
                     "type": "wall",
                     "x": 328.02,
                     "y": 301.8,
@@ -4981,7 +5011,7 @@
                     "assetPath": "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb",
                     "label": "Decorativo3",
                     "rotY": -28,
-                    "scale": 20,
+                    "scale": 10,
                     "type": "wall",
                     "x": 5047.04,
                     "y": 659.84,
@@ -5174,7 +5204,7 @@
             "color": "#aa0000",
             "desc": "Sector de invasión: Hordas detectadas.",
             "giveInvulnerabilityOnEntry": true,
-            "height": 10000,
+            "height": 3000,
             "invulnerabilityDuration": 3000,
             "minLevel": 1,
             "name": "Mapa 7",
@@ -5182,31 +5212,34 @@
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
                     "label": "Puerta",
+                    "rotY": -41.2,
+                    "scale": 5,
                     "targetX": 5000,
                     "targetY": 5000,
                     "targetZoneId": "1",
                     "type": "door",
-                    "x": 1157,
-                    "y": 2519
+                    "x": 372.3,
+                    "y": 275.38,
+                    "yOffset": 3
                 }
             ],
             "pvpMode": "partial_drop",
             "spawns": [
                 {
+                    "id": "spawn_1785460932622503",
+                    "type": "101",
                     "count": 1,
-                    "id": "spawn_1782151326526778",
-                    "intervalMs": 5000,
-                    "radius": 300,
+                    "intervalMs": 10000,
                     "spawnMode": "random",
-                    "type": "8-D",
-                    "x": 4966,
-                    "y": 1288
+                    "x": 1500,
+                    "y": 1500,
+                    "radius": 300
                 }
             ],
             "timeRestrictionsEnabled": false,
             "visible": true,
             "warpCost": 0,
-            "width": 10000
+            "width": 3000
         },
         "8": {
             "ambience": [

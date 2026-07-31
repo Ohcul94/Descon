@@ -114,7 +114,7 @@ func _process(delta):
 
 	float_time += delta
 	if is_single_world and is_instance_valid(world_root_3d):
-		world_root_3d.position.y = sin(float_time * 2.618) * 0.15
+		world_root_3d.position.y = 0.85 + sin(float_time * 2.618) * 0.15
 	elif is_instance_valid(sprite):
 		sprite.position.y = sin(float_time * 2.618) * 8.0
 

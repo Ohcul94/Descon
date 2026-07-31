@@ -266,7 +266,7 @@ func _process(delta):
 			# Sincronizar posición 3D
 			if is_instance_valid(en.get("world_root_3d")):
 				indicator_3d.global_position = en.world_root_3d.global_position
-				indicator_3d.global_position.y = 1.5
+				indicator_3d.global_position.y = en.world_root_3d.global_position.y
 			
 			# Sincronizar rotación Y con perspectiva 2.5D
 			if not data.get("is_fixed", false) and t_id != "":
@@ -434,7 +434,7 @@ func _on_enemy_action(data: Dictionary):
 				# Posición inicial = posición 3D del enemigo
 				if is_instance_valid(en.get("world_root_3d")):
 					indicator_3d.position = en.world_root_3d.global_position
-					indicator_3d.position.y = 1.5
+					indicator_3d.position.y = en.world_root_3d.position.y
 				# Rotación Y corregida inicial con perspectiva 2.5D
 				var dir_2d = Vector2.RIGHT.rotated(angle)
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
@@ -499,7 +499,7 @@ func _on_enemy_action(data: Dictionary):
 				indicator_3d.name = "LaserIndicator3D_" + enemy_id
 				if is_instance_valid(en.get("world_root_3d")):
 					indicator_3d.position = en.world_root_3d.global_position
-					indicator_3d.position.y = 1.5
+					indicator_3d.position.y = en.world_root_3d.position.y
 				# Ángulo fijado corregido inicial con perspectiva 2.5D
 				var dir_2d = Vector2.RIGHT.rotated(angle)
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
@@ -2095,7 +2095,7 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 
 	var barrier = Node3D.new()
 	barrier.name = id
-	barrier.position = Vector3(pos.x * s_factor, 1.5, pos.y * s_factor * correction_z)
+	barrier.position = Vector3(pos.x * s_factor, 0.5, pos.y * s_factor * correction_z)
 	barrier.rotation.y = -angle
 	sub_vp.add_child(barrier)
 	active_areas[id] = barrier

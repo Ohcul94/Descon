@@ -86,7 +86,7 @@ adjustment_saturation = 1.05
 
 [node name="MapEditor3D" type="Node3D" unique_id=1482142300]
 script = ExtResource("1_editor_script")
-json_to_import = "[{\"assetPath\":\"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb\",\"colHeight\":17.77,\"colOffsetX\":0.0,\"colOffsetY\":0.03,\"colType\":\"rect\",\"colWidth\":46.21,\"colliders\":[{\"height\":17.77,\"offsetX\":0.0,\"offsetY\":0.03,\"type\":\"rect\",\"width\":46.21},{\"height\":17.77,\"offsetX\":5.87,\"offsetY\":5.25,\"rot\":27.0,\"type\":\"rect\",\"width\":25.35},{\"height\":17.77,\"offsetX\":-5.42,\"offsetY\":5.25,\"rot\":-27.0,\"type\":\"rect\",\"width\":26.02},{\"height\":17.77,\"offsetX\":5.66,\"offsetY\":-5.1,\"rot\":-27.0,\"type\":\"rect\",\"width\":26.02},{\"height\":17.77,\"offsetX\":-5.66,\"offsetY\":-4.9,\"rot\":27.0,\"type\":\"rect\",\"width\":25.35}],\"label\":\"Decorativo3\",\"rotY\":0.0,\"scale\":20.0,\"type\":\"wall\",\"x\":2850.6,\"y\":1622.23,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb\",\"colHeight\":23.86,\"colOffsetX\":-0.12,\"colOffsetY\":0.76,\"colRot\":-89.8,\"colType\":\"rect\",\"colWidth\":46.39,\"colliders\":[{\"height\":23.86,\"offsetX\":-0.12,\"offsetY\":0.76,\"rot\":-89.8,\"type\":\"rect\",\"width\":46.39}],\"label\":\"Baúl Personal\",\"rotY\":131.6,\"scale\":5.0,\"type\":\"chest\",\"x\":744.95,\"y\":1133.85,\"yOffset\":2.5},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Puerta\",\"rotY\":-90.0,\"scale\":10.0,\"type\":\"door\",\"x\":2078.0,\"y\":888.0,\"yOffset\":5.134},{\"assetPath\":\"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb\",\"colHeight\":17.87,\"colOffsetX\":4.71,\"colOffsetY\":-3.49,\"colRot\":-39.7,\"colType\":\"rect\",\"colWidth\":35.54,\"colliders\":[{\"height\":17.87,\"offsetX\":4.71,\"offsetY\":-3.49,\"rot\":-39.7,\"type\":\"rect\",\"width\":35.54},{\"height\":24.76,\"offsetX\":2.57,\"offsetY\":-1.61,\"rot\":-50.4,\"type\":\"rect\",\"width\":18.77},{\"height\":6.01,\"offsetX\":2.72,\"offsetY\":8.49,\"rot\":-0.1,\"type\":\"rect\",\"width\":15.21},{\"height\":3.68,\"offsetX\":2.72,\"offsetY\":8.59,\"rot\":-90.1,\"type\":\"rect\",\"width\":15.49},{\"height\":6.01,\"offsetX\":-15.12,\"offsetY\":-1.93,\"rot\":-0.5,\"type\":\"rect\",\"width\":3.94}],\"label\":\"Decorativo1\",\"rotY\":47.6,\"scale\":20.0,\"type\":\"wall\",\"x\":328.02,\"y\":301.8,\"yOffset\":-0.167},{\"assetPath\":\"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb\",\"label\":\"Decorativo3\",\"rotY\":-28.0,\"scale\":20.0,\"type\":\"wall\",\"x\":5047.04,\"y\":659.84,\"yOffset\":0.0}]"
+json_to_import = "[{\"assetPath\":\"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb\",\"colHeight\":17.77,\"colOffsetX\":0.0,\"colOffsetY\":0.03,\"colType\":\"rect\",\"colWidth\":46.21,\"colliders\":[{\"height\":17.77,\"offsetX\":0.0,\"offsetY\":0.03,\"type\":\"rect\",\"width\":46.21},{\"height\":17.77,\"offsetX\":5.87,\"offsetY\":5.25,\"rot\":27.0,\"type\":\"rect\",\"width\":25.35},{\"height\":17.77,\"offsetX\":-5.42,\"offsetY\":5.25,\"rot\":-27.0,\"type\":\"rect\",\"width\":26.02},{\"height\":17.77,\"offsetX\":5.66,\"offsetY\":-5.1,\"rot\":-27.0,\"type\":\"rect\",\"width\":26.02},{\"height\":17.77,\"offsetX\":-5.66,\"offsetY\":-4.9,\"rot\":27.0,\"type\":\"rect\",\"width\":25.35}],\"label\":\"Decorativo3\",\"rotY\":0.0,\"scale\":10.0,\"type\":\"wall\",\"x\":2850.6,\"y\":1622.23,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb\",\"colHeight\":23.86,\"colOffsetX\":-0.12,\"colOffsetY\":0.76,\"colRot\":-89.8,\"colType\":\"rect\",\"colWidth\":46.39,\"colliders\":[{\"height\":23.86,\"offsetX\":-0.12,\"offsetY\":0.76,\"rot\":-89.8,\"type\":\"rect\",\"width\":46.39}],\"label\":\"Baúl Personal\",\"rotY\":131.6,\"scale\":2.0,\"type\":\"chest\",\"x\":744.95,\"y\":1133.85,\"yOffset\":2.5},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Puerta\",\"rotY\":-90.0,\"scale\":5.0,\"type\":\"door\",\"x\":1001.05,\"y\":3135.82,\"yOffset\":5.134},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Puerta\",\"rotY\":-90.0,\"scale\":10.0,\"type\":\"door\",\"x\":5005.5,\"y\":3135.82,\"yOffset\":5.134},{\"assetPath\":\"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb\",\"colHeight\":17.87,\"colOffsetX\":4.71,\"colOffsetY\":-3.49,\"colRot\":-39.7,\"colType\":\"rect\",\"colWidth\":35.54,\"colliders\":[{\"height\":17.87,\"offsetX\":4.71,\"offsetY\":-3.49,\"rot\":-39.7,\"type\":\"rect\",\"width\":35.54},{\"height\":24.76,\"offsetX\":2.57,\"offsetY\":-1.61,\"rot\":-50.4,\"type\":\"rect\",\"width\":18.77},{\"height\":6.01,\"offsetX\":2.72,\"offsetY\":8.49,\"rot\":-0.1,\"type\":\"rect\",\"width\":15.21},{\"height\":3.68,\"offsetX\":2.72,\"offsetY\":8.59,\"rot\":-90.1,\"type\":\"rect\",\"width\":15.49},{\"height\":6.01,\"offsetX\":-15.12,\"offsetY\":-1.93,\"rot\":-0.5,\"type\":\"rect\",\"width\":3.94}],\"label\":\"Decorativo1\",\"rotY\":47.6,\"scale\":10.0,\"type\":\"wall\",\"x\":328.02,\"y\":301.8,\"yOffset\":-0.167},{\"assetPath\":\"res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb\",\"label\":\"Decorativo3\",\"rotY\":-28.0,\"scale\":10.0,\"type\":\"wall\",\"x\":5047.04,\"y\":659.84,\"yOffset\":0.0}]"
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=581850]
 transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
@@ -108,12 +108,12 @@ mesh = SubResource("PlaneMesh_1")
 [node name="ObjectsRoot" type="Node3D" parent="." unique_id=58984843]
 unique_name_in_owner = true
 
-[node name="Decorativo4" parent="ObjectsRoot" unique_id=109640744 instance=ExtResource("2_p5fu1")]
-transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 57.012, 0, 45.883595)
+[node name="Decorativo3" type="Node3D" parent="ObjectsRoot" unique_id=109640744 instance=ExtResource("2_p5fu1")]
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 57.012, 0, 45.883595)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo2/Decorativo2.glb"
 metadata/label = "Decorativo3"
-metadata/scale_2d = 20.0
+metadata/scale_2d = 10.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 metadata/colType = "rect"
@@ -122,37 +122,37 @@ metadata/colHeight = 17.77
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.03
 
-[node name="Collider1" type="CSGBox3D" parent="ObjectsRoot/Decorativo4" unique_id=1473437992]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, 0.0008485281)
-size = Vector3(0.9242, 0.01, 0.5026115)
+[node name="Collider1" type="CSGBox3D" parent="ObjectsRoot/Decorativo3" unique_id=882255484]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.01, 0.0008485281)
+size = Vector3(0.9242, 0.02, 0.5026115)
 material = SubResource("StandardMaterial3D_pqj6f")
 
-[node name="Collider2" type="CSGBox3D" parent="ObjectsRoot/Decorativo4" unique_id=1180450227]
-transform = Transform3D(0.8910065, 0, 0.4539905, 0, 1, 0, -0.4539905, 0, 0.8910065, 0.1174, 0.005, 0.14849243)
-size = Vector3(0.507, 0.01, 0.5026115)
+[node name="Collider2" type="CSGBox3D" parent="ObjectsRoot/Decorativo3" unique_id=209624029]
+transform = Transform3D(0.8910065, 0, 0.4539905, 0, 1, 0, -0.4539905, 0, 0.8910065, 0.1174, 0.01, 0.14849243)
+size = Vector3(0.507, 0.02, 0.5026115)
 material = SubResource("StandardMaterial3D_5ynva")
 
-[node name="Collider3" type="CSGBox3D" parent="ObjectsRoot/Decorativo4" unique_id=581656923]
-transform = Transform3D(0.8910065, 0, -0.4539905, 0, 1, 0, 0.4539905, 0, 0.8910065, -0.1084, 0.005, 0.14849243)
-size = Vector3(0.5204, 0.01, 0.5026115)
+[node name="Collider3" type="CSGBox3D" parent="ObjectsRoot/Decorativo3" unique_id=66799566]
+transform = Transform3D(0.8910065, 0, -0.4539905, 0, 1, 0, 0.4539905, 0, 0.8910065, -0.1084, 0.01, 0.14849243)
+size = Vector3(0.5204, 0.02, 0.5026115)
 material = SubResource("StandardMaterial3D_4pge1")
 
-[node name="Collider4" type="CSGBox3D" parent="ObjectsRoot/Decorativo4" unique_id=1441871688]
-transform = Transform3D(0.8910065, 0, -0.4539905, 0, 1, 0, 0.4539905, 0, 0.8910065, 0.1132, 0.005, -0.14424978)
-size = Vector3(0.5204, 0.01, 0.5026115)
+[node name="Collider4" type="CSGBox3D" parent="ObjectsRoot/Decorativo3" unique_id=1626022704]
+transform = Transform3D(0.8910065, 0, -0.4539905, 0, 1, 0, 0.4539905, 0, 0.8910065, 0.1132, 0.01, -0.14424978)
+size = Vector3(0.5204, 0.02, 0.5026115)
 material = SubResource("StandardMaterial3D_d15x6")
 
-[node name="Collider5" type="CSGBox3D" parent="ObjectsRoot/Decorativo4" unique_id=679233772]
-transform = Transform3D(0.8910065, 0, 0.4539905, 0, 1, 0, -0.4539905, 0, 0.8910065, -0.1132, 0.005, -0.13859293)
-size = Vector3(0.507, 0.01, 0.5026115)
+[node name="Collider5" type="CSGBox3D" parent="ObjectsRoot/Decorativo3" unique_id=1988128452]
+transform = Transform3D(0.8910065, 0, 0.4539905, 0, 1, 0, -0.4539905, 0, 0.8910065, -0.1132, 0.01, -0.13859293)
+size = Vector3(0.507, 0.02, 0.5026115)
 material = SubResource("StandardMaterial3D_s5vme")
 
-[node name="Baúl_Personal" parent="ObjectsRoot" unique_id=1914052540 instance=ExtResource("2_0qj33")]
-transform = Transform3D(-3.319631, 0, 3.7389903, 0, 5, 0, -3.7389903, 0, -3.319631, 14.899, 2.5, 32.07012)
+[node name="Baul1" type="Node3D" parent="ObjectsRoot" unique_id=1914052540 instance=ExtResource("2_0qj33")]
+transform = Transform3D(-1.3278525, 0, 1.4955962, 0, 2, 0, -1.4955962, 0, -1.3278525, 14.899, 1, 32.07)
 metadata/obj_type = "chest"
 metadata/asset_path = "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 metadata/label = "Baúl Personal"
-metadata/scale_2d = 5.0
+metadata/scale_2d = 2.0
 metadata/rot_y_deg = 131.6
 metadata/editor_only = true
 metadata/colType = "rect"
@@ -162,13 +162,22 @@ metadata/colOffsetX = -0.12
 metadata/colOffsetY = 0.76
 metadata/colRot = -89.8
 
-[node name="Collider1" type="CSGBox3D" parent="ObjectsRoot/Baúl_Personal" unique_id=297213188]
-transform = Transform3D(0.0034906357, 0, -0.9999939, 0, 1, 0, 0.9999939, 0, 0.0034906357, -0.0024, 0.02, 0.021496046)
-size = Vector3(0.9278, 0.04, 0.6748627)
+[node name="Collider1" type="CSGBox3D" parent="ObjectsRoot/Baul1" unique_id=1156093739]
+transform = Transform3D(0.0034906357, 0, -0.9999939, 0, 1, 0, 0.9999939, 0, 0.0034906357, -0.0024, 0.05, 0.021496046)
+size = Vector3(0.9278, 0.1, 0.6748627)
 material = SubResource("StandardMaterial3D_87xh5")
 
-[node name="Puerta" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("3_fxo00")]
-transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 20.021095, 5.134, 88.69434)
+[node name="Puerta3" type="Node3D" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("3_fxo00")]
+transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 20.021, 3, 88.694)
+metadata/obj_type = "door"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+metadata/label = "Puerta"
+metadata/scale_2d = 5.0
+metadata/rot_y_deg = -90.0
+metadata/editor_only = true
+
+[node name="Puerta4" type="Node3D" parent="ObjectsRoot" unique_id=2051997460 instance=ExtResource("3_fxo00")]
+transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 29.509, 3, 81.709)
 metadata/obj_type = "door"
 metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
 metadata/label = "Puerta"
@@ -176,21 +185,12 @@ metadata/scale_2d = 10.0
 metadata/rot_y_deg = -90.0
 metadata/editor_only = true
 
-[node name="Puerta2" parent="ObjectsRoot" unique_id=688857741 instance=ExtResource("3_fxo00")]
-transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 100.10991, 5.134, 88.69434)
-metadata/obj_type = "door"
-metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
-metadata/label = "Puerta"
-metadata/scale_2d = 10.0
-metadata/rot_y_deg = -90.0
-metadata/editor_only = true
-
-[node name="Decorativo5" parent="ObjectsRoot" unique_id=1187028034 instance=ExtResource("4_fxo00")]
-transform = Transform3D(13.486048, 0, 14.769106, 0, 20, 0, -14.769106, 0, 13.486048, 6.5604, -0.167, 8.536193)
+[node name="Decorativo1" type="Node3D" parent="ObjectsRoot" unique_id=1187028034 instance=ExtResource("4_fxo00")]
+transform = Transform3D(6.743024, 0, 7.384553, 0, 10, 0, -7.384553, 0, 6.743024, 6.5604, -0.167, 8.536193)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb"
 metadata/label = "Decorativo1"
-metadata/scale_2d = 20.0
+metadata/scale_2d = 10.0
 metadata/rot_y_deg = 47.6
 metadata/editor_only = true
 metadata/colType = "rect"
@@ -200,37 +200,37 @@ metadata/colOffsetX = 4.71
 metadata/colOffsetY = -3.49
 metadata/colRot = -39.7
 
-[node name="Collider1" type="CSGBox3D" parent="ObjectsRoot/Decorativo5" unique_id=2036240666]
-transform = Transform3D(0.7693996, 0, -0.63876784, 0, 1, 0, 0.63876784, 0, 0.7693996, 0.0942, 0.005, -0.09871211)
-size = Vector3(0.7108, 0.01, 0.50543994)
+[node name="Collider1" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=1126308447]
+transform = Transform3D(0.7693996, 0, -0.63876784, 0, 1, 0, 0.63876784, 0, 0.7693996, 0.0942, 0.01, -0.09871211)
+size = Vector3(0.7108, 0.02, 0.50543994)
 material = SubResource("StandardMaterial3D_45mof")
 
-[node name="Collider2" type="CSGBox3D" parent="ObjectsRoot/Decorativo5" unique_id=1658546201]
-transform = Transform3D(0.637424, 0, -0.77051324, 0, 1, 0, 0.77051324, 0, 0.637424, 0.0514, 0.005, -0.045537677)
-size = Vector3(0.3754, 0.01, 0.7003186)
+[node name="Collider2" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=289323862]
+transform = Transform3D(0.637424, 0, -0.77051324, 0, 1, 0, 0.77051324, 0, 0.637424, 0.0514, 0.01, -0.045537677)
+size = Vector3(0.3754, 0.02, 0.7003186)
 material = SubResource("StandardMaterial3D_6ofja")
 
-[node name="Collider3" type="CSGBox3D" parent="ObjectsRoot/Decorativo5" unique_id=1864366620]
-transform = Transform3D(0.99999845, 0, -0.0017453283, 0, 1, 0, 0.0017453283, 0, 0.99999845, 0.0544, 0.005, 0.24013346)
-size = Vector3(0.3042, 0.01, 0.16998847)
+[node name="Collider3" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=1459778822]
+transform = Transform3D(0.99999845, 0, -0.0017453283, 0, 1, 0, 0.0017453283, 0, 0.99999845, 0.0544, 0.01, 0.24013346)
+size = Vector3(0.3042, 0.02, 0.16998847)
 material = SubResource("StandardMaterial3D_lba14")
 
-[node name="Collider4" type="CSGBox3D" parent="ObjectsRoot/Decorativo5" unique_id=865218562]
-transform = Transform3D(-0.0017452668, 0, -0.99999845, 0, 1, 0, 0.99999845, 0, -0.0017452668, 0.0544, 0.005, 0.24296188)
-size = Vector3(0.3098, 0.01, 0.104086116)
+[node name="Collider4" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=854272272]
+transform = Transform3D(-0.0017452668, 0, -0.99999845, 0, 1, 0, 0.99999845, 0, -0.0017452668, 0.0544, 0.01, 0.24296188)
+size = Vector3(0.3098, 0.02, 0.104086116)
 material = SubResource("StandardMaterial3D_orarf")
 
-[node name="Collider5" type="CSGBox3D" parent="ObjectsRoot/Decorativo5" unique_id=1849792460]
-transform = Transform3D(0.9999619, 0, -0.008726535, 0, 1, 0, 0.008726535, 0, 0.9999619, -0.3024, 0.005, -0.054588642)
-size = Vector3(0.0788, 0.01, 0.16998847)
+[node name="Collider5" type="CSGBox3D" parent="ObjectsRoot/Decorativo1" unique_id=643305950]
+transform = Transform3D(0.9999619, 0, -0.008726535, 0, 1, 0, 0.008726535, 0, 0.9999619, -0.3024, 0.01, -0.054588642)
+size = Vector3(0.0788, 0.02, 0.16998847)
 material = SubResource("StandardMaterial3D_pdmhx")
 
-[node name="Decorativo6" parent="ObjectsRoot" unique_id=866619522 instance=ExtResource("6_1xtp7")]
-transform = Transform3D(17.65895, 0, -9.389431, 0, 20, 0, 9.389431, 0, 17.65895, 100.9408, 0, 18.663094)
+[node name="Decorativo7" type="Node3D" parent="ObjectsRoot" unique_id=866619522 instance=ExtResource("6_1xtp7")]
+transform = Transform3D(8.829475, 0, -4.6947155, 0, 10, 0, 4.6947155, 0, 8.829475, 100.9408, 0, 18.663094)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb"
 metadata/label = "Decorativo3"
-metadata/scale_2d = 20.0
+metadata/scale_2d = 10.0
 metadata/rot_y_deg = -28.0
 metadata/editor_only = true
 
