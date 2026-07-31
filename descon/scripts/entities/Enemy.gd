@@ -29,3 +29,13 @@ func _process(delta):
 
 func update_stats(data: Dictionary):
 	super.update_stats(data)
+	if entity_type == 201:
+		collision_layer = 0
+		collision_mask = 0
+		if is_instance_valid(_collision_shape):
+			_collision_shape.disabled = true
+	else:
+		collision_layer = 2
+		collision_mask = 1
+		if is_instance_valid(_collision_shape):
+			_collision_shape.disabled = false

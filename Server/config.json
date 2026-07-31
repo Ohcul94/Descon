@@ -1603,7 +1603,7 @@
                     "type": "boss_water_orbs",
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
-                    "duration": 5000,
+                    "duration": 20000,
                     "cooldown": 0,
                     "startDelay": 0,
                     "activationMode": "hp",
@@ -1614,7 +1614,7 @@
                     "activationIntervalMs": 30000,
                     "orbCount": 5,
                     "spawnRadius": 500,
-                    "orbSpeed": 100,
+                    "orbSpeed": 200,
                     "playerDamage": 20,
                     "bossHealPercent": 5
                 }
