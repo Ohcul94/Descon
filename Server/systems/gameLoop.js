@@ -780,13 +780,19 @@ function startGameLoop(io, state, aiManager) {
                             p.isSlowed = true;
                             p.lastSlowTime = now;
                             p.slowPoints = hazard.slowPercentage;
+                            p.slowIsPercentage = true;
                         }
                     });
                 }
             }
             
             if (wasSlowed !== p.isSlowed) {
-                io.to(p.socketId).emit('slowState', { active: p.isSlowed, amount: p.slowPoints });
+                io.to(p.socketId).emit('slowState', {
+                    active: p.isSlowed,
+                    amount: p.slowPoints,
+                    isPercentage: !!p.slowIsPercentage,
+                    duration: p.isSlowed && p.slowEndTime ? Math.max(p.slowEndTime - now, 0) : 0
+                });
             }
         });
 
@@ -1053,7 +1059,8 @@ function startGameLoop(io, state, aiManager) {
                             const prevSlow = p.isSlowed;
                             p.isSlowed = true; p.lastSlowTime = now;
                             p.slowPoints = (area.slowAmount || 0.5) * 100;
-                            if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints });
+                            p.slowIsPercentage = true;
+                            if (!prevSlow) io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints, isPercentage: true, duration: p.slowEndTime ? Math.max(p.slowEndTime - now, 0) : 0 });
                         } else if (area.type === 'HEAL_ZONE') {
                             let isValidTarget = false;
                             const filters = area.filters || { allies: true, enemies: false, bosses: false, players: true };

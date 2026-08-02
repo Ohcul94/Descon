@@ -950,7 +950,8 @@ function registerCombatHandlers(socket, io, state) {
                         const slowAmt = attackerAmmoConfig.slowAmount !== undefined ? attackerAmmoConfig.slowAmount : 200;
                         victim.isSlowed = true;
                         victim.slowEndTime = Date.now() + slowMs;
-                        io.to(data.victimId).emit('slowState', { active: true, amount: slowAmt });
+                        victim.slowIsPercentage = false;
+                        io.to(data.victimId).emit('slowState', { active: true, amount: slowAmt, isPercentage: false, duration: slowMs });
                     } else if (attackerAmmoType === 'electron') {
                         // Electron: Otorga velocidad de movimiento acumulable al atacante
                         const buffPct = attackerAmmoConfig.speedBuffPct !== undefined ? attackerAmmoConfig.speedBuffPct : 15;

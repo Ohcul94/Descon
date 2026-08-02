@@ -57,6 +57,9 @@ func _process(_delta):
 		var val = p_node.get("speed")
 		var s_pts = p_node.get("slow_points")
 		if s_pts == null: s_pts = 0.0
+		var is_pct = p_node.get("slow_is_percentage")
+		if is_pct and s_pts > 1.0 and val != null:
+			s_pts = (val * s_pts) / 100.0
 		var f_slow = p_node.get("_freeze_slow_val")
 		if f_slow == null: f_slow = 0.0
 		

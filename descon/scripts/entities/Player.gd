@@ -162,8 +162,8 @@ func _on_environment_damaged(data: Dictionary):
 func _on_slow_state(data: Dictionary):
 	if data.has("active"):
 		if data.active:
-			slow_points = data.get("amount", 50.0)
-			slow_is_percentage = data.get("isPercentage", false)
+			slow_points = data.get("amount", slow_points)
+			slow_is_percentage = data.get("isPercentage", slow_is_percentage)
 			slow_timer = float(data.get("duration", 3000.0)) / 1000.0
 		else:
 			slow_points = 0.0

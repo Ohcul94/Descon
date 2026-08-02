@@ -979,10 +979,10 @@ function renderEnemyDetail() {
                             </div>
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${MECHANICS_LIB[m.type || 'laser'].fields.map(f => {
-                                     const fieldLabelsMap = { 
-                                          bulletDamage: m.type === 'bomb' ? "Daño de Explosión (pts)" : "Daño (pts)", 
-                                          bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : "Vel. Bala (px/s)", 
-                                          fireRange: m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : (m.type === 'survival_dome' ? "Radio de la Explosión (px)" : "Alcance (px)"))), 
+const fieldLabelsMap = { 
+                                           bulletDamage: m.type === 'bomb' ? "Daño de Explosión (pts)" : (m.type === 'worm_boomerang' ? "Daño de Ida (pts)" : (m.type === 'wind_wall' ? "Daño al Arrollar (pts)" : "Daño (pts)")), 
+                                           bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : (m.type === 'wind_wall' ? "Vel. Pared de Viento (px/s)" : "Vel. Bala (px/s)"), 
+                                           fireRange: m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : (m.type === 'survival_dome' ? "Radio de la Explosión (px)" : (m.type === 'wind_wall' ? "Alcance de la Pared (px)" : "Alcance (px)")))),
                                           fireRate: "Cadencia (ms)", 
                                           slowAmount: "Ralentización (pts)", 
                                           slowDuration: "Duración de Ralentización (ms)", 
@@ -1024,7 +1024,7 @@ function renderEnemyDetail() {
                                           healAmount: "Curación por Pulso (pts)",
                                           speedBonus: "Bono de Velocidad (px/s)",
                                           explosionDamage: "Daño de Explosión (pts)",
-                                          castTimeMs: m.type === 'circle_cast' ? "Tiempo de Carga (ms)" : "Tiempo de Casteo (ms)",
+                                          castTimeMs: m.type === 'circle_cast' ? "Tiempo de Carga (ms)" : (m.type === 'wind_wall' ? "Tiempo de Carga de la Pared (ms)" : "Tiempo de Casteo (ms)"),
                                           castSpeed: "Velocidad de Casteo (x)",
                                           coneAngle: "Ángulo del Cono (grados)",
                                           coneFollow: "Seguimiento Dinámico (Homing)",
@@ -1053,10 +1053,17 @@ function renderEnemyDetail() {
                                           summonDurationMode: "Modo de Duración de Invocación",
                                           summonDurationMs: "Tiempo de Vida de Invocación (ms)",
                                            summonsList: "Lista de Esbirros Invocados",
-                                           tick_interval: "Intervalo de Tick (ms)",
-                                           damage_per_tick: "Daño por Tick (pts)",
-                                           slow_amount: "Ralentización (0-1)"
-                                       };
+                                            tick_interval: "Intervalo de Tick (ms)",
+                                            damage_per_tick: "Daño por Tick (pts)",
+                                            slow_amount: "Ralentización (0-1)",
+                                            projectileCount: "Cantidad de Gusanos (uds)",
+                                            spreadAngle: "Ángulo del Abanico (grados)",
+                                            parkTimeMs: "Tiempo Quieto en el Extremo (ms)",
+                                            returnDamage: "Daño de Vuelta (pts)",
+                                            wallWidth: "Ancho de la Pared (px)",
+                                            wallStartOffset: "Spawn Adelante del Enemigo (px)",
+                                            pushForce: "Distancia de Expulsión (px)"
+                                        };
                                      if (f === 'activationMode') {
                                          const mode = m.activationMode || 'hp';
                                          return `
@@ -1163,7 +1170,7 @@ function renderEnemyDetail() {
                                           return `
                                               <div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(239, 68, 68, 0.2); display: flex; flex-direction: column; gap: 10px;">
                                                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                                                      <label style="color:#ef4444; font-size:0.75rem; font-weight:bold;">EFECTOS ALTERADOS (DEBUFFS) AL EXPLOTAR</label>
+                                                      <label style="color:#ef4444; font-size:0.75rem; font-weight:bold;">EFECTOS ALTERADOS (DEBUFFS) ${m.type === 'worm_boomerang' ? 'AL IMPACTAR EN LA VUELTA' : (m.type === 'wind_wall' ? 'AL ARROLLAR AL JUGADOR' : 'AL EXPLOTAR')}</label>
                                                       <div style="display:flex; gap:5px;">
                                                           <select id="new-debuff-select-${idx}" style="background:#0f172a; color:white; font-size:0.75rem; border-radius:4px; padding:2px 4px; border:1px solid #334155;">
                                                               <option value="bleed">🩸 Sangrado</option>
@@ -1523,7 +1530,14 @@ function renderMechanicsLib() {
         "tick_interval": "Intervalo de Tick (ms)",
         "damage_per_tick": "Daño por Tick (pts)",
         "slow_amount": "Ralentización (0-1)",
-        "radius": "Radio (px)"
+        "radius": "Radio (px)",
+        "projectileCount": "Cantidad de Gusanos (uds)",
+        "spreadAngle": "Ángulo del Abanico (grados)",
+        "parkTimeMs": "Tiempo Quieto en el Extremo (ms)",
+        "returnDamage": "Daño de Vuelta (pts)",
+        "wallWidth": "Ancho de la Pared (px)",
+        "wallStartOffset": "Spawn Adelante del Enemigo (px)",
+        "pushForce": "Distancia de Expulsión (px)"
     };
 
     if (currentMechTab === 'attack') {

@@ -818,6 +818,13 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'maxOffset') mech[f] = 300;
             else if (f === 'postCastWaitMs') mech[f] = 1000;
             else if (f === 'debuffsList') mech[f] = [];
+            else if (f === 'projectileCount') mech[f] = 3;
+            else if (f === 'spreadAngle') mech[f] = 60;
+            else if (f === 'parkTimeMs') mech[f] = 1000;
+            else if (f === 'returnDamage') mech[f] = 10;
+            else if (f === 'wallWidth') mech[f] = 140;
+            else if (f === 'wallStartOffset') mech[f] = 50;
+            else if (f === 'pushForce') mech[f] = 250;
             else mech[f] = 0;
         }
     });

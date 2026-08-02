@@ -10,6 +10,7 @@ var enemy_pool = []
 var active_areas = {} # Cache de zonas de efecto (Humo, etc)
 var loot_drops = {} # Cache de botines activos en el mapa
 var active_laser_tracking = {} # Indicadores que siguen al jugador {enemy_id: {indicator, target_id}}
+var active_wind_walls = {} # Paredes de viento en fase de carga {wall_id: Node2D}
 var zone_cleanup_timer = 0.0
 const ZONE_CLEANUP_INTERVAL = 1.0
 
@@ -48,6 +49,7 @@ func setup(world_ref):
 	NetworkManager.remove_area.connect(_on_remove_area)
 	NetworkManager.beacon_pulse.connect(_on_beacon_pulse)
 	NetworkManager.hook_pulled.connect(_on_hook_pulled)
+	NetworkManager.wind_push.connect(_on_wind_push)
 	NetworkManager.taunt_event.connect(_on_taunt_event)
 	NetworkManager.loot_spawned.connect(_on_loot_spawned)
 	NetworkManager.loot_despawned.connect(_on_loot_despawned)
@@ -1108,6 +1110,72 @@ func _on_enemy_action(data: Dictionary):
 					fade_tw.finished.connect(storm.queue_free)
 				active_areas.erase("icestorm_" + enemy_id)
 
+		elif action == "worm_volley":
+			var worms = data.get("worms", [])
+			if not worms is Array or worms.size() == 0:
+				return
+			var worm_script = load("res://scripts/systems/WormVisual.gd")
+			if not worm_script:
+				return
+			for w in worms:
+				var worm_node = Node2D.new()
+				worm_node.set_script(worm_script)
+				worm_node.name = "Worm_" + enemy_id + "_" + str(w.get("id", randi()))
+				worm_node.z_index = 6
+				worm_node.set_as_top_level(true)
+				if is_instance_valid(world) and is_instance_valid(world.entities_node):
+					world.entities_node.add_child(worm_node)
+				else:
+					add_child(worm_node)
+				if worm_node.has_method("setup"):
+					worm_node.setup(w, current_map, en)
+
+		elif action == "wind_charging":
+			var wall_id := str(data.get("wallId", enemy_id))
+			if active_wind_walls.has(wall_id) and is_instance_valid(active_wind_walls[wall_id]):
+				active_wind_walls[wall_id].queue_free()
+				active_wind_walls.erase(wall_id)
+
+			var wall_script = load("res://scripts/systems/WindWallVisual.gd")
+			if not wall_script:
+				return
+			var charge_data = data.duplicate()
+			charge_data["mode"] = "charge"
+			var wall_node := Node2D.new()
+			wall_node.set_script(wall_script)
+			wall_node.name = "WindWall_" + enemy_id + "_" + wall_id
+			wall_node.z_index = 6
+			wall_node.set_as_top_level(true)
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				world.entities_node.add_child(wall_node)
+			else:
+				add_child(wall_node)
+			if wall_node.has_method("setup"):
+				wall_node.setup(charge_data, current_map, en)
+			active_wind_walls[wall_id] = wall_node
+
+		elif action == "wind_fire":
+			var wall_id := str(data.get("wallId", enemy_id))
+			if active_wind_walls.has(wall_id) and is_instance_valid(active_wind_walls[wall_id]):
+				active_wind_walls[wall_id].launch()
+				active_wind_walls.erase(wall_id)
+				return
+			# Fallback: si no había pared en carga (evento perdido), se crea ya en movimiento
+			var wall_script = load("res://scripts/systems/WindWallVisual.gd")
+			if not wall_script:
+				return
+			var wall_node := Node2D.new()
+			wall_node.set_script(wall_script)
+			wall_node.name = "WindWall_" + enemy_id + "_" + wall_id
+			wall_node.z_index = 6
+			wall_node.set_as_top_level(true)
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				world.entities_node.add_child(wall_node)
+			else:
+				add_child(wall_node)
+			if wall_node.has_method("setup"):
+				wall_node.setup(data, current_map, en)
+
 func _on_enemy_updated(data):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return
 	var id = str(data.id)
@@ -1252,6 +1320,30 @@ func _on_hook_pulled(data: Dictionary):
 		
 		var tw_pull = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		tw_pull.tween_property(victim_node, "global_position", target_pos, duration)
+
+func _on_wind_push(data: Dictionary):
+	var victim_id = str(data.get("victimId", ""))
+	if victim_id == "": return
+	
+	var victim_node = null
+	if is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == victim_id:
+		victim_node = world.local_player
+	elif remote_players.has(victim_id):
+		victim_node = remote_players[victim_id]
+	if not is_instance_valid(victim_node):
+		return
+	
+	var dir := Vector2(float(data.get("dirX", 0.0)), float(data.get("dirY", 0.0)))
+	if dir.length_squared() <= 0.0001:
+		return
+	dir = dir.normalized()
+	var distance := float(data.get("distance", 250.0))
+	var target_pos: Vector2 = victim_node.global_position + dir * distance
+	
+	var push_speed := 1600.0
+	var duration: float = clamp(distance / push_speed, 0.15, 0.6)
+	var tw = create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(victim_node, "global_position", target_pos, duration)
 
 func route_chat_bubble(data: Dictionary):
 	var sid = str(data.get("senderId", ""))
@@ -1905,6 +1997,13 @@ func _on_clear_zone_entities(payload):
 		for child in world.entities_node.get_children():
 			if is_instance_valid(child) and child.name.begins_with("Wreckage_"):
 				child.queue_free()
+	
+	# Gusano Bumerán: limpiar gusanos activos al cambiar de zona
+	if is_instance_valid(world) and is_instance_valid(world.get("entities_node")):
+		for child in world.entities_node.get_children():
+			if is_instance_valid(child) and (child.name.begins_with("Worm_") or child.name.begins_with("WindWall_")):
+				child.queue_free()
+	active_wind_walls.clear()
 	
 	if is_instance_valid(world) and is_instance_valid(world.combat_system) and world.combat_system.has_method("clear_all_bullets"):
 		world.combat_system.clear_all_bullets()

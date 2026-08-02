@@ -784,11 +784,26 @@ module.exports = class BaseAI {
         }
     }
 
+    // v372.2: Distancia de un punto a un segmento (colisión por barrido para gusanos rápidos)
+    _distPointToSegment(px, py, ax, ay, bx, by) {
+        const abx = bx - ax;
+        const aby = by - ay;
+        const apx = px - ax;
+        const apy = py - ay;
+        const lenSq = abx * abx + aby * aby;
+        let t = lenSq > 0 ? (apx * abx + apy * aby) / lenSq : 0;
+        t = Math.max(0, Math.min(1, t));
+        const cx = ax + abx * t;
+        const cy = ay + aby * t;
+        return Math.hypot(px - cx, py - cy);
+    }
+
     _executeMechanic(mech, mId, target, dist, angle, now, io, players) {
         if (!io) return;
         const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
         const hasActiveBombs = state.activeBombsList && state.activeBombsList.length > 0;
-        if (!target && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive && !hasActiveBombs) return;
+        const hasActiveWorms = state.activeWorms && state.activeWorms.length > 0;
+        if (!target && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive && !hasActiveBombs && !hasActiveWorms && !state.activeWindWall) return;
         
         const zoneStr = `zone_${this.enemy.zone}`;
         const type = mech.type || 'orbital';
@@ -1587,6 +1602,448 @@ module.exports = class BaseAI {
                     state.isActive = false;
                     state.nextShotTime = now + cooldown; // Cooldown empieza al terminar el giro
                 }
+            }
+
+            this.enemy.mechState[mId] = state;
+            return false;
+        }
+
+        // v269.500: Mecánica de Gusanos Bumerán (worm_boomerang)
+        if (mech.type === "worm_boomerang") {
+            const cooldown = mech.cooldown || mech.fireRate || 8000;
+            const count = mech.projectileCount || 3;
+            const spreadRad = ((mech.spreadAngle || 60) * Math.PI) / 180;
+            const speed = mech.bulletSpeed || 600;
+            const range = mech.fireRange || 600;
+            const parkTimeMs = mech.parkTimeMs !== undefined ? mech.parkTimeMs : 1000;
+            const outDmg = (mech.bulletDamage || 10) * (this.damageMult || 1);
+            const returnDmg = (mech.returnDamage || 10) * (this.damageMult || 1);
+            const hitRadius = 35;
+            const zonePlayers = () => Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+
+            if (!state.activeWorms) state.activeWorms = [];
+
+            const applyWormDamage = (p, dmg) => {
+                p.lastCombatTime = Date.now();
+                if (p.shield >= dmg) {
+                    p.shield -= dmg;
+                } else {
+                    p.hp -= (dmg - p.shield);
+                    p.shield = 0;
+                }
+                if (p.hp < 0) p.hp = 0;
+                if (p.hp <= 0) p.isDead = true;
+
+                // v400.30: Reflejo autoritativo de habilidades directas en servidor
+                if (p.reflectActive && !p.isInvulnerable) {
+                    const reflectMult = 0.8;
+                    const reflectedDmg = Math.round(dmg * reflectMult);
+                    if (reflectedDmg > 0) {
+                        if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                        else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                        if (this.enemy.hp < 0) this.enemy.hp = 0;
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', {
+                            id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield
+                        });
+                    }
+                }
+
+                io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                    id: p.socketId,
+                    hp: Math.ceil(p.hp),
+                    shield: Math.ceil(p.shield),
+                    isDead: p.isDead,
+                    isInvulnerable: p.isInvulnerable,
+                    isInvisible: p.isInvisible,
+                    spheres: p.spheres || []
+                });
+            };
+
+            const applyWormDebuffs = (p) => {
+                if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
+                mech.debuffsList.forEach(d => {
+                    if (d.type === 'bleed') {
+                        const bleedDps = Number(d.dps) || 30;
+                        const bleedDur = Number(d.duration) || 4000;
+                        const tickInt = Number(d.tickInterval) || 1000;
+                        p.isBleeding = true;
+                        p.bleedEndTime = Date.now() + bleedDur;
+                        p.bleedDps = bleedDps;
+                        p.bleedInterval = tickInt;
+                        p.lastBleedTick = Date.now();
+                        io.to(p.socketId).emit('gameNotification', {
+                            msg: `🩸 ¡El gusano te muerde! Sangrando ${bleedDps} HP cada ${tickInt}ms.`,
+                            type: "warning"
+                        });
+                    }
+                    else if (d.type === 'poison') {
+                        const poisonDps = Number(d.dps) || 20;
+                        const poisonDur = Number(d.duration) || 4000;
+                        const tickInt = Number(d.tickInterval) || 1000;
+                        p.isPoisoned = true;
+                        p.poisonEndTime = Date.now() + poisonDur;
+                        p.poisonDps = poisonDps;
+                        p.poisonInterval = tickInt;
+                        p.lastPoisonTick = Date.now();
+                        io.to(p.socketId).emit('gameNotification', {
+                            msg: `🤢 ¡El gusano te envenena! perdiendo ${poisonDps} HP cada ${tickInt}ms.`,
+                            type: "warning"
+                        });
+                    }
+                    else if (d.type === 'stun') {
+                        const stunDuration = Number(d.duration) || 1500;
+                        p.isStunned = true;
+                        p.stunEndTime = Date.now() + stunDuration;
+                        io.to(p.socketId).emit('stunState', { active: true, duration: stunDuration });
+                        io.to(p.socketId).emit('gameNotification', {
+                            msg: `⚡ ¡El gusano te paraliza!`,
+                            type: "error"
+                        });
+                    }
+                    else if (d.type === 'slow') {
+                        const slowAmt = Number(d.amount) || 50;
+                        const slowDur = Number(d.duration) || 2500;
+                        const isPct = d.isPercentage !== false;
+                        p.isSlowed = true;
+                        p.slowEndTime = Date.now() + slowDur;
+                        p.slowPoints = slowAmt;
+                        p.slowIsPercentage = isPct;
+                        p.lastSlowTime = Date.now();
+                        io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: isPct, duration: slowDur });
+                        io.to(p.socketId).emit('gameNotification', {
+                            msg: `🐢 ¡Ralentizado por el gusano! Velocidad reducida en ${slowAmt}${isPct ? '%' : ' px/s'}.`,
+                            type: "warning"
+                        });
+                    }
+                });
+            };
+
+            // FASE 1: LANZAMIENTO DEL ABANICO
+            if (state.activeWorms.length === 0 && !state.isActive && now > state.nextShotTime && target && dist <= (mech.fireRange || 800)) {
+                state.isActive = true;
+                state.activeWorms = [];
+                const centerAngle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
+                const step = count > 1 ? spreadRad / (count - 1) : 0;
+                const clientWorms = [];
+
+                for (let i = 0; i < count; i++) {
+                    const offset = (i - (count - 1) / 2) * step;
+                    const wormAngle = centerAngle + offset;
+                    const worm = {
+                        id: Date.now() + "_" + i,
+                        startX: this.enemy.x,
+                        startY: this.enemy.y,
+                        x: this.enemy.x,
+                        y: this.enemy.y,
+                        angle: wormAngle,
+                        speed: speed,
+                        range: range,
+                        phase: "out",
+                        dist: 0,
+                        parkEndTime: 0,
+                        outHit: new Set(),
+                        retHit: new Set(),
+                        lastSim: now
+                    };
+                    state.activeWorms.push(worm);
+                    clientWorms.push({
+                        id: worm.id,
+                        startX: worm.startX,
+                        startY: worm.startY,
+                        angle: wormAngle,
+                        speed: speed,
+                        range: range,
+                        parkTimeMs: parkTimeMs,
+                        damage: outDmg,
+                        returnDamage: returnDmg
+                    });
+                }
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "worm_volley",
+                    mId: mId,
+                    worms: clientWorms
+                });
+
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            // FASE 2: SIMULACIÓN POR TICK (tiempo real + homing + colisión por barrido)
+            if (state.activeWorms.length > 0) {
+                for (let i = state.activeWorms.length - 1; i >= 0; i--) {
+                    const w = state.activeWorms[i];
+                    // v372.2: Delta REAL entre ticks (evita que el daño llegue tarde si el tick se atrasa)
+                    let dt = (now - (w.lastSim || now)) / 1000;
+                    if (dt <= 0) dt = 0.033;
+                    if (dt > 0.1) dt = 0.1;
+                    w.lastSim = now;
+
+                    const prevX = w.x;
+                    const prevY = w.y;
+                    const hitPhase = w.phase;
+                    let stationary = false;
+
+                    if (w.phase === "out") {
+                        w.dist += w.speed * dt;
+                        if (w.dist >= w.range) {
+                            w.dist = w.range;
+                            w.phase = "park";
+                            w.parkEndTime = now + parkTimeMs;
+                        }
+                        w.x = w.startX + Math.cos(w.angle) * w.dist;
+                        w.y = w.startY + Math.sin(w.angle) * w.dist;
+                    } else if (w.phase === "park") {
+                        if (now >= w.parkEndTime) w.phase = "return";
+                        stationary = true;
+                    } else if (w.phase === "return") {
+                        // v372.2: Homing hacia la posición ACTUAL del enemigo (no al origen del disparo)
+                        const dx = this.enemy.x - w.x;
+                        const dy = this.enemy.y - w.y;
+                        const dd = Math.hypot(dx, dy);
+                        const step = w.speed * dt;
+                        if (dd <= Math.max(step, hitRadius)) {
+                            state.activeWorms.splice(i, 1);
+                            continue;
+                        }
+                        w.x += (dx / dd) * step;
+                        w.y += (dy / dd) * step;
+                    }
+
+                    zonePlayers().forEach(p => {
+                        const d = stationary
+                            ? Math.hypot(p.x - w.x, p.y - w.y)
+                            : this._distPointToSegment(p.x, p.y, prevX, prevY, w.x, w.y);
+                        if (d > hitRadius) return;
+
+                        if (hitPhase === "out" && !w.outHit.has(p.socketId)) {
+                            w.outHit.add(p.socketId);
+                            applyWormDamage(p, outDmg);
+                        } else if (hitPhase === "return" && !w.retHit.has(p.socketId)) {
+                            w.retHit.add(p.socketId);
+                            applyWormDamage(p, returnDmg);
+                            applyWormDebuffs(p);
+                        }
+                    });
+                }
+
+                // FASE 3: FIN DE LA RÁFAGA
+                if (state.activeWorms.length === 0) {
+                    state.isActive = false;
+                    state.nextShotTime = now + cooldown;
+                }
+                this.enemy.mechState[mId] = state;
+                return state.activeWorms.length > 0;
+            }
+
+            this.enemy.mechState[mId] = state;
+            return false;
+        }
+
+        // Mecánica de Aluvión de Viento (wind_wall)
+        if (mech.type === "wind_wall") {
+            const cooldown = mech.cooldown || 8000;
+            const castTimeMs = mech.castTimeMs !== undefined ? mech.castTimeMs : 2000;
+            const speed = mech.bulletSpeed || 500;
+            const range = mech.fireRange || 500;
+            const width = mech.wallWidth || 140;
+            const dmg = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 10) * (this.damageMult || 1);
+            const pushDist = (mech.pushForce !== undefined ? Number(mech.pushForce) : 250);
+            const startOffset = (mech.wallStartOffset !== undefined ? Number(mech.wallStartOffset) : 50);
+            const zonePlayers = () => Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+
+            const applyWindDebuffs = (p) => {
+                if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
+                mech.debuffsList.forEach(d => {
+                    if (d.type === 'bleed') {
+                        const bleedDps = Number(d.dps) || 30;
+                        const bleedDur = Number(d.duration) || 4000;
+                        const tickInt = Number(d.tickInterval) || 1000;
+                        p.isBleeding = true;
+                        p.bleedEndTime = Date.now() + bleedDur;
+                        p.bleedDps = bleedDps;
+                        p.bleedInterval = tickInt;
+                        p.lastBleedTick = Date.now();
+                        io.to(p.socketId).emit('gameNotification', { msg: `🩸 ¡El viento cortante te desgarra! Sangrando ${bleedDps} HP cada ${tickInt}ms.`, type: "warning" });
+                    }
+                    else if (d.type === 'poison') {
+                        const poisonDps = Number(d.dps) || 20;
+                        const poisonDur = Number(d.duration) || 4000;
+                        const tickInt = Number(d.tickInterval) || 1000;
+                        p.isPoisoned = true;
+                        p.poisonEndTime = Date.now() + poisonDur;
+                        p.poisonDps = poisonDps;
+                        p.poisonInterval = tickInt;
+                        p.lastPoisonTick = Date.now();
+                        io.to(p.socketId).emit('gameNotification', { msg: `🤢 ¡Partículas tóxicas en el viento! Perdiendo ${poisonDps} HP cada ${tickInt}ms.`, type: "warning" });
+                    }
+                    else if (d.type === 'stun') {
+                        const stunDuration = Number(d.duration) || 1500;
+                        p.isStunned = true;
+                        p.stunEndTime = Date.now() + stunDuration;
+                        io.to(p.socketId).emit('stunState', { active: true, duration: stunDuration });
+                        io.to(p.socketId).emit('gameNotification', { msg: `⚡ ¡El viento te marea! Paralizado.`, type: "error" });
+                    }
+                    else if (d.type === 'slow') {
+                        const slowAmt = Number(d.amount) || 50;
+                        const slowDur = Number(d.duration) || 2500;
+                        const isPct = d.isPercentage !== false;
+                        p.isSlowed = true;
+                        p.slowEndTime = Date.now() + slowDur;
+                        p.slowPoints = slowAmt;
+                        p.slowIsPercentage = isPct;
+                        p.lastSlowTime = Date.now();
+                        io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: isPct, duration: slowDur });
+                        io.to(p.socketId).emit('gameNotification', { msg: `🐢 ¡La ráfaga te arrastra! Velocidad reducida en ${slowAmt}${isPct ? '%' : ' px/s'}.`, type: "warning" });
+                    }
+                });
+            };
+
+            const hitPlayer = (p, ww) => {
+                p.lastCombatTime = Date.now();
+                if (p.shield >= dmg) {
+                    p.shield -= dmg;
+                } else {
+                    p.hp -= (dmg - p.shield);
+                    p.shield = 0;
+                }
+                if (p.hp < 0) p.hp = 0;
+                if (p.hp <= 0) p.isDead = true;
+
+                // v400.30: Reflejo autoritativo
+                if (p.reflectActive && !p.isInvulnerable) {
+                    const reflectedDmg = Math.round(dmg * 0.8);
+                    if (reflectedDmg > 0) {
+                        if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                        else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                        if (this.enemy.hp < 0) this.enemy.hp = 0;
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', { id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield });
+                    }
+                }
+
+                io.to(p.socketId).emit('environmentDamage', { damage: dmg });
+
+                // Expulsión hacia afuera (dirección de vuelo de la pared)
+                const dx = Math.cos(ww.angle);
+                const dy = Math.sin(ww.angle);
+                p.x += dx * ww.pushDist;
+                p.y += dy * ww.pushDist;
+
+                io.to(`zone_${p.zone}`).emit('windPush', {
+                    victimId: p.socketId,
+                    dirX: dx,
+                    dirY: dy,
+                    distance: ww.pushDist
+                });
+
+                applyWindDebuffs(p);
+
+                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                    id: p.socketId,
+                    hp: Math.ceil(p.hp),
+                    shield: Math.ceil(p.shield),
+                    isDead: p.isDead,
+                    isInvulnerable: p.isInvulnerable,
+                    isInvisible: p.isInvisible,
+                    spheres: p.spheres || []
+                });
+            };
+
+            // FASE 1: CARGA EN PANTALLA
+            if (!state.isCharging && !state.activeWindWall && now > state.nextShotTime && target && dist <= fireRange) {
+                state.isCharging = true;
+                state.chargeAngle = angle;
+                state.chargeEndTime = now + castTimeMs;
+                state.activeWindWall = null;
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "wind_charging",
+                    type: "wind_wall",
+                    wallId: mId,
+                    duration: castTimeMs,
+                    angle: angle,
+                    range: range,
+                    width: width,
+                    launchOffset: startOffset,
+                    targetId: target?.id || target?.socketId || ""
+                });
+            } else if (state.isCharging && now > state.chargeEndTime) {
+                // FASE 2: DISPARO DE LA PARED (ligeramente adelantada del enemigo)
+                state.isCharging = false;
+                state.isActive = true;
+                const fireAngle = state.chargeAngle !== undefined ? state.chargeAngle : angle;
+                const sx = this.enemy.x + Math.cos(fireAngle) * startOffset;
+                const sy = this.enemy.y + Math.sin(fireAngle) * startOffset;
+                state.activeWindWall = {
+                    startX: sx,
+                    startY: sy,
+                    x: sx,
+                    y: sy,
+                    angle: fireAngle,
+                    speed: speed,
+                    range: range,
+                    width: width,
+                    pushDist: pushDist,
+                    dist: 0,
+                    lastSim: now,
+                    hit: new Set()
+                };
+                this.enemy.rotation = fireAngle + Math.PI / 2;
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "wind_fire",
+                    type: "wind_wall",
+                    wallId: mId,
+                    x: sx,
+                    y: sy,
+                    angle: fireAngle,
+                    speed: speed,
+                    range: range,
+                    width: width,
+                    launchOffset: startOffset
+                });
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            // FASE 3: SIMULACIÓN DE LA PARED EN MOVIMIENTO
+            if (state.activeWindWall) {
+                const ww = state.activeWindWall;
+                let dt = (now - (ww.lastSim || now)) / 1000;
+                if (dt <= 0) dt = 0.033;
+                if (dt > 0.1) dt = 0.1;
+                ww.lastSim = now;
+
+                const prevX = ww.x;
+                const prevY = ww.y;
+                ww.dist += ww.speed * dt;
+                if (ww.dist >= ww.range) ww.dist = ww.range;
+                ww.x = ww.startX + Math.cos(ww.angle) * ww.dist;
+                ww.y = ww.startY + Math.sin(ww.angle) * ww.dist;
+
+                if (!ww.hit) ww.hit = new Set();
+
+                zonePlayers().forEach(p => {
+                    if (ww.hit.has(p.socketId)) return;
+                    const d = this._distPointToSegment(p.x, p.y, prevX, prevY, ww.x, ww.y);
+                    if (d > (ww.width / 2)) return;
+                    ww.hit.add(p.socketId);
+                    hitPlayer(p, ww);
+                });
+
+                if (ww.dist >= ww.range) {
+                    state.activeWindWall = null;
+                    state.isActive = false;
+                    state.nextShotTime = now + cooldown;
+                    this.enemy.mechState[mId] = state;
+                    return false;
+                }
+                this.enemy.mechState[mId] = state;
+                return true;
             }
 
             this.enemy.mechState[mId] = state;
