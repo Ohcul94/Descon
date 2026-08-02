@@ -114,12 +114,15 @@ function startGameLoop(io, state, aiManager) {
             if (Number(e.zone) === lobbyZoneId) continue;
 
             // v2.3: SKIP completo si la zona del enemigo no tiene jugadores activos
-            // Excepción: mecánicas activas o ProwlerAI que deben seguir aunque la zona esté vacía
+            // Excepción: mecánicas activas, defensivas, auras, retorno al spawn o ProwlerAI que deben seguir aunque la zona esté vacía
             const zoneHasPlayers = activeZones.has(String(e.zone));
-            const hasActiveMech = e.mechState && Object.values(e.mechState).some(m => m.isActive);
+            const hasActiveMech = e.mechState && Object.values(e.mechState).some(m => m.isActive || m.isCharging || m.isLocked || m.isFiring);
+            const hasActiveDef = e.defState && Object.values(e.defState).some(d => d.isActive);
+            const hasActiveAura = e.auraState && Object.values(e.auraState).some(a => a.isActive);
+            const isReturning = !!e.returningToSpawn;
             const isProwler = e.ai && e.ai.constructor.name === 'ProwlerAI';
 
-            if (!zoneHasPlayers && !hasActiveMech && !isProwler) continue;
+            if (!zoneHasPlayers && !hasActiveMech && !hasActiveDef && !hasActiveAura && !isReturning && !isProwler) continue;
 
             // Normalizar zona del enemigo una sola vez por ciclo
             const eZoneNormalized = normalizeZone(e.zone);

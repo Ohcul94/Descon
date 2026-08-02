@@ -165,7 +165,7 @@ module.exports = class BaseAI {
                 const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy.isHorde ? 10000 : 800));
 
                 const outOfSight = cfg.stopOnOutOfSight && distToP > visionRange;
-                const idleExpired = idleLimit > 0 && idleTime >= idleLimit;
+                const idleExpired = !cfg.chaseUntilDeath && idleLimit > 0 && idleTime >= idleLimit;
 
                 if (!outOfSight && !idleExpired) {
                     activeTarget = p;
@@ -233,12 +233,31 @@ module.exports = class BaseAI {
         const lastCombatTime = Math.max(this.enemy.lastHit || 0, this.enemy.lastSuccessHit || 0);
         const delayMs = cfg.regenDelayMs !== undefined ? Number(cfg.regenDelayMs) : (cfg.regenDelaySec !== undefined ? Number(cfg.regenDelaySec) * 1000 : 5000);
         
-        // En combate si ha recibido/hecho daño hace poco, o si tiene un target activo al que está persiguiendo (y no es el altar)
-        const hasActivePlayerTarget = activeTarget && activeTarget.id !== "altar" && !activeTarget.isDead && !activeTarget.isInvisible;
-        this._inCombat = (!this.enemy.returningToSpawn) && (((now - lastCombatTime) < delayMs) || !!hasActivePlayerTarget);
+        let inTime = (now - lastCombatTime) < delayMs;
+
+        // Si "stopOnOutOfSight" está activo y el último agresor está fuera de visión, se anula el tiempo de combate activo inmediatamente
+        if (cfg.stopOnOutOfSight && this.enemy.lastHitter && players[this.enemy.lastHitter]) {
+            const p = players[this.enemy.lastHitter];
+            const dist = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+            const configVision = cfg ? Number(cfg.visionRange) : 0;
+            const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : 800);
+            if (dist > visionRange) {
+                inTime = false;
+            }
+        }
+
+        // En combate estrictamente si ha recibido/hecho daño dentro del delay configurado (independientemente de tener target visual activo)
+        this._inCombat = (!this.enemy.returningToSpawn) && inTime;
+
+        // Si salimos de combate por expirar el delay de inactividad de daño, forzar el retorno al spawn (Evasión)
+        if (!this._inCombat && !this.enemy.returningToSpawn && (this.enemy.lastHitter || activeTarget)) {
+            this.enemy.returningToSpawn = true;
+            this.enemy.lastHitter = null;
+            activeTarget = null;
+        }
 
         // Lógica de Regeneración Autoritaria (Fuera de Combate / Ocioso)
-        if (!this._inCombat) {
+        if (!this._inCombat && !this._isDefenseSkillActive) {
             if (this.enemy.lastRegenTime === undefined) this.enemy.lastRegenTime = now;
             const regenInterval = cfg.regenIntervalMs !== undefined ? Number(cfg.regenIntervalMs) : 1000;
             const elapsedMs = now - this.enemy.lastRegenTime;
@@ -1937,8 +1956,6 @@ module.exports = class BaseAI {
 
         // 1. Si la mecánica está activa, procesamos el estado de los pilares
         if (state.isActive) {
-            // Forzar que el Boss permanezca en combate activo para evitar la regeneración pasiva fuera de combate mientras los pilares estén vivos
-            this.enemy.lastHit = now;
 
             // Filtrar los pilares que siguen existiendo y tienen vida en el servidor
             const activePillars = state.pillars.filter(pid => this.state.enemies[pid] && this.state.enemies[pid].hp > 0);
@@ -2169,7 +2186,6 @@ module.exports = class BaseAI {
 
         // 1. Si está activa, comprobar si expira
         if (state.isActive) {
-            this.enemy.lastHit = now;
 
             if (now >= state.endTime) {
                 state.isActive = false;
@@ -2307,7 +2323,6 @@ module.exports = class BaseAI {
         }
 
         if (state.isActive) {
-            this.enemy.lastHit = now;
 
             state.orbs = state.orbs.filter(oid => this.state.enemies[oid]);
 

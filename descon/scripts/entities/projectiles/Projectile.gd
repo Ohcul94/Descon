@@ -10,6 +10,8 @@ const VFX_Hit_cyber_scene = "res://VFX/scenes/VFX_Hit_cyber.tscn"
 const VFX_Hit_hadouken_scene = "res://VFX/scenes/VFX_Hit_hadouken.tscn"
 const VFX_Laser_projectile_scene = "res://VFX/scenes/VFX_Laser_projectile.tscn"
 const VFX_Laser_Hit_scene = "res://VFX/scenes/VFX_Laser_Hit.tscn"
+const VFX_Siphon_projectile_scene = "res://VFX/scenes/VFX_Siphon_projectile.tscn"
+const VFX_Siphon_Hit_scene = "res://VFX/scenes/VFX_Siphon_Hit.tscn"
 const VFX_Fire_ball_type_B_scene = "res://VFX/scenes/VFX_Fire_ball_type_B.tscn"
 const VFX_Fire_strike_scene = "res://VFX/scenes/VFX_Fire_strike.tscn"
 
@@ -18,13 +20,15 @@ const TEXTURE_MISSILE = preload("res://assets/Municiones/Misiles/Misil1/Misil1.p
 const TEXTURE_MINE = preload("res://assets/Municiones/Minas/Mina1/Mina1.png")
 const TEXTURE_MINE_3 = preload("res://assets/Municiones/Minas/Mina3/Mina3.png")
 const TEXTURE_MINE_2 = preload("res://assets/Municiones/Minas/Mina2/Mina2.png")
+const TEXTURE_SIPHON = preload("res://assets/Municiones/Siphon/Siphon1/Siphon1.png")
 
 const TEXTURE_CACHE = {
 	"missile": TEXTURE_MISSILE,
 	"ice_missile": TEXTURE_MISSILE,
 	"mine": TEXTURE_MINE,
 	"orbital_mine": TEXTURE_MINE_3,
-	"hook": TEXTURE_MINE_2
+	"hook": TEXTURE_MINE_2,
+	"siphon": TEXTURE_SIPHON
 }
 
 # Projectile.gd (v141.72 - CONE EMP & VECTOR RENDERING)
@@ -160,6 +164,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	global_position = p_pos
 	rotation = p_angle
 	type = p_data.get("bulletType", p_data.get("type", "laser"))
+	print("[PROJECTILE SETUP] type = ", type, " | p_data = ", p_data)
 	owner_id = str(p_data.get("enemyId", p_data.get("id", p_data.get("senderId", p_data.get("entityId", "")))))
 	owner_type = p_data.get("owner_type", "player")
 	enemy_type = int(p_data.get("enemyType", 1))
@@ -473,81 +478,39 @@ func _setup_visual_sprite():
 				sprite = null
 				return
 		
-	# Modelo 3D para Siphon con estela de partículas 3D
+	# Modelo 3D para Siphon usando escena VFX pool
 	if type == "siphon":
+		print("[SIPHON DEBUG] type = ", type, " - spawning 3D")
 		sprite = null
 		var map_node = get_tree().get_first_node_in_group("map")
+		print("[SIPHON DEBUG] map_node = ", map_node)
+		if is_instance_valid(map_node):
+			print("[SIPHON DEBUG] map_node.sub_viewport = ", map_node.get("sub_viewport"))
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
-			world_root_3d = Node3D.new()
-			world_root_3d.name = "SiphonProj3D_" + str(get_instance_id())
-			target_vp.add_child(world_root_3d)
-			
-			# Aguja de cristal plateado
-			var needle = MeshInstance3D.new()
-			var box = BoxMesh.new()
-			box.size = Vector3(0.2, 0.2, 0.9)
-			needle.mesh = box
-			var mat = StandardMaterial3D.new()
-			mat.albedo_color = Color(0.85, 0.85, 0.9)
-			mat.emission_enabled = true
-			mat.emission = Color(0.65, 0.05, 0.75)
-			mat.emission_energy_multiplier = 2.0
-			needle.material_override = mat
-			world_root_3d.add_child(needle)
-			
-			# Canal de sangre central
-			var channel = MeshInstance3D.new()
-			var ch_box = BoxMesh.new()
-			ch_box.size = Vector3(0.06, 0.06, 0.75)
-			channel.mesh = ch_box
-			var ch_mat = StandardMaterial3D.new()
-			ch_mat.albedo_color = Color(0.95, 0.05, 0.1)
-			ch_mat.emission_enabled = true
-			ch_mat.emission = Color(0.95, 0.05, 0.1)
-			ch_mat.emission_energy_multiplier = 3.0
-			channel.material_override = ch_mat
-			world_root_3d.add_child(channel)
-			
-			# Estela 3D: partículas carmesí/púrpura
-			var trail = GPUParticles3D.new()
-			trail.name = "SiphonTrail3D"
-			var trail_mat = StandardMaterial3D.new()
-			trail_mat.albedo_color = Color(0.95, 0.05, 0.1)
-			trail_mat.emission_enabled = true
-			trail_mat.emission = Color(0.6, 0.05, 0.65)
-			trail_mat.emission_energy_multiplier = 2.0
-			trail_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			trail.material_override = trail_mat
-			var p_mesh = SphereMesh.new()
-			p_mesh.radius = 0.08
-			p_mesh.height = 0.16
-			trail.draw_pass_1 = p_mesh
-			trail.amount = 30
-			trail.lifetime = 0.6
-			trail.explosiveness = 0.0
-			trail.one_shot = false
-			trail.emitting = true
-			trail.local_coords = false
-			trail.process_material = null
-			trail.speed_scale = 1.0
-			var spread_val = 0.3
-			var dir = ParticleProcessMaterial.new()
-			dir.direction = Vector3(-1, 0, 0)
-			dir.spread = spread_val
-			dir.gravity = Vector3.ZERO
-			dir.initial_velocity_min = 0.3
-			dir.initial_velocity_max = 1.0
-			trail.process_material = dir
-			world_root_3d.add_child(trail)
-			
-			world_root_3d.scale = Vector3(0.6, 0.6, 0.6)
-			
-			tree_exiting.connect(func():
+			print("[SIPHON DEBUG] VFX_Siphon_projectile_scene = ", VFX_Siphon_projectile_scene)
+			if VFX_Siphon_projectile_scene:
+				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Siphon_projectile_scene)
+				print("[SIPHON DEBUG] world_root_3d = ", world_root_3d)
 				if is_instance_valid(world_root_3d):
-					world_root_3d.queue_free()
-			)
-		return
+					world_root_3d.name = "SiphonProj3D_" + str(get_instance_id())
+					target_vp.add_child(world_root_3d)
+					
+					world_root_3d.scale = Vector3(0.6, 0.6, 0.6)
+					
+					tree_exiting.connect(func():
+						if is_instance_valid(world_root_3d):
+							VFXSystem.recycle_vfx_to_pool(world_root_3d)
+					)
+					
+					return
+				else:
+					print("[SIPHON ERROR] Failed to get VFX from pool!")
+			else:
+				print("[SIPHON ERROR] VFX_Siphon_projectile_scene is empty!")
+		else:
+			print("[SIPHON DEBUG] No map node or sub_viewport, falling back to 2D")
+		# NO return here - allow fallback to 2D if 3D fails
 
 	# Efecto 3D de proyectil Láser (cubo rojo con estela)
 	if type == "laser":
@@ -996,6 +959,7 @@ func _setup_visual_sprite():
 		"hook": 
 			path = "res://assets/Municiones/Minas/Mina2/Mina2.png"
 			modulate = Color(0, 1, 1) 
+		"siphon": path = "res://assets/Municiones/Siphon/Siphon1/Siphon1.png"
 		"mega_laser":
 			var length = max_range if max_range > 0.0 else 1000.0
 
@@ -1844,6 +1808,45 @@ func _explode():
 					var tw = hit_node.create_tween()
 					tw.tween_interval(1.0)
 					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(hit_node))
+
+	# Spawn 3D hit impact effect for siphon projectiles
+	if type == "siphon":
+		print("[SIPHON HIT] Spawning 3D hit effect")
+		var map_node = get_tree().get_first_node_in_group("map")
+		print("[SIPHON HIT] map_node = ", map_node)
+		if is_instance_valid(map_node):
+			print("[SIPHON HIT] map_node.sub_viewport = ", map_node.get("sub_viewport"))
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			print("[SIPHON HIT] VFX_Siphon_Hit_scene = ", VFX_Siphon_Hit_scene)
+			if VFX_Siphon_Hit_scene:
+				var hit_node = VFXSystem.get_vfx_from_pool(VFX_Siphon_Hit_scene)
+				print("[SIPHON HIT] hit_node = ", hit_node)
+				if is_instance_valid(hit_node):
+					hit_node.name = "SiphonHit3D_" + str(get_instance_id())
+					target_vp.add_child(hit_node)
+					
+					var s_factor = 0.02
+					var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
+					hit_node.position.x = global_position.x * s_factor
+					hit_node.position.z = global_position.y * s_factor * correction_z
+					hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
+					hit_node.scale = Vector3(1.5, 1.5, 1.5)
+					
+					var anim = hit_node.get_node_or_null("AnimationPlayer")
+					if anim:
+						anim.play("Init")
+						anim.animation_finished.connect(func(_a): VFXSystem.recycle_vfx_to_pool(hit_node), CONNECT_ONE_SHOT)
+					else:
+						var tw = hit_node.create_tween()
+						tw.tween_interval(1.0)
+						tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(hit_node))
+				else:
+					print("[SIPHON HIT ERROR] Failed to get VFX from pool!")
+			else:
+				print("[SIPHON HIT ERROR] VFX_Siphon_Hit_scene is empty!")
+		else:
+			print("[SIPHON HIT DEBUG] No map node or sub_viewport")
 
 	if type == "emp" and not _is_exploding:
 		_is_exploding = true

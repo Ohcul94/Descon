@@ -27,8 +27,9 @@ module.exports = class BossAI extends BaseAI {
         if (!target) {
             if (this.noAggroStartTime === 0) this.noAggroStartTime = now;
             
-            // v239.02: Reset de 10 segundos solicitado
-            if (now - this.noAggroStartTime > 10000) {
+            // v239.02: Reset dinámico según el panel (regenDelayMs) con fallback de 10s
+            const resetDelay = this.config.regenDelayMs !== undefined ? Number(this.config.regenDelayMs) : 10000;
+            if (now - this.noAggroStartTime > resetDelay) {
                 if (this.enemy.hp < this.enemy.maxHp || this.enemy.shield < this.enemy.maxShield) {
                     console.log(`[BOSS-AI] Reset TOTAL (Phase/HP/Clones) para ${this.enemy.name}`);
                     

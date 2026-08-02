@@ -1,0 +1,256 @@
+[gd_scene format=3 ]
+
+[ext_resource type="Shader" path="res://VFX/shaders/s_dualColor_masked.tres" id="1_dgfd8"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Srt1.jpg" id="2_5h4vp"]
+[ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_box2.obj" id="3_xlsrb"]
+[ext_resource type="Shader" path="res://VFX/shaders/s_single_masked_p.tres" id="4_0d5ig"]
+[ext_resource type="Texture2D" path="res://VFX/textures/T_VFX_Sqart2.jpg" id="5_xyuo0"]
+[ext_resource type="ArrayMesh" path="res://VFX/Objects/sm_box2_rotated.obj" id="6_nkbvi"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_needle_core"]
+render_priority = 0
+shader = ExtResource("1_dgfd8")
+shader_parameter/Color2 = Color(0.65, 0.05, 0.75, 0.8)
+shader_parameter/Color1 = Color(0.85, 0.85, 0.9, 1)
+shader_parameter/Mask_Texture = ExtResource("2_5h4vp")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_blood_channel"]
+render_priority = 0
+shader = ExtResource("1_dgfd8")
+shader_parameter/Color2 = Color(0.95, 0.05, 0.1, 0.9)
+shader_parameter/Color1 = Color(0.95, 0.05, 0.15, 1)
+shader_parameter/Mask_Texture = ExtResource("2_5h4vp")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_glow"]
+render_priority = 0
+shader = ExtResource("1_dgfd8")
+shader_parameter/Color2 = Color(0.5, 0.02, 0.6, 0.5)
+shader_parameter/Color1 = Color(0.8, 0.1, 0.95, 0.7)
+shader_parameter/Mask_Texture = ExtResource("2_5h4vp")
+
+[sub_resource type="Curve" id="Curve_trail_alpha"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.0681115, 1), 0.0, 0.0, 0, 0, Vector2(0.421053, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_trail_alpha"]
+texture_mode = 1
+curve = SubResource("Curve_trail_alpha")
+
+[sub_resource type="Gradient" id="Gradient_trail_color"]
+offsets = PackedFloat32Array(0.338983, 0.789831)
+colors = PackedColorArray(0.95, 0.05, 0.15, 1, 0.6, 0.05, 0.65, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_trail"]
+gradient = SubResource("Gradient_trail_color")
+use_hdr = true
+
+[sub_resource type="Curve" id="Curve_trail_radial"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 1.95426, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_trail_radial"]
+texture_mode = 1
+curve = SubResource("Curve_trail_radial")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_trail_main"]
+particle_flag_rotate_y = true
+emission_shape = 3
+emission_box_extents = Vector3(0.15, 0.15, 0.15)
+angle_min = -180.0
+angle_max = 180.0
+direction = Vector3(-1, 0, 0)
+spread = 0.3
+initial_velocity_min = 0.3
+initial_velocity_max = 1.0
+angular_velocity_min = -500.0
+angular_velocity_max = 500.0
+radial_velocity_min = 1.0
+radial_velocity_max = 2.0
+radial_velocity_curve = SubResource("CurveTexture_trail_radial")
+gravity = Vector3(0, 0, 0)
+scale_min = 0.05
+scale_max = 0.15
+color = Color(0.95, 0.05, 0.1, 1)
+color_ramp = SubResource("GradientTexture1D_trail")
+alpha_curve = SubResource("CurveTexture_trail_alpha")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trail"]
+shading_mode = 0
+vertex_color_use_as_albedo = true
+vertex_color_is_srgb = true
+disable_receive_shadows = true
+billboard_mode = 3
+billboard_keep_scale = true
+particles_anim_h_frames = 1
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="Gradient" id="Gradient_sparks"]
+offsets = PackedFloat32Array(0.0135593, 0.881356)
+colors = PackedColorArray(0.95, 0.05, 0.15, 1, 0.6, 0.05, 0.65, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_sparks"]
+gradient = SubResource("Gradient_sparks")
+use_hdr = true
+
+[sub_resource type="Curve" id="Curve_sparks_scale"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 1.95426, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_sparks_scale"]
+texture_mode = 1
+curve = SubResource("Curve_sparks_scale")
+
+[sub_resource type="Curve" id="Curve_sparks_alpha"]
+_data = [Vector2(0, 0.258282), 0.0, 0.0, 0, 0, Vector2(0.662539, 0.832515), 0.0, 0.0, 0, 0, Vector2(1, 0.218405), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_sparks_alpha"]
+curve = SubResource("Curve_sparks_alpha")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_sparks"]
+particle_flag_rotate_y = true
+emission_shape = 3
+emission_box_extents = Vector3(0.15, 0.15, 0.15)
+angle_min = -180.0
+angle_max = 180.0
+direction = Vector3(-1, 0, 0)
+spread = 0.5
+initial_velocity_min = 2.0
+initial_velocity_max = 3.0
+angular_velocity_max = 500.0
+radial_velocity_min = 3.0
+radial_velocity_max = 5.0
+radial_velocity_curve = SubResource("CurveTexture_sparks_alpha")
+gravity = Vector3(0, 0, 0)
+scale_min = 0.1
+scale_max = 0.1
+scale_curve = SubResource("CurveTexture_sparks_scale")
+color_ramp = SubResource("GradientTexture1D_sparks")
+
+[sub_resource type="QuadMesh" id="QuadMesh_sparks"]
+
+[sub_resource type="Curve" id="Curve_trail_fade"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.0712074, 1), 0.0, 0.0, 0, 0, Vector2(0.473684, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 4
+
+[sub_resource type="CurveTexture" id="CurveTexture_trail_fade"]
+texture_mode = 1
+curve = SubResource("Curve_trail_fade")
+
+[sub_resource type="Gradient" id="Gradient_trail_fade_color"]
+offsets = PackedFloat32Array(0.338983, 0.789831)
+colors = PackedColorArray(0.95, 0.05, 0.1, 1, 0.8, 0.1, 0.95, 1)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_trail_fade"]
+gradient = SubResource("Gradient_trail_fade_color")
+use_hdr = true
+
+[sub_resource type="Curve" id="Curve_trail_fade_radial"]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 1), 1.95426, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_trail_fade_radial"]
+texture_mode = 1
+curve = SubResource("Curve_trail_fade_radial")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_trail_fade"]
+particle_flag_rotate_y = true
+emission_shape = 3
+emission_box_extents = Vector3(0.2, 0.2, 0.2)
+angle_min = -180.0
+angle_max = 180.0
+direction = Vector3(-1, 0, 0)
+spread = 0.4
+initial_velocity_min = 0.5
+initial_velocity_max = 1.5
+angular_velocity_min = -500.0
+angular_velocity_max = 500.0
+radial_velocity_min = 1.0
+radial_velocity_max = 2.0
+radial_velocity_curve = SubResource("CurveTexture_trail_fade_radial")
+gravity = Vector3(0, 0, 0)
+scale_min = 0.08
+scale_max = 0.2
+color = Color(0.8, 0.1, 0.95, 1)
+color_ramp = SubResource("GradientTexture1D_trail_fade")
+alpha_curve = SubResource("CurveTexture_trail_fade")
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_needle"]
+top_radius = 0.1
+bottom_radius = 0.1
+height = 1.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_blood_channel"]
+top_radius = 0.03
+bottom_radius = 0.03
+height = 0.85
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_glow"]
+top_radius = 0.18
+bottom_radius = 0.18
+height = 1.1
+
+[node name="VFX_SiphonProjectile" type="Node3D"]
+
+[node name="NeedleCore" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0)
+material_override = SubResource("ShaderMaterial_needle_core")
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_needle")
+
+[node name="BloodChannel" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0)
+material_override = SubResource("ShaderMaterial_blood_channel")
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_blood_channel")
+
+[node name="OuterGlow" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.6, 0, 0, 0, 0.6, 0, 0, 0, 0.6, 0, 0, 0)
+material_override = SubResource("ShaderMaterial_glow")
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_glow")
+
+[node name="TrailMain" type="GPUParticles3D" parent="."]
+material_override = SubResource("StandardMaterial3D_trail")
+cast_shadow = 0
+emitting = true
+amount = 30
+lifetime = 0.6
+one_shot = false
+explosiveness = 0.0
+fixed_fps = 60
+local_coords = false
+process_material = SubResource("ParticleProcessMaterial_trail_main")
+draw_pass_1 = SubResource("QuadMesh_sparks")
+
+[node name="Sparks" type="GPUParticles3D" parent="."]
+material_override = SubResource("StandardMaterial3D_trail")
+cast_shadow = 0
+emitting = true
+amount = 15
+lifetime = 0.4
+one_shot = false
+explosiveness = 0.2
+fixed_fps = 60
+local_coords = false
+process_material = SubResource("ParticleProcessMaterial_sparks")
+draw_pass_1 = SubResource("QuadMesh_sparks")
+
+[node name="TrailFade" type="GPUParticles3D" parent="."]
+material_override = SubResource("StandardMaterial3D_trail")
+cast_shadow = 0
+emitting = true
+amount = 20
+lifetime = 0.5
+one_shot = false
+explosiveness = 0.0
+fixed_fps = 60
+local_coords = false
+process_material = SubResource("ParticleProcessMaterial_trail_fade")
+draw_pass_1 = SubResource("QuadMesh_sparks")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(0.8, 0.05, 0.75, 1)
+light_energy = 1.5
+omni_range = 3.0
