@@ -102,7 +102,7 @@ func _process(_delta):
 			if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")):
 				world_root_3d.position.y = _owner_node.world_root_3d.position.y
 			else:
-				world_root_3d.position.y = 0.5
+				world_root_3d.position.y = 1.0
 		if type == "mega_laser":
 			var dir_2d = Vector2.RIGHT.rotated(rotation)
 			var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
@@ -147,7 +147,7 @@ func _process(_delta):
 
 			var owner_3d = Vector3(
 				_owner_node.global_position.x * sf,
-				_owner_node.world_root_3d.position.y if is_instance_valid(_owner_node.get("world_root_3d")) else 0.5,
+				_owner_node.world_root_3d.position.y if is_instance_valid(_owner_node.get("world_root_3d")) else 1.0,
 				_owner_node.global_position.y * sf * cz
 			)
 			var hook_3d = world_root_3d.global_position
@@ -342,7 +342,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				antic.position.x = offset_pos.x * s_factor
 				antic.position.z = offset_pos.y * s_factor * correction_z
 				# Elevarlo un poco en Y para que se alinee con el chasis de la nave y no quede en el suelo
-				antic.position.y = (_owner_node.world_root_3d.position.y + 0.2) if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.7
+				antic.position.y = (_owner_node.world_root_3d.position.y + 0.2) if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.2
 				antic.scale = Vector3(1.2, 1.2, 1.2)
 				
 				# Sincronizar la rotación del aura 3D con la dirección del disparo
@@ -378,7 +378,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 				antic.position.x = offset_pos.x * s_factor
 				antic.position.z = offset_pos.y * s_factor * correction_z
 				# Elevarlo un poco en Y para que se alinee con el chasis de la nave y no quede en el suelo
-				antic.position.y = (_owner_node.world_root_3d.position.y + 0.2) if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.7
+				antic.position.y = (_owner_node.world_root_3d.position.y + 0.2) if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.2
 				antic.scale = Vector3(1.2, 1.2, 1.2)
 				
 				# Sincronizar la rotación del aura 3D con la dirección del disparo
@@ -864,7 +864,7 @@ func _setup_visual_sprite():
 			fuse.mesh = fuse_cyl
 			var fuse_mat = StandardMaterial3D.new()
 			fuse_mat.albedo_color = Color(0.4, 0.3, 0.2)
-			fuse.position.y = 0.5
+			fuse.position.y = 1.0
 			fuse.material_override = fuse_mat
 			world_root_3d.add_child(fuse)
 
@@ -1350,7 +1350,7 @@ func _physics_process(delta):
 			# La posición horizontal (X, Z) sigue a la posición 2D actual del proyectil en vuelo
 			world_root_3d.position.x = global_position.x * s_factor
 			world_root_3d.position.z = global_position.y * s_factor * correction_z
-			var base_h = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
+			var base_h = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
 			world_root_3d.position.y = base_h + height_y
 			
 			# Rotación constante en el aire para efecto de giro dinámico
@@ -1742,7 +1742,7 @@ func _explode():
 				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
-				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
+				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				# Auto-liberar al terminar la animación
@@ -1770,7 +1770,7 @@ func _explode():
 				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
-				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
+				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				# Auto-liberar al terminar la animación
@@ -1797,7 +1797,7 @@ func _explode():
 				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
-				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
+				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				var anim = hit_node.get_node_or_null("AnimationPlayer")
@@ -1830,7 +1830,7 @@ func _explode():
 					var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 					hit_node.position.x = global_position.x * s_factor
 					hit_node.position.z = global_position.y * s_factor * correction_z
-					hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 0.5
+					hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
 					hit_node.scale = Vector3(1.5, 1.5, 1.5)
 					
 					var anim = hit_node.get_node_or_null("AnimationPlayer")

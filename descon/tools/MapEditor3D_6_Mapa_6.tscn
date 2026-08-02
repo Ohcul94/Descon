@@ -1,18 +1,19 @@
-[gd_scene load_steps=9 format=3 uid="uid://mapeditor3d_tool"]
+[gd_scene format=3 uid="uid://b0iolvo8k48wc"]
 
-[ext_resource type="Script" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="PackedScene" uid="uid://ci44n8mgd74aa" path="res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb" id="2_6s6p5"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5qnv3"]
+albedo_color = Color(0.05, 0.08, 0.15, 1)
+metallic = 0.3
+roughness = 0.8
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(20000, 20000)
 subdivide_width = 200
 subdivide_depth = 200
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
-albedo_color = Color(0.05, 0.08, 0.15, 1)
-metallic = 0.3
-roughness = 0.8
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 4
@@ -24,45 +25,51 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
 
-[node name="MapEditor3D" type="Node3D"]
+[node name="MapEditor3D" type="Node3D" unique_id=1417113861]
 script = ExtResource("1_editor_script")
 zone_id = "6"
+auto_load_event = true
+json_to_import = "[]"
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 40, 40)
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1247235478]
+transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
 fov = 35.0
 near = 0.1
 far = 10000.0
 
-
-[node name="GroundPlane" type="StaticBody3D" parent="."]
+[node name="GroundPlane" type="StaticBody3D" parent="." unique_id=668256100]
 collision_mask = 0
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane" unique_id=579309716]
 shape = SubResource("WorldBoundaryShape3D_1")
 
-[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane"]
+[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=856998466]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+material_override = SubResource("StandardMaterial3D_5qnv3")
 mesh = SubResource("PlaneMesh_1")
-material_override = SubResource("StandardMaterial3D_1")
 
-
-[node name="ObjectsRoot" type="Node3D" parent="."]
+[node name="ObjectsRoot" type="Node3D" parent="." unique_id=2100934398]
 unique_name_in_owner = true
-meta = {
-"editor_only": true
-}
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-45, 45, 0)
+[node name="M7-Pared3-Blender" parent="ObjectsRoot" unique_id=1526505120 instance=ExtResource("2_6s6p5")]
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 17.481003, 0.08983016, 0.9500284)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb"
+metadata/label = &"M7-Pared3-Blender"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=348657487]
+transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
 light_color = Color(1, 0.95, 0.9, 1)
 light_energy = 2.0
 light_specular = 0.3
 shadow_enabled = true
-directional_shadow_mode = 1
-directional_shadow_max_distance = 200.0
 shadow_bias = 0.02
 shadow_normal_bias = 0.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 200.0
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1270978634]
 environment = SubResource("Environment_1")

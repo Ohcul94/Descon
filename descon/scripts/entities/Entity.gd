@@ -832,9 +832,9 @@ func _update_3d_root_sync():
 		world_root_3d.position.x = global_position.x * s_factor
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
 		if entity_type >= 101 and entity_type <= 104 and not is_in_group("player"):
-			world_root_3d.position.y = 2.0
+			world_root_3d.position.y = 2.5
 		else:
-			world_root_3d.position.y = 0.5
+			world_root_3d.position.y = 1.0
 		
 		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)
 		if is_dead:
@@ -3559,7 +3559,7 @@ func _spawn_wreckage_marker():
 		wreckage_3d.name = "Wreckage3D_" + str(entity_id)
 		wreckage_3d.position.x = global_position.x * s_factor
 		wreckage_3d.position.z = global_position.y * s_factor * c_z
-		wreckage_3d.position.y = 0.5
+		wreckage_3d.position.y = 1.0
 		current_map.sub_viewport.add_child(wreckage_3d)
 		
 		# Crear tracker dinámico: proyecta la posición 3D del wreckage usando la cámara real

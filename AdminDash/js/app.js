@@ -2234,51 +2234,21 @@ function initMapRadar() {
             const world = canvasToWorld(mouseX, mouseY);
             if (!m.objects) m.objects = [];
 
-            if (window._mapRadarObjectMode === 'wall') {
-                window._isPaintingWall = true;
-                const scaleVal = parseFloat(document.getElementById('new-map-obj-scale')?.value) || 1.0;
-                const rotYVal = parseFloat(document.getElementById('new-map-obj-rotY')?.value) || 0;
-                const assetVal = document.getElementById('new-map-obj-asset')?.value || 'res://assets/Paredes/Pared1/Pared1.glb';
-
-                const snapSize = 100 * scaleVal;
-                const snappedX = Math.round(world.wx / snapSize) * snapSize;
-                const snappedY = Math.round(world.wy / snapSize) * snapSize;
-
-                // Evitar duplicados
-                const duplicate = m.objects.some(obj => obj.type === 'wall' && Math.abs(obj.x - snappedX) < 10 && Math.abs(obj.y - snappedY) < 10);
-                if (!duplicate) {
-                    m.objects.push({
-                        type: 'wall',
-                        label: 'Pared',
-                        x: snappedX,
-                        y: snappedY,
-                        assetPath: assetVal,
-                        rotY: rotYVal,
-                        scale: scaleVal
-                    });
-                    lastPaintedX = snappedX;
-                    lastPaintedY = snappedY;
-                    renderMapDetail();
-                }
-            } else {
-                const newObj = {
-                    type: window._mapRadarObjectMode,
-                    label: window._mapRadarObjectMode === 'chest' ? 'Baúl' :
-                           window._mapRadarObjectMode === 'door'  ? 'Puerta' : 'Torre',
-                    x: Math.round(world.wx),
-                    y: Math.round(world.wy),
-                    assetPath: window._mapRadarObjectMode === 'chest' ? 'res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb' :
-                               window._mapRadarObjectMode === 'door'  ? 'res://assets/Puertas/3D/Puerta2/Puerta2.glb' :
-                                                                        'res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb'
-                };
-                if (window._mapRadarObjectMode === 'door') {
-                    newObj.targetZoneId = '';
-                    newObj.targetX = 5000;
-                    newObj.targetY = 5000;
-                }
-                m.objects.push(newObj);
-                renderMapDetail();
-            }
+            // Solo Puertas: el resto de objetos se colocan/escalan en el editor 3D de Godot (MapEditor3D)
+            m.objects.push({
+                type: 'door',
+                label: 'Puerta',
+                x: Math.round(world.wx),
+                y: Math.round(world.wy),
+                assetPath: 'res://assets/Puertas/3D/Puerta2/Puerta2.glb',
+                targetZoneId: '',
+                targetX: 5000,
+                targetY: 5000,
+                scale: 1.0,
+                rotY: 0,
+                yOffset: 2.5
+            });
+            renderMapDetail();
             return;
         }
 
@@ -2326,43 +2296,11 @@ function initMapRadar() {
         if (ryInput) ryInput.value = Math.round(world.wy);
     };
 
-    let lastPaintedX = null;
-    let lastPaintedY = null;
-
     window.onmousemove = (e) => {
         const rect = canvas.getBoundingClientRect();
         const mouseX = Math.max(0, Math.min(canvas.width, e.clientX - rect.left));
         const mouseY = Math.max(0, Math.min(canvas.height, e.clientY - rect.top));
         const world = canvasToWorld(mouseX, mouseY);
-
-        if (window._isPaintingWall && window._mapRadarObjectMode === 'wall') {
-            const scaleVal = parseFloat(document.getElementById('new-map-obj-scale')?.value) || 1.0;
-            const rotYVal = parseFloat(document.getElementById('new-map-obj-rotY')?.value) || 0;
-            const assetVal = document.getElementById('new-map-obj-asset')?.value || 'res://assets/Paredes/Pared1/Pared1.glb';
-
-            const snapSize = 100 * scaleVal;
-            const snappedX = Math.round(world.wx / snapSize) * snapSize;
-            const snappedY = Math.round(world.wy / snapSize) * snapSize;
-
-            if (snappedX !== lastPaintedX || snappedY !== lastPaintedY) {
-                const duplicate = m.objects.some(obj => obj.type === 'wall' && Math.abs(obj.x - snappedX) < 10 && Math.abs(obj.y - snappedY) < 10);
-                if (!duplicate) {
-                    m.objects.push({
-                        type: 'wall',
-                        label: 'Pared',
-                        x: snappedX,
-                        y: snappedY,
-                        assetPath: assetVal,
-                        rotY: rotYVal,
-                        scale: scaleVal
-                    });
-                    lastPaintedX = snappedX;
-                    lastPaintedY = snappedY;
-                    renderMapDetail();
-                }
-            }
-            return;
-        }
 
         if (isDragging && dragItem) {
             if (dragItem.type === 'map-obj') {
@@ -2400,7 +2338,6 @@ function initMapRadar() {
     };
 
     window.onmouseup = () => {
-        window._isPaintingWall = false;
         if (isDragging) {
             isDragging = false;
             dragItem = null;
@@ -2638,92 +2575,42 @@ function initMapRadar() {
     draw();
 }
 
-// Activar/desactivar modo de colocación de objeto en el radar del mapa
+// Activar/desactivar modo de colocación de puerta en el radar del mapa
 function setMapRadarObjectMode(type) {
     window._mapRadarObjectMode = type;
     const hint = document.getElementById('map-radar-mode-hint');
     const canvas = document.getElementById('map-radar-canvas');
     if (type) {
-        const labels = { chest: '📦 Baúl', door: '🚪 Puerta', tower: '🗼 Torre', wall: '🧱 Pared' };
+        const labels = { door: '🚪 Puerta' };
         if (hint) hint.innerHTML = `<span style="color:#ffd700;">MODO: Haz clic en el radar para colocar ${labels[type] || type}. Presioná "Mover" para salir.</span>`;
         if (canvas) canvas.style.cursor = 'cell';
     } else {
-        if (hint) hint.textContent = '🖱️ Arrastra spawns/objetos o haz clic para ver coordenadas.';
+        if (hint) hint.textContent = '🖱️ Arrastra puertas/spawns u objetos o haz clic para ver coordenadas.';
         if (canvas) canvas.style.cursor = 'crosshair';
     }
 }
 
-// Agregar objeto al mapa desde el botón del panel
+// Agregar puerta al mapa desde el botón del panel
 function addMapObject(mapId) {
-    const typeSelect = document.getElementById('new-map-obj-type');
-    const type = typeSelect ? typeSelect.value : 'chest';
     if (!config.mapsConfig[mapId]) return;
     if (!config.mapsConfig[mapId].objects) config.mapsConfig[mapId].objects = [];
     const radarX = parseInt(document.getElementById('map-radar-x')?.value) || 5000;
     const radarY = parseInt(document.getElementById('map-radar-y')?.value) || 5000;
-    const labelMap = { chest: 'Baúl', door: 'Puerta', tower: 'Torre', wall: 'Pared' };
-    
-    const rotYVal = parseFloat(document.getElementById('new-map-obj-rotY')?.value) || 0;
-    const scaleVal = parseFloat(document.getElementById('new-map-obj-scale')?.value) || 1.0;
-    const assetVal = document.getElementById('new-map-obj-asset')?.value;
 
-    const assetMap = {
-        chest: 'res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb',
-        door:  'res://assets/Puertas/3D/Puerta2/Puerta2.glb',
-        tower: 'res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb',
-        wall:  assetVal || 'res://assets/Paredes/Pared1/Pared1.glb'
-    };
-    const newObj = {
-        type,
-        label: labelMap[type] || type,
+    config.mapsConfig[mapId].objects.push({
+        type: 'door',
+        label: 'Puerta',
         x: radarX,
         y: radarY,
-        assetPath: assetMap[type] || ''
-    };
-    if (type === 'door') {
-        newObj.targetZoneId = '';
-        newObj.targetX = 5000;
-        newObj.targetY = 5000;
-    }
-    if (type === 'wall') {
-        newObj.rotY  = rotYVal;
-        newObj.scale = scaleVal;
-    }
-    config.mapsConfig[mapId].objects.push(newObj);
+        assetPath: 'res://assets/Puertas/3D/Puerta2/Puerta2.glb',
+        targetZoneId: '',
+        targetX: 5000,
+        targetY: 5000,
+        scale: 1.0,
+        rotY: 0,
+        yOffset: 2.5
+    });
 }
-
-window.toggleNewMapObjExtraFields = function(val) {
-    window._lastNewMapObjType = val;
-    const el = document.getElementById('new-map-obj-extra-fields');
-    if (el) {
-        el.style.display = val === 'wall' ? 'flex' : 'none';
-    }
-};
-
-window.triggerNewMapObjAssetPick = async function() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.glb';
-    input.onchange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
-        try {
-            const response = await fetch(`${activeURL}/api/find-asset?fileName=${encodeURIComponent(file.name)}`);
-            const result = await response.json();
-            if (result.success && result.path) {
-                const el = document.getElementById('new-map-obj-asset');
-                if (el) el.value = result.path;
-            } else {
-                alert('❌ ' + (result.error || 'Archivo no encontrado en los assets del proyecto.\n\nAsegurate de que el archivo ya esté dentro de la carpeta descon/assets.'));
-            }
-        } catch (err) {
-            console.error(err);
-            alert('Error al conectar con el servidor.');
-        }
-    };
-    input.click();
-};
 
 
 // Resaltar visualmente la tarjeta de objeto en el panel

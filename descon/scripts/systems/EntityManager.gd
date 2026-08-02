@@ -2095,7 +2095,7 @@ func _spawn_wind_barrier_vfx(id, pos, _radius, _data = {}):
 
 	var barrier = Node3D.new()
 	barrier.name = id
-	barrier.position = Vector3(pos.x * s_factor, 0.5, pos.y * s_factor * correction_z)
+	barrier.position = Vector3(pos.x * s_factor, 1.0, pos.y * s_factor * correction_z)
 	barrier.rotation.y = -angle
 	sub_vp.add_child(barrier)
 	active_areas[id] = barrier

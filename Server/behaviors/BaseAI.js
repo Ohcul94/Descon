@@ -196,6 +196,16 @@ module.exports = class BaseAI {
             }
         }
 
+        // Manejar el inicio de persecución (chaseStartTime) si hay un target activo válido
+        const hasActivePlayerTarget = activeTarget && activeTarget.id !== "altar" && !activeTarget.isDead && !activeTarget.isInvisible;
+        if (hasActivePlayerTarget) {
+            if (!this.enemy.chaseStartTime) {
+                this.enemy.chaseStartTime = now;
+            }
+        } else {
+            this.enemy.chaseStartTime = null;
+        }
+
         // v3.0: EVALUAR INTERRUPCIÓN DEL REGRESO AL SPAWN (Soft Leash)
         if (this.enemy.returningToSpawn && activeTarget) {
             const targetDistFromSpawn = Math.hypot(activeTarget.x - this.enemy.startX, activeTarget.y - this.enemy.startY);
@@ -230,19 +240,28 @@ module.exports = class BaseAI {
         }
 
         // v3.9: Determinar si el bicho está en combate activo
-        const lastCombatTime = Math.max(this.enemy.lastHit || 0, this.enemy.lastSuccessHit || 0);
+        const lastCombatTime = Math.max(
+            this.enemy.lastHit || 0, 
+            this.enemy.lastSuccessHit || 0, 
+            this.enemy.chaseStartTime || 0
+        );
         const delayMs = cfg.regenDelayMs !== undefined ? Number(cfg.regenDelayMs) : (cfg.regenDelaySec !== undefined ? Number(cfg.regenDelaySec) * 1000 : 5000);
         
         let inTime = (now - lastCombatTime) < delayMs;
 
-        // Si "stopOnOutOfSight" está activo y el último agresor está fuera de visión, se anula el tiempo de combate activo inmediatamente
-        if (cfg.stopOnOutOfSight && this.enemy.lastHitter && players[this.enemy.lastHitter]) {
-            const p = players[this.enemy.lastHitter];
-            const dist = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
-            const configVision = cfg ? Number(cfg.visionRange) : 0;
-            const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : 800);
-            if (dist > visionRange) {
+        // Si "stopOnOutOfSight" está activo y no hay ningún target de jugador activo a la vista, o si el agresor está fuera de visión, se anula el tiempo de combate activo inmediatamente
+        if (cfg.stopOnOutOfSight) {
+            const hasVisualTarget = activeTarget && activeTarget.id !== "altar" && !activeTarget.isDead && !activeTarget.isInvisible;
+            if (!hasVisualTarget) {
                 inTime = false;
+            } else if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
+                const p = players[this.enemy.lastHitter];
+                const dist = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                const configVision = cfg ? Number(cfg.visionRange) : 0;
+                const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : 800);
+                if (dist > visionRange) {
+                    inTime = false;
+                }
             }
         }
 

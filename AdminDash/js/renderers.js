@@ -1800,14 +1800,11 @@ function renderMapDetail() {
                         <div class="field" style="flex:1;"><label>Radar Y</label><input type="number" id="map-radar-y" value="0" readonly></div>
                     </div>
                     <div style="display:flex; gap:6px; flex-wrap:wrap; width:100%; justify-content:center;">
-                        <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem; border-color:rgba(255,215,0,0.4); color:#ffd700;" onclick="setMapRadarObjectMode('chest')">📦 Baúl</button>
                         <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem; border-color:rgba(0,210,255,0.4); color:#00d2ff;" onclick="setMapRadarObjectMode('door')">🚪 Puerta</button>
-                        <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem; border-color:rgba(255,140,0,0.4); color:#ff8c00;" onclick="setMapRadarObjectMode('tower')">🗼 Torre</button>
-                        <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem; border-color:rgba(168,124,82,0.4); color:#a87c52;" onclick="setMapRadarObjectMode('wall')">🧱 Pared</button>
                         <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem;" onclick="setMapRadarObjectMode(null)">✋ Mover</button>
                     </div>
                     <div id="map-radar-mode-hint" style="font-size:0.65rem; color:#888; text-align:center; width:100%;">
-                        🖱️ Arrastra spawns/objetos o haz clic para colocar. Coords al hover.
+                        🚪 Modo Puerta: haz clic en el radar para colocarla. 🖱️ Arrastra puertas/spawns para moverlos. Paredes, baúles y torres se colocan/escalan en el editor 3D de Godot.
                     </div>
                 </div>
             </div>
@@ -1868,8 +1865,8 @@ function renderMapDetail() {
                                         <label>${labels[f] || f}</label>
                                         <input type="number" step="0.1" value="${val}" 
                                                oninput="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value) || 0">
-                                    </div>`;
-                                }).join('')}
+                        </div>`
+                    }).join('')}
                             </div>
                         </div>`;
                     }).join('')}
@@ -1931,66 +1928,28 @@ function renderMapDetail() {
                     `).join('')}
                 </div>
 
-                <!-- ========== OBJETOS DEL MUNDO ========== -->
-                <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,215,0,0.1);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                        <label style="color:#ffd700; font-size: 0.8rem; font-weight:bold;">🗺️ OBJETOS DEL MUNDO</label>
-                        <div style="display:flex; flex-direction:column; gap:6px;">
-                            <div style="display:flex; gap:6px; align-items:center; justify-content:flex-end;">
-                                <select id="new-map-obj-type" onchange="toggleNewMapObjExtraFields(this.value)" style="background:#0f172a; border:1px solid rgba(255,215,0,0.3); color:#ffd700; font-size:0.7rem; border-radius:4px; padding:3px 6px; cursor:pointer;">
-                                    <option value="chest" ${window._lastNewMapObjType === 'chest' ? 'selected' : ''}>📦 Baúl</option>
-                                    <option value="door" ${window._lastNewMapObjType === 'door' ? 'selected' : ''}>🚪 Puerta</option>
-                                    <option value="tower" ${window._lastNewMapObjType === 'tower' ? 'selected' : ''}>🗼 Torre</option>
-                                    <option value="wall" ${window._lastNewMapObjType === 'wall' ? 'selected' : ''}>🧱 Pared / Dungeon</option>
-                                </select>
-                                <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#b8860b; border-color:#b8860b;" onclick="addMapObject('${selectedMapId}'); renderMapDetail();">+ AGREGAR</button>
-                            </div>
-                            <div id="new-map-obj-extra-fields" style="display:${window._lastNewMapObjType === 'wall' ? 'flex' : 'none'}; flex-direction:column; gap:4px; background:rgba(0,0,0,0.3); padding:8px; border-radius:4px; border:1px solid rgba(168,124,82,0.3);">
-                                <div style="display:flex; gap:6px;">
-                                    <div class="field" style="flex:1; margin:0;">
-                                        <label style="font-size:0.6rem; color:#a87c52;">Rotación Y</label>
-                                        <input type="number" id="new-map-obj-rotY" value="0" style="padding:2px 4px; font-size:0.65rem; background:#0f172a; border:1px solid rgba(168,124,82,0.3); color:#fff; border-radius:4px;">
-                                    </div>
-                                    <div class="field" style="flex:1; margin:0;">
-                                        <label style="font-size:0.6rem; color:#a87c52;">Escala (bloque)</label>
-                                        <input type="number" step="0.1" id="new-map-obj-scale" value="1.0" style="padding:2px 4px; font-size:0.65rem; background:#0f172a; border:1px solid rgba(168,124,82,0.3); color:#fff; border-radius:4px;">
-                                    </div>
-                                </div>
-                                <div class="field" style="margin:0;">
-                                    <label style="font-size:0.6rem; color:#a87c52;">Asset GLB</label>
-                                    <div style="display:flex; gap:4px; align-items:center;">
-                                        <input type="text" id="new-map-obj-asset" value="res://assets/Paredes/Pared1/Pared1.glb" style="padding:2px 4px; font-size:0.65rem; flex:1; margin:0; background:#0f172a; border:1px solid rgba(168,124,82,0.3); color:#fff; border-radius:4px;">
-                                        <button class="btn btn-secondary" style="padding:2px 6px; font-size:0.6rem; margin:0; border-color:rgba(168,124,82,0.4); color:#a87c52;" onclick="triggerNewMapObjAssetPick()">📁</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                <!-- ========== CONFIGURADOR DE PUERTAS / WARPS ========== -->
+                <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(0,210,255,0.1);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                        <label style="color:#00d2ff; font-size: 0.8rem; font-weight:bold;">🚪 CONFIGURADOR DE PUERTAS / WARPS</label>
+                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--accent); border-color:var(--accent);" onclick="addMapObject('${selectedMapId}'); renderMapDetail();">+ AGREGAR PUERTA</button>
+                    </div>
+                    <div style="font-size:0.65rem; color:#64748b; margin-bottom:1rem;">
+                        Paredes, baúles, torres y demás objetos se colocan y escalan en el editor 3D de Godot (MapEditor3D) e importan aquí como referencia visual en el radar.
                     </div>
                     <div id="map-objects-list">
-                    ${(m.objects || []).map((obj, idx) => {
-                        const typeConfig = {
-                            chest: { icon: '📦', color: '#ffd700', label: 'BAÚL' },
-                            door:  { icon: '🚪', color: '#00d2ff', label: 'PUERTA/WARP' },
-                            tower: { icon: '🗼', color: '#ff8c00', label: 'TORRE' },
-                            wall:  { icon: '🧱', color: '#a87c52', label: 'PARED DUNGEON' }
-                        };
-                        const tc = typeConfig[obj.type] || { icon: '⭕', color: '#aaa', label: obj.type?.toUpperCase() || 'OBJETO' };
-                        const allMapOptions = Object.keys(config.mapsConfig)
-                            .filter(id => id !== selectedMapId && (config.mapsConfig[id].visible !== false || obj.targetZoneId == id))
-                            .map(id => `<option value="${id}" ${obj.targetZoneId == id ? 'selected' : ''}>${config.mapsConfig[id].name} (ID: ${id})</option>`)
-                            .join('');
-                        return `
+                    ${(m.objects || []).map((obj, idx) => obj.type !== 'door' ? '' : `
                         <div class="card" id="card-map-obj-${idx}" style="margin-bottom:0.8rem; padding:1rem; position:relative;
-                            border-left: 3px solid ${tc.color}40; background: rgba(0,0,0,0.2); cursor:pointer;"
+                            border-left: 3px solid #00d2ff40; background: rgba(0,0,0,0.2); cursor:pointer;"
                             onclick="highlightMapObject(${idx})">
                             <div style="position:absolute; top:6px; right:6px;">
                                 <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem;" onclick="event.stopPropagation(); config.mapsConfig['${selectedMapId}'].objects.splice(${idx},1); renderMapDetail();">✕</button>
                             </div>
-                            <div style="font-size:0.65rem; color:${tc.color}; font-weight:bold; letter-spacing:1px; margin-bottom:0.7rem;">${tc.icon} ${tc.label}</div>
+                            <div style="font-size:0.65rem; color:#00d2ff; font-weight:bold; letter-spacing:1px; margin-bottom:0.7rem;">🚪 PUERTA/WARP</div>
                             <div class="form-grid">
                                 <div class="field" style="grid-column:span 2;">
                                     <label>Etiqueta</label>
-                                    <input type="text" value="${obj.label || ''}" placeholder="Nombre del objeto"
+                                    <input type="text" value="${obj.label || ''}" placeholder="Nombre de la puerta"
                                            oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].label = this.value">
                                 </div>
                                 <div class="field">
@@ -2006,27 +1965,11 @@ function renderMapDetail() {
                                 <div class="field" style="grid-column:span 2;">
                                     <label>Asset (ruta .glb)</label>
                                     <div style="display:flex; gap:6px; align-items:center;">
-                                        <input type="text" value="${obj.assetPath || (obj.type === 'chest' ? 'res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb' : obj.type === 'door' ? 'res://assets/Puertas/3D/Puerta2/Puerta2.glb' : obj.type === 'wall' ? 'res://assets/Paredes/Pared1/Pared1.glb' : 'res://assets/Arenas PVP/3D/Torres/Torre1/Torre1.glb')}" placeholder="Ruta al archivo .glb del asset"
+                                        <input type="text" value="${obj.assetPath || 'res://assets/Puertas/3D/Puerta2/Puerta2.glb'}" placeholder="Ruta al archivo .glb del asset"
                                                oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].assetPath = this.value" style="flex:1; margin:0;">
                                         <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:var(--accent); border-color:var(--accent);" onclick="triggerMapObjAssetPick('${selectedMapId}', ${idx})">📁</button>
                                     </div>
                                 </div>
-                                ${obj.type === 'wall' ? `
-                                <div class="field" style="grid-column:span 2; border-top:1px solid rgba(168,124,82,0.2); padding-top:0.7rem; margin-top:0.3rem;">
-                                    <label style="color:#a87c52; font-size:0.6rem; font-weight:bold;">🧱 CONFIGURACIÓN DE PARED</label>
-                                </div>
-                                <div class="field">
-                                    <label>Rotación Y (grados)</label>
-                                    <input type="number" value="${obj.rotY || 0}" placeholder="0"
-                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].rotY = parseFloat(this.value) || 0">
-                                </div>
-                                <div class="field">
-                                    <label>Escala (x1 = tamaño base)</label>
-                                    <input type="number" step="0.1" min="0.1" value="${obj.scale || 1}" placeholder="1"
-                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].scale = parseFloat(this.value) || 1">
-                                </div>
-                                ` : ''}
-                                ${obj.type === 'door' ? `
                                 <div class="field" style="grid-column:span 2; border-top:1px solid rgba(0,210,255,0.2); padding-top:0.7rem; margin-top:0.3rem;">
                                     <label style="color:#00d2ff; font-size:0.6rem; font-weight:bold;">🌀 CONFIGURACIÓN DE WARP</label>
                                 </div>
@@ -2035,7 +1978,10 @@ function renderMapDetail() {
                                     <select style="background:#0f172a; border:none; color:#00d2ff; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;"
                                             onchange="config.mapsConfig['${selectedMapId}'].objects[${idx}].targetZoneId = this.value">
                                         <option value="">-- Seleccionar Zona --</option>
-                                        ${allMapOptions}
+                                        ${Object.keys(config.mapsConfig)
+                                            .filter(id => id !== selectedMapId && (config.mapsConfig[id].visible !== false || (obj.targetZoneId || '') == id))
+                                            .map(id => `<option value="${id}" ${(obj.targetZoneId || '') == id ? 'selected' : ''}>${config.mapsConfig[id].name} (ID: ${id})</option>`)
+                                            .join('')}
                                     </select>
                                 </div>
                                 <div class="field">
@@ -2048,10 +1994,27 @@ function renderMapDetail() {
                                     <input type="number" value="${obj.targetY || 5000}" placeholder="5000"
                                            oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].targetY = parseInt(this.value) || 0">
                                 </div>
-                                ` : ''}
+                                <div class="field" style="grid-column:span 2; border-top:1px solid rgba(0,210,255,0.2); padding-top:0.7rem; margin-top:0.3rem;">
+                                    <label style="color:#00d2ff; font-size:0.6rem; font-weight:bold;">📐 CONFIGURACIÓN 3D</label>
+                                </div>
+                                <div class="field">
+                                    <label>Rotación Y (grados)</label>
+                                    <input type="number" value="${obj.rotY || 0}" placeholder="0"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].rotY = parseFloat(this.value) || 0">
+                                </div>
+                                <div class="field">
+                                    <label>Escala (x1 = tamaño base)</label>
+                                    <input type="number" step="0.1" min="0.1" value="${obj.scale || 1}" placeholder="1"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].scale = parseFloat(this.value) || 1">
+                                </div>
+                                <div class="field" style="grid-column:span 2;">
+                                    <label>Y Offset (altura sobre el suelo)</label>
+                                    <input type="number" step="0.1" value="${obj.yOffset !== undefined ? obj.yOffset : 2.5}" placeholder="2.5"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].yOffset = parseFloat(this.value) || 0">
+                                </div>
                             </div>
-                        </div>`;
-                    }).join('')}
+                        </div>`
+                    ).join('')}
                     </div>
                 </div>
             </div>
