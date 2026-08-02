@@ -5296,10 +5296,40 @@
                     "assetPath": "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb",
                     "label": "M7-Pared3-Blender",
                     "rotY": 0.0,
-                    "scale": 20.0,
+                    "scale": 10.0,
                     "type": "wall",
-                    "x": 874.05,
-                    "y": 33.59,
+                    "x": 3297.48,
+                    "y": -42.87,
+                    "yOffset": 0.09
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb",
+                    "label": "M7-Pared3-Blender",
+                    "rotY": -180.0,
+                    "scale": 10.0,
+                    "type": "wall",
+                    "x": 3297.48,
+                    "y": 10167.95,
+                    "yOffset": 0.09
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb",
+                    "label": "M7-Pared3-Blender",
+                    "rotY": -90.4,
+                    "scale": 10.0,
+                    "type": "wall",
+                    "x": 10178.29,
+                    "y": 3526.67,
+                    "yOffset": 0.09
+                },
+                {
+                    "assetPath": "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb",
+                    "label": "M7-Pared3-Blender",
+                    "rotY": 90.0,
+                    "scale": 10.0,
+                    "type": "wall",
+                    "x": -197.0,
+                    "y": 3526.67,
                     "yOffset": 0.09
                 }
             ],

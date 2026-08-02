@@ -35,11 +35,29 @@ async function checkAndProcessDeathDrop(p, io, state) {
             
             // 2. Recolectar de ítems equipados del usuario en DB (full_drop e inferno)
             const dropEquipped = isFullDrop || isInferno;
-            if (dropEquipped && user.gameData.equipped) {
+            if (dropEquipped) {
+                const currentShipIdStr = String(user.gameData.currentShipId || 1);
+                
+                // Intentar leer de equippedByShip en la DB
+                let shipEquip = { w: [], s: [], e: [], x: [] };
+                if (user.gameData.equippedByShip) {
+                    if (typeof user.gameData.equippedByShip.get === 'function') {
+                        shipEquip = user.gameData.equippedByShip.get(currentShipIdStr) || shipEquip;
+                    } else {
+                        shipEquip = user.gameData.equippedByShip[currentShipIdStr] || shipEquip;
+                    }
+                }
+                
+                // Fallback a equipped si ebs está vacío
+                const hasEquippedItems = (shipEquip.w && shipEquip.w.length > 0) || (shipEquip.s && shipEquip.s.length > 0) || (shipEquip.e && shipEquip.e.length > 0);
+                if (!hasEquippedItems && user.gameData.equipped) {
+                    shipEquip = user.gameData.equipped;
+                }
+
                 const slots = ['w', 's', 'e', 'x'];
                 slots.forEach(slot => {
-                    if (user.gameData.equipped[slot] && Array.isArray(user.gameData.equipped[slot])) {
-                        user.gameData.equipped[slot].forEach(item => {
+                    if (shipEquip[slot] && Array.isArray(shipEquip[slot])) {
+                        shipEquip[slot].forEach(item => {
                             if (item) droppedItems.push(item);
                         });
                     }
@@ -79,6 +97,19 @@ async function checkAndProcessDeathDrop(p, io, state) {
             p.inventory = [];
             if (dropEquipped) {
                 p.equipped = { w: [], s: [], e: [], x: [] };
+                const currentShipIdStr = String(p.currentShipId || user.gameData.currentShipId || 1);
+                if (p.equippedByShip) {
+                    p.equippedByShip[currentShipIdStr] = { w: [], s: [], e: [], x: [] };
+                }
+                // v309.2: Recalcular stats tras perder equipamiento y sincronizar con la zona
+                calculateFinalStats(p, state.SERVER_CONFIG);
+                io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                    id: p.socketId,
+                    hp: p.hp,
+                    shield: p.shield,
+                    maxHp: p.maxHp,
+                    maxShield: p.maxShield
+                });
             }
 
             // 5. Vaciar en la Base de Datos (MongoDB) de forma autoritativa

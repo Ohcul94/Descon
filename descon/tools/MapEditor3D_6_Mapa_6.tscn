@@ -52,7 +52,34 @@ mesh = SubResource("PlaneMesh_1")
 unique_name_in_owner = true
 
 [node name="M7-Pared3-Blender" parent="ObjectsRoot" unique_id=1526505120 instance=ExtResource("2_6s6p5")]
-transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 17.481003, 0.08983016, 0.9500284)
+transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 65.94957, 0.08983016, -1.2125998)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb"
+metadata/label = &"M7-Pared3-Blender"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="M7-Pared3-Blender4" parent="ObjectsRoot" unique_id=685055107 instance=ExtResource("2_6s6p5")]
+transform = Transform3D(-10, 0, -8.742278e-07, 0, 10, 0, 8.742278e-07, 0, -10, 65.94957, 0.08983016, 287.59317)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb"
+metadata/label = &"M7-Pared3-Blender"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="M7-Pared3-Blender2" parent="ObjectsRoot" unique_id=967137163 instance=ExtResource("2_6s6p5")]
+transform = Transform3D(-0.07644725, 0, -9.999708, 0, 9.999999, 0, 9.999708, 0, -0.07644725, 203.56573, 0.08983016, 99.74941)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb"
+metadata/label = &"M7-Pared3-Blender"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="M7-Pared3-Blender3" parent="ObjectsRoot" unique_id=2105070309 instance=ExtResource("2_6s6p5")]
+transform = Transform3D(-4.371139e-07, 0, 10, 0, 9.999999, 0, -10, 0, -4.371139e-07, -3.940071, 0.08983016, 99.74941)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb"
 metadata/label = &"M7-Pared3-Blender"
