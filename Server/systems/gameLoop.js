@@ -215,6 +215,7 @@ function startGameLoop(io, state, aiManager) {
                                     const isRage = !!e.isRage;
                                     const isInvisible = !!e.isInvisible;
                                     const isCamouflaged = !!e.isCamouflaged;
+                                    const isBurrowed = !!e.isBurrowed;
                                     const status_effects = getStatusEffects(e);
                                     const last = p._lastSentEnemies[e.id];
                                     let shouldSend = false;
@@ -239,6 +240,7 @@ function startGameLoop(io, state, aiManager) {
                                                              last.isInvulnerable !== isInvulnerable ||
                                                              last.isInvisible !== isInvisible ||
                                                              last.isCamouflaged !== isCamouflaged ||
+                                                             last.isBurrowed !== isBurrowed ||
                                                              seChanged;
 
                                         if (posChanged || rotChanged || stateChanged) {
@@ -260,6 +262,7 @@ function startGameLoop(io, state, aiManager) {
                                             isInvulnerable: isInvulnerable,
                                             isInvisible: isInvisible,
                                             isCamouflaged: isCamouflaged,
+                                            isBurrowed: isBurrowed,
                                             status_effects: Object.assign(status_effects, e.status_effects || {})
                                         };
                                         if (!last) {
@@ -277,6 +280,7 @@ function startGameLoop(io, state, aiManager) {
                                             isInvulnerable: isInvulnerable,
                                             isInvisible: isInvisible,
                                             isCamouflaged: isCamouflaged,
+                                            isBurrowed: isBurrowed,
                                             status_effects: Object.assign({}, status_effects)
                                         };
                                         count++;

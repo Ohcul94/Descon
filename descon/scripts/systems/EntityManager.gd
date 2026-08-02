@@ -1176,6 +1176,155 @@ func _on_enemy_action(data: Dictionary):
 			if wall_node.has_method("setup"):
 				wall_node.setup(data, current_map, en)
 
+		elif action == "mech_interrupt":
+			# v400.600: El enemigo se hundió y canceló sus canalizaciones en curso.
+			# Limpiar todos los indicadores/casts de carga de este enemigo de una vez.
+			if is_instance_valid(en):
+				en.set_meta("is_locked", false)
+				for child in en.get_children():
+					if child.has_meta("is_laser_indicator"):
+						en.remove_child(child)
+						child.queue_free()
+				if is_instance_valid(en.get("world_root_3d")):
+					for n in ["Cone3D_" + enemy_id, "Circle3D_" + enemy_id]:
+						var tgt = en.world_root_3d.get_node_or_null(n)
+						if is_instance_valid(tgt):
+							tgt.queue_free()
+
+			var current_map_interrupt = get_tree().get_first_node_in_group("map")
+			var interrupt_3d = is_instance_valid(current_map_interrupt) and current_map_interrupt.get("sub_viewport") != null and is_instance_valid(en.get("world_root_3d"))
+			if interrupt_3d:
+				var old_vp_node = current_map_interrupt.sub_viewport.get_node_or_null("LaserIndicator3D_" + enemy_id)
+				if is_instance_valid(old_vp_node):
+					old_vp_node.queue_free()
+
+			if active_laser_tracking.has(enemy_id):
+				var lt_data = active_laser_tracking[enemy_id]
+				var lt_3d = lt_data.get("indicator_3d")
+				if is_instance_valid(lt_3d): lt_3d.queue_free()
+				active_laser_tracking.erase(enemy_id)
+
+			var containers := [en]
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				containers.append(world.entities_node)
+			for ind_name in ["ConeIndicator_" + enemy_id, "CircleIndicator_" + enemy_id]:
+				for container in containers:
+					if not is_instance_valid(container):
+						continue
+					var ind = container.get_node_or_null(ind_name)
+					if is_instance_valid(ind):
+						ind.queue_free()
+				active_areas.erase(ind_name)
+
+			# Limpiar paredes de viento en fase de carga de este enemigo
+			var wind_keys_to_free := []
+			for wkey in active_wind_walls.keys():
+				if str(wkey).begins_with(str(enemy_id)):
+					wind_keys_to_free.append(wkey)
+			for wkey in wind_keys_to_free:
+				if is_instance_valid(active_wind_walls[wkey]):
+					active_wind_walls[wkey].queue_free()
+				active_wind_walls.erase(wkey)
+
+		elif action == "burrow_dive":
+			# v400.60: Zambullida Telúrica - el enemigo se hunde, empieza la grieta
+			var burrow_id: String = "burrow_" + enemy_id
+			if active_areas.has(burrow_id) and is_instance_valid(active_areas[burrow_id]):
+				active_areas[burrow_id].queue_free()
+				active_areas.erase(burrow_id)
+
+			var dive_s := float(data.get("duration", 1000.0)) / 1000.0
+			if en.has_method("play_burrow_dive"):
+				en.play_burrow_dive(dive_s)
+
+			var burrow_script = load("res://scripts/systems/BurrowVisual.gd")
+			if not burrow_script:
+				return
+			var dive_data = data.duplicate()
+			var burrow_node := Node2D.new()
+			burrow_node.set_script(burrow_script)
+			burrow_node.name = "Burrow_" + enemy_id
+			burrow_node.z_index = 6
+			burrow_node.set_as_top_level(true)
+			burrow_node.global_position = en.global_position
+			if is_instance_valid(world) and is_instance_valid(world.entities_node):
+				world.entities_node.add_child(burrow_node)
+			else:
+				add_child(burrow_node)
+			if burrow_node.has_method("setup"):
+				burrow_node.setup(dive_data, current_map, en)
+			active_areas[burrow_id] = burrow_node
+
+		elif action == "burrow_travel":
+			# El enemigo ya viaja oculto; la grieta avanza hacia el target
+			var burrow_id: String = "burrow_" + enemy_id
+			if active_areas.has(burrow_id) and is_instance_valid(active_areas[burrow_id]):
+				if active_areas[burrow_id].has_method("launch_travel"):
+					active_areas[burrow_id].launch_travel(data)
+
+		elif action == "burrow_warn":
+			# Círculo de aviso en el piso: el enemigo sigue oculto bajo tierra
+			var burrow_id: String = "burrow_" + enemy_id
+			if active_areas.has(burrow_id) and is_instance_valid(active_areas[burrow_id]):
+				if active_areas[burrow_id].has_method("warn_now"):
+					active_areas[burrow_id].warn_now(data)
+			else:
+				# Fallback: crear el visual para mostrar el aviso aunque falte el dive
+				var burrow_script = load("res://scripts/systems/BurrowVisual.gd")
+				if not burrow_script:
+					return
+				var burrow_node := Node2D.new()
+				burrow_node.set_script(burrow_script)
+				burrow_node.name = "Burrow_" + enemy_id
+				burrow_node.z_index = 6
+				burrow_node.set_as_top_level(true)
+				burrow_node.global_position = en.global_position
+				if is_instance_valid(world) and is_instance_valid(world.entities_node):
+					world.entities_node.add_child(burrow_node)
+				else:
+					add_child(burrow_node)
+				if burrow_node.has_method("setup"):
+					burrow_node.setup(data, current_map, en)
+				if burrow_node.has_method("warn_now"):
+					burrow_node.warn_now(data)
+				active_areas[burrow_id] = burrow_node
+
+		elif action == "burrow_emerge":
+			# Rompimiento del suelo + círculo de daño
+			if en.has_method("play_burrow_emerge"):
+				en.play_burrow_emerge()
+			var burrow_id: String = "burrow_" + enemy_id
+			if active_areas.has(burrow_id) and is_instance_valid(active_areas[burrow_id]):
+				if active_areas[burrow_id].has_method("burst_now"):
+					active_areas[burrow_id].burst_now(data)
+			else:
+				# Fallback: evento perdido, crear zona directamente
+				var burrow_script = load("res://scripts/systems/BurrowVisual.gd")
+				if not burrow_script:
+					return
+				var burrow_node := Node2D.new()
+				burrow_node.set_script(burrow_script)
+				burrow_node.name = "Burrow_" + enemy_id
+				burrow_node.z_index = 6
+				burrow_node.set_as_top_level(true)
+				burrow_node.global_position = en.global_position
+				if is_instance_valid(world) and is_instance_valid(world.entities_node):
+					world.entities_node.add_child(burrow_node)
+				else:
+					add_child(burrow_node)
+				if burrow_node.has_method("setup"):
+					burrow_node.setup(data, current_map, en)
+				if burrow_node.has_method("burst_now"):
+					burrow_node.burst_now(data)
+				active_areas[burrow_id] = burrow_node
+
+		elif action == "burrow_zone_end":
+			var burrow_id: String = "burrow_" + enemy_id
+			if active_areas.has(burrow_id) and is_instance_valid(active_areas[burrow_id]):
+				active_areas[burrow_id].end_zone()
+				active_areas[burrow_id].queue_free()
+				active_areas.erase(burrow_id)
+
 func _on_enemy_updated(data):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return
 	var id = str(data.id)
@@ -1215,7 +1364,9 @@ func _on_enemy_updated(data):
 		var enemy_zone = _parse_zone_to_int(data.get("zone", -1))
 		if enemy_zone != -1:
 			eref.set_meta("zone", enemy_zone)
-		eref.update_stats(data); eref.visible = true; eref.show()
+		eref.update_stats(data)
+		if not eref.is_burrowed:
+			eref.visible = true; eref.show()
 	else:
 		enemies.erase(id)
 
@@ -2004,6 +2155,15 @@ func _on_clear_zone_entities(payload):
 			if is_instance_valid(child) and (child.name.begins_with("Worm_") or child.name.begins_with("WindWall_")):
 				child.queue_free()
 	active_wind_walls.clear()
+
+	# v400.60: Limpiar visuales de zambullida (Burrow_) al cambiar de zona
+	if is_instance_valid(world) and is_instance_valid(world.get("entities_node")):
+		for child in world.entities_node.get_children():
+			if is_instance_valid(child) and child.name.begins_with("Burrow_"):
+				child.queue_free()
+	for key in active_areas.keys():
+		if str(key).begins_with("burrow_"):
+			active_areas.erase(key)
 	
 	if is_instance_valid(world) and is_instance_valid(world.combat_system) and world.combat_system.has_method("clear_all_bullets"):
 		world.combat_system.clear_all_bullets()

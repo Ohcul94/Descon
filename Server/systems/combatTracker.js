@@ -72,6 +72,8 @@ function trackHealingDone(healerSocketId, targetId, amount, type, state) {
     const pUid = p.dbId || (p.id ? p.id.toString() : null);
     if (!pUid || !group.members[pUid]) return;
     group.members[pUid].healingDone += Math.round(amount);
+    // v400.60: Acumulador persistente para target "mayor curación" (Sambullida)
+    p.healingDoneTotal = (p.healingDoneTotal || 0) + Math.round(amount);
 
     if (targetId && targetId !== healerSocketId) {
         const target = state.players[targetId];

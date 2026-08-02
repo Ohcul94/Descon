@@ -3974,24 +3974,24 @@
                     "bulletDamage": 300,
                     "bulletSpeed": 350,
                     "castSpeed": 0,
-                    "castTimeMs": 2000,
+                    "castTimeMs": 1000,
                     "chargeTimeMs": 2000,
                     "circleCount": 3,
                     "coneAngle": 100,
                     "coneFollow": true,
-                    "cooldown": 5000,
+                    "cooldown": 6000,
                     "damage": 500,
                     "damage_per_tick": 200,
                     "debuffsList": [
                         {
-                            "type": "slow",
-                            "amount": 70,
-                            "duration": 2500,
-                            "isPercentage": true
+                            "type": "bleed",
+                            "dps": 30,
+                            "duration": 3000,
+                            "tickInterval": 1000
                         }
                     ],
                     "duration": 4000,
-                    "fireRange": 500,
+                    "fireRange": 1000,
                     "fireRate": 3000,
                     "fuseTimeMs": 1000,
                     "hookMissWaitMs": 0,
@@ -4006,7 +4006,7 @@
                     "postCastWaitMs": 1000,
                     "postHookWaitMs": 500,
                     "pullSpeed": 0,
-                    "radius": 400,
+                    "radius": 300,
                     "reflect_mult": 1,
                     "safeRadius": 300,
                     "slowDuration": 2000,
@@ -4021,14 +4021,21 @@
                     "stunDuration": 1000,
                     "tick_interval": 1000,
                     "turnSpeed": 0,
-                    "type": "wind_wall",
+                    "type": "burrow",
                     "projectileCount": 5,
                     "spreadAngle": 60,
                     "parkTimeMs": 2000,
                     "returnDamage": 200,
                     "wallWidth": 200,
                     "pushForce": 500,
-                    "wallStartOffset": 50
+                    "wallStartOffset": 50,
+                    "burrowSpeed": 400,
+                    "burstMode": "burst",
+                    "zoneDuration": 4000,
+                    "zoneTickMs": 500,
+                    "targetMode": "random",
+                    "undergroundMs": 3000,
+                    "warnTimeMs": 2000
                 }
             ],
             "movementPhases": [
@@ -6024,6 +6031,28 @@
                 "pushForce",
                 "debuffsList",
                 "cooldown",
+                "startDelay"
+            ]
+        },
+        "burrow": {
+            "label": "Zambullida Telúrica",
+            "icon": "🕳️",
+            "desc": "El enemigo se hunde bajo tierra, viaja en línea recta hacia un objetivo seleccionable (por proximidad, aleatorio, menos vida, más vida, mayor daño causado o mayor curación) y emerge rompiendo el suelo: círculo de daño único o zona persistente + debuffs configurables.",
+            "fields": [
+                "cooldown",
+                "castTimeMs",
+                "burrowSpeed",
+                "fireRange",
+                "radius",
+                "bulletDamage",
+                "undergroundMs",
+                "warnTimeMs",
+                "burstMode",
+                "zoneDuration",
+                "zoneTickMs",
+                "zoneDamage",
+                "targetMode",
+                "debuffsList",
                 "startDelay"
             ]
         }

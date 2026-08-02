@@ -159,6 +159,11 @@ func get_aim_target_3d(mouse_pos_2d: Vector2) -> Vector3:
 var _status_material: StandardMaterial3D = null
 var _vfx_container_2d: Node2D = null
 var _is_currently_invisible: bool = false
+var is_burrowed: bool = false
+var _burrow_y_offset: float = 0.0
+var _burrow_emerging: bool = false
+var _burrow_diving: bool = false
+var _burrow_lock_free_rotation: bool = false
 
 var debuffs: Dictionary = {} # { type: {"time_left": float, "total": float, "stacks": int} }
 var _is_currently_camouflaged: bool = false
@@ -400,21 +405,27 @@ func _process(delta):
 			
 			# v311.5: Forzar visibilidad correcta al estar en pantalla
 			if is_instance_valid(world_root_3d):
-				if get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
+				if is_burrowed and not _burrow_emerging:
+					world_root_3d.visible = false
+				elif get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
 					world_root_3d.visible = false
 				elif (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
 					world_root_3d.visible = _is_currently_camouflaged
 				else:
 					world_root_3d.visible = not is_dead
 			if is_instance_valid(_ui_wrapper):
-				if get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
+				if is_burrowed:
+					_ui_wrapper.visible = false
+				elif get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
 					_ui_wrapper.visible = false
 				elif (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
 					_ui_wrapper.visible = false
 				else:
 					_ui_wrapper.visible = visible and not is_dead
 			if is_instance_valid(_vfx_container_2d):
-				if get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
+				if is_burrowed:
+					_vfx_container_2d.visible = false
+				elif get_node_or_null("/root/NetworkManager") and not NetworkManager.is_logged_in:
 					_vfx_container_2d.visible = false
 				elif (_is_currently_invisible or _is_currently_camouflaged) and not _is_ally:
 					_vfx_container_2d.visible = _is_currently_camouflaged
@@ -536,6 +547,17 @@ func _process(delta):
 		if is_instance_valid(world_root_3d): world_root_3d.visible = false
 		visible = false; return
 
+	if is_burrowed and not _burrow_emerging:
+		visible = false
+		if _ui_wrapper: _ui_wrapper.visible = false
+		return
+
+	if _burrow_emerging:
+		# Durante la emergencia, mantener oculto el 2D hasta que suba; el 3D anima su altura
+		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
+		visible = false
+		return
+
 	visible = true; show()
 	if _ui_wrapper: _ui_wrapper.visible = true
 
@@ -617,10 +639,13 @@ func _process(delta):
 		_bank_current = lerp(_bank_current, _bank_target, 0.1)
 		
 		# 3. ROTACIÓN DE LA NAVE (v254.60: Revertido a original por pedido del usuario)
+		# v400.700: Durante el hundimiento (burrow dive) la rotación queda congelada
+		# apuntando al target para que no se vea girando mientras entra bajo tierra.
 		var target_yaw = -rotation
-		_3d_model.rotation.y = lerp_angle(_3d_model.rotation.y, target_yaw, 0.2)
-		_3d_model.rotation.x = abs(_bank_current) * 0.12
-		_3d_model.rotation.z = -_bank_current * 0.4
+		if not _burrow_lock_free_rotation:
+			_3d_model.rotation.y = lerp_angle(_3d_model.rotation.y, target_yaw, 0.2)
+			_3d_model.rotation.x = abs(_bank_current) * 0.12
+			_3d_model.rotation.z = -_bank_current * 0.4
 		
 		# Control de emisión de propulsión 3D basada en velocidad
 		if is_instance_valid(_3d_propulsion):
@@ -835,9 +860,13 @@ func _update_3d_root_sync():
 			world_root_3d.position.y = 2.5
 		else:
 			world_root_3d.position.y = 1.0
+		world_root_3d.position.y += _burrow_y_offset
 		
 		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)
 		if is_dead:
+			world_root_3d.visible = false
+		elif is_burrowed and not _burrow_emerging:
+			# Durante el viaje subterráneo el enemigo queda oculto; la grieta del BurrowVisual lo sustituye
 			world_root_3d.visible = false
 		elif is_teleporting:
 			world_root_3d.visible = true
@@ -932,6 +961,13 @@ func update_stats(data):
 		var inv = bool(data.get("isInvisible", false))
 		var camo = bool(data.get("isCamouflaged", false))
 		_update_invisibility_visuals(inv, camo)
+
+	# v400.60: Sincronía de Zambullida (BURROW) - el enemigo se oculta bajo tierra
+	if data.has("isBurrowed"):
+		var buried = bool(data.get("isBurrowed", false))
+		if buried != is_burrowed:
+			is_burrowed = buried
+			_update_burrow_visuals(buried)
 
 	if not is_local:
 		if current_shield > max_shield: max_shield = current_shield
@@ -3229,6 +3265,85 @@ func _update_collision_size():
 		base_size = 180.0
 
 	_collision_shape.shape.radius = base_size * 0.4
+
+func _update_burrow_visuals(buried: bool):
+	# v400.60: Zambullida Telúrica - el enemigo se oculta totalmente bajo tierra
+	if buried:
+		# v400.600: Durante el hundimiento el AOI ya avisa isBurrowed=true; no ocultar al
+		# instante: dejar que la animación de dive (tween de _burrow_y_offset) se complete.
+		if _burrow_diving:
+			return
+		visible = false
+		modulate = Color(1, 1, 1, 0)
+		if is_instance_valid(world_root_3d): world_root_3d.visible = false
+		if is_instance_valid(sprite): sprite.visible = false
+		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = false
+		if is_instance_valid(_vfx_container_2d): _vfx_container_2d.visible = false
+	else:
+		if _burrow_emerging:
+			# La animación de emergencia controla sprite y modulate; solo reactivamos nodos 3D/UI
+			visible = true
+			if is_instance_valid(world_root_3d): world_root_3d.visible = not is_dead
+			if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = not is_dead and _ui_wrapper != null
+			return
+		visible = true
+		modulate = Color(1, 1, 1, 1)
+		if is_instance_valid(world_root_3d): world_root_3d.visible = not is_dead
+		if is_instance_valid(sprite): sprite.visible = not is_dead
+		if is_instance_valid(_ui_wrapper): _ui_wrapper.visible = not is_dead
+		if is_instance_valid(_vfx_container_2d): _vfx_container_2d.visible = true
+
+func play_burrow_dive(dive_duration_s: float) -> void:
+	# v400.400: El enemigo rompe el suelo y se hunde bajo tierra (inverso del arco del electrón)
+	_burrow_emerging = false
+	_burrow_diving = true
+	var root = world_root_3d
+	if is_instance_valid(root):
+		root.visible = true
+		# v400.700: Congelar la rotación durante el hundimiento: el modelo mantiene la
+		# dirección que ya tenía (hacia el objetivo) mientras se hunde, sin girar.
+		_burrow_lock_free_rotation = true
+		# Hundirse: el plano del suelo (Y=0 del viewport) queda arriba conforme baja el modelo
+		var tw := create_tween()
+		tw.set_parallel()
+		tw.tween_property(self, "_burrow_y_offset", -2.6, dive_duration_s).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		tw.tween_property(root, "scale", Vector3(0.35, 0.35, 0.35), dive_duration_s).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		# Sacudida del sprite 2D para simular el rompimiento del suelo
+		if is_instance_valid(sprite):
+			tw.tween_method(func(_v): sprite.offset = Vector2(randf_range(-8, 8), randf_range(-8, 8)), 0.0, 1.0, dive_duration_s)
+		# v400.600: Al terminar el hundimiento sí ocultar completamente (AOI ya marcó is_burrowed)
+		tw.chain().tween_callback(func():
+			_burrow_diving = false
+			_burrow_lock_free_rotation = false
+			if is_burrowed:
+				_update_burrow_visuals(true)
+		)
+	if is_instance_valid(sprite):
+		var tw2 := create_tween()
+		tw2.set_parallel()
+		tw2.tween_property(sprite, "modulate:a", 0.0, dive_duration_s * 0.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+
+func play_burrow_emerge(emerge_duration_s: float = 0.65) -> void:
+	# v400.400: El enemigo sale rompiendo el suelo hacia arriba
+	_burrow_emerging = true
+	var root = world_root_3d
+	var done_cb := func():
+		_burrow_emerging = false
+	if is_instance_valid(root):
+		root.visible = true
+		root.scale = Vector3(0.3, 0.3, 0.3)
+		self._burrow_y_offset = -1.8
+		var tw := create_tween()
+		tw.set_parallel()
+		tw.tween_property(self, "_burrow_y_offset", 0.0, emerge_duration_s).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(root, "scale", Vector3.ONE, emerge_duration_s).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_callback(done_cb)
+	if is_instance_valid(sprite):
+		sprite.visible = true
+		sprite.modulate = Color(1, 1, 1, 0)
+		var tw2 := create_tween()
+		tw2.tween_property(sprite, "modulate:a", 1.0, emerge_duration_s * 0.7).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tw2.tween_callback(done_cb)
 
 func _update_invisibility_visuals(invisible: bool, camouflaged: bool = false):
 	_is_currently_invisible = invisible

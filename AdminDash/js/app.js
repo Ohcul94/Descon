@@ -825,6 +825,14 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'wallWidth') mech[f] = 140;
             else if (f === 'wallStartOffset') mech[f] = 50;
             else if (f === 'pushForce') mech[f] = 250;
+            else if (f === 'burrowSpeed') mech[f] = 550;
+            else if (f === 'burstMode') mech[f] = 'burst';
+            else if (f === 'zoneDuration') mech[f] = 4000;
+            else if (f === 'zoneTickMs') mech[f] = 500;
+            else if (f === 'zoneDamage') mech[f] = 25;
+            else if (f === 'warnTimeMs') mech[f] = 1200;
+            else if (f === 'undergroundMs') mech[f] = 2500;
+            else if (f === 'targetMode') mech[f] = newType === 'burrow' ? 'proximity' : 'proximity';
             else mech[f] = 0;
         }
     });

@@ -268,11 +268,36 @@ module.exports = class BaseAI {
         // En combate estrictamente si ha recibido/hecho daño dentro del delay configurado (independientemente de tener target visual activo)
         this._inCombat = (!this.enemy.returningToSpawn) && inTime;
 
-        // Si salimos de combate por expirar el delay de inactividad de daño, forzar el retorno al spawn (Evasión)
-        if (!this._inCombat && !this.enemy.returningToSpawn && (this.enemy.lastHitter || activeTarget)) {
+        // Si salimos de combate por expirar el delay de inactividad de daño:
+        // - Si el enemigo es agresivo al ver (isAggressive) y el target sigue a la vista en rango, no debe huir; regenerará pero seguirá atacando.
+        // - Si no es agresivo o no hay target visual en rango de visión, forzar el retorno al spawn (Evasión).
+        if (!this._inCombat && !this.enemy.returningToSpawn) {
+            const hasVisualTarget = activeTarget && activeTarget.id !== "altar" && !activeTarget.isDead && !activeTarget.isInvisible;
+            let targetInVision = false;
+            
+            if (hasVisualTarget) {
+                const distToTarget = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
+                const configVision = cfg ? Number(cfg.visionRange) : 0;
+                const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : 800);
+                if (distToTarget <= visionRange) {
+                    targetInVision = true;
+                }
+            }
+
+            const shouldEvade = !isAggressive || !hasVisualTarget || !targetInVision;
+
+            if (shouldEvade && (this.enemy.lastHitter || activeTarget)) {
+                this.enemy.returningToSpawn = true;
+                this.enemy.lastHitter = null;
+                activeTarget = null;
+            }
+        }
+
+        // v3.9.2: Si no está en combate, no tiene target, no tiene lastHitter, no es prowler y está lejos de su spawn, regresar al spawn de forma segura
+        let isProwler = (cfg.movementAI === 'prowler') || (cfg.movementPhases && cfg.movementPhases[0] && cfg.movementPhases[0].type === 'prowler');
+        const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
+        if (!this._inCombat && !activeTarget && !this.enemy.lastHitter && !this.enemy.returningToSpawn && !isProwler && distFromSpawn > 50) {
             this.enemy.returningToSpawn = true;
-            this.enemy.lastHitter = null;
-            activeTarget = null;
         }
 
         // Lógica de Regeneración Autoritaria (Fuera de Combate / Ocioso)
@@ -440,7 +465,7 @@ module.exports = class BaseAI {
         const hasActiveMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isActive || m.isCharging || m.isLocked || m.isFiring);
         const isExtreme = !!this.ambienceBoost;
         
-        const isProwler = (cfg.movementAI === 'prowler') || (cfg.movementPhases && cfg.movementPhases[0] && cfg.movementPhases[0].type === 'prowler');
+        isProwler = (cfg.movementAI === 'prowler') || (cfg.movementPhases && cfg.movementPhases[0] && cfg.movementPhases[0].type === 'prowler');
         if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme && !isProwler) {
             this.enemy.isMoving = false;
             return;
@@ -516,9 +541,9 @@ module.exports = class BaseAI {
         // v268.810: Procesar combate y movimiento
         this.applyCombatLogic(activeTarget, dist, targetAngle, now, io, grid, players);
         
-        // Bloquear movimiento físico en todas las IAs si está cargando/canalizando un ataque
+        // Bloquear movimiento físico en todas las IAs si está cargando/canalizando un ataque o viajando bajo tierra (burrow)
         const isChargingAttack = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging);
-        if (isChargingAttack) {
+        if (isChargingAttack || this.enemy.isBurrowed || this.enemy._lockActions) {
             this.enemy.isMoving = false;
         } else if (activeTarget) {
             this.enemy.isMoving = true;
@@ -636,6 +661,12 @@ module.exports = class BaseAI {
             const timeSinceSpawn = now - this.enemy.spawnTime;
             if (timeSinceSpawn < (mech.startDelay || 0)) return;
 
+            // v400.600: Mientras el enemigo está bajo tierra (burrow), silenciar el resto de
+            // mecánicas ofensivas. _lockActions cubre desde el inicio del hundimiento;
+            // isBurrowed cubre viaje/espera. Las auras/efectos persistentes siguen su ciclo.
+            const burrowLock = this.enemy.isBurrowed || this.enemy._lockActions;
+            if (burrowLock && mech.type !== "burrow" && !(mech.type && mech.type.startsWith("aura_"))) return;
+
             if (mech.type && mech.type.startsWith("aura_")) {
                 this._handleAuraLogic(mech, mId, now, io, grid, players);
             } else if (this._executeMechanic(mech, mId, target, dist, angle, now, io, players)) {
@@ -653,6 +684,53 @@ module.exports = class BaseAI {
         });
 
         return isBusy;
+    }
+
+    // v400.600: Interrupción AAA al iniciar la Zambullida.
+    // Cancela las canalizaciones/casticos en curso del resto de mecánicas (descarta daño/efecto),
+    // resetea sus flags a reposo y avisa al cliente para limpiar los indicadores de carga.
+    // Los cooldowns (nextShotTime) NO se tocan: siguen corriendo mientras el enemigo está oculto.
+    // Las auras y efectos persistentes ya activos (wall_dome, reflect, invulnerability, auras)
+    // se dejan intactos para que sigan su ciclo (decisión AAA).
+    _interruptActiveMechanics(now, io, skipMId) {
+        if (!this.enemy.mechState) return;
+        const zoneStr = `zone_${this.enemy.zone}`;
+        for (const mId in this.enemy.mechState) {
+            if (mId === skipMId) continue;
+            const st = this.enemy.mechState[mId];
+            if (!st) continue;
+            const isBusy = st.isCharging || st.isLocked || st.isFiring || st.isActive
+                || (st.activeBombsList && st.activeBombsList.length > 0)
+                || (st.activeWorms && st.activeWorms.length > 0)
+                || st.activeWindWall;
+            if (!isBusy) continue;
+
+            st.isCharging = false;
+            st.isLocked = false;
+            st.isFiring = false;
+            st.isActive = false;
+            if (st.activeBombsList) st.activeBombsList = [];
+            if (st.activeWorms) st.activeWorms = [];
+            if (st.activeWindWall) { st.activeWindWall = null; }
+            if (st.isFiringBurst !== undefined) st.isFiringBurst = false;
+            if (st.isCasting !== undefined) st.isCasting = false;
+            if (mId.startsWith('mech_')) {
+                // No tocar `mechState[mech_<i>]` para burrow (se maneja sola); resto a visual limpio
+            }
+
+            io.to(zoneStr).emit('serverEnemyAction', {
+                id: this.enemy.id,
+                action: "mech_interrupt",
+                type: "burrow",
+                mId: mId
+            });
+        }
+
+        // Si el enemigo estaba en lanzamiento de gancho, liberarlo
+        if (this.enemy.isHooking) {
+            if (this.enemy._hookSafetyTimeout) clearTimeout(this.enemy._hookSafetyTimeout);
+            this.enemy.isHooking = false;
+        }
     }
 
     _handleAuraLogic(mech, mId, now, io, grid, players) {
@@ -2037,6 +2115,338 @@ module.exports = class BaseAI {
 
                 if (ww.dist >= ww.range) {
                     state.activeWindWall = null;
+                    state.isActive = false;
+                    state.nextShotTime = now + cooldown;
+                    this.enemy.mechState[mId] = state;
+                    return false;
+                }
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            this.enemy.mechState[mId] = state;
+            return false;
+        }
+
+        // Mecánica de Zambullida Telúrica (burrow)
+        // El enemigo se hunde bajo el piso, viaja subterráneamente hacia un target
+        // (seleccionable por criterio) y emerge creando un círculo de daño con
+        // radio configurable (burst único o zona persistente) + debuffs configurables.
+        if (mech.type === "burrow") {
+            const cooldown = mech.cooldown || 9000;
+            const diveTimeMs = mech.castTimeMs !== undefined ? Number(mech.castTimeMs) : 1500;
+            const travelSpeed = mech.burrowSpeed !== undefined ? Number(mech.burrowSpeed) : 600;
+            const targetRange = mech.fireRange || 800;
+            const radius = mech.radius !== undefined ? Number(mech.radius) : 250;
+            const dmg = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 25) * (this.damageMult || 1);
+            const burstMode = mech.burstMode || "burst";
+            const zoneDamage = (mech.zoneDamage !== undefined ? Number(mech.zoneDamage) : 25) * (this.damageMult || 1);
+            const zoneDuration = mech.zoneDuration !== undefined ? Number(mech.zoneDuration) : 4000;
+            const zoneTickMs = mech.zoneTickMs !== undefined ? Number(mech.zoneTickMs) : 1000;
+            const warnTimeMs = mech.warnTimeMs !== undefined ? Number(mech.warnTimeMs) : 1200;
+            const undergroundMs = mech.undergroundMs !== undefined ? Number(mech.undergroundMs) : 2500;
+            const targetMode = mech.targetMode || "proximity";
+            const zonePlayers = () => Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+
+            const applyBurrowDebuffs = (p) => {
+                if (!mech.debuffsList || !Array.isArray(mech.debuffsList)) return;
+                mech.debuffsList.forEach(d => {
+                    if (d.type === 'bleed') {
+                        p.isBleeding = true;
+                        p.bleedEndTime = Date.now() + (Number(d.duration) || 4000);
+                        p.bleedDps = Number(d.dps) || 30;
+                        p.bleedInterval = Number(d.tickInterval) || 1000;
+                        p.lastBleedTick = Date.now();
+                        io.to(p.socketId).emit('gameNotification', { msg: `🩸 ¡Las grietas del suelo te desgarran! Sangrando ${p.bleedDps} HP cada ${p.bleedInterval}ms.`, type: "warning" });
+                    }
+                    else if (d.type === 'poison') {
+                        p.isPoisoned = true;
+                        p.poisonEndTime = Date.now() + (Number(d.duration) || 4000);
+                        p.poisonDps = Number(d.dps) || 20;
+                        p.poisonInterval = Number(d.tickInterval) || 1000;
+                        p.lastPoisonTick = Date.now();
+                        io.to(p.socketId).emit('gameNotification', { msg: `🤢 ¡El subsuelo emite toxinas! Perdiendo ${p.poisonDps} HP cada ${p.poisonInterval}ms.`, type: "warning" });
+                    }
+                    else if (d.type === 'stun') {
+                        const stunDur = Number(d.duration) || 1500;
+                        p.isStunned = true;
+                        p.stunEndTime = Date.now() + stunDur;
+                        io.to(p.socketId).emit('stunState', { active: true, duration: stunDur });
+                        io.to(p.socketId).emit('gameNotification', { msg: `⚡ ¡El temblor te paraliza!`, type: "error" });
+                    }
+                    else if (d.type === 'slow') {
+                        const slowAmt = Number(d.amount) || 50;
+                        const slowDur = Number(d.duration) || 2500;
+                        const isPct = d.isPercentage !== false;
+                        p.isSlowed = true;
+                        p.slowEndTime = Date.now() + slowDur;
+                        p.slowPoints = slowAmt;
+                        p.slowIsPercentage = isPct;
+                        p.lastSlowTime = Date.now();
+                        io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: isPct, duration: slowDur });
+                        io.to(p.socketId).emit('gameNotification', { msg: `🐢 ¡El suelo te succiona! Velocidad reducida en ${slowAmt}${isPct ? '%' : ' px/s'}.`, type: "warning" });
+                    }
+                });
+            };
+
+            const applyCircleDamage = (cx, cy, hitSet, dmgVal = dmg) => {
+                zonePlayers().forEach(p => {
+                    if (hitSet && hitSet.has(p.socketId)) return;
+                    const d = Math.hypot(p.x - cx, p.y - cy);
+                    if (d > radius) return;
+                    if (hitSet) hitSet.add(p.socketId);
+                    p.lastCombatTime = Date.now();
+                    const applied = dmgVal;
+                    if (p.shield >= applied) {
+                        p.shield -= applied;
+                    } else {
+                        p.hp -= (applied - p.shield);
+                        p.shield = 0;
+                    }
+                    if (p.hp < 0) p.hp = 0;
+                    if (p.hp <= 0) p.isDead = true;
+
+                    // v400.30: Reflejo autoritativo
+                    if (p.reflectActive && !p.isInvulnerable) {
+                        const reflectedDmg = Math.round(applied * 0.8);
+                        if (reflectedDmg > 0) {
+                            if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                            else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                            if (this.enemy.hp < 0) this.enemy.hp = 0;
+                            io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', { id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield });
+                        }
+                    }
+
+                    io.to(p.socketId).emit('environmentDamage', { damage: applied });
+                    applyBurrowDebuffs(p);
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                        id: p.socketId,
+                        hp: Math.ceil(p.hp),
+                        shield: Math.ceil(p.shield),
+                        isDead: p.isDead,
+                        isInvulnerable: p.isInvulnerable,
+                        isInvisible: p.isInvisible,
+                        spheres: p.spheres || []
+                    });
+                });
+            };
+
+            const selectBurrowTarget = () => {
+                let pool = zonePlayers();
+                if (pool.length === 0) return null;
+                // Seleccionar solo dentro del rango de detección
+                const inRange = pool.filter(p => Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= targetRange);
+                if (inRange.length === 0) return null;
+                let chosen = inRange[0];
+                if (targetMode === "lowest_hp") {
+                    inRange.sort((a, b) => (a.hp / Math.max(1, a.maxHp)) - (b.hp / Math.max(1, b.maxHp)));
+                    chosen = inRange[0];
+                } else if (targetMode === "highest_hp") {
+                    inRange.sort((a, b) => (b.hp / Math.max(1, b.maxHp)) - (a.hp / Math.max(1, a.maxHp)));
+                    chosen = inRange[0];
+                } else if (targetMode === "highest_damage") {
+                    const dmgMap = this.enemy.playerDamage || {};
+                    inRange.sort((a, b) => (dmgMap[b.socketId] || 0) - (dmgMap[a.socketId] || 0));
+                    chosen = inRange[0];
+                } else if (targetMode === "highest_heal") {
+                    // El jugador que más curó (acumulador p.healingDoneTotal en combatTracker)
+                    inRange.sort((a, b) => (b.healingDoneTotal || 0) - (a.healingDoneTotal || 0));
+                    chosen = inRange[0];
+                } else if (targetMode === "random") {
+                    chosen = inRange[Math.floor(Math.random() * inRange.length)];
+                } else { // proximidad
+                    inRange.sort((a, b) => Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y));
+                    chosen = inRange[0];
+                }
+                return chosen;
+            };
+
+            // FASE 0: INICIO DE LA ZAMBILLIDA (elegir target y hundirse)
+            if (!state.isDiving && !state.isTraveling && !state.isActive && now > state.nextShotTime) {
+                const chosen = selectBurrowTarget();
+                if (!chosen) {
+                    this.enemy.mechState[mId] = state;
+                    return false;
+                }
+                state.isDiving = true;
+                state.isActive = true;
+                state.diveEndTime = now + diveTimeMs;
+                state.targetId = chosen.socketId;
+                state.targetX = chosen.x;
+                state.targetY = chosen.y;
+                state.hitPlayers = new Set();
+
+                // v400.600: Al comenzar el hundimiento el enemigo bloquea el resto de mecánicas
+                // ofensivas y cancela en el instante las canalizaciones en curso.
+                // OJO: usamos _lockActions (no isBurrowed) para no interrumpir la
+                // animación visual de hundirse: el AOI/egameLoop siguen con isBurrowed=false
+                // hasta que el viaje comienza, y recién ahí el cliente oculta el modelo.
+                this.enemy._lockActions = true;
+                this._interruptActiveMechanics(now, io, mId);
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "burrow_dive",
+                    type: "burrow",
+                    duration: diveTimeMs,
+                    targetX: state.targetX,
+                    targetY: state.targetY,
+                    radius: radius,
+                    targetMode: targetMode,
+                    targetId: state.targetId
+                });
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            // FASE 1: TERMINÓ DE HUNDIRSE -> COMIENZA EL VIAJE SUBTERRÁNEO
+            if (state.isDiving && now >= state.diveEndTime) {
+                state.isDiving = false;
+                state.isTraveling = true;
+                state.startX = this.enemy.x;
+                state.startY = this.enemy.y;
+                state.lastSim = now;
+
+                // v400.600: El viaje comienza bajo tierra: aquí sí marcamos isBurrowed para
+                // que el cliente oculte el modelo (el hundimiento ya terminó).
+                this.enemy.isBurrowed = true;
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "burrow_travel",
+                    type: "burrow",
+                    startX: state.startX,
+                    startY: state.startY,
+                    targetX: state.targetX,
+                    targetY: state.targetY,
+                    speed: travelSpeed
+                });
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            // FASE 2: VIAJE SUBTERRÁNEO (simulación con delta real)
+            if (state.isTraveling) {
+                let dt = (now - (state.lastSim || now)) / 1000;
+                if (dt <= 0) dt = 0.033;
+                if (dt > 0.1) dt = 0.1;
+                state.lastSim = now;
+
+                // v400.500: Re-localización en vivo del objetivo mientras viaja.
+                // La mecánica siempre persigue al jugador seleccionado: si sigue vivo y en rango,
+                // se actualiza el destino a su posición actual (nunca aparece "en cualquier lado").
+                // Si el objetivo ya no es válido o se alejó demasiado, se cancela la emboscada.
+                let targetP = state.targetId ? (players[state.targetId] || null) : null;
+                const targetValid = targetP && !targetP.isDead && !targetP.isInvisible && targetP.zone === this.enemy.zone
+                    && Math.hypot(targetP.x - this.enemy.x, targetP.y - this.enemy.y) <= targetRange * 1.75
+                    && Math.hypot(targetP.x - state.startX, targetP.y - state.startY) <= targetRange * 2.5;
+                if (!targetValid) {
+                    state.isTraveling = false;
+                    state.isActive = false;
+                    state.nextShotTime = now + cooldown * 0.5;
+                    this.enemy.isBurrowed = false;
+                    this.enemy._lockActions = false;
+                    this.enemy.mechState[mId] = state;
+                    return false;
+                }
+                state.targetX = targetP.x;
+                state.targetY = targetP.y;
+
+                const dx = state.targetX - this.enemy.x;
+                const dy = state.targetY - this.enemy.y;
+                const dd = Math.hypot(dx, dy);
+                const step = travelSpeed * dt;
+                if (dd <= Math.max(step, 1)) {
+                    this.enemy.x = state.targetX;
+                    this.enemy.y = state.targetY;
+                    this.enemy.rotation = Math.atan2(dy, dx) + Math.PI / 2;
+                    state.isTraveling = false;
+                    state.isWarning = true;
+                    // Tiempo total bajo tierra en el destino; el círculo de aviso aparece
+                    // en el último tramo antes de salir (warnTimeMs)
+                    state.warnEndTime = now + undergroundMs;
+                    state.warnStartTime = now + Math.max(0, undergroundMs - warnTimeMs);
+                    state.warnSent = false;
+                } else {
+                    this.enemy.x += (dx / dd) * step;
+                    this.enemy.y += (dy / dd) * step;
+                    this.enemy.rotation = Math.atan2(dy, dx) + Math.PI / 2;
+                }
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            // FASE 3: WARNING (primer llega el enemigo oculto; al acercarse el momento de salir
+            // se dibuja el círculo de peligro y en warnEndTime emerge rompiendo el suelo)
+            if (state.isWarning) {
+                if (!state.warnSent && now >= state.warnStartTime) {
+                    state.warnSent = true;
+                    // El enemigo sigue Oculto bajo tierra; solo se dibuja el círculo de peligro en el piso
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        action: "burrow_warn",
+                        type: "burrow",
+                        x: this.enemy.x,
+                        y: this.enemy.y,
+                        radius: radius,
+                        warns: state.warnEndTime - now
+                    });
+                }
+                if (now >= state.warnEndTime) {
+                    state.isWarning = false;
+                    state.isEmerging = true;
+                    state.emergeEndTime = now + 600;
+                    state.zoneEndTime = now + zoneDuration;
+                    state.lastTick = now;
+                    this.enemy.isBurrowed = false;
+                    this.enemy._lockActions = false;
+
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        action: "burrow_emerge",
+                        type: "burrow",
+                        x: this.enemy.x,
+                        y: this.enemy.y,
+                        radius: radius,
+                        damage: dmg,
+                        burstMode: burstMode,
+                        zoneDamage: zoneDamage,
+                        zoneDuration: zoneDuration,
+                        zoneTickMs: zoneTickMs
+                    });
+
+                    // Daño de SALIDA: siempre se aplica al emerger (otrá cantidad para burst/zone)
+                    applyCircleDamage(this.enemy.x, this.enemy.y, state.hitPlayers, dmg);
+                }
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            // FASE 4: ZONA PERSISTENTE (tick de daño con zoneDamage mientras dure)
+            if (state.isEmerging) {
+                if (burstMode === "burst") {
+                    // Burst ya se aplicó al emerger: la mecánica termina aquí
+                    state.isEmerging = false;
+                    state.isActive = false;
+                    state.nextShotTime = now + cooldown;
+                    this.enemy.mechState[mId] = state;
+                    return false;
+                }
+                if (now < state.zoneEndTime) {
+                    if (now - state.lastTick >= zoneTickMs) {
+                        state.lastTick = now;
+                        // En zona, cada tick vuelve a afectar a quien entra (sin hitSet permanente), con zoneDamage
+                        applyCircleDamage(this.enemy.x, this.enemy.y, null, zoneDamage);
+                    }
+                } else if (now >= state.zoneEndTime) {
+                    io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                        id: this.enemy.id,
+                        action: "burrow_zone_end",
+                        type: "burrow",
+                        x: this.enemy.x,
+                        y: this.enemy.y
+                    });
+                    state.isEmerging = false;
                     state.isActive = false;
                     state.nextShotTime = now + cooldown;
                     this.enemy.mechState[mId] = state;

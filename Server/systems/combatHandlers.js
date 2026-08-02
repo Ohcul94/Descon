@@ -528,6 +528,10 @@ function registerCombatHandlers(socket, io, state) {
             if (enemy.shield >= finalDamage) enemy.shield -= finalDamage;
             else { enemy.hp -= (finalDamage - enemy.shield); enemy.shield = 0; }
             combatTracker.trackDamageDealt(socket.id, enemyId, finalDamage, 'pve', state);
+
+            // v400.60: Registro de daño individual por jugador al enemigo (usado en mecánicas tipo "burrow" al elegir target "más daño hace")
+            if (!enemy.playerDamage) enemy.playerDamage = {};
+            enemy.playerDamage[socket.id] = (enemy.playerDamage[socket.id] || 0) + finalDamage;
         }
         
         enemy.lastHit = Date.now();
