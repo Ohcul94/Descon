@@ -126,25 +126,9 @@ func _on_combat_meter_update(data: Dictionary):
 	_current_data = data
 	_elapsed = data.get("elapsed", 0.0)
 	
-	var members = data.get("members", {})
-	var has_any = false
-	for uid in members:
-		var m = members[uid]
-		if m.get("dd", 0) > 0 or m.get("dt", 0) > 0 or m.get("hd", 0) > 0:
-			has_any = true
-			break
-	
-	if has_any:
-		# Solo abrir automáticamente si el usuario NO lo cerró manualmente
-		if not visible and not _user_closed:
-			visible = true
-		if visible:
-			_refresh_rows()
-	else:
-		# Sin datos de combate: ocultar y resetear el flag para permitir reapertura futura
-		if visible:
-			visible = false
-		_user_closed = false
+	# Solo refrescar las filas si el panel ya está abierto
+	if visible:
+		_refresh_rows()
 
 func _refresh_rows():
 	for child in _rows_container.get_children():

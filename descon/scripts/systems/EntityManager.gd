@@ -1416,18 +1416,20 @@ func _handle_shield_steal_action(data: Dictionary):
 				"	corr_z = p_corr_z\n" + \
 				"func _process(delta: float):\n" + \
 				"	life += delta\n" + \
-				"	if life >= max_life:\n" + \
-				"		set_process(false)\n" + \
-				"		var tw = create_tween()\n" + \
-				"		tw.tween_property(self, 'scale', Vector3(1.5, 1.5, 1.5), 0.1)\n" + \
-				"		tw.chain().tween_property(self, 'scale', Vector3.ZERO, 0.1)\n" + \
-				"		tw.chain().tween_callback(queue_free)\n" + \
-				"		return\n" + \
 				"	if is_instance_valid(target_enemy):\n" + \
 				"		var dest = Vector3(target_enemy.global_position.x * s_factor, 0.5, target_enemy.global_position.y * s_factor * corr_z)\n" + \
 				"		global_position = global_position.lerp(dest, delta * speed * (1.0 + (life / max_life)))\n" + \
 				"		if global_position.distance_to(dest) > 0.02:\n" + \
-				"			look_at(dest, Vector3.UP)\n"
+				"			look_at(dest, Vector3.UP)\n" + \
+				"		var dist = global_position.distance_to(dest)\n" + \
+				"		if dist < 0.45:\n" + \
+				"			scale = scale.lerp(Vector3.ZERO, delta * 20.0)\n" + \
+				"			if dist < 0.08:\n" + \
+				"				queue_free()\n" + \
+				"				return\n" + \
+				"	if life >= max_life:\n" + \
+				"		queue_free()\n" + \
+				"		return\n"
 			
 			follow_script.reload()
 			orb_root.set_script(follow_script)

@@ -1035,7 +1035,8 @@
                 "stealIntervalMs",
                 "targetMode",
                 "giveToEnemy",
-                "bulletDamage"
+                "bulletDamage",
+                "isPointAndClick"
             ]
         }
     },
@@ -4012,7 +4013,7 @@
                     "bombCount": 3,
                     "bombDelayMs": 500,
                     "bulletDamage": 100,
-                    "bulletSpeed": 350,
+                    "bulletSpeed": 1000,
                     "castSpeed": 0,
                     "castTimeMs": 1000,
                     "chargeTimeMs": 2000,

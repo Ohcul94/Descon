@@ -1,4 +1,4 @@
-﻿window.resolveAssetWebUrl = function(iconPath) {
+window.resolveAssetWebUrl = function(iconPath) {
     if (!iconPath) return '';
     let path = iconPath;
     const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
@@ -1484,6 +1484,15 @@ const fieldLabelsMap = {
                                             <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;">
                                                 <input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].giveToEnemy = this.checked">
                                                 <label style="margin:0;">Transferir Escudo Robado al Enemigo</label>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'isPointAndClick') {
+                                        const checked = m.isPointAndClick === true;
+                                        return `
+                                            <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: 1 / -1;">
+                                                <input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].isPointAndClick = this.checked">
+                                                <label style="margin:0; cursor:pointer;">Apuntado Directo (Point & Click / Inesquivable)</label>
                                             </div>
                                         `;
                                     }

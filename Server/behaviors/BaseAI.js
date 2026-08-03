@@ -4324,7 +4324,7 @@ module.exports = class BaseAI {
                     bulletSpeed: mech.bulletSpeed || 700,
                     bulletType: "shield_steal",
                     damage: dmgForBullet * (this.damageMult || 1),
-                    isHoming: true,
+                    isHoming: mech.isPointAndClick === true,
                     turnSpeed: mech.turnSpeed || 3.0,
                     lifetimeMs: mech.lifetimeMs || (stealRange / speedValue) * 1000 + 1500,
                     range: stealRange

@@ -49,7 +49,7 @@ const DEFAULT_DEFENSE_LIB = {
         label: "Robador de Escudo (Shield Steal)", 
         icon: "💠", 
         desc: "Dispara un proyectil celestial que se vincula al jugador impactado, robándole escudo por ticks y transfiriéndose al enemigo.", 
-        fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "fireRange", "bulletSpeed", "duration", "startDelay", "stealMode", "stealAmount", "stealIntervalMs", "targetMode", "giveToEnemy", "bulletDamage"]
+        fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "fireRange", "bulletSpeed", "duration", "startDelay", "stealMode", "stealAmount", "stealIntervalMs", "targetMode", "giveToEnemy", "bulletDamage", "isPointAndClick"]
     }
 };
 
