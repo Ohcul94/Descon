@@ -11,6 +11,8 @@ var active_areas = {} # Cache de zonas de efecto (Humo, etc)
 var loot_drops = {} # Cache de botines activos en el mapa
 var active_laser_tracking = {} # Indicadores que siguen al jugador {enemy_id: {indicator, target_id}}
 var active_wind_walls = {} # Paredes de viento en fase de carga {wall_id: Node2D}
+var active_meteors = {} # Meteoritos activos {key: {warn_3d, meteor_3d, fall_s, landed}} (v411)
+var active_meteor_zones = {} # Zonas persistentes de meteoritos {mId: {zone_2d, elapsed}}
 var zone_cleanup_timer = 0.0
 const ZONE_CLEANUP_INTERVAL = 1.0
 
@@ -20,6 +22,7 @@ const LOOT_DROP_SCRIPT = preload("res://scripts/entities/LootDrop.gd")
 const WIND_BARRIER_VFX_SCENE = "res://VFX/scenes/VFX_Shield_green_plane.tscn"
 const VFX_SHIELD_GREEN_SCENE = "res://VFX/scenes/VFX_Shield_green.tscn"
 const BEACON_3D_SCRIPT = preload("res://scripts/vfx/Beacon3D.gd")
+const METEOR_ZONE_SCRIPT = preload("res://scripts/systems/MeteorZoneVisual.gd")
 
 # Texturas precargadas estáticamente
 const TEX_CURACION_TRANSP = preload("res://assets/Efectos de Skills/Curacion(Transp).png")
@@ -401,6 +404,15 @@ func _on_enemy_action(data: Dictionary):
 	# porque el enemigo que dispara puede no estar renderizado en el cliente.
 	if action == "shield_steal_start" or action == "shield_steal_tick" or action == "shield_steal_end":
 		_handle_shield_steal_action(data)
+		return
+
+	# v411: Meteorito - los meteoritos caen sobre posiciones del mapa, no dependen
+	# de que el enemigo esté renderizado en el cliente.
+	if action == "meteor_summon" or action == "meteor_impact":
+		_handle_meteor_action(data)
+		return
+	if action == "meteor_zone_start" or action == "meteor_zone_end":
+		_handle_meteor_zone_action(data)
 		return
 	
 	if enemies.has(enemy_id):
@@ -1504,6 +1516,376 @@ func _handle_shield_steal_action(data: Dictionary):
 		if active_areas.has(steal_id) and is_instance_valid(active_areas[steal_id]):
 			active_areas[steal_id].queue_free()
 			active_areas.erase(steal_id)
+
+
+# v411: METEORITO - Gestión visual de la lluvia de meteoritos.
+# meteor_summon: crea círculos de aviso en el piso + meteoritos en el aire que caen.
+# meteor_impact: explosión de impacto + limpieza de los meteoritos asociados.
+func _handle_meteor_action(data: Dictionary):
+	var action = str(data.get("action", ""))
+	var map_node = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(map_node) or map_node.get("sub_viewport") == null:
+		return
+	var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+	var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
+	var vp = map_node.sub_viewport
+
+	if action == "meteor_summon":
+		var targets = data.get("targets", [])
+		var warn_time_s = float(data.get("warnTimeMs", 1200)) / 1000.0
+		var fall_height = float(data.get("fallHeight", 800))
+		var fall_speed = float(data.get("fallSpeed", 600))
+		var meteor_size = float(data.get("meteorSize", 60))
+		var radius = float(data.get("radius", 150))
+		var fall_s = fall_height / max(0.01, fall_speed)
+		for t in targets:
+			var tx = float(t.get("x", 0.0))
+			var ty = float(t.get("y", 0.0))
+			var key = str(tx) + "_" + str(ty)
+			var warn = _spawn_meteor_warning_3d(vp, tx, ty, radius, s_factor, correction_z)
+			var meteor = _spawn_meteor_model_3d(vp, tx, ty, fall_height, meteor_size, s_factor, correction_z)
+			var entry = {"warn_3d": warn, "meteor_3d": meteor, "fall_s": fall_s, "landed": false}
+			active_meteors[key] = entry
+			var tw = create_tween()
+			tw.tween_interval(warn_time_s)
+			tw.tween_callback(_start_meteor_fall.bind(key))
+	elif action == "meteor_impact":
+		var tx = float(data.get("x", 0.0))
+		var ty = float(data.get("y", 0.0))
+		var radius = float(data.get("radius", 150))
+		var meteor_size = float(data.get("meteorSize", 60))
+		var key = str(tx) + "_" + str(ty)
+		_spawn_meteor_impact_3d(vp, tx, ty, radius, meteor_size, s_factor, correction_z)
+		if is_instance_valid(VFXSystem):
+			VFXSystem.spawn_explosion(Vector2(tx, ty), max(0.5, radius / 100.0))
+		if active_meteors.has(key):
+			var entry = active_meteors[key]
+			if is_instance_valid(entry.get("warn_3d")):
+				entry["warn_3d"].queue_free()
+			if is_instance_valid(entry.get("meteor_3d")):
+				entry["meteor_3d"].queue_free()
+			active_meteors.erase(key)
+		else:
+			# Fallback: si la clave exacta no matchea (posiciones redondeadas distintas),
+			# limpiar la entrada más cercana para no dejar residuos en el piso.
+			var best_key := ""
+			var best_dist := INF
+			for k in active_meteors:
+				var parts = String(k).split("_")
+				if parts.size() != 2:
+					continue
+				var d = Vector2(float(parts[0]) - tx, float(parts[1]) - ty).length()
+				if d < best_dist:
+					best_dist = d
+					best_key = k
+			if best_key != "" and best_dist < 1.0:
+				var entry = active_meteors[best_key]
+				if is_instance_valid(entry.get("warn_3d")):
+					entry["warn_3d"].queue_free()
+				if is_instance_valid(entry.get("meteor_3d")):
+					entry["meteor_3d"].queue_free()
+				active_meteors.erase(best_key)
+
+
+# Inicia la caída del meteorito: baja desde la altura hasta el suelo girando.
+func _start_meteor_fall(key: String):
+	if not active_meteors.has(key):
+		return
+	var entry = active_meteors[key]
+	var meteor = entry.get("meteor_3d")
+	if not is_instance_valid(meteor):
+		return
+	var fall_s = float(entry.get("fall_s", 1.3))
+	var tw = meteor.create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(meteor, "position:y", 0.02, fall_s).set_trans(Tween.TRANS_LINEAR)
+	tw.tween_property(meteor, "rotation_degrees", Vector3(720, 480, 360), fall_s).set_trans(Tween.TRANS_LINEAR)
+
+
+# Círculo de aviso en el piso donde caerá el meteorito (anillo + disco, pulso).
+func _spawn_meteor_warning_3d(vp, tx: float, ty: float, radius: float, s_factor: float, correction_z: float) -> Node3D:
+	var root = Node3D.new()
+	root.name = "MeteorWarn_" + str(tx) + "_" + str(ty)
+	var r3d = radius * s_factor
+	root.position = Vector3(tx * s_factor, 0.02, ty * s_factor * correction_z)
+	vp.add_child(root)
+
+	var ring = MeshInstance3D.new()
+	var rm = TorusMesh.new()
+	rm.inner_radius = r3d * 0.9
+	rm.outer_radius = r3d
+	ring.mesh = rm
+	var ring_mat = StandardMaterial3D.new()
+	ring_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.75)
+	ring_mat.emission_enabled = true
+	ring_mat.emission = Color(1.0, 0.4, 0.05)
+	ring_mat.emission_energy_multiplier = 2.5
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring.material_override = ring_mat
+	ring.rotation.x = PI / 2
+	root.add_child(ring)
+
+	var fill = MeshInstance3D.new()
+	var fm = CylinderMesh.new()
+	fm.top_radius = r3d * 0.88
+	fm.bottom_radius = r3d * 0.88
+	fm.height = 0.01
+	fill.mesh = fm
+	var fill_mat = StandardMaterial3D.new()
+	fill_mat.albedo_color = Color(1.0, 0.35, 0.05, 0.12)
+	fill_mat.emission_enabled = true
+	fill_mat.emission = Color(1.0, 0.35, 0.05)
+	fill_mat.emission_energy_multiplier = 0.4
+	fill_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fill.material_override = fill_mat
+	root.add_child(fill)
+
+	# Pulso de aviso
+	var tw = root.create_tween().set_loops()
+	tw.tween_property(ring, "scale", Vector3(1.18, 1.18, 1.0), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(ring, "scale", Vector3(1.0, 1.0, 1.0), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	return root
+
+
+# Modelo 3D del meteorito: roca incandescente + llamas + humo + luz.
+func _spawn_meteor_model_3d(vp, tx: float, ty: float, fall_height: float, meteor_size: float, s_factor: float, correction_z: float) -> Node3D:
+	var root = Node3D.new()
+	root.name = "Meteor3D_" + str(tx) + "_" + str(ty)
+	root.position = Vector3(tx * s_factor, fall_height * s_factor, ty * s_factor * correction_z)
+	var s3d = meteor_size * s_factor
+	root.scale = Vector3(s3d, s3d, s3d)
+	vp.add_child(root)
+
+	# Roca principal (esfera deformada)
+	var rock = MeshInstance3D.new()
+	var sphere = SphereMesh.new()
+	sphere.radius = 0.5
+	sphere.height = 1.0
+	sphere.radial_segments = 16
+	sphere.rings = 10
+	rock.mesh = sphere
+	var rock_mat = StandardMaterial3D.new()
+	rock_mat.albedo_color = Color(0.18, 0.13, 0.1)
+	rock_mat.roughness = 0.95
+	rock_mat.metallic = 0.1
+	rock_mat.emission_enabled = true
+	rock_mat.emission = Color(1.0, 0.4, 0.05)
+	rock_mat.emission_energy_multiplier = 0.6
+	rock.material_override = rock_mat
+	rock.scale = Vector3(1.15, 0.9, 1.0)
+	root.add_child(rock)
+
+	# Pedruscos secundarios
+	for i in 3:
+		var chunk = MeshInstance3D.new()
+		var cs = SphereMesh.new()
+		cs.radius = 0.14 + i * 0.04
+		cs.height = cs.radius * 2.0
+		chunk.mesh = cs
+		var cm = StandardMaterial3D.new()
+		cm.albedo_color = Color(0.22, 0.16, 0.12)
+		cm.roughness = 1.0
+		cm.emission_enabled = true
+		cm.emission = Color(1.0, 0.35, 0.05)
+		cm.emission_energy_multiplier = 0.3
+		chunk.material_override = cm
+		chunk.position = Vector3(randf_range(-0.6, 0.6), randf_range(-0.4, 0.4), randf_range(-0.6, 0.6))
+		root.add_child(chunk)
+
+	# Llamas (partículas de fuego desde la superficie de la roca)
+	var fire = GPUParticles3D.new()
+	fire.amount = 50
+	fire.lifetime = 0.5
+	var fire_ppm = ParticleProcessMaterial.new()
+	fire_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE_SURFACE
+	fire_ppm.emission_sphere_radius = 0.55
+	fire_ppm.direction = Vector3(0, 1, 0)
+	fire_ppm.spread = 160.0
+	fire_ppm.initial_velocity_min = 0.5
+	fire_ppm.initial_velocity_max = 2.5
+	fire_ppm.gravity = Vector3(0, 0.8, 0)
+	fire_ppm.scale_min = 0.15
+	fire_ppm.scale_max = 0.45
+	fire_ppm.color = Color(1.0, 0.55, 0.1, 0.95)
+	fire.process_material = fire_ppm
+	var fire_quad = QuadMesh.new()
+	fire_quad.size = Vector2(0.5, 0.5)
+	fire.draw_pass_1 = fire_quad
+	var fire_tex = load("res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg")
+	if fire_tex:
+		var fire_mat = StandardMaterial3D.new()
+		fire_mat.albedo_texture = fire_tex
+		fire_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		fire_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		fire_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		fire.material_override = fire_mat
+	root.add_child(fire)
+
+	# Humo (estela trasera)
+	var smoke = GPUParticles3D.new()
+	smoke.amount = 20
+	smoke.lifetime = 1.0
+	var smoke_ppm = ParticleProcessMaterial.new()
+	smoke_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE_SURFACE
+	smoke_ppm.emission_sphere_radius = 0.4
+	smoke_ppm.direction = Vector3(0, 1, 0)
+	smoke_ppm.spread = 60.0
+	smoke_ppm.initial_velocity_min = 0.3
+	smoke_ppm.initial_velocity_max = 1.2
+	smoke_ppm.gravity = Vector3(0, 1.5, 0)
+	smoke_ppm.scale_min = 0.3
+	smoke_ppm.scale_max = 0.8
+	smoke_ppm.color = Color(0.2, 0.18, 0.16, 0.6)
+	smoke.process_material = smoke_ppm
+	var smoke_quad = QuadMesh.new()
+	smoke_quad.size = Vector2(0.8, 0.8)
+	smoke.draw_pass_1 = smoke_quad
+	var smoke_tex = load("res://VFX/textures/T_VFX_smoke_1.PNG")
+	if smoke_tex:
+		var smoke_mat = StandardMaterial3D.new()
+		smoke_mat.albedo_texture = smoke_tex
+		smoke_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		smoke_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		smoke_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		smoke.material_override = smoke_mat
+	root.add_child(smoke)
+
+	# Luz incandescente
+	var light = OmniLight3D.new()
+	light.light_color = Color(1.0, 0.45, 0.1)
+	light.light_energy = 3.0
+	light.omni_range = 5.0
+	root.add_child(light)
+
+	return root
+
+
+# Explosión de impacto del meteorito: destello + onda expansiva + lluvia de fuego.
+func _spawn_meteor_impact_3d(vp, tx: float, ty: float, radius: float, _meteor_size: float, s_factor: float, correction_z: float):
+	var pos_3d = Vector3(tx * s_factor, 0.05, ty * s_factor * correction_z)
+	var r3d = max(0.1, radius * s_factor)
+
+	# Destello
+	var flash = MeshInstance3D.new()
+	var flash_s = SphereMesh.new()
+	flash_s.radius = r3d * 0.35
+	flash_s.height = r3d * 0.7
+	flash.mesh = flash_s
+	var flash_mat = StandardMaterial3D.new()
+	flash_mat.albedo_color = Color(1.0, 0.5, 0.1, 0.9)
+	flash_mat.emission_enabled = true
+	flash_mat.emission = Color(1.0, 0.5, 0.1)
+	flash_mat.emission_energy_multiplier = 8.0
+	flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	flash.material_override = flash_mat
+	flash.position = pos_3d
+	vp.add_child(flash)
+	var tw_f = flash.create_tween()
+	tw_f.tween_property(flash, "scale", Vector3(2.5, 2.5, 2.5), 0.3)
+	tw_f.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.3)
+	tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.3)
+	tw_f.finished.connect(flash.queue_free)
+
+	# Onda expansiva
+	var shockwave = MeshInstance3D.new()
+	var ring_mesh = TorusMesh.new()
+	ring_mesh.inner_radius = r3d * 0.5
+	ring_mesh.outer_radius = r3d * 0.55
+	shockwave.mesh = ring_mesh
+	var sw_mat = StandardMaterial3D.new()
+	sw_mat.albedo_color = Color(1.0, 0.4, 0.05, 0.8)
+	sw_mat.emission_enabled = true
+	sw_mat.emission = Color(1.0, 0.4, 0.05)
+	sw_mat.emission_energy_multiplier = 3.0
+	sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	shockwave.material_override = sw_mat
+	shockwave.position = pos_3d
+	shockwave.rotation.x = PI / 2
+	vp.add_child(shockwave)
+	var tw_sw = shockwave.create_tween()
+	tw_sw.tween_property(shockwave, "scale", Vector3(2.5, 2.5, 2.5), 0.35)
+	tw_sw.parallel().tween_property(sw_mat, "albedo_color:a", 0.0, 0.35)
+	tw_sw.parallel().tween_property(sw_mat, "emission_energy_multiplier", 0.0, 0.35)
+	tw_sw.finished.connect(shockwave.queue_free)
+
+	# Lluvia de fuego/rocas en la explosión
+	var burst = GPUParticles3D.new()
+	burst.amount = 60
+	burst.lifetime = 0.7
+	burst.one_shot = true
+	burst.explosiveness = 0.95
+	var burst_ppm = ParticleProcessMaterial.new()
+	burst_ppm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	burst_ppm.emission_sphere_radius = r3d * 0.2
+	burst_ppm.direction = Vector3(0, 1, 0)
+	burst_ppm.spread = 180.0
+	burst_ppm.initial_velocity_min = 1.0
+	burst_ppm.initial_velocity_max = 5.0
+	burst_ppm.gravity = Vector3(0, -4.0, 0)
+	burst_ppm.scale_min = 0.15
+	burst_ppm.scale_max = 0.5
+	burst_ppm.color = Color(1.0, 0.5, 0.1, 1.0)
+	burst.process_material = burst_ppm
+	var burst_quad = QuadMesh.new()
+	burst_quad.size = Vector2(0.4, 0.4)
+	burst.draw_pass_1 = burst_quad
+	var burst_tex = load("res://VFX/textures/T_VFX_sparks42.jpg")
+	if burst_tex:
+		var burst_mat = StandardMaterial3D.new()
+		burst_mat.albedo_texture = burst_tex
+		burst_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		burst_mat.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		burst_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		burst.material_override = burst_mat
+	burst.position = pos_3d
+	vp.add_child(burst)
+	burst.emitting = true
+	var tw_burst = burst.create_tween()
+	tw_burst.tween_interval(1.0)
+	tw_burst.tween_callback(burst.queue_free)
+
+	# Luz de impacto
+	var impact_light = OmniLight3D.new()
+	impact_light.light_color = Color(1.0, 0.5, 0.1)
+	impact_light.light_energy = 8.0
+	impact_light.omni_range = r3d * 3.0
+	impact_light.position = pos_3d
+	vp.add_child(impact_light)
+	var tw_l = impact_light.create_tween()
+	tw_l.tween_property(impact_light, "light_energy", 0.0, 0.3)
+	tw_l.finished.connect(impact_light.queue_free)
+
+
+func _handle_meteor_zone_action(data: Dictionary) -> void:
+	var action = str(data.get("action", ""))
+	var m_id = str(data.get("mId", ""))
+	if m_id.is_empty():
+		return
+	# meteor_zone_end: limpiar zona
+	if action == "meteor_zone_end":
+		if active_meteor_zones.has(m_id):
+			var entry = active_meteor_zones[m_id]
+			if is_instance_valid(entry.get("zone_2d")):
+				entry.zone_2d.queue_free()
+			active_meteor_zones.erase(m_id)
+		return
+	# meteor_zone_start: crear zona persistente
+	if active_meteor_zones.has(m_id):
+		return
+	var map_node = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(map_node):
+		return
+	var zone_2d = METEOR_ZONE_SCRIPT.new()
+	zone_2d.name = "MeteorZone_" + m_id
+	zone_2d.z_index = 5
+	zone_2d.set_as_top_level(true)
+	zone_2d.global_position = Vector2(float(data.get("x", 0)), float(data.get("y", 0)))
+	if is_instance_valid(world) and is_instance_valid(world.entities_node):
+		world.entities_node.add_child(zone_2d)
+	else:
+		add_child(zone_2d)
+	zone_2d.setup(data, map_node)
+	active_meteor_zones[m_id] = { "zone_2d": zone_2d }
 
 
 func _on_enemy_updated(data):

@@ -4019,14 +4019,7 @@
                     "cooldown": 6000,
                     "damage": 500,
                     "damage_per_tick": 200,
-                    "debuffsList": [
-                        {
-                            "type": "bleed",
-                            "dps": 30,
-                            "duration": 3000,
-                            "tickInterval": 1000
-                        }
-                    ],
+                    "debuffsList": [],
                     "duration": 4000,
                     "fireRange": 2000,
                     "fireRate": 3000,
@@ -4058,7 +4051,7 @@
                     "stunDuration": 1000,
                     "tick_interval": 1000,
                     "turnSpeed": 0,
-                    "type": "polymorph",
+                    "type": "meteor",
                     "projectileCount": 5,
                     "spreadAngle": 60,
                     "parkTimeMs": 2000,
@@ -4068,8 +4061,8 @@
                     "wallStartOffset": 50,
                     "burrowSpeed": 400,
                     "burstMode": "burst",
-                    "zoneDuration": 4000,
-                    "zoneTickMs": 500,
+                    "zoneDuration": 4100,
+                    "zoneTickMs": 100,
                     "targetMode": "random",
                     "undergroundMs": 3000,
                     "warnTimeMs": 2000,
@@ -4081,7 +4074,14 @@
                     "polyDuration": 3000,
                     "isPointAndClick": false,
                     "canMove": false,
-                    "canUseSkills": false
+                    "canUseSkills": false,
+                    "meteorCount": 1,
+                    "fallHeight": 800,
+                    "fallSpeed": 600,
+                    "meteorSize": 60,
+                    "explosionRadius": 150,
+                    "persistentZone": true,
+                    "zoneDamage": 3
                 }
             ],
             "movementPhases": [
@@ -6121,6 +6121,31 @@
                 "isPointAndClick",
                 "canMove",
                 "canUseSkills"
+            ]
+        },
+        "meteor": {
+            "label": "Lluvia de Meteoritos",
+            "icon": "☄️",
+            "desc": "Invocan meteoritos desde el cielo: tras un aviso en el piso, caen sobre los objetivos seleccionados, infligen daño en área y pueden aplicar debuffs configurables. Configurable: cantidad, altura, velocidad de caída, tamaño, radio de explosión, daño, tiempo de aviso, criterio de selección de objetivos y efectos al impactar.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "startDelay",
+                "meteorCount",
+                "fallHeight",
+                "fallSpeed",
+                "meteorSize",
+                "explosionRadius",
+                "bulletDamage",
+                "warnTimeMs",
+                "targetMode",
+                "debuffsList",
+                "persistentZone",
+                "zoneDamage",
+                "zoneTickMs",
+                "zoneDuration"
             ]
         }
     },

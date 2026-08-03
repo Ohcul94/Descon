@@ -848,6 +848,16 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'isPointAndClick') mech[f] = newType === 'polymorph' ? false : false;
             else if (f === 'canMove') mech[f] = newType === 'polymorph' ? false : true;
             else if (f === 'canUseSkills') mech[f] = newType === 'polymorph' ? false : true;
+            else if (f === 'meteorCount') mech[f] = 3;
+            else if (f === 'fallHeight') mech[f] = 800;
+            else if (f === 'fallSpeed') mech[f] = 600;
+            else if (f === 'meteorSize') mech[f] = 60;
+            else if (f === 'explosionRadius') mech[f] = 150;
+            else if (f === 'warnTimeMs') mech[f] = 1200;
+            else if (f === 'persistentZone') mech[f] = false;
+            else if (f === 'zoneDamage') mech[f] = 25;
+            else if (f === 'zoneTickMs') mech[f] = 1000;
+            else if (f === 'zoneDuration') mech[f] = 4000;
             else mech[f] = 0;
         }
     });

@@ -980,7 +980,7 @@ function renderEnemyDetail() {
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${MECHANICS_LIB[m.type || 'laser'].fields.map(f => {
 const fieldLabelsMap = { 
-                                           bulletDamage: m.type === 'bomb' ? "Daño de Explosión (pts)" : (m.type === 'worm_boomerang' ? "Daño de Ida (pts)" : (m.type === 'wind_wall' ? "Daño al Arrollar (pts)" : (m.type === 'burrow' ? "Daño al Emerger (pts)" : "Daño (pts)"))), 
+                                           bulletDamage: m.type === 'bomb' ? "Daño de Explosión (pts)" : (m.type === 'worm_boomerang' ? "Daño de Ida (pts)" : (m.type === 'wind_wall' ? "Daño al Arrollar (pts)" : (m.type === 'burrow' ? "Daño al Emerger (pts)" : (m.type === 'meteor' ? "Daño del Meteorito (pts)" : "Daño (pts)")))), 
                                            bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : (m.type === 'wind_wall' ? "Vel. Pared de Viento (px/s)" : (m.type === 'burrow' ? "Vel. de Zambullida (px/s)" : "Vel. Bala (px/s)")), 
                                            fireRange: m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : (m.type === 'survival_dome' ? "Radio de la Explosión (px)" : (m.type === 'wind_wall' ? "Alcance de la Pared (px)" : (m.type === 'burrow' ? "Alcance de Selección de Objetivo (px)" : "Alcance (px)"))))),
                                           fireRate: "Cadencia (ms)", 
@@ -1024,6 +1024,16 @@ const fieldLabelsMap = {
                                            polyDuration: "Duración del Polimorfismo (ms)",
                                            canMove: "Puede Moverse (Sí/No)",
                                            canUseSkills: "Puede Usar Habilidades (Sí/No)",
+                                           meteorCount: m.type === 'meteor' ? "Cantidad de Meteoritos (uds)" : "Cantidad de Meteoritos (uds)",
+                                           fallHeight: "Altura de Caída (px)",
+                                           fallSpeed: "Velocidad de Caída (px/s)",
+                                           meteorSize: "Tamaño del Meteorito (px)",
+                                           explosionRadius: "Radio de Explosión (px)",
+                                           warnTimeMs: m.type === 'burrow' ? "Duración del Círculo de Aviso (ms)" : (m.type === 'meteor' ? "Tiempo de Aviso en el Piso (ms)" : "Tiempo de Aviso (ms)"),
+                                           persistentZone: m.type === 'meteor' ? "¿Dejar Zona Persistente en el Piso? (Sí/No)" : "¿Zona Persistente? (Sí/No)",
+                                           zoneDamage: "Daño por Tick de Zona (pts)",
+                                           zoneTickMs: "Intervalo de Tick de Zona (ms)",
+                                           zoneDuration: "Duración de la Zona en el Piso (ms)",
                                            activationHP: "Activación por HP (%)",
                                           reductionPercentage: "Reducción de Daño (%)",
                                           shieldRegen: "Regen. de Escudo (pts/s)",
@@ -1070,9 +1080,7 @@ const fieldLabelsMap = {
                                              wallStartOffset: "Spawn Adelante del Enemigo (px)",
                                              pushForce: "Distancia de Expulsión (px)",
                                              burrowSpeed: "Vel. Viaje Subterráneo (px/s)",
-                                             bulletDamage: "Daño al Emerger (pts)",
                                              undergroundMs: "Tiempo Bajo Tierra en el Destino (ms)",
-                                             warnTimeMs: "Duración del Círculo de Aviso (ms)",
                                              burstMode: "Modo del Círculo de Daño",
                                              zoneDuration: "Duración de Zona Persistente (ms)",
                                              zoneTickMs: "Intervalo de Tick de Zona (ms)",
@@ -1180,14 +1188,15 @@ const fieldLabelsMap = {
 if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].slowIsPercentage = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                       if (f === 'isPointAndClick') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isPointAndClick = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                       if (f === 'canMove') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].canMove = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
-                                      if (f === 'canUseSkills') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].canUseSkills = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                       if (f === 'canUseSkills') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].canUseSkills = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                       if (f === 'persistentZone') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:10px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].persistentZone = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                       
                                        if (f === 'debuffsList') {
                                           if (!m.debuffsList) m.debuffsList = [];
                                           return `
                                               <div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(239, 68, 68, 0.2); display: flex; flex-direction: column; gap: 10px;">
                                                   <div style="display:flex; justify-content:space-between; align-items:center;">
-                                                      <label style="color:#ef4444; font-size:0.75rem; font-weight:bold;">EFECTOS ALTERADOS (DEBUFFS) ${m.type === 'worm_boomerang' ? 'AL IMPACTAR EN LA VUELTA' : (m.type === 'wind_wall' ? 'AL ARROLLAR AL JUGADOR' : (m.type === 'burrow' ? 'AL EMERGER / EN LA ZONA' : 'AL EXPLOTAR'))}</label>
+                                                       <label style="color:#ef4444; font-size:0.75rem; font-weight:bold;">EFECTOS ALTERADOS (DEBUFFS) ${m.type === 'worm_boomerang' ? 'AL IMPACTAR EN LA VUELTA' : (m.type === 'wind_wall' ? 'AL ARROLLAR AL JUGADOR' : (m.type === 'burrow' ? 'AL EMERGER / EN LA ZONA' : (m.type === 'meteor' ? 'AL IMPACTAR EL METEORITO' : 'AL EXPLOTAR')))}</label>
                                                       <div style="display:flex; gap:5px;">
                                                           <select id="new-debuff-select-${idx}" style="background:#0f172a; color:white; font-size:0.75rem; border-radius:4px; padding:2px 4px; border:1px solid #334155;">
                                                               <option value="bleed">🩸 Sangrado</option>
@@ -1266,18 +1275,19 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                           `;
                                       }
                                      
-                                     if (f === 'targetMode') {
-                                         const val = m[f] || 'proximity';
-                                         if (m.type === 'burrow') {
-                                             return `<div class="field"><label>Selección de Objetivo</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
-                                             <option value="proximity" ${val === 'proximity' ? 'selected' : ''}>📏 Proximidad (Más cercano)</option>
-                                             <option value="random" ${val === 'random' ? 'selected' : ''}>🔀 Aleatorio</option>
-                                             <option value="lowest_hp" ${val === 'lowest_hp' ? 'selected' : ''}>❤️ Menos Vida</option>
-                                             <option value="highest_hp" ${val === 'highest_hp' ? 'selected' : ''}>💪 Más Vida</option>
-                                             <option value="highest_damage" ${val === 'highest_damage' ? 'selected' : ''}>⚔️ Mayor Daño Causado</option>
-                                             <option value="highest_heal" ${val === 'highest_heal' ? 'selected' : ''}>💚 Mayor Curación</option>
-                                         </select></div>`;
-                                         }
+                                      if (f === 'targetMode') {
+                                          const val = m[f] || 'proximity';
+                                          if (m.type === 'burrow' || m.type === 'meteor') {
+                                              return `<div class="field"><label>${m.type === 'meteor' ? 'Criterio de Selección de Objetivos' : 'Selección de Objetivo'}</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
+                                              <option value="proximity" ${val === 'proximity' ? 'selected' : ''}>📏 Proximidad (Más cercano)</option>
+                                              <option value="random" ${val === 'random' ? 'selected' : ''}>🔀 Aleatorio</option>
+                                              <option value="farthest" ${val === 'farthest' ? 'selected' : ''}>📐 Más Lejano</option>
+                                              <option value="lowest_hp" ${val === 'lowest_hp' ? 'selected' : ''}>❤️ Menos Vida</option>
+                                              <option value="highest_hp" ${val === 'highest_hp' ? 'selected' : ''}>💪 Más Vida</option>
+                                              <option value="highest_damage" ${val === 'highest_damage' ? 'selected' : ''}>⚔️ Mayor Daño Causado</option>
+                                              <option value="highest_heal" ${val === 'highest_heal' ? 'selected' : ''}>💚 Mayor Curación</option>
+                                          </select></div>`;
+                                          }
                                          return `<div class="field"><label>Criterio de Selección</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
                                              <option value="proximity" ${val === 'proximity' ? 'selected' : ''}>📏 Proximidad (Más cercano)</option>
                                              <option value="random" ${val === 'random' ? 'selected' : ''}>🔀 Aleatorio</option>
@@ -1293,7 +1303,7 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                          </select></div>`;
                                      }
                                      if (f === 'turnSpeed') return '';
-                                     if ((f === 'zoneTickMs' || f === 'zoneDuration' || f === 'zoneDamage') && (m.burstMode || 'burst') !== 'zone') return '';
+                                      if ((f === 'zoneTickMs' || f === 'zoneDuration' || f === 'zoneDamage') && (m.burstMode || 'burst') !== 'zone' && !m.persistentZone) return '';
                                      return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseFloat(this.value); if ('${f}' === 'summonCount') renderEnemyDetail();"></div>`;
                                 }).join('')}
                             </div>
