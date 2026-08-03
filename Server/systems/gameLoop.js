@@ -35,7 +35,8 @@ const getStatusEffects = (ent) => {
         poisoned: !!(ent.isPoisoned || (ent.poisonEndTime && now < ent.poisonEndTime)),
         frozen: !!(ent.isFrozen || (ent.freezeEndTime && now < ent.freezeEndTime)),
         feared: !!(ent.isFeared || (ent.fearEndTime && now < ent.fearEndTime)),
-        provoked: !!(ent.forcedTarget && ent.tauntEndTime && now < ent.tauntEndTime)
+        provoked: !!(ent.forcedTarget && ent.tauntEndTime && now < ent.tauntEndTime),
+        polymorphed: !!(ent.isPolymorphed || (ent.polyEndTime && now < ent.polyEndTime))
     };
 };
 
@@ -583,6 +584,23 @@ function startGameLoop(io, state, aiManager) {
             if (activeHeal <= 0) p.healStacks = 0;
             const activeBleed = p.bleedEndTime ? Math.max(0, p.bleedEndTime - now) : 0;
             const activePoison = p.poisonEndTime ? Math.max(0, p.poisonEndTime - now) : 0;
+            
+            // v410: Polimorfia - Expirar estado
+            const activePoly = p.polyEndTime ? Math.max(0, p.polyEndTime - now) : 0;
+            if (activePoly <= 0 && p.isPolymorphed) {
+                p.isPolymorphed = false;
+                p.polyEndTime = 0;
+                p.polyCanMove = true;
+                p.polyCanUseSkills = true;
+                io.to(p.socketId).emit('playerStatSync', {
+                    id: p.socketId,
+                    isPolymorphed: false,
+                    polyCanMove: true,
+                    polyCanUseSkills: true
+                });
+                io.to(p.socketId).emit('gameNotification', { msg: "🟦 Has recuperado tu forma.", type: "info" });
+                changed = true;
+            }
 
             io.to(p.socketId).emit('statusEffectsSync', {
                 slow: activeSlow,
@@ -590,7 +608,11 @@ function startGameLoop(io, state, aiManager) {
                 heal: activeHeal,
                 healStacks: p.healStacks || 0,
                 bleed: activeBleed,
-                poison: activePoison
+                poison: activePoison,
+                poly: activePoly,
+                // v410.1: Incluir flags de polymorfia para que el cliente siempre tenga el estado correcto
+                polyCanUseSkills: activePoly > 0 ? (p.polyCanUseSkills !== undefined ? p.polyCanUseSkills : true) : true,
+                polyCanMove: activePoly > 0 ? (p.polyCanMove !== undefined ? p.polyCanMove : true) : true
             });
 
             // Sync obligatorio solo si hubo cambios por ambiente o regen o sueño

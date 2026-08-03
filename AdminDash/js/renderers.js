@@ -1019,7 +1019,12 @@ const fieldLabelsMap = {
                                           poisonDps: "Daño por Segundo de Veneno (pts/s)",
                                           postHookWaitMs: "Espera Post-Gancho (ms)",
                                           hookMissWaitMs: "Espera por Fallo (ms)",
-                                          activationHP: "Activación por HP (%)",
+                                           bulletCount: m.type === 'polymorph' ? "Cantidad de Cubos (uds)" : "Cantidad de Proyectiles (uds)",
+                                           isPointAndClick: m.type === 'polymorph' ? "Apuntado y Disparado (Sí/No)" : "Apuntado y Disparado",
+                                           polyDuration: "Duración del Polimorfismo (ms)",
+                                           canMove: "Puede Moverse (Sí/No)",
+                                           canUseSkills: "Puede Usar Habilidades (Sí/No)",
+                                           activationHP: "Activación por HP (%)",
                                           reductionPercentage: "Reducción de Daño (%)",
                                           shieldRegen: "Regen. de Escudo (pts/s)",
                                           healAmount: "Curación por Pulso (pts)",
@@ -1172,9 +1177,12 @@ const fieldLabelsMap = {
                                      if (f === 'coneFollow') return `<div class="field" style="display:flex; flex-direction:column; gap:8px;"><label>${fieldLabelsMap[f] || f}</label><div style="display:flex; align-items:center; height:40px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].coneFollow = this.checked; renderEnemyDetail();"></div></div>`;
                                      if (f === 'wakeOnDamage') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] !== false ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].wakeOnDamage = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                      if (f === 'applySlow') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].applySlow = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
-                                     if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].slowIsPercentage = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
-                                     
-                                      if (f === 'debuffsList') {
+if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].slowIsPercentage = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                      if (f === 'isPointAndClick') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isPointAndClick = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                      if (f === 'canMove') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].canMove = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                      if (f === 'canUseSkills') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].canUseSkills = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                      
+                                       if (f === 'debuffsList') {
                                           if (!m.debuffsList) m.debuffsList = [];
                                           return `
                                               <div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(239, 68, 68, 0.2); display: flex; flex-direction: column; gap: 10px;">

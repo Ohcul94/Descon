@@ -843,6 +843,11 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'warnTimeMs') mech[f] = 1200;
             else if (f === 'undergroundMs') mech[f] = 2500;
             else if (f === 'targetMode') mech[f] = newType === 'burrow' ? 'proximity' : 'proximity';
+            else if (f === 'bulletCount') mech[f] = newType === 'polymorph' ? 5 : 1;
+            else if (f === 'polyDuration') mech[f] = 8000;
+            else if (f === 'isPointAndClick') mech[f] = newType === 'polymorph' ? false : false;
+            else if (f === 'canMove') mech[f] = newType === 'polymorph' ? false : true;
+            else if (f === 'canUseSkills') mech[f] = newType === 'polymorph' ? false : true;
             else mech[f] = 0;
         }
     });

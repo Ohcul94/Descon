@@ -113,6 +113,12 @@ var electron_speed_buff_timer: float = 0.0
 var electron_speed_buff_pct: float = 0.0
 var electron_speed_buff_stacks: int = 0
 
+# v410: Polimorfia (Cubito)
+var is_polymorphed: bool = false
+var poly_timer: float = 0.0
+var poly_can_move: bool = false
+var poly_can_use_skills: bool = true
+
 func _ready():
 	load_ammo_slots_local()
 	super._ready() 
@@ -191,6 +197,15 @@ func _on_status_effects_sync(data: Dictionary):
 	if data.has("poison"):
 		poison_timer = float(data.poison) / 1000.0
 		set_debuff_timer("poison", poison_timer)
+	if data.has("poly"):
+		poly_timer = float(data.poly) / 1000.0
+		is_polymorphed = poly_timer > 0.0
+		# v410.1: Restaurar flags de poly desde la sincronización periódica de estado
+		if data.has("polyCanUseSkills"):
+			poly_can_use_skills = str(data.polyCanUseSkills) == "true" or data.polyCanUseSkills == true
+		if data.has("polyCanMove"):
+			poly_can_move = str(data.polyCanMove) == "true" or data.polyCanMove == true
+		set_debuff_timer("poly", poly_timer)
 	if data.has("electronSpeedBuff"):
 		var eb = data.electronSpeedBuff
 		electron_speed_buff_timer = float(eb.get("duration", 3000.0)) / 1000.0
@@ -367,6 +382,28 @@ func _physics_process(p_delta):
 			is_stunned = false
 			modulate = Color.WHITE
 		return # Bloquear TODO el proceso si está stuneado
+
+	# v410: Polimorfia - Bloquear movimiento/habilidades según checks configurables
+	if is_polymorphed:
+		poly_timer -= p_delta
+		if poly_timer <= 0:
+			is_polymorphed = false
+			poly_can_move = true
+			poly_can_use_skills = true
+			modulate = Color.WHITE
+		else:
+			# Aplicar color de polimorfia (azul claro)
+			modulate = Color(0.7, 0.95, 1.0, 1.0)
+			# Si no puede moverse, bloquear el proceso (como stun),
+			# pero si puede usar habilidades, procesarlas igual antes de salir
+			if not poly_can_move:
+				if poly_can_use_skills:
+					var chat_node = get_tree().get_first_node_in_group("chat_ui")
+					var focus_node_p = get_viewport().gui_get_focus_owner()
+					var is_typing_p = (chat_node and chat_node.has_method("is_typing") and chat_node.is_typing()) or (focus_node_p is LineEdit or focus_node_p is TextEdit)
+					if not is_typing_p:
+						_handle_input()
+				return
 	
 	var chat = get_tree().get_first_node_in_group("chat_ui")
 	var focus_node = get_viewport().gui_get_focus_owner()
@@ -408,6 +445,10 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 
 # v266.30: Método público para disparar desde el HUD (Celulares/Mouse)
 func trigger_skill_by_id(skill_id: String, type: int = -1):
+	# v410: Bloqueo de habilidades por Polimorfia
+	if is_polymorphed and not poly_can_use_skills:
+		return
+	
 	# v268.30: Bloqueo por Interferencia Ambiental
 	if get_meta("skills_blocked", false):
 		return
@@ -970,6 +1011,31 @@ func update_stats(data):
 		electron_speed_buff_timer = float(eb.get("duration", 3000.0)) / 1000.0
 		electron_speed_buff_pct = float(eb.get("pct", 15.0))
 		electron_speed_buff_stacks = int(eb.get("stacks", 1))
+	
+	# v410: Polimorfia - Recibir flags de movimiento/habilidades del servidor
+	var poly_active = false
+	if data.has("isPolymorphed"):
+		poly_active = bool(data.isPolymorphed)
+	elif data.has("polymorphed"):
+		poly_active = bool(data.polymorphed)
+		
+	if data.has("isPolymorphed") or data.has("polymorphed"):
+		is_polymorphed = poly_active
+		status_effects["polymorphed"] = poly_active
+		
+		# Saneamiento de tipo de datos (soportar bool nativo y string de red)
+		if data.has("polyCanMove"): 
+			poly_can_move = str(data.polyCanMove) == "true" or data.polyCanMove == true
+		if data.has("polyCanUseSkills"): 
+			poly_can_use_skills = str(data.polyCanUseSkills) == "true" or data.polyCanUseSkills == true
+		
+		if data.has("polyDuration"):
+			poly_timer = float(data.polyDuration) / 1000.0
+		elif data.has("polyEndTime"):
+			var now_unix_ms = Time.get_unix_time_from_system() * 1000.0
+			poly_timer = max(0.0, (float(data.polyEndTime) - now_unix_ms) / 1000.0)
+		elif is_polymorphed and poly_timer <= 0.0:
+			poly_timer = 4.0
 	
 	# v311.0: Conservar el target_position de click si el jugador se está moviendo y llega una actualización de posición del server.
 	var old_target_pos = target_position

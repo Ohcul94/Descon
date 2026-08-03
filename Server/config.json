@@ -1226,6 +1226,21 @@
                     "fireRange": 800,
                     "reflect_mult": 1.2,
                     "type": "reflect"
+                },
+                {
+                    "bulletCount": 3,
+                    "bulletSpeed": 600,
+                    "fireRange": 800,
+                    "bulletDamage": 0,
+                    "isPointAndClick": true,
+                    "polyDuration": 4000,
+                    "canMove": false,
+                    "canUseSkills": false,
+                    "activationMode": "time",
+                    "activationIntervalMs": 15000,
+                    "cooldown": 20000,
+                    "startDelay": 3000,
+                    "type": "polymorph"
                 }
             ],
             "movementPhases": [
@@ -3979,26 +3994,7 @@
             "aggressive": true,
             "bulletDamage": 1120,
             "bulletSpeed": 880,
-            "defenseMechanics": [
-                {
-                    "type": "shield_steal",
-                    "reductionPercentage": 10,
-                    "shieldRegen": 5,
-                    "duration": 4200,
-                    "cooldown": 6000,
-                    "startDelay": 0,
-                    "activationMode": "time",
-                    "activationIntervalMs": 5000,
-                    "fireRange": 800,
-                    "bulletSpeed": 1000,
-                    "stealMode": "flat",
-                    "stealAmount": 20,
-                    "stealIntervalMs": 1000,
-                    "targetMode": "random",
-                    "giveToEnemy": true,
-                    "bulletDamage": 300
-                }
-            ],
+            "defenseMechanics": [],
             "fireRange": 1050,
             "fireRate": 950,
             "hp": 1000,
@@ -4006,14 +4002,14 @@
             "mechanics": [
                 {
                     "activationHP": 0,
-                    "activationIntervalMs": 3000,
+                    "activationIntervalMs": 6000,
                     "activationMode": "time",
                     "aimDelayMs": 1000,
                     "applySlow": true,
                     "bombCount": 3,
                     "bombDelayMs": 500,
                     "bulletDamage": 100,
-                    "bulletSpeed": 1000,
+                    "bulletSpeed": 500,
                     "castSpeed": 0,
                     "castTimeMs": 1000,
                     "chargeTimeMs": 2000,
@@ -4062,7 +4058,7 @@
                     "stunDuration": 1000,
                     "tick_interval": 1000,
                     "turnSpeed": 0,
-                    "type": "laser",
+                    "type": "polymorph",
                     "projectileCount": 5,
                     "spreadAngle": 60,
                     "parkTimeMs": 2000,
@@ -4077,7 +4073,15 @@
                     "targetMode": "random",
                     "undergroundMs": 3000,
                     "warnTimeMs": 2000,
-                    "burstShots": 1
+                    "burstShots": 1,
+                    "activationHPs": [
+                        50
+                    ],
+                    "bulletCount": 1,
+                    "polyDuration": 3000,
+                    "isPointAndClick": false,
+                    "canMove": false,
+                    "canUseSkills": false
                 }
             ],
             "movementPhases": [
@@ -6078,7 +6082,7 @@
             ]
         },
         "burrow": {
-            "label": "Zambullida Telúrica",
+            "label": "Zambullida Telúrrica",
             "icon": "🕳️",
             "desc": "El enemigo se hunde bajo tierra, viaja en línea recta hacia un objetivo seleccionable (por proximidad, aleatorio, menos vida, más vida, mayor daño causado o mayor curación) y emerge rompiendo el suelo: círculo de daño único o zona persistente + debuffs configurables.",
             "fields": [
@@ -6097,6 +6101,26 @@
                 "targetMode",
                 "debuffsList",
                 "startDelay"
+            ]
+        },
+        "polymorph": {
+            "label": "Polimorfia (Cubito)",
+            "icon": "🗺️",
+            "desc": "Lanza proyectiles cúbicos que transforman al jugador. Configurable: cantidad, velocidad, homing, daño, duración, si bloquea movimiento/habilidades.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "startDelay",
+                "bulletCount",
+                "bulletSpeed",
+                "fireRange",
+                "bulletDamage",
+                "polyDuration",
+                "isPointAndClick",
+                "canMove",
+                "canUseSkills"
             ]
         }
     },

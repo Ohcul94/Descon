@@ -2462,10 +2462,56 @@ module.exports = class BaseAI {
             return false;
         }
 
+        // Polymorph: resetear triggeredHPs si HP sube por encima de umbrales, y manejar startDelay
+        if (mech.type === "polymorph") {
+            if (!state.triggeredHPs) state.triggeredHPs = {};
+            const hpPercent = this.enemy.maxHp > 0 ? (this.enemy.hp / this.enemy.maxHp) * 100 : 100;
+            const thresholds = Array.isArray(mech.activationHPs) && mech.activationHPs.length > 0
+                ? mech.activationHPs.map(Number).filter(v => !isNaN(v))
+                : [70];
+            // Resetear triggers si HP sube por encima
+            for (const hpVal of thresholds) {
+                if (hpPercent > hpVal && state.triggeredHPs[hpVal]) {
+                    state.triggeredHPs[hpVal] = false;
+                }
+            }
+            // startDelay: inicializar nextShotTime si es la primera vez
+            if (state.nextShotTime === undefined || state.nextShotTime === 0) {
+                state.nextShotTime = now + (mech.startDelay || 0);
+            }
+        }
+
         if (now > state.nextShotTime) {
+            // Polymorph: soporte para activationMode (time/hp) y activationHPs
+            if (mech.type === "polymorph" && mech.activationMode !== "time") {
+                const hpPercent = this.enemy.maxHp > 0 ? (this.enemy.hp / this.enemy.maxHp) * 100 : 100;
+                const thresholds = Array.isArray(mech.activationHPs) && mech.activationHPs.length > 0
+                    ? mech.activationHPs.map(Number).filter(v => !isNaN(v))
+                    : [70];
+                
+                // Inicializar triggeredHPs si no existe
+                if (!state.triggeredHPs) state.triggeredHPs = {};
+                
+                let shouldActivate = false;
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        shouldActivate = true;
+                        state.triggeredHPs[hpVal] = true;
+                        break;
+                    }
+                }
+                if (!shouldActivate) {
+                    this.enemy.mechState[mId] = state;
+                    return false;
+                }
+            }
+            
             // v410.5: Nº de proyectiles por ráfaga configurable (burstShots). Default: 1.
+            // Polymorph usa bulletCount en lugar de burstShots
             let burstLimit = 1;
-            if (mech.burstShots !== undefined && mech.burstShots !== null && mech.burstShots !== '') {
+            if (mech.type === "polymorph" && mech.bulletCount !== undefined) {
+                burstLimit = Math.max(1, parseInt(mech.bulletCount, 10) || 1);
+            } else if (mech.burstShots !== undefined && mech.burstShots !== null && mech.burstShots !== '') {
                 burstLimit = Math.max(1, parseInt(mech.burstShots, 10) || 1);
             }
             if (state.shotsInBurst < burstLimit) {
@@ -2489,9 +2535,13 @@ module.exports = class BaseAI {
                     slowDuration: mech.slowDuration || 0,
                     lifetimeMs: mech.lifetimeMs || 0,
                     turnSpeed: mech.turnSpeed || 2.5,
-                    isHoming: !!mech.isHoming,
+                    isHoming: mech.type === "polymorph" ? !!mech.isPointAndClick : !!mech.isHoming,
                     stunDuration: mech.stunDuration || 0,
-                    range: mech.fireRange || 800
+                    range: mech.fireRange || 800,
+                    // Polymorph fields
+                    polyDuration: mech.polyDuration || 0,
+                    canMove: mech.canMove !== undefined ? mech.canMove : false,
+                    canUseSkills: mech.canUseSkills !== undefined ? mech.canUseSkills : false
                 });
 
                 // v269.110: Inmovilidad al Lanzar Gancho
@@ -2509,7 +2559,15 @@ module.exports = class BaseAI {
                 state.nextShotTime = now + 150;
             } else {
                 state.shotsInBurst = 0;
-                state.nextShotTime = now + (mech.fireRate || 2000);
+                if (mech.type === "polymorph") {
+                    if (mech.activationMode === "time") {
+                        state.nextShotTime = now + (mech.activationIntervalMs || mech.cooldown || 20000);
+                    } else {
+                        state.nextShotTime = now + (mech.cooldown || 20000);
+                    }
+                } else {
+                    state.nextShotTime = now + (mech.fireRate || 2000);
+                }
             }
         }
         this.enemy.mechState[mId] = state;

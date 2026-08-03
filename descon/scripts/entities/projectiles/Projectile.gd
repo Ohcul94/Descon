@@ -40,7 +40,7 @@ const TEXTURE_CACHE = {
 @export var type: String = "laser" # laser, missile, mine
 
 var owner_type: String = "player"
-var enemy_type: int = 1 
+var enemy_type: String = "1" 
 var velocity: Vector2 = Vector2.ZERO
 var sprite: Sprite2D = null
 var _has_hit: bool = false
@@ -78,6 +78,11 @@ var _laser_beam_mesh: MeshInstance3D = null
 var _laser_core_mesh: MeshInstance3D = null
 var _hook_chain_3d: MeshInstance3D = null
 var _bomb_ground_marker: Node3D = null
+
+# v410: Variables de polimorfia
+var poly_duration: float = 4.0
+var poly_can_move: bool = false
+var poly_can_use_skills: bool = false
 
 func _ready():
 	add_to_group("projectiles")
@@ -167,7 +172,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	print("[PROJECTILE SETUP] type = ", type, " | p_data = ", p_data)
 	owner_id = str(p_data.get("enemyId", p_data.get("id", p_data.get("senderId", p_data.get("entityId", "")))))
 	owner_type = p_data.get("owner_type", "player")
-	enemy_type = int(p_data.get("enemyType", 1))
+	enemy_type = str(p_data.get("enemyType", "1"))
 	
 	var raw_speed = p_data.get("bulletSpeed")
 	if raw_speed == null: raw_speed = p_data.get("speed")
@@ -210,6 +215,11 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	strike_id = str(p_data.get("strikeId", ""))
 	if p_data.has("stunDuration"): set_meta("stunDuration", p_data.stunDuration)
 	if p_data.has("duration"): set_meta("duration", p_data.duration)
+	
+	if type == "polymorph":
+		poly_duration = _safe_float(p_data.get("polyDuration", 4000), 4000) / 1000.0
+		poly_can_move = bool(p_data.get("canMove", false))
+		poly_can_use_skills = bool(p_data.get("canUseSkills", false))
 	
 	var raw_dmg = p_data.get("damageBoost")
 	if raw_dmg == null: raw_dmg = p_data.get("damage")
@@ -1003,6 +1013,49 @@ func _setup_visual_sprite():
 			sprite = null
 			return
 
+	if type == "polymorph":
+		# Cubito 3D como proyectil polimórfico
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "PolymorphCube3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+			
+			# Crear el cubo (BoxMesh)
+			_orb_mesh = MeshInstance3D.new()
+			var box_mesh = BoxMesh.new()
+			box_mesh.size = Vector3(0.35, 0.35, 0.35)
+			_orb_mesh.mesh = box_mesh
+			
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = Color(0.2, 0.8, 1.0, 0.9)
+			mat.emission_enabled = true
+			mat.emission = Color(0.2, 0.8, 1.0)
+			mat.emission_energy_multiplier = 3.0
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			_orb_mesh.material_override = mat
+			world_root_3d.add_child(_orb_mesh)
+			
+			# Luz puntual
+			var light = OmniLight3D.new()
+			light.light_color = Color(0.2, 0.8, 1.0)
+			light.light_energy = 2.0
+			light.omni_range = 5.0
+			world_root_3d.add_child(light)
+			
+			# Rotación continua del cubo
+			var tw = create_tween().set_loops()
+			tw.tween_property(world_root_3d, "rotation_degrees", Vector3(0, 360, 0), 1.5).set_trans(Tween.TRANS_LINEAR)
+			
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+			)
+		
+		sprite = null
+		return
+
 	var path = ""
 	match type:
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
@@ -1507,6 +1560,8 @@ func _on_body_entered(body):
 		var dmg_to_deal = damage
 		if type == "shield_steal":
 			dmg_to_deal = 0.0
+		if type == "polymorph":
+			dmg_to_deal = damage
 		if type == "heal":
 			dmg_to_deal = 0.0
 			var is_target_ally = false
@@ -1539,12 +1594,15 @@ func _on_body_entered(body):
 					NetworkManager.send_event("playerHitByPlayer", {"victimId": body.entity_id, "damage": damage})
 			elif owner_type == "enemy" and body.is_in_group("player"):
 				NetworkManager.send_event("playerHitByEnemy", {
-					"damage": damage, 
+					"damage": damage,
 					"attackerType": owner_type,
-					"enemyType": enemy_type, 
-					"bulletType": type, 
+					"enemyType": enemy_type,
+					"bulletType": type,
 					"attackerId": owner_id,
-					"stunDuration": float(get_meta("stunDuration", 0)) if has_meta("stunDuration") else 0.0
+					"stunDuration": float(get_meta("stunDuration", 0)) if has_meta("stunDuration") else 0.0,
+					"polyDuration": int(poly_duration * 1000) if type == "polymorph" else 0,
+					"polyCanMove": poly_can_move if type == "polymorph" else true,
+					"polyCanUseSkills": poly_can_use_skills if type == "polymorph" else true
 				})
 		
 		_explode()
@@ -1757,6 +1815,72 @@ func _explode():
 		tw.tween_property(wave, "scale", Vector2(1.8, 1.8), 0.35)
 		tw.parallel().tween_property(wave, "default_color:a", 0.0, 0.35)
 		tw.finished.connect(wave.queue_free)
+
+	# v410: Efecto de impacto para Polimorfia (explosión de cubitos)
+	if type == "polymorph":
+		var cubits = CPUParticles2D.new()
+		cubits.amount = 20
+		cubits.lifetime = 0.5
+		cubits.one_shot = true
+		cubits.explosiveness = 1.0
+		cubits.spread = 180.0
+		cubits.gravity = Vector2.ZERO
+		cubits.initial_velocity_min = 100.0
+		cubits.initial_velocity_max = 240.0
+		cubits.scale_amount_min = 2.0
+		cubits.scale_amount_max = 4.0
+
+		var cube_grad = Gradient.new()
+		cube_grad.set_color(0, Color(0.9, 1.0, 1.0, 0.9))
+		cube_grad.add_point(0.3, Color(0.2, 0.8, 1.0, 0.8))
+		cube_grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+		cubits.color_ramp = cube_grad
+
+		cubits.global_position = global_position
+		get_parent().add_child(cubits)
+		cubits.emitting = true
+		get_tree().create_timer(0.5).timeout.connect(cubits.queue_free)
+
+		# Anillo de transformación
+		var poly_ring = Line2D.new()
+		poly_ring.width = 3.0
+		poly_ring.default_color = Color(0.2, 0.8, 1.0, 0.9)
+		get_parent().add_child(poly_ring)
+		var ring_pts = PackedVector2Array()
+		var ring_steps = 24
+		for i in range(ring_steps + 1):
+			var a = (float(i) / ring_steps) * TAU
+			ring_pts.append(Vector2(cos(a), sin(a)) * 40.0)
+		poly_ring.points = ring_pts
+		poly_ring.global_position = global_position
+
+		var tw_ring = poly_ring.create_tween()
+		tw_ring.tween_property(poly_ring, "scale", Vector2(2.0, 2.0), 0.4)
+		tw_ring.parallel().tween_property(poly_ring, "default_color:a", 0.0, 0.4)
+		tw_ring.finished.connect(poly_ring.queue_free)
+		
+		# 3D impact effect en el viewport
+		if is_instance_valid(world_root_3d):
+			var vp = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(vp) and vp.get("sub_viewport") != null:
+				var impact_3d = MeshInstance3D.new()
+				var impact_box = BoxMesh.new()
+				impact_box.size = Vector3(0.5, 0.5, 0.5)
+				impact_3d.mesh = impact_box
+				var impact_mat = StandardMaterial3D.new()
+				impact_mat.albedo_color = Color(0.3, 0.9, 1.0, 0.8)
+				impact_mat.emission_enabled = true
+				impact_mat.emission = Color(0.3, 0.9, 1.0)
+				impact_mat.emission_energy_multiplier = 4.0
+				impact_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				impact_3d.material_override = impact_mat
+				impact_3d.position = world_root_3d.position
+				vp.sub_viewport.add_child(impact_3d)
+				
+				var tw_3d = impact_3d.create_tween()
+				tw_3d.tween_property(impact_3d, "scale", Vector3(2.0, 2.0, 2.0), 0.4)
+				tw_3d.parallel().tween_property(impact_mat, "albedo_color:a", 0.0, 0.4)
+				tw_3d.finished.connect(impact_3d.queue_free)
 
 	if type == "siphon":
 		# 1. Efecto de Impacto (Destello de Cristal Rompiéndose)

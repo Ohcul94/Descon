@@ -371,6 +371,15 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 	# Asegurar que el slot no tenga material propio
 	slot.material = null
 	
+	# v410: Tinte de Silencio (Polimorfia) o Interferencia
+	var is_silenced = ref.get("is_polymorphed") == true and not ref.get("poly_can_use_skills")
+	if is_silenced:
+		slot.modulate = Color(0.5, 0.25, 0.7, 0.85) # Violeta de silencio
+	elif _is_interference_ui_active:
+		slot.modulate = Color(1.0, 0.3, 0.3, 0.8) # Rojo de interferencia
+	else:
+		slot.modulate = Color(1, 1, 1, 1)
+	
 	# Control de Overlay de Cooldown Oscuro
 	var overlay = slot.get_node_or_null("CooldownOverlay") as ColorRect
 	if rv > 0.05 and max_cd > 0.05:
@@ -499,7 +508,14 @@ func _update_sphere_ui(id: int, ref, slot):
 		l_cd.text = str(snapped(rv, 0.1)) + "s"
 		l_cd.modulate = Color.WHITE
 	
-	slot.modulate = Color(1, 1, 1, slot.modulate.a) 
+	# v410: Tinte de Silencio (Polimorfia) o Interferencia
+	var is_silenced = ref.get("is_polymorphed") == true and not ref.get("poly_can_use_skills")
+	if is_silenced:
+		slot.modulate = Color(0.5, 0.25, 0.7, 0.85) # Violeta de silencio
+	elif _is_interference_ui_active:
+		slot.modulate = Color(1.0, 0.3, 0.3, 0.8) # Rojo de interferencia
+	else:
+		slot.modulate = Color(1, 1, 1, slot.modulate.a) 
 	
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0, 0, 0, 0.6) if skill else Color(0, 0, 0, 0.2)

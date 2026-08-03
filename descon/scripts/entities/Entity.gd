@@ -27,6 +27,7 @@ const DEBUFF_MAP = {
 	"feared": {"type": "fear", "icon": "💫", "color": Color(0.8, 0.2, 0.8), "name": "Fear"},
 	"frozen": {"type": "freeze", "icon": "🧊", "color": Color(0.3, 0.6, 1.0), "name": "Freeze"},
 	"provoked": {"type": "provoked", "icon": "🎯", "color": Color(1.0, 0.4, 0.0), "name": "Provocación"},
+	"polymorphed": {"type": "poly", "icon": "🟦", "color": Color(0.2, 0.8, 1.0), "name": "Polimorfia"},
 }
 
 const BUFF_MAP = {
@@ -511,7 +512,8 @@ func _process(delta):
 
 	# v268.70: Feedback visual de estados alterados (Soporte 2.5D)
 	if not is_dead:
-		var is_affected = status_effects.get("stunned", false) or status_effects.get("frozen", false)
+		var is_affected = status_effects.get("stunned", false) or status_effects.get("frozen", false) or status_effects.get("polymorphed", false)
+		var is_poly = status_effects.get("polymorphed", false)
 		var state_color = Color(1.5, 1.5, 3.5, 1.0) if is_affected else Color(1, 1, 1, 1) # v268.76: Más azul y brillante
 		
 		if is_instance_valid(sprite):
@@ -521,25 +523,96 @@ func _process(delta):
 			else:
 				sprite.modulate = state_color
 		
-		# v268.77: Tinte para modelos 3D (Corregido para Viewports locales y compartidos)
+		# v268.77: Tinte para modelos 3D y soporte para transformación de Polimorfia (Cubo 3D)
 		if is_instance_valid(_3d_model):
-			if is_affected:
-				if not _status_material:
-					_status_material = StandardMaterial3D.new()
-					_status_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				_status_material.albedo_color = Color(0.1, 0.5, 1.0, 0.6) # v268.76: Tinte más opaco para que se note
-				_apply_material_recursive(_3d_model, _status_material, false)
-			elif _is_currently_invisible or _is_currently_camouflaged:
-				# Restaurar o mantener el material de sigilo si estamos en sigilo o camuflaje
-				if not _stealth_material:
-					_stealth_material = StandardMaterial3D.new()
-					_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
-					_stealth_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					_stealth_material.albedo_color = Color(0.15, 0.65, 0.95, 0.28) # Holograma de sigilo translúcido cian/azul
-				_apply_material_recursive(_3d_model, _stealth_material, false)
+			var poly_cube = _3d_model.get_node_or_null("PolymorphCube")
+			if is_poly:
+				# Ocultar todos los hijos de _3d_model excepto el cubo
+				for child in _3d_model.get_children():
+					if child.name != "PolymorphCube":
+						child.visible = false
+				
+				# Instanciar el cubo si no existe
+				if not poly_cube:
+					poly_cube = MeshInstance3D.new()
+					poly_cube.name = "PolymorphCube"
+					var box = BoxMesh.new()
+					box.size = Vector3(1.2, 1.2, 1.2)
+					poly_cube.mesh = box
+					
+					var mat = StandardMaterial3D.new()
+					mat.albedo_color = Color(0.1, 0.75, 1.0, 0.9)
+					mat.emission_enabled = true
+					mat.emission = Color(0.0, 0.6, 1.0)
+					mat.emission_energy_multiplier = 3.5
+					mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					poly_cube.material_override = mat
+					
+					_3d_model.add_child(poly_cube)
+					
+					# Tween de entrada (aparición)
+					poly_cube.scale = Vector3.ZERO
+					var tw_in = poly_cube.create_tween()
+					tw_in.tween_property(poly_cube, "scale", Vector3.ONE, 0.15).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+					
+					# Obtener duración exacta: desde poly_timer si somos jugador, o desde debuffs
+					var cube_duration = 4.0
+					if has_method("get") and get("poly_timer") != null:
+						cube_duration = max(0.1, float(get("poly_timer")))
+					elif debuffs.has("poly"):
+						cube_duration = max(0.1, debuffs["poly"].get("time_left", 4.0))
+					
+					# Programar destrucción exacta con tween de salida
+					poly_cube.set_meta("_exit_tween_running", true)
+					var exit_delay = max(0.0, cube_duration - 0.25)
+					var tw_exit = poly_cube.create_tween()
+					tw_exit.tween_interval(exit_delay)
+					tw_exit.tween_property(poly_cube, "scale", Vector3.ZERO, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+					tw_exit.tween_callback(func():
+						if is_instance_valid(poly_cube):
+							poly_cube.remove_meta("_exit_tween_running")
+							poly_cube.queue_free()
+						# Restaurar visibilidad de los hijos originales
+						if is_instance_valid(_3d_model):
+							for child in _3d_model.get_children():
+								if child.name != "PolymorphCube":
+									child.visible = true
+					)
+				else:
+					poly_cube.visible = true
+					# Rotación táctica lenta del cubo en 3D
+					poly_cube.rotate_y(delta * 2.0)
+					poly_cube.rotate_x(delta * 0.5)
 			else:
-				# Restaurar material original si no hay ni sigilo ni estado alterado
-				_apply_material_recursive(_3d_model, null, false)
+				# Si ya no estamos polimorfizados, destruir el cubo inmediatamente
+				# y restaurar la visual de la nave sin esperar al Tween.
+				if poly_cube:
+					poly_cube.queue_free()
+				
+				for child in _3d_model.get_children():
+					if child.name != "PolymorphCube":
+						child.visible = true
+				
+				if is_affected:
+					if not _status_material:
+						_status_material = StandardMaterial3D.new()
+						_status_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					_status_material.albedo_color = Color(0.1, 0.5, 1.0, 0.6)
+					_apply_material_recursive(_3d_model, _status_material, false)
+				elif _is_currently_invisible or _is_currently_camouflaged:
+					if not _stealth_material:
+						_stealth_material = StandardMaterial3D.new()
+						_stealth_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
+						_stealth_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+						_stealth_material.albedo_color = Color(0.15, 0.65, 0.95, 0.28)
+					_apply_material_recursive(_3d_model, _stealth_material, false)
+					
+					# Si tiene aros equipados, ocultar también sus visuales de soporte
+					var manager = _get_spheres_manager()
+					if manager and "spheres_data" in manager:
+						pass
+				else:
+					_apply_material_recursive(_3d_model, null, false)
 	
 	if is_dead:
 		if _ui_wrapper: _ui_wrapper.visible = false
@@ -890,6 +963,8 @@ func update_stats(data):
 	if data.has("status_effects"):
 		status_effects = data.status_effects
 		_refresh_debuffs_from_status_effects()
+	if data.has("polymorphed"):
+		status_effects["polymorphed"] = bool(data.polymorphed)
 	
 	# v268.87: Capturar posición desde el paquete de stats para evitar rubber-banding
 	if data.has("x"): target_position.x = _safe_float(data.x, target_position.x)
@@ -1225,7 +1300,18 @@ func _refresh_debuffs_from_status_effects():
 			if not debuffs.has(info.type):
 				if _debuff_cooldown.get(info.type, 0) > now - 1000:
 					continue
-				debuffs[info.type] = {"time_left": 3.0, "total": 3.0, "stacks": 1}
+				var duration = 3.0
+				if info.type == "poly":
+					if NetworkManager and NetworkManager.server_config and NetworkManager.server_config.has("enemyModels"):
+						var em = NetworkManager.server_config["enemyModels"]
+						for e_id in em:
+							var cfg = em[e_id]
+							if cfg.has("mechanics") and typeof(cfg["mechanics"]) == TYPE_ARRAY:
+								for mech in cfg["mechanics"]:
+									if mech.get("type") == "polymorph" and mech.has("polyDuration"):
+										duration = float(mech["polyDuration"]) / 1000.0
+										break
+				debuffs[info.type] = {"time_left": duration, "total": duration, "stacks": 1}
 				changed = true
 		else:
 			if debuffs.has(info.type):

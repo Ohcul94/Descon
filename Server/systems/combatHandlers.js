@@ -585,6 +585,55 @@ function registerCombatHandlers(socket, io, state) {
                 return;
             }
 
+            // v410: POLIMORFIA - Aplicar estado de transformación al impacto
+            if (attackerType === 'enemy' && data.bulletType === 'polymorph') {
+                const attackerEnemy = state.enemies[attackerId];
+                if (attackerEnemy) {
+                    // Buscar la mecánica polymorph en el enemigo para obtener la configuración
+                    const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
+                    let matchingMech = null;
+                    if (cfg && cfg.mechanics) {
+                        matchingMech = cfg.mechanics.find(m => m.type === 'polymorph');
+                    }
+                    
+                    const polyDuration = matchingMech ? matchingMech.polyDuration || 4000 : (data.polyDuration || 4000);
+                    // Si encontramos la config, la usamos. Si no, usamos el fallback del cliente (true = no bloquear)
+                    const canMove = matchingMech ? (matchingMech.canMove !== undefined ? matchingMech.canMove : false) : (data.polyCanMove !== undefined ? !!data.polyCanMove : false);
+                    const canUseSkills = matchingMech ? (matchingMech.canUseSkills !== undefined ? matchingMech.canUseSkills : true) : (data.polyCanUseSkills !== undefined ? !!data.polyCanUseSkills : true);
+                    
+                    // Aplicar estado de polimorfia
+                    p.isPolymorphed = true;
+                    p.polyEndTime = Date.now() + polyDuration;
+                    p.polyCanMove = canMove;
+                    p.polyCanUseSkills = canUseSkills;
+                    
+                    // Sincronizar al cliente
+                    io.to(p.socketId).emit('playerStatSync', {
+                        id: p.socketId,
+                        isPolymorphed: true,
+                        polyEndTime: p.polyEndTime,
+                        polyDuration: polyDuration, // Duración configurada original
+                        polyCanMove: p.polyCanMove,
+                        polyCanUseSkills: p.polyCanUseSkills
+                    });
+                    
+                    // Si hay daño configurado, aplicarlo
+                    if (matchingMech && matchingMech.bulletDamage > 0) {
+                        dmg = matchingMech.bulletDamage;
+                    } else {
+                        dmg = 0; // Polimorfia pura sin daño
+                    }
+                    
+                    io.to(p.socketId).emit('gameNotification', { 
+                        msg: `🟦 ¡Has sido transformado en un cubo! Duración: ${polyDuration}ms`, 
+                        type: "warning" 
+                    });
+                    
+                    p.lastCombatTime = Date.now();
+                }
+                return;
+            }
+
             if (attackerType === 'enemy') {
                 const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
                 let baseDmg = isClone ? 0 : (cfg ? cfg.bulletDamage : 50);
