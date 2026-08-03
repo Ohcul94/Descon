@@ -763,6 +763,15 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
             else if (f === 'cloneExplodeOnExpiry') mech[f] = true;
             else if (f === 'spawnRadius') mech[f] = 150;
             else if (f === 'reflect_mult') mech[f] = 0.8;
+            else if (f === 'fireRange') mech[f] = 700;
+            else if (f === 'bulletSpeed') mech[f] = 700;
+            else if (f === 'bulletDamage') mech[f] = 10;
+            else if (f === 'stealMode') mech[f] = 'flat';
+            else if (f === 'stealAmount') mech[f] = 100;
+            else if (f === 'stealIntervalMs') mech[f] = 1000;
+            else if (f === 'targetMode') mech[f] = 'proximity';
+            else if (f === 'giveToEnemy') mech[f] = true;
+            else if (f === 'startDelay') mech[f] = 0;
             else mech[f] = 0;
         }
     });
@@ -792,6 +801,7 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'bulletSpeed') mech[f] = 800;
             else if (f === 'fireRange') mech[f] = newType === 'circle_cast' ? 300 : 600;
             else if (f === 'fireRate') mech[f] = 1000;
+            else if (f === 'burstShots') mech[f] = 1;
             else if (f === 'aimDelayMs') mech[f] = 1000;
             else if (f === 'coneFollow') mech[f] = false;
             else if (f === 'lockTimeMs') mech[f] = newType === 'circle_cast' ? 800 : 0;
@@ -1041,6 +1051,7 @@ function patchMechanicsLib() {
     if (config.mechanicsLib && config.mechanicsLib.laser) {
         if (!config.mechanicsLib.laser.fields.includes("isHoming")) config.mechanicsLib.laser.fields.push("isHoming");
         if (!config.mechanicsLib.laser.fields.includes("turnSpeed")) config.mechanicsLib.laser.fields.push("turnSpeed");
+        if (!config.mechanicsLib.laser.fields.includes("burstShots")) config.mechanicsLib.laser.fields.push("burstShots");
     }
     if (config.mechanicsLib && config.mechanicsLib.missile) {
         if (!config.mechanicsLib.missile.fields.includes("lifetimeMs")) config.mechanicsLib.missile.fields.push("lifetimeMs");

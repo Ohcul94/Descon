@@ -568,6 +568,23 @@ function registerCombatHandlers(socket, io, state) {
             
             let dmg = data.damage || 0;
 
+            // v410: ROBADOR DE ESCUDO (shield_steal) - El impacto no hace daño,
+            // crea el vínculo de robo de escudo en el enemigo (autoritativo)
+            if (attackerType === 'enemy' && data.bulletType === 'shield_steal') {
+                const attackerEnemy = state.enemies[attackerId];
+                if (attackerEnemy && attackerEnemy.ai && typeof attackerEnemy.ai._onEnemyShieldStealHit === 'function') {
+                    const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
+                    let mech = null;
+                    if (cfg && cfg.defenseMechanics && Array.isArray(cfg.defenseMechanics)) {
+                        mech = cfg.defenseMechanics.find(m => m.type === 'shield_steal') || null;
+                    }
+                    const mId = attackerEnemy._shieldStealMId || 'def_shield_steal';
+                    attackerEnemy.ai._onEnemyShieldStealHit(p.socketId, mech, mId, Date.now(), io, state);
+                    p.lastCombatTime = Date.now();
+                }
+                return;
+            }
+
             if (attackerType === 'enemy') {
                 const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
                 let baseDmg = isClone ? 0 : (cfg ? cfg.bulletDamage : 50);

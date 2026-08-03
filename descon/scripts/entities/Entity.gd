@@ -994,8 +994,11 @@ func update_stats(data):
 	var new_total = current_hp + current_shield
 	var damage_taken = old_total - new_total
 	
+	var suppress_popup = bool(data.get("suppressDamagePopup", false))
+
 	# v240.69: Solo emitir daño visual en el sync si es un daño no predicho GRANDE (Evitar falsos sangrados por regen)
-	if damage_taken >= max(10.0, max_hp * 0.05) and old_total > 0: 
+	# v410: suppressDamagePopup -> el robo de escudo ya muestra su popup celeste via environmentDamage
+	if not suppress_popup and damage_taken >= max(10.0, max_hp * 0.05) and old_total > 0: 
 		# No reseteamos el combat_timer aquí porque el ataque real ya lo reseteó en take_damage
 		_spawn_damage_text(str(int(damage_taken)), Color.RED)
 	

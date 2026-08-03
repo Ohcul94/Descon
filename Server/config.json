@@ -1016,6 +1016,27 @@
             ],
             "icon": "🛡️",
             "label": "Muro de Energía (Wall Dome)"
+        },
+        "shield_steal": {
+            "label": "Robador de Escudo (Shield Steal)",
+            "icon": "💠",
+            "desc": "Dispara un proyectil celestial que se vincula al jugador impactado, robándole escudo por ticks y transfiriéndose al enemigo.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "fireRange",
+                "bulletSpeed",
+                "duration",
+                "startDelay",
+                "stealMode",
+                "stealAmount",
+                "stealIntervalMs",
+                "targetMode",
+                "giveToEnemy",
+                "bulletDamage"
+            ]
         }
     },
     "enemyModels": {
@@ -3957,7 +3978,26 @@
             "aggressive": true,
             "bulletDamage": 1120,
             "bulletSpeed": 880,
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "shield_steal",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 4200,
+                    "cooldown": 6000,
+                    "startDelay": 0,
+                    "activationMode": "time",
+                    "activationIntervalMs": 5000,
+                    "fireRange": 800,
+                    "bulletSpeed": 1000,
+                    "stealMode": "flat",
+                    "stealAmount": 20,
+                    "stealIntervalMs": 1000,
+                    "targetMode": "random",
+                    "giveToEnemy": true,
+                    "bulletDamage": 300
+                }
+            ],
             "fireRange": 1050,
             "fireRate": 950,
             "hp": 1000,
@@ -3971,7 +4011,7 @@
                     "applySlow": true,
                     "bombCount": 3,
                     "bombDelayMs": 500,
-                    "bulletDamage": 300,
+                    "bulletDamage": 100,
                     "bulletSpeed": 350,
                     "castSpeed": 0,
                     "castTimeMs": 1000,
@@ -3991,7 +4031,7 @@
                         }
                     ],
                     "duration": 4000,
-                    "fireRange": 1000,
+                    "fireRange": 2000,
                     "fireRate": 3000,
                     "fuseTimeMs": 1000,
                     "hookMissWaitMs": 0,
@@ -4021,7 +4061,7 @@
                     "stunDuration": 1000,
                     "tick_interval": 1000,
                     "turnSpeed": 0,
-                    "type": "burrow",
+                    "type": "laser",
                     "projectileCount": 5,
                     "spreadAngle": 60,
                     "parkTimeMs": 2000,
@@ -4035,7 +4075,8 @@
                     "zoneTickMs": 500,
                     "targetMode": "random",
                     "undergroundMs": 3000,
-                    "warnTimeMs": 2000
+                    "warnTimeMs": 2000,
+                    "burstShots": 1
                 }
             ],
             "movementPhases": [
@@ -5849,6 +5890,7 @@
                 "bulletSpeed",
                 "fireRange",
                 "fireRate",
+                "burstShots",
                 "startDelay",
                 "isHoming",
                 "turnSpeed"

@@ -1,6 +1,6 @@
 // v266.220: Definición de Mecánicas de Ataque
 const DEFAULT_MECHANICS_LIB = {
-    "laser": { label: "Láser Estándar", icon: "🔫", desc: "Ataque lineal básico.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "startDelay"] },
+    "laser": { label: "Láser Estándar", icon: "🔫", desc: "Ataque lineal básico.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "burstShots", "startDelay"] },
     "missile": { label: "Misil Rastreador", icon: "🚀", desc: "Proyectil autoguiado.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "startDelay"] },
     "ice_missile": { label: "Misil de Hielo", icon: "❄️", desc: "Ralentiza al objetivo.", fields: ["bulletDamage", "bulletSpeed", "fireRange", "fireRate", "slowAmount", "slowDuration", "startDelay"] },
     "mine": { label: "Mina de Proximidad", icon: "💣", desc: "Explosivo estático.", fields: ["bulletDamage", "fireRange", "fireRate", "startDelay"] },
@@ -44,7 +44,13 @@ const DEFAULT_DEFENSE_LIB = {
     "boss_water_orbs": { label: "Orbes de Agua", icon: "💧", desc: "Invoca orbes que viajan al boss. Interceptarlas hace daño pero evita que el boss se cure.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "orbCount", "spawnRadius", "orbSpeed", "playerDamage", "bossHealPercent", "duration", "cooldown"] },
     "duplicado": { label: "Duplicación Defensiva", icon: "👥", desc: "El enemigo se divide en clones que persiguen al jugador y explotan curando al original.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cloneCount", "cloneSpeed", "cloneDuration", "cloneExplodeOnExpiry", "spawnRadius", "cooldown"] },
     "wall_dome": { label: "Muro de Energía (Wall Dome)", icon: "🌐", desc: "Crea una cúpula protectora que bloquea proyectiles del exterior.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "duration", "radius", "startDelay"] },
-    "reflect": { label: "Escudo Reflectante (Reflect)", icon: "🛡️", desc: "Devuelve daño recibido al atacante.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "duration", "reflect_mult", "startDelay"] }
+    "reflect": { label: "Escudo Reflectante (Reflect)", icon: "🛡️", desc: "Devuelve daño recibido al atacante.", fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "duration", "reflect_mult", "startDelay"] },
+    "shield_steal": { 
+        label: "Robador de Escudo (Shield Steal)", 
+        icon: "💠", 
+        desc: "Dispara un proyectil celestial que se vincula al jugador impactado, robándole escudo por ticks y transfiriéndose al enemigo.", 
+        fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "fireRange", "bulletSpeed", "duration", "startDelay", "stealMode", "stealAmount", "stealIntervalMs", "targetMode", "giveToEnemy", "bulletDamage"]
+    }
 };
 
 // v266.300: Definición de Mecánicas de Ambiente (Hazards)

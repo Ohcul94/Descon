@@ -984,6 +984,7 @@ const fieldLabelsMap = {
                                            bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : (m.type === 'wind_wall' ? "Vel. Pared de Viento (px/s)" : (m.type === 'burrow' ? "Vel. de Zambullida (px/s)" : "Vel. Bala (px/s)")), 
                                            fireRange: m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : (m.type === 'survival_dome' ? "Radio de la Explosión (px)" : (m.type === 'wind_wall' ? "Alcance de la Pared (px)" : (m.type === 'burrow' ? "Alcance de Selección de Objetivo (px)" : "Alcance (px)"))))),
                                           fireRate: "Cadencia (ms)", 
+                                      burstShots: "Proyectiles por Ráfaga (uds)", 
                                           slowAmount: "Ralentización (pts)", 
                                           slowDuration: "Duración de Ralentización (ms)", 
                                           startDelay: "Delay Inicio (ms)", 
@@ -1351,7 +1352,15 @@ const fieldLabelsMap = {
                                         cloneDuration: "Duración de Clones (ms)",
                                         cloneExplosionDamage: "Daño de Explosión (pts)",
                                         cloneHealAmount: "Curación al original (pts)",
-                                        cloneExplodeOnExpiry: "Perseguir y explotar al expirar"
+                                        cloneExplodeOnExpiry: "Perseguir y explotar al expirar",
+                                        fireRange: "Distancia de Disparo (px)",
+                                        bulletSpeed: "Velocidad del Proyectil (px/s)",
+                                        bulletDamage: "Daño del Proyectil (pts)",
+                                        stealMode: "Modo de Robo",
+                                        stealAmount: "Cantidad de Robo",
+                                        stealIntervalMs: "Intervalo de Robo (ms)",
+                                        targetMode: "Selección del Objetivo",
+                                        giveToEnemy: "Transferir Escudo Robado al Enemigo"
                                     };
                                     if (f === 'invisType') {
                                         const type = m.invisType || 'invisibility';
@@ -1442,6 +1451,42 @@ const fieldLabelsMap = {
                                          return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.checked"><label style="margin:0;">${defLabels[f]}</label></div>`;
                                     }
                                     if (f === 'pillarName') return `<div class="field" style="grid-column: 1 / -1;"><label>${defLabels[f] || f}</label><input type="text" value="${m[f] || 'Pilar Protector'}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.value"></div>`;
+                                    if (f === 'stealMode') {
+                                        const mode = m.stealMode || 'flat';
+                                        return `
+                                            <div class="field" style="grid-column: 1 / -1;"><label>Modo de Robo de Escudo</label>
+                                                <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].stealMode = this.value; renderEnemyDetail();">
+                                                    <option value="flat" ${mode === 'flat' ? 'selected' : ''}>📏 Plano (pts por tick)</option>
+                                                    <option value="percent" ${mode === 'percent' ? 'selected' : ''}>📊 Porcentual (del escudo max del jugador)</option>
+                                                </select>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'targetMode') {
+                                        const tmode = m.targetMode || 'proximity';
+                                        return `
+                                            <div class="field" style="grid-column: 1 / -1;"><label>Selección del Objetivo</label>
+                                                <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
+                                                    <option value="proximity" ${tmode === 'proximity' ? 'selected' : ''}>📍 Más Cercano</option>
+                                                    <option value="random" ${tmode === 'random' ? 'selected' : ''}>🎲 Aleatorio</option>
+                                                    <option value="lowest_hp" ${tmode === 'lowest_hp' ? 'selected' : ''}>🥶 Menor Vida (%)</option>
+                                                    <option value="highest_hp" ${tmode === 'highest_hp' ? 'selected' : ''}>🫀 Mayor Vida (%)</option>
+                                                    <option value="highest_shield" ${tmode === 'highest_shield' ? 'selected' : ''}>💠 Mayor Escudo</option>
+                                                    <option value="highest_damage" ${tmode === 'highest_damage' ? 'selected' : ''}>⚔️ Mayor Daño Causado</option>
+                                                </select>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'giveToEnemy') {
+                                        const checked = m.giveToEnemy !== false;
+                                        if (m.giveToEnemy === undefined) m.giveToEnemy = true;
+                                        return `
+                                            <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;">
+                                                <input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].giveToEnemy = this.checked">
+                                                <label style="margin:0;">Transferir Escudo Robado al Enemigo</label>
+                                            </div>
+                                        `;
+                                    }
                                     return `<div class="field"><label>${defLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}
                             </div>
@@ -1527,6 +1572,7 @@ function renderMechanicsLib() {
         "bulletSpeed": "Velocidad", 
         "fireRange": "Alcance (px)", 
         "fireRate": "Cadencia", 
+        "burstShots": "Proyectiles por Ráfaga (uds)", 
         "staticTime": "Tiempo Estático",
         "reductionPercentage": "Reducción Daño",
         "shieldRegen": "Regen. Escudo",

@@ -144,7 +144,7 @@ func _on_environment_damaged(data: Dictionary):
 		last_combat_time = Time.get_ticks_msec() 
 		
 		# Aplicamos el daño visualmente para que las barras bajen al instante 
-		# (Evita el salto brusco cuando llega el Sync del servidor)
+		# (Evita el salto brusco cuando llega el vSync del servidor)
 		if current_shield >= dmg:
 			current_shield -= dmg
 		else:
@@ -153,11 +153,15 @@ func _on_environment_damaged(data: Dictionary):
 		
 		if current_hp < 0: current_hp = 0
 		
-		# Llama directamente a la función base de Entity para dibujar el texto
-		_spawn_damage_text(str(int(dmg)), Color.RED)
-		
-		# Feedback visual extra de la cámara temblando levemente
-		apply_shake(2.0)
+		var isShieldDrain = data.get("isShield", false)
+		if isShieldDrain:
+			# Robo de escudo (shield_steal): numero celeste con signo negativo
+			_spawn_damage_text("-" + str(int(dmg)), Color(0.0, 0.9, 0.95))
+			apply_shake(1.0)
+		else:
+			# Daño normal
+			_spawn_damage_text(str(int(dmg)), Color.RED)
+			apply_shake(2.0)
 
 func _on_slow_state(data: Dictionary):
 	if data.has("active"):
