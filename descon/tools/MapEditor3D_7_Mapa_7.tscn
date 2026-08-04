@@ -6,7 +6,7 @@
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e5mj7"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cqf1g"]
 albedo_color = Color(0.05, 0.08, 0.15, 1)
 metallic = 0.3
 roughness = 0.8
@@ -30,7 +30,7 @@ adjustment_saturation = 1.05
 script = ExtResource("1_editor_script")
 zone_id = "7"
 auto_load_event = true
-json_to_import = "[{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Puerta\",\"rotY\":-41.2,\"scale\":5.0,\"targetX\":5000.0,\"targetY\":5000.0,\"targetZoneId\":\"1\",\"type\":\"door\",\"x\":372.3,\"y\":275.38,\"yOffset\":3.0}]"
+json_to_import = "[{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Puerta\",\"rotY\":90.0,\"scale\":5.0,\"targetX\":5000.0,\"targetY\":5000.0,\"targetZoneId\":\"1\",\"type\":\"door\",\"x\":1486.0,\"y\":2685.0,\"yOffset\":3.0},{\"assetPath\":\"res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb\",\"label\":\"M7-Pared3\",\"rotY\":92.1,\"scale\":30.0,\"type\":\"wall\",\"x\":66.4,\"y\":1218.77,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb\",\"label\":\"M7-Pared3\",\"rotY\":92.1,\"scale\":30.0,\"type\":\"wall\",\"x\":21.77,\"y\":374.86,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb\",\"label\":\"M7-Pared3\",\"rotY\":0.5,\"scale\":30.0,\"type\":\"wall\",\"x\":652.47,\"y\":-106.01,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb\",\"label\":\"M7-Pared3\",\"rotY\":0.5,\"scale\":30.0,\"type\":\"wall\",\"x\":2075.16,\"y\":-114.22,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb\",\"label\":\"M7-Pared4\",\"rotY\":92.1,\"scale\":30.0,\"type\":\"wall\",\"x\":64.37,\"y\":2225.8,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb\",\"label\":\"M7-Pared5\",\"rotY\":-90.7,\"scale\":30.0,\"type\":\"wall\",\"x\":3044.5,\"y\":1110.65,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb\",\"label\":\"M7-Pared5\",\"rotY\":-90.7,\"scale\":30.0,\"type\":\"wall\",\"x\":3061.66,\"y\":129.07,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb\",\"label\":\"M7-Pared6\",\"rotY\":-90.7,\"scale\":30.0,\"type\":\"wall\",\"x\":3042.48,\"y\":2117.68,\"yOffset\":0.0}]"
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=260612361]
 transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
@@ -46,95 +46,95 @@ shape = SubResource("WorldBoundaryShape3D_1")
 
 [node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=1270837892]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
-material_override = SubResource("StandardMaterial3D_e5mj7")
+material_override = SubResource("StandardMaterial3D_cqf1g")
 mesh = SubResource("PlaneMesh_1")
 
 [node name="ObjectsRoot" type="Node3D" parent="." unique_id=1662825988]
 unique_name_in_owner = true
 
-[node name="Puerta" type="Node3D" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("3_e5mj7")]
-transform = Transform3D(-2.1855695e-07, 0, 5, 0, 5, 0, -5, 0, -2.1855695e-07, 29.897648, 3, 76.17354)
+[node name="@Node3D@19821" type="Node3D" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("3_e5mj7")]
+transform = Transform3D(-2.1855695e-07, 0, 5, 0, 5, 0, -5, 0, -2.1855695e-07, 29.72, 3, 75.94327)
 metadata/editor_only = true
 metadata/obj_type = "door"
 metadata/label = "Puerta"
 metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
 metadata/scale_2d = 5.0
-metadata/rot_y_deg = -41.2
+metadata/rot_y_deg = 90.0
 metadata/targetZoneId = "1"
 metadata/targetX = 5000.0
 metadata/targetY = 5000.0
 
-[node name="M7-Pared3" parent="ObjectsRoot" unique_id=1922071649 instance=ExtResource("3_cqf1g")]
-transform = Transform3D(-1.1209966, 0, 29.979048, 0, 30, 0, -29.979048, 0, -1.1209966, 1.3280144, 5.9604645e-08, 34.471977)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
-metadata/label = &"M7-Pared3"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+[node name="@Node3D@19822" type="Node3D" parent="ObjectsRoot" unique_id=1922071649 instance=ExtResource("3_cqf1g")]
+transform = Transform3D(-1.0993106, 0, 29.97985, 0, 30, 0, -29.97985, 0, -1.0993106, 1.328, 0, 34.472023)
 metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "M7-Pared3"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
+metadata/scale_2d = 30.0
+metadata/rot_y_deg = 92.1
 
-[node name="M7-Pared8" parent="ObjectsRoot" unique_id=594710677 instance=ExtResource("3_cqf1g")]
-transform = Transform3D(-1.1209966, 0, 29.979048, 0, 30, 0, -29.979048, 0, -1.1209966, 0.43547708, 5.9604645e-08, 10.602661)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
-metadata/label = &"M7-Pared3"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+[node name="@Node3D@19823" type="Node3D" parent="ObjectsRoot" unique_id=64717058 instance=ExtResource("3_cqf1g")]
+transform = Transform3D(-1.0993106, 0, 29.97985, 0, 30, 0, -29.97985, 0, -1.0993106, 0.4354, 0, 10.602642)
 metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "M7-Pared3"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
+metadata/scale_2d = 30.0
+metadata/rot_y_deg = 92.1
 
-[node name="M7-Pared7" parent="ObjectsRoot" unique_id=474928625 instance=ExtResource("3_cqf1g")]
-transform = Transform3D(29.998999, 0, 0.24499738, 0, 30, 0, -0.24499738, 0, 29.998999, 13.049303, 5.9604645e-08, -2.9983385)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
-metadata/label = &"M7-Pared3"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+[node name="@Node3D@19824" type="Node3D" parent="ObjectsRoot" unique_id=1364029566 instance=ExtResource("3_cqf1g")]
+transform = Transform3D(29.998857, 0, 0.26179606, 0, 30, 0, -0.26179606, 0, 29.998857, 13.0494, 0, -2.9984157)
 metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "M7-Pared3"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
+metadata/scale_2d = 30.0
+metadata/rot_y_deg = 0.5
 
-[node name="M7-Pared9" parent="ObjectsRoot" unique_id=2024519150 instance=ExtResource("3_cqf1g")]
-transform = Transform3D(29.998999, 0, 0.24499738, 0, 30, 0, -0.24499738, 0, 29.998999, 41.503147, 5.9604645e-08, -3.2307167)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
-metadata/label = &"M7-Pared3"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+[node name="@Node3D@19825" type="Node3D" parent="ObjectsRoot" unique_id=571826017 instance=ExtResource("3_cqf1g")]
+transform = Transform3D(29.998857, 0, 0.26179606, 0, 30, 0, -0.26179606, 0, 29.998857, 41.5032, 0, -3.2306294)
 metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "M7-Pared3"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
+metadata/scale_2d = 30.0
+metadata/rot_y_deg = 0.5
 
-[node name="M7-Pared4" parent="ObjectsRoot" unique_id=856115402 instance=ExtResource("3_cqf1g")]
-transform = Transform3D(-1.1209966, 0, 29.979048, 0, 30, 0, -29.979048, 0, -1.1209966, 1.287449, 5.9604645e-08, 62.95523)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
-metadata/label = &"M7-Pared4"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+[node name="@Node3D@19826" type="Node3D" parent="ObjectsRoot" unique_id=432756550 instance=ExtResource("3_cqf1g")]
+transform = Transform3D(-1.0993106, 0, 29.97985, 0, 30, 0, -29.97985, 0, -1.0993106, 1.2874, 0, 62.95513)
 metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "M7-Pared4"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
+metadata/scale_2d = 30.0
+metadata/rot_y_deg = 92.1
 
-[node name="M7-Pared5" parent="ObjectsRoot" unique_id=1228864968 instance=ExtResource("3_cqf1g")]
-transform = Transform3D(-0.37069058, 0, -29.99771, 0, 30, 0, 29.99771, 0, -0.37069058, 60.89009, 5.9604645e-08, 31.41382)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
-metadata/label = &"M7-Pared5"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+[node name="@Node3D@19827" type="Node3D" parent="ObjectsRoot" unique_id=1252906401 instance=ExtResource("3_cqf1g")]
+transform = Transform3D(-0.3665071, 0, -29.99776, 0, 30, 0, 29.99776, 0, -0.3665071, 60.89, 0, 31.413925)
 metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "M7-Pared5"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
+metadata/scale_2d = 30.0
+metadata/rot_y_deg = -90.7
 
-[node name="M7-Pared10" parent="ObjectsRoot" unique_id=1800185000 instance=ExtResource("3_cqf1g")]
-transform = Transform3D(-0.37069058, 0, -29.99771, 0, 30, 0, 29.99771, 0, -0.37069058, 61.23317, 5.9604645e-08, 3.650549)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
-metadata/label = &"M7-Pared5"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+[node name="@Node3D@19828" type="Node3D" parent="ObjectsRoot" unique_id=1941315501 instance=ExtResource("3_cqf1g")]
+transform = Transform3D(-0.3665071, 0, -29.99776, 0, 30, 0, 29.99776, 0, -0.3665071, 61.2332, 0, 3.650651)
 metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "M7-Pared5"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
+metadata/scale_2d = 30.0
+metadata/rot_y_deg = -90.7
 
-[node name="M7-Pared6" parent="ObjectsRoot" unique_id=1851686267 instance=ExtResource("3_cqf1g")]
-transform = Transform3D(-0.37069058, 0, -29.99771, 0, 30, 0, 29.99771, 0, -0.37069058, 60.849525, 5.9604645e-08, 59.897076)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
-metadata/label = &"M7-Pared6"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
+[node name="@Node3D@19829" type="Node3D" parent="ObjectsRoot" unique_id=2037667879 instance=ExtResource("3_cqf1g")]
+transform = Transform3D(-0.3665071, 0, -29.99776, 0, 30, 0, 29.99776, 0, -0.3665071, 60.8496, 0, 59.897034)
 metadata/editor_only = true
+metadata/obj_type = "wall"
+metadata/label = "M7-Pared6"
+metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared1/3D/M7-Pared1.glb"
+metadata/scale_2d = 30.0
+metadata/rot_y_deg = -90.7
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1254125578]
 transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
