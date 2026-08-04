@@ -53,8 +53,8 @@ func _ready():
 		target_ip = "138.2.241.76" # Celular siempre apunta a Oracle Cloud
 	else:
 		platform_key = "windows"
-		# PC standalone: debug build apunta a local, release build apunta a producción
-		if OS.is_debug_build():
+		# PC standalone: si estamos en editor apunta a local, sino a producción
+		if OS.has_feature("editor"):
 			target_ip = "127.0.0.1"
 		else:
 			target_ip = "138.2.241.76"
