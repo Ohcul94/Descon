@@ -1038,6 +1038,28 @@
                 "bulletDamage",
                 "isPointAndClick"
             ]
+        },
+        "life_steal": {
+            "label": "Robador de Vida (Life Steal)",
+            "icon": "💚",
+            "desc": "Igual que el Robador de Escudo pero roba VIDA al jugador por ticks y se la transfiere al enemigo. Aros y números en verde.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "fireRange",
+                "bulletSpeed",
+                "duration",
+                "startDelay",
+                "stealMode",
+                "stealAmount",
+                "stealIntervalMs",
+                "targetMode",
+                "giveToEnemy",
+                "bulletDamage",
+                "isPointAndClick"
+            ]
         }
     },
     "enemyModels": {
@@ -3994,7 +4016,27 @@
             "aggressive": true,
             "bulletDamage": 1120,
             "bulletSpeed": 880,
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "life_steal",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 5000,
+                    "cooldown": 6000,
+                    "startDelay": 0,
+                    "activationMode": "time",
+                    "activationIntervalMs": 5000,
+                    "fireRange": 700,
+                    "bulletSpeed": 700,
+                    "stealMode": "flat",
+                    "stealAmount": 100,
+                    "stealIntervalMs": 1000,
+                    "targetMode": "proximity",
+                    "giveToEnemy": true,
+                    "bulletDamage": 10,
+                    "isPointAndClick": 0
+                }
+            ],
             "fireRange": 1050,
             "fireRate": 950,
             "hp": 1000,

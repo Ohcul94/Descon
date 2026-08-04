@@ -149,18 +149,28 @@ func _on_environment_damaged(data: Dictionary):
 		# Detenemos la falsa regeneración local avisando a Godot que estamos en combate
 		last_combat_time = Time.get_ticks_msec() 
 		
-		# Aplicamos el daño visualmente para que las barras bajen al instante 
-		# (Evita el salto brusco cuando llega el vSync del servidor)
-		if current_shield >= dmg:
-			current_shield -= dmg
+		var isLifeSteal = data.get("isLifeSteal", false)
+		if isLifeSteal:
+			# Robo de vida: bypass del escudo, daño directo a HP
+			current_hp -= dmg
+			if current_hp < 0: current_hp = 0
 		else:
-			current_hp -= (dmg - current_shield)
-			current_shield = 0
-		
-		if current_hp < 0: current_hp = 0
+			# Aplicamos el daño visualmente para que las barras bajen al instante 
+			# (Evita el salto brusco cuando llega el vSync del servidor)
+			if current_shield >= dmg:
+				current_shield -= dmg
+			else:
+				current_hp -= (dmg - current_shield)
+				current_shield = 0
+			
+			if current_hp < 0: current_hp = 0
 		
 		var isShieldDrain = data.get("isShield", false)
-		if isShieldDrain:
+		if isLifeSteal:
+			# Robo de vida (life_steal): numero verde con signo negativo
+			_spawn_damage_text("-" + str(int(dmg)), Color(0.2, 1.0, 0.35))
+			apply_shake(1.0)
+		elif isShieldDrain:
 			# Robo de escudo (shield_steal): numero celeste con signo negativo
 			_spawn_damage_text("-" + str(int(dmg)), Color(0.0, 0.9, 0.95))
 			apply_shake(1.0)

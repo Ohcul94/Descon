@@ -405,6 +405,10 @@ func _on_enemy_action(data: Dictionary):
 	if action == "shield_steal_start" or action == "shield_steal_tick" or action == "shield_steal_end":
 		_handle_shield_steal_action(data)
 		return
+	# v412: Life Steal (robo de vida) - igual que shield_steal pero con aros verdes
+	if action == "life_steal_start" or action == "life_steal_tick" or action == "life_steal_end":
+		_handle_life_steal_action(data)
+		return
 
 	# v411: Meteorito - los meteoritos caen sobre posiciones del mapa, no dependen
 	# de que el enemigo esté renderizado en el cliente.
@@ -1518,6 +1522,183 @@ func _handle_shield_steal_action(data: Dictionary):
 			active_areas.erase(steal_id)
 
 
+# v412: ROBADOR DE VIDA (life_steal) - Igual que shield_steal pero roba VIDA.
+# Los aros que viajan del jugador al enemigo son VERDES (color vida).
+func _handle_life_steal_action(data: Dictionary):
+	var action = data.get("action", "")
+	var enemy_id = str(data.get("id", ""))
+	var t_id = str(data.get("targetId", ""))
+	var steal_id: String = "lifesteal_" + enemy_id
+
+	if action == "life_steal_start":
+		if active_areas.has(steal_id) and is_instance_valid(active_areas[steal_id]):
+			active_areas[steal_id].queue_free()
+			active_areas.erase(steal_id)
+
+		var steal_script = load("res://scripts/systems/ShieldLinkVisual.gd")
+		if not steal_script:
+			return
+		var steal_node := Node2D.new()
+		steal_node.set_script(steal_script)
+		steal_node.name = "LifeSteal_" + enemy_id
+		steal_node.z_index = 20
+		steal_node.z_as_relative = false
+		steal_node.set_as_top_level(true)
+		steal_node.set_meta("targetId", t_id)
+		if is_instance_valid(world) and is_instance_valid(world.entities_node):
+			world.entities_node.add_child(steal_node)
+		else:
+			add_child(steal_node)
+		if steal_node.has_method("setup"):
+			var en = enemies.get(enemy_id) if enemies.has(enemy_id) else null
+			steal_node.setup(data, en)
+		active_areas[steal_id] = steal_node
+
+	elif action == "life_steal_tick":
+		if active_areas.has(steal_id) and is_instance_valid(active_areas[steal_id]):
+			var sn = active_areas[steal_id]
+			if sn.has_method("update_enemy_position") and data.has("ex") and data.has("ey"):
+				sn.update_enemy_position(data.get("ex", 0.0), data.get("ey", 0.0))
+			if sn.has_method("update_tick_flash"):
+				sn.update_tick_flash()
+
+		# --- EFECTO 3D: Aros de vida (verdes) viajando del jugador al enemigo en tiempo real ---
+		var current_map = get_tree().get_first_node_in_group("map")
+		var has_3d = is_instance_valid(current_map) and current_map.get("sub_viewport") != null and is_instance_valid(current_map.sub_viewport)
+		if has_3d:
+			var s_factor: float = current_map.scale_factor if "scale_factor" in current_map else 0.02
+			var corr_z: float = current_map.correction_z if "correction_z" in current_map else 1.41421356
+			var vp: SubViewport = current_map.sub_viewport
+
+			# Identificar origen (jugador) y enemigo
+			var ex: float = float(data.get("ex", 0.0))
+			var ey: float = float(data.get("ey", 0.0))
+			var enemy_pos3d = Vector3(ex * s_factor, 0.5, ey * s_factor * corr_z)
+
+			var player_pos3d: Vector3 = enemy_pos3d
+			var player_node: Node2D = null
+			if is_instance_valid(world) and is_instance_valid(world.local_player) and str(world.local_player.get("entity_id")) == t_id:
+				player_node = world.local_player
+			elif remote_players.has(t_id):
+				player_node = remote_players[t_id]
+			if is_instance_valid(player_node):
+				player_pos3d = Vector3(
+					player_node.global_position.x * s_factor,
+					0.5,
+					player_node.global_position.y * s_factor * corr_z
+				)
+
+			var enemy_node: Node2D = enemies.get(enemy_id) if enemies.has(enemy_id) else null
+
+			# Crear nodo del efecto con script de seguimiento dinámico
+			var orb_root = Node3D.new()
+
+			# Script en línea para seguimiento perfecto en tiempo real
+			var follow_script = GDScript.new()
+			follow_script.source_code = "extends Node3D\n" + \
+				"var target_enemy: Node2D = null\n" + \
+				"var s_factor: float = 0.02\n" + \
+				"var corr_z: float = 1.4142\n" + \
+				"var speed: float = 9.0\n" + \
+				"var life: float = 0.0\n" + \
+				"var max_life: float = 0.65\n" + \
+				"func setup(p_enemy: Node2D, p_start: Vector3, p_s_factor: float, p_corr_z: float):\n" + \
+				"	target_enemy = p_enemy\n" + \
+				"	global_position = p_start\n" + \
+				"	s_factor = p_s_factor\n" + \
+				"	corr_z = p_corr_z\n" + \
+				"func _process(delta: float):\n" + \
+				"	life += delta\n" + \
+				"	if is_instance_valid(target_enemy):\n" + \
+				"		var dest = Vector3(target_enemy.global_position.x * s_factor, 0.5, target_enemy.global_position.y * s_factor * corr_z)\n" + \
+				"		global_position = global_position.lerp(dest, delta * speed * (1.0 + (life / max_life)))\n" + \
+				"		if global_position.distance_to(dest) > 0.02:\n" + \
+				"			look_at(dest, Vector3.UP)\n" + \
+				"		var dist = global_position.distance_to(dest)\n" + \
+				"		if dist < 0.45:\n" + \
+				"			scale = scale.lerp(Vector3.ZERO, delta * 20.0)\n" + \
+				"			if dist < 0.08:\n" + \
+				"				queue_free()\n" + \
+				"				return\n" + \
+				"	if life >= max_life:\n" + \
+				"		queue_free()\n" + \
+				"		return\n"
+
+			follow_script.reload()
+			orb_root.set_script(follow_script)
+			vp.add_child(orb_root)
+			orb_root.setup(enemy_node, player_pos3d, s_factor, corr_z)
+
+			# --- ARO PRINCIPAL (Torus verde brillante - Más chico y parado) ---
+			var ring1 = MeshInstance3D.new()
+			var torus1 = TorusMesh.new()
+			torus1.inner_radius = 0.15
+			torus1.outer_radius = 0.22
+			ring1.mesh = torus1
+			ring1.rotation_degrees.x = 90
+			var mat1 = StandardMaterial3D.new()
+			mat1.albedo_color = Color(0.1, 0.95, 0.35, 0.8)
+			mat1.emission_enabled = true
+			mat1.emission = Color(0.2, 1.0, 0.3)
+			mat1.emission_energy_multiplier = 3.5
+			mat1.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat1.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			ring1.material_override = mat1
+			orb_root.add_child(ring1)
+
+			# --- ARO SECUNDARIO INTERNO (Blanco de alta energía - Más chico y parado) ---
+			var ring2 = MeshInstance3D.new()
+			var torus2 = TorusMesh.new()
+			torus2.inner_radius = 0.17
+			torus2.outer_radius = 0.20
+			ring2.mesh = torus2
+			ring2.rotation_degrees.x = 90
+			var mat2 = StandardMaterial3D.new()
+			mat2.albedo_color = Color(1.0, 1.0, 1.0, 0.95)
+			mat2.emission_enabled = true
+			mat2.emission = Color(0.6, 1.0, 0.7)
+			mat2.emission_energy_multiplier = 4.5
+			mat2.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat2.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			ring2.material_override = mat2
+			orb_root.add_child(ring2)
+
+			# --- ARO AURA DIFUSO EXTERIOR (Más chico y parado) ---
+			var ring3 = MeshInstance3D.new()
+			var torus3 = TorusMesh.new()
+			torus3.inner_radius = 0.10
+			torus3.outer_radius = 0.27
+			ring3.mesh = torus3
+			ring3.rotation_degrees.x = 90
+			var mat3 = StandardMaterial3D.new()
+			mat3.albedo_color = Color(0.05, 0.6, 0.2, 0.25)
+			mat3.emission_enabled = true
+			mat3.emission = Color(0.1, 0.7, 0.25)
+			mat3.emission_energy_multiplier = 1.5
+			mat3.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat3.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			ring3.material_override = mat3
+			orb_root.add_child(ring3)
+
+			# --- Luz del orbe para dar ambiente ---
+			var orb_light = OmniLight3D.new()
+			orb_light.light_color = Color(0.2, 1.0, 0.3)
+			orb_light.light_energy = 1.5
+			orb_light.omni_range = 3.0
+			orb_root.add_child(orb_light)
+
+			# Rotación continua del conjunto en el eje Z (giro de espiral alineado)
+			var tw_rot = ring1.create_tween().set_loops()
+			tw_rot.tween_property(ring1, "rotation_degrees:z", 360.0, 0.5).set_trans(Tween.TRANS_LINEAR)
+			var tw_rot2 = ring3.create_tween().set_loops()
+			tw_rot2.tween_property(ring3, "rotation_degrees:z", -360.0, 0.7).set_trans(Tween.TRANS_LINEAR)
+
+	elif action == "life_steal_end":
+		if active_areas.has(steal_id) and is_instance_valid(active_areas[steal_id]):
+			active_areas[steal_id].queue_free()
+			active_areas.erase(steal_id)
+
+
 # v411: METEORITO - Gestión visual de la lluvia de meteoritos.
 # meteor_summon: crea círculos de aviso en el piso + meteoritos en el aire que caen.
 # meteor_impact: explosión de impacto + limpieza de los meteoritos asociados.
@@ -1996,8 +2177,12 @@ func _on_enemy_healed(data: Dictionary):
 			en.update_stats(data)
 		var amount = data.get("amount", 0)
 		if en.has_method("_spawn_damage_text"):
-			# Robo de escudo: texto en celeste (escudo robado devuelto al enemigo)
-			en._spawn_damage_text("+" + str(int(amount)), Color(0.0, 0.9, 0.95))
+			if data.get("isLifeSteal", false):
+				# Robo de vida: texto en verde (vida robada devuelta al enemigo)
+				en._spawn_damage_text("+" + str(int(amount)), Color(0.2, 1.0, 0.35))
+			else:
+				# Robo de escudo: texto en celeste (escudo robado devuelto al enemigo)
+				en._spawn_damage_text("+" + str(int(amount)), Color(0.0, 0.9, 0.95))
 
 func _on_hook_pulled(data: Dictionary):
 	var attacker_id = str(data.get("attackerId", ""))

@@ -362,6 +362,8 @@ module.exports = class BaseAI {
                     this._handleReflectLogic(mech, mId, now, io);
                 } else if (mech.type === "shield_steal") {
                     this._handleShieldStealLogic(mech, mId, now, io, players);
+                } else if (mech.type === "life_steal") {
+                    this._handleLifeStealLogic(mech, mId, now, io, players);
                 } else if (mech.type && mech.type.startsWith("aura_")) {
                     this._handleAuraLogic(mech, mId, now, io, grid, players);
                 }
@@ -4714,6 +4716,253 @@ module.exports = class BaseAI {
     findShieldStealMech() {
         const defs = this.config.defenseMechanics || [];
         const idx = defs.findIndex(d => d.type === "shield_steal");
+        if (idx === -1) return null;
+        return { mech: defs[idx], mId: `def_${idx}` };
+    }
+
+    // v412: ROBADOR DE VIDA (life_steal) - Igual que shield_steal pero roba VIDA
+    // (HP) al jugador por ticks y se la transfiere al enemigo. Visual verde.
+    _handleLifeStealLogic(mech, mId, now, io, players) {
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || {
+            nextReadyTime: now + (mech.startDelay || 0),
+            isActive: false,
+            endTime: 0,
+            targetId: "",
+            lastStealTime: 0,
+            triggeredHPs: {},
+            combatStartTime: null,
+            fired: false,
+            firedShotTime: 0,
+            nextShotTime: 0,
+            type: "life_steal"
+        };
+        this.enemy.defState[mId] = state;
+        this.enemy._lifeStealMId = mId;
+
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+        const stealRange = mech.fireRange || 800;
+
+        // Resetear al salir de combate / limpieza de link
+        if (!this._inCombat) {
+            if (state.isActive) {
+                state.isActive = false;
+                const oldTarget = state.targetId;
+                state.targetId = "";
+                io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
+                    id: this.enemy.id, action: "life_steal_end", mId: mId, targetId: oldTarget
+                });
+            }
+            state.triggeredHPs = {};
+            state.combatStartTime = null;
+            state.fired = false;
+            state.nextReadyTime = now + (mech.startDelay || 0);
+            return;
+        }
+        if (this._inCombat && !state.combatStartTime) {
+            state.combatStartTime = now;
+            if (mech.activationMode === "time") {
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
+        }
+
+        const cooldown = (mech.cooldown !== undefined ? Number(mech.cooldown) : 12000);
+        const stealMode = mech.stealMode || "flat";
+        const stealAmount = mech.stealAmount !== undefined ? Number(mech.stealAmount) : (stealMode === "percent" ? 25 : 100);
+        const stealIntervalMs = (mech.stealIntervalMs !== undefined ? Number(mech.stealIntervalMs) : 1000);
+        const linkDuration = (mech.duration !== undefined ? Number(mech.duration) : 5000);
+        const speedValue = mech.bulletSpeed || 700;
+        const targetMode = mech.targetMode || "proximity";
+
+        // Si el proyectil ya se disparó pero nunca impactó (escapó / murió / se fue de rango),
+        // liberar el estado para volver a intentarlo tras el cooldown.
+        if (state.fired && !state.isActive && state.firedShotTime) {
+            const flightLimit = (stealRange / speedValue) * 1000 + 2500;
+            if (now - state.firedShotTime >= flightLimit) {
+                state.fired = false;
+                state.nextReadyTime = now + cooldown;
+            }
+        }
+
+        // 1. Si hay un vínculo activo, procesarlo: robar vida por ticks y expirar
+        if (state.isActive && state.targetId) {
+            const target = players ? players[state.targetId] : null;
+
+            // Expirar si el jugador no existe, está muerto, se fue de la zona o pasó el tiempo
+            if (!target || target.isDead || target.zone !== this.enemy.zone || now >= state.endTime) {
+                io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
+                    id: this.enemy.id, action: "life_steal_end", mId: mId, targetId: state.targetId
+                });
+                state.isActive = false;
+                state.targetId = "";
+                state.fired = false;
+                state.firedShotTime = 0;
+                state.nextReadyTime = now + cooldown;
+                this.enemy.defState[mId] = state;
+                return;
+            }
+
+            // Tick de robo de vida (porcentual del maxHp del jugador o plano)
+            if (now - state.lastStealTime >= stealIntervalMs) {
+                state.lastStealTime = now;
+
+                let stolen = 0;
+                if (stealMode === "percent") {
+                    stolen = Math.min(Math.ceil((target.maxHp || 0) * (stealAmount / 100)), target.hp);
+                } else {
+                    stolen = Math.min(stealAmount, target.hp);
+                }
+
+                if (stolen > 0) {
+                    target.hp -= stolen;
+                    target.lastCombatTime = Date.now();
+                    if (target.hp < 0) target.hp = 0;
+                    if (target.hp <= 0) target.isDead = true;
+
+                    // Si el robo alimenta la vida del propio enemigo (configurable)
+                    if (mech.giveToEnemy !== false) {
+                        const oldHp = this.enemy.hp;
+                        if (this.enemy.hp < this.enemy.maxHp) {
+                            this.enemy.hp = Math.min(this.enemy.maxHp, this.enemy.hp + stolen);
+                        }
+                        // Siempre emitir, aunque sea +0 (vida llena) para mostrar texto verde al cliente
+                        io.to(`zone_${this.enemy.zone}`).emit("enemyHealed", {
+                            id: this.enemy.id, hp: this.enemy.hp, shield: this.enemy.shield,
+                            amount: Math.max(0, this.enemy.hp - oldHp),
+                            isLifeSteal: true
+                        });
+                    }
+
+                    io.to(target.socketId).emit("environmentDamage", { damage: stolen, isLifeSteal: true });
+                    io.to(`zone_${target.zone}`).emit("playerStatSync", {
+                        id: target.socketId, hp: Math.ceil(target.hp), shield: Math.ceil(target.shield),
+                        maxHp: target.maxHp, maxShield: target.maxShield, isDead: target.isDead,
+                        suppressDamagePopup: true
+                    });
+
+                    io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
+                        id: this.enemy.id, action: "life_steal_tick",
+                        targetId: target.socketId, amount: stolen, mId: mId,
+                        ex: this.enemy.x, ey: this.enemy.y
+                    });
+                }
+            }
+            this.enemy.defState[mId] = state;
+            return;
+        }
+
+        // 2) Activación de la mecánica (igual patrón que Reflect/WaterOrbs)
+        let shouldActivate = false;
+        if (!state.isActive && !state.fired && now >= state.nextReadyTime && this._inCombat) {
+            if (mech.activationMode === "time") {
+                shouldActivate = true;
+            } else if (state.combatStartTime) {
+                let thresholds = [];
+                if (Array.isArray(mech.activationHPs)) {
+                    thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
+                } else if (mech.activationHP !== undefined) {
+                    thresholds = [Number(mech.activationHP)];
+                } else {
+                    thresholds = [50];
+                }
+                if (state.triggeredHPs === undefined) state.triggeredHPs = {};
+                for (const hpVal of thresholds) {
+                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                        shouldActivate = true;
+                        state.triggeredHPs[hpVal] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (shouldActivate && now >= state.nextShotTime) {
+            // Selección dinámica del objetivo según targetMode
+            const pool = Object.values(players || {}).filter(p =>
+                p.zone === this.enemy.zone && !p.isDead && !p.isInvisible &&
+                Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= stealRange
+            );
+
+            let chosen = null;
+            if (pool.length > 0) {
+                if (targetMode === "lowest_hp") {
+                    pool.sort((a, b) => (a.hp / Math.max(1, a.maxHp)) - (b.hp / Math.max(1, b.maxHp)));
+                    chosen = pool[0];
+                } else if (targetMode === "highest_hp") {
+                    pool.sort((a, b) => (b.hp / Math.max(1, b.maxHp)) - (a.hp / Math.max(1, a.maxHp)));
+                    chosen = pool[0];
+                } else if (targetMode === "highest_damage") {
+                    const dmgMap = this.enemy.playerDamage || {};
+                    pool.sort((a, b) => (dmgMap[b.socketId] || 0) - (dmgMap[a.socketId] || 0));
+                    chosen = pool[0];
+                } else if (targetMode === "highest_shield") {
+                    pool.sort((a, b) => b.shield - a.shield);
+                    chosen = pool[0];
+                } else if (targetMode === "random") {
+                    chosen = pool[Math.floor(Math.random() * pool.length)];
+                } else { // proximidad
+                    pool.sort((a, b) => Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y));
+                    chosen = pool[0];
+                }
+            }
+
+            if (chosen) {
+                const dmgForBullet = mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 10;
+                state.fired = true;
+                state.firedShotTime = now;
+                state.nextShotTime = now + cooldown;
+                state.nextShotWait = now + (mech.nextShotMs !== undefined ? Number(mech.nextShotMs) : 0);
+
+                const ang = Math.atan2(chosen.y - this.enemy.y, chosen.x - this.enemy.x);
+                io.to(`zone_${this.enemy.zone}`).emit("serverEnemyFire", {
+                    enemyId: this.enemy.id,
+                    targetId: chosen.socketId,
+                    enemyType: this.enemy.type,
+                    x: this.enemy.x, y: this.enemy.y, angle: ang,
+                    bulletSpeed: mech.bulletSpeed || 700,
+                    bulletType: "life_steal",
+                    damage: dmgForBullet * (this.damageMult || 1),
+                    isHoming: mech.isPointAndClick === true,
+                    turnSpeed: mech.turnSpeed || 3.0,
+                    lifetimeMs: mech.lifetimeMs || (stealRange / speedValue) * 1000 + 1500,
+                    range: stealRange
+                });
+            }
+            this.enemy.defState[mId] = state;
+        }
+
+        // El vínculo real se arma al impactar el proyectil (en combatHandlers -> onLifeStealHit)
+        this.enemy.defState[mId] = state;
+    }
+
+    // v412: Llamado por combatHandlers.js cuando el proyectil life_steal impacta al jugador
+    _onEnemyLifeStealHit(targetId, mech, mId, now, io) {
+        if (!mech) mech = {};
+        if (!this.enemy.defState) this.enemy.defState = {};
+        const state = this.enemy.defState[mId] || {};
+        state.isActive = true;
+        state.targetId = targetId;
+        state.lastStealTime = now;
+        state.endTime = now + (mech.duration || 5000);
+        this.enemy.defState[mId] = state;
+
+        const stealMode = mech.stealMode || "flat";
+        const stealAmount = mech.stealAmount !== undefined ? Number(mech.stealAmount) : (stealMode === "percent" ? 25 : 100);
+        io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", {
+            id: this.enemy.id, action: "life_steal_start",
+            mId: mId, targetId: targetId,
+            duration: mech.duration || 5000,
+            stealMode: stealMode,
+            stealAmount: stealAmount,
+            ex: this.enemy.x, ey: this.enemy.y
+        });
+    }
+
+    // v412: Devuelve el índice de la mecánica life_steal en defenseMechanics (o null)
+    findLifeStealMech() {
+        const defs = this.config.defenseMechanics || [];
+        const idx = defs.findIndex(d => d.type === "life_steal");
         if (idx === -1) return null;
         return { mech: defs[idx], mId: `def_${idx}` };
     }

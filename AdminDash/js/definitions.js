@@ -52,6 +52,12 @@ const DEFAULT_DEFENSE_LIB = {
         icon: "💠", 
         desc: "Dispara un proyectil celestial que se vincula al jugador impactado, robándole escudo por ticks y transfiriéndose al enemigo.", 
         fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "fireRange", "bulletSpeed", "duration", "startDelay", "stealMode", "stealAmount", "stealIntervalMs", "targetMode", "giveToEnemy", "bulletDamage", "isPointAndClick"]
+    },
+    "life_steal": { 
+        label: "Robador de Vida (Life Steal)", 
+        icon: "💚", 
+        desc: "Igual que el Robador de Escudo pero roba VIDA al jugador por ticks y se la transfiere al enemigo. Aros y números en verde.", 
+        fields: ["activationMode", "activationHPs", "activationIntervalMs", "cooldown", "fireRange", "bulletSpeed", "duration", "startDelay", "stealMode", "stealAmount", "stealIntervalMs", "targetMode", "giveToEnemy", "bulletDamage", "isPointAndClick"]
     }
 };
 

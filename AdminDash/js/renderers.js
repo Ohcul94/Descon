@@ -1378,7 +1378,7 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                         stealAmount: "Cantidad de Robo",
                                         stealIntervalMs: "Intervalo de Robo (ms)",
                                         targetMode: "Selección del Objetivo",
-                                        giveToEnemy: "Transferir Escudo Robado al Enemigo"
+                                        giveToEnemy: m.type === 'life_steal' ? "Transferir Vida Robada al Enemigo" : "Transferir Escudo Robado al Enemigo"
                                     };
                                     if (f === 'invisType') {
                                         const type = m.invisType || 'invisibility';
@@ -1471,11 +1471,12 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                     if (f === 'pillarName') return `<div class="field" style="grid-column: 1 / -1;"><label>${defLabels[f] || f}</label><input type="text" value="${m[f] || 'Pilar Protector'}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.value"></div>`;
                                     if (f === 'stealMode') {
                                         const mode = m.stealMode || 'flat';
+                                        const isLife = m.type === 'life_steal';
                                         return `
-                                            <div class="field" style="grid-column: 1 / -1;"><label>Modo de Robo de Escudo</label>
+                                            <div class="field" style="grid-column: 1 / -1;"><label>${isLife ? 'Modo de Robo de Vida' : 'Modo de Robo de Escudo'}</label>
                                                 <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].stealMode = this.value; renderEnemyDetail();">
                                                     <option value="flat" ${mode === 'flat' ? 'selected' : ''}>📏 Plano (pts por tick)</option>
-                                                    <option value="percent" ${mode === 'percent' ? 'selected' : ''}>📊 Porcentual (del escudo max del jugador)</option>
+                                                    <option value="percent" ${mode === 'percent' ? 'selected' : ''}>📊 Porcentual (${isLife ? 'de la vida max del jugador' : 'del escudo max del jugador'})</option>
                                                 </select>
                                             </div>
                                         `;
@@ -1501,7 +1502,7 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                         return `
                                             <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;">
                                                 <input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].giveToEnemy = this.checked">
-                                                <label style="margin:0;">Transferir Escudo Robado al Enemigo</label>
+                                                <label style="margin:0;">${m.type === 'life_steal' ? 'Transferir Vida Robada al Enemigo' : 'Transferir Escudo Robado al Enemigo'}</label>
                                             </div>
                                         `;
                                     }

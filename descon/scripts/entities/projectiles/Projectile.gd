@@ -1013,6 +1013,57 @@ func _setup_visual_sprite():
 			sprite = null
 			return
 
+	if type == "life_steal":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "LifeSteal3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+
+			# Orbe verde (núcleo de energía vital)
+			var core = MeshInstance3D.new()
+			var sphere = SphereMesh.new()
+			sphere.radius = 0.4
+			sphere.height = 0.8
+			core.mesh = sphere
+			var mat = StandardMaterial3D.new()
+			mat.albedo_color = Color(0.3, 1.0, 0.4)
+			mat.emission_enabled = true
+			mat.emission = Color(0.2, 1.0, 0.3)
+			mat.emission_energy_multiplier = 4.0
+			core.material_override = mat
+			world_root_3d.add_child(core)
+
+			# Anillo de vida giratorio
+			var ring = MeshInstance3D.new()
+			var ring_mesh = TorusMesh.new()
+			ring_mesh.inner_radius = 0.55
+			ring_mesh.outer_radius = 0.7
+			ring.mesh = ring_mesh
+			var ring_mat = StandardMaterial3D.new()
+			ring_mat.albedo_color = Color(0.2, 0.95, 0.3)
+			ring_mat.emission_enabled = true
+			ring_mat.emission = Color(0.2, 0.95, 0.3)
+			ring_mat.emission_energy_multiplier = 2.5
+			ring.material_override = ring_mat
+			ring.rotation.x = PI / 2
+			world_root_3d.add_child(ring)
+
+			var light = OmniLight3D.new()
+			light.light_color = Color(0.3, 1.0, 0.4)
+			light.light_energy = 2.5
+			light.omni_range = 5.0
+			world_root_3d.add_child(light)
+
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+			)
+
+			sprite = null
+			return
+
 	if type == "polymorph":
 		# Cubito 3D como proyectil polimórfico
 		var map_node = get_tree().get_first_node_in_group("map")
@@ -1067,6 +1118,9 @@ func _setup_visual_sprite():
 		"shield_steal": 
 			path = "res://assets/Municiones/Siphon/Siphon1/Siphon1.png"
 			modulate = Color(0.3, 0.85, 1.0)
+		"life_steal": 
+			path = "res://assets/Municiones/Siphon/Siphon1/Siphon1.png"
+			modulate = Color(0.3, 1.0, 0.4)
 		"mega_laser":
 			var length = max_range if max_range > 0.0 else 1000.0
 
@@ -1560,6 +1614,8 @@ func _on_body_entered(body):
 		var dmg_to_deal = damage
 		if type == "shield_steal":
 			dmg_to_deal = 0.0
+		if type == "life_steal":
+			dmg_to_deal = 0.0
 		if type == "polymorph":
 			dmg_to_deal = damage
 		if type == "heal":
@@ -1578,7 +1634,7 @@ func _on_body_entered(body):
 				if is_instance_valid(_owner_node):
 					_predict_local_heal(_owner_node, damage)
 					
-		if type != "shield_steal":
+		if type != "shield_steal" and type != "life_steal":
 			body.take_damage(dmg_to_deal, global_position, owner_id)
 		
 		if NetworkManager:
@@ -1802,6 +1858,49 @@ func _explode():
 		var wave = Line2D.new()
 		wave.width = 3.0
 		wave.default_color = Color(0.4, 0.9, 1.0, 0.8)
+		get_parent().add_child(wave)
+		var pts = PackedVector2Array()
+		var steps = 24
+		for i in range(steps + 1):
+			var a = (float(i) / steps) * TAU
+			pts.append(Vector2(cos(a), sin(a)) * 34.0)
+		wave.points = pts
+		wave.global_position = global_position
+
+		var tw = wave.create_tween()
+		tw.tween_property(wave, "scale", Vector2(1.8, 1.8), 0.35)
+		tw.parallel().tween_property(wave, "default_color:a", 0.0, 0.35)
+		tw.finished.connect(wave.queue_free)
+
+	# v412: Espectáculo verde de impacto para life_steal (el daño se resuelve en servidor)
+	if type == "life_steal":
+		var sparks_impact = CPUParticles2D.new()
+		sparks_impact.amount = 30
+		sparks_impact.lifetime = 0.4
+		sparks_impact.one_shot = true
+		sparks_impact.explosiveness = 1.0
+		sparks_impact.spread = 180.0
+		sparks_impact.gravity = Vector2.ZERO
+		sparks_impact.initial_velocity_min = 120.0
+		sparks_impact.initial_velocity_max = 260.0
+		sparks_impact.scale_amount_min = 2.0
+		sparks_impact.scale_amount_max = 5.0
+
+		var spark_grad = Gradient.new()
+		spark_grad.set_color(0, Color(0.8, 1.0, 0.8, 0.95))
+		spark_grad.add_point(0.3, Color(0.2, 1.0, 0.35, 0.85))
+		spark_grad.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+		sparks_impact.color_ramp = spark_grad
+
+		sparks_impact.global_position = global_position
+		get_parent().add_child(sparks_impact)
+		sparks_impact.emitting = true
+
+		get_tree().create_timer(0.45).timeout.connect(sparks_impact.queue_free)
+
+		var wave = Line2D.new()
+		wave.width = 3.0
+		wave.default_color = Color(0.3, 1.0, 0.4, 0.8)
 		get_parent().add_child(wave)
 		var pts = PackedVector2Array()
 		var steps = 24

@@ -585,6 +585,23 @@ function registerCombatHandlers(socket, io, state) {
                 return;
             }
 
+            // v412: ROBADOR DE VIDA (life_steal) - El impacto no hace daño,
+            // crea el vínculo de robo de vida en el enemigo (autoritativo)
+            if (attackerType === 'enemy' && data.bulletType === 'life_steal') {
+                const attackerEnemy = state.enemies[attackerId];
+                if (attackerEnemy && attackerEnemy.ai && typeof attackerEnemy.ai._onEnemyLifeStealHit === 'function') {
+                    const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
+                    let mech = null;
+                    if (cfg && cfg.defenseMechanics && Array.isArray(cfg.defenseMechanics)) {
+                        mech = cfg.defenseMechanics.find(m => m.type === 'life_steal') || null;
+                    }
+                    const mId = attackerEnemy._lifeStealMId || 'def_life_steal';
+                    attackerEnemy.ai._onEnemyLifeStealHit(p.socketId, mech, mId, Date.now(), io, state);
+                    p.lastCombatTime = Date.now();
+                }
+                return;
+            }
+
             // v410: POLIMORFIA - Aplicar estado de transformación al impacto
             if (attackerType === 'enemy' && data.bulletType === 'polymorph') {
                 const attackerEnemy = state.enemies[attackerId];
