@@ -663,6 +663,59 @@ window.removeShip = function(idx) {
     }
 };
 
+
+
+window.removeEnemy = function(id) {
+    if (confirm(`¿Estás seguro de que deseas eliminar el enemigo #${id} "${config.enemyModels[id]?.name || 'Enemigo ' + id}"?`)) {
+        delete config.enemyModels[id];
+        renderEnemies();
+    }
+};
+
+window.addNewEnemy = function() {
+    if (!config.enemyModels) config.enemyModels = {};
+    let maxId = 0;
+    for(let id in config.enemyModels) {
+        if (id.includes('-')) continue;
+        const eid = parseInt(id);
+        if (eid > maxId) maxId = eid;
+    }
+    
+    const newId = (maxId + 1).toString();
+    config.enemyModels[newId] = {
+        id: newId,
+        name: `Nuevo Enemigo ${newId}`,
+        icon: "",
+        movementAI: 'chase',
+        hp: 100,
+        shield: 0,
+        speed: 3.5,
+        stopDist: 150,
+        startDelay: 0,
+        visionRange: 800,
+        chaseIdleTimeout: 0,
+        leashRange: 0,
+        hpRegenPercent: 3,
+        shieldRegenPercent: 5,
+        regenDelaySec: 5,
+        regenIntervalMs: 1000,
+        rewardExp: 100,
+        rewardHubs: 0,
+        rewardOhcu: 0,
+        chestDropChance: 0.1,
+        rankingPoints: newId,
+        aggressive: false,
+        chaseUntilDeath: false,
+        stopOnOutOfSight: false,
+        mechanics: [{ type: "laser", bulletDamage: 10, bulletSpeed: 800, fireRange: 600, fireRate: 1000, startDelay: 0 }],
+        movementPhases: [{ type: 'chase', speed: 3.5, stopDist: 150, startDelay: 0 }],
+        defenseMechanics: [],
+        lootDrops: []
+    };
+    renderEnemies();
+    selectEnemy(newId);
+};
+
 function updateSidebar() {
     const enemyList = document.getElementById('sidebar-enemies-list');
     const bossList = document.getElementById('sidebar-bosses-list');
@@ -811,12 +864,48 @@ function renderEnemies() {
         const card = document.createElement('div'); card.className = 'card';
         card.style.cursor = 'pointer';
         card.onclick = () => selectEnemy(id);
-        card.innerHTML = `
-            <div class="card-tag">#ID ${id}</div>
-            <h3>${en.name}</h3>
-            <p style="font-size:0.8rem; opacity:0.6;">IA: ${en.movementAI || 'chase'}</p>
-            <div style="margin-top:1rem; color:var(--accent); font-weight:bold; font-size:0.7rem;">Configurar Detalles</div>
+        const enemyIconWeb = resolveAssetWebUrl(en.icon || '');
+        const previewHtml = enemyIconWeb ? `<img src="${enemyIconWeb}" style="width:80px; height:80px; object-fit:contain; border-radius:6px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2);" onerror="this.style.display='none';">` : `<div style="width:80px; height:80px; border:1px dashed rgba(255,255,255,0.15); border-radius:6px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.75rem;">Sin Icono</div>`;
+        const cardHtml = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                <div style="background:rgba(255,255,255,0.06); color:#888; border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:2px 6px; font-size:0.75rem; font-family:'JetBrains Mono'; font-weight:bold;">#ID ${id}</div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <button class="btn" style="padding:4px 8px; font-size:0.65rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.2); color:var(--primary); cursor:pointer; border-radius:4px;" onclick="openAssetPicker('${id}', 'enemy_icon')">🖼️ ICONO</button>
+                    <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.75rem; font-weight:bold;" onclick="removeEnemy('${id}'); renderEnemies();">✕ ELIMINAR</button>
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:15px; align-items:flex-start; margin-top:0.5rem;">
+                <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    ${previewHtml}
+                </div>
+                <div style="flex-grow:1; display:flex; flex-direction:column; gap:10px;">
+                    <div class="field"><label>Nombre del Enemigo</label><input type="text" value="${en.name}" onchange="config.enemyModels['${id}'].name = this.value; renderEnemies();"></div>
+                    <div class="field">
+                        <label>IA de Movimiento</label>
+                        <select onchange="config.enemyModels['${id}'].movementAI = this.value; renderEnemies();">
+                            <option value="chase" ${en.movementAI === 'chase' ? 'selected' : ''}>Persecución Directa</option>
+                            <option value="sniper" ${en.movementAI === 'sniper' ? 'selected' : ''}>Francotirador (Kiting)</option>
+                            <option value="orbit" ${en.movementAI === 'orbit' ? 'selected' : ''}>Órbita Circular</option>
+                            <option value="charger" ${en.movementAI === 'charger' ? 'selected' : ''}>Embestida (Dash)</option>
+                            <option value="zigzag" ${en.movementAI === 'zigzag' ? 'selected' : ''}>Movimiento ZigZag</option>
+                            <option value="kamikaze" ${en.movementAI === 'kamikaze' ? 'selected' : ''}>Kamikaze</option>
+                            <option value="prowler" ${en.movementAI === 'prowler' ? 'selected' : ''}>Merodeador</option>
+                            <option value="aura_speed" ${en.movementAI === 'aura_speed' ? 'selected' : ''}>Aura de Impulso</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <h5 style="color:var(--accent); margin:15px 0 5px; font-size:0.75rem; border-bottom:1px solid rgba(6,182,212,0.15); padding-bottom:2px;">⚙️ ESTADÍSTICAS BÁSICAS</h5>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr 1fr; gap:10px; margin-bottom:15px; display:grid;">
+                <div class="field"><label>HP (pts)</label><input type="number" value="${en.hp || 100}" onchange="config.enemyModels['${id}'].hp = parseInt(this.value); renderEnemies();"></div>
+                <div class="field"><label>Escudo (pts)</label><input type="number" value="${en.shield || 0}" onchange="config.enemyModels['${id}'].shield = parseInt(this.value); renderEnemies();"></div>
+                <div class="field"><label>Velocidad (px/s)</label><input type="number" value="${en.speed || 3.5}" onchange="config.enemyModels['${id}'].speed = parseFloat(this.value); renderEnemies();"></div>
+                <div class="field"><label>Rango de Visión (px)</label><input type="number" value="${en.visionRange || 800}" onchange="config.enemyModels['${id}'].visionRange = parseInt(this.value); renderEnemies();"></div>
+            </div>
         `;
+        card.innerHTML = cardHtml;
         grid.appendChild(card);
     }
 }
@@ -890,6 +979,29 @@ function renderEnemyDetail() {
                         <div class="field"><label style="color:var(--primary);">Ohcu (qty)</label><input type="number" value="${en.rewardOhcu || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rewardOhcu = parseInt(this.value)"></div>
                         <div class="field"><label style="color:var(--accent);">Probabilidad de Cofre (%)</label><input type="number" min="0" max="100" step="1" value="${en.chestDropChance !== undefined ? Math.round(en.chestDropChance * 100) : 10}" onchange="config.enemyModels['${selectedEnemyId}'].chestDropChance = parseFloat(this.value) / 100"></div>
                         <div class="field"><label style="color:var(--warning);">🏆 Pts Ranking</label><input type="number" value="${en.rankingPoints !== undefined ? en.rankingPoints : parseInt(selectedEnemyId.split('-')[0])}" onchange="config.enemyModels['${selectedEnemyId}'].rankingPoints = parseInt(this.value)"></div>
+                    </div>
+                    
+                    <h5 style="color:var(--warning); margin:15px 0 5px; font-size:0.75rem; border-bottom:1px solid rgba(251,191,36,0.15); padding-bottom:2px;">🖼️ ASSETS Y PREVIOS</h5>
+                    <div style="display:flex; gap:15px; align-items:flex-start; margin-top:1rem;">
+                        <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
+                            <label style="color:var(--warning); font-size:0.7rem;">Icono 2D del Enemigo</label>
+                            <div style="width:80px; height:80px; border:1px dashed rgba(251,191,36,0.3); border-radius:6px; display:flex; align-items:center; justify-content:center; background:rgba(251,191,36,0.05);">
+                                ${(config.enemyModels[selectedEnemyId]?.icon) ? 
+                                    `<img src="${resolveAssetWebUrl(config.enemyModels[selectedEnemyId].icon)}" style="width:80px; height:80px; object-fit:contain;">` :
+                                    `<div style="color:rgba(251,191,36,0.5); font-size:0.7rem;">Sin Icono</div>`}
+                            </div>
+                            <button class="btn" style="padding:4px 8px; font-size:0.65rem; background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); color:var(--warning); cursor:pointer; border-radius:4px;" onclick="openAssetPicker('${selectedEnemyId}', 'enemy_icon'); renderEnemyDetail();">🖼️ CAMBIAR ICONO</button>
+                        </div>
+                        <div style="flex-grow:1; display:flex; flex-direction:column; gap:10px;">
+                            <div class="field" style="margin-bottom:10px;">
+                                <label>Asset Path 3D (.glb) - Solo para Jugadores (ID >= 100)</label>
+                                <div style="display:flex; gap:8px; align-items:center; width:100%;">
+                                    <input type="text" value="${config.enemyModels[selectedEnemyId]?.assetPath || ''}" placeholder="res://assets/Personajes/3D/Enemigo..." onchange="config.enemyModels['${selectedEnemyId}'].assetPath = this.value; renderEnemyDetail();" style="flex-grow:1; margin:0;" ${parseInt(selectedEnemyId.split('-')[0]) >= 100 ? '' : 'disabled'}></input>
+                                    <button class="btn btn-primary" style="padding:8px 12px; font-size:0.75rem; flex-shrink:0; background:var(--warning); border-color:var(--warning);" onclick="openAssetPicker('${selectedEnemyId}', 'enemy_glb'); renderEnemyDetail();">📁 SELECCIONAR GLB</button>
+                                </div>
+                                ${parseInt(selectedEnemyId.split('-')[0]) >= 100 ? '' : '<div style="color:rgba(255,255,255,0.4); font-size:0.7rem; margin-top:2px;">Los assets 3D solo están disponibles para jugadores (ID >= 100)</div>'}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="card" style="width:100%; margin-bottom: 2rem; border-color: var(--accent); background: rgba(6, 182, 212, 0.1);">
@@ -5693,10 +5805,10 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
     input.type = 'file';
 
     // Tipos que NO deben copiar el archivo — solo resuelven la ruta res://
-    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'talent_icon', 'weapon_icon', 'shield_icon', 'engine_icon', 'ammo_icon'];
+    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'talent_icon', 'weapon_icon', 'shield_icon', 'engine_icon', 'ammo_icon', 'enemy_icon', 'enemy_glb'];
     const isResolveOnly = resolveOnlyTypes.includes(type);
 
-    if (type === 'ship_glb' || type === 'housing_glb') {
+    if (type === 'ship_glb' || type === 'housing_glb' || type === 'enemy_glb') {
         input.accept = '.glb';
     } else {
         input.accept = 'image/*';
@@ -5719,6 +5831,10 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         config.shipModels[idx].icon = result.path;
                     } else if (type === 'ship_glb') {
                         config.shipModels[idx].assetPath = result.path;
+                    } else if (type === 'enemy_icon') {
+                        config.enemyModels[idx].icon = result.path;
+                    } else if (type === 'enemy_glb') {
+                        config.enemyModels[idx].assetPath = result.path;
                     } else if (type === 'housing_glb') {
                         config.housingConfig.placeableItems[idx].model = result.path;
                     } else if (type === 'skill_icon') {
@@ -5739,6 +5855,9 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                     }
                     if (type === 'ship_icon' || type === 'ship_glb') {
                         renderShips();
+                    } else if (type === 'enemy_icon' || type === 'enemy_glb') {
+                        renderEnemies();
+                        renderEnemyDetail();
                     } else if (type === 'housing_glb') {
                         renderHousing();
                     } else if (type === 'weapon_icon') {

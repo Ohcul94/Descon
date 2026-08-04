@@ -1113,7 +1113,8 @@
             "shield": 100,
             "speed": 450,
             "stopOnOutOfSight": true,
-            "visionRange": 1200
+            "visionRange": 1200,
+            "icon": "res://assets/Crafteo/Enemy1Map1.png"
         },
         "2": {
             "aggressive": true,
@@ -1160,7 +1161,8 @@
             "rewardHubs": 20,
             "rewardOhcu": 2,
             "shield": 200,
-            "speed": 420
+            "speed": 420,
+            "icon": "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png"
         },
         "3": {
             "aggressive": true,
@@ -1219,7 +1221,8 @@
             "shield": 300,
             "speed": 400,
             "stopOnOutOfSight": true,
-            "visionRange": 1000
+            "visionRange": 1000,
+            "icon": "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png"
         },
         "4": {
             "aggressive": false,
@@ -1247,7 +1250,10 @@
                     "duration": 4000,
                     "fireRange": 800,
                     "reflect_mult": 1.2,
-                    "type": "reflect"
+                    "type": "reflect",
+                    "activationHPs": [
+                        50
+                    ]
                 },
                 {
                     "bulletCount": 3,
@@ -1270,7 +1276,8 @@
                     "speed": 250,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "chase"
+                    "type": "charger",
+                    "chargeCooldown": 150
                 }
             ],
             "name": "Enemigo 4",
@@ -1280,7 +1287,8 @@
             "rewardHubs": 350,
             "rewardOhcu": 35,
             "shield": 400,
-            "speed": 280
+            "speed": 280,
+            "icon": "res://assets/Enemigos/2D/Enemigo4/Enemy4Map2.png"
         },
         "5": {
             "aggressive": true,
@@ -1341,7 +1349,9 @@
             "shield": 600,
             "speed": 350,
             "stopOnOutOfSight": true,
-            "visionRange": 1000
+            "visionRange": 1000,
+            "lootDrops": [],
+            "icon": "res://assets/Enemigos/2D/Enemigo5/Enemy5Map2.png"
         },
         "6": {
             "aggressive": true,
@@ -1375,7 +1385,8 @@
             "rewardOhcu": 50,
             "shield": 10,
             "speed": 250,
-            "lootDrops": []
+            "lootDrops": [],
+            "icon": "res://assets/Enemigos/2D/Enemigo6/Enemy6Map2.png"
         },
         "7": {
             "bulletDamage": 160,
@@ -1413,7 +1424,9 @@
             "rewardHubs": 1000,
             "rewardOhcu": 10,
             "shield": 1500,
-            "speed": 320
+            "speed": 320,
+            "lootDrops": [],
+            "icon": "res://assets/Enemigos/2D/Enemigo7/Enemy7Map2.png"
         },
         "8": {
             "bulletDamage": 350,
@@ -1464,7 +1477,8 @@
             "rewardHubs": 2500,
             "rewardOhcu": 25,
             "shield": 10,
-            "speed": 300
+            "speed": 300,
+            "icon": "res://assets/Enemigos/2D/Enemigo8/Enemigo8.png"
         },
         "9": {
             "aggressive": true,
@@ -1505,7 +1519,8 @@
             "rewardHubs": 3800,
             "rewardOhcu": 38,
             "shield": 4000,
-            "speed": 310
+            "speed": 310,
+            "icon": "res://assets/Enemigos/2D/Enemigo9/Enemigo9.png"
         },
         "10": {
             "aggressive": true,
@@ -1519,7 +1534,10 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "invulnerability"
+                    "type": "invulnerability",
+                    "activationHPs": [
+                        70
+                    ]
                 }
             ],
             "fireRange": 1150,
@@ -1555,7 +1573,9 @@
             "shield": 5500,
             "shieldRegenPercent": 20,
             "speed": 305,
-            "visionRange": 1000
+            "visionRange": 1000,
+            "lootDrops": [],
+            "icon": "res://assets/Enemigos/2D/Enemigo10/Enemigo10.png"
         },
         "11": {
             "bulletDamage": 380,
@@ -1580,7 +1600,18 @@
             "rewardHubs": 4800,
             "rewardOhcu": 48,
             "shield": 6500,
-            "speed": 285
+            "speed": 285,
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 285,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "lootDrops": [],
+            "icon": "res://assets/Enemigos/2D/Enemigo11/Enemigo11.png"
         },
         "12": {
             "bulletDamage": 300,
@@ -1618,7 +1649,9 @@
             "rewardHubs": 4000,
             "rewardOhcu": 40,
             "shield": 5000,
-            "speed": 300
+            "speed": 300,
+            "lootDrops": [],
+            "icon": "res://assets/Enemigos/2D/Enemigo12/Enemigo12.png"
         },
         "13": {
             "bulletDamage": 350,
@@ -1653,7 +1686,8 @@
             "rewardHubs": 4500,
             "rewardOhcu": 45,
             "shield": 6000,
-            "speed": 290
+            "speed": 290,
+            "icon": "res://assets/Enemigos/2D/Enemigo13/Enemigo13.png"
         },
         "101": {
             "bulletDamage": 2000,
@@ -1794,7 +1828,8 @@
             "shield": 8000,
             "shieldRegenPercent": 30,
             "speed": 250,
-            "visionRange": 2000
+            "visionRange": 2000,
+            "icon": "res://assets/Enemigos/2D/Bosses/Boss1/Boss1(Transp).png"
         },
         "102": {
             "aggressive": false,
@@ -1851,7 +1886,9 @@
             "shield": 1000,
             "speed": 220,
             "stopOnOutOfSight": true,
-            "visionRange": 1500
+            "visionRange": 1500,
+            "lootDrops": [],
+            "icon": "res://assets/Enemigos/2D/Bosses/Boss2/Boss2.png"
         },
         "103": {
             "bulletDamage": 3000,
@@ -1867,7 +1904,28 @@
             "rewardHubs": 200000,
             "rewardOhcu": 2000,
             "shield": 75000,
-            "speed": 280
+            "speed": 280,
+            "mechanics": [
+                {
+                    "type": "laser",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "startDelay": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 280,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "lootDrops": [],
+            "icon": "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png"
         },
         "104": {
             "bulletDamage": 8000,
@@ -1929,20 +1987,14 @@
                     "bulletDamage": 5,
                     "bulletSpeed": 500,
                     "fireRange": 800,
-                    "fireRate": 1500,
+                    "fireRate": 2000,
                     "type": "laser"
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 200,
-                    "startDelay": 0,
-                    "stopDist": 150,
-                    "type": "chase"
-                },
-                {
-                    "idealDist": 150,
-                    "speed": 3.5,
+                    "idealDist": 300,
+                    "speed": 500,
                     "startDelay": 2000,
                     "stopDist": 150,
                     "type": "sniper"
@@ -4098,8 +4150,8 @@
                     "circleCount": 3,
                     "coneAngle": 100,
                     "coneFollow": true,
-                    "cooldown": 6000,
-                    "damage": 500,
+                    "cooldown": 10,
+                    "damage": 10,
                     "damage_per_tick": 200,
                     "debuffsList": [],
                     "duration": 4000,
@@ -4107,7 +4159,7 @@
                     "fireRate": 3000,
                     "fuseTimeMs": 1000,
                     "hookMissWaitMs": 0,
-                    "intervalMs": 1000,
+                    "intervalMs": 500,
                     "isHoming": 0,
                     "lifetimeMs": 1000,
                     "lockTimeMs": 500,
@@ -4118,7 +4170,7 @@
                     "postCastWaitMs": 1000,
                     "postHookWaitMs": 500,
                     "pullSpeed": 0,
-                    "radius": 300,
+                    "radius": 100,
                     "reflect_mult": 1,
                     "safeRadius": 300,
                     "slowDuration": 2000,
@@ -4133,7 +4185,7 @@
                     "stunDuration": 1000,
                     "tick_interval": 1000,
                     "turnSpeed": 10,
-                    "type": "execution",
+                    "type": "aura_damage",
                     "projectileCount": 5,
                     "spreadAngle": 60,
                     "parkTimeMs": 2000,
@@ -4172,7 +4224,8 @@
                     "speed": 310,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "chase"
+                    "type": "charger",
+                    "chargeCooldown": 4000
                 }
             ],
             "name": "Enemigo 9 C",
@@ -4224,6 +4277,106 @@
             "rewardOhcu": 190,
             "shield": 20000,
             "speed": 310
+        },
+        "11-A": {
+            "bulletDamage": 760,
+            "bulletSpeed": 980,
+            "fireRange": 1250,
+            "fireRate": 820,
+            "hp": 26000,
+            "mechanics": [
+                {
+                    "bulletDamage": 760,
+                    "bulletSpeed": 980,
+                    "fireRange": 1250,
+                    "fireRate": 820,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "name": "Enemigo 11 A",
+            "rankingPoints": 11,
+            "rewardExp": 5600,
+            "rewardHubs": 9600,
+            "rewardOhcu": 96,
+            "shield": 13000,
+            "speed": 285
+        },
+        "11-B": {
+            "bulletDamage": 1140,
+            "bulletSpeed": 980,
+            "fireRange": 1250,
+            "fireRate": 820,
+            "hp": 39000,
+            "mechanics": [
+                {
+                    "bulletDamage": 1140,
+                    "bulletSpeed": 980,
+                    "fireRange": 1250,
+                    "fireRate": 820,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "name": "Enemigo 11 B",
+            "rankingPoints": 11,
+            "rewardExp": 8400,
+            "rewardHubs": 14400,
+            "rewardOhcu": 144,
+            "shield": 19500,
+            "speed": 285
+        },
+        "11-C": {
+            "bulletDamage": 1520,
+            "bulletSpeed": 980,
+            "fireRange": 1250,
+            "fireRate": 820,
+            "hp": 52000,
+            "mechanics": [
+                {
+                    "bulletDamage": 1520,
+                    "bulletSpeed": 980,
+                    "fireRange": 1250,
+                    "fireRate": 820,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "name": "Enemigo 11 C",
+            "rankingPoints": 11,
+            "rewardExp": 11200,
+            "rewardHubs": 19200,
+            "rewardOhcu": 192,
+            "shield": 26000,
+            "speed": 285
+        },
+        "11-D": {
+            "bulletDamage": 1900,
+            "bulletSpeed": 980,
+            "fireRange": 1250,
+            "fireRate": 820,
+            "hp": 65000,
+            "mechanics": [
+                {
+                    "bulletDamage": 1900,
+                    "bulletSpeed": 980,
+                    "fireRange": 1250,
+                    "fireRate": 820,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "name": "Enemigo 11 D",
+            "rankingPoints": 11,
+            "rewardExp": 14000,
+            "rewardHubs": 24000,
+            "rewardOhcu": 240,
+            "shield": 32500,
+            "speed": 285
         }
     },
     "gameModes": {
