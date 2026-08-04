@@ -1033,8 +1033,15 @@ const fieldLabelsMap = {
                                            persistentZone: m.type === 'meteor' ? "¿Dejar Zona Persistente en el Piso? (Sí/No)" : "¿Zona Persistente? (Sí/No)",
                                            zoneDamage: "Daño por Tick de Zona (pts)",
                                            zoneTickMs: "Intervalo de Tick de Zona (ms)",
-                                           zoneDuration: "Duración de la Zona en el Piso (ms)",
-                                           activationHP: "Activación por HP (%)",
+                                            zoneDuration: "Duración de la Zona en el Piso (ms)",
+                                            targetCount: "Cantidad de Players Objetivo (uds)",
+                                            bulletSpeed: "Vel. Calavera (px/s)",
+                                            targetMode: "Modo de Selección de Objetivo",
+                                            stealAmount: "Cantidad Robada (pts)",
+                                            stealIntervalMs: "Intervalo de Robo (ms)",
+                                            stealMode: "Modo de Robo",
+                                            giveToEnemy: "¿Transferir al Enemigo? (Sí/No)",
+                                            activationHP: "Activación por HP (%)",
                                           reductionPercentage: "Reducción de Daño (%)",
                                           shieldRegen: "Regen. de Escudo (pts/s)",
                                           healAmount: "Curación por Pulso (pts)",
@@ -1302,7 +1309,7 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                              <option value="zone" ${val === 'zone' ? 'selected' : ''}>🌀 Zona Persistente (Daño en el Piso)</option>
                                          </select></div>`;
                                      }
-                                     if (f === 'turnSpeed') return '';
+                                      if (f === 'turnSpeed' && m.type !== 'execution') return '';
                                       if ((f === 'zoneTickMs' || f === 'zoneDuration' || f === 'zoneDamage') && (m.burstMode || 'burst') !== 'zone' && !m.persistentZone) return '';
                                      return `<div class="field"><label>${fieldLabelsMap[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].${f} = parseFloat(this.value); if ('${f}' === 'summonCount') renderEnemyDetail();"></div>`;
                                 }).join('')}

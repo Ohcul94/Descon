@@ -1374,7 +1374,8 @@
             "rewardHubs": 5000,
             "rewardOhcu": 50,
             "shield": 10,
-            "speed": 250
+            "speed": 250,
+            "lootDrops": []
         },
         "7": {
             "bulletDamage": 160,
@@ -1679,6 +1680,28 @@
                     "spawnRadius": 500,
                     "startDelay": 0,
                     "type": "boss_water_orbs"
+                },
+                {
+                    "type": "shield_steal",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 5100,
+                    "cooldown": 0,
+                    "startDelay": 0,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        15
+                    ],
+                    "activationIntervalMs": 30000,
+                    "fireRange": 1500,
+                    "bulletSpeed": 700,
+                    "stealMode": "flat",
+                    "stealAmount": 50,
+                    "stealIntervalMs": 1000,
+                    "targetMode": "proximity",
+                    "giveToEnemy": true,
+                    "bulletDamage": 10,
+                    "isPointAndClick": true
                 }
             ],
             "fireRange": 1200,
@@ -1705,7 +1728,7 @@
                 {
                     "bulletDamage": 10,
                     "bulletSpeed": 800,
-                    "cooldown": 120000,
+                    "cooldown": 5000,
                     "damagePerSecond": 0,
                     "duration": 3000,
                     "fireRange": 1500,
@@ -1733,6 +1756,23 @@
                     "safeRadius": 200,
                     "startDelay": 9000,
                     "type": "survival_dome"
+                },
+                {
+                    "type": "cone_cast",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "cooldown": 6000,
+                    "castTimeMs": 2000,
+                    "damage": 500,
+                    "stunDuration": 3000,
+                    "castSpeed": 2,
+                    "coneAngle": 50,
+                    "coneFollow": false,
+                    "lockTimeMs": 500,
+                    "aimDelayMs": 3000,
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
@@ -4092,8 +4132,8 @@
                     "staticTime": 1000,
                     "stunDuration": 1000,
                     "tick_interval": 1000,
-                    "turnSpeed": 0,
-                    "type": "meteor",
+                    "turnSpeed": 10,
+                    "type": "execution",
                     "projectileCount": 5,
                     "spreadAngle": 60,
                     "parkTimeMs": 2000,
@@ -4123,7 +4163,8 @@
                     "meteorSize": 60,
                     "explosionRadius": 150,
                     "persistentZone": true,
-                    "zoneDamage": 3
+                    "zoneDamage": 3,
+                    "targetCount": 1
                 }
             ],
             "movementPhases": [
@@ -6188,6 +6229,24 @@
                 "zoneDamage",
                 "zoneTickMs",
                 "zoneDuration"
+            ]
+        },
+        "execution": {
+            "label": "Ejecución Directa (Execution)",
+            "icon": "💀",
+            "desc": "Tras un tiempo de casteo, lanza una calavera inquebrantable sobre los objetivos: impacto = muerte instantánea (ignora escudo y vida).",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "startDelay",
+                "castTimeMs",
+                "targetCount",
+                "fireRange",
+                "bulletSpeed",
+                "isPointAndClick",
+                "turnSpeed"
             ]
         }
     },

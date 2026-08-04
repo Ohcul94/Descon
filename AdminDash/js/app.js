@@ -857,8 +857,13 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'persistentZone') mech[f] = false;
             else if (f === 'zoneDamage') mech[f] = 25;
             else if (f === 'zoneTickMs') mech[f] = 1000;
-            else if (f === 'zoneDuration') mech[f] = 4000;
-            else mech[f] = 0;
+             else if (f === 'zoneDuration') mech[f] = 4000;
+             else if (f === 'targetCount') mech[f] = newType === 'execution' ? 3 : 1;
+             else if (f === 'castTimeMs') mech[f] = newType === 'execution' ? 1500 : (newType === 'circle_cast' ? 2000 : 2000);
+             else if (f === 'turnSpeed') mech[f] = newType === 'execution' ? 1.9 : 1.2;
+             else if (f === 'slowAmount') mech[f] = 30;
+             else if (f === 'stunDuration') mech[f] = 1500;
+             else mech[f] = 0;
         }
     });
     renderEnemyDetail();

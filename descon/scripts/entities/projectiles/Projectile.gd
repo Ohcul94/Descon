@@ -1107,6 +1107,106 @@ func _setup_visual_sprite():
 		sprite = null
 		return
 
+	# v413: Calavera Ejecutora (Execution / Instant Kill)
+	# Skull 3D con estela estilo proyectil curativo + luz + homing (point & click).
+	if type == "execution":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "ExecutionSkull3D_" + str(get_instance_id())
+			target_vp.add_child(world_root_3d)
+
+			world_root_3d.scale = Vector3(0.55, 0.55, 0.55)
+
+			tree_exiting.connect(func():
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+			)
+
+			# --- Cráneo (esfera hueso) ---
+			var cranium = MeshInstance3D.new()
+			var sphere = SphereMesh.new()
+			sphere.radius = 0.34
+			sphere.height = 0.7
+			cranium.mesh = sphere
+			var bone_mat = StandardMaterial3D.new()
+			bone_mat.albedo_color = Color(0.72, 0.68, 0.62, 0.95)
+			bone_mat.emission_enabled = true
+			bone_mat.emission = Color(0.75, 0.55, 0.9, 0.35)
+			bone_mat.emission_energy_multiplier = 2.0
+			bone_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			bone_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			cranium.material_override = bone_mat
+			world_root_3d.add_child(cranium)
+
+			# --- Ojos vacíos (dos esferas negras hundidas) ---
+			for side in [-1, 1]:
+				var eye = MeshInstance3D.new()
+				var eye_mesh = SphereMesh.new()
+				eye_mesh.radius = 0.1
+				eye_mesh.height = 0.2
+				eye.mesh = eye_mesh
+				var eye_mat = StandardMaterial3D.new()
+				eye_mat.albedo_color = Color(0.0, 0.0, 0.0, 0.95)
+				eye_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				eye.material_override = eye_mat
+				eye.position = Vector3(0.11 * side, 0.03, 0.22)
+				cranium.add_child(eye)
+
+			# --- Mandíbula inferior ---
+			var jaw = MeshInstance3D.new()
+			var jaw_mesh = BoxMesh.new()
+			jaw_mesh.size = Vector3(0.55, 0.14, 0.30)
+			jaw.mesh = jaw_mesh
+			var jaw_mat = StandardMaterial3D.new()
+			jaw_mat.albedo_color = Color(0.6, 0.55, 0.5, 0.9)
+			jaw_mat.emission_enabled = true
+			jaw_mat.emission = Color(0.75, 0.55, 0.9, 0.3)
+			jaw_mat.emission_energy_multiplier = 1.5
+			jaw_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			jaw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			jaw.material_override = jaw_mat
+			jaw.position = Vector3(0.0, -0.3, 0.0)
+			world_root_3d.add_child(jaw)
+
+			# --- Luz puntual violeta ---
+			var light = OmniLight3D.new()
+			light.light_color = Color(0.65, 0.45, 0.95)
+			light.light_energy = 2.0
+			light.omni_range = 4.0
+			world_root_3d.add_child(light)
+
+			# --- Estela de partículas (estilo proyectil curativo) ---
+			var trail = CPUParticles3D.new()
+			trail.one_shot = false
+			trail.lifetime = 0.45
+			trail.preprocess = 0.2
+			trail.amount = 5
+			trail.speed_scale = 1.0
+			trail.explosiveness = 0.0
+			trail.lifetime_randomness = 0.3
+			trail.direction = Vector3.BACK
+			trail.spread = 25.0
+			trail.gravity = Vector3.ZERO
+			trail.initial_velocity_min = 0.4
+			trail.initial_velocity_max = 1.8
+			trail.scale_amount_min = 0.18
+			trail.scale_amount_max = 0.32
+			trail.color = Color(0.6, 0.35, 0.95, 0.55)
+			var grad = Gradient.new()
+			grad.set_color(0, Color(0.7, 0.4, 0.95, 0.6))
+			grad.add_point(0.5, Color(0.45, 0.25, 0.75, 0.35))
+			grad.set_color(1, Color(0.2, 0.1, 0.4, 0.0))
+			trail.color_ramp = grad
+			var skull_draw_mesh = SphereMesh.new()
+			skull_draw_mesh.radius = 0.08
+			trail.mesh = skull_draw_mesh
+			world_root_3d.add_child(trail)
+
+			sprite = null
+			return
 	var path = ""
 	match type:
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
@@ -1616,6 +1716,8 @@ func _on_body_entered(body):
 			dmg_to_deal = 0.0
 		if type == "life_steal":
 			dmg_to_deal = 0.0
+		if type == "execution":
+			dmg_to_deal = 0.0
 		if type == "polymorph":
 			dmg_to_deal = damage
 		if type == "heal":
@@ -1634,7 +1736,7 @@ func _on_body_entered(body):
 				if is_instance_valid(_owner_node):
 					_predict_local_heal(_owner_node, damage)
 					
-		if type != "shield_steal" and type != "life_steal":
+		if type != "shield_steal" and type != "life_steal" and type != "execution":
 			body.take_damage(dmg_to_deal, global_position, owner_id)
 		
 		if NetworkManager:
@@ -2116,6 +2218,46 @@ func _explode():
 					tw.tween_interval(1.0)
 					tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(hit_node))
 
+	# Spawn 3D hit impact effect for execution skulls (huesos/dust púrpura)
+	if type == "execution":
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			var s_factor = 0.02
+			var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
+			var impact_pos3d = Vector3(global_position.x * s_factor, 0.2, global_position.y * s_factor * correction_z)
+
+			var puff = CPUParticles3D.new()
+			puff.one_shot = true
+			puff.lifetime = 0.7
+			puff.preprocess = 0.0
+			puff.amount = 26
+			puff.speed_scale = 1.2
+			puff.explosiveness = 0.9
+			puff.lifetime_randomness = 0.4
+			puff.direction = Vector3.UP
+			puff.spread = 140.0
+			puff.gravity = Vector3.DOWN * 9.0
+			puff.initial_velocity_min = 4.0
+			puff.initial_velocity_max = 11.0
+			puff.scale_amount_min = 0.05
+			puff.scale_amount_max = 0.13
+			var g = Gradient.new()
+			g.set_color(0, Color(0.8, 0.7, 0.95, 0.9))
+			g.add_point(0.45, Color(0.5, 0.4, 0.75, 0.55))
+			g.set_color(1, Color(0.1, 0.05, 0.2, 0.0))
+			puff.color_ramp = g
+			var dm = SphereMesh.new()
+			dm.radius = 0.06
+			puff.mesh = dm
+			puff.position = impact_pos3d
+			target_vp.add_child(puff)
+			puff.emitting = true
+			target_vp.create_tween().tween_callback(puff.queue_free).set_delay(0.8)
+
+			if VFXSystem and VFXSystem.spawn_explosion:
+				VFXSystem.spawn_explosion(Vector2(global_position.x, global_position.y), 0.5)
+
 	# Spawn 3D hit impact effect for laser projectiles
 	if type == "laser":
 		var map_node = get_tree().get_first_node_in_group("map")
@@ -2199,6 +2341,12 @@ func _find_target():
 	if NetworkManager and target_id == str(NetworkManager.my_socket_id):
 		_target_node = get_tree().get_first_node_in_group("player")
 		if is_instance_valid(_target_node): return
+
+	var _world_ref = get_tree().get_first_node_in_group("world_node")
+	if is_instance_valid(_world_ref):
+		if _world_ref.get("remote_players") != null and _world_ref.remote_players.has(target_id):
+			_target_node = _world_ref.remote_players.get(target_id)
+			if is_instance_valid(_target_node): return
 
 	var entities = get_tree().get_nodes_in_group("entities")
 	for e in entities:

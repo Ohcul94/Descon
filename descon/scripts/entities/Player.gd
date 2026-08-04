@@ -2,6 +2,8 @@ extends Entity
 
 # Precargas estáticas para optimización de rendimiento (v313.3)
 const SKILL_CONTROLLER_SCRIPT = preload("res://scripts/systems/SkillController.gd")
+const SLEEP_AURA_SCRIPT = preload("res://scripts/systems/SleepAuraVisual.gd")
+const SLEEP_ZZ_SCRIPT = preload("res://scripts/systems/SleepZZVisual.gd")
 
 # Player.gd (Controlador Maestro v69.45 - FULL STABILITY RECOVERY)
 # Saneado y corregido para evitar errores de parseo y autodaño.
@@ -185,12 +187,51 @@ func _on_slow_state(data: Dictionary):
 			slow_points = data.get("amount", slow_points)
 			slow_is_percentage = data.get("isPercentage", slow_is_percentage)
 			slow_timer = float(data.get("duration", 3000.0)) / 1000.0
+			if data.get("isSleep", false):
+				_sleep_grace = 10.0
+				_start_sleep_aura()
 		else:
 			slow_points = 0.0
 			slow_is_percentage = false
 			slow_timer = 0.0
+			if data.get("isSleep", false):
+				_stop_sleep_aura()
+
+var _sleep_aura: Node2D = null
+var _sleep_grace: float = 0.0
+
+func _start_sleep_aura() -> void:
+	if is_instance_valid(_sleep_aura):
+		if _sleep_aura.has_method("start_aura"):
+			_sleep_aura.start_aura()
+		return
+	if not SLEEP_AURA_SCRIPT:
+		return
+	var aura := Node2D.new()
+	aura.set_script(SLEEP_AURA_SCRIPT)
+	aura.name = "SleepAura"
+	aura.z_index = 15
+	aura.z_as_relative = false
+	add_child(aura)
+	if aura.has_method("start_aura"):
+		aura.start_aura()
+	_sleep_aura = aura
+
+func _stop_sleep_aura() -> void:
+	if is_instance_valid(_sleep_aura) and _sleep_aura.has_method("stop_aura"):
+		_sleep_aura.stop_aura()
 
 func _on_status_effects_sync(data: Dictionary):
+	if data.has("stun"):
+		stun_timer = float(data.stun) / 1000.0
+		set_debuff_timer("stun", stun_timer)
+		# v413: Fallback visual - si el stun persiste dentro del contexto de sueño
+		# (por si el evento stunState directo se perdió), activar/desactivar las Z.
+		if _sleep_grace > 0.0:
+			if stun_timer > 0.0:
+				_start_sleep_zzz()
+			else:
+				_stop_sleep_zzz()
 	if data.has("slow"):
 		slow_timer = float(data.slow) / 1000.0
 		set_debuff_timer("slow", slow_timer)
@@ -254,6 +295,9 @@ func _on_stun_state(data: Dictionary):
 			var target_color = Color(0.8, 0.4, 1.0, 1.0) if data.get("isSleep", false) else Color(0.7, 0.7, 1.0, 1.0)
 			var tw = create_tween()
 			tw.tween_property(self, "modulate", target_color, 0.2)
+			if data.get("isSleep", false):
+				_sleep_grace = 10.0
+				_start_sleep_zzz()
 	else:
 		is_stunned = false
 		is_feared = false
@@ -262,6 +306,33 @@ func _on_stun_state(data: Dictionary):
 		modulate = Color.WHITE
 		set_debuff_timer("fear", 0)
 		set_debuff_timer("stun", 0)
+		_stop_sleep_zzz()
+
+var _sleep_zzz: Node2D = null
+
+func _start_sleep_zzz() -> void:
+	if is_instance_valid(_sleep_zzz):
+		if _sleep_zzz.has_method("start_zzz"):
+			_sleep_zzz.start_zzz()
+		return
+	if not SLEEP_ZZ_SCRIPT:
+		return
+	var zzz := Node2D.new()
+	zzz.set_script(SLEEP_ZZ_SCRIPT)
+	zzz.name = "SleepZZZ"
+	zzz.z_index = 60
+	zzz.z_as_relative = false
+	# Adjuntar al wrapper de UI (misma capa que los números de daño) para
+	# garantizar el render por encima de la nave.
+	var target_parent = _ui_wrapper if is_instance_valid(_ui_wrapper) else self
+	target_parent.add_child(zzz)
+	if zzz.has_method("start_zzz"):
+		zzz.start_zzz()
+	_sleep_zzz = zzz
+
+func _stop_sleep_zzz() -> void:
+	if is_instance_valid(_sleep_zzz) and _sleep_zzz.has_method("stop_zzz"):
+		_sleep_zzz.stop_zzz()
 
 var _freeze_slow_val: float = 0.0 # v268.40: Ralentización ambiental independiente
 
@@ -379,6 +450,8 @@ func _physics_process(p_delta):
 		if electron_speed_buff_timer <= 0.0:
 			electron_speed_buff_stacks = 0
 			_recalculate_stats()
+	if _sleep_grace > 0.0:
+		_sleep_grace = max(0.0, _sleep_grace - p_delta)
 	
 	if is_feared:
 		fear_timer -= p_delta

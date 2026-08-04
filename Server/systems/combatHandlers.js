@@ -646,8 +646,38 @@ function registerCombatHandlers(socket, io, state) {
                         type: "warning" 
                     });
                     
-                    p.lastCombatTime = Date.now();
+                     p.lastCombatTime = Date.now();
                 }
+                return;
+            }
+
+            // v413: EJECUCIÓN DIRECTA (Execution / Death) - si la calavera impacta, muerte instantánea.
+            // Ignora escudo y vida: el jugador es limpiado (hp=0, shield=0, isDead=true).
+            if (attackerType === 'enemy' && data.bulletType === 'execution') {
+                const attackerEnemy = state.enemies[attackerId];
+                if (attackerEnemy && !p.isDead) {
+                    // Reset de slow/stun de somnolencia por si existía
+                    p.isSlowed = false; p.slowPoints = 0; p.slowEndTime = 0;
+                    io.to(p.socketId).emit('slowState', { active: false, isSleep: false });
+
+                    p.hp = 0;
+                    p.shield = 0;
+                    p.isDead = true;
+                    p.isStunned = true;
+                    p.stunEndTime = Date.now() + 4000;
+
+                    io.to(p.socketId).emit('stunState', { active: true, duration: 4000, isSleep: false });
+                    io.to(p.socketId).emit('gameNotification', { msg: '☠️ ¡Ejecución directa! Has sido ejecutado por una calavera.', type: 'error' });
+
+                    checkAndProcessDeathDrop(p, io, state);
+
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', {
+                        id: p.socketId, hp: 0, shield: 0,
+                        maxHp: p.maxHp, maxShield: p.maxShield,
+                        isDead: p.isDead, isStunned: true
+                    });
+                }
+                p.lastCombatTime = Date.now();
                 return;
             }
 

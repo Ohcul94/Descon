@@ -13,6 +13,7 @@ var active_laser_tracking = {} # Indicadores que siguen al jugador {enemy_id: {i
 var active_wind_walls = {} # Paredes de viento en fase de carga {wall_id: Node2D}
 var active_meteors = {} # Meteoritos activos {key: {warn_3d, meteor_3d, fall_s, landed}} (v411)
 var active_meteor_zones = {} # Zonas persistentes de meteoritos {mId: {zone_2d, elapsed}}
+var death_marks = {} # Marks de Ejecución Directa {mark_key: {enemy_id, node, target_id}}
 var zone_cleanup_timer = 0.0
 const ZONE_CLEANUP_INTERVAL = 1.0
 
@@ -418,7 +419,16 @@ func _on_enemy_action(data: Dictionary):
 	if action == "meteor_zone_start" or action == "meteor_zone_end":
 		_handle_meteor_zone_action(data)
 		return
-	
+	# v413: Sueño Inducido - orbe 3D que vuela del enemigo al jugador al lanzar el sleep
+	if action == "sleep_cast":
+		_handle_sleep_action(data)
+		return
+
+	# v413: Ejecución Directa - marca de calavera sobre los targets objetivo (telegrafo)
+	if action == "death_cast_start" or action == "death_cast_end":
+		_handle_death_mark_action(data)
+		return
+
 	if enemies.has(enemy_id):
 		var en = enemies[enemy_id]
 		var duration = float(data.get("duration", 2000.0)) / 1000.0
@@ -1697,6 +1707,274 @@ func _handle_life_steal_action(data: Dictionary):
 		if active_areas.has(steal_id) and is_instance_valid(active_areas[steal_id]):
 			active_areas[steal_id].queue_free()
 			active_areas.erase(steal_id)
+
+
+# v413: SUEÑO INDUCIDO - Orbe de sueño 3D que vuela del enemigo al jugador.
+# El efecto (slow + stun) lo aplica el servidor al instante; este orbe es el
+# feedback visual de que te "tiraron" algo.
+func _handle_sleep_action(data: Dictionary):
+	var action = str(data.get("action", ""))
+	if action != "sleep_cast":
+		return
+	var enemy_id = str(data.get("id", ""))
+	var targets = data.get("targets", [])
+	if typeof(targets) != TYPE_ARRAY or targets.size() == 0:
+		return
+
+	var ex = float(data.get("ex", 0.0))
+	var ey = float(data.get("ey", 0.0))
+
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map) or current_map.get("sub_viewport") == null:
+		return
+	var s_factor: float = current_map.scale_factor if "scale_factor" in current_map else 0.02
+	var corr_z: float = current_map.correction_z if "correction_z" in current_map else 1.41421356
+	var vp: SubViewport = current_map.sub_viewport
+
+	var enemy_node: Node2D = enemies.get(enemy_id) if enemies.has(enemy_id) else null
+	var start_pos: Vector2 = Vector2(ex, ey)
+	if is_instance_valid(enemy_node):
+		start_pos = enemy_node.global_position
+
+	for t_id in targets:
+		t_id = str(t_id)
+		var player_node: Node2D = null
+		if is_instance_valid(world) and is_instance_valid(world.local_player) and str(world.local_player.get("entity_id")) == t_id:
+			player_node = world.local_player
+		elif remote_players.has(t_id):
+			player_node = remote_players[t_id]
+		if not is_instance_valid(player_node):
+			continue
+
+		var start3d = Vector3(start_pos.x * s_factor, 0.8, start_pos.y * s_factor * corr_z)
+
+		# Script en línea: el orbe sigue al jugador hasta alcanzarlo y desaparece
+		var follow_script = GDScript.new()
+		follow_script.source_code = "extends Node3D\n" + \
+			"var target_node: Node2D = null\n" + \
+			"var s_factor: float = 0.02\n" + \
+			"var corr_z: float = 1.4142\n" + \
+			"var speed: float = 15.0\n" + \
+			"var life: float = 0.0\n" + \
+			"var max_life: float = 0.85\n" + \
+			"func setup(p_target: Node2D, p_start: Vector3, p_s_factor: float, p_corr_z: float):\n" + \
+			"	target_node = p_target\n" + \
+			"	global_position = p_start\n" + \
+			"	s_factor = p_s_factor\n" + \
+			"	corr_z = p_corr_z\n" + \
+			"func _process(delta: float):\n" + \
+			"	life += delta\n" + \
+			"	if is_instance_valid(target_node):\n" + \
+			"		var dest = Vector3(target_node.global_position.x * s_factor, 0.5, target_node.global_position.y * s_factor * corr_z)\n" + \
+			"		var dist = global_position.distance_to(dest)\n" + \
+			"		global_position = global_position.lerp(dest, delta * speed)\n" + \
+			"		if dist < 0.5:\n" + \
+			"			scale = scale.lerp(Vector3.ZERO, delta * 25.0)\n" + \
+			"			if dist < 0.1:\n" + \
+			"				queue_free()\n" + \
+			"				return\n" + \
+			"	if life >= max_life:\n" + \
+			"		queue_free()\n"
+		follow_script.reload()
+
+		var orb_root = Node3D.new()
+		orb_root.name = "SleepOrb3D_" + enemy_id + "_" + t_id
+		orb_root.set_script(follow_script)
+		vp.add_child(orb_root)
+		orb_root.setup(player_node, start3d, s_factor, corr_z)
+
+		# Núcleo violeta brillante
+		var core = MeshInstance3D.new()
+		var sphere = SphereMesh.new()
+		sphere.radius = 0.25
+		sphere.height = 0.5
+		core.mesh = sphere
+		var mat = StandardMaterial3D.new()
+		mat.albedo_color = Color(0.85, 0.45, 1.0, 0.9)
+		mat.emission_enabled = true
+		mat.emission = Color(0.7, 0.3, 1.0)
+		mat.emission_energy_multiplier = 4.0
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		core.material_override = mat
+		orb_root.add_child(core)
+
+		# Anillo de energía giratorio
+		var ring = MeshInstance3D.new()
+		var torus = TorusMesh.new()
+		torus.inner_radius = 0.32
+		torus.outer_radius = 0.4
+		ring.mesh = torus
+		var ring_mat = StandardMaterial3D.new()
+		ring_mat.albedo_color = Color(1.0, 0.75, 1.0, 0.9)
+		ring_mat.emission_enabled = true
+		ring_mat.emission = Color(1.0, 0.6, 1.0)
+		ring_mat.emission_energy_multiplier = 3.0
+		ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		ring.material_override = ring_mat
+		ring.rotation_degrees.x = 90
+		orb_root.add_child(ring)
+
+		var tw_rot = ring.create_tween().set_loops()
+		tw_rot.tween_property(ring, "rotation_degrees:z", 360.0, 0.6).set_trans(Tween.TRANS_LINEAR)
+
+		# Luz violeta que ilumina el trayecto
+		var light = OmniLight3D.new()
+		light.light_color = Color(0.75, 0.4, 1.0)
+		light.light_energy = 1.8
+		light.omni_range = 3.5
+		orb_root.add_child(light)
+
+		# Puff violeta al llegar al jugador (timing aproximado al vuelo del orbe)
+		var puff = CPUParticles2D.new()
+		puff.amount = 22
+		puff.lifetime = 0.5
+		puff.one_shot = true
+		puff.explosiveness = 1.0
+		puff.spread = 180.0
+		puff.gravity = Vector2.ZERO
+		puff.initial_velocity_min = 60.0
+		puff.initial_velocity_max = 140.0
+		puff.scale_amount_min = 2.0
+		puff.scale_amount_max = 4.0
+		var puff_grad = Gradient.new()
+		puff_grad.set_color(0, Color(0.9, 0.6, 1.0, 0.9))
+		puff_grad.add_point(0.5, Color(0.7, 0.3, 1.0, 0.7))
+		puff_grad.set_color(1, Color(0.4, 0.1, 0.7, 0.0))
+		puff.color_ramp = puff_grad
+		if is_instance_valid(world) and is_instance_valid(world.entities_node):
+			world.entities_node.add_child(puff)
+			puff.global_position = player_node.global_position
+			puff.emitting = true
+			get_tree().create_timer(0.55).timeout.connect(puff.queue_free)
+
+
+# v413: EJECUCIÓN DIRECTA - Marcador de calavera sobre los objetivos (telegrafo).
+# death_cast_start: crea un mark 3D (calavera giratoria) sobre cada target.
+# death_cast_end: destruye todos los marks activos de este enemy_id.
+func _handle_death_mark_action(data: Dictionary):
+	var action = str(data.get("action", ""))
+	var enemy_id = str(data.get("id", ""))
+	var targets = data.get("targets", [])
+	if typeof(targets) != TYPE_ARRAY:
+		targets = []
+
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map) or current_map.get("sub_viewport") == null:
+		return
+	var s_factor: float = current_map.scale_factor if "scale_factor" in current_map else 0.02
+	var corr_z: float = current_map.correction_z if "correction_z" in current_map else 1.41421356
+	var vp: SubViewport = current_map.sub_viewport
+
+	if not is_instance_valid(world):
+		return
+
+	if action == "death_cast_end":
+		for t_id in death_marks.keys():
+			var entry = death_marks[t_id]
+			if entry.enemy_id == enemy_id and is_instance_valid(entry.node):
+				entry.node.queue_free()
+		death_marks.erase(enemy_id)
+		return
+
+	if action != "death_cast_start":
+		return
+
+	var cast_time_ms = float(data.get("castTimeMs", 1200.0))
+	var cast_time_s = cast_time_ms / 1000.0
+
+	for t_id in targets:
+		t_id = str(t_id)
+		var player_node: Node2D = null
+		if is_instance_valid(world.local_player) and str(world.local_player.get("entity_id")) == t_id:
+			player_node = world.local_player
+		elif remote_players.has(t_id):
+			player_node = remote_players[t_id]
+		if not is_instance_valid(player_node):
+			continue
+
+		var mark_key = enemy_id + "_" + t_id
+		if death_marks.has(mark_key) and is_instance_valid(death_marks[mark_key].node):
+			death_marks[mark_key].node.queue_free()
+			death_marks.erase(mark_key)
+
+		var mark_root = Node3D.new()
+		mark_root.name = "ExecutionMark3D_" + mark_key
+		var pos3d = Vector3.ZERO
+		if is_instance_valid(world.entities_node) and world.entities_node.get("world_root_3d") != null:
+			pos3d = world.entities_node.world_root_3d.position
+		else:
+			pos3d = Vector3(player_node.global_position.x * s_factor, 0.2, player_node.global_position.y * s_factor * corr_z)
+		mark_root.global_position = pos3d
+		vp.add_child(mark_root)
+
+		# Calavera flotante (esfera hueso) con aro rojo giratorio (estilo meteor summon circle)
+		var skull = MeshInstance3D.new()
+		var sphere = SphereMesh.new()
+		sphere.radius = 0.22
+		sphere.height = 0.44
+		skull.mesh = sphere
+		var sk_mat = StandardMaterial3D.new()
+		sk_mat.albedo_color = Color(0.78, 0.74, 0.70, 0.85)
+		sk_mat.emission_enabled = true
+		sk_mat.emission = Color(0.9, 0.4, 0.35)
+		sk_mat.emission_energy_multiplier = 2.2
+		sk_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sk_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		skull.material_override = sk_mat
+		mark_root.add_child(skull)
+
+		# Aro rojo giratorio
+		var ring = MeshInstance3D.new()
+		var torus = TorusMesh.new()
+		torus.inner_radius = 0.32
+		torus.outer_radius = 0.40
+		ring.mesh = torus
+		var ring_mat = StandardMaterial3D.new()
+		ring_mat.albedo_color = Color(1.0, 0.22, 0.12, 0.82)
+		ring_mat.emission_enabled = true
+		ring_mat.emission = Color(1.0, 0.2, 0.12)
+		ring_mat.emission_energy_multiplier = 3.0
+		ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		ring.material_override = ring_mat
+		ring.rotation_degrees.x = 90
+		mark_root.add_child(ring)
+
+		var tw_rot = ring.create_tween().set_loops()
+		tw_rot.tween_property(ring, "rotation_degrees:z", 360.0, 0.55).set_trans(Tween.TRANS_LINEAR)
+
+		# Luz roja
+		var light = OmniLight3D.new()
+		light.light_color = Color(1.0, 0.25, 0.12)
+		light.light_energy = 1.5
+		light.omni_range = 3.5
+		mark_root.add_child(light)
+
+		# Animación de pulso / fade para indicar tiempo de casteo
+		var pulse = mark_root.create_tween()
+		pulse.set_loops()
+		pulse.tween_property(skull, "scale", Vector3(0.26, 1.0, 0.26), 0.35).set_trans(Tween.TRANS_SINE)
+		pulse.tween_property(skull, "scale", Vector3(0.22, 0.22, 0.22), 0.35).set_trans(Tween.TRANS_SINE)
+
+		# Auto-eliminarse al expirar el cast (o al recibir death_cast_end)
+		mark_root.create_tween().tween_interval(cast_time_s).tween_callback(mark_root.queue_free)
+
+		death_marks[mark_key] = { "enemy_id": enemy_id, "node": mark_root, "target_id": t_id }
+
+		# Actualizar posición del mark para seguir al jugador mientras dura el cast
+		var tracker = func():
+			if is_instance_valid(player_node) and is_instance_valid(mark_root):
+				var follow3d = Vector3.ZERO
+				if is_instance_valid(world.entities_node) and world.entities_node.get("world_root_3d") != null:
+					var base3d = world.entities_node.world_root_3d
+					follow3d = base3d.global_position + Vector3(player_node.global_position.x * s_factor, 0.35, player_node.global_position.y * s_factor * corr_z)
+				else:
+					follow3d = Vector3(player_node.global_position.x * s_factor, 0.35, player_node.global_position.y * s_factor * corr_z)
+				mark_root.global_position = follow3d
+		mark_root.set_process(true)
+		mark_root._process = tracker
 
 
 # v411: METEORITO - Gestión visual de la lluvia de meteoritos.
