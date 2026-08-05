@@ -76,6 +76,17 @@ var static_textures_to_cache = [
   "res://assets/Municiones/Misiles/Misil2/Misil2.png",
   "res://assets/Municiones/Misiles/Misil3/Misil3-1.png",
   "res://assets/Municiones/Misiles/Misil3/Misil3.png",
+
+  # Combat-VFX textures loaded on-demand via load() in EntityManager/BaseMap.
+  # Without prewarming, first spawn in the exported build reads them straight
+  # from the .pck → FPS spike (in the editor the editor's ResourceCache hides it).
+  "res://VFX/textures/T_VFX_FireBall_s1_alpha.jpg",
+  "res://VFX/textures/T_VFX_smoke_1.PNG",
+  "res://VFX/textures/T_VFX_sparks42.jpg",
+  "res://VFX/textures/T_VFX_Noise_019.png",
+  "res://VFX/textures/T_VFX_Noise_531.png",
+  "res://VFX/textures/T_VFX_Noise21d_tiled.png",
+
   "res://assets/Personajes/3D/Nave11/Nave11.glb",
   "res://assets/Personajes/3D/Nave12/Nave12.glb",
   "res://assets/Esferas/3D/EsferaAzul/EsferaAzul.glb",

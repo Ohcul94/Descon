@@ -1157,7 +1157,7 @@ func _spawn_map_objects():
 				
 				var model_path = str(obj.get("assetPath", ""))
 				if model_path == "":
-					model_path = "res://assets/Paredes/Pared1/Pared1.glb"
+					model_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
 				
 				var model_node = _instantiate_map_object_3d(model_path, obj_pos, Vector3(scale_val, scale_val, scale_val), Vector3(0, rot_y, 0), Color(0.9, 0.3, 0.1), y_offset)
 				

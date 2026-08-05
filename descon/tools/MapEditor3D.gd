@@ -54,13 +54,15 @@ func _ready():
 	if not Engine.is_editor_hint():
 		queue_free()
 		return
-	if auto_load_event:
-		_auto_loading = true
-		load_from_server()
-		_auto_loading = false
-	
 	_setup_editor_camera()
 	_connect_editor_signals()
+	if auto_load_event:
+		# Deferred: let the SceneTreeEditor settle with the scene's nodes first,
+		# then rebuild. Frees during _ready() race with the editor's tree cache
+		# and produce "Node not found ... (absolute path attempted from
+		# SceneTreeEditor)" errors for the destroyed child paths.
+		_auto_loading = true
+		call_deferred("load_from_server")
 	print("MapEditor3D: Editor listo. Arrastra .glb a ObjectsRoot")
 
 func _setup_editor_camera():
@@ -102,7 +104,7 @@ func _setup_object_metadata(obj: Node3D):
 			base_name = obj.get_meta("label")
 		else:
 			base_name = obj.get_class()
-		obj.name = base_name.replace(" ", "_").replace("@", "")
+		obj.name = _unique_node_name(obj.get_parent(), base_name.replace(" ", "_").replace("@", ""))
 		
 	if not obj.has_meta("label"):
 		obj.set_meta("label", obj.name)
@@ -110,6 +112,20 @@ func _setup_object_metadata(obj: Node3D):
 		obj.set_meta("scale_2d", 1.0)
 	if not obj.has_meta("rot_y_deg"):
 		obj.set_meta("rot_y_deg", 0.0)
+
+func _unique_node_name(parent: Node, desired: String) -> String:
+	if not parent:
+		return desired
+	var taken := {}
+	for c in parent.get_children():
+		if c is Node:
+			taken[c.name] = true
+	if not taken.has(desired):
+		return desired
+	var i := 2
+	while taken.has("%s_%d" % [desired, i]):
+		i += 1
+	return "%s_%d" % [desired, i]
 
 ## INPUT DEL EDITOR
 
@@ -226,7 +242,7 @@ func _delete_selected():
 func _duplicate_selected():
 	if _selected_object:
 		var dup = _selected_object.duplicate()
-		var clean_name = _selected_object.name.replace("@", "")
+		var clean_name = _unique_node_name(objects_root, _selected_object.name.replace("@", ""))
 		dup.name = clean_name
 		objects_root.add_child(dup)
 		
@@ -420,7 +436,9 @@ func import_from_json():
 		print("MapEditor3D: El JSON debe ser un Array de objetos.")
 		return
 		
-	# Limpiar objetos anteriores
+	# Limpiar objetos anteriores de forma diferida para no destruir nodos
+	# mientras el SceneTreeEditor aún referencia sus paths (causa errores
+	# "Node not found ... absolute path attempted from SceneTreeEditor").
 	if not objects_root:
 		objects_root = %ObjectsRoot
 	if not objects_root:
@@ -428,6 +446,7 @@ func import_from_json():
 		
 	if objects_root:
 		for child in objects_root.get_children():
+			objects_root.remove_child(child)
 			child.queue_free()
 	else:
 		print("MapEditor3D: No se encontró el nodo ObjectsRoot.")
@@ -464,8 +483,8 @@ func import_from_json():
 			continue
 			
 		var instance = scene.instantiate()
-		var label_val = str(obj.get("label", instance.name))
-		instance.name = label_val.replace(" ", "_").replace("@", "")
+		var base_name = str(obj.get("label", instance.name)).replace(" ", "_").replace("@", "")
+		instance.name = _unique_node_name(objects_root, base_name)
 		objects_root.add_child(instance)
 		if scene_root:
 			instance.owner = scene_root
@@ -989,7 +1008,7 @@ func _spawn_altar_defense_markers(ad_cfg: Dictionary):
 func update_map_boundary(width_2d: float, height_2d: float):
 	var old_b = get_node_or_null("MapBoundaryVisual")
 	if is_instance_valid(old_b):
-		old_b.free()
+		old_b.queue_free()
 		
 	var boundary_visual = Node3D.new()
 	boundary_visual.name = "MapBoundaryVisual"
