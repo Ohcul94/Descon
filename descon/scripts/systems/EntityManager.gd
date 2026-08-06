@@ -14,6 +14,7 @@ var active_wind_walls = {} # Paredes de viento en fase de carga {wall_id: Node2D
 var active_meteors = {} # Meteoritos activos {key: {warn_3d, meteor_3d, fall_s, landed}} (v411)
 var active_meteor_zones = {} # Zonas persistentes de meteoritos {mId: {zone_2d, elapsed}}
 var death_marks = {} # Marks de Ejecución Directa {mark_key: {enemy_id, node, target_id}}
+var active_ascensions = {} # Saltos de Ascensión Telúrica {enemy_id: {node, tw_offsets, warn_timer, beam_3d}} (v414)
 var zone_cleanup_timer = 0.0
 const ZONE_CLEANUP_INTERVAL = 1.0
 
@@ -427,6 +428,11 @@ func _on_enemy_action(data: Dictionary):
 	# v413: Ejecución Directa - marca de calavera sobre los targets objetivo (telegrafo)
 	if action == "death_cast_start" or action == "death_cast_end":
 		_handle_death_mark_action(data)
+		return
+
+	# v414: Ascensión Telúrica - el enemigo salta y aterriza sobre el área marcada
+	if action == "ascension_cast" or action == "ascension_leap" or action == "ascension_impact":
+		_handle_ascension_action(data)
 		return
 
 	if enemies.has(enemy_id):
@@ -1975,6 +1981,236 @@ func _handle_death_mark_action(data: Dictionary):
 				mark_root.global_position = follow3d
 		mark_root.set_process(true)
 		mark_root._process = tracker
+
+
+# v414: ASCENSIÓN TELÚRICA - el enemigo salta por los aires y aterriza sobre el área marcada.
+# ascension_cast: el enemigo se agacha/prepara (sin telegrafo en el piso, la advertencia real es el vuelo + área).
+# ascension_leap: el enemigo vuela en arco hasta el destino + aparece el área de caída.
+# ascension_impact: el enemigo aterriza + explosión en el área (daño ya aplicado en servidor).
+func _handle_ascension_action(data: Dictionary):
+	var action = str(data.get("action", ""))
+	var map_node = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(map_node) or map_node.get("sub_viewport") == null:
+		return
+	var s_factor: float = map_node.scale_factor if "scale_factor" in map_node else 0.02
+	var correction_z: float = map_node.correction_z if "correction_z" in map_node else 1.41421356
+	var vp: SubViewport = map_node.sub_viewport
+	var enemy_id = str(data.get("id", ""))
+	var enemy_node = enemies.get(enemy_id) if enemies.has(enemy_id) else null
+
+	if action == "ascension_cast":
+		# No se dibuja nada ahora: el tell de la mecánica es el propio salto + el área de caída.
+		return
+
+	if action == "ascension_leap":
+		var air_s = float(data.get("airTimeMs", 2000)) / 1000.0
+		var warn_delay_s = float(data.get("warnDelayMs", 0)) / 1000.0
+		var warn_s = float(data.get("warnTimeMs", air_s * 1000.0)) / 1000.0
+		var radius = float(data.get("radius", 250))
+		var sx = float(data.get("startX", 0.0))
+		var sy = float(data.get("startY", 0.0))
+		var ex = float(data.get("endX", sx))
+		var ey = float(data.get("endY", sy))
+
+		# Si ya hay un salto activo de este enemigo (varios targets), retargetear
+		_ascension_clear_jump(enemy_id)
+
+		if is_instance_valid(enemy_node):
+			var start = Vector2(sx, sy)
+			var end = Vector2(ex, ey)
+			enemy_node.global_position = start
+			enemy_node.target_position = end
+			var dist = start.distance_to(end)
+			# El enemigo se eleva hacia el cielo y se desplaza rápido al inicio,
+			# quedándose planeando sobre el área marcada el resto del CD aéreo.
+			var rise_s = max(0.15, min(air_s * 0.35, 0.7))
+			var peak_h = clampf(6.0 + dist * 0.008, 6.0, 10.0)
+			var tw_pos = enemy_node.create_tween()
+			tw_pos.tween_property(enemy_node, "global_position", end, rise_s).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			var tw_offs = enemy_node.create_tween()
+			tw_offs.tween_property(enemy_node, "_ascension_y_offset", peak_h, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			# La caída la dispara ascension_impact; aquí solo se queda en el aire
+			active_ascensions[enemy_id] = {"node": enemy_node, "tw_pos": tw_pos, "tw_offs": tw_offs, "warn_timer": null}
+
+		# Cuando termina de targetear se marca el área de caída en el piso (warnDelayMs=0 por defecto).
+		# El círculo queda marcado (pulsando) al menos hasta el impacto.
+		var circle_dur_s = max(warn_s, air_s + 0.35)
+		var warn_timer = create_tween()
+		warn_timer.tween_interval(warn_delay_s)
+		warn_timer.tween_callback(func():
+			_spawn_ascension_warn_3d(vp, ex, ey, radius, circle_dur_s, s_factor, correction_z)
+		)
+		return
+
+	if action == "ascension_impact":
+		var tx = float(data.get("x", 0.0))
+		var ty = float(data.get("y", 0.0))
+		var radius = float(data.get("radius", 250))
+		var _damage = float(data.get("damage", 0))
+		# El enemigo cae sobre la zona del target (caída animada, no corte seco)
+		_ascension_land_enemy(enemy_id, Vector2(tx, ty))
+		_spawn_ascension_impact_3d(vp, tx, ty, radius, s_factor, correction_z)
+		if is_instance_valid(VFXSystem):
+			VFXSystem.spawn_explosion(Vector2(tx, ty), max(0.5, radius / 100.0))
+		# Shake si el jugador local está dentro del área
+		if is_instance_valid(world) and is_instance_valid(world.local_player):
+			var lp = world.local_player
+			if lp.global_position.distance_to(Vector2(tx, ty)) <= radius and lp.has_method("apply_shake"):
+				lp.apply_shake(4.0)
+		return
+
+
+# Aterrizaje de la ascensión: matar los tweens de vuelo y animar la caída al suelo.
+func _ascension_land_enemy(enemy_id: String, dest: Vector2):
+	if not active_ascensions.has(enemy_id):
+		return
+	var ent = active_ascensions[enemy_id]
+	var node = ent.get("node")
+	var tw_pos = ent.get("tw_pos")
+	if tw_pos != null and is_instance_valid(tw_pos):
+		tw_pos.kill()
+	var tw_offs = ent.get("tw_offs")
+	if tw_offs != null and is_instance_valid(tw_offs):
+		tw_offs.kill()
+	if is_instance_valid(node):
+		node.target_position = dest
+		node.global_position = dest
+		if node.get("_ascension_y_offset") != null:
+			var drop_tw = node.create_tween()
+			drop_tw.tween_property(node, "_ascension_y_offset", 0.0, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	active_ascensions.erase(enemy_id)
+
+
+# Cancela la animación de salto del enemigo y restaura su offset de ascensión.
+func _ascension_clear_jump(enemy_id: String):
+	if active_ascensions.has(enemy_id):
+		var ent = active_ascensions[enemy_id]
+		var node = ent.get("node")
+		if is_instance_valid(node):
+			var cur = 0.0
+			if node.get("_ascension_y_offset") != null:
+				cur = node._ascension_y_offset
+			if cur != 0.0:
+				node._ascension_y_offset = 0.0
+			var tw_pos = ent.get("tw_pos")
+			if tw_pos != null and is_instance_valid(tw_pos):
+				tw_pos.kill()
+			var tw_offs = ent.get("tw_offs")
+			if tw_offs != null and is_instance_valid(tw_offs):
+				tw_offs.kill()
+		active_ascensions.erase(enemy_id)
+
+
+# Restaura el offset de ascensión de todos los jugadores y enemigos (por si se pierde un tween).
+func _ascension_reset_all_offsets():
+	if is_instance_valid(world) and is_instance_valid(world.local_player):
+		var lp = world.local_player
+		if lp.get("_ascension_y_offset") != null and lp._ascension_y_offset != 0.0:
+			lp._ascension_y_offset = 0.0
+	for t_id in remote_players.keys():
+		var p = remote_players[t_id]
+		if is_instance_valid(p) and p.get("_ascension_y_offset") != null and p._ascension_y_offset != 0.0:
+			p._ascension_y_offset = 0.0
+	for enemy_id in active_ascensions.keys():
+		_ascension_clear_jump(enemy_id)
+
+
+# Aro de casteo cian sobre el enemigo mientras prepara el salto.
+# (v414.2: ELIMINADO - el usuario lo pidió fuera: círculo en el piso sin función previa al casteo.)
+# Círculo de aviso cian en el piso: marca el área donde aterrizará el enemigo.
+func _spawn_ascension_warn_3d(vp, tx: float, ty: float, radius: float, warn_s: float, s_factor: float, correction_z: float) -> Node3D:
+	var root = Node3D.new()
+	root.name = "AscWarn3D_" + str(tx) + "_" + str(ty)
+	var r3d = radius * s_factor
+	root.position = Vector3(tx * s_factor, 0.02, ty * s_factor * correction_z)
+	vp.add_child(root)
+
+	var ring = MeshInstance3D.new()
+	var rm = TorusMesh.new()
+	rm.inner_radius = r3d * 0.92
+	rm.outer_radius = r3d
+	ring.mesh = rm
+	var ring_mat = StandardMaterial3D.new()
+	ring_mat.albedo_color = Color(0.3, 0.75, 1.0, 0.9)
+	ring_mat.emission_enabled = true
+	ring_mat.emission = Color(0.3, 0.75, 1.0)
+	ring_mat.emission_energy_multiplier = 3.0
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring.material_override = ring_mat
+	ring.rotation.x = PI / 2
+	root.add_child(ring)
+
+	var fill = MeshInstance3D.new()
+	var fm = CylinderMesh.new()
+	fm.top_radius = r3d * 0.9
+	fm.bottom_radius = r3d * 0.9
+	fm.height = 0.01
+	fill.mesh = fm
+	var fill_mat = StandardMaterial3D.new()
+	fill_mat.albedo_color = Color(0.3, 0.7, 1.0, 0.15)
+	fill_mat.emission_enabled = true
+	fill_mat.emission = Color(0.3, 0.7, 1.0)
+	fill_mat.emission_energy_multiplier = 1.2
+	fill_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fill.material_override = fill_mat
+	root.add_child(fill)
+
+	# Pulso durante warnTime y auto-eliminación
+	var pulse = root.create_tween().set_loops()
+	pulse.tween_property(ring, "scale", Vector3(1.12, 1.12, 1.12), warn_s * 0.45).set_trans(Tween.TRANS_SINE)
+	pulse.tween_property(ring, "scale", Vector3.ONE, warn_s * 0.45).set_trans(Tween.TRANS_SINE)
+	var tw = root.create_tween()
+	tw.tween_interval(warn_s + 0.1)
+	tw.tween_callback(root.queue_free)
+	return root
+
+
+# Impacto de aterrizaje: onda expansiva cian + polvo.
+func _spawn_ascension_impact_3d(vp, tx: float, ty: float, radius: float, s_factor: float, correction_z: float):
+	var pos_3d = Vector3(tx * s_factor, 0.05, ty * s_factor * correction_z)
+	var r3d = max(0.1, radius * s_factor)
+
+	var flash = MeshInstance3D.new()
+	var flash_s = SphereMesh.new()
+	flash_s.radius = r3d * 0.35
+	flash_s.height = r3d * 0.7
+	flash.mesh = flash_s
+	var flash_mat = StandardMaterial3D.new()
+	flash_mat.albedo_color = Color(0.5, 0.85, 1.0, 0.9)
+	flash_mat.emission_enabled = true
+	flash_mat.emission = Color(0.5, 0.85, 1.0)
+	flash_mat.emission_energy_multiplier = 8.0
+	flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	flash.material_override = flash_mat
+	flash.position = pos_3d
+	vp.add_child(flash)
+	var flash_tw = flash.create_tween()
+	flash_tw.tween_property(flash, "scale", Vector3(r3d, r3d, r3d) * 3.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	flash_tw.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.35)
+	flash_tw.tween_callback(flash.queue_free)
+
+	var ring = MeshInstance3D.new()
+	var rm = TorusMesh.new()
+	rm.inner_radius = r3d * 0.85
+	rm.outer_radius = r3d
+	ring.mesh = rm
+	var ring_mat = StandardMaterial3D.new()
+	ring_mat.albedo_color = Color(0.5, 0.85, 1.0, 0.8)
+	ring_mat.emission_enabled = true
+	ring_mat.emission = Color(0.5, 0.85, 1.0)
+	ring_mat.emission_energy_multiplier = 3.0
+	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring.material_override = ring_mat
+	ring.rotation.x = PI / 2
+	ring.position = pos_3d
+	vp.add_child(ring)
+	var ring_tw = ring.create_tween()
+	ring_tw.tween_property(ring, "scale", Vector3(2.2, 2.2, 2.2), 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	ring_tw.parallel().tween_property(ring_mat, "albedo_color:a", 0.0, 0.5)
+	ring_tw.tween_callback(ring.queue_free)
 
 
 # v411: METEORITO - Gestión visual de la lluvia de meteoritos.

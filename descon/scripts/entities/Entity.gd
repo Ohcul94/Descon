@@ -165,6 +165,7 @@ var _burrow_y_offset: float = 0.0
 var _burrow_emerging: bool = false
 var _burrow_diving: bool = false
 var _burrow_lock_free_rotation: bool = false
+var _ascension_y_offset: float = 0.0 # v414: Offset vertical de Ascensión (vuela hacia el cielo)
 
 var debuffs: Dictionary = {} # { type: {"time_left": float, "total": float, "stacks": int} }
 var _is_currently_camouflaged: bool = false
@@ -933,7 +934,7 @@ func _update_3d_root_sync():
 			world_root_3d.position.y = 2.5
 		else:
 			world_root_3d.position.y = 1.0
-		world_root_3d.position.y += _burrow_y_offset
+		world_root_3d.position.y += _burrow_y_offset + _ascension_y_offset
 		
 		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)
 		if is_dead:

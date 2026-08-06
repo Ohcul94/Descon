@@ -1491,9 +1491,9 @@
             "lootDrops": [],
             "mechanics": [
                 {
-                    "bulletDamage": 100,
+                    "bulletDamage": 300,
                     "bulletSpeed": 1500,
-                    "fireRange": 600,
+                    "fireRange": 2000,
                     "fireRate": 3000,
                     "hookMissWaitMs": 1000,
                     "isHoming": 0,
@@ -1502,7 +1502,17 @@
                     "startDelay": 0,
                     "stunDuration": 2000,
                     "turnSpeed": 0,
-                    "type": "hook"
+                    "type": "ascension",
+                    "activationMode": "time",
+                    "activationIntervalMs": 30000,
+                    "cooldown": 6000,
+                    "castTimeMs": 2000,
+                    "targetCount": 1,
+                    "targetMode": "random",
+                    "radius": 300,
+                    "airTimeMs": 2000,
+                    "warnDelayMs": 1000,
+                    "warnTimeMs": 2000
                 }
             ],
             "movementPhases": [
@@ -4108,27 +4118,7 @@
             "aggressive": true,
             "bulletDamage": 1120,
             "bulletSpeed": 880,
-            "defenseMechanics": [
-                {
-                    "type": "life_steal",
-                    "reductionPercentage": 10,
-                    "shieldRegen": 5,
-                    "duration": 5000,
-                    "cooldown": 6000,
-                    "startDelay": 0,
-                    "activationMode": "time",
-                    "activationIntervalMs": 5000,
-                    "fireRange": 700,
-                    "bulletSpeed": 700,
-                    "stealMode": "flat",
-                    "stealAmount": 100,
-                    "stealIntervalMs": 1000,
-                    "targetMode": "proximity",
-                    "giveToEnemy": true,
-                    "bulletDamage": 10,
-                    "isPointAndClick": 0
-                }
-            ],
+            "defenseMechanics": [],
             "fireRange": 1050,
             "fireRate": 950,
             "hp": 1000,
@@ -4221,11 +4211,20 @@
             ],
             "movementPhases": [
                 {
-                    "speed": 310,
-                    "startDelay": 0,
+                    "type": "aura_speed",
+                    "speed": 200,
                     "stopDist": 150,
-                    "type": "charger",
-                    "chargeCooldown": 4000
+                    "startDelay": 2000,
+                    "orbitRadius": 150,
+                    "activationHP": 150,
+                    "explosionDamage": 150,
+                    "duration": 5000,
+                    "explodeOnDeath": 150,
+                    "radius": 200,
+                    "speedBonus": 50,
+                    "cooldown": 10000,
+                    "affectsEnemies": false,
+                    "affectsBosses": false
                 }
             ],
             "name": "Enemigo 9 C",
@@ -5495,7 +5494,7 @@
                     "intervalMs": 5000,
                     "radius": 0,
                     "spawnMode": "fixed",
-                    "type": "9-C",
+                    "type": "9",
                     "x": 1935,
                     "y": 1606
                 }
@@ -6400,6 +6399,27 @@
                 "bulletSpeed",
                 "isPointAndClick",
                 "turnSpeed"
+            ]
+        },
+        "ascension": {
+            "label": "Ascensión Telúrica (Ascension)",
+            "icon": "🎈",
+            "desc": "Inversa de la Zambullida: el objetivo vuela hacia el cielo tras un casteo, el área de caída se marca en el piso y al aterrizar recibe daño en el área.",
+            "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
+                "cooldown",
+                "startDelay",
+                "castTimeMs",
+                "targetCount",
+                "targetMode",
+                "fireRange",
+                "radius",
+                "bulletDamage",
+                "airTimeMs",
+                "warnDelayMs",
+                "warnTimeMs"
             ]
         }
     },

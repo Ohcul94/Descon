@@ -792,12 +792,12 @@ function updateMechanicType(enemyId, idx, newType) {
     const lib = (config.mechanicsLib && config.mechanicsLib[newType]) ? config.mechanicsLib[newType] : DEFAULT_MECHANICS_LIB[newType];
     lib.fields.forEach(f => {
         if (mech[f] === undefined) {
-            if (f === 'radius') mech[f] = 250;
+            if (f === 'radius') mech[f] = newType === 'ascension' ? 250 : 250;
             else if (f === 'damage') mech[f] = newType === 'spin_ring' ? 100 : (newType === 'circle_cast' ? 500 : 15);
             else if (f === 'intervalMs') mech[f] = 1000;
             else if (f === 'duration') mech[f] = 5000;
             else if (f === 'cooldown') mech[f] = newType === 'summoning' ? 30000 : (newType === 'spin_ring' ? 4000 : (newType === 'circle_cast' ? 5000 : 10000));
-            else if (f === 'bulletDamage') mech[f] = 10;
+            else if (f === 'bulletDamage') mech[f] = newType === 'ascension' ? 150 : 10;
             else if (f === 'bulletSpeed') mech[f] = 800;
             else if (f === 'fireRange') mech[f] = newType === 'circle_cast' ? 300 : 600;
             else if (f === 'fireRate') mech[f] = 1000;
@@ -840,7 +840,7 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'zoneDuration') mech[f] = 4000;
             else if (f === 'zoneTickMs') mech[f] = 500;
             else if (f === 'zoneDamage') mech[f] = 25;
-            else if (f === 'warnTimeMs') mech[f] = 1200;
+            else if (f === 'warnTimeMs') mech[f] = newType === 'ascension' ? 2200 : 1200;
             else if (f === 'undergroundMs') mech[f] = 2500;
             else if (f === 'targetMode') mech[f] = newType === 'burrow' ? 'proximity' : 'proximity';
             else if (f === 'bulletCount') mech[f] = newType === 'polymorph' ? 5 : 1;
@@ -861,6 +861,8 @@ function updateMechanicType(enemyId, idx, newType) {
              else if (f === 'targetCount') mech[f] = newType === 'execution' ? 3 : 1;
              else if (f === 'castTimeMs') mech[f] = newType === 'execution' ? 1500 : (newType === 'circle_cast' ? 2000 : 2000);
              else if (f === 'turnSpeed') mech[f] = newType === 'execution' ? 1.9 : 1.2;
+             else if (f === 'airTimeMs') mech[f] = newType === 'ascension' ? 2000 : 2000;
+             else if (f === 'warnDelayMs') mech[f] = newType === 'ascension' ? 0 : 600;
              else if (f === 'slowAmount') mech[f] = 30;
              else if (f === 'stunDuration') mech[f] = 1500;
              else mech[f] = 0;
