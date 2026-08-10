@@ -857,6 +857,11 @@ func _on_graphics_quality_changed(idx: int):
 		SettingsManager.save_settings()
 		print("[SETTINGS] Calidad gráfica cambiada a: ", idx)
 		
+		# Forzar actualización de luces y viewport del mapa activo
+		var map_node = get_tree().get_first_node_in_group("map")
+		if map_node and map_node.has_method("update_graphics_quality"):
+			map_node.update_graphics_quality()
+		
 		# Forzar actualización en vivo de las naves y enemigos existentes
 		for ent in get_tree().get_nodes_in_group("entities"):
 			if ent.has_method("_setup_3d_visuals"):

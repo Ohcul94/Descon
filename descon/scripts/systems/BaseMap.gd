@@ -469,12 +469,21 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 
-	env.glow_enabled = true
-	env.glow_intensity = 0.6
-	env.glow_strength = 1.2
-	env.glow_bloom = 0.15
-	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
-	env.glow_hdr_threshold = 1.2
+	# Obtener calidad gráfica actual
+	var quality = 1 # Por defecto Media
+	if get_node_or_null("/root/SettingsManager"):
+		quality = SettingsManager.get_graphics_quality()
+
+	# Configuración de GLOW (Efecto de brillo) según calidad
+	if quality == 0:
+		env.glow_enabled = false
+	else:
+		env.glow_enabled = true
+		env.glow_intensity = 0.6
+		env.glow_strength = 1.2
+		env.glow_bloom = 0.15
+		env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
+		env.glow_hdr_threshold = 1.2
 
 	env.adjustment_enabled = true
 	env.adjustment_contrast = 1.1
@@ -487,16 +496,43 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 	var current_renderer = ""
 	if ProjectSettings.has_setting("rendering/renderer/rendering_method"):
 		current_renderer = ProjectSettings.get_setting("rendering/renderer/rendering_method")
-		
+
+	# Configuración de Render Scale y Calidad 3D en el Viewport
+	# Para dispositivos de gama baja (calidad = 0), bajamos la resolución de renderizado 3D al 30% (muy liviano, se ve pixelado pero corre fluido)
+	# Para calidad media, al 60%. Para calidad alta, al 100%.
+	# Nota: Esto no afecta las letras/HUD/UI, que siguen viéndose perfectamente nítidos y legibles.
+	var render_scale = 0.30 # Calidad Baja: 30% de resolución (muy liviano)
+	var scale_mode = Viewport.SCALING_3D_MODE_BILINEAR
+	var msaa_mode = Viewport.MSAA_DISABLED
+	var screen_aa = Viewport.SCREEN_SPACE_AA_DISABLED
+	var lod_threshold = 8.0 # Simplifica enormemente los polígonos de los modelos 3D lejanos
+
+	if quality == 1:
+		render_scale = 0.60 # Calidad Media: 60% de resolución
+		scale_mode = Viewport.SCALING_3D_MODE_FSR if current_renderer == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
+		msaa_mode = Viewport.MSAA_DISABLED
+		screen_aa = Viewport.SCREEN_SPACE_AA_FXAA if current_renderer != "gl_compatibility" else Viewport.SCREEN_SPACE_AA_DISABLED
+		lod_threshold = 2.0
+	elif quality == 2:
+		render_scale = 1.0 # Calidad Alta: 100% nativa
+		scale_mode = Viewport.SCALING_3D_MODE_FSR if current_renderer == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
+		msaa_mode = Viewport.MSAA_2X
+		screen_aa = Viewport.SCREEN_SPACE_AA_FXAA if current_renderer != "gl_compatibility" else Viewport.SCREEN_SPACE_AA_DISABLED
+		lod_threshold = 1.0
+
+	sub_vp.scaling_3d_scale = render_scale
+	sub_vp.scaling_3d_mode = scale_mode
+	sub_vp.msaa_3d = msaa_mode
+	sub_vp.screen_space_aa = screen_aa
+	sub_vp.mesh_lod_threshold = lod_threshold
+
 	# SSAO y SSIL no están soportados en el renderizador gl_compatibility
 	if current_renderer != "gl_compatibility":
-		if get_node_or_null("/root/SettingsManager"):
-			var quality = SettingsManager.get_graphics_quality()
-			if quality == 1: # Media
-				ssao_active = true
-			elif quality == 2: # Alta
-				ssao_active = true
-				ssil_active = true
+		if quality == 1: # Media
+			ssao_active = true
+		elif quality == 2: # Alta
+			ssao_active = true
+			ssil_active = true
 			
 	env.ssao_enabled = ssao_active
 	if ssao_active:
@@ -528,10 +564,8 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 	
 	# Sombras nativas 3D profesionales según la calidad gráfica del juego
 	var native_shadows = true
-	if get_node_or_null("/root/SettingsManager"):
-		var quality = SettingsManager.get_graphics_quality()
-		if quality == 0: 
-			native_shadows = false
+	if quality == 0: 
+		native_shadows = false
 			
 	main_light.shadow_enabled = native_shadows
 	if native_shadows:
@@ -551,6 +585,10 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 	var zenith = sub_vp.get_node_or_null("DirectionalLight3D_Zenith")
 	if is_instance_valid(zenith):
 		zenith.queue_free()
+
+func update_graphics_quality():
+	if is_instance_valid(sub_viewport):
+		_apply_ambient_and_zenith_lights(sub_viewport)
 
 func _apply_camera_headlight(cam: Camera3D):
 	if not is_instance_valid(cam):

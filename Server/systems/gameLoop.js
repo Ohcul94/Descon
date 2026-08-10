@@ -602,18 +602,23 @@ function startGameLoop(io, state, aiManager) {
                 changed = true;
             }
 
-            io.to(p.socketId).emit('statusEffectsSync', {
-                slow: activeSlow,
-                stun: activeStun,
-                heal: activeHeal,
-                healStacks: p.healStacks || 0,
-                bleed: activeBleed,
-                poison: activePoison,
-                poly: activePoly,
-                // v410.1: Incluir flags de polymorfia para que el cliente siempre tenga el estado correcto
-                polyCanUseSkills: activePoly > 0 ? (p.polyCanUseSkills !== undefined ? p.polyCanUseSkills : true) : true,
-                polyCanMove: activePoly > 0 ? (p.polyCanMove !== undefined ? p.polyCanMove : true) : true
-            });
+            // v2.5: Delta Compression — Solo emitir statusEffectsSync si algún estado cambió
+            // Evita enviar 75+ paquetes/segundo de ceros cuando los jugadores no tienen debuffs activos
+            const newStatusSnapshot = `${activeSlow}|${activeStun}|${activeHeal}|${p.healStacks||0}|${activeBleed}|${activePoison}|${activePoly}`;
+            if (newStatusSnapshot !== p._lastStatusSnapshot) {
+                p._lastStatusSnapshot = newStatusSnapshot;
+                io.to(p.socketId).emit('statusEffectsSync', {
+                    slow: activeSlow,
+                    stun: activeStun,
+                    heal: activeHeal,
+                    healStacks: p.healStacks || 0,
+                    bleed: activeBleed,
+                    poison: activePoison,
+                    poly: activePoly,
+                    polyCanUseSkills: activePoly > 0 ? (p.polyCanUseSkills !== undefined ? p.polyCanUseSkills : true) : true,
+                    polyCanMove: activePoly > 0 ? (p.polyCanMove !== undefined ? p.polyCanMove : true) : true
+                });
+            }
 
             // Sync obligatorio solo si hubo cambios por ambiente o regen o sueño
             if (changed) {
