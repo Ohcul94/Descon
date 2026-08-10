@@ -1,60 +1,85 @@
 /**
- * STRESS TEST LITE: Test de Carga sin saturar la CPU local
- * Optimizado para interactuar en vivo
+ * STRESS TEST LITE: Test de Carga con 100 Bots Distribuidos
+ * Optimizado para simular movimiento, cambio de mapa y disparos avanzados (simulando habilidades)
  */
 const { io } = require("socket.io-client");
 
-const SERVER_URL = "http://localhost:3333"; 
-const CLIENT_COUNT = 25; // Cantidad equilibrada para pruebas locales
+const SERVER_URL = "http://138.2.241.76:3333";
+const CLIENT_COUNT = 100; // Simulación para 100 naves concurrentes
 const clients = [];
 
-console.log(`\n[STRESS-LITE] Iniciando simulación ligera de ${CLIENT_COUNT} naves...`);
+console.log(`\n[STRESS-LITE] Iniciando simulación de ${CLIENT_COUNT} naves distribuidas...`);
 
 async function createClient(index) {
-    // v262.80: Conexión pasiva (No procesa eventos de entrada para ahorrar CPU)
-    const socket = io(SERVER_URL, { 
-        transports: ['websocket'], 
+    const socket = io(SERVER_URL, {
+        transports: ['websocket'],
         forceNew: true,
         autoConnect: true
     });
-    
-    // IMPORTANTE: No registramos 'onAny' ni escuchamos eventos de otros jugadores
-    // para que este proceso no consuma CPU procesando la red.
 
     const username = `TestBot_${index}`;
+    // Asignar zona del 2 al 6
+    const targetZone = (index % 5) + 2;
+
+    // Coordenadas iniciales amplias dentro del mapa (tamaño 4000x4000)
     let posX = Math.random() * 3000 + 500;
     let posY = Math.random() * 3000 + 500;
     let rotation = Math.random() * Math.PI * 2;
+    let speed = Math.random() * 3 + 2; // Velocidad de movimiento variable
 
     socket.on("connect", () => {
         socket.emit("register", { user: username, password: "123" });
     });
 
     socket.on("authError", (err) => {
-        if (err.includes("ya existe")) socket.emit("login", { user: username, password: "123" });
+        if (err.includes("ya existe")) {
+            socket.emit("login", { user: username, password: "123" });
+        }
     });
 
     socket.on("loginSuccess", () => {
-        // Enviar movimiento cada 200ms (5 FPS de red)
+        // Teletransportarse al mapa destino (Zonas 2 a 6) para salir del Lobby
+        setTimeout(() => {
+            socket.emit("changeZone", targetZone);
+        }, 500);
+
+        // Bucle de movimiento a 5 FPS (cada 200ms)
         setInterval(() => {
-            rotation += 0.05;
-            posX += Math.cos(rotation) * 5;
-            posY += Math.sin(rotation) * 5;
+            // Cambiar suavemente de dirección
+            rotation += (Math.random() - 0.5) * 0.5;
+            posX += Math.cos(rotation) * speed * 2;
+            posY += Math.sin(rotation) * speed * 2;
+
+            // Rebotar contra los bordes del mapa (4000 x 4000)
+            if (posX < 200 || posX > 3800) rotation = Math.PI - rotation;
+            if (posY < 200 || posY > 3800) rotation = -rotation;
 
             socket.emit("playerMovement", {
-                x: posX, y: posY, rotation: rotation, zone: 1,
-                hp: 2000, sh: 1000, currentShipId: (index % 4) + 1
+                x: posX,
+                y: posY,
+                rotation: rotation,
+                zone: targetZone,
+                hp: 2000,
+                sh: 1000,
+                currentShipId: (index % 4) + 1
             });
         }, 200);
 
-        // Disparos ocasionales cada 5 segundos
+        // Disparos ocasionales (simulan combate y habilidades de curación/sifón)
         setInterval(() => {
+            const fireTypes = ["laser", "siphon", "heal", "emp"];
+            const selectedType = fireTypes[index % fireTypes.length];
+
             socket.emit("playerFire", {
-                type: "laser", ammoType: 0,
-                x: posX, y: posY, angle: rotation, rotation: rotation,
+                type: selectedType,
+                ammoType: index % 2, // Tier 0 o Tier 1
+                x: posX,
+                y: posY,
+                angle: rotation,
+                rotation: rotation,
                 bulletId: Date.now() + index
             });
-        }, 5000);
+        }, 3000);
     });
 
     return socket;
@@ -63,9 +88,10 @@ async function createClient(index) {
 async function start() {
     for (let i = 1; i <= CLIENT_COUNT; i++) {
         clients.push(await createClient(i));
-        await new Promise(r => setTimeout(r, 150));
+        // Intervalo de conexión secuencial corto para no saturar al instante
+        await new Promise(r => setTimeout(r, 100));
     }
-    console.log(`\n[!] TEST LITE ACTIVO: ${CLIENT_COUNT} bots en segundo plano.`);
+    console.log(`\n[!] TEST DE ESTRES ACTIVO: ${CLIENT_COUNT} bots distribuidos en Zonas 2-6.`);
     console.log("[!] Presioná CTRL+C para terminar.");
 }
 
