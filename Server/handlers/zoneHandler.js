@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const Logger = require('../utils/logger');
 const { onZoneChanged } = require('../systems/questHandlers');
 const { applyZoneRules } = require('../systems/deathDropHelper');
@@ -235,7 +236,7 @@ function registerZoneHandlers(socket, io, state) {
         }
 
         try {
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             // Leer configuración de mapas (si existe)

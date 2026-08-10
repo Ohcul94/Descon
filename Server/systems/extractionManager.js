@@ -5,6 +5,7 @@
  */
 
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const Logger = require('../utils/logger');
 const { calculateFinalStats } = require('./statCalculator');
 const { awardBattlePassExpServer } = require('./battlePassHandlers');
@@ -525,7 +526,7 @@ class ExtractionManager {
             const bpXpSources = this.state.SERVER_CONFIG?.battlePassConfig?.xpSources;
             let bpUpdate = null;
             if (bpXpSources && bpXpSources.extractionExp) {
-                const user = await User.findById(p.id);
+                const user = getPlayerRAMAdapter(p);
                 if (user) {
                     const bpResult = await awardBattlePassExpServer(user, bpXpSources.extractionExp, this.state);
                     bpUpdate = user.gameData.battlePass;

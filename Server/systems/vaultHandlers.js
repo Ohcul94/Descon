@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 
 function parsePrice(priceConfig) {
     if (priceConfig && typeof priceConfig === 'object') {
@@ -16,11 +17,11 @@ function registerVaultHandlers(socket, io, state) {
     socket.on('getVaultData', async () => {
         if (!socket.dbUser) return;
         try {
-            const user = await User.findById(socket.dbUser._id);
-            if (!user) return;
-
             const p = state.players[socket.id];
             if (!p) return;
+
+            const user = getPlayerRAMAdapter(p);
+            if (!user) return;
 
             // Seguridad: El baúl solo está accesible físicamente en el Lobby (Zona 1)
             if (p.zone !== 1) {
@@ -58,11 +59,11 @@ function registerVaultHandlers(socket, io, state) {
             const targetTab = parseInt(tab);
             if (isNaN(targetTab) || targetTab < 0) return;
 
-            const user = await User.findById(socket.dbUser._id);
-            if (!user) return;
-
             const p = state.players[socket.id];
             if (!p) return;
+
+            const user = getPlayerRAMAdapter(p);
+            if (!user) return;
 
             if (p.zone !== 1) {
                 return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: El baúl solo está disponible en el Lobby.', type: 'error' });
@@ -134,11 +135,11 @@ function registerVaultHandlers(socket, io, state) {
         socket.isProcessingVaultTransaction = true;
         try {
             const { instanceId } = data;
-            const user = await User.findById(socket.dbUser._id);
-            if (!user) return;
-
             const p = state.players[socket.id];
             if (!p) return;
+
+            const user = getPlayerRAMAdapter(p);
+            if (!user) return;
 
             if (p.zone !== 1) {
                 return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: El baúl solo está disponible en el Lobby.', type: 'error' });
@@ -201,11 +202,11 @@ function registerVaultHandlers(socket, io, state) {
         if (socket.isProcessingVaultTransaction) return;
         socket.isProcessingVaultTransaction = true;
         try {
-            const user = await User.findById(socket.dbUser._id);
-            if (!user) return;
-
             const p = state.players[socket.id];
             if (!p) return;
+
+            const user = getPlayerRAMAdapter(p);
+            if (!user) return;
 
             if (p.zone !== 1) {
                 return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: El baúl solo está disponible en el Lobby.', type: 'error' });
@@ -278,11 +279,11 @@ function registerVaultHandlers(socket, io, state) {
         if (socket.isProcessingVaultTransaction) return;
         socket.isProcessingVaultTransaction = true;
         try {
-            const user = await User.findById(socket.dbUser._id);
-            if (!user) return;
- 
             const p = state.players[socket.id];
             if (!p) return;
+
+            const user = getPlayerRAMAdapter(p);
+            if (!user) return;
  
             if (p.zone !== 1) {
                 return socket.emit('gameNotification', { msg: 'ACCESO RESTRINGIDO: Solo puedes desbloquear slots en el Lobby.', type: 'error' });

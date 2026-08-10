@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const { calculateFinalStats } = require('./statCalculator'); // v266.135: Recalcular al equipar
 
 /**
@@ -156,7 +157,7 @@ function registerInventoryHandlers(socket, io, state) {
     socket.on('getShipEquip', async (shipId) => {
         if (!socket.dbUser) return;
         try {
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(state.players[socket.id]);
             if (!user) return;
 
             const targetId = parseInt(shipId);
@@ -185,7 +186,7 @@ function registerInventoryHandlers(socket, io, state) {
         if (!socket.dbUser) return;
         try {
             const { category, itemId, currency, amount } = data;
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(state.players[socket.id]);
             if (!user) return;
 
             const p = state.players[socket.id];
@@ -379,9 +380,8 @@ function registerInventoryHandlers(socket, io, state) {
             p.isProcessingInventory = true;
             const data = (typeof raw_data === 'object' && raw_data.instanceId) ? raw_data : raw_data;
             const instanceId = data.instanceId;
-            const shipId = (typeof data.shipId === 'object') ? (data.shipId.id || data.shipId.shipId) : data.shipId;
-
-            const user = await User.findById(socket.dbUser._id);
+            const shipId = (typeof data.shipId === 'object') ? (data.shipId.id || data.shipId.shipId) : data.shipId;            const user = getPlayerRAMAdapter(p);
+            if (!user) return;
             const idx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
             if (idx === -1) {
                 sendInventoryData(socket, user);
@@ -470,8 +470,7 @@ function registerInventoryHandlers(socket, io, state) {
             if (typeof raw_shipId === 'object' && raw_shipId !== null) {
                 shipId = raw_shipId.shipId || raw_shipId.id || 1;
             }
-            
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
             const targetId = parseInt(shipId);
             if (!user || !user.gameData.ownedShips.includes(targetId)) return;
 
@@ -554,7 +553,8 @@ function registerInventoryHandlers(socket, io, state) {
 
         try {
             p.isProcessingInventory = true;
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
+            if (!user) return;
             const targetId = data.shipId ? parseInt(data.shipId) : user.gameData.currentShipId;
             const shipKey = targetId.toString();
             // v308.1: Clonamos shipEquip para evitar mutación directa de Mongoose y asegurar nueva referencia
@@ -621,7 +621,7 @@ function registerInventoryHandlers(socket, io, state) {
         try {
             p.isProcessingInventory = true;
             const { instanceId, quantity } = data;
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const idx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
@@ -682,7 +682,7 @@ function registerInventoryHandlers(socket, io, state) {
             const qtyToSplit = parseInt(quantity) || 1;
             if (qtyToSplit <= 0) return;
 
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const idx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
@@ -743,7 +743,7 @@ function registerInventoryHandlers(socket, io, state) {
             const { sphereId, skill } = data;
             if (sphereId < 0 || sphereId > 3) return;
 
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             if (!user.gameData.spheres) user.gameData.spheres = [];
@@ -780,7 +780,7 @@ function registerInventoryHandlers(socket, io, state) {
 
         try {
             const { sphereId } = data;
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
             if (!user || !user.gameData.spheres || !user.gameData.spheres[sphereId]) return;
 
             user.gameData.spheres[sphereId].equipped = null;
@@ -819,7 +819,7 @@ function registerInventoryHandlers(socket, io, state) {
                 return socket.emit('gameNotification', { msg: 'Error: Receta no encontrada.', type: 'error' });
             }
 
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const hubsCost = recipe.costHubs || 0;

@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const { sendInventoryData } = require('./inventoryHandlers');
 const { calculateFinalStats } = require('./statCalculator');
 
@@ -21,7 +22,7 @@ async function checkAndProcessDeathDrop(p, io, state) {
         p.isDeadDropProcessed = true; // Evitar procesamiento duplicado
 
         try {
-            const user = await User.findById(p.dbId || p.id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const droppedItems = [];

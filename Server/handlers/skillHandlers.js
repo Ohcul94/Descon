@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const Logger = require('../utils/logger');
 
 function registerSkillHandlers(socket, io, state) {
@@ -21,7 +22,7 @@ function registerSkillHandlers(socket, io, state) {
         }
 
         try {
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(players[socket.id]);
             if (!user) return;
             
             let pts = user.gameData.skillPoints || 0;
@@ -72,7 +73,7 @@ function registerSkillHandlers(socket, io, state) {
     socket.on('resetSkills', async () => {
         if (!socket.dbUser || !players[socket.id]) return;
         try {
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(players[socket.id]);
             if (!user) return;
             
             const RESET_COST = 5000;

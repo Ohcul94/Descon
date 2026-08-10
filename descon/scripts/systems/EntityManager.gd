@@ -2016,21 +2016,14 @@ func _handle_ascension_action(data: Dictionary):
 		_ascension_clear_jump(enemy_id)
 
 		if is_instance_valid(enemy_node):
-			var start = Vector2(sx, sy)
-			var end = Vector2(ex, ey)
-			enemy_node.global_position = start
-			enemy_node.target_position = end
-			var dist = start.distance_to(end)
-			# El enemigo se eleva hacia el cielo y se desplaza rápido al inicio,
-			# quedándose planeando sobre el área marcada el resto del CD aéreo.
-			var rise_s = max(0.15, min(air_s * 0.35, 0.7))
+			# La posición horizontal la conduce la sync del servidor (el enemigo vuela al
+			# destino por su cuenta); aquí solo se anima la elevación vertical del asset.
+			var dist = Vector2(sx, sy).distance_to(Vector2(ex, ey))
 			var peak_h = clampf(6.0 + dist * 0.008, 6.0, 10.0)
-			var tw_pos = enemy_node.create_tween()
-			tw_pos.tween_property(enemy_node, "global_position", end, rise_s).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 			var tw_offs = enemy_node.create_tween()
 			tw_offs.tween_property(enemy_node, "_ascension_y_offset", peak_h, 0.3).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 			# La caída la dispara ascension_impact; aquí solo se queda en el aire
-			active_ascensions[enemy_id] = {"node": enemy_node, "tw_pos": tw_pos, "tw_offs": tw_offs, "warn_timer": null}
+			active_ascensions[enemy_id] = {"node": enemy_node, "tw_pos": null, "tw_offs": tw_offs, "warn_timer": null}
 
 		# Cuando termina de targetear se marca el área de caída en el piso (warnDelayMs=0 por defecto).
 		# El círculo queda marcado (pulsando) al menos hasta el impacto.

@@ -519,20 +519,31 @@ module.exports = class BaseAI {
         }
         
         // v266.999: Rotación de Cuerpo - Mirar SIEMPRE al objetivo (v266.999) (Ignorar si está canalizando, disparando o en retraso de re-apuntado)
-        const hasCastingMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging || m.isLocked || m.isFiring || (m.aimReadyTime && now < m.aimReadyTime));
+        // v414.5: Durante el casteo de Ascensión Telúrica el enemigo NO se congela: el
+        // giro normal lo mantiene apuntando al jugador activo (la mecánica no escribe
+        // rotación propia, nunca hace snap hacia un target de cast estático).
+        const hasCastingMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => !m.ascensionCast && (m.isCharging || m.isLocked || m.isFiring || (m.aimReadyTime && now < m.aimReadyTime)));
         if (!hasCastingMech) {
-            if (this.enemy.rotation === undefined) this.enemy.rotation = targetAngle;
+            const desiredRotation = targetAngle + Math.PI / 2;
+            if (this.enemy.rotation === undefined) this.enemy.rotation = desiredRotation;
             const turnSpeed = 5.0; // Velocidad de giro del cuerpo
             const delta = 0.1; 
-            let diff = targetAngle - this.enemy.rotation;
-            while (diff < -Math.PI) diff += Math.PI * 2;
-            while (diff > Math.PI) diff -= Math.PI * 2;
-            
-            const step = turnSpeed * delta;
-            if (Math.abs(diff) < step) {
-                this.enemy.rotation = targetAngle;
-            } else {
-                this.enemy.rotation += Math.sign(diff) * step;
+            let diff = desiredRotation - this.enemy.rotation;
+            // v414.5: Durante el vuelo de Ascensión Telúrica el enemigo planea ARRIBA del
+            // target (distancia 2D casi nula): atan2 es degenerado ahí y haría girar el
+            // asset sin control para cualquier lado. Mantener la rotación fija si está a
+            // menos de 40px del objetivo; si el jugador huye, sí lo persigue con la mirada.
+            const isAscendingNow = this.enemy._ascendingUntil && now < this.enemy._ascendingUntil;
+            if (!(isAscendingNow && dist < 40)) {
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                
+                const step = turnSpeed * delta;
+                if (Math.abs(diff) < step) {
+                    this.enemy.rotation = desiredRotation;
+                } else {
+                    this.enemy.rotation += Math.sign(diff) * step;
+                }
             }
         }
 
@@ -3022,9 +3033,13 @@ module.exports = class BaseAI {
 
         // 2) Si está casteando: al terminar el casteo, el enemigo salta (empezar el vuelo)
         if (state.casting) {
+            // v414.5: Durante el casteo NO se escribe ninguna rotación aquí. La rotación
+            // normal del AI (bloque de cuerpo, excluido del congelado vía ascensionCast)
+            // mantiene apuntando al jugador activo: solo sigue al objetivo, jamás hace snap.
             if (now >= state.castEndTime) {
                 state.casting = false;
                 state.isCharging = false;
+                state.ascensionCast = false;
                 state.castTargets.forEach(t => {
                     const jumpId = Date.now() + "_" + Math.floor(Math.random() * 1000);
                     // v414.3: El enemigo cae cuando se cumple el CD aéreo (airTimeMs) desde el salto.
@@ -3099,6 +3114,7 @@ module.exports = class BaseAI {
             if (targets.length > 0) {
                 state.casting = true;
                 state.isCharging = true;
+                state.ascensionCast = true;
                 state.castEndTime = now + castTimeMs;
                 state.castTargets = targets;
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {

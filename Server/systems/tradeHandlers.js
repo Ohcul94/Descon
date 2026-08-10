@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const { getCategorizedInventory, checkCombatLock } = require('./inventoryHandlers');
 
 /**
@@ -161,10 +162,9 @@ async function executeTrade(tradeId, io, state) {
     trade.locked = true;
 
     try {
-        const user1 = await User.findById(state.players[trade.p1].id);
-        const user2 = await User.findById(state.players[trade.p2].id);
-
-        if (!user1 || !user2) throw new Error("USUARIO NO ENCONTRADO");
+        const user1 = getPlayerRAMAdapter(state.players[trade.p1]);
+        const user2 = getPlayerRAMAdapter(state.players[trade.p2]);
+        if (!user1 || !user2) throw new Error("USUARIO NO ENCONTRADO EN MEMORIA");
 
         // VALIDACIÓN DE SEGURIDAD EXHAUSTIVA
         const validateItems = (user, itemInstances) => {

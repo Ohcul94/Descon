@@ -3,6 +3,7 @@
  * Sistema de misiones autoritativo del lado del servidor.
  */
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const Logger = require('../utils/logger');
 const { awardBattlePassExpServer } = require('./battlePassHandlers');
 const fs = require('fs-extra');
@@ -74,7 +75,7 @@ function registerQuestHandlers(socket, io, state) {
             const p = state.players[socket.id];
             if (!p) return;
 
-            const user = await User.findById(p.id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             let modified = checkQuestResets(state, user);
@@ -104,7 +105,7 @@ function registerQuestHandlers(socket, io, state) {
                 return socket.emit('gameNotification', { msg: 'Solo puedes aceptar misiones en el Lobby / Hangar.', type: 'error' });
             }
 
-            const user = await User.findById(p.id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const questsConfig = state.SERVER_CONFIG?.questsConfig || [];
@@ -172,7 +173,7 @@ function registerQuestHandlers(socket, io, state) {
             const p = state.players[socket.id];
             if (!p) return;
 
-            const user = await User.findById(p.id);
+            const user = getPlayerRAMAdapter(p);
             if (!user || !user.gameData.quests) return;
 
             const activeIndex = user.gameData.quests.active.findIndex(q => String(q.id) === questId);
@@ -204,7 +205,7 @@ function registerQuestHandlers(socket, io, state) {
             const p = state.players[socket.id];
             if (!p) return;
 
-            const user = await User.findById(p.id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             if (!user.gameData.quests) return;
@@ -383,7 +384,7 @@ async function onEnemyKilled(socketId, enemyType, state, io) {
         const p = state.players[socketId];
         if (!p) return;
 
-        const user = await User.findById(p.id);
+        const user = getPlayerRAMAdapter(p);
         if (!user || !user.gameData.quests) return;
 
         const activeQuests = user.gameData.quests.active || [];
@@ -431,7 +432,7 @@ async function onZoneChanged(socketId, zoneId, state, io) {
         const p = state.players[socketId];
         if (!p) return;
 
-        const user = await User.findById(p.id);
+        const user = getPlayerRAMAdapter(p);
         if (!user || !user.gameData.quests) return;
 
         const activeQuests = user.gameData.quests.active || [];

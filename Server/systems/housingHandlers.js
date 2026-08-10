@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const Logger = require('../utils/logger');
 
 function registerHousingHandlers(socket, io, state) {
@@ -19,7 +20,9 @@ function registerHousingHandlers(socket, io, state) {
     socket.on('buyHousing', async () => {
         if (!socket.dbUser) return;
         try {
-            const user = await User.findById(socket.dbUser._id);
+            const p = players[socket.id];
+            if (!p) return;
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             if (user.gameData.housing?.unlocked) {
@@ -54,7 +57,6 @@ function registerHousingHandlers(socket, io, state) {
             socket.dbUser = user;
 
             // Sincronizar en RAM y emitir inventario actualizado
-            const p = players[socket.id];
             if (p) {
                 p[currencyKey] = user.gameData[currencyKey];
             }
@@ -82,7 +84,9 @@ function registerHousingHandlers(socket, io, state) {
     socket.on('getHousingState', async () => {
         if (!socket.dbUser) return;
         try {
-            const user = await User.findById(socket.dbUser._id);
+            const p = players[socket.id];
+            if (!p) return;
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             if (!user.gameData.housing) {
@@ -104,7 +108,9 @@ function registerHousingHandlers(socket, io, state) {
             const cellZ = parseInt(z);
             const rot = parseInt(rotation) || 0;
 
-            const user = await User.findById(socket.dbUser._id);
+            const p = players[socket.id];
+            if (!p) return;
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             if (!user.gameData.housing?.unlocked) {
@@ -210,7 +216,6 @@ function registerHousingHandlers(socket, io, state) {
             socket.dbUser = user;
 
             // Sincronizar RAM y emitir inventario actualizado
-            const p = players[socket.id];
             if (p) {
                 p[currencyKey] = user.gameData[currencyKey];
             }
@@ -240,7 +245,9 @@ function registerHousingHandlers(socket, io, state) {
         try {
             const { id } = data; // id del objeto colocado
 
-            const user = await User.findById(socket.dbUser._id);
+            const p = players[socket.id];
+            if (!p) return;
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const placedList = user.gameData.housing?.placedObjects || [];
@@ -261,7 +268,6 @@ function registerHousingHandlers(socket, io, state) {
                 user.gameData[currencyKey] += refund;
                 user.markModified(`gameData.${currencyKey}`);
                 
-                const p = players[socket.id];
                 if (p) {
                     p[currencyKey] = user.gameData[currencyKey];
                 }
@@ -302,7 +308,9 @@ function registerHousingHandlers(socket, io, state) {
             const cellZ = parseInt(z);
             const rot = parseInt(rotation) || 0;
 
-            const user = await User.findById(socket.dbUser._id);
+            const p = players[socket.id];
+            if (!p) return;
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const config = getHousingConfig();

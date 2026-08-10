@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 
 /**
  * lootManager.js
@@ -204,7 +205,7 @@ function registerLootHandlers(socket, io, state) {
             }
 
 
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
  
             let claimedCount = 0;
@@ -287,7 +288,7 @@ function registerLootHandlers(socket, io, state) {
                 return socket.emit('gameNotification', { msg: 'El ítem ya no se encuentra en el botín.', type: 'error' });
             }
 
-            const user = await User.findById(socket.dbUser._id);
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
  
             // Validar espacio de inventario e intentar añadir el ítem

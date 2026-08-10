@@ -3,6 +3,7 @@
  * Lógica compartida para procesamiento de muertes, explosiones y loot de enemigos.
  */
 const User = require('../models/User');
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const lootManager = require('./lootManager');
 const { processEnemyKillsForUser } = require('./questHandlers');
 const { awardBattlePassExpServer } = require('./battlePassHandlers');
@@ -109,10 +110,9 @@ async function handleEnemyDeath(enemyId, io, state, killerSocketId = null) {
             const shared_h = Math.floor(h_loot / shareCount);
             const shared_o = Math.floor(o_loot / shareCount);
             const shared_e = Math.floor(e_loot / shareCount);
-
             for (const memberSocket of membersToRewardSockets) {
                 const memP = state.players[memberSocket.id];
-                const user = await User.findById(memP.id);
+                const user = getPlayerRAMAdapter(memP);
                 
                 if (user && memP) {
                     user.gameData.hubs += shared_h;

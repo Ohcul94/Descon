@@ -14,6 +14,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const mongoose = require('mongoose');
 const Logger = require('./utils/logger');
+const { getPlayerRAMAdapter } = require('./utils/ramAdapter'); // v6.02
 
 const normalizeZone = (z) => {
     if (z === undefined || z === null) return 1;
@@ -242,10 +243,15 @@ const watchConfigFile = () => {
 };
 
 
-// Conexi├│n a MongoDB
-mongoose.connect(process.env.MONGODB_URI)
+// Conexión a MongoDB con Pool optimizado para concurrencia v6.02
+mongoose.connect(process.env.MONGODB_URI, {
+    maxPoolSize: 100,
+    minPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000
+})
     .then(() => {
-        Logger.success('DB', 'Conectado a MongoDB Atlas');
+        Logger.success('DB', 'Conectado a MongoDB Atlas con Pool de Conexiones Optimizado (Max 100)');
         startServer();
     })
     .catch(err => {
@@ -629,6 +635,15 @@ const handleUserLogin = async (socket, user, username) => {
         await user.save();
     }
 
+    const eByShipObj = {};
+    if (user.gameData.equippedByShip) {
+        if (user.gameData.equippedByShip instanceof Map) {
+            user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
+        } else {
+            Object.assign(eByShipObj, user.gameData.equippedByShip);
+        }
+    }
+
     players[socket.id] = {
         id: dbId,
         dbId: dbId,
@@ -671,7 +686,19 @@ const handleUserLogin = async (socket, user, username) => {
         clanId: user.gameData.clanId,
         isInvulnerable: false,
         isDead: (user.gameData.hp !== undefined && user.gameData.hp <= 0),
-        isAdmin: (user.username.toLowerCase() === "caelli94") // v266.700: Bypass Maestro
+        isAdmin: (user.username.toLowerCase() === "caelli94"), // v266.700: Bypass Maestro
+        
+        // v6.02: Persistencia Completa en RAM (Única Fuente de Verdad Activa)
+        inventory: JSON.parse(JSON.stringify(user.gameData.inventory || [])),
+        vaultItems: JSON.parse(JSON.stringify(user.gameData.vaultItems || [])),
+        vaultUnlockedTabs: user.gameData.vaultUnlockedTabs !== undefined ? user.gameData.vaultUnlockedTabs : (state.SERVER_CONFIG.vaultConfig?.defaultTabs || 1),
+        inventoryMaxSlots: user.gameData.inventoryMaxSlots !== undefined ? user.gameData.inventoryMaxSlots : (state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30),
+        ownedShips: JSON.parse(JSON.stringify(user.gameData.ownedShips || [1])),
+        equippedByShip: JSON.parse(JSON.stringify(eByShipObj || {})),
+        quests: JSON.parse(JSON.stringify(user.gameData.quests || { active: [], completed: [], lastDailyReset: null, lastWeeklyReset: null })),
+        battlePass: JSON.parse(JSON.stringify(user.gameData.battlePass || { level: 1, exp: 0, isVip: false, claimedFree: [], claimedVip: [] })),
+        rankingData: JSON.parse(JSON.stringify(user.gameData.rankingData || { monsters_killed: 0, events_completed: 0 })),
+        housing: JSON.parse(JSON.stringify(user.gameData.housing || { unlocked: false, placedObjects: [] }))
     };
 
     const p_ref = players[socket.id];
@@ -692,14 +719,7 @@ const handleUserLogin = async (socket, user, username) => {
     let adminConfig = null;
     try { adminConfig = await fs.readJson(CONFIG_FILE); } catch (e) { }
 
-    const eByShipObj = {};
-    if (user.gameData.equippedByShip) {
-        if (user.gameData.equippedByShip instanceof Map) {
-            user.gameData.equippedByShip.forEach((v, k) => { eByShipObj[k] = v; });
-        } else {
-            Object.assign(eByShipObj, user.gameData.equippedByShip);
-        }
-    }
+
 
     // v262.210: MIGRACIÓN (Fix de ítems viejos)
     if (!user.gameData.inventory) user.gameData.inventory = [];
@@ -1043,7 +1063,17 @@ const savePlayerToDB = async (socketId) => {
                     "gameData.skillTree": p.skillTree,
                     "gameData.hudConfig": p.hudConfig || {},
                     "gameData.hudPositions": p.hudPositions || {},
-                    "gameData.currentShipId": p.currentShipId || 1
+                    "gameData.currentShipId": p.currentShipId || 1,
+                    // v6.02: Campos de persistencia del estado en RAM
+                    "gameData.vaultItems": p.vaultItems || [],
+                    "gameData.vaultUnlockedTabs": p.vaultUnlockedTabs || 1,
+                    "gameData.inventoryMaxSlots": p.inventoryMaxSlots || 30,
+                    "gameData.ownedShips": p.ownedShips || [1],
+                    "gameData.equippedByShip": p.equippedByShip || {},
+                    "gameData.quests": p.quests || { active: [], completed: [], lastDailyReset: null, lastWeeklyReset: null },
+                    "gameData.battlePass": p.battlePass || { level: 1, exp: 0, isVip: false, claimedFree: [], claimedVip: [] },
+                    "gameData.rankingData": p.rankingData || { monsters_killed: 0, events_completed: 0 },
+                    "gameData.housing": p.housing || { unlocked: false, placedObjects: [] }
                 }
             }
         );
@@ -1237,7 +1267,8 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            const user = await User.findById(userId);
+            const p = state.players[socket.id];
+            const user = p ? getPlayerRAMAdapter(p) : (await User.findById(userId));
             if (user) {
                 // v266.150: Sincronizar modificadores e ítems con el config actual en cada petición
                 const modified = syncPlayerItems(user, state.SERVER_CONFIG);
@@ -1849,10 +1880,9 @@ io.on('connection', (socket) => {
         // v220.97: PERSISTENCIA EN DB
         if (socket.dbUser) {
             try {
-                const user = await User.findById(socket.dbUser._id);
+                const user = getPlayerRAMAdapter(p);
                 if (user) {
                     user.gameData.pvpEnabled = !!enabled;
-                    user.markModified('gameData');
                     await user.save();
                 }
             } catch (e) { console.error("[PVP-SAVE] Error:", e); }

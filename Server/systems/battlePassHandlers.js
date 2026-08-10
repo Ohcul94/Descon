@@ -1,9 +1,12 @@
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
+
 function registerBattlePassHandlers(socket, io, state) {
 
     socket.on('getBattlePassState', async () => {
         try {
-            const User = require('mongoose').model('User');
-            const user = await User.findById(socket.dbUser._id);
+            const p = state.players[socket.id];
+            if (!p) return;
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const bpData = user.gameData.battlePass || {
@@ -27,8 +30,9 @@ function registerBattlePassHandlers(socket, io, state) {
 
     socket.on('claimBattlePassReward', async (data) => {
         try {
-            const User = require('mongoose').model('User');
-            const user = await User.findById(socket.dbUser._id);
+            const p = state.players[socket.id];
+            if (!p) return;
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const level = parseInt(data.level);
@@ -88,8 +92,9 @@ function registerBattlePassHandlers(socket, io, state) {
 
     socket.on('buyBattlePassVip', async () => {
         try {
-            const User = require('mongoose').model('User');
-            const user = await User.findById(socket.dbUser._id);
+            const p = state.players[socket.id];
+            if (!p) return;
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const bpConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.battlePassConfig;
@@ -133,8 +138,9 @@ function registerBattlePassHandlers(socket, io, state) {
 
     socket.on('addBattlePassExp', async (data) => {
         try {
-            const User = require('mongoose').model('User');
-            const user = await User.findById(socket.dbUser._id);
+            const p = state.players[socket.id];
+            if (!p) return;
+            const user = getPlayerRAMAdapter(p);
             if (!user) return;
 
             const amount = parseInt(data.amount) || 0;
