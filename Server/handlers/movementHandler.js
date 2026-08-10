@@ -105,7 +105,11 @@ function registerMovementHandlers(socket, io, state) {
         const maxAllowed = (shipSpeed * Math.min(0.2, dt)) + 100;
         
         if (distance > maxAllowed && !p.justBlinked && !p.isAdmin) { 
-            Logger.warn('SECURITY', `Movimiento sospechoso detectado en [${p.user}]: distancia ${Math.round(distance)}px, máx permitido ${Math.round(maxAllowed)}px (dt: ${dt.toFixed(3)}s)`);
+            const lastLog = socket.lastSecurityLogTime || 0;
+            if (now - lastLog > 5000) {
+                Logger.warn('SECURITY', `Movimiento sospechoso detectado en [${p.user}]: distancia ${Math.round(distance)}px, máx permitido ${Math.round(maxAllowed)}px (dt: ${dt.toFixed(3)}s)`);
+                socket.lastSecurityLogTime = now;
+            }
             
             // Forzar corrección de posición (rubberbanding) enviando las coordenadas reales del servidor
             socket.emit('playerStatSync', {
@@ -140,21 +144,37 @@ function registerMovementHandlers(socket, io, state) {
             // Broadcast completo a la zona
             socket.broadcast.to(`zone_${currentZone}`).emit('playerMoved', movPayload);
         } else {
-            // AOI con 3 celdas de radio para zonas normales
+            // Obtener rango de visión dinámico configurado en el Admin Dash para el modelo de la nave
+            let playerVision = 1500;
+            if (state.SERVER_CONFIG && state.SERVER_CONFIG.shipModels) {
+                const ship = state.SERVER_CONFIG.shipModels.find(s => s.id === p.currentShipId);
+                if (ship && ship.vision !== undefined) {
+                    playerVision = Number(ship.vision);
+                }
+            }
+
+            // AOI dinámico por celdas usando el GridManager espacial
             const CELL_SIZE = 500;
-            const AOI_RANGE = 3;
+            const cellRange = Math.ceil(playerVision / CELL_SIZE);
             const pCx = Math.floor(p.x / CELL_SIZE);
             const pCy = Math.floor(p.y / CELL_SIZE);
 
-            const zonePlayers = state.playersByZone[currentZone] || {};
-            Object.values(zonePlayers).forEach(other => {
-                if (other.socketId === socket.id) return;
-                const oCx = Math.floor(other.x / CELL_SIZE);
-                const oCy = Math.floor(other.y / CELL_SIZE);
-                if (Math.abs(pCx - oCx) <= AOI_RANGE && Math.abs(pCy - oCy) <= AOI_RANGE) {
-                    io.to(other.socketId).emit('playerMoved', movPayload);
+            const notifiedSockets = new Set();
+
+            for (let dx = -cellRange; dx <= cellRange; dx++) {
+                for (let dy = -cellRange; dy <= cellRange; dy++) {
+                    const key = `${currentZone}_${pCx + dx},${pCy + dy}`;
+                    const cell = state.grid.grid.get(key);
+                    if (cell && cell.players) {
+                        cell.players.forEach(other => {
+                            if (other.socketId && other.socketId !== socket.id && !notifiedSockets.has(other.socketId)) {
+                                notifiedSockets.add(other.socketId);
+                                io.to(other.socketId).emit('playerMoved', movPayload);
+                            }
+                        });
+                    }
                 }
-            });
+            }
         }
     });
 

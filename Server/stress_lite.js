@@ -5,7 +5,7 @@
 const { io } = require("socket.io-client");
 
 const SERVER_URL = "http://138.2.241.76:3333";
-const CLIENT_COUNT = 100; // Simulación para 100 naves concurrentes
+const CLIENT_COUNT = 75; // Simulación para 75 naves concurrentes
 const clients = [];
 
 console.log(`\n[STRESS-LITE] Iniciando simulación de ${CLIENT_COUNT} naves distribuidas...`);

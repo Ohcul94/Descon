@@ -605,54 +605,82 @@ module.exports = class BaseAI {
         const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy.isHorde ? 10000 : 800));
         let minDist = visionRange; 
         
-        // v266.999: Búsqueda exhaustiva sin Grid si es extremo
-        const targetList = Object.values(players || {});
         const maps = (this.state && this.state.SERVER_CONFIG) ? (this.state.SERVER_CONFIG.mapsConfig || this.state.SERVER_CONFIG.maps || this.state.SERVER_CONFIG.mapData || {}) : {};
-        
-        for (const p of targetList) {
-            // v269.71: Ignorar jugadores si no soy agresivo (considerando ambiente extremo) y no estoy en combate
-            if (!this.enemy.isAggressive && !this._inCombat) continue;
-            
-            // v266.999: Búsqueda Global (Si el jugador está en una zona extrema, el bicho lo detecta)
-            let pZone = parseInt(p.zone);
-            if (isNaN(pZone)) {
-                if (typeof p.zone === 'string' && p.zone.startsWith('extract_')) {
-                    pZone = parseInt(p.zone.split('_')[1]) || 10;
-                } else if (typeof p.zone === 'string' && p.zone.startsWith('dungeon')) {
-                    pZone = 99;
-                } else {
-                    pZone = 0;
+
+        // v2.5: Optimización de Visión usando el GridManager local para rangos razonables (<= 2000px)
+        if (visionRange <= 2000 && grid && typeof grid.cellSize === 'number') {
+            const cx = Math.floor(this.enemy.x / grid.cellSize);
+            const cy = Math.floor(this.enemy.y / grid.cellSize);
+            const cellRange = Math.ceil(visionRange / grid.cellSize);
+            const currentZone = this.enemy.zone;
+            const scannedSockets = new Set();
+
+            for (let dx = -cellRange; dx <= cellRange; dx++) {
+                for (let dy = -cellRange; dy <= cellRange; dy++) {
+                    const key = `${currentZone}_${cx + dx},${cy + dy}`;
+                    const cell = grid.grid.get(key);
+                    if (cell && cell.players) {
+                        cell.players.forEach(p => {
+                            if (p.isDead || p.isInvisible || scannedSockets.has(p.socketId)) return;
+                            scannedSockets.add(p.socketId);
+
+                            if (!this.enemy.isAggressive && !this._inCombat) return;
+
+                            const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                            if (d < minDist) {
+                                minDist = d;
+                                closest = p;
+                            }
+                        });
+                    }
                 }
             }
-
-            let eZone = parseInt(this.enemy.zone);
-            if (isNaN(eZone)) {
-                if (typeof this.enemy.zone === 'string' && this.enemy.zone.startsWith('extract_')) {
-                    eZone = parseInt(this.enemy.zone.split('_')[1]) || 10;
-                } else if (typeof this.enemy.zone === 'string' && this.enemy.zone.startsWith('dungeon')) {
-                    eZone = 99;
-                } else {
-                    eZone = 0;
+        } else {
+            // Fallback: Búsqueda lineal global para rangos extremos (Hordas, Mapas de Evento o Visión Extrema)
+            const targetList = Object.values(players || {});
+            
+            for (const p of targetList) {
+                // v269.71: Ignorar jugadores si no soy agresivo (considerando ambiente extremo) y no estoy en combate
+                if (!this.enemy.isAggressive && !this._inCombat) continue;
+                
+                // v266.999: Búsqueda Global (Si el jugador está en una zona extrema, el bicho lo detecta)
+                let pZone = parseInt(p.zone);
+                if (isNaN(pZone)) {
+                    if (typeof p.zone === 'string' && p.zone.startsWith('extract_')) {
+                        pZone = parseInt(p.zone.split('_')[1]) || 10;
+                    } else if (typeof p.zone === 'string' && p.zone.startsWith('dungeon')) {
+                        pZone = 99;
+                    } else {
+                        pZone = 0;
+                    }
                 }
-            }
-            
-            // Verificamos si la zona del JUGADOR es extrema
-            const pMapCfg = maps[pZone] || maps[pZone.toString()];
-            const pIsExtreme = (pMapCfg && pMapCfg.ambience && pMapCfg.ambience.some(a => a.type === 'extreme_aggression'));
 
-            if (!p || p.isDead) continue;
-            
-            // Invisibilidad: Respeto absoluto solicitado por el usuario (v266.999)
-            if (p.isInvisible) continue; 
-            
-            // Si no estamos en la misma zona y la zona del jugador NO es extrema, ignoramos
-            const isSameZone = (normalizeZone(p.zone) === normalizeZone(this.enemy.zone));
-            if (!isSameZone && !pIsExtreme) continue;
+                let eZone = parseInt(this.enemy.zone);
+                if (isNaN(eZone)) {
+                    if (typeof this.enemy.zone === 'string' && this.enemy.zone.startsWith('extract_')) {
+                        eZone = parseInt(this.enemy.zone.split('_')[1]) || 10;
+                    } else if (typeof this.enemy.zone === 'string' && this.enemy.zone.startsWith('dungeon')) {
+                        eZone = 99;
+                    } else {
+                        eZone = 0;
+                    }
+                }
+                
+                // Verificamos si la zona del JUGADOR es extrema
+                const pMapCfg = maps[pZone] || maps[pZone.toString()];
+                const pIsExtreme = (pMapCfg && pMapCfg.ambience && pMapCfg.ambience.some(a => a.type === 'extreme_aggression'));
 
-            const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
-            if (d < minDist) {
-                minDist = d;
-                closest = p;
+                if (!p || p.isDead || p.isInvisible) continue;
+                
+                // Si no estamos en la misma zona y la zona del jugador NO es extrema, ignoramos
+                const isSameZone = (normalizeZone(p.zone) === normalizeZone(this.enemy.zone));
+                if (!isSameZone && !pIsExtreme) continue;
+
+                const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                if (d < minDist) {
+                    minDist = d;
+                    closest = p;
+                }
             }
         }
         return closest;
