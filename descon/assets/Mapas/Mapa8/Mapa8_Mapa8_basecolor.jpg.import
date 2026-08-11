@@ -2,21 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://g0w843p3a2qe"
-path.s3tc="res://.godot/imported/Mapa6_mermaid+statue+3d+model_basecolor.jpg-bd19ccbd9f9c042796992ed2d4b1c13a.s3tc.ctex"
-path.etc2="res://.godot/imported/Mapa6_mermaid+statue+3d+model_basecolor.jpg-bd19ccbd9f9c042796992ed2d4b1c13a.etc2.ctex"
+uid="uid://da1ki5j7bgwpt"
+path.s3tc="res://.godot/imported/Mapa8_Mapa8_basecolor.jpg-f031ed16edd7d7e3999f0a830966e38a.s3tc.ctex"
+path.etc2="res://.godot/imported/Mapa8_Mapa8_basecolor.jpg-f031ed16edd7d7e3999f0a830966e38a.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "1695c31babf991f0f9fd79f7ac71f467"
+"md5": "ffe22dea5a9b43d37390f36fe8937c62"
 }
 
 [deps]
 
-source_file="res://assets/Mapas/Mapa6/Mapa6_mermaid+statue+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/Mapa6_mermaid+statue+3d+model_basecolor.jpg-bd19ccbd9f9c042796992ed2d4b1c13a.s3tc.ctex", "res://.godot/imported/Mapa6_mermaid+statue+3d+model_basecolor.jpg-bd19ccbd9f9c042796992ed2d4b1c13a.etc2.ctex"]
+source_file="res://assets/Mapas/Mapa8/Mapa8_Mapa8_basecolor.jpg"
+dest_files=["res://.godot/imported/Mapa8_Mapa8_basecolor.jpg-f031ed16edd7d7e3999f0a830966e38a.s3tc.ctex", "res://.godot/imported/Mapa8_Mapa8_basecolor.jpg-f031ed16edd7d7e3999f0a830966e38a.etc2.ctex"]
 
 [params]
 

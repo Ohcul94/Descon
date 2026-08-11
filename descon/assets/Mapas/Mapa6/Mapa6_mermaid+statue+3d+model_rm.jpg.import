@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bb4em74o5rue4"
-path="res://.godot/imported/Mapa6_mermaid+statue+3d+model_rm.jpg-bd6f8e00363e070d6532ae56ea8a9d04.ctex"
+path.s3tc="res://.godot/imported/Mapa6_mermaid+statue+3d+model_rm.jpg-bd6f8e00363e070d6532ae56ea8a9d04.s3tc.ctex"
+path.etc2="res://.godot/imported/Mapa6_mermaid+statue+3d+model_rm.jpg-bd6f8e00363e070d6532ae56ea8a9d04.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "65775375600af2cf247a560f5383969a"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/Mapas/Mapa6/Mapa6_mermaid+statue+3d+model_rm.jpg"
-dest_files=["res://.godot/imported/Mapa6_mermaid+statue+3d+model_rm.jpg-bd6f8e00363e070d6532ae56ea8a9d04.ctex"]
+dest_files=["res://.godot/imported/Mapa6_mermaid+statue+3d+model_rm.jpg-bd6f8e00363e070d6532ae56ea8a9d04.s3tc.ctex", "res://.godot/imported/Mapa6_mermaid+statue+3d+model_rm.jpg-bd6f8e00363e070d6532ae56ea8a9d04.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +42,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0
