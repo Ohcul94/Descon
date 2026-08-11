@@ -2,21 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cwvpketolgqgk"
-path.s3tc="res://.godot/imported/Mapa3_Mapa3_basecolor.jpg-c629ad2a0fe9e91ad33280ee5d836cd0.s3tc.ctex"
-path.etc2="res://.godot/imported/Mapa3_Mapa3_basecolor.jpg-c629ad2a0fe9e91ad33280ee5d836cd0.etc2.ctex"
+uid="uid://dkfg4lvpsxjk0"
+path.s3tc="res://.godot/imported/Mapa5_Mapa5_rm.jpg-e48f7397a6619683fecfdb164f09dfe4.s3tc.ctex"
+path.etc2="res://.godot/imported/Mapa5_Mapa5_rm.jpg-e48f7397a6619683fecfdb164f09dfe4.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "251118b99051c2a3b5d0422e544b3b42"
+"md5": "3e11879bc15a4509b9d9ac0a45c414ce"
 }
 
 [deps]
 
-source_file="res://assets/Mapas/Mapa2/Estructuras/Mapa3_Mapa3_basecolor.jpg"
-dest_files=["res://.godot/imported/Mapa3_Mapa3_basecolor.jpg-c629ad2a0fe9e91ad33280ee5d836cd0.s3tc.ctex", "res://.godot/imported/Mapa3_Mapa3_basecolor.jpg-c629ad2a0fe9e91ad33280ee5d836cd0.etc2.ctex"]
+source_file="res://assets/Mapas/Mapa5/Mapa5_Mapa5_rm.jpg"
+dest_files=["res://.godot/imported/Mapa5_Mapa5_rm.jpg-e48f7397a6619683fecfdb164f09dfe4.s3tc.ctex", "res://.godot/imported/Mapa5_Mapa5_rm.jpg-e48f7397a6619683fecfdb164f09dfe4.etc2.ctex"]
 
 [params]
 
