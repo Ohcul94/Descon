@@ -1168,6 +1168,10 @@ func toggle_hud_editing(slot_index: int = -1):
 	
 	is_editing_layout = !is_editing_layout
 	
+	# v370.8: Al entrar al editor, restaurar la barra expandida para poder arrastrarla
+	if is_editing_layout and control_bar and control_bar.has_method("set_collapsed"):
+		control_bar.set_collapsed(false)
+	
 	var edit_container = get_node_or_null("EditLayoutUI")
 	if is_editing_layout:
 		_editing_slot_index = slot_index

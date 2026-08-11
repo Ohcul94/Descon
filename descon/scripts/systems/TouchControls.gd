@@ -6,6 +6,10 @@ var virtual_joystick = null
 var grid_container: GridContainer = null
 var rows: int = 2
 
+# v370.8: Colapso/Expansión de la barra de mini iconos
+var collapsed: bool = false
+var collapse_btn: Button = null
+
 func set_rows(p_rows: int):
 	rows = p_rows
 	if grid_container:
@@ -13,9 +17,17 @@ func set_rows(p_rows: int):
 		_reorder_icons_by_category()
 		grid_container.reset_size()
 		reset_size()
-		custom_minimum_size = grid_container.get_combined_minimum_size()
-		size = custom_minimum_size
+		_apply_bar_size()
 		emit_signal("resized")
+
+func _apply_bar_size():
+	reset_size()
+	if collapsed and is_instance_valid(collapse_btn):
+		custom_minimum_size = collapse_btn.get_combined_minimum_size()
+	else:
+		custom_minimum_size = grid_container.get_combined_minimum_size()
+	size = custom_minimum_size
+	emit_signal("resized")
 
 func _ready():
 	print("[TouchControls] Inicializando controles táctiles.")
@@ -68,6 +80,52 @@ func _defer_move_existing_children():
 	
 	# Reordenar iconos por categoría después de que todos estén creados
 	_reorder_icons_by_category()
+	
+	# Botón de colapso/expansión de la barra (solo afecta a los mini iconos)
+	_setup_collapse_button()
+
+# v370.8: Botón que colapsa/expande únicamente los mini iconos de la barra.
+# Los paneles que abren esos iconos (Chat, Stats, Radar, etc.) NO se ven afectados.
+func _setup_collapse_button():
+	if collapse_btn: return
+	collapse_btn = Button.new()
+	collapse_btn.name = "IconCollapse"
+	collapse_btn.text = "◀"
+	collapse_btn.custom_minimum_size = Vector2(36, 36)
+	collapse_btn.tooltip_text = "Colapsar iconos de control"
+	
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.1, 0.1, 0.1, 0.6)
+	sb.set_corner_radius_all(6)
+	collapse_btn.add_theme_stylebox_override("normal", sb)
+	
+	var h_sb = sb.duplicate()
+	h_sb.bg_color = Color(0.3, 0.5, 0.6, 0.8)
+	h_sb.border_width_bottom = 2
+	h_sb.border_color = Color.CYAN
+	collapse_btn.add_theme_stylebox_override("hover", h_sb)
+	
+	var p_sb = sb.duplicate()
+	p_sb.bg_color = Color(0.2, 0.4, 0.5, 0.9)
+	collapse_btn.add_theme_stylebox_override("pressed", p_sb)
+	
+	collapse_btn.pressed.connect(_on_collapse_pressed)
+	add_child(collapse_btn)
+	_apply_bar_size()
+
+func _on_collapse_pressed():
+	var main_hud = get_parent()
+	if main_hud and main_hud.has_method("is_editing_layout") and main_hud.is_editing_layout:
+		return
+	set_collapsed(!collapsed)
+
+func set_collapsed(p_collapsed: bool):
+	if collapsed == p_collapsed: return
+	collapsed = p_collapsed
+	grid_container.visible = not collapsed
+	collapse_btn.text = "▶" if collapsed else "◀"
+	collapse_btn.tooltip_text = "Expandir iconos de control" if collapsed else "Colapsar iconos de control"
+	_apply_bar_size()
 
 func _setup_squad_and_events_icons():
 	# Icono Squad (Siempre Visible)
