@@ -142,8 +142,13 @@ func _ready():
 		NetworkManager.stun_state.connect(_on_stun_state)
 		NetworkManager.environment_damaged.connect(_on_environment_damaged)
 		NetworkManager.status_effects_sync.connect(_on_status_effects_sync)
+		if not NetworkManager.config_updated.is_connected(_on_config_updated_recalc):
+			NetworkManager.config_updated.connect(_on_config_updated_recalc)
 	
 	_setup_skill_controller()
+
+func _on_config_updated_recalc(_cfg):
+	_recalculate_stats()
 
 func _on_environment_damaged(data: Dictionary):
 	var dmg = float(data.get("damage", 0.0))

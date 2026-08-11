@@ -6942,7 +6942,7 @@
                 "x": 6
             },
             "speed": 1000,
-            "vision": 1300
+            "vision": 1000
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave7/Nave7.glb",

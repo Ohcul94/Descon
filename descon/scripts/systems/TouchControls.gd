@@ -360,4 +360,3 @@ func _on_icon_pressed(id: String):
 	var main_hud = get_parent()
 	if is_instance_valid(main_hud) and main_hud.has_method("_on_icon_pressed"):
 		main_hud._on_icon_pressed(id)
-
