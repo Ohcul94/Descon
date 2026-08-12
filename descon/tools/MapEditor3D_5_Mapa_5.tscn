@@ -1,18 +1,22 @@
-[gd_scene load_steps=9 format=3 uid="uid://mapeditor3d_tool"]
+[gd_scene format=3 uid="uid://cueuxx3c8plae"]
 
-[ext_resource type="Script" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="PackedScene" uid="uid://fw36i2ujohye" path="res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Derecha_Chiquita_Rota_3/Pared_Derecha_Chiquita_Rota_3.glb" id="2_w5bxe"]
+[ext_resource type="PackedScene" uid="uid://dkhcwrfyj5y5b" path="res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Rota_Medio/Pared_Rota_Medio.glb" id="3_ous24"]
+[ext_resource type="PackedScene" uid="uid://dbdb1u33or17l" path="res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Izquierda/Pared_Izquierda.glb" id="4_r1ahg"]
+[ext_resource type="PackedScene" uid="uid://1v0u61022v01" path="res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Derecha_Chiquita/Pared_Derecha_Chiquita.glb" id="5_3jw56"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a7uap"]
+albedo_color = Color(0.05, 0.08, 0.15, 1)
+metallic = 0.3
+roughness = 0.8
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(20000, 20000)
 subdivide_width = 200
 subdivide_depth = 200
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
-albedo_color = Color(0.05, 0.08, 0.15, 1)
-metallic = 0.3
-roughness = 0.8
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 4
@@ -24,45 +28,71 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
 
-[node name="MapEditor3D" type="Node3D"]
+[node name="MapEditor3D" type="Node3D" unique_id=2004813459]
 script = ExtResource("1_editor_script")
 zone_id = "5"
+json_to_import = "[]"
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 40, 40)
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1173613637]
+transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
 fov = 35.0
 near = 0.1
 far = 10000.0
 
-
-[node name="GroundPlane" type="StaticBody3D" parent="."]
+[node name="GroundPlane" type="StaticBody3D" parent="." unique_id=1867353649]
 collision_mask = 0
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane" unique_id=1085189854]
 shape = SubResource("WorldBoundaryShape3D_1")
 
-[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=657949862]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0054512024, -0.05, -0.36670685)
+material_override = SubResource("StandardMaterial3D_a7uap")
 mesh = SubResource("PlaneMesh_1")
-material_override = SubResource("StandardMaterial3D_1")
 
+[node name="Pared_Derecha_Chiquita_Rota_3" parent="GroundPlane" unique_id=69819391 instance=ExtResource("2_w5bxe")]
+transform = Transform3D(16.48705, 0, 98.63152, 0, 100, 0, -98.63152, 0, 16.48705, 7.061943, 0, 139.05533)
 
-[node name="ObjectsRoot" type="Node3D" parent="."]
+[node name="ObjectsRoot" type="Node3D" parent="." unique_id=455621709]
 unique_name_in_owner = true
-meta = {
-"editor_only": true
-}
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-45, 45, 0)
+[node name="Pared_Rota_Medio" parent="ObjectsRoot" unique_id=2096543404 instance=ExtResource("3_ous24")]
+transform = Transform3D(36.451923, 0, 93.11958, 0, 100.000015, 0, -93.11958, 0, 36.451923, -2.8905354, -1.9073486e-06, 80.820816)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Rota_Medio/Pared_Rota_Medio.glb"
+metadata/label = &"Pared_Rota_Medio"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="Pared_Izquierda" parent="ObjectsRoot" unique_id=783550282 instance=ExtResource("4_r1ahg")]
+transform = Transform3D(60.257545, 0, 79.8062, 0, 100, 0, -79.8062, 0, 60.257545, 1.8715229, 0, 18.606487)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Izquierda/Pared_Izquierda.glb"
+metadata/label = &"Pared_Izquierda"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="Pared_Derecha_Chiquita" parent="ObjectsRoot" unique_id=720628089 instance=ExtResource("5_3jw56")]
+transform = Transform3D(43.106743, 0, 90.23197, 0, 100, 0, -90.23197, 0, 43.106743, -2.4909134, 1.9073486e-06, 107.7567)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Derecha_Chiquita/Pared_Derecha_Chiquita.glb"
+metadata/label = &"Pared_Derecha_Chiquita"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=485697910]
+transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
 light_color = Color(1, 0.95, 0.9, 1)
 light_energy = 2.0
 light_specular = 0.3
 shadow_enabled = true
-directional_shadow_mode = 1
-directional_shadow_max_distance = 200.0
 shadow_bias = 0.02
 shadow_normal_bias = 0.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 200.0
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=188895854]
 environment = SubResource("Environment_1")
