@@ -1443,9 +1443,6 @@ function highlightCard(type, index) {
         card.style.borderColor = 'var(--accent)';
         card.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.45)';
         card.style.background = 'rgba(6, 182, 212, 0.08)';
-
-        // Auto-scroll suave hasta que la tarjeta sea 100% visible en el listado colapsable
-        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 }
 
@@ -2514,6 +2511,7 @@ function initMapRadar() {
             const sx = s.x !== undefined ? s.x : 1000;
             const sy = s.y !== undefined ? s.y : 1000;
             const pos = worldToCanvas(sx, sy);
+            const isFocused = focusedRadarItem && focusedRadarItem.type === 'map-spawn' && focusedRadarItem.index === idx;
             const isSelected = isDragging && dragItem && dragItem.type === 'map-spawn' && dragItem.index === idx;
 
             if (s.spawnMode === 'random' && s.radius > 0) {
@@ -2527,7 +2525,16 @@ function initMapRadar() {
                 ctx.stroke();
             }
 
-            ctx.fillStyle = isSelected ? '#fff' : 'rgba(16, 185, 129, 0.2)';
+            if (isSelected || isFocused) {
+                const pulse = 3 + Math.sin(Date.now() / 180) * 2;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 14 + pulse, 0, Math.PI * 2);
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = (isSelected || isFocused) ? '#fff' : 'rgba(16, 185, 129, 0.2)';
             ctx.strokeStyle = '#10b981';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -2667,8 +2674,14 @@ function highlightMapObject(idx) {
     document.querySelectorAll('[id^="card-map-obj-"]').forEach(el => {
         el.style.boxShadow = '';
         el.style.borderColor = '';
+        el.style.background = '';
     });
     const card = document.getElementById(`card-map-obj-${idx}`);
+    if (card) {
+        card.style.borderColor = 'var(--accent)';
+        card.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.45)';
+        card.style.background = 'rgba(6, 182, 212, 0.08)';
+    }
 }
 
 // ============================================================================

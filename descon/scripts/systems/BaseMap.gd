@@ -1661,6 +1661,12 @@ func _check_doors_proximity():
 
 # Atajo de teclado para entrar al portal si el contenedor está visible
 func _input(event):
+	# v433: No robar teclas si el jugador está escribiendo (chat, inventario, etc)
+	if event is InputEventKey:
+		var focus_node = get_viewport().gui_get_focus_owner()
+		if focus_node is LineEdit or focus_node is TextEdit:
+			return
+
 	if event.is_action_pressed("toggle_free_camera") and not event.is_echo():
 		free_cam_active = !free_cam_active
 		_save_camera_state()

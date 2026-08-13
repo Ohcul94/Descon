@@ -1,18 +1,18 @@
-[gd_scene load_steps=9 format=3 uid="uid://mapeditor3d_tool"]
+[gd_scene format=3 uid="uid://ddgkn26q2mu2h"]
 
-[ext_resource type="Script" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7io1a"]
+albedo_color = Color(0.05, 0.08, 0.15, 1)
+metallic = 0.3
+roughness = 0.8
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(20000, 20000)
 subdivide_width = 200
 subdivide_depth = 200
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
-albedo_color = Color(0.05, 0.08, 0.15, 1)
-metallic = 0.3
-roughness = 0.8
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 4
@@ -24,45 +24,42 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
 
-[node name="MapEditor3D" type="Node3D"]
+[node name="MapEditor3D" type="Node3D" unique_id=1311105891]
 script = ExtResource("1_editor_script")
 zone_id = "2"
+auto_load_event = true
+json_to_import = "[]"
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 40, 40)
+[node name="Camera3D" type="Camera3D" parent="." unique_id=560443827]
+transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
 fov = 35.0
 near = 0.1
 far = 10000.0
 
-
-[node name="GroundPlane" type="StaticBody3D" parent="."]
+[node name="GroundPlane" type="StaticBody3D" parent="." unique_id=973288333]
 collision_mask = 0
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane" unique_id=1391926225]
 shape = SubResource("WorldBoundaryShape3D_1")
 
-[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane"]
+[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=161191210]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+material_override = SubResource("StandardMaterial3D_7io1a")
 mesh = SubResource("PlaneMesh_1")
-material_override = SubResource("StandardMaterial3D_1")
 
-
-[node name="ObjectsRoot" type="Node3D" parent="."]
+[node name="ObjectsRoot" type="Node3D" parent="." unique_id=1775793537]
 unique_name_in_owner = true
-meta = {
-"editor_only": true
-}
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-45, 45, 0)
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=81319987]
+transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
 light_color = Color(1, 0.95, 0.9, 1)
 light_energy = 2.0
 light_specular = 0.3
 shadow_enabled = true
-directional_shadow_mode = 1
-directional_shadow_max_distance = 200.0
 shadow_bias = 0.02
 shadow_normal_bias = 0.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 200.0
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2097699943]
 environment = SubResource("Environment_1")
