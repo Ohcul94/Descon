@@ -2034,152 +2034,181 @@ function renderMapDetail() {
                         <div class="field" style="flex:1;"><label>Radar X</label><input type="number" id="map-radar-x" value="0" readonly></div>
                         <div class="field" style="flex:1;"><label>Radar Y</label><input type="number" id="map-radar-y" value="0" readonly></div>
                     </div>
-                    <div style="display:flex; gap:6px; flex-wrap:wrap; width:100%; justify-content:center;">
-                        <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem; border-color:rgba(0,210,255,0.4); color:#00d2ff;" onclick="setMapRadarObjectMode('door')">🚪 Puerta</button>
-                        <button class="btn btn-secondary" style="padding:3px 10px; font-size:0.65rem;" onclick="setMapRadarObjectMode(null)">✋ Mover</button>
-                    </div>
                     <div id="map-radar-mode-hint" style="font-size:0.65rem; color:#888; text-align:center; width:100%;">
-                        🚪 Modo Puerta: haz clic en el radar para colocarla. 🖱️ Arrastra puertas/spawns para moverlos. Paredes, baúles y torres se colocan/escalan en el editor 3D de Godot.
+                        🖱️ Arrastrá puertas/spawns para moverlos. Hacé clic para fijar coordenadas. Agregá elementos con los botones "+ AGREGAR" y eliminá lo seleccionado con la tecla <strong style="color:#ff4444;">SUPR</strong>.
                     </div>
                 </div>
             </div>
 
             <div class="col">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">☢️ MECÁNICAS DE AMBIENTE (HAZARDS)</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="addAmbience('${selectedMapId}'); renderMapDetail();">+ AGREGAR EFECTO</button></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">☢️ MECÁNICAS DE AMBIENTE (HAZARDS)</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="openMapAddModal('ambience')">+ AGREGAR EFECTO</button></div>
                         <div id="ambience-list" style="margin-bottom: 2rem;">
                     ${m.ambience.map((a, idx) => {
-                        const lib = AMBIENCE_LIB[a.type || 'radiation'];
+                        const lib = AMBIENCE_LIB[a.type || 'radiation'] || { label: a.type || 'Desconocido', icon: '🌍', fields: [] };
+                        const isOpen = isMapCardExpanded(`amb-${idx}`);
                         return `
-                        <div class="card" style="margin-bottom:1rem; padding:1rem; position:relative;">
-                            <div style="position:absolute; top:8px; right:8px;">
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].ambience.splice(${idx},1); renderMapDetail();">✕</button>
+                        <div class="card" id="card-map-amb-${idx}" style="margin-bottom:0.6rem; padding:0; position:relative; border-color: rgba(255,255,255,0.1); overflow:visible; cursor:pointer;">
+                            <div style="display:flex; align-items:center; gap:10px; padding:0.6rem 0.9rem; border-bottom: ${isOpen ? '1px solid rgba(255,255,255,0.06)' : 'none'};"
+                                 onclick="selectMapItem('ambience', ${idx}); toggleMapCard('amb-${idx}')">
+                                <span style="font-size:1rem;">${lib.icon || '🌍'}</span>
+                                <span style="flex:1; color:var(--accent); font-weight:bold; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${lib.label || a.type}</span>
+                                <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">GLOBAL</span>
+                                <span style="color:var(--accent); font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Eliminar (Supr)" onclick="event.stopPropagation(); requestMapDelete('ambience', ${idx})">✕</button>
                             </div>
-                            <div class="field full">
-                                <label style="font-size: 0.6rem; color: #888;">TIPO DE EFECTO</label>
-                                <select style="background:#0f172a; border:none; color:var(--accent); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" 
-                                        onchange="updateAmbienceType('${selectedMapId}', ${idx}, this.value)">
-                                    ${Object.keys(AMBIENCE_LIB).map(type => `<option value="${type}" ${a.type === type ? 'selected' : ''}>${AMBIENCE_LIB[type].icon} ${AMBIENCE_LIB[type].label}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div class="form-grid" style="margin-top:1rem;">
-                                ${lib.fields.map(f => {
-                                    const isBlind = a.type === 'blindness_hazard';
-                                    const isInter = a.type === 'interferencia_hazard';
-                                    const labels = { 
-                                        damage: "Daño (HP)", intervalMs: "Intervalo (ms)", 
-                                        spawnInterval: "Cadencia (ms)", 
-                                        duration: isBlind ? "Duración Ceguera (ms)" : "Duración Efecto (ms)", 
-                                        radius: isBlind ? "Radio Visión (px)" : "Tamaño Vórtice (px)", 
-                                        pullForce: "Fuerza Atracción (px/s)",
-                                        damageInterval: "Intervalo Daño (ms)",
-                                        shakeIntensity: "Potencia Temblor Cámara",
-                                        staticIntensity: "Fuerza Rayas Pantalla",
-                                        slowPercentage: "Reducción por % (0-100)",
-                                        slowFixed: "Reducción Fija (PX/S)",
-                                        damageMult: "Multiplicador de Daño (x)",
-                                        speedMult: "Multiplicador de Velocidad (x)",
-                                        healthMult: "Multiplicador de Vida (x)",
-                                        respawnSpeedBonus: "Bono de Respawn (ms)",
-                                        multiplier: "Multiplicador General (x)",
-                                        penaltyPercentage: "Penalización Curación (%)",
-                                        penaltyFixed: "Penalización Curación Fija"
-                                    };
-                                    let val = a[f];
-                                    if (val === undefined) {
-                                        // Inicializar si no existe
-                                        if (f === 'spawnInterval') val = 10000;
-                                        else if (f === 'duration') val = 5000;
-                                        else if (f === 'radius') val = 250;
-                                        else if (f === 'penaltyPercentage') val = 50;
-                                        else if (f === 'penaltyFixed') val = 0;
-                                        else val = 0;
-                                        config.mapsConfig[selectedMapId].ambience[idx][f] = val;
-                                    }
-                                    return `
-                                    <div class="field">
-                                        <label>${labels[f] || f}</label>
-                                        <input type="number" step="0.1" value="${val}" 
-                                               oninput="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value) || 0">
-                        </div>`
-                    }).join('')}
-                            </div>
+                            ${isOpen ? `
+                            <div style="padding:1rem;">
+                                <div class="field full">
+                                    <label style="font-size: 0.6rem; color: #888;">TIPO DE EFECTO</label>
+                                    <select style="background:#0f172a; border:none; color:var(--accent); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;"
+                                            onchange="updateAmbienceType('${selectedMapId}', ${idx}, this.value)">
+                                        ${Object.keys(AMBIENCE_LIB).map(type => `<option value="${type}" ${a.type === type ? 'selected' : ''}>${AMBIENCE_LIB[type].icon} ${AMBIENCE_LIB[type].label}</option>`).join('')}
+                                    </select>
+                                </div>
+                                <div class="form-grid" style="margin-top:1rem;">
+                                    ${lib.fields.map(f => {
+                                        const isBlind = a.type === 'blindness_hazard';
+                                        const isInter = a.type === 'interferencia_hazard';
+                                        const labels = {
+                                            damage: "Daño (HP)", intervalMs: "Intervalo (ms)",
+                                            spawnInterval: "Cadencia (ms)",
+                                            duration: isBlind ? "Duración Ceguera (ms)" : "Duración Efecto (ms)",
+                                            radius: isBlind ? "Radio Visión (px)" : "Tamaño Vórtice (px)",
+                                            pullForce: "Fuerza Atracción (px/s)",
+                                            damageInterval: "Intervalo Daño (ms)",
+                                            shakeIntensity: "Potencia Temblor Cámara",
+                                            staticIntensity: "Fuerza Rayas Pantalla",
+                                            slowPercentage: "Reducción por % (0-100)",
+                                            slowFixed: "Reducción Fija (PX/S)",
+                                            damageMult: "Multiplicador de Daño (x)",
+                                            speedMult: "Multiplicador de Velocidad (x)",
+                                            healthMult: "Multiplicador de Vida (x)",
+                                            respawnSpeedBonus: "Bono de Respawn (ms)",
+                                            multiplier: "Multiplicador General (x)",
+                                            penaltyPercentage: "Penalización Curación (%)",
+                                            penaltyFixed: "Penalización Curación Fija"
+                                        };
+                                        let val = a[f];
+                                        if (val === undefined) {
+                                            // Inicializar si no existe
+                                            if (f === 'spawnInterval') val = 10000;
+                                            else if (f === 'duration') val = 5000;
+                                            else if (f === 'radius') val = 250;
+                                            else if (f === 'penaltyPercentage') val = 50;
+                                            else if (f === 'penaltyFixed') val = 0;
+                                            else val = 0;
+                                            config.mapsConfig[selectedMapId].ambience[idx][f] = val;
+                                        }
+                                        return `
+                                        <div class="field">
+                                            <label>${labels[f] || f}</label>
+                                            <input type="number" step="0.1" value="${val}"
+                                                   oninput="config.mapsConfig['${selectedMapId}'].ambience[${idx}].${f} = parseFloat(this.value) || 0">
+                                        </div>`
+                                    }).join('')}
+                                </div>
+                            </div>` : ''}
                         </div>`;
                     }).join('')}
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--success); font-size: 0.8rem; font-weight:bold;">👾 ECOSISTEMA DE ENEMIGOS</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--success);" onclick="addMapSpawn('${selectedMapId}'); renderMapDetail();">+ AÑADIR ESPECIE</button></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--success); font-size: 0.8rem; font-weight:bold;">👾 ECOSISTEMA DE ENEMIGOS</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--success);" onclick="openMapAddModal('enemy')">+ AÑADIR ESPECIE</button></div>
                 <div id="spawns-list">
-                    ${(m.spawns || []).map((s, idx) => `
-                        <div class="card" id="card-map-spawn-${idx}" onclick="highlightCard('map-spawn', ${idx})" style="margin-bottom:1rem; padding:1rem; position:relative; border-color: rgba(16, 185, 129, 0.2); overflow: visible; transition: all 0.3s ease; cursor:pointer;">
-                            <div style="position:absolute; top:8px; right:8px; z-index: 10;">
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="config.mapsConfig['${selectedMapId}'].spawns.splice(${idx},1); renderMapDetail();">✕</button>
+                    ${(m.spawns || []).map((s, idx) => {
+                        const sEnemy = s.type ? config.enemyModels[s.type] : null;
+                        const sName = sEnemy ? `[ID ${s.type}] ${sEnemy.name}` : (s.type ? `ID ${s.type}` : 'Sin enemigo asignado');
+                        const sMode = s.spawnMode === 'random' ? (s.radius > 0 ? '⭕ Área' : '🌍 Global') : '📍 Fijo';
+                        const isOpen = isMapCardExpanded(`spawn-${idx}`);
+                        return `
+                        <div class="card" id="card-map-spawn-${idx}" style="margin-bottom:0.6rem; padding:0; position:relative; border-color: rgba(16, 185, 129, 0.2); overflow:visible; cursor:pointer;">
+                            <div style="display:flex; align-items:center; gap:10px; padding:0.6rem 0.9rem; border-bottom: ${isOpen ? '1px solid rgba(255,255,255,0.06)' : 'none'};"
+                                 onclick="selectMapItem('spawn', ${idx}); toggleMapCard('spawn-${idx}')">
+                                <span style="font-size:1rem;">👾</span>
+                                <span style="flex:1; color:var(--success); font-weight:bold; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sName}</span>
+                                <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">${sMode} ×${s.count}</span>
+                                <span style="color:var(--success); font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Eliminar (Supr)" onclick="event.stopPropagation(); requestMapDelete('spawn', ${idx})">✕</button>
                             </div>
-                            <div class="form-grid" style="overflow: visible;">
-                                <div class="field" style="grid-column: span 2; overflow: visible;">
-                                    <label>Tipo de Enemigo</label>
-                                    ${renderSearchableEnemySelect(s.type, (newId) => {
-                                        config.mapsConfig[selectedMapId].spawns[idx].type = newId;
-                                    }, 'var(--success)', `map-spawn-${idx}`)}
+                            ${isOpen ? `
+                            <div style="padding:1rem;">
+                                <div class="form-grid" style="overflow: visible;">
+                                    <div class="field" style="grid-column: span 2; overflow: visible;">
+                                        <label>Tipo de Enemigo</label>
+                                        ${renderSearchableEnemySelect(s.type, (newId) => {
+                                            config.mapsConfig[selectedMapId].spawns[idx].type = newId;
+                                        }, 'var(--success)', `map-spawn-${idx}`)}
+                                    </div>
+                                    <div class="field">
+                                        <label>Cant. Máx (slots)</label>
+                                        <input type="number" value="${s.count}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].count = parseInt(this.value) || 0">
+                                    </div>
+                                    <div class="field">
+                                        <label>Intervalo Respawn (ms)</label>
+                                        <input type="number" value="${s.intervalMs}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].intervalMs = parseInt(this.value) || 0">
+                                    </div>
+                                    <div class="field" style="grid-column: span 2;">
+                                        <label>Modo de Aparición (Respawn)</label>
+                                        <select style="background:#0f172a; border:none; color:var(--success); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;"
+                                                onchange="const val = this.value;
+                                                          const s = config.mapsConfig['${selectedMapId}'].spawns[${idx}];
+                                                          if (val === 'random_global') { s.spawnMode = 'random'; s.radius = 0; }
+                                                          else if (val === 'random_zone') { s.spawnMode = 'random'; if (!s.radius || s.radius === 0) s.radius = 500; }
+                                                          else if (val === 'fixed') { s.spawnMode = 'fixed'; }
+                                                          renderMapDetail();">
+                                            <option value="random_global" ${s.spawnMode === 'random' && (!s.radius || s.radius === 0) ? 'selected' : ''}>🌍 Aleatorio (En todo el mapa)</option>
+                                            <option value="random_zone" ${s.spawnMode === 'random' && s.radius > 0 ? 'selected' : ''}>⭕ Aleatorio en un área (Centro + Radio)</option>
+                                            <option value="fixed" ${s.spawnMode === 'fixed' ? 'selected' : ''}>📍 Fijo (Coordenadas Exactas)</option>
+                                        </select>
+                                    </div>
+                                    ${s.spawnMode === 'fixed' || (s.spawnMode === 'random' && s.radius > 0) ? `
+                                    <div class="field">
+                                        <label>Coordenada Centro X</label>
+                                        <input type="number" value="${s.x !== undefined ? s.x : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].x = parseInt(this.value) || 0">
+                                    </div>
+                                    <div class="field">
+                                        <label>Coordenada Centro Y</label>
+                                        <input type="number" value="${s.y !== undefined ? s.y : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].y = parseInt(this.value) || 0">
+                                    </div>
+                                    ` : ''}
+                                    ${s.spawnMode === 'random' && s.radius > 0 ? `
+                                    <div class="field" style="grid-column: span 2;">
+                                        <label>Radio de Área de Spawn (px)</label>
+                                        <input type="number" value="${s.radius}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].radius = parseInt(this.value) || 0">
+                                    </div>
+                                    ` : ''}
                                 </div>
-                                <div class="field">
-                                    <label>Cant. Máx (slots)</label>
-                                    <input type="number" value="${s.count}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].count = parseInt(this.value) || 0">
-                                </div>
-                                <div class="field">
-                                    <label>Intervalo Respawn (ms)</label>
-                                    <input type="number" value="${s.intervalMs}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].intervalMs = parseInt(this.value) || 0">
-                                </div>
-                                <div class="field" style="grid-column: span 2;">
-                                    <label>Modo de Aparición (Respawn)</label>
-                                    <select style="background:#0f172a; border:none; color:var(--success); font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;"
-                                            onchange="const val = this.value;
-                                                      const s = config.mapsConfig['${selectedMapId}'].spawns[${idx}];
-                                                      if (val === 'random_global') { s.spawnMode = 'random'; s.radius = 0; }
-                                                      else if (val === 'random_zone') { s.spawnMode = 'random'; if (!s.radius || s.radius === 0) s.radius = 500; }
-                                                      else if (val === 'fixed') { s.spawnMode = 'fixed'; }
-                                                      renderMapDetail();">
-                                        <option value="random_global" ${s.spawnMode === 'random' && (!s.radius || s.radius === 0) ? 'selected' : ''}>🌍 Aleatorio (En todo el mapa)</option>
-                                        <option value="random_zone" ${s.spawnMode === 'random' && s.radius > 0 ? 'selected' : ''}>⭕ Aleatorio en un área (Centro + Radio)</option>
-                                        <option value="fixed" ${s.spawnMode === 'fixed' ? 'selected' : ''}>📍 Fijo (Coordenadas Exactas)</option>
-                                    </select>
-                                </div>
-                                ${s.spawnMode === 'fixed' || (s.spawnMode === 'random' && s.radius > 0) ? `
-                                <div class="field">
-                                    <label>Coordenada Centro X</label>
-                                    <input type="number" value="${s.x !== undefined ? s.x : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].x = parseInt(this.value) || 0">
-                                </div>
-                                <div class="field">
-                                    <label>Coordenada Centro Y</label>
-                                    <input type="number" value="${s.y !== undefined ? s.y : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].y = parseInt(this.value) || 0">
-                                </div>
-                                ` : ''}
-                                ${s.spawnMode === 'random' && s.radius > 0 ? `
-                                <div class="field" style="grid-column: span 2;">
-                                    <label>Radio de Área de Spawn (px)</label>
-                                    <input type="number" value="${s.radius}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].radius = parseInt(this.value) || 0">
-                                </div>
-                                ` : ''}
-                            </div>
+                            </div>` : ''}
                         </div>
-                    `).join('')}
+                    `; }).join('')}
                 </div>
 
                 <!-- ========== CONFIGURADOR DE PUERTAS / WARPS ========== -->
                 <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(0,210,255,0.1);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
                         <label style="color:#00d2ff; font-size: 0.8rem; font-weight:bold;">🚪 CONFIGURADOR DE PUERTAS / WARPS</label>
-                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--accent); border-color:var(--accent);" onclick="addMapObject('${selectedMapId}'); renderMapDetail();">+ AGREGAR PUERTA</button>
+                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:var(--accent); border-color:var(--accent);" onclick="openMapAddModal('door')">+ AGREGAR PUERTA</button>
                     </div>
                     <div style="font-size:0.65rem; color:#64748b; margin-bottom:1rem;">
                         Paredes, baúles, torres y demás objetos se colocan y escalan en el editor 3D de Godot (MapEditor3D) e importan aquí como referencia visual en el radar.
                     </div>
                     <div id="map-objects-list">
-                    ${(m.objects || []).map((obj, idx) => obj.type !== 'door' ? '' : `
-                        <div class="card" id="card-map-obj-${idx}" style="margin-bottom:0.8rem; padding:1rem; position:relative;
-                            border-left: 3px solid #00d2ff40; background: rgba(0,0,0,0.2); cursor:pointer;"
-                            onclick="highlightMapObject(${idx})">
-                            <div style="position:absolute; top:6px; right:6px;">
-                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem;" onclick="event.stopPropagation(); config.mapsConfig['${selectedMapId}'].objects.splice(${idx},1); renderMapDetail();">✕</button>
+                    ${(m.objects || []).map((obj, idx) => obj.type !== 'door' ? '' : (() => {
+                        const oName = obj.label || 'Puerta sin nombre';
+                        const oTargetZone = obj.targetZoneId ? config.mapsConfig[obj.targetZoneId]?.name || obj.targetZoneId : null;
+                        const isOpen = isMapCardExpanded(`door-${idx}`);
+                        return `
+                        <div class="card" id="card-map-obj-${idx}" style="margin-bottom:0.6rem; padding:0; position:relative;
+                            border-left: 3px solid #00d2ff40; background: rgba(0,0,0,0.2); cursor:pointer;">
+                            <div style="display:flex; align-items:center; gap:10px; padding:0.6rem 0.9rem; border-bottom: ${isOpen ? '1px solid rgba(255,255,255,0.06)' : 'none'};"
+                                 onclick="selectMapItem('door', ${idx}); toggleMapCard('door-${idx}')">
+                                <span style="font-size:1rem;">🚪</span>
+                                <span style="flex:1; color:#00d2ff; font-weight:bold; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${oName}</span>
+                                <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">X ${obj.x || 0}, Y ${obj.y || 0}</span>
+                                ${oTargetZone ? `<span style="font-size:0.6rem; color:#00d2ff; padding:2px 6px; border:1px solid rgba(0,210,255,0.3); border-radius:4px; white-space:nowrap;">→ ${oTargetZone}</span>` : ''}
+                                <span style="color:#00d2ff; font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Eliminar (Supr)" onclick="event.stopPropagation(); requestMapDelete('door', ${idx})">✕</button>
                             </div>
+                            ${isOpen ? `
+                            <div style="padding:1rem;">
                             <div style="font-size:0.65rem; color:#00d2ff; font-weight:bold; letter-spacing:1px; margin-bottom:0.7rem;">🚪 PUERTA/WARP</div>
                             <div class="form-grid">
                                 <div class="field" style="grid-column:span 2;">
@@ -2248,7 +2277,9 @@ function renderMapDetail() {
                                            oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].yOffset = parseFloat(this.value) || 0">
                                 </div>
                             </div>
-                        </div>`
+                            </div>` : ''}
+                        </div>`;
+                    })()
                     ).join('')}
                     </div>
                 </div>

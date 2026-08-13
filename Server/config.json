@@ -5109,7 +5109,7 @@
             "ambience": [],
             "color": "#ffffff",
             "desc": "Zona segura de reunión y comercio.",
-            "height": 6000,
+            "height": 2000,
             "minLevel": 1,
             "name": "Loby",
             "objects": [
@@ -5165,8 +5165,8 @@
                     "rotY": 0,
                     "scale": 10,
                     "type": "wall",
-                    "x": 2850.6,
-                    "y": 1622.23,
+                    "x": 2299.67,
+                    "y": 1136.15,
                     "yOffset": 0
                 },
                 {
@@ -5203,21 +5203,8 @@
                     "targetX": 5000,
                     "targetZoneId": "2",
                     "type": "door",
-                    "x": 1001.05,
-                    "y": 3135.81,
-                    "yOffset": 3
-                },
-                {
-                    "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
-                    "label": "Puerta",
-                    "rotY": -90,
-                    "scale": 5,
-                    "targetX": 1486,
-                    "targetY": 2685,
-                    "targetZoneId": "7",
-                    "type": "door",
-                    "x": 1475.45,
-                    "y": 2888.85,
+                    "x": 1307,
+                    "y": 1748.35,
                     "yOffset": 3
                 },
                 {
@@ -5284,7 +5271,7 @@
                     "rotY": -28,
                     "scale": 10,
                     "type": "wall",
-                    "x": 5047.04,
+                    "x": 1682.63,
                     "y": 659.84,
                     "yOffset": 0
                 }
@@ -5293,7 +5280,7 @@
             "timeRestrictionsEnabled": true,
             "visible": true,
             "warpCost": 0,
-            "width": 6000
+            "width": 3000
         },
         "2": {
             "allowedHours": [],
@@ -5305,59 +5292,59 @@
             "name": "Mapa 2",
             "objects": [
                 {
-                    "type": "door",
-                    "label": "Puerta",
-                    "x": 4998,
-                    "y": 4981,
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
-                    "targetZoneId": "3",
+                    "label": "Puerta",
+                    "rotY": 0,
+                    "scale": 1,
                     "targetX": 5000,
                     "targetY": 5000,
-                    "scale": 1,
-                    "rotY": 0,
+                    "targetZoneId": "3",
+                    "type": "door",
+                    "x": 5085,
+                    "y": 5068,
                     "yOffset": 2.5
                 }
             ],
             "spawns": [
                 {
-                    "count": 5,
+                    "count": 3,
                     "id": "spawn_2_idx_1_type_1-A",
                     "intervalMs": 5000,
                     "radius": 1000,
                     "spawnMode": "random",
                     "type": "1-A",
-                    "x": 9011,
+                    "x": 8990,
                     "y": 1076
                 },
                 {
+                    "count": 3,
                     "id": "spawn_1786639220406780",
-                    "type": "1-A",
-                    "count": 5,
                     "intervalMs": 5000,
+                    "radius": 1000,
                     "spawnMode": "random",
+                    "type": "1-A",
                     "x": 3480,
-                    "y": 1033,
-                    "radius": 1000
+                    "y": 1033
                 },
                 {
+                    "count": 3,
                     "id": "spawn_1786639696960535",
-                    "type": "1-A",
-                    "count": 5,
                     "intervalMs": 5000,
+                    "radius": 1000,
                     "spawnMode": "random",
+                    "type": "1-A",
                     "x": 6517,
-                    "y": 1098,
-                    "radius": 1000
+                    "y": 1098
                 },
                 {
+                    "count": 3,
                     "id": "spawn_1786639743030690",
-                    "type": "1-A",
-                    "count": 5,
                     "intervalMs": 5000,
+                    "radius": 1000,
                     "spawnMode": "random",
+                    "type": "1-A",
                     "x": 1000,
-                    "y": 1000,
-                    "radius": 1000
+                    "y": 1000
                 }
             ],
             "timeRestrictionsEnabled": false,
@@ -6621,8 +6608,8 @@
             "ControlBar": {
                 "alpha": 1,
                 "scale": 0.5,
-                "x": 6,
-                "y": 722
+                "x": 2,
+                "y": 706
             },
             "LaserSlot": {
                 "alpha": 1,

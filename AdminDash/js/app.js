@@ -881,10 +881,342 @@ function moveMechanic(enemyId, idx, dir) {
     renderEnemies();
 }
 
-function addAmbience(id) {
-    if (!config.mapsConfig[id].ambience) config.mapsConfig[id].ambience = [];
-    config.mapsConfig[id].ambience.push({ type: "radiation", damage: 10, intervalMs: 300 });
+// ============================================================================
+// CARTROGRAFÍA: SELECCIÓN, COLAPSO, BORRADO CON TECLA SUPR Y MODALES DE AGREGADO
+// ============================================================================
+
+window._mapSelection = null;              // { kind: 'spawn'|'door'|'ambience', index }
+window._mapCardExpanded = window._mapCardExpanded || {};  // claves: 'spawn-i'|'door-i'|'amb-i'
+window._highlightedAmbienceIdx = null;
+
+function isMapCardExpanded(key) {
+    if (!(key in window._mapCardExpanded)) window._mapCardExpanded[key] = false;
+    return window._mapCardExpanded[key];
 }
+
+function toggleMapCard(key) {
+    window._mapCardExpanded[key] = !window._mapCardExpanded[key];
+    renderMapDetail();
+    if (window._mapSelection) selectMapItem(window._mapSelection.kind, window._mapSelection.index);
+}
+
+// Seleccionar un ítem del mapa (desde el radar o desde la lista) y resaltarlo
+function selectMapItem(kind, idx) {
+    window._mapSelection = { kind, index: idx };
+    const prefixes = { spawn: 'card-map-spawn-', door: 'card-map-obj-', ambience: 'card-map-amb-' };
+    document.querySelectorAll('[id^="card-map-spawn-"], [id^="card-map-obj-"], [id^="card-map-amb-"]').forEach(el => {
+        el.style.boxShadow = '';
+        el.style.borderColor = '';
+        el.style.background = '';
+    });
+    const card = document.getElementById((prefixes[kind] || 'card-map-') + idx);
+    if (card) {
+        card.style.borderColor = 'var(--accent)';
+        card.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.45)';
+        card.style.background = 'rgba(6, 182, 212, 0.08)';
+    }
+    if (kind === 'spawn') {
+        focusedRadarItem = { type: 'map-spawn', index: idx };
+        window._highlightedMapObj = null;
+        window._highlightedAmbienceIdx = null;
+    } else if (kind === 'door') {
+        window._highlightedMapObj = idx;
+        focusedRadarItem = null;
+        window._highlightedAmbienceIdx = null;
+    } else {
+        window._highlightedAmbienceIdx = idx;
+        focusedRadarItem = null;
+        window._highlightedMapObj = null;
+    }
+}
+
+// Abrir modal de confirmación de eliminación (usado por tecla Supr y botón ✕)
+async function requestMapDelete(kind, idx) {
+    const m = config.mapsConfig[selectedMapId];
+    if (!m) return;
+    let title = '⚠️ ELIMINACIÓN';
+    let msg = '';
+    if (kind === 'spawn') {
+        const s = m.spawns && m.spawns[idx];
+        if (!s) return;
+        const en = s.type ? config.enemyModels[s.type] : null;
+        const enName = en ? `[ID ${s.type}] ${en.name}` : (s.type ? `ID ${s.type}` : 'Sin enemigo asignado');
+        const modeName = s.spawnMode === 'random' ? (s.radius > 0 ? 'Aleatorio en un área' : 'Aleatorio (todo el mapa)') : 'Fijo';
+        msg = `SE ELIMINARÁ ESTE ENEMIGO:\n\n👾 ${enName}\nModo: ${modeName}\nCant. Máx: ${s.count}\nUbicación: X ${s.x !== undefined ? s.x : 1000}, Y ${s.y !== undefined ? s.y : 1000}\n\n¿Confirmás la eliminación?`;
+        title = '⚠️ ELIMINAR ENEMIGO';
+    } else if (kind === 'door') {
+        const o = m.objects && m.objects[idx];
+        if (!o) return;
+        msg = `SE ELIMINARÁ ESTA PUERTA:\n\n🚪 ${o.label || 'Puerta'}\nUbicación: X ${o.x || 0}, Y ${o.y || 0}\n\n¿Confirmás la eliminación?`;
+        title = '⚠️ ELIMINAR PUERTA';
+    } else if (kind === 'ambience') {
+        const a = m.ambience && m.ambience[idx];
+        if (!a) return;
+        const lib = AMBIENCE_LIB[a.type] || { label: a.type, icon: '🌍' };
+        msg = `SE ELIMINARÁ ESTA MECÁNICA DE AMBIENTE:\n\n${lib.icon || ''} ${lib.label || a.type}\n\nEs una mecánica GLOBAL del mapa (afecta a toda la zona).\n\n¿Confirmás la eliminación?`;
+        title = '⚠️ ELIMINAR MECÁNICA';
+    } else {
+        return;
+    }
+
+    const ok = await openConfirm(msg, title);
+    if (!ok) return;
+
+    if (kind === 'spawn') m.spawns.splice(idx, 1);
+    else if (kind === 'door') m.objects.splice(idx, 1);
+    else if (kind === 'ambience') m.ambience.splice(idx, 1);
+
+    window._mapSelection = null;
+    focusedRadarItem = null;
+    window._highlightedMapObj = null;
+    window._highlightedAmbienceIdx = null;
+    renderMapDetail();
+}
+
+// ============================================================================
+// MODALES DE AGREGADO (ENEMIGO / PUERTA / MECÁNICA DE AMBIENTE)
+// ============================================================================
+
+const AMBIENCE_FIELD_LABELS = {
+    damage: "Daño (HP)", intervalMs: "Intervalo (ms)",
+    spawnInterval: "Cadencia (ms)",
+    duration: "Duración Efecto (ms)",
+    radius: "Tamaño Vórtice (px)",
+    pullForce: "Fuerza Atracción (px/s)",
+    damageInterval: "Intervalo Daño (ms)",
+    shakeIntensity: "Potencia Temblor Cámara",
+    staticIntensity: "Fuerza Rayas Pantalla",
+    slowPercentage: "Reducción por % (0-100)",
+    slowFixed: "Reducción Fija (PX/S)",
+    damageMult: "Multiplicador de Daño (x)",
+    speedMult: "Multiplicador de Velocidad (x)",
+    healthMult: "Multiplicador de Vida (x)",
+    respawnSpeedBonus: "Bono de Respawn (ms)",
+    multiplier: "Multiplicador General (x)",
+    penaltyPercentage: "Penalización Curación (%)",
+    penaltyFixed: "Penalización Curación Fija",
+    visibility: "Visibilidad (%)",
+    dashPenalty: "Penalización Dash (px/s)"
+};
+
+function defaultAmbienceField(f) {
+    if (f === 'spawnInterval') return 15000;
+    if (f === 'duration') return 5000;
+    if (f === 'radius') return 300;
+    if (f === 'shakeIntensity') return 10;
+    if (f === 'staticIntensity') return 0.3;
+    if (f === 'slowPercentage') return 30;
+    if (f === 'damage') return 10;
+    if (f === 'intervalMs') return 500;
+    if (f === 'multiplier') return 2;
+    if (f === 'penaltyPercentage') return 50;
+    if (f === 'visibility') return 100;
+    if (f === 'dashPenalty') return 30;
+    return 0;
+}
+
+function mapAddRadarPos() {
+    const rx = parseInt(document.getElementById('map-radar-x')?.value);
+    const ry = parseInt(document.getElementById('map-radar-y')?.value);
+    return {
+        x: !isNaN(rx) ? rx : 5000,
+        y: !isNaN(ry) ? ry : 5000
+    };
+}
+
+function openMapAddModal(kind) {
+    const m = config.mapsConfig[selectedMapId];
+    if (!m) return;
+    window._mapAddKind = kind;
+    const body = document.getElementById('map-add-modal-body');
+    const title = document.getElementById('map-add-modal-title');
+    const pos = mapAddRadarPos();
+
+    if (kind === 'enemy') {
+        title.innerText = '➕ AGREGAR ENEMIGO';
+        body.innerHTML = `
+            <div style="font-size:0.8rem; color:#64748b; margin-bottom:1.2rem; line-height:1.5;">Elegí la especie, el modo de aparición y dónde se ubicará. Podés hacer clic en el <strong style="color:var(--accent);">radar táctico</strong> para copiar las coordenadas automáticamente.</div>
+            <div class="field" style="margin-bottom:1rem; overflow:visible;">
+                <label>👾 TIPO DE ENEMIGO</label>
+                <input type="hidden" id="map-add-enemy-id" value="">
+                ${renderSearchableEnemySelect('', (newId) => { document.getElementById('map-add-enemy-id').value = newId; }, 'var(--success)', 'map-add-enemy')}
+            </div>
+            <div class="field" style="margin-bottom:1rem;">
+                <label>MODO DE APARICIÓN</label>
+                <select id="map-add-spawn-mode" onchange="toggleMapAddSpawnMode(this.value)">
+                    <option value="random_global">🌍 Aleatorio (En todo el mapa)</option>
+                    <option value="random_zone" selected>⭕ Aleatorio en un área</option>
+                    <option value="fixed">📍 Fijo (Coordenadas Exactas)</option>
+                </select>
+            </div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field"><label>Cant. Máx (slots)</label><input type="number" id="map-add-count" value="5"></div>
+                <div class="field"><label>Intervalo Respawn (ms)</label><input type="number" id="map-add-interval" value="5000"></div>
+            </div>
+            <div id="map-add-pos-fields" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+                <div class="field"><label>Coordenada X</label><input type="number" id="map-add-x" value="${pos.x}"></div>
+                <div class="field"><label>Coordenada Y</label><input type="number" id="map-add-y" value="${pos.y}"></div>
+            </div>
+            <div id="map-add-radius-field" class="field" style="margin-top:12px;"><label>Radio de Área de Spawn (px)</label><input type="number" id="map-add-radius" value="300"></div>
+        `;
+    } else if (kind === 'door') {
+        title.innerText = '➕ AGREGAR PUERTA / WARP';
+        const zoneOptions = Object.keys(config.mapsConfig)
+            .filter(id => id !== selectedMapId && config.mapsConfig[id].visible !== false)
+            .map(id => `<option value="${id}">${config.mapsConfig[id].name} (ID: ${id})</option>`)
+            .join('');
+        body.innerHTML = `
+            <div style="font-size:0.8rem; color:#64748b; margin-bottom:1.2rem; line-height:1.5;">Configurá la puerta y su warp de destino. Podés hacer clic en el <strong style="color:var(--accent);">radar táctico</strong> para copiar las coordenadas automáticamente.</div>
+            <div class="field" style="margin-bottom:1rem;"><label>🚪 ETIQUETA</label><input type="text" id="map-add-door-label" value="Puerta" placeholder="Nombre de la puerta"></div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field"><label>Pos X</label><input type="number" id="map-add-x" value="${pos.x}"></div>
+                <div class="field"><label>Pos Y</label><input type="number" id="map-add-y" value="${pos.y}"></div>
+            </div>
+            <div class="field" style="margin-top:12px;"><label>Zona Destino (Warp)</label><select id="map-add-door-zone"><option value="">-- Seleccionar Zona --</option>${zoneOptions}</select></div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+                <div class="field"><label>Warp X destino</label><input type="number" id="map-add-door-tx" value="5000"></div>
+                <div class="field"><label>Warp Y destino</label><input type="number" id="map-add-door-ty" value="5000"></div>
+            </div>
+        `;
+    } else if (kind === 'ambience') {
+        title.innerText = '➕ AGREGAR MECÁNICA DE AMBIENTE';
+        const typeOptions = Object.keys(AMBIENCE_LIB).map(t => `<option value="${t}">${AMBIENCE_LIB[t].icon || '🌍'} ${AMBIENCE_LIB[t].label}</option>`).join('');
+        body.innerHTML = `
+            <div style="font-size:0.8rem; color:#64748b; margin-bottom:1.2rem; line-height:1.5;">Las mecánicas de ambiente afectan a <strong>TODO el mapa</strong> (no tienen posición). Elegí el tipo y ajustá sus parámetros.</div>
+            <div class="field" style="margin-bottom:1rem;">
+                <label>☢️ TIPO DE MECÁNICA</label>
+                <select id="map-add-amb-type" onchange="refreshMapAddAmbFields(this.value)">${typeOptions}</select>
+            </div>
+            <div id="map-add-amb-fields"></div>
+        `;
+        refreshMapAddAmbFields('radiation');
+    }
+
+    document.getElementById('map-add-overlay').style.display = 'flex';
+}
+
+function closeMapAddModal() {
+    document.getElementById('map-add-overlay').style.display = 'none';
+    window._mapAddKind = null;
+}
+
+function toggleMapAddSpawnMode(mode) {
+    const pos = document.getElementById('map-add-pos-fields');
+    const rad = document.getElementById('map-add-radius-field');
+    if (pos) pos.style.display = (mode === 'random_global') ? 'none' : 'grid';
+    if (rad) rad.style.display = (mode === 'random_zone') ? 'block' : 'none';
+}
+
+function refreshMapAddAmbFields(type) {
+    const container = document.getElementById('map-add-amb-fields');
+    if (!container) return;
+    const lib = AMBIENCE_LIB[type];
+    if (!lib) { container.innerHTML = ''; return; }
+    container.innerHTML = `
+        <div style="font-size:0.7rem; color:#888; margin-bottom:0.8rem;">${lib.desc || ''}</div>
+        <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            ${lib.fields.map(f => `
+                <div class="field">
+                    <label>${AMBIENCE_FIELD_LABELS[f] || f}</label>
+                    <input type="number" step="0.1" id="map-add-amb-${f}" value="${defaultAmbienceField(f)}">
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function confirmMapAdd() {
+    const kind = window._mapAddKind;
+    const m = config.mapsConfig[selectedMapId];
+    if (!m || !kind) return;
+    let newIdx = -1;
+
+    if (kind === 'enemy') {
+        const type = document.getElementById('map-add-enemy-id').value;
+        if (!type) { showToast('⚠️ Seleccioná un tipo de enemigo primero.'); return; }
+        const mode = document.getElementById('map-add-spawn-mode').value;
+        if (!m.spawns) m.spawns = [];
+        m.spawns.push({
+            id: 'spawn_' + Date.now() + Math.floor(Math.random() * 1000),
+            type: type,
+            count: parseInt(document.getElementById('map-add-count').value) || 5,
+            intervalMs: parseInt(document.getElementById('map-add-interval').value) || 5000,
+            spawnMode: mode,
+            x: parseInt(document.getElementById('map-add-x').value) || 0,
+            y: parseInt(document.getElementById('map-add-y').value) || 0,
+            radius: parseInt(document.getElementById('map-add-radius').value) || 300
+        });
+        newIdx = m.spawns.length - 1;
+        window._mapCardExpanded[`spawn-${newIdx}`] = true;
+    } else if (kind === 'door') {
+        if (!m.objects) m.objects = [];
+        m.objects.push({
+            type: 'door',
+            label: document.getElementById('map-add-door-label').value || 'Puerta',
+            x: parseInt(document.getElementById('map-add-x').value) || 0,
+            y: parseInt(document.getElementById('map-add-y').value) || 0,
+            assetPath: 'res://assets/Puertas/3D/Puerta2/Puerta2.glb',
+            targetZoneId: document.getElementById('map-add-door-zone').value,
+            targetX: parseInt(document.getElementById('map-add-door-tx').value) || 5000,
+            targetY: parseInt(document.getElementById('map-add-door-ty').value) || 5000,
+            scale: 1.0,
+            rotY: 0,
+            yOffset: 2.5
+        });
+        newIdx = m.objects.length - 1;
+        window._mapCardExpanded[`door-${newIdx}`] = true;
+    } else if (kind === 'ambience') {
+        const type = document.getElementById('map-add-amb-type').value;
+        if (!m.ambience) m.ambience = [];
+        const hazard = { type: type };
+        const lib = AMBIENCE_LIB[type];
+        if (lib) {
+            lib.fields.forEach(f => {
+                const inp = document.getElementById(`map-add-amb-${f}`);
+                hazard[f] = inp ? (parseFloat(inp.value) || 0) : defaultAmbienceField(f);
+            });
+        }
+        m.ambience.push(hazard);
+        newIdx = m.ambience.length - 1;
+        window._mapCardExpanded[`amb-${newIdx}`] = true;
+    }
+
+    closeMapAddModal();
+    renderMapDetail();
+    if (newIdx >= 0) selectMapItem(kind === 'enemy' ? 'spawn' : kind, newIdx);
+}
+
+// ============================================================================
+// TECLADO GLOBAL: SUPR para eliminar lo seleccionado en Cartografía + ESC para cerrar modales
+// ============================================================================
+
+function handleGlobalKeydown(e) {
+    if (e.key === 'Escape') {
+        const addOverlay = document.getElementById('map-add-overlay');
+        if (addOverlay && addOverlay.style.display === 'flex') { closeMapAddModal(); return; }
+        const confirmOverlay = document.getElementById('confirm-overlay');
+        if (confirmOverlay && confirmOverlay.style.display === 'flex') { closeConfirm(false); return; }
+        return;
+    }
+
+    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+
+    const view = document.getElementById('view-map-detail');
+    if (!view || !view.classList.contains('active')) return;
+
+    const t = document.activeElement;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+
+    e.preventDefault();
+    const sel = window._mapSelection;
+    if (!sel) {
+        showToast('⚠️ Seleccioná primero un enemigo, puerta o mecánica (clic en el radar o en la lista).');
+        return;
+    }
+    requestMapDelete(sel.kind, sel.index);
+}
+
+window.addEventListener('keydown', handleGlobalKeydown);
 
 function updateAmbienceType(mapId, idx, newType) {
     const hazard = config.mapsConfig[mapId].ambience[idx];
@@ -913,21 +1245,6 @@ function updateAmbienceType(mapId, idx, newType) {
 
     config.mapsConfig[mapId].ambience[idx] = newHazard;
     renderMapDetail();
-}
-
-function addMapSpawn(id) {
-    if (!config.mapsConfig[id].spawns) config.mapsConfig[id].spawns = [];
-    const uniqueId = 'spawn_' + Date.now() + Math.floor(Math.random() * 1000);
-    config.mapsConfig[id].spawns.push({
-        id: uniqueId,
-        type: "",
-        count: 5,
-        intervalMs: 5000,
-        spawnMode: "random",
-        x: 1000,
-        y: 1000,
-        radius: 300
-    });
 }
 
 function patchMechanicsLib() {
@@ -1226,6 +1543,7 @@ function saveConfig() {
 
 function openConfirm(msg, title = "CONFIRMACIÓN") {
     return new Promise((resolve) => {
+        window._confirmResolve = resolve;
         document.getElementById('confirm-title').innerText = title;
         document.getElementById('confirm-msg').innerText = msg;
         document.getElementById('confirm-overlay').style.display = 'flex';
@@ -1236,15 +1554,18 @@ function openConfirm(msg, title = "CONFIRMACIÓN") {
 
         newOkBtn.onclick = () => {
             document.getElementById('confirm-overlay').style.display = 'none';
-            resolve(true);
+            const r = window._confirmResolve;
+            window._confirmResolve = null;
+            if (r) r(true);
         };
     });
 }
 
 function closeConfirm(val) {
     document.getElementById('confirm-overlay').style.display = 'none';
-    // Nota: El resolve se maneja en el onclick del botón OK. 
-    // Si es falso, simplemente cerramos y no resolvemos (o resolvemos false si fuera necesario)
+    const r = window._confirmResolve;
+    window._confirmResolve = null;
+    if (r) r(!!val);
 }
 
 async function deployToCloud() {
@@ -2232,8 +2553,6 @@ function initMapRadar() {
     // Estado de arrastre
     let isDragging = false;
     let dragItem = null;
-    // Modo de colocación de objetos: null = solo mover/spawn, 'chest'|'door'|'tower'
-    window._mapRadarObjectMode = window._mapRadarObjectMode || null;
 
     const updateCanvasSize = () => {
         const w = container.clientWidth;
@@ -2274,26 +2593,16 @@ function initMapRadar() {
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        // ------ MODO COLOCAR OBJETO ------
-        if (window._mapRadarObjectMode) {
+        // Si hay un modal de agregado abierto, copiar las coordenadas del clic al modal
+        const addOverlay = document.getElementById('map-add-overlay');
+        if (addOverlay && addOverlay.style.display === 'flex') {
             const world = canvasToWorld(mouseX, mouseY);
-            if (!m.objects) m.objects = [];
-
-            // Solo Puertas: el resto de objetos se colocan/escalan en el editor 3D de Godot (MapEditor3D)
-            m.objects.push({
-                type: 'door',
-                label: 'Puerta',
-                x: Math.round(world.wx),
-                y: Math.round(world.wy),
-                assetPath: 'res://assets/Puertas/3D/Puerta2/Puerta2.glb',
-                targetZoneId: '',
-                targetX: 5000,
-                targetY: 5000,
-                scale: 1.0,
-                rotY: 0,
-                yOffset: 2.5
-            });
-            renderMapDetail();
+            const xi = document.getElementById('map-add-x');
+            const yi = document.getElementById('map-add-y');
+            if (xi) xi.value = Math.round(world.wx);
+            if (yi) yi.value = Math.round(world.wy);
+            document.getElementById('map-radar-x').value = Math.round(world.wx);
+            document.getElementById('map-radar-y').value = Math.round(world.wy);
             return;
         }
 
@@ -2306,7 +2615,7 @@ function initMapRadar() {
                 isDragging = true;
                 dragItem = { type: 'map-obj', index: i };
                 canvas.style.cursor = 'grabbing';
-                highlightMapObject(i);
+                selectMapItem('door', i);
                 return;
             }
         }
@@ -2328,7 +2637,7 @@ function initMapRadar() {
                 isDragging = true;
                 dragItem = { type: 'map-spawn', index: i };
                 canvas.style.cursor = 'grabbing';
-                highlightCard('map-spawn', i);
+                selectMapItem('spawn', i);
                 return;
             }
         }
@@ -2386,7 +2695,7 @@ function initMapRadar() {
         if (isDragging) {
             isDragging = false;
             dragItem = null;
-            canvas.style.cursor = window._mapRadarObjectMode ? 'cell' : 'crosshair';
+            canvas.style.cursor = 'crosshair';
         }
     };
 
@@ -2437,71 +2746,6 @@ function initMapRadar() {
             ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width * rMult, 0, Math.PI * 2);
             ctx.stroke();
         });
-
-        // ========== CINTURÓN DE ASTEROIDES / BARRERA ORBITAL ==========
-        try {
-            const rockKey = `rocks_${selectedMapId}_${canvas.width}_${canvas.height}`;
-            if (!window._rockCache) window._rockCache = {};
-            if (!window._rockCache[rockKey]) {
-                const wRocks = [];
-                const rockCount = 400;
-                const borderPxW = canvas.width * 0.06;
-                const borderPxH = canvas.height * 0.06;
-                let s = parseInt(selectedMapId || '1') * 7919 + 13;
-                const rng = () => { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
-
-                for (let i = 0; i < rockCount; i++) {
-                    const side = Math.floor(rng() * 4);
-                    const t = rng();
-                    const depthPxX = rng() * borderPxW;
-                    const depthPxY = rng() * borderPxH;
-                    let cx, cy;
-                    if (side === 0) {
-                        cx = t * canvas.width;
-                        cy = depthPxY;
-                    } else if (side === 1) {
-                        cx = t * canvas.width;
-                        cy = canvas.height - depthPxY;
-                    } else if (side === 2) {
-                        cx = depthPxX;
-                        cy = t * canvas.height;
-                    } else {
-                        cx = canvas.width - depthPxX;
-                        cy = t * canvas.height;
-                    }
-                    const sizePx = 3 + rng() * 12;
-                    const bright = 80 + Math.floor(rng() * 100);
-                    const color = `rgb(${bright},${bright + 8},${bright + 18})`;
-                    const alpha = 0.4 + rng() * 0.6;
-                    const pts = 5 + Math.floor(rng() * 4);
-                    const verts = [];
-                    for (let j = 0; j < pts; j++) {
-                        const angle = (j / pts) * Math.PI * 2;
-                        const rv = sizePx * (0.4 + rng() * 0.6);
-                        verts.push({ ox: Math.cos(angle) * rv, oy: Math.sin(angle) * rv });
-                    }
-                    wRocks.push({ cx, cy, color, alpha, verts });
-                }
-                window._rockCache[rockKey] = wRocks;
-            }
-            const rocks = window._rockCache[rockKey];
-            for (let i = 0; i < rocks.length; i++) {
-                const r = rocks[i];
-                ctx.fillStyle = r.color;
-                ctx.globalAlpha = r.alpha;
-                ctx.beginPath();
-                for (let j = 0; j < r.verts.length; j++) {
-                    const px = r.cx + r.verts[j].ox;
-                    const py = r.cy + r.verts[j].oy;
-                    if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-                }
-                ctx.closePath();
-                ctx.fill();
-            }
-            ctx.globalAlpha = 1.0;
-        } catch(e) {
-            console.warn("Rock border error:", e);
-        }
 
         // ========== DIBUJAR SPAWNS ==========
         const spawns = m.spawns || [];
@@ -2610,14 +2854,6 @@ function initMapRadar() {
             }
         });
 
-        if (window._mapRadarObjectMode) {
-            const modeStyle = OBJECT_STYLES[window._mapRadarObjectMode];
-            ctx.fillStyle = modeStyle ? modeStyle.color : '#fff';
-            ctx.font = 'bold 10px Outfit';
-            ctx.textAlign = 'left';
-            ctx.fillText(`MODO: COLOCAR ${window._mapRadarObjectMode.toUpperCase()}  (clic para colocar)`, 8, 16);
-        }
-
         if (window.lastMouseWorldX !== undefined && window.lastMouseWorldY !== undefined) {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             ctx.font = '10px monospace';
@@ -2628,60 +2864,6 @@ function initMapRadar() {
         requestAnimationFrame(draw);
     };
     draw();
-}
-
-// Activar/desactivar modo de colocación de puerta en el radar del mapa
-function setMapRadarObjectMode(type) {
-    window._mapRadarObjectMode = type;
-    const hint = document.getElementById('map-radar-mode-hint');
-    const canvas = document.getElementById('map-radar-canvas');
-    if (type) {
-        const labels = { door: '🚪 Puerta' };
-        if (hint) hint.innerHTML = `<span style="color:#ffd700;">MODO: Haz clic en el radar para colocar ${labels[type] || type}. Presioná "Mover" para salir.</span>`;
-        if (canvas) canvas.style.cursor = 'cell';
-    } else {
-        if (hint) hint.textContent = '🖱️ Arrastra puertas/spawns u objetos o haz clic para ver coordenadas.';
-        if (canvas) canvas.style.cursor = 'crosshair';
-    }
-}
-
-// Agregar puerta al mapa desde el botón del panel
-function addMapObject(mapId) {
-    if (!config.mapsConfig[mapId]) return;
-    if (!config.mapsConfig[mapId].objects) config.mapsConfig[mapId].objects = [];
-    const radarX = parseInt(document.getElementById('map-radar-x')?.value) || 5000;
-    const radarY = parseInt(document.getElementById('map-radar-y')?.value) || 5000;
-
-    config.mapsConfig[mapId].objects.push({
-        type: 'door',
-        label: 'Puerta',
-        x: radarX,
-        y: radarY,
-        assetPath: 'res://assets/Puertas/3D/Puerta2/Puerta2.glb',
-        targetZoneId: '',
-        targetX: 5000,
-        targetY: 5000,
-        scale: 1.0,
-        rotY: 0,
-        yOffset: 2.5
-    });
-}
-
-
-// Resaltar visualmente la tarjeta de objeto en el panel
-function highlightMapObject(idx) {
-    window._highlightedMapObj = idx;
-    document.querySelectorAll('[id^="card-map-obj-"]').forEach(el => {
-        el.style.boxShadow = '';
-        el.style.borderColor = '';
-        el.style.background = '';
-    });
-    const card = document.getElementById(`card-map-obj-${idx}`);
-    if (card) {
-        card.style.borderColor = 'var(--accent)';
-        card.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.45)';
-        card.style.background = 'rgba(6, 182, 212, 0.08)';
-    }
 }
 
 // ============================================================================
