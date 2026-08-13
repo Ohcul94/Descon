@@ -1496,13 +1496,18 @@ func _set_portal_icon(type: String):
 		portal_icon_holder.add_child(model)
 
 func _on_map_portal_jump_pressed(target_zone: String, _tx: float, _ty: float):
-	print("[BaseMap] Warp interactivo presionado -> Zona ", target_zone)
+	print("[BaseMap] Warp interactivo presionado -> Zona ", target_zone, " coord: ", _tx, ", ", _ty)
 	if NetworkManager:
 		var target_val: Variant = target_zone
 		if target_zone.is_valid_int():
 			target_val = int(target_zone)
 			
-		NetworkManager.send_event("changeZone", target_val)
+		var payload = {
+			"zoneId": target_val,
+			"x": _tx,
+			"y": _ty
+		}
+		NetworkManager.send_event("changeZone", payload)
 
 # Manejador genérico del botón de interacción (portal / vault / loot)
 func _on_interact_button_pressed():

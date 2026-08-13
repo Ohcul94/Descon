@@ -1141,10 +1141,10 @@ function confirmMapAdd() {
             type: type,
             count: parseInt(document.getElementById('map-add-count').value) || 5,
             intervalMs: parseInt(document.getElementById('map-add-interval').value) || 5000,
-            spawnMode: mode,
+            spawnMode: mode === 'fixed' ? 'fixed' : 'random',
             x: parseInt(document.getElementById('map-add-x').value) || 0,
             y: parseInt(document.getElementById('map-add-y').value) || 0,
-            radius: parseInt(document.getElementById('map-add-radius').value) || 300
+            radius: mode === 'random_global' ? 0 : (parseInt(document.getElementById('map-add-radius').value) || 300)
         });
         newIdx = m.spawns.length - 1;
         window._mapCardExpanded[`spawn-${newIdx}`] = true;
@@ -1186,6 +1186,45 @@ function confirmMapAdd() {
     if (newIdx >= 0) selectMapItem(kind === 'enemy' ? 'spawn' : kind, newIdx);
 }
 
+// Duplicar un ítem del mapa (Ctrl+D o botón ⧉ de la tarjeta)
+function duplicateMapItem(kind, idx) {
+    const m = config.mapsConfig[selectedMapId];
+    if (!m) return;
+    let newIdx = -1;
+
+    if (kind === 'spawn') {
+        const s = m.spawns && m.spawns[idx];
+        if (!s) return;
+        if (!m.spawns) m.spawns = [];
+        const clone = JSON.parse(JSON.stringify(s));
+        clone.id = 'spawn_' + Date.now() + Math.floor(Math.random() * 1000);
+        m.spawns.push(clone);
+        newIdx = m.spawns.length - 1;
+        window._mapCardExpanded[`spawn-${newIdx}`] = true;
+    } else if (kind === 'door') {
+        const o = m.objects && m.objects[idx];
+        if (!o) return;
+        if (!m.objects) m.objects = [];
+        m.objects.push(JSON.parse(JSON.stringify(o)));
+        newIdx = m.objects.length - 1;
+        window._mapCardExpanded[`door-${newIdx}`] = true;
+    } else if (kind === 'ambience') {
+        const a = m.ambience && m.ambience[idx];
+        if (!a) return;
+        if (!m.ambience) m.ambience = [];
+        m.ambience.push(JSON.parse(JSON.stringify(a)));
+        newIdx = m.ambience.length - 1;
+        window._mapCardExpanded[`amb-${newIdx}`] = true;
+    } else {
+        return;
+    }
+
+    renderMapDetail();
+    if (newIdx >= 0) {
+        selectMapItem(kind, newIdx);
+    }
+}
+
 // ============================================================================
 // TECLADO GLOBAL: SUPR para eliminar lo seleccionado en Cartografía + ESC para cerrar modales
 // ============================================================================
@@ -1199,7 +1238,7 @@ function handleGlobalKeydown(e) {
         return;
     }
 
-    if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+    if (e.key !== 'Delete' && e.key !== 'Backspace' && !((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D'))) return;
 
     const view = document.getElementById('view-map-detail');
     if (!view || !view.classList.contains('active')) return;
@@ -1208,6 +1247,22 @@ function handleGlobalKeydown(e) {
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
 
     e.preventDefault();
+
+    // Ctrl+D: duplicar el ítem seleccionado de Cartografía
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
+        const addOverlay = document.getElementById('map-add-overlay');
+        if (addOverlay && addOverlay.style.display === 'flex') return;
+        const confirmOverlay = document.getElementById('confirm-overlay');
+        if (confirmOverlay && confirmOverlay.style.display === 'flex') return;
+        const sel = window._mapSelection;
+        if (!sel) {
+            showToast('⚠️ Seleccioná primero un enemigo, puerta o mecánica para duplicarla (clic en el radar o en la lista).');
+            return;
+        }
+        duplicateMapItem(sel.kind, sel.index);
+        return;
+    }
+
     const sel = window._mapSelection;
     if (!sel) {
         showToast('⚠️ Seleccioná primero un enemigo, puerta o mecánica (clic en el radar o en la lista).');
@@ -1308,6 +1363,13 @@ function patchMechanicsLib() {
                         }
                         if (!s.spawnMode) {
                             s.spawnMode = "random";
+                        }
+                        if (s.spawnMode === 'random_global') {
+                            s.spawnMode = 'random';
+                            s.radius = 0;
+                        } else if (s.spawnMode === 'random_zone') {
+                            s.spawnMode = 'random';
+                            if (!s.radius || s.radius === 0) s.radius = 300;
                         }
                         if (s.x === undefined) s.x = 1000;
                         if (s.y === undefined) s.y = 1000;

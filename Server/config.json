@@ -1064,32 +1064,23 @@
     },
     "enemyModels": {
         "1": {
-            "aggressive": true,
+            "aggressive": false,
             "bulletDamage": 40,
             "bulletSpeed": 800,
             "chaseUntilDeath": false,
-            "chestDropChance": 1,
-            "defenseMechanics": [
-                {
-                    "cooldown": 10000,
-                    "duration": 5000,
-                    "reductionPercentage": 10,
-                    "shieldRegen": 5,
-                    "startDelay": 0,
-                    "type": "basic_defense"
-                }
-            ],
+            "chestDropChance": 0,
+            "defenseMechanics": [],
             "fireRange": 600,
             "fireRate": 1000,
-            "hp": 300,
+            "hp": 10,
             "icon": "res://assets/Crafteo/Enemy1Map1.png",
             "lootDrops": [],
             "mechanics": [
                 {
                     "bulletDamage": 1,
-                    "bulletSpeed": 800,
+                    "bulletSpeed": 500,
                     "fireRange": 1000,
-                    "fireRate": 1000,
+                    "fireRate": 3000,
                     "isHoming": false,
                     "slowAmount": 0,
                     "slowDuration": 0,
@@ -1098,8 +1089,8 @@
             ],
             "movementPhases": [
                 {
-                    "idealDist": 150,
-                    "speed": 3.5,
+                    "idealDist": 300,
+                    "speed": 10,
                     "startDelay": 2000,
                     "stopDist": 150,
                     "type": "sniper"
@@ -1111,45 +1102,48 @@
             "rewardExp": 10,
             "rewardHubs": 10,
             "rewardOhcu": 1,
-            "shield": 100,
+            "shield": 10,
             "speed": 450,
             "stopOnOutOfSight": true,
-            "visionRange": 1200
+            "visionRange": 800,
+            "leashRange": 1500,
+            "regenIntervalMs": 3000
         },
         "2": {
-            "aggressive": true,
+            "aggressive": false,
             "bulletDamage": 600,
             "bulletSpeed": 800,
             "defenseMechanics": [],
             "fireRange": 650,
             "fireRate": 1200,
-            "hp": 400,
+            "hp": 20,
             "icon": "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png",
             "lootDrops": [],
             "mechanics": [
                 {
-                    "bulletDamage": 10,
-                    "bulletSpeed": 800,
-                    "fireRange": 650,
-                    "fireRate": 1200,
+                    "bulletDamage": 2,
+                    "bulletSpeed": 600,
+                    "fireRange": 1000,
+                    "fireRate": 3000,
                     "slowAmount": 0,
                     "slowDuration": 0,
                     "type": "laser"
                 },
                 {
-                    "bulletDamage": 40,
-                    "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000,
+                    "bulletDamage": 4,
+                    "bulletSpeed": 400,
+                    "fireRange": 1000,
+                    "fireRate": 5000,
                     "isHoming": false,
-                    "slowAmount": 500,
-                    "slowDuration": 200,
-                    "type": "ice_missile"
+                    "slowAmount": 50,
+                    "slowDuration": 1000,
+                    "type": "ice_missile",
+                    "startDelay": 2000
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 200,
+                    "speed": 150,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -1161,11 +1155,14 @@
             "rewardExp": 15,
             "rewardHubs": 20,
             "rewardOhcu": 2,
-            "shield": 200,
-            "speed": 420
+            "shield": 20,
+            "speed": 420,
+            "stopOnOutOfSight": true,
+            "leashRange": 1500,
+            "regenIntervalMs": 3000
         },
         "3": {
-            "aggressive": true,
+            "aggressive": false,
             "bulletDamage": 80,
             "bulletSpeed": 850,
             "chaseIdleTimeout": 0,
@@ -1174,7 +1171,7 @@
             "defenseMechanics": [],
             "fireRange": 700,
             "fireRate": 1100,
-            "hp": 500,
+            "hp": 30,
             "icon": "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png",
             "leashRange": 1000,
             "lootDrops": [
@@ -1185,24 +1182,30 @@
             ],
             "mechanics": [
                 {
-                    "bulletDamage": 40,
-                    "bulletSpeed": 900,
+                    "bulletDamage": 3,
+                    "bulletSpeed": 600,
                     "fireRange": 1000,
                     "fireRate": 3000,
-                    "type": "laser"
+                    "type": "laser",
+                    "burstShots": 2
                 },
                 {
                     "bulletDamage": 10,
-                    "bulletSpeed": 600,
+                    "bulletSpeed": 500,
                     "fireRange": 1000,
                     "fireRate": 2000,
                     "isHoming": true,
                     "lifetimeMs": 4000,
                     "slowAmount": 50,
                     "slowDuration": 2000,
-                    "startDelay": 500,
+                    "startDelay": 1500,
                     "turnSpeed": 2,
-                    "type": "ice_missile"
+                    "type": "bomb",
+                    "radius": 150,
+                    "bombCount": 1,
+                    "bombDelayMs": 0,
+                    "fuseTimeMs": 0,
+                    "cooldown": 5000
                 }
             ],
             "movementPhases": [
@@ -1210,19 +1213,21 @@
                     "speed": 200,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "chase"
+                    "type": "sniper",
+                    "idealDist": 150
                 }
             ],
             "name": "Enemigo 3",
             "rankingPoints": 3,
-            "regenDelayMs": 6000,
-            "rewardExp": 25,
+            "regenDelayMs": 10000,
+            "rewardExp": 20,
             "rewardHubs": 30,
             "rewardOhcu": 3,
-            "shield": 300,
+            "shield": 30,
             "speed": 400,
             "stopOnOutOfSight": true,
-            "visionRange": 1000
+            "visionRange": 1000,
+            "regenIntervalMs": 3000
         },
         "4": {
             "aggressive": false,
@@ -2717,7 +2722,7 @@
             "defenseMechanics": [],
             "fireRange": 650,
             "fireRate": 1200,
-            "hp": 1600,
+            "hp": 150,
             "leashRange": 1000,
             "lootDrops": [
                 {
@@ -2727,7 +2732,7 @@
             ],
             "mechanics": [
                 {
-                    "bulletDamage": 30,
+                    "bulletDamage": 10,
                     "bulletSpeed": 800,
                     "fireRange": 900,
                     "fireRate": 3000,
@@ -2744,7 +2749,7 @@
                     "lifetimeMs": 0,
                     "slowAmount": 50,
                     "slowDuration": 2000,
-                    "startDelay": 500,
+                    "startDelay": 1500,
                     "turnSpeed": 0,
                     "type": "missile"
                 }
@@ -2759,10 +2764,10 @@
             ],
             "name": "Enemigo 2 A",
             "rankingPoints": 2,
-            "rewardExp": 400,
-            "rewardHubs": 400,
-            "rewardOhcu": 4,
-            "shield": 600,
+            "rewardExp": 15,
+            "rewardHubs": 20,
+            "rewardOhcu": 2,
+            "shield": 200,
             "speed": 420,
             "stopOnOutOfSight": true,
             "visionRange": 900
@@ -2949,7 +2954,8 @@
             "shield": 1200,
             "speed": 400,
             "stopOnOutOfSight": true,
-            "visionRange": 1000
+            "visionRange": 1000,
+            "lootDrops": []
         },
         "3-B": {
             "aggressive": true,
@@ -5203,9 +5209,10 @@
                     "targetX": 5000,
                     "targetZoneId": "2",
                     "type": "door",
-                    "x": 1307,
-                    "y": 1748.35,
-                    "yOffset": 3
+                    "x": 1499,
+                    "y": 1708,
+                    "yOffset": 3,
+                    "targetY": 500
                 },
                 {
                     "assetPath": "res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo1/Decorativo1.glb",
@@ -5287,7 +5294,7 @@
             "ambience": [],
             "color": "#00ff00",
             "desc": "Zona de entrenamiento básico y recolección.",
-            "height": 10000,
+            "height": 5000,
             "minLevel": 1,
             "name": "Mapa 2",
             "objects": [
@@ -5300,8 +5307,8 @@
                     "targetY": 5000,
                     "targetZoneId": "3",
                     "type": "door",
-                    "x": 5085,
-                    "y": 5068,
+                    "x": 9380,
+                    "y": 4703,
                     "yOffset": 2.5
                 }
             ],
@@ -5312,7 +5319,7 @@
                     "intervalMs": 5000,
                     "radius": 1000,
                     "spawnMode": "random",
-                    "type": "1-A",
+                    "type": "1",
                     "x": 8990,
                     "y": 1076
                 },
@@ -5322,7 +5329,7 @@
                     "intervalMs": 5000,
                     "radius": 1000,
                     "spawnMode": "random",
-                    "type": "1-A",
+                    "type": "1",
                     "x": 3480,
                     "y": 1033
                 },
@@ -5332,7 +5339,7 @@
                     "intervalMs": 5000,
                     "radius": 1000,
                     "spawnMode": "random",
-                    "type": "1-A",
+                    "type": "1",
                     "x": 6517,
                     "y": 1098
                 },
@@ -5342,9 +5349,79 @@
                     "intervalMs": 5000,
                     "radius": 1000,
                     "spawnMode": "random",
-                    "type": "1-A",
+                    "type": "1",
                     "x": 1000,
                     "y": 1000
+                },
+                {
+                    "id": "spawn_1786642301652729",
+                    "type": "2",
+                    "count": 3,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 7992,
+                    "y": 2523,
+                    "radius": 1000
+                },
+                {
+                    "id": "spawn_1786642331663538",
+                    "type": "2",
+                    "count": 3,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 1940,
+                    "y": 2523,
+                    "radius": 1000
+                },
+                {
+                    "id": "spawn_178664234055151",
+                    "type": "2",
+                    "count": 3,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 4955,
+                    "y": 2523,
+                    "radius": 1000
+                },
+                {
+                    "id": "spawn_1786644226818322",
+                    "type": "3",
+                    "count": 3,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 6018,
+                    "y": 4009,
+                    "radius": 1000
+                },
+                {
+                    "id": "spawn_1786644360159459",
+                    "type": "3",
+                    "count": 3,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 1029,
+                    "y": 4009,
+                    "radius": 1000
+                },
+                {
+                    "id": "spawn_178664440412724",
+                    "type": "3",
+                    "count": 3,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 3458,
+                    "y": 4009,
+                    "radius": 1000
+                },
+                {
+                    "id": "spawn_1786644473782993",
+                    "type": "101",
+                    "count": 1,
+                    "intervalMs": 40000,
+                    "spawnMode": "fixed",
+                    "x": 8838,
+                    "y": 4443,
+                    "radius": 300
                 }
             ],
             "timeRestrictionsEnabled": false,
@@ -6869,7 +6946,7 @@
     "shipModels": [
         {
             "assetPath": "res://assets/Personajes/3D/Nave1/futuristic+jet+3d+model_Clone1.glb",
-            "hp": 100,
+            "hp": 10,
             "icon": "res://assets/Personajes/2D/Nave1/Nave1 (Lista).png",
             "id": 1,
             "name": "Phoenix-L1",
@@ -6880,7 +6957,7 @@
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 100,
+            "shield": 10,
             "slots": {
                 "e": 1,
                 "s": 1,
@@ -6888,11 +6965,12 @@
                 "x": 1
             },
             "speed": 250,
-            "vision": 1300
+            "vision": 1300,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave2/Nave2.glb",
-            "hp": 200,
+            "hp": 20,
             "icon": "res://assets/Personajes/2D/Nave2/Nave2 (Lista).png",
             "id": 2,
             "name": "Vulture-G2",
@@ -6903,7 +6981,7 @@
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 200,
+            "shield": 20,
             "slots": {
                 "e": 2,
                 "s": 2,
@@ -6911,11 +6989,12 @@
                 "x": 2
             },
             "speed": 250,
-            "vision": 1300
+            "vision": 1500,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave3/Nave3.glb",
-            "hp": 400,
+            "hp": 40,
             "icon": "res://assets/Personajes/2D/Nave3/Nave3.png",
             "id": 3,
             "name": "Falcon-A3",
@@ -6926,7 +7005,7 @@
             "rotX": 0,
             "rotY": 1,
             "rotZ": 98,
-            "shield": 400,
+            "shield": 40,
             "slots": {
                 "e": 4,
                 "s": 4,
@@ -6934,11 +7013,12 @@
                 "x": 3
             },
             "speed": 250,
-            "vision": 1300
+            "vision": 1700,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave4/Nave4.glb",
-            "hp": 800,
+            "hp": 80,
             "icon": "res://assets/Personajes/2D/Nave4/Nave4.png",
             "id": 4,
             "name": "Titan-S4",
@@ -6957,12 +7037,13 @@
                 "x": 4
             },
             "speed": 250,
-            "vision": 1300
+            "vision": 1300,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave5/Nave5.glb",
             "hidden": false,
-            "hp": 1600,
+            "hp": 160,
             "icon": "res://assets/Personajes/2D/Nave5/Nave5.png",
             "id": 5,
             "name": "Wraith-X5",
@@ -6973,7 +7054,7 @@
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 1600,
+            "shield": 160,
             "slots": {
                 "e": 12,
                 "s": 12,
@@ -6981,11 +7062,12 @@
                 "x": 5
             },
             "speed": 250,
-            "vision": 1300
+            "vision": 1300,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave6/Nave6.glb",
-            "hp": 320000,
+            "hp": 320,
             "icon": "res://assets/Personajes/2D/Nave6/Nave6.png",
             "id": 6,
             "name": "Galactus-Z6",
@@ -6996,7 +7078,7 @@
             "rotX": 0,
             "rotY": 180,
             "rotZ": 0,
-            "shield": 3200,
+            "shield": 320,
             "slots": {
                 "e": 16,
                 "s": 16,
@@ -7004,11 +7086,12 @@
                 "x": 6
             },
             "speed": 1000,
-            "vision": 1000
+            "vision": 1000,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave7/Nave7.glb",
-            "hp": 3000,
+            "hp": 400,
             "icon": "res://assets/Personajes/2D/Nave7/Nave7.png",
             "id": 7,
             "name": "Tico 11",
@@ -7019,7 +7102,7 @@
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 1000,
+            "shield": 400,
             "slots": {
                 "e": 1,
                 "s": 1,
@@ -7027,11 +7110,12 @@
                 "x": 1
             },
             "speed": 300,
-            "vision": 1300
+            "vision": 1300,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave8/Nave8.glb",
-            "hp": 3000,
+            "hp": 500,
             "icon": "res://assets/Personajes/2D/Nave8/Nave8.png",
             "id": 8,
             "name": "Pinfli 12",
@@ -7042,7 +7126,7 @@
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 1000,
+            "shield": 500,
             "slots": {
                 "e": 1,
                 "s": 1,
@@ -7050,11 +7134,12 @@
                 "x": 1
             },
             "speed": 400,
-            "vision": 1300
+            "vision": 1300,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave9/Nave9.glb",
-            "hp": 3000,
+            "hp": 600,
             "icon": "res://assets/Personajes/2D/Nave9/Nave9.png",
             "id": 9,
             "name": "Nueva Nave N9",
@@ -7065,7 +7150,7 @@
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 1000,
+            "shield": 600,
             "slots": {
                 "e": 1,
                 "s": 1,
@@ -7073,11 +7158,12 @@
                 "x": 1
             },
             "speed": 300,
-            "vision": 1300
+            "vision": 1300,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave10/Nave10.glb",
-            "hp": 3000,
+            "hp": 800,
             "icon": "res://assets/Personajes/2D/Nave10/Nave10.png",
             "id": 10,
             "name": "Nueva Nave N10",
@@ -7088,7 +7174,7 @@
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 1000,
+            "shield": 800,
             "slots": {
                 "e": 1,
                 "s": 1,
@@ -7096,11 +7182,12 @@
                 "x": 1
             },
             "speed": 300,
-            "vision": 1300
+            "vision": 1300,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave11/Nave11.glb",
-            "hp": 3000,
+            "hp": 1000,
             "icon": "res://assets/Personajes/2D/Nave11/Nave11.png",
             "id": 11,
             "name": "Nueva Nave N11",
@@ -7119,11 +7206,12 @@
                 "x": 1
             },
             "speed": 300,
-            "vision": 1300
+            "vision": 1300,
+            "baseDmg": 10
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave12/Nave12.glb",
-            "hp": 3000,
+            "hp": 10000,
             "icon": "res://assets/Personajes/2D/Nave12/Nave12.png",
             "id": 12,
             "name": "Nueva Nave N12",
@@ -7134,7 +7222,7 @@
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 1000,
+            "shield": 100000,
             "slots": {
                 "e": 1,
                 "s": 1,
@@ -7142,7 +7230,8 @@
                 "x": 1
             },
             "speed": 300,
-            "vision": 1300
+            "vision": 1300,
+            "baseDmg": 10
         }
     ],
     "shopItems": {
@@ -8021,7 +8110,7 @@
         ],
         "weapons": [
             {
-                "base": 100,
+                "base": 10,
                 "desc": "Láser básico.",
                 "hpMod": 20,
                 "hpModType": "flat",
@@ -8036,7 +8125,7 @@
                 "speedModType": "flat"
             },
             {
-                "base": 250,
+                "base": 25,
                 "desc": "Mejora en potencia.",
                 "icon": "res://assets/Armas/Arma2/Arma2.png",
                 "id": "las2",
@@ -8047,7 +8136,7 @@
                 }
             },
             {
-                "base": 600,
+                "base": 60,
                 "desc": "Estándar militar.",
                 "icon": "res://assets/Armas/Arma3/Arma3.png",
                 "id": "las3",
@@ -8058,7 +8147,7 @@
                 }
             },
             {
-                "base": 1500,
+                "base": 150,
                 "desc": "Vanguardia tecnológica.",
                 "icon": "res://assets/Armas/Arma4/Arma4.png",
                 "id": "las4",
@@ -8069,7 +8158,7 @@
                 }
             },
             {
-                "base": 5000,
+                "base": 500,
                 "desc": "Poder solar concentrado.",
                 "icon": "res://assets/Armas/Arma5/Arma5.png",
                 "id": "las5",
@@ -8081,7 +8170,7 @@
                 }
             },
             {
-                "base": 15000,
+                "base": 1500,
                 "desc": "Disruptor de materia.",
                 "icon": "res://assets/Armas/Arma6/Arma6.png",
                 "id": "las6",

@@ -10,6 +10,65 @@ const WORLD_DEFAULT_SIZE = 10000.0
 var world_size: float = WORLD_DEFAULT_SIZE
 var info_label: Label = null
 
+func get_current_world_dimensions() -> Vector2:
+	var player = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(player):
+		return Vector2(WORLD_DEFAULT_SIZE, WORLD_DEFAULT_SIZE)
+		
+	var current_zone_id = str(player.current_zone) if "current_zone" in player else "1"
+	var worldW: float = WORLD_DEFAULT_SIZE
+	var worldH: float = WORLD_DEFAULT_SIZE
+	
+	var full_cfg_temp = GameConstants.get("FULL_CONFIG")
+	
+	# 1. PRIORIDAD: leer width/height desde mapsConfig del servidor
+	if current_zone_id in GameConstants.MAPS_CONFIG:
+		var mc = GameConstants.MAPS_CONFIG[current_zone_id]
+		if mc.has("width") and float(mc.width) > 0:
+			worldW = float(mc.width)
+		if mc.has("height") and float(mc.height) > 0:
+			worldH = float(mc.height)
+	
+	# 2. Sobreescribir con dimensiones de modos de juego especiales
+	var is_altar_def_mode = false
+	if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("altar_defense"):
+		var ad_maps = full_cfg_temp.gameModes.altar_defense.get("maps", [])
+		for m in ad_maps:
+			if int(m) == int(current_zone_id):
+				is_altar_def_mode = true
+				break
+		if is_altar_def_mode:
+			var ad = full_cfg_temp.gameModes.altar_defense
+			if ad.has("width") and float(ad.width) > 0:
+				worldW = float(ad.width)
+			if ad.has("height") and float(ad.height) > 0:
+				worldH = float(ad.height)
+	
+	if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("extraction"):
+		var ext_maps = full_cfg_temp.gameModes.extraction.get("maps", [])
+		for em in ext_maps:
+			if int(em) == int(current_zone_id):
+				var ext = full_cfg_temp.gameModes.extraction
+				if ext.has("width") and float(ext.width) > 0:
+					worldW = float(ext.width)
+				if ext.has("height") and float(ext.height) > 0:
+					worldH = float(ext.height)
+				break
+	
+	# 3. Fallback final: mapa cargado en escena
+	var current_map = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(current_map):
+		var p_parent = player.get_parent()
+		if is_instance_valid(p_parent) and "current_map_node" in p_parent and is_instance_valid(p_parent.current_map_node):
+			current_map = p_parent.current_map_node
+	if is_instance_valid(current_map) and "world_size" in current_map and float(current_map.world_size) > 0:
+		if worldW == WORLD_DEFAULT_SIZE:
+			worldW = float(current_map.world_size)
+		if worldH == WORLD_DEFAULT_SIZE:
+			worldH = float(current_map.world_size)
+			
+	return Vector2(worldW, worldH)
+
 func _input(event):
 	if event is InputEventMouseButton and event.pressed:
 		# v269.150: Bloqueo de navegación durante edición de HUD
@@ -36,16 +95,21 @@ func _input(event):
 				var target_world_pos = Vector2.ZERO
 				var is_rotate = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
 				var p = get_tree().get_first_node_in_group("player")
+				
+				var dims = get_current_world_dimensions()
+				var worldW = dims.x
+				var worldH = dims.y
+				
 				if is_rotate and is_instance_valid(p):
-					var s_x = size.x / max(world_size, 1.0)
-					var s_y = size.y / max(world_size, 1.0)
+					var s_x = size.x / max(worldW, 1.0)
+					var s_y = size.y / max(worldH, 1.0)
 					var p_mp = Vector2(p.global_position.x * s_x, p.global_position.y * s_y)
 					var offset = local_m_pos - p_mp
 					var derotated = p_mp + offset.rotated(PI/2 + p.rotation)
 					target_world_pos = Vector2(derotated.x / max(s_x, 0.001), derotated.y / max(s_y, 0.001))
 				else:
 					var map_pos = local_m_pos / size
-					target_world_pos = map_pos * world_size
+					target_world_pos = Vector2(map_pos.x * worldW, map_pos.y * worldH)
 				
 				if is_instance_valid(p) and p.has_method("set_autopilot"):
 					if p.get_meta("spawn_locked", false):
@@ -142,57 +206,9 @@ func _draw():
 	# SYNC FIX v200.0: Calcular worldW/worldH desde MAPS_CONFIG del servidor
 	# El AdminDash usa `m.width || 10000` — ahora Godot usa la misma fuente.
 	# =====================================================================
-	var worldW: float = WORLD_DEFAULT_SIZE
-	var worldH: float = WORLD_DEFAULT_SIZE
-	
-	var full_cfg_temp = GameConstants.get("FULL_CONFIG")
-	
-	# 1. PRIORIDAD: leer width/height desde mapsConfig del servidor
-	if current_zone_id in GameConstants.MAPS_CONFIG:
-		var mc = GameConstants.MAPS_CONFIG[current_zone_id]
-		if mc.has("width") and float(mc.width) > 0:
-			worldW = float(mc.width)
-		if mc.has("height") and float(mc.height) > 0:
-			worldH = float(mc.height)
-	
-	# 2. Sobreescribir con dimensiones de modos de juego especiales
-	var is_altar_def_mode = false
-	if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("altar_defense"):
-		var ad_maps = full_cfg_temp.gameModes.altar_defense.get("maps", [])
-		for m in ad_maps:
-			if int(m) == int(current_zone_id):
-				is_altar_def_mode = true
-				break
-		if is_altar_def_mode:
-			var ad = full_cfg_temp.gameModes.altar_defense
-			if ad.has("width") and float(ad.width) > 0:
-				worldW = float(ad.width)
-			if ad.has("height") and float(ad.height) > 0:
-				worldH = float(ad.height)
-	
-	if full_cfg_temp and full_cfg_temp.has("gameModes") and full_cfg_temp.gameModes.has("extraction"):
-		var ext_maps = full_cfg_temp.gameModes.extraction.get("maps", [])
-		for em in ext_maps:
-			if int(em) == int(current_zone_id):
-				var ext = full_cfg_temp.gameModes.extraction
-				if ext.has("width") and float(ext.width) > 0:
-					worldW = float(ext.width)
-				if ext.has("height") and float(ext.height) > 0:
-					worldH = float(ext.height)
-				break
-	
-	# 3. Fallback final: mapa cargado en escena
-	var current_map = get_tree().get_first_node_in_group("map")
-	if not is_instance_valid(current_map):
-		var p_parent = player.get_parent()
-		if is_instance_valid(p_parent) and "current_map_node" in p_parent and is_instance_valid(p_parent.current_map_node):
-			current_map = p_parent.current_map_node
-	if is_instance_valid(current_map) and "world_size" in current_map and float(current_map.world_size) > 0:
-		# Solo usar si worldW sigue siendo default (no sobrescrito por config)
-		if worldW == WORLD_DEFAULT_SIZE:
-			worldW = float(current_map.world_size)
-		if worldH == WORLD_DEFAULT_SIZE:
-			worldH = float(current_map.world_size)
+	var dims = get_current_world_dimensions()
+	var worldW: float = dims.x
+	var worldH: float = dims.y
 	
 	# Mantener world_size por compatibilidad legado
 	world_size = worldW

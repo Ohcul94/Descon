@@ -182,9 +182,20 @@ function registerZoneHandlers(socket, io, state) {
     });
 
     // CAMBIO DE ZONA TRADICIONAL
-    socket.on('changeZone', async (zoneId) => {
+    socket.on('changeZone', async (data) => {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
+
+        let zoneId;
+        let requestedX = null;
+        let requestedY = null;
+        if (data && typeof data === 'object') {
+            zoneId = data.zoneId;
+            requestedX = data.x;
+            requestedY = data.y;
+        } else {
+            zoneId = data;
+        }
 
         // v2.9: Si venía de una extracción activa, verificar si está cerca de un portal de escape para darle la victoria
         if (p.isExtracting) {
@@ -332,7 +343,6 @@ function registerZoneHandlers(socket, io, state) {
             // v268.80: Clonación profunda para evitar Circular References y crash de terminal
             const inventoryCopy = JSON.parse(JSON.stringify(user.gameData));
             socket.emit('inventoryData', { player: inventoryCopy });
-            socket.emit('changeZoneDone', zoneId);
 
             const newSize = (Number(zoneId) === 1 ? 2000 : 4000);
 
@@ -350,8 +360,19 @@ function registerZoneHandlers(socket, io, state) {
             state.playersByZone[zoneId][socket.id] = p;
 
             p.zone = zoneId;
-            p.x = newSize / 2;
-            p.y = newSize / 2;
+            if (requestedX !== null && requestedX !== undefined) {
+                p.x = Number(requestedX);
+            } else {
+                p.x = newSize / 2;
+            }
+            if (requestedY !== null && requestedY !== undefined) {
+                p.y = Number(requestedY);
+            } else {
+                p.y = newSize / 2;
+            }
+
+            socket.emit('changeZoneDone', { zoneId: zoneId, x: p.x, y: p.y });
+
             onZoneChanged(socket.id, zoneId, state, io);
             applyZoneRules(p, socket, io, state);
             socket.emit('playerStatSync', {

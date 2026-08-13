@@ -116,7 +116,10 @@ function registerCombatHandlers(socket, io, state) {
         p.selectedAmmo = typeKey;
         p.selectedAmmoTier = ammoTier;
 
-        let baseDamage = 100;
+        const shipId = p.currentShipId || 1;
+        const model = state.SERVER_CONFIG.shipModels ? state.SERVER_CONFIG.shipModels.find(m => m.id === shipId) : null;
+        let baseDamage = (model && model.baseDmg !== undefined) ? Number(model.baseDmg) : 100;
+
         if (p.equipped && p.equipped.w) {
             p.equipped.w.forEach(item => {
                 let baseVal = item.base || 0;
@@ -337,7 +340,10 @@ function registerCombatHandlers(socket, io, state) {
             return;
         }
 
-        let weaponsBase = 100; // Daño base de la nave
+        const shipId = p.currentShipId || 1;
+        const model = state.SERVER_CONFIG.shipModels ? state.SERVER_CONFIG.shipModels.find(m => m.id === shipId) : null;
+        let weaponsBase = (model && model.baseDmg !== undefined) ? Number(model.baseDmg) : 100; // Daño base de la nave
+
         if (p.equipped && p.equipped.w) {
             p.equipped.w.forEach(it => {
                 let baseVal = it.base || 0;

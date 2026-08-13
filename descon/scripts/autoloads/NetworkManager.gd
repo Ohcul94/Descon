@@ -457,7 +457,12 @@ func _dispatch_single_player(p_data: Dictionary, p_signal: String = "player_upda
 
 func send_event(p_ename: String, p_val: Variant):
 	if p_ename == "changeZone":
-		var z_str = str(p_val)
+		var z_str = ""
+		if typeof(p_val) == TYPE_DICTIONARY:
+			z_str = str(p_val.get("zoneId", "1"))
+		else:
+			z_str = str(p_val)
+			
 		if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(z_str):
 			var map_cfg = GameConstants.MAPS_CONFIG[z_str]
 			var pvp_mode = map_cfg.get("pvpMode", "tranquila")

@@ -600,6 +600,7 @@ function renderShips() {
                 <div class="field"><label>Escudo Total (pts)</label><input type="number" value="${ship.shield}" onchange="config.shipModels[${idx}].shield = parseInt(this.value)"></div>
                 <div class="field"><label>Velocidad (px/s)</label><input type="number" value="${ship.speed}" onchange="config.shipModels[${idx}].speed = parseInt(this.value)"></div>
                 <div class="field"><label>Rango de Visión (px)</label><input type="number" value="${ship.vision || 1300}" onchange="config.shipModels[${idx}].vision = parseInt(this.value)"></div>
+                <div class="field"><label>Daño Base (sin armas)</label><input type="number" value="${ship.baseDmg !== undefined ? ship.baseDmg : 100}" onchange="config.shipModels[${idx}].baseDmg = parseInt(this.value)"></div>
             </div>
             <div class="form-grid" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #333; display:grid;">
                 <div class="field"><label>Slots Armas (W)</label><input type="number" value="${ship.slots.w || 0}" onchange="config.shipModels[${idx}].slots.w = parseInt(this.value)"></div>
@@ -640,6 +641,7 @@ window.addNewShip = function() {
         shield: 1000,
         speed: 300,
         vision: 1300,
+        baseDmg: 100,
         slots: {
             w: 1,
             s: 1,
@@ -2035,7 +2037,7 @@ function renderMapDetail() {
                         <div class="field" style="flex:1;"><label>Radar Y</label><input type="number" id="map-radar-y" value="0" readonly></div>
                     </div>
                     <div id="map-radar-mode-hint" style="font-size:0.65rem; color:#888; text-align:center; width:100%;">
-                        🖱️ Arrastrá puertas/spawns para moverlos. Hacé clic para fijar coordenadas. Agregá elementos con los botones "+ AGREGAR" y eliminá lo seleccionado con la tecla <strong style="color:#ff4444;">SUPR</strong>.
+                        🖱️ Arrastrá puertas/spawns para moverlos. Hacé clic para fijar coordenadas. Agregá con "+ AGREGAR", duplicá lo seleccionado con <strong style="color:var(--accent);">CTRL+D</strong> y eliminá lo seleccionado con la tecla <strong style="color:#ff4444;">SUPR</strong>.
                     </div>
                 </div>
             </div>
@@ -2054,6 +2056,7 @@ function renderMapDetail() {
                                 <span style="flex:1; color:var(--accent); font-weight:bold; font-size:0.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${lib.label || a.type}</span>
                                 <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">GLOBAL</span>
                                 <span style="color:var(--accent); font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
+                                <button style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Duplicar (Ctrl+D)" onclick="event.stopPropagation(); duplicateMapItem('ambience', ${idx})">⧉</button>
                                 <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Eliminar (Supr)" onclick="event.stopPropagation(); requestMapDelete('ambience', ${idx})">✕</button>
                             </div>
                             ${isOpen ? `
@@ -2116,16 +2119,18 @@ function renderMapDetail() {
                     ${(m.spawns || []).map((s, idx) => {
                         const sEnemy = s.type ? config.enemyModels[s.type] : null;
                         const sName = sEnemy ? `[ID ${s.type}] ${sEnemy.name}` : (s.type ? `ID ${s.type}` : 'Sin enemigo asignado');
-                        const sMode = s.spawnMode === 'random' ? (s.radius > 0 ? '⭕ Área' : '🌍 Global') : '📍 Fijo';
+                        const isRandomMode = s.spawnMode === 'random' || s.spawnMode === 'random_global' || s.spawnMode === 'random_zone';
+                        const sMode = isRandomMode ? (s.radius > 0 ? '⭕ Área' : '🌍 Global') : '📍 Fijo';
                         const isOpen = isMapCardExpanded(`spawn-${idx}`);
                         return `
                         <div class="card" id="card-map-spawn-${idx}" style="margin-bottom:0.6rem; padding:0; position:relative; border-color: rgba(16, 185, 129, 0.2); overflow:visible; cursor:pointer;">
                             <div style="display:flex; align-items:center; gap:10px; padding:0.6rem 0.9rem; border-bottom: ${isOpen ? '1px solid rgba(255,255,255,0.06)' : 'none'};"
                                  onclick="selectMapItem('spawn', ${idx}); toggleMapCard('spawn-${idx}')">
                                 <span style="font-size:1rem;">👾</span>
-                                <span style="flex:1; color:var(--success); font-weight:bold; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sName}</span>
+                                <span id="spawn-name-${idx}" style="flex:1; color:var(--success); font-weight:bold; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${sName}</span>
                                 <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">${sMode} ×${s.count}</span>
                                 <span style="color:var(--success); font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
+                                <button style="background:none; border:none; color:var(--success); cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Duplicar (Ctrl+D)" onclick="event.stopPropagation(); duplicateMapItem('spawn', ${idx})">⧉</button>
                                 <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Eliminar (Supr)" onclick="event.stopPropagation(); requestMapDelete('spawn', ${idx})">✕</button>
                             </div>
                             ${isOpen ? `
@@ -2135,6 +2140,9 @@ function renderMapDetail() {
                                         <label>Tipo de Enemigo</label>
                                         ${renderSearchableEnemySelect(s.type, (newId) => {
                                             config.mapsConfig[selectedMapId].spawns[idx].type = newId;
+                                            const model = config.enemyModels[newId];
+                                            const el = document.getElementById(`spawn-name-${idx}`);
+                                            if (el) el.textContent = model ? `[ID ${newId}] ${model.name}` : `ID ${newId}`;
                                         }, 'var(--success)', `map-spawn-${idx}`)}
                                     </div>
                                     <div class="field">
@@ -2154,12 +2162,12 @@ function renderMapDetail() {
                                                           else if (val === 'random_zone') { s.spawnMode = 'random'; if (!s.radius || s.radius === 0) s.radius = 500; }
                                                           else if (val === 'fixed') { s.spawnMode = 'fixed'; }
                                                           renderMapDetail();">
-                                            <option value="random_global" ${s.spawnMode === 'random' && (!s.radius || s.radius === 0) ? 'selected' : ''}>🌍 Aleatorio (En todo el mapa)</option>
-                                            <option value="random_zone" ${s.spawnMode === 'random' && s.radius > 0 ? 'selected' : ''}>⭕ Aleatorio en un área (Centro + Radio)</option>
+                                            <option value="random_global" ${(s.spawnMode === 'random_global') || (s.spawnMode === 'random' && (!s.radius || s.radius === 0)) ? 'selected' : ''}>🌍 Aleatorio (En todo el mapa)</option>
+                                            <option value="random_zone" ${(s.spawnMode === 'random_zone') || (s.spawnMode === 'random' && s.radius > 0) ? 'selected' : ''}>⭕ Aleatorio en un área (Centro + Radio)</option>
                                             <option value="fixed" ${s.spawnMode === 'fixed' ? 'selected' : ''}>📍 Fijo (Coordenadas Exactas)</option>
                                         </select>
                                     </div>
-                                    ${s.spawnMode === 'fixed' || (s.spawnMode === 'random' && s.radius > 0) ? `
+                                    ${s.spawnMode === 'fixed' || s.spawnMode === 'random_zone' || (s.spawnMode === 'random' && s.radius > 0) ? `
                                     <div class="field">
                                         <label>Coordenada Centro X</label>
                                         <input type="number" value="${s.x !== undefined ? s.x : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].x = parseInt(this.value) || 0">
@@ -2169,7 +2177,7 @@ function renderMapDetail() {
                                         <input type="number" value="${s.y !== undefined ? s.y : 1000}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].y = parseInt(this.value) || 0">
                                     </div>
                                     ` : ''}
-                                    ${s.spawnMode === 'random' && s.radius > 0 ? `
+                                    ${(s.spawnMode === 'random' || s.spawnMode === 'random_zone') && s.radius > 0 ? `
                                     <div class="field" style="grid-column: span 2;">
                                         <label>Radio de Área de Spawn (px)</label>
                                         <input type="number" value="${s.radius}" oninput="config.mapsConfig['${selectedMapId}'].spawns[${idx}].radius = parseInt(this.value) || 0">
@@ -2205,6 +2213,7 @@ function renderMapDetail() {
                                 <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">X ${obj.x || 0}, Y ${obj.y || 0}</span>
                                 ${oTargetZone ? `<span style="font-size:0.6rem; color:#00d2ff; padding:2px 6px; border:1px solid rgba(0,210,255,0.3); border-radius:4px; white-space:nowrap;">→ ${oTargetZone}</span>` : ''}
                                 <span style="color:#00d2ff; font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
+                                <button style="background:none; border:none; color:#00d2ff; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Duplicar (Ctrl+D)" onclick="event.stopPropagation(); duplicateMapItem('door', ${idx})">⧉</button>
                                 <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Eliminar (Supr)" onclick="event.stopPropagation(); requestMapDelete('door', ${idx})">✕</button>
                             </div>
                             ${isOpen ? `

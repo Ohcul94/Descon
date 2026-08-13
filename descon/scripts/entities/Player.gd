@@ -670,7 +670,6 @@ func _on_inventory_received(p_data):
 	_recalculate_stats()
 
 func _recalculate_stats():
-	base_laser_damage = 100.0
 	var total_sh_bonus = 0.0
 	var total_hp_bonus = 0.0
 	var speed_bonus = 0.0
@@ -682,6 +681,20 @@ func _recalculate_stats():
 	var shield_mod_pct = 0.0
 	var dmg_mod_flat = 0.0
 	var dmg_mod_pct = 0.0
+	
+	var ship_base = { "hp": 3000, "shield": 1000, "speed": 300, "vision": 1300.0, "baseDmg": 100.0 }
+	for ship in GameConstants.SHIP_MODELS:
+		if ship.id == current_ship_id:
+			ship_base = ship
+			break
+			
+	var base_dmg_val = 100.0
+	if ship_base.has("baseDmg"):
+		base_dmg_val = float(ship_base.baseDmg)
+	elif ship_base.has("base_damage"):
+		base_dmg_val = float(ship_base.base_damage)
+		
+	base_laser_damage = base_dmg_val
 	
 	for cat in equipped:
 		var slot_list = equipped[cat]
@@ -717,12 +730,6 @@ func _recalculate_stats():
 			elif type == "h" or type == "hp" or type == "x" or cat == "h" or cat == "x":
 				total_hp_bonus += bonus
 	
-	var ship_base = { "hp": 3000, "shield": 1000, "speed": 300, "vision": 1300.0 }
-	for ship in GameConstants.SHIP_MODELS:
-		if ship.id == current_ship_id:
-			ship_base = ship
-			break
-			
 	vision_range = float(ship_base.get("vision", 1300.0))
 			
 	var base_hp_val = float(ship_base.get("hp", 3000)) + total_hp_bonus + hp_mod_flat
