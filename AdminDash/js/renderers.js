@@ -12,6 +12,110 @@ window.resolveAssetWebUrl = function(iconPath) {
     return path;
 };
 
+// v400.0: Sistema de Requisitos de Equipamiento (nivel, misiones completadas)
+// Cada ítem/habilidad soporta un array `requirements` con condiciones que TODAS deben cumplirse (AND).
+const REQUIREMENTS_TYPES = [
+    { value: 'level', label: 'Nivel mínimo' },
+    { value: 'quest_completed', label: 'Misión completada' }
+];
+const REQ_SECTIONS = {};
+
+function reqAttrEscape(str) {
+    return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;');
+}
+function reqSectionIdSanitize(id) {
+    return String(id).replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+function reqGetItem(secId) {
+    const expr = REQ_SECTIONS[secId];
+    if (!expr) return null;
+    try { return eval(expr); } catch (e) { return null; }
+}
+function reqAdd(secId) {
+    let item = reqGetItem(secId);
+    const expr = REQ_SECTIONS[secId];
+    if (!item && expr) {
+        try { eval(expr + ' = {}'); item = reqGetItem(secId); } catch (e) { return; }
+    }
+    if (!item) return;
+    if (!Array.isArray(item.requirements)) item.requirements = [];
+    item.requirements.push({ type: 'level', min: 1 });
+    renderRequirementsSection(secId);
+}
+function reqRemove(secId, idx) {
+    const item = reqGetItem(secId);
+    if (!item || !Array.isArray(item.requirements)) return;
+    item.requirements.splice(idx, 1);
+    renderRequirementsSection(secId);
+}
+function reqSetType(secId, idx, type) {
+    const item = reqGetItem(secId);
+    if (!item || !Array.isArray(item.requirements)) return;
+    const req = item.requirements[idx];
+    req.type = type;
+    if (type === 'level') { if (req.min === undefined) req.min = 1; delete req.questId; }
+    else if (type === 'quest_completed') { if (req.questId === undefined) req.questId = ''; delete req.min; }
+    renderRequirementsSection(secId);
+}
+function reqSetValue(secId, idx, key, value) {
+    const item = reqGetItem(secId);
+    if (!item || !Array.isArray(item.requirements)) return;
+    const req = item.requirements[idx];
+    if (key === 'min') req.min = parseInt(value) || 1;
+    else if (key === 'questId') req.questId = value;
+}
+function requirementsTypeOptions(selected) {
+    return REQUIREMENTS_TYPES.map(t => `<option value="${t.value}" ${selected === t.value ? 'selected' : ''}>${t.label}</option>`).join('');
+}
+function requirementsQuestOptions(selectedId) {
+    const quests = (typeof config !== 'undefined' && Array.isArray(config.questsConfig)) ? config.questsConfig : [];
+    if (!quests.length) return `<option value="">(Sin misiones configuradas)</option>`;
+    let html = `<option value="">— Seleccionar misión —</option>`;
+    quests.forEach(q => {
+        const qid = q.id || '';
+        html += `<option value="${reqAttrEscape(qid)}" ${String(selectedId || '') === String(qid) ? 'selected' : ''}>${reqAttrEscape(q.name || qid)} (${reqAttrEscape(qid)})</option>`;
+    });
+    return html;
+}
+function requirementsSectionHtml(secId, itemExpr) {
+    if (itemExpr !== undefined) REQ_SECTIONS[secId] = itemExpr;
+    const item = reqGetItem(secId);
+    const reqs = (item && Array.isArray(item.requirements)) ? item.requirements : [];
+    let rows = '';
+    reqs.forEach((req, idx) => {
+        const type = req.type || 'level';
+        let valueField = '';
+        if (type === 'level') {
+            valueField = `<input type="number" min="1" value="${req.min !== undefined ? req.min : 1}" style="width:90px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px;" onchange="reqSetValue('${secId}', ${idx}, 'min', this.value)">`;
+        } else if (type === 'quest_completed') {
+            valueField = `<select style="flex:1; min-width:220px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px;" onchange="reqSetValue('${secId}', ${idx}, 'questId', this.value)">${requirementsQuestOptions(req.questId)}</select>`;
+        }
+        rows += `
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
+                <select style="width:170px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px; font-size:0.68rem;" onchange="reqSetType('${secId}', ${idx}, this.value)">${requirementsTypeOptions(type)}</select>
+                ${valueField}
+                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:11px;" title="Quitar requisito" onclick="reqRemove('${secId}', ${idx})">✕</button>
+            </div>`;
+    });
+    return `
+        <div id="${secId}" class="field full" style="margin-top:1rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05); background:rgba(0,0,0,0.12); border-radius:8px; padding:12px;">
+            <label style="color:var(--accent); font-size:0.6rem; font-weight:bold; display:flex; align-items:center; gap:5px; margin-bottom:0.8rem; letter-spacing:1px; opacity:0.8;">
+                <span style="font-size:10px;">🔒</span> REQUISITOS DE EQUIPAMIENTO
+            </label>
+            ${rows || '<div style="font-size:0.68rem; opacity:0.45; margin-bottom:6px;">Sin requisitos: cualquier piloto puede equiparlo.</div>'}
+            <button class="btn" style="padding:4px 10px; font-size:0.62rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px;" onclick="reqAdd('${secId}')">+ AGREGAR REQUISITO</button>
+        </div>`;
+}
+function renderRequirementsSection(secId) {
+    const el = document.getElementById(secId);
+    if (!el) return;
+    const html = requirementsSectionHtml(secId);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const fresh = tmp.firstElementChild;
+    el.replaceWith(fresh);
+}
+
 window.renderSearchableEnemySelect = function(currentValue, onChangeCallback, borderCSSColor = 'var(--success)', extraId = '') {
     const currentEn = currentValue ? config.enemyModels[currentValue] : null;
     const currentName = currentEn ? `[ID ${currentValue}] ${currentEn.name}` : (currentValue ? `ID ${currentValue}` : '');
@@ -436,6 +540,8 @@ function renderAmmo() {
                 <div class="field"><label>Hubs (qty)</label><input type="number" value="${item.prices.hubs}" onchange="config.shopItems.ammo['${type}'][${i}].prices.hubs = parseInt(this.value)"></div>
                 <div class="field"><label>Ohcu (qty)</label><input type="number" value="${item.prices.ohcu}" onchange="config.shopItems.ammo['${type}'][${i}].prices.ohcu = parseInt(this.value)"></div>
             </div>
+
+            ${requirementsSectionHtml('req_ammo_' + reqSectionIdSanitize(type) + '_' + i, `config.shopItems.ammo["${type.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"][${i}]`)}
         `;
         grid.appendChild(card);
     });
@@ -470,6 +576,7 @@ function renderWeapons() {
                 <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${w.prices.hubs}" onchange="config.shopItems.weapons[${i}].prices.hubs = parseInt(this.value)"></div>
                 <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${w.prices.ohcu}" onchange="config.shopItems.weapons[${i}].prices.ohcu = parseInt(this.value)"></div>
             </div>
+            ${requirementsSectionHtml('req_weapon_' + i, `config.shopItems.weapons[${i}]`)}
         `;
         grid.appendChild(card);
     });
@@ -504,6 +611,7 @@ function renderShields() {
                 <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${s.prices.hubs}" onchange="config.shopItems.shields[${i}].prices.hubs = parseInt(this.value)"></div>
                 <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${s.prices.ohcu}" onchange="config.shopItems.shields[${i}].prices.ohcu = parseInt(this.value)"></div>
             </div>
+            ${requirementsSectionHtml('req_shield_' + i, `config.shopItems.shields[${i}]`)}
         `;
         grid.appendChild(card);
     });
@@ -539,6 +647,7 @@ function renderEngines() {
                 <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${e.prices.hubs}" onchange="config.shopItems.engines[${i}].prices.hubs = parseInt(this.value)"></div>
                 <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${e.prices.ohcu}" onchange="config.shopItems.engines[${i}].prices.ohcu = parseInt(this.value)"></div>
             </div>
+            ${requirementsSectionHtml('req_engine_' + i, `config.shopItems.engines[${i}]`)}
         `;
         grid.appendChild(card);
     });
@@ -2419,6 +2528,7 @@ function renderSkills() {
                     </div>
                 </div>
             </div>
+            ${requirementsSectionHtml('req_skill_' + reqSectionIdSanitize(name), `config.skillsData["${name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`)}
         `;
         grid.appendChild(card);
     }

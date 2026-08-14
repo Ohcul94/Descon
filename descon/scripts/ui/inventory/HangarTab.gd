@@ -511,6 +511,18 @@ func _create_item_row(it, parent):
 			stat_text += " | HP: " + t + str(hp_m) + suffix
 	var st = Label.new(); st.text = stat_text; st.add_theme_font_size_override("font_size", 8); st.modulate.a = 0.8; v.add_child(st); st.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
+	# v400.0: Requisitos de equipamiento — indicador visual de bloqueo en la bodega
+	if NetworkManager and not is_material_or_recipe:
+		var req_check = NetworkManager.check_equip_requirements(item_id)
+		if not req_check.get("ok", true):
+			var req_lbl = Label.new()
+			req_lbl.text = "🔒 " + str(req_check.get("msg", "REQUISITOS NO CUMPLIDOS"))
+			req_lbl.add_theme_font_size_override("font_size", 7)
+			req_lbl.modulate = Color(1, 0.35, 0.35)
+			v.add_child(req_lbl)
+			req_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			p.modulate = Color(0.65, 0.65, 0.65, 0.75)
+	
 	# v305.80: Reparación agresiva en la bodega
 	var icon_path = str(it.get("icon", ""))
 	var search_id = str(it.get("id", "")).to_lower()
@@ -724,6 +736,16 @@ func _create_item_row(it, parent):
 			
 			var viewing_id = inv_main.selected_hangar_ship_id if inv_main.selected_hangar_ship_id != -1 else inv_main.current_ship_id
 			var iid = it.get("instanceId", "")
+
+			# v400.0: Requisitos de equipamiento (nivel, misiones completadas) — validación local UX
+			if NetworkManager:
+				var req_check = NetworkManager.check_equip_requirements(str(it.get("id", "")))
+				if not req_check.get("ok", true):
+					NetworkManager.game_notification.emit({
+						"msg": "EQUIPAMIENTO BLOQUEADO: " + str(req_check.get("msg", "Requisitos no cumplidos")),
+						"type": "error"
+					})
+					return
 
 			if not in_combat:
 				# v308.3: Actualización optimista local — Respuesta visual inmediata sin esperar al servidor

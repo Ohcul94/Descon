@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const { calculateFinalStats } = require('./statCalculator'); // v266.135: Recalcular al equipar
+const { getMasterItemConfig: getMasterItemConfigFull, getSkillMasterConfig, checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento
 
 /**
  * v262.450: HELPER DE CATEGORIZACIÓN ESTÁNDAR (Minúsculas para Godot)
@@ -417,6 +418,16 @@ function registerInventoryHandlers(socket, io, state) {
                 return socket.emit('authError', `BODEGA LLENA: No hay más espacio para ${slot.toUpperCase()}`);
             }
 
+            // v400.0: Requisitos de equipamiento (nivel, misiones completadas, etc.)
+            const masterItem = getMasterItemConfigFull(item.id, state.SERVER_CONFIG);
+            if (masterItem && masterItem.requirements && masterItem.requirements.length > 0) {
+                const reqCheck = checkRequirements(p, masterItem.requirements, state.SERVER_CONFIG);
+                if (!reqCheck.ok) {
+                    sendInventoryData(socket, user);
+                    return socket.emit('gameNotification', { msg: `EQUIPAMIENTO BLOQUEADO: ${reqCheck.msg}`, type: 'error' });
+                }
+            }
+
             user.gameData.inventory.splice(idx, 1);
             shipEquip[slot].push(item);
             
@@ -748,6 +759,18 @@ function registerInventoryHandlers(socket, io, state) {
 
             if (!user.gameData.spheres) user.gameData.spheres = [];
             
+            // v400.0: Requisitos de equipamiento de habilidades (nivel, misiones completadas, etc.)
+            if (skill && skill.skill_name) {
+                const skillMaster = getSkillMasterConfig(skill.skill_name, state.SERVER_CONFIG);
+                if (skillMaster && skillMaster.config && skillMaster.config.requirements && skillMaster.config.requirements.length > 0) {
+                    const reqCheck = checkRequirements(p, skillMaster.config.requirements, state.SERVER_CONFIG);
+                    if (!reqCheck.ok) {
+                        sendInventoryData(socket, user);
+                        return socket.emit('gameNotification', { msg: `HABILIDAD BLOQUEADA: ${reqCheck.msg}`, type: 'error' });
+                    }
+                }
+            }
+
             // v262.735: Blindaje de datos. Si el slot no existe, lo creamos.
             while (user.gameData.spheres.length <= sphereId) {
                 user.gameData.spheres.push({ name: `Slot ${user.gameData.spheres.length + 1}`, type: "any", color: "#ffffff", equipped: null });

@@ -2584,7 +2584,7 @@ module.exports = class BaseAI {
                     x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
                     bulletSpeed: mech.bulletSpeed || 800, 
                     bulletType: mech.type || "laser",
-                    damage: (mech.bulletDamage || fallbackDmg) * (this.damageMult || 1),
+                    damage: (mech.bulletDamage !== undefined && mech.bulletDamage !== null ? mech.bulletDamage : fallbackDmg) * (this.damageMult || 1),
                     // v266.220: Pasar datos extra de la mecánica (Slow, Combustible, Giro)
                     slowAmount: mech.slowAmount || 0,
                     slowDuration: mech.slowDuration || 0,

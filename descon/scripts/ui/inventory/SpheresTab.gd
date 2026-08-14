@@ -260,6 +260,17 @@ func _render_spheres_equipment(tab, _sub_tabs):
 				if inv_main.get("pending_skill_to_equip") != null:
 					# Confirmar equipamiento
 					var skill = inv_main.pending_skill_to_equip
+					# v400.0: Requisitos de equipamiento (validación local UX en confirmación de slot)
+					if NetworkManager:
+						var req_check = NetworkManager.check_equip_requirements("", skill.skill_name)
+						if not req_check.get("ok", true):
+							NetworkManager.game_notification.emit({
+								"msg": "HABILIDAD BLOQUEADA: " + str(req_check.get("msg", "Requisitos no cumplidos")),
+								"type": "error"
+							})
+							inv_main.pending_skill_to_equip = null
+							update_ui()
+							return
 					NetworkManager.send_event("equipSphere", {"sphereId": i, "skill": {"skill_name": skill.skill_name, "power_value": skill.power_value, "type": skill.type}})
 					if is_instance_valid(inv_main.spheres_manager): inv_main.spheres_manager.equip_item(i, skill)
 					inv_main.pending_skill_to_equip = null
@@ -377,10 +388,37 @@ func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is
 	var desc_l = Label.new(); desc_l.text = description_text; desc_l.add_theme_font_size_override("font_size", 10); desc_l.modulate.a = 0.6; desc_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v_info.add_child(desc_l)
 	
 	var b_equip = Button.new(); b_equip.text = "YA EQUIPADA" if is_equipped else "EQUIPAR"; b_equip.disabled = is_equipped or is_comb; b_equip.custom_minimum_size = Vector2(80, 0); b_equip.size_flags_vertical = 4; hb.add_child(b_equip)
+	
+	# v400.0: Requisitos de equipamiento — indicador visual de bloqueo en biblioteca
+	var req_msg = ""
+	var req_ok = true
+	if NetworkManager and not is_equipped:
+		var req_check = NetworkManager.check_equip_requirements("", skill.skill_name)
+		req_ok = req_check.get("ok", true)
+		req_msg = str(req_check.get("msg", ""))
+		if not req_ok:
+			b_equip.disabled = true
+			b_equip.modulate = Color(1, 0.4, 0.4)
+			var req_lbl = Label.new()
+			req_lbl.text = "🔒 " + req_msg
+			req_lbl.add_theme_font_size_override("font_size", 8)
+			req_lbl.modulate = Color(1, 0.35, 0.35)
+			v_info.add_child(req_lbl)
+			skill_card.modulate.a = 0.55
+	
 	if is_equipped: skill_card.modulate.a = 0.5
 	elif is_comb: skill_card.modulate.a = 0.6
 	
 	b_equip.pressed.connect(func():
+		# v400.0: Requisitos de equipamiento de habilidades (validación local UX)
+		if NetworkManager:
+			var req_check = NetworkManager.check_equip_requirements("", skill.skill_name)
+			if not req_check.get("ok", true):
+				NetworkManager.game_notification.emit({
+					"msg": "HABILIDAD BLOQUEADA: " + str(req_check.get("msg", "Requisitos no cumplidos")),
+					"type": "error"
+				})
+				return
 		# v301.5: Flujo de selección manual de slot
 		inv_main.pending_skill_to_equip = skill
 		inv_main.selected_sphere_type_filter = skill.type

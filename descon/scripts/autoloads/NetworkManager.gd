@@ -112,6 +112,7 @@ var auth_token: String = ""
 var login_name: String = ""
 var is_logged_in: bool = false # v244.60: Control global de estado de sesión
 var server_config: Dictionary = {} # v301.7: Cache local de la configuración del servidor
+var completed_quests_cache: Array = [] # v400.0: Misiones completadas (para requisitos de equipamiento)
 var ping_start_time: int = 0
 var current_ms: int = 0
 var is_registering: bool = false # v244.10: Soporte para creación de cuenta
@@ -228,6 +229,9 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			current_user_data = e_data
 			if e_data.has("adminConfig"):
 				server_config = e_data.adminConfig
+			
+			# v400.0: Solicitar misiones completadas para validar requisitos de equipamiento
+			send_event("getQuestsState", {})
 			
 			auth_success.emit(e_data)
 			login_success.emit(e_data)
@@ -416,6 +420,11 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			socket_event_received.emit(e_name, e_data)
 		"combatMeterUpdate":
 			combat_meter_update.emit(e_data)
+		"questsStateData":
+			# v400.0: Cachear misiones completadas para validar requisitos de equipamiento
+			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("completed"):
+				completed_quests_cache = e_data["completed"]
+			socket_event_received.emit(e_name, e_data)
 		_:
 			socket_event_received.emit(e_name, e_data)
 
@@ -592,3 +601,102 @@ func get_secure_server_time_ms() -> int:
 		return int(Time.get_unix_time_from_system() * 1000)
 	var elapsed = Time.get_ticks_msec() - ticks_at_sync
 	return server_time_at_sync + elapsed
+
+# ============================================================
+# v400.0: REQUISITOS DE EQUIPAMIENTO (Validación local UX)
+# El servidor es la fuente autoritativa; esto solo evita UI y da feedback.
+# Uso:
+#   check_equip_requirements(item_id = "las2")
+#   check_equip_requirements(skill_name = "AUTO-REPARACIÓN")
+#   check_equip_requirements(ammo_type = "laser", ammo_tier = 3)
+# Devuelve { ok: bool, msg: String }
+# ============================================================
+func check_equip_requirements(item_id: String = "", skill_name: String = "", ammo_type: String = "", ammo_tier: int = -1) -> Dictionary:
+	var reqs: Array = []
+	if ammo_type != "" and ammo_tier >= 0:
+		reqs = _get_ammo_requirements(ammo_type, ammo_tier)
+	elif skill_name != "":
+		reqs = _get_skill_requirements(skill_name)
+	elif item_id != "":
+		reqs = _get_item_requirements(item_id)
+	if reqs.is_empty():
+		return {"ok": true, "msg": ""}
+	
+	var level: int = 1
+	var player_node = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player_node) and "level" in player_node:
+		level = int(player_node.level)
+	
+	for req in reqs:
+		if typeof(req) != TYPE_DICTIONARY:
+			continue
+		var type_str: String = str(req.get("type", "")).to_lower()
+		if type_str == "level":
+			var min_lvl: int = int(req.get("min", 0))
+			if level < min_lvl:
+				return {"ok": false, "msg": "REQUIERE NIVEL " + str(min_lvl)}
+		elif type_str == "quest_completed":
+			var qid: String = str(req.get("questId", ""))
+			if qid == "":
+				continue
+			if not completed_quests_cache.has(qid):
+				var qname: String = qid
+				var quests = server_config.get("questsConfig", []) if server_config.has("questsConfig") else []
+				for q in quests:
+					if typeof(q) == TYPE_DICTIONARY and str(q.get("id", "")) == qid:
+						qname = str(q.get("name", qid))
+						break
+				return {"ok": false, "msg": "REQUIERE MISIÓN COMPLETADA: " + qname}
+	return {"ok": true, "msg": ""}
+
+func _get_ammo_requirements(ammo_type: String, ammo_tier: int) -> Array:
+	var shop: Dictionary = server_config.get("shopItems", {}) if server_config.has("shopItems") else {}
+	var ammo = shop.get("ammo", {})
+	if typeof(ammo) != TYPE_DICTIONARY or not ammo.has(ammo_type):
+		return []
+	var list = ammo[ammo_type]
+	if typeof(list) != TYPE_ARRAY or ammo_tier < 0 or ammo_tier >= list.size():
+		return []
+	var entry = list[ammo_tier]
+	if typeof(entry) == TYPE_DICTIONARY:
+		return entry.get("requirements", [])
+	return []
+
+func _get_item_requirements(item_id: String) -> Array:
+	var lower_id: String = item_id.to_lower()
+	if lower_id.begins_with("am_"):
+		var shop: Dictionary = server_config.get("shopItems", {}) if server_config.has("shopItems") else {}
+		var ammo: Dictionary = shop.get("ammo", {})
+		for sub in ammo.keys():
+			var list = ammo[sub]
+			if typeof(list) != TYPE_ARRAY:
+				continue
+			for a in list:
+				if typeof(a) == TYPE_DICTIONARY and str(a.get("id", "")).to_lower() == lower_id:
+					return a.get("requirements", [])
+		return []
+	var shop_items: Dictionary = server_config.get("shopItems", {}) if server_config.has("shopItems") else {}
+	var cats: Array = ["weapons", "shields", "engines", "extras", "extra", "resources"]
+	for cat in cats:
+		var list = shop_items.get(cat, [])
+		if typeof(list) != TYPE_ARRAY:
+			continue
+		for it in list:
+			if typeof(it) == TYPE_DICTIONARY and str(it.get("id", "")).to_lower() == lower_id:
+				return it.get("requirements", [])
+	return []
+
+func _get_skill_requirements(skill_name: String) -> Array:
+	var skills: Dictionary = server_config.get("skillsData", {}) if server_config.has("skillsData") else {}
+	var needle: String = _normalize_skill_key(skill_name)
+	for key in skills.keys():
+		if _normalize_skill_key(str(key)) == needle:
+			var entry = skills[key]
+			if typeof(entry) == TYPE_DICTIONARY:
+				return entry.get("requirements", [])
+	return []
+
+func _normalize_skill_key(p_name: String) -> String:
+	var n: String = p_name.to_upper().strip_edges()
+	n = n.replace("Ó", "O").replace("É", "E").replace("Í", "I").replace("Á", "A").replace("Ú", "U").replace("Ü", "U")
+	return n

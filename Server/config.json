@@ -1111,7 +1111,7 @@
         },
         "2": {
             "aggressive": false,
-            "bulletDamage": 600,
+            "bulletDamage": 60,
             "bulletSpeed": 800,
             "defenseMechanics": [],
             "fireRange": 650,
@@ -7425,7 +7425,8 @@
                         "hubs": 1000,
                         "ohcu": 10
                     },
-                    "range": 600
+                    "range": 600,
+                    "requirements": []
                 },
                 {
                     "bulletSpeed": 800,
@@ -8057,7 +8058,17 @@
                     "ohcu": 10
                 },
                 "speedMod": 5,
-                "speedModType": "flat"
+                "speedModType": "flat",
+                "requirements": [
+                    {
+                        "type": "level",
+                        "min": 1
+                    },
+                    {
+                        "type": "quest_completed",
+                        "questId": "quest_1"
+                    }
+                ]
             },
             {
                 "base": 25,

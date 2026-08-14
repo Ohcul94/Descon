@@ -21,6 +21,7 @@ const ProvocacionSkill = require('./skills/ProvocacionSkill');
 const ResurreccionSkill = require('./skills/ResurreccionSkill');
 const FearSphereSkill = require('./skills/FearSphereSkill');
 const combatTracker = require('./combatTracker');
+const { checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento (munición)
 
 // v301.4: Soporte unificado de habilidades de resurrección
 
@@ -108,6 +109,17 @@ function registerCombatHandlers(socket, io, state) {
 
         if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][ammoTier] || 0) <= 0) {
             return; 
+        }
+
+        // v400.0: Requisitos de equipamiento de munición (nivel, misiones, etc.)
+        const ammoList = (state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo) ? state.SERVER_CONFIG.shopItems.ammo[typeKey] : null;
+        const ammoMaster = (ammoList && Array.isArray(ammoList)) ? ammoList[ammoTier] : null;
+        if (ammoMaster && ammoMaster.requirements && ammoMaster.requirements.length > 0) {
+            const reqCheck = checkRequirements(p, ammoMaster.requirements, state.SERVER_CONFIG);
+            if (!reqCheck.ok) {
+                socket.emit('gameNotification', { msg: `MUNICIÓN BLOQUEADA: ${reqCheck.msg}`, type: 'error' });
+                return;
+            }
         }
 
         p.ammo[typeKey][ammoTier]--;

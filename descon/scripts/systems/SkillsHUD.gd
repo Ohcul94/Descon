@@ -226,7 +226,16 @@ func _update_ammo_menu_selection():
 			var tier_index = count - 1 - i 
 			
 			var sb = slot.get_theme_stylebox("panel").duplicate()
-			if tier_index == current_sel:
+			# v400.0: Requisitos de equipamiento — tiers bloqueados en rojo tenue
+			var tier_locked = false
+			if NetworkManager:
+				tier_locked = not NetworkManager.check_equip_requirements("", "", type, tier_index).get("ok", true)
+			if tier_locked:
+				sb.border_color = Color(1, 0.25, 0.25, 0.8)
+				sb.bg_color = Color(0.25, 0.05, 0.05, 0.4)
+				sb.set_border_width_all(1)
+				slot.modulate = Color(0.5, 0.5, 0.5, 0.7)
+			elif tier_index == current_sel:
 				sb.border_color = Color.CYAN
 				sb.set_border_width_all(2)
 				slot.modulate = Color(1.2, 1.2, 1.2, 1)
@@ -240,6 +249,15 @@ func _on_ammo_slot_clicked(event: InputEvent, type: String, tier: int):
 	if event is InputEventMouseButton and event.pressed:
 		var p = get_tree().get_first_node_in_group("player")
 		if p and p.has_method("change_ammo"): 
+			# v400.0: Requisitos de equipamiento de munición (validación local UX)
+			if NetworkManager:
+				var req_check = NetworkManager.check_equip_requirements("", "", type, tier)
+				if not req_check.get("ok", true):
+					NetworkManager.game_notification.emit({
+						"msg": "MUNICIÓN BLOQUEADA: " + str(req_check.get("msg", "Requisitos no cumplidos")),
+						"type": "error"
+					})
+					return
 			p.change_ammo(type, tier)
 			_update_ammo_menu_selection()
 			AudioManager.play_sfx("ui_click")
