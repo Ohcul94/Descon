@@ -179,7 +179,7 @@
             50
         ],
         "mine": [
-            1,
+            3,
             3,
             7,
             15,
@@ -187,7 +187,7 @@
             100
         ],
         "missile": [
-            1,
+            2,
             2,
             4,
             8,
@@ -1709,119 +1709,50 @@
             "bulletSpeed": 900,
             "chaseIdleTimeout": 10000,
             "chaseUntilDeath": true,
-            "chestDropChance": 1,
-            "defenseMechanics": [
-                {
-                    "activationHPs": [
-                        30,
-                        70
-                    ],
-                    "activationIntervalMs": 30000,
-                    "activationMode": "hp",
-                    "bossHealPercent": 5,
-                    "cooldown": 0,
-                    "duration": 20000,
-                    "orbCount": 5,
-                    "orbSpeed": 200,
-                    "playerDamage": 20,
-                    "reductionPercentage": 10,
-                    "shieldRegen": 5,
-                    "spawnRadius": 500,
-                    "startDelay": 0,
-                    "type": "boss_water_orbs"
-                },
-                {
-                    "activationHPs": [
-                        15
-                    ],
-                    "activationIntervalMs": 30000,
-                    "activationMode": "hp",
-                    "bulletDamage": 10,
-                    "bulletSpeed": 700,
-                    "cooldown": 0,
-                    "duration": 5100,
-                    "fireRange": 1500,
-                    "giveToEnemy": true,
-                    "isPointAndClick": true,
-                    "reductionPercentage": 10,
-                    "shieldRegen": 5,
-                    "startDelay": 0,
-                    "stealAmount": 50,
-                    "stealIntervalMs": 1000,
-                    "stealMode": "flat",
-                    "targetMode": "proximity",
-                    "type": "shield_steal"
-                }
-            ],
+            "chestDropChance": 0.5,
+            "defenseMechanics": [],
             "fireRange": 1200,
             "fireRate": 800,
-            "hp": 10000,
+            "hp": 300,
             "hpRegenPercent": 25,
             "icon": "res://assets/Enemigos/2D/Bosses/Boss1/Boss1(Transp).png",
             "isBoss": true,
-            "leashRange": 2000,
+            "leashRange": 2500,
             "lootDrops": [
                 {
-                    "chance": 1,
+                    "chance": 0.5,
                     "itemId": "las1"
+                },
+                {
+                    "itemId": "sh1",
+                    "chance": 0.5
                 }
             ],
             "mechanics": [
                 {
-                    "bulletDamage": 40,
-                    "bulletSpeed": 500,
-                    "fireRange": 1000,
-                    "fireRate": 3000,
-                    "startDelay": 0,
-                    "type": "laser"
-                },
-                {
-                    "bulletDamage": 10,
-                    "bulletSpeed": 800,
-                    "cooldown": 5000,
-                    "damagePerSecond": 0,
-                    "duration": 3000,
+                    "bulletDamage": 5,
+                    "bulletSpeed": 650,
                     "fireRange": 1500,
-                    "fireRate": 1000,
-                    "nightmareMultiplier": 0,
-                    "slowDuration": 2000,
-                    "slowPercentage": 50,
-                    "startDelay": 6000,
-                    "targetCount": 1,
-                    "targetMode": "random",
-                    "type": "sleep",
-                    "wakeOnDamage": false
+                    "fireRate": 3500,
+                    "startDelay": null,
+                    "type": "laser",
+                    "burstShots": 2
                 },
                 {
-                    "bulletDamage": 10,
-                    "bulletSpeed": 800,
-                    "castTimeMs": 3000,
-                    "cooldown": 9000,
-                    "damage": 500,
-                    "debuffsList": [],
-                    "fireRange": 1000,
-                    "fireRate": 1000,
-                    "maxOffset": 300,
-                    "postCastWaitMs": 1000,
-                    "safeRadius": 200,
-                    "startDelay": 9000,
-                    "type": "survival_dome"
-                },
-                {
-                    "aimDelayMs": 3000,
+                    "aimDelayMs": 200,
                     "bulletDamage": 10,
                     "bulletSpeed": 800,
                     "castSpeed": 2,
-                    "castTimeMs": 2000,
-                    "coneAngle": 50,
+                    "castTimeMs": 3000,
+                    "coneAngle": 60,
                     "coneFollow": false,
                     "cooldown": 6000,
-                    "damage": 500,
-                    "fireRange": 600,
+                    "damage": 10,
+                    "fireRange": 800,
                     "fireRate": 1000,
-                    "lockTimeMs": 500,
-                    "startDelay": 0,
-                    "stunDuration": 3000,
+                    "lockTimeMs": 1000,
+                    "startDelay": 3700,
+                    "stunDuration": 2000,
                     "type": "cone_cast"
                 }
             ],
@@ -1830,7 +1761,8 @@
                     "speed": 200,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "chase"
+                    "type": "sniper",
+                    "idealDist": 150
                 }
             ],
             "name": "Lord Titán",
@@ -1838,10 +1770,10 @@
             "rankingPoints": 100,
             "regenDelayMs": 20000,
             "regenIntervalMs": 2000,
-            "rewardExp": 10000,
-            "rewardHubs": 50000,
-            "rewardOhcu": 500,
-            "shield": 8000,
+            "rewardExp": 100,
+            "rewardHubs": 300,
+            "rewardOhcu": 30,
+            "shield": 300,
             "shieldRegenPercent": 30,
             "speed": 250,
             "visionRange": 2000
@@ -6966,7 +6898,7 @@
             },
             "speed": 250,
             "vision": 1300,
-            "baseDmg": 10
+            "baseDmg": 5
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave2/Nave2.glb",
@@ -7485,7 +7417,7 @@
             "laser": [
                 {
                     "bulletSpeed": 800,
-                    "cooldown": 1000,
+                    "cooldown": 1500,
                     "id": "am_l1",
                     "mechanics": [],
                     "name": "Láser T1",
@@ -7668,16 +7600,16 @@
             ],
             "mine": [
                 {
-                    "bulletSpeed": 800,
-                    "cooldown": 1000,
+                    "bulletSpeed": 200,
+                    "cooldown": 5000,
                     "id": "am_n1",
                     "mechanics": [],
                     "name": "Mina T1",
                     "prices": {
-                        "hubs": 10000,
-                        "ohcu": 1
+                        "hubs": 3000,
+                        "ohcu": 30
                     },
-                    "range": 300
+                    "range": 200
                 },
                 {
                     "bulletSpeed": 800,
@@ -7742,16 +7674,16 @@
             ],
             "missile": [
                 {
-                    "bulletSpeed": 800,
-                    "cooldown": 1000,
+                    "bulletSpeed": 500,
+                    "cooldown": 3000,
                     "id": "am_m1",
                     "mechanics": [],
                     "name": "Misil T1",
                     "prices": {
-                        "hubs": 5000,
-                        "ohcu": 1
+                        "hubs": 2000,
+                        "ohcu": 20
                     },
-                    "range": 800
+                    "range": 900
                 },
                 {
                     "bulletSpeed": 800,
@@ -7899,20 +7831,22 @@
         },
         "engines": [
             {
-                "base": 50,
+                "base": 10,
                 "desc": "Propulsión química.",
-                "dmgMod": 70,
-                "hpMod": 35,
+                "dmgMod": 5,
+                "hpMod": 5,
                 "hpModType": "flat",
                 "icon": "res://assets/Motores/Motor1/Motor1.png",
                 "id": "en1",
                 "name": "Motor M1",
                 "prices": {
-                    "hubs": 5000,
-                    "ohcu": 5
+                    "hubs": 1000,
+                    "ohcu": 10
                 },
-                "shieldMod": 60,
-                "speedMod": 10
+                "shieldMod": 5,
+                "speedMod": 10,
+                "shieldModType": "flat",
+                "dmgModType": "flat"
             },
             {
                 "base": 50,
@@ -7921,8 +7855,8 @@
                 "id": "en2",
                 "name": "Motor M2",
                 "prices": {
-                    "hubs": 50000,
-                    "ohcu": 50
+                    "hubs": 10000,
+                    "ohcu": 100
                 }
             },
             {
@@ -8034,21 +7968,22 @@
         ],
         "shields": [
             {
-                "base": 1000,
+                "base": 10,
                 "desc": "Protección básica.",
                 "dmgMod": 30,
                 "dmgModType": "flat",
-                "hpMod": 30,
+                "hpMod": 5,
                 "icon": "res://assets/Escudos/Escudo1/Escudo1.png",
                 "id": "sh1",
                 "name": "Escudo S1",
                 "prices": {
-                    "hubs": 10000,
+                    "hubs": 1000,
                     "ohcu": 10
                 },
                 "shieldMod": 10,
-                "speedMod": 40,
-                "speedModType": "flat"
+                "speedMod": 5,
+                "speedModType": "flat",
+                "hpModType": "flat"
             },
             {
                 "base": 5000,
@@ -8057,7 +7992,7 @@
                 "id": "sh2",
                 "name": "Escudo S2",
                 "prices": {
-                    "hubs": 100000,
+                    "hubs": 10000,
                     "ohcu": 100
                 }
             },
@@ -8112,16 +8047,16 @@
             {
                 "base": 10,
                 "desc": "Láser básico.",
-                "hpMod": 20,
+                "hpMod": 5,
                 "hpModType": "flat",
                 "icon": "res://assets/Armas/Arma1/Arma1.png",
                 "id": "las1",
                 "name": "Láser 1",
                 "prices": {
-                    "hubs": 10000,
+                    "hubs": 1000,
                     "ohcu": 10
                 },
-                "speedMod": 10,
+                "speedMod": 5,
                 "speedModType": "flat"
             },
             {
@@ -8131,8 +8066,8 @@
                 "id": "las2",
                 "name": "Láser 2",
                 "prices": {
-                    "hubs": 50000,
-                    "ohcu": 50
+                    "hubs": 10000,
+                    "ohcu": 1000
                 }
             },
             {

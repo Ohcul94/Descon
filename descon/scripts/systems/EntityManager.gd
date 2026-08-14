@@ -224,7 +224,8 @@ func _process(delta):
 						var progress = clamp(timer / duration, 0.0, 1.0)
 						var circle_3d = area.get_meta("circle_3d") if area.has_meta("circle_3d") else null
 						if is_instance_valid(circle_3d):
-							circle_3d.position.y = 0.05
+							# Compensar altura del boss: el círculo debe verse a la altura del jugador
+							circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
 							for i in 5:
 								var ring = circle_3d.get_node_or_null("FireRing_" + str(i))
 								if is_instance_valid(ring):
@@ -273,7 +274,7 @@ func _process(delta):
 			# Sincronizar posición 3D
 			if is_instance_valid(en.get("world_root_3d")):
 				indicator_3d.global_position = en.world_root_3d.global_position
-				indicator_3d.global_position.y = en.world_root_3d.global_position.y
+				indicator_3d.global_position.y = _attack_vfx_base_y()
 			
 			# Sincronizar rotación Y con perspectiva 2.5D
 			if not data.get("is_fixed", false) and t_id != "":
@@ -307,6 +308,15 @@ func _process(delta):
 			if is_instance_valid(indicator_3d):
 				indicator_3d.queue_free()
 			active_laser_tracking.erase(eid)
+
+# v411.2: Altura 3D a la que deben verse los VFX de ataque enemigo.
+# Los bosses tienen world_root_3d elevado (escala mayor, y=2.5); los VFX deben
+# apuntar a la altura de jugadores/enemigos comunes (escala normal, y=1.0).
+func _attack_vfx_base_y() -> float:
+	var pl = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(pl) and is_instance_valid(pl.get("world_root_3d")):
+		return pl.world_root_3d.position.y
+	return 1.0
 
 func _parse_zone_to_int(zone_var) -> int:
 	var val = zone_var
@@ -474,7 +484,7 @@ func _on_enemy_action(data: Dictionary):
 				# Posición inicial = posición 3D del enemigo
 				if is_instance_valid(en.get("world_root_3d")):
 					indicator_3d.position = en.world_root_3d.global_position
-					indicator_3d.position.y = en.world_root_3d.position.y
+					indicator_3d.position.y = _attack_vfx_base_y()
 				# Rotación Y corregida inicial con perspectiva 2.5D
 				var dir_2d = Vector2.RIGHT.rotated(angle)
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
@@ -539,7 +549,7 @@ func _on_enemy_action(data: Dictionary):
 				indicator_3d.name = "LaserIndicator3D_" + enemy_id
 				if is_instance_valid(en.get("world_root_3d")):
 					indicator_3d.position = en.world_root_3d.global_position
-					indicator_3d.position.y = en.world_root_3d.position.y
+					indicator_3d.position.y = _attack_vfx_base_y()
 				# Ángulo fijado corregido inicial con perspectiva 2.5D
 				var dir_2d = Vector2.RIGHT.rotated(angle)
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
@@ -616,7 +626,8 @@ func _on_enemy_action(data: Dictionary):
 				var cone_3d = Node3D.new()
 				cone_3d.name = "Cone3D_" + enemy_id
 				en.world_root_3d.add_child(cone_3d)
-				cone_3d.position.y = 0.05
+				# Compensar altura del boss: el cono debe verse a la altura del jugador
+				cone_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
 				
 				# Establecer rotación Y inicial del cono 3D
 				var dir_2d = Vector2.RIGHT.rotated(en.rotation - PI / 2)
@@ -714,7 +725,8 @@ func _on_enemy_action(data: Dictionary):
 				var blast_3d = Node3D.new()
 				blast_3d.name = "ConeBlast3D_" + enemy_id
 				en.world_root_3d.add_child(blast_3d)
-				blast_3d.position.y = 0.05
+				# Compensar altura del boss: la explosión debe verse a la altura del jugador
+				blast_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
 				
 				# Establecer rotación Y inicial del cono 3D (el ángulo ya es correcto)
 				var dir_2d = Vector2.RIGHT.rotated(angle)
@@ -799,6 +811,8 @@ func _on_enemy_action(data: Dictionary):
 				var circle_3d = Node3D.new()
 				circle_3d.name = "Circle3D_" + enemy_id
 				en.world_root_3d.add_child(circle_3d)
+				# Compensar altura del boss: los anillos deben verse a la altura del jugador
+				circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y
 
 				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 				var outer_r3d = range_val * s_factor

@@ -59,12 +59,12 @@ var HORDES_CONFIG = {
 }
 
 var SHIP_MODELS = [
-	{ "id": 1, "name": "Phoenix-L1", "hp": 3000, "shield": 1000, "speed": 500, "slots": { "e": 1, "s": 2, "w": 3, "x": 1 }, "prices": { "hubs": 0, "ohcu": 0 }, "vision": 1300 },
-	{ "id": 2, "name": "Vulture-G2", "hp": 4500, "shield": 2500, "speed": 330, "slots": { "e": 2, "s": 2, "w": 2, "x": 2 }, "prices": { "hubs": 1000000, "ohcu": 1000 }, "vision": 1300 },
-	{ "id": 3, "name": "Falcon-A3", "hp": 10000, "shield": 6000, "speed": 360, "slots": { "e": 4, "s": 4, "w": 4, "x": 3 }, "prices": { "hubs": 5000000, "ohcu": 5000 }, "vision": 1300 },
-	{ "id": 4, "name": "Titan-S4", "hp": 25000, "shield": 15000, "speed": 390, "slots": { "e": 8, "s": 8, "w": 8, "x": 4 }, "prices": { "hubs": 20000000, "ohcu": 15000 }, "vision": 1300 },
-	{ "id": 5, "name": "Wraith-X5", "hp": 70000, "shield": 45000, "speed": 420, "slots": { "e": 12, "s": 12, "w": 12, "x": 5 }, "prices": { "hubs": 0, "ohcu": 50000 }, "vision": 1300 },
-	{ "id": 6, "name": "Galactus-Z6", "hp": 200000, "shield": 130000, "speed": 460, "slots": { "e": 16, "s": 16, "w": 16, "x": 6 }, "prices": { "hubs": 0, "ohcu": 200000 }, "vision": 1300 }
+	{ "id": 1, "name": "Phoenix-L1", "hp": 3000, "shield": 1000, "speed": 500, "baseDmg": 5, "slots": { "e": 1, "s": 2, "w": 3, "x": 1 }, "prices": { "hubs": 0, "ohcu": 0 }, "vision": 1300 },
+	{ "id": 2, "name": "Vulture-G2", "hp": 4500, "shield": 2500, "speed": 330, "baseDmg": 10, "slots": { "e": 2, "s": 2, "w": 2, "x": 2 }, "prices": { "hubs": 1000000, "ohcu": 1000 }, "vision": 1300 },
+	{ "id": 3, "name": "Falcon-A3", "hp": 10000, "shield": 6000, "speed": 360, "baseDmg": 10, "slots": { "e": 4, "s": 4, "w": 4, "x": 3 }, "prices": { "hubs": 5000000, "ohcu": 5000 }, "vision": 1300 },
+	{ "id": 4, "name": "Titan-S4", "hp": 25000, "shield": 15000, "speed": 390, "baseDmg": 10, "slots": { "e": 8, "s": 8, "w": 8, "x": 4 }, "prices": { "hubs": 20000000, "ohcu": 15000 }, "vision": 1300 },
+	{ "id": 5, "name": "Wraith-X5", "hp": 70000, "shield": 45000, "speed": 420, "baseDmg": 10, "slots": { "e": 12, "s": 12, "w": 12, "x": 5 }, "prices": { "hubs": 0, "ohcu": 50000 }, "vision": 1300 },
+	{ "id": 6, "name": "Galactus-Z6", "hp": 200000, "shield": 130000, "speed": 460, "baseDmg": 10, "slots": { "e": 16, "s": 16, "w": 16, "x": 6 }, "prices": { "hubs": 0, "ohcu": 200000 }, "vision": 1300 }
 ]
 
 var SHOP_ITEMS = {

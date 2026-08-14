@@ -313,7 +313,7 @@ func _draw():
 			if ent.get("isInvisible"): dot_color.a = 0.4
 			draw_circle(pos, 2.5, dot_color)
 
-	# 3. Dibujar Enemigos NPC (Naranja JS v13.1.3)
+	# 3. Dibujar Enemigos NPC (Naranja JS v13.1.3) - Bosses/Mini-bosses en Violeta
 	for ent in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(ent) and not ent.get("is_dead") and ent.visible:
 			# Validar si está en rango de visión real
@@ -321,7 +321,17 @@ func _draw():
 				continue
 
 			var pos = Vector2(ent.global_position.x * scale_x, ent.global_position.y * scale_y)
-			draw_circle(pos, 2.0, Color(1, 0.4, 0)) # #ff6600
+			var ent_type = int(ent.get("entity_type"))
+			var is_boss = ent.get("isBoss") == true
+			# Puntito proporcional a la escala 3D del enemigo (2.0 normal, 6.0+ bosses)
+			var ent_scale = float(ent.get("_enemy_scale")) if ent.get("_enemy_scale") != null else 3.0
+			if ent_scale <= 0.0: ent_scale = 3.0
+			var dot_r = 2.0
+			if is_boss or ent_type >= 101 or ent_type == 4 or ent_type == 10 or ent_type == 11:
+				dot_r = max(4.0, ent_scale * 1.5)
+				draw_circle(pos, dot_r, Color(0.65, 0.25, 1.0)) # #a640ff Violeta
+			else:
+				draw_circle(pos, dot_r, Color(1, 0.4, 0)) # #ff6600
 
 	# 4. Dibujar Portales de Extracción (Cian de Neón con efecto de pulso!)
 	var is_extraction_zone = false

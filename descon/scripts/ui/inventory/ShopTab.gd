@@ -82,13 +82,15 @@ func _create_shop_card(it, cat, parent):
 		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tex_container.add_child(tex)
 	
-	# Mostrar Stats para ítems que no son naves
-	var base_val = int(it.get("base", 0))
-	var stat_label = Label.new(); stat_label.horizontal_alignment = 1; stat_label.add_theme_font_size_override("font_size", 9); stat_label.modulate = Color.GOLD
-	if cat == "weapons": stat_label.text = "POTENCIA DE FUEGO: " + str(base_val)
-	elif cat == "shields": stat_label.text = "CAPACIDAD DE ESCUDO: " + str(base_val)
-	elif cat == "engines": stat_label.text = "EMPUJE DE MOTOR: +" + str(base_val)
-	if stat_label.text != "": v.add_child(stat_label)
+	# Mostrar Stats y modificadores para ítems que no son naves (HP verde, SH celeste, VEL amarillo, ATK rojo)
+	var stats = _item_stats(it, cat)
+	for s in stats:
+		var sl = Label.new()
+		sl.text = s[0]
+		sl.horizontal_alignment = 1
+		sl.add_theme_font_size_override("font_size", 9)
+		sl.modulate = s[1]
+		v.add_child(sl)
 
 	var d = Label.new(); d.text = it.get("desc", ""); d.horizontal_alignment = 1; d.modulate.a = 0.5; d.add_theme_font_size_override("font_size", 8); v.add_child(d)
 	
@@ -120,6 +122,63 @@ func _create_shop_card(it, cat, parent):
 		v.add_child(btn_detalles)
 	
 	parent.add_child(p)
+
+# Devuelve lista de [texto, color] con la stat principal y los modificadores del ítem
+func _item_stats(it, cat) -> Array:
+	var out: Array = []
+	var base_val = float(it.get("base", 0))
+	match cat:
+		"weapons":
+			if base_val != 0.0: out.append(["Ataque: +" + _fmt_num(base_val), Color.RED])
+			out.append_array(_mod_lines(it, ["hpMod", "speedMod"]))
+		"shields":
+			if base_val != 0.0: out.append(["Escudo: +" + _fmt_num(base_val), Color.AQUA])
+			out.append_array(_mod_lines(it, ["hpMod", "speedMod"]))
+		"engines":
+			if base_val != 0.0: out.append(["Velocidad: +" + _fmt_num(base_val), Color.YELLOW])
+			out.append_array(_mod_lines(it, ["shieldMod", "hpMod", "dmgMod"]))
+	return out
+
+func _fmt_num(v: float) -> String:
+	if v == floor(v):
+		return str(int(v))
+	return str(v)
+
+func _mod_lines(it, keys) -> Array:
+	var out: Array = []
+	var names = { "hpMod": "Vida", "shieldMod": "Escudo", "speedMod": "Velocidad", "dmgMod": "Ataque" }
+	var colors = { "hpMod": Color.GREEN, "shieldMod": Color.AQUA, "speedMod": Color.YELLOW, "dmgMod": Color.RED }
+	for k in keys:
+		var v = float(it.get(k, 0))
+		if v == 0.0: continue
+		var t = it.get(k + "Type", "percent")
+		out.append([("+" if v > 0 else "") + _fmt_num(v) + ("%" if t == "percent" else "") + " " + names[k], colors[k]])
+	return out
+
+func _mods_bbcode(it, cat) -> String:
+	var out = ""
+	var base_val = float(it.get("base", 0))
+	match cat:
+		"weapons":
+			if base_val != 0.0: out += " [color=red]Ataque: +" + _fmt_num(base_val) + "[/color]"
+		"shields":
+			if base_val != 0.0: out += " [color=aqua]Escudo: +" + _fmt_num(base_val) + "[/color]"
+		"engines":
+			if base_val != 0.0: out += " [color=yellow]Velocidad: +" + _fmt_num(base_val) + "[/color]"
+	var names = { "hpMod": "Vida", "shieldMod": "Escudo", "speedMod": "Velocidad", "dmgMod": "Ataque" }
+	var tags = { "hpMod": "green", "shieldMod": "aqua", "speedMod": "yellow", "dmgMod": "red" }
+	var keys = []
+	match cat:
+		"weapons": keys = ["hpMod", "speedMod"]
+		"shields": keys = ["hpMod", "speedMod"]
+		"engines": keys = ["shieldMod", "hpMod", "dmgMod"]
+	for k in keys:
+		var v = float(it.get(k, 0))
+		if v == 0.0: continue
+		var t = it.get(k + "Type", "percent")
+		out += " [color=" + tags[k] + "]" + ("+" if v > 0 else "") + _fmt_num(v) + ("%" if t == "percent" else "") + " " + names[k] + "[/color]"
+	if out == "": return ""
+	return "OTORGA:" + out + "\n\n"
 
 func _open_detail_modal(it):
 	# Crear CanvasLayer para centrado automático independiente de resolución
@@ -444,7 +503,8 @@ func _buy_request(cat, it, cur):
 		_show_ammo_modal(it, cur)
 		return
 
-	var msg = "¿Deseas adquirir [color=cyan]" + it["name"] + "[/color] por [color=yellow]" + inv_main._format_val(price) + " " + cur.to_upper() + "[/color]?"
+	var msg = "¿Deseas adquirir [color=cyan]" + it["name"] + "[/color] por [color=yellow]" + inv_main._format_val(price) + " " + cur.to_upper() + "[/color]?\n\n"
+	msg += _mods_bbcode(it, cat)
 	inv_main._show_modal("CONFIRMAR ADQUISICIÓN", msg, func():
 		NetworkManager.send_event("buyItem", {"category": cat, "itemId": it["id"], "currency": cur})
 	)

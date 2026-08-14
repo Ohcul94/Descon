@@ -104,10 +104,9 @@ func _process(_delta):
 		if type != "electron":
 			world_root_3d.position.x = global_position.x * s_factor
 			world_root_3d.position.z = global_position.y * s_factor * correction_z
-			if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")):
-				world_root_3d.position.y = _owner_node.world_root_3d.position.y
-			else:
-				world_root_3d.position.y = 1.0
+			# v411: Apuntar a la altura del objetivo (jugadores/enemigos comunes = escala menor).
+			# Evita que los bosses (modelo escalado, altura y=2.5) parezcan disparar al aire.
+			world_root_3d.position.y = _aim_height()
 		if type == "mega_laser":
 			var dir_2d = Vector2.RIGHT.rotated(rotation)
 			var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
@@ -2177,7 +2176,7 @@ func _explode():
 				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
-				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
+				hit_node.position.y = _aim_height()
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				# Auto-liberar al terminar la animación
@@ -2205,7 +2204,7 @@ func _explode():
 				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
-				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
+				hit_node.position.y = _aim_height()
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				# Auto-liberar al terminar la animación
@@ -2272,7 +2271,7 @@ func _explode():
 				var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 				hit_node.position.x = global_position.x * s_factor
 				hit_node.position.z = global_position.y * s_factor * correction_z
-				hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
+				hit_node.position.y = _aim_height()
 				hit_node.scale = Vector3(1.5, 1.5, 1.5)
 				
 				var anim = hit_node.get_node_or_null("AnimationPlayer")
@@ -2305,7 +2304,7 @@ func _explode():
 					var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
 					hit_node.position.x = global_position.x * s_factor
 					hit_node.position.z = global_position.y * s_factor * correction_z
-					hit_node.position.y = _owner_node.world_root_3d.position.y if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")) else 1.0
+					hit_node.position.y = _aim_height()
 					hit_node.scale = Vector3(1.5, 1.5, 1.5)
 					
 					var anim = hit_node.get_node_or_null("AnimationPlayer")
@@ -2334,6 +2333,19 @@ func _explode():
 			tw.tween_property(sprite, "modulate:a", 0.0, 0.25)
 		await tw.finished
 	queue_free()
+
+# v411: Altura 3D a la que debe volar el proyectil.
+# Se usa la altura del objetivo (jugador/enemigo común) en lugar de la del dueño,
+# para que los bosses (escala mayor) no parezcan disparar al aire.
+func _aim_height() -> float:
+	if is_instance_valid(_target_node) and is_instance_valid(_target_node.get("world_root_3d")):
+		return _target_node.world_root_3d.position.y
+	var pl = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(pl) and is_instance_valid(pl.get("world_root_3d")):
+		return pl.world_root_3d.position.y
+	if is_instance_valid(_owner_node) and is_instance_valid(_owner_node.get("world_root_3d")):
+		return _owner_node.world_root_3d.position.y
+	return 1.0
 
 func _find_target():
 	if target_id == "": return

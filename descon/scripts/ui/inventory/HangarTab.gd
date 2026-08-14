@@ -290,7 +290,9 @@ func _create_fleet_card(sid, parent):
 	var base_hp = float(model.get("hp", 0))
 	var base_sh = float(model.get("shield", 0))
 	var base_speed = float(model.get("speed", 0))
-	var base_atk = float(model.get("attack", 100))
+	var base_atk = 100.0
+	if model.has("baseDmg"): base_atk = float(model.baseDmg)
+	elif model.has("base_damage"): base_atk = float(model.base_damage)
 
 	var final_hp = (base_hp + total_hp_bonus + hp_mod_flat) * (1.0 + hp_mod_pct / 100.0)
 	var final_sh = (base_sh + total_sh_bonus + shield_mod_flat) * (1.0 + shield_mod_pct / 100.0)
