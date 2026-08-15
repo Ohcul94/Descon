@@ -17,6 +17,10 @@ var active_tab: int = 0
 var category_filter: String = ""
 var search_text: String = ""
 
+# Auto-refresh pasivo de listings
+var _auto_refresh_timer: Timer = null
+const AUTO_REFRESH_INTERVAL: float = 30.0  # segundos
+
 # Referencias UI
 var control_root: Control = null
 var overlay: ColorRect = null
@@ -69,6 +73,13 @@ func _ready():
 	NetworkManager.market_purchase_result.connect(_on_market_purchase_result)
 	NetworkManager.market_mailbox_updated.connect(_on_market_mailbox_updated)
 	NetworkManager.inventory_data.connect(_on_inventory_received)
+
+	# Auto-refresh pasivo: refresca listings cada 30 seg mientras el mercado está abierto
+	_auto_refresh_timer = Timer.new()
+	_auto_refresh_timer.wait_time = AUTO_REFRESH_INTERVAL
+	_auto_refresh_timer.autostart = false
+	_auto_refresh_timer.timeout.connect(_on_auto_refresh_tick)
+	add_child(_auto_refresh_timer)
 
 func _build_ui():
 	var panel = PanelContainer.new()
@@ -256,6 +267,7 @@ func _on_market_mailbox_updated(data: Dictionary):
 
 func _on_inventory_received(data):
 	if typeof(data) == TYPE_DICTIONARY:
+		inventory_items = []  # Limpiar antes de repoblar
 		if data.has("inventory"): inventory_items = data["inventory"]
 		if data.has("hubs"): hubs = int(data["hubs"])
 		if data.has("ohcu"): ohcu = int(data["ohcu"])
@@ -268,7 +280,9 @@ func _on_inventory_received(data):
 					if eq.has(slot) and eq[slot] is Array:
 						inventory_items.append_array(eq[slot])
 	_update_balances()
-	if is_open and active_tab == 1:
+	if is_open:
+		# Re-renderizar siempre que el mercado esté abierto y lleguen datos de inventario
+		# (sin importar qué pestaña esté activa, para que VENDER tenga datos al clickear)
 		_render_active_tab()
 
 # ---------------------------------------------------------------------------
@@ -286,11 +300,17 @@ func _open():
 	var tw = create_tween()
 	tw.tween_property(overlay, "modulate:a", 1.0, 0.15)
 	tw.parallel().tween_property(control_root, "modulate:a", 1.0, 0.15)
+	# Arrancar auto-refresh cada 30 seg (listings en vivo)
+	if is_instance_valid(_auto_refresh_timer) and _auto_refresh_timer.is_stopped():
+		_auto_refresh_timer.start()
 
 func close_market():
 	if not is_open: return
 	is_open = false
 	_hide_modal()
+	# Detener auto-refresh al cerrar
+	if is_instance_valid(_auto_refresh_timer):
+		_auto_refresh_timer.stop()
 	var tw = create_tween()
 	tw.tween_property(overlay, "modulate:a", 0.0, 0.12)
 	tw.parallel().tween_property(control_root, "modulate:a", 0.0, 0.12)
@@ -301,6 +321,12 @@ func close_market():
 
 func _refresh_all():
 	if NetworkManager:
+		NetworkManager.send_event("getMarketData", {})
+		NetworkManager.send_event("getInventory", {})
+
+func _on_auto_refresh_tick():
+	# Refrescar listings pasivamente (no re-abre, solo actualiza datos en background)
+	if is_open and NetworkManager:
 		NetworkManager.send_event("getMarketData", {})
 
 func _input(event):
@@ -318,6 +344,9 @@ func _input(event):
 # ---------------------------------------------------------------------------
 func _on_tab_changed(tab: int):
 	active_tab = tab
+	if tab == 1 and inventory_items.is_empty() and NetworkManager:
+		# El inventario todavía no llegó (o llegó vacío): pedirlo ahora
+		NetworkManager.send_event("getInventory", {})
 	_render_active_tab()
 
 func _on_search_changed(text: String):
@@ -671,7 +700,7 @@ func _open_sell_modal(item: Dictionary):
 	_hide_modal()
 	
 	modal_overlay = ColorRect.new()
-	modal_overlay.color = Color(0.0, 0.0, 0.0, 0.55)
+	modal_overlay.color = Color(0.0, 0.0, 0.0, 0.6)
 	modal_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	modal_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	modal_overlay.z_index = 50
@@ -679,8 +708,8 @@ func _open_sell_modal(item: Dictionary):
 	
 	modal_panel = PanelContainer.new()
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.03, 0.03, 0.07, 0.99)
-	sb.border_width_top = 3
+	sb.bg_color = Color(0.015, 0.015, 0.03, 0.98) # Fondo más profundo y premium
+	sb.border_width_top = 4
 	sb.border_width_bottom = 2
 	sb.border_width_left = 2
 	sb.border_width_right = 2
@@ -689,18 +718,27 @@ func _open_sell_modal(item: Dictionary):
 	sb.corner_radius_top_right = 8
 	sb.corner_radius_bottom_left = 8
 	sb.corner_radius_bottom_right = 8
+	sb.shadow_color = Color(0, 0, 0, 0.85)
+	sb.shadow_size = 25
 	modal_panel.add_theme_stylebox_override("panel", sb)
-	modal_panel.custom_minimum_size = Vector2(380, 0)
-	modal_panel.set_anchors_preset(Control.PRESET_CENTER)
-	modal_panel.position = Vector2(-190, -130)
+	modal_panel.custom_minimum_size = Vector2(400, 360) # Ajustado para centrado perfecto
 	modal_panel.z_index = 51
-	add_child(modal_panel)
+	control_root.add_child(modal_panel) # Agregado a control_root para centrado reactivo
+	
+	# Centrado dinámico nativo mediante anchors y offsets
+	modal_panel.set_anchors_preset(Control.PRESET_CENTER)
+	modal_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	modal_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	modal_panel.offset_left = -200
+	modal_panel.offset_right = 200
+	modal_panel.offset_top = -180
+	modal_panel.offset_bottom = 180
 	
 	var mg = MarginContainer.new()
-	mg.add_theme_constant_override("margin_top", 16)
-	mg.add_theme_constant_override("margin_bottom", 16)
-	mg.add_theme_constant_override("margin_left", 20)
-	mg.add_theme_constant_override("margin_right", 20)
+	mg.add_theme_constant_override("margin_top", 18)
+	mg.add_theme_constant_override("margin_bottom", 18)
+	mg.add_theme_constant_override("margin_left", 22)
+	mg.add_theme_constant_override("margin_right", 22)
 	modal_panel.add_child(mg)
 	
 	var vbox = VBoxContainer.new()
@@ -818,7 +856,7 @@ func _open_confirm(title: String, msg: String, on_confirm: Callable):
 	confirm_callback = on_confirm
 	
 	modal_overlay = ColorRect.new()
-	modal_overlay.color = Color(0.0, 0.0, 0.0, 0.55)
+	modal_overlay.color = Color(0.0, 0.0, 0.0, 0.6)
 	modal_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	modal_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	modal_overlay.z_index = 50
@@ -826,25 +864,37 @@ func _open_confirm(title: String, msg: String, on_confirm: Callable):
 	
 	modal_panel = PanelContainer.new()
 	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.03, 0.03, 0.07, 0.99)
-	sb.border_width_top = 3
+	sb.bg_color = Color(0.015, 0.015, 0.03, 0.98) # Fondo más profundo y premium
+	sb.border_width_top = 4
+	sb.border_width_bottom = 2
+	sb.border_width_left = 2
+	sb.border_width_right = 2
 	sb.border_color = BORDER_GOLD
 	sb.corner_radius_top_left = 8
 	sb.corner_radius_top_right = 8
 	sb.corner_radius_bottom_left = 8
 	sb.corner_radius_bottom_right = 8
+	sb.shadow_color = Color(0, 0, 0, 0.85)
+	sb.shadow_size = 25
 	modal_panel.add_theme_stylebox_override("panel", sb)
-	modal_panel.custom_minimum_size = Vector2(420, 0)
-	modal_panel.set_anchors_preset(Control.PRESET_CENTER)
-	modal_panel.position = Vector2(-210, -120)
+	modal_panel.custom_minimum_size = Vector2(440, 220)
 	modal_panel.z_index = 51
-	add_child(modal_panel)
+	control_root.add_child(modal_panel) # Agregado a control_root para centrado reactivo
+	
+	# Centrado dinámico nativo mediante anchors y offsets
+	modal_panel.set_anchors_preset(Control.PRESET_CENTER)
+	modal_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	modal_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	modal_panel.offset_left = -220
+	modal_panel.offset_right = 220
+	modal_panel.offset_top = -110
+	modal_panel.offset_bottom = 110
 	
 	var mg = MarginContainer.new()
-	mg.add_theme_constant_override("margin_top", 16)
-	mg.add_theme_constant_override("margin_bottom", 16)
-	mg.add_theme_constant_override("margin_left", 20)
-	mg.add_theme_constant_override("margin_right", 20)
+	mg.add_theme_constant_override("margin_top", 18)
+	mg.add_theme_constant_override("margin_bottom", 18)
+	mg.add_theme_constant_override("margin_left", 22)
+	mg.add_theme_constant_override("margin_right", 22)
 	modal_panel.add_child(mg)
 	
 	var vbox = VBoxContainer.new()

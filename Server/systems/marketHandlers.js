@@ -31,7 +31,14 @@ function getAccessZoneId(state) {
 function isZoneAllowed(p, state) {
     const target = String(getAccessZoneId(state));
     const cur = String(p.zone !== undefined ? p.zone : 1);
-    return cur === target;
+    if (cur === target) return true;
+
+    // Permitir mercado si la zona tiene configurada una terminal de mercado en sus objetos
+    const mapCfg = state.SERVER_CONFIG?.mapsConfig?.[cur];
+    if (mapCfg && Array.isArray(mapCfg.objects)) {
+        return mapCfg.objects.some(obj => obj && obj.type === 'market');
+    }
+    return false;
 }
 
 function normalizeSellableItem(item) {

@@ -506,6 +506,12 @@ func _draw():
 						draw_circle(obj_pos, 6.5, Color(base_color.r, base_color.g, base_color.b, 0.2), false, 1.0)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "P", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 						
+					"market":
+						# Mercado - Amarillo/Dorado con 'M'
+						draw_circle(obj_pos, 5.0, Color(1.0, 0.85, 0.0, 0.95))
+						draw_circle(obj_pos, 7.5, Color(1.0, 0.85, 0.0, 0.2), false, 1.5)
+						draw_string(font, obj_pos + Vector2(-3.5, 3.0), "M", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+						
 					_:
 						# Objeto genérico - Blanco con 'O'
 						draw_circle(obj_pos, 4.0, Color(0.8, 0.8, 0.8, 0.8))

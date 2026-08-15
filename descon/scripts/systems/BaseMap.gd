@@ -1504,6 +1504,11 @@ func _set_portal_icon(type: String):
 			scene = MODEL_VAULT_ICON
 		"loot":
 			scene = MODEL_LOOT_ICON
+		"market":
+			if is_instance_valid(active_market_node) and active_market_node.get("TERMINAL_MODEL_SCENE"):
+				scene = active_market_node.TERMINAL_MODEL_SCENE
+			else:
+				scene = load("res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb")
 	if scene:
 		var model = scene.instantiate()
 		model.scale = Vector3(1.5, 1.5, 1.5)
@@ -1563,7 +1568,7 @@ func _update_interact_visibility():
 		if portal_desc_label:
 			var key_text = _get_bound_interact_key("loot_claim")
 			portal_desc_label.text = "ABRIR MERCADO [" + key_text + " / Clic]"
-		_set_portal_icon("vault")
+		_set_portal_icon("market")
 		_current_interact_mode = "market"
 		portal_btn_container.visible = true
 	elif is_instance_valid(active_loot_node):

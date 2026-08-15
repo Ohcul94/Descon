@@ -919,7 +919,7 @@ function toggleMapCard(key) {
 // Seleccionar un ítem del mapa (desde el radar o desde la lista) y resaltarlo
 function selectMapItem(kind, idx) {
     window._mapSelection = { kind, index: idx };
-    const prefixes = { spawn: 'card-map-spawn-', door: 'card-map-obj-', ambience: 'card-map-amb-' };
+    const prefixes = { spawn: 'card-map-spawn-', door: 'card-map-obj-', market: 'card-map-obj-', ambience: 'card-map-amb-' };
     document.querySelectorAll('[id^="card-map-spawn-"], [id^="card-map-obj-"], [id^="card-map-amb-"]').forEach(el => {
         el.style.boxShadow = '';
         el.style.borderColor = '';
@@ -935,7 +935,7 @@ function selectMapItem(kind, idx) {
         focusedRadarItem = { type: 'map-spawn', index: idx };
         window._highlightedMapObj = null;
         window._highlightedAmbienceIdx = null;
-    } else if (kind === 'door') {
+    } else if (kind === 'door' || kind === 'market') {
         window._highlightedMapObj = idx;
         focusedRadarItem = null;
         window._highlightedAmbienceIdx = null;
@@ -965,6 +965,11 @@ async function requestMapDelete(kind, idx) {
         if (!o) return;
         msg = `SE ELIMINARÁ ESTA PUERTA:\n\n🚪 ${o.label || 'Puerta'}\nUbicación: X ${o.x || 0}, Y ${o.y || 0}\n\n¿Confirmás la eliminación?`;
         title = '⚠️ ELIMINAR PUERTA';
+    } else if (kind === 'market') {
+        const o = m.objects && m.objects[idx];
+        if (!o) return;
+        msg = `SE ELIMINARÁ ESTE MERCADO:\n\n🛒 ${o.label || 'Mercado'}\nUbicación: X ${o.x || 0}, Y ${o.y || 0}\n\n¿Confirmás la eliminación?`;
+        title = '⚠️ ELIMINAR MERCADO';
     } else if (kind === 'ambience') {
         const a = m.ambience && m.ambience[idx];
         if (!a) return;
@@ -979,7 +984,7 @@ async function requestMapDelete(kind, idx) {
     if (!ok) return;
 
     if (kind === 'spawn') m.spawns.splice(idx, 1);
-    else if (kind === 'door') m.objects.splice(idx, 1);
+    else if (kind === 'door' || kind === 'market') m.objects.splice(idx, 1);
     else if (kind === 'ambience') m.ambience.splice(idx, 1);
 
     window._mapSelection = null;
@@ -1094,6 +1099,24 @@ function openMapAddModal(kind) {
                 <div class="field"><label>Warp Y destino</label><input type="number" id="map-add-door-ty" value="5000"></div>
             </div>
         `;
+    } else if (kind === 'market') {
+        title.innerText = '➕ AGREGAR TERMINAL DE MERCADO';
+        body.innerHTML = `
+            <div style="font-size:0.8rem; color:#ffd700; margin-bottom:1.2rem; line-height:1.5;">Configurá una terminal interactiva para la Casa de Subastas. Los jugadores podrán interactuar con ella en el juego haciendo doble clic. Podés hacer clic en el <strong style="color:var(--accent);">radar táctico</strong> para copiar las coordenadas automáticamente.</div>
+            <div class="field" style="margin-bottom:1rem;"><label>🛒 ETIQUETA / NOMBRE</label><input type="text" id="map-add-market-label" value="Mercado" placeholder="Nombre de la terminal"></div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="field"><label>Pos X</label><input type="number" id="map-add-x" value="${pos.x}"></div>
+                <div class="field"><label>Pos Y</label><input type="number" id="map-add-y" value="${pos.y}"></div>
+            </div>
+            <div class="field" style="margin-top:12px;"><label>Asset (ruta .glb de Godot)</label>
+                <input type="text" id="map-add-market-asset" value="res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb" placeholder="Ruta del asset .glb">
+            </div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:12px;">
+                <div class="field"><label>Escala</label><input type="number" step="0.1" id="map-add-market-scale" value="2.0"></div>
+                <div class="field"><label>Rotación Y (grados)</label><input type="number" id="map-add-market-roty" value="0"></div>
+                <div class="field"><label>Altura Y Offset</label><input type="number" step="0.1" id="map-add-market-yoffset" value="0.0"></div>
+            </div>
+        `;
     } else if (kind === 'ambience') {
         title.innerText = '➕ AGREGAR MECÁNICA DE AMBIENTE';
         const typeOptions = Object.keys(AMBIENCE_LIB).map(t => `<option value="${t}">${AMBIENCE_LIB[t].icon || '🌍'} ${AMBIENCE_LIB[t].label}</option>`).join('');
@@ -1181,6 +1204,20 @@ function confirmMapAdd() {
         });
         newIdx = m.objects.length - 1;
         window._mapCardExpanded[`door-${newIdx}`] = true;
+    } else if (kind === 'market') {
+        if (!m.objects) m.objects = [];
+        m.objects.push({
+            type: 'market',
+            label: document.getElementById('map-add-market-label').value || 'Mercado',
+            x: parseInt(document.getElementById('map-add-x').value) || 0,
+            y: parseInt(document.getElementById('map-add-y').value) || 0,
+            assetPath: document.getElementById('map-add-market-asset').value || 'res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb',
+            scale: parseFloat(document.getElementById('map-add-market-scale').value) || 2.0,
+            rotY: parseFloat(document.getElementById('map-add-market-roty').value) || 0,
+            yOffset: parseFloat(document.getElementById('map-add-market-yoffset').value) || 0.0
+        });
+        newIdx = m.objects.length - 1;
+        window._mapCardExpanded[`market-${newIdx}`] = true;
     } else if (kind === 'ambience') {
         const type = document.getElementById('map-add-amb-type').value;
         if (!m.ambience) m.ambience = [];
@@ -1224,6 +1261,13 @@ function duplicateMapItem(kind, idx) {
         m.objects.push(JSON.parse(JSON.stringify(o)));
         newIdx = m.objects.length - 1;
         window._mapCardExpanded[`door-${newIdx}`] = true;
+    } else if (kind === 'market') {
+        const o = m.objects && m.objects[idx];
+        if (!o) return;
+        if (!m.objects) m.objects = [];
+        m.objects.push(JSON.parse(JSON.stringify(o)));
+        newIdx = m.objects.length - 1;
+        window._mapCardExpanded[`market-${newIdx}`] = true;
     } else if (kind === 'ambience') {
         const a = m.ambience && m.ambience[idx];
         if (!a) return;
@@ -2881,7 +2925,8 @@ function initMapRadar() {
             chest: { color: '#ffd700', glow: 'rgba(255,215,0,0.3)', icon: 'B', size: 9 },
             door:  { color: '#00d2ff', glow: 'rgba(0,210,255,0.3)', icon: 'P', size: 10 },
             tower: { color: '#ff8c00', glow: 'rgba(255,140,0,0.3)', icon: 'T', size: 9 },
-            wall:  { color: '#a87c52', glow: 'rgba(168,124,82,0.3)', icon: '🧱', size: 9 }
+            wall:  { color: '#a87c52', glow: 'rgba(168,124,82,0.3)', icon: '🧱', size: 9 },
+            market: { color: '#ffd700', glow: 'rgba(255,215,0,0.35)', icon: '🛒', size: 10 }
         };
         const objects = m.objects || [];
         objects.forEach((obj, idx) => {
@@ -2917,7 +2962,7 @@ function initMapRadar() {
             ctx.textAlign = 'center';
             ctx.fillText(style.icon, pos.x, pos.y + 3);
 
-            const label = obj.label || (obj.type === 'door' ? 'Puerta' : obj.type === 'chest' ? 'Baúl' : 'Torre');
+            const label = obj.label || (obj.type === 'door' ? 'Puerta' : obj.type === 'chest' ? 'Baúl' : obj.type === 'market' ? 'Mercado' : 'Torre');
             ctx.fillStyle = style.color;
             ctx.font = '8px Outfit';
             ctx.textAlign = 'center';

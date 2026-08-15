@@ -2511,6 +2511,84 @@ function renderMapDetail() {
                     ).join('')}
                     </div>
                 </div>
+
+                <!-- ========== CONFIGURADOR DE MERCADOS / SUBASTAS ========== -->
+                <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,215,0,0.25);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                        <label style="color:#ffd700; font-size: 0.8rem; font-weight:bold;">🛒 TERMINALES DE MERCADO / SUBASTAS</label>
+                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem; background:#ffd700; border-color:#ffd700; color:#000; font-weight:bold;" onclick="openMapAddModal('market')">+ AGREGAR MERCADO</button>
+                    </div>
+                    <div style="font-size:0.65rem; color:#64748b; margin-bottom:1rem;">
+                        Aquí podés gestionar las terminales donde los jugadores acceden a la Casa de Subastas Galáctica en esta zona.
+                    </div>
+                    <div id="map-markets-list">
+                    ${(m.objects || []).map((obj, idx) => obj.type !== 'market' ? '' : (() => {
+                        const oName = obj.label || 'Mercado sin nombre';
+                        const isOpen = isMapCardExpanded(`market-${idx}`);
+                        return `
+                        <div class="card" id="card-map-obj-${idx}" style="margin-bottom:0.6rem; padding:0; position:relative;
+                            border-left: 3px solid #ffd70080; background: rgba(0,0,0,0.2); cursor:pointer;">
+                            <div style="display:flex; align-items:center; gap:10px; padding:0.6rem 0.9rem; border-bottom: ${isOpen ? '1px solid rgba(255,255,255,0.06)' : 'none'};"
+                                 onclick="selectMapItem('market', ${idx}); toggleMapCard('market-${idx}')">
+                                <span style="font-size:1rem;">🛒</span>
+                                <span style="flex:1; color:#ffd700; font-weight:bold; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${oName}</span>
+                                <span style="font-size:0.6rem; color:#64748b; padding:2px 6px; border:1px solid rgba(255,255,255,0.15); border-radius:4px; white-space:nowrap;">X ${obj.x || 0}, Y ${obj.y || 0}</span>
+                                <span style="color:#ffd700; font-size:0.7rem;">${isOpen ? '▼' : '▶'}</span>
+                                <button style="background:none; border:none; color:#ffd700; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Duplicar (Ctrl+D)" onclick="event.stopPropagation(); duplicateMapItem('market', ${idx})">⧉</button>
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.9rem; padding:0 2px;" title="Eliminar (Supr)" onclick="event.stopPropagation(); requestMapDelete('market', ${idx})">✕</button>
+                            </div>
+                            ${isOpen ? `
+                            <div style="padding:1rem;">
+                            <div style="font-size:0.65rem; color:#ffd700; font-weight:bold; letter-spacing:1px; margin-bottom:0.7rem;">🛒 TERMINAL DE MERCADO</div>
+                            <div class="form-grid">
+                                <div class="field" style="grid-column:span 2;">
+                                    <label>Etiqueta</label>
+                                    <input type="text" value="${obj.label || ''}" placeholder="Nombre de la terminal"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].label = this.value">
+                                </div>
+                                <div class="field">
+                                    <label>Pos X</label>
+                                    <input type="number" id="map-obj-x-${idx}" value="${obj.x || 0}"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].x = parseInt(this.value) || 0">
+                                </div>
+                                <div class="field">
+                                    <label>Pos Y</label>
+                                    <input type="number" id="map-obj-y-${idx}" value="${obj.y || 0}"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].y = parseInt(this.value) || 0">
+                                </div>
+                                <div class="field" style="grid-column:span 2;">
+                                    <label>Asset (ruta .glb)</label>
+                                    <div style="display:flex; gap:6px; align-items:center;">
+                                        <input type="text" value="${obj.assetPath || 'res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb'}" placeholder="Ruta al archivo .glb del asset"
+                                               oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].assetPath = this.value" style="flex:1; margin:0;">
+                                        <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#ffd700; border-color:#ffd700; color:#000;" onclick="triggerMapObjAssetPick('${selectedMapId}', ${idx})">📁</button>
+                                    </div>
+                                </div>
+                                <div class="field" style="grid-column:span 2; border-top:1px solid rgba(255,215,0,0.25); padding-top:0.7rem; margin-top:0.3rem;">
+                                    <label style="color:#ffd700; font-size:0.6rem; font-weight:bold;">📐 CONFIGURACIÓN 3D</label>
+                                </div>
+                                <div class="field">
+                                    <label>Rotación Y (grados)</label>
+                                    <input type="number" value="${obj.rotY || 0}" placeholder="0"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].rotY = parseFloat(this.value) || 0">
+                                </div>
+                                <div class="field">
+                                    <label>Escala (x1 = tamaño base)</label>
+                                    <input type="number" step="0.1" min="0.1" value="${obj.scale || 1}" placeholder="1"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].scale = parseFloat(this.value) || 1">
+                                </div>
+                                <div class="field" style="grid-column:span 2;">
+                                    <label>Y Offset (altura sobre el suelo)</label>
+                                    <input type="number" step="0.1" value="${obj.yOffset !== undefined ? obj.yOffset : 0.0}" placeholder="0.0"
+                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].yOffset = parseFloat(this.value) || 0">
+                                </div>
+                            </div>
+                            </div>` : ''}
+                        </div>`;
+                    })()
+                    ).join('')}
+                    </div>
+                </div>
             </div>
         </div>
     `;
