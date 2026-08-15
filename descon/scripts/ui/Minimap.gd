@@ -328,11 +328,17 @@ func _draw():
 			var pos = Vector2(ent.global_position.x * scale_x, ent.global_position.y * scale_y)
 			var ent_type = int(ent.get("entity_type"))
 			var is_boss = ent.get("isBoss") == true
-			# Puntito proporcional a la escala 3D del enemigo (2.0 normal, 6.0+ bosses)
-			var ent_scale = float(ent.get("_enemy_scale")) if ent.get("_enemy_scale") != null else 3.0
+			# Puntito proporcional a la escala 3D real del enemigo (2.0 comunes, 6.0 bosses, 8.0 guardian, 9.0 pilares)
+			var ent_scale = 3.0
+			var mdl_3d = ent.get("_3d_model")
+			if is_instance_valid(mdl_3d) and mdl_3d.scale.x > 0.0:
+				ent_scale = mdl_3d.scale.x
+			elif ent.get("_enemy_scale") != null:
+				ent_scale = float(ent.get("_enemy_scale"))
 			if ent_scale <= 0.0: ent_scale = 3.0
 			var dot_r = 2.0
-			if is_boss or ent_type >= 101 or ent_type == 4 or ent_type == 10 or ent_type == 11:
+			# v269.162: Solo bosses (>=101, pilares 200/201) y mini-bosses reales (10 y 11). El tipo 4 es común.
+			if is_boss or ent_type >= 101 or ent_type == 10 or ent_type == 11:
 				dot_r = max(4.0, ent_scale * 1.5)
 				draw_circle(pos, dot_r, Color(0.65, 0.25, 1.0)) # #a640ff Violeta
 			else:

@@ -2,9 +2,14 @@
 // Cada ítem/habilidad puede declarar un array `requirements` en su master config:
 //   [
 //     { "type": "level", "min": 10 },
-//     { "type": "quest_completed", "questId": "quest_1" }
+//     { "type": "quest_completed", "questId": "quest_1" },
+//     { "type": "spheres", "esferas": [ { "color": "verde", "count": 2 }, { "color": "azul", "count": 1 } ] }
 //   ]
 // TODAS las condiciones deben cumplirse (AND). Ítems sin `requirements` = sin restricción.
+// v650.0: Nuevo tipo `spheres` — el piloto debe tener equipadas N esferas de determinados
+// colores (mezcla dinámica de 1 a 4 esferas, en cualquier orden/color).
+// El color de cada esfera se deriva del tipo de habilidad equipada en ese slot:
+//   Ataque → Roja | Defensa → Azul | Curación → Verde | Utilidad/Movimiento → Amarilla
 
 function getAmmoMasterConfig(itemId, serverConfig) {
     const id = (itemId || "").toLowerCase();
@@ -85,10 +90,104 @@ function checkRequirements(p, requirements, serverConfig) {
                 const label = req.label || key;
                 return { ok: false, msg: `REQUIERE DESBLOQUEO: ${label}` };
             }
+        } else if (type === 'spheres') {
+            // v650.0: Esferas de colores. Formato:
+            //   { "type": "spheres", "esferas": [ { "color": "verde", "count": 2 }, { "color": "azul", "count": 1 } ] }
+            // El piloto debe tener AL MENOS esas esferas de cada color entre sus 4 slots orbitales.
+            const needed = Array.isArray(req.esferas) ? req.esferas : [];
+            if (!needed.length) continue; // Sin esferas configuradas → condición ignorada
+            const counts = countPlayerSphereColors(p.spheres);
+            let anyReal = false;
+            for (const n of needed) {
+                if (!n || typeof n !== 'object') continue;
+                const color = normalizeSphereColor(n.color);
+                const count = parseInt(n.count);
+                if (!color || isNaN(count) || count <= 0) continue;
+                anyReal = true;
+                if ((counts[color] || 0) < count) {
+                    return { ok: false, msg: `REQUIERE ${buildSphereRequirementMsg(needed)}` };
+                }
+            }
+            if (!anyReal) continue; // Requisito mal formado → se ignora (retrocompatibilidad)
         }
         // Tipos desconocidos se ignoran (retrocompatibilidad)
     }
     return { ok: true, msg: '' };
+}
+
+// ============================================================
+// v650.0: Esferas de colores (requisito de equipamiento de habilidades)
+// El color de una esfera se deriva del tipo de habilidad equipada:
+//   Ataque → Roja | Defensa → Azul | Curación → Verde | Utilidad/Movimiento → Amarilla
+// También se respeta un `type` explícito en la esfera si coincide con un color conocido.
+// ============================================================
+const SPHERE_COLOR_ALIASES = {
+    'roja': 'roja', 'rojo': 'roja', 'red': 'roja',
+    'azul': 'azul', 'blue': 'azul',
+    'verde': 'verde', 'green': 'verde',
+    'amarilla': 'amarilla', 'amarillo': 'amarilla', 'yellow': 'amarilla'
+};
+
+function normalizeSphereColor(raw) {
+    if (!raw) return '';
+    const n = String(raw).toLowerCase().trim()
+        .replace(/ó/g, 'o').replace(/é/g, 'e').replace(/í/g, 'i').replace(/á/g, 'a').replace(/ú/g, 'u').replace(/ü/g, 'u');
+    return SPHERE_COLOR_ALIASES[n] || '';
+}
+
+function sphereColorFromSkillType(skillType) {
+    const t = String(skillType || '').toLowerCase()
+        .replace(/ó/g, 'o').replace(/é/g, 'e').replace(/í/g, 'i').replace(/á/g, 'a').replace(/ú/g, 'u').replace(/ü/g, 'u');
+    if (t === 'ataque') return 'roja';
+    if (t === 'defensa') return 'azul';
+    if (t === 'curacion') return 'verde';
+    return 'amarilla'; // Utilidad / Movimiento / cualquier otro tipo
+}
+
+function getSphereColor(sphere) {
+    if (!sphere || typeof sphere !== 'object') return '';
+    // 1) Tipo explícito de la esfera (futuro: esferas teñidas de un color fijo)
+    const explicit = normalizeSphereColor(sphere.type);
+    if (explicit) return explicit;
+    // 2) Color derivado del tipo de habilidad equipada en ese slot
+    if (sphere.equipped && typeof sphere.equipped === 'object' && sphere.equipped.type) {
+        return sphereColorFromSkillType(sphere.equipped.type);
+    }
+    return '';
+}
+
+function countPlayerSphereColors(spheres) {
+    const counts = {};
+    if (!Array.isArray(spheres)) return counts;
+    for (const s of spheres) {
+        const c = getSphereColor(s);
+        if (c) counts[c] = (counts[c] || 0) + 1;
+    }
+    return counts;
+}
+
+const SPHERE_COLOR_LABELS = { 'roja': 'ROJA', 'azul': 'AZUL', 'verde': 'VERDE', 'amarilla': 'AMARILLA' };
+
+function sphereColorLabel(color, count) {
+    const single = SPHERE_COLOR_LABELS[color] || color.toUpperCase();
+    const plural = color === 'azul' ? 'AZULES' : single + 'S';
+    return `${count} ESFERA${count > 1 ? 'S' : ''} ${count > 1 ? plural : single}`;
+}
+
+// Construye el mensaje respetando el orden en que se configuraron los colores:
+//   "2 ESFERAS VERDES Y 1 AZUL" | "3 ESFERAS VERDES" | "1 ESFERA ROJA"
+function buildSphereRequirementMsg(needed) {
+    const parts = [];
+    for (const n of needed) {
+        if (!n || typeof n !== 'object') continue;
+        const color = normalizeSphereColor(n.color);
+        const count = parseInt(n.count);
+        if (!color || isNaN(count) || count <= 0) continue;
+        parts.push(sphereColorLabel(color, count));
+    }
+    if (!parts.length) return 'ESFERAS DE COLORES';
+    if (parts.length === 1) return parts[0];
+    return parts.slice(0, -1).join(', ') + ' Y ' + parts[parts.length - 1];
 }
 
 module.exports = { getMasterItemConfig, getAmmoMasterConfig, getSkillMasterConfig, checkRequirements };

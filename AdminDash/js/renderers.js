@@ -17,7 +17,8 @@ window.resolveAssetWebUrl = function(iconPath) {
 const REQUIREMENTS_TYPES = [
     { value: 'level', label: 'Nivel mínimo' },
     { value: 'quest_completed', label: 'Misión completada' },
-    { value: 'unlock', label: 'Desbloqueo especial' }
+    { value: 'unlock', label: 'Desbloqueo especial' },
+    { value: 'spheres', label: 'Esferas de colores' }
 ];
 const REQ_SECTIONS = {};
 
@@ -54,9 +55,10 @@ function reqSetType(secId, idx, type) {
     if (!item || !Array.isArray(item.requirements)) return;
     const req = item.requirements[idx];
     req.type = type;
-    if (type === 'level') { if (req.min === undefined) req.min = 1; delete req.questId; delete req.key; delete req.label; }
-    else if (type === 'quest_completed') { if (req.questId === undefined) req.questId = ''; delete req.min; delete req.key; delete req.label; }
-    else if (type === 'unlock') { if (req.key === undefined) req.key = ''; if (req.label === undefined) req.label = ''; delete req.min; delete req.questId; }
+    if (type === 'level') { if (req.min === undefined) req.min = 1; delete req.questId; delete req.key; delete req.label; delete req.esferas; }
+    else if (type === 'quest_completed') { if (req.questId === undefined) req.questId = ''; delete req.min; delete req.key; delete req.label; delete req.esferas; }
+    else if (type === 'unlock') { if (req.key === undefined) req.key = ''; if (req.label === undefined) req.label = ''; delete req.min; delete req.questId; delete req.esferas; }
+    else if (type === 'spheres') { if (!Array.isArray(req.esferas) || req.esferas.length === 0) req.esferas = [{ color: 'verde', count: 1 }]; delete req.min; delete req.questId; delete req.key; delete req.label; }
     renderRequirementsSection(secId);
 }
 function reqSetValue(secId, idx, key, value) {
@@ -67,6 +69,75 @@ function reqSetValue(secId, idx, key, value) {
     else if (key === 'questId') req.questId = value;
     else if (key === 'key') req.key = value;
     else if (key === 'label') req.label = value;
+}
+
+// ============================================================
+// v650.0: Editor dinámico de requisito "Esferas de colores"
+// El piloto debe tener N esferas de cada color (mezcla libre, 1 a 4 esferas en total).
+// Formato generado: { "type": "spheres", "esferas": [ { "color": "verde", "count": 2 }, ... ] }
+// ============================================================
+const SPHERE_COLOR_OPTIONS = [
+    { value: 'verde', label: '🟢 Verde' },
+    { value: 'azul', label: '🔵 Azul' },
+    { value: 'roja', label: '🔴 Roja' },
+    { value: 'amarilla', label: '🟡 Amarilla' }
+];
+function sphereColorOptions(selected) {
+    return SPHERE_COLOR_OPTIONS.map(c => `<option value="${c.value}" ${selected === c.value ? 'selected' : ''}>${c.label}</option>`).join('');
+}
+function reqSphereTotal(req) {
+    return (Array.isArray(req.esferas) ? req.esferas : []).reduce((s, e) => s + (Number(e && e.count) || 0), 0);
+}
+function reqSetSphere(secId, idx, ei, key, value) {
+    const item = reqGetItem(secId);
+    if (!item || !Array.isArray(item.requirements)) return;
+    const req = item.requirements[idx];
+    if (!Array.isArray(req.esferas) || !req.esferas[ei]) return;
+    if (key === 'color') req.esferas[ei].color = value;
+    else if (key === 'count') req.esferas[ei].count = Math.min(4, Math.max(1, parseInt(value) || 1));
+    renderRequirementsSection(secId);
+}
+function reqAddSphere(secId, idx) {
+    const item = reqGetItem(secId);
+    if (!item || !Array.isArray(item.requirements)) return;
+    const req = item.requirements[idx];
+    if (!Array.isArray(req.esferas)) req.esferas = [];
+    if (reqSphereTotal(req) >= 4) return; // Máximo 4 esferas (una por slot orbital)
+    req.esferas.push({ color: 'verde', count: 1 });
+    renderRequirementsSection(secId);
+}
+function reqRemoveSphere(secId, idx, ei) {
+    const item = reqGetItem(secId);
+    if (!item || !Array.isArray(item.requirements)) return;
+    const req = item.requirements[idx];
+    if (!Array.isArray(req.esferas)) return;
+    req.esferas.splice(ei, 1);
+    if (req.esferas.length === 0) req.esferas = [{ color: 'verde', count: 1 }];
+    renderRequirementsSection(secId);
+}
+function requirementsSpheresFieldHtml(secId, idx, req) {
+    const list = Array.isArray(req.esferas) ? req.esferas : [];
+    const total = list.reduce((s, e) => s + (Number(e && e.count) || 0), 0);
+    let sphereRows = '';
+    list.forEach((e, ei) => {
+        sphereRows += `
+            <div style="display:flex; gap:6px; align-items:center;">
+                <select style="width:130px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px; font-size:0.68rem;" onchange="reqSetSphere('${secId}', ${idx}, ${ei}, 'color', this.value)">${sphereColorOptions(e && e.color)}</select>
+                <select style="width:110px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px; font-size:0.68rem;" onchange="reqSetSphere('${secId}', ${idx}, ${ei}, 'count', this.value)">${[1, 2, 3, 4].map(n => `<option value="${n}" ${Number(e && e.count) === n ? 'selected' : ''}>${n} ${n === 1 ? 'esfera' : 'esferas'}</option>`).join('')}</select>
+                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:11px;" title="Quitar color" onclick="reqRemoveSphere('${secId}', ${idx}, ${ei})">✕</button>
+            </div>`;
+    });
+    const addBtn = total >= 4
+        ? `<button disabled style="background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:not-allowed; border-radius:4px; padding:2px 8px; font-size:0.6rem; opacity:0.4;" title="Máximo 4 esferas (una por slot orbital)">+ ESFERA</button>`
+        : `<button style="background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; padding:2px 8px; font-size:0.6rem;" onclick="reqAddSphere('${secId}', ${idx})" title="Agregar otro color">+ ESFERA</button>`;
+    return `
+        <div style="flex:1; display:flex; flex-direction:column; gap:4px; min-width:240px;">
+            ${sphereRows || '<span style="font-size:0.65rem; opacity:0.5;">Sin esferas requeridas.</span>'}
+            <div style="display:flex; gap:10px; align-items:center;">
+                ${addBtn}
+                <span style="font-size:0.6rem; ${total > 4 ? 'color:#ff5555; font-weight:bold;' : 'opacity:0.6;'}" title="Total de esferas exigidas (máx. 4, una por slot orbital)">Total: ${total} / 4 esferas</span>
+            </div>
+        </div>`;
 }
 function requirementsTypeOptions(selected) {
     return REQUIREMENTS_TYPES.map(t => `<option value="${t.value}" ${selected === t.value ? 'selected' : ''}>${t.label}</option>`).join('');
@@ -98,6 +169,9 @@ function requirementsSectionHtml(secId, itemExpr) {
                 <input type="text" value="${reqAttrEscape(req.key || '')}" placeholder="Clave: item:w_laser_1 | skill:X | map:2 | talent:combat:0" title="Clave del desbloqueo. La misión debe otorgarla con el mismo tipo y ID." style="flex:1; min-width:180px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px; font-size:0.65rem;" onchange="reqSetValue('${secId}', ${idx}, 'key', this.value)">
                 <input type="text" value="${reqAttrEscape(req.label || '')}" placeholder="Nombre visible (ej: Cañón de Plasma)" title="Nombre que verá el jugador al intentar usar el objeto" style="flex:1; min-width:120px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px; font-size:0.65rem;" onchange="reqSetValue('${secId}', ${idx}, 'label', this.value)">
             `;
+        } else if (type === 'spheres') {
+            // v650.0: Editor dinámico de esferas (mezcla de colores, 1 a 4 esferas total)
+            valueField = requirementsSpheresFieldHtml(secId, idx, req);
         }
         rows += `
             <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">

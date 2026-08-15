@@ -683,6 +683,25 @@ func check_equip_requirements(item_id: String = "", skill_name: String = "", amm
 			if not unlocks_cache.has(unlock_key):
 				var ulabel: String = str(req.get("label", unlock_key))
 				return {"ok": false, "msg": "REQUIERE DESBLOQUEO: " + ulabel}
+		elif type_str == "spheres":
+			# v650.0: Esferas de colores (ej: 2 verdes y 1 azul, mezcla dinámica de 1 a 4 esferas)
+			var needed: Array = req.get("esferas", [])
+			if typeof(needed) != TYPE_ARRAY or needed.is_empty():
+				continue
+			var counts: Dictionary = _count_player_sphere_colors()
+			var any_real := false
+			for n in needed:
+				if typeof(n) != TYPE_DICTIONARY:
+					continue
+				var sph_color: String = _normalize_sphere_color(str(n.get("color", "")))
+				var sph_count: int = int(n.get("count", 0))
+				if sph_color == "" or sph_count <= 0:
+					continue
+				any_real = true
+				if int(counts.get(sph_color, 0)) < sph_count:
+					return {"ok": false, "msg": "REQUIERE " + _sphere_requirement_text(needed)}
+			if not any_real:
+				continue
 	return {"ok": true, "msg": ""}
 
 # v600.3: ¿Este portal físico (zona + etiqueta) está sellado por una misión que lo desbloquea?
@@ -813,3 +832,78 @@ func _normalize_skill_key(p_name: String) -> String:
 	var n: String = p_name.to_upper().strip_edges()
 	n = n.replace("Ó", "O").replace("É", "E").replace("Í", "I").replace("Á", "A").replace("Ú", "U").replace("Ü", "U")
 	return n
+
+# ============================================================
+# v650.0: Esferas de colores (requisito de equipamiento de habilidades)
+# El color de cada esfera se deriva del tipo de habilidad equipada:
+#   Ataque → Roja | Defensa → Azul | Curación → Verde | Utilidad/Movimiento → Amarilla
+# ============================================================
+func _normalize_sphere_color(p_raw: String) -> String:
+	var n: String = p_raw.to_lower().strip_edges()
+	n = n.replace("ó", "o").replace("é", "e").replace("í", "i").replace("á", "a").replace("ú", "u").replace("ü", "u")
+	match n:
+		"roja", "rojo", "red": return "roja"
+		"azul", "blue": return "azul"
+		"verde", "green": return "verde"
+		"amarilla", "amarillo", "yellow": return "amarilla"
+	return ""
+
+func _sphere_color_from_skill_type(p_type: String) -> String:
+	var t: String = p_type.to_lower()
+	t = t.replace("ó", "o").replace("é", "e").replace("í", "i").replace("á", "a").replace("ú", "u").replace("ü", "u")
+	if t == "ataque": return "roja"
+	if t == "defensa": return "azul"
+	if t == "curacion": return "verde"
+	return "amarilla"
+
+func _sphere_color_of(p_sphere) -> String:
+	if typeof(p_sphere) != TYPE_DICTIONARY: return ""
+	var explicit: String = _normalize_sphere_color(str(p_sphere.get("type", "")))
+	if explicit != "": return explicit
+	var equipped = p_sphere.get("equipped")
+	if equipped != null:
+		return _sphere_color_from_skill_type(str(equipped.get("type", "")))
+	return ""
+
+func _count_player_sphere_colors() -> Dictionary:
+	var counts := {}
+	var player_node = get_tree().get_first_node_in_group("player")
+	if not is_instance_valid(player_node):
+		return counts
+	var sm = player_node.get_node_or_null("SpheresManager")
+	if not is_instance_valid(sm):
+		return counts
+	for s in sm.spheres_data:
+		var c: String = _sphere_color_of(s)
+		if c != "":
+			counts[c] = int(counts.get(c, 0)) + 1
+	return counts
+
+func _sphere_color_label(p_color: String, p_count: int) -> String:
+	var single: Dictionary = {"roja": "ROJA", "azul": "AZUL", "verde": "VERDE", "amarilla": "AMARILLA"}
+	var plural: Dictionary = {"roja": "ROJAS", "azul": "AZULES", "verde": "VERDES", "amarilla": "AMARILLAS"}
+	var word: String = str(single.get(p_color, p_color.to_upper()))
+	if p_count > 1:
+		word = str(plural.get(p_color, word + "S"))
+	return "%d ESFERA%s %s" % [p_count, "S" if p_count > 1 else "", word]
+
+func _sphere_requirement_text(p_needed: Array) -> String:
+	var parts: Array = []
+	for n in p_needed:
+		if typeof(n) != TYPE_DICTIONARY:
+			continue
+		var c: String = _normalize_sphere_color(str(n.get("color", "")))
+		var cnt: int = int(n.get("count", 0))
+		if c == "" or cnt <= 0:
+			continue
+		parts.append(_sphere_color_label(c, cnt))
+	if parts.is_empty():
+		return "ESFERAS DE COLORES"
+	if parts.size() == 1:
+		return str(parts[0])
+	var txt: String = ""
+	for i in range(parts.size() - 1):
+		txt += str(parts[i])
+		if i < parts.size() - 2:
+			txt += ", "
+	return txt + " Y " + str(parts[parts.size() - 1])
