@@ -135,7 +135,7 @@ function showTab(tabId) {
     const titles = {
         'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas',
         'ammo': 'Mercado: Municiones', 'weapons': 'Mercado: Armamento',
-        'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión', 'market': 'Casa de Subastas (Mercado)',
+        'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión', 'market': 'Regulador de Mercado',
         'skills': 'Protocolos de Combate', 'mechanics': 'Librería de Mecánicas',
         'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema',
         'sessions': 'Auditoría de Sesiones Estelares',

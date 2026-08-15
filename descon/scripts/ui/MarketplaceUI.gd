@@ -81,6 +81,12 @@ func _ready():
 	_auto_refresh_timer.timeout.connect(_on_auto_refresh_tick)
 	add_child(_auto_refresh_timer)
 
+	# Instanciar modal_root para contener modales y centrar de forma aislada
+	modal_root = Control.new()
+	modal_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	modal_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(modal_root)
+
 func _build_ui():
 	var panel = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(940, 580)
@@ -236,7 +242,14 @@ func _on_market_data(data: Dictionary):
 	listings = data.get("listings", [])
 	my_listings = data.get("myListings", [])
 	mailbox = data.get("mailbox", [])
+	# Forzar lectura del player local SIEMPRE que llegan datos del mercado
+	# para que el header nunca muestre 0 por una race condition de red
+	var player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player):
+		if "hubs" in player: hubs = int(player.hubs)
+		if "ohculianos" in player: ohcu = int(player.ohculianos)
 	_open()
+	_update_balances()
 	_render_active_tab()
 
 func _on_market_update(data: Dictionary):
@@ -267,28 +280,56 @@ func _on_market_mailbox_updated(data: Dictionary):
 
 func _on_inventory_received(data):
 	if typeof(data) == TYPE_DICTIONARY:
-		inventory_items = []  # Limpiar antes de repoblar
-		if data.has("inventory"): inventory_items = data["inventory"]
-		if data.has("hubs"): hubs = int(data["hubs"])
-		if data.has("ohcu"): ohcu = int(data["ohcu"])
-		if data.has("equippedByShip") and data.has("currentShipId"):
-			var ebs = data["equippedByShip"]
-			var cid = str(data["currentShipId"])
+		var gd = data
+		if data.has("player") and data["player"] is Dictionary:
+			gd = data["player"]
+		
+		var raw_gd = gd
+		if gd.has("gameData") and gd["gameData"] is Dictionary:
+			gd = gd["gameData"]
+
+		inventory_items = []
+		if gd.has("inventory") and gd["inventory"] is Array:
+			inventory_items = gd["inventory"]
+		elif gd.has("items") and gd["items"] is Array:
+			inventory_items = gd["items"]
+			
+		if gd.has("hubs"):
+			hubs = int(gd["hubs"])
+		if gd.has("ohcu"):
+			ohcu = int(gd["ohcu"])
+			
+		# Sincronizar equipados de la nave actual si están presentes
+		var ebs_data = raw_gd
+		if ebs_data.has("equippedByShip"):
+			var ebs = ebs_data["equippedByShip"]
+			var cid = str(ebs_data.get("currentShipId", "1"))
 			if typeof(ebs) == TYPE_DICTIONARY and ebs.has(cid):
 				var eq = ebs[cid]
 				for slot in ["w", "s", "e", "x"]:
 					if eq.has(slot) and eq[slot] is Array:
 						inventory_items.append_array(eq[slot])
+
+	# Forzar consistencia con el Player real local por consistencia total
+	var player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player):
+		if "hubs" in player: hubs = int(player.hubs)
+		if "ohculianos" in player: ohcu = int(player.ohculianos)
+
 	_update_balances()
 	if is_open:
-		# Re-renderizar siempre que el mercado esté abierto y lleguen datos de inventario
-		# (sin importar qué pestaña esté activa, para que VENDER tenga datos al clickear)
 		_render_active_tab()
 
 # ---------------------------------------------------------------------------
 # APERTURA / CIERRE
 # ---------------------------------------------------------------------------
 func open_market():
+	# Cargar balances locales de forma instantánea al abrir
+	var player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player):
+		if "hubs" in player: hubs = int(player.hubs)
+		if "ohculianos" in player: ohcu = int(player.ohculianos)
+	_update_balances()
 	_refresh_all()
 
 func _open():
@@ -499,7 +540,7 @@ func _create_listing_card(l: Dictionary) -> PanelContainer:
 	hbox.add_child(vbox)
 	
 	var name_lbl = Label.new()
-	name_lbl.text = str(item.get("name", "?")).to_upper() + " x" + str(l.get("amount", 1))
+	name_lbl.text = str(item.get("name", "?")).to_upper() + " x" + str(int(l.get("amount", 1)))
 	name_lbl.add_theme_font_size_override("font_size", 13)
 	name_lbl.add_theme_color_override("font_color", _get_rarity_color(int(item.get("rarity", 0))))
 	vbox.add_child(name_lbl)
@@ -511,7 +552,8 @@ func _create_listing_card(l: Dictionary) -> PanelContainer:
 	vbox.add_child(seller_lbl)
 	
 	var time_lbl = Label.new()
-	time_lbl.text = "Quedan " + _format_duration(int(l.get("expiresAt", 0)) - Time.get_ticks_msec())
+	var ms_left = int(l.get("expiresAt", 0)) - (NetworkManager.get_secure_server_time_ms() if NetworkManager else int(Time.get_unix_time_from_system() * 1000))
+	time_lbl.text = "Quedan " + _format_duration(ms_left)
 	time_lbl.add_theme_font_size_override("font_size", 10)
 	time_lbl.add_theme_color_override("font_color", Color(0.85, 0.6, 0.2))
 	vbox.add_child(time_lbl)
@@ -522,10 +564,19 @@ func _create_listing_card(l: Dictionary) -> PanelContainer:
 	price_lbl.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0) if str(l.get("currency", "")) == "hubs" else Color(1.0, 0.4, 0.9))
 	vbox.add_child(price_lbl)
 	
+	var is_mine = false
+	if NetworkManager and NetworkManager.login_name != "":
+		is_mine = (str(l.get("sellerName", "")).to_lower() == NetworkManager.login_name.to_lower())
+	
 	var btn = Button.new()
-	btn.text = "COMPRAR"
 	btn.custom_minimum_size = Vector2(110, 36)
-	btn.pressed.connect(_on_buy_pressed.bind(l))
+	if is_mine:
+		btn.text = "RETIRAR"
+		btn.add_theme_color_override("font_color", Color(1.0, 0.35, 0.3)) # Color naranja/rojo de advertencia
+		btn.pressed.connect(_on_cancel_listing.bind(l))
+	else:
+		btn.text = "COMPRAR"
+		btn.pressed.connect(_on_buy_pressed.bind(l))
 	hbox.add_child(btn)
 	
 	return card
@@ -610,8 +661,9 @@ func _create_my_listing_row(l: Dictionary) -> PanelContainer:
 	var status_lbl = Label.new()
 	match status:
 		"active": status_lbl.text = "ACTIVA"
-		"sold": status_lbl.text = "VENDIDA"
-		"expired": status_lbl.text = "EXPIRADA"
+		"sold": status_lbl.text = "VENDIDO"
+		"expired": status_lbl.text = "EXPIRADO"
+		"cancelled": status_lbl.text = "CANCELADO"
 		_: status_lbl.text = status.to_upper()
 	status_lbl.add_theme_font_size_override("font_size", 11)
 	status_lbl.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4) if status == "active" else (Color(0.9, 0.4, 0.4) if status == "sold" else Color(0.6, 0.6, 0.65)))
@@ -703,8 +755,7 @@ func _open_sell_modal(item: Dictionary):
 	modal_overlay.color = Color(0.0, 0.0, 0.0, 0.6)
 	modal_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	modal_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	modal_overlay.z_index = 50
-	add_child(modal_overlay)
+	modal_root.add_child(modal_overlay)
 	
 	modal_panel = PanelContainer.new()
 	var sb = StyleBoxFlat.new()
@@ -722,8 +773,7 @@ func _open_sell_modal(item: Dictionary):
 	sb.shadow_size = 25
 	modal_panel.add_theme_stylebox_override("panel", sb)
 	modal_panel.custom_minimum_size = Vector2(400, 360) # Ajustado para centrado perfecto
-	modal_panel.z_index = 51
-	control_root.add_child(modal_panel) # Agregado a control_root para centrado reactivo
+	modal_root.add_child(modal_panel) # Agregado a modal_root para centrado reactivo y correcto orden de clics
 	
 	# Centrado dinámico nativo mediante anchors y offsets
 	modal_panel.set_anchors_preset(Control.PRESET_CENTER)
@@ -859,8 +909,7 @@ func _open_confirm(title: String, msg: String, on_confirm: Callable):
 	modal_overlay.color = Color(0.0, 0.0, 0.0, 0.6)
 	modal_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	modal_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	modal_overlay.z_index = 50
-	add_child(modal_overlay)
+	modal_root.add_child(modal_overlay)
 	
 	modal_panel = PanelContainer.new()
 	var sb = StyleBoxFlat.new()
@@ -878,8 +927,7 @@ func _open_confirm(title: String, msg: String, on_confirm: Callable):
 	sb.shadow_size = 25
 	modal_panel.add_theme_stylebox_override("panel", sb)
 	modal_panel.custom_minimum_size = Vector2(440, 220)
-	modal_panel.z_index = 51
-	control_root.add_child(modal_panel) # Agregado a control_root para centrado reactivo
+	modal_root.add_child(modal_panel) # Agregado a modal_root para centrado reactivo y correcto orden de clics
 	
 	# Centrado dinámico nativo mediante anchors y offsets
 	modal_panel.set_anchors_preset(Control.PRESET_CENTER)
@@ -928,6 +976,7 @@ func _open_confirm(title: String, msg: String, on_confirm: Callable):
 	var btn_ok = Button.new()
 	btn_ok.text = "CONFIRMAR"
 	btn_ok.pressed.connect(func():
+		btn_ok.disabled = true  # Evita doble-click por lag de red
 		_hide_modal()
 		if confirm_callback.is_valid():
 			confirm_callback.call()
@@ -963,11 +1012,18 @@ func _get_rarity_color(rarity: int) -> Color:
 func _format_number(value: int) -> String:
 	var v = absi(value)
 	var prefix = "-" if value < 0 else ""
-	if v >= 1000000:
-		return prefix + ("%.2fM" % (v / 1000000.0)).replace(".00", "")
-	if v >= 10000:
-		return prefix + ("%.1fK" % (v / 1000.0)).replace(".0", "") + "K"
-	return prefix + str(v)
+	
+	# Dar formato de miles clásico (ej: 926304 -> 926.304)
+	var s = str(v)
+	var result = ""
+	var count = 0
+	for i in range(s.length() - 1, -1, -1):
+		result = s[i] + result
+		count += 1
+		if count % 3 == 0 and i > 0:
+			result = "." + result
+			
+	return prefix + result
 
 func _format_duration(ms_left: int) -> String:
 	if ms_left <= 0: return "0m"

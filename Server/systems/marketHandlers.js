@@ -1,5 +1,6 @@
 const MarketListing = require('../models/MarketListing');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 const { getPlayerRAMAdapter } = require('../utils/ramAdapter');
 const { checkCombatLock, getMasterItemConfig, sendInventoryData } = require('./inventoryHandlers');
 
@@ -288,6 +289,23 @@ async function processExpiredListings(io, state) {
         broadcastMarketUpdate(io, { _id: String(listing._id), status: 'expired' });
         console.log(`[MARKET-EXPIRE] Publicación ${listing._id} de ${listing.sellerName} expirada. Ítem devuelto al buzón.`);
     }
+
+    // Limpieza física de registros inactivos (cancelled, sold, expired) de más de 12 horas
+    try {
+        const threshold = new Date(Date.now() - 12 * 3600 * 1000);
+        const deleteResult = await MarketListing.deleteMany({
+            status: { $in: ['cancelled', 'sold', 'expired'] },
+            $or: [
+                { soldAt: { $lt: threshold } },
+                { listedAt: { $lt: threshold } }
+            ]
+        });
+        if (deleteResult.deletedCount > 0) {
+            console.log(`[MARKET-CLEANUP] Eliminadas ${deleteResult.deletedCount} publicaciones inactivas antiguas (>12hs) de la DB.`);
+        }
+    } catch (cleanupErr) {
+        console.error('[MARKET-CLEANUP] Error en limpieza de inactivas:', cleanupErr.message);
+    }
 }
 
 function initMarketSystem(io, state) {
@@ -331,7 +349,14 @@ function registerMarketHandlers(socket, io, state) {
             await refreshActiveCache(state);
         }
 
-        const myListings = await MarketListing.find({ sellerId: p.dbId }).sort({ listedAt: -1 }).limit(50).lean();
+        const threshold = new Date(Date.now() - 12 * 3600 * 1000);
+        const myListings = await MarketListing.find({
+            sellerId: p.dbId,
+            $or: [
+                { status: 'active' },
+                { status: { $in: ['cancelled', 'sold', 'expired'] }, listedAt: { $gte: threshold } }
+            ]
+        }).sort({ listedAt: -1 }).limit(50).lean();
         const cfg = getMarketConfig(state);
 
         socket.emit('marketData', {
@@ -361,6 +386,12 @@ function registerMarketHandlers(socket, io, state) {
         if (!isZoneAllowed(p, state)) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'El Mercado solo está disponible en el Lobby.' });
         }
+        // Rate limiting: máximo 1 acción de mercado cada 1.5 segundos
+        const now = Date.now();
+        if (socket._lastMarketAction && now - socket._lastMarketAction < 1500) {
+            return socket.emit('marketPurchaseResult', { ok: false, msg: 'Demasiadas acciones. Espera un momento.' });
+        }
+        socket._lastMarketAction = now;
         if (p.isProcessingInventory) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'Transacción en curso. Espera un momento.' });
         }
@@ -374,10 +405,15 @@ function registerMarketHandlers(socket, io, state) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'El Mercado está cerrado por mantenimiento.' });
         }
 
-        const { instanceId, amount, price, currency } = data || {};
-        if (!instanceId || !price || price <= 0 || (currency !== 'hubs' && currency !== 'ohcu')) {
+        const instanceId = String(data?.instanceId || '').trim();
+        const rawPrice = parseInt(data?.price);
+        const rawAmount = parseInt(data?.amount) || 0;
+        const { currency } = data || {};
+        if (!instanceId || !Number.isFinite(rawPrice) || rawPrice <= 0 || rawPrice > 2_000_000_000 || (currency !== 'hubs' && currency !== 'ohcu')) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'Datos de publicación inválidos.' });
         }
+        const price = rawPrice;
+        const amount = rawAmount;
 
         const user = getPlayerRAMAdapter(p);
         const idx = user.gameData.inventory.findIndex(it => it.instanceId === instanceId);
@@ -478,7 +514,14 @@ function registerMarketHandlers(socket, io, state) {
         }
 
         const listingId = data?.listingId;
-        if (!listingId) return;
+        if (!listingId || !mongoose.Types.ObjectId.isValid(listingId)) {
+            return socket.emit('marketPurchaseResult', { ok: false, msg: 'ID de publicación inválido.' });
+        }
+        // Adquirir lock del listing para evitar cancel/buy simultáneos
+        if (!acquireLock(String(listingId))) {
+            return socket.emit('marketPurchaseResult', { ok: false, msg: 'Esta publicación está siendo procesada.' });
+        }
+        try {
         const listing = await MarketListing.findById(listingId);
         if (!listing || String(listing.sellerId) !== String(p.dbId)) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'Publicación no encontrada.' });
@@ -505,6 +548,12 @@ function registerMarketHandlers(socket, io, state) {
         sendInventoryData(socket, user);
         broadcastMarketUpdate(io, { _id: String(listing._id), status: 'cancelled' });
         socket.emit('marketPurchaseResult', { ok: true, msg: 'Publicación cancelada. Ítem devuelto a tu inventario.' });
+        } catch(e) {
+            console.error('[MARKET-CANCEL] Error al cancelar:', e.message);
+            socket.emit('marketPurchaseResult', { ok: false, msg: 'Error interno al cancelar. Intenta de nuevo.' });
+        } finally {
+            releaseLock(String(listingId));
+        }
     });
 
     // COMPRAR PUBLICACIÓN (TRANSACCIÓN ATÓMICA)
@@ -514,6 +563,12 @@ function registerMarketHandlers(socket, io, state) {
         if (!isZoneAllowed(p, state)) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'El Mercado solo está disponible en el Lobby.' });
         }
+        // Rate limiting: máximo 1 acción de mercado cada 1.5 segundos
+        const now = Date.now();
+        if (socket._lastMarketAction && now - socket._lastMarketAction < 1500) {
+            return socket.emit('marketPurchaseResult', { ok: false, msg: 'Demasiadas acciones. Espera un momento.' });
+        }
+        socket._lastMarketAction = now;
         if (p.isProcessingInventory) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'Transacción en curso. Espera un momento.' });
         }
@@ -527,18 +582,28 @@ function registerMarketHandlers(socket, io, state) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'El Mercado está cerrado por mantenimiento.' });
         }
 
-        const listingId = data?.listingId;
-        if (!listingId) return;
+        const rawListingId = String(data?.listingId || '').trim();
+        if (!rawListingId || !mongoose.Types.ObjectId.isValid(rawListingId)) {
+            return socket.emit('marketPurchaseResult', { ok: false, msg: 'ID de publicación inválido.' });
+        }
+        const listingId = rawListingId;
 
-        if (!acquireLock(String(listingId))) {
+        if (!acquireLock(listingId)) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'Transacción en curso para esta publicación.' });
         }
 
         try {
-            // Re-verificación autoritativa contra MongoDB dentro de la sección crítica
-            const listing = await MarketListing.findById(listingId);
-            if (!listing || listing.status !== 'active') {
-                removeFromCache(String(listingId));
+            // Castear explícitamente a ObjectId nativo para asegurar compatibilidad en MongoDB
+            const targetObjectId = new mongoose.Types.ObjectId(listingId);
+            const listing = await MarketListing.findById(targetObjectId);
+            if (!listing) {
+                console.warn(`[MARKET-BUY] La publicación con ID ${listingId} no existe en MongoDB.`);
+                removeFromCache(listingId);
+                return socket.emit('marketPurchaseResult', { ok: false, msg: 'Este ítem ya fue adquirido por otro jugador o no existe.' });
+            }
+            if (listing.status !== 'active') {
+                console.warn(`[MARKET-BUY] La publicación con ID ${listingId} existe pero su estado es: ${listing.status}`);
+                removeFromCache(listingId);
                 return socket.emit('marketPurchaseResult', { ok: false, msg: 'Este ítem ya fue adquirido por otro jugador.' });
             }
             if (!cfg.allowSelfBuy && String(listing.sellerId) === String(p.dbId)) {
@@ -558,41 +623,81 @@ function registerMarketHandlers(socket, io, state) {
                 return socket.emit('marketPurchaseResult', { ok: false, msg: 'Inventario lleno. Libera espacio antes de comprar.' });
             }
 
-            // Todo verificado: aplicar la transacción en memoria (sin awaits entre check y mutación)
+            // Debitar moneda
             if (listing.currency === 'ohcu') user.gameData.ohcu -= total;
             else user.gameData.hubs -= total;
+
+            // ─── SYNC CRÍTICO ANTI-DISCONNECT ───────────────────────────────────────
+            // Sincronizar el objeto 'p' (fuente de savePlayerToDB) ANTES de cualquier
+            // await, para que si el jugador se desconecta entre listing.save() y
+            // user.save(), el handler de disconnect ya guarde el estado correcto.
+            const prevInventory = JSON.parse(JSON.stringify(p.inventory || []));
+            const prevHubs = p.hubs;
+            const prevOhcu = p.ohcu;
+            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+            if (listing.currency === 'ohcu') p.ohcu = user.gameData.ohcu;
+            else p.hubs = user.gameData.hubs;
+            // ────────────────────────────────────────────────────────────────────────
 
             listing.status = 'sold';
             listing.soldAt = new Date();
             listing.buyerId = p.dbId;
 
-            // Impuesto de venta (sink de oro) - porcentaje configurable
             const taxPct = cfg.sellTaxPercent || 0;
             const sellerNet = Math.floor(total * (100 - taxPct) / 100);
 
-            await listing.save();
+            // GUARDAR LISTING (si falla: rollback total, la transacción no ocurrió)
+            let listingSaved = false;
+            try {
+                await listing.save();
+                listingSaved = true;
+            } catch (saveErr) {
+                // Rollback completo en RAM
+                p.inventory = prevInventory;
+                p.hubs = prevHubs;
+                p.ohcu = prevOhcu;
+                user.gameData.inventory = JSON.parse(JSON.stringify(prevInventory));
+                if (listing.currency === 'ohcu') user.gameData.ohcu = prevOhcu;
+                else user.gameData.hubs = prevHubs;
+                console.error('[MARKET-BUY] Fallo al guardar listing, rollback aplicado:', saveErr.message);
+                return socket.emit('marketPurchaseResult', { ok: false, msg: 'Error al procesar la compra. Tu inventario no fue modificado.' });
+            }
+
+            // GUARDAR USUARIO (si falla: listing ya está 'sold', devolver ítem al vendedor vía buzón)
             user.markModified('gameData.inventory');
             user.markModified('gameData');
-            await user.save();
-            socket.dbUser = user;
-
-            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
-            if (listing.currency === 'ohcu') p.ohcu = user.gameData.ohcu;
-            else p.hubs = user.gameData.hubs;
+            try {
+                await user.save();
+                socket.dbUser = user;
+            } catch (userSaveErr) {
+                // Listing ya marcado como sold pero user no se guardó.
+                // El estado de p ya fue sincronizado (líneas previas), así que si el jugador
+                // se desconecta, savePlayerToDB guardará el estado correcto.
+                // Igualmente logear el incidente para revisión manual.
+                console.error(`[MARKET-BUY] INCIDENTE: listing ${listing._id} marcado sold pero user.save() falló para ${p.user}. El estado en RAM (p) ya está sincronizado. Error:`, userSaveErr.message);
+                // No revertir aquí: el estado en RAM está correcto. Si el jugador sigue
+                // conectado, su próximo saveProgress escribirá el estado correcto a DB.
+            }
 
             removeFromCache(String(listing._id));
             sendInventoryData(socket, user);
             socket.emit('walletData', { hubs: p.hubs, ohcu: p.ohcu });
 
-            await creditSeller(state, io, listing.sellerId, listing.currency, sellerNet, 'VENTA EN EL MERCADO', listing.item?.name || listing.item?.id);
-            broadcastMarketUpdate(io, { _id: String(listing._id), status: 'sold' });
+            // creditSeller en try independiente: un error aquí no afecta al comprador
+            try {
+                await creditSeller(state, io, listing.sellerId, listing.currency, sellerNet, 'VENTA EN EL MERCADO', listing.item?.name || listing.item?.id);
+            } catch (creditErr) {
+                console.error(`[MARKET-BUY] INCIDENTE: Fallo al acreditar al vendedor ${listing.sellerName} por listing ${listing._id}. Monto: ${sellerNet} ${listing.currency}. Error:`, creditErr.message);
+                // En producción: encolar reintento o notificar al admin
+            }
 
+            broadcastMarketUpdate(io, { _id: String(listing._id), status: 'sold' });
             socket.emit('marketPurchaseResult', {
                 ok: true,
                 msg: `¡Compra exitosa! ${listing.amount}x ${listing.item?.name || listing.item?.id} por ${total} ${listing.currency.toUpperCase()}.`
             });
         } catch (e) {
-            console.error('[MARKET-BUY] Error en compra:', e);
+            console.error('[MARKET-BUY] Error inesperado en compra:', e);
             socket.emit('marketPurchaseResult', { ok: false, msg: 'Error interno al procesar la compra.' });
         } finally {
             releaseLock(String(listingId));
@@ -603,9 +708,21 @@ function registerMarketHandlers(socket, io, state) {
     socket.on('claimMarketMailbox', async (data) => {
         const p = state.players[socket.id];
         if (!p || !p.dbId) return;
+        // Anti-dupe: bloquear si hay otra transacción de inventario en curso
+        if (p.isProcessingInventory) {
+            return socket.emit('gameNotification', { msg: 'Transacción en curso. Espera un momento.', type: 'warning' });
+        }
+        // Rate limiting: máximo 1 reclamo cada 2 segundos
+        const now = Date.now();
+        if (socket._lastClaimAction && now - socket._lastClaimAction < 2000) {
+            return socket.emit('gameNotification', { msg: 'Demasiados reclamos. Espera un momento.', type: 'warning' });
+        }
+        socket._lastClaimAction = now;
+        p.isProcessingInventory = true;
+        try {
         const user = getPlayerRAMAdapter(p);
         const mailbox = user.gameData.marketMailbox || [];
-        if (mailbox.length === 0) return;
+        if (mailbox.length === 0) { p.isProcessingInventory = false; return; }
 
         const entryId = data?.entryId;
         const claimedIds = [];
@@ -636,11 +753,18 @@ function registerMarketHandlers(socket, io, state) {
             sendInventoryData(socket, user);
         }
         socket.emit('marketMailboxUpdated', { mailbox: remaining });
+        } catch(e) {
+            console.error('[MARKET-CLAIM] Error al reclamar buzón:', e.message);
+            socket.emit('gameNotification', { msg: 'Error interno al reclamar. Intenta de nuevo.', type: 'error' });
+        } finally {
+            p.isProcessingInventory = false;
+        }
     });
 
-    // ---- PANEL ADMIN: VER PUBLICACIONES (SOLO GRAN MAESTRO) ----
+    // ---- PANEL ADMIN: VER PUBLICACIONES ----
     socket.on('adminGetMarketListings', async (data) => {
-        if (!socket.dbUser || String(socket.dbUser.username || '').toLowerCase() !== 'caelli94') return;
+        const admins = state.SERVER_CONFIG?.adminUsernames || ['caelli94'];
+        if (!socket.dbUser || !admins.includes(String(socket.dbUser.username || '').toLowerCase())) return;
         const limit = Math.min(parseInt(data?.limit) || 100, 200);
         const status = data?.status;
         const filter = status ? { status: status } : {};
@@ -657,7 +781,8 @@ function registerMarketHandlers(socket, io, state) {
 
     // ---- PANEL ADMIN: CANCELAR PUBLICACIÓN (MODERACIÓN) ----
     socket.on('adminCancelMarketListing', async (data) => {
-        if (!socket.dbUser || String(socket.dbUser.username || '').toLowerCase() !== 'caelli94') return;
+        const admins = state.SERVER_CONFIG?.adminUsernames || ['caelli94'];
+        if (!socket.dbUser || !admins.includes(String(socket.dbUser.username || '').toLowerCase())) return;
         const listingId = data?.listingId;
         if (!listingId) return;
         const listing = await MarketListing.findById(listingId);
