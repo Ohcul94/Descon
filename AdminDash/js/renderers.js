@@ -2486,19 +2486,6 @@ function renderMapDetail() {
                                     <input type="number" value="${obj.targetY || 5000}" placeholder="5000"
                                            oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].targetY = parseInt(this.value) || 0">
                                 </div>
-                                <div class="field" style="grid-column:span 2; border-top:1px solid rgba(0,210,255,0.2); padding-top:0.7rem; margin-top:0.3rem;">
-                                    <label style="color:#00d2ff; font-size:0.6rem; font-weight:bold;">📐 CONFIGURACIÓN 3D</label>
-                                </div>
-                                <div class="field">
-                                    <label>Rotación Y (grados)</label>
-                                    <input type="number" value="${obj.rotY || 0}" placeholder="0"
-                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].rotY = parseFloat(this.value) || 0">
-                                </div>
-                                <div class="field">
-                                    <label>Escala (x1 = tamaño base)</label>
-                                    <input type="number" step="0.1" min="0.1" value="${obj.scale || 1}" placeholder="1"
-                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].scale = parseFloat(this.value) || 1">
-                                </div>
                                 <div class="field" style="grid-column:span 2;">
                                     <label>Y Offset (altura sobre el suelo)</label>
                                     <input type="number" step="0.1" value="${obj.yOffset !== undefined ? obj.yOffset : 2.5}" placeholder="2.5"
@@ -2563,19 +2550,6 @@ function renderMapDetail() {
                                                oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].assetPath = this.value" style="flex:1; margin:0;">
                                         <button class="btn btn-primary" style="padding:5px 10px; font-size:0.65rem; flex-shrink:0; background:#ffd700; border-color:#ffd700; color:#000;" onclick="triggerMapObjAssetPick('${selectedMapId}', ${idx})">📁</button>
                                     </div>
-                                </div>
-                                <div class="field" style="grid-column:span 2; border-top:1px solid rgba(255,215,0,0.25); padding-top:0.7rem; margin-top:0.3rem;">
-                                    <label style="color:#ffd700; font-size:0.6rem; font-weight:bold;">📐 CONFIGURACIÓN 3D</label>
-                                </div>
-                                <div class="field">
-                                    <label>Rotación Y (grados)</label>
-                                    <input type="number" value="${obj.rotY || 0}" placeholder="0"
-                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].rotY = parseFloat(this.value) || 0">
-                                </div>
-                                <div class="field">
-                                    <label>Escala (x1 = tamaño base)</label>
-                                    <input type="number" step="0.1" min="0.1" value="${obj.scale || 1}" placeholder="1"
-                                           oninput="config.mapsConfig['${selectedMapId}'].objects[${idx}].scale = parseFloat(this.value) || 1">
                                 </div>
                                 <div class="field" style="grid-column:span 2;">
                                     <label>Y Offset (altura sobre el suelo)</label>
@@ -5964,6 +5938,7 @@ window.renderQuests = function() {
         if (!quest.reward) quest.reward = { exp: 0, hubs: 0, ohcu: 0, items: [], unlocks: [] };
         if (!quest.reward.items) quest.reward.items = [];
         if (!quest.reward.unlocks) quest.reward.unlocks = [];
+        if (quest.portalGate === undefined) quest.portalGate = "";
         
         let rewardItemsHTML = (quest.reward.items || []).map((item, itemIdx) => `
             <div style="display:flex; gap:10px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:5px; border-radius:6px;">
@@ -6088,60 +6063,99 @@ window.renderQuests = function() {
             `;
         }
 
+        // v600.2: Portal específico a sellar — formato "zona|etiqueta" (ej: "2|Puerta Norte")
+        // Si no hay "|" → sella TODO el acceso al sector (compatibilidad con v600.1)
+        const pgRaw = String(quest.portalGate || '');
+        const pgParts = pgRaw.split('|');
+        const pgZone = pgParts[0] || '';
+        const pgLabel = pgParts.length > 1 ? pgParts.slice(1).join('|') : '';
+
+        let pgZoneOptions = `<option value="" ${!pgZone ? 'selected' : ''}>-- Sector donde está el portal --</option>`;
+        for (let mapId in config.mapsConfig) {
+            pgZoneOptions += `<option value="${mapId}" ${String(pgZone) === String(mapId) ? 'selected' : ''}>[Sector ${mapId}] ${config.mapsConfig[mapId].name}</option>`;
+        }
+
+        let pgPortalOptions = '<option value="" disabled>Primero elegí el sector</option>';
+        let pgDest = '';
+        if (pgZone) {
+            const zoneDoors = (config.mapsConfig[pgZone]?.objects || []).filter(o => o && o.type === 'door');
+            const pgZoneOnlyMatch = (pgRaw === String(pgZone) || pgRaw === String(pgZone) + '|');
+            pgPortalOptions = `<option value="${pgZone}" ${pgZoneOnlyMatch && !pgLabel ? 'selected' : ''}>🚫 Todo el acceso al Sector ${pgZone}</option>`;
+            zoneDoors.forEach((d, di) => {
+                const dLabel = String(d.label || ('Puerta ' + (di + 1)));
+                const dDestName = d.targetZoneId ? `[Sector ${d.targetZoneId}] ${(config.mapsConfig[d.targetZoneId]?.name || '')}` : '?';
+                const dVal = `${pgZone}|${dLabel}`;
+                pgPortalOptions += `<option value="${dVal}" ${pgRaw === dVal ? 'selected' : ''}>🚪 ${dLabel} → ${dDestName}</option>`;
+            });
+            if (pgLabel) {
+                const sealedDoor = zoneDoors.find(d => String(d.label || '') === pgLabel);
+                if (sealedDoor && sealedDoor.targetZoneId) pgDest = String(sealedDoor.targetZoneId);
+            }
+            if (zoneDoors.length === 0) pgPortalOptions += '<option value="" disabled>⚠️ No hay portales (puertas) en este sector</option>';
+        }
+
+        let portalGateHint = 'El portal queda SELLADO SIEMPRE mientras exista esta misión configurada, y se desbloquea al COMPLETARLA (no hace falta aceptarla). Elegí "Todo el acceso" para bloquear todo el sector, o un portal específico para sellar SOLO ese portal (los demás siguen funcionando). Si quitás el portalGate, el portal queda libre.';
+        if (pgLabel) portalGateHint = `🔒 Sella SIEMPRE el portal "${pgLabel}" del Sector ${pgZone} (los demás portales del sector siguen funcionando). Se desbloquea solo al completar esta misión.`;
+        else if (pgZone) portalGateHint = `🔒 Sella SIEMPRE todo el acceso al Sector ${pgZone}. Se desbloquea solo al completar esta misión.`;
+        if (quest.targetType === 'explore' && pgDest && String(quest.targetId) === pgDest) {
+            portalGateHint = '⚠️ El objetivo de la misión es explorar el mismo destino del portal sellado: se permitirá la entrada (no se auto-bloquea).';
+        }
+
         div.innerHTML = `
-            <div style="position:absolute; top:15px; right:15px;">
-                <button class="btn btn-secondary" style="background:var(--danger); border:none; padding:4px 10px;" onclick="removeQuest(${idx})">✕ ELIMINAR MISIÓN</button>
-            </div>
-            
-            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:15px;">
-                <div class="field"><label>ID Misión</label><input type="text" value="${quest.id}" onchange="config.questsConfig[${idx}].id = this.value"></div>
-                <div class="field"><label>Nombre</label><input type="text" value="${quest.name}" onchange="config.questsConfig[${idx}].name = this.value"></div>
-                <div class="field">
-                    <label>Clasificación</label>
-                    <select onchange="config.questsConfig[${idx}].type = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
-                        <option value="story" ${quest.type === 'story' ? 'selected' : ''}>Historia 📖</option>
-                        <option value="daily" ${quest.type === 'daily' ? 'selected' : ''}>Diaria ⏳</option>
-                        <option value="weekly" ${quest.type === 'weekly' ? 'selected' : ''}>Semanal 📅</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="field full" style="margin-top:10px;"><label>Descripción</label><input type="text" value="${quest.desc}" onchange="config.questsConfig[${idx}].desc = this.value"></div>
-            
-            <div style="margin-top:1.5rem; padding-top:1.2rem; border-top:1px solid rgba(255,255,255,0.05); display:grid; grid-template-columns: 1.2fr 1fr; gap:2rem;">
-                <!-- Columna Objetivo -->
-                <div>
-                    <h4 style="color:var(--accent); font-size:0.8rem; font-weight:bold; margin-bottom:10px;">🎯 OBJETIVO DE LA MISIÓN</h4>
-                    <div class="form-grid" style="grid-template-columns: 1fr; gap:12px;">
-                        <div class="field">
-                            <label>Tipo de Objetivo</label>
-                            <select onchange="config.questsConfig[${idx}].targetType = this.value; config.questsConfig[${idx}].targetId = ''; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
-                                <option value="kill" ${quest.targetType === 'kill' ? 'selected' : ''}>⚔️ Matar Enemigos</option>
-                                <option value="collect" ${quest.targetType === 'collect' ? 'selected' : ''}>📦 Recolectar Ítems</option>
-                                <option value="explore" ${quest.targetType === 'explore' ? 'selected' : ''}>🗺️ Explorar Zona</option>
-                                <option value="event" ${quest.targetType === 'event' ? 'selected' : ''}>🏆 Evento Especial</option>
-                                <option value="housing" ${quest.targetType === 'housing' ? 'selected' : ''}>🏠 Colocar Housing</option>
-                            </select>
-                        </div>
-                        
-                        ${targetSelectorHTML}
-                        
-                        <div class="field">
-                            <label>Cantidad Requerida</label>
-                            <input type="number" value="${quest.targetAmount || 1}" onchange="config.questsConfig[${idx}].targetAmount = Math.floor(Math.max(1, parseInt(this.value) || 1))">
-                        </div>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:15px;">
+                <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:15px; flex:1;">
+                    <div class="field"><label>ID Misión</label><input type="text" value="${quest.id}" onchange="config.questsConfig[${idx}].id = this.value"></div>
+                    <div class="field"><label>Nombre</label><input type="text" value="${quest.name}" onchange="config.questsConfig[${idx}].name = this.value"></div>
+                    <div class="field">
+                        <label>Clasificación</label>
+                        <select onchange="config.questsConfig[${idx}].type = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                            <option value="story" ${quest.type === 'story' ? 'selected' : ''}>Historia 📖</option>
+                            <option value="daily" ${quest.type === 'daily' ? 'selected' : ''}>Diaria ⏳</option>
+                            <option value="weekly" ${quest.type === 'weekly' ? 'selected' : ''}>Semanal 📅</option>
+                        </select>
                     </div>
                 </div>
-                
-                <!-- Columna Recompensas -->
-                <div>
-                    <h4 style="color:var(--success); font-size:0.8rem; font-weight:bold; margin-bottom:10px;">🎁 RECOMPENSAS</h4>
+                <button class="btn btn-secondary" style="background:var(--danger); border:none; padding:6px 12px; white-space:nowrap;" onclick="removeQuest(${idx})">✕ ELIMINAR MISIÓN</button>
+            </div>
+
+            <div class="field" style="margin-top:12px;"><label>Descripción</label><input type="text" value="${quest.desc}" onchange="config.questsConfig[${idx}].desc = this.value"></div>
+
+            <div style="display:grid; grid-template-columns: 1.15fr 1fr; gap:1.5rem; margin-top:1.5rem;">
+                <!-- ══ COLUMNA IZQUIERDA ══ -->
+                <div style="display:flex; flex-direction:column; gap:1.2rem;">
+                    <!-- 🎯 OBJETIVO -->
+                    <div style="border:1px solid rgba(0,210,255,0.15); border-radius:12px; padding:1rem 1.2rem; background:rgba(0,210,255,0.03);">
+                        <h4 style="color:var(--accent); font-size:0.8rem; font-weight:bold; margin-bottom:12px;">🎯 OBJETIVO DE LA MISIÓN</h4>
+                        <div class="form-grid" style="grid-template-columns: 1fr; gap:12px;">
+                            <div class="field">
+                                <label>Tipo de Objetivo</label>
+                                <select onchange="config.questsConfig[${idx}].targetType = this.value; config.questsConfig[${idx}].targetId = ''; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                                    <option value="kill" ${quest.targetType === 'kill' ? 'selected' : ''}>⚔️ Matar Enemigos</option>
+                                    <option value="collect" ${quest.targetType === 'collect' ? 'selected' : ''}>📦 Recolectar Ítems</option>
+                                    <option value="explore" ${quest.targetType === 'explore' ? 'selected' : ''}>🗺️ Explorar Zona</option>
+                                    <option value="event" ${quest.targetType === 'event' ? 'selected' : ''}>🏆 Evento Especial</option>
+                                    <option value="housing" ${quest.targetType === 'housing' ? 'selected' : ''}>🏠 Colocar Housing</option>
+                                </select>
+                            </div>
+                            ${targetSelectorHTML}
+                            <div class="field">
+                                <label>Cantidad Requerida</label>
+                                <input type="number" value="${quest.targetAmount || 1}" onchange="config.questsConfig[${idx}].targetAmount = Math.floor(Math.max(1, parseInt(this.value) || 1))">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ══ COLUMNA DERECHA: RECOMPENSAS ══ -->
+                <div style="border:1px solid rgba(0,255,170,0.15); border-radius:12px; padding:1rem 1.2rem; background:rgba(0,255,170,0.03); align-self:start;">
+                    <h4 style="color:var(--success); font-size:0.8rem; font-weight:bold; margin-bottom:12px;">🎁 RECOMPENSAS</h4>
                     <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
                         <div class="field"><label>EXP</label><input type="number" value="${quest.reward.exp}" onchange="config.questsConfig[${idx}].reward.exp = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
                         <div class="field"><label>HUBS</label><input type="number" value="${quest.reward.hubs}" onchange="config.questsConfig[${idx}].reward.hubs = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
                         <div class="field"><label>OHCU</label><input type="number" value="${quest.reward.ohcu}" onchange="config.questsConfig[${idx}].reward.ohcu = Math.floor(Math.max(0, parseInt(this.value) || 0))"></div>
                     </div>
-                    
+
                     <div>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                             <label style="font-size:0.75rem; color:#aaa; font-weight:bold;">📦 Ítems Recompensa</label>
@@ -6151,7 +6165,7 @@ window.renderQuests = function() {
                             ${rewardItemsHTML}
                         </div>
                     </div>
-                    
+
                     <div style="margin-top:1.2rem;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                             <label style="font-size:0.75rem; color:#ffd700; font-weight:bold;">🔓 DESBLOQUEOS DE RECOMPENSA</label>
@@ -6160,6 +6174,28 @@ window.renderQuests = function() {
                         <div style="font-size:0.68rem; color:#888; margin-bottom:6px;">Habilita portales, armas, habilidades o talentos al completar la misión. Ej: 🗺️ Portal al Sector 2, 🔫 Cañón de Plasma, ⭐ Talento sellado.</div>
                         <div style="max-height:150px; overflow-y:auto; padding-right:5px;">
                             ${unlockRowsHTML || '<div style="font-size:0.68rem; opacity:0.45;">Sin desbloqueos: solo EXP, HUBS, OHCU e ítems.</div>'}
+                        </div>
+                    </div>
+
+                    <!-- 🔒 PORTAL SELLADO (dentro de recompensas) -->
+                    <div style="margin-top:1.2rem; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05);">
+                        <label style="font-size:0.75rem; color:#ffb347; font-weight:bold; display:flex; align-items:center; gap:5px; margin-bottom:8px;">
+                            <span style="font-size:10px;">🔒</span> PORTAL SELLADO (opcional)
+                        </label>
+                        <div class="form-grid" style="grid-template-columns: 1fr; gap:8px;">
+                            <div class="field">
+                                <label>Sector donde está el portal</label>
+                                <select onchange="config.questsConfig[${idx}].portalGate = this.value === '' ? '' : this.value + '|'; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;">
+                                    ${pgZoneOptions}
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label>Portal a sellar</label>
+                                <select onchange="config.questsConfig[${idx}].portalGate = this.value; renderQuests();" style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; outline:none; width: 100%;" ${!pgZone ? 'disabled' : ''}>
+                                    ${pgPortalOptions}
+                                </select>
+                            </div>
+                            <div style="font-size:9px; color:#888; margin-top:2px; line-height:1.5; padding:6px 8px; background:rgba(255,170,0,0.06); border-radius:6px;">${portalGateHint}</div>
                         </div>
                     </div>
                 </div>
@@ -6179,6 +6215,7 @@ window.addNewQuest = function() {
         targetType: "kill",
         targetId: "",
         targetAmount: 5,
+        portalGate: "",
         reward: {
             exp: 100,
             hubs: 500,

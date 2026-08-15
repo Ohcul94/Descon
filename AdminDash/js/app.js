@@ -1111,11 +1111,7 @@ function openMapAddModal(kind) {
             <div class="field" style="margin-top:12px;"><label>Asset (ruta .glb de Godot)</label>
                 <input type="text" id="map-add-market-asset" value="res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb" placeholder="Ruta del asset .glb">
             </div>
-            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:12px;">
-                <div class="field"><label>Escala</label><input type="number" step="0.1" id="map-add-market-scale" value="2.0"></div>
-                <div class="field"><label>Rotación Y (grados)</label><input type="number" id="map-add-market-roty" value="0"></div>
-                <div class="field"><label>Altura Y Offset</label><input type="number" step="0.1" id="map-add-market-yoffset" value="0.0"></div>
-            </div>
+            <div class="field" style="margin-top:12px;"><label>Altura Y Offset</label><input type="number" step="0.1" id="map-add-market-yoffset" value="0.0"></div>
         `;
     } else if (kind === 'ambience') {
         title.innerText = '➕ AGREGAR MECÁNICA DE AMBIENTE';
@@ -1212,8 +1208,8 @@ function confirmMapAdd() {
             x: parseInt(document.getElementById('map-add-x').value) || 0,
             y: parseInt(document.getElementById('map-add-y').value) || 0,
             assetPath: document.getElementById('map-add-market-asset').value || 'res://assets/Mapas/Mapa1/Estructuras/3D/Decorativo3/Decorativo3.glb',
-            scale: parseFloat(document.getElementById('map-add-market-scale').value) || 2.0,
-            rotY: parseFloat(document.getElementById('map-add-market-roty').value) || 0,
+            scale: 2.0,
+            rotY: 0,
             yOffset: parseFloat(document.getElementById('map-add-market-yoffset').value) || 0.0
         });
         newIdx = m.objects.length - 1;

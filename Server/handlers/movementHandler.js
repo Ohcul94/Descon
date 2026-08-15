@@ -1,4 +1,5 @@
 const Logger = require('../utils/logger');
+const { checkCombatLock } = require('../systems/inventoryHandlers');
 
 const normalizeZone = (z) => {
     if (z === undefined || z === null) return 1;
@@ -132,7 +133,21 @@ function registerMovementHandlers(socket, io, state) {
         p.lastPos = { x: p.x, y: p.y }; // v221.60: Sincronía constante de posición
         p.rotation = movementData.rotation;
 
-        if (movementData.selectedAmmo) p.selectedAmmo = movementData.selectedAmmo;
+        if (movementData.selectedAmmo && movementData.selectedAmmo !== p.selectedAmmo) {
+            const lock = checkCombatLock(p);
+            if (lock.locked) {
+                socket.emit('gameNotification', { 
+                    msg: `ERROR: Sistemas de armas calientes. Espera ${lock.remaining}s para cambiar de munición.`, 
+                    type: 'error' 
+                });
+                socket.emit('playerStatSync', {
+                    id: socket.id,
+                    selectedAmmo: p.selectedAmmo
+                });
+            } else {
+                p.selectedAmmo = movementData.selectedAmmo;
+            }
+        }
 
         // v314.0: Blindaje de Seguridad - El servidor es la única autoridad del mapa.
         // Se elimina el cambio de zona desde playerMovement para evitar teletransporte no autorizado (hacks).

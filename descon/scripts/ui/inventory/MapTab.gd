@@ -79,6 +79,14 @@ func update_ui():
 			if not NetworkManager.unlocks_cache.has(unlock_key):
 				is_locked = true
 
+		# v600.1: Portal sellado por misión activa (portalGate en la quest)
+		# v600.2: Soporta "zona" (todo el sector) y "zona|etiqueta" (portal específico)
+		var gate_quest_name = ""
+		if not is_locked and not is_current:
+			gate_quest_name = NetworkManager.get_sector_seal_quest(s.id)
+			if gate_quest_name != "":
+				is_locked = true
+
 		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(0, 70); s_list.add_child(p)
 		
 		var sb = StyleBoxFlat.new()
@@ -153,7 +161,10 @@ func update_ui():
 		# v600.0: Aviso de sector sellado
 		if is_locked:
 			var lock_lbl = Label.new()
-			lock_lbl.text = "🔒 SELLADO - Requiere desbloqueo por misión"
+			if gate_quest_name != "":
+				lock_lbl.text = "🔒 PORTAL SELLADO - Completa \"" + gate_quest_name + "\""
+			else:
+				lock_lbl.text = "🔒 SELLADO - Requiere desbloqueo por misión"
 			lock_lbl.modulate = Color(1.0, 0.4, 0.4)
 			lock_lbl.add_theme_font_size_override("font_size", 8)
 			v.add_child(lock_lbl)

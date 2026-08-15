@@ -1515,8 +1515,8 @@ func _set_portal_icon(type: String):
 		model.rotation_degrees = Vector3(0, -90, 0)
 		portal_icon_holder.add_child(model)
 
-func _on_map_portal_jump_pressed(target_zone: String, _tx: float, _ty: float):
-	print("[BaseMap] Warp interactivo presionado -> Zona ", target_zone, " coord: ", _tx, ", ", _ty)
+func _on_map_portal_jump_pressed(target_zone: String, _tx: float, _ty: float, _portal_label: String = ""):
+	print("[BaseMap] Warp interactivo presionado -> Zona ", target_zone, " coord: ", _tx, ", ", _ty, " portal: ", _portal_label)
 	if NetworkManager:
 		var target_val: Variant = target_zone
 		if target_zone.is_valid_int():
@@ -1527,6 +1527,9 @@ func _on_map_portal_jump_pressed(target_zone: String, _tx: float, _ty: float):
 			"x": _tx,
 			"y": _ty
 		}
+		# v600.2: Enviar la etiqueta del portal usado para el sello por misión (portal específico)
+		if _portal_label != "":
+			payload["portalLabel"] = _portal_label
 		NetworkManager.send_event("changeZone", payload)
 
 # Manejador genérico del botón de interacción (portal / vault / loot)
@@ -1536,7 +1539,8 @@ func _on_interact_button_pressed():
 			var target = portal_click_button.get_meta("target_zone") if portal_click_button.has_meta("target_zone") else "1"
 			var tx = portal_click_button.get_meta("targetX") if portal_click_button.has_meta("targetX") else 5000
 			var ty = portal_click_button.get_meta("targetY") if portal_click_button.has_meta("targetY") else 5000
-			_on_map_portal_jump_pressed(target, tx, ty)
+			var plabel = portal_click_button.get_meta("portal_label") if portal_click_button.has_meta("portal_label") else ""
+			_on_map_portal_jump_pressed(target, tx, ty, plabel)
 		"vault":
 			if is_instance_valid(active_vault_node) and active_vault_node.has_method("_interact"):
 				active_vault_node._interact()
@@ -1668,6 +1672,23 @@ func _check_doors_proximity():
 					active_near_door = door
 					break
 					
+	if is_instance_valid(portal_btn_container) and active_near_door != null:
+		# v600.2: Etiqueta del portal usado (para sellos por misión de portal específico)
+		portal_click_button.set_meta("portal_label", active_near_door.get_meta("door_label", ""))
+		# v600.2: Sello visual si una misión activa selló este portal específico
+		var seal_quest: String = ""
+		if NetworkManager:
+			seal_quest = NetworkManager.get_portal_seal_quest(zone_id, active_near_door.get_meta("door_label", ""))
+		if seal_quest != "":
+			if is_instance_valid(portal_desc_label):
+				portal_desc_label.text = "🔒 PORTAL SELLADO - " + seal_quest
+				portal_desc_label.modulate = Color(1.0, 0.4, 0.4)
+			if is_instance_valid(portal_click_button):
+				portal_click_button.disabled = true
+			return
+		elif is_instance_valid(portal_click_button):
+			portal_click_button.disabled = false
+	
 	if is_instance_valid(portal_btn_container):
 		if active_near_door != null:
 			var target_zone = active_near_door.get_meta("targetZoneId", "1")

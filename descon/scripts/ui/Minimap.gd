@@ -88,10 +88,11 @@ func _input(event):
 				if (inv and inv.visible) or (admin and admin.visible):
 					return # Ignorar clic, cae en el área de un menú abierto
 
-			# v165.60: Detección global para evitar que la ventana bloquee el radar
+			# v269.160: Convertir con la transformada global real (soporta escala dinámica del RadarWindow en HUD editor)
 			var global_m_pos = get_global_mouse_position()
 			if get_global_rect().has_point(global_m_pos):
-				var local_m_pos = global_m_pos - global_position
+				var g_tr = get_global_transform()
+				var local_m_pos = g_tr.affine_inverse() * global_m_pos
 				var target_world_pos = Vector2.ZERO
 				var is_rotate = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
 				var p = get_tree().get_first_node_in_group("player")
@@ -200,7 +201,11 @@ func _draw():
 	var hovered_dest = ""
 	var global_m_pos = get_global_mouse_position()
 	var is_hovered = get_global_rect().has_point(global_m_pos)
-	var local_m_pos = global_m_pos - global_position if is_hovered else Vector2.ZERO
+	# v269.161: Misma conversión transform-aware que _input (escala dinámica del HUD editor)
+	var local_m_pos = Vector2.ZERO
+	if is_hovered:
+		var g_tr_draw = get_global_transform()
+		local_m_pos = g_tr_draw.affine_inverse() * global_m_pos
 	
 	# =====================================================================
 	# SYNC FIX v200.0: Calcular worldW/worldH desde MAPS_CONFIG del servidor

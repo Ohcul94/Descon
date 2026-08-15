@@ -1420,6 +1420,29 @@ io.on('connection', (socket) => {
         
         console.log(`[ADMIN-SAVE] Recibida nueva configuración de: ${socket.dbUser.username}`);
         try {
+            // Preservar scale/rotY de los objetos de mapa: el editor 3D (MapEditor3D) es la única
+            // fuente de verdad para rotación/escala. El admin dash solo controla posición.
+            // Se lee el archivo config.json EN DISCO porque el editor 3D escribe ahí directamente;
+            // state.SERVER_CONFIG puede estar desactualizado (RAM vieja).
+            let diskConfig = null;
+            try { diskConfig = await fs.readJson(CONFIG_FILE); }
+            catch (e) { diskConfig = state.SERVER_CONFIG || null; }
+            if (config.mapsConfig && diskConfig && diskConfig.mapsConfig) {
+                for (const zoneId in config.mapsConfig) {
+                    const incoming = config.mapsConfig[zoneId];
+                    const current = diskConfig.mapsConfig[zoneId];
+                    if (!incoming || !current || !Array.isArray(incoming.objects) || !Array.isArray(current.objects)) continue;
+                    for (let i = 0; i < incoming.objects.length; i++) {
+                        const o = incoming.objects[i];
+                        const c = current.objects[i];
+                        if (!o || !c || typeof o !== 'object' || typeof c !== 'object') continue;
+                        if (o.type === c.type) {
+                            if (c.scale !== undefined) o.scale = c.scale;
+                            if (c.rotY !== undefined) o.rotY = c.rotY;
+                        }
+                    }
+                }
+            }
             await fs.writeJson(CONFIG_FILE, config, { spaces: 4 });
             console.log(`[ADMIN-SAVE] Archivo ${CONFIG_FILE} guardado con éxito.`);
             if (config.enemyModels && config.enemyModels["101"]) {

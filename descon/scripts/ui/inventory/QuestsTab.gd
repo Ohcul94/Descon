@@ -244,6 +244,29 @@ func update_ui():
 			prog_lbl.modulate = Color(0.6, 0.6, 0.6)
 		info_vb.add_child(prog_lbl)
 		
+		# v600.2: Aviso de portal sellado por esta misión ("zona" o "zona|etiqueta")
+		var gate_zone = quest.get("portalGate", "")
+		if str(gate_zone) != "":
+			var gate_parts = str(gate_zone).split("|")
+			var gate_zone_id = gate_parts[0]
+			var gate_display = "Sector " + str(gate_zone_id)
+			if NetworkManager and NetworkManager.server_config.has("mapsConfig"):
+				var maps_cfg = NetworkManager.server_config["mapsConfig"]
+				if maps_cfg.has(str(gate_zone_id)):
+					gate_display = str(maps_cfg[str(gate_zone_id)].get("name", gate_display))
+			var gate_suffix = ""
+			if gate_parts.size() > 1 and str(gate_parts[1]) != "":
+				gate_suffix = " · Portal \"" + "|".join(gate_parts.slice(1)) + "\""
+			var gate_lbl = Label.new()
+			if not is_completed:
+				gate_lbl.text = "🚪 PORTAL SELLADO: " + gate_display + gate_suffix + " hasta completar esta misión"
+				gate_lbl.modulate = Color(1.0, 0.4, 0.4)
+			else:
+				gate_lbl.text = "🚪 Al completar: desbloquea el portal a " + gate_display + gate_suffix
+				gate_lbl.modulate = Color(0.4, 1.0, 0.5)
+			gate_lbl.add_theme_font_size_override("font_size", 8)
+			info_vb.add_child(gate_lbl)
+		
 		# Info Recompensas
 		var rewards_vb = VBoxContainer.new()
 		rewards_vb.custom_minimum_size.x = 220

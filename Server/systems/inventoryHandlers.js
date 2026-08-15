@@ -127,7 +127,7 @@ function getShipEquip(user, shipKey) {
 // v262.700: Helper Global de Validación de Combate
 function checkCombatLock(p) {
     const now = Date.now();
-    const COMBAT_DELAY = 60000;
+    const COMBAT_DELAY = (Number(p.zone) === 1) ? 10000 : 60000;
     const lastCombat = p.lastCombatTime || 0;
     const diff = now - lastCombat;
     if (diff < COMBAT_DELAY) {

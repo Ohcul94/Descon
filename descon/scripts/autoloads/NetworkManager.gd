@@ -118,6 +118,7 @@ var login_name: String = ""
 var is_logged_in: bool = false # v244.60: Control global de estado de sesión
 var server_config: Dictionary = {} # v301.7: Cache local de la configuración del servidor
 var completed_quests_cache: Array = [] # v400.0: Misiones completadas (para requisitos de equipamiento)
+var active_quests_cache: Array = [] # v600.1: Misiones activas (portales sellados por misión)
 var unlocks_cache: Array = [] # v600.0: Desbloqueos obtenidos (portales, armas, habilidades, talentos)
 var ping_start_time: int = 0
 var current_ms: int = 0
@@ -439,6 +440,9 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			# v400.0: Cachear misiones completadas para validar requisitos de equipamiento
 			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("completed"):
 				completed_quests_cache = e_data["completed"]
+			# v600.1: Cachear misiones activas (para portales sellados por misión)
+			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("active") and typeof(e_data["active"]) == TYPE_ARRAY:
+				active_quests_cache = e_data["active"]
 			# v600.0: Cachear desbloqueos obtenidos
 			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("unlocks") and typeof(e_data["unlocks"]) == TYPE_ARRAY:
 				unlocks_cache = e_data["unlocks"]
@@ -680,6 +684,83 @@ func check_equip_requirements(item_id: String = "", skill_name: String = "", amm
 				var ulabel: String = str(req.get("label", unlock_key))
 				return {"ok": false, "msg": "REQUIERE DESBLOQUEO: " + ulabel}
 	return {"ok": true, "msg": ""}
+
+# v600.3: ¿Este portal físico (zona + etiqueta) está sellado por una misión que lo desbloquea?
+# El portal permanece SELLADO mientras exista una misión configurada que lo desbloquee,
+# sin importar si la misión está aceptada o en curso. Solo se abre al COMPLETAR la misión.
+# Retorna el nombre de la misión que lo sella, o "" si está libre.
+func get_portal_seal_quest(source_zone: Variant, portal_label: String) -> String:
+	if portal_label == "":
+		return ""
+	var quests_cfg: Array = server_config.get("questsConfig", []) if server_config.has("questsConfig") else []
+	for q_def in quests_cfg:
+		if typeof(q_def) != TYPE_DICTIONARY:
+			continue
+		var pg_raw: String = str(q_def.get("portalGate", ""))
+		if pg_raw == "" or not pg_raw.contains("|"):
+			continue
+		var parts: PackedStringArray = pg_raw.split("|")
+		if str(parts[0]) != str(source_zone) or "|".join(parts.slice(1)) != portal_label:
+			continue
+		# Misión completada → el portal que sella queda desbloqueado
+		if completed_quests_cache.has(str(q_def.get("id", ""))):
+			continue
+		# Si el objetivo de la misión es explorar el destino de este portal, no se auto-bloquea
+		var maps_a: Dictionary = server_config.get("mapsConfig", {}) if server_config.has("mapsConfig") else {}
+		var zone_cfg_a: Dictionary = maps_a.get(str(source_zone), {})
+		var objs_a: Array = zone_cfg_a.get("objects", []) if typeof(zone_cfg_a) == TYPE_DICTIONARY else []
+		var portal_dest: String = ""
+		for o in objs_a:
+			if typeof(o) == TYPE_DICTIONARY and o.get("type", "") == "door" and str(o.get("label", "")) == portal_label:
+				portal_dest = str(o.get("targetZoneId", ""))
+				break
+		if q_def.get("targetType", "") == "explore" and portal_dest != "" and str(q_def.get("targetId", "")) == portal_dest:
+			continue
+		return str(q_def.get("name", q_def.get("id", "")))
+	return ""
+
+# v600.3: ¿El sector destino está sellado por una misión (portalGate "zona|etiqueta" cuyo portal apunta aquí, o "zona" legacy)?
+# Retorna el nombre de la misión que lo sella, o "" si está libre.
+func get_sector_seal_quest(dest_zone: Variant) -> String:
+	var quests_cfg: Array = server_config.get("questsConfig", []) if server_config.has("questsConfig") else []
+	for q_def in quests_cfg:
+		if typeof(q_def) != TYPE_DICTIONARY:
+			continue
+		var pg_raw: String = str(q_def.get("portalGate", ""))
+		if pg_raw == "":
+			continue
+		# Misión completada → el sector que sella queda desbloqueado
+		if completed_quests_cache.has(str(q_def.get("id", ""))):
+			continue
+		if not pg_raw.contains("|"):
+			# Legacy: sella todo el acceso al sector (si el objetivo es explorar este sector, no se auto-bloquea)
+			if q_def.get("targetType", "") == "explore" and str(q_def.get("targetId", "")) == str(dest_zone):
+				continue
+			if str(pg_raw) == str(dest_zone):
+				return str(q_def.get("name", q_def.get("id", "")))
+			continue
+		var parts: PackedStringArray = pg_raw.split("|")
+		var gate_zone: String = parts[0]
+		var gate_label: String = "|".join(parts.slice(1))
+		# Si no hay etiqueta ("zona|" o "zona") → sella todo el acceso al sector
+		if gate_label == "":
+			if q_def.get("targetType", "") == "explore" and str(q_def.get("targetId", "")) == str(dest_zone):
+				continue
+			if str(gate_zone) == str(dest_zone):
+				return str(q_def.get("name", q_def.get("id", "")))
+			continue
+		# Resolver el destino del portal sellado y comparar
+		var maps: Dictionary = server_config.get("mapsConfig", {}) if server_config.has("mapsConfig") else {}
+		var zone_cfg: Dictionary = maps.get(str(gate_zone), {})
+		var objs: Array = zone_cfg.get("objects", []) if typeof(zone_cfg) == TYPE_DICTIONARY else []
+		for o in objs:
+			if typeof(o) == TYPE_DICTIONARY and o.get("type", "") == "door" and str(o.get("label", "")) == gate_label:
+				if str(o.get("targetZoneId", "")) == str(dest_zone):
+					# Si el objetivo de la misión es explorar este sector, no se auto-bloquea
+					if q_def.get("targetType", "") == "explore" and str(q_def.get("targetId", "")) == str(dest_zone):
+						continue
+					return str(q_def.get("name", q_def.get("id", "")))
+	return ""
 
 func _get_ammo_requirements(ammo_type: String, ammo_tier: int) -> Array:
 	var shop: Dictionary = server_config.get("shopItems", {}) if server_config.has("shopItems") else {}

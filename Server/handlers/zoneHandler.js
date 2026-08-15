@@ -335,6 +335,49 @@ function registerZoneHandlers(socket, io, state) {
                 }
             }
 
+            // v600.3: Portal sellado por misión (portalGate)
+            // El portal permanece SELLADO mientras exista una misión configurada que lo desbloquee,
+            // sin importar si la misión está aceptada o en curso. Solo se abre al COMPLETAR la misión.
+            // Formato "zona|etiqueta" (ej: "2|Puerta Norte"): sella SOLO ese portal físico.
+            // Formato "zona" (legacy): sella TODO el acceso al sector.
+            {
+                const completedQuests = (user.gameData.quests && Array.isArray(user.gameData.quests.completed)) ? user.gameData.quests.completed : [];
+                const questsConfig = (state.SERVER_CONFIG && Array.isArray(state.SERVER_CONFIG.questsConfig)) ? state.SERVER_CONFIG.questsConfig : [];
+                const usedPortalLabel = (data && typeof data === 'object') ? String(data.portalLabel || '') : '';
+                for (const qd of questsConfig) {
+                    if (!qd) continue;
+                    const pgRaw = String(qd.portalGate || '');
+                    if (!pgRaw) continue;
+                    // Misión completada → el portal que sella queda desbloqueado
+                    if (completedQuests.includes(String(qd.id))) continue;
+                    const pgParts = pgRaw.split('|');
+                    const pgZone = pgParts[0];
+                    const pgLabel = pgParts.length > 1 ? pgParts.slice(1).join('|') : '';
+
+                    let blocked = false;
+                    if (pgLabel) {
+                        // Portal específico: solo bloquea el portal físico (source zone + etiqueta del portal usado)
+                        if (String(oldZone) === pgZone && usedPortalLabel === pgLabel) blocked = true;
+                        // Además bloquea saltar hacia el destino de ese portal (portal sellado = destino inaccesible)
+                        const gateZoneCfg = state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[pgZone] : null;
+                        const doors = (gateZoneCfg && Array.isArray(gateZoneCfg.objects)) ? gateZoneCfg.objects.filter(o => o && o.type === 'door' && String(o.label) === pgLabel) : [];
+                        const gateDest = doors.length > 0 ? String(doors[0].targetZoneId || '') : '';
+                        if (gateDest && String(zoneId) === gateDest) blocked = true;
+                    } else {
+                        // Legacy: sella todo el acceso al sector
+                        if (String(pgZone) === String(zoneId)) blocked = true;
+                    }
+
+                    // Si el propio objetivo de la misión exige estar en el sector sellado, no se auto-bloquea
+                    if (blocked && qd.targetType === 'explore' && String(qd.targetId) === String(zoneId)) blocked = false;
+
+                    if (blocked) {
+                        socket.emit('authError', `PORTAL SELLADO: Completa la misión "${qd.name || qd.id}" para abrir este portal.`);
+                        return;
+                    }
+                }
+            }
+
             // v215.50: Cobro dinámico por Salto de Sector
             if (user.gameData.ohcu < COST) {
                 socket.emit('authError', 'OHCU INSUFICIENTES PARA EL SALTO');
