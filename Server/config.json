@@ -8243,7 +8243,13 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Curación"
+            "type": "Curación",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 100
+                }
+            ]
         },
         "BARRERA DE VIENTO": {
             "canTargetOthers": false,
@@ -8270,7 +8276,7 @@
             "desc": "Teletransportación instantánea al punto seleccionado.",
             "icon": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
             "id": "SK-UTIL-04",
-            "range": 450,
+            "range": 500,
             "targetFilters": {
                 "allies": true,
                 "bosses": false,
@@ -8278,7 +8284,22 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 5
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "amarilla",
+                            "count": 1
+                        }
+                    ]
+                }
+            ]
         },
         "ESCUDO CELULAR": {
             "amount": 600,
@@ -8338,7 +8359,7 @@
         },
         "HYPER-DASH": {
             "canTargetOthers": false,
-            "cd": 5000,
+            "cd": 120000,
             "desc": "Propulsión instantánea hacia adelante para evasión rápida.",
             "icon": "res://assets/Skills/Iconos/Utilidad/HyperDash/HyperDash.png",
             "id": "SK-UTIL-02",
@@ -8351,7 +8372,8 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "requirements": []
         },
         "INVULNERABILIDAD": {
             "canTargetOthers": false,
@@ -8368,7 +8390,13 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 100
+                }
+            ]
         },
         "NANO-REGENERACIÓN": {
             "amount": 300,
@@ -8384,7 +8412,13 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Curación"
+            "type": "Curación",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 100
+                }
+            ]
         },
         "PROVOCACION": {
             "canTargetOthers": false,
@@ -8440,7 +8474,22 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Curación"
+            "type": "Curación",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 5
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "verde",
+                            "count": 1
+                        }
+                    ]
+                }
+            ]
         },
         "RESURRECCIÓN": {
             "canTargetOthers": true,
@@ -8460,7 +8509,13 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 100
+                }
+            ]
         },
         "SMOKE-BOMB": {
             "amount": 1,
@@ -8496,11 +8551,17 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 100
+                }
+            ]
         },
         "TURBO-IMPULSO": {
             "canTargetOthers": true,
-            "cd": 5000,
+            "cd": 12000,
             "desc": "Aumenta la velocidad de los motores temporalmente.",
             "icon": "res://assets/Skills/Iconos/Utilidad/Turbo Impulso/Turbo Impulso.png",
             "id": "SK-UTIL-01",
@@ -8513,7 +8574,13 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Utilidad"
+            "type": "Utilidad",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 5
+                }
+            ]
         },
         "VÍNCULO VITAL": {
             "amount": 250,

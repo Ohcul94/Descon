@@ -861,9 +861,13 @@ func _sphere_color_of(p_sphere) -> String:
 	var explicit: String = _normalize_sphere_color(str(p_sphere.get("type", "")))
 	if explicit != "": return explicit
 	var equipped = p_sphere.get("equipped")
-	if equipped != null:
-		return _sphere_color_from_skill_type(str(equipped.get("type", "")))
-	return ""
+	if equipped == null: return ""
+	var eq_type: String = ""
+	if typeof(equipped) == TYPE_DICTIONARY:
+		eq_type = str(equipped.get("type", ""))
+	else:
+		eq_type = str(equipped.get("type"))
+	return _sphere_color_from_skill_type(eq_type)
 
 func _count_player_sphere_colors() -> Dictionary:
 	var counts := {}
