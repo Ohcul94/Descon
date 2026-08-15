@@ -985,10 +985,11 @@ var portal_click_button: Button = null
 var portal_icon_label: Label = null
 var portal_icon_viewport: SubViewport = null
 var portal_icon_holder: Node3D = null
-# Variables para el sistema de interacción de vaults y loot drops
+# Variables para el sistema de interacción de vaults, market y loot drops
 var active_vault_node: Node = null
+var active_market_node: Node = null # v500.0: Terminal del Mercado
 var active_loot_node: Node = null
-var _current_interact_mode: String = "" # "portal", "vault", "loot"
+var _current_interact_mode: String = "" # "portal", "vault", "market", "loot"
 
 # v400.1: Spawnear objetos del mundo desde mapsConfig del servidor con física, rotaciones y comportamiento Premium
 # Lee objects[] de mapsConfig e instancia los modelos 3D y colisiones correspondientes
@@ -1035,6 +1036,7 @@ func _spawn_map_objects():
 		return
 		
 	var vault_script = load("res://scripts/entities/Vault.gd")
+	var market_script = load("res://scripts/entities/MarketTerminal.gd") # v500.0
 	
 	for obj in map_cfg.objects:
 		if not (obj is Dictionary and obj.has("x") and obj.has("y")):
@@ -1105,6 +1107,19 @@ func _spawn_map_objects():
 					add_child(vault)
 					vault.global_position = obj_pos
 					print("[BaseMap] Baúl instanciado correctamente: ", obj_label, " @ ", obj_pos)
+			"market":
+				# v500.0: Terminal del Mercado / Casa de Subastas (infraestructura del lobby)
+				if market_script:
+					var market = Area2D.new()
+					market.name = "MapMarket_" + obj_label.replace(" ", "_")
+					market.set_script(market_script)
+					market.set_meta("custom_scale", float(obj.get("scale", 2.0)))
+					market.set_meta("custom_rot_y", float(obj.get("rotY", 0.0)))
+					market.set_meta("custom_y_offset", float(obj.get("yOffset", 0.0)))
+					market.set_meta("asset_path", str(obj.get("assetPath", "")))
+					add_child(market)
+					market.global_position = obj_pos
+					print("[BaseMap] Terminal de Mercado instanciado correctamente: ", obj_label, " @ ", obj_pos)
 			"door":
 				# Puerta de Warp Interactiva estilo Extracción: Area2D lógica para proximidad
 				var target_z = str(obj.get("targetZoneId", "1"))
@@ -1520,6 +1535,9 @@ func _on_interact_button_pressed():
 		"vault":
 			if is_instance_valid(active_vault_node) and active_vault_node.has_method("_interact"):
 				active_vault_node._interact()
+		"market":
+			if is_instance_valid(active_market_node) and active_market_node.has_method("_interact"):
+				active_market_node._interact()
 		"loot":
 			if is_instance_valid(active_loot_node) and active_loot_node.has_method("_interact"):
 				active_loot_node._interact()
@@ -1537,6 +1555,16 @@ func _update_interact_visibility():
 			portal_desc_label.text = "ABRIR BAÚL [" + key_text + " / Clic]"
 		_set_portal_icon("vault")
 		_current_interact_mode = "vault"
+		portal_btn_container.visible = true
+	elif is_instance_valid(active_market_node):
+		# v500.0: Terminal del Mercado
+		if not is_instance_valid(portal_btn_container):
+			_create_portal_jump_ui()
+		if portal_desc_label:
+			var key_text = _get_bound_interact_key("loot_claim")
+			portal_desc_label.text = "ABRIR MERCADO [" + key_text + " / Clic]"
+		_set_portal_icon("vault")
+		_current_interact_mode = "market"
 		portal_btn_container.visible = true
 	elif is_instance_valid(active_loot_node):
 		# Crear la UI de forma lazy si todavía no existe (mapa sin portales)
@@ -1584,6 +1612,17 @@ func register_vault_interaction(vault: Node):
 
 func unregister_vault_interaction():
 	active_vault_node = null
+	_update_interact_visibility()
+
+# v500.0: Registrar/desregistrar terminal de mercado para interacción
+func register_market_interaction(market: Node):
+	active_market_node = market
+	if not is_instance_valid(portal_btn_container):
+		_create_portal_jump_ui()
+	_update_interact_visibility()
+
+func unregister_market_interaction():
+	active_market_node = null
 	_update_interact_visibility()
 
 # Registrar/desregistrar loot drop para interacción (usado por LootDrop)
@@ -1660,8 +1699,8 @@ func _check_doors_proximity():
 		else:
 			if _current_interact_mode == "portal":
 				_current_interact_mode = ""
-			# No ocultar si hay vault/loot activo
-			if not is_instance_valid(active_vault_node) and not is_instance_valid(active_loot_node):
+			# No ocultar si hay vault/market/loot activo
+			if not is_instance_valid(active_vault_node) and not is_instance_valid(active_market_node) and not is_instance_valid(active_loot_node):
 				portal_btn_container.visible = false
 
 # Atajo de teclado para entrar al portal si el contenedor está visible
@@ -1750,7 +1789,7 @@ func _input(event):
 				get_viewport().set_input_as_handled()
 
 	if event.is_action_pressed("loot_claim") and not event.is_echo():
-		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode in ["vault", "loot"]:
+		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode in ["vault", "market", "loot"]:
 			if is_instance_valid(portal_click_button):
 				portal_click_button.pressed.emit()
 				get_viewport().set_input_as_handled()

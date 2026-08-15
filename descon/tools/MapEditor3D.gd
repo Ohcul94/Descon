@@ -48,7 +48,7 @@ var _gizmo_mode: int = 0  # 0=move, 1=rotate, 2=scale
 var _current_gizmo: Node3D = null
 var _auto_loading: bool = false
 
-const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "nexus", "pillar", "custom"]
+const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "nexus", "pillar", "market", "custom"]
 
 func _ready():
 	if not Engine.is_editor_hint():
@@ -272,6 +272,7 @@ func _show_context_menu(position: Vector2):
 	menu.add_item("Cambiar tipo: custom", 15)
 	menu.add_item("Cambiar tipo: altar", 16)
 	menu.add_item("Cambiar tipo: spawn", 17)
+	menu.add_item("Cambiar tipo: market", 18)
 	menu.add_separator()
 	menu.add_item("Exportar JSON al portapapeles", 99)
 	menu.id_pressed.connect(_on_context_menu_select)
@@ -279,9 +280,9 @@ func _show_context_menu(position: Vector2):
 
 func _on_context_menu_select(id: int):
 	match id:
-		10, 11, 12, 13, 14, 15, 16, 17:
+		10, 11, 12, 13, 14, 15, 16, 17, 18:
 			if _selected_object:
-				var types = ["wall", "door", "chest", "tower", "decor", "custom", "altar", "spawn"]
+				var types = ["wall", "door", "chest", "tower", "decor", "custom", "altar", "spawn", "market"]
 				var type_index = id - 10
 				var new_type = types[type_index]
 				_selected_object.set_meta("obj_type", new_type)

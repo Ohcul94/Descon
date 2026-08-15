@@ -325,6 +325,16 @@ function registerZoneHandlers(socket, io, state) {
                 return;
             }
 
+            // v600.0: Validar desbloqueo del sector (portal requiere misión)
+            const destMapCfg = state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[zoneId] : null;
+            if (destMapCfg && destMapCfg.unlockRequired === true) {
+                const unlockSystem = require('../systems/unlockSystem');
+                if (!unlockSystem.hasUnlock(user, 'map:' + zoneId)) {
+                    socket.emit('authError', `SECTOR BLOQUEADO: ${destMapCfg.name ? 'El sector ' + destMapCfg.name : 'Este sector'} está sellado. Completa la misión que otorga su desbloqueo.`);
+                    return;
+                }
+            }
+
             // v215.50: Cobro dinámico por Salto de Sector
             if (user.gameData.ohcu < COST) {
                 socket.emit('authError', 'OHCU INSUFICIENTES PARA EL SALTO');

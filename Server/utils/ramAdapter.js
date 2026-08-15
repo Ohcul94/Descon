@@ -99,6 +99,9 @@ function getPlayerRAMAdapter(p) {
             get quests() { return p.quests || { active: [], completed: [], lastDailyReset: null, lastWeeklyReset: null }; },
             set quests(v) { p.quests = v; },
 
+            get unlocks() { return p.unlocks || []; },
+            set unlocks(v) { p.unlocks = v; },
+
             get battlePass() { return p.battlePass || { level: 1, exp: 0, isVip: false, claimedFree: [], claimedVip: [] }; },
             set battlePass(v) { p.battlePass = v; },
 
@@ -106,7 +109,10 @@ function getPlayerRAMAdapter(p) {
             set rankingData(v) { p.rankingData = v; },
 
             get housing() { return p.housing || { unlocked: false, placedObjects: [] }; },
-            set housing(v) { p.housing = v; }
+            set housing(v) { p.housing = v; },
+
+            get marketMailbox() { return p.marketMailbox || []; },
+            set marketMailbox(v) { p.marketMailbox = v; }
         },
         markModified(path) {
             // En memoria la mutación es directa y JS detecta los cambios automáticamente.
@@ -135,9 +141,11 @@ function getPlayerRAMAdapter(p) {
                         "gameData.skillTree": p.skillTree,
                         "gameData.spheres": p.spheres,
                         "gameData.quests": p.quests,
+                        "gameData.unlocks": p.unlocks || [],
                         "gameData.battlePass": p.battlePass,
                         "gameData.rankingData": p.rankingData,
-                        "gameData.housing": p.housing || { unlocked: false, placedObjects: [] }
+                        "gameData.housing": p.housing || { unlocked: false, placedObjects: [] },
+                        "gameData.marketMailbox": p.marketMailbox || []
                     }
                 }
             ).catch(err => {
@@ -180,9 +188,11 @@ function getPlayerRAMAdapter(p) {
                     vaultUnlockedTabs: p.vaultUnlockedTabs,
                     inventoryMaxSlots: p.inventoryMaxSlots,
                     quests: p.quests,
+                    unlocks: p.unlocks || [],
                     battlePass: p.battlePass,
                     rankingData: p.rankingData,
-                    housing: p.housing || { unlocked: false, placedObjects: [] }
+                    housing: p.housing || { unlocked: false, placedObjects: [] },
+                    marketMailbox: p.marketMailbox || []
                 }
             };
         }

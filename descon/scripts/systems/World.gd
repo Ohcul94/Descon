@@ -3,6 +3,7 @@ extends Node2D
 # Precargas estáticas para optimización de rendimiento y transiciones (v313.4)
 const LootUIScript = preload("res://scripts/ui/LootUI.gd")
 const VaultUIScript = preload("res://scripts/ui/VaultUI.gd")
+const MarketplaceUIScript = preload("res://scripts/ui/MarketplaceUI.gd") # v500.0: Casa de Subastas
 const DeathModalUIScript = preload("res://scripts/ui/DeathModalUI.gd")
 const PaseBatallaScript = preload("res://scripts/ui/PaseBatalla.gd")
 const EntityManagerScript = preload("res://scripts/systems/EntityManager.gd")
@@ -95,6 +96,12 @@ func _ready():
 			vault_ui.name = "VaultUI"
 			hud_node.add_child(vault_ui)
 			print("[WORLD] VaultUI inyectado desde preload.")
+			
+		if MarketplaceUIScript:
+			var market_ui = MarketplaceUIScript.new()
+			market_ui.name = "MarketplaceUI"
+			hud_node.add_child(market_ui)
+			print("[WORLD] MarketplaceUI inyectado desde preload.")
  
 		if DeathModalUIScript:
 			var death_ui = DeathModalUIScript.new()

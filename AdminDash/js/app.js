@@ -99,7 +99,7 @@ function showTab(tabId) {
         'maps': 'folder-maps', 'map-detail': 'folder-maps',
         'enemies': 'folder-enemies', 'enemy-detail': 'folder-enemies',
         'mechanics': 'folder-mechanics',
-        'ammo': 'folder-market', 'weapons': 'folder-market', 'shields': 'folder-market', 'engines': 'folder-market',
+        'ammo': 'folder-market', 'weapons': 'folder-market', 'shields': 'folder-market', 'engines': 'folder-market', 'market': 'folder-market',
         'skills': 'folder-skills',
         'modes': 'folder-modes',
         'loot': 'folder-loot',
@@ -135,7 +135,7 @@ function showTab(tabId) {
     const titles = {
         'ships': 'Configuración de Naves', 'enemies': 'Gestión de Amenazas',
         'ammo': 'Mercado: Municiones', 'weapons': 'Mercado: Armamento',
-        'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión',
+        'shields': 'Mercado: Escudos', 'engines': 'Mercado: Propulsión', 'market': 'Casa de Subastas (Mercado)',
         'skills': 'Protocolos de Combate', 'mechanics': 'Librería de Mecánicas',
         'maps': 'Cartografía Estelar', 'json': 'Núcleo del Sistema',
         'sessions': 'Auditoría de Sesiones Estelares',
@@ -280,6 +280,12 @@ function connect() {
         }
     });
 
+    // v500.0: Casa de Subastas (Mercado) — lista de publicaciones para moderación
+    socket.on('adminMarketListings', (data) => {
+        window.marketListings = (data && data.listings) ? data.listings : [];
+        if (document.getElementById('view-market').classList.contains('active')) renderMarket();
+    });
+
     socket.on('loginSuccess', (data) => {
         socket.emit('getAssetFiles');
         if (remember) {
@@ -356,6 +362,11 @@ function connect() {
                 config.questsGlobalConfig = JSON.parse(JSON.stringify(DEFAULT_QUESTS_GLOBAL_CONFIG));
             }
 
+            // v600.0: Talentos que requieren desbloqueo por misión
+            if (!config.talentsLockedConfig) {
+                config.talentsLockedConfig = JSON.parse(JSON.stringify(DEFAULT_TALENTS_LOCKED_CONFIG));
+            }
+
             // Inicializar configuración del Pase de Batalla
             if (!config.battlePassConfig) {
                 const niveles = [];
@@ -387,6 +398,11 @@ function connect() {
 
             if (!config.rankingConfig) {
                 config.rankingConfig = JSON.parse(JSON.stringify(DEFAULT_RANKING_CONFIG));
+            }
+
+            // v500.0: Inicializar configuración de la Casa de Subastas (Mercado)
+            if (!config.marketConfig) {
+                config.marketConfig = JSON.parse(JSON.stringify(DEFAULT_MARKET_CONFIG));
             }
 
             patchMechanicsLib();

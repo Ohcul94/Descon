@@ -11,6 +11,7 @@ func _ready():
 			NetworkManager.config_updated.connect(_on_config_updated)
 
 var FULL_CONFIG = {}
+var MARKET_CONFIG = {} # v500.0: Casa de Subastas (recibe config.marketConfig del servidor)
 
 func _on_config_updated(config):
 	if typeof(config) != TYPE_DICTIONARY: return
@@ -23,6 +24,7 @@ func _on_config_updated(config):
 	if config.has("hordeConfig"): HORDES_CONFIG = config.hordeConfig
 	if config.has("skillsData"): SKILLS_DATA = config.skillsData
 	if config.has("mapsConfig"): MAPS_CONFIG = config.mapsConfig
+	if config.has("marketConfig"): MARKET_CONFIG = config.marketConfig # v500.0: Casa de Subastas
 	
 	print("[CONSTANTS] Configuración sincronizada con el servidor.")
 

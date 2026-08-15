@@ -12,11 +12,12 @@ window.resolveAssetWebUrl = function(iconPath) {
     return path;
 };
 
-// v400.0: Sistema de Requisitos de Equipamiento (nivel, misiones completadas)
+// v400.0: Sistema de Requisitos de Equipamiento (nivel, misiones completadas, desbloqueos)
 // Cada ítem/habilidad soporta un array `requirements` con condiciones que TODAS deben cumplirse (AND).
 const REQUIREMENTS_TYPES = [
     { value: 'level', label: 'Nivel mínimo' },
-    { value: 'quest_completed', label: 'Misión completada' }
+    { value: 'quest_completed', label: 'Misión completada' },
+    { value: 'unlock', label: 'Desbloqueo especial' }
 ];
 const REQ_SECTIONS = {};
 
@@ -53,8 +54,9 @@ function reqSetType(secId, idx, type) {
     if (!item || !Array.isArray(item.requirements)) return;
     const req = item.requirements[idx];
     req.type = type;
-    if (type === 'level') { if (req.min === undefined) req.min = 1; delete req.questId; }
-    else if (type === 'quest_completed') { if (req.questId === undefined) req.questId = ''; delete req.min; }
+    if (type === 'level') { if (req.min === undefined) req.min = 1; delete req.questId; delete req.key; delete req.label; }
+    else if (type === 'quest_completed') { if (req.questId === undefined) req.questId = ''; delete req.min; delete req.key; delete req.label; }
+    else if (type === 'unlock') { if (req.key === undefined) req.key = ''; if (req.label === undefined) req.label = ''; delete req.min; delete req.questId; }
     renderRequirementsSection(secId);
 }
 function reqSetValue(secId, idx, key, value) {
@@ -63,6 +65,8 @@ function reqSetValue(secId, idx, key, value) {
     const req = item.requirements[idx];
     if (key === 'min') req.min = parseInt(value) || 1;
     else if (key === 'questId') req.questId = value;
+    else if (key === 'key') req.key = value;
+    else if (key === 'label') req.label = value;
 }
 function requirementsTypeOptions(selected) {
     return REQUIREMENTS_TYPES.map(t => `<option value="${t.value}" ${selected === t.value ? 'selected' : ''}>${t.label}</option>`).join('');
@@ -89,6 +93,11 @@ function requirementsSectionHtml(secId, itemExpr) {
             valueField = `<input type="number" min="1" value="${req.min !== undefined ? req.min : 1}" style="width:90px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px;" onchange="reqSetValue('${secId}', ${idx}, 'min', this.value)">`;
         } else if (type === 'quest_completed') {
             valueField = `<select style="flex:1; min-width:220px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px;" onchange="reqSetValue('${secId}', ${idx}, 'questId', this.value)">${requirementsQuestOptions(req.questId)}</select>`;
+        } else if (type === 'unlock') {
+            valueField = `
+                <input type="text" value="${reqAttrEscape(req.key || '')}" placeholder="Clave: item:w_laser_1 | skill:X | map:2 | talent:combat:0" title="Clave del desbloqueo. La misión debe otorgarla con el mismo tipo y ID." style="flex:1; min-width:180px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px; font-size:0.65rem;" onchange="reqSetValue('${secId}', ${idx}, 'key', this.value)">
+                <input type="text" value="${reqAttrEscape(req.label || '')}" placeholder="Nombre visible (ej: Cañón de Plasma)" title="Nombre que verá el jugador al intentar usar el objeto" style="flex:1; min-width:120px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 4px; font-size:0.65rem;" onchange="reqSetValue('${secId}', ${idx}, 'label', this.value)">
+            `;
         }
         rows += `
             <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; flex-wrap:wrap;">
@@ -383,6 +392,7 @@ function refreshCurrentTab() {
         'battlepass': renderBattlePass,
         'talent-creator': renderTalentCreator,
         'talent-mapper': renderTalentMapper,
+        'market': renderMarket,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions()),
         'ranking': renderRanking
     };
@@ -401,6 +411,98 @@ function renderAll() {
     renderQuests();
     renderBattlePass();
     renderRanking();
+    renderMarket();
+}
+
+function renderMarket() {
+    const container = document.getElementById('market-config-container');
+    if (!container) return;
+    if (!config.marketConfig) config.marketConfig = JSON.parse(JSON.stringify(DEFAULT_MARKET_CONFIG));
+    const cfg = config.marketConfig;
+
+    container.innerHTML = `
+        <div class="card">
+            <div class="card-tag">CONFIGURACIÓN GLOBAL</div>
+            <div style="display:flex; gap:12px; align-items:center; margin-bottom:1rem;">
+                <div class="field" style="margin:0; flex-shrink:0;"><label>Habilitado</label><input type="checkbox" ${cfg.enabled ? 'checked' : ''} onchange="config.marketConfig.enabled = this.checked"></div>
+                <div class="field" style="margin:0;"><label>Zona de Acceso (ID)</label><input type="number" value="${cfg.accessZoneId}" onchange="config.marketConfig.accessZoneId = parseInt(this.value) || 1"></div>
+                <div class="field" style="margin:0;"><label>Duración Publicación (horas)</label><input type="number" value="${cfg.listingDurationHours}" onchange="config.marketConfig.listingDurationHours = parseInt(this.value) || 24"></div>
+                <div class="field" style="margin:0;"><label>Impuesto de Venta (%)</label><input type="number" min="0" max="100" value="${cfg.sellTaxPercent}" onchange="config.marketConfig.sellTaxPercent = parseFloat(this.value) || 0"></div>
+            </div>
+            <div class="form-grid">
+                <div class="field"><label>Máx. Publicaciones por Jugador</label><input type="number" min="1" value="${cfg.maxActiveListingsPerPlayer}" onchange="config.marketConfig.maxActiveListingsPerPlayer = parseInt(this.value) || 1"></div>
+                <div class="field"><label>Intervalo Expiración (ms)</label><input type="number" min="5000" value="${cfg.expiryCheckIntervalMs}" onchange="config.marketConfig.expiryCheckIntervalMs = parseInt(this.value) || 60000"></div>
+                <div class="field"><label>Intervalo Cache Activas (ms)</label><input type="number" min="5000" value="${cfg.cacheRefreshIntervalMs}" onchange="config.marketConfig.cacheRefreshIntervalMs = parseInt(this.value) || 300000"></div>
+                <div class="field"><label>Tarifa Publicación (Hubs)</label><input type="number" min="0" value="${cfg.listingFeeHubs}" onchange="config.marketConfig.listingFeeHubs = parseInt(this.value) || 0"></div>
+                <div class="field"><label>Tarifa Publicación (Ohcu)</label><input type="number" min="0" value="${cfg.listingFeeOhcu}" onchange="config.marketConfig.listingFeeOhcu = parseInt(this.value) || 0"></div>
+                <div class="field"><label>Precio Mín (Hubs)</label><input type="number" min="0" value="${cfg.minPriceHubs}" onchange="config.marketConfig.minPriceHubs = parseInt(this.value) || 0"></div>
+                <div class="field"><label>Precio Máx (Hubs · 0 = sin tope)</label><input type="number" min="0" value="${cfg.maxPriceHubs}" onchange="config.marketConfig.maxPriceHubs = parseInt(this.value) || 0"></div>
+                <div class="field"><label>Precio Mín (Ohcu)</label><input type="number" min="0" value="${cfg.minPriceOhcu}" onchange="config.marketConfig.minPriceOhcu = parseInt(this.value) || 0"></div>
+                <div class="field"><label>Precio Máx (Ohcu · 0 = sin tope)</label><input type="number" min="0" value="${cfg.maxPriceOhcu}" onchange="config.marketConfig.maxPriceOhcu = parseInt(this.value) || 0"></div>
+                <div class="field"><label>Permitir AutoCompra</label><input type="checkbox" ${cfg.allowSelfBuy ? 'checked' : ''} onchange="config.marketConfig.allowSelfBuy = this.checked"></div>
+                <div class="field full"><label>IDs Bloqueados (separados por coma)</label><input type="text" value="${(cfg.blockedItemIds || []).join(', ')}" onchange="config.marketConfig.blockedItemIds = this.value.split(',').map(s => s.trim()).filter(Boolean)"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-tag">MODERACIÓN DE PUBLICACIONES</div>
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom:1rem;">
+                <select id="market-status-filter" onchange="window.marketListings = []; renderMarketListingsTable();">
+                    <option value="active">Activas</option>
+                    <option value="expired">Expiradas</option>
+                    <option value="cancelled">Canceladas</option>
+                    <option value="sold">Vendidas</option>
+                    <option value="all">Todas</option>
+                </select>
+                <button class="btn btn-primary" onclick="socket.emit('adminGetMarketListings', { limit: 50, status: document.getElementById('market-status-filter').value })">🔄 ACTUALIZAR LISTA</button>
+                <span style="font-size:0.7rem; color:#888;">Cancelar una publicación devuelve el ítem al buzón del vendedor.</span>
+            </div>
+            <div id="market-listings-table-container"></div>
+        </div>
+    `;
+    renderMarketListingsTable();
+}
+
+function renderMarketListingsTable() {
+    const wrapper = document.getElementById('market-listings-table-container');
+    if (!wrapper) return;
+    const listings = window.marketListings || [];
+    if (listings.length === 0) {
+        wrapper.innerHTML = `<div style="font-size:0.8rem; color:#888; padding:1rem;">Sin publicaciones. Presiona "ACTUALIZAR LISTA" para consultar el mercado.</div>`;
+        return;
+    }
+    const statusLabel = { active: '🟢 Activa', sold: '🟣 Vendida', expired: '🟡 Expirada', cancelled: '🔴 Cancelada' };
+    wrapper.innerHTML = `
+        <div class="card" style="width: 100%; padding: 0; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+                <thead style="background: rgba(255,255,255,0.05); text-align: left;">
+                    <tr>
+                        <th style="padding: 1rem;">VENDEDOR</th>
+                        <th style="padding: 1rem;">ÍTEM</th>
+                        <th style="padding: 1rem;">CANT.</th>
+                        <th style="padding: 1rem;">PRECIO</th>
+                        <th style="padding: 1rem;">MONEDA</th>
+                        <th style="padding: 1rem;">ESTADO</th>
+                        <th style="padding: 1rem;">EXPIRA</th>
+                        <th style="padding: 1rem;">ACCIÓN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${listings.map(l => `
+                        <tr style="border-top: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.8rem 1rem;">${l.sellerName || '—'}</td>
+                            <td style="padding: 0.8rem 1rem;">${(l.item && l.item.name) || '—'}</td>
+                            <td style="padding: 0.8rem 1rem;">${l.amount}</td>
+                            <td style="padding: 0.8rem 1rem;">${l.price.toLocaleString()}</td>
+                            <td style="padding: 0.8rem 1rem; text-transform: uppercase;">${l.currency}</td>
+                            <td style="padding: 0.8rem 1rem;">${statusLabel[l.status] || l.status}</td>
+                            <td style="padding: 0.8rem 1rem;">${l.status === 'active' && l.expiresAt ? new Date(l.expiresAt).toLocaleString() : '—'}</td>
+                            <td style="padding: 0.8rem 1rem;">${l.status === 'active' ? `<button class="btn" style="background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.3); color:#ff6060; cursor:pointer;" onclick="socket.emit('adminCancelMarketListing', { listingId: '${l._id}' }); setTimeout(() => socket.emit('adminGetMarketListings', { limit: 50, status: document.getElementById('market-status-filter').value }), 800);">✕ CANCELAR</button>` : ''}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
 }
 
 function renderAmmo() {
@@ -539,6 +641,7 @@ function renderAmmo() {
             <div class="price-group" style="margin-top:1rem; border-top:1px solid #333; padding-top:1rem;">
                 <div class="field"><label>Hubs (qty)</label><input type="number" value="${item.prices.hubs}" onchange="config.shopItems.ammo['${type}'][${i}].prices.hubs = parseInt(this.value)"></div>
                 <div class="field"><label>Ohcu (qty)</label><input type="number" value="${item.prices.ohcu}" onchange="config.shopItems.ammo['${type}'][${i}].prices.ohcu = parseInt(this.value)"></div>
+                <div class="field"><label>No Comerciable</label><input type="checkbox" ${item.soulbound ? 'checked' : ''} onchange="config.shopItems.ammo['${type}'][${i}].soulbound = this.checked"></div>
             </div>
 
             ${requirementsSectionHtml('req_ammo_' + reqSectionIdSanitize(type) + '_' + i, `config.shopItems.ammo["${type.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"][${i}]`)}
@@ -575,6 +678,7 @@ function renderWeapons() {
                 <div class="field full"><label>Mod. Vida</label><div style="display:flex;gap:6px;align-items:center;"><input type="number" value="${w.hpMod || 0}" onchange="config.shopItems.weapons[${i}].hpMod = parseFloat(this.value)" style="flex:1;min-width:80px;"><select onchange="config.shopItems.weapons[${i}].hpModType = this.value" style="width:auto;min-width:55px;max-width:65px;font-size:0.65rem;background:#1a1a2e;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:2px 4px;"><option value="percent" ${(w.hpModType||'percent')==='percent'?'selected':''}>%</option><option value="flat" ${(w.hpModType||'percent')==='flat'?'selected':''}>FIJO</option></select></div></div>
                 <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${w.prices.hubs}" onchange="config.shopItems.weapons[${i}].prices.hubs = parseInt(this.value)"></div>
                 <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${w.prices.ohcu}" onchange="config.shopItems.weapons[${i}].prices.ohcu = parseInt(this.value)"></div>
+                <div class="field"><label>No Comerciable (Soulbound)</label><input type="checkbox" ${w.soulbound ? 'checked' : ''} onchange="config.shopItems.weapons[${i}].soulbound = this.checked"></div>
             </div>
             ${requirementsSectionHtml('req_weapon_' + i, `config.shopItems.weapons[${i}]`)}
         `;
@@ -610,6 +714,7 @@ function renderShields() {
                 <div class="field full"><label>Mod. Velocidad</label><div style="display:flex;gap:6px;align-items:center;"><input type="number" value="${s.speedMod || 0}" onchange="config.shopItems.shields[${i}].speedMod = parseFloat(this.value)" style="flex:1;min-width:80px;"><select onchange="config.shopItems.shields[${i}].speedModType = this.value" style="width:auto;min-width:55px;max-width:65px;font-size:0.65rem;background:#1a1a2e;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:2px 4px;"><option value="percent" ${(s.speedModType||'percent')==='percent'?'selected':''}>%</option><option value="flat" ${(s.speedModType||'percent')==='flat'?'selected':''}>FIJO</option></select></div></div>
                 <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${s.prices.hubs}" onchange="config.shopItems.shields[${i}].prices.hubs = parseInt(this.value)"></div>
                 <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${s.prices.ohcu}" onchange="config.shopItems.shields[${i}].prices.ohcu = parseInt(this.value)"></div>
+                <div class="field"><label>No Comerciable (Soulbound)</label><input type="checkbox" ${s.soulbound ? 'checked' : ''} onchange="config.shopItems.shields[${i}].soulbound = this.checked"></div>
             </div>
             ${requirementsSectionHtml('req_shield_' + i, `config.shopItems.shields[${i}]`)}
         `;
@@ -646,6 +751,7 @@ function renderEngines() {
                 <div class="field full"><label>Mod. Daño</label><div style="display:flex;gap:6px;align-items:center;"><input type="number" value="${e.dmgMod || 0}" onchange="config.shopItems.engines[${i}].dmgMod = parseFloat(this.value)" style="flex:1;min-width:80px;"><select onchange="config.shopItems.engines[${i}].dmgModType = this.value" style="width:auto;min-width:55px;max-width:65px;font-size:0.65rem;background:#1a1a2e;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:2px 4px;"><option value="percent" ${(e.dmgModType||'percent')==='percent'?'selected':''}>%</option><option value="flat" ${(e.dmgModType||'percent')==='flat'?'selected':''}>FIJO</option></select></div></div>
                 <div class="field"><label>Precio Hubs (qty)</label><input type="number" value="${e.prices.hubs}" onchange="config.shopItems.engines[${i}].prices.hubs = parseInt(this.value)"></div>
                 <div class="field"><label>Precio Ohcu (qty)</label><input type="number" value="${e.prices.ohcu}" onchange="config.shopItems.engines[${i}].prices.ohcu = parseInt(this.value)"></div>
+                <div class="field"><label>No Comerciable (Soulbound)</label><input type="checkbox" ${e.soulbound ? 'checked' : ''} onchange="config.shopItems.engines[${i}].soulbound = this.checked"></div>
             </div>
             ${requirementsSectionHtml('req_engine_' + i, `config.shopItems.engines[${i}]`)}
         `;
@@ -1961,6 +2067,10 @@ function renderMapDetail() {
                         <div class="field"><label>Costo Warp (Hubs)</label><input type="number" value="${m.warpCost}" oninput="config.mapsConfig['${selectedMapId}'].warpCost = parseInt(this.value) || 0"></div>
                         <div class="field"><label>Color de Radar</label><input type="color" value="${m.color || '#00d2ff'}" oninput="config.mapsConfig['${selectedMapId}'].color = this.value; updateSidebar();" style="height:40px;"></div>
                         <div class="field"><label>Multiplicador de Drop (x)</label><input type="number" step="0.1" min="0" value="${m.dropMultiplier !== undefined ? m.dropMultiplier : 1}" oninput="config.mapsConfig['${selectedMapId}'].dropMultiplier = parseFloat(this.value) || 1"></div>
+                        <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: span 2; margin-top:4px;">
+                            <input type="checkbox" id="map-unlock-required" ${m.unlockRequired === true ? 'checked' : ''} onchange="config.mapsConfig['${selectedMapId}'].unlockRequired = this.checked; renderMapDetail();">
+                            <label style="margin:0; cursor:pointer;" for="map-unlock-required">🔒 Requiere desbloqueo por misión (el portal queda sellado hasta que una misión otorgue el desbloqueo del mapa)</label>
+                        </div>
                     </div>
                     <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.05);">
                         <label style="color:var(--accent); font-size: 0.65rem; font-weight:bold; letter-spacing:1px; display:block; margin-bottom:0.8rem;">⚔️ CONFIGURACIÓN DE PVP Y SEGURIDAD</label>
@@ -4623,6 +4733,7 @@ window.renderCrafting = function() {
                             <div class="field" style="width: 90px; margin:0; flex-shrink: 0;"><label>Límite Stack</label><input type="number" min="1" value="${res.maxStack || 1}" onchange="config.shopItems.resources[${idx}].maxStack = parseInt(this.value) || 1;"></div>
                             <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Hubs)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.hubs || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.hubs = parseInt(this.value) || 0;"></div>
                             <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Ohcu)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.ohcu || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.ohcu = parseInt(this.value) || 0;"></div>
+                            <div class="field" style="margin:0; flex-shrink: 0;"><label>No Comerciable</label><input type="checkbox" ${res.soulbound ? 'checked' : ''} onchange="config.shopItems.resources[${idx}].soulbound = this.checked;"></div>
                         </div>
                     </div>
                 </div>
@@ -5772,8 +5883,9 @@ window.renderQuests = function() {
         div.style.position = 'relative';
         
         // Items render helper
-        if (!quest.reward) quest.reward = { exp: 0, hubs: 0, ohcu: 0, items: [] };
+        if (!quest.reward) quest.reward = { exp: 0, hubs: 0, ohcu: 0, items: [], unlocks: [] };
         if (!quest.reward.items) quest.reward.items = [];
+        if (!quest.reward.unlocks) quest.reward.unlocks = [];
         
         let rewardItemsHTML = (quest.reward.items || []).map((item, itemIdx) => `
             <div style="display:flex; gap:10px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:5px; border-radius:6px;">
@@ -5782,6 +5894,48 @@ window.renderQuests = function() {
                 <button class="btn" style="background:var(--danger); border:none; padding:4px 8px; font-size:10px; margin-top:15px; cursor:pointer;" onclick="config.questsConfig[${idx}].reward.items.splice(${itemIdx}, 1); renderQuests();">✕</button>
             </div>
         `).join('');
+
+        // v600.0: Render de desbloqueos de recompensa (🔓)
+        let unlockRowsHTML = (quest.reward.unlocks || []).map((u, uIdx) => {
+            const uType = String(u.type || 'generic').toLowerCase();
+            let targetField = '';
+            if (uType === 'map') {
+                let opts = `<option value="" ${!u.targetId ? 'selected' : ''}>-- Mapa --</option>`;
+                for (let mid in config.mapsConfig) {
+                    opts += `<option value="${mid}" ${String(u.targetId) === String(mid) ? 'selected' : ''}>[Sector ${mid}] ${config.mapsConfig[mid].name}</option>`;
+                }
+                targetField = `<select style="flex:2; min-width:130px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.questsConfig[${idx}].reward.unlocks[${uIdx}].targetId = this.value">${opts}</select>`;
+            } else if (uType === 'skill') {
+                let opts = `<option value="" ${!u.targetId ? 'selected' : ''}>-- Habilidad --</option>`;
+                for (let sName in config.skillsData) {
+                    opts += `<option value="${reqAttrEscape(sName)}" ${String(u.targetId) === String(sName) ? 'selected' : ''}>${reqAttrEscape((config.skillsData[sName].name || sName))}</option>`;
+                }
+                targetField = `<select style="flex:2; min-width:130px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.questsConfig[${idx}].reward.unlocks[${uIdx}].targetId = this.value">${opts}</select>`;
+            } else if (uType === 'talent') {
+                const lockedTalents = (config.talentsLockedConfig || []);
+                if (lockedTalents.length > 0) {
+                    let opts = `<option value="" ${!u.targetId ? 'selected' : ''}>-- Talento sellado --</option>`;
+                    lockedTalents.forEach((t, ti) => {
+                        const tKey = `${t.category}:${t.index}`;
+                        opts += `<option value="${tKey}" ${String(u.targetId) === tKey ? 'selected' : ''}>⭐ ${reqAttrEscape(t.name || tKey)} (${tKey})</option>`;
+                    });
+                    targetField = `<select style="flex:2; min-width:130px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.questsConfig[${idx}].reward.unlocks[${uIdx}].targetId = this.value">${opts}</select>`;
+                } else {
+                    targetField = `<input type="text" value="${reqAttrEscape(u.targetId || '')}" placeholder="categoria:indice (ej: combat:0)" title="Primero declara talentos sellados en la pestaña Talentos" style="flex:2; min-width:130px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.questsConfig[${idx}].reward.unlocks[${uIdx}].targetId = this.value">`;
+                }
+            } else {
+                const ph = (uType === 'item') ? 'ID del ítem (ej: w_laser_1)' : 'Clave personalizada';
+                targetField = `<input type="text" value="${reqAttrEscape(u.targetId || '')}" placeholder="${ph}" style="flex:2; min-width:130px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.questsConfig[${idx}].reward.unlocks[${uIdx}].targetId = this.value">`;
+            }
+            const typeOptions = Object.keys(UNLOCK_TYPES_LIB).map(k => `<option value="${k}" ${uType === k ? 'selected' : ''}>${UNLOCK_TYPES_LIB[k].label}</option>`).join('');
+            return `
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; background:rgba(255,255,255,0.02); padding:6px; border-radius:6px; flex-wrap:wrap;">
+                    <select style="flex:1; min-width:120px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.questsConfig[${idx}].reward.unlocks[${uIdx}].type = this.value; config.questsConfig[${idx}].reward.unlocks[${uIdx}].targetId = ''; renderQuests();">${typeOptions}</select>
+                    ${targetField}
+                    <input type="text" value="${reqAttrEscape(u.label || '')}" placeholder="Nombre visible" title="Nombre que verá el jugador" style="flex:1; min-width:110px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.questsConfig[${idx}].reward.unlocks[${uIdx}].label = this.value">
+                    <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:11px;" title="Quitar desbloqueo" onclick="config.questsConfig[${idx}].reward.unlocks.splice(${uIdx}, 1); renderQuests();">✕</button>
+                </div>`;
+        }).join('');
 
         // Generar Select HTML para Objetivo según el tipo
         let targetSelectorHTML = '';
@@ -5919,6 +6073,17 @@ window.renderQuests = function() {
                             ${rewardItemsHTML}
                         </div>
                     </div>
+                    
+                    <div style="margin-top:1.2rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <label style="font-size:0.75rem; color:#ffd700; font-weight:bold;">🔓 DESBLOQUEOS DE RECOMPENSA</label>
+                            <button class="btn btn-primary" style="padding:2px 8px; font-size:9px; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3);" onclick="config.questsConfig[${idx}].reward.unlocks.push({type:'map', targetId:'', label:''}); renderQuests();">+ Añadir Desbloqueo</button>
+                        </div>
+                        <div style="font-size:0.68rem; color:#888; margin-bottom:6px;">Habilita portales, armas, habilidades o talentos al completar la misión. Ej: 🗺️ Portal al Sector 2, 🔫 Cañón de Plasma, ⭐ Talento sellado.</div>
+                        <div style="max-height:150px; overflow-y:auto; padding-right:5px;">
+                            ${unlockRowsHTML || '<div style="font-size:0.68rem; opacity:0.45;">Sin desbloqueos: solo EXP, HUBS, OHCU e ítems.</div>'}
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -5940,7 +6105,8 @@ window.addNewQuest = function() {
             exp: 100,
             hubs: 500,
             ohcu: 1,
-            items: []
+            items: [],
+            unlocks: []
         }
     });
     renderQuests();
@@ -6300,6 +6466,36 @@ window.renderTalentCreator = function() {
     const grid = document.getElementById('talents-creator-grid');
     if (!grid) return;
     grid.innerHTML = '';
+
+    // v600.0: Panel de talentos que requieren desbloqueo por misión
+    if (!config.talentsLockedConfig) config.talentsLockedConfig = [];
+    const lockedPanel = document.getElementById('talents-locked-panel');
+    if (lockedPanel) {
+        const rows = config.talentsLockedConfig.map((t, ti) => `
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; background:rgba(255,255,255,0.02); padding:6px; border-radius:6px; flex-wrap:wrap;">
+                <select style="flex:1; min-width:100px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.talentsLockedConfig[${ti}].category = this.value">
+                    <option value="engineering" ${t.category==='engineering'?'selected':''}>🛠️ Ingeniería</option>
+                    <option value="combat" ${t.category==='combat'?'selected':''}>⚔️ Combate</option>
+                    <option value="science" ${t.category==='science'?'selected':''}>🔬 Ciencia</option>
+                </select>
+                <select style="flex:1; min-width:90px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.talentsLockedConfig[${ti}].index = parseInt(this.value)">
+                    ${Array.from({length: 8}, (_, i) => `<option value="${i}" ${Number(t.index) === i ? 'selected' : ''}>Ranura ${i+1}</option>`).join('')}
+                </select>
+                <input type="text" value="${reqAttrEscape(t.name || '')}" placeholder="Nombre del talento sellado" style="flex:2; min-width:140px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:4px; font-size:0.7rem;" onchange="config.talentsLockedConfig[${ti}].name = this.value">
+                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:11px;" title="Quitar talento sellado" onclick="config.talentsLockedConfig.splice(${ti}, 1); renderTalentCreator();">✕</button>
+            </div>
+        `).join('');
+        lockedPanel.innerHTML = `
+            <div class="card" style="background:rgba(255,215,0,0.03); border:1px solid rgba(255,215,0,0.2);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <label style="color:#ffd700; font-size:0.8rem; font-weight:bold; letter-spacing:1px;">🔒 TALENTOS SELLADOS (requieren misión para desbloquearse)</label>
+                    <button class="btn btn-primary" style="padding:3px 10px; font-size:0.65rem; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3);" onclick="config.talentsLockedConfig.push({category:'combat', index:0, name:'Talento Sellado'}); renderTalentCreator();">+ SELLAR TALENTO</button>
+                </div>
+                <div style="font-size:0.68rem; color:#888; margin-bottom:8px;">Los talentos sellados no se pueden invertir puntos hasta que una misión otorgue su desbloqueo. Luego agrégalos como recompensa 🔓 en el editor de misiones (tipo: ⭐ Talento).</div>
+                ${rows || '<div style="font-size:0.68rem; opacity:0.45;">Ningún talento sellado: todos inician disponibles.</div>'}
+            </div>
+        `;
+    }
 
     const f = getFilter();
     const talents = config.talentsConfig.talents || [];

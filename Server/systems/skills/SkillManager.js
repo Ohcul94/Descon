@@ -14,11 +14,28 @@ class SkillManager {
 
     useSkill(skillName, player, data, context) {
         const skill = this.skills.get(skillName);
-        if (skill) {
-            skill.execute(player, data, context);
-            return true;
+        if (!skill) return false;
+
+        // v600.0: Validar requisitos de la habilidad (nivel, misión, desbloqueo)
+        try {
+            const { getSkillMasterConfig, checkRequirements } = require('../equipRequirements');
+            const serverConfig = (context && context.state) ? context.state.SERVER_CONFIG : null;
+            const cfg = getSkillMasterConfig(skillName, serverConfig);
+            if (cfg && Array.isArray(cfg.config.requirements) && cfg.config.requirements.length > 0) {
+                const reqCheck = checkRequirements(player, cfg.config.requirements, serverConfig);
+                if (!reqCheck.ok) {
+                    if (context && context.socket) {
+                        context.socket.emit('gameNotification', { msg: `HABILIDAD BLOQUEADA: ${reqCheck.msg}`, type: 'error' });
+                    }
+                    return false;
+                }
+            }
+        } catch (e) {
+            // Si falla la validación, se permite el uso (retrocompatibilidad)
         }
-        return false;
+
+        skill.execute(player, data, context);
+        return true;
     }
 }
 

@@ -6770,6 +6770,21 @@
             "targetId": "1",
             "targetType": "explore",
             "type": "story"
+        },
+        {
+            "id": "quest_2",
+            "name": "Portal Mapa3",
+            "desc": "Mata al Boss Para habilaitar el Portal al mapa 3",
+            "type": "story",
+            "targetType": "kill",
+            "targetId": "101",
+            "targetAmount": 1,
+            "reward": {
+                "exp": 100,
+                "hubs": 500,
+                "ohcu": 10,
+                "items": []
+            }
         }
     ],
     "questsGlobalConfig": {
@@ -8059,16 +8074,7 @@
                 },
                 "speedMod": 5,
                 "speedModType": "flat",
-                "requirements": [
-                    {
-                        "type": "level",
-                        "min": 1
-                    },
-                    {
-                        "type": "quest_completed",
-                        "questId": "quest_1"
-                    }
-                ]
+                "requirements": []
             },
             {
                 "base": 25,
@@ -8776,5 +8782,22 @@
                 "ohcu": 100
             }
         ]
+    },
+    "marketConfig": {
+        "enabled": true,
+        "accessZoneId": 1,
+        "listingDurationHours": 48,
+        "expiryCheckIntervalMs": 60000,
+        "cacheRefreshIntervalMs": 300000,
+        "maxActiveListingsPerPlayer": 10,
+        "sellTaxPercent": 5,
+        "listingFeeHubs": 0,
+        "listingFeeOhcu": 0,
+        "minPriceHubs": 10,
+        "maxPriceHubs": 0,
+        "minPriceOhcu": 1,
+        "maxPriceOhcu": 0,
+        "blockedItemIds": [],
+        "allowSelfBuy": false
     }
 }

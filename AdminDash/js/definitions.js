@@ -133,6 +133,24 @@ const DEFAULT_HOUSING_CONFIG = {
     ]
 };
 
+const DEFAULT_MARKET_CONFIG = {
+    enabled: true,
+    accessZoneId: 1,
+    listingDurationHours: 48,
+    expiryCheckIntervalMs: 60000,
+    cacheRefreshIntervalMs: 300000,
+    maxActiveListingsPerPlayer: 10,
+    sellTaxPercent: 5,
+    listingFeeHubs: 0,
+    listingFeeOhcu: 0,
+    minPriceHubs: 10,
+    maxPriceHubs: 0,
+    minPriceOhcu: 1,
+    maxPriceOhcu: 0,
+    blockedItemIds: [],
+    allowSelfBuy: false
+};
+
 const DEFAULT_QUESTS_CONFIG = [
     {
         id: "quest_1",
@@ -146,7 +164,8 @@ const DEFAULT_QUESTS_CONFIG = [
             exp: 500,
             hubs: 1000,
             ohcu: 5,
-            items: []
+            items: [],
+            unlocks: []
         }
     }
 ];
@@ -154,6 +173,18 @@ const DEFAULT_QUESTS_CONFIG = [
 const DEFAULT_QUESTS_GLOBAL_CONFIG = {
     maxActiveQuests: 3
 };
+
+// v600.0: Tipos de desbloqueos otorgables como recompensa de misión
+const UNLOCK_TYPES_LIB = {
+    "map": { label: "🗺️ Portal / Sector", desc: "Habilita el acceso a un mapa" },
+    "item": { label: "🔫 Ítem / Arma", desc: "Permite equipar y usar un objeto" },
+    "skill": { label: "✨ Habilidad", desc: "Permite usar una habilidad" },
+    "talent": { label: "⭐ Talento", desc: "Permite invertir puntos en un talento" },
+    "generic": { label: "🔧 Genérico", desc: "Clave personalizada para mecánicas futuras" }
+};
+
+// v600.0: Talentos que inician bloqueados y solo se desbloquean por misión
+const DEFAULT_TALENTS_LOCKED_CONFIG = [];
 
 const DEFAULT_RANKING_CONFIG = {
     categories: [

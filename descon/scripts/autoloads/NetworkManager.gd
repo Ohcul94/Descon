@@ -49,6 +49,7 @@ signal hook_pulled(data)
 signal wind_push(data)
 signal config_updated(data)
 signal game_notification(data)
+signal unlocks_updated(unlocks) # v600.0: Desbloqueos obtenidos por misiones
 signal clear_zone_entities(zoneId)
 signal clear_enemy_projectiles(data)
 signal online_count_updated(count)
@@ -96,6 +97,10 @@ signal arena_finished(data)
 signal vault_data(data)
 signal vault_updated(data)
 signal housing_state(data)
+signal market_data(data) # v500.0: Casa de Subastas
+signal market_update(data)
+signal market_purchase_result(data)
+signal market_mailbox_updated(data)
 signal socket_event_received(event_name, data)
 
 signal status_effects_sync(data)
@@ -113,6 +118,7 @@ var login_name: String = ""
 var is_logged_in: bool = false # v244.60: Control global de estado de sesión
 var server_config: Dictionary = {} # v301.7: Cache local de la configuración del servidor
 var completed_quests_cache: Array = [] # v400.0: Misiones completadas (para requisitos de equipamiento)
+var unlocks_cache: Array = [] # v600.0: Desbloqueos obtenidos (portales, armas, habilidades, talentos)
 var ping_start_time: int = 0
 var current_ms: int = 0
 var is_registering: bool = false # v244.10: Soporte para creación de cuenta
@@ -348,6 +354,11 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			elif typeof(e_data) == TYPE_DICTIONARY and e_data.has("items"):
 				final_data = e_data["items"]
 			
+			# v600.0: Cachear desbloqueos del perfil
+			if typeof(final_data) == TYPE_DICTIONARY and final_data.has("unlocks") and typeof(final_data["unlocks"]) == TYPE_ARRAY:
+				unlocks_cache = final_data["unlocks"]
+				unlocks_updated.emit(unlocks_cache)
+			
 			inventory_data.emit(final_data)
 		"playerStatSync":
 			if typeof(e_data) == TYPE_DICTIONARY:
@@ -371,6 +382,10 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"clanData": clan_data.emit(e_data)
 		"vaultData": vault_data.emit(e_data)
 		"vaultUpdated": vault_updated.emit(e_data)
+		"marketData": market_data.emit(e_data) # v500.0: Casa de Subastas
+		"marketUpdate": market_update.emit(e_data)
+		"marketPurchaseResult": market_purchase_result.emit(e_data)
+		"marketMailboxUpdated": market_mailbox_updated.emit(e_data)
 		"clanMemberStatus": clan_member_status.emit(e_data)
 		"pong_custom":
 			current_ms = int(Time.get_ticks_msec() - ping_start_time)
@@ -424,7 +439,16 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			# v400.0: Cachear misiones completadas para validar requisitos de equipamiento
 			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("completed"):
 				completed_quests_cache = e_data["completed"]
+			# v600.0: Cachear desbloqueos obtenidos
+			if typeof(e_data) == TYPE_DICTIONARY and e_data.has("unlocks") and typeof(e_data["unlocks"]) == TYPE_ARRAY:
+				unlocks_cache = e_data["unlocks"]
+				unlocks_updated.emit(unlocks_cache)
 			socket_event_received.emit(e_name, e_data)
+		"unlocksUpdated":
+			# v600.0: El servidor notificó desbloqueos nuevos
+			if typeof(e_data) == TYPE_ARRAY:
+				unlocks_cache = e_data
+				unlocks_updated.emit(unlocks_cache)
 		_:
 			socket_event_received.emit(e_name, e_data)
 
@@ -647,6 +671,14 @@ func check_equip_requirements(item_id: String = "", skill_name: String = "", amm
 						qname = str(q.get("name", qid))
 						break
 				return {"ok": false, "msg": "REQUIERE MISIÓN COMPLETADA: " + qname}
+		elif type_str == "unlock":
+			# v600.0: Desbloqueo otorgado por misión (key ej: "item:w_laser_1", "skill:X", "map:2", "talent:combat:0")
+			var unlock_key: String = str(req.get("key", ""))
+			if unlock_key == "":
+				continue
+			if not unlocks_cache.has(unlock_key):
+				var ulabel: String = str(req.get("label", unlock_key))
+				return {"ok": false, "msg": "REQUIERE DESBLOQUEO: " + ulabel}
 	return {"ok": true, "msg": ""}
 
 func _get_ammo_requirements(ammo_type: String, ammo_tier: int) -> Array:

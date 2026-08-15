@@ -47,6 +47,7 @@ function getMasterItemConfig(itemId, serverConfig) {
         ...(serverConfig.shopItems?.shields || []),
         ...(serverConfig.shopItems?.engines || []),
         ...(serverConfig.shopItems?.extra || []),
+        ...(serverConfig.shopItems?.extras || []),
         ...(serverConfig.shopItems?.resources || [])
     ];
     let found = allShopItems.find(item => item.id === itemId);
@@ -58,6 +59,8 @@ function getMasterItemConfig(itemId, serverConfig) {
 function addItemToInventory(user, itemData, serverConfig, quantity = 1) {
     const master = getMasterItemConfig(itemData.id, serverConfig);
     const maxStack = master ? parseInt(master.maxStack) || 1 : 1;
+    // v500.0: Propagación del flag soulbound desde el config maestro (Mercado)
+    const soulbound = master ? master.soulbound === true : itemData.soulbound === true;
     
     if (maxStack > 1) {
         let remainingToAdd = quantity;
@@ -85,7 +88,8 @@ function addItemToInventory(user, itemData, serverConfig, quantity = 1) {
             user.gameData.inventory.push({
                 ...JSON.parse(JSON.stringify(itemData)),
                 instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
-                amount: toAdd
+                amount: toAdd,
+                soulbound: soulbound
             });
             remainingToAdd -= toAdd;
         }
@@ -100,7 +104,8 @@ function addItemToInventory(user, itemData, serverConfig, quantity = 1) {
             user.gameData.inventory.push({
                 ...JSON.parse(JSON.stringify(itemData)),
                 instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
-                amount: 1
+                amount: 1,
+                soulbound: soulbound
             });
             remainingToAdd--;
         }

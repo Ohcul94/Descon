@@ -28,6 +28,17 @@ function registerSkillHandlers(socket, io, state) {
             let pts = user.gameData.skillPoints || 0;
             if (pts <= 0) return;
             
+            // v600.0: Validar desbloqueo de talento (si está en talentsLockedConfig)
+            const lockedConfig = (state.SERVER_CONFIG && Array.isArray(state.SERVER_CONFIG.talentsLockedConfig)) ? state.SERVER_CONFIG.talentsLockedConfig : [];
+            const lockedEntry = lockedConfig.find(t => String(t.category) === cat && Number(t.index) === idx);
+            if (lockedEntry) {
+                const unlocks = (user.gameData.unlocks && Array.isArray(user.gameData.unlocks)) ? user.gameData.unlocks : [];
+                const unlockKey = 'talent:' + cat + ':' + idx;
+                if (!unlocks.includes(unlockKey)) {
+                    return socket.emit('gameNotification', { msg: `🔒 TALENTO BLOQUEADO: ${lockedEntry.name || 'Este talento'} está sellado. Desbloquéalo completando su misión.`, type: 'error' });
+                }
+            }
+            
             if (!user.gameData.skillTree) user.gameData.skillTree = { engineering: [0,0,0,0,0,0,0,0], combat: [0,0,0,0,0,0,0,0], science: [0,0,0,0,0,0,0,0] };
             
             const branch = user.gameData.skillTree[cat] || [];

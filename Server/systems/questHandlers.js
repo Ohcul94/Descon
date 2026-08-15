@@ -86,7 +86,8 @@ function registerQuestHandlers(socket, io, state) {
 
             socket.emit('questsStateData', {
                 active: user.gameData.quests?.active || [],
-                completed: user.gameData.quests?.completed || []
+                completed: user.gameData.quests?.completed || [],
+                unlocks: user.gameData.unlocks || []
             });
         } catch (e) {
             Logger.error('QUESTS', `Error en getQuestsState: ${e.message}`);
@@ -158,7 +159,8 @@ function registerQuestHandlers(socket, io, state) {
             // Sincronizar estado
             socket.emit('questsStateData', {
                 active: user.gameData.quests.active,
-                completed: user.gameData.quests.completed
+                completed: user.gameData.quests.completed,
+                unlocks: user.gameData.unlocks || []
             });
 
         } catch (e) {
@@ -190,7 +192,8 @@ function registerQuestHandlers(socket, io, state) {
             // Sincronizar estado
             socket.emit('questsStateData', {
                 active: user.gameData.quests.active,
-                completed: user.gameData.quests.completed
+                completed: user.gameData.quests.completed,
+                unlocks: user.gameData.unlocks || []
             });
 
         } catch (e) {
@@ -310,6 +313,20 @@ function registerQuestHandlers(socket, io, state) {
             p.level = user.gameData.level;
             p.skillPoints = user.gameData.skillPoints;
 
+            // v600.0: Otorgar desbloqueos de recompensa (🔓 portales, objetos, habilidades, talentos)
+            if (Array.isArray(reward.unlocks) && reward.unlocks.length > 0) {
+                const unlockSystem = require('./unlockSystem');
+                const granted = unlockSystem.grantUnlockRewards(user, reward.unlocks);
+                p.unlocks = user.gameData.unlocks || [];
+                user.markModified('gameData.unlocks');
+                granted.forEach(g => {
+                    socket.emit('gameNotification', { msg: `🔓 ¡DESBLOQUEO OBTENIDO: ${g.label}`, type: 'success' });
+                });
+                if (granted.length > 0) {
+                    socket.emit('unlocksUpdated', p.unlocks);
+                }
+            }
+
             // Dar ítems de recompensa si tiene
             if (Array.isArray(reward.items)) {
                 if (!user.gameData.inventory) user.gameData.inventory = [];
@@ -369,7 +386,8 @@ function registerQuestHandlers(socket, io, state) {
             // Sincronizar estado de misiones
             socket.emit('questsStateData', {
                 active: user.gameData.quests.active,
-                completed: user.gameData.quests.completed
+                completed: user.gameData.quests.completed,
+                unlocks: user.gameData.unlocks || []
             });
 
         } catch (e) {
@@ -497,7 +515,8 @@ function processEnemyKillsForUser(user, enemyType, state, socket) {
                     });
                     socket.emit('questsStateData', {
                         active: user.gameData.quests.active,
-                        completed: user.gameData.quests.completed
+                        completed: user.gameData.quests.completed,
+                        unlocks: user.gameData.unlocks || []
                     });
                 }
             }
@@ -529,7 +548,8 @@ function processEventWinForUser(user, eventType, state, socket) {
                     });
                     socket.emit('questsStateData', {
                         active: user.gameData.quests.active,
-                        completed: user.gameData.quests.completed
+                        completed: user.gameData.quests.completed,
+                        unlocks: user.gameData.unlocks || []
                     });
                 }
             }

@@ -75,6 +75,16 @@ function checkRequirements(p, requirements, serverConfig) {
                 const questName = (serverConfig && serverConfig.questsConfig || []).find(q => String(q.id) === questId);
                 return { ok: false, msg: `REQUIERE MISIÓN COMPLETADA: ${questName ? questName.name : questId}` };
             }
+        } else if (type === 'unlock') {
+            // v600.0: Desbloqueo otorgado por misión (ej: key "item:w_laser_1", "skill:Provocación")
+            const key = String(req.key || '');
+            if (!key) continue;
+            const unlocks = (p.unlocks && Array.isArray(p.unlocks)) ? p.unlocks : [];
+            const has = unlocks.some(k => String(k) === key);
+            if (!has) {
+                const label = req.label || key;
+                return { ok: false, msg: `REQUIERE DESBLOQUEO: ${label}` };
+            }
         }
         // Tipos desconocidos se ignoran (retrocompatibilidad)
     }

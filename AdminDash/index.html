@@ -310,6 +310,7 @@
                         <div class="nav-link sub" onclick="showTab('weapons')">⚔️ Armamento</div>
                         <div class="nav-link sub" onclick="showTab('shields')">🛡️ Escudos</div>
                         <div class="nav-link sub" onclick="showTab('engines')">🚀 Motores</div>
+                        <div class="nav-link sub" onclick="showTab('market')">🏪 Casa de Subastas</div>
                     </div>
                 </div>
 
@@ -537,6 +538,11 @@
                 <div id="engines-grid" class="grid"></div>
             </div>
 
+            <div id="view-market" class="view">
+                <div id="market-config-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;"></div>
+                <div id="market-listings-container" style="width: 100%;"></div>
+            </div>
+
             <div id="view-skills" class="view">
                 <div id="skills-grid" class="grid"></div>
             </div>
@@ -546,6 +552,7 @@
                     <h3 style="color: var(--primary); font-size: 1.5rem; margin: 0;">🛠️ CREADOR DE TALENTOS</h3>
                     <button class="btn btn-primary" onclick="addNewTalent()">➕ AGREGAR NUEVO TALENTO</button>
                 </div>
+                <div id="talents-locked-panel" style="margin-bottom: 1.5rem;"></div>
                 <div id="talents-creator-grid" class="grid"></div>
             </div>
 
@@ -812,9 +819,9 @@
     </button>
 
     <!-- Scripts Modularizados -->
-    <script src="js/definitions.js?v=1.14"></script>
-    <script src="js/renderers.js?v=1.14"></script>
-    <script src="js/app.js?v=1.14"></script>
+    <script src="js/definitions.js?v=1.15"></script>
+    <script src="js/renderers.js?v=1.15"></script>
+    <script src="js/app.js?v=1.15"></script>
 
 </body>
 </html>

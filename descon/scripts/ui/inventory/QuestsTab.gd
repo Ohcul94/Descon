@@ -290,6 +290,20 @@ func update_ui():
 			items_lbl.add_theme_font_size_override("font_size", 9)
 			rew_hb.add_child(items_lbl)
 			
+		# v600.0: Mostrar desbloqueos de recompensa (🔓 portales, armas, habilidades, talentos)
+		var unlocks_reward = reward.get("unlocks", [])
+		if unlocks_reward.size() > 0:
+			var unlocks_vb = VBoxContainer.new()
+			unlocks_vb.add_theme_constant_override("separation", 3)
+			rewards_vb.add_child(unlocks_vb)
+			for u in unlocks_reward:
+				if typeof(u) != TYPE_DICTIONARY: continue
+				var u_lbl = Label.new()
+				u_lbl.text = "🔓 " + str(u.get("label", "Desbloqueo especial"))
+				u_lbl.modulate = Color(1.0, 0.84, 0.0)
+				u_lbl.add_theme_font_size_override("font_size", 9)
+				unlocks_vb.add_child(u_lbl)
+			
 		# Columna Botón Acción
 		var btn_container = VBoxContainer.new()
 		btn_container.custom_minimum_size.x = 140

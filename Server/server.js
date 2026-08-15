@@ -41,6 +41,7 @@ const syncPlayerItems = (userOrPlayer, serverConfig) => {
         ...(serverConfig.shopItems?.shields || []),
         ...(serverConfig.shopItems?.engines || []),
         ...(serverConfig.shopItems?.extra || []),
+        ...(serverConfig.shopItems?.extras || []),
         ...(serverConfig.shopItems?.resources || [])
     ];
 
@@ -79,6 +80,10 @@ const syncPlayerItems = (userOrPlayer, serverConfig) => {
             if (item.dmgMod !== dmgMod) { item.dmgMod = dmgMod; itemMod = true; }
             const dmgModType = master.dmgModType || 'percent';
             if (item.dmgModType !== dmgModType) { item.dmgModType = dmgModType; itemMod = true; }
+
+            // v500.0: Propagación del flag soulbound (Mercado)
+            const newSoulbound = master.soulbound === true;
+            if (!!item.soulbound !== newSoulbound) { item.soulbound = newSoulbound; itemMod = true; }
 
             return itemMod;
         }
@@ -152,6 +157,7 @@ const { registerSkillHandlers } = require('./handlers/skillHandlers');
 const { registerHousingHandlers } = require('./systems/housingHandlers');
 const { registerBattlePassHandlers } = require('./systems/battlePassHandlers');
 const { registerRankingHandlers } = require('./systems/rankingHandlers');
+const { registerMarketHandlers, initMarketSystem } = require('./systems/marketHandlers'); // v500.0: Casa de Subastas
 
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
@@ -189,7 +195,8 @@ const CLIENT_CONFIG_KEYS = [
     'ambienceLib',
     'talentsConfig',
     'battlePassConfig',
-    'rankingConfig'
+    'rankingConfig',
+    'marketConfig' // v500.0: Casa de Subastas
 ];
 
 const buildClientConfig = (config) => {
@@ -448,6 +455,9 @@ arenaManager.init(io, state);
 startGameLoop(io, state, aiManager);
 lootManager.startCleanupTimer(io, state);
 
+// v500.0: Inicialización del Sistema de Mercado / Casa de Subastas
+initMarketSystem(io, state);
+
 
 // v243.15: Helper para serializar datos de clan con roles y estados
 // v243.15: getClanDataPayload ahora reside en events/clanHandlers.js
@@ -696,9 +706,12 @@ const handleUserLogin = async (socket, user, username) => {
         ownedShips: JSON.parse(JSON.stringify(user.gameData.ownedShips || [1])),
         equippedByShip: JSON.parse(JSON.stringify(eByShipObj || {})),
         quests: JSON.parse(JSON.stringify(user.gameData.quests || { active: [], completed: [], lastDailyReset: null, lastWeeklyReset: null })),
+        unlocks: JSON.parse(JSON.stringify(user.gameData.unlocks || [])),
         battlePass: JSON.parse(JSON.stringify(user.gameData.battlePass || { level: 1, exp: 0, isVip: false, claimedFree: [], claimedVip: [] })),
         rankingData: JSON.parse(JSON.stringify(user.gameData.rankingData || { monsters_killed: 0, events_completed: 0 })),
-        housing: JSON.parse(JSON.stringify(user.gameData.housing || { unlocked: false, placedObjects: [] }))
+        housing: JSON.parse(JSON.stringify(user.gameData.housing || { unlocked: false, placedObjects: [] })),
+        // v500.0: MERCADO - Buzón de entregas y notificaciones
+        marketMailbox: JSON.parse(JSON.stringify(user.gameData.marketMailbox || []))
     };
 
     const p_ref = players[socket.id];
@@ -914,6 +927,30 @@ fs.readJson(CONFIG_FILE).then(config => {
         });
     }
 
+    // v500.0: Configuración del Mercado / Casa de Subastas
+    if (!state.SERVER_CONFIG.marketConfig) {
+        state.SERVER_CONFIG.marketConfig = {
+            enabled: true,
+            accessZoneId: 1,
+            listingDurationHours: 48,
+            expiryCheckIntervalMs: 60000,
+            cacheRefreshIntervalMs: 300000,
+            maxActiveListingsPerPlayer: 10,
+            sellTaxPercent: 5,
+            listingFeeHubs: 0,
+            listingFeeOhcu: 0,
+            minPriceHubs: 10,
+            maxPriceHubs: 0,
+            minPriceOhcu: 1,
+            maxPriceOhcu: 0,
+            blockedItemIds: [],
+            allowSelfBuy: false
+        };
+        fs.writeJson(CONFIG_FILE, state.SERVER_CONFIG, { spaces: 4 }).catch(err => {
+            console.error("[SERVER] Error al guardar inyección de marketConfig en config.json:", err);
+        });
+    }
+
     // v8.0: Inyección de Habilidades Nativas (Asegurar persistencia tras reinicio)
     if (!state.SERVER_CONFIG.skillsData) state.SERVER_CONFIG.skillsData = {};
     if (!state.SERVER_CONFIG.skillsData["FROST-TRAIL"]) {
@@ -1071,9 +1108,12 @@ const savePlayerToDB = async (socketId) => {
                     "gameData.ownedShips": p.ownedShips || [1],
                     "gameData.equippedByShip": p.equippedByShip || {},
                     "gameData.quests": p.quests || { active: [], completed: [], lastDailyReset: null, lastWeeklyReset: null },
+                    "gameData.unlocks": p.unlocks || [],
                     "gameData.battlePass": p.battlePass || { level: 1, exp: 0, isVip: false, claimedFree: [], claimedVip: [] },
                     "gameData.rankingData": p.rankingData || { monsters_killed: 0, events_completed: 0 },
-                    "gameData.housing": p.housing || { unlocked: false, placedObjects: [] }
+                    "gameData.housing": p.housing || { unlocked: false, placedObjects: [] },
+                    // v500.0: Buzón del Mercado
+                    "gameData.marketMailbox": p.marketMailbox || []
                 }
             }
         );
@@ -1354,6 +1394,9 @@ io.on('connection', (socket) => {
 
     // v350.0: Registrar manejadores del baúl de almacenamiento personal
     registerVaultHandlers(socket, io, state);
+
+    // v500.0: Registrar manejadores del Mercado / Casa de Subastas
+    registerMarketHandlers(socket, io, state);
 
     // Registrar manejadores del sistema de Housing 3D
     registerHousingHandlers(socket, io, state);

@@ -93,6 +93,8 @@ const UserSchema = new mongoose.Schema({
             lastDailyReset: { type: Date, default: null },
             lastWeeklyReset: { type: Date, default: null }
         },
+        // v600.0: Desbloqueos obtenidos por misiones (portales, armas, habilidades, talentos)
+        unlocks: { type: Array, default: [] },
         battlePass: {
             level: { type: Number, default: 1 },
             exp: { type: Number, default: 0 },
@@ -106,7 +108,9 @@ const UserSchema = new mongoose.Schema({
         rankingData: {
             monsters_killed: { type: Number, default: 0 },
             events_completed: { type: Number, default: 0 }
-        }
+        },
+        // v500.0: MERCADO / CASA DE SUBASTAS - Buzón de entrega
+        marketMailbox: { type: Array, default: [] }
     }
 });
 
