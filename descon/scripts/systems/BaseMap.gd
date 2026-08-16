@@ -45,13 +45,13 @@ var cursor_3d: Node3D = null
 var mouse_world_pos_3d: Vector3 = Vector3.ZERO   # Posición 3D exacta del cursor en el mundo
 var mouse_world_pos_2d: Vector2 = Vector2.ZERO   # Equivalente en espacio lógico 2D del mapa
 
-var fixed_cam_zoom: float = 0.88
+var fixed_cam_zoom: float = 1.08
 
 # Free Camera (orbit/free mode) — toggle con tecla O
 var free_cam_active: bool = false
 var free_cam_h: float = 180.0  # ángulo horizontal en grados (180 = detrás de la nave)
 var free_cam_v: float = 40.0   # ángulo vertical (10-85°, 0 = horizontal, 90 = top-down)
-var free_cam_zoom: float = 28.0
+var free_cam_zoom: float = 35.0
 var free_cam_center: Vector3 = Vector3.ZERO
 var free_orbit_mode: bool = true  # true=orbita jugador, false=libre (WASD)
 var _mid_dragging: bool = false
@@ -615,7 +615,7 @@ func _get_base_height_and_factor() -> Dictionary:
 	var fov_val = camera_3d.fov if is_instance_valid(camera_3d) else 55.0
 	var fov_rad = deg_to_rad(fov_val / 2.0)
 	var base_height = target_visible_height / (2.0 * tan(fov_rad))
-	var factor = sqrt(1.0 + 1.0 / (tan(deg_to_rad(40.0)) * tan(deg_to_rad(40.0))))
+	var factor = sqrt(1.0 + 1.0 / (tan(deg_to_rad(25.0)) * tan(deg_to_rad(25.0))))
 	return {"base_height": base_height, "factor": factor}
 
 func _sync_zooms_from_free():
@@ -851,7 +851,7 @@ func _process(_delta):
 			dynamic_height *= fixed_cam_zoom
 			camera_3d.position.y = dynamic_height
 			
-			var z_offset = dynamic_height / tan(deg_to_rad(40.0))
+			var z_offset = dynamic_height / tan(deg_to_rad(25.0))
 			
 			self.set_meta("correction_z", correction_z)
 			

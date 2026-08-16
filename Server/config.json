@@ -7347,7 +7347,7 @@
                         "hubs": 4000,
                         "ohcu": 40
                     },
-                    "range": 300,
+                    "range": 350,
                     "speedBuffDurationMs": 7000,
                     "speedBuffMaxStacks": 4,
                     "speedBuffPct": 10,
@@ -7463,7 +7463,7 @@
                         "hubs": 4000,
                         "ohcu": 40
                     },
-                    "range": 400,
+                    "range": 450,
                     "requirements": [
                         {
                             "type": "spheres",
@@ -7557,7 +7557,7 @@
                         "hubs": 4000,
                         "ohcu": 40
                     },
-                    "range": 500,
+                    "range": 450,
                     "requirements": [
                         {
                             "type": "spheres",
@@ -7650,7 +7650,7 @@
                         "hubs": 1000,
                         "ohcu": 10
                     },
-                    "range": 600,
+                    "range": 450,
                     "requirements": []
                 },
                 {
@@ -7934,7 +7934,7 @@
                         "hubs": 2000,
                         "ohcu": 20
                     },
-                    "range": 900,
+                    "range": 600,
                     "soulbound": false,
                     "requirements": []
                 },
@@ -8015,7 +8015,7 @@
                         "hubs": 4000,
                         "ohcu": 40
                     },
-                    "range": 600,
+                    "range": 450,
                     "requirements": [
                         {
                             "type": "spheres",
