@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
+const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
 
 function parsePrice(priceConfig) {
     if (priceConfig && typeof priceConfig === 'object') {
@@ -37,8 +38,20 @@ function registerVaultHandlers(socket, io, state) {
                 user.gameData.inventoryMaxSlots = state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
             }
  
+            // v620.0: Ojito de visibilidad — ítems hidden no se muestran en el baúl
+            const vaultItemsFiltered = Array.isArray(user.gameData.vaultItems)
+                ? user.gameData.vaultItems.filter(it => {
+                    if (!it || it.id === undefined || it.id === null) return true;
+                    return !visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'weapons', it.id)
+                        && !visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'shields', it.id)
+                        && !visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'engines', it.id)
+                        && !visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'extra', it.id)
+                        && !visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'ammo', it.id);
+                  })
+                : user.gameData.vaultItems;
+
             socket.emit('vaultData', {
-                items: user.gameData.vaultItems,
+                items: vaultItemsFiltered,
                 unlockedTabs: user.gameData.vaultUnlockedTabs,
                 inventoryMaxSlots: user.gameData.inventoryMaxSlots,
                 vaultConfig: state.SERVER_CONFIG.vaultConfig || { defaultTabs: 1, slotsPerTab: 30, unlockPrices: [0, 5000, 15000, 45000, 100000] },

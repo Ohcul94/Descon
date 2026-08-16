@@ -86,10 +86,10 @@ func update_ui():
 
 	var slots_v = VBoxContainer.new(); slots_v.add_theme_constant_override("separation", 15); left_v.add_child(slots_v)
 	var slots = model.get("slots") if model.has("slots") else {"w":0, "s":0, "e":0, "x":1}
-	_render_group(slots_v, "w", "MODULOS DE ATAQUE (LASER/MISIL)", slots["w"])
-	_render_group(slots_v, "s", "DEFENSA Y ESCUDOS", slots["s"])
-	_render_group(slots_v, "e", "MOTORES Y PROPULSION", slots["e"])
-	_render_group(slots_v, "x", "EXTRAS Y CPU", slots.get("x", 1))
+	_render_group(slots_v, "w", "MODULO DE ATAQUE", slots["w"])
+	_render_group(slots_v, "s", "MODULO DE DEFENSA", slots["s"])
+	_render_group(slots_v, "e", "MODULO DE MOTOR", slots["e"])
+	_render_group(slots_v, "x", "MODULO DE EXTRAS", slots.get("x", 1))
 
 	# Columna 2: Visor 3D de la Nave (Centro)
 	var middle_v = VBoxContainer.new(); middle_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; middle_v.size_flags_stretch_ratio = 1.3; body_h.add_child(middle_v)
@@ -205,13 +205,13 @@ func update_ui():
 
 	# Columna 3: Bodega de Carga (Derecha)
 	var right_v = VBoxContainer.new(); right_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; right_v.size_flags_stretch_ratio = 1.0; body_h.add_child(right_v)
-	var inv_lbl = Label.new(); inv_lbl.text = "BODEGA DE CARGA / INVENTARIO"; inv_lbl.modulate = Color.CYAN; inv_lbl.add_theme_font_size_override("font_size", 10); inv_lbl.modulate.a = 0.6; right_v.add_child(inv_lbl)
+	var inv_lbl = Label.new(); inv_lbl.text = "INVENTARIO"; inv_lbl.modulate = Color.CYAN; inv_lbl.add_theme_font_size_override("font_size", 10); inv_lbl.modulate.a = 0.6; right_v.add_child(inv_lbl)
 	
-	var inv_scroll = ScrollContainer.new(); inv_scroll.size_flags_vertical = 3; right_v.add_child(inv_scroll)
+	var inv_scroll = ScrollContainer.new(); inv_scroll.size_flags_vertical = 3; inv_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; right_v.add_child(inv_scroll)
 	var inv_vbox = VBoxContainer.new(); inv_vbox.size_flags_horizontal = 3; inv_scroll.add_child(inv_vbox)
 	
 	if inv_main.inventory_items.is_empty(): 
-		var no = Label.new(); no.text = "\nBODEGA VACÍA"; no.horizontal_alignment = 1; no.modulate.a = 0.2; inv_vbox.add_child(no)
+		var no = Label.new(); no.text = "\nINVENTARIO VACÍO"; no.horizontal_alignment = 1; no.modulate.a = 0.2; inv_vbox.add_child(no)
 	else: 
 		# v305.90: Ordenar inventario por categoría (Armas > Escudos > Motores > Extras)
 		var sorted_items = inv_main.inventory_items.duplicate()
@@ -221,7 +221,27 @@ func update_ui():
 			var order = {"w": 0, "s": 1, "e": 2, "x": 3}
 			return order.get(slot_a, 99) < order.get(slot_b, 99)
 		)
-		for item in sorted_items: _create_item_row(item, inv_vbox)
+		for item in sorted_items:
+			if _is_item_hidden(str(item.get("id", ""))): continue # v620.0: Ojito de visibilidad
+			_create_item_row(item, inv_vbox)
+
+# v620.0: Ojito de visibilidad — ¿el ítem está oculto en la config del servidor?
+func _is_item_hidden(item_id: String) -> bool:
+	if item_id == "": return false
+	for cat_key in GameConstants.SHOP_ITEMS:
+		var category = GameConstants.SHOP_ITEMS[cat_key]
+		if category is Dictionary: # Caso AMMO
+			for sub_key in category:
+				var sub_list = category[sub_key]
+				if sub_list is Array:
+					for shop_item in sub_list:
+						if str(shop_item.get("id", "")).to_lower() == item_id.to_lower():
+							return shop_item.get("hidden", false)
+		elif category is Array: # Caso Armas, Escudos, Motores, etc
+			for shop_item in category:
+				if str(shop_item.get("id", "")).to_lower() == item_id.to_lower():
+					return shop_item.get("hidden", false)
+	return false
 
 func _create_fleet_card(sid, parent):
 	var model = {}
@@ -257,6 +277,7 @@ func _create_fleet_card(sid, parent):
 	if ship_e:
 		# Armas (w) - base ataque | modifica Velocidad y Vida
 		for it in ship_e.get("w", []):
+			if _is_item_hidden(str(it.get("id", ""))): continue # v620.0: Ojito de visibilidad
 			bonus_w += float(it.get("base", 0))
 			var sv = float(it.get("speedMod", 0))
 			if it.get("speedModType", "percent") == "flat": speed_mod_flat += sv
@@ -266,6 +287,7 @@ func _create_fleet_card(sid, parent):
 			else: hp_mod_pct += hv
 		# Escudos (s) - base escudo | modifica Vida y Velocidad
 		for it in ship_e.get("s", []):
+			if _is_item_hidden(str(it.get("id", ""))): continue # v620.0: Ojito de visibilidad
 			total_sh_bonus += float(it.get("base", 0))
 			var hv = float(it.get("hpMod", 0))
 			if it.get("hpModType", "percent") == "flat": hp_mod_flat += hv
@@ -275,6 +297,7 @@ func _create_fleet_card(sid, parent):
 			else: speed_mod_pct += sv
 		# Motores (e) - base velocidad | modifica Escudo y Vida
 		for it in ship_e.get("e", []):
+			if _is_item_hidden(str(it.get("id", ""))): continue # v620.0: Ojito de visibilidad
 			speed_bonus += float(it.get("base", 0))
 			var shv = float(it.get("shieldMod", 0))
 			if it.get("shieldModType", "percent") == "flat": shield_mod_flat += shv
@@ -284,6 +307,7 @@ func _create_fleet_card(sid, parent):
 			else: hp_mod_pct += hv
 		# Extras (x)
 		for it in ship_e.get("x", []):
+			if _is_item_hidden(str(it.get("id", ""))): continue # v620.0: Ojito de visibilidad
 			total_hp_bonus += float(it.get("base", 0))
 
 	# Aplicar el cálculo
@@ -345,7 +369,12 @@ func _render_group(parent, type, title, count):
 	
 	var viewing_id = inv_main.selected_hangar_ship_id if inv_main.selected_hangar_ship_id != -1 else inv_main.current_ship_id
 	var ship_equip = _find_ship_equip(viewing_id)
-	var eq = ship_equip.get(type, [])
+	# v620.0: Ojito de visibilidad — ítems ocultos no se muestran equipados
+	var eq = []
+	if ship_equip.has(type) and ship_equip[type] is Array:
+		for it in ship_equip[type]:
+			if not _is_item_hidden(str(it.get("id", ""))):
+				eq.append(it)
 	
 	for i in range(count):
 		var p = PanelContainer.new(); p.custom_minimum_size = Vector2(40, 40); var sb = StyleBoxFlat.new(); sb.bg_color = Color(0,0,0,0.6); p.add_theme_stylebox_override("panel", sb)
@@ -451,8 +480,8 @@ func _render_group(parent, type, title, count):
 
 func _create_item_row(it, parent):
 	if not it or not it.has("name"): return 
-	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(0, 45); var sb = StyleBoxFlat.new(); sb.bg_color = Color(1,1,1,0.03); p.add_theme_stylebox_override("panel", sb)
-	var hb = HBoxContainer.new(); hb.offset_left = 8; p.add_child(hb); var v = VBoxContainer.new(); v.size_flags_horizontal = 3; hb.add_child(v)
+	var p = PanelContainer.new(); p.custom_minimum_size = Vector2(0, 45); p.size_flags_horizontal = Control.SIZE_EXPAND_FILL; var sb = StyleBoxFlat.new(); sb.bg_color = Color(1,1,1,0.03); p.add_theme_stylebox_override("panel", sb)
+	var hb = HBoxContainer.new(); hb.add_theme_constant_override("separation", 8); p.add_child(hb); var v = VBoxContainer.new(); v.size_flags_horizontal = 3; hb.add_child(v)
 	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	var item_id = str(it.get("id", "")).to_lower()
@@ -470,46 +499,46 @@ func _create_item_row(it, parent):
 	var name_text = str(it.get("name", "ITEM")).to_upper()
 	if amount > 1:
 		name_text += " (x" + str(amount) + ")"
-	var n = Label.new(); n.text = name_text; n.add_theme_font_size_override("font_size", 10); n.modulate = slot_color; v.add_child(n); n.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var base_val = int(it.get("base", 0))
+	var n = Label.new(); n.text = name_text; n.add_theme_font_size_override("font_size", 10); n.modulate = slot_color; n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v.add_child(n); n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var base_val = int(round(float(it.get("base", 0))))
 	var stat_text = ""
 	if item_slot == "w":
 		stat_text = "DAÑO: " + str(base_val)
-		var sp_m = float(it.get("speedMod", 0))
+		var sp_m = int(round(float(it.get("speedMod", 0))))
 		if sp_m != 0:
 			var t = "+" if sp_m > 0 else ""
 			var suffix = "%" if it.get("speedModType", "percent") == "percent" else ""
 			stat_text += " | VEL: " + t + str(sp_m) + suffix
-		var hp_m = float(it.get("hpMod", 0))
+		var hp_m = int(round(float(it.get("hpMod", 0))))
 		if hp_m != 0:
 			var t = "+" if hp_m > 0 else ""
 			var suffix = "%" if it.get("hpModType", "percent") == "percent" else ""
 			stat_text += " | HP: " + t + str(hp_m) + suffix
 	elif item_slot == "s":
 		stat_text = "ESCUDO: " + str(base_val)
-		var hp_m = float(it.get("hpMod", 0))
+		var hp_m = int(round(float(it.get("hpMod", 0))))
 		if hp_m != 0:
 			var t = "+" if hp_m > 0 else ""
 			var suffix = "%" if it.get("hpModType", "percent") == "percent" else ""
 			stat_text += " | HP: " + t + str(hp_m) + suffix
-		var sp_m = float(it.get("speedMod", 0))
+		var sp_m = int(round(float(it.get("speedMod", 0))))
 		if sp_m != 0:
 			var t = "+" if sp_m > 0 else ""
 			var suffix = "%" if it.get("speedModType", "percent") == "percent" else ""
 			stat_text += " | VEL: " + t + str(sp_m) + suffix
 	elif item_slot == "e":
 		stat_text = "VELOCIDAD: +" + str(base_val)
-		var sh_m = float(it.get("shieldMod", 0))
+		var sh_m = int(round(float(it.get("shieldMod", 0))))
 		if sh_m != 0:
 			var t = "+" if sh_m > 0 else ""
 			var suffix = "%" if it.get("shieldModType", "percent") == "percent" else ""
 			stat_text += " | ESCUDO: " + t + str(sh_m) + suffix
-		var hp_m = float(it.get("hpMod", 0))
+		var hp_m = int(round(float(it.get("hpMod", 0))))
 		if hp_m != 0:
 			var t = "+" if hp_m > 0 else ""
 			var suffix = "%" if it.get("hpModType", "percent") == "percent" else ""
 			stat_text += " | HP: " + t + str(hp_m) + suffix
-	var st = Label.new(); st.text = stat_text; st.add_theme_font_size_override("font_size", 8); st.modulate.a = 0.8; v.add_child(st); st.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var st = Label.new(); st.text = stat_text; st.add_theme_font_size_override("font_size", 8); st.modulate.a = 0.8; st.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v.add_child(st); st.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	# v400.0: Requisitos de equipamiento — indicador visual de bloqueo en la bodega
 	if NetworkManager and not is_material_or_recipe:

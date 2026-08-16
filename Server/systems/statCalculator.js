@@ -36,6 +36,8 @@ function calculateFinalStats(player, config) {
     function readMod(item, fieldName, masterList) {
         if (masterList) {
             const master = masterList.find(m => String(m.id) === String(item.id));
+            // v620.0: Ojito de visibilidad — ítems hidden no aportan modificadores
+            if (master && master.hidden) return { val: 0, type: 'percent' };
             if (master && master[fieldName] !== undefined) {
                 return {
                     val: Number(master[fieldName]) || 0,
@@ -52,11 +54,19 @@ function calculateFinalStats(player, config) {
         return { val: 0, type: 'percent' };
     }
 
+    // v620.0: Ojito de visibilidad — ítems hidden no aportan base
+    function isHiddenItem(item, masterList) {
+        if (!masterList) return false;
+        const master = masterList.find(m => String(m.id) === String(item.id));
+        return !!(master && master.hidden);
+    }
+
     if (player.equipped) {
         // Armas (Slot 'w') - base ataque | modifica Velocidad y Vida
         if (Array.isArray(player.equipped.w)) {
             const masterWeapons = config?.shopItems?.weapons;
             player.equipped.w.forEach(item => {
+                if (isHiddenItem(item, masterWeapons)) return;
                 const sp = readMod(item, 'speedMod', masterWeapons);
                 if (sp.type === 'flat') speedModFlat += sp.val;
                 else speedModPct += sp.val;
@@ -69,6 +79,7 @@ function calculateFinalStats(player, config) {
         if (Array.isArray(player.equipped.s)) {
             const masterShields = config?.shopItems?.shields;
             player.equipped.s.forEach(item => {
+                if (isHiddenItem(item, masterShields)) return;
                 itemShield += (Number(item.base) || 0);
                 const hp = readMod(item, 'hpMod', masterShields);
                 if (hp.type === 'flat') hpModFlat += hp.val;
@@ -82,6 +93,7 @@ function calculateFinalStats(player, config) {
         if (Array.isArray(player.equipped.e)) {
             const masterEngines = config?.shopItems?.engines;
             player.equipped.e.forEach(item => {
+                if (isHiddenItem(item, masterEngines)) return;
                 itemSpeed += (Number(item.base) || 0);
                 const sh = readMod(item, 'shieldMod', masterEngines);
                 if (sh.type === 'flat') shieldModFlat += sh.val;
@@ -93,7 +105,9 @@ function calculateFinalStats(player, config) {
         }
         // Módulos extra (Slot 'x') - base vida
         if (Array.isArray(player.equipped.x)) {
+            const masterExtras = config?.shopItems?.extra;
             player.equipped.x.forEach(item => {
+                if (isHiddenItem(item, masterExtras)) return;
                 itemHp += (Number(item.base) || 0);
             });
         }

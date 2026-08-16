@@ -2446,6 +2446,7 @@ func _setup_enemy_visuals():
 
 	var glb_path = ""
 	var enemy_rot_offset = 0.0
+	var enemy_pitch_offset = 0.0 # v405: Inclinación sagital (eje Z local) para compensar poses agachadas de assets
 	var _enemy_scale = 3.0 
 	var path = "" 
 	
@@ -2457,6 +2458,11 @@ func _setup_enemy_visuals():
 			# Excepciones de rotación específicas detectadas en pruebas
 			if entity_type == 7 or entity_type == 4: enemy_rot_offset = 180.0
 			if entity_type == 6 or entity_type == 8: enemy_rot_offset = 0.0
+			# v405: E2 y E3 (assets Tripo) tienen pose agachada con extremidades hacia el suelo.
+			# Pitch negativo (eje Z local) los ergue para asemejarse a la pose de E1.
+			# Ajustable: valores mas negativos => mas erguidos; 0 => sin cambio.
+			if entity_type == 2: enemy_pitch_offset = 22.0
+			if entity_type == 3: enemy_pitch_offset = 18.0
 			
 		101: # Lord Titán (Boss1)
 			glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
@@ -2500,7 +2506,7 @@ func _setup_enemy_visuals():
 			if "Viewport" in c.name or c is Sprite2D or c is Polygon2D or c.name == "Ship3DRender":
 				c.queue_free()
 		
-		_setup_3d_visuals(glb_path, enemy_rot_offset)
+		_setup_3d_visuals(glb_path, enemy_rot_offset, enemy_pitch_offset)
 		if is_instance_valid(_3d_model):
 			# Conservar escala nativa del archivo original .glb pero multiplicada por 2.0 (o 6.0 si es Boss)
 			var current_scale = 2.0
@@ -2790,7 +2796,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 
 
 # v219.70: SISTEMA DE RENDERIZADO 3D SOBRE 2D (EXPERIMENTAL)
-func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
+func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: float = 0.0):
 	# print("[3D] Inicializando renderizado para: ", glb_path)
 	
 	# v306.4: Evitar duplicaciones de naves huérfanas al reconstruir el layout 3D en cambios de mapa
@@ -2947,7 +2953,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0):
 		
 		_3d_model = control_node 
 		control_node.scale = Vector3(2.0, 2.0, 2.0) 
-		model.rotation_degrees.y = rot_offset 
+		model.rotation_degrees = Vector3(0, rot_offset, pitch_offset) # v405: pitch sagital en eje Z local (YXZ: Rz se aplica antes del yaw) 
 
 		# v390.0: Parche de sombreado plano para todos los modelos 3D (naves y enemigos) (evita que se oscurezcan al girar)
 		_make_materials_unshaded(model)

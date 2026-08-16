@@ -979,17 +979,17 @@ func _spawn_altar_if_configured():
 # Variables para el sistema de puertas interactivas estilo extracción
 var active_doors: Array = []
 var active_doors_3d: Array = []
-var portal_btn_container: VBoxContainer = null
-var portal_desc_label: Label = null
-var portal_click_button: Button = null
-var portal_icon_label: Label = null
-var portal_icon_viewport: SubViewport = null
-var portal_icon_holder: Node3D = null
+# v: Sistema de botones de acción múltiple (portal / vault / market / loot) en la parte inferior
+var interact_canvas: CanvasLayer = null
+var interact_hbox: HBoxContainer = null
+var _interact_buttons: Dictionary = {} # key -> { "cell", "desc_label", "click_button" }
+var _interact_icons: Dictionary = {} # key -> { "viewport", "holder" }
+var _near_door_active: bool = false # Portal cercano (puertas del mapa base)
+var _near_extract_portal_active: bool = false # Portal de extracción cercano (Map_Extraction)
 # Variables para el sistema de interacción de vaults, market y loot drops
 var active_vault_node: Node = null
 var active_market_node: Node = null # v500.0: Terminal del Mercado
 var active_loot_node: Node = null
-var _current_interact_mode: String = "" # "portal", "vault", "market", "loot"
 
 # v400.1: Spawnear objetos del mundo desde mapsConfig del servidor con física, rotaciones y comportamiento Premium
 # Lee objects[] de mapsConfig e instancia los modelos 3D y colisiones correspondientes
@@ -1164,9 +1164,9 @@ func _spawn_map_objects():
 				active_doors.append(door)
 				
 				# Crear la UI de salto si no existe aún
-				if not is_instance_valid(portal_btn_container):
+				if not is_instance_valid(interact_hbox):
 					_create_portal_jump_ui()
-					
+				
 				print("[BaseMap] Puerta interactiva instanciada (estilo Extracción): ", obj_label, " -> Zona ", obj.get("targetZoneId", "?"))
 			
 			"tower":
@@ -1377,86 +1377,100 @@ func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: V
 	sub_viewport.add_child(obj)
 	return obj
 
-# Crear UI interactiva flotante de portal
+# Crear UI interactiva flotante de acciones (portal / vault / market / loot)
 func _create_portal_jump_ui():
-	var ui_canvas = CanvasLayer.new()
-	ui_canvas.name = "MapPortalUICanvas"
-	ui_canvas.layer = 100
-	add_child(ui_canvas)
+	interact_canvas = CanvasLayer.new()
+	interact_canvas.name = "PortalUICanvas"
+	interact_canvas.layer = 100
+	add_child(interact_canvas)
 	
-	portal_btn_container = VBoxContainer.new()
-	portal_btn_container.name = "PortalBtnContainer"
-	portal_btn_container.add_to_group("portal_jump_ui")
-	portal_btn_container.custom_minimum_size = Vector2(80, 80)
-	portal_btn_container.size = Vector2(80, 80)
-	portal_btn_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	interact_hbox = HBoxContainer.new()
+	interact_hbox.name = "PortalBtnContainer"
+	interact_hbox.add_to_group("portal_jump_ui")
+	interact_hbox.custom_minimum_size = Vector2(80, 80)
+	interact_hbox.size = Vector2(80, 80)
+	interact_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	interact_hbox.add_theme_constant_override("separation", 16)
 	
-	ui_canvas.add_child(portal_btn_container)
-	portal_btn_container.anchor_left = 0.5
-	portal_btn_container.anchor_right = 0.5
-	portal_btn_container.anchor_top = 1.0
-	portal_btn_container.anchor_bottom = 1.0
-	portal_btn_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	portal_btn_container.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	portal_btn_container.offset_left = -40
-	portal_btn_container.offset_right = 40
-	portal_btn_container.offset_top = -130
-	portal_btn_container.offset_bottom = -50
+	interact_canvas.add_child(interact_hbox)
+	interact_hbox.anchor_left = 0.5
+	interact_hbox.anchor_right = 0.5
+	interact_hbox.anchor_top = 1.0
+	interact_hbox.anchor_bottom = 1.0
+	interact_hbox.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	interact_hbox.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	interact_hbox.offset_top = -130
+	interact_hbox.offset_bottom = -50
+	
+	interact_hbox.visible = false
+
+# Crear (lazy) una celda de botón de acción para una categoría
+func _get_or_create_interact_button(key: String) -> Dictionary:
+	if _interact_buttons.has(key):
+		return _interact_buttons[key]
+	if not is_instance_valid(interact_canvas) or not is_instance_valid(interact_hbox):
+		return {}
+	
+	var cell = VBoxContainer.new()
+	cell.name = key.capitalize() + "Btn"
+	cell.custom_minimum_size = Vector2(80, 80)
+	cell.add_theme_constant_override("separation", 2)
+	interact_hbox.add_child(cell)
 	
 	var center_slot = CenterContainer.new()
-	portal_btn_container.add_child(center_slot)
+	cell.add_child(center_slot)
 	
-	var portal_btn = PanelContainer.new()
-	portal_btn.custom_minimum_size = Vector2(64, 64)
-	portal_btn.mouse_filter = Control.MOUSE_FILTER_STOP
-	center_slot.add_child(portal_btn)
+	var btn_panel = PanelContainer.new()
+	btn_panel.custom_minimum_size = Vector2(64, 64)
+	btn_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	center_slot.add_child(btn_panel)
 	
-	portal_icon_viewport = SubViewport.new()
-	portal_icon_viewport.name = "PortalIconViewport"
-	portal_icon_viewport.size = Vector2(64, 64)
-	portal_icon_viewport.transparent_bg = true
-	portal_icon_viewport.own_world_3d = true
-	portal_icon_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	portal_icon_viewport.handle_input_locally = false
-	portal_icon_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
-	ui_canvas.add_child(portal_icon_viewport)
-
+	var icon_viewport = SubViewport.new()
+	icon_viewport.name = key.capitalize() + "IconViewport"
+	icon_viewport.size = Vector2(64, 64)
+	icon_viewport.transparent_bg = true
+	icon_viewport.own_world_3d = true
+	icon_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	icon_viewport.handle_input_locally = false
+	icon_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
+	interact_canvas.add_child(icon_viewport)
+	
 	var icon_cam = Camera3D.new()
 	icon_cam.name = "IconCam"
 	icon_cam.current = true
 	icon_cam.look_at_from_position(Vector3(0, 0.8, 1.5), Vector3.ZERO)
-	portal_icon_viewport.add_child(icon_cam)
-
+	icon_viewport.add_child(icon_cam)
+	
 	var icon_light = DirectionalLight3D.new()
 	icon_light.look_at_from_position(Vector3(2, 4, 2), Vector3.ZERO)
 	icon_light.light_energy = 1.5
-	portal_icon_viewport.add_child(icon_light)
-
+	icon_viewport.add_child(icon_light)
+	
 	var icon_light2 = OmniLight3D.new()
 	icon_light2.position = Vector3(-1, 0.5, 0)
 	icon_light2.light_energy = 0.8
 	icon_light2.omni_range = 5
-	portal_icon_viewport.add_child(icon_light2)
-
+	icon_viewport.add_child(icon_light2)
+	
 	var icon_env = WorldEnvironment.new()
 	var env = Environment.new()
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.8, 0.85, 1.0)
 	env.ambient_light_energy = 2.0
 	icon_env.environment = env
-	portal_icon_viewport.add_child(icon_env)
-
-	portal_icon_holder = Node3D.new()
-	portal_icon_holder.name = "IconModelHolder"
-	portal_icon_viewport.add_child(portal_icon_holder)
-
+	icon_viewport.add_child(icon_env)
+	
+	var icon_holder = Node3D.new()
+	icon_holder.name = "IconModelHolder"
+	icon_viewport.add_child(icon_holder)
+	
 	var icon_texture = TextureRect.new()
 	icon_texture.name = "IconTexture"
-	icon_texture.texture = portal_icon_viewport.get_texture()
+	icon_texture.texture = icon_viewport.get_texture()
 	icon_texture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	icon_texture.expand = true
 	icon_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portal_btn.add_child(icon_texture)
+	btn_panel.add_child(icon_texture)
 	
 	var style_normal = StyleBoxFlat.new()
 	style_normal.bg_color = Color(0, 0.4, 0.6, 0.25)
@@ -1467,34 +1481,87 @@ func _create_portal_jump_ui():
 	style_normal.border_color = Color(0, 0.9, 1.0, 0.8)
 	style_normal.set_corner_radius_all(32)
 	style_normal.anti_aliasing = true
-	portal_btn.add_theme_stylebox_override("panel", style_normal)
+	btn_panel.add_theme_stylebox_override("panel", style_normal)
 	
-	portal_click_button = Button.new()
-	portal_click_button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	portal_click_button.modulate.a = 0
-	portal_click_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	portal_btn.add_child(portal_click_button)
+	var click_button = Button.new()
+	click_button.name = "ClickButton"
+	click_button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	click_button.modulate.a = 0
+	click_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn_panel.add_child(click_button)
+	click_button.pressed.connect(_on_interact_button_pressed.bind(key))
 	
-	portal_desc_label = Label.new()
-	portal_desc_label.name = "PortalDescLabel"
-	portal_desc_label.text = "ENTRAR AL PORTAL [ESPACIO]"
-	portal_desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	portal_desc_label.add_theme_font_size_override("font_size", 12)
-	portal_desc_label.add_theme_color_override("font_color", Color.CYAN)
-	portal_desc_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	portal_desc_label.add_theme_constant_override("outline_size", 5)
-	portal_btn_container.add_child(portal_desc_label)
+	var desc_label = Label.new()
+	desc_label.name = key.capitalize() + "DescLabel"
+	desc_label.text = ""
+	desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	desc_label.add_theme_font_size_override("font_size", 12)
+	desc_label.add_theme_color_override("font_color", Color.CYAN)
+	desc_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	desc_label.add_theme_constant_override("outline_size", 5)
+	cell.add_child(desc_label)
 	
-	portal_click_button.pressed.connect(_on_interact_button_pressed)
+	cell.visible = false
 	
-	portal_btn_container.visible = false
-	_set_portal_icon("portal")
+	var parts = { "cell": cell, "desc_label": desc_label, "click_button": click_button }
+	_interact_buttons[key] = parts
+	_interact_icons[key] = { "viewport": icon_viewport, "holder": icon_holder }
+	return parts
+
+func _get_interact_button(key: String) -> Button:
+	if not _interact_buttons.has(key):
+		return null
+	var cb = _interact_buttons[key].get("click_button", null)
+	return cb if is_instance_valid(cb) else null
+
+func _is_interact_visible(key: String) -> bool:
+	return _interact_buttons.has(key) and is_instance_valid(_interact_buttons[key]["cell"]) and _interact_buttons[key]["cell"].visible
+
+func _press_interact(key: String) -> void:
+	var btn = _get_interact_button(key)
+	if btn:
+		btn.pressed.emit()
+
+# Mostrar/ocultar una celda de botón de acción (creación lazy)
+func _set_interact_button(key: String, make_visible: bool, desc: String = "") -> void:
+	if make_visible:
+		var parts = _get_or_create_interact_button(key)
+		if parts.is_empty():
+			return
+		parts["cell"].visible = true
+		if desc != "":
+			parts["desc_label"].text = desc
+	elif _interact_buttons.has(key) and is_instance_valid(_interact_buttons[key]["cell"]):
+		_interact_buttons[key]["cell"].visible = false
+
+# ¿Hay algún menú de interfaz abierto (Inventario, Config, Bóveda, Mercado, etc)?
+func _is_menu_open() -> bool:
+	for node in get_tree().get_nodes_in_group("inventory_ui"):
+		if is_instance_valid(node) and node is CanvasItem and node.visible:
+			return true
+	for group in ["vault_ui", "loot_ui", "market_ui"]:
+		for node in get_tree().get_nodes_in_group(group):
+			if not is_instance_valid(node):
+				continue
+			if node is CanvasItem and node.visible:
+				return true
+			if node is Control:
+				var overlay = node.get_node_or_null("overlay")
+				if is_instance_valid(overlay) and overlay.visible:
+					return true
+				if "is_open" in node and node.get("is_open"):
+					return true
+	return false
 
 func _set_portal_icon(type: String):
-	if not is_instance_valid(portal_icon_holder) or not is_instance_valid(portal_icon_viewport):
+	if not _interact_icons.has(type):
 		return
-	for c in portal_icon_holder.get_children():
-		portal_icon_holder.remove_child(c)
+	var holder = _interact_icons[type]["holder"]
+	var viewport = _interact_icons[type]["viewport"]
+	if not is_instance_valid(holder) or not is_instance_valid(viewport):
+		return
+	for c in holder.get_children():
+		holder.remove_child(c)
 		c.queue_free()
 	var scene: PackedScene = null
 	match type:
@@ -1513,7 +1580,7 @@ func _set_portal_icon(type: String):
 		var model = scene.instantiate()
 		model.scale = Vector3(1.5, 1.5, 1.5)
 		model.rotation_degrees = Vector3(0, -90, 0)
-		portal_icon_holder.add_child(model)
+		holder.add_child(model)
 
 func _on_map_portal_jump_pressed(target_zone: String, _tx: float, _ty: float, _portal_label: String = ""):
 	print("[BaseMap] Warp interactivo presionado -> Zona ", target_zone, " coord: ", _tx, ", ", _ty, " portal: ", _portal_label)
@@ -1532,15 +1599,21 @@ func _on_map_portal_jump_pressed(target_zone: String, _tx: float, _ty: float, _p
 			payload["portalLabel"] = _portal_label
 		NetworkManager.send_event("changeZone", payload)
 
-# Manejador genérico del botón de interacción (portal / vault / loot)
-func _on_interact_button_pressed():
-	match _current_interact_mode:
+# Manejador genérico del botón de interacción (portal / vault / market / loot)
+func _on_interact_button_pressed(key: String):
+	match key:
 		"portal":
-			var target = portal_click_button.get_meta("target_zone") if portal_click_button.has_meta("target_zone") else "1"
-			var tx = portal_click_button.get_meta("targetX") if portal_click_button.has_meta("targetX") else 5000
-			var ty = portal_click_button.get_meta("targetY") if portal_click_button.has_meta("targetY") else 5000
-			var plabel = portal_click_button.get_meta("portal_label") if portal_click_button.has_meta("portal_label") else ""
-			_on_map_portal_jump_pressed(target, tx, ty, plabel)
+			var btn = _get_interact_button("portal")
+			if not btn:
+				return
+			var target = btn.get_meta("target_zone", "1")
+			if has_method("_on_portal_jump_pressed") and btn.get_meta("use_extraction_handler", false):
+				call("_on_portal_jump_pressed", target)
+			else:
+				var tx = btn.get_meta("targetX", 5000)
+				var ty = btn.get_meta("targetY", 5000)
+				var plabel = btn.get_meta("portal_label", "")
+				_on_map_portal_jump_pressed(target, tx, ty, plabel)
 		"vault":
 			if is_instance_valid(active_vault_node) and active_vault_node.has_method("_interact"):
 				active_vault_node._interact()
@@ -1551,72 +1624,42 @@ func _on_interact_button_pressed():
 			if is_instance_valid(active_loot_node) and active_loot_node.has_method("_interact"):
 				active_loot_node._interact()
 
-# Actualizar visibilidad del botón de interacción para vault/loot
+# Actualizar visibilidad de los botones de acción (portal / vault / market / loot)
 func _update_interact_visibility():
-	if _current_interact_mode == "portal":
+	if not is_instance_valid(interact_hbox):
 		return
-	if is_instance_valid(active_vault_node):
-		# Crear la UI de forma lazy si todavía no existe (mapa sin portales)
-		if not is_instance_valid(portal_btn_container):
-			_create_portal_jump_ui()
-		if portal_desc_label:
-			var key_text = _get_bound_interact_key("loot_claim")
-			portal_desc_label.text = "ABRIR BAÚL [" + key_text + " / Clic]"
-		_set_portal_icon("vault")
-		_current_interact_mode = "vault"
-		portal_btn_container.visible = true
-	elif is_instance_valid(active_market_node):
-		# v500.0: Terminal del Mercado
-		if not is_instance_valid(portal_btn_container):
-			_create_portal_jump_ui()
-		if portal_desc_label:
-			var key_text = _get_bound_interact_key("loot_claim")
-			portal_desc_label.text = "ABRIR MERCADO [" + key_text + " / Clic]"
-		_set_portal_icon("market")
-		_current_interact_mode = "market"
-		portal_btn_container.visible = true
-	elif is_instance_valid(active_loot_node):
-		# Crear la UI de forma lazy si todavía no existe (mapa sin portales)
-		if not is_instance_valid(portal_btn_container):
-			_create_portal_jump_ui()
-		if portal_desc_label:
-			var key_text = _get_bound_interact_key("loot_claim")
-			portal_desc_label.text = "ABRIR COFRE [" + key_text + " / Clic]"
-		_set_portal_icon("loot")
-		_current_interact_mode = "loot"
-		portal_btn_container.visible = true
-	else:
-		if is_instance_valid(portal_btn_container) and _current_interact_mode != "portal":
-			portal_btn_container.visible = false
+	if _is_menu_open():
+		interact_hbox.visible = false
+		return
+	_set_interact_button("portal", _near_door_active or _near_extract_portal_active)
+	_set_interact_button("vault", is_instance_valid(active_vault_node))
+	_set_interact_button("market", is_instance_valid(active_market_node))
+	_set_interact_button("loot", is_instance_valid(active_loot_node))
+	interact_hbox.visible = (_near_door_active or _near_extract_portal_active
+		or is_instance_valid(active_vault_node) or is_instance_valid(active_market_node) or is_instance_valid(active_loot_node))
 
 # Mostrar botón de loot directamente (llamado desde LootDrop)
 func _show_loot_button(loot: Node):
-	if _current_interact_mode == "portal":
-		return
-	# Crear la UI de forma lazy si todavía no existe (mapa sin portales)
-	if not is_instance_valid(portal_btn_container):
+	if not is_instance_valid(interact_hbox):
 		_create_portal_jump_ui()
 	active_loot_node = loot
-	if portal_desc_label:
-		var key_text = _get_bound_interact_key("loot_claim")
-		portal_desc_label.text = "ABRIR COFRE [" + key_text + " / Clic]"
+	var key_text = _get_bound_interact_key("loot_claim")
+	_set_interact_button("loot", true, "ABRIR COFRE [" + key_text + " / Clic]")
 	_set_portal_icon("loot")
-	_current_interact_mode = "loot"
-	portal_btn_container.visible = true
+	_update_interact_visibility()
 
 func _hide_loot_button():
 	active_loot_node = null
-	if is_instance_valid(portal_btn_container) and _current_interact_mode == "loot":
-		_current_interact_mode = ""
-		if not is_instance_valid(active_vault_node):
-			portal_btn_container.visible = false
+	_update_interact_visibility()
 
 # Registrar/desregistrar vault para interacción
 func register_vault_interaction(vault: Node):
 	active_vault_node = vault
-	# Crear la UI de forma lazy si todavía no existe (mapa sin portales)
-	if not is_instance_valid(portal_btn_container):
+	if not is_instance_valid(interact_hbox):
 		_create_portal_jump_ui()
+	var key_text = _get_bound_interact_key("loot_claim")
+	_set_interact_button("vault", true, "ABRIR BAÚL [" + key_text + " / Clic]")
+	_set_portal_icon("vault")
 	_update_interact_visibility()
 
 func unregister_vault_interaction():
@@ -1626,20 +1669,16 @@ func unregister_vault_interaction():
 # v500.0: Registrar/desregistrar terminal de mercado para interacción
 func register_market_interaction(market: Node):
 	active_market_node = market
-	if not is_instance_valid(portal_btn_container):
+	if not is_instance_valid(interact_hbox):
 		_create_portal_jump_ui()
+	var key_text = _get_bound_interact_key("loot_claim")
+	_set_interact_button("market", true, "ABRIR MERCADO [" + key_text + " / Clic]")
+	_set_portal_icon("market")
 	_update_interact_visibility()
 
 func unregister_market_interaction():
 	active_market_node = null
 	_update_interact_visibility()
-
-# Registrar/desregistrar loot drop para interacción (usado por LootDrop)
-func register_loot_interaction(loot: Node):
-	_show_loot_button(loot)
-
-func unregister_loot_interaction():
-	_hide_loot_button()
 
 # Obtener texto de tecla interactiva
 func _get_bound_interact_key(action: String) -> String:
@@ -1655,6 +1694,7 @@ func _get_bound_interact_key(action: String) -> String:
 # Procesar la cercanía al jugador para activar la interacción de puertas
 func _check_doors_proximity():
 	if active_doors.size() == 0:
+		_near_door_active = false
 		return
 		
 	if not is_instance_valid(player_node):
@@ -1672,63 +1712,54 @@ func _check_doors_proximity():
 					active_near_door = door
 					break
 					
-	if is_instance_valid(portal_btn_container) and active_near_door != null:
-		# v600.2: Etiqueta del portal usado (para sellos por misión de portal específico)
-		portal_click_button.set_meta("portal_label", active_near_door.get_meta("door_label", ""))
-		# v600.2: Sello visual si una misión activa selló este portal específico
-		var seal_quest: String = ""
-		if NetworkManager:
-			seal_quest = NetworkManager.get_portal_seal_quest(zone_id, active_near_door.get_meta("door_label", ""))
-		if seal_quest != "":
-			if is_instance_valid(portal_desc_label):
-				portal_desc_label.text = "🔒 PORTAL SELLADO - " + seal_quest
-				portal_desc_label.modulate = Color(1.0, 0.4, 0.4)
-			if is_instance_valid(portal_click_button):
-				portal_click_button.disabled = true
-			return
-		elif is_instance_valid(portal_click_button):
-			portal_click_button.disabled = false
-	
-	if is_instance_valid(portal_btn_container):
-		if active_near_door != null:
-			var target_zone = active_near_door.get_meta("targetZoneId", "1")
-			var tx = active_near_door.get_meta("targetX", 5000)
-			var ty = active_near_door.get_meta("targetY", 5000)
-			
-			var target_name = "Lobby / Hangar"
-			if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(target_zone):
-				target_name = GameConstants.MAPS_CONFIG[target_zone].get("name", "Sector " + target_zone)
-			elif target_zone == "1":
-				target_name = "Lobby / Hangar"
+	if active_near_door != null:
+		_near_door_active = true
+		var parts = _get_or_create_interact_button("portal")
+		if not parts.is_empty():
+			var click_btn = parts["click_button"]
+			# v600.2: Etiqueta del portal usado (para sellos por misión de portal específico)
+			click_btn.set_meta("portal_label", active_near_door.get_meta("door_label", ""))
+			# v600.2: Sello visual si una misión activa selló este portal específico
+			var seal_quest: String = ""
+			if NetworkManager:
+				seal_quest = NetworkManager.get_portal_seal_quest(zone_id, active_near_door.get_meta("door_label", ""))
+			if seal_quest != "":
+				parts["desc_label"].text = "🔒 PORTAL SELLADO - " + seal_quest
+				parts["desc_label"].modulate = Color(1.0, 0.4, 0.4)
+				click_btn.disabled = true
+				_set_portal_icon("portal")
+				return
 			else:
-				target_name = "Sector " + target_zone
+				parts["desc_label"].modulate = Color.WHITE
+				click_btn.disabled = false
+				var target_zone = active_near_door.get_meta("targetZoneId", "1")
+				var tx = active_near_door.get_meta("targetX", 5000)
+				var ty = active_near_door.get_meta("targetY", 5000)
 				
-			var bind_key_text = "ESPACIO"
-			if InputMap.has_action("portal_jump"):
-				var events = InputMap.action_get_events("portal_jump")
-				if events.size() > 0:
-					bind_key_text = events[0].as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
-					if bind_key_text == "SPACE":
-						bind_key_text = "ESPACIO"
-						
-			if is_instance_valid(portal_desc_label):
-				portal_desc_label.text = "ENTRAR A " + target_name.to_upper() + " [" + bind_key_text + " / Clic]"
-				
-			if is_instance_valid(portal_click_button):
-				portal_click_button.set_meta("target_zone", target_zone)
-				portal_click_button.set_meta("targetX", tx)
-				portal_click_button.set_meta("targetY", ty)
-				
-			_current_interact_mode = "portal"
-			_set_portal_icon("portal")
-			portal_btn_container.visible = true
-		else:
-			if _current_interact_mode == "portal":
-				_current_interact_mode = ""
-			# No ocultar si hay vault/market/loot activo
-			if not is_instance_valid(active_vault_node) and not is_instance_valid(active_market_node) and not is_instance_valid(active_loot_node):
-				portal_btn_container.visible = false
-
+				var target_name = "Lobby / Hangar"
+				if GameConstants.get("MAPS_CONFIG") and GameConstants.MAPS_CONFIG.has(target_zone):
+					target_name = GameConstants.MAPS_CONFIG[target_zone].get("name", "Sector " + target_zone)
+				elif target_zone == "1":
+					target_name = "Lobby / Hangar"
+				else:
+					target_name = "Sector " + target_zone
+					
+				var bind_key_text = "ESPACIO"
+				if InputMap.has_action("portal_jump"):
+					var events = InputMap.action_get_events("portal_jump")
+					if events.size() > 0:
+						bind_key_text = events[0].as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
+						if bind_key_text == "SPACE":
+							bind_key_text = "ESPACIO"
+							
+				parts["desc_label"].text = "ENTRAR A " + target_name.to_upper() + " [" + bind_key_text + " / Clic]"
+				click_btn.set_meta("target_zone", target_zone)
+				click_btn.set_meta("targetX", tx)
+				click_btn.set_meta("targetY", ty)
+				click_btn.set_meta("use_extraction_handler", false)
+		_set_portal_icon("portal")
+	else:
+		_near_door_active = false
 # Atajo de teclado para entrar al portal si el contenedor está visible
 func _input(event):
 	# v433: No robar teclas si el jugador está escribiendo (chat, inventario, etc)
@@ -1809,16 +1840,18 @@ func _input(event):
 		_save_camera_state()
 		
 	if event.is_action_pressed("portal_jump") and not event.is_echo():
-		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode == "portal":
-			if is_instance_valid(portal_click_button):
-				portal_click_button.pressed.emit()
+		if _is_interact_visible("portal"):
+			var p_btn = _get_interact_button("portal")
+			if p_btn and not p_btn.disabled:
+				_press_interact("portal")
 				get_viewport().set_input_as_handled()
 
 	if event.is_action_pressed("loot_claim") and not event.is_echo():
-		if is_instance_valid(portal_btn_container) and portal_btn_container.visible and _current_interact_mode in ["vault", "market", "loot"]:
-			if is_instance_valid(portal_click_button):
-				portal_click_button.pressed.emit()
+		for k in ["vault", "market", "loot"]:
+			if _is_interact_visible(k):
+				_press_interact(k)
 				get_viewport().set_input_as_handled()
+				break
 	
 	# --- MOBILE CAMERA TOUCH CONTROLS (drag de órbita de 1 dedo, zoom de 2 dedos) ---
 	# Todo el manejo táctil vive aquí, en BaseMap._input(), porque:

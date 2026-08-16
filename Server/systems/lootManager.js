@@ -51,6 +51,8 @@ function isServerAuthoritative(state) {
             if (Math.random() <= chance) {
                 // Buscar el ítem en la configuración maestra para obtener todos los campos requeridos
                 const master = allShopItems.find(item => item.id === dropCfg.itemId);
+                // v620.0: Ojito de visibilidad — ítems hidden no caen como botín
+                if (master && master.hidden) return;
                 if (master) {
                     let type = (master.type || "utility").toLowerCase();
                     const id = master.id.toLowerCase();
@@ -84,6 +86,10 @@ function isServerAuthoritative(state) {
             });
 
             const master = allShopItems.find(item => item.id === bestDrop.itemId);
+            // v620.0: Ojito de visibilidad — ítems hidden no caen como botín garantizado
+            if (master && master.hidden) {
+                return;
+            }
             if (master) {
                 let type = (master.type || "utility").toLowerCase();
                 const id = master.id.toLowerCase();

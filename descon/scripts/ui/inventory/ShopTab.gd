@@ -50,7 +50,9 @@ func update_ui():
 		_render_ammo_shop(main_v, grid)
 	else:
 		var items = GameConstants.SHOP_ITEMS.get(shop_tab, [])
-		for it in items: _create_shop_card(it, shop_tab, grid)
+		for it in items:
+			if it.get("hidden", false): continue # v620.0: Ojito de visibilidad
+			_create_shop_card(it, shop_tab, grid)
 
 func _create_shop_card(it, cat, parent):
 	var p = PanelContainer.new()
@@ -490,7 +492,9 @@ func _render_ammo_shop(parent, grid):
 		bar.add_child(b)
 	var ammo_base = GameConstants.SHOP_ITEMS.get("ammo", {})
 	var items = ammo_base.get(ammo_sub_tab, [])
-	for it in items: _create_shop_card(it, "ammo", grid)
+	for it in items:
+		if it.get("hidden", false): continue # v620.0: Ojito de visibilidad
+		_create_shop_card(it, "ammo", grid)
 
 func _buy_request(cat, it, cur):
 	var price = it["prices"][cur]

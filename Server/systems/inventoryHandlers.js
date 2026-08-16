@@ -2,6 +2,7 @@ const User = require('../models/User');
 const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const { calculateFinalStats } = require('./statCalculator'); // v266.135: Recalcular al equipar
 const { getMasterItemConfig: getMasterItemConfigFull, getSkillMasterConfig, checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento
+const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
 
 /**
  * v262.450: HELPER DE CATEGORIZACIÓN ESTÁNDAR (Minúsculas para Godot)
@@ -139,7 +140,7 @@ function checkCombatLock(p) {
     return { locked: false };
 }
 
-function sendInventoryData(socket, user) {
+function sendInventoryData(socket, user, config) {
     if (!user) return;
     const eByShipObj = {};
     if (user.gameData.equippedByShip instanceof Map) {
@@ -147,17 +148,21 @@ function sendInventoryData(socket, user) {
     } else {
         Object.assign(eByShipObj, user.gameData.equippedByShip || {});
     }
+    const sanitized = visibilityGuard.sanitizeGameDataForClient({
+        ...JSON.parse(JSON.stringify(user.gameData)),
+        equippedByShip: eByShipObj
+    }, config || global.__SERVER_CONFIG__);
     socket.emit('inventoryData', {
         player: { 
-            ...JSON.parse(JSON.stringify(user.gameData)), 
-            equippedByShip: eByShipObj, 
-            inventoryByCategory: getCategorizedInventory(user.gameData.inventory) 
+            ...sanitized, 
+            inventoryByCategory: getCategorizedInventory(sanitized.inventory || []) 
         }
     });
 }
 
 
 function registerInventoryHandlers(socket, io, state) {
+    global.__SERVER_CONFIG__ = state.SERVER_CONFIG; // v620.0: Config global para sanitización en sendInventoryData
 
     // v263.010: CONSULTA DE EQUIPAMIENTO POR NAVE (sin necesidad de activarla)
     socket.on('getShipEquip', async (shipId) => {
@@ -183,6 +188,8 @@ function registerInventoryHandlers(socket, io, state) {
             }
 
             // console.log(`[SHIP-EQUIP] ${user.username} consultó nave ${key}: w=${equip.w?.length||0} s=${equip.s?.length||0} e=${equip.e?.length||0}`);
+            // v620.0: Ojito de visibilidad — ítems ocultos no se muestran en la bodega de la nave
+            equip = visibilityGuard.sanitizeEquipForClient(equip, state.SERVER_CONFIG);
             socket.emit('shipEquipData', { shipId: targetId, equip });
         } catch (e) { console.error('[SHIP-EQUIP ERROR]', e); }
     });
@@ -220,6 +227,11 @@ function registerInventoryHandlers(socket, io, state) {
 
             if (!itemConfig) {
                 console.log(`[SHOP-DEBUG] Error: Item ${itemId} no encontrado en config.`);
+                return socket.emit('authError', 'ITEM NO ENCONTRADO');
+            }
+
+            // v620.0: Ojito de visibilidad — ítems hidden son incomprables incluso por cliente hackeado
+            if (itemConfig.hidden) {
                 return socket.emit('authError', 'ITEM NO ENCONTRADO');
             }
 
@@ -425,6 +437,11 @@ function registerInventoryHandlers(socket, io, state) {
 
             // v400.0: Requisitos de equipamiento (nivel, misiones completadas, etc.)
             const masterItem = getMasterItemConfigFull(item.id, state.SERVER_CONFIG);
+            // v620.0: Ojito de visibilidad — ítems hidden no pueden equiparse ni armarse
+            if (masterItem && masterItem.hidden) {
+                sendInventoryData(socket, user);
+                return socket.emit('gameNotification', { msg: 'EQUIPAMIENTO BLOQUEADO: Ítem no disponible.', type: 'error' });
+            }
             if (masterItem && masterItem.requirements && masterItem.requirements.length > 0) {
                 const reqCheck = checkRequirements(p, masterItem.requirements, state.SERVER_CONFIG);
                 if (!reqCheck.ok) {
@@ -893,6 +910,10 @@ function registerInventoryHandlers(socket, io, state) {
                 if (!craftedItemConfig) {
                     return socket.emit('gameNotification', { msg: 'ERROR: Ítem resultante no configurado en el servidor.', type: 'error' });
                 }
+                // v620.0: Ojito de visibilidad — ítems hidden no se pueden fabricar
+                if (craftedItemConfig.hidden) {
+                    return socket.emit('gameNotification', { msg: 'ERROR: Receta no disponible.', type: 'error' });
+                }
                 
                 let type = (craftedItemConfig.type || "utility").toLowerCase();
                 const id = craftedItemConfig.id.toLowerCase();
@@ -962,6 +983,11 @@ function registerInventoryHandlers(socket, io, state) {
             
             if (isShip) {
                 const shipId = parseInt(resultItemId);
+                // v620.0: Ojito de visibilidad — naves hidden no se pueden fabricar
+                const shipMaster = (state.SERVER_CONFIG.shipModels || []).find(s => String(s.id) === String(shipId));
+                if (shipMaster && shipMaster.hidden) {
+                    return socket.emit('gameNotification', { msg: 'ERROR: Receta no disponible.', type: 'error' });
+                }
                 if (!user.gameData.ownedShips.includes(shipId)) {
                     user.gameData.ownedShips.push(shipId);
                     user.markModified('gameData.ownedShips');
@@ -977,6 +1003,10 @@ function registerInventoryHandlers(socket, io, state) {
                     return socket.emit('gameNotification', { msg: 'ERROR: Ya posees esta nave.', type: 'error' });
                 }
             } else if (isAmmo) {
+                // v620.0: Ojito de visibilidad — munición hidden no se puede fabricar
+                if (visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'ammo', resultItemId)) {
+                    return socket.emit('gameNotification', { msg: 'ERROR: Receta no disponible.', type: 'error' });
+                }
                 let ammoType = "mine";
                 if (resultItemId.startsWith("am_l")) ammoType = "laser";
                 else if (resultItemId.startsWith("am_me")) ammoType = "melee";

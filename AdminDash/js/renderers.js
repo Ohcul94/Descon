@@ -669,7 +669,12 @@ function renderAmmo() {
 
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
-            <div class="card-tag">TIER ${i+1}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="card-tag">TIER ${i+1}</div>
+                <button style="background:none; border:none; color:${item.hidden ? '#ff9f0a' : '#00d2ff'}; cursor:pointer; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px;" onclick="toggleAmmoVisibility('${type}', ${i})">
+                    ${item.hidden ? '🙈 OCULTO' : '👁️ VISIBLE'}
+                </button>
+            </div>
             <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
                 <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
                     ${ammoIconPreview}
@@ -735,7 +740,12 @@ function renderWeapons() {
             : `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
-            <div class="card-tag">ID: ${w.id}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="card-tag">ID: ${w.id}</div>
+                <button style="background:none; border:none; color:${w.hidden ? '#ff9f0a' : '#00d2ff'}; cursor:pointer; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px;" onclick="toggleWeaponVisibility(${i})">
+                    ${w.hidden ? '🙈 OCULTO' : '👁️ VISIBLE'}
+                </button>
+            </div>
             <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
                 <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
                     ${iconPreview}
@@ -771,7 +781,12 @@ function renderShields() {
             : `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
-            <div class="card-tag">ID: ${s.id}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="card-tag">ID: ${s.id}</div>
+                <button style="background:none; border:none; color:${s.hidden ? '#ff9f0a' : '#00d2ff'}; cursor:pointer; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px;" onclick="toggleShieldVisibility(${i})">
+                    ${s.hidden ? '🙈 OCULTO' : '👁️ VISIBLE'}
+                </button>
+            </div>
             <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
                 <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
                     ${iconPreview}
@@ -807,7 +822,12 @@ function renderEngines() {
             : `<div style="width:72px; height:72px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.7rem; text-align:center; padding:4px;">Sin Ícono</div>`;
         const card = document.createElement('div'); card.className = 'card';
         card.innerHTML = `
-            <div class="card-tag">ID: ${e.id}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="card-tag">ID: ${e.id}</div>
+                <button style="background:none; border:none; color:${e.hidden ? '#ff9f0a' : '#00d2ff'}; cursor:pointer; font-size:0.75rem; font-weight:bold; display:flex; align-items:center; gap:4px;" onclick="toggleEngineVisibility(${i})">
+                    ${e.hidden ? '🙈 OCULTO' : '👁️ VISIBLE'}
+                </button>
+            </div>
             <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:1rem;">
                 <div style="flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px;">
                     ${iconPreview}
@@ -909,6 +929,30 @@ function renderShips() {
 window.toggleShipVisibility = function(idx) {
     config.shipModels[idx].hidden = !config.shipModels[idx].hidden;
     renderShips();
+};
+
+window.toggleAmmoVisibility = function(type, i) {
+    if (!config.shopItems.ammo[type][i]) config.shopItems.ammo[type][i] = {};
+    config.shopItems.ammo[type][i].hidden = !config.shopItems.ammo[type][i].hidden;
+    renderAmmo();
+};
+
+window.toggleWeaponVisibility = function(i) {
+    if (!config.shopItems.weapons[i]) config.shopItems.weapons[i] = {};
+    config.shopItems.weapons[i].hidden = !config.shopItems.weapons[i].hidden;
+    renderWeapons();
+};
+
+window.toggleShieldVisibility = function(i) {
+    if (!config.shopItems.shields[i]) config.shopItems.shields[i] = {};
+    config.shopItems.shields[i].hidden = !config.shopItems.shields[i].hidden;
+    renderShields();
+};
+
+window.toggleEngineVisibility = function(i) {
+    if (!config.shopItems.engines[i]) config.shopItems.engines[i] = {};
+    config.shopItems.engines[i].hidden = !config.shopItems.engines[i].hidden;
+    renderEngines();
 };
 
 window.addNewShip = function() {

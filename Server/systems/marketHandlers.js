@@ -3,6 +3,7 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 const { getPlayerRAMAdapter } = require('../utils/ramAdapter');
 const { checkCombatLock, getMasterItemConfig, sendInventoryData } = require('./inventoryHandlers');
+const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
 
 /**
  * v500.0: MERCADO / CASA DE SUBASTAS CENTRALIZADA
@@ -54,6 +55,8 @@ function isMarketTradable(item, state) {
     if (item.soulbound === true) return false;
     const master = getMasterItemConfig(item.id, state.SERVER_CONFIG);
     if (master && master.soulbound === true) return false;
+    // v620.0: Ojito de visibilidad — ítems hidden no se pueden publicar en el mercado
+    if (master && master.hidden) return false;
     if (Array.isArray(cfg.blockedItemIds) && cfg.blockedItemIds.includes(item.id)) return false;
     return true;
 }
@@ -359,6 +362,17 @@ function registerMarketHandlers(socket, io, state) {
         }).sort({ listedAt: -1 }).limit(50).lean();
         const cfg = getMarketConfig(state);
 
+        // v620.0: Ojito de visibilidad — ocultar publicaciones de ítems hidden
+        const isHiddenListing = (l) => {
+            const iid = (l && l.item && l.item.id) ? String(l.item.id) : '';
+            if (!iid) return false;
+            return visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'weapons', iid)
+                || visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'shields', iid)
+                || visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'engines', iid)
+                || visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'extra', iid)
+                || visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'ammo', iid);
+        };
+
         socket.emit('marketData', {
             config: {
                 enabled: cfg.enabled !== false,
@@ -373,8 +387,8 @@ function registerMarketHandlers(socket, io, state) {
                 maxPriceOhcu: cfg.maxPriceOhcu || 0,
                 allowSelfBuy: !!cfg.allowSelfBuy
             },
-            listings: activeCache.map(toPublicListing),
-            myListings: (myListings || []).map(l => ({ ...toPublicListing(l), instanceId: l.item?.instanceId || null })),
+            listings: activeCache.filter(l => !isHiddenListing(l)).map(toPublicListing),
+            myListings: (myListings || []).filter(l => !isHiddenListing(l)).map(l => ({ ...toPublicListing(l), instanceId: l.item?.instanceId || null })),
             mailbox: p.marketMailbox || []
         });
     });

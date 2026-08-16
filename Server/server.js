@@ -157,6 +157,7 @@ const { registerSkillHandlers } = require('./handlers/skillHandlers');
 const { registerHousingHandlers } = require('./systems/housingHandlers');
 const { registerBattlePassHandlers } = require('./systems/battlePassHandlers');
 const { registerRankingHandlers } = require('./systems/rankingHandlers');
+const visibilityGuard = require('./systems/visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
 const { registerMarketHandlers, initMarketSystem } = require('./systems/marketHandlers'); // v500.0: Casa de Subastas
 
 const AIManager = require('./systems/AIManager');
@@ -205,6 +206,14 @@ const buildClientConfig = (config) => {
     CLIENT_CONFIG_KEYS.forEach(key => {
         if (config[key] !== undefined) clientConfig[key] = config[key];
     });
+    // v620.0: Ojito de visibilidad — quitar ítems hidden del config del cliente (armas/escudos/motores).
+    // Las municiones se conservan con su flag hidden para mantener alineados los índices de tiers.
+    if (clientConfig.shopItems && typeof clientConfig.shopItems === 'object') {
+        ['weapons', 'shields', 'engines', 'extra'].forEach(cat => {
+            const list = clientConfig.shopItems[cat];
+            if (Array.isArray(list)) clientConfig.shopItems[cat] = list.filter(i => !(i && i.hidden));
+        });
+    }
     return clientConfig;
 };
 
@@ -753,13 +762,13 @@ const handleUserLogin = async (socket, user, username) => {
         clanTag: clanTag,
         pvpEnabled: !!p_ref.pvpEnabled,
         isInvulnerable: !!p_ref.isInvulnerable,
-        gameData: {
+        gameData: visibilityGuard.sanitizeGameDataForClient({
             ...JSON.parse(JSON.stringify(user.gameData)),
             pvpEnabled: !!p_ref.pvpEnabled, // SYNC FIX: Usar el valor real en memoria (forzado por reglas de zona en login)
             isInvulnerable: !!p_ref.isInvulnerable,
             equippedByShip: JSON.parse(JSON.stringify(eByShipObj)),
             equipped: JSON.parse(JSON.stringify(user.gameData.equipped || { w: [], s: [], e: [], x: [] }))
-        },
+        }, state.SERVER_CONFIG),
         adminConfig: buildClientConfig(adminConfig)
     };
     socket.emit('loginSuccess', loginPayload);

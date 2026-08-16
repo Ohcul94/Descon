@@ -22,6 +22,7 @@ const ResurreccionSkill = require('./skills/ResurreccionSkill');
 const FearSphereSkill = require('./skills/FearSphereSkill');
 const combatTracker = require('./combatTracker');
 const { checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento (munición)
+const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
 
 // v301.4: Soporte unificado de habilidades de resurrección
 
@@ -114,6 +115,10 @@ function registerCombatHandlers(socket, io, state) {
         // v400.0: Requisitos de equipamiento de munición (nivel, misiones, etc.)
         const ammoList = (state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo) ? state.SERVER_CONFIG.shopItems.ammo[typeKey] : null;
         const ammoMaster = (ammoList && Array.isArray(ammoList)) ? ammoList[ammoTier] : null;
+        // v620.0: Ojito de visibilidad — munición hidden no puede dispararse ni siquiera con cliente hackeado
+        if (ammoMaster && ammoMaster.hidden) {
+            return;
+        }
         if (ammoMaster && ammoMaster.requirements && ammoMaster.requirements.length > 0) {
             const reqCheck = checkRequirements(p, ammoMaster.requirements, state.SERVER_CONFIG);
             if (!reqCheck.ok) {
@@ -134,11 +139,12 @@ function registerCombatHandlers(socket, io, state) {
 
         if (p.equipped && p.equipped.w) {
             p.equipped.w.forEach(item => {
+                // v620.0: Ojito de visibilidad — armas hidden no aportan daño
+                const masterItem = (state.SERVER_CONFIG && state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.weapons)
+                    ? state.SERVER_CONFIG.shopItems.weapons.find(w => String(w.id) === String(item.id)) : null;
+                if (masterItem && masterItem.hidden) return;
                 let baseVal = item.base || 0;
-                if (!baseVal && state.SERVER_CONFIG && state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.weapons) {
-                    const masterItem = state.SERVER_CONFIG.shopItems.weapons.find(w => String(w.id) === String(item.id));
-                    if (masterItem) baseVal = masterItem.base || 0;
-                }
+                if (!baseVal && masterItem) baseVal = masterItem.base || 0;
                 baseDamage += Number(baseVal) || 0;
             });
         }

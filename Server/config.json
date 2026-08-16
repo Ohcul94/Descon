@@ -139,7 +139,7 @@
     },
     "ammoMultipliers": {
         "electron": [
-            1,
+            0.5,
             2,
             3.5,
             6,
@@ -171,7 +171,7 @@
             15
         ],
         "melee": [
-            1.5,
+            3,
             3,
             5,
             10,
@@ -1764,36 +1764,71 @@
             "bulletSpeed": 1000,
             "defenseMechanics": [
                 {
-                    "activationIntervalMs": 20000,
-                    "activationMode": "time",
-                    "bossHealPercent": 3,
-                    "cooldown": 10000,
-                    "duration": 10000,
-                    "orbCount": 5,
-                    "orbSpeed": 150,
-                    "playerDamage": 100,
+                    "type": "invulnerability",
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
-                    "spawnRadius": 700,
+                    "duration": 5000,
+                    "cooldown": 10000,
                     "startDelay": 0,
-                    "type": "boss_water_orbs"
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        25
+                    ],
+                    "activationIntervalMs": 30000
                 }
             ],
             "fireRange": 1500,
             "fireRate": 1000,
-            "hp": 200000,
+            "hp": 1000,
             "icon": "res://assets/Enemigos/2D/Bosses/Boss2/Boss2.png",
             "isBoss": true,
             "leashRange": 1500,
             "lootDrops": [],
             "mechanics": [
                 {
+                    "bulletDamage": 5,
+                    "bulletSpeed": 650,
+                    "fireRange": 1500,
+                    "fireRate": 3500,
+                    "startDelay": 0,
+                    "type": "laser",
+                    "cooldown": 5000,
+                    "castTimeMs": 2000,
+                    "damage": 500,
+                    "lockTimeMs": 800,
+                    "burstShots": 3,
+                    "isHoming": 0,
+                    "turnSpeed": 1.2
+                },
+                {
+                    "type": "sleep",
                     "bulletDamage": 10,
                     "bulletSpeed": 800,
-                    "fireRange": 600,
+                    "fireRange": 1500,
                     "fireRate": 1000,
-                    "startDelay": 0,
-                    "type": "laser"
+                    "targetCount": 1,
+                    "targetMode": "missing_hp",
+                    "duration": 2000,
+                    "slowPercentage": 50,
+                    "slowDuration": 2000,
+                    "damagePerSecond": 0,
+                    "nightmareMultiplier": 0,
+                    "wakeOnDamage": 0,
+                    "cooldown": 10000,
+                    "startDelay": 4500
+                },
+                {
+                    "type": "ice_missile",
+                    "bulletDamage": 20,
+                    "bulletSpeed": 200,
+                    "fireRange": 1500,
+                    "fireRate": 4000,
+                    "slowAmount": 0,
+                    "slowDuration": 2000,
+                    "startDelay": 1350,
+                    "lifetimeMs": 5000,
+                    "turnSpeed": 1,
+                    "isHoming": true
                 }
             ],
             "movementPhases": [
@@ -1808,14 +1843,15 @@
             "rageTimer": 20,
             "rankingPoints": 200,
             "regenDelayMs": 30000,
-            "regenIntervalMs": 5000,
-            "rewardExp": 25000,
-            "rewardHubs": 0,
-            "rewardOhcu": 1000,
-            "shield": 1000,
+            "regenIntervalMs": 2000,
+            "rewardExp": 300,
+            "rewardHubs": 600,
+            "rewardOhcu": 90,
+            "shield": 950,
             "speed": 220,
             "stopOnOutOfSight": true,
-            "visionRange": 1500
+            "visionRange": 1500,
+            "chestDropChance": 0.5
         },
         "103": {
             "bulletDamage": 3000,
@@ -7008,7 +7044,8 @@
                 "x": 2
             },
             "speed": 250,
-            "vision": 1500
+            "vision": 1500,
+            "hidden": true
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave3/Nave3.glb",
@@ -7032,7 +7069,8 @@
                 "x": 3
             },
             "speed": 250,
-            "vision": 1700
+            "vision": 1700,
+            "hidden": true
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave4/Nave4.glb",
@@ -7056,12 +7094,13 @@
                 "x": 4
             },
             "speed": 250,
-            "vision": 1300
+            "vision": 1300,
+            "hidden": true
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave5/Nave5.glb",
             "baseDmg": 10,
-            "hidden": false,
+            "hidden": true,
             "hp": 160,
             "icon": "res://assets/Personajes/2D/Nave5/Nave5.png",
             "id": 5,
@@ -7105,150 +7144,151 @@
                 "x": 6
             },
             "speed": 1000,
-            "vision": 1000
+            "vision": 1000,
+            "hidden": true
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave7/Nave7.glb",
-            "baseDmg": 10,
-            "hp": 400,
+            "baseDmg": 5,
+            "hp": 30,
             "icon": "res://assets/Personajes/2D/Nave7/Nave7.png",
             "id": 7,
-            "name": "Tico 11",
+            "name": "Tico 2",
             "prices": {
                 "hubs": 10000,
-                "ohcu": 100
+                "ohcu": 1000
             },
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 400,
+            "shield": 35,
             "slots": {
                 "e": 1,
-                "s": 1,
+                "s": 2,
                 "w": 1,
-                "x": 1
+                "x": 0
             },
-            "speed": 300,
-            "vision": 1300
+            "speed": 250,
+            "vision": 1350
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave8/Nave8.glb",
             "baseDmg": 10,
-            "hp": 500,
+            "hp": 20,
             "icon": "res://assets/Personajes/2D/Nave8/Nave8.png",
             "id": 8,
-            "name": "Pinfli 12",
+            "name": "Pinfli 3",
             "prices": {
                 "hubs": 10000,
-                "ohcu": 100
+                "ohcu": 1000
             },
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 500,
+            "shield": 30,
             "slots": {
                 "e": 1,
                 "s": 1,
-                "w": 1,
-                "x": 1
+                "w": 2,
+                "x": 0
             },
-            "speed": 400,
-            "vision": 1300
+            "speed": 250,
+            "vision": 1350
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave9/Nave9.glb",
-            "baseDmg": 10,
-            "hp": 600,
+            "baseDmg": 5,
+            "hp": 20,
             "icon": "res://assets/Personajes/2D/Nave9/Nave9.png",
             "id": 9,
-            "name": "Nueva Nave N9",
+            "name": "Yukanis 4",
             "prices": {
                 "hubs": 10000,
-                "ohcu": 100
+                "ohcu": 1000
             },
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 600,
+            "shield": 20,
             "slots": {
-                "e": 1,
+                "e": 2,
                 "s": 1,
                 "w": 1,
-                "x": 1
+                "x": 0
             },
-            "speed": 300,
-            "vision": 1300
+            "speed": 270,
+            "vision": 1500
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave10/Nave10.glb",
-            "baseDmg": 10,
-            "hp": 800,
+            "baseDmg": 20,
+            "hp": 40,
             "icon": "res://assets/Personajes/2D/Nave10/Nave10.png",
             "id": 10,
-            "name": "Nueva Nave N10",
+            "name": "Nopla 5",
             "prices": {
-                "hubs": 10000,
-                "ohcu": 100
+                "hubs": 100000,
+                "ohcu": 10000
             },
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 800,
+            "shield": 40,
             "slots": {
-                "e": 1,
+                "e": 3,
                 "s": 1,
                 "w": 1,
-                "x": 1
+                "x": 0
             },
             "speed": 300,
-            "vision": 1300
+            "vision": 1600
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave11/Nave11.glb",
-            "baseDmg": 10,
-            "hp": 1000,
+            "baseDmg": 30,
+            "hp": 40,
             "icon": "res://assets/Personajes/2D/Nave11/Nave11.png",
             "id": 11,
-            "name": "Nueva Nave N11",
+            "name": "R-C 6",
             "prices": {
-                "hubs": 10000,
-                "ohcu": 100
+                "hubs": 100000,
+                "ohcu": 10000
             },
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 1000,
+            "shield": 60,
             "slots": {
                 "e": 1,
                 "s": 1,
-                "w": 1,
+                "w": 3,
                 "x": 1
             },
-            "speed": 300,
+            "speed": 280,
             "vision": 1300
         },
         {
             "assetPath": "res://assets/Personajes/3D/Nave12/Nave12.glb",
-            "baseDmg": 10,
-            "hp": 10000,
+            "baseDmg": 20,
+            "hp": 60,
             "icon": "res://assets/Personajes/2D/Nave12/Nave12.png",
             "id": 12,
-            "name": "Nueva Nave N12",
+            "name": "Gloss-Ter 6",
             "prices": {
-                "hubs": 10000,
-                "ohcu": 100
+                "hubs": 100000,
+                "ohcu": 10000
             },
             "rotX": 0,
             "rotY": 0,
             "rotZ": 0,
-            "shield": 100000,
+            "shield": 75,
             "slots": {
                 "e": 1,
-                "s": 1,
+                "s": 3,
                 "w": 1,
                 "x": 1
             },
-            "speed": 300,
+            "speed": 280,
             "vision": 1300
         }
     ],
@@ -7257,19 +7297,34 @@
             "electron": [
                 {
                     "bulletSpeed": 600,
-                    "cooldown": 2000,
-                    "explosionRadius": 120,
+                    "cooldown": 5000,
+                    "explosionRadius": 100,
                     "id": "am_el1",
                     "mechanics": [],
                     "name": "Electrón T1",
                     "prices": {
                         "hubs": 4000,
-                        "ohcu": 5
+                        "ohcu": 40
                     },
-                    "range": 500,
-                    "speedBuffDurationMs": 3000,
+                    "range": 300,
+                    "speedBuffDurationMs": 7000,
                     "speedBuffMaxStacks": 4,
-                    "speedBuffPct": 15
+                    "speedBuffPct": 10,
+                    "requirements": [
+                        {
+                            "type": "spheres",
+                            "esferas": [
+                                {
+                                    "color": "amarilla",
+                                    "count": 1
+                                },
+                                {
+                                    "color": "amarilla",
+                                    "count": 1
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "bulletSpeed": 600,
@@ -7301,7 +7356,8 @@
                     "range": 540,
                     "speedBuffDurationMs": 3500,
                     "speedBuffMaxStacks": 4,
-                    "speedBuffPct": 20
+                    "speedBuffPct": 20,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 600,
@@ -7317,7 +7373,8 @@
                     "range": 560,
                     "speedBuffDurationMs": 3500,
                     "speedBuffMaxStacks": 5,
-                    "speedBuffPct": 22
+                    "speedBuffPct": 22,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 600,
@@ -7333,7 +7390,8 @@
                     "range": 580,
                     "speedBuffDurationMs": 4000,
                     "speedBuffMaxStacks": 5,
-                    "speedBuffPct": 25
+                    "speedBuffPct": 25,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 650,
@@ -7349,21 +7407,38 @@
                     "range": 600,
                     "speedBuffDurationMs": 4000,
                     "speedBuffMaxStacks": 5,
-                    "speedBuffPct": 30
+                    "speedBuffPct": 30,
+                    "hidden": true
                 }
             ],
             "emp": [
                 {
                     "bulletSpeed": 700,
-                    "cooldown": 2000,
+                    "cooldown": 6000,
                     "id": "am_e1",
                     "mechanics": [],
                     "name": "EMP Pulse T1",
                     "prices": {
                         "hubs": 4000,
-                        "ohcu": 5
+                        "ohcu": 40
                     },
-                    "range": 400
+                    "range": 400,
+                    "requirements": [
+                        {
+                            "type": "spheres",
+                            "esferas": [
+                                {
+                                    "color": "roja",
+                                    "count": 1
+                                },
+                                {
+                                    "color": "roja",
+                                    "count": 1
+                                }
+                            ]
+                        }
+                    ],
+                    "silenceDurationMs": 2000
                 },
                 {
                     "bulletSpeed": 700,
@@ -7387,7 +7462,8 @@
                         "hubs": 16000,
                         "ohcu": 20
                     },
-                    "range": 440
+                    "range": 440,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 700,
@@ -7399,7 +7475,8 @@
                         "hubs": 32000,
                         "ohcu": 40
                     },
-                    "range": 460
+                    "range": 460,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 750,
@@ -7411,7 +7488,8 @@
                         "hubs": 0,
                         "ohcu": 100
                     },
-                    "range": 480
+                    "range": 480,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7423,7 +7501,8 @@
                         "hubs": 0,
                         "ohcu": 200
                     },
-                    "range": 500
+                    "range": 500,
+                    "hidden": true
                 }
             ],
             "heal": [
@@ -7434,10 +7513,25 @@
                     "mechanics": [],
                     "name": "Heal Drones T1",
                     "prices": {
-                        "hubs": 1500,
-                        "ohcu": 1
+                        "hubs": 4000,
+                        "ohcu": 40
                     },
-                    "range": 500
+                    "range": 500,
+                    "requirements": [
+                        {
+                            "type": "spheres",
+                            "esferas": [
+                                {
+                                    "color": "verde",
+                                    "count": 1
+                                },
+                                {
+                                    "color": "verde",
+                                    "count": 1
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "bulletSpeed": 900,
@@ -7461,7 +7555,8 @@
                         "hubs": 6000,
                         "ohcu": 6
                     },
-                    "range": 540
+                    "range": 540,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 900,
@@ -7473,7 +7568,8 @@
                         "hubs": 12000,
                         "ohcu": 12
                     },
-                    "range": 560
+                    "range": 560,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 950,
@@ -7485,7 +7581,8 @@
                         "hubs": 0,
                         "ohcu": 30
                     },
-                    "range": 580
+                    "range": 580,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 1000,
@@ -7497,13 +7594,14 @@
                         "hubs": 0,
                         "ohcu": 60
                     },
-                    "range": 600
+                    "range": 600,
+                    "hidden": true
                 }
             ],
             "laser": [
                 {
                     "bulletSpeed": 800,
-                    "cooldown": 1500,
+                    "cooldown": 3000,
                     "id": "am_l1",
                     "mechanics": [],
                     "name": "Láser T1",
@@ -7524,7 +7622,8 @@
                         "hubs": 2000,
                         "ohcu": 2
                     },
-                    "range": 650
+                    "range": 650,
+                    "hidden": false
                 },
                 {
                     "bulletSpeed": 800,
@@ -7536,7 +7635,8 @@
                         "hubs": 3000,
                         "ohcu": 4
                     },
-                    "range": 700
+                    "range": 700,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7548,7 +7648,8 @@
                         "hubs": 4000,
                         "ohcu": 6
                     },
-                    "range": 750
+                    "range": 750,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7560,7 +7661,8 @@
                         "hubs": 0,
                         "ohcu": 10
                     },
-                    "range": 800
+                    "range": 800,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7572,27 +7674,39 @@
                         "hubs": 0,
                         "ohcu": 20
                     },
-                    "range": 1000
+                    "range": 1000,
+                    "hidden": true
                 }
             ],
             "melee": [
                 {
                     "bulletSpeed": 2500,
-                    "cooldown": 800,
+                    "cooldown": 4000,
                     "id": "am_me1",
-                    "mechanics": [
-                        {
-                            "chance": 10,
-                            "duration": 300,
-                            "type": "stun"
-                        }
-                    ],
+                    "mechanics": [],
                     "name": "Plasma Claw T1",
                     "prices": {
-                        "hubs": 2000,
-                        "ohcu": 2
+                        "hubs": 4000,
+                        "ohcu": 40
                     },
-                    "range": 150
+                    "range": 150,
+                    "slowAmount": 30,
+                    "slowDurationMs": 2000,
+                    "requirements": [
+                        {
+                            "type": "spheres",
+                            "esferas": [
+                                {
+                                    "color": "azul",
+                                    "count": 1
+                                },
+                                {
+                                    "color": "azul",
+                                    "count": 1
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "bulletSpeed": 2500,
@@ -7628,7 +7742,8 @@
                         "hubs": 8000,
                         "ohcu": 8
                     },
-                    "range": 150
+                    "range": 150,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 2500,
@@ -7646,7 +7761,8 @@
                         "hubs": 16000,
                         "ohcu": 16
                     },
-                    "range": 150
+                    "range": 150,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 2500,
@@ -7664,7 +7780,8 @@
                         "hubs": 0,
                         "ohcu": 40
                     },
-                    "range": 160
+                    "range": 160,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 2500,
@@ -7682,7 +7799,8 @@
                         "hubs": 0,
                         "ohcu": 80
                     },
-                    "range": 170
+                    "range": 170,
+                    "hidden": true
                 }
             ],
             "mine": [
@@ -7708,7 +7826,8 @@
                         "hubs": 20000,
                         "ohcu": 20
                     },
-                    "range": 350
+                    "range": 350,
+                    "hidden": false
                 },
                 {
                     "bulletSpeed": 800,
@@ -7720,7 +7839,8 @@
                         "hubs": 30000,
                         "ohcu": 30
                     },
-                    "range": 400
+                    "range": 400,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7732,7 +7852,8 @@
                         "hubs": 40000,
                         "ohcu": 40
                     },
-                    "range": 450
+                    "range": 450,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7744,7 +7865,8 @@
                         "hubs": 0,
                         "ohcu": 100
                     },
-                    "range": 500
+                    "range": 500,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7756,13 +7878,14 @@
                         "hubs": 0,
                         "ohcu": 200
                     },
-                    "range": 600
+                    "range": 600,
+                    "hidden": true
                 }
             ],
             "missile": [
                 {
                     "bulletSpeed": 500,
-                    "cooldown": 3000,
+                    "cooldown": 5000,
                     "id": "am_m1",
                     "mechanics": [],
                     "name": "Misil T1",
@@ -7770,7 +7893,9 @@
                         "hubs": 2000,
                         "ohcu": 20
                     },
-                    "range": 900
+                    "range": 900,
+                    "soulbound": false,
+                    "requirements": []
                 },
                 {
                     "bulletSpeed": 800,
@@ -7782,7 +7907,8 @@
                         "hubs": 10000,
                         "ohcu": 10
                     },
-                    "range": 900
+                    "range": 900,
+                    "hidden": false
                 },
                 {
                     "bulletSpeed": 800,
@@ -7794,7 +7920,8 @@
                         "hubs": 15000,
                         "ohcu": 15
                     },
-                    "range": 1000
+                    "range": 1000,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7806,7 +7933,8 @@
                         "hubs": 20000,
                         "ohcu": 20
                     },
-                    "range": 1100
+                    "range": 1100,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7818,7 +7946,8 @@
                         "hubs": 0,
                         "ohcu": 50
                     },
-                    "range": 1200
+                    "range": 1200,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 800,
@@ -7830,7 +7959,8 @@
                         "hubs": 0,
                         "ohcu": 100
                     },
-                    "range": 1500
+                    "range": 1500,
+                    "hidden": true
                 }
             ],
             "siphon": [
@@ -7841,10 +7971,25 @@
                     "mechanics": [],
                     "name": "Vampire Beam T1",
                     "prices": {
-                        "hubs": 3000,
-                        "ohcu": 3
+                        "hubs": 4000,
+                        "ohcu": 40
                     },
-                    "range": 600
+                    "range": 600,
+                    "requirements": [
+                        {
+                            "type": "spheres",
+                            "esferas": [
+                                {
+                                    "color": "verde",
+                                    "count": 1
+                                },
+                                {
+                                    "color": "roja",
+                                    "count": 1
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "bulletSpeed": 1200,
@@ -7868,7 +8013,8 @@
                         "hubs": 12000,
                         "ohcu": 12
                     },
-                    "range": 640
+                    "range": 640,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 1200,
@@ -7880,7 +8026,8 @@
                         "hubs": 24000,
                         "ohcu": 24
                     },
-                    "range": 660
+                    "range": 660,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 1300,
@@ -7892,7 +8039,8 @@
                         "hubs": 0,
                         "ohcu": 60
                     },
-                    "range": 680
+                    "range": 680,
+                    "hidden": true
                 },
                 {
                     "bulletSpeed": 1400,
@@ -7904,7 +8052,8 @@
                         "hubs": 0,
                         "ohcu": 120
                     },
-                    "range": 700
+                    "range": 700,
+                    "hidden": true
                 }
             ]
         },
@@ -7929,22 +8078,25 @@
                 "name": "Motor M1",
                 "prices": {
                     "hubs": 1000,
-                    "ohcu": 10
+                    "ohcu": 100
                 },
                 "shieldMod": 5,
                 "shieldModType": "flat",
                 "speedMod": 10
             },
             {
-                "base": 50,
+                "base": 20,
                 "desc": "Estándar iónico.",
                 "icon": "res://assets/Motores/Motor2/Motor2.png",
                 "id": "en2",
                 "name": "Motor M2",
                 "prices": {
-                    "hubs": 10000,
-                    "ohcu": 100
-                }
+                    "hubs": 2000,
+                    "ohcu": 200
+                },
+                "shieldMod": 10,
+                "hpMod": 10,
+                "dmgMod": 10
             },
             {
                 "base": 100,
@@ -7955,7 +8107,8 @@
                 "prices": {
                     "hubs": 300000,
                     "ohcu": 300
-                }
+                },
+                "hidden": true
             }
         ],
         "extras": [
@@ -8066,22 +8219,24 @@
                 "name": "Escudo S1",
                 "prices": {
                     "hubs": 1000,
-                    "ohcu": 10
+                    "ohcu": 100
                 },
                 "shieldMod": 10,
                 "speedMod": 5,
                 "speedModType": "flat"
             },
             {
-                "base": 5000,
+                "base": 20,
                 "desc": "Reforzado con titanio.",
                 "icon": "res://assets/Escudos/Escudo2/Escudo2.png",
                 "id": "sh2",
                 "name": "Escudo S2",
                 "prices": {
-                    "hubs": 10000,
-                    "ohcu": 100
-                }
+                    "hubs": 2000,
+                    "ohcu": 200
+                },
+                "hpMod": 10,
+                "speedMod": 10
             },
             {
                 "base": 15000,
@@ -8092,7 +8247,8 @@
                 "prices": {
                     "hubs": 500000,
                     "ohcu": 500
-                }
+                },
+                "hidden": true
             },
             {
                 "base": 40000,
@@ -8103,7 +8259,8 @@
                 "prices": {
                     "hubs": 2000000,
                     "ohcu": 2000
-                }
+                },
+                "hidden": true
             },
             {
                 "base": 100000,
@@ -8115,7 +8272,8 @@
                 "prices": {
                     "hubs": 0,
                     "ohcu": 10000
-                }
+                },
+                "hidden": true
             },
             {
                 "base": 250000,
@@ -8127,7 +8285,8 @@
                 "prices": {
                     "hubs": 0,
                     "ohcu": 25000
-                }
+                },
+                "hidden": true
             }
         ],
         "weapons": [
@@ -8141,22 +8300,24 @@
                 "name": "Láser 1",
                 "prices": {
                     "hubs": 1000,
-                    "ohcu": 10
+                    "ohcu": 100
                 },
                 "requirements": [],
                 "speedMod": 5,
                 "speedModType": "flat"
             },
             {
-                "base": 25,
+                "base": 20,
                 "desc": "Mejora en potencia.",
                 "icon": "res://assets/Armas/Arma2/Arma2.png",
                 "id": "las2",
                 "name": "Láser 2",
                 "prices": {
-                    "hubs": 10000,
-                    "ohcu": 1000
-                }
+                    "hubs": 2000,
+                    "ohcu": 200
+                },
+                "speedMod": 10,
+                "hpMod": 10
             },
             {
                 "base": 60,
@@ -8167,7 +8328,8 @@
                 "prices": {
                     "hubs": 200000,
                     "ohcu": 200
-                }
+                },
+                "hidden": true
             },
             {
                 "base": 150,
@@ -8178,7 +8340,8 @@
                 "prices": {
                     "hubs": 1000000,
                     "ohcu": 1000
-                }
+                },
+                "hidden": true
             },
             {
                 "base": 500,
@@ -8190,7 +8353,8 @@
                 "prices": {
                     "hubs": 0,
                     "ohcu": 5000
-                }
+                },
+                "hidden": true
             },
             {
                 "base": 1500,
@@ -8202,15 +8366,16 @@
                 "prices": {
                     "hubs": 0,
                     "ohcu": 15000
-                }
+                },
+                "hidden": true
             }
         ]
     },
     "skillsData": {
         "AUTO-REPARACIÓN": {
-            "amount": 400,
+            "amount": 10,
             "canTargetOthers": true,
-            "cd": 5000,
+            "cd": 8000,
             "desc": "Drones de reparación restauran la integridad del casco.",
             "icon": "res://assets/Skills/Iconos/Cura/Auto Reparacion/AutoReparacion.png",
             "id": "SK-HEAL-01",
@@ -8253,9 +8418,9 @@
         },
         "BARRERA DE VIENTO": {
             "canTargetOthers": false,
-            "cd": 2000,
+            "cd": 10000,
             "desc": "Crea una barrera de viento que repele a los objetivos seleccionados.",
-            "duration": 6000,
+            "duration": 4000,
             "icon": "res://assets/Skills/Iconos/Defensa/Barrera de Viento/Barrera de Viento.png",
             "id": "SK-DEF-05",
             "name": "BARRERA DE VIENTO",
@@ -8265,10 +8430,11 @@
                 "bosses": false,
                 "clan": false,
                 "enemies": true,
-                "players": false
+                "players": true
             },
             "type": "Defensa",
-            "width": 150
+            "width": 200,
+            "requirements": []
         },
         "BLINK": {
             "canTargetOthers": false,
@@ -8302,13 +8468,13 @@
             ]
         },
         "ESCUDO CELULAR": {
-            "amount": 600,
+            "amount": 20,
             "canTargetOthers": true,
-            "cd": 5000,
+            "cd": 12000,
             "desc": "Inyecta plasma en los generadores para restaurar el escudo.",
             "icon": "res://assets/Skills/Iconos/Defensa/Escudo Celular/Escudo Celular.png",
             "id": "SK-DEF-01",
-            "range": 0,
+            "range": 500,
             "targetFilters": {
                 "allies": true,
                 "bosses": false,
@@ -8316,14 +8482,29 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Defensa"
+            "type": "Defensa",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 5
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "azul",
+                            "count": 1
+                        }
+                    ]
+                }
+            ]
         },
         "ESFERA DE TERROR": {
-            "amount": 10,
+            "amount": 1,
             "canTargetOthers": false,
-            "cd": 4000,
+            "cd": 10000,
             "desc": "Lanza una esfera de energía oscura que daña y aterroriza al objetivo, invirtiendo su movimiento.",
-            "duration": 3000,
+            "duration": 1000,
             "icon": "res://assets/Skills/Iconos/Ataque/Miedo/Miedo.png",
             "name": "ESFERA DE TERROR",
             "radius": 150,
@@ -8331,7 +8512,7 @@
             "speed": 800,
             "targetFilters": {
                 "allies": false,
-                "bosses": true,
+                "bosses": false,
                 "clan": false,
                 "enemies": true,
                 "players": true
@@ -8355,16 +8536,22 @@
                 "enemies": true,
                 "players": true
             },
-            "type": "Defensa"
+            "type": "Defensa",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 100
+                }
+            ]
         },
         "HYPER-DASH": {
             "canTargetOthers": false,
-            "cd": 120000,
+            "cd": 12000,
             "desc": "Propulsión instantánea hacia adelante para evasión rápida.",
             "icon": "res://assets/Skills/Iconos/Utilidad/HyperDash/HyperDash.png",
             "id": "SK-UTIL-02",
-            "range": 0,
-            "speed": 1000,
+            "range": 500,
+            "speed": 500,
             "targetFilters": {
                 "allies": true,
                 "bosses": false,
@@ -8437,16 +8624,22 @@
                 "players": true
             },
             "taunt_duration": 4000,
-            "type": "Ataque"
+            "type": "Ataque",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 100
+                }
+            ]
         },
         "REFLECT-OMEGA": {
             "amount": 500,
             "canTargetOthers": false,
-            "cd": 1000,
+            "cd": 12000,
             "desc": "Crea un campo de resonancia que refleja daño hostil.",
             "icon": "res://assets/Skills/Iconos/Ataque/Reflect/Reflect.png",
             "id": "SK-ATK-01",
-            "range": 0,
+            "range": 500,
             "reflect_mult": 1.5,
             "targetFilters": {
                 "allies": true,
@@ -8455,18 +8648,33 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Ataque"
+            "type": "Ataque",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 5
+                },
+                {
+                    "type": "spheres",
+                    "esferas": [
+                        {
+                            "color": "roja",
+                            "count": 1
+                        }
+                    ]
+                }
+            ]
         },
         "REGENERACIÓN ALFA": {
-            "amount": 1500,
+            "amount": 2,
             "canTargetOthers": false,
             "cd": 3000,
             "desc": "Un pulso de alta energía que deposita un núcleo en el suelo para restaurar 1500 HP de casco al recogerlo.",
-            "duration": 60000,
+            "duration": 6000,
             "icon": "res://assets/Skills/Iconos/Cura/Regeneracion Alfa/Regeneracion Alfa.png",
             "id": "SK-HEAL-03",
-            "radius": 100,
-            "range": 600,
+            "radius": 50,
+            "range": 300,
             "targetFilters": {
                 "allies": true,
                 "bosses": false,
@@ -8534,7 +8742,13 @@
                 "enemies": false,
                 "players": true
             },
-            "type": "Defensa"
+            "type": "Defensa",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 100
+                }
+            ]
         },
         "STEALTH": {
             "canTargetOthers": false,
@@ -8575,12 +8789,7 @@
                 "players": true
             },
             "type": "Utilidad",
-            "requirements": [
-                {
-                    "type": "level",
-                    "min": 5
-                }
-            ]
+            "requirements": []
         },
         "VÍNCULO VITAL": {
             "amount": 250,
@@ -8600,7 +8809,13 @@
                 "players": true
             },
             "tickInterval": 1000,
-            "type": "Curación"
+            "type": "Curación",
+            "requirements": [
+                {
+                    "type": "level",
+                    "min": 100
+                }
+            ]
         }
     },
     "talentsConfig": {

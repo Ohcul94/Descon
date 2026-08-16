@@ -184,9 +184,13 @@ func _create_ammo_menu():
 		menu.visible = false
 		
 		for i in range(types[t].count - 1, -1, -1):
+			# v620.0: Ojito de visibilidad — tiers ocultos no se muestran ni se pueden seleccionar
+			if _is_ammo_tier_hidden(t, i):
+				continue
 			var slot_p = PanelContainer.new()
 			slot_p.custom_minimum_size = Vector2(40, 40)
 			slot_p.mouse_filter = Control.MOUSE_FILTER_STOP
+			slot_p.set_meta("tier_index", i)
 			
 			var sb = StyleBoxFlat.new()
 			sb.bg_color = Color(0, 0, 0, 0.9)
@@ -209,6 +213,14 @@ func _create_ammo_menu():
 		if slot_node is Control: slot_width = slot_node.size.x
 		menu.position = Vector2((slot_width/2) - (menu.get_combined_minimum_size().x / 2), -menu.get_combined_minimum_size().y - 10)
 
+# v620.0: Ojito de visibilidad — ¿el tier de munición está oculto en la config del servidor?
+func _is_ammo_tier_hidden(ammo_type: String, tier_idx: int) -> bool:
+	var ammo_base = GameConstants.SHOP_ITEMS.get("ammo", {})
+	var list = ammo_base.get(ammo_type, [])
+	if typeof(list) != TYPE_ARRAY or tier_idx < 0 or tier_idx >= list.size():
+		return false
+	return list[tier_idx].get("hidden", false)
+
 func _update_ammo_menu_selection():
 	var p = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(p): return
@@ -223,7 +235,8 @@ func _update_ammo_menu_selection():
 		var count = menu.get_child_count()
 		for i in range(count):
 			var slot = menu.get_child(i)
-			var tier_index = count - 1 - i 
+			# v620.0: Ojito de visibilidad — usar el índice real del tier guardado en el slot
+			var tier_index = int(slot.get_meta("tier_index", count - 1 - i)) 
 			
 			var sb = slot.get_theme_stylebox("panel").duplicate()
 			# v400.0: Requisitos de equipamiento — tiers bloqueados en rojo tenue
