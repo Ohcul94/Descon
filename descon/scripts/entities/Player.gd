@@ -771,6 +771,9 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	# y enviaba eventos "fantasma" que reiniciaban contadores de combate.
 
 func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector2.ZERO):
+	if cooldowns.get(p_type, 0.0) > 0.0:
+		return
+
 	last_combat_time = Time.get_ticks_msec()
 	if NetworkManager:
 		NetworkManager.send_event("playerHitByEnemy", { "damage": 0, "id": entity_id, "attackerType": "combat_ping" })
@@ -784,7 +787,6 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 		
 	ammo[p_type][t_idx] -= 1
 	AudioManager.play_sfx(p_type)
-	cooldowns[p_type] = 1.0 
 	
 	is_moving = false
 	autopilot_enabled = false
@@ -801,6 +803,10 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 	if t_idx < ammo_list.size():
 		r_val = ammo_list[t_idx].get("range", 600.0)
 		item_data = ammo_list[t_idx]
+	
+	# v400.70: Obtener el cooldown del Admin Dash (en ms) con fallback a 1.0s
+	var cd_ms = item_data.get("cooldown", 1000.0)
+	cooldowns[p_type] = float(cd_ms) / 1000.0
 	
 	# v260.95: Lógica de Minas y Bombas Electron de Precisión (Despliegue en cursor si está en rango)
 	if (p_type == "mine" or p_type == "electron") and p_target_pos != Vector2.ZERO:

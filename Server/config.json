@@ -7899,7 +7899,7 @@
                 },
                 {
                     "bulletSpeed": 800,
-                    "cooldown": 1000,
+                    "cooldown": 10000,
                     "id": "am_m2",
                     "mechanics": [],
                     "name": "Misil T2",

@@ -98,11 +98,21 @@ function registerCombatHandlers(socket, io, state) {
         const validTypes = ['laser', 'missile', 'mine', 'melee', 'heal', 'siphon', 'emp', 'electron'];
         const typeKey = validTypes.includes(ammoType) ? ammoType : 'laser';
 
-        // v314.0: Rate Limiting de Disparos (Anti-Cheat Cooldown)
+        // v400.0: Requisitos de equipamiento de munición (nivel, misiones, etc.)
+        const ammoList = (state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo) ? state.SERVER_CONFIG.shopItems.ammo[typeKey] : null;
+        const ammoMaster = (ammoList && Array.isArray(ammoList)) ? ammoList[ammoTier] : null;
+
+        // v314.0: Rate Limiting de Disparos (Anti-Cheat Cooldown Autoritativo dinámico desde Admin Dash)
         const now = Date.now();
         p.lastFireTimes = p.lastFireTimes || {};
         const lastFire = p.lastFireTimes[typeKey] || 0;
-        const cooldownMs = 120; // 120ms mínimo entre disparos de la misma categoría
+        
+        let cooldownMs = 120; // Límite mínimo/fallback entre disparos
+        if (ammoMaster && ammoMaster.cooldown !== undefined) {
+            // Aplicamos una tolerancia de lag del 10% para no desconectar a jugadores legítimos
+            cooldownMs = Math.max(120, (Number(ammoMaster.cooldown) || 120) * 0.9);
+        }
+        
         if (now - lastFire < cooldownMs && !p.isAdmin) {
             return;
         }
@@ -111,10 +121,6 @@ function registerCombatHandlers(socket, io, state) {
         if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][ammoTier] || 0) <= 0) {
             return; 
         }
-
-        // v400.0: Requisitos de equipamiento de munición (nivel, misiones, etc.)
-        const ammoList = (state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo) ? state.SERVER_CONFIG.shopItems.ammo[typeKey] : null;
-        const ammoMaster = (ammoList && Array.isArray(ammoList)) ? ammoList[ammoTier] : null;
         // v620.0: Ojito de visibilidad — munición hidden no puede dispararse ni siquiera con cliente hackeado
         if (ammoMaster && ammoMaster.hidden) {
             return;
