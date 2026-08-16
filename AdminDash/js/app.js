@@ -313,7 +313,8 @@ function connect() {
                         missile: [50, 0, 0, 0, 0, 0],
                         mine: [10, 0, 0, 0, 0, 0]
                     },
-                    expRequirements: Array(30).fill(0).map((_, i) => (i + 1) * 1000)
+                    expRequirements: Array(30).fill(0).map((_, i) => (i + 1) * 1000),
+                    sphereSlotRequirements: Array.from({ length: 4 }, (_, i) => ({ name: `Slot ${i + 1}`, requirements: [] }))
                 };
             }
 

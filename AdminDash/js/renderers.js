@@ -3029,8 +3029,16 @@ function renderPilot() {
             startingOhcu: 0,
             startingShipId: 1,
             startingMapId: 1,
-            expRequirements: Array(30).fill(0).map((_, i) => (i + 1) * 1000)
+            expRequirements: Array(30).fill(0).map((_, i) => (i + 1) * 1000),
+            sphereOrbitRadius: 350,
+            sphereOrbitSpeed: 1.5
         };
+    }
+    // v680.0: Desbloqueo de slots de esferas por requisitos (4 slots)
+    if (!Array.isArray(config.pilotConfig.sphereSlotRequirements) || config.pilotConfig.sphereSlotRequirements.length < 4) {
+        const existing = config.pilotConfig.sphereSlotRequirements || [];
+        while (existing.length < 4) existing.push({ name: `Slot ${existing.length + 1}`, requirements: [] });
+        config.pilotConfig.sphereSlotRequirements = existing;
     }
     
     if (!config.vaultConfig) {
@@ -3136,6 +3144,31 @@ function renderPilot() {
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="card">
+            <h4 style="color:var(--accent); margin-bottom:1rem;">🛰️ ÓRBITA DE ESFERAS ALREDEDOR DE LA NAVE</h4>
+            <div style="font-size:0.68rem; opacity:0.6; margin-bottom:0.8rem;">Mismo comportamiento que la mecánica "Ataque Orbital": radio en PX, velocidad en rad/s, conversión a 3D con scale_factor + correction_z del mapa. Muestra los valores en uso actualmente; cámbialos cuando quieras y guarda.</div>
+            <div class="form-grid">
+                <div class="field"><label>RADIO DE ÓRBITA (PX)</label>
+                    <input type="number" step="10" min="1" value="${config.pilotConfig.sphereOrbitRadius ?? 350}" onchange="config.pilotConfig.sphereOrbitRadius = parseFloat(this.value)" style="font-family:'JetBrains Mono'; font-weight:bold; color:var(--primary);">
+                </div>
+                <div class="field"><label>VEL. GIRO (RAD/S)</label>
+                    <input type="number" step="0.1" min="0.1" value="${config.pilotConfig.sphereOrbitSpeed ?? 1.5}" onchange="config.pilotConfig.sphereOrbitSpeed = parseFloat(this.value)" style="font-family:'JetBrains Mono'; font-weight:bold; color:var(--primary);">
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h4 style="color:var(--accent); margin-bottom:1rem;">🔮 DESBLOQUEO DE ESFERAS ORBITALES</h4>
+            <div style="font-size:0.68rem; opacity:0.6; margin-bottom:0.8rem;">Cada slot se desbloquea cumpliendo sus requisitos (nivel, misión completada, desbloqueo o esferas). Sin requisitos = disponible desde el inicio. El servidor valida siempre; nadie puede abrir un slot por hack.</div>
+            ${[0,1,2,3].map(slotIdx => `
+                <div style="background:rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:12px; margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                        <span style="color:#c792ea; font-weight:bold; font-size:0.75rem; min-width:70px;">SLOT ${slotIdx + 1}</span>
+                        <input type="text" value="${reqAttrEscape((config.pilotConfig.sphereSlotRequirements[slotIdx] || {}).name || '')}" placeholder="Nombre del slot (ej: Núcleo de Combate)" style="flex:1; min-width:120px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.15); border-radius:4px; padding:2px 6px; font-size:0.65rem;" onchange="config.pilotConfig.sphereSlotRequirements[${slotIdx}].name = this.value">
+                    </div>
+                    ${requirementsSectionHtml('req_slot_' + slotIdx, 'config.pilotConfig.sphereSlotRequirements[' + slotIdx + ']')}
+                </div>
+            `).join('')}
         </div>
     `;
 

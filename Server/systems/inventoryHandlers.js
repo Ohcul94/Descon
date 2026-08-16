@@ -793,6 +793,20 @@ function registerInventoryHandlers(socket, io, state) {
                 }
             }
 
+            // v680.0: Desbloqueo de slots de esferas por requisitos (nivel, misiones, etc.)
+            // El servidor es la fuente autoritativa: nadie puede equipar en un slot bloqueado.
+            const pilotCfg = state.SERVER_CONFIG?.pilotConfig || {};
+            const slotReqs = (Array.isArray(pilotCfg.sphereSlotRequirements) && pilotCfg.sphereSlotRequirements[sphereId])
+                ? (pilotCfg.sphereSlotRequirements[sphereId].requirements || [])
+                : [];
+            if (slotReqs.length > 0) {
+                const slotCheck = checkRequirements(p, slotReqs, state.SERVER_CONFIG);
+                if (!slotCheck.ok) {
+                    sendInventoryData(socket, user);
+                    return socket.emit('gameNotification', { msg: `ESFERA BLOQUEADA: ${slotCheck.msg}`, type: 'error' });
+                }
+            }
+
             // v262.735: Blindaje de datos. Si el slot no existe, lo creamos.
             while (user.gameData.spheres.length <= sphereId) {
                 user.gameData.spheres.push({ name: `Slot ${user.gameData.spheres.length + 1}`, type: "any", color: "#ffffff", equipped: null });

@@ -728,7 +728,8 @@ func _process(delta):
 				_3d_propulsion.emitting = is_moving
 		
 		# 4. ACTUALIZAR ÓRBITA DE ESFERAS (Sincronización suave + Inventario)
-		_spheres_angle += delta * 0.3 
+		# El avance de ángulo y el posicionamiento se hacen en el bloque v235.69
+		# con la velocidad y radio configurables (mismo patrón que Ataque Orbital).
 		var is_auth = username == "Unknown" or username == ""
 		
 		# Buscamos el manager de esferas para saber qué está equipado
@@ -737,18 +738,6 @@ func _process(delta):
 		for i in range(4):
 			var s_node = _3d_spheres[i]
 			if is_instance_valid(s_node):
-				# Radio 2.3 local (Phoenix)
-				var r = 2.3
-				var s_angle = _spheres_angle + (i * TAU / 4.0)
-				
-				# POSICIONAMIENTO 3D DINÁMICO
-				var target_x = cos(s_angle) * r
-				var target_z = sin(s_angle) * r
-				# Efecto "Subibaja" (Levitación independiente y desfasada)
-				var bobbing = sin(Time.get_ticks_msec() * 0.002 + i * 2.0) * 0.4
-				
-				s_node.position = Vector3(target_x, bobbing, target_z)
-				
 				var pulse = 1.0 + sin(Time.get_ticks_msec() * 0.005 + i) * 0.1
 				s_node.scale = Vector3(0.6, 0.6, 0.6) * pulse
 				
@@ -782,14 +771,20 @@ func _process(delta):
 			actual_model.rotation_degrees = m_rot
 			
 		# v235.69: Órbita individual de esferas (sin rotar el pivot, cada una se mueve por separado)
-		_spheres_angle += delta * 1.2
+		# MISMO PATRÓN que Ataque Orbital (Projectile.gd): la posición se calcula en unidades 2D
+		# del mundo (radio/velocidad configurables desde AdminDash) y se convierte a 3D con
+		# scale_factor + correction_z del mapa, exactamente como los proyectiles orbitales.
+		_spheres_angle += delta * _get_sphere_orbit_speed()
 		if is_instance_valid(accessory_pivot_3d):
-			var orbit_r = 7.0
+			var map_node = _get_map_node()
+			var sf: float = map_node.scale_factor if is_instance_valid(map_node) and "scale_factor" in map_node else 0.02
+			var cz: float = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
+			var orbit_r_2d = _get_sphere_orbit_radius()
 			for _si in range(_3d_spheres.size()):
 				var _s3d = _3d_spheres[_si]
 				if is_instance_valid(_s3d):
 					var _a = _spheres_angle + (_si * PI * 0.5)
-					_s3d.position = Vector3(cos(_a) * orbit_r, 0.0, sin(_a) * orbit_r)
+					_s3d.position = Vector3(cos(_a) * orbit_r_2d * sf, 0.0, sin(_a) * orbit_r_2d * sf * cz)
 		
 		# Sincronización de visibilidad y anti-rotación del Sprite2D (Ocultar si es Lienzo Único)
 		if is_instance_valid(sprite):
@@ -3169,6 +3164,35 @@ func _update_3d_shield(delta: float):
 					anim.play("start_animation")
 
 
+# Radio orbital de esferas configurable desde AdminDash (pilotConfig.sphereOrbitRadius).
+# MISMA UNIDAD que la mecánica Ataque Orbital (Projectile.gd orbit_radius = 150.0):
+# unidades 2D del mundo. La conversión a 3D (scale_factor + correction_z del mapa) se
+# hace en el posicionamiento, igual que en los proyectiles orbitales.
+# Fallback: 350 (equivale a los 7.0 3D actuales con scale_factor 0.02).
+func _get_sphere_orbit_radius() -> float:
+	var fallback := 350.0
+	if NetworkManager and NetworkManager.server_config:
+		var pc: Variant = NetworkManager.server_config.get("pilotConfig", {})
+		if typeof(pc) == TYPE_DICTIONARY:
+			var v: Variant = pc.get("sphereOrbitRadius", fallback)
+			if (typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT) and float(v) > 0.0:
+				return float(v)
+	return fallback
+
+# Velocidad de rotación de las esferas orbitales (rad/s) configurable desde AdminDash
+# (pilotConfig.sphereOrbitSpeed). MISMA UNIDAD que Ataque Orbital (orbit_speed = 2.0).
+# Fallback: 1.5 (velocidad total actual del juego: 0.3 + 1.2).
+func _get_sphere_orbit_speed() -> float:
+	var fallback := 1.5
+	if NetworkManager and NetworkManager.server_config:
+		var pc: Variant = NetworkManager.server_config.get("pilotConfig", {})
+		if typeof(pc) == TYPE_DICTIONARY:
+			var v: Variant = pc.get("sphereOrbitSpeed", fallback)
+			if (typeof(v) == TYPE_INT or typeof(v) == TYPE_FLOAT) and float(v) > 0.0:
+				return float(v)
+	return fallback
+
+
 func _update_3d_spheres():
 	var sm = get_node_or_null("SpheresManager")
 	if not sm or not accessory_pivot_3d: return
@@ -3201,8 +3225,12 @@ func _update_3d_spheres():
 			accessory_pivot_3d.add_child(s_scene)
 			_3d_spheres[i] = s_scene
 			var a = i * (PI/2.0)
-			var r = 7.0 
-			s_scene.position = Vector3(cos(a)*r, 0, sin(a)*r)
+			# Mismo patrón que Ataque Orbital: radio en unidades 2D → 3D con scale_factor del mapa
+			var map_node = _get_map_node()
+			var sf: float = map_node.scale_factor if is_instance_valid(map_node) and "scale_factor" in map_node else 0.02
+			var cz: float = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
+			var r = _get_sphere_orbit_radius() * sf
+			s_scene.position = Vector3(cos(a)*r, 0, sin(a)*r * cz)
 			s_scene.scale = Vector3(3.0, 3.0, 3.0) 
 			
 			# print("[FIX] Esfera cargada sin luces extra.")

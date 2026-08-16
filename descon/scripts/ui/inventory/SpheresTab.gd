@@ -155,6 +155,13 @@ func _render_spheres_equipment(tab, _sub_tabs):
 		var s_data = sm.spheres_data[i]
 		var s_color = s_data.get("color", Color.WHITE)
 		
+		# v680.0: Desbloqueo de slots de esferas por requisitos (validación local UX; el servidor es autoritativo)
+		var slot_check := {"ok": true, "msg": ""}
+		if NetworkManager:
+			slot_check = NetworkManager.check_sphere_slot_requirements(i)
+		var slot_locked: bool = not slot_check.get("ok", true)
+		var slot_req_msg: String = str(slot_check.get("msg", ""))
+		
 		if typeof(s_color) == TYPE_STRING:
 			var c_str = s_color.replace("(","").replace(")","").replace(" ","")
 			if "," in c_str:
@@ -230,7 +237,18 @@ func _render_spheres_equipment(tab, _sub_tabs):
 		var type_label = Label.new(); type_label.text = type_txt; type_label.modulate = final_color; type_label.horizontal_alignment = 1; type_label.add_theme_font_size_override("font_size", 9); v_box.add_child(type_label)
 		
 		var b = Button.new(); b.text = "RECONFIGURAR" if equipped else "EQUIPAR NÚCLEO"; b.add_theme_font_size_override("font_size", 9); v_box.add_child(b)
-		if is_comb:
+		if slot_locked:
+			b.text = "🔒 BLOQUEADA"
+			b.disabled = true
+			b.modulate = Color(1, 0.4, 0.4)
+			var lock_lbl = Label.new()
+			lock_lbl.text = "🔒 " + slot_req_msg
+			lock_lbl.add_theme_font_size_override("font_size", 8)
+			lock_lbl.modulate = Color(1, 0.35, 0.35)
+			lock_lbl.horizontal_alignment = 1
+			lock_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			v_box.add_child(lock_lbl)
+		elif is_comb:
 			b.disabled = true
 		else:
 			b.pressed.connect(func():
@@ -257,6 +275,13 @@ func _render_spheres_equipment(tab, _sub_tabs):
 		p_ui.gui_input.connect(func(ev): 
 			if ev is InputEventMouseButton and ev.pressed:
 				if is_comb: return
+				if slot_locked:
+					if NetworkManager:
+						NetworkManager.game_notification.emit({
+							"msg": "ESFERA BLOQUEADA: " + slot_req_msg,
+							"type": "error"
+						})
+					return
 				if inv_main.get("pending_skill_to_equip") != null:
 					# Confirmar equipamiento
 					var skill = inv_main.pending_skill_to_equip
@@ -280,11 +305,17 @@ func _render_spheres_equipment(tab, _sub_tabs):
 		)
 		
 		# v301.5: Efecto visual de "Esperando Selección"
-		if inv_main.get("pending_skill_to_equip") != null:
+		if inv_main.get("pending_skill_to_equip") != null and not slot_locked:
 			var tween = create_tween().set_loops()
 			if is_instance_valid(sb):
 				tween.tween_property(sb, "border_color", Color.WHITE, 0.4)
 				tween.tween_property(sb, "border_color", final_color, 0.4)
+		
+		# v680.0: Slot bloqueado → atenuado y con borde neutro
+		if slot_locked:
+			v_box.modulate.a = 0.45
+			sb.bg_color = Color(0.05, 0.05, 0.08, 0.4)
+			sb.border_color = Color(1, 1, 1, 0.15)
 
 
 func _render_spheres_library(tab):

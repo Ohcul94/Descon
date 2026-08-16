@@ -647,6 +647,23 @@ func check_equip_requirements(item_id: String = "", skill_name: String = "", amm
 		reqs = _get_skill_requirements(skill_name)
 	elif item_id != "":
 		reqs = _get_item_requirements(item_id)
+	return _run_requirements_check(reqs)
+
+# v680.0: Desbloqueo de slots de esferas por requisitos (validación local UX)
+# El servidor es la fuente autoritativa; esto solo evita UI y da feedback.
+func check_sphere_slot_requirements(sphere_slot: int) -> Dictionary:
+	var reqs: Array = []
+	var pilot_cfg: Dictionary = server_config.get("pilotConfig", {}) if server_config.has("pilotConfig") else {}
+	var slots: Array = pilot_cfg.get("sphereSlotRequirements", []) if typeof(pilot_cfg) == TYPE_DICTIONARY else []
+	if typeof(slots) == TYPE_ARRAY and slots.size() > sphere_slot:
+		var slot_entry: Variant = slots[sphere_slot]
+		if typeof(slot_entry) == TYPE_DICTIONARY:
+			var s_reqs: Variant = slot_entry.get("requirements", [])
+			if typeof(s_reqs) == TYPE_ARRAY:
+				reqs = s_reqs
+	return _run_requirements_check(reqs)
+
+func _run_requirements_check(reqs: Array) -> Dictionary:
 	if reqs.is_empty():
 		return {"ok": true, "msg": ""}
 	

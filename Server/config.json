@@ -1589,7 +1589,13 @@
                     "fireRate": 820,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "orbital_strike",
+                    "orbitSpeed": 0,
+                    "circleCount": 0,
+                    "orbitRadius": 0,
+                    "orbitDuration": 0,
+                    "staticTime": 0,
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
@@ -6851,7 +6857,42 @@
         "startingHubs": 0,
         "startingMapId": 1,
         "startingOhcu": 0,
-        "startingShipId": 1
+        "startingShipId": 1,
+        "sphereSlotRequirements": [
+            {
+                "name": "Slot 1",
+                "requirements": []
+            },
+            {
+                "name": "Slot 2",
+                "requirements": [
+                    {
+                        "type": "level",
+                        "min": 5
+                    }
+                ]
+            },
+            {
+                "name": "Slot 3",
+                "requirements": [
+                    {
+                        "type": "level",
+                        "min": 9
+                    }
+                ]
+            },
+            {
+                "name": "Slot 4",
+                "requirements": [
+                    {
+                        "type": "level",
+                        "min": 15
+                    }
+                ]
+            }
+        ],
+        "sphereOrbitRadius": 150,
+        "sphereOrbitSpeed": 0.5
     },
     "questsConfig": [
         {
@@ -7004,7 +7045,7 @@
             "hp": 10,
             "icon": "res://assets/Personajes/2D/Nave1/Nave1 (Lista).png",
             "id": 1,
-            "name": "Phoenix-L1",
+            "name": "Roncorrorincus 1",
             "prices": {
                 "hubs": 0,
                 "ohcu": 0
@@ -8097,18 +8138,6 @@
                 "shieldMod": 10,
                 "hpMod": 10,
                 "dmgMod": 10
-            },
-            {
-                "base": 100,
-                "desc": "Núcleo de plasma.",
-                "icon": "res://assets/Motores/Motor3/Motor3.png",
-                "id": "en3",
-                "name": "Motor M3",
-                "prices": {
-                    "hubs": 300000,
-                    "ohcu": 300
-                },
-                "hidden": true
             }
         ],
         "extras": [
@@ -8237,56 +8266,6 @@
                 },
                 "hpMod": 10,
                 "speedMod": 10
-            },
-            {
-                "base": 15000,
-                "desc": "Campo gravitacional.",
-                "icon": "res://assets/Escudos/Escudo3/Escudo3.png",
-                "id": "sh3",
-                "name": "Escudo SG3",
-                "prices": {
-                    "hubs": 500000,
-                    "ohcu": 500
-                },
-                "hidden": true
-            },
-            {
-                "base": 40000,
-                "desc": "Reparación por nanobots.",
-                "icon": "res://assets/Escudos/Escudo4/Escudo4.png",
-                "id": "sh4",
-                "name": "Escudo NX",
-                "prices": {
-                    "hubs": 2000000,
-                    "ohcu": 2000
-                },
-                "hidden": true
-            },
-            {
-                "base": 100000,
-                "desc": "Tecnología alienígena.",
-                "icon": "res://assets/Escudos/Escudo5/Escudo5.png",
-                "id": "sh5",
-                "name": "Escudo Fusion",
-                "premium": true,
-                "prices": {
-                    "hubs": 0,
-                    "ohcu": 10000
-                },
-                "hidden": true
-            },
-            {
-                "base": 250000,
-                "desc": "Casi invulnerable.",
-                "icon": "res://assets/Escudos/Escudo6/Escudo6.png",
-                "id": "sh6",
-                "name": "Generador Z+",
-                "premium": true,
-                "prices": {
-                    "hubs": 0,
-                    "ohcu": 25000
-                },
-                "hidden": true
             }
         ],
         "weapons": [
@@ -8318,56 +8297,6 @@
                 },
                 "speedMod": 10,
                 "hpMod": 10
-            },
-            {
-                "base": 60,
-                "desc": "Estándar militar.",
-                "icon": "res://assets/Armas/Arma3/Arma3.png",
-                "id": "las3",
-                "name": "Láser 3",
-                "prices": {
-                    "hubs": 200000,
-                    "ohcu": 200
-                },
-                "hidden": true
-            },
-            {
-                "base": 150,
-                "desc": "Vanguardia tecnológica.",
-                "icon": "res://assets/Armas/Arma4/Arma4.png",
-                "id": "las4",
-                "name": "Láser 4",
-                "prices": {
-                    "hubs": 1000000,
-                    "ohcu": 1000
-                },
-                "hidden": true
-            },
-            {
-                "base": 500,
-                "desc": "Poder solar concentrado.",
-                "icon": "res://assets/Armas/Arma5/Arma5.png",
-                "id": "las5",
-                "name": "Láser 5",
-                "premium": true,
-                "prices": {
-                    "hubs": 0,
-                    "ohcu": 5000
-                },
-                "hidden": true
-            },
-            {
-                "base": 1500,
-                "desc": "Disruptor de materia.",
-                "icon": "res://assets/Armas/Arma6/Arma6.png",
-                "id": "las6",
-                "name": "Láser 6",
-                "premium": true,
-                "prices": {
-                    "hubs": 0,
-                    "ohcu": 15000
-                },
-                "hidden": true
             }
         ]
     },
