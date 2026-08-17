@@ -273,7 +273,9 @@ func _compress_image(p_bytes: PackedByteArray) -> Dictionary:
 				return {}
 	const MAX_DIM := 1280
 	const TARGET_MAX_BYTES := 256 * 1024
-
+	if img.get_width() > MAX_DIM or img.get_height() > MAX_DIM:
+		var scale_factor := float(MAX_DIM) / float(maxi(img.get_width(), img.get_height()))
+		img.resize(maxi(1, int(round(img.get_width() * scale_factor))), maxi(1, int(round(img.get_height() * scale_factor))), Image.INTERPOLATE_LANCZOS)
 	var out := img.save_jpg_to_buffer(0.85)
 	if out.size() > TARGET_MAX_BYTES:
 		out = img.save_jpg_to_buffer(0.6)
