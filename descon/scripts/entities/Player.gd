@@ -1231,6 +1231,8 @@ func update_stats(data):
 		electron_speed_buff_timer = float(eb.get("duration", 3000.0)) / 1000.0
 		electron_speed_buff_pct = float(eb.get("pct", 15.0))
 		electron_speed_buff_stacks = int(eb.get("stacks", 1))
+		set_debuff_timer("electron_speed", electron_speed_buff_timer, electron_speed_buff_stacks)
+		_recalculate_stats()
 	
 	# v410: Polimorfia - Recibir flags de movimiento/habilidades del servidor
 	var poly_active = false
