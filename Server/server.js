@@ -301,7 +301,7 @@ app.post('/api/upload-asset', express.json({ limit: '20mb' }), async (req, res) 
         
         // SEGURIDAD: Validar extensión contra lista blanca de assets seguros
         const ext = path.extname(safeFileName).toLowerCase();
-        const allowedExtensions = ['.glb', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.import', '.json'];
+        const allowedExtensions = ['.glb', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.import', '.json', '.ogg', '.mp3', '.wav', '.flac'];
         if (!allowedExtensions.includes(ext)) {
             return res.status(400).json({ error: 'Extensión de archivo no permitida por seguridad' });
         }
@@ -1545,7 +1545,7 @@ io.on('connection', (socket) => {
                         await walk(fullPath);
                     } else {
                         const ext = path.extname(file).toLowerCase();
-                        if (['.png', '.jpg', '.jpeg', '.svg', '.tga', '.glb', '.gltf'].includes(ext)) {
+                        if (['.png', '.jpg', '.jpeg', '.svg', '.tga', '.glb', '.gltf', '.ogg', '.mp3', '.wav', '.flac'].includes(ext)) {
                             const rel = path.relative(assetsDir, fullPath).replace(/\\/g, '/');
                             fileList.push('res://assets/' + rel);
                         }

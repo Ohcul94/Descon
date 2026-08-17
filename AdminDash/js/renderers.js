@@ -1486,7 +1486,7 @@ const fieldLabelsMap = {
                                             warnDelayMs: "Tiempo de Espera del Área de Caída (ms)",
                                             bulletSpeed: "Vel. Calavera (px/s)",
                                             targetMode: "Modo de Selección de Objetivo",
-                                            targetSphereColor: "Color de Esfera (apunta al que m�s tenga de ese color)",
+                                            targetSphereColor: "Color de Esfera (apunta al que m�s tenga de ese color)",
                                             stealAmount: "Cantidad Robada (pts)",
                                             stealIntervalMs: "Intervalo de Robo (ms)",
                                             stealMode: "Modo de Robo",
@@ -1758,7 +1758,7 @@ if (f === 'targetMode') {
                                           // Solo se muestra si el criterio es "Por Color de Esfera"
                                           if ((m.targetMode || 'proximity') !== 'sphere_color') return '';
                                           const cval = m[f] || '';
-                                          return `<div class="field"><label>Color de Esfera (apunta al que m�s tenga de ese color)</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetSphereColor = this.value; renderEnemyDetail();">
+                                          return `<div class="field"><label>Color de Esfera (apunta al que m�s tenga de ese color)</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetSphereColor = this.value; renderEnemyDetail();">
                                               <option value="" ${cval === '' || cval === 'any' ? 'selected' : ''}>🌈 Cualquier Color</option>
                                               <option value="roja" ${cval === 'roja' ? 'selected' : ''}>🔴 Roja (Ataque)</option>
                                               <option value="azul" ${cval === 'azul' ? 'selected' : ''}>🔵 Azul (Defensa)</option>
@@ -1849,7 +1849,7 @@ if (f === 'targetMode') {
                                         stealAmount: "Cantidad de Robo",
                                         stealIntervalMs: "Intervalo de Robo (ms)",
                                         targetMode: "Selección del Objetivo",
-                                        targetSphereColor: "Color de Esfera (apunta al que m�s tenga de ese color)",
+                                        targetSphereColor: "Color de Esfera (apunta al que m�s tenga de ese color)",
                                         giveToEnemy: m.type === 'life_steal' ? "Transferir Vida Robada al Enemigo" : "Transferir Escudo Robado al Enemigo"
                                     };
                                     if (f === 'invisType') {
@@ -1974,7 +1974,7 @@ if (f === 'targetMode') {
                                         if ((m.targetMode || 'proximity') !== 'sphere_color') return '';
                                         const cval = m.targetSphereColor || '';
                                         return `
-                                            <div class="field" style="grid-column: 1 / -1;"><label>Color de Esfera (apunta al que m�s tenga de ese color)</label>
+                                            <div class="field" style="grid-column: 1 / -1;"><label>Color de Esfera (apunta al que m�s tenga de ese color)</label>
                                                 <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].targetSphereColor = this.value; renderEnemyDetail();">
                                                     <option value="" ${cval === '' || cval === 'any' ? 'selected' : ''}>🌈 Cualquier Color</option>
                                                     <option value="roja" ${cval === 'roja' ? 'selected' : ''}>🔴 Roja (Ataque)</option>
@@ -2413,6 +2413,46 @@ function renderMapDetail() {
             </div>
 
             <div class="col">
+                ${(() => {
+                    if (!m.music) m.music = { enabled: false, path: '', volumePercent: 60 };
+                    const music = m.music;
+                    const musicFileName = music.path ? music.path.split('/').pop() : '';
+                    const previewUrl = music.path ? (SERVER_URLS[activeEnv] + '/' + music.path.replace(/^res:\/\//, '')) : '';
+                    return `
+                <div class="card" style="width:100%; margin-bottom:1rem; border-color: ${music.enabled && music.path ? 'rgba(0,255,136,0.25)' : 'rgba(255,255,255,0.1)'};">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+                        <label style="color:var(--accent); font-size: 0.8rem; font-weight:bold; display:flex; align-items:center; gap:8px; margin:0;">
+                            🎵 MÚSICA DE LA ZONA (LOOP)
+                            <span style="font-size:0.6rem; color:#64748b; font-weight:normal; padding:2px 8px; border:1px solid rgba(255,255,255,0.15); border-radius:4px;">GLOBAL</span>
+                        </label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.75rem; color:var(--text-dim); margin:0;">
+                                <input type="checkbox" ${music.enabled ? 'checked' : ''} onchange="toggleMapMusic('${selectedMapId}', this.checked)" style="width:16px; height:16px; cursor:pointer; accent-color:var(--accent);">
+                                Activa
+                            </label>
+                            ${music.path ? `<button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.95rem; padding:0 2px;" title="Quitar música de esta zona" onclick="removeMapMusic('${selectedMapId}')">✕</button>` : ''}
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center; margin-bottom:0.8rem;">
+                        <button class="btn btn-primary" style="padding:6px 14px; font-size:0.72rem; white-space:nowrap;" onclick="pickMapMusic('${selectedMapId}')">📁 SELECCIONAR ARCHIVO</button>
+                        <span style="font-size:0.72rem; color:${music.path ? 'var(--success)' : '#64748b'}; font-family:'JetBrains Mono', monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${music.path || ''}">
+                            ${music.path ? '✓ ' + musicFileName : 'Ningún archivo seleccionado (el archivo debe estar dentro de descon/assets)'}
+                        </span>
+                    </div>
+                    ${music.path ? `
+                    <div style="margin-bottom:0.8rem;">
+                        <label style="font-size:0.65rem; color:#888; display:block; margin-bottom:6px;">VOLUMEN: <span id="map-music-vol-label" style="color:var(--accent); font-weight:bold;">${music.volumePercent}%</span></label>
+                        <input type="range" min="0" max="100" value="${music.volumePercent}" oninput="setMapMusicVolume('${selectedMapId}', this.value)" style="width:100%; accent-color:var(--accent); cursor:pointer;">
+                        <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:#555; font-family:'JetBrains Mono', monospace;"><span>SILENCIO</span><span>SUAVE</span><span>MEDIO</span><span>FULL</span></div>
+                    </div>
+                    <audio controls loop preload="none" style="width:100%; height:32px;" src="${previewUrl}"></audio>
+                    <div style="font-size:0.6rem; color:#64748b; margin-top:6px; line-height:1.4;">La música se reproduce en <strong style="color:var(--accent);">bucle infinito</strong> mientras los jugadores estén en este sector. Cambiá de zona y la música cambia automáticamente.</div>
+                    ` : `
+                    <div style="font-size:0.62rem; color:#64748b; line-height:1.5;">Los archivos de audio van en <strong style="color:var(--accent); font-family:'JetBrains Mono';">descon/assets/Musica/</strong> (WAV, OGG o MP3). Seleccioná el archivo desde el botón y configurá su volumen.</div>
+                    `}
+                </div>
+                    `;
+                })()}
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;"><label style="color:var(--accent); font-size: 0.8rem; font-weight:bold;">☢️ MECÁNICAS DE AMBIENTE (HAZARDS)</label><button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.7rem;" onclick="openMapAddModal('ambience')">+ AGREGAR EFECTO</button></div>
                         <div id="ambience-list" style="margin-bottom: 2rem;">
                     ${m.ambience.map((a, idx) => {
@@ -6582,6 +6622,59 @@ window.triggerMapObjAssetPick = async function(mapId, objIdx) {
         }
     };
     input.click();
+};
+
+// ─── MÚSICA DE LA ZONA (Cartografía) ──────────────────────────────────────────
+// Seleccionar el archivo de audio de un mapa (debe existir dentro de descon/assets)
+window.pickMapMusic = function(mapId) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.wav,.ogg,.mp3,.flac,audio/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
+        try {
+            const response = await fetch(`${activeURL}/api/find-asset?fileName=${encodeURIComponent(file.name)}`);
+            const result = await response.json();
+            if (result.success && result.path) {
+                const m = config.mapsConfig[mapId];
+                if (!m.music) m.music = { enabled: false, path: '', volumePercent: 60 };
+                m.music.path = result.path;
+                renderMapDetail();
+            } else {
+                alert('❌ ' + (result.error || 'Archivo no encontrado en los assets del proyecto.\n\nAsegurate de que el archivo esté dentro de la carpeta descon/assets (ej: descon/assets/Musica/).'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error al conectar con el servidor local.');
+        }
+    };
+    input.click();
+};
+
+window.removeMapMusic = function(mapId) {
+    const m = config.mapsConfig[mapId];
+    if (!m) return;
+    if (m.music) m.music.path = '';
+    renderMapDetail();
+};
+
+window.toggleMapMusic = function(mapId, enabled) {
+    const m = config.mapsConfig[mapId];
+    if (!m) return;
+    if (!m.music) m.music = { enabled: false, path: '', volumePercent: 60 };
+    m.music.enabled = enabled;
+    renderMapDetail();
+};
+
+window.setMapMusicVolume = function(mapId, value) {
+    const m = config.mapsConfig[mapId];
+    if (!m) return;
+    if (!m.music) m.music = { enabled: false, path: '', volumePercent: 60 };
+    m.music.volumePercent = parseInt(value) || 0;
+    const label = document.getElementById('map-music-vol-label');
+    if (label) label.innerText = m.music.volumePercent + '%';
 };
 
 // Confirm selection from asset picker

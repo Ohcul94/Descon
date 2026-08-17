@@ -543,6 +543,10 @@ func _update_hud_map_name(zone_id):
 	
 	if is_instance_valid(local_player):
 		local_player.current_zone = z_id
+	
+	# v420.900: Música de la zona en bucle (configurada desde AdminDash > Cartografía)
+	if AudioManager and AudioManager.has_method("play_zone_music"):
+		AudioManager.play_zone_music(z_id)
 
 func _perform_local_respawn():
 	if is_instance_valid(local_player) and local_player.has_method("respawn"):
@@ -616,6 +620,11 @@ func _on_admin_config_received(data: Dictionary):
 		GameConstants.update_from_server(data)
 		if is_instance_valid(ui_inventory) and ui_inventory.visible: ui_inventory._refresh_data()
 		print("[WORLD] Configuración administrativa y constantes actualizadas.")
+		
+		# v420.901: Iniciar música de la zona apenas entra al juego (cuando llega la config del servidor)
+		if NetworkManager.is_logged_in and is_instance_valid(local_player) and "current_zone" in local_player:
+			if AudioManager and AudioManager.has_method("play_zone_music"):
+				AudioManager.play_zone_music(local_player.current_zone)
 
 func _update_background(zone_id):
 	# Guardar zone_id para el safety-net de arena

@@ -5166,9 +5166,14 @@
             "allowedHours": [],
             "ambience": [],
             "color": "#ffffff",
-            "desc": "Zona segura de reunión y comercio.",
+            "desc": "Zona segura de reuni��n y comercio.",
             "height": 2000,
             "minLevel": 1,
+            "music": {
+                "enabled": true,
+                "path": "res://assets/Musica/Descon.wav",
+                "volumePercent": 100
+            },
             "name": "Loby",
             "objects": [
                 {
@@ -5478,7 +5483,12 @@
             ],
             "timeRestrictionsEnabled": false,
             "warpCost": 0,
-            "width": 10000
+            "width": 10000,
+            "music": {
+                "enabled": true,
+                "path": "res://assets/Musica/bensound-happyrock.mp3",
+                "volumePercent": 60
+            }
         },
         "3": {
             "ambience": [],
@@ -5581,7 +5591,12 @@
                 }
             ],
             "warpCost": 0,
-            "width": 4000
+            "width": 4000,
+            "music": {
+                "enabled": false,
+                "path": "",
+                "volumePercent": 60
+            }
         },
         "4": {
             "ambience": [

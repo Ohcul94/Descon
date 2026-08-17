@@ -604,7 +604,7 @@ func _setup_ui():
 	bot_spacer.custom_minimum_size.y = 200
 	gfx_vbox.add_child(bot_spacer)
 
-	# ========================== TAB 4: SONIDO (PRÓXIMAMENTE) ==========================
+	# ========================== TAB 4: SONIDO ==========================
 	var scroll_audio = ScrollContainer.new()
 	scroll_audio.name = "SONIDO"
 	scroll_audio.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -619,13 +619,99 @@ func _setup_ui():
 	
 	var audio_vbox = VBoxContainer.new()
 	audio_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	audio_vbox.add_theme_constant_override("separation", 12)
 	margin_audio.add_child(audio_vbox)
 	
-	var audio_msg = Label.new()
-	audio_msg.text = "\n\nSISTEMA DE AUDIO EN DESARROLLO...\n\nPRÓXIMAMENTE PODRÁS CONFIGURAR EL VOLUMEN\nDE SFX, MÚSICA Y ENTORNO."
-	audio_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	audio_msg.modulate.a = 0.5
-	audio_vbox.add_child(audio_msg)
+	# --- MÚSICA DE LA ZONA ---
+	var audio_title = Label.new()
+	audio_title.text = "MÚSICA DE LA ZONA:"
+	audio_title.add_theme_color_override("font_color", Color.CYAN)
+	audio_vbox.add_child(audio_title)
+	
+	var audio_hint = Label.new()
+	audio_hint.text = "Cada sector tiene su propia música (configurada por el equipo en Cartografía). Acá controlás el volumen general y podés silenciarla."
+	audio_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	audio_hint.modulate.a = 0.7
+	audio_vbox.add_child(audio_hint)
+	
+	# Mute Música
+	var music_mute_row = HBoxContainer.new()
+	music_mute_row.add_theme_constant_override("separation", 10)
+	audio_vbox.add_child(music_mute_row)
+	
+	var music_mute_check = CheckBox.new()
+	music_mute_check.text = ""
+	music_mute_check.add_theme_stylebox_override("normal", check_style)
+	music_mute_check.add_theme_stylebox_override("pressed", check_style)
+	music_mute_check.add_theme_stylebox_override("hover", check_style)
+	if get_node_or_null("/root/SettingsManager"):
+		music_mute_check.button_pressed = SettingsManager.music_muted
+	music_mute_check.toggled.connect(func(val):
+		if get_node_or_null("/root/SettingsManager"):
+			SettingsManager.music_muted = val
+			SettingsManager.save_settings()
+			SettingsManager.apply_music_settings()
+	)
+	music_mute_row.add_child(music_mute_check)
+	
+	var music_mute_lbl = Label.new()
+	music_mute_lbl.text = "🔇 MUTEAR MÚSICA"
+	music_mute_row.add_child(music_mute_lbl)
+	
+	# Volumen Música
+	var music_vol_lbl = Label.new()
+	music_vol_lbl.text = "VOLUMEN DE LA MÚSICA:"
+	audio_vbox.add_child(music_vol_lbl)
+	
+	var music_vol_slider = HSlider.new()
+	music_vol_slider.min_value = 0; music_vol_slider.max_value = 100; music_vol_slider.step = 1
+	if get_node_or_null("/root/SettingsManager"):
+		music_vol_slider.value = SettingsManager.music_volume
+	music_vol_slider.value_changed.connect(func(val):
+		if get_node_or_null("/root/SettingsManager"):
+			SettingsManager.music_volume = val
+			SettingsManager.save_settings()
+			SettingsManager.apply_music_settings()
+	)
+	audio_vbox.add_child(music_vol_slider)
+	
+	var music_vol_value = Label.new()
+	music_vol_value.add_theme_color_override("font_color", Color.YELLOW)
+	audio_vbox.add_child(music_vol_value)
+	
+	var _update_vol_value = func():
+		var sm = get_node_or_null("/root/SettingsManager")
+		if not sm: return
+		var vol = int(sm.music_volume)
+		if sm.music_muted:
+			music_vol_value.text = "SILENCIADO (música en mute)"
+		elif vol <= 0:
+			music_vol_value.text = "VOLUMEN: 0% (silencio)"
+		else:
+			music_vol_value.text = "VOLUMEN: " + str(vol) + "%"
+	_update_vol_value.call()
+	if get_node_or_null("/root/SettingsManager"):
+		music_vol_slider.value_changed.connect(func(_v): _update_vol_value.call())
+		music_mute_check.toggled.connect(func(_v): _update_vol_value.call())
+	
+	audio_vbox.add_child(HSeparator.new())
+	
+	# --- EFECTOS DE SONIDO (informativo) ---
+	var sfx_title = Label.new()
+	sfx_title.text = "EFECTOS DE SONIDO (SFX):"
+	sfx_title.add_theme_color_override("font_color", Color.CYAN)
+	audio_vbox.add_child(sfx_title)
+	
+	var sfx_info = Label.new()
+	sfx_info.text = "Los efectos de sonido del juego (disparos, habilidades, daño) se mantienen al volumen estándar por ahora."
+	sfx_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sfx_info.modulate.a = 0.7
+	audio_vbox.add_child(sfx_info)
+	
+	# Bottom spacer para forzar scroll
+	var audio_spacer = Control.new()
+	audio_spacer.custom_minimum_size.y = 200
+	audio_vbox.add_child(audio_spacer)
 
 	# ========================== TAB 5: INTERFAZ Y LAYOUT ==========================
 	var scroll_hud = ScrollContainer.new()

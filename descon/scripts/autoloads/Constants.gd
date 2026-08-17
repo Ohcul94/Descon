@@ -34,7 +34,7 @@ var GAME_CONFIG = {
 }
 
 var MAPS_CONFIG = {
-	"1": { "name": "Loby", "desc": "Zona segura de reunión y comercio.", "color": "#ffffff", "warpCost": 0, "minLevel": 1 },
+	"1": { "name": "Loby", "desc": "Zona segura de reunión y comercio.", "color": "#ffffff", "warpCost": 0, "minLevel": 1, "music": { "enabled": true, "path": "res://assets/Musica/Descon.wav", "volumePercent": 60 } },
 	"2": { "name": "Mapa 2", "desc": "Zona de entrenamiento básico y recolección.", "color": "#00ff00", "warpCost": 0, "minLevel": 1 },
 	"3": { "name": "Mapa 3", "desc": "Sector hostil con recursos de nivel medio.", "color": "#ffff00", "warpCost": 10, "minLevel": 5 },
 	"4": { "name": "Mapa 4", "desc": "Nebulosa densa con piratas espaciales.", "color": "#ffaa00", "warpCost": 25, "minLevel": 10 },
