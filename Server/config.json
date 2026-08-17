@@ -2108,14 +2108,14 @@
             "bulletSpeed": 1200,
             "fireRange": 1400,
             "fireRate": 1200,
-            "hp": 300000,
+            "hp": 300,
             "isBoss": true,
             "mechanics": [
                 {
-                    "bulletDamage": 200,
+                    "bulletDamage": 1,
                     "bulletSpeed": 900,
                     "fireRange": 1200,
-                    "fireRate": 800,
+                    "fireRate": 2000,
                     "startDelay": 0,
                     "type": "laser"
                 }
@@ -2125,17 +2125,22 @@
                     "orbitRadius": 300,
                     "speed": 260,
                     "startDelay": 0,
-                    "type": "orbit"
+                    "type": "chase",
+                    "stopDist": 150
                 }
             ],
             "name": "Stellar Guardian",
             "rageTimer": 20,
-            "rankingPoints": 400,
-            "rewardExp": 100000,
-            "rewardHubs": 500000,
-            "rewardOhcu": 5000,
-            "shield": 150000,
-            "speed": 260
+            "rankingPoints": 1,
+            "rewardExp": 1,
+            "rewardHubs": 1,
+            "rewardOhcu": 1,
+            "shield": 300,
+            "speed": 260,
+            "defenseMechanics": [],
+            "lootDrops": [],
+            "icon": "res://assets/Enemigos/2D/Bosses/Boss4/Boss4.png",
+            "assetPath": "res://assets/Enemigos/3D/Bosses/Boss4/Animaciones/AnimacionesBoss4.glb"
         },
         "105": {
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss5/Animaciones/AnimacionesBoss5.glb",
@@ -6029,7 +6034,7 @@
                     "intervalMs": 5000,
                     "radius": 0,
                     "spawnMode": "fixed",
-                    "type": "106",
+                    "type": "104",
                     "x": 1094,
                     "y": 1597
                 }

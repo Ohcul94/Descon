@@ -43,7 +43,8 @@ A. Config del Servidor: Server/config.json → enemyModels["16"] (o "108")
 Agregá la entrada completa (stats, mechanics, movementPhases, defenseMechanics, lootDrops, assetPath, icon, rotX/rotY/rotZ, scale). El servidor la lee de forma genérica por type: AIManager.js (spawn + selección de AI), BaseAI.js, enemyLogic.js, gameLoop.js y lootManager.js — no hay lista blanca de tipos. Si el type es >= 101 o tiene isBoss: true, se trata como Boss (nombre "enemy_boss_...", filters de skills como boss).
 
 B. Assets Requeridos
-- 3D: carpeta descon/assets/Enemigos/3D/Enemigo{N}/Enemigo{N}.glb (común) o descon/assets/Enemigos/3D/Bosses/Boss{N}/Boss{N}.glb (boss). Si el GLB viene con animaciones, el cliente las detecta solo (AnimationPlayer) y reproduce la primera (idle/fly/walk/move).
+- 3D: carpeta descon/assets/Enemigos/3D/Enemigo{N}/Enemigo{N}.glb (común) o descon/assets/Enemigos/3D/Bosses/Boss{N}/Boss{N}.glb (boss).
+- IMPORTANTE (v421.0): Los GLB ANIMADOS (ej: exportados de Tripo/Blender con esqueleto + AnimationPlayer) NO se pueden reproducir todavía: Godot 4.6/4.7 congela el main loop cuando un AnimationPlayer reproduce cualquier animación dentro de un SubViewport (que es como el juego renderiza todas las entidades 3D). Por eso el cliente NO auto-reproduce animaciones: el modelo se muestra en su pose estática (visible y correcto). El soporte existe en código vía el campo opcional "animName" del config, pero NO debe usarse hasta que el bug del motor esté resuelto o se cambie la arquitectura de renderizado.
 - 2D (opcional pero recomendado): descon/assets/Enemigos/2D/Enemigo{N}/Enemigo{N}.png (PNG con transparencia).
 
 C. Cliente (opcional, solo para jugar sin conexión al servidor)

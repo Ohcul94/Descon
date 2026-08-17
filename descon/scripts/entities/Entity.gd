@@ -2564,7 +2564,12 @@ func _setup_enemy_visuals():
 			if "Viewport" in c.name or c is Sprite2D or c is Polygon2D or c.name == "Ship3DRender":
 				c.queue_free()
 		
-		_setup_3d_visuals(glb_path, enemy_rot_offset, enemy_pitch_offset)
+		# v421.0: Animación opcional del enemigo (campo "animName" del config).
+		# OJO: por bug de motor (freeze en SubViewport) solo funciona con "" (estático).
+		var cfg_anim = ""
+		if use_cfg_3d:
+			cfg_anim = str(enemy_cfg.get("animName", ""))
+		_setup_3d_visuals(glb_path, enemy_rot_offset, enemy_pitch_offset, cfg_anim)
 		if is_instance_valid(_3d_model):
 			# Conservar escala nativa del archivo original .glb pero multiplicada por 2.0 (o 6.0 si es Boss)
 			# v420: La escala puede venir configurada desde el AdminDash (campo "scale" del enemigo)
@@ -2871,7 +2876,7 @@ func play_skill_vfx(skill_name: String, amount: float = 0.0):
 
 
 # v219.70: SISTEMA DE RENDERIZADO 3D SOBRE 2D (EXPERIMENTAL)
-func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: float = 0.0):
+func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: float = 0.0, auto_anim: String = ""):
 	# print("[3D] Inicializando renderizado para: ", glb_path)
 	
 	# v306.4: Evitar duplicaciones de naves huérfanas al reconstruir el layout 3D en cambios de mapa
@@ -3002,6 +3007,13 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 			control_node.set_meta("model_aabb_size", total_aabb.size)
 		
 		# v252.23: INSPECTOR Y ACTIVADOR de ANIMACIONES
+		# v421.0-FIX: NO reproducir animaciones automáticamente.
+		# BUG DE MOTOR: Godot 4.6/4.7 (compatibility y forward+) congela el main loop
+		# cuando un AnimationPlayer reproduce CUALQUIER animación dentro de un
+		# SubViewport (patrón que usa todo el juego para renderizar entidades 3D).
+		# Los GLB animados de Tripo (Boss5/6/7) congelaban el juego al spawnear.
+		# Solución: la animación es OPCIONAL vía config "animName" (vacío = estático).
+		# Solo habilitar cuando el bug del motor esté resuelto.
 		var anim_player_3d = null
 
 		if model.has_node("AnimationPlayer"):
@@ -3012,19 +3024,13 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 				if child is AnimationPlayer:
 					anim_player_3d = child; break
 		
-		if anim_player_3d:
+		if anim_player_3d and auto_anim != "":
 			var anim_list = anim_player_3d.get_animation_list()
-			print("[3D-ANIM] ", entity_type, " tiene ", anim_list.size(), " animaciones: ", anim_list)
-			if anim_list.size() > 0:
-				var target_anim = anim_list[0]
-				# Priorizar nombres comunes
-				for a in anim_list:
-					var low = a.to_lower()
-					if "idle" in low or "fly" in low or "walk" in low or "move" in low:
-						target_anim = a; break
-				
-				anim_player_3d.play(target_anim)
-				print("[3D-ANIM] Reproduciendo: ", target_anim, " en ", entity_type)
+			if anim_list.has(auto_anim):
+				anim_player_3d.play(auto_anim)
+				print("[3D-ANIM] Reproduciendo: ", auto_anim, " en ", entity_type)
+			else:
+				print("[3D-ANIM-WARN] Animación '", auto_anim, "' no existe en ", entity_type, ". Disponibles: ", anim_list)
 		
 		_3d_model = control_node 
 		control_node.scale = Vector3(2.0, 2.0, 2.0) 

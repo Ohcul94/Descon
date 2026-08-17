@@ -2,21 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cxqltxs588o3r"
-path.s3tc="res://.godot/imported/Boss6_demon+dragon+3d+model_rm.jpg-2987daa69afba1ec26ae2288d5c31e91.s3tc.ctex"
-path.etc2="res://.godot/imported/Boss6_demon+dragon+3d+model_rm.jpg-2987daa69afba1ec26ae2288d5c31e91.etc2.ctex"
+uid="uid://cjtucr60ua1vn"
+path.s3tc="res://.godot/imported/AnimacionesBoss5_fantasy_creature_3d_model_basecolor.jpg-cde231967a4fa70770213a0ea6dec6fd.s3tc.ctex"
+path.etc2="res://.godot/imported/AnimacionesBoss5_fantasy_creature_3d_model_basecolor.jpg-cde231967a4fa70770213a0ea6dec6fd.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
-"md5": "597bfc260bdce5bed298d453ddb1a03f"
+"md5": "91f2cb20133340c984eed4aaf67d1b56"
 }
 
 [deps]
 
-source_file="res://assets/Enemigos/3D/Bosses/Boss6/Boss6_demon+dragon+3d+model_rm.jpg"
-dest_files=["res://.godot/imported/Boss6_demon+dragon+3d+model_rm.jpg-2987daa69afba1ec26ae2288d5c31e91.s3tc.ctex", "res://.godot/imported/Boss6_demon+dragon+3d+model_rm.jpg-2987daa69afba1ec26ae2288d5c31e91.etc2.ctex"]
+source_file="res://assets/Enemigos/3D/Bosses/Boss5/Animaciones/AnimacionesBoss5_fantasy_creature_3d_model_basecolor.jpg"
+dest_files=["res://.godot/imported/AnimacionesBoss5_fantasy_creature_3d_model_basecolor.jpg-cde231967a4fa70770213a0ea6dec6fd.s3tc.ctex", "res://.godot/imported/AnimacionesBoss5_fantasy_creature_3d_model_basecolor.jpg-cde231967a4fa70770213a0ea6dec6fd.etc2.ctex"]
 
 [params]
 

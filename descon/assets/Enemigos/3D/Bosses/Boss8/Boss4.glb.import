@@ -4,12 +4,12 @@ importer="scene"
 importer_version=1
 type="PackedScene"
 uid="uid://cbyhgf83fjy74"
-path="res://.godot/imported/Boss4.glb-8b57206fec2eaeb2b1e649b78b3f97ff.scn"
+path="res://.godot/imported/Boss4.glb-ab045e7ee2766f9004b27396716b4130.scn"
 
 [deps]
 
-source_file="res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb"
-dest_files=["res://.godot/imported/Boss4.glb-8b57206fec2eaeb2b1e649b78b3f97ff.scn"]
+source_file="res://assets/Enemigos/3D/Bosses/Boss8/Boss4.glb"
+dest_files=["res://.godot/imported/Boss4.glb-ab045e7ee2766f9004b27396716b4130.scn"]
 
 [params]
 

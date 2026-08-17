@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d0woe26ut4pqg"
-path.s3tc="res://.godot/imported/Boss6_demon+dragon+3d+model_normal.jpg-a4c3be5829946afb09134af2712ec3bf.s3tc.ctex"
-path.etc2="res://.godot/imported/Boss6_demon+dragon+3d+model_normal.jpg-a4c3be5829946afb09134af2712ec3bf.etc2.ctex"
+uid="uid://b735murerbub2"
+path.s3tc="res://.godot/imported/Boss6_demon_dragon_3d_model_normal.jpg-ac4e97bf61acf7c10abe9d1ffa03111d.s3tc.ctex"
+path.etc2="res://.godot/imported/Boss6_demon_dragon_3d_model_normal.jpg-ac4e97bf61acf7c10abe9d1ffa03111d.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/Enemigos/3D/Bosses/Boss6/Boss6_demon+dragon+3d+model_normal.jpg"
-dest_files=["res://.godot/imported/Boss6_demon+dragon+3d+model_normal.jpg-a4c3be5829946afb09134af2712ec3bf.s3tc.ctex", "res://.godot/imported/Boss6_demon+dragon+3d+model_normal.jpg-a4c3be5829946afb09134af2712ec3bf.etc2.ctex"]
+source_file="res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/Boss6_demon_dragon_3d_model_normal.jpg"
+dest_files=["res://.godot/imported/Boss6_demon_dragon_3d_model_normal.jpg-ac4e97bf61acf7c10abe9d1ffa03111d.s3tc.ctex", "res://.godot/imported/Boss6_demon_dragon_3d_model_normal.jpg-ac4e97bf61acf7c10abe9d1ffa03111d.etc2.ctex"]
 
 [params]
 
@@ -31,7 +31,7 @@ compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=1
-roughness/src_normal="res://assets/Enemigos/3D/Bosses/Boss6/Boss6_demon+dragon+3d+model_normal.jpg"
+roughness/src_normal="res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/Boss6_demon_dragon_3d_model_normal.jpg"
 process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2

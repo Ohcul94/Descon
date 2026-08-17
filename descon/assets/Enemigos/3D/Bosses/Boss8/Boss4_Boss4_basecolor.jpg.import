@@ -3,8 +3,8 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://drm0k0byflceq"
-path.s3tc="res://.godot/imported/Boss4_Boss4_basecolor.jpg-6da29f73f35db86f1684e51ddc901ae8.s3tc.ctex"
-path.etc2="res://.godot/imported/Boss4_Boss4_basecolor.jpg-6da29f73f35db86f1684e51ddc901ae8.etc2.ctex"
+path.s3tc="res://.godot/imported/Boss4_Boss4_basecolor.jpg-2e7781fa51d2bf2ab44a2e5480812a4a.s3tc.ctex"
+path.etc2="res://.godot/imported/Boss4_Boss4_basecolor.jpg-2e7781fa51d2bf2ab44a2e5480812a4a.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -15,8 +15,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/Enemigos/3D/Bosses/Boss4/Boss4_Boss4_basecolor.jpg"
-dest_files=["res://.godot/imported/Boss4_Boss4_basecolor.jpg-6da29f73f35db86f1684e51ddc901ae8.s3tc.ctex", "res://.godot/imported/Boss4_Boss4_basecolor.jpg-6da29f73f35db86f1684e51ddc901ae8.etc2.ctex"]
+source_file="res://assets/Enemigos/3D/Bosses/Boss8/Boss4_Boss4_basecolor.jpg"
+dest_files=["res://.godot/imported/Boss4_Boss4_basecolor.jpg-2e7781fa51d2bf2ab44a2e5480812a4a.s3tc.ctex", "res://.godot/imported/Boss4_Boss4_basecolor.jpg-2e7781fa51d2bf2ab44a2e5480812a4a.etc2.ctex"]
 
 [params]
 
