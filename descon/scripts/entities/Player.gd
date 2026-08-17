@@ -150,6 +150,8 @@ func _ready():
 		NetworkManager.status_effects_sync.connect(_on_status_effects_sync)
 		if not NetworkManager.config_updated.is_connected(_on_config_updated_recalc):
 			NetworkManager.config_updated.connect(_on_config_updated_recalc)
+		if not NetworkManager.connection_lost.is_connected(_on_connection_lost_player):
+			NetworkManager.connection_lost.connect(_on_connection_lost_player)
 	
 	# v690.2: Si cambia una esfera, validar que las municiones equipadas sigan cumpliendo requisitos
 	var sm_node = get_node_or_null("SpheresManager")
@@ -1176,6 +1178,11 @@ func respawn():
 		"id": entity_id, "hp": max_hp, "sh": max_shield,
 		"x": global_position.x, "y": global_position.y, "zone": current_zone
 	})
+
+func _on_connection_lost_player():
+	entity_id = ""
+	is_dead = false
+	velocity = Vector2.ZERO
 
 func _on_login_success(p_in):
 	_is_initializing = true # v269.170: Silenciar save_progress redundante

@@ -1,5 +1,7 @@
 {
   "ignore": [
-    "config.json"
+    "config.json",
+    "data/*",
+    "data/**/*.json"
   ]
 }

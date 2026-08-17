@@ -142,14 +142,14 @@ func connect_to_server(ip: String, port: int, p_name: String, p_token: String = 
 		print("[NET] Socket activo detectado. Cerrando para nueva conexión...")
 		socket.close()
 		socket = WebSocketPeer.new()
-		socket.inbound_buffer_size = 1024 * 1024
-		socket.outbound_buffer_size = 1024 * 1024
+		socket.inbound_buffer_size = 16 * 1024 * 1024
+		socket.outbound_buffer_size = 16 * 1024 * 1024
 		socket.max_queued_packets = 2048
 		network_connected = false
 		
 	# Asegurar que el socket inicial también tenga el buffer configurado
-	socket.inbound_buffer_size = 1024 * 1024
-	socket.outbound_buffer_size = 1024 * 1024
+	socket.inbound_buffer_size = 16 * 1024 * 1024
+	socket.outbound_buffer_size = 16 * 1024 * 1024
 	socket.max_queued_packets = 2048
 
 	login_name = p_name
@@ -195,6 +195,7 @@ func _process(_delta):
 	elif state == WebSocketPeer.STATE_CLOSED:
 		if network_connected:
 			network_connected = false
+			is_logged_in = false
 			connection_lost.emit()
 			print("[NET] Desconectado.")
 

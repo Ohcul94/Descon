@@ -585,7 +585,7 @@ func _process(_delta):
 					p.scale = p.scale.lerp(Vector2.ONE, 0.1)
 
 	var p_node = get_tree().get_first_node_in_group("player")
-	if not is_instance_valid(p_node) or p_node.get("is_dead") or p_node.get("entity_id") == "":
+	if not is_instance_valid(p_node) or p_node.get("is_dead") or p_node.get("entity_id") == "" or not NetworkManager.is_logged_in:
 		visible = false
 		return
 	else:

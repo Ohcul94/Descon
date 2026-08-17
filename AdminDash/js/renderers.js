@@ -7613,8 +7613,24 @@ window.emitGetRankings = function() {
 
 
 
-// v1.0: REPORTES DE BUGS
+// v1.1: REPORTES DE BUGS (local + cloud)
 let lastBugReports = [];
+function mergeBugReports(incoming, replaceSource, source) {
+    // Autoritativo: si es un listado completo (replaceSource), reemplaza TODOS los
+    // reportes de esa fuente (así un reporte eliminado en el servidor desaparece en
+    // vivo, incluso si la lista queda vacía).
+    if (replaceSource && source) {
+        lastBugReports = lastBugReports.filter(x => x.source !== source);
+    }
+    for (const r of incoming) {
+        const existing = lastBugReports.findIndex(x => x.source === r.source && String(x.id) === String(r.id));
+        if (existing >= 0) lastBugReports[existing] = r;
+        else lastBugReports.push(r);
+    }
+    lastBugReports.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    renderBugReports(lastBugReports);
+}
+
 function renderBugReports(data) {
     if (data) lastBugReports = data;
     const list = document.getElementById('bugreports-list');
@@ -7637,19 +7653,23 @@ function renderBugReports(data) {
         card.className = 'card';
         card.style.cssText = 'width:100%; border-left:3px solid ' + (r.status === 'resolved' ? 'var(--success)' : '#f0a500') + ';';
 
-        const fecha = r.createdAt ? new Date(r.createdAt).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' }) : '--';
+        const fecha = r.createdAt ? new Date(r.createdAt).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }) : '--';
 
-        const header = document.createElement('div');
+const header = document.createElement('div');
         header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:0.75rem; flex-wrap:wrap;';
+        const srcTag = r.source === 'cloud'
+            ? '<span class="card-tag" style="position:static; background:rgba(240,165,0,0.12); color:#f0a500; border:1px solid rgba(240,165,0,0.2);">\u2601\ufe0f SERVER</span>'
+            : '<span class="card-tag" style="position:static; background:rgba(0,210,255,0.12); color:var(--primary); border:1px solid rgba(0,210,255,0.2);">\ud83d\udcbb LOCAL</span>';
         header.innerHTML = '<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">' +
+            srcTag +
             '<strong style="color:var(--primary); font-size:1.05rem;">#' + r.id + ' \u2022 ' + escapeHtml(String(r.nick || 'Desconocido').toUpperCase()) + '</strong>' +
             '<span class="card-tag" style="position:static; background:rgba(0,210,255,0.1); color:var(--primary);">' + fecha + '</span>' +
-            '<span class="card-tag" style="position:static; background:rgba(255,255,255,0.05); color:#999;">SECTOR ' + (r.zone || 1) + ' \u00b7 LVL ' + (r.level || 1) + '</span>' +
+            '<span class="card-tag" style="position:static; background:rgba(255,255,255,0.05); color:#999;">SECTOR ' + (Number(r.zone) || 1) + ' \u00b7 LVL ' + (Number(r.level) || 1) + '</span>' +
             '<span class="card-tag" style="position:static; background:' + (r.status === 'resolved' ? 'rgba(59,255,49,0.1); color:#3bff31;' : 'rgba(240,165,0,0.1); color:#f0a500;') + '">' + (r.status === 'resolved' ? '\u2705 RESUELTO' : '\u23f3 ABIERTO') + '</span>' +
             '</div>' +
             '<div style="display:flex; gap:8px;">' +
-            '<button class="btn btn-secondary" onclick="setBugReportStatus(' + r.id + ', \'' + (r.status === 'resolved' ? 'open' : 'resolved') + '\')">' + (r.status === 'resolved' ? '\u21a9\ufe0f REABRIR' : '\u2705 MARCAR RESUELTO') + '</button>' +
-            '<button class="btn btn-danger" onclick="deleteBugReport(' + r.id + ')">\ud83d\uddd1\ufe0f ELIMINAR</button>' +
+            '<button class="btn btn-secondary" onclick="setBugReportStatus(' + r.id + ', \'' + (r.status === 'resolved' ? 'open' : 'resolved') + '\', \'' + (r.source || 'local') + '\')">' + (r.status === 'resolved' ? '\u21a9\ufe0f REABRIR' : '\u2705 MARCAR RESUELTO') + '</button>' +
+            '<button class="btn btn-danger" onclick="deleteBugReport(' + r.id + ', \'' + (r.source || 'local') + '\')">\ud83d\uddd1\ufe0f ELIMINAR</button>' +
             '</div>';
         card.appendChild(header);
 

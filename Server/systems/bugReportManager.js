@@ -12,10 +12,20 @@ const MAX_DESC_CHARS = 1000;
 const MAX_IMAGES = 2;
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3 MB por imagen
 const ALLOWED_MIMES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const REPORT_COOLDOWN_MS = 30000; // Anti-spam: 1 reporte por jugador cada 30 s
 
 let reports = [];
 let nextId = 1;
 let loaded = false;
+const lastReportByUser = new Map(); // user -> timestamp del último reporte
+
+function isRateLimited(userKey) {
+    const now = Date.now();
+    const last = lastReportByUser.get(userKey) || 0;
+    if (now - last < REPORT_COOLDOWN_MS) return true;
+    lastReportByUser.set(userKey, now);
+    return false;
+}
 
 function init() {
     if (loaded) return;
@@ -81,6 +91,7 @@ function validateImages(images) {
 
 function addReport({ nick, email, phone, description, images, zone, level, ip }) {
     init();
+    const clamp = (v, min, max) => Math.min(max, Math.max(min, Math.round(Number(v) || 1)));
     const report = {
         id: nextId++,
         nick: sanitizeText(String(nick || 'Desconocido'), 40),
@@ -88,8 +99,8 @@ function addReport({ nick, email, phone, description, images, zone, level, ip })
         phone: sanitizeText(String(phone || ''), 40),
         description: sanitizeText(String(description || ''), MAX_DESC_CHARS),
         images: images || [],
-        zone: Number(zone) || 1,
-        level: Number(level) || 1,
+        zone: clamp(zone, 1, 9999),
+        level: clamp(level, 1, 999),
         ip: sanitizeText(String(ip || ''), 60),
         status: 'open',
         createdAt: new Date().toISOString()
@@ -123,4 +134,4 @@ function setStatus(id, status) {
     return true;
 }
 
-module.exports = { init, sanitizeText, isValidEmail, validateImages, addReport, getAll, removeReport, setStatus };
+module.exports = { init, sanitizeText, isValidEmail, validateImages, addReport, getAll, removeReport, setStatus, isRateLimited };

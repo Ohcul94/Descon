@@ -156,7 +156,7 @@ function showTab(tabId) {
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
 
     if (tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
-    if (tabId === 'bugreports') socket.emit('getBugReports');
+    if (tabId === 'bugreports') loadBugReports();
     if (tabId === 'sessions' || tabId === 'users' || tabId === 'performance') {
         if (currentSessionSubTab === 'online') socket.emit('getOnlinePlayers');
         else if (currentSessionSubTab === 'history') socket.emit('getSessions', { page: currentSessionPage });
@@ -288,23 +288,26 @@ function connect() {
         if (document.getElementById('view-market').classList.contains('active')) renderMarket();
     });
 
-    // v1.0: Reportes de Bugs
-    socket.on('bugReportsList', (data) => {
-        renderBugReports(data || []);
-    });
-    socket.on('bugReportReceived', (report) => {
-        if (report) {
-            lastBugReports = [report, ...lastBugReports.filter(r => r.id !== report.id)];
-            renderBugReports(lastBugReports);
+    // v1.1: Reportes de Bugs - se escuchan desde AMBOS servidores (local y cloud)
+    const setupBugReportSocket = (sock, source) => {
+        sock.on('bugReportsList', (data) => {
+            mergeBugReports((data || []).map(r => ({ ...r, source })), true, source);
+        });
+        sock.on('bugReportReceived', (report) => {
+            if (!report) return;
+            mergeBugReports([{ ...report, source }], false);
             if (!document.getElementById('view-bugreports').classList.contains('active')) {
-                showToast(`🐛 NUEVO REPORTE DE BUG DE ${String(report.nick || '').toUpperCase()}`);
+                const srcTag = source === 'cloud' ? '☁️ SERVER' : '💻 LOCAL';
+                showToast(`🐛 NUEVO REPORTE DE BUG DE ${String(report.nick || '').toUpperCase()} (${srcTag})`);
             }
-        }
-    });
+        });
+    };
+    setupBugReportSocket(socketLocal, 'local');
+    setupBugReportSocket(socketCloud, 'cloud');
 
     socket.on('loginSuccess', (data) => {
         socket.emit('getAssetFiles');
-        socket.emit('getBugReports'); // v1.0: Cargar reportes de bugs
+        loadBugReports(); // v1.1: Cargar reportes de bugs de ambos servidores
         if (remember) {
             localStorage.setItem('admin_user', user);
             localStorage.setItem('admin_pass', pass);
@@ -479,18 +482,26 @@ function connect() {
     });
 }
 
-// v1.0: Reportes de Bugs - acciones del dashboard
+// v1.1: Reportes de Bugs - acciones del dashboard (apuntan al servidor de origen del reporte)
 function loadBugReports() {
-    if (socket && socket.connected) socket.emit('getBugReports');
+    if (socketLocal && socketLocal.connected) socketLocal.emit('getBugReports');
+    if (socketCloud && socketCloud.connected) socketCloud.emit('getBugReports');
 }
 
-function deleteBugReport(id) {
-    if (!confirm(`¿Eliminar el reporte de bug #${id}? Esta acción es permanente.`)) return;
-    if (socket && socket.connected) socket.emit('deleteBugReport', { id });
+function bugReportSocket(source) {
+    const sock = source === 'cloud' ? socketCloud : socketLocal;
+    return (sock && sock.connected) ? sock : null;
 }
 
-function setBugReportStatus(id, status) {
-    if (socket && socket.connected) socket.emit('setBugReportStatus', { id, status });
+function deleteBugReport(id, source) {
+    if (!confirm(`¿Eliminar el reporte de bug #${id}${source === 'cloud' ? ' (☁️ SERVER)' : ' (💻 LOCAL)'}? Esta acción es permanente.`)) return;
+    const sock = bugReportSocket(source);
+    if (sock) sock.emit('deleteBugReport', { id });
+}
+
+function setBugReportStatus(id, status, source) {
+    const sock = bugReportSocket(source);
+    if (sock) sock.emit('setBugReportStatus', { id, status });
 }
 
 function getFilter() {

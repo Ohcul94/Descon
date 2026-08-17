@@ -7,23 +7,7 @@
 **/export/
 **/.godot/
 **/.import/
-# Large binary folders (Never push these to GitHub)
-Ejecutable/
-Ejecutable Android/
-Ejecutable Web/
-Descon (Viejo)/
-*.pck
-*.exe
-*.apk
-# Node.js
-**/node_modules/
-**/npm-debug.log*
-**/.env
 
-# Godot
-**/export/
-**/.godot/
-**/.import/
 # Large binary folders (Never push these to GitHub)
 Ejecutable/
 Ejecutable Android/
@@ -35,6 +19,9 @@ Server/public/cdn/
 *.apk
 *.zip
 *.tmp
+
+# Server runtime data (reports, logs - each server has its own)
+Server/data/
 
 # System
 .DS_Store

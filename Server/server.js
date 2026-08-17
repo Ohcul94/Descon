@@ -8,7 +8,8 @@ const io = require('socket.io')(http, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"]
-    }
+    },
+    maxHttpBufferSize: 12 * 1024 * 1024 // 12 MB: permite reportes de bugs con hasta 2 imágenes de 3 MB (base64)
 });
 const path = require('path');
 const fs = require('fs-extra');
@@ -1869,6 +1870,11 @@ io.on('connection', (socket) => {
         try {
             const p = players[socket.id];
             if (!p) return;
+
+            // Anti-spam: máximo 1 reporte cada 30 segundos por jugador
+            if (bugReports.isRateLimited(p.user || socket.id)) {
+                return socket.emit('gameNotification', { msg: 'REPORTE RECHAZADO: ESPERÁ 30 SEGUNDOS ENTRE REPORTES.', type: 'warn' });
+            }
 
             const email = bugReports.sanitizeText(data && data.email, 200);
             const phone = bugReports.sanitizeText(data && data.phone, 40);

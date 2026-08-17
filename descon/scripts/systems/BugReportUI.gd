@@ -248,19 +248,40 @@ func _on_files_selected(paths: PackedStringArray):
 			continue
 		var bytes := f.get_buffer(file_len)
 		f.close()
-		var ext := p.get_extension().to_lower()
-		var mime := "image/png"
-		if ext == "jpg" or ext == "jpeg":
-			mime = "image/jpeg"
-		elif ext == "webp":
-			mime = "image/webp"
+		var comp := _compress_image(bytes)
+		if comp.is_empty():
+			continue
 		_attached_images.append({
 			"name": p.get_file(),
-			"mime": mime,
+			"mime": comp.mime,
 			"path": p,
-			"data": Marshalls.raw_to_base64(bytes)
+			"data": Marshalls.raw_to_base64(comp.bytes)
 		})
 	_refresh_images_ui()
+
+# v1.3: Comprime y redimensiona la imagen antes de enviarla. Un payload gigante
+# (imágenes de 3 MB en base64) excede el buffer del WebSocket y el servidor corta
+# la conexión. Tope duro de ~256 KB por imagen => 2 imágenes ≈ 700 KB base64,
+# cabe incluso en servidores con buffer de 1 MB.
+func _compress_image(p_bytes: PackedByteArray) -> Dictionary:
+	var img := Image.new()
+	if img.load_png_from_buffer(p_bytes) != OK:
+		img = Image.new()
+		if img.load_jpg_from_buffer(p_bytes) != OK:
+			img = Image.new()
+			if img.load_webp_from_buffer(p_bytes) != OK:
+				return {}
+	const MAX_DIM := 1280
+	const TARGET_MAX_BYTES := 256 * 1024
+
+	var out := img.save_jpg_to_buffer(0.85)
+	if out.size() > TARGET_MAX_BYTES:
+		out = img.save_jpg_to_buffer(0.6)
+	if out.size() > TARGET_MAX_BYTES:
+		var s2 := float(1024) / float(maxi(img.get_width(), img.get_height()))
+		img.resize(maxi(1, int(round(img.get_width() * s2))), maxi(1, int(round(img.get_height() * s2))), Image.INTERPOLATE_LANCZOS)
+		out = img.save_jpg_to_buffer(0.6)
+	return {"bytes": out, "mime": "image/jpeg"}
 
 func _refresh_images_ui():
 	for child in _images_box.get_children():
