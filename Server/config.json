@@ -1889,7 +1889,7 @@
             ],
             "fireRange": 1300,
             "fireRate": 600,
-            "hp": 1000,
+            "hp": 10000,
             "icon": "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png",
             "isBoss": true,
             "lootDrops": [],
@@ -1969,7 +1969,7 @@
                     "startDelay": 0,
                     "meteorCount": 3,
                     "fallHeight": 800,
-                    "fallSpeed": 600,
+                    "fallSpeed": 900,
                     "meteorSize": 100,
                     "explosionRadius": 100,
                     "warnTimeMs": 500,
@@ -2010,7 +2010,7 @@
             "rewardExp": 1400,
             "rewardHubs": 1000,
             "rewardOhcu": 150,
-            "shield": 500,
+            "shield": 5000,
             "speed": 280,
             "chestDropChance": 0.5,
             "hpRegenPercent": 10,
@@ -8311,12 +8311,15 @@
                 "id": "en2",
                 "name": "Motor M2",
                 "prices": {
-                    "hubs": 2000,
-                    "ohcu": 200
+                    "hubs": 3000,
+                    "ohcu": 300
                 },
                 "shieldMod": 10,
                 "hpMod": 10,
-                "dmgMod": 10
+                "dmgMod": 10,
+                "shieldModType": "flat",
+                "hpModType": "flat",
+                "dmgModType": "flat"
             }
         ],
         "extras": [
@@ -8440,11 +8443,13 @@
                 "id": "sh2",
                 "name": "Escudo S2",
                 "prices": {
-                    "hubs": 2000,
-                    "ohcu": 200
+                    "hubs": 3000,
+                    "ohcu": 300
                 },
                 "hpMod": 10,
-                "speedMod": 10
+                "speedMod": 10,
+                "hpModType": "flat",
+                "speedModType": "flat"
             }
         ],
         "weapons": [
@@ -8471,11 +8476,13 @@
                 "id": "las2",
                 "name": "Láser 2",
                 "prices": {
-                    "hubs": 2000,
-                    "ohcu": 200
+                    "hubs": 3000,
+                    "ohcu": 300
                 },
                 "speedMod": 10,
-                "hpMod": 10
+                "hpMod": 10,
+                "speedModType": "flat",
+                "hpModType": "flat"
             }
         ]
     },

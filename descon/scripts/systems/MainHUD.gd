@@ -21,6 +21,7 @@ var virtual_joystick = null # Controlado por TouchControls.gd
 
 var _esc_menu: Control = null
 var _settings_menu: Control = null
+var _bug_report_ui: Control = null
 var _pvp_status: bool = false
 var _blind_overlay: ColorRect = null # v260.90: Efecto de Ceguera (Humo)
 var _selected_node_for_editing: Control = null # v266.530: Persistencia de selección para sliders
@@ -1026,6 +1027,13 @@ func _create_esc_menu():
 	trade_btn.pressed.connect(_on_esc_trade_pressed)
 	vbox.add_child(trade_btn)
 	
+	var bug_btn = Button.new()
+	bug_btn.name = "BugReportButton"
+	bug_btn.text = "🐛 REPORTAR BUGS"
+	bug_btn.modulate = Color(1.0, 0.6, 0.1)
+	bug_btn.pressed.connect(_open_bug_report)
+	vbox.add_child(bug_btn)
+	
 	var logout_btn = Button.new()
 	logout_btn.text = "CERRAR SESIÓN"
 	logout_btn.pressed.connect(func():
@@ -1107,6 +1115,22 @@ func _open_settings():
 		var canvas = _settings_menu.get_parent()
 		if canvas is CanvasLayer:
 			canvas.visible = true
+
+# --- v1.0: MODAL DE REPORTE DE BUGS (Menú ESC) ---
+func _open_bug_report():
+	_close_esc_menu()
+	if not is_instance_valid(_bug_report_ui):
+		var script = load("res://scripts/systems/BugReportUI.gd")
+		if script:
+			var canvas = CanvasLayer.new()
+			canvas.name = "BugReportLayer"
+			canvas.layer = 140
+			add_child(canvas)
+			_bug_report_ui = script.new()
+			canvas.add_child(_bug_report_ui)
+			_bug_report_ui.closed.connect(func(): _bug_report_ui.visible = false)
+	if is_instance_valid(_bug_report_ui) and _bug_report_ui.has_method("open"):
+		_bug_report_ui.open()
 
 func _is_pos_over_priority_ui(p: Vector2, ignore_editable: bool = false) -> bool:
 	if not ignore_editable:

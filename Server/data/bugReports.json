@@ -1,0 +1,15 @@
+[
+  {
+    "id": 1,
+    "nick": "Player1",
+    "email": "asd@gmail.com",
+    "phone": "3584268920",
+    "description": "Se me Bugueo un Disparo.",
+    "images": [],
+    "zone": 1,
+    "level": 1,
+    "ip": "127.0.0.1",
+    "status": "open",
+    "createdAt": "2026-08-17T20:11:05.391Z"
+  }
+]

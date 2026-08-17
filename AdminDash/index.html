@@ -371,6 +371,10 @@
                 </div>
 
                 <div class="nav-group">
+                    <div class="nav-link" onclick="showTab('bugreports')">🐛 Reportes de Bugs</div>
+                </div>
+
+                <div class="nav-group">
                     <div class="nav-link" onclick="showTab('json')">📄 Ver JSON</div>
                     <div class="nav-folder" onclick="toggleFolder('folder-audit')">🕒 Auditoría <span class="chevron">▶</span></div>
                     <div id="folder-audit" class="folder-content">
@@ -751,6 +755,16 @@
                 <div id="ranking-config-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
                 </div>
                 <div id="ranking-categories-container" style="width: 100%;">
+                </div>
+            </div>
+
+            <div id="view-bugreports" class="view">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <span style="color: var(--text-dim); font-size: 0.9rem;">Reportes enviados por los pilotos desde el menú ESC del juego. Los campos se tratan como texto plano (sin ejecución de código).</span>
+                    <button class="btn btn-secondary" onclick="loadBugReports()">🔄 REFRESCAR</button>
+                </div>
+                <div id="bugreports-list" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Reportes dinámicos -->
                 </div>
             </div>
 

@@ -150,11 +150,13 @@ function showTab(tabId) {
         'quests': 'Misiones de la Galaxia',
         'battlepass': 'Pase de Batalla',
         'chat-global': 'Transmisión y Chat Global',
-        'ranking': 'Sistema de Clasificación'
+        'ranking': 'Sistema de Clasificación',
+        'bugreports': 'Reportes de Bugs'
     };
     document.getElementById('current-view-title').innerText = titles[tabId] || 'Configuración';
 
     if (tabId === 'json') document.getElementById('json-editor').value = JSON.stringify(config, null, 4);
+    if (tabId === 'bugreports') socket.emit('getBugReports');
     if (tabId === 'sessions' || tabId === 'users' || tabId === 'performance') {
         if (currentSessionSubTab === 'online') socket.emit('getOnlinePlayers');
         else if (currentSessionSubTab === 'history') socket.emit('getSessions', { page: currentSessionPage });
@@ -286,8 +288,23 @@ function connect() {
         if (document.getElementById('view-market').classList.contains('active')) renderMarket();
     });
 
+    // v1.0: Reportes de Bugs
+    socket.on('bugReportsList', (data) => {
+        renderBugReports(data || []);
+    });
+    socket.on('bugReportReceived', (report) => {
+        if (report) {
+            lastBugReports = [report, ...lastBugReports.filter(r => r.id !== report.id)];
+            renderBugReports(lastBugReports);
+            if (!document.getElementById('view-bugreports').classList.contains('active')) {
+                showToast(`🐛 NUEVO REPORTE DE BUG DE ${String(report.nick || '').toUpperCase()}`);
+            }
+        }
+    });
+
     socket.on('loginSuccess', (data) => {
         socket.emit('getAssetFiles');
+        socket.emit('getBugReports'); // v1.0: Cargar reportes de bugs
         if (remember) {
             localStorage.setItem('admin_user', user);
             localStorage.setItem('admin_pass', pass);
@@ -460,6 +477,20 @@ function connect() {
         err.style.display = 'block';
         btn.innerText = "REINTENTAR";
     });
+}
+
+// v1.0: Reportes de Bugs - acciones del dashboard
+function loadBugReports() {
+    if (socket && socket.connected) socket.emit('getBugReports');
+}
+
+function deleteBugReport(id) {
+    if (!confirm(`¿Eliminar el reporte de bug #${id}? Esta acción es permanente.`)) return;
+    if (socket && socket.connected) socket.emit('deleteBugReport', { id });
+}
+
+function setBugReportStatus(id, status) {
+    if (socket && socket.connected) socket.emit('setBugReportStatus', { id, status });
 }
 
 function getFilter() {

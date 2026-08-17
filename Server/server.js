@@ -15,6 +15,7 @@ const fs = require('fs-extra');
 const mongoose = require('mongoose');
 const Logger = require('./utils/logger');
 const { getPlayerRAMAdapter } = require('./utils/ramAdapter'); // v6.02
+const bugReports = require('./systems/bugReportManager'); // v1.0: Reportes de Bugs
 
 const normalizeZone = (z) => {
     if (z === undefined || z === null) return 1;
@@ -1863,6 +1864,76 @@ io.on('connection', (socket) => {
         });
     });
 
+    // v1.0: REPORTE DE BUGS (Desde el menú ESC del juego)
+    socket.on('reportBug', (data) => {
+        try {
+            const p = players[socket.id];
+            if (!p) return;
+
+            const email = bugReports.sanitizeText(data && data.email, 200);
+            const phone = bugReports.sanitizeText(data && data.phone, 40);
+            const description = bugReports.sanitizeText(data && data.description, 1000);
+
+            if (!bugReports.isValidEmail(email)) {
+                return socket.emit('gameNotification', { msg: 'REPORTE RECHAZADO: EMAIL INVÁLIDO.', type: 'warn' });
+            }
+            if (!description) {
+                return socket.emit('gameNotification', { msg: 'REPORTE RECHAZADO: LA DESCRIPCIÓN ES OBLIGATORIA.', type: 'warn' });
+            }
+            const imgCheck = bugReports.validateImages(data && data.images);
+            if (!imgCheck.ok) {
+                return socket.emit('gameNotification', { msg: imgCheck.error, type: 'warn' });
+            }
+
+            const report = bugReports.addReport({
+                nick: p.user || 'Desconocido',
+                email,
+                phone,
+                description,
+                images: imgCheck.images,
+                zone: p.zone || 1,
+                level: p.level || 1,
+                ip: (socket.handshake && socket.handshake.address) || ''
+            });
+
+            Logger.success('BUG-REPORT', `Reporte #${report.id} recibido de ${report.nick}: ${description.substring(0, 60)}...`);
+            socket.emit('gameNotification', { msg: 'REPORTE ENVIADO. ¡GRACIAS POR AYUDAR A MEJORAR LA GALAXIA!', type: 'success' });
+
+            // Notificar a los Command Centers conectados
+            io.sockets.sockets.forEach(s => {
+                if (isAdminSocket(s)) s.emit('bugReportReceived', report);
+            });
+        } catch (e) {
+            console.error('[BUG-REPORT] Error procesando reporte:', e);
+            socket.emit('gameNotification', { msg: 'ERROR AL ENVIAR EL REPORTE. INTENTÁ DE NUEVO.', type: 'warn' });
+        }
+    });
+
+    // v1.0: ADMIN - Obtener todos los reportes de bugs
+    socket.on('getBugReports', () => {
+        if (!isAdminSocket(socket)) return;
+        socket.emit('bugReportsList', bugReports.getAll());
+    });
+
+    // v1.0: ADMIN - Eliminar un reporte de bug
+    socket.on('deleteBugReport', (data) => {
+        if (!isAdminSocket(socket)) return;
+        bugReports.removeReport(data && data.id);
+        io.sockets.sockets.forEach(s => {
+            if (isAdminSocket(s)) s.emit('bugReportsList', bugReports.getAll());
+        });
+    });
+
+    // v1.0: ADMIN - Cambiar estado de un reporte de bug (open/resolved)
+    socket.on('setBugReportStatus', (data) => {
+        if (!isAdminSocket(socket)) return;
+        if (!data || !data.id) return;
+        bugReports.setStatus(data.id, data.status);
+        io.sockets.sockets.forEach(s => {
+            if (isAdminSocket(s)) s.emit('bugReportsList', bugReports.getAll());
+        });
+    });
+
     // v1.2: SISTEMA DE COMBATE Y HABILIDADES - Modularizado en systems/combatHandlers.js
     registerCombatHandlers(socket, io, state);
 
@@ -2506,6 +2577,7 @@ function getLocalIP() {
 }
 
 function startServer() {
+    bugReports.init(); // v1.0: Cargar reportes de bugs persistidos
     http.listen(PORT, '0.0.0.0', () => {
         const ip = getLocalIP();
         Logger.system(`+----------------------------------------------+`);

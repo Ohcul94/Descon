@@ -468,7 +468,8 @@ function refreshCurrentTab() {
         'talent-mapper': renderTalentMapper,
         'market': renderMarket,
         'sessions': () => (currentSessionSubTab === 'online' ? renderOnlinePlayers() : renderSessions()),
-        'ranking': renderRanking
+        'ranking': renderRanking,
+        'bugreports': renderBugReports
     };
     if(renderMap[tabId]) renderMap[tabId]();
 }
@@ -7610,3 +7611,94 @@ window.emitGetRankings = function() {
     }
 };
 
+
+
+// v1.0: REPORTES DE BUGS
+let lastBugReports = [];
+function renderBugReports(data) {
+    if (data) lastBugReports = data;
+    const list = document.getElementById('bugreports-list');
+    if (!list) return;
+    list.innerHTML = '';
+    const f = getFilter();
+
+    if (lastBugReports.length === 0) {
+        list.innerHTML = '<div style="color:#666; font-style:italic; padding:2rem; text-align:center;">No hay reportes de bugs todav\u00EDa.</div>';
+        return;
+    }
+
+    lastBugReports.forEach(r => {
+        if (f) {
+            const hay = (r.nick + ' ' + r.email + ' ' + r.phone + ' ' + r.description).toLowerCase();
+            if (!hay.includes(f)) return;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.cssText = 'width:100%; border-left:3px solid ' + (r.status === 'resolved' ? 'var(--success)' : '#f0a500') + ';';
+
+        const fecha = r.createdAt ? new Date(r.createdAt).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' }) : '--';
+
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:0.75rem; flex-wrap:wrap;';
+        header.innerHTML = '<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">' +
+            '<strong style="color:var(--primary); font-size:1.05rem;">#' + r.id + ' \u2022 ' + escapeHtml(String(r.nick || 'Desconocido').toUpperCase()) + '</strong>' +
+            '<span class="card-tag" style="position:static; background:rgba(0,210,255,0.1); color:var(--primary);">' + fecha + '</span>' +
+            '<span class="card-tag" style="position:static; background:rgba(255,255,255,0.05); color:#999;">SECTOR ' + (r.zone || 1) + ' \u00b7 LVL ' + (r.level || 1) + '</span>' +
+            '<span class="card-tag" style="position:static; background:' + (r.status === 'resolved' ? 'rgba(59,255,49,0.1); color:#3bff31;' : 'rgba(240,165,0,0.1); color:#f0a500;') + '">' + (r.status === 'resolved' ? '\u2705 RESUELTO' : '\u23f3 ABIERTO') + '</span>' +
+            '</div>' +
+            '<div style="display:flex; gap:8px;">' +
+            '<button class="btn btn-secondary" onclick="setBugReportStatus(' + r.id + ', \'' + (r.status === 'resolved' ? 'open' : 'resolved') + '\')">' + (r.status === 'resolved' ? '\u21a9\ufe0f REABRIR' : '\u2705 MARCAR RESUELTO') + '</button>' +
+            '<button class="btn btn-danger" onclick="deleteBugReport(' + r.id + ')">\ud83d\uddd1\ufe0f ELIMINAR</button>' +
+            '</div>';
+        card.appendChild(header);
+
+        const meta = document.createElement('div');
+        meta.style.cssText = 'display:flex; flex-direction:column; gap:4px; margin-bottom:0.75rem; font-size:0.85rem;';
+        meta.innerHTML = '<div><span style="color:#888;">EMAIL:</span> <strong style="color:var(--text);">' + escapeHtml(r.email || '') + '</strong></div>' +
+            '<div><span style="color:#888;">CELULAR:</span> <strong style="color:var(--text);">' + escapeHtml(r.phone || 'Sin especificar') + '</strong></div>';
+        card.appendChild(meta);
+
+        const desc = document.createElement('div');
+        desc.style.cssText = 'background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px 16px; white-space:pre-wrap; word-break:break-word; font-size:0.9rem; line-height:1.5; color:#ddd; margin-bottom:0.75rem;';
+        desc.textContent = r.description || '';
+        card.appendChild(desc);
+
+        if (r.images && r.images.length > 0) {
+            const imgs = document.createElement('div');
+            imgs.style.cssText = 'display:flex; gap:10px; flex-wrap:wrap;';
+            r.images.forEach(img => {
+                const dataUrl = 'data:' + (img.mime || 'image/png') + ';base64,' + img.data;
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'position:relative;';
+                const pic = document.createElement('img');
+                pic.src = dataUrl;
+                pic.alt = img.name || 'imagen';
+                pic.style.cssText = 'max-height:160px; max-width:220px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); cursor:zoom-in;';
+                pic.onclick = () => {
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; display:flex; align-items:center; justify-content:center; cursor:zoom-out;';
+                    const big = document.createElement('img');
+                    big.src = dataUrl;
+                    big.style.cssText = 'max-width:92vw; max-height:92vh; border-radius:8px;';
+                    overlay.appendChild(big);
+                    overlay.onclick = () => overlay.remove();
+                    document.body.appendChild(overlay);
+                };
+                wrap.appendChild(pic);
+                const cap = document.createElement('div');
+                cap.style.cssText = 'font-size:0.7rem; color:#888; text-align:center; margin-top:4px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+                cap.textContent = img.name || '';
+                wrap.appendChild(cap);
+                imgs.appendChild(wrap);
+            });
+            card.appendChild(imgs);
+        }
+
+        list.appendChild(card);
+    });
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
