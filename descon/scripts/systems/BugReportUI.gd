@@ -246,7 +246,7 @@ func _on_files_selected(paths: PackedStringArray):
 		if file_len <= 0 or file_len > MAX_IMAGE_BYTES:
 			f.close()
 			continue
-		var bytes := f.get_buffer(size)
+		var bytes := f.get_buffer(file_len)
 		f.close()
 		var ext := p.get_extension().to_lower()
 		var mime := "image/png"
