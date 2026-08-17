@@ -80,6 +80,12 @@ func load_ammo_slots_local():
 func set_ammo_slot(slot_idx: int, ammo_type: String):
 	print("[PLAYER] set_ammo_slot convocado. SlotIdx: ", slot_idx, " AmmoType: ", ammo_type, " slots_actuales: ", ammo_slots)
 	if slot_idx >= 0 and slot_idx < ammo_slots.size():
+		# v690.1: Cada munición solo puede estar en UN slot. Si ya está en otro, se quita de ahí.
+		for i in range(ammo_slots.size()):
+			if i != slot_idx and ammo_slots[i] == ammo_type:
+				ammo_slots[i] = "laser"
+				print("[PLAYER] Munición ", ammo_type, " ya estaba en slot ", i, ". Se movió al slot ", slot_idx, ".")
+				break
 		ammo_slots[slot_idx] = ammo_type
 		print("[PLAYER] Guardando slots localmente.")
 		save_ammo_slots_local()
@@ -584,7 +590,8 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 			if not slot_check.get("ok", true):
 				_notify_skill_block("SLOT BLOQUEADO: " + str(slot_check.get("msg", "REQUISITOS NO CUMPLIDOS")))
 				return
-	elif skill_id in ["laser", "missile", "mine"]:
+	elif skill_id in ["laser", "missile", "mine", "melee", "heal", "siphon", "emp", "electron"]:
+		# v690.1: Validación de requisitos para TODOS los tipos de munición (antes solo laser/missile/mine)
 		var eq_tier = selected_ammo.get(skill_id, 0)
 		var eq_ammo_list = GameConstants.SHOP_ITEMS.ammo.get(skill_id, [])
 		if eq_tier < 0 or eq_tier >= eq_ammo_list.size():

@@ -221,29 +221,28 @@ func _setup_blindness_overlay():
 	
 	var mat = ShaderMaterial.new()
 	var shader = Shader.new()
-	shader.code = """
-		shader_type canvas_item;
-		uniform vec2 player_world_pos;
-		uniform float world_radius;
-		uniform vec2 view_top_left;
-		uniform vec2 view_size;
-		uniform float softness = 40.0; // Suavidad en unidades de mundo
+	shader.code = """shader_type canvas_item;
+uniform vec2 player_world_pos;
+uniform float world_radius;
+uniform vec2 view_top_left;
+uniform vec2 view_size;
+uniform float softness = 40.0; // Suavidad en unidades de mundo
 
-		void fragment() {
-			// v268.25: Calcular la posición de MUNDO de este píxel
-			vec2 pixel_world_pos = view_top_left + (UV * view_size);
-			
-			float dist = distance(pixel_world_pos, player_world_pos);
-			
-			// Pulsación sutil en unidades de mundo
-			float pulse = sin(TIME * 1.5) * 5.0;
-			float final_radius = world_radius + pulse;
-			
-			// Ceguera basada en distancia real en el MAPA
-			float alpha = smoothstep(final_radius, final_radius + softness, dist);
-			COLOR = vec4(0.0, 0.0, 0.0, alpha);
-		}
-	"""
+void fragment() {
+	// v268.25: Calcular la posición de MUNDO de este píxel
+	vec2 pixel_world_pos = view_top_left + (UV * view_size);
+	
+	float dist = distance(pixel_world_pos, player_world_pos);
+	
+	// Pulsación sutil en unidades de mundo
+	float pulse = sin(TIME * 1.5) * 5.0;
+	float final_radius = world_radius + pulse;
+	
+	// Ceguera basada en distancia real en el MAPA
+	float alpha = smoothstep(final_radius, final_radius + softness, dist);
+	COLOR = vec4(0.0, 0.0, 0.0, alpha);
+}
+"""
 	mat.shader = shader
 	overlay.material = mat
 
@@ -262,23 +261,22 @@ func _setup_interference_overlay():
 	
 	var mat = ShaderMaterial.new()
 	var shader = Shader.new()
-	shader.code = """
-		shader_type canvas_item;
-		uniform float strength = 0.0;
-		uniform float time_speed = 10.0;
+	shader.code = """shader_type canvas_item;
+uniform float strength = 0.0;
+uniform float time_speed = 10.0;
 
-		float random(vec2 uv) {
-			return fract(sin(dot(uv.xy, vec2(12.9898,78.233))) * 43758.5453123);
-		}
+float random(vec2 uv) {
+	return fract(sin(dot(uv.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
 
-		void fragment() {
-			vec2 uv = UV;
-			float noise = random(uv + TIME * time_speed);
-			float stripes = sin(uv.y * 50.0 + TIME * 20.0);
-			float final_noise = mix(0.0, noise * 0.5 + stripes * 0.2, strength);
-			COLOR = vec4(0.5, 0.7, 1.0, final_noise * 0.4);
-		}
-	"""
+void fragment() {
+	vec2 uv = UV;
+	float noise = random(uv + TIME * time_speed);
+	float stripes = sin(uv.y * 50.0 + TIME * 20.0);
+	float final_noise = mix(0.0, noise * 0.5 + stripes * 0.2, strength);
+	COLOR = vec4(0.5, 0.7, 1.0, final_noise * 0.4);
+}
+"""
 	mat.shader = shader
 	overlay.material = mat
 

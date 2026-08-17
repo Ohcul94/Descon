@@ -4,6 +4,7 @@ extends Control
 # Permite asignar dinámicamente las 7 municiones a los slots Q, W, E.
 
 var inv_main = null
+var status_lbl = null # v690.0: Etiqueta inferior para mensajes de requisitos en rojo
 
 # Colores y descripciones de las armas para diseño premium
 var WEAPONS_DATA = {
@@ -150,6 +151,16 @@ func update_ui():
 	scroll.add_child(grid)
 	
 	_render_weapons_library(grid, p, is_comb)
+	
+	# v690.0: Zona de mensajes de requisitos (rojo) al pie del panel
+	status_lbl = Label.new()
+	status_lbl.name = "StatusLabel"
+	status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status_lbl.add_theme_font_size_override("font_size", 11)
+	status_lbl.custom_minimum_size = Vector2(0, 22)
+	status_lbl.modulate = Color(1.0, 0.35, 0.35)
+	master_v.add_child(status_lbl)
 
 func _render_equipped_slots(parent, p, is_comb):
 	if not p or not p.get("ammo_slots"): return
@@ -229,6 +240,16 @@ func _render_weapons_library(grid, p, is_comb):
 	
 	for w_id in WEAPONS_DATA:
 		var w_cfg = WEAPONS_DATA[w_id]
+		
+		# v690.0: Validar requisitos del tier actualmente seleccionado para este tipo de munición
+		var t_idx = int(p.selected_ammo.get(w_id, 0))
+		var locked := false
+		var lock_msg := ""
+		if NetworkManager and NetworkManager.has_method("check_equip_requirements"):
+			var req_check = NetworkManager.check_equip_requirements("", "", w_id, t_idx)
+			locked = not req_check.get("ok", true)
+			lock_msg = str(req_check.get("msg", "REQUISITOS NO CUMPLIDOS"))
+		
 		var card = PanelContainer.new()
 		card.custom_minimum_size = Vector2(400, 75)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -251,9 +272,9 @@ func _render_weapons_library(grid, p, is_comb):
 		hb.add_child(ico_center)
 		
 		var ico = Label.new()
-		ico.text = w_cfg["icon"]
+		ico.text = "🔒" if locked else w_cfg["icon"]
 		ico.add_theme_font_size_override("font_size", 24)
-		ico.modulate = w_cfg["color"]
+		ico.modulate = w_cfg["color"] if not locked else Color(1, 0.3, 0.3)
 		ico_center.add_child(ico)
 		
 		# Nombre e Info de arma
@@ -275,6 +296,14 @@ func _render_weapons_library(grid, p, is_comb):
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		info_v.add_child(desc_lbl)
 		
+		# v690.0: Aviso rojo de requisito faltante en la propia tarjeta
+		if locked:
+			var lock_lbl = Label.new()
+			lock_lbl.text = "🔒 BLOQUEADA: " + lock_msg
+			lock_lbl.add_theme_font_size_override("font_size", 9)
+			lock_lbl.modulate = Color(1.0, 0.35, 0.35)
+			info_v.add_child(lock_lbl)
+		
 		# Botones de asignación Q, W, E
 		var btn_h = HBoxContainer.new()
 		btn_h.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -282,22 +311,37 @@ func _render_weapons_library(grid, p, is_comb):
 		hb.add_child(btn_h)
 		
 		var keys = ["Q", "W", "E"]
+		# v690.1: Índice del slot donde ya está equipada esta munición (-1 si no está)
+		var equipped_slot_idx := -1
+		for j in range(3):
+			if p.ammo_slots[j] == w_id:
+				equipped_slot_idx = j
+				break
 		for i in range(3):
 			var btn = Button.new()
-			btn.text = " " + keys[i] + " "
 			btn.custom_minimum_size = Vector2(30, 30)
 			btn.add_theme_font_size_override("font_size", 10)
 			
-			# Comprobar si ya está asignada en este slot específico
-			var is_currently_here = (p.ammo_slots[i] == w_id)
-			if is_currently_here:
-				btn.modulate = Color(0.0, 1.0, 0.0) # Verde brillante limpio para todos los ticks
+			if equipped_slot_idx == i:
 				btn.text = "✔"
+				btn.modulate = Color(0.0, 1.0, 0.0) # Verde brillante limpio para todos los ticks
 				btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			elif equipped_slot_idx >= 0:
+				# v690.1: Ya equipada en otro slot → no se puede repetir
+				btn.text = "✕"
+				btn.modulate = Color(1, 1, 1, 0.35)
+				btn.disabled = true
+				btn.tooltip_text = "YA EQUIPADA EN SLOT " + keys[equipped_slot_idx]
+			elif locked:
+				# v690.0: Requisitos no cumplidos → botones bloqueados con candado
+				btn.text = "🔒"
+				btn.disabled = true
+				btn.tooltip_text = "MUNICIÓN BLOQUEADA: " + lock_msg
 			else:
 				# Deshabilitar todos los botones de equipamiento si está en combate
 				if is_comb:
 					btn.disabled = true
+				btn.text = " " + keys[i] + " "
 				btn.pressed.connect(_on_equip_pressed.bind(i, w_id))
 			
 			btn_h.add_child(btn)
@@ -312,14 +356,45 @@ func _on_equip_pressed(slot_idx: int, ammo_type: String):
 	if p.has_method("is_in_combat") and p.is_in_combat():
 		print("[WEAPONS-TAB] Cancelado: El jugador está en combate.")
 		return
+	
+	# v690.1: Cada munición solo puede equiparse una vez (no repetir en 2 slots)
+	if ammo_type in p.ammo_slots:
+		_show_status("⚠️ " + WEAPONS_DATA.get(ammo_type, {}).get("name", ammo_type.to_upper()) + " YA ESTÁ EQUIPADA EN OTRO SLOT")
+		print("[WEAPONS-TAB] Cancelado: munición ya equipada en otro slot.")
+		return
+	
+	# v690.0: Validar requisitos (nivel, misión, desbloqueo, esferas) del tier seleccionado
+	if NetworkManager and NetworkManager.has_method("check_equip_requirements"):
+		var tier = int(p.selected_ammo.get(ammo_type, 0))
+		var req_check = NetworkManager.check_equip_requirements("", "", ammo_type, tier)
+		if not req_check.get("ok", true):
+			_show_status("🔒 MUNICIÓN BLOQUEADA: " + str(req_check.get("msg", "REQUISITOS NO CUMPLIDOS")))
+			print("[WEAPONS-TAB] Cancelado por requisitos: ", req_check.get("msg", ""))
+			return
 		
 	if p.has_method("set_ammo_slot"):
 		print("[WEAPONS-TAB] Llamando a set_ammo_slot en Player.")
 		p.set_ammo_slot(slot_idx, ammo_type)
 		AudioManager.play_sfx("ui_click")
+		_show_status("")
 		update_ui()
 	else:
 		print("[WEAPONS-TAB] Error: El jugador no tiene el método set_ammo_slot.")
+
+# v690.0: Mensaje inferior del panel (rojo por defecto)
+func _show_status(p_text: String, p_color := Color(1.0, 0.35, 0.35)):
+	if is_instance_valid(status_lbl):
+		status_lbl.text = p_text
+		status_lbl.modulate = p_color
+		if p_text != "":
+			var lbl = status_lbl
+			var timer = get_tree().create_timer(5.0)
+			timer.timeout.connect(func():
+				if is_instance_valid(lbl):
+					lbl.text = ""
+			)
+	else:
+		print("[WEAPONS-TAB] " + p_text)
 
 func _format_val(v):
 	var s = str(int(v))

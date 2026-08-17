@@ -706,7 +706,9 @@ func _run_requirements_check(reqs: Array) -> Dictionary:
 			if typeof(needed) != TYPE_ARRAY or needed.is_empty():
 				continue
 			var counts: Dictionary = _count_player_sphere_colors()
-			var any_real := false
+			
+			# Agrupar y sumar requisitos por color para evitar bypass cuando se pide el mismo color varias veces
+			var summed_needed := {}
 			for n in needed:
 				if typeof(n) != TYPE_DICTIONARY:
 					continue
@@ -714,7 +716,12 @@ func _run_requirements_check(reqs: Array) -> Dictionary:
 				var sph_count: int = int(n.get("count", 0))
 				if sph_color == "" or sph_count <= 0:
 					continue
+				summed_needed[sph_color] = int(summed_needed.get(sph_color, 0)) + sph_count
+
+			var any_real := false
+			for sph_color in summed_needed:
 				any_real = true
+				var sph_count: int = summed_needed[sph_color]
 				if int(counts.get(sph_color, 0)) < sph_count:
 					return {"ok": false, "msg": "REQUIERE " + _sphere_requirement_text(needed)}
 			if not any_real:
@@ -882,8 +889,9 @@ func _sphere_color_of(p_sphere) -> String:
 	var eq_type: String = ""
 	if typeof(equipped) == TYPE_DICTIONARY:
 		eq_type = str(equipped.get("type", ""))
-	else:
-		eq_type = str(equipped.get("type"))
+	elif "type" in equipped:
+		# v690.1: SphereSkill y derivados exponen .type como propiedad (no usan .get())
+		eq_type = str(equipped.type)
 	return _sphere_color_from_skill_type(eq_type)
 
 func _count_player_sphere_colors() -> Dictionary:
@@ -909,7 +917,9 @@ func _sphere_color_label(p_color: String, p_count: int) -> String:
 	return "%d ESFERA%s %s" % [p_count, "S" if p_count > 1 else "", word]
 
 func _sphere_requirement_text(p_needed: Array) -> String:
-	var parts: Array = []
+	# Agrupar y sumar primero
+	var summed := {}
+	var order := []
 	for n in p_needed:
 		if typeof(n) != TYPE_DICTIONARY:
 			continue
@@ -917,7 +927,16 @@ func _sphere_requirement_text(p_needed: Array) -> String:
 		var cnt: int = int(n.get("count", 0))
 		if c == "" or cnt <= 0:
 			continue
+		if not summed.has(c):
+			summed[c] = 0
+			order.append(c)
+		summed[c] += cnt
+
+	var parts: Array = []
+	for c in order:
+		var cnt: int = summed[c]
 		parts.append(_sphere_color_label(c, cnt))
+
 	if parts.is_empty():
 		return "ESFERAS DE COLORES"
 	if parts.size() == 1:

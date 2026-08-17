@@ -97,13 +97,21 @@ function checkRequirements(p, requirements, serverConfig) {
             const needed = Array.isArray(req.esferas) ? req.esferas : [];
             if (!needed.length) continue; // Sin esferas configuradas → condición ignorada
             const counts = countPlayerSphereColors(p.spheres);
-            let anyReal = false;
+            
+            // Agrupar y sumar requisitos por color para evitar bypass cuando se pide el mismo color varias veces
+            const summedNeeded = {};
             for (const n of needed) {
                 if (!n || typeof n !== 'object') continue;
                 const color = normalizeSphereColor(n.color);
                 const count = parseInt(n.count);
                 if (!color || isNaN(count) || count <= 0) continue;
+                summedNeeded[color] = (summedNeeded[color] || 0) + count;
+            }
+
+            let anyReal = false;
+            for (const color in summedNeeded) {
                 anyReal = true;
+                const count = summedNeeded[color];
                 if ((counts[color] || 0) < count) {
                     return { ok: false, msg: `REQUIERE ${buildSphereRequirementMsg(needed)}` };
                 }
@@ -177,12 +185,23 @@ function sphereColorLabel(color, count) {
 // Construye el mensaje respetando el orden en que se configuraron los colores:
 //   "2 ESFERAS VERDES Y 1 AZUL" | "3 ESFERAS VERDES" | "1 ESFERA ROJA"
 function buildSphereRequirementMsg(needed) {
-    const parts = [];
+    const summed = {};
+    const order = []; // Mantener el orden de aparición original
     for (const n of needed) {
         if (!n || typeof n !== 'object') continue;
         const color = normalizeSphereColor(n.color);
         const count = parseInt(n.count);
         if (!color || isNaN(count) || count <= 0) continue;
+        if (summed[color] === undefined) {
+            summed[color] = 0;
+            order.push(color);
+        }
+        summed[color] += count;
+    }
+
+    const parts = [];
+    for (const color of order) {
+        const count = summed[color];
         parts.push(sphereColorLabel(color, count));
     }
     if (!parts.length) return 'ESFERAS DE COLORES';
