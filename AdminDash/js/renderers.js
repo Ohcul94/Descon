@@ -1008,12 +1008,38 @@ window.removeEnemy = function(id) {
     }
 };
 
+window.addNewThreat = function() {
+    // Calcula el siguiente ID correlativo de cada rango para mostrarlo en el modal
+    let maxCommon = 0, maxBoss = 100;
+    for(let id in (config.enemyModels || {})) {
+        if (id.includes('-')) continue;
+        const eid = parseInt(id);
+        if (isNaN(eid)) continue;
+        if (eid >= 101 && eid > maxBoss) maxBoss = eid;
+        else if (eid < 100 && eid > maxCommon) maxCommon = eid;
+    }
+    document.getElementById('threat-common-id').innerText = 'ID ' + (maxCommon + 1);
+    document.getElementById('threat-boss-id').innerText = 'ID ' + (maxBoss + 1);
+    document.getElementById('threat-add-overlay').style.display = 'flex';
+};
+
+window.closeThreatAddModal = function() {
+    document.getElementById('threat-add-overlay').style.display = 'none';
+};
+
+window.createThreatFromModal = function(kind) {
+    closeThreatAddModal();
+    if (kind === 'boss') addNewBoss();
+    else addNewEnemy();
+};
+
 window.addNewEnemy = function() {
     if (!config.enemyModels) config.enemyModels = {};
     let maxId = 0;
     for(let id in config.enemyModels) {
         if (id.includes('-')) continue;
         const eid = parseInt(id);
+        if (isNaN(eid) || eid >= 100) continue; // Solo enemigos comunes (ID < 100); los bosses se crean con addNewBoss()
         if (eid > maxId) maxId = eid;
     }
     
@@ -1022,10 +1048,15 @@ window.addNewEnemy = function() {
         id: newId,
         name: `Nuevo Enemigo ${newId}`,
         icon: "",
+        assetPath: "res://assets/Enemigos/3D/Enemigo" + newId + "/Enemigo" + newId + ".glb",
+        rotX: 0,
+        rotY: 90,
+        rotZ: 0,
+        scale: 2.0,
         movementAI: 'chase',
-        hp: 100,
-        shield: 0,
-        speed: 3.5,
+        hp: 3000,
+        shield: 1000,
+        speed: 250,
         stopDist: 150,
         startDelay: 0,
         visionRange: 800,
@@ -1035,18 +1066,71 @@ window.addNewEnemy = function() {
         shieldRegenPercent: 5,
         regenDelaySec: 5,
         regenIntervalMs: 1000,
-        rewardExp: 100,
-        rewardHubs: 0,
-        rewardOhcu: 0,
+        rewardExp: 300,
+        rewardHubs: 300,
+        rewardOhcu: 3,
         chestDropChance: 0.1,
         rankingPoints: newId,
         aggressive: false,
         chaseUntilDeath: false,
         stopOnOutOfSight: false,
         mechanics: [{ type: "laser", bulletDamage: 10, bulletSpeed: 800, fireRange: 600, fireRate: 1000, startDelay: 0 }],
-        movementPhases: [{ type: 'chase', speed: 3.5, stopDist: 150, startDelay: 0 }],
+        movementPhases: [{ type: 'chase', speed: 250, stopDist: 150, startDelay: 0 }],
         defenseMechanics: [],
         lootDrops: []
+    };
+    renderEnemies();
+    selectEnemy(newId);
+};
+
+window.addNewBoss = function() {
+    if (!config.enemyModels) config.enemyModels = {};
+    let maxId = 100;
+    for(let id in config.enemyModels) {
+        if (id.includes('-')) continue;
+        const eid = parseInt(id);
+        if (isNaN(eid)) continue;
+        if (eid >= 101 && eid > maxId) maxId = eid;
+    }
+    
+    const newId = (maxId + 1).toString();
+    const bossNumber = maxId - 100 + 1;
+    config.enemyModels[newId] = {
+        id: newId,
+        name: `Nuevo Boss ${newId}`,
+        icon: "",
+        assetPath: "res://assets/Enemigos/3D/Bosses/Boss" + bossNumber + "/Boss" + bossNumber + ".glb",
+        rotX: 0,
+        rotY: 90,
+        rotZ: 0,
+        scale: 6.0,
+        isBoss: true,
+        rageTimer: 20,
+        movementAI: 'boss',
+        hp: 100000,
+        shield: 50000,
+        speed: 250,
+        stopDist: 150,
+        startDelay: 0,
+        visionRange: 2000,
+        chaseIdleTimeout: 10000,
+        leashRange: 2500,
+        hpRegenPercent: 25,
+        shieldRegenPercent: 30,
+        regenDelayMs: 20000,
+        regenIntervalMs: 2000,
+        rewardExp: 50000,
+        rewardHubs: 100000,
+        rewardOhcu: 1000,
+        chestDropChance: 0.5,
+        rankingPoints: parseInt(newId),
+        aggressive: true,
+        chaseUntilDeath: true,
+        stopOnOutOfSight: false,
+        mechanics: [{ type: "laser", bulletDamage: 500, bulletSpeed: 900, fireRange: 1200, fireRate: 900, startDelay: 0 }],
+        movementPhases: [{ type: 'boss', speed: 250, stopDist: 150, startDelay: 0 }],
+        defenseMechanics: [],
+        lootDrops: [{ chance: 0.5, itemId: "las1" }, { chance: 0.5, itemId: "sh1" }]
     };
     renderEnemies();
     selectEnemy(newId);
@@ -1330,12 +1414,18 @@ function renderEnemyDetail() {
                         </div>
                         <div style="flex-grow:1; display:flex; flex-direction:column; gap:10px;">
                             <div class="field" style="margin-bottom:10px;">
-                                <label>Asset Path 3D (.glb) - Solo para Jugadores (ID >= 100)</label>
+                                <label>Asset Path 3D (.glb)</label>
                                 <div style="display:flex; gap:8px; align-items:center; width:100%;">
-                                    <input type="text" value="${config.enemyModels[selectedEnemyId]?.assetPath || ''}" placeholder="res://assets/Personajes/3D/Enemigo..." onchange="config.enemyModels['${selectedEnemyId}'].assetPath = this.value; renderEnemyDetail();" style="flex-grow:1; margin:0;" ${parseInt(selectedEnemyId.split('-')[0]) >= 100 ? '' : 'disabled'}></input>
+                                    <input type="text" value="${config.enemyModels[selectedEnemyId]?.assetPath || ''}" placeholder="res://assets/Enemigos/3D/Enemigo..." onchange="config.enemyModels['${selectedEnemyId}'].assetPath = this.value; renderEnemyDetail();" style="flex-grow:1; margin:0;"></input>
                                     <button class="btn btn-primary" style="padding:8px 12px; font-size:0.75rem; flex-shrink:0; background:var(--warning); border-color:var(--warning);" onclick="openAssetPicker('${selectedEnemyId}', 'enemy_glb'); renderEnemyDetail();">📁 SELECCIONAR GLB</button>
                                 </div>
-                                ${parseInt(selectedEnemyId.split('-')[0]) >= 100 ? '' : '<div style="color:rgba(255,255,255,0.4); font-size:0.7rem; margin-top:2px;">Los assets 3D solo están disponibles para jugadores (ID >= 100)</div>'}
+                            </div>
+                            <h5 style="color:var(--warning); margin:10px 0 5px; font-size:0.75rem; border-bottom:1px solid rgba(251,191,36,0.15); padding-bottom:2px;">⚙️ ROTACIÓN Y ESCALA 3D INICIAL</h5>
+                            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; display:grid;">
+                                <div class="field"><label>Rotación X (grados)</label><input type="number" value="${en.rotX || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rotX = parseFloat(this.value) || 0"></div>
+                                <div class="field"><label>Rotación Y (grados)</label><input type="number" value="${en.rotY || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rotY = parseFloat(this.value) || 0"></div>
+                                <div class="field"><label>Rotación Z (grados)</label><input type="number" value="${en.rotZ || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rotZ = parseFloat(this.value) || 0"></div>
+                                <div class="field"><label>Escala 3D (multiplicador)</label><input type="number" step="0.1" value="${en.scale || 2}" onchange="config.enemyModels['${selectedEnemyId}'].scale = parseFloat(this.value) || 2"></div>
                             </div>
                         </div>
                     </div>
@@ -1382,7 +1472,7 @@ function renderEnemyDetail() {
                                 </select>
                             </div>
                             <div class="form-grid" style="margin-top:1rem;">
-                                ${MOVEMENT_LIB[m.type || 'chase'].fields.map(f => {
+                                ${(MOVEMENT_LIB[m.type] || MOVEMENT_LIB['chase']).fields.map(f => {
                                     const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración (ms)", cooldown: "Recarga (ms)", startDelay: "Retraso Inicio (ms)", explodeOnDeath: "Explotar al morir", radius: "Radio del Aura (px)", speedBonus: "Bono de Velocidad (px/s)", intervalMs: "Intervalo de Tick (ms)", affectsEnemies: "Afectar a otros Enemigos", affectsBosses: "Afectar a Bosses", patrolRange: "Rango de Patrulla (px)", changeInterval: "Frecuencia del Cambio (ms / px)", amplitude: "Amplitud (px)", frequency: "Frecuencia (Hz)" };
                                     if (f === 'changeTrigger') {
                                         const val = m[f] || 'time';
@@ -1426,7 +1516,7 @@ function renderEnemyDetail() {
                                 </select>
                             </div>
                             <div class="form-grid" style="margin-top:1rem;">
-                                ${MECHANICS_LIB[m.type || 'laser'].fields.map(f => {
+                                ${(MECHANICS_LIB[m.type] || MECHANICS_LIB['laser']).fields.map(f => {
 const fieldLabelsMap = { 
                                            bulletDamage: m.type === 'bomb' ? "Daño de Explosión (pts)" : (m.type === 'worm_boomerang' ? "Daño de Ida (pts)" : (m.type === 'wind_wall' ? "Daño al Arrollar (pts)" : (m.type === 'burrow' ? "Daño al Emerger (pts)" : (m.type === 'meteor' ? "Daño del Meteorito (pts)" : (m.type === 'ascension' ? "Daño al Aterrizar (pts)" : "Daño (pts)"))))), 
                                            bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : (m.type === 'wind_wall' ? "Vel. Pared de Viento (px/s)" : (m.type === 'burrow' ? "Vel. de Zambullida (px/s)" : "Vel. Bala (px/s)")), 
@@ -1801,7 +1891,7 @@ if (f === 'targetMode') {
                                 </select>
                             </div>
                             <div class="form-grid" style="margin-top:1rem;">
-                                ${DEFENSE_LIB[m.type || 'basic_defense'].fields.map(f => {
+                                ${(DEFENSE_LIB[m.type] || DEFENSE_LIB['basic_defense']).fields.map(f => {
                                     const defLabels = { 
                                         reductionPercentage: "Reducción (%)", 
                                         shieldRegen: "Regen. Escudo (pts/s)", 
@@ -2219,6 +2309,8 @@ function renderMapDetail() {
                         <div class="field"><label>Costo Warp (Hubs)</label><input type="number" value="${m.warpCost}" oninput="config.mapsConfig['${selectedMapId}'].warpCost = parseInt(this.value) || 0"></div>
                         <div class="field"><label>Color de Radar</label><input type="color" value="${m.color || '#00d2ff'}" oninput="config.mapsConfig['${selectedMapId}'].color = this.value; updateSidebar();" style="height:40px;"></div>
                         <div class="field"><label>Multiplicador de Drop (x)</label><input type="number" step="0.1" min="0" value="${m.dropMultiplier !== undefined ? m.dropMultiplier : 1}" oninput="config.mapsConfig['${selectedMapId}'].dropMultiplier = parseFloat(this.value) || 1"></div>
+                        <div class="field"><label>🛸 Punto de Aparición X (Warp / VIAJAR)</label><input type="number" value="${m.spawnX !== undefined ? m.spawnX : ''}" placeholder="Centro del mapa" oninput="if(this.value === ''){ delete config.mapsConfig['${selectedMapId}'].spawnX; } else { config.mapsConfig['${selectedMapId}'].spawnX = parseInt(this.value) || 0; }"></div>
+                        <div class="field"><label>🛸 Punto de Aparición Y (Warp / VIAJAR)</label><input type="number" value="${m.spawnY !== undefined ? m.spawnY : ''}" placeholder="Centro del mapa" oninput="if(this.value === ''){ delete config.mapsConfig['${selectedMapId}'].spawnY; } else { config.mapsConfig['${selectedMapId}'].spawnY = parseInt(this.value) || 0; }"></div>
                         <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: span 2; margin-top:4px;">
                             <input type="checkbox" id="map-unlock-required" ${m.unlockRequired === true ? 'checked' : ''} onchange="config.mapsConfig['${selectedMapId}'].unlockRequired = this.checked; renderMapDetail();">
                             <label style="margin:0; cursor:pointer;" for="map-unlock-required">🔒 Requiere desbloqueo por misión (el portal queda sellado hasta que una misión otorgue el desbloqueo del mapa)</label>

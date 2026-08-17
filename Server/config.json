@@ -1692,6 +1692,88 @@
             "shield": 6000,
             "speed": 290
         },
+        "14": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo14/Enemigo14.glb",
+            "bulletDamage": 400,
+            "bulletSpeed": 1000,
+            "defenseMechanics": [],
+            "fireRange": 1300,
+            "fireRate": 800,
+            "hp": 16000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 400,
+                    "bulletSpeed": 1000,
+                    "fireRange": 1300,
+                    "fireRate": 800,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 280,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 14",
+            "rankingPoints": 14,
+            "rewardExp": 3000,
+            "rewardHubs": 5500,
+            "rewardOhcu": 55,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 8000,
+            "speed": 280
+        },
+        "15": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo15/Enemigo15.glb",
+            "bulletDamage": 500,
+            "bulletSpeed": 1050,
+            "defenseMechanics": [],
+            "fireRange": 1350,
+            "fireRate": 750,
+            "hp": 20000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 500,
+                    "bulletSpeed": 1050,
+                    "fireRange": 1350,
+                    "fireRate": 750,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 270,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 15",
+            "rankingPoints": 15,
+            "rewardExp": 3500,
+            "rewardHubs": 6500,
+            "rewardOhcu": 65,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 10000,
+            "speed": 270
+        },
         "101": {
             "bulletDamage": 2000,
             "bulletSpeed": 900,
@@ -2054,6 +2136,186 @@
             "rewardOhcu": 5000,
             "shield": 150000,
             "speed": 260
+        },
+        "105": {
+            "assetPath": "res://assets/Enemigos/3D/Bosses/Boss5/Animaciones/AnimacionesBoss5.glb",
+            "bulletDamage": 10000,
+            "bulletSpeed": 1100,
+            "chaseIdleTimeout": 10000,
+            "chaseUntilDeath": true,
+            "chestDropChance": 0.5,
+            "defenseMechanics": [],
+            "fireRange": 1500,
+            "fireRate": 900,
+            "hp": 400000,
+            "hpRegenPercent": 25,
+            "icon": "res://assets/Enemigos/2D/Bosses/Boss5/Boss5.png",
+            "isBoss": true,
+            "leashRange": 2500,
+            "lootDrops": [
+                {
+                    "chance": 0.5,
+                    "itemId": "las1"
+                },
+                {
+                    "chance": 0.5,
+                    "itemId": "sh1"
+                }
+            ],
+            "mechanics": [
+                {
+                    "bulletDamage": 500,
+                    "bulletSpeed": 950,
+                    "fireRange": 1500,
+                    "fireRate": 900,
+                    "startDelay": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 240,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "boss"
+                }
+            ],
+            "name": "Titán Carmesí",
+            "rageTimer": 20,
+            "rankingPoints": 500,
+            "regenDelayMs": 20000,
+            "regenIntervalMs": 2000,
+            "rewardExp": 150000,
+            "rewardHubs": 750000,
+            "rewardOhcu": 7500,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 6,
+            "shield": 200000,
+            "shieldRegenPercent": 30,
+            "speed": 240,
+            "visionRange": 2000
+        },
+        "106": {
+            "assetPath": "res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/Boss6.glb",
+            "bulletDamage": 12000,
+            "bulletSpeed": 1200,
+            "chaseIdleTimeout": 10000,
+            "chaseUntilDeath": true,
+            "chestDropChance": 0.5,
+            "defenseMechanics": [],
+            "fireRange": 1600,
+            "fireRate": 1000,
+            "hp": 500000,
+            "hpRegenPercent": 25,
+            "icon": "res://assets/Enemigos/2D/Bosses/Boss6/Boss6.png",
+            "isBoss": true,
+            "leashRange": 2500,
+            "lootDrops": [
+                {
+                    "chance": 0.5,
+                    "itemId": "las1"
+                },
+                {
+                    "chance": 0.5,
+                    "itemId": "sh1"
+                }
+            ],
+            "mechanics": [
+                {
+                    "bulletDamage": 1,
+                    "bulletSpeed": 1000,
+                    "fireRange": 1600,
+                    "fireRate": 1000,
+                    "startDelay": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 230,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "boss"
+                }
+            ],
+            "name": "Dragón Demoníaco",
+            "rageTimer": 20,
+            "rankingPoints": 600,
+            "regenDelayMs": 20000,
+            "regenIntervalMs": 2000,
+            "rewardExp": 200000,
+            "rewardHubs": 1000000,
+            "rewardOhcu": 10000,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 6,
+            "shield": 250000,
+            "shieldRegenPercent": 30,
+            "speed": 230,
+            "visionRange": 2000
+        },
+        "107": {
+            "assetPath": "res://assets/Enemigos/3D/Bosses/Boss7/Animaciones/AnimacionesBoss7.glb",
+            "bulletDamage": 15000,
+            "bulletSpeed": 1300,
+            "chaseIdleTimeout": 10000,
+            "chaseUntilDeath": true,
+            "chestDropChance": 0.5,
+            "defenseMechanics": [],
+            "fireRange": 1700,
+            "fireRate": 850,
+            "hp": 600000,
+            "hpRegenPercent": 25,
+            "icon": "res://assets/Enemigos/2D/Bosses/Boss7/Boss7.png",
+            "isBoss": true,
+            "leashRange": 2500,
+            "lootDrops": [
+                {
+                    "chance": 0.5,
+                    "itemId": "las1"
+                },
+                {
+                    "chance": 0.5,
+                    "itemId": "sh1"
+                }
+            ],
+            "mechanics": [
+                {
+                    "bulletDamage": 900,
+                    "bulletSpeed": 1100,
+                    "fireRange": 1700,
+                    "fireRate": 850,
+                    "startDelay": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 220,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "boss"
+                }
+            ],
+            "name": "Dragón Cromático",
+            "rageTimer": 20,
+            "rankingPoints": 700,
+            "regenDelayMs": 20000,
+            "regenIntervalMs": 2000,
+            "rewardExp": 250000,
+            "rewardHubs": 1250000,
+            "rewardOhcu": 12500,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 6,
+            "shield": 300000,
+            "shieldRegenPercent": 30,
+            "speed": 220,
+            "visionRange": 2000
         },
         "1-A": {
             "aggressive": true,
@@ -5377,7 +5639,9 @@
             "timeRestrictionsEnabled": true,
             "visible": true,
             "warpCost": 0,
-            "width": 3000
+            "width": 3000,
+            "spawnX": 1500,
+            "spawnY": 1000
         },
         "2": {
             "allowedHours": [],
@@ -5521,7 +5785,9 @@
                 "enabled": true,
                 "path": "res://assets/Musica/Station Atmosphere.mp3",
                 "volumePercent": 50
-            }
+            },
+            "spawnX": 5000,
+            "spawnY": 500
         },
         "3": {
             "ambience": [],
@@ -5629,7 +5895,9 @@
                 "enabled": false,
                 "path": "",
                 "volumePercent": 60
-            }
+            },
+            "spawnX": 2000,
+            "spawnY": 200
         },
         "4": {
             "ambience": [
@@ -5711,7 +5979,9 @@
                 "enabled": false,
                 "path": "res://assets/Musica/Seamless Combat Loop.mp3",
                 "volumePercent": 50
-            }
+            },
+            "spawnX": 2500,
+            "spawnY": 2000
         },
         "5": {
             "ambience": [],
@@ -5759,13 +6029,18 @@
                     "intervalMs": 5000,
                     "radius": 0,
                     "spawnMode": "fixed",
-                    "type": "13-D",
+                    "type": "106",
                     "x": 1094,
                     "y": 1597
                 }
             ],
             "warpCost": 0,
-            "width": 10000
+            "width": 10000,
+            "music": {
+                "enabled": false,
+                "path": "",
+                "volumePercent": 60
+            }
         },
         "6": {
             "allowedHours": [],
@@ -6865,6 +7140,16 @@
             ],
             "icon": "↩️",
             "label": "Movimiento ZigZag"
+        },
+        "boss": {
+            "desc": "Cerebro de Boss con fases de combate (láser, embestida y misiles).",
+            "fields": [
+                "speed",
+                "stopDist",
+                "startDelay"
+            ],
+            "icon": "💀",
+            "label": "Cerebro de Boss (Fases)"
         }
     },
     "pilotConfig": {

@@ -34,7 +34,8 @@ const DEFAULT_MOVEMENT_LIB = {
     "zigzag": { label: "Movimiento ZigZag", icon: "↩️", desc: "Persigue al jugador zigzagueando de lado a lado.", fields: ["speed", "stopDist", "amplitude", "frequency"] },
     "kamikaze": { label: "Kamikaze", icon: "💣", desc: "Se lanza hacia vos al bajar de HP y explota.", fields: ["activationHP", "speed", "explosionDamage", "duration", "explodeOnDeath"] },
     "prowler": { label: "Merodeador", icon: "🐾", desc: "Movimiento de patrulla autónoma en un rango circular configurable.", fields: ["speed", "patrolRange", "changeTrigger", "changeInterval", "changeType"] },
-    "aura_speed": { label: "Aura de Impulso", icon: "🌬️", desc: "Aumenta la velocidad en un área circular.", fields: ["activationHP", "radius", "speedBonus", "duration", "cooldown", "startDelay", "affectsEnemies", "affectsBosses"] }
+    "aura_speed": { label: "Aura de Impulso", icon: "🌬️", desc: "Aumenta la velocidad en un área circular.", fields: ["activationHP", "radius", "speedBonus", "duration", "cooldown", "startDelay", "affectsEnemies", "affectsBosses"] },
+    "boss": { label: "Cerebro de Boss (Fases)", icon: "💀", desc: "Cerebro de Boss con fases de combate (láser, embestida y misiles).", fields: ["speed", "stopDist", "startDelay"] }
 };
 
 // v266.300: Definición de Mecánicas de Defensa

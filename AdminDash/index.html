@@ -101,6 +101,34 @@
         </div>
     </div>
 
+    <!-- Modal de Nueva Amenaza (v420): elegir tipo común o Boss -->
+    <div id="threat-add-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:99999; align-items:center; justify-content:center; padding:2rem;">
+        <div style="width:100%; max-width:640px; background:#0b0f1a; border:1px solid rgba(0,210,255,0.25); border-radius:16px; box-shadow:0 40px 100px rgba(0,0,0,0.8); overflow:hidden;">
+            <div style="padding:1.2rem 1.6rem; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; background:rgba(0,210,255,0.04);">
+                <h2 style="color:var(--primary); font-size:1.15rem; margin:0; letter-spacing:0.05em;">➕ AGREGAR NUEVA AMENAZA</h2>
+                <button onclick="closeThreatAddModal()" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:#aaa; cursor:pointer; width:32px; height:32px; border-radius:8px; font-size:1rem; display:flex; align-items:center; justify-content:center;">✕</button>
+            </div>
+            <div style="padding:1.6rem;">
+                <p style="color:#aaa; font-size:0.85rem; margin:0 0 1.2rem; line-height:1.6;">Elegí el tipo de amenaza a crear. Se agregará automáticamente a su carpeta correspondiente (Regulares o Bosses) con el siguiente ID correlativo.</p>
+                <div style="display:flex; gap:14px;">
+                    <div onclick="createThreatFromModal('enemy')" style="flex:1; cursor:pointer; border:1px solid rgba(234,179,8,0.3); border-radius:12px; padding:1.4rem; text-align:center; background:rgba(234,179,8,0.06); transition:background 0.2s;" onmouseover="this.style.background='rgba(234,179,8,0.15)'" onmouseout="this.style.background='rgba(234,179,8,0.06)'">
+                        <div style="font-size:2.4rem; margin-bottom:0.6rem;">👾</div>
+                        <div style="color:#eab308; font-weight:bold; font-size:0.95rem;">ENEMIGO COMÚN</div>
+                        <div style="color:#888; font-size:0.75rem; margin-top:0.4rem;">Carpeta Regulares · <span id="threat-common-id" style="color:#eab308; font-family:'JetBrains Mono'; font-weight:bold;">ID 16</span></div>
+                    </div>
+                    <div onclick="createThreatFromModal('boss')" style="flex:1; cursor:pointer; border:1px solid rgba(239,68,68,0.3); border-radius:12px; padding:1.4rem; text-align:center; background:rgba(239,68,68,0.06); transition:background 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.15)'" onmouseout="this.style.background='rgba(239,68,68,0.06)'">
+                        <div style="font-size:2.4rem; margin-bottom:0.6rem;">💀</div>
+                        <div style="color:#ef4444; font-weight:bold; font-size:0.95rem;">BOSS</div>
+                        <div style="color:#888; font-size:0.75rem; margin-top:0.4rem;">Carpeta Bosses · <span id="threat-boss-id" style="color:#ef4444; font-family:'JetBrains Mono'; font-weight:bold;">ID 108</span></div>
+                    </div>
+                </div>
+            </div>
+            <div style="padding:1rem 1.6rem; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:flex-end; background:rgba(0,0,0,0.25);">
+                <button class="btn btn-secondary" onclick="closeThreatAddModal()">CANCELAR</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Agregado a Cartografía (v1.16) -->
     <div id="map-add-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:99999; align-items:center; justify-content:center; padding:2rem;">
         <div style="width:100%; max-width:580px; max-height:90vh; display:flex; flex-direction:column; background:#0b0f1a; border:1px solid rgba(0,210,255,0.25); border-radius:16px; box-shadow:0 40px 100px rgba(0,0,0,0.8); overflow:hidden;">
@@ -518,6 +546,9 @@
             </div>
 
             <div id="view-enemies" class="view">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+                    <button class="btn btn-primary" onclick="addNewThreat()">➕ AGREGAR NUEVA AMENAZA</button>
+                </div>
                 <div id="enemies-grid" class="grid"></div>
             </div>
 

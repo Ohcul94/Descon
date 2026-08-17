@@ -2500,40 +2500,48 @@ func _setup_enemy_visuals():
 	var _enemy_scale = 3.0 
 	var path = "" 
 	
-	# v255.15: CONFIGURACIÓN NORMALIZADA (Manual de Activos)
-	match entity_type:
-		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13:
-			glb_path = "res://assets/Enemigos/3D/Enemigo" + str(entity_type) + "/Enemigo" + str(entity_type) + ".glb"
-			enemy_rot_offset = 90.0
-			# Excepciones de rotación específicas detectadas en pruebas
-			if entity_type == 7 or entity_type == 4: enemy_rot_offset = 180.0
-			if entity_type == 6 or entity_type == 8: enemy_rot_offset = 0.0
-			# v405: E2 y E3 (assets Tripo) tienen pose agachada con extremidades hacia el suelo.
-			# Pitch negativo (eje Z local) los ergue para asemejarse a la pose de E1.
-			# Ajustable: valores mas negativos => mas erguidos; 0 => sin cambio.
-			if entity_type == 2: enemy_pitch_offset = 22.0
-			if entity_type == 3: enemy_pitch_offset = 18.0
-			
-		101: # Lord Titán (Boss1)
-			glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
-			enemy_rot_offset = 90.0
-			_enemy_scale = 6.0
-		102: # Ancient Titán (Boss2)
-			glb_path = "res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"
-			enemy_rot_offset = 90.0
-			_enemy_scale = 6.0
-		103: # Mechanic Boss (Boss3)
-			glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
-			enemy_rot_offset = 180.0
-			_enemy_scale = 6.0
-		104: # Stellar Guardian (Boss4)
-			glb_path = "res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb"
-			enemy_rot_offset = 0.0
-			_enemy_scale = 8.0
-		200: # Pilar Protector
-			glb_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
-			enemy_rot_offset = 0.0
-			_enemy_scale = 9.0
+	# v420.0: CONFIGURACIÓN DATA-DRIVEN (Manual de Activos)
+	# Si el enemigo tiene una entrada en GameConstants.ENEMY_MODELS (sincronizado desde el
+	# AdminDash) con assetPath, se usa EXACTAMENTE ese modelo 3D, su icono 2D, sus rotaciones
+	# (rotX/rotY/rotZ) y su escala (scale). Si no existe entrada o no trae assetPath, se cae al
+	# mapeo hardcodeado tradicional (compatibilidad total con enemigos existentes).
+	var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+	var use_cfg_3d = enemy_cfg.has("assetPath") and str(enemy_cfg.get("assetPath", "")) != ""
+	if not use_cfg_3d:
+		# v255.15: CONFIGURACIÓN NORMALIZADA (Manual de Activos)
+		match entity_type:
+			1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13:
+				glb_path = "res://assets/Enemigos/3D/Enemigo" + str(entity_type) + "/Enemigo" + str(entity_type) + ".glb"
+				enemy_rot_offset = 90.0
+				# Excepciones de rotación específicas detectadas en pruebas
+				if entity_type == 7 or entity_type == 4: enemy_rot_offset = 180.0
+				if entity_type == 6 or entity_type == 8: enemy_rot_offset = 0.0
+				# v405: E2 y E3 (assets Tripo) tienen pose agachada con extremidades hacia el suelo.
+				# Pitch negativo (eje Z local) los ergue para asemejarse a la pose de E1.
+				# Ajustable: valores mas negativos => mas erguidos; 0 => sin cambio.
+				if entity_type == 2: enemy_pitch_offset = 22.0
+				if entity_type == 3: enemy_pitch_offset = 18.0
+				
+			101: # Lord Titán (Boss1)
+				glb_path = "res://assets/Enemigos/3D/Bosses/Boss1/Boss1.glb"
+				enemy_rot_offset = 90.0
+				_enemy_scale = 6.0
+			102: # Ancient Titán (Boss2)
+				glb_path = "res://assets/Enemigos/3D/Bosses/Boss2/Boss2.glb"
+				enemy_rot_offset = 90.0
+				_enemy_scale = 6.0
+			103: # Mechanic Boss (Boss3)
+				glb_path = "res://assets/Enemigos/3D/Bosses/Boss3/Boss3.glb"
+				enemy_rot_offset = 180.0
+				_enemy_scale = 6.0
+			104: # Stellar Guardian (Boss4)
+				glb_path = "res://assets/Enemigos/3D/Bosses/Boss4/Boss4.glb"
+				enemy_rot_offset = 0.0
+				_enemy_scale = 8.0
+			200: # Pilar Protector
+				glb_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
+				enemy_rot_offset = 0.0
+				_enemy_scale = 9.0
 
 	# if glb_path != "":
 	# 	print("[CORE] Cargando Enemigo 3D: ", glb_path, " Tipo: ", entity_type)
@@ -2559,10 +2567,23 @@ func _setup_enemy_visuals():
 		_setup_3d_visuals(glb_path, enemy_rot_offset, enemy_pitch_offset)
 		if is_instance_valid(_3d_model):
 			# Conservar escala nativa del archivo original .glb pero multiplicada por 2.0 (o 6.0 si es Boss)
+			# v420: La escala puede venir configurada desde el AdminDash (campo "scale" del enemigo)
 			var current_scale = 2.0
 			if entity_type >= 101 and entity_type <= 104:
 				current_scale = 6.0
+			if use_cfg_3d and enemy_cfg.has("scale"):
+				current_scale = float(enemy_cfg.scale)
 			_3d_model.scale = Vector3(current_scale, current_scale, current_scale)
+			
+			# v420: Rotaciones 3D data-driven desde el AdminDash (mismo patrón que las naves)
+			if use_cfg_3d and (enemy_cfg.has("rotX") or enemy_cfg.has("rotY") or enemy_cfg.has("rotZ")):
+				var actual_model = _3d_model.get_child(0) if _3d_model.get_child_count() > 0 else null
+				if actual_model:
+					actual_model.rotation_degrees = Vector3(
+						float(enemy_cfg.get("rotX", 0)),
+						float(enemy_cfg.get("rotY", 0)),
+						float(enemy_cfg.get("rotZ", 0))
+					)
 			_update_collision_size()
 			return
 		else:
@@ -2570,18 +2591,22 @@ func _setup_enemy_visuals():
 
 
 	# Fallback a 2D (v223.1: Rutas Corregidas 2D)
-	match entity_type:
-		1: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png"
-		2: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png" # Fallback a E1
-		3: path = "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png" # Fallback a E2
-		5: path = "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png"
-		8: path = "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png"
-		7: path = "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png" # Fallback a E3
-		9: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png" # Fallback a E1
-		4: path = "res://assets/Enemigos/2D/Bosses/Boss1/Boss1.png"
-		10: path = "res://assets/Enemigos/2D/Bosses/Boss2/Boss2.png"
-		11: path = "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png"
-		6: path = "res://assets/Enemigos/2D/Enemigo6/Enemigo6.png"
+	# v420: Si la entrada del config trae un icono 2D, se usa en lugar del mapeo fijo
+	if enemy_cfg.has("icon") and str(enemy_cfg.get("icon", "")) != "":
+		path = enemy_cfg.icon
+	else:
+		match entity_type:
+			1: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png"
+			2: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png" # Fallback a E1
+			3: path = "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png" # Fallback a E2
+			5: path = "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png"
+			8: path = "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png"
+			7: path = "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png" # Fallback a E3
+			9: path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png" # Fallback a E1
+			4: path = "res://assets/Enemigos/2D/Bosses/Boss1/Boss1.png"
+			10: path = "res://assets/Enemigos/2D/Bosses/Boss2/Boss2.png"
+			11: path = "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png"
+			6: path = "res://assets/Enemigos/2D/Enemigo6/Enemigo6.png"
 	
 	if path == "": path = "res://assets/Enemigos/2D/Enemigo1/Enemy1Map1.png"
 	

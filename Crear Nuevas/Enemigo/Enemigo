@@ -1,0 +1,56 @@
+Actuá como un Ingeniero de Software Senior especializado en MMOs autoritativos en tiempo real. Vamos a crear un nuevo enemigo (común o Boss) para mi juego. Mi arquitectura es estrictamente Data-Driven (orientada a datos configurados desde un Dashboard administrativo) y está dividida en dos partes:
+
+Servidor Autoritativo: Node.js (JavaScript ES6), gestionado con un sistema de rejilla espacial (state.grid) para optimización de colisiones y un orquestador singleton (AIManager.js) que instancia la AI correcta según la configuración del enemigo (ChaseAI, OrbitAI, BossAI, SniperAI, ChargerAI, GravityAI, ProwlerAI, ZigZagAI).
+
+Cliente Visual: Godot Engine 4 (GDScript), con una clase base Entity (Enemy.gd extiende Entity.gd). El renderizado 3D/2D se configura en _setup_enemy_visuals() leyendo GameConstants.ENEMY_MODELS, que se sincroniza automáticamente desde el config del servidor (el AdminDash es la fuente de verdad).
+
+1. Datos de Configuración del Dashboard (Fuente de Verdad)
+Aquí tenés los parámetros exactos exportados desde el AdminDash para el nuevo enemigo:
+
+ID del Enemigo: [EJ: 16] (comunes: 1-99) o [EJ: 108] (bosses: >= 101, con isBoss: true y rageTimer)
+
+Nombre: [EJ: Enemigo 16]
+
+Clase de IA (movementAI o movementPhases[0].type): [EJ: chase | orbit | boss | sniper | charger | gravity | prowler | zigzag | kamikaze]
+
+Stats: hp, shield, speed, bulletDamage, bulletSpeed, fireRange, fireRate, visionRange, leashRange, chaseIdleTimeout, stopDist, aggressive, chaseUntilDeath, stopOnOutOfSight, hpRegenPercent, shieldRegenPercent, regenDelayMs, regenIntervalMs.
+
+Recompensas: rewardExp, rewardHubs, rewardOhcu, chestDropChance, rankingPoints, lootDrops (items con chance).
+
+Mecánicas de Ataque (mechanics[]): [{ type, bulletDamage, bulletSpeed, fireRange, fireRate, startDelay, ... }] — ej: laser, cone_cast, missiles.
+
+Fases de Movimiento (movementPhases[]): [{ type, speed, stopDist | idealDist | orbitRadius, startDelay, ... }].
+
+Defensas (defenseMechanics[]): [{ type: invulnerability | shield_regen | heal, duration, ... }].
+
+Assets (dentro de descon/assets/Enemigos):
+- assetPath 3D (.glb): res://assets/Enemigos/3D/Enemigo16/Enemigo16.glb (común) o res://assets/Enemigos/3D/Bosses/Boss8/Boss8.glb (boss).
+- icon 2D (PNG transparente): res://assets/Enemigos/2D/Enemigo16/Enemigo16.png (opcional; si falta, el fallback 2D usa el genérico y la preview del panel queda sin ícono).
+- rotX / rotY / rotZ (grados): corrigen la orientación del asset 3D.
+- scale (multiplicador): 2.0 para comunes, 6.0 para bosses (ajustable).
+
+2. Reglas Estrictas de Codificación (Estándar del Proyecto)
+Comentarios en Español: Dentro de cada función o bloque complejo, debés incluir aclaraciones detalladas en Español Latinoamericano explicando exactamente qué hace esa lógica.
+
+Archivos Completos: No me des parches, resúmenes ni fragmentos con // ... rest of code. Entregame siempre los archivos listos para copiar y pegar por completo.
+
+Sin Acoplamiento Feo: Las AIs del servidor deben ser componentes puros. Reciben sus configuraciones mediante el constructor (constructor(enemy, config, state)) y no buscan variables dentro del estado global de manera directa.
+
+Físicas y Red: En el servidor, debés utilizar la grilla espacial (state.grid.getNearbyEntities) si una mecánica afecta un área o requiere buscar entidades, para prevenir lag por fuerza bruta. Al final del procesamiento, debés emitir el evento de red mediante io.to(`zone_${enemy.zone}`).emit(...) para sincronizar el aspecto visual (VFX) en los clientes de la zona.
+
+3. Entregables Requeridos
+A. Config del Servidor: Server/config.json → enemyModels["16"] (o "108")
+Agregá la entrada completa (stats, mechanics, movementPhases, defenseMechanics, lootDrops, assetPath, icon, rotX/rotY/rotZ, scale). El servidor la lee de forma genérica por type: AIManager.js (spawn + selección de AI), BaseAI.js, enemyLogic.js, gameLoop.js y lootManager.js — no hay lista blanca de tipos. Si el type es >= 101 o tiene isBoss: true, se trata como Boss (nombre "enemy_boss_...", filters de skills como boss).
+
+B. Assets Requeridos
+- 3D: carpeta descon/assets/Enemigos/3D/Enemigo{N}/Enemigo{N}.glb (común) o descon/assets/Enemigos/3D/Bosses/Boss{N}/Boss{N}.glb (boss). Si el GLB viene con animaciones, el cliente las detecta solo (AnimationPlayer) y reproduce la primera (idle/fly/walk/move).
+- 2D (opcional pero recomendado): descon/assets/Enemigos/2D/Enemigo{N}/Enemigo{N}.png (PNG con transparencia).
+
+C. Cliente (opcional, solo para jugar sin conexión al servidor)
+descon/scripts/autoloads/Constants.gd → ENEMY_MODELS: agregar la entrada de respaldo con los mismos campos. En línea el cliente usa SIEMPRE el config del servidor; este fallback solo cubre el modo offline.
+
+D. Guía de Integración
+- Desde el AdminDash (pestaña "👾 Amenazas (IA)"): usá "➕ AGREGAR NUEVO ENEMIGO" (común, ID < 100) o "💀 AGREGAR NUEVO BOSS" (ID >= 101) y completá stats, assetPath, rotaciones y escala. Guardá el config (el servidor lo persiste en config.json).
+- El cliente no requiere ningún cambio de código: _setup_enemy_visuals() lee GameConstants.ENEMY_MODELS[str(tipo)] y usa assetPath/rotX/rotY/rotZ/scale/icon si existen; si no, cae al mapeo hardcodeado tradicional (compatibilidad total con los enemigos existentes).
+- Para que aparezca en un mapa: agregá su type en los spawns del mapa (mapsConfig → spawns → enemyTypes/distribución) o forceType desde el server.
+- Verificación: entrá al juego, spawneá el enemigo y ajustá rotY/rotZ/scale desde el AdminDash hasta que el modelo se vea correcto (sin tocar código).

@@ -1336,6 +1336,8 @@ function handleGlobalKeydown(e) {
         if (addOverlay && addOverlay.style.display === 'flex') { closeMapAddModal(); return; }
         const confirmOverlay = document.getElementById('confirm-overlay');
         if (confirmOverlay && confirmOverlay.style.display === 'flex') { closeConfirm(false); return; }
+        const threatOverlay = document.getElementById('threat-add-overlay');
+        if (threatOverlay && threatOverlay.style.display === 'flex') { closeThreatAddModal(); return; }
         return;
     }
 

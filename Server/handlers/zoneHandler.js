@@ -460,14 +460,18 @@ function registerZoneHandlers(socket, io, state) {
             clearPlayerStatusEffects(p);
 
             p.zone = zoneId;
-            if (requestedX !== null && requestedX !== undefined) {
+            // v4xx: Punto de aparición configurado por el equipo en AdminDash > Cartografía
+            // (spawnX/spawnY). Se usa cuando el salto NO trae coordenadas propias (ej: warp por VIAJAR).
+            const destSpawnCfg = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig && state.SERVER_CONFIG.mapsConfig[zoneId];
+            const hasSpawnCfg = destSpawnCfg && destSpawnCfg.spawnX !== undefined && destSpawnCfg.spawnY !== undefined;
+            if (requestedX !== null && requestedX !== undefined && requestedY !== null && requestedY !== undefined) {
                 p.x = Number(requestedX);
+                p.y = Number(requestedY);
+            } else if (hasSpawnCfg) {
+                p.x = Number(destSpawnCfg.spawnX);
+                p.y = Number(destSpawnCfg.spawnY);
             } else {
                 p.x = newSize / 2;
-            }
-            if (requestedY !== null && requestedY !== undefined) {
-                p.y = Number(requestedY);
-            } else {
                 p.y = newSize / 2;
             }
 
