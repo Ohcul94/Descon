@@ -122,7 +122,7 @@ module.exports = class BossAI extends BaseAI {
     phaseLasers(target, dist, angle, now, io) {
         if (now > (this.nextLaserTime || 0)) {
             io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
-                enemyId: this.enemy.id, targetId: target.id,
+                enemyId: this.enemy.id, targetId: target.socketId || target.id,
                 enemyType: this.enemy.type,
                 x: this.enemy.x, y: this.enemy.y, angle: angle,
                 damage: this.isRage ? (this.config.bulletDamage * 1.5) : this.config.bulletDamage
@@ -169,7 +169,7 @@ module.exports = class BossAI extends BaseAI {
             nearbyPlayers.forEach(p => {
                 const pAngle = Math.atan2(p.y - this.enemy.y, p.x - this.enemy.x);
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
-                    enemyId: this.enemy.id, targetId: p.id,
+                    enemyId: this.enemy.id, targetId: p.socketId || p.id,
                     enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, angle: pAngle,
                     type: 'missile', isHoming: true, life: 240, 

@@ -91,7 +91,7 @@ module.exports = class CloneAI extends BaseAI {
                 });
             } else if (chosen === "missile" || chosen === "ice_missile") {
                 io.to(zoneStr).emit('serverEnemyFire', {
-                    enemyId: this.enemy.id, targetId: target.id,
+                    enemyId: this.enemy.id, targetId: target.socketId || target.id,
                     enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, angle: angle,
                     type: chosen === "missile" ? "missile" : "ice_missile", isHoming: true, life: 120,
