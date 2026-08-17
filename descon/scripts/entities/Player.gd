@@ -191,6 +191,9 @@ func _on_environment_damaged(data: Dictionary):
 			# Daño normal
 			_spawn_damage_text(str(int(dmg)), Color.RED)
 			apply_shake(2.0)
+		
+		if current_hp <= 0:
+			die()
 
 func _on_slow_state(data: Dictionary):
 	if data.has("active"):
@@ -426,6 +429,10 @@ func _unhandled_input(event):
 				is_moving = true; autopilot_enabled = false
 
 func _physics_process(p_delta):
+	if current_hp <= 0 and not is_dead:
+		die()
+		return
+
 	# Evaluar visibilidad antes del retorno de red para mantener la nave oculta sin conexión inicial
 	if NetworkManager and not NetworkManager.is_logged_in:
 		if visible:
@@ -1120,6 +1127,12 @@ func respawn():
 	target_position = global_position
 	visible = true; modulate.a = 1.0; show()
 	set_physics_process(true); set_process(true)
+
+	# v421.1: Reactivar formas de colisión 2D al revivir
+	for child in get_children():
+		if child is CollisionShape2D or child is CollisionPolygon2D:
+			child.set_deferred("disabled", false)
+
 	_update_tags()
 	NetworkManager.send_event("playerRespawn", {
 		"id": entity_id, "hp": max_hp, "sh": max_shield,

@@ -29,13 +29,17 @@ func _process(delta):
 
 func update_stats(data: Dictionary):
 	super.update_stats(data)
+	# v416.1: Si sigue muerto, no reactivar colisión (die() ya las desactivó)
+	if is_dead: return
 	if entity_type == 201:
 		collision_layer = 0
 		collision_mask = 0
-		if is_instance_valid(_collision_shape):
-			_collision_shape.disabled = true
+		for child in get_children():
+			if child is CollisionShape2D or child is CollisionPolygon2D:
+				child.disabled = true
 	else:
 		collision_layer = 2
 		collision_mask = 1
-		if is_instance_valid(_collision_shape):
-			_collision_shape.disabled = false
+		for child in get_children():
+			if child is CollisionShape2D or child is CollisionPolygon2D:
+				child.disabled = false

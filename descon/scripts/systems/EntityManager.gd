@@ -396,6 +396,12 @@ func _on_player_updated(data):
 func _get_enemy_from_pool() -> Node:
 	for en in enemy_pool:
 		if is_instance_valid(en) and en.get_meta("is_pooled", false):
+			# v416.1: Si el nodo quedó referenciado bajo un id muerto, limpiar la
+			# referencia para no reutilizar el mismo nodo con dos ids a la vez
+			for eid in enemies.keys():
+				if enemies[eid] == en:
+					enemies.erase(eid)
+					break
 			en.activate_from_pool()
 			return en
 			

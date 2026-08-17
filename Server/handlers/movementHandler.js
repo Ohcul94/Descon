@@ -74,6 +74,9 @@ function registerMovementHandlers(socket, io, state) {
         if (!players[socket.id] || !socket.dbUser) return;
         const p = players[socket.id];
 
+        // v421.0: Descartar movimiento si el servidor sabe que el jugador está muerto
+        if (p.isDead) return;
+
         // v311.0: Filtrar movimientos desactualizados si la zona del cliente no coincide con la del servidor.
         // Esto evita desincronizaciones cuando se procesan paquetes viejos en vuelo durante un cambio de zona.
         if (movementData.zone !== undefined && normalizeZone(movementData.zone) !== normalizeZone(p.zone)) {
@@ -284,6 +287,9 @@ function registerMovementHandlers(socket, io, state) {
                 state.playersByZone[targetZone] = {};
             }
             state.playersByZone[targetZone][socket.id] = p;
+
+            // v421.0: Notificar a los aliados en la zona antigua que este jugador abandonó el mapa al revivir
+            socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
 
             socket.leave(`zone_${oldZone}`);
             socket.join(`zone_${targetZone}`);

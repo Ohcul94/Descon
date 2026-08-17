@@ -1023,12 +1023,12 @@ func update_stats(data):
 	
 	if data.has("hp") and not lock_active:
 		var server_hp = _safe_float(data.get("hp"), current_hp)
-		if not is_local or abs(current_hp - server_hp) > threshold:
+		if not is_local or server_hp <= 0 or abs(current_hp - server_hp) > threshold:
 			current_hp = server_hp
 			
 	if (data.has("shield") or data.has("sh")) and not lock_active:
 		var server_sh = _safe_float(data.get("shield", data.get("sh")), current_shield)
-		if not is_local or abs(current_shield - server_sh) > threshold:
+		if not is_local or server_sh <= 0 or abs(current_shield - server_sh) > threshold:
 			current_shield = server_sh
 			
 	if data.has("maxHp") and not is_in_group("player"):
@@ -1380,6 +1380,9 @@ func _resurrect(data: Dictionary):
 			target_rotation = rotation
 
 	# 2. Reset visual completo (Igual que el Player al spawnear)
+	# v416.1: Desmarcar pooling ANTES de rebuild para que se reconstruya el
+	# body 3D si el marcador de muerte ya lo había liberado
+	set_meta("is_pooled", false)
 	_update_flash_visuals(0.0)
 	rebuild_3d_layout()
 	
@@ -1397,8 +1400,10 @@ func _resurrect(data: Dictionary):
 	if is_instance_valid(world_root_3d): 
 		world_root_3d.visible = true
 		world_root_3d.scale = Vector3(1,1,1) # Reset de escala por si el pooling la rompió
-	if _collision_shape: _collision_shape.set_deferred("disabled", false)
-	set_meta("is_pooled", false)
+	# v416.1: Reactivar TODAS las formas de colisión 2D al revivir
+	for child in get_children():
+		if child is CollisionShape2D or child is CollisionPolygon2D:
+			child.set_deferred("disabled", false)
 
 	# 4. Reactivar procesos
 	set_physics_process(true); set_process(true)
@@ -1648,6 +1653,12 @@ func die():
 	if not is_special_defense:
 		_spawn_wreckage_marker()
 	
+	# v416.1: Desactivar TODAS las formas de colisión 2D al morir. El CollisionPolygon2D
+	# del escenario quedaba activo y seguía bloqueando el espacio aunque el body esté invisible
+	for child in get_children():
+		if child is CollisionShape2D or child is CollisionPolygon2D:
+			child.set_deferred("disabled", true)
+	
 	# 5. Lógica de pooling/limpieza para enemigos
 	if not is_in_group("player") and not is_in_group("remote_players"): 
 		if is_special_defense:
@@ -1656,7 +1667,6 @@ func die():
 			queue_free()
 		else:
 			set_meta("is_pooled", true)
-			if _collision_shape: _collision_shape.set_deferred("disabled", true)
 
 # ---------------------------------------------------------
 # v266.985: Mecánicas de Ataque Orbital (Pedido del Usuario)
@@ -3761,8 +3771,10 @@ func deactivate_for_pooling():
 	visible = false
 	set_process(false)
 	set_physics_process(false)
-	if _collision_shape:
-		_collision_shape.set_deferred("disabled", true)
+	# v416.1: Desactivar todas las formas de colisión 2D (incluye CollisionPolygon2D)
+	for child in get_children():
+		if child is CollisionShape2D or child is CollisionPolygon2D:
+			child.set_deferred("disabled", true)
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.visible = false
 	if is_instance_valid(world_root_3d):
@@ -3818,8 +3830,10 @@ func activate_from_pool():
 	visible = true
 	set_process(true)
 	set_physics_process(true)
-	if _collision_shape:
-		_collision_shape.set_deferred("disabled", false)
+	# v416.1: Reactivar todas las formas de colisión 2D (incluye CollisionPolygon2D)
+	for child in get_children():
+		if child is CollisionShape2D or child is CollisionPolygon2D:
+			child.set_deferred("disabled", false)
 	if is_instance_valid(_ui_wrapper):
 		_ui_wrapper.visible = true
 	if is_instance_valid(world_root_3d):
@@ -3998,6 +4012,16 @@ func _process(_d):
 				var w3d = marker.get_meta("wreckage_3d")
 				if is_instance_valid(w3d): w3d.queue_free()
 			marker.queue_free()
+			# v416.1: Liberar el asset del cuerpo junto con el marcador para que no
+			# quede invisible ocupando el mundo 3D. Solo si el enemigo sigue muerto
+			# (pooled); si ya respawnó, no tocar el body que está en uso.
+			if is_instance_valid(self) and is_in_group("enemies") and get_meta("is_pooled", false):
+				if is_instance_valid(world_root_3d):
+					world_root_3d.queue_free()
+					world_root_3d = null
+				_3d_model = null
+				_3d_propulsion = null
+				accessory_pivot_3d = null
 		)
 
 func _clear_wreckage_marker():
