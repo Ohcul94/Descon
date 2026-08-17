@@ -151,7 +151,43 @@ func _ready():
 		if not NetworkManager.config_updated.is_connected(_on_config_updated_recalc):
 			NetworkManager.config_updated.connect(_on_config_updated_recalc)
 	
+	# v690.2: Si cambia una esfera, validar que las municiones equipadas sigan cumpliendo requisitos
+	var sm_node = get_node_or_null("SpheresManager")
+	if sm_node and not sm_node.spheres_updated.is_connected(_validate_ammo_slot_requirements):
+		sm_node.spheres_updated.connect(_validate_ammo_slot_requirements)
+	
 	_setup_skill_controller()
+
+# v690.2: Quitar automáticamente municiones equipadas que dejaron de cumplir requisitos
+# (ej: se cambió la esfera de un color y la munición exigía esferas de ese color).
+# Avisa en el log del HUD qué se removió y por qué.
+func _validate_ammo_slot_requirements():
+	if not NetworkManager or not NetworkManager.has_method("check_equip_requirements"):
+		return
+	if ammo_slots.is_empty():
+		return
+	var removed := false
+	for i in range(ammo_slots.size()):
+		var a_type: String = str(ammo_slots[i])
+		if a_type == "" or a_type == "laser":
+			continue
+		var tier = int(selected_ammo.get(a_type, 0))
+		var req_check = NetworkManager.check_equip_requirements("", "", a_type, tier)
+		if not req_check.get("ok", true):
+			ammo_slots[i] = ""
+			removed = true
+			var a_name: String = _ammo_display_name(a_type)
+			var reason: String = str(req_check.get("msg", "requisitos no cumplidos"))
+			print("[PLAYER] Munición removida del slot ", i + 1, " (", a_name, "): ", reason)
+			NetworkManager.game_notification.emit({
+				"msg": "⚠️ MUNICIÓN REMOVIDA DEL SLOT " + str(i + 1) + ": " + a_name + " (" + reason + ")",
+				"type": "error"
+			})
+	if removed:
+		save_ammo_slots_local()
+		var hud = get_tree().get_first_node_in_group("hud")
+		if is_instance_valid(hud) and hud.has_method("update_skill_slots"):
+			hud.update_skill_slots()
 
 func _on_config_updated_recalc(_cfg):
 	_recalculate_stats()
@@ -567,6 +603,8 @@ func _handle_slot_input(action: String, skill_id: String, type: int):
 
 # v266.30: Método público para disparar desde el HUD (Celulares/Mouse)
 func trigger_skill_by_id(skill_id: String, type: int = -1):
+	if skill_id == "":
+		return
 	# v410: Bloqueo de habilidades por Polimorfia
 	if is_polymorphed and not poly_can_use_skills:
 		return
@@ -1181,6 +1219,9 @@ func _on_login_success(p_in):
 		# v210.191: FORZAR REDRAW VISUAL (Fix: Asset Inconsistency)
 		_setup_ship_visuals() 
 		print("[CLIENT] Nave configurada ID: ", current_ship_id, " para ", username)
+		
+		# v690.2: Al entrar, quitar municiones equipadas que ya no cumplan requisitos
+		call_deferred("_validate_ammo_slot_requirements")
 		
 		var sm = get_node_or_null("SpheresManager")
 		if sm and gd.has("spheres"):

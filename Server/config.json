@@ -1889,7 +1889,7 @@
             ],
             "fireRange": 1300,
             "fireRate": 600,
-            "hp": 10000,
+            "hp": 1000,
             "icon": "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png",
             "isBoss": true,
             "lootDrops": [],
@@ -1906,7 +1906,7 @@
                 {
                     "type": "hook",
                     "bulletDamage": 0,
-                    "bulletSpeed": 350,
+                    "bulletSpeed": 400,
                     "fireRange": 900,
                     "fireRate": 7000,
                     "stunDuration": 1500,
@@ -1957,6 +1957,39 @@
                     "targetCount": 1,
                     "targetMode": "sphere_color",
                     "targetSphereColor": "verde"
+                },
+                {
+                    "type": "meteor",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 600,
+                    "fireRate": 1000,
+                    "activationMode": "hp",
+                    "cooldown": 10000,
+                    "startDelay": 0,
+                    "meteorCount": 3,
+                    "fallHeight": 800,
+                    "fallSpeed": 600,
+                    "meteorSize": 100,
+                    "explosionRadius": 100,
+                    "warnTimeMs": 500,
+                    "targetMode": "sphere_color",
+                    "targetSphereColor": "roja",
+                    "debuffsList": [
+                        {
+                            "type": "bleed",
+                            "dps": 1,
+                            "duration": 3100,
+                            "tickInterval": 1000
+                        }
+                    ],
+                    "persistentZone": false,
+                    "zoneDamage": 25,
+                    "zoneTickMs": 500,
+                    "zoneDuration": 4000,
+                    "activationHPs": [
+                        50
+                    ]
                 }
             ],
             "movementPhases": [
@@ -1977,7 +2010,7 @@
             "rewardExp": 1400,
             "rewardHubs": 1000,
             "rewardOhcu": 150,
-            "shield": 5000,
+            "shield": 500,
             "speed": 280,
             "chestDropChance": 0.5,
             "hpRegenPercent": 10,

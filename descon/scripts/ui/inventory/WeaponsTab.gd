@@ -168,11 +168,12 @@ func _render_equipped_slots(parent, p, is_comb):
 	var keys = ["Q", "W", "E"]
 	for i in range(3):
 		var w_id = p.ammo_slots[i]
-		var w_cfg = WEAPONS_DATA.get(w_id, {"name": "DESCONOCIDO", "desc": "", "color": Color.WHITE, "icon": "?"})
+		var is_empty = (w_id == "" or w_id == null)
+		var w_cfg = WEAPONS_DATA.get(w_id, {"name": "", "desc": "", "color": Color(0.4, 0.4, 0.4, 0.5), "icon": "—"})
 		
 		# Obtener cantidad del tier seleccionado
-		var t_idx = p.selected_ammo.get(w_id, 0)
-		var a_list = p.ammo.get(w_id, [0])
+		var t_idx = p.selected_ammo.get(w_id, 0) if not is_empty else 0
+		var a_list = p.ammo.get(w_id, [0]) if not is_empty else [0]
 		var count = a_list[t_idx] if t_idx < a_list.size() else 0
 		
 		var slot_panel = PanelContainer.new()
@@ -203,7 +204,7 @@ func _render_equipped_slots(parent, p, is_comb):
 		key_label.text = "[" + keys[i] + "]"
 		key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		key_label.add_theme_font_size_override("font_size", 14)
-		key_label.modulate = Color.CYAN
+		key_label.modulate = Color.CYAN if not is_empty else Color(1, 1, 1, 0.3)
 		key_vbox.add_child(key_label)
 		
 		var ico_label = Label.new()
@@ -213,23 +214,31 @@ func _render_equipped_slots(parent, p, is_comb):
 		ico_label.modulate = w_cfg["color"]
 		key_vbox.add_child(ico_label)
 		
-		# Detalles de arma equipada
-		var details_v = VBoxContainer.new()
-		details_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		details_v.alignment = BoxContainer.ALIGNMENT_CENTER
-		hb.add_child(details_v)
-		
-		var name_lbl = Label.new()
-		name_lbl.text = w_cfg["name"]
-		name_lbl.add_theme_font_size_override("font_size", 12)
-		name_lbl.modulate = w_cfg["color"]
-		details_v.add_child(name_lbl)
-		
-		var ammo_lbl = Label.new()
-		ammo_lbl.text = "Tier " + str(int(t_idx) + 1) + " | Cantidad: " + _format_val(count)
-		ammo_lbl.add_theme_font_size_override("font_size", 10)
-		ammo_lbl.modulate.a = 0.7
-		details_v.add_child(ammo_lbl)
+		if is_empty:
+			# v690.2: Slot vacío — solo mostrar tecla, sin detalles
+			var empty_lbl = Label.new()
+			empty_lbl.text = "VACÍO"
+			empty_lbl.add_theme_font_size_override("font_size", 10)
+			empty_lbl.modulate = Color(1, 1, 1, 0.3)
+			hb.add_child(empty_lbl)
+		else:
+			# Detalles de arma equipada
+			var details_v = VBoxContainer.new()
+			details_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			details_v.alignment = BoxContainer.ALIGNMENT_CENTER
+			hb.add_child(details_v)
+			
+			var name_lbl = Label.new()
+			name_lbl.text = w_cfg["name"]
+			name_lbl.add_theme_font_size_override("font_size", 12)
+			name_lbl.modulate = w_cfg["color"]
+			details_v.add_child(name_lbl)
+			
+			var ammo_lbl = Label.new()
+			ammo_lbl.text = "Tier " + str(int(t_idx) + 1) + " | Cantidad: " + _format_val(count)
+			ammo_lbl.add_theme_font_size_override("font_size", 10)
+			ammo_lbl.modulate.a = 0.7
+			details_v.add_child(ammo_lbl)
 		
 		# Efecto visual de deshabilitar si está en combate
 		if is_comb:
