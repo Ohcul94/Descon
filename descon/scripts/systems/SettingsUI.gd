@@ -10,6 +10,10 @@ var _binding_label: Button = null
 var _mobcam_row: Control = null
 var _mobcam_sens_slider: HSlider = null
 var _mobcam_sens_lbl: Label = null
+var _action_labels: Dictionary = {} # Nombres legibles de cada acción (para el modal de conflicto)
+var _pending_conflict_action: String = "" # Acción pendiente de confirmar en el modal
+var _pending_conflict_event: InputEvent = null
+var _conflict_modal: Node = null
 
 func _ready():
 	add_to_group("inventory_ui") # v2.6: Unir al grupo de bloqueo global de UI
@@ -88,9 +92,9 @@ func _setup_ui():
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(tabs)
 	
-	# ========================== TAB 1: JUEGO Y CONTROLES ==========================
+	# ========================== TAB 1: JUEGO ==========================
 	var scroll_game = ScrollContainer.new()
-	scroll_game.name = "JUEGO Y TECLAS"
+	scroll_game.name = "JUEGO"
 	scroll_game.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tabs.add_child(scroll_game)
 	
@@ -229,22 +233,34 @@ func _setup_ui():
 		if _mobcam_sens_lbl: _mobcam_sens_lbl.visible = is_mob
 	)
 	
-	game_vbox.add_child(HSeparator.new())
-
+	# ========================== TAB 2: TECLAS ==========================
+	var scroll_keys = ScrollContainer.new()
+	scroll_keys.name = "TECLAS"
+	scroll_keys.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tabs.add_child(scroll_keys)
 	
-	# TECLAS
-	var keys_label = Label.new()
-	keys_label.text = "ASIGNACIÓN DE TECLAS:"
-	game_vbox.add_child(keys_label)
+	var margin_keys = MarginContainer.new()
+	margin_keys.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin_keys.add_theme_constant_override("margin_left", 20)
+	margin_keys.add_theme_constant_override("margin_right", 20)
+	margin_keys.add_theme_constant_override("margin_top", 20)
+	scroll_keys.add_child(margin_keys)
 	
 	var keys_vbox = VBoxContainer.new()
-	game_vbox.add_child(keys_vbox)
+	keys_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	keys_vbox.add_theme_constant_override("separation", 10)
+	margin_keys.add_child(keys_vbox)
+	
+	var keys_label = Label.new()
+	keys_label.text = "ASIGNACIÓN DE TECLAS:"
+	keys_vbox.add_child(keys_label)
 	
 	var slots = {
 		"slot_1": "SLOT 1 (LÁSER)", "slot_2": "SLOT 2 (MISIL)", "slot_3": "SLOT 3 (MINA)",
 		"slot_4": "SLOT 4 (HABILIDAD 1)", "slot_5": "SLOT 5 (HABILIDAD 2)", 
 		"slot_6": "SLOT 6 (HABILIDAD 3)", "slot_7": "SLOT 7 (HABILIDAD 4)",
 		"auto_target_self": "AUTO-LANZAR HABILIDADES",
+		"stay_still": "QUEDARSE QUIETO (DETENER NAVEGACIÓN)",
 		"ui_menu": "MENÚ DE SISTEMA (ESC)", "ui_inventory": "INVENTARIO (F1)", "ui_battlepass": "PASE DE BATALLA (F4)",
 		"ui_events": "MENÚ DE EVENTOS (F2)",
 		"ui_housing": "MENÚ DE HOUSING (F3)",
@@ -255,8 +271,7 @@ func _setup_ui():
 		"loot_claim": "ABRIR BOTÍN / COFRE",
 		"chat_toggle": "ABRIR / CERRAR CHAT"
 	}
-
-
+	_action_labels = slots.duplicate()
 	
 	for action in slots:
 		var row = HBoxContainer.new()
@@ -271,8 +286,6 @@ func _setup_ui():
 		btn.pressed.connect(_on_bind_pressed.bind(action, btn))
 		row.add_child(btn)
 		keys_vbox.add_child(row)
-		
-	game_vbox.add_child(HSeparator.new())
 	
 
 	# --- AJUSTES DE CONTROL PC ---
@@ -290,7 +303,7 @@ func _setup_ui():
 	click_slider.value_changed.connect(func(val): SettingsManager.click_sensitivity = val; SettingsManager.save_settings())
 	pc_config.add_child(click_slider)
 
-	# ========================== TAB 2: GRÁFICOS Y ACCESIBILIDAD ==========================
+	# ========================== TAB 3: GRÁFICOS Y ACCESIBILIDAD ==========================
 	var scroll_gfx = ScrollContainer.new()
 	scroll_gfx.name = "GRÁFICOS"
 	scroll_gfx.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -591,7 +604,7 @@ func _setup_ui():
 	bot_spacer.custom_minimum_size.y = 200
 	gfx_vbox.add_child(bot_spacer)
 
-	# ========================== TAB 3: SONIDO (PRÓXIMAMENTE) ==========================
+	# ========================== TAB 4: SONIDO (PRÓXIMAMENTE) ==========================
 	var scroll_audio = ScrollContainer.new()
 	scroll_audio.name = "SONIDO"
 	scroll_audio.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -614,7 +627,7 @@ func _setup_ui():
 	audio_msg.modulate.a = 0.5
 	audio_vbox.add_child(audio_msg)
 
-	# ========================== TAB 4: INTERFAZ Y LAYOUT ==========================
+	# ========================== TAB 5: INTERFAZ Y LAYOUT ==========================
 	var scroll_hud = ScrollContainer.new()
 	scroll_hud.name = "INTERFAZ Y LAYOUT"
 	scroll_hud.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -696,7 +709,7 @@ func _setup_ui():
 		)
 		row.add_child(edit_btn)
 
-	# ========================== TAB 5: FUENTES Y TEXTOS ==========================
+	# ========================== TAB 6: FUENTES Y TEXTOS ==========================
 	var scroll_font = ScrollContainer.new()
 	scroll_font.name = "FUENTES"
 	scroll_font.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -826,12 +839,164 @@ func _input(event):
 		return
 
 	if _is_binding and event is InputEventKey and event.pressed:
-		_rebind_action(_binding_action, event)
-		_is_binding = false
-		_binding_label.text = event.as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
-
-		_binding_label.modulate = Color.WHITE
+		# Mientras el modal de conflicto esté abierto, ignorar otras teclas
+		if is_instance_valid(_conflict_modal):
+			return
+		if not is_instance_valid(_binding_label):
+			_is_binding = false
+			return
+		_request_rebind(_binding_action, event, _binding_label)
 		get_viewport().set_input_as_handled()
+
+# v420: Solicitar rebind con detección de conflicto de tecla
+func _request_rebind(action: String, new_event: InputEvent, label: Button):
+	var conflicted = _find_conflicting_action(action, new_event)
+	if conflicted != "":
+		_pending_conflict_action = action
+		_pending_conflict_event = new_event
+		_show_conflict_modal(conflicted, new_event)
+	else:
+		_finish_rebind(action, new_event, label)
+
+# Buscar otra acción que ya tenga la misma tecla asignada (para avisar y quitársela)
+func _find_conflicting_action(action: String, event: InputEvent) -> String:
+	if event is InputEventKey:
+		for other in SettingsManager.default_keys:
+			if other == action: continue
+			if not InputMap.has_action(other): continue
+			for ev in InputMap.action_get_events(other):
+				if ev is InputEventKey and ev.physical_keycode == event.physical_keycode:
+					return other
+	return ""
+
+# Aplicar el rebind y cerrar el estado de bindeo
+func _finish_rebind(action: String, new_event: InputEvent, label: Button):
+	_rebind_action(action, new_event)
+	_is_binding = false
+	if is_instance_valid(label):
+		label.text = _get_action_key_text(action)
+		label.modulate = Color.WHITE
+
+func _show_conflict_modal(conflicted: String, event: InputEvent):
+	var key_txt = event.as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
+	var conflicted_label = _action_labels.get(conflicted, conflicted)
+	
+	# Usar un CanvasLayer para garantizar que se renderice encima de toda la UI
+	var canvas_layer = CanvasLayer.new()
+	canvas_layer.name = "ConflictCanvasLayer"
+	
+	# Si el menú de configuración está dentro de un CanvasLayer, nos colocamos por encima
+	var parent_canvas = get_parent()
+	if parent_canvas is CanvasLayer:
+		canvas_layer.layer = parent_canvas.layer + 5
+	else:
+		canvas_layer.layer = 130
+		
+	get_tree().root.add_child(canvas_layer)
+	_conflict_modal = canvas_layer
+	
+	var overlay = Control.new()
+	overlay.name = "ConflictOverlay"
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	canvas_layer.add_child(overlay)
+	
+	var dim = ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.75)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.add_child(dim)
+	
+	var panel = PanelContainer.new()
+	panel.name = "Panel"
+	panel.custom_minimum_size = Vector2(420, 220)
+	overlay.add_child(panel)
+	
+	# Centrado dinámico robusto nativo con anchors
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	panel.offset_left = -panel.custom_minimum_size.x / 2.0
+	panel.offset_right = panel.custom_minimum_size.x / 2.0
+	panel.offset_top = -panel.custom_minimum_size.y / 2.0
+	panel.offset_bottom = panel.custom_minimum_size.y / 2.0
+	
+	# Estilo visual estándar del sistema (Borde cian, fondo azul profundo)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.01, 0.04, 0.08, 1)
+	style.border_width_top = 3
+	style.border_color = Color.CYAN
+	style.set_corner_radius_all(4)
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var margin = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 20)
+	margin.add_theme_constant_override("margin_right", 20)
+	margin.add_theme_constant_override("margin_top", 20)
+	margin.add_theme_constant_override("margin_bottom", 20)
+	panel.add_child(margin)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 20)
+	margin.add_child(vbox)
+	
+	var title = Label.new()
+	title.text = "⚠️ CONFLICTO DE TECLA"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.modulate = Color.CYAN
+	title.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(title)
+	
+	var msg = RichTextLabel.new()
+	msg.bbcode_enabled = true
+	msg.text = "[center]La tecla [color=yellow]" + key_txt + "[/color] ya está asignada a:\n\n[color=cyan]" + conflicted_label + "[/color]\n\n¿Confirmás el cambio? (La acción anterior quedará vacía).[/center]"
+	msg.fit_content = true
+	vbox.add_child(msg)
+	
+	var btn_row = HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_row.add_theme_constant_override("separation", 20)
+	vbox.add_child(btn_row)
+	
+	var confirm_btn = Button.new()
+	confirm_btn.text = "  CONFIRMAR  "
+	confirm_btn.custom_minimum_size = Vector2(120, 40)
+	confirm_btn.pressed.connect(_on_conflict_confirm)
+	btn_row.add_child(confirm_btn)
+	
+	var cancel_btn = Button.new()
+	cancel_btn.text = "  CANCELAR  "
+	cancel_btn.custom_minimum_size = Vector2(120, 40)
+	cancel_btn.pressed.connect(_on_conflict_cancel)
+	btn_row.add_child(cancel_btn)
+
+func _on_conflict_confirm():
+	if _pending_conflict_action == "" or _pending_conflict_event == null:
+		return
+	var action = _pending_conflict_action
+	var event = _pending_conflict_event
+	var label = _binding_label
+	_pending_conflict_action = ""
+	_pending_conflict_event = null
+	_close_conflict_modal()
+	_finish_rebind(action, event, label)
+
+func _on_conflict_cancel():
+	_pending_conflict_action = ""
+	_pending_conflict_event = null
+	_is_binding = false
+	if is_instance_valid(_binding_label):
+		_binding_label.text = _get_action_key_text(_binding_action)
+		_binding_label.modulate = Color.WHITE
+	_close_conflict_modal()
+
+func _close_conflict_modal():
+	if is_instance_valid(_conflict_modal):
+		_conflict_modal.queue_free()
+	_conflict_modal = null
 
 func _rebind_action(action: String, new_event: InputEvent):
 	if not InputMap.has_action(action):
@@ -839,8 +1004,23 @@ func _rebind_action(action: String, new_event: InputEvent):
 	InputMap.action_erase_events(action)
 	InputMap.action_add_event(action, new_event)
 	
+	# Quitar la misma tecla de las demás acciones (evita que una letra haga 2 funciones)
+	if new_event is InputEventKey:
+		for other in SettingsManager.default_keys:
+			if other == action: continue
+			if not InputMap.has_action(other): continue
+			for ev in InputMap.action_get_events(other):
+				if ev is InputEventKey and ev.physical_keycode == new_event.physical_keycode:
+					InputMap.action_erase_events(other)
+					break
+	
 	# v262.10: Autoguardado Inmediato (Evita pérdida si se cierra con ESC)
 	SettingsManager.save_settings()
+	
+	# Actualizar tooltips del HUD (ej: botón Quedarse Quieto)
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and hud.has_method("_update_icon_tooltips"):
+		hud._update_icon_tooltips()
 
 func _on_cast_mode_changed(idx: int):
 	var player = get_tree().get_first_node_in_group("player")

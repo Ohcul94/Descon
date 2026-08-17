@@ -787,6 +787,7 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
             else if (f === 'stealAmount') mech[f] = 100;
             else if (f === 'stealIntervalMs') mech[f] = 1000;
             else if (f === 'targetMode') mech[f] = 'proximity';
+            else if (f === 'targetSphereColor') mech[f] = '';
             else if (f === 'giveToEnemy') mech[f] = true;
             else if (f === 'startDelay') mech[f] = 0;
             else mech[f] = 0;
@@ -860,6 +861,7 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'warnTimeMs') mech[f] = newType === 'ascension' ? 2200 : 1200;
             else if (f === 'undergroundMs') mech[f] = 2500;
             else if (f === 'targetMode') mech[f] = newType === 'burrow' ? 'proximity' : 'proximity';
+            else if (f === 'targetSphereColor') mech[f] = '';
             else if (f === 'bulletCount') mech[f] = newType === 'polymorph' ? 5 : 1;
             else if (f === 'polyDuration') mech[f] = 8000;
             else if (f === 'isPointAndClick') mech[f] = newType === 'polymorph' ? false : false;

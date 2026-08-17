@@ -139,7 +139,7 @@
     },
     "ammoMultipliers": {
         "electron": [
-            0.5,
+            0.4,
             2,
             3.5,
             6,
@@ -155,7 +155,7 @@
             12
         ],
         "heal": [
-            1,
+            0.5,
             1.8,
             3,
             5.5,
@@ -195,7 +195,7 @@
             30
         ],
         "siphon": [
-            0.8,
+            0.7,
             1.5,
             2.5,
             5,
@@ -1004,6 +1004,7 @@
                 "stealAmount",
                 "stealIntervalMs",
                 "targetMode",
+                "targetSphereColor",
                 "giveToEnemy",
                 "bulletDamage",
                 "isPointAndClick"
@@ -1040,6 +1041,7 @@
                 "stealAmount",
                 "stealIntervalMs",
                 "targetMode",
+                "targetSphereColor",
                 "giveToEnemy",
                 "bulletDamage",
                 "isPointAndClick"
@@ -1849,7 +1851,7 @@
             "rageTimer": 20,
             "rankingPoints": 200,
             "regenDelayMs": 30000,
-            "regenIntervalMs": 2000,
+            "regenIntervalMs": 1000,
             "rewardExp": 300,
             "rewardHubs": 600,
             "rewardOhcu": 90,
@@ -1857,15 +1859,37 @@
             "speed": 220,
             "stopOnOutOfSight": true,
             "visionRange": 1500,
-            "chestDropChance": 0.5
+            "chestDropChance": 0.5,
+            "hpRegenPercent": 10,
+            "shieldRegenPercent": 10
         },
         "103": {
             "bulletDamage": 3000,
             "bulletSpeed": 1100,
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "boss_water_orbs",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 10000,
+                    "cooldown": 20000,
+                    "startDelay": 0,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        50,
+                        25
+                    ],
+                    "activationIntervalMs": 30000,
+                    "orbCount": 5,
+                    "spawnRadius": 1000,
+                    "orbSpeed": 250,
+                    "playerDamage": 10,
+                    "bossHealPercent": 10
+                }
+            ],
             "fireRange": 1300,
             "fireRate": 600,
-            "hp": 150000,
+            "hp": 10000,
             "icon": "res://assets/Enemigos/2D/Bosses/Boss3/Boss3.png",
             "isBoss": true,
             "lootDrops": [],
@@ -1873,28 +1897,96 @@
                 {
                     "bulletDamage": 10,
                     "bulletSpeed": 800,
-                    "fireRange": 600,
-                    "fireRate": 1000,
+                    "fireRange": 1000,
+                    "fireRate": 4000,
                     "startDelay": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "burstShots": 3
+                },
+                {
+                    "type": "hook",
+                    "bulletDamage": 0,
+                    "bulletSpeed": 350,
+                    "fireRange": 900,
+                    "fireRate": 7000,
+                    "stunDuration": 1500,
+                    "pullSpeed": 200,
+                    "postHookWaitMs": 1000,
+                    "hookMissWaitMs": 1000,
+                    "isHoming": 0,
+                    "turnSpeed": 1.2,
+                    "startDelay": 6300
+                },
+                {
+                    "type": "survival_dome",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 1300,
+                    "fireRate": 1000,
+                    "safeRadius": 200,
+                    "maxOffset": 300,
+                    "castTimeMs": 3000,
+                    "cooldown": 10000,
+                    "damage": 30,
+                    "postCastWaitMs": 1000,
+                    "startDelay": 7660,
+                    "debuffsList": [
+                        {
+                            "type": "slow",
+                            "amount": 50,
+                            "duration": 2000,
+                            "isPercentage": false
+                        }
+                    ]
+                },
+                {
+                    "type": "polymorph",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 500,
+                    "fireRange": 1300,
+                    "fireRate": 1000,
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "cooldown": 0,
+                    "startDelay": 14000,
+                    "bulletCount": 1,
+                    "polyDuration": 2000,
+                    "isPointAndClick": true,
+                    "canMove": false,
+                    "canUseSkills": false,
+                    "targetCount": 1,
+                    "targetMode": "sphere_color",
+                    "targetSphereColor": "verde"
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 280,
+                    "speed": 150,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "chase"
+                    "type": "prowler",
+                    "patrolRange": 5000,
+                    "changeTrigger": "time",
+                    "changeInterval": 5000,
+                    "changeType": "random"
                 }
             ],
             "name": "Mechanic Boss",
             "rageTimer": 20,
-            "rankingPoints": 300,
-            "rewardExp": 50000,
-            "rewardHubs": 200000,
-            "rewardOhcu": 2000,
-            "shield": 75000,
-            "speed": 280
+            "rankingPoints": 500,
+            "rewardExp": 1400,
+            "rewardHubs": 1000,
+            "rewardOhcu": 150,
+            "shield": 5000,
+            "speed": 280,
+            "chestDropChance": 0.5,
+            "hpRegenPercent": 10,
+            "shieldRegenPercent": 10,
+            "aggressive": true,
+            "stopOnOutOfSight": true,
+            "leashRange": 2500,
+            "visionRange": 1300,
+            "regenDelayMs": 30000
         },
         "104": {
             "bulletDamage": 8000,
@@ -5497,44 +5589,70 @@
             ],
             "color": "#ffaa00",
             "desc": "Nebulosa densa con piratas espaciales.",
-            "height": 10000,
+            "height": 5000,
             "minLevel": 1,
             "name": "Mapa 4",
             "objects": [],
             "spawns": [
                 {
-                    "count": 35,
-                    "id": "spawn_4_idx_0_type_1",
-                    "intervalMs": 5000,
-                    "radius": 0,
-                    "spawnMode": "random",
-                    "type": "3",
-                    "x": 1331,
-                    "y": 1161
-                },
-                {
-                    "count": 20,
-                    "id": "spawn_1784663062472875",
-                    "intervalMs": 5000,
-                    "radius": 0,
-                    "spawnMode": "random",
-                    "type": "4",
-                    "x": 1000,
-                    "y": 1000
-                },
-                {
-                    "count": 10,
-                    "id": "spawn_1784663076370159",
-                    "intervalMs": 5000,
-                    "radius": 0,
-                    "spawnMode": "random",
-                    "type": "5",
-                    "x": 1000,
-                    "y": 1000
+                    "id": "spawn_1786920069775244",
+                    "type": "103",
+                    "count": 1,
+                    "intervalMs": 36000,
+                    "spawnMode": "fixed",
+                    "x": 2499,
+                    "y": 2512,
+                    "radius": 0
                 }
             ],
             "warpCost": 0,
-            "width": 10000
+            "width": 5000,
+            "pvpMode": "mandatory",
+            "giveInvulnerabilityOnEntry": true,
+            "timeRestrictionsEnabled": true,
+            "allowedHours": [
+                {
+                    "days": [
+                        5
+                    ],
+                    "hours": [
+                        {
+                            "start": "21:00",
+                            "end": "00:00"
+                        }
+                    ]
+                },
+                {
+                    "days": [
+                        6
+                    ],
+                    "hours": [
+                        {
+                            "start": "00:00",
+                            "end": "03:00"
+                        },
+                        {
+                            "start": "13:00",
+                            "end": "00:00"
+                        }
+                    ]
+                },
+                {
+                    "days": [
+                        0
+                    ],
+                    "hours": [
+                        {
+                            "start": "00:00",
+                            "end": "03:00"
+                        },
+                        {
+                            "start": "13:00",
+                            "end": "23:00"
+                        }
+                    ]
+                }
+            ]
         },
         "5": {
             "ambience": [],
@@ -6201,6 +6319,7 @@
                 "castTimeMs",
                 "targetCount",
                 "targetMode",
+                "targetSphereColor",
                 "fireRange",
                 "radius",
                 "bulletDamage",
@@ -6242,7 +6361,7 @@
             "label": "Lanzador de Bombas"
         },
         "burrow": {
-            "desc": "El enemigo se hunde bajo tierra, viaja en línea recta hacia un objetivo seleccionable (por proximidad, aleatorio, menos vida, más vida, mayor daño causado o mayor curación) y emerge rompiendo el suelo: círculo de daño único o zona persistente + debuffs configurables.",
+            "desc": "El enemigo se hunde bajo tierra, viaja en línea recta hacia un objetivo seleccionable (por proximidad, aleatorio, menos vida, más vida, mayor daño causado, mayor curación, más esferas o por color de esfera) y emerge rompiendo el suelo: círculo de daño único o zona persistente + debuffs configurables.",
             "fields": [
                 "cooldown",
                 "castTimeMs",
@@ -6257,6 +6376,7 @@
                 "zoneTickMs",
                 "zoneDamage",
                 "targetMode",
+                "targetSphereColor",
                 "debuffsList",
                 "startDelay"
             ],
@@ -6304,6 +6424,8 @@
                 "startDelay",
                 "castTimeMs",
                 "targetCount",
+                "targetMode",
+                "targetSphereColor",
                 "fireRange",
                 "bulletSpeed",
                 "isPointAndClick",
@@ -6412,6 +6534,7 @@
                 "bulletDamage",
                 "warnTimeMs",
                 "targetMode",
+                "targetSphereColor",
                 "debuffsList",
                 "persistentZone",
                 "zoneDamage",
@@ -6465,7 +6588,7 @@
             "label": "Ataque Orbital"
         },
         "polymorph": {
-            "desc": "Lanza proyectiles cúbicos que transforman al jugador. Configurable: cantidad, velocidad, homing, daño, duración, si bloquea movimiento/habilidades.",
+            "desc": "Lanza proyectiles cúbicos que transforman al jugador. Configurable: cantidad, velocidad, homing, daño, duración, si bloquea movimiento/habilidades y selección de objetivo (proximidad, aleatorio, más esferas o por color de esfera).",
             "fields": [
                 "activationMode",
                 "activationHPs",
@@ -6479,7 +6602,10 @@
                 "polyDuration",
                 "isPointAndClick",
                 "canMove",
-                "canUseSkills"
+                "canUseSkills",
+                "targetCount",
+                "targetMode",
+                "targetSphereColor"
             ],
             "icon": "🗺️",
             "label": "Polimorfia (Cubito)"
@@ -6504,6 +6630,7 @@
                 "fireRange",
                 "targetCount",
                 "targetMode",
+                "targetSphereColor",
                 "duration",
                 "slowPercentage",
                 "slowDuration",
@@ -6891,7 +7018,7 @@
                 ]
             }
         ],
-        "sphereOrbitRadius": 150,
+        "sphereOrbitRadius": 80,
         "sphereOrbitSpeed": 0.5
     },
     "questsConfig": [
@@ -7455,7 +7582,7 @@
             "emp": [
                 {
                     "bulletSpeed": 700,
-                    "cooldown": 6000,
+                    "cooldown": 8000,
                     "id": "am_e1",
                     "mechanics": [],
                     "name": "EMP Pulse T1",
@@ -7549,7 +7676,7 @@
             "heal": [
                 {
                     "bulletSpeed": 900,
-                    "cooldown": 1200,
+                    "cooldown": 6000,
                     "id": "am_h1",
                     "mechanics": [],
                     "name": "Heal Drones T1",
@@ -7572,7 +7699,9 @@
                                 }
                             ]
                         }
-                    ]
+                    ],
+                    "healPctAttackerPvP": 25,
+                    "healPctVictimPvP": 30
                 },
                 {
                     "bulletSpeed": 900,
@@ -7722,7 +7851,7 @@
             "melee": [
                 {
                     "bulletSpeed": 2500,
-                    "cooldown": 4000,
+                    "cooldown": 6000,
                     "id": "am_me1",
                     "mechanics": [],
                     "name": "Plasma Claw T1",
@@ -7732,7 +7861,7 @@
                     },
                     "range": 150,
                     "slowAmount": 30,
-                    "slowDurationMs": 2000,
+                    "slowDurationMs": 2500,
                     "requirements": [
                         {
                             "type": "spheres",
@@ -8006,8 +8135,8 @@
             ],
             "siphon": [
                 {
-                    "bulletSpeed": 1200,
-                    "cooldown": 1000,
+                    "bulletSpeed": 600,
+                    "cooldown": 6000,
                     "id": "am_s1",
                     "mechanics": [],
                     "name": "Vampire Beam T1",
@@ -8030,7 +8159,8 @@
                                 }
                             ]
                         }
-                    ]
+                    ],
+                    "siphonPct": 10
                 },
                 {
                     "bulletSpeed": 1200,

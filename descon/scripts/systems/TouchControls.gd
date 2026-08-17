@@ -151,6 +151,16 @@ func _setup_squad_and_events_icons():
 		btn.pressed.connect(_on_icon_pressed.bind("Events"))
 		grid_container.add_child(btn)
 
+	# Icono Quedarse Quieto (Detener navegación)
+	if not grid_container.has_node("IconStay"):
+		var stay_btn = Button.new()
+		stay_btn.name = "IconStay"
+		stay_btn.text = "✋"
+		stay_btn.custom_minimum_size = Vector2(32,32)
+		var stay_sb = StyleBoxFlat.new(); stay_sb.bg_color = Color(0.1,0.1,0.1,0.6); stay_sb.set_corner_radius_all(4)
+		stay_btn.add_theme_stylebox_override("normal", stay_sb)
+		grid_container.add_child(stay_btn)
+
 # Iconos que abren menús/modales (no toggle de UI)
 var _menu_icon_ids: Array = ["EscMenu", "Inventory", "Housing", "Events"]
 
@@ -302,6 +312,11 @@ func _update_icon_tooltips():
 		"TopLeft": "Diagnósticos"
 	}
 	
+	names["Stay"] = "Quedarse quieto"
+	var stay_key = _get_key_text_for_action("stay_still")
+	if stay_key != "":
+		names["Stay"] += " (" + stay_key + ")"
+	
 	var buttons = []
 	if is_instance_valid(grid_container):
 		buttons = grid_container.get_children()
@@ -339,6 +354,13 @@ func _update_icon_tooltips():
 		
 		if not btn.pressed.is_connected(_on_icon_pressed.bind(b_name)):
 			btn.pressed.connect(_on_icon_pressed.bind(b_name))
+
+func _get_key_text_for_action(action: String) -> String:
+	if not InputMap.has_action(action): return ""
+	var evs = InputMap.action_get_events(action)
+	if evs.size() > 0:
+		return evs[0].as_text().replace(" (Physical)", "").replace(" - Physical", "").to_upper()
+	return ""
 
 func _on_icon_hover(btn: Button, txt: String):
 	var main_hud = get_parent()

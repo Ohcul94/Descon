@@ -516,6 +516,17 @@ func _handle_input():
 		var slot_name = "slot_" + str(i + 4)
 		var s_id = "sphere_" + str(i)
 		_handle_slot_input(slot_name, s_id, -1)
+	
+	# Quedarse quieto: cancela la navegación por click/autopilot
+	if Input.is_action_just_pressed("stay_still"):
+		stay_still()
+
+# v420: Detener el movimiento actual (click, autopilot) y quedarse quieto
+func stay_still():
+	is_moving = false
+	autopilot_enabled = false
+	target_position = global_position
+	velocity = Vector2.ZERO
 
 func _handle_slot_input(action: String, skill_id: String, type: int):
 	# Auto-crear acción si no existe para evitar errores
@@ -541,9 +552,43 @@ func trigger_skill_by_id(skill_id: String, type: int = -1):
 	if get_meta("skills_blocked", false):
 		return
 	
+	# Zona segura (Lobby): bloquear disparos de municiones y uso de habilidades
+	if _is_safe_zone():
+		_notify_safe_zone_block()
+		return
+	
 	# Bloquear skills solo en modo paneo (cámara libre sin seguir al jugador)
 	if get_node_or_null("/root/SettingsManager") and SettingsManager.cam_free_active and not SettingsManager.cam_free_orbit:
 		return
+		
+	# v420: Slots bloqueados o vacíos NO generan apuntado ni círculo de rango
+	if skill_id.begins_with("sphere_"):
+		var eq_idx = int(skill_id.replace("sphere_", ""))
+		var eq_sm = get_node_or_null("SpheresManager")
+		var eq_sph = eq_sm.get_equipped_skill(eq_idx) if eq_sm else null
+		if eq_sph == null:
+			_notify_skill_block("SIN HABILIDAD EQUIPADA EN SLOT " + str(eq_idx + 4))
+			return
+		if NetworkManager and NetworkManager.has_method("check_sphere_slot_requirements"):
+			var slot_check = NetworkManager.check_sphere_slot_requirements(eq_idx)
+			if not slot_check.get("ok", true):
+				_notify_skill_block("SLOT BLOQUEADO: " + str(slot_check.get("msg", "REQUISITOS NO CUMPLIDOS")))
+				return
+	elif skill_id in ["laser", "missile", "mine"]:
+		var eq_tier = selected_ammo.get(skill_id, 0)
+		var eq_ammo_list = GameConstants.SHOP_ITEMS.ammo.get(skill_id, [])
+		if eq_tier < 0 or eq_tier >= eq_ammo_list.size():
+			_notify_skill_block("SIN MUNICIÓN EQUIPADA (" + _ammo_display_name(skill_id) + ")")
+			return
+		if NetworkManager and NetworkManager.has_method("check_equip_requirements"):
+			var req_check = NetworkManager.check_equip_requirements("", "", skill_id, eq_tier)
+			if not req_check.get("ok", true):
+				_notify_skill_block("MUNICIÓN BLOQUEADA: " + str(req_check.get("msg", "REQUISITOS NO CUMPLIDOS")))
+				return
+		var own_ammo: Array = ammo.get(skill_id, [])
+		if eq_tier >= own_ammo.size() or int(own_ammo[eq_tier]) <= 0:
+			_notify_skill_block("SIN MUNICIÓN (" + _ammo_display_name(skill_id) + ") EN INVENTARIO")
+			return
 		
 	var cd = cooldowns.get(skill_id, 0.0)
 	if cd <= 0:
@@ -770,8 +815,39 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 	# el daño exacto con el enemyType correcto. Hacerlo aquí duplicaba el daño (1 hit = 2 hits) 
 	# y enviaba eventos "fantasma" que reiniciaban contadores de combate.
 
+func _is_safe_zone() -> bool:
+	var safe_z = 1
+	if NetworkManager and NetworkManager.server_config and NetworkManager.server_config.has("pilotConfig"):
+		var pc = NetworkManager.server_config.pilotConfig
+		if pc.has("startingMapId"):
+			safe_z = int(pc.startingMapId)
+	return current_zone == safe_z
+
+func _notify_safe_zone_block():
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and hud.has_method("notify"):
+		hud.notify("ZONA SEGURA: El combate esta deshabilitado en el Lobby", "warn")
+
+# v420: Cartel + log cuando un slot bloqueado/vacío intenta usarse
+func _notify_skill_block(msg: String):
+	print("[PLAYER] ", msg)
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud and hud.has_method("notify"):
+		hud.notify(msg, "warn")
+
+func _ammo_display_name(ammo_type: String) -> String:
+	match ammo_type:
+		"laser": return "LÁSER"
+		"missile": return "MISIL"
+		"mine": return "MINA"
+	return ammo_type.to_upper()
+
 func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector2.ZERO):
 	if cooldowns.get(p_type, 0.0) > 0.0:
+		return
+
+	# Zona segura (Lobby): defensa en profundidad, nunca disparar
+	if _is_safe_zone():
 		return
 
 	last_combat_time = Time.get_ticks_msec()
@@ -835,6 +911,10 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 	if cooldowns[key] > 0: return
 	var sm = get_node_or_null("SpheresManager")
 	if not is_instance_valid(sm): return
+
+	# Zona segura (Lobby): defensa en profundidad, nunca usar habilidades
+	if _is_safe_zone():
+		return
 	
 	var skill = sm.get_equipped_skill(id)
 	if not skill: return

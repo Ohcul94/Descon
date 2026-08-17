@@ -663,6 +663,12 @@ func _on_icon_pressed(id: String):
 		toggle_housing_panel()
 		return
 		
+	if id == "Stay":
+		var player = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(player) and player.has_method("stay_still"):
+			player.stay_still()
+		return
+
 	if id == "EscMenu":
 		toggle_esc_menu()
 		if is_instance_valid(_esc_menu):

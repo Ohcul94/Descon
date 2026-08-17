@@ -1,3 +1,5 @@
+const sphereUtils = require('../systems/equipRequirements');
+
 const normalizeZone = (z) => {
     if (z === undefined || z === null) return 1;
     if (typeof z === 'string') {
@@ -927,7 +929,7 @@ module.exports = class BaseAI {
         const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
         const hasActiveBombs = state.activeBombsList && state.activeBombsList.length > 0;
         const hasActiveWorms = state.activeWorms && state.activeWorms.length > 0;
-        if (!target && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive && !hasActiveBombs && !hasActiveWorms && !state.activeWindWall) return;
+        if (!target && mech.type !== "polymorph" && !state.isCharging && !state.isLocked && !state.isFiring && !state.isActive && !hasActiveBombs && !hasActiveWorms && !state.activeWindWall) return;
         
         const zoneStr = `zone_${this.enemy.zone}`;
         const type = mech.type || 'orbital';
@@ -959,7 +961,7 @@ module.exports = class BaseAI {
             return this._handleMeteorLogic(mech, mId, target, dist, angle, now, io, players);
         }
 
-        if (dist > fireRange && !state.isCharging && !state.isActive) return false;
+        if (dist > fireRange && !state.isCharging && !state.isActive && mech.type !== "polymorph") return false;
 
         // Mecánica de Sueño Inducido (Sleep)
         if (mech.type === "sleep") {
@@ -975,33 +977,10 @@ module.exports = class BaseAI {
                 const nightmareMult = mech.nightmareMultiplier !== undefined ? mech.nightmareMultiplier : 2.0;
                 const wakeOnDmg = mech.wakeOnDamage !== false;
 
-                let zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
-                zonePlayers = zonePlayers.filter(p => {
-                    const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
-                    return d <= range;
-                });
+                // v410.6: Selección unificada de objetivos (incluye más esferas / color de esfera)
+                const selectedTargets = this._selectTargets(players, range, targetCount, targetMode, mech);
 
-                if (zonePlayers.length > 0) {
-                    if (targetMode === "proximity") {
-                        zonePlayers.sort((a, b) => {
-                            const dA = Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y);
-                            const dB = Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y);
-                            return dA - dB;
-                        });
-                    } else if (targetMode === "max_hp") {
-                        zonePlayers.sort((a, b) => b.maxHp - a.maxHp);
-                    } else if (targetMode === "missing_hp") {
-                        zonePlayers.sort((a, b) => {
-                            const missingA = a.maxHp - a.hp;
-                            const missingB = b.maxHp - b.hp;
-                            return missingB - missingA;
-                        });
-                    } else if (targetMode === "random") {
-                        zonePlayers.sort(() => Math.random() - 0.5);
-                    }
-
-                    const selectedTargets = zonePlayers.slice(0, targetCount);
-
+                if (selectedTargets.length > 0) {
                     selectedTargets.forEach(p => {
                         p.isAsleep = true;
                         p.sleepEndTime = now + sleepDuration;
@@ -2288,34 +2267,11 @@ module.exports = class BaseAI {
                 });
             };
 
+            // v410.6: Selección unificada de objetivos (proximidad, aleatorio, vida,
+            // daño, curación, MÁS ESFERAS o color de esfera)
             const selectBurrowTarget = () => {
-                let pool = zonePlayers();
-                if (pool.length === 0) return null;
-                // Seleccionar solo dentro del rango de detección
-                const inRange = pool.filter(p => Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= targetRange);
-                if (inRange.length === 0) return null;
-                let chosen = inRange[0];
-                if (targetMode === "lowest_hp") {
-                    inRange.sort((a, b) => (a.hp / Math.max(1, a.maxHp)) - (b.hp / Math.max(1, b.maxHp)));
-                    chosen = inRange[0];
-                } else if (targetMode === "highest_hp") {
-                    inRange.sort((a, b) => (b.hp / Math.max(1, b.maxHp)) - (a.hp / Math.max(1, a.maxHp)));
-                    chosen = inRange[0];
-                } else if (targetMode === "highest_damage") {
-                    const dmgMap = this.enemy.playerDamage || {};
-                    inRange.sort((a, b) => (dmgMap[b.socketId] || 0) - (dmgMap[a.socketId] || 0));
-                    chosen = inRange[0];
-                } else if (targetMode === "highest_heal") {
-                    // El jugador que más curó (acumulador p.healingDoneTotal en combatTracker)
-                    inRange.sort((a, b) => (b.healingDoneTotal || 0) - (a.healingDoneTotal || 0));
-                    chosen = inRange[0];
-                } else if (targetMode === "random") {
-                    chosen = inRange[Math.floor(Math.random() * inRange.length)];
-                } else { // proximidad
-                    inRange.sort((a, b) => Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y));
-                    chosen = inRange[0];
-                }
-                return chosen;
+                const sel = this._selectTargets(players, targetRange, 1, targetMode, mech);
+                return sel.length > 0 ? sel[0] : null;
             };
 
             // FASE 0: INICIO DE LA ZAMBILLIDA (elegir target y hundirse)
@@ -2569,8 +2525,31 @@ module.exports = class BaseAI {
             } else if (mech.burstShots !== undefined && mech.burstShots !== null && mech.burstShots !== '') {
                 burstLimit = Math.max(1, parseInt(mech.burstShots, 10) || 1);
             }
+
+            // v410.6: Polymorph - Selección de objetivos configurable
+            // (targetMode: proximidad/aleatorio/más esferas/color de esfera... + targetCount)
+            let polyTargets = null;
+            if (mech.type === "polymorph") {
+                polyTargets = this._selectTargets(players, mech.fireRange || 800, mech.targetCount || 1, mech.targetMode || "proximity", mech);
+                if (!polyTargets || polyTargets.length === 0) {
+                    state.shotsInBurst = 0;
+                    state.nextShotTime = now + (mech.activationIntervalMs || mech.cooldown || 20000);
+                    this.enemy.mechState[mId] = state;
+                    return false;
+                }
+            }
+
             if (state.shotsInBurst < burstLimit) {
-                const currentAngle = Math.atan2(target.y - this.enemy.y, target.x - this.enemy.x);
+                // El disparo de la ráfaga apunta al objetivo seleccionado (rota entre los targets)
+                let aimTarget = target;
+                if (polyTargets && polyTargets.length > 0) {
+                    aimTarget = polyTargets[state.shotsInBurst % polyTargets.length];
+                }
+                if (!aimTarget) {
+                    this.enemy.mechState[mId] = state;
+                    return false;
+                }
+                const currentAngle = Math.atan2(aimTarget.y - this.enemy.y, aimTarget.x - this.enemy.x);
                 
                 // v266.240: Compatibilidad de tipos para el cliente Godot
 
@@ -2579,7 +2558,7 @@ module.exports = class BaseAI {
 
                 io.to(`zone_${this.enemy.zone}`).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
-                    targetId: target?.id || target?.socketId || "",
+                    targetId: aimTarget?.id || aimTarget?.socketId || "",
                     enemyType: this.enemy.type,
                     x: this.enemy.x, y: this.enemy.y, angle: currentAngle,
                     bulletSpeed: mech.bulletSpeed || 800, 
@@ -2810,7 +2789,7 @@ module.exports = class BaseAI {
 
         // 3. Iniciar la lluvia de meteoritos
         if (target && dist <= fireRange && now > state.nextShotTime) {
-            const targets = this._selectMeteorTargets(players, fireRange, meteorCount, targetMode);
+            const targets = this._selectMeteorTargets(players, fireRange, meteorCount, targetMode, mech);
             if (targets.length > 0) {
                 const landTime = now + warnTimeMs + fallTimeMs;
                 const targetsPayload = targets.map(t => ({ x: Math.round(t.x), y: Math.round(t.y), targetId: t.socketId }));
@@ -2932,7 +2911,7 @@ module.exports = class BaseAI {
         }
 
         // 3) Seleccionar objetivos en rango de visión
-        const targets = this._selectMeteorTargets(players, fireRange, targetCount, targetMode);
+        const targets = this._selectMeteorTargets(players, fireRange, targetCount, targetMode, mech);
         if (targets.length === 0) {
             state.nextShotTime = now + interval;
             this.enemy.mechState[mId] = state;
@@ -3138,7 +3117,7 @@ module.exports = class BaseAI {
 
         // 4) Seleccionar objetivos (el enemigo aterriza sobre el primero) e iniciar el casteo
         if (target && dist <= fireRange && now > state.nextShotTime) {
-            const targets = this._selectMeteorTargets(players, fireRange, targetCount, targetMode);
+            const targets = this._selectMeteorTargets(players, fireRange, targetCount, targetMode, mech);
             if (targets.length > 0) {
                 state.casting = true;
                 state.isCharging = true;
@@ -3160,32 +3139,81 @@ module.exports = class BaseAI {
         return false;
     }
 
-    // Selecciona N objetivos para la lluvia de meteoritos según el criterio configurado
-    _selectMeteorTargets(players, fireRange, count, mode) {
-        const pool = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
-        const inRange = pool.filter(p => Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= fireRange);
-        if (inRange.length === 0) return [];
-        const sorted = [...inRange];
-        if (mode === "random") {
-            for (let i = sorted.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [sorted[i], sorted[j]] = [sorted[j], sorted[i]];
+    // v410.6: Selección UNIFICADA de objetivos para cualquier mecánica ofensiva.
+    // Soporta todos los criterios existentes + el nuevo de esferas:
+    //   sphere_color    -> SOLO jugadores con esferas del color configurado (targetSphereColor),
+    //                      ordenados por el que tenga MÁS esferas de ese color
+    // El color (targetSphereColor) SOLO se aplica cuando el modo es "sphere_color".
+    _selectTargets(players, fireRange, count, mode, mech) {
+        const mechCfg = mech || {};
+        const selMode = mode || "proximity";
+        const selCount = Math.max(1, parseInt(count, 10) || 1);
+
+        let pool = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+        pool = pool.filter(p => Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= (fireRange || 800));
+        if (pool.length === 0) return [];
+
+        // v410.6: Modo "Por Color de Esfera": solo jugadores con esferas del color elegido,
+        // priorizando al que tenga MÁS esferas de ese color (ej: el que más esferas verdes tiene)
+        if (selMode === "sphere_color") {
+            const sphereColor = sphereUtils.normalizeSphereColor(mechCfg.targetSphereColor);
+            if (sphereColor) {
+                pool = pool.filter(p => this._playerSphereColorCount(p, sphereColor) > 0);
+                if (pool.length === 0) return [];
+                pool.sort((a, b) => this._playerSphereColorCount(b, sphereColor) - this._playerSphereColorCount(a, sphereColor));
+                return pool.slice(0, Math.min(selCount, pool.length));
             }
-        } else if (mode === "farthest") {
-            sorted.sort((a, b) => Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y) - Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y));
-        } else if (mode === "lowest_hp") {
-            sorted.sort((a, b) => (a.hp / Math.max(1, a.maxHp)) - (b.hp / Math.max(1, b.maxHp)));
-        } else if (mode === "highest_hp") {
-            sorted.sort((a, b) => (b.hp / Math.max(1, b.maxHp)) - (a.hp / Math.max(1, a.maxHp)));
-        } else if (mode === "highest_damage") {
-            const dmgMap = this.enemy.playerDamage || {};
-            sorted.sort((a, b) => (dmgMap[b.socketId] || 0) - (dmgMap[a.socketId] || 0));
-        } else if (mode === "highest_heal") {
-            sorted.sort((a, b) => (b.healingDoneTotal || 0) - (a.healingDoneTotal || 0));
-        } else { // proximidad
-            sorted.sort((a, b) => Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y));
+            // Sin color configurado -> cae a proximidad
         }
-        return sorted.slice(0, Math.min(count, sorted.length));
+
+        if (selMode === "random") {
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+        } else if (selMode === "farthest") {
+            pool.sort((a, b) => Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y) - Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y));
+        } else if (selMode === "lowest_hp") {
+            pool.sort((a, b) => (a.hp / Math.max(1, a.maxHp)) - (b.hp / Math.max(1, b.maxHp)));
+        } else if (selMode === "highest_hp") {
+            pool.sort((a, b) => (b.hp / Math.max(1, b.maxHp)) - (a.hp / Math.max(1, a.maxHp)));
+        } else if (selMode === "max_hp") {
+            pool.sort((a, b) => (b.maxHp || 0) - (a.maxHp || 0));
+        } else if (selMode === "missing_hp") {
+            pool.sort((a, b) => ((b.maxHp || 0) - (b.hp || 0)) - ((a.maxHp || 0) - (a.hp || 0)));
+        } else if (selMode === "highest_damage") {
+            const dmgMap = this.enemy.playerDamage || {};
+            pool.sort((a, b) => (dmgMap[b.socketId] || 0) - (dmgMap[a.socketId] || 0));
+        } else if (selMode === "highest_heal") {
+            pool.sort((a, b) => (b.healingDoneTotal || 0) - (a.healingDoneTotal || 0));
+        } else if (selMode === "highest_shield") {
+            pool.sort((a, b) => (b.shield || 0) - (a.shield || 0));
+        } else { // proximidad
+            pool.sort((a, b) => Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y));
+        }
+        return pool.slice(0, Math.min(selCount, pool.length));
+    }
+
+    // Cantidad de esferas de UN color específico que tiene el jugador
+    _playerSphereColorCount(p, color) {
+        if (!p || !Array.isArray(p.spheres)) return 0;
+        let count = 0;
+        for (const s of p.spheres) {
+            if (!s || typeof s !== 'object') continue;
+            const c = sphereUtils.getSphereColor(s);
+            if (c && c === color) count++;
+        }
+        return count;
+    }
+
+    // ¿El jugador tiene al menos una esfera del color indicado (roja/azul/verde/amarilla)?
+    _playerHasSphereColor(p, color) {
+        return this._playerSphereColorCount(p, color) > 0;
+    }
+
+    // Selecciona N objetivos para la lluvia de meteoritos según el criterio configurado
+    _selectMeteorTargets(players, fireRange, count, mode, mech) {
+        return this._selectTargets(players, fireRange, count, mode, mech || {});
     }
 
     // Aplica debuffs configurables al jugador impactado por un meteorito
@@ -4992,34 +5020,9 @@ module.exports = class BaseAI {
         }
 
         if (shouldActivate && now >= state.nextShotTime) {
-            // Selección dinámica del objetivo según targetMode
-            const pool = Object.values(players || {}).filter(p =>
-                p.zone === this.enemy.zone && !p.isDead && !p.isInvisible &&
-                Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= stealRange
-            );
-
-            let chosen = null;
-            if (pool.length > 0) {
-                if (targetMode === "lowest_hp") {
-                    pool.sort((a, b) => (a.hp / Math.max(1, a.maxHp)) - (b.hp / Math.max(1, b.maxHp)));
-                    chosen = pool[0];
-                } else if (targetMode === "highest_hp") {
-                    pool.sort((a, b) => (b.hp / Math.max(1, b.maxHp)) - (a.hp / Math.max(1, a.maxHp)));
-                    chosen = pool[0];
-                } else if (targetMode === "highest_damage") {
-                    const dmgMap = this.enemy.playerDamage || {};
-                    pool.sort((a, b) => (dmgMap[b.socketId] || 0) - (dmgMap[a.socketId] || 0));
-                    chosen = pool[0];
-                } else if (targetMode === "highest_shield") {
-                    pool.sort((a, b) => b.shield - a.shield);
-                    chosen = pool[0];
-                } else if (targetMode === "random") {
-                    chosen = pool[Math.floor(Math.random() * pool.length)];
-                } else { // proximidad
-                    pool.sort((a, b) => Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y));
-                    chosen = pool[0];
-                }
-            }
+            // v410.6: Selección unificada de objetivos (incluye más esferas / color de esfera)
+            const selected = this._selectTargets(players, stealRange, 1, targetMode, mech);
+            const chosen = selected.length > 0 ? selected[0] : null;
 
             if (chosen) {
                 const dmgForBullet = mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 10;
@@ -5239,34 +5242,9 @@ module.exports = class BaseAI {
         }
 
         if (shouldActivate && now >= state.nextShotTime) {
-            // Selección dinámica del objetivo según targetMode
-            const pool = Object.values(players || {}).filter(p =>
-                p.zone === this.enemy.zone && !p.isDead && !p.isInvisible &&
-                Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y) <= stealRange
-            );
-
-            let chosen = null;
-            if (pool.length > 0) {
-                if (targetMode === "lowest_hp") {
-                    pool.sort((a, b) => (a.hp / Math.max(1, a.maxHp)) - (b.hp / Math.max(1, b.maxHp)));
-                    chosen = pool[0];
-                } else if (targetMode === "highest_hp") {
-                    pool.sort((a, b) => (b.hp / Math.max(1, b.maxHp)) - (a.hp / Math.max(1, a.maxHp)));
-                    chosen = pool[0];
-                } else if (targetMode === "highest_damage") {
-                    const dmgMap = this.enemy.playerDamage || {};
-                    pool.sort((a, b) => (dmgMap[b.socketId] || 0) - (dmgMap[a.socketId] || 0));
-                    chosen = pool[0];
-                } else if (targetMode === "highest_shield") {
-                    pool.sort((a, b) => b.shield - a.shield);
-                    chosen = pool[0];
-                } else if (targetMode === "random") {
-                    chosen = pool[Math.floor(Math.random() * pool.length)];
-                } else { // proximidad
-                    pool.sort((a, b) => Math.hypot(a.x - this.enemy.x, a.y - this.enemy.y) - Math.hypot(b.x - this.enemy.x, b.y - this.enemy.y));
-                    chosen = pool[0];
-                }
-            }
+            // v410.6: Selección unificada de objetivos (incluye más esferas / color de esfera)
+            const selected = this._selectTargets(players, stealRange, 1, targetMode, mech);
+            const chosen = selected.length > 0 ? selected[0] : null;
 
             if (chosen) {
                 const dmgForBullet = mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 10;

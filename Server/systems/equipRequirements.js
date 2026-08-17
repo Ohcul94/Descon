@@ -190,4 +190,4 @@ function buildSphereRequirementMsg(needed) {
     return parts.slice(0, -1).join(', ') + ' Y ' + parts[parts.length - 1];
 }
 
-module.exports = { getMasterItemConfig, getAmmoMasterConfig, getSkillMasterConfig, checkRequirements };
+module.exports = { getMasterItemConfig, getAmmoMasterConfig, getSkillMasterConfig, checkRequirements, getSphereColor, countPlayerSphereColors, normalizeSphereColor };

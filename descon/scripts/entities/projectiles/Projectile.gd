@@ -553,11 +553,6 @@ func _setup_visual_sprite():
 				
 				world_root_3d.scale = Vector3(0.75, 0.75, 0.75)
 				
-				# Activar la estela dinámica (viene invisible en la escena)
-				var trail2 = world_root_3d.get_node_or_null("Trail2_dynamic")
-				if trail2:
-					trail2.visible = true
-				
 			# Auto-limpiar el nodo 3D cuando el proyectil 2D se destruye
 			tree_exiting.connect(func():
 				if is_instance_valid(world_root_3d):

@@ -1486,6 +1486,7 @@ const fieldLabelsMap = {
                                             warnDelayMs: "Tiempo de Espera del Área de Caída (ms)",
                                             bulletSpeed: "Vel. Calavera (px/s)",
                                             targetMode: "Modo de Selección de Objetivo",
+                                            targetSphereColor: "Color de Esfera (apunta al que m�s tenga de ese color)",
                                             stealAmount: "Cantidad Robada (pts)",
                                             stealIntervalMs: "Intervalo de Robo (ms)",
                                             stealMode: "Modo de Robo",
@@ -1731,7 +1732,7 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                           `;
                                       }
                                      
-                                      if (f === 'targetMode') {
+if (f === 'targetMode') {
                                           const val = m[f] || 'proximity';
                                           if (m.type === 'burrow' || m.type === 'meteor') {
                                               return `<div class="field"><label>${m.type === 'meteor' ? 'Criterio de Selección de Objetivos' : 'Selección de Objetivo'}</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
@@ -1742,6 +1743,7 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                               <option value="highest_hp" ${val === 'highest_hp' ? 'selected' : ''}>💪 Más Vida</option>
                                               <option value="highest_damage" ${val === 'highest_damage' ? 'selected' : ''}>⚔️ Mayor Daño Causado</option>
                                               <option value="highest_heal" ${val === 'highest_heal' ? 'selected' : ''}>💚 Mayor Curación</option>
+                                              <option value="sphere_color" ${val === 'sphere_color' ? 'selected' : ''}>🔮 Mayor Cantidad de Esferas de un Color</option>
                                           </select></div>`;
                                           }
                                          return `<div class="field"><label>Criterio de Selección</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetMode = this.value; renderEnemyDetail();">
@@ -1749,8 +1751,21 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                              <option value="random" ${val === 'random' ? 'selected' : ''}>🔀 Aleatorio</option>
                                              <option value="max_hp" ${val === 'max_hp' ? 'selected' : ''}>❤️ Vida Máxima Mayor</option>
                                              <option value="missing_hp" ${val === 'missing_hp' ? 'selected' : ''}>💔 Vida Faltante Mayor</option>
+                                             <option value="sphere_color" ${val === 'sphere_color' ? 'selected' : ''}>🔮 Mayor Cantidad de Esferas de un Color</option>
                                          </select></div>`;
-                                     }
+                                      }
+                                      if (f === 'targetSphereColor') {
+                                          // Solo se muestra si el criterio es "Por Color de Esfera"
+                                          if ((m.targetMode || 'proximity') !== 'sphere_color') return '';
+                                          const cval = m[f] || '';
+                                          return `<div class="field"><label>Color de Esfera (apunta al que m�s tenga de ese color)</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].targetSphereColor = this.value; renderEnemyDetail();">
+                                              <option value="" ${cval === '' || cval === 'any' ? 'selected' : ''}>🌈 Cualquier Color</option>
+                                              <option value="roja" ${cval === 'roja' ? 'selected' : ''}>🔴 Roja (Ataque)</option>
+                                              <option value="azul" ${cval === 'azul' ? 'selected' : ''}>🔵 Azul (Defensa)</option>
+                                              <option value="verde" ${cval === 'verde' ? 'selected' : ''}>🟢 Verde (Curación)</option>
+                                              <option value="amarilla" ${cval === 'amarilla' ? 'selected' : ''}>🟡 Amarilla (Utilidad)</option>
+                                          </select></div>`;
+                                      }
                                      if (f === 'burstMode') {
                                          const val = m[f] || 'burst';
                                          return `<div class="field"><label>Modo del Círculo de Daño</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].burstMode = this.value; renderEnemyDetail();">
@@ -1834,6 +1849,7 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                         stealAmount: "Cantidad de Robo",
                                         stealIntervalMs: "Intervalo de Robo (ms)",
                                         targetMode: "Selección del Objetivo",
+                                        targetSphereColor: "Color de Esfera (apunta al que m�s tenga de ese color)",
                                         giveToEnemy: m.type === 'life_steal' ? "Transferir Vida Robada al Enemigo" : "Transferir Escudo Robado al Enemigo"
                                     };
                                     if (f === 'invisType') {
@@ -1948,6 +1964,23 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                                     <option value="highest_hp" ${tmode === 'highest_hp' ? 'selected' : ''}>🫀 Mayor Vida (%)</option>
                                                     <option value="highest_shield" ${tmode === 'highest_shield' ? 'selected' : ''}>💠 Mayor Escudo</option>
                                                     <option value="highest_damage" ${tmode === 'highest_damage' ? 'selected' : ''}>⚔️ Mayor Daño Causado</option>
+                                                    <option value="sphere_color" ${tmode === 'sphere_color' ? 'selected' : ''}>🔮 Mayor Cantidad de Esferas de un Color</option>
+                                                </select>
+                                            </div>
+                                        `;
+                                    }
+                                    if (f === 'targetSphereColor') {
+                                        // Solo se muestra si el criterio es "Por Color de Esfera"
+                                        if ((m.targetMode || 'proximity') !== 'sphere_color') return '';
+                                        const cval = m.targetSphereColor || '';
+                                        return `
+                                            <div class="field" style="grid-column: 1 / -1;"><label>Color de Esfera (apunta al que m�s tenga de ese color)</label>
+                                                <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].targetSphereColor = this.value; renderEnemyDetail();">
+                                                    <option value="" ${cval === '' || cval === 'any' ? 'selected' : ''}>🌈 Cualquier Color</option>
+                                                    <option value="roja" ${cval === 'roja' ? 'selected' : ''}>🔴 Roja (Ataque)</option>
+                                                    <option value="azul" ${cval === 'azul' ? 'selected' : ''}>🔵 Azul (Defensa)</option>
+                                                    <option value="verde" ${cval === 'verde' ? 'selected' : ''}>🟢 Verde (Curación)</option>
+                                                    <option value="amarilla" ${cval === 'amarilla' ? 'selected' : ''}>🟡 Amarilla (Utilidad)</option>
                                                 </select>
                                             </div>
                                         `;
