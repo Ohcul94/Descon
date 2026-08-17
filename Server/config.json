@@ -5171,8 +5171,8 @@
             "minLevel": 1,
             "music": {
                 "enabled": true,
-                "path": "res://assets/Musica/Descon.wav",
-                "volumePercent": 100
+                "path": "res://assets/Musica/Descond.mp3",
+                "volumePercent": 50
             },
             "name": "Loby",
             "objects": [
@@ -5486,8 +5486,8 @@
             "width": 10000,
             "music": {
                 "enabled": true,
-                "path": "res://assets/Musica/bensound-happyrock.mp3",
-                "volumePercent": 60
+                "path": "res://assets/Musica/Station Atmosphere.mp3",
+                "volumePercent": 50
             }
         },
         "3": {
@@ -5673,7 +5673,12 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "music": {
+                "enabled": false,
+                "path": "res://assets/Musica/Seamless Combat Loop.mp3",
+                "volumePercent": 50
+            }
         },
         "5": {
             "ambience": [],

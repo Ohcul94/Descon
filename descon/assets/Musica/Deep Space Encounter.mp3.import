@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://ds3sl5tmlav2r"
+path="res://.godot/imported/Deep Space Encounter.mp3-e7a909ebfe5f7b5a97bb43a01ba8f87e.mp3str"
+
+[deps]
+
+source_file="res://assets/Musica/Deep Space Encounter.mp3"
+dest_files=["res://.godot/imported/Deep Space Encounter.mp3-e7a909ebfe5f7b5a97bb43a01ba8f87e.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

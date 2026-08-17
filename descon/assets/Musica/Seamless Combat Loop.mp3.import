@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cexaytiutcjoj"
+path="res://.godot/imported/Seamless Combat Loop.mp3-032847c9f7559cab8da8d38fd5eb96a2.mp3str"
+
+[deps]
+
+source_file="res://assets/Musica/Seamless Combat Loop.mp3"
+dest_files=["res://.godot/imported/Seamless Combat Loop.mp3-032847c9f7559cab8da8d38fd5eb96a2.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
