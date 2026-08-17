@@ -1946,7 +1946,7 @@
                     "fireRange": 1300,
                     "fireRate": 1000,
                     "activationMode": "time",
-                    "activationIntervalMs": 0,
+                    "activationIntervalMs": 30000,
                     "cooldown": 0,
                     "startDelay": 14000,
                     "bulletCount": 1,
@@ -2732,13 +2732,17 @@
             "hp": 60000,
             "mechanics": [
                 {
-                    "bulletDamage": 1750,
-                    "bulletSpeed": 950,
+                    "bulletDamage": 1,
+                    "bulletSpeed": 500,
                     "fireRange": 1200,
-                    "fireRate": 850,
-                    "slowAmount": 0,
-                    "slowDuration": 0,
-                    "type": "laser"
+                    "fireRate": 3000,
+                    "slowAmount": 50,
+                    "slowDuration": 2000,
+                    "type": "ice_missile",
+                    "startDelay": 0,
+                    "lifetimeMs": 0,
+                    "turnSpeed": 2,
+                    "isHoming": true
                 }
             ],
             "movementPhases": [
@@ -2750,7 +2754,8 @@
                     "speed": 200,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "prowler"
+                    "type": "sniper",
+                    "idealDist": 150
                 }
             ],
             "name": "Enemigo 13 D",
@@ -2759,7 +2764,8 @@
             "rewardHubs": 22500,
             "rewardOhcu": 225,
             "shield": 30000,
-            "speed": 290
+            "speed": 290,
+            "lootDrops": []
         },
         "2-A": {
             "aggressive": true,
@@ -5609,7 +5615,7 @@
             "width": 5000,
             "pvpMode": "mandatory",
             "giveInvulnerabilityOnEntry": true,
-            "timeRestrictionsEnabled": true,
+            "timeRestrictionsEnabled": false,
             "allowedHours": [
                 {
                     "days": [
@@ -5695,24 +5701,14 @@
             ],
             "spawns": [
                 {
-                    "count": 5,
+                    "count": 1,
                     "id": "spawn_5_idx_0_type_13-D",
                     "intervalMs": 5000,
                     "radius": 0,
-                    "spawnMode": "random",
+                    "spawnMode": "fixed",
                     "type": "13-D",
-                    "x": 5000,
-                    "y": 4990
-                },
-                {
-                    "count": 5,
-                    "id": "spawn_1781310653822574",
-                    "intervalMs": 5000,
-                    "radius": 0,
-                    "spawnMode": "random",
-                    "type": "12-D",
-                    "x": 1000,
-                    "y": 1000
+                    "x": 1094,
+                    "y": 1597
                 }
             ],
             "warpCost": 0,

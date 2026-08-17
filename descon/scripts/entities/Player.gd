@@ -256,11 +256,18 @@ func _on_status_effects_sync(data: Dictionary):
 	if data.has("poly"):
 		poly_timer = float(data.poly) / 1000.0
 		is_polymorphed = poly_timer > 0.0
-		# v410.1: Restaurar flags de poly desde la sincronización periódica de estado
-		if data.has("polyCanUseSkills"):
-			poly_can_use_skills = str(data.polyCanUseSkills) == "true" or data.polyCanUseSkills == true
-		if data.has("polyCanMove"):
-			poly_can_move = str(data.polyCanMove) == "true" or data.polyCanMove == true
+		if not is_polymorphed:
+			poly_timer = 0.0
+			poly_can_move = true
+			poly_can_use_skills = true
+			modulate = Color.WHITE
+		else:
+			modulate = Color(0.7, 0.95, 1.0, 1.0)
+			# v410.1: Restaurar flags de poly desde la sincronización periódica de estado
+			if data.has("polyCanUseSkills"):
+				poly_can_use_skills = str(data.polyCanUseSkills) == "true" or data.polyCanUseSkills == true
+			if data.has("polyCanMove"):
+				poly_can_move = str(data.polyCanMove) == "true" or data.polyCanMove == true
 		set_debuff_timer("poly", poly_timer)
 	if data.has("electronSpeedBuff"):
 		var eb = data.electronSpeedBuff
@@ -476,12 +483,15 @@ func _physics_process(p_delta):
 		poly_timer -= p_delta
 		if poly_timer <= 0:
 			is_polymorphed = false
+			_poly_authoritative = false
 			poly_can_move = true
 			poly_can_use_skills = true
 			modulate = Color.WHITE
+			status_effects["polymorphed"] = false
+			_force_clear_poly_visual()
 		else:
-			# Aplicar color de polimorfia (azul claro)
-			modulate = Color(0.7, 0.95, 1.0, 1.0)
+			_poly_authoritative = true
+			status_effects["polymorphed"] = true
 			# Si no puede moverse, bloquear el proceso (como stun),
 			# pero si puede usar habilidades, procesarlas igual antes de salir
 			if not poly_can_move:
@@ -1029,12 +1039,16 @@ func _apply_movement():
 		velocity = Vector2.ZERO
 
 	# Feedback Visual
-	if velocity != Vector2.ZERO or slow_points > 1.0:
+	if is_polymorphed:
+		modulate = Color(0.7, 0.95, 1.0, 1.0)
+	elif velocity != Vector2.ZERO or slow_points > 1.0:
 		var target_color = Color.WHITE
 		if slow_points > 1.0:
 			target_color = Color(0.4, 0.7, 1.0, 1.0)
 		target_color.a = modulate.a 
 		modulate = modulate.lerp(target_color, 0.1)
+	elif not _is_currently_invisible and not _is_currently_camouflaged:
+		modulate = modulate.lerp(Color.WHITE, 0.1)
 
 	if velocity != Vector2.ZERO:
 		if move_and_slide():
@@ -1207,21 +1221,29 @@ func update_stats(data):
 		
 	if data.has("isPolymorphed") or data.has("polymorphed"):
 		is_polymorphed = poly_active
+		_poly_authoritative = poly_active  # v410.3: Sincronizar flag autoritativo base
 		status_effects["polymorphed"] = poly_active
 		
-		# Saneamiento de tipo de datos (soportar bool nativo y string de red)
-		if data.has("polyCanMove"): 
-			poly_can_move = str(data.polyCanMove) == "true" or data.polyCanMove == true
-		if data.has("polyCanUseSkills"): 
-			poly_can_use_skills = str(data.polyCanUseSkills) == "true" or data.polyCanUseSkills == true
-		
-		if data.has("polyDuration"):
-			poly_timer = float(data.polyDuration) / 1000.0
-		elif data.has("polyEndTime"):
-			var now_unix_ms = Time.get_unix_time_from_system() * 1000.0
-			poly_timer = max(0.0, (float(data.polyEndTime) - now_unix_ms) / 1000.0)
-		elif is_polymorphed and poly_timer <= 0.0:
-			poly_timer = 4.0
+		if not poly_active:
+			poly_timer = 0.0
+			poly_can_move = true
+			poly_can_use_skills = true
+			modulate = Color.WHITE
+			_force_clear_poly_visual()  # Limpiar inmediatamente
+		else:
+			# Saneamiento de tipo de datos (soportar bool nativo y string de red)
+			if data.has("polyCanMove"): 
+				poly_can_move = str(data.polyCanMove) == "true" or data.polyCanMove == true
+			if data.has("polyCanUseSkills"): 
+				poly_can_use_skills = str(data.polyCanUseSkills) == "true" or data.polyCanUseSkills == true
+			
+			if data.has("polyDuration"):
+				poly_timer = float(data.polyDuration) / 1000.0
+			elif data.has("polyEndTime"):
+				var now_unix_ms = Time.get_unix_time_from_system() * 1000.0
+				poly_timer = max(0.0, (float(data.polyEndTime) - now_unix_ms) / 1000.0)
+			elif poly_timer <= 0.0:
+				poly_timer = 0.0  # v410.2: No reiniciar timer a 4.0; esperar a statusEffectsSync
 	
 	# v311.0: Conservar el target_position de click si el jugador se está moviendo y llega una actualización de posición del server.
 	var old_target_pos = target_position

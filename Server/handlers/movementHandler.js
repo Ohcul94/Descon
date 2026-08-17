@@ -204,6 +204,20 @@ function registerMovementHandlers(socket, io, state) {
         p.hp = respawnData.hp || p.maxHp || 1000;
         p.shield = respawnData.sh || p.maxShield || 500;
         
+        // v410.5: Limpiar de forma autoritativa todos los debuffs y estados alterados en respawn
+        p.isPolymorphed = false;
+        p.polyEndTime = 0;
+        p.polyCanMove = true;
+        p.polyCanUseSkills = true;
+        
+        p.isSlowed = false; p.slowPoints = 0; p.slowEndTime = 0;
+        p.isStunned = false; p.stunEndTime = 0;
+        p.isBleeding = false; p.bleedEndTime = 0;
+        p.isPoisoned = false; p.poisonEndTime = 0;
+        p.isFrozen = false; p.freezeEndTime = 0;
+        p.isFeared = false; p.fearEndTime = 0;
+        p.forcedTarget = null; p.tauntEndTime = 0;
+        
         let targetX = respawnData.x || 2000;
         let targetY = respawnData.y || 2000;
 
@@ -302,6 +316,30 @@ function registerMovementHandlers(socket, io, state) {
                 socket.emit('currentEnemies', cleanEnemiesInZone);
             }, 350);
         }
+
+        // v410.5: Enviar playerStatSync a toda la zona para forzar el reset visual
+        // de la polimorfia (y otros debuffs) en las pantallas de los aliados
+        io.to(`zone_${p.zone}`).emit('playerStatSync', {
+            id: socket.id,
+            isDead: false,
+            isPolymorphed: false,
+            polymorphed: false,
+            polyDuration: 0,
+            polyCanMove: true,
+            polyCanUseSkills: true,
+            isStunned: false,
+            isSlowed: false,
+            isFrozen: false,
+            isFeared: false,
+            hp: p.hp,
+            shield: p.shield,
+            maxHp: p.maxHp,
+            maxShield: p.maxShield
+        });
+
+        // v410.7: Forzar la limpieza de slow y stun en el cliente local del jugador al revivir
+        socket.emit('slowState', { active: false });
+        socket.emit('stunState', { active: false });
 
         const respawnPayload = {
             ...getMovementPayload(p, socket.id),

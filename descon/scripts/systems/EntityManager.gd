@@ -3413,6 +3413,13 @@ func _on_clear_zone_entities(payload):
 		if is_instance_valid(remote_players[id]): remote_players[id].queue_free()
 	remote_players.clear()
 	
+	# v410.6: Limpiar mercancías/botines locales activos de la zona anterior
+	for id in loot_drops.keys():
+		var drop = loot_drops[id]
+		if is_instance_valid(drop):
+			drop.queue_free()
+	loot_drops.clear()
+	
 	# v371.2: Limpiar restos de naufragios (wreckage markers) antiguos del sector al cambiar de zona
 	if is_instance_valid(world) and is_instance_valid(world.get("entities_node")):
 		for child in world.entities_node.get_children():

@@ -655,9 +655,10 @@ function registerCombatHandlers(socket, io, state) {
                     p.polyCanUseSkills = canUseSkills;
                     
                     // Sincronizar al cliente
-                    io.to(p.socketId).emit('playerStatSync', {
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', {
                         id: p.socketId,
                         isPolymorphed: true,
+                        polymorphed: true,
                         polyEndTime: p.polyEndTime,
                         polyDuration: polyDuration, // Duración configurada original
                         polyCanMove: p.polyCanMove,

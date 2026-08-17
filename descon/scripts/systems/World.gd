@@ -571,6 +571,11 @@ func _on_login_success(data):
 	if not local_player.shoot_fired.is_connected(_on_local_shoot): 
 		local_player.shoot_fired.connect(_on_local_shoot)
 	
+	# v410.4: Limpiar de forma proactiva todas las entidades locales al reconectarse/loguearse
+	# Esto evita que queden nodos huérfanos de la sesión anterior con referencias 3D rotas
+	if is_instance_valid(entity_manager):
+		entity_manager._on_clear_zone_entities(local_player.current_zone)
+	
 	if "current_zone" in local_player:
 		_update_background(local_player.current_zone)
 		_update_hud_map_name(local_player.current_zone)

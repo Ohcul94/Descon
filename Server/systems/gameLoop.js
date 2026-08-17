@@ -585,6 +585,48 @@ function startGameLoop(io, state, aiManager) {
             const activeBleed = p.bleedEndTime ? Math.max(0, p.bleedEndTime - now) : 0;
             const activePoison = p.poisonEndTime ? Math.max(0, p.poisonEndTime - now) : 0;
             
+            // v410.7: Expirar flags booleanas en el servidor cuando sus timers terminen
+            if (activeSlow <= 0 && p.isSlowed) {
+                p.isSlowed = false;
+                p.slowPoints = 0;
+                p.slowEndTime = 0;
+                io.to(p.socketId).emit('slowState', { active: false });
+                changed = true;
+            }
+            if (activeStun <= 0 && p.isStunned && !p.isAsleep) {
+                p.isStunned = false;
+                p.stunEndTime = 0;
+                io.to(p.socketId).emit('stunState', { active: false });
+                changed = true;
+            }
+            if (activeBleed <= 0 && p.isBleeding) {
+                p.isBleeding = false;
+                p.bleedEndTime = 0;
+                p.bleedDps = 0;
+                p.bleedInterval = 0;
+                changed = true;
+            }
+            if (activePoison <= 0 && p.isPoisoned) {
+                p.isPoisoned = false;
+                p.poisonEndTime = 0;
+                p.poisonDps = 0;
+                p.poisonInterval = 0;
+                changed = true;
+            }
+            const activeFreeze = p.freezeEndTime ? Math.max(0, p.freezeEndTime - now) : 0;
+            if (activeFreeze <= 0 && p.isFrozen) {
+                p.isFrozen = false;
+                p.freezeEndTime = 0;
+                changed = true;
+            }
+            const activeFear = p.fearEndTime ? Math.max(0, p.fearEndTime - now) : 0;
+            if (activeFear <= 0 && p.isFeared) {
+                p.isFeared = false;
+                p.fearEndTime = 0;
+                io.to(p.socketId).emit('stunState', { active: false });
+                changed = true;
+            }
+
             // v410: Polimorfia - Expirar estado
             const activePoly = p.polyEndTime ? Math.max(0, p.polyEndTime - now) : 0;
             if (activePoly <= 0 && p.isPolymorphed) {
@@ -592,9 +634,10 @@ function startGameLoop(io, state, aiManager) {
                 p.polyEndTime = 0;
                 p.polyCanMove = true;
                 p.polyCanUseSkills = true;
-                io.to(p.socketId).emit('playerStatSync', {
+                io.to(`zone_${p.zone}`).emit('playerStatSync', {
                     id: p.socketId,
                     isPolymorphed: false,
+                    polymorphed: false,
                     polyCanMove: true,
                     polyCanUseSkills: true
                 });

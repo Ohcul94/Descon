@@ -158,6 +158,9 @@ func get_aim_target_3d(mouse_pos_2d: Vector2) -> Vector3:
 	return intersect if intersect != null else Vector3.ZERO
 
 var _status_material: StandardMaterial3D = null
+# v410.3: Flag autoritativo de polimorfia — solo se setea desde playerStatSync (isPolymorphed/polymorphed explícito)
+# Los ticks de movimiento (playerMoved) NO pueden cambiar este valor
+var _poly_authoritative: bool = false
 var _vfx_container_2d: Node2D = null
 var _is_currently_invisible: bool = false
 var is_burrowed: bool = false
@@ -513,6 +516,9 @@ func _process(delta):
 
 	# v268.70: Feedback visual de estados alterados (Soporte 2.5D)
 	if not is_dead:
+		# v410.3: Forzar status_effects["polymorphed"] desde el flag autoritativo ANTES de calcular colores
+		# Esto evita que ticks de movimiento (playerMoved) reactiven poly después de que playerStatSync lo apagó
+		status_effects["polymorphed"] = _poly_authoritative
 		var is_affected = status_effects.get("stunned", false) or status_effects.get("frozen", false) or status_effects.get("polymorphed", false)
 		var is_poly = status_effects.get("polymorphed", false)
 		var state_color = Color(1.5, 1.5, 3.5, 1.0) if is_affected else Color(1, 1, 1, 1) # v268.76: Más azul y brillante
@@ -958,9 +964,31 @@ func update_stats(data):
 	
 	if data.has("status_effects"):
 		status_effects = data.status_effects
+		
+		# v410.6: Si el tick de movimiento dice que polymorphed es false, actualizamos el flag autoritativo para evitar bloqueos
+		var poly_in_movement = bool(status_effects.get("polymorphed", false))
+		if not poly_in_movement and _poly_authoritative:
+			_poly_authoritative = false
+			_force_clear_poly_visual()
+			if is_in_group("player"):
+				set("is_polymorphed", false)
+				set("poly_timer", 0.0)
+				set("poly_can_move", true)
+				set("poly_can_use_skills", true)
+				modulate = Color.WHITE
+				
+		status_effects["polymorphed"] = _poly_authoritative
 		_refresh_debuffs_from_status_effects()
-	if data.has("polymorphed"):
-		status_effects["polymorphed"] = bool(data.polymorphed)
+	if data.has("polymorphed") or data.has("isPolymorphed"):
+		# v410.3: SOLO estos campos (de playerStatSync) pueden cambiar el estado autoritativo de poly
+		var p_active = bool(data.get("isPolymorphed", data.get("polymorphed", false)))
+		_poly_authoritative = p_active
+		status_effects["polymorphed"] = p_active
+		if not p_active:
+			# Limpiar visual de poly inmediatamente sin esperar al próximo frame
+			_force_clear_poly_visual()
+			if not status_effects.get("slowed", false):
+				modulate = Color.WHITE
 	
 	# v268.87: Capturar posición desde el paquete de stats para evitar rubber-banding
 	if data.has("x"): target_position.x = _safe_float(data.x, target_position.x)
@@ -1316,6 +1344,23 @@ func _refresh_debuffs_from_status_effects():
 				changed = true
 	if changed:
 		debuffs_updated.emit()
+
+func _force_clear_poly_visual() -> void:
+	# v410.3: Limpieza inmediata y forzada de todos los efectos visuales de polimorfia
+	# Se llama cuando playerStatSync notifica que poly terminó (sin esperar al _process)
+	if is_instance_valid(_3d_model):
+		var poly_cube = _3d_model.get_node_or_null("PolymorphCube")
+		if is_instance_valid(poly_cube):
+			poly_cube.queue_free()
+		# Restaurar visibilidad de todos los hijos del modelo 3D
+		for child in _3d_model.get_children():
+			if child.name != "PolymorphCube":
+				child.visible = true
+		# Eliminar cualquier material override azul del modelo 3D
+		_apply_material_recursive(_3d_model, null, false)
+	# Restaurar sprite 2D al color original
+	if is_instance_valid(sprite):
+		sprite.modulate = Color.WHITE
 
 func _on_status_effects_sync(_data: Dictionary):
 	pass # Override en Player.gd
@@ -3722,6 +3767,50 @@ func deactivate_for_pooling():
 		_ui_wrapper.visible = false
 	if is_instance_valid(world_root_3d):
 		world_root_3d.visible = false
+		
+	# v410.6: Limpieza radical de variables en el pool para evitar corrupción de datos (vida 10/3000, invisible, celeste, etc.)
+	current_hp = 0.0
+	max_hp = 1.0
+	current_shield = 0.0
+	max_shield = 1.0
+	_display_hp = 0.0
+	_display_shield = 0.0
+	
+	status_effects = {}
+	_poly_authoritative = false
+	debuffs = {}
+	
+	_is_currently_invisible = false
+	_is_currently_camouflaged = false
+	_is_ally = false
+	is_dead = false
+	is_rage = false
+	pvp_status = false
+	
+	reflect_timer = 0.0
+	shield_visual_timer = 0.0
+	heal_visual_timer = 0.0
+	invulnerable_timer = 0.0
+	is_invulnerable = false
+	is_hovered = false
+	is_selected = false
+	_active_shield_type = ""
+	
+	# Limpieza de overrides de material en el modelo 3D y destrucción del cubo de polimorfia
+	if is_instance_valid(_3d_model):
+		_apply_material_recursive(_3d_model, null, false)
+		_apply_material_recursive(_3d_model, null, true)
+		var poly_cube = _3d_model.get_node_or_null("PolymorphCube")
+		if is_instance_valid(poly_cube):
+			poly_cube.queue_free()
+		for child in _3d_model.get_children():
+			if child.name != "PolymorphCube":
+				child.visible = true
+				
+	# Restaurar colores del Canvas 2D
+	modulate = Color.WHITE
+	if is_instance_valid(sprite):
+		sprite.modulate = Color.WHITE
 
 func activate_from_pool():
 	set_meta("is_pooled", false)

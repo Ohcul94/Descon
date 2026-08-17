@@ -4,6 +4,23 @@ const Logger = require('../utils/logger');
 const { onZoneChanged } = require('../systems/questHandlers');
 const { applyZoneRules } = require('../systems/deathDropHelper');
 
+// v410.6: Helper para limpiar todos los debuffs y estados alterados al saltar de sector o warp
+const clearPlayerStatusEffects = (p) => {
+    if (!p) return;
+    p.isPolymorphed = false;
+    p.polyEndTime = 0;
+    p.polyCanMove = true;
+    p.polyCanUseSkills = true;
+    
+    p.isSlowed = false; p.slowPoints = 0; p.slowEndTime = 0;
+    p.isStunned = false; p.stunEndTime = 0;
+    p.isBleeding = false; p.bleedEndTime = 0;
+    p.isPoisoned = false; p.poisonEndTime = 0;
+    p.isFrozen = false; p.freezeEndTime = 0;
+    p.isFeared = false; p.fearEndTime = 0;
+    p.forcedTarget = null; p.tauntEndTime = 0;
+};
+
 const getStatusEffects = (ent) => {
     const now = Date.now();
     return {
@@ -93,6 +110,9 @@ function registerZoneHandlers(socket, io, state) {
         const p = players[socket.id];
         if (!p.isAdmin) return; // Protección Admin
 
+        // v410.6: Limpiar todos los debuffs y estados alterados al hacer warp admin
+        clearPlayerStatusEffects(p);
+
         const newZone = data.zone || 1;
         const oldZone = p.zone;
         console.log(`[ADMIN-WARP] ${p.user} saltando a Zona ${newZone}`);
@@ -129,6 +149,30 @@ function registerZoneHandlers(socket, io, state) {
 
         socket.emit('changeZoneDone', newZone);
         socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
+        
+        // Enviar playerStatSync a toda la zona destino para limpiar estados en otros clientes
+        io.to(`zone_${newZone}`).emit('playerStatSync', {
+            id: socket.id,
+            isDead: false,
+            isPolymorphed: false,
+            polymorphed: false,
+            polyDuration: 0,
+            polyCanMove: true,
+            polyCanUseSkills: true,
+            isStunned: false,
+            isSlowed: false,
+            isFrozen: false,
+            isFeared: false,
+            hp: p.hp,
+            shield: p.shield,
+            maxHp: p.maxHp,
+            maxShield: p.maxShield
+        });
+        
+        // v410.7: Limpiar slow y stun en el cliente local del jugador al warpearse
+        socket.emit('slowState', { active: false });
+        socket.emit('stunState', { active: false });
+        
         socket.to(`zone_${newZone}`).emit('newPlayer', getCleanPlayerData(p, socket.id));
 
         // v268.66: Sincronización Unificada y Purga Administrativa
@@ -412,6 +456,9 @@ function registerZoneHandlers(socket, io, state) {
             }
             state.playersByZone[zoneId][socket.id] = p;
 
+            // v410.6: Limpiar todos los debuffs y estados alterados al saltar de sector tradicional
+            clearPlayerStatusEffects(p);
+
             p.zone = zoneId;
             if (requestedX !== null && requestedX !== undefined) {
                 p.x = Number(requestedX);
@@ -440,6 +487,30 @@ function registerZoneHandlers(socket, io, state) {
 
             // Avisar a la vieja zona que se fue y a la nueva que llegó
             socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
+            
+            // Enviar playerStatSync a toda la zona destino para limpiar estados en otros clientes
+            io.to(`zone_${zoneId}`).emit('playerStatSync', {
+                id: socket.id,
+                isDead: false,
+                isPolymorphed: false,
+                polymorphed: false,
+                polyDuration: 0,
+                polyCanMove: true,
+                polyCanUseSkills: true,
+                isStunned: false,
+                isSlowed: false,
+                isFrozen: false,
+                isFeared: false,
+                hp: p.hp,
+                shield: p.shield,
+                maxHp: p.maxHp,
+                maxShield: p.maxShield
+            });
+            
+            // v410.7: Limpiar slow y stun en el cliente local del jugador al cambiar de sector
+            socket.emit('slowState', { active: false });
+            socket.emit('stunState', { active: false });
+            
             socket.to(`zone_${zoneId}`).emit('newPlayer', getCleanPlayerData(p, socket.id));
 
             // v268.66: Sincronización Unificada y Purga de Entidades Muertas
