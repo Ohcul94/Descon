@@ -110,7 +110,9 @@ const UserSchema = new mongoose.Schema({
             events_completed: { type: Number, default: 0 }
         },
         // v500.0: MERCADO / CASA DE SUBASTAS - Buzón de entrega
-        marketMailbox: { type: Array, default: [] }
+        marketMailbox: { type: Array, default: [] },
+        // v1.0: MENSAJES Y RESPUESTAS DE SOPORTE (BUGS)
+        supportMailbox: { type: Array, default: [] }
     }
 });
 

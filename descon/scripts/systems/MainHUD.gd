@@ -22,6 +22,7 @@ var virtual_joystick = null # Controlado por TouchControls.gd
 var _esc_menu: Control = null
 var _settings_menu: Control = null
 var _bug_report_ui: Control = null
+var _support_mailbox_ui: Control = null
 var _pvp_status: bool = false
 var _blind_overlay: ColorRect = null # v260.90: Efecto de Ceguera (Humo)
 var _selected_node_for_editing: Control = null # v266.530: Persistencia de selección para sliders
@@ -104,6 +105,9 @@ func _ready():
 	
 	# v266.155: Soporte para cambio de resolución en tiempo real
 	get_viewport().size_changed.connect(_on_viewport_resize)
+	if NetworkManager:
+		if not NetworkManager.connection_lost.is_connected(close_all_hud_modals):
+			NetworkManager.connection_lost.connect(close_all_hud_modals)
 
 	_setup_mobile_camera_pad()
 	_aggressive_hide(self)
@@ -1034,6 +1038,13 @@ func _create_esc_menu():
 	bug_btn.pressed.connect(_open_bug_report)
 	vbox.add_child(bug_btn)
 	
+	var mail_btn = Button.new()
+	mail_btn.name = "SupportMailboxButton"
+	mail_btn.text = "✉️ BUZÓN DE SOPORTE"
+	mail_btn.modulate = Color(0.0, 0.85, 1.0)
+	mail_btn.pressed.connect(_open_support_mailbox)
+	vbox.add_child(mail_btn)
+	
 	var logout_btn = Button.new()
 	logout_btn.text = "CERRAR SESIÓN"
 	logout_btn.pressed.connect(func():
@@ -1131,6 +1142,21 @@ func _open_bug_report():
 			_bug_report_ui.closed.connect(func(): _bug_report_ui.visible = false)
 	if is_instance_valid(_bug_report_ui) and _bug_report_ui.has_method("open"):
 		_bug_report_ui.open()
+
+func _open_support_mailbox():
+	_close_esc_menu()
+	if not is_instance_valid(_support_mailbox_ui):
+		var script = load("res://scripts/systems/SupportMailboxUI.gd")
+		if script:
+			var canvas = CanvasLayer.new()
+			canvas.name = "SupportMailboxLayer"
+			canvas.layer = 140
+			add_child(canvas)
+			_support_mailbox_ui = script.new()
+			canvas.add_child(_support_mailbox_ui)
+			_support_mailbox_ui.closed.connect(func(): _support_mailbox_ui.visible = false)
+	if is_instance_valid(_support_mailbox_ui) and _support_mailbox_ui.has_method("open"):
+		_support_mailbox_ui.open()
 
 func _is_pos_over_priority_ui(p: Vector2, ignore_editable: bool = false) -> bool:
 	if not ignore_editable:
@@ -2944,3 +2970,28 @@ func _setup_mobile_camera_pad():
 	
 	add_child(pad_container)
 	pad_container.visible = false
+
+func close_all_hud_modals():
+	print("[MainHUD] Conexión perdida. Limpiando todos los modales e interfaces activas...")
+	if is_instance_valid(_esc_menu): _esc_menu.visible = false
+	if is_instance_valid(_settings_menu): _settings_menu.visible = false
+	if is_instance_valid(_bug_report_ui): _bug_report_ui.visible = false
+	if is_instance_valid(_support_mailbox_ui): _support_mailbox_ui.visible = false
+	
+	# Buscar y destruir todos los CanvasLayers temporales de interfaz en la escena
+	var root = get_tree().root
+	if root:
+		var layers_to_clean = [
+			"SupportMailboxLayer", "BugReportLayer", "PvpWarningCanvas", 
+			"DetailCanvasLayer", "ModalCanvasLayer", "ResultCanvasLayer", 
+			"ConflictCanvasLayer", "VaultLayer", "TradeHUDLayer", 
+			"MarketplaceLayer", "LootLayer", "DeathModalLayer"
+		]
+		for child in root.get_children():
+			if child is CanvasLayer and child.name in layers_to_clean:
+				child.queue_free()
+			
+			# Buscar en subnodos recursivamente
+			for subchild in child.find_children("*", "CanvasLayer", true, false):
+				if subchild.name in layers_to_clean:
+					subchild.queue_free()

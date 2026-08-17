@@ -3292,4 +3292,32 @@ function showTalentNodeEditor(nodeId) {
     `;
 }
 
+window.submitBugReply = function(id, source) {
+    const inputEl = document.getElementById(`reply-input-${id}-${source}`);
+    if (!inputEl) return;
+    const replyText = inputEl.value.trim();
+    if (!replyText) {
+        showToast("ERROR: La respuesta no puede estar vacía.");
+        return;
+    }
+    
+    const sock = bugReportSocket(source);
+    if (sock) {
+        sock.emit('replyToBugReport', { id, replyText });
+        inputEl.value = '';
+    } else {
+        showToast("ERROR: Conexión no disponible con el servidor.");
+    }
+};
+
+window.closeBugReport = function(id, source) {
+    if (!confirm(`¿Finalizar y cerrar definitivamente el reporte de bug #${id}? El usuario ya no podrá responder.`)) return;
+    const sock = bugReportSocket(source);
+    if (sock) {
+        sock.emit('closeBugReport', { id });
+    } else {
+        showToast("ERROR: Conexión no disponible con el servidor.");
+    }
+};
+
 

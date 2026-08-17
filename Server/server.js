@@ -36,6 +36,19 @@ const normalizeZone = (z) => {
     return z;
 };
 
+// v1.0: Filtrar mensajes de soporte expirados de más de 72 horas
+const cleanExpiredSupportMail = (mailbox) => {
+    if (!Array.isArray(mailbox)) return [];
+    const now = Date.now();
+    const LIMIT = 72 * 60 * 60 * 1000; // 72 horas en ms
+    return mailbox.filter(m => {
+        const repliedTime = new Date(m.repliedAt).getTime();
+        return (now - repliedTime) < LIMIT;
+    });
+};
+
+
+
 const syncPlayerItems = (userOrPlayer, serverConfig) => {
     if (!userOrPlayer || !serverConfig) return false;
     const allShopItems = [
@@ -656,6 +669,14 @@ const handleUserLogin = async (socket, user, username) => {
         await user.save();
     }
 
+    // v1.0: Limpiar respuestas de soporte expiradas (> 72hs) al loguear
+    const cleanedSupport = cleanExpiredSupportMail(user.gameData.supportMailbox || []);
+    if (cleanedSupport.length !== (user.gameData.supportMailbox || []).length) {
+        user.gameData.supportMailbox = cleanedSupport;
+        user.markModified('gameData.supportMailbox');
+        await user.save();
+    }
+
     const eByShipObj = {};
     if (user.gameData.equippedByShip) {
         if (user.gameData.equippedByShip instanceof Map) {
@@ -722,7 +743,9 @@ const handleUserLogin = async (socket, user, username) => {
         rankingData: JSON.parse(JSON.stringify(user.gameData.rankingData || { monsters_killed: 0, events_completed: 0 })),
         housing: JSON.parse(JSON.stringify(user.gameData.housing || { unlocked: false, placedObjects: [] })),
         // v500.0: MERCADO - Buzón de entregas y notificaciones
-        marketMailbox: JSON.parse(JSON.stringify(user.gameData.marketMailbox || []))
+        marketMailbox: JSON.parse(JSON.stringify(user.gameData.marketMailbox || [])),
+        // v1.0: SOPORTE - Buzón de soporte
+        supportMailbox: JSON.parse(JSON.stringify(user.gameData.supportMailbox || []))
     };
 
     const p_ref = players[socket.id];
@@ -769,7 +792,8 @@ const handleUserLogin = async (socket, user, username) => {
             pvpEnabled: !!p_ref.pvpEnabled, // SYNC FIX: Usar el valor real en memoria (forzado por reglas de zona en login)
             isInvulnerable: !!p_ref.isInvulnerable,
             equippedByShip: JSON.parse(JSON.stringify(eByShipObj)),
-            equipped: JSON.parse(JSON.stringify(user.gameData.equipped || { w: [], s: [], e: [], x: [] }))
+            equipped: JSON.parse(JSON.stringify(user.gameData.equipped || { w: [], s: [], e: [], x: [] })),
+            supportMailbox: JSON.parse(JSON.stringify(user.gameData.supportMailbox || []))
         }, state.SERVER_CONFIG),
         adminConfig: buildClientConfig(adminConfig)
     };
@@ -1868,6 +1892,14 @@ io.on('connection', (socket) => {
     // v1.0: REPORTE DE BUGS (Desde el menú ESC del juego)
     socket.on('reportBug', (data) => {
         try {
+            if (typeof data === 'string') {
+                try {
+                    data = JSON.parse(data);
+                } catch(e) {
+                    console.error("[BUG-DEBUG] Error parseando data:", e);
+                }
+            }
+            console.log("[BUG-DEBUG] Datos recibidos:", data);
             const p = players[socket.id];
             if (!p) return;
 
@@ -1912,6 +1944,188 @@ io.on('connection', (socket) => {
         } catch (e) {
             console.error('[BUG-REPORT] Error procesando reporte:', e);
             socket.emit('gameNotification', { msg: 'ERROR AL ENVIAR EL REPORTE. INTENTÁ DE NUEVO.', type: 'warn' });
+        }
+    });
+
+    // v1.0: Responder a un reporte de bug (Admin o Jugador creador)
+    socket.on('replyToBugReport', async (data) => {
+        try {
+            const { id, replyText } = data;
+            if (!id || !replyText) return;
+
+            const report = bugReports.getById(id);
+            if (!report) {
+                return socket.emit('gameNotification', { msg: 'REPORTE NO ENCONTRADO.', type: 'warn' });
+            }
+
+            const p = players[socket.id];
+            const isAdmin = isAdminSocket(socket);
+
+            // Validar pertenencia e inmutabilidad
+            if (!isAdmin) {
+                if (!p || report.nick.toLowerCase() !== p.user.toLowerCase()) {
+                    return socket.emit('gameNotification', { msg: 'NO TIENES PERMISOS PARA RESPONDER A ESTE REPORTE.', type: 'warn' });
+                }
+                if (report.status === 'closed') {
+                    return socket.emit('gameNotification', { msg: 'EL REPORTE YA HA SIDO FINALIZADO Y CERRADO.', type: 'warn' });
+                }
+            }
+
+            // Registrar la respuesta en el sistema de reportes
+            const senderRole = isAdmin ? 'admin' : 'user';
+            const updatedReport = bugReports.addReply(id, senderRole, replyText);
+            if (!updatedReport) {
+                return socket.emit('gameNotification', { msg: 'ERROR AL GUARDAR LA RESPUESTA.', type: 'warn' });
+            }
+
+            // Cambiar estado a resolved si responde el admin
+            if (isAdmin) {
+                bugReports.setStatus(id, 'resolved');
+                updatedReport.status = 'resolved';
+            }
+
+            // Buscar al usuario afectado en MongoDB para actualizar su buzón
+            const User = require('./models/User');
+            const targetUser = await User.findOne({ username: report.nick.toLowerCase() });
+            if (targetUser) {
+                if (!targetUser.gameData.supportMailbox) {
+                    targetUser.gameData.supportMailbox = [];
+                }
+                
+                // Buscar si ya tiene una celda para este bug en su buzón
+                const existingIdx = targetUser.gameData.supportMailbox.findIndex(m => Number(m.bugId) === Number(id));
+                if (existingIdx >= 0) {
+                    // Actualizar el hilo existente
+                    targetUser.gameData.supportMailbox[existingIdx].status = updatedReport.status;
+                    targetUser.gameData.supportMailbox[existingIdx].replies = updatedReport.replies;
+                    targetUser.gameData.supportMailbox[existingIdx].repliedAt = new Date().toISOString();
+                    targetUser.gameData.supportMailbox[existingIdx].read = isAdmin ? false : true;
+                } else {
+                    // Crear nueva celda de buzón
+                    const mailEntry = {
+                        id: Date.now() + Math.random().toString(36).substr(2, 5),
+                        bugId: updatedReport.id,
+                        bugDescription: updatedReport.description,
+                        status: updatedReport.status,
+                        replies: updatedReport.replies,
+                        repliedAt: new Date().toISOString(),
+                        read: isAdmin ? false : true
+                    };
+                    targetUser.gameData.supportMailbox.unshift(mailEntry);
+                }
+                
+                targetUser.gameData.supportMailbox = cleanExpiredSupportMail(targetUser.gameData.supportMailbox);
+                targetUser.markModified('gameData.supportMailbox');
+                await targetUser.save();
+                
+                // Actualizar en memoria si el usuario afectado está online
+                const targetSocketId = Object.keys(players).find(sid => players[sid].user.toLowerCase() === report.nick.toLowerCase());
+                if (targetSocketId) {
+                    players[targetSocketId].supportMailbox = targetUser.gameData.supportMailbox;
+                    io.to(targetSocketId).emit('supportMailboxUpdated', targetUser.gameData.supportMailbox);
+                    if (isAdmin) {
+                        io.to(targetSocketId).emit('gameNotification', { msg: '📩 NUEVA RESPUESTA DE SOPORTE PARA TU REPORTE DE BUG.', type: 'success' });
+                    }
+                }
+                
+                socket.emit('gameNotification', { msg: 'RESPUESTA REGISTRADA CON ÉXITO.', type: 'success' });
+                
+                // Notificar a todos los administradores en el dashboard web
+                io.sockets.sockets.forEach(s => {
+                    if (isAdminSocket(s)) s.emit('bugReportReceived', updatedReport);
+                });
+            } else {
+                socket.emit('gameNotification', { msg: 'EL USUARIO DEL REPORTE YA NO EXISTE.', type: 'warn' });
+            }
+        } catch (e) {
+            console.error('[BUG-REPLY] Error al responder reporte:', e);
+            socket.emit('gameNotification', { msg: 'ERROR AL PROCESAR LA RESPUESTA.', type: 'warn' });
+        }
+    });
+
+    // v1.0: ADMIN - Finalizar/Cerrar un reporte de bug
+    socket.on('closeBugReport', async (data) => {
+        try {
+            if (!isAdminSocket(socket)) return;
+            const { id } = data;
+            if (!id) return;
+
+            const report = bugReports.getById(id);
+            if (!report) {
+                return socket.emit('gameNotification', { msg: 'REPORTE NO ENCONTRADO.', type: 'warn' });
+            }
+
+            // Marcar como cerrado
+            bugReports.setStatus(id, 'closed');
+            report.status = 'closed';
+
+            // Buscar al usuario afectado en MongoDB
+            const User = require('./models/User');
+            const targetUser = await User.findOne({ username: report.nick.toLowerCase() });
+            if (targetUser && targetUser.gameData.supportMailbox) {
+                const mailIdx = targetUser.gameData.supportMailbox.findIndex(m => Number(m.bugId) === Number(id));
+                if (mailIdx >= 0) {
+                    targetUser.gameData.supportMailbox[mailIdx].status = 'closed';
+                    targetUser.gameData.supportMailbox[mailIdx].replies = report.replies || [];
+                    targetUser.gameData.supportMailbox[mailIdx].repliedAt = new Date().toISOString();
+                } else {
+                    const mailEntry = {
+                        id: Date.now() + Math.random().toString(36).substr(2, 5),
+                        bugId: report.id,
+                        bugDescription: report.description,
+                        status: 'closed',
+                        replies: report.replies || [],
+                        repliedAt: new Date().toISOString(),
+                        read: false
+                    };
+                    targetUser.gameData.supportMailbox.unshift(mailEntry);
+                }
+                targetUser.gameData.supportMailbox = cleanExpiredSupportMail(targetUser.gameData.supportMailbox);
+                targetUser.markModified('gameData.supportMailbox');
+                await targetUser.save();
+
+                // Actualizar en memoria si está online
+                const targetSocketId = Object.keys(players).find(sid => players[sid].user.toLowerCase() === report.nick.toLowerCase());
+                if (targetSocketId) {
+                    players[targetSocketId].supportMailbox = targetUser.gameData.supportMailbox;
+                    io.to(targetSocketId).emit('supportMailboxUpdated', targetUser.gameData.supportMailbox);
+                    io.to(targetSocketId).emit('gameNotification', { msg: '🏁 TU REPORTE DE BUG HA SIDO FINALIZADO POR EL SOPORTE.', type: 'info' });
+                }
+            }
+
+            socket.emit('gameNotification', { msg: `REPORTE #${id} FINALIZADO CON ÉXITO.`, type: 'success' });
+
+            // Refrescar lista de reportes para todos los admins
+            io.sockets.sockets.forEach(s => {
+                if (isAdminSocket(s)) s.emit('bugReportReceived', report);
+            });
+        } catch (e) {
+            console.error('[BUG-CLOSE] Error al cerrar reporte:', e);
+            socket.emit('gameNotification', { msg: 'ERROR AL FINALIZAR EL REPORTE.', type: 'warn' });
+        }
+    });
+
+    // v1.0: Jugador - Eliminar mensaje de su buzón de soporte
+    socket.on('deleteSupportMail', async (data) => {
+        try {
+            const p = players[socket.id];
+            if (!p) return;
+            const { mailId } = data;
+            if (!mailId) return;
+
+            const User = require('./models/User');
+            const user = await User.findById(p.dbId);
+            if (user && user.gameData.supportMailbox) {
+                user.gameData.supportMailbox = user.gameData.supportMailbox.filter(m => m.id !== mailId);
+                user.gameData.supportMailbox = cleanExpiredSupportMail(user.gameData.supportMailbox);
+                user.markModified('gameData.supportMailbox');
+                await user.save();
+                
+                p.supportMailbox = user.gameData.supportMailbox;
+                socket.emit('supportMailboxUpdated', user.gameData.supportMailbox);
+            }
+        } catch (e) {
+            console.error('[SUPPORT-MAIL] Error eliminando mensaje:', e);
         }
     });
 

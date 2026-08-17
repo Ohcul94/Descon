@@ -101,6 +101,7 @@ signal market_data(data) # v500.0: Casa de Subastas
 signal market_update(data)
 signal market_purchase_result(data)
 signal market_mailbox_updated(data)
+signal support_mailbox_updated(data)
 signal socket_event_received(event_name, data)
 
 signal status_effects_sync(data)
@@ -124,6 +125,7 @@ var ping_start_time: int = 0
 var current_ms: int = 0
 var is_registering: bool = false # v244.10: Soporte para creación de cuenta
 var current_user_data: Dictionary = {} 
+var support_mailbox: Array = []
 var current_arena_data: Dictionary = {}
 
 # Sincronización segura del tiempo del servidor (Evita hacks de hora local)
@@ -236,6 +238,8 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			is_logged_in = true
 			my_socket_id = str(e_data.get("socketId", ""))
 			current_user_data = e_data
+			if e_data.has("gameData") and e_data.gameData.has("supportMailbox"):
+				support_mailbox = e_data.gameData.supportMailbox
 			if e_data.has("adminConfig"):
 				server_config = e_data.adminConfig
 			
@@ -389,6 +393,9 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"marketUpdate": market_update.emit(e_data)
 		"marketPurchaseResult": market_purchase_result.emit(e_data)
 		"marketMailboxUpdated": market_mailbox_updated.emit(e_data)
+		"supportMailboxUpdated":
+			support_mailbox = e_data
+			support_mailbox_updated.emit(e_data)
 		"clanMemberStatus": clan_member_status.emit(e_data)
 		"pong_custom":
 			current_ms = int(Time.get_ticks_msec() - ping_start_time)

@@ -103,7 +103,8 @@ function addReport({ nick, email, phone, description, images, zone, level, ip })
         level: clamp(level, 1, 999),
         ip: sanitizeText(String(ip || ''), 60),
         status: 'open',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        replies: []
     };
     reports.unshift(report);
     save();
@@ -129,9 +130,35 @@ function setStatus(id, status) {
     const numId = Number(id);
     const report = reports.find(r => Number(r.id) === numId);
     if (!report) return false;
-    report.status = status === 'resolved' ? 'resolved' : 'open';
+    
+    if (status === 'resolved' || status === 'closed' || status === 'open') {
+        report.status = status;
+    } else {
+        report.status = 'open';
+    }
     save();
     return true;
 }
 
-module.exports = { init, sanitizeText, isValidEmail, validateImages, addReport, getAll, removeReport, setStatus, isRateLimited };
+function getById(id) {
+    init();
+    return reports.find(r => Number(r.id) === Number(id));
+}
+
+function addReply(id, sender, text) {
+    init();
+    const report = getById(id);
+    if (!report) return null;
+    if (!report.replies) report.replies = [];
+    
+    const reply = {
+        sender: sender,
+        text: sanitizeText(text, MAX_DESC_CHARS),
+        createdAt: new Date().toISOString()
+    };
+    report.replies.push(reply);
+    save();
+    return report;
+}
+
+module.exports = { init, sanitizeText, isValidEmail, validateImages, addReport, getAll, removeReport, setStatus, isRateLimited, getById, addReply };

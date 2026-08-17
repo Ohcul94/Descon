@@ -7639,7 +7639,7 @@ function renderBugReports(data) {
     const f = getFilter();
 
     if (lastBugReports.length === 0) {
-        list.innerHTML = '<div style="color:#666; font-style:italic; padding:2rem; text-align:center;">No hay reportes de bugs todav\u00EDa.</div>';
+        list.innerHTML = '<div style="color:#666; font-style:italic; padding:2rem; text-align:center;">No hay reportes de bugs todavía.</div>';
         return;
     }
 
@@ -7651,25 +7651,42 @@ function renderBugReports(data) {
 
         const card = document.createElement('div');
         card.className = 'card';
-        card.style.cssText = 'width:100%; border-left:3px solid ' + (r.status === 'resolved' ? 'var(--success)' : '#f0a500') + ';';
+        card.style.cssText = 'width:100%; border-left:3px solid ' + (r.status === 'closed' ? '#ff3b30' : (r.status === 'resolved' ? 'var(--success)' : '#f0a500')) + ';';
 
         const fecha = r.createdAt ? new Date(r.createdAt).toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }) : '--';
 
-const header = document.createElement('div');
+        const header = document.createElement('div');
         header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:0.75rem; flex-wrap:wrap;';
         const srcTag = r.source === 'cloud'
-            ? '<span class="card-tag" style="position:static; background:rgba(240,165,0,0.12); color:#f0a500; border:1px solid rgba(240,165,0,0.2);">\u2601\ufe0f SERVER</span>'
-            : '<span class="card-tag" style="position:static; background:rgba(0,210,255,0.12); color:var(--primary); border:1px solid rgba(0,210,255,0.2);">\ud83d\udcbb LOCAL</span>';
+            ? '<span class="card-tag" style="position:static; background:rgba(240,165,0,0.12); color:#f0a500; border:1px solid rgba(240,165,0,0.2);">☁️ SERVER</span>'
+            : '<span class="card-tag" style="position:static; background:rgba(0,210,255,0.12); color:var(--primary); border:1px solid rgba(0,210,255,0.2);">💻 LOCAL</span>';
+        
+        let statusBadgeColor = 'rgba(240,165,0,0.1); color:#f0a500;';
+        let statusText = '⏳ ABIERTO';
+        if (r.status === 'resolved') {
+            statusBadgeColor = 'rgba(59,255,49,0.1); color:#3bff31;';
+            statusText = '✅ RESUELTO';
+        } else if (r.status === 'closed') {
+            statusBadgeColor = 'rgba(255,59,48,0.1); color:#ff3b30;';
+            statusText = '🏁 FINALIZADO';
+        }
+
+        let actionsHTML = '';
+        if (r.status !== 'closed') {
+            actionsHTML += '<button class="btn btn-secondary" onclick="setBugReportStatus(' + r.id + ', \'' + (r.status === 'resolved' ? 'open' : 'resolved') + '\', \'' + (r.source || 'local') + '\')">' + (r.status === 'resolved' ? '↩️ REABRIR' : '✅ MARCAR RESUELTO') + '</button>';
+            actionsHTML += '<button class="btn" style="background:#ff9500; color:#000; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:0.75rem; margin:0;" onclick="closeBugReport(' + r.id + ', \'' + (r.source || 'local') + '\')">🏁 FINALIZAR</button>';
+        }
+        actionsHTML += '<button class="btn btn-danger" onclick="deleteBugReport(' + r.id + ', \'' + (r.source || 'local') + '\')">🗑️ ELIMINAR</button>';
+
         header.innerHTML = '<div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">' +
             srcTag +
-            '<strong style="color:var(--primary); font-size:1.05rem;">#' + r.id + ' \u2022 ' + escapeHtml(String(r.nick || 'Desconocido').toUpperCase()) + '</strong>' +
+            '<strong style="color:var(--primary); font-size:1.05rem;">#' + r.id + ' • ' + escapeHtml(String(r.nick || 'Desconocido').toUpperCase()) + '</strong>' +
             '<span class="card-tag" style="position:static; background:rgba(0,210,255,0.1); color:var(--primary);">' + fecha + '</span>' +
-            '<span class="card-tag" style="position:static; background:rgba(255,255,255,0.05); color:#999;">SECTOR ' + (Number(r.zone) || 1) + ' \u00b7 LVL ' + (Number(r.level) || 1) + '</span>' +
-            '<span class="card-tag" style="position:static; background:' + (r.status === 'resolved' ? 'rgba(59,255,49,0.1); color:#3bff31;' : 'rgba(240,165,0,0.1); color:#f0a500;') + '">' + (r.status === 'resolved' ? '\u2705 RESUELTO' : '\u23f3 ABIERTO') + '</span>' +
+            '<span class="card-tag" style="position:static; background:rgba(255,255,255,0.05); color:#999;">SECTOR ' + (Number(r.zone) || 1) + ' · LVL ' + (Number(r.level) || 1) + '</span>' +
+            '<span class="card-tag" style="position:static; background:' + statusBadgeColor + '">' + statusText + '</span>' +
             '</div>' +
-            '<div style="display:flex; gap:8px;">' +
-            '<button class="btn btn-secondary" onclick="setBugReportStatus(' + r.id + ', \'' + (r.status === 'resolved' ? 'open' : 'resolved') + '\', \'' + (r.source || 'local') + '\')">' + (r.status === 'resolved' ? '\u21a9\ufe0f REABRIR' : '\u2705 MARCAR RESUELTO') + '</button>' +
-            '<button class="btn btn-danger" onclick="deleteBugReport(' + r.id + ', \'' + (r.source || 'local') + '\')">\ud83d\uddd1\ufe0f ELIMINAR</button>' +
+            '<div style="display:flex; gap:8px; align-items:center;">' +
+            actionsHTML +
             '</div>';
         card.appendChild(header);
 
@@ -7713,6 +7730,53 @@ const header = document.createElement('div');
                 imgs.appendChild(wrap);
             });
             card.appendChild(imgs);
+        }
+
+        // --- HILO DE CONVERSACIÓN (CHAT) ---
+        const chatContainer = document.createElement('div');
+        chatContainer.style.cssText = 'margin-top:10px; display:flex; flex-direction:column; gap:8px; padding:10px; background:rgba(0,0,0,0.15); border-radius:8px; border:1px solid rgba(255,255,255,0.03);';
+        
+        // Mensaje inicial del usuario (Descripción)
+        const initialBubble = document.createElement('div');
+        initialBubble.style.cssText = 'padding:8px 12px; border-radius:8px; max-width:85%; font-size:0.85rem; line-height:1.4; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); align-self:flex-start; color:#ddd;';
+        initialBubble.innerHTML = '<strong style="color:var(--primary); font-size:0.75rem; display:block; margin-bottom:2px;">' + escapeHtml(r.nick.toUpperCase()) + ' (REPORTE ORIGINAL)</strong>' + escapeHtml(r.description || '');
+        chatContainer.appendChild(initialBubble);
+
+        if (r.replies && r.replies.length > 0) {
+            r.replies.forEach(rep => {
+                const bubble = document.createElement('div');
+                const isAdmin = rep.sender === 'admin';
+                bubble.style.cssText = 'padding:8px 12px; border-radius:8px; max-width:85%; font-size:0.85rem; line-height:1.4; ' +
+                    (isAdmin 
+                        ? 'background:rgba(6,182,212,0.15); border:1px solid rgba(6,182,212,0.3); align-self:flex-end; color:#fff;' 
+                        : 'background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); align-self:flex-start; color:#ddd;');
+                
+                bubble.innerHTML = '<strong style="color:' + (isAdmin ? 'var(--accent)' : 'var(--primary)') + '; font-size:0.75rem; display:block; margin-bottom:2px;">' +
+                    (isAdmin ? 'SOPORTE' : escapeHtml(r.nick.toUpperCase())) + '</strong>' +
+                    escapeHtml(rep.text);
+                chatContainer.appendChild(bubble);
+            });
+        }
+        card.appendChild(chatContainer);
+
+        // Bloque de respuesta (ocultar si está cerrado)
+        if (r.status !== 'closed') {
+            const replyBlock = document.createElement('div');
+            replyBlock.style.cssText = 'margin-top:1rem; padding-top:1rem; border-top:1px dashed rgba(255,255,255,0.08);';
+            replyBlock.innerHTML = 
+                '<div style="display:flex; gap:10px; align-items:flex-end;">' +
+                    '<div style="flex:1;">' +
+                        '<label style="font-size:0.75rem; color:#888; display:block; margin-bottom:4px;">RESPONDER AL JUGADOR (IN-GAME BUZÓN):</label>' +
+                        '<textarea id="reply-input-' + r.id + '-' + r.source + '" rows="2" placeholder="Escribí tu respuesta de soporte..." style="width:100%; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#fff; padding:8px; font-size:0.85rem; resize:vertical; box-sizing:border-box; outline:none;"></textarea>' +
+                    '</div>' +
+                    '<button class="btn btn-primary" onclick="submitBugReply(' + r.id + ', \'' + r.source + '\')" style="padding:10px 16px; font-size:0.8rem; height:fit-content; background:var(--accent); color:#000; font-weight:bold; border-radius:6px; cursor:pointer; border:none; margin:0;">✉️ ENVIAR</button>' +
+                '</div>';
+            card.appendChild(replyBlock);
+        } else {
+            const closedInfo = document.createElement('div');
+            closedInfo.style.cssText = 'margin-top:1rem; padding:8px; background:rgba(255,59,48,0.1); border:1px solid rgba(255,59,48,0.2); border-radius:6px; color:#ff3b30; text-align:center; font-size:0.85rem; font-weight:bold;';
+            closedInfo.innerText = '🏁 REPORTE FINALIZADO Y CERRADO';
+            card.appendChild(closedInfo);
         }
 
         list.appendChild(card);
