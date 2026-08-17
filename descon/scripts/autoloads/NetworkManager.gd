@@ -171,12 +171,13 @@ func connect_to_server(ip: String, port: int, p_name: String, p_token: String = 
 func logout():
 	print("[NET] Cerrando sesión y limpiando estado...")
 	was_manual_logout = true
-	network_connected = false
 	is_logged_in = false
 	auth_token = ""
 	login_name = ""
 	socket.close()
 	socket = WebSocketPeer.new()
+	network_connected = false
+	connection_lost.emit()
 
 func _process(_delta):
 	socket.poll()

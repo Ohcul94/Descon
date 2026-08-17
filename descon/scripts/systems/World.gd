@@ -441,6 +441,32 @@ func _process(delta):
 				ui_hud.visible = is_logged
 			if is_instance_valid(ui_chat) and ui_chat.visible != is_logged:
 				ui_chat.visible = is_logged
+
+			# v421.2: Limpieza exhaustiva post-logout o desconexión
+			if not is_logged:
+				# A. Apagar música de zona
+				if AudioManager and AudioManager.has_method("stop_zone_music"):
+					AudioManager.stop_zone_music()
+					
+				# B. Limpiar y ocultar menús dinámicos del HUD
+				var hud_node = get_node_or_null("HUD")
+				if hud_node:
+					for menu_name in ["LootUI", "VaultUI", "MarketplaceUI", "DeathModalUI", "PaseBatalla"]:
+						var menu = hud_node.get_node_or_null(menu_name)
+						if is_instance_valid(menu):
+							menu.visible = false
+							if menu.has_method("close_modal"):
+								menu.close_modal()
+							elif menu.has_method("close"):
+								menu.close()
+								
+				# C. Limpiar entidades de escena
+				if is_instance_valid(entity_manager):
+					entity_manager.clear_remote_players()
+					
+				# D. Limpiar proyectiles activos
+				if combat_system and combat_system.has_method("clear_all_bullets"):
+					combat_system.clear_all_bullets()
 		if is_instance_valid(local_player):
 			if local_player.visible != is_logged:
 				local_player.visible = is_logged
