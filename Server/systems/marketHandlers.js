@@ -362,8 +362,10 @@ function registerMarketHandlers(socket, io, state) {
         }).sort({ listedAt: -1 }).limit(50).lean();
         const cfg = getMarketConfig(state);
 
-        // v620.0: Ojito de visibilidad — ocultar publicaciones de ítems hidden
+        // v620.0: Ojito de visibilidad — ocultar publicaciones de ítems hidden (excepto para admins)
+        const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
         const isHiddenListing = (l) => {
+            if (isAdmin) return false;
             const iid = (l && l.item && l.item.id) ? String(l.item.id) : '';
             if (!iid) return false;
             return visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'weapons', iid)
@@ -435,7 +437,8 @@ function registerMarketHandlers(socket, io, state) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'Ítem no encontrado en tu inventario.' });
         }
         const item = user.gameData.inventory[idx];
-        if (!isMarketTradable(item, state)) {
+        const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+        if (!isMarketTradable(item, state) && !isAdmin) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'Este ítem es de misión o está bloqueado. No se puede comerciar.' });
         }
 

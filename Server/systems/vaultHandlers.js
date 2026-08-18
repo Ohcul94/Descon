@@ -38,10 +38,12 @@ function registerVaultHandlers(socket, io, state) {
                 user.gameData.inventoryMaxSlots = state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
             }
  
-            // v620.0: Ojito de visibilidad — ítems hidden no se muestran en el baúl
+            // v620.0: Ojito de visibilidad — ítems hidden no se muestran en el baúl (excepto para admins)
+            const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
             const vaultItemsFiltered = Array.isArray(user.gameData.vaultItems)
                 ? user.gameData.vaultItems.filter(it => {
                     if (!it || it.id === undefined || it.id === null) return true;
+                    if (isAdmin) return true;
                     return !visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'weapons', it.id)
                         && !visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'shields', it.id)
                         && !visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'engines', it.id)

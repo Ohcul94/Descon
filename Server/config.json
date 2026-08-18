@@ -833,34 +833,327 @@
     "craftingRecipes": [
         {
             "costHubs": 1000,
-            "costOhcu": 0,
-            "desc": "Descripción de la nueva receta.",
-            "id": "recipe_new_g1slo",
+            "costOhcu": 100,
+            "desc": "",
+            "id": "receta_arma1",
             "ingredients": [
                 {
-                    "amount": 1,
-                    "itemId": "mat_map1"
-                },
-                {
-                    "amount": 1,
-                    "itemId": "mat_map2"
+                    "itemId": "mat_celi1",
+                    "amount": 10
                 }
             ],
-            "name": "Arma",
+            "name": "Receta de Arma Comun",
             "resultAmount": 1,
             "resultCategory": "weapons",
-            "resultItemId": "las1"
+            "resultItemId": "las1",
+            "color": "#e3e4e4",
+            "tags": [
+                "armas",
+                "cat_armas"
+            ]
         },
         {
-            "costHubs": 1000,
-            "costOhcu": 0,
-            "desc": "Descripción de la nueva receta.",
-            "id": "recipe_new_hofx9",
-            "ingredients": [],
-            "name": "Nueva Receta",
+            "costHubs": 2000,
+            "costOhcu": 200,
+            "desc": "",
+            "id": "receta_arma2",
+            "ingredients": [
+                {
+                    "itemId": "mat_celi1",
+                    "amount": 10
+                },
+                {
+                    "itemId": "mat_celi2",
+                    "amount": 5
+                }
+            ],
+            "name": "Receta de Arma Inusual",
             "resultAmount": 1,
             "resultCategory": "weapons",
-            "resultItemId": ""
+            "resultItemId": "las2",
+            "icon": "res://assets/Armas/Arma2/Arma2.png",
+            "color": "#63742d",
+            "tags": [
+                "armas",
+                "cat_armas"
+            ]
+        },
+        {
+            "id": "receta_escudo1",
+            "name": "Receta de Escudo Comun",
+            "desc": "",
+            "resultItemId": "sh1",
+            "resultCategory": "shields",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 100,
+            "ingredients": [
+                {
+                    "itemId": "mat_linfis1",
+                    "amount": 10
+                }
+            ],
+            "tags": [
+                "defesa",
+                "cat_defesa"
+            ],
+            "icon": "res://assets/Escudos/Escudo1/Escudo1.png",
+            "color": "#e4e5e5"
+        },
+        {
+            "id": "receta_defensa2",
+            "name": "Receta de Defensa Inusual",
+            "desc": "",
+            "resultItemId": "sh2",
+            "resultCategory": "shields",
+            "resultAmount": 1,
+            "costHubs": 2000,
+            "costOhcu": 200,
+            "ingredients": [
+                {
+                    "itemId": "mat_linfis1",
+                    "amount": 10
+                },
+                {
+                    "itemId": "mat_linfis2",
+                    "amount": 5
+                }
+            ],
+            "tags": [
+                "defesa",
+                "cat_defesa"
+            ],
+            "color": "#6a6b46"
+        },
+        {
+            "id": "receta_motor1",
+            "name": "Receta de Motor Comun",
+            "desc": "",
+            "resultItemId": "en2",
+            "resultCategory": "engines",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 100,
+            "ingredients": [
+                {
+                    "itemId": "mat_rotuk1",
+                    "amount": 10
+                }
+            ],
+            "tags": [
+                "motor",
+                "cat_motor"
+            ],
+            "icon": "res://assets/Motores/Motor1/Motor1.png",
+            "color": "#dfdfdf"
+        },
+        {
+            "id": "receta_motor2",
+            "name": "Receta de Motor Raro",
+            "desc": "",
+            "resultItemId": "en2",
+            "resultCategory": "engines",
+            "resultAmount": 1,
+            "costHubs": 3000,
+            "costOhcu": 300,
+            "ingredients": [
+                {
+                    "itemId": "mat_rotuk1",
+                    "amount": 10
+                },
+                {
+                    "itemId": "mat_rotuk2",
+                    "amount": 5
+                },
+                {
+                    "itemId": "mat_rotuk3",
+                    "amount": 3
+                }
+            ],
+            "tags": [
+                "motor",
+                "cat_motor"
+            ],
+            "icon": "res://assets/Motores/Motor2/Motor2.png",
+            "color": "#3b5263"
+        },
+        {
+            "id": "receta_esfera_ataque",
+            "name": "Receta de Esfera Roja",
+            "desc": "",
+            "resultItemId": "esfera_roja",
+            "resultCategory": "spheres",
+            "resultAmount": 1,
+            "costHubs": 5000,
+            "costOhcu": 500,
+            "ingredients": [
+                {
+                    "itemId": "mat_esfera_ataque",
+                    "amount": 10
+                }
+            ],
+            "tags": [
+                "esfera",
+                "cat_esfera"
+            ],
+            "icon": "res://assets/Esferas/EsferaRoja1.png",
+            "color": "#7d3531"
+        },
+        {
+            "id": "receta_esfera_escudo",
+            "name": "Receta de Esfera Azul",
+            "desc": "",
+            "resultItemId": "esfera_azul",
+            "resultCategory": "spheres",
+            "resultAmount": 1,
+            "costHubs": 5000,
+            "costOhcu": 500,
+            "ingredients": [
+                {
+                    "itemId": "mat_esfera_defensa",
+                    "amount": 10
+                }
+            ],
+            "tags": [
+                "esfera",
+                "cat_esfera"
+            ],
+            "icon": "res://assets/Esferas/EsferaAzul1.png",
+            "color": "#389c99"
+        },
+        {
+            "id": "receta_esfera_curacion",
+            "name": "Receta de Esfera Verde",
+            "desc": "",
+            "resultItemId": "esfera_verde",
+            "resultCategory": "spheres",
+            "resultAmount": 1,
+            "costHubs": 5000,
+            "costOhcu": 500,
+            "ingredients": [
+                {
+                    "itemId": "mat_esfera_curacion",
+                    "amount": 10
+                }
+            ],
+            "tags": [
+                "esfera",
+                "cat_esfera"
+            ],
+            "icon": "res://assets/Esferas/EsferaVerde1.png",
+            "color": "#4f902c"
+        },
+        {
+            "id": "receta_esfera_utilidad",
+            "name": "Receta de Esfera Amarilla",
+            "desc": "",
+            "resultItemId": "esfera_amarilla",
+            "resultCategory": "spheres",
+            "resultAmount": 1,
+            "costHubs": 5000,
+            "costOhcu": 500,
+            "ingredients": [
+                {
+                    "itemId": "mat_esfera_utilidad",
+                    "amount": 10
+                }
+            ],
+            "tags": [
+                "esfera",
+                "cat_esfera"
+            ],
+            "icon": "res://assets/Esferas/EsferaAmarilla1.png",
+            "color": "#e5fb3c"
+        },
+        {
+            "id": "receta_nave_2",
+            "name": "Receta de Nave Tico 2",
+            "desc": "Descripción de la nueva receta.",
+            "resultItemId": "",
+            "resultCategory": "weapons",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 0,
+            "ingredients": [],
+            "tags": [
+                "cat_nave"
+            ],
+            "icon": "res://assets/Personajes/2D/Nave7/Nave7.png"
+        },
+        {
+            "id": "receta_nave_3",
+            "name": "Receta de Nave Pinfli 3",
+            "desc": "Descripción de la nueva receta.",
+            "resultItemId": "",
+            "resultCategory": "weapons",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 0,
+            "ingredients": [],
+            "tags": [
+                "cat_nave"
+            ],
+            "icon": "res://assets/Personajes/2D/Nave8/Nave8.png"
+        },
+        {
+            "id": "receta_nave_4",
+            "name": "Receta de Nave Yukanis 4",
+            "desc": "Descripción de la nueva receta.",
+            "resultItemId": "",
+            "resultCategory": "weapons",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 0,
+            "ingredients": [],
+            "tags": [
+                "cat_nave"
+            ],
+            "icon": "res://assets/Personajes/2D/Nave9/Nave9.png"
+        },
+        {
+            "id": "receta_nave_5",
+            "name": "Receta de Nave Nopla 5",
+            "desc": "Descripción de la nueva receta.",
+            "resultItemId": "",
+            "resultCategory": "weapons",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 0,
+            "ingredients": [],
+            "tags": [
+                "cat_nave"
+            ],
+            "icon": "res://assets/Personajes/2D/Nave10/Nave10.png"
+        },
+        {
+            "id": "receta_nave_6",
+            "name": "Receta de Nave R-C 6",
+            "desc": "Descripción de la nueva receta.",
+            "resultItemId": "",
+            "resultCategory": "weapons",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 0,
+            "ingredients": [],
+            "tags": [
+                "cat_nave"
+            ],
+            "icon": "res://assets/Personajes/2D/Nave11/Nave11.png"
+        },
+        {
+            "id": "receta_nave_7",
+            "name": "Receta de Nave Gloss-Ter 7",
+            "desc": "Descripción de la nueva receta.",
+            "resultItemId": "",
+            "resultCategory": "weapons",
+            "resultAmount": 1,
+            "costHubs": 1000,
+            "costOhcu": 0,
+            "ingredients": [],
+            "tags": [
+                "cat_nave"
+            ],
+            "icon": "res://assets/Personajes/2D/Nave12/Nave12.png"
         }
     ],
     "defenseLib": {
@@ -6654,7 +6947,7 @@
         "listingDurationHours": 48,
         "listingFeeHubs": 0,
         "listingFeeOhcu": 0,
-        "maxActiveListingsPerPlayer": 10,
+        "maxActiveListingsPerPlayer": 5,
         "maxPriceHubs": 0,
         "maxPriceOhcu": 0,
         "minPriceHubs": 10,
@@ -7805,7 +8098,7 @@
             "hp": 60,
             "icon": "res://assets/Personajes/2D/Nave12/Nave12.png",
             "id": 12,
-            "name": "Gloss-Ter 6",
+            "name": "Gloss-Ter 7",
             "prices": {
                 "hubs": 100000,
                 "ohcu": 10000
@@ -8612,29 +8905,53 @@
                 "id": "en1",
                 "name": "Motor M1",
                 "prices": {
-                    "hubs": 1000,
-                    "ohcu": 100
+                    "hubs": 2000,
+                    "ohcu": 200
                 },
                 "shieldMod": 5,
                 "shieldModType": "flat",
                 "speedMod": 10
             },
             {
-                "base": 20,
+                "base": 40,
                 "desc": "Estándar iónico.",
                 "icon": "res://assets/Motores/Motor2/Motor2.png",
                 "id": "en2",
                 "name": "Motor M2",
                 "prices": {
-                    "hubs": 3000,
-                    "ohcu": 300
+                    "hubs": 15000,
+                    "ohcu": 1500
                 },
-                "shieldMod": 10,
-                "hpMod": 10,
-                "dmgMod": 10,
+                "shieldMod": 20,
+                "hpMod": 20,
+                "dmgMod": 20,
                 "shieldModType": "flat",
                 "hpModType": "flat",
-                "dmgModType": "flat"
+                "dmgModType": "flat",
+                "requirements": [
+                    {
+                        "type": "level",
+                        "min": 5
+                    }
+                ]
+            },
+            {
+                "base": 50,
+                "desc": "Motor oculto experimental.",
+                "icon": "res://assets/Motores/Motor2/Motor2.png",
+                "id": "en3",
+                "name": "Motor M3 (Test)",
+                "prices": {
+                    "hubs": 25000,
+                    "ohcu": 2500
+                },
+                "shieldMod": 25,
+                "hpMod": 25,
+                "dmgMod": 25,
+                "shieldModType": "flat",
+                "hpModType": "flat",
+                "dmgModType": "flat",
+                "hidden": true
             }
         ],
         "extras": [
@@ -8669,7 +8986,11 @@
                     "hubs": 100,
                     "ohcu": 0
                 },
-                "type": "resource"
+                "type": "resource",
+                "tags": [
+                    "mapas",
+                    "cat_mapas"
+                ]
             },
             {
                 "color": "#73744e",
@@ -8681,7 +9002,11 @@
                     "hubs": 100,
                     "ohcu": 0
                 },
-                "type": "resource"
+                "type": "resource",
+                "tags": [
+                    "mapas",
+                    "cat_mapas"
+                ]
             },
             {
                 "color": "#455869",
@@ -8693,7 +9018,11 @@
                     "hubs": 100,
                     "ohcu": 0
                 },
-                "type": "resource"
+                "type": "resource",
+                "tags": [
+                    "mapas",
+                    "cat_mapas"
+                ]
             },
             {
                 "color": "#3f3c51",
@@ -8705,7 +9034,11 @@
                     "hubs": 100,
                     "ohcu": 0
                 },
-                "type": "resource"
+                "type": "resource",
+                "tags": [
+                    "mapas",
+                    "cat_mapas"
+                ]
             },
             {
                 "color": "#824130",
@@ -8717,7 +9050,11 @@
                     "hubs": 100,
                     "ohcu": 0
                 },
-                "type": "resource"
+                "type": "resource",
+                "tags": [
+                    "mapas",
+                    "cat_mapas"
+                ]
             },
             {
                 "color": "#c99943",
@@ -8729,7 +9066,453 @@
                     "hubs": 100,
                     "ohcu": 0
                 },
-                "type": "resource"
+                "type": "resource",
+                "tags": [
+                    "mapas",
+                    "cat_mapas"
+                ]
+            },
+            {
+                "id": "mat_celi1",
+                "name": "Celi Comun",
+                "desc": "",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Celics/Celic1/Celic1.png",
+                "color": "#c6c6c6",
+                "type": "resource",
+                "tags": [
+                    "armas",
+                    "cat_armas"
+                ]
+            },
+            {
+                "id": "mat_celi2",
+                "name": "Celi Inusual",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Celics/Celic2/Celic2.png",
+                "color": "#59593d",
+                "type": "resource",
+                "tags": [
+                    "armas",
+                    "cat_armas"
+                ]
+            },
+            {
+                "id": "mat_celi3",
+                "name": "Celi Raro",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Celics/Celic3/Celic3.png",
+                "color": "#3a4c5b",
+                "type": "resource",
+                "tags": [
+                    "armas",
+                    "cat_armas"
+                ]
+            },
+            {
+                "id": "mat_celi4",
+                "name": "Celi Epico",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Celics/Celic4/Celic4.png",
+                "color": "#2b2739",
+                "type": "resource",
+                "tags": [
+                    "armas",
+                    "cat_armas"
+                ]
+            },
+            {
+                "id": "mat_celi5",
+                "name": "Celi Legendario",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Celics/Celic5/Celic5.png",
+                "color": "#7f3c2c",
+                "type": "resource",
+                "tags": [
+                    "armas",
+                    "cat_armas"
+                ]
+            },
+            {
+                "id": "mat_celi6",
+                "name": "Celi Mitico",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Celics/Celic6/Celic6.png",
+                "color": "#ca933a",
+                "type": "resource",
+                "tags": [
+                    "armas",
+                    "cat_armas"
+                ]
+            },
+            {
+                "id": "mat_linfis1",
+                "name": "Linfis Comun",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Linfis/Linfi1/Linfi1.png",
+                "color": "#bcbcbd",
+                "type": "resource",
+                "tags": [
+                    "defesa",
+                    "cat_defesa"
+                ]
+            },
+            {
+                "id": "mat_linfis2",
+                "name": "Linfis Inusual",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Linfis/Linfi2/Linfi2.png",
+                "color": "#6a6947",
+                "type": "resource",
+                "tags": [
+                    "defesa",
+                    "cat_defesa"
+                ]
+            },
+            {
+                "id": "mat_linfis3",
+                "name": "Linfis Raro",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Linfis/Linfi3/Linfi3.png",
+                "color": "#3f5261",
+                "type": "resource",
+                "tags": [
+                    "defesa",
+                    "cat_defesa"
+                ]
+            },
+            {
+                "id": "mat_linfis4",
+                "name": "Linfis Epico",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Linfis/Linfi4/Linfi4.png",
+                "color": "#545066",
+                "type": "resource",
+                "tags": [
+                    "defesa",
+                    "cat_defesa"
+                ]
+            },
+            {
+                "id": "mat_linfis5",
+                "name": "Linfis Legendario",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Linfis/Linfi5/Linfi5.png",
+                "color": "#8b4130",
+                "type": "resource",
+                "tags": [
+                    "defesa",
+                    "cat_defesa"
+                ]
+            },
+            {
+                "id": "mat_linfis6",
+                "name": "Linfis Mitico",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Linfis/Linfi6/Linfi6.png",
+                "color": "#c79038",
+                "type": "resource",
+                "tags": [
+                    "defesa",
+                    "cat_defesa"
+                ]
+            },
+            {
+                "id": "mat_rotuk1",
+                "name": "Rotuk Comun",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Rotucks/Rotuck1/Rotuck1.png",
+                "color": "#c3c3c4",
+                "type": "resource",
+                "tags": [
+                    "motor",
+                    "cat_motor"
+                ]
+            },
+            {
+                "id": "mat_rotuk2",
+                "name": "Rotuk Inusual",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Rotucks/Rotuck2/Rotuck2.png",
+                "color": "#636344",
+                "type": "resource",
+                "tags": [
+                    "motor",
+                    "cat_motor"
+                ]
+            },
+            {
+                "id": "mat_rotuk3",
+                "name": "Rotuk Raro",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Rotucks/Rotuck3/Rotuck3.png",
+                "color": "#435768",
+                "type": "resource",
+                "tags": [
+                    "motor",
+                    "cat_motor"
+                ]
+            },
+            {
+                "id": "mat_rotuk4",
+                "name": "Rotuk Epico",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Rotucks/Rotuck4/Rotuck4.png",
+                "color": "#5d4b5f",
+                "type": "resource",
+                "tags": [
+                    "motor",
+                    "cat_motor"
+                ]
+            },
+            {
+                "id": "mat_rotuk5",
+                "name": "Rotuk Legendario",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Rotucks/Rotuck5/Rotuck5.png",
+                "color": "#894130",
+                "type": "resource",
+                "tags": [
+                    "motor",
+                    "cat_motor"
+                ]
+            },
+            {
+                "id": "mat_rotuk6",
+                "name": "Rotuk Mitico",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Rotucks/Rotuck6/Rotuck6.png",
+                "color": "#c7913b",
+                "type": "resource",
+                "tags": [
+                    "motor",
+                    "cat_motor"
+                ]
+            },
+            {
+                "id": "mat_esfera_ataque",
+                "name": "Esferilio Rojo",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 0,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Esferilio/Esferilio Rojo/Esferilio Rojo.jfif",
+                "color": "#a0403c",
+                "type": "resource",
+                "tags": [
+                    "esfera",
+                    "cat_esfera"
+                ]
+            },
+            {
+                "id": "mat_esfera_defensa",
+                "name": "Esferilio Azul",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 0,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Esferilio/Esferilio Azul/Esferilio Azul.jfif",
+                "color": "#2f8782",
+                "type": "resource",
+                "tags": [
+                    "esfera",
+                    "cat_esfera"
+                ]
+            },
+            {
+                "id": "mat_esfera_curacion",
+                "name": "Esferilio Verde",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 0,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Esferilio/Esferilio Verde/Esferilio Verde.jfif",
+                "color": "#527e2d",
+                "type": "resource",
+                "tags": [
+                    "esfera",
+                    "cat_esfera"
+                ]
+            },
+            {
+                "id": "mat_esfera_utilidad",
+                "name": "Esferilio Amarilla",
+                "desc": "Descripción del nuevo material.",
+                "prices": {
+                    "hubs": 0,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Esferilio/Esferilio Amarillo/Esferilio Amarillo.jfif",
+                "color": "#bfcd42",
+                "type": "resource",
+                "tags": [
+                    "esfera",
+                    "cat_esfera"
+                ]
+            },
+            {
+                "id": "mat_nave_2",
+                "name": "Fuselaje de Tico 2",
+                "desc": "",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Fuselajes/Fuselaje2/Fuselaje7.png",
+                "color": "#a9aaaa",
+                "type": "resource",
+                "tags": [
+                    "cat_nave"
+                ]
+            },
+            {
+                "id": "mat_nave_3",
+                "name": "Fuselaje Pinfli 3",
+                "desc": "",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Fuselajes/Fuselaje3/Fuselaje8.png",
+                "color": "#a6a7a7",
+                "type": "resource",
+                "tags": [
+                    "cat_nave"
+                ]
+            },
+            {
+                "id": "mat_nave_4",
+                "name": "Fuselaje Yukanis 4",
+                "desc": "",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Fuselajes/Fuselaje4/Fuselaje9.png",
+                "color": "#aaabab",
+                "type": "resource",
+                "tags": [
+                    "cat_nave"
+                ]
+            },
+            {
+                "id": "mat_nave_5",
+                "name": "Fuselaje Nopla 5",
+                "desc": "",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Fuselajes/Fuselaje5/Fuselaje11.png",
+                "color": "#abacac",
+                "type": "resource",
+                "tags": [
+                    "cat_nave"
+                ]
+            },
+            {
+                "id": "mat_nave_6",
+                "name": "Fuselaje R-C 6",
+                "desc": "",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Fuselajes/Fuselaje6/Fuselaje12.png",
+                "color": "#ffffff",
+                "type": "resource",
+                "tags": [
+                    "cat_nave"
+                ]
+            },
+            {
+                "id": "mat_nave_7",
+                "name": "Fuselaje Gloss-Ter 7",
+                "desc": "",
+                "prices": {
+                    "hubs": 100,
+                    "ohcu": 0
+                },
+                "icon": "res://assets/Crafteo/Fuselajes/Fuselaje7/Fuselaje10.png",
+                "color": "#babbbb",
+                "type": "resource",
+                "tags": [
+                    "cat_nave"
+                ]
             }
         ],
         "shields": [
@@ -8744,8 +9527,8 @@
                 "id": "sh1",
                 "name": "Escudo S1",
                 "prices": {
-                    "hubs": 1000,
-                    "ohcu": 100
+                    "hubs": 2000,
+                    "ohcu": 200
                 },
                 "shieldMod": 10,
                 "speedMod": 5,
@@ -8758,13 +9541,35 @@
                 "id": "sh2",
                 "name": "Escudo S2",
                 "prices": {
-                    "hubs": 3000,
-                    "ohcu": 300
+                    "hubs": 6000,
+                    "ohcu": 600
                 },
                 "hpMod": 10,
                 "speedMod": 10,
                 "hpModType": "flat",
-                "speedModType": "flat"
+                "speedModType": "flat",
+                "requirements": [
+                    {
+                        "type": "level",
+                        "min": 5
+                    }
+                ]
+            },
+            {
+                "base": 30,
+                "desc": "Escudo secreto de pruebas.",
+                "icon": "res://assets/Escudos/Escudo2/Escudo2.png",
+                "id": "sh3",
+                "name": "Escudo S3 (Test)",
+                "prices": {
+                    "hubs": 9000,
+                    "ohcu": 900
+                },
+                "hpMod": 15,
+                "speedMod": 15,
+                "hpModType": "flat",
+                "speedModType": "flat",
+                "hidden": true
             }
         ],
         "weapons": [
@@ -8777,8 +9582,8 @@
                 "id": "las1",
                 "name": "Láser 1",
                 "prices": {
-                    "hubs": 1000,
-                    "ohcu": 100
+                    "hubs": 2000,
+                    "ohcu": 200
                 },
                 "requirements": [],
                 "speedMod": 5,
@@ -8791,13 +9596,81 @@
                 "id": "las2",
                 "name": "Láser 2",
                 "prices": {
-                    "hubs": 3000,
-                    "ohcu": 300
+                    "hubs": 6000,
+                    "ohcu": 600
                 },
                 "speedMod": 10,
                 "hpMod": 10,
                 "speedModType": "flat",
-                "hpModType": "flat"
+                "hpModType": "flat",
+                "requirements": [
+                    {
+                        "type": "level",
+                        "min": 5
+                    }
+                ]
+            }
+        ],
+        "spheres": [
+            {
+                "id": "esfera_roja",
+                "name": "Esfera Roja",
+                "desc": "Esfera de ATAQUE. Potencia tus habilidades de combate ofensivo.",
+                "type": "sphere",
+                "sphereColor": "roja",
+                "color": "#7d3531",
+                "icon": "res://assets/Esferas/EsferaRoja1.png",
+                "maxStack": 1,
+                "soulbound": true,
+                "prices": {
+                    "hubs": 5000,
+                    "ohcu": 25
+                }
+            },
+            {
+                "id": "esfera_azul",
+                "name": "Esfera Azul",
+                "desc": "Esfera de DEFENSA. Refuerza tus habilidades protectoras.",
+                "type": "sphere",
+                "sphereColor": "azul",
+                "color": "#389c99",
+                "icon": "res://assets/Esferas/EsferaAzul1.png",
+                "maxStack": 1,
+                "soulbound": true,
+                "prices": {
+                    "hubs": 5000,
+                    "ohcu": 25
+                }
+            },
+            {
+                "id": "esfera_verde",
+                "name": "Esfera Verde",
+                "desc": "Esfera de CURACIÓN. Amplifica tus habilidades de restauración.",
+                "type": "sphere",
+                "sphereColor": "verde",
+                "color": "#4f902c",
+                "icon": "res://assets/Esferas/EsferaVerde1.png",
+                "maxStack": 1,
+                "soulbound": true,
+                "prices": {
+                    "hubs": 5000,
+                    "ohcu": 25
+                }
+            },
+            {
+                "id": "esfera_amarilla",
+                "name": "Esfera Amarilla",
+                "desc": "Esfera de UTILIDAD. Mejora tus habilidades de apoyo y movimiento.",
+                "type": "sphere",
+                "sphereColor": "amarilla",
+                "color": "#e5fb3c",
+                "icon": "res://assets/Esferas/EsferaAmarilla1.png",
+                "maxStack": 1,
+                "soulbound": true,
+                "prices": {
+                    "hubs": 5000,
+                    "ohcu": 25
+                }
             }
         ]
     },
@@ -9566,5 +10439,55 @@
                 "ohcu": 100
             }
         ]
-    }
+    },
+    "craftingCategories": [
+        {
+            "id": "cat_mapas",
+            "name": "Mapas",
+            "icon": "🗺️",
+            "color": "#82c9d9"
+        },
+        {
+            "id": "cat_armas",
+            "name": "Armas",
+            "icon": "⚔️",
+            "color": "#ff4655"
+        },
+        {
+            "id": "cat_defesa",
+            "name": "Defensas",
+            "icon": "🏷️",
+            "color": "#044271"
+        },
+        {
+            "id": "cat_cura",
+            "name": "Curaciones",
+            "icon": "🏷️",
+            "color": "#25c322"
+        },
+        {
+            "id": "cat_municion",
+            "name": "Municiones",
+            "icon": "🏷️",
+            "color": "#e18dec"
+        },
+        {
+            "id": "cat_motor",
+            "name": "Motores",
+            "icon": "🏷️",
+            "color": "#ffe666"
+        },
+        {
+            "id": "cat_esfera",
+            "name": "Esferas",
+            "icon": "🏷️",
+            "color": "#000000"
+        },
+        {
+            "id": "cat_nave",
+            "name": "Naves",
+            "icon": "🏷️",
+            "color": "#9fa2a3"
+        }
+    ]
 }

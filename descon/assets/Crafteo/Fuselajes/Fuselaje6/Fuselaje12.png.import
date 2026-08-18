@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://by58xs4rx4en6"
-path="res://.godot/imported/Fuselaje8.png-94c420547923d4cdb393a1514835d5ab.ctex"
+uid="uid://8mx6x0hbfgud"
+path="res://.godot/imported/Fuselaje12.png-9d9f9e756f511e32e17beb719252d49a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Crafteo/Fuselajes/Fuselaje8/Fuselaje8.png"
-dest_files=["res://.godot/imported/Fuselaje8.png-94c420547923d4cdb393a1514835d5ab.ctex"]
+source_file="res://assets/Crafteo/Fuselajes/Fuselaje6/Fuselaje12.png"
+dest_files=["res://.godot/imported/Fuselaje12.png-9d9f9e756f511e32e17beb719252d49a.ctex"]
 
 [params]
 

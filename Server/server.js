@@ -201,6 +201,7 @@ const CLIENT_CONFIG_KEYS = [
     'pilotConfig',
     'gameModes',
     'craftingRecipes',
+    'craftingCategories',
     'housingConfig',
     'questsConfig',
     'enemyModels',
@@ -224,6 +225,8 @@ const buildClientConfig = (config) => {
     // v620.0: Ojito de visibilidad — quitar ítems hidden del config del cliente (armas/escudos/motores).
     // Las municiones se conservan con su flag hidden para mantener alineados los índices de tiers.
     if (clientConfig.shopItems && typeof clientConfig.shopItems === 'object') {
+        // Shallow copy to prevent mutating the original server config in memory (RAM reference fix)
+        clientConfig.shopItems = { ...clientConfig.shopItems };
         ['weapons', 'shields', 'engines', 'extra'].forEach(cat => {
             const list = clientConfig.shopItems[cat];
             if (Array.isArray(list)) clientConfig.shopItems[cat] = list.filter(i => !(i && i.hidden));
@@ -787,7 +790,14 @@ const handleUserLogin = async (socket, user, username) => {
         clanTag: clanTag,
         pvpEnabled: !!p_ref.pvpEnabled,
         isInvulnerable: !!p_ref.isInvulnerable,
-        gameData: visibilityGuard.sanitizeGameDataForClient({
+        gameData: isAdminSocket(socket) ? {
+            ...JSON.parse(JSON.stringify(user.gameData)),
+            pvpEnabled: !!p_ref.pvpEnabled, // SYNC FIX: Usar el valor real en memoria (forzado por reglas de zona en login)
+            isInvulnerable: !!p_ref.isInvulnerable,
+            equippedByShip: JSON.parse(JSON.stringify(eByShipObj)),
+            equipped: JSON.parse(JSON.stringify(user.gameData.equipped || { w: [], s: [], e: [], x: [] })),
+            supportMailbox: JSON.parse(JSON.stringify(user.gameData.supportMailbox || []))
+        } : visibilityGuard.sanitizeGameDataForClient({
             ...JSON.parse(JSON.stringify(user.gameData)),
             pvpEnabled: !!p_ref.pvpEnabled, // SYNC FIX: Usar el valor real en memoria (forzado por reglas de zona en login)
             isInvulnerable: !!p_ref.isInvulnerable,
@@ -795,7 +805,7 @@ const handleUserLogin = async (socket, user, username) => {
             equipped: JSON.parse(JSON.stringify(user.gameData.equipped || { w: [], s: [], e: [], x: [] })),
             supportMailbox: JSON.parse(JSON.stringify(user.gameData.supportMailbox || []))
         }, state.SERVER_CONFIG),
-        adminConfig: buildClientConfig(adminConfig)
+        adminConfig: isAdminSocket(socket) ? adminConfig : buildClientConfig(adminConfig)
     };
     socket.emit('loginSuccess', loginPayload);
 

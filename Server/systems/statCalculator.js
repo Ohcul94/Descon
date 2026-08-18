@@ -6,6 +6,8 @@
 function calculateFinalStats(player, config) {
     if (!player || !config) return;
 
+    const isAdmin = !!(player.isAdmin || (player.user && player.user.toLowerCase() === 'caelli94'));
+
     // 1. Obtener Base de la Nave
     const shipId = player.currentShipId || 1;
     const model = config.shipModels.find(m => m.id === shipId);
@@ -36,8 +38,8 @@ function calculateFinalStats(player, config) {
     function readMod(item, fieldName, masterList) {
         if (masterList) {
             const master = masterList.find(m => String(m.id) === String(item.id));
-            // v620.0: Ojito de visibilidad — ítems hidden no aportan modificadores
-            if (master && master.hidden) return { val: 0, type: 'percent' };
+            // v620.0: Ojito de visibilidad — ítems hidden no aportan modificadores (excepto admins)
+            if (master && master.hidden && !isAdmin) return { val: 0, type: 'percent' };
             if (master && master[fieldName] !== undefined) {
                 return {
                     val: Number(master[fieldName]) || 0,
@@ -54,11 +56,11 @@ function calculateFinalStats(player, config) {
         return { val: 0, type: 'percent' };
     }
 
-    // v620.0: Ojito de visibilidad — ítems hidden no aportan base
+    // v620.0: Ojito de visibilidad — ítems hidden no aportan base (excepto admins)
     function isHiddenItem(item, masterList) {
         if (!masterList) return false;
         const master = masterList.find(m => String(m.id) === String(item.id));
-        return !!(master && master.hidden);
+        return !!(master && master.hidden && !isAdmin);
     }
 
     if (player.equipped) {

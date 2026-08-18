@@ -105,7 +105,8 @@ function showTab(tabId) {
         'loot': 'folder-loot',
         'enemy-loot': 'folder-loot',
         'crafting-recipes': 'folder-crafting',
-        'crafting-materials': 'folder-crafting'
+        'crafting-materials': 'folder-crafting',
+        'crafting-categories': 'folder-crafting'
     };
     const parentFolderId = folderMapping[tabId];
     if (parentFolderId) {
@@ -147,6 +148,7 @@ function showTab(tabId) {
         'enemy-loot': 'Configuración de Botín del Enemigo',
         'crafting-recipes': 'Recetas de Crafteo',
         'crafting-materials': 'Materiales de Crafteo',
+        'crafting-categories': 'Categorías de Crafteo',
         'quests': 'Misiones de la Galaxia',
         'battlepass': 'Pase de Batalla',
         'chat-global': 'Transmisión y Chat Global',

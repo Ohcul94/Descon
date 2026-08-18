@@ -65,58 +65,118 @@ func update_ui():
 	tab_recipes.name = "Recetas"
 	sub_tabs.add_child(tab_recipes)
 	
-	var scr_recipes = ScrollContainer.new()
-	scr_recipes.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scr_recipes.mouse_filter = Control.MOUSE_FILTER_PASS
-	tab_recipes.add_child(scr_recipes)
-	
-	var grid_recipes = GridContainer.new()
-	grid_recipes.columns = 3
-	grid_recipes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid_recipes.add_theme_constant_override("h_separation", 20)
-	grid_recipes.add_theme_constant_override("v_separation", 20)
-	scr_recipes.add_child(grid_recipes)
-	
 	var recipes = GameConstants.FULL_CONFIG.get("craftingRecipes", [])
-	if recipes.is_empty():
-		var empty_lbl = Label.new()
-		empty_lbl.text = "No hay recetas de crafteo cargadas en la base de datos galáctica."
-		empty_lbl.modulate = Color.DARK_GRAY
-		empty_lbl.add_theme_font_size_override("font_size", 11)
-		grid_recipes.add_child(empty_lbl)
-	else:
-		# Renderizar cada receta
-		for recipe in recipes:
-			_create_recipe_card(recipe, grid_recipes)
-			
+	var categories = GameConstants.FULL_CONFIG.get("craftingCategories", [])
+	_build_grouped_cards(tab_recipes, recipes, categories, true, 3)
+	
 	# --- SUB TAB 2: MATERIALES ---
 	var tab_materials = Control.new()
 	tab_materials.name = "Materiales"
 	sub_tabs.add_child(tab_materials)
 	
-	var scr_materials = ScrollContainer.new()
-	scr_materials.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scr_materials.mouse_filter = Control.MOUSE_FILTER_PASS
-	tab_materials.add_child(scr_materials)
-	
-	var grid_materials = GridContainer.new()
-	grid_materials.columns = 4
-	grid_materials.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid_materials.add_theme_constant_override("h_separation", 15)
-	grid_materials.add_theme_constant_override("v_separation", 15)
-	scr_materials.add_child(grid_materials)
-	
 	var resources = GameConstants.FULL_CONFIG.get("shopItems", {}).get("resources", [])
-	if resources.is_empty():
+	_build_grouped_cards(tab_materials, resources, categories, false, 4)
+
+func _build_grouped_cards(parent: Control, items: Array, categories: Array, is_recipe: bool, columns: int):
+	var scr = ScrollContainer.new()
+	scr.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scr.mouse_filter = Control.MOUSE_FILTER_PASS
+	parent.add_child(scr)
+	
+	var main_v = VBoxContainer.new()
+	main_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_v.add_theme_constant_override("separation", 8)
+	scr.add_child(main_v)
+	
+	if items.is_empty():
 		var empty_lbl = Label.new()
-		empty_lbl.text = "No hay materiales registrados en la base de datos galáctica."
+		empty_lbl.text = "No hay recetas de crafteo cargadas en la base de datos galáctica." if is_recipe else "No hay materiales registrados en la base de datos galáctica."
 		empty_lbl.modulate = Color.DARK_GRAY
 		empty_lbl.add_theme_font_size_override("font_size", 11)
-		grid_materials.add_child(empty_lbl)
-	else:
-		# Renderizar cada material
-		for res in resources:
-			_create_material_card(res, grid_materials)
+		main_v.add_child(empty_lbl)
+		return
+	
+	# Agrupar por categorías (orden definido en el AdminDash); lo no etiquetado va al final
+	var groups = []
+	for cat in categories:
+		groups.append({"cat": cat, "items": []})
+	var untagged = {"cat": null, "items": []}
+	
+	for item in items:
+		var tags = item.get("tags", [])
+		var placed = false
+		for g in groups:
+			if tags.has(g["cat"].get("id", "")):
+				g["items"].append(item)
+				placed = true
+				break
+		if not placed:
+			untagged["items"].append(item)
+	
+	var any_section = false
+	for g in groups:
+		if g["items"].is_empty():
+			continue
+		any_section = true
+		_append_section_header(main_v, g["cat"], g["items"].size())
+		_append_item_grid(main_v, g["items"], is_recipe, columns)
+	
+	if not untagged["items"].is_empty():
+		any_section = true
+		_append_section_header(main_v, null, untagged["items"].size())
+		_append_item_grid(main_v, untagged["items"], is_recipe, columns)
+	
+	if not any_section:
+		var empty_lbl = Label.new()
+		empty_lbl.text = "No hay recetas de crafteo cargadas en la base de datos galáctica." if is_recipe else "No hay materiales registrados en la base de datos galáctica."
+		empty_lbl.modulate = Color.DARK_GRAY
+		empty_lbl.add_theme_font_size_override("font_size", 11)
+		main_v.add_child(empty_lbl)
+
+func _append_item_grid(parent: Control, group_items: Array, is_recipe: bool, columns: int):
+	var grid = GridContainer.new()
+	grid.columns = columns
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 15)
+	grid.add_theme_constant_override("v_separation", 15)
+	parent.add_child(grid)
+	for item in group_items:
+		if is_recipe:
+			_create_recipe_card(item, grid)
+		else:
+			_create_material_card(item, grid)
+
+func _append_section_header(parent: Control, cat, count: int):
+	var sep = ColorRect.new()
+	sep.custom_minimum_size = Vector2(0, 2)
+	sep.color = Color(0, 0.8, 1, 0.25)
+	parent.add_child(sep)
+	
+	var hb = HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 8)
+	parent.add_child(hb)
+	
+	var icon_lbl = Label.new()
+	icon_lbl.text = cat.get("icon", "🏷️") if cat else "📦"
+	icon_lbl.add_theme_font_size_override("font_size", 13)
+	hb.add_child(icon_lbl)
+	
+	var name_lbl = Label.new()
+	name_lbl.text = str(cat.get("name", "Categoría")).to_upper() if cat else "SIN CATEGORÍA"
+	name_lbl.add_theme_font_size_override("font_size", 12)
+	var col = Color.from_string(cat.get("color", "#00d2ff"), Color.CYAN) if cat else Color(0.65, 0.65, 0.65)
+	name_lbl.add_theme_color_override("font_color", col)
+	hb.add_child(name_lbl)
+	
+	var count_lbl = Label.new()
+	count_lbl.text = str(count)
+	count_lbl.add_theme_font_size_override("font_size", 9)
+	count_lbl.modulate = Color(0.6, 0.6, 0.7, 0.8)
+	hb.add_child(count_lbl)
+	
+	var spacer = Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hb.add_child(spacer)
 
 func _get_item_icon(category: String, item_id: String) -> String:
 	var shop = GameConstants.FULL_CONFIG.get("shopItems", {})

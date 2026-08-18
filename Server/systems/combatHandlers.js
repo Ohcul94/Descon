@@ -121,8 +121,8 @@ function registerCombatHandlers(socket, io, state) {
         if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][ammoTier] || 0) <= 0) {
             return; 
         }
-        // v620.0: Ojito de visibilidad — munición hidden no puede dispararse ni siquiera con cliente hackeado
-        if (ammoMaster && ammoMaster.hidden) {
+        // v620.0: Ojito de visibilidad — munición hidden no puede dispararse ni siquiera con cliente hackeado (excepto admins)
+        if (ammoMaster && ammoMaster.hidden && !p.isAdmin) {
             return;
         }
         if (ammoMaster && ammoMaster.requirements && ammoMaster.requirements.length > 0) {
@@ -145,10 +145,10 @@ function registerCombatHandlers(socket, io, state) {
 
         if (p.equipped && p.equipped.w) {
             p.equipped.w.forEach(item => {
-                // v620.0: Ojito de visibilidad — armas hidden no aportan daño
+                // v620.0: Ojito de visibilidad — armas hidden no aportan daño (excepto admins)
                 const masterItem = (state.SERVER_CONFIG && state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.weapons)
                     ? state.SERVER_CONFIG.shopItems.weapons.find(w => String(w.id) === String(item.id)) : null;
-                if (masterItem && masterItem.hidden) return;
+                if (masterItem && masterItem.hidden && !p.isAdmin) return;
                 let baseVal = item.base || 0;
                 if (!baseVal && masterItem) baseVal = masterItem.base || 0;
                 baseDamage += Number(baseVal) || 0;

@@ -49,6 +49,7 @@ function getMasterItemConfig(itemId, serverConfig) {
         ...(serverConfig.shopItems?.engines || []),
         ...(serverConfig.shopItems?.extra || []),
         ...(serverConfig.shopItems?.extras || []),
+        ...(serverConfig.shopItems?.spheres || []),
         ...(serverConfig.shopItems?.resources || [])
     ];
     let found = allShopItems.find(item => item.id === itemId);
@@ -148,7 +149,11 @@ function sendInventoryData(socket, user, config) {
     } else {
         Object.assign(eByShipObj, user.gameData.equippedByShip || {});
     }
-    const sanitized = visibilityGuard.sanitizeGameDataForClient({
+    const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+    const sanitized = isAdmin ? {
+        ...JSON.parse(JSON.stringify(user.gameData)),
+        equippedByShip: eByShipObj
+    } : visibilityGuard.sanitizeGameDataForClient({
         ...JSON.parse(JSON.stringify(user.gameData)),
         equippedByShip: eByShipObj
     }, config || global.__SERVER_CONFIG__);
@@ -189,7 +194,10 @@ function registerInventoryHandlers(socket, io, state) {
 
             // console.log(`[SHIP-EQUIP] ${user.username} consultó nave ${key}: w=${equip.w?.length||0} s=${equip.s?.length||0} e=${equip.e?.length||0}`);
             // v620.0: Ojito de visibilidad — ítems ocultos no se muestran en la bodega de la nave
-            equip = visibilityGuard.sanitizeEquipForClient(equip, state.SERVER_CONFIG);
+            const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+            if (!isAdmin) {
+                equip = visibilityGuard.sanitizeEquipForClient(equip, state.SERVER_CONFIG);
+            }
             socket.emit('shipEquipData', { shipId: targetId, equip });
         } catch (e) { console.error('[SHIP-EQUIP ERROR]', e); }
     });
@@ -231,7 +239,8 @@ function registerInventoryHandlers(socket, io, state) {
             }
 
             // v620.0: Ojito de visibilidad — ítems hidden son incomprables incluso por cliente hackeado
-            if (itemConfig.hidden) {
+            const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+            if (itemConfig.hidden && !isAdmin) {
                 return socket.emit('authError', 'ITEM NO ENCONTRADO');
             }
 
@@ -438,7 +447,8 @@ function registerInventoryHandlers(socket, io, state) {
             // v400.0: Requisitos de equipamiento (nivel, misiones completadas, etc.)
             const masterItem = getMasterItemConfigFull(item.id, state.SERVER_CONFIG);
             // v620.0: Ojito de visibilidad — ítems hidden no pueden equiparse ni armarse
-            if (masterItem && masterItem.hidden) {
+            const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+            if (masterItem && masterItem.hidden && !isAdmin) {
                 sendInventoryData(socket, user);
                 return socket.emit('gameNotification', { msg: 'EQUIPAMIENTO BLOQUEADO: Ítem no disponible.', type: 'error' });
             }
@@ -918,6 +928,7 @@ function registerInventoryHandlers(socket, io, state) {
                     ...(state.SERVER_CONFIG.shopItems.shields || []),
                     ...(state.SERVER_CONFIG.shopItems.engines || []),
                     ...(state.SERVER_CONFIG.shopItems.extra || []),
+                    ...(state.SERVER_CONFIG.shopItems.spheres || []),
                     ...(state.SERVER_CONFIG.shopItems.resources || [])
                 ];
                 craftedItemConfig = allItems.find(i => i.id === resultItemId);

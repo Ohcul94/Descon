@@ -461,6 +461,7 @@ function refreshCurrentTab() {
         'enemy-loot': renderEnemyLootDetail,
         'crafting-recipes': renderCrafting,
         'crafting-materials': renderCrafting,
+        'crafting-categories': renderCrafting,
         'housing': renderHousing,
         'quests': renderQuests,
         'battlepass': renderBattlePass,
@@ -5041,19 +5042,28 @@ function renderEnemyLootDetail() {
 // MÓDULO DE CRAFTEO Y CREACIÓN (ADMIN DASH)
 // ==========================================
 
+// Grupos colapsados por el admin (persisten entre renders dentro de la sesión)
+const collapsedCraftingGroups = new Set();
+
 window.renderCrafting = function() {
     // Inicializar secciones si no existen
     if (!config.shopItems) config.shopItems = {};
     if (!config.shopItems.resources) {
         config.shopItems.resources = [
-            { id: "mat_iron", name: "Mineral de Hierro", desc: "Material básico para fundiciones espaciales.", prices: { hubs: 100, ohcu: 0 }, icon: "res://assets/Materiales/Hierro.png", color: "#9ca3af", type: "resource" },
-            { id: "mat_copper", name: "Mineral de Cobre", desc: "Utilizado para componentes electrónicos.", prices: { hubs: 200, ohcu: 0 }, icon: "res://assets/Materiales/Cobre.png", color: "#b45309", type: "resource" },
-            { id: "mat_plasma", name: "Núcleo de Plasma", desc: "Esencia energética altamente inestable.", prices: { hubs: 1000, ohcu: 5 }, icon: "res://assets/Materiales/Plasma.png", color: "#06b6d4", type: "resource" },
-            { id: "mat_darkmatter", name: "Materia Oscura", desc: "Elemento exótico usado para tecnologías avanzadas.", prices: { hubs: 5000, ohcu: 25 }, icon: "res://assets/Materiales/MateriaOscura.png", color: "#d946ef", type: "resource" }
+            { id: "mat_iron", name: "Mineral de Hierro", desc: "Material básico para fundiciones espaciales.", prices: { hubs: 100, ohcu: 0 }, icon: "res://assets/Materiales/Hierro.png", color: "#9ca3af", type: "resource", tags: [] },
+            { id: "mat_copper", name: "Mineral de Cobre", desc: "Utilizado para componentes electrónicos.", prices: { hubs: 200, ohcu: 0 }, icon: "res://assets/Materiales/Cobre.png", color: "#b45309", type: "resource", tags: [] },
+            { id: "mat_plasma", name: "Núcleo de Plasma", desc: "Esencia energética altamente inestable.", prices: { hubs: 1000, ohcu: 5 }, icon: "res://assets/Materiales/Plasma.png", color: "#06b6d4", type: "resource", tags: [] },
+            { id: "mat_darkmatter", name: "Materia Oscura", desc: "Elemento exótico usado para tecnologías avanzadas.", prices: { hubs: 5000, ohcu: 25 }, icon: "res://assets/Materiales/MateriaOscura.png", color: "#d946ef", type: "resource", tags: [] }
         ];
     }
     if (!config.craftingRecipes) {
         config.craftingRecipes = [];
+    }
+    if (!config.craftingCategories) {
+        config.craftingCategories = [
+            { id: "mapas", name: "Mapas", icon: "🗺️", color: "#00d2ff" },
+            { id: "armas", name: "Armas", icon: "⚔️", color: "#ff4655" }
+        ];
     }
 
     const activeURL = SERVER_URLS[activeEnv] || 'http://127.0.0.1:3333';
@@ -5071,22 +5081,125 @@ window.renderCrafting = function() {
         return iconPath;
     }
 
-    // --- RENDERIZAR MATERIALES ---
+    function getCraftingCat(catId) {
+        return (config.craftingCategories || []).find(c => c.id === catId);
+    }
+
+    function craftingTagsHTML(tags, isResource, idx) {
+        if (!config.craftingCategories || config.craftingCategories.length === 0) {
+            return '<span style="color:#666; font-size:0.7rem;">Sin categorías creadas — ve a la pestaña 🏷️ Categorías para crear grupos.</span>';
+        }
+        const fn = isResource ? 'toggleResourceTag' : 'toggleRecipeTag';
+        return config.craftingCategories.map(cat => {
+            const active = (tags || []).includes(cat.id);
+            return `<button type="button" onclick="${fn}(${idx}, '${cat.id}')" style="padding:4px 10px; border-radius:20px; font-size:0.7rem; cursor:pointer; ${active
+                ? `background:${cat.color || '#00d2ff'}33; border:1px solid ${cat.color || '#00d2ff'}; color:${cat.color || '#00d2ff'}; font-weight:bold;`
+                : 'background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.12); color:#999;'}">${cat.icon || '🏷️'} ${cat.name}${active ? ' ✓' : ''}</button>`;
+        }).join('');
+    }
+
+    function craftingGroupHeaderHTML(cat, count) {
+        if (cat) {
+            return `<div class="crafting-group-header" onclick="toggleCraftingGroup(this)" title="Click para colapsar / expandir" style="display:flex; align-items:center; gap:10px; padding:0.75rem 1rem; border-radius:8px; background:rgba(0,210,255,0.04); border:1px solid ${cat.color || '#00d2ff'}55; margin-bottom:2px; position:sticky; top:0; z-index:5; cursor:pointer; user-select:none;">
+                <span class="chevron" style="font-size:0.65rem; color:#888; width:14px; text-align:center;">▼</span>
+                <span style="font-size:1.1rem;">${cat.icon || '🏷️'}</span>
+                <span style="font-weight:bold; color:${cat.color || '#00d2ff'}; letter-spacing:1px; font-size:0.85rem;">${(cat.name || 'Categoría').toUpperCase()}</span>
+                <span style="color:#666; font-size:0.7rem;">(${count})</span>
+            </div>`;
+        }
+        return `<div class="crafting-group-header" onclick="toggleCraftingGroup(this)" title="Click para colapsar / expandir" style="display:flex; align-items:center; gap:10px; padding:0.75rem 1rem; border-radius:8px; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); margin-bottom:2px; cursor:pointer; user-select:none;">
+            <span class="chevron" style="font-size:0.65rem; color:#888; width:14px; text-align:center;">▼</span>
+            <span style="font-weight:bold; color:#888; letter-spacing:1px; font-size:0.85rem;">SIN CATEGORÍA</span>
+            <span style="color:#666; font-size:0.7rem;">(${count})</span>
+        </div>`;
+    }
+
+    function appendCraftingGroup(listEl, g, gap) {
+        if (g.cards.length === 0) return;
+        const cat = getCraftingCat(g.tagId);
+        const key = g.tagId || 'untagged';
+
+        const wrap = document.createElement('div');
+        wrap.style.display = 'flex';
+        wrap.style.flexDirection = 'column';
+        wrap.style.gap = gap;
+
+        const header = document.createElement('div');
+        header.innerHTML = craftingGroupHeaderHTML(cat, g.cards.length);
+        const headerEl = header.firstChild;
+        headerEl.dataset.groupKey = key;
+        wrap.appendChild(headerEl);
+
+        const cardsWrap = document.createElement('div');
+        cardsWrap.className = 'crafting-group-cards';
+        cardsWrap.style.display = 'flex';
+        cardsWrap.style.flexDirection = 'column';
+        cardsWrap.style.gap = gap;
+        g.cards.forEach(c => cardsWrap.appendChild(c));
+        wrap.appendChild(cardsWrap);
+
+        if (collapsedCraftingGroups.has(key)) {
+            cardsWrap.style.display = 'none';
+            const chev = headerEl.querySelector('.chevron');
+            if (chev) chev.innerText = '▶';
+            headerEl.style.opacity = '0.5';
+        }
+
+        listEl.appendChild(wrap);
+    }
+
+    // --- RENDERIZAR CATEGORÍAS ---
+    const catsList = document.getElementById('crafting-categories-list');
+    if (catsList) {
+        catsList.innerHTML = '';
+        if (!config.craftingCategories.length) {
+            const emptyMsg = document.createElement('div');
+            emptyMsg.style.color = '#888';
+            emptyMsg.style.fontStyle = 'italic';
+            emptyMsg.style.padding = '1rem';
+            emptyMsg.innerText = 'No hay categorías todavía. Hacé clic en "+ AGREGAR CATEGORÍA" para crear la primera (ej: Mapas, Armas, Estilos...).';
+            catsList.appendChild(emptyMsg);
+        }
+        config.craftingCategories.forEach((cat, idx) => {
+            const div = document.createElement('div');
+            div.style.background = 'rgba(255,255,255,0.02)';
+            div.style.padding = '1rem 1.25rem';
+            div.style.borderRadius = '10px';
+            div.style.border = '1px solid ' + (cat.color || '#ffffff') + '44';
+            div.style.display = 'flex';
+            div.style.alignItems = 'center';
+            div.style.gap = '15px';
+            div.style.flexWrap = 'wrap';
+            div.style.position = 'relative';
+            div.innerHTML = `
+                <div class="field" style="width: 60px; margin:0; flex-shrink:0;"><label>Icono</label><input type="text" value="${cat.icon || '🏷️'}" style="text-align:center; font-size:1.1rem;" onchange="config.craftingCategories[${idx}].icon = this.value || '🏷️'"></div>
+                <div class="field" style="flex:1; min-width:150px; margin:0;"><label>Nombre de la Categoría</label><input type="text" value="${cat.name || ''}" onchange="config.craftingCategories[${idx}].name = this.value; renderCrafting();"></div>
+                <div class="field" style="width: 110px; margin:0; flex-shrink:0;"><label>ID única</label><input type="text" value="${cat.id || ''}" onchange="config.craftingCategories[${idx}].id = this.value;"></div>
+                <div class="field" style="width: 50px; margin:0; flex-shrink:0;"><label>Color</label><input type="color" value="${cat.color || '#00d2ff'}" style="height:38px; width:100%; padding:0; border:none; background:none; cursor:pointer;" onchange="config.craftingCategories[${idx}].color = this.value;"></div>
+                <button class="btn" style="padding:6px 10px; font-size:0.7rem; cursor:pointer;" title="Subir (va primero)" onclick="moveCraftingCategory(${idx}, -1)">↑</button>
+                <button class="btn" style="padding:6px 10px; font-size:0.7rem; cursor:pointer;" title="Bajar" onclick="moveCraftingCategory(${idx}, 1)">↓</button>
+                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:16px;" title="Eliminar categoría" onclick="removeCraftingCategory(${idx})">✕</button>
+            `;
+            catsList.appendChild(div);
+        });
+    }
+
+    // --- RENDERIZAR MATERIALES (AGRUPADOS POR CATEGORÍA) ---
     const resourcesList = document.getElementById('crafting-resources-list');
     if (resourcesList) {
         resourcesList.innerHTML = '';
-        
-        config.shopItems.resources.forEach((res, idx) => {
+
+        function buildResourceCard(res, idx) {
             const div = document.createElement('div');
             div.style.background = 'rgba(255,255,255,0.02)';
             div.style.padding = '1.5rem';
             div.style.borderRadius = '10px';
             div.style.border = '1px solid rgba(255,255,255,0.05)';
             div.style.position = 'relative';
-            
+
             const resIconWeb = resolveAssetWebUrl(res.icon);
             const previewImgHTML = resIconWeb ? `<img src="${resIconWeb}" style="width:130px; height:130px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.3); display: block;" onerror="this.style.display='none';">` : `<div style="width:130px; height:130px; border:1px dashed rgba(255,255,255,0.15); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2); font-size:0.75rem;">Sin Icono</div>`;
-            
+
             div.innerHTML = `
                 <button style="position:absolute; top:8px; right:8px; background:none; border:none; color:#ff4444; cursor:pointer; font-size:16px;" onclick="removeCraftingResource(${idx})">✕</button>
                 <div style="display: flex; gap: 20px; align-items: flex-start;">
@@ -5117,11 +5230,37 @@ window.renderCrafting = function() {
                             <div class="field" style="width: 110px; margin:0; flex-shrink: 0;"><label>Precio (Ohcu)</label><input type="number" max="9999999" value="${res.prices ? (res.prices.ohcu || 0) : 0}" oninput="if(this.value.length > 7) this.value = this.value.slice(0, 7);" onchange="if(!config.shopItems.resources[${idx}].prices) config.shopItems.resources[${idx}].prices = {hubs:0, ohcu:0}; config.shopItems.resources[${idx}].prices.ohcu = parseInt(this.value) || 0;"></div>
                             <div class="field" style="margin:0; flex-shrink: 0;"><label>No Comerciable</label><input type="checkbox" ${res.soulbound ? 'checked' : ''} onchange="config.shopItems.resources[${idx}].soulbound = this.checked;"></div>
                         </div>
+
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
+                            <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold; display:block; margin-bottom:8px;">🏷️ CATEGORÍAS (TOGGLE)</label>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px;">${craftingTagsHTML(res.tags, true, idx)}</div>
+                        </div>
                     </div>
                 </div>
             `;
-            resourcesList.appendChild(div);
+            return div;
+        }
+
+        const resourceGroups = [];
+        config.craftingCategories.forEach(c => resourceGroups.push({ tagId: c.id, cards: [] }));
+        const untaggedResources = { tagId: null, cards: [] };
+        resourceGroups.push(untaggedResources);
+
+        config.shopItems.resources.forEach((res, idx) => {
+            const card = buildResourceCard(res, idx);
+            const tags = res.tags || [];
+            let placed = false;
+            for (const g of resourceGroups) {
+                if (g.tagId !== null && tags.includes(g.tagId)) {
+                    g.cards.push(card);
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) untaggedResources.cards.push(card);
         });
+
+        resourceGroups.forEach(g => appendCraftingGroup(resourcesList, g, '15px'));
     }
 
     // --- OBTENER TODOS LOS ÍTEMS DEL JUEGO PARA EL SELECTOR ---
@@ -5150,13 +5289,17 @@ window.renderCrafting = function() {
         if (config.shopItems.resources) {
             config.shopItems.resources.forEach(r => allGameItems.push({ id: r.id, name: `[RECURSO] ${r.name}`, category: 'resources' }));
         }
+        if (config.shopItems.spheres) {
+            config.shopItems.spheres.forEach(s => allGameItems.push({ id: s.id, name: `[ESFERA] ${s.name}`, category: 'spheres' }));
+        }
     }
 
-    // --- RENDERIZAR RECETAS ---
+    // --- RENDERIZAR RECETAS (AGRUPADAS POR CATEGORÍA) ---
     const recipesList = document.getElementById('crafting-recipes-list');
     if (recipesList) {
         recipesList.innerHTML = '';
-        config.craftingRecipes.forEach((recipe, idx) => {
+
+        function buildRecipeCard(recipe, idx) {
             const div = document.createElement('div');
             div.style.background = 'rgba(255,255,255,0.02)';
             div.style.padding = '1.5rem';
@@ -5245,6 +5388,11 @@ window.renderCrafting = function() {
                             <div class="field" style="flex-grow:1; margin:0;"><label>Costo de Ohcu (qty)</label><input type="number" value="${recipe.costOhcu || 0}" onchange="config.craftingRecipes[${idx}].costOhcu = parseInt(this.value)"></div>
                         </div>
 
+                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
+                            <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold; display:block; margin-bottom:8px;">🏷️ CATEGORÍAS (TOGGLE)</label>
+                            <div style="display:flex; flex-wrap:wrap; gap:6px;">${craftingTagsHTML(recipe.tags, false, idx)}</div>
+                        </div>
+
                         <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                                 <label style="color:var(--accent); font-size: 0.75rem; font-weight:bold;">⚙️ INGREDIENTES REQUERIDOS</label>
@@ -5257,8 +5405,29 @@ window.renderCrafting = function() {
                     </div>
                 </div>
             `;
-            recipesList.appendChild(div);
+            return div;
+        }
+
+        const recipeGroups = [];
+        config.craftingCategories.forEach(c => recipeGroups.push({ tagId: c.id, cards: [] }));
+        const untaggedRecipes = { tagId: null, cards: [] };
+        recipeGroups.push(untaggedRecipes);
+
+        config.craftingRecipes.forEach((recipe, idx) => {
+            const card = buildRecipeCard(recipe, idx);
+            const tags = recipe.tags || [];
+            let placed = false;
+            for (const g of recipeGroups) {
+                if (g.tagId !== null && tags.includes(g.tagId)) {
+                    g.cards.push(card);
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) untaggedRecipes.cards.push(card);
         });
+
+        recipeGroups.forEach(g => appendCraftingGroup(recipesList, g, '1.5rem'));
     }
 };
 
@@ -5271,7 +5440,8 @@ window.addCraftingResource = function() {
         prices: { hubs: 100, ohcu: 0 },
         icon: "res://assets/Materiales/Hierro.png",
         color: "#ffffff",
-        type: "resource"
+        type: "resource",
+        tags: []
     });
     renderCrafting();
 };
@@ -5294,7 +5464,8 @@ window.addCraftingRecipe = function() {
         resultAmount: 1,
         costHubs: 1000,
         costOhcu: 0,
-        ingredients: []
+        ingredients: [],
+        tags: []
     });
     renderCrafting();
 };
@@ -5339,6 +5510,78 @@ window.updateCraftingRecipeResultItem = function(recipeIdx, value) {
     const [category, id] = value.split(':');
     config.craftingRecipes[recipeIdx].resultCategory = category;
     config.craftingRecipes[recipeIdx].resultItemId = id;
+};
+
+// --- HANDLERS DE CATEGORÍAS DE CRAFTEO ---
+
+window.addCraftingCategory = function() {
+    if (!config.craftingCategories) config.craftingCategories = [];
+    config.craftingCategories.push({
+        id: "cat_" + Math.random().toString(36).substr(2, 5),
+        name: "Nueva Categoría",
+        icon: "🏷️",
+        color: "#00d2ff"
+    });
+    renderCrafting();
+};
+
+window.removeCraftingCategory = function(idx) {
+    const cat = config.craftingCategories && config.craftingCategories[idx];
+    if (!cat) return;
+    if (!confirm(`¿Eliminar la categoría "${cat.name}"?\nLos materiales y recetas que la usen quedarán sin categoría.`)) return;
+    const catId = cat.id;
+    config.craftingCategories.splice(idx, 1);
+    (config.shopItems?.resources || []).forEach(r => {
+        if (r.tags) r.tags = r.tags.filter(t => t !== catId);
+    });
+    (config.craftingRecipes || []).forEach(rc => {
+        if (rc.tags) rc.tags = rc.tags.filter(t => t !== catId);
+    });
+    renderCrafting();
+};
+
+window.moveCraftingCategory = function(idx, dir) {
+    const list = config.craftingCategories;
+    const target = idx + dir;
+    if (!list || target < 0 || target >= list.length) return;
+    const tmp = list[idx];
+    list[idx] = list[target];
+    list[target] = tmp;
+    renderCrafting();
+};
+
+window.toggleResourceTag = function(idx, tagId) {
+    const res = config.shopItems && config.shopItems.resources && config.shopItems.resources[idx];
+    if (!res) return;
+    if (!res.tags) res.tags = [];
+    const pos = res.tags.indexOf(tagId);
+    if (pos >= 0) res.tags.splice(pos, 1);
+    else res.tags.push(tagId);
+    renderCrafting();
+};
+
+window.toggleRecipeTag = function(idx, tagId) {
+    const recipe = config.craftingRecipes && config.craftingRecipes[idx];
+    if (!recipe) return;
+    if (!recipe.tags) recipe.tags = [];
+    const pos = recipe.tags.indexOf(tagId);
+    if (pos >= 0) recipe.tags.splice(pos, 1);
+    else recipe.tags.push(tagId);
+    renderCrafting();
+};
+
+window.toggleCraftingGroup = function(headerEl) {
+    const wrap = headerEl.parentElement;
+    const cards = wrap.querySelector('.crafting-group-cards');
+    if (!cards) return;
+    const key = headerEl.dataset.groupKey || 'untagged';
+    const collapsed = cards.style.display === 'none';
+    cards.style.display = collapsed ? 'flex' : 'none';
+    if (collapsed) collapsedCraftingGroups.delete(key);
+    else collapsedCraftingGroups.add(key);
+    const chev = headerEl.querySelector('.chevron');
+    if (chev) chev.innerText = collapsed ? '▼' : '▶';
+    headerEl.style.opacity = collapsed ? '1' : '0.5';
 };
 
 function formatBytes(bytes) {
@@ -6568,7 +6811,7 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
     input.type = 'file';
 
     // Tipos que NO deben copiar el archivo — solo resuelven la ruta res://
-    const resolveOnlyTypes = ['ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'talent_icon', 'weapon_icon', 'shield_icon', 'engine_icon', 'ammo_icon', 'enemy_icon', 'enemy_glb'];
+    const resolveOnlyTypes = ['resource', 'recipe', 'ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'talent_icon', 'weapon_icon', 'shield_icon', 'engine_icon', 'ammo_icon', 'enemy_icon', 'enemy_glb'];
     const isResolveOnly = resolveOnlyTypes.includes(type);
 
     if (type === 'ship_glb' || type === 'housing_glb' || type === 'enemy_glb') {
@@ -6590,7 +6833,11 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                 const result = await response.json();
 
                 if (result.success && result.path) {
-                    if (type === 'ship_icon') {
+                    if (type === 'resource') {
+                        config.shopItems.resources[idx].icon = result.path;
+                    } else if (type === 'recipe') {
+                        config.craftingRecipes[idx].icon = result.path;
+                    } else if (type === 'ship_icon') {
                         config.shipModels[idx].icon = result.path;
                     } else if (type === 'ship_glb') {
                         config.shipModels[idx].assetPath = result.path;
@@ -6635,6 +6882,8 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         renderSkills();
                     } else if (type === 'talent_icon') {
                         renderTalentCreator();
+                    } else if (type === 'resource' || type === 'recipe') {
+                        renderCrafting();
                     }
                 } else {
                     alert('❌ ' + (result.error || 'No se pudo encontrar el archivo en los assets del proyecto.\n\nAsegurate de que el archivo ya esté copiado dentro de la carpeta descon/assets antes de seleccionarlo.'));

@@ -375,6 +375,7 @@
                     <div id="folder-crafting" class="folder-content">
                         <div class="nav-link sub" onclick="showTab('crafting-recipes')">⚒️ Recetas</div>
                         <div class="nav-link sub" onclick="showTab('crafting-materials')">📦 Materiales</div>
+                        <div class="nav-link sub" onclick="showTab('crafting-categories')">🏷️ Categorías</div>
                     </div>
                 </div>
                 
@@ -637,6 +638,19 @@
             <div id="view-map-detail" class="view">
                 <div class="section-header"><button class="btn btn-secondary" onclick="showTab('maps')" style="margin-right:1rem;">Volver a Cartografía</button></div>
                 <div id="map-detail-container" style="width: 100%;"></div>
+            </div>
+
+            <div id="view-crafting-categories" class="view">
+                <div class="card" style="width: 100%;">
+                    <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>🏷️ CATEGORÍAS DE CRAFTEO</span>
+                        <button class="btn btn-primary" style="padding: 4px 12px; font-size: 0.75rem;" onclick="addCraftingCategory()">+ AGREGAR CATEGORÍA</button>
+                    </h3>
+                    <p style="font-size:0.8rem; color:#aaa; margin-bottom:1.5rem;">Crea tus propios grupos (por mapas, armas, estilos, lo que decidas). Luego asigna cada material y receta a una o varias categorías desde sus tarjetas.</p>
+                    <div id="crafting-categories-list" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Llenado dinámico -->
+                    </div>
+                </div>
             </div>
 
             <div id="view-crafting-materials" class="view">
