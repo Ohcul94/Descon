@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bg1sb8mqxaxmh"
-path="res://.godot/imported/Boss6.glb-953a3643d5a4e814533c4fd678784a82.scn"
+uid="uid://r46k7vwtax7g"
+path="res://.godot/imported/AnimacionesBoss6.glb-e8d9b01d2036de93cc973a7120601cc2.scn"
 
 [deps]
 
-source_file="res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/Boss6.glb"
-dest_files=["res://.godot/imported/Boss6.glb-953a3643d5a4e814533c4fd678784a82.scn"]
+source_file="res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/AnimacionesBoss6.glb"
+dest_files=["res://.godot/imported/AnimacionesBoss6.glb-e8d9b01d2036de93cc973a7120601cc2.scn"]
 
 [params]
 

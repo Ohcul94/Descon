@@ -2710,32 +2710,59 @@ func _play_3d_anim(anim_name_or_keyword: String):
 	if anim_list.is_empty():
 		return
 		
+	var target_anim_name = ""
+		
 	# 1. Comprobar si se especificó un índice numérico (soporta 1-indexed y 0-indexed)
 	if anim_name_or_keyword.is_valid_int():
 		var idx = anim_name_or_keyword.to_int()
 		if idx >= 1 and idx <= anim_list.size():
-			var anim_name = anim_list[idx - 1]
-			if _3d_anim_player.current_animation != anim_name:
-				_3d_anim_player.play(anim_name)
-			return
+			target_anim_name = anim_list[idx - 1]
 		elif idx >= 0 and idx < anim_list.size():
-			var anim_name = anim_list[idx]
-			if _3d_anim_player.current_animation != anim_name:
-				_3d_anim_player.play(anim_name)
-			return
-
-	# 2. Intento directo por nombre exacto
-	if _3d_anim_player.has_animation(anim_name_or_keyword):
-		if _3d_anim_player.current_animation != anim_name_or_keyword:
-			_3d_anim_player.play(anim_name_or_keyword)
-		return
+			target_anim_name = anim_list[idx]
+	
+	# 2. Intento directo por nombre exacto si no se encontró por índice
+	if target_anim_name == "" and _3d_anim_player.has_animation(anim_name_or_keyword):
+		target_anim_name = anim_name_or_keyword
 		
-	# 3. Intento por coincidencia de palabra clave (ej. "run" coincide con "creature|run")
-	for anim in anim_list:
-		if anim_name_or_keyword.to_lower() in anim.to_lower():
-			if _3d_anim_player.current_animation != anim:
-				_3d_anim_player.play(anim)
-			return
+	# 3. Intento por coincidencia de palabra clave
+	if target_anim_name == "":
+		for anim in anim_list:
+			if anim_name_or_keyword.to_lower() in anim.to_lower():
+				target_anim_name = anim
+				break
+
+	if target_anim_name != "":
+		# Configurar el loop automático del recurso de animación (evita tener que configurarlo a mano en el importador)
+		var anim_res = _3d_anim_player.get_animation(target_anim_name)
+		if anim_res:
+			var is_death = "die" in target_anim_name.to_lower() or "death" in target_anim_name.to_lower() or "derrota" in target_anim_name.to_lower()
+			if not is_death:
+				anim_res.loop_mode = Animation.LOOP_LINEAR
+			else:
+				anim_res.loop_mode = Animation.LOOP_NONE
+
+		# Ajustar dinámicamente la velocidad de la animación (speed_scale)
+		# para que la caminata/correr coincida de forma natural con la velocidad real de la física
+		var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+		var is_run_anim = "run" in anim_name_or_keyword.to_lower() or anim_name_or_keyword == "5"
+		if is_run_anim:
+			# Obtenemos la velocidad real medida en el frame anterior
+			var current_pos = global_position
+			var vel_len = 0.0
+			if _last_position_for_anim != Vector2.ZERO:
+				var dist = _last_position_for_anim.distance_to(current_pos)
+				var delta_time = get_process_delta_time()
+				if delta_time > 0.0 and dist < 1000.0:
+					vel_len = dist / delta_time
+			
+			var base_speed = float(enemy_cfg.get("speed", 250.0))
+			if base_speed > 0.0:
+				_3d_anim_player.speed_scale = clamp(vel_len / base_speed, 0.4, 1.8)
+		else:
+			_3d_anim_player.speed_scale = 1.0
+
+		if _3d_anim_player.current_animation != target_anim_name:
+			_3d_anim_player.play(target_anim_name)
 
 # v210.161: Helper para limpiar visuales de equipo (evita duplicidad)
 func _clear_all_equipment_visuals():

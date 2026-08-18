@@ -2175,7 +2175,7 @@
             ],
             "mechanics": [
                 {
-                    "bulletDamage": 500,
+                    "bulletDamage": 1,
                     "bulletSpeed": 950,
                     "fireRange": 1500,
                     "fireRate": 900,
@@ -2295,7 +2295,7 @@
             ],
             "mechanics": [
                 {
-                    "bulletDamage": 900,
+                    "bulletDamage": 1,
                     "bulletSpeed": 1100,
                     "fireRange": 1700,
                     "fireRate": 850,
@@ -6041,8 +6041,28 @@
                     "radius": 0,
                     "spawnMode": "fixed",
                     "type": "104",
-                    "x": 1094,
-                    "y": 1597
+                    "x": 2503,
+                    "y": 2519
+                },
+                {
+                    "id": "spawn_1787013027312226",
+                    "type": "106",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 1484,
+                    "y": 1501,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1787013046564391",
+                    "type": "107",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 3429,
+                    "y": 1439,
+                    "radius": 300
                 }
             ],
             "warpCost": 0,
