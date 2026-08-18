@@ -91,6 +91,8 @@ var anim_player: AnimationPlayer = null
 
 # v219.95: SISTEMA DE FÍSICAS 3D DINÁMICAS
 var _3d_model: Node3D = null
+var _3d_anim_player: AnimationPlayer = null
+var _last_position_for_anim: Vector2 = Vector2.ZERO
 var world_root_3d: Node3D = null
 var accessory_pivot_3d: Node3D = null
 var _3d_spheres: Array = [null, null, null, null]
@@ -477,8 +479,10 @@ func _process(delta):
 				101: 4.5, 102: 4.5, 103: 4.5, 104: 5.5,
 				200: 3.5,
 			}
+			var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
 			var lookup_key = -1 if is_in_group("player") else entity_type
-			var hud_height_3d: float = HUD_HEIGHTS.get(lookup_key, 1.5)
+			var default_height = HUD_HEIGHTS.get(lookup_key, 5.5 if entity_type >= 101 else 1.5)
+			var hud_height_3d: float = float(enemy_cfg.get("hudHeight", default_height))
 			
 			var world_2d = _project_3d_pos_to_2d(world_root_3d.global_position)
 			var hud_3d_pos = world_root_3d.global_position + Vector3(0, hud_height_3d, 0)
@@ -931,8 +935,9 @@ func _update_3d_root_sync():
 		var correction_z = map_node.correction_z if is_instance_valid(map_node) else 1.41421356
 		world_root_3d.position.x = global_position.x * s_factor
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
-		if entity_type >= 101 and entity_type <= 104 and not is_in_group("player"):
-			world_root_3d.position.y = 2.5
+		if entity_type >= 101 and not is_in_group("player"):
+			var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+			world_root_3d.position.y = float(enemy_cfg.get("posY", 1.0))
 		else:
 			world_root_3d.position.y = 1.0
 		world_root_3d.position.y += _burrow_y_offset + _ascension_y_offset
@@ -2507,7 +2512,9 @@ func _setup_enemy_visuals():
 	# mapeo hardcodeado tradicional (compatibilidad total con enemigos existentes).
 	var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
 	var use_cfg_3d = enemy_cfg.has("assetPath") and str(enemy_cfg.get("assetPath", "")) != ""
-	if not use_cfg_3d:
+	if use_cfg_3d:
+		glb_path = enemy_cfg.assetPath
+	else:
 		# v255.15: CONFIGURACIÓN NORMALIZADA (Manual de Activos)
 		match entity_type:
 			1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13:
@@ -2574,7 +2581,7 @@ func _setup_enemy_visuals():
 			# Conservar escala nativa del archivo original .glb pero multiplicada por 2.0 (o 6.0 si es Boss)
 			# v420: La escala puede venir configurada desde el AdminDash (campo "scale" del enemigo)
 			var current_scale = 2.0
-			if entity_type >= 101 and entity_type <= 104:
+			if entity_type >= 101:
 				current_scale = 6.0
 			if use_cfg_3d and enemy_cfg.has("scale"):
 				current_scale = float(enemy_cfg.scale)
@@ -2640,29 +2647,95 @@ func _setup_enemy_visuals():
 	queue_redraw()
 
 func _update_animations():
-	if not anim_player or not is_instance_valid(sprite): return
-	if is_dead: return
-		
+	# v422.2: Para entidades no locales (enemigos/otros jugadores) donde 'velocity' no se actualiza
+	# por el motor de físicas, calculamos la velocidad real basándonos en la distancia recorrida.
 	var vel_len = velocity.length()
-	
-	# v191.55: REPOSO (Idle en bucle)
-	if vel_len < 10.0:
-		if anim_player.current_animation != "idle":
-			anim_player.play("idle")
-		return
+	var current_pos = global_position
+	if _last_position_for_anim == Vector2.ZERO:
+		_last_position_for_anim = current_pos
+	else:
+		var dist = _last_position_for_anim.distance_to(current_pos)
+		var delta_time = get_process_delta_time()
+		if delta_time > 0.0:
+			# Si es un salto brusco (teletransporte), no distorsionamos la velocidad
+			if dist < 1000.0:
+				vel_len = dist / delta_time
+		_last_position_for_anim = current_pos
 
-	# v210.181: Transición Inteligente Aceleración -> Máxima
-	if vel_len > 10.0:
-		if anim_player.current_animation == "idle":
-			anim_player.play("start_move")
+	# 1. Animación del Sprite 2D (Fallback)
+	if anim_player and is_instance_valid(sprite):
+		# v191.55: REPOSO (Idle en bucle)
+		if vel_len < 10.0:
+			if anim_player.current_animation != "idle":
+				anim_player.play("idle")
+		else:
+			# v210.181: Transición Inteligente Aceleración -> Máxima
+			if anim_player.current_animation == "idle":
+				anim_player.play("start_move")
+			
+			# Si ya terminó de arrancar, pasamos a modo Crucero (Run)
+			if anim_player.current_animation == "start_move" and not anim_player.is_playing():
+				anim_player.play("run")
+			
+			# Si nos movemos y no hay nada sonando, forzamos Run
+			if anim_player.current_animation == "" or (not anim_player.is_playing() and vel_len > 100.0):
+				anim_player.play("run")
+
+	# 2. Animación del Modelo 3D (Dynamic Data-Driven)
+	if is_instance_valid(_3d_anim_player):
+		var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
 		
-		# Si ya terminó de arrancar, pasamos a modo Crucero (Run)
-		if anim_player.current_animation == "start_move" and not anim_player.is_playing():
-			anim_player.play("run")
+		# Fallbacks por defecto para bosses importados desde Tripo (>= 104)
+		var default_idle = "1" if entity_type >= 104 else "idle"
+		var default_run = "5" if entity_type >= 104 else "run"
+		var default_attack = "4" if entity_type >= 104 else "attack"
 		
-		# Si nos movemos y no hay nada sonando, forzamos Run
-		if anim_player.current_animation == "" or (not anim_player.is_playing() and vel_len > 100.0):
-			anim_player.play("run")
+		var anim_idle = str(enemy_cfg.get("animIdle", default_idle))
+		var anim_run = str(enemy_cfg.get("animRun", default_run))
+		var anim_attack = str(enemy_cfg.get("animAttack", default_attack))
+		
+		var target_anim = anim_idle
+		if get_meta("is_firing", false):
+			target_anim = anim_attack
+		elif vel_len >= 15.0:
+			target_anim = anim_run
+			
+		_play_3d_anim(target_anim)
+
+func _play_3d_anim(anim_name_or_keyword: String):
+	if not is_instance_valid(_3d_anim_player) or anim_name_or_keyword == "":
+		return
+		
+	var anim_list = _3d_anim_player.get_animation_list()
+	if anim_list.is_empty():
+		return
+		
+	# 1. Comprobar si se especificó un índice numérico (soporta 1-indexed y 0-indexed)
+	if anim_name_or_keyword.is_valid_int():
+		var idx = anim_name_or_keyword.to_int()
+		if idx >= 1 and idx <= anim_list.size():
+			var anim_name = anim_list[idx - 1]
+			if _3d_anim_player.current_animation != anim_name:
+				_3d_anim_player.play(anim_name)
+			return
+		elif idx >= 0 and idx < anim_list.size():
+			var anim_name = anim_list[idx]
+			if _3d_anim_player.current_animation != anim_name:
+				_3d_anim_player.play(anim_name)
+			return
+
+	# 2. Intento directo por nombre exacto
+	if _3d_anim_player.has_animation(anim_name_or_keyword):
+		if _3d_anim_player.current_animation != anim_name_or_keyword:
+			_3d_anim_player.play(anim_name_or_keyword)
+		return
+		
+	# 3. Intento por coincidencia de palabra clave (ej. "run" coincide con "creature|run")
+	for anim in anim_list:
+		if anim_name_or_keyword.to_lower() in anim.to_lower():
+			if _3d_anim_player.current_animation != anim:
+				_3d_anim_player.play(anim)
+			return
 
 # v210.161: Helper para limpiar visuales de equipo (evita duplicidad)
 func _clear_all_equipment_visuals():
@@ -2884,6 +2957,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 		world_root_3d.queue_free()
 		world_root_3d = null
 	_3d_propulsion = null
+	_3d_anim_player = null
 	
 	# Detectar si hay un lienzo 3D global en el mapa actual
 	var current_map = get_tree().get_first_node_in_group("map")
@@ -3006,31 +3080,40 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 			control_node.position = -total_aabb.get_center()
 			control_node.set_meta("model_aabb_size", total_aabb.size)
 		
-		# v252.23: INSPECTOR Y ACTIVADOR de ANIMACIONES
-		# v421.0-FIX: NO reproducir animaciones automáticamente.
-		# BUG DE MOTOR: Godot 4.6/4.7 (compatibility y forward+) congela el main loop
-		# cuando un AnimationPlayer reproduce CUALQUIER animación dentro de un
-		# SubViewport (patrón que usa todo el juego para renderizar entidades 3D).
-		# Los GLB animados de Tripo (Boss5/6/7) congelaban el juego al spawnear.
-		# Solución: la animación es OPCIONAL vía config "animName" (vacío = estático).
-		# Solo habilitar cuando el bug del motor esté resuelto.
-		var anim_player_3d = null
+		# v422.1: BÚSQUEDA PROFUNDA GARANTIZADA DE ANIMACIONES
+		# Usamos búsqueda recursiva manual (_find_anim_deep) porque find_children
+		# con owned=false puede fallar en escenas GLB instanciadas en Godot 4.
+		var anim_player_3d: AnimationPlayer = _find_anim_deep(model)
 
-		if model.has_node("AnimationPlayer"):
-			anim_player_3d = model.get_node("AnimationPlayer")
-		else:
-			# Búsqueda recursiva simple si no está en la raíz
-			for child in model.get_children():
-				if child is AnimationPlayer:
-					anim_player_3d = child; break
-		
+		# LOG DE DIAGNÓSTICO: árbol completo del GLB (solo para bosses nuevos)
+		if entity_type >= 104:
+			print("[3D-TREE] Árbol GLB tipo ", entity_type, ":")
+			_print_node_tree(model, 0)
+			if is_instance_valid(anim_player_3d):
+				print("[3D-ANIM-OK] AnimPlayer: '", anim_player_3d.name, "' | Lista (", anim_player_3d.get_animation_list().size(), "): ", anim_player_3d.get_animation_list())
+			else:
+				print("[3D-ANIM-ERR] ¡NO se encontró AnimationPlayer en GLB tipo ", entity_type, "!")
+
+		_3d_anim_player = anim_player_3d
+
+		if is_instance_valid(anim_player_3d):
+			# CRÍTICO: PHYSICS evita freeze en SubViewport (bug Godot 4.6/4.7)
+			anim_player_3d.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
+
+			# Para el Lienzo Único (bosses), reproducir Idle de inmediato al spawnear
+			if is_single_world:
+				var enemy_cfg_anim = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+				var default_idle_anim = "1" if entity_type >= 105 else "idle"
+				var idle_keyword = str(enemy_cfg_anim.get("animIdle", default_idle_anim))
+				_play_3d_anim(idle_keyword)
+
 		if anim_player_3d and auto_anim != "":
 			var anim_list = anim_player_3d.get_animation_list()
 			if anim_list.has(auto_anim):
 				anim_player_3d.play(auto_anim)
-				print("[3D-ANIM] Reproduciendo: ", auto_anim, " en ", entity_type)
+				print("[3D-ANIM] Reproduciendo animName config: ", auto_anim, " en tipo ", entity_type)
 			else:
-				print("[3D-ANIM-WARN] Animación '", auto_anim, "' no existe en ", entity_type, ". Disponibles: ", anim_list)
+				print("[3D-ANIM-WARN] Animación '", auto_anim, "' no existe. Disponibles: ", anim_list)
 		
 		_3d_model = control_node 
 		control_node.scale = Vector3(2.0, 2.0, 2.0) 
@@ -3452,18 +3535,16 @@ func _update_collision_size():
 		if map_scale > 0.0:
 			var size_2d = max_size_3d / map_scale
 			# Factor de ajuste corrector según el modelo (evita hitboxes gigantes por detalles/alas externas)
-			var adjustment_factor = 0.9
-			if entity_type == 101: # Lord Titan
-				adjustment_factor = 0.38
-			elif entity_type >= 102 and entity_type <= 104:
-				adjustment_factor = 0.55
+			var default_adj = 0.38 if entity_type == 101 else (0.55 if entity_type >= 102 else 0.9)
+			var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+			var adjustment_factor = float(enemy_cfg.get("hitboxAdjustment", default_adj))
 				
 			_collision_shape.shape.radius = (size_2d * 0.5) * adjustment_factor
 			return
 
 	# Fallback estático en caso de que no haya modelo 3D instanciado (modo 2D o fallas de carga)
 	if is_in_group("enemies"):
-		if entity_type >= 101 and entity_type <= 104:
+		if entity_type >= 101:
 			base_size = 320.0 * 2.0
 		elif entity_type == 200:
 			base_size = 320.0 * 2.2
@@ -4477,3 +4558,25 @@ func _project_3d_pos_to_2d(pos_3d: Vector3) -> Vector2:
 					sv_pixel *= main_size / Vector2(sub_vp.size)
 				return get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
 	return global_position
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPERS DE ANIMACIÓN 3D
+# ─────────────────────────────────────────────────────────────────────────────
+
+## Búsqueda recursiva profunda de AnimationPlayer en un árbol de nodos GLB.
+## Necesario porque Tripo/Meshy anidan el AnimationPlayer varios niveles adentro.
+func _find_anim_deep(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node
+	for child in node.get_children():
+		var result = _find_anim_deep(child)
+		if result:
+			return result
+	return null
+
+## Imprime el árbol de nodos con su tipo para diagnóstico de GLBs.
+func _print_node_tree(node: Node, depth: int) -> void:
+	var indent = "  ".repeat(depth)
+	print(indent, "- [", node.get_class(), "] ", node.name)
+	for child in node.get_children():
+		_print_node_tree(child, depth + 1)
