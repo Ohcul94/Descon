@@ -2123,7 +2123,7 @@
             "movementPhases": [
                 {
                     "orbitRadius": 300,
-                    "speed": 260,
+                    "speed": 180,
                     "startDelay": 0,
                     "type": "chase",
                     "stopDist": 150
@@ -2143,10 +2143,12 @@
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss4/Animaciones/AnimacionesBoss4.glb",
             "rotX": 0,
             "rotY": 180,
-            "animIdle": "1",
+            "animIdle": "4,8,9",
             "animRun": "5",
-            "animAttack": "4",
-            "animDie": "3"
+            "animAttack": "1",
+            "animDie": "7",
+            "posY": 0.1,
+            "canFloat": false
         },
         "105": {
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss5/Animaciones/AnimacionesBoss5.glb",
@@ -2185,10 +2187,10 @@
             ],
             "movementPhases": [
                 {
-                    "speed": 240,
+                    "speed": 180,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "boss"
+                    "type": "chase"
                 }
             ],
             "name": "Titán Carmesí",
@@ -2200,16 +2202,17 @@
             "rewardHubs": 750000,
             "rewardOhcu": 7500,
             "rotX": 0,
-            "rotY": -90,
+            "rotY": 180,
             "rotZ": 0,
             "scale": 6,
             "shield": 200000,
             "shieldRegenPercent": 30,
             "speed": 240,
-            "visionRange": 2000
+            "visionRange": 2000,
+            "posY": 0.1
         },
         "106": {
-            "assetPath": "res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/Boss6.glb",
+            "assetPath": "res://assets/Enemigos/3D/Bosses/Boss6/Animaciones/AnimacionesBoss6.glb",
             "bulletDamage": 12000,
             "bulletSpeed": 1200,
             "chaseIdleTimeout": 10000,
@@ -2238,17 +2241,17 @@
                     "bulletDamage": 1,
                     "bulletSpeed": 1000,
                     "fireRange": 1600,
-                    "fireRate": 1000,
+                    "fireRate": 3000,
                     "startDelay": 0,
                     "type": "laser"
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 230,
+                    "speed": 180,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "boss"
+                    "type": "chase"
                 }
             ],
             "name": "Dragón Demoníaco",
@@ -2260,13 +2263,14 @@
             "rewardHubs": 1000000,
             "rewardOhcu": 10000,
             "rotX": 0,
-            "rotY": -90,
+            "rotY": 180,
             "rotZ": 0,
             "scale": 6,
             "shield": 250000,
             "shieldRegenPercent": 30,
             "speed": 230,
-            "visionRange": 2000
+            "visionRange": 2000,
+            "posY": 0.1
         },
         "107": {
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss7/Animaciones/AnimacionesBoss7.glb",
@@ -2305,10 +2309,10 @@
             ],
             "movementPhases": [
                 {
-                    "speed": 220,
+                    "speed": 180,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "boss"
+                    "type": "chase"
                 }
             ],
             "name": "Dragón Cromático",
@@ -2320,13 +2324,14 @@
             "rewardHubs": 1250000,
             "rewardOhcu": 12500,
             "rotX": 0,
-            "rotY": -90,
+            "rotY": 180,
             "rotZ": 0,
             "scale": 6,
             "shield": 300000,
             "shieldRegenPercent": 30,
             "speed": 220,
-            "visionRange": 2000
+            "visionRange": 2000,
+            "posY": 0.1
         },
         "1-A": {
             "aggressive": true,
@@ -6043,26 +6048,6 @@
                     "type": "104",
                     "x": 2503,
                     "y": 2519
-                },
-                {
-                    "id": "spawn_1787013027312226",
-                    "type": "106",
-                    "count": 1,
-                    "intervalMs": 5000,
-                    "spawnMode": "fixed",
-                    "x": 1484,
-                    "y": 1501,
-                    "radius": 300
-                },
-                {
-                    "id": "spawn_1787013046564391",
-                    "type": "107",
-                    "count": 1,
-                    "intervalMs": 5000,
-                    "spawnMode": "fixed",
-                    "x": 3429,
-                    "y": 1439,
-                    "radius": 300
                 }
             ],
             "warpCost": 0,
@@ -6138,7 +6123,12 @@
             "timeRestrictionsEnabled": true,
             "visible": true,
             "warpCost": 0,
-            "width": 10000
+            "width": 10000,
+            "music": {
+                "enabled": false,
+                "path": "",
+                "volumePercent": 60
+            }
         },
         "7": {
             "allowedHours": [],
@@ -6265,9 +6255,14 @@
                 }
             ],
             "timeRestrictionsEnabled": false,
-            "visible": true,
+            "visible": false,
             "warpCost": 0,
-            "width": 3000
+            "width": 3000,
+            "music": {
+                "enabled": false,
+                "path": "",
+                "volumePercent": 60
+            }
         },
         "8": {
             "ambience": [
@@ -6367,7 +6362,8 @@
                 }
             ],
             "warpCost": 0,
-            "width": 2000
+            "width": 2000,
+            "visible": false
         },
         "9": {
             "ambience": [],
@@ -6530,7 +6526,8 @@
                 }
             ],
             "warpCost": 0,
-            "width": 10000
+            "width": 10000,
+            "visible": false
         },
         "10": {
             "ambience": [
@@ -6597,7 +6594,8 @@
             ],
             "spawns": [],
             "warpCost": 50,
-            "width": 20000
+            "width": 20000,
+            "visible": false
         },
         "11": {
             "ambience": [],
@@ -6642,7 +6640,8 @@
             ],
             "spawns": [],
             "warpCost": 100,
-            "width": 10000
+            "width": 10000,
+            "visible": false
         }
     },
     "marketConfig": {

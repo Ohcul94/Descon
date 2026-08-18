@@ -93,6 +93,9 @@ var anim_player: AnimationPlayer = null
 var _3d_model: Node3D = null
 var _3d_anim_player: AnimationPlayer = null
 var _last_position_for_anim: Vector2 = Vector2.ZERO
+var _idle_anims_list: Array = []
+var _current_idle_idx: int = 0
+var _last_target_anim: String = ""
 var world_root_3d: Node3D = null
 var accessory_pivot_3d: Node3D = null
 var _3d_spheres: Array = [null, null, null, null]
@@ -715,7 +718,12 @@ func _process(delta):
 	# v219.98: FÍSICAS 3D DINÁMICAS (BANKING + BOBBING + ÓRBITA)
 	if is_instance_valid(_3d_model) and screen_visible:
 		# 1. BALANCEO (BOBBING)
-		_3d_model.position.y = sin(Time.get_ticks_msec() * 0.002) * 0.12
+		var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+		var can_float = bool(enemy_cfg.get("canFloat", true))
+		if can_float:
+			_3d_model.position.y = sin(Time.get_ticks_msec() * 0.002) * 0.12
+		else:
+			_3d_model.position.y = 0.0
 		
 		# 2. CÁLCULO DE INCLINACIÓN (BANKING)
 		var rot_diff = angle_difference(_last_rot2d, rotation)
@@ -2700,7 +2708,17 @@ func _update_animations():
 		elif vel_len >= 15.0:
 			target_anim = anim_run
 			
-		_play_3d_anim(target_anim)
+		# v423.0: Soporte de secuencia de Idle por comas (ej. "1,2,6")
+		if target_anim != _last_target_anim:
+			_last_target_anim = target_anim
+			if "," in target_anim:
+				_idle_anims_list = target_anim.split(",")
+				_current_idle_idx = 0
+				var first_anim = _idle_anims_list[0].strip_edges()
+				_play_3d_anim(first_anim)
+			else:
+				_idle_anims_list = []
+				_play_3d_anim(target_anim)
 
 func _play_3d_anim(anim_name_or_keyword: String):
 	if not is_instance_valid(_3d_anim_player) or anim_name_or_keyword == "":
@@ -2732,19 +2750,24 @@ func _play_3d_anim(anim_name_or_keyword: String):
 				break
 
 	if target_anim_name != "":
+		var is_run_anim = "run" in anim_name_or_keyword.to_lower() or anim_name_or_keyword == "5"
+		
 		# Configurar el loop automático del recurso de animación (evita tener que configurarlo a mano en el importador)
 		var anim_res = _3d_anim_player.get_animation(target_anim_name)
 		if anim_res:
 			var is_death = "die" in target_anim_name.to_lower() or "death" in target_anim_name.to_lower() or "derrota" in target_anim_name.to_lower()
 			if not is_death:
-				anim_res.loop_mode = Animation.LOOP_LINEAR
+				# Si es parte de una secuencia de múltiples idles, no se buclea para que termine y pase a la siguiente
+				if _idle_anims_list.size() > 1 and not is_run_anim and not get_meta("is_firing", false):
+					anim_res.loop_mode = Animation.LOOP_NONE
+				else:
+					anim_res.loop_mode = Animation.LOOP_LINEAR
 			else:
 				anim_res.loop_mode = Animation.LOOP_NONE
 
 		# Ajustar dinámicamente la velocidad de la animación (speed_scale)
 		# para que la caminata/correr coincida de forma natural con la velocidad real de la física
 		var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
-		var is_run_anim = "run" in anim_name_or_keyword.to_lower() or anim_name_or_keyword == "5"
 		if is_run_anim:
 			# Obtenemos la velocidad real medida en el frame anterior
 			var current_pos = global_position
@@ -3126,6 +3149,11 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 		if is_instance_valid(anim_player_3d):
 			# CRÍTICO: PHYSICS evita freeze en SubViewport (bug Godot 4.6/4.7)
 			anim_player_3d.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
+			
+			# Conectar la señal para la secuencia de múltiples Idles
+			if anim_player_3d.is_connected("animation_finished", _on_3d_animation_finished):
+				anim_player_3d.disconnect("animation_finished", _on_3d_animation_finished)
+			anim_player_3d.connect("animation_finished", _on_3d_animation_finished)
 
 			# Para el Lienzo Único (bosses), reproducir Idle de inmediato al spawnear
 			if is_single_world:
@@ -4607,3 +4635,23 @@ func _print_node_tree(node: Node, depth: int) -> void:
 	print(indent, "- [", node.get_class(), "] ", node.name)
 	for child in node.get_children():
 		_print_node_tree(child, depth + 1)
+
+## Callback para secuenciar múltiples animaciones idle separadas por comas.
+func _on_3d_animation_finished(_anim_name: String) -> void:
+	if not is_instance_valid(_3d_anim_player):
+		return
+	if _idle_anims_list.size() > 1:
+		# Medir velocidad actual
+		var vel_len = velocity.length()
+		var current_pos = global_position
+		if _last_position_for_anim != Vector2.ZERO:
+			var dist = _last_position_for_anim.distance_to(current_pos)
+			var delta_time = get_process_delta_time()
+			if delta_time > 0.0 and dist < 1000.0:
+				vel_len = dist / delta_time
+		
+		# Si seguimos en reposo y sin disparar, avanzar al siguiente idle de la lista
+		if not get_meta("is_firing", false) and vel_len < 15.0:
+			_current_idle_idx = (_current_idle_idx + 1) % _idle_anims_list.size()
+			var next_anim = _idle_anims_list[_current_idle_idx].strip_edges()
+			_play_3d_anim(next_anim)

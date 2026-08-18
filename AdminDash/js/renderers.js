@@ -1421,11 +1421,24 @@ function renderEnemyDetail() {
                                 </div>
                             </div>
                             <h5 style="color:var(--warning); margin:10px 0 5px; font-size:0.75rem; border-bottom:1px solid rgba(251,191,36,0.15); padding-bottom:2px;">⚙️ ROTACIÓN Y ESCALA 3D INICIAL</h5>
-                            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; display:grid;">
+                            <div class="form-grid" style="grid-template-columns: repeat(3, 1fr); gap:10px; display:grid; margin-bottom:10px;">
                                 <div class="field"><label>Rotación X (grados)</label><input type="number" value="${en.rotX || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rotX = parseFloat(this.value) || 0"></div>
                                 <div class="field"><label>Rotación Y (grados)</label><input type="number" value="${en.rotY || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rotY = parseFloat(this.value) || 0"></div>
                                 <div class="field"><label>Rotación Z (grados)</label><input type="number" value="${en.rotZ || 0}" onchange="config.enemyModels['${selectedEnemyId}'].rotZ = parseFloat(this.value) || 0"></div>
-                                <div class="field"><label>Escala 3D (multiplicador)</label><input type="number" step="0.1" value="${en.scale || 2}" onchange="config.enemyModels['${selectedEnemyId}'].scale = parseFloat(this.value) || 2"></div>
+                                <div class="field"><label>Escala 3D (mult)</label><input type="number" step="0.1" value="${en.scale || 2}" onchange="config.enemyModels['${selectedEnemyId}'].scale = parseFloat(this.value) || 2"></div>
+                                <div class="field"><label>Altura Suelo (posY)</label><input type="number" step="0.1" value="${en.posY !== undefined ? en.posY : 1.0}" onchange="config.enemyModels['${selectedEnemyId}'].posY = parseFloat(this.value) !== undefined ? parseFloat(this.value) : 1.0"></div>
+                            </div>
+                            
+                            <h5 style="color:var(--warning); margin:10px 0 5px; font-size:0.75rem; border-bottom:1px solid rgba(251,191,36,0.15); padding-bottom:2px;">🏃 CONFIGURACIÓN DE ANIMACIONES 3D (GLB)</h5>
+                            <div class="form-grid" style="grid-template-columns: repeat(2, 1fr); gap:10px; display:grid;">
+                                <div class="field"><label>Animación Quieto (Idle)</label><input type="text" value="${en.animIdle || ''}" placeholder="Ej: 1 o idle" onchange="config.enemyModels['${selectedEnemyId}'].animIdle = this.value"></div>
+                                <div class="field"><label>Animación Correr (Run)</label><input type="text" value="${en.animRun || ''}" placeholder="Ej: 5 o run" onchange="config.enemyModels['${selectedEnemyId}'].animRun = this.value"></div>
+                                <div class="field"><label>Animación Atacar (Attack)</label><input type="text" value="${en.animAttack || ''}" placeholder="Ej: 4 o attack" onchange="config.enemyModels['${selectedEnemyId}'].animAttack = this.value"></div>
+                                <div class="field"><label>Animación Morir (Die)</label><input type="text" value="${en.animDie || ''}" placeholder="Ej: 3 o die" onchange="config.enemyModels['${selectedEnemyId}'].animDie = this.value"></div>
+                                <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: span 2; margin-top: 5px;">
+                                    <input type="checkbox" ${en.canFloat !== false ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].canFloat = this.checked">
+                                    <label style="margin:0; font-weight:bold; color:var(--warning);">🛸 Efecto de Flotación/Balanceo (Bobbing)</label>
+                                </div>
                             </div>
                         </div>
                     </div>
