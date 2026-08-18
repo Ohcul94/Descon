@@ -1068,13 +1068,18 @@
         {
             "id": "receta_nave_2",
             "name": "Receta de Nave Tico 2",
-            "desc": "Descripción de la nueva receta.",
-            "resultItemId": "",
-            "resultCategory": "weapons",
+            "desc": "",
+            "resultItemId": "7",
+            "resultCategory": "ships",
             "resultAmount": 1,
             "costHubs": 1000,
             "costOhcu": 0,
-            "ingredients": [],
+            "ingredients": [
+                {
+                    "itemId": "mat_nave_2",
+                    "amount": 10
+                }
+            ],
             "tags": [
                 "cat_nave"
             ],
@@ -1083,13 +1088,18 @@
         {
             "id": "receta_nave_3",
             "name": "Receta de Nave Pinfli 3",
-            "desc": "Descripción de la nueva receta.",
-            "resultItemId": "",
-            "resultCategory": "weapons",
+            "desc": "",
+            "resultItemId": "8",
+            "resultCategory": "ships",
             "resultAmount": 1,
             "costHubs": 1000,
             "costOhcu": 0,
-            "ingredients": [],
+            "ingredients": [
+                {
+                    "itemId": "mat_nave_3",
+                    "amount": 10
+                }
+            ],
             "tags": [
                 "cat_nave"
             ],
@@ -1098,13 +1108,18 @@
         {
             "id": "receta_nave_4",
             "name": "Receta de Nave Yukanis 4",
-            "desc": "Descripción de la nueva receta.",
-            "resultItemId": "",
-            "resultCategory": "weapons",
+            "desc": "",
+            "resultItemId": "9",
+            "resultCategory": "ships",
             "resultAmount": 1,
             "costHubs": 1000,
             "costOhcu": 0,
-            "ingredients": [],
+            "ingredients": [
+                {
+                    "itemId": "mat_nave_4",
+                    "amount": 10
+                }
+            ],
             "tags": [
                 "cat_nave"
             ],
@@ -1113,13 +1128,18 @@
         {
             "id": "receta_nave_5",
             "name": "Receta de Nave Nopla 5",
-            "desc": "Descripción de la nueva receta.",
-            "resultItemId": "",
-            "resultCategory": "weapons",
+            "desc": "",
+            "resultItemId": "10",
+            "resultCategory": "ships",
             "resultAmount": 1,
             "costHubs": 1000,
             "costOhcu": 0,
-            "ingredients": [],
+            "ingredients": [
+                {
+                    "itemId": "mat_nave_5",
+                    "amount": 10
+                }
+            ],
             "tags": [
                 "cat_nave"
             ],
@@ -1128,13 +1148,18 @@
         {
             "id": "receta_nave_6",
             "name": "Receta de Nave R-C 6",
-            "desc": "Descripción de la nueva receta.",
-            "resultItemId": "",
-            "resultCategory": "weapons",
+            "desc": "",
+            "resultItemId": "11",
+            "resultCategory": "ships",
             "resultAmount": 1,
             "costHubs": 1000,
             "costOhcu": 0,
-            "ingredients": [],
+            "ingredients": [
+                {
+                    "itemId": "mat_nave_6",
+                    "amount": 10
+                }
+            ],
             "tags": [
                 "cat_nave"
             ],
@@ -1143,13 +1168,18 @@
         {
             "id": "receta_nave_7",
             "name": "Receta de Nave Gloss-Ter 7",
-            "desc": "Descripción de la nueva receta.",
-            "resultItemId": "",
-            "resultCategory": "weapons",
+            "desc": "",
+            "resultItemId": "12",
+            "resultCategory": "ships",
             "resultAmount": 1,
             "costHubs": 1000,
             "costOhcu": 0,
-            "ingredients": [],
+            "ingredients": [
+                {
+                    "itemId": "mat_nave_7",
+                    "amount": 10
+                }
+            ],
             "tags": [
                 "cat_nave"
             ],

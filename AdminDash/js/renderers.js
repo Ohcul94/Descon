@@ -5266,7 +5266,10 @@ window.renderCrafting = function() {
     // --- OBTENER TODOS LOS ÍTEMS DEL JUEGO PARA EL SELECTOR ---
     const allGameItems = [];
     if (config.shipModels) {
-        config.shipModels.forEach(s => allGameItems.push({ id: String(s.id), name: `[NAVE] ${s.name}`, category: 'ships' }));
+        config.shipModels.forEach(s => {
+            if (s.hidden) return;
+            allGameItems.push({ id: String(s.id), name: `[NAVE] ${s.name}`, category: 'ships' });
+        });
     }
     if (config.shopItems) {
         if (config.shopItems.weapons) {
