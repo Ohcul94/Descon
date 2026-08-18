@@ -22,6 +22,8 @@ let activeArenaSpawnIndex = null;
 let telemetryInterval = null;
 
 let selectedDetailPlayer = null;
+let usernameHidden = false;
+let currentLoggedUser = '';
 let currentDetailPage = 0;
 let lastDetailTotal = 0;
 
@@ -196,6 +198,25 @@ window.onload = () => {
     }
 };
 
+function toggleUsernameVisibility() {
+    usernameHidden = !usernameHidden;
+    const btn = document.getElementById('eye-toggle');
+    const text = document.getElementById('conn-text');
+    if (usernameHidden) {
+        btn.textContent = '🙈';
+        btn.title = 'Mostrar nombre';
+        const envLabel = activeEnv === 'cloud' ? '☁️ SERVER' : '💻 LOCAL';
+        text.innerText = envLabel;
+    } else {
+        btn.textContent = '👁';
+        btn.title = 'Ocultar nombre';
+        if (currentLoggedUser) {
+            const envLabel = activeEnv === 'cloud' ? `☁️ SERVER: ${currentLoggedUser.toUpperCase()}` : `💻 LOCAL: ${currentLoggedUser.toUpperCase()}`;
+            text.innerText = envLabel;
+        }
+    }
+}
+
 function connect() {
     const user = document.getElementById('admin-user').value;
     const pass = document.getElementById('admin-pass').value;
@@ -318,6 +339,7 @@ function connect() {
             localStorage.removeItem('admin_pass');
         }
         document.getElementById('login-overlay').style.display = 'none';
+        currentLoggedUser = user;
         const envLabelText = activeEnv === 'cloud' ? `☁️ SERVER: ${user.toUpperCase()}` : `💻 LOCAL: ${user.toUpperCase()}`;
         document.getElementById('conn-dot').classList.add('online');
         document.getElementById('conn-text').innerText = envLabelText;
@@ -469,6 +491,9 @@ function connect() {
     socket.on('disconnect', () => {
         document.getElementById('conn-dot').classList.remove('online');
         document.getElementById('conn-text').innerText = "OFFLINE";
+        usernameHidden = false;
+        const eyeBtn = document.getElementById('eye-toggle');
+        if (eyeBtn) { eyeBtn.textContent = '👁'; eyeBtn.title = 'Ocultar/Mostrar nombre'; }
     });
 
     socket.on('connect_error', (e) => {

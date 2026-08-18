@@ -94,6 +94,22 @@ header {
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
 .status-dot.online { background: var(--success); box-shadow: 0 0 8px var(--success); }
 
+.eye-toggle {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+}
+.eye-toggle:hover { opacity: 1; background: rgba(255,255,255,0.08); }
+
 /* --- LAYOUT --- */
 main { display: flex; flex: 1; overflow: hidden; }
 

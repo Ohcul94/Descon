@@ -922,6 +922,8 @@ function registerInventoryHandlers(socket, io, state) {
             const isAmmo = resultCategory === 'ammo';
             
             let craftedItemConfig = null;
+            let shipItem = null;
+            let craftItem = null;
             if (!isShip && !isAmmo) {
                 const allItems = [
                     ...(state.SERVER_CONFIG.shopItems.weapons || []),
@@ -945,8 +947,10 @@ function registerInventoryHandlers(socket, io, state) {
                 if (id.startsWith('las') || id.startsWith('w')) type = "weapon";
                 else if (id.startsWith('sh') || id.startsWith('s')) type = "shield";
                 else if (id.startsWith('en') || id.startsWith('e')) type = "engine";
+                // v700.0: Esferas fabricadas = ítems consumibles (se pueden vender en el Mercado)
+                if (type === "sphere") type = "consumible";
 
-                const newItem = {
+                craftItem = {
                     id: craftedItemConfig.id,
                     name: craftedItemConfig.name,
                     type: type,
@@ -954,10 +958,34 @@ function registerInventoryHandlers(socket, io, state) {
                     instanceId: "",
                     rarity: craftedItemConfig.rarity || 0,
                     color: craftedItemConfig.color || "#ffffff",
-                    icon: craftedItemConfig.icon || ""
+                    icon: craftedItemConfig.icon || "",
+                    sphereColor: craftedItemConfig.sphereColor || "",
+                    soulbound: false
                 };
+            } else if (isShip) {
+                // v700.0: Las naves fabricadas llegan como ÍTEM CONSUMIBLE al inventario.
+                // Se pueden vender/comprar en el Mercado y luego USAR para desbloquear la nave en el hangar.
+                const shipId = parseInt(resultItemId);
+                const shipMaster = (state.SERVER_CONFIG.shipModels || []).find(s => String(s.id) === String(shipId));
+                if (!shipMaster || shipMaster.hidden) {
+                    return socket.emit('gameNotification', { msg: 'ERROR: Receta no disponible.', type: 'error' });
+                }
+                shipItem = {
+                    id: "ship_" + String(shipId),
+                    name: shipMaster.name,
+                    type: "consumible",
+                    base: 0,
+                    instanceId: "",
+                    rarity: 0,
+                    color: shipMaster.color || "#ffffff",
+                    icon: shipMaster.icon || "",
+                    grantShip: shipId,
+                    soulbound: false
+                };
+            }
 
-                // Dry run check
+            // Dry run check (espacio en inventario) para ítems y naves
+            if (!isAmmo) {
                 const tempUser = { gameData: { inventory: JSON.parse(JSON.stringify(user.gameData.inventory)), inventoryMaxSlots: user.gameData.inventoryMaxSlots } };
                 ingredients.forEach(ing => {
                     let toRemove = ing.amount;
@@ -976,7 +1004,7 @@ function registerInventoryHandlers(socket, io, state) {
                     }
                 });
 
-                const remaining = addItemToInventory(tempUser, newItem, state.SERVER_CONFIG, recipe.resultAmount || 1);
+                const remaining = addItemToInventory(tempUser, isShip ? shipItem : craftItem, state.SERVER_CONFIG, recipe.resultAmount || 1);
                 if (remaining > 0) {
                     return socket.emit('gameNotification', { msg: `INVENTARIO LLENO: Libera espacio para recibir el ítem fabricado.`, type: 'error' });
                 }
@@ -1007,26 +1035,10 @@ function registerInventoryHandlers(socket, io, state) {
             const resultAmount = recipe.resultAmount || 1;
             
             if (isShip) {
-                const shipId = parseInt(resultItemId);
-                // v620.0: Ojito de visibilidad — naves hidden no se pueden fabricar
-                const shipMaster = (state.SERVER_CONFIG.shipModels || []).find(s => String(s.id) === String(shipId));
-                if (shipMaster && shipMaster.hidden) {
-                    return socket.emit('gameNotification', { msg: 'ERROR: Receta no disponible.', type: 'error' });
-                }
-                if (!user.gameData.ownedShips.includes(shipId)) {
-                    user.gameData.ownedShips.push(shipId);
-                    user.markModified('gameData.ownedShips');
-                    if (!user.gameData.equippedByShip) user.gameData.equippedByShip = {};
-                    let ebs = user.gameData.equippedByShip;
-                    let hasKey = (ebs instanceof Map) ? ebs.has(String(shipId)) : ebs[String(shipId)];
-                    if (!hasKey) {
-                        if (ebs instanceof Map) ebs.set(String(shipId), { w: [], s: [], e: [], x: [] });
-                        else ebs[String(shipId)] = { w: [], s: [], e: [], x: [] };
-                        user.markModified('gameData.equippedByShip');
-                    }
-                } else {
-                    return socket.emit('gameNotification', { msg: 'ERROR: Ya posees esta nave.', type: 'error' });
-                }
+                // v700.0: Entrega como ítem consumible (vendible en el Mercado). El jugador
+                // debe USARLO para desbloquear la nave en su hangar.
+                const newShipItem = { ...shipItem, instanceId: Date.now() + Math.random().toString(36).substr(2, 5) };
+                addItemToInventory(user, newShipItem, state.SERVER_CONFIG, resultAmount);
             } else if (isAmmo) {
                 // v620.0: Ojito de visibilidad — munición hidden no se puede fabricar
                 if (visibilityGuard.isItemConfigHidden(state.SERVER_CONFIG, 'ammo', resultItemId)) {
@@ -1064,23 +1076,7 @@ function registerInventoryHandlers(socket, io, state) {
                 user.markModified(`gameData.ammo.${ammoType}`);
                 user.markModified('gameData.ammo');
             } else {
-                let type = (craftedItemConfig.type || "utility").toLowerCase();
-                const id = craftedItemConfig.id.toLowerCase();
-                if (id.startsWith('las') || id.startsWith('w')) type = "weapon";
-                else if (id.startsWith('sh') || id.startsWith('s')) type = "shield";
-                else if (id.startsWith('en') || id.startsWith('e')) type = "engine";
-
-                const newItem = {
-                    id: craftedItemConfig.id,
-                    name: craftedItemConfig.name,
-                    type: type,
-                    base: craftedItemConfig.base || 0,
-                    instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
-                    rarity: craftedItemConfig.rarity || 0,
-                    color: craftedItemConfig.color || "#ffffff",
-                    icon: craftedItemConfig.icon || ""
-                };
-
+                const newItem = { ...craftItem, instanceId: Date.now() + Math.random().toString(36).substr(2, 5) };
                 addItemToInventory(user, newItem, state.SERVER_CONFIG, resultAmount);
             }
 
@@ -1103,6 +1099,77 @@ function registerInventoryHandlers(socket, io, state) {
         } catch (e) {
             console.error('[CRAFTING-ERROR]', e);
             socket.emit('gameNotification', { msg: 'Error interno al procesar el crafteo.', type: 'error' });
+        }
+    });
+
+    // v700.0: USAR ÍTEM CONSUMIBLE (ej: nave fabricada/comprada → desbloquea la nave en el hangar)
+    socket.on('useConsumableItem', async (data) => {
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+
+        if (p.isExtracting) {
+            return socket.emit('gameNotification', { msg: 'BODEGA BLOQUEADA: No puedes usar ítems durante una Raid de extracción.', type: 'error' });
+        }
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            return socket.emit('gameNotification', {
+                msg: `ERROR: Sistemas calientes. Espera ${lock.remaining}s fuera de combate para usar ítems.`,
+                type: 'error'
+            });
+        }
+
+        try {
+            const { instanceId } = data;
+            const user = getPlayerRAMAdapter(p);
+            if (!user) return;
+
+            const inventory = user.gameData.inventory || [];
+            const idx = inventory.findIndex(it => it.instanceId === instanceId);
+            if (idx === -1) {
+                return socket.emit('gameNotification', { msg: 'Ítem no encontrado en tu inventario.', type: 'error' });
+            }
+            const item = inventory[idx];
+            const itype = String(item.type || '').toLowerCase();
+            if (itype !== 'consumible' || item.grantShip === undefined) {
+                return socket.emit('gameNotification', { msg: 'Este ítem no es utilizable.', type: 'error' });
+            }
+
+            const shipId = parseInt(item.grantShip);
+            const shipMaster = (state.SERVER_CONFIG.shipModels || []).find(s => String(s.id) === String(shipId));
+            if (!shipMaster || shipMaster.hidden) {
+                return socket.emit('gameNotification', { msg: 'ERROR: Nave no disponible.', type: 'error' });
+            }
+            const ownedIds = (user.gameData.ownedShips || []).map(String);
+            if (ownedIds.includes(String(shipId))) {
+                return socket.emit('gameNotification', { msg: `Ya posees la nave ${shipMaster.name}. No la pierdas: vende el ítem a otro piloto.`, type: 'error' });
+            }
+
+            // Consumir el ítem y otorgar la nave al hangar
+            inventory.splice(idx, 1);
+            if (!user.gameData.ownedShips) user.gameData.ownedShips = [];
+            user.gameData.ownedShips.push(shipId);
+            user.markModified('gameData.ownedShips');
+            if (!user.gameData.equippedByShip) user.gameData.equippedByShip = {};
+            let ebs = user.gameData.equippedByShip;
+            let hasKey = (ebs instanceof Map) ? ebs.has(String(shipId)) : ebs[String(shipId)];
+            if (!hasKey) {
+                if (ebs instanceof Map) ebs.set(String(shipId), { w: [], s: [], e: [], x: [] });
+                else ebs[String(shipId)] = { w: [], s: [], e: [], x: [] };
+                user.markModified('gameData.equippedByShip');
+            }
+
+            user.markModified('gameData.inventory');
+            user.markModified('gameData');
+            await user.save();
+            socket.dbUser = user;
+
+            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+
+            sendInventoryData(socket, user);
+            socket.emit('gameNotification', { msg: `🎉 ¡NAVE DESBLOQUEADA: ${shipMaster.name}! Ya está en tu hangar.`, type: 'success' });
+        } catch (e) {
+            console.error('[USE-CONSUMABLE-ERROR]', e);
+            socket.emit('gameNotification', { msg: 'Error interno al usar el ítem.', type: 'error' });
         }
     });
 }

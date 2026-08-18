@@ -487,6 +487,7 @@ func _create_item_row(it, parent):
 	var item_id = str(it.get("id", "")).to_lower()
 	var item_type = str(it.get("type", "")).to_lower()
 	var is_material_or_recipe = (item_type == "resource" or item_type == "recipe" or item_id.begins_with("mat_") or item_id.begins_with("recipe_"))
+	var is_consumible = (item_type == "consumible")
 	
 	var item_slot = inv_main._get_slot_from_id(item_id)
 	var slot_color = Color.CYAN
@@ -605,96 +606,98 @@ func _create_item_row(it, parent):
 	
 	var action_hb = HBoxContainer.new(); action_hb.add_theme_constant_override("separation", 5); hb.add_child(action_hb)
 	
-	var b_sell = Button.new(); b_sell.text = "VENDER"; b_sell.modulate = Color(1, 0.4, 0.4); b_sell.add_theme_font_size_override("font_size", 8)
-	b_sell.pressed.connect(func():
-		# v308.5: Validación previa de combate en cliente antes de confirmar
-		var player_node = get_tree().get_first_node_in_group("player")
-		if is_instance_valid(player_node):
-			var time_since_combat = Time.get_ticks_msec() - player_node.last_combat_time
-			var combat_delay = 60000 # Cooldown autoritativo de 60s
-			if time_since_combat < combat_delay:
-				var remaining = int(ceil((combat_delay - time_since_combat) / 1000.0))
-				NetworkManager.game_notification.emit({
-					"msg": "ERROR: Sistemas calientes. Espera " + str(remaining) + "s para vender.", 
-					"type": "error"
-				})
-				return
+	# v700.0: Los ítems consumibles (naves/esferas fabricadas) no se venden a NPC — se comercian en el Mercado
+	if not is_consumible:
+		var b_sell = Button.new(); b_sell.text = "VENDER"; b_sell.modulate = Color(1, 0.4, 0.4); b_sell.add_theme_font_size_override("font_size", 8)
+		b_sell.pressed.connect(func():
+			# v308.5: Validación previa de combate en cliente antes de confirmar
+			var player_node = get_tree().get_first_node_in_group("player")
+			if is_instance_valid(player_node):
+				var time_since_combat = Time.get_ticks_msec() - player_node.last_combat_time
+				var combat_delay = 60000 # Cooldown autoritativo de 60s
+				if time_since_combat < combat_delay:
+					var remaining = int(ceil((combat_delay - time_since_combat) / 1000.0))
+					NetworkManager.game_notification.emit({
+						"msg": "ERROR: Sistemas calientes. Espera " + str(remaining) + "s para vender.", 
+						"type": "error"
+					})
+					return
 
-		var single_refund = 0
-		for cat_key in GameConstants.SHOP_ITEMS:
-			var category = GameConstants.SHOP_ITEMS[cat_key]
-			if category is Array:
-				for shop_item in category:
-					if str(shop_item.get("id", "")).to_lower() == search_id:
-						var prices = shop_item.get("prices", {})
-						if prices.has("hubs"):
-							single_refund = int(prices["hubs"] / 2)
-							break
-			if single_refund > 0: break
-		
-		var msg_name = str(it.get("name", "ITEM")).to_upper()
-		
-		if amount > 1:
-			var slider_container = VBoxContainer.new()
-			slider_container.add_theme_constant_override("separation", 10)
+			var single_refund = 0
+			for cat_key in GameConstants.SHOP_ITEMS:
+				var category = GameConstants.SHOP_ITEMS[cat_key]
+				if category is Array:
+					for shop_item in category:
+						if str(shop_item.get("id", "")).to_lower() == search_id:
+							var prices = shop_item.get("prices", {})
+							if prices.has("hubs"):
+								single_refund = int(prices["hubs"] / 2)
+								break
+				if single_refund > 0: break
 			
-			var val_lbl = Label.new()
-			val_lbl.text = "Cantidad a vender:"
-			val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			slider_container.add_child(val_lbl)
+			var msg_name = str(it.get("name", "ITEM")).to_upper()
 			
-			var input_hb = HBoxContainer.new()
-			input_hb.alignment = BoxContainer.ALIGNMENT_CENTER
-			input_hb.add_theme_constant_override("separation", 10)
-			slider_container.add_child(input_hb)
-			
-			var slider = HSlider.new()
-			slider.min_value = 1
-			slider.max_value = amount
-			slider.value = amount
-			slider.step = 1
-			slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			input_hb.add_child(slider)
-			
-			var input_edit = LineEdit.new()
-			input_edit.text = str(amount)
-			input_edit.custom_minimum_size.x = 65
-			input_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
-			input_hb.add_child(input_edit)
+			if amount > 1:
+				var slider_container = VBoxContainer.new()
+				slider_container.add_theme_constant_override("separation", 10)
+				
+				var val_lbl = Label.new()
+				val_lbl.text = "Cantidad a vender:"
+				val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				slider_container.add_child(val_lbl)
+				
+				var input_hb = HBoxContainer.new()
+				input_hb.alignment = BoxContainer.ALIGNMENT_CENTER
+				input_hb.add_theme_constant_override("separation", 10)
+				slider_container.add_child(input_hb)
+				
+				var slider = HSlider.new()
+				slider.min_value = 1
+				slider.max_value = amount
+				slider.value = amount
+				slider.step = 1
+				slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				input_hb.add_child(slider)
+				
+				var input_edit = LineEdit.new()
+				input_edit.text = str(amount)
+				input_edit.custom_minimum_size.x = 65
+				input_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
+				input_hb.add_child(input_edit)
 
-			var refund_lbl = Label.new()
-			refund_lbl.text = "(Reembolso: " + str(single_refund * amount) + " HUBS)"
-			refund_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			slider_container.add_child(refund_lbl)
-			
-			slider.value_changed.connect(func(val):
-				input_edit.text = str(int(val))
-				refund_lbl.text = "(Reembolso: " + str(single_refund * int(val)) + " HUBS)"
-			)
-			
-			input_edit.text_changed.connect(func(new_text):
-				var val = int(new_text)
-				if val < 1: val = 1
-				elif val > amount: val = amount
-				slider.value = val
-				refund_lbl.text = "(Reembolso: " + str(single_refund * val) + " HUBS)"
-			)
-			
-			input_edit.text_submitted.connect(func(_new_text):
-				input_edit.release_focus()
-			)
-			
-			var msg = "¿Confirmas la venta de parte de [color=yellow]" + msg_name + "[/color]?"
-			inv_main._show_modal("CONFIRMAR VENTA PARCIAL", msg, func():
-				NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", ""), "quantity": int(slider.value)})
-			, slider_container)
-		else:
-			var msg = "¿Confirmas la venta de [color=yellow]" + msg_name + "[/color] por [color=green]" + str(single_refund) + " HUBS[/color]?"
-			inv_main._show_modal("CONFIRMAR VENTA", msg, func():
-				NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", "")})
-			)
-	)
-	action_hb.add_child(b_sell)
+				var refund_lbl = Label.new()
+				refund_lbl.text = "(Reembolso: " + str(single_refund * amount) + " HUBS)"
+				refund_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				slider_container.add_child(refund_lbl)
+				
+				slider.value_changed.connect(func(val):
+					input_edit.text = str(int(val))
+					refund_lbl.text = "(Reembolso: " + str(single_refund * int(val)) + " HUBS)"
+				)
+				
+				input_edit.text_changed.connect(func(new_text):
+					var val = int(new_text)
+					if val < 1: val = 1
+					elif val > amount: val = amount
+					slider.value = val
+					refund_lbl.text = "(Reembolso: " + str(single_refund * val) + " HUBS)"
+				)
+				
+				input_edit.text_submitted.connect(func(_new_text):
+					input_edit.release_focus()
+				)
+				
+				var msg = "¿Confirmas la venta de parte de [color=yellow]" + msg_name + "[/color]?"
+				inv_main._show_modal("CONFIRMAR VENTA PARCIAL", msg, func():
+					NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", ""), "quantity": int(slider.value)})
+				, slider_container)
+			else:
+				var msg = "¿Confirmas la venta de [color=yellow]" + msg_name + "[/color] por [color=green]" + str(single_refund) + " HUBS[/color]?"
+				inv_main._show_modal("CONFIRMAR VENTA", msg, func():
+					NetworkManager.send_event("sellItem", {"instanceId": it.get("instanceId", "")})
+				)
+		)
+		action_hb.add_child(b_sell)
 
 	if amount > 1:
 		var b_split = Button.new(); b_split.text = "SEPARAR"; b_split.modulate = Color(0.4, 0.8, 1); b_split.add_theme_font_size_override("font_size", 8)
@@ -755,7 +758,7 @@ func _create_item_row(it, parent):
 		)
 		action_hb.add_child(b_split)
 
-	if not is_material_or_recipe:
+	if not is_material_or_recipe and not is_consumible:
 		var b_equip = Button.new(); b_equip.text = "EQUIPAR"; b_equip.add_theme_font_size_override("font_size", 9); action_hb.add_child(b_equip)
 		var equip_func = func():
 			var player_node = get_tree().get_first_node_in_group("player")
@@ -800,6 +803,18 @@ func _create_item_row(it, parent):
 			if ev is InputEventMouseButton and ev.pressed and ev.double_click:
 				equip_func.call()
 		)
+
+	# v700.0: Ítems consumibles (naves fabricadas/compradas en el Mercado) — botón USAR para desbloquear
+	if is_consumible:
+		var b_use = Button.new(); b_use.text = "USAR"; b_use.modulate = Color(0.5, 1, 0.6); b_use.add_theme_font_size_override("font_size", 9)
+		b_use.pressed.connect(func():
+			var iid = it.get("instanceId", "")
+			var use_msg = "¿Deseas usar [color=yellow]" + str(it.get("name", "ITEM")).to_upper() + "[/color]? Se consumirá el ítem."
+			inv_main._show_modal("USAR ÍTEM", use_msg, func():
+				NetworkManager.send_event("useConsumableItem", {"instanceId": iid})
+			)
+		)
+		action_hb.add_child(b_use)
 	parent.add_child(p)
 
 func _get_fallback_icon(id: String) -> String:
