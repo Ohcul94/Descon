@@ -1,4 +1,4 @@
-{
+﻿{
   "ambienceLib": {
     "blindness_hazard": {
       "desc": "Oscurece la pantalla de todos los jugadores periódicamente.",
@@ -9398,7 +9398,7 @@
           "hubs": 0,
           "ohcu": 0
         },
-        "icon": "res://assets/Crafteo/Esferilio/Esferilio Rojo/Esferilio Rojo.jfif",
+        "icon": "res://assets/Crafteo/Esferilio/Esferilio Rojo/Esferilio Rojo.png",
         "color": "#a0403c",
         "type": "resource",
         "tags": [
@@ -9414,7 +9414,7 @@
           "hubs": 0,
           "ohcu": 0
         },
-        "icon": "res://assets/Crafteo/Esferilio/Esferilio Azul/Esferilio Azul.jfif",
+        "icon": "res://assets/Crafteo/Esferilio/Esferilio Azul/Esferilio Azul.png",
         "color": "#2f8782",
         "type": "resource",
         "tags": [
@@ -9430,7 +9430,7 @@
           "hubs": 0,
           "ohcu": 0
         },
-        "icon": "res://assets/Crafteo/Esferilio/Esferilio Verde/Esferilio Verde.jfif",
+        "icon": "res://assets/Crafteo/Esferilio/Esferilio Verde/Esferilio Verde.png",
         "color": "#527e2d",
         "type": "resource",
         "tags": [
@@ -9446,7 +9446,7 @@
           "hubs": 0,
           "ohcu": 0
         },
-        "icon": "res://assets/Crafteo/Esferilio/Esferilio Amarillo/Esferilio Amarillo.jfif",
+        "icon": "res://assets/Crafteo/Esferilio/Esferilio Amarillo/Esferilio Amarillo.png",
         "color": "#bfcd42",
         "type": "resource",
         "tags": [

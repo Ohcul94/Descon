@@ -1,4 +1,5 @@
 const sphereUtils = require('../systems/equipRequirements');
+const { checkAndProcessDeathDrop } = require('../systems/deathDropHelper');
 
 const normalizeZone = (z) => {
     if (z === undefined || z === null) return 1;
@@ -25,6 +26,14 @@ module.exports = class BaseAI {
         this.state = state;
         this.lastAction = 0;
         this._isDefenseSkillActive = false; // v269.195: Flag interno único para IA
+    }
+
+    // v_fix_dead: Helper centralizado para matar jugadores desde IA de bosses
+    // Garantiza que checkAndProcessDeathDrop se llame siempre (drop de items en mapas full_drop/partial_drop/inferno)
+    _killPlayer(p, io) {
+        if (p.isDead) return; // Ya estaba muerto, no re-procesar
+        p.isDead = true;
+        checkAndProcessDeathDrop(p, io, this.state);
     }
 
     update(grid, players, now, io) {
@@ -1148,7 +1157,7 @@ module.exports = class BaseAI {
                                 p.shield = 0;
                             }
                             if (p.hp < 0) p.hp = 0;
-                            if (p.hp <= 0) p.isDead = true;
+                            if (p.hp <= 0) this._killPlayer(p, io);
 
                             // v400.30: Reflejo autoritativo de habilidades directas en servidor
                             if (p.reflectActive && !p.isInvulnerable) {
@@ -1299,7 +1308,7 @@ module.exports = class BaseAI {
                                 p.shield = 0;
                             }
                             if (p.hp < 0) p.hp = 0;
-                            if (p.hp <= 0) p.isDead = true;
+                            if (p.hp <= 0) this._killPlayer(p, io);
 
                             // v400.30: Reflejo autoritativo de habilidades directas en servidor
                             if (p.reflectActive && !p.isInvulnerable) {
@@ -1421,7 +1430,7 @@ module.exports = class BaseAI {
                                 p.shield = 0;
                             }
                             if (p.hp < 0) p.hp = 0;
-                            if (p.hp <= 0) p.isDead = true;
+                            if (p.hp <= 0) this._killPlayer(p, io);
 
                             // v400.30: Reflejo autoritativo de habilidades directas en servidor
                             if (p.reflectActive && !p.isInvulnerable) {
@@ -1601,7 +1610,7 @@ module.exports = class BaseAI {
                                     p.shield = 0;
                                 }
                                 if (p.hp < 0) p.hp = 0;
-                                if (p.hp <= 0) p.isDead = true;
+                                if (p.hp <= 0) this._killPlayer(p, io);
 
                                 // Reflejo autoritativo
                                 if (p.reflectActive && !p.isInvulnerable) {
@@ -1746,7 +1755,7 @@ module.exports = class BaseAI {
                     p.shield = 0;
                 }
                 if (p.hp < 0) p.hp = 0;
-                if (p.hp <= 0) p.isDead = true;
+                if (p.hp <= 0) this._killPlayer(p, io);
 
                 // v400.30: Reflejo autoritativo de habilidades directas en servidor
                 if (p.reflectActive && !p.isInvulnerable) {
@@ -2024,7 +2033,7 @@ module.exports = class BaseAI {
                     p.shield = 0;
                 }
                 if (p.hp < 0) p.hp = 0;
-                if (p.hp <= 0) p.isDead = true;
+                if (p.hp <= 0) this._killPlayer(p, io);
 
                 // v400.30: Reflejo autoritativo
                 if (p.reflectActive && !p.isInvulnerable) {
@@ -2240,7 +2249,7 @@ module.exports = class BaseAI {
                         p.shield = 0;
                     }
                     if (p.hp < 0) p.hp = 0;
-                    if (p.hp <= 0) p.isDead = true;
+                    if (p.hp <= 0) this._killPlayer(p, io);
 
                     // v400.30: Reflejo autoritativo
                     if (p.reflectActive && !p.isInvulnerable) {
@@ -2660,7 +2669,7 @@ module.exports = class BaseAI {
                         p.shield = 0;
                     }
                     if (p.hp < 0) p.hp = 0;
-                    if (p.hp <= 0) p.isDead = true;
+                    if (p.hp <= 0) this._killPlayer(p, io);
 
                     // v400.30: Reflejo autoritativo
                     if (p.reflectActive && !p.isInvulnerable) {
@@ -2734,7 +2743,7 @@ module.exports = class BaseAI {
                             p.shield = 0;
                         }
                         if (p.hp < 0) p.hp = 0;
-                        if (p.hp <= 0) p.isDead = true;
+                        if (p.hp <= 0) this._killPlayer(p, io);
                         if (p.reflectActive && !p.isInvulnerable) {
                             const reflectedDmg = Math.round(zoneDamage * 0.8);
                             if (reflectedDmg > 0) {
@@ -3005,7 +3014,7 @@ module.exports = class BaseAI {
                         p.shield = 0;
                     }
                     if (p.hp < 0) p.hp = 0;
-                    if (p.hp <= 0) p.isDead = true;
+                    if (p.hp <= 0) this._killPlayer(p, io);
 
                     // v400.30: Reflejo autoritativo
                     if (p.reflectActive && !p.isInvulnerable) {
@@ -4017,7 +4026,7 @@ module.exports = class BaseAI {
                             if (p.shield >= dmg) p.shield -= dmg;
                             else { p.hp -= (dmg - p.shield); p.shield = 0; }
                             if (p.hp < 0) p.hp = 0;
-                            if (p.hp <= 0) p.isDead = true;
+                            if (p.hp <= 0) this._killPlayer(p, io);
 
                             // v400.30: Reflejo autoritativo de habilidades directas en servidor
                             if (p.reflectActive && !p.isInvulnerable) {
@@ -4573,7 +4582,7 @@ module.exports = class BaseAI {
                                 p.shield = 0;
                             }
                             if (p.hp < 0) p.hp = 0;
-                            if (p.hp <= 0) p.isDead = true;
+                            if (p.hp <= 0) this._killPlayer(p, io);
 
                             io.to(p.socketId).emit('environmentDamage', { damage: dmg });
 

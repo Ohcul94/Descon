@@ -218,7 +218,7 @@ module.exports = class CloneAI extends BaseAI {
                             p.shield = 0;
                         }
                         if (p.hp < 0) p.hp = 0;
-                        if (p.hp <= 0) p.isDead = true;
+                        if (p.hp <= 0) this._killPlayer(p, io);
 
                         io.to(p.socketId).emit('environmentDamage', { damage: damage });
                         io.to(`zone_${p.zone}`).emit('playerStatSync', {

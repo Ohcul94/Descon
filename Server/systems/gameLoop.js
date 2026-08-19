@@ -494,7 +494,7 @@ function startGameLoop(io, state, aiManager) {
             }
 
             const timeSinceCombat = now - (p.lastCombatTime || 0);
-            if (timeSinceCombat > 10000 && !p.isAsleep) { // 10s fuera de combate y no durmiendo
+            if (timeSinceCombat > 10000 && !p.isAsleep && !p.isDead) { // 10s fuera de combate, no dormido y no muerto
                 const regenAmount = p.maxHp * 0.05;
                 const shieldRegen = p.maxShield * 0.08;
 

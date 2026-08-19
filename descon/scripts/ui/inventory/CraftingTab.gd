@@ -227,7 +227,10 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 	sb.content_margin_bottom = 10
 	
 	# Renderizado del icono/asset del item resultante con CenterContainer y escala
+	# v713: fallback al icon de la receta si el item resultante no está en shopItems (ej: naves en shipModels)
 	var icon_path = _get_item_icon(recipe.get("resultCategory", ""), recipe.get("resultItemId", ""))
+	if icon_path.is_empty():
+		icon_path = recipe.get("icon", "")
 	var tex_container = CenterContainer.new()
 	v.add_child(tex_container)
 	

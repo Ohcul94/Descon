@@ -4,6 +4,7 @@
  */
 const User = require('../models/User');
 const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
+const { checkAndProcessDeathDrop } = require('./deathDropHelper');
 const lootManager = require('./lootManager');
 const { processEnemyKillsForUser } = require('./questHandlers');
 const { awardBattlePassExpServer } = require('./battlePassHandlers');
@@ -31,7 +32,13 @@ function executeEnemyExplosion(enemy, io, state) {
         if (dist <= radius) {
             if (p.shield >= damage) p.shield -= damage;
             else { p.hp -= (damage - p.shield); p.shield = 0; }
-            if (p.hp <= 0) { p.hp = 0; p.isDead = true; }
+            if (p.hp <= 0) { 
+                p.hp = 0; 
+                if (!p.isDead) {
+                    p.isDead = true; 
+                    checkAndProcessDeathDrop(p, io, state);
+                }
+            }
             p.lastCombatTime = Date.now();
             io.to(`zone_${p.zone}`).emit('playerStatSync', { 
                 id: p.socketId, hp: Math.max(0, p.hp), shield: p.shield, 
