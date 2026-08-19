@@ -1242,6 +1242,11 @@ func _on_login_success(p_in):
 
 		current_hp = float(gd.get("hp", max_hp)) 
 		current_shield = float(gd.get("shield", max_shield))
+		# v_fix_dead: Guardia de seguridad — si venimos con hp=0 de la DB (legacy o bug), restaurar al loguear
+		if current_hp <= 0:
+			current_hp = max_hp
+			current_shield = max_shield
+			print("[PLAYER] AVISO: HP restaurado al loguear (estaba en 0 en DB)")
 		_recalculate_stats()
 		
 		# v221.35: Sincronía inicial con el HUD

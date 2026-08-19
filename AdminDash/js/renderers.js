@@ -6899,6 +6899,8 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
         }
 
         // ── MODO UPLOAD: Leer el archivo y copiarlo al servidor (crafteo / recursos) ──
+        // v712: Normalizar la imagen a máx 1024px antes de subirla (compatibilidad AdminDash + juego)
+        const normalizedFile = await normalizeImageForUpload(file, 1024);
         const reader = new FileReader();
         reader.onload = async () => {
             const base64Data = reader.result.split(',')[1];
@@ -6939,10 +6941,53 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                 alert('Error al conectar con el servidor para subir el archivo.');
             }
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(normalizedFile);
     };
     input.click();
 };
+
+// v712: Redimensiona una imagen a máx N px (preservando proporción) usando canvas.
+// Devuelve un File normalizado (PNG si tenía transparencia, JPEG en caso contrario).
+async function normalizeImageForUpload(file, maxDim) {
+    if (!file || (file.type !== 'image/png' && file.type !== 'image/jpeg' && file.type !== 'image/webp')) return file;
+    try {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = url;
+        });
+        URL.revokeObjectURL(url);
+
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        if (!w || !h) return file;
+        if (Math.max(w, h) <= maxDim) return file;
+
+        const scale = maxDim / Math.max(w, h);
+        const nw = Math.max(1, Math.round(w * scale));
+        const nh = Math.max(1, Math.round(h * scale));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = nw;
+        canvas.height = nh;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, nw, nh);
+
+        const mime = (file.type === 'image/jpeg') ? 'image/jpeg' : 'image/png';
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, 0.92));
+        if (!blob) return file;
+        const baseName = file.name.replace(/\.(png|jpe?g|webp)$/i, '');
+        const newName = baseName + (mime === 'image/jpeg' ? '.jpg' : '.png');
+        return new File([blob], newName, { type: mime });
+    } catch (e) {
+        console.warn('[NORMALIZE] No se pudo normalizar, se sube original:', e);
+        return file;
+    }
+}
 
 // ─── ASSET PICKER ───────────────────────────────────────────────────────────
 window._assetPickerState = { idx: 0, type: 'resource' };

@@ -730,7 +730,7 @@ const handleUserLogin = async (socket, user, username) => {
         lastCombatTime: 0,
         clanId: user.gameData.clanId,
         isInvulnerable: false,
-        isDead: (user.gameData.hp !== undefined && user.gameData.hp <= 0),
+        isDead: false, // v_fix_dead: La muerte es estado en tiempo real, nunca se carga de la DB
         isAdmin: (user.username.toLowerCase() === "caelli94"), // v266.700: Bypass Maestro
         
         // v6.02: Persistencia Completa en RAM (Única Fuente de Verdad Activa)
@@ -1123,15 +1123,22 @@ const savePlayerToDB = async (socketId) => {
     if (p.isExtracting) return;
 
     try {
+        // v_fix_dead_exploit: Si el jugador muere y se desconecta, guardar en lobby (zona 1) con posición segura.
+        // Previene el exploit de morir → desconectar → reconectar vivo en el mismo lugar.
+        const isDyingOnDisconnect = p.isDead || (p.hp !== undefined && p.hp <= 0);
+        const startZone = state.SERVER_CONFIG?.pilotConfig?.startingMapId || 1;
+        const safeX = 2000;
+        const safeY = 2000;
+
         await User.updateOne(
             { _id: p.id },
             {
                 $set: {
-                    "gameData.lastPos.x": Math.floor(p.x),
-                    "gameData.lastPos.y": Math.floor(p.y),
-                    "gameData.hp": Math.ceil(p.hp !== undefined ? p.hp : 0),
+                    "gameData.lastPos.x": isDyingOnDisconnect ? safeX : Math.floor(p.x),
+                    "gameData.lastPos.y": isDyingOnDisconnect ? safeY : Math.floor(p.y),
+                    "gameData.hp": Math.max(1, Math.ceil(p.hp !== undefined ? p.hp : 1)), // v_fix_dead: hp mínimo 1 en DB
                     "gameData.shield": Math.ceil(p.shield !== undefined ? p.shield : 0),
-                    "gameData.zone": (typeof p.zone === 'string' ? (p.zone.startsWith('arena_') || p.zone.startsWith('extract_') ? 1 : (isNaN(parseInt(p.zone)) ? 1 : parseInt(p.zone))) : (p.zone !== undefined ? p.zone : 1)),
+                    "gameData.zone": isDyingOnDisconnect ? startZone : (typeof p.zone === 'string' ? (p.zone.startsWith('arena_') || p.zone.startsWith('extract_') ? 1 : (isNaN(parseInt(p.zone)) ? 1 : parseInt(p.zone))) : (p.zone !== undefined ? p.zone : 1)),
                     "gameData.ammo": p.ammo,
                     "gameData.selectedAmmo": p.selectedAmmo,
                     "gameData.inventory": p.inventory,

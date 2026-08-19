@@ -1091,12 +1091,17 @@ func update_stats(data):
 		if is_dead and not dead_on_server:
 			_resurrect(data)
 		elif not is_dead and dead_on_server:
-			die()
+			# v_fix_dead: El jugador LOCAL no muere por señal de red — solo entidades remotas/enemigos.
+			# El jugador local maneja su propia muerte en Player.gd::_physics_process.
+			if not is_in_group("player"):
+				die()
 	elif current_hp > 0 and is_dead:
 		_resurrect(data)
 	elif current_hp <= 0 and not is_dead:
-		# v307.1: Si la vida llega a 0 en la sincronía pero no estamos marcados como muertos, forzar die()
-		die()
+		# v307.1 / v_fix_dead: Solo forzar die() por hp=0 si es entidad remota o enemigo.
+		# El jugador local ya tiene la lógica en _physics_process y en environmentDamage.
+		if not is_in_group("player"):
+			die()
 	
 	
 	# v166.75: Capado de Seguridad (No exceder máximos sincronizados)

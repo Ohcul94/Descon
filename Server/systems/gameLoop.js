@@ -823,7 +823,7 @@ function startGameLoop(io, state, aiManager) {
             // LOBBY OPTIMIZATION: saltar todos los efectos ambientales para jugadores del Lobby
             if (Number(p.zone) !== lobbyZoneIdArea) {
                 const mapConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig ? state.SERVER_CONFIG.mapsConfig[p.zone] : null;
-                if (mapConfig && mapConfig.ambience && p.hp > 0) {
+                if (mapConfig && mapConfig.ambience && p.hp > 0 && !p.isDead) { // v_fix_dead: no aplicar daño ambiental a jugadores ya muertos
                     mapConfig.ambience.forEach((hazard, idx) => {
                         const dmg = hazard.damage || hazard.damagePerSecond || 0;
                         const interval = hazard.intervalMs || 1000;
@@ -1214,15 +1214,23 @@ function startGameLoop(io, state, aiManager) {
                                 if (p.hp < 0) p.hp = 0;
                                 combatTracker.trackDamageTaken(p.socketId, 'vortex', dmg, 'vortex', state);
 
+                                // v_fix_dead: Si el vórtex mata al jugador, marcar correctamente y procesar deathDrop
+                                if (p.hp <= 0 && !p.isDead) {
+                                    p.isDead = true;
+                                    checkAndProcessDeathDrop(p, io, state);
+                                }
+
                                 io.to(p.socketId).emit('environmentDamage', { damage: dmg });
                                 io.to(`zone_${p.zone}`).emit('playerStatSync', {
                                     id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield),
-                                    maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.hp <= 0
+                                    maxHp: p.maxHp, maxShield: p.maxShield, isDead: p.isDead
                                 });
                             }
 
-                            // Sincronizar posición forzada por succión
-                            io.to(p.socketId).emit('playerStatSync', { id: p.socketId, x: p.x, y: p.y });
+                            // Sincronizar posición forzada por succión (solo si sigue vivo)
+                            if (!p.isDead) {
+                                io.to(p.socketId).emit('playerStatSync', { id: p.socketId, x: p.x, y: p.y });
+                            }
                         }
                         
                         // v2.5: Repulsión Física Plana por Barrera de Viento

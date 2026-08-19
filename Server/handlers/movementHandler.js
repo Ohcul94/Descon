@@ -275,7 +275,11 @@ function registerMovementHandlers(socket, io, state) {
         p.x = targetX;
         p.y = targetY;
         
-        if (respawnData.zone) p.zone = Number(respawnData.zone);
+        // v_fix_dead: Validar zona — nunca persistir zonas especiales (arena_, extract_, dungeon_)
+        if (respawnData.zone) {
+            const rz = Number(respawnData.zone);
+            p.zone = (!isNaN(rz) && rz > 0 && rz < 1000) ? rz : 1;
+        }
         const targetZone = p.zone;
 
         if (oldZone !== targetZone) {
