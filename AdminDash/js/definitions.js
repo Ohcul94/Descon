@@ -38,6 +38,20 @@ const DEFAULT_MOVEMENT_LIB = {
     "boss": { label: "Cerebro de Boss (Fases)", icon: "💀", desc: "Cerebro de Boss con fases de combate (láser, embestida y misiles).", fields: ["speed", "stopDist", "startDelay"] }
 };
 
+// v500.0: Definición de Campos de Condiciones para Fases Dinámicas
+const MOVEMENT_CONDITION_FIELDS = [
+    { key: 'engagement', label: '⚡ Estado de Combate', type: 'select',
+      options: [
+        { value: 'idle', label: '🪫 Reposo (fuera de combate)' },
+        { value: 'combat', label: '⚔️ En combate' },
+        { value: 'returning', label: '↩️ Regresando al spawn' }
+      ]},
+    { key: 'hpPercentBelow', label: '❤️ HP por debajo de (%)', type: 'number', min: 0, max: 100 },
+    { key: 'shieldPercentBelow', label: '🛡️ Escudo por debajo de (%)', type: 'number', min: 0, max: 100 },
+    { key: 'timeInCombatMs', label: '⏱️ Tiempo en combate (ms)', type: 'number', min: 0 },
+    { key: 'timeSinceSpawnMs', label: '🕐 Tiempo desde spawn (ms)', type: 'number', min: 0 }
+];
+
 // v266.300: Definición de Mecánicas de Defensa
 const DEFAULT_DEFENSE_LIB = {
     "basic_defense": { label: "Defensa Estándar", icon: "🛡️", desc: "Mecánica de mitigación de daño y regeneración.", fields: ["reductionPercentage", "shieldRegen", "duration", "cooldown", "startDelay"] },

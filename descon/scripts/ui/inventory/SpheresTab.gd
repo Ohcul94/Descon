@@ -269,7 +269,7 @@ func _render_spheres_equipment(tab, sub_tabs):
 	# v760.0: Banner de selección de esfera (flujo instalación desde un slot)
 	if inv_main.get("pending_sphere_slot") != null and int(inv_main.pending_sphere_slot) >= 0:
 		var banner = Label.new()
-		banner.text = "➡️ SELECCIONÁ UNA ESFERA EN 'MIS ESFERAS' PARA EL " + str(sm.spheres_data[inv_main.pending_sphere_slot].get("name", "SLOT")).to_upper()
+		banner.text = ">> SELECCIONA UNA ESFERA EN 'MIS ESFERAS' PARA EL " + str(sm.spheres_data[inv_main.pending_sphere_slot].get("name", "SLOT")).to_upper()
 		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		banner.modulate = Color.YELLOW
 		banner.add_theme_font_size_override("font_size", 10)
@@ -282,7 +282,7 @@ func _render_spheres_equipment(tab, sub_tabs):
 	# v760.0: Banner de confirmación de instalación (flujo desde MIS ESFERAS)
 	if inv_main.get("pending_sphere_item") != null:
 		var banner2 = Label.new()
-		banner2.text = "➡️ CLICK EN UN SLOT VACÍO PARA INSTALAR LA ESFERA SELECCIONADA"
+		banner2.text = ">> CLICK EN UN SLOT VACIO PARA INSTALAR LA ESFERA SELECCIONADA"
 		banner2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		banner2.modulate = Color.YELLOW
 		banner2.add_theme_font_size_override("font_size", 10)
@@ -293,7 +293,7 @@ func _render_spheres_equipment(tab, sub_tabs):
 	
 	if is_comb:
 		var warning_lbl = Label.new()
-		warning_lbl.text = "⚠️ SISTEMA BLOQUEADO: EN COMBATE"
+		warning_lbl.text = "[!] SISTEMA BLOQUEADO: EN COMBATE"
 		warning_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		warning_lbl.modulate = Color.RED
 		warning_lbl.add_theme_font_size_override("font_size", 12)
@@ -369,7 +369,7 @@ func _render_spheres_equipment(tab, sub_tabs):
 			sp_info.add_child(type_lbl)
 		else:
 			var empty_lbl = Label.new()
-			empty_lbl.text = "🔮\nSIN ESFERA"
+			empty_lbl.text = "SIN ESFERA"
 			empty_lbl.horizontal_alignment = 1
 			empty_lbl.modulate = Color(1, 1, 1, 0.4)
 			empty_lbl.add_theme_font_size_override("font_size", 12)
@@ -481,7 +481,7 @@ func _render_spheres_equipment(tab, sub_tabs):
 		
 		if slot_locked:
 			var lock_lbl = Label.new()
-			lock_lbl.text = "🔒 " + slot_req_msg
+			lock_lbl.text = "[BLOQUEADO] " + slot_req_msg
 			lock_lbl.add_theme_font_size_override("font_size", 8)
 			lock_lbl.modulate = Color(1, 0.35, 0.35)
 			lock_lbl.horizontal_alignment = 1
@@ -626,7 +626,7 @@ func _render_owned_spheres(tab, sub_tabs):
 		if is_instance_valid(sm) and inv_main.pending_sphere_slot < sm.spheres_data.size():
 			slot_name = str(sm.spheres_data[inv_main.pending_sphere_slot].get("name", "SLOT")).to_upper()
 		var banner = Label.new()
-		banner.text = "➡️ SELECCIONÁ LA ESFERA A INSTALAR EN " + slot_name
+		banner.text = ">> SELECCIONA LA ESFERA A INSTALAR EN " + slot_name
 		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		banner.modulate = Color.YELLOW
 		banner.add_theme_font_size_override("font_size", 11)
@@ -641,7 +641,7 @@ func _render_owned_spheres(tab, sub_tabs):
 	main_v.add_child(title)
 	
 	var summary = Label.new()
-	summary.text = "INSTALADAS: %d/4   •   EN BODEGA: %d" % [installed_total, owned.size()]
+	summary.text = "INSTALADAS: %d/4  -  EN BODEGA: %d" % [installed_total, owned.size()]
 	summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	summary.add_theme_font_size_override("font_size", 11)
 	summary.modulate = Color(0.8, 0.8, 0.9, 0.9)
@@ -653,7 +653,7 @@ func _render_owned_spheres(tab, sub_tabs):
 		var inst: int = int(installed_counts.get(key, 0))
 		var own: int = int(owned_counts.get(key, 0))
 		var c_lbl = Label.new()
-		c_lbl.text = "● " + _color_label(key) + ": " + str(inst) + " eq + " + str(own) + " bdg"
+		c_lbl.text = _color_label(key) + ": " + str(inst) + " eq / " + str(own) + " bodega"
 		c_lbl.modulate = _color_to_rgb(key)
 		c_lbl.add_theme_font_size_override("font_size", 10)
 		color_h.add_child(c_lbl)
@@ -666,7 +666,7 @@ func _render_owned_spheres(tab, sub_tabs):
 	if owned.is_empty():
 		var empty_v = VBoxContainer.new(); grid.add_child(empty_v)
 		var empty_lbl = Label.new()
-		empty_lbl.text = "NO TENÉS ESFERAS EN LA BODEGA.\n\nFabricalas en la pestaña CRAFTEO:\n• Esfera Roja (ATAQUE)\n• Esfera Azul (DEFENSA)\n• Esfera Verde (CURACIÓN)\n• Esfera Amarilla (UTILIDAD)"
+		empty_lbl.text = "NO TENES ESFERAS EN LA BODEGA.\n\nFabricalas en la pestaña CRAFTEO:\n- Esfera Roja (ATAQUE)\n- Esfera Azul (DEFENSA)\n- Esfera Verde (CURACION)\n- Esfera Amarilla (UTILIDAD)"
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty_lbl.modulate = Color(0.7, 0.7, 0.8, 0.8)
@@ -678,7 +678,7 @@ func _render_owned_spheres(tab, sub_tabs):
 	
 	if is_comb:
 		var warn = Label.new()
-		warn.text = "⚠️ SISTEMA BLOQUEADO: EN COMBATE"
+		warn.text = "[!] SISTEMA BLOQUEADO: EN COMBATE"
 		warn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		warn.modulate = Color.RED
 		warn.add_theme_font_size_override("font_size", 10)
@@ -770,7 +770,7 @@ func _create_sphere_card(item, parent, sub_tabs, is_comb):
 # ============================================================
 # SUB-TAB 3: BIBLIOTECA DE HABILIDADES
 # ============================================================
-func _render_spheres_library(tab, sub_tabs):
+func _render_spheres_library(tab, _sub_tabs):
 	var main_v = VBoxContainer.new(); main_v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); main_v.offset_left = 20; main_v.offset_right = -20; main_v.offset_top = 20; tab.add_child(main_v)
 	
 	var player_node = get_tree().get_first_node_in_group("player")
@@ -901,7 +901,7 @@ func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is
 		b_equip.disabled = true
 		b_equip.modulate = Color(1, 0.4, 0.4)
 		var sphere_lbl = Label.new()
-		sphere_lbl.text = "🔒 REQUIERE ESFERA " + _color_label(sphere_required_key) + " INSTALADA\n(Fabrícala en CRAFTEO e instálala en SISTEMA ORBITAL)"
+		sphere_lbl.text = "[BLOQUEADO] REQUIERE ESFERA " + _color_label(sphere_required_key) + " INSTALADA\n(Fabricala en CRAFTEO e instalala en SISTEMA ORBITAL)"
 		sphere_lbl.add_theme_font_size_override("font_size", 8)
 		sphere_lbl.modulate = _color_to_rgb(sphere_required_key)
 		sphere_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -912,7 +912,7 @@ func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is
 		b_equip.disabled = true
 		b_equip.modulate = Color(1, 0.4, 0.4)
 		var req_lbl = Label.new()
-		req_lbl.text = "🔒 " + req_msg
+		req_lbl.text = "[BLOQUEADO] " + req_msg
 		req_lbl.add_theme_font_size_override("font_size", 8)
 		req_lbl.modulate = Color(1, 0.35, 0.35)
 		v_info.add_child(req_lbl)

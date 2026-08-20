@@ -307,7 +307,9 @@ module.exports = class BaseAI {
         }
 
         // v3.9.2: Si no está en combate, no tiene target, no tiene lastHitter, no es prowler y está lejos de su spawn, regresar al spawn de forma segura
-        let isProwler = (cfg.movementAI === 'prowler') || (cfg.movementPhases && cfg.movementPhases[0] && cfg.movementPhases[0].type === 'prowler');
+        // v500.0: isProwler considera la fase activa actual (no solo phase[0])
+        const earlyPhase = (cfg.movementPhases || [])[this.enemy._currentPhaseIndex || 0];
+        let isProwler = (cfg.movementAI === 'prowler') || (earlyPhase && earlyPhase.type === 'prowler');
         const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
         if (!this._inCombat && !activeTarget && !this.enemy.lastHitter && !this.enemy.returningToSpawn && !isProwler && distFromSpawn > 50) {
             this.enemy.returningToSpawn = true;
@@ -461,9 +463,50 @@ module.exports = class BaseAI {
             }
         }
 
-        // v266.970: Lógica de Fases de Movimiento (Kamikaze Check)
+        // v500.0: Sistema de Fases Dinámicas por Condiciones
         const phases = cfg.movementPhases || [];
         const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+        const shieldPercent = this.enemy.maxShield > 0 ? (this.enemy.shield / this.enemy.maxShield) * 100 : 100;
+
+        // Evaluar qué fase debería estar activa según condiciones
+        const newPhaseIndex = this._evaluatePhaseConditions(phases, now, hpPercent, shieldPercent);
+
+        // Si la fase cambió, actualizar config y notificar
+        if (newPhaseIndex !== (this.enemy._currentPhaseIndex || 0)) {
+            const prevIndex = this.enemy._currentPhaseIndex || 0;
+            this.enemy._currentPhaseIndex = newPhaseIndex;
+            this._currentPhaseIndex = newPhaseIndex;
+            const newPhase = phases[newPhaseIndex];
+
+            if (newPhase) {
+                // Actualizar parámetros de movimiento en el config del cerebro
+                const phaseKeys = ['speed', 'stopDist', 'idealDist', 'orbitRadius',
+                    'chargeCooldown', 'amplitude', 'frequency', 'patrolRange',
+                    'changeTrigger', 'changeInterval', 'changeType', 'duration',
+                    'explosionDamage', 'activationHP', 'explodeOnDeath', 'radius',
+                    'speedBonus', 'intervalMs', 'affectsEnemies', 'affectsBosses'];
+                phaseKeys.forEach(k => {
+                    if (newPhase[k] !== undefined) this.config[k] = newPhase[k];
+                });
+
+                // Actualizar tipo de movimiento si cambió
+                const newType = newPhase.type;
+                if (newType && newType !== this._lastMovementType) {
+                    this._lastMovementType = newType;
+                    this.enemy.movementType = newType;
+                }
+
+                // Notificar cambio de fase a clientes (para efectos visuales)
+                io.to(`zone_${this.enemy.zone}`).emit('enemyPhaseChange', {
+                    id: this.enemy.id,
+                    phaseIndex: newPhaseIndex,
+                    phaseType: newPhase.type,
+                    totalPhases: phases.length
+                });
+            }
+        }
+
+        // Lógica Kamikaze (preservada, integrada al sistema de fases)
         const kamikazePhase = phases.find(p => p.type === 'kamikaze');
 
         if (kamikazePhase && hpPercent <= (kamikazePhase.activationHP || 30)) {
@@ -483,7 +526,10 @@ module.exports = class BaseAI {
             || (this.enemy._ascendingUntil && now < this.enemy._ascendingUntil);
         const isExtreme = !!this.ambienceBoost;
         
-        isProwler = (cfg.movementAI === 'prowler') || (cfg.movementPhases && cfg.movementPhases[0] && cfg.movementPhases[0].type === 'prowler');
+        // v500.0: isProwler ahora considera la fase activa actual (no solo phase[0])
+        const activePhase = phases[this.enemy._currentPhaseIndex || 0];
+        const activePhaseType = activePhase ? activePhase.type : null;
+        isProwler = (cfg.movementAI === 'prowler') || (activePhaseType === 'prowler');
         if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme && !isProwler) {
             this.enemy.isMoving = false;
             return;
@@ -3265,6 +3311,53 @@ module.exports = class BaseAI {
                 io.to(p.socketId).emit('slowState', { active: true, amount: slowAmt, isPercentage: isPct, duration: slowDur });
             }
         });
+    }
+
+    // v500.0: Evaluador de Condiciones de Fases Dinámicas
+    // Determina qué fase del movementPhases[] debería estar activa según condiciones.
+    // Retorna el índice de la primera fase cuyas condiciones se cumplen.
+    _evaluatePhaseConditions(phases, now, hpPercent, shieldPercent) {
+        for (let i = 0; i < phases.length; i++) {
+            const p = phases[i];
+            // Sin condiciones = fase por defecto (fallback inmediato)
+            if (!p.conditions) return i;
+
+            const c = p.conditions;
+            let matches = true;
+
+            // engagement check: idle / combat / returning
+            if (c.engagement) {
+                if (c.engagement === 'idle' && this._inCombat) matches = false;
+                if (c.engagement === 'combat' && !this._inCombat) matches = false;
+                if (c.engagement === 'returning' && !this.enemy.returningToSpawn) matches = false;
+            }
+            if (!matches) continue;
+
+            // HP check
+            if (c.hpPercentBelow !== undefined) {
+                if (hpPercent > c.hpPercentBelow) continue;
+            }
+
+            // Shield check
+            if (c.shieldPercentBelow !== undefined) {
+                if (shieldPercent > c.shieldPercentBelow) continue;
+            }
+
+            // Tiempo en combate check
+            if (c.timeInCombatMs !== undefined) {
+                const combatTime = now - (this.enemy.chaseStartTime || now);
+                if (combatTime < c.timeInCombatMs) continue;
+            }
+
+            // Tiempo desde spawn check
+            if (c.timeSinceSpawnMs !== undefined) {
+                const spawnElapsed = now - (this.enemy.spawnTime || now);
+                if (spawnElapsed < c.timeSinceSpawnMs) continue;
+            }
+
+            return i; // First matching phase wins
+        }
+        return 0; // Fallback to first phase
     }
 
     getSpeed() {

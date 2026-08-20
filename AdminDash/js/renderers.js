@@ -1507,6 +1507,22 @@ function renderEnemyDetail() {
                                     return `<div class="field"><label>${moveLabels[f] || f}</label><input type="number" step="0.1" value="${m[f] || 0}" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].${f} = parseFloat(this.value)"></div>`;
                                 }).join('')}
                             </div>
+                            <div style="margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed rgba(234, 179, 8, 0.3);">
+                                <label style="color:#a3a3a3; font-size: 0.65rem; font-weight:bold; letter-spacing:0.5px;">⚡ CONDICIONES DE ACTIVACIÓN (v500)</label>
+                                <div style="font-size:0.6rem; color:#666; margin-bottom:0.4rem;">Sin condiciones = fase por defecto (siempre activa). Con condiciones = se activa solo cuando se cumplan TODAS.</div>
+                                <div class="form-grid" style="margin-top: 0.4rem; gap: 8px;">
+                                    ${MOVEMENT_CONDITION_FIELDS.map(field => {
+                                        const val = (m.conditions && m.conditions[field.key] !== undefined) ? m.conditions[field.key] : '';
+                                        if (field.type === 'select') {
+                                            return `<div class="field"><label style="font-size:0.65rem;">${field.label}</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:3px; font-size:0.7rem;" onchange="updateMovementPhaseCondition('${selectedEnemyId}', ${idx}, '${field.key}', this.value || null); renderEnemyDetail();">
+                                                <option value="">Sin restricción</option>
+                                                ${field.options.map(o => `<option value="${o.value}" ${val === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                                            </select></div>`;
+                                        }
+                                        return `<div class="field"><label style="font-size:0.65rem;">${field.label}</label><input type="number" min="${field.min || 0}" max="${field.max || 999999}" step="1" placeholder="Sin restric." value="${val}" onchange="updateMovementPhaseCondition('${selectedEnemyId}', ${idx}, '${field.key}', this.value ? parseFloat(this.value) : null); renderEnemyDetail();"></div>`;
+                                    }).join('')}
+                                </div>
+                            </div>
                         </div>
                     `).join('')}
                 </div>

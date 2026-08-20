@@ -160,7 +160,8 @@ func _process(_delta):
 
 			_hook_chain_3d.global_position = mid
 			_hook_chain_3d.scale.y = max(dist, 0.01)
-			_hook_chain_3d.look_at(hook_3d, Vector3.UP)
+			if not mid.is_equal_approx(hook_3d):
+				_hook_chain_3d.look_at(hook_3d, Vector3.UP)
 			_hook_chain_3d.rotate_object_local(Vector3.RIGHT, PI / 2)
 
 

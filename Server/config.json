@@ -1597,7 +1597,7 @@
             "speed": 280
         },
         "5": {
-            "aggressive": true,
+            "aggressive": false,
             "bulletDamage": 120,
             "bulletSpeed": 800,
             "defenseMechanics": [],
@@ -1605,7 +1605,7 @@
             "fireRate": 1500,
             "hp": 40,
             "icon": "res://assets/Enemigos/2D/Enemigo5/Enemy5Map2.png",
-            "leashRange": 0,
+            "leashRange": 1000,
             "lootDrops": [],
             "mechanics": [
                 {
@@ -1638,8 +1638,11 @@
                     "type": "prowler",
                     "patrolRange": 300,
                     "changeTrigger": "time",
-                    "changeInterval": 4000,
-                    "changeType": "random"
+                    "changeInterval": 6000,
+                    "changeType": "random",
+                    "conditions": {
+                        "engagement": "idle"
+                    }
                 },
                 {
                     "activationHP": 20,
@@ -1650,7 +1653,10 @@
                     "startDelay": 2000,
                     "stopDist": 150,
                     "type": "orbit",
-                    "orbitRadius": 300
+                    "orbitRadius": 300,
+                    "conditions": {
+                        "engagement": "combat"
+                    }
                 }
             ],
             "name": "Enemigo 5",
@@ -1662,16 +1668,27 @@
             "speed": 350,
             "stopOnOutOfSight": true,
             "visionRange": 1400,
-            "chaseIdleTimeout": 10000
+            "chaseIdleTimeout": 10000,
+            "regenDelayMs": 10000,
+            "regenIntervalMs": 10000
         },
         "6": {
             "aggressive": true,
             "bulletDamage": 200,
             "bulletSpeed": 600,
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "basic_defense",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 5000,
+                    "cooldown": 10000,
+                    "startDelay": 0
+                }
+            ],
             "fireRange": 800,
             "fireRate": 2500,
-            "hp": 15000,
+            "hp": 50,
             "icon": "res://assets/Enemigos/2D/Enemigo6/Enemy6Map2.png",
             "lootDrops": [],
             "mechanics": [
@@ -1685,10 +1702,24 @@
             ],
             "movementPhases": [
                 {
-                    "speed": 100,
+                    "speed": 150,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "chase"
+                    "type": "sniper",
+                    "idealDist": 200
+                },
+                {
+                    "type": "aura_speed",
+                    "speed": 3.5,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "activationHP": 150,
+                    "radius": 400,
+                    "speedBonus": 50,
+                    "duration": 5000,
+                    "cooldown": 10000,
+                    "affectsEnemies": true,
+                    "affectsBosses": false
                 }
             ],
             "name": "Enemigo 6",
@@ -1696,7 +1727,7 @@
             "rewardExp": 250,
             "rewardHubs": 5000,
             "rewardOhcu": 50,
-            "shield": 10,
+            "shield": 50,
             "speed": 250
         },
         "7": {
@@ -6285,7 +6316,7 @@
                 {
                     "id": "spawn_1787187794205716",
                     "type": "5",
-                    "count": 20,
+                    "count": 8,
                     "intervalMs": 10000,
                     "spawnMode": "random",
                     "x": 0,
@@ -6295,7 +6326,7 @@
                 {
                     "id": "spawn_1787187832832774",
                     "type": "6",
-                    "count": 10,
+                    "count": 4,
                     "intervalMs": 20000,
                     "spawnMode": "random",
                     "x": 0,

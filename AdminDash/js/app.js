@@ -776,6 +776,20 @@ function moveMovementPhase(id, idx, dir) {
     [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
 }
 
+// v500.0: Gestión de Condiciones de Fases Dinámicas
+function updateMovementPhaseCondition(enemyId, phaseIdx, conditionKey, value) {
+    const phase = config.enemyModels[enemyId].movementPhases[phaseIdx];
+    if (!phase.conditions) phase.conditions = {};
+    if (value === '' || value === null || value === undefined) {
+        delete phase.conditions[conditionKey];
+        if (Object.keys(phase.conditions).length === 0) {
+            delete phase.conditions;
+        }
+    } else {
+        phase.conditions[conditionKey] = value;
+    }
+}
+
 function addMechanic(enemyId) {
     if (!config.enemyModels[enemyId].mechanics) config.enemyModels[enemyId].mechanics = [];
     config.enemyModels[enemyId].mechanics.push({
