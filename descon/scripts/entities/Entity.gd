@@ -1141,9 +1141,17 @@ func update_stats(data):
 				for i in range(min(sps.size(), 4)):
 					var s_data = sps[i]
 					var new_skill = s_data.get("equipped") if s_data else null
+					# v760.0: Comparar también la esfera física instalada
+					var new_sphere = s_data.get("sphere") if s_data else null
+					var cur_sphere = sm.spheres_data[i].get("sphere")
+					var sphere_changed = false
+					var n_sid = str(new_sphere.get("instanceId", new_sphere.get("id", ""))) if typeof(new_sphere) == TYPE_DICTIONARY else ""
+					var c_sid = str(cur_sphere.get("instanceId", cur_sphere.get("id", ""))) if typeof(cur_sphere) == TYPE_DICTIONARY else ""
+					if n_sid != c_sid: sphere_changed = true
+					
 					# Evitar spam de recarga si el slot no cambió
 					var current = sm.spheres_data[i]["equipped"]
-					var needs_update = false
+					var needs_update = sphere_changed
 					
 					if new_skill == null and current != null: needs_update = true
 					elif new_skill != null and current == null: needs_update = true
@@ -1153,7 +1161,8 @@ func update_stats(data):
 						if n_name != c_name: needs_update = true
 						
 					if needs_update:
-						sm.equip_item(i, new_skill)
+						# v760.0: Pasar el slot completo para sincronizar esfera instalada + skill
+						sm.equip_item(i, s_data)
 		
 	if data.has("isRage") or data.has("isRyze"):
 		is_rage = bool(data.get("isRage", data.get("isRyze", false)))
@@ -3436,13 +3445,20 @@ func _update_3d_spheres():
 	for i in range(4):
 		var data = sm.spheres_data[i] if i < sm.spheres_data.size() else null
 		var skill = data.get("equipped") if data else null
-		if not skill: continue
+		# v760.1: La esfera instalada se ve aunque el slot no tenga skill equipada
+		var has_sphere = sm.has_installed_sphere(i)
+		if not skill and not has_sphere: continue
 			
 		var color_name = "Amarilla"
-		var s_type = str(skill.type).to_lower()
-		if s_type == "ataque": color_name = "Roja"
-		elif s_type == "defensa": color_name = "Azul"
-		elif s_type == "curación" or s_type == "curacion": color_name = "Verde"
+		# v760.0: El color 3D lo define la esfera FÍSICA instalada (no el tipo de skill)
+		var installed_cn = sm.installed_color_name(data)
+		if installed_cn != "":
+			color_name = installed_cn
+		elif skill:
+			var s_type = str(skill.type).to_lower()
+			if s_type == "ataque": color_name = "Roja"
+			elif s_type == "defensa": color_name = "Azul"
+			elif s_type == "curación" or s_type == "curacion": color_name = "Verde"
 		
 		var s_path = "res://assets/Esferas/3D/Esfera" + color_name + "/Esfera" + color_name + ".glb"
 		var s_scene_res = VFXSystem.get_cached_resource(s_path)

@@ -2662,7 +2662,7 @@ function addLootDrop(enemyId, shouldRenderEnemyDetail = true) {
     if (!config.enemyModels[enemyId].lootDrops) {
         config.enemyModels[enemyId].lootDrops = [];
     }
-    config.enemyModels[enemyId].lootDrops.push({ itemId: "", chance: 0.1 });
+    config.enemyModels[enemyId].lootDrops.push({ itemId: "", chance: 0.1, amount: 1 });
     if (shouldRenderEnemyDetail) renderEnemyDetail();
 }
 
@@ -2682,6 +2682,11 @@ function updateLootDropChance(enemyId, idx, chance) {
     config.enemyModels[enemyId].lootDrops[idx].chance = parseFloat(chance) / 100;
 }
 
+function updateLootDropAmount(enemyId, idx, amount) {
+    if (!config.enemyModels[enemyId] || !config.enemyModels[enemyId].lootDrops) return;
+    config.enemyModels[enemyId].lootDrops[idx].amount = Math.max(1, parseInt(amount) || 1);
+}
+
 // FUNCIONES PUENTE PARA LOOT CONFIG
 function addLootDropFromLootConfig(enemyId) {
     addLootDrop(enemyId, false);
@@ -2699,6 +2704,10 @@ function updateLootDropItemFromLootConfig(enemyId, idx, itemId) {
 
 function updateLootDropChanceFromLootConfig(enemyId, idx, chance) {
     updateLootDropChance(enemyId, idx, chance);
+}
+
+function updateLootDropAmountFromLootConfig(enemyId, idx, amount) {
+    updateLootDropAmount(enemyId, idx, amount);
 }
 
 function selectLootEnemy(id) {
@@ -2725,6 +2734,10 @@ function updateLootDropItemFromEnemyLoot(enemyId, idx, itemId) {
 
 function updateLootDropChanceFromEnemyLoot(enemyId, idx, chance) {
     updateLootDropChance(enemyId, idx, chance);
+}
+
+function updateLootDropAmountFromEnemyLoot(enemyId, idx, amount) {
+    updateLootDropAmount(enemyId, idx, amount);
 }
 
 window.collapsedWaves = window.collapsedWaves || {};

@@ -154,6 +154,11 @@ function sphereColorFromSkillType(skillType) {
 
 function getSphereColor(sphere) {
     if (!sphere || typeof sphere !== 'object') return '';
+    // 0) v760.0: Esfera FÍSICA instalada en el slot (ítem crafteado) — fuente de verdad del color
+    if (sphere.sphere && typeof sphere.sphere === 'object') {
+        const installed = normalizeSphereColor(sphere.sphere.type || sphere.sphere.sphereColor || '');
+        if (installed) return installed;
+    }
     // 1) Tipo explícito de la esfera (futuro: esferas teñidas de un color fijo)
     const explicit = normalizeSphereColor(sphere.type);
     if (explicit) return explicit;
@@ -209,4 +214,4 @@ function buildSphereRequirementMsg(needed) {
     return parts.slice(0, -1).join(', ') + ' Y ' + parts[parts.length - 1];
 }
 
-module.exports = { getMasterItemConfig, getAmmoMasterConfig, getSkillMasterConfig, checkRequirements, getSphereColor, countPlayerSphereColors, normalizeSphereColor };
+module.exports = { getMasterItemConfig, getAmmoMasterConfig, getSkillMasterConfig, checkRequirements, getSphereColor, countPlayerSphereColors, normalizeSphereColor, sphereColorFromSkillType };

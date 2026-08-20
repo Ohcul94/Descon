@@ -5043,7 +5043,15 @@ function renderEnemyLootDetail() {
 // ==========================================
 
 // Grupos colapsados por el admin (persisten entre renders dentro de la sesión)
-const collapsedCraftingGroups = new Set();
+const CRAFTING_COLLAPSE_KEY = 'adminDash_craftingCollapsed';
+let collapsedCraftingGroups = new Set();
+try {
+    const stored = JSON.parse(localStorage.getItem(CRAFTING_COLLAPSE_KEY) || '[]');
+    if (Array.isArray(stored)) collapsedCraftingGroups = new Set(stored);
+} catch (e) { /* estado corrupto: se ignora */ }
+function saveCollapsedCraftingGroups() {
+    try { localStorage.setItem(CRAFTING_COLLAPSE_KEY, JSON.stringify(Array.from(collapsedCraftingGroups))); } catch (e) { /* sin almacenamiento */ }
+}
 
 window.renderCrafting = function() {
     // Inicializar secciones si no existen
@@ -5582,6 +5590,7 @@ window.toggleCraftingGroup = function(headerEl) {
     cards.style.display = collapsed ? 'flex' : 'none';
     if (collapsed) collapsedCraftingGroups.delete(key);
     else collapsedCraftingGroups.add(key);
+    saveCollapsedCraftingGroups();
     const chev = headerEl.querySelector('.chevron');
     if (chev) chev.innerText = collapsed ? '▼' : '▶';
     headerEl.style.opacity = collapsed ? '1' : '0.5';
@@ -7173,7 +7182,7 @@ window.renderLootTableComponent = function(enemyId, containerId) {
                 const chancePercent = Math.round((ld.chance || 0.1) * 100);
                 const barColor = chancePercent >= 50 ? 'var(--success)' : (chancePercent >= 20 ? 'var(--primary)' : 'var(--accent)');
                 return `
-                <div style="background: rgba(255,255,255,0.02); padding: 1rem 1.2rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); display: grid; grid-template-columns: 2fr 1fr 80px auto; gap: 15px; align-items: center; transition: all 0.2s;" onmouseenter="this.style.borderColor='rgba(6,182,212,0.3)'; this.style.background='rgba(6,182,212,0.03)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.05)'; this.style.background='rgba(255,255,255,0.02)'">
+                <div style="background: rgba(255,255,255,0.02); padding: 1rem 1.2rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); display: grid; grid-template-columns: 2fr 1fr 1fr 40px; gap: 15px; align-items: center; transition: all 0.2s;" onmouseenter="this.style.borderColor='rgba(6,182,212,0.3)'; this.style.background='rgba(6,182,212,0.03)'" onmouseleave="this.style.borderColor='rgba(255,255,255,0.05)'; this.style.background='rgba(255,255,255,0.02)'">
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <label style="font-size: 0.6rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">ÍTEM DE RECOMPENSA</label>
                         <input type="text" placeholder="🔍 Buscar por nombre o ID..." style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 6px; padding: 6px 10px; font-size: 0.75rem; margin-bottom: 4px;" oninput="
@@ -7203,6 +7212,12 @@ window.renderLootTableComponent = function(enemyId, containerId) {
                             <div style="height: 100%; width: ${chancePercent}%; background: ${barColor}; border-radius: 2px; transition: width 0.3s;"></div>
                         </div>
                     </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">CANTIDAD</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="number" min="1" step="1" value="${ld.amount || 1}" style="background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08); color: white; border-radius: 6px; padding: 8px 10px; width: 80px; font-size: 0.9rem; font-weight: bold;" onchange="updateLootDropAmountFromComponent('${enemyId}', ${idx}, this.value, '${containerId}')">
+                        </div>
+                    </div>
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                         <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size: 1.2rem; font-weight: bold; margin-top: 15px;" onclick="removeLootDropFromComponent('${enemyId}', ${idx}, '${containerId}')">✕</button>
                     </div>
@@ -7217,7 +7232,7 @@ window.addLootDropFromComponent = function(enemyId, containerId) {
     const en = config.enemyModels[enemyId];
     if (!en) return;
     if (!en.lootDrops) en.lootDrops = [];
-    en.lootDrops.push({ itemId: '', chance: 0.1 });
+    en.lootDrops.push({ itemId: '', chance: 0.1, amount: 1 });
     if (containerId === 'enemy-loot-detail-container') {
         renderEnemyLootDetail();
     } else {
@@ -7240,6 +7255,17 @@ window.updateLootDropChanceFromComponent = function(enemyId, idx, value, contain
     const en = config.enemyModels[enemyId];
     if (!en || !en.lootDrops[idx]) return;
     en.lootDrops[idx].chance = (parseFloat(value) || 0) / 100;
+    if (containerId === 'enemy-loot-detail-container') {
+        renderEnemyLootDetail();
+    } else {
+        renderEnemyDetail();
+    }
+};
+
+window.updateLootDropAmountFromComponent = function(enemyId, idx, value, containerId) {
+    const en = config.enemyModels[enemyId];
+    if (!en || !en.lootDrops[idx]) return;
+    en.lootDrops[idx].amount = Math.max(1, parseInt(value) || 1);
     if (containerId === 'enemy-loot-detail-container') {
         renderEnemyLootDetail();
     } else {

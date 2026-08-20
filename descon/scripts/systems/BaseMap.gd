@@ -45,7 +45,7 @@ var cursor_3d: Node3D = null
 var mouse_world_pos_3d: Vector3 = Vector3.ZERO   # Posición 3D exacta del cursor en el mundo
 var mouse_world_pos_2d: Vector2 = Vector2.ZERO   # Equivalente en espacio lógico 2D del mapa
 
-var fixed_cam_zoom: float = 1.08
+var fixed_cam_zoom: float = 1.0
 
 # Free Camera (orbit/free mode) — toggle con tecla O
 var free_cam_active: bool = false
@@ -621,9 +621,16 @@ func _get_base_height_and_factor() -> Dictionary:
 func _sync_zooms_from_free():
 	var res = _get_base_height_and_factor()
 	var min_dist = 0.08 * res.base_height * res.factor
-	var max_dist = 0.8 * res.base_height * res.factor
+	var max_dist = 1.0 * res.base_height * res.factor
 	free_cam_zoom = clamp(free_cam_zoom, min_dist, max_dist)
 	fixed_cam_zoom = free_cam_zoom / (res.base_height * res.factor)
+
+func _sync_free_from_fixed():
+	var res = _get_base_height_and_factor()
+	free_cam_zoom = fixed_cam_zoom * res.base_height * res.factor
+	var min_dist = 0.08 * res.base_height * res.factor
+	var max_dist = 1.0 * res.base_height * res.factor
+	free_cam_zoom = clamp(free_cam_zoom, min_dist, max_dist)
 
 # Guardar estado de cámara en SettingsManager (persiste entre mapas, no en disco)
 func _save_camera_state():
@@ -647,7 +654,6 @@ func _restore_camera_state():
 	free_cam_v = sm.cam_free_v
 	free_cam_zoom = sm.cam_free_zoom
 	free_orbit_mode = sm.cam_free_orbit
-	_sync_zooms_from_free()
 
 # Actualizar cámara libre (orbit/free mode)
 func _update_free_camera():
@@ -1770,6 +1776,11 @@ func _input(event):
 
 	if event.is_action_pressed("toggle_free_camera") and not event.is_echo():
 		free_cam_active = !free_cam_active
+		# Sincronizar zoom al cambiar de modo
+		if free_cam_active:
+			_sync_free_from_fixed()
+		else:
+			_sync_zooms_from_free()
 		_save_camera_state()
 		if has_node("/root/SettingsManager"):
 			get_node("/root/SettingsManager").cam_free_active = free_cam_active
@@ -1803,10 +1814,9 @@ func _input(event):
 			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				free_cam_zoom = max(3.0, free_cam_zoom - 2.0)
+				fixed_cam_zoom = max(0.08, fixed_cam_zoom - 0.04)
 			else:
-				free_cam_zoom = min(35.0, free_cam_zoom + 2.0)
-			_sync_zooms_from_free()
+				fixed_cam_zoom = min(1.0, fixed_cam_zoom + 0.04)
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
 
@@ -1824,9 +1834,9 @@ func _input(event):
 			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				free_cam_zoom = max(3.0, free_cam_zoom - 2.0)
+				free_cam_zoom -= 2.0
 			else:
-				free_cam_zoom = min(35.0, free_cam_zoom + 2.0)
+				free_cam_zoom += 2.0
 			_sync_zooms_from_free()
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
@@ -1874,8 +1884,10 @@ func _on_mobile_camera_edit_toggled(state: int):
 		return
 	free_cam_active = (state != 0)
 	if state != 0:
+		_sync_free_from_fixed()
 		_restore_camera_state()
 	else:
+		_sync_zooms_from_free()
 		_save_camera_state()
 	_was_mobile_camera_edit = state
 
@@ -1942,7 +1954,7 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 				var p2 = _mobile_touch_points[keys[1]]
 				var current_dist = p1.distance_to(p2)
 				var zoom_delta = (_pinch_start_dist - current_dist) * 0.1
-				free_cam_zoom = clamp(free_cam_zoom + zoom_delta, 3.0, 35.0)
+				free_cam_zoom += zoom_delta
 				_pinch_start_dist = current_dist
 				_sync_zooms_from_free()
 				_save_camera_state()

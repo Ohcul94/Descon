@@ -26,6 +26,8 @@ module.exports = class BaseAI {
         this.state = state;
         this.lastAction = 0;
         this._isDefenseSkillActive = false; // v269.195: Flag interno único para IA
+        this._currentPhaseIndex = 0; // v500.0: Índice de fase dinámica activa
+        this._lastMovementType = null; // v500.0: Último tipo de movimiento asignado
     }
 
     // v_fix_dead: Helper centralizado para matar jugadores desde IA de bosses

@@ -715,7 +715,14 @@ func _show_info_panel(item_data: Dictionary, target_node: Control):
 	var stat_text = ""
 	var search_id = str(item_data.get("id", "")).to_lower()
 	
-	if type_str == "laser" or type_str == "weapon" or search_id.begins_with("las"):
+	if type_str == "consumible" or type_str == "sphere" or search_id.begins_with("ship_"):
+		# v720.0: Naves y esferas fabricadas: objetos usables/comerciables, sin stats de módulo
+		var grant_ship = int(item_data.get("grantShip", 0))
+		if grant_ship > 0:
+			stat_text = "NAVE DESBLOQUEABLE — USÁLA EN TU BODEGA"
+		else:
+			stat_text = "ESFERA DE PODER — COMERCIABLE"
+	elif type_str == "laser" or type_str == "weapon" or search_id.begins_with("las"):
 		stat_text = "DAÑO: +" + str(base_val)
 	elif type_str == "shield" or search_id.begins_with("sh"):
 		stat_text = "ESCUDO: +" + str(base_val)

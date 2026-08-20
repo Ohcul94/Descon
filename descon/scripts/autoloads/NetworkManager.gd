@@ -891,6 +891,11 @@ func _sphere_color_from_skill_type(p_type: String) -> String:
 
 func _sphere_color_of(p_sphere) -> String:
 	if typeof(p_sphere) != TYPE_DICTIONARY: return ""
+	# v760.0: La esfera FÍSICA instalada en el slot define el color (fuente de verdad)
+	var installed = p_sphere.get("sphere")
+	if typeof(installed) == TYPE_DICTIONARY and not installed.is_empty():
+		var c: String = _normalize_sphere_color(str(installed.get("type", installed.get("sphereColor", ""))))
+		if c != "": return c
 	var explicit: String = _normalize_sphere_color(str(p_sphere.get("type", "")))
 	if explicit != "": return explicit
 	var equipped = p_sphere.get("equipped")

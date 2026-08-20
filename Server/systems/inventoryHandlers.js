@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const { calculateFinalStats } = require('./statCalculator'); // v266.135: Recalcular al equipar
-const { getMasterItemConfig: getMasterItemConfigFull, getSkillMasterConfig, checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento
+const { getMasterItemConfig: getMasterItemConfigFull, getSkillMasterConfig, checkRequirements, normalizeSphereColor, sphereColorFromSkillType } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento
 const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
 
 /**
@@ -17,6 +17,10 @@ function getCategorizedInventory(inventory) {
         if (id.startsWith('las') || id.startsWith('w')) {
             item.type = "weapon"; 
             categories.weapons.push(item);
+        } else if (id.startsWith('esfera_') || id.startsWith('sphere_')) {
+            // v760.0: Esferas crafteadas = consumibles instalables (no son motores aunque empiecen con 'e')
+            item.type = "consumible";
+            categories.others.push(item);
         } else if (id.startsWith('sh') || id.startsWith('s')) {
             item.type = "shield";
             categories.modules.push(item);
@@ -139,6 +143,27 @@ function checkCombatLock(p) {
         };
     }
     return { locked: false };
+}
+
+// v760.0: Etiqueta del tipo de habilidad permitido por color de esfera instalada
+function sphereColorTypeLabel(color) {
+    const c = String(color || '').toLowerCase();
+    if (c === 'roja') return 'ATAQUE';
+    if (c === 'azul') return 'DEFENSA';
+    if (c === 'verde') return 'CURACIÓN';
+    return 'UTILIDAD / MOVIMIENTO';
+}
+
+// v760.0: Definiciones de ítems de esfera para instalación/retirada
+function sphereItemDef(color) {
+    const c = String(color || '').toLowerCase();
+    const defs = {
+        'roja':     { id: 'esfera_roja',     name: 'Esfera Roja',     color: '#7d3531', icon: 'res://assets/Esferas/EsferaRoja1.png' },
+        'azul':     { id: 'esfera_azul',     name: 'Esfera Azul',     color: '#389c99', icon: 'res://assets/Esferas/EsferaAzul1.png' },
+        'verde':    { id: 'esfera_verde',    name: 'Esfera Verde',    color: '#4f902c', icon: 'res://assets/Esferas/EsferaVerde1.png' },
+        'amarilla': { id: 'esfera_amarilla', name: 'Esfera Amarilla', color: '#e5fb3c', icon: 'res://assets/Esferas/EsferaAmarilla1.png' }
+    };
+    return defs[c] || null;
 }
 
 function sendInventoryData(socket, user, config) {
@@ -819,7 +844,25 @@ function registerInventoryHandlers(socket, io, state) {
 
             // v262.735: Blindaje de datos. Si el slot no existe, lo creamos.
             while (user.gameData.spheres.length <= sphereId) {
-                user.gameData.spheres.push({ name: `Slot ${user.gameData.spheres.length + 1}`, type: "any", color: "#ffffff", equipped: null });
+                user.gameData.spheres.push({ name: `Slot ${user.gameData.spheres.length + 1}`, type: "any", color: "#ffffff", sphere: null, equipped: null });
+            }
+
+            // v760.0: La skill SOLO puede equiparse si hay una esfera física instalada en el slot
+            const targetSlot = user.gameData.spheres[sphereId];
+            if (!targetSlot.sphere || typeof targetSlot.sphere !== 'object') {
+                sendInventoryData(socket, user);
+                return socket.emit('gameNotification', { msg: 'NO HAY ESFERA INSTALADA EN ESTE SLOT. Fabrica una esfera en el Crafteo e instálala en este slot.', type: 'error' });
+            }
+
+            // v760.0: La skill debe coincidir con el color de la esfera instalada
+            //   Roja→ATAQUE | Azul→DEFENSA | Verde→CURACIÓN | Amarilla→UTILIDAD/MOVIMIENTO
+            if (skill && skill.type) {
+                const slotColor = normalizeSphereColor(targetSlot.sphere.type || targetSlot.sphere.sphereColor || '');
+                const skillColor = sphereColorFromSkillType(skill.type);
+                if (slotColor && skillColor && slotColor !== skillColor) {
+                    sendInventoryData(socket, user);
+                    return socket.emit('gameNotification', { msg: `LA ESFERA ${slotColor.toUpperCase()} SOLO ACEPTA HABILIDADES DE ${sphereColorTypeLabel(slotColor)}.`, type: 'error' });
+                }
             }
 
             user.gameData.spheres[sphereId].equipped = skill;
@@ -861,6 +904,162 @@ function registerInventoryHandlers(socket, io, state) {
 
             sendInventoryData(socket, user);
         } catch (e) { console.error("[SPHERE-UNEQUIP-ERROR]", e); }
+    });
+
+    // v760.0: INSTALAR ESFERA FÍSICA (ítem crafteado) EN UN SLOT ORBITAL
+    socket.on('equipSphereItem', async (data) => {
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            sendInventoryData(socket, socket.dbUser);
+            return socket.emit('gameNotification', { 
+                msg: `ERROR: Esferas calientes. Espera ${lock.remaining}s para instalar esferas.`, 
+                type: 'error' 
+            });
+        }
+
+        try {
+            const { sphereId, instanceId } = data;
+            if (sphereId < 0 || sphereId > 3) return;
+
+            const user = getPlayerRAMAdapter(p);
+            if (!user) return;
+
+            if (!user.gameData.spheres) user.gameData.spheres = [];
+
+            // v680.0: Desbloqueo de slots de esferas por requisitos (el servidor es autoritativo)
+            const pilotCfg = state.SERVER_CONFIG?.pilotConfig || {};
+            const slotReqs = (Array.isArray(pilotCfg.sphereSlotRequirements) && pilotCfg.sphereSlotRequirements[sphereId])
+                ? (pilotCfg.sphereSlotRequirements[sphereId].requirements || [])
+                : [];
+            if (slotReqs.length > 0) {
+                const slotCheck = checkRequirements(p, slotReqs, state.SERVER_CONFIG);
+                if (!slotCheck.ok) {
+                    sendInventoryData(socket, user);
+                    return socket.emit('gameNotification', { msg: `ESFERA BLOQUEADA: ${slotCheck.msg}`, type: 'error' });
+                }
+            }
+
+            // Blindaje de datos: si el slot no existe, lo creamos
+            while (user.gameData.spheres.length <= sphereId) {
+                user.gameData.spheres.push({ name: `Slot ${user.gameData.spheres.length + 1}`, type: "any", color: "#ffffff", sphere: null, equipped: null });
+            }
+
+            const slot = user.gameData.spheres[sphereId];
+            if (slot.sphere && typeof slot.sphere === 'object') {
+                sendInventoryData(socket, user);
+                return socket.emit('gameNotification', { msg: 'ESTE SLOT YA TIENE UNA ESFERA INSTALADA. Retírala primero para cambiarla.', type: 'error' });
+            }
+
+            // Buscar el ítem de esfera en el inventario
+            const inv = user.gameData.inventory || [];
+            const idx = inv.findIndex(it => it.instanceId === instanceId && String(it.id || '').startsWith('esfera_'));
+            if (idx === -1) {
+                sendInventoryData(socket, user);
+                return socket.emit('gameNotification', { msg: 'Ítem de esfera no encontrado en tu inventario.', type: 'error' });
+            }
+            const item = inv[idx];
+            const color = normalizeSphereColor(item.sphereColor || item.type || '');
+            if (!color) {
+                sendInventoryData(socket, user);
+                return socket.emit('gameNotification', { msg: 'Este ítem no es una esfera válida.', type: 'error' });
+            }
+
+            // Consumir el ítem e instalar la esfera en el slot
+            inv.splice(idx, 1);
+            slot.sphere = {
+                id: item.id || ('esfera_' + color),
+                name: item.name || ('Esfera ' + color),
+                type: color,
+                color: item.color || '#ffffff',
+                icon: item.icon || '',
+                instanceId: item.instanceId
+            };
+            slot.type = color;
+            slot.color = slot.sphere.color;
+
+            user.markModified('gameData.spheres');
+            user.markModified('gameData.inventory');
+            await user.save();
+
+            socket.dbUser = user;
+            p.spheres = JSON.parse(JSON.stringify(user.gameData.spheres));
+            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+
+            sendInventoryData(socket, user);
+            socket.emit('gameNotification', { msg: `ESFERA INSTALADA: ${slot.sphere.name} en ${slot.name}. Ahora equipa una habilidad compatible.`, type: 'success' });
+        } catch (e) { console.error("[SPHERE-INSTALL-ERROR]", e); }
+    });
+
+    // v760.0: RETIRAR ESFERA FÍSICA DE UN SLOT (vuelve al inventario como ítem)
+    socket.on('unequipSphereItem', async (data) => {
+        if (!socket.dbUser || !state.players[socket.id]) return;
+        const p = state.players[socket.id];
+
+        const lock = checkCombatLock(p);
+        if (lock.locked) {
+            sendInventoryData(socket, socket.dbUser);
+            return socket.emit('gameNotification', { 
+                msg: `ERROR: Esferas bloqueadas en combate.`, 
+                type: 'error' 
+            });
+        }
+
+        try {
+            const { sphereId } = data;
+            const user = getPlayerRAMAdapter(p);
+            if (!user || !user.gameData.spheres || !user.gameData.spheres[sphereId]) return;
+
+            const slot = user.gameData.spheres[sphereId];
+            if (!slot.sphere || typeof slot.sphere !== 'object') {
+                sendInventoryData(socket, user);
+                return socket.emit('gameNotification', { msg: 'Este slot no tiene una esfera instalada.', type: 'error' });
+            }
+
+            // Validar espacio en inventario
+            const maxSlots = user.gameData.inventoryMaxSlots || state.SERVER_CONFIG.inventoryConfig?.defaultMaxSlots || 30;
+            if ((user.gameData.inventory || []).length >= maxSlots) {
+                sendInventoryData(socket, user);
+                return socket.emit('gameNotification', { msg: 'INVENTARIO LLENO: Libera espacio para retirar la esfera.', type: 'error' });
+            }
+
+            // Devolver el ítem de esfera al inventario
+            const sphereItem = slot.sphere;
+            const color = normalizeSphereColor(sphereItem.type || sphereItem.sphereColor || '') || 'amarilla';
+            const def = sphereItemDef(color);
+            const newItem = {
+                id: sphereItem.id || (def ? def.id : 'esfera_' + color),
+                name: sphereItem.name || (def ? def.name : 'Esfera ' + color),
+                type: 'consumible',
+                base: 0,
+                instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
+                rarity: 0,
+                color: sphereItem.color || (def ? def.color : '#ffffff'),
+                icon: sphereItem.icon || (def ? def.icon : ''),
+                sphereColor: color,
+                soulbound: false
+            };
+            user.gameData.inventory.push(newItem);
+
+            // Al retirar la esfera también se desequipa la skill del slot (sin esfera no puede haber skill)
+            slot.sphere = null;
+            slot.equipped = null;
+            slot.type = 'any';
+            slot.color = '#ffffff';
+
+            user.markModified('gameData.spheres');
+            user.markModified('gameData.inventory');
+            await user.save();
+
+            socket.dbUser = user;
+            p.spheres = JSON.parse(JSON.stringify(user.gameData.spheres));
+            p.inventory = JSON.parse(JSON.stringify(user.gameData.inventory));
+
+            sendInventoryData(socket, user);
+            socket.emit('gameNotification', { msg: `ESFERA RETIRADA: ${newItem.name} devuelta a tu inventario.`, type: 'success' });
+        } catch (e) { console.error("[SPHERE-REMOVE-ERROR]", e); }
     });
 
     // HANDLER DE CRAFTEO AUTORITATIVO

@@ -562,8 +562,62 @@ const handleUserLogin = async (socket, user, username) => {
         if (!user.gameData.spheres) user.gameData.spheres = [];
         while (user.gameData.spheres.length < 4) {
             const idx = user.gameData.spheres.length + 1;
-            user.gameData.spheres.push({ "name": `Slot ${idx}`, "type": "any", "color": "#ffffff", "equipped": null });
+            user.gameData.spheres.push({ "name": `Slot ${idx}`, "type": "any", "color": "#ffffff", "sphere": null, "equipped": null });
         }
+        user.markModified('gameData.spheres');
+        await user.save();
+    }
+
+    // v760.0: MIGRACIÓN ESFERAS CRAFTEABLES — garantizar campo sphere (esfera instalada) en todos los slots.
+    // Jugadores nuevos = 0 esferas. Cuentas existentes con skills equipadas:
+    // se auto-instala la esfera del color que corresponde al tipo de cada skill (no pierden progreso).
+    const { sphereColorFromSkillType, normalizeSphereColor } = require('./systems/equipRequirements');
+    const SPHERE_ITEM_DEFS = {
+        'roja':     { id: 'esfera_roja',     name: 'Esfera Roja',     color: '#7d3531', icon: 'res://assets/Esferas/EsferaRoja1.png' },
+        'azul':     { id: 'esfera_azul',     name: 'Esfera Azul',     color: '#389c99', icon: 'res://assets/Esferas/EsferaAzul1.png' },
+        'verde':    { id: 'esfera_verde',    name: 'Esfera Verde',    color: '#4f902c', icon: 'res://assets/Esferas/EsferaVerde1.png' },
+        'amarilla': { id: 'esfera_amarilla', name: 'Esfera Amarilla', color: '#e5fb3c', icon: 'res://assets/Esferas/EsferaAmarilla1.png' }
+    };
+    let spheresMigrated = false;
+    for (let i = 0; i < (user.gameData.spheres || []).length; i++) {
+        const slot = user.gameData.spheres[i];
+        if (!slot || typeof slot !== 'object') {
+            user.gameData.spheres[i] = { name: `Slot ${i + 1}`, type: 'any', color: '#ffffff', sphere: null, equipped: null };
+            spheresMigrated = true;
+            continue;
+        }
+        // Asegurar el campo sphere (esfera instalada) en cada slot
+        if (slot.sphere === undefined) {
+            // Cuentas viejas: si hay skill equipada, auto-instalar la esfera del color derivado del tipo de skill
+            if (slot.equipped && typeof slot.equipped === 'object' && slot.equipped.type) {
+                const color = sphereColorFromSkillType(slot.equipped.type);
+                const def = SPHERE_ITEM_DEFS[color];
+                if (def) {
+                    slot.sphere = { id: def.id, name: def.name, type: color, color: def.color, icon: def.icon, migrated: true };
+                    slot.type = color;
+                    slot.color = def.color;
+                } else {
+                    slot.sphere = null;
+                }
+            } else {
+                slot.sphere = null; // Jugadores nuevos: 0 esferas
+            }
+            spheresMigrated = true;
+        }
+        // Sincronizar type/color del slot con la esfera instalada si está desincronizado
+        else if (slot.sphere && typeof slot.sphere === 'object') {
+            const color = normalizeSphereColor(slot.sphere.type || slot.sphere.sphereColor || '');
+            if (color) {
+                const def = SPHERE_ITEM_DEFS[color];
+                if (slot.type !== color || (def && slot.color !== def.color)) {
+                    slot.type = color;
+                    if (def) slot.color = def.color;
+                    spheresMigrated = true;
+                }
+            }
+        }
+    }
+    if (spheresMigrated) {
         user.markModified('gameData.spheres');
         await user.save();
     }

@@ -68,7 +68,8 @@ function isServerAuthoritative(state) {
                         instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
                         rarity: master.rarity || 0,
                         color: master.color || "#ffffff",
-                        icon: master.icon || ""
+                        icon: master.icon || "",
+                        amount: parseInt(dropCfg.amount) || 1
                     });
                 }
             }
@@ -105,7 +106,8 @@ function isServerAuthoritative(state) {
                     instanceId: Date.now() + Math.random().toString(36).substr(2, 5),
                     rarity: master.rarity || 0,
                     color: master.color || "#ffffff",
-                    icon: master.icon || ""
+                    icon: master.icon || "",
+                    amount: parseInt(bestDrop.amount) || 1
                 });
                 // console.log(`[LOOT-SPAWN] Garantizado ítem ${master.id} para evitar cofre vacío.`);
             }

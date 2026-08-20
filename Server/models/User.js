@@ -69,9 +69,10 @@ const UserSchema = new mongoose.Schema({
         hudPositions: { type: Object, default: {} },
         hudLayouts: { type: Array, default: [] }, // v266.130: Soporte para múltiples slots (máx 4)
         spheres: { type: Array, default: [
-            { "name": "Alfa", "type": "w", "color": "#ffe031", "equipped": null },
-            { "name": "Beta", "type": "s", "color": "#31dfff", "equipped": null },
-            { "name": "Gamma", "type": "e", "color": "#3bff31", "equipped": null }
+            { "name": "Slot 1", "type": "any", "color": "#ffffff", "sphere": null, "equipped": null },
+            { "name": "Slot 2", "type": "any", "color": "#ffffff", "sphere": null, "equipped": null },
+            { "name": "Slot 3", "type": "any", "color": "#ffffff", "sphere": null, "equipped": null },
+            { "name": "Slot 4", "type": "any", "color": "#ffffff", "sphere": null, "equipped": null }
         ]},
         pvpEnabled: { type: Boolean, default: false }, // v220.95: Persistencia de combate
         clanId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clan', default: null }, // v242.10: Integración de Clanes

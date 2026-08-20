@@ -762,18 +762,8 @@ func _on_inventory_received(p_data):
 			if sm:
 				var sph_data = gd["spheres"]
 				for i in range(min(sph_data.size(), 4)):
-					var s_raw = sph_data[i]
-					var eq = s_raw.get("equipped")
-					if eq:
-						var s_name = eq.get("skill_name", "")
-						var skill_obj = _find_skill_by_name(s_name)
-						if skill_obj:
-							sm.equip_item(i, skill_obj)
-						else:
-							# Fallback si no encontramos la clase pero el dict es válido
-							sm.equip_item(i, eq)
-					else:
-						sm.equip_item(i, null)
+					# v760.0: Sincronizar slot completo (esfera instalada + skill equipada)
+					sm.equip_item(i, sph_data[i])
 
 	
 	_recalculate_stats()

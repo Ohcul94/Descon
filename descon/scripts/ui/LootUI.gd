@@ -267,7 +267,9 @@ func _create_item_row(item: Dictionary):
 	hbox.add_child(vbox_text)
 	
 	var label_name = Label.new()
-	label_name.text = str(item.get("name", "Ítem Desconocido")).to_upper()
+	var item_amount = int(item.get("amount", 1))
+	var amount_suffix = (" x" + str(item_amount)) if item_amount > 1 else ""
+	label_name.text = str(item.get("name", "Ítem Desconocido")).to_upper() + amount_suffix
 	label_name.add_theme_font_size_override("font_size", 11)
 	label_name.add_theme_color_override("font_color", Color.WHITE)
 	vbox_text.add_child(label_name)

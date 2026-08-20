@@ -503,7 +503,14 @@ func _create_item_row(it, parent):
 	var n = Label.new(); n.text = name_text; n.add_theme_font_size_override("font_size", 10); n.modulate = slot_color; n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; v.add_child(n); n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var base_val = int(round(float(it.get("base", 0))))
 	var stat_text = ""
-	if item_slot == "w":
+	if is_consumible:
+		# v720.0: Naves y esferas fabricadas son objetos usables/comerciables — no llevan stats de módulo
+		var grant_ship = int(it.get("grantShip", -1))
+		if grant_ship > 0:
+			stat_text = "USABLE: Desbloquea la nave en tu hangar"
+		else:
+			stat_text = "USABLE: Objeto comerciable (Mercado)"
+	elif item_slot == "w":
 		stat_text = "DAÑO: " + str(base_val)
 		var sp_m = int(round(float(it.get("speedMod", 0))))
 		if sp_m != 0:
@@ -809,7 +816,54 @@ func _create_item_row(it, parent):
 		var b_use = Button.new(); b_use.text = "USAR"; b_use.modulate = Color(0.5, 1, 0.6); b_use.add_theme_font_size_override("font_size", 9)
 		b_use.pressed.connect(func():
 			var iid = it.get("instanceId", "")
-			var use_msg = "¿Deseas usar [color=yellow]" + str(it.get("name", "ITEM")).to_upper() + "[/color]? Se consumirá el ítem."
+			var it_name = str(it.get("name", "ITEM")).to_upper()
+			# v720.0: Validación local — si la nave ya está en el hangar, avisar en logs y no abrir el modal
+			var grant_ship = int(it.get("grantShip", -1))
+			if grant_ship > 0:
+				var owned_list: Array = []
+				if inv_main and "owned_ships" in inv_main and inv_main.owned_ships is Array:
+					owned_list = (inv_main.owned_ships as Array).map(func(x): return str(x))
+				if owned_list.has(str(grant_ship)):
+					print("[BODEGA] Ya dispones de la nave '", it_name, "' (ID ", grant_ship, "). El ítem consumible no se usa.")
+					NetworkManager.game_notification.emit({
+						"msg": "Ya dispones de la nave " + it_name + ". Vendé el ítem a otro piloto en el Mercado.",
+						"type": "error"
+					})
+					return
+			else:
+				# v760.0: Esferas fabricadas/crafteadas → flujo de instalación en la pestaña Esferas
+				var player_node = get_tree().get_first_node_in_group("player")
+				var in_combat = false
+				if is_instance_valid(player_node) and player_node.has_method("is_in_combat"):
+					in_combat = player_node.is_in_combat()
+				if in_combat:
+					NetworkManager.game_notification.emit({
+						"msg": "ERROR: No puedes instalar esferas en combate.",
+						"type": "error"
+					})
+					return
+				inv_main.pending_sphere_item = it.duplicate(true)
+				inv_main.pending_sphere_slot = -1
+				var tabs = inv_main.get_node_or_null("Window/TabContainer")
+				if tabs:
+					for i in range(tabs.get_child_count()):
+						if tabs.get_child(i).name == "Esferas":
+							tabs.current_tab = i
+							var sphere_tab = tabs.get_child(i)
+							if sphere_tab and sphere_tab.has_method("update_ui"):
+								# Forzar el subtab orbital (0) para elegir el slot de destino
+								for child in sphere_tab.get_children():
+									if child is TabContainer:
+										child.current_tab = 0
+										break
+								sphere_tab.update_ui()
+							break
+				NetworkManager.game_notification.emit({
+					"msg": "Esfera preparada para instalar: elegí un slot orbital.",
+					"type": "info"
+				})
+				return
+			var use_msg = "¿Deseas usar [color=yellow]" + it_name + "[/color]? Se consumirá el ítem."
 			inv_main._show_modal("USAR ÍTEM", use_msg, func():
 				NetworkManager.send_event("useConsumableItem", {"instanceId": iid})
 			)

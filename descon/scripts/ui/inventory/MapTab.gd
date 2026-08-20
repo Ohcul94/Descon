@@ -297,6 +297,7 @@ func update_ui():
 				for d in drops:
 					var item_id = d.get("itemId", "")
 					var item_chance = int(float(d.get("chance", 0.1)) * 100)
+					var item_amount = int(d.get("amount", 1))
 					
 					# Buscar nombre del item en shopItems
 					var item_name = item_id
@@ -315,7 +316,10 @@ func update_ui():
 										if str(shop_item.get("id", "")).to_lower() == item_id.to_lower():
 											item_name = shop_item.get("name", item_id)
 											break
-					var drop_lbl = Label.new(); drop_lbl.text = "     - " + item_name + " (" + str(item_chance) + "% chance)"
+					var drop_qty = ""
+					if item_amount > 1:
+						drop_qty = " x" + str(item_amount)
+					var drop_lbl = Label.new(); drop_lbl.text = "     - " + item_name + drop_qty + " (" + str(item_chance) + "% chance)"
 					drop_lbl.add_theme_font_size_override("font_size", 8); drop_lbl.modulate.a = 0.85; ev.add_child(drop_lbl)
 	
 	# --- COLUMNA 2: MECÁNICAS AMBIENTALES ---

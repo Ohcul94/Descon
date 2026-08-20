@@ -39,6 +39,8 @@ var last_clan_subtab = 0 # v244.55: Preservar pestaña al refrescar
 var pending_clans = [] # v244.90: Solicitudes que el usuario envió y están pendientes
 var received_invites = [] # v244.95: Invitaciones que el usuario recibió de clanes
 var pending_skill_to_equip = null # v301.5: Habilidad esperando selección de slot
+var pending_sphere_slot = -1 # v760.0: Slot esperando selección de esfera (flujo instalación)
+var pending_sphere_item = null # v760.0: Esfera (ítem) esperando selección de slot
 var active_modales = [] # v307: Registro de modales activos para cerrado en capas (LIFO)
 
 
@@ -268,11 +270,21 @@ func _input(event):
 			pending_skill_to_equip = null
 			var st = get_node_or_null("Window/TabContainer/Esferas")
 			if st and st.has_method("update_ui"):
-				# Forzar el subtab de biblioteca (el tab 1 del TabContainer interno de SpheresTab)
+				# Forzar el subtab de biblioteca (el tab 2 del TabContainer interno de SpheresTab)
 				for child in st.get_children():
 					if child is TabContainer:
-						child.current_tab = 1
+						child.current_tab = 2
 						break
+				st.update_ui()
+			get_viewport().set_input_as_handled()
+			return
+			
+		if pending_sphere_slot >= 0 or pending_sphere_item != null:
+			# v760.0: Cancelar selección de esfera (instalación)
+			pending_sphere_slot = -1
+			pending_sphere_item = null
+			var st = get_node_or_null("Window/TabContainer/Esferas")
+			if st and st.has_method("update_ui"):
 				st.update_ui()
 			get_viewport().set_input_as_handled()
 			return
@@ -553,7 +565,10 @@ func _update_crafting_ui():
 func _get_slot_from_id(item_id: String) -> String:
 	if item_id.begins_with("las") or item_id.begins_with("w"): return "w"
 	elif item_id.begins_with("sh") or item_id.begins_with("s"): return "s"
-	elif item_id.begins_with("en") or item_id.begins_with("e"): return "e"
+	elif item_id.begins_with("en") or item_id.begins_with("e"):
+		# v760.0: Las esferas (esfera_*) son consumibles instalables, no motores
+		if item_id.begins_with("esfera_"): return "x"
+		return "e"
 	else: return "x"
 
 func _on_game_notification(data: Dictionary):

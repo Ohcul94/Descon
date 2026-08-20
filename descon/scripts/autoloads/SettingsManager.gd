@@ -33,7 +33,7 @@ var skill_aim_speed: float = 1.0   # Suavizado de apuntado de habilidades
 var mobile_mode: bool = false           # v266.670: Modo Celular MOBA
 
 # Estado de cámara que persiste entre mapas (NO se guarda en disco, se reinicia al cerrar el juego)
-var cam_fixed_zoom: float = 1.08
+var cam_fixed_zoom: float = 1.0
 var cam_free_active: bool = false
 var cam_free_h: float = 0.0
 var cam_free_v: float = 40.0

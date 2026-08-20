@@ -15,7 +15,7 @@ Clase de IA (movementAI o movementPhases[0].type): [EJ: chase | orbit | boss | s
 
 Stats: hp, shield, speed, bulletDamage, bulletSpeed, fireRange, fireRate, visionRange, leashRange, chaseIdleTimeout, stopDist, aggressive, chaseUntilDeath, stopOnOutOfSight, hpRegenPercent, shieldRegenPercent, regenDelayMs, regenIntervalMs.
 
-Recompensas: rewardExp, rewardHubs, rewardOhcu, chestDropChance, rankingPoints, lootDrops (items con chance).
+Recompensas: rewardExp, rewardHubs, rewardOhcu, chestDropChance, rankingPoints, lootDrops (items con chance y amount).
 
 Mecánicas de Ataque (mechanics[]): [{ type, bulletDamage, bulletSpeed, fireRange, fireRate, startDelay, ... }] — ej: laser, cone_cast, missiles.
 
