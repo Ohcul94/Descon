@@ -1188,6 +1188,21 @@ func _on_enemy_action(data: Dictionary):
 				if worm_node.has_method("setup"):
 					worm_node.setup(w, current_map, en)
 
+		elif action == "melee_charging" or action == "melee_slash":
+			var melee_script = load("res://scripts/systems/MeleeSlashVisual.gd")
+			if melee_script:
+				var melee_node := Node2D.new()
+				melee_node.set_script(melee_script)
+				melee_node.name = "MeleeSlash_" + enemy_id + "_" + str(data.get("mId","")) + "_" + action
+				melee_node.z_index = 7
+				melee_node.set_as_top_level(true)
+				if is_instance_valid(world) and is_instance_valid(world.entities_node):
+					world.entities_node.add_child(melee_node)
+				else:
+					add_child(melee_node)
+				if melee_node.has_method("setup"):
+					melee_node.setup(data, current_map, en)
+
 		elif action == "wind_charging":
 			var wall_id := str(data.get("wallId", enemy_id))
 			if active_wind_walls.has(wall_id) and is_instance_valid(active_wind_walls[wall_id]):

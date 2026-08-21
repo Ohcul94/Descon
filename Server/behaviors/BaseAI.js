@@ -618,7 +618,7 @@ module.exports = class BaseAI {
         
         // Bloquear movimiento físico en todas las IAs si está cargando/canalizando un ataque o viajando bajo tierra (burrow)
         // v414.2: También durante el vuelo de Ascensión Telúrica (el enemigo vuela al destino, no camina)
-        const isChargingAttack = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging);
+        const isChargingAttack = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging || m.isSlashing);
         const isAscendingFlight = this.enemy._ascendingUntil && now < this.enemy._ascendingUntil;
         if (isChargingAttack || this.enemy.isBurrowed || isAscendingFlight || this.enemy._lockActions) {
             this.enemy.isMoving = false;
@@ -2213,6 +2213,149 @@ module.exports = class BaseAI {
                     this.enemy.mechState[mId] = state;
                     return false;
                 }
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            this.enemy.mechState[mId] = state;
+            return false;
+        }
+
+        // 🪓 Mecánica Melee - Hachazo Corto Alcance (melee_slash) — 7 = C (arco frontal o giro 360° configurable)
+        // Pega directo en el área (no carga un área): solo anticipación visual y golpe instantáneo.
+        // Stun/Parálisis se gestiona vía debuffsList (no hay campo stunDuration separado).
+        if (mech.type === "melee_slash") {
+            const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 2500;
+            const startDelay = mech.startDelay !== undefined ? Number(mech.startDelay) : 600;
+            const castTimeMs = mech.castTimeMs !== undefined ? Number(mech.castTimeMs) : 350;
+            const fireRange = mech.fireRange !== undefined ? Number(mech.fireRange) : 140;
+            const arcAngle = mech.arcAngle !== undefined ? Number(mech.arcAngle) : 120;
+            const fullCircle = !!mech.fullCircle;
+            const bulletDamage = (mech.bulletDamage !== undefined ? Number(mech.bulletDamage) : 80) * (this.damageMult || 1);
+            const pushForce = mech.pushForce !== undefined ? Number(mech.pushForce) : 0;
+            // Compat: si queda arcRadius viejo en config, ignorarlo y usar fireRange como radio de impacto
+            const impactRadius = fireRange;
+
+            if (state.nextShotTime === undefined || state.nextShotTime === 0) {
+                state.nextShotTime = now + startDelay;
+            }
+
+            // FASE 1: Iniciar anticipación si hay target en alcance
+            if (!state.isCharging && now >= state.nextShotTime && target && dist <= fireRange) {
+                state.isCharging = true;
+                state.chargeEndTime = now + castTimeMs;
+                state.chargeAngle = angle;
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "melee_charging",
+                    type: "melee_slash",
+                    mId: mId,
+                    castTimeMs: castTimeMs,
+                    arcAngle: fullCircle ? 360 : arcAngle,
+                    arcRadius: impactRadius,
+                    fireRange: fireRange,
+                    fullCircle: fullCircle,
+                    x: this.enemy.x,
+                    y: this.enemy.y,
+                    angle: angle,
+                    targetId: target.socketId || target.id || ""
+                });
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            // FASE 2: Anticipación terminada → golpe instantáneo en el área
+            if (state.isCharging && now >= state.chargeEndTime) {
+                state.isCharging = false;
+                const slashAngle = state.chargeAngle !== undefined ? state.chargeAngle : angle;
+                const halfAngleRad = fullCircle ? Math.PI : ((arcAngle * Math.PI / 180) / 2);
+
+                io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAction', {
+                    id: this.enemy.id,
+                    action: "melee_slash",
+                    type: "melee_slash",
+                    mId: mId,
+                    arcAngle: fullCircle ? 360 : arcAngle,
+                    arcRadius: impactRadius,
+                    fireRange: fireRange,
+                    fullCircle: fullCircle,
+                    x: this.enemy.x,
+                    y: this.enemy.y,
+                    angle: slashAngle,
+                    damage: bulletDamage
+                });
+
+                // Daño instantáneo a jugadores dentro del arco/círculo
+                const zonePlayers = Object.values(players || {}).filter(p => p.zone === this.enemy.zone && !p.isDead && !p.isInvisible);
+                zonePlayers.forEach(p => {
+                    const d = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
+                    if (d > impactRadius) return;
+                    if (!fullCircle) {
+                        let diff = Math.atan2(p.y - this.enemy.y, p.x - this.enemy.x) - slashAngle;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        if (Math.abs(diff) > halfAngleRad) return;
+                    }
+                    if (p.isInvulnerable) return;
+                    p.lastCombatTime = Date.now();
+                    if (p.shield >= bulletDamage) {
+                        p.shield -= bulletDamage;
+                    } else {
+                        p.hp -= (bulletDamage - p.shield);
+                        p.shield = 0;
+                    }
+                    if (p.hp < 0) p.hp = 0;
+                    if (p.hp <= 0) this._killPlayer(p, io);
+                    if (p.reflectActive && !p.isInvulnerable) {
+                        const reflectedDmg = Math.round(bulletDamage * 0.8);
+                        if (reflectedDmg > 0) {
+                            if (this.enemy.shield >= reflectedDmg) this.enemy.shield -= reflectedDmg;
+                            else { this.enemy.hp -= (reflectedDmg - this.enemy.shield); this.enemy.shield = 0; }
+                            if (this.enemy.hp < 0) this.enemy.hp = 0;
+                            io.to(`zone_${this.enemy.zone}`).emit('enemyDamaged', { id: this.enemy.id, hp: Math.max(0, this.enemy.hp), shield: this.enemy.shield });
+                        }
+                    }
+                    if (pushForce > 0 && !p.isDead) {
+                        const pushAngle = Math.atan2(p.y - this.enemy.y, p.x - this.enemy.x);
+                        p.x += Math.cos(pushAngle) * pushForce;
+                        p.y += Math.sin(pushAngle) * pushForce;
+                        io.to(`zone_${p.zone}`).emit('windPush', { victimId: p.socketId, dirX: Math.cos(pushAngle), dirY: Math.sin(pushAngle), distance: pushForce });
+                    }
+                    // Stun/Parálisis ahora solo vía debuffsList (abajo)
+                    if (mech.debuffsList && Array.isArray(mech.debuffsList)) {
+                        mech.debuffsList.forEach(d => {
+                            if (d.type === 'bleed') {
+                                p.isBleeding = true;
+                                p.bleedEndTime = Date.now() + (Number(d.duration) || 4000);
+                                p.bleedDps = Number(d.dps) || 30;
+                                p.bleedInterval = Number(d.tickInterval) || 1000;
+                                p.lastBleedTick = Date.now();
+                            } else if (d.type === 'stun') {
+                                p.isStunned = true;
+                                p.stunEndTime = Date.now() + (Number(d.duration) || 1500);
+                                io.to(p.socketId).emit('stunState', { active: true, duration: Number(d.duration) || 1500 });
+                            } else if (d.type === 'slow') {
+                                p.isSlowed = true;
+                                p.slowEndTime = Date.now() + (Number(d.duration) || 2500);
+                                p.slowPoints = Number(d.amount) || 50;
+                                p.slowIsPercentage = d.isPercentage !== false;
+                                p.lastSlowTime = Date.now();
+                                io.to(p.socketId).emit('slowState', { active: true, amount: p.slowPoints, isPercentage: p.slowIsPercentage, duration: Number(d.duration) || 2500 });
+                            }
+                        });
+                    }
+                    io.to(p.socketId).emit('environmentDamage', { damage: bulletDamage });
+                    io.to(`zone_${p.zone}`).emit('playerStatSync', { id: p.socketId, hp: Math.ceil(p.hp), shield: Math.ceil(p.shield), isDead: p.isDead });
+                });
+
+                state.nextShotTime = now + cooldown;
+                this.enemy.mechState[mId] = state;
+                return true;
+            }
+
+            if (state.isCharging) {
+                this.enemy.rotation = (state.chargeAngle !== undefined ? state.chargeAngle : angle) + Math.PI / 2;
                 this.enemy.mechState[mId] = state;
                 return true;
             }

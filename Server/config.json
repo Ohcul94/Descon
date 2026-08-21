@@ -2487,16 +2487,25 @@
             "bulletSpeed": 1200,
             "fireRange": 1400,
             "fireRate": 1200,
-            "hp": 1,
+            "hp": 1000,
             "isBoss": true,
             "mechanics": [
                 {
-                    "bulletDamage": 1,
-                    "bulletSpeed": 900,
-                    "fireRange": 1200,
-                    "fireRate": 2000,
+                    "type": "melee_slash",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 300,
+                    "fireRate": 1000,
+                    "cooldown": 5000,
                     "startDelay": 0,
-                    "type": "laser"
+                    "castTimeMs": 2000,
+                    "activeMs": 180,
+                    "arcAngle": 120,
+                    "arcRadius": 600,
+                    "fullCircle": true,
+                    "pushForce": 0,
+                    "stunDuration": 0,
+                    "debuffsList": []
                 }
             ],
             "movementPhases": [
@@ -2514,7 +2523,7 @@
             "rewardExp": 1,
             "rewardHubs": 1,
             "rewardOhcu": 1,
-            "shield": 1,
+            "shield": 1000,
             "speed": 260,
             "defenseMechanics": [],
             "lootDrops": [
@@ -6496,7 +6505,7 @@
             },
             "friendlyFire": false,
             "pvpMode": "mandatory",
-            "friendlyFireClan": false
+            "friendlyFireClan": true
         },
         "6": {
             "allowedHours": [],
@@ -7528,6 +7537,22 @@
             ],
             "icon": "🪱",
             "label": "Gusanos Bumerán"
+        },
+        "melee_slash": {
+            "desc": "Corte cuerpo a cuerpo instantáneo: el enemigo levanta el hacha (anticipación) y pega en el área en forma de arco o giro 360°. Pega directo, no carga un área.",
+            "fields": [
+                "bulletDamage",
+                "fireRange",
+                "cooldown",
+                "startDelay",
+                "castTimeMs",
+                "arcAngle",
+                "fullCircle",
+                "pushForce",
+                "debuffsList"
+            ],
+            "icon": "🪓",
+            "label": "Hachazo Melee 🪓"
         }
     },
     "movementLib": {

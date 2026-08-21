@@ -967,6 +967,8 @@ function updateMechanicType(enemyId, idx, newType) {
              else if (f === 'warnDelayMs') mech[f] = newType === 'ascension' ? 0 : 600;
              else if (f === 'slowAmount') mech[f] = 30;
              else if (f === 'stunDuration') mech[f] = 1500;
+             else if (f === 'arcAngle') mech[f] = 120;
+             else if (f === 'fullCircle') mech[f] = false;
              else mech[f] = 0;
         }
     });
