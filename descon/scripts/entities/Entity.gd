@@ -1454,6 +1454,39 @@ func take_damage(amt: float, attacker_pos: Vector2 = Vector2.ZERO, attacker_id: 
 				break
 				
 		if attacker_is_player:
+			# v690.3: Evitar predicción de daño entre aliados (party/clan)
+			var is_same_clan = false
+			if clan_tag != "" and is_instance_valid(attacker_node) and "clan_tag" in attacker_node and attacker_node.clan_tag != "":
+				if clan_tag.strip_edges().to_lower() == attacker_node.clan_tag.strip_edges().to_lower():
+					is_same_clan = true
+			
+			var is_same_party = false
+			var pm = get_node_or_null("/root/PartyManager")
+			if pm and pm.get("current_party") != null:
+				# 1. Comparar nombres en minúsculas (insensible a mayúsculas/minúsculas)
+				var party_names = pm.current_party.get("names", [])
+				var party_names_lower = []
+				for n in party_names:
+					if typeof(n) == TYPE_STRING:
+						party_names_lower.append(n.strip_edges().to_lower())
+				
+				var my_name_lower = username.strip_edges().to_lower()
+				var attacker_name_lower = attacker_node.username.strip_edges().to_lower() if is_instance_valid(attacker_node) else ""
+				
+				if my_name_lower != "" and attacker_name_lower != "" and my_name_lower in party_names_lower and attacker_name_lower in party_names_lower:
+					is_same_party = true
+				
+				# 2. Fallback: Comparar por DB IDs
+				if not is_same_party and pm.current_party.has("members"):
+					var party_members = pm.current_party.get("members", [])
+					var my_db_id = db_id if "db_id" in self else ""
+					var attacker_db_id = attacker_node.db_id if is_instance_valid(attacker_node) and "db_id" in attacker_node else ""
+					if my_db_id != "" and attacker_db_id != "" and my_db_id in party_members and attacker_db_id in party_members:
+						is_same_party = true
+					
+			if is_same_clan or is_same_party:
+				return
+
 			# Verificar si el mapa actual es zona PvP obligatoria
 			var is_pvp_map = false
 			var active_map = get_tree().get_first_node_in_group("map")

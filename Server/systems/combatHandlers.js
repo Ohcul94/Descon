@@ -23,6 +23,7 @@ const FearSphereSkill = require('./skills/FearSphereSkill');
 const combatTracker = require('./combatTracker');
 const { checkRequirements } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento (munición)
 const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
+const { areInSamePartyBySocket, isFriendlyFireEnabled } = require('../utils/partyUtils'); // v650.0: Bloqueo fuego amigo en party
 
 // v301.4: Soporte unificado de habilidades de resurrección
 
@@ -951,6 +952,41 @@ function registerCombatHandlers(socket, io, state) {
                 if (dist > 1800) {
                     Logger.warn('SECURITY', `Intento de PvP a distancia inválida: [${attacker.user}] -> [${victim.user}] (Distancia: ${Math.round(dist)}px)`);
                     return;
+                }
+
+                // v650.0: Bloqueo de fuego amigo en party (PVP obligatorio)
+                const attackerAmmoTypeEarly = attacker.selectedAmmo || 'laser';
+                const victimMapCfgEarly = state.SERVER_CONFIG?.mapsConfig?.[String(victim.zone)] || state.SERVER_CONFIG?.mapsConfig?.[victim.zone] || null;
+                const friendlyFireEarly = isFriendlyFireEnabled(victimMapCfgEarly);
+                const samePartyEarly = areInSamePartyBySocket(socket.id, data.victimId, state);
+                if (samePartyEarly && !friendlyFireEarly) {
+                    // Solo la munición curativa (buff) puede afectar a la party; el resto (daño/debuffs) se bloquea
+                    if (attackerAmmoTypeEarly !== 'heal') {
+                        io.to(`zone_${victim.zone}`).emit('playerStatSync', {
+                            id: data.victimId, hp: Math.ceil(victim.hp), shield: Math.ceil(victim.shield),
+                            maxHp: victim.maxHp, maxShield: victim.maxShield, isDead: victim.isDead,
+                            isInvisible: victim.isInvisible, isInvulnerable: !!victim.isInvulnerable
+                        });
+                        socket.emit('gameNotification', { msg: "🛡️ Fuego aliado bloqueado: no puedes dañar a tu party (solo curas/buffs).", type: "warning" });
+                        return;
+                    }
+                    // Si es heal, dejar pasar al flujo normal de curación abajo
+                }
+
+                // Bloqueo de fuego amigo en clan (PVP obligatorio)
+                const friendlyFireClanEarly = victimMapCfgEarly && victimMapCfgEarly.friendlyFireClan !== undefined ? !!victimMapCfgEarly.friendlyFireClan : false;
+                const sameClanEarly = !!(attacker.clanId && victim.clanId && String(attacker.clanId) === String(victim.clanId));
+                if (sameClanEarly && !friendlyFireClanEarly) {
+                    // Solo la munición curativa (buff) puede afectar al clan; el resto (daño/debuffs) se bloquea
+                    if (attackerAmmoTypeEarly !== 'heal') {
+                        io.to(`zone_${victim.zone}`).emit('playerStatSync', {
+                            id: data.victimId, hp: Math.ceil(victim.hp), shield: Math.ceil(victim.shield),
+                            maxHp: victim.maxHp, maxShield: victim.maxShield, isDead: victim.isDead,
+                            isInvisible: victim.isInvisible, isInvulnerable: !!victim.isInvulnerable
+                        });
+                        socket.emit('gameNotification', { msg: "🛡️ Fuego aliado bloqueado: no puedes dañar a miembros de tu clan (solo curas/buffs).", type: "warning" });
+                        return;
+                    }
                 }
 
                 // Calcular daño teórico máximo para el atacante

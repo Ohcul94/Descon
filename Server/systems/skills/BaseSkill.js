@@ -51,8 +51,30 @@ class BaseSkill {
 
                 if (targetPlayer) {
                     const sameClan = (p.clanId && targetPlayer.clanId && String(p.clanId) === String(targetPlayer.clanId));
-                    const isAlly = sameClan || (!p.pvpEnabled && !targetPlayer.pvpEnabled);
-                    const isEnemy = !sameClan && (p.pvpEnabled || targetPlayer.pvpEnabled);
+                    // v650.0: Party siempre es aliado (fuego amigo bloqueado salvo friendlyFire)
+                    let sameParty = false;
+                    try {
+                        const pid1 = state.playerParty ? state.playerParty[String(p.dbId || p.dbUser?._id || '')] : null;
+                        const pid2 = state.playerParty ? state.playerParty[String(targetPlayer.dbId || targetPlayer.dbUser?._id || '')] : null;
+                        // Fallback por socketId si dbId no está disponible
+                        if (!pid1 || !pid2) {
+                            const sid1 = p.socketId || p.id;
+                            const sid2 = targetPlayer.socketId || targetPlayer.id;
+                            if (sid1 && sid2 && state.players && state.players[sid1] && state.players[sid2]) {
+                                const uid1 = state.players[sid1].dbId || String(state.players[sid1].dbUser?._id || '');
+                                const uid2 = state.players[sid2].dbId || String(state.players[sid2].dbUser?._id || '');
+                                const ppid1 = state.playerParty ? state.playerParty[String(uid1)] : null;
+                                const ppid2 = state.playerParty ? state.playerParty[String(uid2)] : null;
+                                sameParty = !!ppid1 && ppid1 === ppid2;
+                            } else {
+                                sameParty = !!pid1 && pid1 === pid2;
+                            }
+                        } else {
+                            sameParty = !!pid1 && pid1 === pid2;
+                        }
+                    } catch (e) { sameParty = false; }
+                    const isAlly = sameClan || sameParty || (!p.pvpEnabled && !targetPlayer.pvpEnabled);
+                    const isEnemy = !sameClan && !sameParty && (p.pvpEnabled || targetPlayer.pvpEnabled);
                     
                     if (isAlly && filters.allies) isValid = true;
                     else if (isEnemy && (filters.enemies || filters.players)) isValid = true;

@@ -2377,6 +2377,14 @@ function renderMapDetail() {
                             </div>
                             ` : ''}
                             ` : ''}
+                            <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: span 2; margin-top:8px; padding:8px; border-radius:6px; background:rgba(255,193,7,0.06); border:1px solid rgba(255,193,7,0.15);">
+                                <input type="checkbox" id="friendly-fire-toggle" ${m.friendlyFire ? 'checked' : ''} onchange="config.mapsConfig['${selectedMapId}'].friendlyFire = this.checked">
+                                <label style="margin:0; cursor:pointer;" for="friendly-fire-toggle">🎯 Permitir fuego amigo en party (si está desactivado, la party no se hace daño, solo buffs/curas)</label>
+                            </div>
+                            <div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; grid-column: span 2; margin-top:8px; padding:8px; border-radius:6px; background:rgba(255,193,7,0.06); border:1px solid rgba(255,193,7,0.15);">
+                                <input type="checkbox" id="friendly-fire-clan-toggle" ${m.friendlyFireClan ? 'checked' : ''} onchange="config.mapsConfig['${selectedMapId}'].friendlyFireClan = this.checked">
+                                <label style="margin:0; cursor:pointer;" for="friendly-fire-clan-toggle">🛡️ Permitir fuego amigo en clan (si está desactivado, el clan no se hace daño, solo buffs/curas)</label>
+                            </div>
                         </div>
                     </div>
                     <div style="margin-top: 1.5rem; padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.05);">

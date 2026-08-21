@@ -1676,16 +1676,7 @@
             "aggressive": true,
             "bulletDamage": 200,
             "bulletSpeed": 600,
-            "defenseMechanics": [
-                {
-                    "type": "basic_defense",
-                    "reductionPercentage": 10,
-                    "shieldRegen": 5,
-                    "duration": 5000,
-                    "cooldown": 10000,
-                    "startDelay": 0
-                }
-            ],
+            "defenseMechanics": [],
             "fireRange": 800,
             "fireRate": 2500,
             "hp": 50,
@@ -1693,11 +1684,29 @@
             "lootDrops": [],
             "mechanics": [
                 {
-                    "bulletDamage": 1,
-                    "bulletSpeed": 800,
-                    "fireRange": 800,
+                    "bulletDamage": 4,
+                    "bulletSpeed": 1000,
+                    "fireRange": 650,
                     "fireRate": 3000,
-                    "type": "laser"
+                    "type": "laser",
+                    "burstShots": 2
+                },
+                {
+                    "type": "worm_boomerang",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 400,
+                    "fireRange": 900,
+                    "fireRate": 1000,
+                    "cooldown": 6550,
+                    "castTimeMs": 2000,
+                    "damage": 500,
+                    "lockTimeMs": 800,
+                    "startDelay": 2340,
+                    "projectileCount": 1,
+                    "spreadAngle": 60,
+                    "parkTimeMs": 1000,
+                    "returnDamage": 15,
+                    "debuffsList": []
                 }
             ],
             "movementPhases": [
@@ -1706,7 +1715,7 @@
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "sniper",
-                    "idealDist": 200
+                    "idealDist": 350
                 },
                 {
                     "type": "aura_speed",
@@ -1714,21 +1723,25 @@
                     "stopDist": 150,
                     "startDelay": 2000,
                     "activationHP": 150,
-                    "radius": 400,
+                    "radius": 500,
                     "speedBonus": 50,
                     "duration": 5000,
                     "cooldown": 10000,
                     "affectsEnemies": true,
-                    "affectsBosses": false
+                    "affectsBosses": true
                 }
             ],
             "name": "Enemigo 6",
-            "rankingPoints": 6,
-            "rewardExp": 250,
-            "rewardHubs": 5000,
-            "rewardOhcu": 50,
+            "rankingPoints": 5,
+            "rewardExp": 75,
+            "rewardHubs": 450,
+            "rewardOhcu": 5,
             "shield": 50,
-            "speed": 250
+            "speed": 250,
+            "visionRange": 1200,
+            "leashRange": 1200,
+            "regenDelayMs": 15000,
+            "regenIntervalMs": 15000
         },
         "7": {
             "bulletDamage": 160,
@@ -1824,7 +1837,8 @@
             "aggressive": true,
             "visionRange": 1000,
             "hpRegenPercent": 5,
-            "regenDelayMs": 10000
+            "regenDelayMs": 10000,
+            "leashRange": 1000
         },
         "9": {
             "aggressive": true,
@@ -2205,7 +2219,8 @@
             "shield": 300,
             "shieldRegenPercent": 30,
             "speed": 250,
-            "visionRange": 2000
+            "visionRange": 2000,
+            "posY": 3
         },
         "102": {
             "aggressive": false,
@@ -2302,7 +2317,11 @@
             "visionRange": 1500,
             "chestDropChance": 0.5,
             "hpRegenPercent": 10,
-            "shieldRegenPercent": 10
+            "shieldRegenPercent": 10,
+            "posY": 3,
+            "scale": 2,
+            "rotX": 0,
+            "rotY": 0
         },
         "103": {
             "bulletDamage": 3000,
@@ -2347,7 +2366,7 @@
                 {
                     "type": "hook",
                     "bulletDamage": 0,
-                    "bulletSpeed": 400,
+                    "bulletSpeed": 600,
                     "fireRange": 900,
                     "fireRate": 7000,
                     "stunDuration": 1500,
@@ -2460,7 +2479,8 @@
             "stopOnOutOfSight": true,
             "leashRange": 2500,
             "visionRange": 1300,
-            "regenDelayMs": 30000
+            "regenDelayMs": 30000,
+            "posY": 2
         },
         "104": {
             "bulletDamage": 8000,
@@ -3648,48 +3668,60 @@
             "defenseMechanics": [],
             "fireRange": 700,
             "fireRate": 1100,
-            "hp": 2400,
+            "hp": 30,
             "leashRange": 1000,
             "lootDrops": [],
             "mechanics": [
                 {
-                    "bulletDamage": 40,
-                    "bulletSpeed": 900,
+                    "bulletDamage": 3,
+                    "bulletSpeed": 600,
                     "fireRange": 1000,
                     "fireRate": 3000,
-                    "type": "laser"
+                    "type": "laser",
+                    "burstShots": 2
                 },
                 {
-                    "bulletDamage": 20,
-                    "bulletSpeed": 600,
+                    "bulletDamage": 10,
+                    "bulletSpeed": 500,
                     "fireRange": 1000,
                     "fireRate": 2000,
                     "isHoming": true,
                     "lifetimeMs": 3000,
                     "slowAmount": 50,
                     "slowDuration": 2000,
-                    "startDelay": 500,
+                    "startDelay": 1500,
                     "turnSpeed": 2,
-                    "type": "ice_missile"
+                    "type": "bomb",
+                    "radius": 150,
+                    "bombCount": 1,
+                    "bombDelayMs": 0,
+                    "fuseTimeMs": 100,
+                    "cooldown": 5000
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 400,
+                    "speed": 200,
                     "startDelay": 0,
                     "stopDist": 150,
-                    "type": "chase"
+                    "type": "sniper",
+                    "idealDist": 150
                 }
             ],
             "name": "Enemigo 3 A",
             "rankingPoints": 3,
-            "rewardExp": 600,
-            "rewardHubs": 700,
-            "rewardOhcu": 6,
-            "shield": 1200,
+            "rewardExp": 20,
+            "rewardHubs": 30,
+            "rewardOhcu": 3,
+            "shield": 30,
             "speed": 400,
             "stopOnOutOfSight": true,
-            "visionRange": 1000
+            "visionRange": 1000,
+            "icon": "res://assets/Enemigos/2D/Enemigo3/Enemy3Map1.png",
+            "animAttack": "2",
+            "animDie": "1",
+            "regenDelayMs": 15000,
+            "regenIntervalMs": 3000
         },
         "3-B": {
             "aggressive": true,
@@ -5853,7 +5885,7 @@
             "minLevel": 1,
             "music": {
                 "enabled": true,
-                "path": "res://assets/Musica/Descond.mp3",
+                "path": "res://assets/Musica/Station Atmosphere.mp3",
                 "volumePercent": 50
             },
             "name": "Loby",
@@ -6028,7 +6060,8 @@
             "warpCost": 0,
             "width": 3000,
             "spawnX": 1500,
-            "spawnY": 1000
+            "spawnY": 1000,
+            "friendlyFire": false
         },
         "2": {
             "allowedHours": [],
@@ -6170,11 +6203,12 @@
             "width": 10000,
             "music": {
                 "enabled": true,
-                "path": "res://assets/Musica/Station Atmosphere.mp3",
+                "path": "res://assets/Musica/Descond.mp3",
                 "volumePercent": 50
             },
             "spawnX": 5000,
-            "spawnY": 500
+            "spawnY": 500,
+            "friendlyFire": false
         },
         "3": {
             "ambience": [],
@@ -6182,13 +6216,18 @@
             "desc": "Sector hostil con recursos de nivel medio.",
             "height": 4000,
             "minLevel": 1,
+            "music": {
+                "enabled": true,
+                "path": "res://assets/Musica/Hard_Light_Pursuit.mp3",
+                "volumePercent": 60
+            },
             "name": "Mapa 3",
             "objects": [],
             "spawns": [
                 {
                     "id": "spawn_1786813989999611",
                     "type": "4",
-                    "count": 5,
+                    "count": 3,
                     "intervalMs": 5000,
                     "spawnMode": "random",
                     "x": 993,
@@ -6198,7 +6237,7 @@
                 {
                     "id": "spawn_1786814085780754",
                     "type": "4",
-                    "count": 5,
+                    "count": 3,
                     "intervalMs": 5000,
                     "spawnMode": "random",
                     "x": 2988,
@@ -6208,7 +6247,7 @@
                 {
                     "id": "spawn_1786814109764574",
                     "type": "4",
-                    "count": 5,
+                    "count": 3,
                     "intervalMs": 5000,
                     "spawnMode": "random",
                     "x": 993,
@@ -6218,7 +6257,7 @@
                 {
                     "id": "spawn_1786814135660661",
                     "type": "4",
-                    "count": 5,
+                    "count": 3,
                     "intervalMs": 5000,
                     "spawnMode": "random",
                     "x": 2997,
@@ -6274,17 +6313,23 @@
                     "x": 2008,
                     "y": 2010,
                     "radius": 300
+                },
+                {
+                    "id": "spawn_1787331269057315",
+                    "type": "3-A",
+                    "count": 8,
+                    "intervalMs": 5000,
+                    "spawnMode": "random",
+                    "x": 0,
+                    "y": 0,
+                    "radius": 0
                 }
             ],
             "warpCost": 0,
             "width": 4000,
-            "music": {
-                "enabled": false,
-                "path": "",
-                "volumePercent": 60
-            },
             "spawnX": 2000,
-            "spawnY": 200
+            "spawnY": 200,
+            "friendlyFire": false
         },
         "4": {
             "ambience": [
@@ -6388,7 +6433,8 @@
                 "volumePercent": 50
             },
             "spawnX": 2500,
-            "spawnY": 2000
+            "spawnY": 2000,
+            "friendlyFire": false
         },
         "5": {
             "ambience": [],
@@ -6447,7 +6493,10 @@
                 "enabled": false,
                 "path": "",
                 "volumePercent": 60
-            }
+            },
+            "friendlyFire": false,
+            "pvpMode": "mandatory",
+            "friendlyFireClan": false
         },
         "6": {
             "allowedHours": [],
@@ -6519,7 +6568,8 @@
                 "enabled": false,
                 "path": "",
                 "volumePercent": 60
-            }
+            },
+            "friendlyFire": false
         },
         "7": {
             "allowedHours": [],
@@ -6653,7 +6703,8 @@
                 "enabled": false,
                 "path": "",
                 "volumePercent": 60
-            }
+            },
+            "friendlyFire": false
         },
         "8": {
             "ambience": [
@@ -6754,7 +6805,8 @@
             ],
             "warpCost": 0,
             "width": 2000,
-            "visible": false
+            "visible": false,
+            "friendlyFire": false
         },
         "9": {
             "ambience": [],
@@ -6918,7 +6970,8 @@
             ],
             "warpCost": 0,
             "width": 10000,
-            "visible": false
+            "visible": false,
+            "friendlyFire": false
         },
         "10": {
             "ambience": [
@@ -6986,7 +7039,8 @@
             "spawns": [],
             "warpCost": 50,
             "width": 20000,
-            "visible": false
+            "visible": false,
+            "friendlyFire": false
         },
         "11": {
             "ambience": [],
@@ -7032,7 +7086,8 @@
             "spawns": [],
             "warpCost": 100,
             "width": 10000,
-            "visible": false
+            "visible": false,
+            "friendlyFire": false
         }
     },
     "marketConfig": {
