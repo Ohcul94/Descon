@@ -916,7 +916,21 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 	if current_ammo <= 0: return
 		
 	ammo[p_type][t_idx] -= 1
-	AudioManager.play_sfx(p_type)
+	# v900.0: sonido de munición (ammo sound + fallback)
+	if AudioManager and AudioManager.has_method("play_sfx_path"):
+		var ammo_sfx_path = ""
+		var ammo_vol = 0.0
+		var ammo_maxd = 1000.0
+		if GameConstants.SHOP_ITEMS and GameConstants.SHOP_ITEMS.has("ammo"):
+			var ammo_cfg = GameConstants.SHOP_ITEMS["ammo"].get(p_type, [])
+			if t_idx < ammo_cfg.size():
+				ammo_sfx_path = String(ammo_cfg[t_idx].get("sound", ""))
+				ammo_vol = float(ammo_cfg[t_idx].get("soundVolumeDb", 0.0))
+				ammo_maxd = float(ammo_cfg[t_idx].get("soundMaxDist", 1000.0))
+		if not ammo_sfx_path.is_empty():
+			AudioManager.play_sfx_path(ammo_sfx_path, global_position, ammo_vol, ammo_maxd)
+		else:
+			AudioManager.play_sfx(p_type)
 	
 	is_moving = false
 	autopilot_enabled = false
@@ -1032,6 +1046,9 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 		"targetId": target_id, "posX": p_data.pos.x, "posY": p_data.pos.y,
 		"angle": p_data.get("angle", rotation)
 	})
+	# v900.0: sonido de habilidad local (2D con maxDist)
+	if AudioManager and AudioManager.has_method("play_skill_sound"):
+		AudioManager.play_skill_sound(skill.skill_name, global_position)
 	
 	# Cooldown persistente basado en la configuración en milisegundos (ms)
 	var cd_val = 5.0

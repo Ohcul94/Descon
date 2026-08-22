@@ -8750,7 +8750,9 @@
                         "ohcu": 10
                     },
                     "range": 450,
-                    "requirements": []
+                    "requirements": [],
+                    "sound": "res://assets/Sonidos/Disparos/Lazers/Lazer.mp3",
+                    "soundVolumeDb": 1
                 },
                 {
                     "bulletSpeed": 800,

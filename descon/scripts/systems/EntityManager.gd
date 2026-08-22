@@ -417,6 +417,16 @@ func _on_laser_indicator_exited(enemy_id: String):
 func _on_enemy_action(data: Dictionary):
 	var action = data.get("action", "")
 	var enemy_id = str(data.get("id", ""))
+	# v900.0: sonido de mecánica genérico (2D con atenuación)
+	if AudioManager and AudioManager.has_method("play_mechanic_sound") and not String(action).is_empty():
+		var candidate = String(action).split("_")[0]
+		if candidate.is_empty():
+			candidate = String(action)
+		if GameConstants.MECHANICS_LIB.has(candidate) or GameConstants.DEFENSE_LIB.has(candidate) or GameConstants.MOVEMENT_LIB.has(candidate):
+			var epos = Vector2.INF
+			if enemies.has(enemy_id) and is_instance_valid(enemies[enemy_id]):
+				epos = enemies[enemy_id].global_position
+			AudioManager.play_mechanic_sound(candidate, null, epos)
 	
 	# v410: Shield Steal se gestiona independiente del gate de enemies dict,
 	# porque el enemigo que dispara puede no estar renderizado en el cliente.
@@ -3350,16 +3360,45 @@ func _on_local_shoot(d):
 func _on_player_fired(d): 
 	if is_instance_valid(world) and is_instance_valid(world.combat_system): 
 		world.combat_system.handle_remote_shoot(d)
+	# v900.0: sonido de disparo remoto (ammo) con atenuación
+	if AudioManager and AudioManager.has_method("play_sfx_path"):
+		var pos = Vector2(float(d.get("x", 0)), float(d.get("y", 0)))
+		var btype = String(d.get("bulletType", d.get("ammoType", "")))
+		var tier = int(d.get("tier", d.get("ammoTier", 0)))
+		if not btype.is_empty() and GameConstants.SHOP_ITEMS and GameConstants.SHOP_ITEMS.has("ammo"):
+			var cfg = GameConstants.SHOP_ITEMS["ammo"].get(btype, [])
+			if tier < cfg.size():
+				var sp = String(cfg[tier].get("sound", ""))
+				if not sp.is_empty():
+					AudioManager.play_sfx_path(sp, pos, float(cfg[tier].get("soundVolumeDb", 0.0)), float(cfg[tier].get("soundMaxDist", 1000.0)))
 
 func _on_enemy_fired(d): 
 	if is_instance_valid(world) and is_instance_valid(world.combat_system): 
 		world.combat_system.handle_enemy_shoot(d)
+	# v900.0: sonido de mecánica atacante (hybrid)
+	if AudioManager and AudioManager.has_method("play_mechanic_sound"):
+		var pos = Vector2(float(d.get("x", d.get("posX", 0))), float(d.get("y", d.get("posY", 0))))
+		var mtype = String(d.get("mechType", d.get("mechanicType", d.get("type", ""))))
+		if not mtype.is_empty():
+			var inst = d.get("mechanic", null)
+			AudioManager.play_mechanic_sound(mtype, inst if inst is Dictionary else null, pos)
 
 func _on_remote_skill_used(data):
 	if typeof(data) != TYPE_DICTIONARY: return
 	
 	var sender_id = str(data.get("id", ""))
 	var skill_name = data.get("skillName", "")
+	# v900.0: sonido de habilidad remota (2D)
+	if AudioManager and AudioManager.has_method("play_skill_sound") and not skill_name.is_empty():
+		var em_sound = null
+		if remote_players.has(sender_id):
+			em_sound = remote_players[sender_id]
+		elif is_instance_valid(world) and is_instance_valid(world.local_player) and world.local_player.entity_id == sender_id:
+			em_sound = world.local_player
+		elif enemies.has(sender_id):
+			em_sound = enemies[sender_id]
+		var spos = em_sound.global_position if is_instance_valid(em_sound) else Vector2.INF
+		AudioManager.play_skill_sound(skill_name, spos)
 	
 	if skill_name == "ESFERA DE TERROR":
 		var emisor_node = null

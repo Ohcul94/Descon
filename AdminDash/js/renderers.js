@@ -26,7 +26,7 @@ function mechanicSoundOverrideHtml(enemyId, listName, idx, mech) {
     const maxd = hasOverride ? (mech.soundMaxDist || (lib ? lib.soundMaxDist : 1200)) : (lib ? lib.soundMaxDist : 1200);
     const preview = effective ? resolveAssetWebUrl(effective) : '';
     return `
-    <div style="margin-top:0.6rem; padding:0.7rem; background:rgba(168,85,247,0.05); border:1px solid rgba(168,85,247,0.12); border-radius:6px; border-left:2px solid #a855f7;">
+    <div class="mech-sound-override" style="margin-top:0.6rem; padding:0.7rem; background:rgba(168,85,247,0.05); border:1px solid rgba(168,85,247,0.12); border-radius:6px; border-left:2px solid #a855f7;">
         <label style="color:#a855f7; font-size:0.6rem; font-weight:bold; display:flex; align-items:center; gap:6px;">SONIDO (Override por enemigo) <span style="font-weight:normal; color:#888; font-size:0.55rem;">vacío = hereda de librería</span></label>
         <div style="font-size:0.55rem; color:#888; margin-top:0.2rem;">Default librería: <span style="color:#a855f7; font-family:JetBrains Mono;">${defaultSound || '(sin sonido)'}</span></div>
         <div style="display:flex; gap:6px; align-items:center; margin-top:0.4rem;">
@@ -727,6 +727,19 @@ function renderAmmo() {
             </div>
 
             ${extraFieldsHTML}
+            <div style="margin-top:0.8rem; padding:0.7rem; background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.15); border-radius:6px;">
+                <label style="color:#fbbf24; font-size:0.6rem; font-weight:bold;">SONIDO DE DISPARO (assets/Sonidos/Mecanicas/)</label>
+                <div style="display:flex; gap:6px; align-items:center; margin-top:0.4rem;">
+                    <input type="text" placeholder="res://assets/Sonidos/Mecanicas/ej.ogg" value="${item.sound || ''}" style="flex:1; font-size:0.65rem;" onchange="config.shopItems.ammo['${type}'][${i}].sound = this.value; renderAmmo();">
+                    <button class="btn" style="padding:4px 8px; font-size:0.6rem; background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.25); color:#fbbf24;" onclick="triggerAssetUpload('${type}_${i}', 'ammo_sound')">SONIDO</button>
+                    ${item.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.55rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.shopItems.ammo['${type}'][${i}].sound=''; renderAmmo();">X</button>` : ''}
+                </div>
+                ${item.sound ? `<audio controls preload="none" src="${resolveAssetWebUrl(item.sound)}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
+                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${item.soundVolumeDb !== undefined ? item.soundVolumeDb : 0}" onchange="config.shopItems.ammo['${type}'][${i}].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${item.soundMaxDist || 1000}" onchange="config.shopItems.ammo['${type}'][${i}].soundMaxDist = parseInt(this.value) || 1000"></div>
+                </div>
+            </div>
             
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #333;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
@@ -2229,6 +2242,38 @@ if (f === 'targetMode') {
     setTimeout(() => {
         window.renderLootTableComponent(selectedEnemyId, 'loot-table-component-threats');
     }, 50);
+    // v900.0: inyectar sonidos hybrid post-render (DOM) - dentro de renderEnemyDetail
+    setTimeout(() => {
+        try {
+            const mechList = document.getElementById(`mech-list-${selectedEnemyId}`);
+            if (mechList) {
+                [...mechList.children].forEach((card, idx) => {
+                    if (card.querySelector('.mech-sound-override')) return;
+                    const m = config.enemyModels[selectedEnemyId]?.mechanics?.[idx];
+                    if (!m) return;
+                    card.insertAdjacentHTML('beforeend', mechanicSoundOverrideHtml(selectedEnemyId, 'mechanics', idx, m));
+                });
+            }
+            const dList = document.getElementById(`defense-mech-list-${selectedEnemyId}`);
+            if (dList) {
+                [...dList.children].forEach((card, idx) => {
+                    if (card.querySelector('.mech-sound-override')) return;
+                    const m = config.enemyModels[selectedEnemyId]?.defenseMechanics?.[idx];
+                    if (!m) return;
+                    card.insertAdjacentHTML('beforeend', mechanicSoundOverrideHtml(selectedEnemyId, 'defenseMechanics', idx, m));
+                });
+            }
+            const movList = document.getElementById(`move-list-${selectedEnemyId}`);
+            if (movList) {
+                [...movList.children].forEach((card, idx) => {
+                    if (card.querySelector('.mech-sound-override')) return;
+                    const m = config.enemyModels[selectedEnemyId]?.movementPhases?.[idx];
+                    if (!m) return;
+                    card.insertAdjacentHTML('beforeend', mechanicSoundOverrideHtml(selectedEnemyId, 'movementPhases', idx, m));
+                });
+            }
+        } catch(e) { console.warn('sound inject', e); }
+    }, 0);
 }
 
 function renderMechanicsLib() {
@@ -6938,11 +6983,13 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
     input.type = 'file';
 
     // Tipos que NO deben copiar el archivo — solo resuelven la ruta res://
-    const resolveOnlyTypes = ['resource', 'recipe', 'ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'talent_icon', 'weapon_icon', 'shield_icon', 'engine_icon', 'ammo_icon', 'enemy_icon', 'enemy_glb'];
+    const resolveOnlyTypes = ['resource', 'recipe', 'ship_glb', 'ship_icon', 'housing_glb', 'skill_icon', 'skill_sound', 'talent_icon', 'weapon_icon', 'shield_icon', 'engine_icon', 'ammo_icon', 'ammo_sound', 'enemy_icon', 'enemy_glb', 'mechanic_sound', 'defense_sound', 'movement_sound', 'mechanic_instance_sound'];
     const isResolveOnly = resolveOnlyTypes.includes(type);
 
     if (type === 'ship_glb' || type === 'housing_glb' || type === 'enemy_glb') {
         input.accept = '.glb';
+    } else if (type.includes('sound')) {
+        input.accept = '.ogg,.wav,.mp3,audio/*';
     } else {
         input.accept = 'image/*';
     }
@@ -6989,6 +7036,30 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         config.shopItems.ammo_icons[idx] = result.path;
                     } else if (type === 'talent_icon') {
                         config.talentsConfig.talents[idx].icon = result.path;
+                    } else if (type === 'skill_sound') {
+                        if (!config.skillsData[idx]) config.skillsData[idx] = {};
+                        config.skillsData[idx].sound = result.path;
+                    } else if (type === 'mechanic_sound') {
+                        if (config.mechanicsLib && config.mechanicsLib[idx]) config.mechanicsLib[idx].sound = result.path;
+                    } else if (type === 'defense_sound') {
+                        if (config.defenseLib && config.defenseLib[idx]) config.defenseLib[idx].sound = result.path;
+                    } else if (type === 'movement_sound') {
+                        if (config.movementLib && config.movementLib[idx]) config.movementLib[idx].sound = result.path;
+                    } else if (type === 'ammo_sound') {
+                        // idx format "type_idx" e.g. "laser_0"
+                        const parts = idx.split('_');
+                        const aType = parts[0];
+                        const aIdx = parseInt(parts.slice(1).join('_')) || 0;
+                        if (config.shopItems?.ammo?.[aType]?.[aIdx]) config.shopItems.ammo[aType][aIdx].sound = result.path;
+                    } else if (type === 'mechanic_instance_sound') {
+                        // idx format "enemyId_listName_idx" e.g. "1_mechanics_0"
+                        const segs = idx.split('_');
+                        const mIdx = parseInt(segs.pop());
+                        const listName = segs.pop();
+                        const enemyId = segs.join('_');
+                        if (config.enemyModels[enemyId] && config.enemyModels[enemyId][listName] && config.enemyModels[enemyId][listName][mIdx]) {
+                            config.enemyModels[enemyId][listName][mIdx].sound = result.path;
+                        }
                     }
                     if (type === 'ship_icon' || type === 'ship_glb') {
                         renderShips();
@@ -7005,8 +7076,16 @@ window.triggerAssetUpload = function(idx, type = 'resource') {
                         renderEngines();
                     } else if (type === 'ammo_icon') {
                         renderAmmo();
+                    } else if (type === 'ammo_sound') {
+                        renderAmmo();
                     } else if (type === 'skill_icon') {
                         renderSkills();
+                    } else if (type === 'skill_sound') {
+                        renderSkills();
+                    } else if (type === 'mechanic_sound' || type === 'defense_sound' || type === 'movement_sound') {
+                        renderMechanicsLib();
+                    } else if (type === 'mechanic_instance_sound') {
+                        renderEnemyDetail();
                     } else if (type === 'talent_icon') {
                         renderTalentCreator();
                     } else if (type === 'resource' || type === 'recipe') {

@@ -696,17 +696,70 @@ func _setup_ui():
 	
 	audio_vbox.add_child(HSeparator.new())
 	
-	# --- EFECTOS DE SONIDO (informativo) ---
+	# --- EFECTOS DE SONIDO (SFX) ---
 	var sfx_title = Label.new()
 	sfx_title.text = "EFECTOS DE SONIDO (SFX):"
 	sfx_title.add_theme_color_override("font_color", Color.CYAN)
 	audio_vbox.add_child(sfx_title)
-	
-	var sfx_info = Label.new()
-	sfx_info.text = "Los efectos de sonido del juego (disparos, habilidades, daño) se mantienen al volumen estándar por ahora."
-	sfx_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sfx_info.modulate.a = 0.7
-	audio_vbox.add_child(sfx_info)
+
+	var sfx_hint = Label.new()
+	sfx_hint.text = "Habilidades, disparos y mecánicas de enemigos. Volumen 2D con atenuación por distancia (assets/Sonidos/)."
+	sfx_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sfx_hint.modulate.a = 0.7
+	audio_vbox.add_child(sfx_hint)
+
+	var sfx_mute_row = HBoxContainer.new()
+	sfx_mute_row.add_theme_constant_override("separation", 10)
+	audio_vbox.add_child(sfx_mute_row)
+	var sfx_mute_check = CheckBox.new()
+	sfx_mute_check.text = ""
+	sfx_mute_check.add_theme_stylebox_override("normal", check_style)
+	sfx_mute_check.add_theme_stylebox_override("pressed", check_style)
+	sfx_mute_check.add_theme_stylebox_override("hover", check_style)
+	if get_node_or_null("/root/SettingsManager"):
+		sfx_mute_check.button_pressed = SettingsManager.sfx_muted
+	sfx_mute_check.toggled.connect(func(val):
+		if get_node_or_null("/root/SettingsManager"):
+			SettingsManager.sfx_muted = val
+			SettingsManager.save_settings()
+			SettingsManager.apply_sfx_settings()
+	)
+	sfx_mute_row.add_child(sfx_mute_check)
+	var sfx_mute_lbl = Label.new()
+	sfx_mute_lbl.text = "🔇 MUTEAR SFX"
+	sfx_mute_row.add_child(sfx_mute_lbl)
+
+	var sfx_vol_lbl = Label.new()
+	sfx_vol_lbl.text = "VOLUMEN DE SFX:"
+	audio_vbox.add_child(sfx_vol_lbl)
+	var sfx_vol_slider = HSlider.new()
+	sfx_vol_slider.min_value = 0; sfx_vol_slider.max_value = 100; sfx_vol_slider.step = 1
+	if get_node_or_null("/root/SettingsManager"):
+		sfx_vol_slider.value = SettingsManager.sfx_volume
+	sfx_vol_slider.value_changed.connect(func(val):
+		if get_node_or_null("/root/SettingsManager"):
+			SettingsManager.sfx_volume = val
+			SettingsManager.save_settings()
+			SettingsManager.apply_sfx_settings()
+	)
+	audio_vbox.add_child(sfx_vol_slider)
+	var sfx_vol_value = Label.new()
+	sfx_vol_value.add_theme_color_override("font_color", Color.YELLOW)
+	audio_vbox.add_child(sfx_vol_value)
+	var _update_sfx_vol = func():
+		var sm = get_node_or_null("/root/SettingsManager")
+		if not sm: return
+		var vol = int(sm.sfx_volume)
+		if sm.sfx_muted:
+			sfx_vol_value.text = "SILENCIADO (SFX en mute)"
+		elif vol <= 0:
+			sfx_vol_value.text = "VOLUMEN: 0% (silencio)"
+		else:
+			sfx_vol_value.text = "VOLUMEN: " + str(vol) + "%"
+	_update_sfx_vol.call()
+	if get_node_or_null("/root/SettingsManager"):
+		sfx_vol_slider.value_changed.connect(func(_v): _update_sfx_vol.call())
+		sfx_mute_check.toggled.connect(func(_v): _update_sfx_vol.call())
 	
 	# Bottom spacer para forzar scroll
 	var audio_spacer = Control.new()
