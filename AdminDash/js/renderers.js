@@ -2105,17 +2105,12 @@ if (f === 'targetMode') {
                                         `;
                                     }
                                     if (f === 'pillarType') {
-                                         const curVal = String(m.pillarType !== undefined ? m.pillarType : '');
-                                         const enemyOptions = Object.keys(config.enemyModels || {}).map(eid => {
-                                             const eName = config.enemyModels[eid].name || 'Enemigo';
-                                             const selected = String(eid) === curVal ? 'selected' : '';
-                                             return `<option value="${eid}" ${selected}>${eName} (#${eid})</option>`;
-                                         }).join('');
+                                         const curVal = String(m.pillarType !== undefined ? m.pillarType : '200');
                                          return `
                                              <div class="field" style="grid-column: 1 / -1;">
-                                                 <label>🗼 Tipo de Pilar (Enemigo Invocado)</label>
+                                                 <label>🗼 Tipo de Pilar (Asset Visual)</label>
                                                  <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].pillarType = parseInt(this.value); renderEnemyDetail();">
-                                                     ${enemyOptions}
+                                                     <option value="200" ${curVal === '200' ? 'selected' : ''}>Pilar Protector 3D (Pilar1.glb) (#200)</option>
                                                  </select>
                                              </div>
                                          `;
