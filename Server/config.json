@@ -10204,7 +10204,7 @@
         },
         "BLINK": {
             "canTargetOthers": false,
-            "cd": 15000,
+            "cd": 1500,
             "desc": "Teletransportación instantánea al punto seleccionado.",
             "icon": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
             "id": "SK-UTIL-04",

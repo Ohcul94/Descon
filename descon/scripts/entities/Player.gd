@@ -990,6 +990,9 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 	var skill = sm.get_equipped_skill(id)
 	if not skill: return
 	
+	if skill.skill_name == "BLINK" and p_data.has("pos"):
+		set_meta("_last_blink_target", p_data.pos)
+	
 	# v5.1: Objetivo explícito (Fix Auto-Self en modo PC)
 	var final_target = p_data.get("target")
 	
