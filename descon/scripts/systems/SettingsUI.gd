@@ -302,6 +302,60 @@ func _setup_ui():
 	if get_node_or_null("/root/SettingsManager"): click_slider.value = SettingsManager.click_sensitivity
 	click_slider.value_changed.connect(func(val): SettingsManager.click_sensitivity = val; SettingsManager.save_settings())
 	pc_config.add_child(click_slider)
+	
+	# --- ASIGNACIÓN DE CLICKS (PC) ---
+	pc_config.add_child(HSeparator.new())
+	
+	var clicks_lbl = Label.new()
+	clicks_lbl.text = "ASIGNACIÓN DE CLICKS (Navegación / Cámara):"
+	pc_config.add_child(clicks_lbl)
+	
+	var clicks_option = OptionButton.new()
+	clicks_option.add_item("Click Derecho navega / Click Izquierdo mueve cámara", 0)
+	clicks_option.add_item("Click Izquierdo navega / Click Derecho mueve cámara", 1)
+	
+	if get_node_or_null("/root/SettingsManager"):
+		if SettingsManager.control_move_btn == "LMB":
+			clicks_option.selected = 1
+		else:
+			clicks_option.selected = 0
+			
+	clicks_option.item_selected.connect(func(idx):
+		if get_node_or_null("/root/SettingsManager"):
+			if idx == 0:
+				SettingsManager.control_move_btn = "RMB"
+				SettingsManager.control_cam_rotate_btn = "LMB"
+			else:
+				SettingsManager.control_move_btn = "LMB"
+				SettingsManager.control_cam_rotate_btn = "RMB"
+			SettingsManager.save_settings()
+	)
+	pc_config.add_child(clicks_option)
+	
+	# --- BOTÓN DE TARGET ---
+	var target_btn_lbl = Label.new()
+	target_btn_lbl.text = "BOTÓN DE TARGET (Selección de objetivos):"
+	pc_config.add_child(target_btn_lbl)
+	
+	var target_btn_option = OptionButton.new()
+	target_btn_option.add_item("Click Izquierdo", 0)
+	target_btn_option.add_item("Click Derecho", 1)
+	
+	if get_node_or_null("/root/SettingsManager"):
+		if SettingsManager.control_target_btn == "RMB":
+			target_btn_option.selected = 1
+		else:
+			target_btn_option.selected = 0
+			
+	target_btn_option.item_selected.connect(func(idx):
+		if get_node_or_null("/root/SettingsManager"):
+			if idx == 0:
+				SettingsManager.control_target_btn = "LMB"
+			else:
+				SettingsManager.control_target_btn = "RMB"
+			SettingsManager.save_settings()
+	)
+	pc_config.add_child(target_btn_option)
 
 	# ========================== TAB 3: GRÁFICOS Y ACCESIBILIDAD ==========================
 	var scroll_gfx = ScrollContainer.new()

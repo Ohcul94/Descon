@@ -410,23 +410,38 @@ func _input(event: InputEvent):
 			NetworkManager.send_event("togglePvP", requested_status)
 		get_viewport().set_input_as_handled()
 	
-	# Click izquierdo para targetear entidades o deseleccionar en el vacío
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if is_editing_layout or is_selecting_trade_target: return
-		var p_node = get_tree().get_first_node_in_group("player")
-		if is_instance_valid(p_node) and p_node.get("_skill_controller") and p_node._skill_controller.is_aiming: return
-		if _settings_menu and _settings_menu.visible: return
-		if is_instance_valid(_esc_menu) and _esc_menu.visible: return
-		
-		# v314.10: Evitar deseleccionar al hacer clic sobre elementos de la interfaz de usuario
-		if _is_pos_over_priority_ui(event.position, false): return
-		
-		var target = _find_target_entity()
-		if is_instance_valid(target):
-			set_target(target)
-		else:
-			# Si hace clic en el piso/vacío sin target válido, limpiar selección
-			clear_target()
+	# Click para targetear entidades (configurable) o deseleccionar al soltar sin arrastrar
+	if event is InputEventMouseButton:
+		var target_btn = MOUSE_BUTTON_LEFT
+		if SettingsManager and SettingsManager.get("control_target_btn") == "RMB":
+			target_btn = MOUSE_BUTTON_RIGHT
+			
+		if event.button_index == target_btn:
+			if is_editing_layout or is_selecting_trade_target: return
+			var p_node = get_tree().get_first_node_in_group("player")
+			if is_instance_valid(p_node) and p_node.get("_skill_controller") and p_node._skill_controller.is_aiming: return
+			if _settings_menu and _settings_menu.visible: return
+			if is_instance_valid(_esc_menu) and _esc_menu.visible: return
+			
+			# v314.10: Evitar deseleccionar al hacer clic sobre elementos de la interfaz de usuario
+			if _is_pos_over_priority_ui(event.position, false): return
+			
+			if event.pressed:
+				_target_pressed = true
+				_target_press_pos = event.position
+				var target = _find_target_entity()
+				if is_instance_valid(target):
+					set_target(target)
+					_target_entity_pressed = true
+				else:
+					_target_entity_pressed = false
+			else:
+				if _target_pressed:
+					_target_pressed = false
+					var drag_dist = event.position.distance_to(_target_press_pos)
+					# Si se clickeó en el vacío y no se arrastró la cámara (distancia menor a 8px), se deselecciona al soltar
+					if not _target_entity_pressed and drag_dist < 8.0:
+						clear_target()
 	
 func _apply_hud_data(layout: Dictionary, config: Dictionary):
 	var _screen_size = get_viewport_rect().size
@@ -2367,6 +2382,9 @@ var _status_hbox: HBoxContainer = null
 
 # --- SISTEMA DE TARGET FRAME (TARGET + DEBUFFS) ---
 var _target_entity: Entity = null
+var _target_press_pos: Vector2 = Vector2.ZERO
+var _target_pressed: bool = false
+var _target_entity_pressed: bool = false
 var _target_frame: Control = null
 var _target_vbox: VBoxContainer = null
 var _target_name_lbl: Label = null

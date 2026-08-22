@@ -794,10 +794,14 @@ function addMechanic(enemyId) {
     if (!config.enemyModels[enemyId].mechanics) config.enemyModels[enemyId].mechanics = [];
     config.enemyModels[enemyId].mechanics.push({
         type: "laser",
+        activationMode: "time",
+        activationHPs: [50],
+        activationIntervalMs: 0,
         bulletDamage: 10,
         bulletSpeed: 800,
         fireRange: 600,
-        fireRate: 1000
+        fireRate: 1000,
+        startDelay: 0
     });
     renderEnemies();
 }
@@ -815,6 +819,9 @@ function addDefenseMechanic(enemyId) {
     if (!config.enemyModels[enemyId].defenseMechanics) config.enemyModels[enemyId].defenseMechanics = [];
     config.enemyModels[enemyId].defenseMechanics.push({
         type: "basic_defense",
+        activationMode: "time",
+        activationHPs: [50],
+        activationIntervalMs: 0,
         reductionPercentage: 10,
         shieldRegen: 5,
         duration: 5000,
@@ -850,9 +857,9 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
             else if (f === 'keepAttacking') mech[f] = true;
             else if (f === 'changeSpeed') mech[f] = false;
             else if (f === 'invisSpeedMultiplier') mech[f] = 1.0;
-            else if (f === 'activationMode') mech[f] = 'hp';
+            else if (f === 'activationMode') mech[f] = 'time';
             else if (f === 'activationHPs') mech[f] = [50];
-            else if (f === 'activationIntervalMs') mech[f] = 30000;
+            else if (f === 'activationIntervalMs') mech[f] = 0;
             else if (f === 'cloneCount') mech[f] = 3;
             else if (f === 'cloneHp') mech[f] = 1000;
             else if (f === 'cloneShield') mech[f] = 200;
@@ -917,9 +924,9 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'applySlow') mech[f] = false;
             else if (f === 'slowPercentage') mech[f] = 40;
             else if (f === 'slowDuration') mech[f] = 2000;
-            else if (f === 'activationMode') mech[f] = 'hp';
+            else if (f === 'activationMode') mech[f] = 'time';
             else if (f === 'activationHPs') mech[f] = [50];
-            else if (f === 'activationIntervalMs') mech[f] = 30000;
+            else if (f === 'activationIntervalMs') mech[f] = 0;
             else if (f === 'summonCount') mech[f] = 3;
             else if (f === 'spawnRadius') mech[f] = 150;
             else if (f === 'summonDurationMode') mech[f] = 'until_death';

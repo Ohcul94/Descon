@@ -52,6 +52,12 @@ var window_mode: int = 0                 # 0: Ventana, 1: Pantalla Completa, 2: 
 var screen_resolution: String = "1280x800"
 var render_scale_3d: float = 1.0          # Escala interna 3D (0.3 a 1.0)
 
+# Mapeo de clicks configurables (PC)
+var control_move_btn: String = "RMB" # "RMB" o "LMB"
+var control_cam_rotate_btn: String = "LMB" # "LMB" o "RMB"
+var control_target_btn: String = "LMB" # "LMB" o "RMB"
+
+
 
 # v420.900: Ajustes de audio (música de la zona)
 var music_volume: float = 60.0          # Volumen de la música (0-100)
@@ -133,6 +139,9 @@ func reset_to_factory():
 		player._skill_controller.config.cast_mode = 1 # ON_RELEASE
 	
 	graphics_quality = 1 # Restaurar a Media
+	control_move_btn = "RMB"
+	control_cam_rotate_btn = "LMB"
+	control_target_btn = "LMB"
 	hit_flash_enabled = true
 	camera_shake_enabled = true
 	camera_shake_intensity = 1.0
@@ -238,6 +247,11 @@ func save_settings():
 	config_file.set_value("interface", "show_player_stats", show_player_stats)
 	config_file.set_value("interface", "show_enemy_stats", show_enemy_stats)
 	
+	config_file.set_value("controls_mapping", "move_btn", control_move_btn)
+	config_file.set_value("controls_mapping", "cam_rotate_btn", control_cam_rotate_btn)
+	config_file.set_value("controls_mapping", "target_btn", control_target_btn)
+	
+
 	for action in default_keys:
 		var events = InputMap.action_get_events(action)
 		if events.size() > 0:
@@ -303,6 +317,11 @@ func load_settings():
 		show_enemy_bars = config_file.get_value("interface", "show_enemy_bars", true)
 		show_player_stats = config_file.get_value("interface", "show_player_stats", true)
 		show_enemy_stats = config_file.get_value("interface", "show_enemy_stats", true)
+		
+		control_move_btn = config_file.get_value("controls_mapping", "move_btn", "RMB")
+		control_cam_rotate_btn = config_file.get_value("controls_mapping", "cam_rotate_btn", "LMB")
+		control_target_btn = config_file.get_value("controls_mapping", "target_btn", "LMB")
+		
 		print("[SETTINGS] Configuración cargada.")
 	else:
 		cast_mode_cache = 1
@@ -346,6 +365,11 @@ func load_settings():
 		show_enemy_bars = true
 		show_player_stats = true
 		show_enemy_stats = true
+		
+		control_move_btn = "RMB"
+		control_cam_rotate_btn = "LMB"
+		control_target_btn = "LMB"
+		
 		print("[SETTINGS] Usando configuración por defecto.")
 
 func apply_fps_limit(limit: int):

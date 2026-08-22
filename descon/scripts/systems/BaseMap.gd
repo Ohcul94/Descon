@@ -47,6 +47,20 @@ var mouse_world_pos_2d: Vector2 = Vector2.ZERO   # Equivalente en espacio lógic
 
 var fixed_cam_zoom: float = 1.0
 
+# Variables para Cámara Híbrida (1ª / 3ª Persona WoW-Style)
+var hybrid_cam_h: float = 180.0
+var hybrid_cam_v: float = 12.0
+var _lmb_dragging: bool = false
+var _lmb_drag_last: Vector2 = Vector2.ZERO
+var use_hybrid_camera: bool = false
+var _smoothed_target_3d: Vector3 = Vector3.ZERO
+var _smoothed_yaw: float = 0.0
+var _camera_initialized: bool = false
+
+
+
+
+
 # Free Camera (orbit/free mode) — toggle con tecla O
 var free_cam_active: bool = false
 var free_cam_h: float = 180.0  # ángulo horizontal en grados (180 = detrás de la nave)
@@ -652,6 +666,7 @@ func _save_camera_state():
 	sm.cam_free_v = free_cam_v
 	sm.cam_free_zoom = free_cam_zoom
 	sm.cam_free_orbit = free_orbit_mode
+	sm.set("cam_use_hybrid", use_hybrid_camera)
 
 func _restore_camera_state():
 	if not has_node("/root/SettingsManager"):
@@ -663,6 +678,9 @@ func _restore_camera_state():
 	free_cam_v = sm.cam_free_v
 	free_cam_zoom = sm.cam_free_zoom
 	free_orbit_mode = sm.cam_free_orbit
+	if sm.get("cam_use_hybrid") != null:
+		use_hybrid_camera = sm.get("cam_use_hybrid")
+
 
 # Actualizar cámara libre (orbit/free mode)
 func _update_free_camera(shake_offset: Vector3 = Vector3.ZERO):
@@ -870,28 +888,73 @@ func _process(_delta):
 			target_pos = player_node.global_position
 				
 		if is_instance_valid(camera_3d):
-			var viewport_height = float(get_viewport().get_visible_rect().size.y)
-			if viewport_height <= 0:
-				viewport_height = 1080.0
-				
 			camera_3d.projection = Camera3D.PROJECTION_PERSPECTIVE
 			camera_3d.fov = 55.0
-			var target_visible_height = viewport_height * scale_factor
-			var dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
-			dynamic_height *= fixed_cam_zoom
-			camera_3d.position.y = dynamic_height
-			
-			var z_offset = dynamic_height / tan(deg_to_rad(25.0))
-			
 			self.set_meta("correction_z", correction_z)
 			
-			var corrected_target_z = target_pos.y * scale_factor * correction_z
-			camera_3d.position.x = target_pos.x * scale_factor
-			
-			camera_3d.position.z = corrected_target_z + z_offset
-			camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
-			# Aplicar sacudida 3D al final
-			camera_3d.position += shake_offset
+			if use_hybrid_camera:
+				# --- MODO TERCERA PERSONA WoW-Style (Sin Zoom) ---
+				var player_rot_y = 0.0
+				if is_instance_valid(player_node):
+					player_rot_y = -player_node.rotation - PI/2.0
+				
+				# Auto-alineación horizontal detrás de la nave cuando se mueve y NO arrastramos
+				if is_instance_valid(player_node) and player_node.get("is_moving") and not _lmb_dragging:
+					var target_rad_h = deg_to_rad(180.0)
+					hybrid_cam_h = lerp_angle(deg_to_rad(hybrid_cam_h), target_rad_h, 0.05 * 60.0 * get_process_delta_time())
+					hybrid_cam_h = rad_to_deg(hybrid_cam_h)
+				
+				# Punto central de la nave flotante
+				var base_y = 1.0
+				if is_instance_valid(player_node):
+					var wr3d = player_node.get("world_root_3d")
+					if is_instance_valid(wr3d):
+						base_y = wr3d.position.y
+						
+				var target_3d = Vector3(target_pos.x * scale_factor, base_y + 0.3, target_pos.y * scale_factor * correction_z)
+				
+				# Inicialización en el primer frame de uso para evitar transiciones kilométricas
+				if not _camera_initialized:
+					_smoothed_target_3d = target_3d
+					_smoothed_yaw = player_rot_y
+					_camera_initialized = true
+				else:
+					# Lerp suave de posición y rotación (yaw) de la cámara
+					var dt = get_process_delta_time()
+					_smoothed_target_3d = _smoothed_target_3d.lerp(target_3d, 0.08 * 60.0 * dt)
+					_smoothed_yaw = lerp_angle(_smoothed_yaw, player_rot_y, 0.08 * 60.0 * dt)
+				
+				var rad_h = _smoothed_yaw + deg_to_rad(hybrid_cam_h - 180.0)
+				var rad_v = deg_to_rad(hybrid_cam_v)
+				
+				# Distancia de órbita fija (suficientemente alejado en 3ª persona)
+				var orbit_dist = 18.0
+				
+				var offset = Vector3(
+					orbit_dist * cos(rad_v) * sin(rad_h),
+					orbit_dist * sin(rad_v),
+					orbit_dist * cos(rad_v) * cos(rad_h)
+				)
+				
+				camera_3d.position = _smoothed_target_3d + offset
+				camera_3d.look_at(_smoothed_target_3d, Vector3.UP)
+				camera_3d.position += shake_offset
+			else:
+				# --- CÁMARA CLÁSICA (Aérea Fija Original 25°) ---
+				var viewport_height = float(get_viewport().get_visible_rect().size.y)
+				if viewport_height <= 0:
+					viewport_height = 1080.0
+				var target_visible_height = viewport_height * scale_factor
+				var dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+				dynamic_height *= fixed_cam_zoom
+				camera_3d.position.y = dynamic_height
+				
+				var z_offset = dynamic_height / tan(deg_to_rad(25.0))
+				var corrected_target_z = target_pos.y * scale_factor * correction_z
+				camera_3d.position.x = target_pos.x * scale_factor
+				camera_3d.position.z = corrected_target_z + z_offset
+				camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
+				camera_3d.position += shake_offset
 	
 	_update_world_cursor()
 
@@ -1801,20 +1864,35 @@ func _input(event):
 			return
 
 	if event.is_action_pressed("toggle_free_camera") and not event.is_echo():
-		free_cam_active = !free_cam_active
-		# Sincronizar zoom al cambiar de modo
-		if free_cam_active:
+		var new_mode_name = ""
+		if not free_cam_active and not use_hybrid_camera:
+			# De Fija a Libre
+			free_cam_active = true
+			use_hybrid_camera = false
 			_sync_free_from_fixed()
-		else:
+			new_mode_name = "CÁMARA LIBRE"
+		elif free_cam_active:
+			# De Libre a 3D + Seguimiento
+			free_cam_active = false
+			use_hybrid_camera = true
 			_sync_zooms_from_free()
+			_camera_initialized = false
+			new_mode_name = "CÁMARA 3D + SEGUIMIENTO"
+		else:
+			# De 3D + Seguimiento a Fija
+			free_cam_active = false
+			use_hybrid_camera = false
+			new_mode_name = "CÁMARA FIJA"
+		
 		_save_camera_state()
 		if has_node("/root/SettingsManager"):
 			get_node("/root/SettingsManager").cam_free_active = free_cam_active
 		var hud_f = get_tree().get_first_node_in_group("hud")
 		if hud_f and hud_f.has_method("notify"):
-			hud_f.notify("CÁMARA " + ("LIBRE" if free_cam_active else "FIJA"), "info" if free_cam_active else "success")
-		print("[BaseMap] CÁMARA ", "LIBRE" if free_cam_active else "FIJA")
+			hud_f.notify(new_mode_name, "success")
+		print("[BaseMap] MODO DE CÁMARA CAMBIADO A: ", new_mode_name)
 		get_viewport().set_input_as_handled()
+
 	
 	# Toggle orbit/free mode dentro de cámara libre (tecla Tab)
 	if free_cam_active and event.is_action_pressed("toggle_orbit_mode") and not event.is_echo():
@@ -1833,8 +1911,33 @@ func _input(event):
 		print("[BaseMap] ", msg_f)
 		get_viewport().set_input_as_handled()
 	
+	# Click/drag para rotación de cámara (configurable: por defecto LMB)
+	if event is InputEventMouseButton:
+		var cam_btn = MOUSE_BUTTON_LEFT
+		if SettingsManager and SettingsManager.get("control_cam_rotate_btn") == "RMB":
+			cam_btn = MOUSE_BUTTON_RIGHT
+			
+		if event.button_index == cam_btn:
+			# Si estamos en Cámara Fija, no permitir arrastrar/mover la cámara
+			if not free_cam_active and not use_hybrid_camera:
+				return
+				
+			var hovered = get_viewport().gui_get_hovered_control()
+			if hovered != null and not (hovered is SubViewportContainer):
+				return
+			
+			_lmb_dragging = event.pressed
+			if event.pressed:
+				_lmb_drag_last = event.position
+				set_meta("lmb_dragged", false)
+			else:
+				# Si se arrastró, consumimos el evento para evitar selección accidental.
+				# Si fue un click limpio, permitimos que pase para seleccionar enemigos o interactuar.
+				if get_meta("lmb_dragged", false):
+					get_viewport().set_input_as_handled()
+
 	# Scroll para zoom en cámara fija
-	if not free_cam_active and event is InputEventMouseButton and event.pressed:
+	if not free_cam_active and not use_hybrid_camera and event is InputEventMouseButton and event.pressed:
 		if (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
 			var hovered = get_viewport().gui_get_hovered_control()
 			if hovered != null and not (hovered is SubViewportContainer):
@@ -1867,13 +1970,28 @@ func _input(event):
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
 	
-	# Motion drag para orbitar (como MMO: arrastrar abajo → cámara baja, arrastrar arriba → cámara sube)
-	if free_cam_active and _mid_dragging and event is InputEventMouseMotion:
-		var delta = event.position - _drag_last
-		free_cam_h += delta.x * 0.3
-		free_cam_v = clamp(free_cam_v + delta.y * 0.3, 10.0, 85.0)
-		_drag_last = event.position
-		_save_camera_state()
+	# Motion drag para orbitar (como MMO: arrastrar con LMB en híbrida o libre, o MMB en libre)
+	if event is InputEventMouseMotion:
+		if _lmb_dragging:
+			var rel = event.relative
+			set_meta("lmb_dragged", true)
+			if free_cam_active:
+				free_cam_h += rel.x * 0.15
+				free_cam_v = clamp(free_cam_v + rel.y * 0.15, 1.0, 85.0)
+			else:
+				hybrid_cam_h += rel.x * 0.15
+				hybrid_cam_v = clamp(hybrid_cam_v + rel.y * 0.15, -60.0, 85.0)
+
+			_save_camera_state()
+			get_viewport().set_input_as_handled()
+		elif free_cam_active and _mid_dragging:
+			var delta = event.position - _drag_last
+			free_cam_h += delta.x * 0.3
+			free_cam_v = clamp(free_cam_v + delta.y * 0.3, 1.0, 85.0)
+			_drag_last = event.position
+			_save_camera_state()
+			get_viewport().set_input_as_handled()
+
 		
 	if event.is_action_pressed("portal_jump") and not event.is_echo():
 		if _is_interact_visible("portal"):
@@ -1968,7 +2086,7 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 			var delta = event.position - _mobile_cam_drag_last
 			_mobile_cam_drag_last = event.position
 			free_cam_h += delta.x * 0.3 * sens
-			free_cam_v = clamp(free_cam_v + delta.y * 0.3 * sens, 10.0, 85.0)
+			free_cam_v = clamp(free_cam_v + delta.y * 0.3 * sens, 1.0, 85.0)
 			_save_camera_state()
 		
 		# Zoom con pinza de 2 dedos

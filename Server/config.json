@@ -1190,7 +1190,9 @@
         "aura_heal": {
             "desc": "Cura a los aliados cercanos continuamente.",
             "fields": [
-                "activationHP",
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "radius",
                 "healAmount",
                 "intervalMs",
@@ -1210,6 +1212,9 @@
         "basic_defense": {
             "desc": "Mecánica de mitigación de daño y regeneración.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "reductionPercentage",
                 "shieldRegen",
                 "duration",
@@ -7308,7 +7313,9 @@
         "aura_damage": {
             "desc": "Daña a los jugadores cercanos continuamente.",
             "fields": [
-                "activationHP",
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "radius",
                 "damage",
                 "intervalMs",
@@ -7326,6 +7333,9 @@
         "bomb": {
             "desc": "Lanza bombas en círculo que explotan tras un retardo.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "bulletDamage",
                 "radius",
                 "fireRange",
@@ -7346,6 +7356,9 @@
         "burrow": {
             "desc": "El enemigo se hunde bajo tierra, viaja en línea recta hacia un objetivo seleccionable (por proximidad, aleatorio, menos vida, más vida, mayor daño causado, mayor curación, más esferas o por color de esfera) y emerge rompiendo el suelo: círculo de daño único o zona persistente + debuffs configurables.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "cooldown",
                 "castTimeMs",
                 "burrowSpeed",
@@ -7373,6 +7386,9 @@
         "circle_cast": {
             "desc": "Ataque circular que se carga siguiendo al enemigo y explota dañando a todos.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "cooldown",
                 "castTimeMs",
                 "damage",
@@ -7390,6 +7406,9 @@
         "cone_cast": {
             "desc": "Ataque en cono que se carga y al completarse daña/stunea.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "cooldown",
                 "castTimeMs",
                 "damage",
@@ -7436,6 +7455,9 @@
         "hook": {
             "desc": "Atrae al objetivo, lo daña y lo paraliza.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "bulletDamage",
                 "bulletSpeed",
                 "fireRange",
@@ -7458,16 +7480,16 @@
         "ice_missile": {
             "desc": "Ralentiza al objetivo al impactar.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "bulletDamage",
                 "bulletSpeed",
                 "fireRange",
                 "fireRate",
                 "slowAmount",
                 "slowDuration",
-                "startDelay",
-                "lifetimeMs",
-                "turnSpeed",
-                "isHoming"
+                "startDelay"
             ],
             "icon": "❄️",
             "label": "Misil de Hielo",
@@ -7479,6 +7501,9 @@
         "ice_storm": {
             "desc": "Invoca una tormenta de hielo persistente que daña y ralentiza a los jugadores en el área.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "cooldown",
                 "castTimeMs",
                 "fireRange",
@@ -7500,14 +7525,15 @@
         "laser": {
             "desc": "Ataque lineal básico de alta cadencia.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "bulletDamage",
                 "bulletSpeed",
                 "fireRange",
                 "fireRate",
                 "burstShots",
-                "startDelay",
-                "isHoming",
-                "turnSpeed"
+                "startDelay"
             ],
             "icon": "🔫",
             "label": "Láser Estándar",
@@ -7519,6 +7545,9 @@
         "mega_laser": {
             "desc": "Rayo grueso que requiere precarga.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "bulletDamage",
                 "bulletSpeed",
                 "fireRange",
@@ -7566,6 +7595,9 @@
         "mine": {
             "desc": "Explosivo estático que se activa por cercanía.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "bulletDamage",
                 "fireRange",
                 "fireRate",
@@ -7581,14 +7613,14 @@
         "missile": {
             "desc": "Proyectil autoguiado de medio alcance.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "bulletDamage",
                 "bulletSpeed",
                 "fireRange",
                 "fireRate",
-                "startDelay",
-                "lifetimeMs",
-                "turnSpeed",
-                "isHoming"
+                "startDelay"
             ],
             "icon": "🚀",
             "label": "Misil Rastreador",
@@ -7600,6 +7632,9 @@
         "orbital_strike": {
             "desc": "Círculos que giran y luego se disparan.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "bulletDamage",
                 "bulletSpeed",
                 "orbitSpeed",
@@ -7666,6 +7701,9 @@
         "sleep": {
             "desc": "Duerme a los pilotos con somnolencia progresiva y un efecto de pesadilla al despertar.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "fireRange",
                 "targetCount",
                 "targetMode",
@@ -7689,6 +7727,9 @@
         "spin_ring": {
             "desc": "Tira un círculo alrededor del enemigo que gira. Si impacta, daña al objetivo, le da velocidad al dueño y puede aplicar slow.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "cooldown",
                 "radius",
                 "damage",
@@ -7733,6 +7774,9 @@
         "survival_dome": {
             "desc": "Carga un ataque masivo creando un domo seguro en una ubicacion aleatoria.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "fireRange",
                 "safeRadius",
                 "maxOffset",
@@ -7753,6 +7797,9 @@
         "wind_wall": {
             "desc": "El enemigo carga una pared de viento visible y, al completarla, la dispara hacia afuera: expulsa al jugador, le hace daño y puede aplicarle efectos extra configurables.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "castTimeMs",
                 "wallStartOffset",
                 "wallWidth",
@@ -7774,6 +7821,9 @@
         "worm_boomerang": {
             "desc": "Lanza un abanico de gusanos que se alejan, se detienen y regresan al origen dañando.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "projectileCount",
                 "spreadAngle",
                 "bulletSpeed",
@@ -7795,6 +7845,9 @@
         "melee_slash": {
             "desc": "Corte cuerpo a cuerpo instantáneo: el enemigo levanta el hacha (anticipación) y pega en el área en forma de arco o giro 360°. Pega directo, no carga un área.",
             "fields": [
+                "activationMode",
+                "activationHPs",
+                "activationIntervalMs",
                 "bulletDamage",
                 "fireRange",
                 "cooldown",

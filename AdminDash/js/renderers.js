@@ -1711,11 +1711,15 @@ const fieldLabelsMap = {
                                              zoneDamage: "Daño por Tick de Zona (pts)"
                                         };
                                      if (f === 'activationMode') {
-                                         const mode = m.activationMode || 'hp';
+                                         const mode = m.activationMode || 'time';
+                                         // Normalizar defaults al seleccionar modo para mantener estética y no romper HP fix
+                                         if (m.activationMode === undefined) m.activationMode = 'time';
+                                         if (mode === 'time' && m.activationIntervalMs === undefined) m.activationIntervalMs = 0;
+                                         if (mode === 'hp' && m.activationHPs === undefined) m.activationHPs = [50];
                                          return `
                                              <div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2); display: flex; flex-direction: column; gap: 8px;">
                                                  <label style="color:#ef4444; font-weight:bold; font-size:0.75rem;">MODO DE ACTIVACIÓN</label>
-                                                 <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationMode = this.value; if(this.value === 'time') { delete config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationHPs; } else { delete config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationIntervalMs; } renderEnemyDetail();">
+                                                 <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationMode = this.value; if(this.value === 'time') { if(config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationIntervalMs===undefined) config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationIntervalMs=0; delete config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationHPs; } else { if(!config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationHPs) config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationHPs=[50]; delete config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationIntervalMs; } renderEnemyDetail();">
                                                      <option value="hp" ${mode === 'hp' ? 'selected' : ''}>🩸 Por Porcentaje de Vida (HP)</option>
                                                      <option value="time" ${mode === 'time' ? 'selected' : ''}>⏳ Por Tiempo en Combate</option>
                                                  </select>
@@ -1746,10 +1750,13 @@ const fieldLabelsMap = {
                                      }
                                      if (f === 'activationIntervalMs') {
                                          if (m.activationMode !== 'time') return '';
-                                         const interval = m.activationIntervalMs || 30000;
+                                         const interval = (m.activationIntervalMs !== undefined && m.activationIntervalMs !== null && m.activationIntervalMs !== '') ? Number(m.activationIntervalMs) : 0;
                                          m.activationIntervalMs = interval;
                                          return `
-                                             <div class="field" style="grid-column: 1 / -1;"><label>Intervalo de Activación en Combate (ms)</label><input type="number" value="${interval}" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationIntervalMs = parseInt(this.value)"></div>
+                                             <div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(239, 68, 68, 0.15);">
+                                                 <label>Intervalo de Activación en Combate (ms) <span style="font-weight:normal; color:#94a3b8; font-size:0.65rem;">— 0 = inmediato (respeta Retraso Inicio + Recarga)</span></label>
+                                                 <input type="number" value="${interval}" placeholder="0" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].activationIntervalMs = parseInt(this.value) || 0">
+                                             </div>
                                          `;
                                      }
                                      if (f === 'summonDurationMode') {
@@ -2063,11 +2070,14 @@ if (f === 'targetMode') {
                                         `;
                                     }
                                     if (f === 'activationMode') {
-                                        const mode = m.activationMode || 'hp';
+                                        const mode = m.activationMode || 'time';
+                                        if (m.activationMode === undefined) m.activationMode = 'time';
+                                        if (mode === 'time' && m.activationIntervalMs === undefined) m.activationIntervalMs = 0;
+                                        if (mode === 'hp' && m.activationHPs === undefined) m.activationHPs = [50];
                                         return `
                                             <div class="field" style="grid-column: 1 / -1; background: rgba(59, 130, 246, 0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2); display: flex; flex-direction: column; gap: 8px;">
                                                 <label style="color:#60a5fa; font-weight:bold; font-size:0.75rem;">MODO DE ACTIVACIÓN</label>
-                                                <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationMode = this.value; if(this.value === 'time') { delete config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationHPs; } else { delete config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs; } renderEnemyDetail();">
+                                                <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationMode = this.value; if(this.value === 'time') { if(config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs===undefined) config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs=0; delete config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationHPs; } else { if(!config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationHPs) config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationHPs=[50]; delete config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs; } renderEnemyDetail();">
                                                     <option value="hp" ${mode === 'hp' ? 'selected' : ''}>🩸 Por Porcentaje de Vida (HP)</option>
                                                     <option value="time" ${mode === 'time' ? 'selected' : ''}>⏳ Por Tiempo en Combate</option>
                                                 </select>
@@ -2098,10 +2108,13 @@ if (f === 'targetMode') {
                                     }
                                     if (f === 'activationIntervalMs') {
                                         if (m.activationMode !== 'time') return '';
-                                        const interval = m.activationIntervalMs || 45000;
+                                        const interval = (m.activationIntervalMs !== undefined && m.activationIntervalMs !== null && m.activationIntervalMs !== '') ? Number(m.activationIntervalMs) : 0;
                                         m.activationIntervalMs = interval;
                                         return `
-                                            <div class="field" style="grid-column: 1 / -1;"><label>Intervalo de Activación en Combate (ms)</label><input type="number" value="${interval}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs = parseInt(this.value)"></div>
+                                            <div class="field" style="grid-column: 1 / -1; background: rgba(59, 130, 246, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(59, 130, 246, 0.15);">
+                                                <label>Intervalo de Activación en Combate (ms) <span style="font-weight:normal; color:#94a3b8; font-size:0.65rem;">— 0 = inmediato (respeta Retraso Inicio + Recarga)</span></label>
+                                                <input type="number" value="${interval}" placeholder="0" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs = parseInt(this.value) || 0">
+                                            </div>
                                         `;
                                     }
                                     if (f === 'pillarType') {

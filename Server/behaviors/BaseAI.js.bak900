@@ -927,48 +927,14 @@ module.exports = class BaseAI {
 
     _handleAuraLogic(mech, mId, now, io, grid, players) {
         if (!this.enemy.auraState) this.enemy.auraState = {};
-        const state = this.enemy.auraState[mId] || { nextStartTime: now + (mech.startDelay || 0), isActive: false, endTime: 0, lastTickTime: 0, activationTriggeredHPs: {} };
+        const state = this.enemy.auraState[mId] || { nextStartTime: now + (mech.startDelay || 0), isActive: false, endTime: 0, lastTickTime: 0 };
 
-        // 1. Gestión de Ciclo (Activar/Desactivar) — Soporta activationMode genérico (time/hp) + legacy activationHP
-        let hpMet = true;
-        let activationPass = false;
-        if (mech.activationMode === "time") {
-            // Tiempo en combate: respeta startDelay + interval (0 = cooldown) y requiere estar en combate si está definido
-            if (mech.activationMode !== undefined && !this._inCombat) {
-                hpMet = false;
-            } else {
-                hpMet = now >= state.nextStartTime;
-            }
-            activationPass = hpMet;
-        } else if (mech.activationMode === "hp") {
-            if (!this._inCombat) {
-                hpMet = false;
-                activationPass = false;
-            } else {
-                const thresholds = this._getHPThresholds(mech);
-                const currentHPPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
-                // Reset si sube por encima
-                for (const hpVal of thresholds) {
-                    if (currentHPPercent > hpVal && state.activationTriggeredHPs[hpVal]) state.activationTriggeredHPs[hpVal] = false;
-                }
-                if (now < state.nextStartTime) {
-                    hpMet = false;
-                } else {
-                    hpMet = false;
-                    for (const hpVal of thresholds) {
-                        if (currentHPPercent <= hpVal) { hpMet = true; state.activationTriggeredHPs[hpVal]=true; break; }
-                    }
-                }
-                activationPass = hpMet;
-            }
-        } else {
-            const threshold = mech.activationHP !== undefined ? Number(mech.activationHP) : 100;
-            const currentHPPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
-            hpMet = currentHPPercent <= threshold;
-            activationPass = hpMet && now >= state.nextStartTime;
-        }
+        // 1. Gestión de Ciclo (Activar/Desactivar)
+        const threshold = mech.activationHP || 100;
+        const currentHPPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+        const hpMet = currentHPPercent <= threshold;
 
-        if (!state.isActive && activationPass) {
+        if (!state.isActive && now >= state.nextStartTime && hpMet) {
             state.isActive = true;
             state.endTime = now + (mech.duration || 5000);
             state.lastTickTime = 0;
@@ -978,11 +944,7 @@ module.exports = class BaseAI {
             });
         } else if (state.isActive && now >= state.endTime) {
             state.isActive = false;
-            if (mech.activationMode === "time") {
-                state.nextStartTime = now + this._getEffectiveInterval(mech);
-            } else {
-                state.nextStartTime = now + (mech.cooldown || 10000);
-            }
+            state.nextStartTime = now + (mech.cooldown || 10000);
             
             io.to(`zone_${this.enemy.zone}`).emit('serverEnemyAura', {
                 id: this.enemy.id, mId: mId, active: false
@@ -2817,38 +2779,6 @@ module.exports = class BaseAI {
             }
         }
 
-        // v900.1: Gate genérico de activación para TODAS las mecánicas de ataque con activador (time 0 = startDelay+cooldown, hp preserva fix)
-        if (mech.activationMode !== undefined && !["polymorph","meteor","execution","ascension","summoning"].includes(mech.type)) {
-            if (state.activationNextTime === undefined) state.activationNextTime = now + (Number(mech.startDelay) || 0);
-            const hpPercentGen = this.enemy.maxHp > 0 ? (this.enemy.hp / this.enemy.maxHp) * 100 : 100;
-            const thresholdsGen = this._getHPThresholds(mech);
-            if (!state.activationTriggeredHPs) state.activationTriggeredHPs = {};
-            for (const hpVal of thresholdsGen) {
-                if (hpPercentGen > hpVal && state.activationTriggeredHPs[hpVal]) state.activationTriggeredHPs[hpVal] = false;
-            }
-            let actPass = false;
-            // Respetar estado de combate para ambos modos (Por Tiempo en Combate / Por HP en Combate)
-            if (!this._inCombat) {
-                actPass = false;
-                // Mantener timer deslizante con startDelay mientras está fuera de combate (estética prolija)
-                state.activationNextTime = now + (Number(mech.startDelay) || 0);
-            } else if (mech.activationMode === "time") {
-                if (now >= state.activationNextTime) actPass = true;
-            } else {
-                if (now >= state.activationNextTime) {
-                    for (const hpVal of thresholdsGen) {
-                        if (hpPercentGen <= hpVal) { actPass = true; state.activationTriggeredHPs[hpVal]=true; break; }
-                    }
-                }
-            }
-            if (!actPass) {
-                this.enemy.mechState[mId] = state;
-                return false;
-            }
-            // Marcar re-armado del timer de activación según modo (se re-arme tras el disparo)
-            state._pendingActivationRearm = true;
-        }
-
         if (now > state.nextShotTime) {
             // Polymorph: soporte para activationMode (time/hp) y activationHPs
             if (mech.type === "polymorph" && mech.activationMode !== "time") {
@@ -2890,7 +2820,7 @@ module.exports = class BaseAI {
                 polyTargets = this._selectTargets(players, mech.fireRange || 800, mech.targetCount || 1, mech.targetMode || "proximity", mech);
                 if (!polyTargets || polyTargets.length === 0) {
                     state.shotsInBurst = 0;
-                    state.nextShotTime = now + (this._getRawInterval(mech) > 0 ? this._getRawInterval(mech) : (mech.cooldown || 20000));
+                    state.nextShotTime = now + (mech.activationIntervalMs || mech.cooldown || 20000);
                     this.enemy.mechState[mId] = state;
                     return false;
                 }
@@ -2952,20 +2882,12 @@ module.exports = class BaseAI {
                 state.shotsInBurst = 0;
                 if (mech.type === "polymorph") {
                     if (mech.activationMode === "time") {
-                        state.nextShotTime = now + (this._getRawInterval(mech) > 0 ? this._getRawInterval(mech) : (mech.cooldown || 20000));
+                        state.nextShotTime = now + (mech.activationIntervalMs || mech.cooldown || 20000);
                     } else {
                         state.nextShotTime = now + (mech.cooldown || 20000);
                     }
                 } else {
                     state.nextShotTime = now + (mech.fireRate || 2000);
-                    if (state._pendingActivationRearm) {
-                        if (mech.activationMode === "time") {
-                            state.activationNextTime = now + this._getEffectiveInterval(mech);
-                        } else {
-                            state.activationNextTime = now + (mech.cooldown || mech.fireRate || 5000);
-                        }
-                        state._pendingActivationRearm = false;
-                    }
                 }
             }
         }
@@ -3206,8 +3128,7 @@ module.exports = class BaseAI {
         const targetCount = Math.max(1, parseInt(mech.targetCount, 10) || 1);
         const targetMode = mech.targetMode || "proximity";
         const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 12000;
-        const intervalMsRaw = mech.activationIntervalMs !== undefined ? Number(mech.activationIntervalMs) : 8000;
-        const intervalMs = intervalMsRaw > 0 ? intervalMsRaw : cooldown;
+        const intervalMs = mech.activationIntervalMs !== undefined ? Number(mech.activationIntervalMs) : 8000;
         const castTimeMs = mech.castTimeMs !== undefined ? Number(mech.castTimeMs) : 700;
         const pointAndClick = !!mech.isPointAndClick;
         const skullSpeed = Number(mech.skullSpeed) || (pointAndClick ? 1800 : 450);
@@ -3319,8 +3240,7 @@ module.exports = class BaseAI {
         const targetCount = Math.max(1, parseInt(mech.targetCount, 10) || 1);
         const targetMode = mech.targetMode || "proximity";
         const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 12000;
-        const intervalMsRaw = mech.activationIntervalMs !== undefined ? Number(mech.activationIntervalMs) : 8000;
-        const intervalMs = intervalMsRaw > 0 ? intervalMsRaw : cooldown;
+        const intervalMs = mech.activationIntervalMs !== undefined ? Number(mech.activationIntervalMs) : 8000;
         const castTimeMs = mech.castTimeMs !== undefined ? Number(mech.castTimeMs) : 1500;
         const airTimeMs = mech.airTimeMs !== undefined ? Number(mech.airTimeMs) : 2000;
         const warnDelayMs = mech.warnDelayMs !== undefined ? Number(mech.warnDelayMs) : 600;
@@ -3813,12 +3733,8 @@ module.exports = class BaseAI {
         } else if (!state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 
@@ -3830,7 +3746,7 @@ module.exports = class BaseAI {
                 this.enemy.isInvulnerable = false;
 
                 if (mech.activationMode === "time") {
-                    state.nextReadyTime = now + this._getEffectiveInterval(mech);
+                    state.nextReadyTime = now + (Number(mech.activationIntervalMs) || 30000);
                 } else {
                     state.nextReadyTime = now + (mech.cooldown || 10000);
                 }
@@ -3849,7 +3765,7 @@ module.exports = class BaseAI {
 
         if (mech.activationMode === "time") {
             shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
+            state.nextReadyTime = now + (Number(mech.activationIntervalMs) || 30000);
         } else {
             const thresholds = (mech.activationHPs && mech.activationHPs.length > 0)
                 ? mech.activationHPs
@@ -3898,12 +3814,8 @@ module.exports = class BaseAI {
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 
@@ -3915,10 +3827,11 @@ module.exports = class BaseAI {
             this.enemy.isInvisSpeedModifierActive = false;
             
             if (mech.activationMode === "time") {
-                    state.nextReadyTime = now + this._getEffectiveInterval(mech);
-                } else {
-                    state.nextReadyTime = now + (mech.cooldown || 10000);
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                state.nextReadyTime = now + (mech.cooldown || 10000);
+            }
 
             io.to(`zone_${this.enemy.zone}`).emit("serverEnemyInvis", { 
                 id: this.enemy.id, 
@@ -4012,8 +3925,9 @@ module.exports = class BaseAI {
             state.combatStartTime = now;
             // Si el modo es por tiempo y recién entramos en combate, programamos la primera activación
             if (mech.activationMode === "time") {
-                    state.nextReadyTime = now + this._getEffectiveInterval(mech);
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            }
         }
 
         // 1. Si la mecánica está activa, procesamos el estado de los pilares
@@ -4118,9 +4032,10 @@ module.exports = class BaseAI {
         let shouldActivate = false;
         if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
             if (mech.activationMode === "time") {
-            shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
-        } else {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
                 // Modo HP (por defecto)
                 let thresholds = [];
                 if (Array.isArray(mech.activationHPs)) {
@@ -4242,12 +4157,8 @@ module.exports = class BaseAI {
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 
@@ -4273,9 +4184,10 @@ module.exports = class BaseAI {
         let shouldActivate = false;
         if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
             if (mech.activationMode === "time") {
-            shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
-        } else {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
                 // Modo HP (por defecto)
                 let thresholds = [];
                 if (Array.isArray(mech.activationHPs)) {
@@ -4383,12 +4295,8 @@ module.exports = class BaseAI {
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 
@@ -4495,9 +4403,10 @@ module.exports = class BaseAI {
         let shouldActivate = false;
         if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
             if (mech.activationMode === "time") {
-            shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
-        } else {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
                 let thresholds = [];
                 if (Array.isArray(mech.activationHPs)) {
                     thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
@@ -4594,12 +4503,8 @@ module.exports = class BaseAI {
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 
@@ -4617,9 +4522,10 @@ module.exports = class BaseAI {
         let shouldActivate = false;
         if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
             if (mech.activationMode === "time") {
-            shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
-        } else {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
                 // Modo HP (por defecto)
                 let thresholds = [];
                 if (Array.isArray(mech.activationHPs)) {
@@ -4733,12 +4639,8 @@ module.exports = class BaseAI {
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 
@@ -4756,9 +4658,10 @@ module.exports = class BaseAI {
         let shouldActivate = false;
         if (!state.isActive && now >= state.nextReadyTime && this._inCombat) {
             if (mech.activationMode === "time") {
-            shouldActivate = true;
-            state.nextReadyTime = now + this._getEffectiveInterval(mech);
-        } else {
+                shouldActivate = true;
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
                 // Modo HP (por defecto)
                 let thresholds = [];
                 if (Array.isArray(mech.activationHPs)) {
@@ -5129,12 +5032,8 @@ module.exports = class BaseAI {
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 
@@ -5143,10 +5042,11 @@ module.exports = class BaseAI {
             state.isActive = false;
             
             if (mech.activationMode === "time") {
-                    state.nextReadyTime = now + this._getEffectiveInterval(mech);
-                } else {
-                    state.nextReadyTime = now + (mech.cooldown || 10000);
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                state.nextReadyTime = now + (mech.cooldown || 10000);
+            }
 
             io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
                 id: this.enemy.id, 
@@ -5236,12 +5136,8 @@ module.exports = class BaseAI {
         } else if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 
@@ -5251,10 +5147,11 @@ module.exports = class BaseAI {
             this.enemy.reflectActive = false;
             
             if (mech.activationMode === "time") {
-                    state.nextReadyTime = now + this._getEffectiveInterval(mech);
-                } else {
-                    state.nextReadyTime = now + (mech.cooldown || 10000);
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
+            } else {
+                state.nextReadyTime = now + (mech.cooldown || 10000);
+            }
 
             io.to(`zone_${this.enemy.zone}`).emit("serverEnemyAction", { 
                 id: this.enemy.id, 
@@ -5354,12 +5251,8 @@ module.exports = class BaseAI {
         if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 
@@ -5578,12 +5471,8 @@ module.exports = class BaseAI {
         if (this._inCombat && !state.combatStartTime) {
             state.combatStartTime = now;
             if (mech.activationMode === "time") {
-                const raw = this._getRawInterval(mech);
-                if (raw === 0) {
-                    state.nextReadyTime = now + (Number(mech.startDelay) || 0);
-                } else {
-                    state.nextReadyTime = now + raw;
-                }
+                const interval = Number(mech.activationIntervalMs) || 30000;
+                state.nextReadyTime = now + interval;
             }
         }
 

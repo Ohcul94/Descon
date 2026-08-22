@@ -440,33 +440,25 @@ func _unhandled_input(event):
 		if get_viewport().gui_get_hovered_control() != null:
 			return
 			
-		# Procesar Movimiento (Click)
+		# Procesar Movimiento (Click) - Con botón configurable según settings
 		if event.pressed:
 			var is_mobile = SettingsManager and SettingsManager.mobile_mode
-			if not is_mobile and event.button_index == MOUSE_BUTTON_RIGHT:
-				if get_meta("spawn_locked", false):
-					return
-				var map_node = get_tree().get_first_node_in_group("map")
-				if is_instance_valid(map_node):
-					var cam3d = map_node.get("camera_3d")
-					var sub_vp = map_node.get("sub_viewport")
-					if is_instance_valid(cam3d) and is_instance_valid(sub_vp):
-						var screen_size = Vector2(sub_vp.size)
-						var screen_pos = event.position
-						var vp_size = Vector2(get_viewport().get_visible_rect().size)
-						var uv = screen_pos / vp_size
-						var ray_origin = cam3d.project_ray_origin(uv * screen_size)
-						var ray_dir = cam3d.project_ray_normal(uv * screen_size)
-						if abs(ray_dir.y) > 0.0001:
-							var t = -ray_origin.y / ray_dir.y
-							if t > 0.0:
-								var hit_3d = ray_origin + ray_dir * t
-								var s_factor = map_node.get("scale_factor") if map_node.get("scale_factor") != null else 0.02
-								var c_z = map_node.get("correction_z") if map_node.get("correction_z") != null else 1.41421356
-								var world_x = hit_3d.x / s_factor
-								var world_y = hit_3d.z / (s_factor * c_z)
-								target_position = Vector2(world_x, world_y)
-				is_moving = true; autopilot_enabled = false
+			if not is_mobile:
+				var move_btn = MOUSE_BUTTON_RIGHT
+				if SettingsManager and SettingsManager.get("control_move_btn") == "LMB":
+					move_btn = MOUSE_BUTTON_LEFT
+				
+				if event.button_index == move_btn:
+					if get_meta("spawn_locked", false):
+						return
+					var map_node = get_tree().get_first_node_in_group("map")
+					if is_instance_valid(map_node):
+						if "mouse_world_pos_2d" in map_node:
+							target_position = map_node.mouse_world_pos_2d
+					is_moving = true; autopilot_enabled = false
+
+
+
 
 func _physics_process(p_delta):
 	if current_hp <= 0 and not is_dead:
