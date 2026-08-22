@@ -164,17 +164,18 @@ func play_skill_sound(skill_name: String, pos: Variant = Vector2.INF):
 	if data == null: return
 	var path = String(data.get("sound", ""))
 	if path.is_empty(): return
-	var vol = float(data.get("soundVolumeDb", data.get("soundVolume", 0.0)))
+	var pct = float(data.get("soundVolumePercent", data.get("soundVolume", 100.0)))
+	var vol = linear_to_db(clamp(pct / 100.0, 0.0001, 1.0))
 	var maxd = float(data.get("soundMaxDist", 1400.0))
 	play_sfx_path(path, pos, vol, maxd, "SFX")
 
 func play_mechanic_sound(mech_type: String, mech_instance: Variant = null, pos: Variant = Vector2.INF):
 	# Hybrid: si la instancia trae soundOverride/sound no vacío, usa eso; si no, usa lib
 	var path: String = ""
-	var vol: float = 0.0
+	var pct: float = 100.0
 	var maxd: float = 1200.0
 	var lib_sound: String = ""
-	var lib_vol: float = 0.0
+	var lib_pct: float = 100.0
 	var lib_maxd: float = 1200.0
 	# buscar en libs
 	var mech_lib = null
@@ -187,24 +188,25 @@ func play_mechanic_sound(mech_type: String, mech_instance: Variant = null, pos: 
 			mech_lib = GameConstants.MOVEMENT_LIB[mech_type]
 	if mech_lib:
 		lib_sound = String(mech_lib.get("sound", ""))
-		lib_vol = float(mech_lib.get("soundVolumeDb", mech_lib.get("soundVolume", 0.0)))
+		lib_pct = float(mech_lib.get("soundVolumePercent", mech_lib.get("soundVolume", 100.0)))
 		lib_maxd = float(mech_lib.get("soundMaxDist", 1200.0))
 	# override por instancia (hybrid)
 	if mech_instance is Dictionary:
 		var inst_sound = String(mech_instance.get("sound", mech_instance.get("soundOverride", "")))
 		if not inst_sound.is_empty():
 			path = inst_sound
-			vol = float(mech_instance.get("soundVolumeDb", mech_instance.get("soundVolume", lib_vol)))
+			pct = float(mech_instance.get("soundVolumePercent", mech_instance.get("soundVolume", lib_pct)))
 			maxd = float(mech_instance.get("soundMaxDist", lib_maxd))
 		else:
 			path = lib_sound
-			vol = lib_vol
+			pct = lib_pct
 			maxd = lib_maxd
 	else:
 		path = lib_sound
-		vol = lib_vol
+		pct = lib_pct
 		maxd = lib_maxd
 	if path.is_empty(): return
+	var vol = linear_to_db(clamp(pct / 100.0, 0.0001, 1.0))
 	play_sfx_path(path, pos, vol, maxd, "SFX")
 
 # ─── MÚSICA DE LA ZONA ────────────────────────────────────────────────────

@@ -22,7 +22,7 @@ function mechanicSoundOverrideHtml(enemyId, listName, idx, mech) {
     const defaultSound = lib ? (lib.sound || '') : '';
     const hasOverride = !!(mech.sound && mech.sound !== '');
     const effective = hasOverride ? mech.sound : defaultSound;
-    const vol = hasOverride ? (mech.soundVolumeDb !== undefined ? mech.soundVolumeDb : (lib ? lib.soundVolumeDb : 0)) : (lib ? lib.soundVolumeDb : 0);
+    const vol = hasOverride ? (mech.soundVolumePercent !== undefined ? mech.soundVolumePercent : (lib ? lib.soundVolumePercent : 100)) : (lib ? lib.soundVolumePercent : 100);
     const maxd = hasOverride ? (mech.soundMaxDist || (lib ? lib.soundMaxDist : 1200)) : (lib ? lib.soundMaxDist : 1200);
     const preview = effective ? resolveAssetWebUrl(effective) : '';
     return `
@@ -36,7 +36,7 @@ function mechanicSoundOverrideHtml(enemyId, listName, idx, mech) {
         </div>
         ${preview ? `<audio controls preload="none" src="${preview}" style="width:100%; height:26px; margin-top:0.4rem;"></audio><div style="font-size:0.55rem; color:#a855f7; font-family:JetBrains Mono; overflow:hidden; text-overflow:ellipsis;">Efectivo: ${effective}</div>` : ''}
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-            <div class="field"><label>Vol Override (dB)</label><input type="number" step="1" value="${mech.soundVolumeDb !== undefined ? mech.soundVolumeDb : ''}" placeholder="${lib ? lib.soundVolumeDb : 0}" onchange="config.enemyModels['${enemyId}'][listName][${idx}].soundVolumeDb = this.value === '' ? undefined : parseFloat(this.value)"></div>
+            <div class="field"><label>Vol Override (%)</label><input type="range" min="0" max="100" value="${mech.soundVolumePercent !== undefined ? mech.soundVolumePercent : (lib ? lib.soundVolumePercent : 100)}" oninput="config.enemyModels['${enemyId}'][listName][${idx}].soundVolumePercent = parseFloat(this.value)"></div>
             <div class="field"><label>Dist Max Override (px)</label><input type="number" step="50" value="${mech.soundMaxDist !== undefined ? mech.soundMaxDist : ''}" placeholder="${lib ? lib.soundMaxDist : 1200}" onchange="config.enemyModels['${enemyId}'][listName][${idx}].soundMaxDist = this.value === '' ? undefined : parseInt(this.value)"></div>
         </div>
     </div>`;
@@ -736,7 +736,7 @@ function renderAmmo() {
                 </div>
                 ${item.sound ? `<audio controls preload="none" src="${resolveAssetWebUrl(item.sound)}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${item.soundVolumeDb !== undefined ? item.soundVolumeDb : 0}" onchange="config.shopItems.ammo['${type}'][${i}].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Volumen <span id="ammo-vol-label-${type}-${i}" style="color:var(--accent);">${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 100}%</span></label><input type="range" min="0" max="100" value="${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 100}" oninput="config.shopItems.ammo['${type}'][${i}].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('ammo-vol-label-${type}-${i}'); if(l) l.innerText=this.value+'%';"></div>
                     <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${item.soundMaxDist || 1000}" onchange="config.shopItems.ammo['${type}'][${i}].soundMaxDist = parseInt(this.value) || 1000"></div>
                 </div>
             </div>
@@ -2345,7 +2345,7 @@ function renderMechanicsLib() {
                 </div>
                 ${mechSoundWeb ? `<audio controls preload="none" src="${mechSoundWeb}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${m.soundVolumeDb !== undefined ? m.soundVolumeDb : 0}" onchange="config.mechanicsLib['${type}'].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Volumen <span id="mech-vol-label-${type}" style="color:var(--accent);">${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}%</span></label><input type="range" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}" oninput="config.mechanicsLib['${type}'].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('mech-vol-label-${type}'); if(l) l.innerText=this.value+'%';"></div>
                     <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${m.soundMaxDist || 1200}" onchange="config.mechanicsLib['${type}'].soundMaxDist = parseInt(this.value) || 1200"></div>
                 </div>
             </div>
@@ -2368,7 +2368,7 @@ function renderMechanicsLib() {
                 </div>
                 ${defSoundWeb ? `<audio controls preload="none" src="${defSoundWeb}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${m.soundVolumeDb !== undefined ? m.soundVolumeDb : 0}" onchange="config.defenseLib['${type}'].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Volumen <span id="def-vol-label-${type}" style="color:var(--accent);">${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}%</span></label><input type="range" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}" oninput="config.defenseLib['${type}'].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('def-vol-label-${type}'); if(l) l.innerText=this.value+'%';"></div>
                     <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${m.soundMaxDist || 800}" onchange="config.defenseLib['${type}'].soundMaxDist = parseInt(this.value) || 800"></div>
                 </div>
             </div>
@@ -2429,7 +2429,7 @@ function renderMechanicsLib() {
                 </div>
                 ${movSoundWeb ? `<audio controls preload="none" src="${movSoundWeb}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${m.soundVolumeDb !== undefined ? m.soundVolumeDb : 0}" onchange="config.movementLib['${type}'].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Volumen <span id="mov-vol-label-${type}" style="color:var(--accent);">${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}%</span></label><input type="range" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}" oninput="config.movementLib['${type}'].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('mov-vol-label-${type}'); if(l) l.innerText=this.value+'%';"></div>
                     <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${m.soundMaxDist || 800}" onchange="config.movementLib['${type}'].soundMaxDist = parseInt(this.value) || 800"></div>
                 </div>
             </div>
@@ -3144,7 +3144,7 @@ function renderSkills() {
                     ${s.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.skillsData['${name}'].sound=''; renderSkills();">Quitar</button><audio controls preload="none" src="${resolveAssetWebUrl(s.sound)}" style="height:28px; width:140px;"></audio>` : ''}
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:0.6rem;">
-                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${s.soundVolumeDb !== undefined ? s.soundVolumeDb : (s.soundVolume || 0)}" onchange="config.skillsData['${name}'].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Volumen <span id="skill-vol-label-${name}" style="color:var(--accent);">${s.soundVolumePercent !== undefined ? s.soundVolumePercent : (s.soundVolume || 100)}%</span></label><input type="range" min="0" max="100" value="${s.soundVolumePercent !== undefined ? s.soundVolumePercent : (s.soundVolume || 100)}" oninput="config.skillsData['${name}'].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('skill-vol-label-${name}'); if(l) l.innerText=this.value+'%';"></div>
                     <div class="field"><label>Distancia Max (px)</label><input type="number" step="50" value="${s.soundMaxDist || 1400}" onchange="config.skillsData['${name}'].soundMaxDist = parseInt(this.value) || 1400"></div>
                 </div>
             </div>

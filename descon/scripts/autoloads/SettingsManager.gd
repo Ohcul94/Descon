@@ -52,8 +52,8 @@ var minimap_rotate: bool = false        # Minimapa rotatorio (gira con la nave)
 # v420.900: Ajustes de audio (música de la zona)
 var music_volume: float = 60.0          # Volumen de la música (0-100)
 var music_muted: bool = false           # Silenciar música
-# v900.0: SFX (habilidades + mecánicas)
-var sfx_volume: float = 80.0
+# v900.0: SFX (habilidades + mecánicas) - default 50% para VFX/disparos/skills
+var sfx_volume: float = 50.0
 var sfx_muted: bool = false
 
 # Configuraciones de tamaño de letra de forma independiente
@@ -144,7 +144,7 @@ func reset_to_factory():
 	minimap_rotate = false
 	music_volume = 60.0
 	music_muted = false
-	sfx_volume = 80.0
+	sfx_volume = 50.0
 	sfx_muted = false
 	show_player_tags = true
 	show_enemy_tags = true
@@ -251,7 +251,7 @@ func load_settings():
 		minimap_rotate = config_file.get_value("graphics", "minimap_rotate", false)
 		music_volume = config_file.get_value("audio", "music_volume", 60.0)
 		music_muted = config_file.get_value("audio", "music_muted", false)
-		sfx_volume = config_file.get_value("audio", "sfx_volume", 80.0)
+		sfx_volume = config_file.get_value("audio", "sfx_volume", 50.0)
 		sfx_muted = config_file.get_value("audio", "sfx_muted", false)
 		hit_flash_enabled = config_file.get_value("accessibility", "hit_flash", true)
 		camera_shake_enabled = config_file.get_value("accessibility", "camera_shake", true)
@@ -292,7 +292,7 @@ func load_settings():
 		camera_use_orthogonal = false
 		show_stars = false
 		minimap_rotate = false
-		sfx_volume = 80.0
+		sfx_volume = 50.0
 		sfx_muted = false
 		hit_flash_enabled = true
 		camera_shake_enabled = true

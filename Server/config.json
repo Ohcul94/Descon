@@ -1203,8 +1203,9 @@
             "icon": "✨",
             "label": "Aura Curativa",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "basic_defense": {
             "desc": "Mecánica de mitigación de daño y regeneración.",
@@ -1218,8 +1219,9 @@
             "icon": "🛡️",
             "label": "Defensa Estándar",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "boss_colors": {
             "desc": "El Boss y los jugadores cercanos reciben colores. Solo los del color del Boss pueden dañarlo.",
@@ -1234,8 +1236,9 @@
             "icon": "🎨",
             "label": "Mecánica de Colores",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "boss_pillars": {
             "desc": "Invoca pilares que lo protegen y curan hasta ser destruidos.",
@@ -1258,8 +1261,9 @@
             "icon": "🗼",
             "label": "Pilares del Boss",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "boss_water_orbs": {
             "desc": "Invoca orbes que viajan al boss. Interceptarlas hace daño pero evita que el boss se cure.",
@@ -1278,8 +1282,9 @@
             "icon": "💧",
             "label": "Orbes de Agua",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "duplicado": {
             "desc": "El enemigo se divide en clones que persiguen al jugador y explotan curando al original.",
@@ -1297,8 +1302,9 @@
             "icon": "👥",
             "label": "Duplicación Defensiva",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "invisibility": {
             "desc": "El enemigo se vuelve invisible o camuflado.",
@@ -1317,8 +1323,9 @@
             "icon": "👤",
             "label": "Invisibilidad / Camuflaje",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "invulnerability": {
             "desc": "Se vuelve inmune a todo daño por un tiempo.",
@@ -1333,8 +1340,9 @@
             "icon": "💎",
             "label": "Invulnerabilidad Temporal",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "life_steal": {
             "desc": "Igual que el Robador de Escudo pero roba VIDA al jugador por ticks y se la transfiere al enemigo. Aros y números en verde.",
@@ -1359,8 +1367,9 @@
             "icon": "💚",
             "label": "Robador de Vida (Life Steal)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "reflect": {
             "desc": "Devuelve daño recibido al atacante.",
@@ -1376,8 +1385,9 @@
             "icon": "🛡️",
             "label": "Escudo Reflectante (Reflect)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "shield_steal": {
             "desc": "Dispara un proyectil celestial que se vincula al jugador impactado, robándole escudo por ticks y transfiriéndose al enemigo.",
@@ -1402,8 +1412,9 @@
             "icon": "💠",
             "label": "Robador de Escudo (Shield Steal)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "wall_dome": {
             "desc": "Crea una cúpula protectora que bloquea proyectiles del exterior.",
@@ -1419,8 +1430,9 @@
             "icon": "🛡️",
             "label": "Muro de Energía (Wall Dome)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         }
     },
     "enemyModels": {
@@ -7175,8 +7187,9 @@
             "icon": "🎈",
             "label": "Ascensión Telúrica (Ascension)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1500
+            "soundMaxDist": 1500,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "aura_damage": {
             "desc": "Daña a los jugadores cercanos continuamente.",
@@ -7192,8 +7205,9 @@
             "icon": "🔥",
             "label": "Aura de Vacío (Daño)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "bomb": {
             "desc": "Lanza bombas en círculo que explotan tras un retardo.",
@@ -7211,8 +7225,9 @@
             "icon": "💣",
             "label": "Lanzador de Bombas",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "burrow": {
             "desc": "El enemigo se hunde bajo tierra, viaja en línea recta hacia un objetivo seleccionable (por proximidad, aleatorio, menos vida, más vida, mayor daño causado, mayor curación, más esferas o por color de esfera) y emerge rompiendo el suelo: círculo de daño único o zona persistente + debuffs configurables.",
@@ -7237,8 +7252,9 @@
             "icon": "🕳️",
             "label": "Zambullida Telúrrica",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "circle_cast": {
             "desc": "Ataque circular que se carga siguiendo al enemigo y explota dañando a todos.",
@@ -7253,8 +7269,9 @@
             "icon": "⭕",
             "label": "Explosión Circular",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "cone_cast": {
             "desc": "Ataque en cono que se carga y al completarse daña/stunea.",
@@ -7274,8 +7291,9 @@
             "icon": "📐",
             "label": "Ataque en Cono Casteable",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "execution": {
             "desc": "Tras un tiempo de casteo, lanza una calavera inquebrantable sobre los objetivos: impacto = muerte instantánea (ignora escudo y vida).",
@@ -7297,8 +7315,9 @@
             "icon": "💀",
             "label": "Ejecución Directa (Execution)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1500
+            "soundMaxDist": 1500,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "hook": {
             "desc": "Atrae al objetivo, lo daña y lo paraliza.",
@@ -7318,8 +7337,9 @@
             "icon": "⚓",
             "label": "Gancho Abisal",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "ice_missile": {
             "desc": "Ralentiza al objetivo al impactar.",
@@ -7338,8 +7358,9 @@
             "icon": "❄️",
             "label": "Misil de Hielo",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1500
+            "soundMaxDist": 1500,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "ice_storm": {
             "desc": "Invoca una tormenta de hielo persistente que daña y ralentiza a los jugadores en el área.",
@@ -7358,8 +7379,9 @@
             "icon": "❄️",
             "label": "Tormenta de Hielo",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "laser": {
             "desc": "Ataque lineal básico de alta cadencia.",
@@ -7376,8 +7398,9 @@
             "icon": "🔫",
             "label": "Láser Estándar",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "mega_laser": {
             "desc": "Rayo grueso que requiere precarga.",
@@ -7422,8 +7445,9 @@
             "icon": "☄️",
             "label": "Lluvia de Meteoritos",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1600
+            "soundMaxDist": 1600,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "mine": {
             "desc": "Explosivo estático que se activa por cercanía.",
@@ -7436,8 +7460,9 @@
             "icon": "💣",
             "label": "Mina de Proximidad",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "missile": {
             "desc": "Proyectil autoguiado de medio alcance.",
@@ -7454,8 +7479,9 @@
             "icon": "🚀",
             "label": "Misil Rastreador",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1500
+            "soundMaxDist": 1500,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "orbital_strike": {
             "desc": "Círculos que giran y luego se disparan.",
@@ -7474,8 +7500,9 @@
             "icon": "🌀",
             "label": "Ataque Orbital",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "polymorph": {
             "desc": "Lanza proyectiles cúbicos que transforman al jugador. Configurable: cantidad, velocidad, homing, daño, duración, si bloquea movimiento/habilidades y selección de objetivo (proximidad, aleatorio, más esferas o por color de esfera).",
@@ -7500,8 +7527,9 @@
             "icon": "🗺️",
             "label": "Polimorfia (Cubito)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "reflect": {
             "desc": "Devuelve daño recibido al atacante.",
@@ -7517,8 +7545,9 @@
             "icon": "🛡️",
             "label": "Escudo Reflectante (Reflect)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "sleep": {
             "desc": "Duerme a los pilotos con somnolencia progresiva y un efecto de pesadilla al despertar.",
@@ -7539,8 +7568,9 @@
             "icon": "💤",
             "label": "Sueño Inducido (Sleep)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "spin_ring": {
             "desc": "Tira un círculo alrededor del enemigo que gira. Si impacta, daña al objetivo, le da velocidad al dueño y puede aplicar slow.",
@@ -7561,8 +7591,9 @@
             "icon": "🌀",
             "label": "Giro Enloquecido",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "summoning": {
             "desc": "Invoca una cantidad de esbirros de tu elección por vida o por tiempo.",
@@ -7581,8 +7612,9 @@
             "icon": "🧟",
             "label": "Invocación (Summoning)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "survival_dome": {
             "desc": "Carga un ataque masivo creando un domo seguro en una ubicacion aleatoria.",
@@ -7600,8 +7632,9 @@
             "icon": "🔮",
             "label": "Domo de Supervivencia (Survival Dome)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1500
+            "soundMaxDist": 1500,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "wind_wall": {
             "desc": "El enemigo carga una pared de viento visible y, al completarla, la dispara hacia afuera: expulsa al jugador, le hace daño y puede aplicarle efectos extra configurables.",
@@ -7620,8 +7653,9 @@
             "icon": "🌪️",
             "label": "Aluvión de Viento",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "worm_boomerang": {
             "desc": "Lanza un abanico de gusanos que se alejan, se detienen y regresan al origen dañando.",
@@ -7640,8 +7674,9 @@
             "icon": "🪱",
             "label": "Gusanos Bumerán",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1200
+            "soundMaxDist": 1200,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "melee_slash": {
             "desc": "Corte cuerpo a cuerpo instantáneo: el enemigo levanta el hacha (anticipación) y pega en el área en forma de arco o giro 360°. Pega directo, no carga un área.",
@@ -7659,8 +7694,9 @@
             "icon": "🪓",
             "label": "Hachazo Melee 🪓",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         }
     },
     "movementLib": {
@@ -7679,8 +7715,9 @@
             "icon": "🌬️",
             "label": "Aura de Impulso",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "charger": {
             "desc": "Se acerca y lanza ataques de alta velocidad.",
@@ -7691,8 +7728,9 @@
             "icon": "⚡",
             "label": "Embestida (Dash)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "chase": {
             "desc": "Persigue al jugador hasta una distancia fija.",
@@ -7703,8 +7741,9 @@
             "icon": "🏃",
             "label": "Persecución Directa",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "kamikaze": {
             "desc": "Se lanza hacia vos al bajar de HP y explota.",
@@ -7718,8 +7757,9 @@
             "icon": "💣",
             "label": "Kamikaze",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1000
+            "soundMaxDist": 1000,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "orbit": {
             "desc": "Gira alrededor del jugador constantemente.",
@@ -7730,8 +7770,9 @@
             "icon": "🔄",
             "label": "órbita Circular",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "prowler": {
             "desc": "Movimiento de patrulla autónoma en un rango circular configurable.",
@@ -7745,8 +7786,9 @@
             "icon": "🐾",
             "label": "Merodeador",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "sniper": {
             "desc": "Mantiene una distancia segura alejándose si te acercas.",
@@ -7757,8 +7799,9 @@
             "icon": "🎯",
             "label": "Francotirador (Kiting)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "zigzag": {
             "desc": "Persigue al jugador zigzagueando de lado a lado.",
@@ -7771,8 +7814,9 @@
             "icon": "↩️",
             "label": "Movimiento ZigZag",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "boss": {
             "desc": "Cerebro de Boss con fases de combate (láser, embestida y misiles).",
@@ -7784,8 +7828,9 @@
             "icon": "💀",
             "label": "Cerebro de Boss (Fases)",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 800
+            "soundMaxDist": 800,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         }
     },
     "pilotConfig": {
@@ -8751,8 +8796,8 @@
                     },
                     "range": 450,
                     "requirements": [],
-                    "sound": "res://assets/Sonidos/Disparos/Lazers/Lazer.mp3",
-                    "soundVolumeDb": 1
+                    "sound": "res://assets/Sonidos/Disparos/Lasers/Laser.mp3",
+                    "soundVolumePercent": 50
                 },
                 {
                     "bulletSpeed": 800,
@@ -9037,7 +9082,9 @@
                     },
                     "range": 600,
                     "soulbound": false,
-                    "requirements": []
+                    "requirements": [],
+                    "sound": "res://assets/Sonidos/Disparos/Misiles/Misil.mp3",
+                    "soundVolumePercent": 50
                 },
                 {
                     "bulletSpeed": 800,
@@ -10017,8 +10064,9 @@
             },
             "type": "Curación",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "BALIZA DE CURACION": {
             "canTargetOthers": false,
@@ -10047,8 +10095,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "BARRERA DE VIENTO": {
             "canTargetOthers": false,
@@ -10070,8 +10119,9 @@
             "width": 200,
             "requirements": [],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "BLINK": {
             "canTargetOthers": false,
@@ -10104,8 +10154,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "ESCUDO CELULAR": {
             "amount": 20,
@@ -10139,8 +10190,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "ESFERA DE TERROR": {
             "amount": 1,
@@ -10162,8 +10214,9 @@
             },
             "type": "Ataque",
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "FROST-TRAIL": {
             "canTargetOthers": false,
@@ -10190,8 +10243,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "HYPER-DASH": {
             "canTargetOthers": false,
@@ -10211,8 +10265,9 @@
             "type": "Utilidad",
             "requirements": [],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "INVULNERABILIDAD": {
             "canTargetOthers": false,
@@ -10237,8 +10292,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "NANO-REGENERACIÓN": {
             "amount": 300,
@@ -10262,8 +10318,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "PROVOCACION": {
             "canTargetOthers": false,
@@ -10290,8 +10347,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "REFLECT-OMEGA": {
             "amount": 500,
@@ -10326,8 +10384,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "REGENERACIÓN ALFA": {
             "amount": 2,
@@ -10363,8 +10422,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "RESURRECCIÓN": {
             "canTargetOthers": true,
@@ -10392,8 +10452,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "SMOKE-BOMB": {
             "amount": 1,
@@ -10420,8 +10481,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "STEALTH": {
             "canTargetOthers": false,
@@ -10446,8 +10508,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "TURBO-IMPULSO": {
             "canTargetOthers": true,
@@ -10467,8 +10530,9 @@
             "type": "Utilidad",
             "requirements": [],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         },
         "VÍNCULO VITAL": {
             "amount": 250,
@@ -10496,8 +10560,9 @@
                 }
             ],
             "sound": "",
-            "soundVolumeDb": 0,
-            "soundMaxDist": 1400
+            "soundMaxDist": 1400,
+            "soundVolumePercent": 50,
+            "soundVolumeDb": 0
         }
     },
     "talentsConfig": {

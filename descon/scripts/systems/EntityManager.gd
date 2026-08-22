@@ -3370,7 +3370,8 @@ func _on_player_fired(d):
 			if tier < cfg.size():
 				var sp = String(cfg[tier].get("sound", ""))
 				if not sp.is_empty():
-					AudioManager.play_sfx_path(sp, pos, float(cfg[tier].get("soundVolumeDb", 0.0)), float(cfg[tier].get("soundMaxDist", 1000.0)))
+					var ammo_pct = float(cfg[tier].get("soundVolumePercent", cfg[tier].get("soundVolume", 100.0)))
+					AudioManager.play_sfx_path(sp, pos, linear_to_db(clamp(ammo_pct / 100.0, 0.0001, 1.0)), float(cfg[tier].get("soundMaxDist", 1000.0)))
 
 func _on_enemy_fired(d): 
 	if is_instance_valid(world) and is_instance_valid(world.combat_system): 

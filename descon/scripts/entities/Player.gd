@@ -925,7 +925,8 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 			var ammo_cfg = GameConstants.SHOP_ITEMS["ammo"].get(p_type, [])
 			if t_idx < ammo_cfg.size():
 				ammo_sfx_path = String(ammo_cfg[t_idx].get("sound", ""))
-				ammo_vol = float(ammo_cfg[t_idx].get("soundVolumeDb", 0.0))
+				var ammo_pct = float(ammo_cfg[t_idx].get("soundVolumePercent", ammo_cfg[t_idx].get("soundVolume", 100.0)))
+				ammo_vol = linear_to_db(clamp(ammo_pct / 100.0, 0.0001, 1.0))
 				ammo_maxd = float(ammo_cfg[t_idx].get("soundMaxDist", 1000.0))
 		if not ammo_sfx_path.is_empty():
 			AudioManager.play_sfx_path(ammo_sfx_path, global_position, ammo_vol, ammo_maxd)
