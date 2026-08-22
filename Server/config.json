@@ -1441,7 +1441,7 @@
             "bulletDamage": 40,
             "bulletSpeed": 800,
             "chaseUntilDeath": false,
-            "chestDropChance": 0,
+            "chestDropChance": 0.1,
             "defenseMechanics": [],
             "fireRange": 600,
             "fireRate": 1000,
@@ -8308,7 +8308,7 @@
         {
             "assetPath": "res://assets/Personajes/3D/Nave6/Nave6.glb",
             "baseDmg": 10,
-            "hp": 320,
+            "hp": 3200,
             "icon": "res://assets/Personajes/2D/Nave6/Nave6.png",
             "id": 6,
             "name": "Galactus-Z6",
@@ -8319,15 +8319,15 @@
             "rotX": 0,
             "rotY": 180,
             "rotZ": 0,
-            "shield": 320,
+            "shield": 3200,
             "slots": {
                 "e": 16,
                 "s": 16,
                 "w": 16,
                 "x": 6
             },
-            "speed": 1000,
-            "vision": 1000,
+            "speed": 400,
+            "vision": 1300,
             "hidden": true
         },
         {
@@ -9001,7 +9001,9 @@
                         "hubs": 3000,
                         "ohcu": 30
                     },
-                    "range": 200
+                    "range": 200,
+                    "sound": "res://assets/Sonidos/Disparos/Minas/Mina.mp3",
+                    "soundVolumePercent": 50
                 },
                 {
                     "bulletSpeed": 800,

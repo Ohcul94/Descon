@@ -256,6 +256,26 @@ function registerQuestHandlers(socket, io, state) {
                 return socket.emit('gameNotification', { msg: 'No has cumplido todos los objetivos de la misión.', type: 'error' });
             }
 
+            // vNEW: Validar la selección de recompensa por elección ANTES de otorgar
+            // cualquier cosa, para no dejar la misión a medias si la selección es inválida.
+            const preReward = questDef.reward || {};
+            const prePool = Array.isArray(preReward.items) ? preReward.items : [];
+            const preSelCount = parseInt(preReward.selectableCount) || 0;
+            if (preSelCount > 0 && preSelCount < prePool.length) {
+                const preSelection = Array.isArray(data.selection) ? data.selection : [];
+                if (preSelection.length !== preSelCount) {
+                    return socket.emit('gameNotification', { msg: `Debes seleccionar exactamente ${preSelCount} ítems de recompensa.`, type: 'error' });
+                }
+                const preUsed = {};
+                for (const s of preSelection) {
+                    const i = parseInt(s);
+                    if (isNaN(i) || i < 0 || i >= prePool.length || preUsed[i]) {
+                        return socket.emit('gameNotification', { msg: 'Selección de recompensa inválida.', type: 'error' });
+                    }
+                    preUsed[i] = true;
+                }
+            }
+
             // Si es de recolección (collect), consumimos los ítems requeridos de su inventario
             if (questDef.targetType === 'collect') {
                 let countToRemove = questDef.targetAmount;
@@ -328,10 +348,32 @@ function registerQuestHandlers(socket, io, state) {
             }
 
             // Dar ítems de recompensa si tiene
-            if (Array.isArray(reward.items)) {
+            if (Array.isArray(reward.items) && reward.items.length > 0) {
                 if (!user.gameData.inventory) user.gameData.inventory = [];
-                
-                // Obtener definición maestra de ítems de la tienda para sincronizar sus nombres/iconos
+
+                // vNEW: Recompensa por elección. Si selectableCount está entre 1 y (items-1),
+                // el jugador elige exactamente esa cantidad de ítems del pozo.
+                const pool = reward.items;
+                const selCount = parseInt(reward.selectableCount) || 0;
+                let chosenPool = pool;
+
+                if (selCount > 0 && selCount < pool.length) {
+                    const selection = Array.isArray(data.selection) ? data.selection : [];
+                    if (selection.length !== selCount) {
+                        return socket.emit('gameNotification', { msg: `Debes seleccionar exactamente ${selCount} ítems de recompensa.`, type: 'error' });
+                    }
+                    const usedIdx = {};
+                    for (const s of selection) {
+                        const i = parseInt(s);
+                        if (isNaN(i) || i < 0 || i >= pool.length || usedIdx[i]) {
+                            return socket.emit('gameNotification', { msg: 'Selección de recompensa inválida.', type: 'error' });
+                        }
+                        usedIdx[i] = true;
+                    }
+                    chosenPool = selection.map(i => pool[i]);
+                }
+
+                // Obtener definición maestra de ítems (shop + municiones) para nombres/iconos
                 const allShopItems = [
                     ...(state.SERVER_CONFIG.shopItems.weapons || []),
                     ...(state.SERVER_CONFIG.shopItems.shields || []),
@@ -339,12 +381,16 @@ function registerQuestHandlers(socket, io, state) {
                     ...(state.SERVER_CONFIG.shopItems.extra || []),
                     ...(state.SERVER_CONFIG.shopItems.resources || [])
                 ];
+                const ammoDefs = state.SERVER_CONFIG.shopItems.ammo || {};
+                for (const k in ammoDefs) {
+                    if (Array.isArray(ammoDefs[k])) allShopItems.push(...ammoDefs[k]);
+                }
 
                 const { addItemToInventory } = require('./inventoryHandlers');
-                reward.items.forEach(rewItem => {
+                chosenPool.forEach(rewItem => {
                     const master = allShopItems.find(i => String(i.id) === String(rewItem.id));
                     const qty = parseInt(rewItem.qty) || 1;
-                    
+
                     const newItem = {
                         id: rewItem.id,
                         instanceId: "",

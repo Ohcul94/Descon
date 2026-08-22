@@ -359,7 +359,7 @@ func update_ui():
 				sb_cob.border_color = Color.GREEN
 				btn.add_theme_stylebox_override("normal", sb_cob)
 				btn.pressed.connect(func():
-					NetworkManager.send_event("claimQuestReward", {"questId": q_id})
+					_on_claim_pressed(quest, q_id)
 				)
 			else:
 				btn.text = "EN PROGRESO"
@@ -392,3 +392,149 @@ func update_ui():
 		var margin_right = Control.new()
 		margin_right.custom_minimum_size.x = 8
 		main_hb.add_child(margin_right)
+
+# --- RECLAMO CON SELECCION DE RECOMPENSA ---
+func _on_claim_pressed(quest, q_id):
+	var reward = quest.get("reward", {})
+	var pool = reward.get("items", [])
+	var sel_count = int(reward.get("selectableCount", 0))
+	# Si la recompensa es por eleccion (0 < sel_count < cantidad de items), abrimos el selector
+	if sel_count > 0 and sel_count < pool.size():
+		_open_reward_selector(q_id, pool, sel_count)
+	else:
+		NetworkManager.send_event("claimQuestReward", {"questId": q_id})
+
+# Resuelve el nombre visible de un item a partir de los catalogos del server_config
+func _resolve_item_name(id) -> String:
+	var cfg = NetworkManager.server_config if NetworkManager else {}
+	if typeof(cfg) != TYPE_DICTIONARY:
+		return "Ítem " + str(id)
+	var shop = cfg.get("shopItems", {})
+	for key in ["weapons", "shields", "engines", "extra", "resources"]:
+		if shop.has(key) and typeof(shop[key]) == TYPE_ARRAY:
+			for it in shop[key]:
+				if typeof(it) == TYPE_DICTIONARY and str(it.get("id", "")) == str(id):
+					return str(it.get("name", id))
+	if shop.has("ammo") and typeof(shop["ammo"]) == TYPE_DICTIONARY:
+		for t in shop["ammo"].keys():
+			var arr = shop["ammo"][t]
+			if typeof(arr) == TYPE_ARRAY:
+				for it in arr:
+					if typeof(it) == TYPE_DICTIONARY and str(it.get("id", "")) == str(id):
+						return str(it.get("name", id))
+	if cfg.has("craftingResources") and typeof(cfg["craftingResources"]) == TYPE_ARRAY:
+		for it in cfg["craftingResources"]:
+			if typeof(it) == TYPE_DICTIONARY and str(it.get("id", "")) == str(id):
+				return str(it.get("name", id))
+	return "Ítem " + str(id)
+
+# Abre un popup donde el jugador elige sel_count items del pozo de recompensa
+func _open_reward_selector(q_id, pool, sel_count):
+	var overlay = ColorRect.new()
+	overlay.color = Color(0, 0, 0, 0.72)
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	get_tree().root.add_child(overlay)
+
+	var cc = CenterContainer.new()
+	cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(cc)
+
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(460, 500)
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.02, 0.06, 0.12, 0.98)
+	sb.border_color = Color.CYAN
+	sb.border_width_left = 2
+	sb.border_width_right = 2
+	sb.border_width_top = 2
+	sb.border_width_bottom = 2
+	panel.add_theme_stylebox_override("panel", sb)
+	cc.add_child(panel)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	vbox.add_theme_constant_override("margin_left", 16)
+	vbox.add_theme_constant_override("margin_right", 16)
+	vbox.add_theme_constant_override("margin_top", 16)
+	vbox.add_theme_constant_override("margin_bottom", 16)
+	panel.add_child(vbox)
+
+	var title = Label.new()
+	title.text = "🎁 ELIGE TU RECOMPENSA"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 16)
+	vbox.add_child(title)
+
+	var instr = Label.new()
+	instr.text = "Selecciona " + str(sel_count) + " de " + str(pool.size()) + " items disponibles:"
+	instr.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	instr.add_theme_font_size_override("font_size", 11)
+	instr.modulate.a = 0.85
+	vbox.add_child(instr)
+
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(scroll)
+
+	var grid = VBoxContainer.new()
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("separation", 6)
+	scroll.add_child(grid)
+
+	var selected = []  # indices elegidos
+
+	var confirm_btn = Button.new()
+	confirm_btn.text = "CONFIRMAR (0/" + str(sel_count) + ")"
+	confirm_btn.disabled = true
+	confirm_btn.custom_minimum_size = Vector2(180, 38)
+	var sb_conf = StyleBoxFlat.new()
+	sb_conf.bg_color = Color.DARK_GREEN
+	sb_conf.border_color = Color.GREEN
+	sb_conf.border_width_bottom = 2
+	confirm_btn.add_theme_stylebox_override("normal", sb_conf)
+
+	for i in range(pool.size()):
+		var it = pool[i]
+		var id = str(it.get("id", ""))
+		var qty = int(it.get("qty", 1))
+		var item_name = _resolve_item_name(id)
+		var b = Button.new()
+		b.text = item_name + "   x" + str(qty)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.toggle_mode = true
+		b.custom_minimum_size = Vector2(0, 40)
+		b.toggled.connect(_on_reward_item_toggled.bind(b, i, sel_count, selected, confirm_btn))
+		grid.add_child(b)
+
+	var footer = HBoxContainer.new()
+	footer.alignment = BoxContainer.ALIGNMENT_CENTER
+	footer.add_theme_constant_override("separation", 15)
+	vbox.add_child(footer)
+
+	var cancel = Button.new()
+	cancel.text = "CANCELAR"
+	cancel.custom_minimum_size = Vector2(140, 38)
+	cancel.pressed.connect(func(): overlay.queue_free())
+	footer.add_child(cancel)
+
+	confirm_btn.pressed.connect(func():
+		if selected.size() != sel_count:
+			return
+		NetworkManager.send_event("claimQuestReward", {"questId": q_id, "selection": selected.duplicate()})
+		overlay.queue_free()
+	)
+	footer.add_child(confirm_btn)
+
+# Callback de cada boton del selector de recompensa
+func _on_reward_item_toggled(on, b, idx, sel_count, selected, confirm_btn):
+	if on and not selected.has(idx):
+		if selected.size() >= sel_count:
+			b.button_pressed = false
+			return
+		selected.append(idx)
+	elif not on and selected.has(idx):
+		selected.erase(idx)
+	confirm_btn.disabled = selected.size() != sel_count
+	confirm_btn.text = "CONFIRMAR (" + str(selected.size()) + "/" + str(sel_count) + ")"

@@ -3,6 +3,8 @@ extends Node
 # VFXSystem.gd (Architecture v164.12 - RE-SAVED)
 # Manager central de efectos visuales (Explosiones, Nova, Rifts)
 
+signal warmup_complete  # Emitida al finalizar el warmup de recursos
+
 var _warmup_cache: Dictionary = {}
 var _vfx_pools: Dictionary = {} # { scene_path: Array[Node] } (v313.6)
 var _warmed_materials: Array[Material] = [] # Caché de retención fuerte de materiales (v313.8)
@@ -835,6 +837,8 @@ func _run_shader_warmup():
 			NetworkManager.login_success.connect(_on_login_done, CONNECT_ONE_SHOT)
 
 	print("[VFX-WarmUp] Cinematic PvP activa. LoginUI visible sobre naves.")
+	emit_signal("warmup_complete")
+
 
 func spawn_explosion(pos: Vector2, p_scale: float = 1.0): # Renombrado scale a p_scale
 	# Efecto visual de explosión por defecto

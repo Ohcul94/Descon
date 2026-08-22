@@ -168,11 +168,18 @@ func update_ui():
 		
 	if glb_path != "" and ResourceLoader.exists(glb_path):
 		var model_scene = null
-		if _model_cache.has(glb_path):
-			model_scene = _model_cache[glb_path]
-		else:
-			model_scene = load(glb_path)
-			_model_cache[glb_path] = model_scene
+		
+		# v313.23: Priorizar el caché de VFXSystem (warmup) para evitar freezes.
+		var vfx = Engine.get_singleton("VFXSystem") if Engine.has_singleton("VFXSystem") else get_node_or_null("/root/VFXSystem")
+		if vfx and vfx.has_method("get_cached_resource"):
+			model_scene = vfx.get_cached_resource(glb_path)
+			
+		if not model_scene:
+			if _model_cache.has(glb_path):
+				model_scene = _model_cache[glb_path]
+			else:
+				model_scene = load(glb_path)
+				_model_cache[glb_path] = model_scene
 			
 		if model_scene:
 			var ship_model = model_scene.instantiate()

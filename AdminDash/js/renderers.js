@@ -22,7 +22,7 @@ function mechanicSoundOverrideHtml(enemyId, listName, idx, mech) {
     const defaultSound = lib ? (lib.sound || '') : '';
     const hasOverride = !!(mech.sound && mech.sound !== '');
     const effective = hasOverride ? mech.sound : defaultSound;
-    const vol = hasOverride ? (mech.soundVolumePercent !== undefined ? mech.soundVolumePercent : (lib ? lib.soundVolumePercent : 100)) : (lib ? lib.soundVolumePercent : 100);
+    const vol = hasOverride ? (mech.soundVolumePercent !== undefined ? mech.soundVolumePercent : (lib ? lib.soundVolumePercent : 50)) : (lib ? lib.soundVolumePercent : 50);
     const maxd = hasOverride ? (mech.soundMaxDist || (lib ? lib.soundMaxDist : 1200)) : (lib ? lib.soundMaxDist : 1200);
     const preview = effective ? resolveAssetWebUrl(effective) : '';
     return `
@@ -30,14 +30,14 @@ function mechanicSoundOverrideHtml(enemyId, listName, idx, mech) {
         <label style="color:#a855f7; font-size:0.6rem; font-weight:bold; display:flex; align-items:center; gap:6px;">SONIDO (Override por enemigo) <span style="font-weight:normal; color:#888; font-size:0.55rem;">vacío = hereda de librería</span></label>
         <div style="font-size:0.55rem; color:#888; margin-top:0.2rem;">Default librería: <span style="color:#a855f7; font-family:JetBrains Mono;">${defaultSound || '(sin sonido)'}</span></div>
         <div style="display:flex; gap:6px; align-items:center; margin-top:0.4rem;">
-            <input type="text" placeholder="res://assets/Sonidos/Mecanicas/ej.ogg" value="${mech.sound || ''}" style="flex:1; font-size:0.65rem;" onchange="config.enemyModels['${enemyId}'][listName][${idx}].sound = this.value; renderEnemyDetail();">
+            <input type="text" placeholder="res://assets/Sonidos/Mecanicas/ej.ogg" value="${mech.sound || ''}" style="flex:1; font-size:0.65rem;" onchange="config.enemyModels['${enemyId}']['${listName}'][${idx}].sound = this.value; renderEnemyDetail();">
             <button class="btn" style="padding:4px 8px; font-size:0.6rem; background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.25); color:#a855f7;" onclick="triggerAssetUpload('${enemyId}_${listName}_${idx}', 'mechanic_instance_sound')">SONIDO</button>
-            ${mech.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.55rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.enemyModels['${enemyId}'][listName][${idx}].sound=''; renderEnemyDetail();">X</button>` : ''}
+            ${mech.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.55rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.enemyModels['${enemyId}']['${listName}'][${idx}].sound=''; renderEnemyDetail();">X</button>` : ''}
         </div>
         ${preview ? `<audio controls preload="none" src="${preview}" style="width:100%; height:26px; margin-top:0.4rem;"></audio><div style="font-size:0.55rem; color:#a855f7; font-family:JetBrains Mono; overflow:hidden; text-overflow:ellipsis;">Efectivo: ${effective}</div>` : ''}
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-            <div class="field"><label>Vol Override (%)</label><input type="range" min="0" max="100" value="${mech.soundVolumePercent !== undefined ? mech.soundVolumePercent : (lib ? lib.soundVolumePercent : 100)}" oninput="config.enemyModels['${enemyId}'][listName][${idx}].soundVolumePercent = parseFloat(this.value)"></div>
-            <div class="field"><label>Dist Max Override (px)</label><input type="number" step="50" value="${mech.soundMaxDist !== undefined ? mech.soundMaxDist : ''}" placeholder="${lib ? lib.soundMaxDist : 1200}" onchange="config.enemyModels['${enemyId}'][listName][${idx}].soundMaxDist = this.value === '' ? undefined : parseInt(this.value)"></div>
+            <div class="field"><label>Volumen <input type="number" id="mech-override-vol-input-${enemyId}-${listName}-${idx}" min="0" max="100" value="${mech.soundVolumePercent !== undefined ? mech.soundVolumePercent : (lib ? lib.soundVolumePercent : 50)}" style="width:55px; display:inline-block; background:rgba(0,0,0,0.35); border:1px solid #a855f7; color:#a855f7; font-size:0.65rem; padding:2px 4px; border-radius:4px; text-align:center;" oninput="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.enemyModels['${enemyId}']['${listName}'][${idx}].soundVolumePercent=v; let s=document.getElementById('mech-override-vol-slider-${enemyId}-${listName}-${idx}'); if(s) s.value=v;" onchange="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.enemyModels['${enemyId}']['${listName}'][${idx}].soundVolumePercent=v; let s=document.getElementById('mech-override-vol-slider-${enemyId}-${listName}-${idx}'); if(s) s.value=v;"> %</label><input type="range" id="mech-override-vol-slider-${enemyId}-${listName}-${idx}" min="0" max="100" value="${mech.soundVolumePercent !== undefined ? mech.soundVolumePercent : (lib ? lib.soundVolumePercent : 50)}" oninput="config.enemyModels['${enemyId}']['${listName}'][${idx}].soundVolumePercent=parseFloat(this.value); let inp=document.getElementById('mech-override-vol-input-${enemyId}-${listName}-${idx}'); if(inp) inp.value=this.value;"></div>
+            <div class="field"><label>Dist. Máx. (px)</label><input type="number" step="50" value="${mech.soundMaxDist !== undefined ? mech.soundMaxDist : ''}" placeholder="${lib ? lib.soundMaxDist : 1200}" onchange="config.enemyModels['${enemyId}']['${listName}'][${idx}].soundMaxDist = this.value === '' ? undefined : parseInt(this.value)"></div>
         </div>
     </div>`;
 }
@@ -736,7 +736,7 @@ function renderAmmo() {
                 </div>
                 ${item.sound ? `<audio controls preload="none" src="${resolveAssetWebUrl(item.sound)}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-                    <div class="field"><label>Volumen <span id="ammo-vol-label-${type}-${i}" style="color:var(--accent);">${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 100}%</span></label><input type="range" min="0" max="100" value="${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 100}" oninput="config.shopItems.ammo['${type}'][${i}].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('ammo-vol-label-${type}-${i}'); if(l) l.innerText=this.value+'%';"></div>
+                    <div class="field"><label>Volumen <input type="number" id="ammo-vol-input-${type}-${i}" min="0" max="100" value="${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 50}" style="width:55px; display:inline-block; background:rgba(0,0,0,0.35); border:1px solid var(--accent); color:var(--accent); font-size:0.65rem; padding:2px 4px; border-radius:4px; text-align:center;" oninput="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.shopItems.ammo['${type}'][${i}].soundVolumePercent=v; let s=document.getElementById('ammo-vol-slider-${type}-${i}'); if(s) s.value=v;" onchange="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.shopItems.ammo['${type}'][${i}].soundVolumePercent=v; let s=document.getElementById('ammo-vol-slider-${type}-${i}'); if(s) s.value=v;"> %</label><input type="range" id="ammo-vol-slider-${type}-${i}" min="0" max="100" value="${item.soundVolumePercent !== undefined ? item.soundVolumePercent : 50}" oninput="config.shopItems.ammo['${type}'][${i}].soundVolumePercent=parseFloat(this.value); let inp=document.getElementById('ammo-vol-input-${type}-${i}'); if(inp) inp.value=this.value;"></div>
                     <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${item.soundMaxDist || 1000}" onchange="config.shopItems.ammo['${type}'][${i}].soundMaxDist = parseInt(this.value) || 1000"></div>
                 </div>
             </div>
@@ -2345,7 +2345,7 @@ function renderMechanicsLib() {
                 </div>
                 ${mechSoundWeb ? `<audio controls preload="none" src="${mechSoundWeb}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-                    <div class="field"><label>Volumen <span id="mech-vol-label-${type}" style="color:var(--accent);">${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}%</span></label><input type="range" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}" oninput="config.mechanicsLib['${type}'].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('mech-vol-label-${type}'); if(l) l.innerText=this.value+'%';"></div>
+                    <div class="field"><label>Volumen <input type="number" id="mech-vol-input-${type}" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 50}" style="width:55px; display:inline-block; background:rgba(0,0,0,0.35); border:1px solid var(--accent); color:var(--accent); font-size:0.65rem; padding:2px 4px; border-radius:4px; text-align:center;" oninput="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.mechanicsLib['${type}'].soundVolumePercent=v; let s=document.getElementById('mech-vol-slider-${type}'); if(s) s.value=v;" onchange="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.mechanicsLib['${type}'].soundVolumePercent=v; let s=document.getElementById('mech-vol-slider-${type}'); if(s) s.value=v;"> %</label><input type="range" id="mech-vol-slider-${type}" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 50}" oninput="config.mechanicsLib['${type}'].soundVolumePercent=parseFloat(this.value); let inp=document.getElementById('mech-vol-input-${type}'); if(inp) inp.value=this.value;"></div>
                     <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${m.soundMaxDist || 1200}" onchange="config.mechanicsLib['${type}'].soundMaxDist = parseInt(this.value) || 1200"></div>
                 </div>
             </div>
@@ -2368,7 +2368,7 @@ function renderMechanicsLib() {
                 </div>
                 ${defSoundWeb ? `<audio controls preload="none" src="${defSoundWeb}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-                    <div class="field"><label>Volumen <span id="def-vol-label-${type}" style="color:var(--accent);">${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}%</span></label><input type="range" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}" oninput="config.defenseLib['${type}'].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('def-vol-label-${type}'); if(l) l.innerText=this.value+'%';"></div>
+                    <div class="field"><label>Volumen <input type="number" id="def-vol-input-${type}" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 50}" style="width:55px; display:inline-block; background:rgba(0,0,0,0.35); border:1px solid var(--accent); color:var(--accent); font-size:0.65rem; padding:2px 4px; border-radius:4px; text-align:center;" oninput="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.defenseLib['${type}'].soundVolumePercent=v; let s=document.getElementById('def-vol-slider-${type}'); if(s) s.value=v;" onchange="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.defenseLib['${type}'].soundVolumePercent=v; let s=document.getElementById('def-vol-slider-${type}'); if(s) s.value=v;"> %</label><input type="range" id="def-vol-slider-${type}" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 50}" oninput="config.defenseLib['${type}'].soundVolumePercent=parseFloat(this.value); let inp=document.getElementById('def-vol-input-${type}'); if(inp) inp.value=this.value;"></div>
                     <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${m.soundMaxDist || 800}" onchange="config.defenseLib['${type}'].soundMaxDist = parseInt(this.value) || 800"></div>
                 </div>
             </div>
@@ -2429,7 +2429,7 @@ function renderMechanicsLib() {
                 </div>
                 ${movSoundWeb ? `<audio controls preload="none" src="${movSoundWeb}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
-                    <div class="field"><label>Volumen <span id="mov-vol-label-${type}" style="color:var(--accent);">${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}%</span></label><input type="range" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 100}" oninput="config.movementLib['${type}'].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('mov-vol-label-${type}'); if(l) l.innerText=this.value+'%';"></div>
+                    <div class="field"><label>Volumen <input type="number" id="mov-vol-input-${type}" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 50}" style="width:55px; display:inline-block; background:rgba(0,0,0,0.35); border:1px solid var(--accent); color:var(--accent); font-size:0.65rem; padding:2px 4px; border-radius:4px; text-align:center;" oninput="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.movementLib['${type}'].soundVolumePercent=v; let s=document.getElementById('mov-vol-slider-${type}'); if(s) s.value=v;" onchange="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.movementLib['${type}'].soundVolumePercent=v; let s=document.getElementById('mov-vol-slider-${type}'); if(s) s.value=v;"> %</label><input type="range" id="mov-vol-slider-${type}" min="0" max="100" value="${m.soundVolumePercent !== undefined ? m.soundVolumePercent : 50}" oninput="config.movementLib['${type}'].soundVolumePercent=parseFloat(this.value); let inp=document.getElementById('mov-vol-input-${type}'); if(inp) inp.value=this.value;"></div>
                     <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${m.soundMaxDist || 800}" onchange="config.movementLib['${type}'].soundMaxDist = parseInt(this.value) || 800"></div>
                 </div>
             </div>
@@ -2696,8 +2696,8 @@ function renderMapDetail() {
                     </div>
                     ${music.path ? `
                     <div style="margin-bottom:0.8rem;">
-                        <label style="font-size:0.65rem; color:#888; display:block; margin-bottom:6px;">VOLUMEN: <span id="map-music-vol-label" style="color:var(--accent); font-weight:bold;">${music.volumePercent}%</span></label>
-                        <input type="range" min="0" max="100" value="${music.volumePercent}" oninput="setMapMusicVolume('${selectedMapId}', this.value)" style="width:100%; accent-color:var(--accent); cursor:pointer;">
+                        <label style="font-size:0.65rem; color:#888; display:flex; align-items:center; gap:6px; margin-bottom:6px;">VOLUMEN: <input type="number" id="map-music-vol-input-${selectedMapId}" min="0" max="100" value="${music.volumePercent}" style="width:55px; background:rgba(0,0,0,0.35); border:1px solid var(--accent); color:var(--accent); font-size:0.65rem; padding:2px 4px; border-radius:4px; text-align:center;" oninput="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; setMapMusicVolume('${selectedMapId}', v); let s=document.getElementById('map-music-vol-slider-${selectedMapId}'); if(s) s.value=v;" onchange="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; setMapMusicVolume('${selectedMapId}', v); let s=document.getElementById('map-music-vol-slider-${selectedMapId}'); if(s) s.value=v;"> % <span id="map-music-vol-label" style="display:none;">${music.volumePercent}%</span></label>
+                        <input type="range" id="map-music-vol-slider-${selectedMapId}" min="0" max="100" value="${music.volumePercent}" oninput="setMapMusicVolume('${selectedMapId}', this.value); let inp=document.getElementById('map-music-vol-input-${selectedMapId}'); if(inp) inp.value=this.value;" style="width:100%; accent-color:var(--accent); cursor:pointer;">
                         <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:#555; font-family:'JetBrains Mono', monospace;"><span>SILENCIO</span><span>SUAVE</span><span>MEDIO</span><span>FULL</span></div>
                     </div>
                     <audio controls loop preload="none" style="width:100%; height:32px;" src="${previewUrl}"></audio>
@@ -3144,7 +3144,7 @@ function renderSkills() {
                     ${s.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.skillsData['${name}'].sound=''; renderSkills();">Quitar</button><audio controls preload="none" src="${resolveAssetWebUrl(s.sound)}" style="height:28px; width:140px;"></audio>` : ''}
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:0.6rem;">
-                    <div class="field"><label>Volumen <span id="skill-vol-label-${name}" style="color:var(--accent);">${s.soundVolumePercent !== undefined ? s.soundVolumePercent : (s.soundVolume || 100)}%</span></label><input type="range" min="0" max="100" value="${s.soundVolumePercent !== undefined ? s.soundVolumePercent : (s.soundVolume || 100)}" oninput="config.skillsData['${name}'].soundVolumePercent = parseFloat(this.value); var l=document.getElementById('skill-vol-label-${name}'); if(l) l.innerText=this.value+'%';"></div>
+                    <div class="field"><label>Volumen <input type="number" id="skill-vol-input-${name.replace(/[^a-zA-Z0-9]/g,'_')}" min="0" max="100" value="${s.soundVolumePercent !== undefined ? s.soundVolumePercent : (s.soundVolume || 50)}" style="width:55px; display:inline-block; background:rgba(0,0,0,0.35); border:1px solid var(--accent); color:var(--accent); font-size:0.65rem; padding:2px 4px; border-radius:4px; text-align:center;" oninput="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.skillsData['${name}'].soundVolumePercent=v; let s2=document.getElementById('skill-vol-slider-${name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(s2) s2.value=v;" onchange="let v=Math.max(0,Math.min(100,parseInt(this.value)||0)); this.value=v; config.skillsData['${name}'].soundVolumePercent=v; let s2=document.getElementById('skill-vol-slider-${name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(s2) s2.value=v;"> %</label><input type="range" id="skill-vol-slider-${name.replace(/[^a-zA-Z0-9]/g,'_')}" min="0" max="100" value="${s.soundVolumePercent !== undefined ? s.soundVolumePercent : (s.soundVolume || 50)}" oninput="config.skillsData['${name}'].soundVolumePercent=parseFloat(this.value); let inp=document.getElementById('skill-vol-input-${name.replace(/[^a-zA-Z0-9]/g,'_')}'); if(inp) inp.value=this.value;"></div>
                     <div class="field"><label>Distancia Max (px)</label><input type="number" step="50" value="${s.soundMaxDist || 1400}" onchange="config.skillsData['${name}'].soundMaxDist = parseInt(this.value) || 1400"></div>
                 </div>
             </div>
@@ -6667,6 +6667,8 @@ window.renderQuests = function() {
     if (!list) return;
     list.innerHTML = '';
     
+    const catOptionsHTML = window.getItemPickerCategoryOptions();
+    
     const f = getFilter();
     
     config.questsConfig.forEach((quest, idx) => {
@@ -6684,14 +6686,26 @@ window.renderQuests = function() {
         if (!quest.reward.items) quest.reward.items = [];
         if (!quest.reward.unlocks) quest.reward.unlocks = [];
         if (quest.portalGate === undefined) quest.portalGate = "";
+
+        // Estado del desplegable inline de ítems para esta misión
+        const ip = window._inlineItemPicker;
+        const ipOpen = !!(ip && ip.open && ip.idx === idx);
+        const ipQuery = ipOpen ? (ip.query || '') : '';
         
-        let rewardItemsHTML = (quest.reward.items || []).map((item, itemIdx) => `
-            <div style="display:flex; gap:10px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:5px; border-radius:6px;">
-                <div class="field" style="margin:0; flex:2;"><label style="font-size:9px;">ID Ítem</label><input type="text" value="${item.id}" style="font-size:0.75rem; padding:4px;" onchange="config.questsConfig[${idx}].reward.items[${itemIdx}].id = this.value"></div>
-                <div class="field" style="margin:0; flex:1;"><label style="font-size:9px;">Cant.</label><input type="number" value="${item.qty}" style="font-size:0.75rem; padding:4px;" onchange="config.questsConfig[${idx}].reward.items[${itemIdx}].qty = Math.floor(Math.max(1, parseInt(this.value) || 1))"></div>
-                <button class="btn" style="background:var(--danger); border:none; padding:4px 8px; font-size:10px; margin-top:15px; cursor:pointer;" onclick="config.questsConfig[${idx}].reward.items.splice(${itemIdx}, 1); renderQuests();">✕</button>
-            </div>
-        `).join('');
+        let rewardItemsHTML = (quest.reward.items || []).map((item, itemIdx) => {
+            const iname = getItemCatalogName(item.id);
+            const isKnown = window.getMasterItemCatalog().some(c => c.id === String(item.id));
+            const isEditingThis = !!(ip && ip.open && ip.idx === idx && ip.itemIdx === itemIdx);
+            return `
+            <div style="display:flex; gap:8px; align-items:center; margin-bottom:5px; background:${isEditingThis ? 'rgba(0,210,255,0.12)' : 'rgba(255,255,255,0.02)'}; padding:5px; border-radius:6px; border:1px solid ${isEditingThis ? 'rgba(0,210,255,0.35)' : 'transparent'};">
+                <div onclick="toggleInlineItemPicker(${idx}, ${itemIdx})" title="Clic para cambiar este ítem" style="flex:2; min-width:0; cursor:pointer; border-radius:6px; padding:4px 6px; transition:background 0.15s; ${isEditingThis ? 'background:rgba(0,210,255,0.08);' : ''}" onmouseover="if(!${isEditingThis}) this.style.background='rgba(0,210,255,0.08)'" onmouseout="if(!${isEditingThis}) this.style.background='transparent'">
+                    <div style="font-size:0.78rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${iname}</div>
+                    <div style="font-size:0.62rem; color:${isKnown ? '#5fd' : '#e88'}; font-family:'JetBrains Mono';">${item.id || '(sin id)'}</div>
+                </div>
+                <div class="field" style="margin:0; flex:1;" onclick="event.stopPropagation()"><label style="font-size:9px;">Cant.</label><input type="number" min="1" value="${item.qty}" style="font-size:0.75rem; padding:4px;" onchange="config.questsConfig[${idx}].reward.items[${itemIdx}].qty = Math.floor(Math.max(1, parseInt(this.value) || 1))"></div>
+                <button class="btn" style="background:var(--danger); border:none; padding:4px 8px; font-size:10px; margin-top:15px; cursor:pointer;" onclick="event.stopPropagation(); config.questsConfig[${idx}].reward.items.splice(${itemIdx}, 1); renderQuests();" title="Quitar ítem">✕</button>
+            </div>`;
+        }).join('');
 
         // v600.0: Render de desbloqueos de recompensa (🔓)
         let unlockRowsHTML = (quest.reward.unlocks || []).map((u, uIdx) => {
@@ -6904,10 +6918,28 @@ window.renderQuests = function() {
                     <div>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                             <label style="font-size:0.75rem; color:#aaa; font-weight:bold;">📦 Ítems Recompensa</label>
-                            <button class="btn btn-primary" style="padding:2px 8px; font-size:9px;" onclick="config.questsConfig[${idx}].reward.items.push({id:'', qty:1}); renderQuests();">+ Añadir Ítem</button>
+                            <button class="btn btn-primary" style="padding:3px 10px; font-size:0.7rem;" onclick="toggleInlineItemPicker(${idx})">+ Agregar Ítem</button>
                         </div>
                         <div style="max-height:120px; overflow-y:auto; padding-right:5px;">
                             ${rewardItemsHTML}
+                        </div>
+                        <div id="item-inline-picker-${idx}" style="display:${ipOpen ? 'block' : 'none'}; margin-top:8px; border:1px solid rgba(0,210,255,0.25); border-radius:10px; padding:10px; background:rgba(0,210,255,0.05);">
+                            <div id="item-inline-mode-${idx}" style="display:none; font-size:0.72rem; color:#9fe; font-weight:bold; margin-bottom:8px; padding:6px 10px; background:rgba(0,210,255,0.1); border-radius:6px;"></div>
+                            <input id="item-inline-search-${idx}" type="text" placeholder="🔍 Buscar por nombre o ID (ej: Arma Laser)..." value="${ipQuery}" oninput="updateInlineItemPickerQuery(${idx}, this.value)" style="width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:10px 14px; color:white; font-size:0.9rem; outline:none; margin-bottom:8px;">
+                            <select id="item-inline-cat-${idx}" onchange="updateInlineItemPickerCat(${idx}, this.value)" style="width:100%; box-sizing:border-box; background:#0b0f19; border:1px solid rgba(255,255,255,0.12); color:white; padding:8px 12px; border-radius:8px; font-size:0.85rem; cursor:pointer; margin-bottom:8px;">
+                                ${catOptionsHTML}
+                            </select>
+                            <div id="item-inline-list-${idx}" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:4px;"></div>
+                            <div style="margin-top:8px; text-align:right;">
+                                <button class="btn btn-secondary" style="padding:4px 14px; font-size:0.72rem;" onclick="toggleInlineItemPicker(${idx}, ${(ip && ip.itemIdx !== null && ip.itemIdx !== undefined) ? ip.itemIdx : 'null'})">CERRAR</button>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.1);">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                                <label style="font-size:0.72rem; color:#9fe; font-weight:bold;">🎯 ¿Cuántos ítems puede elegir el usuario?</label>
+                                <input type="number" min="0" value="${quest.reward.selectableCount || 0}" style="width:64px; background:#0f172a; border:1px solid rgba(0,210,255,0.25); border-radius:6px; padding:4px 6px; color:white; font-size:0.78rem; text-align:center;" onchange="config.questsConfig[${idx}].reward.selectableCount = Math.max(0, parseInt(this.value) || 0); renderQuests();">
+                            </div>
+                            <div style="font-size:0.64rem; color:#889; margin-top:5px; line-height:1.45;">0 = se entregan <b>TODOS</b> automáticamente. Si ponés un número menor a la cantidad de ítems, al cobrar la misión el jugador elegirá esa cantidad (recompensa por elección).</div>
                         </div>
                     </div>
 
@@ -6948,6 +6980,11 @@ window.renderQuests = function() {
         `;
         list.appendChild(div);
     });
+
+    // Poblar el listado del desplegable inline si quedó abierto
+    if (window._inlineItemPicker && window._inlineItemPicker.open) {
+        window.renderInlineItemPickerList(window._inlineItemPicker.idx);
+    }
 };
 
 window.addNewQuest = function() {
@@ -7278,9 +7315,14 @@ window.setMapMusicVolume = function(mapId, value) {
     const m = config.mapsConfig[mapId];
     if (!m) return;
     if (!m.music) m.music = { enabled: false, path: '', volumePercent: 60 };
-    m.music.volumePercent = parseInt(value) || 0;
+    let v = Math.max(0, Math.min(100, parseInt(value) || 0));
+    m.music.volumePercent = v;
     const label = document.getElementById('map-music-vol-label');
-    if (label) label.innerText = m.music.volumePercent + '%';
+    if (label) label.innerText = v + '%';
+    const inp = document.getElementById('map-music-vol-input-' + mapId);
+    if (inp) inp.value = v;
+    const slider = document.getElementById('map-music-vol-slider-' + mapId);
+    if (slider) slider.value = v;
 };
 
 // Confirm selection from asset picker
@@ -7342,6 +7384,154 @@ window.selectAssetFromPicker = function(path) {
     closeAssetPicker();
     renderCrafting();
 };
+
+// ─── CATÁLOGO MAESTRO DE ÍTEMS (para el buscador de recompensas) ─────────────
+// Incluye armas, escudos, motores, extras, recursos y municiones del shopItems,
+// más la lista de crafteo si existe. Todos los objetos "adquiribles".
+window.getMasterItemCatalog = function() {
+    const cat = [];
+    const seen = {};
+    const pushArr = (arr, catName) => {
+        if (!Array.isArray(arr)) return;
+        arr.forEach(it => {
+            if (it && it.id != null && it.id !== '') {
+                const idStr = String(it.id);
+                if (seen[idStr]) return;
+                seen[idStr] = true;
+                cat.push({ id: idStr, name: it.name || idStr, category: catName, icon: it.icon || '' });
+            }
+        });
+    };
+    if (config && config.shopItems) {
+        pushArr(config.shopItems.weapons, 'Armas');
+        pushArr(config.shopItems.shields, 'Escudos');
+        pushArr(config.shopItems.engines, 'Motores');
+        pushArr(config.shopItems.extra, 'Extras');
+        pushArr(config.shopItems.resources, 'Recursos');
+        const ammo = config.shopItems.ammo || {};
+        Object.keys(ammo).forEach(type => pushArr(ammo[type], 'Munición'));
+    }
+    if (config && Array.isArray(config.craftingResources)) {
+        pushArr(config.craftingResources, 'Crafteo');
+    }
+    if (config && Array.isArray(config.craftingRecipes)) {
+        pushArr(config.craftingRecipes, 'Recetas');
+    }
+    return cat;
+};
+
+// Devuelve el nombre visible de un ítem a partir de su ID
+window.getItemCatalogName = function(id) {
+    if (id === '' || id == null) return '(sin ítem)';
+    const cat = window.getMasterItemCatalog();
+    const found = cat.find(c => c.id === String(id));
+    return found ? found.name : ('Ítem ' + id);
+};
+
+// ─── SELECTOR DE ÍTEM (desplegable inline, por nombre) ──────────────────────
+// Estado del desplegable inline (un único picker abierto a la vez).
+// itemIdx: null = modo "agregar"; número = modo "editar" ese índice.
+window._inlineItemPicker = { idx: -1, itemIdx: null, open: false, query: '', cat: '' };
+
+window.getItemPickerCategoryOptions = function() {
+    const cats = [...new Set(window.getMasterItemCatalog().map(c => c.category))];
+    return '<option value="">📁 Todas las categorías</option>' +
+        cats.map(c => `<option value="${c}">${c}</option>`).join('');
+};
+
+window.toggleInlineItemPicker = function(idx, itemIdx = null) {
+    const cur = window._inlineItemPicker;
+    const same = cur.open && cur.idx === idx && cur.itemIdx === itemIdx;
+    if (same) {
+        window._inlineItemPicker.open = false;
+        window._inlineItemPicker.itemIdx = null;
+    } else {
+        window._inlineItemPicker = { idx: idx, itemIdx: itemIdx, open: true, query: '', cat: '' };
+    }
+    renderQuests();
+};
+
+window.updateInlineItemPickerQuery = function(idx, val) {
+    window._inlineItemPicker.idx = idx;
+    window._inlineItemPicker.open = true;
+    if (window._inlineItemPicker.itemIdx === undefined) window._inlineItemPicker.itemIdx = null;
+    window._inlineItemPicker.query = val;
+    window.renderInlineItemPickerList(idx);
+};
+
+window.updateInlineItemPickerCat = function(idx, val) {
+    window._inlineItemPicker.idx = idx;
+    window._inlineItemPicker.open = true;
+    if (window._inlineItemPicker.itemIdx === undefined) window._inlineItemPicker.itemIdx = null;
+    window._inlineItemPicker.cat = val;
+    window.renderInlineItemPickerList(idx);
+};
+
+window.renderInlineItemPickerList = function(idx) {
+    const state = window._inlineItemPicker;
+    if (!state || state.idx !== idx || !state.open) return;
+    const list = document.getElementById('item-inline-list-' + idx);
+    if (!list) return;
+    const catSel = document.getElementById('item-inline-cat-' + idx);
+    if (catSel) catSel.value = state.cat || '';
+    // Indicador de modo (agregar vs editar)
+    const modeLabel = document.getElementById('item-inline-mode-' + idx);
+    if (modeLabel) {
+        if (state.itemIdx !== null && state.itemIdx !== undefined) {
+            const curItem = (config.questsConfig[idx]?.reward?.items || [])[state.itemIdx];
+            const curName = curItem ? getItemCatalogName(curItem.id) : '';
+            modeLabel.textContent = `✏️ Cambiando: ${curName} → seleccioná el nuevo ítem`;
+            modeLabel.style.display = 'block';
+        } else {
+            modeLabel.textContent = '➕ Agregando nuevo ítem — seleccioná uno:';
+            modeLabel.style.display = 'block';
+        }
+    }
+    const query = (state.query || '').toLowerCase().trim();
+    const catFilter = state.cat || '';
+    const catalog = window.getMasterItemCatalog();
+    const filtered = catalog.filter(c => {
+        const mq = !query || c.name.toLowerCase().includes(query) || c.id.toLowerCase().includes(query);
+        const mc = !catFilter || c.category === catFilter;
+        return mq && mc;
+    });
+    list.innerHTML = '';
+    if (filtered.length === 0) {
+        list.innerHTML = '<div style="padding:1.2rem; text-align:center; color:#777; font-size:0.82rem;">No se encontraron ítems con ese filtro.</div>';
+        return;
+    }
+    filtered.forEach(c => {
+        const el = document.createElement('div');
+        el.style.cssText = 'display:flex; align-items:center; gap:12px; padding:9px 12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px; cursor:pointer; transition:background 0.15s, border-color 0.15s;';
+        el.innerHTML = `
+            <span style="font-size:0.62rem; color:#0b0f1a; background:var(--accent); padding:2px 8px; border-radius:20px; white-space:nowrap; font-weight:bold;">${c.category}</span>
+            <span style="flex:1; min-width:0; color:#fff; font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</span>
+            <span style="font-size:0.72rem; color:#888; font-family:'JetBrains Mono';">${c.id}</span>
+        `;
+        el.onmouseover = () => { el.style.background = 'rgba(0,210,255,0.12)'; el.style.borderColor = 'rgba(0,210,255,0.4)'; };
+        el.onmouseout = () => { el.style.background = 'rgba(255,255,255,0.03)'; el.style.borderColor = 'rgba(255,255,255,0.06)'; };
+        el.onclick = () => window.selectItemForQuestReward(idx, c.id);
+        list.appendChild(el);
+    });
+};
+
+window.selectItemForQuestReward = function(idx, id) {
+    if (!config.questsConfig[idx].reward.items) config.questsConfig[idx].reward.items = [];
+    const state = window._inlineItemPicker;
+    const editIdx = (state && state.itemIdx !== null && state.itemIdx !== undefined) ? state.itemIdx : null;
+    if (editIdx !== null && config.questsConfig[idx].reward.items[editIdx]) {
+        config.questsConfig[idx].reward.items[editIdx].id = id;
+        window._inlineItemPicker.open = false;
+        window._inlineItemPicker.itemIdx = null;
+    } else {
+        config.questsConfig[idx].reward.items.push({ id: id, qty: 1 });
+        // en modo agregar, mantener el picker abierto para seguir agregando
+    }
+    renderQuests();
+};
+
+// compatibilidad: alias del nombre anterior
+window.addItemToQuestReward = window.selectItemForQuestReward;
 
 window.showLootTabForEnemy = function(enemyId) {
     window.selectedLootEnemyId = enemyId;

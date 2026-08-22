@@ -1551,7 +1551,7 @@ function patchMechanicsLib() {
                     }
                     // v900.0: migrar sonido (hybrid: default de libreria)
                     if (config[item.configKey][type].sound === undefined) config[item.configKey][type].sound = item.base[type].sound || "";
-                    if (config[item.configKey][type].soundVolumePercent === undefined) config[item.configKey][type].soundVolumePercent = item.base[type].soundVolumePercent || 100;
+                    if (config[item.configKey][type].soundVolumePercent === undefined) config[item.configKey][type].soundVolumePercent = item.base[type].soundVolumePercent || 50;
                     if (config[item.configKey][type].soundMaxDist === undefined) config[item.configKey][type].soundMaxDist = item.base[type].soundMaxDist || 1200;
                 }
             }
@@ -1562,7 +1562,7 @@ function patchMechanicsLib() {
         for (let sn in config.skillsData) {
             const sd = config.skillsData[sn];
             if (sd.sound === undefined) sd.sound = "";
-            if (sd.soundVolumePercent === undefined) sd.soundVolumePercent = sd.soundVolume !== undefined ? sd.soundVolume : 100;
+            if (sd.soundVolumePercent === undefined) sd.soundVolumePercent = sd.soundVolume !== undefined ? sd.soundVolume : 50;
             if (sd.soundMaxDist === undefined) sd.soundMaxDist = 1400;
         }
     }
