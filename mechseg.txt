@@ -1,0 +1,67 @@
+en.mechanics.map((m, idx) => `
+                        <div class="card" style="margin-bottom: 1rem; position:relative; padding: 1rem; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2);">
+                            <div style="position:absolute; top:8px; right:8px; display:flex; gap:10px;">
+                                <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, -1); renderEnemyDetail();">SUBIR</button>
+                                <button style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;" onclick="moveMechanic('${selectedEnemyId}', ${idx}, 1); renderEnemyDetail();">BAJAR</button>
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="removeMechanic('${selectedEnemyId}', ${idx}); renderEnemyDetail();">✕</button>
+                            </div>
+                            <div class="field full">
+                                <select style="background:#0f172a; border:none; color:#ef4444; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:4px;" onchange="updateMechanicType('${selectedEnemyId}', ${idx}, this.value); renderEnemyDetail();">
+                                    ${Object.keys(MECHANICS_LIB).map(type => `<option value="${type}" ${m.type === type ? 'selected' : ''} style="background:#0f172a; color:white;">${MECHANICS_LIB[type].icon} ${MECHANICS_LIB[type].label}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="form-grid" style="margin-top:1rem;">
+                                ${(MECHANICS_LIB[m.type] || MECHANICS_LIB['laser']).fields.map(f => {
+const fieldLabelsMap = { 
+                                           bulletDamage: m.type === 'melee_slash' ? "Daño del Hachazo (pts)" : (m.type === 'bomb' ? "Daño de Explosión (pts)" : (m.type === 'worm_boomerang' ? "Daño de Ida (pts)" : (m.type === 'wind_wall' ? "Daño al Arrollar (pts)" : (m.type === 'burrow' ? "Daño al Emerger (pts)" : (m.type === 'meteor' ? "Daño del Meteorito (pts)" : (m.type === 'ascension' ? "Daño al Aterrizar (pts)" : "Daño (pts)")))))), 
+                                           bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : (m.type === 'wind_wall' ? "Vel. Pared de Viento (px/s)" : (m.type === 'burrow' ? "Vel. de Zambullida (px/s)" : "Vel. Bala (px/s)")), 
+                                           fireRange: m.type === 'melee_slash' ? "Alcance del Golpe (px)" : (m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : (m.type === 'survival_dome' ? "Radio de la Explosión (px)" : (m.type === 'wind_wall' ? "Alcance de la Pared (px)" : (m.type === 'burrow' ? "Alcance de Selección de Objetivo (px)" : "Alcance (px)")))))),
+                                           arcAngle: "Ángulo del Arco (° grados)",
+                                           fullCircle: "¿Giro Completo 360°? (Sí/No)",
+                                          fireRate: "Cadencia (ms)", 
+                                      burstShots: "Proyectiles por Ráfaga (uds)", 
+                                          slowAmount: "Ralentización (pts)", 
+                                          slowDuration: "Duración de Ralentización (ms)", 
+                                          startDelay: "Delay Inicio (ms)", 
+                                          lifetimeMs: "Combustible (ms)", 
+                                          turnSpeed: "Agilidad de Giro (rad/s)", 
+                                          chargeTimeMs: "Tiempo de Carga (ms)", 
+                                          lockTimeMs: m.type === 'circle_cast' ? "Tiempo Fijo / Estático (ms)" : "Tiempo de Bloqueo (ms)", 
+                                          isHoming: "Seguimiento (Homing)",
+                                          orbitSpeed: "Vel. de Giro (rad/s)",
+                                          circleCount: "Cant. de Círculos (uds)",
+                                          orbitRadius: "Radio de Órbita (px)",
+                                          orbitDuration: "Tiempo de Giro (ms)",
+                                          staticTime: "Tiempo Estático (ms)",
+                                           radius: m.type === 'spin_ring' ? "Radio del Círculo (px)" : (m.type === 'bomb' ? "Radio de Explosión (px)" : (m.type === 'wall_dome' ? "Radio del Domo (px)" : (m.type === 'burrow' ? "Radio del Círculo de Daño (px)" : (m.type === 'ascension' ? "Radio del Área de Caída (px)" : "Radio del Aura (px)")))),
+                                          damage: m.type === 'survival_dome' ? "Daño de la Explosión (pts)" : "Daño (pts)",
+                                          intervalMs: "Intervalo de Tick (ms)",
+                                          duration: m.type === 'sleep' ? "Duración del Sueño (ms)" : (m.type === 'reflect' ? "Duración del Escudo (ms)" : "Duración Total (ms)"),
+                                          cooldown: "Enfriamiento (CD) (ms)",
+                                          pullSpeed: "Vel. Atracción (px/s)",
+                                          stunDuration: "Duración de Stun (ms)",
+                                          safeRadius: "Radio del Domo Seguro (px)",
+                                          maxOffset: "Radio Máximo de Dispersión (px)",
+                                           castTimeMs: m.type === 'circle_cast' ? "Tiempo de Carga (ms)" : (m.type === 'ascension' ? "Tiempo de Casteo (ms)" : "Tiempo de Casteo (ms)"),
+                                          postCastWaitMs: "Espera Post-Explosión del Enemigo (ms)",
+                                          applyBleed: "Aplicar Debuff: Sangrado",
+                                          bleedDurationMs: "Duración del Sangrado (ms)",
+                                          bleedDps: "Daño por Segundo de Sangrado (pts/s)",
+                                          applyStun: "Aplicar Debuff: Parálisis",
+                                          stunDurationMs: "Duración de la Parálisis (ms)",
+                                          applyPoison: "Aplicar Debuff: Veneno",
+                                          poisonDurationMs: "Duración del Veneno (ms)",
+                                          poisonDps: "Daño por Segundo de Veneno (pts/s)",
+                                          postHookWaitMs: "Espera Post-Gancho (ms)",
+                                          hookMissWaitMs: "Espera por Fallo (ms)",
+                                           bulletCount: m.type === 'polymorph' ? "Cantidad de Cubos (uds)" : "Cantidad de Proyectiles (uds)",
+                                           isPointAndClick: m.type === 'polymorph' ? "Apuntado y Disparado (Sí/No)" : "Apuntado y Disparado",
+                                           polyDuration: "Duración del Polimorfismo (ms)",
+                                           canMove: "Puede Moverse (Sí/No)",
+                                           canUseSkills: "Puede Usar Habilidades (Sí/No)",
+                                           meteorCount: m.type === 'meteor' ? "Cantidad de Meteoritos (uds)" : "Cantidad de Meteoritos (uds)",
+                                           fallHeight: "Altura de Caída (px)",
+                                           fallSpeed: "Velocidad de Caída (px/s)",
+                                           meteorSize: "Tamaño del Meteorito (px)",
+                                           explosionRadius: "Radio de Explosión (px)",
+                                           warnTimeMs: m.type === 'burrow' ? "Duración del Círculo de Aviso (ms)" : (m.type === 'meteor' ? "Tiempo de Aviso en el Piso (ms)" : (m.type === 'ascension' ? "Tiempo Marcando el Área de Caída (ms)" : "Tiempo de Aviso (ms

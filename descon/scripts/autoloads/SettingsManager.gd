@@ -52,6 +52,9 @@ var minimap_rotate: bool = false        # Minimapa rotatorio (gira con la nave)
 # v420.900: Ajustes de audio (música de la zona)
 var music_volume: float = 60.0          # Volumen de la música (0-100)
 var music_muted: bool = false           # Silenciar música
+# v900.0: SFX (habilidades + mecánicas)
+var sfx_volume: float = 80.0
+var sfx_muted: bool = false
 
 # Configuraciones de tamaño de letra de forma independiente
 var font_size_player_name: int = 13
@@ -141,6 +144,8 @@ func reset_to_factory():
 	minimap_rotate = false
 	music_volume = 60.0
 	music_muted = false
+	sfx_volume = 80.0
+	sfx_muted = false
 	show_player_tags = true
 	show_enemy_tags = true
 	show_player_bars = true
@@ -184,6 +189,8 @@ func save_settings():
 	config_file.set_value("graphics", "minimap_rotate", minimap_rotate)
 	config_file.set_value("audio", "music_volume", music_volume)
 	config_file.set_value("audio", "music_muted", music_muted)
+	config_file.set_value("audio", "sfx_volume", sfx_volume)
+	config_file.set_value("audio", "sfx_muted", sfx_muted)
 	config_file.set_value("accessibility", "hit_flash", hit_flash_enabled)
 	config_file.set_value("accessibility", "camera_shake", camera_shake_enabled)
 	config_file.set_value("accessibility", "camera_shake_intensity", camera_shake_intensity)
@@ -244,6 +251,8 @@ func load_settings():
 		minimap_rotate = config_file.get_value("graphics", "minimap_rotate", false)
 		music_volume = config_file.get_value("audio", "music_volume", 60.0)
 		music_muted = config_file.get_value("audio", "music_muted", false)
+		sfx_volume = config_file.get_value("audio", "sfx_volume", 80.0)
+		sfx_muted = config_file.get_value("audio", "sfx_muted", false)
 		hit_flash_enabled = config_file.get_value("accessibility", "hit_flash", true)
 		camera_shake_enabled = config_file.get_value("accessibility", "camera_shake", true)
 		camera_shake_intensity = config_file.get_value("accessibility", "camera_shake_intensity", 1.0)
@@ -283,6 +292,8 @@ func load_settings():
 		camera_use_orthogonal = false
 		show_stars = false
 		minimap_rotate = false
+		sfx_volume = 80.0
+		sfx_muted = false
 		hit_flash_enabled = true
 		camera_shake_enabled = true
 		camera_shake_intensity = 1.0
@@ -351,6 +362,11 @@ func apply_music_settings():
 	var audio = get_node_or_null("/root/AudioManager")
 	if audio and audio.has_method("apply_settings"):
 		audio.apply_settings()
+
+func apply_sfx_settings():
+	var audio = get_node_or_null("/root/AudioManager")
+	if audio and audio.has_method("apply_sfx_settings"):
+		audio.apply_sfx_settings()
 
 # --- FUNCIONES DE ESCALADO DINÁMICO DE FUENTES ---
 

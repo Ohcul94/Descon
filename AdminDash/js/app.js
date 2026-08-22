@@ -1549,10 +1549,23 @@ function patchMechanicsLib() {
                     if (config[item.configKey][type].icon === undefined) {
                         config[item.configKey][type].icon = item.base[type].icon;
                     }
+                    // v900.0: migrar sonido (hybrid: default de libreria)
+                    if (config[item.configKey][type].sound === undefined) config[item.configKey][type].sound = item.base[type].sound || "";
+                    if (config[item.configKey][type].soundVolumeDb === undefined) config[item.configKey][type].soundVolumeDb = item.base[type].soundVolumeDb || 0;
+                    if (config[item.configKey][type].soundMaxDist === undefined) config[item.configKey][type].soundMaxDist = item.base[type].soundMaxDist || 1200;
                 }
             }
         }
     });
+    // v900.0: migrar sonido de skills
+    if (config.skillsData) {
+        for (let sn in config.skillsData) {
+            const sd = config.skillsData[sn];
+            if (sd.sound === undefined) sd.sound = "";
+            if (sd.soundVolumeDb === undefined) sd.soundVolumeDb = sd.soundVolume !== undefined ? sd.soundVolume : 0;
+            if (sd.soundMaxDist === undefined) sd.soundMaxDist = 1400;
+        }
+    }
 
     // Sincronizar y persistir AMMO_MECH_LIB
     if (!config.ammoMechLib) {

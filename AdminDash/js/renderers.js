@@ -12,6 +12,37 @@ window.resolveAssetWebUrl = function(iconPath) {
     return path;
 };
 
+// v900.0: helpers sonido mecanicas hybrid
+function mechanicSoundOverrideHtml(enemyId, listName, idx, mech) {
+    const libKey = mech.type;
+    const MECHANICS_LIB_X = config.mechanicsLib || DEFAULT_MECHANICS_LIB;
+    const DEFENSE_LIB_X = config.defenseLib || DEFAULT_DEFENSE_LIB;
+    const MOVEMENT_LIB_X = config.movementLib || DEFAULT_MOVEMENT_LIB;
+    let lib = MECHANICS_LIB_X[libKey] || DEFENSE_LIB_X[libKey] || MOVEMENT_LIB_X[libKey] || null;
+    const defaultSound = lib ? (lib.sound || '') : '';
+    const hasOverride = !!(mech.sound && mech.sound !== '');
+    const effective = hasOverride ? mech.sound : defaultSound;
+    const vol = hasOverride ? (mech.soundVolumeDb !== undefined ? mech.soundVolumeDb : (lib ? lib.soundVolumeDb : 0)) : (lib ? lib.soundVolumeDb : 0);
+    const maxd = hasOverride ? (mech.soundMaxDist || (lib ? lib.soundMaxDist : 1200)) : (lib ? lib.soundMaxDist : 1200);
+    const preview = effective ? resolveAssetWebUrl(effective) : '';
+    return `
+    <div style="margin-top:0.6rem; padding:0.7rem; background:rgba(168,85,247,0.05); border:1px solid rgba(168,85,247,0.12); border-radius:6px; border-left:2px solid #a855f7;">
+        <label style="color:#a855f7; font-size:0.6rem; font-weight:bold; display:flex; align-items:center; gap:6px;">SONIDO (Override por enemigo) <span style="font-weight:normal; color:#888; font-size:0.55rem;">vacío = hereda de librería</span></label>
+        <div style="font-size:0.55rem; color:#888; margin-top:0.2rem;">Default librería: <span style="color:#a855f7; font-family:JetBrains Mono;">${defaultSound || '(sin sonido)'}</span></div>
+        <div style="display:flex; gap:6px; align-items:center; margin-top:0.4rem;">
+            <input type="text" placeholder="res://assets/Sonidos/Mecanicas/ej.ogg" value="${mech.sound || ''}" style="flex:1; font-size:0.65rem;" onchange="config.enemyModels['${enemyId}'][listName][${idx}].sound = this.value; renderEnemyDetail();">
+            <button class="btn" style="padding:4px 8px; font-size:0.6rem; background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.25); color:#a855f7;" onclick="triggerAssetUpload('${enemyId}_${listName}_${idx}', 'mechanic_instance_sound')">SONIDO</button>
+            ${mech.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.55rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.enemyModels['${enemyId}'][listName][${idx}].sound=''; renderEnemyDetail();">X</button>` : ''}
+        </div>
+        ${preview ? `<audio controls preload="none" src="${preview}" style="width:100%; height:26px; margin-top:0.4rem;"></audio><div style="font-size:0.55rem; color:#a855f7; font-family:JetBrains Mono; overflow:hidden; text-overflow:ellipsis;">Efectivo: ${effective}</div>` : ''}
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
+            <div class="field"><label>Vol Override (dB)</label><input type="number" step="1" value="${mech.soundVolumeDb !== undefined ? mech.soundVolumeDb : ''}" placeholder="${lib ? lib.soundVolumeDb : 0}" onchange="config.enemyModels['${enemyId}'][listName][${idx}].soundVolumeDb = this.value === '' ? undefined : parseFloat(this.value)"></div>
+            <div class="field"><label>Dist Max Override (px)</label><input type="number" step="50" value="${mech.soundMaxDist !== undefined ? mech.soundMaxDist : ''}" placeholder="${lib ? lib.soundMaxDist : 1200}" onchange="config.enemyModels['${enemyId}'][listName][${idx}].soundMaxDist = this.value === '' ? undefined : parseInt(this.value)"></div>
+        </div>
+    </div>`;
+}
+
+
 // v400.0: Sistema de Requisitos de Equipamiento (nivel, misiones completadas, desbloqueos)
 // Cada ítem/habilidad soporta un array `requirements` con condiciones que TODAS deben cumplirse (AND).
 const REQUIREMENTS_TYPES = [
@@ -2258,7 +2289,22 @@ function renderMechanicsLib() {
             const m = MECHANICS_LIB[type];
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f) && !JSON.stringify(m).toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.mechanicsLib['${type}'].label = this.value; renderAll();"></div><div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><input type="text" value="${m.desc || ''}" onchange="config.mechanicsLib['${type}'].desc = this.value"></div><div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => fieldLabels[fl] || fl).join(' • ')}</div>`;
+            const mechSoundWeb = resolveAssetWebUrl(m.sound || '');
+            card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.mechanicsLib['${type}'].label = this.value; renderAll();"></div><div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><input type="text" value="${m.desc || ''}" onchange="config.mechanicsLib['${type}'].desc = this.value"></div>
+            <div style="margin-top:0.8rem; padding:0.8rem; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.15); border-radius:6px;">
+                <label style="color:#a855f7; font-size:0.6rem; font-weight:bold;">SONIDO POR DEFECTO (assets/Sonidos/Mecanicas/)</label>
+                <div style="display:flex; gap:6px; align-items:center; margin-top:0.4rem;">
+                    <input type="text" placeholder="res://assets/Sonidos/Mecanicas/ej.ogg" value="${m.sound || ''}" style="flex:1; font-size:0.65rem;" onchange="config.mechanicsLib['${type}'].sound = this.value; renderMechanicsLib();">
+                    <button class="btn" style="padding:4px 8px; font-size:0.6rem; background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.25); color:#a855f7;" onclick="triggerAssetUpload('${type}', 'mechanic_sound')">SONIDO</button>
+                    ${m.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.55rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.mechanicsLib['${type}'].sound=''; renderMechanicsLib();">X</button>` : ''}
+                </div>
+                ${mechSoundWeb ? `<audio controls preload="none" src="${mechSoundWeb}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
+                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${m.soundVolumeDb !== undefined ? m.soundVolumeDb : 0}" onchange="config.mechanicsLib['${type}'].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${m.soundMaxDist || 1200}" onchange="config.mechanicsLib['${type}'].soundMaxDist = parseInt(this.value) || 1200"></div>
+                </div>
+            </div>
+            <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => fieldLabels[fl] || fl).join(' • ')}</div>`;
             grid.appendChild(card);
         }
     } else if (currentMechTab === 'defense') {
@@ -2266,7 +2312,22 @@ function renderMechanicsLib() {
             const m = DEFENSE_LIB[type];
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f) && !JSON.stringify(m).toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';
-            card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.defenseLib['${type}'].label = this.value; renderAll();"></div><div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><input type="text" value="${m.desc || ''}" onchange="config.defenseLib['${type}'].desc = this.value"></div><div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => fieldLabels[fl] || fl).join(' • ')}</div>`;
+            const defSoundWeb = resolveAssetWebUrl(m.sound || '');
+            card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.defenseLib['${type}'].label = this.value; renderAll();"></div><div class="field full" style="margin-top:0.5rem;"><label>Descripción</label><input type="text" value="${m.desc || ''}" onchange="config.defenseLib['${type}'].desc = this.value"></div>
+            <div style="margin-top:0.8rem; padding:0.8rem; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.15); border-radius:6px;">
+                <label style="color:#10b981; font-size:0.6rem; font-weight:bold;">SONIDO DEFENSIVO</label>
+                <div style="display:flex; gap:6px; align-items:center; margin-top:0.4rem;">
+                    <input type="text" placeholder="res://assets/Sonidos/Mecanicas/ej.ogg" value="${m.sound || ''}" style="flex:1; font-size:0.65rem;" onchange="config.defenseLib['${type}'].sound = this.value; renderMechanicsLib();">
+                    <button class="btn" style="padding:4px 8px; font-size:0.6rem; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); color:#10b981;" onclick="triggerAssetUpload('${type}', 'defense_sound')">SONIDO</button>
+                    ${m.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.55rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.defenseLib['${type}'].sound=''; renderMechanicsLib();">X</button>` : ''}
+                </div>
+                ${defSoundWeb ? `<audio controls preload="none" src="${defSoundWeb}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
+                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${m.soundVolumeDb !== undefined ? m.soundVolumeDb : 0}" onchange="config.defenseLib['${type}'].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${m.soundMaxDist || 800}" onchange="config.defenseLib['${type}'].soundMaxDist = parseInt(this.value) || 800"></div>
+                </div>
+            </div>
+            <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => fieldLabels[fl] || fl).join(' • ')}</div>`;
             grid.appendChild(card);
         }
     } else if (currentMechTab === 'ammo') {
@@ -2312,7 +2373,22 @@ function renderMechanicsLib() {
             if (f && !m.label.toLowerCase().includes(f) && !type.toLowerCase().includes(f)) continue;
             const card = document.createElement('div'); card.className = 'card';
             const ml = { speed:"Velocidad", stopDist:"Frenado", idealDist:"Rango", orbitRadius:"Órbita", chargeCooldown: "Dash", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración", explodeOnDeath: "Auto-Detonar" };
-            card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.movementLib['${type}'].label = this.value; renderAll();"></div><div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => ml[fl] || fl).join(' • ')}</div>`;
+            const movSoundWeb = resolveAssetWebUrl(m.sound || '');
+            card.innerHTML = `<div style="font-size: 2rem; margin-bottom: 1rem;">${m.icon}</div><div class="field full"><label>Nombre Público</label><input type="text" value="${m.label}" onchange="config.movementLib['${type}'].label = this.value; renderAll();"></div>
+            <div style="margin-top:0.8rem; padding:0.8rem; background:rgba(234,179,8,0.06); border:1px solid rgba(234,179,8,0.15); border-radius:6px;">
+                <label style="color:#eab308; font-size:0.6rem; font-weight:bold;">SONIDO MOVIMIENTO</label>
+                <div style="display:flex; gap:6px; align-items:center; margin-top:0.4rem;">
+                    <input type="text" placeholder="res://assets/Sonidos/Mecanicas/ej.ogg" value="${m.sound || ''}" style="flex:1; font-size:0.65rem;" onchange="config.movementLib['${type}'].sound = this.value; renderMechanicsLib();">
+                    <button class="btn" style="padding:4px 8px; font-size:0.6rem; background:rgba(234,179,8,0.12); border:1px solid rgba(234,179,8,0.25); color:#eab308;" onclick="triggerAssetUpload('${type}', 'movement_sound')">SONIDO</button>
+                    ${m.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.55rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.movementLib['${type}'].sound=''; renderMechanicsLib();">X</button>` : ''}
+                </div>
+                ${movSoundWeb ? `<audio controls preload="none" src="${movSoundWeb}" style="width:100%; height:26px; margin-top:0.4rem;"></audio>` : ''}
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:0.4rem;">
+                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${m.soundVolumeDb !== undefined ? m.soundVolumeDb : 0}" onchange="config.movementLib['${type}'].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Dist Max (px)</label><input type="number" step="50" value="${m.soundMaxDist || 800}" onchange="config.movementLib['${type}'].soundMaxDist = parseInt(this.value) || 800"></div>
+                </div>
+            </div>
+            <div style="font-size: 0.7rem; border-top: 1px solid #444; padding-top: 1rem; color: var(--text-dim); margin-top: 1rem;"><strong style="color:var(--accent);">CAMPOS:</strong> ${m.fields.map(fl => ml[fl] || fl).join(' • ')}</div>`;
             grid.appendChild(card);
         }
     }
@@ -3013,6 +3089,18 @@ function renderSkills() {
                         <input type="checkbox" style="width:14px; height:14px; cursor:pointer; accent-color:var(--accent);" ${s.targetFilters.clan?'checked':''} onchange="config.skillsData['${name}'].targetFilters.clan = this.checked" onclick="event.stopPropagation()">
                         <span style="font-size:0.75rem; color:rgba(255,255,255,0.7); font-weight:500;">Gente del Clan</span>
                     </div>
+                </div>
+            </div>
+            <div style="margin-top:1rem; padding:1rem; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.2); border-radius:8px;">
+                <label style="color:#a855f7; font-size:0.65rem; font-weight:bold; letter-spacing:1px; display:flex; align-items:center; gap:6px;">SONIDO DE HABILIDAD (assets/Sonidos/Habilidades/)</label>
+                <div style="display:flex; gap:8px; align-items:center; margin-top:0.6rem; flex-wrap:wrap;">
+                    <input type="text" placeholder="res://assets/Sonidos/Habilidades/ej.ogg" value="${s.sound || ''}" style="flex:1; min-width:200px; font-size:0.7rem;" onchange="config.skillsData['${name}'].sound = this.value; renderSkills();">
+                    <button class="btn" style="padding:6px 10px; font-size:0.65rem; background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.3); color:#a855f7;" onclick="triggerAssetUpload('${name}', 'skill_sound')">SONIDO</button>
+                    ${s.sound ? `<button class="btn" style="padding:2px 6px; font-size:0.58rem; background:rgba(255,60,60,0.08); border:1px solid rgba(255,60,60,0.2); color:#ff6060;" onclick="config.skillsData['${name}'].sound=''; renderSkills();">Quitar</button><audio controls preload="none" src="${resolveAssetWebUrl(s.sound)}" style="height:28px; width:140px;"></audio>` : ''}
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:0.6rem;">
+                    <div class="field"><label>Volumen (dB)</label><input type="number" step="1" value="${s.soundVolumeDb !== undefined ? s.soundVolumeDb : (s.soundVolume || 0)}" onchange="config.skillsData['${name}'].soundVolumeDb = parseFloat(this.value) || 0"></div>
+                    <div class="field"><label>Distancia Max (px)</label><input type="number" step="50" value="${s.soundMaxDist || 1400}" onchange="config.skillsData['${name}'].soundMaxDist = parseInt(this.value) || 1400"></div>
                 </div>
             </div>
             ${requirementsSectionHtml('req_skill_' + reqSectionIdSanitize(name), `config.skillsData["${name.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`)}
