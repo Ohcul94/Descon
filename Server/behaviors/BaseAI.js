@@ -3894,7 +3894,8 @@ module.exports = class BaseAI {
                         io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
                             id: this.enemy.id, 
                             hp: this.enemy.hp, 
-                            amount: Math.max(0, this.enemy.hp - oldHp) 
+                            amount: Math.max(0, this.enemy.hp - oldHp),
+                            healType: 'hp'
                         });
 
                         // Efecto visual de curación (leech) de cada pilar al Boss en cada tick
@@ -3923,7 +3924,8 @@ module.exports = class BaseAI {
                     io.to(`zone_${this.enemy.zone}`).emit('enemyHealed', { 
                         id: this.enemy.id, 
                         hp: this.enemy.hp, 
-                        amount: Math.max(0, this.enemy.hp - oldHp) 
+                        amount: Math.max(0, this.enemy.hp - oldHp),
+                        healType: 'hp'
                     });
 
                     // Eliminar los pilares restantes de la zona

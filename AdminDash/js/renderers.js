@@ -2104,6 +2104,22 @@ if (f === 'targetMode') {
                                             <div class="field" style="grid-column: 1 / -1;"><label>Intervalo de Activación en Combate (ms)</label><input type="number" value="${interval}" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].activationIntervalMs = parseInt(this.value)"></div>
                                         `;
                                     }
+                                    if (f === 'pillarType') {
+                                         const curVal = String(m.pillarType !== undefined ? m.pillarType : '');
+                                         const enemyOptions = Object.keys(config.enemyModels || {}).map(eid => {
+                                             const eName = config.enemyModels[eid].name || 'Enemigo';
+                                             const selected = String(eid) === curVal ? 'selected' : '';
+                                             return `<option value="${eid}" ${selected}>${eName} (#${eid})</option>`;
+                                         }).join('');
+                                         return `
+                                             <div class="field" style="grid-column: 1 / -1;">
+                                                 <label>🗼 Tipo de Pilar (Enemigo Invocado)</label>
+                                                 <select style="background:#0f172a; border:none; color:white; font-weight:bold; cursor:pointer; width:100%; border-radius:4px; padding:6px;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].pillarType = parseInt(this.value); renderEnemyDetail();">
+                                                     ${enemyOptions}
+                                                 </select>
+                                             </div>
+                                         `;
+                                     }
                                     if (['affectsEnemies', 'affectsBosses', 'cloneExplodeOnExpiry'].includes(f)) {
                                          const checked = f === 'cloneExplodeOnExpiry' ? m[f] !== false : !!m[f];
                                          return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${checked ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].${f} = this.checked"><label style="margin:0;">${defLabels[f]}</label></div>`;

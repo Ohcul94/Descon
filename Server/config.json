@@ -2654,7 +2654,44 @@
             "rewardOhcu": 200,
             "shield": 0,
             "speed": 260,
-            "defenseMechanics": [],
+            "defenseMechanics": [
+                {
+                    "type": "boss_colors",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 7000,
+                    "cooldown": 14000,
+                    "startDelay": 0,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        65
+                    ],
+                    "activationIntervalMs": 30000,
+                    "radius": 2000
+                },
+                {
+                    "type": "boss_pillars",
+                    "reductionPercentage": 10,
+                    "shieldRegen": 5,
+                    "duration": 10000,
+                    "cooldown": 18750,
+                    "startDelay": 0,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        30
+                    ],
+                    "activationIntervalMs": 30000,
+                    "pillarCount": 5,
+                    "pillarType": 1,
+                    "pillarHp": 50,
+                    "pillarShield": 0,
+                    "pillarName": 0,
+                    "spawnRadius": 800,
+                    "healIntervalMs": 0,
+                    "healPercentPerTick": 0,
+                    "healPercentPerPillarOnExpiry": 10
+                }
+            ],
             "lootDrops": [],
             "icon": "res://assets/Enemigos/2D/Bosses/Boss4/Boss4.png",
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss4/Animaciones/AnimacionesBoss4.glb",
@@ -10204,7 +10241,7 @@
         },
         "BLINK": {
             "canTargetOthers": false,
-            "cd": 1500,
+            "cd": 15000,
             "desc": "Teletransportación instantánea al punto seleccionado.",
             "icon": "res://assets/Skills/Iconos/Utilidad/Destello/Destello.png",
             "id": "SK-UTIL-04",

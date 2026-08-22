@@ -2732,9 +2732,12 @@ func _on_enemy_healed(data: Dictionary):
 			if data.get("isLifeSteal", false):
 				# Robo de vida: texto en verde (vida robada devuelta al enemigo)
 				en._spawn_damage_text("+" + str(int(amount)), Color(0.2, 1.0, 0.35))
-			else:
-				# Robo de escudo: texto en celeste (escudo robado devuelto al enemigo)
+			elif data.get("healType", "hp") == "shield":
+				# Curación de escudo: texto en celeste
 				en._spawn_damage_text("+" + str(int(amount)), Color(0.0, 0.9, 0.95))
+			else:
+				# Curación de HP (por defecto): texto en verde
+				en._spawn_damage_text("+" + str(int(amount)), Color(0.2, 1.0, 0.35))
 
 func _on_hook_pulled(data: Dictionary):
 	var attacker_id = str(data.get("attackerId", ""))
