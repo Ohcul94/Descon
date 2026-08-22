@@ -95,11 +95,16 @@ class AIManager {
         }
 
         const movSpeed = rawSpeed * 0.033;
-        const phase0 = (cfg && cfg.movementPhases && cfg.movementPhases[0]) ? cfg.movementPhases[0] : {};
-        const aiConfig = cfg ? { ...cfg, ...phase0, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
+        // v500.3: NO mezclar phase0 dentro de aiConfig — evitar que campos de la fase de
+        // movimiento (stopDist, idealDist, startDelay, etc.) pisen valores raíz del cfg
+        // (regenDelayMs, regenIntervalMs, hpRegenPercent, etc.).
+        // La fase 0 se aplica dinámicamente en BaseAI._evaluatePhaseConditions al primer tick.
+        const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
         
         // v266.230: Asignación Dinámica de Cerebros basada en Configuración
-        const movementType = cfg ? (cfg.movementAI || phase0.type) : null;
+        // v500.3: movementType se obtiene de cfg.movementAI o del tipo de la fase 0
+        const phase0Type = (cfg && cfg.movementPhases && cfg.movementPhases[0]) ? cfg.movementPhases[0].type : null;
+        const movementType = cfg ? (cfg.movementAI || phase0Type) : null;
 
         const AI_MAP = {
             "chase": ChaseAI,

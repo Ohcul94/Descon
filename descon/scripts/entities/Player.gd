@@ -139,7 +139,9 @@ func _ready():
 	collision_mask = 2
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	
-	_cam_node = null
+	_cam_node = get_node_or_null("Camera2D")
+	if not _cam_node:
+		_cam_node = get_viewport().get_camera_2d()
 	
 	if NetworkManager:
 		NetworkManager.login_success.connect(_on_login_success)
@@ -972,7 +974,7 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 			
 	shoot_fired.emit(final_payload)
 	NetworkManager.send_event("playerFire", final_payload)
-	apply_shake(1.2) # v260: Shake muy leve al disparar
+	# apply_shake(1.2) # v260: Shake muy leve al disparar (removido por pedido del usuario)
 	_force_move_sync()
 
 func _use_sphere_skill(id: int, p_data: Dictionary):
@@ -1407,7 +1409,7 @@ func apply_shake(amount: float):
 		amount *= SettingsManager.camera_shake_intensity
 		
 	_shake_amount += amount
-	_shake_amount = min(_shake_amount, 35.0)
+	_shake_amount = min(_shake_amount, 100.0)
 
 func _update_shake(_delta):
 	if _shake_amount > 0.1:

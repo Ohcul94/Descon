@@ -501,20 +501,29 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 	# Para dispositivos de gama baja (calidad = 0), bajamos la resolución de renderizado 3D al 30% (muy liviano, se ve pixelado pero corre fluido)
 	# Para calidad media, al 60%. Para calidad alta, al 100%.
 	# Nota: Esto no afecta las letras/HUD/UI, que siguen viéndose perfectamente nítidos y legibles.
-	var render_scale = 0.30 # Calidad Baja: 30% de resolución (muy liviano)
+	var render_scale = 0.60
+	var sm = get_node_or_null("/root/SettingsManager")
+	if sm and "render_scale_3d" in sm:
+		render_scale = sm.render_scale_3d
+	else:
+		if quality == 0:
+			render_scale = 0.30
+		elif quality == 1:
+			render_scale = 0.60
+		elif quality == 2:
+			render_scale = 1.0
+
 	var scale_mode = Viewport.SCALING_3D_MODE_BILINEAR
 	var msaa_mode = Viewport.MSAA_DISABLED
 	var screen_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	var lod_threshold = 8.0 # Simplifica enormemente los polígonos de los modelos 3D lejanos
 
 	if quality == 1:
-		render_scale = 0.60 # Calidad Media: 60% de resolución
 		scale_mode = Viewport.SCALING_3D_MODE_FSR if current_renderer == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
 		msaa_mode = Viewport.MSAA_DISABLED
 		screen_aa = Viewport.SCREEN_SPACE_AA_FXAA if current_renderer != "gl_compatibility" else Viewport.SCREEN_SPACE_AA_DISABLED
 		lod_threshold = 2.0
 	elif quality == 2:
-		render_scale = 1.0 # Calidad Alta: 100% nativa
 		scale_mode = Viewport.SCALING_3D_MODE_FSR if current_renderer == "forward_plus" else Viewport.SCALING_3D_MODE_BILINEAR
 		msaa_mode = Viewport.MSAA_2X
 		screen_aa = Viewport.SCREEN_SPACE_AA_FXAA if current_renderer != "gl_compatibility" else Viewport.SCREEN_SPACE_AA_DISABLED
@@ -656,7 +665,7 @@ func _restore_camera_state():
 	free_orbit_mode = sm.cam_free_orbit
 
 # Actualizar cámara libre (orbit/free mode)
-func _update_free_camera():
+func _update_free_camera(shake_offset: Vector3 = Vector3.ZERO):
 	if not is_instance_valid(camera_3d):
 		return
 	
@@ -679,6 +688,8 @@ func _update_free_camera():
 	camera_3d.fov = 55.0
 	camera_3d.position = free_cam_center + offset
 	camera_3d.look_at(free_cam_center, Vector3.UP)
+	# Aplicar sacudida 3D al final
+	camera_3d.position += shake_offset
 	
 	# NO actualizar correction_z global — los assets 3D (portal, paredes, cofres, etc.)
 	# se posicionaron con el tilt de la cámara fija. Si lo cambiamos, se desplazan.
@@ -815,6 +826,19 @@ func _process(_delta):
 		if players.size() > 0:
 			player_node = players[0]
 
+	# --- CALCULAR OFFSET DE TEMBLOR (SHAKE) 3D ---
+	var shake_offset = Vector3.ZERO
+	if is_instance_valid(player_node) and "_shake_amount" in player_node:
+		var shake = player_node._shake_amount
+		if shake > 0.05:
+			# Convertir la vibración 2D al espacio 3D multiplicando por scale_factor (0.02)
+			var shake_3d = shake * scale_factor
+			shake_offset = Vector3(
+				randf_range(-shake_3d, shake_3d),
+				randf_range(-shake_3d, shake_3d),
+				randf_range(-shake_3d, shake_3d)
+			)
+
 	# --- CÁMARA LIBRE (ORBIT/FREE MODE) ---
 	if free_cam_active and is_instance_valid(camera_3d):
 		# WASD para paneo en free mode (no orbit)
@@ -839,7 +863,7 @@ func _process(_delta):
 			var max_z = world_size * scale_factor * correction_z
 			free_cam_center.x = clamp(free_cam_center.x, -margin_x, max_x + margin_x)
 			free_cam_center.z = clamp(free_cam_center.z, -margin_z, max_z + margin_z)
-		_update_free_camera()
+		_update_free_camera(shake_offset)
 	else:
 		var target_pos = Vector2.ZERO
 		if is_instance_valid(player_node):
@@ -866,6 +890,8 @@ func _process(_delta):
 			
 			camera_3d.position.z = corrected_target_z + z_offset
 			camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
+			# Aplicar sacudida 3D al final
+			camera_3d.position += shake_offset
 	
 	_update_world_cursor()
 

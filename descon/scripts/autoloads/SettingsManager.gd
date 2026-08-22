@@ -48,6 +48,10 @@ var mobile_camera_sensitivity: float = 1.0  # v420.600: Sensibilidad de órbita 
 var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
 var show_stars: bool = false            # Activar estrellas en el cielo (desactivado por defecto)
 var minimap_rotate: bool = false        # Minimapa rotatorio (gira con la nave)
+var window_mode: int = 0                 # 0: Ventana, 1: Pantalla Completa, 2: Ventana sin Bordes
+var screen_resolution: String = "1280x800"
+var render_scale_3d: float = 1.0          # Escala interna 3D (0.3 a 1.0)
+
 
 # v420.900: Ajustes de audio (música de la zona)
 var music_volume: float = 60.0          # Volumen de la música (0-100)
@@ -96,6 +100,10 @@ func _ready():
 	# v303.02: Si iniciamos en modo celular, ajustar ventana inmediatamente
 	if mobile_mode:
 		call_deferred("_apply_mobile_window_size")
+	else:
+		call_deferred("apply_window_mode", window_mode)
+		if window_mode == 0 or window_mode == 2:
+			call_deferred("apply_resolution", screen_resolution)
 		
 	# Conectar hook de escalado de interfaz dinámico
 	if not get_tree().node_added.is_connected(_on_node_added):
@@ -152,6 +160,11 @@ func reset_to_factory():
 	show_enemy_bars = true
 	show_player_stats = true
 	show_enemy_stats = true
+	window_mode = 0
+	screen_resolution = "1280x800"
+	render_scale_3d = 1.0
+	apply_window_mode(0)
+	apply_resolution("1280x800")
 	apply_fps_limit(60)
 	
 	font_size_player_name = 13
@@ -187,6 +200,9 @@ func save_settings():
 	config_file.set_value("graphics", "camera_use_orthogonal", camera_use_orthogonal)
 	config_file.set_value("graphics", "show_stars", show_stars)
 	config_file.set_value("graphics", "minimap_rotate", minimap_rotate)
+	config_file.set_value("graphics", "window_mode", window_mode)
+	config_file.set_value("graphics", "screen_resolution", screen_resolution)
+	config_file.set_value("graphics", "render_scale_3d", render_scale_3d)
 	config_file.set_value("audio", "music_volume", music_volume)
 	config_file.set_value("audio", "music_muted", music_muted)
 	config_file.set_value("audio", "sfx_volume", sfx_volume)
@@ -249,6 +265,9 @@ func load_settings():
 		camera_use_orthogonal = config_file.get_value("graphics", "camera_use_orthogonal", true)
 		show_stars = config_file.get_value("graphics", "show_stars", false)
 		minimap_rotate = config_file.get_value("graphics", "minimap_rotate", false)
+		window_mode = config_file.get_value("graphics", "window_mode", 0)
+		screen_resolution = config_file.get_value("graphics", "screen_resolution", "1280x800")
+		render_scale_3d = config_file.get_value("graphics", "render_scale_3d", 1.0)
 		music_volume = config_file.get_value("audio", "music_volume", 60.0)
 		music_muted = config_file.get_value("audio", "music_muted", false)
 		sfx_volume = config_file.get_value("audio", "sfx_volume", 50.0)
@@ -292,6 +311,9 @@ func load_settings():
 		camera_use_orthogonal = false
 		show_stars = false
 		minimap_rotate = false
+		window_mode = 0
+		screen_resolution = "1280x800"
+		render_scale_3d = 1.0
 		sfx_volume = 50.0
 		sfx_muted = false
 		hit_flash_enabled = true
@@ -335,6 +357,41 @@ func apply_fps_limit(limit: int):
 	else:
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
 	print("[SETTINGS] Límite de FPS aplicado: ", limit, " (VSync: ", "OFF" if limit > 60 else "ON", ")")
+
+func apply_window_mode(mode: int):
+	window_mode = mode
+	var os = OS.get_name()
+	if os == "Android" or os == "iOS":
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+		return
+
+	match mode:
+		0: # Ventana
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+		1: # Pantalla Completa
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
+		2: # Ventana sin Bordes
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+	print("[SETTINGS] Modo de ventana aplicado: ", mode)
+
+func apply_resolution(res_str: String):
+	screen_resolution = res_str
+	var os = OS.get_name()
+	if os == "Android" or os == "iOS":
+		return
+	if res_str == "Auto" or res_str == "Nativa" or res_str == "Auto / Nativa" or res_str == "":
+		return
+	var parts = res_str.split("x")
+	if parts.size() == 2:
+		var w = int(parts[0])
+		var h = int(parts[1])
+		if w > 0 and h > 0:
+			DisplayServer.window_set_size(Vector2i(w, h))
+			var screen_res = DisplayServer.screen_get_size()
+			DisplayServer.window_set_position(Vector2i((screen_res.x - w) / 2, (screen_res.y - h) / 2))
+			print("[SETTINGS] Resolución de ventana aplicada: ", res_str)
 
 func _apply_key_to_inputmap(action: String, val):
 	if not InputMap.has_action(action): InputMap.add_action(action)

@@ -70,6 +70,16 @@ func _sphere_color_for_type(skill_type: String) -> String:
 	if t == "curacion": return "verde"
 	return "amarilla"
 
+func _skill_type_matches_filter(skill_type: String, filter: String) -> bool:
+	if filter == "ANY": return true
+	var s_t = skill_type.to_upper().strip_edges()
+	var f = filter.to_upper().strip_edges()
+	if f == "UTILIDAD" or f == "MOVIMIENTO" or f == "UTILIDAD / MOVIMIENTO":
+		return s_t == "UTILIDAD" or s_t == "MOVIMIENTO" or s_t == "UTILIDAD / MOVIMIENTO"
+	if f == "CURACIÓN" or f == "CURACION":
+		return s_t == "CURACIÓN" or s_t == "CURACION"
+	return s_t == f
+
 func _color_to_rgb(key: String) -> Color:
 	match key:
 		"roja": return Color(0.9, 0.35, 0.3)
@@ -350,7 +360,7 @@ func _render_spheres_equipment(tab, sub_tabs):
 			if sphere_icon_path != "" and ResourceLoader.exists(sphere_icon_path):
 				var s_tex_rect = TextureRect.new()
 				s_tex_rect.texture = load(sphere_icon_path)
-				s_tex_rect.custom_minimum_size = Vector2(52, 52)
+				s_tex_rect.custom_minimum_size = Vector2(84, 84)
 				s_tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				s_tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 				s_tex_rect.modulate = _color_to_rgb(sphere_key)
@@ -430,7 +440,7 @@ func _render_spheres_equipment(tab, sub_tabs):
 			if tex:
 				var icon_rect = TextureRect.new()
 				icon_rect.texture = tex
-				icon_rect.custom_minimum_size = Vector2(44, 44)
+				icon_rect.custom_minimum_size = Vector2(110, 110)
 				icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 				sk_info.add_child(icon_rect)
@@ -585,8 +595,8 @@ func _render_spheres_equipment(tab, sub_tabs):
 			if compatible:
 				var tween = create_tween().set_loops()
 				if is_instance_valid(sk_sb):
-					tween.tween_property(sk_sb, "border_color", Color.WHITE, 0.4)
-					tween.tween_property(sk_sb, "border_color", _color_to_rgb(sphere_key), 0.4)
+					tween.tween_property(sk_sb, "border_color", Color.WHITE, 0.3)
+					tween.tween_property(sk_sb, "border_color", _color_to_rgb(sphere_key), 0.3)
 			else:
 				v_box.modulate.a = 0.4
 				var incompat = Label.new()
@@ -595,6 +605,19 @@ func _render_spheres_equipment(tab, sub_tabs):
 				incompat.modulate = Color(1, 0.4, 0.4)
 				incompat.horizontal_alignment = 1
 				v_box.add_child(incompat)
+
+		# v760.0b: Efecto visual "Esperando Selección de Esfera" — resaltar slots de esfera del color compatible
+		if inv_main.get("pending_sphere_item") != null and not slot_locked:
+			var p_item = inv_main.pending_sphere_item
+			var p_key = _sphere_color_of_item(p_item)
+			if sphere_key == p_key:
+				if not has_sphere:
+					var tween = create_tween().set_loops()
+					if is_instance_valid(sp_sb):
+						tween.tween_property(sp_sb, "border_color", Color.WHITE, 0.3)
+						tween.tween_property(sp_sb, "border_color", _color_to_rgb(sphere_key), 0.3)
+			else:
+				v_box.modulate.a = 0.4
 		
 		# v680.0: Slot bloqueado → atenuado y con borde neutro
 		if slot_locked:
@@ -698,7 +721,7 @@ func _create_sphere_card(item, parent, sub_tabs, is_comb):
 	if icon_path != "" and ResourceLoader.exists(icon_path):
 		var tex_rect = TextureRect.new()
 		tex_rect.texture = load(icon_path)
-		tex_rect.custom_minimum_size = Vector2(56, 56)
+		tex_rect.custom_minimum_size = Vector2(80, 80)
 		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		tex_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -724,10 +747,27 @@ func _create_sphere_card(item, parent, sub_tabs, is_comb):
 		b.disabled = true
 	else:
 		b.pressed.connect(func():
-			# Si hay un slot pendiente de selección (flujo desde SISTEMA ORBITAL) → instalar directo
+			var sm = inv_main.spheres_manager
+			var target_slot_id = -1
+			
+			# Buscar slot libre del color compatible de forma automática
+			if is_instance_valid(sm):
+				for si in range(min(sm.spheres_data.size(), 4)):
+					var slot_key: String = _sphere_color_key(sm.spheres_data[si])
+					if slot_key == key:
+						var sc = {"ok": true}
+						if NetworkManager:
+							sc = NetworkManager.check_sphere_slot_requirements(si)
+						if sc.get("ok", true) and not sm.has_installed_sphere(si):
+							target_slot_id = si
+							break
+			
+			# Si hay un slot pendiente de selección manual previo, usar ese
 			if inv_main.get("pending_sphere_slot") != null and int(inv_main.pending_sphere_slot) >= 0:
-				var slot_id = int(inv_main.pending_sphere_slot)
-				var sm = inv_main.spheres_manager
+				target_slot_id = int(inv_main.pending_sphere_slot)
+				
+			if target_slot_id >= 0:
+				var slot_id = target_slot_id
 				var slot_locked = false
 				if NetworkManager:
 					var sc = NetworkManager.check_sphere_slot_requirements(slot_id)
@@ -738,7 +778,8 @@ func _create_sphere_card(item, parent, sub_tabs, is_comb):
 						"type": "error"
 					})
 					return
-				if is_instance_valid(sm) and sm.has_installed_sphere(slot_id):
+				if is_instance_valid(sm) and sm.has_installed_sphere(slot_id) and inv_main.pending_sphere_slot == -1:
+					# Si fue auto-detectado pero ya tiene esfera, mostrar advertencia
 					NetworkManager.game_notification.emit({
 						"msg": "Ese slot ya tiene una esfera instalada. Retírala primero.",
 						"type": "error"
@@ -759,7 +800,7 @@ func _create_sphere_card(item, parent, sub_tabs, is_comb):
 					update_ui()
 				)
 			else:
-				# Flujo inverso: seleccionar la esfera y elegir slot en SISTEMA ORBITAL
+				# Flujo inverso fallback: ir a seleccionar slot manualmente
 				inv_main.pending_sphere_item = item
 				inv_main.pending_sphere_slot = -1
 				_switch_subtab(sub_tabs, SUB_TAB_ORBITAL)
@@ -825,29 +866,34 @@ func _render_spheres_library(tab, _sub_tabs):
 			if eq: currently_equipped.append(eq.get("skill_name") if typeof(eq) == TYPE_DICTIONARY else eq.skill_name)
 
 	for s_info in all_skills:
-		if inv_main.selected_sphere_type_filter != "ANY" and s_info["type"].to_upper() != inv_main.selected_sphere_type_filter: continue
+		if not _skill_type_matches_filter(s_info["type"], inv_main.selected_sphere_type_filter): continue
 		var s_inst = s_info["instance"]
-		var is_already_on = s_inst.skill_name in currently_equipped
-		_create_skill_card(s_inst, s_info["color"], s_info["icon"], s_info.get("tex_icon"), grid, is_already_on, is_comb)
+		_create_skill_card(s_inst, s_info["color"], s_info["icon"], s_info.get("tex_icon"), grid, is_equipped_check_if_already_exists(s_inst.skill_name, currently_equipped), is_comb)
+
+func is_equipped_check_if_already_exists(s_name: String, currently_equipped: Array) -> bool:
+	for eq in currently_equipped:
+		if eq == s_name:
+			return true
+	return false
 
 func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is_equipped, is_comb = false):
-	var skill_card = PanelContainer.new(); skill_card.custom_minimum_size = Vector2(350, 120); parent.add_child(skill_card)
+	var skill_card = PanelContainer.new(); skill_card.custom_minimum_size = Vector2(380, 140); parent.add_child(skill_card)
 	var sb = StyleBoxFlat.new(); sb.bg_color = Color(0, 0, 0.05, 0.7); sb.border_width_left = 4; sb.border_color = color; sb.corner_radius_top_right = 8; sb.corner_radius_bottom_right = 8; skill_card.add_theme_stylebox_override("panel", sb)
 	
 	var hb = HBoxContainer.new(); hb.offset_left = 15; skill_card.add_child(hb)
-	var icon_box = CenterContainer.new(); icon_box.custom_minimum_size = Vector2(60, 0); hb.add_child(icon_box)
+	var icon_box = CenterContainer.new(); icon_box.custom_minimum_size = Vector2(120, 0); hb.add_child(icon_box)
 	
 	# v301.4: Mostrar TextureRect con PNG si existe, sino Label con emoji como fallback
 	if tex_icon:
 		var icon_rect = TextureRect.new()
 		icon_rect.texture = tex_icon
-		icon_rect.custom_minimum_size = Vector2(48, 48)
+		icon_rect.custom_minimum_size = Vector2(110, 110)
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 		icon_rect.modulate = color
 		icon_box.add_child(icon_rect)
 	else:
-		var ico = Label.new(); ico.text = icon_text; ico.add_theme_font_size_override("font_size", 30); ico.modulate = color; icon_box.add_child(ico)
+		var ico = Label.new(); ico.text = icon_text; ico.add_theme_font_size_override("font_size", 72); ico.modulate = color; icon_box.add_child(ico)
 	
 	var s_name = skill.skill_name
 	var display_name = s_name
@@ -931,14 +977,47 @@ func _create_skill_card(skill, color, icon_text, tex_icon: Texture2D, parent, is
 					"type": "error"
 				})
 				return
-		# v301.5: Flujo de selección manual de slot
-		inv_main.pending_skill_to_equip = skill
-		inv_main.selected_sphere_type_filter = skill.type
-		
-		# v301.6: Búsqueda segura del TabContainer (Evitar error de scope)
-		for child in get_children():
-			if child is TabContainer:
-				child.current_tab = 0
-				break
-		update_ui()
+				
+		# Auto-equipamiento si hay una esfera compatible instalada
+		var sm = inv_main.spheres_manager
+		var target_slot = -1
+		if is_instance_valid(sm) and has_compatible_sphere:
+			# Prioridad 1: Slot compatible vacío
+			for slot_idx in usable_slots:
+				var s_data = sm.spheres_data[slot_idx]
+				var eq = s_data.get("equipped")
+				if eq == null:
+					target_slot = slot_idx
+					break
+			# Prioridad 2: Sobreescribir el primer slot compatible
+			if target_slot == -1 and usable_slots.size() > 0:
+				target_slot = usable_slots[0]
+				
+		if target_slot != -1:
+			var slot_id = target_slot
+			NetworkManager.send_event("equipSphere", {"sphereId": slot_id, "skill": {"skill_name": skill.skill_name, "power_value": skill.power_value, "type": skill.type}})
+			if is_instance_valid(sm): 
+				sm.equip_item(slot_id, skill)
+			inv_main.pending_skill_to_equip = null
+			
+			if NetworkManager:
+				NetworkManager.game_notification.emit({
+					"msg": "HABILIDAD EQUIPADA EN SLOT " + str(slot_id + 1),
+					"type": "success"
+				})
+			# Ir al sistema orbital
+			for child in get_children():
+				if child is TabContainer:
+					child.current_tab = 0
+					break
+			update_ui()
+		else:
+			# Flujo inverso fallback
+			inv_main.pending_skill_to_equip = skill
+			inv_main.selected_sphere_type_filter = skill.type
+			for child in get_children():
+				if child is TabContainer:
+					child.current_tab = 0
+					break
+			update_ui()
 	)

@@ -28,6 +28,7 @@ module.exports = class BaseAI {
         this._isDefenseSkillActive = false; // v269.195: Flag interno único para IA
         this._currentPhaseIndex = 0; // v500.0: Índice de fase dinámica activa
         this._lastMovementType = null; // v500.0: Último tipo de movimiento asignado
+        this.baseConfig = { ...config }; // v500.1: Guardar copia de configuración base
     }
 
     // v_fix_dead: Helper centralizado para matar jugadores desde IA de bosses
@@ -169,9 +170,10 @@ module.exports = class BaseAI {
             if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
                 const p = players[this.enemy.lastHitter];
                 const idleTime = now - (this.enemy.lastHit || 0);
-                
-                // Si chaseIdleTimeout es 0 en el panel, significa desactivado (sin timeout de abandono)
-                const idleLimit = cfg.chaseIdleTimeout !== undefined ? Number(cfg.chaseIdleTimeout) : 10000;
+                // Si chaseIdleTimeout es 0 o no está definido para Bosses, desactivar timeout de abandono (0)
+                // de lo contrario, minions normales tienen fallback de 10000ms.
+                const isBoss = !!cfg.isBoss;
+                const idleLimit = cfg.chaseIdleTimeout !== undefined ? Number(cfg.chaseIdleTimeout) : (isBoss ? 0 : 10000);
                 
                 const distToP = Math.hypot(p.x - this.enemy.x, p.y - this.enemy.y);
                 const configVision = cfg ? Number(cfg.visionRange) : 0;
@@ -210,14 +212,15 @@ module.exports = class BaseAI {
         }
 
         // Manejar el inicio de persecución (chaseStartTime) si hay un target activo válido
+        // v500.2: NO poner a null al perder el target — guardar el último timestamp activo
+        // para que regenDelayMs cuente correctamente desde que se perdió el contacto.
         const hasActivePlayerTarget = activeTarget && activeTarget.id !== "altar" && !activeTarget.isDead && !activeTarget.isInvisible;
         if (hasActivePlayerTarget) {
-            if (!this.enemy.chaseStartTime) {
-                this.enemy.chaseStartTime = now;
-            }
-        } else {
-            this.enemy.chaseStartTime = null;
+            // Mientras hay target activo, actualizar el timestamp constantemente
+            this.enemy.chaseStartTime = now;
         }
+        // Al perder el target NO se toca chaseStartTime — queda con el último valor
+        // para que el timer de regenDelayMs empiece a contar desde ese momento.
 
         // v3.0: EVALUAR INTERRUPCIÓN DEL REGRESO AL SPAWN (Soft Leash)
         if (this.enemy.returningToSpawn && activeTarget) {
@@ -478,6 +481,9 @@ module.exports = class BaseAI {
             this._currentPhaseIndex = newPhaseIndex;
             const newPhase = phases[newPhaseIndex];
 
+            // Restaurar configuración base para evitar arrastrar overrides de fases previas
+            this.config = { ...this.baseConfig };
+
             if (newPhase) {
                 // Actualizar parámetros de movimiento en el config del cerebro
                 const phaseKeys = ['speed', 'stopDist', 'idealDist', 'orbitRadius',
@@ -486,7 +492,18 @@ module.exports = class BaseAI {
                     'explosionDamage', 'activationHP', 'explodeOnDeath', 'radius',
                     'speedBonus', 'intervalMs', 'affectsEnemies', 'affectsBosses'];
                 phaseKeys.forEach(k => {
-                    if (newPhase[k] !== undefined) this.config[k] = newPhase[k];
+                    if (newPhase[k] !== undefined) {
+                        if (k === 'speed') {
+                            // La velocidad de la fase viene en px/s del panel.
+                            // Convertimos a px/tick y también actualizamos _baseSpeed,
+                            // para que la línea cfg.speed = this._baseSpeed * speedMult
+                            // no restaure la velocidad de la fase anterior en el siguiente tick.
+                            this.config[k] = newPhase[k] * 0.033;
+                            this._baseSpeed = this.config[k]; // ← clave: sincronizar _baseSpeed
+                        } else {
+                            this.config[k] = newPhase[k];
+                        }
+                    }
                 });
 
                 // Actualizar tipo de movimiento si cambió
@@ -624,10 +641,10 @@ module.exports = class BaseAI {
             this.enemy.isMoving = false;
         } else if (activeTarget) {
             this.enemy.isMoving = true;
-            this.applyMovementLogic(activeTarget, dist, targetAngle, now, io);
+            this.executeActiveMovementLogic(activeTarget, dist, targetAngle, now, io);
         } else if (isProwler) {
             this.enemy.isMoving = true;
-            this.applyMovementLogic(null, 0, 0, now, io);
+            this.executeActiveMovementLogic(null, 0, 0, now, io);
         }
 
         // v3.6: Forzar rotación fija si hay una mecánica activa que restrinja el apuntado (por aimDelayMs, lock o fire)
@@ -2705,7 +2722,7 @@ module.exports = class BaseAI {
                 
                 let shouldActivate = false;
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -2974,7 +2991,7 @@ module.exports = class BaseAI {
             let shouldActivate = false;
             if (now > state.nextShotTime) {
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -3100,7 +3117,7 @@ module.exports = class BaseAI {
             let shouldActivate = false;
             if (now > state.nextShotTime) {
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -3305,7 +3322,7 @@ module.exports = class BaseAI {
             let shouldActivate = false;
             if (now > state.nextShotTime) {
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -3458,12 +3475,21 @@ module.exports = class BaseAI {
 
     // v500.0: Evaluador de Condiciones de Fases Dinámicas
     // Determina qué fase del movementPhases[] debería estar activa según condiciones.
-    // Retorna el índice de la primera fase cuyas condiciones se cumplen.
+    // Retorna el índice de la primera fase cuyas condiciones se cumplen, priorizando las condicionales sobre las de por defecto.
     _evaluatePhaseConditions(phases, now, hpPercent, shieldPercent) {
+        let fallbackIndex = 0;
+        // Encontrar la primera fase sin condiciones como fallback (por defecto la 0)
+        for (let i = 0; i < phases.length; i++) {
+            if (!phases[i].conditions) {
+                fallbackIndex = i;
+                break;
+            }
+        }
+
+        // Buscar primero alguna fase con condiciones que se cumpla
         for (let i = 0; i < phases.length; i++) {
             const p = phases[i];
-            // Sin condiciones = fase por defecto (fallback inmediato)
-            if (!p.conditions) return i;
+            if (!p.conditions) continue; // Evaluar primero las que tienen condiciones
 
             const c = p.conditions;
             let matches = true;
@@ -3477,30 +3503,30 @@ module.exports = class BaseAI {
             if (!matches) continue;
 
             // HP check
-            if (c.hpPercentBelow !== undefined) {
+            if (c.hpPercentBelow !== undefined && c.hpPercentBelow !== null) {
                 if (hpPercent > c.hpPercentBelow) continue;
             }
 
             // Shield check
-            if (c.shieldPercentBelow !== undefined) {
+            if (c.shieldPercentBelow !== undefined && c.shieldPercentBelow !== null) {
                 if (shieldPercent > c.shieldPercentBelow) continue;
             }
 
             // Tiempo en combate check
-            if (c.timeInCombatMs !== undefined) {
+            if (c.timeInCombatMs !== undefined && c.timeInCombatMs !== null) {
                 const combatTime = now - (this.enemy.chaseStartTime || now);
                 if (combatTime < c.timeInCombatMs) continue;
             }
 
             // Tiempo desde spawn check
-            if (c.timeSinceSpawnMs !== undefined) {
+            if (c.timeSinceSpawnMs !== undefined && c.timeSinceSpawnMs !== null) {
                 const spawnElapsed = now - (this.enemy.spawnTime || now);
                 if (spawnElapsed < c.timeSinceSpawnMs) continue;
             }
 
-            return i; // First matching phase wins
+            return i; // La primera fase con condiciones que se cumpla gana
         }
-        return 0; // Fallback to first phase
+        return fallbackIndex; // Fallback si no se cumple ninguna con condiciones
     }
 
     getSpeed() {
@@ -3764,7 +3790,7 @@ module.exports = class BaseAI {
                 }
 
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -3953,7 +3979,7 @@ module.exports = class BaseAI {
                 }
 
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -4105,7 +4131,7 @@ module.exports = class BaseAI {
                 }
 
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -4323,7 +4349,7 @@ module.exports = class BaseAI {
                 }
 
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -4443,7 +4469,7 @@ module.exports = class BaseAI {
                 }
 
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -4579,7 +4605,7 @@ module.exports = class BaseAI {
                 }
 
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -4978,7 +5004,7 @@ module.exports = class BaseAI {
                 }
 
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -5083,7 +5109,7 @@ module.exports = class BaseAI {
                 }
 
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -5257,7 +5283,7 @@ module.exports = class BaseAI {
                 }
                 if (state.triggeredHPs === undefined) state.triggeredHPs = {};
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -5479,7 +5505,7 @@ module.exports = class BaseAI {
                 }
                 if (state.triggeredHPs === undefined) state.triggeredHPs = {};
                 for (const hpVal of thresholds) {
-                    if (hpPercent <= hpVal && !state.triggeredHPs[hpVal]) {
+                    if (hpPercent <= hpVal) {
                         shouldActivate = true;
                         state.triggeredHPs[hpVal] = true;
                         break;
@@ -5551,5 +5577,300 @@ module.exports = class BaseAI {
         const idx = defs.findIndex(d => d.type === "life_steal");
         if (idx === -1) return null;
         return { mech: defs[idx], mId: `def_${idx}` };
+    }
+
+    // v500.4: Despachador de movimiento dinámico basado en la fase activa del ciclo
+    executeActiveMovementLogic(target, dist, angle, now, io) {
+        if (this.enemy.isHooking) return;
+
+        // Bloquear movimiento si estamos canalizando
+        const hasCastingMech = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging);
+        if (hasCastingMech) {
+            this.enemy.isMoving = false;
+            return;
+        }
+
+        const phases = this.config.movementPhases || [];
+        const currentPhase = phases[this.enemy._currentPhaseIndex || 0];
+        const activeType = currentPhase ? currentPhase.type : (this.config.movementAI || 'chase');
+
+        switch (activeType) {
+            case 'chase':
+                this._applyChaseMovement(target, dist, angle, now);
+                break;
+            case 'sniper':
+                this._applySniperMovement(target, dist, angle, now);
+                break;
+            case 'orbit':
+                this._applyOrbitMovement(target, dist, angle, now);
+                break;
+            case 'charger':
+                this._applyChargerMovement(target, dist, angle, now);
+                break;
+            case 'zigzag':
+                this._applyZigZagMovement(target, dist, angle, now);
+                break;
+            case 'prowler':
+                this._applyProwlerMovement(target, dist, angle, now);
+                break;
+            case 'kamikaze':
+                this._applyKamikazeMovement(target, dist, angle, now);
+                break;
+            case 'aura_speed':
+                this._applyChaseMovement(target, dist, angle, now);
+                break;
+            case 'boss':
+                if (typeof this.applyMovementLogic === 'function') {
+                    this.applyMovementLogic(target, dist, angle, now, io);
+                } else {
+                    this._applyChaseMovement(target, dist, angle, now);
+                }
+                break;
+            default:
+                if (typeof this.applyMovementLogic === 'function') {
+                    this.applyMovementLogic(target, dist, angle, now, io);
+                } else {
+                    this._applyChaseMovement(target, dist, angle, now);
+                }
+                break;
+        }
+    }
+
+    _applyChaseMovement(target, dist, angle, now) {
+        const speed = this.getSpeed();
+        const stopDist = this.config.stopDist || 80;
+        if (dist > stopDist) {
+            this.enemy.x += Math.cos(angle) * speed;
+            this.enemy.y += Math.sin(angle) * speed;
+        } else if (dist < stopDist - 20) {
+            this.enemy.x -= Math.cos(angle) * (speed * 0.4);
+            this.enemy.y -= Math.sin(angle) * (speed * 0.4);
+        }
+        this.enemy.rotation = angle + Math.PI / 2;
+
+        if (this.enemy.hp < this.enemy.maxHp * 0.15 && now - (this.enemy.lastDash || 0) > 8000) {
+            const dashAngle = angle + (Math.PI / 2 + (Math.random() - 0.5));
+            this.enemy.x += Math.cos(dashAngle) * 250;
+            this.enemy.y += Math.sin(dashAngle) * 250;
+            this.enemy.lastDash = now;
+        }
+    }
+
+    _applySniperMovement(target, dist, angle, now) {
+        const speed = this.getSpeed();
+        const idealDist = this.config.idealDist || 450;
+        
+        if (dist > idealDist + 50) {
+            this.enemy.x += Math.cos(angle) * speed;
+            this.enemy.y += Math.sin(angle) * speed;
+        } else if (dist < idealDist - 50) {
+            this.enemy.x -= Math.cos(angle) * (speed * 1.2);
+            this.enemy.y -= Math.sin(angle) * (speed * 1.2);
+        } else {
+            const orbitAngle = angle + Math.PI / 2;
+            this.enemy.x += Math.cos(orbitAngle) * (speed * 0.5);
+            this.enemy.y += Math.sin(orbitAngle) * (speed * 0.5);
+        }
+        this.enemy.rotation = angle + Math.PI / 2;
+    }
+
+    _applyOrbitMovement(target, dist, angle, now) {
+        const orbitRadius = this.config.orbitRadius || 250;
+        if (this._orbitDir === undefined) {
+            this._orbitDir = Math.random() > 0.5 ? 1 : -1;
+        }
+        const speed = this.getSpeed();
+
+        if (dist > orbitRadius + 50) {
+            this.enemy.x += Math.cos(angle) * speed;
+            this.enemy.y += Math.sin(angle) * speed;
+        } else if (dist < orbitRadius - 50) {
+            this.enemy.x -= Math.cos(angle) * speed;
+            this.enemy.y -= Math.sin(angle) * speed;
+        }
+
+        const orbitAngle = angle + (Math.PI / 2 * this._orbitDir);
+        this.enemy.x += Math.cos(orbitAngle) * speed * 0.8;
+        this.enemy.y += Math.sin(orbitAngle) * speed * 0.8;
+
+        this.enemy.rotation = angle + Math.PI / 2;
+
+        if (this.enemy.hp < this.enemy.maxHp * 0.25 && now - (this.enemy.lastDash || 0) > 10000) {
+            const dashAngle = angle + (Math.PI / 2 + (Math.random() - 0.5));
+            this.enemy.x += Math.cos(dashAngle) * 200;
+            this.enemy.y += Math.sin(dashAngle) * 200;
+            this.enemy.lastDash = now;
+        }
+    }
+
+    _applyChargerMovement(target, dist, angle, now) {
+        const speed = this.getSpeed();
+        const chargeCooldown = (this.config.chargeCooldown || 4000) + Math.random() * 2000;
+
+        if (this._chargerIsCharging) {
+            const chargeDuration = 600;
+            if (now - this._chargerStartTime < chargeDuration) {
+                this.enemy.x += Math.cos(this._chargerDirection) * (speed * 4);
+                this.enemy.y += Math.sin(this._chargerDirection) * (speed * 4);
+                return;
+            } else {
+                this._chargerIsCharging = false;
+                this._chargerLastChargeTime = now;
+            }
+        }
+
+        if (!this._chargerIsCharging && dist < 500 && now - (this._chargerLastChargeTime || 0) > chargeCooldown) {
+            this._chargerIsCharging = true;
+            this._chargerStartTime = now;
+            this._chargerDirection = angle;
+            return;
+        }
+
+        if (dist > 30) {
+            this.enemy.x += Math.cos(angle) * speed;
+            this.enemy.y += Math.sin(angle) * speed;
+        }
+        this.enemy.rotation = angle + Math.PI / 2;
+    }
+
+    _applyZigZagMovement(target, dist, angle, now) {
+        const speed = this.getSpeed();
+        const stopDist = this.config.stopDist || 150;
+        const amplitude = this.config.amplitude !== undefined ? this.config.amplitude : 100;
+        const frequency = this.config.frequency !== undefined ? this.config.frequency : 1.5;
+
+        if (dist > stopDist) {
+            const dirX = Math.cos(angle);
+            const dirY = Math.sin(angle);
+            const perpX = -dirY;
+            const perpY = dirX;
+
+            const timeSec = now / 1000;
+            const phase = 2 * Math.PI * frequency * timeSec;
+            const lateralSpeedMult = Math.cos(phase);
+
+            const stepForwardX = dirX * speed;
+            const stepForwardY = dirY * speed;
+
+            const stepLateralX = perpX * (amplitude * 2 * Math.PI * frequency) * lateralSpeedMult * 0.033;
+            const stepLateralY = perpY * (amplitude * 2 * Math.PI * frequency) * lateralSpeedMult * 0.033;
+
+            this.enemy.x += stepForwardX + stepLateralX;
+            this.enemy.y += stepForwardY + stepLateralY;
+        } else if (dist < stopDist - 20) {
+            this.enemy.x -= Math.cos(angle) * (speed * 0.4);
+            this.enemy.y -= Math.sin(angle) * (speed * 0.4);
+        }
+
+        this.enemy.rotation = angle + Math.PI / 2;
+
+        if (this.enemy.hp < this.enemy.maxHp * 0.15 && now - (this.enemy.lastDash || 0) > 8000) {
+            const dashAngle = angle + (Math.PI / 2 + (Math.random() - 0.5));
+            this.enemy.x += Math.cos(dashAngle) * 250;
+            this.enemy.y += Math.sin(dashAngle) * 250;
+            this.enemy.lastDash = now;
+        }
+    }
+
+    _applyProwlerMovement(target, dist, angle, now) {
+        if (target && target.id !== "altar") {
+            this._applyChaseMovement(target, dist, angle, now);
+            return;
+        }
+
+        const speed = this.getSpeed();
+        const patrolRange = this.config.patrolRange !== undefined ? Number(this.config.patrolRange) : 300;
+        const changeTrigger = (this.config.changeTrigger === 'time' || this.config.changeTrigger === 'distance') ? this.config.changeTrigger : 'time';
+        const changeType = (this.config.changeType === 'random' || this.config.changeType === 'reverse' || this.config.changeType === 'orthogonal') ? this.config.changeType : 'random';
+        const changeInterval = this.config.changeInterval !== undefined ? Number(this.config.changeInterval) : 4000;
+
+        if (this._prowlerAngle === undefined) {
+            this._prowlerAngle = Math.random() * Math.PI * 2;
+            this._prowlerLastChangeTime = now;
+            this._prowlerLastChangeX = this.enemy.x;
+            this._prowlerLastChangeY = this.enemy.y;
+        }
+
+        let shouldChange = false;
+        if (changeTrigger === 'time') {
+            if (now - this._prowlerLastChangeTime >= changeInterval) {
+                shouldChange = true;
+            }
+        } else if (changeTrigger === 'distance') {
+            const traveled = Math.hypot(this.enemy.x - this._prowlerLastChangeX, this.enemy.y - this._prowlerLastChangeY);
+            if (traveled >= changeInterval) {
+                shouldChange = true;
+            }
+        }
+
+        const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
+        const outOfBounds = distFromSpawn > patrolRange;
+
+        if (shouldChange || outOfBounds) {
+            if (outOfBounds) {
+                this._prowlerAngle = Math.atan2(this.enemy.startY - this.enemy.y, this.enemy.startX - this.enemy.x);
+            } else {
+                if (changeType === 'random') {
+                    this._prowlerAngle = Math.random() * Math.PI * 2;
+                } else if (changeType === 'reverse') {
+                    this._prowlerAngle = this._prowlerAngle + Math.PI;
+                } else if (changeType === 'orthogonal') {
+                    this._prowlerAngle = this._prowlerAngle + (Math.random() > 0.5 ? Math.PI / 2 : -Math.PI / 2);
+                } else {
+                    this._prowlerAngle = Math.random() * Math.PI * 2;
+                }
+            }
+
+            while (this._prowlerAngle < -Math.PI) this._prowlerAngle += Math.PI * 2;
+            while (this._prowlerAngle > Math.PI) this._prowlerAngle -= Math.PI * 2;
+
+            this._prowlerLastChangeTime = now;
+            this._prowlerLastChangeX = this.enemy.x;
+            this._prowlerLastChangeY = this.enemy.y;
+        }
+
+        const maps = (this.state && this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig) ? this.state.SERVER_CONFIG.mapsConfig : {};
+        const mapCfg = maps[this.enemy.zone] || {};
+        const mapWidth = Number(mapCfg.width) || 4000;
+        const mapHeight = Number(mapCfg.height) || 4000;
+        const margin = 80;
+        let hitBorder = false;
+
+        let nextX = this.enemy.x + Math.cos(this._prowlerAngle) * speed;
+        let nextY = this.enemy.y + Math.sin(this._prowlerAngle) * speed;
+
+        if (nextX <= margin) {
+            nextX = margin;
+            hitBorder = true;
+        } else if (nextX >= mapWidth - margin) {
+            nextX = mapWidth - margin;
+            hitBorder = true;
+        }
+
+        if (nextY <= margin) {
+            nextY = margin;
+            hitBorder = true;
+        } else if (nextY >= mapHeight - margin) {
+            nextY = mapHeight - margin;
+            hitBorder = true;
+        }
+
+        if (hitBorder) {
+            this._prowlerAngle = Math.atan2(mapHeight / 2 - this.enemy.y, mapWidth / 2 - this.enemy.x);
+            while (this._prowlerAngle < -Math.PI) this._prowlerAngle += Math.PI * 2;
+            while (this._prowlerAngle > Math.PI) this._prowlerAngle -= Math.PI * 2;
+
+            this._prowlerLastChangeTime = now;
+            this._prowlerLastChangeX = this.enemy.x;
+            this._prowlerLastChangeY = this.enemy.y;
+        }
+
+        this.enemy.x = nextX;
+        this.enemy.y = nextY;
+        this.enemy.rotation = this._prowlerAngle + Math.PI / 2;
+    }
+
+    _applyKamikazeMovement(target, dist, angle, now) {
+        this._applyChaseMovement(target, dist, angle, now);
     }
 };

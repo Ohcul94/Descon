@@ -2535,7 +2535,7 @@
             "bulletSpeed": 1200,
             "fireRange": 1400,
             "fireRate": 1200,
-            "hp": 1000,
+            "hp": 400,
             "isBoss": true,
             "mechanics": [
                 {
@@ -2548,18 +2548,99 @@
                     "startDelay": 0,
                     "castTimeMs": 2000,
                     "activeMs": 180,
-                    "arcAngle": 120,
+                    "arcAngle": 180,
                     "arcRadius": 600,
-                    "fullCircle": true,
+                    "fullCircle": false,
                     "pushForce": 0,
                     "stunDuration": 0,
-                    "debuffsList": []
+                    "debuffsList": [
+                        {
+                            "type": "bleed",
+                            "dps": 3,
+                            "duration": 4100,
+                            "tickInterval": 1000
+                        }
+                    ]
+                },
+                {
+                    "type": "meteor",
+                    "bulletDamage": 20,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 1000,
+                    "cooldown": 10000,
+                    "castTimeMs": 3000,
+                    "damage": 25,
+                    "lockTimeMs": 500,
+                    "startDelay": 0,
+                    "activationMode": "hp",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 30000,
+                    "meteorCount": 1,
+                    "fallHeight": 800,
+                    "fallSpeed": 600,
+                    "meteorSize": 100,
+                    "explosionRadius": 150,
+                    "warnTimeMs": 1500,
+                    "targetMode": "highest_heal",
+                    "targetSphereColor": "",
+                    "debuffsList": [],
+                    "persistentZone": true,
+                    "zoneDamage": 5,
+                    "zoneTickMs": 1000,
+                    "zoneDuration": 4100
+                },
+                {
+                    "type": "hook",
+                    "bulletDamage": 1,
+                    "bulletSpeed": 800,
+                    "fireRange": 700,
+                    "fireRate": 6555,
+                    "stunDuration": 1500,
+                    "pullSpeed": 150,
+                    "postHookWaitMs": 500,
+                    "hookMissWaitMs": 500,
+                    "isHoming": 0,
+                    "turnSpeed": 1.2,
+                    "startDelay": 3500
+                },
+                {
+                    "type": "ice_missile",
+                    "bulletDamage": 2,
+                    "bulletSpeed": 1000,
+                    "fireRange": 1500,
+                    "fireRate": 3000,
+                    "slowAmount": 50,
+                    "slowDuration": 2000,
+                    "startDelay": 0,
+                    "lifetimeMs": 4000,
+                    "turnSpeed": 1.2,
+                    "isHoming": false
+                },
+                {
+                    "type": "cone_cast",
+                    "bulletDamage": 10,
+                    "bulletSpeed": 800,
+                    "fireRange": 800,
+                    "fireRate": 1000,
+                    "cooldown": 7540,
+                    "castTimeMs": 4000,
+                    "damage": 25,
+                    "stunDuration": 1000,
+                    "castSpeed": 1,
+                    "coneAngle": 180,
+                    "coneFollow": true,
+                    "lockTimeMs": 2000,
+                    "aimDelayMs": 2000,
+                    "startDelay": 7540
                 }
             ],
             "movementPhases": [
                 {
                     "orbitRadius": 300,
-                    "speed": 180,
+                    "speed": 200,
                     "startDelay": 0,
                     "type": "chase",
                     "stopDist": 150
@@ -2567,25 +2648,14 @@
             ],
             "name": "Stellar Guardian",
             "rageTimer": 20,
-            "rankingPoints": 1,
-            "rewardExp": 1,
-            "rewardHubs": 1,
-            "rewardOhcu": 1,
-            "shield": 1000,
+            "rankingPoints": 600,
+            "rewardExp": 1500,
+            "rewardHubs": 1200,
+            "rewardOhcu": 200,
+            "shield": 0,
             "speed": 260,
             "defenseMechanics": [],
-            "lootDrops": [
-                {
-                    "itemId": "mat_esfera_ataque",
-                    "chance": 1,
-                    "amount": 10
-                },
-                {
-                    "itemId": "mat_nave_7",
-                    "chance": 1,
-                    "amount": 10
-                }
-            ],
+            "lootDrops": [],
             "icon": "res://assets/Enemigos/2D/Bosses/Boss4/Boss4.png",
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss4/Animaciones/AnimacionesBoss4.glb",
             "rotX": 0,
@@ -2596,7 +2666,13 @@
             "animDie": "7",
             "posY": 0.1,
             "canFloat": false,
-            "chestDropChance": 1
+            "chestDropChance": 1,
+            "visionRange": 2500,
+            "leashRange": 1700,
+            "hpRegenPercent": 20,
+            "shieldRegenPercent": 20,
+            "regenDelayMs": 30000,
+            "regenIntervalMs": 2000
         },
         "105": {
             "assetPath": "res://assets/Enemigos/3D/Bosses/Boss5/Animaciones/AnimacionesBoss5.glb",
@@ -6607,14 +6683,14 @@
             ],
             "spawns": [
                 {
+                    "id": "spawn_1787371405592920",
+                    "type": "104",
                     "count": 1,
-                    "id": "spawn_6_idx_0_type_5",
                     "intervalMs": 5000,
-                    "radius": 0,
-                    "spawnMode": "fixed",
-                    "type": "9",
-                    "x": 1935,
-                    "y": 1606
+                    "spawnMode": "random",
+                    "x": 2486,
+                    "y": 1494,
+                    "radius": 300
                 }
             ],
             "timeRestrictionsEnabled": true,
@@ -6626,7 +6702,8 @@
                 "path": "",
                 "volumePercent": 60
             },
-            "friendlyFire": false
+            "friendlyFire": false,
+            "pvpMode": "partial_drop"
         },
         "7": {
             "allowedHours": [],

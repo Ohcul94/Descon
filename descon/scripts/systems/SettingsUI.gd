@@ -321,6 +321,67 @@ func _setup_ui():
 	gfx_vbox.add_theme_constant_override("separation", 12)
 	margin_gfx.add_child(gfx_vbox)
 	
+	# --- MODO DE PANTALLA ---
+	var win_mode_lbl = Label.new()
+	win_mode_lbl.text = "MODO DE PANTALLA:"
+	gfx_vbox.add_child(win_mode_lbl)
+	
+	var win_mode_option = OptionButton.new()
+	win_mode_option.add_item("Ventana", 0)
+	win_mode_option.add_item("Pantalla Completa", 1)
+	win_mode_option.add_item("Ventana sin Bordes", 2)
+	
+	if get_node_or_null("/root/SettingsManager"):
+		win_mode_option.selected = SettingsManager.window_mode
+		
+	win_mode_option.item_selected.connect(func(idx):
+		if get_node_or_null("/root/SettingsManager"):
+			SettingsManager.apply_window_mode(idx)
+			SettingsManager.save_settings()
+	)
+	gfx_vbox.add_child(win_mode_option)
+	
+	# --- RESOLUCIÓN DE PANTALLA ---
+	var res_lbl = Label.new()
+	res_lbl.text = "RESOLUCIÓN DE PANTALLA (SOLO MODO VENTANA):"
+	gfx_vbox.add_child(res_lbl)
+	
+	var res_option = OptionButton.new()
+	var res_options = [
+		"Auto / Nativa",
+		"1024x768",
+		"1280x720",
+		"1280x800",
+		"1366x768",
+		"1440x900",
+		"1600x900",
+		"1920x1080",
+		"1920x1200",
+		"2560x1440",
+		"3840x2160"
+	]
+	for opt in res_options:
+		res_option.add_item(opt)
+		
+	if get_node_or_null("/root/SettingsManager"):
+		var current_res = SettingsManager.screen_resolution
+		var res_idx = res_options.find(current_res)
+		if res_idx == -1:
+			res_option.add_item(current_res)
+			res_option.selected = res_option.item_count - 1
+		else:
+			res_option.selected = res_idx
+			
+	res_option.item_selected.connect(func(idx):
+		if get_node_or_null("/root/SettingsManager"):
+			var selected_text = res_option.get_item_text(idx)
+			SettingsManager.apply_resolution(selected_text)
+			SettingsManager.save_settings()
+	)
+	gfx_vbox.add_child(res_option)
+	
+	gfx_vbox.add_child(HSeparator.new())
+	
 	# CALIDAD GRÁFICA
 	var gfx_label = Label.new()
 	gfx_label.text = "CALIDAD DE MODELOS 3D:"
@@ -336,6 +397,54 @@ func _setup_ui():
 	
 	gfx_option.item_selected.connect(_on_graphics_quality_changed)
 	gfx_vbox.add_child(gfx_option)
+	
+	gfx_vbox.add_child(HSeparator.new())
+
+	# --- ESCALA DE RENDERIZADO 3D (NITIDEZ) ---
+	var scale3d_title_lbl = Label.new()
+	scale3d_title_lbl.text = "ESCALA DE RENDERIZADO 3D (NITIDEZ):"
+	gfx_vbox.add_child(scale3d_title_lbl)
+	
+	var scale3d_hbox = HBoxContainer.new()
+	scale3d_hbox.add_theme_constant_override("separation", 15)
+	gfx_vbox.add_child(scale3d_hbox)
+	
+	var scale3d_slider = HSlider.new()
+	scale3d_slider.min_value = 0.3
+	scale3d_slider.max_value = 1.0
+	scale3d_slider.step = 0.05
+	scale3d_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	var scale3d_val_lbl = Label.new()
+	scale3d_val_lbl.custom_minimum_size.x = 50
+	scale3d_val_lbl.add_theme_color_override("font_color", Color.YELLOW)
+	
+	if get_node_or_null("/root/SettingsManager"):
+		scale3d_slider.value = SettingsManager.render_scale_3d
+		scale3d_val_lbl.text = str(int(SettingsManager.render_scale_3d * 100)) + "%"
+	else:
+		scale3d_slider.value = 1.0
+		scale3d_val_lbl.text = "100%"
+		
+	scale3d_slider.value_changed.connect(func(val):
+		scale3d_val_lbl.text = str(int(val * 100)) + "%"
+		if get_node_or_null("/root/SettingsManager"):
+			SettingsManager.render_scale_3d = val
+			SettingsManager.save_settings()
+			# Forzar actualización en vivo de la escala de renderizado en el mapa actual
+			var current_map = get_tree().get_first_node_in_group("map")
+			if is_instance_valid(current_map) and current_map.has_method("update_graphics_quality"):
+				current_map.update_graphics_quality()
+	)
+	
+	scale3d_hbox.add_child(scale3d_slider)
+	scale3d_hbox.add_child(scale3d_val_lbl)
+	
+	var scale3d_hint = Label.new()
+	scale3d_hint.text = "Reduce la resolución interna del espacio 3D para ganar rendimiento, manteniendo la nitidez de la interfaz al 100%."
+	scale3d_hint.add_theme_font_size_override("font_size", 10)
+	scale3d_hint.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
+	gfx_vbox.add_child(scale3d_hint)
 	
 	gfx_vbox.add_child(HSeparator.new())
 	
@@ -409,7 +518,7 @@ func _setup_ui():
 
 	
 	var shake_slider = HSlider.new()
-	shake_slider.min_value = 0.0; shake_slider.max_value = 2.0; shake_slider.step = 0.1
+	shake_slider.min_value = 0.0; shake_slider.max_value = 10.0; shake_slider.step = 0.1
 	if get_node_or_null("/root/SettingsManager"): shake_slider.value = SettingsManager.camera_shake_intensity
 	shake_slider.value_changed.connect(func(val): SettingsManager.camera_shake_intensity = val; SettingsManager.save_settings())
 	gfx_vbox.add_child(shake_slider)
@@ -1173,8 +1282,18 @@ func _on_cast_mode_changed(idx: int):
 func _on_graphics_quality_changed(idx: int):
 	if get_node_or_null("/root/SettingsManager"):
 		SettingsManager.graphics_quality = idx
+		
+		# Ajustar render_scale_3d según preset por defecto por comodidad
+		match idx:
+			0: SettingsManager.render_scale_3d = 0.30
+			1: SettingsManager.render_scale_3d = 0.60
+			2: SettingsManager.render_scale_3d = 1.0
+			
 		SettingsManager.save_settings()
-		print("[SETTINGS] Calidad gráfica cambiada a: ", idx)
+		print("[SETTINGS] Calidad gráfica cambiada a: ", idx, " | Escala 3D: ", SettingsManager.render_scale_3d)
+		
+		# Refrescar la UI para reflejar el cambio en los sliders/opciones
+		refresh_ui()
 		
 		# Forzar actualización de luces y viewport del mapa activo
 		var map_node = get_tree().get_first_node_in_group("map")
