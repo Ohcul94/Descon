@@ -2,6 +2,7 @@ shader_type spatial;
 render_mode unshaded, cull_disabled;
 
 uniform float u_star_density : hint_range(0.1, 3.0) = 0.3;
+uniform float u_show_stars : hint_range(0.0, 1.0) = 1.0;
 
 varying vec3 v_local_pos;
 
@@ -59,7 +60,7 @@ void fragment() {
 			else if (ci < 0.78) sc = vec3(0.7, 0.82, 1.0);
 			else if (ci < 0.92) sc = vec3(1.0, 0.95, 0.7);
 			else sc = vec3(1.0, 0.5, 0.25);
-			col += sc * sv;
+			col += sc * sv * u_show_stars;
 		}
 	}
 

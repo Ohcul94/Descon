@@ -190,23 +190,27 @@ func _create_sky_dome():
 	dome.mesh = mesh
 	sub_viewport.add_child(dome)
 	
-	# Establecer visibilidad inicial según configuración (desactivado por defecto)
+	# La cúpula estelar siempre debe estar visible como fondo espacial base para evitar "Hall of Mirrors"
+	dome.visible = true
+	_update_dome_stars_parameter(dome)
+	print("[BaseMap] Cúpula estelar 3D creada y configurada.")
+
+func _update_dome_stars_parameter(dome: MeshInstance3D):
 	var show_s = false
 	if get_node_or_null("/root/SettingsManager"):
 		show_s = SettingsManager.show_stars
-	dome.visible = show_s
-	print("[BaseMap] Cúpula estelar 3D creada. Visibilidad: ", show_s)
+	var mat = dome.material_override
+	if mat is ShaderMaterial:
+		mat.set_shader_parameter("u_show_stars", 1.0 if show_s else 0.0)
 
 func update_sky_dome_visibility():
 	if not is_instance_valid(sub_viewport):
 		return
 	var dome = sub_viewport.get_node_or_null("SkyDome")
 	if is_instance_valid(dome):
-		var show_s = false
-		if get_node_or_null("/root/SettingsManager"):
-			show_s = SettingsManager.show_stars
-		dome.visible = show_s
-		print("[BaseMap] Visibilidad de cúpula estelar actualizada: ", show_s)
+		dome.visible = true # Siempre visible para evitar "Hall of Mirrors"
+		_update_dome_stars_parameter(dome)
+		print("[BaseMap] Visibilidad de estrellas en cúpula estelar actualizada.")
 
 func setup_map():
 	_setup_dynamic_3d_map_layout()
@@ -226,14 +230,16 @@ func _setup_dynamic_3d_map_layout():
 		var z_float = float(z_id_str)
 		if z_float == int(z_float):
 			z_id_str = str(int(z_float))
+			
+	var map_cfg = {}
 	if GameConstants.MAPS_CONFIG.has(z_id_str):
-		var cfg = GameConstants.MAPS_CONFIG[z_id_str]
-		if cfg.has("width") and float(cfg.width) > 0:
-			map_width = float(cfg.width)
-			map_height = float(cfg.width)
+		map_cfg = GameConstants.MAPS_CONFIG[z_id_str]
+		if map_cfg.has("width") and float(map_cfg.width) > 0:
+			map_width = float(map_cfg.width)
+			map_height = float(map_cfg.width)
 			world_size = map_width
-		if cfg.has("height") and float(cfg.height) > 0:
-			map_height = float(cfg.height)
+		if map_cfg.has("height") and float(map_cfg.height) > 0:
+			map_height = float(map_cfg.height)
 
 	var margin_2d = max(world_size * 3.0, 20000.0)
 	var ground_size_x = (map_width + margin_2d * 2.0) * scale_factor
@@ -249,6 +255,12 @@ func _setup_dynamic_3d_map_layout():
 	var existing_ground = sub_viewport.get_node_or_null("Ground3D")
 	if is_instance_valid(existing_ground):
 		_resize_existing_ground(existing_ground, ground_size_x, ground_size_z, center_x, center_z, y_ground, map_width, map_height, fog_start_3d, fog_end_3d)
+		return
+
+	# v500.2: Opción para omitir la creación del suelo decorativo gris por defecto
+	var hide_default_ground = map_cfg.get("hideDefaultGround", false)
+	if hide_default_ground:
+		print("[BaseMap] hideDefaultGround es true. Omitiendo la creación del suelo decorativo genérico.")
 		return
 
 	# Crear suelo 3D decorativo (superficie estelar / lunar)

@@ -35,6 +35,10 @@ window/stretch/aspect="expand"
 
 run/main_run_args="Principal"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/terrain_3d/plugin.cfg")
+
 [input]
 
 fire_laser={
