@@ -2,16 +2,12 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://sjdkwxtbgvri"
-path="res://.godot/imported/mixboard-image (1).png-16ec9647c99c0620949d5024edc9ae78.ctex"
-metadata={
-"vram_texture": false
-}
+uid="uid://c0i8lb6o51bur"
+valid=false
 
 [deps]
 
-source_file="res://assets/Base de Mapas/mixboard-image (1).png"
-dest_files=["res://.godot/imported/mixboard-image (1).png-16ec9647c99c0620949d5024edc9ae78.ctex"]
+source_file="res://assets/Asteroides/2D/Asteroides.png"
 
 [params]
 

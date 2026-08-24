@@ -2,18 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://s8vwtv2nca17"
-path.s3tc="res://.godot/imported/mixboard-image.png-c038ba226d4ea03085d207e4be395b7d.s3tc.ctex"
-path.etc2="res://.godot/imported/mixboard-image.png-c038ba226d4ea03085d207e4be395b7d.etc2.ctex"
+uid="uid://527bv4ydb3pn"
+path.s3tc="res://.godot/imported/Asteroides_Asteroides_rm.jpg-0375d712fa019d0e01828a0f505fca88.s3tc.ctex"
+path.etc2="res://.godot/imported/Asteroides_Asteroides_rm.jpg-0375d712fa019d0e01828a0f505fca88.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
+generator_parameters={
+"md5": "d6e12da9b6b5473edd5a9f58c7bf3d7d"
+}
 
 [deps]
 
-source_file="res://assets/Base de Mapas/mixboard-image.png"
-dest_files=["res://.godot/imported/mixboard-image.png-c038ba226d4ea03085d207e4be395b7d.s3tc.ctex", "res://.godot/imported/mixboard-image.png-c038ba226d4ea03085d207e4be395b7d.etc2.ctex"]
+source_file="res://assets/Asteroides/3D/Asteroides_Asteroides_rm.jpg"
+dest_files=["res://.godot/imported/Asteroides_Asteroides_rm.jpg-0375d712fa019d0e01828a0f505fca88.s3tc.ctex", "res://.godot/imported/Asteroides_Asteroides_rm.jpg-0375d712fa019d0e01828a0f505fca88.etc2.ctex"]
 
 [params]
 

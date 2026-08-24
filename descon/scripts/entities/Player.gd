@@ -105,6 +105,18 @@ var cast_type: String = "" # "ammo" o "skill"
 var cast_payload: Dictionary = {}
 var cast_angle: float = 0.0
 var cast_start_pos: Vector2 = Vector2.ZERO
+var _cast_visual_3d: Node3D = null
+var _cast_bg_3d: MeshInstance3D = null
+var _cast_fg_3d: MeshInstance3D = null
+var _cast_visual_2d: Control = null
+var _current_cast_color: Color = Color.WHITE
+var _buffered_cast_action: Dictionary = {}
+var _buffered_cast_time: float = 0.0
+const CAST_BUFFER_WINDOW_MS: float = 500.0
+var _remote_cast_active: bool = false
+var _remote_cast_duration: float = 0.0
+var _remote_cast_elapsed: float = 0.0
+var _remote_cast_angle: float = 0.0
 
 var _shake_amount: float = 0.0
 var _shake_decay: float = 0.93
@@ -154,6 +166,10 @@ func _ready():
 	
 	if NetworkManager:
 		NetworkManager.login_success.connect(_on_login_success)
+		if NetworkManager.has_signal("cast_started"):
+			NetworkManager.cast_started.connect(_on_remote_cast_started)
+		if NetworkManager.has_signal("cast_cancelled"):
+			NetworkManager.cast_cancelled.connect(_on_remote_cast_cancelled)
 		NetworkManager.inventory_data.connect(_on_inventory_received)
 		NetworkManager.slow_state.connect(_on_slow_state)
 		NetworkManager.stun_state.connect(_on_stun_state)
@@ -516,14 +532,14 @@ func _physics_process(p_delta):
 		pass
 
 	_handle_cooldowns(p_delta)
-	
-	# ==== CASTEO: si esta casteando, actualizar y bloquear input/movimiento ====
-	if is_casting:
-		if _update_cast(p_delta):
-			_update_shake(p_delta)
-			_sync_with_server(p_delta)
-			return
-	
+	# Remote cast tick
+	if _remote_cast_active:
+		_remote_cast_elapsed += p_delta
+		var progR = clamp(_remote_cast_elapsed / max(0.01, _remote_cast_duration), 0.0, 1.0)
+		_update_cast_visual(progR)
+		rotation = lerp_angle(rotation, _remote_cast_angle, 0.25)
+		if _remote_cast_elapsed >= _remote_cast_duration:
+			_clear_remote_cast_visual()
 	# Decrementar temporizadores de efectos de estado activos
 	if slow_timer > 0.0:
 		slow_timer = max(0.0, slow_timer - p_delta)
@@ -542,6 +558,18 @@ func _physics_process(p_delta):
 			_recalculate_stats()
 	if _sleep_grace > 0.0:
 		_sleep_grace = max(0.0, _sleep_grace - p_delta)
+	
+	# ==== CASTEO LOCAL: congelar y bloquear input/movimiento ====
+	if is_casting:
+		var chat_c = get_tree().get_first_node_in_group("chat_ui")
+		var focus_node_c = get_viewport().gui_get_focus_owner()
+		var is_typing_c = (chat_c and chat_c.has_method("is_typing") and chat_c.is_typing()) or (focus_node_c is LineEdit or focus_node_c is TextEdit)
+		if not is_typing_c:
+			_handle_input()
+		if _update_cast(p_delta):
+			_update_shake(p_delta)
+			_sync_with_server(p_delta)
+			return
 	
 	if is_feared:
 		fear_timer -= p_delta
@@ -775,6 +803,45 @@ func _get_skill_cast_ms(skill_name: String) -> float:
 		return float(GameConstants.SKILLS_DATA[key].get("castTimeMs", 0))
 	return 0.0
 
+func _get_cast_color(p_type: String, p_detail: String) -> Color:
+	if p_type == "ammo":
+		var ammo_type = p_detail.to_lower()
+		match ammo_type:
+			"laser": return Color(0.95, 0.15, 0.15)      # Rojo fuerte
+			"missile": return Color(1.0, 0.45, 0.0)      # Naranja brillante
+			"mine": return Color(0.95, 0.75, 0.0)       # Amarillo/Naranja
+			"melee": return Color(0.85, 0.25, 0.0)      # Rojo oscuro / Fuego
+			"heal": return Color(0.15, 0.95, 0.15)       # Verde curación
+			"siphon": return Color(0.85, 0.0, 0.85)      # Fucsia/Vampírico
+			"emp": return Color(0.0, 0.75, 1.0)         # Celeste/Azul eléctrico
+			"electron": return Color(1.0, 0.9, 0.0)     # Amarillo eléctrico
+			_: return Color.WHITE
+	elif p_type == "skill":
+		var skill_name = p_detail.to_upper().strip_edges().replace("Ó","O").replace("É","E").replace("Í","I").replace("Á","A").replace("Ú","U")
+		if GameConstants.SKILLS_DATA.has(skill_name):
+			var s_data = GameConstants.SKILLS_DATA[skill_name]
+			var raw_type = str(s_data.get("type", "ataque")).to_lower()
+			if "ataque" in raw_type:
+				return Color(0.9, 0.35, 0.3)
+			elif "defensa" in raw_type:
+				return Color(0.3, 0.65, 0.9)
+			elif "curacion" in raw_type or "curación" in raw_type:
+				return Color(0.35, 0.85, 0.4)
+			elif "utilidad" in raw_type or "movimiento" in raw_type:
+				return Color(0.95, 0.9, 0.35)
+		if GameConstants.SKILLS_DATA.has(p_detail):
+			var s_data = GameConstants.SKILLS_DATA[p_detail]
+			var raw_type = str(s_data.get("type", "ataque")).to_lower()
+			if "ataque" in raw_type:
+				return Color(0.9, 0.35, 0.3)
+			elif "defensa" in raw_type:
+				return Color(0.3, 0.65, 0.9)
+			elif "curacion" in raw_type or "curación" in raw_type:
+				return Color(0.35, 0.85, 0.4)
+			elif "utilidad" in raw_type or "movimiento" in raw_type:
+				return Color(0.95, 0.9, 0.35)
+	return Color.WHITE
+
 func _start_cast(p_duration_ms: float, p_type: String, p_angle: float, p_payload: Dictionary) -> bool:
 	if is_casting:
 		return false
@@ -804,6 +871,15 @@ func _start_cast(p_duration_ms: float, p_type: String, p_angle: float, p_payload
 		else:
 			NetworkManager.send_event("playerCastStart", {"skillName": p_payload.get("skillName",""), "sphereIdx": p_payload.get("sphereIdx", -1), "angle": p_angle, "x": global_position.x, "y": global_position.y, "targetId": p_payload.get("targetId", null), "posX": pos_v.x, "posY": pos_v.y})
 	_force_move_sync()
+	
+	var detail = ""
+	if p_type == "ammo":
+		detail = p_payload.get("type", "laser")
+	else:
+		detail = p_payload.get("skillName", "")
+		
+	_ensure_cast_visual(p_type, detail)
+	_update_cast_visual(0.0)
 	return true
 
 func _update_cast(p_delta: float) -> bool:
@@ -821,12 +897,15 @@ func _update_cast(p_delta: float) -> bool:
 	velocity = Vector2.ZERO
 	target_position = cast_start_pos
 	global_position = cast_start_pos
+	var prog = clamp(cast_elapsed / max(0.01, cast_duration), 0.0, 1.0)
+	_update_cast_visual(prog)
 	if cast_elapsed >= cast_duration:
 		_execute_cast()
 		return true
 	return true
 
 func _execute_cast():
+	_clear_cast_visual()
 	var payload = cast_payload.duplicate(true)
 	var was_type = cast_type
 	var was_angle = cast_angle
@@ -842,10 +921,15 @@ func _execute_cast():
 		var sid = int(payload.get("sphereIdx", -1))
 		var pdata = {"angle": was_angle, "pos": payload.get("pos", global_position), "target": payload.get("target", null)}
 		_do_sphere_skill_immediate(sid, pdata)
+	
+	# Procesar el buffer de casteo de forma diferida para evitar conflictos del frame actual
+	call_deferred("_check_and_process_cast_buffer")
 
 func _cancel_cast(reason: String = "manual"):
 	if not is_casting:
 		return
+	_clear_cast_visual()
+	_buffered_cast_action = {} # Limpiar el buffer ante interrupciones
 	is_casting = false
 	cast_duration = 0.0
 	cast_elapsed = 0.0
@@ -858,8 +942,134 @@ func _cancel_cast(reason: String = "manual"):
 	if reason == "manual":
 		pass
 
+func _check_and_process_cast_buffer():
+	if _buffered_cast_action.is_empty():
+		return
+		
+	var now = Time.get_ticks_msec()
+	var elapsed = now - _buffered_cast_time
+	if elapsed > CAST_BUFFER_WINDOW_MS:
+		print("[BUFFER] Acción encolada expiró: ", elapsed, "ms")
+		_buffered_cast_action = {}
+		return
+		
+	var action = _buffered_cast_action.duplicate(true)
+	_buffered_cast_action = {} # Limpiar para evitar recursiones
+	
+	print("[BUFFER] Procesando acción encolada del buffer...")
+	if action.action_type == "ammo":
+		_shoot_skill(action.ammo_type, action.angle, action.pos)
+	elif action.action_type == "skill":
+		_use_sphere_skill(action.sphere_id, action.payload)
+
 func is_currently_casting() -> bool:
 	return is_casting
+
+func _get_hud_base_y() -> float:
+	var base_y = -70.0
+	if is_in_group("player"):
+		base_y = -105.0
+	elif entity_type >= 101:
+		base_y = -220.0
+		
+	var is_projected = get_meta("is_single_world", false) and is_instance_valid(world_root_3d)
+	if is_projected:
+		base_y = 0.0
+	return base_y
+
+func _ensure_cast_visual(p_type: String, p_detail: String):
+	_current_cast_color = _get_cast_color(p_type, p_detail)
+	_ensure_cast_visual_2d(p_type, p_detail)
+
+func _ensure_cast_visual_2d(p_type: String, p_detail: String):
+	if is_instance_valid(_cast_visual_2d):
+		return
+	var ui = get("_ui_wrapper")
+	if not is_instance_valid(ui):
+		ui = get_node_or_null("HUD_Layer_Final")
+	if not is_instance_valid(ui):
+		return
+		
+	var base_y = _get_hud_base_y()
+	
+	var container = Control.new()
+	container.name = "CastBar2D"
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Ancho 44 (mismo de la barra de vida), alto 2 (mitad de 4)
+	container.custom_minimum_size = Vector2(44, 2)
+	container.size = Vector2(44, 2)
+	# Centrado en X (-22) y posicionado debajo de la barra de vida (base_y + 2.0)
+	container.position = Vector2(-22, base_y + 2.0)
+	container.z_index = 10
+	
+	var bg = ColorRect.new()
+	bg.name = "BG"
+	bg.color = Color(0.08, 0.08, 0.1, 0.75)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	container.add_child(bg)
+	
+	var fg = ColorRect.new()
+	fg.name = "FG"
+	fg.color = _current_cast_color
+	fg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fg.anchor_right = 0
+	fg.offset_left = 0
+	fg.offset_right = 0
+	fg.offset_top = 0
+	fg.offset_bottom = 0
+	container.add_child(fg)
+	
+	ui.add_child(container)
+	_cast_visual_2d = container
+
+func _update_cast_visual(progress: float):
+	progress = clamp(progress, 0.0, 1.0)
+	if is_instance_valid(_cast_visual_2d):
+		var fg = _cast_visual_2d.get_node_or_null("FG")
+		if is_instance_valid(fg):
+			fg.anchor_right = progress
+			fg.color = _current_cast_color
+
+func _clear_cast_visual():
+	if is_instance_valid(_cast_visual_2d):
+		_cast_visual_2d.queue_free()
+		_cast_visual_2d = null
+
+func _start_remote_cast_visual(duration_ms: float, angle: float, p_type: String, p_detail: String):
+	_remote_cast_active = true
+	_remote_cast_duration = max(0.01, float(duration_ms)/1000.0)
+	_remote_cast_elapsed = 0.0
+	_remote_cast_angle = angle
+	rotation = angle
+	_ensure_cast_visual(p_type, p_detail)
+	_update_cast_visual(0.0)
+
+func _clear_remote_cast_visual():
+	_remote_cast_active = false
+	_remote_cast_duration = 0.0
+	_remote_cast_elapsed = 0.0
+	_clear_cast_visual()
+
+func _on_remote_cast_started(data: Dictionary):
+	var sid = str(data.get("id",""))
+	if sid != str(entity_id):
+		return
+	var dur = float(data.get("duration", 0))
+	var ang = float(data.get("angle", rotation))
+	var c_type = str(data.get("type", "ammo"))
+	var detail = ""
+	if c_type == "ammo":
+		detail = str(data.get("ammoType", "laser"))
+	else:
+		detail = str(data.get("skillName", ""))
+	_start_remote_cast_visual(dur, ang, c_type, detail)
+
+func _on_remote_cast_cancelled(data: Dictionary):
+	var sid = str(data.get("id",""))
+	if sid != str(entity_id):
+		return
+	_clear_remote_cast_visual()
+
 
 
 func _on_inventory_received(p_data):
@@ -1035,6 +1245,14 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 	if cooldowns.get(p_type, 0.0) > 0.0:
 		return
 	if is_casting:
+		_buffered_cast_action = {
+			"action_type": "ammo",
+			"ammo_type": p_type,
+			"angle": p_angle,
+			"pos": p_target_pos
+		}
+		_buffered_cast_time = Time.get_ticks_msec()
+		print("[BUFFER] Munición encolada en el buffer: ", p_type)
 		return
 	# Zona segura (Lobby): defensa en profundidad, nunca disparar
 	if _is_safe_zone():
@@ -1125,6 +1343,13 @@ func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 =
 
 func _use_sphere_skill(id: int, p_data: Dictionary):
 	if is_casting:
+		_buffered_cast_action = {
+			"action_type": "skill",
+			"sphere_id": id,
+			"payload": p_data.duplicate(true)
+		}
+		_buffered_cast_time = Time.get_ticks_msec()
+		print("[BUFFER] Habilidad encolada en el buffer: sphere_", id)
 		return
 	var key = "sphere_" + str(id)
 	if cooldowns[key] > 0: return
