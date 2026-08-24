@@ -266,10 +266,54 @@ func _setup_dynamic_3d_map_layout():
 	var fog_start_3d = max(map_width * scale_factor * 0.25, 15.0)
 	var fog_end_3d = max(map_width * scale_factor * 0.75, 60.0)
 
-	# v500.0: Si Ground3D ya existe (pre-colocado en la escena), redimensionar sin recrear
-	var existing_ground = sub_viewport.get_node_or_null("Ground3D")
+	# v500.0: Buscar Ground3D (ya sea directo en viewport o dentro de la escena personalizada del editor)
+	var existing_ground = sub_viewport.find_child("Ground3D", true, false) if is_instance_valid(sub_viewport) else null
 	if is_instance_valid(existing_ground):
-		_resize_existing_ground(existing_ground, ground_size_x, ground_size_z, center_x, center_z, y_ground, map_width, map_height, fog_start_3d, fog_end_3d)
+		if not existing_ground.visible:
+			print("[BaseMap] Ground3D personalizado está desactivado (visible = false). Omitiendo.")
+			return
+			
+		# Si existe pero está vacío (sirve de placeholder), rellenarlo dinámicamente con la malla y nebulosas por defecto del Lobby
+		var ground_mesh = existing_ground.get_node_or_null("GroundMesh")
+		if not is_instance_valid(ground_mesh):
+			print("[BaseMap] Ground3D personalizado detectado como placeholder. Generando malla y nebulosas del Lobby...")
+			ground_mesh = MeshInstance3D.new()
+			ground_mesh.name = "GroundMesh"
+			var plane_mesh = PlaneMesh.new()
+			plane_mesh.size = Vector2(ground_size_x, ground_size_z)
+			ground_mesh.mesh = plane_mesh
+			ground_mesh.position = Vector3.ZERO # Local al placeholder
+			
+			var ground_mat = _create_ground_material()
+			_apply_ground_fog(ground_mat, fog_start_3d, fog_end_3d)
+			ground_mesh.material_override = ground_mat
+			existing_ground.add_child(ground_mesh)
+			
+			# Añadir Nebulosas
+			var wall_root = Node3D.new()
+			wall_root.name = "NebulaWalls"
+			existing_ground.add_child(wall_root)
+			
+			var nebula_width = fog_end_3d * 0.8
+			var wall_height = 50.0
+			var y_wall = wall_height * 0.3 # Local
+			
+			var min_x = -map_width * scale_factor * 0.5
+			var max_x = map_width * scale_factor * 0.5
+			var min_z = -map_height * scale_factor * correction_z * 0.5
+			var max_z = map_height * scale_factor * correction_z * 0.5
+			
+			var wall_mat = _create_nebula_material()
+			_create_nebula_wall(wall_root, "WallTop", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, min_z), Vector3.ZERO, wall_mat)
+			_create_nebula_wall(wall_root, "WallBottom", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, max_z), Vector3.ZERO, wall_mat)
+			_create_nebula_wall(wall_root, "WallLeft", Vector2(max_z - min_z + nebula_width * 2.0, wall_height), Vector3(min_x, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
+			_create_nebula_wall(wall_root, "WallRight", Vector2(max_z - min_z + nebula_width * 2.0, wall_height), Vector3(max_x, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
+			
+			# Posicionar el placeholder en el centro
+			existing_ground.position = Vector3(center_x, y_ground, center_z)
+		else:
+			# Si ya tiene la malla, simplemente redimensionar
+			_resize_existing_ground(existing_ground, ground_size_x, ground_size_z, center_x, center_z, y_ground, map_width, map_height, fog_start_3d, fog_end_3d)
 		return
 
 	# v500.2: Opción para omitir la creación del suelo decorativo gris por defecto
@@ -284,6 +328,7 @@ func _setup_dynamic_3d_map_layout():
 	sub_viewport.add_child(ground_root)
 
 	var mesh_instance = MeshInstance3D.new()
+	mesh_instance.name = "GroundMesh"
 	var plane_mesh = PlaneMesh.new()
 	plane_mesh.size = Vector2(ground_size_x, ground_size_z)
 	mesh_instance.mesh = plane_mesh
@@ -443,16 +488,6 @@ func _setup_3d_dynamic():
 							scene_inst.remove_child(ed_cam)
 							ed_cam.queue_free()
 							
-						var ed_env = scene_inst.get_node_or_null("WorldEnvironment")
-						if is_instance_valid(ed_env):
-							scene_inst.remove_child(ed_env)
-							ed_env.queue_free()
-							
-						var ed_light = scene_inst.get_node_or_null("DirectionalLight3D")
-						if is_instance_valid(ed_light):
-							scene_inst.remove_child(ed_light)
-							ed_light.queue_free()
-							
 						sub_viewport.add_child(scene_inst)
 						_has_custom_3d_scene = true
 						print("[BaseMap] Cargada escena 3D pre-diseñada en canvas existente (síncrono): ", scene_3d_path)
@@ -529,16 +564,6 @@ func _setup_3d_dynamic():
 				scene_inst.remove_child(ed_cam)
 				ed_cam.queue_free()
 				
-			var ed_env = scene_inst.get_node_or_null("WorldEnvironment")
-			if is_instance_valid(ed_env):
-				scene_inst.remove_child(ed_env)
-				ed_env.queue_free()
-				
-			var ed_light = scene_inst.get_node_or_null("DirectionalLight3D")
-			if is_instance_valid(ed_light):
-				scene_inst.remove_child(ed_light)
-				ed_light.queue_free()
-				
 			sub_viewport.add_child(scene_inst)
 			_has_custom_3d_scene = true
 			print("[BaseMap] Cargada escena 3D pre-diseñada (síncrono): ", scene_3d_path)
@@ -610,56 +635,90 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 	if not is_instance_valid(sub_vp):
 		return
 		
-	# 1. WorldEnvironment (Asegurar luz ambiental clara de soporte duplicada)
-	var env_node = sub_vp.get_node_or_null("WorldEnvironment")
-	if not is_instance_valid(env_node):
-		env_node = WorldEnvironment.new()
-		env_node.name = "WorldEnvironment"
-		sub_vp.add_child(env_node)
-		
-	var env = env_node.environment
-	if is_instance_valid(env):
-		env = env.duplicate()
-		env_node.environment = env
-	else:
-		env = Environment.new()
-		env_node.environment = env
-		
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.28, 0.30, 0.42) # Espacio azul/gris suave pero iluminado
-	env.ambient_light_energy = 1.5 # Alta energía base para que los modelos nunca queden a oscuras
-
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	# Verificar si la escena personalizada ya tiene su propio WorldEnvironment
+	var has_custom_env = false
+	for child in sub_vp.get_children():
+		if child.name != "Camera3D" and child.name != "SkyDome" and child.name != "WorldCursor3D" and child.name != "WorldEnvironment" and child.name != "DirectionalLight3D":
+			if child.find_child("WorldEnvironment", true, false) != null:
+				has_custom_env = true
+				break
 
 	# Obtener calidad gráfica actual
 	var quality = 1 # Por defecto Media
 	if get_node_or_null("/root/SettingsManager"):
 		quality = SettingsManager.get_graphics_quality()
 
-	# Configuración de GLOW (Efecto de brillo) según calidad
-	if quality == 0:
-		env.glow_enabled = false
-	else:
-		env.glow_enabled = true
-		env.glow_intensity = 0.6
-		env.glow_strength = 1.2
-		env.glow_bloom = 0.15
-		env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
-		env.glow_hdr_threshold = 1.2
-
-	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.1
-	env.adjustment_saturation = 1.05
-
-	# Habilitar oclusión ambiental (SSAO) e iluminación indirecta (SSIL) según calidad y renderizador activo
-	var ssao_active = false
-	var ssil_active = false
-	
 	var current_renderer = ""
 	if ProjectSettings.has_setting("rendering/renderer/rendering_method"):
 		current_renderer = ProjectSettings.get_setting("rendering/renderer/rendering_method")
+		
+	# 1. WorldEnvironment (Asegurar luz ambiental clara de soporte duplicada)
+	if not has_custom_env:
+		var env_node = sub_vp.get_node_or_null("WorldEnvironment")
+		if not is_instance_valid(env_node):
+			env_node = WorldEnvironment.new()
+			env_node.name = "WorldEnvironment"
+			sub_vp.add_child(env_node)
+			
+		var env = env_node.environment
+		if is_instance_valid(env):
+			env = env.duplicate()
+			env_node.environment = env
+		else:
+			env = Environment.new()
+			env_node.environment = env
+			
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		env.ambient_light_color = Color(0.28, 0.30, 0.42) # Espacio azul/gris suave pero iluminado
+		env.ambient_light_energy = 1.5 # Alta energía base para que los modelos nunca queden a oscuras
 
-	# Configuración de Render Scale y Calidad 3D en el Viewport
+		env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+
+		# Configuración de GLOW (Efecto de brillo) según calidad
+		if quality == 0:
+			env.glow_enabled = false
+		else:
+			env.glow_enabled = true
+			env.glow_intensity = 0.6
+			env.glow_strength = 1.2
+			env.glow_bloom = 0.15
+			env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
+			env.glow_hdr_threshold = 1.2
+
+		env.adjustment_enabled = true
+		env.adjustment_contrast = 1.1
+		env.adjustment_saturation = 1.05
+
+		# Habilitar oclusión ambiental (SSAO) e iluminación indirecta (SSIL) según calidad y renderizador activo
+		var ssao_active = false
+		var ssil_active = false
+		
+		# SSAO y SSIL no están soportados en el renderizador gl_compatibility
+		if current_renderer != "gl_compatibility":
+			if quality == 1: # Media
+				ssao_active = true
+			elif quality == 2: # Alta
+				ssao_active = true
+				ssil_active = true
+				
+		env.ssao_enabled = ssao_active
+		if ssao_active:
+			env.ssao_intensity = 1.5
+			env.ssao_power = 1.2
+			env.ssao_detail = 0.5
+			
+		# SSIL sólo está disponible en Forward+
+		if current_renderer == "forward_plus":
+			env.ssil_enabled = ssil_active
+			if ssil_active:
+				env.ssil_intensity = 1.0
+	else:
+		# Si la escena personalizada ya tiene WorldEnvironment, nos aseguramos de que el por defecto no interfiera
+		var env_node = sub_vp.get_node_or_null("WorldEnvironment")
+		if is_instance_valid(env_node):
+			env_node.queue_free()
+
+	# Configuración de Render Scale y Calidad 3D en el Viewport (se aplica independientemente del Env)
 	# Para dispositivos de gama baja (calidad = 0), bajamos la resolución de renderizado 3D al 30% (muy liviano, se ve pixelado pero corre fluido)
 	# Para calidad media, al 60%. Para calidad alta, al 100%.
 	# Nota: Esto no afecta las letras/HUD/UI, que siguen viéndose perfectamente nítidos y legibles.
@@ -697,55 +756,49 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 	sub_vp.screen_space_aa = screen_aa
 	sub_vp.mesh_lod_threshold = lod_threshold
 
-	# SSAO y SSIL no están soportados en el renderizador gl_compatibility
-	if current_renderer != "gl_compatibility":
-		if quality == 1: # Media
-			ssao_active = true
-		elif quality == 2: # Alta
-			ssao_active = true
-			ssil_active = true
-			
-	env.ssao_enabled = ssao_active
-	if ssao_active:
-		env.ssao_intensity = 1.5
-		env.ssao_power = 1.2
-		env.ssao_detail = 0.5
-		
-	# SSIL sólo está disponible en Forward+
-	if current_renderer == "forward_plus":
-		env.ssil_enabled = ssil_active
-		if ssil_active:
-			env.ssil_intensity = 1.0
+	# Verificar si la escena personalizada ya tiene su propia DirectionalLight3D
+	var has_custom_light = false
+	for child in sub_vp.get_children():
+		if child.name != "Camera3D" and child.name != "SkyDome" and child.name != "WorldCursor3D" and child.name != "WorldEnvironment" and child.name != "DirectionalLight3D":
+			if child.find_child("DirectionalLight3D", true, false) != null:
+				has_custom_light = true
+				break
 
 	for child in sub_vp.get_children():
 		if child is Light3D:
 			child.shadow_enabled = false
 
 	# 2. Luz Direccional Principal (Simula el sol o estrella del sector)
-	var main_light = sub_vp.get_node_or_null("DirectionalLight3D")
-	if not is_instance_valid(main_light) or not main_light is DirectionalLight3D:
-		main_light = DirectionalLight3D.new()
-		main_light.name = "DirectionalLight3D"
-		sub_vp.add_child(main_light)
-		
-	# Rotación hacia abajo: -65° en X (iluminación cenital limpia), 35° en Y
-	main_light.rotation_degrees = Vector3(-65, 35, 0)
-	main_light.light_color = Color(1.0, 0.92, 0.85) # Luz estelar
-	main_light.light_energy = 1.1 
-	
-	# Sombras nativas 3D profesionales según la calidad gráfica del juego
-	var native_shadows = true
-	if quality == 0: 
-		native_shadows = false
+	if not has_custom_light:
+		var main_light = sub_vp.get_node_or_null("DirectionalLight3D")
+		if not is_instance_valid(main_light) or not main_light is DirectionalLight3D:
+			main_light = DirectionalLight3D.new()
+			main_light.name = "DirectionalLight3D"
+			sub_vp.add_child(main_light)
 			
-	main_light.shadow_enabled = native_shadows
-	if native_shadows:
-		main_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-		main_light.directional_shadow_max_distance = 150.0
-		main_light.shadow_bias = 0.04
-		main_light.shadow_normal_bias = 1.5
-		sub_vp.positional_shadow_atlas_size = 2048
-		sub_vp.positional_shadow_atlas_16_bits = true
+		# Rotación hacia abajo: -65° en X (iluminación cenital limpia), 35° en Y
+		main_light.rotation_degrees = Vector3(-65, 35, 0)
+		main_light.light_color = Color(1.0, 0.92, 0.85) # Luz estelar
+		main_light.light_energy = 1.1 
+		
+		# Sombras nativas 3D profesionales según la calidad gráfica del juego
+		var native_shadows = true
+		if quality == 0: 
+			native_shadows = false
+				
+		main_light.shadow_enabled = native_shadows
+		if native_shadows:
+			main_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+			main_light.directional_shadow_max_distance = 150.0
+			main_light.shadow_bias = 0.04
+			main_light.shadow_normal_bias = 1.5
+			sub_vp.positional_shadow_atlas_size = 2048
+			sub_vp.positional_shadow_atlas_16_bits = true
+	else:
+		# Si la escena ya tiene su luz, nos aseguramos de que la por defecto no interfiera
+		var main_light = sub_vp.get_node_or_null("DirectionalLight3D")
+		if is_instance_valid(main_light):
+			main_light.queue_free()
 
 	# 3. Limpieza de luces secundarias (GL Compatibility solo soporta 1-2 luces direccionales de forma estable)
 	# El relleno ahora se maneja 100% por la luz ambiental del WorldEnvironment

@@ -6429,16 +6429,6 @@
             "name": "Mapa 2",
             "objects": [
                 {
-                    "assetPath": "res://assets/Mapas/Mapa2/Mapa2.tscn",
-                    "label": "Terrain3D",
-                    "rotY": 0.0,
-                    "scale": 1.0,
-                    "type": "custom",
-                    "x": 0.0,
-                    "y": 0.0,
-                    "yOffset": 0.0
-                },
-                {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
                     "label": "Puerta",
                     "rotY": 0.0,

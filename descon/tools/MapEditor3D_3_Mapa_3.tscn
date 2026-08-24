@@ -1,18 +1,20 @@
-[gd_scene load_steps=9 format=3 uid="uid://mapeditor3d_tool"]
+[gd_scene format=3 uid="uid://cuayvppygi27q"]
 
-[ext_resource type="Script" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="Texture2D" uid="uid://c88j3oj0lf6om" path="res://demo/assets/textures/rock023_alb_ht.png" id="2_303il"]
+[ext_resource type="Texture2D" uid="uid://c307hdmos4gtm" path="res://demo/assets/textures/rock023_nrm_rgh.png" id="3_7bc5u"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_t7ar1"]
+albedo_color = Color(0.05, 0.08, 0.15, 1)
+metallic = 0.3
+roughness = 0.8
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1"]
 size = Vector2(20000, 20000)
 subdivide_width = 200
 subdivide_depth = 200
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
-albedo_color = Color(0.05, 0.08, 0.15, 1)
-metallic = 0.3
-roughness = 0.8
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 4
@@ -24,45 +26,117 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
 
-[node name="MapEditor3D" type="Node3D"]
+[sub_resource type="Gradient" id="Gradient_d0lf8"]
+offsets = PackedFloat32Array(0.2, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_y5icj"]
+noise_type = 2
+frequency = 0.03
+cellular_jitter = 3.0
+cellular_return_type = 0
+domain_warp_enabled = true
+domain_warp_type = 1
+domain_warp_amplitude = 50.0
+domain_warp_fractal_type = 2
+domain_warp_fractal_lacunarity = 1.5
+domain_warp_fractal_gain = 1.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_0yuxv"]
+noise = SubResource("FastNoiseLite_y5icj")
+color_ramp = SubResource("Gradient_d0lf8")
+seamless = true
+
+[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_mvx5v"]
+_shader_parameters = {
+&"bias_distance": null,
+&"blend_sharpness": null,
+&"depth_blur": null,
+&"enable_macro_variation": null,
+&"enable_projection": null,
+&"flat_terrain_normals": null,
+&"macro_variation1": null,
+&"macro_variation2": null,
+&"macro_variation_slope": null,
+&"mipmap_bias": null,
+&"noise1_angle": null,
+&"noise1_offset": null,
+&"noise1_scale": null,
+&"noise2_scale": null,
+&"noise_texture": SubResource("NoiseTexture2D_0yuxv"),
+&"projection_threshold": null
+}
+world_background = 0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_l5msm"]
+transparency = 4
+cull_mode = 2
+vertex_color_use_as_albedo = true
+backlight_enabled = true
+backlight = Color(0.5, 0.5, 0.5, 1)
+distance_fade_mode = 1
+distance_fade_min_distance = 128.0
+distance_fade_max_distance = 96.0
+
+[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_jqspa"]
+generated_type = 1
+height_offset = 0.5
+material_override = SubResource("StandardMaterial3D_l5msm")
+last_lod = 0
+last_shadow_lod = 0
+lod0_range = 128.0
+
+[sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_ypfgh"]
+name = "rock023_alb_ht"
+albedo_texture = ExtResource("2_303il")
+normal_texture = ExtResource("3_7bc5u")
+
+[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_d7lmv"]
+mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_jqspa")])
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_ypfgh")])
+
+[node name="MapEditor3D" type="Node3D" unique_id=941587839]
 script = ExtResource("1_editor_script")
 zone_id = "3"
+json_to_import = "[]"
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 40, 40)
+[node name="Camera3D" type="Camera3D" parent="." unique_id=770567274]
+transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
 fov = 35.0
 near = 0.1
 far = 10000.0
 
-
-[node name="GroundPlane" type="StaticBody3D" parent="."]
+[node name="GroundPlane" type="StaticBody3D" parent="." unique_id=300381787]
 collision_mask = 0
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane" unique_id=911426627]
 shape = SubResource("WorldBoundaryShape3D_1")
 
-[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane"]
+[node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=1711100493]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
+material_override = SubResource("StandardMaterial3D_t7ar1")
 mesh = SubResource("PlaneMesh_1")
-material_override = SubResource("StandardMaterial3D_1")
 
-
-[node name="ObjectsRoot" type="Node3D" parent="."]
+[node name="ObjectsRoot" type="Node3D" parent="." unique_id=843027781]
 unique_name_in_owner = true
-meta = {
-"editor_only": true
-}
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-rotation_degrees = Vector3(-45, 45, 0)
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2119741983]
+transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
 light_color = Color(1, 0.95, 0.9, 1)
 light_energy = 2.0
 light_specular = 0.3
 shadow_enabled = true
-directional_shadow_mode = 1
-directional_shadow_max_distance = 200.0
 shadow_bias = 0.02
 shadow_normal_bias = 0.5
+directional_shadow_mode = 1
+directional_shadow_max_distance = 200.0
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=798809310]
 environment = SubResource("Environment_1")
+
+[node name="Terrain3D" type="Terrain3D" parent="." unique_id=1796060403]
+data_directory = "res://assets/Mapas/Mapa3/Terreno"
+material = SubResource("Terrain3DMaterial_mvx5v")
+assets = SubResource("Terrain3DAssets_d7lmv")
+top_level = true
+metadata/_edit_lock_ = true

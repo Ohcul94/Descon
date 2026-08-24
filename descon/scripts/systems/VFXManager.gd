@@ -722,6 +722,11 @@ func _run_shader_warmup():
 		"res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 	]
 	
+	# v500.5: Agregar todos los modelos estáticos (enemigos, naves, jefes) a las escenas para instanciar en warmup
+	for p in static_models_to_cache:
+		if not scenes.has(p):
+			scenes.append(p)
+			
 	for p in scenes:
 		if not queue.has(p): queue.append(p)
 
@@ -794,6 +799,27 @@ func _run_shader_warmup():
 		progress.value = 85.0 + (float(i) / ts) * 10.0
 		# Amortiguar el lag de GPU instanciando un efecto por frame
 		await get_tree().process_frame
+
+	# v500.5: Instanciar la explosión 3D procedimental (SpaceExplosion.gd) y el Beacon3D para compilar sus shaders y partículas
+	var space_expl_script = load("res://scripts/vfx/SpaceExplosion.gd")
+	if space_expl_script:
+		var expl_inst = space_expl_script.new()
+		if expl_inst is Node3D:
+			tn.add_child(expl_inst)
+			expl_inst.position = Vector3(999.0, 999.0, 999.0)
+			_cache_materials_recursive(expl_inst)
+			instantiated_nodes.append(expl_inst)
+
+	var beacon_3d_script = load("res://scripts/vfx/Beacon3D.gd")
+	if beacon_3d_script:
+		var beacon_inst = beacon_3d_script.new()
+		if beacon_inst is Node3D:
+			tn.add_child(beacon_inst)
+			beacon_inst.position = Vector3(999.0, 999.0, 999.0)
+			_cache_materials_recursive(beacon_inst)
+			instantiated_nodes.append(beacon_inst)
+
+	await get_tree().process_frame
 
 	status.text = "Compilando graficos (GPU)..."
 	progress.value = 95.0
