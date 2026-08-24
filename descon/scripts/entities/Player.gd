@@ -97,6 +97,15 @@ var current_zone: int = 1
 var vision_range: float = 1300.0
 var _skill_controller: Node2D = null
 
+# ==== SISTEMA DE CASTEO (Congela nave, apunta al tiro) ====
+var is_casting: bool = false
+var cast_duration: float = 0.0
+var cast_elapsed: float = 0.0
+var cast_type: String = "" # "ammo" o "skill"
+var cast_payload: Dictionary = {}
+var cast_angle: float = 0.0
+var cast_start_pos: Vector2 = Vector2.ZERO
+
 var _shake_amount: float = 0.0
 var _shake_decay: float = 0.93
 var _cam_node: Camera2D = null
@@ -276,6 +285,10 @@ func _stop_sleep_aura() -> void:
 		_sleep_aura.stop_aura()
 
 func _on_status_effects_sync(data: Dictionary):
+	if is_casting and (data.has("stun") or data.has("slow") or data.has("poly")):
+		# if any CC arrives during cast, cancel
+		if float(data.get("stun", 0)) > 0 or float(data.get("poly", 0)) > 0:
+			_cancel_cast("cc")
 	if data.has("stun"):
 		stun_timer = float(data.stun) / 1000.0
 		set_debuff_timer("stun", stun_timer)
@@ -328,6 +341,8 @@ func _on_status_effects_sync(data: Dictionary):
 
 func _on_stun_state(data: Dictionary):
 	if data.has("active") and data.active:
+		if is_casting:
+			_cancel_cast("cc")
 		if data.get("isFear", false):
 			is_feared = true
 			fear_timer = float(data.get("duration", 3000.0)) / 1000.0
@@ -421,6 +436,14 @@ func _setup_skill_controller():
 		add_child(_skill_controller)
 
 func _unhandled_input(event):
+	if is_casting and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		_cancel_cast("manual")
+		get_viewport().set_input_as_handled()
+		return
+	if is_casting and event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+		_cancel_cast("manual")
+		get_viewport().set_input_as_handled()
+		return
 	if current_zone == 100:
 		return
 		
@@ -449,6 +472,9 @@ func _unhandled_input(event):
 					move_btn = MOUSE_BUTTON_LEFT
 				
 				if event.button_index == move_btn:
+					if is_casting:
+						_cancel_cast("manual")
+						return
 					if get_meta("spawn_locked", false):
 						return
 					var map_node = get_tree().get_first_node_in_group("map")
@@ -490,6 +516,13 @@ func _physics_process(p_delta):
 		pass
 
 	_handle_cooldowns(p_delta)
+	
+	# ==== CASTEO: si esta casteando, actualizar y bloquear input/movimiento ====
+	if is_casting:
+		if _update_cast(p_delta):
+			_update_shake(p_delta)
+			_sync_with_server(p_delta)
+			return
 	
 	# Decrementar temporizadores de efectos de estado activos
 	if slow_timer > 0.0:
@@ -578,6 +611,9 @@ func _handle_input():
 
 # v420: Detener el movimiento actual (click, autopilot) y quedarse quieto
 func stay_still():
+	if is_casting:
+		_cancel_cast("manual")
+		return
 	is_moving = false
 	autopilot_enabled = false
 	target_position = global_position
@@ -720,6 +756,111 @@ var cooldowns = {
 func _handle_cooldowns(p_delta):
 	for s in cooldowns:
 		if cooldowns[s] > 0: cooldowns[s] -= p_delta
+
+# ==== CASTEO HELPERS ====
+func _get_ammo_cast_ms(p_type: String, p_tier: int) -> float:
+	if GameConstants.SHOP_ITEMS and GameConstants.SHOP_ITEMS.has("ammo"):
+		var ammo_cfg = GameConstants.SHOP_ITEMS["ammo"].get(p_type, [])
+		if p_tier >= 0 and p_tier < ammo_cfg.size():
+			return float(ammo_cfg[p_tier].get("castTimeMs", ammo_cfg[p_tier].get("castTime", 0)))
+	return 0.0
+
+func _get_skill_cast_ms(skill_name: String) -> float:
+	if skill_name == "":
+		return 0.0
+	var key = skill_name.to_upper().strip_edges().replace("Ó","O").replace("É","E").replace("Í","I").replace("Á","A").replace("Ú","U")
+	if GameConstants.SKILLS_DATA.has(skill_name):
+		return float(GameConstants.SKILLS_DATA[skill_name].get("castTimeMs", 0))
+	if GameConstants.SKILLS_DATA.has(key):
+		return float(GameConstants.SKILLS_DATA[key].get("castTimeMs", 0))
+	return 0.0
+
+func _start_cast(p_duration_ms: float, p_type: String, p_angle: float, p_payload: Dictionary) -> bool:
+	if is_casting:
+		return false
+	if p_duration_ms <= 0:
+		return false
+	is_casting = true
+	cast_duration = float(p_duration_ms) / 1000.0
+	cast_elapsed = 0.0
+	cast_type = p_type
+	cast_payload = p_payload.duplicate(true)
+	cast_angle = p_angle
+	cast_start_pos = global_position
+	# Congelar nave completamente
+	is_moving = false
+	autopilot_enabled = false
+	target_position = global_position
+	velocity = Vector2.ZERO
+	joystick_direction = Vector2.ZERO
+	rotation = p_angle
+	if NetworkManager and NetworkManager.has_method("send_event"):
+		var pos_v = p_payload.get("pos", Vector2.ZERO)
+		if typeof(pos_v) != TYPE_VECTOR2:
+			pos_v = Vector2.ZERO
+		if p_type == "ammo":
+			var tier = int(selected_ammo.get(p_payload.get("type","laser"), 0))
+			NetworkManager.send_event("playerCastStart", {"ammoType": p_payload.get("type","laser"), "ammoTier": tier, "angle": p_angle, "x": global_position.x, "y": global_position.y, "targetId": p_payload.get("targetId", null), "posX": pos_v.x, "posY": pos_v.y})
+		else:
+			NetworkManager.send_event("playerCastStart", {"skillName": p_payload.get("skillName",""), "sphereIdx": p_payload.get("sphereIdx", -1), "angle": p_angle, "x": global_position.x, "y": global_position.y, "targetId": p_payload.get("targetId", null), "posX": pos_v.x, "posY": pos_v.y})
+	_force_move_sync()
+	return true
+
+func _update_cast(p_delta: float) -> bool:
+	if not is_casting:
+		return false
+	# Cancelar si entra stun/fear/poly/dead
+	if is_stunned or is_feared or (is_polymorphed and not poly_can_move) or is_dead:
+		_cancel_cast("cc")
+		return true
+	cast_elapsed += p_delta
+	# Mantener congelada y apuntando
+	rotation = lerp_angle(rotation, cast_angle, 0.35)
+	is_moving = false
+	autopilot_enabled = false
+	velocity = Vector2.ZERO
+	target_position = cast_start_pos
+	global_position = cast_start_pos
+	if cast_elapsed >= cast_duration:
+		_execute_cast()
+		return true
+	return true
+
+func _execute_cast():
+	var payload = cast_payload.duplicate(true)
+	var was_type = cast_type
+	var was_angle = cast_angle
+	is_casting = false
+	cast_duration = 0.0
+	cast_elapsed = 0.0
+	cast_type = ""
+	cast_payload = {}
+	cast_angle = 0.0
+	if was_type == "ammo":
+		_do_shoot_immediate(payload.get("type","laser"), was_angle, payload.get("pos", Vector2.ZERO), payload.get("targetId", null))
+	elif was_type == "skill":
+		var sid = int(payload.get("sphereIdx", -1))
+		var pdata = {"angle": was_angle, "pos": payload.get("pos", global_position), "target": payload.get("target", null)}
+		_do_sphere_skill_immediate(sid, pdata)
+
+func _cancel_cast(reason: String = "manual"):
+	if not is_casting:
+		return
+	is_casting = false
+	cast_duration = 0.0
+	cast_elapsed = 0.0
+	cast_type = ""
+	cast_payload = {}
+	cast_angle = 0.0
+	if NetworkManager and NetworkManager.has_method("send_event"):
+		NetworkManager.send_event("playerCastCancel", {"reason": reason})
+	# feedback leve
+	if reason == "manual":
+		pass
+
+func is_currently_casting() -> bool:
+	return is_casting
+
 
 func _on_inventory_received(p_data):
 	var gd = p_data
@@ -893,11 +1034,24 @@ func _ammo_display_name(ammo_type: String) -> String:
 func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector2.ZERO):
 	if cooldowns.get(p_type, 0.0) > 0.0:
 		return
-
+	if is_casting:
+		return
 	# Zona segura (Lobby): defensa en profundidad, nunca disparar
 	if _is_safe_zone():
 		return
+	var t_idx_cast = selected_ammo.get(p_type, 0)
+	var cast_ms_ammo = _get_ammo_cast_ms(p_type, t_idx_cast)
+	if cast_ms_ammo > 0:
+		var payload = {"type": p_type, "angle": p_angle, "pos": p_target_pos, "targetId": null}
+		if _start_cast(cast_ms_ammo, "ammo", p_angle, payload):
+			return
+	_do_shoot_immediate(p_type, p_angle, p_target_pos, null)
 
+func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector2.ZERO, p_target_id = null):
+	if cooldowns.get(p_type, 0.0) > 0.0:
+		return
+	if _is_safe_zone():
+		return
 	last_combat_time = Time.get_ticks_msec()
 	if NetworkManager:
 		NetworkManager.send_event("playerHitByEnemy", { "damage": 0, "id": entity_id, "attackerType": "combat_ping" })
@@ -970,6 +1124,29 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 	_force_move_sync()
 
 func _use_sphere_skill(id: int, p_data: Dictionary):
+	if is_casting:
+		return
+	var key = "sphere_" + str(id)
+	if cooldowns[key] > 0: return
+	# CASTEO HABILIDAD
+	var skill_for_cast = null
+	var sm_for_cast = get_node_or_null("SpheresManager")
+	if is_instance_valid(sm_for_cast):
+		skill_for_cast = sm_for_cast.get_equipped_skill(id)
+	if skill_for_cast:
+		var s_name_cast = skill_for_cast.skill_name if "skill_name" in skill_for_cast else str(skill_for_cast.get("skill_name",""))
+		var cast_ms_skill = _get_skill_cast_ms(s_name_cast)
+		if cast_ms_skill > 0:
+			var payload_s = {"skillName": s_name_cast, "sphereIdx": id, "angle": p_data.get("angle", rotation), "pos": p_data.get("pos", global_position), "target": p_data.get("target", null), "targetId": null}
+			if is_instance_valid(p_data.get("target")):
+				var tg = p_data.get("target")
+				if "entity_id" in tg: payload_s["targetId"] = tg.entity_id
+				elif tg.has_method("get_id"): payload_s["targetId"] = tg.get_id()
+			if _start_cast(cast_ms_skill, "skill", p_data.get("angle", rotation), payload_s):
+				return
+	_do_sphere_skill_immediate(id, p_data)
+
+func _do_sphere_skill_immediate(id: int, p_data: Dictionary):
 	var key = "sphere_" + str(id)
 	if cooldowns[key] > 0: return
 	var sm = get_node_or_null("SpheresManager")
@@ -1058,12 +1235,18 @@ func _use_sphere_skill(id: int, p_data: Dictionary):
 	cooldowns[key] = cd_val
 
 func set_joystick_direction(dir: Vector2):
+	if is_casting and dir != Vector2.ZERO:
+		_cancel_cast("manual")
+		return
 	joystick_direction = dir
 	if dir != Vector2.ZERO:
 		is_moving = false
 		autopilot_enabled = false
 
 func _apply_movement():
+	if is_casting:
+		velocity = Vector2.ZERO
+		return
 	var slow_val = (speed * (slow_points / 100.0)) if slow_is_percentage else slow_points
 	var final_speed = max(10.0, speed - slow_val - _freeze_slow_val) # v268.40
 

@@ -105,6 +105,9 @@ signal support_mailbox_updated(data)
 signal socket_event_received(event_name, data)
 
 signal status_effects_sync(data)
+signal cast_started(data)
+signal cast_cancelled(data)
+signal cast_rejected(data)
 signal battle_pass_state(data)
 signal combat_meter_update(data)
 
@@ -341,6 +344,10 @@ func _dispatch_event(e_name: String, e_data: Variant):
 		"freezeEvent": freeze_event.emit(e_data) # v268.40
 		"slowState": slow_state.emit(e_data)
 		"stunState": stun_state.emit(e_data)
+		"playerCastStart": cast_started.emit(e_data)
+		"playerCastCancel": cast_cancelled.emit(e_data)
+		"castRejected": cast_rejected.emit(e_data)
+		"castCancelled": cast_cancelled.emit(e_data)
 		"hookPulled": hook_pulled.emit(e_data)
 		"windPush": wind_push.emit(e_data)
 		"statusEffectsSync": status_effects_sync.emit(e_data)

@@ -724,6 +724,7 @@ function renderAmmo() {
                 <div class="field"><label>Alcance (px)</label><input type="number" value="${item.range || 0}" onchange="config.shopItems.ammo['${type}'][${i}].range = parseInt(this.value)"></div>
                 <div class="field"><label>Vel. Bala (px/s)</label><input type="number" value="${item.bulletSpeed}" onchange="config.shopItems.ammo['${type}'][${i}].bulletSpeed = parseInt(this.value)"></div>
                 <div class="field"><label>Cooldown (ms)</label><input type="number" value="${item.cooldown}" onchange="config.shopItems.ammo['${type}'][${i}].cooldown = parseInt(this.value)"></div>
+                <div class="field"><label>Casteo (ms)</label><input type="number" min="0" max="5000" step="50" value="${item.castTimeMs || 0}" onchange="config.shopItems.ammo['${type}'][${i}].castTimeMs = parseInt(this.value) || 0"></div>
             </div>
 
             ${extraFieldsHTML}
@@ -3119,6 +3120,7 @@ function renderSkills() {
             <div class="form-grid">
                 <div class="field"><label>Tipo</label><select onchange="config.skillsData['${name}'].type = this.value"><option value="Defensa" ${s.type==='Defensa'?'selected':''}>Defensa</option><option value="Curación" ${s.type==='Curación'?'selected':''}>Curación</option><option value="Ataque" ${s.type==='Ataque'?'selected':''}>Ataque</option><option value="Utilidad" ${s.type==='Utilidad'?'selected':''}>Utilidad</option></select></div>
                 <div class="field"><label>Cooldown (ms)</label><input type="number" value="${s.cd}" onchange="config.skillsData['${name}'].cd = parseInt(this.value)"></div>
+                <div class="field"><label>Casteo (ms)</label><input type="number" min="0" max="5000" step="50" value="${s.castTimeMs || 0}" onchange="config.skillsData['${name}'].castTimeMs = parseInt(this.value) || 0"></div>
                 <div class="field"><label>Puntos (pts)</label><input type="number" value="${s.amount || 0}" onchange="config.skillsData['${name}'].amount = parseInt(this.value)"></div>
                 <div class="field"><label>Rango (px)</label><input type="number" value="${s.range || 0}" onchange="config.skillsData['${name}'].range = parseInt(this.value)"></div>
                 ${s.duration !== undefined ? `<div class="field"><label>Duración (ms)</label><input type="number" value="${s.duration}" onchange="config.skillsData['${name}'].duration = parseInt(this.value)"></div>` : ''}

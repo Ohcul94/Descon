@@ -284,8 +284,6 @@ socket.on('playerFire', (fireData) => {
         if (now - lastFire < cooldownMs && !p.isAdmin) {
             return;
         }
-        p.lastFireTimes[typeKey] = now;
-
         // ==== GATE CASTEO MUNICION (Anti-Hack) ====
         let requiredCastAmmo = getAmmoCastTimeMs(typeKey, ammoTier);
         if (requiredCastAmmo > 0) {
@@ -314,6 +312,7 @@ socket.on('playerFire', (fireData) => {
         } else {
             if (p.pendingCast && p.pendingCast.type === 'ammo') clearPlayerCast(p);
         }
+        p.lastFireTimes[typeKey] = now;
         if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][ammoTier] || 0) <= 0) {
             return; 
         }
