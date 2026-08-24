@@ -728,6 +728,11 @@ func _update_background(zone_id):
 			var z_cfg = GameConstants.MAPS_CONFIG[z_id_str]
 			if z_cfg.has("width") and float(z_cfg.width) > 0:
 				current_map_node.world_size = float(z_cfg.width)
+			if "map_height" in current_map_node and z_cfg.has("height") and float(z_cfg.height) > 0:
+				current_map_node.map_height = float(z_cfg.height)
+			elif "map_height" in current_map_node and z_cfg.has("width") and float(z_cfg.width) > 0:
+				# Fallback si no hay height, usar width (mapa cuadrado)
+				current_map_node.map_height = float(z_cfg.width)
 				
 		add_child(current_map_node)
 		move_child(current_map_node, 0) # Asegurar que quede detrás de las entidades

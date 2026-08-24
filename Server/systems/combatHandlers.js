@@ -83,7 +83,174 @@ function registerCombatHandlers(socket, io, state) {
     }
     
     // SISTEMA DE DAÑO AUTORITATIVO (Anti-Cheat Server-Side)
-    socket.on('playerFire', (fireData) => {
+        // ==== SISTEMA DE CASTEO AUTORITATIVO (Anti-Hack) ====
+    function getAmmoCastTimeMs(ammoType, ammoTier) {
+        try {
+            const list = state.SERVER_CONFIG && state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo ? state.SERVER_CONFIG.shopItems.ammo[ammoType] : null;
+            if (Array.isArray(list) && list[ammoTier]) {
+                return Math.max(0, Number(list[ammoTier].castTimeMs || 0));
+            }
+        } catch(e) {}
+        return 0;
+    }
+    function getSkillCastTimeMs(skillName) {
+        try {
+            let sd = state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData ? state.SERVER_CONFIG.skillsData[skillName] : null;
+            if (sd) return Math.max(0, Number(sd.castTimeMs || 0));
+            const norm = skillName ? skillName.toUpperCase().replace(/Ó/g,"O").replace(/É/g,"E").replace(/Í/g,"I").replace(/Á/g,"A").replace(/Ú/g,"U") : "";
+            let sd2 = state.SERVER_CONFIG && state.SERVER_CONFIG.skillsData ? state.SERVER_CONFIG.skillsData[norm] : null;
+            if (sd2) return Math.max(0, Number(sd2.castTimeMs || 0));
+        } catch(e) {}
+        return 0;
+    }
+    function clearPlayerCast(p) {
+        if (p.pendingCast) {
+            if (p.pendingCastTimeout) { try{ clearTimeout(p.pendingCastTimeout);}catch(e){} }
+            p.pendingCast = null;
+            p.pendingCastTimeout = null;
+        }
+    }
+    socket.on('playerCastStart', (castData) => {
+        const p = state.players[socket.id];
+        if (!p || !state.SERVER_CONFIG || p.isDead) return;
+        const lobbyZoneId = Number(state.SERVER_CONFIG && state.SERVER_CONFIG.pilotConfig ? state.SERVER_CONFIG.pilotConfig.startingMapId : 1);
+        if (Number(p.zone) === lobbyZoneId) return;
+        if (p.isSilenced || p.silencedUntil > Date.now()) return;
+        if (p.pendingCast) return;
+        let required = 0;
+        let castType = 'ammo';
+        const ammoTypes = ['laser','missile','mine','melee','heal','siphon','emp','electron'];
+        let isAmmo = false;
+        if (castData.ammoType !== undefined || castData.type === 'ammo' || ammoTypes.includes(castData.ammoType) || ammoTypes.includes(castData.type)) isAmmo = true;
+        if (isAmmo) {
+            const at = castData.ammoType || castData.type || 'laser';
+            const tier = castData.ammoTier !== undefined ? castData.ammoTier : (castData.tier !== undefined ? castData.tier : 0);
+            const typeKey = ammoTypes.includes(at) ? at : 'laser';
+            required = getAmmoCastTimeMs(typeKey, tier);
+            if (required <= 0) return;
+            const now = Date.now();
+            if (!p.lastFireTimes) p.lastFireTimes = {};
+            const lastFire = p.lastFireTimes[typeKey] || 0;
+            let cooldownMs = 120;
+            const ammoList = state.SERVER_CONFIG.shopItems && state.SERVER_CONFIG.shopItems.ammo ? state.SERVER_CONFIG.shopItems.ammo[typeKey] : null;
+            const ammoMaster = (ammoList && Array.isArray(ammoList)) ? ammoList[tier] : null;
+            if (ammoMaster && ammoMaster.cooldown !== undefined) cooldownMs = Math.max(120, (Number(ammoMaster.cooldown)||120)*0.9);
+            if (now - lastFire < cooldownMs && !p.isAdmin) {
+                socket.emit('castRejected', { reason: 'cooldown', type: 'ammo', ammoType: typeKey });
+                return;
+            }
+            if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][tier]||0) <= 0) {
+                socket.emit('castRejected', { reason: 'no_ammo', type: 'ammo' });
+                return;
+            }
+            castType = 'ammo';
+            p.pendingCast = {
+                type: 'ammo',
+                ammoType: typeKey,
+                ammoTier: tier,
+                startTime: Date.now(),
+                duration: required,
+                angle: castData.angle || 0,
+                x: p.x,
+                y: p.y,
+                targetId: castData.targetId || null,
+                posX: castData.posX,
+                posY: castData.posY
+            };
+        } else {
+            const skillName = castData.skillName || castData.name || '';
+            if (!skillName) return;
+            const sphereIdx = castData.sphereIdx !== undefined ? castData.sphereIdx : (castData.id !== undefined ? castData.id : -1);
+            required = getSkillCastTimeMs(skillName);
+            if (required <= 0) return;
+            const now = Date.now();
+            if (!p.sphereCooldowns) p.sphereCooldowns = [0,0,0,0];
+            const lastUse = (sphereIdx>=0 && sphereIdx<4) ? (p.sphereCooldowns[sphereIdx]||0) : 0;
+            const sd = state.SERVER_CONFIG.skillsData ? state.SERVER_CONFIG.skillsData[skillName] : null;
+            const cd_val = sd ? sd.cd : 10000;
+            const cd_ms = (cd_val < 100) ? (cd_val*1000) : cd_val;
+            if (sphereIdx>=0 && now - lastUse < cd_ms && !p.isAdmin) {
+                socket.emit('castRejected', { reason: 'cooldown', type: 'skill' });
+                return;
+            }
+            let hasSkill = false;
+            if (p.spheres && Array.isArray(p.spheres)) {
+                hasSkill = p.spheres.some(s => s.equipped && ((s.equipped.skill_name && s.equipped.skill_name.toUpperCase()===skillName.toUpperCase()) || (s.equipped.name && s.equipped.name.toUpperCase()===skillName.toUpperCase())));
+            }
+            if (!hasSkill && !p.isAdmin) {
+                socket.emit('castRejected', { reason: 'no_skill', type: 'skill' });
+                return;
+            }
+            castType = 'skill';
+            p.pendingCast = {
+                type: 'skill',
+                skillName: skillName,
+                sphereIdx: sphereIdx,
+                startTime: Date.now(),
+                duration: required,
+                angle: castData.angle || 0,
+                x: p.x,
+                y: p.y,
+                targetId: castData.targetId || null,
+                posX: castData.posX,
+                posY: castData.posY,
+                id: sphereIdx
+            };
+        }
+        const castInfo = {
+            id: socket.id,
+            type: castType,
+            ammoType: p.pendingCast.ammoType,
+            ammoTier: p.pendingCast.ammoTier,
+            skillName: p.pendingCast.skillName,
+            sphereIdx: p.pendingCast.sphereIdx,
+            angle: Math.round((p.pendingCast.angle||0)*100)/100,
+            x: Math.round(p.x),
+            y: Math.round(p.y),
+            duration: required,
+            targetId: p.pendingCast.targetId
+        };
+        const isSpecial = typeof p.zone === 'string' && (p.zone.startsWith('arena_') || p.zone.startsWith('extract_') || p.zone.startsWith('dungeon'));
+        if (isSpecial) {
+            socket.to(`zone_${p.zone}`).emit('playerCastStart', castInfo);
+        } else {
+            const CELL = 500;
+            const fCx = Math.floor(p.x/CELL); const fCy = Math.floor(p.y/CELL);
+            const zonePlayers = state.playersByZone[p.zone] || {};
+            Object.values(zonePlayers).forEach(other=>{
+                if (other.socketId===socket.id) return;
+                const oCx = Math.floor(other.x/CELL); const oCy = Math.floor(other.y/CELL);
+                if (Math.abs(fCx-oCx)<=3 && Math.abs(fCy-oCy)<=3) io.to(other.socketId).emit('playerCastStart', castInfo);
+            });
+        }
+        p.pendingCastTimeout = setTimeout(()=>{
+            if (p.pendingCast && Date.now() - p.pendingCast.startTime >= required + 120) {
+                clearPlayerCast(p);
+            }
+        }, required + 4000);
+    });
+    socket.on('playerCastCancel', (data) => {
+        const p = state.players[socket.id];
+        if (!p || !p.pendingCast) return;
+        const was = p.pendingCast;
+        clearPlayerCast(p);
+        const info = { id: socket.id, type: was.type };
+        const isSpecial = typeof p.zone === 'string' && (p.zone.startsWith('arena_') || p.zone.startsWith('extract_') || p.zone.startsWith('dungeon'));
+        if (isSpecial) {
+            socket.to(`zone_${p.zone}`).emit('playerCastCancel', info);
+        } else {
+            const CELL=500;
+            const fCx=Math.floor(p.x/CELL); const fCy=Math.floor(p.y/CELL);
+            const zonePlayers=state.playersByZone[p.zone]||{};
+            Object.values(zonePlayers).forEach(other=>{
+                if(other.socketId===socket.id) return;
+                const oCx=Math.floor(other.x/CELL); const oCy=Math.floor(other.y/CELL);
+                if(Math.abs(fCx-oCx)<=3 && Math.abs(fCy-oCy)<=3) io.to(other.socketId).emit('playerCastCancel', info);
+            });
+        }
+        socket.emit('castCancelled', { reason: data && data.reason ? data.reason : 'manual' });
+    });
+socket.on('playerFire', (fireData) => {
         const p = state.players[socket.id];
         if (!p || !state.SERVER_CONFIG) return;
 
@@ -119,6 +286,34 @@ function registerCombatHandlers(socket, io, state) {
         }
         p.lastFireTimes[typeKey] = now;
 
+        // ==== GATE CASTEO MUNICION (Anti-Hack) ====
+        let requiredCastAmmo = getAmmoCastTimeMs(typeKey, ammoTier);
+        if (requiredCastAmmo > 0) {
+            if (!p.pendingCast || p.pendingCast.type !== 'ammo' || p.pendingCast.ammoType !== typeKey || p.pendingCast.ammoTier !== ammoTier) {
+                if (!p.isAdmin) {
+                    socket.emit('castRejected', { reason: 'cast_required', type: 'ammo', ammoType: typeKey, required: requiredCastAmmo });
+                    socket.emit('gameNotification', { msg: 'CASTEO REQUERIDO: ' + requiredCastAmmo + 'ms', type: 'error' });
+                    return;
+                }
+            } else {
+                const elapsed = now - p.pendingCast.startTime;
+                const TOL = 120;
+                if (elapsed + TOL < requiredCastAmmo && !p.isAdmin) {
+                    socket.emit('castRejected', { reason: 'cast_time', type: 'ammo', elapsed: elapsed, required: requiredCastAmmo });
+                    socket.emit('gameNotification', { msg: 'CASTEO INCOMPLETO: ' + elapsed + 'ms / ' + requiredCastAmmo + 'ms', type: 'error' });
+                    return;
+                }
+                const distMoved = Math.hypot(p.x - p.pendingCast.x, p.y - p.pendingCast.y);
+                if (distMoved > 150 && !p.isAdmin) {
+                    socket.emit('castRejected', { reason: 'moved_during_cast', type: 'ammo' });
+                    clearPlayerCast(p);
+                    return;
+                }
+                clearPlayerCast(p);
+            }
+        } else {
+            if (p.pendingCast && p.pendingCast.type === 'ammo') clearPlayerCast(p);
+        }
         if (!p.ammo || !p.ammo[typeKey] || (p.ammo[typeKey][ammoTier] || 0) <= 0) {
             return; 
         }
@@ -240,6 +435,34 @@ function registerCombatHandlers(socket, io, state) {
         }
 
         const now = Date.now();
+        // ==== GATE CASTEO SKILL (Anti-Hack) ====
+        let requiredCastSkill = getSkillCastTimeMs(data.skillName || '');
+        if (requiredCastSkill > 0) {
+            if (!p.pendingCast || p.pendingCast.type !== 'skill' || (p.pendingCast.skillName||'').toUpperCase() !== (data.skillName||'').toUpperCase()) {
+                if (!p.isAdmin) {
+                    socket.emit('castRejected', { reason: 'cast_required', type: 'skill', skillName: data.skillName, required: requiredCastSkill });
+                    socket.emit('gameNotification', { msg: 'CASTEO DE HABILIDAD REQUERIDO: ' + requiredCastSkill + 'ms', type: 'error' });
+                    return;
+                }
+            } else {
+                const elapsedS = now - p.pendingCast.startTime;
+                const TOLS = 120;
+                if (elapsedS + TOLS < requiredCastSkill && !p.isAdmin) {
+                    socket.emit('castRejected', { reason: 'cast_time', type: 'skill', elapsed: elapsedS, required: requiredCastSkill });
+                    socket.emit('gameNotification', { msg: 'CASTEO INCOMPLETO: ' + elapsedS + 'ms / ' + requiredCastSkill + 'ms', type: 'error' });
+                    return;
+                }
+                const distMovedS = Math.hypot(p.x - p.pendingCast.x, p.y - p.pendingCast.y);
+                if (distMovedS > 150 && !p.isAdmin) {
+                    socket.emit('castRejected', { reason: 'moved_during_cast', type: 'skill' });
+                    clearPlayerCast(p);
+                    return;
+                }
+                clearPlayerCast(p);
+            }
+        } else {
+            if (p.pendingCast && p.pendingCast.type === 'skill') clearPlayerCast(p);
+        }
         if (!p.sphereCooldowns) p.sphereCooldowns = [0, 0, 0, 0];
         const lastUse = p.sphereCooldowns[sphereIdx] || 0;
         

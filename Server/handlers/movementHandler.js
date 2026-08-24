@@ -33,6 +33,47 @@ const getStatusEffects = (ent) => {
     };
 };
 
+// v530.0: Obtener límites lógicos del mapa (borde de nebulosa) para clamp autoritativo
+const getMapBounds = (zone, state) => {
+    const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+    const zStr = String(zone);
+    // 1) MapsConfig directo (la mayoría de mapas estáticos y extracción)
+    if (maps[zStr]) {
+        const cfg = maps[zStr];
+        const w = parseFloat(cfg.width);
+        const h = parseFloat(cfg.height);
+        if (!isNaN(w) && w > 0) {
+            return { w: w, h: (!isNaN(h) && h > 0) ? h : w };
+        }
+    }
+    // 2) GameModes (altar, arenas, extracción) - para zonas especiales o fallback
+    const gm = state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes;
+    if (gm) {
+        if (gm.extraction && Array.isArray(gm.extraction.maps) && gm.extraction.maps.map(n => String(n)).includes(zStr)) {
+            return { w: parseFloat(gm.extraction.width) || 20000, h: parseFloat(gm.extraction.height) || 20000 };
+        }
+        if (gm.altar_defense && Array.isArray(gm.altar_defense.maps) && gm.altar_defense.maps.map(n => String(n)).includes(zStr)) {
+            return { w: parseFloat(gm.altar_defense.width) || 10000, h: parseFloat(gm.altar_defense.height) || 10000 };
+        }
+        if (gm.arenas) {
+            if (gm.arenas.mapConfigs && gm.arenas.mapConfigs[zStr]) {
+                const ac = gm.arenas.mapConfigs[zStr];
+                return { w: parseFloat(ac.width) || 10000, h: parseFloat(ac.height) || 10000 };
+            }
+            if (Array.isArray(gm.arenas.maps) && gm.arenas.maps.map(n => String(n)).includes(zStr)) {
+                return { w: 10000, h: 10000 };
+            }
+        }
+    }
+    // 3) Zonas string dinámicas
+    if (typeof zone === 'string') {
+        if (zone.startsWith('arena_')) return { w: 10000, h: 10000 };
+        if (zone.startsWith('extract_')) return { w: parseFloat(maps['10'] && maps['10'].width) || 20000, h: parseFloat(maps['10'] && maps['10'].height) || 20000 };
+        if (zone.startsWith('dungeon')) return { w: 4000, h: 4000 };
+    }
+    return { w: 4000, h: 4000 };
+};
+
 function registerMovementHandlers(socket, io, state) {
     const { players, enemies } = state;
 
@@ -87,6 +128,54 @@ function registerMovementHandlers(socket, io, state) {
             movementData.x = p.x;
             movementData.y = p.y;
         }
+        // ==== CASTEO: cancelar si CC activo ====
+        if (p.pendingCast) {
+            const nowCC = Date.now();
+            const isCC = !!(p.isStunned || (p.stunEndTime && nowCC < p.stunEndTime) || p.isFeared || (p.fearEndTime && nowCC < p.fearEndTime) || p.isPolymorphed || (p.polyEndTime && nowCC < p.polyEndTime) || p.isDead);
+            if (isCC) {
+                if (p.pendingCastTimeout) { try{ clearTimeout(p.pendingCastTimeout);}catch(e){} }
+                const was = p.pendingCast;
+                p.pendingCast = null;
+                p.pendingCastTimeout = null;
+                const info = { id: socket.id, type: was.type };
+                // broadcast cancel (best effort)
+                try {
+                    const isSpecialCC = typeof p.zone === 'string' && (p.zone.startsWith('arena_') || p.zone.startsWith('extract_') || p.zone.startsWith('dungeon'));
+                    if (isSpecialCC) socket.to(`zone_${p.zone}`).emit('playerCastCancel', info);
+                    else {
+                        const CELL=500; const fCx=Math.floor(p.x/CELL); const fCy=Math.floor(p.y/CELL);
+                        const zonePlayers=state.playersByZone[p.zone]||{};
+                        Object.values(zonePlayers).forEach(other=>{
+                            if(other.socketId===socket.id) return;
+                            const oCx=Math.floor(other.x/CELL); const oCy=Math.floor(other.y/CELL);
+                            if(Math.abs(fCx-oCx)<=3 && Math.abs(fCy-oCy)<=3) io.to(other.socketId).emit('playerCastCancel', info);
+                        });
+                    }
+                    socket.emit('castCancelled', { reason: 'cc' });
+                } catch(e){}
+            }
+        }
+        // ==== CASTEO: congelar movimiento (Anti-Hack) ====
+        if (p.pendingCast) {
+            const nowC = Date.now();
+            const castEnd = p.pendingCast.startTime + p.pendingCast.duration;
+            if (nowC < castEnd) {
+                // durante casteo, forzar posicion al punto de inicio del casteo
+                movementData.x = p.pendingCast.x;
+                movementData.y = p.pendingCast.y;
+                // fijar rotacion al angulo de casteo (sincronizar hacia el disparo)
+                if (p.pendingCast.angle !== undefined) {
+                    movementData.rotation = p.pendingCast.angle;
+                }
+                // opcional: mantener lastPos sin actualizar para no ensuciar trail
+                // no aplicar anti-speedhack para este frame (ya esta congelado)
+            } else {
+                // casteo expirado sin disparo, limpiar
+                if (p.pendingCastTimeout) { try{ clearTimeout(p.pendingCastTimeout);}catch(e){} }
+                p.pendingCast = null;
+                p.pendingCastTimeout = null;
+            }
+        }
 
         const now = Date.now();
         if (!p.lastMoveTime) p.lastMoveTime = now;
@@ -130,6 +219,27 @@ function registerMovementHandlers(socket, io, state) {
         }
         
         if (p.justBlinked) p.justBlinked = false; // Reset tras el bypass
+
+        // v530.0: Clamp autoritativo al borde de la nebulosa (choque duro servidor)
+        // Si el cliente manda coords fuera del mapa, lo frenamos exactamente en el borde y hacemos rubberband
+        {
+            const bounds = getMapBounds(p.zone, state);
+            const margin = 25.0; // radio de colisión del jugador (match cliente 80/2 - buffer)
+            const clampedX = Math.max(margin, Math.min(bounds.w - margin, Number(movementData.x)));
+            const clampedY = Math.max(margin, Math.min(bounds.h - margin, Number(movementData.y)));
+            if (clampedX !== Number(movementData.x) || clampedY !== Number(movementData.y)) {
+                // Loguear intento de traspasar nebulosa
+                const lastLog = socket.lastBorderLog || 0;
+                if (now - lastLog > 3000) {
+                    Logger.debug('BORDER', `Jugador ${p.user} intentó cruzar nebulosa en zona ${p.zone}: (${movementData.x},${movementData.y}) -> clamp (${clampedX},${clampedY})`);
+                    socket.lastBorderLog = now;
+                }
+                movementData.x = clampedX;
+                movementData.y = clampedY;
+                // Informar al cliente que fue corregido (rubberband suave)
+                socket.emit('playerStatSync', { id: socket.id, x: clampedX, y: clampedY, hp: p.hp, shield: p.shield, maxHp: p.maxHp, maxShield: p.maxShield });
+            }
+        }
 
         p.x = movementData.x;
         p.y = movementData.y;

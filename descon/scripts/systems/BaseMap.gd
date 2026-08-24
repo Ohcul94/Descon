@@ -18,6 +18,7 @@ const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofr
 # Permite definir propiedades específicas por cada nivel y autogenera lienzos 3D.
 
 @export var world_size: float = 4000.0
+@export var map_height: float = 4000.0
 @export var zone_name: String = "SECTOR DESCONOCIDO"
 @export var zone_id: Variant = 1:  # Variant: acepta int (zonas normales) y String (arena_x, extract_x)
 	set(val):
@@ -58,6 +59,8 @@ var mouse_world_pos_2d: Vector2 = Vector2.ZERO   # Equivalente en espacio lógic
 var _has_custom_3d_scene: bool = false
 var terrain_node: Node3D = null
 var custom_objects_root: Node3D = null
+# v530.0: Muros perimetrales 2D que bloquean exactamente en el borde de la nebulosa (0..map_width, 0..map_height)
+var _perimeter_walls_2d: Array = []
 
 var fixed_cam_zoom: float = 1.0
 
@@ -234,10 +237,8 @@ func _on_network_config_updated(_config):
 	print("[BaseMap] Configuración del servidor recibida. Regenerando layout 3D...")
 	_setup_dynamic_3d_map_layout()
 func _setup_dynamic_3d_map_layout():
-	if not is_instance_valid(sub_viewport):
-		return
-
 	# Obtener dimensiones dinámicas del mapa desde MAPS_CONFIG (AdminDash Cartografia)
+	# v530.0: Se calcula ANTES de verificar sub_viewport para que el muro 2D siempre se genere (no depende del lienzo 3D)
 	var map_width = world_size
 	var map_height = world_size
 	var z_id_str = str(zone_id)
@@ -253,8 +254,27 @@ func _setup_dynamic_3d_map_layout():
 			map_width = float(map_cfg.width)
 			map_height = float(map_cfg.width)
 			world_size = map_width
+			self.map_height = map_height
 		if map_cfg.has("height") and float(map_cfg.height) > 0:
 			map_height = float(map_cfg.height)
+			self.map_height = map_height
+	else:
+		# Sin config (arenas dinámicas, extracción) — reflejar world_size en map_height para consistencia
+		self.map_height = map_height
+
+	# v530.0: Crear/actualizar muros físicos del perímetro exactamente en el borde de la nebulosa.
+	# ANTES de cualquier return temprano (Ground3D placeholder, hideDefaultGround o sub_viewport nulo) para que siempre exista choque.
+	if _perimeter_walls_2d.size() == 0:
+		_create_perimeter_collisions_2d(map_width, map_height)
+	else:
+		_update_perimeter_collisions_2d(map_width, map_height)
+
+	# Sincronizar exports para que Player.gd lea map_height correctamente (fix rectangular)
+	self.map_height = map_height
+	self.world_size = map_width
+
+	if not is_instance_valid(sub_viewport):
+		return
 
 	var margin_2d = max(world_size * 3.0, 20000.0)
 	var ground_size_x = (map_width + margin_2d * 2.0) * scale_factor
@@ -403,26 +423,23 @@ func _resize_quad(parent: Node3D, node_name: String, size: Vector2, pos: Vector3
 			node.material_override = mat
 
 func _create_ground_material() -> Material:
-	var mat = ShaderMaterial.new()
-	mat.shader = SHADER_GROUND_RELIEF
-	mat.set_shader_parameter("u_albedo_tex", TEXTURE_NOISE_531)
-	mat.set_shader_parameter("u_detail_tex", TEXTURE_NOISE_21D)
-	mat.set_shader_parameter("u_tint_color", Color(0.55, 0.52, 0.48))
-	mat.set_shader_parameter("u_tiling", Vector2(5.0, 5.0))
-	mat.set_shader_parameter("u_height_scale", 1.8)
-	mat.set_shader_parameter("u_detail_strength", 0.4)
-	mat.set_shader_parameter("u_metallic", 0.2)
-	mat.set_shader_parameter("u_roughness", 0.85)
-	mat.set_shader_parameter("u_emission", Vector3(0.04, 0.03, 0.08))
-	mat.set_shader_parameter("u_emission_energy", 0.3)
+	# v530.1: Piso negro plano — el usuario pidió fondo negro sin textura ni líneas diagonales
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.0, 0.0, 0.0, 1.0)
+	mat.roughness = 1.0
+	mat.metallic = 0.0
+	mat.metallic_specular = 0.0
+	mat.emission_enabled = false
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	return mat
 
 func _apply_ground_fog(mat: Material, fog_start: float, fog_end: float):
+	# v530.1: Con piso negro plano la niebla es innecesaria; si es ShaderMaterial (mapas viejos), mantener compatibilidad
 	if mat is ShaderMaterial:
 		mat.set_shader_parameter("u_fog_start", fog_start)
 		mat.set_shader_parameter("u_fog_end", fog_end)
 		mat.set_shader_parameter("u_fog_color", Color(0.0, 0.0, 0.0, 1.0))
-		mat.set_shader_parameter("u_horizon_glow_color", Vector3(0.005, 0.01, 0.02))
+		mat.set_shader_parameter("u_horizon_glow_color", Vector3(0.0, 0.0, 0.0))
 
 func _create_nebula_material() -> ShaderMaterial:
 	var mat = ShaderMaterial.new()
@@ -446,6 +463,93 @@ func _create_nebula_wall(parent: Node3D, name_str: String, size: Vector2, pos: V
 	wall.position = pos
 	wall.rotation_degrees = rot
 	parent.add_child(wall)
+
+# v530.0: Limpia los muros 2D del perímetro anterior (evita duplicados al cambiar de zona o hot-reload de config)
+func _clear_perimeter_collisions_2d():
+	for w in _perimeter_walls_2d:
+		if is_instance_valid(w):
+			w.queue_free()
+	_perimeter_walls_2d.clear()
+	# Fallback por si quedaron nodos huérfanos con el nombre antiguo
+	for child in get_children():
+		if child.name.begins_with("Perimeter"):
+			child.queue_free()
+
+# v530.0: Crea 4 StaticBody2D exactamente en los bordes lógicos del mapa (0..map_w, 0..map_h)
+# Son los que hacen que el jugador "choque" con la nebulosa. Grosor 80px evita túnel a alta velocidad.
+func _create_perimeter_collisions_2d(map_w: float, map_h: float):
+	_clear_perimeter_collisions_2d()
+	if map_w <= 0 or map_h <= 0:
+		return
+	var thickness: float = 80.0
+	var walls_data = [
+		{"name": "PerimeterTop", "size": Vector2(map_w + thickness * 2.0, thickness), "pos": Vector2(map_w * 0.5, -thickness * 0.5)},
+		{"name": "PerimeterBottom", "size": Vector2(map_w + thickness * 2.0, thickness), "pos": Vector2(map_w * 0.5, map_h + thickness * 0.5)},
+		{"name": "PerimeterLeft", "size": Vector2(thickness, map_h + thickness * 2.0), "pos": Vector2(-thickness * 0.5, map_h * 0.5)},
+		{"name": "PerimeterRight", "size": Vector2(thickness, map_h + thickness * 2.0), "pos": Vector2(map_w + thickness * 0.5, map_h * 0.5)},
+	]
+	for wd in walls_data:
+		var body = StaticBody2D.new()
+		body.name = wd.name
+		body.collision_layer = 2
+		body.collision_mask = 0
+		body.add_to_group("perimeter_wall")
+		var col = CollisionShape2D.new()
+		var rect = RectangleShape2D.new()
+		rect.size = wd.size
+		col.shape = rect
+		body.add_child(col)
+		body.position = wd.pos
+		add_child(body)
+		_perimeter_walls_2d.append(body)
+	print("[BaseMap] Muros perimetrales 2D creados (choque con nebulosa): ", map_w, "x", map_h, " grosor ", thickness)
+
+# v530.0: Actualiza la posición/tamaño de los muros perimetrales ya existentes (hot-reload sin recrear)
+func _update_perimeter_collisions_2d(map_w: float, map_h: float):
+	if _perimeter_walls_2d.size() != 4:
+		_create_perimeter_collisions_2d(map_w, map_h)
+		return
+	var thickness: float = 80.0
+	var idx = 0
+	for wd in [
+		{"size": Vector2(map_w + thickness * 2.0, thickness), "pos": Vector2(map_w * 0.5, -thickness * 0.5)},
+		{"size": Vector2(map_w + thickness * 2.0, thickness), "pos": Vector2(map_w * 0.5, map_h + thickness * 0.5)},
+		{"size": Vector2(thickness, map_h + thickness * 2.0), "pos": Vector2(-thickness * 0.5, map_h * 0.5)},
+		{"size": Vector2(thickness, map_h + thickness * 2.0), "pos": Vector2(map_w + thickness * 0.5, map_h * 0.5)},
+	]:
+		var body = _perimeter_walls_2d[idx]
+		if is_instance_valid(body):
+			body.position = wd.pos
+			var col = body.get_child(0) as CollisionShape2D
+			if col and col.shape is RectangleShape2D:
+				(col.shape as RectangleShape2D).size = wd.size
+		idx += 1
+
+# v530.1: Deja el piso negro plano — quita el azul y las líneas diagonales de GridVisual / GroundPlane en escenas pre-diseñadas
+func _fix_scene_floor_to_black(root: Node):
+	if not is_instance_valid(root):
+		return
+	var stack: Array = [root]
+	while stack.size() > 0:
+		var n = stack.pop_back() as Node
+		if n is MeshInstance3D:
+			var m = n as MeshInstance3D
+			# GridVisual y GroundPlane son los que traen el azul (0.05,0.08,0.15) y la malla subdividida
+			if m.name == "GridVisual" or m.name == "GroundPlane" or m.name.begins_with("Grid"):
+				var black = StandardMaterial3D.new()
+				black.albedo_color = Color(0.0, 0.0, 0.0, 1.0)
+				black.roughness = 1.0
+				black.metallic = 0.0
+				black.emission_enabled = false
+				black.cull_mode = BaseMaterial3D.CULL_DISABLED
+				m.material_override = black
+				# Quitar subdivisión aparente: si es PlaneMesh, reducir a 1x1 para que sea perfectamente plano
+				if m.mesh is PlaneMesh:
+					m.mesh.subdivide_width = 1
+					m.mesh.subdivide_depth = 1
+				print("[BaseMap] GridVisual/GroundPlane forzado a negro plano: ", m.get_path())
+		for child in n.get_children():
+			stack.append(child)
 
 func _setup_3d_dynamic():
 	var z_id_str = str(zone_id)
@@ -501,6 +605,8 @@ func _setup_3d_dynamic():
 						custom_objects_root = scene_inst.find_child("ObjectsRoot", true, false)
 						if is_instance_valid(custom_objects_root):
 							print("[BaseMap] Vinculado ObjectsRoot de la escena existente. Nodos: ", custom_objects_root.get_child_count())
+						# v530.1: Piso negro plano
+						_fix_scene_floor_to_black(scene_inst)
 				
 				# Aplicar iluminación mejorada cenital de arriba y ambiental de soporte siempre
 				_apply_ambient_and_zenith_lights(sub_viewport)
@@ -577,6 +683,8 @@ func _setup_3d_dynamic():
 			custom_objects_root = scene_inst.find_child("ObjectsRoot", true, false)
 			if is_instance_valid(custom_objects_root):
 				print("[BaseMap] Vinculado ObjectsRoot de la escena personalizada. Nodos: ", custom_objects_root.get_child_count())
+			# v530.1: Piso negro plano
+			_fix_scene_floor_to_black(scene_inst)
 
 	_apply_ambient_and_zenith_lights(sub_viewport)
 	

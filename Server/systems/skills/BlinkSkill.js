@@ -27,6 +27,36 @@ class BlinkSkill extends BaseSkill {
             finalY = p.y + dy * ratio;
         }
 
+        // v530.0: Clamp al borde de la nebulosa — Blink no puede atravesar el muro perimetral
+        {
+            const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
+            const zStr = String(p.zone);
+            let bounds = null;
+            if (maps[zStr]) {
+                const cfg = maps[zStr];
+                const w = parseFloat(cfg.width);
+                const h = parseFloat(cfg.height);
+                if (!isNaN(w) && w > 0) bounds = { w: w, h: (!isNaN(h) && h > 0) ? h : w };
+            }
+            if (!bounds) {
+                const gm = state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes;
+                if (gm && gm.extraction && Array.isArray(gm.extraction.maps) && gm.extraction.maps.map(n => String(n)).includes(zStr)) {
+                    bounds = { w: parseFloat(gm.extraction.width) || 20000, h: parseFloat(gm.extraction.height) || 20000 };
+                } else if (gm && gm.altar_defense && Array.isArray(gm.altar_defense.maps) && gm.altar_defense.maps.map(n => String(n)).includes(zStr)) {
+                    bounds = { w: parseFloat(gm.altar_defense.width) || 10000, h: parseFloat(gm.altar_defense.height) || 10000 };
+                } else if (typeof p.zone === 'string' && p.zone.startsWith('arena_')) {
+                    bounds = { w: 10000, h: 10000 };
+                } else if (typeof p.zone === 'string' && p.zone.startsWith('extract_')) {
+                    bounds = { w: parseFloat(maps['10'] && maps['10'].width) || 20000, h: parseFloat(maps['10'] && maps['10'].height) || 20000 };
+                }
+            }
+            if (bounds) {
+                const margin = 25.0;
+                finalX = Math.max(margin, Math.min(bounds.w - margin, finalX));
+                finalY = Math.max(margin, Math.min(bounds.h - margin, finalY));
+            }
+        }
+
         p.x = finalX;
         p.y = finalY;
         p.justBlinked = true; // v266.700: Bypass anti-cheat
