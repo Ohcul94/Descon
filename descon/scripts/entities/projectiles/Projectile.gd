@@ -104,9 +104,12 @@ func _process(_delta):
 		if type != "electron":
 			world_root_3d.position.x = global_position.x * s_factor
 			world_root_3d.position.z = global_position.y * s_factor * correction_z
-			# v411: Apuntar a la altura del objetivo (jugadores/enemigos comunes = escala menor).
-			# Evita que los bosses (modelo escalado, altura y=2.5) parezcan disparar al aire.
-			world_root_3d.position.y = _aim_height()
+			
+			if type == "mine" or type == "orbital_mine":
+				world_root_3d.position.y = 0.1
+			else:
+				# Vuela a una altura de soporte constante
+				world_root_3d.position.y = 0.8
 		if type == "mega_laser":
 			var dir_2d = Vector2.RIGHT.rotated(rotation)
 			var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)

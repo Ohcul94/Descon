@@ -710,6 +710,11 @@ func _update_background(zone_id):
 	if is_instance_valid(current_map_node):
 		current_map_node.remove_from_group("map")
 		current_map_node.queue_free()
+		# v500.9: Esperar UN frame para que el destructor de Terrain3D (C++ nativo) libere
+		# completamente sus recursos de GPU antes de instanciar el nuevo mapa.
+		# Sin este await, el nuevo Terrain3D intenta usar recursos que aún no fueron liberados
+		# por el destructor del Terrain3D anterior, causando un terreno invisible.
+		await get_tree().process_frame
 		
 	var map_scene = load(scene_path)
 	if map_scene:

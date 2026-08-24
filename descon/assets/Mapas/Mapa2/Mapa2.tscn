@@ -1,4 +1,6 @@
-[gd_scene format=3 uid="uid://cb235svqhikta"]
+[gd_scene load_steps=4 format=3 uid="uid://cb235svqhikta"]
+
+[ext_resource type="Terrain3DAssets" uid="uid://c6y788isvsets" path="res://assets/Mapas/Mapa2/TerrainAssets.tres" id="1_assets"]
 
 [sub_resource type="Gradient" id="Gradient_dsc0d"]
 offsets = PackedFloat32Array(0.2, 1)
@@ -43,31 +45,10 @@ _shader_parameters = {
 world_background = 0
 show_checkered = true
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qq8xe"]
-transparency = 4
-cull_mode = 2
-vertex_color_use_as_albedo = true
-backlight_enabled = true
-backlight = Color(0.5, 0.5, 0.5, 1)
-distance_fade_mode = 1
-distance_fade_min_distance = 128.0
-distance_fade_max_distance = 96.0
-
-[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_0ltyx"]
-generated_type = 1
-height_offset = 0.5
-material_override = SubResource("StandardMaterial3D_qq8xe")
-last_lod = 0
-last_shadow_lod = 0
-lod0_range = 128.0
-
-[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_w8wup"]
-mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_0ltyx")])
-
 [node name="Terrain3D" type="Terrain3D" unique_id=295027136]
 data_directory = "res://assets/Mapas/Mapa2"
 material = SubResource("Terrain3DMaterial_oq1gt")
-assets = SubResource("Terrain3DAssets_w8wup")
+assets = ExtResource("1_assets")
 show_checkered = true
 top_level = true
 metadata/_edit_lock_ = true
@@ -76,3 +57,4 @@ metadata/label = &"Terrain3D"
 metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
+

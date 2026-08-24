@@ -45,14 +45,16 @@ var _is_dragging: bool = false
 var _drag_offset: Vector3 = Vector3.ZERO
 var _snap_to_grid: bool = true
 var _gizmo_mode: int = 0  # 0=move, 1=rotate, 2=scale
-var _current_gizmo: Node3D = null
+# var _current_gizmo: Node3D = null
 var _auto_loading: bool = false
 
 const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "nexus", "pillar", "market", "custom"]
 
 func _ready():
 	if not Engine.is_editor_hint():
-		queue_free()
+		set_process(false)
+		set_physics_process(false)
+		set_process_input(false)
 		return
 	_setup_editor_camera()
 	_connect_editor_signals()
@@ -259,7 +261,7 @@ func _duplicate_selected():
 func _copy_to_json():
 	_export_to_json()
 
-func _show_context_menu(position: Vector2):
+func _show_context_menu(p_position: Vector2):
 	var menu = PopupMenu.new()
 	add_child(menu)
 	menu.add_item("Añadir objeto (arrastrar .glb)", 1)
@@ -276,7 +278,7 @@ func _show_context_menu(position: Vector2):
 	menu.add_separator()
 	menu.add_item("Exportar JSON al portapapeles", 99)
 	menu.id_pressed.connect(_on_context_menu_select)
-	menu.popup(Rect2i(position.x, position.y, 0, 0))
+	menu.popup(Rect2i(int(p_position.x), int(p_position.y), 0, 0))
 
 func _on_context_menu_select(id: int):
 	match id:
@@ -291,7 +293,7 @@ func _on_context_menu_select(id: int):
 		99:
 			_export_to_json()
 
-func _apply_default_properties_by_type(obj: Node3D, type: String):
+func _apply_default_properties_by_type(obj: Node3D, _type: String):
 	obj.set_meta("scale_2d", obj.scale.x)
 	obj.set_meta("rot_y_deg", obj.rotation_degrees.y)
 

@@ -943,11 +943,13 @@ func _update_3d_root_sync():
 		var correction_z = map_node.correction_z if is_instance_valid(map_node) else 1.41421356
 		world_root_3d.position.x = global_position.x * s_factor
 		world_root_3d.position.z = global_position.y * s_factor * correction_z
+		
+		var base_y = 1.0
 		if entity_type >= 101 and not is_in_group("player"):
 			var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
-			world_root_3d.position.y = float(enemy_cfg.get("posY", 1.0))
-		else:
-			world_root_3d.position.y = 1.0
+			base_y = float(enemy_cfg.get("posY", 1.0))
+			
+		world_root_3d.position.y = base_y
 		world_root_3d.position.y += _burrow_y_offset + _ascension_y_offset
 		
 		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)

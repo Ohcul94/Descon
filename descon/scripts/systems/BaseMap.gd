@@ -19,7 +19,18 @@ const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofr
 
 @export var world_size: float = 4000.0
 @export var zone_name: String = "SECTOR DESCONOCIDO"
-@export var zone_id: Variant = 1  # Variant: acepta int (zonas normales) y String (arena_x, extract_x)
+@export var zone_id: Variant = 1:  # Variant: acepta int (zonas normales) y String (arena_x, extract_x)
+	set(val):
+		var v_str = str(val)
+		if "." in v_str and v_str.is_valid_float():
+			var v_float = float(v_str)
+			if v_float == int(v_float):
+				zone_id = int(v_float)
+				return
+		if typeof(val) == TYPE_STRING and val.is_valid_int():
+			zone_id = int(val)
+			return
+		zone_id = val
 @export var scale_factor: float = 0.02 # Relación 2D a 3D
 @export var camera_height: float = 30.0
 @export var use_orthogonal: bool = false
@@ -44,6 +55,9 @@ var correction_z: float = 1.41421356
 var cursor_3d: Node3D = null
 var mouse_world_pos_3d: Vector3 = Vector3.ZERO   # Posición 3D exacta del cursor en el mundo
 var mouse_world_pos_2d: Vector2 = Vector2.ZERO   # Equivalente en espacio lógico 2D del mapa
+var _has_custom_3d_scene: bool = false
+var terrain_node: Node3D = null
+var custom_objects_root: Node3D = null
 
 var fixed_cam_zoom: float = 1.0
 
@@ -90,12 +104,22 @@ func _ready():
 	# Configurar acciones de input para cámara libre
 	_register_input_actions()
 		
-	# Configurar el lienzo 3D dinámico si no existe en la escena
+	# Configurar el lienzo 3D dinámico si no existe en la escena inmediatamente
 	_setup_3d_dynamic()
 	
 	# Restaurar estado de cámara de la sesión actual (persiste entre warps)
 	_restore_camera_state()
 	
+	# v307.0: Inyectar luz de cámara frontal (Headlight) si no existe ya en la cámara para evitar naves negras
+	if is_instance_valid(camera_3d) and not camera_3d.has_node("CameraHeadlight"):
+		var headlight = DirectionalLight3D.new()
+		headlight.name = "CameraHeadlight"
+		headlight.light_color = Color(0.9, 0.95, 1.0)
+		headlight.light_energy = 0.3
+		headlight.light_specular = 0.1
+		headlight.shadow_enabled = false
+		camera_3d.add_child(headlight)
+		
 	# Si mobile edit mode está activo en Settings, forzar cámara libre
 	var sm_init = get_node_or_null("/root/SettingsManager")
 	var is_mob_cam_edit = 0
@@ -142,25 +166,16 @@ func adjust_background():
 	# v306.3: Consolidar el sistema de Lienzo Único registrando el mapa en el grupo global
 	add_to_group("map")
 
-	# v307.0: Inyectar luz de cámara frontal (Headlight) si no existe ya en la cámara para evitar naves negras
-	if is_instance_valid(camera_3d) and not camera_3d.has_node("CameraHeadlight"):
-		var headlight = DirectionalLight3D.new()
-		headlight.name = "CameraHeadlight"
-		headlight.light_color = Color(0.9, 0.95, 1.0)
-		headlight.light_energy = 0.3
-		headlight.light_specular = 0.1
-		headlight.shadow_enabled = false
-		camera_3d.add_child(headlight)
-
-	# v370.0: Spawnear altar 3D si está configurado en Defensa del Altar
-	_spawn_altar_if_configured()
-	
 	# v400.4: Diferir el inicio un frame completo para esperar a que la escena vieja se destruya y libere del árbol
 	_deferred_ready()
 
 func _deferred_ready():
 	print("[BaseMap _deferred_ready] Entrando a deferred ready. Esperando process_frame...")
 	await get_tree().process_frame
+	
+	# v370.0: Spawnear altar 3D si está configurado en Defensa del Altar
+	_spawn_altar_if_configured()
+
 	print("[BaseMap _deferred_ready] process_frame completado. Llamando a _spawn_map_objects...")
 	_spawn_map_objects()
 	_create_sky_dome()
@@ -259,8 +274,8 @@ func _setup_dynamic_3d_map_layout():
 
 	# v500.2: Opción para omitir la creación del suelo decorativo gris por defecto
 	var hide_default_ground = map_cfg.get("hideDefaultGround", false)
-	if hide_default_ground:
-		print("[BaseMap] hideDefaultGround es true. Omitiendo la creación del suelo decorativo genérico.")
+	if hide_default_ground or _has_custom_3d_scene:
+		print("[BaseMap] Suelo genérico omitido (hideDefaultGround o escena 3D personalizada activa).")
 		return
 
 	# Crear suelo 3D decorativo (superficie estelar / lunar)
@@ -388,6 +403,14 @@ func _create_nebula_wall(parent: Node3D, name_str: String, size: Vector2, pos: V
 	parent.add_child(wall)
 
 func _setup_3d_dynamic():
+	var z_id_str = str(zone_id)
+	if "." in z_id_str and z_id_str.is_valid_float():
+		var z_float = float(z_id_str)
+		if z_float == int(z_float):
+			z_id_str = str(int(z_float))
+	var scene_3d_path = "res://tools/MapEditor3D_" + z_id_str + "_Mapa_" + z_id_str + ".tscn"
+	_has_custom_3d_scene = ResourceLoader.exists(scene_3d_path)
+
 	# Si ya existe ViewportCanvas en la escena (como en Map_Extraction), vincular referencias y retornar
 	var existing_canvas = get_node_or_null("ViewportCanvas")
 	if is_instance_valid(existing_canvas):
@@ -407,10 +430,47 @@ func _setup_3d_dynamic():
 					_apply_camera_headlight(camera_3d)
 				asteroids_3d = sub_viewport.get_node_or_null("Asteroids3D")
 				
-				# Aplicar iluminación mejorada cenital de arriba y ambiental de soporte
+				# Cargar escena 3D del editor de forma síncrona.
+				# La cámara (camera_3d) ya está en el árbol, por lo que Terrain3D puede inicializarse sin problemas.
+				# Eliminamos los nodos duplicados de la instancia ANTES de agregarla al Viewport para evitar parpadeos y conflictos.
+				if ResourceLoader.exists(scene_3d_path):
+					var scene_res = load(scene_3d_path)
+					if scene_res:
+						var scene_inst = scene_res.instantiate()
+						
+						var ed_cam = scene_inst.get_node_or_null("Camera3D")
+						if is_instance_valid(ed_cam):
+							scene_inst.remove_child(ed_cam)
+							ed_cam.queue_free()
+							
+						var ed_env = scene_inst.get_node_or_null("WorldEnvironment")
+						if is_instance_valid(ed_env):
+							scene_inst.remove_child(ed_env)
+							ed_env.queue_free()
+							
+						var ed_light = scene_inst.get_node_or_null("DirectionalLight3D")
+						if is_instance_valid(ed_light):
+							scene_inst.remove_child(ed_light)
+							ed_light.queue_free()
+							
+						sub_viewport.add_child(scene_inst)
+						_has_custom_3d_scene = true
+						print("[BaseMap] Cargada escena 3D pre-diseñada en canvas existente (síncrono): ", scene_3d_path)
+						
+						# Buscar y registrar el nodo de Terrain3D
+						terrain_node = _find_terrain_node_recursive(scene_inst)
+						if is_instance_valid(terrain_node):
+							print("[BaseMap] Vinculado Terrain3D en canvas existente. Clase: ", terrain_node.get_class())
+						
+						# Registrar el ObjectsRoot
+						custom_objects_root = scene_inst.find_child("ObjectsRoot", true, false)
+						if is_instance_valid(custom_objects_root):
+							print("[BaseMap] Vinculado ObjectsRoot de la escena existente. Nodos: ", custom_objects_root.get_child_count())
+				
+				# Aplicar iluminación mejorada cenital de arriba y ambiental de soporte siempre
 				_apply_ambient_and_zenith_lights(sub_viewport)
 				
-				# v420.5: Crear cursor 3D world-space
+				# Crear cursor 3D world-space
 				_create_world_cursor()
 		return
 
@@ -439,9 +499,8 @@ func _setup_3d_dynamic():
 	sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport_container.add_child(sub_viewport)
 	
-	_apply_ambient_and_zenith_lights(sub_viewport)
-
 	# Cámara 3D ortogonal de perspectiva bloqueada (Mirando hacia abajo en el eje Y)
+	# ¡CREADA ANTES de instanciar la escena 3D para que Terrain3D registre la cámara activa correctamente!
 	camera_3d = Camera3D.new()
 	camera_3d.name = "Camera3D"
 	camera_3d.fov = 35.0
@@ -456,8 +515,47 @@ func _setup_3d_dynamic():
 	camera_3d.current = true
 	sub_viewport.add_child(camera_3d)
 	_apply_camera_headlight(camera_3d)
+
+	# Cargar escena 3D del editor de forma síncrona
+	# La cámara (camera_3d) ya está en el árbol, por lo que Terrain3D puede inicializarse sin problemas.
+	# Eliminamos los nodos duplicados de la instancia ANTES de agregarla al Viewport para evitar parpadeos y conflictos.
+	if ResourceLoader.exists(scene_3d_path):
+		var scene_res = load(scene_3d_path)
+		if scene_res:
+			var scene_inst = scene_res.instantiate()
+			
+			var ed_cam = scene_inst.get_node_or_null("Camera3D")
+			if is_instance_valid(ed_cam):
+				scene_inst.remove_child(ed_cam)
+				ed_cam.queue_free()
+				
+			var ed_env = scene_inst.get_node_or_null("WorldEnvironment")
+			if is_instance_valid(ed_env):
+				scene_inst.remove_child(ed_env)
+				ed_env.queue_free()
+				
+			var ed_light = scene_inst.get_node_or_null("DirectionalLight3D")
+			if is_instance_valid(ed_light):
+				scene_inst.remove_child(ed_light)
+				ed_light.queue_free()
+				
+			sub_viewport.add_child(scene_inst)
+			_has_custom_3d_scene = true
+			print("[BaseMap] Cargada escena 3D pre-diseñada (síncrono): ", scene_3d_path)
+			
+			# Buscar y registrar el nodo de Terrain3D
+			terrain_node = _find_terrain_node_recursive(scene_inst)
+			if is_instance_valid(terrain_node):
+				print("[BaseMap] Vinculado Terrain3D de la escena personalizada. Clase: ", terrain_node.get_class())
+			
+			# Registrar el ObjectsRoot
+			custom_objects_root = scene_inst.find_child("ObjectsRoot", true, false)
+			if is_instance_valid(custom_objects_root):
+				print("[BaseMap] Vinculado ObjectsRoot de la escena personalizada. Nodos: ", custom_objects_root.get_child_count())
+
+	_apply_ambient_and_zenith_lights(sub_viewport)
 	
-	# v420.5: Crear cursor 3D world-space
+	# Crear cursor 3D world-space
 	_create_world_cursor()
 		
 	# Manejar redimensionamiento de pantalla de forma reactiva
@@ -467,6 +565,44 @@ func _setup_3d_dynamic():
 		if is_instance_valid(sub_viewport):
 			sub_viewport.size = get_viewport().size
 	)
+ 
+
+# v500.8: Obtiene la altura real del Terrain3D en un punto lógico 2D
+func get_terrain_height_at_pos(pos_2d: Vector2) -> float:
+	if is_instance_valid(terrain_node):
+		var pos_3d = Vector3(pos_2d.x * scale_factor, 0.0, pos_2d.y * scale_factor * correction_z)
+		var height = 0.0
+		
+		# Probar get_height() en storage o directamente en el nodo (soporte multi-versión del addon)
+		if terrain_node.has_method("get_height"):
+			height = terrain_node.get_height(pos_3d)
+		else:
+			var storage = terrain_node.get("storage")
+			if is_instance_valid(storage) and storage.has_method("get_height"):
+				height = storage.get_height(pos_3d)
+		
+		if is_nan(height) or is_inf(height):
+			height = 0.0
+			
+		# Telemetría cada 120 frames para verificar la altura sin saturar el log
+		if Engine.get_frames_drawn() % 120 == 0:
+			print("[BaseMap] get_terrain_height_at_pos: pos_2d=", pos_2d, " -> pos_3d=", pos_3d, " -> height=", height)
+			
+		return height
+			
+	return 0.0
+
+# v500.8: Busca recursivamente cualquier nodo de clase o nombre "Terrain3D" de forma robusta
+func _find_terrain_node_recursive(node: Node) -> Node:
+	if not is_instance_valid(node):
+		return null
+	if node.is_class("Terrain3D") or "Terrain3D" in node.name:
+		return node
+	for child in node.get_children():
+		var found = _find_terrain_node_recursive(child)
+		if found:
+			return found
+	return null
  
 
 
@@ -1133,6 +1269,14 @@ func _spawn_map_objects():
 			return
 			
 	print("[BaseMap _spawn_map_objects] Iniciando spawn. zone_id es: ", z_str)
+	
+	# v500.9: Si existe ObjectsRoot personalizado de la escena de Godot, cargar
+	# todas las colisiones y objetos interactivos directamente desde el árbol 3D local.
+	# Esto permite que el usuario edite y guarde todo visualmente en Godot sin usar config.json.
+	if is_instance_valid(custom_objects_root):
+		_spawn_objects_from_custom_scene()
+		return
+		
 	if not (z_str in GameConstants.MAPS_CONFIG):
 		print("[BaseMap _spawn_map_objects] ERROR: zone_id ", z_str, " no encontrada en MAPS_CONFIG. Configs disponibles: ", GameConstants.MAPS_CONFIG.keys())
 		return
@@ -2156,3 +2300,168 @@ func _calculate_local_aabb(node: Node3D) -> AABB:
 				var child_trans = accum_trans * child.transform
 				stack.append([child, child_trans])
 	return total_aabb
+
+# v500.9: Spawnea las colisiones y la lógica interactiva 2D directamente desde los nodos de la escena de Godot
+func _spawn_objects_from_custom_scene():
+	print("[BaseMap] Generando colisiones físicas 2D desde ObjectsRoot de la escena 3D local...")
+	var market_script = load("res://scripts/entities/MarketTerminal.gd")
+	
+	for child in custom_objects_root.get_children():
+		if not is_instance_valid(child) or not child is Node3D:
+			continue
+			
+		# Ignorar el terreno
+		if child.is_class("Terrain3D") or "Terrain3D" in child.name:
+			continue
+			
+		# Obtener el tipo de objeto de sus metadatos (por defecto "wall" / pared)
+		var obj_type = str(child.get_meta("obj_type", "wall") if child.has_meta("obj_type") else "wall")
+		var obj_label = str(child.name)
+		
+		# Convertir la posición 3D local del objeto en coordenadas 2D lógicas del juego
+		var pos_3d = child.position
+		var obj_pos = Vector2(
+			pos_3d.x / scale_factor,
+			pos_3d.z / (scale_factor * correction_z)
+		)
+		
+		var scale_val = child.scale.x
+		var rot_y = rad_to_deg(child.rotation.y)
+		var y_offset = pos_3d.y
+		
+		print("[BaseMap] Escena 3D -> Vinculando física 2D para: ", obj_label, " [", obj_type, "] en Pos2D: ", obj_pos)
+		
+		match obj_type:
+			"wall":
+				# Crear cuerpo de colisión sólida 2D para bloquear naves
+				var wall_body = StaticBody2D.new()
+				wall_body.name = "MapWall_" + obj_label.replace(" ", "_")
+				wall_body.collision_layer = 2
+				wall_body.collision_mask = 0
+				
+				var custom_size = Vector2(100.0 * scale_val, 20.0 * scale_val)
+				var custom_offset = Vector2.ZERO
+				var is_circle = false
+				
+				# Autodetectar tamaño desde el volumen 3D (AABB) del modelo
+				var aabb = _calculate_local_aabb(child)
+				var s_factor = scale_factor
+				var corr_z = correction_z
+				
+				var w_2d = (aabb.size.x / s_factor) * scale_val
+				var h_2d = (aabb.size.z / (s_factor * corr_z)) * scale_val
+				
+				if w_2d > 1.0 and h_2d > 1.0:
+					custom_size = Vector2(w_2d, h_2d)
+					var aabb_center = aabb.position + aabb.size / 2.0
+					custom_offset.x = (aabb_center.x / s_factor) * scale_val
+					custom_offset.y = (aabb_center.z / (s_factor * corr_z)) * scale_val
+					
+					var ratio = w_2d / h_2d
+					if ratio >= 0.82 and ratio <= 1.22:
+						is_circle = true
+						
+				custom_offset = custom_offset.rotated(deg_to_rad(-rot_y))
+				
+				var col = CollisionShape2D.new()
+				if is_circle:
+					var circle = CircleShape2D.new()
+					circle.radius = custom_size.x / 2.0
+					col.shape = circle
+				else:
+					var rect = RectangleShape2D.new()
+					rect.size = custom_size
+					col.shape = rect
+					
+				col.position = custom_offset
+				col.rotation = deg_to_rad(-rot_y)
+				wall_body.add_child(col)
+				wall_body.add_to_group("walls")
+				add_child(wall_body)
+				wall_body.global_position = obj_pos
+				
+			"door":
+				# Crear área lógica de Warp / Portal interactivo
+				var door = Area2D.new()
+				door.name = "MapDoor_" + obj_label.replace(" ", "_")
+				door.collision_mask = 1
+				door.collision_layer = 0
+				
+				var col = CollisionShape2D.new()
+				var circle = CircleShape2D.new()
+				circle.radius = 300.0
+				col.shape = circle
+				door.add_child(col)
+				
+				# Recuperar el destino de salto desde los metadatos del nodo de Godot
+				var target_z = str(child.get_meta("targetZoneId", "1") if child.has_meta("targetZoneId") else "1")
+				door.set_meta("targetZoneId", target_z)
+				door.set_meta("targetX", float(child.get_meta("targetX", 5000.0) if child.has_meta("targetX") else 5000.0))
+				door.set_meta("targetY", float(child.get_meta("targetY", 5000.0) if child.has_meta("targetY") else 5000.0))
+				door.set_meta("door_label", obj_label)
+				
+				add_child(door)
+				door.global_position = obj_pos
+				active_doors.append(door)
+				active_doors_3d.append(child) # Registrar el nodo 3D de la escena para que rote en runtime
+				
+				if not is_instance_valid(interact_hbox):
+					_create_portal_jump_ui()
+				print("[BaseMap] Portal enlazado exitosamente: ", obj_label, " -> Destino Zona: ", target_z)
+				
+			"market":
+				if market_script:
+					var market = Area2D.new()
+					market.name = "MapMarket_" + obj_label.replace(" ", "_")
+					market.set_script(market_script)
+					market.set_meta("custom_scale", scale_val)
+					market.set_meta("custom_rot_y", rot_y)
+					market.set_meta("custom_y_offset", y_offset)
+					market.set_meta("asset_path", "")
+					add_child(market)
+					market.global_position = obj_pos
+					
+			"tower":
+				# Colisión física sólida circular para torres PVP
+				var tower = StaticBody2D.new()
+				tower.name = "MapTower_" + obj_label.replace(" ", "_")
+				tower.collision_layer = 2
+				tower.collision_mask = 0
+				
+				var col = CollisionShape2D.new()
+				var circle = CircleShape2D.new()
+				circle.radius = 60.0 * scale_val
+				col.shape = circle
+				tower.add_child(col)
+				tower.add_to_group("towers")
+				add_child(tower)
+				tower.global_position = obj_pos
+				
+			"altar":
+				# Altar de Defensa del Altar
+				var altar_area = Area2D.new()
+				altar_area.name = "AltarArea2D"
+				altar_area.collision_layer = 1 | 2
+				altar_area.collision_mask = 1 | 2
+				altar_area.global_position = obj_pos
+				altar_area.add_to_group("altar")
+				
+				var col_shape = CollisionShape2D.new()
+				var circle = CircleShape2D.new()
+				circle.radius = 120.0 * scale_val
+				col_shape.shape = circle
+				altar_area.add_child(col_shape)
+				add_child(altar_area)
+				
+				var static_body = StaticBody2D.new()
+				static_body.name = "AltarStaticBody2D"
+				static_body.collision_layer = 2
+				static_body.collision_mask = 0
+				static_body.global_position = obj_pos
+				
+				var static_col = CollisionShape2D.new()
+				var static_circle = CircleShape2D.new()
+				static_circle.radius = 100.0 * scale_val
+				static_col.shape = static_circle
+				static_body.add_child(static_col)
+				add_child(static_body)
