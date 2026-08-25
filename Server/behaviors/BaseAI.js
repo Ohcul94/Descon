@@ -432,6 +432,55 @@ module.exports = class BaseAI {
             const defMechanics = cfg.defenseMechanics || [];
             defMechanics.forEach((mech, idx) => {
                 const mId = `def_${idx}`;
+                // Generic cast for defense
+                if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+                    const castMs = Math.max(0, Number(mech.castTimeMs||0));
+                    if (!this.enemy.genericCastState) this.enemy.genericCastState={};
+                    let g=this.enemy.genericCastState[mId]; if(!g) g=this.enemy.genericCastState[mId]={isCasting:false};
+                    const interruptible = mech.castInterruptible!==false;
+                    const isCC = !!(this.enemy.isStunned||this.enemy.isFeared||this.enemy.isPolymorphed||this.enemy.isAsleep);
+                    
+                    if(g.isCasting){
+                        if(isCC && interruptible){ g.isCasting=false; this.enemy._castFreezeCount=Math.max(0,(this.enemy._castFreezeCount||1)-1); io.to(`zone_${this.enemy.zone}`).emit(`enemyCastCancel`,{id:this.enemy.id,mId,type:mech.type}); /* allow */ }
+                        else if(now < g.castEndTime){ return; }
+                        else { g.isCasting=false; this.enemy._castFreezeCount=Math.max(0,(this.enemy._castFreezeCount||1)-1); io.to(`zone_${this.enemy.zone}`).emit(`enemyCastEnd`,{id:this.enemy.id,mId,type:mech.type}); }
+                    } else {
+                        // Validaciones previas para evitar casteo si no cumple condiciones de activación (cooldown, HP, etc)
+                        if (!this.enemy.defState) this.enemy.defState = {};
+                        let state = this.enemy.defState[mId];
+                        if (!state) {
+                            state = { nextReadyTime: now + (mech.startDelay || 0), isActive: false, endTime: 0, triggeredHPs: {}, combatStartTime: now, type: mech.type };
+                            this.enemy.defState[mId] = state;
+                        }
+                        if (state.isActive) return;
+                        if (now < state.nextReadyTime) return;
+                        
+                        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+                        let passesActivation = false;
+                        if (mech.activationMode === "time") {
+                            passesActivation = true;
+                        } else {
+                            let thresholds = [];
+                            if (Array.isArray(mech.activationHPs)) {
+                                thresholds = mech.activationHPs.map(Number).filter(v => !isNaN(v));
+                            } else if (mech.activationHP !== undefined) {
+                                thresholds = [Number(mech.activationHP)];
+                            } else {
+                                thresholds = [50];
+                            }
+                            for (const hpVal of thresholds) {
+                                if (hpPercent <= hpVal) {
+                                    passesActivation = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!passesActivation) return;
+                        
+                        // start casting, block this tick
+                        g.isCasting=true; g.castEndTime=now+castMs; g.startTime=now; this.enemy._castFreezeCount=(this.enemy._castFreezeCount||0)+1; io.to(`zone_${this.enemy.zone}`).emit(`enemyCastStart`,{id:this.enemy.id,mId,type:mech.type,castTimeMs:castMs,x:this.enemy.x,y:this.enemy.y}); return;
+                    }
+                }
                 if (mech.type === "invulnerability") {
                     this._handleInvulnerabilityLogic(mech, mId, now, io);
                 } else if (mech.type === "boss_pillars") {
@@ -703,9 +752,11 @@ module.exports = class BaseAI {
         // v268.810: Procesar combate y movimiento
         this.applyCombatLogic(activeTarget, dist, targetAngle, now, io, grid, players);
         
+        // Generic cast freeze (si cualquier mecanica esta casteando)
+        const hasGenericCast = this.enemy._castFreezeCount && this.enemy._castFreezeCount > 0;
         // Bloquear movimiento físico en todas las IAs si está cargando/canalizando un ataque o viajando bajo tierra (burrow)
         // v414.2: También durante el vuelo de Ascensión Telúrica (el enemigo vuela al destino, no camina)
-        const isChargingAttack = this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging || m.isSlashing);
+        const isChargingAttack = (this.enemy.mechState && Object.values(this.enemy.mechState).some(m => m.isCharging || m.isSlashing)) || hasGenericCast;
         const isAscendingFlight = this.enemy._ascendingUntil && now < this.enemy._ascendingUntil;
         if (isChargingAttack || this.enemy.isBurrowed || isAscendingFlight || this.enemy._lockActions) {
             this.enemy.isMoving = false;
@@ -885,6 +936,18 @@ module.exports = class BaseAI {
     // Las auras y efectos persistentes ya activos (wall_dome, reflect, invulnerability, auras)
     // se dejan intactos para que sigan su ciclo (decisión AAA).
     _interruptActiveMechanics(now, io, skipMId) {
+        // Clear generic casts as well
+        if (this.enemy.genericCastState) {
+            for (const gId in this.enemy.genericCastState) {
+                if (gId === skipMId) continue;
+                const gs = this.enemy.genericCastState[gId];
+                if (gs && gs.isCasting) {
+                    gs.isCasting=false;
+                    this.enemy._castFreezeCount = Math.max(0,(this.enemy._castFreezeCount||1)-1);
+                    io.to(`zone_${this.enemy.zone}`).emit(`enemyCastCancel`,{id:this.enemy.id,mId:gId});
+                }
+            }
+        }
         if (!this.enemy.mechState) return;
         const zoneStr = `zone_${this.enemy.zone}`;
         for (const mId in this.enemy.mechState) {
@@ -1106,6 +1169,67 @@ module.exports = class BaseAI {
         return Math.hypot(px - cx, py - cy);
     }
 
+    _isGenericCastType(type) {
+        // Types with internal cast handling (their own charge) - generic runs in parallel (double bar)
+        const internal = ["cone_cast","circle_cast","survival_dome","ice_storm","wind_wall","burrow","execution","ascension","melee_slash"];
+        return !internal.includes(type);
+    }
+    _handleGenericCast(mech, mId, now, io) {
+        const castMs = Math.max(0, Number(mech.castTimeMs || 0));
+        if (castMs <= 0) return false; // no cast, not busy
+        if (!this.enemy.genericCastState) this.enemy.genericCastState = {};
+        let gState = this.enemy.genericCastState[mId];
+        if (!gState) {
+            gState = {isCasting:false, castEndTime:0, startTime:0};
+            this.enemy.genericCastState[mId] = gState;
+        }
+        const castInterruptible = mech.castInterruptible !== false; // default true
+        const isCC = !!(this.enemy.isStunned || this.enemy.isFeared || this.enemy.isPolymorphed || this.enemy.isAsleep);
+        const isInternal = !this._isGenericCastType(mech.type);
+        if (gState.isCasting) {
+            if (isCC && castInterruptible) {
+                // cancel
+                gState.isCasting = false;
+                this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount||1)-1);
+                io.to(`zone_${this.enemy.zone}`).emit(`enemyCastCancel`, {id: this.enemy.id, mId, type: mech.type});
+                return false;
+            }
+            if (now < gState.castEndTime) {
+                // still casting
+                // For internal types, generic runs in parallel, do not block specific handler
+                if (isInternal) return false;
+                return true;
+            } else {
+                gState.isCasting = false;
+                this.enemy._castFreezeCount = Math.max(0, (this.enemy._castFreezeCount||1)-1);
+                io.to(`zone_${this.enemy.zone}`).emit(`enemyCastEnd`, {id: this.enemy.id, mId, type: mech.type});
+                return false;
+            }
+        } else {
+            // not yet casting, should we start?
+            // Only start if mechanic is about to fire (we are in _executeMechanic which means it wants to fire)
+            // For non-internal types, we delay firing: start cast now and block
+            // For internal types, we start parallel and do NOT block (return false to let internal start)
+            const isInternal = !this._isGenericCastType(mech.type);
+            if (isInternal) {
+                // parallel: start generic casting but do not block specific handler
+                gState.isCasting = true;
+                gState.castEndTime = now + castMs;
+                gState.startTime = now;
+                this.enemy._castFreezeCount = (this.enemy._castFreezeCount||0)+1;
+                io.to(`zone_${this.enemy.zone}`).emit(`enemyCastStart`, {id: this.enemy.id, mId, type: mech.type, castTimeMs: castMs, x: this.enemy.x, y: this.enemy.y});
+                return false; // not busy for internal, let internal also start
+            } else {
+                // blocking: start and block
+                gState.isCasting = true;
+                gState.castEndTime = now + castMs;
+                gState.startTime = now;
+                this.enemy._castFreezeCount = (this.enemy._castFreezeCount||0)+1;
+                io.to(`zone_${this.enemy.zone}`).emit(`enemyCastStart`, {id: this.enemy.id, mId, type: mech.type, castTimeMs: castMs, x: this.enemy.x, y: this.enemy.y});
+                return true; // busy, will fire next tick after cast
+            }
+        }
+    }
     _executeMechanic(mech, mId, target, dist, angle, now, io, players) {
         if (!io) return;
         const state = this.enemy.mechState[mId] || { nextShotTime: 0, shotsInBurst: 0, isCharging: false, isActive: false };
@@ -1116,6 +1240,23 @@ module.exports = class BaseAI {
         const zoneStr = `zone_${this.enemy.zone}`;
         const type = mech.type || 'orbital';
         const fireRange = mech.fireRange || 800;
+        // Validaciones previas para evitar iniciar casteo de ataque si la habilidad no está lista (cooldown, rango, etc)
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+        const isCastingNow = this.enemy.genericCastState && this.enemy.genericCastState[mId] && this.enemy.genericCastState[mId].isCasting;
+        
+        if (!isCastingNow) {
+            if (now < (state.nextShotTime || 0)) return false;
+            if (dist > fireRange && !state.isCharging && !state.isActive && mech.type !== "polymorph") return false;
+            if (!this._passesActivationGate(mech, state, now, hpPercent)) return false;
+        }
+
+        // Generic cast gate (per mechanic, default 0 = instant)
+        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+            const isBusy = this._handleGenericCast(mech, mId, now, io);
+            if (isBusy && this._isGenericCastType(mech.type)) {
+                return true;
+            }
+        }
 
         // v266.998: PRIORIDAD ATÓMICA - Si ya empezó, TERMINA
         if (state.isActive && mech.type === "orbital_strike") {
@@ -1292,6 +1433,13 @@ module.exports = class BaseAI {
         // Mecánica de Lanzamiento de Bombas (Bomba de Área)
         if (mech.type === "bomb") {
             const fireRange = mech.fireRange || 800;
+        // Generic cast gate (per mechanic, default 0 = instant)
+        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+            const isBusy = this._handleGenericCast(mech, mId, now, io);
+            if (isBusy && this._isGenericCastType(mech.type)) {
+                return true;
+            }
+        }
             const bombCount = mech.bombCount || 3;
             const bombDelay = mech.bombDelayMs || 500;
             const fuseTime = mech.fuseTimeMs ?? 1000;
@@ -1415,9 +1563,7 @@ module.exports = class BaseAI {
 
         // v3.6: Mecánica de Cono Casteable (Autoritativo del Servidor)
         if (mech.type === "cone_cast") {
-            const chargeTime = (mech.castTimeMs !== undefined) ? mech.castTimeMs : 2000;
-            const castSpeed = (mech.castSpeed !== undefined && mech.castSpeed > 0) ? mech.castSpeed : 1.0;
-            const actualDuration = chargeTime / castSpeed;
+            const actualDuration = (mech.castTimeMs !== undefined) ? Number(mech.castTimeMs) : 2000;
             const cooldown = (mech.cooldown !== undefined) ? mech.cooldown : 5000;
 
             if (!state.isCharging && now > state.nextShotTime) {
@@ -2979,6 +3125,13 @@ module.exports = class BaseAI {
         if (!io) return false;
         const state = this.enemy.mechState[mId] || { nextShotTime: 0, triggeredHPs: {}, meteorList: [] };
         const fireRange = mech.fireRange || 800;
+        // Generic cast gate (per mechanic, default 0 = instant)
+        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+            const isBusy = this._handleGenericCast(mech, mId, now, io);
+            if (isBusy && this._isGenericCastType(mech.type)) {
+                return true;
+            }
+        }
         const meteorCount = Math.max(1, parseInt(mech.meteorCount, 10) || 3);
         const warnTimeMs = mech.warnTimeMs || 1200;
         const fallHeight = mech.fallHeight || 800;
@@ -3203,6 +3356,13 @@ module.exports = class BaseAI {
         this.enemy.mechState[mId] = state;
 
         const fireRange = mech.fireRange || 800;
+        // Generic cast gate (per mechanic, default 0 = instant)
+        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+            const isBusy = this._handleGenericCast(mech, mId, now, io);
+            if (isBusy && this._isGenericCastType(mech.type)) {
+                return true;
+            }
+        }
         const targetCount = Math.max(1, parseInt(mech.targetCount, 10) || 1);
         const targetMode = mech.targetMode || "proximity";
         const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 12000;
@@ -3316,6 +3476,13 @@ module.exports = class BaseAI {
         if (!state.jumps) state.jumps = [];
 
         const fireRange = mech.fireRange || 800;
+        // Generic cast gate (per mechanic, default 0 = instant)
+        if (mech.castTimeMs !== undefined && Number(mech.castTimeMs) > 0) {
+            const isBusy = this._handleGenericCast(mech, mId, now, io);
+            if (isBusy && this._isGenericCastType(mech.type)) {
+                return true;
+            }
+        }
         const targetCount = Math.max(1, parseInt(mech.targetCount, 10) || 1);
         const targetMode = mech.targetMode || "proximity";
         const cooldown = mech.cooldown !== undefined ? Number(mech.cooldown) : 12000;

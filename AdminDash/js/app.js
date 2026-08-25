@@ -794,6 +794,8 @@ function addMechanic(enemyId) {
     if (!config.enemyModels[enemyId].mechanics) config.enemyModels[enemyId].mechanics = [];
     config.enemyModels[enemyId].mechanics.push({
         type: "laser",
+        castTimeMs: 0,
+        castInterruptible: true,
         activationMode: "time",
         activationHPs: [50],
         activationIntervalMs: 0,
@@ -819,6 +821,8 @@ function addDefenseMechanic(enemyId) {
     if (!config.enemyModels[enemyId].defenseMechanics) config.enemyModels[enemyId].defenseMechanics = [];
     config.enemyModels[enemyId].defenseMechanics.push({
         type: "basic_defense",
+        castTimeMs: 0,
+        castInterruptible: true,
         activationMode: "time",
         activationHPs: [50],
         activationIntervalMs: 0,
@@ -844,7 +848,9 @@ function updateDefenseMechanicType(enemyId, idx, newType) {
     const lib = (config.defenseLib && config.defenseLib[newType]) ? config.defenseLib[newType] : DEFAULT_DEFENSE_LIB[newType];
     lib.fields.forEach(f => {
         if (mech[f] === undefined) {
-            if (f === 'reductionPercentage') mech[f] = 10;
+            if (f === 'castTimeMs') mech[f] = 0;
+            else if (f === 'castInterruptible') mech[f] = true;
+            else if (f === 'reductionPercentage') mech[f] = 10;
             else if (f === 'shieldRegen') mech[f] = 5;
             else if (f === 'radius') mech[f] = 300;
             else if (f === 'healAmount') mech[f] = 20;
@@ -913,7 +919,8 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'aimDelayMs') mech[f] = 1000;
             else if (f === 'coneFollow') mech[f] = false;
             else if (f === 'lockTimeMs') mech[f] = newType === 'circle_cast' ? 800 : 0;
-            else if (f === 'castTimeMs') mech[f] = 2000;
+            else if (f === 'castTimeMs') mech[f] = 0;
+            else if (f === 'castInterruptible') mech[f] = true;
             else if (f === 'bombCount') mech[f] = 3;
             else if (f === 'bombDelayMs') mech[f] = 500;
             else if (f === 'fuseTimeMs') mech[f] = 1000;
@@ -968,7 +975,8 @@ function updateMechanicType(enemyId, idx, newType) {
             else if (f === 'zoneTickMs') mech[f] = 1000;
              else if (f === 'zoneDuration') mech[f] = 4000;
              else if (f === 'targetCount') mech[f] = newType === 'execution' ? 3 : 1;
-             else if (f === 'castTimeMs') mech[f] = newType === 'execution' ? 1500 : (newType === 'circle_cast' ? 2000 : 2000);
+             else if (f === 'castTimeMs') mech[f] = 0;
+              else if (f === 'castInterruptible') mech[f] = true;
              else if (f === 'turnSpeed') mech[f] = newType === 'execution' ? 1.9 : 1.2;
              else if (f === 'airTimeMs') mech[f] = newType === 'ascension' ? 2000 : 2000;
              else if (f === 'warnDelayMs') mech[f] = newType === 'ascension' ? 0 : 600;
@@ -2004,11 +2012,9 @@ function initRadar() {
     const isAltarDefense = (currentModeTab === 'altar_defense');
     const modeData = isAltarDefense ? config.gameModes.altar_defense : config.gameModes.extraction;
 
-    // Cargar imagen de fondo del mapa coordinada con la escena de Godot (sólo para extracción)
+    // Fondo del mapa: ya no se usa mixboard-image (eliminada). Se deja fondo negro sólido.
     const bgImage = new Image();
-    if (!isAltarDefense) {
-        bgImage.src = 'assets/mixboard-image.png';
-    }
+    bgImage.src = ''; // sin textura - draw() usará fillRect '#000'
 
     // Dimensiones dinámicas del mapa en píxeles (por defecto 10000)
     const worldW = (modeData && modeData.width) ? modeData.width : 10000;

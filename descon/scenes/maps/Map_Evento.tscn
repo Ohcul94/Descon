@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://cipfxdnfudpyc"]
 
 [ext_resource type="Script" uid="uid://dp6au5r48svjm" path="res://scripts/systems/Map_Extraction.gd" id="1_extraction_script"]
-[ext_resource type="Texture2D" uid="uid://s8vwtv2nca17" path="res://assets/Base de Mapas/mixboard-image.png" id="2_tex"]
 
 [node name="Map_Evento" type="Node2D" unique_id=1806288055]
 script = ExtResource("1_extraction_script")
@@ -31,7 +30,6 @@ offset_top = -7987.0
 offset_right = 8105.0
 offset_bottom = 8013.0
 mouse_filter = 2
-texture = ExtResource("2_tex")
 expand_mode = 1
 stretch_mode = 6
 

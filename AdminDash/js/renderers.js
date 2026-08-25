@@ -1620,10 +1620,10 @@ const fieldLabelsMap = {
                                           cooldown: "Enfriamiento (CD) (ms)",
                                           pullSpeed: "Vel. Atracción (px/s)",
                                           stunDuration: "Duración de Stun (ms)",
-                                          safeRadius: "Radio del Domo Seguro (px)",
-                                          maxOffset: "Radio Máximo de Dispersión (px)",
-                                           castTimeMs: m.type === 'circle_cast' ? "Tiempo de Carga (ms)" : (m.type === 'ascension' ? "Tiempo de Casteo (ms)" : "Tiempo de Casteo (ms)"),
-                                          postCastWaitMs: "Espera Post-Explosión del Enemigo (ms)",
+                                           safeRadius: "Radio del Domo Seguro (px)",
+                                           maxOffset: "Radio Máximo de Dispersión (px)",
+                                            castTimeMs: "Casteo (ms)",
+                                           postCastWaitMs: "Espera Post-Explosión del Enemigo (ms)",
                                           applyBleed: "Aplicar Debuff: Sangrado",
                                           bleedDurationMs: "Duración del Sangrado (ms)",
                                           bleedDps: "Daño por Segundo de Sangrado (pts/s)",
@@ -1662,11 +1662,11 @@ const fieldLabelsMap = {
                                             activationHP: "Activación por HP (%)",
                                           reductionPercentage: "Reducción de Daño (%)",
                                           shieldRegen: "Regen. de Escudo (pts/s)",
-                                          healAmount: "Curación por Pulso (pts)",
-                                          speedBonus: "Bono de Velocidad (px/s)",
-                                          explosionDamage: "Daño de Explosión (pts)",
-                                           castTimeMs: m.type === 'circle_cast' ? "Tiempo de Carga (ms)" : (m.type === 'wind_wall' ? "Tiempo de Carga de la Pared (ms)" : (m.type === 'burrow' ? "Tiempo de Hundimiento (ms)" : "Tiempo de Casteo (ms)")),
-                                          castSpeed: "Velocidad de Casteo (x)",
+                                           healAmount: "Curación por Pulso (pts)",
+                                           speedBonus: "Bono de Velocidad (px/s)",
+                                           explosionDamage: "Daño de Explosión (pts)",
+                                            castTimeMs: "Casteo (ms)",
+                                           castSpeed: "Velocidad de Casteo (x)",
                                           coneAngle: "Ángulo del Cono (grados)",
                                           coneFollow: "Seguimiento Dinámico (Homing)",
                                           lockTimeMs: m.type === 'circle_cast' ? "Tiempo Fijo / Estático (ms)" : "Tiempo de Bloqueo (ms)",
@@ -1822,9 +1822,17 @@ if (f === 'slowIsPercentage') return `<div class="field" style="display:flex; al
                                       if (f === 'isPointAndClick') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].isPointAndClick = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                       if (f === 'canMove') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].canMove = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
                                        if (f === 'canUseSkills') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:20px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].canUseSkills = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
-                                       if (f === 'persistentZone') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:10px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].persistentZone = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
-                                      
-                                       if (f === 'debuffsList') {
+                                        if (f === 'persistentZone') return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent; margin-top:10px;"><input type="checkbox" ${m[f] ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].persistentZone = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer;">${fieldLabelsMap[f] || f}</label></div>`;
+                                        if (f === 'castInterruptible') {
+                                            const isDefCast = typeof DEFENSE_LIB !== 'undefined' && DEFENSE_LIB[m.type] !== undefined;
+                                            if (isDefCast) {
+                                                return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(16,185,129,0.08); padding:10px; border-radius:8px; margin-top:10px;"><input type="checkbox" ${m[f] !== false ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].defenseMechanics[${idx}].castInterruptible = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer; font-weight:bold; color:#10b981;">Se interrumpe con CC</label></div>`;
+                                            } else {
+                                                return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:rgba(239,68,68,0.08); padding:10px; border-radius:8px; margin-top:10px;"><input type="checkbox" ${m[f] !== false ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer; margin:0;" onchange="config.enemyModels['${selectedEnemyId}'].mechanics[${idx}].castInterruptible = this.checked; renderEnemyDetail();"><label style="margin:0; cursor:pointer; font-weight:bold; color:#ef4444;">Se interrumpe con CC</label></div>`;
+                                            }
+                                        }
+                                       
+                                        if (f === 'debuffsList') {
                                           if (!m.debuffsList) m.debuffsList = [];
                                           return `
                                               <div class="field" style="grid-column: 1 / -1; background: rgba(239, 68, 68, 0.02); padding: 10px; border-radius: 8px; border: 1px dashed rgba(239, 68, 68, 0.2); display: flex; flex-direction: column; gap: 10px;">
@@ -2325,7 +2333,7 @@ function renderMechanicsLib() {
         "healAmount": "Cura por Pulso (pts)",
         "speedBonus": "Bono Velocidad (px/s)",
         "intervalMs": "Intervalo (ms)",
-        "castTimeMs": "Tiempo de Casteo (ms)",
+        "castTimeMs": "Casteo (ms)",
         "castSpeed": "Velocidad de Casteo (x)",
         "coneAngle": "Ángulo del Cono (grados)",
         "stunDuration": "Duración de Stun (ms)",

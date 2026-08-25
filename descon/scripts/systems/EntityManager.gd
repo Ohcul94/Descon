@@ -15,6 +15,7 @@ var active_meteors = {} # Meteoritos activos {key: {warn_3d, meteor_3d, fall_s, 
 var active_meteor_zones = {} # Zonas persistentes de meteoritos {mId: {zone_2d, elapsed}}
 var death_marks = {} # Marks de Ejecución Directa {mark_key: {enemy_id, node, target_id}}
 var active_ascensions = {} # Saltos de Ascensión Telúrica {enemy_id: {node, tw_offsets, warn_timer, beam_3d}} (v414)
+var enemy_cast_visuals = {} # Casteo generico enemigo {enemyId: {mId: {visual3D, bg, fg, label, startTime, duration, enemyNode}}}
 var zone_cleanup_timer = 0.0
 const ZONE_CLEANUP_INTERVAL = 1.0
 
@@ -37,6 +38,9 @@ func setup(world_ref):
 	print("[EntityManager] Vinculado al controlador de mundo exitosamente.")
 	
 	# Suscripciones Centralizadas de Eventos de Red
+	NetworkManager.enemy_cast_started.connect(_on_enemy_cast_started)
+	NetworkManager.enemy_cast_ended.connect(_on_enemy_cast_ended)
+	NetworkManager.enemy_cast_cancelled.connect(_on_enemy_cast_cancelled)
 	NetworkManager.player_updated.connect(_on_player_updated)
 	NetworkManager.player_stat_sync.connect(_on_remote_stat_sync)
 	NetworkManager.player_disconnected.connect(_on_player_disconnected)
@@ -63,6 +67,7 @@ func setup(world_ref):
 
 
 func _process(delta):
+	_update_enemy_cast_visuals(delta)
 	# 0. Filtro Proactivo de Zonas para prevenir Entidades Huérfanas (v3.0) - Optimizado (v3.1)
 	zone_cleanup_timer += delta
 	if zone_cleanup_timer >= ZONE_CLEANUP_INTERVAL:
@@ -221,7 +226,8 @@ func _process(delta):
 							area.global_position = en_vis
 							
 						# Actualizar la escala del círculo interno de carga
-						var progress = clamp(timer / duration, 0.0, 1.0)
+						var fill_duration = max(0.05, duration - lock_time)
+						var progress = clamp(timer / fill_duration, 0.0, 1.0)
 						var circle_3d = area.get_meta("circle_3d") if area.has_meta("circle_3d") else null
 						if is_instance_valid(circle_3d):
 							# Compensar altura del boss: el círculo debe verse a la altura del jugador
@@ -317,6 +323,148 @@ func _attack_vfx_base_y() -> float:
 	if is_instance_valid(pl) and is_instance_valid(pl.get("world_root_3d")):
 		return pl.world_root_3d.position.y
 	return 1.0
+
+func _get_enemy_cast_color(mech_type: String, mId: String) -> Color:
+	var t = mech_type.to_lower()
+	var mid = mId.to_lower()
+	
+	# Curación
+	if "life_steal" in t or "heal" in t or "heal" in mid or "curacion" in mid:
+		return Color(0.15, 0.95, 0.15) # Verde curación
+	# Defensa
+	elif "shield_steal" in t or "wind_wall" in t or "burrow" in t or "shield" in mid or "barrier" in mid:
+		return Color(0.3, 0.65, 0.9) # Azul defensa
+	# Utilidad / CC / Movimiento
+	elif "sleep" in t or "ascension" in t or "stun" in mid or "slow" in mid:
+		return Color(0.95, 0.9, 0.35) # Amarillo utilidad
+	# Ataque por defecto
+	else:
+		return Color(0.95, 0.15, 0.15) # Rojo/Naranja de ataque
+
+func _create_enemy_cast_visual(enemy: Node, mId: String, castTimeMs: float, mech_type: String = ""):
+	if not is_instance_valid(enemy):
+		return
+	var wr3d = enemy.get("world_root_3d") if "world_root_3d" in enemy else null
+	if not is_instance_valid(wr3d):
+		wr3d = enemy.get_node_or_null("WorldRoot3D")
+		
+	var eid = str(enemy.get("entity_id")) if "entity_id" in enemy else str(enemy.name)
+	if not enemy_cast_visuals.has(eid):
+		enemy_cast_visuals[eid] = {}
+	var count = enemy_cast_visuals[eid].size()
+	
+	var cast_color = _get_enemy_cast_color(mech_type, mId)
+	
+	# Guardamos el estado inicial en el diccionario sin el visual 3D
+	enemy_cast_visuals[eid][mId] = {
+		"visual": null,
+		"bg": null,
+		"fg": null,
+		"label": null,
+		"startTime": Time.get_ticks_msec(),
+		"duration": max(1.0, castTimeMs),
+		"enemy": enemy
+	}
+	
+	# Creación de la barra de casteo 2D en el HUD de la entidad
+	var ui = enemy.get_node_or_null("HUD_Layer_Final")
+	if not is_instance_valid(ui):
+		ui = enemy.get("_ui_wrapper") if "_ui_wrapper" in enemy else null
+	if is_instance_valid(ui):
+		var base_y = -70.0
+		var et = enemy.get("entity_type")
+		if et != null and et >= 101:
+			base_y = -220.0
+		
+		var is_projected = enemy.get_meta("is_single_world", false) and is_instance_valid(wr3d)
+		if is_projected:
+			base_y = 0.0
+			
+		var container = Control.new()
+		container.name = "EnemyCastBar2D_" + mId
+		container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Ancho 44 (mismo de la barra de vida), alto 2 (mitad de 4)
+		container.custom_minimum_size = Vector2(44, 2)
+		container.size = Vector2(44, 2)
+		# Centrada horizontalmente (-22) y debajo de la barra de vida (base_y + 2.0)
+		container.position = Vector2(-22, base_y + 2.0 + count * 3.0)
+		container.z_index = 10
+		
+		var bg2 = ColorRect.new()
+		bg2.name = "BG"
+		bg2.color = Color(0.08, 0.08, 0.1, 0.75)
+		bg2.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		container.add_child(bg2)
+		
+		var fg2 = ColorRect.new()
+		fg2.name = "FG"
+		fg2.color = cast_color
+		fg2.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		fg2.anchor_right = 0
+		# Sin offsets para que ocupe todo el espacio alto de 2px
+		fg2.offset_left = 0
+		fg2.offset_right = 0
+		fg2.offset_top = 0
+		fg2.offset_bottom = 0
+		container.add_child(fg2)
+		
+		ui.add_child(container)
+		enemy_cast_visuals[eid][mId]["visual2D"] = container
+
+func _update_enemy_cast_visuals(delta: float):
+	for eid in enemy_cast_visuals.keys():
+		var mDict = enemy_cast_visuals[eid]
+		for mId in mDict.keys():
+			var data = mDict[mId]
+			var dur = float(data.get("duration", 1000))
+			var start = int(data.get("startTime", 0))
+			var elapsed = Time.get_ticks_msec() - start
+			var prog = clamp(float(elapsed) / max(1.0, dur), 0.0, 1.0)
+			
+			var c2d = data.get("visual2D")
+			if is_instance_valid(c2d):
+				var fg2 = c2d.get_node_or_null("FG")
+				if is_instance_valid(fg2):
+					fg2.anchor_right = prog
+
+func _on_enemy_cast_started(data: Dictionary):
+	var eid = str(data.get("id", ""))
+	var mId = str(data.get("mId", data.get("id", "")))
+	var castMs = float(data.get("castTimeMs", data.get("castTime", 0)))
+	if eid == "" or castMs <= 0:
+		return
+	var enemy = enemies.get(eid)
+	if not is_instance_valid(enemy):
+		return
+	_create_enemy_cast_visual(enemy, mId, castMs, data.get("type", ""))
+
+func _on_enemy_cast_ended(data: Dictionary):
+	var eid = str(data.get("id", ""))
+	var mId = str(data.get("mId", ""))
+	if eid == "": return
+	if not enemy_cast_visuals.has(eid): return
+	var mDict = enemy_cast_visuals[eid]
+	if mId != "" and mDict.has(mId):
+		var d = mDict[mId]
+		var vis = d.get("visual")
+		if is_instance_valid(vis): vis.queue_free()
+		var vis2 = d.get("visual2D")
+		if is_instance_valid(vis2): vis2.queue_free()
+		mDict.erase(mId)
+		if mDict.is_empty():
+			enemy_cast_visuals.erase(eid)
+	else:
+		# clear all for this enemy
+		for k in mDict.keys():
+			var d2 = mDict[k]
+			var v = d2.get("visual")
+			if is_instance_valid(v): v.queue_free()
+			var v2 = d2.get("visual2D")
+			if is_instance_valid(v2): v2.queue_free()
+		enemy_cast_visuals.erase(eid)
+
+func _on_enemy_cast_cancelled(data: Dictionary):
+	_on_enemy_cast_ended(data)
 
 func _parse_zone_to_int(zone_var) -> int:
 	var val = zone_var
@@ -623,6 +771,8 @@ func _on_enemy_action(data: Dictionary):
 		elif action == "cone_charging":
 			var range_val = float(data.get("range", 400.0))
 			var cone_angle = float(data.get("coneAngle", 60.0))
+			var lock_time_s = float(data.get("lockTimeMs", 0.0)) / 1000.0
+			var charge_duration = max(0.05, duration - lock_time_s)
 			
 			# Contenedor del cono (2D Dummy/Controller)
 			var cone_node = Node2D.new()
@@ -680,7 +830,7 @@ func _on_enemy_action(data: Dictionary):
 				cone_node.set_meta("cone_3d", cone_3d)
 				
 				var tw_3d = cone_3d.create_tween()
-				tw_3d.tween_property(mesh_fill, "scale", Vector3.ONE, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+				tw_3d.tween_property(mesh_fill, "scale", Vector3.ONE, charge_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 			else:
 				# ---- Fallback 2D Cone Indicator ----
 				var poly_bg = Polygon2D.new()
@@ -697,7 +847,7 @@ func _on_enemy_action(data: Dictionary):
 					if is_instance_valid(poly_charge):
 						poly_charge.polygon = _get_cone_points(r, cone_angle)
 				var tw = cone_node.create_tween()
-				tw.tween_method(lambda, 1.0, range_val, duration)
+				tw.tween_method(lambda, 1.0, range_val, charge_duration)
 			
 			active_areas["cone_" + enemy_id] = cone_node
 			

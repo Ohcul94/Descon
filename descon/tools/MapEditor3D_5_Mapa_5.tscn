@@ -1,10 +1,8 @@
 [gd_scene format=3 uid="uid://cueuxx3c8plae"]
 
 [ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
-[ext_resource type="PackedScene" uid="uid://fw36i2ujohye" path="res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Derecha_Chiquita_Rota_3/Pared_Derecha_Chiquita_Rota_3.glb" id="2_w5bxe"]
-[ext_resource type="PackedScene" uid="uid://dkhcwrfyj5y5b" path="res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Rota_Medio/Pared_Rota_Medio.glb" id="3_ous24"]
-[ext_resource type="PackedScene" uid="uid://dbdb1u33or17l" path="res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Izquierda/Pared_Izquierda.glb" id="4_r1ahg"]
-[ext_resource type="PackedScene" uid="uid://1v0u61022v01" path="res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Derecha_Chiquita/Pared_Derecha_Chiquita.glb" id="5_3jw56"]
+[ext_resource type="Texture2D" uid="uid://c167gnk74h6qs" path="res://assets/Asteroides/3D/Asteroides_Asteroides_basecolor.jpg" id="6_r1ahg"]
+[ext_resource type="Texture2D" uid="uid://dyj737yq6u3cf" path="res://assets/Asteroides/3D/Asteroides_Asteroides_normal.jpg" id="7_3jw56"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
@@ -28,10 +26,92 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
 
+[sub_resource type="Gradient" id="Gradient_o568n"]
+offsets = PackedFloat32Array(0.2, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_73emp"]
+noise_type = 2
+frequency = 0.03
+cellular_jitter = 3.0
+cellular_return_type = 0
+domain_warp_enabled = true
+domain_warp_type = 1
+domain_warp_amplitude = 50.0
+domain_warp_fractal_type = 2
+domain_warp_fractal_lacunarity = 1.5
+domain_warp_fractal_gain = 1.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_ec6fj"]
+noise = SubResource("FastNoiseLite_73emp")
+color_ramp = SubResource("Gradient_o568n")
+seamless = true
+
+[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_c0w6q"]
+_shader_parameters = {
+&"bias_distance": null,
+&"blend_sharpness": null,
+&"depth_blur": null,
+&"enable_macro_variation": null,
+&"enable_projection": null,
+&"flat_terrain_normals": null,
+&"macro_variation1": null,
+&"macro_variation2": null,
+&"macro_variation_slope": null,
+&"mipmap_bias": null,
+&"noise1_angle": null,
+&"noise1_offset": null,
+&"noise1_scale": null,
+&"noise2_scale": null,
+&"noise_texture": SubResource("NoiseTexture2D_ec6fj"),
+&"projection_threshold": null,
+&"world_noise_fragment_normals": null,
+&"world_noise_height": null,
+&"world_noise_lod_distance": null,
+&"world_noise_max_octaves": null,
+&"world_noise_min_octaves": null,
+&"world_noise_offset": null,
+&"world_noise_region_blend": null,
+&"world_noise_scale": null
+}
+world_background = 2
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4vrrl"]
+transparency = 4
+cull_mode = 2
+vertex_color_use_as_albedo = true
+backlight_enabled = true
+backlight = Color(0.5, 0.5, 0.5, 1)
+distance_fade_mode = 1
+distance_fade_min_distance = 128.0
+distance_fade_max_distance = 96.0
+
+[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_lhgfh"]
+generated_type = 1
+height_offset = 0.5
+material_override = SubResource("StandardMaterial3D_4vrrl")
+last_lod = 0
+last_shadow_lod = 0
+lod0_range = 128.0
+
+[sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_vny2w"]
+name = "Asteroides_Asteroides_basecolor"
+albedo_texture = ExtResource("6_r1ahg")
+normal_texture = ExtResource("7_3jw56")
+normal_depth = 1.413
+ao_strength = 0.176
+uv_scale = 1.51
+detiling_rotation = 0.145
+detiling_shift = 0.407
+
+[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_7qu75"]
+mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_lhgfh")])
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_vny2w")])
+
 [node name="MapEditor3D" type="Node3D" unique_id=2004813459]
 script = ExtResource("1_editor_script")
 zone_id = "5"
-json_to_import = "[]"
+json_to_import = "[{\"assetPath\":\"res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Rota_Medio/Pared_Rota_Medio.glb\",\"label\":\"Pared_Rota_Medio\",\"rotY\":68.6,\"scale\":100.0,\"type\":\"wall\",\"x\":-144.53,\"y\":2857.45,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Izquierda/Pared_Izquierda.glb\",\"label\":\"Pared_Izquierda\",\"rotY\":55.6,\"scale\":100.0,\"type\":\"wall\",\"x\":93.58,\"y\":657.84,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Derecha_Chiquita/Pared_Derecha_Chiquita.glb\",\"label\":\"Pared_Derecha_Chiquita\",\"rotY\":64.5,\"scale\":100.0,\"type\":\"wall\",\"x\":-124.55,\"y\":3809.77,\"yOffset\":0.0}]"
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1173613637]
 transform = Transform3D(1, 0, 0, 0, 0.70710695, 0.70710695, 0, -0.70710695, 0.70710695, 0, 40, 40)
@@ -50,38 +130,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0054512024, -0.05, -0.36670
 material_override = SubResource("StandardMaterial3D_a7uap")
 mesh = SubResource("PlaneMesh_1")
 
-[node name="Pared_Derecha_Chiquita_Rota_3" parent="GroundPlane" unique_id=69819391 instance=ExtResource("2_w5bxe")]
-transform = Transform3D(16.48705, 0, 98.63152, 0, 100, 0, -98.63152, 0, 16.48705, 7.061943, 0, 139.05533)
-
 [node name="ObjectsRoot" type="Node3D" parent="." unique_id=455621709]
 unique_name_in_owner = true
-
-[node name="Pared_Rota_Medio" parent="ObjectsRoot" unique_id=2096543404 instance=ExtResource("3_ous24")]
-transform = Transform3D(36.451923, 0, 93.11958, 0, 100.000015, 0, -93.11958, 0, 36.451923, -2.8905354, -1.9073486e-06, 80.820816)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Rota_Medio/Pared_Rota_Medio.glb"
-metadata/label = &"Pared_Rota_Medio"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
-metadata/editor_only = true
-
-[node name="Pared_Izquierda" parent="ObjectsRoot" unique_id=783550282 instance=ExtResource("4_r1ahg")]
-transform = Transform3D(60.257545, 0, 79.8062, 0, 100, 0, -79.8062, 0, 60.257545, 1.8715229, 0, 18.606487)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Izquierda/Pared_Izquierda.glb"
-metadata/label = &"Pared_Izquierda"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
-metadata/editor_only = true
-
-[node name="Pared_Derecha_Chiquita" parent="ObjectsRoot" unique_id=720628089 instance=ExtResource("5_3jw56")]
-transform = Transform3D(43.106743, 0, 90.23197, 0, 100, 0, -90.23197, 0, 43.106743, -2.4909134, 1.9073486e-06, 107.7567)
-metadata/obj_type = "wall"
-metadata/asset_path = "res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Derecha_Chiquita/Pared_Derecha_Chiquita.glb"
-metadata/label = &"Pared_Derecha_Chiquita"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
-metadata/editor_only = true
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=485697910]
 transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
@@ -96,3 +146,10 @@ directional_shadow_max_distance = 200.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=188895854]
 environment = SubResource("Environment_1")
+
+[node name="Terrain3D" type="Terrain3D" parent="." unique_id=614604747]
+data_directory = "res://assets/Mapas/Mapa5/Terreno"
+material = SubResource("Terrain3DMaterial_c0w6q")
+assets = SubResource("Terrain3DAssets_7qu75")
+top_level = true
+metadata/_edit_lock_ = true

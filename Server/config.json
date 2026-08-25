@@ -1250,7 +1250,9 @@
                 "cooldown",
                 "startDelay",
                 "affectsEnemies",
-                "affectsBosses"
+                "affectsBosses",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "✨",
             "label": "Aura Curativa",
@@ -1269,7 +1271,9 @@
                 "shieldRegen",
                 "duration",
                 "cooldown",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🛡️",
             "label": "Defensa Estándar",
@@ -1286,7 +1290,9 @@
                 "activationIntervalMs",
                 "duration",
                 "cooldown",
-                "radius"
+                "radius",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🎨",
             "label": "Mecánica de Colores",
@@ -1311,7 +1317,9 @@
                 "healIntervalMs",
                 "healPercentPerTick",
                 "healPercentPerPillarOnExpiry",
-                "cooldown"
+                "cooldown",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🗼",
             "label": "Pilares del Boss",
@@ -1332,7 +1340,9 @@
                 "playerDamage",
                 "bossHealPercent",
                 "duration",
-                "cooldown"
+                "cooldown",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "💧",
             "label": "Orbes de Agua",
@@ -1352,7 +1362,9 @@
                 "cloneDuration",
                 "cloneExplodeOnExpiry",
                 "spawnRadius",
-                "cooldown"
+                "cooldown",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "👥",
             "label": "Duplicación Defensiva",
@@ -1373,7 +1385,9 @@
                 "keepAttacking",
                 "changeSpeed",
                 "invisSpeedMultiplier",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "👤",
             "label": "Invisibilidad / Camuflaje",
@@ -1390,7 +1404,9 @@
                 "activationIntervalMs",
                 "duration",
                 "cooldown",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "💎",
             "label": "Invulnerabilidad Temporal",
@@ -1417,7 +1433,9 @@
                 "targetSphereColor",
                 "giveToEnemy",
                 "bulletDamage",
-                "isPointAndClick"
+                "isPointAndClick",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "💚",
             "label": "Robador de Vida (Life Steal)",
@@ -1462,7 +1480,9 @@
                 "targetSphereColor",
                 "giveToEnemy",
                 "bulletDamage",
-                "isPointAndClick"
+                "isPointAndClick",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "💠",
             "label": "Robador de Escudo (Shield Steal)",
@@ -1480,7 +1500,9 @@
                 "cooldown",
                 "duration",
                 "radius",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🛡️",
             "label": "Muro de Energía (Wall Dome)",
@@ -1513,7 +1535,9 @@
                     "isHoming": false,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -1556,7 +1580,9 @@
                     "fireRate": 3000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 4,
@@ -1567,7 +1593,9 @@
                     "slowAmount": 50,
                     "slowDuration": 1000,
                     "startDelay": 2000,
-                    "type": "ice_missile"
+                    "type": "ice_missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -1615,7 +1643,9 @@
                     "burstShots": 2,
                     "fireRange": 1000,
                     "fireRate": 3000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bombCount": 1,
@@ -1633,7 +1663,9 @@
                     "slowDuration": 2000,
                     "startDelay": 1500,
                     "turnSpeed": 2,
-                    "type": "bomb"
+                    "type": "bomb",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -1677,7 +1709,9 @@
                     "lifetimeMs": 1500,
                     "lockTimeMs": 1500,
                     "turnSpeed": 1,
-                    "type": "mega_laser"
+                    "type": "mega_laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -1723,7 +1757,9 @@
                     "orbitSpeed": 2,
                     "startDelay": 500,
                     "staticTime": 500,
-                    "type": "orbital_strike"
+                    "type": "orbital_strike",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 10,
@@ -1731,7 +1767,9 @@
                     "fireRange": 600,
                     "fireRate": 4555,
                     "startDelay": 1350,
-                    "type": "mine"
+                    "type": "mine",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -1793,7 +1831,9 @@
                     "burstShots": 2,
                     "fireRange": 650,
                     "fireRate": 3000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 10,
@@ -1810,7 +1850,8 @@
                     "returnDamage": 15,
                     "spreadAngle": 60,
                     "startDelay": 2340,
-                    "type": "worm_boomerang"
+                    "type": "worm_boomerang",
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -1867,7 +1908,9 @@
                     "intervalMs": 300,
                     "radius": 500,
                     "startDelay": 0,
-                    "type": "aura_damage"
+                    "type": "aura_damage",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -1902,7 +1945,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 3000,
-                    "type": "aura_heal"
+                    "type": "aura_heal",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 900,
@@ -1920,7 +1965,9 @@
                     "fireRate": 4000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -1976,7 +2023,8 @@
                     "turnSpeed": 0,
                     "type": "ascension",
                     "warnDelayMs": 1000,
-                    "warnTimeMs": 2000
+                    "warnTimeMs": 2000,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2010,7 +2058,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "invulnerability"
+                    "type": "invulnerability",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 1150,
@@ -2028,7 +2078,9 @@
                     "fireRate": 880,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2073,7 +2125,9 @@
                     "slowDuration": 0,
                     "startDelay": 0,
                     "staticTime": 0,
-                    "type": "orbital_strike"
+                    "type": "orbital_strike",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2109,7 +2163,9 @@
                     "fireRate": 900,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2149,7 +2205,9 @@
                     "fireRate": 850,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2186,7 +2244,9 @@
                     "fireRate": 800,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2227,7 +2287,9 @@
                     "fireRate": 750,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2282,7 +2344,11 @@
                     "fireRange": 1500,
                     "fireRate": 3500,
                     "startDelay": null,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 },
                 {
                     "aimDelayMs": 200,
@@ -2299,7 +2365,10 @@
                     "lockTimeMs": 1000,
                     "startDelay": 3700,
                     "stunDuration": 2000,
-                    "type": "cone_cast"
+                    "type": "cone_cast",
+                    "castInterruptible": true,
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -2342,7 +2411,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "invulnerability"
+                    "type": "invulnerability",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 1500,
@@ -2367,7 +2438,8 @@
                     "lockTimeMs": 800,
                     "startDelay": 0,
                     "turnSpeed": 1.2,
-                    "type": "laser"
+                    "type": "laser",
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 10,
@@ -2384,7 +2456,9 @@
                     "targetCount": 1,
                     "targetMode": "missing_hp",
                     "type": "sleep",
-                    "wakeOnDamage": 0
+                    "wakeOnDamage": 0,
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 20,
@@ -2397,7 +2471,9 @@
                     "slowDuration": 2000,
                     "startDelay": 1350,
                     "turnSpeed": 1,
-                    "type": "ice_missile"
+                    "type": "ice_missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2449,7 +2525,9 @@
                     "shieldRegen": 5,
                     "spawnRadius": 1000,
                     "startDelay": 0,
-                    "type": "boss_water_orbs"
+                    "type": "boss_water_orbs",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 1300,
@@ -2468,7 +2546,9 @@
                     "fireRange": 1000,
                     "fireRate": 4000,
                     "startDelay": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 0,
@@ -2482,7 +2562,9 @@
                     "startDelay": 6300,
                     "stunDuration": 1500,
                     "turnSpeed": 1.2,
-                    "type": "hook"
+                    "type": "hook",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 10,
@@ -2504,7 +2586,8 @@
                     "postCastWaitMs": 1000,
                     "safeRadius": 200,
                     "startDelay": 7660,
-                    "type": "survival_dome"
+                    "type": "survival_dome",
+                    "castInterruptible": true
                 },
                 {
                     "activationIntervalMs": 30000,
@@ -2523,7 +2606,9 @@
                     "targetCount": 1,
                     "targetMode": "sphere_color",
                     "targetSphereColor": "verde",
-                    "type": "polymorph"
+                    "type": "polymorph",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "activationHPs": [
@@ -2556,7 +2641,9 @@
                     "warnTimeMs": 500,
                     "zoneDamage": 25,
                     "zoneDuration": 4000,
-                    "zoneTickMs": 500
+                    "zoneTickMs": 500,
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2608,7 +2695,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "boss_colors"
+                    "type": "boss_colors",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "activationHPs": [
@@ -2630,7 +2719,9 @@
                     "shieldRegen": 5,
                     "spawnRadius": 800,
                     "startDelay": 0,
-                    "type": "boss_pillars"
+                    "type": "boss_pillars",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 1400,
@@ -2666,7 +2757,8 @@
                     "pushForce": 0,
                     "startDelay": 0,
                     "stunDuration": 0,
-                    "type": "melee_slash"
+                    "type": "melee_slash",
+                    "castInterruptible": true
                 },
                 {
                     "activationHPs": [
@@ -2696,7 +2788,8 @@
                     "warnTimeMs": 1500,
                     "zoneDamage": 5,
                     "zoneDuration": 4100,
-                    "zoneTickMs": 1000
+                    "zoneTickMs": 1000,
+                    "castInterruptible": true
                 },
                 {
                     "activationIntervalMs": 0,
@@ -2712,7 +2805,9 @@
                     "startDelay": 3500,
                     "stunDuration": 1500,
                     "turnSpeed": 1.2,
-                    "type": "hook"
+                    "type": "hook",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "activationIntervalMs": 0,
@@ -2727,7 +2822,9 @@
                     "slowDuration": 2000,
                     "startDelay": 0,
                     "turnSpeed": 1.2,
-                    "type": "ice_missile"
+                    "type": "ice_missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "activationIntervalMs": 0,
@@ -2746,7 +2843,8 @@
                     "lockTimeMs": 2000,
                     "startDelay": 7540,
                     "stunDuration": 1000,
-                    "type": "cone_cast"
+                    "type": "cone_cast",
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2806,7 +2904,9 @@
                     "fireRange": 1500,
                     "fireRate": 900,
                     "startDelay": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2867,7 +2967,9 @@
                     "fireRange": 1600,
                     "fireRate": 3000,
                     "startDelay": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2928,7 +3030,9 @@
                     "fireRange": 1700,
                     "fireRate": 850,
                     "startDelay": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -2984,7 +3088,9 @@
                     "bulletSpeed": 500,
                     "fireRange": 800,
                     "fireRate": 2000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3023,14 +3129,18 @@
                     "fireRate": 1000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 30,
                     "bulletSpeed": 800,
                     "fireRange": 600,
                     "fireRate": 1000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3074,14 +3184,18 @@
                     "fireRate": 1000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 40,
                     "bulletSpeed": 800,
                     "fireRange": 600,
                     "fireRate": 1000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3125,14 +3239,18 @@
                     "fireRate": 1000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 50,
                     "bulletSpeed": 800,
                     "fireRange": 600,
                     "fireRate": 1000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3171,7 +3289,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "invulnerability"
+                    "type": "invulnerability",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 1150,
@@ -3187,7 +3307,9 @@
                     "fireRate": 880,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3221,7 +3343,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "invulnerability"
+                    "type": "invulnerability",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 1150,
@@ -3237,7 +3361,9 @@
                     "fireRate": 880,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3271,7 +3397,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "invulnerability"
+                    "type": "invulnerability",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 1150,
@@ -3287,7 +3415,9 @@
                     "fireRate": 880,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3321,7 +3451,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "invulnerability"
+                    "type": "invulnerability",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 1150,
@@ -3337,7 +3469,9 @@
                     "fireRate": 880,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3373,7 +3507,9 @@
                     "fireRate": 820,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "name": "Enemigo 11 A",
@@ -3398,7 +3534,9 @@
                     "fireRate": 820,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "name": "Enemigo 11 B",
@@ -3423,7 +3561,9 @@
                     "fireRate": 820,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "name": "Enemigo 11 C",
@@ -3448,7 +3588,9 @@
                     "fireRate": 820,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "name": "Enemigo 11 D",
@@ -3473,7 +3615,9 @@
                     "fireRate": 900,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "name": "Enemigo 12 A",
@@ -3499,7 +3643,9 @@
                     "fireRate": 900,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3532,7 +3678,9 @@
                     "fireRate": 900,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "name": "Enemigo 12 C",
@@ -3560,7 +3708,9 @@
                     "fireRate": 900,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3597,7 +3747,9 @@
                     "fireRate": 850,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "name": "Enemigo 13 A",
@@ -3622,7 +3774,9 @@
                     "fireRate": 850,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "name": "Enemigo 13 B",
@@ -3647,7 +3801,9 @@
                     "fireRate": 850,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "name": "Enemigo 13 C",
@@ -3678,7 +3834,9 @@
                     "slowDuration": 2000,
                     "startDelay": 0,
                     "turnSpeed": 2,
-                    "type": "ice_missile"
+                    "type": "ice_missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3725,7 +3883,9 @@
                     "fireRate": 3000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 25,
@@ -3738,7 +3898,9 @@
                     "slowDuration": 2000,
                     "startDelay": 1500,
                     "turnSpeed": 0,
-                    "type": "missile"
+                    "type": "missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3774,7 +3936,9 @@
                     "fireRate": 1200,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 120,
@@ -3784,7 +3948,9 @@
                     "isHoming": false,
                     "slowAmount": 500,
                     "slowDuration": 200,
-                    "type": "ice_missile"
+                    "type": "ice_missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3818,7 +3984,9 @@
                     "fireRate": 1200,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 160,
@@ -3828,7 +3996,9 @@
                     "isHoming": false,
                     "slowAmount": 500,
                     "slowDuration": 200,
-                    "type": "ice_missile"
+                    "type": "ice_missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3863,7 +4033,9 @@
                     "fireRate": 1200,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 200,
@@ -3873,7 +4045,9 @@
                     "isHoming": false,
                     "slowAmount": 500,
                     "slowDuration": 200,
-                    "type": "ice_missile"
+                    "type": "ice_missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3914,7 +4088,9 @@
                     "burstShots": 2,
                     "fireRange": 1000,
                     "fireRate": 3000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bombCount": 1,
@@ -3932,7 +4108,9 @@
                     "slowDuration": 2000,
                     "startDelay": 1500,
                     "turnSpeed": 2,
-                    "type": "bomb"
+                    "type": "bomb",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -3971,7 +4149,9 @@
                     "bulletSpeed": 800,
                     "fireRange": 600,
                     "fireRate": 1000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 30,
@@ -3982,7 +4162,9 @@
                     "lifetimeMs": 3000,
                     "startDelay": 2000,
                     "turnSpeed": 2,
-                    "type": "missile"
+                    "type": "missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4016,7 +4198,9 @@
                     "bulletSpeed": 800,
                     "fireRange": 600,
                     "fireRate": 1000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 40,
@@ -4027,7 +4211,9 @@
                     "lifetimeMs": 3000,
                     "startDelay": 2000,
                     "turnSpeed": 2,
-                    "type": "missile"
+                    "type": "missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4062,7 +4248,9 @@
                     "bulletSpeed": 800,
                     "fireRange": 600,
                     "fireRate": 1000,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 50,
@@ -4073,7 +4261,9 @@
                     "lifetimeMs": 3000,
                     "startDelay": 2000,
                     "turnSpeed": 2,
-                    "type": "missile"
+                    "type": "missile",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4113,7 +4303,9 @@
                     "lockTimeMs": 800,
                     "startDelay": 0,
                     "turnSpeed": 1,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 1000,
@@ -4126,7 +4318,9 @@
                     "lockTimeMs": 1000,
                     "startDelay": 1000,
                     "turnSpeed": 0,
-                    "type": "mega_laser"
+                    "type": "mega_laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4217,7 +4411,8 @@
                         "random_base"
                     ],
                     "turnSpeed": 1,
-                    "type": "survival_dome"
+                    "type": "survival_dome",
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4253,7 +4448,9 @@
                     "lifetimeMs": 1500,
                     "lockTimeMs": 800,
                     "turnSpeed": 1,
-                    "type": "mega_laser"
+                    "type": "mega_laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4290,7 +4487,9 @@
                     "lifetimeMs": 1500,
                     "lockTimeMs": 800,
                     "turnSpeed": 1,
-                    "type": "mega_laser"
+                    "type": "mega_laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4326,7 +4525,9 @@
                     "fireRate": 3000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 150,
@@ -4339,7 +4540,9 @@
                     "orbitSpeed": 2,
                     "startDelay": 700,
                     "staticTime": 1000,
-                    "type": "orbital_strike"
+                    "type": "orbital_strike",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4392,7 +4595,9 @@
                     "fireRate": 1500,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 10,
@@ -4412,7 +4617,8 @@
                     "targetCount": 1,
                     "targetMode": 0,
                     "type": "sleep",
-                    "wakeOnDamage": false
+                    "wakeOnDamage": false,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4459,7 +4665,9 @@
                     "fireRate": 1500,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 1600,
@@ -4472,7 +4680,9 @@
                     "orbitSpeed": 2,
                     "startDelay": 1000,
                     "staticTime": 500,
-                    "type": "orbital_strike"
+                    "type": "orbital_strike",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4517,7 +4727,9 @@
                     "fireRate": 1500,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "bulletDamage": 2000,
@@ -4530,7 +4742,9 @@
                     "orbitSpeed": 2,
                     "startDelay": 1000,
                     "staticTime": 500,
-                    "type": "orbital_strike"
+                    "type": "orbital_strike",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4570,7 +4784,9 @@
                     "reductionPercentage": 20,
                     "shieldRegen": 5,
                     "startDelay": 2000,
-                    "type": "basic_defense"
+                    "type": "basic_defense",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 800,
@@ -4593,7 +4809,9 @@
                     "slowDuration": 0,
                     "startDelay": 0,
                     "turnSpeed": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "aimDelayMs": 1000,
@@ -4610,7 +4828,8 @@
                     "lockTimeMs": 1000,
                     "startDelay": 1000,
                     "stunDuration": 3000,
-                    "type": "cone_cast"
+                    "type": "cone_cast",
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4656,7 +4875,9 @@
                     "slowDuration": 0,
                     "startDelay": 3500,
                     "turnSpeed": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4699,7 +4920,9 @@
                     "slowDuration": 0,
                     "startDelay": 3500,
                     "turnSpeed": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4742,7 +4965,9 @@
                     "slowDuration": 0,
                     "startDelay": 3500,
                     "turnSpeed": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4780,7 +5005,9 @@
                     "intervalMs": 300,
                     "radius": 500,
                     "startDelay": 0,
-                    "type": "aura_damage"
+                    "type": "aura_damage",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4818,7 +5045,9 @@
                     "intervalMs": 300,
                     "radius": 500,
                     "startDelay": 0,
-                    "type": "aura_damage"
+                    "type": "aura_damage",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4856,7 +5085,9 @@
                     "intervalMs": 300,
                     "radius": 500,
                     "startDelay": 0,
-                    "type": "aura_damage"
+                    "type": "aura_damage",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4895,7 +5126,9 @@
                     "intervalMs": 300,
                     "radius": 500,
                     "startDelay": 0,
-                    "type": "aura_damage"
+                    "type": "aura_damage",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4929,7 +5162,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "aura_heal"
+                    "type": "aura_heal",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 900,
@@ -4943,7 +5178,9 @@
                     "fireRate": 1200,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -4977,7 +5214,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "aura_heal"
+                    "type": "aura_heal",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 900,
@@ -4991,7 +5230,9 @@
                     "fireRate": 1200,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -5025,7 +5266,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "aura_heal"
+                    "type": "aura_heal",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "fireRange": 900,
@@ -5039,7 +5282,9 @@
                     "fireRate": 1200,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -5075,7 +5320,9 @@
                     "fireRate": 1200,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 },
                 {
                     "activationHPs": [
@@ -5120,7 +5367,8 @@
                         "1-B",
                         "random_base"
                     ],
-                    "type": "survival_dome"
+                    "type": "survival_dome",
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -5160,7 +5408,9 @@
                     "startDelay": 0,
                     "stunDuration": 2000,
                     "turnSpeed": 0,
-                    "type": "hook"
+                    "type": "hook",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -5200,7 +5450,9 @@
                     "startDelay": 0,
                     "stunDuration": 2000,
                     "turnSpeed": 0,
-                    "type": "hook"
+                    "type": "hook",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -5311,7 +5563,8 @@
                     "warnTimeMs": 2000,
                     "zoneDamage": 3,
                     "zoneDuration": 4100,
-                    "zoneTickMs": 100
+                    "zoneTickMs": 100,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -5363,7 +5616,9 @@
                     "startDelay": 0,
                     "stunDuration": 2000,
                     "turnSpeed": 0,
-                    "type": "hook"
+                    "type": "hook",
+                    "castTimeMs": 0,
+                    "castInterruptible": true
                 }
             ],
             "movementPhases": [
@@ -7352,6 +7607,7 @@
                 "cooldown",
                 "startDelay",
                 "castTimeMs",
+                "castInterruptible",
                 "targetCount",
                 "targetMode",
                 "targetSphereColor",
@@ -7380,7 +7636,9 @@
                 "intervalMs",
                 "duration",
                 "cooldown",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🔥",
             "label": "Aura de Vacío (Daño)",
@@ -7403,7 +7661,9 @@
                 "bombDelayMs",
                 "fuseTimeMs",
                 "cooldown",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "💣",
             "label": "Lanzador de Bombas",
@@ -7420,6 +7680,7 @@
                 "activationIntervalMs",
                 "cooldown",
                 "castTimeMs",
+                "castInterruptible",
                 "burrowSpeed",
                 "fireRange",
                 "radius",
@@ -7450,6 +7711,7 @@
                 "activationIntervalMs",
                 "cooldown",
                 "castTimeMs",
+                "castInterruptible",
                 "damage",
                 "fireRange",
                 "lockTimeMs",
@@ -7470,6 +7732,7 @@
                 "activationIntervalMs",
                 "cooldown",
                 "castTimeMs",
+                "castInterruptible",
                 "damage",
                 "stunDuration",
                 "castSpeed",
@@ -7496,6 +7759,7 @@
                 "cooldown",
                 "startDelay",
                 "castTimeMs",
+                "castInterruptible",
                 "targetCount",
                 "targetMode",
                 "targetSphereColor",
@@ -7527,7 +7791,9 @@
                 "hookMissWaitMs",
                 "isHoming",
                 "turnSpeed",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "⚓",
             "label": "Gancho Abisal",
@@ -7549,6 +7815,8 @@
                 "slowAmount",
                 "slowDuration",
                 "startDelay",
+                "castTimeMs",
+                "castInterruptible",
                 "lifetimeMs",
                 "turnSpeed",
                 "isHoming"
@@ -7568,6 +7836,7 @@
                 "activationIntervalMs",
                 "cooldown",
                 "castTimeMs",
+                "castInterruptible",
                 "fireRange",
                 "radius",
                 "lockTimeMs",
@@ -7596,6 +7865,8 @@
                 "fireRate",
                 "burstShots",
                 "startDelay",
+                "castTimeMs",
+                "castInterruptible",
                 "isHoming",
                 "turnSpeed"
             ],
@@ -7637,6 +7908,7 @@
                 "cooldown",
                 "startDelay",
                 "castTimeMs",
+                "castInterruptible",
                 "arcAngle",
                 "fullCircle",
                 "pushForce",
@@ -7670,7 +7942,9 @@
                 "persistentZone",
                 "zoneDamage",
                 "zoneTickMs",
-                "zoneDuration"
+                "zoneDuration",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "☄️",
             "label": "Lluvia de Meteoritos",
@@ -7688,7 +7962,9 @@
                 "bulletDamage",
                 "fireRange",
                 "fireRate",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "💣",
             "label": "Mina de Proximidad",
@@ -7708,6 +7984,8 @@
                 "fireRange",
                 "fireRate",
                 "startDelay",
+                "castTimeMs",
+                "castInterruptible",
                 "lifetimeMs",
                 "turnSpeed",
                 "isHoming"
@@ -7734,7 +8012,9 @@
                 "staticTime",
                 "fireRate",
                 "fireRange",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🌀",
             "label": "Ataque Orbital",
@@ -7761,7 +8041,9 @@
                 "canUseSkills",
                 "targetCount",
                 "targetMode",
-                "targetSphereColor"
+                "targetSphereColor",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🗺️",
             "label": "Polimorfia (Cubito)",
@@ -7779,7 +8061,9 @@
                 "cooldown",
                 "duration",
                 "reflect_mult",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🛡️",
             "label": "Escudo Reflectante (Reflect)",
@@ -7805,7 +8089,9 @@
                 "nightmareMultiplier",
                 "wakeOnDamage",
                 "cooldown",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "💤",
             "label": "Sueño Inducido (Sleep)",
@@ -7831,7 +8117,9 @@
                 "slowPercentage",
                 "slowDuration",
                 "duration",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🌀",
             "label": "Giro Enloquecido",
@@ -7852,7 +8140,9 @@
                 "summonDurationMode",
                 "summonDurationMs",
                 "summonsList",
-                "startDelay"
+                "startDelay",
+                "castTimeMs",
+                "castInterruptible"
             ],
             "icon": "🧟",
             "label": "Invocación (Summoning)",
@@ -7871,6 +8161,7 @@
                 "safeRadius",
                 "maxOffset",
                 "castTimeMs",
+                "castInterruptible",
                 "cooldown",
                 "damage",
                 "postCastWaitMs",
@@ -7891,6 +8182,7 @@
                 "activationHPs",
                 "activationIntervalMs",
                 "castTimeMs",
+                "castInterruptible",
                 "wallStartOffset",
                 "wallWidth",
                 "bulletSpeed",
@@ -10351,7 +10643,7 @@
                 "players": true
             },
             "type": "Curación",
-            "castTimeMs": 0
+            "castTimeMs": 500
         },
         "BALIZA DE CURACION": {
             "canTargetOthers": false,
@@ -10364,7 +10656,7 @@
             "name": "BALIZA DE CURACION",
             "pulse_interval": 1500,
             "radius": 200,
-            "range": 500,
+            "range": null,
             "requirements": [
                 {
                     "min": 100,
@@ -10383,7 +10675,7 @@
                 "players": true
             },
             "type": "Curación",
-            "castTimeMs": 0
+            "castTimeMs": 500
         },
         "BARRERA DE VIENTO": {
             "canTargetOthers": false,
@@ -10408,7 +10700,7 @@
             },
             "type": "Defensa",
             "width": 200,
-            "castTimeMs": 0
+            "castTimeMs": 500
         },
         "BLINK": {
             "canTargetOthers": false,
@@ -10481,7 +10773,7 @@
                 "players": true
             },
             "type": "Defensa",
-            "castTimeMs": 0
+            "castTimeMs": 500
         },
         "ESFERA DE TERROR": {
             "amount": 1,
@@ -10506,7 +10798,7 @@
                 "players": true
             },
             "type": "Ataque",
-            "castTimeMs": 0
+            "castTimeMs": 100
         },
         "FROST-TRAIL": {
             "canTargetOthers": false,
@@ -10721,7 +11013,7 @@
                 "players": true
             },
             "type": "Curación",
-            "castTimeMs": 0
+            "castTimeMs": 500
         },
         "RESURRECCIÓN": {
             "canTargetOthers": true,

@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://map_default_12345"]
+[gd_scene load_steps=2 format=3 uid="uid://map_default_12345"]
 
 [ext_resource type="Script" path="res://scripts/systems/BaseMap.gd" id="1_basemap"]
-[ext_resource type="Texture2D" path="res://assets/Base de Mapas/mixboard-image.png" id="2_tex"]
 
 [node name="Map_Exploracion" type="Node2D"]
 script = ExtResource("1_basemap")
@@ -32,7 +31,6 @@ offset_top = -8000.0
 offset_right = 8000.0
 offset_bottom = 8000.0
 mouse_filter = 2
-texture = ExtResource("2_tex")
 expand_mode = 1
 stretch_mode = 6
 
