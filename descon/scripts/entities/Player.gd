@@ -105,9 +105,6 @@ var cast_type: String = "" # "ammo" o "skill"
 var cast_payload: Dictionary = {}
 var cast_angle: float = 0.0
 var cast_start_pos: Vector2 = Vector2.ZERO
-var _cast_visual_3d: Node3D = null
-var _cast_bg_3d: MeshInstance3D = null
-var _cast_fg_3d: MeshInstance3D = null
 var _cast_visual_2d: Control = null
 var _current_cast_color: Color = Color.WHITE
 var _buffered_cast_action: Dictionary = {}
@@ -981,7 +978,7 @@ func _ensure_cast_visual(p_type: String, p_detail: String):
 	_current_cast_color = _get_cast_color(p_type, p_detail)
 	_ensure_cast_visual_2d(p_type, p_detail)
 
-func _ensure_cast_visual_2d(p_type: String, p_detail: String):
+func _ensure_cast_visual_2d(_p_type: String, _p_detail: String):
 	if is_instance_valid(_cast_visual_2d):
 		return
 	var ui = get("_ui_wrapper")
@@ -1265,7 +1262,7 @@ func _shoot_skill(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector
 			return
 	_do_shoot_immediate(p_type, p_angle, p_target_pos, null)
 
-func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector2.ZERO, p_target_id = null):
+func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 = Vector2.ZERO, _p_target_id = null):
 	if cooldowns.get(p_type, 0.0) > 0.0:
 		return
 	if _is_safe_zone():
@@ -1296,8 +1293,7 @@ func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 =
 				ammo_maxd = float(ammo_cfg[t_idx].get("soundMaxDist", 1000.0))
 		if not ammo_sfx_path.is_empty():
 			AudioManager.play_sfx_path(ammo_sfx_path, global_position, ammo_vol, ammo_maxd)
-		else:
-			AudioManager.play_sfx(p_type)
+		# Si no hay sonido configurado (AdminDash -> sound vacío) silencio intencional, sin fallback ni warning
 	
 	is_moving = false
 	autopilot_enabled = false

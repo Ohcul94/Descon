@@ -239,8 +239,8 @@ func _on_network_config_updated(_config):
 func _setup_dynamic_3d_map_layout():
 	# Obtener dimensiones dinámicas del mapa desde MAPS_CONFIG (AdminDash Cartografia)
 	# v530.0: Se calcula ANTES de verificar sub_viewport para que el muro 2D siempre se genere (no depende del lienzo 3D)
-	var map_width = world_size
-	var map_height = world_size
+	var local_map_width = world_size
+	var local_map_height = world_size
 	var z_id_str = str(zone_id)
 	if "." in z_id_str and z_id_str.is_valid_float():
 		var z_float = float(z_id_str)
@@ -251,40 +251,53 @@ func _setup_dynamic_3d_map_layout():
 	if GameConstants.MAPS_CONFIG.has(z_id_str):
 		map_cfg = GameConstants.MAPS_CONFIG[z_id_str]
 		if map_cfg.has("width") and float(map_cfg.width) > 0:
-			map_width = float(map_cfg.width)
-			map_height = float(map_cfg.width)
-			world_size = map_width
-			self.map_height = map_height
+			local_map_width = float(map_cfg.width)
+			local_map_height = float(map_cfg.width)
+			world_size = local_map_width
+			self.map_height = local_map_height
 		if map_cfg.has("height") and float(map_cfg.height) > 0:
-			map_height = float(map_cfg.height)
-			self.map_height = map_height
+			local_map_height = float(map_cfg.height)
+			self.map_height = local_map_height
 	else:
 		# Sin config (arenas dinámicas, extracción) — reflejar world_size en map_height para consistencia
-		self.map_height = map_height
+		self.map_height = local_map_height
 
 	# v530.0: Crear/actualizar muros físicos del perímetro exactamente en el borde de la nebulosa.
 	# ANTES de cualquier return temprano (Ground3D placeholder, hideDefaultGround o sub_viewport nulo) para que siempre exista choque.
 	if _perimeter_walls_2d.size() == 0:
-		_create_perimeter_collisions_2d(map_width, map_height)
+		_create_perimeter_collisions_2d(local_map_width, local_map_height)
 	else:
-		_update_perimeter_collisions_2d(map_width, map_height)
+		_update_perimeter_collisions_2d(local_map_width, local_map_height)
 
 	# Sincronizar exports para que Player.gd lea map_height correctamente (fix rectangular)
-	self.map_height = map_height
-	self.world_size = map_width
+	self.map_height = local_map_height
+	self.world_size = local_map_width
 
 	if not is_instance_valid(sub_viewport):
 		return
 
 	var margin_2d = max(world_size * 3.0, 20000.0)
-	var ground_size_x = (map_width + margin_2d * 2.0) * scale_factor
-	var ground_size_z = (map_height + margin_2d * 2.0) * scale_factor * correction_z
-	var center_x = (map_width / 2.0) * scale_factor
-	var center_z = (map_height / 2.0) * scale_factor * correction_z
+	var ground_size_x = (local_map_width + margin_2d * 2.0) * scale_factor
+	var ground_size_z = (local_map_height + margin_2d * 2.0) * scale_factor * correction_z
+	var center_x = (local_map_width / 2.0) * scale_factor
+	var center_z = (local_map_height / 2.0) * scale_factor * correction_z
 	var y_ground = 0.0
 
-	var fog_start_3d = max(map_width * scale_factor * 0.25, 15.0)
-	var fog_end_3d = max(map_width * scale_factor * 0.75, 60.0)
+	var fog_start_3d = max(local_map_width * scale_factor * 0.25, 15.0)
+	var fog_end_3d = max(local_map_width * scale_factor * 0.75, 60.0)
+
+	# Variables locales declaradas al inicio de la función para evitar shadowing / re-declaraciones
+	var plane_mesh: PlaneMesh = null
+	var ground_mat: Material = null
+	var wall_root: Node3D = null
+	var nebula_width: float = 0.0
+	var wall_height: float = 0.0
+	var y_wall: float = 0.0
+	var min_x: float = 0.0
+	var max_x: float = 0.0
+	var min_z: float = 0.0
+	var max_z: float = 0.0
+	var wall_mat: Material = null
 
 	# v500.0: Buscar Ground3D (ya sea directo en viewport o dentro de la escena personalizada del editor)
 	var existing_ground = sub_viewport.find_child("Ground3D", true, false) if is_instance_valid(sub_viewport) else null
@@ -299,31 +312,31 @@ func _setup_dynamic_3d_map_layout():
 			print("[BaseMap] Ground3D personalizado detectado como placeholder. Generando malla y nebulosas del Lobby...")
 			ground_mesh = MeshInstance3D.new()
 			ground_mesh.name = "GroundMesh"
-			var plane_mesh = PlaneMesh.new()
+			plane_mesh = PlaneMesh.new()
 			plane_mesh.size = Vector2(ground_size_x, ground_size_z)
 			ground_mesh.mesh = plane_mesh
 			ground_mesh.position = Vector3.ZERO # Local al placeholder
 			
-			var ground_mat = _create_ground_material()
+			ground_mat = _create_ground_material()
 			_apply_ground_fog(ground_mat, fog_start_3d, fog_end_3d)
 			ground_mesh.material_override = ground_mat
 			existing_ground.add_child(ground_mesh)
 			
 			# Añadir Nebulosas
-			var wall_root = Node3D.new()
+			wall_root = Node3D.new()
 			wall_root.name = "NebulaWalls"
 			existing_ground.add_child(wall_root)
 			
-			var nebula_width = fog_end_3d * 0.8
-			var wall_height = 50.0
-			var y_wall = wall_height * 0.3 # Local
+			nebula_width = fog_end_3d * 0.8
+			wall_height = 50.0
+			y_wall = wall_height * 0.3 # Local
 			
-			var min_x = -map_width * scale_factor * 0.5
-			var max_x = map_width * scale_factor * 0.5
-			var min_z = -map_height * scale_factor * correction_z * 0.5
-			var max_z = map_height * scale_factor * correction_z * 0.5
+			min_x = -local_map_width * scale_factor * 0.5
+			max_x = local_map_width * scale_factor * 0.5
+			min_z = -local_map_height * scale_factor * correction_z * 0.5
+			max_z = local_map_height * scale_factor * correction_z * 0.5
 			
-			var wall_mat = _create_nebula_material()
+			wall_mat = _create_nebula_material()
 			_create_nebula_wall(wall_root, "WallTop", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, min_z), Vector3.ZERO, wall_mat)
 			_create_nebula_wall(wall_root, "WallBottom", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, max_z), Vector3.ZERO, wall_mat)
 			_create_nebula_wall(wall_root, "WallLeft", Vector2(max_z - min_z + nebula_width * 2.0, wall_height), Vector3(min_x, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
@@ -333,7 +346,7 @@ func _setup_dynamic_3d_map_layout():
 			existing_ground.position = Vector3(center_x, y_ground, center_z)
 		else:
 			# Si ya tiene la malla, simplemente redimensionar
-			_resize_existing_ground(existing_ground, ground_size_x, ground_size_z, center_x, center_z, y_ground, map_width, map_height, fog_start_3d, fog_end_3d)
+			_resize_existing_ground(existing_ground, ground_size_x, ground_size_z, center_x, center_z, y_ground, local_map_width, local_map_height, fog_start_3d, fog_end_3d)
 		return
 
 	# v500.2: Opción para omitir la creación del suelo decorativo gris por defecto
@@ -349,33 +362,33 @@ func _setup_dynamic_3d_map_layout():
 
 	var mesh_instance = MeshInstance3D.new()
 	mesh_instance.name = "GroundMesh"
-	var plane_mesh = PlaneMesh.new()
+	plane_mesh = PlaneMesh.new()
 	plane_mesh.size = Vector2(ground_size_x, ground_size_z)
 	mesh_instance.mesh = plane_mesh
 	mesh_instance.position = Vector3(center_x, y_ground, center_z)
 
-	var ground_mat = _create_ground_material()
+	ground_mat = _create_ground_material()
 	_apply_ground_fog(ground_mat, fog_start_3d, fog_end_3d)
 	mesh_instance.material_override = ground_mat
 	ground_root.add_child(mesh_instance)
 
 	# --- ANILLO DE NEBULOSA PERIMETRAL (Atmósfera / Horizonte) ---
-	var wall_root = Node3D.new()
+	wall_root = Node3D.new()
 	wall_root.name = "NebulaWalls"
 	ground_root.add_child(wall_root)
 
-	var nebula_width = fog_end_3d * 0.8
-	var wall_height = 50.0
-	var y_wall = y_ground + wall_height * 0.3
+	nebula_width = fog_end_3d * 0.8
+	wall_height = 50.0
+	y_wall = y_ground + wall_height * 0.3
 
-	var min_x = 0.0
-	var max_x = map_width * scale_factor
-	var min_z = 0.0
-	var max_z = map_height * scale_factor * correction_z
+	min_x = 0.0
+	max_x = local_map_width * scale_factor
+	min_z = 0.0
+	max_z = local_map_height * scale_factor * correction_z
 
 	var nebula_offset = 0.0
 
-	var wall_mat = _create_nebula_material()
+	wall_mat = _create_nebula_material()
 
 	_create_nebula_wall(wall_root, "WallTop", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, min_z - nebula_offset), Vector3.ZERO, wall_mat)
 	_create_nebula_wall(wall_root, "WallBottom", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, max_z + nebula_offset), Vector3.ZERO, wall_mat)

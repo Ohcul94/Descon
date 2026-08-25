@@ -320,6 +320,7 @@ module.exports = class BaseAI {
 
             if (distFromSpawn > leashRange || isTargetOutOfLeash) {
                 this.enemy.returningToSpawn = true;
+                this._interruptActiveMechanics(now, io);
                 this.enemy.lastHitter = null; // Olvidar agresor para forzar retorno
                 activeTarget = null;
             }
@@ -374,6 +375,7 @@ module.exports = class BaseAI {
 
             if (shouldEvade && (this.enemy.lastHitter || activeTarget)) {
                 this.enemy.returningToSpawn = true;
+                this._interruptActiveMechanics(now, io);
                 this.enemy.lastHitter = null;
                 activeTarget = null;
             }
@@ -386,6 +388,7 @@ module.exports = class BaseAI {
         const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
         if (!this._inCombat && !activeTarget && !this.enemy.lastHitter && !this.enemy.returningToSpawn && !isProwler && distFromSpawn > 50) {
             this.enemy.returningToSpawn = true;
+            this._interruptActiveMechanics(now, io);
         }
 
         // Lógica de Regeneración Autoritaria (Fuera de Combate / Ocioso)
@@ -538,6 +541,7 @@ module.exports = class BaseAI {
 
         // v3.0: PROCESAR REGRESO AL SPAWN
         if (this.enemy.returningToSpawn) {
+            this._interruptActiveMechanics(now, io);
             const distToSpawn = Math.hypot(this.enemy.startX - this.enemy.x, this.enemy.startY - this.enemy.y);
             if (distToSpawn < 50) {
                 this.enemy.returningToSpawn = false;

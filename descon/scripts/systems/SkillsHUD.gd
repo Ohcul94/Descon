@@ -437,7 +437,10 @@ func _update_skill_ui(slot_idx: int, ref, slot):
 	
 	if l_cd:
 		l_cd.visible = rv > 0.05
-		l_cd.text = str(snapped(rv, 0.1)) + "s"
+		l_cd.text = str(snapped(rv, 0.1))
+		l_cd.add_theme_color_override("font_outline_color", Color.BLACK)
+		l_cd.add_theme_constant_override("outline_size", 4)
+		l_cd.add_theme_font_size_override("font_size", 12)
 			
 	if l_am and ref.get("ammo") != null:
 		var a_list = ref.get("ammo").get(type, [0,0,0,0,0,0])
@@ -531,13 +534,18 @@ func _update_sphere_ui(id: int, ref, slot):
 		l_cd.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		l_cd.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		l_cd.add_theme_color_override("font_color", Color.WHITE)
+		l_cd.add_theme_color_override("font_outline_color", Color.BLACK)
+		l_cd.add_theme_constant_override("outline_size", 4)
 		l_cd.add_theme_font_size_override("font_size", 12)
 		slot.add_child(l_cd)
 	
 	if is_instance_valid(l_cd):
 		l_cd.visible = rv > 0.05
-		l_cd.text = str(snapped(rv, 0.1)) + "s"
+		l_cd.text = str(snapped(rv, 0.1))
 		l_cd.modulate = Color.WHITE
+		l_cd.add_theme_color_override("font_outline_color", Color.BLACK)
+		l_cd.add_theme_constant_override("outline_size", 4)
+		l_cd.add_theme_font_size_override("font_size", 12)
 	
 	# v410: Tinte de Silencio (Polimorfia) o Interferencia
 	var is_silenced = ref.get("is_polymorphed") == true and not ref.get("poly_can_use_skills")
@@ -632,6 +640,9 @@ func _update_sphere_ui(id: int, ref, slot):
 			if child.name == "CD":
 				child.modulate = Color.WHITE
 				child.add_theme_color_override("font_color", Color.WHITE)
+				child.add_theme_color_override("font_outline_color", Color.BLACK)
+				child.add_theme_constant_override("outline_size", 4)
+				child.add_theme_font_size_override("font_size", 12)
 			elif child.name == "Key":
 				pass
 			elif child.name == "BindingLabel":

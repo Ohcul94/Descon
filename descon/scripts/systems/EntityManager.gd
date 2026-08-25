@@ -254,16 +254,16 @@ func _process(delta):
 						area.global_position = en_vis
 						area.global_rotation = en.global_rotation - PI / 2
 						
-						# Sincronizar la rotación del cono 3D
-						var cone_3d = area.get_meta("cone_3d") if area.has_meta("cone_3d") else null
-						if is_instance_valid(cone_3d):
+						# Sincronizar la rotación del cono 3D en su subnodo rotador interno
+						var cone_rot = area.get_meta("cone_rotator") if area.has_meta("cone_rotator") else null
+						if is_instance_valid(cone_rot):
 							var dir_2d = Vector2.RIGHT.rotated(en.global_rotation - PI / 2)
 							var current_map = get_tree().get_first_node_in_group("map")
 							if is_instance_valid(current_map):
 								var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 								var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 								var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
-								cone_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+								cone_rot.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
 			else:
 				active_areas.erase(id)
 				area.queue_free()
@@ -411,7 +411,7 @@ func _create_enemy_cast_visual(enemy: Node, mId: String, castTimeMs: float, mech
 		ui.add_child(container)
 		enemy_cast_visuals[eid][mId]["visual2D"] = container
 
-func _update_enemy_cast_visuals(delta: float):
+func _update_enemy_cast_visuals(_delta: float):
 	for eid in enemy_cast_visuals.keys():
 		var mDict = enemy_cast_visuals[eid]
 		for mId in mDict.keys():
@@ -791,16 +791,22 @@ func _on_enemy_action(data: Dictionary):
 				# ---- 3D Cone Indicator ----
 				var cone_3d = Node3D.new()
 				cone_3d.name = "Cone3D_" + enemy_id
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				
+				# Escalar en Z global para la perspectiva isométrica 2.5D
+				cone_3d.scale = Vector3(1.0, 1.0, correction_z)
 				en.world_root_3d.add_child(cone_3d)
+				
 				# Compensar altura del boss: el cono debe verse a la altura del jugador
 				cone_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
 				
-				# Establecer rotación Y inicial del cono 3D
+				# Nodo rotador interno para la dirección lógica de la habilidad
+				var cone_rotator = Node3D.new()
+				cone_3d.add_child(cone_rotator)
 				var dir_2d = Vector2.RIGHT.rotated(en.rotation - PI / 2)
-				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
-				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 				var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
-				cone_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+				cone_rotator.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
 				
 				var range_3d = range_val * s_factor
 				var cone_mesh = _make_cone_mesh_3d(range_3d, cone_angle)
@@ -812,7 +818,7 @@ func _on_enemy_action(data: Dictionary):
 				mat_bg.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				mat_bg.cull_mode = BaseMaterial3D.CULL_DISABLED
 				mesh_bg.material_override = mat_bg
-				cone_3d.add_child(mesh_bg)
+				cone_rotator.add_child(mesh_bg)
 				
 				var mesh_fill = MeshInstance3D.new()
 				mesh_fill.mesh = cone_mesh
@@ -824,12 +830,13 @@ func _on_enemy_action(data: Dictionary):
 				mat_fill.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				mat_fill.cull_mode = BaseMaterial3D.CULL_DISABLED
 				mesh_fill.material_override = mat_fill
-				cone_3d.add_child(mesh_fill)
+				cone_rotator.add_child(mesh_fill)
 				mesh_fill.scale = Vector3(0.01, 0.01, 0.01)
 				
 				cone_node.set_meta("cone_3d", cone_3d)
+				cone_node.set_meta("cone_rotator", cone_rotator)
 				
-				var tw_3d = cone_3d.create_tween()
+				var tw_3d = cone_rotator.create_tween()
 				tw_3d.tween_property(mesh_fill, "scale", Vector3.ONE, charge_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 			else:
 				# ---- Fallback 2D Cone Indicator ----
@@ -890,16 +897,23 @@ func _on_enemy_action(data: Dictionary):
 				# ---- 3D Cone Blast ----
 				var blast_3d = Node3D.new()
 				blast_3d.name = "ConeBlast3D_" + enemy_id
+				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				
+				# Escalar en Z global para la perspectiva isométrica 2.5D
+				blast_3d.scale = Vector3(1.0, 1.0, correction_z)
 				en.world_root_3d.add_child(blast_3d)
+				
 				# Compensar altura del boss: la explosión debe verse a la altura del jugador
 				blast_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
 				
-				# Establecer rotación Y inicial del cono 3D (el ángulo ya es correcto)
+				# Subnodo rotador interno
+				var blast_rotator = Node3D.new()
+				blast_3d.add_child(blast_rotator)
+				
 				var dir_2d = Vector2.RIGHT.rotated(angle)
-				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
-				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 				var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
-				blast_3d.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+				blast_rotator.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
 				
 				var range_3d = range_val * s_factor
 				var cone_mesh = _make_cone_mesh_3d(range_3d, cone_angle)
@@ -914,9 +928,9 @@ func _on_enemy_action(data: Dictionary):
 				mat_blast.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				mat_blast.cull_mode = BaseMaterial3D.CULL_DISABLED
 				mesh_blast.material_override = mat_blast
-				blast_3d.add_child(mesh_blast)
+				blast_rotator.add_child(mesh_blast)
 				
-				var tw_3d = blast_3d.create_tween()
+				var tw_3d = blast_rotator.create_tween()
 				tw_3d.tween_property(mesh_blast, "material_override:albedo_color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 				tw_3d.parallel().tween_property(mesh_blast, "material_override:emission_energy_multiplier", 0.0, 0.25)
 				tw_3d.finished.connect(blast_3d.queue_free)
@@ -976,6 +990,9 @@ func _on_enemy_action(data: Dictionary):
 			if is_3d_active:
 				var circle_3d = Node3D.new()
 				circle_3d.name = "Circle3D_" + enemy_id
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+				# Escalar en Z global para la perspectiva isométrica 2.5D
+				circle_3d.scale = Vector3(1.0, 1.0, correction_z)
 				en.world_root_3d.add_child(circle_3d)
 				# Compensar altura del boss: los anillos deben verse a la altura del jugador
 				circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y
@@ -1073,8 +1090,14 @@ func _on_enemy_action(data: Dictionary):
 				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 				var vp = current_map.sub_viewport
-				var pos_3d = Vector3(locked_x * s_factor, 1.5, locked_y * s_factor * correction_z)
 				var r3d = range_val * s_factor
+
+				# Crear contenedor de explosión 3D con la escala de perspectiva Z
+				var circle_blast_3d = Node3D.new()
+				circle_blast_3d.name = "CircleBlast3D_" + enemy_id
+				circle_blast_3d.position = Vector3(locked_x * s_factor, 0.0, locked_y * s_factor * correction_z)
+				circle_blast_3d.scale = Vector3(1.0, 1.0, correction_z)
+				vp.add_child(circle_blast_3d)
 
 				var flash = MeshInstance3D.new()
 				var flash_s = SphereMesh.new()
@@ -1089,8 +1112,8 @@ func _on_enemy_action(data: Dictionary):
 				flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				flash_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 				flash.material_override = flash_mat
-				flash.position = pos_3d
-				vp.add_child(flash)
+				flash.position = Vector3(0, 1.5, 0)
+				circle_blast_3d.add_child(flash)
 				var tw_f = flash.create_tween()
 				tw_f.tween_property(flash, "scale", Vector3(3.5, 3.5, 3.5), 0.3)
 				tw_f.parallel().tween_property(flash_mat, "albedo_color:a", 0.0, 0.3)
@@ -1111,9 +1134,8 @@ func _on_enemy_action(data: Dictionary):
 				area_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				area_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 				damage_area.material_override = area_mat
-				damage_area.position = pos_3d
-				damage_area.position.y = 0.01
-				vp.add_child(damage_area)
+				damage_area.position = Vector3(0, 0.01, 0)
+				circle_blast_3d.add_child(damage_area)
 				var tw_a = damage_area.create_tween().set_parallel(true)
 				tw_a.tween_property(area_mat, "albedo_color:a", 0.0, 0.5).set_ease(Tween.EASE_IN)
 				tw_a.tween_property(area_mat, "emission_energy_multiplier", 0.0, 0.5).set_ease(Tween.EASE_IN)
@@ -1132,10 +1154,9 @@ func _on_enemy_action(data: Dictionary):
 				sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				sw_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 				shockwave.material_override = sw_mat
-				shockwave.position = pos_3d
-				shockwave.position.y = 0.02
+				shockwave.position = Vector3(0, 0.02, 0)
 				shockwave.rotation.x = PI / 2
-				vp.add_child(shockwave)
+				circle_blast_3d.add_child(shockwave)
 				var tw_sw = shockwave.create_tween().set_parallel(true)
 				tw_sw.tween_property(shockwave, "scale", Vector3(1.5, 1.5, 1.5), 0.4)
 				tw_sw.tween_property(sw_mat, "albedo_color:a", 0.0, 0.4)
@@ -1146,12 +1167,16 @@ func _on_enemy_action(data: Dictionary):
 				exp_light.light_color = Color(1.0, 0.4, 0.05)
 				exp_light.light_energy = 15.0
 				exp_light.omni_range = r3d * 2.0
-				exp_light.position = pos_3d
-				exp_light.position.y = 1.5
-				vp.add_child(exp_light)
+				exp_light.position = Vector3(0, 1.5, 0)
+				circle_blast_3d.add_child(exp_light)
 				var tw_l = exp_light.create_tween()
 				tw_l.tween_property(exp_light, "light_energy", 0.0, 0.4)
-				tw_l.finished.connect(exp_light.queue_free)
+				
+				# Limpiar el contenedor completo al finalizar el VFX
+				var clean_all = func():
+					if is_instance_valid(circle_blast_3d):
+						circle_blast_3d.queue_free()
+				tw_l.finished.connect(clean_all)
 
 			active_areas.erase("blast_" + enemy_id)
 
@@ -1171,6 +1196,8 @@ func _on_enemy_action(data: Dictionary):
 				var circle_3d = Node3D.new()
 				circle_3d.name = "IceStormCharging_" + enemy_id
 				circle_3d.position = Vector3(target_x * s_factor, 0.0, target_y * s_factor * correction_z)
+				# Escalar en Z global para la perspectiva isométrica 2.5D
+				circle_3d.scale = Vector3(1.0, 1.0, correction_z)
 				vp.add_child(circle_3d)
 
 				var ground_disc = MeshInstance3D.new()
@@ -1229,6 +1256,8 @@ func _on_enemy_action(data: Dictionary):
 				var storm = Node3D.new()
 				storm.name = "IceStorm_" + enemy_id
 				storm.position = Vector3(storm_x * s_factor, 0.0, storm_y * s_factor * correction_z)
+				# Escalar en Z global para la perspectiva isométrica 2.5D
+				storm.scale = Vector3(1.0, 1.0, correction_z)
 				vp.add_child(storm)
 				active_areas["icestorm_" + enemy_id] = storm
 
@@ -1427,9 +1456,10 @@ func _on_enemy_action(data: Dictionary):
 			var current_map_interrupt = get_tree().get_first_node_in_group("map")
 			var interrupt_3d = is_instance_valid(current_map_interrupt) and current_map_interrupt.get("sub_viewport") != null and is_instance_valid(en.get("world_root_3d"))
 			if interrupt_3d:
-				var old_vp_node = current_map_interrupt.sub_viewport.get_node_or_null("LaserIndicator3D_" + enemy_id)
-				if is_instance_valid(old_vp_node):
-					old_vp_node.queue_free()
+				for n in ["LaserIndicator3D_" + enemy_id, "IceStormCharging_" + enemy_id]:
+					var old_vp_node = current_map_interrupt.sub_viewport.get_node_or_null(n)
+					if is_instance_valid(old_vp_node):
+						old_vp_node.queue_free()
 
 			if active_laser_tracking.has(enemy_id):
 				var lt_data = active_laser_tracking[enemy_id]
@@ -2491,6 +2521,8 @@ func _spawn_meteor_warning_3d(vp, tx: float, ty: float, radius: float, s_factor:
 	root.name = "MeteorWarn_" + str(tx) + "_" + str(ty)
 	var r3d = radius * s_factor
 	root.position = Vector3(tx * s_factor, 0.02, ty * s_factor * correction_z)
+	# Escalar en Z global para la perspectiva isométrica 2.5D
+	root.scale = Vector3(1.0, 1.0, correction_z)
 	vp.add_child(root)
 
 	var ring = MeshInstance3D.new()

@@ -164,7 +164,11 @@ func _process(_delta):
 			_hook_chain_3d.global_position = mid
 			_hook_chain_3d.scale.y = max(dist, 0.01)
 			if not mid.is_equal_approx(hook_3d):
-				_hook_chain_3d.look_at(hook_3d, Vector3.UP)
+				var dir = (hook_3d - mid).normalized()
+				var up_vec = Vector3.UP
+				if abs(dir.dot(Vector3.UP)) > 0.99:
+					up_vec = Vector3.FORWARD
+				_hook_chain_3d.look_at(hook_3d, up_vec)
 			_hook_chain_3d.rotate_object_local(Vector3.RIGHT, PI / 2)
 
 

@@ -16,6 +16,7 @@ var _current_music_volume_percent: float = 100.0
 # cache de streams por path {path: AudioStream}
 var _sfx_cache: Dictionary = {}
 var _sfx_cooldown: Dictionary = {} # anti-spam {path: next_allowed_msec}
+var _sfx_missing_warned: Dictionary = {} # {path: true} para no spamear warnings de paths inexistentes
 
 const SFX_SPAM_MS: int = 80
 
@@ -117,12 +118,20 @@ func play_sfx_path(path: String, pos: Variant = Vector2.INF, extra_vol_db: float
 func _load_sfx(path: String) -> AudioStream:
 	if _sfx_cache.has(path):
 		return _sfx_cache[path]
+	if _sfx_missing_warned.has(path):
+		return null
+	# Paths no configurados desde AdminDash o fallbacks legacy ("laser", "ui_click") no deben spamear warnings
+	if path.is_empty() or not path.begins_with("res://"):
+		_sfx_missing_warned[path] = true
+		return null
 	if not ResourceLoader.exists(path):
 		push_warning("[AUDIO] SFX no existe: " + path)
+		_sfx_missing_warned[path] = true
 		return null
 	var s = load(path)
 	if s == null:
 		push_warning("[AUDIO] No se pudo cargar SFX: " + path)
+		_sfx_missing_warned[path] = true
 		return null
 	if s is AudioStreamWAV:
 		s.loop_mode = AudioStreamWAV.LOOP_DISABLED

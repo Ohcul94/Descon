@@ -38,39 +38,39 @@ unique_name_in_owner = true
 
 [node name="M7-Pared3-Blender" type="Node3D" parent="ObjectsRoot" unique_id=685055107 instance=ExtResource("2_6s6p5")]
 transform = Transform3D(10, 0, 0, 0, 10, 0, 0, 0, 10, 65.9496, 0.09, -1.2125467)
-metadata/editor_only = true
 metadata/obj_type = "wall"
-metadata/label = "M7-Pared3-Blender"
 metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb"
+metadata/label = "M7-Pared3-Blender"
 metadata/scale_2d = 10.0
 metadata/rot_y_deg = 0.0
-
-[node name="@Node3D@19825" type="Node3D" parent="ObjectsRoot" unique_id=1854620133 instance=ExtResource("2_6s6p5")]
-transform = Transform3D(-10, 0, 8.742278e-07, 0, 10, 0, -8.742278e-07, 0, -10, 65.9496, 0.09, 287.59305)
 metadata/editor_only = true
+
+[node name="M7-Pared3-Blender_2" type="Node3D" parent="ObjectsRoot" unique_id=424994631 instance=ExtResource("2_6s6p5")]
+transform = Transform3D(-10, 0, 8.742278e-07, 0, 10, 0, -8.742278e-07, 0, -10, 65.9496, 0.09, 287.59305)
 metadata/obj_type = "wall"
-metadata/label = "M7-Pared3-Blender"
 metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb"
+metadata/label = "M7-Pared3-Blender"
 metadata/scale_2d = 10.0
 metadata/rot_y_deg = -180.0
-
-[node name="@Node3D@19826" type="Node3D" parent="ObjectsRoot" unique_id=1537943897 instance=ExtResource("2_6s6p5")]
-transform = Transform3D(-0.0698124, 0, -9.999756, 0, 10, 0, 9.999756, 0, -0.0698124, 203.5658, 0.09, 99.74929)
 metadata/editor_only = true
+
+[node name="M7-Pared3-Blender_3" type="Node3D" parent="ObjectsRoot" unique_id=1171053454 instance=ExtResource("2_6s6p5")]
+transform = Transform3D(-0.0698124, 0, -9.999756, 0, 10, 0, 9.999756, 0, -0.0698124, 203.5658, 0.09, 99.74929)
 metadata/obj_type = "wall"
-metadata/label = "M7-Pared3-Blender"
 metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb"
+metadata/label = "M7-Pared3-Blender"
 metadata/scale_2d = 10.0
 metadata/rot_y_deg = -90.4
-
-[node name="@Node3D@19827" type="Node3D" parent="ObjectsRoot" unique_id=1044565097 instance=ExtResource("2_6s6p5")]
-transform = Transform3D(-4.371139e-07, 0, 10, 0, 10, 0, -10, 0, -4.371139e-07, -3.94, 0.09, 99.74929)
 metadata/editor_only = true
+
+[node name="M7-Pared3-Blender_4" type="Node3D" parent="ObjectsRoot" unique_id=444147060 instance=ExtResource("2_6s6p5")]
+transform = Transform3D(-4.371139e-07, 0, 10, 0, 10, 0, -10, 0, -4.371139e-07, -3.94, 0.09, 99.74929)
 metadata/obj_type = "wall"
-metadata/label = "M7-Pared3-Blender"
 metadata/asset_path = "res://assets/Mapas/Mapa7/Paredes/Pared3/3D/M7-Pared3-Blender.glb"
+metadata/label = "M7-Pared3-Blender"
 metadata/scale_2d = 10.0
 metadata/rot_y_deg = 90.0
+metadata/editor_only = true
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=348657487]
 transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
