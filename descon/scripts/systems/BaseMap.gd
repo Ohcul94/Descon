@@ -2460,8 +2460,18 @@ func _calculate_local_aabb(node: Node3D) -> AABB:
 		var curr = item[0]
 		var accum_trans = item[1]
 		
-		if curr is MeshInstance3D and curr.mesh:
-			var local_aabb = curr.mesh.get_aabb()
+		var local_aabb = AABB()
+		var has_aabb = false
+		
+		# En Godot 4, los nodos que heredan de VisualInstance3D (incluye GeometryInstance3D, CSGShape3D, MeshInstance3D) tienen get_aabb()
+		if curr.has_method("get_aabb"):
+			local_aabb = curr.get_aabb()
+			has_aabb = true
+		elif curr is MeshInstance3D and curr.mesh:
+			local_aabb = curr.mesh.get_aabb()
+			has_aabb = true
+			
+		if has_aabb:
 			var trans_aabb = accum_trans * local_aabb
 			if first:
 				total_aabb = trans_aabb
@@ -2486,6 +2496,36 @@ func _spawn_objects_from_custom_scene():
 			
 		# Ignorar el terreno
 		if child.is_class("Terrain3D") or "Terrain3D" in child.name:
+			continue
+			
+		# v530.2: Si es un CollisionPolygon3D, proyectar sus vértices directamente a física 2D
+		if child is CollisionPolygon3D or child.get_class() == "CollisionPolygon3D":
+			var poly3d = child as CollisionPolygon3D
+			var vertices3d = poly3d.polygon
+			var points_2d = PackedVector2Array()
+			var obj_label = str(child.name)
+			
+			for pt in vertices3d:
+				var local_3d = Vector3(pt.x, pt.y, 0.0)
+				var global_3d = poly3d.global_transform * local_3d
+				var pt_2d = Vector2(
+					global_3d.x / scale_factor,
+					global_3d.z / (scale_factor * correction_z)
+				)
+				points_2d.append(pt_2d)
+				
+			if points_2d.size() >= 3:
+				var wall_body = StaticBody2D.new()
+				wall_body.name = "MapWallPoly_" + obj_label.replace(" ", "_")
+				wall_body.collision_layer = 2
+				wall_body.collision_mask = 0
+				
+				var col_poly = CollisionPolygon2D.new()
+				col_poly.polygon = points_2d
+				wall_body.add_child(col_poly)
+				wall_body.add_to_group("walls")
+				add_child(wall_body)
+				print("[BaseMap] Polígono 2D autogenerado desde 3D: ", wall_body.name, " con ", points_2d.size(), " vértices.")
 			continue
 			
 		# Obtener el tipo de objeto de sus metadatos (por defecto "wall" / pared)
@@ -2513,46 +2553,76 @@ func _spawn_objects_from_custom_scene():
 				wall_body.collision_layer = 2
 				wall_body.collision_mask = 0
 				
-				var custom_size = Vector2(100.0 * scale_val, 20.0 * scale_val)
-				var custom_offset = Vector2.ZERO
-				var is_circle = false
-				
-				# Autodetectar tamaño desde el volumen 3D (AABB) del modelo
-				var aabb = _calculate_local_aabb(child)
-				var s_factor = scale_factor
-				var corr_z = correction_z
-				
-				var w_2d = (aabb.size.x / s_factor) * scale_val
-				var h_2d = (aabb.size.z / (s_factor * corr_z)) * scale_val
-				
-				if w_2d > 1.0 and h_2d > 1.0:
-					custom_size = Vector2(w_2d, h_2d)
-					var aabb_center = aabb.position + aabb.size / 2.0
-					custom_offset.x = (aabb_center.x / s_factor) * scale_val
-					custom_offset.y = (aabb_center.z / (s_factor * corr_z)) * scale_val
-					
-					var ratio = w_2d / h_2d
-					if ratio >= 0.82 and ratio <= 1.22:
-						is_circle = true
-						
-				custom_offset = custom_offset.rotated(deg_to_rad(-rot_y))
-				
-				var col = CollisionShape2D.new()
-				if is_circle:
-					var circle = CircleShape2D.new()
-					circle.radius = custom_size.x / 2.0
-					col.shape = circle
+				# v530.3: Para CSGBox3D usamos los 4 vértices reales de la base de la caja
+				# en espacio global para evitar el AABB inflado por rotación que causaba
+				# el desfase Norte-Sur (el AABB es siempre mayor que el objeto al rotar).
+				if child.get_class() == "CSGBox3D":
+					var box_size = child.get("size")
+					if box_size != null:
+						var hw = box_size.x * 0.5
+						var hd = box_size.z * 0.5
+						# Los 4 vértices de la base de la caja en espacio local del nodo
+						var corners_local = [
+							Vector3(-hw, 0.0, -hd),
+							Vector3( hw, 0.0, -hd),
+							Vector3( hw, 0.0,  hd),
+							Vector3(-hw, 0.0,  hd),
+						]
+						var poly_pts = PackedVector2Array()
+						for corner in corners_local:
+							var g = child.global_transform * corner
+							poly_pts.append(Vector2(
+								g.x / scale_factor,
+								g.z / (scale_factor * correction_z)
+							))
+						var col_poly = CollisionPolygon2D.new()
+						col_poly.polygon = poly_pts
+						wall_body.add_child(col_poly)
+						wall_body.add_to_group("walls")
+						add_child(wall_body)
+						# global_position ya está embebida en los vértices proyectados
+						wall_body.global_position = Vector2.ZERO
+						print("[BaseMap] CSGBox3D -> Polígono 2D exacto (4 esquinas globales): ", wall_body.name)
+					else:
+						print("[BaseMap] CSGBox3D sin propiedad size, se omite: ", obj_label)
 				else:
-					var rect = RectangleShape2D.new()
-					rect.size = custom_size
-					col.shape = rect
+					# Para cualquier otro objeto: usar AABB en espacio global (incluye escala y rotación)
+					var global_aabb: AABB
+					if child.has_method("get_aabb"):
+						global_aabb = child.global_transform * child.get_aabb()
+					else:
+						global_aabb = _calculate_local_aabb(child)
 					
-				col.position = custom_offset
-				col.rotation = deg_to_rad(-rot_y)
-				wall_body.add_child(col)
-				wall_body.add_to_group("walls")
-				add_child(wall_body)
-				wall_body.global_position = obj_pos
+					var w_2d = global_aabb.size.x / scale_factor
+					var h_2d = global_aabb.size.z / (scale_factor * correction_z)
+					
+					if w_2d < 1.0 or h_2d < 1.0:
+						w_2d = 100.0 * scale_val
+						h_2d = 20.0 * scale_val
+					
+					var aabb_center_2d = Vector2(
+						global_aabb.get_center().x / scale_factor,
+						global_aabb.get_center().z / (scale_factor * correction_z)
+					)
+					
+					var col = CollisionShape2D.new()
+					var ratio = w_2d / h_2d if h_2d > 0 else 1.0
+					if ratio >= 0.82 and ratio <= 1.22:
+						var circle = CircleShape2D.new()
+						circle.radius = w_2d / 2.0
+						col.shape = circle
+					else:
+						var rect = RectangleShape2D.new()
+						rect.size = Vector2(w_2d, h_2d)
+						col.shape = rect
+					
+					col.position = Vector2.ZERO
+					wall_body.add_child(col)
+					wall_body.add_to_group("walls")
+					add_child(wall_body)
+					# Usar la posición GLOBAL del centro del AABB para colocar el body
+					wall_body.global_position = aabb_center_2d
+					print("[BaseMap] Wall AABB global 2D: ", wall_body.name, " size=", Vector2(w_2d, h_2d), " pos=", aabb_center_2d)
 				
 			"door":
 				# Crear área lógica de Warp / Portal interactivo
