@@ -2485,18 +2485,56 @@ func _calculate_local_aabb(node: Node3D) -> AABB:
 				stack.append([child, child_trans])
 	return total_aabb
 
-# v500.9: Spawnea las colisiones y la lógica interactiva 2D directamente desde los nodos de la escena de Godot
 func _spawn_objects_from_custom_scene():
 	print("[BaseMap] Generando colisiones físicas 2D desde ObjectsRoot de la escena 3D local...")
 	var market_script = load("res://scripts/entities/MarketTerminal.gd")
 	
+	if not is_instance_valid(custom_objects_root):
+		return
+		
+	# Función lambda local para buscar metadatos de tipo de objeto de manera ultra flexible
+	# Soportando variantes como "Obj Type", "objtype", "ObjType", "obj_type", etc.
+	var get_flexible_obj_type = func(node: Node3D) -> String:
+		if not is_instance_valid(node):
+			return ""
+		for meta_name in node.get_meta_list():
+			var clean = meta_name.to_lower().replace("_", "").replace(" ", "")
+			if clean == "objtype":
+				return str(node.get_meta(meta_name))
+		return ""
+		
+	# v530.4: Usamos una pila (stack) para procesar de forma recursiva
+	# Esto permite tener carpetas organizadoras dentro de ObjectsRoot.
+	var nodes_stack = []
 	for child in custom_objects_root.get_children():
-		if not is_instance_valid(child) or not child is Node3D:
+		if is_instance_valid(child) and child is Node3D:
+			nodes_stack.append(child)
+			
+	while nodes_stack.size() > 0:
+		var child = nodes_stack.pop_back()
+		if not is_instance_valid(child):
 			continue
 			
 		# Ignorar el terreno
 		if child.is_class("Terrain3D") or "Terrain3D" in child.name:
 			continue
+			
+		# Obtener la metadata de tipo de objeto usando la función flexible
+		var obj_type = get_flexible_obj_type.call(child)
+		
+		# Si es un simple Node3D organizador (carpeta) sin metadata, meter sus hijos al stack.
+		# No restringimos por scene_file_path porque en Godot el nodo puede tener un path
+		# asignado aunque sea una carpeta normal (si fue guardado como sub-escena).
+		var is_collider_node = child is CollisionPolygon3D or child is CSGBox3D or child.get_class() == "CollisionPolygon3D"
+		if child.get_class() == "Node3D" and obj_type == "" and not is_collider_node:
+			for sub_child in child.get_children():
+				if is_instance_valid(sub_child) and sub_child is Node3D:
+					nodes_stack.append(sub_child)
+			continue
+			
+		# Si no tiene metadata pero es una caja/polígono o nodo bajo una carpeta, por defecto es pared ("wall")
+		if obj_type == "":
+			obj_type = "wall"
 			
 		# v530.2: Si es un CollisionPolygon3D, proyectar sus vértices directamente a física 2D
 		if child is CollisionPolygon3D or child.get_class() == "CollisionPolygon3D":
@@ -2529,8 +2567,6 @@ func _spawn_objects_from_custom_scene():
 				print("[BaseMap] Polígono 2D autogenerado desde 3D: ", wall_body.name, " con ", points_2d.size(), " vértices.")
 			continue
 			
-		# Obtener el tipo de objeto de sus metadatos (por defecto "wall" / pared)
-		var obj_type = str(child.get_meta("obj_type", "wall") if child.has_meta("obj_type") else "wall")
 		var obj_label = str(child.name)
 		
 		# Convertir la posición 3D local del objeto en coordenadas 2D lógicas del juego
@@ -2557,7 +2593,8 @@ func _spawn_objects_from_custom_scene():
 				# v530.3: Para CSGBox3D usamos RectangleShape2D + rotación en Y
 				# Esto evita la triangulación de CollisionPolygon2D que generaba
 				# el triángulo fantasma de colisión en el borde del rectángulo.
-				if child.get_class() == "CSGBox3D":
+				print("[BaseMap] Procesando wall: ", obj_label, " | clase=", child.get_class(), " | es CSGBox3D=", child is CSGBox3D)
+				if child is CSGBox3D or child.get_class() == "CSGBox3D":
 					var box_size = child.get("size")
 					if box_size != null:
 						# Escala global del nodo (para respetar CSGBox escalado)
@@ -2568,7 +2605,7 @@ func _spawn_objects_from_custom_scene():
 						# Convertir a coordenadas 2D del juego
 						var w_2d = world_w / scale_factor
 						var h_2d = world_d / (scale_factor * correction_z)
-						# Posición del centro del box proyectada a 2D
+						# Posición del centro del box proyectada a 2D (global para soportar carpetas)
 						var center_2d = Vector2(
 							child.global_position.x / scale_factor,
 							child.global_position.z / (scale_factor * correction_z)
@@ -2586,7 +2623,7 @@ func _spawn_objects_from_custom_scene():
 						wall_body.add_to_group("obstacles")
 						add_child(wall_body)
 						wall_body.global_position = center_2d
-						print("[BaseMap] CSGBox3D -> RectangleShape2D exacto: ", wall_body.name, " size=", Vector2(w_2d, h_2d), " rot=", rad_to_deg(-rot_y_rad))
+						print("[BaseMap] CSGBox3D -> RectangleShape2D: ", wall_body.name, " size=", Vector2(w_2d, h_2d), " pos=", center_2d, " rot=", rad_to_deg(-rot_y_rad))
 					else:
 						print("[BaseMap] CSGBox3D sin propiedad size, se omite: ", obj_label)
 				else:
