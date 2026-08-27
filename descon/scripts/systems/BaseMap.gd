@@ -2524,6 +2524,7 @@ func _spawn_objects_from_custom_scene():
 				col_poly.polygon = points_2d
 				wall_body.add_child(col_poly)
 				wall_body.add_to_group("walls")
+				wall_body.add_to_group("obstacles")
 				add_child(wall_body)
 				print("[BaseMap] Polígono 2D autogenerado desde 3D: ", wall_body.name, " con ", points_2d.size(), " vértices.")
 			continue
@@ -2553,36 +2554,39 @@ func _spawn_objects_from_custom_scene():
 				wall_body.collision_layer = 2
 				wall_body.collision_mask = 0
 				
-				# v530.3: Para CSGBox3D usamos los 4 vértices reales de la base de la caja
-				# en espacio global para evitar el AABB inflado por rotación que causaba
-				# el desfase Norte-Sur (el AABB es siempre mayor que el objeto al rotar).
+				# v530.3: Para CSGBox3D usamos RectangleShape2D + rotación en Y
+				# Esto evita la triangulación de CollisionPolygon2D que generaba
+				# el triángulo fantasma de colisión en el borde del rectángulo.
 				if child.get_class() == "CSGBox3D":
 					var box_size = child.get("size")
 					if box_size != null:
-						var hw = box_size.x * 0.5
-						var hd = box_size.z * 0.5
-						# Los 4 vértices de la base de la caja en espacio local del nodo
-						var corners_local = [
-							Vector3(-hw, 0.0, -hd),
-							Vector3( hw, 0.0, -hd),
-							Vector3( hw, 0.0,  hd),
-							Vector3(-hw, 0.0,  hd),
-						]
-						var poly_pts = PackedVector2Array()
-						for corner in corners_local:
-							var g = child.global_transform * corner
-							poly_pts.append(Vector2(
-								g.x / scale_factor,
-								g.z / (scale_factor * correction_z)
-							))
-						var col_poly = CollisionPolygon2D.new()
-						col_poly.polygon = poly_pts
-						wall_body.add_child(col_poly)
+						# Escala global del nodo (para respetar CSGBox escalado)
+						var g_scale = child.global_transform.basis.get_scale()
+						# Dimensiones reales del box en unidades 3D del mundo
+						var world_w = box_size.x * abs(g_scale.x)
+						var world_d = box_size.z * abs(g_scale.z)
+						# Convertir a coordenadas 2D del juego
+						var w_2d = world_w / scale_factor
+						var h_2d = world_d / (scale_factor * correction_z)
+						# Posición del centro del box proyectada a 2D
+						var center_2d = Vector2(
+							child.global_position.x / scale_factor,
+							child.global_position.z / (scale_factor * correction_z)
+						)
+						# Rotación Y del nodo en 3D → convertida a eje 2D (invertida)
+						var rot_y_rad = child.global_transform.basis.get_euler(EULER_ORDER_YXZ).y
+						
+						var col = CollisionShape2D.new()
+						var rect = RectangleShape2D.new()
+						rect.size = Vector2(w_2d, h_2d)
+						col.shape = rect
+						col.rotation = -rot_y_rad
+						wall_body.add_child(col)
 						wall_body.add_to_group("walls")
+						wall_body.add_to_group("obstacles")
 						add_child(wall_body)
-						# global_position ya está embebida en los vértices proyectados
-						wall_body.global_position = Vector2.ZERO
-						print("[BaseMap] CSGBox3D -> Polígono 2D exacto (4 esquinas globales): ", wall_body.name)
+						wall_body.global_position = center_2d
+						print("[BaseMap] CSGBox3D -> RectangleShape2D exacto: ", wall_body.name, " size=", Vector2(w_2d, h_2d), " rot=", rad_to_deg(-rot_y_rad))
 					else:
 						print("[BaseMap] CSGBox3D sin propiedad size, se omite: ", obj_label)
 				else:
@@ -2619,6 +2623,7 @@ func _spawn_objects_from_custom_scene():
 					col.position = Vector2.ZERO
 					wall_body.add_child(col)
 					wall_body.add_to_group("walls")
+					wall_body.add_to_group("obstacles")
 					add_child(wall_body)
 					# Usar la posición GLOBAL del centro del AABB para colocar el body
 					wall_body.global_position = aabb_center_2d
