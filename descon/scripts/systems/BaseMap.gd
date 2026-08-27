@@ -2494,7 +2494,7 @@ func _spawn_objects_from_custom_scene():
 		
 	# Función lambda local para buscar metadatos de tipo de objeto de manera ultra flexible
 	# Soportando variantes como "Obj Type", "objtype", "ObjType", "obj_type", etc.
-	var get_flexible_obj_type = func(node: Node3D) -> String:
+	var get_flexible_obj_type = func(node: Node) -> String:
 		if not is_instance_valid(node):
 			return ""
 		for meta_name in node.get_meta_list():
@@ -2507,7 +2507,7 @@ func _spawn_objects_from_custom_scene():
 	# Esto permite tener carpetas organizadoras dentro de ObjectsRoot.
 	var nodes_stack = []
 	for child in custom_objects_root.get_children():
-		if is_instance_valid(child) and child is Node3D:
+		if is_instance_valid(child) and child is Node:
 			nodes_stack.append(child)
 			
 	while nodes_stack.size() > 0:
@@ -2522,13 +2522,23 @@ func _spawn_objects_from_custom_scene():
 		# Obtener la metadata de tipo de objeto usando la función flexible
 		var obj_type = get_flexible_obj_type.call(child)
 		
-		# Si es un simple Node3D organizador (carpeta) sin metadata, meter sus hijos al stack.
-		# No restringimos por scene_file_path porque en Godot el nodo puede tener un path
-		# asignado aunque sea una carpeta normal (si fue guardado como sub-escena).
-		var is_collider_node = child is CollisionPolygon3D or child is CSGBox3D or child.get_class() == "CollisionPolygon3D"
-		if child.get_class() == "Node3D" and obj_type == "" and not is_collider_node:
+		# --- DIAGNÓSTICO: ver qué nodo se procesa ---
+		var is_collider_node = child is CollisionPolygon3D or child is CSGBox3D or (child.has_method("get_class") and child.get_class() == "CollisionPolygon3D")
+		
+		# Es una carpeta si: no hereda de Node3D (es un Node simple) O es un Node3D puro sin metadata
+		var is_folder = false
+		if not child is Node3D:
+			is_folder = true
+		elif child.get_class() == "Node3D" and obj_type == "" and not is_collider_node:
+			is_folder = true
+			
+		print("[BaseMap STACK] '", child.name, "' clase='", child.get_class(), "' obj_type='", obj_type, "' es_carpeta=", is_folder, " es_CSGBox=", child is CSGBox3D)
+		
+		# Si es un simple Node organizador (carpeta) sin metadata, meter sus hijos al stack.
+		if is_folder:
+			print("[BaseMap STACK] -> CARPETA detectada, agregando ", child.get_child_count(), " hijos al stack")
 			for sub_child in child.get_children():
-				if is_instance_valid(sub_child) and sub_child is Node3D:
+				if is_instance_valid(sub_child) and sub_child is Node:
 					nodes_stack.append(sub_child)
 			continue
 			
