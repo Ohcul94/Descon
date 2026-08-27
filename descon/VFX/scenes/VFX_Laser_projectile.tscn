@@ -196,27 +196,48 @@ top_radius = 0.15
 bottom_radius = 0.15
 height = 0.35
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_laser_core"]
+shading_mode = 0
+transparency = 0
+albedo_color = Color(1.0, 0.32, 0.12, 1)
+emission_enabled = true
+emission = Color(1.0, 0.28, 0.08, 1)
+emission_energy_multiplier = 6.0
+disable_receive_shadows = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_laser_core"]
+radius = 0.32
+height = 0.64
+radial_segments = 16
+rings = 12
+
 [node name="VFX_LaserProjectile" type="Node3D"]
 
 [node name="Box1" type="MeshInstance3D" parent="."]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 2.0, 0, 0, 0)
 material_override = SubResource("ShaderMaterial_e6xun")
 cast_shadow = 0
-mesh = SubResource("CylinderMesh_lsr1")
+mesh = ExtResource("3_xlsrb")
 
 [node name="Box1_projection" type="MeshInstance3D" parent="."]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 1.5, 0, 0, 0.320)
 material_override = SubResource("ShaderMaterial_cr6i5")
 cast_shadow = 0
-mesh = SubResource("CylinderMesh_lsr2")
+mesh = ExtResource("3_xlsrb")
 
 [node name="Box1_projection2" type="MeshInstance3D" parent="."]
 transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 1.0, 0, 0, 0.580)
 material_override = SubResource("ShaderMaterial_vrj43")
 cast_shadow = 0
-mesh = SubResource("CylinderMesh_lsr3")
+mesh = ExtResource("3_xlsrb")
 
-
+[node name="CoreSphere" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.7, 0, 0, 0, 0.7, 0, 0, 0, 0.7, 0, 0, 0)
+material_override = SubResource("StandardMaterial3D_laser_core")
+cast_shadow = 0
+mesh = SubResource("SphereMesh_laser_core")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
-light_color = Color(1.0, 0.2, 0.1, 1)
+light_color = Color(1.0, 0.25, 0.08, 1)
+light_energy = 2.5
+omni_range = 4.0

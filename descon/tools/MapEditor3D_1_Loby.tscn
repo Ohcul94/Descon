@@ -337,3 +337,9 @@ material = SubResource("Terrain3DMaterial_s5vme")
 assets = SubResource("Terrain3DAssets_q5n4c")
 top_level = true
 metadata/_edit_lock_ = true
+
+[editable path="ObjectsRoot/Decorativo3"]
+[editable path="ObjectsRoot/Baúl_Personal"]
+[editable path="ObjectsRoot/Decorativo1"]
+[editable path="ObjectsRoot/Mercado"]
+

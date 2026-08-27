@@ -21,6 +21,7 @@ const TEXTURE_MINE = preload("res://assets/Municiones/Minas/Mina1/Mina1.png")
 const TEXTURE_MINE_3 = preload("res://assets/Municiones/Minas/Mina3/Mina3.png")
 const TEXTURE_MINE_2 = preload("res://assets/Municiones/Minas/Mina2/Mina2.png")
 const TEXTURE_SIPHON = preload("res://assets/Municiones/Siphon/Siphon1/Siphon1.png")
+const TEXTURE_LASER = preload("res://assets/Municiones/Lasers/Laser1/Laser1.png")
 
 const TEXTURE_CACHE = {
 	"missile": TEXTURE_MISSILE,
@@ -28,7 +29,8 @@ const TEXTURE_CACHE = {
 	"mine": TEXTURE_MINE,
 	"orbital_mine": TEXTURE_MINE_3,
 	"hook": TEXTURE_MINE_2,
-	"siphon": TEXTURE_SIPHON
+	"siphon": TEXTURE_SIPHON,
+	"laser": TEXTURE_LASER
 }
 
 # Projectile.gd (v141.72 - CONE EMP & VECTOR RENDERING)
@@ -529,25 +531,31 @@ func _setup_visual_sprite():
 			print("[SIPHON DEBUG] No map node or sub_viewport, falling back to 2D")
 		# NO return here - allow fallback to 2D if 3D fails
 
-	# Efecto 3D de proyectil Láser (cubo rojo con estela)
+	# Efecto 3D de proyectil Láser (cubo rojo con estela) - v530.5 fix visibilidad (horizontal + fallback)
 	if type == "laser":
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
 			var target_vp = map_node.sub_viewport
 			if VFX_Laser_projectile_scene:
 				world_root_3d = VFXSystem.get_vfx_from_pool(VFX_Laser_projectile_scene)
-				world_root_3d.name = "LaserProj3D_" + str(get_instance_id())
-				target_vp.add_child(world_root_3d)
-				
-				world_root_3d.scale = Vector3(0.75, 0.75, 0.75)
-				
-				tree_exiting.connect(func():
-					if is_instance_valid(world_root_3d):
-						VFXSystem.recycle_vfx_to_pool(world_root_3d)
-				)
-				
-				sprite = null
-				return
+				if is_instance_valid(world_root_3d):
+					world_root_3d.name = "LaserProj3D_" + str(get_instance_id())
+					target_vp.add_child(world_root_3d)
+					
+					world_root_3d.scale = Vector3(0.85, 0.85, 0.85)
+					
+					tree_exiting.connect(func():
+						if is_instance_valid(world_root_3d):
+							VFXSystem.recycle_vfx_to_pool(world_root_3d)
+					)
+					
+					sprite = null
+					return
+				else:
+					print("[LASER FIX] Pool devolvio null, usando fallback 2D")
+		else:
+			print("[LASER FIX] map_node o sub_viewport nulo, usando fallback 2D. map_node=", map_node)
+		# No return -> cae al fallback 2D de sprite/_draw para garantizar visibilidad
 
 	# Efecto 3D de proyectil de fuego (Fire Strike) para misiles
 	if type == "missile" or type == "ice_missile":
@@ -1211,6 +1219,7 @@ func _setup_visual_sprite():
 			return
 	var path = ""
 	match type:
+		"laser": path = "res://assets/Municiones/Lasers/Laser1/Laser1.png"
 		"mine": path = "res://assets/Municiones/Minas/Mina1/Mina1.png"
 		"orbital_mine": path = "res://assets/Municiones/Minas/Mina3/Mina3.png"
 		"hook": 
@@ -1359,6 +1368,10 @@ func _setup_visual_sprite():
 				sprite.modulate = Color(0.8, 0.15, 0.9) 
 			elif type == "shield_steal":
 				sprite.modulate = Color(0.3, 0.85, 1.0) 
+			elif type == "laser":
+				# v530.5 fallback 2D para laser: rojo-naranja brillante
+				sprite.modulate = Color(1.2, 0.35, 0.15)
+				sprite.scale *= 1.1
 			elif owner_type == "enemy":
 				if type == "orbital_mine": sprite.modulate = Color(1.2, 1.2, 1.2) 
 				else: sprite.modulate = Color(1.0, 0.3, 0.3) 
@@ -1483,6 +1496,17 @@ func _draw():
 			# Runas místicas grabadas a los lados (líneas púrpuras sutiles)
 			draw_line(Vector2(-6, -2), Vector2(-4, -2), Color(0.8, 0.1, 0.95, 0.75), 1.0)
 			draw_line(Vector2(4, 2), Vector2(6, 2), Color(0.8, 0.1, 0.95, 0.75), 1.0)
+		"laser":
+			if is_instance_valid(world_root_3d):
+				return
+			# v530.5 fallback 2D para laser: capsula rojo-naranja brillante con estela
+			var t_laser = Time.get_ticks_msec() / 1000.0
+			var pulse_laser = sin(t_laser * 18.0) * 1.2
+			draw_circle(Vector2.ZERO, 10.0 + pulse_laser, Color(1.0, 0.25, 0.08, 0.38))
+			draw_circle(Vector2.ZERO, 6.5, Color(1.0, 0.35, 0.12, 0.95))
+			draw_circle(Vector2.ZERO, 3.0, Color.WHITE)
+			draw_line(Vector2(-14, 0), Vector2(8, 0), Color(1.0, 0.4, 0.15, 0.85), 3.5)
+			draw_line(Vector2(-20, 0), Vector2(-14, 0), Color(1.0, 0.2, 0.05, 0.32), 6.0)
 		"emp":
 			if is_instance_valid(world_root_3d):
 				return

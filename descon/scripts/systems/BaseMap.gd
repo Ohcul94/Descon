@@ -145,7 +145,8 @@ func _ready():
 		if not NetworkManager.admin_config_updated.is_connected(_on_network_config_updated):
 			NetworkManager.admin_config_updated.connect(_on_network_config_updated)
 			
-	if enable_fog_of_war:
+	# v650.0: Deshabilitar niebla de guerra en el Lobby (zona 1) por ser mapa amistoso
+	if enable_fog_of_war and str(zone_id) != "1":
 		_setup_fog_of_war()
 
 # Registrar acciones de input para cámara libre si no existen
@@ -163,6 +164,9 @@ func _register_input_actions():
 		InputMap.action_add_event("toggle_orbit_mode", ev)
 
 func _setup_fog_of_war():
+	# v650.0: Deshabilitar niebla de guerra en el Lobby (zona 1) por ser mapa amistoso
+	if str(zone_id) == "1":
+		return
 	if not is_instance_valid(camera_3d):
 		return
 	if is_instance_valid(fog_of_war):
@@ -2584,6 +2588,19 @@ func _spawn_objects_from_custom_scene():
 					nodes_stack.append(sub_child)
 			continue
 			
+		# Detectar si el nodo tiene colisionadores hijos personalizados (CSGBox3D o CollisionPolygon3D)
+		var has_custom_colliders = false
+		for sub_child in child.get_children():
+			if sub_child is CSGBox3D or sub_child is CollisionPolygon3D or sub_child.get_class() == "CollisionPolygon3D":
+				has_custom_colliders = true
+				break
+				
+		# Agregar los hijos de este objeto al stack para que sus colisionadores/hijos se procesen individualmente
+		if child.get_child_count() > 0:
+			for sub_child in child.get_children():
+				if is_instance_valid(sub_child) and sub_child is Node:
+					nodes_stack.append(sub_child)
+			
 		# Si no tiene metadata pero es una caja/polígono o nodo bajo una carpeta, por defecto es pared ("wall")
 		if obj_type == "":
 			obj_type = "wall"
@@ -2636,6 +2653,12 @@ func _spawn_objects_from_custom_scene():
 		
 		match obj_type:
 			"wall":
+				# Si el objeto padre tiene colisionadores hijos personalizados,
+				# omitimos crear la colisión AABB genérica del padre para evitar colisión duplicada o gigante.
+				if has_custom_colliders:
+					print("[BaseMap] Omitiendo colisión AABB genérica de la pared padre: ", obj_label)
+					continue
+					
 				# Crear cuerpo de colisión sólida 2D para bloquear naves
 				var wall_body = StaticBody2D.new()
 				wall_body.name = "MapWall_" + obj_label.replace(" ", "_")

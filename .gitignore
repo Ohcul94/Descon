@@ -35,3 +35,7 @@ OracleCloud/Lincks Drive Descarga
 Server/keys/
 *.pem
 *.key
+
+# Godot GDExtension temporary files
+~*
+

@@ -2,18 +2,21 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bcirxsnf678nw"
-path.s3tc="res://.godot/imported/mermaid+statue+3d+model_basecolor.jpg-f8622714d07a2eb2464c0f4bb6a61d4d.s3tc.ctex"
-path.etc2="res://.godot/imported/mermaid+statue+3d+model_basecolor.jpg-f8622714d07a2eb2464c0f4bb6a61d4d.etc2.ctex"
+uid="uid://4ist38a7gb2p"
+path.s3tc="res://.godot/imported/AnimacionesBoss5_Boss5_basecolor.jpg-856a2cbbdb3d5cc1579c786e7e74932c.s3tc.ctex"
+path.etc2="res://.godot/imported/AnimacionesBoss5_Boss5_basecolor.jpg-856a2cbbdb3d5cc1579c786e7e74932c.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
+generator_parameters={
+"md5": "91f2cb20133340c984eed4aaf67d1b56"
+}
 
 [deps]
 
-source_file="res://assets/Mapas/Mapa6/textures/mermaid+statue+3d+model_basecolor.jpg"
-dest_files=["res://.godot/imported/mermaid+statue+3d+model_basecolor.jpg-f8622714d07a2eb2464c0f4bb6a61d4d.s3tc.ctex", "res://.godot/imported/mermaid+statue+3d+model_basecolor.jpg-f8622714d07a2eb2464c0f4bb6a61d4d.etc2.ctex"]
+source_file="res://assets/Mapas/Mapa3/Terreno/AnimacionesBoss5_Boss5_basecolor.jpg"
+dest_files=["res://.godot/imported/AnimacionesBoss5_Boss5_basecolor.jpg-856a2cbbdb3d5cc1579c786e7e74932c.s3tc.ctex", "res://.godot/imported/AnimacionesBoss5_Boss5_basecolor.jpg-856a2cbbdb3d5cc1579c786e7e74932c.etc2.ctex"]
 
 [params]
 
