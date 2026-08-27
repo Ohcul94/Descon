@@ -17,7 +17,8 @@ subdivide_width = 200
 subdivide_depth = 200
 
 [sub_resource type="Environment" id="Environment_1"]
-background_mode = 4
+background_mode = 1
+background_color = Color(0.08, 0.08, 0.12, 1)
 ambient_light_source = 1
 ambient_light_color = Color(0.3, 0.32, 0.4, 1)
 ambient_light_energy = 1.5
@@ -25,6 +26,7 @@ tonemap_mode = 1
 adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
+
 
 [node name="MapEditor3D" type="Node3D" unique_id=494064320]
 script = ExtResource("1_editor_script")

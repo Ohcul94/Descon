@@ -17,7 +17,8 @@ subdivide_width = 200
 subdivide_depth = 200
 
 [sub_resource type="Environment" id="Environment_1"]
-background_mode = 4
+background_mode = 1
+background_color = Color(0.08, 0.08, 0.12, 1)
 ambient_light_source = 1
 ambient_light_color = Color(0.3, 0.32, 0.4, 1)
 ambient_light_energy = 1.5
@@ -25,6 +26,7 @@ tonemap_mode = 1
 adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
+
 
 [sub_resource type="Gradient" id="Gradient_d0lf8"]
 offsets = PackedFloat32Array(0.2, 1)
@@ -115,8 +117,8 @@ shape = SubResource("WorldBoundaryShape3D_1")
 [node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=1711100493]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 material_override = SubResource("StandardMaterial3D_t7ar1")
+visible = false
 mesh = SubResource("PlaneMesh_1")
-
 [node name="ObjectsRoot" type="Node3D" parent="." unique_id=843027781]
 unique_name_in_owner = true
 
