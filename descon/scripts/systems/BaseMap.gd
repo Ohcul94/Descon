@@ -35,6 +35,8 @@ const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofr
 @export var scale_factor: float = 0.02 # Relación 2D a 3D
 @export var camera_height: float = 30.0
 @export var use_orthogonal: bool = false
+@export var enable_camera_headlight: bool = false
+@export var enable_fog_of_war: bool = true
 
 # Referencias dinámicas
 var viewport_container: SubViewportContainer = null
@@ -46,6 +48,7 @@ var border_ring_node: Node3D = null
 var rock_data_list: Array = []
 var multimeshes: Dictionary = {}
 var rock_angle: float = 0.0
+var fog_of_war: FogOfWarManager = null
 
 # correction_z dinámico: 1.0 / sin(tilt_angle) calculado desde la inclinación real de la cámara
 var correction_z: float = 1.41421356
@@ -114,7 +117,7 @@ func _ready():
 	_restore_camera_state()
 	
 	# v307.0: Inyectar luz de cámara frontal (Headlight) si no existe ya en la cámara para evitar naves negras
-	if is_instance_valid(camera_3d) and not camera_3d.has_node("CameraHeadlight"):
+	if enable_camera_headlight and is_instance_valid(camera_3d) and not camera_3d.has_node("CameraHeadlight"):
 		var headlight = DirectionalLight3D.new()
 		headlight.name = "CameraHeadlight"
 		headlight.light_color = Color(0.9, 0.95, 1.0)
@@ -141,6 +144,9 @@ func _ready():
 			NetworkManager.config_updated.connect(_on_network_config_updated)
 		if not NetworkManager.admin_config_updated.is_connected(_on_network_config_updated):
 			NetworkManager.admin_config_updated.connect(_on_network_config_updated)
+			
+	if enable_fog_of_war:
+		_setup_fog_of_war()
 
 # Registrar acciones de input para cámara libre si no existen
 func _register_input_actions():
@@ -155,6 +161,18 @@ func _register_input_actions():
 		var ev = InputEventKey.new()
 		ev.keycode = KEY_SEMICOLON
 		InputMap.action_add_event("toggle_orbit_mode", ev)
+
+func _setup_fog_of_war():
+	if not is_instance_valid(camera_3d):
+		return
+	if is_instance_valid(fog_of_war):
+		fog_of_war.queue_free()
+		
+	fog_of_war = FogOfWarManager.new()
+	fog_of_war.name = "FogOfWarManager"
+	add_child(fog_of_war)
+	fog_of_war.setup(self)
+	print("[BaseMap] Sistema de Niebla de Guerra AAA inicializado.")
 
 func adjust_background():
 	_setup_starfield()
@@ -564,13 +582,36 @@ func _fix_scene_floor_to_black(root: Node):
 		for child in n.get_children():
 			stack.append(child)
 
+func _resolve_map_editor_path(z_id: String) -> String:
+	# v530.2: Resolver path del MapEditor3D con fallbacks (Loby es excepción: MapEditor3D_1_Loby.tscn)
+	var candidates: Array[String] = []
+	if z_id == "1":
+		candidates = [
+			"res://tools/MapEditor3D_1_Loby.tscn",
+			"res://tools/MapEditor3D_1_Lobby.tscn",
+			"res://tools/MapEditor3D_1_Mapa_1.tscn",
+			"res://tools/MapEditor3D_1_Loby.scn",
+			"res://tools/MapEditor3D_1_Mapa_1.scn"
+		]
+	else:
+		candidates = [
+			"res://tools/MapEditor3D_" + z_id + "_Mapa_" + z_id + ".tscn",
+			"res://tools/MapEditor3D_" + z_id + "_Mapa_" + z_id + ".scn",
+			"res://tools/MapEditor3D_" + z_id + "_Loby.tscn",
+			"res://tools/MapEditor3D_" + z_id + "_Lobby.tscn"
+		]
+	for p in candidates:
+		if ResourceLoader.exists(p):
+			return p
+	return candidates[0]
+
 func _setup_3d_dynamic():
 	var z_id_str = str(zone_id)
 	if "." in z_id_str and z_id_str.is_valid_float():
 		var z_float = float(z_id_str)
 		if z_float == int(z_float):
 			z_id_str = str(int(z_float))
-	var scene_3d_path = "res://tools/MapEditor3D_" + z_id_str + "_Mapa_" + z_id_str + ".tscn"
+	var scene_3d_path = _resolve_map_editor_path(z_id_str)
 	_has_custom_3d_scene = ResourceLoader.exists(scene_3d_path)
 
 	# Si ya existe ViewportCanvas en la escena (como en Map_Extraction), vincular referencias y retornar
@@ -588,7 +629,7 @@ func _setup_3d_dynamic():
 				sub_viewport.handle_input_locally = false
 				sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 				camera_3d = sub_viewport.get_node_or_null("Camera3D")
-				if is_instance_valid(camera_3d):
+				if is_instance_valid(camera_3d) and enable_camera_headlight:
 					_apply_camera_headlight(camera_3d)
 				asteroids_3d = sub_viewport.get_node_or_null("Asteroids3D")
 				
@@ -668,7 +709,8 @@ func _setup_3d_dynamic():
 	)
 	camera_3d.current = true
 	sub_viewport.add_child(camera_3d)
-	_apply_camera_headlight(camera_3d)
+	if enable_camera_headlight:
+		_apply_camera_headlight(camera_3d)
 
 	# Cargar escena 3D del editor de forma síncrona
 	# La cámara (camera_3d) ya está en el árbol, por lo que Terrain3D puede inicializarse sin problemas.

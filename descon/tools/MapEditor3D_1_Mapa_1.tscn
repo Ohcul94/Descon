@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://66qul8sco5ws"]
+[gd_scene format=3 uid="uid://u40qo0dllt2d"]
 
 [ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
 [ext_resource type="PackedScene" uid="uid://c28gj75dps0kp" path="res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb" id="2_0qj33"]
@@ -311,11 +311,6 @@ metadata/label = "Mercado"
 metadata/scale_2d = 10.0
 metadata/rot_y_deg = -26.9
 metadata/editor_only = true
-
-[node name="Collider6" type="CSGBox3D" parent="ObjectsRoot/Mercado" unique_id=669281857]
-transform = Transform3D(0.99999875, 0, -0.0015580654, 0, 1, 0, 0.0015580654, 0, 0.99999875, -0.017664671, 0.009999905, -0.0023540258)
-size = Vector3(0.7735305, 0.02, 0.49105185)
-material = SubResource("StandardMaterial3D_5ynva")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1971071584]
 transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
