@@ -98,6 +98,10 @@ var _mobile_cam_drag_last: Vector2 = Vector2.ZERO
 var _pinch_start_dist: float = 0.0
 var _was_mobile_camera_edit: int = 0
 
+# v600.0: OccluderFader - paredes/objetos que se hacen transparentes (A+B dither) cuando tapan la cámara
+var _occluder_fader: OccluderFader = null
+const OccluderFaderScript = preload("res://scripts/systems/OccluderFader.gd")
+
 # Referencia a la textura de fondo principal
 @onready var map_background: TextureRect = get_node_or_null("ParallaxBackground/MapWorldLayer/MapBackground")
 
@@ -148,6 +152,9 @@ func _ready():
 	# v650.0: Deshabilitar niebla de guerra en el Lobby (zona 1) por ser mapa amistoso
 	if enable_fog_of_war and str(zone_id) != "1":
 		_setup_fog_of_war()
+	
+	# v600.0: Inicializar sistema de oclusión (A+B dither) - sin romper nada, solo overlay
+	_setup_occluder_fader()
 
 # Registrar acciones de input para cámara libre si no existen
 func _register_input_actions():
@@ -177,6 +184,21 @@ func _setup_fog_of_war():
 	add_child(fog_of_war)
 	fog_of_war.setup(self)
 	print("[BaseMap] Sistema de Niebla de Guerra AAA inicializado.")
+
+# v600.0: Sistema de Oclusión A+B (geométrico + dither) - No toca materiales base, solo overlay
+func _setup_occluder_fader():
+	if is_instance_valid(_occluder_fader):
+		return
+	if not OccluderFaderScript:
+		return
+	_occluder_fader = OccluderFaderScript.new()
+	_occluder_fader.name = "OccluderFader"
+	add_child(_occluder_fader)
+	print("[BaseMap] OccluderFader (A+B dither) inicializado - paredes se desvanecen sin romper sorting.")
+
+func _clear_occluders():
+	if is_instance_valid(_occluder_fader):
+		_occluder_fader.clear_all()
 
 func adjust_background():
 	_setup_starfield()
@@ -1325,7 +1347,7 @@ func _process(_delta):
 				camera_3d.position += shake_offset
 	
 	_update_world_cursor()
-
+ 
 	# Chequear cercanía a puertas interactivas del mapa
 	_check_doors_proximity()
 	_update_interact_visibility()
@@ -1343,6 +1365,17 @@ func _process(_delta):
 				portal.rotation.x = deg_to_rad(-45.0) + wobble_x
 				portal.rotation.y = deg_to_rad(-90.0) + wobble_y
 				index += 1
+	
+	# v600.0: Oclusión fade (A+B dither) - paredes/objetos transparentes cuando tapan la visión
+	# Seguro: solo usa material_overlay con shader dither, no toca colisiones ni materiales base.
+	if is_instance_valid(_occluder_fader) and is_instance_valid(camera_3d) and is_instance_valid(player_node):
+		var cam_pos = camera_3d.global_position
+		var target_y = 1.0
+		var wr3d2 = player_node.get("world_root_3d")
+		if is_instance_valid(wr3d2):
+			target_y = wr3d2.position.y
+		var target_pos = Vector3(player_node.global_position.x * scale_factor, target_y + 0.3, player_node.global_position.y * scale_factor * correction_z)
+		_occluder_fader.update_occlusion(cam_pos, target_pos, _delta)
 
 # _process removido al no haber asteroides decorativos que rotar
 
@@ -1831,6 +1864,8 @@ func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: V
 		fallback.material = mat
 		fallback.position = Vector3(pos_2d.x * scale_factor, y_offset, pos_2d.y * scale_factor * correction_z)
 		sub_viewport.add_child(fallback)
+		if is_instance_valid(_occluder_fader):
+			_occluder_fader.register_occluder(fallback)
 		return fallback
 		
 	var obj = scene.instantiate()
@@ -1846,6 +1881,12 @@ func _instantiate_map_object_3d(asset_path: String, pos_2d: Vector2, scale_3d: V
 	obj.add_child(light)
 	
 	sub_viewport.add_child(obj)
+	# v600.0: Registrar como occluder si es alto (pared/objeto que puede tapar). Seguro: solo overlay dither.
+	if is_instance_valid(_occluder_fader):
+		var is_tall = y_offset > 0.35 or scale_3d.x > 0.7 or scale_3d.y > 0.7
+		# Heurística por tipo: decor/wall/tower/pillar/altar son siempre oclusores; chest/vault solo si son altos
+		if is_tall or asset_path.contains("Pared") or asset_path.contains("Torre") or asset_path.contains("Pilar") or asset_path.contains("Altar"):
+			_occluder_fader.register_occluder(obj)
 	return obj
 
 # Crear UI interactiva flotante de acciones (portal / vault / market / loot)
@@ -2657,6 +2698,8 @@ func _spawn_objects_from_custom_scene():
 				# omitimos crear la colisión AABB genérica del padre para evitar colisión duplicada o gigante.
 				if has_custom_colliders:
 					print("[BaseMap] Omitiendo colisión AABB genérica de la pared padre: ", obj_label)
+					if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+						_occluder_fader.register_occluder(child)
 					continue
 					
 				# Crear cuerpo de colisión sólida 2D para bloquear naves
@@ -2699,6 +2742,8 @@ func _spawn_objects_from_custom_scene():
 						add_child(wall_body)
 						wall_body.global_position = center_2d
 						print("[BaseMap] CSGBox3D -> RectangleShape2D: ", wall_body.name, " size=", Vector2(w_2d, h_2d), " pos=", center_2d, " rot=", rad_to_deg(-rot_y_rad))
+						if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+							_occluder_fader.register_occluder(child)
 					else:
 						print("[BaseMap] CSGBox3D sin propiedad size, se omite: ", obj_label)
 				else:
@@ -2740,6 +2785,8 @@ func _spawn_objects_from_custom_scene():
 					# Usar la posición GLOBAL del centro del AABB para colocar el body
 					wall_body.global_position = aabb_center_2d
 					print("[BaseMap] Wall AABB global 2D: ", wall_body.name, " size=", Vector2(w_2d, h_2d), " pos=", aabb_center_2d)
+					if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+						_occluder_fader.register_occluder(child)
 				
 			"door":
 				# Crear área lógica de Warp / Portal interactivo
@@ -2797,6 +2844,8 @@ func _spawn_objects_from_custom_scene():
 				tower.add_to_group("towers")
 				add_child(tower)
 				tower.global_position = obj_pos
+				if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+					_occluder_fader.register_occluder(child)
 				
 			"altar":
 				# Altar de Defensa del Altar
@@ -2826,3 +2875,5 @@ func _spawn_objects_from_custom_scene():
 				static_col.shape = static_circle
 				static_body.add_child(static_col)
 				add_child(static_body)
+				if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+					_occluder_fader.register_occluder(child)

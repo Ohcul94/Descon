@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://g8k6kjo27xhi"]
 
-[ext_resource type="Script" path="res://scripts/systems/Bootloader.gd" id="1_bootloader"]
+[ext_resource type="Script" uid="uid://2dso65duosp1" path="res://scripts/systems/Bootloader.gd" id="1_bootloader"]
 
-[node name="Bootloader" type="Control"]
+[node name="Bootloader" type="Control" unique_id=206182652]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,10 +11,10 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_bootloader")
 
-[node name="BootloaderUI" type="CanvasLayer" parent="."]
+[node name="BootloaderUI" type="CanvasLayer" parent="." unique_id=1542006912]
 layer = 9999
 
-[node name="Background" type="ColorRect" parent="BootloaderUI"]
+[node name="Background" type="ColorRect" parent="BootloaderUI" unique_id=1520489508]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -22,7 +22,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.0117647, 0.0117647, 0.0313726, 0.4)
 
-[node name="MarginContainer" type="MarginContainer" parent="BootloaderUI"]
+[node name="MarginContainer" type="MarginContainer" parent="BootloaderUI" unique_id=2108287670]
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
@@ -34,24 +34,24 @@ offset_bottom = -45.0
 grow_horizontal = 2
 grow_vertical = 0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="BootloaderUI/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="BootloaderUI/MarginContainer" unique_id=248775607]
 layout_mode = 2
 alignment = 1
 
-[node name="StatusLabel" type="Label" parent="BootloaderUI/MarginContainer/VBoxContainer"]
+[node name="StatusLabel" type="Label" parent="BootloaderUI/MarginContainer/VBoxContainer" unique_id=1827511767]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.95, 0.85, 0.85)
 theme_override_font_sizes/font_size = 14
 text = "Conectando al servidor..."
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="BootloaderUI/MarginContainer/VBoxContainer"]
+[node name="Spacer" type="Control" parent="BootloaderUI/MarginContainer/VBoxContainer" unique_id=447543820]
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 
-[node name="DownloadProgressBar" type="ProgressBar" parent="BootloaderUI/MarginContainer/VBoxContainer"]
+[node name="DownloadProgressBar" type="ProgressBar" parent="BootloaderUI/MarginContainer/VBoxContainer" unique_id=80345924]
 custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 show_percentage = false
 
-[node name="HTTPRequest" type="HTTPRequest" parent="."]
+[node name="HTTPRequest" type="HTTPRequest" parent="." unique_id=1716399692]
