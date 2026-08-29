@@ -223,8 +223,8 @@ func _cleanup_materials(node: Node3D) -> void:
 				var orig_as: Array = data.get("orig_alphas", [])
 				if orig_idx < mats.size() and orig_idx < orig_as.size():
 					var m = mats[orig_idx]
-					if m is StandardMaterial3D:
-						(m as StandardMaterial3D).albedo_color.a = orig_as[orig_idx]
+					if m is BaseMaterial3D:
+						(m as BaseMaterial3D).albedo_color.a = orig_as[orig_idx]
 	_cache.erase(node)
 
 func _set_faded(node: Node3D, faded: bool) -> void:
@@ -249,10 +249,10 @@ func _set_faded(node: Node3D, faded: bool) -> void:
 			continue
 		var orig_a: float = orig_alphas[i] if i < orig_alphas.size() else 1.0
 		var final_a := orig_a * target_a
-		if m is StandardMaterial3D:
+		if m is BaseMaterial3D:
 			var tw := create_tween()
 			tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-			# Tween directo a albedo_color.a es válido en 4.x
+			# Tween directo a albedo_color.a es válido en 4.x para BaseMaterial3D (Standard y ORM)
 			tw.tween_property(m, "albedo_color:a", final_a, fade_duration)
 		elif m is ShaderMaterial:
 			# Intentar tweenear uniforms comunes

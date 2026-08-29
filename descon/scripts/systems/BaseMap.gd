@@ -2703,9 +2703,9 @@ func _spawn_objects_from_custom_scene():
 		
 		# v600.X: Registrar en OccluderFader CUALQUIER objeto del mapa local que no sea un colisionador puro.
 		# Así nos aseguramos de que "market", "door" y objetos sin colisionadores personalizados también se hagan transparentes al tapar la cámara.
-		if is_instance_valid(_occluder_fader) and is_instance_valid(child):
-			if not (child is CSGBox3D or child is CollisionPolygon3D or child.get_class() == "CollisionPolygon3D"):
-				_occluder_fader.register_occluder(child)
+		# if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+		# 	if not (child is CSGBox3D or child is CollisionPolygon3D or child.get_class() == "CollisionPolygon3D"):
+		# 		_occluder_fader.register_occluder(child)
 		
 		match obj_type:
 			"wall":
@@ -2713,8 +2713,8 @@ func _spawn_objects_from_custom_scene():
 				# omitimos crear la colisión AABB genérica del padre para evitar colisión duplicada o gigante.
 				if has_custom_colliders:
 					print("[BaseMap] Omitiendo colisión AABB genérica de la pared padre: ", obj_label)
-					if is_instance_valid(_occluder_fader) and is_instance_valid(child):
-						_occluder_fader.register_occluder(child)
+					# if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+					# 	_occluder_fader.register_occluder(child)
 					continue
 					
 				# Crear cuerpo de colisión sólida 2D para bloquear naves
