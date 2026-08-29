@@ -160,10 +160,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 material_override = SubResource("StandardMaterial3D_jk5nm")
 mesh = SubResource("PlaneMesh_1")
 
-[node name="ObjectsRoot" type="Node3D" parent="." unique_id=327741734]
-unique_name_in_owner = true
 
-[node name="Altar" type="Node3D" parent="ObjectsRoot" unique_id=742807941 instance=ExtResource("2_wq2af")]
+[node name="Altar" type="Node3D" parent="." unique_id=742807941 instance=ExtResource("2_wq2af")]
 transform = Transform3D(-15, 0, -1.3113416e-06, 0, 15, 0, 1.3113416e-06, 0, -15, 100, 0, 141.42136)
 metadata/editor_only = true
 metadata/obj_type = "altar"
@@ -172,7 +170,7 @@ metadata/asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
 metadata/scale_2d = 15.0
 metadata/rot_y_deg = 180.0
 
-[node name="Escape1" type="Node3D" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("3_gwsj2")]
+[node name="Escape1" type="Node3D" parent="." unique_id=631689396 instance=ExtResource("3_gwsj2")]
 transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 91.66, 0, 152.11281)
 metadata/editor_only = true
 metadata/obj_type = "door"
@@ -182,7 +180,7 @@ metadata/scale_2d = 10.0
 metadata/rot_y_deg = -90.0
 metadata/radius = 150.0
 
-[node name="Escape2" type="Node3D" parent="ObjectsRoot" unique_id=2145551810 instance=ExtResource("3_gwsj2")]
+[node name="Escape2" type="Node3D" parent="." unique_id=2145551810 instance=ExtResource("3_gwsj2")]
 transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 107.66, 0, 131.833)
 metadata/editor_only = true
 metadata/obj_type = "door"

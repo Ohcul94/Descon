@@ -67,28 +67,30 @@ func _ready():
 	sprite.visible = not is_single_world
 	
 	if is_single_world:
-		world_root_3d = Node3D.new()
-		world_root_3d.name = "Market3D_" + name
-		target_viewport.add_child(world_root_3d)
-		
-		if TERMINAL_MODEL_SCENE:
-			var model = TERMINAL_MODEL_SCENE.instantiate()
-			world_root_3d.add_child(model)
+		var skip_3d = get_meta("skip_3d_model", false)
+		if not skip_3d:
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "Market3D_" + name
+			target_viewport.add_child(world_root_3d)
 			
-			var custom_scale = get_meta("custom_scale", 2.0)
-			var custom_rot_y = get_meta("custom_rot_y", 0.0)
-			model.scale = Vector3.ONE * custom_scale
-			model.rotation_degrees = Vector3(0, custom_rot_y, 0)
-			
-			# Luz dorada distintiva del Mercado
-			var light = OmniLight3D.new()
-			light.name = "MarketLight"
-			light.position = Vector3(0, 2.2, 0)
-			light.light_color = Color(1.0, 0.84, 0.0)
-			light.light_energy = 4.0
-			light.omni_range = 12.0
-			world_root_3d.add_child(light)
-		_update_3d_position()
+			if TERMINAL_MODEL_SCENE:
+				var model = TERMINAL_MODEL_SCENE.instantiate()
+				world_root_3d.add_child(model)
+				
+				var custom_scale = get_meta("custom_scale", 2.0)
+				var custom_rot_y = get_meta("custom_rot_y", 0.0)
+				model.scale = Vector3.ONE * custom_scale
+				model.rotation_degrees = Vector3(0, custom_rot_y, 0)
+				
+				# Luz dorada distintiva del Mercado
+				var light = OmniLight3D.new()
+				light.name = "MarketLight"
+				light.position = Vector3(0, 2.2, 0)
+				light.light_color = Color(1.0, 0.84, 0.0)
+				light.light_energy = 4.0
+				light.omni_range = 12.0
+				world_root_3d.add_child(light)
+			_update_3d_position()
 	else:
 		var viewport = SubViewport.new()
 		viewport.size = Vector2i(512, 512)

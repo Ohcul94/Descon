@@ -61,7 +61,6 @@ var mouse_world_pos_3d: Vector3 = Vector3.ZERO   # Posición 3D exacta del curso
 var mouse_world_pos_2d: Vector2 = Vector2.ZERO   # Equivalente en espacio lógico 2D del mapa
 var _has_custom_3d_scene: bool = false
 var terrain_node: Node3D = null
-var custom_objects_root: Node3D = null
 # v530.0: Muros perimetrales 2D que bloquean exactamente en el borde de la nebulosa (0..map_width, 0..map_height)
 var _perimeter_walls_2d: Array = []
 
@@ -101,6 +100,8 @@ var _was_mobile_camera_edit: int = 0
 # v600.0: OccluderFader - paredes/objetos que se hacen transparentes (A+B dither) cuando tapan la cámara
 var _occluder_fader: OccluderFader = null
 const OccluderFaderScript = preload("res://scripts/systems/OccluderFader.gd")
+var custom_scene_instance: Node = null
+
 
 # Referencia a la textura de fondo principal
 @onready var map_background: TextureRect = get_node_or_null("ParallaxBackground/MapWorldLayer/MapBackground")
@@ -673,6 +674,7 @@ func _setup_3d_dynamic():
 							ed_cam.queue_free()
 							
 						sub_viewport.add_child(scene_inst)
+						custom_scene_instance = scene_inst
 						_has_custom_3d_scene = true
 						print("[BaseMap] Cargada escena 3D pre-diseñada en canvas existente (síncrono): ", scene_3d_path)
 						
@@ -681,10 +683,6 @@ func _setup_3d_dynamic():
 						if is_instance_valid(terrain_node):
 							print("[BaseMap] Vinculado Terrain3D en canvas existente. Clase: ", terrain_node.get_class())
 						
-						# Registrar el ObjectsRoot
-						custom_objects_root = scene_inst.find_child("ObjectsRoot", true, false)
-						if is_instance_valid(custom_objects_root):
-							print("[BaseMap] Vinculado ObjectsRoot de la escena existente. Nodos: ", custom_objects_root.get_child_count())
 						# v530.1: Piso negro plano
 						_fix_scene_floor_to_black(scene_inst)
 				
@@ -752,6 +750,7 @@ func _setup_3d_dynamic():
 				ed_cam.queue_free()
 				
 			sub_viewport.add_child(scene_inst)
+			custom_scene_instance = scene_inst
 			_has_custom_3d_scene = true
 			print("[BaseMap] Cargada escena 3D pre-diseñada (síncrono): ", scene_3d_path)
 			
@@ -760,10 +759,6 @@ func _setup_3d_dynamic():
 			if is_instance_valid(terrain_node):
 				print("[BaseMap] Vinculado Terrain3D de la escena personalizada. Clase: ", terrain_node.get_class())
 			
-			# Registrar el ObjectsRoot
-			custom_objects_root = scene_inst.find_child("ObjectsRoot", true, false)
-			if is_instance_valid(custom_objects_root):
-				print("[BaseMap] Vinculado ObjectsRoot de la escena personalizada. Nodos: ", custom_objects_root.get_child_count())
 			# v530.1: Piso negro plano
 			_fix_scene_floor_to_black(scene_inst)
 
@@ -819,10 +814,10 @@ func _find_terrain_node_recursive(node: Node) -> Node:
 	return null
  
 
-
 func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 	if not is_instance_valid(sub_vp):
 		return
+
 		
 	# Verificar si la escena personalizada ya tiene su propio WorldEnvironment
 	var has_custom_env = false
@@ -1374,8 +1369,13 @@ func _process(_delta):
 		var wr3d2 = player_node.get("world_root_3d")
 		if is_instance_valid(wr3d2):
 			target_y = wr3d2.position.y
+		else:
+			# Fallback: leer la altura del terreno de forma dinámica para mapas 2.5D con elevaciones
+			target_y = get_terrain_height_at_pos(player_node.global_position)
+			
 		var target_pos = Vector3(player_node.global_position.x * scale_factor, target_y + 0.3, player_node.global_position.y * scale_factor * correction_z)
 		_occluder_fader.update_occlusion(cam_pos, target_pos, _delta)
+
 
 # _process removido al no haber asteroides decorativos que rotar
 
@@ -1523,10 +1523,7 @@ func _spawn_map_objects():
 			
 	print("[BaseMap _spawn_map_objects] Iniciando spawn. zone_id es: ", z_str)
 	
-	# v500.9: Si existe ObjectsRoot personalizado de la escena de Godot, cargar
-	# todas las colisiones y objetos interactivos directamente desde el árbol 3D local.
-	# Esto permite que el usuario edite y guarde todo visualmente en Godot sin usar config.json.
-	if is_instance_valid(custom_objects_root):
+	if _has_custom_3d_scene:
 		_spawn_objects_from_custom_scene()
 		return
 		
@@ -2573,11 +2570,13 @@ func _calculate_local_aabb(node: Node3D) -> AABB:
 	return total_aabb
 
 func _spawn_objects_from_custom_scene():
-	print("[BaseMap] Generando colisiones físicas 2D desde ObjectsRoot de la escena 3D local...")
+	print("[BaseMap] Generando colisiones físicas 2D desde la escena 3D local...")
 	var market_script = load("res://scripts/entities/MarketTerminal.gd")
 	
-	if not is_instance_valid(custom_objects_root):
+	if not is_instance_valid(custom_scene_instance):
 		return
+		
+	var target_root = custom_scene_instance
 		
 	# Función lambda local para buscar metadatos de tipo de objeto de manera ultra flexible
 	# Soportando variantes como "Obj Type", "objtype", "ObjType", "obj_type", etc.
@@ -2590,10 +2589,9 @@ func _spawn_objects_from_custom_scene():
 				return str(node.get_meta(meta_name))
 		return ""
 		
-	# v530.4: Usamos una pila (stack) para procesar de forma recursiva
-	# Esto permite tener carpetas organizadoras dentro de ObjectsRoot.
+	# v700.3: Procesar recursivamente toda la escena a partir de target_root
 	var nodes_stack = []
-	for child in custom_objects_root.get_children():
+	for child in target_root.get_children():
 		if is_instance_valid(child) and child is Node:
 			nodes_stack.append(child)
 			
@@ -2602,15 +2600,30 @@ func _spawn_objects_from_custom_scene():
 		if not is_instance_valid(child):
 			continue
 			
-		# Ignorar el terreno
-		if child.is_class("Terrain3D") or "Terrain3D" in child.name:
+		# Ignorar nodos de infraestructura del sistema por defecto de forma segura
+		var name_lower = child.name.to_lower()
+		if child.is_class("Terrain3D") or "terrain3d" in name_lower:
 			continue
+		if child.is_class("WorldEnvironment") or "worldenvironment" in name_lower:
+			continue
+		if child is Camera3D or "camera" in name_lower:
+			continue
+		if child is Light3D or "light" in name_lower or child.name == "Luces":
+			continue
+		if name_lower == "groundplane" or name_lower == "gridvisual" or name_lower == "mapboundaryvisual" or name_lower == "eventmarkers":
+			continue
+
 			
 		# Obtener la metadata de tipo de objeto usando la función flexible
 		var obj_type = get_flexible_obj_type.call(child)
 		
 		# --- DIAGNÓSTICO: ver qué nodo se procesa ---
 		var is_collider_node = child is CollisionPolygon3D or child is CSGBox3D or (child.has_method("get_class") and child.get_class() == "CollisionPolygon3D")
+		
+		# Ocultar visualmente los colisionadores en runtime por si se dejaron visibles en el editor
+		if is_collider_node or child.name.to_lower().contains("collider"):
+			if child is Node3D or child is CanvasItem:
+				child.visible = false
 		
 		# Es una carpeta si: no hereda de Node3D (es un Node simple) O es un Node3D puro sin metadata
 		var is_folder = false
@@ -2619,11 +2632,8 @@ func _spawn_objects_from_custom_scene():
 		elif child.get_class() == "Node3D" and obj_type == "" and not is_collider_node:
 			is_folder = true
 			
-		print("[BaseMap STACK] '", child.name, "' clase='", child.get_class(), "' obj_type='", obj_type, "' es_carpeta=", is_folder, " es_CSGBox=", child is CSGBox3D)
-		
 		# Si es un simple Node organizador (carpeta) sin metadata, meter sus hijos al stack.
 		if is_folder:
-			print("[BaseMap STACK] -> CARPETA detectada, agregando ", child.get_child_count(), " hijos al stack")
 			for sub_child in child.get_children():
 				if is_instance_valid(sub_child) and sub_child is Node:
 					nodes_stack.append(sub_child)
@@ -2636,11 +2646,15 @@ func _spawn_objects_from_custom_scene():
 				has_custom_colliders = true
 				break
 				
-		# Agregar los hijos de este objeto al stack para que sus colisionadores/hijos se procesen individualmente
+		# Agregar los hijos de este objeto al stack para que sus colisionadores/hijos se procesen individualmente.
+		# Al no ser una carpeta (is_folder es false aquí), solo agregamos los hijos que sean colisionadores reales
+		# para evitar procesar y registrar las mallas visuales internas de los GLB como paredes/oclusores duplicados.
 		if child.get_child_count() > 0:
 			for sub_child in child.get_children():
 				if is_instance_valid(sub_child) and sub_child is Node:
-					nodes_stack.append(sub_child)
+					var is_collider = sub_child is CSGBox3D or sub_child is CollisionPolygon3D or sub_child is CollisionShape3D or sub_child.name.to_lower().contains("collider")
+					if is_collider:
+						nodes_stack.append(sub_child)
 			
 		# Si no tiene metadata pero es una caja/polígono o nodo bajo una carpeta, por defecto es pared ("wall")
 		if obj_type == "":
@@ -2651,7 +2665,7 @@ func _spawn_objects_from_custom_scene():
 			var poly3d = child as CollisionPolygon3D
 			var vertices3d = poly3d.polygon
 			var points_2d = PackedVector2Array()
-			var obj_label = str(child.name)
+			var poly_label = str(child.name)
 			
 			for pt in vertices3d:
 				var local_3d = Vector3(pt.x, pt.y, 0.0)
@@ -2664,7 +2678,7 @@ func _spawn_objects_from_custom_scene():
 				
 			if points_2d.size() >= 3:
 				var wall_body = StaticBody2D.new()
-				wall_body.name = "MapWallPoly_" + obj_label.replace(" ", "_")
+				wall_body.name = "MapWallPoly_" + poly_label.replace(" ", "_")
 				wall_body.collision_layer = 2
 				wall_body.collision_mask = 0
 				
@@ -2691,6 +2705,12 @@ func _spawn_objects_from_custom_scene():
 		var y_offset = pos_3d.y
 		
 		print("[BaseMap] Escena 3D -> Vinculando física 2D para: ", obj_label, " [", obj_type, "] en Pos2D: ", obj_pos)
+		
+		# v600.X: Registrar en OccluderFader CUALQUIER objeto del mapa local que no sea un colisionador puro.
+		# Así nos aseguramos de que "market", "door" y objetos sin colisionadores personalizados también se hagan transparentes al tapar la cámara.
+		if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+			if not (child is CSGBox3D or child is CollisionPolygon3D or child.get_class() == "CollisionPolygon3D"):
+				_occluder_fader.register_occluder(child)
 		
 		match obj_type:
 			"wall":
@@ -2826,6 +2846,7 @@ func _spawn_objects_from_custom_scene():
 					market.set_meta("custom_rot_y", rot_y)
 					market.set_meta("custom_y_offset", y_offset)
 					market.set_meta("asset_path", "")
+					market.set_meta("skip_3d_model", true) # v700.3: Evitar duplicación visual en runtime
 					add_child(market)
 					market.global_position = obj_pos
 					
@@ -2877,3 +2898,27 @@ func _spawn_objects_from_custom_scene():
 				add_child(static_body)
 				if is_instance_valid(_occluder_fader) and is_instance_valid(child):
 					_occluder_fader.register_occluder(child)
+					
+			"chest", "vault":
+				var vault_script = load("res://scripts/entities/Vault.gd")
+				if vault_script:
+					var vault = Area2D.new()
+					vault.name = "MapVault_" + obj_label.replace(" ", "_")
+					vault.set_script(vault_script)
+					vault.set_meta("custom_scale", scale_val)
+					vault.set_meta("custom_rot_y", rot_y)
+					vault.set_meta("custom_y_offset", y_offset)
+					vault.set_meta("skip_3d_model", true) # v700.3: Evitar duplicación visual en runtime
+					add_child(vault)
+					vault.global_position = obj_pos
+					print("[BaseMap] Baúl instanciado lógicamente desde escena personalizada: ", obj_label, " @ ", obj_pos)
+					
+			"spawn":
+				print("[BaseMap] Punto de spawn registrado lógicamente: ", obj_label, " @ ", obj_pos)
+				
+			"decor", "custom":
+				# No requieren física sólida ni interacción lógica, solo se imprimen para trazabilidad
+				print("[BaseMap] Objeto decorativo local detectado en escena: ", obj_label, " @ ", obj_pos)
+				
+			_:
+				print("[BaseMap] Objeto genérico o de tipo alternativo procesado en escena local: ", obj_type, " - ", obj_label, " @ ", obj_pos)

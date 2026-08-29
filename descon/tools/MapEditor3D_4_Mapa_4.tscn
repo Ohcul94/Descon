@@ -130,8 +130,6 @@ visible = false
 material_override = SubResource("StandardMaterial3D_pw4vt")
 mesh = SubResource("PlaneMesh_1")
 
-[node name="ObjectsRoot" type="Node3D" parent="." unique_id=282061356]
-unique_name_in_owner = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=410875753]
 environment = SubResource("Environment_1")

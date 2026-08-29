@@ -64,20 +64,22 @@ func _ready():
 	
 	
 	if is_single_world:
-		# Instanciar en el Viewport global del mapa
-		world_root_3d = Node3D.new()
-		world_root_3d.name = "Vault3D_" + name
-		target_viewport.add_child(world_root_3d)
-		
-		if BAUL_MODEL_SCENE:
-			var model = BAUL_MODEL_SCENE.instantiate()
-			world_root_3d.add_child(model)
+		var skip_3d = get_meta("skip_3d_model", false)
+		if not skip_3d:
+			# Instanciar en el Viewport global del mapa
+			world_root_3d = Node3D.new()
+			world_root_3d.name = "Vault3D_" + name
+			target_viewport.add_child(world_root_3d)
 			
-			var custom_scale = get_meta("custom_scale", 1.0)
-			var custom_rot_y = get_meta("custom_rot_y", 0.0)
-			model.scale = Vector3.ONE * custom_scale
-			model.rotation_degrees = Vector3(0, custom_rot_y, 0)
-		_update_3d_position()
+			if BAUL_MODEL_SCENE:
+				var model = BAUL_MODEL_SCENE.instantiate()
+				world_root_3d.add_child(model)
+				
+				var custom_scale = get_meta("custom_scale", 1.0)
+				var custom_rot_y = get_meta("custom_rot_y", 0.0)
+				model.scale = Vector3.ONE * custom_scale
+				model.rotation_degrees = Vector3(0, custom_rot_y, 0)
+			_update_3d_position()
 	else:
 		# Render local con SubViewport propio (fallback)
 		var viewport = SubViewport.new()

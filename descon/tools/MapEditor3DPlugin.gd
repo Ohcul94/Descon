@@ -80,3 +80,25 @@ func _close_editor():
 		_map_editor_instance.queue_free()
 		_map_editor_instance = null
 		print("[MapEditor3D] Editor cerrado")
+
+func _apply_changes():
+	# Buscar si la escena editada actualmente tiene un nodo MapEditor3D
+	var scene_root = get_editor_interface().get_edited_scene_root()
+	if is_instance_valid(scene_root):
+		var map_editor = _find_map_editor_node(scene_root)
+		if is_instance_valid(map_editor) and map_editor.has_method("save_to_server"):
+			print("[MapEditor3DPlugin] 💾 Guardado automático detectado (Ctrl+S). Exportando config a Server/config.json...")
+			map_editor.save_to_server()
+
+func _find_map_editor_node(node: Node) -> Node:
+	if not is_instance_valid(node):
+		return null
+	# Comparar por clase o nombre del script
+	if node is MapEditor3D or node.get_class() == "MapEditor3D" or node.name == "MapEditor3D":
+		return node
+	for child in node.get_children():
+		var found = _find_map_editor_node(child)
+		if found:
+			return found
+	return null
+

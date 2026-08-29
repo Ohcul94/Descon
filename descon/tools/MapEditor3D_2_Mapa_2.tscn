@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://diy8ycm00f4tx" path="res://assets/Puertas/3D/Puerta2/Puerta2.glb" id="2_4m0oc"]
 [ext_resource type="Texture2D" uid="uid://c88j3oj0lf6om" path="res://demo/assets/textures/rock023_alb_ht.png" id="2_87pmd"]
 [ext_resource type="Texture2D" uid="uid://c307hdmos4gtm" path="res://demo/assets/textures/rock023_nrm_rgh.png" id="3_k8upu"]
+[ext_resource type="PackedScene" uid="uid://d04w8a62xw4gf" path="res://assets/Altares/3D/Altar1/Altar1.glb" id="5_k8upu"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
@@ -107,10 +108,8 @@ fov = 35.0
 near = 0.1
 far = 10000.0
 
-[node name="Luces" type="Node" parent="Camera3D" unique_id=1653105695]
-
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Camera3D/Luces" unique_id=81319987]
-transform = Transform3D(0.4474709, -0.76347333, -0.46570194, 0.522629, -0.19931889, 0.8289336, -0.72569185, -0.614313, 0.30982396, 2.5636597, 10.161457, 84.03131)
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Camera3D" unique_id=81319987]
+transform = Transform3D(0.4474709, -0.76347333, -0.46570194, 0.8826963, 0.29344517, 0.36706597, -0.14358714, -0.57532465, 0.8052233, 2.5636597, -52.23388, 10.035801)
 light_color = Color(0.9891811, 0.9720791, 0.7420507, 1)
 light_angular_distance = 62.76
 shadow_enabled = true
@@ -131,12 +130,28 @@ visible = false
 material_override = SubResource("StandardMaterial3D_87pmd")
 mesh = SubResource("PlaneMesh_1")
 
-[node name="ObjectsRoot" type="Node3D" parent="." unique_id=1775793537]
-unique_name_in_owner = true
 
-[node name="Colliders" type="Node" parent="ObjectsRoot" unique_id=1572549760]
+[node name="Collider" parent="." unique_id=599011876 instance=ExtResource("5_k8upu")]
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 46.40867, 6.624384, 65.83935)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
+metadata/label = &"Altar1"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
 
-[node name="CSGBox3D" type="CSGBox3D" parent="ObjectsRoot/Colliders" unique_id=124087167]
+[node name="Collider1" type="CSGBox3D" parent="Collider" unique_id=481013927]
+transform = Transform3D(0.05, 0, 0, 0, 0.05, 0, 0, 0, 0.05, 0.0027952194, -0.28121918, -0.015004635)
+size = Vector3(16.057215, 1, 16.526073)
+metadata/obj_type = "wall"
+metadata/label = &"CSGBox3D"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="Colliders" type="Node" parent="." unique_id=1572549760]
+
+[node name="CSGBox3D" type="CSGBox3D" parent="Colliders" unique_id=124087167]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.35, 1, 95.9)
 visible = false
 size = Vector3(9.7, 1, 11.6)
@@ -146,7 +161,7 @@ metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D7" type="CSGBox3D" parent="ObjectsRoot/Colliders" unique_id=665117014]
+[node name="CSGBox3D7" type="CSGBox3D" parent="Colliders" unique_id=665117014]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 162.75, 1, 89.7)
 visible = false
 size = Vector3(8.900001, 1, 6.8)
@@ -156,7 +171,7 @@ metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D8" type="CSGBox3D" parent="ObjectsRoot/Colliders" unique_id=473469453]
+[node name="CSGBox3D8" type="CSGBox3D" parent="Colliders" unique_id=473469453]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 159.47285, 1, 28.690542)
 visible = false
 size = Vector3(15, 1, 8.5)
@@ -166,7 +181,7 @@ metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D5" type="CSGBox3D" parent="ObjectsRoot/Colliders" unique_id=798357404]
+[node name="CSGBox3D5" type="CSGBox3D" parent="Colliders" unique_id=798357404]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.3, 1, 69.6)
 visible = false
 size = Vector3(8.400001, 1, 7)
@@ -176,7 +191,7 @@ metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D6" type="CSGBox3D" parent="ObjectsRoot/Colliders" unique_id=1167248636]
+[node name="CSGBox3D6" type="CSGBox3D" parent="Colliders" unique_id=1167248636]
 transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 107.86612, 1, 48.771748)
 visible = false
 size = Vector3(7.8, 1, 4.2000003)
@@ -186,7 +201,7 @@ metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D2" type="CSGBox3D" parent="ObjectsRoot/Colliders" unique_id=781540914]
+[node name="CSGBox3D2" type="CSGBox3D" parent="Colliders" unique_id=781540914]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.2, 1, 118.200005)
 visible = false
 size = Vector3(14, 1, 9)
@@ -196,7 +211,7 @@ metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D3" type="CSGBox3D" parent="ObjectsRoot/Colliders" unique_id=2121072823]
+[node name="CSGBox3D3" type="CSGBox3D" parent="Colliders" unique_id=2121072823]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 64.825, 1, 80.05048)
 visible = false
 size = Vector3(16, 1, 10.5)
@@ -206,7 +221,7 @@ metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D4" type="CSGBox3D" parent="ObjectsRoot/Colliders" unique_id=81872008]
+[node name="CSGBox3D4" type="CSGBox3D" parent="Colliders" unique_id=81872008]
 transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 34.639336, 1, 115.55356)
 visible = false
 size = Vector3(13, 1, 8)
@@ -216,7 +231,7 @@ metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="Puerta" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("2_4m0oc")]
+[node name="Puerta" parent="." unique_id=631689396 instance=ExtResource("2_4m0oc")]
 transform = Transform3D(5, 0, 0, 0, 5, 0, 0, 0, 5, 187.6, 2.5, 133.02094)
 metadata/obj_type = "door"
 metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"

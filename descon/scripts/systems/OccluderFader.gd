@@ -91,6 +91,7 @@ func update_occlusion(camera_pos: Vector3, target_pos: Vector3, delta: float) ->
 	for occ in _occluders:
 		if not is_instance_valid(occ):
 			continue
+		
 		# Distancia proyectada sobre el rayo
 		var to_occ: Vector3 = occ.global_position - camera_pos
 		var proj: float = to_occ.dot(dir)
@@ -156,13 +157,14 @@ func _setup_materials_for(node: Node3D, meshes: Array[MeshInstance3D]) -> void:
 
 		var work_mat: Material = null
 		var orig_a: float = 1.0
-		if cur_mat is StandardMaterial3D:
-			var sm: StandardMaterial3D = (cur_mat as StandardMaterial3D).duplicate() as StandardMaterial3D
-			orig_a = sm.albedo_color.a
-			sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			# Evitar que el fondo atraviese: mantener cull_back y depth_draw_opaque
-			mi.material_override = sm
-			work_mat = sm
+		if cur_mat is BaseMaterial3D:
+			# v700.2: Soportar BaseMaterial3D genérico (incluye StandardMaterial3D y ORMMaterial3D)
+			# Duplica el material original conservando texturas, normales y rugosidad
+			var bm: BaseMaterial3D = cur_mat.duplicate() as BaseMaterial3D
+			orig_a = bm.albedo_color.a
+			bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mi.material_override = bm
+			work_mat = bm
 		elif cur_mat is ShaderMaterial:
 			# Intentar duplicar ShaderMaterial y buscar param alpha/fade
 			var shm: ShaderMaterial = (cur_mat as ShaderMaterial).duplicate() as ShaderMaterial
@@ -170,11 +172,8 @@ func _setup_materials_for(node: Node3D, meshes: Array[MeshInstance3D]) -> void:
 			work_mat = shm
 			orig_a = 1.0
 		elif cur_mat != null:
-			# Otro tipo (ej. ORMMaterial) -> envolver en StandardMaterial simple que respete textura si existe
-			var sm2 := StandardMaterial3D.new()
-			# Intentar copiar albedo_texture si existía en el original via resource
-			mi.material_override = sm2
-			work_mat = sm2
+			# Conservar el material original de fallback para no romper el renderizado de texturas
+			work_mat = cur_mat
 		else:
 			# Sin material -> crear uno por defecto
 			var sm3 := StandardMaterial3D.new()
@@ -182,6 +181,7 @@ func _setup_materials_for(node: Node3D, meshes: Array[MeshInstance3D]) -> void:
 			sm3.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			mi.material_override = sm3
 			work_mat = sm3
+
 
 		mi.set_meta("_occluder_prepared", true)
 		mi.set_meta("_orig_alpha", orig_a)

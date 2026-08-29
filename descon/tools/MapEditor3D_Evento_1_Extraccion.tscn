@@ -246,10 +246,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.049969483, 1.5258789e-0
 material_override = SubResource("StandardMaterial3D_humda")
 mesh = SubResource("PlaneMesh_1")
 
-[node name="ObjectsRoot" type="Node3D" parent="." unique_id=1600365338]
-unique_name_in_owner = true
 
-[node name="Puerta2" type="Node3D" parent="ObjectsRoot" unique_id=631689396 instance=ExtResource("2_humda")]
+[node name="Puerta2" type="Node3D" parent="." unique_id=631689396 instance=ExtResource("2_humda")]
 transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 159.34, 0, 227.8298)
 metadata/editor_only = true
 metadata/obj_type = "door"
@@ -260,7 +258,7 @@ metadata/rot_y_deg = -90.0
 metadata/radius = 150.0
 metadata/targetZoneId = "1"
 
-[node name="Puerta3" type="Node3D" parent="ObjectsRoot" unique_id=104526246 instance=ExtResource("2_humda")]
+[node name="Puerta3" type="Node3D" parent="." unique_id=104526246 instance=ExtResource("2_humda")]
 transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 240, 0, 340.9669)
 metadata/editor_only = true
 metadata/obj_type = "door"
@@ -271,7 +269,7 @@ metadata/rot_y_deg = -90.0
 metadata/radius = 150.0
 metadata/targetZoneId = "1"
 
-[node name="Puerta4" type="Node3D" parent="ObjectsRoot" unique_id=272732695 instance=ExtResource("2_humda")]
+[node name="Puerta4" type="Node3D" parent="." unique_id=272732695 instance=ExtResource("2_humda")]
 transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 240, 0, 226.89642)
 metadata/editor_only = true
 metadata/obj_type = "door"
@@ -282,7 +280,7 @@ metadata/rot_y_deg = -90.0
 metadata/radius = 150.0
 metadata/targetZoneId = "1"
 
-[node name="Puerta5" type="Node3D" parent="ObjectsRoot" unique_id=647717876 instance=ExtResource("2_humda")]
+[node name="Puerta5" type="Node3D" parent="." unique_id=647717876 instance=ExtResource("2_humda")]
 transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 160.66, 0, 340.9669)
 metadata/editor_only = true
 metadata/obj_type = "door"

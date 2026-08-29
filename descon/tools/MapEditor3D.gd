@@ -37,7 +37,7 @@ class_name MapEditor3D
 
 
 ## NODOS INTERNOS
-@onready var objects_root: Node3D = %ObjectsRoot
+var objects_root: Node3D = null
 
 ## ESTADO DEL EDITOR
 var _selected_object: Node3D = null
@@ -58,7 +58,16 @@ func _ready():
 		return
 	_setup_editor_camera()
 	_connect_editor_signals()
-	if auto_load_event:
+	
+	# v700.X: Auto-recuperación premium: si el ObjectsRoot de la escena está vacío en el editor,
+	# pero hay datos en el config, cargar de forma automática y diferida para sincronizar nodos.
+	var is_empty_root = false
+	if not objects_root:
+		objects_root = find_child("ObjectsRoot", true, false)
+	if objects_root and objects_root.get_child_count() == 0:
+		is_empty_root = true
+		
+	if auto_load_event or is_empty_root:
 		# Deferred: let the SceneTreeEditor settle with the scene's nodes first,
 		# then rebuild. Frees during _ready() race with the editor's tree cache
 		# and produce "Node not found ... (absolute path attempted from
@@ -66,6 +75,7 @@ func _ready():
 		_auto_loading = true
 		call_deferred("load_from_server")
 	print("MapEditor3D: Editor listo. Arrastra .glb a ObjectsRoot")
+
 
 func _setup_editor_camera():
 	var cam = get_node_or_null("Camera3D")
@@ -78,8 +88,12 @@ func _setup_editor_camera():
 		cam.far = 10000.0
 
 func _connect_editor_signals():
-	objects_root.child_entered_tree.connect(_on_child_added)
-	objects_root.child_exiting_tree.connect(_on_child_removed)
+	var target = objects_root if is_instance_valid(objects_root) else self
+	if is_instance_valid(target):
+		if not target.child_entered_tree.is_connected(_on_child_added):
+			target.child_entered_tree.connect(_on_child_added)
+		if not target.child_exiting_tree.is_connected(_on_child_removed):
+			target.child_exiting_tree.connect(_on_child_removed)
 
 func _on_child_added(child: Node):
 	if child is MeshInstance3D or child is Node3D:
@@ -302,10 +316,18 @@ func _apply_default_properties_by_type(obj: Node3D, _type: String):
 func _export_to_json():
 	var objects_array = []
 	
+	var stack = []
 	for child in objects_root.get_children():
-		if child is Node3D and child.get_meta("editor_only", false):
-			var obj_data = _node3d_to_config_dict(child)
+		stack.append(child)
+		
+	while stack.size() > 0:
+		var curr = stack.pop_back()
+		if curr is Node3D and curr.get_meta("editor_only", false):
+			var obj_data = _node3d_to_config_dict(curr)
 			objects_array.append(obj_data)
+		else:
+			for sub in curr.get_children():
+				stack.append(sub)
 	
 	var json_text = JSON.stringify(objects_array, "\t")
 	DisplayServer.clipboard_set(json_text)
@@ -370,7 +392,7 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 	# Buscar todos los colisionadores visuales como nodos hijos
 	var colliders_array = []
 	for child in node.get_children():
-		if child.name.to_lower().contains("collider"):
+		if child.name.to_lower().contains("collider") or child is CSGBox3D or child is CollisionShape3D or child.get_class() == "CollisionPolygon3D" or child is CollisionPolygon3D:
 			var c_type = "rect"
 			var w_3d = child.scale.x
 			var h_3d = child.scale.z
@@ -413,6 +435,15 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 		config["colOffsetY"] = colliders_array[0]["offsetY"]
 		if colliders_array[0].has("rot"):
 			config["colRot"] = colliders_array[0]["rot"]
+	elif node is CSGBox3D and not config.has("colWidth"):
+		# Si el nodo en sí es un colisionador (CSGBox3D) standalone (ej. paredes invisibles en carpeta Colliders)
+		var w_3d = node.size.x * node.scale.x
+		var h_3d = node.size.z * node.scale.z
+		config["colType"] = "rect"
+		config["colWidth"] = _round_decimals(w_3d / scale_factor, 2)
+		config["colHeight"] = _round_decimals(h_3d / (scale_factor * correction_z), 2)
+		config["colOffsetX"] = 0.0
+		config["colOffsetY"] = 0.0
 			
 	return config
 
@@ -443,9 +474,7 @@ func import_from_json():
 	# mientras el SceneTreeEditor aún referencia sus paths (causa errores
 	# "Node not found ... absolute path attempted from SceneTreeEditor").
 	if not objects_root:
-		objects_root = %ObjectsRoot
-	if not objects_root:
-		objects_root = get_node_or_null("ObjectsRoot")
+		objects_root = find_child("ObjectsRoot", true, false)
 		
 	if objects_root:
 		for child in objects_root.get_children():
@@ -1069,26 +1098,34 @@ func save_to_server():
 		print("MapEditor3D: La zona ", zone_id, " no existe en mapsConfig.")
 		return
 		
-	# Advertencia sobre nodos colocados fuera de ObjectsRoot
-	var default_nodes = ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual", "EventMarkers"]
-	for child in get_children():
-		if child is Node3D and not child.name in default_nodes:
-			print("\n⚠️ [MapEditor3D ADVERTENCIA] ⚠️")
-			print("El objeto '" + child.name + "' está fuera de ObjectsRoot.")
-			print("Para que se guarde en config.json y aparezca en el juego, DEBES arrastrarlo dentro de 'ObjectsRoot' en el árbol de escenas.\n")
-
-	# Generar el array de objetos actual
+	# v700.3: Buscar y serializar todos los objetos editables de la escena (dentro o fuera de ObjectsRoot)
 	var objects_array = []
 	if not objects_root:
-		objects_root = %ObjectsRoot
-	if not objects_root:
-		objects_root = get_node_or_null("ObjectsRoot")
+		objects_root = find_child("ObjectsRoot", true, false)
 		
+	var stack = []
+	for child in get_children():
+		stack.append(child)
 	if objects_root:
 		for child in objects_root.get_children():
-			if child is Node3D and child.get_meta("editor_only", false):
-				var obj_data = _node3d_to_config_dict(child)
-				objects_array.append(obj_data)
+			if not child in stack:
+				stack.append(child)
+				
+	while stack.size() > 0:
+		var curr = stack.pop_back()
+		if not is_instance_valid(curr):
+			continue
+			
+		# Ignorar nodos del sistema de infraestructura por defecto
+		if curr.name in ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual", "EventMarkers", "Terrain3D", "SkyDome"]:
+			continue
+			
+		if curr is Node3D and curr.get_meta("editor_only", false):
+			var obj_data = _node3d_to_config_dict(curr)
+			objects_array.append(obj_data)
+		else:
+			for sub in curr.get_children():
+				stack.append(sub)
 				
 	# Reemplazar en la configuración
 	maps_config[zone_id]["objects"] = objects_array
@@ -1241,5 +1278,12 @@ func save_to_server():
 		write_file.store_string(new_content)
 		write_file.close()
 		print("MapEditor3D: ✅ Guardado mapa de la Zona ", zone_id, " (", maps_config[zone_id].get("name", "Sin Nombre"), ") en Server/config.json.")
+		
+		# Sincronización local: Guardar automáticamente la escena .tscn del editor para evitar desincronización
+		if Engine.is_editor_hint():
+			var ei = Engine.get_singleton("EditorInterface")
+			if ei:
+				ei.save_scene()
+				print("MapEditor3D: ✅ Escena .tscn guardada automáticamente en disco.")
 	else:
 		print("MapEditor3D: Error al abrir config.json para escribir.")

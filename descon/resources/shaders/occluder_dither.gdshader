@@ -31,6 +31,12 @@ float bayer4x4(vec2 p) {
 }
 
 void fragment() {
+    // Si no está desvanecido (dither_fade cerca de 1.0), descartamos por completo
+    // el overlay para que no tape el material base con color negro.
+    if (dither_fade >= 0.95) {
+        discard;
+    }
+
     // FRAGCOORD es estable en pantalla y no requiere sampler.
     float d = bayer4x4(FRAGCOORD.xy);
     // Si el dither supera el fade, descartamos el fragmento -> se ve el fondo / se transparenta.
