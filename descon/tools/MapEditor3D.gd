@@ -9,20 +9,7 @@ class_name MapEditor3D
 
 @export_group("Sincronización con Servidor")
 @export var zone_id: String = "1"
-@export var auto_load_event: bool = false
-@export var confirm_overwrite_on_load: bool = false
-@export var load_from_server_config: bool = false:
-	set(val):
-		if val:
-			load_from_server()
-			load_from_server_config = false
-			notify_property_list_changed()
-@export var save_to_server_config: bool = false:
-	set(val):
-		if val:
-			save_to_server()
-			save_to_server_config = false
-			notify_property_list_changed()
+
 
 @export_group("Importar Mapa Manual")
 @export_multiline var json_to_import: String = ""
@@ -59,22 +46,10 @@ func _ready():
 	_setup_editor_camera()
 	_connect_editor_signals()
 	
-	# v700.X: Auto-recuperación premium: si el ObjectsRoot de la escena está vacío en el editor,
-	# pero hay datos en el config, cargar de forma automática y diferida para sincronizar nodos.
-	var is_empty_root = false
-	if not objects_root:
-		objects_root = find_child("ObjectsRoot", true, false)
-	if objects_root and objects_root.get_child_count() == 0:
-		is_empty_root = true
-		
-	if auto_load_event or is_empty_root:
-		# Deferred: let the SceneTreeEditor settle with the scene's nodes first,
-		# then rebuild. Frees during _ready() race with the editor's tree cache
-		# and produce "Node not found ... (absolute path attempted from
-		# SceneTreeEditor)" errors for the destroyed child paths.
-		_auto_loading = true
-		call_deferred("load_from_server")
-	print("MapEditor3D: Editor listo. Arrastra .glb a ObjectsRoot")
+	# v700.4: Carga y sincronización diferida automática al abrir la escena en el editor
+	_auto_loading = true
+	call_deferred("load_from_server")
+	print("MapEditor3D: Editor listo. Carga automática del servidor completada de forma transparente.")
 
 
 func _setup_editor_camera():
@@ -96,9 +71,15 @@ func _connect_editor_signals():
 			target.child_exiting_tree.connect(_on_child_removed)
 
 func _on_child_added(child: Node):
-	if child is MeshInstance3D or child is Node3D:
-		_setup_object_metadata(child)
-		child.set_meta("editor_only", true)
+	if not is_instance_valid(child) or not (child is Node3D or child is MeshInstance3D):
+		return
+		
+	# v700.6: Ignorar de forma segura nodos de infraestructura del sistema
+	if child.name in ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual", "EventMarkers", "Terrain3D", "SkyDome"]:
+		return
+		
+	_setup_object_metadata(child)
+	child.set_meta("editor_only", true)
 
 func _on_child_removed(child: Node):
 	if child == _selected_object:
@@ -470,9 +451,8 @@ func import_from_json():
 		print("MapEditor3D: El JSON debe ser un Array de objetos.")
 		return
 		
-	# Limpiar objetos anteriores de forma diferida para no destruir nodos
-	# mientras el SceneTreeEditor aún referencia sus paths (causa errores
-	# "Node not found ... absolute path attempted from SceneTreeEditor").
+	# v700.5: Limpiar únicamente los objetos editables anteriores (con metadata editor_only)
+	# para no borrar la cámara, luces, terreno u otra infraestructura de escena.
 	if not objects_root:
 		objects_root = find_child("ObjectsRoot", true, false)
 		
@@ -481,12 +461,16 @@ func import_from_json():
 			objects_root.remove_child(child)
 			child.queue_free()
 	else:
-		print("MapEditor3D: No se encontró el nodo ObjectsRoot.")
-		return
+		# Si no hay ObjectsRoot, limpiar los objetos con editor_only directamente hijos de self
+		for child in get_children():
+			if child is Node3D and child.get_meta("editor_only", false):
+				remove_child(child)
+				child.queue_free()
 		
 	print("MapEditor3D: Importando ", data.size(), " objetos...")
 	
 	var scene_root = get_tree().edited_scene_root if Engine.is_editor_hint() else self
+	var target_parent = objects_root if is_instance_valid(objects_root) else self
 	
 	for obj in data:
 		if not (obj is Dictionary):
@@ -516,8 +500,8 @@ func import_from_json():
 			
 		var instance = scene.instantiate()
 		var base_name = str(obj.get("label", instance.name)).replace(" ", "_").replace("@", "")
-		instance.name = _unique_node_name(objects_root, base_name)
-		objects_root.add_child(instance)
+		instance.name = _unique_node_name(target_parent, base_name)
+		target_parent.add_child(instance)
 		if scene_root:
 			instance.owner = scene_root
 		
@@ -657,15 +641,6 @@ func import_from_json():
 	print("MapEditor3D: ✅ Importación completada con éxito.")
 
 func load_from_server():
-	if not confirm_overwrite_on_load and not _auto_loading:
-		print("\n⚠️ [MapEditor3D PREVENCIÓN DE PÉRDIDA DE DATOS] ⚠️")
-		print("Para cargar los datos del servidor y reemplazar lo que tienes en el editor,")
-		print("DEBES activar primero la casilla 'confirm_overwrite_on_load' en el Inspector.\n")
-		return
-		
-	confirm_overwrite_on_load = false
-	
-	# Limpiar marcadores de eventos anteriores
 	_clear_event_markers()
 	
 	var file_path = "res://../Server/config.json"
@@ -1129,6 +1104,9 @@ func save_to_server():
 				
 	# Reemplazar en la configuración
 	maps_config[zone_id]["objects"] = objects_array
+	
+	# v700.5: Sincronizar propiedad local para guardarla físicamente en el archivo .tscn
+	json_to_import = JSON.stringify(objects_array)
 	
 	# --- SINCRONIZACIÓN REVERSA: Actualizar gameModes si es zona de evento ---
 	var zone_id_int_sv = int(zone_id)

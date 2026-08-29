@@ -2620,11 +2620,6 @@ func _spawn_objects_from_custom_scene():
 		# --- DIAGNÓSTICO: ver qué nodo se procesa ---
 		var is_collider_node = child is CollisionPolygon3D or child is CSGBox3D or (child.has_method("get_class") and child.get_class() == "CollisionPolygon3D")
 		
-		# Ocultar visualmente los colisionadores en runtime por si se dejaron visibles en el editor
-		if is_collider_node or child.name.to_lower().contains("collider"):
-			if child is Node3D or child is CanvasItem:
-				child.visible = false
-		
 		# Es una carpeta si: no hereda de Node3D (es un Node simple) O es un Node3D puro sin metadata
 		var is_folder = false
 		if not child is Node3D:

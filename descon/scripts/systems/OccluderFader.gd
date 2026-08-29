@@ -175,12 +175,8 @@ func _setup_materials_for(node: Node3D, meshes: Array[MeshInstance3D]) -> void:
 			# Conservar el material original de fallback para no romper el renderizado de texturas
 			work_mat = cur_mat
 		else:
-			# Sin material -> crear uno por defecto
-			var sm3 := StandardMaterial3D.new()
-			sm3.albedo_color = Color(1,1,1,1)
-			sm3.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			mi.material_override = sm3
-			work_mat = sm3
+			# Si es null, no anular ni crear un material override vacío para evitar romper el material embebido del GLB
+			continue
 
 
 		mi.set_meta("_occluder_prepared", true)

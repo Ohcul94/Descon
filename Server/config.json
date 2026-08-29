@@ -6697,7 +6697,7 @@
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
                     "label": "Puerta",
-                    "rotY": 0.0,
+                    "rotY": -91.0,
                     "scale": 5.0,
                     "targetX": 5000.0,
                     "targetY": 5000.0,
