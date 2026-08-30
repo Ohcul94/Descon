@@ -648,6 +648,10 @@ func _process(_delta):
 	# v266.360: Actualizar UI de estados activos
 	_update_status_effects_ui()
 	
+	# Rotar lentamente el contenedor de previsualización 3D del target en la UI
+	if is_instance_valid(_target_model_holder) and _target_model_holder.get_child_count() > 0:
+		_target_model_holder.rotate_y(_delta * 0.4)
+	
 	# Actualizar target frame
 	_update_target_frame()
 	
@@ -2442,6 +2446,14 @@ var _target_sh_lbl: Label = null
 var _hp_ratio: float = 1.0
 var _sh_ratio: float = 1.0
 
+# Previsualización 3D (Target Frame AAA)
+var _target_viewport_container: SubViewportContainer = null
+var _target_viewport: SubViewport = null
+var _target_preview_root: Node3D = null
+var _target_preview_cam: Camera3D = null
+var _target_model_holder: Node3D = null
+var _last_previewed_glb: String = ""
+
 func _setup_combat_meter():
 	if _combat_meter: return
 	var script_res = load("res://scripts/ui/CombatMeter.gd")
@@ -2619,34 +2631,78 @@ func _setup_target_frame():
 	
 	_target_frame = PanelContainer.new()
 	_target_frame.name = "TargetFrame"
-	_target_frame.custom_minimum_size = Vector2(200, 65)
-	_target_frame.pivot_offset = Vector2(100, 32.5)
+	_target_frame.custom_minimum_size = Vector2(250, 75)
+	_target_frame.pivot_offset = Vector2(125, 37.5)
 	
 	var sb = StyleBoxFlat.new()
 	sb.bg_color = Color(0.04, 0.04, 0.1, 0.88)
 	sb.border_width_left = 1; sb.border_width_top = 1
 	sb.border_width_right = 1; sb.border_width_bottom = 1
 	sb.border_color = Color(0.0, 0.85, 1.0, 0.35)
-	sb.set_corner_radius_all(4)
+	sb.set_corner_radius_all(6)
 	_target_frame.add_theme_stylebox_override("panel", sb)
 	
+	# HBoxContainer principal para separar preview e información
+	var main_hbox = HBoxContainer.new()
+	main_hbox.name = "MainHBox"
+	main_hbox.add_theme_constant_override("separation", 6)
+	_target_frame.add_child(main_hbox)
+	
+	# 1. Viewport 3D directo (a la izquierda, sin contenedor de fondo)
+	_target_viewport_container = SubViewportContainer.new()
+	_target_viewport_container.name = "ViewportContainer"
+	_target_viewport_container.custom_minimum_size = Vector2(64, 64)
+	_target_viewport_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	main_hbox.add_child(_target_viewport_container)
+	
+	_target_viewport = SubViewport.new()
+	_target_viewport.name = "Viewport"
+	_target_viewport.size = Vector2i(64, 64)
+	_target_viewport.transparent_bg = true
+	_target_viewport.own_world_3d = true
+	_target_viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+	_target_viewport_container.add_child(_target_viewport)
+	
+	_target_preview_root = Node3D.new()
+	_target_preview_root.name = "PreviewRoot"
+	_target_viewport.add_child(_target_preview_root)
+	
+	_target_preview_cam = Camera3D.new()
+	_target_preview_cam.name = "Camera3D"
+	_target_preview_cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+	_target_preview_cam.fov = 40.0
+	_target_preview_cam.look_at_from_position(Vector3(0, 0.5, 1.8), Vector3(0, 0.1, 0))
+	_target_preview_root.add_child(_target_preview_cam)
+	
+	var target_light = DirectionalLight3D.new()
+	target_light.name = "Light3D"
+	target_light.rotation_degrees = Vector3(-45, 35, 0)
+	target_light.light_energy = 2.0
+	_target_preview_root.add_child(target_light)
+	
+	_target_model_holder = Node3D.new()
+	_target_model_holder.name = "ModelHolder"
+	_target_preview_root.add_child(_target_model_holder)
+	
+	# 2. Contenedor de información (a la derecha)
 	_target_vbox = VBoxContainer.new()
+	_target_vbox.name = "InfoVBox"
 	_target_vbox.add_theme_constant_override("separation", 1)
-	var margin = 4
+	var margin = 2
 	_target_vbox.add_theme_constant_override("margin_left", margin)
 	_target_vbox.add_theme_constant_override("margin_right", margin)
 	_target_vbox.add_theme_constant_override("margin_top", margin)
 	_target_vbox.add_theme_constant_override("margin_bottom", margin)
 	_target_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_target_frame.add_child(_target_vbox)
+	main_hbox.add_child(_target_vbox)
 	
 	var header = HBoxContainer.new()
 	_target_vbox.add_child(header)
 	
 	_target_name_lbl = Label.new()
-	_target_name_lbl.add_theme_font_size_override("font_size", 11)
+	_target_name_lbl.add_theme_font_size_override("font_size", 12)
 	_target_name_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	_target_name_lbl.add_theme_constant_override("outline_size", 2)
+	_target_name_lbl.add_theme_constant_override("outline_size", 4)
 	_target_name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(_target_name_lbl)
 	
@@ -2662,35 +2718,7 @@ func _setup_target_frame():
 	)
 	header.add_child(close_btn)
 	
-	# HP bar (más compacta)
-	var hp_container = Control.new()
-	hp_container.custom_minimum_size = Vector2(0, 15)
-	_target_vbox.add_child(hp_container)
-	
-	_target_hp_bg = ColorRect.new()
-	_target_hp_bg.color = Color(0, 0.4, 0, 0.2)
-	_target_hp_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	hp_container.add_child(_target_hp_bg)
-	
-	_target_hp_bar = ColorRect.new()
-	_target_hp_bar.color = Color(0, 0.8, 0)
-	_target_hp_bar.anchor_top = 0.0
-	_target_hp_bar.anchor_bottom = 1.0
-	_target_hp_bar.anchor_left = 0.0
-	_target_hp_bar.anchor_right = 1.0
-	hp_container.add_child(_target_hp_bar)
-	
-	_target_hp_lbl = Label.new()
-	_target_hp_lbl.add_theme_font_size_override("font_size", 10)
-	_target_hp_lbl.add_theme_color_override("font_color", Color.WHITE)
-	_target_hp_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	_target_hp_lbl.add_theme_constant_override("outline_size", 3)
-	_target_hp_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_target_hp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_target_hp_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hp_container.add_child(_target_hp_lbl)
-	
-	# Shield bar (más compacta)
+	# Shield bar (más compacta - arriba)
 	var sh_container = Control.new()
 	sh_container.custom_minimum_size = Vector2(0, 15)
 	_target_vbox.add_child(sh_container)
@@ -2712,11 +2740,39 @@ func _setup_target_frame():
 	_target_sh_lbl.add_theme_font_size_override("font_size", 10)
 	_target_sh_lbl.add_theme_color_override("font_color", Color.WHITE)
 	_target_sh_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	_target_sh_lbl.add_theme_constant_override("outline_size", 3)
-	_target_sh_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_target_sh_lbl.add_theme_constant_override("outline_size", 4)
 	_target_sh_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_target_sh_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	sh_container.add_child(_target_sh_lbl)
+	_target_sh_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	# HP bar (más compacta - abajo)
+	var hp_container = Control.new()
+	hp_container.custom_minimum_size = Vector2(0, 15)
+	_target_vbox.add_child(hp_container)
+	
+	_target_hp_bg = ColorRect.new()
+	_target_hp_bg.color = Color(0, 0.4, 0, 0.2)
+	_target_hp_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hp_container.add_child(_target_hp_bg)
+	
+	_target_hp_bar = ColorRect.new()
+	_target_hp_bar.color = Color(0, 0.8, 0)
+	_target_hp_bar.anchor_top = 0.0
+	_target_hp_bar.anchor_bottom = 1.0
+	_target_hp_bar.anchor_left = 0.0
+	_target_hp_bar.anchor_right = 1.0
+	hp_container.add_child(_target_hp_bar)
+	
+	_target_hp_lbl = Label.new()
+	_target_hp_lbl.add_theme_font_size_override("font_size", 10)
+	_target_hp_lbl.add_theme_color_override("font_color", Color.WHITE)
+	_target_hp_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	_target_hp_lbl.add_theme_constant_override("outline_size", 4)
+	_target_hp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_target_hp_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hp_container.add_child(_target_hp_lbl)
+	_target_hp_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
 	# Debuff icons row
 	_target_debuff_hbox = HBoxContainer.new()
@@ -2752,6 +2808,7 @@ func set_target(entity):
 	
 	_update_target_frame()
 	_update_target_debuffs()
+	_update_3d_target_preview(entity)
 
 func clear_target():
 	if is_instance_valid(_target_entity):
@@ -2760,6 +2817,8 @@ func clear_target():
 		_target_entity.is_selected = false
 	_target_entity = null
 	if _target_frame: _target_frame.visible = false
+	_clear_3d_target_preview()
+	_last_previewed_glb = ""
 
 func _update_target_frame():
 	if not is_instance_valid(_target_frame): return
@@ -2771,9 +2830,25 @@ func _update_target_frame():
 		return
 	
 	if not _target_frame.visible: return
-	if not is_instance_valid(_target_entity) or _target_entity.is_dead:
+	if not is_instance_valid(_target_entity) or _target_entity.is_dead or not _target_entity.visible:
 		clear_target()
 		return
+		
+	# Deseleccionar si la entidad se pierde de vista físicamente (por niebla / culling visual del motor)
+	if _target_entity.has_meta("_was_screen_visible") and not _target_entity.get_meta("_was_screen_visible"):
+		clear_target()
+		return
+		
+	# Deseleccionar si está fuera del rango de visión dinámico del jugador (radar de la nave)
+	var player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player):
+		var vision_r = 1300.0
+		if "vision_range" in player:
+			vision_r = player.vision_range
+		var dist = player.global_position.distance_to(_target_entity.global_position)
+		if dist > vision_r:
+			clear_target()
+			return
 	
 	var ent = _target_entity
 	
@@ -2782,20 +2857,25 @@ func _update_target_frame():
 		name_text = "[%s] %s" % [ent.clan_tag, ent.username]
 	_target_name_lbl.text = name_text
 	
-	var hp = int(ent._display_hp)
+	var hp_bar = int(ent._display_hp)
 	var max_hp = int(ent.max_hp)
-	var sh = int(ent._display_shield)
+	var sh_bar = int(ent._display_shield)
 	var max_sh = int(ent.max_shield)
 	
-	_hp_ratio = clamp(hp / float(max_hp) if max_hp > 0 else 0.0, 0.0, 1.0)
-	_sh_ratio = clamp(sh / float(max_sh) if max_sh > 0 else 0.0, 0.0, 1.0)
+	var hp_text = int(ent.current_hp)
+	var sh_text = int(ent.current_shield)
+	
+	_hp_ratio = clamp(hp_bar / float(max_hp) if max_hp > 0 else 0.0, 0.0, 1.0)
+	_sh_ratio = clamp(sh_bar / float(max_sh) if max_sh > 0 else 0.0, 0.0, 1.0)
 	
 	_target_hp_bar.anchor_right = _hp_ratio
+	_target_hp_bar.offset_right = 0.0
 	_target_hp_bar.color = Color(0, 0.8, 0) if _hp_ratio > 0.3 else Color(1, 0, 0)
-	_target_hp_lbl.text = "HP: %d / %d" % [hp, max_hp]
+	_target_hp_lbl.text = "%d" % hp_text
 	
 	_target_sh_bar.anchor_right = _sh_ratio
-	_target_sh_lbl.text = "SH: %d / %d" % [sh, max_sh]
+	_target_sh_bar.offset_right = 0.0
+	_target_sh_lbl.text = "%d" % sh_text
 	
 	_update_target_debuffs()
 
@@ -3057,3 +3137,117 @@ func close_all_hud_modals():
 			for subchild in child.find_children("*", "CanvasLayer", true, false):
 				if subchild.name in layers_to_clean:
 					subchild.queue_free()
+
+# --- PREVISUALIZACIÓN 3D DINÁMICA DEL TARGET ---
+
+func _clear_3d_target_preview():
+	if is_instance_valid(_target_model_holder):
+		for child in _target_model_holder.get_children():
+			child.queue_free()
+
+func _update_3d_target_preview(entity):
+	if not is_instance_valid(_target_model_holder):
+		return
+		
+	if not is_instance_valid(entity) or entity.is_dead:
+		_clear_3d_target_preview()
+		_last_previewed_glb = ""
+		return
+		
+	var glb_path = ""
+	if entity.has_meta("current_glb"):
+		glb_path = entity.get_meta("current_glb")
+		
+	if glb_path == "":
+		var ship_id = entity.get("current_ship_id")
+		if ship_id != null and GameConstants.get("SHIP_MODELS") != null:
+			for ship in GameConstants.SHIP_MODELS:
+				if ship.id == ship_id:
+					glb_path = ship.get("assetPath", "")
+					break
+					
+	if glb_path == "":
+		_clear_3d_target_preview()
+		_last_previewed_glb = ""
+		return
+		
+	if glb_path == _last_previewed_glb:
+		return
+		
+	_clear_3d_target_preview()
+	_last_previewed_glb = glb_path
+	
+	# Reiniciar la rotación del holder al origen antes de cargar un nuevo modelo
+	_target_model_holder.rotation_degrees = Vector3.ZERO
+	
+	# Usar la caché global para evitar caída de FPS en el hilo principal
+	var model_scene = null
+	if get_node_or_null("/root/VFXSystem") and VFXSystem.has_method("get_cached_resource"):
+		model_scene = VFXSystem.get_cached_resource(glb_path)
+	else:
+		model_scene = load(glb_path)
+		
+	if model_scene:
+		var model = model_scene.instantiate()
+		
+		# Limpieza de luces internas del GLB
+		for child in model.find_children("*", "Light3D", true):
+			child.queue_free()
+			
+		_target_model_holder.add_child(model)
+		
+		# Auto-centrado y auto-escalado AAA del modelo
+		var aabb = AABB()
+		var first = true
+		for mesh in model.find_children("*", "MeshInstance3D", true):
+			if first:
+				aabb = mesh.get_aabb()
+				first = false
+			else:
+				aabb = aabb.merge(mesh.get_aabb())
+				
+		var max_dim = max(aabb.size.x, max(aabb.size.y, aabb.size.z))
+		var scale_ui = 1.0
+		if max_dim > 0.001:
+			scale_ui = 1.25 / max_dim
+			
+		model.scale = Vector3.ONE * scale_ui
+		model.position = -aabb.get_center() * scale_ui
+		
+		# Aplicar la rotación original (offsets de inclinación/rotación) desde el modelo del juego
+		var applied_rot = Vector3(0, 180, 0)
+		if is_instance_valid(entity):
+			if is_instance_valid(entity._3d_model) and entity._3d_model.get_child_count() > 0:
+				var orig_mesh = entity._3d_model.get_child(0)
+				if is_instance_valid(orig_mesh):
+					applied_rot = orig_mesh.rotation_degrees
+			elif entity.has_meta("rot_y_deg") or entity.has_meta("rotY"):
+				var r_y = float(entity.get_meta("rot_y_deg") if entity.has_meta("rot_y_deg") else entity.get_meta("rotY", 0.0))
+				applied_rot = Vector3(0, r_y, 0)
+				
+		model.rotation_degrees = applied_rot
+		
+		# Aplicar unshaded a los materiales si la función existe en Entity
+		_make_preview_materials_unshaded(model)
+
+func _make_preview_materials_unshaded(node: Node):
+	if not is_instance_valid(node):
+		return
+	var stack = [node]
+	while stack.size() > 0:
+		var curr = stack.pop_back()
+		if curr is MeshInstance3D:
+			# Para cada material, forzar shading_mode a unshaded
+			# get_active_material(i) es la forma correcta en Godot 4 de obtener
+			# el material final de la superficie (sea override o el del mesh)
+			var mat_count = curr.get_surface_override_material_count()
+			if mat_count == 0 and curr.mesh:
+				mat_count = curr.mesh.get_surface_count()
+			for i in range(mat_count):
+				var mat = curr.get_active_material(i)
+				if mat is BaseMaterial3D:
+					var dup = mat.duplicate()
+					dup.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					curr.set_surface_override_material(i, dup)
+		for child in curr.get_children():
+			stack.append(child)

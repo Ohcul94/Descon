@@ -648,9 +648,12 @@ func _process(delta):
 	visible = true; show()
 	if _ui_wrapper: _ui_wrapper.visible = true
 
-	# v219.65: Redibujado Inteligente (Interpolación v190.85)
-	_display_hp = lerp(_display_hp, current_hp, 0.1)
-	_display_shield = lerp(_display_shield, current_shield, 0.1)
+	# v219.65: Redibujado Inteligente (Interpolación mejorada y rápida basada en delta)
+	var speed_hp = max(abs(current_hp - _display_hp) * 15.0, max_hp * 0.5)
+	_display_hp = move_toward(_display_hp, current_hp, speed_hp * delta)
+	
+	var speed_sh = max(abs(current_shield - _display_shield) * 15.0, max_shield * 0.5)
+	_display_shield = move_toward(_display_shield, current_shield, speed_sh * delta)
 	
 	if abs(_display_hp - last_draw_hp) > 0.05 or abs(_display_shield - last_draw_sh) > 0.05:
 		queue_redraw()
@@ -1121,19 +1124,24 @@ func update_stats(data):
 		# No reseteamos el combat_timer aquí porque el ataque real ya lo reseteó en take_damage
 		_spawn_damage_text(str(int(damage_taken)), Color.RED)
 	
-	# v400.15: Detección y visualización de Curación local (Vida en verde, Escudo en celeste)
+	# v400.15: Detección y visualización de Curación local (Vida en verde, Escudo en celeste) para TODOS
+	var diff_hp = current_hp - old_hp
+	var diff_shield = current_shield - old_shield
+	
+	var h_val = 0
 	if data.has("healPopup"):
-		var h_val = int(data.healPopup)
-		_spawn_damage_text("+" + str(h_val), Color.GREEN)
-	else:
-		var diff_hp = current_hp - old_hp
-		var diff_shield = current_shield - old_shield
+		h_val = roundi(float(data.healPopup))
 		
-		# Solo mostrar si el cambio es sustancial para ignorar la regeneración natural
-		if diff_hp >= 5.0 and old_hp > 0.0:
-			_spawn_damage_text("+" + str(int(diff_hp)), Color.GREEN)
-		if diff_shield >= 5.0:
-			_spawn_damage_text("+" + str(int(diff_shield)), Color(0.0, 0.9, 0.9)) # Celeste / Cian
+	if h_val > 0:
+		_spawn_damage_text("+" + str(h_val), Color.GREEN)
+	elif not data.has("healPopup"):
+		var dh_int = roundi(diff_hp)
+		if dh_int > 0 and old_hp > 0.0:
+			_spawn_damage_text("+" + str(dh_int), Color.GREEN)
+			
+	var ds_int = roundi(diff_shield)
+	if ds_int > 0:
+		_spawn_damage_text("+" + str(ds_int), Color(0.0, 0.9, 0.9)) # Celeste / Cian
 		
 	if data.has("spheres"):
 		var sm = get_node_or_null("SpheresManager")
@@ -1276,8 +1284,8 @@ func _update_tags():
 			if show_stats:
 				var wrap_stats_start = "[b]" if stats_bold else ""
 				var wrap_stats_end = "[/b]" if stats_bold else ""
-				txt += wrap_stats_start + "[color=#00ffff][font_size=" + str(stats_sz) + "]SH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "[/font_size][/color]" + wrap_stats_end + "\n"
-				txt += wrap_stats_start + "[color=#00ff00][font_size=" + str(stats_sz) + "]HP: " + str(int(current_hp)) + " / " + str(int(max_hp)) + "[/font_size][/color]" + wrap_stats_end + "[/center]"
+				txt += wrap_stats_start + "[color=#00ffff][font_size=" + str(stats_sz) + "]SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "[/font_size][/color]" + wrap_stats_end + "\n"
+				txt += wrap_stats_start + "[color=#00ff00][font_size=" + str(stats_sz) + "]HP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp)) + "[/font_size][/color]" + wrap_stats_end + "[/center]"
 			
 			name_tag.text = txt
 			name_tag.visible = show_tag or show_stats
@@ -1286,11 +1294,11 @@ func _update_tags():
 			var name_str = username
 			if clan_tag != "": name_str = "[" + clan_tag + "] " + username
 			if show_tag and show_stats:
-				name_tag.text = name_str + "\nSH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "\nHP: " + str(int(current_hp)) + " / " + str(int(max_hp))
+				name_tag.text = name_str + "\nSH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "\nHP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp))
 			elif show_tag:
 				name_tag.text = name_str
 			elif show_stats:
-				name_tag.text = "SH: " + str(int(current_shield)) + " / " + str(int(max_shield)) + "\nHP: " + str(int(current_hp)) + " / " + str(int(max_hp))
+				name_tag.text = "SH: " + str(roundi(current_shield)) + " / " + str(roundi(max_shield)) + "\nHP: " + str(roundi(current_hp)) + " / " + str(roundi(max_hp))
 			else:
 				name_tag.text = ""
 			name_tag.visible = show_tag or show_stats
@@ -1666,10 +1674,25 @@ func _spawn_damage_text(txt: String, clr: Color):
 		
 		# v222.95: Añadir al wrapper de UI de la nave para que la SIGA
 		var target_parent = _ui_wrapper if is_instance_valid(_ui_wrapper) else self
-		target_parent.add_child(dt)
 		
-		# v222.96: Si es hijo del wrapper, la posición es relativa
-		dt.position = Vector2(0, -60)
+		# Evitar solapamiento si se spawnean múltiples textos a la vez (ej. vida y escudo juntos)
+		var offset_x = 0
+		var recent_texts = []
+		for child in target_parent.get_children():
+			if child.get_script() == dt_script:
+				if abs(child.position.y - (-60)) < 15:
+					recent_texts.append(child)
+					
+		if recent_texts.size() == 1:
+			recent_texts[0].position.x = -28
+			offset_x = 28
+		elif recent_texts.size() == 2:
+			recent_texts[0].position.x = -35
+			recent_texts[1].position.x = 0
+			offset_x = 35
+			
+		target_parent.add_child(dt)
+		dt.position = Vector2(offset_x, -60)
 		
 		if dt.has_method("setup"): dt.setup(txt, clr)
 
