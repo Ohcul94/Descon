@@ -490,7 +490,7 @@ func import_from_json():
 			elif obj.get("type") == "pillar":
 				asset_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
 			else:
-				asset_path = "res://assets/Paredes/Pared1/Pared1.glb"
+				asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
 
 				
 		var scene = load(asset_path)

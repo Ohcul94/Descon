@@ -3,12 +3,13 @@
 [ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
 [ext_resource type="Texture2D" uid="uid://dp8kdgoh382bn" path="res://assets/Enemigos/3D/Bosses/Boss5/Animaciones/AnimacionesBoss5_Boss5_basecolor.jpg" id="2_303il"]
 [ext_resource type="Texture2D" uid="uid://bm12q7xjbqwb6" path="res://assets/Enemigos/3D/Bosses/Boss5/Animaciones/AnimacionesBoss5_Boss5_normal.jpg" id="3_7bc5u"]
+[ext_resource type="PackedScene" uid="uid://du5ba6sqgwbns" path="res://assets/Personajes/3D/Nave3/Nave3.glb" id="6_d0lf8"]
 [ext_resource type="Texture2D" uid="uid://cwlve4ex1rdga" path="res://assets/Mapas/Mapa3/Terreno/AnimacionesBoss5_fantasy_creature_3d_model_basecolor.jpg" id="ext_base_fantasy"]
 [ext_resource type="Texture2D" uid="uid://7hiarlv4lwrx" path="res://assets/Mapas/Mapa3/Terreno/AnimacionesBoss5_fantasy_creature_3d_model_normal.jpg" id="ext_norm_fantasy"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_t7ar1"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_y5icj"]
 albedo_color = Color(0.05, 0.08, 0.15, 1)
 metallic = 0.3
 roughness = 0.8
@@ -141,9 +142,8 @@ shape = SubResource("WorldBoundaryShape3D_1")
 [node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=1711100493]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 visible = false
-material_override = SubResource("StandardMaterial3D_t7ar1")
+material_override = SubResource("StandardMaterial3D_y5icj")
 mesh = SubResource("PlaneMesh_1")
-
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=798809310]
 environment = SubResource("Environment_1")
@@ -168,3 +168,12 @@ size = Vector3(8.230774, 1, 29.448063)
 [node name="CSGBox3D3" type="CSGBox3D" parent="Terrain3D/Colliders" unique_id=635553468]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.582466, 0.9999962, 96.65566)
 size = Vector3(3.6363068, 1, 41.346222)
+
+[node name="Nave3" parent="." unique_id=819743919 instance=ExtResource("6_d0lf8")]
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 42.919567, 8.524671, 78.09535)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Personajes/3D/Nave3/Nave3.glb"
+metadata/label = &"Nave3"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true

@@ -116,6 +116,8 @@ func _setup_post_process_quad():
 	# Crear y configurar material con shader
 	shader_mat = ShaderMaterial.new()
 	shader_mat.shader = FOG_SHADER
+	# Forzar que el Fog of War se dibuje ANTES que cualquier malla transparente del mapa (-128 min)
+	shader_mat.render_priority = -128
 	
 	var map_size_3d = Vector2(
 		parent_map.world_size * parent_map.scale_factor,
