@@ -1522,17 +1522,19 @@ func _apply_movement():
 					global_position += col.get_normal() * 2.0
 					velocity = velocity.bounce(col.get_normal()) * 0.5
 
-		var w_size = GameConstants.GAME_CONFIG.get("worldSize", 4000)
-		var h_size = w_size
-		var p_node = get_parent()
-		if is_instance_valid(p_node) and "current_map_node" in p_node and is_instance_valid(p_node.current_map_node):
-			var mn = p_node.current_map_node
-			w_size = mn.world_size
-			# v311.5: Mapas rectangulares del AdminDash — el alto real puede diferir del ancho
-			if "map_height" in mn and mn.map_height > 0.0:
-				h_size = mn.map_height
-		global_position.x = clamp(global_position.x, 10, w_size - 10)
-		global_position.y = clamp(global_position.y, 10, h_size - 10)
+		# v531.0: Nebulosa FANTASMA — clamp DESACTIVADO. Solo visual para referencia de pixeles del AdminDash.
+		# El jugador puede atravesar libremente la nebulosa sin choque. Si quieres reactivar el choque duro, descomenta:
+		# var w_size = GameConstants.GAME_CONFIG.get("worldSize", 4000)
+		# var h_size = w_size
+		# var p_node = get_parent()
+		# if is_instance_valid(p_node) and "current_map_node" in p_node and is_instance_valid(p_node.current_map_node):
+		# 	var mn = p_node.current_map_node
+		# 	w_size = mn.world_size
+		# 	if "map_height" in mn and mn.map_height > 0.0:
+		# 		h_size = mn.map_height
+		# global_position.x = clamp(global_position.x, 10, w_size - 10)
+		# global_position.y = clamp(global_position.y, 10, h_size - 10)
+		pass
 
 func set_autopilot(p_dest: Vector2):
 	if get_meta("spawn_locked", false):

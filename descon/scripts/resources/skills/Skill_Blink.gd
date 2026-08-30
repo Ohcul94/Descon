@@ -41,17 +41,19 @@ func activate(player: CharacterBody2D):
 		var dir = (target_pos - player.global_position).normalized()
 		target_pos = player.global_position + dir * power_value
 	
-	# v530.0: Clamp al borde de la nebulosa (choque duro) — Blink no puede atravesar el muro perimetral
-	var map_node = player.get_tree().get_first_node_in_group("map") if player.get_tree() else null
-	if is_instance_valid(map_node):
-		var w = 4000.0
-		var h = 4000.0
-		if "world_size" in map_node and float(map_node.world_size) > 0:
-			w = float(map_node.world_size)
-		if "map_height" in map_node and float(map_node.map_height) > 0:
-			h = float(map_node.map_height)
-		target_pos.x = clamp(target_pos.x, 25.0, w - 25.0)
-		target_pos.y = clamp(target_pos.y, 25.0, h - 25.0)
+	# v531.0: Nebulosa FANTASMA — clamp de Blink DESACTIVADO (solo visual). Permite blinkear más allá del borde.
+	# Si quieres reactivar el choque, descomenta el bloque siguiente:
+	# var map_node = player.get_tree().get_first_node_in_group("map") if player.get_tree() else null
+	# if is_instance_valid(map_node):
+	# 	var w = 4000.0
+	# 	var h = 4000.0
+	# 	if "world_size" in map_node and float(map_node.world_size) > 0:
+	# 		w = float(map_node.world_size)
+	# 	if "map_height" in map_node and float(map_node.map_height) > 0:
+	# 		h = float(map_node.map_height)
+	# 	target_pos.x = clamp(target_pos.x, 25.0, w - 25.0)
+	# 	target_pos.y = clamp(target_pos.y, 25.0, h - 25.0)
+	pass
 	
 	# 1. VFX Desaparecer
 	if player.has_method("play_skill_vfx"):

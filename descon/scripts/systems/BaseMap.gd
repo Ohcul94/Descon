@@ -62,6 +62,9 @@ var mouse_world_pos_2d: Vector2 = Vector2.ZERO   # Equivalente en espacio lógic
 var _has_custom_3d_scene: bool = false
 var terrain_node: Node3D = null
 # v530.0: Muros perimetrales 2D que bloquean exactamente en el borde de la nebulosa (0..map_width, 0..map_height)
+# v531.0: Nebulosa FANTASMA — solo visual para saber límites aproximados (pixeles del AdminDash).
+# Si enable_physical_border=false, NO hay colisión ni choque; puedes atravesar libremente.
+@export var enable_physical_border: bool = false # false = fantasma visual-only, true = choque duro
 var _perimeter_walls_2d: Array = []
 
 var fixed_cam_zoom: float = 1.0
@@ -307,12 +310,18 @@ func _setup_dynamic_3d_map_layout():
 		# Sin config (arenas dinámicas, extracción) — reflejar world_size en map_height para consistencia
 		self.map_height = local_map_height
 
-	# v530.0: Crear/actualizar muros físicos del perímetro exactamente en el borde de la nebulosa.
-	# ANTES de cualquier return temprano (Ground3D placeholder, hideDefaultGround o sub_viewport nulo) para que siempre exista choque.
-	if _perimeter_walls_2d.size() == 0:
-		_create_perimeter_collisions_2d(local_map_width, local_map_height)
+	# v531.0: Nebulosa FANTASMA — solo visual. Si enable_physical_border==false, NO crea muros (puedes atravesar).
+	# ANTES de cualquier return pero solo si el choque está habilitado. Visual (NebulaWalls 3D) sigue siempre.
+	if not enable_physical_border:
+		_clear_perimeter_collisions_2d()
+		# Opcional: log solo una vez para saber que está en modo fantasma
+		if _perimeter_walls_2d.size() == 0 and local_map_width > 0:
+			print("[BaseMap] Nebulosa modo FANTASMA (visual-only): ", local_map_width, "x", local_map_height, " — sin colisión, paso libre")
 	else:
-		_update_perimeter_collisions_2d(local_map_width, local_map_height)
+		if _perimeter_walls_2d.size() == 0:
+			_create_perimeter_collisions_2d(local_map_width, local_map_height)
+		else:
+			_update_perimeter_collisions_2d(local_map_width, local_map_height)
 
 	# Sincronizar exports para que Player.gd lea map_height correctamente (fix rectangular)
 	self.map_height = local_map_height
@@ -535,7 +544,10 @@ func _clear_perimeter_collisions_2d():
 
 # v530.0: Crea 4 StaticBody2D exactamente en los bordes lógicos del mapa (0..map_w, 0..map_h)
 # Son los que hacen que el jugador "choque" con la nebulosa. Grosor 80px evita túnel a alta velocidad.
+# v531.0: Si enable_physical_border==false, esta función es no-op (fantasma visual-only)
 func _create_perimeter_collisions_2d(map_w: float, map_h: float):
+	if not enable_physical_border:
+		return
 	_clear_perimeter_collisions_2d()
 	if map_w <= 0 or map_h <= 0:
 		return
@@ -563,7 +575,11 @@ func _create_perimeter_collisions_2d(map_w: float, map_h: float):
 	print("[BaseMap] Muros perimetrales 2D creados (choque con nebulosa): ", map_w, "x", map_h, " grosor ", thickness)
 
 # v530.0: Actualiza la posición/tamaño de los muros perimetrales ya existentes (hot-reload sin recrear)
+# v531.0: Si fantasma, limpiar y salir
 func _update_perimeter_collisions_2d(map_w: float, map_h: float):
+	if not enable_physical_border:
+		_clear_perimeter_collisions_2d()
+		return
 	if _perimeter_walls_2d.size() != 4:
 		_create_perimeter_collisions_2d(map_w, map_h)
 		return

@@ -27,8 +27,10 @@ class BlinkSkill extends BaseSkill {
             finalY = p.y + dy * ratio;
         }
 
-        // v530.0: Clamp al borde de la nebulosa — Blink no puede atravesar el muro perimetral
-        {
+        // v531.0: Nebulosa FANTASMA — clamp de Blink DESACTIVADO (solo visual, paso libre)
+        // Si ENABLE_BORDER_CLAMP es false, no se aplica ningún clamp aquí.
+        const ENABLE_BORDER_CLAMP_BLINK = false;
+        if (ENABLE_BORDER_CLAMP_BLINK) {
             const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
             const zStr = String(p.zone);
             let bounds = null;

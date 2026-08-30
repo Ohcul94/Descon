@@ -34,6 +34,8 @@ const getStatusEffects = (ent) => {
 };
 
 // v530.0: Obtener límites lógicos del mapa (borde de nebulosa) para clamp autoritativo
+// v531.0: NEBULOSA FANTASMA — clamp desactivado server-side (solo visual para referencia de pixeles AdminDash)
+const ENABLE_BORDER_CLAMP = false; // false = fantasma visual-only (paso libre), true = choque duro autoritativo
 const getMapBounds = (zone, state) => {
     const maps = (state.SERVER_CONFIG && state.SERVER_CONFIG.mapsConfig) ? state.SERVER_CONFIG.mapsConfig : {};
     const zStr = String(zone);
@@ -220,9 +222,9 @@ function registerMovementHandlers(socket, io, state) {
         
         if (p.justBlinked) p.justBlinked = false; // Reset tras el bypass
 
-        // v530.0: Clamp autoritativo al borde de la nebulosa (choque duro servidor)
-        // Si el cliente manda coords fuera del mapa, lo frenamos exactamente en el borde y hacemos rubberband
-        {
+        // v531.0: Nebulosa FANTASMA — clamp DESACTIVADO (solo visual). Paso libre más allá del borde.
+        // Si quieres reactivar el choque duro, cambia ENABLE_BORDER_CLAMP a true.
+        if (ENABLE_BORDER_CLAMP) {
             const bounds = getMapBounds(p.zone, state);
             const margin = 25.0; // radio de colisión del jugador (match cliente 80/2 - buffer)
             const clampedX = Math.max(margin, Math.min(bounds.w - margin, Number(movementData.x)));

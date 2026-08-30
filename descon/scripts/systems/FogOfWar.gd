@@ -10,8 +10,8 @@ var map_size: Vector2 = Vector2(4000.0, 4000.0)
 
 # Grid config compartido con servidor (Server/systems/fogHandlers.js GRID_RES)
 const GRID_RES: int = 64
-const GRID_TEX_SIZE: int = 1024
-const CELL_PX: float = float(GRID_TEX_SIZE) / float(GRID_RES) # 16.0
+const GRID_TEX_SIZE: int = 512
+const CELL_PX: float = float(GRID_TEX_SIZE) / float(GRID_RES) # 8.0
 
 # Viewports off-screen de renderizado de niebla
 var vision_viewport: SubViewport
@@ -38,6 +38,8 @@ var _restoration_pending: bool = false
 var _restoration_cells: Array = []
 var _history_cleared: bool = false
 var _server_grid_res: int = 64
+var _draw_timer: float = 0.0
+const DRAW_INTERVAL: float = 0.05 # 20 FPS
 
 const FOG_SHADER = preload("res://resources/shaders/fog_of_war.gdshader")
 const TEXTURE_NOISE_21D = preload("res://VFX/textures/T_VFX_Noise21d_tiled.png")
@@ -227,7 +229,10 @@ func _setup_post_process_quad():
 	post_process_quad.extra_cull_margin = 16384.0
 	camera.add_child(post_process_quad)
 
-func get_vision_providers() -> Array:
+var _cached_providers: Array = []
+var _provider_update_timer: float = 0.0
+
+func _update_providers_cache():
 	var list = []
 	var player = get_tree().get_first_node_in_group("player")
 	if is_instance_valid(player) and player.get("is_dead") != true:
@@ -237,7 +242,10 @@ func get_vision_providers() -> Array:
 		if is_instance_valid(entity) and entity.get("is_dead") != true:
 			if entity.get("_is_ally") == true:
 				list.append(entity)
-	return list
+	_cached_providers = list
+
+func get_vision_providers() -> Array:
+	return _cached_providers
 
 # === GRID HELPERS ===
 func _world_to_cell_idx(pos: Vector2) -> int:
@@ -376,11 +384,19 @@ func _process(_delta):
 			# Forzar que el historial se actualice visualmente (las celdas nuevas ya están en explored_by_zone,
 			# pero history_viewport necesita dibujar los nuevos círculos; eso ya pasa vía _draw_history cada frame)
 			_flush_pending_sync()
+			
+	_provider_update_timer -= _delta
+	if _provider_update_timer <= 0.0:
+		_provider_update_timer = 0.5
+		_update_providers_cache()
 	
-	if is_instance_valid(vision_drawer):
-		vision_drawer.queue_redraw()
-	if is_instance_valid(history_drawer):
-		history_drawer.queue_redraw()
+	_draw_timer -= _delta
+	if _draw_timer <= 0.0:
+		_draw_timer = DRAW_INTERVAL
+		if is_instance_valid(vision_drawer):
+			vision_drawer.queue_redraw()
+		if is_instance_valid(history_drawer):
+			history_drawer.queue_redraw()
 
 func _flush_pending_sync():
 	if _pending_sync_cells.is_empty():

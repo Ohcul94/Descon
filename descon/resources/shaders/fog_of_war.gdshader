@@ -58,8 +58,8 @@ void fragment() {
 		vec2 fog_uv = world_pos.xz / map_size_3d;
 		
 		if (fog_uv.x >= 0.0 && fog_uv.x <= 1.0 && fog_uv.y >= 0.0 && fog_uv.y <= 1.0) {
-			vec2 noise_uv = world_pos.xz * 0.015 + vec2(TIME * noise_speed, TIME * noise_speed * 0.65);
-			float noise_val = texture(noise_texture, noise_uv).r;
+			vec2 base_noise_uv = world_pos.xz * 0.015 + vec2(TIME * noise_speed, TIME * noise_speed * 0.65);
+			float noise_val = texture(noise_texture, base_noise_uv).r;
 			vec2 distorted_uv = clamp(fog_uv + (noise_val - 0.5) * noise_scale, 0.0, 1.0);
 			
 			vec2 sample_uv = vec2(distorted_uv.x, flip_y ? 1.0 - distorted_uv.y : distorted_uv.y);
@@ -109,25 +109,21 @@ void fragment() {
 			fog_factor_2d *= start_feather;
 			fog_factor_2d *= edge_fade;
 			
-			// NUBES
-			vec2 cloud_uv1 = world_pos.xz * cloud_scale1 + vec2(TIME * cloud_speed1 * 0.7, TIME * elevation_speed);
-			vec2 cloud_uv2 = world_pos.xz * cloud_scale2 + vec2(TIME * cloud_speed2, TIME * cloud_speed2 * 0.6 + TIME * elevation_speed * 0.5);
-			float n1 = texture(noise_texture, cloud_uv1).r;
-			float n2 = texture(noise_texture, cloud_uv2).r;
-			float n3 = texture(noise_texture, cloud_uv1 * 1.9 + cloud_uv2 * 0.35).r;
-			float cloud = n1 * 0.50 + n2 * 0.32 + n3 * 0.18;
+			// NUBES OPTIMIZADAS (1 sola muestra en lugar de 3)
+			vec2 cloud_uv = world_pos.xz * cloud_scale1 + vec2(TIME * cloud_speed1 * 0.7, TIME * elevation_speed);
+			float n1 = texture(noise_texture, cloud_uv).r;
+			// Usamos el noise_val (ya sampleado arriba) como segunda capa simulada
+			float cloud = n1 * 0.65 + noise_val * 0.35;
+			
 			cloud = pow(clamp(cloud, 0.0, 1.0), cloud_contrast);
 			cloud = smoothstep(0.18, 0.82, cloud);
-			float wave = sin(world_pos.x * 0.0035 + TIME * 0.16) * cos(world_pos.z * 0.0032 + TIME * 0.11) * 0.055;
-			float wave2 = sin(world_pos.x * 0.0018 - world_pos.z * 0.0021 + TIME * 0.07) * 0.04;
-			cloud = clamp(cloud + wave + wave2, 0.0, 1.0);
+			// Ondas pesadas con sin/cos eliminadas para optimizar
 			
 			height_density *= (0.72 + cloud * 0.55);
 			
 			vec3 palette = mix(fog_color_dark, fog_color_mid, smoothstep(0.22, 0.52, cloud));
 			palette = mix(palette, fog_color_light, smoothstep(0.48, 0.86, cloud));
-			palette = mix(palette, swamp_tint, cloud * swamp_mix * (0.75 + n2 * 0.5));
-			palette += (n3 - 0.5) * 0.06;
+			palette = mix(palette, swamp_tint, cloud * swamp_mix);
 			
 			vec3 unexploredFog = palette;
 			vec3 exploredFog = mix(palette, vec3(0.66, 0.66, 0.68), 0.34);
@@ -145,7 +141,7 @@ void fragment() {
 			vec3 final_color = mix(desaturated, target_fog, combined_fog);
 			final_color += (cloud - 0.5) * 0.08 * combined_fog * (0.6 + height_density * 0.7);
 			final_color = mix(final_color, target_fog + vec3(0.06, 0.07, 0.07), n1 * 0.045 * combined_fog);
-			final_color -= (1.0 - n2) * 0.035 * combined_fog * is_explored * 0.5;
+			// Extra noise decay removed for performance
 			
 			ALBEDO = clamp(final_color, vec3(0.0), vec3(1.0));
 		} else {
