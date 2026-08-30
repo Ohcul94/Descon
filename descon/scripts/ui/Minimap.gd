@@ -225,6 +225,30 @@ func _draw():
 	# map_scale legacy (para código que lo use)
 	var _map_scale: float = scale_x
 	
+	# v800.0 NIEBLA GRIS en minimapa - overlay de celdas no exploradas
+	var fog_overlay_needed = false
+	var fog_grid_res = 64
+	var fog_explored: Dictionary = {}
+	var fog_zone_id = current_zone_id
+	# Intentar obtener datos de FogOfWarManager si existe
+	var fow_node = null
+	var map_node_fog = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(map_node_fog) and "fog_of_war" in map_node_fog and is_instance_valid(map_node_fog.fog_of_war):
+		fow_node = map_node_fog.fog_of_war
+		if fow_node:
+			# GRID_RES es const 64, no hace falta check dinámico
+			fog_grid_res = 64
+			if "explored_by_zone" in fow_node:
+				if fow_node.explored_by_zone.has(fog_zone_id):
+					fog_explored = fow_node.explored_by_zone[fog_zone_id]
+				else:
+					# Zona nueva sin datos aún: usar diccionario vacío (toda niebla)
+					fog_explored = {}
+				fog_overlay_needed = true
+	# Fallback: si no hay FogOfWar (zona 1 lobby) no hay niebla
+	if fog_zone_id == "1":
+		fog_overlay_needed = false
+
 	# --- ROTATION MODE: transform all map content around player position ---
 	var is_rotate_mode = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
 	var rot_angle = 0.0
@@ -233,6 +257,10 @@ func _draw():
 		rot_angle = -PI/2 - player.rotation
 		player_mp = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
 		draw_set_transform_matrix(Transform2D().translated(player_mp).rotated(rot_angle).translated(-player_mp))
+	
+	# Dibujar niebla ANTES de entidades para que quede de fondo
+	if fog_overlay_needed:
+		_draw_minimap_fog(scale_x, scale_y, fog_grid_res, fog_explored, worldW, worldH, player)
 	
 	# 1. Dibujar Trayectoria del Autopiloto (Línea punteada del JS v66.6)
 	if player.get("is_autopilot_active") and player.get("target_position"):
@@ -627,3 +655,77 @@ func _draw():
 		
 		# Renderizar texto
 		draw_string(font, rect_pos + Vector2(6, 14), radar_tooltip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.0, 1.0, 1.0))
+
+func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: Dictionary, worldW: float, worldH: float, player):
+	# v801.0 NIEBLA PANTANO minimapa - 80% opacidad, multi-tono nube gris, variación, elevación y degradé
+	if not is_instance_valid(player):
+		return
+	var vr = 1300.0
+	if "vision_range" in player:
+		vr = float(player.vision_range)
+	var cell_w = size.x / float(grid_res)
+	var cell_h = size.y / float(grid_res)
+	var px = player.global_position.x
+	var py = player.global_position.y
+	var vr_sq = vr * vr
+	var world_cell_w = worldW / float(grid_res)
+	var world_cell_h = worldH / float(grid_res)
+	# Tiempo para elevación (niebla que se mueve lenta)
+	var t = Time.get_ticks_msec() * 0.00018
+	for cy in range(grid_res):
+		for cx in range(grid_res):
+			var idx = cy * grid_res + cx
+			var is_explored = explored.has(idx)
+			var cw_x = (float(cx) + 0.5) * world_cell_w
+			var cw_y = (float(cy) + 0.5) * world_cell_h
+			var dx = cw_x - px
+			var dy = cw_y - py
+			var dist_sq = dx*dx + dy*dy
+			var in_vision = dist_sq <= vr_sq
+			if in_vision:
+				continue
+			# Degradé en terminaciones de niebla: suavizar borde del círculo de visión (80-120% del radio)
+			var dist = sqrt(dist_sq)
+			var edge_fade = 1.0
+			var fade_start = vr * 0.82
+			var fade_end = vr * 1.18
+			if dist > fade_start:
+				edge_fade = 1.0 - clamp((dist - fade_start) / max(fade_end - fade_start, 1.0), 0.0, 1.0)
+				# Si está justo en borde exterior, aún dibujar pero con alpha degradada
+				if edge_fade <= 0.02:
+					continue
+			# Hash nube por celda + elevación animada
+			var hash = fmod(sin(float(idx) * 12.9898 + float(cx)*78.233 + float(cy)*37.719) * 43758.5453, 1.0)
+			hash = abs(hash)
+			# Dos capas de nube para variación
+			var n1 = fmod(sin(float(idx)* 0.11 + t*0.7 + float(cx)*0.12) * 9.3, 1.0)
+			var n2 = fmod(cos(float(idx)* 0.07 - t*0.5 + float(cy)*0.09) * 7.1, 1.0)
+			n1 = abs(n1); n2 = abs(n2)
+			var cloud = hash * 0.55 + n1 * 0.28 + n2 * 0.17
+			# Onda elevación lenta
+			var wave = sin(float(cx)*0.18 + t*1.2) * cos(float(cy)*0.16 + t*0.9) * 0.12
+			cloud = clamp(cloud + wave, 0.0, 1.0)
+			# Degradé de terminación por cloud: bordes de nube más suaves
+			var cloud_edge = smoothstep(0.15, 0.85, cloud)
+			# Seleccionar tono pantano según cloud
+			var col_dark = Color(0.14, 0.16, 0.17)
+			var col_mid = Color(0.34, 0.36, 0.39)
+			var col_light = Color(0.60, 0.62, 0.64)
+			var col_swamp = Color(0.30, 0.34, 0.28)
+			var pal = col_dark.lerp(col_mid, smoothstep(0.22, 0.52, cloud))
+			pal = pal.lerp(col_light, smoothstep(0.48, 0.86, cloud_edge))
+			pal = pal.lerp(col_swamp, cloud * 0.20)
+			# Variación fina
+			pal.r += (n1 - 0.5) * 0.04
+			pal.g += (n2 - 0.5) * 0.04
+			pal.b += (hash - 0.5) * 0.03
+			var rect = Rect2(float(cx) * cell_w, float(cy) * cell_h, cell_w + 0.6, cell_h + 0.6)
+			if not is_explored:
+				# NO EXPLORADO: 80% opacidad pantano denso, degradé por edge_fade
+				pal.a = 0.80 * edge_fade * (0.88 + cloud_edge * 0.12)
+				draw_rect(rect, pal, true)
+			else:
+				# EXPLORADO penumbra: gris claro 30% pero con nube visible
+				var penumbra = pal.lerp(Color(0.66, 0.66, 0.68), 0.45)
+				penumbra.a = 0.30 * edge_fade * (0.75 + cloud * 0.25)
+				draw_rect(rect, penumbra, true)

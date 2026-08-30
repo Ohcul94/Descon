@@ -112,7 +112,13 @@ function getPlayerRAMAdapter(p) {
             set housing(v) { p.housing = v; },
 
             get marketMailbox() { return p.marketMailbox || []; },
-            set marketMailbox(v) { p.marketMailbox = v; }
+            set marketMailbox(v) { p.marketMailbox = v; },
+
+            get exploredMaps() { return p.exploredMaps || {}; },
+            set exploredMaps(v) { p.exploredMaps = v; },
+
+            get exploredAt() { return p.exploredAt || {}; },
+            set exploredAt(v) { p.exploredAt = v; }
         },
         markModified(path) {
             // En memoria la mutación es directa y JS detecta los cambios automáticamente.
@@ -145,7 +151,9 @@ function getPlayerRAMAdapter(p) {
                         "gameData.battlePass": p.battlePass,
                         "gameData.rankingData": p.rankingData,
                         "gameData.housing": p.housing || { unlocked: false, placedObjects: [] },
-                        "gameData.marketMailbox": p.marketMailbox || []
+                        "gameData.marketMailbox": p.marketMailbox || [],
+                        "gameData.exploredMaps": p.exploredMaps || {},
+                        "gameData.exploredAt": p.exploredAt || {}
                     }
                 }
             ).catch(err => {
@@ -192,7 +200,9 @@ function getPlayerRAMAdapter(p) {
                     battlePass: p.battlePass,
                     rankingData: p.rankingData,
                     housing: p.housing || { unlocked: false, placedObjects: [] },
-                    marketMailbox: p.marketMailbox || []
+                    marketMailbox: p.marketMailbox || [],
+                    exploredMaps: p.exploredMaps || {},
+                    exploredAt: p.exploredAt || {}
                 }
             };
         }

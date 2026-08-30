@@ -102,6 +102,7 @@ signal market_update(data)
 signal market_purchase_result(data)
 signal market_mailbox_updated(data)
 signal support_mailbox_updated(data)
+signal fog_data(data) # v800.0: Niebla de guerra persistente
 signal socket_event_received(event_name, data)
 
 signal status_effects_sync(data)
@@ -475,6 +476,9 @@ func _dispatch_event(e_name: String, e_data: Variant):
 			if typeof(e_data) == TYPE_ARRAY:
 				unlocks_cache = e_data
 				unlocks_updated.emit(unlocks_cache)
+		"fogData":
+			fog_data.emit(e_data)
+			socket_event_received.emit(e_name, e_data)
 		_:
 			socket_event_received.emit(e_name, e_data)
 

@@ -174,6 +174,7 @@ const { registerBattlePassHandlers } = require('./systems/battlePassHandlers');
 const { registerRankingHandlers } = require('./systems/rankingHandlers');
 const visibilityGuard = require('./systems/visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
 const { registerMarketHandlers, initMarketSystem } = require('./systems/marketHandlers'); // v500.0: Casa de Subastas
+const { registerFogHandlers } = require('./systems/fogHandlers'); // v800.0: Niebla de Guerra persistente
 
 const AIManager = require('./systems/AIManager');
 const { startGameLoop } = require('./systems/gameLoop');
@@ -802,7 +803,21 @@ const handleUserLogin = async (socket, user, username) => {
         // v500.0: MERCADO - Buzón de entregas y notificaciones
         marketMailbox: JSON.parse(JSON.stringify(user.gameData.marketMailbox || [])),
         // v1.0: SOPORTE - Buzón de soporte
-        supportMailbox: JSON.parse(JSON.stringify(user.gameData.supportMailbox || []))
+        supportMailbox: JSON.parse(JSON.stringify(user.gameData.supportMailbox || [])),
+        // v800.0: NIEBLA DE GUERRA - Mapas explorados
+        exploredMaps: (() => {
+            const em = user.gameData.exploredMaps;
+            if (!em) return {};
+            if (em instanceof Map) { const obj={}; em.forEach((v,k)=>{ obj[k]=[...v]; }); return obj; }
+            const out={}; for (const k in em) out[k] = Array.isArray(em[k]) ? [...em[k]] : [];
+            return out;
+        })(),
+        exploredAt: (() => {
+            const ea = user.gameData.exploredAt;
+            if (!ea) return {};
+            if (ea instanceof Map) { const obj={}; ea.forEach((v,k)=>{ obj[k]=v; }); return obj; }
+            return { ...ea };
+        })()
     };
 
     const p_ref = players[socket.id];
@@ -1219,7 +1234,10 @@ const savePlayerToDB = async (socketId) => {
                     "gameData.rankingData": p.rankingData || { monsters_killed: 0, events_completed: 0 },
                     "gameData.housing": p.housing || { unlocked: false, placedObjects: [] },
                     // v500.0: Buzón del Mercado
-                    "gameData.marketMailbox": p.marketMailbox || []
+                    "gameData.marketMailbox": p.marketMailbox || [],
+                    // v800.0: Niebla de Guerra persistente
+                    "gameData.exploredMaps": p.exploredMaps || {},
+                    "gameData.exploredAt": p.exploredAt || {}
                 }
             }
         );
@@ -1516,6 +1534,9 @@ io.on('connection', (socket) => {
 
     // Registrar manejadores del Sistema de Clasificación (Ranking)
     registerRankingHandlers(socket, io, state);
+
+    // v800.0: Niebla de Guerra persistente (God of War - niebla gris)
+    registerFogHandlers(socket, io, state);
 
     // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL (PROTEGIDO)
     socket.on('saveAdminConfig', async (config) => {

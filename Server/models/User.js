@@ -113,7 +113,11 @@ const UserSchema = new mongoose.Schema({
         // v500.0: MERCADO / CASA DE SUBASTAS - Buzón de entrega
         marketMailbox: { type: Array, default: [] },
         // v1.0: MENSAJES Y RESPUESTAS DE SOPORTE (BUGS)
-        supportMailbox: { type: Array, default: [] }
+        supportMailbox: { type: Array, default: [] },
+        // v800.0: NIEBLA DE GUERRA - Mapas explorados por zona (grilla persistente)
+        // Formato Map<String zoneId, Number[] cellIndices> donde cell = y*GRID_RES + x, GRID_RES=64
+        exploredMaps: { type: Map, of: [Number], default: {} },
+        exploredAt: { type: Map, of: Date, default: {} }
     }
 });
 
