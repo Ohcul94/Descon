@@ -196,18 +196,9 @@ func _set_faded(node: Node3D, faded: bool) -> void:
 	var orig_alphas: Array = data.get("orig_alphas", [])
 	var dither_mats: Array = data.get("dither_mats", [])
 	
-	# Determinar opacidad según tipo de objeto
-	var is_interactive := false
-	var obj_type = ""
-	if node.has_meta("obj_type"):
-		obj_type = str(node.get_meta("obj_type")).to_lower()
-	var lower_name = node.name.to_lower()
-	if obj_type in ["door", "altar", "market", "spawn", "nexus", "chest", "vault"] or \
-	   "puerta" in lower_name or "altar" in lower_name or "market" in lower_name or "mercado" in lower_name or "baul" in lower_name or "vault" in lower_name:
-		is_interactive = true
-
-	var effective_fade_alpha: float = 0.50 if is_interactive else faded_alpha
-	var effective_dither: float = 0.50 if is_interactive else dither_fade_target
+	# El usuario solicitó opacidad fija al 20% para todos los objetos por igual
+	var effective_fade_alpha: float = 0.20
+	var effective_dither: float = 0.20
 
 	var target_a: float = effective_fade_alpha if faded else 1.0
 	var target_dither: float = effective_dither if faded else 1.0

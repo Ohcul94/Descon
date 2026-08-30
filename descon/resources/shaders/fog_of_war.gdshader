@@ -56,13 +56,27 @@ void fragment() {
 			float visibility = max(current_vision, explored * (1.0 - shroud_opacity));
 			visibility = max(visibility, 1.0 - fog_opacity);
 			
+			// --- EFECTO DE HUMO VOLUMÉTRICO SUAVE ---
+			// 1. Difuminar suavemente la niebla hacia los bordes del mapa para ver el exterior
+			float edge_dist_x = min(fog_uv.x, 1.0 - fog_uv.x);
+			float edge_dist_y = min(fog_uv.y, 1.0 - fog_uv.y);
+			float min_edge = min(edge_dist_x, edge_dist_y);
+			float edge_fade = smoothstep(0.0, 0.05, min_edge); // 0.0 en borde exacto, 1.0 hacia adentro
+			
+			// 2. Difuminar suavemente la niebla en la altura (horizonte) para objetos altos
+			float horizon_fade = smoothstep(0.0, 0.15, -ray_dir.y); // 0.0 en horizonte, 1.0 hacia abajo
+			
+			// Interpolar de regreso a 1.0 (sin niebla) en los bordes y horizonte
+			float total_fade = min(edge_fade, horizon_fade);
+			visibility = mix(1.0, visibility, total_fade);
+			
 			ALBEDO = screen_color * visibility;
 		} else {
-			// Fuera del área de juego (nebulosa de fondo / espacio exterior)
+			// Fuera del área de juego: dejar ver completamente las estructuras y montañas exteriores
 			ALBEDO = screen_color;
 		}
 	} else {
-		// Rayos horizontales o hacia arriba
+		// Rayos horizontales o hacia arriba: dejar ver las cimas de estructuras altas y cielo
 		ALBEDO = screen_color;
 	}
 }
