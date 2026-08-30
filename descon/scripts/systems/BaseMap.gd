@@ -2841,33 +2841,40 @@ func _spawn_objects_from_custom_scene():
 				if child is CSGBox3D or child.get_class() == "CSGBox3D":
 					var box_size = child.get("size")
 					if box_size != null:
-						# Escala global del nodo (para respetar CSGBox escalado)
-						var g_scale = child.global_transform.basis.get_scale()
-						# Dimensiones reales del box en unidades 3D del mundo
-						var world_w = box_size.x * abs(g_scale.x)
-						var world_d = box_size.z * abs(g_scale.z)
-						# Convertir a coordenadas 2D del juego
-						var w_2d = world_w / scale_factor
-						var h_2d = world_d / (scale_factor * correction_z)
-						# Posición del centro del box proyectada a 2D (global para soportar carpetas)
+						# v700.9: CSGBox3D diagonal perfecto - CollisionPolygon2D con 4 esquinas proyectadas anisotrópicamente
+						# Antes: RectangleShape2D + w_2d/h_2d + rot_y fallaba en diagonal porque la proyección
+						# logic_x = world_x/scale , logic_y = world_z/(scale*corr) es anisotrópica. Un rectángulo rotado
+						# no puede representar la cizalla resultante (izquierda se mete dentro, derecha queda hueco flotante).
+						# Solución: calcular las 4 esquinas en mundo via global_transform y proyectar cada una.
 						var center_2d = Vector2(
 							child.global_position.x / scale_factor,
 							child.global_position.z / (scale_factor * correction_z)
 						)
-						# Rotación Y del nodo en 3D → convertida a eje 2D (invertida)
-						var rot_y_rad = child.global_transform.basis.get_euler(EULER_ORDER_YXZ).y
-						
-						var col = CollisionShape2D.new()
-						var rect = RectangleShape2D.new()
-						rect.size = Vector2(w_2d, h_2d)
-						col.shape = rect
-						col.rotation = -rot_y_rad
-						wall_body.add_child(col)
+						var half_x = box_size.x * 0.5
+						var half_z = box_size.z * 0.5
+						var local_corners = [
+							Vector3(half_x, 0, half_z),
+							Vector3(half_x, 0, -half_z),
+							Vector3(-half_x, 0, -half_z),
+							Vector3(-half_x, 0, half_z)
+						]
+						var points_rel = PackedVector2Array()
+						for lc in local_corners:
+							var wp = child.global_transform * lc
+							var lp = Vector2(wp.x / scale_factor, wp.z / (scale_factor * correction_z))
+							points_rel.append(lp - center_2d)
+						var col_poly = CollisionPolygon2D.new()
+						col_poly.polygon = points_rel
+						wall_body.add_child(col_poly)
 						wall_body.add_to_group("walls")
 						wall_body.add_to_group("obstacles")
 						add_child(wall_body)
 						wall_body.global_position = center_2d
-						print("[BaseMap] CSGBox3D -> RectangleShape2D: ", wall_body.name, " size=", Vector2(w_2d, h_2d), " pos=", center_2d, " rot=", rad_to_deg(-rot_y_rad))
+						# Log con tamaño lógico para debug comparativo (no usado para física, solo info)
+						var g_scale = child.global_transform.basis.get_scale()
+						var dbg_w = box_size.x * abs(g_scale.x) / scale_factor
+						var dbg_h = box_size.z * abs(g_scale.z) / (scale_factor * correction_z)
+						print("[BaseMap] CSGBox3D -> Polygon4: ", wall_body.name, " size_dbg=", Vector2(dbg_w, dbg_h), " pos=", center_2d, " pts=", points_rel)
 						if is_instance_valid(_occluder_fader) and is_instance_valid(child):
 							_occluder_fader.register_occluder(child)
 					else:
