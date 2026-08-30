@@ -814,15 +814,8 @@ func _process(delta):
 			
 		_last_rot2d = rotation
 	
-	# v167.70: REGENERACIÓN POST-COMBATE (SÓLO PARA EL JUGADOR LOCAL)
-	if is_in_group("player") and not is_dead:
-		var now = Time.get_ticks_msec()
-		if now - last_combat_time > 5000:
-			var regen_hp = (max_hp * 0.01) * delta
-			var regen_sh = (max_shield * 0.02) * delta
-			if current_hp < max_hp: current_hp = min(max_hp, current_hp + regen_hp)
-			if current_shield < max_shield: current_shield = min(max_shield, current_shield + regen_sh)
-			_update_tags()
+	# v167.70: Removida la falsa regeneración local que generaba desincronizaciones y saltos con el servidor autoritativo
+
 	
 func _update_hud_offsets():
 	if is_instance_valid(_ui_wrapper):
@@ -1029,10 +1022,10 @@ func update_stats(data):
 	var old_shield = current_shield
 	
 	# v191.70: PREDICCIÓN DE CLIENTE ANTI-PARPADEO (Shield/HP Stability)
-	# Si somos el jugador local, ignoramos cambios minúsculos del server (Regen vs Latencia)
-	# Si somos el jugador local, ignoramos cambios minúsculos del server (Regen vs Latencia)
+	# Si somos el jugador local, ignoramos cambios minúsculos del server causados por latencia en combate
 	var is_local = is_in_group("player")
-	var threshold = max(25.0, max_hp * 0.02) # v240.69: Umbral dinámico para naves de alto HP
+	var in_combat = (Time.get_ticks_msec() - last_combat_time) < 5000
+	var threshold = max(25.0, max_hp * 0.02) if in_combat else 0.0
 	var lock_active = (is_local and sync_lock_timer > 0)
 	
 	if data.has("isInvulnerable"):
@@ -1041,12 +1034,14 @@ func update_stats(data):
 	
 	if data.has("hp") and not lock_active:
 		var server_hp = _safe_float(data.get("hp"), current_hp)
-		if not is_local or server_hp <= 0 or abs(current_hp - server_hp) > threshold:
+		# Aceptar siempre si no es local, si la vida baja a <=0, si es una curación (server_hp > current_hp), o si supera el umbral de combate
+		if not is_local or server_hp <= 0 or server_hp > current_hp or abs(current_hp - server_hp) > threshold:
 			current_hp = server_hp
 			
 	if (data.has("shield") or data.has("sh")) and not lock_active:
 		var server_sh = _safe_float(data.get("shield", data.get("sh")), current_shield)
-		if not is_local or server_sh <= 0 or abs(current_shield - server_sh) > threshold:
+		# Aceptar siempre si no es local, si el escudo baja a <=0, si es una restauración (server_sh > current_shield), o si supera el umbral de combate
+		if not is_local or server_sh <= 0 or server_sh > current_shield or abs(current_shield - server_sh) > threshold:
 			current_shield = server_sh
 			
 	if data.has("maxHp") and not is_in_group("player"):
@@ -1200,10 +1195,10 @@ func _update_tags():
 	
 	# Verificar si los valores realmente cambiaron para evitar reconstruir el RichTextLabel innecesariamente
 	if (
-		abs(current_hp - _last_rendered_hp) < 1.0 and
-		abs(current_shield - _last_rendered_shield) < 1.0 and
-		abs(max_hp - _last_rendered_max_hp) < 1.0 and
-		abs(max_shield - _last_rendered_max_shield) < 1.0 and
+		roundi(current_hp) == roundi(_last_rendered_hp) and
+		roundi(current_shield) == roundi(_last_rendered_shield) and
+		roundi(max_hp) == roundi(_last_rendered_max_hp) and
+		roundi(max_shield) == roundi(_last_rendered_max_shield) and
 		username == _last_rendered_username and
 		clan_tag == _last_rendered_clan_tag and
 		is_rage == _last_rendered_is_rage and

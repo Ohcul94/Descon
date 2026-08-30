@@ -2909,18 +2909,6 @@ func _on_enemy_healed(data: Dictionary):
 	if is_instance_valid(en):
 		if en.has_method("update_stats"):
 			en.update_stats(data)
-		var amount = float(data.get("amount", 0.0))
-		var amt_int = roundi(amount)
-		if amt_int > 0 and en.has_method("_spawn_damage_text"):
-			if data.get("isLifeSteal", false):
-				# Robo de vida: texto en verde (vida robada devuelta al enemigo)
-				en._spawn_damage_text("+" + str(amt_int), Color(0.2, 1.0, 0.35))
-			elif data.get("healType", "hp") == "shield":
-				# Curación de escudo: texto en celeste
-				en._spawn_damage_text("+" + str(amt_int), Color(0.0, 0.9, 0.95))
-			else:
-				# Curación de HP (por defecto): texto en verde
-				en._spawn_damage_text("+" + str(amt_int), Color(0.2, 1.0, 0.35))
 
 func _on_hook_pulled(data: Dictionary):
 	var attacker_id = str(data.get("attackerId", ""))

@@ -425,6 +425,16 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 		config["colHeight"] = _round_decimals(h_3d / (scale_factor * correction_z), 2)
 		config["colOffsetX"] = 0.0
 		config["colOffsetY"] = 0.0
+	elif node is CSGCylinder3D and not config.has("colWidth"):
+		# v700.7: Soporte standalone para CSGCylinder3D (círculo perfecto) - misma lógica que CSGBox pero circular
+		var diam_3d = node.radius * 2.0 * node.scale.x
+		# Usar escala promedio X/Z si es no uniforme, pero mantener compatible con export previo (scale.x)
+		var diam_w = diam_3d / scale_factor
+		config["colType"] = "circle"
+		config["colWidth"] = _round_decimals(diam_w, 2)
+		config["colHeight"] = _round_decimals(diam_w, 2)
+		config["colOffsetX"] = 0.0
+		config["colOffsetY"] = 0.0
 			
 	return config
 

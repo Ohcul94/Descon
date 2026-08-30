@@ -2862,8 +2862,8 @@ func _update_target_frame():
 	var sh_bar = int(ent._display_shield)
 	var max_sh = int(ent.max_shield)
 	
-	var hp_text = int(ent.current_hp)
-	var sh_text = int(ent.current_shield)
+	var hp_text = roundi(ent.current_hp)
+	var sh_text = roundi(ent.current_shield)
 	
 	_hp_ratio = clamp(hp_bar / float(max_hp) if max_hp > 0 else 0.0, 0.0, 1.0)
 	_sh_ratio = clamp(sh_bar / float(max_sh) if max_sh > 0 else 0.0, 0.0, 1.0)

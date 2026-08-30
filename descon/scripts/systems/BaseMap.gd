@@ -2715,7 +2715,7 @@ func _spawn_objects_from_custom_scene():
 		var obj_type = get_flexible_obj_type.call(child)
 		
 		# --- DIAGNÓSTICO: ver qué nodo se procesa ---
-		var is_collider_node = child is CollisionPolygon3D or child is CSGBox3D or (child.has_method("get_class") and child.get_class() == "CollisionPolygon3D")
+		var is_collider_node = child is CollisionPolygon3D or child is CSGBox3D or child is CSGCylinder3D or (child.has_method("get_class") and child.get_class() == "CollisionPolygon3D")
 		
 		# Es una carpeta si: no hereda de Node3D (es un Node simple) O es un Node3D puro sin metadata
 		var is_folder = false
@@ -2731,10 +2731,10 @@ func _spawn_objects_from_custom_scene():
 					nodes_stack.append(sub_child)
 			continue
 			
-		# Detectar si el nodo tiene colisionadores hijos personalizados (CSGBox3D o CollisionPolygon3D)
+		# Detectar si el nodo tiene colisionadores hijos personalizados (CSGBox3D/CSGCylinder3D o CollisionPolygon3D)
 		var has_custom_colliders = false
 		for sub_child in child.get_children():
-			if sub_child is CSGBox3D or sub_child is CollisionPolygon3D or sub_child.get_class() == "CollisionPolygon3D":
+			if sub_child is CSGBox3D or sub_child is CSGCylinder3D or sub_child is CollisionPolygon3D or sub_child.get_class() == "CollisionPolygon3D":
 				has_custom_colliders = true
 				break
 				
@@ -2744,7 +2744,7 @@ func _spawn_objects_from_custom_scene():
 		if child.get_child_count() > 0:
 			for sub_child in child.get_children():
 				if is_instance_valid(sub_child) and sub_child is Node:
-					var is_collider = sub_child is CSGBox3D or sub_child is CollisionPolygon3D or sub_child is CollisionShape3D or sub_child.name.to_lower().contains("collider")
+					var is_collider = sub_child is CSGBox3D or sub_child is CSGCylinder3D or sub_child is CollisionPolygon3D or sub_child is CollisionShape3D or sub_child.name.to_lower().contains("collider")
 					if is_collider:
 						nodes_stack.append(sub_child)
 			
@@ -2801,7 +2801,7 @@ func _spawn_objects_from_custom_scene():
 		# v600.X: Registrar en OccluderFader CUALQUIER objeto del mapa local que no sea un colisionador puro.
 		# Así nos aseguramos de que "market", "door" y objetos sin colisionadores personalizados también se hagan transparentes al tapar la cámara.
 		if is_instance_valid(_occluder_fader) and is_instance_valid(child):
-			if not (child is CSGBox3D or child is CollisionPolygon3D or child.get_class() == "CollisionPolygon3D"):
+			if not (child is CSGBox3D or child is CSGCylinder3D or child is CollisionPolygon3D or child.get_class() == "CollisionPolygon3D"):
 				_occluder_fader.register_occluder(child)
 		
 		match obj_type:
@@ -2823,7 +2823,7 @@ func _spawn_objects_from_custom_scene():
 				# v530.3: Para CSGBox3D usamos RectangleShape2D + rotación en Y
 				# Esto evita la triangulación de CollisionPolygon2D que generaba
 				# el triángulo fantasma de colisión en el borde del rectángulo.
-				print("[BaseMap] Procesando wall: ", obj_label, " | clase=", child.get_class(), " | es CSGBox3D=", child is CSGBox3D)
+				print("[BaseMap] Procesando wall: ", obj_label, " | clase=", child.get_class(), " | es CSGBox3D=", child is CSGBox3D, " | es CSGCylinder3D=", child is CSGCylinder3D)
 				if child is CSGBox3D or child.get_class() == "CSGBox3D":
 					var box_size = child.get("size")
 					if box_size != null:
@@ -2858,6 +2858,37 @@ func _spawn_objects_from_custom_scene():
 							_occluder_fader.register_occluder(child)
 					else:
 						print("[BaseMap] CSGBox3D sin propiedad size, se omite: ", obj_label)
+				elif child is CSGCylinder3D or child.get_class() == "CSGCylinder3D":
+					# v700.7: CSGCylinder3D exacto - misma precisión que CSGBox3D pero con CircleShape2D
+					# No rompe Box: rama exclusiva, usa radius property con escala global y proyección scale_factor/correction_z idéntica a Box
+					var cyl_radius = child.get("radius")
+					if cyl_radius != null:
+						var g_scale = child.global_transform.basis.get_scale()
+						# Escala uniforme en X/Z (promedio para soportar escala no uniforme sin deformar)
+						var eff_scale = (abs(g_scale.x) + abs(g_scale.z)) * 0.5
+						if eff_scale == 0.0:
+							eff_scale = abs(g_scale.x)
+						var world_radius = float(cyl_radius) * eff_scale
+						var radius_2d = world_radius / scale_factor
+						var center_2d = Vector2(
+							child.global_position.x / scale_factor,
+							child.global_position.z / (scale_factor * correction_z)
+						)
+						var col = CollisionShape2D.new()
+						var circle = CircleShape2D.new()
+						circle.radius = radius_2d
+						col.shape = circle
+						# Círculo es invariante a rotación - no necesita col.rotation
+						wall_body.add_child(col)
+						wall_body.add_to_group("walls")
+						wall_body.add_to_group("obstacles")
+						add_child(wall_body)
+						wall_body.global_position = center_2d
+						print("[BaseMap] CSGCylinder3D -> CircleShape2D: ", wall_body.name, " radius=", radius_2d, " pos=", center_2d, " eff_scale=", eff_scale)
+						if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+							_occluder_fader.register_occluder(child)
+					else:
+						print("[BaseMap] CSGCylinder3D sin propiedad radius, se omite: ", obj_label)
 				else:
 					# Para cualquier otro objeto: usar AABB en espacio global (incluye escala y rotación)
 					var global_aabb: AABB
