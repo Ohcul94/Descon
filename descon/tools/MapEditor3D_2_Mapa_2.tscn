@@ -368,7 +368,8 @@ metadata/colHeight = 29.21
 metadata/colOffsetX = 0.14
 metadata/colOffsetY = -0.53
 
-[node name="Collider1" type="CSGBox3D" parent="Altar1" unique_id=1507229245]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0028, 0.005, -0.014990664)
-size = Vector3(0.8028, 0.01, 0.82618356)
+[node name="Collider1" type="CSGCylinder3D" parent="Altar1" unique_id=35235196]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.03107524, -0.2872483, -0.031487703)
+radius = 0.4794922
+height = 0.07336426
 material = SubResource("StandardMaterial3D_gr6fg")

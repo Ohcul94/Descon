@@ -1825,33 +1825,35 @@ func _spawn_map_objects():
 						var c_off_y = float(c_obj.get("offsetY", 0.0))
 						var c_rot = float(c_obj.get("rot", 0.0))
 						
-						var sub_col = CollisionShape2D.new()
-						var sub_size = Vector2.ZERO
 						var sub_offset = Vector2(c_off_x, c_off_y) * scale_val
-						# Rotar el offset local de acuerdo a la rotación 2D del padre (-rot_y)
 						sub_offset = sub_offset.rotated(deg_to_rad(-rot_y))
 						
-						var sub_is_circle = false
-						
 						if c_type == "circle":
-							sub_is_circle = true
-							sub_size = Vector2(c_width, c_width) * scale_val
+							# v700.8: Elipse anisotrópica - Oeste-Este usa scale_factor, Norte-Sur usa scale_factor*correction_z
+							var rx = c_width * scale_val * 0.5
+							var ry = c_height * scale_val * 0.5
+							# Compatibilidad con datos viejos donde width==height (isotrópico)
+							if ry <= 0.0 or abs(ry - rx) < 0.01:
+								ry = rx / correction_z
+							var poly = CollisionPolygon2D.new()
+							var pts = PackedVector2Array()
+							var segs = 32
+							for i in range(segs):
+								var ang = TAU * float(i) / float(segs)
+								pts.append(Vector2(cos(ang) * rx, sin(ang) * ry))
+							poly.polygon = pts
+							poly.position = sub_offset
+							poly.rotation = deg_to_rad(-(rot_y + c_rot))
+							wall_body.add_child(poly)
 						else:
-							sub_size = Vector2(c_width, c_height) * scale_val
-							
-						if sub_is_circle:
-							var circle = CircleShape2D.new()
-							circle.radius = sub_size.x / 2.0
-							sub_col.shape = circle
-						else:
+							var sub_col = CollisionShape2D.new()
+							var sub_size = Vector2(c_width, c_height) * scale_val
 							var rect = RectangleShape2D.new()
 							rect.size = sub_size
 							sub_col.shape = rect
-							
-						sub_col.position = sub_offset
-						# Invertir el ángulo de rotación 3D para pasarlo a 2D
-						sub_col.rotation = deg_to_rad(-(rot_y + c_rot))
-						wall_body.add_child(sub_col)
+							sub_col.position = sub_offset
+							sub_col.rotation = deg_to_rad(-(rot_y + c_rot))
+							wall_body.add_child(sub_col)
 				else:
 					var col = CollisionShape2D.new()
 					var col_type = str(obj.get("colType", ""))
@@ -1868,7 +1870,10 @@ func _spawn_map_objects():
 					if col_type != "":
 						if col_type == "circle":
 							is_circle = true
-							custom_size = Vector2(col_width, col_width) * scale_val
+							custom_size = Vector2(col_width, col_height) * scale_val
+							# Si datos viejos isotrópicos (colHeight == colWidth), derivar ry correcto
+							if custom_size.y <= 0.0 or abs(custom_size.y - custom_size.x) < 0.01:
+								custom_size.y = custom_size.x / correction_z
 						else:
 							custom_size = Vector2(col_width, col_height) * scale_val
 						custom_offset = Vector2(col_offset_x, col_offset_y) * scale_val
@@ -1895,18 +1900,27 @@ func _spawn_map_objects():
 					custom_offset = custom_offset.rotated(deg_to_rad(-rot_y))
 					
 					if is_circle:
-						var circle = CircleShape2D.new()
-						circle.radius = custom_size.x / 2.0
-						col.shape = circle
+						# v700.8: Elipse anisotrópica - igual que CSGCylinder custom scene
+						var rx = custom_size.x * 0.5
+						var ry = custom_size.y * 0.5
+						var poly = CollisionPolygon2D.new()
+						var pts = PackedVector2Array()
+						var segs = 32
+						for i in range(segs):
+							var ang = TAU * float(i) / float(segs)
+							pts.append(Vector2(cos(ang) * rx, sin(ang) * ry))
+						poly.polygon = pts
+						poly.position = custom_offset
+						poly.rotation = deg_to_rad(-(rot_y + col_rot))
+						wall_body.add_child(poly)
+						# Mantener `col` dummy para no romper add_child posterior? No, ya añadimos poly. Crear col solo si no es círculo.
 					else:
 						var rect = RectangleShape2D.new()
 						rect.size = custom_size
 						col.shape = rect
-						
-					col.position = custom_offset
-					# Invertir el ángulo de rotación 3D para pasarlo a 2D
-					col.rotation = deg_to_rad(-(rot_y + col_rot))
-					wall_body.add_child(col)
+						col.position = custom_offset
+						col.rotation = deg_to_rad(-(rot_y + col_rot))
+						wall_body.add_child(col)
 				
 				wall_body.add_to_group("walls")
 				add_child(wall_body)
@@ -2859,32 +2873,36 @@ func _spawn_objects_from_custom_scene():
 					else:
 						print("[BaseMap] CSGBox3D sin propiedad size, se omite: ", obj_label)
 				elif child is CSGCylinder3D or child.get_class() == "CSGCylinder3D":
-					# v700.7: CSGCylinder3D exacto - misma precisión que CSGBox3D pero con CircleShape2D
-					# No rompe Box: rama exclusiva, usa radius property con escala global y proyección scale_factor/correction_z idéntica a Box
+					# v700.8: CSGCylinder3D exacto anisotrópico - corrige Norte-Sur (Z) que quedaba +41% grande
+					# Box usa: w_2d=world_w/scale_factor (Oeste-Este) , h_2d=world_d/(scale_factor*correction_z) (Norte-Sur)
+					# Un cilindro 3D circular se vuelve elipse en 2D lógico (rx != ry). CircleShape2D no puede representar elipse,
+					# por eso antes Oeste-Este perfecto pero Norte-Sur gigante (radius/scale_factor en ambos ejes).
+					# Solución: CollisionPolygon2D elipse con rx/ry separados, pixel-perfect en ambos ejes.
 					var cyl_radius = child.get("radius")
 					if cyl_radius != null:
 						var g_scale = child.global_transform.basis.get_scale()
-						# Escala uniforme en X/Z (promedio para soportar escala no uniforme sin deformar)
-						var eff_scale = (abs(g_scale.x) + abs(g_scale.z)) * 0.5
-						if eff_scale == 0.0:
-							eff_scale = abs(g_scale.x)
-						var world_radius = float(cyl_radius) * eff_scale
-						var radius_2d = world_radius / scale_factor
+						var world_rx = float(cyl_radius) * abs(g_scale.x)
+						var world_ry = float(cyl_radius) * abs(g_scale.z)
+						var rx_2d = world_rx / scale_factor
+						var ry_2d = world_ry / (scale_factor * correction_z)
 						var center_2d = Vector2(
 							child.global_position.x / scale_factor,
 							child.global_position.z / (scale_factor * correction_z)
 						)
-						var col = CollisionShape2D.new()
-						var circle = CircleShape2D.new()
-						circle.radius = radius_2d
-						col.shape = circle
-						# Círculo es invariante a rotación - no necesita col.rotation
-						wall_body.add_child(col)
+						# Generar elipse 32 puntos (precisión visual + colisión)
+						var points = PackedVector2Array()
+						var segs = 32
+						for i in range(segs):
+							var ang = (TAU * float(i)) / float(segs)
+							points.append(Vector2(cos(ang) * rx_2d, sin(ang) * ry_2d))
+						var col_poly = CollisionPolygon2D.new()
+						col_poly.polygon = points
+						wall_body.add_child(col_poly)
 						wall_body.add_to_group("walls")
 						wall_body.add_to_group("obstacles")
 						add_child(wall_body)
 						wall_body.global_position = center_2d
-						print("[BaseMap] CSGCylinder3D -> CircleShape2D: ", wall_body.name, " radius=", radius_2d, " pos=", center_2d, " eff_scale=", eff_scale)
+						print("[BaseMap] CSGCylinder3D -> Ellipse Polygon: ", wall_body.name, " rx=", rx_2d, " ry=", ry_2d, " pos=", center_2d)
 						if is_instance_valid(_occluder_fader) and is_instance_valid(child):
 							_occluder_fader.register_occluder(child)
 					else:
