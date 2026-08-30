@@ -407,6 +407,8 @@ func _setup_dynamic_3d_map_layout():
 	var hide_default_ground = map_cfg.get("hideDefaultGround", false)
 	if hide_default_ground or _has_custom_3d_scene:
 		print("[BaseMap] Suelo genérico omitido (hideDefaultGround o escena 3D personalizada activa).")
+		# v531.1: Aunque se omita el suelo, SIEMPRE asegurar anillo nebulosa visual (fantasma) para referencia de límites
+		_ensure_standalone_nebula_walls(local_map_width, local_map_height, fog_start_3d, fog_end_3d)
 		return
 
 	# Crear suelo 3D decorativo (superficie estelar / lunar)
@@ -477,6 +479,10 @@ func _resize_existing_ground(ground_root: Node3D, gs_x: float, gs_z: float, cx: 
 		_resize_quad(walls, "WallBottom", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, max_z + nebula_offset), Vector3.ZERO, wall_mat)
 		_resize_quad(walls, "WallLeft", Vector2(max_z - min_z + nebula_width * 2.0, wall_height), Vector3(min_x - nebula_offset, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
 		_resize_quad(walls, "WallRight", Vector2(max_z - min_z + nebula_width * 2.0, wall_height), Vector3(max_x + nebula_offset, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
+	else:
+		# v531.1: Si el Ground3D existe pero no tiene nebulosa (mapas custom viejos), inyectarla ahora como standalone
+		print("[BaseMap] Ground3D sin NebulaWalls — inyectando anillo fantasma visual")
+		_ensure_standalone_nebula_walls(map_w, map_h, fog_start, fog_end)
 
 func _resize_quad(parent: Node3D, node_name: String, size: Vector2, pos: Vector3, rot: Vector3, mat: Material = null):
 	var node = parent.get_node_or_null(node_name)
@@ -488,6 +494,69 @@ func _resize_quad(parent: Node3D, node_name: String, size: Vector2, pos: Vector3
 		node.rotation_degrees = rot
 		if mat:
 			node.material_override = mat
+
+# v531.1: Sistema nebulosa standalone — garantiza anillo violeta visible aunque haya escena custom o Ground3D sin walls
+# Se crea bajo sub_viewport directamente en coordenadas 0..map_size para que siempre esté alrededor del mapa lógico
+func _ensure_standalone_nebula_walls(map_w: float, map_h: float, fog_start: float, fog_end: float):
+	if not is_instance_valid(sub_viewport):
+		return
+	if map_w <= 0 or map_h <= 0:
+		return
+	# Si ya existe cualquier NebulaWalls en el viewport (placeholder o custom), intentar reusar el standalone primero
+	var auto_root = sub_viewport.get_node_or_null("NebulaWalls_Auto")
+	if is_instance_valid(auto_root):
+		_update_standalone_nebula_walls(auto_root, map_w, map_h, fog_end)
+		return
+	# Si existe un NebulaWalls viejo bajo Ground3D, ya lo manejó _resize_existing_ground; no duplicar para placeholder
+	# Pero para escenas custom tipo MapEditor3D_1_Loby (GroundPlane, no Ground3D), NO existe → crear auto
+	var any_walls = sub_viewport.find_child("NebulaWalls", true, false)
+	if is_instance_valid(any_walls):
+		# Hay walls pero no es auto — asumir que está bien posicionado (placeholder). Actualizar su tamaño si se puede
+		# Detectar si parent es Ground3D placeholder (posición en centro) vs custom; intentar actualizar igual como auto fallback
+		# Para seguridad, si parent es Ground3D, dejamos que _resize_existing_ground lo haya actualizado; no creamos duplicado
+		if any_walls.get_parent() and any_walls.get_parent().name == "Ground3D":
+			return
+		# Si existe pero no es Ground3D (raro), igualmente crear auto para garantizar visual correcto en 0..max
+	# Crear standalone
+	auto_root = Node3D.new()
+	auto_root.name = "NebulaWalls_Auto"
+	sub_viewport.add_child(auto_root)
+	var wall_mat = _create_nebula_material()
+	# Hacerla un poco más visible que antes (alpha 1.1 vs 0.9) para que se note como límite fantasma
+	if wall_mat is ShaderMaterial:
+		wall_mat.set_shader_parameter("u_alpha_scale", 1.15)
+	var wall_height = 50.0
+	var y_wall = wall_height * 0.3
+	var min_x = 0.0
+	var max_x = map_w * scale_factor
+	var min_z = 0.0
+	var max_z = map_h * scale_factor * correction_z
+	var nebula_width = fog_end * 0.8
+	var nebula_offset = 0.0
+	_create_nebula_wall(auto_root, "WallTop", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, min_z - nebula_offset), Vector3.ZERO, wall_mat)
+	_create_nebula_wall(auto_root, "WallBottom", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, max_z + nebula_offset), Vector3.ZERO, wall_mat)
+	_create_nebula_wall(auto_root, "WallLeft", Vector2(max_z - min_z + nebula_width * 2.0, wall_height), Vector3(min_x - nebula_offset, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
+	_create_nebula_wall(auto_root, "WallRight", Vector2(max_z - min_z + nebula_width * 2.0, wall_height), Vector3(max_x + nebula_offset, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
+	print("[BaseMap] NebulaWalls_Auto (fantasma) creada: ", map_w, "x", map_h, " en sub_viewport")
+
+func _update_standalone_nebula_walls(root: Node3D, map_w: float, map_h: float, fog_end: float):
+	if not is_instance_valid(root):
+		return
+	var wall_height = 50.0
+	var y_wall = wall_height * 0.3
+	var min_x = 0.0
+	var max_x = map_w * scale_factor
+	var min_z = 0.0
+	var max_z = map_h * scale_factor * correction_z
+	var nebula_width = fog_end * 0.8
+	var wall_mat = _create_nebula_material()
+	if wall_mat is ShaderMaterial:
+		wall_mat.set_shader_parameter("u_alpha_scale", 1.15)
+	_resize_quad(root, "WallTop", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, min_z), Vector3.ZERO, wall_mat)
+	_resize_quad(root, "WallBottom", Vector2(max_x - min_x + nebula_width * 2.0, wall_height), Vector3((max_x + min_x) / 2.0, y_wall, max_z), Vector3.ZERO, wall_mat)
+	_resize_quad(root, "WallLeft", Vector2(max_z - min_z + nebula_width * 2.0, wall_height), Vector3(min_x, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
+	_resize_quad(root, "WallRight", Vector2(max_z - min_z + nebula_width * 2.0, wall_height), Vector3(max_x, y_wall, (max_z + min_z) / 2.0), Vector3(0, 90, 0), wall_mat)
+	print("[BaseMap] NebulaWalls_Auto actualizada: ", map_w, "x", map_h)
 
 func _create_ground_material() -> Material:
 	# v530.1: Piso negro plano — el usuario pidió fondo negro sin textura ni líneas diagonales

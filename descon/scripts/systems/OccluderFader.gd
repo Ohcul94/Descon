@@ -12,10 +12,11 @@ const OCCLUDER_TYPES := ["wall", "decor", "tower", "pillar", "altar", "vault", "
 @export var dither_fade_target: float = 0.18 # target de dither overlay (0.18)
 @export var fade_duration: float = 0.22
 @export var check_interval: float = 0.045
-@export var occlusion_extra_radius: float = 0.9
-@export var min_proj_dist: float = 1.0
+@export var occlusion_extra_radius: float = 0.35 # v531.1: Más fino (era 0.9) — solo desvanece cuando la cámara realmente lo tapa
+@export var min_proj_dist: float = 1.2 # v531.1: Un poco más de margen cerca de cámara para evitar pop temprano
 @export var use_dither: bool = true
 @export var debug_log: bool = false
+@export var occlusion_end_margin: float = 0.15 # v531.1: Margen fino antes del target (era 0.5) — más preciso
 
 var _occluders: Array[Node3D] = []
 var _cache: Dictionary = {} # Node3D -> { meshes: Array[MeshInstance3D], mats: Array[Material], orig_alphas: Array[float], dither_mats: Array[ShaderMaterial] }
@@ -83,7 +84,7 @@ func update_occlusion(camera_pos: Vector3, target_pos: Vector3, delta: float) ->
 			continue
 		var to_occ: Vector3 = occ.global_position - camera_pos
 		var proj: float = to_occ.dot(dir)
-		if proj < min_proj_dist or proj > max_dist - 0.5:
+		if proj < min_proj_dist or proj > max_dist - occlusion_end_margin:
 			continue
 		var closest: Vector3 = camera_pos + dir * proj
 		var radius: float = _estimate_radius(occ) + occlusion_extra_radius
@@ -251,9 +252,10 @@ func _collect_meshes(root: Node3D) -> Array[MeshInstance3D]:
 func _estimate_radius(node: Node3D) -> float:
 	var aabb := _calculate_aabb(node)
 	if aabb.size.length_squared() > 0.01:
-		var rad = max(aabb.size.x, aabb.size.z) * 0.55 + aabb.size.y * 0.15
-		return clampf(rad, 1.0, 15.0)
-	return 1.5
+		# v531.1: Radio más fino (era 0.55) — solo desvanece cuando la cámara realmente lo tapa
+		var rad = max(aabb.size.x, aabb.size.z) * 0.38 + aabb.size.y * 0.12
+		return clampf(rad, 0.8, 10.0)
+	return 1.0
 
 func _estimate_top_y(node: Node3D) -> float:
 	var aabb := _calculate_aabb(node)
