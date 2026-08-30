@@ -576,6 +576,21 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 	for win_id in config:
 		var node = _get_hud_node(win_id)
 		if node: node.visible = bool(config[win_id])
+	# v531.2: Si config está vacío (jugador nuevo) o le faltan ventanas nuevas, default visible true para no dejar HUD invisible por error
+	var _default_wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
+	if config.is_empty():
+		for win_id in _default_wins:
+			var n = _get_hud_node(win_id)
+			if n and not n.visible:
+				# Solo forzar true si estaba oculto por el _ready inicial (false) y no hay preferencia guardada
+				# Respetar si el usuario ya tenía algo? Pero si config vacío es primera vez, forzar true
+				n.visible = true
+	else:
+		for win_id in _default_wins:
+			if not config.has(win_id):
+				var n2 = _get_hud_node(win_id)
+				if n2:
+					n2.visible = true
 
 func _on_viewport_resize():
 	if not _last_applied_layout.is_empty():
@@ -649,6 +664,8 @@ func _on_minimize_pressed(id: String):
 	if node:
 		node.visible = false
 		_update_icon_state(id, false)
+		# v531.2: Persistir visibilidad (si estaba abierta y la cerraste, recordar cerrada)
+		_persist_hud_visibility()
 
 func _on_icon_pressed(id: String):
 	if id == "CamEdit":
@@ -702,6 +719,28 @@ func _on_icon_pressed(id: String):
 		else:
 			node.visible = !node.visible
 		_update_icon_state(id, node.visible)
+		# v531.2: Persistir visibilidad para recordar si estaba abierta/cerrada al próximo login (cualquier ventana HUD)
+		_persist_hud_visibility()
+
+# v531.2: Guardar visibilidad de todas las ventanas HUD en el servidor (hudConfig) para recordar estado abierto/cerrado
+# Se llama tras cada toggle/minimize. No interfiere con posiciones (hudPositions).
+func _persist_hud_visibility():
+	if is_editing_layout:
+		return # No persistir estado ficticio del editor (todas forzadas visibles)
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]
+	if SettingsManager and SettingsManager.mobile_mode:
+		wins.append("VirtualJoystick")
+	var config = {}
+	for win_id in wins:
+		var n = _get_hud_node(win_id)
+		if n:
+			config[win_id] = n.visible
+	# Actualizar cache local y respaldo para resize
+	_last_applied_config = config
+	if NetworkManager and NetworkManager.network_connected:
+		NetworkManager.current_user_data["hudConfig"] = config
+		NetworkManager.current_user_data["hud_config"] = config
+		NetworkManager.send_event("saveHudLayout", {"config": config})
 
 func _get_hud_node(id: String):
 	var real_id = id
@@ -959,8 +998,13 @@ func _restore_default_layout():
 			for key in server_layout:
 				if server_layout[key] != null and typeof(server_layout[key]) == TYPE_DICTIONARY:
 					default_layout[key] = server_layout[key]
-					
-	_apply_hud_data(default_layout, {})
+	# v531.2: Default config visible true para primera vez (no pisar si ya había layout guardado, solo para layout vacío)
+	var default_config = {
+		"CenterStats": true, "RadarWindow": true, "ChatUI": true, "PartyHUD": true,
+		"ControlBar": true, "StatusEffects": true, "TargetFrame": true,
+		"PortalBtnContainer": true, "CombatMeter": true, "TopLeft": true
+	}
+	_apply_hud_data(default_layout, default_config)
 	
 	var joy = _get_hud_node("VirtualJoystick")
 	if joy:

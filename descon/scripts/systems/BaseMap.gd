@@ -67,7 +67,7 @@ var terrain_node: Node3D = null
 @export var enable_physical_border: bool = false # false = fantasma visual-only, true = choque duro
 var _perimeter_walls_2d: Array = []
 
-var fixed_cam_zoom: float = 1.0
+var fixed_cam_zoom: float = 0.55
 
 # Variables para Cámara Híbrida (1ª / 3ª Persona WoW-Style)
 var hybrid_cam_h: float = 180.0
@@ -1113,16 +1113,16 @@ func _get_base_height_and_factor() -> Dictionary:
 
 func _sync_zooms_from_free():
 	var res = _get_base_height_and_factor()
-	var min_dist = 0.08 * res.base_height * res.factor
-	var max_dist = 1.0 * res.base_height * res.factor
+	var min_dist = 0.18 * res.base_height * res.factor
+	var max_dist = 0.55 * res.base_height * res.factor
 	free_cam_zoom = clamp(free_cam_zoom, min_dist, max_dist)
 	fixed_cam_zoom = free_cam_zoom / (res.base_height * res.factor)
 
 func _sync_free_from_fixed():
 	var res = _get_base_height_and_factor()
 	free_cam_zoom = fixed_cam_zoom * res.base_height * res.factor
-	var min_dist = 0.08 * res.base_height * res.factor
-	var max_dist = 1.0 * res.base_height * res.factor
+	var min_dist = 0.18 * res.base_height * res.factor
+	var max_dist = 0.55 * res.base_height * res.factor
 	free_cam_zoom = clamp(free_cam_zoom, min_dist, max_dist)
 
 # Guardar estado de cámara en SettingsManager (persiste entre mapas, no en disco)
@@ -1142,7 +1142,7 @@ func _restore_camera_state():
 	if not has_node("/root/SettingsManager"):
 		return
 	var sm = get_node("/root/SettingsManager")
-	fixed_cam_zoom = sm.cam_fixed_zoom
+	fixed_cam_zoom = clamp(sm.cam_fixed_zoom, 0.18, 0.55)
 	free_cam_active = sm.cam_free_active
 	free_cam_h = sm.cam_free_h
 	free_cam_v = sm.cam_free_v
@@ -1150,6 +1150,7 @@ func _restore_camera_state():
 	free_orbit_mode = sm.cam_free_orbit
 	if sm.get("cam_use_hybrid") != null:
 		use_hybrid_camera = sm.get("cam_use_hybrid")
+	_sync_free_from_fixed()
 
 
 # Actualizar cámara libre (orbit/free mode)
@@ -1160,7 +1161,11 @@ func _update_free_camera(shake_offset: Vector3 = Vector3.ZERO):
 	# En orbit mode, el centro sigue al jugador cada frame
 	if free_orbit_mode and is_instance_valid(player_node):
 		var pp = player_node.global_position
-		free_cam_center = Vector3(pp.x * scale_factor, 0.0, pp.y * scale_factor * correction_z)
+		var base_y = 1.0
+		var wr3d = player_node.get("world_root_3d")
+		if is_instance_valid(wr3d):
+			base_y = wr3d.position.y
+		free_cam_center = Vector3(pp.x * scale_factor, base_y, pp.y * scale_factor * correction_z)
 	
 	# Ángulo FIJO (no relativo a la nave) — la cámara orbita en espacio mundo, no sigue la rotación del barco
 	var rad_h = deg_to_rad(free_cam_h)
@@ -1415,15 +1420,22 @@ func _process(_delta):
 				if viewport_height <= 0:
 					viewport_height = 1080.0
 				var target_visible_height = viewport_height * scale_factor
-				var dynamic_height = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
-				dynamic_height *= fixed_cam_zoom
-				camera_3d.position.y = dynamic_height
+				var base_height_val = target_visible_height / (2.0 * tan(deg_to_rad(camera_3d.fov / 2.0)))
+				var dynamic_height_from_ship = base_height_val * fixed_cam_zoom
 				
-				var z_offset = dynamic_height / tan(deg_to_rad(25.0))
+				var base_y = 1.0
+				if is_instance_valid(player_node):
+					var wr3d = player_node.get("world_root_3d")
+					if is_instance_valid(wr3d):
+						base_y = wr3d.position.y
+				
+				camera_3d.position.y = dynamic_height_from_ship + base_y
+				
+				var z_offset = dynamic_height_from_ship / tan(deg_to_rad(25.0))
 				var corrected_target_z = target_pos.y * scale_factor * correction_z
 				camera_3d.position.x = target_pos.x * scale_factor
 				camera_3d.position.z = corrected_target_z + z_offset
-				camera_3d.look_at(Vector3(target_pos.x * scale_factor, 0.0, corrected_target_z), Vector3.UP)
+				camera_3d.look_at(Vector3(target_pos.x * scale_factor, base_y, corrected_target_z), Vector3.UP)
 				camera_3d.position += shake_offset
 	
 	_update_world_cursor()
@@ -2442,9 +2454,9 @@ func _input(event):
 			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-				fixed_cam_zoom = max(0.08, fixed_cam_zoom - 0.04)
+				fixed_cam_zoom = max(0.18, fixed_cam_zoom - 0.04)
 			else:
-				fixed_cam_zoom = min(1.0, fixed_cam_zoom + 0.04)
+				fixed_cam_zoom = min(0.55, fixed_cam_zoom + 0.04)
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
 

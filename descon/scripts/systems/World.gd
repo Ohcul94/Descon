@@ -439,8 +439,11 @@ func _process(delta):
 			_was_logged_in = is_logged
 			if is_instance_valid(ui_hud) and ui_hud.visible != is_logged:
 				ui_hud.visible = is_logged
-			if is_instance_valid(ui_chat) and ui_chat.visible != is_logged:
-				ui_chat.visible = is_logged
+			# v531.2: ChatUI NO se fuerza a is_logged — MainHUD restaura visibilidad guardada en hudConfig
+			# Si estaba cerrada (false) debe quedar cerrada al reconectar. Solo ocultar en logout.
+			if not is_logged:
+				if is_instance_valid(ui_chat) and ui_chat.visible:
+					ui_chat.visible = false
 
 			# v421.2: Limpieza exhaustiva post-logout o desconexión
 			if not is_logged:
@@ -609,7 +612,9 @@ func _on_login_success(data):
 		_update_hud_map_name(local_player.current_zone)
 		
 	if ui_hud: ui_hud.visible = true
-	if ui_chat: ui_chat.visible = true
+	# v531.2: ChatUI NO se fuerza a visible — MainHUD restaura estado guardado en hudConfig
+	# (si estaba cerrada queda cerrada, si abierta queda abierta). Si no hay config (jugador nuevo), MainHUD aplica default visible.
+	# No tocar ui_chat aquí.
 
 func _unhandled_input(event):
 	if not NetworkManager or not NetworkManager.is_logged_in: return
