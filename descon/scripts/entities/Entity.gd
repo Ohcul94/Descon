@@ -1120,8 +1120,8 @@ func update_stats(data):
 		_spawn_damage_text(str(int(damage_taken)), Color.RED)
 	
 	# v400.15: Detección y visualización de Curación local (Vida en verde, Escudo en celeste) para TODOS
-	var diff_hp = current_hp - old_hp
-	var diff_shield = current_shield - old_shield
+	var dh_int = roundi(current_hp) - roundi(old_hp)
+	var ds_int = roundi(current_shield) - roundi(old_shield)
 	
 	var h_val = 0
 	if data.has("healPopup"):
@@ -1130,11 +1130,9 @@ func update_stats(data):
 	if h_val > 0:
 		_spawn_damage_text("+" + str(h_val), Color.GREEN)
 	elif not data.has("healPopup"):
-		var dh_int = roundi(diff_hp)
 		if dh_int > 0 and old_hp > 0.0:
 			_spawn_damage_text("+" + str(dh_int), Color.GREEN)
 			
-	var ds_int = roundi(diff_shield)
 	if ds_int > 0:
 		_spawn_damage_text("+" + str(ds_int), Color(0.0, 0.9, 0.9)) # Celeste / Cian
 		

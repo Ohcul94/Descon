@@ -1645,7 +1645,9 @@
                     "castTimeMs": 0,
                     "fireRange": 1000,
                     "fireRate": 3000,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 },
                 {
                     "bombCount": 1,
@@ -1665,7 +1667,9 @@
                     "slowDuration": 2000,
                     "startDelay": 1500,
                     "turnSpeed": 2,
-                    "type": "bomb"
+                    "type": "bomb",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -2905,7 +2909,9 @@
                     "fireRange": 1500,
                     "fireRate": 900,
                     "startDelay": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -6849,6 +6855,16 @@
                     "type": "101",
                     "x": 8838,
                     "y": 4443
+                },
+                {
+                    "id": "spawn_1788132321637946",
+                    "type": "104",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 8491,
+                    "y": 3738,
+                    "radius": 300
                 }
             ],
             "timeRestrictionsEnabled": false,
