@@ -16,6 +16,7 @@ const fs = require('fs-extra');
 const mongoose = require('mongoose');
 const Logger = require('./utils/logger');
 const { getPlayerRAMAdapter } = require('./utils/ramAdapter'); // v6.02
+const { isAdmin, isAdminSocket, checkLoginLock, registerLoginFailure, registerLoginSuccess } = require('./utils/security'); // v6.03 - Centralización de Admin
 const bugReports = require('./systems/bugReportManager'); // v1.0: Reportes de Bugs
 
 const normalizeZone = (z) => {
@@ -234,10 +235,6 @@ const buildClientConfig = (config) => {
         });
     }
     return clientConfig;
-};
-
-const isAdminSocket = (socket) => {
-    return !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
 };
 
 const emitConfigForSocket = (socket, eventName, config) => {
@@ -786,7 +783,7 @@ const handleUserLogin = async (socket, user, username) => {
         clanId: user.gameData.clanId,
         isInvulnerable: false,
         isDead: false, // v_fix_dead: La muerte es estado en tiempo real, nunca se carga de la DB
-        isAdmin: (user.username.toLowerCase() === "caelli94"), // v266.700: Bypass Maestro
+        isAdmin: isAdmin(user.username), // v266.700: Bypass Maestro
         
         // v6.02: Persistencia Completa en RAM (Única Fuente de Verdad Activa)
         inventory: JSON.parse(JSON.stringify(user.gameData.inventory || [])),
@@ -1332,7 +1329,15 @@ io.on('connection', (socket) => {
     // REGISTRO DE USUARIO (MongoDB)
     socket.on('register', async (data) => {
         try {
-            const username = data.user;
+            const username = typeof data?.user === 'string' ? data.user.trim() : '';
+            const password = typeof data?.password === 'string' ? data.password : '';
+            
+            if (!username || !password) {
+                return socket.emit('authError', 'Usuario y contraseña requeridos.');
+            }
+            if (username.length < 3 || username.length > 20) {
+                return socket.emit('authError', 'El usuario debe tener entre 3 y 20 caracteres.');
+            }
             const existingUser = await User.findOne({ username: username.toLowerCase() });
 
             if (existingUser) {
@@ -1379,25 +1384,42 @@ io.on('connection', (socket) => {
     // LOGIN DE USUARIO (MongoDB)
     socket.on('login', async (data) => {
         try {
-            const username = data.user;
+            const ip = socket.handshake.address;
+            const lock = checkLoginLock(ip);
+            if (lock.locked) {
+                return socket.emit('authError', `Demasiados intentos fallidos. Tu IP está bloqueada por ${lock.remaining} segundos.`);
+            }
+
+            const username = typeof data?.user === 'string' ? data.user.trim() : '';
+            const password = typeof data?.password === 'string' ? data.password : '';
+
+            if (!username || !password) {
+                registerLoginFailure(ip);
+                return socket.emit('authError', 'Usuario y contraseña requeridos.');
+            }
+
             const user = await User.findOne({ username: username.toLowerCase() });
 
             if (!user) {
+                registerLoginFailure(ip);
                 return socket.emit('authError', 'Usuario o contraseña incorrectos.');
             }
 
             // COMPARACIÓN CRIPTOGRÁFICA (v35.0)
-            const isMatch = await bcrypt.compare(data.password, user.password);
+            const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
+                registerLoginFailure(ip);
                 return socket.emit('authError', 'Credenciales inválidas en la Galaxia.');
             }
+
+            registerLoginSuccess(ip);
 
             // v266.210: Gestión de Login Administrativo (Sin spawn de nave)
             if (data.isAdmin) {
                 socket.dbUser = user;
                 Logger.debug('AUTH', `Verificando Admin: ${user.username} (Input: ${username})`);
-                if (user.username.toLowerCase() !== "caelli94") {
-                    Logger.warn('SECURITY', `Denegado: ${user.username.toLowerCase()} no es caelli94`);
+                if (!isAdmin(user.username)) {
+                    Logger.warn('SECURITY', `Denegado: ${user.username.toLowerCase()} no está en la lista de administradores.`);
                     return socket.emit('authError', 'No tienes permisos de Gran Maestro.');
                 }
                 const adminConfig = await fs.readJson(CONFIG_FILE);
@@ -1540,7 +1562,7 @@ io.on('connection', (socket) => {
 
     // SISTEMA ADMIN: GUARDAR CONFIGURACIÓN GLOBAL (PROTEGIDO)
     socket.on('saveAdminConfig', async (config) => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") {
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) {
             console.warn(`[SECURITY-ALERT] Intento de guardado de config no autorizado de: ${socket.id}`);
             return socket.emit('gameNotification', { msg: 'ACCESO DENEGADO: No tienes permisos de Gran Maestro.', type: 'error' });
         }
@@ -1634,7 +1656,7 @@ io.on('connection', (socket) => {
     
     // v266.999: Purga Administrativa de Enemigos (Botón de Pánico)
     socket.on('adminPurgeEnemies', () => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) return;
         const count = Object.keys(enemies).length;
         Object.keys(enemies).forEach(id => {
             const e = enemies[id];
@@ -1642,13 +1664,13 @@ io.on('connection', (socket) => {
             io.to(`zone_${e.zone}`).emit('enemyDead', { id: id });
             delete enemies[id];
         });
-        console.log(`[ADMIN] Purga manual ejecutada por Caelli94. ${count} enemigos eliminados.`);
+        console.log(`[ADMIN] Purga manual ejecutada por ${socket.dbUser.username}. ${count} enemigos eliminados.`);
         io.emit('gameNotification', { msg: `PURGA COMPLETADA: ${count} enemigos eliminados.`, type: 'success' });
     });
 
     // v370.2: Listado de assets en tiempo real para simplificar configuración
     socket.on('getAssetFiles', async () => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") {
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) {
             return socket.emit('assetFilesList', { error: 'Unauthorized' });
         }
         try {
@@ -1682,7 +1704,7 @@ io.on('connection', (socket) => {
 
     // v304.0: Auditoría Agrupada por Piloto (Bitácora Maestra)
     socket.on('getSessions', async (data) => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) return;
         try {
             const page = data && data.page ? parseInt(data.page) : 0;
             const limit = 50;
@@ -1713,7 +1735,7 @@ io.on('connection', (socket) => {
 
     // v304.1: Historial Detallado de un Piloto Específico (para Modal)
     socket.on('getPlayerSessions', async (data) => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) return;
         if (!data || !data.username) return;
         try {
             const page = data.page || 0;
@@ -1732,7 +1754,7 @@ io.on('connection', (socket) => {
 
     // v303.2: Monitor de Jugadores Online en Tiempo Real
     socket.on('getOnlinePlayers', () => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) return;
         const onlineList = Object.keys(players).map(id => {
             const p = players[id];
             const s = io.sockets.sockets.get(id);
@@ -1751,7 +1773,7 @@ io.on('connection', (socket) => {
 
     // v306.0: Telemetría de Rendimiento de Instancia y Consumo por Jugador
     socket.on('getServerPerformance', () => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) return;
         
         const now = Date.now();
         const playerStats = Object.keys(players).map(id => {
@@ -1805,7 +1827,7 @@ io.on('connection', (socket) => {
 
     // v305.2: Gestión de Pilotos Registrados
     socket.on('getRegisteredUsers', async () => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) return;
         try {
             const users = await User.find({}, 'username lastLogin gameData.level gameData.ohcu gameData.hubs gameData.isPremium gameData.zone')
                 .sort({ lastLogin: -1 });
@@ -1887,7 +1909,7 @@ io.on('connection', (socket) => {
 
     const isChatGlobalActive = () => {
         if (isLocalServer()) return true;
-        const adminOnline = Object.values(state.players).some(p => p.user && p.user.toLowerCase() === 'caelli94');
+        const adminOnline = Object.values(state.players).some(p => p.user && isAdmin(p.user));
         const enabledInConfig = state.SERVER_CONFIG?.chatConfig?.globalChatEnabled ?? false;
         return enabledInConfig || adminOnline;
     };
@@ -1965,18 +1987,18 @@ io.on('connection', (socket) => {
     });
     // TRANSMISIÓN ADMINISTRATIVA DESDE EL PANEL DE CONTROL
     socket.on('adminGlobalMessage', (data) => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") return;
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) return;
         const msg = data.msg.substring(0, 100);
         
         io.emit('chatMessage', {
-            sender: 'Caelli94',
+            sender: socket.dbUser.username,
             senderId: socket.id,
             msg: msg,
             channel: 'global'
         });
         
         io.emit('gameNotification', {
-            msg: `Caelli94: ${msg}`,
+            msg: `${socket.dbUser.username}: ${msg}`,
             type: 'admin_notification'
         });
     });

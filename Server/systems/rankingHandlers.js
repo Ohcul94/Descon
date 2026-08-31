@@ -1,7 +1,7 @@
 /**
  * rankingHandlers.js
  * Sistema de Clasificación / Ranking - Tracking, cálculo y administración.
- */
+ */const { isAdmin } = require('../utils/security'); // v6.03 - Centralización de Admin
 
 async function addRankingKill(userId, enemyType, rankingPoints, state) {
     if (!rankingPoints || rankingPoints <= 0) return;
@@ -220,7 +220,7 @@ function registerRankingHandlers(socket, io, state) {
 
     // Admin: Resetear ranking manualmente (con distribución de rewards)
     socket.on('adminResetRanking', async (data) => {
-        if (!socket.dbUser || socket.dbUser.username.toLowerCase() !== "caelli94") {
+        if (!socket.dbUser || !isAdmin(socket.dbUser.username)) {
             return socket.emit('gameNotification', { msg: 'ACCESO DENEGADO.', type: 'error' });
         }
 

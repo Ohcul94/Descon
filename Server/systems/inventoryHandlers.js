@@ -3,6 +3,7 @@ const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const { calculateFinalStats } = require('./statCalculator'); // v266.135: Recalcular al equipar
 const { getMasterItemConfig: getMasterItemConfigFull, getSkillMasterConfig, checkRequirements, normalizeSphereColor, sphereColorFromSkillType } = require('./equipRequirements'); // v400.0: Requisitos de equipamiento
 const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
+const security = require('../utils/security'); // v6.03 - Centralización de Admin
 
 /**
  * v262.450: HELPER DE CATEGORIZACIÓN ESTÁNDAR (Minúsculas para Godot)
@@ -174,7 +175,7 @@ function sendInventoryData(socket, user, config) {
     } else {
         Object.assign(eByShipObj, user.gameData.equippedByShip || {});
     }
-    const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+    const isAdmin = security.isAdminSocket(socket);
     const sanitized = isAdmin ? {
         ...JSON.parse(JSON.stringify(user.gameData)),
         equippedByShip: eByShipObj
@@ -219,7 +220,7 @@ function registerInventoryHandlers(socket, io, state) {
 
             // console.log(`[SHIP-EQUIP] ${user.username} consultó nave ${key}: w=${equip.w?.length||0} s=${equip.s?.length||0} e=${equip.e?.length||0}`);
             // v620.0: Ojito de visibilidad — ítems ocultos no se muestran en la bodega de la nave
-            const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+            const isAdmin = security.isAdminSocket(socket);
             if (!isAdmin) {
                 equip = visibilityGuard.sanitizeEquipForClient(equip, state.SERVER_CONFIG);
             }
@@ -264,7 +265,7 @@ function registerInventoryHandlers(socket, io, state) {
             }
 
             // v620.0: Ojito de visibilidad — ítems hidden son incomprables incluso por cliente hackeado
-            const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+            const isAdmin = security.isAdminSocket(socket);
             if (itemConfig.hidden && !isAdmin) {
                 return socket.emit('authError', 'ITEM NO ENCONTRADO');
             }
@@ -472,7 +473,7 @@ function registerInventoryHandlers(socket, io, state) {
             // v400.0: Requisitos de equipamiento (nivel, misiones completadas, etc.)
             const masterItem = getMasterItemConfigFull(item.id, state.SERVER_CONFIG);
             // v620.0: Ojito de visibilidad — ítems hidden no pueden equiparse ni armarse
-            const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+            const isAdmin = security.isAdminSocket(socket);
             if (masterItem && masterItem.hidden && !isAdmin) {
                 sendInventoryData(socket, user);
                 return socket.emit('gameNotification', { msg: 'EQUIPAMIENTO BLOQUEADO: Ítem no disponible.', type: 'error' });

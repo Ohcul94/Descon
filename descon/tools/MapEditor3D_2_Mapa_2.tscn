@@ -108,10 +108,9 @@ transparency = 1
 shading_mode = 0
 albedo_color = Color(0, 0.8, 0, 0.3)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_v2u7x"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ydnqi"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4e15o"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_su8mg"]
 transparency = 1
@@ -190,7 +189,7 @@ assets = SubResource("Terrain3DAssets_6n827")
 top_level = true
 metadata/_edit_lock_ = true
 
-[node name="Puerta" type="Node3D" parent="." unique_id=1868473785 instance=ExtResource("2_4m0oc")]
+[node name="Puerta" parent="." unique_id=1868473785 instance=ExtResource("2_4m0oc")]
 transform = Transform3D(-0.08726176, 0, -4.9992385, 0, 5, 0, 4.9992385, 0, -0.08726176, 187.6, 2.5, 133.02094)
 metadata/obj_type = "door"
 metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
@@ -202,7 +201,7 @@ metadata/targetZoneId = "3"
 metadata/targetX = 5000.0
 metadata/targetY = 5000.0
 
-[node name="CSGBox3D" type="Node3D" parent="." unique_id=606483543 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D" parent="." unique_id=606483543 instance=ExtResource("5_lygav")]
 transform = Transform3D(0.70710677, 0, 0.70710677, 0, 1, 0, -0.70710677, 0, 0.70710677, 34.6394, 1, 115.553696)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -221,7 +220,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(13, 0.2, 7.999923)
 material = SubResource("StandardMaterial3D_wxptm")
 
-[node name="CSGBox3D_2" type="Node3D" parent="." unique_id=1512334096 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_2" parent="." unique_id=1512334096 instance=ExtResource("5_lygav")]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 64.825, 1, 80.05043)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -240,7 +239,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(16, 0.2, 10.49997)
 material = SubResource("StandardMaterial3D_6n827")
 
-[node name="CSGBox3D_3" type="Node3D" parent="." unique_id=1175897276 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_3" parent="." unique_id=1175897276 instance=ExtResource("5_lygav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.2, 1, 118.19997)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -254,12 +253,19 @@ metadata/colHeight = 318.2
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 
-[node name="Collider" type="CSGBox3D" parent="CSGBox3D_3" unique_id=470044962]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
-size = Vector3(14, 0.2, 9.000055)
-material = SubResource("StandardMaterial3D_v2u7x")
+[node name="Collider" type="CSGCylinder3D" parent="CSGBox3D_3" unique_id=2042693470]
+transform = Transform3D(1, 0, 0, 0, 1.1441242, 0, 0, 0, 1, 2.3235626, 1.103759, 0.16873932)
+radius = 4.6240234
+height = 2.9749527
+material = SubResource("StandardMaterial3D_ydnqi")
 
-[node name="CSGBox3D_4" type="Node3D" parent="." unique_id=1264310079 instance=ExtResource("5_lygav")]
+[node name="Collider2" type="CSGCylinder3D" parent="CSGBox3D_3" unique_id=2094990254]
+transform = Transform3D(1, 0, 0, 0, 1.1441242, 0, 0, 0, 1, -2.771431, 1.671685, -1.0543594)
+radius = 3.7788086
+height = 2.0118904
+material = SubResource("StandardMaterial3D_4e15o")
+
+[node name="CSGBox3D_4" parent="." unique_id=1264310079 instance=ExtResource("5_lygav")]
 transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 107.8662, 1, 48.7717)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -278,7 +284,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(7.8, 0.2, 4.1999316)
 material = SubResource("StandardMaterial3D_su8mg")
 
-[node name="CSGBox3D_5" type="Node3D" parent="." unique_id=513369850 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_5" parent="." unique_id=513369850 instance=ExtResource("5_lygav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.3, 1, 69.59995)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -297,7 +303,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(8.4, 0.2, 7.0000744)
 material = SubResource("StandardMaterial3D_tkfb5")
 
-[node name="CSGBox3D_6" type="Node3D" parent="." unique_id=1015983216 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_6" parent="." unique_id=1015983216 instance=ExtResource("5_lygav")]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 159.4728, 1, 28.690434)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -316,7 +322,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(15, 0.2, 8.4999895)
 material = SubResource("StandardMaterial3D_qy5vm")
 
-[node name="CSGBox3D_7" type="Node3D" parent="." unique_id=1641375952 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_7" parent="." unique_id=1641375952 instance=ExtResource("5_lygav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 162.75, 1, 89.69989)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -335,7 +341,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(8.9, 0.2, 6.8001046)
 material = SubResource("StandardMaterial3D_mhqrh")
 
-[node name="CSGBox3D_8" type="Node3D" parent="." unique_id=1069724954 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_8" parent="." unique_id=1069724954 instance=ExtResource("5_lygav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.35, 1, 95.900085)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -354,7 +360,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(9.7, 0.2, 11.599945)
 material = SubResource("StandardMaterial3D_mc5ab")
 
-[node name="Altar1" type="Node3D" parent="." unique_id=599011876 instance=ExtResource("5_k8upu")]
+[node name="Altar1" parent="." unique_id=599011876 instance=ExtResource("5_k8upu")]
 transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 64.1098, 6.624, 36.32832)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"

@@ -2,11 +2,12 @@
  * statCalculator.js
  * Calcula las estadísticas finales de un jugador sumando base + ítems + habilidades.
  */
+const security = require('../utils/security'); // v6.03 - Centralización de Admin
 
 function calculateFinalStats(player, config) {
     if (!player || !config) return;
 
-    const isAdmin = !!(player.isAdmin || (player.user && player.user.toLowerCase() === 'caelli94'));
+    const isAdmin = !!(player.isAdmin || security.isAdmin(player.user));
 
     // 1. Obtener Base de la Nave
     const shipId = player.currentShipId || 1;

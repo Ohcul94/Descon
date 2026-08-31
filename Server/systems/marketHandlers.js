@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { getPlayerRAMAdapter } = require('../utils/ramAdapter');
 const { checkCombatLock, getMasterItemConfig, sendInventoryData } = require('./inventoryHandlers');
 const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
+const security = require('../utils/security'); // v6.03 - Centralización de Admin
 
 /**
  * v500.0: MERCADO / CASA DE SUBASTAS CENTRALIZADA
@@ -363,7 +364,7 @@ function registerMarketHandlers(socket, io, state) {
         const cfg = getMarketConfig(state);
 
         // v620.0: Ojito de visibilidad — ocultar publicaciones de ítems hidden (excepto para admins)
-        const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+        const isAdmin = security.isAdminSocket(socket);
         const isHiddenListing = (l) => {
             if (isAdmin) return false;
             const iid = (l && l.item && l.item.id) ? String(l.item.id) : '';
@@ -437,7 +438,7 @@ function registerMarketHandlers(socket, io, state) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'Ítem no encontrado en tu inventario.' });
         }
         const item = user.gameData.inventory[idx];
-        const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+        const isAdmin = security.isAdminSocket(socket);
         if (!isMarketTradable(item, state) && !isAdmin) {
             return socket.emit('marketPurchaseResult', { ok: false, msg: 'Este ítem es de misión o está bloqueado. No se puede comerciar.' });
         }
@@ -780,8 +781,7 @@ function registerMarketHandlers(socket, io, state) {
 
     // ---- PANEL ADMIN: VER PUBLICACIONES ----
     socket.on('adminGetMarketListings', async (data) => {
-        const admins = state.SERVER_CONFIG?.adminUsernames || ['caelli94'];
-        if (!socket.dbUser || !admins.includes(String(socket.dbUser.username || '').toLowerCase())) return;
+        if (!socket.dbUser || !security.isAdmin(socket.dbUser.username)) return;
         const limit = Math.min(parseInt(data?.limit) || 100, 200);
         const status = data?.status;
         const filter = status ? { status: status } : {};
@@ -798,8 +798,7 @@ function registerMarketHandlers(socket, io, state) {
 
     // ---- PANEL ADMIN: CANCELAR PUBLICACIÓN (MODERACIÓN) ----
     socket.on('adminCancelMarketListing', async (data) => {
-        const admins = state.SERVER_CONFIG?.adminUsernames || ['caelli94'];
-        if (!socket.dbUser || !admins.includes(String(socket.dbUser.username || '').toLowerCase())) return;
+        if (!socket.dbUser || !security.isAdmin(socket.dbUser.username)) return;
         const listingId = data?.listingId;
         if (!listingId) return;
         const listing = await MarketListing.findById(listingId);

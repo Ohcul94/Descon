@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const visibilityGuard = require('./visibilityGuard'); // v620.0: Ojito de visibilidad de ítems
+const { isAdminSocket } = require('../utils/security'); // v6.03 - Centralización de Admin
 
 function parsePrice(priceConfig) {
     if (priceConfig && typeof priceConfig === 'object') {
@@ -39,7 +40,7 @@ function registerVaultHandlers(socket, io, state) {
             }
  
             // v620.0: Ojito de visibilidad — ítems hidden no se muestran en el baúl (excepto para admins)
-            const isAdmin = !!(socket && socket.dbUser && socket.dbUser.username && socket.dbUser.username.toLowerCase() === 'caelli94');
+            const isAdmin = isAdminSocket(socket);
             const vaultItemsFiltered = Array.isArray(user.gameData.vaultItems)
                 ? user.gameData.vaultItems.filter(it => {
                     if (!it || it.id === undefined || it.id === null) return true;

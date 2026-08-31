@@ -19,6 +19,7 @@ Server/public/cdn/
 *.apk
 *.zip
 *.tmp
+deploy.bat
 
 # Server runtime data (reports, logs - each server has its own)
 Server/data/
