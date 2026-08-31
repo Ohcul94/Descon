@@ -41,3 +41,6 @@ Server/keys/
 # Godot GDExtension temporary files
 ~*
 
+# Windows shortcuts - son binarios, no editar directamente el .lnk
+*.lnk
+
