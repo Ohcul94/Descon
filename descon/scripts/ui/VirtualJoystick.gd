@@ -59,7 +59,7 @@ func _input(event):
 	var ev_pos = event.position
 	var ev_index = event.index if is_touch else 0
 	var screen_width = get_viewport_rect().size.x
-	var is_left_zone = ev_pos.x < screen_width / 2
+	var is_left_zone = ev_pos.x < screen_width / 3.0
 	
 	# --- 1. TOQUE INICIAL ---
 	if (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed):

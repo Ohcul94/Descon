@@ -101,16 +101,20 @@ func _input(event):
 				var worldW = dims.x
 				var worldH = dims.y
 				
+				var scale_uniform = min(size.x / worldW, size.y / worldH)
 				if is_rotate and is_instance_valid(p):
-					var s_x = size.x / max(worldW, 1.0)
-					var s_y = size.y / max(worldH, 1.0)
-					var p_mp = Vector2(p.global_position.x * s_x, p.global_position.y * s_y)
+					var p_mp = Vector2(p.global_position.x * scale_uniform, p.global_position.y * scale_uniform)
 					var offset = local_m_pos - p_mp
 					var derotated = p_mp + offset.rotated(PI/2 + p.rotation)
-					target_world_pos = Vector2(derotated.x / max(s_x, 0.001), derotated.y / max(s_y, 0.001))
+					target_world_pos = Vector2(derotated.x / max(scale_uniform, 0.001), derotated.y / max(scale_uniform, 0.001))
 				else:
-					var map_pos = local_m_pos / size
-					target_world_pos = Vector2(map_pos.x * worldW, map_pos.y * worldH)
+					var offset_x = (size.x - (worldW * scale_uniform)) / 2.0
+					var offset_y = (size.y - (worldH * scale_uniform)) / 2.0
+					var adjusted_m_pos = local_m_pos - Vector2(offset_x, offset_y)
+					target_world_pos = Vector2(
+						clamp(adjusted_m_pos.x / scale_uniform, 0.0, worldW),
+						clamp(adjusted_m_pos.y / scale_uniform, 0.0, worldH)
+					)
 				
 				if is_instance_valid(p) and p.has_method("set_autopilot"):
 					if p.get_meta("spawn_locked", false):
@@ -217,11 +221,12 @@ func _draw():
 	
 	# Mantener world_size por compatibilidad legado
 	world_size = worldW
-	
 	var r_size = size
-	# Escalas separadas para X e Y (soporta mapas no cuadrados)
-	var scale_x: float = r_size.x / worldW
-	var scale_y: float = r_size.y / worldH
+	
+	# v700.14: Escala uniforme para evitar distorsiones estiradas en mapas rectangulares (ej. Mapa 2)
+	var scale_uniform: float = min(r_size.x / worldW, r_size.y / worldH)
+	var scale_x: float = scale_uniform
+	var scale_y: float = scale_uniform
 	# map_scale legacy (para código que lo use)
 	var _map_scale: float = scale_x
 	
@@ -248,11 +253,20 @@ func _draw():
 	# Fallback: si no hay FogOfWar (zona 1 lobby) no hay niebla
 	if fog_zone_id == "1":
 		fog_overlay_needed = false
-
+ 
 	# --- ROTATION MODE: transform all map content around player position ---
 	var is_rotate_mode = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
 	var rot_angle = 0.0
 	var player_mp = Vector2.ZERO
+	
+	# v700.14: Aplicar offsets de centrado en modo estático mediante draw_set_transform
+	var offset_x: float = 0.0
+	var offset_y: float = 0.0
+	if not is_rotate_mode:
+		offset_x = (r_size.x - (worldW * scale_uniform)) / 2.0
+		offset_y = (r_size.y - (worldH * scale_uniform)) / 2.0
+		draw_set_transform(Vector2(offset_x, offset_y))
+	
 	if is_rotate_mode:
 		rot_angle = -PI/2 - player.rotation
 		player_mp = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
@@ -632,6 +646,9 @@ func _draw():
 		var cone_right = local_pos + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
 		draw_colored_polygon(PackedVector2Array([local_pos, cone_left, cone_right]), Color(0.6, 0.6, 0.6, 0.8))
 
+	# v700.14: Restablecer la transformación para dibujar el borde y el tooltip en coordenadas del panel
+	draw_set_transform(Vector2.ZERO)
+
 	# Borde del radar
 	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0, 1, 1, 0.1), false, 1.0)
 	
@@ -663,8 +680,8 @@ func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: 
 	var vr = 1300.0
 	if "vision_range" in player:
 		vr = float(player.vision_range)
-	var cell_w = size.x / float(grid_res)
-	var cell_h = size.y / float(grid_res)
+	var cell_w = (worldW * scale_x) / float(grid_res)
+	var cell_h = (worldH * scale_y) / float(grid_res)
 	var px = player.global_position.x
 	var py = player.global_position.y
 	var vr_sq = vr * vr

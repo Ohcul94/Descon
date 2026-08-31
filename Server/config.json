@@ -10833,7 +10833,7 @@
             "range": null,
             "requirements": [
                 {
-                    "min": 100,
+                    "min": 1,
                     "type": "level"
                 }
             ],
