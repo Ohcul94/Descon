@@ -194,8 +194,13 @@ func _drag_selected_object(screen_pos: Vector2):
 	
 	var target_pos = ray_result.position + _drag_offset
 	
+	# v700.10: Preservar altura Y original (yOffset) al arrastrar, el raycast es contra el suelo Y=0
+	var original_y = _selected_object.global_position.y
 	if _snap_to_grid:
 		target_pos = _snap_position_to_grid(target_pos)
+		target_pos.y = original_y
+	else:
+		target_pos.y = original_y
 	
 	match _gizmo_mode:
 		0:
@@ -215,7 +220,7 @@ func _snap_position_to_grid(pos: Vector3) -> Vector3:
 	var cell_3d = grid_cell_size * scale_factor
 	return Vector3(
 		round(pos.x / cell_3d) * cell_3d,
-		0.0,
+		pos.y,
 		round(pos.z / cell_3d) * cell_3d
 	)
 
@@ -356,6 +361,8 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 	if node.has_meta("colOffsetX"): config["colOffsetX"] = node.get_meta("colOffsetX")
 	if node.has_meta("colOffsetY"): config["colOffsetY"] = node.get_meta("colOffsetY")
 	if node.has_meta("colRot"): config["colRot"] = node.get_meta("colRot")
+	if node.has_meta("colY"): config["colY"] = node.get_meta("colY")
+	if node.has_meta("colH"): config["colH"] = node.get_meta("colH")
 	if node.has_meta("radius"): config["radius"] = node.get_meta("radius")
 	if node.has_meta("targetZoneId"): config["targetZoneId"] = node.get_meta("targetZoneId")
 	if node.has_meta("targetX"): config["targetX"] = node.get_meta("targetX")
@@ -373,7 +380,7 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 	# Buscar todos los colisionadores visuales como nodos hijos
 	var colliders_array = []
 	for child in node.get_children():
-		if child.name.to_lower().contains("collider") or child is CSGBox3D or child is CollisionShape3D or child.get_class() == "CollisionPolygon3D" or child is CollisionPolygon3D:
+		if child.name.to_lower().contains("collider") or child is CSGBox3D or child is CSGCylinder3D or child is CollisionShape3D or child.get_class() == "CollisionPolygon3D" or child is CollisionPolygon3D:
 			var c_type = "rect"
 			var w_3d = child.scale.x
 			var h_3d = child.scale.z
@@ -404,6 +411,25 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 			}
 			if child.rotation_degrees.y != 0.0:
 				c_data["rot"] = _round_decimals(child.rotation_degrees.y, 1)
+			# v700.10: Persistir altura vertical (Y) y grosor del collider
+			# Esto corrige el bug donde la posición en altura se resetea al recargar
+			var c_h_y: float = -1.0
+			if child is CSGBox3D:
+				c_h_y = child.size.y * child.scale.y
+			elif child is CSGCylinder3D:
+				c_h_y = child.height * child.scale.y
+			elif child is CollisionShape3D and child.shape:
+				if child.shape is BoxShape3D:
+					c_h_y = child.shape.size.y * child.scale.y
+				elif child.shape is CylinderShape3D:
+					c_h_y = child.shape.height * child.scale.y
+				elif child.shape is SphereShape3D:
+					c_h_y = child.shape.radius * 2.0 * child.scale.y
+			var default_h = 0.2 / node.scale.x if node.scale.x != 0 else 0.2
+			# v700.11: Guardar SIEMPRE la altura Y (antes se perdía si diff <0.005 y parecía "alto" al recargar)
+			c_data["y"] = _round_decimals(child.position.y, 3)
+			if c_h_y > 0.001 and abs(c_h_y - default_h) > 0.001:
+				c_data["h"] = _round_decimals(c_h_y, 3)
 			colliders_array.append(c_data)
 			
 	if colliders_array.size() > 0:
@@ -416,6 +442,10 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 		config["colOffsetY"] = colliders_array[0]["offsetY"]
 		if colliders_array[0].has("rot"):
 			config["colRot"] = colliders_array[0]["rot"]
+		if colliders_array[0].has("y"):
+			config["colY"] = colliders_array[0]["y"]
+		if colliders_array[0].has("h"):
+			config["colH"] = colliders_array[0]["h"]
 	elif node is CSGBox3D and not config.has("colWidth"):
 		# Si el nodo en sí es un colisionador (CSGBox3D) standalone (ej. paredes invisibles en carpeta Colliders)
 		var w_3d = node.size.x * node.scale.x
@@ -425,6 +455,8 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 		config["colHeight"] = _round_decimals(h_3d / (scale_factor * correction_z), 2)
 		config["colOffsetX"] = 0.0
 		config["colOffsetY"] = 0.0
+		config["colY"] = _round_decimals(node.position.y, 3)
+		config["colH"] = _round_decimals(node.size.y * node.scale.y, 3)
 	elif node is CSGCylinder3D and not config.has("colWidth"):
 		# v700.8: Soporte standalone para CSGCylinder3D - anisotrópico correcto (Norte-Sur con correction_z)
 		var diam_3d = node.radius * 2.0 * node.scale.x
@@ -435,6 +467,8 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 		config["colHeight"] = _round_decimals(diam_h, 2)
 		config["colOffsetX"] = 0.0
 		config["colOffsetY"] = 0.0
+		config["colY"] = _round_decimals(node.position.y, 3)
+		config["colH"] = _round_decimals(node.height * node.scale.y, 3)
 			
 	return config
 
@@ -460,6 +494,38 @@ func import_from_json():
 	if not (data is Array):
 		print("MapEditor3D: El JSON debe ser un Array de objetos.")
 		return
+		
+	# v700.12: Escanear y rescatar las alturas/grosores reales modificados en el editor antes de limpiar
+	var existing_colliders_data = {}
+	var scan_parent = objects_root if is_instance_valid(objects_root) else self
+	if not scan_parent:
+		scan_parent = find_child("ObjectsRoot", true, false)
+	if is_instance_valid(scan_parent):
+		for child in scan_parent.get_children():
+			if child is Node3D and child.get_meta("editor_only", false):
+				var obj_label = child.get_meta("label", child.name)
+				for sub in child.get_children():
+					# Guardar datos de cualquier colisionador hijo
+					if sub.name.to_lower().contains("collider") or sub is CSGBox3D or sub is CSGCylinder3D or sub is CollisionShape3D:
+						var key = obj_label + "/" + sub.name
+						var c_pos_y = sub.position.y
+						# Si la altura es absurdamente alta (>100.0), ignoramos porque es producto del bug anterior
+						if abs(c_pos_y) < 100.0:
+							var c_h_val = -1.0
+							if sub is CSGBox3D:
+								c_h_val = sub.size.y * sub.scale.y
+							elif sub is CSGCylinder3D:
+								c_h_val = sub.height * sub.scale.y
+							elif sub is CollisionShape3D and sub.shape:
+								if sub.shape is BoxShape3D:
+									c_h_val = sub.shape.size.y * sub.scale.y
+								elif sub is CylinderShape3D:
+									c_h_val = sub.shape.height * sub.scale.y
+							
+							existing_colliders_data[key] = {
+								"y": c_pos_y,
+								"h": c_h_val
+							}
 		
 	# v700.5: Limpiar únicamente los objetos editables anteriores (con metadata editor_only)
 	# para no borrar la cámara, luces, terreno u otra infraestructura de escena.
@@ -553,6 +619,8 @@ func import_from_json():
 		if obj.has("colOffsetX"): instance.set_meta("colOffsetX", float(obj.colOffsetX))
 		if obj.has("colOffsetY"): instance.set_meta("colOffsetY", float(obj.colOffsetY))
 		if obj.has("colRot"): instance.set_meta("colRot", float(obj.colRot))
+		if obj.has("colY"): instance.set_meta("colY", float(obj.colY))
+		if obj.has("colH"): instance.set_meta("colH", float(obj.colH))
 		
 		# Crear nodos hijos visuales temporales en el editor para que el usuario pueda editarlos con gizmos
 		if obj.has("colliders"):
@@ -565,18 +633,39 @@ func import_from_json():
 				var c_off_y = float(c_obj.get("offsetY", 0.0))
 				var c_rot = float(c_obj.get("rot", 0.0))
 				
+				# Buscar si hay altura/grosor previamente guardados en escena (rescatados)
+				var rescue_key = base_name + "/" + ("ColliderCircle" + str(idx) if c_type == "circle" else "Collider" + str(idx))
+				
 				var h_visual = 0.2 / scale_val # Altura fija visual en el editor de 0.2 unidades
+				# v700.10: Restaurar altura vertical (y) y grosor (h) si fueron guardados
+				var h_to_use = h_visual
+				if c_obj.has("h"):
+					h_to_use = float(c_obj.get("h"))
+				elif c_obj.has("boxHeight"):
+					h_to_use = float(c_obj.get("boxHeight"))
+				elif c_obj.has("cylHeight"):
+					h_to_use = float(c_obj.get("cylHeight"))
+				elif existing_colliders_data.has(rescue_key) and existing_colliders_data[rescue_key]["h"] > 0.001:
+					h_to_use = existing_colliders_data[rescue_key]["h"]
+					
+				var y_to_use = h_to_use / 2.0
+				if c_obj.has("y"):
+					y_to_use = float(c_obj.get("y"))
+				elif existing_colliders_data.has(rescue_key):
+					y_to_use = existing_colliders_data[rescue_key]["y"]
+				elif c_obj.has("yOffset"):
+					y_to_use = float(c_obj.get("yOffset"))
 				
 				var col_helper = null
 				if c_type == "circle":
 					col_helper = CSGCylinder3D.new()
 					col_helper.name = "ColliderCircle" + str(idx)
 					col_helper.radius = (c_width * scale_factor) / 2.0
-					col_helper.height = h_visual
+					col_helper.height = h_to_use
 				else:
 					col_helper = CSGBox3D.new()
 					col_helper.name = "Collider" + str(idx)
-					col_helper.size = Vector3(c_width * scale_factor, h_visual, c_height * scale_factor * correction_z)
+					col_helper.size = Vector3(c_width * scale_factor, h_to_use, c_height * scale_factor * correction_z)
 					
 				var mat = StandardMaterial3D.new()
 				mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -584,7 +673,7 @@ func import_from_json():
 				mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 				col_helper.material = mat
 				
-				col_helper.position = Vector3(c_off_x * scale_factor, h_visual / 2.0, c_off_y * scale_factor * correction_z)
+				col_helper.position = Vector3(c_off_x * scale_factor, y_to_use, c_off_y * scale_factor * correction_z)
 				col_helper.rotation_degrees = Vector3(0, c_rot, 0)
 				instance.add_child(col_helper)
 				if scene_root:
@@ -598,18 +687,36 @@ func import_from_json():
 			var c_off_y = float(obj.get("colOffsetY", 0.0))
 			var c_rot = float(obj.get("colRot", 0.0))
 			
+			# Buscar si hay altura/grosor previamente guardados en escena (rescatados)
+			var rescue_key = base_name + "/" + ("ColliderCircle" if c_type == "circle" else "Collider")
+			
 			var h_visual = 0.2 / scale_val # Altura fija visual en el editor de 0.2 unidades
+			# v700.10: Restaurar altura vertical para colType simple (compatibilidad)
+			var h_to_use = h_visual
+			if obj.has("colH"):
+				h_to_use = float(obj.get("colH"))
+			elif obj.has("h"):
+				h_to_use = float(obj.get("h"))
+			elif existing_colliders_data.has(rescue_key) and existing_colliders_data[rescue_key]["h"] > 0.001:
+				h_to_use = existing_colliders_data[rescue_key]["h"]
+				
+			var y_to_use = h_to_use / 2.0
+			if obj.has("colY"):
+				y_to_use = float(obj.get("colY"))
+			elif existing_colliders_data.has(rescue_key):
+				y_to_use = existing_colliders_data[rescue_key]["y"]
+			# v700.12: Eliminado el bug "elif obj.has('y')" que causaba que el collider volara al cielo en 3D
 			
 			var col_helper = null
 			if c_type == "circle":
 				col_helper = CSGCylinder3D.new()
 				col_helper.name = "ColliderCircle"
 				col_helper.radius = (c_width * scale_factor) / 2.0
-				col_helper.height = h_visual
+				col_helper.height = h_to_use
 			else:
 				col_helper = CSGBox3D.new()
 				col_helper.name = "Collider"
-				col_helper.size = Vector3(c_width * scale_factor, h_visual, c_height * scale_factor * correction_z)
+				col_helper.size = Vector3(c_width * scale_factor, h_to_use, c_height * scale_factor * correction_z)
 				
 			var mat = StandardMaterial3D.new()
 			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -617,7 +724,7 @@ func import_from_json():
 			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			col_helper.material = mat
 			
-			col_helper.position = Vector3(c_off_x * scale_factor, h_visual / 2.0, c_off_y * scale_factor * correction_z)
+			col_helper.position = Vector3(c_off_x * scale_factor, y_to_use, c_off_y * scale_factor * correction_z)
 			col_helper.rotation_degrees = Vector3(0, c_rot, 0)
 			instance.add_child(col_helper)
 			if scene_root:

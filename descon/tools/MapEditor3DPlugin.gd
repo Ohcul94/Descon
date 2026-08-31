@@ -6,8 +6,6 @@ var _map_editor_scene: PackedScene = null
 var _map_editor_instance: Node = null
 
 func _enter_tree():
-	pass
-	
 	# Añadir botón en la barra superior del editor
 	var btn = Button.new()
 	btn.text = "🗺️ MapEditor3D"
@@ -89,6 +87,10 @@ func _apply_changes():
 		if is_instance_valid(map_editor) and map_editor.has_method("save_to_server"):
 			print("[MapEditor3DPlugin] 💾 Guardado automático detectado (Ctrl+S). Exportando config a Server/config.json...")
 			map_editor.save_to_server()
+
+func _save_external_data():
+	# v700.10: Godot 4 llama a _save_external_data al guardar escena (Ctrl+S), no _apply_changes
+	_apply_changes()
 
 func _find_map_editor_node(node: Node) -> Node:
 	if not is_instance_valid(node):
