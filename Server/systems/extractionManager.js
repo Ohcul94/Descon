@@ -9,6 +9,7 @@ const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
 const Logger = require('../utils/logger');
 const { calculateFinalStats } = require('./statCalculator');
 const { awardBattlePassExpServer } = require('./battlePassHandlers');
+const spawnValidator = require('../utils/spawnValidator');
 
 class ExtractionManager {
     constructor() {
@@ -125,17 +126,32 @@ class ExtractionManager {
                 const enemyId = parseInt(s.enemyId) || 1;
 
                 for (let i = 0; i < count; i++) {
-                    const rx = (parseInt(s.x) || 5000) + (Math.random() - 0.5) * radius * 2;
-                    const ry = (parseInt(s.y) || 5000) + (Math.random() - 0.5) * radius * 2;
-                    
-                    // Asegurar que rx/ry están dentro de los límites del mapa dinámico
+                    // Usar muestreo en disco evitando colisiones (espejo BaseMap.gd)
+                    const baseMapId = match.baseMap || mapBaseId;
+                    const valid = spawnValidator.findValidSpawnPosition(parseInt(s.x) || 5000, parseInt(s.y) || 5000, radius, baseMapId, this.state, { maxAttempts: 35 });
+                    let finalX, finalY;
+                    if (valid) {
+                        finalX = valid.x; finalY = valid.y;
+                    } else {
+                        const rx = (parseInt(s.x) || 5000) + (Math.random() - 0.5) * radius * 2;
+                        const ry = (parseInt(s.y) || 5000) + (Math.random() - 0.5) * radius * 2;
+                        const mapW = extConfig && extConfig.width ? parseInt(extConfig.width) : 10000;
+                        const mapH = extConfig && extConfig.height ? parseInt(extConfig.height) : 10000;
+                        const maxLimitX = Math.max(900, mapW - 100);
+                        const maxLimitY = Math.max(900, mapH - 100);
+                        finalX = Math.min(maxLimitX, Math.max(100, rx));
+                        finalY = Math.min(maxLimitY, Math.max(100, ry));
+                        // último filtro serverSpawnEnemy también revalida, pero lo evitamos aquí si está bloqueado
+                        if (spawnValidator.isPointBlocked(finalX, finalY, baseMapId, this.state)) {
+                            const fb = spawnValidator.findValidSpawnPosition(finalX, finalY, 400, baseMapId, this.state, { maxAttempts: 20 });
+                            if (fb) { finalX = fb.x; finalY = fb.y; }
+                        }
+                    }
+                    // asegurar límites
                     const mapW = extConfig && extConfig.width ? parseInt(extConfig.width) : 10000;
                     const mapH = extConfig && extConfig.height ? parseInt(extConfig.height) : 10000;
-                    const maxLimitX = Math.max(900, mapW - 100);
-                    const maxLimitY = Math.max(900, mapH - 100);
-                    
-                    const finalX = Math.min(maxLimitX, Math.max(100, rx));
-                    const finalY = Math.min(maxLimitY, Math.max(100, ry));
+                    finalX = Math.min(mapW - 60, Math.max(60, finalX));
+                    finalY = Math.min(mapH - 60, Math.max(60, finalY));
 
                     this.aiManager.serverSpawnEnemy(matchId, enemyId, finalX, finalY);
                     totalSpawned++;

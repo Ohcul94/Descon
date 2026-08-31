@@ -2758,7 +2758,7 @@
                     ],
                     "fireRange": 300,
                     "fireRate": 1000,
-                    "fullCircle": false,
+                    "fullCircle": true,
                     "pushForce": 0,
                     "startDelay": 0,
                     "stunDuration": 0,
@@ -6720,26 +6720,27 @@
                 },
                 {
                     "assetPath": "res://assets/Altares/3D/Altar1/Altar1.glb",
-                    "colHeight": 29.21,
-                    "colOffsetX": 0.14,
-                    "colOffsetY": -0.53,
-                    "colType": "rect",
-                    "colWidth": 40.14,
+                    "colHeight": 33.91,
+                    "colOffsetX": 0,
+                    "colOffsetY": 0,
+                    "colType": "circle",
+                    "colWidth": 47.94922,
                     "colliders": [
                         {
-                            "height": 29.21,
-                            "offsetX": 0.14,
-                            "offsetY": -0.53,
-                            "type": "rect",
-                            "width": 40.14
+                            "width": 47.94922,
+                            "height": 33.91,
+                            "offsetX": 0,
+                            "offsetY": 0,
+                            "rot": 0,
+                            "type": "circle"
                         }
                     ],
                     "label": "Altar1",
                     "rotY": 0,
                     "scale": 20,
                     "type": "wall",
-                    "x": 2320.43,
-                    "y": 2327.77,
+                    "x": 3205.49,
+                    "y": 1284.4,
                     "yOffset": 6.624
                 }
             ],

@@ -9,6 +9,7 @@ const GravityAI = require('../behaviors/GravityAI');
 const ProwlerAI = require('../behaviors/ProwlerAI');
 const ZigZagAI = require('../behaviors/ZigZagAI');
 const Logger = require('../utils/logger');
+const spawnValidator = require('../utils/spawnValidator');
 
 /**
  * AIManager
@@ -57,8 +58,25 @@ class AIManager {
         const mapWidth = (mapCfg && mapCfg.width) ? mapCfg.width : 4000;
         const mapHeight = (mapCfg && mapCfg.height) ? mapCfg.height : 4000;
 
-        const finalX = posX !== null ? posX : (zone === 9 ? 2000 : (Math.random() * (mapWidth - 600) + 300));
-        const finalY = posY !== null ? posY : (zone === 9 ? 2000 : (Math.random() * (mapHeight - 600) + 300));
+        let finalX = posX !== null ? posX : (zone === 9 ? 2000 : (Math.random() * (mapWidth - 600) + 300));
+        let finalY = posY !== null ? posY : (zone === 9 ? 2000 : (Math.random() * (mapHeight - 600) + 300));
+
+        // Validación final: si el punto calculado cae dentro de collider, intentar recolocar
+        // (cubre el fallback random sin spawner y cualquier pos forzada que no pasó por findValidSpawnPosition)
+        if (spawnValidator.isPointBlocked(finalX, finalY, zone, this.state)) {
+            const alt = spawnValidator.findValidSpawnPosition(finalX, finalY, 350, zone, this.state, { maxAttempts: 25 });
+            if (alt) { finalX = alt.x; finalY = alt.y; }
+            else {
+                // último recurso: muestreo dentro del mapa hasta hallar punto libre
+                let found = false;
+                for (let k = 0; k < 40; k++) {
+                    const rx = Math.random() * (mapWidth - 600) + 300;
+                    const ry = Math.random() * (mapHeight - 600) + 300;
+                    if (!spawnValidator.isPointBlocked(rx, ry, zone, this.state)) { finalX = rx; finalY = ry; found = true; break; }
+                }
+                if (!found) Logger.warn('SPAWN', `serverSpawnEnemy zona ${zone} no encontró punto libre, mantiene [${Math.round(finalX)},${Math.round(finalY)}] dentro de colisión`);
+            }
+        }
 
         const e = {
             id, type, zone, name,
@@ -180,13 +198,28 @@ class AIManager {
                                     let posY = null;
 
                                     if (s.spawnMode === 'fixed' && s.x !== undefined && s.y !== undefined) {
-                                        posX = s.x;
-                                        posY = s.y;
+                                        // Incluso el modo fijo se valida: si cae dentro de pared, se desplaza al punto libre más cercano
+                                        if (spawnValidator.isPointBlocked(s.x, s.y, mapId, this.state)) {
+                                            const fallback = spawnValidator.findValidSpawnPosition(s.x, s.y, 120, mapId, this.state, { maxAttempts: 20 });
+                                            if (fallback) { posX = fallback.x; posY = fallback.y; }
+                                            else { posX = s.x; posY = s.y; Logger.warn('SPAWN', `Fixed spawn ${s.id} en zona ${mapId} está dentro de estructura y no se encontró alternativa cercana`); }
+                                        } else {
+                                            posX = s.x;
+                                            posY = s.y;
+                                        }
                                     } else if (s.spawnMode === 'random' && s.x !== undefined && s.y !== undefined && s.radius !== undefined && s.radius > 0) {
-                                        const angle = Math.random() * Math.PI * 2;
-                                        const r = Math.random() * s.radius;
-                                        posX = s.x + Math.cos(angle) * r;
-                                        posY = s.y + Math.sin(angle) * r;
+                                        const valid = spawnValidator.findValidSpawnPosition(s.x, s.y, s.radius, mapId, this.state, { maxAttempts: 35 });
+                                        if (valid) {
+                                            posX = valid.x;
+                                            posY = valid.y;
+                                        } else {
+                                            // Fallback: sampling clásico pero igualmente fuera de estructura no garantizado
+                                            const angle = Math.random() * Math.PI * 2;
+                                            const r = Math.random() * s.radius;
+                                            posX = s.x + Math.cos(angle) * r;
+                                            posY = s.y + Math.sin(angle) * r;
+                                            Logger.warn('SPAWN', `No se halló punto libre para ${s.id} en zona ${mapId} — se usa random sin filtro`);
+                                        }
                                     }
 
                                     this.serverSpawnEnemy(

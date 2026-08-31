@@ -230,8 +230,33 @@ func _process(delta):
 						var progress = clamp(timer / fill_duration, 0.0, 1.0)
 						var circle_3d = area.get_meta("circle_3d") if area.has_meta("circle_3d") else null
 						if is_instance_valid(circle_3d):
-							# Compensar altura del boss: el círculo debe verse a la altura del jugador
-							circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
+							var current_map_c = get_tree().get_first_node_in_group("map")
+							var is_decal_c = area.get_meta("is_decal", false)
+							if is_decal_c and is_instance_valid(current_map_c) and is_instance_valid(current_map_c.get("sub_viewport")):
+								# Decal: sigue posición 3D proyectada sobre terreno
+								var s_f = current_map_c.scale_factor if "scale_factor" in current_map_c else 0.02
+								var cz = current_map_c.correction_z if "correction_z" in current_map_c else 1.41421356
+								var h = _sample_terrain_height(en.global_position, current_map_c) if is_instance_valid(current_map_c.get("terrain_node")) else _attack_vfx_base_y()
+								if area.get_meta("is_locked"):
+									var lpos = area.get_meta("locked_pos")
+									var h2 = _sample_terrain_height(lpos, current_map_c) if is_instance_valid(current_map_c.get("terrain_node")) else h
+									circle_3d.global_position = Vector3(lpos.x * s_f, h2 + 10.0, lpos.y * s_f * cz)
+								else:
+									circle_3d.global_position = Vector3(en.global_position.x * s_f, h + 10.0, en.global_position.y * s_f * cz)
+							elif is_instance_valid(current_map_c) and is_instance_valid(current_map_c.get("terrain_node")):
+								# Conforming: container sigue altura terreno, mesh aporta eps
+								var h_cur = _sample_terrain_height(en.global_position, current_map_c)
+								if area.get_meta("is_locked"):
+									var lpos = area.get_meta("locked_pos")
+									if lpos is Vector2:
+										var cur_logical = en.global_position
+										h_cur = _sample_terrain_height(cur_logical, current_map_c)
+									circle_3d.position.y = h_cur - _attack_vfx_base_y()
+								else:
+									circle_3d.position.y = h_cur - _attack_vfx_base_y()
+							else:
+								# Fallback original
+								circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
 							for i in 5:
 								var ring = circle_3d.get_node_or_null("FireRing_" + str(i))
 								if is_instance_valid(ring):
@@ -249,12 +274,12 @@ func _process(delta):
 								if core_mat is StandardMaterial3D:
 									core_mat.albedo_color.a = clamp(progress * 1.5, 0.0, 0.5)
 									core_mat.emission_energy_multiplier = clamp(progress * 5.0, 0.0, 4.0)
-								fire_core.position.y = 0.1 + progress * 0.3
+								fire_core.position.y = 0.15 + progress * 0.3
 					else:
 						area.global_position = en_vis
 						area.global_rotation = en.global_rotation - PI / 2
 						
-						# Sincronizar la rotación del cono 3D en su subnodo rotador interno
+						# Sincronizar rotación del cono 3D
 						var cone_rot = area.get_meta("cone_rotator") if area.has_meta("cone_rotator") else null
 						if is_instance_valid(cone_rot):
 							var dir_2d = Vector2.RIGHT.rotated(en.global_rotation - PI / 2)
@@ -264,6 +289,45 @@ func _process(delta):
 								var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 								var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
 								cone_rot.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+						elif area.get_meta("is_conforming", false):
+							var cur_map_h = get_tree().get_first_node_in_group("map")
+							var cone_3d_h = area.get_meta("cone_3d")
+							# Suavizar altura Y siempre (lerp) para que no pegue saltos en lomas, incluso sin regenerar
+							if is_instance_valid(cone_3d_h) and is_instance_valid(cur_map_h) and is_instance_valid(cur_map_h.get("terrain_node")):
+								var target_h = _sample_terrain_height(en.global_position, cur_map_h)
+								var target_y = target_h - _attack_vfx_base_y()
+								cone_3d_h.position.y = lerp(cone_3d_h.position.y, target_y, clamp(delta*10.0, 0.0, 1.0))
+							# Regeneración suave para homing: umbral bajo + interpolación
+							var last_rot = area.get_meta("last_rot", en.rotation)
+							var last_pos = area.get_meta("last_pos", en.global_position)
+							# Homing necesita actualización casi por frame para verse fluido: 0.015 rad (~0.9°) y 6px
+							if abs(angle_difference(last_rot, en.rotation)) > 0.015 or last_pos.distance_to(en.global_position) > 6.0:
+								var cur_map = get_tree().get_first_node_in_group("map")
+								if is_instance_valid(cur_map) and is_instance_valid(cur_map.get("terrain_node")):
+									var cone_3d = area.get_meta("cone_3d")
+									if is_instance_valid(cone_3d):
+										var rng = float(area.get_meta("cone_range", 400.0))
+										var ang = float(area.get_meta("cone_angle", 60.0))
+										var new_mesh = _make_cone_mesh_conforming(en.global_position, rng, ang, en.rotation, cur_map)
+										# Actualizar meshes sin resetear escala
+										for ch in cone_3d.get_children():
+											if ch is MeshInstance3D:
+												ch.mesh = new_mesh
+									area.set_meta("last_rot", en.rotation)
+									area.set_meta("last_pos", en.global_position)
+							# --- Sincronizar naranjita 1:1 con barra de casteo real ---
+							var _c3d = area.get_meta("cone_3d")
+							if is_instance_valid(_c3d) and _c3d.get_child_count() > 1:
+								var _fill = _c3d.get_child(1) as MeshInstance3D
+								if is_instance_valid(_fill):
+									var _mId = str(area.get_meta("mId", ""))
+									var _prog = _get_cast_progress(enemy_id, _mId)
+									if _prog < 0.0:
+										var _dur = float(area.get_meta("charge_duration", 1.0))
+										var _st = int(area.get_meta("charge_start", Time.get_ticks_msec()))
+										_prog = clamp(float(Time.get_ticks_msec() - _st) / (_dur * 1000.0), 0.0, 1.0)
+									var _sc = lerp(0.01, 1.0, _prog)
+									_fill.scale = Vector3(_sc, _sc, _sc)
 			else:
 				active_areas.erase(id)
 				area.queue_free()
@@ -788,56 +852,117 @@ func _on_enemy_action(data: Dictionary):
 				en.add_child(cone_node)
 			
 			if is_3d_active:
-				# ---- 3D Cone Indicator ----
-				var cone_3d = Node3D.new()
-				cone_3d.name = "Cone3D_" + enemy_id
 				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
-				
-				# Escalar en Z global para la perspectiva isométrica 2.5D
-				cone_3d.scale = Vector3(1.0, 1.0, correction_z)
-				en.world_root_3d.add_child(cone_3d)
-				
-				# Compensar altura del boss: el cono debe verse a la altura del jugador
-				cone_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
-				
-				# Nodo rotador interno para la dirección lógica de la habilidad
-				var cone_rotator = Node3D.new()
-				cone_3d.add_child(cone_rotator)
-				var dir_2d = Vector2.RIGHT.rotated(en.rotation - PI / 2)
-				var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
-				cone_rotator.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
-				
-				var range_3d = range_val * s_factor
-				var cone_mesh = _make_cone_mesh_3d(range_3d, cone_angle)
-				
-				var mesh_bg = MeshInstance3D.new()
-				mesh_bg.mesh = cone_mesh
-				var mat_bg = StandardMaterial3D.new()
-				mat_bg.albedo_color = Color(1.0, 0.0, 0.0, 0.12)
-				mat_bg.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				mat_bg.cull_mode = BaseMaterial3D.CULL_DISABLED
-				mesh_bg.material_override = mat_bg
-				cone_rotator.add_child(mesh_bg)
-				
-				var mesh_fill = MeshInstance3D.new()
-				mesh_fill.mesh = cone_mesh
-				var mat_fill = StandardMaterial3D.new()
-				mat_fill.albedo_color = Color(1.0, 0.1, 0.1, 0.35)
-				mat_fill.emission_enabled = true
-				mat_fill.emission = Color(1.0, 0.1, 0.1)
-				mat_fill.emission_energy_multiplier = 1.5
-				mat_fill.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				mat_fill.cull_mode = BaseMaterial3D.CULL_DISABLED
-				mesh_fill.material_override = mat_fill
-				cone_rotator.add_child(mesh_fill)
-				mesh_fill.scale = Vector3(0.01, 0.01, 0.01)
-				
-				cone_node.set_meta("cone_3d", cone_3d)
-				cone_node.set_meta("cone_rotator", cone_rotator)
-				
-				var tw_3d = cone_rotator.create_tween()
-				tw_3d.tween_property(mesh_fill, "scale", Vector3.ONE, charge_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+				var has_terrain = is_instance_valid(current_map.get("terrain_node")) and current_map.get("terrain_node") != null
+				# v501: Si el renderer soporta Decal (Forward+) usamos Decal que SIEMPRE respeta el relieve.
+				# En gl_compatibility (tu proyecto actual) usamos MALLA CONFORMANTE muestreando altura por vértice.
+				if _render_supports_decal() and has_terrain:
+					# ---- Decal Path (Forward+/Mobile) - Proyección real sobre terreno ----
+					var h_center = _sample_terrain_height(en.global_position, current_map)
+					var pos3d = Vector3(en.global_position.x * s_factor, h_center + 12.0, en.global_position.y * s_factor * correction_z)
+					var tex = _generate_decal_texture_cone(256, cone_angle)
+					var decal_size = Vector3(range_val * s_factor * 2.2, 24.0, range_val * s_factor * 2.2)
+					var decal = _create_decal_node(pos3d, decal_size, tex, Color(1,1,1,1), 1.0, 0.35)
+					# Orientar Decal: forward = -Z local, decal proyecta en -Y => girar Y = enemy_rot
+					decal.rotation.y = en.rotation
+					current_map.sub_viewport.add_child(decal)
+					cone_node.set_meta("cone_3d", decal)
+					cone_node.set_meta("cone_rotator", null)
+					# Animación: fade in via modulate.a
+					decal.modulate.a = 0.0
+					var tw_d = decal.create_tween()
+					tw_d.tween_property(decal, "modulate:a", 1.0, charge_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+				elif has_terrain:
+					# ---- Malla Conformante (gl_compatibility) - Muestrea altura por vértice ----
+					var cone_3d = Node3D.new()
+					cone_3d.name = "Cone3D_" + enemy_id
+					# BAKED: sin scale/rotator. world_root_3d.y = base_y (1.0), lo llevamos a h_center; mesh aporta eps=0.12
+					var h_center = _sample_terrain_height(en.global_position, current_map)
+					cone_3d.position = Vector3(0, h_center - _attack_vfx_base_y(), 0)
+					en.world_root_3d.add_child(cone_3d)
+					
+					# Mesh conformante bakeado con rotación ya incluida y altura por vertice
+					var cone_mesh = _make_cone_mesh_conforming(en.global_position, range_val, cone_angle, en.rotation, current_map)
+					
+					var mesh_bg = MeshInstance3D.new()
+					mesh_bg.mesh = cone_mesh
+					var mat_bg = StandardMaterial3D.new()
+					mat_bg.albedo_color = Color(1.0, 0.0, 0.0, 0.14)
+					mat_bg.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					mat_bg.cull_mode = BaseMaterial3D.CULL_DISABLED
+					mat_bg.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					mat_bg.no_depth_test = true
+					mat_bg.render_priority = 2
+					mesh_bg.material_override = mat_bg
+					cone_3d.add_child(mesh_bg)
+					
+					var mesh_fill = MeshInstance3D.new()
+					mesh_fill.mesh = cone_mesh
+					var mat_fill = StandardMaterial3D.new()
+					mat_fill.albedo_color = Color(1.0, 0.55, 0.08, 0.42) # naranjita
+					mat_fill.emission_enabled = true
+					mat_fill.emission = Color(1.0, 0.45, 0.05)
+					mat_fill.emission_energy_multiplier = 1.9
+					mat_fill.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					mat_fill.cull_mode = BaseMaterial3D.CULL_DISABLED
+					mat_fill.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					mat_fill.no_depth_test = true
+					mat_fill.render_priority = 2
+					mesh_fill.material_override = mat_fill
+					cone_3d.add_child(mesh_fill)
+					mesh_fill.scale = Vector3(0.01, 0.01, 0.01)
+					
+					cone_node.set_meta("cone_3d", cone_3d)
+					cone_node.set_meta("cone_rotator", null)
+					cone_node.set_meta("is_conforming", true)
+					cone_node.set_meta("cone_range", range_val)
+					cone_node.set_meta("cone_angle", cone_angle)
+					cone_node.set_meta("last_rot", en.rotation)
+					cone_node.set_meta("last_pos", en.global_position)
+					cone_node.set_meta("charge_duration", charge_duration)
+					cone_node.set_meta("charge_start", Time.get_ticks_msec())
+					cone_node.set_meta("mId", str(data.get("mId", data.get("id", enemy_id))))
+					# No tween: el naranjita se actualiza por frame según barra de casteo real para estar 1:1
+					# Dejar escala inicial pequeña, el _process la llevará a 1.0 siguiendo _get_cast_progress
+				else:
+					# ---- Fallback plano original (mapas sin terreno) ----
+					var cone_3d = Node3D.new()
+					cone_3d.name = "Cone3D_" + enemy_id
+					cone_3d.scale = Vector3(1.0, 1.0, correction_z)
+					en.world_root_3d.add_child(cone_3d)
+					cone_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
+					var cone_rotator = Node3D.new()
+					cone_3d.add_child(cone_rotator)
+					var dir_2d = Vector2.RIGHT.rotated(en.rotation - PI / 2)
+					var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+					cone_rotator.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+					var range_3d = range_val * s_factor
+					var cone_mesh = _make_cone_mesh_3d(range_3d, cone_angle)
+					var mesh_bg = MeshInstance3D.new()
+					mesh_bg.mesh = cone_mesh
+					var mat_bg = StandardMaterial3D.new()
+					mat_bg.albedo_color = Color(1.0, 0.0, 0.0, 0.12)
+					mat_bg.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					mat_bg.cull_mode = BaseMaterial3D.CULL_DISABLED
+					mesh_bg.material_override = mat_bg
+					cone_rotator.add_child(mesh_bg)
+					var mesh_fill = MeshInstance3D.new()
+					mesh_fill.mesh = cone_mesh
+					var mat_fill = StandardMaterial3D.new()
+					mat_fill.albedo_color = Color(1.0, 0.1, 0.1, 0.35)
+					mat_fill.emission_enabled = true
+					mat_fill.emission = Color(1.0, 0.1, 0.1)
+					mat_fill.emission_energy_multiplier = 1.5
+					mat_fill.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					mat_fill.cull_mode = BaseMaterial3D.CULL_DISABLED
+					mesh_fill.material_override = mat_fill
+					cone_rotator.add_child(mesh_fill)
+					mesh_fill.scale = Vector3(0.01, 0.01, 0.01)
+					cone_node.set_meta("cone_3d", cone_3d)
+					cone_node.set_meta("cone_rotator", cone_rotator)
+					var tw_3d = cone_rotator.create_tween()
+					tw_3d.tween_property(mesh_fill, "scale", Vector3.ONE, charge_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 			else:
 				# ---- Fallback 2D Cone Indicator ----
 				var poly_bg = Polygon2D.new()
@@ -894,46 +1019,79 @@ func _on_enemy_action(data: Dictionary):
 				en.add_child(blast)
 			
 			if is_3d_active:
-				# ---- 3D Cone Blast ----
-				var blast_3d = Node3D.new()
-				blast_3d.name = "ConeBlast3D_" + enemy_id
-				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
-				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
-				
-				# Escalar en Z global para la perspectiva isométrica 2.5D
-				blast_3d.scale = Vector3(1.0, 1.0, correction_z)
-				en.world_root_3d.add_child(blast_3d)
-				
-				# Compensar altura del boss: la explosión debe verse a la altura del jugador
-				blast_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
-				
-				# Subnodo rotador interno
-				var blast_rotator = Node3D.new()
-				blast_3d.add_child(blast_rotator)
-				
-				var dir_2d = Vector2.RIGHT.rotated(angle)
-				var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
-				blast_rotator.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
-				
-				var range_3d = range_val * s_factor
-				var cone_mesh = _make_cone_mesh_3d(range_3d, cone_angle)
-				
-				var mesh_blast = MeshInstance3D.new()
-				mesh_blast.mesh = cone_mesh
-				var mat_blast = StandardMaterial3D.new()
-				mat_blast.albedo_color = Color(1.0, 0.4, 0.0, 0.8)
-				mat_blast.emission_enabled = true
-				mat_blast.emission = Color(1.0, 0.4, 0.0)
-				mat_blast.emission_energy_multiplier = 3.0
-				mat_blast.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				mat_blast.cull_mode = BaseMaterial3D.CULL_DISABLED
-				mesh_blast.material_override = mat_blast
-				blast_rotator.add_child(mesh_blast)
-				
-				var tw_3d = blast_rotator.create_tween()
-				tw_3d.tween_property(mesh_blast, "material_override:albedo_color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-				tw_3d.parallel().tween_property(mesh_blast, "material_override:emission_energy_multiplier", 0.0, 0.25)
-				tw_3d.finished.connect(blast_3d.queue_free)
+				var has_terrain_b = is_instance_valid(current_map.get("terrain_node")) and current_map.get("terrain_node") != null
+				if _render_supports_decal() and has_terrain_b:
+					var h_c = _sample_terrain_height(en.global_position, current_map)
+					var pos3d = Vector3(en.global_position.x * current_map.scale_factor, h_c + 12.0, en.global_position.y * current_map.scale_factor * current_map.correction_z)
+					var tex = _generate_decal_texture_cone(256, cone_angle)
+					var decal_size = Vector3(range_val * current_map.scale_factor * 2.2, 22.0, range_val * current_map.scale_factor * 2.2)
+					var decal = _create_decal_node(pos3d, decal_size, tex, Color(1,1,1,1), 2.5, 0.35)
+					decal.rotation.y = angle
+					current_map.sub_viewport.add_child(decal)
+					# Reusar blast_3d var para cleanup uniforme
+					var blast_3d = decal
+					var tw_3d = blast_3d.create_tween()
+					tw_3d.tween_property(decal, "modulate:a", 0.0, 0.25)
+					tw_3d.finished.connect(blast_3d.queue_free)
+				elif has_terrain_b:
+					# Cono conformante en blast (misma lógica que charging pero ángulo viene de data)
+					var blast_3d = Node3D.new()
+					blast_3d.name = "ConeBlast3D_" + enemy_id
+					var h_c = _sample_terrain_height(en.global_position, current_map)
+					blast_3d.position = Vector3(0, h_c - _attack_vfx_base_y(), 0)
+					en.world_root_3d.add_child(blast_3d)
+					var dir_angle_for_blast = angle # angle ya viene del servidor en radianes? data.angle radianes?
+					# Si angle viene en radianes desde servidor, usarlo directo como rot 2D; si es 0, caer a enemy rot
+					if abs(dir_angle_for_blast) < 0.001:
+						dir_angle_for_blast = en.rotation
+					var cone_mesh = _make_cone_mesh_conforming(en.global_position, range_val, cone_angle, dir_angle_for_blast, current_map)
+					var mesh_blast = MeshInstance3D.new()
+					mesh_blast.mesh = cone_mesh
+					var mat_blast = StandardMaterial3D.new()
+					mat_blast.albedo_color = Color(1.0, 0.4, 0.0, 0.8)
+					mat_blast.emission_enabled = true
+					mat_blast.emission = Color(1.0, 0.4, 0.0)
+					mat_blast.emission_energy_multiplier = 3.0
+					mat_blast.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					mat_blast.cull_mode = BaseMaterial3D.CULL_DISABLED
+					mat_blast.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					mesh_blast.material_override = mat_blast
+					blast_3d.add_child(mesh_blast)
+					var tw_3d = mesh_blast.create_tween()
+					tw_3d.tween_property(mesh_blast, "material_override:albedo_color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+					tw_3d.parallel().tween_property(mesh_blast, "material_override:emission_energy_multiplier", 0.0, 0.25)
+					tw_3d.finished.connect(blast_3d.queue_free)
+				else:
+					# ---- Fallback plano original ----
+					var blast_3d = Node3D.new()
+					blast_3d.name = "ConeBlast3D_" + enemy_id
+					var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+					var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
+					blast_3d.scale = Vector3(1.0, 1.0, correction_z)
+					en.world_root_3d.add_child(blast_3d)
+					blast_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y + 0.05
+					var blast_rotator = Node3D.new()
+					blast_3d.add_child(blast_rotator)
+					var dir_2d = Vector2.RIGHT.rotated(angle)
+					var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
+					blast_rotator.rotation.y = atan2(-diff_3d.x, -diff_3d.z)
+					var range_3d = range_val * s_factor
+					var cone_mesh = _make_cone_mesh_3d(range_3d, cone_angle)
+					var mesh_blast = MeshInstance3D.new()
+					mesh_blast.mesh = cone_mesh
+					var mat_blast = StandardMaterial3D.new()
+					mat_blast.albedo_color = Color(1.0, 0.4, 0.0, 0.8)
+					mat_blast.emission_enabled = true
+					mat_blast.emission = Color(1.0, 0.4, 0.0)
+					mat_blast.emission_energy_multiplier = 3.0
+					mat_blast.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					mat_blast.cull_mode = BaseMaterial3D.CULL_DISABLED
+					mesh_blast.material_override = mat_blast
+					blast_rotator.add_child(mesh_blast)
+					var tw_3d = blast_rotator.create_tween()
+					tw_3d.tween_property(mesh_blast, "material_override:albedo_color:a", 0.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+					tw_3d.parallel().tween_property(mesh_blast, "material_override:emission_energy_multiplier", 0.0, 0.25)
+					tw_3d.finished.connect(blast_3d.queue_free)
 				
 				var tw_dummy = blast.create_tween()
 				tw_dummy.tween_interval(0.25)
@@ -986,83 +1144,169 @@ func _on_enemy_action(data: Dictionary):
 			else:
 				en.add_child(circle_node)
 				
-			# ---- 3D Circle Charging Aura (no 2D fallback) ----
+			# ---- 3D Circle Charging Aura (Decal / Conforming) ----
 			if is_3d_active:
-				var circle_3d = Node3D.new()
-				circle_3d.name = "Circle3D_" + enemy_id
-				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
-				# Escalar en Z global para la perspectiva isométrica 2.5D
-				circle_3d.scale = Vector3(1.0, 1.0, correction_z)
-				en.world_root_3d.add_child(circle_3d)
-				# Compensar altura del boss: los anillos deben verse a la altura del jugador
-				circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y
-
+				var has_terrain_c = is_instance_valid(current_map.get("terrain_node")) and current_map.get("terrain_node") != null
 				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
+				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 				var outer_r3d = range_val * s_factor
 				var inner_r3d = r_inner * s_factor
-
-				var ground_disc = MeshInstance3D.new()
-				var g_mesh = CylinderMesh.new()
-				g_mesh.top_radius = outer_r3d
-				g_mesh.bottom_radius = outer_r3d
-				g_mesh.height = 0.01
-				ground_disc.mesh = g_mesh
-				var g_mat = StandardMaterial3D.new()
-				g_mat.albedo_color = Color(1.0, 0.15, 0.0, 0.15)
-				g_mat.emission_enabled = true
-				g_mat.emission = Color(1.0, 0.15, 0.0)
-				g_mat.emission_energy_multiplier = 0.5
-				g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-				ground_disc.material_override = g_mat
-				circle_3d.add_child(ground_disc)
-
-				var num_rings = 5
-				for i in num_rings:
-					var ring = MeshInstance3D.new()
-					ring.name = "FireRing_" + str(i)
-					var t_mesh = TorusMesh.new()
-					var t = float(i) / float(num_rings - 1)
-					var rr = lerp(inner_r3d, outer_r3d, t)
-					t_mesh.inner_radius = rr - 0.015
-					t_mesh.outer_radius = rr + 0.015
-					ring.mesh = t_mesh
-					var r_mat = StandardMaterial3D.new()
-					r_mat.albedo_color = Color(1.0, 0.3, 0.0, 0.0)
-					r_mat.emission_enabled = true
-					r_mat.emission = Color(1.0, 0.4, 0.0)
-					r_mat.emission_energy_multiplier = 0.0
-					r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-					r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-					ring.material_override = r_mat
-					ring.rotation.x = PI / 2
-					circle_3d.add_child(ring)
-
-				var core = MeshInstance3D.new()
-				core.name = "FireCore"
-				var core_s = SphereMesh.new()
-				core_s.radius = inner_r3d * 0.3
-				core_s.height = inner_r3d * 0.6
-				core.mesh = core_s
-				var core_mat = StandardMaterial3D.new()
-				core_mat.albedo_color = Color(1.0, 0.5, 0.0, 0.0)
-				core_mat.emission_enabled = true
-				core_mat.emission = Color(1.0, 0.6, 0.1)
-				core_mat.emission_energy_multiplier = 0.0
-				core_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-				core_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-				core.material_override = core_mat
-				core.position.y = 0.1
-				circle_3d.add_child(core)
-
-				circle_3d.set_meta("outer_r3d", outer_r3d)
-				circle_3d.set_meta("inner_r3d", inner_r3d)
-				circle_node.set_meta("circle_3d", circle_3d)
-
-				circle_node.tree_exiting.connect(func():
-					if is_instance_valid(circle_3d):
-						circle_3d.queue_free()
-				)
+				if _render_supports_decal() and has_terrain_c:
+					# Decal path: círculo perfecto proyectado
+					var h_c = _sample_terrain_height(en.global_position, current_map)
+					var pos3d = Vector3(en.global_position.x * s_factor, h_c + 10.0, en.global_position.y * s_factor * correction_z)
+					var tex = _generate_decal_texture_circle(256)
+					var decal_size = Vector3(range_val * s_factor * 2.2, 20.0, range_val * s_factor * 2.2)
+					var decal = _create_decal_node(pos3d, decal_size, tex, Color(1,1,1,1), 1.2, 0.3)
+					current_map.sub_viewport.add_child(decal)
+					# Guardamos decal como circle_3d para que _process y cleanup lo encuentren (duck typing)
+					circle_node.set_meta("circle_3d", decal)
+					circle_node.set_meta("is_decal", true)
+					circle_node.tree_exiting.connect(func():
+						if is_instance_valid(decal):
+							decal.queue_free()
+					)
+					# No creamos rings 3D: el decal ya tiene borde, pero mantenemos compatibilidad
+					var dummy_3d = decal
+					dummy_3d.set_meta("outer_r3d", outer_r3d)
+					dummy_3d.set_meta("inner_r3d", inner_r3d)
+				elif has_terrain_c:
+					# Conforming disc: malla copia relieve, container a h_center
+					var circle_3d = Node3D.new()
+					circle_3d.name = "Circle3D_" + enemy_id
+					var h_center = _sample_terrain_height(en.global_position, current_map)
+					circle_3d.position = Vector3(0, h_center - _attack_vfx_base_y(), 0)
+					en.world_root_3d.add_child(circle_3d)
+					
+					var disc_mesh = _make_circle_disc_conforming(en.global_position, range_val, current_map)
+					var ground_disc = MeshInstance3D.new()
+					ground_disc.mesh = disc_mesh
+					var g_mat = StandardMaterial3D.new()
+					g_mat.albedo_color = Color(1.0, 0.15, 0.0, 0.22)
+					g_mat.emission_enabled = true
+					g_mat.emission = Color(1.0, 0.15, 0.0)
+					g_mat.emission_energy_multiplier = 0.7
+					g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					g_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					g_mat.no_depth_test = true
+					g_mat.render_priority = 2
+					ground_disc.material_override = g_mat
+					circle_3d.add_child(ground_disc)
+					
+					var num_rings = 5
+					for i in num_rings:
+						var ring = MeshInstance3D.new()
+						ring.name = "FireRing_" + str(i)
+						var t_mesh = TorusMesh.new()
+						var t = float(i) / float(num_rings - 1)
+						var rr = lerp(inner_r3d, outer_r3d, t)
+						t_mesh.inner_radius = rr - 0.015
+						t_mesh.outer_radius = rr + 0.015
+						ring.mesh = t_mesh
+						var r_mat = StandardMaterial3D.new()
+						r_mat.albedo_color = Color(1.0, 0.3, 0.0, 0.0)
+						r_mat.emission_enabled = true
+						r_mat.emission = Color(1.0, 0.4, 0.0)
+						r_mat.emission_energy_multiplier = 0.0
+						r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+						r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+						ring.material_override = r_mat
+						ring.rotation.x = PI / 2
+						# Elevar anillo un pelín sobre el disco conformado (evita z-fighting en lomas)
+						ring.position.y = 0.02
+						circle_3d.add_child(ring)
+					
+					var core = MeshInstance3D.new()
+					core.name = "FireCore"
+					var core_s = SphereMesh.new()
+					core_s.radius = inner_r3d * 0.3
+					core_s.height = inner_r3d * 0.6
+					core.mesh = core_s
+					var core_mat = StandardMaterial3D.new()
+					core_mat.albedo_color = Color(1.0, 0.5, 0.0, 0.0)
+					core_mat.emission_enabled = true
+					core_mat.emission = Color(1.0, 0.6, 0.1)
+					core_mat.emission_energy_multiplier = 0.0
+					core_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					core_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					core.material_override = core_mat
+					core.position.y = 0.15
+					circle_3d.add_child(core)
+					circle_3d.set_meta("outer_r3d", outer_r3d)
+					circle_3d.set_meta("inner_r3d", inner_r3d)
+					circle_node.set_meta("circle_3d", circle_3d)
+					circle_node.set_meta("is_decal", false)
+					circle_node.set_meta("center_2d", en.global_position)
+					circle_node.tree_exiting.connect(func():
+						if is_instance_valid(circle_3d):
+							circle_3d.queue_free()
+					)
+				else:
+					# Fallback original plano
+					var circle_3d = Node3D.new()
+					circle_3d.name = "Circle3D_" + enemy_id
+					circle_3d.scale = Vector3(1.0, 1.0, correction_z)
+					en.world_root_3d.add_child(circle_3d)
+					circle_3d.position.y = _attack_vfx_base_y() - en.world_root_3d.position.y
+					var ground_disc = MeshInstance3D.new()
+					var g_mesh = CylinderMesh.new()
+					g_mesh.top_radius = outer_r3d
+					g_mesh.bottom_radius = outer_r3d
+					g_mesh.height = 0.01
+					ground_disc.mesh = g_mesh
+					var g_mat = StandardMaterial3D.new()
+					g_mat.albedo_color = Color(1.0, 0.15, 0.0, 0.15)
+					g_mat.emission_enabled = true
+					g_mat.emission = Color(1.0, 0.15, 0.0)
+					g_mat.emission_energy_multiplier = 0.5
+					g_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					g_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					ground_disc.material_override = g_mat
+					circle_3d.add_child(ground_disc)
+					var num_rings = 5
+					for i in num_rings:
+						var ring = MeshInstance3D.new()
+						ring.name = "FireRing_" + str(i)
+						var t_mesh = TorusMesh.new()
+						var t = float(i) / float(num_rings - 1)
+						var rr = lerp(inner_r3d, outer_r3d, t)
+						t_mesh.inner_radius = rr - 0.015
+						t_mesh.outer_radius = rr + 0.015
+						ring.mesh = t_mesh
+						var r_mat = StandardMaterial3D.new()
+						r_mat.albedo_color = Color(1.0, 0.3, 0.0, 0.0)
+						r_mat.emission_enabled = true
+						r_mat.emission = Color(1.0, 0.4, 0.0)
+						r_mat.emission_energy_multiplier = 0.0
+						r_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+						r_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+						ring.material_override = r_mat
+						ring.rotation.x = PI / 2
+						circle_3d.add_child(ring)
+					var core = MeshInstance3D.new()
+					core.name = "FireCore"
+					var core_s = SphereMesh.new()
+					core_s.radius = inner_r3d * 0.3
+					core_s.height = inner_r3d * 0.6
+					core.mesh = core_s
+					var core_mat = StandardMaterial3D.new()
+					core_mat.albedo_color = Color(1.0, 0.5, 0.0, 0.0)
+					core_mat.emission_enabled = true
+					core_mat.emission = Color(1.0, 0.6, 0.1)
+					core_mat.emission_energy_multiplier = 0.0
+					core_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+					core_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+					core.material_override = core_mat
+					core.position.y = 0.1
+					circle_3d.add_child(core)
+					circle_3d.set_meta("outer_r3d", outer_r3d)
+					circle_3d.set_meta("inner_r3d", inner_r3d)
+					circle_node.set_meta("circle_3d", circle_3d)
+					circle_node.tree_exiting.connect(func():
+						if is_instance_valid(circle_3d):
+							circle_3d.queue_free()
+					)
 
 			active_areas["circle_" + enemy_id] = circle_node
 			
@@ -1085,18 +1329,21 @@ func _on_enemy_action(data: Dictionary):
 				if is_instance_valid(old_3d):
 					old_3d.queue_free()
 
-			# ---- 3D Circle Explosion VFX (full radius, no 2D fallback) ----
+			# ---- 3D Circle Explosion VFX (Conforming al terreno) ----
 			if is_3d_active:
 				var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 				var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 				var vp = current_map.sub_viewport
 				var r3d = range_val * s_factor
+				var has_terrain_exp = is_instance_valid(current_map.get("terrain_node")) and current_map.get("terrain_node") != null
+				var h_lock = _sample_terrain_height(Vector2(locked_x, locked_y), current_map) if has_terrain_exp else 0.0
 
-				# Crear contenedor de explosión 3D con la escala de perspectiva Z
 				var circle_blast_3d = Node3D.new()
 				circle_blast_3d.name = "CircleBlast3D_" + enemy_id
-				circle_blast_3d.position = Vector3(locked_x * s_factor, 0.0, locked_y * s_factor * correction_z)
-				circle_blast_3d.scale = Vector3(1.0, 1.0, correction_z)
+				# Container a h_lock; disc conformante aporta eps 0.12 internamente
+				circle_blast_3d.position = Vector3(locked_x * s_factor, h_lock + 0.02, locked_y * s_factor * correction_z)
+				if not has_terrain_exp:
+					circle_blast_3d.scale = Vector3(1.0, 1.0, correction_z)
 				vp.add_child(circle_blast_3d)
 
 				var flash = MeshInstance3D.new()
@@ -1121,20 +1368,31 @@ func _on_enemy_action(data: Dictionary):
 				tw_f.finished.connect(flash.queue_free)
 
 				var damage_area = MeshInstance3D.new()
-				var area_mesh = CylinderMesh.new()
-				area_mesh.top_radius = r3d
-				area_mesh.bottom_radius = r3d
-				area_mesh.height = 0.01
-				damage_area.mesh = area_mesh
+				if has_terrain_exp:
+					var disc_conforming = _make_circle_disc_conforming(Vector2(locked_x, locked_y), range_val, current_map)
+					damage_area.mesh = disc_conforming
+					damage_area.position = Vector3(0, -h_lock -0.15 + 0.12, 0) # compensar container ya en h_lock: mesh local baked con h relativo + eps
+					# Como disc_conforming ya está bakeado con altura relativa al centro (h - h_center), y el container está en h_center,
+					# posicionamos el mesh a 0,0,0 relativo y su Y ya trae el offset. Para evitar doble offset, usamos 0
+					damage_area.position = Vector3(0, 0, 0)
+				else:
+					var area_mesh = CylinderMesh.new()
+					area_mesh.top_radius = r3d
+					area_mesh.bottom_radius = r3d
+					area_mesh.height = 0.01
+					damage_area.mesh = area_mesh
+					damage_area.position = Vector3(0, 0.01, 0)
 				var area_mat = StandardMaterial3D.new()
-				area_mat.albedo_color = Color(1.0, 0.2, 0.0, 0.5)
+				area_mat.albedo_color = Color(1.0, 0.2, 0.0, 0.55)
 				area_mat.emission_enabled = true
 				area_mat.emission = Color(1.0, 0.3, 0.0)
 				area_mat.emission_energy_multiplier = 3.0
 				area_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				area_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+				area_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				area_mat.no_depth_test = true
+				area_mat.render_priority = 2
 				damage_area.material_override = area_mat
-				damage_area.position = Vector3(0, 0.01, 0)
 				circle_blast_3d.add_child(damage_area)
 				var tw_a = damage_area.create_tween().set_parallel(true)
 				tw_a.tween_property(area_mat, "albedo_color:a", 0.0, 0.5).set_ease(Tween.EASE_IN)
@@ -2372,8 +2630,23 @@ func _spawn_ascension_warn_3d(vp, tx: float, ty: float, radius: float, warn_s: f
 	fill_mat.emission_energy_multiplier = 1.2
 	fill_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fill_mat.no_depth_test = true
+	fill_mat.render_priority = 2
 	fill.material_override = fill_mat
 	root.add_child(fill)
+
+	# --- Conformar al terreno + no_depth_test ---
+	var _map_asc = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(_map_asc) and is_instance_valid(_map_asc.get("terrain_node")):
+		var _h = _sample_terrain_height(Vector2(tx, ty), _map_asc)
+		root.position.y = _h + 0.05
+		# Reemplazar cilindro por disco conformante
+		var _disc = _make_circle_disc_conforming(Vector2(tx, ty), radius * 0.9, _map_asc)
+		fill.mesh = _disc
+		ring_mat.no_depth_test = true
+		ring_mat.render_priority = 2
+		# Elevar anillo un poco sobre el disco conformado
+		ring.position.y = 0.05
 
 	# Pulso durante warnTime y auto-eliminación
 	var pulse = root.create_tween().set_loops()
@@ -2385,9 +2658,13 @@ func _spawn_ascension_warn_3d(vp, tx: float, ty: float, radius: float, warn_s: f
 	return root
 
 
-# Impacto de aterrizaje: onda expansiva cian + polvo.
+# Impacto de aterrizaje: onda expansiva cian + polvo. (conformado al terreno)
 func _spawn_ascension_impact_3d(vp, tx: float, ty: float, radius: float, s_factor: float, correction_z: float):
-	var pos_3d = Vector3(tx * s_factor, 0.05, ty * s_factor * correction_z)
+	var _map_ai = get_tree().get_first_node_in_group("map")
+	var _h_ai = 0.05
+	if is_instance_valid(_map_ai) and is_instance_valid(_map_ai.get("terrain_node")):
+		_h_ai = _sample_terrain_height(Vector2(tx, ty), _map_ai) + 0.08
+	var pos_3d = Vector3(tx * s_factor, _h_ai, ty * s_factor * correction_z)
 	var r3d = max(0.1, radius * s_factor)
 
 	var flash = MeshInstance3D.new()
@@ -2552,8 +2829,24 @@ func _spawn_meteor_warning_3d(vp, tx: float, ty: float, radius: float, s_factor:
 	fill_mat.emission = Color(1.0, 0.35, 0.05)
 	fill_mat.emission_energy_multiplier = 0.4
 	fill_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fill_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fill_mat.no_depth_test = true
+	fill_mat.render_priority = 2
 	fill.material_override = fill_mat
+	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring_mat.no_depth_test = true
+	ring_mat.render_priority = 2
 	root.add_child(fill)
+
+	# --- Conformar al terreno + elevar ---
+	var _map_m = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(_map_m) and is_instance_valid(_map_m.get("terrain_node")):
+		var _h = _sample_terrain_height(Vector2(tx, ty), _map_m)
+		root.position.y = _h + 0.05
+		# Disco conformante reemplaza cilindro plano
+		var _disc = _make_circle_disc_conforming(Vector2(tx, ty), radius * 0.88, _map_m)
+		fill.mesh = _disc
+		ring.position.y = 0.06
 
 	# Pulso de aviso
 	var tw = root.create_tween().set_loops()
@@ -2675,9 +2968,13 @@ func _spawn_meteor_model_3d(vp, tx: float, ty: float, fall_height: float, meteor
 	return root
 
 
-# Explosión de impacto del meteorito: destello + onda expansiva + lluvia de fuego.
+# Explosión de impacto del meteorito: destello + onda expansiva + lluvia de fuego. (conformado)
 func _spawn_meteor_impact_3d(vp, tx: float, ty: float, radius: float, _meteor_size: float, s_factor: float, correction_z: float):
-	var pos_3d = Vector3(tx * s_factor, 0.05, ty * s_factor * correction_z)
+	var _map_mi = get_tree().get_first_node_in_group("map")
+	var _h_mi = 0.05
+	if is_instance_valid(_map_mi) and is_instance_valid(_map_mi.get("terrain_node")):
+		_h_mi = _sample_terrain_height(Vector2(tx, ty), _map_mi) + 0.08
+	var pos_3d = Vector3(tx * s_factor, _h_mi, ty * s_factor * correction_z)
 	var r3d = max(0.1, radius * s_factor)
 
 	# Destello
@@ -2803,6 +3100,43 @@ func _handle_meteor_zone_action(data: Dictionary) -> void:
 	active_meteor_zones[m_id] = { "zone_2d": zone_2d }
 
 
+# --- Spawn safety: evita que enemigos aparezcan dentro de colliders 2D (muro/estructura) ---
+# No toca colliders: solo valida el punto y lo desplaza a un lugar libre cercano si está bloqueado.
+func _is_spawn_blocked_physics(pos: Vector2) -> bool:
+	var map_node = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(map_node):
+		return false
+	# DirectSpaceState con máscara 2 = paredes/estructuras (BaseMap.gd collision_layer 2)
+	var space = map_node.get_world_2d().direct_space_state
+	if space == null:
+		return false
+	var params = PhysicsPointQueryParameters2D.new()
+	params.position = pos
+	params.collision_mask = 2
+	params.collide_with_bodies = true
+	params.collide_with_areas = false
+	var res = space.intersect_point(params, 1)
+	return res.size() > 0
+
+func _find_safe_spawn_near(blocked_pos: Vector2, search_radius: float = 260.0) -> Vector2:
+	# Búsqueda en anillos + muestreo aleatorio alrededor de blocked_pos usando física real.
+	# Devuelve Vector2.INF si no se encuentra punto libre.
+	var rings = [0.25, 0.5, 0.85, 1.0]
+	for ring_frac in rings:
+		var r = search_radius * ring_frac
+		for i in range(16):
+			var ang = (float(i) / 16.0) * TAU + ring_frac * 0.71
+			var candidate = blocked_pos + Vector2(cos(ang), sin(ang)) * r
+			if not _is_spawn_blocked_physics(candidate):
+				return candidate
+	for i in range(24):
+		var ang = randf() * TAU
+		var rr = sqrt(randf()) * search_radius
+		var candidate = blocked_pos + Vector2(cos(ang), sin(ang)) * rr
+		if not _is_spawn_blocked_physics(candidate):
+			return candidate
+	return Vector2.INF
+
 func _on_enemy_updated(data):
 	if typeof(data) != TYPE_DICTIONARY or not data.has("id"): return
 	var id = str(data.id)
@@ -2832,6 +3166,15 @@ func _on_enemy_updated(data):
 	if is_instance_valid(eref):
 		var new_pos = Vector2(data.get("x", eref.global_position.x), data.get("y", eref.global_position.y) if data.has("y") else eref.global_position.y)
 		var new_rot = data.get("rotation", eref.rotation)
+		# Safety client-side: si es spawn nuevo y el punto cae DENTRO de un collider 2D, recolocar visualmente
+		# (el servidor ya hace rejection sampling; esto es red de seguridad para desfases de config o mapas custom sin cache)
+		if is_new and _is_spawn_blocked_physics(new_pos):
+			var safe = _find_safe_spawn_near(new_pos, 280.0)
+			if safe != Vector2.INF:
+				new_pos = safe
+				print("[EntityManager] Spawn bloqueado corregido cliente: ", id, " -> ", safe)
+			else:
+				print("[EntityManager] Spawn bloqueado sin alternativa libre: ", id, " @ ", new_pos)
 		eref.target_position = new_pos
 		eref.target_rotation = new_rot
 		if is_new:
@@ -3414,13 +3757,23 @@ func _spawn_heal_beacon_vfx(id, pos, _radius, _data = {}):
 	var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 	var correction_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 	var sub_vp = current_map.sub_viewport
+	var h_b = 0.0
+	if is_instance_valid(current_map.get("terrain_node")):
+		h_b = _sample_terrain_height(pos, current_map)
 	var beacon = BEACON_3D_SCRIPT.new()
 	beacon.name = id
 	beacon._scale_factor = s_factor
 	beacon._heal_radius_2d = float(_data.get("radius", 200.0))
-	beacon.position = Vector3(pos.x * s_factor, 0.0, pos.y * s_factor * correction_z)
+	beacon.position = Vector3(pos.x * s_factor, h_b + 0.05, pos.y * s_factor * correction_z)
 	sub_vp.add_child(beacon)
 	active_areas[id] = beacon
+	# Asegurar que el anillo RangeRing sea conformante si se crea a nivel suelo
+	if beacon.has_method("_add_range_indicator"):
+		# Beacon crea su ring a y=0.02, elevarlo y hacerlo no_depth_test
+		var _ring = beacon.get_node_or_null("RangeRing")
+		if _ring and _ring.material_override is StandardMaterial3D:
+			_ring.material_override.no_depth_test = true
+			_ring.material_override.render_priority = 2
 
 func _on_beacon_pulse(data: Dictionary):
 	var id = data.get("id", "")
@@ -3979,6 +4332,79 @@ func _on_loot_despawned(data: Dictionary):
 				drop.queue_free()
 			print("[EntityManager] Botín físico removido: ", id)
 
+# --- v500.8+ Terrain-Conforming helpers (Decal híbrido) ---
+# Detecta si el renderer soporta Decal (Forward+ / Mobile). En gl_compatibility usamos malla conformante.
+func _render_supports_decal() -> bool:
+	var method = ProjectSettings.get_setting("renderer/rendering_method", "gl_compatibility")
+	# En editor mobile setting puede diferir
+	if method == "forward_plus" or method == "mobile":
+		return true
+	# fallback: leer renderer actual
+	var cur = ProjectSettings.get_setting("rendering/renderer/rendering_method", "gl_compatibility")
+	return cur == "forward_plus" or cur == "mobile"
+
+var _sample_log_count: int = 0
+func _sample_terrain_height(p2d: Vector2, map_node) -> float:
+	if not is_instance_valid(map_node) or not map_node.has_method("get_terrain_height_at_pos"):
+		return 0.0
+	var tnode = map_node.get("terrain_node")
+	var h: float = 0.0
+	var used_data: bool = false
+	if is_instance_valid(tnode):
+		# Intentar vía data.get_height (API nueva) y vía get_height directo (compat)
+		var s = map_node.scale_factor if "scale_factor" in map_node else 0.02
+		var cz = map_node.correction_z if "correction_z" in map_node else 1.41421356
+		var pos3 = Vector3(p2d.x * s, 0.0, p2d.y * s * cz)
+		if tnode.has_method("get_height"):
+			h = tnode.get_height(pos3)
+			used_data = true
+		elif "data" in tnode and is_instance_valid(tnode.data) and tnode.data.has_method("get_height"):
+			h = tnode.data.get_height(pos3)
+			used_data = true
+		elif tnode.has_property("data") and is_instance_valid(tnode.get("data")):
+			var d = tnode.get("data")
+			if d and d.has_method("get_height"):
+				h = d.get_height(pos3)
+				used_data = true
+		if used_data and not is_nan(h) and not is_inf(h):
+			if _sample_log_count < 6:
+				print("[TERRAIN_SAMPLE] p2d=", p2d, " pos3=", pos3, " h=", h, " terrain=", tnode.name)
+				_sample_log_count+=1
+			return h
+	# fallback al helper oficial (incluye throttle log)
+	var hf = map_node.get_terrain_height_at_pos(p2d)
+	if _sample_log_count < 6:
+		print("[TERRAIN_SAMPLE_FALLBACK] p2d=", p2d, " h_fallback=", hf, " tnode_valid=", is_instance_valid(tnode))
+		_sample_log_count+=1
+	return hf
+
+func _get_cast_progress(enemy_id: String, mId: String = "") -> float:
+	if not enemy_cast_visuals.has(enemy_id):
+		return -1.0
+	var dict = enemy_cast_visuals[enemy_id]
+	if mId != "" and dict.has(mId):
+		var d = dict[mId]
+		var dur = float(d.get("duration", 0))
+		if dur <= 0.0:
+			return -1.0
+		var start = int(d.get("startTime", 0))
+		var elapsed = Time.get_ticks_msec() - start
+		return clamp(float(elapsed) / dur, 0.0, 1.0)
+	# fallback: tomar el casteo más reciente de ese enemigo (suele haber uno solo activo)
+	var best_prog := -1.0
+	var best_start := -1
+	for k in dict.keys():
+		var d = dict[k]
+		var dur = float(d.get("duration", 0))
+		if dur <= 0.0:
+			continue
+		var start = int(d.get("startTime", 0))
+		if start > best_start:
+			best_start = start
+			var elapsed = Time.get_ticks_msec() - start
+			best_prog = clamp(float(elapsed) / dur, 0.0, 1.0)
+	return best_prog
+
 func _make_cone_mesh_3d(range_3d: float, angle_deg: float) -> ArrayMesh:
 	var half_angle = deg_to_rad(angle_deg / 2.0)
 	var total_angle = deg_to_rad(angle_deg)
@@ -3999,6 +4425,239 @@ func _make_cone_mesh_3d(range_3d: float, angle_deg: float) -> ArrayMesh:
 		st.set_normal(normal)
 		st.add_vertex(p2)
 	return st.commit()
+
+# Malla de cono CONFORMANTE densa: subdivide radialmente para no atravesar lomas interiores
+func _make_cone_mesh_conforming(center_2d: Vector2, range_val_2d: float, angle_deg: float, enemy_rot: float, map_node) -> ArrayMesh:
+	var half_angle = deg_to_rad(angle_deg / 2.0)
+	var total_angle = deg_to_rad(angle_deg)
+	var segs_ang = 24
+	var segs_rad = 5 # anillos radiales (0 = apex)
+	var s_factor = map_node.scale_factor if is_instance_valid(map_node) and "scale_factor" in map_node else 0.02
+	var cz = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
+	var h_center = _sample_terrain_height(center_2d, map_node)
+	var eps = 0.45 # levantar bastante para que no se entierre en picos intermedios no muestreados
+	# Para lomas muy empinadas, añadir margen según variación máxima muestreada
+	var max_abs_delta: float = 0.0
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	# Pre-muestrear alturas en grilla para calcular variación y para reutilizar
+	for ri in range(segs_rad):
+		var r1 = range_val_2d * (float(ri) / segs_rad)
+		var r2 = range_val_2d * (float(ri+1) / segs_rad)
+		for ai in range(segs_ang):
+			var a1 = -half_angle + (float(ai) / segs_ang) * total_angle
+			var a2 = -half_angle + (float(ai+1) / segs_ang) * total_angle
+			var off_a1_r1 = Vector2(sin(a1) * r1, -cos(a1) * r1).rotated(enemy_rot)
+			var off_a2_r1 = Vector2(sin(a2) * r1, -cos(a2) * r1).rotated(enemy_rot)
+			var off_a1_r2 = Vector2(sin(a1) * r2, -cos(a1) * r2).rotated(enemy_rot)
+			var off_a2_r2 = Vector2(sin(a2) * r2, -cos(a2) * r2).rotated(enemy_rot)
+			var w_a1_r1 = center_2d + off_a1_r1
+			var w_a2_r1 = center_2d + off_a2_r1
+			var w_a1_r2 = center_2d + off_a1_r2
+			var w_a2_r2 = center_2d + off_a2_r2
+			var h_a1_r1 = _sample_terrain_height(w_a1_r1, map_node)
+			var h_a2_r1 = _sample_terrain_height(w_a2_r1, map_node)
+			var h_a1_r2 = _sample_terrain_height(w_a1_r2, map_node)
+			var h_a2_r2 = _sample_terrain_height(w_a2_r2, map_node)
+			max_abs_delta = max(max_abs_delta, abs(h_a1_r1 - h_center))
+			max_abs_delta = max(max_abs_delta, abs(h_a2_r1 - h_center))
+			max_abs_delta = max(max_abs_delta, abs(h_a1_r2 - h_center))
+			max_abs_delta = max(max_abs_delta, abs(h_a2_r2 - h_center))
+			var p_a1_r1 = Vector3(off_a1_r1.x * s_factor, (h_a1_r1 - h_center) + eps, off_a1_r1.y * s_factor * cz)
+			var p_a2_r1 = Vector3(off_a2_r1.x * s_factor, (h_a2_r1 - h_center) + eps, off_a2_r1.y * s_factor * cz)
+			var p_a1_r2 = Vector3(off_a1_r2.x * s_factor, (h_a1_r2 - h_center) + eps, off_a1_r2.y * s_factor * cz)
+			var p_a2_r2 = Vector3(off_a2_r2.x * s_factor, (h_a2_r2 - h_center) + eps, off_a2_r2.y * s_factor * cz)
+			if ri == 0:
+				# Fan desde apex (r1=0 => p_a1_r1 == p_a2_r1 == apex)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r1) # apex
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r2)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a2_r2)
+			else:
+				# Quad en dos triángulos
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r1)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a2_r1)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a2_r2)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r1)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a2_r2)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r2)
+	if max_abs_delta > 4.0 and _sample_log_count < 4:
+		print("[CONE_CONFORM] center=", center_2d, " range=", range_val_2d, " maxDelta=", max_abs_delta, " h_center=", h_center)
+	return st.commit()
+
+func _make_circle_disc_conforming(center_2d: Vector2, radius_2d: float, map_node) -> ArrayMesh:
+	var segs_ang = 32
+	var segs_rad = 6
+	var s_factor = map_node.scale_factor if is_instance_valid(map_node) and "scale_factor" in map_node else 0.02
+	var cz = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
+	var h_center = _sample_terrain_height(center_2d, map_node)
+	var eps = 0.45
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for ri in range(segs_rad):
+		var r1 = radius_2d * (float(ri) / segs_rad)
+		var r2 = radius_2d * (float(ri+1) / segs_rad)
+		for ai in range(segs_ang):
+			var ang1 = (float(ai) / segs_ang) * TAU
+			var ang2 = (float(ai+1) / segs_ang) * TAU
+			var off_a1_r1 = Vector2(cos(ang1), sin(ang1)) * r1
+			var off_a2_r1 = Vector2(cos(ang2), sin(ang2)) * r1
+			var off_a1_r2 = Vector2(cos(ang1), sin(ang1)) * r2
+			var off_a2_r2 = Vector2(cos(ang2), sin(ang2)) * r2
+			var h_a1_r1 = _sample_terrain_height(center_2d + off_a1_r1, map_node)
+			var h_a2_r1 = _sample_terrain_height(center_2d + off_a2_r1, map_node)
+			var h_a1_r2 = _sample_terrain_height(center_2d + off_a1_r2, map_node)
+			var h_a2_r2 = _sample_terrain_height(center_2d + off_a2_r2, map_node)
+			var p_a1_r1 = Vector3(off_a1_r1.x * s_factor, (h_a1_r1 - h_center) + eps, off_a1_r1.y * s_factor * cz)
+			var p_a2_r1 = Vector3(off_a2_r1.x * s_factor, (h_a2_r1 - h_center) + eps, off_a2_r1.y * s_factor * cz)
+			var p_a1_r2 = Vector3(off_a1_r2.x * s_factor, (h_a1_r2 - h_center) + eps, off_a1_r2.y * s_factor * cz)
+			var p_a2_r2 = Vector3(off_a2_r2.x * s_factor, (h_a2_r2 - h_center) + eps, off_a2_r2.y * s_factor * cz)
+			if ri == 0:
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r1)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r2)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a2_r2)
+			else:
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r1)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a2_r1)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a2_r2)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r1)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a2_r2)
+				st.set_normal(Vector3.UP)
+				st.add_vertex(p_a1_r2)
+	return st.commit()
+
+func _generate_decal_texture_circle(size: int = 256) -> ImageTexture:
+	var img = Image.create(size, size, false, Image.FORMAT_RGBA8)
+	var center = Vector2(size/2, size/2)
+	var radius = size * 0.48
+	for y in size:
+		for x in size:
+			var d = Vector2(x, y).distance_to(center)
+			var a = 0.0
+			if d <= radius:
+				var rim = 1.0 - clamp((d - radius*0.88)/ (radius*0.12), 0.0, 1.0)
+				a = 0.65 * rim * (1.0 - pow(clamp(d/radius,0,1), 2.5))
+				# borde más marcado
+				if d > radius*0.92:
+					a = 0.85
+			img.set_pixel(x, y, Color(1,1,1, a))
+	var tex = ImageTexture.create_from_image(img)
+	return tex
+
+func _generate_decal_texture_cone(size: int = 256, angle_deg: float = 60.0) -> ImageTexture:
+	var img = Image.create(size, size, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0,0,0,0))
+	var center = Vector2(size/2, size-1) # apex abajo centro
+	var half = deg_to_rad(angle_deg/2.0)
+	var max_r = size * 0.95
+	for y in size:
+		for x in size:
+			var p = Vector2(x,y) - center
+			var dist = p.length()
+			if dist < 1.0 or dist > max_r:
+				continue
+			var ang = atan2(p.x, -p.y) # 0 es arriba (-Y)
+			if abs(ang) <= half + 0.02:
+				var edge = abs(ang) - half
+				var alpha = 0.55
+				if edge > 0:
+					alpha *= clamp(1.0 - edge/0.25, 0.0, 1.0)
+				# fade por distancia cerca apex
+				var d_alpha = clamp((dist - 8.0)/ max_r, 0.0, 1.0)
+				alpha *= d_alpha
+				# borde exterior más brillante
+				if abs(ang) > half - 0.08 or dist > max_r*0.92:
+					alpha = 0.9
+				img.set_pixel(x, y, Color(1,1,1, alpha))
+	var tex = ImageTexture.create_from_image(img)
+	return tex
+
+func _create_decal_node(pos_3d: Vector3, size_3d: Vector3, tex: Texture2D, col: Color, energy: float, fade: float = 0.3) -> Decal:
+	var d = Decal.new()
+	d.size = size_3d
+	d.texture_albedo = tex
+	d.texture_emission = tex
+	d.modulate = col
+	d.emission_energy = energy
+	d.upper_fade = fade
+	d.lower_fade = fade
+	d.normal_fade = 0.2
+	d.cull_mask = 1 # capa 0 / vis-layer
+	d.position = pos_3d
+	# Decal proyecta en -Y por defecto: no rotar (Y-up). Altura del AABB cubre relieve => Y grande
+	return d
+
+# Helper genérico: eleva Node3D al terreno y hace discos conformantes, anillos con no_depth_test
+func _conform_ground_node(root: Node3D, center_2d: Vector2, radius_2d: float):
+	var map_node = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(map_node) or not is_instance_valid(map_node.get("terrain_node")):
+		return
+	if not is_instance_valid(root):
+		return
+	var h = _sample_terrain_height(center_2d, map_node)
+	# Elevar root justo por encima del terreno (eps 0.05 base). Si root ya está en altura, ajustar.
+	# Detectar si root es hijo de sub_viewport (world pos) o de world_root (local offset)
+	var is_world = root.get_parent() and root.get_parent().name == "SubViewport" or root.get_parent() is SubViewport or (is_instance_valid(map_node.sub_viewport) and root.get_parent() == map_node.sub_viewport)
+	if is_world:
+		var s = map_node.scale_factor if "scale_factor" in map_node else 0.02
+		var cz = map_node.correction_z if "correction_z" in map_node else 1.41421356
+		root.position = Vector3(center_2d.x * s, h + 0.05, center_2d.y * s * cz)
+		# Si es mundo, reemplazar cilindros internos
+		for child in root.get_children():
+			if child is MeshInstance3D and child.mesh is CylinderMesh:
+				var cyl = child.mesh as CylinderMesh
+				# Reemplazar por disco conformante del mismo radio (usar radius_2d si provisto, sino derivar de cyl)
+				var rad = radius_2d if radius_2d > 0.01 else cyl.top_radius / (map_node.scale_factor if "scale_factor" in map_node else 0.02)
+				var disc = _make_circle_disc_conforming(center_2d, rad, map_node)
+				child.mesh = disc
+				if child.material_override is StandardMaterial3D:
+					child.material_override.no_depth_test = true
+					child.material_override.render_priority = 2
+					child.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			elif child is MeshInstance3D and child.material_override is StandardMaterial3D:
+				child.material_override.no_depth_test = true
+				child.material_override.render_priority = 2
+				child.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	else:
+		# Local a world_root (offset relativo)
+		# root.position.y debe ser delta respecto base_y
+		root.position.y = h - _attack_vfx_base_y() + 0.05
+		for child in root.get_children():
+			if child is MeshInstance3D and child.mesh is CylinderMesh:
+				var cyl = child.mesh as CylinderMesh
+				var rad = radius_2d if radius_2d > 0.01 else cyl.top_radius / (map_node.scale_factor if "scale_factor" in map_node else 0.02)
+				var disc = _make_circle_disc_conforming(center_2d, rad, map_node)
+				child.mesh = disc
+				if child.material_override is StandardMaterial3D:
+					child.material_override.no_depth_test = true
+					child.material_override.render_priority = 2
+					child.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			elif child is MeshInstance3D and child.material_override is StandardMaterial3D:
+				child.material_override.no_depth_test = true
+				child.material_override.render_priority = 2
+				child.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			# Recursivo para rings dentro de rings
+			for sub in child.get_children():
+				if sub is MeshInstance3D and sub.material_override is StandardMaterial3D:
+					sub.material_override.no_depth_test = true
+					sub.material_override.render_priority = 2
+					sub.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
 func _get_cone_points(radius: float, angle_degrees: float) -> PackedVector2Array:
 	var points = PackedVector2Array()

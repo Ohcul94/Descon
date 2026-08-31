@@ -355,7 +355,7 @@ size = Vector3(9.7, 0.2, 11.599945)
 material = SubResource("StandardMaterial3D_mc5ab")
 
 [node name="Altar1" type="Node3D" parent="." unique_id=599011876 instance=ExtResource("5_k8upu")]
-transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 46.4086, 6.624, 65.83928)
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 64.73134, 6.624, 36.95689)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
 metadata/label = "Altar1"

@@ -99,17 +99,56 @@ func _spawn_ground_area(data: Dictionary) -> void:
 	var e_y := float(data.get("y", global_position.y))
 	var r3d: float = radius * s_factor
 
+	# Elevar al terreno real para no quedar enterrado
+	var _h = 0.0
+	if map_node and map_node.has_method("get_terrain_height_at_pos"):
+		_h = map_node.get_terrain_height_at_pos(Vector2(e_x, e_y))
+		var _tn = map_node.get("terrain_node")
+		if is_instance_valid(_tn):
+			var _pos3 = Vector3(e_x * map_node.scale_factor, 0.0, e_y * map_node.scale_factor * map_node.correction_z)
+			if _tn.has_method("get_height"):
+				var _hh = _tn.get_height(_pos3)
+				if not is_nan(_hh) and not is_inf(_hh):
+					_h = _hh
+			elif "data" in _tn and is_instance_valid(_tn.data) and _tn.data.has_method("get_height"):
+				var _hh2 = _tn.data.get_height(_pos3)
+				if not is_nan(_hh2) and not is_inf(_hh2):
+					_h = _hh2
 	_ground_3d = Node3D.new()
 	_ground_3d.name = "BurrowGround_" + name
-	_ground_3d.position = Vector3(e_x * s_factor, 0.0, e_y * s_factor * correction_z)
+	_ground_3d.position = Vector3(e_x * s_factor, _h + 0.05, e_y * s_factor * correction_z)
 	vp.add_child(_ground_3d)
 
-	# Disco de área (reproducción del radio exacto)
+	# Disco conformante al relieve
 	var disc := MeshInstance3D.new()
-	var disc_mesh := CylinderMesh.new()
-	disc_mesh.top_radius = r3d
-	disc_mesh.bottom_radius = r3d
-	disc_mesh.height = 0.01
+	var disc_mesh: Mesh = CylinderMesh.new()
+	# Intentar disco conformante denso si hay terreno
+	var _map_b = map_node
+	if is_instance_valid(_map_b) and is_instance_valid(_map_b.get("terrain_node")):
+		var _em = get_tree().get_first_node_in_group("world_node")
+		if _em and _em.has_node("EntityManager"):
+			var _mgr = _em.get_node("EntityManager")
+			if _mgr and _mgr.has_method("_make_circle_disc_conforming"):
+				disc_mesh = _mgr._make_circle_disc_conforming(Vector2(e_x, e_y), radius, _map_b)
+			else:
+				var _tmp = CylinderMesh.new()
+				_tmp.top_radius = r3d
+				_tmp.bottom_radius = r3d
+				_tmp.height = 0.01
+				disc_mesh = _tmp
+		else:
+			# fallback denso local
+			var _cyl = CylinderMesh.new()
+			_cyl.top_radius = r3d
+			_cyl.bottom_radius = r3d
+			_cyl.height = 0.01
+			disc_mesh = _cyl
+	else:
+		var _cyl = CylinderMesh.new()
+		_cyl.top_radius = r3d
+		_cyl.bottom_radius = r3d
+		_cyl.height = 0.01
+		disc_mesh = _cyl
 	disc.mesh = disc_mesh
 	var disc_mat := StandardMaterial3D.new()
 	if burst_mode == "zone":
@@ -124,10 +163,13 @@ func _spawn_ground_area(data: Dictionary) -> void:
 		disc_mat.emission_energy_multiplier = 1.2
 	disc_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	disc_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	disc_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	disc_mat.no_depth_test = true
+	disc_mat.render_priority = 2
 	disc.material_override = disc_mat
 	_ground_3d.add_child(disc)
 
-	# Anillo exterior brillante en el borde del radio
+	# Anillo exterior brillante
 	var ring := MeshInstance3D.new()
 	var ring_mesh := TorusMesh.new()
 	ring_mesh.inner_radius = r3d * 0.97
@@ -140,8 +182,11 @@ func _spawn_ground_area(data: Dictionary) -> void:
 	ring_mat.emission_energy_multiplier = 2.0
 	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring_mat.no_depth_test = true
+	ring_mat.render_priority = 2
 	ring.material_override = ring_mat
-	ring.position.y = 0.02
+	ring.position.y = 0.06
 	_ground_3d.add_child(ring)
 
 func float_node(v) -> float:

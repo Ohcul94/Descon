@@ -65,21 +65,124 @@ func _build_visuals() -> void:
 	# 3D overlay
 	_build_3d()
 
+func _sample_height(p2d: Vector2) -> float:
+	if not is_instance_valid(map_node) or not map_node.has_method("get_terrain_height_at_pos"):
+		return 0.0
+	var tn = map_node.get("terrain_node")
+	if is_instance_valid(tn):
+		var s = map_node.scale_factor if "scale_factor" in map_node else 0.02
+		var cz = map_node.correction_z if "correction_z" in map_node else 1.41421356
+		var pos3 = Vector3(p2d.x * s, 0.0, p2d.y * s * cz)
+		if tn.has_method("get_height"):
+			var h = tn.get_height(pos3)
+			if not is_nan(h) and not is_inf(h):
+				return h
+		elif "data" in tn and is_instance_valid(tn.data) and tn.data.has_method("get_height"):
+			var h2 = tn.data.get_height(pos3)
+			if not is_nan(h2) and not is_inf(h2):
+				return h2
+	return map_node.get_terrain_height_at_pos(p2d)
+
+func _make_arc_disc_conforming(center: Vector2, radius: float, angle_deg: float, rot: float, full: bool) -> ArrayMesh:
+	var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
+	var cz = map_node.correction_z if "correction_z" in map_node else 1.41421356
+	var h_center = _sample_height(center)
+	var eps = 0.45
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	if full:
+		var segs_ang = 32
+		var segs_rad = 5
+		for ri in range(segs_rad):
+			var r1 = radius * (float(ri)/segs_rad)
+			var r2 = radius * (float(ri+1)/segs_rad)
+			for ai in range(segs_ang):
+				var a1 = (float(ai)/segs_ang)*TAU
+				var a2 = (float(ai+1)/segs_ang)*TAU
+				var off_a1_r1 = Vector2(cos(a1), sin(a1))*r1
+				var off_a2_r1 = Vector2(cos(a2), sin(a2))*r1
+				var off_a1_r2 = Vector2(cos(a1), sin(a1))*r2
+				var off_a2_r2 = Vector2(cos(a2), sin(a2))*r2
+				var h_a1_r1 = _sample_height(center + off_a1_r1)
+				var h_a2_r1 = _sample_height(center + off_a2_r1)
+				var h_a1_r2 = _sample_height(center + off_a1_r2)
+				var h_a2_r2 = _sample_height(center + off_a2_r2)
+				var p_a1_r1 = Vector3(off_a1_r1.x*s_factor, (h_a1_r1 - h_center)+eps, off_a1_r1.y*s_factor*cz)
+				var p_a2_r1 = Vector3(off_a2_r1.x*s_factor, (h_a2_r1 - h_center)+eps, off_a2_r1.y*s_factor*cz)
+				var p_a1_r2 = Vector3(off_a1_r2.x*s_factor, (h_a1_r2 - h_center)+eps, off_a1_r2.y*s_factor*cz)
+				var p_a2_r2 = Vector3(off_a2_r2.x*s_factor, (h_a2_r2 - h_center)+eps, off_a2_r2.y*s_factor*cz)
+				if ri==0:
+					st.set_normal(Vector3.UP); st.add_vertex(p_a1_r1)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a1_r2)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a2_r2)
+				else:
+					st.set_normal(Vector3.UP); st.add_vertex(p_a1_r1)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a2_r1)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a2_r2)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a1_r1)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a2_r2)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a1_r2)
+	else:
+		var half = deg_to_rad(angle_deg*0.5)
+		var segs_ang = 22
+		var segs_rad = 5
+		for ri in range(segs_rad):
+			var r1 = radius * (float(ri)/segs_rad)
+			var r2 = radius * (float(ri+1)/segs_rad)
+			for ai in range(segs_ang):
+				var a1 = -half + (float(ai)/segs_ang)*(half*2)
+				var a2 = -half + (float(ai+1)/segs_ang)*(half*2)
+				var off_a1_r1 = Vector2(sin(a1)*r1, -cos(a1)*r1).rotated(rot)
+				var off_a2_r1 = Vector2(sin(a2)*r1, -cos(a2)*r1).rotated(rot)
+				var off_a1_r2 = Vector2(sin(a1)*r2, -cos(a1)*r2).rotated(rot)
+				var off_a2_r2 = Vector2(sin(a2)*r2, -cos(a2)*r2).rotated(rot)
+				var h_a1_r1 = _sample_height(center + off_a1_r1)
+				var h_a2_r1 = _sample_height(center + off_a2_r1)
+				var h_a1_r2 = _sample_height(center + off_a1_r2)
+				var h_a2_r2 = _sample_height(center + off_a2_r2)
+				var p_a1_r1 = Vector3(off_a1_r1.x*s_factor, (h_a1_r1 - h_center)+eps, off_a1_r1.y*s_factor*cz)
+				var p_a2_r1 = Vector3(off_a2_r1.x*s_factor, (h_a2_r1 - h_center)+eps, off_a2_r1.y*s_factor*cz)
+				var p_a1_r2 = Vector3(off_a1_r2.x*s_factor, (h_a1_r2 - h_center)+eps, off_a1_r2.y*s_factor*cz)
+				var p_a2_r2 = Vector3(off_a2_r2.x*s_factor, (h_a2_r2 - h_center)+eps, off_a2_r2.y*s_factor*cz)
+				if ri==0:
+					var p0 = Vector3(0, eps, 0)
+					st.set_normal(Vector3.UP); st.add_vertex(p0)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a1_r2)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a2_r2)
+				else:
+					st.set_normal(Vector3.UP); st.add_vertex(p_a1_r1)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a2_r1)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a2_r2)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a1_r1)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a2_r2)
+					st.set_normal(Vector3.UP); st.add_vertex(p_a1_r2)
+	return st.commit()
+
 func _build_3d() -> void:
 	if not is_instance_valid(map_node) or not map_node.get("sub_viewport"):
 		return
 	world_root_3d = Node3D.new()
 	world_root_3d.name = "MeleeSlash3D_" + str(get_instance_id())
 	map_node.sub_viewport.add_child(world_root_3d)
-	var s_factor := 0.02
-	if "scale_factor" in map_node:
-		s_factor = map_node.scale_factor
 	_arc_3d = MeshInstance3D.new()
-	var cyl := CylinderMesh.new()
-	cyl.top_radius = _arc_radius * s_factor
-	cyl.bottom_radius = _arc_radius * s_factor
-	cyl.height = 0.02
-	_arc_3d.mesh = cyl
+	# Usar disco conformante si hay terreno
+	var has_terrain = is_instance_valid(map_node.get("terrain_node"))
+	if has_terrain:
+		var center = global_position
+		var mesh_c = _make_arc_disc_conforming(center, _arc_radius, _arc_angle, rotation, _full_circle)
+		_arc_3d.mesh = mesh_c
+		# Elevar root al terreno
+		var h = _sample_height(center)
+		world_root_3d.position.y = h - 1.0 + 0.0 # base_y 1.0
+	else:
+		var s_factor := 0.02
+		if "scale_factor" in map_node:
+			s_factor = map_node.scale_factor
+		var cyl := CylinderMesh.new()
+		cyl.top_radius = _arc_radius * s_factor
+		cyl.bottom_radius = _arc_radius * s_factor
+		cyl.height = 0.02
+		_arc_3d.mesh = cyl
 	_arc_mat = StandardMaterial3D.new()
 	_arc_mat.albedo_color = Color(1.0, 0.15, 0.02, 0.18)
 	_arc_mat.emission_enabled = true
@@ -87,8 +190,14 @@ func _build_3d() -> void:
 	_arc_mat.emission_energy_multiplier = 1.0
 	_arc_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_arc_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_arc_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_arc_mat.no_depth_test = true
+	_arc_mat.render_priority = 2
 	_arc_3d.material_override = _arc_mat
 	world_root_3d.add_child(_arc_3d)
+	# Guardar para reconstrucción si cambia rotación/posición significativamente
+	world_root_3d.set_meta("last_center", global_position)
+	world_root_3d.set_meta("last_rot", rotation)
 	tree_exiting.connect(func():
 		if is_instance_valid(world_root_3d):
 			world_root_3d.queue_free()
@@ -296,11 +405,31 @@ func _sync_3d() -> void:
 		s_factor = map_node.scale_factor
 	if "correction_z" in map_node:
 		correction_z = map_node.correction_z
+	# Altura real del terreno, no la del modelo del enemigo
 	var y_3d := 1.0
-	if is_instance_valid(enemy_node) and is_instance_valid(enemy_node.get("world_root_3d")):
-		y_3d = enemy_node.world_root_3d.position.y
+	if is_instance_valid(map_node) and map_node.has_method("get_terrain_height_at_pos"):
+		y_3d = _sample_height(global_position)
+	else:
+		if is_instance_valid(enemy_node) and is_instance_valid(enemy_node.get("world_root_3d")):
+			y_3d = enemy_node.world_root_3d.position.y
 	world_root_3d.position = Vector3(global_position.x * s_factor, y_3d + 0.05, global_position.y * s_factor * correction_z)
 	world_root_3d.rotation.y = -rotation - PI/2.0
+	# Regeneración suave para homing/movimiento: umbral bajo para que no se note salto
+	if world_root_3d.has_meta("last_center"):
+		var last_c = world_root_3d.get_meta("last_center") as Vector2
+		var last_r = world_root_3d.get_meta("last_rot") as float
+		if global_position.distance_to(last_c) > 5.0 or abs(angle_difference(last_r, rotation)) > deg_to_rad(1.5):
+			if is_instance_valid(_arc_3d):
+				var new_mesh = _make_arc_disc_conforming(global_position, _arc_radius, _arc_angle, rotation, _full_circle)
+				_arc_3d.mesh = new_mesh
+			world_root_3d.set_meta("last_center", global_position)
+			world_root_3d.set_meta("last_rot", rotation)
+	# Lerp suave de altura aunque no regenere (evita saltos en loma)
+	var h_tgt = _sample_height(global_position)
+	var cur_y = world_root_3d.position.y
+	var tgt_y = h_tgt - 1.0 + 0.05
+	var d = get_process_delta_time()
+	world_root_3d.position.y = lerp(cur_y, tgt_y, clamp(d*12.0, 0.0, 1.0))
 
 func _finish() -> void:
 	if is_instance_valid(world_root_3d):

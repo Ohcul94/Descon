@@ -1,4 +1,5 @@
 const Logger = require('../utils/logger');
+const spawnValidator = require('../utils/spawnValidator');
 
 class AltarDefenseManager {
     constructor() {
@@ -222,16 +223,44 @@ class AltarDefenseManager {
 
                         if (targetSpawner) {
                             const radius = targetSpawner.radius || 200;
-                            const angle = Math.random() * Math.PI * 2;
-                            const r = Math.random() * radius;
-                            x = targetSpawner.x + Math.cos(angle) * r;
-                            y = targetSpawner.y + Math.sin(angle) * r;
+                            const valid = spawnValidator.findValidSpawnPosition(targetSpawner.x, targetSpawner.y, radius, match.zoneId, this.state, { maxAttempts: 30 });
+                            if (valid) { x = valid.x; y = valid.y; }
+                            else {
+                                const angle = Math.random() * Math.PI * 2;
+                                const r = Math.random() * radius;
+                                x = targetSpawner.x + Math.cos(angle) * r;
+                                y = targetSpawner.y + Math.sin(angle) * r;
+                            }
                         } else {
                             // Fallback: Spawnear alrededor del altar
-                            const angle = Math.random() * Math.PI * 2;
-                            const dist = Math.random() * 500 + 900;
-                            x = match.altarPos.x + Math.cos(angle) * dist;
-                            y = match.altarPos.y + Math.sin(angle) * dist;
+                            const valid = spawnValidator.findValidSpawnPosition(match.altarPos.x, match.altarPos.y, 900, match.zoneId, this.state, { maxAttempts: 25 });
+                            // Hacemos un muestreo en anillo 900-1400 evitando obstáculos
+                            let found = null;
+                            for (let k = 0; k < 30; k++) {
+                                const angle = Math.random() * Math.PI * 2;
+                                const dist = Math.random() * 500 + 900;
+                                const tx = match.altarPos.x + Math.cos(angle) * dist;
+                                const ty = match.altarPos.y + Math.sin(angle) * dist;
+                                if (!spawnValidator.isPointBlocked(tx, ty, match.zoneId, this.state)) { found = { x: tx, y: ty }; break; }
+                            }
+                            if (found) { x = found.x; y = found.y; }
+                            else if (valid) {
+                                // valid está dentro de 0-900, buscar anillo externo: si no hay hueco en 900-1400, usar valid desplazado
+                                const angle = Math.random() * Math.PI * 2;
+                                const dist = Math.random() * 500 + 900;
+                                x = match.altarPos.x + Math.cos(angle) * dist;
+                                y = match.altarPos.y + Math.sin(angle) * dist;
+                            } else {
+                                const angle = Math.random() * Math.PI * 2;
+                                const dist = Math.random() * 500 + 900;
+                                x = match.altarPos.x + Math.cos(angle) * dist;
+                                y = match.altarPos.y + Math.sin(angle) * dist;
+                            }
+                        }
+                        // Seguridad final: si aun así cayó en pared, recolocar con validador
+                        if (spawnValidator.isPointBlocked(x, y, match.zoneId, this.state)) {
+                            const fb = spawnValidator.findValidSpawnPosition(x, y, 300, match.zoneId, this.state, { maxAttempts: 20 });
+                            if (fb) { x = fb.x; y = fb.y; }
                         }
                         
                         const enemy = this.aiManager.serverSpawnEnemy(match.zoneId, type, x, y, null, true);
