@@ -20,6 +20,7 @@ Server/public/cdn/
 *.zip
 *.tmp
 deploy.bat
+.env.deploy
 
 # Server runtime data (reports, logs - each server has its own)
 Server/data/
