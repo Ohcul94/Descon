@@ -788,6 +788,26 @@ func load_from_server():
 	var map_data = maps_config[zone_id]
 	var objects = map_data.get("objects", [])
 
+	# v700.13: Omitir recarga destructiva si la escena en memoria ya está sincronizada con config.json.
+	# Esto preserva el estado del árbol de escena (nodos plegados/colapsados y selección del editor).
+	var current_json_compact = ""
+	var p_json = JSON.new()
+	if p_json.parse(json_to_import) == OK:
+		current_json_compact = JSON.stringify(p_json.get_data())
+	var incoming_json_compact = JSON.stringify(objects)
+	
+	var has_objects_instanced = false
+	var check_parent = find_child("ObjectsRoot", true, false)
+	if is_instance_valid(check_parent) and check_parent.get_child_count() > 0:
+		has_objects_instanced = true
+	elif get_child_count() > 5:
+		has_objects_instanced = true
+		
+	var skip_import = false
+	if has_objects_instanced and current_json_compact == incoming_json_compact:
+		print("MapEditor3D: Escena ya sincronizada con Server/config.json. Omitiendo recarga destructiva para preservar plegados y selección del árbol.")
+		skip_import = true
+
 	# Dimensiones: leer primero del gameMode si es zona de evento
 	var zone_id_int = int(zone_id)
 	var width_val = 0.0
@@ -826,8 +846,9 @@ func load_from_server():
 
 	# ─── ZONA NORMAL: importar mapsConfig.objects directamente ────────────
 	if not is_extraction_zone and not is_altar_zone:
-		json_to_import = JSON.stringify(objects)
-		import_from_json()
+		if not skip_import:
+			json_to_import = JSON.stringify(objects)
+			import_from_json()
 
 	# ─── ZONA DE EXTRACCIÓN ───────────────────────────────────────────────
 	if is_extraction_zone:
@@ -845,9 +866,10 @@ func load_from_server():
 
 		if objects.size() > 0:
 			# Ya tiene objects guardados desde el editor, usarlos directamente
-			json_to_import = JSON.stringify(objects)
-			import_from_json()
-			print("MapEditor3D: ✅ Objects de extracción cargados desde mapsConfig (", objects.size(), " obj).")
+			if not skip_import:
+				json_to_import = JSON.stringify(objects)
+				import_from_json()
+				print("MapEditor3D: ✅ Objects de extracción cargados desde mapsConfig (", objects.size(), " obj).")
 		else:
 			# Primera vez: generar puertas desde extractPoints como objetos 3D editables
 			var generated_objects = []
@@ -867,9 +889,10 @@ func load_from_server():
 				})
 			if generated_objects.size() > 0:
 				print("MapEditor3D: ℹ️ objects vacío. Importando ", generated_objects.size(), " extractPoints como puertas 3D editables...")
-				json_to_import = JSON.stringify(generated_objects)
-				import_from_json()
-				print("MapEditor3D: ✅ Puertas importadas. Movelasen 3D y guardá con 'Save to Server'.")
+				if not skip_import:
+					json_to_import = JSON.stringify(generated_objects)
+					import_from_json()
+					print("MapEditor3D: ✅ Puertas importadas. Movelasen 3D y guardá con 'Save to Server'.")
 			else:
 				print("MapEditor3D: ⚠️ La zona de extracción no tiene extractPoints en el config.")
 
@@ -891,9 +914,10 @@ func load_from_server():
 		_spawn_altar_defense_markers(ad_cfg)
 
 		if objects.size() > 0:
-			json_to_import = JSON.stringify(objects)
-			import_from_json()
-			print("MapEditor3D: ✅ Objects de altar cargados desde mapsConfig (", objects.size(), " obj).")
+			if not skip_import:
+				json_to_import = JSON.stringify(objects)
+				import_from_json()
+				print("MapEditor3D: ✅ Objects de altar cargados desde mapsConfig (", objects.size(), " obj).")
 		else:
 			var generated_objects = []
 			var altar_pos    = ad_cfg.get("altarPos", {})
@@ -913,9 +937,10 @@ func load_from_server():
 				})
 			if generated_objects.size() > 0:
 				print("MapEditor3D: ℹ️ objects vacío. Importando altar + ", exit_portals.size(), " portales como objetos 3D editables...")
-				json_to_import = JSON.stringify(generated_objects)
-				import_from_json()
-				print("MapEditor3D: ✅ Altar y portales importados. Editalos y guardá con 'Save to Server'.")
+				if not skip_import:
+					json_to_import = JSON.stringify(generated_objects)
+					import_from_json()
+					print("MapEditor3D: ✅ Altar y portales importados. Editalos y guardá con 'Save to Server'.")
 			else:
 				print("MapEditor3D: ⚠️ Altar defense sin altarPos ni exitPortals en config.")
 
@@ -928,9 +953,10 @@ func load_from_server():
 		set_meta("arena_config", arena_map_cfg)
 
 		if objects.size() > 0:
-			json_to_import = JSON.stringify(objects)
-			import_from_json()
-			print("MapEditor3D: ✅ Objects de arena PVP cargados desde mapsConfig (", objects.size(), " obj).")
+			if not skip_import:
+				json_to_import = JSON.stringify(objects)
+				import_from_json()
+				print("MapEditor3D: ✅ Objects de arena PVP cargados desde mapsConfig (", objects.size(), " obj).")
 		else:
 			var generated_objects = []
 			
@@ -978,9 +1004,10 @@ func load_from_server():
 
 			if generated_objects.size() > 0:
 				print("MapEditor3D: ℹ️ objects vacío. Importando nexos, spawns y pilares como objetos editables...")
-				json_to_import = JSON.stringify(generated_objects)
-				import_from_json()
-				print("MapEditor3D: ✅ Nexos, pilares y spawns importados en 3D. Editalos y guardá con 'Save to Server'.")
+				if not skip_import:
+					json_to_import = JSON.stringify(generated_objects)
+					import_from_json()
+					print("MapEditor3D: ✅ Nexos, pilares y spawns importados en 3D. Editalos y guardá con 'Save to Server'.")
 			else:
 				print("MapEditor3D: ⚠️ La arena PVP no tiene configuración en gameModes.")
 
