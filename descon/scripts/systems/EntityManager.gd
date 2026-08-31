@@ -4544,7 +4544,7 @@ func _make_circle_disc_conforming(center_2d: Vector2, radius_2d: float, map_node
 
 func _generate_decal_texture_circle(size: int = 256) -> ImageTexture:
 	var img = Image.create(size, size, false, Image.FORMAT_RGBA8)
-	var center = Vector2(size/2, size/2)
+	var center = Vector2(float(size) / 2.0, float(size) / 2.0)
 	var radius = size * 0.48
 	for y in size:
 		for x in size:
@@ -4563,7 +4563,7 @@ func _generate_decal_texture_circle(size: int = 256) -> ImageTexture:
 func _generate_decal_texture_cone(size: int = 256, angle_deg: float = 60.0) -> ImageTexture:
 	var img = Image.create(size, size, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0,0,0,0))
-	var center = Vector2(size/2, size-1) # apex abajo centro
+	var center = Vector2(float(size) / 2.0, float(size - 1)) # apex abajo centro
 	var half = deg_to_rad(angle_deg/2.0)
 	var max_r = size * 0.95
 	for y in size:

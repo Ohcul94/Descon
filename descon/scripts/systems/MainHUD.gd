@@ -1959,6 +1959,7 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 
 	if node is PanelContainer or node is Panel or node is Control:
 		node.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		node.self_modulate = Color(1, 1, 1, 0)
 		if node.name == "CenterStats": 
 			node.custom_minimum_size = Vector2(250, 140)
 			node.size = Vector2(250, 140)

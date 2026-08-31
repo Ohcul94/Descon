@@ -129,15 +129,12 @@ func _ready():
 	world_size = GameConstants.GAME_CONFIG.get("worldSize", WORLD_DEFAULT_SIZE)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = true
-	# v141.80: Fondo original restaurado (adiós al rosa de diagnóstico)
-	if not get_node_or_null("BG"):
-		var bg = ColorRect.new()
-		bg.name = "BG"
-		bg.color = Color(0, 0.08, 0.12, 0.5) 
-		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE # Evitar que el BG bloquee al Minimap
-		bg.show_behind_parent = true
-		add_child(bg)
+	custom_minimum_size = Vector2.ZERO
+	
+	# v805.0: Eliminar BG azul estático residual para permitir que el marco SciFiFrame maneje el fondo de forma adaptativa
+	var old_bg = get_node_or_null("BG")
+	if old_bg:
+		old_bg.queue_free()
 		
 	# Inyectar Label de coordenadas y zona estilo neón
 	info_label = Label.new()
@@ -166,8 +163,39 @@ func _ready():
 		
 	add_child(info_label)
 
+func _update_parent_window_size():
+	var parent = get_parent()
+	if not is_instance_valid(parent) or not parent is Control:
+		return
+		
+	var dims = get_current_world_dimensions()
+	var worldW = dims.x
+	var worldH = dims.y
+	if worldW <= 0 or worldH <= 0:
+		return
+		
+	var max_dim = 220.0
+	var margin_total = 50.0 # Margen interno (25px por lado) aplicado por _apply_sci_fi_frame en MainHUD.gd
+	
+	var target_w = max_dim
+	var target_h = max_dim
+	
+	if worldW >= worldH:
+		target_h = margin_total + (max_dim - margin_total) * (worldH / worldW)
+	else:
+		target_w = margin_total + (max_dim - margin_total) * (worldW / worldH)
+		
+	var target_size = Vector2(target_w, target_h)
+	
+	# Solo aplicar si hay una diferencia notable para evitar re-calculo constante
+	if parent.size.distance_to(target_size) > 1.0 or parent.custom_minimum_size.distance_to(target_size) > 1.0:
+		parent.custom_minimum_size = target_size
+		parent.size = target_size
+		print("[Minimap] Contenedor adaptado a: ", target_size, " para mapa: ", worldW, "x", worldH)
+
 func _process(_delta):
 	if visible:
+		_update_parent_window_size()
 		queue_redraw()
 		_update_info_label()
 
@@ -191,10 +219,10 @@ func _update_info_label():
 	var py = int(player.global_position.y)
 	info_label.text = "%s | X: %d, Y: %d" % [z_name.to_upper(), px, py]
 	
-	# Centrar dinámicamente adentro del minimapa en la parte superior
+	# Centrar dinámicamente arriba del reborde del minimapa
 	info_label.reset_size()
 	info_label.position.x = (size.x - info_label.size.x) / 2.0
-	info_label.position.y = 8
+	info_label.position.y = -50
 
 func _draw():
 	var player = get_tree().get_first_node_in_group("player")
@@ -648,9 +676,6 @@ func _draw():
 
 	# v700.14: Restablecer la transformación para dibujar el borde y el tooltip en coordenadas del panel
 	draw_set_transform(Vector2.ZERO)
-
-	# Borde del radar
-	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0, 1, 1, 0.1), false, 1.0)
 	
 	# 8. Dibujar Tooltip interactivo si se pasa el mouse por encima de un portal
 	if hovered_dest != "":
@@ -712,13 +737,13 @@ func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: 
 				if edge_fade <= 0.02:
 					continue
 			# Hash nube por celda + elevación animada
-			var hash = fmod(sin(float(idx) * 12.9898 + float(cx)*78.233 + float(cy)*37.719) * 43758.5453, 1.0)
-			hash = abs(hash)
+			var cell_hash = fmod(sin(float(idx) * 12.9898 + float(cx)*78.233 + float(cy)*37.719) * 43758.5453, 1.0)
+			cell_hash = abs(cell_hash)
 			# Dos capas de nube para variación
 			var n1 = fmod(sin(float(idx)* 0.11 + t*0.7 + float(cx)*0.12) * 9.3, 1.0)
 			var n2 = fmod(cos(float(idx)* 0.07 - t*0.5 + float(cy)*0.09) * 7.1, 1.0)
 			n1 = abs(n1); n2 = abs(n2)
-			var cloud = hash * 0.55 + n1 * 0.28 + n2 * 0.17
+			var cloud = cell_hash * 0.55 + n1 * 0.28 + n2 * 0.17
 			# Onda elevación lenta
 			var wave = sin(float(cx)*0.18 + t*1.2) * cos(float(cy)*0.16 + t*0.9) * 0.12
 			cloud = clamp(cloud + wave, 0.0, 1.0)
@@ -735,7 +760,7 @@ func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: 
 			# Variación fina
 			pal.r += (n1 - 0.5) * 0.04
 			pal.g += (n2 - 0.5) * 0.04
-			pal.b += (hash - 0.5) * 0.03
+			pal.b += (cell_hash - 0.5) * 0.03
 			var rect = Rect2(float(cx) * cell_w, float(cy) * cell_h, cell_w + 0.6, cell_h + 0.6)
 			if not is_explored:
 				# NO EXPLORADO: 80% opacidad pantano denso, degradé por edge_fade

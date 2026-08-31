@@ -150,16 +150,10 @@ func _setup_squad_and_events_icons():
 		btn.add_theme_stylebox_override("normal", sb)
 		btn.pressed.connect(_on_icon_pressed.bind("Events"))
 		grid_container.add_child(btn)
-
-	# Icono Quedarse Quieto (Detener navegación)
-	if not grid_container.has_node("IconStay"):
-		var stay_btn = Button.new()
-		stay_btn.name = "IconStay"
-		stay_btn.text = "✋"
-		stay_btn.custom_minimum_size = Vector2(32,32)
-		var stay_sb = StyleBoxFlat.new(); stay_sb.bg_color = Color(0.1,0.1,0.1,0.6); stay_sb.set_corner_radius_all(4)
-		stay_btn.add_theme_stylebox_override("normal", stay_sb)
-		grid_container.add_child(stay_btn)
+		
+	# Eliminar IconStay si existe de instancias previas
+	if grid_container.has_node("IconStay"):
+		grid_container.get_node("IconStay").queue_free()
 
 # Iconos que abren menús/modales (no toggle de UI)
 var _menu_icon_ids: Array = ["EscMenu", "Inventory", "Housing", "Events"]

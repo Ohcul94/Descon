@@ -14,6 +14,7 @@ signal minimized(id)
 
 func _ready():
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	self_modulate = Color(1, 1, 1, 0) # v802.1: Transparencia total del panel base para que solo dibuje el SciFiFrame
 	# v189.70: Backup automático de ID si no se definió en el editor
 	if window_id == "": 
 		window_id = name
