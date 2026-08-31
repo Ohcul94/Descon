@@ -216,12 +216,12 @@ metadata/colHeight = 282.84
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 
-[node name="Collider" type="CSGBox3D" parent="CSGBox3D" unique_id=1647842670]
+[node name="Collider" type="CSGBox3D" parent="CSGBox3D" unique_id=469783916]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(13, 0.2, 7.999923)
 material = SubResource("StandardMaterial3D_wxptm")
 
-[node name="CSGBox3D_2" type="Node3D" parent="." unique_id=1003414380 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_2" type="Node3D" parent="." unique_id=1704753487 instance=ExtResource("5_lygav")]
 transform = Transform3D(0.8660254, 0, 0.5, 0, 1, 0, -0.5, 0, 0.8660254, 64.825, 1, 80.05043)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -235,12 +235,12 @@ metadata/colHeight = 371.23
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 
-[node name="Collider" type="CSGBox3D" parent="CSGBox3D_2" unique_id=562483555]
+[node name="Collider" type="CSGBox3D" parent="CSGBox3D_2" unique_id=1857755542]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(16, 0.2, 10.49997)
 material = SubResource("StandardMaterial3D_6n827")
 
-[node name="CSGBox3D_3" type="Node3D" parent="." unique_id=232873577 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_3" type="Node3D" parent="." unique_id=1033314284 instance=ExtResource("5_lygav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.2, 1, 118.19997)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -254,12 +254,12 @@ metadata/colHeight = 318.2
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 
-[node name="Collider" type="CSGBox3D" parent="CSGBox3D_3" unique_id=205682937]
+[node name="Collider" type="CSGBox3D" parent="CSGBox3D_3" unique_id=2093177386]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(14, 0.2, 9.000055)
 material = SubResource("StandardMaterial3D_v2u7x")
 
-[node name="CSGBox3D_4" type="Node3D" parent="." unique_id=94422865 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_4" type="Node3D" parent="." unique_id=2037680954 instance=ExtResource("5_lygav")]
 transform = Transform3D(0.70710677, 0, -0.70710677, 0, 1, 0, 0.70710677, 0, 0.70710677, 107.8662, 1, 48.7717)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -273,12 +273,12 @@ metadata/colHeight = 148.49
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 
-[node name="Collider" type="CSGBox3D" parent="CSGBox3D_4" unique_id=1900086918]
+[node name="Collider" type="CSGBox3D" parent="CSGBox3D_4" unique_id=1432658478]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(7.8, 0.2, 4.1999316)
 material = SubResource("StandardMaterial3D_su8mg")
 
-[node name="CSGBox3D_5" type="Node3D" parent="." unique_id=1851938621 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_5" type="Node3D" parent="." unique_id=1781621783 instance=ExtResource("5_lygav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.3, 1, 69.59995)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -292,12 +292,12 @@ metadata/colHeight = 247.49
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 
-[node name="Collider" type="CSGBox3D" parent="CSGBox3D_5" unique_id=101449887]
+[node name="Collider" type="CSGBox3D" parent="CSGBox3D_5" unique_id=1299556359]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(8.4, 0.2, 7.0000744)
 material = SubResource("StandardMaterial3D_tkfb5")
 
-[node name="CSGBox3D_6" type="Node3D" parent="." unique_id=712303935 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_6" type="Node3D" parent="." unique_id=1356925944 instance=ExtResource("5_lygav")]
 transform = Transform3D(0.8660254, 0, -0.5, 0, 1, 0, 0.5, 0, 0.8660254, 159.4728, 1, 28.690434)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -311,12 +311,12 @@ metadata/colHeight = 300.52
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 
-[node name="Collider" type="CSGBox3D" parent="CSGBox3D_6" unique_id=1639804326]
+[node name="Collider" type="CSGBox3D" parent="CSGBox3D_6" unique_id=355678094]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(15, 0.2, 8.4999895)
 material = SubResource("StandardMaterial3D_qy5vm")
 
-[node name="CSGBox3D_7" type="Node3D" parent="." unique_id=117406709 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_7" type="Node3D" parent="." unique_id=102360703 instance=ExtResource("5_lygav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 162.75, 1, 89.69989)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -330,12 +330,12 @@ metadata/colHeight = 240.42
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 
-[node name="Collider" type="CSGBox3D" parent="CSGBox3D_7" unique_id=1432279585]
+[node name="Collider" type="CSGBox3D" parent="CSGBox3D_7" unique_id=1795537807]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(8.9, 0.2, 6.8001046)
 material = SubResource("StandardMaterial3D_mhqrh")
 
-[node name="CSGBox3D_8" type="Node3D" parent="." unique_id=1971694931 instance=ExtResource("5_lygav")]
+[node name="CSGBox3D_8" type="Node3D" parent="." unique_id=1379388094 instance=ExtResource("5_lygav")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.35, 1, 95.900085)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
@@ -349,13 +349,13 @@ metadata/colHeight = 410.12
 metadata/colOffsetX = 0.0
 metadata/colOffsetY = 0.0
 
-[node name="Collider" type="CSGBox3D" parent="CSGBox3D_8" unique_id=1983755803]
+[node name="Collider" type="CSGBox3D" parent="CSGBox3D_8" unique_id=1567085526]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
 size = Vector3(9.7, 0.2, 11.599945)
 material = SubResource("StandardMaterial3D_mc5ab")
 
 [node name="Altar1" type="Node3D" parent="." unique_id=599011876 instance=ExtResource("5_k8upu")]
-transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 64.73134, 6.624, 36.95689)
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 46.4086, 6.624, 65.83928)
 metadata/obj_type = "wall"
 metadata/asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
 metadata/label = "Altar1"
@@ -368,8 +368,7 @@ metadata/colHeight = 29.21
 metadata/colOffsetX = 0.14
 metadata/colOffsetY = -0.53
 
-[node name="Collider1" type="CSGCylinder3D" parent="Altar1" unique_id=35235196]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.03107524, -0.2872483, -0.031487703)
-radius = 0.4794922
-height = 0.07336426
+[node name="Collider1" type="CSGBox3D" parent="Altar1" unique_id=1852204258]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0028, 0.005, -0.014990664)
+size = Vector3(0.8028, 0.01, 0.82618356)
 material = SubResource("StandardMaterial3D_gr6fg")
