@@ -4312,10 +4312,9 @@ function renderModes() {
         if (ad.matchDuration === undefined) ad.matchDuration = 600000;
         if (ad.loseLootOnDeath === undefined) ad.loseLootOnDeath = true;
         if (!ad.maps) ad.maps = [];
-        if (!ad.altarPos) ad.altarPos = { x: 5000, y: 5000 };
+        // v770.4: altarPos y exitPortals ahora se manejan exclusivamente desde el Editor 3D (mapsConfig.objects), no desde AdminDash
         if (!ad.spawnPoints) ad.spawnPoints = [];
         if (!ad.spawners) ad.spawners = [];
-        if (!ad.exitPortals) ad.exitPortals = [];
         if (!ad.waves) ad.waves = [];
 
         content.innerHTML = `
@@ -4378,23 +4377,12 @@ function renderModes() {
                 </div>
 
                 <!-- NIVEL 2: CONFIGURACIÓN DE POSICIONAMIENTOS -->
-                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
-                    <!-- ALTAR POSITION -->
-                    <div class="card" style="margin:0; border-top: 3px solid var(--success);">
-                        <h4 style="color:var(--success); margin-bottom:1rem;">🏛️ POSICIÓN DEL ALTAR</h4>
-                        <p style="opacity:0.6; font-size:0.75rem; margin-bottom:15px;">Coordenadas centrales del altar a defender.</p>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 10px;">
-                            <div class="field"><label>Coord X</label><input type="number" id="ad-altar-x" value="${ad.altarPos.x}" onchange="config.gameModes.altar_defense.altarPos.x = parseInt(this.value); renderModes();"></div>
-                            <div class="field"><label>Coord Y</label><input type="number" id="ad-altar-y" value="${ad.altarPos.y}" onchange="config.gameModes.altar_defense.altarPos.y = parseInt(this.value); renderModes();"></div>
-                        </div>
-                        <div style="text-align:center; font-size:0.7rem; color:var(--success); opacity:0.8;">
-                            Usa el Radar de Posicionamiento para reubicarlo arrastrando su estrella o haciendo clic.
-                        </div>
-                    </div>
-
+                <!-- v770.4: ALTAR y PUERTAS ahora se editan solo en Editor 3D (mapsConfig.objects), no aquí -->
+                <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:20px;">
                     <!-- SPAWN POINTS (PLAYERS) -->
                     <div class="card" style="margin:0; border-top: 3px solid var(--accent);">
                         <h4 style="color:var(--accent); margin-bottom:1rem;">📍 SPAWN DE JUGADORES</h4>
+                        <p style="opacity:0.5; font-size:0.7rem; margin-bottom:10px;">Editables aquí. Para Altar/Puertas usa el Editor 3D.</p>
                         <div style="display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; padding-right:5px;">
                             ${(ad.spawnPoints || []).map((p, idx) => `
                                 <div id="card-ad-spawn-${idx}" onclick="highlightCard('ad-spawn', ${idx})" style="background:rgba(6,182,212,0.05); border:1px solid rgba(6,182,212,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease; cursor:pointer;">
@@ -4436,26 +4424,6 @@ function renderModes() {
                                         <div class="field"><label>Coord X</label><input type="number" id="ad-sp-x-${idx}" value="${s.x}" onchange="config.gameModes.altar_defense.spawners[${idx}].x = parseInt(this.value)"></div>
                                         <div class="field"><label>Coord Y</label><input type="number" id="ad-sp-y-${idx}" value="${s.y}" onchange="config.gameModes.altar_defense.spawners[${idx}].y = parseInt(this.value)"></div>
                                     </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <!-- PUERTAS DE ESCAPE (PORTALS) -->
-                    <div class="card" style="margin:0; border-top: 3px solid #00d2ff;">
-                        <h4 style="color:#00d2ff; margin-bottom:1rem;">🚪 PUERTAS DE ESCAPE (LOBBY)</h4>
-                        <div style="display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; padding-right:5px;">
-                            ${(ad.exitPortals || []).map((ep, idx) => `
-                                <div id="card-ad-portal-${idx}" onclick="highlightCard('ad-portal', ${idx})" style="background:rgba(0,210,255,0.05); border:1px solid rgba(0,210,255,0.2); border-radius:8px; padding:10px; transition: all 0.3s ease; cursor:pointer;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                        <input type="text" value="${ep.label || 'Puerta #'+(idx+1)}" onchange="config.gameModes.altar_defense.exitPortals[${idx}].label = this.value" style="background:none; border:none; color:#00d2ff; font-weight:bold; font-size:0.7rem; width:70%;">
-                                        <button onclick="config.gameModes.altar_defense.exitPortals.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
-                                    </div>
-                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                                        <div class="field"><label>Coord X</label><input type="number" id="ad-pt-x-${idx}" value="${ep.x}" onchange="config.gameModes.altar_defense.exitPortals[${idx}].x = parseInt(this.value)"></div>
-                                        <div class="field"><label>Coord Y</label><input type="number" id="ad-pt-y-${idx}" value="${ep.y}" onchange="config.gameModes.altar_defense.exitPortals[${idx}].y = parseInt(this.value)"></div>
-                                    </div>
-                                    <div class="field" style="margin-top:5px;"><label>Radio Proximidad</label><input type="number" value="${ep.radius || 150}" onchange="config.gameModes.altar_defense.exitPortals[${idx}].radius = parseInt(this.value)"></div>
                                 </div>
                             `).join('')}
                         </div>
@@ -4620,10 +4588,8 @@ function renderModes() {
                             </div>
                         </div>
                         <div style="display:flex; gap:10px;">
-                            <button id="btn-radar-ad-altar" class="btn ${radarMode === 'ad-altar' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-altar')">MODO ALTAR</button>
                             <button id="btn-radar-ad-spawn" class="btn ${radarMode === 'ad-spawn' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-spawn')">MODO SPAWN</button>
                             <button id="btn-radar-ad-spawner" class="btn ${radarMode === 'ad-spawner' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-spawner')">MODO AMENAZA</button>
-                            <button id="btn-radar-ad-portal" class="btn ${radarMode === 'ad-portal' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-portal')">MODO PUERTA</button>
                         </div>
                     </div>
                     
@@ -4637,9 +4603,6 @@ function renderModes() {
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
                                 <div class="field"><label>Coord X</label><input type="number" id="radar-x" value="0"></div>
                                 <div class="field"><label>Coord Y</label><input type="number" id="radar-y" value="0"></div>
-                            </div>
-                            <div id="radar-ad-altar-opts" style="display:${radarMode === 'ad-altar' ? 'block' : 'none'}">
-                                <p style="font-size:0.75rem; color:#aaa;">Haz clic en el mapa y presiona "Fijar" para mover la base del Altar.</p>
                             </div>
                             <div id="radar-ad-spawn-opts" style="display:${radarMode === 'ad-spawn' ? 'block' : 'none'}">
                                 <div class="field" style="margin-top:10px;"><label>Nombre</label><input type="text" id="radar-ad-spawn-label" value="Punto Spawn"></div>
@@ -4657,10 +4620,7 @@ function renderModes() {
                                 <div class="field" style="margin-top:10px;"><label>Cantidad</label><input type="number" id="radar-ad-count" value="10"></div>
                                 <div class="field" style="margin-top:10px;"><label>Radio</label><input type="number" id="radar-ad-radius" value="500"></div>
                             </div>
-                            <div id="radar-ad-portal-opts" style="display:${radarMode === 'ad-portal' ? 'block' : 'none'}">
-                                <div class="field" style="margin-top:10px;"><label>Nombre Portal</label><input type="text" id="radar-ad-portal-label" value="Puerta de Escape"></div>
-                                <div class="field" style="margin-top:5px;"><label>Radio Proximidad</label><input type="number" id="radar-ad-portal-radius" value="150"></div>
-                            </div>
+
                             <button class="btn btn-primary" style="width:100%; margin-top:20px; padding:15px; font-weight:bold;" onclick="addFromRadar()">FIJAR EN EL MAPA</button>
                         </div>
                     </div>

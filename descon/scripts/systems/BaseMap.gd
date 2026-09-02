@@ -27,11 +27,18 @@ const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofr
 			var v_float = float(v_str)
 			if v_float == int(v_float):
 				zone_id = int(v_float)
-				return
-		if typeof(val) == TYPE_STRING and val.is_valid_int():
+			else:
+				zone_id = val
+		elif typeof(val) == TYPE_STRING and val.is_valid_int():
 			zone_id = int(val)
-			return
-		zone_id = val
+		else:
+			zone_id = val
+		if is_node_ready():
+			if str(zone_id) == "1" or _is_altar_defense_zone():
+				if is_instance_valid(fog_of_war):
+					fog_of_war.queue_free()
+					fog_of_war = null
+					print("[BaseMap] Fog eliminada tras actualizar zone_id = ", zone_id)
 @export var scale_factor: float = 0.02 # Relación 2D a 3D
 @export var camera_height: float = 30.0
 @export var use_orthogonal: bool = false
@@ -154,11 +161,30 @@ func _ready():
 			NetworkManager.admin_config_updated.connect(_on_network_config_updated)
 			
 	# v650.0: Deshabilitar niebla de guerra en el Lobby (zona 1) por ser mapa amistoso
-	if enable_fog_of_war and str(zone_id) != "1":
+	# v770.1: Deshabilitar también en Defensa del Altar (sin exploración, combate directo por oleadas)
+	if enable_fog_of_war and str(zone_id) != "1" and not _is_altar_defense_zone():
 		_setup_fog_of_war()
 	
 	# v600.0: Inicializar sistema de oclusión (A+B dither) - sin romper nada, solo overlay
 	_setup_occluder_fader()
+
+# Helper para detectar zona Defensa del Altar (reutiliza FULL_CONFIG dinámico)
+# v770.5: fallback a "11" si FULL_CONFIG aún no llegó (evita que fog se active en primer frame)
+func _is_altar_defense_zone() -> bool:
+	var zid = str(zone_id)
+	if "." in zid and zid.is_valid_float():
+		var zf = float(zid)
+		if zf == int(zf):
+			zid = str(int(zf))
+	if zid == "11":
+		return true
+	var full_cfg = GameConstants.get("FULL_CONFIG")
+	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
+		var ad_maps = full_cfg.gameModes.altar_defense.get("maps", [])
+		for m in ad_maps:
+			if str(m) == zid:
+				return true
+	return false
 
 # Registrar acciones de input para cámara libre si no existen
 func _register_input_actions():
@@ -176,7 +202,13 @@ func _register_input_actions():
 
 func _setup_fog_of_war():
 	# v650.0: Deshabilitar niebla de guerra en el Lobby (zona 1) por ser mapa amistoso
-	if str(zone_id) == "1":
+	# v770.1: Y en Defensa del Altar (combate sin niebla, igual que pide el usuario)
+	# v770.5: fallback 11 para cubrir primer frame sin FULL_CONFIG
+	if str(zone_id) == "1" or _is_altar_defense_zone():
+		if is_instance_valid(fog_of_war):
+			fog_of_war.queue_free()
+			fog_of_war = null
+			print("[BaseMap] Niebla desactivada para zona ", zone_id, " (lobby/altar)")
 		return
 	if not is_instance_valid(camera_3d):
 		return
@@ -224,8 +256,8 @@ func _deferred_ready():
 	print("[BaseMap _deferred_ready] Entrando a deferred ready. Esperando process_frame...")
 	await get_tree().process_frame
 	
-	# v370.0: Spawnear altar 3D si está configurado en Defensa del Altar
-	_spawn_altar_if_configured()
+	# v370.0: El altar 3D se instanciará directamente desde los objects del MapEditor3D,
+	# evitando duplicados hardcodeados.
 
 	print("[BaseMap _deferred_ready] process_frame completado. Llamando a _spawn_map_objects...")
 	_spawn_map_objects()
@@ -696,6 +728,7 @@ func _fix_scene_floor_to_black(root: Node):
 
 func _resolve_map_editor_path(z_id: String) -> String:
 	# v530.2: Resolver path del MapEditor3D con fallbacks (Loby es excepción: MapEditor3D_1_Loby.tscn)
+	# v770.2: Añadir soporte para mapas de evento (Evento_1_Extraccion, Evento_2_Defensa_Altar, Evento_3_PVP) - igual que Mapa_2
 	var candidates: Array[String] = []
 	if z_id == "1":
 		candidates = [
@@ -712,6 +745,52 @@ func _resolve_map_editor_path(z_id: String) -> String:
 			"res://tools/MapEditor3D_" + z_id + "_Loby.tscn",
 			"res://tools/MapEditor3D_" + z_id + "_Lobby.tscn"
 		]
+		# v770.2: Eventos — buscar por tipo antes de fallback genérico (funciona exactamente igual que Mapa2)
+		# Se resuelve dinámicamente según FULL_CONFIG para no hardcodear IDs
+		var full_cfg = GameConstants.get("FULL_CONFIG")
+		if full_cfg and full_cfg.has("gameModes"):
+			# Defensa del Altar
+			if full_cfg.gameModes.has("altar_defense"):
+				var ad_maps = full_cfg.gameModes.altar_defense.get("maps", [])
+				var is_ad = false
+				for m in ad_maps:
+					if str(m) == z_id:
+						is_ad = true
+						break
+				if is_ad:
+					candidates.push_front("res://tools/MapEditor3D_Evento_2_Defensa_Altar.tscn")
+			# Extracción
+			if full_cfg.gameModes.has("extraction"):
+				var ext = full_cfg.gameModes.extraction
+				var ext_maps = ext.get("maps", [])
+				if typeof(ext_maps) == TYPE_ARRAY:
+					var is_ext = false
+					for m in ext_maps:
+						if str(m) == z_id:
+							is_ext = true
+							break
+					if is_ext:
+						candidates.push_front("res://tools/MapEditor3D_Evento_1_Extraccion.tscn")
+			# Arenas PVP
+			if full_cfg.gameModes.has("arenas"):
+				var am = full_cfg.gameModes.arenas.get("maps", [])
+				var is_ar = false
+				for m in am:
+					if str(m) == z_id:
+						is_ar = true
+						break
+				if is_ar:
+					candidates.push_front("res://tools/MapEditor3D_Evento_3_PVP.tscn")
+		# Fallbacks estáticos por si FULL_CONFIG aún no llegó (carga inicial)
+		if z_id == "11":
+			if not "res://tools/MapEditor3D_Evento_2_Defensa_Altar.tscn" in candidates:
+				candidates.push_front("res://tools/MapEditor3D_Evento_2_Defensa_Altar.tscn")
+		if z_id == "10":
+			if not "res://tools/MapEditor3D_Evento_1_Extraccion.tscn" in candidates:
+				candidates.push_front("res://tools/MapEditor3D_Evento_1_Extraccion.tscn")
+		if z_id == "9":
+			if not "res://tools/MapEditor3D_Evento_3_PVP.tscn" in candidates:
+				candidates.push_front("res://tools/MapEditor3D_Evento_3_PVP.tscn")
 	for p in candidates:
 		if ResourceLoader.exists(p):
 			return p

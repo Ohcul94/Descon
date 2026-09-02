@@ -46,17 +46,18 @@ class AltarDefenseManager {
             ? this.state.SERVER_CONFIG.mapsConfig[zoneId]
             : null;
 
-        let altarPos = adConfig.altarPos || { x: 5000, y: 5000 };
+        // v770.7: Fuente única de verdad para altar y puertas = mapsConfig.objects (Editor 3D)
+        // Se elimina hardcode de adConfig.altarPos / adConfig.exitPortals del AdminDash
+        let altarPos = { x: 5000, y: 5000 };
+        let exitPortals = [];
         if (mapConfig && Array.isArray(mapConfig.objects)) {
             const altarObj = mapConfig.objects.find(obj => obj.type === 'altar');
             if (altarObj) {
                 altarPos = { x: altarObj.x, y: altarObj.y };
-                Logger.info('ALTAR', `Posición del altar cargada desde mapsConfig.objects: [${altarPos.x}, ${altarPos.y}]`);
+                Logger.info('ALTAR', `Posición del altar cargada desde mapsConfig.objects (3D): [${altarPos.x}, ${altarPos.y}]`);
+            } else {
+                Logger.warn('ALTAR', `No hay objeto tipo 'altar' en mapsConfig[${zoneId}].objects - usando fallback 5000,5000. Coloca un altar en el Editor 3D.`);
             }
-        }
-
-        let exitPortals = adConfig.exitPortals || [];
-        if (mapConfig && Array.isArray(mapConfig.objects)) {
             const doorObjects = mapConfig.objects.filter(obj => obj.type === 'door' || obj.type === 'portal');
             if (doorObjects.length > 0) {
                 exitPortals = doorObjects.map((obj, idx) => ({
@@ -65,8 +66,12 @@ class AltarDefenseManager {
                     x: obj.x,
                     y: obj.y
                 }));
-                Logger.info('ALTAR', `Cargados ${exitPortals.length} portales de escape desde mapsConfig.objects.`);
+                Logger.info('ALTAR', `Cargados ${exitPortals.length} portales de escape desde mapsConfig.objects (3D).`);
+            } else {
+                Logger.warn('ALTAR', `No hay puertas tipo 'door' en mapsConfig[${zoneId}].objects - Coloca puertas en el Editor 3D.`);
             }
+        } else {
+            Logger.warn('ALTAR', `mapsConfig[${zoneId}] sin objects - altar y puertas no definidos.`);
         }
 
         this.activeMatch = {
@@ -80,7 +85,11 @@ class AltarDefenseManager {
             status: 'spawn_lock', // 'spawn_lock', 'wave_active', 'waiting_next_wave', 'finished'
             statusEndTime: Date.now() + spawnLockTime,
             exitPortals: exitPortals,
-            altarPos: altarPos
+            altarPos: altarPos,
+            // v770.3: tracking para evitar cierre prematuro de oleada antes de que spawneen
+            waveSpawnedCount: 0,
+            waveExpectedCount: 0,
+            waveStartTime: 0
         };
 
 
@@ -109,9 +118,16 @@ class AltarDefenseManager {
             }
         } 
         else if (match.status === 'wave_active') {
-            // Verificar si todos los enemigos de la oleada fueron eliminados
-            if (currentEnemies.length === 0) {
+            // v770.3: No cerrar la oleada si aún no spawneó nada o si quedan spawns pendientes (evita victoria instantánea cuando el spawn falla o es staggered)
+            const graceMs = 3500; // tiempo mínimo desde inicio de oleada antes de poder cerrarla
+            const hasGracePassed = !match.waveStartTime || (now - match.waveStartTime) >= graceMs;
+            const allSpawned = match.waveSpawnedCount >= match.waveExpectedCount;
+            // Solo completar si ya spawneó al menos 1, pasó la gracia, todos los esperados ya salieron y no quedan vivos
+            if (currentEnemies.length === 0 && hasGracePassed && match.waveSpawnedCount > 0 && allSpawned) {
                 this.completeWave();
+            } else if (currentEnemies.length === 0 && match.waveSpawnedCount === 0 && hasGracePassed) {
+                // Fallback diagnóstico: si tras la gracia sigue en 0 spawneados, loguear y no cerrar inmediatamente (esperar siguiente tick)
+                Logger.warn('ALTAR', `Oleada ${match.currentWaveIndex+1} sin enemigos spawneados aún (expected ${match.waveExpectedCount}, spawned ${match.waveSpawnedCount}) - esperando...`);
             }
         } 
         else if (match.status === 'waiting_next_wave') {
@@ -138,6 +154,9 @@ class AltarDefenseManager {
         match.currentWaveIndex = waveIdx;
         match.status = 'wave_active';
         match.statusEndTime = 0;
+        match.waveStartTime = Date.now();
+        match.waveSpawnedCount = 0;
+        match.waveExpectedCount = 0;
 
         // 1. Cerrar los portales de escape inmediatamente
         this.emitPortals([]);
@@ -194,7 +213,8 @@ class AltarDefenseManager {
                     // Si el estado de la partida cambió o se canceló, salir
                     if (!this.activeMatch || this.activeMatch.currentWaveIndex !== waveIdx || this.activeMatch.status !== 'wave_active') return;
 
-                    const type = parseInt(phase.enemyId || phase.type);
+                    // v770.6: Preservar sufijo de variante (5-B, 6-C, 10-A etc) - no usar parseInt
+                    const type = (phase.enemyId !== undefined && phase.enemyId !== null && String(phase.enemyId).trim() !== "") ? String(phase.enemyId).trim() : String(phase.type || "1").trim();
                     const count = parseInt(phase.count);
                     const spawnerIdx = phase.spawnerIndex;
                     const spawnType = phase.spawnType || 'together';
@@ -233,21 +253,21 @@ class AltarDefenseManager {
                             }
                         } else {
                             // Fallback: Spawnear alrededor del altar
-                            const valid = spawnValidator.findValidSpawnPosition(match.altarPos.x, match.altarPos.y, 900, match.zoneId, this.state, { maxAttempts: 25 });
-                            // Hacemos un muestreo en anillo 900-1400 evitando obstáculos
+                            const valid = spawnValidator.findValidSpawnPosition(match.altarPos.x, match.altarPos.y, 1600, match.zoneId, this.state, { maxAttempts: 25 });
+                            // Hacemos un muestreo en anillo 1600-2100 evitando obstáculos
                             let found = null;
                             for (let k = 0; k < 30; k++) {
                                 const angle = Math.random() * Math.PI * 2;
-                                const dist = Math.random() * 500 + 900;
+                                const dist = Math.random() * 500 + 1600;
                                 const tx = match.altarPos.x + Math.cos(angle) * dist;
                                 const ty = match.altarPos.y + Math.sin(angle) * dist;
                                 if (!spawnValidator.isPointBlocked(tx, ty, match.zoneId, this.state)) { found = { x: tx, y: ty }; break; }
                             }
                             if (found) { x = found.x; y = found.y; }
                             else if (valid) {
-                                // valid está dentro de 0-900, buscar anillo externo: si no hay hueco en 900-1400, usar valid desplazado
+                                // valid está dentro de 0-1600, buscar anillo externo: si no hay hueco en 1600-2100, usar valid desplazado
                                 const angle = Math.random() * Math.PI * 2;
-                                const dist = Math.random() * 500 + 900;
+                                const dist = Math.random() * 500 + 1600;
                                 x = match.altarPos.x + Math.cos(angle) * dist;
                                 y = match.altarPos.y + Math.sin(angle) * dist;
                             } else {
@@ -267,6 +287,11 @@ class AltarDefenseManager {
                         if (enemy) {
                             // Inyectar focusTarget a nivel de enemigo desde la fase (con fallback a la oleada o 'altar')
                             enemy.focusTarget = phase.focusTarget || waveData.focusTarget || 'altar';
+                            Logger.info('ALTAR', `  -> Enemigo ${enemy.id} tipo ${type} spawneado en [${Math.round(x)},${Math.round(y)}] zona ${match.zoneId} focus ${enemy.focusTarget}`);
+                            return enemy;
+                        } else {
+                            Logger.warn('ALTAR', `  -> FALLÓ spawn tipo ${type} en [${Math.round(x)},${Math.round(y)}] zona ${match.zoneId}`);
+                            return null;
                         }
                     };
 
@@ -301,15 +326,23 @@ class AltarDefenseManager {
                         }
                     }
 
+                    // v770.3: Acumular expected antes de disparar spawns (una vez por fase)
+                    match.waveExpectedCount += spawnQueue.length;
+                    Logger.info('ALTAR', `Fase "${phase.name||'?'}" programada: ${spawnQueue.length} enemigos (total oleada ${match.waveExpectedCount}) startDelay ${startDelay}ms type ${spawnType}`);
+
                     if (spawnType === 'staggered' && staggerDelayMs > 0) {
                         spawnQueue.forEach((spId, i) => {
                             setTimeout(() => {
-                                spawnOne(spId);
+                                const en = spawnOne(spId);
+                                if (en) match.waveSpawnedCount++;
+                                else Logger.warn('ALTAR', `Spawn falló fase "${phase.name}" idx ${spId} en zona ${match.zoneId}`);
                             }, i * staggerDelayMs);
                         });
                     } else {
                         spawnQueue.forEach(spId => {
-                            spawnOne(spId);
+                            const en = spawnOne(spId);
+                            if (en) match.waveSpawnedCount++;
+                            else Logger.warn('ALTAR', `Spawn falló fase "${phase.name}" idx ${spId} en zona ${match.zoneId}`);
                         });
                     }
                 }, startDelay);

@@ -3,10 +3,13 @@
 [ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
 [ext_resource type="PackedScene" uid="uid://d04w8a62xw4gf" path="res://assets/Altares/3D/Altar1/Altar1.glb" id="2_wq2af"]
 [ext_resource type="PackedScene" uid="uid://diy8ycm00f4tx" path="res://assets/Puertas/3D/Puerta2/Puerta2.glb" id="3_gwsj2"]
+[ext_resource type="Material" uid="uid://nbbdrx8vma80" path="res://demo/assets/materials/M_rock23_tp.tres" id="4_gygkr"]
+[ext_resource type="Texture2D" uid="uid://c88j3oj0lf6om" path="res://demo/assets/textures/rock023_alb_ht.png" id="5_s7uho"]
+[ext_resource type="Texture2D" uid="uid://c307hdmos4gtm" path="res://demo/assets/textures/rock023_nrm_rgh.png" id="6_0kf13"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jk5nm"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gygkr"]
 albedo_color = Color(0.05, 0.08, 0.15, 1)
 metallic = 0.3
 roughness = 0.8
@@ -27,12 +30,22 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g0kee"]
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.83, 0.83, 0.83, 1)
+albedo_texture = ExtResource("5_s7uho")
+normal_enabled = true
+normal_texture = ExtResource("6_0kf13")
+uv1_scale = Vector3(0.02, 0.02, 0.02)
+uv1_triplanar = true
+uv1_triplanar_sharpness = 6.06286
+uv1_world_triplanar = true
+texture_filter = 5
 
 [node name="MapEditor3D" type="Node3D" unique_id=1067598322]
 script = ExtResource("1_editor_script")
 zone_id = "11"
-auto_load_event = true
-json_to_import = "[{\"label\":\"Altar\",\"rotY\":180.0,\"scale\":15.0,\"type\":\"altar\",\"x\":5000.0,\"y\":5000.0,\"yOffset\":0.0},{\"label\":\"Escape1\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"type\":\"door\",\"x\":4583.0,\"y\":5378.0,\"yOffset\":0.0},{\"label\":\"Escape2\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"type\":\"door\",\"x\":5383.0,\"y\":4661.0,\"yOffset\":0.0}]"
+json_to_import = "[{\"assetPath\":\"res://assets/Altares/3D/Altar1/Altar1.glb\",\"label\":\"Altar\",\"rotY\":180.0,\"scale\":15.0,\"type\":\"altar\",\"x\":5000.0,\"y\":5000.0,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Escape1\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"type\":\"door\",\"x\":4583.0,\"y\":5378.0,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Escape2\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"type\":\"door\",\"x\":5383.0,\"y\":4661.0,\"yOffset\":0.0}]"
 metadata/altar_defense_config = {
 "altarHp": 10000.0,
 "altarPos": {
@@ -56,7 +69,7 @@ metadata/altar_defense_config = {
 "label": "Spawn1",
 "radius": 200.0,
 "x": 4533.0,
-"y": 5001.0
+"y": 4000.0
 }, {
 "label": "Spawn2",
 "radius": 200.0,
@@ -66,7 +79,7 @@ metadata/altar_defense_config = {
 "label": "Spawn3",
 "radius": 200.0,
 "x": 5450.0,
-"y": 5010.0
+"y": 4000.0
 }, {
 "label": "Spawn4",
 "radius": 200.0,
@@ -86,7 +99,7 @@ metadata/altar_defense_config = {
 "label": "Zona de Invasión2",
 "radius": 500.0,
 "x": 9000.0,
-"y": 4994.0
+"y": 4000.0
 }, {
 "count": 10.0,
 "enemyId": "1",
@@ -100,7 +113,7 @@ metadata/altar_defense_config = {
 "label": "Zona de Invasión4",
 "radius": 500.0,
 "x": 1000.0,
-"y": 5011.0
+"y": 4000.0
 }],
 "waveInterval": 15000.0,
 "waves": [{
@@ -156,50 +169,152 @@ collision_mask = 0
 shape = SubResource("WorldBoundaryShape3D_1")
 
 [node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=1763764717]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
-material_override = SubResource("StandardMaterial3D_jk5nm")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.010009766, -0.050003815, -0.1817627)
+material_override = SubResource("StandardMaterial3D_gygkr")
 mesh = SubResource("PlaneMesh_1")
 
-
-[node name="Altar" type="Node3D" parent="." unique_id=742807941 instance=ExtResource("2_wq2af")]
-transform = Transform3D(-15, 0, -1.3113416e-06, 0, 15, 0, 1.3113416e-06, 0, -15, 100, 0, 141.42136)
-metadata/editor_only = true
-metadata/obj_type = "altar"
-metadata/label = "Altar"
-metadata/asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
-metadata/scale_2d = 15.0
-metadata/rot_y_deg = 180.0
-
-[node name="Escape1" type="Node3D" parent="." unique_id=631689396 instance=ExtResource("3_gwsj2")]
-transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 91.66, 0, 152.11281)
-metadata/editor_only = true
-metadata/obj_type = "door"
-metadata/label = "Escape1"
-metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
-metadata/scale_2d = 10.0
-metadata/rot_y_deg = -90.0
-metadata/radius = 150.0
-
-[node name="Escape2" type="Node3D" parent="." unique_id=2145551810 instance=ExtResource("3_gwsj2")]
-transform = Transform3D(-4.371139e-07, 0, -10, 0, 10, 0, 10, 0, -4.371139e-07, 107.66, 0, 131.833)
-metadata/editor_only = true
-metadata/obj_type = "door"
-metadata/label = "Escape2"
-metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
-metadata/scale_2d = 10.0
-metadata/rot_y_deg = -90.0
-metadata/radius = 150.0
-
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=883982619]
-transform = Transform3D(0.70710677, -0.49999997, 0.49999997, 0, 0.70710677, 0.70710677, -0.70710677, -0.49999997, 0.49999997, 0, 0, 0)
-light_color = Color(1, 0.95, 0.9, 1)
-light_energy = 2.0
+transform = Transform3D(0.81915206, -0.5198368, 0.24240388, 0, 0.42261827, 0.9063078, -0.5735764, -0.74240386, 0.3461886, 0, 0, 0)
+light_color = Color(0.99999994, 0.86934006, 0.74698997, 1)
+light_energy = 1.1
+light_angular_distance = 51.74
 light_specular = 0.3
 shadow_enabled = true
-shadow_bias = 0.02
-shadow_normal_bias = 0.5
+shadow_bias = 0.04
+shadow_normal_bias = 1.5
+shadow_transmittance_bias = -16.0
+shadow_opacity = 0.6
 directional_shadow_mode = 1
-directional_shadow_max_distance = 200.0
+directional_shadow_max_distance = 150.0
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=685544602]
 environment = SubResource("Environment_1")
+
+[node name="Altar" parent="." unique_id=599011876 instance=ExtResource("2_wq2af")]
+transform = Transform3D(-15, 0, -2.264937e-06, 0, 15, 0, 2.264937e-06, 0, -15, 95.86362, 4.70126, 111.536194)
+metadata/obj_type = "altar"
+metadata/asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
+metadata/label = "Altar"
+metadata/scale_2d = 15.0
+metadata/rot_y_deg = 180.0
+metadata/editor_only = true
+
+[node name="Escape1" parent="." unique_id=1868473785 instance=ExtResource("3_gwsj2")]
+transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 85.946945, 2.5, 120.85549)
+metadata/obj_type = "door"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+metadata/label = "Escape1"
+metadata/scale_2d = 10.0
+metadata/rot_y_deg = -90.0
+metadata/editor_only = true
+metadata/radius = 150.0
+
+[node name="Escape2" parent="." unique_id=1707584643 instance=ExtResource("3_gwsj2")]
+transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 105.92807, 2.5, 103.06374)
+metadata/obj_type = "door"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+metadata/label = "Escape2"
+metadata/scale_2d = 10.0
+metadata/rot_y_deg = -90.0
+metadata/editor_only = true
+metadata/radius = 150.0
+
+[node name="Node3D" type="Node3D" parent="." unique_id=673004765]
+transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 89.41512, 2.5, 122.36441)
+metadata/obj_type = "wall"
+metadata/label = &"Node3D"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="Node3D" unique_id=1488894923]
+transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, 0.06810951, -9.536743e-07, 9.525064)
+size = Vector3(0.15576172, 1, 11.196533)
+material = ExtResource("4_gygkr")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D" unique_id=178704231]
+transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, -4.1528664, -9.536743e-07, 9.525064)
+size = Vector3(0.15576172, 1, 11.196533)
+material = ExtResource("4_gygkr")
+
+[node name="Node3D2" type="Node3D" parent="." unique_id=1056433991]
+transform = Transform3D(-4.9999313, 0, 0.02644071, 0, 5, 0, -0.02644071, 0, -4.9999313, 85.6415, 2.5, 104.746826)
+metadata/obj_type = "wall"
+metadata/label = &"Node3D"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="Node3D2" unique_id=2082684784]
+transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, 0.06810951, -9.536743e-07, 9.525064)
+size = Vector3(0.15576172, 1, 11.196533)
+material = SubResource("StandardMaterial3D_g0kee")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D2" unique_id=352172250]
+transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, -4.1528664, -9.536743e-07, 9.525064)
+size = Vector3(0.15576172, 1, 11.196533)
+material = ExtResource("4_gygkr")
+
+[node name="Node3D4" type="Node3D" parent="." unique_id=1124503119]
+transform = Transform3D(4.9999814, 0, -0.014146686, 0, 4.999999, 0, 0.014146686, 0, 4.9999814, 106.05532, 2.5, 118.77511)
+metadata/obj_type = "wall"
+metadata/label = &"Node3D"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="Node3D4" unique_id=204563030]
+transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, 0.06810951, -9.536743e-07, 9.525064)
+size = Vector3(0.15576172, 1, 11.196533)
+material = ExtResource("4_gygkr")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D4" unique_id=603402843]
+transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, -4.1528664, -9.536743e-07, 9.525064)
+size = Vector3(0.15576172, 1, 11.196533)
+material = ExtResource("4_gygkr")
+
+[node name="Node3D3" type="Node3D" parent="." unique_id=1359962152]
+transform = Transform3D(0.009487331, 0, 4.9999914, 0, 5, 0, -4.9999914, 0, 0.009487331, 102.47796, 2.5000038, 101.67243)
+metadata/obj_type = "wall"
+metadata/label = &"Node3D"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="Node3D3" unique_id=927586971]
+transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, 0.06810951, -9.536743e-07, 9.525064)
+size = Vector3(0.15576172, 1, 11.196533)
+material = ExtResource("4_gygkr")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D3" unique_id=45443115]
+transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, -4.1528664, -9.536743e-07, 9.525064)
+size = Vector3(0.15576172, 1, 11.196533)
+material = ExtResource("4_gygkr")
+
+[node name="Node3D5" type="Node3D" parent="." unique_id=320845546]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.544487, 0, 41.12774)
+metadata/obj_type = "wall"
+metadata/label = &"Node3D5"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="Node3D5" unique_id=644010485]
+transform = Transform3D(3.56447, 0, -3.5063603, 0, 4.999999, 0, 3.5063603, 0, 3.56447, 66.74629, 2.5118556, 89.40183)
+size = Vector3(0.15576172, 1, 4.5712814)
+material = ExtResource("4_gygkr")
+
+[node name="CSGBox3D3" type="CSGBox3D" parent="Node3D5" unique_id=1558912574]
+transform = Transform3D(-3.522483, 0, -3.5485382, 0, 4.999999, 0, 3.5485382, 0, -3.522483, 29.886042, 2.5148196, 89.49068)
+size = Vector3(0.15576172, 1, 4.49951)
+material = ExtResource("4_gygkr")
+
+[node name="CSGBox3D4" type="CSGBox3D" parent="Node3D5" unique_id=768564006]
+transform = Transform3D(-3.604319, 0, -3.465385, 0, 4.999999, 0, 3.465385, 0, -3.604319, 66.83246, 2.4982038, 52.1054)
+size = Vector3(0.15576172, 1, 4.595579)
+material = ExtResource("4_gygkr")
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D5" unique_id=1207041662]
+transform = Transform3D(3.6047635, 0, -3.4649231, 0, 4.999999, 0, 3.4649231, 0, 3.6047635, 29.998228, 2.4882565, 52.23329)
+size = Vector3(0.15576172, 1, 4.6472607)
+material = ExtResource("4_gygkr")

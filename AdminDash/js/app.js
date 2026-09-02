@@ -1906,21 +1906,10 @@ function setRadarMode(mode) {
         }
     }
 
-    // Actualizar visual de botones (Defensa del Altar)
-    const btnAdAltar = document.getElementById('btn-radar-ad-altar');
+    // Actualizar visual de botones (Defensa del Altar) - v770.4: solo spawn/spawner (altar y portales en 3D)
     const btnAdSpawn = document.getElementById('btn-radar-ad-spawn');
     const btnAdSpawner = document.getElementById('btn-radar-ad-spawner');
-    const btnAdPortal = document.getElementById('btn-radar-ad-portal');
 
-    if (btnAdAltar) {
-        if (mode === 'ad-altar') {
-            btnAdAltar.classList.remove('btn-secondary');
-            btnAdAltar.classList.add('btn-primary');
-        } else {
-            btnAdAltar.classList.remove('btn-primary');
-            btnAdAltar.classList.add('btn-secondary');
-        }
-    }
     if (btnAdSpawn) {
         if (mode === 'ad-spawn') {
             btnAdSpawn.classList.remove('btn-secondary');
@@ -1939,15 +1928,6 @@ function setRadarMode(mode) {
             btnAdSpawner.classList.add('btn-secondary');
         }
     }
-    if (btnAdPortal) {
-        if (mode === 'ad-portal') {
-            btnAdPortal.classList.remove('btn-secondary');
-            btnAdPortal.classList.add('btn-primary');
-        } else {
-            btnAdPortal.classList.remove('btn-primary');
-            btnAdPortal.classList.add('btn-secondary');
-        }
-    }
 
     const modeText = document.getElementById('radar-mode-text');
     if (modeText) modeText.innerText = mode === 'spawner' ? 'SPAWNER' : (mode === 'spawn' ? 'SPAWN' : 'ESCAPE');
@@ -1957,16 +1937,14 @@ function setRadarMode(mode) {
     if (document.getElementById('radar-extract-opts')) document.getElementById('radar-extract-opts').style.display = mode === 'extract' ? 'block' : 'none';
     if (document.getElementById('radar-spawn-opts')) document.getElementById('radar-spawn-opts').style.display = mode === 'spawn' ? 'block' : 'none';
 
-    if (document.getElementById('radar-ad-altar-opts')) document.getElementById('radar-ad-altar-opts').style.display = mode === 'ad-altar' ? 'block' : 'none';
     if (document.getElementById('radar-ad-spawn-opts')) document.getElementById('radar-ad-spawn-opts').style.display = mode === 'ad-spawn' ? 'block' : 'none';
     if (document.getElementById('radar-ad-spawner-opts')) document.getElementById('radar-ad-spawner-opts').style.display = mode === 'ad-spawner' ? 'block' : 'none';
-    if (document.getElementById('radar-ad-portal-opts')) document.getElementById('radar-ad-portal-opts').style.display = mode === 'ad-portal' ? 'block' : 'none';
 }
 
 function highlightCard(type, index) {
     focusedRadarItem = { type, index };
     // Limpiar resaltados anteriores de cualquier tipo
-    document.querySelectorAll('[id^="card-spawn-"], [id^="card-extract-"], [id^="card-spawner-"], [id^="card-ad-spawn-"], [id^="card-ad-spawner-"], [id^="card-ad-portal-"], [id^="card-map-spawn-"]').forEach(el => {
+    document.querySelectorAll('[id^="card-spawn-"], [id^="card-extract-"], [id^="card-spawner-"], [id^="card-ad-spawn-"], [id^="card-ad-spawner-"], [id^="card-map-spawn-"]').forEach(el => {
         el.style.boxShadow = 'none';
         el.style.borderColor = 'rgba(255,255,255,0.1)';
         if (el.id.includes('spawn') && !el.id.includes('ad-') && !el.id.includes('map-')) {
@@ -1984,9 +1962,6 @@ function highlightCard(type, index) {
         } else if (el.id.includes('ad-spawner')) {
             el.style.background = 'rgba(255,49,49,0.05)';
             el.style.borderColor = 'rgba(255,49,49,0.2)';
-        } else if (el.id.includes('ad-portal')) {
-            el.style.background = 'rgba(0,210,255,0.05)';
-            el.style.borderColor = 'rgba(0,210,255,0.2)';
         } else {
             el.style.background = 'rgba(255,49,49,0.05)';
             el.style.borderColor = 'rgba(255,49,49,0.2)';
@@ -2058,19 +2033,7 @@ function initRadar() {
         if (isAltarDefense) {
             const ad = config.gameModes.altar_defense;
 
-            // 1. Altar
-            if (ad.altarPos) {
-                const pos = worldToCanvas(ad.altarPos.x, ad.altarPos.y);
-                const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
-                if (dist < 15) {
-                    isDragging = true;
-                    dragItem = { type: 'ad-altar' };
-                    canvas.style.cursor = 'grabbing';
-                    return;
-                }
-            }
-
-            // 2. Spawn Points
+            // 1. Spawn Points (Altar y Portales ahora en 3D, no en radar)
             const spawnPoints = ad.spawnPoints || [];
             for (let i = 0; i < spawnPoints.length; i++) {
                 const pos = worldToCanvas(spawnPoints[i].x, spawnPoints[i].y);
@@ -2084,7 +2047,7 @@ function initRadar() {
                 }
             }
 
-            // 3. Spawners
+            // 2. Spawners
             const spawners = ad.spawners || [];
             for (let i = 0; i < spawners.length; i++) {
                 const pos = worldToCanvas(spawners[i].x, spawners[i].y);
@@ -2094,20 +2057,6 @@ function initRadar() {
                     dragItem = { type: 'ad-spawner', index: i };
                     canvas.style.cursor = 'grabbing';
                     highlightCard('ad-spawner', i);
-                    return;
-                }
-            }
-
-            // 4. Puertas de Escape (Exit Portals)
-            const exitPortals = ad.exitPortals || [];
-            for (let i = 0; i < exitPortals.length; i++) {
-                const pos = worldToCanvas(exitPortals[i].x, exitPortals[i].y);
-                const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
-                if (dist < 15) {
-                    isDragging = true;
-                    dragItem = { type: 'ad-portal', index: i };
-                    canvas.style.cursor = 'grabbing';
-                    highlightCard('ad-portal', i);
                     return;
                 }
             }
@@ -2171,14 +2120,7 @@ function initRadar() {
 
         if (isAltarDefense) {
             const ad = config.gameModes.altar_defense;
-            if (dragItem.type === 'ad-altar') {
-                ad.altarPos.x = Math.round(world.wx);
-                ad.altarPos.y = Math.round(world.wy);
-                const ix = document.getElementById('ad-altar-x');
-                const iy = document.getElementById('ad-altar-y');
-                if (ix) ix.value = ad.altarPos.x;
-                if (iy) iy.value = ad.altarPos.y;
-            } else if (dragItem.type === 'ad-spawn') {
+            if (dragItem.type === 'ad-spawn') {
                 const sw = ad.spawnPoints[dragItem.index];
                 sw.x = Math.round(world.wx);
                 sw.y = Math.round(world.wy);
@@ -2194,14 +2136,6 @@ function initRadar() {
                 const iy = document.getElementById(`ad-sp-y-${dragItem.index}`);
                 if (ix) ix.value = s.x;
                 if (iy) iy.value = s.y;
-            } else if (dragItem.type === 'ad-portal') {
-                const ep = ad.exitPortals[dragItem.index];
-                ep.x = Math.round(world.wx);
-                ep.y = Math.round(world.wy);
-                const ix = document.getElementById(`ad-pt-x-${dragItem.index}`);
-                const iy = document.getElementById(`ad-pt-y-${dragItem.index}`);
-                if (ix) ix.value = ep.x;
-                if (iy) iy.value = ep.y;
             }
         } else {
             if (dragItem.type === 'extract') {
@@ -2297,29 +2231,7 @@ function initRadar() {
         if (isAltarDefense) {
             const ad = config.gameModes.altar_defense;
 
-            // Dibujar Altar - Verde
-            if (ad.altarPos) {
-                const pos = worldToCanvas(ad.altarPos.x, ad.altarPos.y);
-                const isSelected = isDragging && dragItem && dragItem.type === 'ad-altar';
-                ctx.fillStyle = isSelected ? '#fff' : 'rgba(74, 222, 128, 0.3)';
-                ctx.strokeStyle = '#4ade80';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 14, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-
-                ctx.fillStyle = '#4ade80';
-                ctx.beginPath();
-                ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.fillStyle = '#4ade80';
-                ctx.font = 'bold 11px Outfit';
-                ctx.textAlign = 'center';
-                ctx.fillText("ALTAR", pos.x, pos.y - 20);
-            }
-
+            // v770.4: Altar ahora en 3D (mapsConfig.objects), no en radar AdminDash
             // Dibujar Spawn de Jugadores - Amarillo
             if (ad.spawnPoints) {
                 ad.spawnPoints.forEach((p, idx) => {
@@ -2395,37 +2307,7 @@ function initRadar() {
                 });
             }
 
-            // Dibujar exitPortals (Puertas de escape) - Celeste/Azul
-            if (ad.exitPortals) {
-                ad.exitPortals.forEach((ep, idx) => {
-                    const pos = worldToCanvas(ep.x, ep.y);
-                    const radiusCanvas = ((ep.radius || 150) / worldW) * canvas.width;
-                    const isSelected = isDragging && dragItem && dragItem.type === 'ad-portal' && dragItem.index === idx;
-
-                    const isFocused = focusedRadarItem && focusedRadarItem.type === 'ad-portal' && focusedRadarItem.index === idx;
-                    if (isFocused) {
-                        const pulse = 4 + Math.sin(Date.now() / 150) * 3;
-                        ctx.beginPath();
-                        ctx.arc(pos.x, pos.y, radiusCanvas + pulse, 0, Math.PI * 2);
-                        ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
-                        ctx.lineWidth = 2.5;
-                        ctx.stroke();
-                    }
-
-                    ctx.fillStyle = isSelected ? '#fff' : 'rgba(0, 210, 255, 0.3)';
-                    ctx.strokeStyle = '#00d2ff';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.stroke();
-
-                    ctx.fillStyle = '#00d2ff';
-                    ctx.font = '10px Outfit';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(ep.label || 'Puerta', pos.x, pos.y - 15);
-                });
-            }
+            // v770.4: Puertas de escape ahora en 3D (mapsConfig.objects), no en radar AdminDash
         } else {
             // Dibujar Spawn Points (Players) - AMARILLO
             if (config.gameModes.extraction.spawnPoints) {
@@ -2544,13 +2426,7 @@ function addFromRadar() {
 
     if (isAltarDefense) {
         const ad = config.gameModes.altar_defense;
-        if (radarMode === 'ad-altar') {
-            ad.altarPos = { x, y };
-            const ix = document.getElementById('ad-altar-x');
-            const iy = document.getElementById('ad-altar-y');
-            if (ix) ix.value = x;
-            if (iy) iy.value = y;
-        } else if (radarMode === 'ad-spawn') {
+        if (radarMode === 'ad-spawn') {
             if (!ad.spawnPoints) ad.spawnPoints = [];
             ad.spawnPoints.push({
                 x, y,
@@ -2563,13 +2439,6 @@ function addFromRadar() {
                 x, y,
                 label: document.getElementById('radar-ad-spawner-label').value,
                 radius: parseInt(document.getElementById('radar-ad-radius').value)
-            });
-        } else if (radarMode === 'ad-portal') {
-            if (!ad.exitPortals) ad.exitPortals = [];
-            ad.exitPortals.push({
-                x, y,
-                label: document.getElementById('radar-ad-portal-label').value,
-                radius: parseInt(document.getElementById('radar-ad-portal-radius').value || 150)
             });
         }
     } else {

@@ -2679,7 +2679,7 @@ io.on('connection', (socket) => {
     async function warpPartyToAltarDefense(membersList) {
         try {
             const altarDefenseConfig = state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense;
-            const targetZoneId = (altarDefenseConfig && altarDefenseConfig.maps && altarDefenseConfig.maps[0]) ? parseInt(altarDefenseConfig.maps[0]) : 9;
+            const targetZoneId = (altarDefenseConfig && altarDefenseConfig.maps && altarDefenseConfig.maps[0]) ? parseInt(altarDefenseConfig.maps[0]) : 11;
 
             // Iniciar la partida en el AltarDefenseManager de forma autoritativa
             altarDefenseManager.startMatch(targetZoneId, membersList);
@@ -2787,9 +2787,27 @@ io.on('connection', (socket) => {
         try {
             if (!socket.dbUser || !players[socket.id]) return;
             const myUid = socket.dbUser._id.toString();
-            const partyId = playerParty[myUid];
 
-            if (!partyId || !parties[partyId]) {
+            // v770.0 FIX: Chequear si el evento está habilitado
+            const adCfgCheck = state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense;
+            if (!adCfgCheck || adCfgCheck.enabled === false) {
+                return socket.emit('gameNotification', { msg: 'EL EVENTO DEFENSA DEL ALTAR ESTÁ DESACTIVADO', type: 'error' });
+            }
+
+            const timeoutMs = (adCfgCheck && adCfgCheck.partyAcceptTimeout) ? parseInt(adCfgCheck.partyAcceptTimeout) : 10000;
+            const minPlayers = (adCfgCheck && adCfgCheck.minPlayers !== undefined) 
+                ? parseInt(adCfgCheck.minPlayers) 
+                : 2;
+
+            const partyId = playerParty[myUid];
+            const isInParty = !!(partyId && parties[partyId]);
+
+            // v770.0 FIX: Permitir entrada solo si minPlayers <=1 (sin party), si minPlayers >=2 exigir party
+            if (!isInParty) {
+                if (minPlayers <= 1) {
+                    // Entrada en solitario permitida por configuración
+                    return warpPartyToAltarDefense([myUid]);
+                }
                 return socket.emit('gameNotification', { msg: 'DEBES ESTAR EN UN GRUPO PARA REGISTRARTE', type: 'error' });
             }
 
@@ -2807,17 +2825,12 @@ io.on('connection', (socket) => {
                 altarDefenseInvites.delete(partyId);
             }
 
-            const timeoutMs = (state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense && state.SERVER_CONFIG.gameModes.altar_defense.partyAcceptTimeout) || 10000;
-            const minPlayers = (state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense && state.SERVER_CONFIG.gameModes.altar_defense.minPlayers) !== undefined 
-                ? parseInt(state.SERVER_CONFIG.gameModes.altar_defense.minPlayers) 
-                : 2;
-
             if (party.members.length < minPlayers) {
                 return socket.emit('gameNotification', { msg: `SE REQUIEREN AL MENOS ${minPlayers} MIEMBROS EN EL GRUPO PARA ESTE EVENTO`, type: 'error' });
             }
 
             if (party.members.length <= 1) {
-                // Éxito directo si solo está el líder (warpearlo directo)
+                // Éxito directo si solo está el líder (warpearlo directo) - cubre minPlayers=1 con party de 1
                 return warpPartyToAltarDefense([myUid]);
             }
 
@@ -2853,6 +2866,23 @@ io.on('connection', (socket) => {
 
         } catch (e) {
             console.error("Error en registerAltarDefenseParty:", e);
+        }
+    });
+
+    socket.on('leaveAltarDefenseQueue', () => {
+        try {
+            if (!socket.dbUser) return;
+            const myUid = socket.dbUser._id.toString();
+            const partyId = playerParty[myUid];
+            // Solo el líder puede cancelar la inscripción del grupo
+            if (partyId && altarDefenseInvites.has(partyId)) {
+                if (partyId === myUid) {
+                    cancelAltarDefenseInvite(partyId, "Inscripción cancelada por el líder.");
+                }
+            }
+            socket.emit('gameNotification', { msg: 'INSCRIPCIÓN CANCELADA', type: 'info' });
+        } catch (e) {
+            console.error("Error en leaveAltarDefenseQueue:", e);
         }
     });
 

@@ -5664,7 +5664,7 @@
                 }
             ],
             "height": 10000,
-            "loseLootOnDeath": true,
+            "loseLootOnDeath": false,
             "maps": [
                 11
             ],
@@ -5677,26 +5677,26 @@
                 {
                     "label": "Spawn1",
                     "radius": 200,
-                    "x": 4533,
-                    "y": 5001
+                    "x": 4550,
+                    "y": 3378
                 },
                 {
                     "label": "Spawn2",
                     "radius": 200,
-                    "x": 4983,
-                    "y": 4538
+                    "x": 4567,
+                    "y": 4528
                 },
                 {
                     "label": "Spawn3",
                     "radius": 200,
-                    "x": 5450,
-                    "y": 5010
+                    "x": 5400,
+                    "y": 3394
                 },
                 {
                     "label": "Spawn4",
                     "radius": 200,
-                    "x": 5000,
-                    "y": 5460
+                    "x": 5367,
+                    "y": 4528
                 }
             ],
             "spawners": [
@@ -5705,32 +5705,32 @@
                     "enemyId": "1",
                     "label": "Zona de Invasión1",
                     "radius": 500,
-                    "x": 4967,
-                    "y": 1028
+                    "x": 4800,
+                    "y": 1094
                 },
                 {
                     "count": 10,
                     "enemyId": "1",
                     "label": "Zona de Invasión2",
                     "radius": 500,
-                    "x": 9000,
-                    "y": 4994
+                    "x": 8633,
+                    "y": 3994
                 },
                 {
                     "count": 10,
                     "enemyId": "1",
                     "label": "Zona de Invasión3",
                     "radius": 500,
-                    "x": 5000,
-                    "y": 9028
+                    "x": 4817,
+                    "y": 6861
                 },
                 {
                     "count": 10,
                     "enemyId": "1",
                     "label": "Zona de Invasión4",
                     "radius": 500,
-                    "x": 1000,
-                    "y": 5011
+                    "x": 700,
+                    "y": 4011
                 }
             ],
             "waveInterval": 15000,

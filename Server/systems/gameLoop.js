@@ -7,6 +7,7 @@ const Logger = require('../utils/logger');
 const extractionManager = require('./extractionManager');
 const { checkAndProcessDeathDrop } = require('./deathDropHelper');
 const combatTracker = require('./combatTracker');
+const altarDefenseManager = require('./altarDefenseManager');
 
 const normalizeZone = (z) => {
     if (z === undefined || z === null) return 1;
@@ -359,14 +360,24 @@ function startGameLoop(io, state, aiManager) {
                 
                 let redirectNeeded = false;
                 let reason = "";
+
+                // v770.0 FIX OPCIÓN B: Si el mapa es de Defensa del Altar y el jugador entró vía evento, no expulsar aunque visible===false
+                // El mapa queda invisible para warp manual (AdminDash), pero accesible vía registerAltarDefenseParty -> warpPartyToAltarDefense
+                const adMaps = (state.SERVER_CONFIG && state.SERVER_CONFIG.gameModes && state.SERVER_CONFIG.gameModes.altar_defense && state.SERVER_CONFIG.gameModes.altar_defense.maps)
+                    ? state.SERVER_CONFIG.gameModes.altar_defense.maps.map(String)
+                    : [];
+                const isAltarDefenseZone = adMaps.includes(String(zoneId));
+                // Solo los participantes del evento activo permanecen en zona invisible; el resto sigue siendo expulsado
+                const activeAltarMatch = altarDefenseManager.activeMatch;
+                const isInAltarEvent = isAltarDefenseZone && activeAltarMatch && String(activeAltarMatch.zoneId) === String(zoneId) && Array.isArray(activeAltarMatch.members) && activeAltarMatch.members.includes(p.id);
                 
-                // 1. Redirigir si está inactivo/invisible
-                if (mapCfg.visible === false) {
+                // 1. Redirigir si está inactivo/invisible (excepto Defensa del Altar en evento activo)
+                if (mapCfg.visible === false && !isInAltarEvent) {
                     redirectNeeded = true;
                     reason = "EL SECTOR HA SIDO DESACTIVADO POR EL ADMINISTRADOR";
                 }
-                // 2. Redirigir si expiró el horario permitido
-                else if (mapCfg.timeRestrictionsEnabled && mapCfg.allowedHours && mapCfg.allowedHours.length > 0) {
+                // 2. Redirigir si expiró el horario permitido (también exceptuado para participantes del evento)
+                else if (!isInAltarEvent && mapCfg.timeRestrictionsEnabled && mapCfg.allowedHours && mapCfg.allowedHours.length > 0) {
                     const serverTime = new Date();
                     const currentDay = serverTime.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
                     const currentHours = serverTime.getHours();

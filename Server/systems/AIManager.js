@@ -33,7 +33,13 @@ class AIManager {
         if (typeof type === 'string' && !isNaN(Number(type))) {
             type = Number(type);
         }
-        const cfg = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[type.toString()] : null;
+        let cfg = (SERVER_CONFIG && SERVER_CONFIG.enemyModels) ? SERVER_CONFIG.enemyModels[type.toString()] : null;
+        if (!cfg && typeof type === 'string' && SERVER_CONFIG && SERVER_CONFIG.enemyModels) {
+            const baseKey = type.split('-')[0].trim();
+            if (SERVER_CONFIG.enemyModels[baseKey]) {
+                cfg = SERVER_CONFIG.enemyModels[baseKey];
+            }
+        }
         
         const maps = (this.state && this.state.SERVER_CONFIG) ? (this.state.SERVER_CONFIG.mapsConfig || this.state.SERVER_CONFIG.maps || this.state.SERVER_CONFIG.mapData || {}) : {};
         let mapCfg = maps[zone] || maps[zone.toString()];
@@ -117,7 +123,7 @@ class AIManager {
         // movimiento (stopDist, idealDist, startDelay, etc.) pisen valores raíz del cfg
         // (regenDelayMs, regenIntervalMs, hpRegenPercent, etc.).
         // La fase 0 se aplica dinámicamente en BaseAI._evaluatePhaseConditions al primer tick.
-        const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (type * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
+        const aiConfig = cfg ? { ...cfg, speed: movSpeed } : { bulletDamage: (numericType * 100), fireRate: 2000, speed: movSpeed, bulletSpeed: 800 };
         
         // v266.230: Asignación Dinámica de Cerebros basada en Configuración
         // v500.3: movementType se obtiene de cfg.movementAI o del tipo de la fase 0
@@ -141,11 +147,11 @@ class AIManager {
             e.ai = new AI_MAP[movementType](e, aiConfig, this.state);
         } else {
             // Fallback para tipos hardcodeados antiguos si no hay config
-            if (type === 103 || type === 102 || type === 101) e.ai = new BossAI(e, aiConfig, this.state); 
-            else if (type === 8 || type === 3) e.ai = new ChargerAI(e, aiConfig, this.state);
-            else if (type === 6 || type === 7) e.ai = new GravityAI(e, aiConfig, this.state);
-            else if (type === 5 || type === 2 || type === 12) e.ai = new SniperAI(e, aiConfig, this.state); 
-            else if (type === 1 || type === 9 || type === 13 || type === 4) e.ai = new ChaseAI(e, aiConfig, this.state); 
+            if (numericType === 103 || numericType === 102 || numericType === 101) e.ai = new BossAI(e, aiConfig, this.state); 
+            else if (numericType === 8 || numericType === 3) e.ai = new ChargerAI(e, aiConfig, this.state);
+            else if (numericType === 6 || numericType === 7) e.ai = new GravityAI(e, aiConfig, this.state);
+            else if (numericType === 5 || numericType === 2 || numericType === 12) e.ai = new SniperAI(e, aiConfig, this.state); 
+            else if (numericType === 1 || numericType === 9 || numericType === 13 || numericType === 4) e.ai = new ChaseAI(e, aiConfig, this.state); 
             else e.ai = new OrbitAI(e, aiConfig, this.state);
         }
 
@@ -162,8 +168,8 @@ class AIManager {
         if (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.mapsConfig) {
             const maps = this.state.SERVER_CONFIG.mapsConfig;
             Object.keys(maps).forEach(mapId => {
-                // v2.9.2: Ignorar mapas de eventos (10 para extracción, 9 para defensa del altar) del respawn genérico
-                if (Number(mapId) === 10 || Number(mapId) === 9) return;
+                // v2.9.2: Ignorar mapas de eventos (10 para extracción, 9 para pvp arena, 11 para defensa del altar) del respawn genérico
+                if (Number(mapId) === 10 || Number(mapId) === 9 || Number(mapId) === 11) return;
                 
                 const mCfg = maps[mapId];
                 

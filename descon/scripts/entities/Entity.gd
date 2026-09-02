@@ -58,7 +58,7 @@ static var _prop_proc_material: ParticleProcessMaterial = null
 static var _prop_material: StandardMaterial3D = null
 static var _prop_mesh: QuadMesh = null
 
-# Entity.gd (v150.20 - Non-Triangular Xeno Engine)
+# Entity.gd (v150.21 - Non-Triangular Xeno Engine & Raw Variant Support)
 # Eliminación Absoluta de Triángulos en Enemigos. Siluetas Geométricas Puras.
 
 var entity_id: String = ""
@@ -66,6 +66,7 @@ var _3d_propulsion: GPUParticles3D = null
 var db_id: String = "" # v243.80: Identidad persistente (MongoDB ID)
 var username: String = "Unknown"
 var entity_type: int = 1
+var raw_entity_type: String = "1" # Mantiene el sufijo de variante, e.g. "6-C"
 var clan_tag: String = "" # v244.110: Siglas de Flota
 
 var max_hp: float = 3000; var is_rage: bool = false # v238.70: Modo Furia (ex-Ryze)
@@ -482,7 +483,8 @@ func _process(delta):
 				101: 4.5, 102: 4.5, 103: 4.5, 104: 5.5,
 				200: 3.5,
 			}
-			var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+			# Usar raw_entity_type primero (para "6-C"), si no, usar entity_type (para "6")
+			var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 			var lookup_key = -1 if is_in_group("player") else entity_type
 			var default_height = HUD_HEIGHTS.get(lookup_key, 5.5 if entity_type >= 101 else 1.5)
 			var hud_height_3d: float = float(enemy_cfg.get("hudHeight", default_height))
@@ -721,7 +723,8 @@ func _process(delta):
 	# v219.98: FÍSICAS 3D DINÁMICAS (BANKING + BOBBING + ÓRBITA)
 	if is_instance_valid(_3d_model) and screen_visible:
 		# 1. BALANCEO (BOBBING)
-		var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+		# Usar raw_entity_type primero (para "6-C"), si no, usar entity_type (para "6")
+		var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 		var can_float = bool(enemy_cfg.get("canFloat", true))
 		if can_float:
 			_3d_model.position.y = sin(Time.get_ticks_msec() * 0.002) * 0.12
@@ -942,7 +945,8 @@ func _update_3d_root_sync():
 		
 		var base_y = 1.0
 		if entity_type >= 101 and not is_in_group("player"):
-			var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+			# Usar raw_entity_type primero (para "6-C"), si no, usar entity_type (para "6")
+			var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 			base_y = float(enemy_cfg.get("posY", 1.0))
 			
 		world_root_3d.position.y = base_y
@@ -1171,11 +1175,18 @@ func update_stats(data):
 		is_rage = bool(data.get("isRage", data.get("isRyze", false)))
 		
 	if data.has("type"):
-		var t = str(data.type).to_int()
-		# v224.30: Forzar recarga si el tipo cambió O si el 3D falló (polígono rosa visible)
+		var raw_type = str(data.get("type", entity_type))
+		if raw_type != raw_entity_type:
+			raw_entity_type = raw_type
+		var t = int(raw_type)
 		if t != entity_type or not is_instance_valid(_3d_model): 
 			entity_type = t
-			_adjust_visuals(t)
+			# Forzar recarga del modelo 3D al cambiar de tipo
+			if is_instance_valid(_3d_model):
+				_3d_model.queue_free()
+				_3d_model = null
+			if has_method("_setup_enemy_visuals") and not is_in_group("player"):
+				call("_setup_enemy_visuals")
 			
 	# Forzar regenerar el tag para enemigos si estamos en local y somos T1/T4 etc
 	_update_tags()
@@ -2575,6 +2586,13 @@ func _setup_enemy_visuals():
 	var glb_path = ""
 	var enemy_rot_offset = 0.0
 	var enemy_pitch_offset = 0.0 # v405: Inclinación sagital (eje Z local) para compensar poses agachadas de assets
+	
+	# Si el enemigo tiene una entrada en GameConstants.ENEMY_MODELS (sincronizado desde el
+	# backend), extraemos la escala personalizada
+	
+	# Usar raw_entity_type primero (para "6-C"), si no, usar entity_type (para "6")
+	var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
+	var model_scale = float(enemy_cfg.get("modelScale", 1.0))
 	var _enemy_scale = 3.0 
 	var path = "" 
 	
@@ -2583,7 +2601,6 @@ func _setup_enemy_visuals():
 	# AdminDash) con assetPath, se usa EXACTAMENTE ese modelo 3D, su icono 2D, sus rotaciones
 	# (rotX/rotY/rotZ) y su escala (scale). Si no existe entrada o no trae assetPath, se cae al
 	# mapeo hardcodeado tradicional (compatibilidad total con enemigos existentes).
-	var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
 	var use_cfg_3d = enemy_cfg.has("assetPath") and str(enemy_cfg.get("assetPath", "")) != ""
 	if use_cfg_3d:
 		glb_path = enemy_cfg.assetPath
@@ -2756,7 +2773,7 @@ func _update_animations():
 
 	# 2. Animación del Modelo 3D (Dynamic Data-Driven)
 	if is_instance_valid(_3d_anim_player):
-		var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+		var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 		
 		# Fallbacks por defecto para bosses importados desde Tripo (>= 104)
 		var default_idle = "1" if entity_type >= 104 else "idle"
@@ -2832,7 +2849,7 @@ func _play_3d_anim(anim_name_or_keyword: String):
 
 		# Ajustar dinámicamente la velocidad de la animación (speed_scale)
 		# para que la caminata/correr coincida de forma natural con la velocidad real de la física
-		var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+		var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 		if is_run_anim:
 			# Obtenemos la velocidad real medida en el frame anterior
 			var current_pos = global_position
@@ -3222,7 +3239,7 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 
 			# Para el Lienzo Único (bosses), reproducir Idle de inmediato al spawnear
 			if is_single_world:
-				var enemy_cfg_anim = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+				var enemy_cfg_anim = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 				var default_idle_anim = "1" if entity_type >= 105 else "idle"
 				var idle_keyword = str(enemy_cfg_anim.get("animIdle", default_idle_anim))
 				_play_3d_anim(idle_keyword)
@@ -3663,7 +3680,7 @@ func _update_collision_size():
 			var size_2d = max_size_3d / map_scale
 			# Factor de ajuste corrector según el modelo (evita hitboxes gigantes por detalles/alas externas)
 			var default_adj = 0.38 if entity_type == 101 else (0.55 if entity_type >= 102 else 0.9)
-			var enemy_cfg = GameConstants.ENEMY_MODELS.get(str(entity_type), {})
+			var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 			var adjustment_factor = float(enemy_cfg.get("hitboxAdjustment", default_adj))
 				
 			_collision_shape.shape.radius = (size_2d * 0.5) * adjustment_factor

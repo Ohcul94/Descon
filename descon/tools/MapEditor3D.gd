@@ -1115,15 +1115,16 @@ func _spawn_extraction_markers(ext_cfg: Dictionary):
 		_create_marker_disc(Vector2(x, y), radius, Color(1, 0.2, 0.2), "👾 " + label, root)
 
 func _spawn_altar_defense_markers(ad_cfg: Dictionary):
+	# v770.7: Altar y Puertas ahora se editan SOLO en 3D (mapsConfig.objects), no desde adConfig.
+	# Para evitar duplicados en el editor (ver puertas/altar dos veces), solo mostramos
+	# marcadores para spawners y spawnPoints. El altar/puertas reales ya están como nodos 3D.
 	var root = Node3D.new()
 	root.name = "EventMarkers"
 	add_child(root)
 	
-	var altar_pos = ad_cfg.get("altarPos", {})
-	if altar_pos.has("x") and altar_pos.has("y"):
-		var x = float(altar_pos.x)
-		var y = float(altar_pos.y)
-		_create_marker_disc(Vector2(x, y), 250, Color(1, 0.8, 0.2), "🏛️ ALTAR", root)
+	# Altar y ExitPortals ya no se dibujan como markers si existen objetos 3D reales
+	# (evita duplicado visual: verías el GLB + el disc/mesh del marker en la misma pos)
+	# Si querés ver guía, descomenta el bloque de altar_pos/exit_portals.
 	
 	var spawn_points = ad_cfg.get("spawnPoints", [])
 	for sp in spawn_points:
@@ -1139,22 +1140,6 @@ func _spawn_altar_defense_markers(ad_cfg: Dictionary):
 		var radius = float(sw.get("radius", 300))
 		var label = str(sw.get("label", "Amenaza"))
 		_create_marker_disc(Vector2(x, y), radius, Color(1, 0.2, 0.2), "👾 " + label, root)
-	
-	var portal_mesh = load("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
-	var exit_portals = ad_cfg.get("exitPortals", [])
-	for i in range(exit_portals.size()):
-		var ep = exit_portals[i]
-		var x = float(ep.get("x", 0))
-		var y = float(ep.get("y", 0))
-		var label = str(ep.get("label", "Portal"))
-		_create_marker_disc(Vector2(x, y), 150, Color(0.2, 1, 1), "🚪 " + label, root)
-		if portal_mesh:
-			var portal = portal_mesh.instantiate()
-			portal.name = "PortalEscape_" + str(i)
-			portal.rotation_degrees = Vector3(-45, -90, 0)
-			portal.position = Vector3(x * scale_factor, 0.5, y * scale_factor * correction_z)
-			portal.scale = Vector3(10.0, 10.0, 10.0)
-			root.add_child(portal)
 
 func update_map_boundary(width_2d: float, height_2d: float):
 	var old_b = get_node_or_null("MapBoundaryVisual")
@@ -1285,29 +1270,23 @@ func save_to_server():
 			print("MapEditor3D: 🔄 gameModes.extraction.extractPoints actualizado con ", new_extract_pts.size(), " puertas.")
 
 	# Tipo-safe check para altar_defense maps
-	var _sv_is_altar = false
-	if config_dict.has("gameModes") and config_dict.gameModes.has("altar_defense"):
-		var ad_cfg_sv = config_dict.gameModes.altar_defense
-		for _m in ad_cfg_sv.get("maps", []):
-			if int(_m) == zone_id_int_sv:
-				_sv_is_altar = true
-				break
-		if _sv_is_altar:
-			if altar_objects.size() > 0:
-				var a = altar_objects[0]
-				ad_cfg_sv["altarPos"] = { "x": float(a.get("x", 5000)), "y": float(a.get("y", 5000)) }
-				print("MapEditor3D: 🔄 gameModes.altar_defense.altarPos actualizado: ", ad_cfg_sv.altarPos)
-			if door_objects.size() > 0:
-				var new_portals = []
-				for d in door_objects:
-					new_portals.append({
-						"label": str(d.get("label", "Escape")),
-						"radius": float(d.get("radius", 150)),
-						"x": float(d.get("x", 0)),
-						"y": float(d.get("y", 0))
-					})
-				ad_cfg_sv["exitPortals"] = new_portals
-				print("MapEditor3D: 🔄 gameModes.altar_defense.exitPortals actualizado con ", new_portals.size(), " portales del mapa 3D.")
+	# v770.7: Altar y puertas ya NO se sincronizan a gameModes.altar_defense (admin dash no los determina)
+	# Se leen solo desde mapsConfig[zone_id].objects (Editor 3D). Se deja el bloque comentado para referencia:
+	# var _sv_is_altar = false
+	# if config_dict.has("gameModes") and config_dict.gameModes.has("altar_defense"):
+	#     var ad_cfg_sv = config_dict.gameModes.altar_defense
+	#     for _m in ad_cfg_sv.get("maps", []):
+	#         if int(_m) == zone_id_int_sv:
+	#             _sv_is_altar = true
+	#             break
+	#     if _sv_is_altar:
+	#         if altar_objects.size() > 0:
+	#             var a = altar_objects[0]
+	#             ad_cfg_sv["altarPos"] = { "x": float(a.get("x", 5000)), "y": float(a.get("y", 5000)) }
+	#         if door_objects.size() > 0:
+	#             var new_portals = []
+	#             for d in door_objects: ...
+	#             ad_cfg_sv["exitPortals"] = new_portals
 
 	# Tipo-safe check para arena PVP maps
 	var _sv_is_arena = false

@@ -1,6 +1,6 @@
 extends "res://scripts/entities/Entity.gd"
 
-# Enemy.gd (Controlador de Enemigos Remotos v2.3 - Organic Orientation)
+# Enemy.gd (Controlador de Enemigos Remotos v2.4 - Organic Orientation)
 # Sincronización de Identidad y Orientación Táctica Dinámica.
 
 var _last_sync_pos: Vector2 = Vector2.ZERO
