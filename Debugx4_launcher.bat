@@ -23,10 +23,10 @@ set PASS4=1234
 
 :: Configuracion de resolucion (Por defecto 1920x1080)
 :: Si tienes un monitor diferente, ajusta W y H.
-:: OFFSET_Y = pixeles a bajar las ventanas superiores (recomendado 30-40)
+:: OFFSET_Y = pixeles a bajar las ventanas superiores (recomendado 50-70)
 set W=1920
 set H=1080
-set OFFSET_Y=35
+set OFFSET_Y=60
 
 :: Calculo de tamanos (Mitad del monitor, descontando offset)
 set /a usableH=%H% - %OFFSET_Y%

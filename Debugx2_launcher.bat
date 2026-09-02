@@ -10,10 +10,10 @@ set PROJECT_PATH="E:\Descon\descon"
 :: --- CONFIGURA TUS CUENTAS AQUI ---
 :: Edita USER/PASS para cada sesion. Deja en blanco para no abrirla.
 :: Ejemplo: set USER1=Caelli94 / set PASS1=1234
-set USER1=Caelli94
+set USER1=Player1
 set PASS1=1234
 
-set USER2=Player3
+set USER2=Player5
 set PASS2=1234
 
 :: Descomenta estas lineas si quieres 3ra y 4ta sesion:
@@ -32,7 +32,7 @@ set PASS4=
 :: para que no queden cortadas por la barra de titulo de Windows.
 set W=1920
 set H=1080
-set OFFSET_Y=35
+set OFFSET_Y=60
 
 :: Calculo de tamanos (mitad del monitor, descontando el offset superior)
 set /a usableH=%H% - %OFFSET_Y%

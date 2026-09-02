@@ -32,7 +32,7 @@ set PASS4=
 :: para que no queden cortadas por la barra de titulo de Windows.
 set W=1920
 set H=1080
-set OFFSET_Y=35
+set OFFSET_Y=60
 
 :: Calculo de tamanos (mitad del monitor, descontando el offset superior)
 set /a usableH=%H% - %OFFSET_Y%
