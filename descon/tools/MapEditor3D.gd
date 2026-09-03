@@ -585,20 +585,34 @@ func import_from_json():
 			elif obj.get("type") == "pillar":
 				asset_path = "res://assets/Pilares/3D/Pilar1/Pilar1.glb"
 			else:
-				asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
+				# wall vacío con Asset Path vacío = contenedor solo colliders, sin mesh horrible
+				if obj.get("type") == "wall" and str(obj.get("assetPath", "")) == "":
+					asset_path = "" # no instanciar Pared1
+				else:
+					asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
 
 				
-		var scene = load(asset_path)
-		if not scene:
-			print("MapEditor3D: No se pudo cargar el archivo: ", asset_path)
-			continue
-			
-		var instance = scene.instantiate()
-		var base_name = str(obj.get("label", instance.name)).replace(" ", "_").replace("@", "")
-		instance.name = _unique_node_name(target_parent, base_name)
-		target_parent.add_child(instance)
-		if scene_root:
-			instance.owner = scene_root
+		var instance: Node3D = null
+		var base_name = str(obj.get("label", "ParedVacia")).replace(" ", "_").replace("@", "")
+		if asset_path == "" and obj.get("type") == "wall":
+			# contenedor vacío para colliders agrupados, sin mesh
+			instance = Node3D.new()
+			instance.name = _unique_node_name(target_parent, base_name)
+			target_parent.add_child(instance)
+			if scene_root:
+				instance.owner = scene_root
+		else:
+			var scene = load(asset_path)
+			if not scene:
+				print("MapEditor3D: No se pudo cargar el archivo: ", asset_path)
+				continue
+			instance = scene.instantiate()
+			# usar label del obj o nombre de la instancia
+			base_name = str(obj.get("label", instance.name)).replace(" ", "_").replace("@", "")
+			instance.name = _unique_node_name(target_parent, base_name)
+			target_parent.add_child(instance)
+			if scene_root:
+				instance.owner = scene_root
 		
 		# Posición
 		var x_2d = float(obj.get("x", 0.0))

@@ -1977,10 +1977,11 @@ func _spawn_map_objects():
 				var y_offset = float(obj.get("yOffset", 0.5))
 				
 				var model_path = str(obj.get("assetPath", ""))
-				if model_path == "":
-					model_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
-				
-				var model_node = _instantiate_map_object_3d(model_path, obj_pos, Vector3(scale_val, scale_val, scale_val), Vector3(0, rot_y, 0), Color(0.9, 0.3, 0.1), y_offset)
+				var model_node = null
+				if model_path != "":
+					model_node = _instantiate_map_object_3d(model_path, obj_pos, Vector3(scale_val, scale_val, scale_val), Vector3(0, rot_y, 0), Color(0.9, 0.3, 0.1), y_offset)
+				else:
+					print("[BaseMap] Pared contenedora sin mesh (solo colliders): ", obj_label, " @ ", obj_pos)
 				
 				var custom_size = Vector2(100.0 * scale_val, 20.0 * scale_val)
 				var custom_offset = Vector2.ZERO
