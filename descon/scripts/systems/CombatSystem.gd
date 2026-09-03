@@ -67,7 +67,25 @@ func _spawn_projectile(data, o_type):
 		
 	if is_instance_valid(found_entity):
 		spawn_pos = found_entity.global_position
-		
+	
+	# Para minas de JUGADOR, spawnear en posición del target si está dentro del rango
+	var mine_type = str(data.get("type", ""))
+	if mine_type == "mine" and data.has("target_x") and data.has("target_y"):
+		var target_pos = Vector2(str(data.target_x).to_float(), str(data.target_y).to_float())
+		var mine_range = str(data.get("range", 600.0)).to_float()
+		var dist_to_target = spawn_pos.distance_to(target_pos)
+		if dist_to_target <= mine_range:
+			spawn_pos = target_pos
+	
+	# Para minas de ENEMIGO, spawnear en la posición del jugador (target)
+	if mine_type == "mine" and o_type == "enemy":
+		var player = world.local_player if is_instance_valid(world) and is_instance_valid(world.local_player) else null
+		if is_instance_valid(player):
+			var mine_range = str(data.get("range", 800.0)).to_float()
+			var dist_to_player = spawn_pos.distance_to(player.global_position)
+			if dist_to_player <= mine_range:
+				spawn_pos = player.global_position
+	
 	p.global_position = spawn_pos
 	
 	var fire_angle = str(data.get("angle", 0.0)).to_float()

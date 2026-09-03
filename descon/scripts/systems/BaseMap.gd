@@ -315,9 +315,10 @@ func _deferred_ready():
 	print("[BaseMap _deferred_ready] Entrando a deferred ready. Esperando process_frame...")
 	await get_tree().process_frame
 	
-	# v370.0: El altar 3D se instanciará directamente desde los objects del MapEditor3D,
-	# evitando duplicados hardcodeados.
-
+	# v770.12: Re-sincronizar el zoom de la cámara con el alto real de pantalla ya renderizado
+	# Evita que al warpear a un mapa la cámara inicie calculada con alto fallback (1080p) y requiera scroll para corregirse.
+	_sync_free_from_fixed()
+	
 	print("[BaseMap _deferred_ready] process_frame completado. Llamando a _spawn_map_objects...")
 	_spawn_map_objects()
 	_create_sky_dome()
@@ -1239,9 +1240,17 @@ func set_camera_2d_mode(_active: bool):
 	use_orthogonal = false
 
 func _get_base_height_and_factor() -> Dictionary:
-	var viewport_height = float(get_viewport().get_visible_rect().size.y) if is_inside_tree() else 1080.0
-	if viewport_height <= 0:
-		viewport_height = 1080.0
+	var viewport_height = 800.0
+	if is_inside_tree() and get_viewport():
+		var v_size = get_viewport().get_visible_rect().size
+		if v_size.y > 100.0:
+			viewport_height = float(v_size.y)
+		elif has_node("/root/SettingsManager"):
+			var sm = get_node("/root/SettingsManager")
+			if "screen_resolution" in sm and typeof(sm.screen_resolution) == TYPE_STRING:
+				var parts = sm.screen_resolution.split("x")
+				if parts.size() > 1 and parts[1].is_valid_int():
+					viewport_height = float(parts[1])
 	var target_visible_height = viewport_height * scale_factor
 	var fov_val = camera_3d.fov if is_instance_valid(camera_3d) else 55.0
 	var fov_rad = deg_to_rad(fov_val / 2.0)
@@ -1280,6 +1289,8 @@ func _restore_camera_state():
 	if not has_node("/root/SettingsManager"):
 		return
 	var sm = get_node("/root/SettingsManager")
+	if sm.cam_fixed_zoom > 0.55 or sm.cam_fixed_zoom < 0.18:
+		sm.cam_fixed_zoom = 0.35
 	fixed_cam_zoom = clamp(sm.cam_fixed_zoom, 0.18, 0.55)
 	free_cam_active = sm.cam_free_active
 	free_cam_h = sm.cam_free_h

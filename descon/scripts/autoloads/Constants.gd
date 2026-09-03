@@ -86,12 +86,12 @@ var SHOP_ITEMS = {
 			{ "id": "am_l6", "name": "Láser T6", "prices": { "hubs": 0, "ohcu": 20 }, "range": 1000 }
 		],
 		"mine": [
-			{ "id": "am_n1", "name": "Mina T1", "prices": { "hubs": 10000, "ohcu": 1 }, "range": 300 },
-			{ "id": "am_n2", "name": "Mina T2", "prices": { "hubs": 20000, "ohcu": 20 }, "range": 350 },
-			{ "id": "am_n3", "name": "Mina T3", "prices": { "hubs": 30000, "ohcu": 30 }, "range": 400 },
-			{ "id": "am_n4", "name": "Mina T4", "prices": { "hubs": 40000, "ohcu": 40 }, "range": 450 },
-			{ "id": "am_n5", "name": "Mina T5", "prices": { "hubs": 0, "ohcu": 100 }, "range": 500 },
-			{ "id": "am_n6", "name": "Mina T6", "prices": { "hubs": 0, "ohcu": 200 }, "range": 600 }
+			{ "id": "am_n1", "name": "Mina T1", "prices": { "hubs": 10000, "ohcu": 1 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 150, "lifetimeMs": 10000, "deceleration": 2.0 },
+			{ "id": "am_n2", "name": "Mina T2", "prices": { "hubs": 20000, "ohcu": 20 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 175, "lifetimeMs": 12000, "deceleration": 1.8 },
+			{ "id": "am_n3", "name": "Mina T3", "prices": { "hubs": 30000, "ohcu": 30 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 200, "lifetimeMs": 14000, "deceleration": 1.6 },
+			{ "id": "am_n4", "name": "Mina T4", "prices": { "hubs": 40000, "ohcu": 40 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 225, "lifetimeMs": 16000, "deceleration": 1.4 },
+			{ "id": "am_n5", "name": "Mina T5", "prices": { "hubs": 0, "ohcu": 100 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 250, "lifetimeMs": 18000, "deceleration": 1.2 },
+			{ "id": "am_n6", "name": "Mina T6", "prices": { "hubs": 0, "ohcu": 200 }, "range": 1100, "bulletSpeed": 1200, "explosionRadius": 300, "lifetimeMs": 20000, "deceleration": 1.0 }
 		],
 		"missile": [
 			{ "id": "am_m1", "name": "Misil T1", "prices": { "hubs": 5000, "ohcu": 1 }, "range": 800 },

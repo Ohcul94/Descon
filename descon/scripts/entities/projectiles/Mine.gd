@@ -11,7 +11,8 @@ func _ready():
 		damage = 50 # Mucho daño por impacto
 
 func _on_body_entered(body):
-	# Explosión de mina (vfx)
+	# Explosión de mina (vfx) - usar radio configurable de explosionRadius
 	if VFXSystem:
-		VFXSystem.spawn_explosion(global_position, 1.5)
+		var explosion_scale = _bomb_radius / 100.0 if _bomb_radius > 0 else 1.5
+		VFXSystem.spawn_explosion(global_position, explosion_scale)
 	super._on_body_entered(body)

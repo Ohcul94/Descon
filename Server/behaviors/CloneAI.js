@@ -105,7 +105,12 @@ module.exports = class CloneAI extends BaseAI {
                 io.to(zoneStr).emit('serverEnemyFire', {
                     enemyId: this.enemy.id,
                     enemyType: this.enemy.type,
-                    x: mx, y: my, angle: 0, type: 'mine', damage: 0
+                    x: mx, y: my, angle: 0, type: 'mine', damage: 0,
+                    bulletSpeed: 1200,
+                    range: 1100,
+                    deceleration: 2.0,
+                    explosionRadius: 150,
+                    lifetimeMs: 10000
                 });
             } else if (chosen === "circle_cast") {
                 io.to(zoneStr).emit('serverEnemyAction', {

@@ -69,6 +69,7 @@ var _orb_mesh: MeshInstance3D = null
 var _is_setup: bool = false
 var _melee_fireballs_3d: Array = []
 var _melee_blade_positions_3d: Array = []
+var _current_data: Dictionary = {}  # Almacena el payload completo para acceso posterior
 
 # Referencias para animación y efectos de Mega Láser (v315)
 var _laser_hit_3d: Node3D = null
@@ -178,6 +179,7 @@ func _process(_delta):
 func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	global_position = p_pos
 	rotation = p_angle
+	_current_data = p_data  # Guardar datos completos para acceso posterior
 	type = p_data.get("bulletType", p_data.get("type", "laser"))
 	print("[PROJECTILE SETUP] type = ", type, " | p_data = ", p_data)
 	owner_id = str(p_data.get("enemyId", p_data.get("id", p_data.get("senderId", p_data.get("entityId", "")))))
@@ -1592,7 +1594,8 @@ func _physics_process(delta):
 		velocity = Vector2.RIGHT.rotated(rotation) * speed
 	
 	elif type == "mine":
-		velocity = velocity.lerp(Vector2.ZERO, 3.5 * delta)
+		var decel = _safe_float(_current_data.get("deceleration", 3.5), 3.5)
+		velocity = velocity.lerp(Vector2.ZERO, decel * delta)
 	elif type == "mega_laser":
 		if is_instance_valid(_owner_node):
 			global_position = _owner_node.global_position

@@ -3809,9 +3809,9 @@
             "mechanics": [
                 {
                     "bulletDamage": 1,
-                    "bulletSpeed": 900,
+                    "bulletSpeed": 600,
                     "castInterruptible": true,
-                    "castTimeMs": 0,
+                    "castTimeMs": 500,
                     "fireRange": 1100,
                     "fireRate": 2000,
                     "slowAmount": 0,
@@ -3822,7 +3822,10 @@
                     "activationHPs": [
                         50
                     ],
-                    "startDelay": 0
+                    "startDelay": 0,
+                    "explosionRadius": 100,
+                    "lifetimeMs": 6000,
+                    "deceleration": 1
                 }
             ],
             "movementPhases": [
@@ -8806,8 +8809,12 @@
                 "activationHPs",
                 "activationIntervalMs",
                 "bulletDamage",
+                "bulletSpeed",
                 "fireRange",
                 "fireRate",
+                "explosionRadius",
+                "lifetimeMs",
+                "deceleration",
                 "startDelay",
                 "castTimeMs",
                 "castInterruptible"
@@ -10394,89 +10401,107 @@
             ],
             "mine": [
                 {
-                    "bulletSpeed": 200,
+                    "bulletSpeed": 1200,
                     "castTimeMs": 0,
                     "cooldown": 5000,
+                    "explosionRadius": 150,
                     "id": "am_n1",
+                    "lifetimeMs": 10000,
+                    "deceleration": 2,
                     "mechanics": [],
                     "name": "Mina T1",
                     "prices": {
                         "hubs": 3000,
                         "ohcu": 30
                     },
-                    "range": 200,
+                    "range": 1100,
                     "sound": "",
                     "soundVolumePercent": 50
                 },
                 {
-                    "bulletSpeed": 800,
+                    "bulletSpeed": 1200,
                     "castTimeMs": 0,
                     "cooldown": 1000,
+                    "explosionRadius": 175,
                     "hidden": false,
                     "id": "am_n2",
+                    "lifetimeMs": 12000,
+                    "deceleration": 1.8,
                     "mechanics": [],
                     "name": "Mina T2",
                     "prices": {
                         "hubs": 20000,
                         "ohcu": 20
                     },
-                    "range": 350
+                    "range": 1100
                 },
                 {
-                    "bulletSpeed": 800,
+                    "bulletSpeed": 1200,
                     "castTimeMs": 0,
                     "cooldown": 1000,
+                    "explosionRadius": 200,
                     "hidden": true,
                     "id": "am_n3",
+                    "lifetimeMs": 14000,
+                    "deceleration": 1.6,
                     "mechanics": [],
                     "name": "Mina T3",
                     "prices": {
                         "hubs": 30000,
                         "ohcu": 30
                     },
-                    "range": 400
+                    "range": 1100
                 },
                 {
-                    "bulletSpeed": 800,
+                    "bulletSpeed": 1200,
                     "castTimeMs": 0,
                     "cooldown": 1000,
+                    "explosionRadius": 225,
                     "hidden": true,
                     "id": "am_n4",
+                    "lifetimeMs": 16000,
+                    "deceleration": 1.4,
                     "mechanics": [],
                     "name": "Mina T4",
                     "prices": {
                         "hubs": 40000,
                         "ohcu": 40
                     },
-                    "range": 450
+                    "range": 1100
                 },
                 {
-                    "bulletSpeed": 800,
+                    "bulletSpeed": 1200,
                     "castTimeMs": 0,
                     "cooldown": 1000,
+                    "explosionRadius": 250,
                     "hidden": true,
                     "id": "am_n5",
+                    "lifetimeMs": 18000,
+                    "deceleration": 1.2,
                     "mechanics": [],
                     "name": "Mina T5",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 100
                     },
-                    "range": 500
+                    "range": 1100
                 },
                 {
-                    "bulletSpeed": 800,
+                    "bulletSpeed": 1200,
                     "castTimeMs": 0,
                     "cooldown": 1000,
+                    "explosionRadius": 300,
                     "hidden": true,
                     "id": "am_n6",
+                    "lifetimeMs": 20000,
+                    "deceleration": 1,
                     "mechanics": [],
                     "name": "Mina T6",
                     "prices": {
                         "hubs": 0,
                         "ohcu": 200
                     },
-                    "range": 600
+                    "range": 1100
                 }
             ],
             "missile": [

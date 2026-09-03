@@ -3099,6 +3099,10 @@ module.exports = class BaseAI {
                     isHoming: mech.type === "polymorph" ? !!mech.isPointAndClick : !!mech.isHoming,
                     stunDuration: mech.stunDuration || 0,
                     range: mech.fireRange || 800,
+                    // Campos específicos para minas (deceleration, explosionRadius)
+                    deceleration: mech.deceleration !== undefined ? mech.deceleration : (mech.type === "mine" ? 2.0 : 3.5),
+                    explosionRadius: mech.explosionRadius || 150,
+                    radius: mech.explosionRadius || mech.radius || 150,
                     // Polymorph fields
                     polyDuration: mech.polyDuration || 0,
                     canMove: mech.canMove !== undefined ? mech.canMove : false,

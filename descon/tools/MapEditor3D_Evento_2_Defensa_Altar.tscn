@@ -3,12 +3,13 @@
 [ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
 [ext_resource type="PackedScene" uid="uid://d04w8a62xw4gf" path="res://assets/Altares/3D/Altar1/Altar1.glb" id="2_wq2af"]
 [ext_resource type="PackedScene" uid="uid://diy8ycm00f4tx" path="res://assets/Puertas/3D/Puerta2/Puerta2.glb" id="3_gwsj2"]
+[ext_resource type="Material" uid="uid://bocr7b25akcwp" path="res://VFX/models/m_BlueWild_shield1.tres" id="4_gygkr"]
 [ext_resource type="PackedScene" uid="uid://c5dvhmxe8phuu" path="res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb" id="5_gygkr"]
 [ext_resource type="Texture2D" uid="uid://c307hdmos4gtm" path="res://demo/assets/textures/rock023_nrm_rgh.png" id="6_0kf13"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_jk5nm"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gygkr"]
 albedo_color = Color(0.05, 0.08, 0.15, 1)
 metallic = 0.3
 roughness = 0.8
@@ -28,66 +29,6 @@ tonemap_mode = 1
 adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7w6w4"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_33ilo"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vjk7d"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gqh5q"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vqlpb"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ee0yp"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tbdww"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_p3k4d"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0kf13"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g0kee"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_400y7"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pv5nf"]
-transparency = 1
-shading_mode = 0
-albedo_color = Color(0, 0.8, 0, 0.3)
 
 [sub_resource type="Gradient" id="Gradient_n41d5"]
 offsets = PackedFloat32Array(0.2, 1)
@@ -279,7 +220,7 @@ shape = SubResource("WorldBoundaryShape3D_1")
 
 [node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=1763764717]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.010009766, -0.050003815, -0.1817627)
-material_override = SubResource("StandardMaterial3D_jk5nm")
+material_override = SubResource("StandardMaterial3D_gygkr")
 mesh = SubResource("PlaneMesh_1")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=883982619]
@@ -342,12 +283,12 @@ metadata/editor_only = true
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Norte" unique_id=1770286553]
 transform = Transform3D(0.33332872, 0, -0.0017453167, 0, 0.3333333, 0, 0.0017453167, 0, 0.33332872, 0.68757534, -0.14673334, 3.6277022)
 size = Vector3(0.1558, 1, 11.196611)
-material = SubResource("StandardMaterial3D_7w6w4")
+material = ExtResource("4_gygkr")
 
 [node name="Collider2" type="CSGBox3D" parent="Altar/Paredes_Norte" unique_id=1660918242]
 transform = Transform3D(0.33332872, 0, -0.0017453167, 0, 0.3333333, 0, 0.0017453167, 0, 0.33332872, -0.71940565, -0.14673334, 3.6203353)
 size = Vector3(0.1558, 1, 11.196611)
-material = SubResource("StandardMaterial3D_33ilo")
+material = ExtResource("4_gygkr")
 
 [node name="Paredes_Sur" type="Node3D" parent="Altar" unique_id=235693479]
 metadata/obj_type = "wall"
@@ -356,12 +297,12 @@ metadata/editor_only = true
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Sur" unique_id=221957525]
 transform = Transform3D(-0.3333313, 0, 0.0011635213, 0, 0.3333333, 0, -0.0011635213, 0, -0.3333313, -0.69110394, -0.14673334, -3.657649)
 size = Vector3(0.1558, 1, 11.196611)
-material = SubResource("StandardMaterial3D_vjk7d")
+material = ExtResource("4_gygkr")
 
 [node name="Collider2" type="CSGBox3D" parent="Altar/Paredes_Sur" unique_id=1468032723]
 transform = Transform3D(-0.3333313, 0, 0.0011635213, 0, 0.3333333, 0, -0.0011635213, 0, -0.3333313, 0.71588755, -0.14673334, -3.6527376)
 size = Vector3(0.1558, 1, 11.196611)
-material = SubResource("StandardMaterial3D_gqh5q")
+material = ExtResource("4_gygkr")
 
 [node name="Paredes_Oeste" type="Node3D" parent="Altar" unique_id=2044452111]
 metadata/obj_type = "wall"
@@ -370,12 +311,12 @@ metadata/editor_only = true
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Oeste" unique_id=922897273]
 transform = Transform3D(-0.000581737, 0, -0.3333328, 0, 0.3333333, 0, 0.3333328, 0, -0.000581737, -3.6159987, -0.14673334, 0.67478275)
 size = Vector3(0.1558, 1, 11.196611)
-material = SubResource("StandardMaterial3D_vqlpb")
+material = ExtResource("4_gygkr")
 
 [node name="Collider2" type="CSGBox3D" parent="Altar/Paredes_Oeste" unique_id=1956107876]
 transform = Transform3D(-0.000581737, 0, -0.3333328, 0, 0.3333333, 0, 0.3333328, 0, -0.000581737, -3.613543, -0.14673334, -0.7322159)
 size = Vector3(0.1558, 1, 11.196611)
-material = SubResource("StandardMaterial3D_ee0yp")
+material = ExtResource("4_gygkr")
 
 [node name="Paredes_Este" type="Node3D" parent="Altar" unique_id=44606322]
 metadata/obj_type = "wall"
@@ -384,12 +325,12 @@ metadata/editor_only = true
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Este" unique_id=541176699]
 transform = Transform3D(-1.457046e-08, 0, 0.3333333, 0, 0.3333333, 0, -0.3333333, 0, -1.457046e-08, 3.6048965, -0.14673334, -0.74462414)
 size = Vector3(0.1558, 1, 11.196611)
-material = SubResource("StandardMaterial3D_tbdww")
+material = ExtResource("4_gygkr")
 
 [node name="Collider2" type="CSGBox3D" parent="Altar/Paredes_Este" unique_id=1273284502]
 transform = Transform3D(-1.457046e-08, 0, 0.3333333, 0, 0.3333333, 0, -0.3333333, 0, -1.457046e-08, 3.6048968, -0.14673334, 0.6623764)
 size = Vector3(0.1558, 1, 11.196611)
-material = SubResource("StandardMaterial3D_p3k4d")
+material = ExtResource("4_gygkr")
 
 [node name="Paredes_Diagonales" type="Node3D" parent="Altar" unique_id=1796761760]
 metadata/obj_type = "wall"
@@ -398,22 +339,22 @@ metadata/editor_only = true
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Diagonales" unique_id=331734149]
 transform = Transform3D(-0.04755003, 0, 0.046727277, 0, 0.06666666, 0, -0.046727277, 0, -0.04755003, -1.2284675, -0.14593334, -1.2662296)
 size = Vector3(0.7788, 5, 22.85652)
-material = SubResource("StandardMaterial3D_0kf13")
+material = ExtResource("4_gygkr")
 
 [node name="Collider2" type="CSGBox3D" parent="Altar/Paredes_Diagonales" unique_id=639340672]
 transform = Transform3D(0.046975605, 0, 0.04730472, 0, 0.06666666, 0, -0.04730472, 0, 0.046975605, 1.2288799, -0.14573334, -1.272152)
 size = Vector3(0.7788, 5, 22.497593)
-material = SubResource("StandardMaterial3D_g0kee")
+material = ExtResource("4_gygkr")
 
 [node name="Collider3" type="CSGBox3D" parent="Altar/Paredes_Diagonales" unique_id=2138306012]
 transform = Transform3D(0.048036736, 0, 0.04622679, 0, 0.06666666, 0, -0.04622679, 0, 0.048036736, -1.2342134, -0.14686668, 1.220202)
 size = Vector3(0.7788, 5, 22.97786)
-material = SubResource("StandardMaterial3D_400y7")
+material = ExtResource("4_gygkr")
 
 [node name="Collider4" type="CSGBox3D" parent="Altar/Paredes_Diagonales" unique_id=1948282209]
 transform = Transform3D(-0.04803674, 0, 0.046226785, 0, 0.06666666, 0, -0.046226785, 0, -0.04803674, 1.2213998, -0.14753334, 1.2116599)
 size = Vector3(0.7788, 5, 23.236378)
-material = SubResource("StandardMaterial3D_pv5nf")
+material = ExtResource("4_gygkr")
 
 [node name="Terrain3D" type="Terrain3D" parent="." unique_id=1210464073]
 data_directory = "res://assets/Mapas/Defensa_Altar"

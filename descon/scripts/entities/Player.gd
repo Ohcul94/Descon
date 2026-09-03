@@ -1314,7 +1314,10 @@ func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 =
 	cooldowns[p_type] = float(cd_ms) / 1000.0
 	
 	# v260.95: Lógica de Minas y Bombas Electron de Precisión (Despliegue en cursor si está en rango)
-	if (p_type == "mine" or p_type == "electron") and p_target_pos != Vector2.ZERO:
+	# NOTA: Para minas, NO clampeamos r_val a la distancia al target.
+	# La mina se spawna directamente en el target si está dentro del max_range del tier.
+	# Solo clampeamos para electron (que sí necesita la lógica de rango original).
+	if p_type == "electron" and p_target_pos != Vector2.ZERO:
 		var dist = global_position.distance_to(p_target_pos)
 		r_val = min(r_val, dist)
 
@@ -1324,6 +1327,11 @@ func _do_shoot_immediate(p_type: String, p_angle: float, p_target_pos: Vector2 =
 		"angle": p_angle, "rotation": rotation, "type": p_type, "ammoType": t_idx, 
 		"senderId": entity_id, "damageBoost": final_damage, "range": r_val
 	}
+	
+	# Para minas, enviar posición del target para spawnear ahí directamente
+	if p_type == "mine" and p_target_pos != Vector2.ZERO:
+		final_payload["target_x"] = p_target_pos.x
+		final_payload["target_y"] = p_target_pos.y
 	
 	# Copiar propiedades adicionales del tier (ej. explosionRadius) al payload
 	for key in item_data:

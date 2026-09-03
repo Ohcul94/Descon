@@ -1594,7 +1594,7 @@ function renderEnemyDetail() {
                                 ${(MECHANICS_LIB[m.type] || MECHANICS_LIB['laser']).fields.map(f => {
 const fieldLabelsMap = { 
                                            bulletDamage: m.type === 'melee_slash' ? "Daño del Hachazo (pts)" : (m.type === 'bomb' ? "Daño de Explosión (pts)" : (m.type === 'worm_boomerang' ? "Daño de Ida (pts)" : (m.type === 'wind_wall' ? "Daño al Arrollar (pts)" : (m.type === 'burrow' ? "Daño al Emerger (pts)" : (m.type === 'meteor' ? "Daño del Meteorito (pts)" : (m.type === 'ascension' ? "Daño al Aterrizar (pts)" : "Daño (pts)")))))), 
-                                           bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : (m.type === 'wind_wall' ? "Vel. Pared de Viento (px/s)" : (m.type === 'burrow' ? "Vel. de Zambullida (px/s)" : "Vel. Bala (px/s)")), 
+                                           bulletSpeed: m.type === 'bomb' ? "Velocidad de Bomba (px/s)" : (m.type === 'wind_wall' ? "Vel. Pared de Viento (px/s)" : (m.type === 'burrow' ? "Vel. de Zambullida (px/s)" : (m.type === 'mine' ? "Vel. de la Mina (px/s)" : "Vel. Bala (px/s)"))), 
                                            fireRange: m.type === 'melee_slash' ? "Alcance del Golpe (px)" : (m.type === 'bomb' ? "Alcance de Lanzamiento (px)" : (m.type === 'circle_cast' ? "Radio de Explosión (px)" : (m.type === 'reflect' ? "Alcance de Activación (px)" : (m.type === 'survival_dome' ? "Radio de la Explosión (px)" : (m.type === 'wind_wall' ? "Alcance de la Pared (px)" : (m.type === 'burrow' ? "Alcance de Selección de Objetivo (px)" : "Alcance (px)")))))),
                                            arcAngle: "Ángulo del Arco (° grados)",
                                            fullCircle: "¿Giro Completo 360°? (Sí/No)",
@@ -1643,7 +1643,7 @@ const fieldLabelsMap = {
                                            fallHeight: "Altura de Caída (px)",
                                            fallSpeed: "Velocidad de Caída (px/s)",
                                            meteorSize: "Tamaño del Meteorito (px)",
-                                           explosionRadius: "Radio de Explosión (px)",
+                                           explosionRadius: m.type === 'mine' ? "Radio de Explosión de Mina (px)" : "Radio de Explosión (px)",
                                            warnTimeMs: m.type === 'burrow' ? "Duración del Círculo de Aviso (ms)" : (m.type === 'meteor' ? "Tiempo de Aviso en el Piso (ms)" : (m.type === 'ascension' ? "Tiempo Marcando el Área de Caída (ms)" : "Tiempo de Aviso (ms)")),
                                            persistentZone: m.type === 'meteor' ? "¿Dejar Zona Persistente en el Piso? (Sí/No)" : "¿Zona Persistente? (Sí/No)",
                                            zoneDamage: "Daño por Tick de Zona (pts)",
@@ -1665,6 +1665,7 @@ const fieldLabelsMap = {
                                            healAmount: "Curación por Pulso (pts)",
                                            speedBonus: "Bono de Velocidad (px/s)",
                                            explosionDamage: "Daño de Explosión (pts)",
+                                           deceleration: "Desaceleración (x)",
                                             castTimeMs: "Casteo (ms)",
                                            castSpeed: "Velocidad de Casteo (x)",
                                           coneAngle: "Ángulo del Cono (grados)",
