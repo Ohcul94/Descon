@@ -2955,7 +2955,8 @@ func _spawn_objects_from_custom_scene():
 		if child.get_child_count() > 0:
 			for sub_child in child.get_children():
 				if is_instance_valid(sub_child) and sub_child is Node:
-					var is_collider = sub_child is CSGBox3D or sub_child is CSGCylinder3D or sub_child is CollisionPolygon3D or sub_child is CollisionShape3D or sub_child.name.to_lower().contains("collider")
+					var sub_obj_type = get_flexible_obj_type.call(sub_child)
+					var is_collider = sub_child is CSGBox3D or sub_child is CSGCylinder3D or sub_child is CollisionPolygon3D or sub_child is CollisionShape3D or sub_child.name.to_lower().contains("collider") or sub_child.name.to_lower().contains("pared") or sub_obj_type != "" or sub_child.get_child_count() > 0
 					if is_collider:
 						nodes_stack.append(sub_child)
 			

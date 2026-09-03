@@ -328,8 +328,16 @@ metadata/scale_2d = 15.0
 metadata/rot_y_deg = -180.0
 metadata/editor_only = true
 
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="Altar" unique_id=369648742]
+transform = Transform3D(0.99999857, 0, -5.684342e-14, 0, 0.99999857, 0, 5.684342e-14, 0, 0.99999857, -0.0031776428, -0.27261847, -0.023636818)
+visible = false
+radius = 0.411
+height = 0.001
+sides = 10
+
 [node name="Paredes_Norte" type="Node3D" parent="Altar" unique_id=1551257446]
 metadata/obj_type = "wall"
+metadata/editor_only = true
 
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Norte" unique_id=1770286553]
 transform = Transform3D(0.33332872, 0, -0.0017453167, 0, 0.3333333, 0, 0.0017453167, 0, 0.33332872, 0.68757534, -0.14673334, 3.6277022)
@@ -343,6 +351,7 @@ material = SubResource("StandardMaterial3D_33ilo")
 
 [node name="Paredes_Sur" type="Node3D" parent="Altar" unique_id=235693479]
 metadata/obj_type = "wall"
+metadata/editor_only = true
 
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Sur" unique_id=221957525]
 transform = Transform3D(-0.3333313, 0, 0.0011635213, 0, 0.3333333, 0, -0.0011635213, 0, -0.3333313, -0.69110394, -0.14673334, -3.657649)
@@ -356,6 +365,7 @@ material = SubResource("StandardMaterial3D_gqh5q")
 
 [node name="Paredes_Oeste" type="Node3D" parent="Altar" unique_id=2044452111]
 metadata/obj_type = "wall"
+metadata/editor_only = true
 
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Oeste" unique_id=922897273]
 transform = Transform3D(-0.000581737, 0, -0.3333328, 0, 0.3333333, 0, 0.3333328, 0, -0.000581737, -3.6159987, -0.14673334, 0.67478275)
@@ -369,6 +379,7 @@ material = SubResource("StandardMaterial3D_ee0yp")
 
 [node name="Paredes_Este" type="Node3D" parent="Altar" unique_id=44606322]
 metadata/obj_type = "wall"
+metadata/editor_only = true
 
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Este" unique_id=541176699]
 transform = Transform3D(-1.457046e-08, 0, 0.3333333, 0, 0.3333333, 0, -0.3333333, 0, -1.457046e-08, 3.6048965, -0.14673334, -0.74462414)
@@ -382,6 +393,7 @@ material = SubResource("StandardMaterial3D_p3k4d")
 
 [node name="Paredes_Diagonales" type="Node3D" parent="Altar" unique_id=1796761760]
 metadata/obj_type = "wall"
+metadata/editor_only = true
 
 [node name="Collider1" type="CSGBox3D" parent="Altar/Paredes_Diagonales" unique_id=331734149]
 transform = Transform3D(-0.04755003, 0, 0.046727277, 0, 0.06666666, 0, -0.046727277, 0, -0.04755003, -1.2284675, -0.14593334, -1.2662296)

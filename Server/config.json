@@ -3673,7 +3673,7 @@
                     "cooldown": 4000,
                     "startDelay": 0,
                     "meteorCount": 3,
-                    "fallHeight": 800,
+                    "fallHeight": 1000,
                     "fallSpeed": 600,
                     "meteorSize": 80,
                     "explosionRadius": 150,
@@ -3683,7 +3683,7 @@
                     "debuffsList": [],
                     "persistentZone": true,
                     "zoneDamage": 1,
-                    "zoneTickMs": 1000,
+                    "zoneTickMs": 900,
                     "zoneDuration": 2000
                 }
             ],
@@ -4382,7 +4382,7 @@
                     "activationHPs": [
                         50
                     ],
-                    "radius": 250,
+                    "radius": 50,
                     "bombCount": 3,
                     "bombDelayMs": 200,
                     "fuseTimeMs": 0,
@@ -4610,7 +4610,7 @@
                     "bulletDamage": 1,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
-                    "castTimeMs": 0,
+                    "castTimeMs": 400,
                     "chargeTimeMs": 2000,
                     "fireRange": 800,
                     "fireRate": 3000,
@@ -4624,7 +4624,7 @@
                         50
                     ],
                     "cooldown": 4000,
-                    "burrowSpeed": 550,
+                    "burrowSpeed": 300,
                     "radius": 250,
                     "undergroundMs": 2500,
                     "warnTimeMs": 1200,

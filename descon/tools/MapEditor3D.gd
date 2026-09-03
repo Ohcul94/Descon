@@ -77,6 +77,10 @@ func _on_child_added(child: Node):
 	# v700.6: Ignorar de forma segura nodos de infraestructura del sistema
 	if child.name in ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual", "EventMarkers", "Terrain3D", "SkyDome"]:
 		return
+	
+	# No marcar editor_only en nodos collider (son hijos de un wall padre)
+	if child is CSGBox3D or child is CSGCylinder3D or child is CollisionShape3D or child is CollisionPolygon3D:
+		return
 		
 	_setup_object_metadata(child)
 	child.set_meta("editor_only", true)
