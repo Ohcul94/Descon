@@ -1716,6 +1716,7 @@ func _spawn_altar_if_configured():
 # Variables para el sistema de puertas interactivas estilo extracción
 var active_doors: Array = []
 var active_doors_3d: Array = []
+var _altar_doors_locked: bool = true # v770.11: Defensa del Altar - puertas ocultas hasta fin de fase/oleada
 # v: Sistema de botones de acción múltiple (portal / vault / market / loot) en la parte inferior
 var interact_canvas: CanvasLayer = null
 var interact_hbox: HBoxContainer = null
@@ -1904,12 +1905,37 @@ func _spawn_map_objects():
 				add_child(door)
 				door.global_position = obj_pos
 				active_doors.append(door)
+				# v770.11: En Defensa del Altar las puertas deben permanecer ocultas hasta fin de fase/oleada
+				if _is_altar_defense_zone():
+					door.visible = false
+					door.set_meta("altar_locked", true)
+					if is_instance_valid(model_node):
+						model_node.visible = false
+					_altar_doors_locked = true
 				
 				# Crear la UI de salto si no existe aún
 				if not is_instance_valid(interact_hbox):
 					_create_portal_jump_ui()
 				
 				print("[BaseMap] Puerta interactiva instanciada (estilo Extracción): ", obj_label, " -> Zona ", obj.get("targetZoneId", "?"))
+			"spawner":
+				# v770.12: Spawner de enemigos Defensa del Altar - Puerta3
+				var spawner_model_path = str(obj.get("assetPath", "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb"))
+				if spawner_model_path == "":
+					spawner_model_path = "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb"
+				var spawner_scale = float(obj.get("scale", 5.0))
+				var spawner_rot = float(obj.get("rotY", 0.0))
+				var spawner_yoff = float(obj.get("yOffset", 2.5))
+				# Usar color rojizo para distinguir de puertas de escape (azul)
+				var spawner_node = _instantiate_map_object_3d(spawner_model_path, obj_pos, Vector3.ONE * spawner_scale, Vector3(0, spawner_rot, 0), Color(1.0, 0.2, 0.2), spawner_yoff)
+				# No necesita Area2D interactiva, solo visual + datos lógicos para spawnear enemigos
+				# Guardar metadata para debug si hace falta
+				if is_instance_valid(spawner_node):
+					spawner_node.set_meta("spawner_label", obj_label)
+					spawner_node.set_meta("spawner_radius", float(obj.get("radius", 500)))
+					spawner_node.set_meta("spawner_enemyId", str(obj.get("enemyId", "1")))
+					spawner_node.set_meta("spawner_count", int(obj.get("count", 10)))
+				print("[BaseMap] Spawner enemigo (Puerta3) instanciado: ", obj_label, " @ ", obj_pos, " radius ", obj.get("radius", 500), " enemy ", obj.get("enemyId", "1"))
 			
 			"tower":
 				# Torre Premium estilo PVP: Marcador visual 3D + Colisión sólida física real
@@ -2457,6 +2483,10 @@ func _get_bound_interact_key(action: String) -> String:
 
 # Procesar la cercanía al jugador para activar la interacción de puertas
 func _check_doors_proximity():
+	# v770.11: Bloquear proximidad de puertas en Defensa del Altar hasta fin de fase/oleada
+	if _is_altar_defense_zone() and _altar_doors_locked:
+		_near_door_active = false
+		return
 	if active_doors.size() == 0:
 		_near_door_active = false
 		return
@@ -2524,6 +2554,28 @@ func _check_doors_proximity():
 		_set_portal_icon("portal")
 	else:
 		_near_door_active = false
+
+# v770.11: Control de visibilidad de puertas en Defensa del Altar (solo visibles entre fases/oleadas)
+func _set_altar_doors_visible(visible: bool):
+	if not _is_altar_defense_zone():
+		return
+	_altar_doors_locked = not visible
+	for d in active_doors:
+		if is_instance_valid(d):
+			d.visible = visible
+			d.monitoring = visible
+			d.monitorable = visible
+			# compat: también ocultar colisión si usamos monitor
+			if d.has_meta("altar_locked"):
+				d.set_meta("altar_locked", not visible)
+	for m in active_doors_3d:
+		if is_instance_valid(m):
+			m.visible = visible
+	if not visible:
+		_near_door_active = false
+		_update_interact_visibility()
+	print("[BaseMap] Puertas Altar visible=", visible, " locked=", _altar_doors_locked)
+
 # Atajo de teclado para entrar al portal si el contenedor está visible
 func _input(event):
 	# v433: No robar teclas si el jugador está escribiendo (chat, inventario, etc)
@@ -3124,10 +3176,22 @@ func _spawn_objects_from_custom_scene():
 				door.global_position = obj_pos
 				active_doors.append(door)
 				active_doors_3d.append(child) # Registrar el nodo 3D de la escena para que rote en runtime
+				# v770.11: Ocultar puertas en Defensa del Altar hasta fin de fase/oleada
+				if _is_altar_defense_zone():
+					door.visible = false
+					door.set_meta("altar_locked", true)
+					child.visible = false
+					_altar_doors_locked = true
 				
 				if not is_instance_valid(interact_hbox):
 					_create_portal_jump_ui()
 				print("[BaseMap] Portal enlazado exitosamente: ", obj_label, " -> Destino Zona: ", target_z)
+			"spawner":
+				# v770.12: Spawner de enemigos (Puerta3) - solo visual en escena custom, sin física
+				# child ya es el modelo 3D Puerta3 colocado en el editor
+				child.set_meta("spawner_label", obj_label)
+				# El nodo ya está en la escena, solo registrar para referencia
+				print("[BaseMap] Spawner enemigo (Puerta3) vinculado desde escena custom: ", obj_label, " @ ", obj_pos)
 				
 			"market":
 				if market_script:

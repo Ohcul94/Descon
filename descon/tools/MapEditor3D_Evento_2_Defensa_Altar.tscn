@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://cb6me4yrsvc5o"]
 
 [ext_resource type="Script" uid="uid://w6emtfjikvs8" path="res://tools/MapEditor3D.gd" id="1_editor_script"]
+[ext_resource type="PackedScene" uid="uid://bbdha2ir5iiv2" path="res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb" id="2_jk5nm"]
 [ext_resource type="PackedScene" uid="uid://d04w8a62xw4gf" path="res://assets/Altares/3D/Altar1/Altar1.glb" id="2_wq2af"]
 [ext_resource type="PackedScene" uid="uid://diy8ycm00f4tx" path="res://assets/Puertas/3D/Puerta2/Puerta2.glb" id="3_gwsj2"]
-[ext_resource type="Material" uid="uid://nbbdrx8vma80" path="res://demo/assets/materials/M_rock23_tp.tres" id="4_gygkr"]
-[ext_resource type="Texture2D" uid="uid://c88j3oj0lf6om" path="res://demo/assets/textures/rock023_alb_ht.png" id="5_s7uho"]
+[ext_resource type="PackedScene" uid="uid://c5dvhmxe8phuu" path="res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb" id="5_gygkr"]
 [ext_resource type="Texture2D" uid="uid://c307hdmos4gtm" path="res://demo/assets/textures/rock023_nrm_rgh.png" id="6_0kf13"]
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
@@ -30,39 +30,149 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.05
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0kf13"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_g0kee"]
-vertex_color_use_as_albedo = true
-albedo_color = Color(0.83, 0.83, 0.83, 1)
-albedo_texture = ExtResource("5_s7uho")
-normal_enabled = true
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_400y7"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pv5nf"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vqlpb"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ee0yp"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vjk7d"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gqh5q"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7w6w4"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_33ilo"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tbdww"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_p3k4d"]
+transparency = 1
+shading_mode = 0
+albedo_color = Color(0, 0.8, 0, 0.3)
+
+[sub_resource type="Gradient" id="Gradient_n41d5"]
+offsets = PackedFloat32Array(0.2, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0, 0, 0, 1)
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_egqt5"]
+noise_type = 2
+frequency = 0.03
+cellular_jitter = 3.0
+cellular_return_type = 0
+domain_warp_enabled = true
+domain_warp_type = 1
+domain_warp_amplitude = 50.0
+domain_warp_fractal_type = 2
+domain_warp_fractal_lacunarity = 1.5
+domain_warp_fractal_gain = 1.0
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_iy1n6"]
+noise = SubResource("FastNoiseLite_egqt5")
+color_ramp = SubResource("Gradient_n41d5")
+seamless = true
+
+[sub_resource type="Terrain3DMaterial" id="Terrain3DMaterial_axxgv"]
+_shader_parameters = {
+&"bias_distance": null,
+&"blend_sharpness": null,
+&"depth_blur": null,
+&"enable_macro_variation": null,
+&"enable_projection": null,
+&"flat_terrain_normals": null,
+&"macro_variation1": null,
+&"macro_variation2": null,
+&"macro_variation_slope": null,
+&"mipmap_bias": null,
+&"noise1_angle": null,
+&"noise1_offset": null,
+&"noise1_scale": null,
+&"noise2_scale": null,
+&"noise_texture": SubResource("NoiseTexture2D_iy1n6"),
+&"projection_threshold": null
+}
+world_background = 0
+
+[sub_resource type="Terrain3DMeshAsset" id="Terrain3DMeshAsset_61xlk"]
+name = "Puerta3"
+scene_file = ExtResource("5_gygkr")
+last_lod = 0
+last_shadow_lod = 0
+lod0_range = 128.0
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_gygkr"]
+load_path = "res://.godot/imported/rock023_alb_ht.png-9c06b8a5f11d940d1c46d8928f6d6a5c.bptc.ctex"
+
+[sub_resource type="Terrain3DTextureAsset" id="Terrain3DTextureAsset_s7uho"]
+name = ""
+albedo_color = Color(0.3204, 0.36, 0.33096, 1)
+albedo_texture = SubResource("CompressedTexture2D_gygkr")
 normal_texture = ExtResource("6_0kf13")
-uv1_scale = Vector3(0.02, 0.02, 0.02)
-uv1_triplanar = true
-uv1_triplanar_sharpness = 6.06286
-uv1_world_triplanar = true
-texture_filter = 5
+
+[sub_resource type="Terrain3DAssets" id="Terrain3DAssets_bft01"]
+mesh_list = Array[Terrain3DMeshAsset]([SubResource("Terrain3DMeshAsset_61xlk")])
+texture_list = Array[Terrain3DTextureAsset]([SubResource("Terrain3DTextureAsset_s7uho")])
 
 [node name="MapEditor3D" type="Node3D" unique_id=1067598322]
 script = ExtResource("1_editor_script")
 zone_id = "11"
-json_to_import = "[{\"assetPath\":\"res://assets/Altares/3D/Altar1/Altar1.glb\",\"label\":\"Altar\",\"rotY\":180.0,\"scale\":15.0,\"type\":\"altar\",\"x\":5000.0,\"y\":5000.0,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Escape1\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"type\":\"door\",\"x\":4583.0,\"y\":5378.0,\"yOffset\":0.0},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Escape2\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":10.0,\"type\":\"door\",\"x\":5383.0,\"y\":4661.0,\"yOffset\":0.0}]"
+json_to_import = "[{\"assetPath\":\"\",\"colH\":5.0,\"colHeight\":808.1,\"colOffsetX\":3337.31,\"colOffsetY\":3160.83,\"colRot\":-44.5,\"colType\":\"rect\",\"colWidth\":38.94,\"colY\":2.512,\"colliders\":[{\"h\":5.0,\"height\":808.1,\"offsetX\":3337.31,\"offsetY\":3160.83,\"rot\":-44.5,\"type\":\"rect\",\"width\":38.94,\"y\":2.512},{\"h\":5.0,\"height\":795.41,\"offsetX\":1494.3,\"offsetY\":3163.97,\"rot\":-134.8,\"type\":\"rect\",\"width\":38.94,\"y\":2.515},{\"h\":5.0,\"height\":812.39,\"offsetX\":3341.62,\"offsetY\":1842.2,\"rot\":-136.1,\"type\":\"rect\",\"width\":38.94,\"y\":2.498},{\"h\":5.0,\"height\":821.53,\"offsetX\":1499.91,\"offsetY\":1846.73,\"rot\":-43.9,\"type\":\"rect\",\"width\":38.94,\"y\":2.488}],\"label\":\"Node3D5\",\"rotY\":0.0,\"scale\":1.0,\"type\":\"wall\",\"x\":2377.22,\"y\":1454.09,\"yOffset\":0.0},{\"assetPath\":\"\",\"colH\":1.0,\"colHeight\":395.86,\"colOffsetX\":3.41,\"colOffsetY\":336.76,\"colRot\":0.0,\"colType\":\"rect\",\"colWidth\":7.79,\"colY\":0.0,\"colliders\":[{\"h\":1.0,\"height\":395.86,\"offsetX\":3.41,\"offsetY\":336.76,\"rot\":0.0,\"type\":\"rect\",\"width\":7.79,\"y\":0.0},{\"h\":1.0,\"height\":395.86,\"offsetX\":-207.64,\"offsetY\":336.76,\"rot\":0.0,\"type\":\"rect\",\"width\":7.79,\"y\":0.0}],\"label\":\"Node3D\",\"rotY\":89.9,\"scale\":5.0,\"type\":\"wall\",\"x\":5123.9,\"y\":3594.66,\"yOffset\":2.5},{\"assetPath\":\"\",\"colH\":1.0,\"colHeight\":395.86,\"colOffsetX\":3.41,\"colOffsetY\":336.76,\"colRot\":0.0,\"colType\":\"rect\",\"colWidth\":7.79,\"colY\":0.0,\"colliders\":[{\"h\":1.0,\"height\":395.86,\"offsetX\":3.41,\"offsetY\":336.76,\"rot\":0.0,\"type\":\"rect\",\"width\":7.79,\"y\":0.0},{\"h\":1.0,\"height\":395.86,\"offsetX\":-207.64,\"offsetY\":336.76,\"rot\":0.0,\"type\":\"rect\",\"width\":7.79,\"y\":0.0}],\"label\":\"Node3D\",\"rotY\":-0.2,\"scale\":5.0,\"type\":\"wall\",\"x\":5302.77,\"y\":4199.33,\"yOffset\":2.5},{\"assetPath\":\"\",\"colH\":1.0,\"colHeight\":395.86,\"colOffsetX\":3.41,\"colOffsetY\":336.76,\"colRot\":0.0,\"colType\":\"rect\",\"colWidth\":7.79,\"colY\":0.0,\"colliders\":[{\"h\":1.0,\"height\":395.86,\"offsetX\":3.41,\"offsetY\":336.76,\"rot\":0.0,\"type\":\"rect\",\"width\":7.79,\"y\":0.0},{\"h\":1.0,\"height\":395.86,\"offsetX\":-207.64,\"offsetY\":336.76,\"rot\":0.0,\"type\":\"rect\",\"width\":7.79,\"y\":0.0}],\"label\":\"Node3D\",\"rotY\":179.7,\"scale\":5.0,\"type\":\"wall\",\"x\":4282.08,\"y\":3703.36,\"yOffset\":2.5},{\"assetPath\":\"\",\"colH\":1.0,\"colHeight\":395.86,\"colOffsetX\":3.41,\"colOffsetY\":336.76,\"colRot\":0.0,\"colType\":\"rect\",\"colWidth\":7.79,\"colY\":0.0,\"colliders\":[{\"h\":1.0,\"height\":395.86,\"offsetX\":3.41,\"offsetY\":336.76,\"rot\":0.0,\"type\":\"rect\",\"width\":7.79,\"y\":0.0},{\"h\":1.0,\"height\":395.86,\"offsetX\":-207.64,\"offsetY\":336.76,\"rot\":0.0,\"type\":\"rect\",\"width\":7.79,\"y\":0.0}],\"label\":\"Node3D\",\"rotY\":-90.0,\"scale\":5.0,\"type\":\"wall\",\"x\":4470.76,\"y\":4326.24,\"yOffset\":2.5},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Escape2\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":5.0,\"type\":\"door\",\"x\":5296.4,\"y\":3643.85,\"yOffset\":2.5},{\"assetPath\":\"res://assets/Puertas/3D/Puerta2/Puerta2.glb\",\"label\":\"Escape1\",\"radius\":150.0,\"rotY\":-90.0,\"scale\":5.0,\"type\":\"door\",\"x\":4297.35,\"y\":4272.89,\"yOffset\":2.5},{\"assetPath\":\"res://assets/Altares/3D/Altar1/Altar1.glb\",\"label\":\"Altar\",\"rotY\":-180.0,\"scale\":15.0,\"type\":\"altar\",\"x\":4793.18,\"y\":3943.4,\"yOffset\":4.701}]"
 metadata/altar_defense_config = {
 "altarHp": 10000.0,
 "altarPos": {
-"x": 5000.0,
-"y": 5000.0
+"x": 4793.18,
+"y": 3943.4
 },
 "altarShield": 5000.0,
 "exitPortals": [{
-"label": "Escape1",
-"radius": 150.0,
-"x": 4583.0,
-"y": 5378.0
-}, {
 "label": "Escape2",
 "radius": 150.0,
-"x": 5383.0,
-"y": 4661.0
+"x": 5296.4,
+"y": 3643.85
+}, {
+"label": "Escape1",
+"radius": 150.0,
+"x": 4297.35,
+"y": 4272.89
 }],
 "spawnLockTime": 5000.0,
 "spawnPoints": [{
@@ -190,131 +300,263 @@ directional_shadow_max_distance = 150.0
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=685544602]
 environment = SubResource("Environment_1")
 
+[node name="Node3D5" parent="." unique_id=606483543 instance=ExtResource("2_jk5nm")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.5444, 0, 41.127876)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
+metadata/label = "Node3D5"
+metadata/scale_2d = 1.0
+metadata/rot_y_deg = 0.0
+metadata/editor_only = true
+metadata/colType = "rect"
+metadata/colWidth = 38.94
+metadata/colHeight = 808.1
+metadata/colOffsetX = 3337.31
+metadata/colOffsetY = 3160.83
+metadata/colRot = -44.5
+metadata/colY = 2.512
+metadata/colH = 5.0
+
+[node name="Collider1" type="CSGBox3D" parent="Node3D5" unique_id=331734149]
+transform = Transform3D(0.71325046, 0, -0.70090926, 0, 1, 0, 0.70090926, 0, 0.71325046, 66.7462, 2.512, 89.40177)
+size = Vector3(0.7788, 5, 22.85652)
+material = SubResource("StandardMaterial3D_0kf13")
+
+[node name="Collider2" type="CSGBox3D" parent="Node3D5" unique_id=639340672]
+transform = Transform3D(-0.7046342, 0, -0.70957077, 0, 1, 0, 0.70957077, 0, -0.7046342, 29.886, 2.515, 89.490585)
+size = Vector3(0.7788, 5, 22.497593)
+material = SubResource("StandardMaterial3D_g0kee")
+
+[node name="Collider3" type="CSGBox3D" parent="Node3D5" unique_id=2138306012]
+transform = Transform3D(-0.72055113, 0, -0.6934018, 0, 1, 0, 0.6934018, 0, -0.72055113, 66.8324, 2.498, 52.105286)
+size = Vector3(0.7788, 5, 22.97786)
+material = SubResource("StandardMaterial3D_400y7")
+
+[node name="Collider4" type="CSGBox3D" parent="Node3D5" unique_id=1948282209]
+transform = Transform3D(0.7205511, 0, -0.6934019, 0, 1, 0, 0.6934019, 0, 0.7205511, 29.9982, 2.488, 52.233414)
+size = Vector3(0.7788, 5, 23.236378)
+material = SubResource("StandardMaterial3D_pv5nf")
+
+[node name="Node3D" parent="." unique_id=1882552789 instance=ExtResource("2_jk5nm")]
+transform = Transform3D(0.008726493, 0, 4.9999924, 0, 5, 0, -4.9999924, 0, 0.008726493, 102.478, 2.5, 101.67234)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
+metadata/label = "Node3D"
+metadata/scale_2d = 5.0
+metadata/rot_y_deg = 89.9
+metadata/editor_only = true
+metadata/colType = "rect"
+metadata/colWidth = 7.79
+metadata/colHeight = 395.86
+metadata/colOffsetX = 3.41
+metadata/colOffsetY = 336.76
+metadata/colRot = 0.0
+metadata/colY = 0.0
+metadata/colH = 1.0
+
+[node name="Collider1" type="CSGBox3D" parent="Node3D" unique_id=922897273]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0682, 0, 9.525011)
+size = Vector3(0.1558, 1, 11.196611)
+material = SubResource("StandardMaterial3D_vqlpb")
+
+[node name="Collider2" type="CSGBox3D" parent="Node3D" unique_id=1956107876]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.1528, 0, 9.525011)
+size = Vector3(0.1558, 1, 11.196611)
+material = SubResource("StandardMaterial3D_ee0yp")
+
+[node name="Node3D_2" parent="." unique_id=258829559 instance=ExtResource("2_jk5nm")]
+transform = Transform3D(4.9999695, 0, -0.017453257, 0, 5, 0, 0.017453257, 0, 4.9999695, 106.0554, 2.5, 118.77499)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
+metadata/label = "Node3D"
+metadata/scale_2d = 5.0
+metadata/rot_y_deg = -0.2
+metadata/editor_only = true
+metadata/colType = "rect"
+metadata/colWidth = 7.79
+metadata/colHeight = 395.86
+metadata/colOffsetX = 3.41
+metadata/colOffsetY = 336.76
+metadata/colRot = 0.0
+metadata/colY = 0.0
+metadata/colH = 1.0
+
+[node name="Collider1" type="CSGBox3D" parent="Node3D_2" unique_id=221957525]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0682, 0, 9.525011)
+size = Vector3(0.1558, 1, 11.196611)
+material = SubResource("StandardMaterial3D_vjk7d")
+
+[node name="Collider2" type="CSGBox3D" parent="Node3D_2" unique_id=1468032723]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.1528, 0, 9.525011)
+size = Vector3(0.1558, 1, 11.196611)
+material = SubResource("StandardMaterial3D_gqh5q")
+
+[node name="Node3D_3" parent="." unique_id=663556747 instance=ExtResource("2_jk5nm")]
+transform = Transform3D(-4.9999313, 0, 0.026180187, 0, 5, 0, -0.026180187, 0, -4.9999313, 85.6416, 2.5, 104.74684)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
+metadata/label = "Node3D"
+metadata/scale_2d = 5.0
+metadata/rot_y_deg = 179.7
+metadata/editor_only = true
+metadata/colType = "rect"
+metadata/colWidth = 7.79
+metadata/colHeight = 395.86
+metadata/colOffsetX = 3.41
+metadata/colOffsetY = 336.76
+metadata/colRot = 0.0
+metadata/colY = 0.0
+metadata/colH = 1.0
+
+[node name="Collider1" type="CSGBox3D" parent="Node3D_3" unique_id=1770286553]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0682, 0, 9.525011)
+size = Vector3(0.1558, 1, 11.196611)
+material = SubResource("StandardMaterial3D_7w6w4")
+
+[node name="Collider2" type="CSGBox3D" parent="Node3D_3" unique_id=1660918242]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.1528, 0, 9.525011)
+size = Vector3(0.1558, 1, 11.196611)
+material = SubResource("StandardMaterial3D_33ilo")
+
+[node name="Node3D_4" parent="." unique_id=1402704769 instance=ExtResource("2_jk5nm")]
+transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 89.4152, 2.5, 122.36455)
+metadata/obj_type = "wall"
+metadata/asset_path = "res://assets/Mapas/Mapa1/Paredes/Pared1/Pared1.glb"
+metadata/label = "Node3D"
+metadata/scale_2d = 5.0
+metadata/rot_y_deg = -90.0
+metadata/editor_only = true
+metadata/colType = "rect"
+metadata/colWidth = 7.79
+metadata/colHeight = 395.86
+metadata/colOffsetX = 3.41
+metadata/colOffsetY = 336.76
+metadata/colRot = 0.0
+metadata/colY = 0.0
+metadata/colH = 1.0
+
+[node name="Collider1" type="CSGBox3D" parent="Node3D_4" unique_id=541176699]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0682, 0, 9.525011)
+size = Vector3(0.1558, 1, 11.196611)
+material = SubResource("StandardMaterial3D_tbdww")
+
+[node name="Collider2" type="CSGBox3D" parent="Node3D_4" unique_id=1273284502]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.1528, 0, 9.525011)
+size = Vector3(0.1558, 1, 11.196611)
+material = SubResource("StandardMaterial3D_p3k4d")
+
+[node name="Escape2" parent="." unique_id=1868473785 instance=ExtResource("3_gwsj2")]
+transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 105.928, 2.5, 103.063644)
+metadata/obj_type = "door"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+metadata/label = "Escape2"
+metadata/scale_2d = 5.0
+metadata/rot_y_deg = -90.0
+metadata/editor_only = true
+metadata/radius = 150.0
+
+[node name="Escape1" parent="." unique_id=1403542093 instance=ExtResource("3_gwsj2")]
+transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 85.947, 2.5, 120.85558)
+metadata/obj_type = "door"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+metadata/label = "Escape1"
+metadata/scale_2d = 5.0
+metadata/rot_y_deg = -90.0
+metadata/editor_only = true
+metadata/radius = 150.0
+
 [node name="Altar" parent="." unique_id=599011876 instance=ExtResource("2_wq2af")]
-transform = Transform3D(-15, 0, -2.264937e-06, 0, 15, 0, 2.264937e-06, 0, -15, 95.86362, 4.70126, 111.536194)
+transform = Transform3D(-15, 0, 1.3113416e-06, 0, 15, 0, -1.3113416e-06, 0, -15, 95.8636, 4.701, 111.536194)
 metadata/obj_type = "altar"
 metadata/asset_path = "res://assets/Altares/3D/Altar1/Altar1.glb"
 metadata/label = "Altar"
 metadata/scale_2d = 15.0
-metadata/rot_y_deg = 180.0
+metadata/rot_y_deg = -180.0
 metadata/editor_only = true
 
-[node name="Escape1" parent="." unique_id=1868473785 instance=ExtResource("3_gwsj2")]
-transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 85.946945, 2.5, 120.85549)
-metadata/obj_type = "door"
-metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
-metadata/label = "Escape1"
-metadata/scale_2d = 10.0
-metadata/rot_y_deg = -90.0
-metadata/editor_only = true
-metadata/radius = 150.0
+[node name="Terrain3D" type="Terrain3D" parent="." unique_id=1210464073]
+data_directory = "res://assets/Mapas/Defensa_Altar"
+material = SubResource("Terrain3DMaterial_axxgv")
+assets = SubResource("Terrain3DAssets_bft01")
+top_level = true
+metadata/_edit_lock_ = true
 
-[node name="Escape2" parent="." unique_id=1707584643 instance=ExtResource("3_gwsj2")]
-transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 105.92807, 2.5, 103.06374)
-metadata/obj_type = "door"
-metadata/asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
-metadata/label = "Escape2"
-metadata/scale_2d = 10.0
-metadata/rot_y_deg = -90.0
-metadata/editor_only = true
-metadata/radius = 150.0
-
-[node name="Node3D" type="Node3D" parent="." unique_id=673004765]
-transform = Transform3D(-2.1855695e-07, 0, -5, 0, 5, 0, 5, 0, -2.1855695e-07, 89.41512, 2.5, 122.36441)
+[node name="PortalSummoner_1" parent="." unique_id=767018871 instance=ExtResource("5_gygkr")]
+transform = Transform3D(20, 0, 0, 0, 20, 0, 0, 0, 20, 96.264, 0, 29.098259)
 metadata/obj_type = "wall"
-metadata/label = &"Node3D"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb"
+metadata/label = &"Puerta3"
 metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D" type="CSGBox3D" parent="Node3D" unique_id=1488894923]
-transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, 0.06810951, -9.536743e-07, 9.525064)
-size = Vector3(0.15576172, 1, 11.196533)
-material = ExtResource("4_gygkr")
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PortalSummoner_1" unique_id=936106696]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0033216479, 0.03612108, -0.015332486)
+visible = false
+radius = 0.22363281
+height = 0.001
 
-[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D" unique_id=178704231]
-transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, -4.1528664, -9.536743e-07, 9.525064)
-size = Vector3(0.15576172, 1, 11.196533)
-material = ExtResource("4_gygkr")
+[node name="CSGBox3D" type="CSGBox3D" parent="PortalSummoner_1" unique_id=759952069]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0027313232, 0.03238669, -0.00012207031)
+visible = false
+size = Vector3(1.0016785, 0, 0.14916992)
 
-[node name="Node3D2" type="Node3D" parent="." unique_id=1056433991]
-transform = Transform3D(-4.9999313, 0, 0.02644071, 0, 5, 0, -0.02644071, 0, -4.9999313, 85.6415, 2.5, 104.746826)
+[node name="PortalSummoner_2" parent="." unique_id=793942513 instance=ExtResource("5_gygkr")]
+transform = Transform3D(-20, 0, -1.7484556e-06, 0, 20, 0, 1.7484556e-06, 0, -20, 95.70882, 0, 194.38678)
 metadata/obj_type = "wall"
-metadata/label = &"Node3D"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb"
+metadata/label = &"Puerta3"
 metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D" type="CSGBox3D" parent="Node3D2" unique_id=2082684784]
-transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, 0.06810951, -9.536743e-07, 9.525064)
-size = Vector3(0.15576172, 1, 11.196533)
-material = SubResource("StandardMaterial3D_g0kee")
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PortalSummoner_2" unique_id=1469172520]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0033216479, 0.03612108, -0.015332486)
+visible = false
+radius = 0.22363281
+height = 0.001
 
-[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D2" unique_id=352172250]
-transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, -4.1528664, -9.536743e-07, 9.525064)
-size = Vector3(0.15576172, 1, 11.196533)
-material = ExtResource("4_gygkr")
+[node name="CSGBox3D" type="CSGBox3D" parent="PortalSummoner_2" unique_id=2147218717]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0027313232, 0.03238669, -0.00012207031)
+visible = false
+size = Vector3(1.0016785, 0, 0.14916992)
 
-[node name="Node3D4" type="Node3D" parent="." unique_id=1124503119]
-transform = Transform3D(4.9999814, 0, -0.014146686, 0, 4.999999, 0, 0.014146686, 0, 4.9999814, 106.05532, 2.5, 118.77511)
+[node name="PortalSummoner_3" parent="." unique_id=1189786388 instance=ExtResource("5_gygkr")]
+transform = Transform3D(-8.742278e-07, 0, -20, 0, 20, 0, 20, 0, -8.742278e-07, 178.05771, -9.536743e-07, 111.97257)
 metadata/obj_type = "wall"
-metadata/label = &"Node3D"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb"
+metadata/label = &"Puerta3"
 metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D" type="CSGBox3D" parent="Node3D4" unique_id=204563030]
-transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, 0.06810951, -9.536743e-07, 9.525064)
-size = Vector3(0.15576172, 1, 11.196533)
-material = ExtResource("4_gygkr")
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PortalSummoner_3" unique_id=965530855]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0033216479, 0.03612108, -0.015332486)
+visible = false
+radius = 0.22363281
+height = 0.001
 
-[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D4" unique_id=603402843]
-transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, -4.1528664, -9.536743e-07, 9.525064)
-size = Vector3(0.15576172, 1, 11.196533)
-material = ExtResource("4_gygkr")
+[node name="CSGBox3D" type="CSGBox3D" parent="PortalSummoner_3" unique_id=1618761529]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0027313232, 0.03238669, -0.00012207031)
+visible = false
+size = Vector3(1.0016785, 0, 0.14916992)
 
-[node name="Node3D3" type="Node3D" parent="." unique_id=1359962152]
-transform = Transform3D(0.009487331, 0, 4.9999914, 0, 5, 0, -4.9999914, 0, 0.009487331, 102.47796, 2.5000038, 101.67243)
+[node name="PortalSummoner_4" parent="." unique_id=372013847 instance=ExtResource("5_gygkr")]
+transform = Transform3D(-8.742278e-07, 0, 20, 0, 20, 0, -20, 0, -8.742278e-07, 13.810698, -9.536743e-07, 112.23555)
 metadata/obj_type = "wall"
-metadata/label = &"Node3D"
+metadata/asset_path = "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb"
+metadata/label = &"Puerta3"
 metadata/scale_2d = 1.0
 metadata/rot_y_deg = 0.0
 metadata/editor_only = true
 
-[node name="CSGBox3D" type="CSGBox3D" parent="Node3D3" unique_id=927586971]
-transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, 0.06810951, -9.536743e-07, 9.525064)
-size = Vector3(0.15576172, 1, 11.196533)
-material = ExtResource("4_gygkr")
+[node name="CSGCylinder3D" type="CSGCylinder3D" parent="PortalSummoner_4" unique_id=799318082]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0033216479, 0.03612108, -0.015332486)
+visible = false
+radius = 0.22363281
+height = 0.001
 
-[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D3" unique_id=45443115]
-transform = Transform3D(1, 0, -3.5527137e-15, 0, 1, 0, 3.5527137e-15, 0, 1, -4.1528664, -9.536743e-07, 9.525064)
-size = Vector3(0.15576172, 1, 11.196533)
-material = ExtResource("4_gygkr")
-
-[node name="Node3D5" type="Node3D" parent="." unique_id=320845546]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.544487, 0, 41.12774)
-metadata/obj_type = "wall"
-metadata/label = &"Node3D5"
-metadata/scale_2d = 1.0
-metadata/rot_y_deg = 0.0
-metadata/editor_only = true
-
-[node name="CSGBox3D" type="CSGBox3D" parent="Node3D5" unique_id=644010485]
-transform = Transform3D(3.56447, 0, -3.5063603, 0, 4.999999, 0, 3.5063603, 0, 3.56447, 66.74629, 2.5118556, 89.40183)
-size = Vector3(0.15576172, 1, 4.5712814)
-material = ExtResource("4_gygkr")
-
-[node name="CSGBox3D3" type="CSGBox3D" parent="Node3D5" unique_id=1558912574]
-transform = Transform3D(-3.522483, 0, -3.5485382, 0, 4.999999, 0, 3.5485382, 0, -3.522483, 29.886042, 2.5148196, 89.49068)
-size = Vector3(0.15576172, 1, 4.49951)
-material = ExtResource("4_gygkr")
-
-[node name="CSGBox3D4" type="CSGBox3D" parent="Node3D5" unique_id=768564006]
-transform = Transform3D(-3.604319, 0, -3.465385, 0, 4.999999, 0, 3.465385, 0, -3.604319, 66.83246, 2.4982038, 52.1054)
-size = Vector3(0.15576172, 1, 4.595579)
-material = ExtResource("4_gygkr")
-
-[node name="CSGBox3D2" type="CSGBox3D" parent="Node3D5" unique_id=1207041662]
-transform = Transform3D(3.6047635, 0, -3.4649231, 0, 4.999999, 0, 3.4649231, 0, 3.6047635, 29.998228, 2.4882565, 52.23329)
-size = Vector3(0.15576172, 1, 4.6472607)
-material = ExtResource("4_gygkr")
+[node name="CSGBox3D" type="CSGBox3D" parent="PortalSummoner_4" unique_id=874128062]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0027313232, 0.03238669, -0.00012207031)
+visible = false
+size = Vector3(1.0016785, 0, 0.14916992)

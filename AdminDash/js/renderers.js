@@ -4400,33 +4400,23 @@ function renderModes() {
                         </div>
                     </div>
 
-                    <!-- AMENAZAS / ENEMIGOS -->
-                    <div class="card" style="margin:0; border-top: 3px solid var(--danger);">
-                        <h4 style="color:var(--danger); margin-bottom:1rem;">👾 SPAWNERS DE ENEMIGOS</h4>
-                        <div style="display:flex; flex-direction:column; gap:10px; max-height:280px; overflow-y:auto; padding-right:5px;">
-                            ${(ad.spawners || []).map((s, idx) => `
-                                <div id="card-ad-spawner-${idx}" onclick="highlightCard('ad-spawner', ${idx})" style="background:rgba(255,49,49,0.05); border:1px solid rgba(255,49,49,0.2); border-radius:8px; padding:10px; overflow: visible; transition: all 0.3s ease; cursor:pointer;">
-                                    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px; overflow: visible;">
-                                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                                            <input type="text" value="${s.label || 'Zona '+ (idx+1)}" onchange="config.gameModes.altar_defense.spawners[${idx}].label = this.value; renderModes();" style="background:none; border:none; color:var(--danger); font-weight:bold; font-size:0.75rem; width:85%;">
-                                            <button onclick="config.gameModes.altar_defense.spawners.splice(${idx},1); renderModes();" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button>
-                                        </div>
-                                        <div style="overflow: visible; width: 100%;">
-                                            ${renderSearchableEnemySelect(s.enemyId, (newId) => {
-                                                config.gameModes.altar_defense.spawners[idx].enemyId = newId;
-                                                renderModes();
-                                            }, 'var(--danger)', `ad-spawn-${idx}`)}
-                                        </div>
-                                    </div>
-                                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-                                        <div class="field"><label>Cant.</label><input type="number" value="${s.count}" onchange="config.gameModes.altar_defense.spawners[${idx}].count = parseInt(this.value)"></div>
-                                        <div class="field"><label>Radio</label><input type="number" value="${s.radius}" onchange="config.gameModes.altar_defense.spawners[${idx}].radius = parseInt(this.value)"></div>
-                                        <div class="field"><label>Coord X</label><input type="number" id="ad-sp-x-${idx}" value="${s.x}" onchange="config.gameModes.altar_defense.spawners[${idx}].x = parseInt(this.value)"></div>
-                                        <div class="field"><label>Coord Y</label><input type="number" id="ad-sp-y-${idx}" value="${s.y}" onchange="config.gameModes.altar_defense.spawners[${idx}].y = parseInt(this.value)"></div>
-                                    </div>
+                    <!-- AMENAZAS / ENEMIGOS - v770.12: Gestionado exclusivamente via Editor 3D Puerta3 -->
+                    <div class="card" style="margin:0; border-top: 3px solid var(--danger); opacity:0.95;">
+                        <h4 style="color:var(--danger); margin-bottom:0.5rem;">👾 SPAWNERS DE ENEMIGOS (PUERTA3)</h4>
+                        <p style="font-size:0.7rem; opacity:0.7; margin-bottom:10px; line-height:1.4;">Gestionado <b>exclusivamente</b> desde <code>res://tools/MapEditor3D_Evento_2_Defensa_Altar.tscn</code> → objetos tipo <b>spawner</b> con <code>res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb</code><br>Coloca puertas <b>Puerta3</b> donde quieras que aparezcan enemigos, edita <code>enemyId / count / radius</code> en el inspector y pulsa <b>Save to Server</b>.</p>
+                        <div style="background:rgba(255,49,49,0.08); border:1px solid rgba(255,49,49,0.2); border-radius:8px; padding:10px; font-size:0.7rem;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span>Spawners detectados (gameModes): <b>${(ad.spawners||[]).length}</b></span>
+                                <span style="opacity:0.6; font-size:0.65rem;">(sincronizado desde Editor 3D)</span>
+                            </div>
+                            ${(ad.spawners||[]).length === 0 ? `<div style="opacity:0.5; font-style:italic;">Sin spawners. Abre el Editor 3D, añade objetos tipo spawner y guarda.</div>` : (ad.spawners||[]).map((s, idx) => `
+                                <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                                    <span style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">[${idx}] ${s.label || 'Spawner'} — ${s.enemyId || '1'} x${s.count||0}</span>
+                                    <span style="opacity:0.7;">(${s.x},${s.y}) r:${s.radius}</span>
                                 </div>
                             `).join('')}
                         </div>
+                        <div style="margin-top:8px; font-size:0.65rem; opacity:0.5;">Edición deshabilitada aquí. Usa el Editor 3D para mover/editar.</div>
                     </div>
                 </div>
 
@@ -4587,9 +4577,9 @@ function renderModes() {
                                 </div>
                             </div>
                         </div>
-                        <div style="display:flex; gap:10px;">
+                        <div style="display:flex; gap:10px; align-items:center;">
                             <button id="btn-radar-ad-spawn" class="btn ${radarMode === 'ad-spawn' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-spawn')">MODO SPAWN</button>
-                            <button id="btn-radar-ad-spawner" class="btn ${radarMode === 'ad-spawner' ? 'btn-primary' : 'btn-secondary'}" style="padding: 5px 20px; font-size:0.75rem;" onclick="setRadarMode('ad-spawner')">MODO AMENAZA</button>
+                            <span style="font-size:0.65rem; opacity:0.5; background:rgba(255,49,49,0.08); border:1px solid rgba(255,49,49,0.2); padding:4px 8px; border-radius:4px;">👾 AMENAZA → Editor 3D (Puerta3)</span>
                         </div>
                     </div>
                     

@@ -497,6 +497,9 @@ func _generate_extraction_portals():
 		if is_instance_valid(parent_portals_3d):
 			for child in parent_portals_3d.get_children():
 				child.queue_free()
+		# v770.11: Asegurar puertas BaseMap ocultas inicialmente en Defensa del Altar
+		if has_method("_set_altar_doors_visible"):
+			_set_altar_doors_visible(false)
 		print("[Map_Extraction] Zona Altar Defense cargada. Esperando apertura de portales desde el servidor.")
 		return
 		
@@ -607,6 +610,22 @@ func _generate_extraction_portals_list(extract_points: Array):
 
 func _on_update_exit_portals(portals: Array):
 	print("[Map_Extraction] Actualización de portales recibida: ", portals.size(), " portales activos.")
+	# v770.11: En Defensa del Altar las puertas visibles son las de BaseMap (active_doors), no Portals3D extraction
+	if _is_altar_defense_zone():
+		var should_show = portals.size() > 0
+		if has_method("_set_altar_doors_visible"):
+			_set_altar_doors_visible(should_show)
+		# Limpiar sistema de extracción para no mezclar interacción (reutiliza BaseMap doors)
+		active_extract_points = []
+		for old_area in get_tree().get_nodes_in_group("extraction_portal_areas"):
+			old_area.queue_free()
+		var parent_portals_3d = sub_viewport.get_node_or_null("Portals3D") if is_instance_valid(sub_viewport) else null
+		if is_instance_valid(parent_portals_3d):
+			for child in parent_portals_3d.get_children():
+				child.queue_free()
+		_near_extract_portal_active = false
+		_update_interact_visibility()
+		return
 	if portals.size() == 0:
 		active_extract_points = []
 		# Limpiar portales 2D viejos

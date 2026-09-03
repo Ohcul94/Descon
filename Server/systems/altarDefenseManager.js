@@ -43,8 +43,10 @@ class AltarDefenseManager {
 
         // v770.7: Fuente única de verdad para altar y puertas = mapsConfig.objects (Editor 3D)
         // Se elimina hardcode de adConfig.altarPos / adConfig.exitPortals del AdminDash
+        // v770.12: spawners también exclusivos Editor 3D tipo spawner (Puerta3)
         let altarPos = { x: 5000, y: 5000 };
         let exitPortals = [];
+        let altarSpawners = [];
         if (mapConfig && Array.isArray(mapConfig.objects)) {
             const altarObj = mapConfig.objects.find(obj => obj.type === 'altar');
             if (altarObj) {
@@ -66,8 +68,28 @@ class AltarDefenseManager {
             } else {
                 Logger.warn('ALTAR', `No hay puertas tipo 'door' en mapsConfig[${zoneId}].objects - Coloca puertas en el Editor 3D.`);
             }
+            const spawnerObjs = mapConfig.objects.filter(obj => obj.type === 'spawner' || obj.type === 'enemy_spawner');
+            if (spawnerObjs.length > 0) {
+                altarSpawners = spawnerObjs.map(obj => ({
+                    label: obj.label || `Spawner`,
+                    radius: Number(obj.radius) || 500,
+                    x: Number(obj.x) || 5000,
+                    y: Number(obj.y) || 5000,
+                    enemyId: String(obj.enemyId || "1"),
+                    count: parseInt(obj.count) || 10
+                }));
+                Logger.info('ALTAR', `Cargados ${altarSpawners.length} spawners de enemigos desde mapsConfig.objects (Puerta3).`);
+            } else if (adConfig.spawners && adConfig.spawners.length > 0) {
+                altarSpawners = adConfig.spawners;
+                Logger.warn('ALTAR', `No hay spawners tipo 'spawner' en mapsConfig[${zoneId}].objects - usando fallback adConfig.spawners (${altarSpawners.length}). Migra a Puerta3 en Editor 3D.`);
+            } else {
+                Logger.warn('ALTAR', `No hay spawners tipo 'spawner' en mapsConfig[${zoneId}].objects - Coloca Puerta3 tipo spawner en el Editor 3D.`);
+            }
         } else if (adConfig.altarPos) {
             altarPos = { x: Number(adConfig.altarPos.x) || 5000, y: Number(adConfig.altarPos.y) || 5000 };
+            if (adConfig.spawners && adConfig.spawners.length > 0) altarSpawners = adConfig.spawners;
+        } else if (adConfig.spawners && adConfig.spawners.length > 0) {
+            altarSpawners = adConfig.spawners;
         }
 
         // Inicializar el Altar State con coordenadas autoritativas del Editor 3D
@@ -94,11 +116,14 @@ class AltarDefenseManager {
             statusEndTime: Date.now() + spawnLockTime,
             exitPortals: exitPortals,
             altarPos: altarPos,
+            altarSpawners: altarSpawners,
             // v770.3: tracking para evitar cierre prematuro de oleada antes de que spawneen
             waveSpawnedCount: 0,
             waveExpectedCount: 0,
             waveStartTime: 0
         };
+        // Mantener adConfig.spawners sincronizado para inspección / compatibilidad retro
+        if (altarSpawners.length > 0) adConfig.spawners = altarSpawners;
 
 
         Logger.info('ALTAR', `Partida de Defensa al Altar iniciada en zona ${zoneId}. altarPos=[${altarPos.x},${altarPos.y}], portales=${exitPortals.length}, oleadas=${(adConfig.waves||[]).length}, spawnLock=${spawnLockTime}ms.`);
@@ -180,9 +205,13 @@ class AltarDefenseManager {
             Logger.info('ALTAR', `Spawneando Oleada ${waveIdx + 1}: ${waveData.name || 'Horda'}`);
             
             const adConfig = this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense;
-            const enemySpawners = (adConfig && adConfig.spawners && adConfig.spawners.length > 0)
-                ? adConfig.spawners
-                : null;
+            // v770.12: Spawners exclusivos Editor 3D (Puerta3) -> match.altarSpawners, fallback a adConfig para migración
+            let enemySpawners = null;
+            if (match.altarSpawners && match.altarSpawners.length > 0) {
+                enemySpawners = match.altarSpawners;
+            } else if (adConfig && adConfig.spawners && adConfig.spawners.length > 0) {
+                enemySpawners = adConfig.spawners;
+            }
             
             let phasesToRun = [];
             if (Array.isArray(waveData.phases) && waveData.phases.length > 0) {

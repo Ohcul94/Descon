@@ -2047,15 +2047,12 @@ function initRadar() {
                 }
             }
 
-            // 2. Spawners
+            // 2. Spawners - v770.12: solo visual, edición exclusiva Editor 3D Puerta3
             const spawners = ad.spawners || [];
             for (let i = 0; i < spawners.length; i++) {
                 const pos = worldToCanvas(spawners[i].x, spawners[i].y);
                 const dist = Math.hypot(pos.x - mouseX, pos.y - mouseY);
                 if (dist < 15) {
-                    isDragging = true;
-                    dragItem = { type: 'ad-spawner', index: i };
-                    canvas.style.cursor = 'grabbing';
                     highlightCard('ad-spawner', i);
                     return;
                 }
@@ -2434,12 +2431,9 @@ function addFromRadar() {
                 radius: parseInt(document.getElementById('radar-ad-spawn-radius').value || 200)
             });
         } else if (radarMode === 'ad-spawner') {
-            if (!ad.spawners) ad.spawners = [];
-            ad.spawners.push({
-                x, y,
-                label: document.getElementById('radar-ad-spawner-label').value,
-                radius: parseInt(document.getElementById('radar-ad-radius').value)
-            });
+            // v770.12: Deshabilitado - spawners ahora exclusivos Editor 3D Puerta3
+            alert('Los spawners de Defensa del Altar ahora se gestionan exclusivamente desde el Editor 3D (res://tools/MapEditor3D_Evento_2_Defensa_Altar.tscn) usando objetos tipo spawner (Puerta3).');
+            return;
         }
     } else {
         if (radarMode === 'spawner') {

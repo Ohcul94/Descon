@@ -35,7 +35,7 @@ var _gizmo_mode: int = 0  # 0=move, 1=rotate, 2=scale
 # var _current_gizmo: Node3D = null
 var _auto_loading: bool = false
 
-const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "nexus", "pillar", "market", "custom"]
+const OBJ_TYPES: Array[String] = ["wall", "door", "chest", "tower", "decor", "vault", "loot", "altar", "portal", "spawn", "nexus", "pillar", "market", "custom", "spawner"]
 
 func _ready():
 	if not Engine.is_editor_hint():
@@ -275,6 +275,7 @@ func _show_context_menu(p_position: Vector2):
 	menu.add_item("Cambiar tipo: altar", 16)
 	menu.add_item("Cambiar tipo: spawn", 17)
 	menu.add_item("Cambiar tipo: market", 18)
+	menu.add_item("Cambiar tipo: spawner (Puerta3)", 19)
 	menu.add_separator()
 	menu.add_item("Exportar JSON al portapapeles", 99)
 	menu.id_pressed.connect(_on_context_menu_select)
@@ -282,9 +283,9 @@ func _show_context_menu(p_position: Vector2):
 
 func _on_context_menu_select(id: int):
 	match id:
-		10, 11, 12, 13, 14, 15, 16, 17, 18:
+		10, 11, 12, 13, 14, 15, 16, 17, 18, 19:
 			if _selected_object:
-				var types = ["wall", "door", "chest", "tower", "decor", "custom", "altar", "spawn", "market"]
+				var types = ["wall", "door", "chest", "tower", "decor", "custom", "altar", "spawn", "market", "spawner"]
 				var type_index = id - 10
 				var new_type = types[type_index]
 				_selected_object.set_meta("obj_type", new_type)
@@ -296,6 +297,20 @@ func _on_context_menu_select(id: int):
 func _apply_default_properties_by_type(obj: Node3D, _type: String):
 	obj.set_meta("scale_2d", obj.scale.x)
 	obj.set_meta("rot_y_deg", obj.rotation_degrees.y)
+	# v770.12: defaults para spawner (Puerta3)
+	if _type == "spawner":
+		if not obj.has_meta("enemyId"):
+			obj.set_meta("enemyId", "1")
+		if not obj.has_meta("count"):
+			obj.set_meta("count", 10)
+		if not obj.has_meta("radius"):
+			obj.set_meta("radius", 500)
+		if not obj.has_meta("label") or obj.get_meta("label") == "":
+			obj.set_meta("label", "Spawner")
+		if obj.has_meta("asset_path") and obj.get_meta("asset_path") == "":
+			obj.set_meta("asset_path", "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb")
+		elif not obj.has_meta("asset_path"):
+			obj.set_meta("asset_path", "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb")
 
 ## EXPORTACIÓN JSON
 
@@ -364,6 +379,8 @@ func _node3d_to_config_dict(node: Node3D) -> Dictionary:
 	if node.has_meta("colY"): config["colY"] = node.get_meta("colY")
 	if node.has_meta("colH"): config["colH"] = node.get_meta("colH")
 	if node.has_meta("radius"): config["radius"] = node.get_meta("radius")
+	if node.has_meta("count"): config["count"] = int(node.get_meta("count"))
+	if node.has_meta("enemyId"): config["enemyId"] = str(node.get_meta("enemyId"))
 	if node.has_meta("targetZoneId"): config["targetZoneId"] = node.get_meta("targetZoneId")
 	if node.has_meta("targetX"): config["targetX"] = node.get_meta("targetX")
 	if node.has_meta("targetY"): config["targetY"] = node.get_meta("targetY")
@@ -555,6 +572,8 @@ func import_from_json():
 		if asset_path == "":
 			if obj.get("type") == "door":
 				asset_path = "res://assets/Puertas/3D/Puerta2/Puerta2.glb"
+			elif obj.get("type") == "spawner":
+				asset_path = "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb" # v770.12: spawner enemigo exclusivo Puerta3
 			elif obj.get("type") == "chest":
 				asset_path = "res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb"
 			elif obj.get("type") == "altar":
@@ -586,7 +605,7 @@ func import_from_json():
 		var y_2d = float(obj.get("y", 0.0))
 		var type_str = obj.get("type", "wall")
 		var default_y = 0.5
-		if type_str in ["door", "tower"]:
+		if type_str in ["door", "tower", "spawner"]:
 			default_y = 2.5
 		elif type_str == "chest":
 			default_y = 0.0
@@ -732,6 +751,10 @@ func import_from_json():
 		
 		if obj.has("radius"):
 			instance.set_meta("radius", float(obj.get("radius")))
+		if obj.has("count"):
+			instance.set_meta("count", int(obj.get("count")))
+		if obj.has("enemyId"):
+			instance.set_meta("enemyId", str(obj.get("enemyId")))
 		if obj.has("targetZoneId"):
 			instance.set_meta("targetZoneId", str(obj.get("targetZoneId")))
 		if obj.has("targetX"):
@@ -912,6 +935,30 @@ func load_from_server():
 			"spawnLockTime":ad_cfg.get("spawnLockTime",10000)
 		})
 		_spawn_altar_defense_markers(ad_cfg)
+		# v770.12: Migración automática de spawners (AdminDash) a objetos 3D tipo spawner (Puerta3)
+		var has_spawner_objects = false
+		for o in objects:
+			if str(o.get("type", "")) == "spawner":
+				has_spawner_objects = true
+				break
+		if not has_spawner_objects and ad_cfg.has("spawners"):
+			var ad_spawners = ad_cfg.get("spawners", [])
+			if ad_spawners is Array and ad_spawners.size() > 0:
+				for s in ad_spawners:
+					objects.append({
+						"type": "spawner",
+						"x": float(s.get("x", 5000)),
+						"y": float(s.get("y", 5000)),
+						"yOffset": 2.5,
+						"label": str(s.get("label", "Spawner")),
+						"scale": 5.0,
+						"rotY": 0.0,
+						"radius": float(s.get("radius", 500)),
+						"enemyId": str(s.get("enemyId", "1")),
+						"count": int(s.get("count", 10)),
+						"assetPath": "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb"
+					})
+				print("MapEditor3D: 🔄 Migrados ", ad_spawners.size(), " spawners de gameModes a objetos 3D tipo spawner (Puerta3).")
 
 		if objects.size() > 0:
 			if not skip_import:
@@ -922,6 +969,7 @@ func load_from_server():
 			var generated_objects = []
 			var altar_pos    = ad_cfg.get("altarPos", {})
 			var exit_portals = ad_cfg.get("exitPortals", [])
+			var ad_spawners_gen = ad_cfg.get("spawners", [])
 			if altar_pos.has("x") and altar_pos.has("y"):
 				generated_objects.append({
 					"type": "altar", "x": float(altar_pos.x), "y": float(altar_pos.y),
@@ -934,6 +982,17 @@ func load_from_server():
 					"yOffset": 0.0, "label": str(ep.get("label", "Escape")),
 					"scale": 10.0, "rotY": -90.0,
 					"radius": float(ep.get("radius", 150))
+				})
+			for s in ad_spawners_gen:
+				generated_objects.append({
+					"type": "spawner",
+					"x": float(s.get("x", 5000)), "y": float(s.get("y", 5000)),
+					"yOffset": 2.5, "label": str(s.get("label", "Spawner")),
+					"scale": 5.0, "rotY": 0.0,
+					"radius": float(s.get("radius", 500)),
+					"enemyId": str(s.get("enemyId", "1")),
+					"count": int(s.get("count", 10)),
+					"assetPath": "res://assets/Puertas/3D/Puerta3/3D/Puerta3.glb"
 				})
 			if generated_objects.size() > 0:
 				print("MapEditor3D: ℹ️ objects vacío. Importando altar + ", exit_portals.size(), " portales como objetos 3D editables...")
@@ -1133,13 +1192,23 @@ func _spawn_altar_defense_markers(ad_cfg: Dictionary):
 		var label = str(sp.get("label", "Spawn"))
 		_create_marker_disc(Vector2(x, y), 200, Color(0.2, 0.6, 1), "📍 " + label, root)
 	
-	var spawners = ad_cfg.get("spawners", [])
-	for sw in spawners:
-		var x = float(sw.get("x", 0))
-		var y = float(sw.get("y", 0))
-		var radius = float(sw.get("radius", 300))
-		var label = str(sw.get("label", "Amenaza"))
-		_create_marker_disc(Vector2(x, y), radius, Color(1, 0.2, 0.2), "👾 " + label, root)
+	# v770.12: spawners ahora son objetos 3D tipo spawner (Puerta3) en mapsConfig.objects, no se dibujan como discs
+	# Para evitar duplicado (verías Puerta3 GLB + disc rojo en misma pos), se omite marker.
+	# Si querés ver guía, descomenta el bloque siguiente:
+	# var spawners = ad_cfg.get("spawners", [])
+	# for sw in spawners:
+	# 	var x = float(sw.get("x", 0))
+	# 	var y = float(sw.get("y", 0))
+	# 	var radius = float(sw.get("radius", 300))
+	# v770.12: no se dibuja marker de spawner (ya hay Puerta3 3D); bloque deshabilitado para evitar duplicado
+	# var spawners_tmp = ad_cfg.get("spawners", [])
+	# for sw in spawners_tmp:
+	# 	var x = float(sw.get("x", 0))
+	# 	var y = float(sw.get("y", 0))
+	# 	var radius = float(sw.get("radius", 300))
+	# 	var label = str(sw.get("label", "Amenaza"))
+	# 	_create_marker_disc(Vector2(x, y), radius, Color(1, 0.2, 0.2), "👾 " + label, root)
+	pass
 
 func update_map_boundary(width_2d: float, height_2d: float):
 	var old_b = get_node_or_null("MapBoundaryVisual")
@@ -1243,10 +1312,12 @@ func save_to_server():
 	# Separar objetos por tipo (sin lambdas para compatibilidad)
 	var door_objects = []
 	var altar_objects = []
+	var spawner_objects = []
 	for _obj in objects_array:
 		var _t = _obj.get("type", "")
 		if _t == "door": door_objects.append(_obj)
 		elif _t == "altar": altar_objects.append(_obj)
+		elif _t == "spawner": spawner_objects.append(_obj)
 
 	# Tipo-safe check para extraction maps
 	var _sv_is_extraction = false
@@ -1293,6 +1364,20 @@ func save_to_server():
 					})
 				ad_cfg_sv["exitPortals"] = new_portals
 				print("MapEditor3D: 🔄 gameModes.altar_defense.exitPortals sincronizado con ", new_portals.size(), " portales.")
+			# v770.12: Sincronizar spawners de enemigos desde objetos 3D tipo spawner (Puerta3) - exclusivo Editor 3D
+			if spawner_objects.size() > 0:
+				var new_spawners = []
+				for s in spawner_objects:
+					new_spawners.append({
+						"label": str(s.get("label", "Spawner")),
+						"x": float(s.get("x", 5000)),
+						"y": float(s.get("y", 5000)),
+						"radius": float(s.get("radius", 500)),
+						"enemyId": str(s.get("enemyId", "1")),
+						"count": int(s.get("count", 10))
+					})
+				ad_cfg_sv["spawners"] = new_spawners
+				print("MapEditor3D: 🔄 gameModes.altar_defense.spawners sincronizado desde Editor 3D (Puerta3) con ", new_spawners.size(), " spawners.")
 
 	# Tipo-safe check para arena PVP maps
 	var _sv_is_arena = false
