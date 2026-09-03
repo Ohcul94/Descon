@@ -127,7 +127,7 @@ class ExtractionManager {
 
                 for (let i = 0; i < count; i++) {
                     // Usar muestreo en disco evitando colisiones (espejo BaseMap.gd)
-                    const baseMapId = match.baseMap || mapBaseId;
+                    const baseMapId = matchData.baseMap || mapBaseId;
                     const valid = spawnValidator.findValidSpawnPosition(parseInt(s.x) || 5000, parseInt(s.y) || 5000, radius, baseMapId, this.state, { maxAttempts: 35 });
                     let finalX, finalY;
                     if (valid) {

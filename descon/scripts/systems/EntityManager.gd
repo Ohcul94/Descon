@@ -1026,7 +1026,8 @@ func _on_enemy_action(data: Dictionary):
 					var tex = _generate_decal_texture_cone(256, cone_angle)
 					var decal_size = Vector3(range_val * current_map.scale_factor * 2.2, 22.0, range_val * current_map.scale_factor * 2.2)
 					var decal = _create_decal_node(pos3d, decal_size, tex, Color(1,1,1,1), 2.5, 0.35)
-					decal.rotation.y = angle
+					# Decal 0° = norte (-Z). En charguing usan en.rotation (angle+PI/2). En fire angle viene crudo.
+					decal.rotation.y = angle + PI/2
 					current_map.sub_viewport.add_child(decal)
 					# Reusar blast_3d var para cleanup uniforme
 					var blast_3d = decal
@@ -1040,9 +1041,9 @@ func _on_enemy_action(data: Dictionary):
 					var h_c = _sample_terrain_height(en.global_position, current_map)
 					blast_3d.position = Vector3(0, h_c - _attack_vfx_base_y(), 0)
 					en.world_root_3d.add_child(blast_3d)
-					var dir_angle_for_blast = angle # angle ya viene del servidor en radianes? data.angle radianes?
-					# Si angle viene en radianes desde servidor, usarlo directo como rot 2D; si es 0, caer a enemy rot
-					if abs(dir_angle_for_blast) < 0.001:
+					var dir_angle_for_blast = angle + PI/2 # angle crudo -> +PI/2 para alinear con en.rotation como en charging
+					# Si angle es 0 (fallback), usar en.rotation directo que ya trae el offset
+					if abs(angle) < 0.001:
 						dir_angle_for_blast = en.rotation
 					var cone_mesh = _make_cone_mesh_conforming(en.global_position, range_val, cone_angle, dir_angle_for_blast, current_map)
 					var mesh_blast = MeshInstance3D.new()
@@ -2814,7 +2815,8 @@ func _spawn_meteor_warning_3d(vp, tx: float, ty: float, radius: float, s_factor:
 	ring_mat.emission_energy_multiplier = 2.5
 	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	ring.material_override = ring_mat
-	ring.rotation.x = PI / 2
+	# Torus ya es plano XZ como IceStorm - no rotar PI/2 (eso lo deja vertical)
+	ring.position.y = 0.02
 	root.add_child(ring)
 
 	var fill = MeshInstance3D.new()
@@ -2998,7 +3000,7 @@ func _spawn_meteor_impact_3d(vp, tx: float, ty: float, radius: float, _meteor_si
 	tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.3)
 	tw_f.finished.connect(flash.queue_free)
 
-	# Onda expansiva
+	# Onda expansiva - plana en el piso como Tormenta de Hielo (sin rot PI/2)
 	var shockwave = MeshInstance3D.new()
 	var ring_mesh = TorusMesh.new()
 	ring_mesh.inner_radius = r3d * 0.5
@@ -3011,8 +3013,7 @@ func _spawn_meteor_impact_3d(vp, tx: float, ty: float, radius: float, _meteor_si
 	sw_mat.emission_energy_multiplier = 3.0
 	sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	shockwave.material_override = sw_mat
-	shockwave.position = pos_3d
-	shockwave.rotation.x = PI / 2
+	shockwave.position = pos_3d + Vector3(0,0.02,0)
 	vp.add_child(shockwave)
 	var tw_sw = shockwave.create_tween()
 	tw_sw.tween_property(shockwave, "scale", Vector3(2.5, 2.5, 2.5), 0.35)
@@ -4034,10 +4035,13 @@ func _on_clear_zone_entities(payload):
 		world.combat_system.clear_all_bullets()
 		
 	var is_dungeon = str(_zoneId).begins_with("dungeon")
-	var is_extraction = str(_zoneId).begins_with("extract_") or str(_zoneId) == "10" or str(_zoneId) == "11"
+	var is_extraction = str(_zoneId).begins_with("extract_") or str(_zoneId) == "10"
 	
-	# Determinar si es un mapa de Altar Defense (dinámico desde el config del servidor)
-	var zone_int_check = int(_zoneId) if not is_dungeon and not is_extraction else 0
+	# Determinar si es un mapa de Altar Defense (dinámico desde el config del servidor) - v770.8: 11 ya no es extraction, es altar
+	var zone_int_check = int(_zoneId) if not is_dungeon else 0
+	# Si es extraction (10) no buscar altar; si es 11 debe poder detectarse como altar aunque is_extraction=false ahora
+	if is_extraction:
+		zone_int_check = 0
 	var is_altar_defense = false
 	var full_cfg = GameConstants.get("FULL_CONFIG")
 	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):

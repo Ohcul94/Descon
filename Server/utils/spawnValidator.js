@@ -215,7 +215,12 @@ function _buildObstaclesForZone(zoneId, state) {
                 } else {
                     // Fallback idéntico a BaseMap.gd línea 1918-1920
                     // Solo para type wall/tower/altar donde el glb no trajo medidas
-                    if (typeRaw === 'wall' || typeRaw === 'tower' || typeRaw === 'altar') {
+                    if (typeRaw === 'altar') {
+                        isCircle = true;
+                        w = 240.0;
+                        h = 240.0 / CORRECTION_Z;
+                        useFallback = true;
+                    } else if (typeRaw === 'wall' || typeRaw === 'tower') {
                         w = 100.0 * scaleVal;
                         h = 20.0 * scaleVal;
                         useFallback = true;

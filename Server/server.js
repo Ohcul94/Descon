@@ -15,6 +15,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const mongoose = require('mongoose');
 const Logger = require('./utils/logger');
+const spawnValidator = require('./utils/spawnValidator');
 const { getPlayerRAMAdapter } = require('./utils/ramAdapter'); // v6.02
 const { isAdmin, isAdminSocket, checkLoginLock, registerLoginFailure, registerLoginSuccess } = require('./utils/security'); // v6.03 - Centralización de Admin
 const bugReports = require('./systems/bugReportManager'); // v1.0: Reportes de Bugs
@@ -1007,6 +1008,99 @@ fs.readJson(CONFIG_FILE).then(config => {
         // Guardar configuración para persistir la inyección inicial de arenas
         fs.writeJson(CONFIG_FILE, state.SERVER_CONFIG, { spaces: 4 }).catch(err => {
             console.error("[SERVER] Error al guardar inyección de arenas en config.json:", err);
+        });
+    }
+
+    // Inyectar Configuración del Modo Defensa del Altar por defecto si falta
+    // v770.10: Sin esta sección, altarDefenseManager.startMatch() retorna inmediatamente (adConfig=null)
+    // y todo el evento es fantasma: no se crean oleadas, no se spawnean bichos, victoria instantánea.
+    // Las coordenadas se leen dinámicamente de mapsConfig["11"].objects (fuente de verdad del Editor 3D).
+    if (!state.SERVER_CONFIG.gameModes.altar_defense) {
+        // Leer altarPos y exitPortals dinámicamente desde mapsConfig si existe
+        const mc11 = (state.SERVER_CONFIG.mapsConfig && state.SERVER_CONFIG.mapsConfig["11"]) ? state.SERVER_CONFIG.mapsConfig["11"] : null;
+        let defaultAltarPos = { x: 4793, y: 3943 };
+        let defaultExitPortals = [];
+        if (mc11 && Array.isArray(mc11.objects)) {
+            const altarObj = mc11.objects.find(o => o.type === 'altar');
+            if (altarObj) defaultAltarPos = { x: Number(altarObj.x) || 4793, y: Number(altarObj.y) || 3943 };
+            const doors = mc11.objects.filter(o => o.type === 'door' || o.type === 'portal');
+            defaultExitPortals = doors.map((d, i) => ({
+                label: d.label || `Escape${i+1}`,
+                radius: d.radius || 150,
+                x: Number(d.x),
+                y: Number(d.y)
+            }));
+        }
+        // SpawnPoints: posicionar fuera de las paredes, a distancia segura del altar
+        // (los spawnPoints del .tscn metadata caían dentro de las paredes del mapsConfig)
+        const safeSpawnDist = 1200;
+        const defaultSpawnPoints = [
+            { label: "Spawn Norte", radius: 400, x: defaultAltarPos.x, y: defaultAltarPos.y - safeSpawnDist },
+            { label: "Spawn Sur",   radius: 400, x: defaultAltarPos.x, y: defaultAltarPos.y + safeSpawnDist },
+            { label: "Spawn Este",  radius: 400, x: defaultAltarPos.x + safeSpawnDist, y: defaultAltarPos.y },
+            { label: "Spawn Oeste", radius: 400, x: defaultAltarPos.x - safeSpawnDist, y: defaultAltarPos.y }
+        ];
+
+        state.SERVER_CONFIG.gameModes.altar_defense = {
+            enabled: true,
+            minPlayers: 1,
+            maps: [11],
+            width: 10000,
+            height: 10000,
+            altarHp: 10000,
+            altarShield: 5000,
+            altarPos: defaultAltarPos,
+            spawnLockTime: 0,
+            waveInterval: 15000,
+            partyAcceptTimeout: 10000,
+            exitPortals: defaultExitPortals,
+            spawnPoints: defaultSpawnPoints,
+            spawners: [
+                { label: "Zona de Invasión Norte", enemyId: "1", count: 10, radius: 500, x: defaultAltarPos.x, y: 1094 },
+                { label: "Zona de Invasión Este",  enemyId: "1", count: 10, radius: 500, x: 8633, y: defaultAltarPos.y },
+                { label: "Zona de Invasión Sur",   enemyId: "1", count: 10, radius: 500, x: defaultAltarPos.x, y: 6861 },
+                { label: "Zona de Invasión Oeste", enemyId: "1", count: 10, radius: 500, x: 700,  y: defaultAltarPos.y }
+            ],
+            waves: [
+                {
+                    name: "Oleada 1",
+                    count: 10,
+                    enemyId: "1",
+                    delayMs: 5000,
+                    spawnType: "staggered",
+                    spawnerIndex: "random",
+                    staggerDelayMs: 1000,
+                    phases: [
+                        {
+                            name: "Fase 1",
+                            enemyId: "5-B",
+                            count: 12,
+                            focusTarget: "altar",
+                            spawnType: "together",
+                            spawnerIndex: "random",
+                            staggerDelayMs: 500,
+                            startDelayMs: 0,
+                            spawnerDistribution: { "0": 3, "1": 2, "2": 1, "3": 1, "random": 5 }
+                        },
+                        {
+                            name: "Fase 2",
+                            enemyId: "6-C",
+                            count: 5,
+                            focusTarget: "altar_aggro",
+                            spawnType: "staggered",
+                            spawnerIndex: "random",
+                            staggerDelayMs: 1000,
+                            startDelayMs: 0,
+                            spawnerDistribution: { "random": 5 }
+                        }
+                    ]
+                }
+            ]
+        };
+        console.log("[SERVER] gameModes.altar_defense inicializado por defecto (altar en " + defaultAltarPos.x + "," + defaultAltarPos.y + ")");
+        // Persistir
+        fs.writeJson(CONFIG_FILE, state.SERVER_CONFIG, { spaces: 4 }).catch(err => {
+            console.error("[SERVER] Error al guardar inyección de altar_defense en config.json:", err);
         });
     }
 
@@ -2684,9 +2778,23 @@ io.on('connection', (socket) => {
             // Iniciar la partida en el AltarDefenseManager de forma autoritativa
             altarDefenseManager.startMatch(targetZoneId, membersList);
 
-            const spawnPoints = (altarDefenseConfig && altarDefenseConfig.spawnPoints && altarDefenseConfig.spawnPoints.length > 0) 
-                ? altarDefenseConfig.spawnPoints 
-                : [{ x: 5000, y: 5000 }];
+            // v770.10: Obtener spawnPoints con fallback seguro basado en altarPos real (NO hardcodear 5000,5000)
+            const altarPos = (altarDefenseConfig && altarDefenseConfig.altarPos) 
+                ? altarDefenseConfig.altarPos 
+                : { x: 4793, y: 3943 };
+            let spawnPoints;
+            if (altarDefenseConfig && altarDefenseConfig.spawnPoints && altarDefenseConfig.spawnPoints.length > 0) {
+                spawnPoints = altarDefenseConfig.spawnPoints;
+            } else {
+                // Fallback: spawns a 1200px del altar en las 4 direcciones cardinales
+                const safeDist = 1200;
+                spawnPoints = [
+                    { x: altarPos.x, y: altarPos.y - safeDist },
+                    { x: altarPos.x, y: altarPos.y + safeDist },
+                    { x: altarPos.x + safeDist, y: altarPos.y },
+                    { x: altarPos.x - safeDist, y: altarPos.y }
+                ];
+            }
 
             let spawnIdx = 0;
             for (const mUid of membersList) {
@@ -2701,8 +2809,13 @@ io.on('connection', (socket) => {
                     if (p) {
                         const oldZone = p.zone;
                         const spawn = spawnPoints[spawnIdx % spawnPoints.length];
-                        const targetX = spawn ? parseInt(spawn.x) : 5000;
-                        const targetY = spawn ? parseInt(spawn.y) : 5000;
+                        const rawX = spawn ? parseInt(spawn.x) : altarPos.x;
+                        const rawY = spawn ? parseInt(spawn.y) : altarPos.y - 1200;
+                        // v770.10: Radio de búsqueda más grande (600px vs 350px) para evitar quedar atrapado en paredes
+                        const validSpawn = spawnValidator.findValidSpawnPosition(rawX, rawY, 600, targetZoneId, state, { maxAttempts: 50 });
+                        const targetX = validSpawn ? Math.round(validSpawn.x) : rawX;
+                        const targetY = validSpawn ? Math.round(validSpawn.y) : rawY;
+                        console.log(`[ALTAR WARP] Jugador ${p.user} spawn en [${targetX}, ${targetY}] (raw: [${rawX}, ${rawY}], valid: ${!!validSpawn})`);
                         spawnIdx++;
 
                         if (Number(oldZone) !== Number(targetZoneId)) {
@@ -2711,9 +2824,20 @@ io.on('connection', (socket) => {
                             targetSocket.leave(`zone_${oldZone}`);
                             targetSocket.join(`zone_${targetZoneId}`);
 
+                            // Update playersByZone index
+                            if (state.playersByZone[oldZone] && state.playersByZone[oldZone][targetSocket.id]) {
+                                delete state.playersByZone[oldZone][targetSocket.id];
+                            }
+                            if (!state.playersByZone[targetZoneId]) {
+                                state.playersByZone[targetZoneId] = {};
+                            }
+                            state.playersByZone[targetZoneId][targetSocket.id] = p;
+
                             p.zone = targetZoneId;
                             p.x = targetX;
                             p.y = targetY;
+                            p.justBlinked = true; // v770.8: bypass anti-speedhack en el primer movimiento tras warp
+                            p.lastMoveTime = Date.now();
 
                             targetSocket.emit('changeZoneDone', { zoneId: targetZoneId, x: targetX, y: targetY });
                             targetSocket.to(`zone_${oldZone}`).emit('playerDisconnected', targetSocket.id);

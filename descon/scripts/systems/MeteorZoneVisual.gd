@@ -36,17 +36,36 @@ func _spawn_ground_area(data: Dictionary) -> void:
 	var e_y := float(data.get("y", global_position.y))
 	var r3d: float = radius * s_factor
 
+	# altura real del terreno como IceStorm / Meteor warning
+	var h_zone = 0.05
+	if is_instance_valid(map_node.get("terrain_node")):
+		var em_n = get_tree().get_first_node_in_group("world_node")
+		if em_n and em_n.has_node("EntityManager"):
+			var mgr = em_n.get_node("EntityManager")
+			if mgr and mgr.has_method("_sample_terrain_height"):
+				h_zone = mgr._sample_terrain_height(Vector2(e_x, e_y), map_node) + 0.06
+			elif map_node.has_method("get_terrain_height_at_pos"):
+				h_zone = map_node.get_terrain_height_at_pos(Vector2(e_x, e_y)) + 0.06
+		elif map_node.has_method("get_terrain_height_at_pos"):
+			h_zone = map_node.get_terrain_height_at_pos(Vector2(e_x, e_y)) + 0.06
+
 	_ground_3d = Node3D.new()
 	_ground_3d.name = "MeteorZone_" + name
-	_ground_3d.position = Vector3(e_x * s_factor, 0.0, e_y * s_factor * correction_z)
+	_ground_3d.position = Vector3(e_x * s_factor, h_zone, e_y * s_factor * correction_z)
 	vp.add_child(_ground_3d)
 
-	# Disco de área (fuego en el piso)
+	# Disco de área (fuego en el piso) - usar disco conformante si hay terreno como warnings
 	var disc := MeshInstance3D.new()
-	var disc_mesh := CylinderMesh.new()
+	var disc_mesh: Mesh = CylinderMesh.new()
 	disc_mesh.top_radius = r3d
 	disc_mesh.bottom_radius = r3d
 	disc_mesh.height = 0.01
+	if is_instance_valid(map_node.get("terrain_node")):
+		var em_n2 = get_tree().get_first_node_in_group("world_node")
+		if em_n2 and em_n2.has_node("EntityManager"):
+			var mgr2 = em_n2.get_node("EntityManager")
+			if mgr2 and mgr2.has_method("_make_circle_disc_conforming"):
+				disc_mesh = mgr2._make_circle_disc_conforming(Vector2(e_x, e_y), radius, map_node)
 	disc.mesh = disc_mesh
 	var disc_mat := StandardMaterial3D.new()
 	disc_mat.albedo_color = Color(0.8, 0.25, 0.05, 0.22)
@@ -55,10 +74,13 @@ func _spawn_ground_area(data: Dictionary) -> void:
 	disc_mat.emission_energy_multiplier = 0.8
 	disc_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	disc_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	disc_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	disc_mat.no_depth_test = true
+	disc_mat.render_priority = 2
 	disc.material_override = disc_mat
 	_ground_3d.add_child(disc)
 
-	# Anillo exterior pulsante
+	# Anillo exterior pulsante - Torus ya es plano XZ, sin PI/2 (como IceStorm correcto)
 	var ring := MeshInstance3D.new()
 	var ring_mesh := TorusMesh.new()
 	ring_mesh.inner_radius = r3d * 0.95
@@ -71,6 +93,9 @@ func _spawn_ground_area(data: Dictionary) -> void:
 	ring_mat.emission_energy_multiplier = 2.0
 	ring_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	ring_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	ring_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring_mat.no_depth_test = true
+	ring_mat.render_priority = 2
 	ring.material_override = ring_mat
 	ring.position.y = 0.02
 	_ground_3d.add_child(ring)

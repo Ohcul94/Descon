@@ -22,11 +22,18 @@ var arena_pillars_nodes: Dictionary = {}
 
 # Determina si esta instancia es una partida de Defensa del Altar (dinámico desde config)
 func _is_altar_defense_zone() -> bool:
+	var zid = str(zone_id)
+	if "." in zid and zid.is_valid_float():
+		var zf = float(zid)
+		if zf == int(zf):
+			zid = str(int(zf))
+	if zid == "11":
+		return true
 	var full_cfg = GameConstants.get("FULL_CONFIG")
 	if full_cfg and full_cfg.has("gameModes") and full_cfg.gameModes.has("altar_defense"):
 		var ad_maps = full_cfg.gameModes.altar_defense.get("maps", [])
 		for m in ad_maps:
-			if str(m) == str(zone_id):
+			if str(m) == zid:
 				return true
 	return false
 
@@ -79,6 +86,12 @@ func _ready():
 				if mode_cfg.has("width") and float(mode_cfg.width) > 0:
 					world_size = float(mode_cfg.width)
 					adjust_background()
+	# v770.8: En Defensa del Altar el spawn lock de 5s con radio 200 es muy restrictivo y se siente como "trabada"
+	# (el altar está a 467px del spawn y el servidor además hace rubberband). Para paridad con Mapa2 lo desactivamos:
+	# - Si querés mantenerlo, pon spawnLockTime 0 en gameModes.altar_defense o aumenta radio a 2000 en AdminDash
+	if is_ad:
+		spawn_lock_ms = 0.0
+		print("[Map_Extraction] Defensa del Altar: spawn lock desactivado para movimiento libre (paridad Mapa2)")
 	spawn_lock_remaining = spawn_lock_ms / 1000.0
 
 	# Crear HUD UI de temporizadores
@@ -139,10 +152,28 @@ func _physics_process(_delta):
 			player_node = players[0]
 
 	# --- GESTIÓN DINÁMICA DE SPAWN LOCK (BARRERA DE INICIO CON MOVIMIENTO PERMITIDO) ---
-	if spawn_lock_remaining > 0.0:
+	if _is_altar_defense_zone():
+		spawn_lock_remaining = 0.0
+		if is_instance_valid(player_node):
+			player_node.set_meta("skills_blocked", false)
+			player_node.set_meta("spawn_locked", false)
+		if is_instance_valid(spawn_bubble_mesh):
+			spawn_bubble_mesh.queue_free()
+			spawn_bubble_mesh = null
+		if spawn_lock_container:
+			spawn_lock_container.visible = false
+
+	if spawn_lock_remaining > 0.0 and not _is_altar_defense_zone():
 		spawn_lock_remaining = max(0.0, spawn_lock_remaining - _delta)
 		
 		if is_instance_valid(player_node):
+			# Si el jugador se warpeó a la zona (posición cambió tras recibir changeZoneDone), re-centrar la barrera
+			if has_saved_initial_pos and player_node.global_position.distance_to(initial_player_pos) > 800.0:
+				has_saved_initial_pos = false
+				if is_instance_valid(spawn_bubble_mesh):
+					spawn_bubble_mesh.queue_free()
+					spawn_bubble_mesh = null
+
 			if not has_saved_initial_pos:
 				initial_player_pos = player_node.global_position
 				has_saved_initial_pos = true
@@ -161,7 +192,6 @@ func _physics_process(_delta):
 							if dist < min_dist:
 								min_dist = dist
 								closest_radius = float(sp.get("radius", 200.0))
-								initial_player_pos = sp_pos
 				else:
 					var is_ad_spawn = _is_altar_defense_zone()
 					var full_cfg = GameConstants.get("FULL_CONFIG")

@@ -1537,7 +1537,9 @@
                     "isHoming": false,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -1582,7 +1584,9 @@
                     "fireRate": 3000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 },
                 {
                     "bulletDamage": 4,
@@ -1595,7 +1599,9 @@
                     "slowAmount": 50,
                     "slowDuration": 1000,
                     "startDelay": 2000,
-                    "type": "ice_missile"
+                    "type": "ice_missile",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -1615,7 +1621,8 @@
             "rewardOhcu": 2,
             "shield": 20,
             "speed": 420,
-            "stopOnOutOfSight": true
+            "stopOnOutOfSight": true,
+            "visionRange": 800
         },
         "3": {
             "aggressive": false,
@@ -1638,6 +1645,8 @@
             ],
             "mechanics": [
                 {
+                    "activationIntervalMs": 0,
+                    "activationMode": "time",
                     "bulletDamage": 3,
                     "bulletSpeed": 600,
                     "burstShots": 2,
@@ -1645,11 +1654,11 @@
                     "castTimeMs": 0,
                     "fireRange": 1000,
                     "fireRate": 3000,
-                    "type": "laser",
-                    "activationMode": "time",
-                    "activationIntervalMs": 0
+                    "type": "laser"
                 },
                 {
+                    "activationIntervalMs": 0,
+                    "activationMode": "time",
                     "bombCount": 1,
                     "bombDelayMs": 0,
                     "bulletDamage": 10,
@@ -1667,9 +1676,7 @@
                     "slowDuration": 2000,
                     "startDelay": 1500,
                     "turnSpeed": 2,
-                    "type": "bomb",
-                    "activationMode": "time",
-                    "activationIntervalMs": 0
+                    "type": "bomb"
                 }
             ],
             "movementPhases": [
@@ -1705,7 +1712,7 @@
             "lootDrops": [],
             "mechanics": [
                 {
-                    "bulletDamage": 25,
+                    "bulletDamage": 10,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
                     "castTimeMs": 0,
@@ -1715,7 +1722,26 @@
                     "lifetimeMs": 1500,
                     "lockTimeMs": 1500,
                     "turnSpeed": 1,
-                    "type": "mega_laser"
+                    "type": "mega_laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "cooldown": 5000,
+                    "burrowSpeed": 550,
+                    "radius": 250,
+                    "undergroundMs": 2500,
+                    "warnTimeMs": 1200,
+                    "burstMode": "burst",
+                    "zoneDuration": 4000,
+                    "zoneTickMs": 500,
+                    "zoneDamage": 25,
+                    "targetMode": "proximity",
+                    "targetSphereColor": "",
+                    "debuffsList": [],
+                    "startDelay": 0,
+                    "isHoming": 0
                 }
             ],
             "movementPhases": [
@@ -1763,7 +1789,15 @@
                     "orbitSpeed": 2,
                     "startDelay": 500,
                     "staticTime": 500,
-                    "type": "orbital_strike"
+                    "type": "orbital_strike",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "cooldown": 5000,
+                    "damage": 1,
+                    "lockTimeMs": 800
                 },
                 {
                     "bulletDamage": 10,
@@ -1773,7 +1807,9 @@
                     "fireRange": 600,
                     "fireRate": 4555,
                     "startDelay": 1350,
-                    "type": "mine"
+                    "type": "mine",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -1837,7 +1873,9 @@
                     "castTimeMs": 0,
                     "fireRange": 650,
                     "fireRate": 3000,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 },
                 {
                     "bulletDamage": 10,
@@ -1855,7 +1893,9 @@
                     "returnDamage": 15,
                     "spreadAngle": 60,
                     "startDelay": 2340,
-                    "type": "worm_boomerang"
+                    "type": "worm_boomerang",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -1914,7 +1954,9 @@
                     "intervalMs": 300,
                     "radius": 500,
                     "startDelay": 0,
-                    "type": "aura_damage"
+                    "type": "aura_damage",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -1951,7 +1993,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 3000,
-                    "type": "aura_heal"
+                    "type": "aura_heal",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "fireRange": 900,
@@ -1971,7 +2015,9 @@
                     "fireRate": 4000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -2064,7 +2110,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "invulnerability"
+                    "type": "invulnerability",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "fireRange": 1150,
@@ -2084,7 +2132,9 @@
                     "fireRate": 880,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -2131,7 +2181,9 @@
                     "slowDuration": 0,
                     "startDelay": 0,
                     "staticTime": 0,
-                    "type": "orbital_strike"
+                    "type": "orbital_strike",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -2169,7 +2221,9 @@
                     "fireRate": 900,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -2178,7 +2232,7 @@
                     "changeTrigger": "time",
                     "changeType": "random",
                     "patrolRange": 2000,
-                    "speed": 300,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "prowler"
@@ -2190,7 +2244,9 @@
             "rewardHubs": 4000,
             "rewardOhcu": 40,
             "shield": 5000,
-            "speed": 300
+            "speed": 300,
+            "visionRange": 1000,
+            "aggressive": false
         },
         "13": {
             "bulletDamage": 350,
@@ -2211,7 +2267,9 @@
                     "fireRate": 850,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -2250,7 +2308,9 @@
                     "fireRate": 800,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -2395,8 +2455,8 @@
             "shield": 300,
             "shieldRegenPercent": 30,
             "speed": 250,
-            "visionRange": 2000,
-            "stopOnOutOfSight": true
+            "stopOnOutOfSight": true,
+            "visionRange": 2000
         },
         "102": {
             "aggressive": false,
@@ -2902,6 +2962,8 @@
             ],
             "mechanics": [
                 {
+                    "activationIntervalMs": 0,
+                    "activationMode": "time",
                     "bulletDamage": 1,
                     "bulletSpeed": 950,
                     "castInterruptible": true,
@@ -2909,9 +2971,7 @@
                     "fireRange": 1500,
                     "fireRate": 900,
                     "startDelay": 0,
-                    "type": "laser",
-                    "activationMode": "time",
-                    "activationIntervalMs": 0
+                    "type": "laser"
                 }
             ],
             "movementPhases": [
@@ -3238,7 +3298,7 @@
             "hp": 2500,
             "mechanics": [
                 {
-                    "bulletDamage": 200,
+                    "bulletDamage": 1,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
                     "castTimeMs": 0,
@@ -3246,21 +3306,14 @@
                     "fireRate": 1000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
-                },
-                {
-                    "bulletDamage": 50,
-                    "bulletSpeed": 800,
-                    "castInterruptible": true,
-                    "castTimeMs": 0,
-                    "fireRange": 600,
-                    "fireRate": 1000,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 450,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -3280,7 +3333,9 @@
             "rewardOhcu": 5,
             "shield": 500,
             "speed": 450,
-            "stopOnOutOfSight": true
+            "stopOnOutOfSight": true,
+            "lootDrops": [],
+            "visionRange": 1000
         },
         "10-A": {
             "aggressive": true,
@@ -3458,7 +3513,9 @@
                     "reductionPercentage": 10,
                     "shieldRegen": 5,
                     "startDelay": 0,
-                    "type": "invulnerability"
+                    "type": "invulnerability",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "fireRange": 1150,
@@ -3468,20 +3525,31 @@
             "leashRange": 1000,
             "mechanics": [
                 {
-                    "bulletDamage": 1600,
-                    "bulletSpeed": 920,
+                    "bulletDamage": 1,
+                    "bulletSpeed": 1000,
                     "castInterruptible": true,
                     "castTimeMs": 0,
-                    "fireRange": 1150,
+                    "fireRange": 1000,
                     "fireRate": 880,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "mega_laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "chargeTimeMs": 3000,
+                    "startDelay": 0,
+                    "lifetimeMs": 1000,
+                    "turnSpeed": 1.2,
+                    "lockTimeMs": 1500,
+                    "isHoming": 0
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 305,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -3496,7 +3564,8 @@
             "shield": 27500,
             "shieldRegenPercent": 20,
             "speed": 305,
-            "visionRange": 1000
+            "visionRange": 1000,
+            "lootDrops": []
         },
         "11-A": {
             "bulletDamage": 760,
@@ -3587,7 +3656,7 @@
             "hp": 65000,
             "mechanics": [
                 {
-                    "bulletDamage": 1900,
+                    "bulletDamage": 1,
                     "bulletSpeed": 980,
                     "castInterruptible": true,
                     "castTimeMs": 0,
@@ -3595,7 +3664,27 @@
                     "fireRate": 820,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "meteor",
+                    "activationMode": "time",
+                    "activationHPs": [
+                        50
+                    ],
+                    "activationIntervalMs": 0,
+                    "cooldown": 4000,
+                    "startDelay": 0,
+                    "meteorCount": 3,
+                    "fallHeight": 800,
+                    "fallSpeed": 600,
+                    "meteorSize": 80,
+                    "explosionRadius": 150,
+                    "warnTimeMs": 1500,
+                    "targetMode": "proximity",
+                    "targetSphereColor": "",
+                    "debuffsList": [],
+                    "persistentZone": true,
+                    "zoneDamage": 1,
+                    "zoneTickMs": 1000,
+                    "zoneDuration": 2000
                 }
             ],
             "name": "Enemigo 11 D",
@@ -3604,7 +3693,19 @@
             "rewardHubs": 24000,
             "rewardOhcu": 240,
             "shield": 32500,
-            "speed": 285
+            "speed": 285,
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 1,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "lootDrops": [],
+            "visionRange": 1000,
+            "aggressive": true
         },
         "12-A": {
             "bulletDamage": 600,
@@ -3707,15 +3808,21 @@
             "leashRange": 1000,
             "mechanics": [
                 {
-                    "bulletDamage": 1500,
+                    "bulletDamage": 1,
                     "bulletSpeed": 900,
                     "castInterruptible": true,
                     "castTimeMs": 0,
                     "fireRange": 1100,
-                    "fireRate": 900,
+                    "fireRate": 2000,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "mine",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
@@ -3724,7 +3831,7 @@
                     "changeTrigger": "time",
                     "changeType": "random",
                     "patrolRange": 2000,
-                    "speed": 300,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "prowler"
@@ -3736,7 +3843,9 @@
             "rewardHubs": 20000,
             "rewardOhcu": 200,
             "shield": 25000,
-            "speed": 300
+            "speed": 300,
+            "lootDrops": [],
+            "visionRange": 1000
         },
         "13-A": {
             "bulletDamage": 700,
@@ -3834,14 +3943,24 @@
                     "castInterruptible": true,
                     "castTimeMs": 0,
                     "fireRange": 1200,
-                    "fireRate": 3000,
+                    "fireRate": 4000,
                     "isHoming": true,
                     "lifetimeMs": 0,
                     "slowAmount": 50,
                     "slowDuration": 2000,
                     "startDelay": 0,
                     "turnSpeed": 2,
-                    "type": "ice_missile"
+                    "type": "orbital_strike",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "orbitSpeed": 100,
+                    "circleCount": 4,
+                    "orbitRadius": 70,
+                    "orbitDuration": 1500,
+                    "staticTime": 1000
                 }
             ],
             "movementPhases": [
@@ -4032,17 +4151,6 @@
             "hp": 4000,
             "mechanics": [
                 {
-                    "bulletDamage": 50,
-                    "bulletSpeed": 800,
-                    "castInterruptible": true,
-                    "castTimeMs": 0,
-                    "fireRange": 650,
-                    "fireRate": 1200,
-                    "slowAmount": 0,
-                    "slowDuration": 0,
-                    "type": "laser"
-                },
-                {
                     "bulletDamage": 200,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
@@ -4052,12 +4160,23 @@
                     "isHoming": false,
                     "slowAmount": 500,
                     "slowDuration": 200,
-                    "type": "ice_missile"
+                    "type": "aura_damage",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "radius": 250,
+                    "damage": 1,
+                    "intervalMs": 1000,
+                    "duration": 5000,
+                    "cooldown": 4000,
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 420,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -4069,7 +4188,9 @@
             "rewardHubs": 1000,
             "rewardOhcu": 10,
             "shield": 1500,
-            "speed": 420
+            "speed": 420,
+            "lootDrops": [],
+            "visionRange": 1000
         },
         "3-A": {
             "aggressive": true,
@@ -4249,31 +4370,29 @@
             "hp": 6000,
             "mechanics": [
                 {
-                    "bulletDamage": 50,
+                    "bulletDamage": 1,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
                     "castTimeMs": 0,
-                    "fireRange": 600,
+                    "fireRange": 1000,
                     "fireRate": 1000,
-                    "type": "laser"
-                },
-                {
-                    "bulletDamage": 50,
-                    "bulletSpeed": 600,
-                    "castInterruptible": true,
-                    "castTimeMs": 0,
-                    "fireRange": 600,
-                    "fireRate": 2000,
-                    "isHoming": true,
-                    "lifetimeMs": 3000,
-                    "startDelay": 2000,
-                    "turnSpeed": 2,
-                    "type": "missile"
+                    "type": "bomb",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "radius": 250,
+                    "bombCount": 3,
+                    "bombDelayMs": 200,
+                    "fuseTimeMs": 0,
+                    "cooldown": 4000,
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 400,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -4285,7 +4404,9 @@
             "rewardHubs": 1750,
             "rewardOhcu": 15,
             "shield": 3000,
-            "speed": 400
+            "speed": 400,
+            "lootDrops": [],
+            "visionRange": 1000
         },
         "4-A": {
             "aggressive": true,
@@ -4454,7 +4575,9 @@
                     "lifetimeMs": 1500,
                     "lockTimeMs": 800,
                     "turnSpeed": 1,
-                    "type": "mega_laser"
+                    "type": "mega_laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
@@ -4471,7 +4594,8 @@
             "rewardHubs": 14000,
             "rewardOhcu": 140,
             "shield": 18000,
-            "speed": 280
+            "speed": 280,
+            "lootDrops": []
         },
         "4-D": {
             "aggressive": true,
@@ -4483,7 +4607,7 @@
             "hp": 40000,
             "mechanics": [
                 {
-                    "bulletDamage": 5000,
+                    "bulletDamage": 1,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
                     "castTimeMs": 0,
@@ -4493,12 +4617,30 @@
                     "lifetimeMs": 1500,
                     "lockTimeMs": 800,
                     "turnSpeed": 1,
-                    "type": "mega_laser"
+                    "type": "burrow",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "cooldown": 4000,
+                    "burrowSpeed": 550,
+                    "radius": 250,
+                    "undergroundMs": 2500,
+                    "warnTimeMs": 1200,
+                    "burstMode": "burst",
+                    "zoneDuration": 4000,
+                    "zoneTickMs": 500,
+                    "zoneDamage": 25,
+                    "targetMode": "proximity",
+                    "targetSphereColor": "",
+                    "debuffsList": [],
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 280,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -4510,7 +4652,9 @@
             "rewardHubs": 17500,
             "rewardOhcu": 175,
             "shield": 22500,
-            "speed": 280
+            "speed": 280,
+            "lootDrops": [],
+            "visionRange": 1000
         },
         "5-A": {
             "aggressive": true,
@@ -4728,32 +4872,26 @@
                     "bulletDamage": 600,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
-                    "castTimeMs": 0,
-                    "fireRange": 750,
+                    "castTimeMs": 2000,
+                    "fireRange": 800,
                     "fireRate": 1500,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
-                },
-                {
-                    "bulletDamage": 2000,
-                    "bulletSpeed": 800,
-                    "castInterruptible": true,
-                    "castTimeMs": 0,
-                    "circleCount": 5,
-                    "fireRange": 800,
-                    "fireRate": 3000,
-                    "orbitDuration": 3000,
-                    "orbitRadius": 100,
-                    "orbitSpeed": 2,
-                    "startDelay": 1000,
-                    "staticTime": 500,
-                    "type": "orbital_strike"
+                    "type": "circle_cast",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "cooldown": 5000,
+                    "damage": 1,
+                    "lockTimeMs": 1000,
+                    "startDelay": 0
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 350,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -4775,7 +4913,9 @@
             "rewardHubs": 2500,
             "rewardOhcu": 25,
             "shield": 4000,
-            "speed": 350
+            "speed": 350,
+            "lootDrops": [],
+            "visionRange": 1000
         },
         "6-A": {
             "aggressive": true,
@@ -4957,25 +5097,36 @@
                     "bulletDamage": 1000,
                     "bulletSpeed": 600,
                     "castInterruptible": true,
-                    "castTimeMs": 0,
-                    "cooldown": 15000,
-                    "damage": 1000,
+                    "castTimeMs": 1500,
+                    "cooldown": 5000,
+                    "damage": 1,
                     "duration": 3000,
-                    "fireRange": 800,
+                    "fireRange": 1000,
                     "fireRate": 2500,
                     "intervalMs": 400,
                     "isHoming": 0,
                     "radius": 300,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "startDelay": 3500,
+                    "startDelay": 0,
                     "turnSpeed": 0,
-                    "type": "laser"
+                    "type": "cone_cast",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "stunDuration": 1000,
+                    "castSpeed": 0,
+                    "coneAngle": 70,
+                    "coneFollow": true,
+                    "lockTimeMs": 1000,
+                    "aimDelayMs": 1000
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 100,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -4987,7 +5138,9 @@
             "rewardHubs": 25000,
             "rewardOhcu": 250,
             "shield": 50,
-            "speed": 250
+            "speed": 250,
+            "lootDrops": [],
+            "visionRange": 1000
         },
         "7-A": {
             "bulletDamage": 320,
@@ -5119,24 +5272,35 @@
             "hp": 15000,
             "mechanics": [
                 {
-                    "bulletDamage": 50,
+                    "bulletDamage": 1,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
                     "castTimeMs": 0,
                     "cooldown": 5000,
                     "damage": 500,
                     "duration": 3000,
-                    "fireRange": 600,
-                    "fireRate": 1000,
+                    "fireRange": 1000,
+                    "fireRate": 4000,
                     "intervalMs": 300,
                     "radius": 500,
                     "startDelay": 0,
-                    "type": "aura_damage"
+                    "type": "hook",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "stunDuration": 1000,
+                    "pullSpeed": 400,
+                    "postHookWaitMs": 100,
+                    "hookMissWaitMs": 100,
+                    "isHoming": 0,
+                    "turnSpeed": 1.2
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 320,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -5148,7 +5312,9 @@
             "rewardHubs": 5000,
             "rewardOhcu": 50,
             "shield": 7500,
-            "speed": 320
+            "speed": 320,
+            "lootDrops": [],
+            "visionRange": 1000
         },
         "8-A": {
             "bulletDamage": 700,
@@ -5317,15 +5483,24 @@
             "lootDrops": [],
             "mechanics": [
                 {
-                    "bulletDamage": 500,
+                    "bulletDamage": 1,
                     "bulletSpeed": 800,
                     "castInterruptible": true,
-                    "castTimeMs": 0,
-                    "fireRange": 900,
-                    "fireRate": 1200,
-                    "slowAmount": 0,
-                    "slowDuration": 0,
-                    "type": "laser"
+                    "castTimeMs": 300,
+                    "fireRange": 1000,
+                    "fireRate": 3000,
+                    "slowAmount": 20,
+                    "slowDuration": 2000,
+                    "type": "ice_missile",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "startDelay": 0,
+                    "lifetimeMs": 5000,
+                    "turnSpeed": 1.2,
+                    "isHoming": true
                 },
                 {
                     "activationHPs": [
@@ -5376,7 +5551,7 @@
             ],
             "movementPhases": [
                 {
-                    "speed": 300,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -5388,7 +5563,8 @@
             "rewardHubs": 12500,
             "rewardOhcu": 125,
             "shield": 50,
-            "speed": 300
+            "speed": 300,
+            "visionRange": 1000
         },
         "9-A": {
             "aggressive": true,
@@ -5610,8 +5786,8 @@
                     "bulletDamage": 500,
                     "bulletSpeed": 1500,
                     "castInterruptible": true,
-                    "castTimeMs": 0,
-                    "fireRange": 600,
+                    "castTimeMs": 1000,
+                    "fireRange": 1000,
                     "fireRate": 3000,
                     "hookMissWaitMs": 1000,
                     "isHoming": 0,
@@ -5620,12 +5796,24 @@
                     "startDelay": 0,
                     "stunDuration": 2000,
                     "turnSpeed": 0,
-                    "type": "hook"
+                    "type": "ice_storm",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0,
+                    "activationHPs": [
+                        50
+                    ],
+                    "cooldown": 4000,
+                    "radius": 250,
+                    "lockTimeMs": 0,
+                    "duration": 3000,
+                    "tick_interval": 500,
+                    "damage_per_tick": 1,
+                    "slow_amount": 1
                 }
             ],
             "movementPhases": [
                 {
-                    "speed": 310,
+                    "speed": 1,
                     "startDelay": 0,
                     "stopDist": 150,
                     "type": "chase"
@@ -5637,30 +5825,206 @@
             "rewardHubs": 19000,
             "rewardOhcu": 190,
             "shield": 20000,
-            "speed": 310
+            "speed": 310,
+            "lootDrops": [],
+            "visionRange": 1000
+        },
+        "14-A": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo14/Enemigo14.glb",
+            "bulletDamage": 800,
+            "bulletSpeed": 1000,
+            "defenseMechanics": [],
+            "fireRange": 1300,
+            "fireRate": 800,
+            "hp": 32000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 800,
+                    "bulletSpeed": 1000,
+                    "castInterruptible": true,
+                    "castTimeMs": 0,
+                    "fireRange": 1300,
+                    "fireRate": 800,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 280,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 14 A",
+            "rankingPoints": 14,
+            "rewardExp": 6000,
+            "rewardHubs": 11000,
+            "rewardOhcu": 110,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 16000,
+            "speed": 280
+        },
+        "14-B": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo14/Enemigo14.glb",
+            "bulletDamage": 1200,
+            "bulletSpeed": 1000,
+            "defenseMechanics": [],
+            "fireRange": 1300,
+            "fireRate": 800,
+            "hp": 48000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 1200,
+                    "bulletSpeed": 1000,
+                    "castInterruptible": true,
+                    "castTimeMs": 0,
+                    "fireRange": 1300,
+                    "fireRate": 800,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 280,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 14 B",
+            "rankingPoints": 14,
+            "rewardExp": 9000,
+            "rewardHubs": 16500,
+            "rewardOhcu": 165,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 24000,
+            "speed": 280
+        },
+        "14-C": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo14/Enemigo14.glb",
+            "bulletDamage": 1600,
+            "bulletSpeed": 1000,
+            "defenseMechanics": [],
+            "fireRange": 1300,
+            "fireRate": 800,
+            "hp": 64000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 1600,
+                    "bulletSpeed": 1000,
+                    "castInterruptible": true,
+                    "castTimeMs": 0,
+                    "fireRange": 1300,
+                    "fireRate": 800,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser"
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 280,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 14 C",
+            "rankingPoints": 14,
+            "rewardExp": 12000,
+            "rewardHubs": 22000,
+            "rewardOhcu": 220,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 32000,
+            "speed": 280
+        },
+        "14-D": {
+            "assetPath": "res://assets/Enemigos/3D/Enemigo14/Enemigo14.glb",
+            "bulletDamage": 2000,
+            "bulletSpeed": 1000,
+            "defenseMechanics": [],
+            "fireRange": 1300,
+            "fireRate": 800,
+            "hp": 80000,
+            "icon": "",
+            "lootDrops": [],
+            "mechanics": [
+                {
+                    "bulletDamage": 2000,
+                    "bulletSpeed": 1000,
+                    "castInterruptible": true,
+                    "castTimeMs": 0,
+                    "fireRange": 1300,
+                    "fireRate": 800,
+                    "slowAmount": 0,
+                    "slowDuration": 0,
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
+                }
+            ],
+            "movementPhases": [
+                {
+                    "speed": 280,
+                    "startDelay": 0,
+                    "stopDist": 150,
+                    "type": "chase"
+                }
+            ],
+            "name": "Enemigo 14 D",
+            "rankingPoints": 14,
+            "rewardExp": 15000,
+            "rewardHubs": 27500,
+            "rewardOhcu": 275,
+            "rotX": 0,
+            "rotY": 90,
+            "rotZ": 0,
+            "scale": 2,
+            "shield": 40000,
+            "speed": 280
         }
     },
     "gameModes": {
         "altar_defense": {
             "altarHp": 10000,
             "altarPos": {
-                "x": 5000,
-                "y": 5000
+                "x": 4793.18,
+                "y": 3943.4
             },
             "altarShield": 5000,
             "enabled": true,
             "exitPortals": [
                 {
-                    "label": "Escape1",
-                    "radius": 150,
-                    "x": 4583,
-                    "y": 5378
-                },
-                {
                     "label": "Escape2",
                     "radius": 150,
-                    "x": 5383,
-                    "y": 4661
+                    "x": 5296.4,
+                    "y": 3643.85
+                },
+                {
+                    "label": "Escape1",
+                    "radius": 150,
+                    "x": 4297.35,
+                    "y": 4272.89
                 }
             ],
             "height": 10000,
@@ -5677,26 +6041,26 @@
                 {
                     "label": "Spawn1",
                     "radius": 200,
-                    "x": 4550,
-                    "y": 3378
+                    "x": 4793,
+                    "y": 3500
                 },
                 {
                     "label": "Spawn2",
                     "radius": 200,
-                    "x": 4567,
-                    "y": 4528
+                    "x": 4793,
+                    "y": 4380
                 },
                 {
                     "label": "Spawn3",
                     "radius": 200,
-                    "x": 5400,
-                    "y": 3394
+                    "x": 5250,
+                    "y": 3943
                 },
                 {
                     "label": "Spawn4",
                     "radius": 200,
-                    "x": 5367,
-                    "y": 4528
+                    "x": 4330,
+                    "y": 3943
                 }
             ],
             "spawners": [
@@ -6727,12 +7091,12 @@
                     "colWidth": 47.94922,
                     "colliders": [
                         {
-                            "width": 47.94922,
                             "height": 33.91,
                             "offsetX": 0,
                             "offsetY": 0,
                             "rot": 0,
-                            "type": "circle"
+                            "type": "circle",
+                            "width": 47.94922
                         }
                     ],
                     "label": "Altar1",
@@ -6858,14 +7222,14 @@
                     "y": 4443
                 },
                 {
-                    "id": "spawn_1788132321637946",
-                    "type": "104",
                     "count": 1,
+                    "id": "spawn_1788132321637946",
                     "intervalMs": 5000,
+                    "radius": 300,
                     "spawnMode": "fixed",
+                    "type": "104",
                     "x": 8491,
-                    "y": 3738,
-                    "radius": 300
+                    "y": 3738
                 }
             ],
             "timeRestrictionsEnabled": false,
@@ -7112,38 +7476,7 @@
                 "volumePercent": 60
             },
             "name": "Mapa 5",
-            "objects": [
-                {
-                    "assetPath": "res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Rota_Medio/Pared_Rota_Medio.glb",
-                    "label": "Pared_Rota_Medio",
-                    "rotY": 68.6,
-                    "scale": 100,
-                    "type": "wall",
-                    "x": -144.53,
-                    "y": 2857.45,
-                    "yOffset": 0
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Izquierda/Pared_Izquierda.glb",
-                    "label": "Pared_Izquierda",
-                    "rotY": 55.6,
-                    "scale": 100,
-                    "type": "wall",
-                    "x": 93.58,
-                    "y": 657.84,
-                    "yOffset": 0
-                },
-                {
-                    "assetPath": "res://assets/Mapas/Mapa6/Modelos por Separado/Pared_Derecha_Chiquita/Pared_Derecha_Chiquita.glb",
-                    "label": "Pared_Derecha_Chiquita",
-                    "rotY": 64.5,
-                    "scale": 100,
-                    "type": "wall",
-                    "x": -124.55,
-                    "y": 3809.77,
-                    "yOffset": 0
-                }
-            ],
+            "objects": [],
             "pvpMode": "mandatory",
             "spawns": [
                 {
@@ -7152,9 +7485,119 @@
                     "intervalMs": 5000,
                     "radius": 0,
                     "spawnMode": "fixed",
-                    "type": "104",
-                    "x": 2503,
-                    "y": 2519
+                    "type": "1-D",
+                    "x": 2379,
+                    "y": 1532
+                },
+                {
+                    "id": "spawn_1788372482745320",
+                    "type": "2-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 2379,
+                    "y": 2427,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372523492720",
+                    "type": "3-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 3460,
+                    "y": 1470,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372544582745",
+                    "type": "4-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 3460,
+                    "y": 2396,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372566529355",
+                    "type": "5-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 2379,
+                    "y": 3476,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372576033158",
+                    "type": "6-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 2410,
+                    "y": 4340,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372588789656",
+                    "type": "7-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 3460,
+                    "y": 3538,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372600963228",
+                    "type": "8-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 3398,
+                    "y": 4309,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372623264936",
+                    "type": "9-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 2410,
+                    "y": 5421,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372632751328",
+                    "type": "10-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 3491,
+                    "y": 5575,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372643344546",
+                    "type": "11-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 2472,
+                    "y": 6470,
+                    "radius": 300
+                },
+                {
+                    "id": "spawn_1788372654526100",
+                    "type": "12-D",
+                    "count": 1,
+                    "intervalMs": 5000,
+                    "spawnMode": "fixed",
+                    "x": 3491,
+                    "y": 6501,
+                    "radius": 300
                 }
             ],
             "warpCost": 0,
@@ -7703,7 +8146,12 @@
             "spawns": [],
             "visible": false,
             "warpCost": 50,
-            "width": 20000
+            "width": 20000,
+            "music": {
+                "enabled": false,
+                "path": "",
+                "volumePercent": 60
+            }
         },
         "11": {
             "ambience": [],
@@ -7715,42 +8163,267 @@
             "name": "Defensa del Altar",
             "objects": [
                 {
-                    "assetPath": "res://assets/Altares/3D/Altar1/Altar1.glb",
-                    "label": "Altar",
-                    "rotY": 180,
-                    "scale": 15,
-                    "type": "altar",
-                    "x": 5000,
-                    "y": 5000,
+                    "assetPath": "",
+                    "colH": 5,
+                    "colHeight": 808.1,
+                    "colOffsetX": 3337.31,
+                    "colOffsetY": 3160.83,
+                    "colRot": -44.5,
+                    "colType": "rect",
+                    "colWidth": 38.94,
+                    "colY": 2.512,
+                    "colliders": [
+                        {
+                            "h": 5,
+                            "height": 808.1,
+                            "offsetX": 3337.31,
+                            "offsetY": 3160.83,
+                            "rot": -44.5,
+                            "type": "rect",
+                            "width": 38.94,
+                            "y": 2.512
+                        },
+                        {
+                            "h": 5,
+                            "height": 795.41,
+                            "offsetX": 1494.3,
+                            "offsetY": 3163.97,
+                            "rot": -134.8,
+                            "type": "rect",
+                            "width": 38.94,
+                            "y": 2.515
+                        },
+                        {
+                            "h": 5,
+                            "height": 812.39,
+                            "offsetX": 3341.62,
+                            "offsetY": 1842.2,
+                            "rot": -136.1,
+                            "type": "rect",
+                            "width": 38.94,
+                            "y": 2.498
+                        },
+                        {
+                            "h": 5,
+                            "height": 821.53,
+                            "offsetX": 1499.91,
+                            "offsetY": 1846.73,
+                            "rot": -43.9,
+                            "type": "rect",
+                            "width": 38.94,
+                            "y": 2.488
+                        }
+                    ],
+                    "label": "Node3D5",
+                    "rotY": 0,
+                    "scale": 1,
+                    "type": "wall",
+                    "x": 2377.22,
+                    "y": 1454.09,
                     "yOffset": 0
                 },
                 {
-                    "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
-                    "label": "Escape1",
-                    "radius": 150,
+                    "assetPath": "",
+                    "colH": 1,
+                    "colHeight": 395.86,
+                    "colOffsetX": 3.41,
+                    "colOffsetY": 336.76,
+                    "colRot": 0,
+                    "colType": "rect",
+                    "colWidth": 7.79,
+                    "colY": 0,
+                    "colliders": [
+                        {
+                            "h": 1,
+                            "height": 395.86,
+                            "offsetX": 3.41,
+                            "offsetY": 336.76,
+                            "rot": 0,
+                            "type": "rect",
+                            "width": 7.79,
+                            "y": 0
+                        },
+                        {
+                            "h": 1,
+                            "height": 395.86,
+                            "offsetX": -207.64,
+                            "offsetY": 336.76,
+                            "rot": 0,
+                            "type": "rect",
+                            "width": 7.79,
+                            "y": 0
+                        }
+                    ],
+                    "label": "Node3D",
+                    "rotY": 89.9,
+                    "scale": 5,
+                    "type": "wall",
+                    "x": 5123.9,
+                    "y": 3594.66,
+                    "yOffset": 2.5
+                },
+                {
+                    "assetPath": "",
+                    "colH": 1,
+                    "colHeight": 395.86,
+                    "colOffsetX": 3.41,
+                    "colOffsetY": 336.76,
+                    "colRot": 0,
+                    "colType": "rect",
+                    "colWidth": 7.79,
+                    "colY": 0,
+                    "colliders": [
+                        {
+                            "h": 1,
+                            "height": 395.86,
+                            "offsetX": 3.41,
+                            "offsetY": 336.76,
+                            "rot": 0,
+                            "type": "rect",
+                            "width": 7.79,
+                            "y": 0
+                        },
+                        {
+                            "h": 1,
+                            "height": 395.86,
+                            "offsetX": -207.64,
+                            "offsetY": 336.76,
+                            "rot": 0,
+                            "type": "rect",
+                            "width": 7.79,
+                            "y": 0
+                        }
+                    ],
+                    "label": "Node3D",
+                    "rotY": -0.2,
+                    "scale": 5,
+                    "type": "wall",
+                    "x": 5302.77,
+                    "y": 4199.33,
+                    "yOffset": 2.5
+                },
+                {
+                    "assetPath": "",
+                    "colH": 1,
+                    "colHeight": 395.86,
+                    "colOffsetX": 3.41,
+                    "colOffsetY": 336.76,
+                    "colRot": 0,
+                    "colType": "rect",
+                    "colWidth": 7.79,
+                    "colY": 0,
+                    "colliders": [
+                        {
+                            "h": 1,
+                            "height": 395.86,
+                            "offsetX": 3.41,
+                            "offsetY": 336.76,
+                            "rot": 0,
+                            "type": "rect",
+                            "width": 7.79,
+                            "y": 0
+                        },
+                        {
+                            "h": 1,
+                            "height": 395.86,
+                            "offsetX": -207.64,
+                            "offsetY": 336.76,
+                            "rot": 0,
+                            "type": "rect",
+                            "width": 7.79,
+                            "y": 0
+                        }
+                    ],
+                    "label": "Node3D",
+                    "rotY": 179.7,
+                    "scale": 5,
+                    "type": "wall",
+                    "x": 4282.08,
+                    "y": 3703.36,
+                    "yOffset": 2.5
+                },
+                {
+                    "assetPath": "",
+                    "colH": 1,
+                    "colHeight": 395.86,
+                    "colOffsetX": 3.41,
+                    "colOffsetY": 336.76,
+                    "colRot": 0,
+                    "colType": "rect",
+                    "colWidth": 7.79,
+                    "colY": 0,
+                    "colliders": [
+                        {
+                            "h": 1,
+                            "height": 395.86,
+                            "offsetX": 3.41,
+                            "offsetY": 336.76,
+                            "rot": 0,
+                            "type": "rect",
+                            "width": 7.79,
+                            "y": 0
+                        },
+                        {
+                            "h": 1,
+                            "height": 395.86,
+                            "offsetX": -207.64,
+                            "offsetY": 336.76,
+                            "rot": 0,
+                            "type": "rect",
+                            "width": 7.79,
+                            "y": 0
+                        }
+                    ],
+                    "label": "Node3D",
                     "rotY": -90,
-                    "scale": 10,
-                    "type": "door",
-                    "x": 4583,
-                    "y": 5378,
-                    "yOffset": 0
+                    "scale": 5,
+                    "type": "wall",
+                    "x": 4470.76,
+                    "y": 4326.24,
+                    "yOffset": 2.5
                 },
                 {
                     "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
                     "label": "Escape2",
                     "radius": 150,
                     "rotY": -90,
-                    "scale": 10,
+                    "scale": 5,
                     "type": "door",
-                    "x": 5383,
-                    "y": 4661,
-                    "yOffset": 0
+                    "x": 5296.4,
+                    "y": 3643.85,
+                    "yOffset": 2.5
+                },
+                {
+                    "assetPath": "res://assets/Puertas/3D/Puerta2/Puerta2.glb",
+                    "label": "Escape1",
+                    "radius": 150,
+                    "rotY": -90,
+                    "scale": 5,
+                    "type": "door",
+                    "x": 4297.35,
+                    "y": 4272.89,
+                    "yOffset": 2.5
+                },
+                {
+                    "assetPath": "res://assets/Altares/3D/Altar1/Altar1.glb",
+                    "label": "Altar",
+                    "rotY": -180,
+                    "scale": 15,
+                    "type": "altar",
+                    "x": 4793.18,
+                    "y": 3943.4,
+                    "yOffset": 4.701
                 }
             ],
             "spawns": [],
             "visible": false,
             "warpCost": 100,
-            "width": 10000
+            "width": 10000,
+            "music": {
+                "enabled": false,
+                "path": "",
+                "volumePercent": 60
+            }
         }
     },
     "marketConfig": {

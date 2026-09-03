@@ -488,8 +488,6 @@ func _unhandled_input(event):
 					if is_casting:
 						_cancel_cast("manual")
 						return
-					if get_meta("spawn_locked", false):
-						return
 					var map_node = get_tree().get_first_node_in_group("map")
 					if is_instance_valid(map_node):
 						if "mouse_world_pos_2d" in map_node:

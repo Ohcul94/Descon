@@ -162,11 +162,30 @@ func _ready():
 			
 	# v650.0: Deshabilitar niebla de guerra en el Lobby (zona 1) por ser mapa amistoso
 	# v770.1: Deshabilitar también en Defensa del Altar (sin exploración, combate directo por oleadas)
+	# v770.8: Forzar desactivado para 11 incluso si FULL_CONFIG aún no llegó y limpiar cualquier fog preexistente
+	if str(zone_id) == "11":
+		enable_fog_of_war = false
+		if is_instance_valid(fog_of_war):
+			fog_of_war.queue_free()
+			fog_of_war = null
 	if enable_fog_of_war and str(zone_id) != "1" and not _is_altar_defense_zone():
 		_setup_fog_of_war()
+	else:
+		# Asegurar que no quede fog residual en altar/lobby
+		if is_instance_valid(fog_of_war):
+			fog_of_war.queue_free()
+			fog_of_war = null
+		# También limpiar quad del FogOfWar en la cámara si quedó huérfano
+		if is_instance_valid(camera_3d):
+			var fq = camera_3d.get_node_or_null("FogOfWarQuad")
+			if is_instance_valid(fq):
+				fq.queue_free()
 	
 	# v600.0: Inicializar sistema de oclusión (A+B dither) - sin romper nada, solo overlay
 	_setup_occluder_fader()
+	# v770.8: Si es altar, forzar iluminación idéntica a Mapa2 (sobrescribe custom 2.0->1.1)
+	if _is_altar_defense_zone() or str(zone_id) == "11":
+		_force_altar_lighting_to_map2()
 
 # Helper para detectar zona Defensa del Altar (reutiliza FULL_CONFIG dinámico)
 # v770.5: fallback a "11" si FULL_CONFIG aún no llegó (evita que fog se active en primer frame)
@@ -199,6 +218,46 @@ func _register_input_actions():
 		var ev = InputEventKey.new()
 		ev.keycode = KEY_SEMICOLON
 		InputMap.action_add_event("toggle_orbit_mode", ev)
+
+func _force_altar_lighting_to_map2():
+	# v770.8: Fuerza iluminación idéntica a Mapa2 (copia exacta de MapEditor3D_2_Mapa_2.tscn)
+	# Mapa2: DirectionalLight transform 0.819/-0.519..., color 0.999/0.869/0.747 energy 1.1 bias 0.04
+	# Evento_2 venía con 0.707..., color 1/0.95/0.9 energy 2.0 bias 0.02 -> se veía más brillante/duplicado
+	if not is_instance_valid(sub_viewport):
+		return
+	var nodes = []
+	nodes.append_array(sub_viewport.find_children("*", "DirectionalLight3D", true, false))
+	# También buscar en custom_scene_instance por si está bajo otro root
+	if is_instance_valid(custom_scene_instance):
+		nodes.append_array(custom_scene_instance.find_children("*", "DirectionalLight3D", true, false))
+	for n in nodes:
+		if n is DirectionalLight3D:
+			var light = n as DirectionalLight3D
+			light.light_color = Color(0.99999994, 0.86934006, 0.74698997)
+			light.light_energy = 1.1
+			light.light_specular = 0.3
+			light.shadow_enabled = true
+			light.shadow_bias = 0.04
+			light.shadow_normal_bias = 1.5
+			light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+			# Transform de Mapa2
+			light.transform = Transform3D(Vector3(0.81915206, -0.5198368, 0.24240388), Vector3(0, 0.42261827, 0.9063078), Vector3(-0.5735764, -0.74240386, 0.3461886), Vector3.ZERO)
+			print("[BaseMap] Iluminación altar forzada a Mapa2 para ", n.get_path())
+	var envs = []
+	envs.append_array(sub_viewport.find_children("*", "WorldEnvironment", true, false))
+	if is_instance_valid(custom_scene_instance):
+		envs.append_array(custom_scene_instance.find_children("*", "WorldEnvironment", true, false))
+	for e in envs:
+		if e is WorldEnvironment and is_instance_valid(e.environment):
+			var env = e.environment
+			env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+			env.ambient_light_color = Color(0.3, 0.32, 0.4)
+			env.ambient_light_energy = 1.5
+			env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+			env.adjustment_enabled = true
+			env.adjustment_contrast = 1.1
+			env.adjustment_saturation = 1.05
+			print("[BaseMap] Ambiente altar forzado a Mapa2 para ", e.get_path())
 
 func _setup_fog_of_war():
 	# v650.0: Deshabilitar niebla de guerra en el Lobby (zona 1) por ser mapa amistoso
@@ -1560,6 +1619,12 @@ func _spawn_altar_if_configured():
 	
 	# Si ya hay un altar configurado e instanciado en objects, no spawnear otro
 	var z_str = str(zone_id)
+	if is_instance_valid(custom_scene_instance):
+		for child in custom_scene_instance.get_children():
+			if is_instance_valid(child) and child.get_meta("obj_type", "") == "altar":
+				print("[BaseMap] Altar ya existe en custom_scene_instance (3D). Evitando spawn duplicado.")
+				return
+
 	if GameConstants.MAPS_CONFIG.has(z_str):
 		var map_cfg = GameConstants.MAPS_CONFIG[z_str]
 		if map_cfg.has("objects") and map_cfg.objects is Array:
@@ -3086,7 +3151,7 @@ func _spawn_objects_from_custom_scene():
 				
 				var col = CollisionShape2D.new()
 				var circle = CircleShape2D.new()
-				circle.radius = 60.0 * scale_val
+				circle.radius = 60.0
 				col.shape = circle
 				tower.add_child(col)
 				tower.add_to_group("towers")
@@ -3097,6 +3162,8 @@ func _spawn_objects_from_custom_scene():
 				
 			"altar":
 				# Altar de Defensa del Altar
+				# v770.11 FIX: El radio de colisión debe ser fijo (160px área / 120px sólido), NO multiplicar por scale_val (15x)
+				# Antes: 100px * 15 = 1500px de radio (3.000px de diámetro) bloqueaba todo el pasillo central y expulsaba la nave a Y:2422.
 				var altar_area = Area2D.new()
 				altar_area.name = "AltarArea2D"
 				altar_area.collision_layer = 1 | 2
@@ -3106,7 +3173,7 @@ func _spawn_objects_from_custom_scene():
 				
 				var col_shape = CollisionShape2D.new()
 				var circle = CircleShape2D.new()
-				circle.radius = 120.0 * scale_val
+				circle.radius = 160.0
 				col_shape.shape = circle
 				altar_area.add_child(col_shape)
 				add_child(altar_area)
@@ -3119,10 +3186,11 @@ func _spawn_objects_from_custom_scene():
 				
 				var static_col = CollisionShape2D.new()
 				var static_circle = CircleShape2D.new()
-				static_circle.radius = 100.0 * scale_val
+				static_circle.radius = 120.0
 				static_col.shape = static_circle
 				static_body.add_child(static_col)
 				add_child(static_body)
+				print("[BaseMap] Altar instanciado desde escena 3D con colisión física de radio 120px en ", obj_pos)
 				if is_instance_valid(_occluder_fader) and is_instance_valid(child):
 					_occluder_fader.register_occluder(child)
 					

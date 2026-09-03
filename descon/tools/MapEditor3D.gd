@@ -326,7 +326,7 @@ func _export_to_json():
 	print("--- FIN ---\n")
 
 func _node3d_to_config_dict(node: Node3D) -> Dictionary:
-	var pos_3d = node.global_position
+	var pos_3d = node.global_position if node.is_inside_tree() else node.position
 	var x_2d = pos_3d.x / scale_factor
 	var y_2d = pos_3d.z / (scale_factor * correction_z)
 	
@@ -1072,7 +1072,7 @@ func _create_label_3d(text: String, color: Color) -> Node3D:
 	label3d.outline_modulate = Color(0, 0, 0, 0.8)
 	label3d.modulate = color
 	label3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label3d.no_aa = false
+	label3d.no_depth_test = true
 	label3d.autowrap_mode = TextServer.AUTOWRAP_OFF
 	lbl.add_child(label3d)
 	return lbl
@@ -1270,23 +1270,29 @@ func save_to_server():
 			print("MapEditor3D: 🔄 gameModes.extraction.extractPoints actualizado con ", new_extract_pts.size(), " puertas.")
 
 	# Tipo-safe check para altar_defense maps
-	# v770.7: Altar y puertas ya NO se sincronizan a gameModes.altar_defense (admin dash no los determina)
-	# Se leen solo desde mapsConfig[zone_id].objects (Editor 3D). Se deja el bloque comentado para referencia:
-	# var _sv_is_altar = false
-	# if config_dict.has("gameModes") and config_dict.gameModes.has("altar_defense"):
-	#     var ad_cfg_sv = config_dict.gameModes.altar_defense
-	#     for _m in ad_cfg_sv.get("maps", []):
-	#         if int(_m) == zone_id_int_sv:
-	#             _sv_is_altar = true
-	#             break
-	#     if _sv_is_altar:
-	#         if altar_objects.size() > 0:
-	#             var a = altar_objects[0]
-	#             ad_cfg_sv["altarPos"] = { "x": float(a.get("x", 5000)), "y": float(a.get("y", 5000)) }
-	#         if door_objects.size() > 0:
-	#             var new_portals = []
-	#             for d in door_objects: ...
-	#             ad_cfg_sv["exitPortals"] = new_portals
+	var _sv_is_altar = false
+	if config_dict.has("gameModes") and config_dict.gameModes.has("altar_defense"):
+		var ad_cfg_sv = config_dict.gameModes.altar_defense
+		for _m in ad_cfg_sv.get("maps", []):
+			if int(_m) == zone_id_int_sv:
+				_sv_is_altar = true
+				break
+		if _sv_is_altar:
+			if altar_objects.size() > 0:
+				var a = altar_objects[0]
+				ad_cfg_sv["altarPos"] = { "x": float(a.get("x", 5000)), "y": float(a.get("y", 5000)) }
+				print("MapEditor3D: 🔄 gameModes.altar_defense.altarPos sincronizado desde Editor 3D a: ", ad_cfg_sv["altarPos"])
+			if door_objects.size() > 0:
+				var new_portals = []
+				for d in door_objects:
+					new_portals.append({
+						"label": str(d.get("label", "Escape")),
+						"x": float(d.get("x", 0)),
+						"y": float(d.get("y", 0)),
+						"radius": float(d.get("radius", 150))
+					})
+				ad_cfg_sv["exitPortals"] = new_portals
+				print("MapEditor3D: 🔄 gameModes.altar_defense.exitPortals sincronizado con ", new_portals.size(), " portales.")
 
 	# Tipo-safe check para arena PVP maps
 	var _sv_is_arena = false

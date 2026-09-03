@@ -2017,7 +2017,9 @@ func _on_enemy_action(data):
 						"angle": angle_val,
 						"enemyId": entity_id,
 						"id": entity_id,
-						"lifetimeMs": float(data.get("travelTimeMs", 1000.0))
+						"lifetimeMs": float(data.get("travelTimeMs", 1000.0)),
+						"radius": float(data.get("radius", 150.0)),
+						"explosionRadius": float(data.get("radius", 150.0))
 					}
 					cs._spawn_projectile(proj_data, "enemy")
 		"bomb_explode":
@@ -2032,7 +2034,18 @@ func _on_enemy_action(data):
 				var s_factor = map_node.scale_factor if "scale_factor" in map_node else 0.02
 				var correction_z = map_node.correction_z if "correction_z" in map_node else 1.41421356
 				var vp = map_node.sub_viewport
-				var pos_3d = Vector3(bx * s_factor, 0.0, by * s_factor * correction_z)
+				var h_bomb = 0.08
+				if is_instance_valid(map_node.get("terrain_node")):
+					var em_n = get_tree().get_first_node_in_group("world_node")
+					if em_n and em_n.has_node("EntityManager"):
+						var mgr_b = em_n.get_node("EntityManager")
+						if mgr_b and mgr_b.has_method("_sample_terrain_height"):
+							h_bomb = mgr_b._sample_terrain_height(Vector2(bx,by), map_node) + 0.06
+						elif map_node.has_method("get_terrain_height_at_pos"):
+							h_bomb = map_node.get_terrain_height_at_pos(Vector2(bx,by)) + 0.06
+					elif map_node.has_method("get_terrain_height_at_pos"):
+						h_bomb = map_node.get_terrain_height_at_pos(Vector2(bx,by)) + 0.06
+				var pos_3d = Vector3(bx * s_factor, h_bomb, by * s_factor * correction_z)
 
 				var flash = MeshInstance3D.new()
 				var flash_s = SphereMesh.new()
@@ -2067,8 +2080,8 @@ func _on_enemy_action(data):
 				sw_mat.emission_energy_multiplier = 3.0
 				sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				shockwave.material_override = sw_mat
-				shockwave.position = pos_3d
-				shockwave.rotation.x = PI / 2
+				shockwave.position = pos_3d + Vector3(0,0.02,0)
+				# Torus plano XZ como IceStorm - sin PI/2
 				vp.add_child(shockwave)
 				var tw_sw = shockwave.create_tween()
 				tw_sw.tween_property(shockwave, "scale", Vector3(2.5, 2.5, 2.5), 0.35)

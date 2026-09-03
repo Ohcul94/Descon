@@ -80,6 +80,7 @@ var _laser_beam_mesh: MeshInstance3D = null
 var _laser_core_mesh: MeshInstance3D = null
 var _hook_chain_3d: MeshInstance3D = null
 var _bomb_ground_marker: Node3D = null
+var _bomb_radius: float = 150.0
 
 # v410: Variables de polimorfia
 var poly_duration: float = 4.0
@@ -205,6 +206,9 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 			lifetime = 3.0
 	turn_speed = _safe_float(p_data.get("turnSpeed"), 2.5)
 	is_homing = bool(p_data.get("isHoming", false))
+	_bomb_radius = _safe_float(p_data.get("radius", p_data.get("explosionRadius", 150.0)), 150.0)
+	if _bomb_radius <= 1.0:
+		_bomb_radius = 150.0
 	
 	var world = get_tree().get_first_node_in_group("world_node")
 	
@@ -926,16 +930,34 @@ func _setup_visual_sprite():
 			world_root_3d.add_child(light)
 
 			var target_2d = _start_pos + Vector2(cos(rotation), sin(rotation)) * max_range
-			var marker_pos = Vector3(target_2d.x * s_factor, 0.02, target_2d.y * s_factor * correction_z)
+			# Radio real del AdminDash (guardado en setup como _bomb_radius) -> escalar aro como IceStorm
+			var exp_radius = _bomb_radius
+			var r3d_bomb = exp_radius * s_factor
+			var marker_h = 0.05
+			# muestrear altura del terreno como hace Meteor/TormentaHielo
+			var _map_b = map_node
+			if is_instance_valid(_map_b) and is_instance_valid(_map_b.get("terrain_node")):
+				# intentar helper de EntityManager si existe, sino fallback a map_node
+				var em_node = get_tree().get_first_node_in_group("world_node")
+				if em_node and em_node.has_node("EntityManager"):
+					var mgr = em_node.get_node("EntityManager")
+					if mgr and mgr.has_method("_sample_terrain_height"):
+						marker_h = mgr._sample_terrain_height(target_2d, _map_b) + 0.06
+					elif _map_b.has_method("get_terrain_height_at_pos"):
+						marker_h = _map_b.get_terrain_height_at_pos(target_2d) + 0.06
+				elif _map_b.has_method("get_terrain_height_at_pos"):
+					marker_h = _map_b.get_terrain_height_at_pos(target_2d) + 0.06
+			var marker_pos = Vector3(target_2d.x * s_factor, marker_h, target_2d.y * s_factor * correction_z)
 			_bomb_ground_marker = Node3D.new()
 			_bomb_ground_marker.name = "BombMarker_" + str(get_instance_id())
 			_bomb_ground_marker.position = marker_pos
+			_bomb_ground_marker.scale = Vector3(1.0, 1.0, correction_z)
 			target_vp.add_child(_bomb_ground_marker)
 
 			var marker_ring = MeshInstance3D.new()
 			var m_ring = TorusMesh.new()
-			m_ring.inner_radius = 0.6
-			m_ring.outer_radius = 0.7
+			m_ring.inner_radius = r3d_bomb * 0.92
+			m_ring.outer_radius = r3d_bomb
 			marker_ring.mesh = m_ring
 			var m_mat = StandardMaterial3D.new()
 			m_mat.albedo_color = Color(1.0, 0.15, 0.05, 0.7)
@@ -943,15 +965,26 @@ func _setup_visual_sprite():
 			m_mat.emission = Color(1.0, 0.15, 0.05)
 			m_mat.emission_energy_multiplier = 2.0
 			m_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			m_mat.no_depth_test = true
+			m_mat.render_priority = 2
 			marker_ring.material_override = m_mat
-			marker_ring.rotation.x = PI / 2
+			# Torus default ya es plano XZ como Cylinder, NO rotar PI/2 (eso lo pone vertical)
+			marker_ring.position.y = 0.02
 			_bomb_ground_marker.add_child(marker_ring)
 
 			var marker_fill = MeshInstance3D.new()
-			var m_fill = CylinderMesh.new()
-			m_fill.top_radius = 0.55
-			m_fill.bottom_radius = 0.55
+			var m_fill: Mesh = CylinderMesh.new()
+			m_fill.top_radius = r3d_bomb * 0.88
+			m_fill.bottom_radius = r3d_bomb * 0.88
 			m_fill.height = 0.01
+			# si hay terreno, usar disco conformante igual que Meteor
+			if is_instance_valid(_map_b) and is_instance_valid(_map_b.get("terrain_node")):
+				var em_node2 = get_tree().get_first_node_in_group("world_node")
+				if em_node2 and em_node2.has_node("EntityManager"):
+					var mgr2 = em_node2.get_node("EntityManager")
+					if mgr2 and mgr2.has_method("_make_circle_disc_conforming"):
+						m_fill = mgr2._make_circle_disc_conforming(target_2d, exp_radius * 0.88, _map_b)
 			marker_fill.mesh = m_fill
 			var mf_mat = StandardMaterial3D.new()
 			mf_mat.albedo_color = Color(1.0, 0.15, 0.05, 0.12)
@@ -959,6 +992,9 @@ func _setup_visual_sprite():
 			mf_mat.emission = Color(1.0, 0.15, 0.05)
 			mf_mat.emission_energy_multiplier = 0.5
 			mf_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mf_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mf_mat.no_depth_test = true
+			mf_mat.render_priority = 2
 			marker_fill.material_override = mf_mat
 			_bomb_ground_marker.add_child(marker_fill)
 
@@ -1822,7 +1858,7 @@ func _explode():
 	
 	if type == "electron":
 		_has_hit = true
-		var radius = float(get_meta("explosionRadius", 120.0)) if has_meta("explosionRadius") else 120.0
+		var radius = _bomb_radius if _bomb_radius > 1.0 else (float(get_meta("explosionRadius", 120.0)) if has_meta("explosionRadius") else 120.0)
 		
 		# 1. Efecto visual de explosión eléctrica de área
 		var particles = CPUParticles2D.new()
@@ -1923,6 +1959,7 @@ func _explode():
 				tw_f.parallel().tween_property(flash_mat, "emission_energy_multiplier", 0.0, 0.3)
 				tw_f.finished.connect(flash.queue_free)
 
+				# Shockwave plano en el piso (samañado con terrain) - sin PI/2
 				var shockwave = MeshInstance3D.new()
 				var ring_mesh = TorusMesh.new()
 				ring_mesh.inner_radius = radius_3d * 0.5
@@ -1935,8 +1972,25 @@ func _explode():
 				sw_mat.emission_energy_multiplier = 3.0
 				sw_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 				shockwave.material_override = sw_mat
-				shockwave.position = world_root_3d.position
-				shockwave.rotation.x = PI / 2
+				# aterrizar en suelo muestreado, no a media altura de la bomba
+				var map_n = get_tree().get_first_node_in_group("map")
+				var h_exp = 0.08
+				if is_instance_valid(map_n):
+					var em_n = get_tree().get_first_node_in_group("world_node")
+					if em_n and em_n.has_node("EntityManager"):
+						var mgr_e = em_n.get_node("EntityManager")
+						if mgr_e and mgr_e.has_method("_sample_terrain_height"):
+							h_exp = mgr_e._sample_terrain_height(global_position, map_n) + 0.06
+						elif map_n.has_method("get_terrain_height_at_pos"):
+							h_exp = map_n.get_terrain_height_at_pos(global_position) + 0.06
+					elif map_n.has_method("get_terrain_height_at_pos"):
+						h_exp = map_n.get_terrain_height_at_pos(global_position) + 0.06
+					var s_f = map_n.scale_factor if "scale_factor" in map_n else 0.02
+					var cz = map_n.correction_z if "correction_z" in map_n else 1.41421356
+					shockwave.position = Vector3(global_position.x * s_f, h_exp, global_position.y * s_f * cz)
+				else:
+					shockwave.position = world_root_3d.position
+					shockwave.position.y = 0.06
 				vp.add_child(shockwave)
 				var tw_sw = shockwave.create_tween()
 				tw_sw.tween_property(shockwave, "scale", Vector3(2.5, 2.5, 2.5), 0.35)

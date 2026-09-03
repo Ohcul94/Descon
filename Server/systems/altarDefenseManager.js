@@ -25,19 +25,14 @@ class AltarDefenseManager {
 
     startMatch(zoneId, membersList) {
         const adConfig = this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense;
-        if (!adConfig) return;
+        if (!adConfig) {
+            Logger.error('ALTAR', `¡CRÍTICO! gameModes.altar_defense NO EXISTE en la config. La partida no se puede crear. Asegúrate de que el AdminDash o el server.js la inicialicen.`);
+            return;
+        }
+        Logger.info('ALTAR', `startMatch() invocado — zoneId=${zoneId}, members=${membersList.length}, waves=${(adConfig.waves||[]).length}, spawners=${(adConfig.spawners||[]).length}`);
 
         // Purgar cualquier enemigo previo que estuviese en esta zona por residuo
         this.purgeEnemiesInZone(zoneId);
-
-        // Inicializar el Altar State
-        this.state.altarState = {
-            hp: Number(adConfig.altarHp) || 10000,
-            maxHp: Number(adConfig.altarHp) || 10000,
-            shield: Number(adConfig.altarShield) || 5000,
-            maxShield: Number(adConfig.altarShield) || 5000,
-            zone: zoneId
-        };
 
         const waveInterval = Number(adConfig.waveInterval) || 15000;
         const spawnLockTime = Number(adConfig.spawnLockTime) || 5000;
@@ -53,10 +48,11 @@ class AltarDefenseManager {
         if (mapConfig && Array.isArray(mapConfig.objects)) {
             const altarObj = mapConfig.objects.find(obj => obj.type === 'altar');
             if (altarObj) {
-                altarPos = { x: altarObj.x, y: altarObj.y };
+                altarPos = { x: Number(altarObj.x) || 5000, y: Number(altarObj.y) || 5000 };
                 Logger.info('ALTAR', `Posición del altar cargada desde mapsConfig.objects (3D): [${altarPos.x}, ${altarPos.y}]`);
-            } else {
-                Logger.warn('ALTAR', `No hay objeto tipo 'altar' en mapsConfig[${zoneId}].objects - usando fallback 5000,5000. Coloca un altar en el Editor 3D.`);
+            } else if (adConfig.altarPos) {
+                altarPos = { x: Number(adConfig.altarPos.x) || 5000, y: Number(adConfig.altarPos.y) || 5000 };
+                Logger.warn('ALTAR', `No hay objeto tipo 'altar' en mapsConfig[${zoneId}].objects - usando fallback de config: [${altarPos.x}, ${altarPos.y}].`);
             }
             const doorObjects = mapConfig.objects.filter(obj => obj.type === 'door' || obj.type === 'portal');
             if (doorObjects.length > 0) {
@@ -70,9 +66,21 @@ class AltarDefenseManager {
             } else {
                 Logger.warn('ALTAR', `No hay puertas tipo 'door' en mapsConfig[${zoneId}].objects - Coloca puertas en el Editor 3D.`);
             }
-        } else {
-            Logger.warn('ALTAR', `mapsConfig[${zoneId}] sin objects - altar y puertas no definidos.`);
+        } else if (adConfig.altarPos) {
+            altarPos = { x: Number(adConfig.altarPos.x) || 5000, y: Number(adConfig.altarPos.y) || 5000 };
         }
+
+        // Inicializar el Altar State con coordenadas autoritativas del Editor 3D
+        this.state.altarState = {
+            hp: Number(adConfig.altarHp) || 10000,
+            maxHp: Number(adConfig.altarHp) || 10000,
+            shield: Number(adConfig.altarShield) || 5000,
+            maxShield: Number(adConfig.altarShield) || 5000,
+            zone: zoneId,
+            x: altarPos.x,
+            y: altarPos.y
+        };
+        adConfig.altarPos = { x: altarPos.x, y: altarPos.y };
 
         this.activeMatch = {
             zoneId: zoneId,
@@ -93,7 +101,7 @@ class AltarDefenseManager {
         };
 
 
-        Logger.info('ALTAR', `Partida de Defensa al Altar iniciada en zona ${zoneId}. Esperando fin de barrera de seguridad (${spawnLockTime}ms).`);
+        Logger.info('ALTAR', `Partida de Defensa al Altar iniciada en zona ${zoneId}. altarPos=[${altarPos.x},${altarPos.y}], portales=${exitPortals.length}, oleadas=${(adConfig.waves||[]).length}, spawnLock=${spawnLockTime}ms.`);
         
         // Emitir los estados iniciales
         setTimeout(() => {
@@ -114,6 +122,7 @@ class AltarDefenseManager {
         if (match.status === 'spawn_lock') {
             if (now >= match.statusEndTime) {
                 // Termina el spawn lock, arranca la primera oleada
+                Logger.info('ALTAR', `Spawn lock terminado. Iniciando oleada 1 de ${match.waves.length}.`);
                 this.startWave(0);
             }
         } 
@@ -205,6 +214,20 @@ class AltarDefenseManager {
                     focusTarget: waveData.focusTarget || le.focusTarget || 'altar'
                 }));
             }
+
+            // Calcular de forma síncrona el total de enemigos esperados en la oleada
+            let expectedTotal = 0;
+            phasesToRun.forEach(phase => {
+                const count = parseInt(phase.count) || 0;
+                if (phase.spawnerDistribution && typeof phase.spawnerDistribution === 'object') {
+                    Object.values(phase.spawnerDistribution).forEach(c => {
+                        expectedTotal += (parseInt(c) || 0);
+                    });
+                } else {
+                    expectedTotal += count;
+                }
+            });
+            match.waveExpectedCount = Math.max(expectedTotal, 1);
 
             phasesToRun.forEach(phase => {
                 const startDelay = phase.startDelayMs !== undefined ? parseInt(phase.startDelayMs) : 0;
@@ -326,8 +349,6 @@ class AltarDefenseManager {
                         }
                     }
 
-                    // v770.3: Acumular expected antes de disparar spawns (una vez por fase)
-                    match.waveExpectedCount += spawnQueue.length;
                     Logger.info('ALTAR', `Fase "${phase.name||'?'}" programada: ${spawnQueue.length} enemigos (total oleada ${match.waveExpectedCount}) startDelay ${startDelay}ms type ${spawnType}`);
 
                     if (spawnType === 'staggered' && staggerDelayMs > 0) {
