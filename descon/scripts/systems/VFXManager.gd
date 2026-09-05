@@ -1027,6 +1027,9 @@ func get_vfx_from_pool(scene_source) -> Node:
 		path = scene_source.resource_path
 		scene = scene_source
 		
+	if path == "" and scene_source is PackedScene:
+		path = str(scene_source.get_instance_id())
+		
 	if path == "":
 		return null
 		
@@ -1116,3 +1119,51 @@ func _cache_materials_recursive(node: Node):
 			
 	for child in node.get_children():
 		_cache_materials_recursive(child)
+
+# v905.0: Precalentar el pool de efectos 3D directamente dentro del SubViewport activo del mapa.
+# Esto compila los shaders y crea buffers en la GPU antes de que el jugador o enemigos disparen, eliminando el stutter del primer tiro.
+func prewarm_vfx_pool_for_subviewport(sub_vp: SubViewport):
+	if not is_instance_valid(sub_vp):
+		return
+		
+	var prewarm_scenes = [
+		"res://VFX/scenes/VFX_Laser_projectile.tscn",
+		"res://VFX/scenes/VFX_Laser_Hit.tscn",
+		"res://VFX/scenes/VFX_Fire_strike.tscn",
+		"res://VFX/scenes/VFX_Fire_ball_type_B.tscn",
+		"res://VFX/scenes/VFX_Siphon_projectile.tscn",
+		"res://VFX/scenes/VFX_Siphon_Hit.tscn",
+		"res://VFX/scenes/VFX_Cube_projectile.tscn",
+		"res://VFX/scenes/VFX_Hadouken.tscn",
+		"res://VFX/scenes/VFX_Hit_cyber.tscn",
+		"res://VFX/scenes/VFX_Hit_hadouken.tscn",
+		"res://VFX/scenes/VFX_Shield_green.tscn",
+		"res://VFX/scenes/VFX_Laser_Anticipation.tscn"
+	]
+	
+	for path in prewarm_scenes:
+		if not _vfx_pools.has(path):
+			_vfx_pools[path] = []
+		
+		# Mantener al menos 2 instancias listas en el pool
+		var needed = 2 - _vfx_pools[path].size()
+		if needed <= 0:
+			continue
+			
+		var scene = get_cached_resource(path)
+		if not scene and ResourceLoader.exists(path):
+			scene = load(path)
+			_warmup_cache[path] = scene
+			
+		if scene:
+			for k in range(needed):
+				var inst = scene.instantiate()
+				inst.set_meta("pool_scene_path", path)
+				if inst is Node3D:
+					inst.position = Vector3(0.0, -9999.0, 0.0)
+					sub_vp.add_child(inst)
+					_cache_materials_recursive(inst)
+					sub_vp.remove_child(inst)
+				_vfx_pools[path].append(inst)
+	print("[VFXManager] Pool precalentado en SubViewport con éxito.")
+

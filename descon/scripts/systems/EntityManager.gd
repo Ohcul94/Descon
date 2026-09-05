@@ -26,6 +26,7 @@ const WIND_BARRIER_VFX_SCENE = "res://VFX/scenes/VFX_Shield_green_plane.tscn"
 const VFX_SHIELD_GREEN_SCENE = "res://VFX/scenes/VFX_Shield_green.tscn"
 const BEACON_3D_SCRIPT = preload("res://scripts/vfx/Beacon3D.gd")
 const METEOR_ZONE_SCRIPT = preload("res://scripts/systems/MeteorZoneVisual.gd")
+const FOLLOW_ORB_3D_SCRIPT = preload("res://scripts/entities/projectiles/FollowOrb3D.gd")
 
 # Texturas precargadas estáticamente
 const TEX_CURACION_TRANSP = preload("res://assets/Efectos de Skills/Curacion(Transp).png")
@@ -1913,44 +1914,10 @@ func _handle_shield_steal_action(data: Dictionary):
 
 			var enemy_node: Node2D = enemies.get(enemy_id) if enemies.has(enemy_id) else null
 
-			# Crear nodo del efecto con script de seguimiento dinámico
-			var orb_root = Node3D.new()
-			
-			# Script en línea para seguimiento perfecto en tiempo real
-			var follow_script = GDScript.new()
-			follow_script.source_code = "extends Node3D\n" + \
-				"var target_enemy: Node2D = null\n" + \
-				"var s_factor: float = 0.02\n" + \
-				"var corr_z: float = 1.4142\n" + \
-				"var speed: float = 9.0\n" + \
-				"var life: float = 0.0\n" + \
-				"var max_life: float = 0.65\n" + \
-				"func setup(p_enemy: Node2D, p_start: Vector3, p_s_factor: float, p_corr_z: float):\n" + \
-				"	target_enemy = p_enemy\n" + \
-				"	global_position = p_start\n" + \
-				"	s_factor = p_s_factor\n" + \
-				"	corr_z = p_corr_z\n" + \
-				"func _process(delta: float):\n" + \
-				"	life += delta\n" + \
-				"	if is_instance_valid(target_enemy):\n" + \
-				"		var dest = Vector3(target_enemy.global_position.x * s_factor, 0.5, target_enemy.global_position.y * s_factor * corr_z)\n" + \
-				"		global_position = global_position.lerp(dest, delta * speed * (1.0 + (life / max_life)))\n" + \
-				"		if global_position.distance_to(dest) > 0.02:\n" + \
-				"			look_at(dest, Vector3.UP)\n" + \
-				"		var dist = global_position.distance_to(dest)\n" + \
-				"		if dist < 0.45:\n" + \
-				"			scale = scale.lerp(Vector3.ZERO, delta * 20.0)\n" + \
-				"			if dist < 0.08:\n" + \
-				"				queue_free()\n" + \
-				"				return\n" + \
-				"	if life >= max_life:\n" + \
-				"		queue_free()\n" + \
-				"		return\n"
-			
-			follow_script.reload()
-			orb_root.set_script(follow_script)
+			# Crear nodo del efecto con script de seguimiento precompilado
+			var orb_root = FOLLOW_ORB_3D_SCRIPT.new()
 			vp.add_child(orb_root)
-			orb_root.setup(enemy_node, player_pos3d, s_factor, corr_z)
+			orb_root.setup(enemy_node, player_pos3d, s_factor, corr_z, 9.0, 0.65, true)
 
 			# --- ARO PRINCIPAL (Torus celeste brillante - Más chico y parado) ---
 			var ring1 = MeshInstance3D.new()
@@ -2090,44 +2057,10 @@ func _handle_life_steal_action(data: Dictionary):
 
 			var enemy_node: Node2D = enemies.get(enemy_id) if enemies.has(enemy_id) else null
 
-			# Crear nodo del efecto con script de seguimiento dinámico
-			var orb_root = Node3D.new()
-
-			# Script en línea para seguimiento perfecto en tiempo real
-			var follow_script = GDScript.new()
-			follow_script.source_code = "extends Node3D\n" + \
-				"var target_enemy: Node2D = null\n" + \
-				"var s_factor: float = 0.02\n" + \
-				"var corr_z: float = 1.4142\n" + \
-				"var speed: float = 9.0\n" + \
-				"var life: float = 0.0\n" + \
-				"var max_life: float = 0.65\n" + \
-				"func setup(p_enemy: Node2D, p_start: Vector3, p_s_factor: float, p_corr_z: float):\n" + \
-				"	target_enemy = p_enemy\n" + \
-				"	global_position = p_start\n" + \
-				"	s_factor = p_s_factor\n" + \
-				"	corr_z = p_corr_z\n" + \
-				"func _process(delta: float):\n" + \
-				"	life += delta\n" + \
-				"	if is_instance_valid(target_enemy):\n" + \
-				"		var dest = Vector3(target_enemy.global_position.x * s_factor, 0.5, target_enemy.global_position.y * s_factor * corr_z)\n" + \
-				"		global_position = global_position.lerp(dest, delta * speed * (1.0 + (life / max_life)))\n" + \
-				"		if global_position.distance_to(dest) > 0.02:\n" + \
-				"			look_at(dest, Vector3.UP)\n" + \
-				"		var dist = global_position.distance_to(dest)\n" + \
-				"		if dist < 0.45:\n" + \
-				"			scale = scale.lerp(Vector3.ZERO, delta * 20.0)\n" + \
-				"			if dist < 0.08:\n" + \
-				"				queue_free()\n" + \
-				"				return\n" + \
-				"	if life >= max_life:\n" + \
-				"		queue_free()\n" + \
-				"		return\n"
-
-			follow_script.reload()
-			orb_root.set_script(follow_script)
+			# Crear nodo del efecto con script de seguimiento precompilado
+			var orb_root = FOLLOW_ORB_3D_SCRIPT.new()
 			vp.add_child(orb_root)
-			orb_root.setup(enemy_node, player_pos3d, s_factor, corr_z)
+			orb_root.setup(enemy_node, player_pos3d, s_factor, corr_z, 9.0, 0.65, true)
 
 			# --- ARO PRINCIPAL (Torus verde brillante - Más chico y parado) ---
 			var ring1 = MeshInstance3D.new()
@@ -2238,40 +2171,11 @@ func _handle_sleep_action(data: Dictionary):
 
 		var start3d = Vector3(start_pos.x * s_factor, 0.8, start_pos.y * s_factor * corr_z)
 
-		# Script en línea: el orbe sigue al jugador hasta alcanzarlo y desaparece
-		var follow_script = GDScript.new()
-		follow_script.source_code = "extends Node3D\n" + \
-			"var target_node: Node2D = null\n" + \
-			"var s_factor: float = 0.02\n" + \
-			"var corr_z: float = 1.4142\n" + \
-			"var speed: float = 15.0\n" + \
-			"var life: float = 0.0\n" + \
-			"var max_life: float = 0.85\n" + \
-			"func setup(p_target: Node2D, p_start: Vector3, p_s_factor: float, p_corr_z: float):\n" + \
-			"	target_node = p_target\n" + \
-			"	global_position = p_start\n" + \
-			"	s_factor = p_s_factor\n" + \
-			"	corr_z = p_corr_z\n" + \
-			"func _process(delta: float):\n" + \
-			"	life += delta\n" + \
-			"	if is_instance_valid(target_node):\n" + \
-			"		var dest = Vector3(target_node.global_position.x * s_factor, 0.5, target_node.global_position.y * s_factor * corr_z)\n" + \
-			"		var dist = global_position.distance_to(dest)\n" + \
-			"		global_position = global_position.lerp(dest, delta * speed)\n" + \
-			"		if dist < 0.5:\n" + \
-			"			scale = scale.lerp(Vector3.ZERO, delta * 25.0)\n" + \
-			"			if dist < 0.1:\n" + \
-			"				queue_free()\n" + \
-			"				return\n" + \
-			"	if life >= max_life:\n" + \
-			"		queue_free()\n"
-		follow_script.reload()
-
-		var orb_root = Node3D.new()
+		# Orbe de seguimiento precompilado: el orbe sigue al jugador hasta alcanzarlo y desaparece
+		var orb_root = FOLLOW_ORB_3D_SCRIPT.new()
 		orb_root.name = "SleepOrb3D_" + enemy_id + "_" + t_id
-		orb_root.set_script(follow_script)
 		vp.add_child(orb_root)
-		orb_root.setup(player_node, start3d, s_factor, corr_z)
+		orb_root.setup(player_node, start3d, s_factor, corr_z, 15.0, 0.85, false)
 
 		# Núcleo violeta brillante
 		var core = MeshInstance3D.new()

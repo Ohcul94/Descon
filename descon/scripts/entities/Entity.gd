@@ -489,10 +489,12 @@ func _process(delta):
 			var default_height = HUD_HEIGHTS.get(lookup_key, 5.5 if entity_type >= 101 else 1.5)
 			var hud_height_3d: float = float(enemy_cfg.get("hudHeight", default_height))
 			
-			var world_2d = _project_3d_pos_to_2d(world_root_3d.global_position)
 			var hud_3d_pos = world_root_3d.global_position + Vector3(0, hud_height_3d, 0)
 			projected_pos_hud = _project_3d_pos_to_2d(hud_3d_pos)
-			projected_pos_vfx = world_2d
+			if is_instance_valid(_vfx_container_2d) and _vfx_container_2d.get_child_count() > 0:
+				projected_pos_vfx = _project_3d_pos_to_2d(world_root_3d.global_position)
+			else:
+				projected_pos_vfx = global_position
 			has_projected = true
 		
 		if is_instance_valid(_ui_wrapper):

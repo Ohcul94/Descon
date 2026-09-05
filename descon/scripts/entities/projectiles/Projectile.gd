@@ -2,18 +2,18 @@ extends Area2D
 class_name Projectile
 
 # Pre-cargado estático de escenas VFX para optimizar FPS en ráfagas de red (v313.1)
-const VFX_Anticipation_wave_digital_scene = "res://VFX/scenes/VFX_Anticipation_wave_digital.tscn"
-const VFX_Anticipation_hadouken_scene = "res://VFX/scenes/VFX_Anticipation_hadouken.tscn"
-const VFX_Hadouken_scene = "res://VFX/scenes/VFX_Hadouken.tscn"
-const VFX_Cube_projectile_scene = "res://VFX/scenes/VFX_Cube_projectile.tscn"
-const VFX_Hit_cyber_scene = "res://VFX/scenes/VFX_Hit_cyber.tscn"
-const VFX_Hit_hadouken_scene = "res://VFX/scenes/VFX_Hit_hadouken.tscn"
-const VFX_Laser_projectile_scene = "res://VFX/scenes/VFX_Laser_projectile.tscn"
-const VFX_Laser_Hit_scene = "res://VFX/scenes/VFX_Laser_Hit.tscn"
-const VFX_Siphon_projectile_scene = "res://VFX/scenes/VFX_Siphon_projectile.tscn"
-const VFX_Siphon_Hit_scene = "res://VFX/scenes/VFX_Siphon_Hit.tscn"
-const VFX_Fire_ball_type_B_scene = "res://VFX/scenes/VFX_Fire_ball_type_B.tscn"
-const VFX_Fire_strike_scene = "res://VFX/scenes/VFX_Fire_strike.tscn"
+const VFX_Anticipation_wave_digital_scene = preload("res://VFX/scenes/VFX_Anticipation_wave_digital.tscn")
+const VFX_Anticipation_hadouken_scene = preload("res://VFX/scenes/VFX_Anticipation_hadouken.tscn")
+const VFX_Hadouken_scene = preload("res://VFX/scenes/VFX_Hadouken.tscn")
+const VFX_Cube_projectile_scene = preload("res://VFX/scenes/VFX_Cube_projectile.tscn")
+const VFX_Hit_cyber_scene = preload("res://VFX/scenes/VFX_Hit_cyber.tscn")
+const VFX_Hit_hadouken_scene = preload("res://VFX/scenes/VFX_Hit_hadouken.tscn")
+const VFX_Laser_projectile_scene = preload("res://VFX/scenes/VFX_Laser_projectile.tscn")
+const VFX_Laser_Hit_scene = preload("res://VFX/scenes/VFX_Laser_Hit.tscn")
+const VFX_Siphon_projectile_scene = preload("res://VFX/scenes/VFX_Siphon_projectile.tscn")
+const VFX_Siphon_Hit_scene = preload("res://VFX/scenes/VFX_Siphon_Hit.tscn")
+const VFX_Fire_ball_type_B_scene = preload("res://VFX/scenes/VFX_Fire_ball_type_B.tscn")
+const VFX_Fire_strike_scene = preload("res://VFX/scenes/VFX_Fire_strike.tscn")
 
 # Pre-cargado estático de texturas para evitar I/O bloqueante
 const TEXTURE_MISSILE = preload("res://assets/Municiones/Misiles/Misil1/Misil1.png")

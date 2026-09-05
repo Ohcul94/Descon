@@ -913,6 +913,10 @@ func _setup_3d_dynamic():
 				# Aplicar iluminación mejorada cenital de arriba y ambiental de soporte siempre
 				_apply_ambient_and_zenith_lights(sub_viewport)
 				
+				# Precalentar pool de VFX en este SubViewport (evita freeze del primer tiro de láser)
+				if VFXSystem and VFXSystem.has_method("prewarm_vfx_pool_for_subviewport"):
+					VFXSystem.prewarm_vfx_pool_for_subviewport(sub_viewport)
+				
 				# Crear cursor 3D world-space
 				_create_world_cursor()
 		return
@@ -987,6 +991,10 @@ func _setup_3d_dynamic():
 			_fix_scene_floor_to_black(scene_inst)
 
 	_apply_ambient_and_zenith_lights(sub_viewport)
+	
+	# Precalentar pool de VFX en este SubViewport (evita freeze del primer tiro de láser)
+	if VFXSystem and VFXSystem.has_method("prewarm_vfx_pool_for_subviewport"):
+		VFXSystem.prewarm_vfx_pool_for_subviewport(sub_viewport)
 	
 	# Crear cursor 3D world-space
 	_create_world_cursor()

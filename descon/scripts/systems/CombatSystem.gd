@@ -24,12 +24,13 @@ func handle_remote_shoot(data):
 
 func handle_enemy_shoot(data): _spawn_projectile(data, "enemy")
 
+const BULLET_SCRIPT = preload("res://scripts/entities/projectiles/Projectile.gd")
+
 func _spawn_projectile(data, o_type):
-	var script_path = "res://scripts/entities/projectiles/Projectile.gd"
-	var bullet_script = load(script_path)
+	var bullet_script = BULLET_SCRIPT
 	
 	if not bullet_script:
-		print("[COMBAT-ERR] No se pudo cargar el script del proyectil: ", script_path)
+		print("[COMBAT-ERR] No se pudo cargar el script del proyectil")
 		return
 	
 	var p = Area2D.new() # Creamos el nodo base

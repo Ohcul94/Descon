@@ -362,11 +362,8 @@ func _draw_all_vision_circles(drawer: Node2D):
 		drawer.draw_texture_rect(radial_gradient_tex, rect, false)
 		if should_log:
 			print(" - [FOW] ", provider.name, " Pos2D: ", pos_2d, " VpPos: ", Vector2(x,y), " Rad: ", Vector2(rx,ry))
-
 func _process(_delta):
 	if is_instance_valid(parent_map):
-		map_size = Vector2(parent_map.world_size, parent_map.map_height)
-		# Sincronizar zona si cambio (warp)
 		var nz = str(parent_map.zone_id)
 		if nz != current_zone_id:
 			current_zone_id = nz
@@ -375,16 +372,15 @@ func _process(_delta):
 			_restoration_pending = false
 			_vision_dirty = true
 			request_fog_data()
-		var map_size_3d = Vector2(
-			parent_map.world_size * parent_map.scale_factor,
-			parent_map.map_height * parent_map.scale_factor * parent_map.correction_z
-		)
-		if is_instance_valid(shader_mat):
-			shader_mat.set_shader_parameter("map_size_3d", map_size_3d)
-			if is_instance_valid(vision_viewport):
-				shader_mat.set_shader_parameter("vision_texture", vision_viewport.get_texture())
-			if is_instance_valid(history_viewport):
-				shader_mat.set_shader_parameter("history_texture", history_viewport.get_texture())
+		var new_map_size = Vector2(parent_map.world_size, parent_map.map_height)
+		if new_map_size != map_size:
+			map_size = new_map_size
+			var map_size_3d = Vector2(
+				parent_map.world_size * parent_map.scale_factor,
+				parent_map.map_height * parent_map.scale_factor * parent_map.correction_z
+			)
+			if is_instance_valid(shader_mat):
+				shader_mat.set_shader_parameter("map_size_3d", map_size_3d)
 	
 	# --- DIRTY FLAG: detectar movimiento del jugador ---
 	var player = get_tree().get_first_node_in_group("player")
