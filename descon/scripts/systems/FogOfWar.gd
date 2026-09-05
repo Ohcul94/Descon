@@ -1,17 +1,17 @@
 extends Node
 class_name FogOfWarManager
 
-# v800.0 NIEBLA DE GUERRA PERSISTENTE - God of War Gris Degradado + Anticheat Grid
-# Grid 64x64 = 4096 celdas por mapa. Persistencia por zona vía Server (DB: exploredMaps).
-# Visión actual = sin niebla | Explorado = niebla gris clara (penumbra) | No explorado = niebla gris media
+# v900.0 NIEBLA DE GUERRA OPTIMIZADA
+# Grid 64x64 = 4096 celdas por mapa. Persistencia por zona via Server (DB: exploredMaps).
+# Optimizaciones: viewports UPDATE_ONCE + dirty flag por movimiento + tex 256px + early discard en shader.
 
 var parent_map: BaseMap = null
 var map_size: Vector2 = Vector2(4000.0, 4000.0)
 
 # Grid config compartido con servidor (Server/systems/fogHandlers.js GRID_RES)
 const GRID_RES: int = 64
-const GRID_TEX_SIZE: int = 512
-const CELL_PX: float = float(GRID_TEX_SIZE) / float(GRID_RES) # 8.0
+const GRID_TEX_SIZE: int = 256
+const CELL_PX: float = float(GRID_TEX_SIZE) / float(GRID_RES) # 4.0
 
 # Viewports off-screen de renderizado de niebla
 var vision_viewport: SubViewport
@@ -40,6 +40,11 @@ var _history_cleared: bool = false
 var _server_grid_res: int = 64
 var _draw_timer: float = 0.0
 const DRAW_INTERVAL: float = 0.05 # 20 FPS
+
+# Dirty flag: evita redibujar cuando el jugador no se movio
+var _vision_dirty: bool = true
+var _last_player_pos: Vector2 = Vector2(-9999.0, -9999.0)
+const MOVE_THRESHOLD: float = 12.0 # unidades 2D minimas para marcar dirty
 
 const FOG_SHADER = preload("res://resources/shaders/fog_of_war.gdshader")
 const TEXTURE_NOISE_21D = preload("res://VFX/textures/T_VFX_Noise21d_tiled.png")
@@ -157,7 +162,9 @@ func _create_viewports():
 	vision_viewport.size = Vector2i(GRID_TEX_SIZE, GRID_TEX_SIZE)
 	vision_viewport.own_world_3d = false
 	vision_viewport.transparent_bg = false
-	vision_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	# UPDATE_ONCE: solo renderiza cuando queue_redraw() activa el redibujado
+	# Ahorra un draw call por frame cuando el jugador no se mueve
+	vision_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	vision_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
 	add_child(vision_viewport)
 	
@@ -171,7 +178,8 @@ func _create_viewports():
 	history_viewport.size = Vector2i(GRID_TEX_SIZE, GRID_TEX_SIZE)
 	history_viewport.own_world_3d = false
 	history_viewport.transparent_bg = false
-	history_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	# UPDATE_ONCE: CLEAR_MODE_NEVER garantiza que lo explorado persiste entre frames
+	history_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 	history_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_NEVER
 	add_child(history_viewport)
 	
@@ -222,7 +230,7 @@ func _setup_post_process_quad():
 	shader_mat.set_shader_parameter("cloud_contrast", 1.18)
 	shader_mat.set_shader_parameter("noise_scale", 0.011)
 	shader_mat.set_shader_parameter("noise_speed", 0.018)
-	shader_mat.set_shader_parameter("fog_height", 3.8)
+	shader_mat.set_shader_parameter("fog_height", 30.0)
 	shader_mat.set_shader_parameter("fog_density", 0.55)
 	shader_mat.set_shader_parameter("fog_vertical_fade", 1.2)
 	post_process_quad.material_override = shader_mat
@@ -300,8 +308,12 @@ func _collect_new_explored_cells() -> Array[int]:
 	return new_cells
 
 func _draw_vision(drawer: Node2D):
+	# Solo ejecutado cuando _vision_dirty = true (optimizacion)
 	drawer.draw_rect(Rect2(0, 0, GRID_TEX_SIZE, GRID_TEX_SIZE), Color.BLACK)
 	_draw_all_vision_circles(drawer)
+	# Tras redibujar, disparar actualizacion del viewport
+	if is_instance_valid(vision_viewport):
+		vision_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func _draw_history(drawer: Node2D):
 	if not _history_cleared:
@@ -311,7 +323,6 @@ func _draw_history(drawer: Node2D):
 	if _restoration_pending:
 		if explored_by_zone.has(current_zone_id):
 			var zset = explored_by_zone[current_zone_id]
-			# Dibujar cada celda como rect blanco con leve solapamiento para evitar gaps
 			var overlap = 1.0
 			for ci in zset.keys():
 				var ci_int = int(ci)
@@ -319,10 +330,12 @@ func _draw_history(drawer: Node2D):
 				var cy = int(ci_int / GRID_RES)
 				var x = float(cx) * CELL_PX
 				var y = float(cy) * CELL_PX
-				# Dibujar rect blanco (explorado)
 				drawer.draw_rect(Rect2(x - overlap*0.5, y - overlap*0.5, CELL_PX + overlap, CELL_PX + overlap), Color.WHITE)
 		_restoration_pending = false
 	_draw_all_vision_circles(drawer)
+	# Tras redibujar, disparar actualizacion del viewport
+	if is_instance_valid(history_viewport):
+		history_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func _draw_all_vision_circles(drawer: Node2D):
 	var providers = get_vision_providers()
@@ -353,36 +366,46 @@ func _draw_all_vision_circles(drawer: Node2D):
 func _process(_delta):
 	if is_instance_valid(parent_map):
 		map_size = Vector2(parent_map.world_size, parent_map.map_height)
-		# Sincronizar zona si cambió (warp)
+		# Sincronizar zona si cambio (warp)
 		var nz = str(parent_map.zone_id)
 		if nz != current_zone_id:
 			current_zone_id = nz
 			_has_requested = false
 			_history_cleared = false
 			_restoration_pending = false
+			_vision_dirty = true
 			request_fog_data()
+		var map_size_3d = Vector2(
+			parent_map.world_size * parent_map.scale_factor,
+			parent_map.map_height * parent_map.scale_factor * parent_map.correction_z
+		)
 		if is_instance_valid(shader_mat):
-			var map_size_3d = Vector2(
-				parent_map.world_size * parent_map.scale_factor,
-				parent_map.map_height * parent_map.scale_factor * parent_map.correction_z
-			)
 			shader_mat.set_shader_parameter("map_size_3d", map_size_3d)
 			if is_instance_valid(vision_viewport):
 				shader_mat.set_shader_parameter("vision_texture", vision_viewport.get_texture())
 			if is_instance_valid(history_viewport):
 				shader_mat.set_shader_parameter("history_texture", history_viewport.get_texture())
 	
-	# Sincronización periódica de exploración al servidor
+	# --- DIRTY FLAG: detectar movimiento del jugador ---
+	var player = get_tree().get_first_node_in_group("player")
+	if is_instance_valid(player):
+		var ppos = Vector2(player.global_position.x, player.global_position.y)
+		var dist_moved = _last_player_pos.distance_to(ppos)
+		if dist_moved > MOVE_THRESHOLD:
+			_vision_dirty = true
+			_last_player_pos = ppos
+	
+	# Sincronizacion periodica de exploracion al servidor
 	_sync_timer += _delta
 	if _sync_timer >= SYNC_INTERVAL:
 		_sync_timer = 0.0
 		var new_cells = _collect_new_explored_cells()
 		if new_cells.size() > 0:
-			# Encolar para envío throttled
 			for c in new_cells:
 				_pending_sync_cells.append(c)
-			# Forzar que el historial se actualice visualmente (las celdas nuevas ya están en explored_by_zone,
-			# pero history_viewport necesita dibujar los nuevos círculos; eso ya pasa vía _draw_history cada frame)
+			# El historial necesita redibujar las celdas nuevas
+			if is_instance_valid(history_drawer):
+				history_drawer.queue_redraw()
 			_flush_pending_sync()
 			
 	_provider_update_timer -= _delta
@@ -390,13 +413,17 @@ func _process(_delta):
 		_provider_update_timer = 0.5
 		_update_providers_cache()
 	
+	# Solo redibujar vision si el jugador se movio (_vision_dirty)
 	_draw_timer -= _delta
 	if _draw_timer <= 0.0:
 		_draw_timer = DRAW_INTERVAL
-		if is_instance_valid(vision_drawer):
-			vision_drawer.queue_redraw()
-		if is_instance_valid(history_drawer):
-			history_drawer.queue_redraw()
+		if _vision_dirty or _restoration_pending:
+			if is_instance_valid(vision_drawer):
+				vision_drawer.queue_redraw()
+			_vision_dirty = false
+		if _restoration_pending:
+			if is_instance_valid(history_drawer):
+				history_drawer.queue_redraw()
 
 func _flush_pending_sync():
 	if _pending_sync_cells.is_empty():
@@ -413,8 +440,10 @@ func _flush_pending_sync():
 		if to_send.size() >= 10:
 			print("[FogOfWar] Sync niebla zona ", current_zone_id, " +", to_send.size(), " celdas (pendientes ", _pending_sync_cells.size(), ")")
 
-# API pública para debug / reset
+
+# API publica para debug / reset
 func get_explored_count(zid: String = "") -> int:
+
 	var z = zid if zid != "" else current_zone_id
 	if explored_by_zone.has(z):
 		return explored_by_zone[z].size()
