@@ -155,7 +155,9 @@ func _create_talent_card(parent, skill, lvl, cat, idx):
 			icon_rect.modulate = cat_color
 			icon_box.add_child(icon_rect)
 		elif ResourceLoader.exists(s_icon):
-			var tex = load(s_icon)
+			var tex = InventoryCache.get_texture(s_icon)
+			if not tex:
+				tex = load(s_icon)
 			if tex:
 				_texture_cache[s_icon] = tex
 				has_png = true

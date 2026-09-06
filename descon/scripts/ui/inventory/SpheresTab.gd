@@ -194,7 +194,9 @@ func _preload_resources_once():
 	
 	for cfg in skill_configs:
 		if ResourceLoader.exists(cfg["path"]):
-			var script = load(cfg["path"])
+			var script = InventoryCache.get_cached_script(cfg["path"])
+			if not script:
+				script = load(cfg["path"])
 			if script:
 				var s_inst = script.new()
 				var s_name = s_inst.skill_name
@@ -239,7 +241,9 @@ func _load_skill_icon_texture(skill_name: String) -> Texture2D:
 		return null
 		
 	if ResourceLoader.exists(icon_path):
-		var tex = load(icon_path)
+		var tex = InventoryCache.get_texture(icon_path)
+		if not tex:
+			tex = load(icon_path)
 		_texture_cache[clean_name] = tex
 		return tex
 		
@@ -359,7 +363,8 @@ func _render_spheres_equipment(tab, sub_tabs):
 			var sphere_icon_path = _sphere_icon_path(sphere_key)
 			if sphere_icon_path != "" and ResourceLoader.exists(sphere_icon_path):
 				var s_tex_rect = TextureRect.new()
-				s_tex_rect.texture = load(sphere_icon_path)
+				var sphere_tex = InventoryCache.get_texture(sphere_icon_path)
+				s_tex_rect.texture = sphere_tex if sphere_tex else load(sphere_icon_path)
 				s_tex_rect.custom_minimum_size = Vector2(84, 84)
 				s_tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 				s_tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
@@ -720,7 +725,8 @@ func _create_sphere_card(item, parent, sub_tabs, is_comb):
 	if icon_path == "": icon_path = _sphere_icon_path(key)
 	if icon_path != "" and ResourceLoader.exists(icon_path):
 		var tex_rect = TextureRect.new()
-		tex_rect.texture = load(icon_path)
+		var sp_item_tex = InventoryCache.get_texture(icon_path)
+		tex_rect.texture = sp_item_tex if sp_item_tex else load(icon_path)
 		tex_rect.custom_minimum_size = Vector2(80, 80)
 		tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tex_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL

@@ -7,6 +7,9 @@ var inv_main = null
 var preview_mesh: Node3D = null
 var _model_cache: Dictionary = {}
 var _texture_cache: Dictionary = {}
+var _vp_container: SubViewportContainer = null
+var _node3d: Node3D = null
+var _ship_pivot: Node3D = null
 
 func setup(p_inv_main):
 	inv_main = p_inv_main
@@ -25,6 +28,10 @@ func update_ui():
 				var f_scroll_node = fleet_v_node.get_child(1)
 				if f_scroll_node is ScrollContainer:
 					last_scroll_h = f_scroll_node.scroll_horizontal
+
+	# v314.0: Preservar el viewport 3D existente para no reiniciar el pipeline de GPU
+	if is_instance_valid(_vp_container) and _vp_container.get_parent():
+		_vp_container.get_parent().remove_child(_vp_container)
 
 	for n in h.get_children(): 
 		h.remove_child(n)
@@ -94,56 +101,69 @@ func update_ui():
 	# Columna 2: Visor 3D de la Nave (Centro)
 	var middle_v = VBoxContainer.new(); middle_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; middle_v.size_flags_stretch_ratio = 1.3; body_h.add_child(middle_v)
 	
-	var vp_container = SubViewportContainer.new()
-	vp_container.stretch = true
-	vp_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vp_container.custom_minimum_size = Vector2(250, 250)
-	middle_v.add_child(vp_container)
-	
-	var vp = SubViewport.new()
-	vp.own_world_3d = true
-	vp.transparent_bg = true
-	vp.msaa_3d = Viewport.MSAA_DISABLED
-	vp.positional_shadow_atlas_size = 0
-	if "use_hdr_3d" in vp: vp.use_hdr_3d = false
-	vp_container.add_child(vp)
-	
-	var node3d = Node3D.new()
-	vp.add_child(node3d)
-	
-	# Ambiente
-	var env = WorldEnvironment.new()
-	var world_env = Environment.new()
-	world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	world_env.ambient_light_color = Color(0.15, 0.15, 0.3)
-	world_env.ambient_light_energy = 0.4
-	world_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	env.environment = world_env
-	node3d.add_child(env)
-	
-	# Cámara (Añadida al árbol ANTES de look_at)
-	var cam = Camera3D.new()
-	cam.projection = Camera3D.PROJECTION_PERSPECTIVE
-	cam.fov = 40.0
-	cam.position = Vector3(0, 1.3, 3.3)
-	node3d.add_child(cam)
-	cam.look_at(Vector3(0, 0.1, 0))
-	
-	# Luz Clave
-	var key_light = DirectionalLight3D.new()
-	key_light.light_energy = 1.8
-	key_light.light_color = Color(1.0, 0.9, 0.75)
-	key_light.shadow_enabled = false
-	key_light.rotation_degrees = Vector3(-35, 45, 0)
-	node3d.add_child(key_light)
-	
-	# Luz de Relleno
-	var fill_light = DirectionalLight3D.new()
-	fill_light.light_energy = 0.6
-	fill_light.light_color = Color(0.7, 0.8, 1.0)
-	fill_light.shadow_enabled = false
-	fill_light.rotation_degrees = Vector3(25, -135, 0)
-	node3d.add_child(fill_light)
+	if not is_instance_valid(_vp_container):
+		_vp_container = SubViewportContainer.new()
+		_vp_container.stretch = true
+		_vp_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		_vp_container.custom_minimum_size = Vector2(250, 250)
+		
+		var vp = SubViewport.new()
+		vp.own_world_3d = true
+		vp.transparent_bg = true
+		vp.msaa_3d = Viewport.MSAA_DISABLED
+		vp.positional_shadow_atlas_size = 0
+		if "use_hdr_3d" in vp: vp.use_hdr_3d = false
+		_vp_container.add_child(vp)
+		
+		_node3d = Node3D.new()
+		vp.add_child(_node3d)
+		
+		# Ambiente
+		var env = WorldEnvironment.new()
+		var world_env = Environment.new()
+		world_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		world_env.ambient_light_color = Color(0.15, 0.15, 0.3)
+		world_env.ambient_light_energy = 0.4
+		world_env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+		env.environment = world_env
+		_node3d.add_child(env)
+		
+		# Cámara (Añadida al árbol ANTES de look_at)
+		var cam = Camera3D.new()
+		cam.projection = Camera3D.PROJECTION_PERSPECTIVE
+		cam.fov = 40.0
+		cam.position = Vector3(0, 1.3, 3.3)
+		_node3d.add_child(cam)
+		cam.look_at_from_position(cam.position, Vector3(0, 0.1, 0))
+		
+		# Luz Clave
+		var key_light = DirectionalLight3D.new()
+		key_light.light_energy = 1.8
+		key_light.light_color = Color(1.0, 0.9, 0.75)
+		key_light.shadow_enabled = false
+		key_light.rotation_degrees = Vector3(-35, 45, 0)
+		_node3d.add_child(key_light)
+		
+		# Luz de Relleno
+		var fill_light = DirectionalLight3D.new()
+		fill_light.light_energy = 0.6
+		fill_light.light_color = Color(0.7, 0.8, 1.0)
+		fill_light.shadow_enabled = false
+		fill_light.rotation_degrees = Vector3(25, -135, 0)
+		_node3d.add_child(fill_light)
+		
+		_ship_pivot = Node3D.new()
+		_ship_pivot.name = "ShipPivot"
+		_ship_pivot.scale = Vector3(1.3, 1.3, 1.3)
+		_node3d.add_child(_ship_pivot)
+
+	middle_v.add_child(_vp_container)
+
+	# Limpiar modelo anterior dentro del pivot persistente
+	if is_instance_valid(_ship_pivot):
+		for c in _ship_pivot.get_children():
+			_ship_pivot.remove_child(c)
+			c.queue_free()
 	
 	# Cargar modelo de la nave
 	var ship_id = int(viewing_id)
@@ -169,10 +189,13 @@ func update_ui():
 	if glb_path != "" and ResourceLoader.exists(glb_path):
 		var model_scene = null
 		
-		# v313.23: Priorizar el caché de VFXSystem (warmup) para evitar freezes.
-		var vfx = Engine.get_singleton("VFXSystem") if Engine.has_singleton("VFXSystem") else get_node_or_null("/root/VFXSystem")
-		if vfx and vfx.has_method("get_cached_resource"):
-			model_scene = vfx.get_cached_resource(glb_path)
+		# v314.0: Priorizar el caché centralizado de InventoryCache (memoria instantánea)
+		model_scene = InventoryCache.get_model(glb_path)
+		
+		if not model_scene:
+			var vfx = Engine.get_singleton("VFXSystem") if Engine.has_singleton("VFXSystem") else get_node_or_null("/root/VFXSystem")
+			if vfx and vfx.has_method("get_cached_resource"):
+				model_scene = vfx.get_cached_resource(glb_path)
 			
 		if not model_scene:
 			if _model_cache.has(glb_path):
@@ -181,7 +204,7 @@ func update_ui():
 				model_scene = load(glb_path)
 				_model_cache[glb_path] = model_scene
 			
-		if model_scene:
+		if model_scene and is_instance_valid(_ship_pivot):
 			var ship_model = model_scene.instantiate()
 			_clean_internal_lights_in_ui(ship_model)
 			
@@ -189,12 +212,7 @@ func update_ui():
 			if ship_id >= 1 and ship_id <= 6:
 				_make_materials_unshaded_in_ui(ship_model)
 			
-			var pivot = Node3D.new()
-			pivot.name = "ShipPivot"
-			node3d.add_child(pivot)
-			pivot.add_child(ship_model)
-			
-			pivot.scale = Vector3(1.3, 1.3, 1.3)
+			_ship_pivot.add_child(ship_model)
 			
 			# Orientación corregida según el modelado del asset
 			if ship_data.has("rotX") or ship_data.has("rotY") or ship_data.has("rotZ"):
@@ -208,7 +226,7 @@ func update_ui():
 					6: ship_model.rotation_degrees.y = 180
 					_: ship_model.rotation_degrees = Vector3.ZERO
 				
-			preview_mesh = pivot
+			preview_mesh = _ship_pivot
 
 	# Columna 3: Bodega de Carga (Derecha)
 	var right_v = VBoxContainer.new(); right_v.size_flags_horizontal = Control.SIZE_EXPAND_FILL; right_v.size_flags_stretch_ratio = 1.0; body_h.add_child(right_v)
@@ -441,12 +459,13 @@ func _render_group(parent, type, title, count):
 					icon_path = _get_fallback_icon(search_id)
 			
 			if icon_path != "" and icon_path != "null" and ResourceLoader.exists(icon_path):
-				var tex_res = null
-				if _texture_cache.has(icon_path):
-					tex_res = _texture_cache[icon_path]
-				else:
-					tex_res = load(icon_path)
-					_texture_cache[icon_path] = tex_res
+				var tex_res = InventoryCache.get_texture(icon_path)
+				if not tex_res:
+					if _texture_cache.has(icon_path):
+						tex_res = _texture_cache[icon_path]
+					else:
+						tex_res = load(icon_path)
+						_texture_cache[icon_path] = tex_res
 					
 				if tex_res:
 					it.visible = false # Ocultar texto si hay imagen
@@ -599,12 +618,13 @@ func _create_item_row(it, parent):
 		icon_path = "res://assets/Municiones/Laser1.png"
 	
 	if icon_path != "" and icon_path != "null" and ResourceLoader.exists(icon_path):
-		var tex_res = null
-		if _texture_cache.has(icon_path):
-			tex_res = _texture_cache[icon_path]
-		else:
-			tex_res = load(icon_path)
-			_texture_cache[icon_path] = tex_res
+		var tex_res = InventoryCache.get_texture(icon_path)
+		if not tex_res:
+			if _texture_cache.has(icon_path):
+				tex_res = _texture_cache[icon_path]
+			else:
+				tex_res = load(icon_path)
+				_texture_cache[icon_path] = tex_res
 			
 		if tex_res:
 			var icon_rect = TextureRect.new()

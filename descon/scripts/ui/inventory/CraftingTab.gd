@@ -242,7 +242,9 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 	icon_tex.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon_tex.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
-		var tex = load(icon_path)
+		var tex = InventoryCache.get_texture(icon_path)
+		if not tex:
+			tex = load(icon_path)
 		if tex:
 			icon_tex.texture = tex
 	tex_container.add_child(icon_tex)
@@ -312,7 +314,9 @@ func _create_recipe_card(recipe: Dictionary, parent: Control):
 		ing_icon_tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ing_icon_tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		if not ing_icon_path.is_empty() and ResourceLoader.exists(ing_icon_path):
-			var tex = load(ing_icon_path)
+			var tex = InventoryCache.get_texture(ing_icon_path)
+			if not tex:
+				tex = load(ing_icon_path)
 			if tex:
 				ing_icon_tex.texture = tex
 		ing_row.add_child(ing_icon_tex)
@@ -447,7 +451,9 @@ func _create_material_card(res: Dictionary, parent: Control):
 	icon_tex.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	icon_tex.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if not icon_path.is_empty() and ResourceLoader.exists(icon_path):
-		var tex = load(icon_path)
+		var tex = InventoryCache.get_texture(icon_path)
+		if not tex:
+			tex = load(icon_path)
 		if tex:
 			icon_tex.texture = tex
 	tex_container.add_child(icon_tex)

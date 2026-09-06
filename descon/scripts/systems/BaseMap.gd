@@ -589,7 +589,7 @@ func _resize_quad(parent: Node3D, node_name: String, size: Vector2, pos: Vector3
 
 # v531.1: Sistema nebulosa standalone — garantiza anillo violeta visible aunque haya escena custom o Ground3D sin walls
 # Se crea bajo sub_viewport directamente en coordenadas 0..map_size para que siempre esté alrededor del mapa lógico
-func _ensure_standalone_nebula_walls(map_w: float, map_h: float, fog_start: float, fog_end: float):
+func _ensure_standalone_nebula_walls(map_w: float, map_h: float, _fog_start: float, fog_end: float):
 	if not is_instance_valid(sub_viewport):
 		return
 	if map_w <= 0 or map_h <= 0:
@@ -879,6 +879,8 @@ func _setup_3d_dynamic():
 				sub_viewport.own_world_3d = true
 				sub_viewport.handle_input_locally = false
 				sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+				if "physics_interpolation_mode" in sub_viewport:
+					sub_viewport.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 				camera_3d = sub_viewport.get_node_or_null("Camera3D")
 				if is_instance_valid(camera_3d) and enable_camera_headlight:
 					_apply_camera_headlight(camera_3d)
@@ -897,6 +899,7 @@ func _setup_3d_dynamic():
 							scene_inst.remove_child(ed_cam)
 							ed_cam.queue_free()
 							
+						_disable_physics_interpolation_recursive(scene_inst)
 						sub_viewport.add_child(scene_inst)
 						custom_scene_instance = scene_inst
 						_has_custom_3d_scene = true
@@ -944,6 +947,8 @@ func _setup_3d_dynamic():
 	sub_viewport.handle_input_locally = false
 	sub_viewport.size = get_viewport().size
 	sub_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	if "physics_interpolation_mode" in sub_viewport:
+		sub_viewport.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	viewport_container.add_child(sub_viewport)
 	
 	# Cámara 3D ortogonal de perspectiva bloqueada (Mirando hacia abajo en el eje Y)
@@ -977,6 +982,7 @@ func _setup_3d_dynamic():
 				scene_inst.remove_child(ed_cam)
 				ed_cam.queue_free()
 				
+			_disable_physics_interpolation_recursive(scene_inst)
 			sub_viewport.add_child(scene_inst)
 			custom_scene_instance = scene_inst
 			_has_custom_3d_scene = true
@@ -1044,6 +1050,15 @@ func _find_terrain_node_recursive(node: Node) -> Node:
 		if found:
 			return found
 	return null
+
+# Desactivar recursivamente interpolación de físicas en nodos 3D/terreno para evitar warnings deprecados en Godot 4.7
+static func _disable_physics_interpolation_recursive(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	if "physics_interpolation_mode" in node:
+		node.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	for child in node.get_children():
+		_disable_physics_interpolation_recursive(child)
  
 
 func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
@@ -2576,25 +2591,25 @@ func _check_doors_proximity():
 		_near_door_active = false
 
 # v770.11: Control de visibilidad de puertas en Defensa del Altar (solo visibles entre fases/oleadas)
-func _set_altar_doors_visible(visible: bool):
+func _set_altar_doors_visible(p_visible: bool):
 	if not _is_altar_defense_zone():
 		return
-	_altar_doors_locked = not visible
+	_altar_doors_locked = not p_visible
 	for d in active_doors:
 		if is_instance_valid(d):
-			d.visible = visible
-			d.monitoring = visible
-			d.monitorable = visible
+			d.visible = p_visible
+			d.monitoring = p_visible
+			d.monitorable = p_visible
 			# compat: también ocultar colisión si usamos monitor
 			if d.has_meta("altar_locked"):
-				d.set_meta("altar_locked", not visible)
+				d.set_meta("altar_locked", not p_visible)
 	for m in active_doors_3d:
 		if is_instance_valid(m):
-			m.visible = visible
-	if not visible:
+			m.visible = p_visible
+	if not p_visible:
 		_near_door_active = false
 		_update_interact_visibility()
-	print("[BaseMap] Puertas Altar visible=", visible, " locked=", _altar_doors_locked)
+	print("[BaseMap] Puertas Altar visible=", p_visible, " locked=", _altar_doors_locked)
 
 # Atajo de teclado para entrar al portal si el contenedor está visible
 func _input(event):

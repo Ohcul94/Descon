@@ -42,6 +42,7 @@ var pending_skill_to_equip = null # v301.5: Habilidad esperando selección de sl
 var pending_sphere_slot = -1 # v760.0: Slot esperando selección de esfera (flujo instalación)
 var pending_sphere_item = null # v760.0: Esfera (ítem) esperando selección de slot
 var active_modales = [] # v307: Registro de modales activos para cerrado en capas (LIFO)
+var _last_tab_ui_update_frame: int = -1
 
 
 
@@ -152,6 +153,9 @@ func _ready():
 	_update_clan_ui()
 	_update_crafting_ui()
 	_update_quests_ui()
+	
+	# v314.0: Iniciar la precarga en memoria de modelos 3D y texturas de todo el inventario
+	InventoryCache.preload_all()
 	
 	_refresh_data()
 	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
@@ -324,15 +328,21 @@ func _input(event):
 		if is_open and is_on_map:
 			toggle()
 		else:
-			if not is_open: toggle()
+			# v314.0: Asegurar que la pestaña Mapa esté seleccionada ANTES de abrir,
+			# evitando que toggle() cargue innecesariamente el Hangar 3D y congele el juego.
 			if tabs:
 				for i in range(tabs.get_child_count()):
 					if tabs.get_child(i).name == "Mapa":
-						tabs.current_tab = i
+						if tabs.current_tab != i:
+							tabs.current_tab = i
 						var mt = tabs.get_child(i)
 						if mt and "selected_zone_id" in mt:
 							mt.selected_zone_id = -1
 						break
+			if not is_open:
+				toggle()
+			else:
+				_update_active_tab_ui()
 		get_viewport().set_input_as_handled()
 
 func toggle():
@@ -458,6 +468,12 @@ func _on_inventory_received(data: Dictionary):
 			NetworkManager.send_event("getShipEquip", preserved_id_temp)
 
 func _update_active_tab_ui():
+	if not is_open: return
+	var current_frame = Engine.get_process_frames()
+	if _last_tab_ui_update_frame == current_frame:
+		return
+	_last_tab_ui_update_frame = current_frame
+	
 	var tab_container = get_node_or_null("Window/TabContainer")
 	if not tab_container: return
 	
@@ -522,7 +538,7 @@ func _update_clan_ui():
 			if ct.has_method("setup"): ct.setup(self)
 			if NetworkManager: NetworkManager.send_event("getClanData", {})
 	
-	if ct and ct.has_method("update_ui"): ct.update_ui()
+	if is_open and ct and ct.has_method("update_ui"): ct.update_ui()
 
 func _update_weapons_ui():
 	var wt = get_node_or_null("Window/TabContainer/Armas")
@@ -537,7 +553,7 @@ func _update_weapons_ui():
 			# Hangar es 0, Esferas es 1. Queremos que Armas sea la pestaña 2.
 			tabs.move_child(wt, 2)
 	
-	if wt and wt.has_method("update_ui"): wt.update_ui()
+	if is_open and wt and wt.has_method("update_ui"): wt.update_ui()
 
 func _update_map_ui():
 	var mt = get_node_or_null("Window/TabContainer/Mapa")
@@ -548,7 +564,7 @@ func _update_map_ui():
 			mt.set_script(MapTabScript)
 			if mt.has_method("setup"): mt.setup(self)
 	
-	if mt and mt.has_method("update_ui"): mt.update_ui()
+	if is_open and mt and mt.has_method("update_ui"): mt.update_ui()
 
 func _update_crafting_ui():
 	var ct = get_node_or_null("Window/TabContainer/Crafteo")
@@ -559,7 +575,7 @@ func _update_crafting_ui():
 			ct.set_script(CraftingTabScript)
 			if ct.has_method("setup"): ct.setup(self)
 	
-	if ct and ct.has_method("update_ui"): ct.update_ui()
+	if is_open and ct and ct.has_method("update_ui"): ct.update_ui()
 
 # v262.520: Traductor de ID de ítem → código de slot (w/s/e/x)
 func _get_slot_from_id(item_id: String) -> String:
@@ -676,4 +692,4 @@ func _update_quests_ui():
 			qt.set_script(QuestsTabScript)
 			if qt.has_method("setup"): qt.setup(self)
 	
-	if qt and qt.has_method("update_ui"): qt.update_ui()
+	if is_open and qt and qt.has_method("update_ui"): qt.update_ui()

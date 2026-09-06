@@ -119,7 +119,7 @@ func _on_fog_data(data: Variant):
 			# Si difiere, re-escalar (no debería pasar)
 			if grid_res != GRID_RES:
 				var x = ci % grid_res
-				var y = int(ci / grid_res)
+				var y = int(float(ci) / float(grid_res))
 				var nx = int(float(x) / float(grid_res) * float(GRID_RES))
 				var ny = int(float(y) / float(grid_res) * float(GRID_RES))
 				ci = ny * GRID_RES + nx
@@ -327,7 +327,7 @@ func _draw_history(drawer: Node2D):
 			for ci in zset.keys():
 				var ci_int = int(ci)
 				var cx = ci_int % GRID_RES
-				var cy = int(ci_int / GRID_RES)
+				var cy = int(float(ci_int) / float(GRID_RES))
 				var x = float(cx) * CELL_PX
 				var y = float(cy) * CELL_PX
 				drawer.draw_rect(Rect2(x - overlap*0.5, y - overlap*0.5, CELL_PX + overlap, CELL_PX + overlap), Color.WHITE)

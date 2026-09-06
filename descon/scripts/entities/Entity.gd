@@ -2607,7 +2607,7 @@ func _setup_enemy_visuals():
 	
 	# Usar raw_entity_type primero (para "6-C"), si no, usar entity_type (para "6")
 	var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
-	var model_scale = float(enemy_cfg.get("modelScale", 1.0))
+	var _model_scale = float(enemy_cfg.get("modelScale", 1.0))
 	var _enemy_scale = 3.0 
 	var path = "" 
 	

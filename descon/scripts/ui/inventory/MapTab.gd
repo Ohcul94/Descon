@@ -5,6 +5,34 @@ extends Control
 
 var inv_main = null
 var selected_zone_id: int = -1
+static var _item_name_cache: Dictionary = {}
+
+static func _get_cached_item_name(item_id: String) -> String:
+	var clean_id = item_id.to_lower()
+	if _item_name_cache.has(clean_id):
+		return _item_name_cache[clean_id]
+		
+	var item_name = item_id
+	if GameConstants and "SHOP_ITEMS" in GameConstants:
+		for cat_key in GameConstants.SHOP_ITEMS:
+			var category = GameConstants.SHOP_ITEMS[cat_key]
+			if category is Array:
+				for shop_item in category:
+					if str(shop_item.get("id", "")).to_lower() == clean_id:
+						item_name = shop_item.get("name", item_id)
+						_item_name_cache[clean_id] = item_name
+						return item_name
+			elif category is Dictionary:
+				for sub_key in category:
+					var sub_list = category[sub_key]
+					if sub_list is Array:
+						for shop_item in sub_list:
+							if str(shop_item.get("id", "")).to_lower() == clean_id:
+								item_name = shop_item.get("name", item_id)
+								_item_name_cache[clean_id] = item_name
+								return item_name
+	_item_name_cache[clean_id] = item_name
+	return item_name
 
 func setup(p_inv_main):
 	inv_main = p_inv_main
@@ -299,23 +327,8 @@ func update_ui():
 					var item_chance = int(float(d.get("chance", 0.1)) * 100)
 					var item_amount = int(d.get("amount", 1))
 					
-					# Buscar nombre del item en shopItems
-					var item_name = item_id
-					for cat_key in GameConstants.SHOP_ITEMS:
-						var category = GameConstants.SHOP_ITEMS[cat_key]
-						if category is Array:
-							for shop_item in category:
-								if str(shop_item.get("id", "")).to_lower() == item_id.to_lower():
-									item_name = shop_item.get("name", item_id)
-									break
-						elif category is Dictionary:
-							for sub_key in category:
-								var sub_list = category[sub_key]
-								if sub_list is Array:
-									for shop_item in sub_list:
-										if str(shop_item.get("id", "")).to_lower() == item_id.to_lower():
-											item_name = shop_item.get("name", item_id)
-											break
+					# Buscar nombre del item en shopItems usando caché O(1)
+					var item_name = _get_cached_item_name(item_id)
 					var drop_qty = ""
 					if item_amount > 1:
 						drop_qty = " x" + str(item_amount)

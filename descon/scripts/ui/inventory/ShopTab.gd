@@ -78,7 +78,7 @@ func _create_shop_card(it, cat, parent):
 		var tex_container = CenterContainer.new()
 		v.add_child(tex_container)
 		var tex = TextureRect.new()
-		tex.texture = load(icon_path)
+		tex.texture = InventoryCache.get_texture(icon_path)
 		tex.custom_minimum_size = Vector2(48, 48)
 		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -347,7 +347,9 @@ func _open_detail_modal(it):
 			6: glb_path = "res://assets/Personajes/3D/Nave6/Nave6.glb"
 		
 	if glb_path != "" and ResourceLoader.exists(glb_path):
-		var model_scene = load(glb_path)
+		var model_scene = InventoryCache.get_model(glb_path)
+		if not model_scene:
+			model_scene = load(glb_path)
 		if model_scene:
 			var model = model_scene.instantiate()
 			_clean_internal_lights_in_ui(model)
