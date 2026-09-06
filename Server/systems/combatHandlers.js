@@ -1469,36 +1469,7 @@ socket.on('playerFire', (fireData) => {
             let dmg = parseFloat(hitData.damage) || 0;
             if (dmg <= 0) return;
 
-            let altar = state.altarState;
-            if (altar.shield >= dmg) {
-                altar.shield -= dmg;
-            } else {
-                altar.hp -= (dmg - altar.shield);
-                altar.shield = 0;
-            }
-
-            if (altar.hp <= 0) {
-                altar.hp = 0;
-                
-                io.to(`zone_${p.zone}`).emit('gameNotification', { 
-                    msg: "🚨 ¡EL ALTAR HA SIDO DESTRUIDO! MISIÓN FALLIDA. 🚨", 
-                    type: 'error' 
-                });
-
-                // Devolver a todos los jugadores en la zona al Lobby (Zona 1) después de 3 segundos
-                setTimeout(() => {
-                    altarDefenseManager.endMatch(false);
-                }, 3000);
-            }
-
-            // Emitir la actualización del estado del altar a todos en el sector
-            io.to(`zone_${p.zone}`).emit('altarStateUpdate', {
-                hp: Math.max(0, Math.ceil(altar.hp)),
-                maxHp: altar.maxHp,
-                shield: Math.max(0, Math.ceil(altar.shield)),
-                maxShield: altar.maxShield
-            });
-
+            altarDefenseManager.applyDamageToAltar(dmg, p.zone);
         } catch (e) {
             console.error("Error en altarHit:", e);
         }

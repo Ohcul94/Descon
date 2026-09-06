@@ -40,7 +40,9 @@ const DEFAULT_MOVEMENT_LIB = {
     "kamikaze": { label: "Kamikaze", icon: "💣", desc: "Se lanza hacia vos al bajar de HP y explota.", fields: ["activationHP", "speed", "explosionDamage", "duration", "explodeOnDeath"], sound: "", soundVolumePercent: 50, soundMaxDist: 1000 },
     "prowler": { label: "Merodeador", icon: "🐾", desc: "Movimiento de patrulla autónoma en un rango circular configurable.", fields: ["speed", "patrolRange", "changeTrigger", "changeInterval", "changeType"], sound: "", soundVolumePercent: 50, soundMaxDist: 800 },
     "aura_speed": { label: "Aura de Impulso", icon: "🌬️", desc: "Aumenta la velocidad en un área circular.", fields: ["activationHP", "radius", "speedBonus", "duration", "cooldown", "startDelay", "affectsEnemies", "affectsBosses"], sound: "", soundVolumePercent: 50, soundMaxDist: 1000 },
-    "boss": { label: "Cerebro de Boss (Fases)", icon: "💀", desc: "Cerebro de Boss con fases de combate (láser, embestida y misiles).", fields: ["speed", "stopDist", "startDelay"], sound: "", soundVolumePercent: 50, soundMaxDist: 800 }
+    "boss": { label: "Cerebro de Boss (Fases)", icon: "💀", desc: "Cerebro de Boss con fases de combate (láser, embestida y misiles).", fields: ["speed", "stopDist", "startDelay"], sound: "", soundVolumePercent: 50, soundMaxDist: 800 },
+    "altar_rush": { label: "Avanzar al Altar", icon: "⛩️", desc: "Avanza directamente hacia el Altar hasta la distancia de frenado.", fields: ["speed", "stopDist"], sound: "", soundVolumePercent: 50, soundMaxDist: 800 },
+    "nearest_target": { label: "Buscar Objetivo más Cercano", icon: "👁️", desc: "Detecta y persigue al objetivo más próximo (jugadores o altar) en un radio de visión en píxeles.", fields: ["speed", "stopDist", "visionRange", "targetPriority"], sound: "", soundVolumePercent: 50, soundMaxDist: 800 }
 };
 
 // v500.0: Definición de Campos de Condiciones para Fases Dinámicas

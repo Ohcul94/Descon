@@ -511,6 +511,45 @@ class AltarDefenseManager {
         if (!this.activeMatch) return;
         this.io.to(`zone_${this.activeMatch.zoneId}`).emit('updateExitPortals', portals);
     }
+
+    applyDamageToAltar(damage, zoneId = null) {
+        let dmg = parseFloat(damage) || 0;
+        if (dmg <= 0) return;
+
+        const altar = this.state.altarState;
+        if (!altar) return;
+
+        const targetZone = zoneId !== null ? zoneId : (this.activeMatch ? this.activeMatch.zoneId : altar.zone);
+
+        if (altar.shield >= dmg) {
+            altar.shield -= dmg;
+        } else {
+            altar.hp -= (dmg - altar.shield);
+            altar.shield = 0;
+        }
+
+        if (altar.hp <= 0) {
+            altar.hp = 0;
+            if (this.io) {
+                this.io.to(`zone_${targetZone}`).emit('gameNotification', { 
+                    msg: "🚨 ¡EL ALTAR HA SIDO DESTRUIDO! MISIÓN FALLIDA. 🚨", 
+                    type: 'error' 
+                });
+            }
+            setTimeout(() => {
+                this.endMatch(false);
+            }, 3000);
+        }
+
+        if (this.io) {
+            this.io.to(`zone_${targetZone}`).emit('altarStateUpdate', {
+                hp: Math.max(0, Math.ceil(altar.hp)),
+                maxHp: altar.maxHp,
+                shield: Math.max(0, Math.ceil(altar.shield)),
+                maxShield: altar.maxShield
+            });
+        }
+    }
 }
 
 module.exports = new AltarDefenseManager();

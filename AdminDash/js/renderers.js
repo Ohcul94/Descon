@@ -1532,7 +1532,7 @@ function renderEnemyDetail() {
                             </div>
                             <div class="form-grid" style="margin-top:1rem;">
                                 ${(MOVEMENT_LIB[m.type] || MOVEMENT_LIB['chase']).fields.map(f => {
-                                    const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración (ms)", cooldown: "Recarga (ms)", startDelay: "Retraso Inicio (ms)", explodeOnDeath: "Explotar al morir", radius: "Radio del Aura (px)", speedBonus: "Bono de Velocidad (px/s)", intervalMs: "Intervalo de Tick (ms)", affectsEnemies: "Afectar a otros Enemigos", affectsBosses: "Afectar a Bosses", patrolRange: "Rango de Patrulla (px)", changeInterval: "Frecuencia del Cambio (ms / px)", amplitude: "Amplitud (px)", frequency: "Frecuencia (Hz)" };
+                                    const moveLabels = { speed:"Velocidad (px/s)", stopDist:"Frenado (px)", idealDist:"Rango Seguro (px)", orbitRadius:"Radio Órbita (px)", chargeCooldown: "Recarga Dash (ms)", activationHP: "Activación HP (%)", explosionDamage: "Daño Explosión", duration: "Duración (ms)", cooldown: "Recarga (ms)", startDelay: "Retraso Inicio (ms)", explodeOnDeath: "Explotar al morir", radius: "Radio del Aura (px)", speedBonus: "Bono de Velocidad (px/s)", intervalMs: "Intervalo de Tick (ms)", affectsEnemies: "Afectar a otros Enemigos", affectsBosses: "Afectar a Bosses", patrolRange: "Rango de Patrulla (px)", changeInterval: "Frecuencia del Cambio (ms / px)", amplitude: "Amplitud (px)", frequency: "Frecuencia (Hz)", visionRange: "Rango de Visión (px)", targetPriority: "Prioridad de Objetivo" };
                                     if (f === 'changeTrigger') {
                                         const val = m[f] || 'time';
                                         return `<div class="field"><label>Criterio de Cambio</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].changeTrigger = this.value; renderEnemyDetail();">
@@ -1546,6 +1546,14 @@ function renderEnemyDetail() {
                                             <option value="random" ${val === 'random' ? 'selected' : ''}>🔀 Aleatorio</option>
                                             <option value="reverse" ${val === 'reverse' ? 'selected' : ''}>🔄 Invertir Sentido (180°)</option>
                                             <option value="orthogonal" ${val === 'orthogonal' ? 'selected' : ''}>📐 Giro 90°</option>
+                                        </select></div>`;
+                                    }
+                                    if (f === 'targetPriority') {
+                                        const val = m[f] || 'all';
+                                        return `<div class="field"><label>Prioridad de Objetivo</label><select style="background:#0f172a; border:none; color:white; border-radius:4px; padding:4px;" onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].targetPriority = this.value; renderEnemyDetail();">
+                                            <option value="all" ${val === 'all' ? 'selected' : ''}>🌐 El más próximo (Jugador o Altar)</option>
+                                            <option value="players_only" ${val === 'players_only' ? 'selected' : ''}>👤 Solo Jugadores</option>
+                                            <option value="altar_only" ${val === 'altar_only' ? 'selected' : ''}>⛩️ Solo Altar</option>
                                         </select></div>`;
                                     }
                                     if (['explodeOnDeath', 'affectsEnemies', 'affectsBosses'].includes(f)) return `<div class="field" style="display:flex; align-items:center; gap:10px; border:none; background:transparent;"><input type="checkbox" ${m[f] ? 'checked' : ''} onchange="config.enemyModels['${selectedEnemyId}'].movementPhases[${idx}].${f} = this.checked"><label style="margin:0;">${moveLabels[f]}</label></div>`;
@@ -4483,15 +4491,7 @@ function renderModes() {
                                                             }, 'var(--accent)', `ad-wave-${idx}-phase-${phIdx}`)}
                                                         </div>
                                                         
-                                                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                                                            <div class="field">
-                                                                <label>Foco Objetivo</label>
-                                                                <select onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].focusTarget = this.value">
-                                                                    <option value="altar" ${ph.focusTarget === 'altar' ? 'selected' : ''}>Altar (Puro)</option>
-                                                                    <option value="altar_aggro" ${ph.focusTarget === 'altar_aggro' ? 'selected' : ''}>Altar (con Aggro)</option>
-                                                                    <option value="players" ${ph.focusTarget === 'players' ? 'selected' : ''}>Jugadores</option>
-                                                                </select>
-                                                            </div>
+                                                        <div style="display:grid; grid-template-columns: ${ph.spawnType === 'staggered' ? '1fr 1fr 1fr' : '1fr 1fr'}; gap:10px;">
                                                             <div class="field">
                                                                 <label>Tipo Spawn</label>
                                                                 <select onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].spawnType = this.value; renderModes();">
@@ -4499,9 +4499,6 @@ function renderModes() {
                                                                     <option value="staggered" ${ph.spawnType === 'staggered' ? 'selected' : ''}>Escalonados</option>
                                                                 </select>
                                                             </div>
-                                                        </div>
-
-                                                        <div style="display:grid; grid-template-columns: ${ph.spawnType === 'staggered' ? '1fr 1fr' : '1fr'}; gap:10px;">
                                                             <div class="field">
                                                                 <label>Delay Inicio Fase (ms)</label>
                                                                 <input type="number" step="100" value="${ph.startDelayMs || 0}" onchange="config.gameModes.altar_defense.waves[${idx}].phases[${phIdx}].startDelayMs = parseInt(this.value)">

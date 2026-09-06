@@ -764,6 +764,8 @@ function updateMovementPhaseType(id, idx, type) {
             else if (f === 'patrolRange') config.enemyModels[id].movementPhases[idx][f] = 300;
             else if (f === 'amplitude') config.enemyModels[id].movementPhases[idx][f] = 100;
             else if (f === 'frequency') config.enemyModels[id].movementPhases[idx][f] = 1.5;
+            else if (f === 'visionRange') config.enemyModels[id].movementPhases[idx][f] = 800;
+            else if (f === 'targetPriority') config.enemyModels[id].movementPhases[idx][f] = 'all';
             else config.enemyModels[id].movementPhases[idx][f] = 150;
         }
     });
@@ -2489,7 +2491,6 @@ function addAltarDefenseWave() {
                 spawnType: "together",
                 staggerDelayMs: 500,
                 startDelayMs: 0,
-                focusTarget: "altar",
                 spawnerDistribution: {
                     random: 5
                 }
@@ -2515,7 +2516,6 @@ function addAltarDefensePhase(waveIdx) {
         spawnType: "together",
         staggerDelayMs: 500,
         startDelayMs: 0,
-        focusTarget: "altar",
         spawnerDistribution: {
             random: 5
         }
