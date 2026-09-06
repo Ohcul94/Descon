@@ -700,67 +700,92 @@ func _create_timers_ui():
 		altar_hud_container.name = "AltarHUDContainer"
 		altar_hud_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 		altar_hud_container.grow_horizontal = Control.GROW_DIRECTION_BOTH
-		altar_hud_container.offset_top = 75
+		altar_hud_container.offset_top = 8
 		ui_canvas.add_child(altar_hud_container)
 		
-		var altar_panel = PanelContainer.new()
-		altar_panel.name = "AltarPanel"
-		var sb_altar = StyleBoxFlat.new()
-		sb_altar.bg_color = Color(0.05, 0.05, 0.05, 0.85)
-		sb_altar.set_border_width_all(2)
-		sb_altar.border_color = Color(0, 1.0, 0.5, 0.8) # Borde verde neón místico
-		sb_altar.set_corner_radius_all(10)
-		sb_altar.set_content_margin_all(8)
-		altar_panel.add_theme_stylebox_override("panel", sb_altar)
-		altar_hud_container.add_child(altar_panel)
-		
 		var vbox = VBoxContainer.new()
-		altar_panel.add_child(vbox)
+		vbox.name = "AltarVBox"
+		vbox.add_theme_constant_override("separation", 2)
+		vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		altar_hud_container.add_child(vbox)
 		
+		# Titulo centrado arriba
 		var title = Label.new()
-		title.text = "🏛️ ALTAR SENSORIAL 🏛️"
+		title.text = "ALTAR"
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title.add_theme_font_size_override("font_size", 11)
+		title.add_theme_font_size_override("font_size", 9)
 		title.add_theme_color_override("font_color", Color(0, 1.0, 0.5))
+		title.add_theme_color_override("font_outline_color", Color.BLACK)
+		title.add_theme_constant_override("outline_size", 2)
 		vbox.add_child(title)
 		
-		# Escudo (Azul)
+		# Fila de barras con numeros centrados adentro
+		var hbox_bars = HBoxContainer.new()
+		hbox_bars.add_theme_constant_override("separation", 4)
+		hbox_bars.alignment = BoxContainer.ALIGNMENT_CENTER
+		vbox.add_child(hbox_bars)
+		
+		# Escudo (Azul) - Control con ProgressBar + Label centrado
+		var sh_container = Control.new()
+		sh_container.custom_minimum_size = Vector2(60, 14)
+		hbox_bars.add_child(sh_container)
+		
 		var sh_progress = ProgressBar.new()
 		sh_progress.name = "AltarShieldBar"
-		sh_progress.custom_minimum_size = Vector2(250, 10)
 		sh_progress.show_percentage = false
+		sh_progress.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		var sb_sh_bg = StyleBoxFlat.new()
 		sb_sh_bg.bg_color = Color(0.1, 0.1, 0.2, 0.6)
-		sb_sh_bg.set_corner_radius_all(5)
+		sb_sh_bg.set_corner_radius_all(3)
 		sh_progress.add_theme_stylebox_override("background", sb_sh_bg)
 		var sb_sh_fill = StyleBoxFlat.new()
 		sb_sh_fill.bg_color = Color(0, 0.5, 1.0, 0.95)
-		sb_sh_fill.set_corner_radius_all(5)
+		sb_sh_fill.set_corner_radius_all(3)
 		sh_progress.add_theme_stylebox_override("fill", sb_sh_fill)
-		vbox.add_child(sh_progress)
+		sh_container.add_child(sh_progress)
 		
-		# Vida (Verde)
+		var sh_lbl = Label.new()
+		sh_lbl.name = "AltarShieldLabel"
+		sh_lbl.text = "5000"
+		sh_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sh_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		sh_lbl.add_theme_font_size_override("font_size", 8)
+		sh_lbl.add_theme_color_override("font_color", Color.WHITE)
+		sh_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		sh_lbl.add_theme_constant_override("outline_size", 2)
+		sh_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		sh_container.add_child(sh_lbl)
+		
+		# Vida (Verde) - Control con ProgressBar + Label centrado
+		var hp_container = Control.new()
+		hp_container.custom_minimum_size = Vector2(60, 14)
+		hbox_bars.add_child(hp_container)
+		
 		var hp_progress = ProgressBar.new()
 		hp_progress.name = "AltarHpBar"
-		hp_progress.custom_minimum_size = Vector2(250, 10)
 		hp_progress.show_percentage = false
+		hp_progress.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		var sb_hp_bg = StyleBoxFlat.new()
 		sb_hp_bg.bg_color = Color(0.2, 0.1, 0.1, 0.6)
-		sb_hp_bg.set_corner_radius_all(5)
+		sb_hp_bg.set_corner_radius_all(3)
 		hp_progress.add_theme_stylebox_override("background", sb_hp_bg)
 		var sb_hp_fill = StyleBoxFlat.new()
 		sb_hp_fill.bg_color = Color(0, 0.9, 0.1, 0.95)
-		sb_hp_fill.set_corner_radius_all(5)
+		sb_hp_fill.set_corner_radius_all(3)
 		hp_progress.add_theme_stylebox_override("fill", sb_hp_fill)
-		vbox.add_child(hp_progress)
+		hp_container.add_child(hp_progress)
 		
-		var status_lbl = Label.new()
-		status_lbl.name = "AltarStatusLabel"
-		status_lbl.text = "Escudo: --/-- | Vida: --/--"
-		status_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		status_lbl.add_theme_font_size_override("font_size", 10)
-		status_lbl.add_theme_color_override("font_color", Color.WHITE)
-		vbox.add_child(status_lbl)
+		var hp_lbl = Label.new()
+		hp_lbl.name = "AltarHpLabel"
+		hp_lbl.text = "10000"
+		hp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hp_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		hp_lbl.add_theme_font_size_override("font_size", 8)
+		hp_lbl.add_theme_color_override("font_color", Color.WHITE)
+		hp_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		hp_lbl.add_theme_constant_override("outline_size", 2)
+		hp_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		hp_container.add_child(hp_lbl)
 		
 		# Inicialización con datos configurados en el cliente local si están cargados
 		var full_cfg = GameConstants.get("FULL_CONFIG")
@@ -772,7 +797,8 @@ func _create_timers_ui():
 			sh_progress.value = max_sh
 			hp_progress.max_value = max_hp
 			hp_progress.value = max_hp
-			status_lbl.text = "Escudo: " + str(int(max_sh)) + "/" + str(int(max_sh)) + " | Vida: " + str(int(max_hp)) + "/" + str(int(max_hp))
+			sh_lbl.text = str(int(max_sh))
+			hp_lbl.text = str(int(max_hp))
 	
 	# 2. ALERTA DE SPAWN LOCK (Top Center - below timer/altar)
 	var center_container = CenterContainer.new()
@@ -781,7 +807,7 @@ func _create_timers_ui():
 	
 	# Desplazar hacia abajo si la barra del altar está presente para que no colisionen
 	if is_ad:
-		center_container.offset_top = 180
+		center_container.offset_top = 40
 	else:
 		center_container.offset_top = 85
 		
@@ -821,9 +847,10 @@ func _on_altar_state_update(data: Dictionary):
 	var ui_canvas = get_node_or_null("PortalUICanvas")
 	if not is_instance_valid(ui_canvas): return
 	
-	var sh_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarPanel/VBoxContainer/AltarShieldBar") as ProgressBar
-	var hp_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarPanel/VBoxContainer/AltarHpBar") as ProgressBar
-	var status_lbl = ui_canvas.get_node_or_null("AltarHUDContainer/AltarPanel/VBoxContainer/AltarStatusLabel") as Label
+	var sh_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/sh_container/AltarShieldBar") as ProgressBar
+	var hp_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/hp_container/AltarHpBar") as ProgressBar
+	var sh_lbl = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/sh_container/AltarShieldLabel") as Label
+	var hp_lbl = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/hp_container/AltarHpLabel") as Label
 	
 	if is_instance_valid(sh_bar):
 		sh_bar.max_value = max_sh
@@ -831,8 +858,10 @@ func _on_altar_state_update(data: Dictionary):
 	if is_instance_valid(hp_bar):
 		hp_bar.max_value = max_hp
 		hp_bar.value = hp
-	if is_instance_valid(status_lbl):
-		status_lbl.text = "Escudo: " + str(int(sh)) + "/" + str(int(max_sh)) + " | Vida: " + str(int(hp)) + "/" + str(int(max_hp))
+	if is_instance_valid(sh_lbl):
+		sh_lbl.text = str(int(sh))
+	if is_instance_valid(hp_lbl):
+		hp_lbl.text = str(int(hp))
 
 func _on_raid_time_update(data: Dictionary):
 	var remaining = int(data.get("remaining", 0))

@@ -25,7 +25,7 @@ gradient = SubResource("Gradient_sg6kg")
 use_hdr = true
 
 [resource]
-render_priority = 1
+render_priority = 0
 shader = ExtResource("1_gb77g")
 shader_parameter/Size_Sphere = 0.25
 shader_parameter/Gradient_Line = 0.93

@@ -6110,8 +6110,8 @@
                     "phases": [
                         {
                             "count": 12,
-                            "enemyId": "5-B",
-                            "focusTarget": "altar",
+                            "enemyId": "1-A",
+                            "focusTarget": "players",
                             "name": "Fase 1",
                             "spawnType": "together",
                             "spawnerDistribution": {
@@ -6126,13 +6126,17 @@
                             "startDelayMs": 0
                         },
                         {
-                            "count": 5,
-                            "enemyId": "6-C",
+                            "count": 4,
+                            "enemyId": "11-A",
                             "focusTarget": "altar_aggro",
                             "name": "Fase 2",
-                            "spawnType": "staggered",
+                            "spawnType": "together",
                             "spawnerDistribution": {
-                                "random": 5
+                                "0": 1,
+                                "1": 1,
+                                "2": 1,
+                                "3": 1,
+                                "random": 0
                             },
                             "spawnerIndex": "random",
                             "staggerDelayMs": 1000,
