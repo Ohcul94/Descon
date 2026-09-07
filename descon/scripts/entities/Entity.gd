@@ -1771,8 +1771,7 @@ func die():
 
 # ---------------------------------------------------------
 # v266.985: Mecánicas de Ataque Orbital (Pedido del Usuario)
-# Ahora gestionadas por Projectile.gd directamente para consistencia de asset
-var _is_orbital_active: bool = false
+# Gestionadas por Projectile.gd y EntityMechanicsVFX.gd
 
 # ==============================================================================
 # MECÁNICAS DE ENEMIGOS Y AURAS (Delegadas en EntityMechanicsVFX)

@@ -19,6 +19,7 @@ const TEX_REFLECT_AURA = preload("res://assets/Efectos de Skills/Reflect (Rojo)/
 const TEX_REFLECT_IMPACT = preload("res://assets/Efectos de Skills/Reflect (Rojo)/Reflect (Transp).png")
 
 var _color_aura_3d_root: Node3D = null
+var is_orbital_active: bool = false
 
 func setup(entity_ref: CharacterBody2D) -> void:
 	entity = entity_ref
@@ -33,11 +34,11 @@ func handle_enemy_action(data: Dictionary) -> void:
 
 	match action:
 		"orbital_strike_start": 
-			entity.set("_is_orbital_active", true)
+			is_orbital_active = true
 		"orbital_strike_static":
 			stop_orbital_orbit()
 		"orbital_strike_fire": 
-			entity.set("_is_orbital_active", false)
+			is_orbital_active = false
 			fire_orbital_strike()
 		"survival_dome_charging":
 			entity._active_survival_dome = {
