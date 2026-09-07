@@ -20,23 +20,7 @@ const { getPlayerRAMAdapter } = require('./utils/ramAdapter'); // v6.02
 const { isAdmin, isAdminSocket, checkLoginLock, registerLoginFailure, registerLoginSuccess } = require('./utils/security'); // v6.03 - Centralización de Admin
 const bugReports = require('./systems/bugReportManager'); // v1.0: Reportes de Bugs
 
-const normalizeZone = (z) => {
-    if (z === undefined || z === null) return 1;
-    if (typeof z === 'string') {
-        if (z.startsWith('extract_')) {
-            const parts = z.split('_');
-            return parseInt(parts[1]) || 10;
-        }
-        if (z.startsWith('dungeon_') || z.startsWith('dungeon')) {
-            return 99;
-        }
-        if (!isNaN(z) && z.trim() !== '') {
-            return Number(z);
-        }
-        return z;
-    }
-    return z;
-};
+const { normalizeZone, isSameZone } = require('./utils/zoneUtils');
 
 // v1.0: Filtrar mensajes de soporte expirados de más de 72 horas
 const cleanExpiredSupportMail = (mailbox) => {
@@ -391,80 +375,9 @@ const partyTimeouts = {};
 // v370.2: Inicializar Combat Tracker (Métricas de Daño/Curación)
 combatTracker.initCombatTracker(state);
 
-// v370.1: Inicializar monitores de rendimiento AAA en RAM
-state.performance = {
-    // Tick metrics
-    avgTickTime: 0,
-    maxTickTime: 0,
-    lastTickDuration: 0,
-    p99TickTime: 0,   // Percentil 99 de latencia de tick
-    p50TickTime: 0,   // Mediana real del tick
-    // CPU / Memoria
-    memoryUsage: {},
-    cpuUsage: 0,
-    rssHistory: [],   // Últimos 60 samples de RSS (MB)
-    heapHistory: [],  // Últimos 60 samples de heapUsed (MB)
-    // Red — bytes globales
-    network: {
-        totalBytesSent: 0,
-        totalBytesReceived: 0
-    },
-    // PPS (Paquetes por Segundo) — globales del proceso
-    ppsIn: 0,
-    ppsOut: 0,
-    // Acumuladores internos entre intervalos
-    _pktIn: 0,
-    _pktOut: 0,
-    _bytesOutAcc: 0,  // Acumulador de egreso en el intervalo
-    _bytesInAcc: 0
-};
-
-let lastCpuUsage = process.cpuUsage();
-let lastCpuTime = Date.now();
-
-// v370.1: Intervalo AAA de métricas (2s)
-setInterval(() => {
-    const elapsedMs = Date.now() - lastCpuTime;
-    if (elapsedMs <= 0) return;
-    const usage = process.cpuUsage(lastCpuUsage);
-    lastCpuUsage = process.cpuUsage();
-    lastCpuTime = Date.now();
-    
-    // CPU del proceso Node.js (no de la VM completa)
-    const totalMs = (usage.user + usage.system) / 1000;
-    const cpusCount = require('os').cpus().length || 1;
-    const percent = (totalMs / elapsedMs) * 100 / cpusCount;
-    state.performance.cpuUsage = parseFloat(percent.toFixed(2));
-    
-    // Memoria — sample actual
-    const mem = process.memoryUsage();
-    const rssMB  = parseFloat((mem.rss      / 1024 / 1024).toFixed(2));
-    const heapMB = parseFloat((mem.heapUsed / 1024 / 1024).toFixed(2));
-    state.performance.memoryUsage = {
-        heapUsed:  heapMB,
-        heapTotal: parseFloat((mem.heapTotal / 1024 / 1024).toFixed(2)),
-        rss:       rssMB
-    };
-    
-    // Historial circular de memoria (máx 60 puntos = 2 minutos)
-    state.performance.rssHistory.push(rssMB);
-    state.performance.heapHistory.push(heapMB);
-    if (state.performance.rssHistory.length  > 60) state.performance.rssHistory.shift();
-    if (state.performance.heapHistory.length > 60) state.performance.heapHistory.shift();
-    
-    // PPS calculado sobre el intervalo de 2s
-    const elapsedSec = elapsedMs / 1000;
-    state.performance.ppsIn  = parseFloat((state.performance._pktIn  / elapsedSec).toFixed(1));
-    state.performance.ppsOut = parseFloat((state.performance._pktOut / elapsedSec).toFixed(1));
-    state.performance._pktIn  = 0;
-    state.performance._pktOut = 0;
-    
-    // Sincronizar acumuladores de bytes al contador global
-    state.performance.network.totalBytesSent     += state.performance._bytesOutAcc;
-    state.performance.network.totalBytesReceived += state.performance._bytesInAcc;
-    state.performance._bytesOutAcc = 0;
-    state.performance._bytesInAcc  = 0;
-}, 2000);
+// v370.1: Inicializar monitores de rendimiento AAA en RAM (Modularizado en systems/performanceMonitor.js)
+const { initPerformanceMonitor } = require('./systems/performanceMonitor');
+initPerformanceMonitor(state);
 
 // v370.0: Almacenamiento de invitaciones activas de Defensa del Altar
 const altarDefenseInvites = new Map();
