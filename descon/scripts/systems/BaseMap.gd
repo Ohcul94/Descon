@@ -12,6 +12,7 @@ const SHADER_DOME_STARFIELD = preload("res://resources/shaders/dome_starfield.gd
 const MODEL_PORTAL_ICON = preload("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
 const MODEL_VAULT_ICON = preload("res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb")
 const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb")
+const AltarAreaScript = preload("res://scripts/entities/AltarArea.gd")
 
 
 # Script Base para Mapas Instanciados con Soporte 3D Dinámico.
@@ -1746,7 +1747,7 @@ func _spawn_altar_if_configured():
 
 		# --- AÑADIR COLLIDERS 2D PARA EL ALTAR ---
 		# 1. Area2D lógica para capturar impactos y daño
-		var altar_area = Area2D.new()
+		var altar_area = AltarAreaScript.new()
 		altar_area.name = "AltarArea2D"
 		altar_area.collision_layer = 1 | 2
 		altar_area.collision_mask = 1 | 2
@@ -1755,7 +1756,7 @@ func _spawn_altar_if_configured():
 		
 		var col_shape = CollisionShape2D.new()
 		var circle = CircleShape2D.new()
-		circle.radius = 120.0
+		circle.radius = 160.0
 		col_shape.shape = circle
 		altar_area.add_child(col_shape)
 		add_child(altar_area)
@@ -1769,7 +1770,7 @@ func _spawn_altar_if_configured():
 		
 		var static_col = CollisionShape2D.new()
 		var static_circle = CircleShape2D.new()
-		static_circle.radius = 100.0
+		static_circle.radius = 160.0
 		static_col.shape = static_circle
 		static_body.add_child(static_col)
 		add_child(static_body)
@@ -1874,7 +1875,7 @@ func _spawn_map_objects():
 						altar_3d.add_child(light)
 						
 					# Area2D lógica para capturar impactos y daño
-					var altar_area = Area2D.new()
+					var altar_area = AltarAreaScript.new()
 					altar_area.name = "AltarArea2D"
 					altar_area.collision_layer = 1 | 2
 					altar_area.collision_mask = 1 | 2
@@ -1883,7 +1884,7 @@ func _spawn_map_objects():
 					
 					var col_shape = CollisionShape2D.new()
 					var circle = CircleShape2D.new()
-					circle.radius = 120.0
+					circle.radius = 160.0
 					col_shape.shape = circle
 					altar_area.add_child(col_shape)
 					add_child(altar_area)
@@ -1897,7 +1898,7 @@ func _spawn_map_objects():
 					
 					var static_col = CollisionShape2D.new()
 					var static_circle = CircleShape2D.new()
-					static_circle.radius = 100.0
+					static_circle.radius = 120.0
 					static_col.shape = static_circle
 					static_body.add_child(static_col)
 					add_child(static_body)
@@ -3292,10 +3293,7 @@ func _spawn_objects_from_custom_scene():
 					_occluder_fader.register_occluder(child)
 				
 			"altar":
-				# Altar de Defensa del Altar
-				# v770.11 FIX: El radio de colisión debe ser fijo (160px área / 120px sólido), NO multiplicar por scale_val (15x)
-				# Antes: 100px * 15 = 1500px de radio (3.000px de diámetro) bloqueaba todo el pasillo central y expulsaba la nave a Y:2422.
-				var altar_area = Area2D.new()
+				var altar_area = AltarAreaScript.new()
 				altar_area.name = "AltarArea2D"
 				altar_area.collision_layer = 1 | 2
 				altar_area.collision_mask = 1 | 2

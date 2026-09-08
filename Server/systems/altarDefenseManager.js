@@ -521,6 +521,7 @@ class AltarDefenseManager {
 
         const targetZone = zoneId !== null ? zoneId : (this.activeMatch ? this.activeMatch.zoneId : altar.zone);
 
+        const wasShield = altar.shield > 0;
         if (altar.shield >= dmg) {
             altar.shield -= dmg;
         } else {
@@ -546,7 +547,9 @@ class AltarDefenseManager {
                 hp: Math.max(0, Math.ceil(altar.hp)),
                 maxHp: altar.maxHp,
                 shield: Math.max(0, Math.ceil(altar.shield)),
-                maxShield: altar.maxShield
+                maxShield: altar.maxShield,
+                damage: Math.round(dmg),
+                isShield: wasShield
             });
         }
     }

@@ -20,6 +20,12 @@ var last_warn_time: float = 0.0
 var arena_nexuses_nodes: Dictionary = {}
 var arena_pillars_nodes: Dictionary = {}
 
+# Referencias directas HUD del Altar
+var altar_hp_bar: ProgressBar = null
+var altar_shield_bar: ProgressBar = null
+var altar_hp_lbl: Label = null
+var altar_shield_lbl: Label = null
+
 # Determina si esta instancia es una partida de Defensa del Altar (dinámico desde config)
 func _is_altar_defense_zone() -> bool:
 	var zid = str(zone_id)
@@ -721,12 +727,14 @@ func _create_timers_ui():
 		
 		# Fila de barras con numeros centrados adentro
 		var hbox_bars = HBoxContainer.new()
+		hbox_bars.name = "hbox_bars"
 		hbox_bars.add_theme_constant_override("separation", 4)
 		hbox_bars.alignment = BoxContainer.ALIGNMENT_CENTER
 		vbox.add_child(hbox_bars)
 		
 		# Escudo (Azul) - Control con ProgressBar + Label centrado
 		var sh_container = Control.new()
+		sh_container.name = "sh_container"
 		sh_container.custom_minimum_size = Vector2(60, 14)
 		hbox_bars.add_child(sh_container)
 		
@@ -756,8 +764,12 @@ func _create_timers_ui():
 		sh_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		sh_container.add_child(sh_lbl)
 		
+		altar_shield_bar = sh_progress
+		altar_shield_lbl = sh_lbl
+		
 		# Vida (Verde) - Control con ProgressBar + Label centrado
 		var hp_container = Control.new()
+		hp_container.name = "hp_container"
 		hp_container.custom_minimum_size = Vector2(60, 14)
 		hbox_bars.add_child(hp_container)
 		
@@ -786,6 +798,9 @@ func _create_timers_ui():
 		hp_lbl.add_theme_constant_override("outline_size", 2)
 		hp_lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		hp_container.add_child(hp_lbl)
+		
+		altar_hp_bar = hp_progress
+		altar_hp_lbl = hp_lbl
 		
 		# Inicialización con datos configurados en el cliente local si están cargados
 		var full_cfg = GameConstants.get("FULL_CONFIG")
@@ -844,13 +859,19 @@ func _on_altar_state_update(data: Dictionary):
 	var sh = float(data.get("shield", 0))
 	var max_sh = float(data.get("maxShield", 5000))
 	
-	var ui_canvas = get_node_or_null("PortalUICanvas")
-	if not is_instance_valid(ui_canvas): return
+	# 1. Actualizar barras por referencia directa o fallback de búsqueda
+	var sh_bar = altar_shield_bar
+	var hp_bar = altar_hp_bar
+	var sh_lbl = altar_shield_lbl
+	var hp_lbl = altar_hp_lbl
 	
-	var sh_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/sh_container/AltarShieldBar") as ProgressBar
-	var hp_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/hp_container/AltarHpBar") as ProgressBar
-	var sh_lbl = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/sh_container/AltarShieldLabel") as Label
-	var hp_lbl = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/hp_container/AltarHpLabel") as Label
+	if not is_instance_valid(sh_bar) or not is_instance_valid(hp_bar):
+		var ui_canvas = get_node_or_null("PortalUICanvas")
+		if is_instance_valid(ui_canvas):
+			sh_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/sh_container/AltarShieldBar") as ProgressBar
+			hp_bar = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/hp_container/AltarHpBar") as ProgressBar
+			sh_lbl = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/sh_container/AltarShieldLabel") as Label
+			hp_lbl = ui_canvas.get_node_or_null("AltarHUDContainer/AltarVBox/hbox_bars/hp_container/AltarHpLabel") as Label
 	
 	if is_instance_valid(sh_bar):
 		sh_bar.max_value = max_sh
@@ -862,6 +883,17 @@ func _on_altar_state_update(data: Dictionary):
 		sh_lbl.text = str(int(sh))
 	if is_instance_valid(hp_lbl):
 		hp_lbl.text = str(int(hp))
+		
+	# 2. Spawn de texto de daño flotante sobre el Altar (evento transmitido por servidor)
+	if data.has("damage") and float(data.damage) > 0:
+		var dmg_val = float(data.damage)
+		var is_shield_hit = bool(data.get("isShield", false))
+		var altar_nodes = get_tree().get_nodes_in_group("altar")
+		for a_node in altar_nodes:
+			if is_instance_valid(a_node) and a_node.has_method("_spawn_damage_text"):
+				var clr = Color(0.1, 0.6, 1.0) if is_shield_hit else Color(1.0, 0.25, 0.25)
+				a_node.call("_spawn_damage_text", str(int(dmg_val)), clr)
+				break
 
 func _on_raid_time_update(data: Dictionary):
 	var remaining = int(data.get("remaining", 0))

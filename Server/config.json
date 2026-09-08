@@ -3155,16 +3155,31 @@
                     "castTimeMs": 0,
                     "fireRange": 800,
                     "fireRate": 2000,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "movementPhases": [
                 {
                     "idealDist": 300,
-                    "speed": 500,
+                    "speed": 250,
                     "startDelay": 2000,
                     "stopDist": 150,
-                    "type": "sniper"
+                    "type": "altar_rush",
+                    "conditions": {
+                        "engagement": "idle"
+                    }
+                },
+                {
+                    "type": "sniper",
+                    "speed": 150,
+                    "stopDist": 150,
+                    "startDelay": 2000,
+                    "idealDist": 300,
+                    "conditions": {
+                        "engagement": "combat"
+                    }
                 }
             ],
             "name": "Enemigo 1 A",
@@ -3174,7 +3189,8 @@
             "rewardOhcu": 1,
             "shield": 100,
             "speed": 450,
-            "stopOnOutOfSight": true
+            "stopOnOutOfSight": false,
+            "visionRange": 50000
         },
         "1-B": {
             "aggressive": true,
@@ -3583,7 +3599,9 @@
                     "fireRate": 820,
                     "slowAmount": 0,
                     "slowDuration": 0,
-                    "type": "laser"
+                    "type": "laser",
+                    "activationMode": "time",
+                    "activationIntervalMs": 0
                 }
             ],
             "name": "Enemigo 11 A",
@@ -3592,7 +3610,17 @@
             "rewardHubs": 9600,
             "rewardOhcu": 96,
             "shield": 13000,
-            "speed": 285
+            "speed": 285,
+            "movementPhases": [
+                {
+                    "type": "chase",
+                    "speed": 285,
+                    "stopDist": 150,
+                    "startDelay": 0
+                }
+            ],
+            "defenseMechanics": [],
+            "lootDrops": []
         },
         "11-B": {
             "bulletDamage": 1140,
@@ -9214,6 +9242,32 @@
             "soundMaxDist": 800,
             "soundVolumeDb": 0,
             "soundVolumePercent": 50
+        },
+        "altar_rush": {
+            "label": "Avanzar al Altar",
+            "icon": "⛩️",
+            "desc": "Avanza directamente hacia el Altar hasta la distancia de frenado.",
+            "fields": [
+                "speed",
+                "stopDist"
+            ],
+            "sound": "",
+            "soundVolumePercent": 50,
+            "soundMaxDist": 800
+        },
+        "nearest_target": {
+            "label": "Buscar Objetivo más Cercano",
+            "icon": "👁️",
+            "desc": "Detecta y persigue al objetivo más próximo (jugadores o altar) en un radio de visión en píxeles.",
+            "fields": [
+                "speed",
+                "stopDist",
+                "visionRange",
+                "targetPriority"
+            ],
+            "sound": "",
+            "soundVolumePercent": 50,
+            "soundMaxDist": 800
         }
     },
     "pilotConfig": {

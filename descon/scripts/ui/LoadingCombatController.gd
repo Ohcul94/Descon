@@ -134,57 +134,80 @@ func _spawn_laser_projectile(from_ship: Node3D, to_ship: Node3D, col: Color, is_
 	var forward_dir = (to_ship.global_position - from_ship.global_position).normalized()
 	var start_pos = from_ship.global_position + forward_dir * 1.3
 	
-	# 1. FASE DE COMENZAR: Fogonazo de anticipación usando la escena oficial
-	var antic_path = "res://VFX/scenes/VFX_Anticipation_hadouken.tscn" if is_emp else "res://VFX/scenes/VFX_Anticipation_wave_digital.tscn"
-	if ResourceLoader.exists(antic_path):
-		var antic_scene = load(antic_path)
-		if antic_scene:
-			var antic_inst = antic_scene.instantiate()
-			if antic_inst is Node3D:
-				add_child(antic_inst)
-				antic_inst.position = start_pos
-				antic_inst.scale = Vector3(0.8, 0.8, 0.8)
-				antic_inst.look_at(to_ship.position, Vector3.UP)
-				
-				# Reproducir animación inicial si posee AnimationPlayer
-				var anim = antic_inst.get_node_or_null("AnimationPlayer")
-				if anim:
-					anim.play("Init")
-				
-				# Auto-liberar tras un tiempo prudencial
-				var tw_antic = create_tween()
-				tw_antic.tween_interval(1.2)
-				tw_antic.tween_callback(antic_inst.queue_free)
-				
-	# 2. Instanciar escena de proyectil oficial (Hadouken para EMP, Cube para Curación)
-	var proj_path = "res://VFX/scenes/VFX_Hadouken.tscn" if is_emp else "res://VFX/scenes/VFX_Cube_projectile.tscn"
-	var proj_node: Node3D = null
-	if ResourceLoader.exists(proj_path):
-		var proj_scene = load(proj_path)
-		if proj_scene:
-			proj_node = proj_scene.instantiate()
-			
-	# Failsafe en caso de que no exista el archivo
-	if not proj_node:
-		proj_node = Node3D.new()
-		var m = MeshInstance3D.new()
-		m.mesh = SphereMesh.new()
-		m.mesh.radius = 0.15; m.mesh.height = 0.3
-		proj_node.add_child(m)
+	# 1. FASE DE ANTICIPACIÓN: Fogonazo de luz y energía procedural (100% compatible con OpenGL Renderer)
+	var antic_node = Node3D.new()
+	antic_node.position = start_pos
+	add_child(antic_node)
+	
+	var antic_mesh = MeshInstance3D.new()
+	antic_mesh.mesh = SphereMesh.new()
+	antic_mesh.mesh.radius = 0.22
+	antic_mesh.mesh.height = 0.44
+	var antic_mat = StandardMaterial3D.new()
+	antic_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	antic_mat.emission_enabled = true
+	antic_mat.emission = col
+	antic_mat.emission_energy_multiplier = 4.0
+	antic_mat.albedo_color = col
+	antic_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	antic_mesh.material_override = antic_mat
+	antic_node.add_child(antic_mesh)
+	
+	var tw_antic = create_tween().set_parallel(true)
+	tw_antic.tween_property(antic_node, "scale", Vector3(2.0, 2.0, 2.0), 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw_antic.tween_property(antic_mat, "albedo_color:a", 0.0, 0.22)
+	tw_antic.chain().tween_callback(antic_node.queue_free)
+	
+	# 2. Instanciar Proyectil 3D Estilizado (Procedural y compatible con OpenGL Renderer)
+	var proj_node = Node3D.new()
+	
+	# Núcleo brillante principal (Cubo para EMP o Elipsoide de plasma para Láser)
+	var core_mesh = MeshInstance3D.new()
+	if is_emp:
+		var bm = BoxMesh.new()
+		bm.size = Vector3(0.3, 0.3, 0.55)
+		core_mesh.mesh = bm
+	else:
+		var sm = SphereMesh.new()
+		sm.radius = 0.18
+		sm.height = 0.5
+		core_mesh.mesh = sm
 		
-	proj_node.position = start_pos
-	add_child(proj_node)
+	var core_mat = StandardMaterial3D.new()
+	core_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	core_mat.albedo_color = Color.WHITE
+	core_mat.emission_enabled = true
+	core_mat.emission = col
+	core_mat.emission_energy_multiplier = 4.5
+	core_mesh.material_override = core_mat
+	proj_node.add_child(core_mesh)
 	
-	# Rotar el proyectil 3D para que mire hacia su objetivo en viaje
-	proj_node.look_at(to_ship.position, Vector3.UP)
-	proj_node.scale = Vector3(0.6, 0.6, 0.6) if is_emp else Vector3(0.5, 0.5, 0.5)
+	# Halo exterior de energía con transparencia
+	var aura_mesh = MeshInstance3D.new()
+	var aura_sm = SphereMesh.new()
+	aura_sm.radius = 0.32
+	aura_sm.height = 0.65
+	aura_mesh.mesh = aura_sm
+	var aura_mat = StandardMaterial3D.new()
+	aura_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	aura_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	aura_mat.albedo_color = Color(col.r, col.g, col.b, 0.4)
+	aura_mat.emission_enabled = true
+	aura_mat.emission = col
+	aura_mat.emission_energy_multiplier = 2.0
+	aura_mesh.material_override = aura_mat
+	proj_node.add_child(aura_mesh)
 	
-	# Luz integrada adicional para iluminar naves al pasar
+	# Luz integrada para iluminar dinámicamente el entorno
 	var light = OmniLight3D.new()
 	light.light_color = col
-	light.light_energy = 1.6
-	light.omni_range = 4.5
+	light.light_energy = 2.0
+	light.omni_range = 4.8
 	proj_node.add_child(light)
+	
+	proj_node.position = start_pos
+	add_child(proj_node)
+	proj_node.look_at(to_ship.position, Vector3.UP)
 	
 	# Guardar en estructura de proyectiles activos
 	var ap = ActiveProjectile.new()
@@ -209,7 +232,7 @@ func _update_projectiles(delta: float):
 		ap.progress += delta * (1.0 / ap.duration)
 		var current_target_pos = ap.target_ship.position
 		
-		# FASE DE VIAJE: Desplazamiento del proyectil oficial
+		# FASE DE VIAJE: Desplazamiento del proyectil
 		var new_pos = ap.start_pos.lerp(current_target_pos, ap.progress)
 		ap.node.position = new_pos
 		
@@ -235,22 +258,31 @@ func _trigger_impact_effect(ship: Node3D, col: Color, is_emp: bool):
 		
 	var impact_pos = ship.position
 	
-	# 3. FASE DE IMPACTO:
-	# A) Instanciar efecto de Hit oficial (VFX_Hit_hadouken para EMP, VFX_Hit_cyber para Curación)
-	var hit_path = "res://VFX/scenes/VFX_Hit_hadouken.tscn" if is_emp else "res://VFX/scenes/VFX_Hit_cyber.tscn"
-	if ResourceLoader.exists(hit_path):
-		var hit_scene = load(hit_path)
-		if hit_scene:
-			var hit_inst = hit_scene.instantiate()
-			if hit_inst is Node3D:
-				add_child(hit_inst)
-				hit_inst.position = impact_pos
-				hit_inst.scale = Vector3(1.2, 1.2, 1.2)
-				
-				# Auto-liberar
-				var tw_hit = create_tween()
-				tw_hit.tween_interval(1.5)
-				tw_hit.tween_callback(hit_inst.queue_free)
+	# 3. FASE DE IMPACTO (Compatible con OpenGL):
+	# A) Destello de onda expansiva esférica
+	var hit_node = Node3D.new()
+	hit_node.position = impact_pos
+	add_child(hit_node)
+	
+	var hit_sphere = MeshInstance3D.new()
+	var sm = SphereMesh.new()
+	sm.radius = 0.35
+	sm.height = 0.7
+	hit_sphere.mesh = sm
+	var hit_mat = StandardMaterial3D.new()
+	hit_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	hit_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	hit_mat.albedo_color = Color(col.r, col.g, col.b, 0.75)
+	hit_mat.emission_enabled = true
+	hit_mat.emission = col
+	hit_mat.emission_energy_multiplier = 4.5
+	hit_sphere.material_override = hit_mat
+	hit_node.add_child(hit_sphere)
+	
+	var tw_hit = create_tween().set_parallel(true)
+	tw_hit.tween_property(hit_node, "scale", Vector3(2.6, 2.6, 2.6), 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw_hit.tween_property(hit_mat, "albedo_color:a", 0.0, 0.3)
+	tw_hit.chain().tween_callback(hit_node.queue_free)
 				
 	# B) Crear Escudo Deflector Reactivo
 	var shield = MeshInstance3D.new()

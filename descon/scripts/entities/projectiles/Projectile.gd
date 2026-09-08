@@ -2457,6 +2457,8 @@ func _on_area_entered(area):
 	if _has_hit: return
 	if area.is_in_group("altar") and owner_type == "enemy":
 		_has_hit = true
+		if area.has_method("_spawn_damage_text"):
+			area.call("_spawn_damage_text", str(int(damage)), Color(1.0, 0.3, 0.3))
 		if NetworkManager:
 			print("[PROJ] Impactando Altar con daño: ", damage)
 			NetworkManager.send_event("altarHit", {"damage": damage})

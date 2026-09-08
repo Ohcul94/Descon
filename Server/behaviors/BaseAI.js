@@ -29,6 +29,68 @@ module.exports = class BaseAI {
         checkAndProcessDeathDrop(p, io, this.state);
     }
 
+    // v900.2: Helper autoritativo para ubicar el Altar del mapa
+    _getAltarTarget() {
+        if (this.state && this.state.altarState && this.state.altarState.x !== undefined && this.state.altarState.y !== undefined) {
+            const hp = Number(this.state.altarState.hp);
+            if (isNaN(hp) || hp > 0) {
+                return {
+                    id: "altar",
+                    x: Number(this.state.altarState.x),
+                    y: Number(this.state.altarState.y),
+                    colWidth: Number(this.state.altarState.colWidth) || 380,
+                    colHeight: Number(this.state.altarState.colHeight) || 270,
+                    radius: Number(this.state.altarState.radius) || 380,
+                    hp: !isNaN(hp) && hp > 0 ? hp : 10000,
+                    isDead: false,
+                    isInvisible: false
+                };
+            }
+        }
+
+        const maps = (this.state && this.state.SERVER_CONFIG) ? (this.state.SERVER_CONFIG.mapsConfig || this.state.SERVER_CONFIG.maps || {}) : {};
+        const mapCfg = maps[this.enemy.zone] || (this.enemy.zone !== undefined ? maps[this.enemy.zone.toString()] : null);
+        const altarObj = (mapCfg && Array.isArray(mapCfg.objects)) ? mapCfg.objects.find(o => o.type === 'altar') : null;
+        if (altarObj && altarObj.x !== undefined && altarObj.y !== undefined) {
+            return {
+                id: "altar",
+                x: Number(altarObj.x),
+                y: Number(altarObj.y),
+                radius: 160,
+                hp: 10000,
+                isDead: false,
+                isInvisible: false
+            };
+        }
+
+        const altarDefenseConfig = this.state && this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense;
+        if (altarDefenseConfig && altarDefenseConfig.altarPos && altarDefenseConfig.altarPos.x !== undefined) {
+            return {
+                id: "altar",
+                x: Number(altarDefenseConfig.altarPos.x),
+                y: Number(altarDefenseConfig.altarPos.y),
+                radius: 160,
+                hp: Number(altarDefenseConfig.altarHp) || 10000,
+                isDead: false,
+                isInvisible: false
+            };
+        }
+
+        if (Number(this.enemy.zone) === 11) {
+            return {
+                id: "altar",
+                x: 4793.18,
+                y: 3943.4,
+                radius: 160,
+                hp: 10000,
+                isDead: false,
+                isInvisible: false
+            };
+        }
+
+        return null;
+    }
+
     // v900.1: Helpers unificados de activación (genérico por CD o HP, soporta interval 0 = startDelay+cooldown)
     _getRawInterval(mech) {
         if (mech.activationIntervalMs === undefined || mech.activationIntervalMs === null || mech.activationIntervalMs === '') return 0;
@@ -146,6 +208,77 @@ module.exports = class BaseAI {
         if (this.enemy.lastSuccessHit === undefined) this.enemy.lastSuccessHit = 0;
         if (this.enemy.lastHit === undefined) this.enemy.lastHit = 0;
 
+        // v500.4: Determinar estado de combate real contra jugadores (recibió/hizo daño o provocación activa)
+        const combatTimeout = cfg.chaseIdleTimeout !== undefined ? Number(cfg.chaseIdleTimeout) : 5000;
+        const playerCombatActive = ((now - (this.enemy.lastHit || 0)) < combatTimeout) ||
+                                   ((now - (this.enemy.lastSuccessHit || 0)) < combatTimeout) ||
+                                   (this.enemy.forcedTarget && players[this.enemy.forcedTarget] && now < this.enemy.tauntEndTime);
+
+        // v500.5: Si hay combate activo contra jugador y el enemigo tiene mecánica de Altar o estaba en retorno, cancelar returningToSpawn
+        const phasesListEarly = cfg.movementPhases || [];
+        const hasAltarEarly = Boolean(
+            (this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense && this.state.SERVER_CONFIG.gameModes.altar_defense.maps && this.state.SERVER_CONFIG.gameModes.altar_defense.maps.map(Number).includes(Number(this.enemy.zone))) ||
+            phasesListEarly.some(p => p.type === 'altar_rush') ||
+            cfg.movementAI === 'altar_rush' ||
+            this.enemy.focusTarget === 'altar' ||
+            this.enemy.focusTarget === 'altar_aggro'
+        );
+        if (playerCombatActive && (hasAltarEarly || this.enemy.returningToSpawn)) {
+            this.enemy.returningToSpawn = false;
+        }
+
+        this._inPlayerCombat = (!this.enemy.returningToSpawn) && Boolean(playerCombatActive);
+
+        // v500.4: Evaluar Fases Dinámicas de Movimiento al inicio del ciclo de IA
+        const phases = cfg.movementPhases || [];
+        if (phases.length > 0) {
+            const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
+            const shieldPercent = this.enemy.maxShield > 0 ? (this.enemy.shield / this.enemy.maxShield) * 100 : 100;
+            const newPhaseIndex = this._evaluatePhaseConditions(phases, now, hpPercent, shieldPercent);
+
+            if (newPhaseIndex !== (this.enemy._currentPhaseIndex !== undefined ? this.enemy._currentPhaseIndex : -1)) {
+                this.enemy._currentPhaseIndex = newPhaseIndex;
+                this._currentPhaseIndex = newPhaseIndex;
+                const newPhase = phases[newPhaseIndex];
+
+                this.config = { ...this.baseConfig };
+
+                if (newPhase) {
+                    const phaseKeys = ['speed', 'stopDist', 'idealDist', 'orbitRadius',
+                        'chargeCooldown', 'amplitude', 'frequency', 'patrolRange',
+                        'changeTrigger', 'changeInterval', 'changeType', 'duration',
+                        'explosionDamage', 'activationHP', 'explodeOnDeath', 'radius',
+                        'speedBonus', 'intervalMs', 'affectsEnemies', 'affectsBosses',
+                        'visionRange', 'targetPriority'];
+                    phaseKeys.forEach(k => {
+                        if (newPhase[k] !== undefined) {
+                            if (k === 'speed') {
+                                this.config[k] = newPhase[k] * 0.033;
+                                this._baseSpeed = this.config[k];
+                            } else {
+                                this.config[k] = newPhase[k];
+                            }
+                        }
+                    });
+
+                    const newType = newPhase.type;
+                    if (newType && newType !== this._lastMovementType) {
+                        this._lastMovementType = newType;
+                        this.enemy.movementType = newType;
+                    }
+
+                    if (io) {
+                        io.to(`zone_${this.enemy.zone}`).emit('enemyPhaseChange', {
+                            id: this.enemy.id,
+                            phaseIndex: newPhaseIndex,
+                            phaseType: newPhase.type,
+                            totalPhases: phases.length
+                        });
+                    }
+                }
+            }
+        }
+
         // Búsqueda de objetivo potencial (Visión Pasiva)
         let potentialTarget = this.getNearestPlayer(grid, players);
         
@@ -153,13 +286,17 @@ module.exports = class BaseAI {
         let activeTarget = null;
         let isRevenge = false;
 
+        const phasesList = cfg.movementPhases || [];
+        const hasAltarPhase = phasesList.some(p => p.type === 'altar_rush');
         const altarDefenseConfig = this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense;
         const isAltarZone = altarDefenseConfig && altarDefenseConfig.maps && altarDefenseConfig.maps.map(Number).includes(Number(this.enemy.zone));
         const focusTarget = this.enemy.focusTarget || 'players'; // 'players' o 'altar'
 
         // Detectar tipo de fase de movimiento activa
-        const currentActivePhase = (cfg.movementPhases || [])[this.enemy._currentPhaseIndex || 0];
+        const currentActivePhase = phasesList[this.enemy._currentPhaseIndex || 0];
         const activeMovType = currentActivePhase ? currentActivePhase.type : (cfg.movementAI || 'chase');
+        const isAltarRush = activeMovType === 'altar_rush' || cfg.movementAI === 'altar_rush';
+        const hasAltarMechanic = Boolean(isAltarZone || isAltarRush || hasAltarPhase || cfg.movementAI === 'altar_rush' || focusTarget === 'altar' || focusTarget === 'altar_aggro');
 
         // 1. REGLA PRIORITARIA: Provocación (Taunt)
         if (this.enemy.forcedTarget && players[this.enemy.forcedTarget] && now < this.enemy.tauntEndTime) {
@@ -169,25 +306,32 @@ module.exports = class BaseAI {
             }
         }
 
-        // 2. Si la fase activa es 'altar_rush' o el foco es 'altar' puro, ir directamente al Altar
-        const isAltarRush = activeMovType === 'altar_rush';
-        if (!activeTarget && (isAltarRush || (focusTarget === 'altar' && isAltarZone)) && (altarDefenseConfig?.altarPos || this.state.altarState)) {
-            const altarHp = (this.state.altarState ? this.state.altarState.hp : 1) || 1;
-            if (altarHp > 0) {
-                const targetAltarX = (this.state.altarState && this.state.altarState.x !== undefined)
-                    ? Number(this.state.altarState.x)
-                    : (Number(altarDefenseConfig.altarPos?.x) || 5000);
-                const targetAltarY = (this.state.altarState && this.state.altarState.y !== undefined)
-                    ? Number(this.state.altarState.y)
-                    : (Number(altarDefenseConfig.altarPos?.y) || 5000);
-                activeTarget = {
-                    id: "altar",
-                    x: targetAltarX,
-                    y: targetAltarY,
-                    hp: altarHp,
-                    isDead: false,
-                    isInvisible: false
-                };
+        // 1.5. PRIORIDAD EN COMBATE ACTIVO CONTRA JUGADOR:
+        // Si el enemigo está en combate con jugador (daño recibido/realizado reciente), enfocar al agresor
+        // o al jugador más cercano dentro del rango de visión, incluso si el objetivo pasivo fuera el Altar.
+        if (!activeTarget && this._inPlayerCombat) {
+            if (this.enemy.lastHitter && players[this.enemy.lastHitter]) {
+                const p = players[this.enemy.lastHitter];
+                if (!p.isDead && !p.isInvisible) {
+                    activeTarget = p;
+                    isRevenge = true;
+                }
+            }
+            if (!activeTarget && potentialTarget && !potentialTarget.isDead && !potentialTarget.isInvisible) {
+                const configVision = cfg ? Number(cfg.visionRange) : 0;
+                const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy.isHorde ? 10000 : 800));
+                const distToP = Math.hypot(potentialTarget.x - this.enemy.x, potentialTarget.y - this.enemy.y);
+                if (distToP <= visionRange) {
+                    activeTarget = potentialTarget;
+                }
+            }
+        }
+
+        // 2. Si NO está en combate con jugador y la fase activa es 'altar_rush' o el foco de la oleada es 'altar', ir al Altar
+        if (!activeTarget && (isAltarRush || focusTarget === 'altar')) {
+            const altarTarget = this._getAltarTarget();
+            if (altarTarget) {
+                activeTarget = altarTarget;
             }
         }
 
@@ -222,22 +366,13 @@ module.exports = class BaseAI {
             }
 
             // Revisar altar
-            if (priority !== 'players_only' && (altarDefenseConfig?.altarPos || this.state.altarState)) {
-                const altarHp = (this.state.altarState ? this.state.altarState.hp : 1) || 1;
-                if (altarHp > 0) {
-                    const altarX = (this.state.altarState && this.state.altarState.x !== undefined) ? Number(this.state.altarState.x) : (Number(altarDefenseConfig.altarPos?.x) || 5000);
-                    const altarY = (this.state.altarState && this.state.altarState.y !== undefined) ? Number(this.state.altarState.y) : (Number(altarDefenseConfig.altarPos?.y) || 5000);
-                    const distAltar = Math.hypot(altarX - this.enemy.x, altarY - this.enemy.y);
+            if (priority !== 'players_only') {
+                const altarTarget = this._getAltarTarget();
+                if (altarTarget) {
+                    const distAltar = Math.hypot(altarTarget.x - this.enemy.x, altarTarget.y - this.enemy.y);
                     if (distAltar <= bestDist) {
                         bestDist = distAltar;
-                        bestTarget = {
-                            id: "altar",
-                            x: altarX,
-                            y: altarY,
-                            hp: altarHp,
-                            isDead: false,
-                            isInvisible: false
-                        };
+                        bestTarget = altarTarget;
                     }
                 }
             }
@@ -247,8 +382,8 @@ module.exports = class BaseAI {
             }
         }
 
-        // 2.7. Si el foco es Altar con Aggro (compatibilidad retro de oleadas AD)
-        if (!activeTarget && focusTarget === 'altar_aggro' && isAltarZone && (altarDefenseConfig?.altarPos || this.state.altarState)) {
+        // 2.7. Si el foco es Altar con Aggro (prioriza jugadores, y solo va al altar si tiene movimiento altar_rush o foco)
+        if (!activeTarget && focusTarget === 'altar_aggro') {
             let playerTarget = null;
             
             // A. Primero revisar si hay un agresor por venganza activa
@@ -276,23 +411,11 @@ module.exports = class BaseAI {
             
             if (playerTarget) {
                 activeTarget = playerTarget;
-            } else {
-                const altarHp = (this.state.altarState ? this.state.altarState.hp : 1) || 1;
-                if (altarHp > 0) {
-                    const targetAltarX = (this.state.altarState && this.state.altarState.x !== undefined)
-                        ? Number(this.state.altarState.x)
-                        : (Number(altarDefenseConfig.altarPos?.x) || 5000);
-                    const targetAltarY = (this.state.altarState && this.state.altarState.y !== undefined)
-                        ? Number(this.state.altarState.y)
-                        : (Number(altarDefenseConfig.altarPos?.y) || 5000);
-                    activeTarget = {
-                        id: "altar",
-                        x: targetAltarX,
-                        y: targetAltarY,
-                        hp: altarHp,
-                        isDead: false,
-                        isInvisible: false
-                    };
+            } else if (isAltarRush) {
+                // Solo si el enemigo tiene configurado avanzar al altar irá hacia el altar
+                const altarTarget = this._getAltarTarget();
+                if (altarTarget) {
+                    activeTarget = altarTarget;
                 }
             }
         }
@@ -329,53 +452,44 @@ module.exports = class BaseAI {
             }
         }
 
-        // 4. FALLBACK DE ALTAR DEFENSE: Si es zona de Altar Defense y aún no hay target, apuntar al altar como último recurso
-        if (!activeTarget && isAltarZone && (altarDefenseConfig?.altarPos || this.state.altarState)) {
-            const altarHp = (this.state.altarState ? this.state.altarState.hp : 1) || 1;
-            if (altarHp > 0) {
-                const targetAltarX = (this.state.altarState && this.state.altarState.x !== undefined)
-                    ? Number(this.state.altarState.x)
-                    : (Number(altarDefenseConfig.altarPos?.x) || 5000);
-                const targetAltarY = (this.state.altarState && this.state.altarState.y !== undefined)
-                    ? Number(this.state.altarState.y)
-                    : (Number(altarDefenseConfig.altarPos?.y) || 5000);
-                activeTarget = {
-                    id: "altar",
-                    x: targetAltarX,
-                    y: targetAltarY,
-                    hp: altarHp,
-                    isDead: false,
-                    isInvisible: false
-                };
+        // 4. Si el enemigo tiene movimiento 'altar_rush' configurado y aún no tiene target, apuntar al altar
+        if (!activeTarget && isAltarRush) {
+            const altarTarget = this._getAltarTarget();
+            if (altarTarget) {
+                activeTarget = altarTarget;
             }
         }
 
-        // Manejar el inicio de persecución (chaseStartTime) si hay un target activo válido
-        // v500.2: NO poner a null al perder el target — guardar el último timestamp activo
-        // para que regenDelayMs cuente correctamente desde que se perdió el contacto.
-        const hasValidTarget = activeTarget && !activeTarget.isDead && !activeTarget.isInvisible;
-        if (hasValidTarget) {
-            // Mientras hay target activo (jugador o altar), actualizar el timestamp constantemente
+        // Manejar el inicio de persecución (chaseStartTime) si hay un target de JUGADOR activo válido
+        // v500.4: NO actualizar chaseStartTime si el target es el Altar (para que no active combate contra jugadores)
+        const isPlayerTarget = activeTarget && activeTarget.id !== "altar" && !activeTarget.isDead && !activeTarget.isInvisible;
+        if (isPlayerTarget) {
             this.enemy.chaseStartTime = now;
         }
         // Al perder el target NO se toca chaseStartTime — queda con el último valor
         // para que el timer de regenDelayMs empiece a contar desde ese momento.
 
         // v3.0: EVALUAR INTERRUPCIÓN DEL REGRESO AL SPAWN (Soft Leash)
-        if (this.enemy.returningToSpawn && activeTarget) {
-            const targetDistFromSpawn = Math.hypot(activeTarget.x - this.enemy.startX, activeTarget.y - this.enemy.startY);
-            const targetDistToEnemy = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
-            const configVision = cfg ? Number(cfg.visionRange) : 0;
-            const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy.isHorde ? 10000 : 800));
+        if (this.enemy.returningToSpawn) {
+            // v500.5: Invasores del Altar o enemigos que entran en combate contra jugadores cancelan regreso al spawn inmediatamente
+            if (hasAltarMechanic || this._inPlayerCombat || (activeTarget && activeTarget.id === 'altar')) {
+                this.enemy.returningToSpawn = false;
+            } else if (activeTarget) {
+                const targetDistFromSpawn = Math.hypot(activeTarget.x - this.enemy.startX, activeTarget.y - this.enemy.startY);
+                const targetDistToEnemy = Math.hypot(activeTarget.x - this.enemy.x, activeTarget.y - this.enemy.y);
+                const configVision = cfg ? Number(cfg.visionRange) : 0;
+                const visionRange = this.ambienceBoost ? 50000 : (configVision > 0 ? configVision : (this.enemy.isHorde ? 10000 : 800));
 
-            // Si el target está dentro del rango territorial de spawn y está al alcance de visión o le acaba de pegar
-            if (targetDistFromSpawn <= leashRange && (targetDistToEnemy < visionRange || isRevenge || activeTarget.id === 'altar')) {
-                this.enemy.returningToSpawn = false; // Interrumpir el regreso
+                // Si el target está dentro del rango territorial de spawn y está al alcance de visión o le acaba de pegar
+                if (targetDistFromSpawn <= leashRange && (targetDistToEnemy < visionRange || isRevenge || activeTarget.id === 'altar')) {
+                    this.enemy.returningToSpawn = false; // Interrumpir el regreso
+                }
             }
         }
 
         // v3.0: EVALUAR EXCESO DE RANGO (Leash Range Check)
-        if (leashRange > 0 && !this.enemy.returningToSpawn && !this._isDefenseSkillActive && (!activeTarget || activeTarget.id !== "altar")) {
+        // v500.5: Si tiene mecánica de Altar (altar_rush/isAltarZone/etc.), NO evaluar leash respecto a su spawner original
+        if (leashRange > 0 && !hasAltarMechanic && !this.enemy.returningToSpawn && !this._isDefenseSkillActive && (!activeTarget || activeTarget.id !== "altar")) {
             const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
             
             // También verificar si el target actual se paró fuera del leashRange del bicho (kiteo)
@@ -406,7 +520,8 @@ module.exports = class BaseAI {
         let inTime = (now - lastCombatTime) < delayMs;
 
         // Si "stopOnOutOfSight" está activo y no hay ningún target de jugador activo a la vista, o si el agresor está fuera de visión, se anula el tiempo de combate activo inmediatamente
-        if (cfg.stopOnOutOfSight) {
+        // v900.2: altar_rush y objetivo Altar NUNCA se anulan por stopOnOutOfSight
+        if (cfg.stopOnOutOfSight && !isAltarRush && (!activeTarget || activeTarget.id !== "altar")) {
             const hasVisualTarget = activeTarget && !activeTarget.isDead && !activeTarget.isInvisible;
             if (!hasVisualTarget) {
                 inTime = false;
@@ -421,9 +536,9 @@ module.exports = class BaseAI {
             }
         }
 
-        // En combate estrictamente si ha recibido/hecho daño dentro del delay configurado (o atacando al altar)
+        // En combate estrictamente si ha recibido/hecho daño dentro del delay configurado (o atacando al altar o avanzando al altar)
         const isTargetingAltar = activeTarget && activeTarget.id === "altar";
-        this._inCombat = (!this.enemy.returningToSpawn) && (inTime || isTargetingAltar);
+        this._inCombat = (!this.enemy.returningToSpawn) && (inTime || isTargetingAltar || isAltarRush);
 
         // Si salimos de combate por expirar el delay de inactividad de daño:
         // - Si el enemigo es agresivo al ver (isAggressive) y el target sigue a la vista en rango, no debe huir; regenerará pero seguirá atacando.
@@ -442,7 +557,7 @@ module.exports = class BaseAI {
             }
 
             const isAltarTarget = activeTarget && activeTarget.id === "altar";
-            const shouldEvade = !isAltarTarget && (!isAggressive || !hasVisualTarget || !targetInVision);
+            const shouldEvade = !isAltarTarget && !isAltarRush && !hasAltarMechanic && (!isAggressive || !hasVisualTarget || !targetInVision);
 
             if (shouldEvade && (this.enemy.lastHitter || activeTarget)) {
                 this.enemy.returningToSpawn = true;
@@ -456,9 +571,9 @@ module.exports = class BaseAI {
         // v500.0: isProwler considera la fase activa actual (no solo phase[0])
         const earlyPhase = (cfg.movementPhases || [])[this.enemy._currentPhaseIndex || 0];
         let isProwler = (cfg.movementAI === 'prowler') || (earlyPhase && earlyPhase.type === 'prowler');
-        let isSelfControlledMovement = isProwler || (earlyPhase && (earlyPhase.type === 'altar_rush' || earlyPhase.type === 'nearest_target'));
+        let isSelfControlledMovement = isProwler || isAltarRush || hasAltarMechanic || (earlyPhase && (earlyPhase.type === 'altar_rush' || earlyPhase.type === 'nearest_target'));
         const distFromSpawn = Math.hypot(this.enemy.x - this.enemy.startX, this.enemy.y - this.enemy.startY);
-        if (!this._inCombat && !activeTarget && !this.enemy.lastHitter && !this.enemy.returningToSpawn && !isSelfControlledMovement && !isAltarZone && distFromSpawn > 50) {
+        if (!this._inCombat && !activeTarget && !this.enemy.lastHitter && !this.enemy.returningToSpawn && !isSelfControlledMovement && !isAltarZone && !hasAltarMechanic && distFromSpawn > 50) {
             this.enemy.returningToSpawn = true;
             this._interruptActiveMechanics(now, io);
         }
@@ -661,65 +776,8 @@ module.exports = class BaseAI {
             }
         }
 
-        // v500.0: Sistema de Fases Dinámicas por Condiciones
-        const phases = cfg.movementPhases || [];
-        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
-        const shieldPercent = this.enemy.maxShield > 0 ? (this.enemy.shield / this.enemy.maxShield) * 100 : 100;
-
-        // Evaluar qué fase debería estar activa según condiciones
-        const newPhaseIndex = this._evaluatePhaseConditions(phases, now, hpPercent, shieldPercent);
-
-        // Si la fase cambió, actualizar config y notificar
-        if (newPhaseIndex !== (this.enemy._currentPhaseIndex || 0)) {
-            const prevIndex = this.enemy._currentPhaseIndex || 0;
-            this.enemy._currentPhaseIndex = newPhaseIndex;
-            this._currentPhaseIndex = newPhaseIndex;
-            const newPhase = phases[newPhaseIndex];
-
-            // Restaurar configuración base para evitar arrastrar overrides de fases previas
-            this.config = { ...this.baseConfig };
-
-            if (newPhase) {
-                // Actualizar parámetros de movimiento en el config del cerebro
-                const phaseKeys = ['speed', 'stopDist', 'idealDist', 'orbitRadius',
-                    'chargeCooldown', 'amplitude', 'frequency', 'patrolRange',
-                    'changeTrigger', 'changeInterval', 'changeType', 'duration',
-                    'explosionDamage', 'activationHP', 'explodeOnDeath', 'radius',
-                    'speedBonus', 'intervalMs', 'affectsEnemies', 'affectsBosses',
-                    'visionRange', 'targetPriority'];
-                phaseKeys.forEach(k => {
-                    if (newPhase[k] !== undefined) {
-                        if (k === 'speed') {
-                            // La velocidad de la fase viene en px/s del panel.
-                            // Convertimos a px/tick y también actualizamos _baseSpeed,
-                            // para que la línea cfg.speed = this._baseSpeed * speedMult
-                            // no restaure la velocidad de la fase anterior en el siguiente tick.
-                            this.config[k] = newPhase[k] * 0.033;
-                            this._baseSpeed = this.config[k]; // ← clave: sincronizar _baseSpeed
-                        } else {
-                            this.config[k] = newPhase[k];
-                        }
-                    }
-                });
-
-                // Actualizar tipo de movimiento si cambió
-                const newType = newPhase.type;
-                if (newType && newType !== this._lastMovementType) {
-                    this._lastMovementType = newType;
-                    this.enemy.movementType = newType;
-                }
-
-                // Notificar cambio de fase a clientes (para efectos visuales)
-                io.to(`zone_${this.enemy.zone}`).emit('enemyPhaseChange', {
-                    id: this.enemy.id,
-                    phaseIndex: newPhaseIndex,
-                    phaseType: newPhase.type,
-                    totalPhases: phases.length
-                });
-            }
-        }
-
         // Lógica Kamikaze (preservada, integrada al sistema de fases)
+        const hpPercent = (this.enemy.hp / this.enemy.maxHp) * 100;
         const kamikazePhase = phases.find(p => p.type === 'kamikaze');
 
         if (kamikazePhase && hpPercent <= (kamikazePhase.activationHP || 30)) {
@@ -743,7 +801,8 @@ module.exports = class BaseAI {
         const activePhase = phases[this.enemy._currentPhaseIndex || 0];
         const activePhaseType = activePhase ? activePhase.type : null;
         isProwler = (cfg.movementAI === 'prowler') || (activePhaseType === 'prowler');
-        if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme && !isProwler) {
+        const isCurrentAltarRush = (cfg.movementAI === 'altar_rush') || (activePhaseType === 'altar_rush');
+        if ((!activeTarget || activeTarget.isDead || activeTarget.isInvisible) && !hasActiveMech && !isExtreme && !isProwler && !isCurrentAltarRush) {
             this.enemy.isMoving = false;
             return;
         }
@@ -766,8 +825,8 @@ module.exports = class BaseAI {
         const isAltarTarget = activeTarget && activeTarget.id === "altar";
         const configVision = cfg ? Number(cfg.visionRange) : 0;
         const visionRange = configVision > 0 ? configVision : 800;
-        const canSee = activeTarget && (isAltarTarget || dist <= visionRange);
-        if (!isAltarTarget && !isExtreme && !cfg.chaseUntilDeath && cfg.stopOnOutOfSight && !canSee && !hasActiveMech && !isProwler) {
+        const canSee = activeTarget && (isAltarTarget || isCurrentAltarRush || dist <= visionRange);
+        if (!isAltarTarget && !isCurrentAltarRush && !isExtreme && !cfg.chaseUntilDeath && cfg.stopOnOutOfSight && !canSee && !hasActiveMech && !isProwler) {
             this.enemy.isMoving = false;
             return;
         }
@@ -848,6 +907,7 @@ module.exports = class BaseAI {
             this.enemy.isMoving = true;
             this.executeActiveMovementLogic(null, 0, 0, now, io);
         }
+
 
         // v3.6: Forzar rotación fija si hay una mecánica activa que restrinja el apuntado (por aimDelayMs, lock o fire)
         let forcedRotation = null;
@@ -3400,10 +3460,10 @@ module.exports = class BaseAI {
             const c = p.conditions;
             let matches = true;
 
-            // engagement check: idle / combat / returning
+            // engagement check: idle / combat / returning (evaluado contra combate con jugadores)
             if (c.engagement) {
-                if (c.engagement === 'idle' && this._inCombat) matches = false;
-                if (c.engagement === 'combat' && !this._inCombat) matches = false;
+                if (c.engagement === 'idle' && this._inPlayerCombat) matches = false;
+                if (c.engagement === 'combat' && !this._inPlayerCombat) matches = false;
                 if (c.engagement === 'returning' && !this.enemy.returningToSpawn) matches = false;
             }
             if (!matches) continue;
@@ -3811,6 +3871,8 @@ module.exports = class BaseAI {
                 this._applyChaseMovement(target, dist, angle, now);
                 break;
             case 'sniper':
+            case 'kiting':
+            case 'kite':
                 this._applySniperMovement(target, dist, angle, now);
                 break;
             case 'orbit':
@@ -3856,7 +3918,28 @@ module.exports = class BaseAI {
 
     _applyChaseMovement(target, dist, angle, now) {
         const speed = this.getSpeed();
-        const stopDist = this.config.stopDist || 80;
+        const baseStopDist = this.config.stopDist || 80;
+        
+        if (target && target.id === 'altar') {
+            const altarTarget = this._getAltarTarget() || target;
+            const altarRadius = Number(altarTarget.radius) || 160;
+            const stopDist = Math.max(altarRadius + 30, baseStopDist > 0 ? (altarRadius + baseStopDist) : (altarRadius + 30));
+            const dx = this.enemy.x - target.x;
+            const dy = this.enemy.y - target.y;
+            const distToAltar = Math.hypot(dx, dy);
+
+            if (distToAltar > stopDist) {
+                this.enemy.x += Math.cos(angle) * speed;
+                this.enemy.y += Math.sin(angle) * speed;
+            } else if (distToAltar < stopDist - 20) {
+                this.enemy.x -= Math.cos(angle) * (speed * 0.4);
+                this.enemy.y -= Math.sin(angle) * (speed * 0.4);
+            }
+            this.enemy.rotation = angle + Math.PI / 2;
+            return;
+        }
+
+        const stopDist = baseStopDist;
         if (dist > stopDist) {
             this.enemy.x += Math.cos(angle) * speed;
             this.enemy.y += Math.sin(angle) * speed;
@@ -4093,18 +4176,15 @@ module.exports = class BaseAI {
     }
 
     _applyAltarRushMovement(target, dist, angle, now) {
-        let destX = target ? target.x : null;
-        let destY = target ? target.y : null;
+        let destX = (target && target.id === 'altar') ? target.x : null;
+        let destY = (target && target.id === 'altar') ? target.y : null;
 
         // Si el target no es el altar directamente, buscar las coordenadas del altar
-        if (!target || target.id !== 'altar') {
-            const altarDefenseConfig = this.state.SERVER_CONFIG && this.state.SERVER_CONFIG.gameModes && this.state.SERVER_CONFIG.gameModes.altar_defense;
-            if (this.state.altarState && this.state.altarState.x !== undefined) {
-                destX = Number(this.state.altarState.x);
-                destY = Number(this.state.altarState.y);
-            } else if (altarDefenseConfig?.altarPos) {
-                destX = Number(altarDefenseConfig.altarPos.x);
-                destY = Number(altarDefenseConfig.altarPos.y);
+        if (destX === null || destY === null) {
+            const altarTarget = this._getAltarTarget();
+            if (altarTarget) {
+                destX = altarTarget.x;
+                destY = altarTarget.y;
             }
         }
 
@@ -4120,7 +4200,11 @@ module.exports = class BaseAI {
         const distToAltar = Math.hypot(dx, dy);
         const moveAngle = Math.atan2(dy, dx);
         const speed = this.getSpeed();
-        const stopDist = this.config.stopDist !== undefined ? Number(this.config.stopDist) : 150;
+
+        const altarTarget = (target && target.id === 'altar') ? target : this._getAltarTarget();
+        const altarRadius = Number(altarTarget?.radius) || 160;
+        const configuredStopDist = this.config.stopDist !== undefined ? Number(this.config.stopDist) : 0;
+        const stopDist = Math.max(altarRadius + 30, configuredStopDist > 0 ? (altarRadius + configuredStopDist) : (altarRadius + 30));
 
         if (distToAltar > stopDist) {
             this.enemy.x += Math.cos(moveAngle) * speed;

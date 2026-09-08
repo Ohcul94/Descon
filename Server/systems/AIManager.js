@@ -133,6 +133,8 @@ class AIManager {
         const AI_MAP = {
             "chase": ChaseAI,
             "sniper": SniperAI,
+            "kiting": SniperAI,
+            "kite": SniperAI,
             "orbit": OrbitAI,
             "charger": ChargerAI,
             "gravity": GravityAI,
@@ -140,7 +142,9 @@ class AIManager {
             "ancient": AncientBossAI,
             "mechanic": MechanicBossAI,
             "prowler": ProwlerAI,
-            "zigzag": ZigZagAI
+            "zigzag": ZigZagAI,
+            "altar_rush": ChaseAI,
+            "nearest_target": ChaseAI
         };
 
         if (movementType && AI_MAP[movementType]) {

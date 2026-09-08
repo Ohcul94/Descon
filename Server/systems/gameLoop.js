@@ -107,20 +107,26 @@ function startGameLoop(io, state, aiManager) {
             const hasActiveAura = e.auraState && Object.values(e.auraState).some(a => a.isActive);
             const isReturning = !!e.returningToSpawn;
             const isProwler = e.ai && e.ai.constructor.name === 'ProwlerAI';
+            const isAltarRush = e.ai && (
+                e.ai.config?.movementAI === 'altar_rush' ||
+                (e.ai.config?.movementPhases && e.ai.config.movementPhases.some(p => p.type === 'altar_rush')) ||
+                e.focusTarget === 'altar' ||
+                e.focusTarget === 'altar_aggro'
+            );
 
-            if (!zoneHasPlayers && !hasActiveMech && !hasActiveDef && !hasActiveAura && !isReturning && !isProwler) continue;
+            if (!zoneHasPlayers && !hasActiveMech && !hasActiveDef && !hasActiveAura && !isReturning && !isProwler && !isAltarRush) continue;
 
             // Normalizar zona del enemigo una sola vez por ciclo
             const eZoneNormalized = normalizeZone(e.zone);
 
-            // v262.35: IA Inteligente (LOD) - Forzar actualización si hay mecánicas activas o Agresividad Extrema
+            // v262.35: IA Inteligente (LOD) - Forzar actualización si hay mecánicas activas o Agresividad Extrema o Altar Rush
             const { players: nearbyPs } = grid.getNearbyEntities(e.x, e.y, e.zone);
             const isNearPlayer = nearbyPs.some(p => normalizeZone(p.zone) === eZoneNormalized);
             
             // v266.999: Detección de Agresividad Extrema para Bypass de LOD (Usando Set optimizado O(1))
             const isExtreme = extremeZones.has(String(e.zone));
 
-            if (isNearPlayer || hasActiveMech || isExtreme || isProwler || (now % 1000 < 33)) {
+            if (isNearPlayer || hasActiveMech || isExtreme || isProwler || isAltarRush || (now % 1000 < 33)) {
                 if (e.ai) e.ai.update(grid, players, now, io);
             }
 
