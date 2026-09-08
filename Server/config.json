@@ -10242,7 +10242,7 @@
                 {
                     "bulletSpeed": 800,
                     "castTimeMs": 200,
-                    "cooldown": 3000,
+                    "cooldown": 1500,
                     "id": "am_l1",
                     "mechanics": [],
                     "name": "Láser T1",
@@ -10565,8 +10565,8 @@
             "missile": [
                 {
                     "bulletSpeed": 500,
-                    "castTimeMs": 1000,
-                    "cooldown": 5000,
+                    "castTimeMs": 350,
+                    "cooldown": 3000,
                     "id": "am_m1",
                     "mechanics": [],
                     "name": "Misil T1",
@@ -10582,7 +10582,7 @@
                 },
                 {
                     "bulletSpeed": 800,
-                    "castTimeMs": 0,
+                    "castTimeMs": 350,
                     "cooldown": 10000,
                     "hidden": false,
                     "id": "am_m2",

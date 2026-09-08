@@ -70,11 +70,8 @@ void fragment() {
 		vp_d /= vp_d.w;
 		vec3 frag_world = (INV_VIEW_MATRIX * vp_d).xyz;
 
-		// Límite vertical: la niebla solo existe por encima de la superficie (y >= 0.0) hasta fog_height.
-		// Si frag_world.y está por debajo del suelo del mapa (y < 0.0), se desvanece a 0 para no aparecer abajo del terreno.
-		float bottom_fade   = smoothstep(-1.5, 0.2, frag_world.y);
-		float top_fade      = 1.0 - smoothstep(fog_height * 0.5, fog_height, frag_world.y);
-		float height_factor = bottom_fade * top_fade;
+		// Altura de niebla: desvanecimiento suave hacia el tope de fog_height sin cortes abruptos en el suelo
+		float height_factor = 1.0 - smoothstep(0.0, fog_height, max(frag_world.y, 0.0));
 
 		vec2 sample_xz = frag_world.xz;
 		vec2 fog_uv    = sample_xz / map_size_3d;
@@ -111,8 +108,10 @@ void fragment() {
 					float height_density = height_factor;
 					if (ray_dir.y < -0.0001) {
 						float t_ground   = -cam_y / ray_dir.y;
+						float t_hit      = length(frag_world - ray_origin);
+						float t_end      = min(t_ground, t_hit);
 						float t_fog_top  = max((fog_height - cam_y) / ray_dir.y, 0.0);
-						float vol_length = max(t_ground - t_fog_top, 0.0);
+						float vol_length = max(t_end - t_fog_top, 0.0);
 						float hd = 1.0 - exp(-vol_length * fog_density * 0.18);
 						hd = clamp(hd * 0.68 + 0.32, 0.0, 1.0);
 						float mid_h = cam_y + ray_dir.y * (t_fog_top + vol_length * 0.5);

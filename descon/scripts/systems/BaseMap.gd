@@ -787,32 +787,6 @@ func _fix_scene_floor_to_black(root: Node):
 		for child in n.get_children():
 			stack.append(child)
 
-# v950.0: Reemplaza CSGBox3D visuales por MeshInstance3D+BoxMesh para depth sorting correcto.
-# Los CSGBox3D tienen su propio pipeline de rendering que ignora depth buffer de meshes normales.
-func _replace_csg_with_mesh(root: Node):
-	if not is_instance_valid(root):
-		return
-	var stack: Array = [root]
-	while stack.size() > 0:
-		var n = stack.pop_back() as Node
-		if n is CSGBox3D and n.visible:
-			var csg = n as CSGBox3D
-			var parent = csg.get_parent()
-			if not is_instance_valid(parent):
-				continue
-			var mi = MeshInstance3D.new()
-			mi.name = csg.name + "_Mesh"
-			var box = BoxMesh.new()
-			box.size = csg.size
-			mi.mesh = box
-			if csg.material:
-				mi.material_override = csg.material
-			parent.add_child(mi)
-			mi.global_transform = csg.global_transform
-			csg.visible = false
-		for child in n.get_children():
-			if child is Node3D:
-				stack.append(child)
 
 func _resolve_map_editor_path(z_id: String) -> String:
 	# v530.2: Resolver path del MapEditor3D con fallbacks (Loby es excepción: MapEditor3D_1_Loby.tscn)
@@ -940,8 +914,6 @@ func _setup_3d_dynamic():
 						
 						# v530.1: Piso negro plano
 						_fix_scene_floor_to_black(scene_inst)
-						# v950.0: Reemplazar CSGBox3D por MeshInstance3D para depth sorting correcto
-						_replace_csg_with_mesh(scene_inst)
 				
 				# Aplicar iluminación mejorada cenital de arriba y ambiental de soporte siempre
 				_apply_ambient_and_zenith_lights(sub_viewport)
@@ -1025,8 +997,6 @@ func _setup_3d_dynamic():
 			
 			# v530.1: Piso negro plano
 			_fix_scene_floor_to_black(scene_inst)
-			# v950.0: Reemplazar CSGBox3D por MeshInstance3D para depth sorting correcto
-			_replace_csg_with_mesh(scene_inst)
 
 	_apply_ambient_and_zenith_lights(sub_viewport)
 	
@@ -3022,7 +2992,7 @@ func _spawn_objects_from_custom_scene():
 			for sub_child in child.get_children():
 				if is_instance_valid(sub_child) and sub_child is Node:
 					var sub_obj_type = get_flexible_obj_type.call(sub_child)
-					var is_collider = sub_child is CSGBox3D or sub_child is CSGCylinder3D or sub_child is CollisionPolygon3D or sub_child is CollisionShape3D or sub_child.name.to_lower().contains("collider") or sub_child.name.to_lower().contains("pared") or sub_obj_type != "" or sub_child.get_child_count() > 0
+					var is_collider = sub_child is CSGBox3D or sub_child is CSGCylinder3D or sub_child is CollisionPolygon3D or sub_child is CollisionShape3D or sub_child.name.to_lower().contains("collider") or sub_child.name.to_lower().contains("pared") or sub_obj_type != ""
 					if is_collider:
 						nodes_stack.append(sub_child)
 			
@@ -3128,7 +3098,8 @@ func _spawn_objects_from_custom_scene():
 							var lp = Vector2(wp.x / scale_factor, wp.z / (scale_factor * correction_z))
 							points_rel.append(lp - center_2d)
 						var col_poly = CollisionPolygon2D.new()
-						col_poly.polygon = points_rel
+						var hull = Geometry2D.convex_hull(points_rel)
+						col_poly.polygon = hull if hull.size() >= 3 else points_rel
 						wall_body.add_child(col_poly)
 						wall_body.add_to_group("walls")
 						wall_body.add_to_group("obstacles")
