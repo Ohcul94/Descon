@@ -1573,7 +1573,28 @@
             "hp": 20,
             "icon": "res://assets/Enemigos/2D/Enemigo2/Enemy2Map1.png",
             "leashRange": 1500,
-            "lootDrops": [],
+            "lootDrops": [
+                {
+                    "itemId": "mat_esfera_utilidad",
+                    "chance": 1,
+                    "amount": 40
+                },
+                {
+                    "itemId": "mat_esfera_ataque",
+                    "chance": 1,
+                    "amount": 40
+                },
+                {
+                    "itemId": "mat_esfera_curacion",
+                    "chance": 1,
+                    "amount": 40
+                },
+                {
+                    "itemId": "mat_esfera_defensa",
+                    "chance": 1,
+                    "amount": 40
+                }
+            ],
             "mechanics": [
                 {
                     "bulletDamage": 2,
@@ -1622,7 +1643,8 @@
             "shield": 20,
             "speed": 420,
             "stopOnOutOfSight": true,
-            "visionRange": 800
+            "visionRange": 800,
+            "chestDropChance": 1
         },
         "3": {
             "aggressive": false,

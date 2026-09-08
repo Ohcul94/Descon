@@ -413,6 +413,9 @@ func _render_spheres_equipment(tab, sub_tabs):
 						var sp_display_name = str(installed_sp.get("name", "LA ESFERA")) if typeof(installed_sp) == TYPE_DICTIONARY else "LA ESFERA"
 						inv_main._show_modal("RETIRAR ESFERA", "¿Deseas retirar [color=orange]" + sp_display_name + "[/color] del " + str(s_data.get("name", "SLOT")) + "? Volverá a tu inventario y la habilidad equipada se desequipará.", func():
 							NetworkManager.send_event("unequipSphereItem", {"sphereId": i})
+							if is_instance_valid(sm):
+								sm.remove_sphere(i)
+							update_ui()
 						)
 					)
 		
@@ -474,7 +477,12 @@ func _render_spheres_equipment(tab, sub_tabs):
 					if is_comb:
 						bu.disabled = true
 					else:
-						bu.pressed.connect(func(): NetworkManager.send_event("unequipSphere", {"sphereId": i}))
+						bu.pressed.connect(func():
+							NetworkManager.send_event("unequipSphere", {"sphereId": i})
+							if is_instance_valid(sm):
+								sm.equip_item(i, null)
+							update_ui()
+						)
 				else:
 					var b_skill = Button.new(); b_skill.text = "EQUIPAR HABILIDAD"; b_skill.add_theme_font_size_override("font_size", 9); v_box.add_child(b_skill)
 					b_skill.modulate = Color(0.6, 0.9, 1)

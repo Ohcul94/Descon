@@ -43,6 +43,7 @@ var pending_sphere_slot = -1 # v760.0: Slot esperando selección de esfera (fluj
 var pending_sphere_item = null # v760.0: Esfera (ítem) esperando selección de slot
 var active_modales = [] # v307: Registro de modales activos para cerrado en capas (LIFO)
 var _last_tab_ui_update_frame: int = -1
+var _pending_tab_ui_update: bool = false
 
 
 
@@ -65,6 +66,10 @@ func _ready():
 		NetworkManager.inventory_data.connect(_on_inventory_received)
 		NetworkManager.login_success.connect(func(d): _on_inventory_received(d))
 		NetworkManager.auth_success.connect(func(d): _on_inventory_received(d))
+		
+		# v302.7: Si ya estamos logueados cuando este nodo entra al árbol, hidratar inmediatamente
+		if NetworkManager.is_logged_in and NetworkManager.current_user_data:
+			_on_inventory_received(NetworkManager.current_user_data)
 		
 		# v263.010: Recibir datos de equipamiento de nave específica
 		if NetworkManager.has_signal("ship_equip_data"):
@@ -107,6 +112,9 @@ func _ready():
 			
 	if is_instance_valid(talent_system):
 		talent_system.talents_updated.connect(_update_active_tab_ui)
+
+	# v300.05: Conectar gestor de esferas de forma reactiva
+	_ensure_spheres_manager()
 
 	# v302.6: Inicialización inmediata (Eliminado await 1.0s que causaba lag en carga de Hangar)
 	await get_tree().process_frame
@@ -187,15 +195,29 @@ func _connect_to_player_stats():
 			p.stats_changed.connect(_on_player_stats_changed)
 			print("[INVENTARIO] Enlace de estadísticas establecido con el Piloto.")
 
+func _ensure_spheres_manager():
+	if not is_instance_valid(spheres_manager):
+		var player_node = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(player_node):
+			spheres_manager = player_node.get_node_or_null("SpheresManager")
+			if is_instance_valid(spheres_manager) and not spheres_manager.spheres_updated.is_connected(_on_spheres_updated):
+				spheres_manager.spheres_updated.connect(_on_spheres_updated)
+	elif not spheres_manager.spheres_updated.is_connected(_on_spheres_updated):
+		spheres_manager.spheres_updated.connect(_on_spheres_updated)
+	return spheres_manager
+
+func _on_spheres_updated():
+	if is_open:
+		_update_active_tab_ui()
+
 func _on_ship_equip_data(data: Dictionary):
 	# v263.010: Recibir equipamiento de nave específica y re-renderizar
 	var sid = str(data.get("shipId", -1))
 	var equip = data.get("equip", {})
 	if sid == "-1" or not equip: return
 	equipped_by_ship[sid] = equip
-	# print("[SHIP-EQUIP] Datos recibidos para nave ", sid, ": w=", equip.get("w",[]).size(), " s=", equip.get("s",[]).size(), " e=", equip.get("e",[]).size())
-	# Re-renderizar solo si esta nave está seleccionada actualmente
-	if str(selected_hangar_ship_id) == sid or str(current_ship_id) == sid:
+	# Re-renderizar solo si esta nave está seleccionada actualmente y el inventario está abierto
+	if is_open and (str(selected_hangar_ship_id) == sid or str(current_ship_id) == sid):
 		_update_hangar_ui()
 
 func _update_hangar_ui():
@@ -367,6 +389,7 @@ func toggle():
 		var mt = get_node_or_null("Window/TabContainer/Mapa")
 		if mt and "selected_zone_id" in mt:
 			mt.selected_zone_id = -1
+		_ensure_spheres_manager()
 		_refresh_data()
 	# v302.6: Forzar refresco tras setup para mostrar datos que llegaron durante el frame de carga
 	if is_open:
@@ -384,7 +407,15 @@ func _refresh_data():
 	if NetworkManager: NetworkManager.send_event("getInventory", {})
 
 func _on_inventory_received(data: Dictionary):
-	if data.has("player"): data = data.player
+	if data.has("player") and typeof(data.player) == TYPE_DICTIONARY:
+		data = data.player
+	
+	# v236.15: Extraer gameData si viene anidado (común en loginSuccess / authSuccess)
+	if data.has("gameData") and typeof(data.gameData) == TYPE_DICTIONARY:
+		var gd = data.gameData
+		for k in gd.keys():
+			if not data.has(k) or (data[k] is Array and data[k].is_empty()) or (data[k] is Dictionary and data[k].is_empty()):
+				data[k] = gd[k]
 	
 	# v210.50: ACTUALIZACIÓN SEGURA (Detección de Datos Parciales)
 	if data.has("inventory") or data.has("items"):
@@ -399,17 +430,14 @@ func _on_inventory_received(data: Dictionary):
 	if (data.has("hubs")): hubs = int(data.hubs)
 	
 	# v300.05: Sincronizar Gestor de Esferas (Esencial para la nueva arquitectura)
-	if spheres_manager == null:
-		var player_node = get_tree().get_first_node_in_group("player")
-		if is_instance_valid(player_node): spheres_manager = player_node.get_node_or_null("SpheresManager")
+	_ensure_spheres_manager()
+	if data.has("spheres") and is_instance_valid(spheres_manager):
+		var sph_list = data["spheres"]
+		if typeof(sph_list) == TYPE_ARRAY:
+			for si in range(min(sph_list.size(), 4)):
+				spheres_manager.equip_item(si, sph_list[si])
 	
 	# v300.06: NOTIFICAR A MÓDULOS (Refresco de UI en tiempo real)
-	# v300.06: El refresco se movió al final para asegurar que todos los datos (incluyendo equippedByShip) estén listos.
-	if data.has("gameData"):
-		var gd = data.gameData
-		if gd.has("pendingClanRequests"): pending_clans = gd.pendingClanRequests
-		if gd.has("receivedClanInvites"): received_invites = gd.receivedClanInvites
-	
 	if data.has("pendingClanRequests"): pending_clans = data.pendingClanRequests
 	if data.has("receivedClanInvites"): received_invites = data.receivedClanInvites
 		
@@ -419,8 +447,6 @@ func _on_inventory_received(data: Dictionary):
 		equipped_by_ship = {}
 		for key in raw.keys():
 			equipped_by_ship[str(key)] = raw[key]
-	else:
-		pass
 	
 	if is_open: 
 		_update_clan_ui()
@@ -445,9 +471,7 @@ func _on_inventory_received(data: Dictionary):
 		if p.has_method("update_stats"): 
 			p.update_stats({"currentShipId": current_ship_id, "equipped": equipped_data})
 
-	# v303.16: Refresco Diferido (CRÍTICO para Android)
-	# Usar call_deferred asegura que el redibujado ocurra en el siguiente frame libre,
-	# evitando que la UI se quede "congelada" con los datos viejos.
+	# v303.16: Refresco Diferido (CRÍTICO para Android y Reactividad)
 	call_deferred("_update_active_tab_ui")
 	queue_redraw()
 	
@@ -471,44 +495,28 @@ func _update_active_tab_ui():
 	if not is_open: return
 	var current_frame = Engine.get_process_frames()
 	if _last_tab_ui_update_frame == current_frame:
+		if not _pending_tab_ui_update:
+			_pending_tab_ui_update = true
+			call_deferred("_do_pending_tab_ui_update")
 		return
 	_last_tab_ui_update_frame = current_frame
-	
+	_pending_tab_ui_update = false
+	_render_active_tab_ui()
+
+func _do_pending_tab_ui_update():
+	_pending_tab_ui_update = false
+	if is_open:
+		_last_tab_ui_update_frame = Engine.get_process_frames()
+		_render_active_tab_ui()
+
+func _render_active_tab_ui():
 	var tab_container = get_node_or_null("Window/TabContainer")
 	if not tab_container: return
 	
-	var active_tab_name = tab_container.get_child(tab_container.current_tab).name
-	match active_tab_name:
-		"Hangar": 
-			var h = tab_container.get_node_or_null("Hangar")
-			if h and h.has_method("update_ui"): h.update_ui()
-		"Esferas": 
-			var s = tab_container.get_node_or_null("Esferas")
-			if s and s.has_method("update_ui"): s.update_ui()
-		"Armas":
-			var wt = tab_container.get_node_or_null("Armas")
-			if wt and wt.has_method("update_ui"): wt.update_ui()
-		"Talentos":
-			var tl = tab_container.get_node_or_null("Talentos")
-			if tl and tl.has_method("update_ui"): tl.update_ui()
-		"Tienda":
-			var t = tab_container.get_node_or_null("Tienda")
-			if t and t.has_method("update_ui"): t.update_ui()
-		"Equipo": 
-			var pt = tab_container.get_node_or_null("Equipo")
-			if pt and pt.has_method("update_ui"): pt.update_ui()
-		"Mapa": 
-			var mn = tab_container.get_node_or_null("Mapa")
-			if mn and mn.has_method("update_ui"): mn.update_ui()
-		"Clan": 
-			var cn = tab_container.get_node_or_null("Clan")
-			if cn and cn.has_method("update_ui"): cn.update_ui()
-		"Crafteo": 
-			var ct = tab_container.get_node_or_null("Crafteo")
-			if ct and ct.has_method("update_ui"): ct.update_ui()
-		"Misiones":
-			var qt = tab_container.get_node_or_null("Misiones")
-			if qt and qt.has_method("update_ui"): qt.update_ui()
+	if tab_container.current_tab >= 0 and tab_container.current_tab < tab_container.get_child_count():
+		var active_child = tab_container.get_child(tab_container.current_tab)
+		if active_child and active_child.has_method("update_ui"):
+			active_child.update_ui()
 	
 	queue_redraw()
 
