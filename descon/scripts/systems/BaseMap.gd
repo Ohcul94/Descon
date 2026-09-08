@@ -12,7 +12,6 @@ const SHADER_DOME_STARFIELD = preload("res://resources/shaders/dome_starfield.gd
 const MODEL_PORTAL_ICON = preload("res://assets/Puertas/3D/Puerta2/Puerta2.glb")
 const MODEL_VAULT_ICON = preload("res://assets/Contenedores/Baules/3D/Baul1/Baul1.glb")
 const MODEL_LOOT_ICON = preload("res://assets/Contenedores/Cofres/3D/Cofre1/Cofre1.glb")
-const AltarAreaScript = preload("res://scripts/entities/AltarArea.gd")
 
 
 # Script Base para Mapas Instanciados con Soporte 3D Dinámico.
@@ -787,6 +786,32 @@ func _fix_scene_floor_to_black(root: Node):
 		for child in n.get_children():
 			stack.append(child)
 
+# v950.0: Reemplaza CSGBox3D visuales por MeshInstance3D+BoxMesh para depth sorting correcto.
+# Los CSGBox3D tienen su propio pipeline de rendering que ignora depth buffer de meshes normales.
+func _replace_csg_with_mesh(root: Node):
+	if not is_instance_valid(root):
+		return
+	var stack: Array = [root]
+	while stack.size() > 0:
+		var n = stack.pop_back() as Node
+		if n is CSGBox3D and n.visible:
+			var csg = n as CSGBox3D
+			var parent = csg.get_parent()
+			if not is_instance_valid(parent):
+				continue
+			var mi = MeshInstance3D.new()
+			mi.name = csg.name + "_Mesh"
+			var box = BoxMesh.new()
+			box.size = csg.size
+			mi.mesh = box
+			if csg.material:
+				mi.material_override = csg.material
+			parent.add_child(mi)
+			mi.global_transform = csg.global_transform
+			csg.visible = false
+		for child in n.get_children():
+			if child is Node3D:
+				stack.append(child)
 
 func _resolve_map_editor_path(z_id: String) -> String:
 	# v530.2: Resolver path del MapEditor3D con fallbacks (Loby es excepción: MapEditor3D_1_Loby.tscn)
@@ -914,6 +939,8 @@ func _setup_3d_dynamic():
 						
 						# v530.1: Piso negro plano
 						_fix_scene_floor_to_black(scene_inst)
+						# v950.0: Reemplazar CSGBox3D por MeshInstance3D para depth sorting correcto
+						_replace_csg_with_mesh(scene_inst)
 				
 				# Aplicar iluminación mejorada cenital de arriba y ambiental de soporte siempre
 				_apply_ambient_and_zenith_lights(sub_viewport)
@@ -997,6 +1024,8 @@ func _setup_3d_dynamic():
 			
 			# v530.1: Piso negro plano
 			_fix_scene_floor_to_black(scene_inst)
+			# v950.0: Reemplazar CSGBox3D por MeshInstance3D para depth sorting correcto
+			_replace_csg_with_mesh(scene_inst)
 
 	_apply_ambient_and_zenith_lights(sub_viewport)
 	
@@ -1717,7 +1746,7 @@ func _spawn_altar_if_configured():
 
 		# --- AÑADIR COLLIDERS 2D PARA EL ALTAR ---
 		# 1. Area2D lógica para capturar impactos y daño
-		var altar_area = AltarAreaScript.new()
+		var altar_area = Area2D.new()
 		altar_area.name = "AltarArea2D"
 		altar_area.collision_layer = 1 | 2
 		altar_area.collision_mask = 1 | 2
@@ -1726,7 +1755,7 @@ func _spawn_altar_if_configured():
 		
 		var col_shape = CollisionShape2D.new()
 		var circle = CircleShape2D.new()
-		circle.radius = 160.0
+		circle.radius = 120.0
 		col_shape.shape = circle
 		altar_area.add_child(col_shape)
 		add_child(altar_area)
@@ -1740,7 +1769,7 @@ func _spawn_altar_if_configured():
 		
 		var static_col = CollisionShape2D.new()
 		var static_circle = CircleShape2D.new()
-		static_circle.radius = 160.0
+		static_circle.radius = 100.0
 		static_col.shape = static_circle
 		static_body.add_child(static_col)
 		add_child(static_body)
@@ -1845,7 +1874,7 @@ func _spawn_map_objects():
 						altar_3d.add_child(light)
 						
 					# Area2D lógica para capturar impactos y daño
-					var altar_area = AltarAreaScript.new()
+					var altar_area = Area2D.new()
 					altar_area.name = "AltarArea2D"
 					altar_area.collision_layer = 1 | 2
 					altar_area.collision_mask = 1 | 2
@@ -1854,7 +1883,7 @@ func _spawn_map_objects():
 					
 					var col_shape = CollisionShape2D.new()
 					var circle = CircleShape2D.new()
-					circle.radius = 160.0
+					circle.radius = 120.0
 					col_shape.shape = circle
 					altar_area.add_child(col_shape)
 					add_child(altar_area)
@@ -1868,7 +1897,7 @@ func _spawn_map_objects():
 					
 					var static_col = CollisionShape2D.new()
 					var static_circle = CircleShape2D.new()
-					static_circle.radius = 120.0
+					static_circle.radius = 100.0
 					static_col.shape = static_circle
 					static_body.add_child(static_col)
 					add_child(static_body)
@@ -2992,7 +3021,7 @@ func _spawn_objects_from_custom_scene():
 			for sub_child in child.get_children():
 				if is_instance_valid(sub_child) and sub_child is Node:
 					var sub_obj_type = get_flexible_obj_type.call(sub_child)
-					var is_collider = sub_child is CSGBox3D or sub_child is CSGCylinder3D or sub_child is CollisionPolygon3D or sub_child is CollisionShape3D or sub_child.name.to_lower().contains("collider") or sub_child.name.to_lower().contains("pared") or sub_obj_type != ""
+					var is_collider = sub_child is CSGBox3D or sub_child is CSGCylinder3D or sub_child is CollisionPolygon3D or sub_child is CollisionShape3D or sub_child.name.to_lower().contains("collider") or sub_child.name.to_lower().contains("pared") or sub_obj_type != "" or sub_child.get_child_count() > 0
 					if is_collider:
 						nodes_stack.append(sub_child)
 			
@@ -3098,8 +3127,7 @@ func _spawn_objects_from_custom_scene():
 							var lp = Vector2(wp.x / scale_factor, wp.z / (scale_factor * correction_z))
 							points_rel.append(lp - center_2d)
 						var col_poly = CollisionPolygon2D.new()
-						var hull = Geometry2D.convex_hull(points_rel)
-						col_poly.polygon = hull if hull.size() >= 3 else points_rel
+						col_poly.polygon = points_rel
 						wall_body.add_child(col_poly)
 						wall_body.add_to_group("walls")
 						wall_body.add_to_group("obstacles")
@@ -3264,7 +3292,10 @@ func _spawn_objects_from_custom_scene():
 					_occluder_fader.register_occluder(child)
 				
 			"altar":
-				var altar_area = AltarAreaScript.new()
+				# Altar de Defensa del Altar
+				# v770.11 FIX: El radio de colisión debe ser fijo (160px área / 120px sólido), NO multiplicar por scale_val (15x)
+				# Antes: 100px * 15 = 1500px de radio (3.000px de diámetro) bloqueaba todo el pasillo central y expulsaba la nave a Y:2422.
+				var altar_area = Area2D.new()
 				altar_area.name = "AltarArea2D"
 				altar_area.collision_layer = 1 | 2
 				altar_area.collision_mask = 1 | 2
