@@ -11,6 +11,7 @@ const ColorAuraShader = preload("res://resources/shaders/color_aura.gdshader")
 const ColorBeamShader = preload("res://resources/shaders/color_beam.gdshader")
 const SpaceExplosionScript = preload("res://scripts/vfx/SpaceExplosion.gd")
 const WreckageDrawingScript = preload("res://scripts/ui/WreckageDrawing.gd")
+const WreckageLabelTrackerScript = preload("res://scripts/ui/WreckageLabelTracker.gd")
 const EntityMechanicsVFXScript = preload("res://scripts/entities/EntityMechanicsVFX.gd")
 var _mechanics_vfx: EntityMechanicsVFX = null
 const DashSparkTexture = preload("res://VFX/textures/T_VFX_sparks112.jpg")
@@ -3038,7 +3039,8 @@ func _spawn_death_vfx():
 		# Posicionamiento 3D exacto alineado con la posición 2D de la entidad
 		explosion_3d.position.x = global_position.x * s_factor
 		explosion_3d.position.z = global_position.y * s_factor * correction_z
-		explosion_3d.position.y = 0.0
+		var current_y = world_root_3d.position.y if is_instance_valid(world_root_3d) else 1.0
+		explosion_3d.position.y = current_y
 		
 		current_map.sub_viewport.add_child(explosion_3d)
 	else:
@@ -3540,10 +3542,13 @@ func _spawn_wreckage_marker():
 	marker.global_position = global_position
 	world.entities_node.add_child(marker)
 	
-	var drawing = Node2D.new()
-	drawing.name = "Visual"
-	drawing.set_script(WreckageDrawingScript)
-	marker.add_child(drawing)
+	var is_single = get_meta("is_single_world", false)
+	var drawing = null
+	if not is_single:
+		drawing = Node2D.new()
+		drawing.name = "Visual"
+		drawing.set_script(WreckageDrawingScript)
+		marker.add_child(drawing)
 	
 	# v301.5: Etiqueta del piloto naufragado usando Label nativo (más robusto y visible)
 	var text_val = ""
@@ -3578,62 +3583,33 @@ func _spawn_wreckage_marker():
 		var s_factor = current_map.scale_factor if "scale_factor" in current_map else 0.02
 		var c_z = current_map.correction_z if "correction_z" in current_map else 1.41421356
 		
+		var current_y = world_root_3d.position.y if is_instance_valid(world_root_3d) else 1.0
 		var wreckage_3d = Node3D.new()
 		wreckage_3d.name = "Wreckage3D_" + str(entity_id)
 		wreckage_3d.position.x = global_position.x * s_factor
 		wreckage_3d.position.z = global_position.y * s_factor * c_z
-		wreckage_3d.position.y = 1.0
+		wreckage_3d.position.y = current_y
 		current_map.sub_viewport.add_child(wreckage_3d)
 		
-		# Crear tracker dinámico: proyecta la posición 3D del wreckage usando la cámara real
-		# (mismo sistema que usa el HUD de entidades en Entity.gd)
+		# Crear tracker estático precompilado (sin compilación dinámica para evitar micro-stutter)
 		var cam3d_ref = current_map.camera_3d if "camera_3d" in current_map else null
 		var sub_vp_ref = current_map.sub_viewport
-		var tracker_code = GDScript.new()
-		tracker_code.source_code = """
-extends Node2D
-func _process(_d):
-	var t = get_meta("t", null)
-	var cam = get_meta("cam", null)
-	var sub_vp = get_meta("sub_vp", null)
-	var map = get_meta("map", null)
-	if not is_instance_valid(t) or not is_instance_valid(cam) or not is_instance_valid(sub_vp):
-		return
-	if cam.is_position_behind(t.global_position):
-		visible = false
-		return
-	visible = true
-	var sv_pixel = cam.unproject_position(t.global_position)
-	if is_instance_valid(map):
-		var container = map.viewport_container
-		if is_instance_valid(container) and sub_vp.size.x > 0:
-			sv_pixel *= Vector2(container.size) / Vector2(sub_vp.size)
-			sv_pixel += container.global_position
-		else:
-			if sub_vp.size.x > 0 and sub_vp.size.y > 0:
-				var main_size = Vector2(get_viewport().get_visible_rect().size)
-				sv_pixel *= main_size / Vector2(sub_vp.size)
-	else:
-		if sub_vp.size.x > 0 and sub_vp.size.y > 0:
-			var main_size = Vector2(get_viewport().get_visible_rect().size)
-			sv_pixel *= main_size / Vector2(sub_vp.size)
-	global_position = get_viewport().get_canvas_transform().affine_inverse() * sv_pixel
-"""
-		tracker_code.reload()
 		var tracker = Node2D.new()
 		tracker.name = "LabelTracker"
-		tracker.set_script(tracker_code)
+		tracker.set_script(WreckageLabelTrackerScript)
 		tracker.set_meta("t", wreckage_3d)
 		tracker.set_meta("cam", cam3d_ref)
 		tracker.set_meta("sub_vp", sub_vp_ref)
 		tracker.set_meta("map", current_map)
 		
-		# Agregar tracker al marcador y agregar el label directamente al tracker
+		# Agregar tracker al marcador y sincronizar posición de inmediato para el Frame 0
 		marker.add_child(tracker)
+		if tracker.has_method("_update_position"):
+			tracker._update_position()
 		tracker.add_child(label)
 		label.position = Vector2(-150, -55) # offset local sobre el marcador de muerte y centrado
 		
-		# Ocultar el dibujo 2D en single world (ya tenemos el wreckage 3D)
+		# Ocultar el dibujo 2D en single world si existiera
 		if is_instance_valid(drawing): drawing.visible = false
 		
 		# Anillo metálico roto (restos de la nave)

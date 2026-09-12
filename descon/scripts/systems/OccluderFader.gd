@@ -8,18 +8,18 @@ const DITHER_SHADER := preload("res://resources/shaders/occluder_dither.gdshader
 const OCCLUDER_TYPES := ["wall", "decor", "tower", "pillar", "altar", "vault", "chest", "custom"]
 
 # Config
-@export var faded_alpha: float = 0.18 # transparencia del albedo del material base (0.18)
-@export var dither_fade_target: float = 0.18 # target de dither overlay (0.18)
+@export var faded_alpha: float = 0.20 # transparencia del albedo del material base (0.20)
+@export var dither_fade_target: float = 0.20 # target de dither overlay (0.20)
 @export var fade_duration: float = 0.22
 @export var check_interval: float = 0.045
 @export var occlusion_extra_radius: float = 0.35 # v531.1: Más fino (era 0.9) — solo desvanece cuando la cámara realmente lo tapa
 @export var min_proj_dist: float = 1.2 # v531.1: Un poco más de margen cerca de cámara para evitar pop temprano
-@export var use_dither: bool = true
+@export var use_dither: bool = false # Desactivado: dither en overlay produce artefactos oscuros y pases redundantes
 @export var debug_log: bool = false
 @export var occlusion_end_margin: float = 0.15 # v531.1: Margen fino antes del target (era 0.5) — más preciso
 
 var _occluders: Array[Node3D] = []
-var _cache: Dictionary = {} # Node3D -> { meshes: Array[MeshInstance3D], mats: Array[Material], orig_alphas: Array[float], dither_mats: Array[ShaderMaterial] }
+var _cache: Dictionary = {} # Node3D -> { meshes: Array[MeshInstance3D], mats: Array[Material], orig_alphas: Array[float], dither_mats: Array[ShaderMaterial], tween: Tween }
 var _faded_state: Dictionary = {} # Node3D -> bool
 var _time_accum: float = 0.0
 var _map_ref: Node = null
@@ -121,8 +121,9 @@ func _setup_materials_for(node: Node3D, meshes: Array[MeshInstance3D]) -> void:
 		# Si ya preparamos este mesh, reutilizar
 		if mi.has_meta("_occluder_prepared") and is_instance_valid(cur_mat):
 			mats.append(cur_mat)
-			orig_alphas.append(mi.get_meta("_orig_alpha", 1.0))
-			var dm = mi.get_meta("_dither_mat", null)
+			var a_val: float = mi.get_meta("_orig_alpha") if mi.has_meta("_orig_alpha") else 1.0
+			orig_alphas.append(a_val)
+			var dm = mi.get_meta("_dither_mat") if mi.has_meta("_dither_mat") else null
 			dither_mats.append(dm)
 			continue
 
@@ -133,7 +134,11 @@ func _setup_materials_for(node: Node3D, meshes: Array[MeshInstance3D]) -> void:
 			# Duplicar de forma segura para no alterar el original en el disco
 			var bm: BaseMaterial3D = cur_mat.duplicate() as BaseMaterial3D
 			orig_a = bm.albedo_color.a
-			bm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			# Por defecto, el objeto debe ser 100% opaco para que el Z-buffer funcione correctamente
+			# y no se vean piezas faltantes ni caras invertidas en modelos 3D complejos.
+			bm.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+			bm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY
+			bm.albedo_color.a = orig_a
 			mi.material_override = bm
 			work_mat = bm
 		elif cur_mat is ShaderMaterial:
@@ -144,7 +149,6 @@ func _setup_materials_for(node: Node3D, meshes: Array[MeshInstance3D]) -> void:
 		elif cur_mat != null:
 			work_mat = cur_mat
 		else:
-			# Evitar asignar un override de StandardMaterial3D blanco si no tiene material visible en el slot
 			work_mat = null
 
 		mi.set_meta("_occluder_prepared", true)
@@ -160,22 +164,29 @@ func _setup_materials_for(node: Node3D, meshes: Array[MeshInstance3D]) -> void:
 			mi.set_meta("_dither_mat", dmat)
 			dither_mats.append(dmat)
 		else:
+			mi.set_meta("_dither_mat", null)
 			dither_mats.append(null)
 
-	_cache[node] = { "meshes": meshes, "mats": mats, "orig_alphas": orig_alphas, "dither_mats": dither_mats }
+	_cache[node] = { "meshes": meshes, "mats": mats, "orig_alphas": orig_alphas, "dither_mats": dither_mats, "tween": null }
 
 func _cleanup_materials(node: Node3D) -> void:
 	var data = _cache.get(node, null)
 	if data == null:
 		return
+	var active_tw: Tween = data.get("tween", null)
+	if is_instance_valid(active_tw) and active_tw.is_running():
+		active_tw.kill()
 	var meshes: Array = data.get("meshes", [])
 	for mi in meshes:
 		if is_instance_valid(mi):
 			if mi.material_overlay is ShaderMaterial and (mi.material_overlay as ShaderMaterial).shader == DITHER_SHADER:
 				mi.material_overlay = null
-			mi.remove_meta("_occluder_prepared")
-			mi.remove_meta("_orig_alpha")
-			mi.remove_meta("_dither_mat")
+			if mi.has_meta("_occluder_prepared"):
+				mi.remove_meta("_occluder_prepared")
+			if mi.has_meta("_orig_alpha"):
+				mi.remove_meta("_orig_alpha")
+			if mi.has_meta("_dither_mat"):
+				mi.remove_meta("_dither_mat")
 			mi.transparency = 0.0
 			mi.material_override = null
 	_cache.erase(node)
@@ -197,15 +208,30 @@ func _set_faded(node: Node3D, faded: bool) -> void:
 	var orig_alphas: Array = data.get("orig_alphas", [])
 	var dither_mats: Array = data.get("dither_mats", [])
 	
-	# El usuario solicitó opacidad fija al 20% para todos los objetos por igual
-	var effective_fade_alpha: float = 0.20
-	var effective_dither: float = 0.20
+	# Matar tween anterior en curso para evitar conflictos
+	var active_tw: Tween = data.get("tween", null)
+	if is_instance_valid(active_tw) and active_tw.is_running():
+		active_tw.kill()
+
+	var effective_fade_alpha: float = faded_alpha
+	var effective_dither: float = dither_fade_target
 
 	var target_a: float = effective_fade_alpha if faded else 1.0
 	var target_dither: float = effective_dither if faded else 1.0
 	
+	# Si pasa a estado desvanecido, activar transparencia con depth prepass para evitar artefactos internos
+	if faded:
+		for m in mats:
+			if is_instance_valid(m) and m is BaseMaterial3D:
+				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_DEPTH_PRE_PASS
+				m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_ALWAYS
+
+	var tw := create_tween()
+	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	data["tween"] = tw
+
 	for i in range(mats.size()):
-		var mi = meshes[i]
+		var mi = meshes[i] if i < meshes.size() else null
 		if not is_instance_valid(mi):
 			continue
 		var m = mats[i]
@@ -213,28 +239,39 @@ func _set_faded(node: Node3D, faded: bool) -> void:
 		var final_a := orig_a * target_a
 		
 		if is_instance_valid(m) and m is BaseMaterial3D:
-			var tw := create_tween()
-			tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-			tw.tween_property(m, "albedo_color:a", final_a, fade_duration)
+			tw.parallel().tween_property(m, "albedo_color:a", final_a, fade_duration)
 		elif is_instance_valid(m) and m is ShaderMaterial:
 			var sm := m as ShaderMaterial
 			for param in ["alpha", "fade", "opacity", "albedo_alpha", "transparency"]:
 				if sm.get_shader_parameter(param) != null:
-					var tw2 := create_tween()
-					tw2.tween_property(sm, "shader_parameter/" + param, final_a, fade_duration)
+					tw.parallel().tween_property(sm, "shader_parameter/" + param, final_a, fade_duration)
 					break
 		else:
 			# Fallback: Usar la transparencia nativa del MeshInstance3D si no pudimos duplicar el material
-			var tw_trans := create_tween()
-			tw_trans.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-			tw_trans.tween_property(mi, "transparency", (1.0 - target_a), fade_duration)
+			tw.parallel().tween_property(mi, "transparency", (1.0 - target_a), fade_duration)
 
 		if i < dither_mats.size():
 			var dm = dither_mats[i]
 			if is_instance_valid(dm):
-				var twd := create_tween()
-				twd.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-				twd.tween_property(dm, "shader_parameter/dither_fade", target_dither, fade_duration)
+				tw.parallel().tween_property(dm, "shader_parameter/dither_fade", target_dither, fade_duration)
+
+	# Al retornar al estado opaco (no ocluido), restaurar completamente a opaco al finalizar el tween
+	if not faded:
+		tw.finished.connect(func():
+			if not is_instance_valid(node):
+				return
+			if not _faded_state.get(node, false):
+				for idx in range(mats.size()):
+					var m_done = mats[idx]
+					var orig_a_val: float = orig_alphas[idx] if idx < orig_alphas.size() else 1.0
+					if is_instance_valid(m_done) and m_done is BaseMaterial3D:
+						m_done.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+						m_done.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY
+						m_done.albedo_color.a = orig_a_val
+				for mesh_inst in meshes:
+					if is_instance_valid(mesh_inst):
+						mesh_inst.transparency = 0.0
+		)
 
 func _collect_meshes(root: Node3D) -> Array[MeshInstance3D]:
 	var out: Array[MeshInstance3D] = []

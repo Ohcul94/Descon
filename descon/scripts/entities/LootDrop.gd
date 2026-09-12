@@ -42,6 +42,7 @@ func _ready():
 			var model = COFRE_MODEL_SCENE.instantiate()
 			model.scale = Vector3(1.3, 1.3, 1.3)
 			model.rotation_degrees = Vector3(0, 90, 0)
+			_fix_chest_materials(model)
 			world_root_3d.add_child(model)
 
 		sprite = Sprite2D.new()
@@ -79,6 +80,7 @@ func _ready():
 
 		if COFRE_MODEL_SCENE:
 			var model = COFRE_MODEL_SCENE.instantiate()
+			_fix_chest_materials(model)
 			node3d.add_child(model)
 			model.scale = Vector3(1.3, 1.3, 1.3)
 			model.rotation_degrees = Vector3(0, 90, 0)
@@ -201,3 +203,27 @@ func fade_out_and_free():
 			world_root_3d = null
 		queue_free()
 	)
+
+func _fix_chest_materials(node: Node) -> void:
+	if node is MeshInstance3D:
+		var surface_count = 1
+		if node.mesh:
+			surface_count = node.mesh.get_surface_count()
+		for i in range(surface_count):
+			var mat = node.get_active_material(i)
+			if mat is StandardMaterial3D:
+				var new_mat = mat.duplicate() as StandardMaterial3D
+				new_mat.roughness = 0.65
+				new_mat.metallic = 0.2
+				new_mat.roughness_texture = null
+				new_mat.metallic_texture = null
+				node.set_surface_override_material(i, new_mat)
+			elif mat is ORMMaterial3D:
+				var new_mat = mat.duplicate() as ORMMaterial3D
+				new_mat.roughness = 0.65
+				new_mat.metallic = 0.2
+				new_mat.orm_texture = null
+				node.set_surface_override_material(i, new_mat)
+	for child in node.get_children():
+		_fix_chest_materials(child)
+
