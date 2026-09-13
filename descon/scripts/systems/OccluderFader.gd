@@ -229,6 +229,7 @@ func _set_faded(node: Node3D, faded: bool) -> void:
 	var tw := create_tween()
 	tw.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	data["tween"] = tw
+	var has_tweeners: bool = false
 
 	for i in range(mats.size()):
 		var mi = meshes[i] if i < meshes.size() else null
@@ -238,22 +239,34 @@ func _set_faded(node: Node3D, faded: bool) -> void:
 		var orig_a: float = orig_alphas[i] if i < orig_alphas.size() else 1.0
 		var final_a := orig_a * target_a
 		
+		var param_found: bool = false
 		if is_instance_valid(m) and m is BaseMaterial3D:
 			tw.parallel().tween_property(m, "albedo_color:a", final_a, fade_duration)
+			has_tweeners = true
+			param_found = true
 		elif is_instance_valid(m) and m is ShaderMaterial:
 			var sm := m as ShaderMaterial
 			for param in ["alpha", "fade", "opacity", "albedo_alpha", "transparency"]:
 				if sm.get_shader_parameter(param) != null:
 					tw.parallel().tween_property(sm, "shader_parameter/" + param, final_a, fade_duration)
+					has_tweeners = true
+					param_found = true
 					break
-		else:
-			# Fallback: Usar la transparencia nativa del MeshInstance3D si no pudimos duplicar el material
+		if not param_found:
+			# Fallback: Usar la transparencia nativa del MeshInstance3D si no pudimos duplicar el material o no tiene shader param
 			tw.parallel().tween_property(mi, "transparency", (1.0 - target_a), fade_duration)
+			has_tweeners = true
 
 		if i < dither_mats.size():
 			var dm = dither_mats[i]
 			if is_instance_valid(dm):
 				tw.parallel().tween_property(dm, "shader_parameter/dither_fade", target_dither, fade_duration)
+				has_tweeners = true
+
+	if not has_tweeners:
+		tw.kill()
+		data["tween"] = null
+		return
 
 	# Al retornar al estado opaco (no ocluido), restaurar completamente a opaco al finalizar el tween
 	if not faded:
