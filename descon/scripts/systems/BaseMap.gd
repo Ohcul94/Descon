@@ -2723,6 +2723,11 @@ func _input(event):
 	
 	# Click/drag para rotación de cámara (configurable: por defecto LMB)
 	if event is InputEventMouseButton:
+		# v302.145: En Modo Celular, la rotación de cámara es EXCLUSIVA del panel táctil (CameraJoystick).
+		# Se bloquea totalmente el arrastre en la pantalla general para evitar desincronizaciones o giros accidentales.
+		if SettingsManager and SettingsManager.mobile_mode:
+			return
+
 		var cam_btn = MOUSE_BUTTON_LEFT
 		if SettingsManager and SettingsManager.get("control_cam_rotate_btn") == "RMB":
 			cam_btn = MOUSE_BUTTON_RIGHT
@@ -2782,6 +2787,8 @@ func _input(event):
 	
 	# Motion drag para orbitar (como MMO: arrastrar con LMB en híbrida o libre, o MMB en libre)
 	if event is InputEventMouseMotion:
+		if SettingsManager and SettingsManager.mobile_mode:
+			return
 		if _lmb_dragging:
 			var rel = event.relative
 			set_meta("lmb_dragged", true)
