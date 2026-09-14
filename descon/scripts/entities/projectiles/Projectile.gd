@@ -1596,8 +1596,15 @@ func _physics_process(delta):
 		velocity = Vector2.RIGHT.rotated(rotation) * speed
 	
 	elif type == "mine":
-		var decel = _safe_float(_current_data.get("deceleration", 3.5), 3.5)
-		velocity = velocity.lerp(Vector2.ZERO, decel * delta)
+		# La mina viaja a su velocidad hacia el objetivo y desacelera suavemente en el último tramo
+		if max_range > 0.0:
+			var curr_dist = global_position.distance_to(_start_pos)
+			if curr_dist >= max_range * 0.75:
+				var decel = _safe_float(_current_data.get("deceleration", 3.5), 3.5)
+				velocity = velocity.lerp(Vector2.ZERO, decel * 2.0 * delta)
+		else:
+			var decel = _safe_float(_current_data.get("deceleration", 3.5), 3.5)
+			velocity = velocity.lerp(Vector2.ZERO, decel * delta)
 	elif type == "mega_laser":
 		if is_instance_valid(_owner_node):
 			global_position = _owner_node.global_position
@@ -1824,6 +1831,9 @@ func _on_body_entered(body):
 					"enemyType": enemy_type,
 					"bulletType": type,
 					"attackerId": owner_id,
+					"mechType": _current_data.get("mechType", type),
+					"mId": _current_data.get("mId", ""),
+					"baseDamage": _current_data.get("baseDamage", damage),
 					"stunDuration": float(get_meta("stunDuration", 0)) if has_meta("stunDuration") else 0.0,
 					"polyDuration": int(poly_duration * 1000) if type == "polymorph" else 0,
 					"polyCanMove": poly_can_move if type == "polymorph" else true,

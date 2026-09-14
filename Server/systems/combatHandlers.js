@@ -819,6 +819,14 @@ socket.on('playerFire', (fireData) => {
                 enemyType = data.enemyType;
             }
             
+            let cfg = state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels ? state.SERVER_CONFIG.enemyModels[enemyType.toString()] : null;
+            if (!cfg && enemyType !== undefined && state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels) {
+                const baseKey = enemyType.toString().split('-')[0].trim();
+                if (state.SERVER_CONFIG.enemyModels[baseKey]) {
+                    cfg = state.SERVER_CONFIG.enemyModels[baseKey];
+                }
+            }
+            
             let dmg = data.damage || 0;
 
             // v410: ROBADOR DE ESCUDO (shield_steal) - El impacto no hace daño,
@@ -936,21 +944,51 @@ socket.on('playerFire', (fireData) => {
             }
 
             if (attackerType === 'enemy') {
-                const cfg = state.SERVER_CONFIG.enemyModels[enemyType];
+                if (!cfg && state.SERVER_CONFIG && state.SERVER_CONFIG.enemyModels) {
+                    cfg = state.SERVER_CONFIG.enemyModels[enemyType] || state.SERVER_CONFIG.enemyModels[enemyType.toString()];
+                }
                 let baseDmg = isClone ? 0 : (cfg ? cfg.bulletDamage : 50);
+                let matchedMechDmg = null;
                 
-                if (!isClone && cfg && cfg.mechanics && data.bulletType) {
-                    const searchType = data.bulletType === 'orbital_mine' ? 'orbital_strike' : data.bulletType;
-                    const matchingMech = cfg.mechanics.find(m => m.type === searchType);
-                    if (matchingMech) {
-                        if (matchingMech.type === 'spin_ring') {
-                            baseDmg = matchingMech.damage !== undefined ? matchingMech.damage : 100;
-                        } else if (matchingMech.bulletDamage !== undefined) {
-                            baseDmg = matchingMech.bulletDamage;
-                        } else if (matchingMech.damage !== undefined) {
-                            baseDmg = matchingMech.damage;
+                if (!isClone && cfg && cfg.mechanics) {
+                    const searchType = data.bulletType === 'orbital_mine' ? 'orbital_strike' : (data.mechType || data.bulletType);
+                    
+                    // 1. Buscar primero por mId explícito si el proyectil lo envió
+                    let matchingMech = null;
+                    if (data.mId && Array.isArray(cfg.mechanics)) {
+                        const mIdx = parseInt(data.mId.toString().replace('atk_', '').replace('mech_', '').replace('def_', ''));
+                        if (!isNaN(mIdx) && cfg.mechanics[mIdx]) {
+                            matchingMech = cfg.mechanics[mIdx];
                         }
                     }
+                    
+                    // 2. Si no, buscar por tipo de mecánica (o searchType)
+                    if (!matchingMech && searchType) {
+                        matchingMech = cfg.mechanics.find(m => m.type === searchType);
+                    }
+
+                    // 3. Si aún no coincide, buscar si alguna mecánica tiene un daño coincidente con baseDamage o damage
+                    if (!matchingMech && (data.baseDamage !== undefined || data.damage !== undefined)) {
+                        const targetDmg = data.baseDamage !== undefined ? Number(data.baseDamage) : Number(data.damage);
+                        matchingMech = cfg.mechanics.find(m => {
+                            const bDmg = m.bulletDamage !== undefined ? m.bulletDamage : m.damage;
+                            return bDmg !== undefined && Math.abs(Number(bDmg) - targetDmg) <= 1;
+                        });
+                    }
+                    
+                    if (matchingMech) {
+                        if (matchingMech.type === 'spin_ring') {
+                            matchedMechDmg = matchingMech.damage !== undefined ? matchingMech.damage : 100;
+                        } else if (matchingMech.bulletDamage !== undefined) {
+                            matchedMechDmg = matchingMech.bulletDamage;
+                        } else if (matchingMech.damage !== undefined) {
+                            matchedMechDmg = matchingMech.damage;
+                        }
+                    }
+                }
+                
+                if (matchedMechDmg !== null) {
+                    baseDmg = matchedMechDmg;
                 }
                 
                 // v266.550: Registrar éxito del enemigo para reglas de persecución
@@ -974,7 +1012,30 @@ socket.on('playerFire', (fireData) => {
                 if (p.isInvulnerable || isClone) {
                     dmg = 0;
                 } else {
-                    if (dmg < authorizedMaxDmg * 0.9 || dmg > (authorizedMaxDmg + 5)) {
+                    // Validar si el daño reportado por el cliente coincide legítimamente con alguna mecánica configurada del enemigo
+                    let isLegitMechanicDamage = false;
+                    if (matchedMechDmg !== null) {
+                        const expDmg = matchedMechDmg * damageMult;
+                        if (Math.abs(dmg - expDmg) <= 2 || Math.abs(dmg - matchedMechDmg) <= 2) {
+                            isLegitMechanicDamage = true;
+                        }
+                    }
+                    if (!isLegitMechanicDamage && cfg && cfg.mechanics && Array.isArray(cfg.mechanics)) {
+                        for (const m of cfg.mechanics) {
+                            const mDmg = (m.bulletDamage !== undefined ? m.bulletDamage : m.damage);
+                            if (mDmg !== undefined) {
+                                const mDmgWithMult = Number(mDmg) * damageMult;
+                                if (Math.abs(dmg - mDmgWithMult) <= 2 || Math.abs(dmg - Number(mDmg)) <= 2) {
+                                    isLegitMechanicDamage = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (isLegitMechanicDamage) {
+                        // Daño legítimo proveniente de mecánica configurada: autorizar el daño real
+                    } else if (dmg < authorizedMaxDmg * 0.9 || dmg > (authorizedMaxDmg + 5)) {
                         dmg = authorizedMaxDmg;
                     }
                 }
