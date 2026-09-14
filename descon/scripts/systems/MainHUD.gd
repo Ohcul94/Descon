@@ -120,8 +120,8 @@ func _ready():
 		if not NetworkManager.connection_lost.is_connected(close_all_hud_modals):
 			NetworkManager.connection_lost.connect(close_all_hud_modals)
 
-	_setup_mobile_camera_pad()
-	if SettingsManager:
+	if SettingsManager and SettingsManager.mobile_mode:
+		_setup_mobile_camera_pad()
 		_update_icon_state("CamEdit", SettingsManager.mobile_camera_edit_enabled)
 	_aggressive_hide(self)
 	_update_icon_tooltips()
@@ -694,7 +694,7 @@ func _on_minimize_pressed(id: String):
 
 func _on_icon_pressed(id: String):
 	if id == "CamEdit":
-		if SettingsManager:
+		if SettingsManager and SettingsManager.mobile_mode:
 			var current_state = int(SettingsManager.mobile_camera_edit_enabled)
 			var next_state = (current_state + 1) % 3
 			SettingsManager.mobile_camera_edit_enabled = next_state
@@ -752,8 +752,9 @@ func _on_icon_pressed(id: String):
 func _persist_hud_visibility():
 	if is_editing_layout:
 		return # No persistir estado ficticio del editor (todas forzadas visibles)
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
+		wins.append("CamEdit")
 		wins.append("VirtualJoystick")
 	var config = {}
 	for win_id in wins:
@@ -1562,8 +1563,9 @@ func toggle_hud_editing(slot_index: int = -1):
 				_make_node_draggable(child, child.name)
 		
 	# Ventanas Mayores
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
+		wins.append("CamEdit")
 		wins.append("VirtualJoystick")
 		
 	for win_id in wins:
@@ -1676,8 +1678,9 @@ func _sync_all_drag_overlays():
 			if child is Control and child.name != "DragOverlay":
 				_sync_overlay_for_node(child, child.name)
 				
-	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CamEdit", "CombatMeter", "TopLeft"]
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
 	if SettingsManager and SettingsManager.mobile_mode:
+		wins.append("CamEdit")
 		wins.append("VirtualJoystick")
 		
 	for win_id in wins:
@@ -2987,6 +2990,11 @@ func _add_target_debuff_icon(icon: String, time_left: float, total: float, color
 
 # v302.140: Control Flotante AAA de Cámara Libre en Móvil (Segundo Joystick 3D + Zoom + Reset)
 func _setup_mobile_camera_pad():
+	if not (SettingsManager and SettingsManager.mobile_mode):
+		var existing_old = get_node_or_null("CamTouchPadContainer")
+		if is_instance_valid(existing_old):
+			existing_old.queue_free()
+		return
 	var existing = get_node_or_null("CamTouchPadContainer")
 	if is_instance_valid(existing): return
 	
@@ -3011,6 +3019,19 @@ func _setup_mobile_camera_pad():
 		pad_container.camera_pad_closed.connect(func():
 			_update_icon_state("CamEdit", 2)
 		)
+
+func sync_platform_mode():
+	var is_mob = SettingsManager.mobile_mode if SettingsManager else false
+	if is_mob:
+		_setup_mobile_camera_pad()
+		if SettingsManager:
+			_update_icon_state("CamEdit", SettingsManager.mobile_camera_edit_enabled)
+	else:
+		var cam_pad = get_node_or_null("CamTouchPadContainer")
+		if is_instance_valid(cam_pad):
+			cam_pad.queue_free()
+	if is_instance_valid(control_bar) and control_bar.has_method("sync_platform_mode"):
+		control_bar.sync_platform_mode()
 
 func close_all_hud_modals():
 	print("[MainHUD] Conexión perdida. Limpiando todos los modales e interfaces activas...")

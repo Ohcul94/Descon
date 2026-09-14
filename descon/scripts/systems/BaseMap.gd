@@ -1374,6 +1374,46 @@ func _update_free_camera(shake_offset: Vector3 = Vector3.ZERO):
 	# se posicionaron con el tilt de la cámara fija. Si lo cambiamos, se desplazan.
 	# En su lugar, calculamos uno local solo para la posición del centro si hiciera falta.
 
+# Convierte un vector de dirección de pantalla (UI/HUD 2D) a la dirección correspondiente
+# en el plano del mapa 2D según la orientación actual de la Camera3D en tiempo real.
+# screen_dir: x > 0 derecha, x < 0 izquierda, y < 0 arriba (al frente), y > 0 abajo (atrás).
+func get_camera_oriented_direction(screen_dir: Vector2) -> Vector2:
+	if screen_dir == Vector2.ZERO:
+		return Vector2.ZERO
+		
+	if not is_instance_valid(camera_3d):
+		return screen_dir
+		
+	var cam_basis = camera_3d.global_transform.basis
+	
+	# Vector hacia ADELANTE de la cámara proyectado en el plano horizontal (suelo X-Z)
+	# En Godot, -Z es hacia adelante en espacio local de la cámara
+	var fwd_3d = Vector3(-cam_basis.z.x, 0.0, -cam_basis.z.z)
+	if fwd_3d.length_squared() > 0.0001:
+		fwd_3d = fwd_3d.normalized()
+	else:
+		fwd_3d = Vector3(0, 0, -1)
+		
+	# Vector hacia la DERECHA de la cámara proyectado en el plano horizontal
+	# En Godot, +X es hacia la derecha en espacio local de la cámara
+	var rgt_3d = Vector3(cam_basis.x.x, 0.0, cam_basis.x.z)
+	if rgt_3d.length_squared() > 0.0001:
+		rgt_3d = rgt_3d.normalized()
+	else:
+		rgt_3d = Vector3(1, 0, 0)
+		
+	# screen_dir.x: +1 derecha de pantalla
+	# screen_dir.y: -1 arriba de pantalla (al frente de la vista) -> -screen_dir.y es positivo
+	var move_3d = rgt_3d * screen_dir.x + fwd_3d * (-screen_dir.y)
+	
+	# Convertir de espacio 3D (X, Z) a coordenadas lógicas 2D del mapa (X_2d, Y_2d)
+	# Z_3d = Y_2d * scale_factor * correction_z  ==>  Y_2d = Z_3d / (scale_factor * correction_z)
+	var corr = correction_z if correction_z > 0.01 else 1.0
+	var dir_2d = Vector2(move_3d.x, move_3d.z / corr)
+	if dir_2d.length_squared() > 0.0001:
+		return dir_2d.normalized() * screen_dir.length()
+	return screen_dir
+
 # v420.5: Convierte posición del mouse en pantalla al espacio del SubViewport.
 # Esta es la ÚNICA conversión Screen→SubViewport en todo el sistema.
 # Todos los demás sistemas deben usar mouse_world_pos_2d en lugar de hacer su propia conversión.

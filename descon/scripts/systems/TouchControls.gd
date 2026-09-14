@@ -236,16 +236,33 @@ func _update_joystick_visibility():
 			virtual_joystick.visible = false
 			virtual_joystick.global_position = Vector2(-2000, -2000)
 
+func sync_platform_mode():
+	var is_mob = SettingsManager.mobile_mode if SettingsManager else false
+	if is_instance_valid(grid_container):
+		var cam_btn = grid_container.get_node_or_null("IconCamEdit")
+		if not is_mob:
+			if is_instance_valid(cam_btn):
+				cam_btn.queue_free()
+		else:
+			if not is_instance_valid(cam_btn):
+				_setup_touch_buttons()
+				_reorder_icons_by_category()
+	_update_joystick_visibility()
+
 func _setup_touch_buttons():
+	var is_mob = SettingsManager.mobile_mode if SettingsManager else false
 	var touch_btns = [
-		{"id": "EscMenu", "icon": "⚙️", "tip": "Sistema (ESC)"},
-		{"id": "CamEdit", "icon": "🎥", "tip": "Cámara 3D"},
+		{"id": "EscMenu", "icon": "⚙️", "tip": "Sistema (ESC)"}
+	]
+	if is_mob:
+		touch_btns.append({"id": "CamEdit", "icon": "🎥", "tip": "Cámara 3D"})
+	touch_btns.append_array([
 		{"id": "CombatMeter", "icon": "📊", "tip": "Métricas de Combate"},
 		{"id": "TopLeft", "icon": "📈", "tip": "Diagnósticos (FPS/MS)"},
 		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"},
 		{"id": "Housing", "icon": "🏠", "tip": "Housing (F3)"},
 		{"id": "BattlePass", "icon": "🎟️", "tip": "Pase de Batalla (F4)"}
-	]
+	])
 	
 	for data in touch_btns:
 		if grid_container.has_node("Icon" + data.id): continue

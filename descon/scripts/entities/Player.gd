@@ -1473,7 +1473,11 @@ func _apply_movement():
 		rotation = lerp_angle(rotation, fear_vector.angle(), 0.25)
 		velocity = fear_vector * final_speed
 	elif joystick_direction != Vector2.ZERO:
-		var target_angle = joystick_direction.angle()
+		var move_dir = joystick_direction
+		var map_node = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_node) and map_node.has_method("get_camera_oriented_direction"):
+			move_dir = map_node.get_camera_oriented_direction(joystick_direction)
+		var target_angle = move_dir.angle()
 		rotation = lerp_angle(rotation, target_angle, 0.25)
 		var dir = Vector2.RIGHT.rotated(rotation)
 		velocity = dir * final_speed

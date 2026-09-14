@@ -804,12 +804,21 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	var max_range = sc.current_skill.get("range", 500.0)
 	var sensitivity = SettingsManager.mobile_aim_sensitivity
 	
-	if max_range <= 0:
-		sc.external_aim_vector = world_diff if world_diff.length() > 5 else Vector2.ZERO
+	if diff_global.length() > 5:
+		var screen_dir = diff_global.normalized()
+		var map_node = get_tree().get_first_node_in_group("map")
+		var oriented_dir = screen_dir
+		if is_instance_valid(map_node) and map_node.has_method("get_camera_oriented_direction"):
+			oriented_dir = map_node.get_camera_oriented_direction(screen_dir)
+		
+		if max_range <= 0:
+			sc.external_aim_vector = oriented_dir * world_diff.length()
+		else:
+			var px_for_max = 80.0 / sensitivity
+			var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
+			sc.external_aim_vector = oriented_dir * mapped_range
 	else:
-		var px_for_max = 80.0 / sensitivity
-		var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
-		sc.external_aim_vector = world_diff.normalized() * mapped_range if world_diff.length() > 5 else Vector2.ZERO
+		sc.external_aim_vector = Vector2.ZERO
 	
 	if aim:
 		aim.visible = true

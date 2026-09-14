@@ -221,11 +221,17 @@ func _setup_ui():
 		
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud:
-			if hud.has_method("_update_joystick_visibility"):
+			if hud.has_method("sync_platform_mode"):
+				hud.sync_platform_mode()
+			elif hud.has_method("_update_joystick_visibility"):
 				hud._update_joystick_visibility()
-			var cam_btn = hud.get_node_or_null("CamEdit")
-			if cam_btn:
-				cam_btn.visible = is_mob
+		
+		var map_node = get_tree().get_first_node_in_group("map")
+		if map_node and map_node.has_method("_on_mobile_camera_edit_toggled"):
+			if not is_mob:
+				map_node._on_mobile_camera_edit_toggled(0)
+			else:
+				map_node._on_mobile_camera_edit_toggled(SettingsManager.mobile_camera_edit_enabled)
 		
 		# Actualizar visibilidad de controles de cámara móvil en pestaña GRÁFICOS
 		if _mobcam_row: _mobcam_row.visible = is_mob
