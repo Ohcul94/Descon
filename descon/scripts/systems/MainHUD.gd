@@ -89,10 +89,10 @@ func _ready():
 		server_date_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 		vbox.add_child(server_date_label)
 
-	# v905.1: Click en FPS para abrir diagnóstico
-	if is_instance_valid(fps_label):
+	# v905.1: Click en FPS para abrir diagnóstico (Solo en Dev / Debug Build)
+	if is_instance_valid(fps_label) and OS.is_debug_build():
 		fps_label.mouse_filter = Control.MOUSE_FILTER_STOP
-		fps_label.tooltip_text = "Click o presiona F9 para panel de diagnóstico"
+		fps_label.tooltip_text = "Click o presiona F9 para panel de diagnóstico (Debug)"
 		fps_label.gui_input.connect(func(ev):
 			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
 				_toggle_perf_diag_panel()
@@ -241,8 +241,8 @@ func _update_active_slot_index(current_layout: Dictionary):
 	active_slot_index = -1
 
 func _input(event: InputEvent):
-	# v905.1: MONITOR DE RENDIMIENTO Y TELEMETRÍA EN TIEMPO REAL (Atajo F9 o Click en FPS)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
+	# v905.1: MONITOR DE RENDIMIENTO Y TELEMETRÍA EN TIEMPO REAL (Solo en Dev / Debug Build)
+	if OS.is_debug_build() and event is InputEventKey and event.pressed and event.keycode == KEY_F9:
 		_toggle_perf_diag_panel()
 		get_viewport().set_input_as_handled()
 		return
@@ -645,7 +645,7 @@ func _process(_delta):
 
 
 	if fps_label: fps_label.text = "FPS: " + str(Engine.get_frames_per_second())
-	_update_perf_diag(_delta)
+	if OS.is_debug_build(): _update_perf_diag(_delta)
 	if ms_label: ms_label.text = "MS: " + str(NetworkManager.current_ms)
 	if is_instance_valid(online_label):
 		online_label.text = "ONLINE: " + str(NetworkManager.online_count)
@@ -3283,6 +3283,8 @@ var _perf_btn_terrain: Button = null
 var _perf_btn_viewport: Button = null
 
 func _toggle_perf_diag_panel():
+	if not OS.is_debug_build():
+		return
 	_perf_open = !_perf_open
 	if _perf_open:
 		if not is_instance_valid(_perf_panel):
