@@ -14,6 +14,7 @@ const VFX_Siphon_projectile_scene = preload("res://VFX/scenes/VFX_Siphon_project
 const VFX_Siphon_Hit_scene = preload("res://VFX/scenes/VFX_Siphon_Hit.tscn")
 const VFX_Fire_ball_type_B_scene = preload("res://VFX/scenes/VFX_Fire_ball_type_B.tscn")
 const VFX_Fire_strike_scene = preload("res://VFX/scenes/VFX_Fire_strike.tscn")
+const VFX_Hit_fire_1_scene = preload("res://VFX/scenes/VFX_Hit_fire_1.tscn")
 
 # Pre-cargado estático de texturas para evitar I/O bloqueante
 const TEXTURE_MISSILE = preload("res://assets/Municiones/Misiles/Misil1/Misil1.png")
@@ -548,7 +549,7 @@ func _setup_visual_sprite():
 					world_root_3d.name = "LaserProj3D_" + str(get_instance_id())
 					target_vp.add_child(world_root_3d)
 					
-					world_root_3d.scale = Vector3(0.85, 0.85, 0.85)
+					world_root_3d.scale = Vector3(0.425, 0.425, 0.425)
 					
 					tree_exiting.connect(func():
 						if is_instance_valid(world_root_3d):
@@ -1390,6 +1391,7 @@ func _setup_visual_sprite():
 			var target_size = 48.0
 			if type == "mine" or type == "orbital_mine": target_size = 64.0
 			elif type == "missile": target_size = 56.0
+			elif type == "laser": target_size = 24.0
 			
 			var s = target_size / max(tex.get_width(), tex.get_height())
 			if type == "orbital_mine": s = 0.08 
@@ -1539,12 +1541,12 @@ func _draw():
 				return
 			# v530.5 fallback 2D para laser: capsula rojo-naranja brillante con estela
 			var t_laser = Time.get_ticks_msec() / 1000.0
-			var pulse_laser = sin(t_laser * 18.0) * 1.2
-			draw_circle(Vector2.ZERO, 10.0 + pulse_laser, Color(1.0, 0.25, 0.08, 0.38))
-			draw_circle(Vector2.ZERO, 6.5, Color(1.0, 0.35, 0.12, 0.95))
-			draw_circle(Vector2.ZERO, 3.0, Color.WHITE)
-			draw_line(Vector2(-14, 0), Vector2(8, 0), Color(1.0, 0.4, 0.15, 0.85), 3.5)
-			draw_line(Vector2(-20, 0), Vector2(-14, 0), Color(1.0, 0.2, 0.05, 0.32), 6.0)
+			var pulse_laser = sin(t_laser * 18.0) * 0.6
+			draw_circle(Vector2.ZERO, 5.0 + pulse_laser, Color(1.0, 0.25, 0.08, 0.38))
+			draw_circle(Vector2.ZERO, 3.25, Color(1.0, 0.35, 0.12, 0.95))
+			draw_circle(Vector2.ZERO, 1.5, Color.WHITE)
+			draw_line(Vector2(-7, 0), Vector2(4, 0), Color(1.0, 0.4, 0.15, 0.85), 1.75)
+			draw_line(Vector2(-10, 0), Vector2(-7, 0), Color(1.0, 0.2, 0.05, 0.32), 3.0)
 		"emp":
 			if is_instance_valid(world_root_3d):
 				return
@@ -2405,6 +2407,42 @@ func _explode():
 				print("[SIPHON HIT ERROR] VFX_Siphon_Hit_scene is empty!")
 		else:
 			print("[SIPHON HIT DEBUG] No map node or sub_viewport")
+
+	# Spawn explosion effect for missile/ice_missile projectiles
+	if type == "missile" or type == "ice_missile":
+		var map_node = get_tree().get_first_node_in_group("map")
+		
+		# Explosion 3D via VFX pool
+		if is_instance_valid(map_node) and map_node.get("sub_viewport") != null:
+			var target_vp = map_node.sub_viewport
+			if VFX_Hit_fire_1_scene:
+				var hit_node = VFXSystem.get_vfx_from_pool(VFX_Hit_fire_1_scene)
+				if is_instance_valid(hit_node):
+					hit_node.name = "MissileExplosion3D_" + str(get_instance_id())
+					target_vp.add_child(hit_node)
+					
+					var s_factor = 0.02
+					var correction_z = map_node.correction_z if is_instance_valid(map_node) and "correction_z" in map_node else 1.41421356
+					hit_node.position.x = global_position.x * s_factor
+					hit_node.position.z = global_position.y * s_factor * correction_z
+					hit_node.position.y = _aim_height()
+					
+					var explosion_scale = 1.8 if type == "missile" else 1.5
+					hit_node.scale = Vector3(explosion_scale, explosion_scale, explosion_scale)
+					
+					if type == "ice_missile":
+						for c in hit_node.get_children():
+							if c is MeshInstance3D and c.get("material_override"):
+								c.material_override.albedo_color = Color(0.4, 0.7, 2.0)
+					
+					var anim = hit_node.get_node_or_null("AnimationPlayer")
+					if anim:
+						anim.play("Init")
+						anim.animation_finished.connect(func(_a): VFXSystem.recycle_vfx_to_pool(hit_node), CONNECT_ONE_SHOT)
+					else:
+						var tw = hit_node.create_tween()
+						tw.tween_interval(1.0)
+						tw.tween_callback(func(): VFXSystem.recycle_vfx_to_pool(hit_node))
 
 	if type == "emp" and not _is_exploding:
 		_is_exploding = true

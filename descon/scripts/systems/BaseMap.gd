@@ -2802,6 +2802,7 @@ func _on_mobile_camera_edit_toggled(state: int):
 	if not sm or not sm.mobile_mode:
 		return
 	free_cam_active = (state != 0)
+	free_orbit_mode = true
 	if state != 0:
 		_sync_free_from_fixed()
 		_restore_camera_state()
@@ -2824,9 +2825,9 @@ func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
 			if ctrl and is_instance_valid(ctrl):
 				if ctrl is Button or ctrl is TextureButton or ctrl is Slider or ctrl is LineEdit or ctrl is OptionButton:
 					on_interactive_ui = true
-				elif ctrl.name in ["VirtualJoystick", "ControlBar", "ChatUI", "RadarWindow", "CenterStats", "PartyHUD", "Skills", "CamEdit"]:
+				elif ctrl.name in ["VirtualJoystick", "ControlBar", "ChatUI", "RadarWindow", "CenterStats", "PartyHUD", "Skills", "CamEdit", "CamTouchPadContainer"]:
 					on_interactive_ui = true
-				elif ctrl.get_parent() and ctrl.get_parent().name in ["VirtualJoystick", "ControlBar", "GridContainer"]:
+				elif ctrl.find_parent("CamTouchPadContainer") != null or (ctrl.get_parent() and ctrl.get_parent().name in ["VirtualJoystick", "ControlBar", "GridContainer"]):
 					on_interactive_ui = true
 			
 			if not on_interactive_ui:

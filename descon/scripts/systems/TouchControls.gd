@@ -239,6 +239,7 @@ func _update_joystick_visibility():
 func _setup_touch_buttons():
 	var touch_btns = [
 		{"id": "EscMenu", "icon": "⚙️", "tip": "Sistema (ESC)"},
+		{"id": "CamEdit", "icon": "🎥", "tip": "Cámara 3D"},
 		{"id": "CombatMeter", "icon": "📊", "tip": "Métricas de Combate"},
 		{"id": "TopLeft", "icon": "📈", "tip": "Diagnósticos (FPS/MS)"},
 		{"id": "Inventory", "icon": "🎒", "tip": "Inventario (F1)"},

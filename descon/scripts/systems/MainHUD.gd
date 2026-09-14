@@ -121,6 +121,8 @@ func _ready():
 			NetworkManager.connection_lost.connect(close_all_hud_modals)
 
 	_setup_mobile_camera_pad()
+	if SettingsManager:
+		_update_icon_state("CamEdit", SettingsManager.mobile_camera_edit_enabled)
 	_aggressive_hide(self)
 	_update_icon_tooltips()
 	
@@ -490,7 +492,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 			node.scale = Vector2(final_sc, final_sc)
 			node.modulate.a = float(pos_data.get("alpha", 1.0))
 
-			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"] or "Chat" in node.name or "Party" in node.name
+			var is_corner_win = node.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft", "CamTouchPadContainer", "CamEdit"] or "Chat" in node.name or "Party" in node.name
 			
 			if is_corner_win:
 				# v1.45: Emulación de Anclaje Cuadrantal Absoluto (top_level = true) SIN MUTILACIÓN ESCALAR
@@ -513,6 +515,7 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				elif node.name == "PortalBtnContainer": rs_temp = Vector2(80, 80)
 				elif node.name == "CombatMeter": rs_temp = Vector2(340, 220)
 				elif node.name == "TopLeft": rs_temp = Vector2(180, 120)
+				elif node.name == "CamTouchPadContainer" or node.name == "CamEdit": rs_temp = Vector2(190, 240)
 				elif rs_temp.x <= 0: rs_temp = node.get_combined_minimum_size()
 				if rs_temp.x <= 0: rs_temp = Vector2(100, 100)
 				
@@ -773,7 +776,7 @@ func _get_hud_node(id: String):
 	if id == "Status" or id == "StatusEffects": real_id = "StatusEffects"
 	if id == "PortalBtnContainer": real_id = "PortalBtnContainer"
 	if id == "BattlePass": real_id = "PaseBatalla"
-	if id == "CamEdit": real_id = "CamEdit"
+	if id == "CamEdit" or id == "CamTouchPadContainer": real_id = "CamTouchPadContainer"
 	if id == "TargetFrame": real_id = "TargetFrame"
 	if id == "CombatMeter": real_id = "CombatMeter"
 	
@@ -796,27 +799,30 @@ func _get_hud_node(id: String):
 	return node
 
 func _update_icon_state(id: String, state_val: Variant):
-	if id == "CamEdit":
-		var container = get_node_or_null("CamEdit")
-		if container:
-			var btn = container.get_node_or_null("VisualBtn")
-			if btn:
-				match int(state_val):
-					0:
-						btn.text = "👁️"
-						btn.modulate = Color(0.4, 0.4, 0.4, 0.6)
-					1:
-						btn.text = "👁️"
-						btn.modulate = Color.WHITE
-					2:
-						btn.text = "🔒"
-						btn.modulate = Color(1.0, 0.85, 0.2)
-		
+	if id == "CamEdit" or id == "CamTouchPadContainer":
 		# v302.140: Activar/Ocultar el Control Flotante AAA de Cámara Libre en Celular
 		var cam_pad = get_node_or_null("CamTouchPadContainer")
 		if cam_pad:
 			var is_mob = SettingsManager.mobile_mode if SettingsManager else false
 			cam_pad.visible = (int(state_val) == 1) and is_mob
+		
+		# Actualizar el icono en la barra de controles táctiles
+		var icon = null
+		if control_bar:
+			icon = control_bar.find_child("IconCamEdit", true, false)
+		if not icon:
+			icon = find_child("IconCamEdit", true, false)
+		if icon:
+			match int(state_val):
+				0:
+					icon.text = "🎥"
+					icon.modulate = Color(0.4, 0.4, 0.4, 0.6)
+				1:
+					icon.text = "🎥"
+					icon.modulate = Color.WHITE
+				2:
+					icon.text = "🔒"
+					icon.modulate = Color(1.0, 0.85, 0.2)
 		return
 	var is_active = bool(state_val)
 	if control_bar:
@@ -1631,7 +1637,7 @@ func _make_node_draggable(node: Control, _hud_id: String):
 				elif clean_name == "TargetFrame": clean_name = "MARCO OBJETIVO"
 				elif clean_name == "VirtualJoystick": clean_name = "JOYSTICK"
 				elif clean_name == "PortalBtnContainer": clean_name = "BOTÓN ACCIÓN"
-				elif clean_name == "CamEdit": clean_name = "CAM 3D"
+				elif clean_name == "CamEdit" or clean_name == "CamTouchPadContainer": clean_name = "CAM 3D"
 				elif clean_name == "CombatMeter": clean_name = "MÉTRICAS DE COMBATE"
 				elif clean_name == "Skills": clean_name = "CONTENEDOR HABILIDADES"
 				elif clean_name == "TopLeft": clean_name = "DIAGNÓSTICOS"
@@ -1762,7 +1768,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 		var nx = win.global_position.x
 		var ny = win.global_position.y
 		
-		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"] or "Chat" in win.name or "Party" in win.name
+		var is_corner_win = win.name in ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "Skills", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft", "CamTouchPadContainer", "CamEdit"] or "Chat" in win.name or "Party" in win.name
 
 		if is_corner_win:
 			var base_w = win.size.x
@@ -1779,6 +1785,7 @@ func _save_hud_positions(slot_index: int = -1, slot_name: String = ""):
 			elif "PortalBtnContainer" in win.name: base_w = 80; base_h = 80
 			elif "CombatMeter" in win.name: base_w = 340; base_h = 220
 			elif "TopLeft" in win.name: base_w = 180; base_h = 120
+			elif "CamTouchPadContainer" in win.name or "CamEdit" in win.name: base_w = 190; base_h = 240
 			
 			var godot_w = win.size.x * win.scale.x
 			var godot_h = win.size.y * win.scale.y
@@ -2978,159 +2985,32 @@ func _add_target_debuff_icon(icon: String, time_left: float, total: float, color
 	
 	_target_debuff_hbox.add_child(box)
 
-# v302.140: Control Flotante AAA de Cámara Libre en Móvil (TouchPad de Órbita 3D + Zoom + Reset)
+# v302.140: Control Flotante AAA de Cámara Libre en Móvil (Segundo Joystick 3D + Zoom + Reset)
 func _setup_mobile_camera_pad():
-	var pad_container = Control.new()
+	var existing = get_node_or_null("CamTouchPadContainer")
+	if is_instance_valid(existing): return
+	
+	var joy_script = load("res://scripts/ui/CameraJoystick.gd")
+	var pad_container: Control = null
+	if joy_script:
+		pad_container = joy_script.new()
+	else:
+		pad_container = Control.new()
+		pad_container.custom_minimum_size = Vector2(190, 240)
+		
 	pad_container.name = "CamTouchPadContainer"
-	pad_container.custom_minimum_size = Vector2(190, 230)
-	pad_container.size = Vector2(190, 230)
+	pad_container.size = Vector2(190, 240)
 	pad_container.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	var screen_s = get_viewport_rect().size
-	pad_container.position = Vector2(screen_s.x - 210, (screen_s.y / 2.0) - 115)
-	
-	# 1. El TouchPad circular de Órbita 3D
-	var pad = Panel.new()
-	pad.name = "TouchPad"
-	pad.size = Vector2(150, 150)
-	pad.position = Vector2(20, 0)
-	pad.mouse_filter = Control.MOUSE_FILTER_STOP
-	
-	var style_pad = StyleBoxFlat.new()
-	style_pad.bg_color = Color(0.02, 0.08, 0.16, 0.65) # Neón futurista semitransparente
-	style_pad.border_width_left = 2; style_pad.border_width_top = 2
-	style_pad.border_width_right = 2; style_pad.border_width_bottom = 2
-	style_pad.border_color = Color(0.0, 0.9, 1.0, 0.95) # Borde Cian Neón brillante
-	style_pad.set_corner_radius_all(75) # Círculo perfecto
-	pad.add_theme_stylebox_override("panel", style_pad)
-	pad_container.add_child(pad)
-	
-	# Icono y Texto central
-	var lbl = Label.new()
-	lbl.text = "🎥\nORBITAR CÁMARA"
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	lbl.add_theme_font_size_override("font_size", 11)
-	lbl.add_theme_color_override("font_color", Color(0.0, 0.9, 1.0, 0.9))
-	lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	lbl.add_theme_constant_override("outline_size", 3)
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pad.add_child(lbl)
-	
-	# Drag en el TouchPad
-	pad.set_meta("touch_index", -1)
-	
-	pad.gui_input.connect(func(event):
-		var map_node = get_tree().get_first_node_in_group("map")
-		if not is_instance_valid(map_node): return
-		var sens = SettingsManager.mobile_camera_sensitivity if SettingsManager else 1.0
-		
-		var t_idx = pad.get_meta("touch_index", -1)
-		
-		if event is InputEventScreenTouch or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT):
-			get_viewport().set_input_as_handled()
-			if event.pressed:
-				if t_idx == -1:
-					t_idx = event.index if event is InputEventScreenTouch else 0
-			else:
-				var ev_idx = event.index if event is InputEventScreenTouch else 0
-				if ev_idx == t_idx:
-					t_idx = -1
-		elif (event is InputEventScreenDrag) or (event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
-			var ev_idx = event.index if event is InputEventScreenDrag else 0
-			if ev_idx == t_idx or t_idx == 0:
-				get_viewport().set_input_as_handled()
-				var relative_val = event.relative
-				# Invertir el signo vertical para que funcione exactamente como PC (arrastrar abajo -> cámara baja)
-				map_node.free_cam_h += relative_val.x * 0.3 * sens
-				map_node.free_cam_v = clamp(map_node.free_cam_v + relative_val.y * 0.3 * sens, 10.0, 85.0)
-				if map_node.has_method("_save_camera_state"):
-					map_node._save_camera_state()
-		
-		pad.set_meta("touch_index", t_idx)
-	)
-	
-	# 2. Barra de Botones de Control (+ Zoom / - Zoom / Reset)
-	var hbox = HBoxContainer.new()
-	hbox.position = Vector2(0, 160)
-	hbox.size = Vector2(190, 42)
-	hbox.add_theme_constant_override("separation", 8)
-	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	pad_container.add_child(hbox)
-	
-	# Estilo para los botones de la barra de control
-	var style_btn = StyleBoxFlat.new()
-	style_btn.bg_color = Color(0.05, 0.12, 0.22, 0.85)
-	style_btn.border_width_left = 1; style_btn.border_width_top = 1
-	style_btn.border_width_right = 1; style_btn.border_width_bottom = 1
-	style_btn.border_color = Color(0.0, 0.85, 1.0, 0.7)
-	style_btn.set_corner_radius_all(8)
-	
-	# Botón Zoom In (+ Zoom)
-	var btn_in = Button.new()
-	btn_in.text = "🔍+"
-	btn_in.custom_minimum_size = Vector2(52, 38)
-	btn_in.add_theme_stylebox_override("normal", style_btn)
-	btn_in.add_theme_font_size_override("font_size", 14)
-	btn_in.mouse_filter = Control.MOUSE_FILTER_STOP
-	btn_in.gui_input.connect(func(event):
-		var is_press = (event is InputEventScreenTouch and event.pressed) or \
-					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
-		if is_press:
-			get_viewport().set_input_as_handled()
-			var map_node = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(map_node):
-				map_node.free_cam_zoom = clamp(map_node.free_cam_zoom - 4.0, 10.0, 100.0)
-				if map_node.has_method("_sync_zooms_from_free"): map_node._sync_zooms_from_free()
-				if map_node.has_method("_save_camera_state"): map_node._save_camera_state()
-	)
-	hbox.add_child(btn_in)
-	
-	# Botón Zoom Out (- Zoom)
-	var btn_out = Button.new()
-	btn_out.text = "🔍-"
-	btn_out.custom_minimum_size = Vector2(52, 38)
-	btn_out.add_theme_stylebox_override("normal", style_btn)
-	btn_out.add_theme_font_size_override("font_size", 14)
-	btn_out.mouse_filter = Control.MOUSE_FILTER_STOP
-	btn_out.gui_input.connect(func(event):
-		var is_press = (event is InputEventScreenTouch and event.pressed) or \
-					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
-		if is_press:
-			get_viewport().set_input_as_handled()
-			var map_node = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(map_node):
-				map_node.free_cam_zoom = clamp(map_node.free_cam_zoom + 4.0, 10.0, 100.0)
-				if map_node.has_method("_sync_zooms_from_free"): map_node._sync_zooms_from_free()
-				if map_node.has_method("_save_camera_state"): map_node._save_camera_state()
-	)
-	hbox.add_child(btn_out)
-	
-	# Botón Reset (↺)
-	var btn_rst = Button.new()
-	btn_rst.text = "↺"
-	btn_rst.custom_minimum_size = Vector2(52, 38)
-	btn_rst.add_theme_stylebox_override("normal", style_btn)
-	btn_rst.add_theme_font_size_override("font_size", 16)
-	btn_rst.mouse_filter = Control.MOUSE_FILTER_STOP
-	btn_rst.gui_input.connect(func(event):
-		var is_press = (event is InputEventScreenTouch and event.pressed) or \
-					   (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
-		if is_press:
-			get_viewport().set_input_as_handled()
-			var map_node = get_tree().get_first_node_in_group("map")
-			if is_instance_valid(map_node):
-				map_node.free_cam_h = 180.0
-				map_node.free_cam_v = 40.0
-				map_node.free_cam_zoom = 28.0
-				if map_node.has_method("_sync_zooms_from_free"): map_node._sync_zooms_from_free()
-				if map_node.has_method("_save_camera_state"): map_node._save_camera_state()
-	)
-	hbox.add_child(btn_rst)
-	
+	pad_container.position = Vector2(screen_s.x - 210, (screen_s.y / 2.0) - 120)
 	add_child(pad_container)
 	pad_container.visible = false
+	
+	if pad_container.has_signal("camera_pad_closed"):
+		pad_container.camera_pad_closed.connect(func():
+			_update_icon_state("CamEdit", 2)
+		)
 
 func close_all_hud_modals():
 	print("[MainHUD] Conexión perdida. Limpiando todos los modales e interfaces activas...")
