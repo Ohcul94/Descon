@@ -100,11 +100,6 @@ var free_orbit_mode: bool = true  # true=orbita jugador, false=libre (WASD)
 var _mid_dragging: bool = false
 var _drag_last: Vector2 = Vector2.ZERO
 
-# Mobile touch camera control state
-var _mobile_touch_points: Dictionary = {}
-var _mobile_cam_drag_index: int = -1
-var _mobile_cam_drag_last: Vector2 = Vector2.ZERO
-var _pinch_start_dist: float = 0.0
 var _was_mobile_camera_edit: int = 0
 
 # v600.0: OccluderFader - paredes/objetos que se hacen transparentes (A+B dither) cuando tapan la cámara
@@ -2782,20 +2777,6 @@ func _input(event):
 				get_viewport().set_input_as_handled()
 				break
 	
-	# --- MOBILE CAMERA TOUCH CONTROLS (drag de órbita de 1 dedo, zoom de 2 dedos) ---
-	# Todo el manejo táctil vive aquí, en BaseMap._input(), porque:
-	# 1. BaseMap tiene acceso directo a free_cam_h, free_cam_v, free_cam_zoom
-	# 2. En Android, InputEventScreenDrag no llega a gui_input de Controls en todos los casos
-	# 3. _input() de BaseMap recibe TODOS los eventos incluyendo los ya marcados como handled por la GUI
-	#    (los botones del HUD marcan sus toques como handled, pero BaseMap los ignora porque
-	#     gui_get_control_under_position() devuelve el control correcto)
-	var sm_touch = get_node_or_null("/root/SettingsManager")
-	if sm_touch and sm_touch.mobile_mode and "mobile_camera_edit_enabled" in sm_touch:
-		var is_touch_edit = int(sm_touch.mobile_camera_edit_enabled)
-		# Solo procesar si está en modo LIBRE EDITABLE (state == 1)
-		if is_touch_edit == 1:
-			_handle_mobile_camera_touch(event, sm_touch)
-
 # Alternar edición de cámara móvil desde Settings
 func _on_mobile_camera_edit_toggled(state: int):
 	var sm = get_node_or_null("/root/SettingsManager")
@@ -2810,74 +2791,6 @@ func _on_mobile_camera_edit_toggled(state: int):
 		_sync_zooms_from_free()
 		_save_camera_state()
 	_was_mobile_camera_edit = state
-
-# Manejo táctil de cámara libre en móvil: 1 dedo orbita, 2 dedos hacen zoom.
-# Vive en BaseMap._input() porque aquí están free_cam_h, free_cam_v, etc.
-func _handle_mobile_camera_touch(event: InputEvent, sm: Node):
-	var sens = sm.get("mobile_camera_sensitivity") if sm.get("mobile_camera_sensitivity") else 1.0
-	
-	if event is InputEventScreenTouch:
-		if event.pressed:
-			# Chequear si el toque está sobre un control interactivo del HUD
-			# Si es así, NO capturamos: la GUI lo maneja (botón ojito, skills, joystick, etc.)
-			var ctrl = get_viewport().gui_get_control_under_position(event.position)
-			var on_interactive_ui = false
-			if ctrl and is_instance_valid(ctrl):
-				if ctrl is Button or ctrl is TextureButton or ctrl is Slider or ctrl is LineEdit or ctrl is OptionButton:
-					on_interactive_ui = true
-				elif ctrl.name in ["VirtualJoystick", "ControlBar", "ChatUI", "RadarWindow", "CenterStats", "PartyHUD", "Skills", "CamEdit", "CamTouchPadContainer"]:
-					on_interactive_ui = true
-				elif ctrl.find_parent("CamTouchPadContainer") != null or (ctrl.get_parent() and ctrl.get_parent().name in ["VirtualJoystick", "ControlBar", "GridContainer"]):
-					on_interactive_ui = true
-			
-			if not on_interactive_ui:
-				get_viewport().set_input_as_handled() # Consumir el toque para que NO dispare apuntado/mira
-				if not _mobile_touch_points.has(event.index):
-					_mobile_touch_points[event.index] = event.position
-				
-				if _mobile_touch_points.size() == 1 and _mobile_cam_drag_index == -1:
-					# 1 dedo: registrar como drag de órbita
-					_mobile_cam_drag_index = event.index
-					_mobile_cam_drag_last = event.position
-				elif _mobile_touch_points.size() == 2:
-					# 2 dedos: cancelar órbita, iniciar pinza
-					_mobile_cam_drag_index = -1
-					var keys = _mobile_touch_points.keys()
-					_pinch_start_dist = _mobile_touch_points[keys[0]].distance_to(_mobile_touch_points[keys[1]])
-		else:
-			if _mobile_cam_drag_index != -1 and event.index == _mobile_cam_drag_index:
-				get_viewport().set_input_as_handled()
-			_mobile_touch_points.erase(event.index)
-			if event.index == _mobile_cam_drag_index:
-				_mobile_cam_drag_index = -1
-			if _mobile_touch_points.size() < 2:
-				_pinch_start_dist = 0.0
-	
-	elif event is InputEventScreenDrag:
-		_mobile_touch_points[event.index] = event.position
-		
-		# Órbita de 1 dedo
-		if event.index == _mobile_cam_drag_index:
-			get_viewport().set_input_as_handled() # Consumir el arrastre para que NO active el apuntado/mira
-			var delta = event.position - _mobile_cam_drag_last
-			_mobile_cam_drag_last = event.position
-			free_cam_h += delta.x * 0.3 * sens
-			free_cam_v = clamp(free_cam_v + delta.y * 0.3 * sens, 1.0, 85.0)
-			_save_camera_state()
-		
-		# Zoom con pinza de 2 dedos
-		elif _mobile_touch_points.size() >= 2 and _pinch_start_dist > 0.0:
-			get_viewport().set_input_as_handled()
-			var keys = _mobile_touch_points.keys()
-			if keys.size() >= 2:
-				var p1 = _mobile_touch_points[keys[0]]
-				var p2 = _mobile_touch_points[keys[1]]
-				var current_dist = p1.distance_to(p2)
-				var zoom_delta = (_pinch_start_dist - current_dist) * 0.1
-				free_cam_zoom += zoom_delta
-				_pinch_start_dist = current_dist
-				_sync_zooms_from_free()
-				_save_camera_state()
 
 # Lee la tecla bindeada para mostrar en notificaciones
 func _get_bound_key_text(action: String) -> String:
