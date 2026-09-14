@@ -240,6 +240,7 @@ func _force_altar_lighting_to_map2():
 			light.shadow_bias = 0.04
 			light.shadow_normal_bias = 1.5
 			light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+			light.directional_shadow_max_distance = 65.0
 			# Transform de Mapa2
 			light.transform = Transform3D(Vector3(0.81915206, -0.5198368, 0.24240388), Vector3(0, 0.42261827, 0.9063078), Vector3(-0.5735764, -0.74240386, 0.3461886), Vector3.ZERO)
 			print("[BaseMap] Iluminación altar forzada a Mapa2 para ", n.get_path())
@@ -910,6 +911,7 @@ func _setup_3d_dynamic():
 						terrain_node = _find_terrain_node_recursive(scene_inst)
 						if is_instance_valid(terrain_node):
 							print("[BaseMap] Vinculado Terrain3D en canvas existente. Clase: ", terrain_node.get_class())
+							_optimize_terrain_node(terrain_node)
 						
 						# v530.1: Piso negro plano
 						_fix_scene_floor_to_black(scene_inst)
@@ -993,6 +995,7 @@ func _setup_3d_dynamic():
 			terrain_node = _find_terrain_node_recursive(scene_inst)
 			if is_instance_valid(terrain_node):
 				print("[BaseMap] Vinculado Terrain3D de la escena personalizada. Clase: ", terrain_node.get_class())
+				_optimize_terrain_node(terrain_node)
 			
 			# v530.1: Piso negro plano
 			_fix_scene_floor_to_black(scene_inst)
@@ -1051,6 +1054,16 @@ func _find_terrain_node_recursive(node: Node) -> Node:
 		if found:
 			return found
 	return null
+
+# v905.1: Optimizar Terrain3D desactivando la proyección de sombras (el suelo es la base 2.5D, no proyecta sombras hacia abajo)
+func _optimize_terrain_node(t_node: Node) -> void:
+	if not is_instance_valid(t_node):
+		return
+	if "cast_shadow" in t_node:
+		t_node.set("cast_shadow", GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
+	elif t_node.has_method("set_cast_shadows"):
+		t_node.set_cast_shadows(false)
+	print("[BaseMap] Terrain3D optimizado: proyección de sombras desactivada (piso base 2.5D).")
 
 # Desactivar recursivamente interpolación de físicas en nodos 3D/terreno para evitar warnings deprecados en Godot 4.7
 static func _disable_physics_interpolation_recursive(node: Node) -> void:
@@ -1221,7 +1234,7 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 		main_light.shadow_enabled = native_shadows
 		if native_shadows:
 			main_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-			main_light.directional_shadow_max_distance = 150.0
+			main_light.directional_shadow_max_distance = 65.0
 			main_light.shadow_bias = 0.04
 			main_light.shadow_normal_bias = 1.5
 			sub_vp.positional_shadow_atlas_size = 2048
@@ -1231,6 +1244,11 @@ func _apply_ambient_and_zenith_lights(sub_vp: SubViewport):
 		var main_light = sub_vp.get_node_or_null("DirectionalLight3D")
 		if is_instance_valid(main_light):
 			main_light.queue_free()
+		# Optimizar distancia de sombras en la DirectionalLight3D personalizada
+		for custom_l in sub_vp.find_children("*", "DirectionalLight3D", true, false):
+			if custom_l is DirectionalLight3D:
+				custom_l.directional_shadow_max_distance = 65.0
+				custom_l.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 
 	# 3. Limpieza de luces secundarias (GL Compatibility solo soporta 1-2 luces direccionales de forma estable)
 	# El relleno ahora se maneja 100% por la luz ambiental del WorldEnvironment
@@ -3109,7 +3127,9 @@ func _spawn_objects_from_custom_scene():
 						var dbg_w = box_size.x * abs(g_scale.x) / scale_factor
 						var dbg_h = box_size.z * abs(g_scale.z) / (scale_factor * correction_z)
 						print("[BaseMap] CSGBox3D -> Polygon4: ", wall_body.name, " size_dbg=", Vector2(dbg_w, dbg_h), " pos=", center_2d, " pts=", points_rel)
-						if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+						if child.name.to_lower().contains("collider") or child.get_parent() != target_root:
+							child.visible = false
+						elif is_instance_valid(_occluder_fader) and is_instance_valid(child):
 							_occluder_fader.register_occluder(child)
 					else:
 						print("[BaseMap] CSGBox3D sin propiedad size, se omite: ", obj_label)
@@ -3144,7 +3164,9 @@ func _spawn_objects_from_custom_scene():
 						add_child(wall_body)
 						wall_body.global_position = center_2d
 						print("[BaseMap] CSGCylinder3D -> Ellipse Polygon: ", wall_body.name, " rx=", rx_2d, " ry=", ry_2d, " pos=", center_2d)
-						if is_instance_valid(_occluder_fader) and is_instance_valid(child):
+						if child.name.to_lower().contains("collider") or child.get_parent() != target_root:
+							child.visible = false
+						elif is_instance_valid(_occluder_fader) and is_instance_valid(child):
 							_occluder_fader.register_occluder(child)
 					else:
 						print("[BaseMap] CSGCylinder3D sin propiedad radius, se omite: ", obj_label)

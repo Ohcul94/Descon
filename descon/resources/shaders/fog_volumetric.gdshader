@@ -1,4 +1,4 @@
-﻿shader_type spatial;
+shader_type spatial;
 // Niebla volumetrica 3D del Fog of War - v1.0
 // Vive como MeshInstance3D (BoxMesh) en el mundo. La caja abarca todo el mapa
 // en XZ y va desde y=0 hasta fog_height metros.

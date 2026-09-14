@@ -92,9 +92,10 @@ void fragment() {
 				vec2  s_uv      = vec2(dist_uv.x, flip_y ? 1.0 - dist_uv.y : dist_uv.y);
 
 				float current_vision = texture(vision_texture,  s_uv).r;
-				float explored       = texture(history_texture, s_uv).r;
 
 				if (current_vision < 0.99) {
+					float explored   = texture(history_texture, s_uv).r;
+
 					// Visibilidad
 					float base_vis   = max(explored * (1.0 - shroud_opacity), 1.0 - fog_opacity);
 					float visibility = base_vis + (1.0 - base_vis) * current_vision;
@@ -104,46 +105,48 @@ void fragment() {
 					                    min(min(fog_uv.x, 1.0 - fog_uv.x),
 					                        min(fog_uv.y, 1.0 - fog_uv.y)));
 
-					// Densidad volumetrica (para rayos hacia abajo con geometria)
-					float height_density = height_factor;
-					if (ray_dir.y < -0.0001) {
-						float t_ground   = -cam_y / ray_dir.y;
-						float t_hit      = length(frag_world - ray_origin);
-						float t_end      = min(t_ground, t_hit);
-						float t_fog_top  = max((fog_height - cam_y) / ray_dir.y, 0.0);
-						float vol_length = max(t_end - t_fog_top, 0.0);
-						float hd = 1.0 - exp(-vol_length * fog_density * 0.18);
-						hd = clamp(hd * 0.68 + 0.32, 0.0, 1.0);
-						float mid_h = cam_y + ray_dir.y * (t_fog_top + vol_length * 0.5);
-						float vg = pow(1.0 - smoothstep(0.0, fog_height, mid_h), 0.7);
-						height_density = hd * mix(0.40, 1.0, vg) * height_factor;
-					}
-
 					// Factor 2D de niebla
 					float fog_factor_2d = pow(clamp(1.0 - visibility, 0.0, 1.0), 0.88);
 					fog_factor_2d = smoothstep(0.0, 1.0, fog_factor_2d);
 					fog_factor_2d *= smoothstep(0.0, 0.32, fog_factor_2d);
 					fog_factor_2d *= edge_fade;
 
+					// Early discard: si no hay niebla 2D suficiente, saltar volumetría y nubes
 					if (fog_factor_2d > 0.001) {
+						// Densidad volumétrica optimizada (evita sqrt/length 3D usando componente vertical)
+						float height_density = height_factor;
+						if (ray_dir.y < -0.0001) {
+							float inv_ray_y  = 1.0 / ray_dir.y;
+							float t_ground   = -cam_y * inv_ray_y;
+							float t_hit      = (frag_world.y - cam_y) * inv_ray_y;
+							float t_end      = min(t_ground, t_hit);
+							float t_fog_top  = max((fog_height - cam_y) * inv_ray_y, 0.0);
+							float vol_length = max(t_end - t_fog_top, 0.0);
+							float hd         = 1.0 - exp(-vol_length * fog_density * 0.18);
+							hd = clamp(hd * 0.68 + 0.32, 0.0, 1.0);
+							float mid_h      = cam_y + ray_dir.y * (t_fog_top + vol_length * 0.5);
+							float vg         = pow(1.0 - smoothstep(0.0, fog_height, mid_h), 0.7);
+							height_density   = hd * mix(0.40, 1.0, vg) * height_factor;
+						}
+
 						// Nubes
-						vec2  c_uv = sample_xz * cloud_scale1 + vec2(TIME * cloud_speed1 * 0.7, TIME * elevation_speed);
-						float n1   = texture(noise_texture, c_uv).r;
+						vec2  c_uv  = sample_xz * cloud_scale1 + vec2(TIME * cloud_speed1 * 0.7, TIME * elevation_speed);
+						float n1    = texture(noise_texture, c_uv).r;
 						float cloud = pow(clamp(n1 * 0.65 + noise_val * 0.35, 0.0, 1.0), cloud_contrast);
 						cloud = smoothstep(0.18, 0.82, cloud);
 						height_density *= (0.72 + cloud * 0.55);
 
-						// Paleta de colores
-						vec3 palette = mix(fog_color_dark, fog_color_mid,  smoothstep(0.22, 0.52, cloud));
-						palette      = mix(palette, fog_color_light,        smoothstep(0.48, 0.86, cloud));
-						palette      = mix(palette, swamp_tint, cloud * swamp_mix);
-						vec3 target_fog_col = mix(palette,
-						                     mix(palette, vec3(0.66, 0.66, 0.68), 0.34),
-						                     explored * (1.0 - current_vision));
-
 						float combined_fog = clamp(smoothstep(0.0, 0.75, fog_factor_2d * height_density), 0.0, 0.80);
 
 						if (combined_fog > 0.005) {
+							// Paleta de colores idéntica
+							vec3 palette = mix(fog_color_dark, fog_color_mid,  smoothstep(0.22, 0.52, cloud));
+							palette      = mix(palette, fog_color_light,        smoothstep(0.48, 0.86, cloud));
+							palette      = mix(palette, swamp_tint, cloud * swamp_mix);
+							vec3 target_fog_col = mix(palette,
+							                     mix(palette, vec3(0.66, 0.66, 0.68), 0.34),
+							                     explored * (1.0 - current_vision));
+
 							float lum        = dot(screen_color, vec3(0.299, 0.587, 0.114));
 							vec3 desaturated = mix(screen_color, vec3(lum), fog_desaturate * combined_fog);
 							final_color      = mix(desaturated, target_fog_col, combined_fog);

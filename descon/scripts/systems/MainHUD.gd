@@ -2,6 +2,8 @@ extends Control
 
 # MainHUD.gd (Omni-HUD Coordinator v200.0)
 
+const MinimapScript = preload("res://scripts/ui/Minimap.gd")
+
 # Referencias a Componentes Principales
 @onready var center_stats = $CenterStats
 @onready var radar_window = $RadarWindow
@@ -86,6 +88,15 @@ func _ready():
 		server_date_label.add_theme_constant_override("outline_size", 3)
 		server_date_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 		vbox.add_child(server_date_label)
+
+	# v905.1: Click en FPS para abrir diagnóstico
+	if is_instance_valid(fps_label):
+		fps_label.mouse_filter = Control.MOUSE_FILTER_STOP
+		fps_label.tooltip_text = "Click o presiona F9 para panel de diagnóstico"
+		fps_label.gui_input.connect(func(ev):
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				_toggle_perf_diag_panel()
+		)
 	
 	# v302.99: Atajo de Desarrollador para simular móvil en PC
 	set_process_input(true)
@@ -230,6 +241,12 @@ func _update_active_slot_index(current_layout: Dictionary):
 	active_slot_index = -1
 
 func _input(event: InputEvent):
+	# v905.1: MONITOR DE RENDIMIENTO Y TELEMETRÍA EN TIEMPO REAL (Atajo F9 o Click en FPS)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F9:
+		_toggle_perf_diag_panel()
+		get_viewport().set_input_as_handled()
+		return
+
 	# v302.99: SIMULADOR DE MÓVIL PARA PC (Atajo F10)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_F10:
 		if SettingsManager:
@@ -628,6 +645,7 @@ func _process(_delta):
 
 
 	if fps_label: fps_label.text = "FPS: " + str(Engine.get_frames_per_second())
+	_update_perf_diag(_delta)
 	if ms_label: ms_label.text = "MS: " + str(NetworkManager.current_ms)
 	if is_instance_valid(online_label):
 		online_label.text = "ONLINE: " + str(NetworkManager.online_count)
@@ -3252,3 +3270,176 @@ func _make_preview_materials_unshaded(node: Node):
 					curr.set_surface_override_material(i, dup)
 		for child in curr.get_children():
 			stack.append(child)
+
+# === PANEL DE DIAGNÓSTICO DE RENDIMIENTO (F9) ===
+var _perf_panel: PanelContainer = null
+var _perf_label: Label = null
+var _perf_open: bool = false
+var _perf_btn_fog: Button = null
+var _perf_btn_minimap: Button = null
+var _perf_btn_shadows: Button = null
+var _perf_btn_fader: Button = null
+var _perf_btn_terrain: Button = null
+var _perf_btn_viewport: Button = null
+
+func _toggle_perf_diag_panel():
+	_perf_open = !_perf_open
+	if _perf_open:
+		if not is_instance_valid(_perf_panel):
+			_create_perf_diag_panel()
+		_perf_panel.visible = true
+	else:
+		if is_instance_valid(_perf_panel):
+			_perf_panel.visible = false
+
+func _create_perf_diag_panel():
+	_perf_panel = PanelContainer.new()
+	_perf_panel.name = "PerfDiagPanel"
+	_perf_panel.custom_minimum_size = Vector2(350, 210)
+	_perf_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	_perf_panel.position = Vector2(20, 80)
+	_perf_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_perf_panel.z_index = 100
+	
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.10, 0.14, 0.92)
+	style.border_color = Color(0.2, 0.6, 1.0, 0.8)
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	_perf_panel.add_theme_stylebox_override("panel", style)
+	
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	_perf_panel.add_child(vbox)
+	
+	var title = Label.new()
+	title.text = "DIAGNÓSTICO 120 FPS (F9)"
+	title.add_theme_color_override("font_color", Color(0.3, 0.8, 1.0))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+	
+	_perf_label = Label.new()
+	_perf_label.text = "Iniciando métricas..."
+	_perf_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	vbox.add_child(_perf_label)
+	
+	var grid = GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 4)
+	vbox.add_child(grid)
+	
+	_perf_btn_fog = Button.new()
+	_perf_btn_fog.text = "Niebla: ON"
+	_perf_btn_fog.pressed.connect(_perf_toggle_fog)
+	grid.add_child(_perf_btn_fog)
+	
+	_perf_btn_minimap = Button.new()
+	_perf_btn_minimap.text = "Minimapa: ON"
+	_perf_btn_minimap.pressed.connect(_perf_toggle_minimap)
+	grid.add_child(_perf_btn_minimap)
+	
+	_perf_btn_shadows = Button.new()
+	_perf_btn_shadows.text = "Sombras: ON"
+	_perf_btn_shadows.pressed.connect(_perf_toggle_shadows)
+	grid.add_child(_perf_btn_shadows)
+	
+	_perf_btn_fader = Button.new()
+	_perf_btn_fader.text = "Oclusor: ON"
+	_perf_btn_fader.pressed.connect(_perf_toggle_fader)
+	grid.add_child(_perf_btn_fader)
+	
+	_perf_btn_terrain = Button.new()
+	_perf_btn_terrain.text = "Terreno: ON"
+	_perf_btn_terrain.pressed.connect(_perf_toggle_terrain)
+	grid.add_child(_perf_btn_terrain)
+	
+	_perf_btn_viewport = Button.new()
+	_perf_btn_viewport.text = "Lienzo 3D: ON"
+	_perf_btn_viewport.pressed.connect(_perf_toggle_viewport)
+	grid.add_child(_perf_btn_viewport)
+	
+	add_child(_perf_panel)
+
+func _update_perf_diag(delta: float):
+	if not _perf_open or not is_instance_valid(_perf_label):
+		return
+	var fps = Engine.get_frames_per_second()
+	var ft = delta * 1000.0
+	var cpu_proc = Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	var cpu_phys = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	var dc = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	var prim = Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+	var nodes_cnt = Performance.get_monitor(Performance.OBJECT_NODE_COUNT)
+	var vram = Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0
+	_perf_label.text = "FPS: %d  |  Frame: %.2f ms\nCPU Proc: %.2f ms  |  CPU Phys: %.2f ms\nDraw Calls: %d  |  Primitivas: %d\nNodos: %d  |  VRAM: %.1f MB" % [fps, ft, cpu_proc, cpu_phys, dc, prim, nodes_cnt, vram]
+
+func _perf_toggle_fog():
+	var map = get_tree().get_first_node_in_group("map")
+	var is_on = true
+	if is_instance_valid(map) and is_instance_valid(map.camera_3d):
+		var quad = map.camera_3d.get_node_or_null("FogOfWarQuad")
+		if is_instance_valid(quad):
+			quad.visible = !quad.visible
+			is_on = quad.visible
+	# v906.0: Sincronizar con el Minimapa (apaga 3D y Radar a la vez)
+	MinimapScript.fog_rendering_enabled = is_on
+	var mm = get_node_or_null("RadarWindow/Minimap")
+	if is_instance_valid(mm):
+		mm.queue_redraw()
+	if is_instance_valid(_perf_btn_fog):
+		_perf_btn_fog.text = "Niebla: " + ("ON" if is_on else "OFF")
+		_perf_btn_fog.modulate = Color.WHITE if is_on else Color.RED
+
+func _perf_toggle_minimap():
+	var rw = get_node_or_null("RadarWindow")
+	if is_instance_valid(rw):
+		rw.visible = !rw.visible
+		if is_instance_valid(_perf_btn_minimap):
+			_perf_btn_minimap.text = "Minimapa: " + ("ON" if rw.visible else "OFF")
+			_perf_btn_minimap.modulate = Color.WHITE if rw.visible else Color.RED
+
+func _perf_toggle_shadows():
+	var map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(map) and is_instance_valid(map.sub_viewport):
+		var lights = map.sub_viewport.find_children("*", "DirectionalLight3D", true, false)
+		var any_on = false
+		for l in lights:
+			if l is DirectionalLight3D:
+				l.shadow_enabled = !l.shadow_enabled
+				any_on = l.shadow_enabled
+		if is_instance_valid(_perf_btn_shadows):
+			_perf_btn_shadows.text = "Sombras: " + ("ON" if any_on else "OFF")
+			_perf_btn_shadows.modulate = Color.WHITE if any_on else Color.RED
+
+func _perf_toggle_fader():
+	var map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(map) and is_instance_valid(map._occluder_fader):
+		var current_proc = map._occluder_fader.is_processing()
+		map._occluder_fader.set_process(!current_proc)
+		if is_instance_valid(_perf_btn_fader):
+			_perf_btn_fader.text = "Oclusor: " + ("OFF" if current_proc else "ON")
+			_perf_btn_fader.modulate = Color.RED if current_proc else Color.WHITE
+
+func _perf_toggle_terrain():
+	var map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(map) and is_instance_valid(map.terrain_node):
+		map.terrain_node.visible = !map.terrain_node.visible
+		if is_instance_valid(_perf_btn_terrain):
+			_perf_btn_terrain.text = "Terreno: " + ("ON" if map.terrain_node.visible else "OFF")
+			_perf_btn_terrain.modulate = Color.WHITE if map.terrain_node.visible else Color.RED
+
+func _perf_toggle_viewport():
+	var map = get_tree().get_first_node_in_group("map")
+	if is_instance_valid(map) and is_instance_valid(map.sub_viewport):
+		var current_mode = map.sub_viewport.render_target_update_mode
+		var new_mode = SubViewport.UPDATE_DISABLED if current_mode == SubViewport.UPDATE_ALWAYS else SubViewport.UPDATE_ALWAYS
+		map.sub_viewport.render_target_update_mode = new_mode
+		var is_on = (new_mode == SubViewport.UPDATE_ALWAYS)
+		if is_instance_valid(_perf_btn_viewport):
+			_perf_btn_viewport.text = "Lienzo 3D: " + ("ON" if is_on else "OFF")
+			_perf_btn_viewport.modulate = Color.WHITE if is_on else Color.RED

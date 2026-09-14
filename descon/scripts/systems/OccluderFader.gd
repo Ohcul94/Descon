@@ -87,11 +87,12 @@ func update_occlusion(camera_pos: Vector3, target_pos: Vector3, delta: float) ->
 		if proj < min_proj_dist or proj > max_dist - occlusion_end_margin:
 			continue
 		var closest: Vector3 = camera_pos + dir * proj
-		var radius: float = _estimate_radius(occ) + occlusion_extra_radius
+		var occ_data: Dictionary = _cache.get(occ, {})
+		var radius: float = occ_data.get("radius", 1.5) + occlusion_extra_radius
 		if occ.global_position.distance_to(closest) > radius:
 			continue
 		var ray_y_at_proj: float = lerpf(camera_pos.y, target_pos.y, proj / max_dist)
-		var occ_top_y: float = _estimate_top_y(occ)
+		var occ_top_y: float = occ_data.get("top_y", occ.global_position.y + 1.0)
 		if occ_top_y < ray_y_at_proj - 0.6:
 			continue
 		to_fade[occ] = true
@@ -167,7 +168,9 @@ func _setup_materials_for(node: Node3D, meshes: Array[MeshInstance3D]) -> void:
 			mi.set_meta("_dither_mat", null)
 			dither_mats.append(null)
 
-	_cache[node] = { "meshes": meshes, "mats": mats, "orig_alphas": orig_alphas, "dither_mats": dither_mats, "tween": null }
+	var est_rad = _estimate_radius(node)
+	var est_top = _estimate_top_y(node)
+	_cache[node] = { "meshes": meshes, "mats": mats, "orig_alphas": orig_alphas, "dither_mats": dither_mats, "tween": null, "radius": est_rad, "top_y": est_top }
 
 func _cleanup_materials(node: Node3D) -> void:
 	var data = _cache.get(node, null)

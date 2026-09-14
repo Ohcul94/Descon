@@ -1,4 +1,5 @@
 extends Control
+class_name Minimap
 
 # Minimap.gd (Tactical Radar v200.0 - SYNC FIX + WORLD OBJECTS)
 # Gestión de radar con dibujo directo para rendimiento y AUTOPILOTO visual.
@@ -9,6 +10,9 @@ const WORLD_DEFAULT_SIZE = 10000.0
 # world_size se mantiene por compatibilidad legado; usar worldW/worldH para dibujo
 var world_size: float = WORLD_DEFAULT_SIZE
 var info_label: Label = null
+static var fog_rendering_enabled: bool = true
+var _redraw_accum: float = 0.0
+const MINIMAP_REDRAW_INTERVAL: float = 1.0 / 60.0 # Máximo 60 FPS en minimapa para aliviar CPU a 120 FPS
 
 func get_current_world_dimensions() -> Vector2:
 	var player = get_tree().get_first_node_in_group("player")
@@ -193,10 +197,13 @@ func _update_parent_window_size():
 		parent.size = target_size
 		print("[Minimap] Contenedor adaptado a: ", target_size, " para mapa: ", worldW, "x", worldH)
 
-func _process(_delta):
+func _process(delta):
 	if visible:
 		_update_parent_window_size()
-		queue_redraw()
+		_redraw_accum += delta
+		if _redraw_accum >= MINIMAP_REDRAW_INTERVAL:
+			_redraw_accum = 0.0
+			queue_redraw()
 		_update_info_label()
 
 func _update_info_label():
@@ -301,7 +308,7 @@ func _draw():
 		draw_set_transform_matrix(Transform2D().translated(player_mp).rotated(rot_angle).translated(-player_mp))
 	
 	# Dibujar niebla ANTES de entidades para que quede de fondo
-	if fog_overlay_needed:
+	if fog_overlay_needed and fog_rendering_enabled:
 		_draw_minimap_fog(scale_x, scale_y, fog_grid_res, fog_explored, worldW, worldH, player)
 	
 	# 1. Dibujar Trayectoria del Autopiloto (Línea punteada del JS v66.6)
@@ -699,7 +706,8 @@ func _draw():
 		draw_string(font, rect_pos + Vector2(6, 14), radar_tooltip, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0.0, 1.0, 1.0))
 
 func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: Dictionary, worldW: float, worldH: float, player):
-	# v801.0 NIEBLA PANTANO minimapa - 80% opacidad, multi-tono nube gris, variación, elevación y degradé
+	# v801.1 NIEBLA PANTANO minimapa OPTIMIZADA (Bounding-box & early rejection)
+	# Mantiene 100% el estilo artístico, colores y nubes, pero evita 4096 iteraciones de CPU innecesarias
 	if not is_instance_valid(player):
 		return
 	var vr = 1300.0
@@ -712,31 +720,46 @@ func _draw_minimap_fog(scale_x: float, scale_y: float, grid_res: int, explored: 
 	var vr_sq = vr * vr
 	var world_cell_w = worldW / float(grid_res)
 	var world_cell_h = worldH / float(grid_res)
+	
+	var fade_start = vr * 0.82
+	var fade_end = vr * 1.18
+	var fade_end_sq = fade_end * fade_end
+	var fade_inv_range = 1.0 / max(fade_end - fade_start, 1.0)
+	
+	# Bounding box inteligente: solo iterar celdas en el rango donde la niebla puede ser visible
+	var min_cx = clampi(int((px - fade_end) / world_cell_w), 0, grid_res - 1)
+	var max_cx = clampi(int((px + fade_end) / world_cell_w) + 1, 0, grid_res)
+	var min_cy = clampi(int((py - fade_end) / world_cell_h), 0, grid_res - 1)
+	var max_cy = clampi(int((py + fade_end) / world_cell_h) + 1, 0, grid_res)
+	
 	# Tiempo para elevación (niebla que se mueve lenta)
 	var t = Time.get_ticks_msec() * 0.00018
-	for cy in range(grid_res):
-		for cx in range(grid_res):
+	
+	for cy in range(min_cy, max_cy):
+		var cw_y = (float(cy) + 0.5) * world_cell_h
+		var dy = cw_y - py
+		var dy_sq = dy * dy
+		for cx in range(min_cx, max_cx):
+			var cw_x = (float(cx) + 0.5) * world_cell_w
+			var dx = cw_x - px
+			var dist_sq = dx * dx + dy_sq
+			
+			# Descarte rápido en CPU sin raíz cuadrada
+			if dist_sq <= vr_sq or dist_sq >= fade_end_sq:
+				continue
+				
 			var idx = cy * grid_res + cx
 			var is_explored = explored.has(idx)
-			var cw_x = (float(cx) + 0.5) * world_cell_w
-			var cw_y = (float(cy) + 0.5) * world_cell_h
-			var dx = cw_x - px
-			var dy = cw_y - py
-			var dist_sq = dx*dx + dy*dy
-			var in_vision = dist_sq <= vr_sq
-			if in_vision:
-				continue
-			# Degradé en terminaciones de niebla: suavizar borde del círculo de visión (80-120% del radio)
+			
+			# Degradé en terminaciones de niebla: suavizar borde del círculo de visión
 			var dist = sqrt(dist_sq)
 			var edge_fade = 1.0
-			var fade_start = vr * 0.82
-			var fade_end = vr * 1.18
 			if dist > fade_start:
-				edge_fade = 1.0 - clamp((dist - fade_start) / max(fade_end - fade_start, 1.0), 0.0, 1.0)
-				# Si está justo en borde exterior, aún dibujar pero con alpha degradada
+				edge_fade = 1.0 - clamp((dist - fade_start) * fade_inv_range, 0.0, 1.0)
 				if edge_fade <= 0.02:
 					continue
-			# Hash nube por celda + elevación animada
+					
+			# Hash nube por celda + elevación animada (idéntico al estilo artístico original)
 			var cell_hash = fmod(sin(float(idx) * 12.9898 + float(cx)*78.233 + float(cy)*37.719) * 43758.5453, 1.0)
 			cell_hash = abs(cell_hash)
 			# Dos capas de nube para variación
