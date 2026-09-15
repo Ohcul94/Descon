@@ -31,6 +31,8 @@ var _selected_node_for_editing: Control = null # v266.530: Persistencia de selec
 var is_editing_layout: bool = false
 var _editing_slot_index: int = -1 # v266.300: Slot que se está editando
 var _layout_backup: Dictionary = {} # Para cancelar cambios
+var _visibility_before_editing: Dictionary = {} # Preserva visibilidad exacta activa antes de entrar al editor
+var _hud_visibility_initialized: bool = false
 var active_slot_index: int = 0 # v266.300: Para mostrar cuál está en uso
 var _hud_layouts: Array = [] # v266.130: Almacén de slots (Máx 4)
 var is_selecting_trade_target: bool = false # v300.080: Modo selección de trade
@@ -465,7 +467,8 @@ func _input(event: InputEvent):
 func _apply_hud_data(layout: Dictionary, config: Dictionary):
 	var _screen_size = get_viewport_rect().size
 	_last_applied_layout = layout
-	_last_applied_config = config
+	if not config.is_empty():
+		_last_applied_config = config
 	
 	# Asegurar que TargetFrame tenga posición aunque no esté en el layout guardado
 	if not layout.has("TargetFrame"):
@@ -593,24 +596,28 @@ func _apply_hud_data(layout: Dictionary, config: Dictionary):
 				node.global_position = final_pos
 				_sync_scifi_frame(node)
 	
-	for win_id in config:
-		var node = _get_hud_node(win_id)
-		if node: node.visible = bool(config[win_id])
-	# v531.2: Si config está vacío (jugador nuevo) o le faltan ventanas nuevas, default visible true para no dejar HUD invisible por error
+	# v531.3: Control de Visibilidad independiente del Layout
+	# Los layouts cambian posiciones/escala, NO determinan qué ventanas están activas.
 	var _default_wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
-	if config.is_empty():
+	if SettingsManager and SettingsManager.mobile_mode:
+		_default_wins.append("CamEdit")
+		_default_wins.append("VirtualJoystick")
+		
+	if not config.is_empty():
+		_hud_visibility_initialized = true
+		for win_id in config:
+			var node = _get_hud_node(win_id)
+			if node:
+				node.visible = bool(config[win_id])
+				_update_icon_state(win_id, node.visible)
+	elif not _hud_visibility_initialized:
+		# Fallback exclusivo para primer inicio de jugador nuevo sin preferencias previas
+		_hud_visibility_initialized = true
 		for win_id in _default_wins:
 			var n = _get_hud_node(win_id)
 			if n and not n.visible:
-				# Solo forzar true si estaba oculto por el _ready inicial (false) y no hay preferencia guardada
-				# Respetar si el usuario ya tenía algo? Pero si config vacío es primera vez, forzar true
 				n.visible = true
-	else:
-		for win_id in _default_wins:
-			if not config.has(win_id):
-				var n2 = _get_hud_node(win_id)
-				if n2:
-					n2.visible = true
+				_update_icon_state(win_id, n.visible)
 
 func _on_viewport_resize():
 	if not _last_applied_layout.is_empty():
@@ -997,6 +1004,7 @@ func _restore_default_layout():
 		if NetworkManager:
 			NetworkManager.send_event("saveHudLayout", { "positions": {} })
 	
+func _get_default_positions() -> Dictionary:
 	var default_layout = {
 		"CenterStats":     { "x": 1063,  "y": 21,    "scale": 0.5, "alpha": 1.0 },
 		"ChatUI":          { "x": 12,    "y": 545,   "scale": 0.5, "alpha": 1.0 },
@@ -1019,7 +1027,6 @@ func _restore_default_layout():
 		"TopLeft":             { "x": 10,   "y": 10,    "scale": 0.5, "alpha": 1.0 },
 	}
 	
-	# v1.10: Sincronización dinámica de valores de fábrica definidos en el AdminDash
 	if NetworkManager and NetworkManager.current_user_data.has("adminConfig"):
 		var admin_cfg = NetworkManager.current_user_data.adminConfig
 		if admin_cfg.has("pilotConfig") and admin_cfg.pilotConfig.has("defaultLayout"):
@@ -1027,7 +1034,15 @@ func _restore_default_layout():
 			for key in server_layout:
 				if server_layout[key] != null and typeof(server_layout[key]) == TYPE_DICTIONARY:
 					default_layout[key] = server_layout[key]
-	# v531.2: Default config visible true para primera vez (no pisar si ya había layout guardado, solo para layout vacío)
+	return default_layout
+
+func _restore_default_layout():
+	if not is_editing_layout:
+		active_slot_index = -1
+		if NetworkManager:
+			NetworkManager.send_event("saveHudLayout", { "positions": {} })
+	
+	var default_layout = _get_default_positions()
 	var default_config = {
 		"CenterStats": true, "RadarWindow": true, "ChatUI": true, "PartyHUD": true,
 		"ControlBar": true, "StatusEffects": true, "TargetFrame": true,
@@ -1319,6 +1334,7 @@ func toggle_hud_editing(slot_index: int = -1):
 	var edit_container = get_node_or_null("EditLayoutUI")
 	if is_editing_layout:
 		_editing_slot_index = slot_index
+		_capture_visibility_before_editing()
 		_backup_layout()
 		
 		if _editing_slot_index >= 0 and _editing_slot_index < _hud_layouts.size():
@@ -1578,8 +1594,14 @@ func toggle_hud_editing(slot_index: int = -1):
 				win.top_level = true
 				win.global_position = gp
 				win.mouse_filter = Control.MOUSE_FILTER_STOP
+			else:
+				win.mouse_filter = Control.MOUSE_FILTER_PASS
 			
 			_make_node_draggable(win, win_id)
+			
+	# Si acabamos de salir de edición de layout, restaurar visibilidad exacta previa
+	if not is_editing_layout:
+		_restore_visibility_after_editing()
 
 func _make_node_draggable(node: Control, _hud_id: String):
 	if not node: return
@@ -1739,9 +1761,9 @@ func apply_layout_slot(index: int):
 			var payload = { "positions": slot.positions }
 			NetworkManager.send_event("saveHudLayout", payload)
 	else:
-		print("[MainHUD] Slot vacío, restaurando default.")
-		active_slot_index = -1
-		_restore_default_layout()
+		print("[MainHUD] Slot vacío, aplicando posiciones por defecto sin alterar visibilidad.")
+		active_slot_index = index
+		_apply_hud_data(_get_default_positions(), {})
 
 func rename_layout_slot(index: int, new_name: String):
 	if index < 0 or index >= 4: return
@@ -1930,6 +1952,52 @@ func _backup_layout():
 func _restore_layout_backup():
 	if _layout_backup.is_empty(): return
 	_apply_hud_data(_layout_backup, {})
+
+func _capture_visibility_before_editing():
+	_visibility_before_editing.clear()
+	var wins = ["CenterStats", "RadarWindow", "ChatUI", "PartyHUD", "ControlBar", "StatusEffects", "TargetFrame", "PortalBtnContainer", "CombatMeter", "TopLeft"]
+	if SettingsManager and SettingsManager.mobile_mode:
+		wins.append("CamEdit")
+		wins.append("VirtualJoystick")
+		
+	for win_id in wins:
+		var win = _get_hud_node(win_id)
+		if win:
+			_visibility_before_editing[win_id] = win.visible
+			
+	if is_instance_valid(skills_hud):
+		for child in skills_hud.get_children():
+			if child is Control and child.name != "DragOverlay":
+				_visibility_before_editing["SkillSlot_" + child.name] = child.visible
+
+func _restore_visibility_after_editing():
+	if _visibility_before_editing.is_empty():
+		return
+		
+	for win_id in _visibility_before_editing:
+		if win_id.begins_with("SkillSlot_"):
+			var slot_name = win_id.trim_prefix("SkillSlot_")
+			if is_instance_valid(skills_hud):
+				var slot_node = skills_hud.get_node_or_null(slot_name)
+				if slot_node:
+					slot_node.visible = _visibility_before_editing[win_id]
+		else:
+			var win = _get_hud_node(win_id)
+			if win:
+				win.visible = _visibility_before_editing[win_id]
+				_update_icon_state(win_id, win.visible)
+				
+	# En móvil, asegurar comportamiento correcto de joystick y touchpad
+	if SettingsManager and SettingsManager.mobile_mode:
+		var cam_pad = get_node_or_null("CamTouchPadContainer")
+		if cam_pad:
+			cam_pad.visible = (int(SettingsManager.mobile_camera_edit_enabled) == 1)
+		var joy = _get_hud_node("VirtualJoystick")
+		if joy:
+			joy.visible = false
+			
+	_visibility_before_editing.clear()
+	_persist_hud_visibility()
 
 # --- v305.95: SISTEMA DE MARCOS DINÁMICOS ---
 func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool = true, show_rivets: bool = true):
