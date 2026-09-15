@@ -2681,6 +2681,19 @@ func _set_altar_doors_visible(p_visible: bool):
 		_update_interact_visibility()
 	print("[BaseMap] Puertas Altar visible=", p_visible, " locked=", _altar_doors_locked)
 
+func _is_hovering_interactive_ui() -> bool:
+	var hovered = get_viewport().gui_get_hovered_control()
+	if hovered == null or hovered is SubViewportContainer:
+		return false
+	if hovered is Button or hovered is BaseButton or hovered is LineEdit or hovered is TextEdit or hovered is Slider or hovered is ScrollContainer or hovered is ItemList or hovered is TabBar:
+		return true
+	var p: Node = hovered
+	while p != null:
+		if p.name in ["ChatUI", "EscMenu", "SettingsUI", "InventoryUI", "AdminPanel", "BattlePassUI", "ShopUI", "MailboxUI", "BugReportUI"]:
+			return true
+		p = p.get_parent()
+	return false
+
 # Atajo de teclado para entrar al portal si el contenedor está visible
 func _input(event):
 	# v433: No robar teclas si el jugador está escribiendo (chat, inventario, etc)
@@ -2753,8 +2766,7 @@ func _input(event):
 			if not free_cam_active and not use_hybrid_camera:
 				return
 				
-			var hovered = get_viewport().gui_get_hovered_control()
-			if hovered != null and not (hovered is SubViewportContainer):
+			if _is_hovering_interactive_ui():
 				return
 			
 			_lmb_dragging = event.pressed
@@ -2770,8 +2782,7 @@ func _input(event):
 	# Scroll para zoom en cámara fija
 	if not free_cam_active and not use_hybrid_camera and event is InputEventMouseButton and event.pressed:
 		if (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
-			var hovered = get_viewport().gui_get_hovered_control()
-			if hovered != null and not (hovered is SubViewportContainer):
+			if _is_hovering_interactive_ui():
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				fixed_cam_zoom = max(0.18, fixed_cam_zoom - 0.04)
@@ -2790,8 +2801,7 @@ func _input(event):
 		
 		# Scroll para zoom (solo en cámara libre)
 		if (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN) and event.pressed:
-			var hovered = get_viewport().gui_get_hovered_control()
-			if hovered != null and not (hovered is SubViewportContainer):
+			if _is_hovering_interactive_ui():
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				free_cam_zoom -= 2.0

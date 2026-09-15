@@ -44,14 +44,17 @@ var _last_applied_config: Dictionary = {}
 var _combat_meter: Control = null
 
 func _ready():
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_to_group("hud")
 	print("[MainHUD] Inicializando coordinador central modular v200.0")
 	
 	# Inicializar Reloj del Servidor (Horario de Argentina) en TopLeft
 	var top_left = get_node_or_null("TopLeft")
 	if top_left:
+		top_left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var margin_c = MarginContainer.new()
 		margin_c.name = "PaddingContainer"
+		margin_c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		margin_c.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		margin_c.add_theme_constant_override("margin_left", 16)
 		margin_c.add_theme_constant_override("margin_top", 12)
@@ -60,6 +63,7 @@ func _ready():
 		
 		var vbox = VBoxContainer.new()
 		vbox.name = "VBox"
+		vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		margin_c.add_child(vbox)
 		
 		var children_to_move = []

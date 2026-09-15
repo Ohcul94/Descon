@@ -473,8 +473,14 @@ func _unhandled_input(event):
 		
 		if ui_blocking: return
 
-		if get_viewport().gui_get_hovered_control() != null:
-			return
+		var map_ref = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(map_ref) and map_ref.has_method("_is_hovering_interactive_ui"):
+			if map_ref._is_hovering_interactive_ui():
+				return
+		elif get_viewport().gui_get_hovered_control() != null and not (get_viewport().gui_get_hovered_control() is SubViewportContainer):
+			var h_c = get_viewport().gui_get_hovered_control()
+			if h_c is Button or h_c is BaseButton or h_c is LineEdit or h_c is TextEdit or h_c is Slider or h_c is ScrollContainer:
+				return
 			
 		# Procesar Movimiento (Click) - Con botón configurable según settings
 		if event.pressed:
