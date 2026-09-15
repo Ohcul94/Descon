@@ -41,22 +41,10 @@ var cam_free_zoom: float = 35.0
 var cam_free_orbit: bool = true
 var cam_use_orthogonal: bool = false
 var camera_use_orthogonal: bool = false
-# v500.0: Sensibilidades y Control de Cámara AAA
-var pc_camera_sensitivity: float = 1.0     # Sensibilidad de rotación con mouse en PC (0.2x a 3.0x)
-var pc_camera_invert_y: bool = false       # Invertir eje Y (vertical) en PC
-var pc_camera_invert_x: bool = false       # Invertir eje X (horizontal) en PC
-var pc_camera_smooth: bool = true          # Suavizado cinemático de cámara en PC
-
-var mobile_camera_sensitivity: float = 1.0  # Sensibilidad de órbita táctil en Celular
-var mobile_camera_invert_y: bool = false    # Invertir eje Y táctil en móvil
-var mobile_camera_invert_x: bool = false    # Invertir eje X táctil en móvil
-var mobile_camera_smooth: bool = true       # Suavizado cinemático táctil
-
-var mobile_aim_sensitivity: float = 1.0     # Sensibilidad de apuntado MOBA (arrastre/profundidad)
-var mobile_aim_invert_y: bool = false       # Invertir eje Y en apuntado de habilidades móvil
-var mobile_aim_deadzone: float = 8.0        # Zona muerta en pixels para evitar disparos accidentales
-var mobile_invert_y: bool = false           # Compatibilidad hacia atrás
+var mobile_aim_sensitivity: float = 1.0 # v266.700: Sensibilidad de apuntado MOBA (profundidad)
+var mobile_invert_y: bool = true        # v266.760: Invertir eje Y en apuntado movil
 var mobile_camera_edit_enabled: int = 0  # v420.600: 0=Fija, 1=Libre Editable, 2=Libre Bloqueada
+var mobile_camera_sensitivity: float = 1.0  # v420.600: Sensibilidad de órbita táctil
 var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
 var show_stars: bool = false            # Activar estrellas en el cielo (desactivado por defecto)
 var minimap_rotate: bool = false        # Minimapa rotatorio (gira con la nave)
@@ -162,19 +150,10 @@ func reset_to_factory():
 	mouse_sensitivity = 1.0
 	skill_aim_speed = 1.0
 	mobile_mode = false
-	pc_camera_sensitivity = 1.0
-	pc_camera_invert_y = false
-	pc_camera_invert_x = false
-	pc_camera_smooth = true
-	mobile_camera_sensitivity = 1.0
-	mobile_camera_invert_y = false
-	mobile_camera_invert_x = false
-	mobile_camera_smooth = true
 	mobile_aim_sensitivity = 1.0
-	mobile_aim_invert_y = false
-	mobile_invert_y = false
-	mobile_aim_deadzone = 8.0
+	mobile_invert_y = true
 	mobile_camera_edit_enabled = 0
+	mobile_camera_sensitivity = 1.0
 	fps_limit = 60
 	camera_use_orthogonal = false
 	cam_use_orthogonal = false
@@ -219,23 +198,6 @@ func reset_to_factory():
 	var hud = get_tree().get_first_node_in_group("main_hud")
 	if hud and hud.has_method("_sync_hud_keys"): hud._sync_hud_keys()
 
-func reset_sensitivities():
-	print("[SETTINGS] Restableciendo sensibilidades por defecto...")
-	pc_camera_sensitivity = 1.0
-	pc_camera_invert_y = false
-	pc_camera_invert_x = false
-	pc_camera_smooth = true
-	mobile_camera_sensitivity = 1.0
-	mobile_camera_invert_y = false
-	mobile_camera_invert_x = false
-	mobile_camera_smooth = true
-	mobile_aim_sensitivity = 1.0
-	mobile_aim_invert_y = false
-	mobile_invert_y = false
-	mobile_aim_deadzone = 8.0
-	click_sensitivity = 1.0
-	save_settings()
-
 func save_settings():
 	var player = get_tree().get_first_node_in_group("player")
 	if player and player.get("_skill_controller"):
@@ -262,19 +224,10 @@ func save_settings():
 	config_file.set_value("accessibility", "mouse_sensitivity", mouse_sensitivity)
 	config_file.set_value("accessibility", "skill_aim_speed", skill_aim_speed)
 	config_file.set_value("accessibility", "mobile_mode", mobile_mode)
-	config_file.set_value("accessibility", "pc_camera_sensitivity", pc_camera_sensitivity)
-	config_file.set_value("accessibility", "pc_camera_invert_y", pc_camera_invert_y)
-	config_file.set_value("accessibility", "pc_camera_invert_x", pc_camera_invert_x)
-	config_file.set_value("accessibility", "pc_camera_smooth", pc_camera_smooth)
-	config_file.set_value("accessibility", "mobile_camera_sensitivity", mobile_camera_sensitivity)
-	config_file.set_value("accessibility", "mobile_camera_invert_y", mobile_camera_invert_y)
-	config_file.set_value("accessibility", "mobile_camera_invert_x", mobile_camera_invert_x)
-	config_file.set_value("accessibility", "mobile_camera_smooth", mobile_camera_smooth)
 	config_file.set_value("accessibility", "mobile_aim_sensitivity", mobile_aim_sensitivity)
-	config_file.set_value("accessibility", "mobile_aim_invert_y", mobile_aim_invert_y)
-	config_file.set_value("accessibility", "mobile_invert_y", mobile_aim_invert_y)
-	config_file.set_value("accessibility", "mobile_aim_deadzone", mobile_aim_deadzone)
+	config_file.set_value("accessibility", "mobile_invert_y", mobile_invert_y)
 	config_file.set_value("accessibility", "mobile_camera_edit_enabled", mobile_camera_edit_enabled)
+	config_file.set_value("accessibility", "mobile_camera_sensitivity", mobile_camera_sensitivity)
 	config_file.set_value("accessibility", "font_size_player_name", font_size_player_name)
 	config_file.set_value("accessibility", "font_size_player_stats", font_size_player_stats)
 	config_file.set_value("accessibility", "font_size_enemy_name", font_size_enemy_name)
@@ -341,20 +294,11 @@ func load_settings():
 		mouse_sensitivity = config_file.get_value("accessibility", "mouse_sensitivity", 1.0)
 		skill_aim_speed = config_file.get_value("accessibility", "skill_aim_speed", 1.0)
 		mobile_mode = config_file.get_value("accessibility", "mobile_mode", false)
-		pc_camera_sensitivity = config_file.get_value("accessibility", "pc_camera_sensitivity", 1.0)
-		pc_camera_invert_y = config_file.get_value("accessibility", "pc_camera_invert_y", false)
-		pc_camera_invert_x = config_file.get_value("accessibility", "pc_camera_invert_x", false)
-		pc_camera_smooth = config_file.get_value("accessibility", "pc_camera_smooth", true)
-		mobile_camera_sensitivity = config_file.get_value("accessibility", "mobile_camera_sensitivity", 1.0)
-		mobile_camera_invert_y = config_file.get_value("accessibility", "mobile_camera_invert_y", false)
-		mobile_camera_invert_x = config_file.get_value("accessibility", "mobile_camera_invert_x", false)
-		mobile_camera_smooth = config_file.get_value("accessibility", "mobile_camera_smooth", true)
 		mobile_aim_sensitivity = config_file.get_value("accessibility", "mobile_aim_sensitivity", 1.0)
-		mobile_aim_invert_y = config_file.get_value("accessibility", "mobile_aim_invert_y", config_file.get_value("accessibility", "mobile_invert_y", false))
-		mobile_invert_y = mobile_aim_invert_y
-		mobile_aim_deadzone = config_file.get_value("accessibility", "mobile_aim_deadzone", 8.0)
+		mobile_invert_y = config_file.get_value("accessibility", "mobile_invert_y", true)
 		var raw_val = config_file.get_value("accessibility", "mobile_camera_edit_enabled", 0)
 		mobile_camera_edit_enabled = 1 if typeof(raw_val) == TYPE_BOOL and raw_val else (0 if typeof(raw_val) == TYPE_BOOL else int(raw_val))
+		mobile_camera_sensitivity = config_file.get_value("accessibility", "mobile_camera_sensitivity", 1.0)
 		font_size_player_name = config_file.get_value("accessibility", "font_size_player_name", 13)
 		font_size_player_stats = config_file.get_value("accessibility", "font_size_player_stats", 10)
 		font_size_enemy_name = config_file.get_value("accessibility", "font_size_enemy_name", 13)

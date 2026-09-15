@@ -8,12 +8,12 @@ var _is_binding: bool = false
 var _binding_action: String = ""
 var _binding_label: Button = null
 var _mobcam_row: Control = null
-var _mobcam_sens_container: Control = null
+var _mobcam_sens_slider: HSlider = null
+var _mobcam_sens_lbl: Label = null
 var _action_labels: Dictionary = {} # Nombres legibles de cada acción (para el modal de conflicto)
 var _pending_conflict_action: String = "" # Acción pendiente de confirmar en el modal
 var _pending_conflict_event: InputEvent = null
 var _conflict_modal: Node = null
-var _sens_refresh_callbacks: Array = []
 
 func _ready():
 	add_to_group("inventory_ui") # v2.6: Unir al grupo de bloqueo global de UI
@@ -25,7 +25,6 @@ func _setup_ui():
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
-	_sens_refresh_callbacks.clear()
 	
 	# v2.3: Capa de bloqueo total (Click-through prevention)
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -172,248 +171,44 @@ func _setup_ui():
 	cast_option.item_selected.connect(_on_cast_mode_changed)
 	cast_vbox.add_child(cast_option)
 
-	# --- AJUSTES DE CÁMARA Y PRECISIÓN PC ---
-	pc_config.add_child(HSeparator.new())
-	var pc_sens_box = VBoxContainer.new()
-	pc_sens_box.add_theme_constant_override("separation", 8)
-	pc_config.add_child(pc_sens_box)
-
-	var pc_sens_title = Label.new()
-	pc_sens_title.text = "🎥 SENSIBILIDAD Y CÁMARA (PC):"
-	pc_sens_title.add_theme_color_override("font_color", Color.CYAN)
-	pc_sens_title.add_theme_font_size_override("font_size", 12)
-	pc_sens_box.add_child(pc_sens_title)
-
-	var pc_cam_row = _create_slider_row(
-		"Sensibilidad de rotación (Mouse):",
-		0.1, 3.0, 0.05,
-		SettingsManager.pc_camera_sensitivity,
-		func(v):
-			SettingsManager.pc_camera_sensitivity = v
-			SettingsManager.save_settings(),
-		"Velocidad de giro de cámara al arrastrar con el mouse."
-	)
-	pc_sens_box.add_child(pc_cam_row.container)
-	_sens_refresh_callbacks.append(func():
-		pc_cam_row.slider.value = SettingsManager.pc_camera_sensitivity
-		pc_cam_row.update_label.call(SettingsManager.pc_camera_sensitivity)
-	)
-
-	var pc_opts_row = HBoxContainer.new()
-	pc_opts_row.add_theme_constant_override("separation", 15)
-	pc_sens_box.add_child(pc_opts_row)
-
-	var pc_inv_y = CheckButton.new()
-	pc_inv_y.text = "Invertir Eje Y (Vertical)"
-	pc_inv_y.button_pressed = SettingsManager.pc_camera_invert_y
-	pc_inv_y.toggled.connect(func(v):
-		SettingsManager.pc_camera_invert_y = v
-		SettingsManager.save_settings()
-	)
-	pc_opts_row.add_child(pc_inv_y)
-	_sens_refresh_callbacks.append(func(): pc_inv_y.button_pressed = SettingsManager.pc_camera_invert_y)
-
-	var pc_inv_x = CheckButton.new()
-	pc_inv_x.text = "Invertir Eje X (Horizontal)"
-	pc_inv_x.button_pressed = SettingsManager.pc_camera_invert_x
-	pc_inv_x.toggled.connect(func(v):
-		SettingsManager.pc_camera_invert_x = v
-		SettingsManager.save_settings()
-	)
-	pc_opts_row.add_child(pc_inv_x)
-	_sens_refresh_callbacks.append(func(): pc_inv_x.button_pressed = SettingsManager.pc_camera_invert_x)
-
-	var pc_smooth = CheckButton.new()
-	pc_smooth.text = "Suavizado Cinemático"
-	pc_smooth.button_pressed = SettingsManager.pc_camera_smooth
-	pc_smooth.toggled.connect(func(v):
-		SettingsManager.pc_camera_smooth = v
-		SettingsManager.save_settings()
-	)
-	pc_opts_row.add_child(pc_smooth)
-	_sens_refresh_callbacks.append(func(): pc_smooth.button_pressed = SettingsManager.pc_camera_smooth)
-
-	var click_row = _create_slider_row(
-		"Sensibilidad de Click (Movimiento):",
-		0.5, 2.0, 0.1,
-		SettingsManager.click_sensitivity,
-		func(v):
-			SettingsManager.click_sensitivity = v
-			SettingsManager.save_settings(),
-		"Tolerancia de proximidad al hacer click para navegar."
-	)
-	pc_sens_box.add_child(click_row.container)
-	_sens_refresh_callbacks.append(func():
-		click_row.slider.value = SettingsManager.click_sensitivity
-		click_row.update_label.call(SettingsManager.click_sensitivity)
-	)
-
-	# --- ASIGNACIÓN DE CLICKS (PC) ---
-	pc_config.add_child(HSeparator.new())
-	
-	var clicks_lbl = Label.new()
-	clicks_lbl.text = "ASIGNACIÓN DE CLICKS (Navegación / Cámara):"
-	pc_config.add_child(clicks_lbl)
-	
-	var clicks_option = OptionButton.new()
-	clicks_option.add_item("Click Derecho navega / Click Izquierdo mueve cámara", 0)
-	clicks_option.add_item("Click Izquierdo navega / Click Derecho mueve cámara", 1)
-	if SettingsManager.control_move_btn == "LMB":
-		clicks_option.selected = 1
-	else:
-		clicks_option.selected = 0
-			
-	clicks_option.item_selected.connect(func(idx):
-		if idx == 0:
-			SettingsManager.control_move_btn = "RMB"
-			SettingsManager.control_cam_rotate_btn = "LMB"
-		else:
-			SettingsManager.control_move_btn = "LMB"
-			SettingsManager.control_cam_rotate_btn = "RMB"
-		SettingsManager.save_settings()
-	)
-	pc_config.add_child(clicks_option)
-	
-	# --- BOTÓN DE TARGET ---
-	var target_btn_lbl = Label.new()
-	target_btn_lbl.text = "BOTÓN DE TARGET (Selección de objetivos):"
-	pc_config.add_child(target_btn_lbl)
-	
-	var target_btn_option = OptionButton.new()
-	target_btn_option.add_item("Click Izquierdo", 0)
-	target_btn_option.add_item("Click Derecho", 1)
-	if SettingsManager.control_target_btn == "RMB":
-		target_btn_option.selected = 1
-	else:
-		target_btn_option.selected = 0
-			
-	target_btn_option.item_selected.connect(func(idx):
-		if idx == 0:
-			SettingsManager.control_target_btn = "LMB"
-		else:
-			SettingsManager.control_target_btn = "RMB"
-		SettingsManager.save_settings()
-	)
-	pc_config.add_child(target_btn_option)
-
 	# --- DETALLE MÓVIL ---
 	var mob_header = Label.new()
-	mob_header.text = "📱 AJUSTES MODO CELULAR (TOUCH / MOBA)"
+	mob_header.text = "📱 AJUSTES MODO CELULAR"
 	mob_header.add_theme_color_override("font_color", Color(1.0, 0.7, 0.3))
 	mob_config_root.add_child(mob_header)
 
-	var mob_aim_box = VBoxContainer.new()
-	mob_aim_box.add_theme_constant_override("separation", 6)
-	mob_config_root.add_child(mob_aim_box)
+	var sens_vbox = VBoxContainer.new()
+	mob_config_root.add_child(sens_vbox)
 	
-	var mob_aim_title = Label.new()
-	mob_aim_title.text = "🎯 APUNTADO DE HABILIDADES (DRAG / MOBA):"
-	mob_aim_title.add_theme_color_override("font_color", Color(1.0, 0.8, 0.4))
-	mob_aim_title.add_theme_font_size_override("font_size", 12)
-	mob_aim_box.add_child(mob_aim_title)
+	var sens_lbl = Label.new()
+	sens_lbl.text = "SENSIBILIDAD DE APUNTADO (DRAG):"
+	sens_vbox.add_child(sens_lbl)
 	
-	var mob_aim_row = _create_slider_row(
-		"Sensibilidad de Apuntado:",
-		0.2, 3.0, 0.05,
-		SettingsManager.mobile_aim_sensitivity,
-		func(val):
-			SettingsManager.mobile_aim_sensitivity = val
-			SettingsManager.save_settings(),
-		"Ajusta qué tan rápido y lejos llega la mira al arrastrar el dedo."
-	)
-	mob_aim_box.add_child(mob_aim_row.container)
-	_sens_refresh_callbacks.append(func():
-		mob_aim_row.slider.value = SettingsManager.mobile_aim_sensitivity
-		mob_aim_row.update_label.call(SettingsManager.mobile_aim_sensitivity)
-	)
-	
-	var inv_check = CheckButton.new()
-	inv_check.text = "Invertir Eje Y (Apuntado de habilidades)"
-	inv_check.button_pressed = SettingsManager.mobile_aim_invert_y
-	inv_check.toggled.connect(func(v):
-		SettingsManager.mobile_aim_invert_y = v
-		SettingsManager.mobile_invert_y = v
+	var sens_slider = HSlider.new()
+	sens_slider.min_value = 0.2; sens_slider.max_value = 3.0; sens_slider.step = 0.1
+	sens_slider.value = SettingsManager.mobile_aim_sensitivity
+	sens_slider.value_changed.connect(func(val):
+		SettingsManager.mobile_aim_sensitivity = val
 		SettingsManager.save_settings()
 	)
-	mob_aim_box.add_child(inv_check)
-	_sens_refresh_callbacks.append(func(): inv_check.button_pressed = SettingsManager.mobile_aim_invert_y)
+	sens_vbox.add_child(sens_slider)
+	
+	var sens_hint = Label.new()
+	sens_hint.text = "Ajusta qué tan lejos llega la mira al arrastrar el dedo."
+	sens_hint.add_theme_font_size_override("font_size", 10)
+	sens_hint.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
+	sens_vbox.add_child(sens_hint)
 	
 	mob_config_root.add_child(HSeparator.new())
 	
-	var mob_cam_box = VBoxContainer.new()
-	mob_cam_box.add_theme_constant_override("separation", 6)
-	mob_config_root.add_child(mob_cam_box)
-	
-	var mob_cam_title = Label.new()
-	mob_cam_title.text = "🎥 CÁMARA TÁCTIL (JOYSTICK / TOUCHPAD):"
-	mob_cam_title.add_theme_color_override("font_color", Color(0.3, 0.9, 1.0))
-	mob_cam_title.add_theme_font_size_override("font_size", 12)
-	mob_cam_box.add_child(mob_cam_title)
-	
-	var mob_cam_row = _create_slider_row(
-		"Sensibilidad de Órbita Táctil:",
-		0.2, 3.0, 0.05,
-		SettingsManager.mobile_camera_sensitivity,
-		func(val):
-			SettingsManager.mobile_camera_sensitivity = val
-			SettingsManager.save_settings(),
-		"Velocidad de rotación al deslizar el dedo o mover el joystick de cámara."
-	)
-	mob_cam_box.add_child(mob_cam_row.container)
-	_sens_refresh_callbacks.append(func():
-		mob_cam_row.slider.value = SettingsManager.mobile_camera_sensitivity
-		mob_cam_row.update_label.call(SettingsManager.mobile_camera_sensitivity)
-	)
-	
-	var mob_cam_opts = HBoxContainer.new()
-	mob_cam_opts.add_theme_constant_override("separation", 15)
-	mob_cam_box.add_child(mob_cam_opts)
-	
-	var mob_cam_inv_y = CheckButton.new()
-	mob_cam_inv_y.text = "Invertir Eje Y (Cámara)"
-	mob_cam_inv_y.button_pressed = SettingsManager.mobile_camera_invert_y
-	mob_cam_inv_y.toggled.connect(func(v):
-		SettingsManager.mobile_camera_invert_y = v
+	var inv_check = CheckButton.new()
+	inv_check.text = "INVERTIR EJE Y (APUNTADO)"
+	inv_check.button_pressed = SettingsManager.mobile_invert_y
+	inv_check.toggled.connect(func(v):
+		SettingsManager.mobile_invert_y = v
 		SettingsManager.save_settings()
 	)
-	mob_cam_opts.add_child(mob_cam_inv_y)
-	_sens_refresh_callbacks.append(func(): mob_cam_inv_y.button_pressed = SettingsManager.mobile_camera_invert_y)
-	
-	var mob_cam_inv_x = CheckButton.new()
-	mob_cam_inv_x.text = "Invertir Eje X (Cámara)"
-	mob_cam_inv_x.button_pressed = SettingsManager.mobile_camera_invert_x
-	mob_cam_inv_x.toggled.connect(func(v):
-		SettingsManager.mobile_camera_invert_x = v
-		SettingsManager.save_settings()
-	)
-	mob_cam_opts.add_child(mob_cam_inv_x)
-	_sens_refresh_callbacks.append(func(): mob_cam_inv_x.button_pressed = SettingsManager.mobile_camera_invert_x)
-	
-	var mob_cam_smooth = CheckButton.new()
-	mob_cam_smooth.text = "Suavizado Táctil"
-	mob_cam_smooth.button_pressed = SettingsManager.mobile_camera_smooth
-	mob_cam_smooth.toggled.connect(func(v):
-		SettingsManager.mobile_camera_smooth = v
-		SettingsManager.save_settings()
-	)
-	mob_cam_opts.add_child(mob_cam_smooth)
-	_sens_refresh_callbacks.append(func(): mob_cam_smooth.button_pressed = SettingsManager.mobile_camera_smooth)
-
-	# --- BOTÓN DE RESTABLECER SENSIBILIDADES AAA ---
-	game_vbox.add_child(HSeparator.new())
-	var reset_sens_btn = Button.new()
-	reset_sens_btn.text = "↺ RESTABLECER SENSIBILIDADES POR DEFECTO (1.0x)"
-	reset_sens_btn.custom_minimum_size = Vector2(0, 36)
-	reset_sens_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
-	reset_sens_btn.pressed.connect(func():
-		SettingsManager.reset_sensitivities()
-		for cb in _sens_refresh_callbacks:
-			cb.call()
-		var hud = get_tree().get_first_node_in_group("hud")
-		if hud and hud.has_method("notify"):
-			hud.notify("SENSIBILIDADES RESTABLECIDAS A 1.0x", "info")
-	)
-	game_vbox.add_child(reset_sens_btn)
+	mob_config_root.add_child(inv_check)
 
 	# CONECTAR SELECTOR
 	plat_option.item_selected.connect(func(idx):
@@ -440,7 +235,8 @@ func _setup_ui():
 		
 		# Actualizar visibilidad de controles de cámara móvil en pestaña GRÁFICOS
 		if _mobcam_row: _mobcam_row.visible = is_mob
-		if _mobcam_sens_container: _mobcam_sens_container.visible = is_mob
+		if _mobcam_sens_slider: _mobcam_sens_slider.visible = is_mob
+		if _mobcam_sens_lbl: _mobcam_sens_lbl.visible = is_mob
 	)
 	
 	# ========================== TAB 2: TECLAS ==========================
@@ -497,6 +293,75 @@ func _setup_ui():
 		row.add_child(btn)
 		keys_vbox.add_child(row)
 	
+
+	# --- AJUSTES DE CONTROL PC ---
+	var sens_pc_label = Label.new()
+	sens_pc_label.text = "AJUSTES DE PRECISIÓN (PC):"
+	sens_pc_label.add_theme_color_override("font_color", Color.CYAN)
+	pc_config.add_child(sens_pc_label)
+	
+	var click_lbl = Label.new()
+	click_lbl.text = "SENSIBILIDAD DE CLICK (MOVIMIENTO):"
+	pc_config.add_child(click_lbl)
+	var click_slider = HSlider.new()
+	click_slider.min_value = 0.5; click_slider.max_value = 2.0; click_slider.step = 0.1
+	if get_node_or_null("/root/SettingsManager"): click_slider.value = SettingsManager.click_sensitivity
+	click_slider.value_changed.connect(func(val): SettingsManager.click_sensitivity = val; SettingsManager.save_settings())
+	pc_config.add_child(click_slider)
+	
+	# --- ASIGNACIÓN DE CLICKS (PC) ---
+	pc_config.add_child(HSeparator.new())
+	
+	var clicks_lbl = Label.new()
+	clicks_lbl.text = "ASIGNACIÓN DE CLICKS (Navegación / Cámara):"
+	pc_config.add_child(clicks_lbl)
+	
+	var clicks_option = OptionButton.new()
+	clicks_option.add_item("Click Derecho navega / Click Izquierdo mueve cámara", 0)
+	clicks_option.add_item("Click Izquierdo navega / Click Derecho mueve cámara", 1)
+	
+	if get_node_or_null("/root/SettingsManager"):
+		if SettingsManager.control_move_btn == "LMB":
+			clicks_option.selected = 1
+		else:
+			clicks_option.selected = 0
+			
+	clicks_option.item_selected.connect(func(idx):
+		if get_node_or_null("/root/SettingsManager"):
+			if idx == 0:
+				SettingsManager.control_move_btn = "RMB"
+				SettingsManager.control_cam_rotate_btn = "LMB"
+			else:
+				SettingsManager.control_move_btn = "LMB"
+				SettingsManager.control_cam_rotate_btn = "RMB"
+			SettingsManager.save_settings()
+	)
+	pc_config.add_child(clicks_option)
+	
+	# --- BOTÓN DE TARGET ---
+	var target_btn_lbl = Label.new()
+	target_btn_lbl.text = "BOTÓN DE TARGET (Selección de objetivos):"
+	pc_config.add_child(target_btn_lbl)
+	
+	var target_btn_option = OptionButton.new()
+	target_btn_option.add_item("Click Izquierdo", 0)
+	target_btn_option.add_item("Click Derecho", 1)
+	
+	if get_node_or_null("/root/SettingsManager"):
+		if SettingsManager.control_target_btn == "RMB":
+			target_btn_option.selected = 1
+		else:
+			target_btn_option.selected = 0
+			
+	target_btn_option.item_selected.connect(func(idx):
+		if get_node_or_null("/root/SettingsManager"):
+			if idx == 0:
+				SettingsManager.control_target_btn = "LMB"
+			else:
+				SettingsManager.control_target_btn = "RMB"
+			SettingsManager.save_settings()
+	)
+	pc_config.add_child(target_btn_option)
 
 	# ========================== TAB 3: GRÁFICOS Y ACCESIBILIDAD ==========================
 	var scroll_gfx = ScrollContainer.new()
@@ -778,22 +643,31 @@ func _setup_ui():
 	_mobcam_row = vbox_cam
 
 	# Slider de sensibilidad de órbita táctil
-	var gfx_mobcam_row = _create_slider_row(
-		"SENSIBILIDAD DE ÓRBITA TÁCTIL:",
-		0.2, 3.0, 0.05,
-		SettingsManager.mobile_camera_sensitivity,
-		func(val):
+	var mobcam_sens_slider = HSlider.new()
+	mobcam_sens_slider.min_value = 0.2
+	mobcam_sens_slider.max_value = 3.0
+	mobcam_sens_slider.step = 0.1
+	
+	var has_mobcam_sens = "mobile_camera_sensitivity" in SettingsManager
+	mobcam_sens_slider.value = SettingsManager.mobile_camera_sensitivity if has_mobcam_sens else 1.0
+	mobcam_sens_slider.visible = SettingsManager.mobile_mode
+	mobcam_sens_slider.value_changed.connect(func(val):
+		if "mobile_camera_sensitivity" in SettingsManager:
 			SettingsManager.mobile_camera_sensitivity = val
-			SettingsManager.save_settings(),
-		"Velocidad de rotación al deslizar el panel táctil en celular."
+		SettingsManager.save_settings()
 	)
-	gfx_mobcam_row.container.visible = SettingsManager.mobile_mode
-	gfx_vbox.add_child(gfx_mobcam_row.container)
-	_mobcam_sens_container = gfx_mobcam_row.container
-	_sens_refresh_callbacks.append(func():
-		gfx_mobcam_row.slider.value = SettingsManager.mobile_camera_sensitivity
-		gfx_mobcam_row.update_label.call(SettingsManager.mobile_camera_sensitivity)
-	)
+	gfx_vbox.add_child(mobcam_sens_slider)
+
+	_mobcam_sens_slider = mobcam_sens_slider
+
+	var mobcam_sens_lbl = Label.new()
+	mobcam_sens_lbl.text = "SENSIBILIDAD DE ÓRBITA TÁCTIL"
+	mobcam_sens_lbl.visible = SettingsManager.mobile_mode
+	mobcam_sens_lbl.add_theme_font_size_override("font_size", 10)
+	mobcam_sens_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
+	gfx_vbox.add_child(mobcam_sens_lbl)
+
+	_mobcam_sens_lbl = mobcam_sens_lbl
 
 	gfx_vbox.add_child(HSeparator.new())
 
@@ -1547,53 +1421,3 @@ func _update_size():
 		panel.size = r_size
 		panel.position = r_pos
 		panel.custom_minimum_size = r_size
-
-func _create_slider_row(title: String, min_val: float, max_val: float, step_val: float, current_val: float, on_change: Callable, hint: String = "") -> Dictionary:
-	var container = VBoxContainer.new()
-	container.add_theme_constant_override("separation", 2)
-	
-	var header_hbox = HBoxContainer.new()
-	header_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
-	var lbl = Label.new()
-	lbl.text = title
-	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.add_theme_font_size_override("font_size", 12)
-	header_hbox.add_child(lbl)
-	
-	var val_lbl = Label.new()
-	val_lbl.text = "%.2fx (%d%%)" % [current_val, int(round(current_val * 100.0))]
-	val_lbl.add_theme_font_size_override("font_size", 12)
-	val_lbl.add_theme_color_override("font_color", Color(0.2, 1.0, 0.6))
-	header_hbox.add_child(val_lbl)
-	container.add_child(header_hbox)
-	
-	var slider = HSlider.new()
-	slider.min_value = min_val
-	slider.max_value = max_val
-	slider.step = step_val
-	slider.value = current_val
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
-	var update_label_func = func(val: float):
-		val_lbl.text = "%.2fx (%d%%)" % [val, int(round(val * 100.0))]
-	
-	slider.value_changed.connect(func(val):
-		update_label_func.call(val)
-		on_change.call(val)
-	)
-	container.add_child(slider)
-	
-	if hint != "":
-		var hint_lbl = Label.new()
-		hint_lbl.text = hint
-		hint_lbl.add_theme_font_size_override("font_size", 10)
-		hint_lbl.add_theme_color_override("font_color", Color(0.65, 0.75, 0.85, 0.8))
-		container.add_child(hint_lbl)
-		
-	return {
-		"container": container,
-		"slider": slider,
-		"val_lbl": val_lbl,
-		"update_label": update_label_func
-	}

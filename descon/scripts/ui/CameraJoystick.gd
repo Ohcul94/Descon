@@ -219,15 +219,12 @@ func _on_touch_area_gui_input(event: InputEvent):
 			get_viewport().set_input_as_handled()
 			_ensure_free_cam_active(map_node)
 			
-			# Respuesta inmediata al swipe/arrastre táctil
+			# Respuesta inmediata al swipe/arrastre
 			var delta_drag = event.position - _last_drag_pos
 			_last_drag_pos = event.position
 			
-			var inv_x = -1.0 if (SettingsManager and SettingsManager.mobile_camera_invert_x) else 1.0
-			var inv_y = -1.0 if (SettingsManager and SettingsManager.mobile_camera_invert_y) else 1.0
-			
-			map_node.free_cam_h += delta_drag.x * 0.35 * sens * inv_x
-			map_node.free_cam_v = clamp(map_node.free_cam_v + delta_drag.y * 0.35 * sens * inv_y, 10.0, 85.0)
+			map_node.free_cam_h += delta_drag.x * 0.35 * sens
+			map_node.free_cam_v = clamp(map_node.free_cam_v + delta_drag.y * 0.35 * sens, 10.0, 85.0)
 			
 			_update_stick_pos(event.position)
 
@@ -245,31 +242,18 @@ func _reset_stick():
 	if touch_area: touch_area.queue_redraw()
 
 func _process(delta: float):
-	# Rotación continua al mantener la palanca desplazada (Curva AAA Exponencial)
-	if is_dragging and stick_pos.length() > 8.0:
+	# Rotación continua al mantener la palanca desplazada hacia un extremo
+	if is_dragging and stick_pos.length() > 14.0:
 		var map_node = get_tree().get_first_node_in_group("map")
 		if is_instance_valid(map_node):
 			var sens = SettingsManager.mobile_camera_sensitivity if SettingsManager else 1.0
-			var inv_x = -1.0 if (SettingsManager and SettingsManager.mobile_camera_invert_x) else 1.0
-			var inv_y = -1.0 if (SettingsManager and SettingsManager.mobile_camera_invert_y) else 1.0
-			
 			var norm = stick_pos / max_dist
-			var stick_len = norm.length()
-			var deadzone = 0.16 # Zona muerta suave (16%)
+			_ensure_free_cam_active(map_node)
 			
-			if stick_len > deadzone:
-				var remapped = (stick_len - deadzone) / (1.0 - deadzone)
-				# Curva cuadrática suave para control quirúrgico en micro-ajustes y giro rápido en borde
-				var curved_len = pow(remapped, 1.35)
-				var dir = norm.normalized()
-				var drive = dir * curved_len
-				
-				_ensure_free_cam_active(map_node)
-				
-				var rot_speed_h = 80.0 # Grados por segundo en velocidad máxima
-				var rot_speed_v = 45.0
-				map_node.free_cam_h += drive.x * rot_speed_h * delta * sens * inv_x
-				map_node.free_cam_v = clamp(map_node.free_cam_v + drive.y * rot_speed_v * delta * sens * inv_y, 10.0, 85.0)
+			var rot_speed_h = 75.0 # Grados por segundo de giro continuo
+			var rot_speed_v = 40.0
+			map_node.free_cam_h += norm.x * rot_speed_h * delta * sens
+			map_node.free_cam_v = clamp(map_node.free_cam_v + norm.y * rot_speed_v * delta * sens, 10.0, 85.0)
 
 func _ensure_free_cam_active(map_node: Node):
 	if not is_instance_valid(map_node): return

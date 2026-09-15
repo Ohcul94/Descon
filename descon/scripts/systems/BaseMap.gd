@@ -102,8 +102,6 @@ var free_cam_center: Vector3 = Vector3.ZERO
 var free_orbit_mode: bool = true  # true=orbita jugador, false=libre (WASD)
 var _mid_dragging: bool = false
 var _drag_last: Vector2 = Vector2.ZERO
-var _cam_h_smooth: float = 180.0
-var _cam_v_smooth: float = 40.0
 
 var _was_mobile_camera_edit: int = 0
 
@@ -1332,8 +1330,6 @@ func _restore_camera_state():
 	free_orbit_mode = sm.cam_free_orbit
 	if sm.get("cam_use_hybrid") != null:
 		use_hybrid_camera = sm.get("cam_use_hybrid")
-	_cam_h_smooth = free_cam_h
-	_cam_v_smooth = free_cam_v
 	_sync_free_from_fixed()
 
 
@@ -1351,19 +1347,9 @@ func _update_free_camera(shake_offset: Vector3 = Vector3.ZERO):
 			base_y = wr3d.position.y
 		free_cam_center = Vector3(pp.x * scale_factor, base_y, pp.y * scale_factor * correction_z)
 	
-	# Ángulo FIJO (no relativo a la nave) con suavizado cinemático opcional
-	var sm = get_node_or_null("/root/SettingsManager")
-	var use_smooth = sm.pc_camera_smooth if sm else true
-	if use_smooth:
-		var dt = get_process_delta_time()
-		_cam_h_smooth = rad_to_deg(lerp_angle(deg_to_rad(_cam_h_smooth), deg_to_rad(free_cam_h), clamp(22.0 * dt, 0.0, 1.0)))
-		_cam_v_smooth = lerp(_cam_v_smooth, free_cam_v, clamp(22.0 * dt, 0.0, 1.0))
-	else:
-		_cam_h_smooth = free_cam_h
-		_cam_v_smooth = free_cam_v
-
-	var rad_h = deg_to_rad(_cam_h_smooth)
-	var rad_v = deg_to_rad(_cam_v_smooth)
+	# Ángulo FIJO (no relativo a la nave) — la cámara orbita en espacio mundo, no sigue la rotación del barco
+	var rad_h = deg_to_rad(free_cam_h)
+	var rad_v = deg_to_rad(free_cam_v)
 	
 	var offset = Vector3(
 		free_cam_zoom * cos(rad_v) * sin(rad_h),
@@ -2681,19 +2667,6 @@ func _set_altar_doors_visible(p_visible: bool):
 		_update_interact_visibility()
 	print("[BaseMap] Puertas Altar visible=", p_visible, " locked=", _altar_doors_locked)
 
-func _is_hovering_interactive_ui() -> bool:
-	var hovered = get_viewport().gui_get_hovered_control()
-	if hovered == null or hovered is SubViewportContainer:
-		return false
-	if hovered is Button or hovered is BaseButton or hovered is LineEdit or hovered is TextEdit or hovered is Slider or hovered is ScrollContainer or hovered is ItemList or hovered is TabBar:
-		return true
-	var p: Node = hovered
-	while p != null:
-		if p.name in ["ChatUI", "EscMenu", "SettingsUI", "InventoryUI", "AdminPanel", "BattlePassUI", "ShopUI", "MailboxUI", "BugReportUI"]:
-			return true
-		p = p.get_parent()
-	return false
-
 # Atajo de teclado para entrar al portal si el contenedor está visible
 func _input(event):
 	# v433: No robar teclas si el jugador está escribiendo (chat, inventario, etc)
@@ -2766,7 +2739,8 @@ func _input(event):
 			if not free_cam_active and not use_hybrid_camera:
 				return
 				
-			if _is_hovering_interactive_ui():
+			var hovered = get_viewport().gui_get_hovered_control()
+			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			
 			_lmb_dragging = event.pressed
@@ -2782,7 +2756,8 @@ func _input(event):
 	# Scroll para zoom en cámara fija
 	if not free_cam_active and not use_hybrid_camera and event is InputEventMouseButton and event.pressed:
 		if (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN):
-			if _is_hovering_interactive_ui():
+			var hovered = get_viewport().gui_get_hovered_control()
+			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				fixed_cam_zoom = max(0.18, fixed_cam_zoom - 0.04)
@@ -2801,7 +2776,8 @@ func _input(event):
 		
 		# Scroll para zoom (solo en cámara libre)
 		if (event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN) and event.pressed:
-			if _is_hovering_interactive_ui():
+			var hovered = get_viewport().gui_get_hovered_control()
+			if hovered != null and not (hovered is SubViewportContainer):
 				return
 			if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 				free_cam_zoom -= 2.0
@@ -2815,30 +2791,22 @@ func _input(event):
 	if event is InputEventMouseMotion:
 		if SettingsManager and SettingsManager.mobile_mode:
 			return
-		var pc_sens = SettingsManager.pc_camera_sensitivity if SettingsManager else 1.0
-		var inv_x = -1.0 if (SettingsManager and SettingsManager.pc_camera_invert_x) else 1.0
-		var inv_y = -1.0 if (SettingsManager and SettingsManager.pc_camera_invert_y) else 1.0
-
 		if _lmb_dragging:
 			var rel = event.relative
 			set_meta("lmb_dragged", true)
-			var delta_h = rel.x * 0.15 * pc_sens * inv_x
-			var delta_v = rel.y * 0.15 * pc_sens * inv_y
 			if free_cam_active:
-				free_cam_h += delta_h
-				free_cam_v = clamp(free_cam_v + delta_v, 1.0, 85.0)
+				free_cam_h += rel.x * 0.15
+				free_cam_v = clamp(free_cam_v + rel.y * 0.15, 1.0, 85.0)
 			else:
-				hybrid_cam_h += delta_h
-				hybrid_cam_v = clamp(hybrid_cam_v + delta_v, -60.0, 85.0)
+				hybrid_cam_h += rel.x * 0.15
+				hybrid_cam_v = clamp(hybrid_cam_v + rel.y * 0.15, -60.0, 85.0)
 
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
 		elif free_cam_active and _mid_dragging:
 			var delta = event.position - _drag_last
-			var delta_h = delta.x * 0.3 * pc_sens * inv_x
-			var delta_v = delta.y * 0.3 * pc_sens * inv_y
-			free_cam_h += delta_h
-			free_cam_v = clamp(free_cam_v + delta_v, 1.0, 85.0)
+			free_cam_h += delta.x * 0.3
+			free_cam_v = clamp(free_cam_v + delta.y * 0.3, 1.0, 85.0)
 			_drag_last = event.position
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
