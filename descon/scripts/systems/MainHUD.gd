@@ -998,12 +998,6 @@ func toggle_esc_menu():
 	_esc_menu.reset_size()
 	_esc_menu.global_position = (get_viewport_rect().size - _esc_menu.size) / 2.0
 
-func _restore_default_layout():
-	if not is_editing_layout:
-		active_slot_index = -1
-		if NetworkManager:
-			NetworkManager.send_event("saveHudLayout", { "positions": {} })
-	
 func _get_default_positions() -> Dictionary:
 	var default_layout = {
 		"CenterStats":     { "x": 1063,  "y": 21,    "scale": 0.5, "alpha": 1.0 },
