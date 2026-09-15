@@ -1512,6 +1512,9 @@ func _apply_movement():
 		modulate = modulate.lerp(Color.WHITE, 0.1)
 
 	if velocity != Vector2.ZERO:
+		_prevent_terrain_mountain_crossing()
+		
+	if velocity != Vector2.ZERO:
 		if move_and_slide():
 			for i in get_slide_collision_count():
 				var col = get_slide_collision(i)
@@ -1519,6 +1522,10 @@ func _apply_movement():
 				if obj and (obj.is_in_group("enemies") or obj.is_in_group("remote_players")):
 					global_position += col.get_normal() * 2.0
 					velocity = velocity.bounce(col.get_normal()) * 0.5
+	elif is_moving:
+		# Si intentaba moverse por click o autopilot hacia una montaña infranqueable, detener
+		is_moving = false
+		autopilot_enabled = false
 
 		# v531.0: Nebulosa FANTASMA — clamp DESACTIVADO. Solo visual para referencia de pixeles del AdminDash.
 		# El jugador puede atravesar libremente la nebulosa sin choque. Si quieres reactivar el choque duro, descomenta:
@@ -1533,6 +1540,95 @@ func _apply_movement():
 		# global_position.x = clamp(global_position.x, 10, w_size - 10)
 		# global_position.y = clamp(global_position.y, 10, h_size - 10)
 		pass
+
+## v1000.5: Bloqueo de avance contra elevaciones del Terrain3D en tiempo real (muro infranqueable)
+## Mantiene el vuelo plano original del juego mientras impide atravesar montañas
+func _prevent_terrain_mountain_crossing(delta: float = -1.0) -> void:
+	var map_node = null
+	var p_node = get_parent()
+	if is_instance_valid(p_node) and "current_map_node" in p_node and is_instance_valid(p_node.current_map_node):
+		map_node = p_node.current_map_node
+	else:
+		map_node = get_tree().get_first_node_in_group("map")
+		
+	if not is_instance_valid(map_node) or not map_node.has_method("get_terrain_height_at_pos"):
+		return
+		
+	# Lectura dinámica del umbral sin alturas fijas hardcodeadas (0.8m: base del relieve para evitar que la nave se incruste)
+	var threshold = 0.8
+	if "terrain_collision_height_threshold" in map_node and map_node.terrain_collision_height_threshold > 0.0:
+		threshold = float(map_node.terrain_collision_height_threshold)
+	elif "max_ship_terrain_height" in map_node and map_node.max_ship_terrain_height > 0.0:
+		threshold = float(map_node.max_ship_terrain_height)
+	elif "terrain_height_threshold" in map_node and map_node.terrain_height_threshold > 0.0:
+		threshold = float(map_node.terrain_height_threshold)
+		
+	if GameConstants and "GAME_CONFIG" in GameConstants and GameConstants.GAME_CONFIG is Dictionary:
+		if GameConstants.GAME_CONFIG.has("terrainHeightThreshold"):
+			threshold = float(GameConstants.GAME_CONFIG.terrainHeightThreshold)
+		elif GameConstants.GAME_CONFIG.has("maxTerrainHeight"):
+			threshold = float(GameConstants.GAME_CONFIG.maxTerrainHeight)
+			
+	var cur_h = map_node.get_terrain_height_at_pos(global_position)
+	var step = 16.0
+	var h_px = map_node.get_terrain_height_at_pos(global_position + Vector2(step, 0))
+	var h_nx = map_node.get_terrain_height_at_pos(global_position + Vector2(-step, 0))
+	var h_py = map_node.get_terrain_height_at_pos(global_position + Vector2(0, step))
+	var h_ny = map_node.get_terrain_height_at_pos(global_position + Vector2(0, -step))
+	var grad = Vector2(h_px - h_nx, h_py - h_ny) # Vector gradiente que apunta hacia la cima de la montaña
+	
+	# Si ya estamos en o sobre la cota de la montaña (por spawn o empujón), expulsar suavemente cuesta abajo
+	if cur_h >= threshold:
+		if grad.length_squared() > 0.0001:
+			var downhill = -grad.normalized()
+			global_position += downhill * 3.0
+			if velocity.dot(-downhill) > 0.0:
+				velocity = velocity.slide(-downhill)
+		else:
+			velocity = Vector2.ZERO
+		return
+		
+	var speed_len = velocity.length()
+	if speed_len <= 0.001:
+		return
+		
+	var dt = delta if delta > 0.0 else get_physics_process_delta_time()
+	var move_dir = velocity / speed_len
+	var perp_dir = Vector2(-move_dir.y, move_dir.x)
+	var probe_dist = max(34.0, speed_len * dt * 2.5)
+	
+	# Sondeo de 3 puntos frontales (centro, izquierda, derecha) con envergadura para que trompa y alas frenen a tiempo
+	var p_center = global_position + move_dir * probe_dist
+	var p_left = global_position + (move_dir * probe_dist) + (perp_dir * 18.0)
+	var p_right = global_position + (move_dir * probe_dist) - (perp_dir * 18.0)
+	
+	var h_fc = map_node.get_terrain_height_at_pos(p_center)
+	var h_fl = map_node.get_terrain_height_at_pos(p_left)
+	var h_fr = map_node.get_terrain_height_at_pos(p_right)
+	var max_forward_h = max(h_fc, max(h_fl, h_fr))
+	
+	if max_forward_h >= threshold:
+		# La montaña bloquea el avance frontal: intentar deslizamiento tangencial (slide) a lo largo de la ladera
+		if grad.length_squared() > 0.0001:
+			var wall_normal = -grad.normalized() # Normal apuntando hacia el terreno plano
+			var slide_vel = velocity.slide(wall_normal)
+			if slide_vel.length_squared() > 1.0:
+				var slide_target = global_position + slide_vel.normalized() * probe_dist
+				if map_node.get_terrain_height_at_pos(slide_target) < threshold:
+					velocity = slide_vel
+					return
+		# Deslizamiento ortogonal independiente (X e Y)
+		if abs(velocity.x) > 0.1:
+			var test_x = global_position + Vector2(sign(velocity.x), 0) * probe_dist
+			if map_node.get_terrain_height_at_pos(test_x) < threshold:
+				velocity.y = 0.0
+				return
+		if abs(velocity.y) > 0.1:
+			var test_y = global_position + Vector2(0, sign(velocity.y)) * probe_dist
+			if map_node.get_terrain_height_at_pos(test_y) < threshold:
+				velocity.x = 0.0
+				return
+		velocity = Vector2.ZERO
 
 func set_autopilot(p_dest: Vector2):
 	if get_meta("spawn_locked", false):

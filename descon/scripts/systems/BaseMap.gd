@@ -85,6 +85,9 @@ var use_hybrid_camera: bool = false
 var _smoothed_target_3d: Vector3 = Vector3.ZERO
 var _smoothed_yaw: float = 0.0
 var _camera_initialized: bool = false
+var _classic_cam_smoothed_y: float = -999.0
+@export var terrain_collision_height_threshold: float = 0.8
+@export var max_ship_terrain_height: float = 0.8
 
 
 
@@ -1019,20 +1022,11 @@ func get_terrain_height_at_pos(pos_2d: Vector2) -> float:
 		var pos_3d = Vector3(pos_2d.x * scale_factor, 0.0, pos_2d.y * scale_factor * correction_z)
 		var height = 0.0
 		
-		# Probar get_height() en storage o directamente en el nodo (soporte multi-versión del addon)
-		if terrain_node.has_method("get_height"):
-			height = terrain_node.get_height(pos_3d)
-		else:
-			var storage = terrain_node.get("storage")
-			if is_instance_valid(storage) and storage.has_method("get_height"):
-				height = storage.get_height(pos_3d)
+		# v1000.0: Soporte multi-versión resiliente (data en v1.0.2+, storage en v0.9, o método directo)
+		height = TerrainCollisionBaker2D.get_height_at_3d_pos(terrain_node, pos_3d)
 		
 		if is_nan(height) or is_inf(height):
 			height = 0.0
-			
-		# Telemetría cada 120 frames para verificar la altura sin saturar el log
-		if Engine.get_frames_drawn() % 120 == 0:
-			print("[BaseMap] get_terrain_height_at_pos: pos_2d=", pos_2d, " -> pos_3d=", pos_3d, " -> height=", height)
 			
 		return height
 			
@@ -1655,13 +1649,21 @@ func _process(_delta):
 					if is_instance_valid(wr3d):
 						base_y = wr3d.position.y
 				
-				camera_3d.position.y = dynamic_height_from_ship + base_y
+				# v1000.2: Suavizado cinemático vertical (elimina saltitos por relieve manteniendo sincronía horizontal 1:1)
+				var dt = get_process_delta_time()
+				if _classic_cam_smoothed_y < -900.0:
+					_classic_cam_smoothed_y = base_y
+				else:
+					_classic_cam_smoothed_y = lerp(_classic_cam_smoothed_y, base_y, clamp(dt * 6.0, 0.0, 1.0))
+				
+				camera_3d.position.y = dynamic_height_from_ship + _classic_cam_smoothed_y
 				
 				var z_offset = dynamic_height_from_ship / tan(deg_to_rad(25.0))
 				var corrected_target_z = target_pos.y * scale_factor * correction_z
-				camera_3d.position.x = target_pos.x * scale_factor
+				var cam_x = target_pos.x * scale_factor
+				camera_3d.position.x = cam_x
 				camera_3d.position.z = corrected_target_z + z_offset
-				camera_3d.look_at(Vector3(target_pos.x * scale_factor, base_y, corrected_target_z), Vector3.UP)
+				camera_3d.look_at(Vector3(cam_x, _classic_cam_smoothed_y, corrected_target_z), Vector3.UP)
 				camera_3d.position += shake_offset
 	
 	_update_world_cursor()
@@ -2891,12 +2893,48 @@ func _calculate_local_aabb(node: Node3D) -> AABB:
 				stack.append([child, child_trans])
 	return total_aabb
 
+func _setup_terrain_2d_colliders():
+	if not is_instance_valid(custom_scene_instance):
+		return
+		
+	# 1. Caso A: La escena ya contiene el nodo pre-horneado "TerrainColliders" con metadata
+	var baked_container = custom_scene_instance.get_node_or_null("TerrainColliders")
+	if not is_instance_valid(baked_container):
+		baked_container = custom_scene_instance.find_child("TerrainColliders", true, false)
+		
+	if is_instance_valid(baked_container) and baked_container.has_meta("terrain_polygons"):
+		var polys = baked_container.get_meta("terrain_polygons")
+		if polys is Array and polys.size() > 0:
+			TerrainCollisionBaker2D.spawn_2d_colliders(self, polys, "MapWall_Terrain")
+			print("[BaseMap] %d colisionadores 2D cargados instantáneamente desde TerrainColliders pre-horneado." % polys.size())
+			return
+			
+	# 2. Caso B: La escena tiene Terrain3D pero no ha sido pre-horneada. Hornear dinámicamente al cargar.
+	if is_instance_valid(terrain_node):
+		print("[BaseMap] Terrain3D detectado sin pre-horneado. Generando colisiones 2D automáticas...")
+		var polys = TerrainCollisionBaker2D.generate_terrain_polygons(
+			terrain_node,
+			world_size,
+			map_height if map_height > 0.0 else world_size,
+			scale_factor,
+			correction_z,
+			max_ship_terrain_height, # Umbral de altura predeterminado (montañas)
+			1.0, # Paso de muestreo
+			400.0 # Área mínima
+		)
+		if polys.size() > 0:
+			TerrainCollisionBaker2D.spawn_2d_colliders(self, polys, "MapWall_Terrain")
+			print("[BaseMap] %d colisionadores 2D generados dinámicamente para Terrain3D." % polys.size())
+
 func _spawn_objects_from_custom_scene():
 	print("[BaseMap] Generando colisiones físicas 2D desde la escena 3D local...")
 	var market_script = load("res://scripts/entities/MarketTerminal.gd")
 	
 	if not is_instance_valid(custom_scene_instance):
 		return
+		
+	# Generar o cargar colisiones 2D del terreno (Terrain3D) de forma no destructiva
+	_setup_terrain_2d_colliders()
 		
 	var target_root = custom_scene_instance
 		
@@ -2924,7 +2962,7 @@ func _spawn_objects_from_custom_scene():
 			
 		# Ignorar nodos de infraestructura del sistema por defecto de forma segura
 		var name_lower = child.name.to_lower()
-		if child.is_class("Terrain3D") or "terrain3d" in name_lower:
+		if child.is_class("Terrain3D") or "terrain3d" in name_lower or name_lower == "terraincolliders":
 			continue
 		if child.is_class("WorldEnvironment") or "worldenvironment" in name_lower:
 			continue

@@ -20,6 +20,23 @@ class_name MapEditor3D
 			trigger_import = false
 			notify_property_list_changed()
 
+@export_group("Colisiones de Terreno 3D")
+@export var terrain_height_threshold: float = 0.8
+@export var terrain_grid_step: float = 1.0
+@export var terrain_min_polygon_area: float = 400.0
+@export var trigger_bake_terrain: bool = false:
+	set(val):
+		if val:
+			bake_terrain_collisions()
+			trigger_bake_terrain = false
+			notify_property_list_changed()
+@export var trigger_clear_terrain_colliders: bool = false:
+	set(val):
+		if val:
+			clear_terrain_colliders()
+			trigger_clear_terrain_colliders = false
+			notify_property_list_changed()
+
 
 
 
@@ -75,7 +92,7 @@ func _on_child_added(child: Node):
 		return
 		
 	# v700.6: Ignorar de forma segura nodos de infraestructura del sistema
-	if child.name in ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual", "EventMarkers", "Terrain3D", "SkyDome"]:
+	if child.name in ["Camera3D", "GroundPlane", "DirectionalLight3D", "WorldEnvironment", "ObjectsRoot", "MapBoundaryVisual", "EventMarkers", "Terrain3D", "SkyDome", "TerrainColliders"]:
 		return
 	
 	# No marcar editor_only en nodos collider (son hijos de un wall padre)
@@ -499,6 +516,46 @@ func _round_decimals(val: float, decimals: int = 2) -> float:
 
 func export_json_manual():
 	_export_to_json()
+
+func bake_terrain_collisions():
+	var terrain_node = find_child("Terrain3D", true, false)
+	if not terrain_node:
+		for child in get_children():
+			if child.is_class("Terrain3D") or "Terrain3D" in child.name:
+				terrain_node = child
+				break
+	if not terrain_node:
+		print("MapEditor3D: No se encontró ningún nodo Terrain3D en la escena.")
+		return
+		
+	var map_w = 10000.0
+	var map_h = 10000.0
+	var gc = get_node_or_null("/root/GameConstants")
+	var full_cfg = gc.MAPS_CONFIG if is_instance_valid(gc) and "MAPS_CONFIG" in gc else {}
+	if full_cfg.has(zone_id):
+		var cfg = full_cfg[zone_id]
+		if cfg.has("width") and float(cfg.width) > 0:
+			map_w = float(cfg.width)
+			map_h = float(cfg.width)
+		if cfg.has("height") and float(cfg.height) > 0:
+			map_h = float(cfg.height)
+			
+	var success = TerrainCollisionBaker2D.bake_to_editor_scene(
+		self,
+		terrain_node,
+		map_w,
+		map_h,
+		scale_factor,
+		correction_z,
+		terrain_height_threshold,
+		terrain_grid_step,
+		terrain_min_polygon_area
+	)
+	if success:
+		print("MapEditor3D: ¡Colisiones de terreno 3D horneadas con éxito para la zona %s!" % zone_id)
+
+func clear_terrain_colliders():
+	TerrainCollisionBaker2D.clear_editor_colliders(self)
 
 func import_from_json():
 	if json_to_import.strip_edges() == "":

@@ -88,6 +88,7 @@ var _bomb_radius: float = 150.0
 var poly_duration: float = 4.0
 var poly_can_move: bool = false
 var poly_can_use_skills: bool = false
+var _flight_height_y: float = -999.0
 
 func _ready():
 	add_to_group("projectiles")
@@ -113,8 +114,7 @@ func _process(_delta):
 			if type == "mine" or type == "orbital_mine":
 				world_root_3d.position.y = 0.1
 			else:
-				# Vuela a una altura de soporte constante
-				world_root_3d.position.y = 0.8
+				world_root_3d.position.y = _aim_height()
 		if type == "mega_laser":
 			var dir_2d = Vector2.RIGHT.rotated(rotation)
 			var diff_3d = Vector3(dir_2d.x * s_factor, 0.0, dir_2d.y * s_factor * correction_z)
@@ -175,6 +175,7 @@ func _process(_delta):
 					up_vec = Vector3.FORWARD
 				_hook_chain_3d.look_at(hook_3d, up_vec)
 			_hook_chain_3d.rotate_object_local(Vector3.RIGHT, PI / 2)
+
 
 
 func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
@@ -316,7 +317,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	if owner_type == "player" or owner_type == "remote":
 		collision_mask = 1 | 2 
 	else:
-		collision_mask = 1 
+		collision_mask = 1 | 2 
 		
 	if type == "spin_ring":
 		var map_node = get_tree().get_first_node_in_group("map")
@@ -1678,6 +1679,23 @@ func _physics_process(delta):
 		queue_redraw()
 	else:
 		global_position += move_step
+		
+	# Detonar si el proyectil impacta contra una elevación del terreno (montaña)
+	if type != "electron" and not _has_hit:
+		var active_map = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(active_map) and active_map.has_method("get_terrain_height_at_pos"):
+			var h_proj = active_map.get_terrain_height_at_pos(global_position)
+			var threshold = 0.8
+			if "terrain_collision_height_threshold" in active_map and active_map.terrain_collision_height_threshold > 0.0:
+				threshold = float(active_map.terrain_collision_height_threshold)
+			elif "max_ship_terrain_height" in active_map and active_map.max_ship_terrain_height > 0.0:
+				threshold = float(active_map.max_ship_terrain_height)
+			elif "terrain_height_threshold" in active_map and active_map.terrain_height_threshold > 0.0:
+				threshold = float(active_map.terrain_height_threshold)
+				
+			if h_proj >= threshold:
+				_has_hit = true
+				_explode()
 	
 	if type == "electron":
 		queue_redraw()
@@ -1841,7 +1859,7 @@ func _on_body_entered(body):
 				})
 		
 		_explode()
-	elif body.is_in_group("obstacles"):
+	elif body.is_in_group("obstacles") or body.is_in_group("walls") or body.is_in_group("terrain_walls"):
 		_explode()
 
 func _on_body_shape_entered(_body_rid, body, _body_shape_index, local_shape_index):
@@ -2466,7 +2484,7 @@ func _explode():
 		await tw.finished
 	queue_free()
 
-# v411: Altura 3D a la que debe volar el proyectil.
+# v411: Altura 3D a la que debe volar el proyectil o spawnear su impacto.
 # Se usa la altura del objetivo (jugador/enemigo común) en lugar de la del dueño,
 # para que los bosses (escala mayor) no parezcan disparar al aire.
 func _aim_height() -> float:

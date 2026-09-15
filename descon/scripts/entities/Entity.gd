@@ -961,9 +961,15 @@ func _update_3d_root_sync():
 			# Usar raw_entity_type primero (para "6-C"), si no, usar entity_type (para "6")
 			var enemy_cfg = GameConstants.ENEMY_MODELS.get(raw_entity_type, GameConstants.ENEMY_MODELS.get(str(entity_type), {}))
 			base_y = float(enemy_cfg.get("posY", 1.0))
+		elif is_in_group("player"):
+			var ship_idx = get("current_ship_id") if get("current_ship_id") != null else 1
+			if GameConstants and "SHIP_MODELS" in GameConstants and GameConstants.SHIP_MODELS is Array:
+				for s_model in GameConstants.SHIP_MODELS:
+					if str(s_model.get("id")) == str(ship_idx) and s_model.has("posY"):
+						base_y = float(s_model.get("posY", 1.0))
+						break
 			
-		world_root_3d.position.y = base_y
-		world_root_3d.position.y += _burrow_y_offset + _ascension_y_offset
+		world_root_3d.position.y = base_y + _burrow_y_offset + _ascension_y_offset
 		
 		# v311.5: Sincronización directa y robusta de visibilidad (evita discrepancias por márgenes fijos)
 		if is_dead:
