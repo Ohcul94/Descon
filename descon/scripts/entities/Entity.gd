@@ -2682,6 +2682,9 @@ func _setup_3d_visuals(glb_path: String, rot_offset: float = 0.0, pitch_offset: 
 		control_node.scale = Vector3(2.0, 2.0, 2.0) 
 		model.rotation_degrees = Vector3(0, rot_offset, pitch_offset) # v405: pitch sagital en eje Z local (YXZ: Rz se aplica antes del yaw) 
 
+		# v425.0: Garantizar que la malla tenga normales para el outline invertido de selección
+		_ensure_mesh_normals(model)
+
 		# v390.0: Parche de sombreado plano para todos los modelos 3D (naves y enemigos) (evita que se oscurezcan al girar)
 		_make_materials_unshaded(model)
 
@@ -3311,10 +3314,10 @@ func _update_selection_visuals():
 			_selection_outline_material = StandardMaterial3D.new()
 			_selection_outline_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
 			_selection_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
-			_selection_outline_material.albedo_color = Color(1, 0.85, 0, 0.25)
+			_selection_outline_material.albedo_color = Color(1.0, 0.85, 0.0, 0.5)
 			_selection_outline_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			_selection_outline_material.grow = true
-			_selection_outline_material.grow_amount = 0.005
+			_selection_outline_material.grow_amount = 0.009
 			_selection_outline_material.render_priority = 11
 		_apply_material_recursive(_3d_model, _selection_outline_material, true)
 	elif not is_hovered and _flash_timer <= 0.01:
@@ -3329,10 +3332,10 @@ func _update_hover_visuals(active: bool):
 			_hover_outline_material.shading_mode = StandardMaterial3D.SHADING_MODE_UNSHADED
 			_hover_outline_material.cull_mode = BaseMaterial3D.CULL_FRONT
 			# v302.6: Color más suave y armónico (Cian/Blanco con transparencia)
-			_hover_outline_material.albedo_color = Color(0, 1, 1, 0.2) 
+			_hover_outline_material.albedo_color = Color(0.0, 1.0, 1.0, 0.35) 
 			_hover_outline_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			_hover_outline_material.grow = true
-			_hover_outline_material.grow_amount = 0.004
+			_hover_outline_material.grow_amount = 0.007
 			_hover_outline_material.render_priority = 10
 		_apply_material_recursive(_3d_model, _hover_outline_material, true)
 	elif _flash_timer <= 0.01 and not is_selected:
@@ -3400,6 +3403,7 @@ func _make_materials_unshaded(node: Node):
 			if node.material_override and node.material_override is BaseMaterial3D:
 				node.material_override = node.material_override.duplicate()
 				node.material_override.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+				node.material_override.cull_mode = BaseMaterial3D.CULL_BACK
 			
 			# 2. Modificar materiales de superficies individuales
 			for i in range(node.get_surface_override_material_count()):
@@ -3407,15 +3411,45 @@ func _make_materials_unshaded(node: Node):
 				if mat and mat is BaseMaterial3D:
 					var dup_mat = mat.duplicate()
 					dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+					dup_mat.cull_mode = BaseMaterial3D.CULL_BACK
 					node.set_surface_override_material(i, dup_mat)
 				else:
 					var active_mat = node.get_active_material(i)
 					if active_mat and active_mat is BaseMaterial3D:
 						var dup_mat = active_mat.duplicate()
 						dup_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+						dup_mat.cull_mode = BaseMaterial3D.CULL_BACK
 						node.set_surface_override_material(i, dup_mat)
 	for child in node.get_children():
 		_make_materials_unshaded(child)
+
+# v425.0: Salvaguarda dinámica que verifica si la malla tiene vectores normales.
+# Si carece de ellos, los genera mediante SurfaceTool para que el outline invertido funcione perfectamente.
+func _ensure_mesh_normals(node: Node):
+	if not is_instance_valid(node):
+		return
+	if node is MeshInstance3D:
+		var mesh = node.mesh
+		if mesh and mesh is ArrayMesh:
+			var needs_regen = false
+			for s in range(mesh.get_surface_count()):
+				var fmt = mesh.surface_get_format(s)
+				if (fmt & Mesh.ARRAY_FORMAT_NORMAL) == 0:
+					needs_regen = true
+					break
+			if needs_regen:
+				var new_mesh = ArrayMesh.new()
+				for s in range(mesh.get_surface_count()):
+					var st = SurfaceTool.new()
+					st.create_from(mesh, s)
+					st.generate_normals()
+					st.commit(new_mesh)
+					var mat = node.get_active_material(s)
+					if mat:
+						new_mesh.surface_set_material(s, mat)
+				node.mesh = new_mesh
+	for child in node.get_children():
+		_ensure_mesh_normals(child)
 
 func _setup_sphere_materials_recursive(node: Node, color_name: String):
 	if not is_instance_valid(node):

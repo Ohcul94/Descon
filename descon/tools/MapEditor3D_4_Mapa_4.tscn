@@ -6,7 +6,7 @@
 
 [sub_resource type="WorldBoundaryShape3D" id="WorldBoundaryShape3D_1"]
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pw4vt"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c3fwm"]
 albedo_color = Color(0.05, 0.08, 0.15, 1)
 metallic = 0.3
 roughness = 0.8
@@ -127,9 +127,8 @@ shape = SubResource("WorldBoundaryShape3D_1")
 [node name="GridVisual" type="MeshInstance3D" parent="GroundPlane" unique_id=110759696]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.05, 0)
 visible = false
-material_override = SubResource("StandardMaterial3D_pw4vt")
+material_override = SubResource("StandardMaterial3D_c3fwm")
 mesh = SubResource("PlaneMesh_1")
-
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=410875753]
 environment = SubResource("Environment_1")
@@ -140,3 +139,7 @@ material = SubResource("Terrain3DMaterial_4w0s5")
 assets = SubResource("Terrain3DAssets_s6poo")
 top_level = true
 metadata/_edit_lock_ = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="." unique_id=1608344804]
+transform = Transform3D(0.018903278, 0, -0.9998213, 0, 1, 0, 0.9998213, 0, 0.018903278, 9.124497, 4.700363, 20.824802)
+size = Vector3(3.4259033, 10.400726, 20.364258)
