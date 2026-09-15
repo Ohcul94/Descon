@@ -802,20 +802,26 @@ func _on_touch_button_input(event: InputEvent, node: Control, callback: Callable
 	var world_diff = diff_global / zoom_val
 	
 	var max_range = sc.current_skill.get("range", 500.0)
-	var sensitivity = SettingsManager.mobile_aim_sensitivity
+	var sensitivity = SettingsManager.mobile_aim_sensitivity if SettingsManager else 1.0
+	var deadzone = SettingsManager.mobile_aim_deadzone if (SettingsManager and "mobile_aim_deadzone" in SettingsManager) else 8.0
+	var invert_y = (SettingsManager.mobile_aim_invert_y or SettingsManager.mobile_invert_y) if SettingsManager else false
 	
-	if diff_global.length() > 5:
-		var screen_dir = diff_global.normalized()
+	if diff_global.length() > deadzone:
+		var raw_screen = diff_global
+		if invert_y:
+			raw_screen.y = -raw_screen.y
+		var screen_dir = raw_screen.normalized()
 		var map_node = get_tree().get_first_node_in_group("map")
 		var oriented_dir = screen_dir
 		if is_instance_valid(map_node) and map_node.has_method("get_camera_oriented_direction"):
 			oriented_dir = map_node.get_camera_oriented_direction(screen_dir)
 		
 		if max_range <= 0:
-			sc.external_aim_vector = oriented_dir * world_diff.length()
+			sc.external_aim_vector = oriented_dir * world_diff.length() * sensitivity
 		else:
-			var px_for_max = 80.0 / sensitivity
-			var mapped_range = clamp(world_diff.length() * max_range / px_for_max, 10.0, max_range)
+			var px_for_max = 85.0 / max(0.1, sensitivity)
+			var effective_len = max(0.0, diff_global.length() - deadzone)
+			var mapped_range = clamp((effective_len / px_for_max) * max_range, 10.0, max_range)
 			sc.external_aim_vector = oriented_dir * mapped_range
 	else:
 		sc.external_aim_vector = Vector2.ZERO
