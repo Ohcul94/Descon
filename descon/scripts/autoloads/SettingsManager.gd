@@ -45,6 +45,7 @@ var mobile_aim_sensitivity: float = 1.0 # v266.700: Sensibilidad de apuntado MOB
 var mobile_invert_y: bool = true        # v266.760: Invertir eje Y en apuntado movil
 var mobile_camera_edit_enabled: int = 0  # v420.600: 0=Fija, 1=Libre Editable, 2=Libre Bloqueada
 var mobile_camera_sensitivity: float = 1.0  # v420.600: Sensibilidad de órbita táctil
+var pc_camera_sensitivity: float = 1.0      # Sensibilidad de rotación con mouse en PC
 var fps_limit: int = 60                 # Límite de FPS (30, 60, 90, 120)
 var show_stars: bool = false            # Activar estrellas en el cielo (desactivado por defecto)
 var minimap_rotate: bool = false        # Minimapa rotatorio (gira con la nave)
@@ -154,6 +155,7 @@ func reset_to_factory():
 	mobile_invert_y = true
 	mobile_camera_edit_enabled = 0
 	mobile_camera_sensitivity = 1.0
+	pc_camera_sensitivity = 1.0
 	fps_limit = 60
 	camera_use_orthogonal = false
 	cam_use_orthogonal = false
@@ -228,6 +230,7 @@ func save_settings():
 	config_file.set_value("accessibility", "mobile_invert_y", mobile_invert_y)
 	config_file.set_value("accessibility", "mobile_camera_edit_enabled", mobile_camera_edit_enabled)
 	config_file.set_value("accessibility", "mobile_camera_sensitivity", mobile_camera_sensitivity)
+	config_file.set_value("accessibility", "pc_camera_sensitivity", pc_camera_sensitivity)
 	config_file.set_value("accessibility", "font_size_player_name", font_size_player_name)
 	config_file.set_value("accessibility", "font_size_player_stats", font_size_player_stats)
 	config_file.set_value("accessibility", "font_size_enemy_name", font_size_enemy_name)
@@ -299,6 +302,7 @@ func load_settings():
 		var raw_val = config_file.get_value("accessibility", "mobile_camera_edit_enabled", 0)
 		mobile_camera_edit_enabled = 1 if typeof(raw_val) == TYPE_BOOL and raw_val else (0 if typeof(raw_val) == TYPE_BOOL else int(raw_val))
 		mobile_camera_sensitivity = config_file.get_value("accessibility", "mobile_camera_sensitivity", 1.0)
+		pc_camera_sensitivity = config_file.get_value("accessibility", "pc_camera_sensitivity", 1.0)
 		font_size_player_name = config_file.get_value("accessibility", "font_size_player_name", 13)
 		font_size_player_stats = config_file.get_value("accessibility", "font_size_player_stats", 10)
 		font_size_enemy_name = config_file.get_value("accessibility", "font_size_enemy_name", 13)

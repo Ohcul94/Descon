@@ -180,24 +180,68 @@ func _setup_ui():
 	var sens_vbox = VBoxContainer.new()
 	mob_config_root.add_child(sens_vbox)
 	
+	var sens_header = HBoxContainer.new()
+	sens_vbox.add_child(sens_header)
+	
 	var sens_lbl = Label.new()
 	sens_lbl.text = "SENSIBILIDAD DE APUNTADO (DRAG):"
-	sens_vbox.add_child(sens_lbl)
+	sens_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sens_header.add_child(sens_lbl)
+	
+	var sens_val_lbl = Label.new()
+	sens_val_lbl.text = "%.2fx (%d%%)" % [SettingsManager.mobile_aim_sensitivity, int(round(SettingsManager.mobile_aim_sensitivity * 100.0))]
+	sens_val_lbl.add_theme_color_override("font_color", Color(0.2, 1.0, 0.6))
+	sens_header.add_child(sens_val_lbl)
 	
 	var sens_slider = HSlider.new()
-	sens_slider.min_value = 0.2; sens_slider.max_value = 3.0; sens_slider.step = 0.1
+	sens_slider.min_value = 0.2; sens_slider.max_value = 3.0; sens_slider.step = 0.05
 	sens_slider.value = SettingsManager.mobile_aim_sensitivity
 	sens_slider.value_changed.connect(func(val):
 		SettingsManager.mobile_aim_sensitivity = val
+		sens_val_lbl.text = "%.2fx (%d%%)" % [val, int(round(val * 100.0))]
 		SettingsManager.save_settings()
 	)
 	sens_vbox.add_child(sens_slider)
 	
 	var sens_hint = Label.new()
-	sens_hint.text = "Ajusta qué tan lejos llega la mira al arrastrar el dedo."
+	sens_hint.text = "Ajusta qué tan lejos llega la mira al arrastrar el dedo en las habilidades."
 	sens_hint.add_theme_font_size_override("font_size", 10)
 	sens_hint.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
 	sens_vbox.add_child(sens_hint)
+	
+	mob_config_root.add_child(HSeparator.new())
+
+	var mob_cam_vbox = VBoxContainer.new()
+	mob_config_root.add_child(mob_cam_vbox)
+	
+	var mob_cam_header = HBoxContainer.new()
+	mob_cam_vbox.add_child(mob_cam_header)
+	
+	var mob_cam_lbl = Label.new()
+	mob_cam_lbl.text = "SENSIBILIDAD DE CÁMARA (TOUCH / JOYSTICK):"
+	mob_cam_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mob_cam_header.add_child(mob_cam_lbl)
+	
+	var mob_cam_val_lbl = Label.new()
+	mob_cam_val_lbl.text = "%.2fx (%d%%)" % [SettingsManager.mobile_camera_sensitivity, int(round(SettingsManager.mobile_camera_sensitivity * 100.0))]
+	mob_cam_val_lbl.add_theme_color_override("font_color", Color(0.2, 1.0, 0.6))
+	mob_cam_header.add_child(mob_cam_val_lbl)
+	
+	var mob_cam_slider = HSlider.new()
+	mob_cam_slider.min_value = 0.2; mob_cam_slider.max_value = 3.0; mob_cam_slider.step = 0.05
+	mob_cam_slider.value = SettingsManager.mobile_camera_sensitivity
+	mob_cam_slider.value_changed.connect(func(val):
+		SettingsManager.mobile_camera_sensitivity = val
+		mob_cam_val_lbl.text = "%.2fx (%d%%)" % [val, int(round(val * 100.0))]
+		SettingsManager.save_settings()
+	)
+	mob_cam_vbox.add_child(mob_cam_slider)
+	
+	var mob_cam_hint = Label.new()
+	mob_cam_hint.text = "Velocidad de giro de la cámara al deslizar el panel táctil o joystick en celular."
+	mob_cam_hint.add_theme_font_size_override("font_size", 10)
+	mob_cam_hint.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
+	mob_cam_vbox.add_child(mob_cam_hint)
 	
 	mob_config_root.add_child(HSeparator.new())
 	
@@ -362,6 +406,39 @@ func _setup_ui():
 			SettingsManager.save_settings()
 	)
 	pc_config.add_child(target_btn_option)
+
+	# --- SENSIBILIDAD DE CÁMARA (PC) ---
+	var pc_cam_vbox = VBoxContainer.new()
+	pc_config.add_child(pc_cam_vbox)
+	
+	var pc_cam_header = HBoxContainer.new()
+	pc_cam_vbox.add_child(pc_cam_header)
+	
+	var pc_cam_lbl = Label.new()
+	pc_cam_lbl.text = "SENSIBILIDAD DE CÁMARA (MOUSE):"
+	pc_cam_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	pc_cam_header.add_child(pc_cam_lbl)
+	
+	var pc_cam_val_lbl = Label.new()
+	pc_cam_val_lbl.text = "%.2fx (%d%%)" % [SettingsManager.pc_camera_sensitivity, int(round(SettingsManager.pc_camera_sensitivity * 100.0))]
+	pc_cam_val_lbl.add_theme_color_override("font_color", Color(0.2, 1.0, 0.6))
+	pc_cam_header.add_child(pc_cam_val_lbl)
+	
+	var pc_cam_slider = HSlider.new()
+	pc_cam_slider.min_value = 0.2; pc_cam_slider.max_value = 3.0; pc_cam_slider.step = 0.05
+	pc_cam_slider.value = SettingsManager.pc_camera_sensitivity
+	pc_cam_slider.value_changed.connect(func(val):
+		SettingsManager.pc_camera_sensitivity = val
+		pc_cam_val_lbl.text = "%.2fx (%d%%)" % [val, int(round(val * 100.0))]
+		SettingsManager.save_settings()
+	)
+	pc_cam_vbox.add_child(pc_cam_slider)
+	
+	var pc_cam_hint = Label.new()
+	pc_cam_hint.text = "Velocidad de giro de la cámara libre o híbrida al arrastrar el mouse."
+	pc_cam_hint.add_theme_font_size_override("font_size", 10)
+	pc_cam_hint.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6, 1))
+	pc_cam_vbox.add_child(pc_cam_hint)
 
 	# ========================== TAB 3: GRÁFICOS Y ACCESIBILIDAD ==========================
 	var scroll_gfx = ScrollContainer.new()

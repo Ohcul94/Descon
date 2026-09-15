@@ -2791,22 +2791,23 @@ func _input(event):
 	if event is InputEventMouseMotion:
 		if SettingsManager and SettingsManager.mobile_mode:
 			return
+		var pc_sens = SettingsManager.pc_camera_sensitivity if (SettingsManager and "pc_camera_sensitivity" in SettingsManager) else 1.0
 		if _lmb_dragging:
 			var rel = event.relative
 			set_meta("lmb_dragged", true)
 			if free_cam_active:
-				free_cam_h += rel.x * 0.15
-				free_cam_v = clamp(free_cam_v + rel.y * 0.15, 1.0, 85.0)
+				free_cam_h += rel.x * 0.15 * pc_sens
+				free_cam_v = clamp(free_cam_v + rel.y * 0.15 * pc_sens, 1.0, 85.0)
 			else:
-				hybrid_cam_h += rel.x * 0.15
-				hybrid_cam_v = clamp(hybrid_cam_v + rel.y * 0.15, -60.0, 85.0)
+				hybrid_cam_h += rel.x * 0.15 * pc_sens
+				hybrid_cam_v = clamp(hybrid_cam_v + rel.y * 0.15 * pc_sens, -60.0, 85.0)
 
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
 		elif free_cam_active and _mid_dragging:
 			var delta = event.position - _drag_last
-			free_cam_h += delta.x * 0.3
-			free_cam_v = clamp(free_cam_v + delta.y * 0.3, 1.0, 85.0)
+			free_cam_h += delta.x * 0.3 * pc_sens
+			free_cam_v = clamp(free_cam_v + delta.y * 0.3 * pc_sens, 1.0, 85.0)
 			_drag_last = event.position
 			_save_camera_state()
 			get_viewport().set_input_as_handled()
