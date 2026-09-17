@@ -1,8 +1,8 @@
 extends Control
 
 # TalentsTab.gd - ÁRBOL DE TALENTOS VISUAL (v3.0)
-# - Right-click: agregar punto pendiente
-# - Left-click: quitar punto pendiente (solo los no guardados)
+# - Left-click: agregar punto pendiente
+# - Right-click: quitar punto pendiente (solo los no guardados)
 # - Zoom hacia mouse con rueda
 # - Guardar/Cancelar puntos pendientes
 # - Reset para devolver puntos ya guardados
@@ -40,6 +40,7 @@ var save_btn: Button
 var cancel_btn: Button
 var reset_btn: Button
 var tooltip_rtl: RichTextLabel
+var tooltip_panel: PanelContainer
 
 # Colores
 var cat_colors: Dictionary = {
@@ -173,6 +174,27 @@ func _build_ui():
 	call_deferred("_center_camera_on_origin")
 
 	# ═══ Tooltip (hijo de tree_canvas para que la posición sea correcta) ═══
+	tooltip_panel = PanelContainer.new()
+	tooltip_panel.name = "TooltipPanel"
+	tooltip_panel.visible = false
+	tooltip_panel.z_index = 99
+	tooltip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tooltip_style = StyleBoxFlat.new()
+	tooltip_style.bg_color = Color(0.04, 0.05, 0.08, 0.94)
+	tooltip_style.border_width_left = 0
+	tooltip_style.border_width_right = 0
+	tooltip_style.border_width_top = 0
+	tooltip_style.border_width_bottom = 0
+	tooltip_style.content_margin_left = 14
+	tooltip_style.content_margin_right = 14
+	tooltip_style.content_margin_top = 10
+	tooltip_style.content_margin_bottom = 10
+	tooltip_style.shadow_color = Color(0, 0, 0, 0.5)
+	tooltip_style.shadow_size = 12
+	tooltip_style.shadow_offset = Vector2(0, 4)
+	tooltip_panel.add_theme_stylebox_override("panel", tooltip_style)
+	tree_canvas.add_child(tooltip_panel)
+
 	tooltip_rtl = RichTextLabel.new()
 	tooltip_rtl.name = "Tooltip"
 	tooltip_rtl.bbcode_enabled = true
@@ -180,8 +202,10 @@ func _build_ui():
 	tooltip_rtl.visible = false
 	tooltip_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	tooltip_rtl.z_index = 100
-	tooltip_rtl.custom_minimum_size = Vector2(220, 0)
-	tree_canvas.add_child(tooltip_rtl)
+	tooltip_rtl.custom_minimum_size = Vector2(260, 0)
+	tooltip_rtl.add_theme_font_size_override("normal_font_size", 13)
+	tooltip_rtl.add_theme_color_override("default_color", Color(0.85, 0.85, 0.85))
+	tooltip_panel.add_child(tooltip_rtl)
 
 	_update_header_display()
 	tree_canvas.queue_redraw()
@@ -435,10 +459,10 @@ func _draw_nodes():
 
 			# Indicador de nivel
 			if saved_lvl > 0 or pend > 0:
-				var lvl_text = str(saved_lvl)
+				var lvl_text = str(int(saved_lvl))
 				if pend > 0:
-					lvl_text += "(+" + str(pend) + ")"
-				lvl_text += "/" + str(max_lvl)
+					lvl_text += "(+" + str(int(pend)) + ")"
+				lvl_text += "/" + str(int(max_lvl))
 				var lvl_fs = max(int(8 * zoom_level), 5)
 				var lvl_sz = default_font.get_string_size(lvl_text, HORIZONTAL_ALIGNMENT_CENTER, -1, lvl_fs)
 				var lvl_col = Color(1, 0.84, 0, 0.9) if is_maxed else Color(1, 1, 1, 0.7)
@@ -561,24 +585,24 @@ func _on_tree_input(event: InputEvent):
 			_zoom_at(event.position, -0.1)
 			return
 
-		# ═══ RIGHT CLICK: agregar punto pendiente ═══
-		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-			var nid = _get_node_at_position(event.position)
-			if nid != "":
-				_try_add_pending(nid)
-			return
-
-		# ═══ LEFT CLICK: quitar punto pendiente o pan ═══
+		# ═══ LEFT CLICK: agregar punto pendiente o pan ═══
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				var nid = _get_node_at_position(event.position)
-				if nid != "" and pending_points.get(nid, 0) > 0:
-					_try_remove_pending(nid)
-				elif nid == "":
+				if nid != "":
+					_try_add_pending(nid)
+				else:
 					is_panning = true
 					pan_start = event.position
 			else:
 				is_panning = false
+			return
+
+		# ═══ RIGHT CLICK: quitar punto pendiente ═══
+		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+			var nid = _get_node_at_position(event.position)
+			if nid != "":
+				_try_remove_pending(nid)
 			return
 
 		# ═══ MIDDLE CLICK: reset zoom y centrar en origen ═══
@@ -760,15 +784,17 @@ func _on_reset_pressed():
 # ═══════════════════════════════════════════════════════
 
 func _update_tooltip(screen_pos: Vector2):
-	if not tooltip_rtl:
+	if not tooltip_rtl or not tooltip_panel:
 		return
 	if hovered_node_id == "":
 		tooltip_rtl.visible = false
+		tooltip_panel.visible = false
 		return
 
 	var talent = _get_talent_by_id(hovered_node_id)
 	if talent.is_empty():
 		tooltip_rtl.visible = false
+		tooltip_panel.visible = false
 		return
 
 	var nd = nodes_data.get(hovered_node_id, {})
@@ -804,34 +830,55 @@ func _update_tooltip(screen_pos: Vector2):
 		var val = talent["effects"][key]
 		var label = effect_labels.get(key, key)
 		var is_flat = key.ends_with("_flat")
+		var total_val = val * max_lvl
 		if is_flat:
-			effects_text += "[color=#10b981]" + label + ": " + str(val * max_lvl) + "s/nivel[/color]\n"
+			effects_text += "  [color=#7ee8a0]▸[/color] " + label + ": [color=#10b981]" + str(int(total_val * 100) / 100.0) + "s[/color]\n"
 		else:
-			effects_text += "[color=#10b981]" + label + ": +" + str(val * 100 * max_lvl) + "%/nivel[/color]\n"
+			var pct = int(val * 100 * max_lvl)
+			effects_text += "  [color=#7ee8a0]▸[/color] " + label + ": [color=#10b981]+" + str(pct) + "%[/color]\n"
 
 	var lock_text = "\n[color=#ff4444]🔒 BLOQUEADO[/color]" if is_locked else ""
 	var pend_text = ""
 	if pend > 0:
 		pend_text = "\n[color=#ffd700]📝 Pendiente: +" + str(pend) + " punto(s)[/color]"
 
+	# Barra de progreso visual
+	var bar_len = 10
+	var filled = int(float(saved) / float(max_lvl) * bar_len) if max_lvl > 0 else 0
+	var bar = "[color=#2a3a4a]" + "●".repeat(bar_len) + "[/color]"
+	if filled > 0:
+		bar = "[color=#10b981]" + "●".repeat(filled) + "[/color][color=#2a3a4a]" + "●".repeat(bar_len - filled) + "[/color]"
+
 	tooltip_rtl.clear()
-	tooltip_rtl.append_text("[center][color=#" + cc.to_html(false) + "]" + talent.get("name", "") + "[/color][/center]")
-	tooltip_rtl.append_text("\n[color=#" + cc.to_html(false) + "]" + type_label.to_upper() + "[/color] — [i]" + cat_label + "[/i]")
-	tooltip_rtl.append_text("\nGuardado: " + str(saved) + "/" + str(max_lvl))
+	tooltip_rtl.append_text("[center][color=#" + cc.to_html(false) + "][font_size=16]" + talent.get("name", "") + "[/font_size][/color][/center]")
+	tooltip_rtl.append_text("\n[center][color=#667788]" + cat_label.to_upper() + " — " + type_label.to_upper() + "[/color][/center]")
+	tooltip_rtl.append_text("\n[center]" + bar + "[/center]")
+	tooltip_rtl.append_text("\n[center][color=#8899aa]Nivel [color=#ffffff]" + str(int(saved)) + "[/color] / " + str(int(max_lvl)) + "[/color][/center]")
 	if pend > 0:
-		tooltip_rtl.append_text("\n[color=#ffd700]Pendiente: +" + str(pend) + "[/color]")
-	tooltip_rtl.append_text("\n" + talent.get("desc", ""))
+		tooltip_rtl.append_text("\n[center][color=#ffd700](+" + str(pend) + " pendiente)[/color][/center]")
+	tooltip_rtl.append_text("\n[color=#556677]─────────────────────[/color]")
+	tooltip_rtl.append_text("\n[i][color=#8899aa]" + talent.get("desc", "Sin descripción") + "[/i][/color]")
 	if effects_text != "":
+		tooltip_rtl.append_text("\n[color=#556677]─────────────────────[/color]")
+		tooltip_rtl.append_text("\n[color=#aabbcc][font_size=11]EFECTOS POR NIVEL[/font_size][/color]")
 		tooltip_rtl.append_text("\n" + effects_text)
 	tooltip_rtl.append_text(lock_text)
 	tooltip_rtl.append_text(pend_text)
 
-	tooltip_rtl.position = screen_pos + Vector2(20, -10)
+	tooltip_rtl.position = Vector2.ZERO
+	tooltip_panel.position = screen_pos + Vector2(20, -10)
+	tooltip_panel.visible = true
 	tooltip_rtl.visible = true
+	# Ajustar tamaño del panel al contenido
+	await get_tree().process_frame
+	tooltip_panel.custom_minimum_size = tooltip_rtl.size
+	tooltip_panel.size = tooltip_rtl.size
 
 func _hide_tooltip():
 	if tooltip_rtl:
 		tooltip_rtl.visible = false
+	if tooltip_panel:
+		tooltip_panel.visible = false
 
 # ═══════════════════════════════════════════════════════
 # UTILIDADES
