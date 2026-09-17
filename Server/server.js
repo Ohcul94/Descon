@@ -198,6 +198,7 @@ const CLIENT_CONFIG_KEYS = [
     'ammoMechLib',
     'ambienceLib',
     'talentsConfig',
+    'talentsLockedConfig',
     'battlePassConfig',
     'rankingConfig',
     'marketConfig' // v500.0: Casa de Subastas

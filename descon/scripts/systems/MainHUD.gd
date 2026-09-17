@@ -164,7 +164,7 @@ func _ready():
 
 	# v305.95: Aplicar Marcos Sci-Fi (Diseño Referencia Roja)
 	_apply_sci_fi_frame(center_stats)
-	_apply_sci_fi_frame(radar_window)
+	_apply_sci_fi_frame(radar_window, true) # Minimapa limpio sin contenedor exterior
 	
 	# v306.10: Aplicar a Panel de Equipo con marco visible
 	var party_hud = get_node_or_null("PartyHUD")
@@ -2016,7 +2016,8 @@ func _apply_sci_fi_frame(node: Control, invisible: bool = false, show_glow: bool
 				
 			if child is VBoxContainer or child.name == "Minimap" or child.name == "VBox" or child.name == "Scroll":
 				var margin = 25
-				if target.name.contains("Slot"): margin = 5
+				if target.name == "RadarWindow": margin = 0
+				elif target.name.contains("Slot"): margin = 5
 				elif target.name == "CombatMeter": margin = 12
 				
 				# v306.18: Solo aplicar márgenes a contenedores de primer nivel del HUD, no a los anidados para evitar desbordamiento

@@ -2149,7 +2149,7 @@ window.renderInlineItemPickerList = function(idx) {
         const el = document.createElement('div');
         el.style.cssText = 'display:flex; align-items:center; gap:12px; padding:9px 12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px; cursor:pointer; transition:background 0.15s, border-color 0.15s;';
         el.innerHTML = `
-            <span style="font-size:0.62rem; color:#0b0f1a; background:var(--accent); padding:2px 8px; border-radius:20px; white-space:nowrap; font-weight:bold;">${c.category}</span>
+            <span style="font-size:0.62rem; color:#0b0f1a; background:var(--accent); padding:2px 8px; border-radius:20px; white-space:nowrap; font-weight:bold;">${{engineering:'Ingeniería',combat:'Combate',science:'Ciencia'}[c.category]||c.category}</span>
             <span style="flex:1; min-width:0; color:#fff; font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</span>
             <span style="font-size:0.72rem; color:#888; font-family:'JetBrains Mono';">${c.id}</span>
         `;
@@ -2317,7 +2317,7 @@ window.renderTalentCreator = function() {
     if (!grid) return;
     grid.innerHTML = '';
 
-    // v600.0: Panel de talentos que requieren desbloqueo por misión
+    // Panel de talentos sellados
     if (!config.talentsLockedConfig) config.talentsLockedConfig = [];
     const lockedPanel = document.getElementById('talents-locked-panel');
     if (lockedPanel) {
@@ -2341,115 +2341,210 @@ window.renderTalentCreator = function() {
                     <label style="color:#ffd700; font-size:0.8rem; font-weight:bold; letter-spacing:1px;">🔒 TALENTOS SELLADOS (requieren misión para desbloquearse)</label>
                     <button class="btn btn-primary" style="padding:3px 10px; font-size:0.65rem; background:rgba(255,215,0,0.1); border:1px solid rgba(255,215,0,0.3);" onclick="config.talentsLockedConfig.push({category:'combat', index:0, name:'Talento Sellado'}); renderTalentCreator();">+ SELLAR TALENTO</button>
                 </div>
-                <div style="font-size:0.68rem; color:#888; margin-bottom:8px;">Los talentos sellados no se pueden invertir puntos hasta que una misión otorgue su desbloqueo. Luego agrégalos como recompensa 🔓 en el editor de misiones (tipo: ⭐ Talento).</div>
-                ${rows || '<div style="font-size:0.68rem; opacity:0.45;">Ningún talento sellado: todos inician disponibles.</div>'}
+                <div style="font-size:0.68rem; color:#888; margin-bottom:8px;">Los talentos sellados no se pueden invertir puntos hasta que una misión otorgue su desbloqueo.</div>
+                ${rows || '<div style="font-size:0.68rem; opacity:0.45;">Ningún talento sellado.</div>'}
             </div>
         `;
     }
 
     const f = getFilter();
+    const creatorSearch = (document.getElementById('talent-creator-search')?.value || '').toLowerCase();
+    const filterTerm = f || creatorSearch;
     const talents = config.talentsConfig.talents || [];
+    const nodes = config.talentsConfig.nodes || {};
+    const connections = config.talentsConfig.connections || [];
 
-    talents.forEach((t, idx) => {
-        if (f && !t.name.toLowerCase().includes(f) && !t.desc.toLowerCase().includes(f)) return;
-
-        const isPlaced = config.talentsConfig.nodes && config.talentsConfig.nodes[t.id];
-        const statusBadge = isPlaced 
-            ? `<span style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">📍 MAPEADO</span>` 
-            : `<span style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3); padding:3px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold;">⚠️ NO MAPEADO</span>`;
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">
-                <div style="font-family:'JetBrains Mono'; font-size:0.75rem; color:#888;">ID: ${t.id}</div>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    ${statusBadge}
-                    <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold; font-size:0.8rem;" onclick="deleteTalent('${t.id}')">✕ ELIMINAR</button>
-                </div>
-            </div>
-
-            <div class="form-grid" style="display:grid; grid-template-columns: 80px 1fr; gap:12px;">
-                <div class="field" style="display:flex; flex-direction:column; gap:4px; align-items:center;">
-                    <label style="width:100%;">Icono</label>
-                    <input type="text" value="${t.icon || '🌳'}" style="font-size:1.5rem; text-align:center; width:100%;" onchange="config.talentsConfig.talents[${idx}].icon = this.value; renderTalentCreator();">
-                    <button class="btn" style="padding:2px 4px; font-size:0.6rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; width:100%; text-align:center;" onclick="triggerAssetUpload(${idx}, 'talent_icon')">🖼️ PNG</button>
-                </div>
-                <div class="field">
-                    <label>Nombre del Talento</label>
-                    <input type="text" value="${t.name}" onchange="config.talentsConfig.talents[${idx}].name = this.value">
-                </div>
-            </div>
-
-            <div class="field full" style="margin-top:10px;">
-                <label>Descripción</label>
-                <textarea rows="2" style="width:100%; background:var(--surface); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:white; padding:8px;" onchange="config.talentsConfig.talents[${idx}].desc = this.value">${t.desc}</textarea>
-            </div>
-
-            <div class="form-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
-                <div class="field">
-                    <label>Categoría</label>
-                    <select onchange="config.talentsConfig.talents[${idx}].category = this.value; renderTalentCreator();" style="width:100%; background:var(--surface); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:white; padding:10px;">
-                        <option value="engineering" ${t.category==='engineering'?'selected':''}>🛠️ Ingeniería</option>
-                        <option value="combat" ${t.category==='combat'?'selected':''}>⚔️ Combate</option>
-                        <option value="science" ${t.category==='science'?'selected':''}>🔬 Ciencia</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label>Nivel Máximo</label>
-                    <input type="number" value="${t.maxLevel || 5}" onchange="config.talentsConfig.talents[${idx}].maxLevel = parseInt(this.value)">
-                </div>
-            </div>
-
-            <div style="margin-top:15px; border-top:1px solid #333; padding-top:10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <label style="color:var(--accent); font-size:0.75rem; font-weight:bold;">⚡ EFECTOS Y BUFFS (POR NIVEL)</label>
-                    <button class="btn btn-primary" style="padding:2px 8px; font-size:0.65rem;" onclick="addTalentEffect(${idx})">+ EFECTO</button>
-                </div>
-                <div id="talent-effects-${idx}">
-                    ${Object.entries(t.effects || {}).map(([key, val]) => `
-                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; background:rgba(255,255,255,0.02); padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
-                            <select style="flex:1; background:transparent; border:none; color:white; font-size:0.8rem;" onchange="updateTalentEffectKey(${idx}, '${key}', this.value)">
-                                <option value="hp_pct" ${key==='hp_pct'?'selected':''}>Vida Máxima (+%)</option>
-                                <option value="sh_pct" ${key==='sh_pct'?'selected':''}>Escudo Máximo (+%)</option>
-                                <option value="hp_regen" ${key==='hp_regen'?'selected':''}>HP Reparación (+%)</option>
-                                <option value="shield_regen" ${key==='shield_regen'?'selected':''}>Regen Escudo (+%)</option>
-                                <option value="armor_pct" ${key==='armor_pct'?'selected':''}>Armadura Total (+%)</option>
-                                <option value="energy_efficiency" ${key==='energy_efficiency'?'selected':''}>Eficiencia Energía (+%)</option>
-                                <option value="repair_cost_reduction" ${key==='repair_cost_reduction'?'selected':''}>Costo Reparación (-%)</option>
-                                <option value="stability" ${key==='stability'?'selected':''}>Estabilidad Vuelo (+%)</option>
-                                <option value="laser_dmg_pct" ${key==='laser_dmg_pct'?'selected':''}>Daño Láser (+%)</option>
-                                <option value="crit_chance" ${key==='crit_chance'?'selected':''}>Prob. Crítico (+%)</option>
-                                <option value="crit_dmg" ${key==='crit_dmg'?'selected':''}>Daño Crítico (+%)</option>
-                                <option value="ammo_bonus_pct" ${key==='ammo_bonus_pct'?'selected':''}>Munición Extra (+%)</option>
-                                <option value="accuracy_pct" ${key==='accuracy_pct'?'selected':''}>Puntería (+%)</option>
-                                <option value="ignore_shield_pct" ${key==='ignore_shield_pct'?'selected':''}>Perforación Escudo (+%)</option>
-                                <option value="fire_rate_pct" ${key==='fire_rate_pct'?'selected':''}>Cadencia Disparo (+%)</option>
-                                <option value="evasion_pct" ${key==='evasion_pct'?'selected':''}>Evasión Combate (+%)</option>
-                                <option value="speed_pct" ${key==='speed_pct'?'selected':''}>Velocidad Base (+%)</option>
-                                <option value="minimap_range" ${key==='minimap_range'?'selected':''}>Rango Minimapa (+%)</option>
-                                <option value="ohcu_kill_bonus" ${key==='ohcu_kill_bonus'?'selected':''}>Bonus OHCU Kills (+%)</option>
-                                <option value="shop_discount" ${key==='shop_discount'?'selected':''}>Descuento Tienda (+%)</option>
-                                <option value="cooldown_reduction" ${key==='cooldown_reduction'?'selected':''}>CD Habilidades (-%)</option>
-                                <option value="group_bonus" ${key==='group_bonus'?'selected':''}>Bonus en Grupo (+%)</option>
-                                <option value="boss_loot_bonus" ${key==='boss_loot_bonus'?'selected':''}>Loot de Bosses (+%)</option>
-                                <option value="dash_distance" ${key==='dash_distance'?'selected':''}>Distancia Dash (+%)</option>
-                            </select>
-                            <input type="number" step="0.001" value="${val}" style="width:90px; text-align:right; font-size:0.8rem; padding:4px;" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = parseFloat(this.value)">
-                            <button style="background:none; border:none; color:#ff4444; cursor:pointer;" onclick="deleteTalentEffect(${idx}, '${key}')">✕</button>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-        grid.appendChild(card);
+    // ═══════════════════════════════════════════════════
+    // RENDERIZAR TALENTOS (lista plana por categoría)
+    // ═══════════════════════════════════════════════════
+    const filteredAll = talents.filter(t => {
+        if (filterTerm && !t.name.toLowerCase().includes(filterTerm) && !t.desc.toLowerCase().includes(filterTerm) && !t.id.toLowerCase().includes(filterTerm)) return false;
+        return true;
     });
+
+    // Agrupar por categoría de forma simple
+    const cats = ['engineering', 'combat', 'science'];
+    const catColors = { engineering: '#00d2ff', combat: '#ff3131', science: '#be31ff' };
+    const catEmoji = { engineering: '🛠️', combat: '⚔️', science: '🔬' };
+    const catLabels = { engineering: 'INGENIERÍA', combat: 'COMBATE', science: 'CIENCIA' };
+
+    if (!window._collapsedCats) window._collapsedCats = new Set();
+
+    cats.forEach(cat => {
+        const catTalents = filteredAll.filter(t => t.category === cat);
+        if (catTalents.length === 0) return;
+
+        const collapsed = window._collapsedCats.has(cat);
+
+        // Separador de categoría (clickeable)
+        const sep = document.createElement('div');
+        sep.style.cssText = 'grid-column: 1 / -1; padding: 6px 12px; margin-top: 8px; border-radius: 6px; background: ' + catColors[cat] + '10; border: 1px solid ' + catColors[cat] + '30; cursor: pointer; user-select: none; transition: opacity 0.15s;';
+        sep.innerHTML = `<span style="font-weight:bold; color:${catColors[cat]}; font-size:0.8rem; letter-spacing:1px;">${collapsed ? '▶' : '▼'} ${catEmoji[cat]} ${catLabels[cat]} (${catTalents.length})</span>`;
+        sep.onmouseenter = () => sep.style.opacity = '0.8';
+        sep.onmouseleave = () => sep.style.opacity = '1';
+        sep.onclick = () => {
+            if (window._collapsedCats.has(cat)) window._collapsedCats.delete(cat);
+            else window._collapsedCats.add(cat);
+            renderTalentCreator();
+        };
+        grid.appendChild(sep);
+
+        if (collapsed) return;
+
+        catTalents.forEach(t => {
+            const idx = talents.indexOf(t);
+            if (idx === -1) return;
+
+            const isPlaced = !!nodes[t.id];
+            const nd = nodes[t.id] || {};
+            const nodeType = nd.nodeType || 'small';
+            const nodeTypeLabel = nodeType === 'keystone' ? '🔴 Clave' : nodeType === 'notable' ? '🟡 Notable' : '🟢 Pequeño';
+            const nodeTypeColor = nodeType === 'keystone' ? '#ffd700' : nodeType === 'notable' ? '#f0c040' : '#10b981';
+
+            const incomingConns = connections.filter(c => c.to === t.id);
+            const outgoingConns = connections.filter(c => c.from === t.id);
+            const connectedNames = [...incomingConns, ...outgoingConns].map(c => {
+                const otherId = c.from === t.id ? c.to : c.from;
+                const other = talents.find(x => x.id === otherId);
+                return other ? other.name : otherId;
+            });
+
+            const statusBadge = isPlaced
+                ? `<span style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); padding:3px 8px; border-radius:4px; font-size:0.72rem; font-weight:bold;">📍 MAPEADO</span>`
+                : `<span style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3); padding:3px 8px; border-radius:4px; font-size:0.72rem; font-weight:bold;">⚠️ SIN MAPEAR</span>`;
+
+            const connInfo = connectedNames.length > 0
+                ? `<div style="font-size:0.65rem; color:#666; margin-top:4px;">🔗 ${connectedNames.join(', ')}</div>`
+                : '';
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.borderLeft = '3px solid ' + nodeTypeColor;
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px;">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <span style="font-family:'JetBrains Mono'; font-size:0.72rem; color:#888;">${t.id}</span>
+                        <span style="background:rgba(255,255,255,0.05); color:#aaa; padding:2px 6px; border-radius:4px; font-size:0.65rem;">${nodeTypeLabel}</span>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        ${statusBadge}
+                        <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-weight:bold; font-size:0.8rem;" onclick="deleteTalent('${t.id}')">✕</button>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 80px 1fr; gap:12px;">
+                    <div style="display:flex; flex-direction:column; gap:4px; align-items:center;">
+                        <label style="width:100%; font-size:0.7rem;">Icono</label>
+                        <input type="text" value="${t.icon || '🌳'}" style="font-size:1.5rem; text-align:center; width:100%;" onchange="config.talentsConfig.talents[${idx}].icon = this.value; renderTalentCreator();">
+                        <button class="btn" style="padding:2px 4px; font-size:0.6rem; background:rgba(0,210,255,0.08); border:1px solid rgba(0,210,255,0.25); color:var(--primary); cursor:pointer; border-radius:4px; width:100%;" onclick="triggerAssetUpload(${idx}, 'talent_icon')">🖼️ PNG</button>
+                    </div>
+                    <div>
+                        <div style="margin-bottom:8px;">
+                            <label style="font-size:0.7rem; color:#aaa;">Nombre</label>
+                            <input type="text" value="${t.name}" onchange="config.talentsConfig.talents[${idx}].name = this.value" style="width:100%;">
+                        </div>
+                        <div>
+                            <label style="font-size:0.7rem; color:#aaa;">Descripción</label>
+                            <textarea rows="2" style="width:100%; background:var(--surface); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:white; padding:6px; font-size:0.78rem;" onchange="config.talentsConfig.talents[${idx}].desc = this.value">${t.desc}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-top:10px;">
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa;">Categoría</label>
+                        <select onchange="config.talentsConfig.talents[${idx}].category = this.value; renderTalentCreator();" style="width:100%; background:var(--surface); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:white; padding:8px; font-size:0.78rem;">
+                            <option value="engineering" ${t.category==='engineering'?'selected':''}>🛠️ Ingeniería</option>
+                            <option value="combat" ${t.category==='combat'?'selected':''}>⚔️ Combate</option>
+                            <option value="science" ${t.category==='science'?'selected':''}>🔬 Ciencia</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa;">Nivel Máximo</label>
+                        <input type="number" value="${t.maxLevel || 5}" onchange="config.talentsConfig.talents[${idx}].maxLevel = parseInt(this.value)" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa;">🏷️ Tipo de Nodo</label>
+                        <select onchange="updateTalentCreatorNodeType('${t.id}', this.value)" style="width:100%; background:var(--surface); border:1px solid ${nodeTypeColor}40; border-radius:6px; color:${nodeTypeColor}; padding:8px; font-size:0.78rem; font-weight:bold;">
+                            <option value="small" ${nodeType==='small'?'selected':''}>🟢 Pequeño</option>
+                            <option value="notable" ${nodeType==='notable'?'selected':''}>🟡 Notable</option>
+                            <option value="keystone" ${nodeType==='keystone'?'selected':''}>🔴 Clave</option>
+                        </select>
+                    </div>
+                </div>
+
+                ${connInfo}
+
+                <div style="margin-top:12px; border-top:1px solid #333; padding-top:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label style="color:var(--accent); font-size:0.73rem; font-weight:bold;">⚡ EFECTOS POR NIVEL</label>
+                        <button class="btn btn-primary" style="padding:2px 8px; font-size:0.65rem;" onclick="addTalentEffect(${idx})">+ EFECTO</button>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:5px;">
+                        ${Object.entries(t.effects || {}).map(([key, val]) => `
+                            <div style="display:flex; gap:8px; align-items:center; margin-bottom:5px; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                                <select style="flex:1; background:transparent; border:none; color:white; font-size:0.78rem;" onchange="updateTalentEffectKey(${idx}, '${key}', this.value)">
+                                    <option value="hp_pct" ${key==='hp_pct'?'selected':''}>Vida Máxima (+%)</option>
+                                    <option value="sh_pct" ${key==='sh_pct'?'selected':''}>Escudo Máximo (+%)</option>
+                                    <option value="hp_regen" ${key==='hp_regen'?'selected':''}>HP Reparación (+%)</option>
+                                    <option value="shield_regen" ${key==='shield_regen'?'selected':''}>Regen Escudo (+%)</option>
+                                    <option value="armor_pct" ${key==='armor_pct'?'selected':''}>Armadura Total (+%)</option>
+                                    <option value="energy_efficiency" ${key==='energy_efficiency'?'selected':''}>Eficiencia Energía (+%)</option>
+                                    <option value="repair_cost_reduction" ${key==='repair_cost_reduction'?'selected':''}>Costo Reparación (-%)</option>
+                                    <option value="stability" ${key==='stability'?'selected':''}>Estabilidad Vuelo (+%)</option>
+                                    <option value="laser_dmg_pct" ${key==='laser_dmg_pct'?'selected':''}>Daño Láser (+%)</option>
+                                    <option value="crit_chance" ${key==='crit_chance'?'selected':''}>Prob. Crítico (+%)</option>
+                                    <option value="crit_dmg" ${key==='crit_dmg'?'selected':''}>Daño Crítico (+%)</option>
+                                    <option value="ammo_bonus_pct" ${key==='ammo_bonus_pct'?'selected':''}>Munición Extra (+%)</option>
+                                    <option value="accuracy_pct" ${key==='accuracy_pct'?'selected':''}>Puntería (+%)</option>
+                                    <option value="ignore_shield_pct" ${key==='ignore_shield_pct'?'selected':''}>Perforación Escudo (+%)</option>
+                                    <option value="fire_rate_pct" ${key==='fire_rate_pct'?'selected':''}>Cadencia Disparo (+%)</option>
+                                    <option value="evasion_pct" ${key==='evasion_pct'?'selected':''}>Evasión Combate (+%)</option>
+                                    <option value="speed_pct" ${key==='speed_pct'?'selected':''}>Velocidad Base (+%)</option>
+                                    <option value="minimap_range" ${key==='minimap_range'?'selected':''}>Rango Minimapa (+%)</option>
+                                    <option value="ohcu_kill_bonus" ${key==='ohcu_kill_bonus'?'selected':''}>Bonus OHCU Kills (+%)</option>
+                                    <option value="shop_discount" ${key==='shop_discount'?'selected':''}>Descuento Tienda (+%)</option>
+                                    <option value="cooldown_reduction" ${key==='cooldown_reduction'?'selected':''}>CD Habilidades (-%)</option>
+                                    <option value="cooldown_reduction_flat" ${key==='cooldown_reduction_flat'?'selected':''}>CD Habilidades (-s fijo)</option>
+                                    <option value="cast_time_reduction" ${key==='cast_time_reduction'?'selected':''}>Cast Time (-%)</option>
+                                    <option value="cast_time_reduction_flat" ${key==='cast_time_reduction_flat'?'selected':''}>Cast Time (-s fijo)</option>
+                                    <option value="group_bonus" ${key==='group_bonus'?'selected':''}>Bonus Grupo (+%)</option>
+                                    <option value="boss_loot_bonus" ${key==='boss_loot_bonus'?'selected':''}>Loot Bosses (+%)</option>
+                                    <option value="dash_distance" ${key==='dash_distance'?'selected':''}>Distancia Dash (+%)</option>
+                                </select>
+                                <input type="number" step="0.001" value="${val}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = parseFloat(this.value)">
+                                <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="deleteTalentEffect(${idx}, '${key}')">✕</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    });
+
+    if (filteredAll.length === 0) {
+        grid.innerHTML += '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--text-dim); font-size:0.85rem;">No se encontraron talentos.</div>';
+    }
+};
+
+// Actualizar nodeType desde el Creador (sincroniza con Mapper)
+window.updateTalentCreatorNodeType = function(talentId, newType) {
+    if (!config.talentsConfig.nodes) config.talentsConfig.nodes = {};
+    if (!config.talentsConfig.nodes[talentId]) {
+        // Si el nodo no está mapeado, crearlo en posición 0,0
+        config.talentsConfig.nodes[talentId] = { x: 100, y: 100 };
+    }
+    config.talentsConfig.nodes[talentId].nodeType = newType;
+    renderTalentCreator();
+    // Re-renderizar mapper si está visible
+    if (typeof renderTalentMapper === 'function') renderTalentMapper();
 };
 
 window.addTalentEffect = function(talentIdx) {
     const t = config.talentsConfig.talents[talentIdx];
     if (!t.effects) t.effects = {};
-    const unusedKeys = ['hp_pct', 'sh_pct', 'dmg_pct', 'speed_pct', 'crit_chance', 'crit_dmg', 'cooldown_reduction'].filter(k => !t.effects[k]);
+    const unusedKeys = ['hp_pct', 'sh_pct', 'dmg_pct', 'speed_pct', 'crit_chance', 'crit_dmg', 'cooldown_reduction', 'cooldown_reduction_flat', 'cast_time_reduction', 'cast_time_reduction_flat'].filter(k => !t.effects[k]);
     const keyToAdd = unusedKeys.length > 0 ? unusedKeys[0] : 'custom_stat_' + Date.now();
     t.effects[keyToAdd] = 0.01;
     renderTalentCreator();
@@ -2478,10 +2573,16 @@ window.renderTalentMapper = function(connectingMousePos = null) {
     // Limpiar canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Dibujar rejilla (Grid)
+    // Helper: world to screen conversion
+    const worldToScreen = (wx, wy) => ({
+        x: wx * talentZoom + talentPanOffset.x,
+        y: wy * talentZoom + talentPanOffset.y
+    });
+
+    // Dibujar rejilla (Grid) adaptativa al zoom
     ctx.strokeStyle = 'rgba(0, 210, 255, 0.04)';
     ctx.lineWidth = 1;
-    const gridSpacing = 40;
+    const gridSpacing = Math.max(40 * talentZoom, 15);
     const offsetX = talentPanOffset.x % gridSpacing;
     const offsetY = talentPanOffset.y % gridSpacing;
 
@@ -2498,22 +2599,67 @@ window.renderTalentMapper = function(connectingMousePos = null) {
         ctx.stroke();
     }
 
-    // Dibujar Conexiones Existentes
+    // Datos del mapper
     const connections = config.talentsConfig.connections || [];
     const nodes = config.talentsConfig.nodes || {};
+
+    // ═══ Bounds del árbol + Centro visual (centro siempre en 0,0) ═══
+    const ctr = worldToScreen(0, 0);
+    const treeNodes = Object.values(nodes);
+
+    // Bounds solo si hay nodos
+    if (treeNodes.length > 0) {
+        let bMinX = 0, bMinY = 0, bMaxX = 0, bMaxY = 0;
+        for (const p of treeNodes) {
+            bMinX = Math.min(bMinX, p.x); bMinY = Math.min(bMinY, p.y);
+            bMaxX = Math.max(bMaxX, p.x); bMaxY = Math.max(bMaxY, p.y);
+        }
+
+        const PAD = 200;
+        const tl = worldToScreen(bMinX - PAD, bMinY - PAD);
+        const br = worldToScreen(bMaxX + PAD, bMaxY + PAD);
+
+        ctx.strokeStyle = 'rgba(0, 210, 255, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([8, 6]);
+        ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+        ctx.setLineDash([]);
+    }
+
+    // Centro visual siempre visible en (0,0)
+    const MARK = 18;
+    ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(ctr.x - MARK, ctr.y);
+    ctx.lineTo(ctr.x + MARK, ctr.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(ctr.x, ctr.y - MARK);
+    ctx.lineTo(ctr.x, ctr.y + MARK);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(ctr.x, ctr.y, MARK * 0.6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.6)';
+    ctx.beginPath();
+    ctx.arc(ctr.x, ctr.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = '9px Outfit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
+    ctx.fillText('CENTRO', ctr.x, ctr.y - MARK * 0.6 - 4);
 
     ctx.lineWidth = 3;
     connections.forEach(conn => {
         const fromNode = nodes[conn.from];
         const toNode = nodes[conn.to];
         if (fromNode && toNode) {
-            const startX = fromNode.x + talentPanOffset.x;
-            const startY = fromNode.y + talentPanOffset.y;
-            const endX = toNode.x + talentPanOffset.x;
-            const endY = toNode.y + talentPanOffset.y;
+            const start = worldToScreen(fromNode.x, fromNode.y);
+            const end = worldToScreen(toNode.x, toNode.y);
 
-            // Gradiente cian neón para las conexiones
-            const grad = ctx.createLinearGradient(startX, startY, endX, endY);
+            const grad = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
             grad.addColorStop(0, 'rgba(0, 210, 255, 0.6)');
             grad.addColorStop(1, 'rgba(6, 182, 212, 0.6)');
             
@@ -2521,114 +2667,359 @@ window.renderTalentMapper = function(connectingMousePos = null) {
             ctx.shadowColor = 'rgba(0, 210, 255, 0.5)';
             ctx.shadowBlur = 8;
             ctx.beginPath();
-            ctx.moveTo(startX, startY);
-            ctx.lineTo(endX, endY);
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
             ctx.stroke();
-            ctx.shadowBlur = 0; // Reset
+            ctx.shadowBlur = 0;
         }
     });
 
     // Dibujar previsualización de conexión en progreso
     if (connectStartNodeId && connectingMousePos && nodes[connectStartNodeId]) {
         const startNode = nodes[connectStartNodeId];
-        const startX = startNode.x + talentPanOffset.x;
-        const startY = startNode.y + talentPanOffset.y;
+        const start = worldToScreen(startNode.x, startNode.y);
 
         ctx.strokeStyle = 'rgba(255, 215, 0, 0.8)';
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
-        ctx.moveTo(startX, startY);
+        ctx.moveTo(start.x, start.y);
         ctx.lineTo(connectingMousePos.x, connectingMousePos.y);
         ctx.stroke();
-        ctx.setLineDash([]); // Reset
+        ctx.setLineDash([]);
     }
 
     // Dibujar Nodos
     const talents = config.talentsConfig.talents || [];
     ctx.shadowBlur = 0;
 
+    const searchTerm = talentMapperSearchTerm || '';
+
     for (const [id, pos] of Object.entries(nodes)) {
         const t = talents.find(x => x.id === id);
         if (!t) continue;
 
-        const screenX = pos.x + talentPanOffset.x;
-        const screenY = pos.y + talentPanOffset.y;
+        const screen = worldToScreen(pos.x, pos.y);
+        const nodeType = pos.nodeType || 'small';
+        const typeInfo = NODE_TYPES[nodeType] || NODE_TYPES.small;
+        // Tamaños con mínimo para que no desaparezcan al zoom out
+        const radius = Math.max(typeInfo.radius * talentZoom, typeInfo.radius * 0.35);
+        const iconSize = Math.max(Math.round(parseInt(typeInfo.iconSize) * talentZoom), Math.round(parseInt(typeInfo.iconSize) * 0.35));
+        const labelSize = Math.max(Math.round(parseInt(typeInfo.labelSize) * talentZoom), 8);
 
-        // Determinar colores por categoría
-        let catColor = '#00d2ff'; // Engineering
-        if (t.category === 'combat') catColor = '#ff3131';
-        else if (t.category === 'science') catColor = '#be31ff';
-
-        const isSelected = selectedTalentNodeId === id;
-
-        // Efecto glow si está seleccionado
-        if (isSelected) {
-            ctx.shadowColor = catColor;
-            ctx.shadowBlur = 15;
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 4;
-        } else {
-            ctx.strokeStyle = catColor;
-            ctx.lineWidth = 2;
+        // Aplicar filtro de búsqueda
+        if (searchTerm && !t.name.toLowerCase().includes(searchTerm) && !t.id.toLowerCase().includes(searchTerm)) {
+            ctx.globalAlpha = 0.2;
+            ctx.fillStyle = '#1a1a2e';
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y, radius * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+            continue;
         }
 
-        // Círculo del Nodo
-        ctx.fillStyle = '#060d1a';
-        ctx.beginPath();
-        ctx.arc(screenX, screenY, 30, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.shadowBlur = 0; // Reset
+        // Colores por categoría
+        let catColor = '#00d2ff';
+        let catColorDark = '#005a7a';
+        if (t.category === 'combat') { catColor = '#ff3131'; catColorDark = '#7a1717'; }
+        else if (t.category === 'science') { catColor = '#be31ff'; catColorDark = '#5a1777'; }
 
-        // Emoji en el centro
-        ctx.font = '22px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(t.icon || '🌳', screenX, screenY);
+        const isSelected = selectedTalentNodeId === id;
+        const isHovered = talentMapperHoveredNode === id;
+        const time = Date.now() / 1000;
 
-        // Nombre del talento abajo
-        ctx.font = 'bold 11px Outfit, sans-serif';
+        // ═══════════════════════════════════════════════════════
+        // SMALL NODE - Círculo simple, minimalista
+        // ═══════════════════════════════════════════════════════
+        if (nodeType === 'small') {
+            // Glow sutil
+            if (isSelected || isHovered) {
+                ctx.shadowColor = catColor;
+                ctx.shadowBlur = 12 * (isSelected ? 1.5 : 1);
+            }
+
+            // Borde exterior
+            ctx.strokeStyle = isSelected ? '#ffffff' : catColor;
+            ctx.lineWidth = typeInfo.borderWidth;
+            ctx.fillStyle = '#060d1a';
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Línea decorativa sutil (anillo interior)
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y, radius - 4 * talentZoom, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Icono
+            ctx.font = `${iconSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(t.icon || '🌳', screen.x, screen.y);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // NOTABLE NODE - Hexágono con gradiente y brillo
+        // ═══════════════════════════════════════════════════════
+        else if (nodeType === 'notable') {
+            const glowPulse = 0.7 + Math.sin(time * 2) * 0.3;
+
+            // Glow exterior animado
+            if (isSelected || isHovered) {
+                ctx.shadowColor = catColor;
+                ctx.shadowBlur = 22 * (isSelected ? 1.5 : 1);
+            } else {
+                ctx.shadowColor = catColor;
+                ctx.shadowBlur = 8 * glowPulse;
+            }
+
+            // Borde hexagonal exterior
+            ctx.strokeStyle = isSelected ? '#ffffff' : catColor;
+            ctx.lineWidth = typeInfo.borderWidth;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i - Math.PI / 6;
+                const hx = screen.x + radius * Math.cos(angle);
+                const hy = screen.y + radius * Math.sin(angle);
+                i === 0 ? ctx.moveTo(hx, hy) : ctx.lineTo(hx, hy);
+            }
+            ctx.closePath();
+
+            // Relleno con gradiente radial
+            const gradBg = ctx.createRadialGradient(screen.x, screen.y - radius * 0.3, 0, screen.x, screen.y, radius);
+            gradBg.addColorStop(0, '#0f2035');
+            gradBg.addColorStop(1, '#060d1a');
+            ctx.fillStyle = gradBg;
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Borde interior decorativo
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i - Math.PI / 6;
+                const hx = screen.x + (radius - 5 * talentZoom) * Math.cos(angle);
+                const hy = screen.y + (radius - 5 * talentZoom) * Math.sin(angle);
+                i === 0 ? ctx.moveTo(hx, hy) : ctx.lineTo(hx, hy);
+            }
+            ctx.closePath();
+            ctx.stroke();
+
+            // Líneas de esquina decorativas (peak marks)
+            ctx.strokeStyle = catColor;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.4;
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i - Math.PI / 6;
+                const innerR = radius - 3 * talentZoom;
+                const outerR = radius + 4 * talentZoom;
+                ctx.beginPath();
+                ctx.moveTo(screen.x + innerR * Math.cos(angle), screen.y + innerR * Math.sin(angle));
+                ctx.lineTo(screen.x + outerR * Math.cos(angle), screen.y + outerR * Math.sin(angle));
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Icono
+            ctx.font = `${iconSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(t.icon || '🌳', screen.x, screen.y);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        // KEYSTONE NODE - Escudo ornamental con aura animada
+        // ═══════════════════════════════════════════════════════
+        else if (nodeType === 'keystone') {
+            const glowPulse = 0.6 + Math.sin(time * 1.5) * 0.4;
+            const rotateAngle = time * 0.3;
+
+            // Aura exterior animada (anillo rotatorio)
+            ctx.save();
+            ctx.translate(screen.x, screen.y);
+            ctx.rotate(rotateAngle);
+            ctx.strokeStyle = catColor;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.2 * glowPulse;
+            ctx.beginPath();
+            for (let i = 0; i < 12; i++) {
+                const a = (Math.PI / 6) * i;
+                const r1 = radius + 12 * talentZoom;
+                const r2 = radius + 16 * talentZoom;
+                ctx.moveTo(r1 * Math.cos(a), r1 * Math.sin(a));
+                ctx.lineTo(r2 * Math.cos(a), r2 * Math.sin(a));
+            }
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+            ctx.restore();
+
+            // Anillo exterior decorativo
+            ctx.strokeStyle = 'rgba(255,215,0,0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y, radius + 10 * talentZoom, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Glow
+            if (isSelected || isHovered) {
+                ctx.shadowColor = catColor;
+                ctx.shadowBlur = 30 * (isSelected ? 1.5 : 1);
+            } else {
+                ctx.shadowColor = '#ffd700';
+                ctx.shadowBlur = 14 * glowPulse;
+            }
+
+            // Borde principal - forma de escudo octogonal
+            const outerR = radius;
+            const innerR = radius * 0.82;
+            ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+                const aOuter = (Math.PI / 4) * i - Math.PI / 8;
+                const aInner = aOuter + Math.PI / 8;
+                const ox = screen.x + outerR * Math.cos(aOuter);
+                const oy = screen.y + outerR * Math.sin(aOuter);
+                const ix = screen.x + innerR * Math.cos(aInner);
+                const iy = screen.y + innerR * Math.sin(aInner);
+                i === 0 ? ctx.moveTo(ox, oy) : ctx.lineTo(ox, oy);
+                ctx.lineTo(ix, iy);
+            }
+            ctx.closePath();
+
+            // Relleno con gradiente premium
+            const gradKeystone = ctx.createRadialGradient(screen.x, screen.y - radius * 0.4, 0, screen.x, screen.y, radius);
+            gradKeystone.addColorStop(0, '#1a2840');
+            gradKeystone.addColorStop(0.5, '#0d1a2d');
+            gradKeystone.addColorStop(1, '#050a14');
+            ctx.fillStyle = gradKeystone;
+            ctx.fill();
+
+            // Borde dorado/colored
+            const gradBorder = ctx.createLinearGradient(screen.x - radius, screen.y - radius, screen.x + radius, screen.y + radius);
+            gradBorder.addColorStop(0, catColor);
+            gradBorder.addColorStop(0.5, '#ffd700');
+            gradBorder.addColorStop(1, catColor);
+            ctx.strokeStyle = gradBorder;
+            ctx.lineWidth = typeInfo.borderWidth + 1;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Borde interior brillante
+            ctx.strokeStyle = 'rgba(255,215,0,0.15)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y, radius - 6 * talentZoom, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Brillo superior (simula reflejo de cristal)
+            const gradShine = ctx.createLinearGradient(screen.x, screen.y - radius, screen.x, screen.y - radius * 0.3);
+            gradShine.addColorStop(0, 'rgba(255,255,255,0.12)');
+            gradShine.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = gradShine;
+            ctx.beginPath();
+            ctx.arc(screen.x, screen.y, radius - 2 * talentZoom, -Math.PI * 0.8, -Math.PI * 0.2);
+            ctx.lineTo(screen.x + (radius - 2 * talentZoom) * Math.cos(-Math.PI * 0.2), screen.y + (radius - 2 * talentZoom) * Math.sin(-Math.PI * 0.2));
+            ctx.arc(screen.x, screen.y, radius * 0.4, -Math.PI * 0.2, -Math.PI * 0.8, true);
+            ctx.closePath();
+            ctx.fill();
+
+            // Esquinas decorativas (diamantes pequeños)
+            ctx.fillStyle = catColor;
+            ctx.globalAlpha = 0.6 * glowPulse;
+            for (let i = 0; i < 4; i++) {
+                const a = (Math.PI / 2) * i + Math.PI / 4;
+                const dx = screen.x + (radius + 6 * talentZoom) * Math.cos(a);
+                const dy = screen.y + (radius + 6 * talentZoom) * Math.sin(a);
+                ctx.save();
+                ctx.translate(dx, dy);
+                ctx.rotate(Math.PI / 4);
+                ctx.fillRect(-2.5 * talentZoom, -2.5 * talentZoom, 5 * talentZoom, 5 * talentZoom);
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Icono
+            ctx.font = `${iconSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(t.icon || '🌳', screen.x, screen.y);
+        }
+
+        ctx.shadowBlur = 0;
+
+        // Nombre del talento abajo (común a todos)
+        ctx.font = `bold ${labelSize}px Outfit, sans-serif`;
         ctx.fillStyle = isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.8)';
-        ctx.fillText(t.name, screenX, screenY + 45);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(t.name, screen.x, screen.y + radius + 8 * talentZoom);
     }
+
+    // Actualizar estadísticas de ramas
+    updateBranchStats();
 
     // Renderizar listado de talentos no colocados en el panel lateral
     const unplacedList = document.getElementById('talent-mapper-unplaced-list');
     if (unplacedList) {
         unplacedList.innerHTML = '';
-        talents.forEach(t => {
-            if (nodes[t.id]) return; // Ya colocado
+        const filteredTalents = talents.filter(t => {
+            if (nodes[t.id]) return false;
+            if (searchTerm && !t.name.toLowerCase().includes(searchTerm) && !t.id.toLowerCase().includes(searchTerm)) return false;
+            return true;
+        });
 
+        filteredTalents.forEach(t => {
             const item = document.createElement('div');
             item.className = 'card';
-            item.style.padding = '10px';
+            item.draggable = true;
+            item.dataset.talentId = t.id;
+            item.style.padding = '12px 14px';
             item.style.margin = '0';
-            item.style.cursor = 'pointer';
+            item.style.cursor = 'grab';
             item.style.display = 'flex';
             item.style.alignItems = 'center';
             item.style.justifyContent = 'space-between';
-            item.style.border = '1px solid rgba(255,255,255,0.05)';
-            item.style.background = 'rgba(255,255,255,0.02)';
+            item.style.border = '1px solid rgba(255,255,255,0.08)';
+            item.style.background = 'rgba(255,255,255,0.03)';
+            item.style.borderRadius = '8px';
+            item.style.minHeight = '60px';
             
-            // Doble click para colocar
+            const catColors = { engineering: '#00d2ff', combat: '#ff3131', science: '#be31ff' };
+            const catColor = catColors[t.category] || '#00d2ff';
+            const catEmoji = { engineering: '🛠️', combat: '⚔️', science: '🔬' };
+            const emoji = catEmoji[t.category] || '⚙️';
+            const catLabels = { engineering: 'Ingeniería', combat: 'Combate', science: 'Ciencia' };
+            
+            // Drag start: guardar talent id
+            item.ondragstart = (ev) => {
+                ev.dataTransfer.setData('text/plain', t.id);
+                ev.dataTransfer.effectAllowed = 'copy';
+            };
             item.ondblclick = () => placeTalentOnMap(t.id);
+            item.onmouseenter = () => { item.style.background = 'rgba(255,255,255,0.06)'; item.style.borderColor = catColor; };
+            item.onmouseleave = () => { item.style.background = 'rgba(255,255,255,0.03)'; item.style.borderColor = 'rgba(255,255,255,0.08)'; };
             
             item.innerHTML = `
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <span style="font-size:1.5rem;">${t.icon || '🌳'}</span>
-                    <div>
-                        <div style="font-weight:bold; font-size:0.85rem; color:var(--text);">${t.name}</div>
-                        <div style="font-size:0.7rem; color:var(--text-dim);">${t.category.toUpperCase()}</div>
+                <div style="display:flex; gap:12px; align-items:center; flex: 1; min-width: 0;">
+                    <span style="font-size: 1.6rem; flex-shrink: 0;">${t.icon || '🌳'}</span>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: bold; font-size: 0.88rem; color: var(--text); line-height: 1.2; margin-bottom: 2px;">${t.name}</div>
+                        <div style="font-size: 0.7rem; color: ${catColor}; opacity: 0.8;">${emoji} ${catLabels[t.category] || t.category}</div>
+                        <div style="font-size: 0.68rem; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${t.desc || ''}</div>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="padding:4px 8px; font-size:0.7rem; margin:0;" onclick="placeTalentOnMap('${t.id}')">Colocar</button>
+                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 0.72rem; margin: 0; flex-shrink: 0; border-radius: 6px;" onclick="placeTalentOnMap('${t.id}')">+ Colocar</button>
             `;
             unplacedList.appendChild(item);
         });
 
         if (unplacedList.children.length === 0) {
-            unplacedList.innerHTML = '<div style="color:var(--text-dim); text-align:center; padding:2rem; font-size:0.85rem;">Todos los talentos han sido mapeados.</div>';
+            unplacedList.innerHTML = '<div style="color:var(--text-dim); text-align:center; padding:2rem; font-size:0.85rem;">No se encontraron talentos.</div>';
         }
     }
 

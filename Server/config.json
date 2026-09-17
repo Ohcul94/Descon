@@ -12111,28 +12111,27 @@
         }
     },
     "talentsConfig": {
-        "connections": [
-            {
-                "from": "eng_2",
-                "to": "eng_1"
-            },
-            {
-                "from": "eng_1",
-                "to": "eng_3"
-            }
-        ],
+        "connections": [],
         "nodes": {
             "eng_1": {
-                "x": 769,
-                "y": 380
+                "x": -2,
+                "y": 66,
+                "nodeType": "keystone"
             },
             "eng_2": {
-                "x": 848,
-                "y": 292
+                "x": 61,
+                "y": 0,
+                "nodeType": "keystone"
             },
             "eng_3": {
-                "x": 669,
-                "y": 295
+                "x": -65,
+                "y": 2,
+                "nodeType": "keystone"
+            },
+            "eng_4": {
+                "x": -2,
+                "y": -65,
+                "nodeType": "keystone"
             }
         },
         "talents": [

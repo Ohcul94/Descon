@@ -256,7 +256,7 @@ function registerZoneHandlers(socket, io, state) {
         }
 
         const oldZone = (p.zone !== undefined ? p.zone : 1);
-        if (Number(oldZone) === Number(zoneId)) return; // Evitar cobro si ya está ahí
+        const isSameZone = (Number(oldZone) === Number(zoneId));
 
         // Bloqueo de salto manual a mapas de evento (Extracción)
         if (Number(zoneId) === 10 || Number(zoneId) === 11) {
@@ -428,17 +428,22 @@ function registerZoneHandlers(socket, io, state) {
             const newSize = (Number(zoneId) === 1 ? 2000 : 4000);
 
             // Gestión de Habitaciones v75.0 (Optimization)
-            socket.leave(`zone_${oldZone}`);
-            socket.join(`zone_${zoneId}`);
+            if (!isSameZone) {
+                socket.leave(`zone_${oldZone}`);
+                socket.join(`zone_${zoneId}`);
 
-            // Update playersByZone index
-            if (state.playersByZone[oldZone] && state.playersByZone[oldZone][socket.id]) {
-                delete state.playersByZone[oldZone][socket.id];
+                // Update playersByZone index
+                if (state.playersByZone[oldZone] && state.playersByZone[oldZone][socket.id]) {
+                    delete state.playersByZone[oldZone][socket.id];
+                }
+                if (!state.playersByZone[zoneId]) {
+                    state.playersByZone[zoneId] = {};
+                }
+                state.playersByZone[zoneId][socket.id] = p;
+            } else {
+                if (!state.playersByZone[zoneId]) state.playersByZone[zoneId] = {};
+                state.playersByZone[zoneId][socket.id] = p;
             }
-            if (!state.playersByZone[zoneId]) {
-                state.playersByZone[zoneId] = {};
-            }
-            state.playersByZone[zoneId][socket.id] = p;
 
             // v410.6: Limpiar todos los debuffs y estados alterados al saltar de sector tradicional
             clearPlayerStatusEffects(p);
@@ -473,8 +478,10 @@ function registerZoneHandlers(socket, io, state) {
 
             Logger.info('ZONE', `Jugador [${p.user}] saltó al Sector [${zoneId}] - Costo: ${COST} OHCU`);
 
-            // Avisar a la vieja zona que se fue y a la nueva que llegó
-            socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
+            // Avisar a la vieja zona que se fue si cambió de mapa
+            if (!isSameZone) {
+                socket.to(`zone_${oldZone}`).emit('playerDisconnected', socket.id);
+            }
             
             // Enviar playerStatSync a toda la zona destino para limpiar estados en otros clientes
             io.to(`zone_${zoneId}`).emit('playerStatSync', {

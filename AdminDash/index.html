@@ -585,9 +585,12 @@
             </div>
 
             <div id="view-talent-creator" class="view">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px;">
                     <h3 style="color: var(--primary); font-size: 1.5rem; margin: 0;">🛠️ CREADOR DE TALENTOS</h3>
-                    <button class="btn btn-primary" onclick="addNewTalent()">➕ AGREGAR NUEVO TALENTO</button>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="talent-creator-search" placeholder="🔍 Buscar talento por nombre..." style="padding: 8px 14px; font-size: 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,210,255,0.3); border-radius: 8px; color: white; width: 250px;" oninput="filterTalentCreator()">
+                        <button class="btn btn-primary" onclick="addNewTalent()">➕ NUEVO</button>
+                    </div>
                 </div>
                 <div id="talents-locked-panel" style="margin-bottom: 1.5rem;"></div>
                 <div id="talents-creator-grid" class="grid"></div>
@@ -597,29 +600,50 @@
                 <div style="display: flex; gap: 1.5rem; height: calc(100vh - 220px); align-items: stretch;">
                     <!-- Canvas del Mapa -->
                     <div class="card" id="talent-mapper-container" style="flex: 1; display: flex; flex-direction: column; height: 100%; position: relative; overflow: hidden; padding: 1.5rem; margin: 0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
                             <h3 style="margin: 0; color: var(--primary);">🕸️ MAPA DE CONEXIONES</h3>
-                            <div style="display: flex; gap: 10px;">
-                                <button id="btn-talent-tool-select" class="btn btn-primary" onclick="setTalentMapperTool('select')">🖐️ Mover Nodos</button>
-                                <button id="btn-talent-tool-connect" class="btn btn-secondary" onclick="setTalentMapperTool('connect')">🔗 Conectar Nodos</button>
-                                <button class="btn btn-secondary" onclick="clearTalentMapperSelections()" style="background: #ff3b30; border-color: #ff3b30; color: white;">🧹 Limpiar</button>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <!-- Barra de búsqueda -->
+                                <input type="text" id="talent-mapper-search" placeholder="🔍 Buscar talento..." style="padding: 6px 10px; font-size: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(0,210,255,0.3); border-radius: 6px; color: white; width: 160px;" oninput="filterTalentMapperList()">
+                                <!-- Controles de zoom -->
+                                <div style="display: flex; gap: 4px; align-items: center; background: rgba(0,0,0,0.3); border-radius: 6px; padding: 2px;">
+                                    <button class="btn btn-secondary" onclick="talentMapperZoom(-0.1)" style="padding: 4px 8px; font-size: 0.8rem; min-width: 30px;">➖</button>
+                                    <span id="talent-zoom-level" style="font-size: 0.7rem; color: var(--accent); min-width: 45px; text-align: center;">100%</span>
+                                    <button class="btn btn-secondary" onclick="talentMapperZoom(0.1)" style="padding: 4px 8px; font-size: 0.8rem; min-width: 30px;">➕</button>
+                                    <button class="btn btn-secondary" onclick="talentMapperZoomReset()" style="padding: 4px 8px; font-size: 0.7rem; margin-left: 4px;">⟲</button>
+                                </div>
+                                <!-- Herramientas -->
+                                <button id="btn-talent-tool-select" class="btn btn-primary" onclick="setTalentMapperTool('select')">🖐️ Mover</button>
+                                <button id="btn-talent-tool-connect" class="btn btn-secondary" onclick="setTalentMapperTool('connect')">🔗 Conectar</button>
+                                <button id="btn-talent-tool-disconnect" class="btn btn-secondary" onclick="setTalentMapperTool('disconnect')">✂️ Cortar</button>
+                                <button class="btn btn-secondary" onclick="clearTalentMapperSelections()" style="background: #ff3b30; border-color: #ff3b30; color: white;">🧹</button>
                             </div>
+                        </div>
+                        <!-- Estadísticas de ramas -->
+                        <div id="talent-branch-stats" style="display: flex; gap: 15px; margin-bottom: 10px; font-size: 0.7rem;">
+                            <span style="color: #00d2ff;">🛠️ Ingeniería: <strong id="stat-engineering">0</strong> puntos</span>
+                            <span style="color: #ff3131;">⚔️ Combate: <strong id="stat-combat">0</strong> puntos</span>
+                            <span style="color: #be31ff;">🔬 Ciencia: <strong id="stat-science">0</strong> puntos</span>
+                            <span style="color: var(--accent);">📊 Total: <strong id="stat-total">0</strong> puntos</span>
                         </div>
                         <div style="flex: 1; background: radial-gradient(circle, #0c182d 0%, #030814 100%); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; position: relative; overflow: hidden; min-height: 400px;">
                             <canvas id="talent-mapper-canvas" style="display: block; width: 100%; height: 100%; cursor: grab;"></canvas>
+                            <!-- Tooltip de hover -->
+                            <div id="talent-node-tooltip" style="display: none; position: absolute; background: rgba(10, 15, 30, 0.95); border: 1px solid rgba(0, 210, 255, 0.4); border-radius: 8px; padding: 12px; max-width: 280px; pointer-events: none; z-index: 100; box-shadow: 0 4px 20px rgba(0, 210, 255, 0.2);">
+                            </div>
                         </div>
                     </div>
                     <!-- Panel Lateral -->
-                    <div style="width: 320px; display: flex; flex-direction: column; gap: 1.5rem; height: 100%;">
-                        <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; margin: 0; padding: 1.5rem;">
-                            <h4 style="color: var(--accent); margin-top: 0; margin-bottom: 0.5rem;">Talentos Disponibles</h4>
-                            <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 1rem;">Doble clic en un talento para colocarlo en el mapa.</p>
-                            <div id="talent-mapper-unplaced-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="width: 380px; display: flex; flex-direction: column; gap: 1rem; height: 100%;">
+                        <div class="card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; margin: 0; padding: 1rem;">
+                            <h4 style="color: var(--accent); margin-top: 0; margin-bottom: 0.3rem; font-size: 0.95rem;">📦 Talentos Disponibles</h4>
+                            <p style="font-size: 0.72rem; color: var(--text-dim); margin-bottom: 0.7rem;">Doble clic o botón para colocar en el mapa.</p>
+                            <div id="talent-mapper-unplaced-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
                                 <!-- Se llena dinámicamente -->
                             </div>
                         </div>
-                        <div class="card" id="talent-node-editor-card" style="display: none; margin: 0; padding: 1.5rem;">
-                            <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 0.5rem;">Nodo Seleccionado</h4>
+                        <div class="card" id="talent-node-editor-card" style="display: none; margin: 0; padding: 1rem;">
+                            <h4 style="color: var(--primary); margin-top: 0; margin-bottom: 0.5rem;">⚙️ Nodo Seleccionado</h4>
                             <div id="talent-node-editor-content">
                                 <!-- Configuración del nodo seleccionado -->
                             </div>
@@ -877,6 +901,75 @@
     <button class="btn-sync-float" onclick="saveConfig()">
         <span>SINCRONIZAR LOCAL</span>
     </button>
+
+    <!-- Modal: Crear Nuevo Talento -->
+    <div id="talent-create-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+        <div style="background:#0f1118; border:1px solid rgba(0,210,255,0.25); border-radius:14px; padding:28px 32px; width:480px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:14px;">
+                <h3 style="margin:0; color:var(--primary); font-size:1.15rem;">✨ Crear Nuevo Talento</h3>
+                <button onclick="closeTalentModal()" style="background:none; border:none; color:#ff4444; font-size:1.3rem; cursor:pointer; padding:4px 8px;">✕</button>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:14px;">
+                <!-- Icono + Nombre -->
+                <div style="display:flex; gap:14px; align-items:flex-end;">
+                    <div style="flex-shrink:0;">
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Icono</label>
+                        <input type="text" id="cm-icon" value="🌳" style="font-size:1.8rem; text-align:center; width:60px; padding:6px;">
+                    </div>
+                    <div style="flex:1;">
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Nombre</label>
+                        <input type="text" id="cm-name" placeholder="Nombre del talento" style="width:100%;">
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div>
+                    <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Descripción</label>
+                    <input type="text" id="cm-desc" placeholder="Ej: +2% Vida por nivel" style="width:100%;">
+                </div>
+
+                <!-- Categoría + Nivel Máx + Tipo -->
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Categoría</label>
+                        <select id="cm-category" style="width:100%; padding:8px; background:var(--surface); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:white; font-size:0.8rem;">
+                            <option value="engineering">🛠️ Ingeniería</option>
+                            <option value="combat">⚔️ Combate</option>
+                            <option value="science">🔬 Ciencia</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Nivel Máximo</label>
+                        <input type="number" id="cm-maxLevel" value="5" min="1" max="20" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.7rem; color:#aaa; display:block; margin-bottom:4px;">Tipo de Nodo</label>
+                        <select id="cm-nodeType" style="width:100%; padding:8px; background:var(--surface); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:white; font-size:0.8rem;" onchange="cmUpdateMaxLevel()">
+                            <option value="small">🟢 Pequeño</option>
+                            <option value="notable">🟡 Notable</option>
+                            <option value="keystone">🔴 Clave</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Efectos -->
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label style="color:var(--accent); font-size:0.75rem; font-weight:bold;">⚡ EFECTOS POR NIVEL</label>
+                        <button class="btn" style="padding:2px 8px; font-size:0.65rem; background:rgba(0,210,255,0.1); border:1px solid rgba(0,210,255,0.3); color:var(--primary); border-radius:4px;" onclick="cmAddEffect()">+ EFECTO</button>
+                    </div>
+                    <div id="cm-effects-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+                </div>
+
+                <!-- Botones -->
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:10px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.06);">
+                    <button onclick="closeTalentModal()" style="padding:8px 20px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#aaa; cursor:pointer; font-size:0.82rem;">Cancelar</button>
+                    <button onclick="confirmCreateTalent()" class="btn btn-primary" style="padding:8px 24px; font-size:0.85rem;">Crear Talento</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Scripts Modularizados del Panel -->
     <script src="js/definitions.js?v=1.23"></script>

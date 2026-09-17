@@ -14,6 +14,17 @@ static var fog_rendering_enabled: bool = true
 var _redraw_accum: float = 0.0
 const MINIMAP_REDRAW_INTERVAL: float = 1.0 / 60.0 # Máximo 60 FPS en minimapa para aliviar CPU a 120 FPS
 
+
+
+const WORLD_MAP_SCRIPT = preload("res://scripts/ui/WorldMapDialog.gd")
+var world_map_dialog: WorldMapDialog = null
+var btn_world_map: Button = null
+
+# --- ZOOM DINÁMICO DE MINIMAPA (PC Mouse Wheel) ---
+var minimap_zoom: float = 1.0
+const MIN_ZOOM: float = 1.0
+const MAX_ZOOM: float = 4.0
+
 func get_current_world_dimensions() -> Vector2:
 	var player = get_tree().get_first_node_in_group("player")
 	if not is_instance_valid(player):
@@ -73,11 +84,43 @@ func get_current_world_dimensions() -> Vector2:
 			
 	return Vector2(worldW, worldH)
 
+
+
+## --- RETÍCULA TÁCTICA SCI-FI (DESHABILITADA POR PETICIÓN) ---
+func _draw_tactical_grid(_rect: Rect2, _scale_x: float, _scale_y: float, _worldW: float, _worldH: float, _player: Node2D):
+	return
+
 func _input(event):
+	# Soporte de atajo de teclado para el Mapa Completo
+	if event.is_action_pressed("ui_map"):
+		var inv = get_tree().get_first_node_in_group("inventory_ui")
+		if not (inv and inv.visible):
+			toggle_world_map()
+			get_viewport().set_input_as_handled()
+			return
+			
+	if is_instance_valid(world_map_dialog) and world_map_dialog.visible:
+		if event.is_action_pressed("ui_menu") or (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
+			world_map_dialog.close()
+			get_viewport().set_input_as_handled()
+			return
+
 	if event is InputEventMouseButton and event.pressed:
 		# v269.150: Bloqueo de navegación durante edición de HUD
 		var hud = get_tree().get_first_node_in_group("hud")
 		if hud and hud.get("is_editing_layout"): return
+
+		# --- ZOOM DINÁMICO CON RUEDA DEL RATÓN (PC) ---
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP or event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			var global_m_pos = get_global_mouse_position()
+			if get_global_rect().has_point(global_m_pos):
+				if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+					minimap_zoom = clamp(minimap_zoom + 0.25, MIN_ZOOM, MAX_ZOOM)
+				else:
+					minimap_zoom = clamp(minimap_zoom - 0.25, MIN_ZOOM, MAX_ZOOM)
+				queue_redraw()
+				get_viewport().set_input_as_handled()
+				return
 
 		if event.button_index == MOUSE_BUTTON_RIGHT:
 			# v244.85: Bloqueo inteligente si hay menús superpuestos (F1 / F2)
@@ -105,20 +148,21 @@ func _input(event):
 				var worldW = dims.x
 				var worldH = dims.y
 				
-				var scale_uniform = min(size.x / worldW, size.y / worldH)
+				var base_scale = min(size.x / worldW, size.y / worldH)
+				var effective_scale = base_scale * minimap_zoom
+				var center_radar = size / 2.0
+				var delta_mouse = local_m_pos - center_radar
+				
 				if is_rotate and is_instance_valid(p):
-					var p_mp = Vector2(p.global_position.x * scale_uniform, p.global_position.y * scale_uniform)
-					var offset = local_m_pos - p_mp
-					var derotated = p_mp + offset.rotated(PI/2 + p.rotation)
-					target_world_pos = Vector2(derotated.x / max(scale_uniform, 0.001), derotated.y / max(scale_uniform, 0.001))
+					var derotated = delta_mouse.rotated(PI/2 + p.rotation)
+					target_world_pos = p.global_position + (derotated / max(effective_scale, 0.001))
+				elif is_instance_valid(p):
+					target_world_pos = p.global_position + (delta_mouse / max(effective_scale, 0.001))
 				else:
-					var offset_x = (size.x - (worldW * scale_uniform)) / 2.0
-					var offset_y = (size.y - (worldH * scale_uniform)) / 2.0
-					var adjusted_m_pos = local_m_pos - Vector2(offset_x, offset_y)
-					target_world_pos = Vector2(
-						clamp(adjusted_m_pos.x / scale_uniform, 0.0, worldW),
-						clamp(adjusted_m_pos.y / scale_uniform, 0.0, worldH)
-					)
+					target_world_pos = local_m_pos / max(effective_scale, 0.001)
+				
+				target_world_pos.x = clamp(target_world_pos.x, 0.0, worldW)
+				target_world_pos.y = clamp(target_world_pos.y, 0.0, worldH)
 				
 				if is_instance_valid(p) and p.has_method("set_autopilot"):
 					if p.get_meta("spawn_locked", false):
@@ -130,6 +174,8 @@ func _input(event):
 					get_viewport().set_input_as_handled() # Consumir evento
 
 func _ready():
+	WorldMapDialog.terrain_cache_by_zone.clear()
+	add_to_group("minimap")
 	world_size = GameConstants.GAME_CONFIG.get("worldSize", WORLD_DEFAULT_SIZE)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = true
@@ -160,42 +206,66 @@ func _ready():
 	sb.set_corner_radius_all(3)
 	info_label.add_theme_stylebox_override("normal", sb)
 	
-	# Desactivar clipping para permitir dibujar fuera de la ventana del minimapa
-	clip_contents = false
+	# Activar clipping en el canvas del minimapa para recortar el mapa durante el zoom
+	clip_contents = true
 	if get_parent() is Control:
 		get_parent().clip_contents = false
 		
+	info_label.top_level = true # Evita que el label de coordenadas sea recortado por el clip del minimapa
 	add_child(info_label)
+
+	# Botón Sci-Fi para abrir el mapa completo del sector actual
+	btn_world_map = Button.new()
+	btn_world_map.name = "BtnWorldMap"
+	btn_world_map.text = " 🗺️ "
+	btn_world_map.tooltip_text = "Abrir Mapa Completo [M]"
+	btn_world_map.add_theme_font_size_override("font_size", 9)
+	var b_sb = StyleBoxFlat.new()
+	b_sb.bg_color = Color(0, 0.08, 0.14, 0.85)
+	b_sb.border_width_left = 1
+	b_sb.border_width_top = 1
+	b_sb.border_width_right = 1
+	b_sb.border_width_bottom = 1
+	b_sb.border_color = Color(0, 1, 1, 0.6)
+	b_sb.set_corner_radius_all(3)
+	btn_world_map.add_theme_stylebox_override("normal", b_sb)
+	var b_sb_h = b_sb.duplicate()
+	b_sb_h.bg_color = Color(0, 0.25, 0.35, 0.95)
+	b_sb_h.border_color = Color(0, 1, 1, 1.0)
+	btn_world_map.add_theme_stylebox_override("hover", b_sb_h)
+	btn_world_map.top_level = true
+	btn_world_map.custom_minimum_size = Vector2(24, 20)
+	btn_world_map.pressed.connect(toggle_world_map)
+	add_child(btn_world_map)
+
+func toggle_world_map(zone_id_to_show: String = ""):
+	if not is_instance_valid(world_map_dialog):
+		world_map_dialog = WORLD_MAP_SCRIPT.new()
+		var canvas_root = get_tree().root
+		canvas_root.add_child(world_map_dialog)
+	
+	world_map_dialog.toggle(zone_id_to_show)
+
+func open_world_map(zone_id_to_show: String = ""):
+	if not is_instance_valid(world_map_dialog):
+		world_map_dialog = WORLD_MAP_SCRIPT.new()
+		var canvas_root = get_tree().root
+		canvas_root.add_child(world_map_dialog)
+	
+	world_map_dialog.open(zone_id_to_show)
 
 func _update_parent_window_size():
 	var parent = get_parent()
 	if not is_instance_valid(parent) or not parent is Control:
 		return
 		
-	var dims = get_current_world_dimensions()
-	var worldW = dims.x
-	var worldH = dims.y
-	if worldW <= 0 or worldH <= 0:
-		return
-		
+	# Contenedor de radar siempre perfectamente cuadrado (estilo AAA táctico)
 	var max_dim = 220.0
-	var margin_total = 50.0 # Margen interno (25px por lado) aplicado por _apply_sci_fi_frame en MainHUD.gd
+	var target_size = Vector2(max_dim, max_dim)
 	
-	var target_w = max_dim
-	var target_h = max_dim
-	
-	if worldW >= worldH:
-		target_h = margin_total + (max_dim - margin_total) * (worldH / worldW)
-	else:
-		target_w = margin_total + (max_dim - margin_total) * (worldW / worldH)
-		
-	var target_size = Vector2(target_w, target_h)
-	
-	# Solo aplicar si hay una diferencia notable para evitar re-calculo constante
 	if parent.size.distance_to(target_size) > 1.0 or parent.custom_minimum_size.distance_to(target_size) > 1.0:
 		parent.custom_minimum_size = target_size
 		parent.size = target_size
-		print("[Minimap] Contenedor adaptado a: ", target_size, " para mapa: ", worldW, "x", worldH)
 
 func _process(delta):
 	if visible:
@@ -226,10 +296,21 @@ func _update_info_label():
 	var py = int(player.global_position.y)
 	info_label.text = "%s | X: %d, Y: %d" % [z_name.to_upper(), px, py]
 	
-	# Centrar dinámicamente arriba del reborde del minimapa
+	# Centrar dinámicamente justo encima del minimapa (soporta top_level = true)
 	info_label.reset_size()
-	info_label.position.x = (size.x - info_label.size.x) / 2.0
-	info_label.position.y = -50
+	
+	if is_instance_valid(btn_world_map) and btn_world_map.visible:
+		btn_world_map.reset_size()
+		var total_top_w = info_label.size.x + btn_world_map.size.x + 4.0
+		var start_x = global_position.x + (size.x - total_top_w) / 2.0
+		info_label.global_position.x = start_x
+		info_label.global_position.y = global_position.y - 24.0
+		
+		btn_world_map.global_position.x = start_x + info_label.size.x + 4.0
+		btn_world_map.global_position.y = global_position.y - 24.0
+	else:
+		info_label.global_position.x = global_position.x + (size.x - info_label.size.x) / 2.0
+		info_label.global_position.y = global_position.y - 24.0
 
 func _draw():
 	var player = get_tree().get_first_node_in_group("player")
@@ -258,12 +339,20 @@ func _draw():
 	world_size = worldW
 	var r_size = size
 	
-	# v700.14: Escala uniforme para evitar distorsiones estiradas en mapas rectangulares (ej. Mapa 2)
-	var scale_uniform: float = min(r_size.x / worldW, r_size.y / worldH)
-	var scale_x: float = scale_uniform
-	var scale_y: float = scale_uniform
-	# map_scale legacy (para código que lo use)
+	# Base scale para encajar el mapa completo en el visor cuadrado del minimapa
+	var base_scale: float = min(r_size.x / worldW, r_size.y / worldH)
+	var is_rotate_mode = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
+	var effective_scale: float = base_scale * minimap_zoom
+	var scale_x: float = effective_scale
+	var scale_y: float = effective_scale
 	var _map_scale: float = scale_x
+	
+	var center_screen = r_size / 2.0
+	
+	# -----------------------------------------------------------------
+	# 1. FONDO BASE DEL RADAR
+	# -----------------------------------------------------------------
+	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0.012, 0.03, 0.055, 0.96), true)
 	
 	# v800.0 NIEBLA GRIS en minimapa - overlay de celdas no exploradas
 	var fog_overlay_needed = false
@@ -289,27 +378,36 @@ func _draw():
 	if fog_zone_id == "1":
 		fog_overlay_needed = false
  
-	# --- ROTATION MODE: transform all map content around player position ---
-	var is_rotate_mode = get_node_or_null("/root/SettingsManager") and SettingsManager.minimap_rotate
+	# -----------------------------------------------------------------
+	# 2. TRANSFORMADA DEL MUNDO (JUGADOR CENTRADO) — entidades en espacio-mundo
+	# -----------------------------------------------------------------
+	var canvas_tr = Transform2D()
+	var player_mp = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
 	var rot_angle = 0.0
-	var player_mp = Vector2.ZERO
-	
-	# v700.14: Aplicar offsets de centrado en modo estático mediante draw_set_transform
-	var offset_x: float = 0.0
-	var offset_y: float = 0.0
-	if not is_rotate_mode:
-		offset_x = (r_size.x - (worldW * scale_uniform)) / 2.0
-		offset_y = (r_size.y - (worldH * scale_uniform)) / 2.0
-		draw_set_transform(Vector2(offset_x, offset_y))
-	
+	var world_offset = center_screen - player_mp
+
 	if is_rotate_mode:
 		rot_angle = -PI/2 - player.rotation
-		player_mp = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
-		draw_set_transform_matrix(Transform2D().translated(player_mp).rotated(rot_angle).translated(-player_mp))
-	
-	# Dibujar niebla ANTES de entidades para que quede de fondo
+		canvas_tr = Transform2D().translated(-player_mp).rotated(rot_angle).translated(center_screen)
+		draw_set_transform_matrix(canvas_tr)
+	else:
+		canvas_tr = Transform2D(0, world_offset)
+		draw_set_transform(world_offset)
+
+	var world_m_pos = canvas_tr.affine_inverse() * local_m_pos if is_hovered else Vector2.ZERO
+
+	var map_rect = Rect2(0, 0, worldW * scale_x, worldH * scale_y)
+
+	# Terreno con relieves reales 1:1 en espacio-mundo
+	var terrain_tex = WorldMapDialog.get_or_create_terrain_texture(current_zone_id, worldW, worldH, get_tree())
+	if is_instance_valid(terrain_tex):
+		draw_texture_rect(terrain_tex, map_rect, false)
+
+	# Niebla encima del terreno y bajo las naves
 	if fog_overlay_needed and fog_rendering_enabled:
 		_draw_minimap_fog(scale_x, scale_y, fog_grid_res, fog_explored, worldW, worldH, player)
+
+
 	
 	# 1. Dibujar Trayectoria del Autopiloto (Línea punteada del JS v66.6)
 	if player.get("is_autopilot_active") and player.get("target_position"):
@@ -448,13 +546,12 @@ func _draw():
 				{"x": 5003, "y": 7019, "label": "Punto Delta"}
 			]
 			
-		var pulse = 0.5 + sin(Time.get_ticks_msec() * 0.005) * 0.3
 		for pt in extract_points:
 			var pt_pos = Vector2(float(pt.x) * scale_x, float(pt.y) * scale_y)
 			
-			# Dibujar halo cian de portal radar
-			draw_circle(pt_pos, 4.5, Color(0, 0.9, 1.0, 0.8))
-			draw_circle(pt_pos, 7.0 + pulse * 2.0, Color(0, 0.9, 1.0, 0.3), false, 1.0)
+			# Dibujar halo cian estático de portal radar (sin parpadeo)
+			draw_circle(pt_pos, 4.5, Color(0, 0.9, 1.0, 0.85))
+			draw_circle(pt_pos, 7.5, Color(0, 0.9, 1.0, 0.25), false, 1.0)
 			
 			# Mostrar primera letra de la zona ("A", "B", "G", "D")
 			var label = str(pt.get("label", "Portal")).to_lower()
@@ -467,7 +564,7 @@ func _draw():
 			var font = get_theme_font("font")
 			draw_string(font, pt_pos + Vector2(-3, 3), letter, HORIZONTAL_ALIGNMENT_CENTER, -1, 7, Color.WHITE)
 
-	# 4.5 Dibujar Altar si es zona de Defensa del Altar (Verde neón místico con una 'A' blanca)
+	# 4.5 Dibujar Altar si es zona de Defensa del Altar (Verde neón místico con una 'A' blanca, estático)
 	var is_altar_defense = false
 	var altar_pos = Vector2(5000.0, 5000.0)
 	
@@ -485,9 +582,8 @@ func _draw():
 
 	if is_altar_defense:
 		var alt_draw_pos = Vector2(altar_pos.x * scale_x, altar_pos.y * scale_y)
-		var pulse = 0.5 + sin(Time.get_ticks_msec() * 0.004) * 0.3
-		draw_circle(alt_draw_pos, 6.0, Color(0.0, 1.0, 0.5, 0.9)) # Círculo verde brillante
-		draw_circle(alt_draw_pos, 9.0 + pulse * 3.0, Color(0.0, 1.0, 0.5, 0.35), false, 1.0) # Brillo
+		draw_circle(alt_draw_pos, 6.0, Color(0.0, 1.0, 0.5, 0.95)) # Círculo verde brillante
+		draw_circle(alt_draw_pos, 9.5, Color(0.0, 1.0, 0.5, 0.30), false, 1.0) # Brillo estático
 		var font = get_theme_font("font")
 		draw_string(font, alt_draw_pos + Vector2(-3.5, 3.5), "A", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color.WHITE)
 		
@@ -533,13 +629,28 @@ func _draw():
 				var obj_pos = Vector2(float(obj.x) * scale_x, float(obj.y) * scale_y)
 				var obj_type = str(obj.get("type", "chest"))
 				
+				# v1000.0: FILTRO INTELIGENTE DE ESTRUCTURAS
+				# No mostrar colliders, muros o cajas de física a menos que tengan explícitamente show_on_minimap: true
+				var show_explicit = obj.get("show_on_minimap", false) == true or obj.get("showOnMinimap", false) == true
+				
+				# Detectar si es un altar colocado como muro (ej. Altar1)
+				var obj_label = str(obj.get("label", "")).to_lower()
+				var asset_path = str(obj.get("assetPath", "")).to_lower()
+				if obj_type == "wall" and (obj_label.contains("altar") or asset_path.contains("altar")):
+					obj_type = "altar"
+				
 				match obj_type:
-					"chest":
+					"altar":
+						# Altar: Ícono verde esmeralda con letra 'A' y aura brillante estática
+						draw_circle(obj_pos, 6.0, Color(0.0, 1.0, 0.5, 0.95))
+						draw_circle(obj_pos, 9.0, Color(0.0, 1.0, 0.5, 0.3), false, 1.5)
+						draw_string(font, obj_pos + Vector2(-3.0, 3.5), "A", HORIZONTAL_ALIGNMENT_CENTER, -1, 9, Color.WHITE)
+					"chest", "vault":
 						# Baúl - Dorado brillante con 'B'
 						draw_circle(obj_pos, 5.0, Color(1.0, 0.85, 0.0, 0.95))
-						draw_circle(obj_pos, 7.5, Color(1.0, 0.85, 0.0, 0.2), false, 1.5)
+						draw_circle(obj_pos, 7.5, Color(1.0, 0.85, 0.0, 0.25), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "B", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
-					"door":
+					"door", "portal":
 						# Obtener destino dinámico
 						var target_zone = str(obj.get("targetZoneId", obj.get("targetZone", "")))
 						
@@ -549,10 +660,9 @@ func _draw():
 							if target_map_cfg.has("visible") and target_map_cfg.get("visible") == false:
 								continue # Omitir el dibujo en el minimapa
 						
-						# Puerta/Warp - Cian neón con 'P'
-						var pulse_door = 0.6 + sin(Time.get_ticks_msec() * 0.004) * 0.3
+						# Puerta/Warp - Cian neón estático con 'P'
 						draw_circle(obj_pos, 5.5, Color(0.0, 0.9, 1.0, 0.9))
-						draw_circle(obj_pos, 8.0 + pulse_door * 2.0, Color(0.0, 0.9, 1.0, 0.25), false, 1.5)
+						draw_circle(obj_pos, 8.0, Color(0.0, 0.9, 1.0, 0.25), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "P", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 						
 						if target_zone != "":
@@ -563,7 +673,7 @@ func _draw():
 								dest_name = "Sector " + target_zone
 							
 							# Si el mouse está posicionado encima del portal en el minimapa (rango de 8px)
-							if is_hovered and local_m_pos.distance_to(obj_pos) < 8.0:
+							if is_hovered and world_m_pos.distance_to(obj_pos) < 8.0:
 								hovered_dest = dest_name
 					"tower":
 						# Torre - Naranja con 'T'
@@ -572,13 +682,12 @@ func _draw():
 						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "T", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 					
 					"nexus":
-						# Nexo PVP - Rojo para Red, Azul para Blue, con pulso de energía y letra 'N'
+						# Nexo PVP - Rojo para Red, Azul para Blue, estático con letra 'N'
 						var team = str(obj.get("team", "red")).to_lower()
-						var pulse = 0.5 + sin(Time.get_ticks_msec() * 0.005) * 0.3
 						var base_color = Color(1.0, 0.15, 0.15) if team == "red" else Color(0.15, 0.5, 1.0)
 						
 						draw_circle(obj_pos, 6.0, base_color)
-						draw_circle(obj_pos, 8.5 + pulse * 2.5, Color(base_color.r, base_color.g, base_color.b, 0.25), false, 1.5)
+						draw_circle(obj_pos, 9.0, Color(base_color.r, base_color.g, base_color.b, 0.25), false, 1.5)
 						draw_string(font, obj_pos + Vector2(-3.0, 3.0), "N", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 						
 					"pillar":
@@ -601,9 +710,12 @@ func _draw():
 						draw_string(font, obj_pos + Vector2(-3.5, 3.0), "M", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
 						
 					_:
-						# Objeto genérico - Blanco con 'O'
-						draw_circle(obj_pos, 4.0, Color(0.8, 0.8, 0.8, 0.8))
-						draw_string(font, obj_pos + Vector2(-2.5, 3.0), "O", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+						# Estructura genérica personalizada SOLO si fue explícitamente marcada
+						if show_explicit:
+							draw_circle(obj_pos, 4.0, Color(0.0, 0.9, 1.0, 0.85))
+							var mark_letter = obj.get("minimap_letter", obj.get("letter", "*"))
+							draw_string(font, obj_pos + Vector2(-2.5, 3.0), str(mark_letter), HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color.WHITE)
+						# En caso contrario, se descarta y NO se dibuja (evita colliders y cajas molestas)
 
 
 	# 5.5 Rectángulo de visión en modo PANEO (cámara libre sin seguir al jugador)
@@ -643,46 +755,56 @@ func _draw():
 						max_p.y = max(max_p.y, mp.y)
 					draw_rect(Rect2(min_p, max_p - min_p), Color.WHITE, false, 1.5)
 
-	# --- NSEO: Indicadores cardinales en bordes del mundo (giran con el mapa en modo rotatorio) ---
-	var font_nseo = get_theme_font("font")
-	var margin_px = 12.0
-	var margin_wx = margin_px / scale_x
-	var margin_wy = margin_px / scale_y
-	var cardinals = [
-		{"label": "N", "pos": Vector2(worldW / 2, margin_wy)},
-		{"label": "S", "pos": Vector2(worldW / 2, worldH - margin_wy)},
-		{"label": "E", "pos": Vector2(worldW - margin_wx, worldH / 2)},
-		{"label": "O", "pos": Vector2(margin_wx, worldH / 2)}
-	]
-	for c in cardinals:
-		var cp = Vector2(c.pos.x * scale_x, c.pos.y * scale_y)
-		draw_string(font_nseo, cp - Vector2(3, 3), c.label, HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0, 1, 1, 0.7))
-
-	# --- Reset rotation transform before overlay elements ---
-	if is_rotate_mode:
-		draw_set_transform_matrix(Transform2D())
-
-	# 5. Jugador Local (Punto Blanco Puro) — siempre último para estar arriba
-	if is_rotate_mode:
-		draw_circle(player_mp, 3.5, Color.WHITE)
-		var cone_len = 10.0
-		var cone_spread = 0.8
-		var cone_angle = -PI/2
-		var cone_left = player_mp + Vector2.RIGHT.rotated(cone_angle + cone_spread) * cone_len
-		var cone_right = player_mp + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
-		draw_colored_polygon(PackedVector2Array([player_mp, cone_left, cone_right]), Color(0.6, 0.6, 0.6, 0.8))
-	else:
-		var local_pos = Vector2(player.global_position.x * scale_x, player.global_position.y * scale_y)
-		draw_circle(local_pos, 3.5, Color.WHITE)
-		var cone_len = 10.0
-		var cone_spread = 0.8
-		var cone_angle = player.rotation
-		var cone_left = local_pos + Vector2.RIGHT.rotated(cone_angle + cone_spread) * cone_len
-		var cone_right = local_pos + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
-		draw_colored_polygon(PackedVector2Array([local_pos, cone_left, cone_right]), Color(0.6, 0.6, 0.6, 0.8))
-
-	# v700.14: Restablecer la transformación para dibujar el borde y el tooltip en coordenadas del panel
+	# --- Reset transform ---
 	draw_set_transform(Vector2.ZERO)
+
+	# Cruz de referencia en el centro (muy sutil, sin círculos)
+	draw_line(center_screen + Vector2(-5, 0), center_screen + Vector2(5, 0), Color(0.0, 0.9, 1.0, 0.20), 1.0)
+	draw_line(center_screen + Vector2(0, -5), center_screen + Vector2(0, 5), Color(0.0, 0.9, 1.0, 0.20), 1.0)
+
+	# -----------------------------------------------------------------
+	# 5. JUGADOR LOCAL (ESTÉTICA AAA NÍTIDA) — SIEMPRE EN EL CENTRO
+	# -----------------------------------------------------------------
+	var p_draw_pos = center_screen
+	
+	# Halo cian sutil y núcleo blanco puro
+	draw_circle(p_draw_pos, 5.5, Color(0.0, 0.9, 1.0, 0.25))
+	draw_circle(p_draw_pos, 3.0, Color.WHITE)
+
+	
+	# Cono de orientación angosto con 80% de opacidad (Petición del usuario)
+	var cone_len = 13.0
+	var cone_spread = 0.30 # Más angosto y preciso
+	var cone_angle = -PI/2 if is_rotate_mode else player.rotation
+	var cone_left = p_draw_pos + Vector2.RIGHT.rotated(cone_angle + cone_spread) * cone_len
+	var cone_right = p_draw_pos + Vector2.RIGHT.rotated(cone_angle - cone_spread) * cone_len
+	draw_colored_polygon(PackedVector2Array([p_draw_pos, cone_left, cone_right]), Color(0.0, 0.95, 1.0, 0.80)) # Opacidad al 80%
+	
+	# Brújula fija sutil en el bisel exterior del radar (HUD Compass AAA)
+	var font_compass = get_theme_font("font")
+	draw_string(font_compass, Vector2(center_screen.x - 3, 14), "N", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0, 1, 1, 0.45))
+	draw_string(font_compass, Vector2(center_screen.x - 3, r_size.y - 4), "S", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0, 1, 1, 0.45))
+	draw_string(font_compass, Vector2(r_size.x - 10, center_screen.y + 3), "E", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0, 1, 1, 0.45))
+	draw_string(font_compass, Vector2(4, center_screen.y + 3), "O", HORIZONTAL_ALIGNMENT_CENTER, -1, 8, Color(0, 1, 1, 0.45))
+	
+	# -----------------------------------------------------------------
+	# 6. MARCO EXTERIOR SCI-FI AAA (ESQUINEROS BRILLANTES TÁCTICOS)
+	# -----------------------------------------------------------------
+	draw_rect(Rect2(Vector2.ZERO, r_size), Color(0.0, 0.8, 1.0, 0.45), false, 1.0)
+	var corner_len = 10.0
+	var c_col = Color(0.0, 1.0, 1.0, 0.85)
+	# Top-Left
+	draw_line(Vector2(0, 0), Vector2(corner_len, 0), c_col, 2.0)
+	draw_line(Vector2(0, 0), Vector2(0, corner_len), c_col, 2.0)
+	# Top-Right
+	draw_line(Vector2(r_size.x, 0), Vector2(r_size.x - corner_len, 0), c_col, 2.0)
+	draw_line(Vector2(r_size.x, 0), Vector2(r_size.x, corner_len), c_col, 2.0)
+	# Bottom-Left
+	draw_line(Vector2(0, r_size.y), Vector2(corner_len, r_size.y), c_col, 2.0)
+	draw_line(Vector2(0, r_size.y), Vector2(0, r_size.y - corner_len), c_col, 2.0)
+	# Bottom-Right
+	draw_line(Vector2(r_size.x, r_size.y), Vector2(r_size.x - corner_len, r_size.y), c_col, 2.0)
+	draw_line(Vector2(r_size.x, r_size.y), Vector2(r_size.x, r_size.y - corner_len), c_col, 2.0)
 	
 	# 8. Dibujar Tooltip interactivo si se pasa el mouse por encima de un portal
 	if hovered_dest != "":

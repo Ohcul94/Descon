@@ -214,6 +214,11 @@ func update_ui():
 		
 		var can_enter = current_level >= min_level
 		
+		var btns_vbox = VBoxContainer.new()
+		btns_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		btns_vbox.add_theme_constant_override("separation", 4)
+		hb.add_child(btns_vbox)
+
 		var btn_travel = Button.new()
 		
 		if is_locked:
@@ -225,24 +230,31 @@ func update_ui():
 			btn_travel.modulate = Color.RED
 			btn_travel.disabled = true
 		else:
-			btn_travel.text = "VIAJAR\n" + str(cost) + " OHCU" if cost > 0 else "VIAJAR\nGRATIS"
-			btn_travel.disabled = is_current
+			if is_current:
+				btn_travel.text = "SPAWN (" + str(cost) + ")" if cost > 0 else "SPAWN (0)"
+				btn_travel.modulate = Color.CYAN
+			else:
+				btn_travel.text = "VIAJAR (" + str(cost) + ")" if cost > 0 else "VIAJAR (0)"
+			btn_travel.disabled = false
 
 		btn_travel.add_theme_font_size_override("font_size", 8)
-		btn_travel.custom_minimum_size = Vector2(75, 45)
-		btn_travel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		hb.add_child(btn_travel)
+		btn_travel.custom_minimum_size = Vector2(75, 24)
+		btns_vbox.add_child(btn_travel)
 		
 		# Margen interno derecho
 		var spacer2 = Control.new(); spacer2.custom_minimum_size.x = 5; hb.add_child(spacer2)
 		
-		if not is_current and can_enter:
+		if can_enter and not is_locked:
 			btn_travel.pressed.connect(func():
 				if inv_main.ohcu < cost:
 					inv_main._show_result_modal("FONDOS INSUFICIENTES", "Necesitas " + str(cost) + " OHCU para saltar a este sector.")
 					return
 				
-				var msg = "¿Confirmas salto hiperespacial a [color=cyan]" + s.name + "[/color]?"
+				var msg = ""
+				if is_current:
+					msg = "¿Deseas teletransportarte al punto de inicio (Spawn) de [color=cyan]" + s.name + "[/color]?"
+				else:
+					msg = "¿Confirmas salto hiperespacial a [color=cyan]" + s.name + "[/color]?"
 				if cost > 0: msg += "\nCosto: [color=yellow]" + str(cost) + " OHCU[/color]"
 				
 				inv_main._show_modal("CONFIRMAR SALTO", msg, func():
@@ -261,6 +273,51 @@ func update_ui():
 			sel_zone_data = s
 			break
 	
+	# Barra de título del sector seleccionado con botón para ver Mapa Completo
+	var top_r_hb = HBoxContainer.new()
+	top_r_hb.custom_minimum_size.y = 32
+	r_col.add_child(top_r_hb)
+	
+	var sel_title = Label.new()
+	sel_title.text = "DETALLES TÁCTICOS: " + str(sel_zone_data.get("name", "SECTOR")).to_upper()
+	sel_title.modulate = Color.CYAN
+	sel_title.add_theme_font_size_override("font_size", 12)
+	sel_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top_r_hb.add_child(sel_title)
+	
+	var btn_view_full = Button.new()
+	btn_view_full.text = " 🗺️ VER MAPA COMPLETO "
+	btn_view_full.tooltip_text = "Ver mapa holográfico completo de " + str(sel_zone_data.get("name", "este sector"))
+	btn_view_full.custom_minimum_size = Vector2(160, 28)
+	var vf_sb = StyleBoxFlat.new()
+	vf_sb.bg_color = Color(0.02, 0.12, 0.18, 0.9)
+	vf_sb.border_width_left = 1
+	vf_sb.border_width_top = 1
+	vf_sb.border_width_right = 1
+	vf_sb.border_width_bottom = 1
+	vf_sb.border_color = Color(0.0, 0.85, 1.0, 0.8)
+	vf_sb.set_corner_radius_all(3)
+	btn_view_full.add_theme_stylebox_override("normal", vf_sb)
+	var vf_sb_h = vf_sb.duplicate()
+	vf_sb_h.bg_color = Color(0.04, 0.22, 0.32, 1.0)
+	vf_sb_h.border_color = Color(0.0, 1.0, 1.0, 1.0)
+	btn_view_full.add_theme_stylebox_override("hover", vf_sb_h)
+	btn_view_full.add_theme_font_size_override("font_size", 9)
+	btn_view_full.pressed.connect(func():
+		var minimap_node = get_tree().get_first_node_in_group("minimap")
+		if not is_instance_valid(minimap_node):
+			var hud = get_tree().get_first_node_in_group("hud")
+			if hud: minimap_node = hud.find_child("Minimap", true, false)
+		if is_instance_valid(minimap_node) and minimap_node.has_method("open_world_map"):
+			minimap_node.open_world_map(str(selected_zone_id))
+		elif is_instance_valid(inv_main):
+			# Fallback directo creando WorldMapDialog
+			var dlg = WorldMapDialog.new()
+			get_tree().root.add_child(dlg)
+			dlg.open(str(selected_zone_id))
+	)
+	top_r_hb.add_child(btn_view_full)
+
 	# Contenedor de dos columnas
 	var cols_hb = HBoxContainer.new(); cols_hb.size_flags_vertical = Control.SIZE_EXPAND_FILL; cols_hb.add_theme_constant_override("separation", 15); r_col.add_child(cols_hb)
 	

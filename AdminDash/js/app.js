@@ -535,6 +535,10 @@ function getFilter() {
     return (document.getElementById('global-filter')?.value || '').toLowerCase();
 }
 
+window.filterTalentCreator = function() {
+    renderTalentCreator();
+};
+
 function toggleFolder(id, event) {
     if (event) event.stopPropagation();
     const el = document.getElementById(id);
@@ -2985,30 +2989,147 @@ let talentMapperTool = 'select'; // 'select' o 'connect'
 let selectedTalentNodeId = null;
 let connectStartNodeId = null;
 let talentPanOffset = { x: 0, y: 0 };
+let talentZoom = 1.0; // Zoom level (1.0 = 100%)
+const TALENT_ZOOM_MIN = 0.2;
+const TALENT_ZOOM_MAX = 3.0;
+
+// Bounds del árbol - calculados a partir de los nodos colocados
+function getNodeBounds() {
+    const nodes = config.talentsConfig.nodes || {};
+    const entries = Object.values(nodes);
+    if (entries.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const pos of entries) {
+        minX = Math.min(minX, pos.x);
+        minY = Math.min(minY, pos.y);
+        maxX = Math.max(maxX, pos.x);
+        maxY = Math.max(maxY, pos.y);
+    }
+    const PAD = 200;
+    return { minX: minX - PAD, minY: minY - PAD, maxX: maxX + PAD, maxY: maxY + PAD };
+}
+
+function getTreeCenter() {
+    const nodes = config.talentsConfig.nodes || {};
+    const entries = Object.values(nodes);
+    if (entries.length === 0) return { x: 0, y: 0 };
+    let sx = 0, sy = 0;
+    for (const pos of entries) { sx += pos.x; sy += pos.y; }
+    return { x: sx / entries.length, y: sy / entries.length };
+}
+
+function clampPanOffset() {
+    // No forzar nada — solo evitar que se pierda completamente la vista
+    // El usuario puede mover libremente, solo se limita al zoom reset
+}
 let isPanningTalents = false;
 let panStart = { x: 0, y: 0 };
 let isDraggingTalentNode = false;
 let dragNodeId = null;
 let talentMapperCanvasInitialized = false;
+let talentMapperHoveredNode = null; // Nodo bajo el cursor
+let talentMapperSearchTerm = ''; // Filtro de búsqueda
+
+// Tamaños de nodos por tipo (estilo POE2)
+const NODE_TYPES = {
+    small:    { radius: 22, iconSize: '16px', labelSize: '9px',  glowIntensity: 0.3, borderWidth: 2, label: 'Pequeño' },
+    notable:  { radius: 30, iconSize: '20px', labelSize: '10px', glowIntensity: 0.6, borderWidth: 3, label: 'Notable' },
+    keystone: { radius: 40, iconSize: '28px', labelSize: '12px', glowIntensity: 1.0, borderWidth: 4, label: 'Clave' }
+};
 
 function addNewTalent() {
+    document.getElementById('talent-create-modal').style.display = 'flex';
+    document.getElementById('cm-name').value = '';
+    document.getElementById('cm-desc').value = '';
+    document.getElementById('cm-icon').value = '🌳';
+    document.getElementById('cm-category').value = 'engineering';
+    document.getElementById('cm-nodeType').value = 'small';
+    document.getElementById('cm-maxLevel').value = '1';
+    window._cmEffects = [];
+    cmRenderEffects();
+    cmUpdateMaxLevel();
+}
+
+window.closeTalentModal = function() {
+    document.getElementById('talent-create-modal').style.display = 'none';
+};
+
+window.cmUpdateMaxLevel = function() {
+    const t = document.getElementById('cm-nodeType').value;
+    const map = { small: 1, notable: 2, keystone: 3 };
+    document.getElementById('cm-maxLevel').value = map[t] || 1;
+};
+
+window.cmAddEffect = function() {
+    const allKeys = ['hp_pct','sh_pct','hp_regen','shield_regen','armor_pct','energy_efficiency','repair_cost_reduction','stability','laser_dmg_pct','crit_chance','crit_dmg','ammo_bonus_pct','accuracy_pct','ignore_shield_pct','fire_rate_pct','evasion_pct','speed_pct','minimap_range','ohcu_kill_bonus','shop_discount','cooldown_reduction','cooldown_reduction_flat','cast_time_reduction','cast_time_reduction_flat','group_bonus','boss_loot_bonus','dash_distance'];
+    const used = (window._cmEffects || []).map(e => e.key);
+    const next = allKeys.find(k => !used.includes(k)) || 'custom_' + Date.now();
+    window._cmEffects.push({ key: next, val: 0.01 });
+    cmRenderEffects();
+};
+
+window.cmRemoveEffect = function(i) {
+    window._cmEffects.splice(i, 1);
+    cmRenderEffects();
+};
+
+window.cmUpdateEffectKey = function(i, newKey) {
+    window._cmEffects[i].key = newKey;
+};
+
+window.cmUpdateEffectVal = function(i, newVal) {
+    window._cmEffects[i].val = parseFloat(newVal) || 0;
+};
+
+function cmRenderEffects() {
+    const container = document.getElementById('cm-effects-list');
+    if (!container) return;
+    const allKeys = [
+        {k:'hp_pct',l:'Vida Máxima (+%)'},{k:'sh_pct',l:'Escudo Máximo (+%)'},{k:'hp_regen',l:'Regen Vida (+%)'},
+        {k:'shield_regen',l:'Regen Escudo (+%)'},{k:'armor_pct',l:'Armadura (+%)'},{k:'energy_efficiency',l:'Eficiencia Energía (+%)'},
+        {k:'repair_cost_reduction',l:'Costo Reparación (-%)'},{k:'stability',l:'Estabilidad (+%)'},{k:'laser_dmg_pct',l:'Daño Láser (+%)'},
+        {k:'crit_chance',l:'Prob. Crítico (+%)'},{k:'crit_dmg',l:'Daño Crítico (+%)'},{k:'ammo_bonus_pct',l:'Munición (+%)'},
+        {k:'accuracy_pct',l:'Puntería (+%)'},{k:'ignore_shield_pct',l:'Perforación Escudo (+%)'},{k:'fire_rate_pct',l:'Cadencia (+%)'},
+        {k:'evasion_pct',l:'Evasión (+%)'},{k:'speed_pct',l:'Velocidad (+%)'},{k:'minimap_range',l:'Rango Minimapa (+%)'},
+        {k:'ohcu_kill_bonus',l:'Bonus OHCU (+%)'},{k:'shop_discount',l:'Descuento Tienda (-%)'},{k:'cooldown_reduction',l:'CD Habilidades (-%)'},
+        {k:'cooldown_reduction_flat',l:'CD Habilidades (fijo)'},{k:'cast_time_reduction',l:'Cast Time (-%)'},{k:'cast_time_reduction_flat',l:'Cast Time (fijo)'},
+        {k:'group_bonus',l:'Bonus Grupo (+%)'},{k:'boss_loot_bonus',l:'Loot Bosses (+%)'},{k:'dash_distance',l:'Distancia Dash (+%)'}
+    ];
+    container.innerHTML = (window._cmEffects || []).map((e, i) => `
+        <div style="display:flex; gap:8px; align-items:center; background:rgba(255,255,255,0.02); padding:5px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+            <select style="flex:1; background:transparent; border:none; color:white; font-size:0.78rem;" onchange="cmUpdateEffectKey(${i}, this.value)">
+                ${allKeys.map(opt => `<option value="${opt.k}" ${e.key===opt.k?'selected':''}>${opt.l}</option>`).join('')}
+            </select>
+            <input type="number" step="0.001" value="${e.val}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="cmUpdateEffectVal(${i}, this.value)">
+            <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="cmRemoveEffect(${i})">✕</button>
+        </div>
+    `).join('');
+}
+
+window.confirmCreateTalent = function() {
+    const name = document.getElementById('cm-name').value.trim();
+    if (!name) { document.getElementById('cm-name').style.borderColor = '#ff4444'; return; }
     const id = 'talent_' + Date.now();
+    const effects = {};
+    (window._cmEffects || []).forEach(e => { if (e.key) effects[e.key] = e.val; });
     const newTalent = {
         id: id,
-        name: 'Nuevo Talento',
-        desc: '+1% HP por nivel',
-        category: 'engineering',
-        maxLevel: 5,
-        effects: {
-            hp_pct: 0.01
-        },
-        icon: '🌳'
+        name: name,
+        desc: document.getElementById('cm-desc').value.trim(),
+        category: document.getElementById('cm-category').value,
+        maxLevel: parseInt(document.getElementById('cm-maxLevel').value) || 5,
+        effects: effects,
+        icon: document.getElementById('cm-icon').value || '🌳'
     };
     if (!config.talentsConfig.talents) config.talentsConfig.talents = [];
     config.talentsConfig.talents.push(newTalent);
+    // Pre-posicionar en el mapper
+    if (!config.talentsConfig.nodes) config.talentsConfig.nodes = {};
+    config.talentsConfig.nodes[id] = { x: 0, y: 0, nodeType: document.getElementById('cm-nodeType').value };
+    closeTalentModal();
     renderTalentCreator();
     renderTalentMapper();
-}
+};
 
 function deleteTalent(id) {
     // Eliminar de la lista de creador
@@ -3026,26 +3147,31 @@ function deleteTalent(id) {
         document.getElementById('talent-node-editor-card').style.display = 'none';
     }
     renderTalentCreator();
+    clampPanOffset();
     renderTalentMapper();
 }
 
 function setTalentMapperTool(tool) {
     talentMapperTool = tool;
-    const btnSelect = document.getElementById('btn-talent-tool-select');
-    const btnConnect = document.getElementById('btn-talent-tool-connect');
-    if (btnSelect && btnConnect) {
-        if (tool === 'select') {
-            btnSelect.classList.remove('btn-secondary');
-            btnSelect.classList.add('btn-primary');
-            btnConnect.classList.remove('btn-primary');
-            btnConnect.classList.add('btn-secondary');
-        } else {
-            btnConnect.classList.remove('btn-secondary');
-            btnConnect.classList.add('btn-primary');
-            btnSelect.classList.remove('btn-primary');
-            btnSelect.classList.add('btn-secondary');
+    connectStartNodeId = null;
+    const btns = ['select', 'connect', 'disconnect'];
+    btns.forEach(b => {
+        const btn = document.getElementById('btn-talent-tool-' + b);
+        if (btn) {
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-secondary');
         }
+    });
+    const active = document.getElementById('btn-talent-tool-' + tool);
+    if (active) {
+        active.classList.remove('btn-secondary');
+        active.classList.add('btn-primary');
     }
+    const canvas = document.getElementById('talent-mapper-canvas');
+    if (canvas) {
+        canvas.style.cursor = tool === 'select' ? 'grab' : (tool === 'connect' ? 'crosshair' : 'crosshair');
+    }
+    renderTalentMapper();
 }
 
 function clearTalentMapperSelections() {
@@ -3055,22 +3181,168 @@ function clearTalentMapperSelections() {
     renderTalentMapper();
 }
 
+// ─── ZOOM FUNCTIONS ───
+window.talentMapperZoom = function(delta) {
+    const oldZoom = talentZoom;
+    talentZoom = Math.max(TALENT_ZOOM_MIN, Math.min(TALENT_ZOOM_MAX, talentZoom + delta));
+    
+    // Ajustar pan offset para hacer zoom hacia el centro del canvas
+    const canvas = document.getElementById('talent-mapper-canvas');
+    if (canvas) {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const zoomRatio = talentZoom / oldZoom;
+        talentPanOffset.x = centerX - (centerX - talentPanOffset.x) * zoomRatio;
+        talentPanOffset.y = centerY - (centerY - talentPanOffset.y) * zoomRatio;
+    }
+    
+    updateZoomDisplay();
+    renderTalentMapper();
+};
+
+window.talentMapperZoomReset = function() {
+    talentZoom = 1.0;
+    // Centrar la vista en el origen (0,0) del mundo
+    const canvas = document.getElementById('talent-mapper-canvas');
+    if (canvas) {
+        talentPanOffset.x = canvas.width / 2;
+        talentPanOffset.y = canvas.height / 2;
+    } else {
+        talentPanOffset = { x: 0, y: 0 };
+    }
+    updateZoomDisplay();
+    renderTalentMapper();
+};
+
+function updateZoomDisplay() {
+    const el = document.getElementById('talent-zoom-level');
+    if (el) el.textContent = Math.round(talentZoom * 100) + '%';
+}
+
+// ─── SEARCH/FILTER ───
+window.filterTalentMapperList = function() {
+    const input = document.getElementById('talent-mapper-search');
+    talentMapperSearchTerm = input ? input.value.toLowerCase() : '';
+    renderTalentMapper();
+};
+
+// ─── TOOLTIP ───
+function showTalentTooltip(nodeId, mouseX, mouseY) {
+    const tooltip = document.getElementById('talent-node-tooltip');
+    if (!tooltip) return;
+    
+    const talent = (config.talentsConfig.talents || []).find(t => t.id === nodeId);
+    if (!talent) { hideTalentTooltip(); return; }
+    
+    const nodeData = (config.talentsConfig.nodes || {})[nodeId];
+    const nodeType = nodeData?.nodeType || 'small';
+    const typeInfo = NODE_TYPES[nodeType] || NODE_TYPES.small;
+    
+    const catColors = { engineering: '#00d2ff', combat: '#ff3131', science: '#be31ff' };
+    const catLabels = { engineering: '🛠️ Ingeniería', combat: '⚔️ Combate', science: '🔬 Ciencia' };
+    const catColor = catColors[talent.category] || '#00d2ff';
+    
+    let effectsHTML = '';
+    if (talent.effects && Object.keys(talent.effects).length > 0) {
+        const effectLabels = {
+            hp_pct: '❤️ Vida Máx', sh_pct: '🛡️ Escudo Máx', hp_regen: '💚 Regen HP', shield_regen: '💙 Regen Escudo',
+            armor_pct: '🔩 Armadura', energy_efficiency: '⚡ Eficiencia Energía', repair_cost_reduction: '💸 Costo Reparación',
+            stability: '🛸 Estabilidad', laser_dmg_pct: '🔫 Daño Láser', crit_chance: '🎯 Prob. Crítico',
+            crit_dmg: '💥 Daño Crítico', ammo_bonus_pct: '💣 Munición', accuracy_pct: '👁️ Puntería',
+            ignore_shield_pct: '⚡ Perforación', fire_rate_pct: '⚔️ Cadencia', evasion_pct: '🏃 Evasión',
+            speed_pct: '🚀 Velocidad', minimap_range: '📡 Rango Minimapa', ohcu_kill_bonus: '💎 Bonus OHCU',
+            shop_discount: '🏪 Descuento', cooldown_reduction: '❄️ CD Habilidades (%)', cooldown_reduction_flat: '⏱️ CD Habilidades (fijo)',
+            cast_time_reduction: '⚡ Cast Time (%)', cast_time_reduction_flat: '⏱️ Cast Time (fijo)',
+            group_bonus: '👥 Bonus Grupo',
+            boss_loot_bonus: '🎯 Loot Bosses', dash_distance: '🌀 Distancia Dash', dmg_pct: '⚔️ Daño Total',
+            custom_stat: '⚙️ Custom'
+        };
+        effectsHTML = Object.entries(talent.effects).map(([key, val]) => {
+            const label = effectLabels[key] || key;
+            const isFlat = key.endsWith('_flat');
+            const display = isFlat 
+                ? `${(val * (talent.maxLevel || 5)).toFixed(2)}s por nivel`
+                : `+${(val * 100 * (talent.maxLevel || 5)).toFixed(1)}% por nivel`;
+            return `<div style="color: #10b981; font-size: 0.75rem;">${label}: <strong>${display}</strong></div>`;
+        }).join('');
+    }
+    
+    tooltip.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+            <span style="font-size: 1.8rem;">${talent.icon || '🌳'}</span>
+            <div>
+                <div style="font-weight: bold; color: ${catColor}; font-size: 0.9rem;">${talent.name}</div>
+                <div style="font-size: 0.7rem; color: #888;">${catLabels[talent.category] || talent.category} • ${typeInfo.label} (Nivel ${(talent.currentLevel || 0)}/${talent.maxLevel || 5})</div>
+            </div>
+        </div>
+        <div style="font-size: 0.78rem; color: #ccc; margin-bottom: 8px;">${talent.desc || 'Sin descripción'}</div>
+        ${effectsHTML ? `<div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.05);">${effectsHTML}</div>` : ''}
+        <div style="font-size: 0.65rem; color: #666; margin-top: 8px; font-style: italic;">Doble clic: editar • Click izq: seleccionar</div>
+    `;
+    
+    // Posicionar tooltip evitando que se salga del canvas
+    const container = document.getElementById('talent-mapper-container');
+    const rect = container.getBoundingClientRect();
+    let left = mouseX + 20;
+    let top = mouseY - 10;
+    
+    // Si se sale por la derecha, mostrar a la izquierda
+    if (left + 280 > rect.width) left = mouseX - 300;
+    // Si se sale por abajo, mostrar arriba
+    if (top + 200 > rect.height) top = mouseY - 200;
+    
+    tooltip.style.left = Math.max(10, left) + 'px';
+    tooltip.style.top = Math.max(10, top) + 'px';
+    tooltip.style.display = 'block';
+}
+
+function hideTalentTooltip() {
+    const tooltip = document.getElementById('talent-node-tooltip');
+    if (tooltip) tooltip.style.display = 'none';
+    talentMapperHoveredNode = null;
+}
+
+// ─── BRANCH STATS ───
+function updateBranchStats() {
+    const talents = config.talentsConfig.talents || [];
+    let stats = { engineering: 0, combat: 0, science: 0 };
+    
+    talents.forEach(t => {
+        if (t.currentLevel && t.currentLevel > 0) {
+            stats[t.category] = (stats[t.category] || 0) + t.currentLevel;
+        }
+    });
+    
+    const engEl = document.getElementById('stat-engineering');
+    const comEl = document.getElementById('stat-combat');
+    const sciEl = document.getElementById('stat-science');
+    const totalEl = document.getElementById('stat-total');
+    
+    if (engEl) engEl.textContent = stats.engineering;
+    if (comEl) comEl.textContent = stats.combat;
+    if (sciEl) sciEl.textContent = stats.science;
+    if (totalEl) totalEl.textContent = stats.engineering + stats.combat + stats.science;
+}
+
 function placeTalentOnMap(talentId) {
     if (!config.talentsConfig.nodes) config.talentsConfig.nodes = {};
     
-    // Obtener dimensiones del canvas para centrarlo
     const canvas = document.getElementById('talent-mapper-canvas');
     let cx = 400;
     let cy = 300;
     if (canvas) {
-        cx = (canvas.width / 2) - talentPanOffset.x;
-        cy = (canvas.height / 2) - talentPanOffset.y;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        cx = (centerX - talentPanOffset.x) / talentZoom;
+        cy = (centerY - talentPanOffset.y) / talentZoom;
     }
 
     config.talentsConfig.nodes[talentId] = {
         x: Math.round(cx),
-        y: Math.round(cy)
+        y: Math.round(cy),
+        nodeType: 'small'
     };
+    clampPanOffset();
     renderTalentMapper();
 }
 
@@ -3085,6 +3357,7 @@ function removeTalentFromMap(talentId) {
         selectedTalentNodeId = null;
         document.getElementById('talent-node-editor-card').style.display = 'none';
     }
+    clampPanOffset();
     renderTalentMapper();
 }
 
@@ -3109,21 +3382,66 @@ function initTalentMapper() {
     }
     updateCanvasSize();
 
+    // Centrar cámara en el origen (0,0) la primera vez
+    if (talentPanOffset.x === 0 && talentPanOffset.y === 0) {
+        talentPanOffset.x = canvas.width / 2;
+        talentPanOffset.y = canvas.height / 2;
+    }
+
     // Mouse event positions
     let mousePos = { x: 0, y: 0 };
 
+    // Convertir coordenadas de pantalla a coordenadas del mundo (teniendo en cuenta zoom y pan)
+    const screenToWorld = (screenX, screenY) => ({
+        x: (screenX - talentPanOffset.x) / talentZoom,
+        y: (screenY - talentPanOffset.y) / talentZoom
+    });
+
     const getNodeAtPosition = (mx, my) => {
         if (!config.talentsConfig.nodes) return null;
-        const radius = 30; // Radio del círculo del talento
-        for (const [id, pos] of Object.entries(config.talentsConfig.nodes)) {
-            const screenX = pos.x + talentPanOffset.x;
-            const screenY = pos.y + talentPanOffset.y;
-            const dist = Math.hypot(screenX - mx, screenY - my);
-            if (dist <= radius) {
+        const world = screenToWorld(mx, my);
+        
+        // Buscar en orden inverso (últimos dibujados primero)
+        const nodeEntries = Object.entries(config.talentsConfig.nodes);
+        for (let i = nodeEntries.length - 1; i >= 0; i--) {
+            const [id, pos] = nodeEntries[i];
+            const nodeType = pos.nodeType || 'small';
+            const typeInfo = NODE_TYPES[nodeType] || NODE_TYPES.small;
+            const radius = typeInfo.radius;
+            const dist = Math.hypot(pos.x - world.x, pos.y - world.y);
+            if (dist <= radius + 5) {
                 return id;
             }
         }
         return null;
+    };
+
+    // Buscar conexión más cercana a un punto (para desconectar)
+    const getConnectionAtPosition = (mx, my) => {
+        const conns = config.talentsConfig.connections || [];
+        const nds = config.talentsConfig.nodes || {};
+        const world = screenToWorld(mx, my);
+        let bestDist = 12; // radio de tolerancia en world coords
+        let bestIdx = -1;
+        conns.forEach((conn, i) => {
+            const from = nds[conn.from];
+            const to = nds[conn.to];
+            if (!from || !to) return;
+            // Distancia punto-segmento
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            const lenSq = dx * dx + dy * dy;
+            let t = lenSq > 0 ? ((world.x - from.x) * dx + (world.y - from.y) * dy) / lenSq : 0;
+            t = Math.max(0, Math.min(1, t));
+            const px = from.x + t * dx;
+            const py = from.y + t * dy;
+            const dist = Math.hypot(world.x - px, world.y - py);
+            if (dist < bestDist) {
+                bestDist = dist;
+                bestIdx = i;
+            }
+        });
+        return bestIdx;
     };
 
     canvas.onmousedown = (e) => {
@@ -3132,23 +3450,54 @@ function initTalentMapper() {
         const my = e.clientY - rect.top;
         mousePos = { x: mx, y: my };
 
+        // CLICK DERECHO: desconectar si toca una conexión
+        if (e.button === 2) {
+            e.preventDefault();
+            const connIdx = getConnectionAtPosition(mx, my);
+            if (connIdx >= 0) {
+                config.talentsConfig.connections.splice(connIdx, 1);
+                renderTalentMapper();
+                return;
+            }
+        }
+
         const clickedNodeId = getNodeAtPosition(mx, my);
 
         if (clickedNodeId) {
-            if (talentMapperTool === 'select') {
-                isDraggingTalentNode = true;
-                dragNodeId = clickedNodeId;
-                selectedTalentNodeId = clickedNodeId;
-                canvas.style.cursor = 'grabbing';
-                showTalentNodeEditor(clickedNodeId);
+            if (talentMapperTool === 'select' || talentMapperTool === undefined) {
+                if (e.detail === 2) {
+                    showTalentNodeEditor(clickedNodeId);
+                } else {
+                    isDraggingTalentNode = true;
+                    dragNodeId = clickedNodeId;
+                    selectedTalentNodeId = clickedNodeId;
+                    canvas.style.cursor = 'grabbing';
+                    showTalentNodeEditor(clickedNodeId);
+                }
             } else if (talentMapperTool === 'connect') {
                 connectStartNodeId = clickedNodeId;
+            } else if (talentMapperTool === 'disconnect') {
+                // En modo desconectar, clic en nodo elimina todas sus conexiones
+                if (!config.talentsConfig.connections) config.talentsConfig.connections = [];
+                config.talentsConfig.connections = config.talentsConfig.connections.filter(c => c.from !== clickedNodeId && c.to !== clickedNodeId);
+                renderTalentMapper();
             }
         } else {
+            // En modo desconectar, clic en vacío puede cortar conexión cercana
+            if (talentMapperTool === 'disconnect') {
+                const connIdx = getConnectionAtPosition(mx, my);
+                if (connIdx >= 0) {
+                    config.talentsConfig.connections.splice(connIdx, 1);
+                    renderTalentMapper();
+                    return;
+                }
+            }
             // Panning
             isPanningTalents = true;
             panStart = { x: e.clientX, y: e.clientY };
             canvas.style.cursor = 'move';
+            selectedTalentNodeId = null;
+            document.getElementById('talent-node-editor-card').style.display = 'none';
         }
         renderTalentMapper();
     };
@@ -3160,8 +3509,9 @@ function initTalentMapper() {
         mousePos = { x: mx, y: my };
 
         if (isDraggingTalentNode && dragNodeId) {
-            config.talentsConfig.nodes[dragNodeId].x = Math.round(mx - talentPanOffset.x);
-            config.talentsConfig.nodes[dragNodeId].y = Math.round(my - talentPanOffset.y);
+            const world = screenToWorld(mx, my);
+            config.talentsConfig.nodes[dragNodeId].x = Math.round(world.x);
+            config.talentsConfig.nodes[dragNodeId].y = Math.round(world.y);
             renderTalentMapper();
         } else if (isPanningTalents) {
             const dx = e.clientX - panStart.x;
@@ -3169,9 +3519,27 @@ function initTalentMapper() {
             talentPanOffset.x += dx;
             talentPanOffset.y += dy;
             panStart = { x: e.clientX, y: e.clientY };
+            clampPanOffset();
             renderTalentMapper();
         } else if (connectStartNodeId) {
             renderTalentMapper(mousePos);
+        } else {
+            // Hover detection para tooltip
+            const hoveredNode = getNodeAtPosition(mx, my);
+            if (hoveredNode !== talentMapperHoveredNode) {
+                talentMapperHoveredNode = hoveredNode;
+                if (hoveredNode) {
+                    canvas.style.cursor = talentMapperTool === 'connect' ? 'crosshair' : 'pointer';
+                    showTalentTooltip(hoveredNode, mx, my);
+                } else {
+                    canvas.style.cursor = 'grab';
+                    hideTalentTooltip();
+                }
+                renderTalentMapper();
+            } else if (hoveredNode) {
+                // Actualizar posición del tooltip
+                showTalentTooltip(hoveredNode, mx, my);
+            }
         }
     };
 
@@ -3208,6 +3576,71 @@ function initTalentMapper() {
         }
     };
 
+    // Zoom con rueda del mouse
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.08 : 0.08;
+        const oldZoom = talentZoom;
+        talentZoom = Math.max(TALENT_ZOOM_MIN, Math.min(TALENT_ZOOM_MAX, talentZoom + delta));
+        
+        // Zoom hacia la posición del mouse
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        const zoomRatio = talentZoom / oldZoom;
+        talentPanOffset.x = mouseX - (mouseX - talentPanOffset.x) * zoomRatio;
+        talentPanOffset.y = mouseY - (mouseY - talentPanOffset.y) * zoomRatio;
+        
+        clampPanOffset();
+        updateZoomDisplay();
+        renderTalentMapper();
+    }, { passive: false });
+
+    // Ocultar tooltip al salir del canvas
+    canvas.onmouseleave = () => {
+        hideTalentTooltip();
+    };
+
+    // Drag & Drop: arrastrar talentos desde el panel al canvas
+    canvas.ondragover = (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+    };
+    canvas.ondrop = (e) => {
+        e.preventDefault();
+        const talentId = e.dataTransfer.getData('text/plain');
+        if (!talentId) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const world = screenToWorld(mx, my);
+        if (!config.talentsConfig.nodes) config.talentsConfig.nodes = {};
+        config.talentsConfig.nodes[talentId] = {
+            x: Math.round(world.x),
+            y: Math.round(world.y),
+            nodeType: 'small'
+        };
+        renderTalentCreator();
+        renderTalentMapper();
+    };
+
+    // Loop de animación para nodos notable/keystone (glow pulsante, aura rotatoria)
+    let lastTalentAnimFrame = 0;
+    const talentAnimLoop = (ts) => {
+        // Limitar a ~30fps para no gastar CPU
+        if (ts - lastTalentAnimFrame > 33) {
+            lastTalentAnimFrame = ts;
+            const nodes = config.talentsConfig.nodes || {};
+            const hasAnimatedNodes = Object.values(nodes).some(n => n.nodeType === 'notable' || n.nodeType === 'keystone');
+            if (hasAnimatedNodes || selectedTalentNodeId || talentMapperHoveredNode) {
+                renderTalentMapper();
+            }
+        }
+        requestAnimationFrame(talentAnimLoop);
+    };
+    requestAnimationFrame(talentAnimLoop);
+
     renderTalentMapper();
 }
 
@@ -3219,25 +3652,49 @@ function showTalentNodeEditor(nodeId) {
     const talent = config.talentsConfig.talents.find(t => t.id === nodeId);
     if (!talent) return;
 
+    const nodeData = (config.talentsConfig.nodes || {})[nodeId];
+    const currentType = nodeData?.nodeType || 'small';
+
     card.style.display = 'block';
     
     // Generar campos de edición rápida del nodo mapeado
     content.innerHTML = `
-        <div style="font-size:1.8rem; text-align:center; margin-bottom:10px;">${talent.icon || '🌳'}</div>
-        <div style="font-weight:bold; color:var(--accent); text-align:center; margin-bottom:15px;">${talent.name}</div>
-        <div class="field">
-            <label>Posición X</label>
-            <input type="number" value="${config.talentsConfig.nodes[nodeId].x}" onchange="config.talentsConfig.nodes['${nodeId}'].x = parseInt(this.value); renderTalentMapper();">
+        <div style="font-size: 1.8rem; text-align:center; margin-bottom: 10px;">${talent.icon || '🌳'}</div>
+        <div style="font-weight:bold; color:var(--accent); text-align:center; margin-bottom: 15px;">${talent.name}</div>
+        
+        <div class="field" style="margin-bottom: 12px;">
+            <label style="color: var(--accent); font-size: 0.75rem; margin-bottom: 4px; display: block;">🏷️ Tipo de Nodo</label>
+            <select onchange="updateTalentNodeType('${nodeId}', this.value)" style="width: 100%; background: var(--surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: white; padding: 8px; font-size: 0.8rem;">
+                <option value="small" ${currentType === 'small' ? 'selected' : ''}>🟢 Pequeño (Básico)</option>
+                <option value="notable" ${currentType === 'notable' ? 'selected' : ''}>🟡 Notable (Importante)</option>
+                <option value="keystone" ${currentType === 'keystone' ? 'selected' : ''}>🔴 Clave (Cambio de Build)</option>
+            </select>
+            <div style="font-size: 0.65rem; color: #888; margin-top: 4px;">${NODE_TYPES[currentType]?.label || 'Pequeño'} - Radio: ${NODE_TYPES[currentType]?.radius || 22}px</div>
         </div>
-        <div class="field">
-            <label>Posición Y</label>
-            <input type="number" value="${config.talentsConfig.nodes[nodeId].y}" onchange="config.talentsConfig.nodes['${nodeId}'].y = parseInt(this.value); renderTalentMapper();">
+        
+        <div class="field" style="margin-bottom: 12px;">
+            <label style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 4px; display: block;">📍 Posición X</label>
+            <input type="number" value="${nodeData?.x || 0}" onchange="config.talentsConfig.nodes['${nodeId}'].x = parseInt(this.value); renderTalentMapper();" style="width: 100%; background: var(--surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: white; padding: 8px; font-size: 0.8rem;">
         </div>
-        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+        
+        <div class="field" style="margin-bottom: 12px;">
+            <label style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 4px; display: block;">📍 Posición Y</label>
+            <input type="number" value="${nodeData?.y || 0}" onchange="config.talentsConfig.nodes['${nodeId}'].y = parseInt(this.value); renderTalentMapper();" style="width: 100%; background: var(--surface); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: white; padding: 8px; font-size: 0.8rem;">
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
             <button class="btn btn-secondary" style="background:#ff3b30; border-color:#ff3b30; color:white; margin:0;" onclick="removeTalentFromMap('${nodeId}')">❌ Quitar del Mapa</button>
         </div>
     `;
 }
+
+window.updateTalentNodeType = function(nodeId, newType) {
+    if (!config.talentsConfig.nodes || !config.talentsConfig.nodes[nodeId]) return;
+    config.talentsConfig.nodes[nodeId].nodeType = newType;
+    renderTalentMapper();
+    showTalentNodeEditor(nodeId);
+    if (typeof renderTalentCreator === 'function') renderTalentCreator();
+};
 
 window.submitBugReply = function(id, source) {
     const inputEl = document.getElementById(`reply-input-${id}-${source}`);
