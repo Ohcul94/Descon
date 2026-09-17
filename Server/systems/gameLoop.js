@@ -495,9 +495,13 @@ function startGameLoop(io, state, aiManager) {
             }
 
             const timeSinceCombat = now - (p.lastCombatTime || 0);
-            if (timeSinceCombat > 10000 && !p.isAsleep && !p.isDead) { // 10s fuera de combate, no dormido y no muerto
-                const regenAmount = p.maxHp * 0.05;
-                const shieldRegen = p.maxShield * 0.08;
+            if (timeSinceCombat > 10000 && !p.isAsleep && !p.isDead) {
+                // Bonuses de talentos para regen (si existen)
+                const tb = p._talentBonuses || {};
+                const hpRegenMult = 1.0 + (tb.hp_regen || 0);
+                const shRegenMult = 1.0 + (tb.shield_regen || 0);
+                const regenAmount = p.maxHp * 0.05 * hpRegenMult;
+                const shieldRegen = p.maxShield * 0.08 * shRegenMult;
 
                 if (p.hp < p.maxHp) {
                     p.hp = Math.min(p.maxHp, p.hp + regenAmount);

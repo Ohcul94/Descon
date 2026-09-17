@@ -12111,50 +12111,78 @@
         }
     },
     "talentsConfig": {
-        "connections": [],
+        "connections": [
+            {
+                "from": "talent_1789670530374",
+                "to": "eng_1"
+            },
+            {
+                "from": "talent_1789670520551",
+                "to": "com_1"
+            },
+            {
+                "from": "talent_1789670530374",
+                "to": "eng_2"
+            }
+        ],
         "nodes": {
-            "eng_1": {
-                "x": -2,
-                "y": 66,
+            "talent_1789670520551": {
+                "x": 1,
+                "y": 81,
                 "nodeType": "keystone"
             },
-            "eng_2": {
-                "x": 61,
+            "talent_1789670530374": {
+                "x": -81,
                 "y": 0,
                 "nodeType": "keystone"
             },
-            "eng_3": {
-                "x": -65,
-                "y": 2,
+            "talent_1789670540532": {
+                "x": 0,
+                "y": -81,
                 "nodeType": "keystone"
             },
-            "eng_4": {
-                "x": -2,
-                "y": -65,
+            "talent_1789670570933": {
+                "x": 81,
+                "y": 0,
                 "nodeType": "keystone"
+            },
+            "com_1": {
+                "x": 1,
+                "y": 190,
+                "nodeType": "notable"
+            },
+            "eng_1": {
+                "x": -190,
+                "y": 60,
+                "nodeType": "notable"
+            },
+            "eng_2": {
+                "x": -186,
+                "y": -58,
+                "nodeType": "notable"
             }
         },
         "talents": [
             {
                 "category": "engineering",
-                "desc": "+2% HP por nivel",
+                "desc": "+10% HP por nivel",
                 "effects": {
-                    "hp_pct": 0.02
+                    "hp_pct": 0.1
                 },
                 "icon": "🛡️",
                 "id": "eng_1",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "name": "REFUERZO DE CASCO"
             },
             {
                 "category": "engineering",
-                "desc": "+2% Escudo por nivel",
+                "desc": "+10% Escudo por nivel",
                 "effects": {
-                    "sh_pct": 0.02
+                    "sh_pct": 0.1
                 },
                 "icon": "🔵",
                 "id": "eng_2",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "name": "ESCUDO DINÁMICO"
             },
             {
@@ -12165,7 +12193,7 @@
                 },
                 "icon": "🔧",
                 "id": "eng_3",
-                "maxLevel": 5,
+                "maxLevel": 2,
                 "name": "REGEN EMERGENGIA"
             },
             {
@@ -12178,39 +12206,6 @@
                 "id": "eng_4",
                 "maxLevel": 5,
                 "name": "CAPACITOR OHCU"
-            },
-            {
-                "category": "engineering",
-                "desc": "+1% Armadura total",
-                "effects": {
-                    "armor_pct": 0.01
-                },
-                "icon": "⚙️",
-                "id": "eng_5",
-                "maxLevel": 5,
-                "name": "PLACAS NANOBOTS"
-            },
-            {
-                "category": "engineering",
-                "desc": "+3% Eficiencia Energía",
-                "effects": {
-                    "energy_efficiency": 0.03
-                },
-                "icon": "⚛️",
-                "id": "eng_6",
-                "maxLevel": 5,
-                "name": "REACTOR FUSIÓN"
-            },
-            {
-                "category": "engineering",
-                "desc": "-5% Costo Reparación",
-                "effects": {
-                    "repair_cost_reduction": 0.05
-                },
-                "icon": "💸",
-                "id": "eng_7",
-                "maxLevel": 5,
-                "name": "MANTE GALÁCTICO"
             },
             {
                 "category": "engineering",
@@ -12236,50 +12231,6 @@
             },
             {
                 "category": "combat",
-                "desc": "+2% Prob. Crítico",
-                "effects": {
-                    "crit_chance": 0.02
-                },
-                "icon": "🎯",
-                "id": "com_2",
-                "maxLevel": 5,
-                "name": "MIRILLA TÁCTICA"
-            },
-            {
-                "category": "combat",
-                "desc": "+5% Daño Crítico",
-                "effects": {
-                    "crit_dmg": 0.05
-                },
-                "icon": "🔥",
-                "id": "com_3",
-                "maxLevel": 5,
-                "name": "FURIA DEL PILOTO"
-            },
-            {
-                "category": "combat",
-                "desc": "+5% Bonus Munición",
-                "effects": {
-                    "ammo_bonus_pct": 0.05
-                },
-                "icon": "💣",
-                "id": "com_4",
-                "maxLevel": 5,
-                "name": "CARGA PROYECTIL"
-            },
-            {
-                "category": "combat",
-                "desc": "+2% Puntería",
-                "effects": {
-                    "accuracy_pct": 0.02
-                },
-                "icon": "👁️",
-                "id": "com_5",
-                "maxLevel": 5,
-                "name": "DISPARO PRECISIÓN"
-            },
-            {
-                "category": "combat",
                 "desc": "+3% Ignorar Escudo",
                 "effects": {
                     "ignore_shield_pct": 0.03
@@ -12299,17 +12250,6 @@
                 "id": "com_7",
                 "maxLevel": 5,
                 "name": "CADENCIA MILITAR"
-            },
-            {
-                "category": "combat",
-                "desc": "+1% Evasión en Combate",
-                "effects": {
-                    "evasion_pct": 0.01
-                },
-                "icon": "🛡️",
-                "id": "com_8",
-                "maxLevel": 5,
-                "name": "BLINDAJE ATAQUE"
             },
             {
                 "category": "science",
@@ -12379,17 +12319,6 @@
             },
             {
                 "category": "science",
-                "desc": "+5% Loot de Bosses",
-                "effects": {
-                    "boss_loot_bonus": 0.05
-                },
-                "icon": "🔬",
-                "id": "sci_7",
-                "maxLevel": 5,
-                "name": "SENSORES PRECI"
-            },
-            {
-                "category": "science",
                 "desc": "+10% Distancia Dash",
                 "effects": {
                     "dash_distance": 0.1
@@ -12398,6 +12327,42 @@
                 "id": "sci_8",
                 "maxLevel": 5,
                 "name": "SALTO HIPERESP"
+            },
+            {
+                "id": "talent_1789670520551",
+                "name": "ATAQUE",
+                "desc": "",
+                "category": "engineering",
+                "maxLevel": 1,
+                "effects": {},
+                "icon": "🌳"
+            },
+            {
+                "id": "talent_1789670530374",
+                "name": "DEFENSA",
+                "desc": "",
+                "category": "engineering",
+                "maxLevel": 1,
+                "effects": {},
+                "icon": "🌳"
+            },
+            {
+                "id": "talent_1789670540532",
+                "name": "CURACION",
+                "desc": "",
+                "category": "engineering",
+                "maxLevel": 1,
+                "effects": {},
+                "icon": "🌳"
+            },
+            {
+                "id": "talent_1789670570933",
+                "name": "UTILIDAD",
+                "desc": "",
+                "category": "engineering",
+                "maxLevel": 1,
+                "effects": {},
+                "icon": "🌳"
             }
         ]
     },

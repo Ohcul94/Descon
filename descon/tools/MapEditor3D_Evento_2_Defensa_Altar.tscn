@@ -360,6 +360,7 @@ material = ExtResource("4_gygkr")
 data_directory = "res://assets/Mapas/Defensa_Altar"
 material = SubResource("Terrain3DMaterial_axxgv")
 assets = SubResource("Terrain3DAssets_bft01")
+free_editor_textures = false
 top_level = true
 metadata/_edit_lock_ = true
 

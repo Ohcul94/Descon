@@ -1,6 +1,7 @@
 const User = require('../models/User');
-const { getPlayerRAMAdapter } = require('../utils/ramAdapter'); // v6.02
+const { getPlayerRAMAdapter } = require('../utils/ramAdapter');
 const Logger = require('../utils/logger');
+const { calculateFinalStats } = require('../systems/statCalculator');
 
 function registerSkillHandlers(socket, io, state) {
     const { players } = state;
@@ -61,6 +62,9 @@ function registerSkillHandlers(socket, io, state) {
             players[socket.id].skillTree = user.gameData.skillTree;
             players[socket.id].skillPoints = user.gameData.skillPoints;
             
+            // Recalcular stats con bonuses de talentos
+            calculateFinalStats(players[socket.id], state.SERVER_CONFIG);
+            
             await user.save();
             Logger.debug('DATABASE', `Talento '${cat}' [${idx}] guardado para ${user.username}. Restantes: ${user.gameData.skillPoints}`);
             
@@ -114,6 +118,9 @@ function registerSkillHandlers(socket, io, state) {
             players[socket.id].skillTree = user.gameData.skillTree;
             players[socket.id].skillPoints = user.gameData.skillPoints;
             players[socket.id].ohcu = user.gameData.ohcu;
+            
+            // Recalcular stats después de resetear
+            calculateFinalStats(players[socket.id], state.SERVER_CONFIG);
             
             await user.save();
             Logger.debug('DATABASE', `Árbol de habilidades reseteado para ${user.username}. Puntos devueltos: ${spent}`);

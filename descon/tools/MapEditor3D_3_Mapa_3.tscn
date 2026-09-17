@@ -151,6 +151,7 @@ environment = SubResource("Environment_1")
 data_directory = "res://assets/Mapas/Mapa3/Terreno"
 material = SubResource("Terrain3DMaterial_mvx5v")
 assets = SubResource("Terrain3DAssets_d7lmv")
+free_editor_textures = false
 top_level = true
 metadata/_edit_lock_ = true
 

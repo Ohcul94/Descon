@@ -339,6 +339,8 @@ static func get_or_create_terrain_texture(zone_id: String, worldW: float, worldH
 					var sc_res = load(p)
 					if sc_res:
 						temp_scene_to_free = sc_res.instantiate()
+						# Desactivar free_editor_textures antes de entrar al árbol para evitar warning de Assets no guardados en archivo
+						_disable_free_editor_textures_recursive(temp_scene_to_free)
 						# Necesario que entre al árbol para que Terrain3D inicialice storage/data de disco
 						tree.root.add_child(temp_scene_to_free)
 						terrain_node = temp_scene_to_free.find_child("Terrain3D", true, false)
@@ -652,3 +654,11 @@ func _on_canvas_draw():
 		canvas.draw_string(font, c.pos - Vector2(4, -4), c.label, HORIZONTAL_ALIGNMENT_CENTER, -1, 10, Color(0.0, 1.0, 1.0, 0.75))
 
 	canvas.draw_set_transform(Vector2.ZERO)
+
+static func _disable_free_editor_textures_recursive(node: Node) -> void:
+	if not is_instance_valid(node):
+		return
+	if "free_editor_textures" in node:
+		node.set("free_editor_textures", false)
+	for child in node.get_children():
+		_disable_free_editor_textures_recursive(child)

@@ -1,8 +1,54 @@
 /**
  * statCalculator.js
- * Calcula las estadísticas finales de un jugador sumando base + ítems + habilidades.
+ * Calcula las estadísticas finales de un jugador sumando base + ítems + talentos.
+ * v2.0: Soporte dinámico para árbol visual de talentos.
  */
-const security = require('../utils/security'); // v6.03 - Centralización de Admin
+const security = require('../utils/security');
+
+/**
+ * Calcula los bonuses de talentos desde el skillTree y talentsConfig.
+ * Todos los valores se guardan como decimal (0.02 = 2% por nivel).
+ */
+function getTalentBonuses(skillTree, talentsConfig) {
+    const bonuses = {
+        hp_pct: 0, sh_pct: 0, dmg_pct: 0, speed_pct: 0,
+        hp_regen: 0, shield_regen: 0, armor_pct: 0,
+        energy_efficiency: 0, stability: 0,
+        crit_chance: 0, crit_dmg: 0,
+        fire_rate_pct: 0, evasion_pct: 0,
+        cooldown_reduction: 0, cooldown_reduction_flat: 0,
+        cast_time_reduction: 0, cast_time_reduction_flat: 0,
+        ignore_shield_pct: 0, accuracy_pct: 0,
+        ammo_bonus_pct: 0, laser_dmg_pct: 0,
+        repair_cost_reduction: 0, minimap_range: 0,
+        ohcu_kill_bonus: 0, shop_discount: 0,
+        group_bonus: 0, boss_loot_bonus: 0,
+        dash_distance: 0
+    };
+
+    if (!skillTree || !talentsConfig || !Array.isArray(talentsConfig.talents)) {
+        return bonuses;
+    }
+
+    const talents = talentsConfig.talents;
+    for (const t of talents) {
+        const cat = t.category || '';
+        const branch = skillTree[cat] || [];
+        const talentsInCat = talents.filter(x => x.category === cat);
+        const idx = talentsInCat.indexOf(t);
+        if (idx === -1 || idx >= branch.length) continue;
+        const lvl = branch[idx] || 0;
+        if (lvl <= 0) continue;
+        const effects = t.effects || {};
+        for (const [key, val] of Object.entries(effects)) {
+            if (bonuses.hasOwnProperty(key)) {
+                bonuses[key] += val * lvl;
+            }
+        }
+    }
+
+    return bonuses;
+}
 
 function calculateFinalStats(player, config) {
     if (!player || !config) return;
@@ -23,23 +69,20 @@ function calculateFinalStats(player, config) {
         baseSpeed = model.speed || 400;
     }
 
-    // 2. Sumar ítems equipados y modificadores (porcentuales y planos)
+    // 2. Sumar ítems equipados y modificadores
     let itemHp = 0;
     let itemShield = 0;
     let itemSpeed = 0;
-    let hpModFlat = 0;       // de Armas (w) y Motores (e), tipo "flat"
-    let hpModPct = 0;        // de Armas (w) y Motores (e), tipo "percent"
-    let speedModFlat = 0;    // de Armas (w) y Motores (e), tipo "flat"
-    let speedModPct = 0;     // de Armas (w) y Motores (e), tipo "percent"
-    let shieldModFlat = 0;   // de Escudos (s), tipo "flat"
-    let shieldModPct = 0;    // de Escudos (s), tipo "percent"
+    let hpModFlat = 0;
+    let hpModPct = 0;
+    let speedModFlat = 0;
+    let speedModPct = 0;
+    let shieldModFlat = 0;
+    let shieldModPct = 0;
 
-    // Helper para leer modificador desde el ítem o desde el master config (fallback)
-    // Solo hace fallback si el campo NO existe en el ítem (ítems viejos pre-cambio)
     function readMod(item, fieldName, masterList) {
         if (masterList) {
             const master = masterList.find(m => String(m.id) === String(item.id));
-            // v620.0: Ojito de visibilidad — ítems hidden no aportan modificadores (excepto admins)
             if (master && master.hidden && !isAdmin) return { val: 0, type: 'percent' };
             if (master && master[fieldName] !== undefined) {
                 return {
@@ -57,7 +100,6 @@ function calculateFinalStats(player, config) {
         return { val: 0, type: 'percent' };
     }
 
-    // v620.0: Ojito de visibilidad — ítems hidden no aportan base (excepto admins)
     function isHiddenItem(item, masterList) {
         if (!masterList) return false;
         const master = masterList.find(m => String(m.id) === String(item.id));
@@ -65,7 +107,6 @@ function calculateFinalStats(player, config) {
     }
 
     if (player.equipped) {
-        // Armas (Slot 'w') - base ataque | modifica Velocidad y Vida
         if (Array.isArray(player.equipped.w)) {
             const masterWeapons = config?.shopItems?.weapons;
             player.equipped.w.forEach(item => {
@@ -78,7 +119,6 @@ function calculateFinalStats(player, config) {
                 else hpModPct += hp.val;
             });
         }
-        // Escudos (Slot 's') - base escudo | modifica Vida y Velocidad
         if (Array.isArray(player.equipped.s)) {
             const masterShields = config?.shopItems?.shields;
             player.equipped.s.forEach(item => {
@@ -92,7 +132,6 @@ function calculateFinalStats(player, config) {
                 else speedModPct += sp.val;
             });
         }
-        // Motores (Slot 'e') - base velocidad | modifica Escudo y Vida
         if (Array.isArray(player.equipped.e)) {
             const masterEngines = config?.shopItems?.engines;
             player.equipped.e.forEach(item => {
@@ -106,7 +145,6 @@ function calculateFinalStats(player, config) {
                 else hpModPct += hp.val;
             });
         }
-        // Módulos extra (Slot 'x') - base vida
         if (Array.isArray(player.equipped.x)) {
             const masterExtras = config?.shopItems?.extra;
             player.equipped.x.forEach(item => {
@@ -116,36 +154,37 @@ function calculateFinalStats(player, config) {
         }
     }
 
-    // 3. Aplicar Bonificaciones de Habilidades (Skill Tree)
-    // Engineering[0] = HP %, Engineering[1] = Shield %
-    const eng = player.skillTree?.engineering || [0, 0, 0, 0, 0, 0, 0, 0];
-    const hpBonus = 1.0 + ((eng[0] || 0) * 0.02); // 2% por punto
-    const shBonus = 1.0 + ((eng[1] || 0) * 0.02); // 2% por punto
+    // 3. Bonificaciones de Talentos (dinámico desde config)
+    const talentsConfig = config?.talentsConfig;
+    const skillTree = player.skillTree || { engineering: [0,0,0,0,0,0,0,0], combat: [0,0,0,0,0,0,0,0], science: [0,0,0,0,0,0,0,0] };
+    const talentBonuses = getTalentBonuses(skillTree, talentsConfig);
 
-    // 4. Aplicar Modificadores de Equipamiento (flat y percent)
+    // 4. Aplicar Modificadores de Equipamiento
     const hpModMult = 1.0 + (hpModPct / 100);
     const speedModMult = 1.0 + (speedModPct / 100);
     const shieldModMult = 1.0 + (shieldModPct / 100);
 
-    // 5. Calcular Totales Finales
-    player.maxHp = Math.round((baseHp + itemHp + hpModFlat) * hpBonus * hpModMult);
-    player.maxShield = Math.round((baseShield + itemShield + shieldModFlat) * shBonus * shieldModMult);
+    // 5. Calcular Totales Finales (base + items) * (1 + talent_bonus) * (1 + item_mod)
+    player.maxHp = Math.round((baseHp + itemHp + hpModFlat) * (1.0 + talentBonuses.hp_pct) * hpModMult);
+    player.maxShield = Math.round((baseShield + itemShield + shieldModFlat) * (1.0 + talentBonuses.sh_pct) * shieldModMult);
     
-    let currentSpeed = (baseSpeed + itemSpeed + speedModFlat) * speedModMult;
+    let currentSpeed = (baseSpeed + itemSpeed + speedModFlat) * speedModMult * (1.0 + talentBonuses.speed_pct);
     if (player.electronSpeedBuffEndTime && player.electronSpeedBuffEndTime > Date.now()) {
         const bonusPct = (player.electronSpeedBuffPct || 0) / 100;
         const stacks = player.electronSpeedBuffStacks || 1;
-        currentSpeed = Math.round(currentSpeed * (1.0 + (bonusPct * stacks)));
+        currentSpeed = currentSpeed * (1.0 + (bonusPct * stacks));
     }
     player.speed = Math.round(currentSpeed);
 
-    // Sanity Check: Mantener vida actual dentro de los límites
+    // 6. Guardar talent bonuses para uso en gameLoop (regen, etc.)
+    player._talentBonuses = talentBonuses;
+
+    // Sanity Check
     if (player.hp > player.maxHp) player.hp = player.maxHp;
     if (player.shield > player.maxShield) player.shield = player.maxShield;
 
-    // Guardar bases para referencia si es necesario
     player.baseHp = baseHp;
     player.baseShield = baseShield;
 }
 
-module.exports = { calculateFinalStats };
+module.exports = { calculateFinalStats, getTalentBonuses };

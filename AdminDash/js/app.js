@@ -3078,7 +3078,7 @@ window.cmUpdateEffectKey = function(i, newKey) {
 };
 
 window.cmUpdateEffectVal = function(i, newVal) {
-    window._cmEffects[i].val = parseFloat(newVal) || 0;
+    window._cmEffects[i].val = (parseFloat(newVal) || 0) / 100;
 };
 
 function cmRenderEffects() {
@@ -3100,7 +3100,7 @@ function cmRenderEffects() {
             <select style="flex:1; background:transparent; border:none; color:white; font-size:0.78rem;" onchange="cmUpdateEffectKey(${i}, this.value)">
                 ${allKeys.map(opt => `<option value="${opt.k}" ${e.key===opt.k?'selected':''}>${opt.l}</option>`).join('')}
             </select>
-            <input type="number" step="0.001" value="${e.val}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="cmUpdateEffectVal(${i}, this.value)">
+            <input type="number" step="0.1" value="${(e.val * 100).toFixed(1).replace(/\.0$/,'')}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="cmUpdateEffectVal(${i}, this.value)">
             <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="cmRemoveEffect(${i})">✕</button>
         </div>
     `).join('');

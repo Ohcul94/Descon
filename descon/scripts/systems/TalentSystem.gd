@@ -1,6 +1,6 @@
 extends Node
 
-# TalentSystem.gd (v2.0 - Visual Tree Support)
+# TalentSystem.gd (v2.1 - Full Effect Support)
 # Gestiona la lógica de talentos y la sincronización con el servidor.
 # Soporta árbol visual con nodes, connections, nodeType, etc.
 
@@ -20,15 +20,32 @@ var talents_visual_config: Dictionary = {}
 func _ready():
 	add_to_group("talent_system")
 	if NetworkManager:
+		# Conectar eventos de datos
 		if not NetworkManager.inventory_data.is_connected(_on_inventory_data):
 			NetworkManager.inventory_data.connect(_on_inventory_data)
 		if not NetworkManager.login_success.is_connected(_on_inventory_data):
 			NetworkManager.login_success.connect(_on_inventory_data)
-		# Cargar config visual del servidor
-		if NetworkManager.server_config:
+		# CRÍTICO: Conectar config_updated para recibir talentsConfig
+		if not NetworkManager.config_updated.is_connected(_on_config_updated):
+			NetworkManager.config_updated.connect(_on_config_updated)
+		if not NetworkManager.admin_config_updated.is_connected(_on_config_updated):
+			NetworkManager.admin_config_updated.connect(_on_config_updated)
+		# Intentar cargar config visual si ya está disponible
+		if NetworkManager.server_config and NetworkManager.server_config.size() > 0:
 			talents_visual_config = NetworkManager.server_config.get("talentsConfig", {})
+			print("[TALENT-SYS] Config visual cargada al inicio: ", talents_visual_config.size() > 0)
 	
-	print("[TALENT-SYS] Sistema v2.0 listo.")
+	print("[TALENT-SYS] Sistema v2.1 listo.")
+
+func _on_config_updated(config: Dictionary):
+	if config.has("talentsConfig"):
+		talents_visual_config = config["talentsConfig"]
+		print("[TALENT-SYS] Config visual actualizada via config_updated: ", talents_visual_config.size(), " keys")
+		talents_updated.emit()
+		# Recalcular stats del jugador
+		var p = get_tree().get_first_node_in_group("player")
+		if is_instance_valid(p) and p.has_method("_recalculate_stats"):
+			p._recalculate_stats()
 
 func _on_inventory_data(data: Dictionary):
 	var source = "InventoryData"
@@ -51,7 +68,7 @@ func _on_inventory_data(data: Dictionary):
 		unlocks = data["unlocks"]
 		print("[TALENT-SYS] Desbloqueos actualizados: ", unlocks.size())
 	
-	# Actualizar config visual si viene en los datos
+	# Intentar cargar config visual si viene en los datos
 	if data.has("talentsVisualConfig"):
 		talents_visual_config = data["talentsVisualConfig"]
 	
@@ -95,15 +112,28 @@ func get_talent_config() -> Dictionary:
 # ═══════════════════════════════════════════════════════
 
 func get_bonuses() -> Dictionary:
-	var bonuses = { "hp_pct": 0.0, "sh_pct": 0.0, "dmg_pct": 0.0, "speed_pct": 0.0 }
-	if typeof(skill_tree) != TYPE_DICTIONARY: return bonuses
+	var bonuses = {
+		"hp_pct": 0.0, "sh_pct": 0.0, "dmg_pct": 0.0, "speed_pct": 0.0,
+		"hp_regen": 0.0, "shield_regen": 0.0, "armor_pct": 0.0,
+		"energy_efficiency": 0.0, "stability": 0.0,
+		"crit_chance": 0.0, "crit_dmg": 0.0,
+		"fire_rate_pct": 0.0, "evasion_pct": 0.0,
+		"cooldown_reduction": 0.0, "cooldown_reduction_flat": 0.0,
+		"cast_time_reduction": 0.0, "cast_time_reduction_flat": 0.0,
+		"ignore_shield_pct": 0.0, "accuracy_pct": 0.0,
+		"ammo_bonus_pct": 0.0, "laser_dmg_pct": 0.0,
+		"repair_cost_reduction": 0.0, "minimap_range": 0.0,
+		"ohcu_kill_bonus": 0.0, "shop_discount": 0.0,
+		"group_bonus": 0.0, "boss_loot_bonus": 0.0,
+		"dash_distance": 0.0
+	}
+	if typeof(skill_tree) != TYPE_DICTIONARY:
+		return bonuses
 	
-	# Intentar usar la config visual para calcular bonos dinámicamente
 	var tc = talents_visual_config
 	var talents_list = tc.get("talents", [])
 	
 	if talents_list.size() > 0:
-		# Calcular bonos desde la config visual
 		for t in talents_list:
 			var cat = t.get("category", "")
 			var branch = skill_tree.get(cat, [])
@@ -119,14 +149,6 @@ func get_bonuses() -> Dictionary:
 				var val = effects[key] * lvl
 				if bonuses.has(key):
 					bonuses[key] += val
-				elif key == "hp_pct":
-					bonuses["hp_pct"] += val
-				elif key == "sh_pct":
-					bonuses["sh_pct"] += val
-				elif key == "laser_dmg_pct" or key == "dmg_pct":
-					bonuses["dmg_pct"] += val
-				elif key == "speed_pct":
-					bonuses["speed_pct"] += val
 		return bonuses
 	
 	# Fallback: cálculo hardcoded (compatibilidad con configs viejas)

@@ -2512,7 +2512,7 @@ window.renderTalentCreator = function() {
                                     <option value="boss_loot_bonus" ${key==='boss_loot_bonus'?'selected':''}>Loot Bosses (+%)</option>
                                     <option value="dash_distance" ${key==='dash_distance'?'selected':''}>Distancia Dash (+%)</option>
                                 </select>
-                                <input type="number" step="0.001" value="${val}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = parseFloat(this.value)">
+                                <input type="number" step="0.01" value="${(val * 100).toFixed(1).replace(/\.0$/,'')}" style="width:85px; text-align:right; font-size:0.78rem; padding:4px;" onchange="config.talentsConfig.talents[${idx}].effects['${key}'] = parseFloat(this.value) / 100">
                                 <button style="background:none; border:none; color:#ff4444; cursor:pointer; font-size:0.85rem;" onclick="deleteTalentEffect(${idx}, '${key}')">✕</button>
                             </div>
                         `).join('')}

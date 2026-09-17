@@ -844,7 +844,7 @@ func _update_tooltip(screen_pos: Vector2):
 
 	# Barra de progreso visual
 	var bar_len = 10
-	var filled = int(float(saved) / float(max_lvl) * bar_len) if max_lvl > 0 else 0
+	var filled = clampi(int(float(saved) / float(max_lvl) * bar_len) if max_lvl > 0 else 0, 0, bar_len)
 	var bar = "[color=#2a3a4a]" + "●".repeat(bar_len) + "[/color]"
 	if filled > 0:
 		bar = "[color=#10b981]" + "●".repeat(filled) + "[/color][color=#2a3a4a]" + "●".repeat(bar_len - filled) + "[/color]"

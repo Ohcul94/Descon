@@ -402,6 +402,9 @@ func _process(delta):
 	# v311.3: Culling masivo de procesamiento para naves lejanas fuera de pantalla
 	if not is_in_group("player"):
 		if not screen_visible:
+			# v1000.6: Prevenir penetración de montaña incluso fuera de pantalla
+			if is_in_group("enemies") and not is_dead:
+				_prevent_terrain_mountain_crossing_enemy(delta)
 			# Actualizar posición física 2D de inmediato (evita que queden clavadas en 0,0) (v311.6)
 			global_position = target_position
 			rotation = target_rotation
@@ -421,6 +424,9 @@ func _process(delta):
 		else:
 			if get_meta("_was_screen_visible", true) == false:
 				set_meta("_was_screen_visible", true)
+				# v1000.6: Prevenir incrustación al entrar a pantalla
+				if is_in_group("enemies") and not is_dead:
+					_prevent_terrain_mountain_crossing_enemy(delta)
 				# Posicionar inmediatamente para evitar teleportación tardía visual
 				global_position = target_position
 				rotation = target_rotation
@@ -458,7 +464,16 @@ func _process(delta):
 	# 1. Interpolación de posición de red
 	if not is_in_group("player") and not is_teleporting:
 		var weight = 1.0 - pow(0.01, delta) # v310.2: Suavizado balanceado
+		
+		# v1000.6: Bloqueo de colisión de terreno 3D idéntico al jugador
+		if is_in_group("enemies") and not is_dead:
+			_prevent_terrain_mountain_crossing_enemy(delta)
+			
 		global_position = global_position.lerp(target_position, weight)
+		
+		# Verificación de seguridad post-lerp para impedir micro-incrustaciones
+		if is_in_group("enemies") and not is_dead:
+			_ensure_outside_terrain_wall()
 		
 		# Suavizado de rotación respetando bloqueos tácticos
 		var can_rotate = true
@@ -3814,3 +3829,136 @@ func _on_3d_animation_finished(_anim_name: String) -> void:
 			_current_idle_idx = (_current_idle_idx + 1) % _idle_anims_list.size()
 			var next_anim = _idle_anims_list[_current_idle_idx].strip_edges()
 			_play_3d_anim(next_anim)
+
+## v1000.6: Bloqueo dinámico de avance contra elevaciones del Terrain3D para enemigos (muro infranqueable)
+## Replica exactamente la dinámica del Player (_prevent_terrain_mountain_crossing):
+## - Muestreo dinámico de altura y gradiente con umbral configurable
+## - Expulsión cuesta abajo si queda sobre cota alta (cur_h >= threshold)
+## - Sondeo frontal multi-punto (centro, ala izquierda, ala derecha, y avance)
+## - Deslizamiento tangencial (slide) a lo largo de la ladera montañosa
+## - Deslizamiento ortogonal independiente (X / Y)
+## - Bloqueo total si la montaña es perpendicular o infranqueable
+func _prevent_terrain_mountain_crossing_enemy(_delta: float = -1.0) -> void:
+	var map_node = null
+	var p_node = get_parent()
+	if is_instance_valid(p_node) and "current_map_node" in p_node and is_instance_valid(p_node.current_map_node):
+		map_node = p_node.current_map_node
+	else:
+		map_node = _get_map_node()
+		
+	if not is_instance_valid(map_node) or not map_node.has_method("get_terrain_height_at_pos"):
+		return
+		
+	# Lectura dinámica del umbral idéntica a Player.gd
+	var threshold = 0.8
+	if "terrain_collision_height_threshold" in map_node and map_node.terrain_collision_height_threshold > 0.0:
+		threshold = float(map_node.terrain_collision_height_threshold)
+	elif "max_ship_terrain_height" in map_node and map_node.max_ship_terrain_height > 0.0:
+		threshold = float(map_node.max_ship_terrain_height)
+	elif "terrain_height_threshold" in map_node and map_node.terrain_height_threshold > 0.0:
+		threshold = float(map_node.terrain_height_threshold)
+		
+	if GameConstants and "GAME_CONFIG" in GameConstants and GameConstants.GAME_CONFIG is Dictionary:
+		if GameConstants.GAME_CONFIG.has("terrainHeightThreshold"):
+			threshold = float(GameConstants.GAME_CONFIG.terrainHeightThreshold)
+		elif GameConstants.GAME_CONFIG.has("maxTerrainHeight"):
+			threshold = float(GameConstants.GAME_CONFIG.maxTerrainHeight)
+			
+	var cur_h = map_node.get_terrain_height_at_pos(global_position)
+	var step = 16.0
+	var h_px = map_node.get_terrain_height_at_pos(global_position + Vector2(step, 0))
+	var h_nx = map_node.get_terrain_height_at_pos(global_position + Vector2(-step, 0))
+	var h_py = map_node.get_terrain_height_at_pos(global_position + Vector2(0, step))
+	var h_ny = map_node.get_terrain_height_at_pos(global_position + Vector2(0, -step))
+	var grad = Vector2(h_px - h_nx, h_py - h_ny) # Vector gradiente que apunta hacia la cima de la montaña
+	
+	# 1. Si ya estamos en o sobre la cota de la montaña, expulsar suavemente cuesta abajo (idéntico a Player)
+	if cur_h >= threshold:
+		if grad.length_squared() > 0.0001:
+			var downhill = -grad.normalized()
+			global_position += downhill * 3.0
+		else:
+			for angle_deg in [0, 45, 90, 135, 180, 225, 270, 315]:
+				var dir_rad = deg_to_rad(angle_deg)
+				var test_p = global_position + Vector2(cos(dir_rad), sin(dir_rad)) * 32.0
+				if map_node.get_terrain_height_at_pos(test_p) < threshold:
+					global_position += Vector2(cos(dir_rad), sin(dir_rad)) * 4.0
+					break
+		target_position = global_position
+		return
+		
+	# 2. Vector de avance deseado hacia target_position
+	var move_disp = target_position - global_position
+	var dist = move_disp.length()
+	if dist <= 0.5:
+		return
+		
+	var move_dir = move_disp / dist
+	var perp_dir = Vector2(-move_dir.y, move_dir.x)
+	
+	# Envergadura según tipo de entidad (bosses tienen envergadura mayor)
+	var wingspan = 24.0 if entity_type >= 101 else 16.0
+	var probe_dist = max(34.0, min(dist, 75.0))
+	
+	# Sondeo de 4 puntos frontales (centro, izquierda, derecha, y punto medio de avance)
+	var p_center = global_position + move_dir * probe_dist
+	var p_left = global_position + (move_dir * probe_dist) + (perp_dir * wingspan)
+	var p_right = global_position + (move_dir * probe_dist) - (perp_dir * wingspan)
+	var p_mid = global_position + move_dir * (probe_dist * 0.5)
+	
+	var h_fc = map_node.get_terrain_height_at_pos(p_center)
+	var h_fl = map_node.get_terrain_height_at_pos(p_left)
+	var h_fr = map_node.get_terrain_height_at_pos(p_right)
+	var h_mid = map_node.get_terrain_height_at_pos(p_mid)
+	var max_forward_h = max(h_mid, max(h_fc, max(h_fl, h_fr)))
+	
+	# Verificar si target_position cae dentro de la elevación
+	var h_tgt = map_node.get_terrain_height_at_pos(target_position)
+	if h_tgt >= threshold:
+		max_forward_h = max(max_forward_h, h_tgt)
+		
+	if max_forward_h >= threshold:
+		# La montaña bloquea el avance frontal: intentar deslizamiento tangencial (slide) a lo largo de la ladera
+		if grad.length_squared() > 0.0001:
+			var wall_normal = -grad.normalized() # Normal apuntando hacia el terreno plano
+			var slide_vec = move_disp.slide(wall_normal)
+			if slide_vec.length_squared() > 1.0:
+				var slide_target = global_position + slide_vec.normalized() * probe_dist
+				if map_node.get_terrain_height_at_pos(slide_target) < threshold:
+					target_position = global_position + slide_vec.normalized() * min(dist, 60.0)
+					return
+		# Deslizamiento ortogonal independiente (X e Y)
+		if abs(move_disp.x) > 0.1:
+			var test_x = global_position + Vector2(sign(move_disp.x), 0) * probe_dist
+			if map_node.get_terrain_height_at_pos(test_x) < threshold:
+				target_position.y = global_position.y
+				return
+		if abs(move_disp.y) > 0.1:
+			var test_y = global_position + Vector2(0, sign(move_disp.y)) * probe_dist
+			if map_node.get_terrain_height_at_pos(test_y) < threshold:
+				target_position.x = global_position.x
+				return
+		# Bloqueo total: frenar avance en seco contra la pared montañosa
+		target_position = global_position
+
+func _ensure_outside_terrain_wall() -> void:
+	var map_node = _get_map_node()
+	if not is_instance_valid(map_node) or not map_node.has_method("get_terrain_height_at_pos"):
+		return
+	var threshold = 0.8
+	if "terrain_collision_height_threshold" in map_node and map_node.terrain_collision_height_threshold > 0.0:
+		threshold = float(map_node.terrain_collision_height_threshold)
+	elif "max_ship_terrain_height" in map_node and map_node.max_ship_terrain_height > 0.0:
+		threshold = float(map_node.max_ship_terrain_height)
+	elif "terrain_height_threshold" in map_node and map_node.terrain_height_threshold > 0.0:
+		threshold = float(map_node.terrain_height_threshold)
+	var cur_h = map_node.get_terrain_height_at_pos(global_position)
+	if cur_h >= threshold:
+		var step = 16.0
+		var h_px = map_node.get_terrain_height_at_pos(global_position + Vector2(step, 0))
+		var h_nx = map_node.get_terrain_height_at_pos(global_position + Vector2(-step, 0))
+		var h_py = map_node.get_terrain_height_at_pos(global_position + Vector2(0, step))
+		var h_ny = map_node.get_terrain_height_at_pos(global_position + Vector2(0, -step))
+		var grad = Vector2(h_px - h_nx, h_py - h_ny)
+		if grad.length_squared() > 0.0001:
+			global_position += (-grad.normalized()) * 3.0

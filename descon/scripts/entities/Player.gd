@@ -1187,6 +1187,9 @@ func _recalculate_stats():
 		max_shield = base_sh_val * (1.0 + bonuses["sh_pct"]) * shield_mod_mult
 		speed = base_speed_val * (1.0 + bonuses["speed_pct"]) * speed_mod_mult
 		base_laser_damage = (base_laser_damage * (1.0 + bonuses["dmg_pct"]) * dmg_mod_mult) + dmg_mod_flat
+		# Bonuses adicionales de talentos
+		hp_regen *= (1.0 + bonuses["hp_regen"])
+		sh_regen *= (1.0 + bonuses["shield_regen"])
 	else:
 		max_hp = base_hp_val * hp_mod_mult
 		max_shield = base_sh_val * shield_mod_mult

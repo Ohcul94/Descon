@@ -1908,8 +1908,26 @@ func _is_spawn_blocked_physics(pos: Vector2) -> bool:
 	var res = space.intersect_point(params, 1)
 	return res.size() > 0
 
+func _is_spawn_blocked_terrain(pos: Vector2) -> bool:
+	var map_node = get_tree().get_first_node_in_group("map")
+	if not is_instance_valid(map_node) or not map_node.has_method("get_terrain_height_at_pos"):
+		return false
+	var th = 0.8
+	if "terrain_collision_height_threshold" in map_node and map_node.terrain_collision_height_threshold > 0.0:
+		th = float(map_node.terrain_collision_height_threshold)
+	elif "max_ship_terrain_height" in map_node and map_node.max_ship_terrain_height > 0.0:
+		th = float(map_node.max_ship_terrain_height)
+	elif "terrain_height_threshold" in map_node and map_node.terrain_height_threshold > 0.0:
+		th = float(map_node.terrain_height_threshold)
+	if GameConstants and "GAME_CONFIG" in GameConstants and GameConstants.GAME_CONFIG is Dictionary:
+		if GameConstants.GAME_CONFIG.has("terrainHeightThreshold"):
+			th = float(GameConstants.GAME_CONFIG.terrainHeightThreshold)
+		elif GameConstants.GAME_CONFIG.has("maxTerrainHeight"):
+			th = float(GameConstants.GAME_CONFIG.maxTerrainHeight)
+	return map_node.get_terrain_height_at_pos(pos) >= th
+
 func _find_safe_spawn_near(blocked_pos: Vector2, search_radius: float = 260.0) -> Vector2:
-	# Búsqueda en anillos + muestreo aleatorio alrededor de blocked_pos usando física real.
+	# Búsqueda en anillos + muestreo aleatorio alrededor de blocked_pos usando física real y altura de terreno.
 	# Devuelve Vector2.INF si no se encuentra punto libre.
 	var rings = [0.25, 0.5, 0.85, 1.0]
 	for ring_frac in rings:
@@ -1917,13 +1935,13 @@ func _find_safe_spawn_near(blocked_pos: Vector2, search_radius: float = 260.0) -
 		for i in range(16):
 			var ang = (float(i) / 16.0) * TAU + ring_frac * 0.71
 			var candidate = blocked_pos + Vector2(cos(ang), sin(ang)) * r
-			if not _is_spawn_blocked_physics(candidate):
+			if not _is_spawn_blocked_physics(candidate) and not _is_spawn_blocked_terrain(candidate):
 				return candidate
 	for i in range(24):
 		var ang = randf() * TAU
 		var rr = sqrt(randf()) * search_radius
 		var candidate = blocked_pos + Vector2(cos(ang), sin(ang)) * rr
-		if not _is_spawn_blocked_physics(candidate):
+		if not _is_spawn_blocked_physics(candidate) and not _is_spawn_blocked_terrain(candidate):
 			return candidate
 	return Vector2.INF
 
@@ -1956,13 +1974,13 @@ func _on_enemy_updated(data):
 	if is_instance_valid(eref):
 		var new_pos = Vector2(data.get("x", eref.global_position.x), data.get("y", eref.global_position.y) if data.has("y") else eref.global_position.y)
 		var new_rot = data.get("rotation", eref.rotation)
-		# Safety client-side: si es spawn nuevo y el punto cae DENTRO de un collider 2D, recolocar visualmente
+		# Safety client-side: si es spawn nuevo y el punto cae DENTRO de un collider 2D o en montaña Terrain3D, recolocar visualmente
 		# (el servidor ya hace rejection sampling; esto es red de seguridad para desfases de config o mapas custom sin cache)
-		if is_new and _is_spawn_blocked_physics(new_pos):
+		if is_new and (_is_spawn_blocked_physics(new_pos) or _is_spawn_blocked_terrain(new_pos)):
 			var safe = _find_safe_spawn_near(new_pos, 280.0)
 			if safe != Vector2.INF:
 				new_pos = safe
-				print("[EntityManager] Spawn bloqueado corregido cliente: ", id, " -> ", safe)
+				print("[EntityManager] Spawn bloqueado o en montaña corregido cliente: ", id, " -> ", safe)
 			else:
 				print("[EntityManager] Spawn bloqueado sin alternativa libre: ", id, " @ ", new_pos)
 		eref.target_position = new_pos
