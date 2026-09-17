@@ -1,4 +1,0 @@
-extends Node
-
-func _ready():
-	print("SettingsManager" in get_tree().root)

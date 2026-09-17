@@ -88,7 +88,6 @@ var _bomb_radius: float = 150.0
 var poly_duration: float = 4.0
 var poly_can_move: bool = false
 var poly_can_use_skills: bool = false
-var _flight_height_y: float = -999.0
 
 func _ready():
 	add_to_group("projectiles")
@@ -1682,16 +1681,16 @@ func _physics_process(delta):
 		
 	# Detonar si el proyectil impacta contra una elevación del terreno (montaña)
 	if type != "electron" and not _has_hit:
-		var active_map = get_tree().get_first_node_in_group("map")
-		if is_instance_valid(active_map) and active_map.has_method("get_terrain_height_at_pos"):
-			var h_proj = active_map.get_terrain_height_at_pos(global_position)
+		var terrain_map = get_tree().get_first_node_in_group("map")
+		if is_instance_valid(terrain_map) and terrain_map.has_method("get_terrain_height_at_pos"):
+			var h_proj = terrain_map.get_terrain_height_at_pos(global_position)
 			var threshold = 0.8
-			if "terrain_collision_height_threshold" in active_map and active_map.terrain_collision_height_threshold > 0.0:
-				threshold = float(active_map.terrain_collision_height_threshold)
-			elif "max_ship_terrain_height" in active_map and active_map.max_ship_terrain_height > 0.0:
-				threshold = float(active_map.max_ship_terrain_height)
-			elif "terrain_height_threshold" in active_map and active_map.terrain_height_threshold > 0.0:
-				threshold = float(active_map.terrain_height_threshold)
+			if "terrain_collision_height_threshold" in terrain_map and terrain_map.terrain_collision_height_threshold > 0.0:
+				threshold = float(terrain_map.terrain_collision_height_threshold)
+			elif "max_ship_terrain_height" in terrain_map and terrain_map.max_ship_terrain_height > 0.0:
+				threshold = float(terrain_map.max_ship_terrain_height)
+			elif "terrain_height_threshold" in terrain_map and terrain_map.terrain_height_threshold > 0.0:
+				threshold = float(terrain_map.terrain_height_threshold)
 				
 			if h_proj >= threshold:
 				_has_hit = true
