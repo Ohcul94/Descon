@@ -314,9 +314,9 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 		add_child(_chain_visual)
 
 	if owner_type == "player" or owner_type == "remote":
-		collision_mask = 1 | 2 
+		collision_mask = 1 | 2  # Jugadores detectan layer 1 (player/obstáculos) y layer 2 (enemigos)
 	else:
-		collision_mask = 1 | 2
+		collision_mask = 1 | 2  # Enemigos también detectan otros enemigos (para despertar, sin hacer daño)
 		
 	if type == "spin_ring":
 		var map_node = get_tree().get_first_node_in_group("map")

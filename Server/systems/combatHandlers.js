@@ -636,7 +636,9 @@ socket.on('playerFire', (fireData) => {
         let maxAllowed = (weaponsBase * maxAmmoMult + dmgModFlat) * dmgModMult * talentDmgMult * 1.5;
         if (maxAllowed < 1000) maxAllowed = 1000;
         
-        let finalDamage = parseFloat(damage) || 100;
+        let finalDamage = (damage !== null && damage !== undefined && !isNaN(parseFloat(damage)))
+            ? parseFloat(damage)
+            : 100; // Fallback solo si damage es null/undefined/NaN, no si es 0 (wake-up sin daño)
         const isReflect = !!data.isReflect;
         if (finalDamage > maxAllowed && !p.isAdmin && !isReflect) {
             Logger.warn('SECURITY', `Daño PvE excedido de [${p.user}] a enemigo [${enemy.name}]: reportado ${finalDamage}, máx permitido ${Math.round(maxAllowed)} (base: ${weaponsBase}, mult: ${maxAmmoMult})`);
