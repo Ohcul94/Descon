@@ -46,8 +46,9 @@ function getTalentBonuses(skillTree, talentsConfig) {
         const branch = tree[cat] || [];
         const talentsInCat = talents.filter(x => x.category === cat);
         const idx = talentsInCat.indexOf(t);
-        if (idx === -1 || idx >= branch.length) continue;
-        const lvl = branch[idx] || 0;
+        const maxLvl = Number(t.maxLevel) || 5;
+        const rawLvl = Math.floor(Number(branch[idx]) || 0);
+        const lvl = Math.min(Math.max(0, rawLvl), maxLvl);
         if (lvl <= 0) continue;
         const effects = t.effects || {};
         for (const [key, val] of Object.entries(effects)) {

@@ -154,7 +154,7 @@ const { registerZoneHandlers } = require('./handlers/zoneHandler');
 const { registerMovementHandlers } = require('./handlers/movementHandler');
 const { registerVaultHandlers } = require('./systems/vaultHandlers');
 const { registerPartyHandlers } = require('./handlers/partyHandlers');
-const { registerSkillHandlers } = require('./handlers/skillHandlers');
+const { registerSkillHandlers, sanitizeSkillTree } = require('./handlers/skillHandlers');
 const { registerHousingHandlers } = require('./systems/housingHandlers');
 const { registerBattlePassHandlers } = require('./systems/battlePassHandlers');
 const { registerRankingHandlers } = require('./systems/rankingHandlers');
@@ -655,6 +655,9 @@ const handleUserLogin = async (socket, user, username) => {
             Object.assign(eByShipObj, user.gameData.equippedByShip);
         }
     }
+
+    // v300.95: Sanitizar autoritativamente árbol y puntos de talento del usuario al conectar
+    sanitizeSkillTree(user, state.SERVER_CONFIG?.talentsConfig);
 
     players[socket.id] = {
         id: dbId,

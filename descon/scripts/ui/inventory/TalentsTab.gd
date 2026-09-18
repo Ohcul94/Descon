@@ -677,9 +677,7 @@ func _draw_nodes():
 		var ccd = cat_colors_dark.get(cat, Color.DARK_BLUE)
 		var saved_lvl = _get_saved_level(node_id)
 		var pend = pending_points.get(node_id, 0)
-		var current_lvl = saved_lvl + pend
 		var max_lvl = int(talent.get("maxLevel", 5))
-		var is_maxed = current_lvl >= max_lvl
 		var is_locked = _is_node_locked(node_id)
 		var is_hovered = hovered_node_id == node_id
 		var alpha = 0.4 if is_locked else 1.0
@@ -1057,17 +1055,22 @@ func _try_remove_pending(node_id: String):
 
 func _check_connection_reqs(node_id: String, _extra_pend: int) -> bool:
 	# Verificar que al menos un nodo padre tenga nivel > 0 o pendientes
-	var _has_incoming = false
+	var has_incoming = false
+	var has_any_active_parent = false
 	for conn in connections_data:
 		if conn.get("to", "") == node_id:
-			_has_incoming = true
+			has_incoming = true
 			var from_id = conn.get("from", "")
 			var from_saved = _get_saved_level(from_id)
 			var from_pend = pending_points.get(from_id, 0)
-			if from_saved + from_pend <= 0:
-				return false
+			if from_saved + from_pend > 0:
+				has_any_active_parent = true
+				break
 
-	return true  # Si no tiene conexiones de entrada, está bien
+	if has_incoming and not has_any_active_parent:
+		return false
+
+	return true  # Si no tiene conexiones de entrada o al menos un padre está activo
 
 # ═══════════════════════════════════════════════════════
 # ACCIONES: GUARDAR / CANCELAR / RESETEAR

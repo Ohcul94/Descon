@@ -630,9 +630,10 @@ socket.on('playerFire', (fireData) => {
             });
         }
         const dmgModMult = 1.0 + (dmgModPct / 100);
+        const talentDmgMult = 1.0 + (p._talentBonuses?.laser_dmg_pct || 0) + (p._talentBonuses?.dmg_pct || 0);
 
         // Permitimos un 50% extra para críticos/buffs del cliente
-        let maxAllowed = (weaponsBase * maxAmmoMult + dmgModFlat) * dmgModMult * 1.5;
+        let maxAllowed = (weaponsBase * maxAmmoMult + dmgModFlat) * dmgModMult * talentDmgMult * 1.5;
         if (maxAllowed < 1000) maxAllowed = 1000;
         
         let finalDamage = parseFloat(damage) || 100;
@@ -1312,8 +1313,9 @@ socket.on('playerFire', (fireData) => {
                     });
                 }
                 const dmgModMult = 1.0 + (dmgModPct / 100);
+                const talentDmgMult = 1.0 + (attacker._talentBonuses?.laser_dmg_pct || 0) + (attacker._talentBonuses?.dmg_pct || 0);
 
-                const finalMaxTheoreticalDamage = (baseDmg * maxMultiplier + dmgModFlat) * dmgModMult;
+                const finalMaxTheoreticalDamage = (baseDmg * maxMultiplier + dmgModFlat) * dmgModMult * talentDmgMult;
                 const maxAllowedDmg = finalMaxTheoreticalDamage * 1.5; // 50% extra para críticos/buffs del cliente
 
                 const isReflect = !!data.isReflect;

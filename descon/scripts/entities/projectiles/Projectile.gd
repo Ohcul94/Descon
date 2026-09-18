@@ -316,7 +316,7 @@ func setup(p_pos: Vector2, p_angle: float, p_data: Dictionary):
 	if owner_type == "player" or owner_type == "remote":
 		collision_mask = 1 | 2 
 	else:
-		collision_mask = 1 | 2 
+		collision_mask = 1 | 2
 		
 	if type == "spin_ring":
 		var map_node = get_tree().get_first_node_in_group("map")
@@ -1783,6 +1783,7 @@ func _on_body_entered(body):
 			if age < 0.3: return 
 		
 		if body_eid == owner_id: return
+		var is_enemy_on_enemy = (owner_type == "enemy" and body.is_in_group("enemies"))
 		
 		var is_pvp_target = body.is_in_group("remote_players") or body.is_in_group("player")
 		
@@ -1803,6 +1804,8 @@ func _on_body_entered(body):
 		
 		_has_hit = true
 		var dmg_to_deal = damage
+		if is_enemy_on_enemy:
+			dmg_to_deal = 0.0
 		if type == "shield_steal":
 			dmg_to_deal = 0.0
 		if type == "life_steal":
@@ -1828,10 +1831,13 @@ func _on_body_entered(body):
 					_predict_local_heal(_owner_node, damage)
 					
 		if type != "shield_steal" and type != "life_steal" and type != "execution":
-			body.take_damage(dmg_to_deal, global_position, owner_id)
+			if not is_enemy_on_enemy:
+				body.take_damage(dmg_to_deal, global_position, owner_id)
 		
 		if NetworkManager:
-			if owner_type == "player" and body.is_in_group("enemies"):
+			if is_enemy_on_enemy:
+				NetworkManager.send_event("enemyHit", {"enemyId": body.entity_id, "damage": 0})
+			elif owner_type == "player" and body.is_in_group("enemies"):
 				if type == "fear":
 					NetworkManager.send_event("fearSphereHit", {"enemyId": body.entity_id, "damage": damage, "duration": float(get_meta("duration")) if has_meta("duration") else 3000.0})
 				else:
@@ -1946,14 +1952,20 @@ func _explode():
 			if "entity_id" in ent: ent_eid = str(ent.entity_id)
 			if ent_eid == owner_id: continue
 			
+			var is_eoe = (owner_type == "enemy" and ent.is_in_group("enemies"))
 			var dist = global_position.distance_to(ent.global_position)
 			if dist <= radius:
-				targets_hit.append(ent)
+				targets_hit.append({"ent": ent, "eoe": is_eoe})
 				
-		for ent in targets_hit:
-			ent.take_damage(damage, global_position, owner_id)
+		for t in targets_hit:
+			var ent = t["ent"]
+			var eoe = t["eoe"]
+			if not eoe:
+				ent.take_damage(damage, global_position, owner_id)
 			if NetworkManager:
-				if owner_type == "player" and ent.is_in_group("enemies"):
+				if eoe:
+					NetworkManager.send_event("enemyHit", {"enemyId": ent.entity_id, "damage": 0})
+				elif owner_type == "player" and ent.is_in_group("enemies"):
 					NetworkManager.send_event("enemyHit", {"enemyId": ent.entity_id, "damage": damage})
 				elif owner_type == "player" and (ent.is_in_group("remote_players") or ent.is_in_group("player")):
 					NetworkManager.send_event("playerHitByPlayer", {"victimId": ent.entity_id, "damage": damage})
